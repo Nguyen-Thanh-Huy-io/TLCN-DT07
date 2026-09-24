@@ -1,0 +1,25 @@
+// ================================
+// Historical Event Model
+// ================================
+
+model HistoricalEvent {
+    id            String   @id @default(uuid())
+    topicId       String   @map("topic_id")
+    title         String   @db.VarChar(255)
+    eventYear     Int      @map("event_year")
+    eventDateNote String?  @map("event_date_note") @db.VarChar(100)
+    description   String?  @db.Text
+    location      String?  @db.VarChar(255)
+    displayOrder  Int      @default(0) @map("display_order")
+    createdAt     DateTime @default(now()) @map("created_at")
+    updatedAt     DateTime @updatedAt @map("updated_at")
+
+    // Relations
+    topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+    @@index([topicId])
+    @@index([eventYear])
+    @@index([location])
+    @@index([displayOrder])
+    @@map("historical_events")
+}

@@ -15,8 +15,9 @@ model Topic {
     updatedAt     DateTime      @updatedAt @map("updated_at")
 
     // Relations
-    period  Period   @relation(fields: [periodId], references: [id], onDelete: Cascade)
-    lessons Lesson[]
+    period           Period            @relation(fields: [periodId], references: [id], onDelete: Cascade)
+    lessons          Lesson[]
+    historicalEvents HistoricalEvent[]
 
     @@index([periodId])
     @@index([status])

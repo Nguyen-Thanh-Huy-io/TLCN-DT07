@@ -15,6 +15,7 @@ import { LoggerModule } from './common/modules/logger.module';
 import { PeriodModule } from './period/period.module';
 import { TopicModule } from './topic/topic.module';
 import { LessonModule } from './lesson/lesson.module';
+import { HistoricalEventModule } from './historical-event/historical-event.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { LessonModule } from './lesson/lesson.module';
     PeriodModule,
     TopicModule,
     LessonModule,
+    HistoricalEventModule,
   ],
   controllers: [AppController],
   providers: [AppService],

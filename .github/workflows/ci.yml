@@ -1,4 +1,3 @@
-
 name: CI Pipeline
 
 on:
@@ -35,24 +34,27 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cachce-dependency-path: backend/package.json 
+          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
+        working-directory: backend
         run: npm ci
 
       - name: Run ESLint
+        working-directory: backend
         run: npm run lint
 
       - name: Run Tests
+        working-directory: backend
         run: npm run test
         env:
           NODE_ENV: test
 
   # ─────────────────────────────────────────────
-  # JOB 2: Next.js Build
+  # JOB 2: Backend Build
   # ─────────────────────────────────────────────
   build:
-    name: Next.js Build
+    name: Backend Build
     runs-on: ubuntu-latest
     needs: lint-and-test
 
@@ -65,17 +67,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cachce-dependency-path: backend/package.json
+          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
+        working-directory: backend
         run: npm ci
 
-      - name: Build Next.js application
+      - name: Build Backend
+        working-directory: backend
         run: npm run build
 
   # ─────────────────────────────────────────────
   # JOB 3: Docker Build
-  # Build image ONCE
   # ─────────────────────────────────────────────
   docker-build:
     name: Docker Build
@@ -132,8 +135,6 @@ jobs:
 
   # ─────────────────────────────────────────────
   # JOB 5: Docker Push
-  # Only main/master
-  # Only after Trivy PASS
   # ─────────────────────────────────────────────
   docker-push:
     name: Docker Push
@@ -160,15 +161,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Generate Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKER_IMAGE }}
-          tags: |
-            type=sha,prefix=sha-,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Tag Docker image
         run: |

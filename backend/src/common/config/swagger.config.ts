@@ -26,6 +26,7 @@ export function setupSwagger(app: INestApplication): void {
     .addTag('Topics - Chủ đề Lịch sử', 'Endpoints quản lý các chủ đề thuộc giai đoạn')
     .addTag('Lessons - Bài học Lịch sử', 'Endpoints quản lý bài học, nội dung rich text và kiểm duyệt bài')
     .addTag('Historical Events - Sự kiện Lịch sử', 'Endpoints quản lý các sự kiện lịch sử mốc thời gian thuộc chủ đề')
+    .addTag('Tags (Nhãn phân loại)', 'Endpoints quản lý nhãn/thẻ phân loại bài học và sự kiện lịch sử')
     .addTag('health', 'Endpoints kiểm tra sức khỏe hệ thống')
     .addTag('metrics', 'Endpoints theo dõi giám sát hệ thống')
     .build();

@@ -9,11 +9,12 @@ import { CustomThrottlerGuard } from '../src/common/guards/custom-throttler.guar
 import { AuthGuard } from '../src/common/guards/auth.guard';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
-describe('HistoricalEvent E2E Integration Tests', () => {
+describe('Tag E2E Integration Tests', () => {
   let app: INestApplication;
   let createdPeriodId: string;
   let createdTopicId: string;
-  let createdEventId: string;
+  let createdLessonId: string;
+  let createdTagId: string;
 
   const mockEmailQueueService = {
     sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
@@ -57,29 +58,42 @@ describe('HistoricalEvent E2E Integration Tests', () => {
 
     await app.init();
 
-    // 1. Tạo Period để gán Topic
+    // 1. Tạo Period
     const periodRes = await request(app.getHttpServer())
       .post('/periods')
       .send({
-        name: `Thời Lý - E2E Event ${Date.now()}`,
-        startYear: 1009,
-        endYear: 1225,
+        name: `Thời kỳ Tag E2E ${Date.now()}`,
+        startYear: 1945,
+        endYear: 1954,
       });
     createdPeriodId = periodRes.body.data.id;
 
-    // 2. Tạo Topic để gán Event
+    // 2. Tạo Topic
     const topicRes = await request(app.getHttpServer())
       .post('/topics')
       .send({
         periodId: createdPeriodId,
-        title: `Chống Tống lần 2 - E2E Event ${Date.now()}`,
+        title: `Chủ đề Tag E2E ${Date.now()}`,
       });
     createdTopicId = topicRes.body.data.id;
+
+    // 3. Tạo Lesson
+    const lessonRes = await request(app.getHttpServer())
+      .post('/lessons')
+      .send({
+        topicId: createdTopicId,
+        title: `Bài học Tag E2E ${Date.now()}`,
+        contentRichText: 'Nội dung bài học test tag',
+      });
+    createdLessonId = lessonRes.body.data.id;
   });
 
   afterAll(async () => {
-    if (createdEventId) {
-      await request(app.getHttpServer()).delete(`/historical-events/${createdEventId}`);
+    if (createdTagId) {
+      await request(app.getHttpServer()).delete(`/tags/${createdTagId}`);
+    }
+    if (createdLessonId) {
+      await request(app.getHttpServer()).delete(`/lessons/${createdLessonId}`);
     }
     if (createdTopicId) {
       await request(app.getHttpServer()).delete(`/topics/${createdTopicId}`);
@@ -90,31 +104,27 @@ describe('HistoricalEvent E2E Integration Tests', () => {
     await app.close();
   });
 
-  describe('1. POST /historical-events - Tạo mới Sự kiện', () => {
-    it('thành công tạo mới một sự kiện hợp lệ', async () => {
+  describe('1. POST /tags - Tạo mới Tag', () => {
+    it('thành công tạo mới một Tag hợp lệ', async () => {
       const res = await request(app.getHttpServer())
-        .post('/historical-events')
+        .post('/tags')
         .send({
-          topicId: createdTopicId,
-          title: 'Trận Như Nguyệt',
-          year: 1077,
-          location: 'Sông Như Nguyệt',
-          significance: 'Đánh tan quân Tống xâm lược lần 2',
-          status: 'PUBLISHED',
+          name: `Kháng chiến chống Pháp E2E ${Date.now()}`,
+          description: 'Tag cho các bài học chống Pháp',
+          colorHex: '#FF5733',
         });
 
       expect(res.status).toBe(201);
       expect(res.body.statusCode).toBe(201);
-      expect(res.body.data).toBeDefined();
       expect(res.body.data.id).toBeDefined();
-      createdEventId = res.body.data.id;
+      createdTagId = res.body.data.id;
     });
   });
 
-  describe('2. GET /historical-events - Danh sách Sự kiện', () => {
-    it('lấy danh sách sự kiện có phân trang', async () => {
+  describe('2. GET /tags - Danh sách Tag', () => {
+    it('lấy danh sách tags có phân trang', async () => {
       const res = await request(app.getHttpServer())
-        .get('/historical-events?page=1&limit=5')
+        .get('/tags?page=1&limit=5')
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);
@@ -122,39 +132,41 @@ describe('HistoricalEvent E2E Integration Tests', () => {
     });
   });
 
-  describe('3. GET /historical-events/:id - Chi tiết Sự kiện', () => {
-    it('lấy chi tiết sự kiện vừa tạo', async () => {
+  describe('3. POST /lessons/:id/tags - Gán Tag vào Lesson', () => {
+    it('gán tag vào bài học thành công', async () => {
       const res = await request(app.getHttpServer())
-        .get(`/historical-events/${createdEventId}`)
-        .expect(200);
-
-      expect(res.body.statusCode).toBe(200);
-      expect(res.body.data.id).toBe(createdEventId);
-    });
-  });
-
-  describe('4. PATCH /historical-events/:id - Cập nhật Sự kiện', () => {
-    it('cập nhật tiêu đề sự kiện', async () => {
-      const res = await request(app.getHttpServer())
-        .patch(`/historical-events/${createdEventId}`)
+        .post(`/lessons/${createdLessonId}/tags`)
         .send({
-          title: 'Trận Như Nguyệt (Đã cập nhật)',
+          tagIds: [createdTagId],
         })
-        .expect(200);
+        .expect(201);
 
-      expect(res.body.statusCode).toBe(200);
-      expect(res.body.data.title).toBe('Trận Như Nguyệt (Đã cập nhật)');
+      expect(res.body.statusCode).toBe(201);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data[0].id).toBe(createdTagId);
     });
   });
 
-  describe('5. DELETE /historical-events/:id - Xóa Sự kiện', () => {
-    it('xóa sự kiện thành công', async () => {
+  describe('4. GET /lessons/:id/tags - Lấy danh sách Tag của Lesson', () => {
+    it('lấy danh sách tag của bài học thành công', async () => {
       const res = await request(app.getHttpServer())
-        .delete(`/historical-events/${createdEventId}`)
+        .get(`/lessons/${createdLessonId}/tags`)
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);
-      createdEventId = '';
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data[0].id).toBe(createdTagId);
+    });
+  });
+
+  describe('5. DELETE /tags/:id - Xóa Tag', () => {
+    it('xóa tag thành công', async () => {
+      const res = await request(app.getHttpServer())
+        .delete(`/tags/${createdTagId}`)
+        .expect(200);
+
+      expect(res.body.statusCode).toBe(200);
+      createdTagId = '';
     });
   });
 });

@@ -21,9 +21,10 @@ model Lesson {
     updatedAt           DateTime        @updatedAt @map("updated_at")
 
     // Relations
-    topic    Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
-    creator  authUser  @relation("LessonCreator", fields: [createdBy], references: [id])
-    approver authUser? @relation("LessonApprover", fields: [approvedBy], references: [id])
+    topic      Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+    creator    authUser    @relation("LessonCreator", fields: [createdBy], references: [id])
+    approver   authUser?   @relation("LessonApprover", fields: [approvedBy], references: [id])
+    lessonTags LessonTag[]
 
     @@index([topicId])
     @@index([status])

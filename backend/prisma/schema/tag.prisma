@@ -1,0 +1,37 @@
+// ================================
+// Tag Model
+// ================================
+
+model Tag {
+    id          String   @id @default(uuid())
+    name        String   @unique @db.VarChar(100)
+    description String?  @db.Text
+    colorHex    String?  @map("color_hex") @db.VarChar(7)
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @updatedAt @map("updated_at")
+
+    // Relations
+    lessonTags LessonTag[]
+
+    @@index([name])
+    @@map("tags")
+}
+
+// ================================
+// LessonTag (Pivot Table) Model
+// ================================
+
+model LessonTag {
+    lessonId  String   @map("lesson_id")
+    tagId     String   @map("tag_id")
+    createdAt DateTime @default(now()) @map("created_at")
+
+    // Relations
+    lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+    tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+    @@id([lessonId, tagId])
+    @@index([lessonId])
+    @@index([tagId])
+    @@map("lesson_tags")
+}

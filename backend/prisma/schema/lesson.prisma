@@ -2,6 +2,12 @@
 // Lesson (Historical Lesson) Model
 // ================================
 
+enum MediaType {
+    IMAGE
+    VIDEO
+    DOCUMENT
+}
+
 model Lesson {
     id                  String          @id @default(uuid())
     topicId             String          @map("topic_id")
@@ -9,7 +15,6 @@ model Lesson {
     contentRichText     String?         @map("content_rich_text") @db.Text
     thumbnailUrl        String?         @map("thumbnail_url") @db.VarChar(500)
     difficulty          DifficultyLevel @default(MEDIUM)
-    xpReward            Int             @default(10) @map("xp_reward")
     sourceReferenceNote String?         @map("source_reference_note") @db.Text
     displayOrder        Int             @default(0) @map("display_order")
     status              ContentStatus   @default(DRAFT)
@@ -21,14 +26,35 @@ model Lesson {
     updatedAt           DateTime        @updatedAt @map("updated_at")
 
     // Relations
-    topic      Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
-    creator    authUser    @relation("LessonCreator", fields: [createdBy], references: [id])
-    approver   authUser?   @relation("LessonApprover", fields: [approvedBy], references: [id])
+    topic      Topic         @relation(fields: [topicId], references: [id], onDelete: Cascade)
+    creator    authUser      @relation("LessonCreator", fields: [createdBy], references: [id])
+    approver   authUser?     @relation("LessonApprover", fields: [approvedBy], references: [id])
     lessonTags LessonTag[]
+    media      LessonMedia[]
 
     @@index([topicId])
     @@index([status])
     @@index([difficulty])
     @@index([displayOrder])
     @@map("lessons")
+}
+
+// ================================
+// LessonMedia (Images/Videos) Model
+// ================================
+
+model LessonMedia {
+    id           String    @id @default(uuid())
+    lessonId     String    @map("lesson_id")
+    type         MediaType @default(IMAGE)
+    url          String    @db.VarChar(500)
+    caption      String?   @db.VarChar(255)
+    displayOrder Int       @default(0) @map("display_order")
+    createdAt    DateTime  @default(now()) @map("created_at")
+
+    // Relations
+    lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+    @@index([lessonId])
+    @@map("lesson_media")
 }

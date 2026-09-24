@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { TagService } from './tag.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { RedisService } from '../redis/redis.service';
+import { PrismaService } from '../common/services/prisma.service';
+import { RedisService } from '../common/services/redis.service';
 
 describe('TagService', () => {
   let service: TagService;

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -8,9 +9,53 @@ import {
   IsUUID,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContentStatus, DifficultyLevel } from '@prisma/client';
+import { ContentStatus, DifficultyLevel, MediaType } from '@prisma/client';
+
+export class CreateLessonMediaDto {
+  @ApiPropertyOptional({
+    enum: MediaType,
+    example: MediaType.IMAGE,
+    description: 'Loại media (IMAGE, VIDEO, DOCUMENT)',
+    default: MediaType.IMAGE,
+  })
+  @IsEnum(MediaType)
+  @IsOptional()
+  type?: MediaType = MediaType.IMAGE;
+
+  @ApiProperty({
+    example: 'https://example.com/images/bach-dang-coc-go.jpg',
+    description: 'Đường dẫn URL của file ảnh/video/tài liệu',
+    maxLength: 500,
+  })
+  @IsString()
+  @IsNotEmpty({ message: 'URL media không được để trống' })
+  @MaxLength(500)
+  url: string;
+
+  @ApiPropertyOptional({
+    example: 'Trận địa cọc gỗ trên sông Bạch Đằng năm 938',
+    description: 'Chú thích hình ảnh/video',
+    maxLength: 255,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  caption?: string;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Thứ tự hiển thị media',
+    default: 0,
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  displayOrder?: number = 0;
+}
 
 export class CreateLessonDto {
   @ApiProperty({
@@ -60,17 +105,6 @@ export class CreateLessonDto {
   difficulty?: DifficultyLevel = DifficultyLevel.MEDIUM;
 
   @ApiPropertyOptional({
-    example: 10,
-    description: 'Số điểm XP thưởng khi đọc/hoàn thành bài học',
-    default: 10,
-  })
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  @IsOptional()
-  xpReward?: number = 10;
-
-  @ApiPropertyOptional({
     example: 'Đại Việt Sử Ký Toàn Thư, Tập 1, NXB Khoa Học Xã Hội',
     description: 'Trích dẫn nguồn tư liệu lịch sử tham khảo',
   })
@@ -98,4 +132,14 @@ export class CreateLessonDto {
   @IsEnum(ContentStatus)
   @IsOptional()
   status?: ContentStatus = ContentStatus.DRAFT;
+
+  @ApiPropertyOptional({
+    type: [CreateLessonMediaDto],
+    description: 'Danh sách các ảnh/video minh họa kèm theo bài học',
+  })
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => CreateLessonMediaDto)
+  media?: CreateLessonMediaDto[];
 }

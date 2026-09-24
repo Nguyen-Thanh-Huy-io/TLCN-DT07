@@ -4,9 +4,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('Hệ Thống Học Lịch Sử Online API')
-    .setDescription(
-      'Hệ thống RESTful API quản lý bài học lịch sử, giai đoạn, chủ đề, câu hỏi quiz và tài khoản người dùng.',
-    )
     .setVersion('1.0.0')
     .addBearerAuth(
       {

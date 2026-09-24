@@ -30,7 +30,7 @@ import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { THROTTLER_CONFIG } from '../common/config/throttler.config';
 import { ApiResponseDecorator } from '../common/decorators';
 
-@ApiTags('auth')
+@ApiTags('Auth - Xác thực & Phân quyền')
 @Controller('auth')
 export class AuthController {
   constructor(

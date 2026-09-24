@@ -113,3 +113,22 @@ enum invoiceStatus {
     VOID
     UNCOLLECTIBLE
 }
+
+// ================================
+// Content & Learning Related Enums
+// ================================
+
+enum ContentStatus {
+    DRAFT
+    PENDING_REVIEW
+    PUBLISHED
+    REJECTED
+    ARCHIVED
+}
+
+enum DifficultyLevel {
+    EASY
+    MEDIUM
+    HARD
+}
+

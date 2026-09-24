@@ -12,6 +12,8 @@ import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './common/config/winston.config';
 import { LoggerModule } from './common/modules/logger.module';
 
+import { PeriodModule } from './period/period.module';
+
 @Module({
   imports: [
     // Load environment variables globally
@@ -31,6 +33,7 @@ import { LoggerModule } from './common/modules/logger.module';
     MetricsModule,
     AuthModule,
     UserModule,
+    PeriodModule,
   ],
   controllers: [AppController],
   providers: [AppService],

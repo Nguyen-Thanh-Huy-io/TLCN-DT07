@@ -1,0 +1,22 @@
+// ================================
+// Period (Historical Period) Model
+// ================================
+
+model Period {
+    id            String        @id @default(uuid())
+    name          String        @db.VarChar(255)
+    region        String?       @db.VarChar(100)
+    startYear     Int           @map("start_year")
+    endYear       Int?          @map("end_year")
+    description   String?       @db.Text
+    coverImageUrl String?       @map("cover_image_url") @db.VarChar(500)
+    displayOrder  Int           @default(0) @map("display_order")
+    status        ContentStatus @default(DRAFT)
+    createdAt     DateTime      @default(now()) @map("created_at")
+    updatedAt     DateTime      @updatedAt @map("updated_at")
+
+    @@index([region])
+    @@index([status])
+    @@index([displayOrder])
+    @@map("periods")
+}

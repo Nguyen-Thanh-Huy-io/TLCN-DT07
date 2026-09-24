@@ -1,0 +1,93 @@
+===========================================================
+HISTORICAL_PLACES — GHI CHÚ TỐI ƯU ĐỂ LÀM SAU
+===========================================================
+
+HIỆN TẠI (đã chốt):
+- periods.region       String?  + @@index([region])    → filter vùng
+- historical_events.location String? + @@index([location]) → filter địa danh
+→ Đủ cho TLCN, không cần bảng riêng.
+
+===========================================================
+VẤN ĐỀ NẾU MỞ RỘNG SAU NÀY:
+===========================================================
+
+1. FILTER PHÂN CẤP (cha → con)
+   - Hiện tại: filter "Hà Nội" không bắt được "Hoàn Kiếm" (con của Hà Nội)
+   - Cần: bảng locations tự tham chiếu (parentId)
+   - Ví dụ:
+       Việt Nam (COUNTRY)
+         └── Hà Nội (PROVINCE)
+               └── Hoàn Kiếm (CITY)
+
+2. CHUẨN HÓA DỮ LIỆU (tránh typo)
+   - Hiện tại: "Hà Nội" vs "Hà nội" vs "Ha Noi" → không khớp khi filter
+   - Cần: bảng historical_places làm lookup table chuẩn
+   - Admin chọn từ dropdown thay vì tự gõ
+
+3. AUTOCOMPLETE / SUGGEST KHI TÌM KIẾM
+   - Hiện tại: ILIKE '%Hà Nội%' → chậm nếu data lớn, không suggest
+   - Cần: pg_trgm extension + GIN index cho trigram search
+   - Hoặc: Elasticsearch nếu scale lớn
+
+4. THỐNG KÊ THEO ĐỊA LÝ
+   - "Bao nhiêu bài học về Hà Nội?"
+   - "Vùng nào có nhiều sự kiện lịch sử nhất?"
+   - Cần: bảng chuẩn hóa để GROUP BY chính xác
+
+===========================================================
+SCHEMA ĐỀ XUẤT KHI LÀM (tương lai):
+===========================================================
+
+model historicalPlace {
+  id          String       @id @default(uuid())
+  name        String       // "Sông Bạch Đằng", "Hoàng Thành Thăng Long"
+  type        LocationType // COUNTRY / PROVINCE / CITY / REGION
+  parentId    String?      // Self-ref: Hà Nội → parentId = VietNam.id
+  country     String       @default("Việt Nam")
+  code        String?      // ISO hoặc tự đặt: "HN", "QN"
+  description String?      @db.Text
+
+  parent   historicalPlace?  @relation("PlaceHierarchy", fields: [parentId], references: [id])
+  children historicalPlace[] @relation("PlaceHierarchy")
+
+  // Ánh xạ ngược
+  periods historicalEvent[]
+  topics  topic[]
+
+  @@index([parentId])
+  @@index([type])
+  @@index([country])
+}
+
+enum LocationType {
+  CONTINENT // Châu Á, Châu Âu
+  COUNTRY   // Việt Nam, Pháp, Trung Quốc
+  PROVINCE  // Hà Nội, Quảng Ninh, Thừa Thiên Huế
+  CITY      // Hoàn Kiếm, Điện Biên
+  REGION    // Champa, Phù Nam, Đại Việt (vùng lịch sử không còn tồn tại)
+}
+
+===========================================================
+THAY ĐỔI CẦN THIẾT KHI IMPLEMENT:
+===========================================================
+
+1. Thêm bảng historical_places vào schema
+2. Seed data:
+   - 5 châu lục
+   - Các quốc gia liên quan (VN, TQ, Pháp, Mỹ...)
+   - 63 tỉnh thành Việt Nam
+   - Các vùng lịch sử đặc biệt (Champa, Phù Nam...)
+3. Đổi periods.region (String) → locationId FK → historicalPlace
+4. Đổi historical_events.location (String) → locationId FK → historicalPlace
+5. Tạo API endpoint: GET /locations?type=PROVINCE&country=VN
+6. Admin UI: dropdown chọn địa danh thay vì tự gõ
+7. Xem xét pg_trgm nếu cần full-text search địa danh
+
+===========================================================
+GHI CHÚ THÊM:
+===========================================================
+- Nếu muốn hệ thống TỰ PHÂN TÍCH nội dung → extract địa danh
+  thì cần NLP tiếng Việt: thư viện "underthesea" (Python)
+  hoặc gọi AI/LLM để extract Named Entity (địa danh) từ contentRichText
+- Đây là tính năng nâng cao, không thuộc scope TLCN hiện tại
+===========================================================

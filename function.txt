@@ -1,0 +1,130 @@
+1. periods — Giai đoạn lịch sử
+Thuộc tính	Kiểu dữ liệu	Ý nghĩa
+id	UUID	PK – ID giai đoạn
+name	VARCHAR(255)	Tên giai đoạn lịch sử
+region	VARCHAR(20)	Khu vực
+start_year	INT	Năm bắt đầu
+end_year	INT	Năm kết thúc
+description	TEXT	Mô tả giai đoạn
+display_order	INT	Thứ tự hiển thị
+status	VARCHAR(20)	Trạng thái
+created_at	TIMESTAMPTZ	Thời gian tạo
+
+Quan hệ chính: Period 1 → N Topic.
+
+2. topics — Chủ đề
+Thuộc tính	Kiểu dữ liệu	Ý nghĩa
+id	UUID	PK – ID chủ đề
+period_id	UUID	FK → periods.id
+name	VARCHAR(255)	Tên chủ đề
+description	TEXT	Mô tả
+is_sequential	BOOLEAN	Có yêu cầu học theo thứ tự không
+display_order	INT	Thứ tự hiển thị
+status	VARCHAR(20)	Trạng thái
+
+Quan hệ:
+
+Period 1 → N Topic
+Topic 1 → N Lesson
+
+3. lessons — Bài học
+Thuộc tính	Kiểu dữ liệu	Ý nghĩa
+id	UUID	PK – ID bài học
+topic_id	UUID	FK → topics.id
+title	VARCHAR(255)	Tiêu đề bài học
+content_rich_text	TEXT	Nội dung bài học
+difficulty	VARCHAR(20)	Độ khó
+xp_reward	INT	XP thưởng
+source_reference_note	TEXT	Nguồn/tham khảo
+display_order	INT	Thứ tự bài học
+status	VARCHAR(20)	Trạng thái bài
+rejection_reason	TEXT	Lý do từ chối
+created_by	UUID	FK → users.id
+approved_by	UUID	FK → users.id
+created_at	TIMESTAMPTZ	Ngày tạo
+updated_at	TIMESTAMPTZ	Ngày cập nhật
+
+created_by và approved_by chính là lý do bảng users liên quan đến module này.
+
+4. historical_events — Sự kiện lịch sử
+Thuộc tính	Kiểu dữ liệu	Ý nghĩa
+id	UUID	PK
+topic_id	UUID	FK → topics.id
+title	VARCHAR(255)	Tên sự kiện
+event_year	INT	Năm diễn ra
+event_date_note	VARCHAR(100)	Ghi chú ngày/tháng
+description	TEXT	Mô tả sự kiện
+display_order	INT	Thứ tự hiển thị
+
+Quan hệ: Topic 1 → N HistoricalEvent.
+
+Ví dụ một Topic "Kháng chiến chống quân Nguyên - Mông" có thể chứa nhiều sự kiện lịch sử.
+
+5. tags — Thẻ/Nhãn
+Thuộc tính	Kiểu dữ liệu	Ý nghĩa
+id	UUID	PK
+name	VARCHAR(100)	UNIQUE – tên tag
+
+Ví dụ:
+
+Nhân vật, Chiến tranh, Khởi nghĩa, Văn hóa, Kinh tế...
+
+6. lesson_tags — Liên kết Lesson ↔ Tag
+Thuộc tính	Kiểu dữ liệu	Ý nghĩa
+lesson_id	UUID	PK, FK → lessons.id
+tag_id	UUID	PK, FK → tags.id
+
+Đây là bảng trung gian cho quan hệ N:N:
+
+Lesson N ← LessonTag → N Tag
+
+Ví dụ:
+
+Bài học: Khởi nghĩa Hai Bà Trưng
+
+Tags:
+├── Khởi nghĩa
+├── Nhân vật lịch sử
+└── Bắc thuộc
+7. users — Người tạo/người duyệt bài học
+
+Bảng này thuộc module User/Auth, bạn không nhất thiết phải làm lại, nhưng Lesson cần tham chiếu đến nó.
+
+Thuộc tính	Kiểu dữ liệu	Ý nghĩa
+id	UUID	PK
+email	VARCHAR(255)	UNIQUE
+password_hash	VARCHAR(255)	Mật khẩu đã hash
+oauth_provider	VARCHAR(50)	Nhà cung cấp OAuth
+oauth_id	VARCHAR(255)	ID OAuth
+role	VARCHAR(20)	Vai trò User/Admin/...
+status	VARCHAR(20)	Trạng thái tài khoản
+failed_login_attempts	INT	Số lần đăng nhập thất bại
+locked_until	TIMESTAMPTZ	Khóa tài khoản đến
+email_verified_at	TIMESTAMPTZ	Ngày xác thực email
+created_at	TIMESTAMPTZ	Ngày tạo
+updated_at	TIMESTAMPTZ	Ngày cập nhật
+Quan hệ tổng thể của riêng phần này
+PERIODS
+   │
+   │ 1:N
+   ▼
+TOPICS
+   │
+   ├───────────────┐
+   │ 1:N           │ 1:N
+   ▼               ▼
+LESSONS      HISTORICAL_EVENTS
+   │
+   │ N:N
+   ▼
+LESSON_TAGS
+   │
+   ▼
+ TAGS
+
+
+USERS
+  │
+  ├── created_by ──────► LESSONS
+  │
+  └── approved_by ─────► LESSONS

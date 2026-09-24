@@ -1,25 +1,24 @@
 // ================================
-// Period (Historical Period) Model
+// Topic (Historical Topic) Model
 // ================================
 
-model Period {
+model Topic {
     id            String        @id @default(uuid())
+    periodId      String        @map("period_id")
     name          String        @db.VarChar(255)
-    region        String?       @db.VarChar(100)
-    startYear     Int           @map("start_year")
-    endYear       Int?          @map("end_year")
     description   String?       @db.Text
     coverImageUrl String?       @map("cover_image_url") @db.VarChar(500)
+    isSequential  Boolean       @default(false) @map("is_sequential")
     displayOrder  Int           @default(0) @map("display_order")
     status        ContentStatus @default(DRAFT)
     createdAt     DateTime      @default(now()) @map("created_at")
     updatedAt     DateTime      @updatedAt @map("updated_at")
 
     // Relations
-    topics Topic[]
+    period Period @relation(fields: [periodId], references: [id], onDelete: Cascade)
 
-    @@index([region])
+    @@index([periodId])
     @@index([status])
     @@index([displayOrder])
-    @@map("periods")
+    @@map("topics")
 }

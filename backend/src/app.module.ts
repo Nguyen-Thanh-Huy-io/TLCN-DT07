@@ -13,6 +13,7 @@ import { winstonConfig } from './common/config/winston.config';
 import { LoggerModule } from './common/modules/logger.module';
 
 import { PeriodModule } from './period/period.module';
+import { TopicModule } from './topic/topic.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { PeriodModule } from './period/period.module';
     AuthModule,
     UserModule,
     PeriodModule,
+    TopicModule,
   ],
   controllers: [AppController],
   providers: [AppService],

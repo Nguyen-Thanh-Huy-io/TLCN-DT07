@@ -23,6 +23,8 @@ export function setupSwagger(app: INestApplication): void {
     .addTag('Auth - Xác thực & Phân quyền', 'Endpoints xác thực đăng ký, đăng nhập, OTP và OAuth')
     .addTag('Users - Quản lý Người dùng', 'Endpoints quản lý thông tin tài khoản và phân quyền')
     .addTag('Periods - Giai đoạn Lịch sử', 'Endpoints quản lý các giai đoạn lịch sử')
+    .addTag('Topics - Chủ đề Lịch sử', 'Endpoints quản lý các chủ đề thuộc giai đoạn')
+    .addTag('Lessons - Bài học Lịch sử', 'Endpoints quản lý bài học, nội dung rich text và kiểm duyệt bài')
     .addTag('health', 'Endpoints kiểm tra sức khỏe hệ thống')
     .addTag('metrics', 'Endpoints theo dõi giám sát hệ thống')
     .build();

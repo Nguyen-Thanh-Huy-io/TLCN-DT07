@@ -24,6 +24,8 @@ model authUser {
     emailHistory      emailHistory[]
     activityLogEvents ActivityLogEvent[]
     subscriptions     Subscription[]
+    createdLessons    Lesson[]           @relation("LessonCreator")
+    approvedLessons   Lesson[]           @relation("LessonApprover")
 
     @@index([email, id, providerId])
     @@index([username])

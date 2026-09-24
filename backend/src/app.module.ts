@@ -14,6 +14,7 @@ import { LoggerModule } from './common/modules/logger.module';
 
 import { PeriodModule } from './period/period.module';
 import { TopicModule } from './topic/topic.module';
+import { LessonModule } from './lesson/lesson.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { TopicModule } from './topic/topic.module';
     UserModule,
     PeriodModule,
     TopicModule,
+    LessonModule,
   ],
   controllers: [AppController],
   providers: [AppService],

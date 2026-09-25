@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
@@ -10,7 +10,11 @@ export class QueryTagDto {
   @Min(1)
   page?: number = 1;
 
-  @ApiPropertyOptional({ example: 10, default: 10, description: 'Số bản ghi mỗi trang' })
+  @ApiPropertyOptional({
+    example: 10,
+    default: 10,
+    description: 'Số bản ghi mỗi trang',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -18,7 +22,10 @@ export class QueryTagDto {
   @Max(100)
   limit?: number = 10;
 
-  @ApiPropertyOptional({ example: 'Kháng chiến', description: 'Từ khóa tìm kiếm theo tên' })
+  @ApiPropertyOptional({
+    example: 'Kháng chiến',
+    description: 'Từ khóa tìm kiếm theo tên',
+  })
   @IsOptional()
   @IsString()
   search?: string;

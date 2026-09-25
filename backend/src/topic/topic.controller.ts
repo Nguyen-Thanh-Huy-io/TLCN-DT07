@@ -35,15 +35,22 @@ export class TopicController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Tạo mới một chủ đề lịch sử thuộc Giai đoạn',
-    description: 'Yêu cầu quyền quản trị (Admin/Moderator). Thêm mới một Topic.',
+    description:
+      'Yêu cầu quyền quản trị (Admin/Moderator). Thêm mới một Topic.',
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Tạo chủ đề thành công',
     type: TopicResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'PeriodId không tồn tại' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Chưa xác thực hoặc token không hợp lệ' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'PeriodId không tồn tại',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Chưa xác thực hoặc token không hợp lệ',
+  })
   async create(@Body() createTopicDto: CreateTopicDto) {
     return this.topicService.create(createTopicDto);
   }
@@ -51,7 +58,8 @@ export class TopicController {
   @Get()
   @ApiOperation({
     summary: 'Lấy danh sách các chủ đề lịch sử',
-    description: 'Hỗ trợ phân trang, lọc theo periodId, status và tìm kiếm từ khóa.',
+    description:
+      'Hỗ trợ phân trang, lọc theo periodId, status và tìm kiếm từ khóa.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -64,7 +72,8 @@ export class TopicController {
   @Get(':id')
   @ApiOperation({
     summary: 'Lấy chi tiết một chủ đề lịch sử theo ID',
-    description: 'Trả về thông tin chi tiết của một Topic cụ thể kèm thông tin Period.',
+    description:
+      'Trả về thông tin chi tiết của một Topic cụ thể kèm thông tin Period.',
   })
   @ApiParam({ name: 'id', description: 'UUID của chủ đề', type: String })
   @ApiResponse({
@@ -72,7 +81,10 @@ export class TopicController {
     description: 'Tìm thấy chủ đề',
     type: TopicResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy chủ đề' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy chủ đề',
+  })
   async findOne(@Param('id') id: string) {
     return this.topicService.findOne(id);
   }
@@ -84,13 +96,20 @@ export class TopicController {
     summary: 'Cập nhật thông tin một chủ đề lịch sử',
     description: 'Yêu cầu quyền quản trị. Cập nhật thông tin của Topic.',
   })
-  @ApiParam({ name: 'id', description: 'UUID của chủ đề cần sửa', type: String })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID của chủ đề cần sửa',
+    type: String,
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Cập nhật thành công',
     type: TopicResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy chủ đề hoặc Period mới' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy chủ đề hoặc Period mới',
+  })
   async update(
     @Param('id') id: string,
     @Body() updateTopicDto: UpdateTopicDto,
@@ -106,12 +125,19 @@ export class TopicController {
     summary: 'Xóa một chủ đề lịch sử',
     description: 'Yêu cầu quyền quản trị. Xóa Topic khỏi hệ thống.',
   })
-  @ApiParam({ name: 'id', description: 'UUID của chủ đề cần xóa', type: String })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID của chủ đề cần xóa',
+    type: String,
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Xóa chủ đề thành công',
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy chủ đề' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy chủ đề',
+  })
   async remove(@Param('id') id: string) {
     return this.topicService.remove(id);
   }

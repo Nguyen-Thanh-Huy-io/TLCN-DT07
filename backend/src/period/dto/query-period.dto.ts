@@ -14,7 +14,8 @@ export class QueryPeriodDto {
 
   @ApiPropertyOptional({
     enum: ContentStatus,
-    description: 'Lọc theo trạng thái nội dung (mặc định cho user là PUBLISHED)',
+    description:
+      'Lọc theo trạng thái nội dung (mặc định cho user là PUBLISHED)',
   })
   @IsEnum(ContentStatus)
   @IsOptional()

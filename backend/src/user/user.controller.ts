@@ -32,14 +32,18 @@ export class UserController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Tạo mới một người dùng (Admin)',
-    description: 'Yêu cầu quyền quản trị. Khởi tạo tài khoản mới kèm Role và Status.',
+    description:
+      'Yêu cầu quyền quản trị. Khởi tạo tài khoản mới kèm Role và Status.',
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Tạo người dùng thành công',
     type: UserResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.CONFLICT, description: 'Email hoặc Username đã tồn tại' })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'Email hoặc Username đã tồn tại',
+  })
   async create(@Body() createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
   }
@@ -49,7 +53,8 @@ export class UserController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Lấy danh sách tất cả người dùng',
-    description: 'Yêu cầu quyền quản trị. Trả về danh sách người dùng kèm thông tin profile.',
+    description:
+      'Yêu cầu quyền quản trị. Trả về danh sách người dùng kèm thông tin profile.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -73,7 +78,10 @@ export class UserController {
     description: 'Tìm thấy người dùng',
     type: UserResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy người dùng' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy người dùng',
+  })
   async findOne(@Param('id') id: string) {
     return this.userService.findOne(id);
   }
@@ -85,17 +93,21 @@ export class UserController {
     summary: 'Cập nhật thông tin người dùng / Profile / Role',
     description: 'Cập nhật tài khoản, mật khẩu hoặc hồ sơ người dùng.',
   })
-  @ApiParam({ name: 'id', description: 'UUID người dùng cần sửa', type: String })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID người dùng cần sửa',
+    type: String,
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Cập nhật người dùng thành công',
     type: UserResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy người dùng' })
-  async update(
-    @Param('id') id: string,
-    @Body() updateUserDto: UpdateUserDto,
-  ) {
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy người dùng',
+  })
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(id, updateUserDto);
   }
 
@@ -106,12 +118,19 @@ export class UserController {
     summary: 'Xóa một người dùng (Admin)',
     description: 'Yêu cầu quyền quản trị. Xóa người dùng khỏi hệ thống.',
   })
-  @ApiParam({ name: 'id', description: 'UUID người dùng cần xóa', type: String })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID người dùng cần xóa',
+    type: String,
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Xóa người dùng thành công',
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy người dùng' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy người dùng',
+  })
   async remove(@Param('id') id: string) {
     return this.userService.remove(id);
   }

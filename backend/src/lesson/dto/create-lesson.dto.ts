@@ -77,7 +77,8 @@ export class CreateLessonDto {
   title: string;
 
   @ApiPropertyOptional({
-    example: '<p>Năm 938, Ngô Quyền đã dùng trận địa cọc gỗ cắm trên sông Bạch Đằng...</p>',
+    example:
+      '<p>Năm 938, Ngô Quyền đã dùng trận địa cọc gỗ cắm trên sông Bạch Đằng...</p>',
     description: 'Nội dung bài học dạng Rich Text / HTML / Markdown',
   })
   @IsString()

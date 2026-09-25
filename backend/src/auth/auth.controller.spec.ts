@@ -93,7 +93,7 @@ describe('AuthController', () => {
 
       await controller.create(createAuthDto, mockRequest);
 
-      expect(mockAuthService.create).toHaveBeenCalledWith(createAuthDto, {
+      expect(mockAuthService.create)c.toHaveBeenCalledWith(createAuthDto, {
         ip: '127.0.0.1',
         userAgent: 'Jest Test Agent',
         device: 'test-device',
@@ -190,7 +190,7 @@ describe('AuthController', () => {
       const mockResponse = { message: 'Email verified successfully' };
       mockAuthService.verifyEmail.mockResolvedValue(mockResponse);
 
-      const result = await controller.verifyEmail(email, code, mockRequest);
+      const result = await controller.verifyEmail({ email, code }, mockRequest);
 
       expect(result).toEqual(mockResponse);
       expect(mockAuthService.verifyEmail).toHaveBeenCalledWith(email, code, {
@@ -210,7 +210,7 @@ describe('AuthController', () => {
       const mockResponse = { message: 'Email verified successfully' };
       mockAuthService.verifyEmail.mockResolvedValue(mockResponse);
 
-      await controller.verifyEmail(email, code, mockRequest);
+      await controller.verifyEmail({ email, code }, mockRequest);
 
       expect(mockAuthService.verifyEmail).toHaveBeenCalledWith(email, code, {
         ip: 'unknown',
@@ -232,7 +232,7 @@ describe('AuthController', () => {
       mockAuthService.verifyEmail.mockRejectedValue(error);
 
       await expect(
-        controller.verifyEmail(email, code, mockRequest),
+        controller.verifyEmail({ email, code }, mockRequest),
       ).rejects.toThrow('Invalid verification code');
       expect(mockAuthService.verifyEmail).toHaveBeenCalledTimes(1);
     });
@@ -252,7 +252,7 @@ describe('AuthController', () => {
       mockAuthService.resendVerificationEmail.mockResolvedValue(mockResponse);
 
       const result = await controller.resendVerificationEmail(
-        email,
+        { email },
         mockRequest,
       );
 
@@ -276,7 +276,7 @@ describe('AuthController', () => {
       const mockResponse = { message: 'Verification email sent successfully' };
       mockAuthService.resendVerificationEmail.mockResolvedValue(mockResponse);
 
-      await controller.resendVerificationEmail(email, mockRequest);
+      await controller.resendVerificationEmail({ email }, mockRequest);
 
       expect(mockAuthService.resendVerificationEmail).toHaveBeenCalledWith(
         email,
@@ -300,7 +300,7 @@ describe('AuthController', () => {
       mockAuthService.resendVerificationEmail.mockRejectedValue(error);
 
       await expect(
-        controller.resendVerificationEmail(email, mockRequest),
+        controller.resendVerificationEmail({ email }, mockRequest),
       ).rejects.toThrow('User not found');
       expect(mockAuthService.resendVerificationEmail).toHaveBeenCalledTimes(1);
     });

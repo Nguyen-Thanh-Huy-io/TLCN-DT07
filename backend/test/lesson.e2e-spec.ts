@@ -94,12 +94,10 @@ describe('Lesson E2E Integration Tests', () => {
 
   describe('1. POST /lessons - Tạo mới Lesson', () => {
     it('thất bại với 404 nếu topicId không tồn tại', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/lessons')
-        .send({
-          topicId: '00000000-0000-0000-0000-000000000000',
-          title: 'Bài học không có chủ đề',
-        });
+      const res = await request(app.getHttpServer()).post('/lessons').send({
+        topicId: '00000000-0000-0000-0000-000000000000',
+        title: 'Bài học không có chủ đề',
+      });
 
       expect(res.status).toBe(404);
     });
@@ -110,7 +108,8 @@ describe('Lesson E2E Integration Tests', () => {
         .send({
           topicId: testTopicId,
           title: `Trận Bạch Đằng năm 938 - E2E ${Date.now()}`,
-          contentRichText: '<p>Chi tiết diễn biến trận đánh cọc gỗ trên sông Bạch Đằng...</p>',
+          contentRichText:
+            '<p>Chi tiết diễn biến trận đánh cọc gỗ trên sông Bạch Đằng...</p>',
           difficulty: 'MEDIUM',
           xpReward: 15,
           displayOrder: 1,

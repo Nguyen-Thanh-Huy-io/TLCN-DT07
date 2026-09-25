@@ -37,15 +37,22 @@ export class LessonController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Tạo mới một bài học lịch sử',
-    description: 'Yêu cầu đăng nhập. Tạo bài học mới ở trạng thái bản nháp DRAFT.',
+    description:
+      'Yêu cầu đăng nhập. Tạo bài học mới ở trạng thái bản nháp DRAFT.',
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Tạo bài học thành công',
     type: LessonResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'TopicId không tồn tại' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Chưa xác thực token' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'TopicId không tồn tại',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Chưa xác thực token',
+  })
   async create(@Body() createLessonDto: CreateLessonDto, @Req() req: any) {
     const userId = req.user?.userId || req.user?.id;
     return this.lessonService.create(createLessonDto, userId);
@@ -54,7 +61,8 @@ export class LessonController {
   @Get()
   @ApiOperation({
     summary: 'Lấy danh sách các bài học lịch sử',
-    description: 'Hỗ trợ phân trang, lọc theo topicId, status, độ khó difficulty và từ khóa tìm kiếm.',
+    description:
+      'Hỗ trợ phân trang, lọc theo topicId, status, độ khó difficulty và từ khóa tìm kiếm.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -67,7 +75,8 @@ export class LessonController {
   @Get(':id')
   @ApiOperation({
     summary: 'Lấy chi tiết một bài học lịch sử theo ID',
-    description: 'Trả về chi tiết bài học kèm thời gian đọc ước tính (estimatedReadMinutes).',
+    description:
+      'Trả về chi tiết bài học kèm thời gian đọc ước tính (estimatedReadMinutes).',
   })
   @ApiParam({ name: 'id', description: 'UUID của bài học', type: String })
   @ApiResponse({
@@ -75,7 +84,10 @@ export class LessonController {
     description: 'Tìm thấy bài học',
     type: LessonResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy bài học' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy bài học',
+  })
   async findOne(@Param('id') id: string) {
     return this.lessonService.findOne(id);
   }
@@ -87,13 +99,20 @@ export class LessonController {
     summary: 'Cập nhật thông tin bài học lịch sử',
     description: 'Yêu cầu đăng nhập. Cập nhật thuộc tính của Lesson.',
   })
-  @ApiParam({ name: 'id', description: 'UUID của bài học cần sửa', type: String })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID của bài học cần sửa',
+    type: String,
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Cập nhật thành công',
     type: LessonResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy bài học hoặc TopicId mới' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy bài học hoặc TopicId mới',
+  })
   async update(
     @Param('id') id: string,
     @Body() updateLessonDto: UpdateLessonDto,
@@ -106,15 +125,23 @@ export class LessonController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Duyệt hoặc Từ chối bài học (Admin / Reviewer)',
-    description: 'Yêu cầu quyền Admin. Chuyển trạng thái sang PUBLISHED hoặc REJECTED (kèm lý do).',
+    description:
+      'Yêu cầu quyền Admin. Chuyển trạng thái sang PUBLISHED hoặc REJECTED (kèm lý do).',
   })
-  @ApiParam({ name: 'id', description: 'UUID của bài học cần duyệt', type: String })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID của bài học cần duyệt',
+    type: String,
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Kiểm duyệt bài học thành công',
     type: LessonResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Thiếu lý do từ chối khi REJECTED' })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Thiếu lý do từ chối khi REJECTED',
+  })
   async review(
     @Param('id') id: string,
     @Body() reviewLessonDto: ReviewLessonDto,
@@ -132,12 +159,19 @@ export class LessonController {
     summary: 'Xóa một bài học lịch sử',
     description: 'Yêu cầu đăng nhập. Xóa Lesson khỏi hệ thống.',
   })
-  @ApiParam({ name: 'id', description: 'UUID của bài học cần xóa', type: String })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID của bài học cần xóa',
+    type: String,
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Xóa bài học thành công',
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy bài học' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy bài học',
+  })
   async remove(@Param('id') id: string) {
     return this.lessonService.remove(id);
   }

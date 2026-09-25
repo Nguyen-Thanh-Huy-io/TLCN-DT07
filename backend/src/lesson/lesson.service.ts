@@ -10,7 +10,7 @@ import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 import { QueryLessonDto } from './dto/query-lesson.dto';
 import { ReviewLessonDto } from './dto/review-lesson.dto';
-import { Lesson, ContentStatus, Prisma } from '@prisma/client';
+import { ContentStatus, Prisma } from '@prisma/client';
 
 export interface IPaginatedResult<T> {
   items: T[];
@@ -48,15 +48,24 @@ export class LessonService {
   private formatLessonResponse(lesson: any) {
     return {
       ...lesson,
-      estimatedReadMinutes: this.calculateReadTime(lesson.contentRichText),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      estimatedReadMinutes: this.calculateReadTime(
+        lesson.contentRichText as string | null | undefined,
+      ),
     };
   }
 
   /**
    * Tạo mới bài học lịch sử kèm media minh họa
    */
-  async create(createLessonDto: CreateLessonDto, creatorUserId: string): Promise<any> {
-    this.logger.log(`Creating lesson: ${createLessonDto.title}`, 'LessonService');
+  async create(
+    createLessonDto: CreateLessonDto,
+    creatorUserId: string,
+  ): Promise<any> {
+    this.logger.log(
+      `Creating lesson: ${createLessonDto.title}`,
+      'LessonService',
+    );
 
     const topic = await this.prisma.topic.findUnique({
       where: { id: createLessonDto.topicId },
@@ -74,13 +83,14 @@ export class LessonService {
       data: {
         ...lessonData,
         createdBy: creatorUserId,
-        media: media && media.length > 0
-          ? {
-              createMany: {
-                data: media,
-              },
-            }
-          : undefined,
+        media:
+          media && media.length > 0
+            ? {
+                createMany: {
+                  data: media,
+                },
+              }
+            : undefined,
       },
       include: {
         creator: { select: { id: true, email: true, username: true } },
@@ -191,7 +201,9 @@ export class LessonService {
     });
 
     if (!lesson) {
-      throw new NotFoundException(`Bài học lịch sử với ID "${id}" không tồn tại`);
+      throw new NotFoundException(
+        `Bài học lịch sử với ID "${id}" không tồn tại`,
+      );
     }
 
     const formatted = this.formatLessonResponse(lesson);
@@ -222,7 +234,8 @@ export class LessonService {
       }
     }
 
-    const { media, ...lessonData } = updateLessonDto;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { media: _, ...lessonData } = updateLessonDto;
 
     const updated = await this.prisma.lesson.update({
       where: { id },
@@ -242,11 +255,20 @@ export class LessonService {
   /**
    * Duyệt hoặc từ chối bài học (Admin/Reviewer)
    */
-  async review(id: string, reviewDto: ReviewLessonDto, adminUserId: string): Promise<any> {
+  async review(
+    id: string,
+    reviewDto: ReviewLessonDto,
+    adminUserId: string,
+  ): Promise<any> {
     await this.findOne(id);
 
-    if (reviewDto.status === ContentStatus.REJECTED && !reviewDto.rejectionReason) {
-      throw new BadRequestException('Bắt buộc phải nhập lý do từ chối (rejectionReason)');
+    if (
+      reviewDto.status === ContentStatus.REJECTED &&
+      !reviewDto.rejectionReason
+    ) {
+      throw new BadRequestException(
+        'Bắt buộc phải nhập lý do từ chối (rejectionReason)',
+      );
     }
 
     const updateData: Prisma.LessonUpdateInput = {
@@ -303,7 +325,10 @@ export class LessonService {
       }
       await this.redis.deleteByPattern(`${this.CACHE_PREFIX}:*`);
     } catch (err) {
-      this.logger.warn(`Failed to clear lesson cache: ${err.message}`, 'LessonService');
+      this.logger.warn(
+        `Failed to clear lesson cache: ${err.message}`,
+        'LessonService',
+      );
     }
   }
 }

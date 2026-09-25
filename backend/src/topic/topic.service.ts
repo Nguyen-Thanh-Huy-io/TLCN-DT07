@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
@@ -162,7 +158,9 @@ export class TopicService {
     });
 
     if (!topic) {
-      throw new NotFoundException(`Chủ đề lịch sử với ID "${id}" không tồn tại`);
+      throw new NotFoundException(
+        `Chủ đề lịch sử với ID "${id}" không tồn tại`,
+      );
     }
 
     try {
@@ -228,7 +226,10 @@ export class TopicService {
       }
       await this.redis.deleteByPattern(`${this.CACHE_PREFIX}:*`);
     } catch (err) {
-      this.logger.warn(`Failed to clear topic cache: ${err.message}`, 'TopicService');
+      this.logger.warn(
+        `Failed to clear topic cache: ${err.message}`,
+        'TopicService',
+      );
     }
   }
 }

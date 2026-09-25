@@ -82,12 +82,10 @@ describe('Topic E2E Integration Tests', () => {
 
   describe('1. POST /topics - Tạo mới Topic', () => {
     it('thất bại với 404 nếu periodId không tồn tại', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/topics')
-        .send({
-          periodId: '00000000-0000-0000-0000-000000000000',
-          name: 'Chủ đề không có giai đoạn',
-        });
+      const res = await request(app.getHttpServer()).post('/topics').send({
+        periodId: '00000000-0000-0000-0000-000000000000',
+        name: 'Chủ đề không có giai đoạn',
+      });
 
       expect(res.status).toBe(404);
     });
@@ -145,7 +143,9 @@ describe('Topic E2E Integration Tests', () => {
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);
-      expect(res.body.data.name).toBe('Khởi nghĩa Trưng Nữ Vương (Đã cập nhật)');
+      expect(res.body.data.name).toBe(
+        'Khởi nghĩa Trưng Nữ Vương (Đã cập nhật)',
+      );
     });
   });
 

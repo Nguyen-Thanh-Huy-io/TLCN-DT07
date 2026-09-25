@@ -17,7 +17,10 @@ export class UserService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    this.customLogger.log(`Creating user: ${createUserDto.email}`, 'UserService');
+    this.customLogger.log(
+      `Creating user: ${createUserDto.email}`,
+      'UserService',
+    );
 
     const existingUser = await this.prisma.authUser.findFirst({
       where: {
@@ -108,14 +111,20 @@ export class UserService {
     this.customLogger.log(`Updating user with id: ${id}`, 'UserService');
     await this.findOne(id);
 
-    const { firstName, lastName, bio, avatarUrl, password, ...authData } = updateUserDto;
+    const { firstName, lastName, bio, avatarUrl, password, ...authData } =
+      updateUserDto;
 
     const dataToUpdate: any = { ...authData };
     if (password) {
       dataToUpdate.password = await bcrypt.hash(password, 10);
     }
 
-    if (firstName !== undefined || lastName !== undefined || bio !== undefined || avatarUrl !== undefined) {
+    if (
+      firstName !== undefined ||
+      lastName !== undefined ||
+      bio !== undefined ||
+      avatarUrl !== undefined
+    ) {
       dataToUpdate.userProfile = {
         upsert: {
           create: { firstName, lastName, bio, avatarUrl },

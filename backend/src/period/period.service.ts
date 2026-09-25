@@ -9,7 +9,10 @@ import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { CreatePeriodDto } from './dto/create-period.dto';
 import { UpdatePeriodDto } from './dto/update-period.dto';
 import { QueryPeriodDto } from './dto/query-period.dto';
-import { IPeriodService, IPaginatedResult } from './interfaces/period.interface';
+import {
+  IPeriodService,
+  IPaginatedResult,
+} from './interfaces/period.interface';
 import { Period, ContentStatus, Prisma } from '@prisma/client';
 
 @Injectable()
@@ -27,7 +30,10 @@ export class PeriodService implements IPeriodService {
    * Tạo mới một giai đoạn lịch sử
    */
   async create(createPeriodDto: CreatePeriodDto): Promise<Period> {
-    this.logger.log(`Creating period: ${createPeriodDto.name}`, 'PeriodService');
+    this.logger.log(
+      `Creating period: ${createPeriodDto.name}`,
+      'PeriodService',
+    );
 
     // Business validation: endYear >= startYear nếu có endYear
     if (
@@ -35,7 +41,9 @@ export class PeriodService implements IPeriodService {
       createPeriodDto.endYear !== null &&
       createPeriodDto.endYear < createPeriodDto.startYear
     ) {
-      throw new BadRequestException('endYear must be greater than or equal to startYear');
+      throw new BadRequestException(
+        'endYear must be greater than or equal to startYear',
+      );
     }
 
     const period = await this.prisma.period.create({
@@ -161,10 +169,14 @@ export class PeriodService implements IPeriodService {
 
     const startYear = updatePeriodDto.startYear ?? existing.startYear;
     const endYear =
-      updatePeriodDto.endYear !== undefined ? updatePeriodDto.endYear : existing.endYear;
+      updatePeriodDto.endYear !== undefined
+        ? updatePeriodDto.endYear
+        : existing.endYear;
 
     if (endYear !== null && endYear !== undefined && endYear < startYear) {
-      throw new BadRequestException('endYear must be greater than or equal to startYear');
+      throw new BadRequestException(
+        'endYear must be greater than or equal to startYear',
+      );
     }
 
     const updated = await this.prisma.period.update({
@@ -207,7 +219,10 @@ export class PeriodService implements IPeriodService {
       // Xóa tất cả query cache danh sách periods an toàn bằng scan pattern
       await this.redis.deleteByPattern(`${this.CACHE_PREFIX}:*`);
     } catch (err) {
-      this.logger.warn(`Failed to clear period cache: ${err.message}`, 'PeriodService');
+      this.logger.warn(
+        `Failed to clear period cache: ${err.message}`,
+        'PeriodService',
+      );
     }
   }
 }

@@ -7,8 +7,6 @@ import { NotFoundException } from '@nestjs/common';
 
 describe('HistoricalEventService', () => {
   let service: HistoricalEventService;
-  let prisma: PrismaService;
-
   const mockTopic = {
     id: 'topic-uuid-1',
     name: 'Khởi nghĩa Hai Bà Trưng',
@@ -65,7 +63,6 @@ describe('HistoricalEventService', () => {
     }).compile();
 
     service = module.get<HistoricalEventService>(HistoricalEventService);
-    prisma = module.get<PrismaService>(PrismaService);
     jest.clearAllMocks();
   });
 
@@ -113,7 +110,9 @@ describe('HistoricalEventService', () => {
   describe('remove', () => {
     it('should delete event successfully', async () => {
       mockRedisService.get.mockResolvedValueOnce(null);
-      mockPrismaService.historicalEvent.findUnique.mockResolvedValueOnce(mockEvent);
+      mockPrismaService.historicalEvent.findUnique.mockResolvedValueOnce(
+        mockEvent,
+      );
       mockPrismaService.historicalEvent.delete.mockResolvedValueOnce(mockEvent);
 
       const result = await service.remove('event-uuid-1');

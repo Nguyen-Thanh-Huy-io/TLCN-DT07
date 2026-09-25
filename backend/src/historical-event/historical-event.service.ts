@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
@@ -33,7 +30,10 @@ export class HistoricalEventService {
    * Tạo mới một sự kiện lịch sử
    */
   async create(dto: CreateHistoricalEventDto): Promise<HistoricalEvent> {
-    this.logger.log(`Creating historical event: ${dto.title}`, 'HistoricalEventService');
+    this.logger.log(
+      `Creating historical event: ${dto.title}`,
+      'HistoricalEventService',
+    );
 
     // Kiểm tra TopicId có tồn tại không
     const topic = await this.prisma.topic.findUnique({
@@ -65,7 +65,9 @@ export class HistoricalEventService {
   /**
    * Lấy danh sách sự kiện lịch sử (lọc theo topicId, eventYear, location, search và phân trang)
    */
-  async findAll(query: QueryHistoricalEventDto): Promise<IPaginatedResult<HistoricalEvent>> {
+  async findAll(
+    query: QueryHistoricalEventDto,
+  ): Promise<IPaginatedResult<HistoricalEvent>> {
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.max(1, Math.min(100, Number(query.limit) || 10));
     const skip = (page - 1) * limit;
@@ -96,12 +98,16 @@ export class HistoricalEventService {
 
     const cacheKey = `${this.CACHE_PREFIX}:${JSON.stringify({ where, page, limit })}`;
     try {
-      const cached = await this.redis.get<IPaginatedResult<HistoricalEvent>>(cacheKey);
+      const cached =
+        await this.redis.get<IPaginatedResult<HistoricalEvent>>(cacheKey);
       if (cached) {
         return cached;
       }
     } catch (err) {
-      this.logger.warn(`Redis get error: ${err.message}`, 'HistoricalEventService');
+      this.logger.warn(
+        `Redis get error: ${err.message}`,
+        'HistoricalEventService',
+      );
     }
 
     const [total, items] = await Promise.all([
@@ -130,7 +136,10 @@ export class HistoricalEventService {
     try {
       await this.redis.set(cacheKey, result, this.CACHE_TTL);
     } catch (err) {
-      this.logger.warn(`Redis set error: ${err.message}`, 'HistoricalEventService');
+      this.logger.warn(
+        `Redis set error: ${err.message}`,
+        'HistoricalEventService',
+      );
     }
 
     return result;
@@ -147,7 +156,10 @@ export class HistoricalEventService {
         return cached;
       }
     } catch (err) {
-      this.logger.warn(`Redis get error: ${err.message}`, 'HistoricalEventService');
+      this.logger.warn(
+        `Redis get error: ${err.message}`,
+        'HistoricalEventService',
+      );
     }
 
     const event = await this.prisma.historicalEvent.findUnique({
@@ -160,13 +172,18 @@ export class HistoricalEventService {
     });
 
     if (!event) {
-      throw new NotFoundException(`Sự kiện lịch sử với ID "${id}" không tồn tại`);
+      throw new NotFoundException(
+        `Sự kiện lịch sử với ID "${id}" không tồn tại`,
+      );
     }
 
     try {
       await this.redis.set(cacheKey, event, this.CACHE_TTL);
     } catch (err) {
-      this.logger.warn(`Redis set error: ${err.message}`, 'HistoricalEventService');
+      this.logger.warn(
+        `Redis set error: ${err.message}`,
+        'HistoricalEventService',
+      );
     }
 
     return event;
@@ -175,7 +192,10 @@ export class HistoricalEventService {
   /**
    * Cập nhật sự kiện lịch sử
    */
-  async update(id: string, dto: UpdateHistoricalEventDto): Promise<HistoricalEvent> {
+  async update(
+    id: string,
+    dto: UpdateHistoricalEventDto,
+  ): Promise<HistoricalEvent> {
     await this.findOne(id);
 
     if (dto.topicId) {
@@ -226,7 +246,10 @@ export class HistoricalEventService {
       }
       await this.redis.deleteByPattern(`${this.CACHE_PREFIX}:*`);
     } catch (err) {
-      this.logger.warn(`Failed to clear historical event cache: ${err.message}`, 'HistoricalEventService');
+      this.logger.warn(
+        `Failed to clear historical event cache: ${err.message}`,
+        'HistoricalEventService',
+      );
     }
   }
 }

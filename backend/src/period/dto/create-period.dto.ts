@@ -7,7 +7,6 @@ import {
   IsString,
   MaxLength,
   Min,
-  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ContentStatus } from '@prisma/client';
@@ -52,7 +51,8 @@ export class CreatePeriodDto {
   endYear?: number;
 
   @ApiPropertyOptional({
-    example: 'Giai đoạn hơn 1000 năm nhân dân ta chống lại ách đô hộ của phương Bắc...',
+    example:
+      'Giai đoạn hơn 1000 năm nhân dân ta chống lại ách đô hộ của phương Bắc...',
     description: 'Mô tả chi tiết về giai đoạn',
   })
   @IsString()

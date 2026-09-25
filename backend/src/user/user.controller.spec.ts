@@ -4,6 +4,10 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
+import { AuthGuard } from '../common/guards/auth.guard';
+
+// Mock AuthGuard để tránh inject RedisService + PrismaService trong unit test
+const mockAuthGuard = { canActivate: jest.fn(() => true) };
 
 describe('UserController', () => {
   let controller: UserController;
@@ -39,7 +43,10 @@ describe('UserController', () => {
           useValue: mockCustomLoggerService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue(mockAuthGuard)
+      .compile();
 
     controller = module.get<UserController>(UserController);
     service = module.get<UserService>(UserService);
@@ -54,210 +61,210 @@ describe('UserController', () => {
   });
 
   describe('create', () => {
-    it('should create a new user', () => {
+    it('should create a new user', async () => {
       const createUserDto: CreateUserDto = {} as CreateUserDto;
-      const expectedResult = 'This action adds a new user';
+      const expectedResult = { id: '1', email: 'test@test.com' };
 
-      mockUserService.create.mockReturnValue(expectedResult);
+      mockUserService.create.mockResolvedValue(expectedResult);
 
-      const result = controller.create(createUserDto);
+      const result = await controller.create(createUserDto);
 
       expect(result).toBe(expectedResult);
       expect(mockUserService.create).toHaveBeenCalledWith(createUserDto);
       expect(mockUserService.create).toHaveBeenCalledTimes(1);
     });
 
-    it('should pass the correct DTO to the service', () => {
+    it('should pass the correct DTO to the service', async () => {
       const createUserDto: CreateUserDto = {} as CreateUserDto;
 
-      mockUserService.create.mockReturnValue('result');
+      mockUserService.create.mockResolvedValue('result');
 
-      controller.create(createUserDto);
+      await controller.create(createUserDto);
 
       expect(mockUserService.create).toHaveBeenCalledWith(createUserDto);
     });
 
-    it('should return whatever the service returns', () => {
+    it('should return whatever the service returns', async () => {
       const createUserDto: CreateUserDto = {} as CreateUserDto;
-      const serviceResponse = 'Custom response from service';
+      const serviceResponse = { id: 'uuid-123', username: 'testuser' };
 
-      mockUserService.create.mockReturnValue(serviceResponse);
+      mockUserService.create.mockResolvedValue(serviceResponse);
 
-      const result = controller.create(createUserDto);
+      const result = await controller.create(createUserDto);
 
       expect(result).toBe(serviceResponse);
     });
   });
 
   describe('findAll', () => {
-    it('should return all users', () => {
-      const expectedResult = 'This action returns all user';
+    it('should return all users', async () => {
+      const expectedResult = [{ id: '1' }, { id: '2' }];
 
-      mockUserService.findAll.mockReturnValue(expectedResult);
+      mockUserService.findAll.mockResolvedValue(expectedResult);
 
-      const result = controller.findAll();
+      const result = await controller.findAll();
 
       expect(result).toBe(expectedResult);
       expect(mockUserService.findAll).toHaveBeenCalled();
       expect(mockUserService.findAll).toHaveBeenCalledTimes(1);
     });
 
-    it('should call service without any parameters', () => {
-      mockUserService.findAll.mockReturnValue('result');
+    it('should call service without any parameters', async () => {
+      mockUserService.findAll.mockResolvedValue([]);
 
-      controller.findAll();
+      await controller.findAll();
 
       expect(mockUserService.findAll).toHaveBeenCalledWith();
     });
 
-    it('should return whatever the service returns', () => {
-      const serviceResponse = 'Custom list of users';
+    it('should return whatever the service returns', async () => {
+      const serviceResponse = [{ id: 'uuid-1' }, { id: 'uuid-2' }];
 
-      mockUserService.findAll.mockReturnValue(serviceResponse);
+      mockUserService.findAll.mockResolvedValue(serviceResponse);
 
-      const result = controller.findAll();
+      const result = await controller.findAll();
 
       expect(result).toBe(serviceResponse);
     });
   });
 
   describe('findOne', () => {
-    it('should return a single user by id', () => {
-      const userId = '1';
-      const expectedResult = 'This action returns a #1 user';
+    it('should return a single user by id', async () => {
+      const userId = 'uuid-abc-123';
+      const expectedResult = { id: userId, email: 'user@test.com' };
 
-      mockUserService.findOne.mockReturnValue(expectedResult);
+      mockUserService.findOne.mockResolvedValue(expectedResult);
 
-      const result = controller.findOne(userId);
+      const result = await controller.findOne(userId);
 
       expect(result).toBe(expectedResult);
-      expect(mockUserService.findOne).toHaveBeenCalledWith(1);
+      expect(mockUserService.findOne).toHaveBeenCalledWith(userId);
       expect(mockUserService.findOne).toHaveBeenCalledTimes(1);
     });
 
-    it('should convert string id to number', () => {
-      const userId = '42';
+    it('should pass the string id directly to service', async () => {
+      const userId = 'uuid-xyz-456';
 
-      mockUserService.findOne.mockReturnValue('result');
+      mockUserService.findOne.mockResolvedValue({ id: userId });
 
-      controller.findOne(userId);
+      await controller.findOne(userId);
 
-      expect(mockUserService.findOne).toHaveBeenCalledWith(42);
+      expect(mockUserService.findOne).toHaveBeenCalledWith(userId);
     });
 
-    it('should work with different ids', () => {
-      const userId = '999';
+    it('should work with different ids', async () => {
+      const userId = 'uuid-999-aaa';
 
-      mockUserService.findOne.mockReturnValue('result');
+      mockUserService.findOne.mockResolvedValue({ id: userId });
 
-      controller.findOne(userId);
+      await controller.findOne(userId);
 
-      expect(mockUserService.findOne).toHaveBeenCalledWith(999);
+      expect(mockUserService.findOne).toHaveBeenCalledWith(userId);
     });
 
-    it('should return whatever the service returns', () => {
-      const userId = '5';
-      const serviceResponse = 'User with id 5';
+    it('should return whatever the service returns', async () => {
+      const userId = 'uuid-555';
+      const serviceResponse = { id: userId, username: 'someone' };
 
-      mockUserService.findOne.mockReturnValue(serviceResponse);
+      mockUserService.findOne.mockResolvedValue(serviceResponse);
 
-      const result = controller.findOne(userId);
+      const result = await controller.findOne(userId);
 
       expect(result).toBe(serviceResponse);
     });
   });
 
   describe('update', () => {
-    it('should update a user', () => {
-      const userId = '1';
+    it('should update a user', async () => {
+      const userId = 'uuid-update-1';
       const updateUserDto: UpdateUserDto = {};
-      const expectedResult = 'This action updates a #1 user';
+      const expectedResult = { id: userId, updated: true };
 
-      mockUserService.update.mockReturnValue(expectedResult);
+      mockUserService.update.mockResolvedValue(expectedResult);
 
-      const result = controller.update(userId, updateUserDto);
+      const result = await controller.update(userId, updateUserDto);
 
       expect(result).toBe(expectedResult);
-      expect(mockUserService.update).toHaveBeenCalledWith(1, updateUserDto);
+      expect(mockUserService.update).toHaveBeenCalledWith(userId, updateUserDto);
       expect(mockUserService.update).toHaveBeenCalledTimes(1);
     });
 
-    it('should convert string id to number', () => {
-      const userId = '10';
+    it('should pass the string id directly to service', async () => {
+      const userId = 'uuid-update-10';
       const updateUserDto: UpdateUserDto = {};
 
-      mockUserService.update.mockReturnValue('result');
+      mockUserService.update.mockResolvedValue({ id: userId });
 
-      controller.update(userId, updateUserDto);
+      await controller.update(userId, updateUserDto);
 
-      expect(mockUserService.update).toHaveBeenCalledWith(10, updateUserDto);
+      expect(mockUserService.update).toHaveBeenCalledWith(userId, updateUserDto);
     });
 
-    it('should pass the correct DTO to the service', () => {
-      const userId = '7';
-      const updateUserDto: UpdateUserDto = {};
+    it('should pass the correct DTO to the service', async () => {
+      const userId = 'uuid-update-7';
+      const updateUserDto: UpdateUserDto = { username: 'newname' } as UpdateUserDto;
 
-      mockUserService.update.mockReturnValue('result');
+      mockUserService.update.mockResolvedValue({ id: userId });
 
-      controller.update(userId, updateUserDto);
+      await controller.update(userId, updateUserDto);
 
-      expect(mockUserService.update).toHaveBeenCalledWith(7, updateUserDto);
+      expect(mockUserService.update).toHaveBeenCalledWith(userId, updateUserDto);
     });
 
-    it('should return whatever the service returns', () => {
-      const userId = '3';
+    it('should return whatever the service returns', async () => {
+      const userId = 'uuid-update-3';
       const updateUserDto: UpdateUserDto = {};
-      const serviceResponse = 'User updated successfully';
+      const serviceResponse = { id: userId, message: 'User updated successfully' };
 
-      mockUserService.update.mockReturnValue(serviceResponse);
+      mockUserService.update.mockResolvedValue(serviceResponse);
 
-      const result = controller.update(userId, updateUserDto);
+      const result = await controller.update(userId, updateUserDto);
 
       expect(result).toBe(serviceResponse);
     });
   });
 
   describe('remove', () => {
-    it('should remove a user', () => {
-      const userId = '1';
-      const expectedResult = 'This action removes a #1 user';
+    it('should remove a user', async () => {
+      const userId = 'uuid-remove-1';
+      const expectedResult = { success: true };
 
-      mockUserService.remove.mockReturnValue(expectedResult);
+      mockUserService.remove.mockResolvedValue(expectedResult);
 
-      const result = controller.remove(userId);
+      const result = await controller.remove(userId);
 
       expect(result).toBe(expectedResult);
-      expect(mockUserService.remove).toHaveBeenCalledWith(1);
+      expect(mockUserService.remove).toHaveBeenCalledWith(userId);
       expect(mockUserService.remove).toHaveBeenCalledTimes(1);
     });
 
-    it('should convert string id to number', () => {
-      const userId = '25';
+    it('should pass the string id directly to service', async () => {
+      const userId = 'uuid-remove-25';
 
-      mockUserService.remove.mockReturnValue('result');
+      mockUserService.remove.mockResolvedValue({ success: true });
 
-      controller.remove(userId);
+      await controller.remove(userId);
 
-      expect(mockUserService.remove).toHaveBeenCalledWith(25);
+      expect(mockUserService.remove).toHaveBeenCalledWith(userId);
     });
 
-    it('should work with different ids', () => {
-      const userId = '888';
+    it('should work with different ids', async () => {
+      const userId = 'uuid-remove-888';
 
-      mockUserService.remove.mockReturnValue('result');
+      mockUserService.remove.mockResolvedValue({ success: true });
 
-      controller.remove(userId);
+      await controller.remove(userId);
 
-      expect(mockUserService.remove).toHaveBeenCalledWith(888);
+      expect(mockUserService.remove).toHaveBeenCalledWith(userId);
     });
 
-    it('should return whatever the service returns', () => {
-      const userId = '12';
-      const serviceResponse = 'User deleted successfully';
+    it('should return whatever the service returns', async () => {
+      const userId = 'uuid-remove-12';
+      const serviceResponse = { success: true, message: 'User deleted successfully' };
 
-      mockUserService.remove.mockReturnValue(serviceResponse);
+      mockUserService.remove.mockResolvedValue(serviceResponse);
 
-      const result = controller.remove(userId);
+      const result = await controller.remove(userId);
 
       expect(result).toBe(serviceResponse);
     });

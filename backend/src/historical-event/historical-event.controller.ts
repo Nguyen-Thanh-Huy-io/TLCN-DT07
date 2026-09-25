@@ -37,15 +37,22 @@ export class HistoricalEventController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Tạo mới một sự kiện lịch sử thuộc Topic',
-    description: 'Yêu cầu quyền quản trị (Admin/Moderator). Thêm mới một HistoricalEvent.',
+    description:
+      'Yêu cầu quyền quản trị (Admin/Moderator). Thêm mới một HistoricalEvent.',
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Tạo sự kiện lịch sử thành công',
     type: HistoricalEventResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'TopicId không tồn tại' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Chưa xác thực token' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'TopicId không tồn tại',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Chưa xác thực token',
+  })
   async create(@Body() dto: CreateHistoricalEventDto) {
     return this.historicalEventService.create(dto);
   }
@@ -53,7 +60,8 @@ export class HistoricalEventController {
   @Get()
   @ApiOperation({
     summary: 'Lấy danh sách các sự kiện lịch sử',
-    description: 'Hỗ trợ phân trang, lọc theo topicId, eventYear, location và từ khóa tìm kiếm.',
+    description:
+      'Hỗ trợ phân trang, lọc theo topicId, eventYear, location và từ khóa tìm kiếm.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -74,7 +82,10 @@ export class HistoricalEventController {
     description: 'Tìm thấy sự kiện',
     type: HistoricalEventResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy sự kiện' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy sự kiện',
+  })
   async findOne(@Param('id') id: string) {
     return this.historicalEventService.findOne(id);
   }
@@ -84,19 +95,24 @@ export class HistoricalEventController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Cập nhật thông tin một sự kiện lịch sử',
-    description: 'Yêu cầu quyền quản trị. Cập nhật thông tin của HistoricalEvent.',
+    description:
+      'Yêu cầu quyền quản trị. Cập nhật thông tin của HistoricalEvent.',
   })
-  @ApiParam({ name: 'id', description: 'UUID của sự kiện cần sửa', type: String })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID của sự kiện cần sửa',
+    type: String,
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Cập nhật thành công',
     type: HistoricalEventResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy sự kiện hoặc TopicId mới' })
-  async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateHistoricalEventDto,
-  ) {
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy sự kiện hoặc TopicId mới',
+  })
+  async update(@Param('id') id: string, @Body() dto: UpdateHistoricalEventDto) {
     return this.historicalEventService.update(id, dto);
   }
 
@@ -108,12 +124,19 @@ export class HistoricalEventController {
     summary: 'Xóa một sự kiện lịch sử',
     description: 'Yêu cầu quyền quản trị. Xóa HistoricalEvent khỏi hệ thống.',
   })
-  @ApiParam({ name: 'id', description: 'UUID của sự kiện cần xóa', type: String })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID của sự kiện cần xóa',
+    type: String,
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Xóa sự kiện thành công',
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy sự kiện' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy sự kiện',
+  })
   async remove(@Param('id') id: string) {
     return this.historicalEventService.remove(id);
   }

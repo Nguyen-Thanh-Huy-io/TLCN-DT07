@@ -30,7 +30,9 @@ export class TagService {
     });
 
     if (existing) {
-      throw new ConflictException(`Tag với tên "${createTagDto.name}" đã tồn tại`);
+      throw new ConflictException(
+        `Tag với tên "${createTagDto.name}" đã tồn tại`,
+      );
     }
 
     const tag = await this.prisma.tag.create({
@@ -43,7 +45,9 @@ export class TagService {
 
   async findAll(query: QueryTagDto) {
     const { page = 1, limit = 10, search } = query;
-    const cacheKey = this.getCacheKey(`list:${page}:${limit}:${search || 'all'}`);
+    const cacheKey = this.getCacheKey(
+      `list:${page}:${limit}:${search || 'all'}`,
+    );
 
     const cachedData = await this.redis.get(cacheKey);
     if (cachedData) {
@@ -112,7 +116,9 @@ export class TagService {
         },
       });
       if (existing) {
-        throw new ConflictException(`Tag với tên "${updateTagDto.name}" đã tồn tại`);
+        throw new ConflictException(
+          `Tag với tên "${updateTagDto.name}" đã tồn tại`,
+        );
       }
     }
 
@@ -150,7 +156,9 @@ export class TagService {
       where: { id: { in: attachDto.tagIds } },
     });
     if (tags.length !== attachDto.tagIds.length) {
-      throw new BadRequestException(`Một hoặc nhiều Tag ID không tồn tại trong hệ thống`);
+      throw new BadRequestException(
+        `Một hoặc nhiều Tag ID không tồn tại trong hệ thống`,
+      );
     }
 
     // 3. Transaction: Replace old tags with new tags

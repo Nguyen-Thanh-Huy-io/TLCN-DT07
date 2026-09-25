@@ -37,7 +37,7 @@ export class EmailQueueService {
         username,
         verificationCode,
         authId,
-      } as VerificationEmailJob,
+      },
       {
         attempts: 3,
         backoff: {
@@ -62,7 +62,7 @@ export class EmailQueueService {
         email,
         username,
         authId,
-      } as WelcomeEmailJob,
+      },
       {
         attempts: 3,
         backoff: {

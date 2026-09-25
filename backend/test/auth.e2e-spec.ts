@@ -21,7 +21,6 @@ describe('Auth & User E2E Tests (Automated Integration)', () => {
   const testEmail = `e2e_test_${uniqueId}@example.com`;
   const testUsername = `e2e_user_${uniqueId}`;
   const testPassword = 'Password@123';
-  let accessToken = '';
   let refreshToken = '';
   let userId = '';
 
@@ -147,7 +146,9 @@ describe('Auth & User E2E Tests (Automated Integration)', () => {
     it('Positive: Should verify user email with OTP from Redis', async () => {
       // Retrieve the generated OTP stored in Redis: app:verification_token:{email}
       const verificationKey = `app:verification_token:${testEmail}`;
-      const storedData = await redisService.get<{ code: string }>(verificationKey);
+      const storedData = await redisService.get<{ code: string }>(
+        verificationKey,
+      );
       expect(storedData).toBeDefined();
       expect(storedData?.code).toBeDefined();
 
@@ -201,7 +202,6 @@ describe('Auth & User E2E Tests (Automated Integration)', () => {
       expect(innerData.user.email).toBe(testEmail);
 
       // Store tokens and ID for subsequent tests
-      accessToken = innerData.accessToken;
       refreshToken = innerData.refreshToken;
       userId = innerData.user.id;
     });
@@ -221,7 +221,6 @@ describe('Auth & User E2E Tests (Automated Integration)', () => {
       expect(innerData).toHaveProperty('refreshToken');
 
       // Update tokens
-      accessToken = innerData.accessToken;
       refreshToken = innerData.refreshToken;
     });
 
@@ -252,9 +251,7 @@ describe('Auth & User E2E Tests (Automated Integration)', () => {
 
   describe('5. Health Check & Metrics Flow', () => {
     it('Positive: Should return health status from root endpoint', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/')
-        .expect(200);
+      const response = await request(app.getHttpServer()).get('/').expect(200);
 
       expect(response.body).toHaveProperty('statusCode', 200);
       expect(response.body.data).toBe('Hello World!');

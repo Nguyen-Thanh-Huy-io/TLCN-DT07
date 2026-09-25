@@ -66,13 +66,11 @@ describe('Period E2E Integration Tests', () => {
 
   describe('1. POST /periods - Tạo mới Period', () => {
     it('thất bại với 400 nếu endYear < startYear', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/periods')
-        .send({
-          name: 'Giai đoạn không hợp lệ',
-          startYear: 2000,
-          endYear: 1000,
-        });
+      const res = await request(app.getHttpServer()).post('/periods').send({
+        name: 'Giai đoạn không hợp lệ',
+        startYear: 2000,
+        endYear: 1000,
+      });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
@@ -86,7 +84,8 @@ describe('Period E2E Integration Tests', () => {
           region: 'Việt Nam',
           startYear: -2000,
           endYear: -1000,
-          description: 'Thời đại kim khí và hình thành nhà nước Văn Lang sơ khai',
+          description:
+            'Thời đại kim khí và hình thành nhà nước Văn Lang sơ khai',
           displayOrder: 1,
           status: 'PUBLISHED',
         });

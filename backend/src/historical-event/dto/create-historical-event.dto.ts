@@ -49,7 +49,8 @@ export class CreateHistoricalEventDto {
   eventDateNote?: string;
 
   @ApiPropertyOptional({
-    example: 'Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng, chấm dứt 1000 năm Bắc thuộc...',
+    example:
+      'Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng, chấm dứt 1000 năm Bắc thuộc...',
     description: 'Mô tả chi tiết diễn biến sự kiện',
   })
   @IsString()

@@ -79,7 +79,9 @@ describe('HistoricalEvent E2E Integration Tests', () => {
 
   afterAll(async () => {
     if (createdEventId) {
-      await request(app.getHttpServer()).delete(`/historical-events/${createdEventId}`);
+      await request(app.getHttpServer()).delete(
+        `/historical-events/${createdEventId}`,
+      );
     }
     if (createdTopicId) {
       await request(app.getHttpServer()).delete(`/topics/${createdTopicId}`);

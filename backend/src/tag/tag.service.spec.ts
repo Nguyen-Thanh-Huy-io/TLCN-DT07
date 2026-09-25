@@ -1,13 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { TagService } from './tag.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 
 describe('TagService', () => {
   let service: TagService;
-  let prisma: PrismaService;
-  let redis: RedisService;
 
   const mockTag = {
     id: 'tag-1',
@@ -54,9 +56,6 @@ describe('TagService', () => {
     }).compile();
 
     service = module.get<TagService>(TagService);
-    prisma = module.get<PrismaService>(PrismaService);
-    redis = module.get<RedisService>(RedisService);
-
     jest.clearAllMocks();
   });
 
@@ -77,15 +76,21 @@ describe('TagService', () => {
     it('báo lỗi ConflictException khi tên tag đã tồn tại', async () => {
       mockPrismaService.tag.findUnique.mockResolvedValue(mockTag);
 
-      await expect(service.create({ name: 'Kháng chiến chống Pháp' })).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.create({ name: 'Kháng chiến chống Pháp' }),
+      ).rejects.toThrow(ConflictException);
     });
   });
 
   describe('findAll', () => {
     it('trả về danh sách tag từ Redis cache nếu có', async () => {
-      const cached = { items: [mockTag], total: 1, page: 1, limit: 10, totalPages: 1 };
+      const cached = {
+        items: [mockTag],
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      };
       mockRedisService.get.mockResolvedValue(cached);
 
       const result = await service.findAll({ page: 1, limit: 10 });
@@ -117,7 +122,9 @@ describe('TagService', () => {
       mockRedisService.get.mockResolvedValue(null);
       mockPrismaService.tag.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('invalid-id')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('invalid-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

@@ -8,7 +8,6 @@ import { ContentStatus, DifficultyLevel } from '@prisma/client';
 
 describe('LessonService', () => {
   let service: LessonService;
-  let prisma: PrismaService;
 
   const mockTopic = {
     id: 'topic-uuid-1',
@@ -20,7 +19,8 @@ describe('LessonService', () => {
     id: 'lesson-uuid-1',
     topicId: 'topic-uuid-1',
     title: 'Chiến thắng Bạch Đằng năm 938',
-    contentRichText: '<p>Năm 938 Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng</p>',
+    contentRichText:
+      '<p>Năm 938 Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng</p>',
     thumbnailUrl: 'https://example.com/thumb.jpg',
     difficulty: DifficultyLevel.MEDIUM,
     sourceReferenceNote: 'Đại Việt Sử Ký',
@@ -72,7 +72,6 @@ describe('LessonService', () => {
     }).compile();
 
     service = module.get<LessonService>(LessonService);
-    prisma = module.get<PrismaService>(PrismaService);
     jest.clearAllMocks();
   });
 

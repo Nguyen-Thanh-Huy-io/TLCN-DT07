@@ -8,7 +8,6 @@ import { ContentStatus } from '@prisma/client';
 
 describe('TopicService', () => {
   let service: TopicService;
-  let prisma: PrismaService;
 
   const mockPeriod = {
     id: 'period-uuid-1',
@@ -69,7 +68,6 @@ describe('TopicService', () => {
     }).compile();
 
     service = module.get<TopicService>(TopicService);
-    prisma = module.get<PrismaService>(PrismaService);
     jest.clearAllMocks();
   });
 
@@ -125,7 +123,9 @@ describe('TopicService', () => {
       mockRedisService.get.mockResolvedValueOnce(null);
       mockPrismaService.topic.findUnique.mockResolvedValueOnce(null);
 
-      await expect(service.findOne('non-existent')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

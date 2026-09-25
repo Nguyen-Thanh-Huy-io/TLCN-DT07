@@ -38,7 +38,8 @@ export class CreateUserDto {
   @ApiPropertyOptional({
     enum: userRole,
     example: userRole.USER,
-    description: 'Vai trò người dùng trong hệ thống (USER, MODERATOR, ADMIN, SUPERADMIN)',
+    description:
+      'Vai trò người dùng trong hệ thống (USER, MODERATOR, ADMIN, SUPERADMIN)',
     default: userRole.USER,
   })
   @IsEnum(userRole)

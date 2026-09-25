@@ -7,7 +7,6 @@ import { RedisService } from '../common/services/redis.service';
 import { EmailQueueService } from '../common/queues/email/email.queue';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import AppError from '../common/errors/app.error';
-import * as bcrypt from 'bcryptjs';
 
 // Mock the AUTH_CONFIG to use numeric values for VERIFICATION
 jest.mock('./config/auth.config', () => ({
@@ -57,7 +56,6 @@ describe('AuthService', () => {
   let service: AuthService;
   let prismaService: jest.Mocked<PrismaService>;
   let authUtilsService: jest.Mocked<AuthUtilsService>;
-  let activityLogService: jest.Mocked<ActivityLogService>;
   let redisService: jest.Mocked<RedisService>;
   let emailQueueService: jest.Mocked<EmailQueueService>;
 
@@ -151,7 +149,6 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
     prismaService = module.get(PrismaService);
     authUtilsService = module.get(AuthUtilsService);
-    activityLogService = module.get(ActivityLogService);
     redisService = module.get(RedisService);
     emailQueueService = module.get(EmailQueueService);
   });

@@ -8,8 +8,6 @@ import { ContentStatus } from '@prisma/client';
 
 describe('PeriodService', () => {
   let service: PeriodService;
-  let prisma: PrismaService;
-  let redis: RedisService;
 
   const mockPeriod = {
     id: 'test-uuid-1',
@@ -60,8 +58,6 @@ describe('PeriodService', () => {
     }).compile();
 
     service = module.get<PeriodService>(PeriodService);
-    prisma = module.get<PrismaService>(PrismaService);
-    redis = module.get<RedisService>(RedisService);
     jest.clearAllMocks();
   });
 
@@ -108,7 +104,13 @@ describe('PeriodService', () => {
     });
 
     it('should return cached result if cache hit', async () => {
-      const cached = { items: [mockPeriod], total: 1, page: 1, limit: 10, totalPages: 1 };
+      const cached = {
+        items: [mockPeriod],
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      };
       mockRedisService.get.mockResolvedValueOnce(cached);
 
       const result = await service.findAll({ page: 1, limit: 10 });
@@ -130,14 +132,19 @@ describe('PeriodService', () => {
       mockRedisService.get.mockResolvedValueOnce(null);
       mockPrismaService.period.findUnique.mockResolvedValueOnce(null);
 
-      await expect(service.findOne('non-existent')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('update', () => {
     it('should update period successfully', async () => {
       mockPrismaService.period.findUnique.mockResolvedValueOnce(mockPeriod);
-      mockPrismaService.period.update.mockResolvedValueOnce({ ...mockPeriod, name: 'Tên mới' });
+      mockPrismaService.period.update.mockResolvedValueOnce({
+        ...mockPeriod,
+        name: 'Tên mới',
+      });
 
       const result = await service.update('test-uuid-1', { name: 'Tên mới' });
       expect(result.name).toBe('Tên mới');

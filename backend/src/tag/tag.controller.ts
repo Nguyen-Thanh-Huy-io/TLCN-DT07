@@ -38,7 +38,10 @@ export class TagController {
 
   @Get('tags')
   @ApiOperation({ summary: 'Lấy danh sách tất cả nhãn phân loại' })
-  @ApiResponse({ status: 200, description: 'Trả về danh sách nhãn có phân trang' })
+  @ApiResponse({
+    status: 200,
+    description: 'Trả về danh sách nhãn có phân trang',
+  })
   findAll(@Query() query: QueryTagDto) {
     return this.tagService.findAll(query);
   }
@@ -82,7 +85,10 @@ export class TagController {
 
   @Get('lessons/:id/tags')
   @ApiOperation({ summary: 'Lấy danh sách nhãn của Bài học' })
-  @ApiResponse({ status: 200, description: 'Trả về danh sách nhãn của bài học' })
+  @ApiResponse({
+    status: 200,
+    description: 'Trả về danh sách nhãn của bài học',
+  })
   getLessonTags(@Param('id') lessonId: string) {
     return this.tagService.getLessonTags(lessonId);
   }

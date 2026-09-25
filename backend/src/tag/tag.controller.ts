@@ -8,8 +8,6 @@ import {
   Delete,
   Query,
   UseGuards,
-  HttpCode,
-  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,9 +21,6 @@ import { UpdateTagDto } from './dto/update-tag.dto';
 import { QueryTagDto } from './dto/query-tag.dto';
 import { AttachLessonTagsDto } from './dto/attach-lesson-tags.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { Role } from '../common/enums/role.enum';
 
 @ApiTags('Tags (Nhãn phân loại)')
 @Controller()
@@ -33,10 +28,9 @@ export class TagController {
   constructor(private readonly tagService: TagService) {}
 
   @Post('tags')
-  @UseGuards(AuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.MODERATOR)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Tạo nhãn phân loại mới (Admin/Moderator)' })
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Tạo nhãn phân loại mới' })
   @ApiResponse({ status: 201, description: 'Tạo nhãn thành công' })
   create(@Body() createTagDto: CreateTagDto) {
     return this.tagService.create(createTagDto);
@@ -57,30 +51,27 @@ export class TagController {
   }
 
   @Patch('tags/:id')
-  @UseGuards(AuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.MODERATOR)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Cập nhật nhãn phân loại (Admin/Moderator)' })
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Cập nhật nhãn phân loại' })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   update(@Param('id') id: string, @Body() updateTagDto: UpdateTagDto) {
     return this.tagService.update(id, updateTagDto);
   }
 
   @Delete('tags/:id')
-  @UseGuards(AuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Xóa nhãn phân loại (Admin)' })
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Xóa nhãn phân loại' })
   @ApiResponse({ status: 200, description: 'Xóa nhãn thành công' })
   remove(@Param('id') id: string) {
     return this.tagService.remove(id);
   }
 
   @Post('lessons/:id/tags')
-  @UseGuards(AuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.MODERATOR)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Gán danh sách nhãn cho Bài học (Admin/Moderator)' })
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Gán danh sách nhãn cho Bài học' })
   @ApiResponse({ status: 200, description: 'Gán nhãn cho bài học thành công' })
   attachTagsToLesson(
     @Param('id') lessonId: string,

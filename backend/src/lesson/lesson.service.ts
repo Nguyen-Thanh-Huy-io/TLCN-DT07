@@ -53,12 +53,11 @@ export class LessonService {
   }
 
   /**
-   * Tạo mới bài học lịch sử
+   * Tạo mới bài học lịch sử kèm media minh họa
    */
   async create(createLessonDto: CreateLessonDto, creatorUserId: string): Promise<any> {
     this.logger.log(`Creating lesson: ${createLessonDto.title}`, 'LessonService');
 
-    // Kiểm tra TopicId có tồn tại không
     const topic = await this.prisma.topic.findUnique({
       where: { id: createLessonDto.topicId },
     });
@@ -69,23 +68,23 @@ export class LessonService {
       );
     }
 
+    const { media, ...lessonData } = createLessonDto;
+
     const lesson = await this.prisma.lesson.create({
       data: {
-        topicId: createLessonDto.topicId,
-        title: createLessonDto.title,
-        contentRichText: createLessonDto.contentRichText,
-        thumbnailUrl: createLessonDto.thumbnailUrl,
-        difficulty: createLessonDto.difficulty ?? 'MEDIUM',
-        xpReward: createLessonDto.xpReward ?? 10,
-        sourceReferenceNote: createLessonDto.sourceReferenceNote,
-        displayOrder: createLessonDto.displayOrder ?? 0,
-        status: createLessonDto.status ?? ContentStatus.DRAFT,
+        ...lessonData,
         createdBy: creatorUserId,
+        media: media && media.length > 0
+          ? {
+              createMany: {
+                data: media,
+              },
+            }
+          : undefined,
       },
       include: {
-        creator: {
-          select: { id: true, email: true, username: true },
-        },
+        creator: { select: { id: true, email: true, username: true } },
+        media: true,
       },
     });
 
@@ -140,12 +139,9 @@ export class LessonService {
         take: limit,
         orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
         include: {
-          topic: {
-            select: { id: true, name: true },
-          },
-          creator: {
-            select: { id: true, email: true, username: true },
-          },
+          topic: { select: { id: true, name: true } },
+          creator: { select: { id: true, email: true, username: true } },
+          media: true,
         },
       }),
     ]);
@@ -170,7 +166,7 @@ export class LessonService {
   }
 
   /**
-   * Lấy chi tiết một bài học lịch sử theo ID
+   * Lấy chi tiết bài học lịch sử kèm media & tags
    */
   async findOne(id: string): Promise<any> {
     const cacheKey = `lesson:detail:${id}`;
@@ -186,15 +182,11 @@ export class LessonService {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id },
       include: {
-        topic: {
-          select: { id: true, name: true, periodId: true },
-        },
-        creator: {
-          select: { id: true, email: true, username: true },
-        },
-        approver: {
-          select: { id: true, email: true, username: true },
-        },
+        topic: { select: { id: true, name: true, periodId: true } },
+        creator: { select: { id: true, email: true, username: true } },
+        approver: { select: { id: true, email: true, username: true } },
+        media: { orderBy: { displayOrder: 'asc' } },
+        lessonTags: { include: { tag: true } },
       },
     });
 
@@ -230,11 +222,16 @@ export class LessonService {
       }
     }
 
+    const { media, ...lessonData } = updateLessonDto;
+
     const updated = await this.prisma.lesson.update({
       where: { id },
-      data: updateLessonDto,
+      data: {
+        ...lessonData,
+      },
       include: {
         creator: { select: { id: true, email: true, username: true } },
+        media: true,
       },
     });
 
@@ -270,6 +267,7 @@ export class LessonService {
       include: {
         creator: { select: { id: true, email: true, username: true } },
         approver: { select: { id: true, email: true, username: true } },
+        media: true,
       },
     });
 

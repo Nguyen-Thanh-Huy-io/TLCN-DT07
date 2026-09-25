@@ -26,6 +26,10 @@ COPY package*.json ./
 
 ENV NODE_ENV=production
 
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx
+    
 EXPOSE 5000
 
 CMD ["node", "dist/src/main.js"]

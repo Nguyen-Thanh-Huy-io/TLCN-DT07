@@ -12,7 +12,7 @@ out/
 # Logs
 logs/
 *.log
-npm-debug.log*
+npm-debug.log*yhb
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*

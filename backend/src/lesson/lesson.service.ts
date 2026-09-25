@@ -48,7 +48,7 @@ export class LessonService {
   private formatLessonResponse(lesson: any) {
     return {
       ...lesson,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
       estimatedReadMinutes: this.calculateReadTime(
         lesson.contentRichText as string | null | undefined,
       ),

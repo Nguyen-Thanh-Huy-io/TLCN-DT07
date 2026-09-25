@@ -38,7 +38,7 @@ describe('GoogleOAuthService', () => {
     loginHistory: {
       create: jest.fn(),
     },
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+
     $transaction: jest.fn((fn) => fn(mockPrismaService)),
   };
 
@@ -74,7 +74,7 @@ describe('GoogleOAuthService', () => {
         },
         {
           provide: PrismaService,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
           useValue: mockPrismaService,
         },
         {

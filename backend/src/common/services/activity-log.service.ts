@@ -125,7 +125,6 @@ export class ActivityLogService {
 
     // Find changed fields
     for (const [key, newValue] of Object.entries(newData)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const oldValue = oldData[key];
       if (oldValue !== newValue) {
         changes.push({

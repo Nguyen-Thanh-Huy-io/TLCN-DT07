@@ -89,7 +89,10 @@ describe('UserService', () => {
 
       expect(mockPrismaService.authUser.findFirst).toHaveBeenCalledWith({
         where: {
-          OR: [{ email: createUserDto.email }, { username: createUserDto.username }],
+          OR: [
+            { email: createUserDto.email },
+            { username: createUserDto.username },
+          ],
         },
       });
       expect(bcrypt.hash).toHaveBeenCalledWith(createUserDto.password, 10);
@@ -106,9 +109,13 @@ describe('UserService', () => {
         status: userStatus.ACTIVE,
       };
 
-      mockPrismaService.authUser.findFirst.mockResolvedValue({ id: 'existing-uuid' });
+      mockPrismaService.authUser.findFirst.mockResolvedValue({
+        id: 'existing-uuid',
+      });
 
-      await expect(service.create(createUserDto)).rejects.toThrow(ConflictException);
+      await expect(service.create(createUserDto)).rejects.toThrow(
+        ConflictException,
+      );
       expect(mockPrismaService.authUser.create).not.toHaveBeenCalled();
     });
   });
@@ -188,7 +195,7 @@ describe('UserService', () => {
       expect(mockPrismaService.authUser.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ password: 'hashedPassword' }),
-        })
+        }),
       );
     });
 
@@ -198,7 +205,9 @@ describe('UserService', () => {
 
       mockPrismaService.authUser.findUnique.mockResolvedValue(null);
 
-      await expect(service.update(userId, updateUserDto)).rejects.toThrow(NotFoundException);
+      await expect(service.update(userId, updateUserDto)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(mockPrismaService.authUser.update).not.toHaveBeenCalled();
     });
   });

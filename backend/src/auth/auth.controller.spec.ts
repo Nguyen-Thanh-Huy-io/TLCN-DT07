@@ -93,7 +93,7 @@ describe('AuthController', () => {
 
       await controller.create(createAuthDto, mockRequest);
 
-      expect(mockAuthService.create)c.toHaveBeenCalledWith(createAuthDto, {
+      expect(mockAuthService.create).toHaveBeenCalledWith(createAuthDto, {
         ip: '127.0.0.1',
         userAgent: 'Jest Test Agent',
         device: 'test-device',

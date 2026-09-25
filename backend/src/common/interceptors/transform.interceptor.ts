@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   CallHandler,
   ExecutionContext,
@@ -27,7 +25,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, any> {
     const startTime = Date.now();
 
     // Skip transformation for metrics endpoint (needs raw Prometheus format)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
     if (path === '/metrics' || path.startsWith('/metrics?')) {
       return next.handle();
     }

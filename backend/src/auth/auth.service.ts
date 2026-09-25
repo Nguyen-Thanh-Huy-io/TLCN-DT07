@@ -16,8 +16,6 @@ import {
   UserRole,
 } from './interfaces/auth.interface';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 
 @Injectable()

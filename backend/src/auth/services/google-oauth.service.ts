@@ -23,8 +23,6 @@ import { IStoredRefreshToken, UserRole } from '../interfaces/auth.interface';
 import AppError from '../../common/errors/app.error';
 import config from '../../common/config/app.config';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
 /**
  * Google OAuth Service
  * Implements Google OAuth 2.0 with PKCE (Proof Key for Code Exchange)

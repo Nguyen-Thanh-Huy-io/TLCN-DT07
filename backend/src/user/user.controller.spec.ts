@@ -185,7 +185,10 @@ describe('UserController', () => {
       const result = await controller.update(userId, updateUserDto);
 
       expect(result).toBe(expectedResult);
-      expect(mockUserService.update).toHaveBeenCalledWith(userId, updateUserDto);
+      expect(mockUserService.update).toHaveBeenCalledWith(
+        userId,
+        updateUserDto,
+      );
       expect(mockUserService.update).toHaveBeenCalledTimes(1);
     });
 
@@ -197,24 +200,35 @@ describe('UserController', () => {
 
       await controller.update(userId, updateUserDto);
 
-      expect(mockUserService.update).toHaveBeenCalledWith(userId, updateUserDto);
+      expect(mockUserService.update).toHaveBeenCalledWith(
+        userId,
+        updateUserDto,
+      );
     });
 
     it('should pass the correct DTO to the service', async () => {
       const userId = 'uuid-update-7';
-      const updateUserDto: UpdateUserDto = { username: 'newname' } as UpdateUserDto;
+      const updateUserDto: UpdateUserDto = {
+        username: 'newname',
+      } as UpdateUserDto;
 
       mockUserService.update.mockResolvedValue({ id: userId });
 
       await controller.update(userId, updateUserDto);
 
-      expect(mockUserService.update).toHaveBeenCalledWith(userId, updateUserDto);
+      expect(mockUserService.update).toHaveBeenCalledWith(
+        userId,
+        updateUserDto,
+      );
     });
 
     it('should return whatever the service returns', async () => {
       const userId = 'uuid-update-3';
       const updateUserDto: UpdateUserDto = {};
-      const serviceResponse = { id: userId, message: 'User updated successfully' };
+      const serviceResponse = {
+        id: userId,
+        message: 'User updated successfully',
+      };
 
       mockUserService.update.mockResolvedValue(serviceResponse);
 
@@ -260,7 +274,10 @@ describe('UserController', () => {
 
     it('should return whatever the service returns', async () => {
       const userId = 'uuid-remove-12';
-      const serviceResponse = { success: true, message: 'User deleted successfully' };
+      const serviceResponse = {
+        success: true,
+        message: 'User deleted successfully',
+      };
 
       mockUserService.remove.mockResolvedValue(serviceResponse);
 

@@ -90,11 +90,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -f ./backend/Dockerfile -t hisgo-backend ./backend
+        run: docker build -f ./backend/Dockerfile -t hisgo-backend:ci ./backend
 
       - name: Save Docker image
         run: |
-          docker save hisgo-backend -o hisgo.tar
+          docker save hisgo-backend:ci -o hisgo.tar
 
       - name: Upload Docker image
         uses: actions/upload-artifact@v4
@@ -124,7 +124,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'hisgo:ci'
+          image-ref: 'hisgo-backend:ci'
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
@@ -162,7 +162,7 @@ jobs:
       - name: Tag Docker image
         run: |
           docker tag \
-            hisgo:ci \
+            hisgo-backend:ci \
             ${{ env.DOCKER_IMAGE }}:latest
 
       - name: Push Docker image

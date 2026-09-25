@@ -90,14 +90,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: |
-          docker build \
-            -t hisgo:ci \
-            .
+        run: docker build -f ./backend/Dockerfile -t hisgo-backend ./backend
 
       - name: Save Docker image
         run: |
-          docker save hisgo:ci -o hisgo.tar
+          docker save hisgo-backend -o hisgo.tar
 
       - name: Upload Docker image
         uses: actions/upload-artifact@v4

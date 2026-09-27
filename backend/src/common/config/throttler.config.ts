@@ -9,7 +9,7 @@ export const THROTTLER_CONFIG = {
   // Default rate limit (applies to all routes unless overridden)
   DEFAULT: {
     ttl: 60000, // 60 seconds (1 minute)
-    limit: 100, // 100 requests per minute
+    limit: 1000, // 1000 requests per minute in local development
   },
 
   // Strict rate limit for sensitive endpoints (login, signup, password reset)
@@ -27,7 +27,7 @@ export const THROTTLER_CONFIG = {
   // Relaxed for read-heavy endpoints
   RELAXED: {
     ttl: 60000, // 60 seconds
-    limit: 300, // 300 requests per minute
+    limit: 1000, // 1000 requests per minute in local development
   },
 } as const;
 

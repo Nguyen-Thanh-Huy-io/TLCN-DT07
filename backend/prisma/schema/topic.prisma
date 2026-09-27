@@ -18,6 +18,7 @@ model Topic {
     period           Period            @relation(fields: [periodId], references: [id], onDelete: Cascade)
     lessons          Lesson[]
     historicalEvents HistoricalEvent[]
+    quizzes          Quiz[]
 
     @@index([periodId])
     @@index([status])

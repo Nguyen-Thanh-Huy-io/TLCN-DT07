@@ -132,3 +132,16 @@ enum DifficultyLevel {
     HARD
 }
 
+enum QuestionType {
+    MULTIPLE_CHOICE
+    MULTIPLE_SELECT
+    TRUE_FALSE
+}
+
+enum AttemptStatus {
+    IN_PROGRESS
+    COMPLETED
+    TIMED_OUT
+    ABANDONED
+}
+

@@ -17,6 +17,7 @@ import { TopicModule } from './topic/topic.module';
 import { LessonModule } from './lesson/lesson.module';
 import { HistoricalEventModule } from './historical-event/historical-event.module';
 import { TagModule } from './tag/tag.module';
+import { QuizModule } from './quiz/quiz.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { TagModule } from './tag/tag.module';
     LessonModule,
     HistoricalEventModule,
     TagModule,
+    QuizModule,
   ],
   controllers: [AppController],
   providers: [AppService],

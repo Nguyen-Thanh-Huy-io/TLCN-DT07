@@ -31,6 +31,7 @@ model Lesson {
     approver   authUser?     @relation("LessonApprover", fields: [approvedBy], references: [id])
     lessonTags LessonTag[]
     media      LessonMedia[]
+    quizzes    Quiz[]
 
     @@index([topicId])
     @@index([status])

@@ -26,6 +26,9 @@ model authUser {
     subscriptions     Subscription[]
     createdLessons    Lesson[]           @relation("LessonCreator")
     approvedLessons   Lesson[]           @relation("LessonApprover")
+    createdQuizzes    Quiz[]             @relation("QuizCreator")
+    approvedQuizzes   Quiz[]             @relation("QuizApprover")
+    quizAttempts      QuizAttempt[]      @relation("UserQuizAttempts")
 
     @@index([email, id, providerId])
     @@index([username])

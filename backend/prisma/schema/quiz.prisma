@@ -1,0 +1,128 @@
+// ================================
+// Quiz Model
+// ================================
+
+model Quiz {
+    id               String        @id @default(uuid())
+    lessonId         String?       @map("lesson_id")
+    topicId          String?       @map("topic_id")
+    title            String        @db.VarChar(255)
+    description      String?       @db.Text
+    passingScore     Int           @default(70) @map("passing_score")
+    timeLimitMinutes Int?          @map("time_limit_minutes")
+    xpReward         Int           @default(50) @map("xp_reward")
+    maxAttempts      Int?          @map("max_attempts")
+    status           ContentStatus @default(DRAFT)
+    createdBy        String        @map("created_by")
+    approvedBy       String?       @map("approved_by")
+    createdAt        DateTime      @default(now()) @map("created_at")
+    updatedAt        DateTime      @updatedAt @map("updated_at")
+
+    // Relations
+    lesson    Lesson?       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+    topic     Topic?        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+    creator   authUser      @relation("QuizCreator", fields: [createdBy], references: [id])
+    approver  authUser?     @relation("QuizApprover", fields: [approvedBy], references: [id])
+    questions Question[]
+    attempts  QuizAttempt[]
+
+    @@index([lessonId])
+    @@index([topicId])
+    @@index([status])
+    @@map("quizzes")
+}
+
+// ================================
+// Question Model
+// ================================
+
+model Question {
+    id           String       @id @default(uuid())
+    quizId       String       @map("quiz_id")
+    questionText String       @map("question_text") @db.Text
+    explanation  String?      @db.Text
+    type         QuestionType @default(MULTIPLE_CHOICE)
+    points       Int          @default(1)
+    displayOrder Int          @default(0) @map("display_order")
+    createdAt    DateTime     @default(now()) @map("created_at")
+    updatedAt    DateTime     @updatedAt @map("updated_at")
+
+    // Relations
+    quiz           Quiz                @relation(fields: [quizId], references: [id], onDelete: Cascade)
+    options        QuestionOption[]
+    attemptAnswers QuizAttemptAnswer[]
+
+    @@index([quizId])
+    @@index([displayOrder])
+    @@map("questions")
+}
+
+// ================================
+// Question Option Model
+// ================================
+
+model QuestionOption {
+    id           String   @id @default(uuid())
+    questionId   String   @map("question_id")
+    optionText   String   @map("option_text") @db.Text
+    isCorrect    Boolean  @default(false) @map("is_correct")
+    displayOrder Int      @default(0) @map("display_order")
+    createdAt    DateTime @default(now()) @map("created_at")
+
+    // Relations
+    question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+    @@index([questionId])
+    @@index([displayOrder])
+    @@map("question_options")
+}
+
+// ================================
+// Quiz Attempt Model
+// ================================
+
+model QuizAttempt {
+    id           String        @id @default(uuid())
+    quizId       String        @map("quiz_id")
+    userId       String        @map("user_id")
+    score        Float         @default(0)
+    totalPoints  Float         @default(0) @map("total_points")
+    earnedPoints Float         @default(0) @map("earned_points")
+    passed       Boolean       @default(false)
+    earnedXp     Int           @default(0) @map("earned_xp")
+    status       AttemptStatus @default(IN_PROGRESS)
+    startedAt    DateTime      @default(now()) @map("started_at")
+    completedAt  DateTime?     @map("completed_at")
+
+    // Relations
+    quiz    Quiz                @relation(fields: [quizId], references: [id], onDelete: Cascade)
+    user    authUser            @relation("UserQuizAttempts", fields: [userId], references: [id], onDelete: Cascade)
+    answers QuizAttemptAnswer[]
+
+    @@index([quizId])
+    @@index([userId])
+    @@index([status])
+    @@map("quiz_attempts")
+}
+
+// ================================
+// Quiz Attempt Answer Model
+// ================================
+
+model QuizAttemptAnswer {
+    id                String   @id @default(uuid())
+    attemptId         String   @map("attempt_id")
+    questionId        String   @map("question_id")
+    selectedOptionIds String[] @map("selected_option_ids")
+    isCorrect         Boolean  @default(false) @map("is_correct")
+    earnedPoints      Float    @default(0) @map("earned_points")
+    createdAt         DateTime @default(now()) @map("created_at")
+
+    // Relations
+    attempt  QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+    question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+    @@index([attemptId])
+    @@index([questionId])
+    @@map("quiz_attempt_answers")
+}

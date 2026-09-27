@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ContentStatus, DifficultyLevel, QuestionType } from '@prisma/client';
+import { ContentStatus, QuestionType } from '@prisma/client';
 
 export class OptionResponseDto {
   @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
@@ -8,7 +8,10 @@ export class OptionResponseDto {
   @ApiProperty({ example: 'Năm 938' })
   optionText: string;
 
-  @ApiPropertyOptional({ example: true, description: 'Chỉ hiển thị khi đã nộp bài hoặc dành cho tác giả/admin' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Chỉ hiển thị khi đã nộp bài hoặc dành cho tác giả/admin',
+  })
   isCorrect?: boolean;
 
   @ApiProperty({ example: 1 })
@@ -19,7 +22,9 @@ export class QuestionResponseDto {
   @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
   id: string;
 
-  @ApiProperty({ example: 'Chiến thắng Bạch Đằng của Ngô Quyền diễn ra vào năm nào?' })
+  @ApiProperty({
+    example: 'Chiến thắng Bạch Đằng của Ngô Quyền diễn ra vào năm nào?',
+  })
   questionText: string;
 
   @ApiPropertyOptional({ example: 'Lời giải thích chi tiết' })
@@ -48,7 +53,9 @@ export class QuizResponseDto {
   @ApiPropertyOptional({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33' })
   topicId?: string | null;
 
-  @ApiProperty({ example: 'Trắc nghiệm củng cố kiến thức: Chiến thắng Bạch Đằng' })
+  @ApiProperty({
+    example: 'Trắc nghiệm củng cố kiến thức: Chiến thắng Bạch Đằng',
+  })
   title: string;
 
   @ApiPropertyOptional({ example: 'Mô tả bài kiểm tra' })

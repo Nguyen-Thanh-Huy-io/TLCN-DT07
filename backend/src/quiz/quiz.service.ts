@@ -23,7 +23,12 @@ import {
   QUIZ_ERROR_MESSAGES,
   QUIZ_SUCCESS_MESSAGES,
 } from './constants/quiz.constant';
-import { ContentStatus, QuestionType, AttemptStatus, Prisma } from '@prisma/client';
+import {
+  ContentStatus,
+  QuestionType,
+  AttemptStatus,
+  Prisma,
+} from '@prisma/client';
 
 export interface IPaginatedResult<T> {
   items: T[];
@@ -72,7 +77,10 @@ export class QuizService {
   /**
    * Tạo bài kiểm tra (Quiz) mới kèm câu hỏi & đáp án
    */
-  async create(createQuizDto: CreateQuizDto, creatorUserId: string): Promise<any> {
+  async create(
+    createQuizDto: CreateQuizDto,
+    creatorUserId: string,
+  ): Promise<any> {
     this.logger.log(`Creating quiz: ${createQuizDto.title}`, 'QuizService');
 
     if (createQuizDto.lessonId) {
@@ -173,8 +181,11 @@ export class QuizService {
     try {
       const cached = await this.redis.get<IPaginatedResult<any>>(cacheKey);
       if (cached) return cached;
-    } catch (err) {
-      this.logger.warn(`Redis get error: ${err.message}`, 'QuizService');
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Redis get error: ${err instanceof Error ? err.message : String(err)}`,
+        'QuizService',
+      );
     }
 
     const [total, items] = await Promise.all([
@@ -205,8 +216,11 @@ export class QuizService {
 
     try {
       await this.redis.set(cacheKey, result, QUIZ_CONSTANTS.CACHE_TTL);
-    } catch (err) {
-      this.logger.warn(`Redis set error: ${err.message}`, 'QuizService');
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Redis set error: ${err instanceof Error ? err.message : String(err)}`,
+        'QuizService',
+      );
     }
 
     return result;
@@ -216,12 +230,15 @@ export class QuizService {
    * Lấy chi tiết bài kiểm tra (bao gồm câu hỏi, che giấu isCorrect nếu là người học thông thường)
    */
   async findOne(id: string, isAuthorOrAdmin = false): Promise<any> {
-    const cacheKey = `${QUIZ_CONSTANTS.CACHE_DETAIL_PREFIX}:${id}:${isAuthorOrAdmin}`;
+    const cacheKey = `${QUIZ_CONSTANTS.CACHE_DETAIL_PREFIX}:${id}:${String(isAuthorOrAdmin)}`;
     try {
-      const cached = await this.redis.get<any>(cacheKey);
+      const cached = await this.redis.get<Record<string, unknown>>(cacheKey);
       if (cached) return cached;
-    } catch (err) {
-      this.logger.warn(`Redis get error: ${err.message}`, 'QuizService');
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Redis get error: ${err instanceof Error ? err.message : String(err)}`,
+        'QuizService',
+      );
     }
 
     const quiz = await this.prisma.quiz.findUnique({
@@ -251,13 +268,18 @@ export class QuizService {
     });
 
     if (!quiz) {
-      throw new NotFoundException(`${QUIZ_ERROR_MESSAGES.QUIZ_NOT_FOUND} ID: ${id}`);
+      throw new NotFoundException(
+        `${QUIZ_ERROR_MESSAGES.QUIZ_NOT_FOUND} ID: ${id}`,
+      );
     }
 
     try {
       await this.redis.set(cacheKey, quiz, QUIZ_CONSTANTS.CACHE_TTL);
-    } catch (err) {
-      this.logger.warn(`Redis set error: ${err.message}`, 'QuizService');
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Redis set error: ${err instanceof Error ? err.message : String(err)}`,
+        'QuizService',
+      );
     }
 
     return quiz;
@@ -293,13 +315,19 @@ export class QuizService {
 
     this.validateQuestions(updateQuizDto.questions);
 
-    const { questions, ...quizData } = updateQuizDto;
+    const updateData: Prisma.QuizUncheckedUpdateInput = {};
+    if (updateQuizDto.lessonId !== undefined) updateData.lessonId = updateQuizDto.lessonId;
+    if (updateQuizDto.topicId !== undefined) updateData.topicId = updateQuizDto.topicId;
+    if (updateQuizDto.title !== undefined) updateData.title = updateQuizDto.title;
+    if (updateQuizDto.description !== undefined) updateData.description = updateQuizDto.description;
+    if (updateQuizDto.passingScore !== undefined) updateData.passingScore = updateQuizDto.passingScore;
+    if (updateQuizDto.timeLimitMinutes !== undefined) updateData.timeLimitMinutes = updateQuizDto.timeLimitMinutes;
+    if (updateQuizDto.xpReward !== undefined) updateData.xpReward = updateQuizDto.xpReward;
+    if (updateQuizDto.maxAttempts !== undefined) updateData.maxAttempts = updateQuizDto.maxAttempts;
 
     const updated = await this.prisma.quiz.update({
       where: { id },
-      data: {
-        ...quizData,
-      },
+      data: updateData,
       include: {
         creator: { select: { id: true, email: true, username: true } },
         questions: {
@@ -317,14 +345,20 @@ export class QuizService {
   /**
    * Duyệt hoặc từ chối bài kiểm tra (Admin/Reviewer)
    */
-  async review(id: string, reviewDto: ReviewQuizDto, adminUserId: string): Promise<any> {
+  async review(
+    id: string,
+    reviewDto: ReviewQuizDto,
+    adminUserId: string,
+  ): Promise<any> {
     await this.findOne(id, true);
 
     if (
       reviewDto.status === ContentStatus.REJECTED &&
       !reviewDto.rejectionReason
     ) {
-      throw new BadRequestException(QUIZ_ERROR_MESSAGES.REJECTION_REASON_REQUIRED);
+      throw new BadRequestException(
+        QUIZ_ERROR_MESSAGES.REJECTION_REASON_REQUIRED,
+      );
     }
 
     const updated = await this.prisma.quiz.update({
@@ -385,7 +419,9 @@ export class QuizService {
     });
 
     if (!quiz) {
-      throw new NotFoundException(`${QUIZ_ERROR_MESSAGES.QUIZ_NOT_FOUND} ID: ${quizId}`);
+      throw new NotFoundException(
+        `${QUIZ_ERROR_MESSAGES.QUIZ_NOT_FOUND} ID: ${quizId}`,
+      );
     }
 
     if (quiz.status !== ContentStatus.PUBLISHED) {
@@ -466,11 +502,15 @@ export class QuizService {
     }
 
     if (attempt.userId !== userId) {
-      throw new ForbiddenException('Bạn không có quyền nộp bài cho lượt làm bài này');
+      throw new ForbiddenException(
+        'Bạn không có quyền nộp bài cho lượt làm bài này',
+      );
     }
 
     if (attempt.status !== AttemptStatus.IN_PROGRESS) {
-      throw new BadRequestException(QUIZ_ERROR_MESSAGES.ATTEMPT_ALREADY_COMPLETED);
+      throw new BadRequestException(
+        QUIZ_ERROR_MESSAGES.ATTEMPT_ALREADY_COMPLETED,
+      );
     }
 
     const { quiz } = attempt;
@@ -491,10 +531,29 @@ export class QuizService {
     }
 
     // Đánh giá từng câu hỏi bằng Factory Pattern
-    const questionMap = new Map(quiz.questions.map((q) => [q.id, q]));
-    const evaluationResults: any[] = [];
-    const answerRecords: any[] = [];
-    const responseAnswersDetail: any[] = [];
+    const evaluationResults: {
+      questionId: string;
+      isCorrect: boolean;
+      earnedPoints: number;
+      maxPoints: number;
+    }[] = [];
+    const answerRecords: {
+      attemptId: string;
+      questionId: string;
+      selectedOptionIds: string[];
+      isCorrect: boolean;
+      earnedPoints: number;
+    }[] = [];
+    const responseAnswersDetail: {
+      questionId: string;
+      questionText: string;
+      selectedOptionIds: string[];
+      correctOptionIds: string[];
+      isCorrect: boolean;
+      earnedPoints: number;
+      maxPoints: number;
+      explanation?: string | null;
+    }[] = [];
 
     for (const question of quiz.questions) {
       const userAnswer = dto.answers.find((a) => a.questionId === question.id);
@@ -503,7 +562,9 @@ export class QuizService {
         .filter((o) => o.isCorrect)
         .map((o) => o.id);
 
-      const evaluator = this.questionEvaluatorFactory.getEvaluator(question.type);
+      const evaluator = this.questionEvaluatorFactory.getEvaluator(
+        question.type,
+      );
       const evalResult = evaluator.evaluate({
         questionId: question.id,
         userSelectedOptionIds: selectedOptionIds,
@@ -611,12 +672,19 @@ export class QuizService {
   private async invalidateCache(id?: string): Promise<void> {
     try {
       if (id) {
-        await this.redis.del(`${QUIZ_CONSTANTS.CACHE_DETAIL_PREFIX}:${id}:true`);
-        await this.redis.del(`${QUIZ_CONSTANTS.CACHE_DETAIL_PREFIX}:${id}:false`);
+        await this.redis.del(
+          `${QUIZ_CONSTANTS.CACHE_DETAIL_PREFIX}:${id}:true`,
+        );
+        await this.redis.del(
+          `${QUIZ_CONSTANTS.CACHE_DETAIL_PREFIX}:${id}:false`,
+        );
       }
       await this.redis.deleteByPattern(`${QUIZ_CONSTANTS.CACHE_PREFIX}:*`);
-    } catch (err) {
-      this.logger.warn(`Failed to clear quiz cache: ${err.message}`, 'QuizService');
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Failed to clear quiz cache: ${err instanceof Error ? err.message : String(err)}`,
+        'QuizService',
+      );
     }
   }
 }

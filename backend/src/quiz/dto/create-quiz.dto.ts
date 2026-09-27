@@ -40,7 +40,8 @@ export class CreateQuizDto {
   title: string;
 
   @ApiPropertyOptional({
-    example: 'Bài kiểm tra gồm 10 câu hỏi nhằm đánh giá mức độ hiểu bài về trận Bạch Đằng năm 938.',
+    example:
+      'Bài kiểm tra gồm 10 câu hỏi nhằm đánh giá mức độ hiểu bài về trận Bạch Đằng năm 938.',
     description: 'Mô tả bài kiểm tra',
   })
   @IsOptional()
@@ -60,7 +61,8 @@ export class CreateQuizDto {
 
   @ApiPropertyOptional({
     example: 15,
-    description: 'Thời gian giới hạn làm bài (phút). Bỏ trống nếu không giới hạn',
+    description:
+      'Thời gian giới hạn làm bài (phút). Bỏ trống nếu không giới hạn',
   })
   @IsOptional()
   @IsInt({ message: 'timeLimitMinutes phải là số nguyên' })
@@ -79,7 +81,8 @@ export class CreateQuizDto {
 
   @ApiPropertyOptional({
     example: 3,
-    description: 'Số lần tối đa người học được làm bài. Bỏ trống nếu không giới hạn',
+    description:
+      'Số lần tối đa người học được làm bài. Bỏ trống nếu không giới hạn',
   })
   @IsOptional()
   @IsInt({ message: 'maxAttempts phải là số nguyên' })

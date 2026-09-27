@@ -11,12 +11,10 @@ import { ScoringStrategyContext } from './strategies/scoring/scoring-strategy.co
 import { StandardScoringStrategy } from './strategies/scoring/standard-scoring.strategy';
 import { WeightedScoringStrategy } from './strategies/scoring/weighted-scoring.strategy';
 import { ContentStatus, QuestionType, AttemptStatus } from '@prisma/client';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 
 describe('QuizService', () => {
   let service: QuizService;
-  let prisma: PrismaService;
-  let redis: RedisService;
 
   const mockPrismaService = {
     quiz: {
@@ -77,8 +75,6 @@ describe('QuizService', () => {
     }).compile();
 
     service = module.get<QuizService>(QuizService);
-    prisma = module.get<PrismaService>(PrismaService);
-    redis = module.get<RedisService>(RedisService);
   });
 
   afterEach(() => {
@@ -104,7 +100,9 @@ describe('QuizService', () => {
         ],
       };
 
-      mockPrismaService.lesson.findUnique.mockResolvedValue({ id: 'lesson-123' });
+      mockPrismaService.lesson.findUnique.mockResolvedValue({
+        id: 'lesson-123',
+      });
       mockPrismaService.quiz.create.mockResolvedValue({
         id: 'quiz-123',
         ...mockDto,
@@ -157,9 +155,7 @@ describe('QuizService', () => {
             type: QuestionType.MULTIPLE_CHOICE,
             points: 1,
             displayOrder: 0,
-            options: [
-              { id: 'opt-1', optionText: 'Đáp án A', displayOrder: 0 },
-            ],
+            options: [{ id: 'opt-1', optionText: 'Đáp án A', displayOrder: 0 }],
           },
         ],
       };
@@ -210,7 +206,9 @@ describe('QuizService', () => {
       };
 
       mockPrismaService.quizAttempt.findUnique.mockResolvedValue(mockAttempt);
-      mockPrismaService.quizAttemptAnswer.createMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.quizAttemptAnswer.createMany.mockResolvedValue({
+        count: 1,
+      });
       mockPrismaService.quizAttempt.update.mockResolvedValue({});
 
       const result = await service.submitAttempt('attempt-1', 'user-1', {

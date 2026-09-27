@@ -8,7 +8,8 @@ import {
 @Injectable()
 export class TrueFalseEvaluator implements IQuestionEvaluator {
   evaluate(input: QuestionEvaluationInput): QuestionEvaluationResult {
-    const { questionId, userSelectedOptionIds, correctOptionIds, points } = input;
+    const { questionId, userSelectedOptionIds, correctOptionIds, points } =
+      input;
 
     const isCorrect =
       userSelectedOptionIds.length === 1 &&

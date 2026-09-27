@@ -5,7 +5,9 @@ export class AttemptAnswerDetailDto {
   @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
   questionId: string;
 
-  @ApiProperty({ example: 'Chiến thắng Bạch Đằng của Ngô Quyền diễn ra vào năm nào?' })
+  @ApiProperty({
+    example: 'Chiến thắng Bạch Đằng của Ngô Quyền diễn ra vào năm nào?',
+  })
   questionText: string;
 
   @ApiProperty({ example: ['b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22'] })
@@ -23,7 +25,9 @@ export class AttemptAnswerDetailDto {
   @ApiProperty({ example: 1 })
   maxPoints: number;
 
-  @ApiPropertyOptional({ example: 'Năm 938, Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng.' })
+  @ApiPropertyOptional({
+    example: 'Năm 938, Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng.',
+  })
   explanation?: string | null;
 }
 
@@ -34,7 +38,9 @@ export class AttemptResultDto {
   @ApiProperty({ example: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22' })
   quizId: string;
 
-  @ApiProperty({ example: 'Trắc nghiệm củng cố kiến thức: Chiến thắng Bạch Đằng' })
+  @ApiProperty({
+    example: 'Trắc nghiệm củng cố kiến thức: Chiến thắng Bạch Đằng',
+  })
   quizTitle: string;
 
   @ApiProperty({ example: 80, description: 'Phần trăm điểm đạt được (0-100%)' })

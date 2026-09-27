@@ -8,7 +8,8 @@ import {
 @Injectable()
 export class MultipleSelectEvaluator implements IQuestionEvaluator {
   evaluate(input: QuestionEvaluationInput): QuestionEvaluationResult {
-    const { questionId, userSelectedOptionIds, correctOptionIds, points } = input;
+    const { questionId, userSelectedOptionIds, correctOptionIds, points } =
+      input;
 
     if (!userSelectedOptionIds || userSelectedOptionIds.length === 0) {
       return {

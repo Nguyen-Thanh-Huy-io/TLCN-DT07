@@ -24,7 +24,7 @@ export class QuestionEvaluatorFactory {
         return this.trueFalseEvaluator;
       default:
         throw new BadRequestException(
-          `${QUIZ_ERROR_MESSAGES.INVALID_QUESTION_TYPE}: ${type}`,
+          `${QUIZ_ERROR_MESSAGES.INVALID_QUESTION_TYPE}: ${String(type)}`,
         );
     }
   }

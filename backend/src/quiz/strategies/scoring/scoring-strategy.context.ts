@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { IScoringStrategy, QuizScoringInput, QuizScoringResult } from './scoring.strategy.interface';
+import {
+  IScoringStrategy,
+  QuizScoringInput,
+  QuizScoringResult,
+} from './scoring.strategy.interface';
 import { StandardScoringStrategy } from './standard-scoring.strategy';
 import { WeightedScoringStrategy } from './weighted-scoring.strategy';
 

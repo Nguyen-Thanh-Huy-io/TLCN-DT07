@@ -8,7 +8,8 @@ import {
 @Injectable()
 export class MultipleChoiceEvaluator implements IQuestionEvaluator {
   evaluate(input: QuestionEvaluationInput): QuestionEvaluationResult {
-    const { questionId, userSelectedOptionIds, correctOptionIds, points } = input;
+    const { questionId, userSelectedOptionIds, correctOptionIds, points } =
+      input;
 
     // Phải chọn đúng 1 đáp án và đáp án đó phải nằm trong danh sách đáp án đúng
     const isCorrect =

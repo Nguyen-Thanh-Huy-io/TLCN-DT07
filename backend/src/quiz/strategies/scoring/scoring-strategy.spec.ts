@@ -1,6 +1,9 @@
 import { StandardScoringStrategy } from './standard-scoring.strategy';
 import { WeightedScoringStrategy } from './weighted-scoring.strategy';
-import { ScoringStrategyContext, ScoringMode } from './scoring-strategy.context';
+import {
+  ScoringStrategyContext,
+  ScoringMode,
+} from './scoring-strategy.context';
 
 describe('Scoring Strategies (Strategy Pattern)', () => {
   let standardStrategy: StandardScoringStrategy;

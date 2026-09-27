@@ -1,10 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsUUID,
-  IsArray,
-  ValidateNested,
-  ArrayMinSize,
-} from 'class-validator';
+import { IsUUID, IsArray, ValidateNested, ArrayMinSize } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SubmitQuestionAnswerDto {

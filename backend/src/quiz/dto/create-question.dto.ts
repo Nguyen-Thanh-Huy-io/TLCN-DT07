@@ -24,7 +24,8 @@ export class CreateQuestionDto {
   questionText: string;
 
   @ApiPropertyOptional({
-    example: 'Năm 938, Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng, chấm dứt hơn 1000 năm Bắc thuộc.',
+    example:
+      'Năm 938, Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng, chấm dứt hơn 1000 năm Bắc thuộc.',
     description: 'Lời giải thích chi tiết đáp án',
   })
   @IsOptional()

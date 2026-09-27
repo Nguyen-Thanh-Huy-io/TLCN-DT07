@@ -14,7 +14,11 @@ describe('QuestionEvaluators & Factory', () => {
     mcEvaluator = new MultipleChoiceEvaluator();
     msEvaluator = new MultipleSelectEvaluator();
     tfEvaluator = new TrueFalseEvaluator();
-    factory = new QuestionEvaluatorFactory(mcEvaluator, msEvaluator, tfEvaluator);
+    factory = new QuestionEvaluatorFactory(
+      mcEvaluator,
+      msEvaluator,
+      tfEvaluator,
+    );
   });
 
   describe('MultipleChoiceEvaluator', () => {

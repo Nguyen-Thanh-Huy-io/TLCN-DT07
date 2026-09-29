@@ -10,8 +10,11 @@ export class HistoricalEventResponseDto {
   @ApiProperty({ example: 'Trận Bạch Đằng năm 938', description: 'Tên sự kiện lịch sử' })
   title: string;
 
-  @ApiProperty({ example: 938, description: 'Năm diễn ra sự kiện' })
-  eventYear: number;
+  @ApiPropertyOptional({ example: 938, description: 'Năm bắt đầu diễn ra sự kiện' })
+  startYear?: number | null;
+
+  @ApiPropertyOptional({ example: 938, description: 'Năm kết thúc sự kiện' })
+  endYear?: number | null;
 
   @ApiPropertyOptional({ example: 'Mùa thu năm 938', description: 'Ghi chú ngày tháng' })
   eventDateNote?: string | null;
@@ -19,8 +22,11 @@ export class HistoricalEventResponseDto {
   @ApiPropertyOptional({ example: 'Ngô Quyền đánh tan quân Nam Hán...', description: 'Mô tả diễn biến' })
   description?: string | null;
 
-  @ApiPropertyOptional({ example: 'Sông Bạch Đằng, Quảng Ninh', description: 'Địa danh xảy ra' })
-  location?: string | null;
+  @ApiPropertyOptional({ example: 'Sông Bạch Đằng, Quảng Ninh', description: 'Ghi chú địa danh' })
+  locationNote?: string | null;
+
+  @ApiPropertyOptional({ example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', description: 'ID địa điểm liên kết' })
+  locationId?: string | null;
 
   @ApiProperty({ example: 1, description: 'Thứ tự hiển thị' })
   displayOrder: number;

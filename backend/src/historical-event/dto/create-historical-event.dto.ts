@@ -29,14 +29,23 @@ export class CreateHistoricalEventDto {
   @MaxLength(255)
   title: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 938,
-    description: 'Năm diễn ra sự kiện (Số nguyên, có thể âm với TCN)',
+    description: 'Năm bắt đầu diễn ra sự kiện (Số nguyên, có thể âm với TCN)',
   })
   @Type(() => Number)
-  @IsInt({ message: 'Năm diễn ra sự kiện phải là số nguyên' })
-  @IsNotEmpty({ message: 'Năm diễn ra sự kiện không được để trống' })
-  eventYear: number;
+  @IsInt({ message: 'Năm bắt đầu diễn ra sự kiện phải là số nguyên' })
+  @IsOptional()
+  startYear?: number;
+
+  @ApiPropertyOptional({
+    example: 938,
+    description: 'Năm kết thúc sự kiện (Số nguyên, có thể âm với TCN)',
+  })
+  @Type(() => Number)
+  @IsInt({ message: 'Năm kết thúc sự kiện phải là số nguyên' })
+  @IsOptional()
+  endYear?: number;
 
   @ApiPropertyOptional({
     example: 'Mùa thu năm 938',
@@ -58,13 +67,21 @@ export class CreateHistoricalEventDto {
 
   @ApiPropertyOptional({
     example: 'Sông Bạch Đằng, Quảng Ninh',
-    description: 'Địa danh xảy ra sự kiện lịch sử',
+    description: 'Ghi chú vắn tắt về địa danh xảy ra sự kiện',
     maxLength: 255,
   })
   @IsString()
   @IsOptional()
   @MaxLength(255)
-  location?: string;
+  locationNote?: string;
+
+  @ApiPropertyOptional({
+    example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+    description: 'ID của Địa điểm lịch sử liên kết (UUID)',
+  })
+  @IsUUID('4', { message: 'locationId phải là UUID hợp lệ' })
+  @IsOptional()
+  locationId?: string;
 
   @ApiPropertyOptional({
     example: 1,

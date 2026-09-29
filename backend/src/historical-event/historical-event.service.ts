@@ -50,10 +50,12 @@ export class HistoricalEventService {
       data: {
         topicId: dto.topicId,
         title: dto.title,
-        eventYear: dto.eventYear,
+        startYear: dto.startYear,
+        endYear: dto.endYear,
         eventDateNote: dto.eventDateNote,
         description: dto.description,
-        location: dto.location,
+        locationNote: dto.locationNote,
+        locationId: dto.locationId,
         displayOrder: dto.displayOrder ?? 0,
       },
     });
@@ -63,7 +65,7 @@ export class HistoricalEventService {
   }
 
   /**
-   * Lấy danh sách sự kiện lịch sử (lọc theo topicId, eventYear, location, search và phân trang)
+   * Lấy danh sách sự kiện lịch sử (lọc theo topicId, startYear, locationNote, search và phân trang)
    */
   async findAll(query: QueryHistoricalEventDto): Promise<IPaginatedResult<HistoricalEvent>> {
     const page = Math.max(1, Number(query.page) || 1);
@@ -76,13 +78,21 @@ export class HistoricalEventService {
       where.topicId = query.topicId;
     }
 
-    if (query.eventYear !== undefined && query.eventYear !== null) {
-      where.eventYear = query.eventYear;
+    if (query.startYear !== undefined && query.startYear !== null) {
+      where.startYear = query.startYear;
     }
 
-    if (query.location) {
-      where.location = {
-        contains: query.location,
+    if (query.endYear !== undefined && query.endYear !== null) {
+      where.endYear = query.endYear;
+    }
+
+    if (query.locationId) {
+      where.locationId = query.locationId;
+    }
+
+    if (query.locationNote) {
+      where.locationNote = {
+        contains: query.locationNote,
         mode: 'insensitive',
       };
     }
@@ -110,7 +120,7 @@ export class HistoricalEventService {
         where,
         skip,
         take: limit,
-        orderBy: [{ eventYear: 'asc' }, { displayOrder: 'asc' }],
+        orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
         include: {
           topic: {
             select: { id: true, name: true, periodId: true },

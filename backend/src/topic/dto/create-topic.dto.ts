@@ -9,18 +9,38 @@ import {
   IsUUID,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContentStatus } from '@prisma/client';
+import { ContentStatus, TopicScope } from '@prisma/client';
 
 export class CreateTopicDto {
   @ApiProperty({
-    example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-    description: 'ID của Giai đoạn lịch sử chứa chủ đề này (UUID)',
+    enum: TopicScope,
+    example: TopicScope.CHRONOLOGICAL,
+    description: 'Phạm vi / cách tiếp cận của chủ đề: CHRONOLOGICAL (tiến trình lịch sử) hoặc THEMATIC (chuyên đề liên đại)',
+    default: TopicScope.CHRONOLOGICAL,
   })
+  @IsEnum(TopicScope, { message: 'scope phải là CHRONOLOGICAL hoặc THEMATIC' })
+  @IsNotEmpty({ message: 'scope không được để trống' })
+  scope: TopicScope = TopicScope.CHRONOLOGICAL;
+
+  @ApiPropertyOptional({
+    example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+    description: 'ID của Giai đoạn lịch sử chứa chủ đề này (bắt buộc khi scope = CHRONOLOGICAL)',
+  })
+  @ValidateIf((o) => o.scope === TopicScope.CHRONOLOGICAL || o.periodId)
   @IsUUID('4', { message: 'periodId phải là UUID hợp lệ' })
-  @IsNotEmpty({ message: 'periodId không được để trống' })
-  periodId: string;
+  @IsNotEmpty({ message: 'periodId không được để trống khi scope là CHRONOLOGICAL' })
+  periodId?: string;
+
+  @ApiPropertyOptional({
+    example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+    description: 'ID của Địa điểm lịch sử liên kết chủ đề (cho lịch sử địa phương/khu vực)',
+  })
+  @IsUUID('4', { message: 'locationId phải là UUID hợp lệ' })
+  @IsOptional()
+  locationId?: string;
 
   @ApiProperty({
     example: 'Khởi nghĩa Hai Bà Trưng',

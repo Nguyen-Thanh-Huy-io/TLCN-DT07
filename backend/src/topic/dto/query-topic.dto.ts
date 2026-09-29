@@ -1,9 +1,17 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContentStatus } from '@prisma/client';
+import { ContentStatus, TopicScope } from '@prisma/client';
 
 export class QueryTopicDto {
+  @ApiPropertyOptional({
+    enum: TopicScope,
+    description: 'Lọc chủ đề theo phạm vi tiếp cận (CHRONOLOGICAL hoặc THEMATIC)',
+  })
+  @IsEnum(TopicScope)
+  @IsOptional()
+  scope?: TopicScope;
+
   @ApiPropertyOptional({
     example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
     description: 'Lọc chủ đề theo ID của Giai đoạn lịch sử (UUID)',
@@ -11,6 +19,14 @@ export class QueryTopicDto {
   @IsUUID('4')
   @IsOptional()
   periodId?: string;
+
+  @ApiPropertyOptional({
+    example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+    description: 'Lọc chủ đề theo ID của Địa điểm lịch sử liên kết (UUID)',
+  })
+  @IsUUID('4')
+  @IsOptional()
+  locationId?: string;
 
   @ApiPropertyOptional({
     enum: ContentStatus,

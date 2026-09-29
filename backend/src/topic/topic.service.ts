@@ -9,7 +9,7 @@ import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { QueryTopicDto } from './dto/query-topic.dto';
-import { Topic, ContentStatus, Prisma } from '@prisma/client';
+import { Topic, ContentStatus, Prisma, TopicScope } from '@prisma/client';
 
 export interface IPaginatedResult<T> {
   items: T[];
@@ -36,20 +36,44 @@ export class TopicService {
   async create(createTopicDto: CreateTopicDto): Promise<Topic> {
     this.logger.log(`Creating topic: ${createTopicDto.name}`, 'TopicService');
 
-    // Kiểm tra xem PeriodId có tồn tại hay không
-    const period = await this.prisma.period.findUnique({
-      where: { id: createTopicDto.periodId },
-    });
-
-    if (!period) {
-      throw new NotFoundException(
-        `Giai đoạn lịch sử với ID "${createTopicDto.periodId}" không tồn tại`,
+    // Nếu scope là CHRONOLOGICAL, bắt buộc phải có periodId
+    if (createTopicDto.scope === TopicScope.CHRONOLOGICAL && !createTopicDto.periodId) {
+      throw new BadRequestException(
+        'Chủ đề theo tiến trình (CHRONOLOGICAL) bắt buộc phải thuộc về một Giai đoạn (periodId)',
       );
+    }
+
+    // Nếu có periodId, kiểm tra xem Period có tồn tại hay không
+    if (createTopicDto.periodId) {
+      const period = await this.prisma.period.findUnique({
+        where: { id: createTopicDto.periodId },
+      });
+
+      if (!period) {
+        throw new NotFoundException(
+          `Giai đoạn lịch sử với ID "${createTopicDto.periodId}" không tồn tại`,
+        );
+      }
+    }
+
+    // Nếu có locationId, kiểm tra xem HistoricalLocation có tồn tại hay không
+    if (createTopicDto.locationId) {
+      const location = await this.prisma.historicalLocation.findUnique({
+        where: { id: createTopicDto.locationId },
+      });
+
+      if (!location) {
+        throw new NotFoundException(
+          `Địa điểm lịch sử với ID "${createTopicDto.locationId}" không tồn tại`,
+        );
+      }
     }
 
     const topic = await this.prisma.topic.create({
       data: {
+        scope: createTopicDto.scope ?? TopicScope.CHRONOLOGICAL,
         periodId: createTopicDto.periodId,
+        locationId: createTopicDto.locationId,
         name: createTopicDto.name,
         description: createTopicDto.description,
         coverImageUrl: createTopicDto.coverImageUrl,
@@ -73,8 +97,16 @@ export class TopicService {
 
     const where: Prisma.TopicWhereInput = {};
 
+    if (query.scope) {
+      where.scope = query.scope;
+    }
+
     if (query.periodId) {
       where.periodId = query.periodId;
+    }
+
+    if (query.locationId) {
+      where.locationId = query.locationId;
     }
 
     if (query.status) {

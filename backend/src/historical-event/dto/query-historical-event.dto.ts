@@ -13,20 +13,37 @@ export class QueryHistoricalEventDto {
 
   @ApiPropertyOptional({
     example: 938,
-    description: 'Lọc sự kiện theo năm diễn ra',
+    description: 'Lọc sự kiện theo năm bắt đầu diễn ra',
   })
   @Type(() => Number)
   @IsInt()
   @IsOptional()
-  eventYear?: number;
+  startYear?: number;
+
+  @ApiPropertyOptional({
+    example: 938,
+    description: 'Lọc sự kiện theo năm kết thúc',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @IsOptional()
+  endYear?: number;
+
+  @ApiPropertyOptional({
+    example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+    description: 'Lọc theo ID địa điểm lịch sử',
+  })
+  @IsUUID('4')
+  @IsOptional()
+  locationId?: string;
 
   @ApiPropertyOptional({
     example: 'Bạch Đằng',
-    description: 'Lọc theo địa danh hoặc tên vị trí xảy ra sự kiện',
+    description: 'Lọc theo ghi chú địa danh vị trí xảy ra sự kiện',
   })
   @IsString()
   @IsOptional()
-  location?: string;
+  locationNote?: string;
 
   @ApiPropertyOptional({
     example: 'Ngô Quyền',

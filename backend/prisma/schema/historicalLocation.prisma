@@ -1,0 +1,45 @@
+// ================================
+// Historical Location Model
+// ================================
+
+model HistoricalLocation {
+    id             String        @id @default(uuid())
+    name           String        @db.VarChar(255)
+    historicalName String?       @map("historical_name") @db.VarChar(255)
+    type           LocationType  @default(HISTORICAL_SITE)
+    modernCountry  String?       @default("Việt Nam") @map("modern_country") @db.VarChar(100)
+    adminArea      String?       @map("admin_area") @db.VarChar(255)
+    latitude       Float?
+    longitude      Float?
+    geoJson        Json?         @map("geo_json")
+    createdAt      DateTime      @default(now()) @map("created_at")
+    updatedAt      DateTime      @updatedAt @map("updated_at")
+
+    // Relations
+    lessonLocations LessonLocation[]
+    topics          Topic[]
+    events          HistoricalEvent[]
+
+    @@index([name])
+    @@index([type])
+    @@index([modernCountry])
+    @@map("historical_locations")
+}
+
+// ================================
+// Lesson - Location Junction Table (Hành trình / Đa địa điểm)
+// ================================
+
+model LessonLocation {
+    lessonId   String             @map("lesson_id")
+    locationId String             @map("location_id")
+    role       String?            @db.VarChar(100)
+    stepOrder  Int                @default(0) @map("step_order")
+
+    // Relations
+    lesson     Lesson             @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+    location   HistoricalLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+    @@id([lessonId, locationId])
+    @@map("lesson_locations")
+}

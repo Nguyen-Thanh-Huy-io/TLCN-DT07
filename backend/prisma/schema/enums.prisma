@@ -145,3 +145,54 @@ enum AttemptStatus {
     ABANDONED
 }
 
+// ================================
+// History CMS Domain Enums
+// ================================
+
+enum TopicScope {
+    CHRONOLOGICAL // Theo tiến trình thời đại
+    THEMATIC      // Theo chuyên đề xuyên suốt
+}
+
+enum HistoricalGenre {
+    DOCUMENTED_HISTORY      // Lịch sử thành văn: Có văn bản, chiếu cáo, sử liệu xác thực
+    FOLKLORE_MYTHOLOGY      // Huyền sử / Thần thoại: Lạc Long Quân, Thánh Gióng, Thần thoại Hy Lạp
+    ORAL_HISTORY            // Lịch sử truyền khẩu: Hồi ký, phỏng vấn nhân chứng sống, cựu chiến binh
+    ARCHAEOLOGICAL_EVIDENCE // Bằng chứng khảo cổ học: Di cốt, công cụ đá, hiện vật tiền sử
+}
+
+enum HistoricalField {
+    MILITARY_WAR         // Quân sự, Chiến tranh, Khởi nghĩa, Chiến dịch
+    POLITICAL_DIPLOMACY  // Chính trị, Thể chế, Bang giao, Hiệp định
+    CULTURE_SOCIETY      // Văn hóa, Phong tục, Đời sống, Trang phục, Lễ hội
+    ECONOMY_COMMERCE     // Kinh tế, Thương mại, Khủng hoảng, Đổi mới, Thuế khóa
+    SCIENCE_TECHNOLOGY   // Khoa học, Công nghệ (1.0 -> 4.0), Y tế, Kỹ thuật
+    IDEOLOGY_RELIGION    // Tư tưởng, Triết học, Tôn giáo, Tín ngưỡng
+    DISASTER_EPIDEMIC    // Thiên tai, Dịch bệnh, Thảm họa sinh thái, Nạn đói
+    DOCUMENT_HERITAGE    // Văn bản gốc, Bộ luật, Hịch, Chiếu, Cáo, Tuyên ngôn
+}
+
+enum EntityType {
+    PERSON               // Cá nhân danh nhân, lãnh tụ, vua chúa, nhà bác học
+    POLITY_STATE         // Nhà nước, Triều đại, Đế chế, Thành bang
+    ORGANIZATION_PARTY   // Tổ chức, Đảng phái, Hội nhóm
+    FACTION_ALLIANCE     // Phe phái, Liên minh quân sự
+    COMMUNITY_ETHNICITY  // Bộ tộc, Dân tộc, Cộng đồng văn hóa
+}
+
+enum LocationType {
+    HISTORICAL_SITE      // Di tích lịch sử, công trình kiến trúc
+    BATTLEFIELD          // Chiến trường, trận địa
+    SETTLEMENT           // Khu định cư, làng xã, đô thị cổ, kinh thành
+    NATURAL_LANDSCAPE    // Địa hình tự nhiên: Sông, đồi, đèo, núi, kênh đào
+    EXPEDITION_ROUTE     // Tuyến đường, hành trình
+    ADMIN_TERRITORY      // Vùng lãnh thổ, chiến khu, địa bàn rộng lớn
+}
+
+enum LessonRelationType {
+    PREREQUISITE  // Bài học nền tảng bắt buộc phải nắm trước
+    CAUSE_EFFECT  // Mối quan hệ Nhân - Quả
+    COMPARISON    // So sánh, đối chiếu học thuật
+    SYNCHRONOUS   // Lịch sử Đồng đại (Diễn ra cùng thời điểm ở nơi khác)
+}
+

@@ -5,21 +5,25 @@
 model HistoricalEvent {
     id            String   @id @default(uuid())
     topicId       String   @map("topic_id")
+    locationId    String?  @map("location_id")
     title         String   @db.VarChar(255)
-    eventYear     Int      @map("event_year")
+    startYear     Int?     @map("start_year")
+    endYear       Int?     @map("end_year")
     eventDateNote String?  @map("event_date_note") @db.VarChar(100)
     description   String?  @db.Text
-    location      String?  @db.VarChar(255)
+    locationNote  String?  @map("location_note") @db.VarChar(255)
     displayOrder  Int      @default(0) @map("display_order")
     createdAt     DateTime @default(now()) @map("created_at")
     updatedAt     DateTime @updatedAt @map("updated_at")
 
     // Relations
-    topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+    topic              Topic               @relation(fields: [topicId], references: [id], onDelete: Cascade)
+    historicalLocation HistoricalLocation? @relation(fields: [locationId], references: [id], onDelete: SetNull)
 
     @@index([topicId])
-    @@index([eventYear])
-    @@index([location])
+    @@index([locationId])
+    @@index([startYear])
+    @@index([locationNote])
     @@index([displayOrder])
     @@map("historical_events")
 }

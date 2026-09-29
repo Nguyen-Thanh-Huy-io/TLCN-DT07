@@ -4,7 +4,9 @@
 
 model Topic {
     id            String        @id @default(uuid())
-    periodId      String        @map("period_id")
+    periodId      String?       @map("period_id")
+    locationId    String?       @map("location_id")
+    scope         TopicScope
     name          String        @db.VarChar(255)
     description   String?       @db.Text
     coverImageUrl String?       @map("cover_image_url") @db.VarChar(500)
@@ -15,12 +17,15 @@ model Topic {
     updatedAt     DateTime      @updatedAt @map("updated_at")
 
     // Relations
-    period           Period            @relation(fields: [periodId], references: [id], onDelete: Cascade)
+    period           Period?             @relation(fields: [periodId], references: [id], onDelete: SetNull)
+    location         HistoricalLocation? @relation(fields: [locationId], references: [id], onDelete: SetNull)
     lessons          Lesson[]
     historicalEvents HistoricalEvent[]
     quizzes          Quiz[]
 
     @@index([periodId])
+    @@index([locationId])
+    @@index([scope])
     @@index([status])
     @@index([displayOrder])
     @@map("topics")

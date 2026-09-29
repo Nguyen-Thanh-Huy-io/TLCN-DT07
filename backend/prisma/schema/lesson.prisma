@@ -5,35 +5,50 @@
 enum MediaType {
     IMAGE
     VIDEO
+    AUDIO
     DOCUMENT
+    MODEL_3D
 }
 
 model Lesson {
-    id                  String          @id @default(uuid())
-    topicId             String          @map("topic_id")
-    title               String          @db.VarChar(255)
-    contentRichText     String?         @map("content_rich_text") @db.Text
-    thumbnailUrl        String?         @map("thumbnail_url") @db.VarChar(500)
-    difficulty          DifficultyLevel @default(MEDIUM)
-    sourceReferenceNote String?         @map("source_reference_note") @db.Text
-    displayOrder        Int             @default(0) @map("display_order")
-    status              ContentStatus   @default(DRAFT)
-    rejectionReason     String?         @map("rejection_reason") @db.Text
-    publishedAt         DateTime?       @map("published_at")
-    createdBy           String          @map("created_by")
-    approvedBy          String?         @map("approved_by")
-    createdAt           DateTime        @default(now()) @map("created_at")
-    updatedAt           DateTime        @updatedAt @map("updated_at")
+    id                  String            @id @default(uuid())
+    topicId             String            @map("topic_id")
+    title               String            @db.VarChar(255)
+    contentRichText     String?           @map("content_rich_text") @db.Text
+    thumbnailUrl        String?           @map("thumbnail_url") @db.VarChar(500)
+    difficulty          DifficultyLevel   @default(MEDIUM)
+    genre               HistoricalGenre
+    fields              HistoricalField[]
+    startYear           Int?              @map("start_year")
+    endYear             Int?              @map("end_year")
+    dateDisplay         String?           @map("date_display") @db.VarChar(100)
+    perspectives        Json?             @map("perspectives")
+    metadata            Json?             @map("metadata")
+    sourceReferenceNote String?           @map("source_reference_note") @db.Text
+    displayOrder        Int               @default(0) @map("display_order")
+    status              ContentStatus     @default(DRAFT)
+    rejectionReason     String?           @map("rejection_reason") @db.Text
+    publishedAt         DateTime?         @map("published_at")
+    createdBy           String            @map("created_by")
+    approvedBy          String?           @map("approved_by")
+    createdAt           DateTime          @default(now()) @map("created_at")
+    updatedAt           DateTime          @updatedAt @map("updated_at")
 
     // Relations
-    topic      Topic         @relation(fields: [topicId], references: [id], onDelete: Cascade)
-    creator    authUser      @relation("LessonCreator", fields: [createdBy], references: [id])
-    approver   authUser?     @relation("LessonApprover", fields: [approvedBy], references: [id])
-    lessonTags LessonTag[]
-    media      LessonMedia[]
-    quizzes    Quiz[]
+    topic          Topic            @relation(fields: [topicId], references: [id], onDelete: Cascade)
+    creator        authUser         @relation("LessonCreator", fields: [createdBy], references: [id])
+    approver       authUser?        @relation("LessonApprover", fields: [approvedBy], references: [id])
+    lessonTags     LessonTag[]
+    media          LessonMedia[]
+    quizzes        Quiz[]
+    locations      LessonLocation[]
+    entities       LessonEntity[]
+    relatedSources RelatedLesson[]  @relation("SourceLessons")
+    relatedTargets RelatedLesson[]  @relation("TargetLessons")
 
     @@index([topicId])
+    @@index([genre])
+    @@index([startYear])
     @@index([status])
     @@index([difficulty])
     @@index([displayOrder])
@@ -41,7 +56,24 @@ model Lesson {
 }
 
 // ================================
-// LessonMedia (Images/Videos) Model
+// RelatedLesson Model (Liên kết Nhân quả, Tiền đề, So sánh)
+// ================================
+
+model RelatedLesson {
+    sourceLessonId String             @map("source_lesson_id")
+    targetLessonId String             @map("target_lesson_id")
+    relationType   LessonRelationType @default(COMPARISON) @map("relation_type")
+
+    // Relations
+    sourceLesson   Lesson             @relation("SourceLessons", fields: [sourceLessonId], references: [id], onDelete: Cascade)
+    targetLesson   Lesson             @relation("TargetLessons", fields: [targetLessonId], references: [id], onDelete: Cascade)
+
+    @@id([sourceLessonId, targetLessonId])
+    @@map("related_lessons")
+}
+
+// ================================
+// LessonMedia (Images/Videos/Audio/3D) Model
 // ================================
 
 model LessonMedia {

@@ -1,0 +1,43 @@
+// ================================
+// Historical Entity Model (Danh nhân, Triều đại, Đế chế, Tổ chức, Phe phái, Bộ tộc)
+// ================================
+
+model HistoricalEntity {
+    id           String     @id @default(uuid())
+    name         String     @db.VarChar(255)
+    originalName String?    @map("original_name") @db.VarChar(255)
+    type         EntityType @default(PERSON)
+    startYear    Int?       @map("start_year")
+    endYear      Int?       @map("end_year")
+    timeDisplay  String?    @map("time_display") @db.VarChar(100)
+    nationality  String?    @db.VarChar(100)
+    description  String?    @db.Text
+    imageUrl     String?    @map("image_url") @db.VarChar(500)
+    metadata     Json?      @map("metadata")
+    createdAt    DateTime   @default(now()) @map("created_at")
+    updatedAt    DateTime   @updatedAt @map("updated_at")
+
+    // Relations
+    lessonEntities LessonEntity[]
+
+    @@index([type])
+    @@index([name])
+    @@map("historical_entities")
+}
+
+// ================================
+// Lesson - Entity Junction Table (Gán vai trò chủ thể trong bài học)
+// ================================
+
+model LessonEntity {
+    lessonId String           @map("lesson_id")
+    entityId String           @map("entity_id")
+    role     String?          @db.VarChar(100) // "Chỉ huy", "Lãnh tụ", "Bên xâm lược", "Tác giả"...
+
+    // Relations
+    lesson   Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+    entity   HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+    @@id([lessonId, entityId])
+    @@map("lesson_entities")
+}

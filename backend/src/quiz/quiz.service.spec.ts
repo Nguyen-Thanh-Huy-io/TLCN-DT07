@@ -267,7 +267,55 @@ describe('QuizService Comprehensive Unit Tests', () => {
   });
 
   // ==========================================
-  // 4. REVIEW QUIZ
+  // 4. UPDATE QUIZ & AUTO RESET TO DRAFT
+  // ==========================================
+  describe('update', () => {
+    it('cập nhật thông tin quiz bình thường khi đang DRAFT', async () => {
+      mockPrismaService.quiz.findUnique.mockResolvedValue({
+        id: 'quiz-1',
+        status: ContentStatus.DRAFT,
+      });
+      mockPrismaService.quiz.update.mockResolvedValue({
+        id: 'quiz-1',
+        title: 'Quiz Mới',
+        status: ContentStatus.DRAFT,
+      });
+
+      const result = await service.update('quiz-1', { title: 'Quiz Mới' });
+
+      expect(result.title).toBe('Quiz Mới');
+      expect(result.status).toBe(ContentStatus.DRAFT);
+      expect(result._notice).toBeUndefined();
+    });
+
+    it('tự động reset về DRAFT và kèm thông báo notice khi sửa Quiz đang PUBLISHED', async () => {
+      mockPrismaService.quiz.findUnique.mockResolvedValue({
+        id: 'quiz-1',
+        status: ContentStatus.PUBLISHED,
+      });
+      mockPrismaService.quiz.update.mockResolvedValue({
+        id: 'quiz-1',
+        title: 'Quiz Đã Sửa',
+        status: ContentStatus.DRAFT,
+      });
+
+      const result = await service.update('quiz-1', { title: 'Quiz Đã Sửa' });
+
+      expect(result.status).toBe(ContentStatus.DRAFT);
+      expect(result._notice).toContain('reset về DRAFT');
+      expect(mockPrismaService.quiz.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: ContentStatus.DRAFT,
+            approvedBy: null,
+          }),
+        }),
+      );
+    });
+  });
+
+  // ==========================================
+  // 5. REVIEW QUIZ
   // ==========================================
   describe('review', () => {
     it('ném lỗi BadRequestException khi REJECTED mà không có rejectionReason', async () => {

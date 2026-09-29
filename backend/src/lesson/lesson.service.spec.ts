@@ -44,8 +44,19 @@ describe('LessonService', () => {
       findUnique: jest.fn().mockResolvedValue(mockLesson),
       count: jest.fn().mockResolvedValue(1),
       update: jest.fn().mockResolvedValue(mockLesson),
-      delete: jest.fn().mockResolvedValue(mockLesson),
+    quiz: {
+      updateMany: jest.fn().mockResolvedValue({ count: 2 }),
+      create: jest.fn(),
     },
+    $transaction: jest.fn((input) => {
+      if (typeof input === 'function') {
+        return input({
+          lesson: mockPrismaService.lesson,
+          quiz: mockPrismaService.quiz,
+        });
+      }
+      return Promise.all(input);
+    }),
   };
 
   const mockRedisService = {
@@ -93,6 +104,64 @@ describe('LessonService', () => {
       expect(result.estimatedReadMinutes).toBe(1);
     });
 
+    it('should create lesson with embedded quiz in single transaction', async () => {
+      mockPrismaService.topic.findUnique.mockResolvedValueOnce(mockTopic);
+      mockPrismaService.lesson.create.mockResolvedValueOnce(mockLesson);
+      mockPrismaService.quiz.create.mockResolvedValueOnce({
+        id: 'quiz-embedded-1',
+        title: 'Quiz Bạch Đằng',
+        status: ContentStatus.DRAFT,
+      });
+
+      const dto = {
+        topicId: 'topic-uuid-1',
+        title: 'Chiến thắng Bạch Đằng năm 938',
+        quiz: {
+          title: 'Quiz Bạch Đằng',
+          questions: [
+            {
+              questionText: 'Năm nào diễn ra trận Bạch Đằng?',
+              type: 'MULTIPLE_CHOICE' as any,
+              options: [
+                { optionText: '938', isCorrect: true },
+                { optionText: '981', isCorrect: false },
+              ],
+            },
+          ],
+        },
+      };
+
+      const result = await service.create(dto, 'user-uuid-creator');
+      expect(result.id).toBe('lesson-uuid-1');
+      expect(result.quiz).toBeDefined();
+      expect(result.quiz.id).toBe('quiz-embedded-1');
+    });
+
+    it('should throw BadRequestException if embedded quiz question has no correct option', async () => {
+      mockPrismaService.topic.findUnique.mockResolvedValueOnce(mockTopic);
+      const dto = {
+        topicId: 'topic-uuid-1',
+        title: 'Chiến thắng Bạch Đằng',
+        quiz: {
+          title: 'Quiz Lỗi',
+          questions: [
+            {
+              questionText: 'Câu hỏi không có đáp án đúng?',
+              type: 'MULTIPLE_CHOICE' as any,
+              options: [
+                { optionText: 'A', isCorrect: false },
+                { optionText: 'B', isCorrect: false },
+              ],
+            },
+          ],
+        },
+      };
+
+      await expect(service.create(dto, 'user-uuid-creator')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
     it('should throw NotFoundException if topic does not exist', async () => {
       mockPrismaService.topic.findUnique.mockResolvedValueOnce(null);
       const dto = {
@@ -107,7 +176,7 @@ describe('LessonService', () => {
   });
 
   describe('review', () => {
-    it('should publish lesson when status is PUBLISHED', async () => {
+    it('should publish lesson and cascade publish associated quizzes', async () => {
       mockRedisService.get.mockResolvedValueOnce(null);
       mockPrismaService.lesson.findUnique.mockResolvedValueOnce(mockLesson);
       mockPrismaService.lesson.update.mockResolvedValueOnce({
@@ -115,6 +184,7 @@ describe('LessonService', () => {
         status: ContentStatus.PUBLISHED,
         approvedBy: 'admin-uuid-1',
       });
+      mockPrismaService.quiz.updateMany.mockResolvedValueOnce({ count: 2 });
 
       const result = await service.review(
         'lesson-uuid-1',
@@ -123,7 +193,33 @@ describe('LessonService', () => {
       );
 
       expect(result.status).toBe(ContentStatus.PUBLISHED);
-      expect(mockPrismaService.lesson.update).toHaveBeenCalled();
+      expect(result.cascadeQuizzes).toEqual({
+        count: 2,
+        status: ContentStatus.PUBLISHED,
+      });
+    });
+
+    it('should reject lesson and cascade reject associated draft/pending quizzes', async () => {
+      mockRedisService.get.mockResolvedValueOnce(null);
+      mockPrismaService.lesson.findUnique.mockResolvedValueOnce(mockLesson);
+      mockPrismaService.lesson.update.mockResolvedValueOnce({
+        ...mockLesson,
+        status: ContentStatus.REJECTED,
+        approvedBy: 'admin-uuid-1',
+      });
+      mockPrismaService.quiz.updateMany.mockResolvedValueOnce({ count: 1 });
+
+      const result = await service.review(
+        'lesson-uuid-1',
+        { status: ContentStatus.REJECTED, rejectionReason: 'Nội dung chưa đầy đủ' },
+        'admin-uuid-1',
+      );
+
+      expect(result.status).toBe(ContentStatus.REJECTED);
+      expect(result.cascadeQuizzes).toEqual({
+        count: 1,
+        status: ContentStatus.REJECTED,
+      });
     });
 
     it('should throw BadRequestException if REJECTED without rejectionReason', async () => {

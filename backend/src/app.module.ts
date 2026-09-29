@@ -18,6 +18,8 @@ import { LessonModule } from './lesson/lesson.module';
 import { HistoricalEventModule } from './historical-event/historical-event.module';
 import { TagModule } from './tag/tag.module';
 import { QuizModule } from './quiz/quiz.module';
+import { HistoricalLocationModule } from './historical-location/historical-location.module';
+import { HistoricalEntityModule } from './historical-entity/historical-entity.module';
 
 @Module({
   imports: [
@@ -44,6 +46,8 @@ import { QuizModule } from './quiz/quiz.module';
     HistoricalEventModule,
     TagModule,
     QuizModule,
+    HistoricalLocationModule,
+    HistoricalEntityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

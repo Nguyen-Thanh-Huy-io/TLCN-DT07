@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContentStatus, DifficultyLevel } from '@prisma/client';
+import { ContentStatus, DifficultyLevel, HistoricalField, HistoricalGenre } from '@prisma/client';
 
 export class QueryLessonDto {
   @ApiPropertyOptional({
@@ -11,6 +11,31 @@ export class QueryLessonDto {
   @IsUUID('4')
   @IsOptional()
   topicId?: string;
+
+  @ApiPropertyOptional({
+    enum: HistoricalGenre,
+    description: 'Lọc theo thể loại sử học (DOCUMENTED_HISTORY, FOLKLORE_MYTHOLOGY...)',
+  })
+  @IsEnum(HistoricalGenre)
+  @IsOptional()
+  genre?: HistoricalGenre;
+
+  @ApiPropertyOptional({
+    enum: HistoricalField,
+    description: 'Lọc theo lĩnh vực lịch sử (MILITARY_WAR, POLITICAL_DIPLOMACY...)',
+  })
+  @IsEnum(HistoricalField)
+  @IsOptional()
+  field?: HistoricalField;
+
+  @ApiPropertyOptional({
+    example: 938,
+    description: 'Lọc bài học diễn ra quanh năm này',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @IsOptional()
+  year?: number;
 
   @ApiPropertyOptional({
     enum: ContentStatus,

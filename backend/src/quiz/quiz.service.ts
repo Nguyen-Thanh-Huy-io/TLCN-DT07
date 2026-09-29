@@ -286,10 +286,11 @@ export class QuizService {
   }
 
   /**
-   * Cập nhật thông tin bài kiểm tra
+   * Cập nhật thông tin bài kiểm tra.
+   * Nếu Quiz đang PUBLISHED hoặc REJECTED → tự động reset về DRAFT để qua duyệt lại.
    */
   async update(id: string, updateQuizDto: UpdateQuizDto): Promise<any> {
-    await this.findOne(id, true);
+    const existingQuiz = await this.findOne(id, true);
 
     if (updateQuizDto.lessonId) {
       const lesson = await this.prisma.lesson.findUnique({
@@ -315,6 +316,15 @@ export class QuizService {
 
     this.validateQuestions(updateQuizDto.questions);
 
+    // Nếu đang PUBLISHED hoặc REJECTED → reset về DRAFT để duyệt lại
+    const REQUIRE_REAPPROVAL_STATUSES: ContentStatus[] = [
+      ContentStatus.PUBLISHED,
+      ContentStatus.REJECTED,
+    ];
+    const shouldResetToDraft = REQUIRE_REAPPROVAL_STATUSES.includes(
+      existingQuiz.status as ContentStatus,
+    );
+
     const updateData: Prisma.QuizUncheckedUpdateInput = {};
     if (updateQuizDto.lessonId !== undefined) updateData.lessonId = updateQuizDto.lessonId;
     if (updateQuizDto.topicId !== undefined) updateData.topicId = updateQuizDto.topicId;
@@ -324,6 +334,15 @@ export class QuizService {
     if (updateQuizDto.timeLimitMinutes !== undefined) updateData.timeLimitMinutes = updateQuizDto.timeLimitMinutes;
     if (updateQuizDto.xpReward !== undefined) updateData.xpReward = updateQuizDto.xpReward;
     if (updateQuizDto.maxAttempts !== undefined) updateData.maxAttempts = updateQuizDto.maxAttempts;
+
+    if (shouldResetToDraft) {
+      updateData.status = ContentStatus.DRAFT;
+      updateData.approvedBy = null;
+      this.logger.log(
+        `Quiz "${id}" reset to DRAFT after edit (was ${existingQuiz.status})`,
+        'QuizService',
+      );
+    }
 
     const updated = await this.prisma.quiz.update({
       where: { id },
@@ -339,7 +358,12 @@ export class QuizService {
     });
 
     await this.invalidateCache(id);
-    return updated;
+    return {
+      ...updated,
+      ...(shouldResetToDraft && {
+        _notice: 'Quiz đã được reset về DRAFT do có chỉnh sửa sau khi xuất bản. Vui lòng gửi duyệt lại.',
+      }),
+    };
   }
 
   /**

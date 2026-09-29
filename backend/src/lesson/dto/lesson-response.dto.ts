@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ContentStatus, DifficultyLevel } from '@prisma/client';
+import { ContentStatus, DifficultyLevel, HistoricalField, HistoricalGenre } from '@prisma/client';
 
 export class UserSummaryDto {
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d' })
@@ -21,6 +21,30 @@ export class LessonResponseDto {
 
   @ApiProperty({ example: 'Chiến thắng Bạch Đằng năm 938', description: 'Tiêu đề bài học' })
   title: string;
+
+  @ApiProperty({
+    enum: HistoricalGenre,
+    example: HistoricalGenre.DOCUMENTED_HISTORY,
+    description: 'Thể loại sử học (chính sử, truyền khẩu, khảo cổ...)',
+  })
+  genre: HistoricalGenre;
+
+  @ApiProperty({
+    enum: HistoricalField,
+    isArray: true,
+    example: [HistoricalField.MILITARY_WAR, HistoricalField.POLITICAL_DIPLOMACY],
+    description: 'Các lĩnh vực lịch sử của bài học',
+  })
+  fields: HistoricalField[];
+
+  @ApiPropertyOptional({ example: 938, description: 'Năm bắt đầu' })
+  startYear?: number | null;
+
+  @ApiPropertyOptional({ example: 938, description: 'Năm kết thúc' })
+  endYear?: number | null;
+
+  @ApiPropertyOptional({ example: 'Năm 938 (Mùa đông)', description: 'Chuỗi niên đại hiển thị' })
+  dateDisplay?: string | null;
 
   @ApiPropertyOptional({ example: '<p>Nội dung chi tiết...</p>', description: 'Nội dung Rich Text' })
   contentRichText?: string | null;

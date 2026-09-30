@@ -1,6 +1,5 @@
-"use client";
-import { SimplePage } from "@/components/FigmaUI";
+import { UserList } from '@/features/users/components/UserList';
 
 export default function UsersPage() {
-  return <SimplePage type="users" />;
+  return <UserList />;
 }

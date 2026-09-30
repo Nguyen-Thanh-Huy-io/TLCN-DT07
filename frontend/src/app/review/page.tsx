@@ -1,6 +1,5 @@
-"use client";
-import { ReviewPage } from "@/components/FigmaUI";
+import { ReviewList } from '@/features/review/components/ReviewList';
 
 export default function ReviewRoute() {
-  return <ReviewPage />;
+  return <ReviewList />;
 }

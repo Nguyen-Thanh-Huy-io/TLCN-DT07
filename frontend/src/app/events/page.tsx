@@ -1,6 +1,5 @@
-"use client";
-import { SimplePage } from "@/components/FigmaUI";
+import { EventList } from '@/features/events/components/EventList';
 
 export default function EventsPage() {
-  return <SimplePage type="events" />;
+  return <EventList />;
 }

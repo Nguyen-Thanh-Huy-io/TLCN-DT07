@@ -28,16 +28,24 @@ api.interceptors.request.use(
   }
 );
 
-// Interceptor cho response để xử lý lỗi (ví dụ: token hết hạn)
+// Interceptor cho response để xử lý lỗi (ví dụ: token hết hạn, backend chưa chạy)
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
+    // Xử lý lỗi Network Error khi backend offline (ECONNREFUSED)
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      console.warn(
+        '[API Gateway] Backend hiện chưa khởi động hoặc không thể kết nối tới http://localhost:5000. Hệ thống tự động chuyển sang chế độ dữ liệu offline (Mock Data).',
+      );
+      // Trả về response giả lập rỗng để component fallback sang default mock data mượt mà
+      return Promise.resolve({ data: [] });
+    }
+
     // Xử lý lỗi 401 Unauthorized
     if (error.response && error.response.status === 401) {
-      // Có thể chuyển hướng về trang đăng nhập hoặc refresh token
-      console.error('Unauthorized! Token expired or invalid.');
+      console.warn('Unauthorized! Token expired or invalid.');
       if (typeof window !== 'undefined') {
         // window.location.href = '/login';
       }

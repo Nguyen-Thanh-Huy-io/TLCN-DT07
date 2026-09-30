@@ -144,6 +144,20 @@ button {
   color: #fff;
   border-radius: 10px;
 }
+.nav-hierarchy-pill {
+  font-size: 8px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #ffffff14;
+  color: #8da4be;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.nav-item.active .nav-hierarchy-pill {
+  background: #e2b34226;
+  color: #e2b342;
+}
 .sidebar-user {
   padding: 16px 18px;
   margin: 0 12px 12px;
@@ -1758,4 +1772,104 @@ input[type="checkbox"] {
   .sidebar {
     width: 86vw;
   }
+}
+
+/* Quick Row Actions and Batch Toolbar */
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.quick-row-btn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  background: transparent;
+  transition: all 0.15s ease;
+  opacity: 0.6;
+  cursor: pointer;
+}
+tbody tr:hover .quick-row-btn {
+  opacity: 1;
+}
+.quick-row-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+.quick-row-btn.danger:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+.batch-toolbar {
+  background: #0d2340;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 16px;
+  font-size: 11px;
+  animation: fadeIn 0.2s ease;
+}
+
+/* Resizable Divider between Tree and Detail Pane */
+.curriculum-resizer-divider {
+  width: 8px;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: background-color 0.15s ease;
+  border-radius: 4px;
+}
+.curriculum-resizer-divider:hover,
+.curriculum-resizer-divider.dragging {
+  background-color: #dbeafe;
+}
+.curriculum-resizer-divider .resizer-line {
+  width: 2px;
+  height: 36px;
+  background-color: #cbd5e1;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+}
+.curriculum-resizer-divider:hover .resizer-line,
+.curriculum-resizer-divider.dragging .resizer-line {
+  height: 52px;
+  background-color: #2563eb;
+  width: 3px;
+}
+
+/* Tree Branch Guide Lines */
+.tree-branch-line {
+  position: relative;
+}
+.tree-branch-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: #e2e8f0;
+}
+
+/* Quick Action Hover on Tree Node */
+.tree-node-action {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: all 0.15s ease;
+}
+.tree-node:hover .tree-node-action {
+  opacity: 1;
+  transform: scale(1);
 }

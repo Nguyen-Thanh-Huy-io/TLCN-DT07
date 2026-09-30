@@ -1,7 +1,10 @@
 "use client";
 import React, { useState } from "react";
-import { Sidebar, Topbar } from "@/components/FigmaUI";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Topbar } from "@/components/layout/Topbar";
 import { usePathname, useRouter } from "next/navigation";
+
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -35,7 +38,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       />
       <div className="main-shell">
         <Topbar page={page} openNav={() => setMobileNav(true)} />
-        {children}
+        <main className="page">
+          <PageHeader pathname={pathname} />
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -5,8 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "audit:dup": "jscpd src",
+    "audit:knip": "knip",
+    "audit": "npm run lint && npm run audit:dup && npm run audit:knip"
   },
   "dependencies": {
     "axios": "^1.18.1",
@@ -21,6 +24,10 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
+    "eslint-plugin-check-file": "^3.3.2",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "jscpd": "^5.3.3",
+    "knip": "^6.38.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

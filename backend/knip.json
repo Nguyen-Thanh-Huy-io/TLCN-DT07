@@ -1,6 +1,14 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/main.ts!", "test/**/*.e2e-spec.ts!"],
+  "entry": [
+    "src/main.ts!",
+    "src/common/decorators/index.ts!",
+    "test/**/*.e2e-spec.ts!"
+  ],
   "project": ["src/**/*.ts", "test/**/*.ts"],
-  "ignoreExportsUsedInFile": true
+  "ignoreExportsUsedInFile": true,
+  "ignore": [
+    "src/auth/interfaces/google-oauth.interface.ts",
+    "src/common/config/throttler.config.ts"
+  ]
 }

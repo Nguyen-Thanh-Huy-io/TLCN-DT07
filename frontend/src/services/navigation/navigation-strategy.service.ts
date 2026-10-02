@@ -1,6 +1,7 @@
 import {
   NavGroupId,
   NAV_GROUP_TITLES,
+  NAV_ITEM_LABELS,
   NavItemConfig,
   NavGroupConfig,
   IconName,
@@ -59,7 +60,7 @@ export class CurriculumNavStrategy implements INavigationGroupStrategy {
 
   private readonly primaryItem: NavItemConfig = {
     id: 'nav-curriculum',
-    label: 'Chương trình học',
+    label: NAV_ITEM_LABELS.CURRICULUM,
     icon: IconName.GRID,
     page: 'curriculum',
     route: APP_ROUTES.CURRICULUM,
@@ -70,7 +71,7 @@ export class CurriculumNavStrategy implements INavigationGroupStrategy {
   private readonly subPageConfigs: Record<string, NavItemConfig> = {
     curriculum: {
       id: 'nav-curriculum',
-      label: 'Chương trình học',
+      label: NAV_ITEM_LABELS.CURRICULUM,
       icon: IconName.GRID,
       page: 'curriculum',
       route: APP_ROUTES.CURRICULUM,
@@ -129,7 +130,7 @@ export class KnowledgeBaseNavStrategy implements INavigationGroupStrategy {
 
   private readonly primaryItem: NavItemConfig = {
     id: 'nav-knowledge',
-    label: 'Từ điển tri thức',
+    label: NAV_ITEM_LABELS.KNOWLEDGE,
     icon: IconName.BOOK,
     page: 'knowledge',
     route: APP_ROUTES.KNOWLEDGE,
@@ -140,7 +141,7 @@ export class KnowledgeBaseNavStrategy implements INavigationGroupStrategy {
   private readonly subPageConfigs: Record<string, NavItemConfig> = {
     knowledge: {
       id: 'nav-knowledge',
-      label: 'Từ điển tri thức',
+      label: NAV_ITEM_LABELS.KNOWLEDGE,
       icon: IconName.BOOK,
       page: 'knowledge',
       route: APP_ROUTES.KNOWLEDGE,

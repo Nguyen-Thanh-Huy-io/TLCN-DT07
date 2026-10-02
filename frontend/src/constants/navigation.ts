@@ -1,5 +1,5 @@
 import { IconName } from './icons';
-import { APP_ROUTES, NavigationPageKey } from './routes';
+import { NavigationPageKey } from './routes';
 
 /**
  * Navigation Group Identifiers (No magic strings)
@@ -20,6 +20,14 @@ export const NAV_GROUP_TITLES: Record<NavGroupId, string> = {
   [NavGroupId.KNOWLEDGE]: 'TỪ ĐIỂN TRI THỨC',
   [NavGroupId.OPERATIONS]: 'KIỂM DUYỆT & VẬN HÀNH',
 };
+
+export const NAV_ITEM_LABELS = {
+  CURRICULUM: 'Chương trình học',
+  KNOWLEDGE: 'Từ điển tri thức',
+  DASHBOARD: 'Dashboard',
+  REVIEW: 'Duyệt bài học',
+  USERS: 'Người dùng & Quyền',
+} as const;
 
 /**
  * Navigation item specification

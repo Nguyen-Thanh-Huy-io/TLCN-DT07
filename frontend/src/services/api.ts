@@ -54,4 +54,63 @@ api.interceptors.response.use(
   }
 );
 
+export function extractErrorMessage(error: unknown, fallbackMessage: string): string {
+  if (typeof error === 'object' && error !== null) {
+    const res = (error as { response?: { data?: { message?: string | string[] } } }).response?.data?.message;
+    if (typeof res === 'string') return res;
+    if (Array.isArray(res) && res.length > 0) return res.join(', ');
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallbackMessage;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export function parsePaginatedResponse<T>(resData: unknown): PaginatedResult<T> {
+  const dataObj =
+    typeof resData === 'object' && resData !== null
+      ? (resData as {
+          data?: unknown;
+          items?: unknown[];
+          total?: number;
+          page?: number;
+          limit?: number;
+          totalPages?: number;
+        })
+      : {};
+  const inner =
+    typeof dataObj.data === 'object' && dataObj.data !== null
+      ? (dataObj.data as {
+          items?: unknown[];
+          total?: number;
+          page?: number;
+          limit?: number;
+          totalPages?: number;
+        })
+      : dataObj;
+
+  const items = Array.isArray(inner.items)
+    ? (inner.items as T[])
+    : Array.isArray(inner)
+    ? (inner as T[])
+    : [];
+
+  return {
+    items,
+    total: inner.total ?? items.length,
+    page: inner.page ?? 1,
+    limit: inner.limit ?? items.length,
+    totalPages: inner.totalPages ?? 1,
+  };
+}
+
 export default api;
+

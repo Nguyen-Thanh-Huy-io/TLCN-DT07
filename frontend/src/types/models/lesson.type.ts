@@ -11,6 +11,7 @@ export interface LessonItem {
   displayOrder?: number;
   status: ContentStatus;
   rejectionReason?: string;
+  sourceReferenceNote?: string;
   topic?: {
     id: string;
     name: string;
@@ -19,6 +20,7 @@ export interface LessonItem {
     id: string;
     username: string;
     fullName?: string;
+    email?: string;
   };
   createdAt?: string;
   updatedAt?: string;

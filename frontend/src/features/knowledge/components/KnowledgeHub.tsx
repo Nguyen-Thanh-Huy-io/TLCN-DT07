@@ -1,25 +1,25 @@
 'use client';
-import React, { useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { KnowledgeTabKey } from '../types/knowledge-hub.type';
 import { KnowledgeTabStrategyFactory } from '../strategies/knowledge-tab.strategy';
 import { Icon } from '@/components/icons/Icon';
 
 export function KnowledgeHub() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<KnowledgeTabKey>(KnowledgeTabKey.LOCATIONS);
 
-  // Extract active tab from query params, fallback to LOCATIONS
-  const tabParam = searchParams.get('tab') as KnowledgeTabKey;
-  const activeTab: KnowledgeTabKey = useMemo(() => {
-    if (
-      tabParam &&
-      Object.values(KnowledgeTabKey).includes(tabParam as KnowledgeTabKey)
-    ) {
-      return tabParam;
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const param = new URLSearchParams(window.location.search).get('tab') as KnowledgeTabKey;
+      if (
+        param &&
+        Object.values(KnowledgeTabKey).includes(param)
+      ) {
+        setActiveTab(param);
+      }
     }
-    return KnowledgeTabKey.LOCATIONS;
-  }, [tabParam]);
+  }, []);
 
   const allStrategies = useMemo(
     () => KnowledgeTabStrategyFactory.getAllStrategies(),
@@ -32,6 +32,7 @@ export function KnowledgeHub() {
   );
 
   const handleTabChange = (key: KnowledgeTabKey) => {
+    setActiveTab(key);
     router.replace(`/knowledge?tab=${key}`, { scroll: false });
   };
 

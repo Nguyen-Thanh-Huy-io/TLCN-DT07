@@ -5,6 +5,7 @@ import { UserCell } from '@/components/common/UserCell';
 import { ReviewModal } from './ReviewModal';
 import { IconName } from '@/constants/icons';
 import { ContentStatus } from '@/constants/enums';
+import { LessonItem } from '@/types/models/lesson.type';
 import api from '@/services/api';
 
 export interface ReviewLessonRow {
@@ -78,7 +79,7 @@ export function ReviewList() {
           return;
         }
 
-        const mapped: ReviewLessonRow[] = rawList.map((lesson: any) => {
+        const mapped: ReviewLessonRow[] = rawList.map((lesson: LessonItem) => {
           const rawStatus = lesson.status || ContentStatus.DRAFT;
           const statusMap: Record<string, ReviewLessonRow['status']> = {
             [ContentStatus.DRAFT]: 'Chờ duyệt',

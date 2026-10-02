@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { APP_ROUTES } from '@/constants/routes';
-import api from '@/services/api';
+import api, { extractErrorMessage } from '@/services/api';
 
 export function TagForm() {
   const router = useRouter();
@@ -25,9 +25,9 @@ export function TagForm() {
         description: description.trim() || undefined,
       });
       router.push(APP_ROUTES.TAGS.LIST);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to create tag:', err);
-      alert(err?.response?.data?.message || 'Không thể tạo thẻ.');
+      alert(extractErrorMessage(err, 'Không thể tạo thẻ.'));
     } finally {
       setSaving(false);
     }

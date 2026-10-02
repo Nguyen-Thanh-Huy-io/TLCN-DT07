@@ -77,10 +77,22 @@ export function EventList() {
         setEventsList(DEFAULT_EVENTS);
         return;
       }
+      interface RawHistoricalEvent {
+        id: string;
+        title?: string;
+        name?: string;
+        topic?: { name?: string };
+        topicName?: string;
+        topicId?: string;
+        eventYear?: number | string;
+        year?: number | string;
+        description?: string;
+        location?: string;
+      }
       setEventsList(
-        list.map((evt: any) => ({
+        (list as RawHistoricalEvent[]).map((evt) => ({
           id: evt.id,
-          name: evt.title || evt.name,
+          name: evt.title || evt.name || '',
           topic: evt.topic?.name || evt.topicName || 'Chủ đề chưa gán',
           topicId: evt.topicId || '',
           year: String(evt.eventYear ?? evt.year ?? ''),

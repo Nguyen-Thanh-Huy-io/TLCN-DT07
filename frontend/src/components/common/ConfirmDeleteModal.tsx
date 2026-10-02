@@ -8,6 +8,7 @@ export interface ConfirmDeleteModalProps {
   title: string;
   itemTypeLabel?: string;
   message?: string;
+  confirmLabel?: string;
 }
 
 export function ConfirmDeleteModal({
@@ -17,6 +18,7 @@ export function ConfirmDeleteModal({
   title,
   itemTypeLabel = 'mục',
   message,
+  confirmLabel,
 }: ConfirmDeleteModalProps) {
   if (!isOpen) return null;
 
@@ -36,7 +38,7 @@ export function ConfirmDeleteModal({
           <p className="delete-warn-text">
             {message || (
               <>
-                Bạn có chắc chắn muốn xóa {itemTypeLabel} <strong>"{title}"</strong> không? Thao tác này không thể hoàn tác.
+                Bạn có chắc chắn muốn xóa {itemTypeLabel} <strong>&ldquo;{title}&rdquo;</strong> không? Thao tác này không thể hoàn tác.
               </>
             )}
           </p>
@@ -56,7 +58,7 @@ export function ConfirmDeleteModal({
                 onClose();
               }}
             >
-              Xóa {itemTypeLabel}
+              {confirmLabel || `Xóa ${itemTypeLabel}`}
             </button>
           </div>
         </div>

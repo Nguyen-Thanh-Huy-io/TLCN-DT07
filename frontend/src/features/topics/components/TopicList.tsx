@@ -1,68 +1,101 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState, useCallback } from 'react';
 import { DataTable } from '@/components/table/DataTable';
 import { ContentCell } from '@/components/common/ContentCell';
 import { Badge } from '@/components/common/Badge';
+import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
+import { TopicModal, TopicFormData } from './TopicModal';
 import { IconName } from '@/constants/icons';
-import { APP_ROUTES } from '@/constants/routes';
 import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import { ContentStatus } from '@/constants/enums';
 import { ColumnDef } from '@/types/table.types';
 import { TopicItem } from '@/types/models/topic.type';
-import api from '@/services/api';
+import { TopicApiService } from '@/services/entities/topic.service';
+import { extractErrorMessage } from '@/services/api';
 
 const DEFAULT_TOPICS: TopicItem[] = [
   {
     id: '1',
-    name: 'Kháng chiến chống quân Nguyên - Mông',
-    description: 'Ba lần chiến thắng oanh liệt của quân dân nhà Trần',
+    name: 'Xây dựng hậu phương miền Bắc và Khởi nghĩa miền Nam (1954 - 1960)',
+    description: 'Phong trào Đồng Khởi bùng nổ, mở ra bước ngoặt mới',
     isSequential: true,
     displayOrder: 1,
     status: ContentStatus.PUBLISHED,
-    period: { id: 'p1', name: 'Thời kỳ Lý - Trần - Hồ' },
-    updatedAt: '2026-09-20',
-  },
-  {
-    id: '2',
-    name: 'Khởi nghĩa Lam Sơn',
-    description: 'Lê Lợi và nghĩa quân đánh đuổi giặc Minh',
-    isSequential: true,
-    displayOrder: 2,
-    status: ContentStatus.PUBLISHED,
-    period: { id: 'p2', name: 'Thời Hậu Lê' },
-    updatedAt: '2026-09-18',
-  },
-  {
-    id: '3',
-    name: 'Phong trào Tây Sơn',
-    description: 'Quang Trung đại phá quân Thanh',
-    isSequential: false,
-    displayOrder: 3,
-    status: ContentStatus.PUBLISHED,
-    period: { id: 'p3', name: 'Nhà Tây Sơn' },
-    updatedAt: '2026-09-15',
+    period: { id: 'p1', name: 'Kháng chiến chống Mỹ, cứu nước (1954 - 1975)' },
+    updatedAt: '2026-09-30',
   },
 ];
 
 export function TopicList() {
-  const router = useRouter();
   const [topics, setTopics] = useState<TopicItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTopic, setEditingTopic] = useState<TopicItem | null>(null);
+  const [deletingTopic, setDeletingTopic] = useState<TopicItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const fetchTopics = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await TopicApiService.getTopics({ limit: 100 });
+      if (res.items && res.items.length > 0) {
+        setTopics(res.items);
+      } else {
+        setTopics(DEFAULT_TOPICS);
+      }
+    } catch (err) {
+      console.error('Failed to fetch topics, using fallback:', err);
+      setTopics(DEFAULT_TOPICS);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    api
-      .get('/topics')
-      .then((res) => {
-        const data = res.data?.items || res.data?.data || res.data || [];
-        setTopics(Array.isArray(data) && data.length > 0 ? data : DEFAULT_TOPICS);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch topics, using fallback:', err);
-        setTopics(DEFAULT_TOPICS);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    fetchTopics();
+  }, [fetchTopics]);
+
+  const handleOpenCreate = () => {
+    setEditingTopic(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (item: TopicItem) => {
+    setEditingTopic(item);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveTopic = async (formData: TopicFormData) => {
+    try {
+      if (editingTopic) {
+        await TopicApiService.updateTopic(editingTopic.id, formData);
+        await fetchTopics();
+      } else {
+        await TopicApiService.createTopic(formData);
+        await fetchTopics();
+      }
+      setIsModalOpen(false);
+      setEditingTopic(null);
+    } catch (err: unknown) {
+      console.error('Failed to save topic:', err);
+      alert(extractErrorMessage(err, 'Không thể lưu Chủ đề lịch sử.'));
+    }
+  };
+
+  const handleDeleteTopic = async () => {
+    if (!deletingTopic) return;
+    try {
+      setIsDeleting(true);
+      await TopicApiService.deleteTopic(deletingTopic.id);
+      setTopics((prev) => prev.filter((t) => t.id !== deletingTopic.id));
+      setDeletingTopic(null);
+    } catch (err: unknown) {
+      console.error('Failed to delete topic:', err);
+      alert(extractErrorMessage(err, 'Không thể xóa chủ đề lịch sử.'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const columns: ColumnDef<TopicItem>[] = [
     {
@@ -112,13 +145,36 @@ export function TopicList() {
   }
 
   return (
-    <DataTable<TopicItem>
-      columns={columns}
-      data={topics}
-      searchPlaceholder="Tìm kiếm chủ đề lịch sử..."
-      primaryButtonLabel="Thêm chủ đề"
-      onPrimaryButtonClick={() => router.push(APP_ROUTES.TOPICS.CREATE)}
-      filters={[{ label: 'Giai đoạn' }, { label: 'Trạng thái' }]}
-    />
+    <>
+      <DataTable<TopicItem>
+        columns={columns}
+        data={topics}
+        searchPlaceholder="Tìm kiếm chủ đề lịch sử..."
+        primaryButtonLabel="Thêm chủ đề"
+        onPrimaryButtonClick={handleOpenCreate}
+        onEdit={handleOpenEdit}
+        onDelete={(item) => setDeletingTopic(item)}
+        filters={[{ label: 'Giai đoạn' }, { label: 'Trạng thái' }]}
+      />
+
+      <TopicModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingTopic(null);
+        }}
+        onSave={handleSaveTopic}
+        initialData={editingTopic}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={Boolean(deletingTopic)}
+        title="Xóa Chủ đề lịch sử"
+        message={`Bạn có chắc chắn muốn xóa "${deletingTopic?.name}"? Mọi bài học và sự kiện trực thuộc chủ đề này cũng sẽ bị xóa liên đới (Cascade).`}
+        confirmLabel={isDeleting ? 'Đang xóa...' : 'Xác nhận xóa'}
+        onConfirm={handleDeleteTopic}
+        onClose={() => setDeletingTopic(null)}
+      />
+    </>
   );
 }

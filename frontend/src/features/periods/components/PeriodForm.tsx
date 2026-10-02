@@ -6,7 +6,7 @@ import { Field, SelectField } from '@/components/common/FormField';
 import { IconName } from '@/constants/icons';
 import { APP_ROUTES } from '@/constants/routes';
 import { ContentStatus } from '@/constants/enums';
-import api from '@/services/api';
+import api, { extractErrorMessage } from '@/services/api';
 
 export function PeriodForm() {
   const router = useRouter();
@@ -44,9 +44,9 @@ export function PeriodForm() {
         status: form.status,
       });
       router.push(APP_ROUTES.PERIODS.LIST);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save period:', err);
-      alert(err?.response?.data?.message || 'Không thể lưu giai đoạn.');
+      alert(extractErrorMessage(err, 'Không thể lưu giai đoạn.'));
     } finally {
       setSaving(false);
     }

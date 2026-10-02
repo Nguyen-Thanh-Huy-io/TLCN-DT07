@@ -5,7 +5,7 @@ import { ActionMenu } from '@/components/common/ActionMenu';
 import { IconName } from '@/constants/icons';
 import { DataTableProps } from '@/types/table.types';
 
-export function DataTable<T extends Record<string, any>>({
+export function DataTable<T extends object>({
   columns,
   data,
   searchPlaceholder = 'Tìm kiếm nội dung...',

@@ -6,7 +6,7 @@ import { Field, SelectField } from '@/components/common/FormField';
 import { IconName } from '@/constants/icons';
 import { APP_ROUTES } from '@/constants/routes';
 import { ContentStatus } from '@/constants/enums';
-import api from '@/services/api';
+import api, { extractErrorMessage } from '@/services/api';
 
 export function TopicForm() {
   const router = useRouter();
@@ -69,9 +69,9 @@ export function TopicForm() {
         status: form.status,
       });
       router.push(APP_ROUTES.TOPICS.LIST);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save topic:', err);
-      alert(err?.response?.data?.message || 'Không thể lưu chủ đề.');
+      alert(extractErrorMessage(err, 'Không thể lưu chủ đề.'));
     } finally {
       setSaving(false);
     }

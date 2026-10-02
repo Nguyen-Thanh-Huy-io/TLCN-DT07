@@ -19,6 +19,10 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
   }
 
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
+    if (process.env.NODE_ENV === 'test') {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest();
     const path = request.url as string;
 

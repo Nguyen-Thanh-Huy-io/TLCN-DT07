@@ -1,6 +1,6 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
 import { Badge } from '@/components/common/Badge';
 import { SelectField } from '@/components/common/FormField';
@@ -8,46 +8,72 @@ import { IconName } from '@/constants/icons';
 import { APP_ROUTES } from '@/constants/routes';
 import { ContentStatus, DifficultyLevel } from '@/constants/enums';
 import { DIFFICULTY_LABEL_MAP } from '@/constants/ui-theme';
-import api from '@/services/api';
+import { LessonApiService } from '@/services/entities/lesson.service';
+import { TopicApiService } from '@/services/entities/topic.service';
+import { extractErrorMessage } from '@/services/api';
 
 export function LessonEditor() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const lessonId = searchParams.get('id');
+
   const [topics, setTopics] = useState<Array<{ id: string; name: string }>>([]);
   const [saving, setSaving] = useState(false);
+  const [loadingLesson, setLoadingLesson] = useState(false);
+
   const [selectedTopicId, setSelectedTopicId] = useState('');
   const [status, setStatus] = useState<ContentStatus>(ContentStatus.DRAFT);
-  const [title, setTitle] = useState('Chiến dịch Điện Biên Phủ năm 1954');
-  const [contentRichText, setContentRichText] = useState(`
-    <h2>Bối cảnh lịch sử</h2>
-    <p>Cuối năm 1953, cuộc kháng chiến chống thực dân Pháp của nhân dân Việt Nam bước sang năm thứ tám.</p>
-    <p>Điện Biên Phủ được xây dựng thành một tập đoàn cứ điểm mạnh nhất Đông Dương, gồm <strong>49 cứ điểm</strong> được chia thành ba phân khu.</p>
-    <blockquote>“Tất cả cho tiền tuyến, tất cả để chiến thắng!”</blockquote>
-    <h2>Diễn biến chiến dịch</h2>
-    <p>Chiến dịch diễn ra trong 56 ngày đêm, từ ngày 13 tháng 3 đến ngày 7 tháng 5 năm 1954.</p>
-  `);
+  const [title, setTitle] = useState('');
+  const [contentRichText, setContentRichText] = useState('');
   const [difficulty, setDifficulty] = useState<DifficultyLevel>(DifficultyLevel.MEDIUM);
-  const [sourceReferenceNote, setSourceReferenceNote] = useState(
-    'Viện Sử học (2017), Lịch sử Việt Nam, tập 10, NXB Khoa học Xã hội.'
-  );
+  const [sourceReferenceNote, setSourceReferenceNote] = useState('');
 
-  const loadTopics = async () => {
+  const loadTopics = useCallback(async () => {
     try {
-      const res = await api.get('/topics');
-      const payload = res.data?.items || res.data?.data || res.data || [];
-      const list = Array.isArray(payload) ? payload : [];
-      setTopics(list);
-      if (!selectedTopicId && list[0]) {
-        setSelectedTopicId(list[0].id);
+      const res = await TopicApiService.getTopics({ limit: 100 });
+      setTopics(res.items);
+      if (!selectedTopicId && res.items.length > 0) {
+        setSelectedTopicId(res.items[0].id);
       }
     } catch (err) {
       console.error('Failed to load topics for lesson form:', err);
       setTopics([]);
     }
-  };
+  }, [selectedTopicId]);
 
   useEffect(() => {
     loadTopics();
-  }, []);
+  }, [loadTopics]);
+
+  useEffect(() => {
+    if (lessonId) {
+      setLoadingLesson(true);
+      LessonApiService.getLessonById(lessonId)
+        .then((lesson) => {
+          if (lesson) {
+            setTitle(lesson.title || '');
+            setSelectedTopicId(lesson.topic?.id || '');
+            setContentRichText(lesson.contentRichText || '');
+            setDifficulty(lesson.difficulty || DifficultyLevel.MEDIUM);
+            setSourceReferenceNote(lesson.sourceReferenceNote || '');
+            setStatus(lesson.status || ContentStatus.DRAFT);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load lesson detail:', err);
+          alert('Không thể tải bài học cần sửa.');
+        })
+        .finally(() => setLoadingLesson(false));
+    } else {
+      setTitle('Chiến dịch Điện Biên Phủ năm 1954');
+      setContentRichText(`
+        <h2>Bối cảnh lịch sử</h2>
+        <p>Cuối năm 1953, cuộc kháng chiến chống thực dân Pháp của nhân dân Việt Nam bước sang năm thứ tám.</p>
+        <p>Điện Biên Phủ được xây dựng thành một tập đoàn cứ điểm mạnh nhất Đông Dương.</p>
+      `);
+      setSourceReferenceNote('Viện Sử học (2017), Lịch sử Việt Nam, tập 10, NXB Khoa học Xã hội.');
+    }
+  }, [lessonId]);
 
   const submitLesson = async (nextStatus: ContentStatus) => {
     if (!selectedTopicId) {
@@ -62,7 +88,7 @@ export function LessonEditor() {
 
     try {
       setSaving(true);
-      await api.post('/lessons', {
+      const payload = {
         topicId: selectedTopicId,
         title: title.trim(),
         contentRichText: contentRichText.trim() || undefined,
@@ -70,18 +96,30 @@ export function LessonEditor() {
         sourceReferenceNote: sourceReferenceNote.trim() || undefined,
         status: nextStatus,
         displayOrder: 0,
-      });
+      };
+
+      if (lessonId) {
+        await LessonApiService.updateLesson(lessonId, payload);
+      } else {
+        await LessonApiService.createLesson(payload);
+      }
       router.push(APP_ROUTES.LESSONS.LIST);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save lesson:', err);
       alert(
-        err?.response?.data?.message ||
+        extractErrorMessage(
+          err,
           'Không thể lưu bài học. Vui lòng kiểm tra dữ liệu.'
+        )
       );
     } finally {
       setSaving(false);
     }
   };
+
+  if (loadingLesson) {
+    return <div style={{ padding: 30 }}>Đang tải bài học...</div>;
+  }
 
   return (
     <div className="editor-wrap">
@@ -104,7 +142,7 @@ export function LessonEditor() {
           onClick={() => submitLesson(ContentStatus.PENDING_REVIEW)}
           disabled={saving}
         >
-          Gửi duyệt <Icon name={IconName.ARROW} size={15} />
+          {lessonId ? 'Lưu cập nhật' : 'Gửi duyệt'} <Icon name={IconName.ARROW} size={15} />
         </button>
       </div>
 

@@ -18,7 +18,6 @@ import api from '@/services/api';
 export function CurriculumExplorer() {
   const router = useRouter();
   const [data, setData] = useState<CurriculumPeriodNode[]>(DEFAULT_CURRICULUM_DATA);
-  const [loading, setLoading] = useState(false);
   const [selectedNode, setSelectedNode] = useState<AnyCurriculumNode | null>(
     DEFAULT_CURRICULUM_DATA[0],
   );

@@ -3,7 +3,6 @@ import React, { useState, useMemo } from 'react';
 import {
   CurriculumPeriodNode,
   CurriculumTopicNode,
-  CurriculumLessonNode,
   AnyCurriculumNode,
   CurriculumNodeType,
 } from '@/types/models/curriculum-tree.type';

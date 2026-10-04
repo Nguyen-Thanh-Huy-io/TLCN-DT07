@@ -14,6 +14,7 @@ export enum IconName {
   SEARCH = 'search',
   BELL = 'bell',
   CHEVRON = 'chevron',
+  CHEVRON_LEFT = 'chevron-left',
   MORE = 'more',
   PLUS = 'plus',
   ARROW = 'arrow',

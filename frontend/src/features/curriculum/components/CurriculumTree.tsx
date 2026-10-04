@@ -147,12 +147,12 @@ export function CurriculumTree({
   );
 
   return (
-    <div className="curriculum-tree-card bg-white border border-gray-200 rounded-lg p-3 flex flex-col h-full shadow-sm">
+    <div className="curriculum-tree-card bg-white border border-gray-200 rounded-xl p-3.5 flex flex-col h-full shadow-sm">
       {/* Search and tree actions */}
       <div className="tree-header mb-2.5">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-gray-800 uppercase tracking-wide">
+            <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">
               Cây Phân Cấp Học Tập
             </span>
             <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-semibold border border-slate-200">
@@ -162,7 +162,7 @@ export function CurriculumTree({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className="text-[10px] text-gray-500 hover:text-blue-600 px-1.5 py-0.5 rounded border border-gray-200 hover:border-blue-300"
+              className="text-xs text-slate-700 font-semibold hover:text-blue-700 px-2 py-0.5 rounded border border-slate-200 hover:border-blue-300 bg-slate-50 transition-colors"
               onClick={expandAll}
               title="Mở rộng tất cả các nhánh"
             >
@@ -170,7 +170,7 @@ export function CurriculumTree({
             </button>
             <button
               type="button"
-              className="text-[10px] text-gray-500 hover:text-blue-600 px-1.5 py-0.5 rounded border border-gray-200 hover:border-blue-300"
+              className="text-xs text-slate-700 font-semibold hover:text-blue-700 px-2 py-0.5 rounded border border-slate-200 hover:border-blue-300 bg-slate-50 transition-colors"
               onClick={collapseAll}
               title="Thu gọn tất cả"
             >
@@ -186,16 +186,16 @@ export function CurriculumTree({
             placeholder="Tìm theo giai đoạn, chủ đề, bài học..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full text-xs py-1.5 pl-7 pr-2 border border-gray-200 rounded-md focus:outline-none focus:border-blue-500 bg-gray-50/50"
+            className="w-full text-xs py-1.5 pl-7 pr-7 border border-slate-200 rounded-md focus:outline-none focus:border-blue-600 bg-slate-50/70 text-slate-900 placeholder:text-slate-500 font-medium"
           />
-          <div className="absolute left-2 top-2 text-gray-400 pointer-events-none">
+          <div className="absolute left-2 top-2 text-slate-500 pointer-events-none">
             <Icon name={IconName.SEARCH} size={13} />
           </div>
           {searchTerm ? (
             <button
               type="button"
               onClick={() => setSearchTerm('')}
-              className="absolute right-2 top-1.5 text-gray-400 hover:text-gray-600 text-xs"
+              className="absolute right-2 top-1.5 text-slate-500 hover:text-slate-800 text-xs font-bold"
             >
               ✕
             </button>
@@ -269,7 +269,7 @@ export function CurriculumTree({
       {/* Tree Content */}
       <div className="tree-content flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
         {filteredData.length === 0 ? (
-          <div className="p-4 text-center text-xs text-gray-400">
+          <div className="p-5 text-center text-xs text-slate-600 font-medium bg-slate-50 rounded-lg border border-dashed border-slate-200">
             Không tìm thấy mục nào phù hợp với bộ lọc.
           </div>
         ) : (
@@ -319,7 +319,7 @@ export function CurriculumTree({
                       type="button"
                       title="Thêm chủ đề con thuộc giai đoạn này"
                       className={`tree-node-action p-1 rounded hover:bg-black/20 ${
-                        isPeriodSelected ? 'text-white' : 'text-gray-500'
+                        isPeriodSelected ? 'text-white' : 'text-slate-600 hover:text-slate-900'
                       }`}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -384,7 +384,7 @@ export function CurriculumTree({
                                 className={`tree-node-action p-1 rounded hover:bg-black/20 ${
                                   isTopicSelected
                                     ? 'text-white'
-                                    : 'text-gray-500'
+                                    : 'text-slate-600 hover:text-slate-900'
                                 }`}
                                 onClick={(e) => {
                                   e.stopPropagation();

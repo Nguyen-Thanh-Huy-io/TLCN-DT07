@@ -14,9 +14,18 @@ export interface SidebarProps {
   setPage: (p: string) => void;
   open: boolean;
   close: () => void;
+  collapsed?: boolean;
+  toggleCollapse?: () => void;
 }
 
-export function Sidebar({ page, setPage, open, close }: SidebarProps) {
+export function Sidebar({
+  page,
+  setPage,
+  open,
+  close,
+  collapsed = false,
+  toggleCollapse,
+}: SidebarProps) {
   const navGroups: NavGroupConfig[] = useMemo(
     () => navigationFacade.getNavGroups(),
     [],
@@ -28,22 +37,40 @@ export function Sidebar({ page, setPage, open, close }: SidebarProps) {
         className={`sidebar-overlay ${open ? 'show' : ''}`}
         onClick={close}
       />
-      <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}>
+      <aside className={`sidebar ${open ? 'sidebar-open' : ''} ${collapsed ? 'sidebar-is-collapsed' : ''}`}>
         <div className="sidebar-head">
-          <Logo />
-          <button
-            type="button"
-            className="mobile-close"
-            onClick={close}
-            aria-label="Đóng menu"
-          >
-            ×
-          </button>
+          <Logo collapsed={collapsed} />
+          <div className="sidebar-head-actions">
+            {toggleCollapse && (
+              <button
+                type="button"
+                className="collapse-toggle-btn"
+                onClick={toggleCollapse}
+                title={collapsed ? 'Mở rộng thanh menu' : 'Thu gọn thanh menu'}
+                aria-label={collapsed ? 'Mở rộng thanh menu' : 'Thu gọn thanh menu'}
+              >
+                <Icon name={collapsed ? IconName.CHEVRON : IconName.CHEVRON_LEFT} size={15} />
+              </button>
+            )}
+            <button
+              type="button"
+              className="mobile-close"
+              onClick={close}
+              aria-label="Đóng menu"
+            >
+              ×
+            </button>
+          </div>
         </div>
+
         <nav>
           {navGroups.map((group) => (
             <div className="nav-group" key={group.id}>
-              <p>{group.label}</p>
+              {!collapsed ? (
+                <p>{group.label}</p>
+              ) : (
+                <div className="nav-group-divider" title={group.label} />
+              )}
               {group.items.map((item: NavItemConfig) => {
                 const activeKey = navigationFacade.resolveActiveSidebarPage(page);
                 const isActive = activeKey === item.page;
@@ -51,33 +78,37 @@ export function Sidebar({ page, setPage, open, close }: SidebarProps) {
                   <button
                     key={item.id}
                     type="button"
-                    className={`nav-item ${isActive ? 'active' : ''}`}
+                    className={`nav-item ${isActive ? 'active' : ''} ${collapsed ? 'nav-item-collapsed' : ''}`}
                     onClick={() => {
                       setPage(item.page);
                       close();
                     }}
-                    title={item.subtitle ?? item.label}
+                    title={`${item.label} ${item.subtitle ? `(${item.subtitle})` : ''}`}
                   >
-                    <Icon name={item.icon} />
-                    <span>{item.label}</span>
-                    {item.hierarchyTag ? (
+                    <Icon name={item.icon} size={18} />
+                    {!collapsed && <span>{item.label}</span>}
+                    {!collapsed && item.hierarchyTag ? (
                       <span className="nav-hierarchy-pill">
                         {item.hierarchyTag}
                       </span>
                     ) : null}
-                    {item.badgeCount ? <em>{item.badgeCount}</em> : null}
+                    {!collapsed && item.badgeCount ? <em>{item.badgeCount}</em> : null}
+                    {collapsed && item.badgeCount ? <i className="nav-collapsed-badge-dot" /> : null}
                   </button>
                 );
               })}
             </div>
           ))}
         </nav>
-        <div className="sidebar-user">
+
+        <div className={`sidebar-user ${collapsed ? 'sidebar-user-collapsed' : ''}`}>
           <Avatar text="MA" small />
-          <div>
-            <strong>Minh Anh</strong>
-            <span>Quản trị viên</span>
-          </div>
+          {!collapsed && (
+            <div>
+              <strong>Minh Anh</strong>
+              <span>Quản trị viên</span>
+            </div>
+          )}
           <button
             type="button"
             title="Đăng xuất"

@@ -61,6 +61,7 @@ export const iconPaths: Record<IconName, React.ReactNode> = {
     </>
   ),
   [IconName.CHEVRON]: <path d="m9 18 6-6-6-6" />,
+  [IconName.CHEVRON_LEFT]: <path d="m15 18-6-6 6-6" />,
   [IconName.MORE]: (
     <>
       <circle cx="5" cy="12" r="1" />

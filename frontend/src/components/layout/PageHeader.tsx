@@ -171,6 +171,13 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
 
 export function PageHeader({ pathname }: { pathname: string }) {
   const router = useRouter();
+  const cleanPath = pathname.replace(/\/$/, '') || '/';
+
+  // In Curriculum Workspace, omit the large header to maximize vertical editor space
+  if (cleanPath === APP_ROUTES.CURRICULUM) {
+    return null;
+  }
+
   const headerInfo = resolvePageHeader(pathname);
 
   return (

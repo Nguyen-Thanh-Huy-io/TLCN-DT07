@@ -1,16 +1,22 @@
 import React from 'react';
 
-export function Logo() {
+export interface LogoProps {
+  collapsed?: boolean;
+}
+
+export function Logo({ collapsed = false }: LogoProps) {
   return (
-    <div className="logo-wrap">
-      <div className="logo-mark">
+    <div className={`logo-wrap ${collapsed ? 'logo-collapsed' : ''}`}>
+      <div className="logo-mark" title="HISGO CONTENT SYSTEM">
         <span>H</span>
         <i />
       </div>
-      <div>
-        <strong>HISGO</strong>
-        <small>CONTENT SYSTEM</small>
-      </div>
+      {!collapsed && (
+        <div className="logo-text">
+          <strong>HISGO</strong>
+          <small>CONTENT SYSTEM</small>
+        </div>
+      )}
     </div>
   );
 }

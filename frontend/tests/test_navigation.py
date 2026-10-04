@@ -88,3 +88,40 @@ def test_workspace_routes_render_cleanly(route, expected_title):
     # Verify standard layout page wrapper on every route
     assert "class=\"page\"" in text or 'class="page"' in text, f"Route {route} missing <main class='page'>"
 
+def test_cms_dashboard_overview_renders_kpis_and_utilitarian_metrics():
+    response = requests.get(f"{BASE_URL}/", timeout=10)
+    assert response.status_code == 200, f"Expected 200 OK from home, got {response.status_code}"
+    text = html_lib.unescape(response.text)
+
+    # Utilitarian metrics & Live Bar
+    assert "Trực tuyến" in text, "Missing live status badge on Dashboard"
+    assert "Giai đoạn lịch sử" in text, "Missing KPI: Giai đoạn lịch sử"
+    assert "Chủ đề học tập" in text, "Missing KPI: Chủ đề học tập"
+    assert "Bài học lịch sử" in text, "Missing KPI: Bài học lịch sử"
+    assert "Bài chờ duyệt" in text, "Missing KPI: Bài chờ duyệt"
+    assert "Phân bổ trạng thái bài học" in text, "Missing Content Distribution progress bar"
+    assert "Nội dung gần đây" in text, "Missing Recent Activity panel"
+    assert "Thao tác nhanh" in text, "Missing Quick Actions panel"
+
+def test_curriculum_ui_contrast_and_scrollbar_enhancements():
+    """
+    Verifies WCAG contrast compliance, custom thin scrollbar and relaxed spacing
+    on Curriculum Explorer (/curriculum)
+    """
+    response = requests.get(f"{BASE_URL}/curriculum", timeout=10)
+    assert response.status_code == 200, f"Expected 200 OK, got {response.status_code}"
+    text = html_lib.unescape(response.text)
+
+    # 1. Custom sleek scrollbar class present
+    assert "custom-scrollbar" in text, "Missing custom-scrollbar class in curriculum explorer"
+
+    # 2. Relaxed spacing & breathing room (rounded-xl, p-6 or p-7)
+    assert "rounded-xl" in text, "Missing rounded-xl card styling for modern spacing"
+
+    # 3. High contrast text classes (WCAG AA compliant)
+    assert "text-slate-600" in text, "Missing WCAG AA compliant text-slate-600 in curriculum"
+    assert "text-slate-900" in text, "Missing high contrast text-slate-900 in headings"
+
+    # 4. Collapse button exists on sidebar
+    assert "collapse-toggle-btn" in text, "Missing sidebar collapse toggle button"
+

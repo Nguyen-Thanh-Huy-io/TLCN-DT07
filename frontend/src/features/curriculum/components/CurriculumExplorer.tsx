@@ -181,68 +181,77 @@ export function CurriculumExplorer() {
   };
 
   return (
-    <div className="curriculum-explorer-view space-y-4">
-      {/* Top Navigation & View Switcher Bar */}
-      <div className="flex items-center justify-between bg-white border border-[#e2e5e8] rounded-xl p-2.5 shadow-sm">
-        <div className="flex items-center gap-1.5 overflow-x-auto">
+    <div className="curriculum-explorer-view space-y-3">
+      {/* Top Navigation & View Switcher Bar (Compact & Utilitarian) */}
+      <div className="flex items-center justify-between bg-white border border-[#e2e5e8] rounded-xl p-2 px-3 shadow-2xs">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {/* Integrated Clean Title */}
+          <div className="flex items-center gap-2 border-r border-slate-200 pr-3 mr-1 shrink-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+            <h1 className="text-sm font-bold text-slate-900 tracking-tight whitespace-nowrap">
+              Chương trình học
+            </h1>
+          </div>
+
           <button
             type="button"
-            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#1a385d] text-white flex items-center gap-2 shadow-sm"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1a385d] text-white flex items-center gap-1.5 shadow-2xs"
           >
-            <Icon name={IconName.GRID} size={14} />
+            <Icon name={IconName.GRID} size={13} />
             <span>Sơ đồ Cây Phân Cấp</span>
           </button>
           <button
             type="button"
-            className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
             onClick={() => router.push(APP_ROUTES.PERIODS.LIST)}
           >
-            <Icon name={IconName.CLOCK} size={14} />
+            <Icon name={IconName.CLOCK} size={13} />
             <span>DS Giai đoạn</span>
           </button>
           <button
             type="button"
-            className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
             onClick={() => router.push(APP_ROUTES.TOPICS.LIST)}
           >
-            <Icon name={IconName.FOLDER} size={14} />
+            <Icon name={IconName.FOLDER} size={13} />
             <span>DS Chủ đề</span>
           </button>
           <button
             type="button"
-            className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
             onClick={() => router.push(APP_ROUTES.LESSONS.LIST)}
           >
-            <Icon name={IconName.BOOK} size={14} />
+            <Icon name={IconName.BOOK} size={13} />
             <span>DS Bài học & Quiz</span>
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            className="primary-button !h-9 !text-xs !bg-amber-500 hover:!bg-amber-600 !text-gray-950 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm"
+            className="primary-button !h-8 !text-xs !bg-amber-500 hover:!bg-amber-600 !text-slate-950 font-bold px-3 rounded-lg flex items-center gap-1.5 shadow-2xs"
             onClick={handleAddPeriod}
           >
-            <Icon name={IconName.PLUS} size={14} />
+            <Icon name={IconName.PLUS} size={13} />
             <span>Thêm giai đoạn mới</span>
           </button>
         </div>
       </div>
 
-      {/* Master-Detail 2-Column Resizable Grid */}
+      {/* Master-Detail 2-Column Resizable Grid (Full-Height Layout) */}
       <div
         id="curriculum-workspace-container"
         style={{
           display: 'grid',
           gridTemplateColumns: `${treeWidth}px 8px minmax(0, 1fr)`,
           gap: '8px',
-          minHeight: 'calc(100vh - 240px)',
+          height: 'calc(100vh - 150px)',
+          minHeight: '600px',
           userSelect: isDragging ? 'none' : 'auto',
         }}
       >
         {/* Left Column: Tree Explorer */}
-        <div style={{ height: 'calc(100vh - 240px)', minHeight: '580px', width: `${treeWidth}px` }}>
+        <div style={{ height: '100%', minHeight: '600px', width: `${treeWidth}px` }}>
           <CurriculumTree
             data={data}
             selectedNode={selectedNode}
@@ -264,7 +273,7 @@ export function CurriculumExplorer() {
         </div>
 
         {/* Right Column: Detail Workspace */}
-        <div style={{ height: 'calc(100vh - 240px)', minHeight: '580px', minWidth: 0 }}>
+        <div style={{ height: '100%', minHeight: '600px', minWidth: 0 }}>
           <CurriculumDetailPane
             selectedNode={selectedNode}
             ancestors={ancestors}

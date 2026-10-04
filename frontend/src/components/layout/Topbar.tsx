@@ -9,9 +9,11 @@ import { navigationFacade } from '@/services/navigation/navigation-strategy.serv
 export interface TopbarProps {
   page: string;
   openNav: () => void;
+  collapsed?: boolean;
+  toggleCollapse?: () => void;
 }
 
-export function Topbar({ page, openNav }: TopbarProps) {
+export function Topbar({ page, openNav, collapsed, toggleCollapse }: TopbarProps) {
   const { groupTitle, parentLabel, parentRoute, pageTitle } =
     navigationFacade.resolveBreadcrumb(page);
 
@@ -20,15 +22,28 @@ export function Topbar({ page, openNav }: TopbarProps) {
   return (
     <header className="topbar">
       <div className="breadcrumb">
+        {/* Nút thu gọn / mở rộng menu trên Desktop */}
+        <button
+          type="button"
+          className="desktop-collapse-btn"
+          onClick={toggleCollapse}
+          title={collapsed ? 'Mở rộng menu bên trái' : 'Thu gọn menu bên trái'}
+          aria-label="Thu gọn menu"
+        >
+          <Icon name={IconName.MENU} size={18} />
+        </button>
+
+        {/* Nút mở drawer trên Mobile */}
         <button
           type="button"
           className="menu-btn"
           onClick={openNav}
-          aria-label="Mở menu"
+          aria-label="Mở menu di động"
         >
-          <Icon name={IconName.MENU} />
+          <Icon name={IconName.MENU} size={18} />
         </button>
-        <Link href="/" className="hover:text-blue-900 transition-colors">
+
+        <Link href="/" className="hover:text-blue-900 transition-colors font-semibold">
           HISGO CMS
         </Link>
         <Icon name={IconName.CHEVRON} size={14} />
@@ -47,6 +62,7 @@ export function Topbar({ page, openNav }: TopbarProps) {
         ) : null}
         <strong>{pageTitle}</strong>
       </div>
+
       <div className="top-actions">
         <label className="global-search">
           <Icon name={IconName.SEARCH} size={17} />

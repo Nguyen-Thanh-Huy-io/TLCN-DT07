@@ -17,6 +17,7 @@ import { TopicModule } from './topic/topic.module';
 import { LessonModule } from './lesson/lesson.module';
 import { HistoricalEventModule } from './historical-event/historical-event.module';
 import { TagModule } from './tag/tag.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { TagModule } from './tag/tag.module';
     LessonModule,
     HistoricalEventModule,
     TagModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

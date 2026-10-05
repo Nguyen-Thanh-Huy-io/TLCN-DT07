@@ -277,7 +277,7 @@ export class TopicNodeDetailStrategy implements INodeDetailStrategy {
             type="button"
             className="secondary-button !h-7 !py-0 !px-2.5 !text-xs font-semibold"
             onClick={() =>
-              callbacks.onAddChildLesson?.(this.topic.periodId, this.topic.id)
+              callbacks.onAddChildLesson?.(this.topic.periodId || '', this.topic.id)
             }
           >
             <Icon name={IconName.PLUS} size={12} />

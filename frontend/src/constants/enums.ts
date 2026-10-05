@@ -59,3 +59,15 @@ export enum EntityType {
   MILITARY_FORCE = 'MILITARY_FORCE',
   OTHER = 'OTHER',
 }
+
+export enum LearningPathType {
+  CHRONOLOGICAL = 'CHRONOLOGICAL',
+  THEMATIC = 'THEMATIC',
+  MYTHOLOGICAL = 'MYTHOLOGICAL',
+}
+
+export enum MediaType {
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO',
+  DOCUMENT = 'DOCUMENT',
+}

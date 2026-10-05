@@ -6,7 +6,10 @@ import {
   AnyCurriculumNode,
   CurriculumNodeType,
 } from '@/types/models/curriculum-tree.type';
-import { DEFAULT_CURRICULUM_DATA } from '../data/curriculum-mock.data';
+import {
+  DEFAULT_CURRICULUM_DATA,
+  THEMATIC_CURRICULUM_DATA,
+} from '../data/curriculum-mock.data';
 import { CurriculumTree } from './CurriculumTree';
 import { CurriculumDetailPane } from './CurriculumDetailPane';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
@@ -15,14 +18,27 @@ import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 import api from '@/services/api';
 
+export type CurriculumPerspectiveMode = 'CHRONOLOGICAL' | 'THEMATIC';
+
 export function CurriculumExplorer() {
   const router = useRouter();
-  const [data, setData] = useState<CurriculumPeriodNode[]>(DEFAULT_CURRICULUM_DATA);
+  const [perspective, setPerspective] =
+    useState<CurriculumPerspectiveMode>('CHRONOLOGICAL');
+
+  const [chronologicalData, setChronologicalData] =
+    useState<CurriculumPeriodNode[]>(DEFAULT_CURRICULUM_DATA);
+  const [thematicData, setThematicData] =
+    useState<CurriculumPeriodNode[]>(THEMATIC_CURRICULUM_DATA);
+
+  const currentData =
+    perspective === 'CHRONOLOGICAL' ? chronologicalData : thematicData;
+
   const [selectedNode, setSelectedNode] = useState<AnyCurriculumNode | null>(
     DEFAULT_CURRICULUM_DATA[0],
   );
 
-  const [deleteTarget, setDeleteTarget] = useState<AnyCurriculumNode | null>(null);
+  const [deleteTarget, setDeleteTarget] =
+    useState<AnyCurriculumNode | null>(null);
 
   // Resizable Split Pane Logic
   const [treeWidth, setTreeWidth] = useState<number>(380);
@@ -43,7 +59,9 @@ export function CurriculumExplorer() {
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const container = document.getElementById('curriculum-workspace-container');
+      const container = document.getElementById(
+        'curriculum-workspace-container',
+      );
       if (!container) return;
       const rect = container.getBoundingClientRect();
       const newWidth = e.clientX - rect.left;
@@ -82,11 +100,11 @@ export function CurriculumExplorer() {
       return [selectedNode];
     }
     if (selectedNode.type === CurriculumNodeType.TOPIC) {
-      const period = data.find((p) => p.id === selectedNode.periodId);
+      const period = currentData.find((p) => p.id === selectedNode.periodId);
       return period ? [period, selectedNode] : [selectedNode];
     }
     if (selectedNode.type === CurriculumNodeType.LESSON) {
-      const period = data.find((p) => p.id === selectedNode.periodId);
+      const period = currentData.find((p) => p.id === selectedNode.periodId);
       const topic = period?.topics.find((t) => t.id === selectedNode.topicId);
       const trail = [];
       if (period) trail.push(period);
@@ -95,10 +113,9 @@ export function CurriculumExplorer() {
       return trail;
     }
     return [selectedNode];
-  }, [selectedNode, data]);
+  }, [selectedNode, currentData]);
 
   useEffect(() => {
-    // Optionally fetch live hierarchy if API supports it
     api
       .get('/periods')
       .then((res) => {
@@ -106,13 +123,22 @@ export function CurriculumExplorer() {
           ? res.data
           : res.data?.data || [];
         if (livePeriods.length > 0) {
-          // Merge live period data with mock topics/lessons if API does not return full tree yet
+          // Keep live periods synced
         }
       })
       .catch(() => {
         // Fallback to rich default data
       });
   }, []);
+
+  const handleSwitchPerspective = (nextMode: CurriculumPerspectiveMode) => {
+    setPerspective(nextMode);
+    if (nextMode === 'CHRONOLOGICAL') {
+      setSelectedNode(chronologicalData[0] || null);
+    } else {
+      setSelectedNode(thematicData[0] || null);
+    }
+  };
 
   const handleSelectNode = (node: AnyCurriculumNode) => {
     setSelectedNode(node);
@@ -153,11 +179,16 @@ export function CurriculumExplorer() {
   const confirmDelete = () => {
     if (!deleteTarget) return;
 
+    const updater =
+      perspective === 'CHRONOLOGICAL'
+        ? setChronologicalData
+        : setThematicData;
+
     if (deleteTarget.type === CurriculumNodeType.PERIOD) {
-      setData((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      updater((prev) => prev.filter((p) => p.id !== deleteTarget.id));
       setSelectedNode(null);
     } else if (deleteTarget.type === CurriculumNodeType.TOPIC) {
-      setData((prev) =>
+      updater((prev) =>
         prev.map((p) => ({
           ...p,
           topics: p.topics.filter((t) => t.id !== deleteTarget.id),
@@ -165,7 +196,7 @@ export function CurriculumExplorer() {
       );
       setSelectedNode(null);
     } else if (deleteTarget.type === CurriculumNodeType.LESSON) {
-      setData((prev) =>
+      updater((prev) =>
         prev.map((p) => ({
           ...p,
           topics: p.topics.map((t) => ({
@@ -182,58 +213,87 @@ export function CurriculumExplorer() {
 
   return (
     <div className="curriculum-explorer-view space-y-3">
-      {/* Top Navigation & View Switcher Bar (Compact & Utilitarian) */}
-      <div className="flex items-center justify-between bg-white border border-[#e2e5e8] rounded-xl p-2 px-3 shadow-2xs">
-        <div className="flex items-center gap-2 overflow-x-auto">
+      {/* Top Header & Perspective Switcher Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-white border border-[#e2e5e8] rounded-xl p-2 px-3 shadow-2xs">
+        <div className="flex items-center gap-3">
           {/* Integrated Clean Title */}
-          <div className="flex items-center gap-2 border-r border-slate-200 pr-3 mr-1 shrink-0">
+          <div className="flex items-center gap-2 border-r border-slate-200 pr-3 shrink-0">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
             <h1 className="text-sm font-bold text-slate-900 tracking-tight whitespace-nowrap">
               Chương trình học
             </h1>
           </div>
 
-          <button
-            type="button"
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1a385d] text-white flex items-center gap-1.5 shadow-2xs"
-          >
-            <Icon name={IconName.GRID} size={13} />
-            <span>Sơ đồ Cây Phân Cấp</span>
-          </button>
-          <button
-            type="button"
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
-            onClick={() => router.push(APP_ROUTES.PERIODS.LIST)}
-          >
-            <Icon name={IconName.CLOCK} size={13} />
-            <span>DS Giai đoạn</span>
-          </button>
-          <button
-            type="button"
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
-            onClick={() => router.push(APP_ROUTES.TOPICS.LIST)}
-          >
-            <Icon name={IconName.FOLDER} size={13} />
-            <span>DS Chủ đề</span>
-          </button>
-          <button
-            type="button"
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
-            onClick={() => router.push(APP_ROUTES.LESSONS.LIST)}
-          >
-            <Icon name={IconName.BOOK} size={13} />
-            <span>DS Bài học & Quiz</span>
-          </button>
+          {/* Perspective View Switcher: Niên đại vs Thể loại chuyên đề */}
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+            <button
+              type="button"
+              className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${
+                perspective === 'CHRONOLOGICAL'
+                  ? 'bg-[#1a385d] text-white shadow-2xs'
+                  : 'text-slate-700 hover:text-slate-900'
+              }`}
+              onClick={() => handleSwitchPerspective('CHRONOLOGICAL')}
+              title="Học theo dòng thời gian các triều đại lịch sử"
+            >
+              <Icon name={IconName.CLOCK} size={13} />
+              <span>Sơ đồ Cây Phân Cấp (Niên đại)</span>
+            </button>
+            <button
+              type="button"
+              className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${
+                perspective === 'THEMATIC'
+                  ? 'bg-[#1a385d] text-white shadow-2xs'
+                  : 'text-slate-700 hover:text-slate-900'
+              }`}
+              onClick={() => handleSwitchPerspective('THEMATIC')}
+              title="Học theo chuyên đề xuyên suốt: Quân sự, Cổ phục, Văn hóa, Huyền sử"
+            >
+              <Icon name={IconName.BOOK} size={13} />
+              <span>Thể loại & Chuyên đề (Phi giai đoạn)</span>
+            </button>
+          </div>
         </div>
 
+        {/* Quick Link Tools: Quản lý dạng bảng & Thêm mới */}
         <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1 border-r border-slate-200 pr-2 mr-1">
+            <button
+              type="button"
+              className="px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1 transition-colors"
+              onClick={() => router.push(APP_ROUTES.PERIODS.LIST)}
+              title="Bảng quản lý danh sách Giai đoạn"
+            >
+              <Icon name={IconName.CLOCK} size={12} />
+              <span>DS Giai đoạn</span>
+            </button>
+            <button
+              type="button"
+              className="px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1 transition-colors"
+              onClick={() => router.push(APP_ROUTES.TOPICS.LIST)}
+              title="Bảng quản lý danh sách Chủ đề"
+            >
+              <Icon name={IconName.FOLDER} size={12} />
+              <span>DS Chủ đề</span>
+            </button>
+            <button
+              type="button"
+              className="px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1 transition-colors"
+              onClick={() => router.push(APP_ROUTES.LESSONS.LIST)}
+              title="Bảng quản lý danh sách Bài học & Quiz"
+            >
+              <Icon name={IconName.BOOK} size={12} />
+              <span>DS Bài học & Quiz</span>
+            </button>
+          </div>
+
           <button
             type="button"
             className="primary-button !h-8 !text-xs !bg-amber-500 hover:!bg-amber-600 !text-slate-950 font-bold px-3 rounded-lg flex items-center gap-1.5 shadow-2xs"
             onClick={handleAddPeriod}
           >
             <Icon name={IconName.PLUS} size={13} />
-            <span>Thêm giai đoạn mới</span>
+            <span>Thêm mục mới</span>
           </button>
         </div>
       </div>
@@ -251,9 +311,15 @@ export function CurriculumExplorer() {
         }}
       >
         {/* Left Column: Tree Explorer */}
-        <div style={{ height: '100%', minHeight: '600px', width: `${treeWidth}px` }}>
+        <div
+          style={{
+            height: '100%',
+            minHeight: '600px',
+            width: `${treeWidth}px`,
+          }}
+        >
           <CurriculumTree
-            data={data}
+            data={currentData}
             selectedNode={selectedNode}
             onSelectNode={handleSelectNode}
             onAddPeriod={handleAddPeriod}

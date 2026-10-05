@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro } from "next/font/google";
+import { Be_Vietnam_Pro, Merriweather } from "next/font/google";
 import "./globals.css";
 import { ClientLayout } from "@/components/layout/ClientLayout";
 
@@ -7,6 +7,14 @@ const beVietnamPro = Be_Vietnam_Pro({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin", "vietnamese"],
   variable: "--font-be-vietnam-pro",
+  display: "swap",
+});
+
+const merriweather = Merriweather({
+  weight: ["300", "400", "700"],
+  style: ["normal", "italic"],
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-merriweather",
   display: "swap",
 });
 
@@ -23,7 +31,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${beVietnamPro.variable} font-sans h-full antialiased`}
+      className={`${beVietnamPro.variable} ${merriweather.variable} font-sans h-full antialiased`}
     >
       <body className="min-h-full">
         <ClientLayout>{children}</ClientLayout>

@@ -1,4 +1,4 @@
-import { ContentStatus, DifficultyLevel } from '@/constants/enums';
+import { ContentStatus, DifficultyLevel, LearningPathType } from '@/constants/enums';
 
 /**
  * Curriculum Node Type Enum (No magic strings)
@@ -23,7 +23,7 @@ export interface CurriculumLessonNode {
   type: CurriculumNodeType.LESSON;
   name: string;
   topicId: string;
-  periodId: string;
+  periodId?: string;
   difficulty: DifficultyLevel;
   xpReward: number;
   status: ContentStatus;
@@ -43,7 +43,8 @@ export interface CurriculumTopicNode {
   id: string;
   type: CurriculumNodeType.TOPIC;
   name: string;
-  periodId: string;
+  periodId?: string;
+  pathType?: LearningPathType;
   description?: string;
   isSequential: boolean;
   status: ContentStatus;

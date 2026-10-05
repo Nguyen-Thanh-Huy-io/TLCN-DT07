@@ -11,16 +11,26 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContentStatus } from '@prisma/client';
+import { ContentStatus, LearningPathType } from '@prisma/client';
 
 export class CreateTopicDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-    description: 'ID của Giai đoạn lịch sử chứa chủ đề này (UUID)',
+    description: 'ID của Giai đoạn lịch sử (để trống nếu là chủ đề chuyên đề phi giai đoạn)',
   })
   @IsUUID('4', { message: 'periodId phải là UUID hợp lệ' })
-  @IsNotEmpty({ message: 'periodId không được để trống' })
-  periodId: string;
+  @IsOptional()
+  periodId?: string;
+
+  @ApiPropertyOptional({
+    enum: LearningPathType,
+    example: LearningPathType.CHRONOLOGICAL,
+    description: 'Loại tiến trình học: CHRONOLOGICAL (Niên đại), THEMATIC (Chuyên đề xuyên suốt), MYTHOLOGICAL (Huyền sử/Dân gian)',
+    default: LearningPathType.CHRONOLOGICAL,
+  })
+  @IsEnum(LearningPathType)
+  @IsOptional()
+  pathType?: LearningPathType = LearningPathType.CHRONOLOGICAL;
 
   @ApiProperty({
     example: 'Khởi nghĩa Hai Bà Trưng',

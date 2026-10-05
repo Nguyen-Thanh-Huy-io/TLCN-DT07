@@ -5,7 +5,7 @@ import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { QueryTopicDto } from './dto/query-topic.dto';
-import { Topic, ContentStatus, Prisma } from '@prisma/client';
+import { Topic, ContentStatus, LearningPathType, Prisma } from '@prisma/client';
 
 export interface IPaginatedResult<T> {
   items: T[];
@@ -27,25 +27,28 @@ export class TopicService {
   ) {}
 
   /**
-   * Tạo mới một chủ đề lịch sử
+   * Tạo mới một chủ đề lịch sử (có thể thuộc giai đoạn hoặc là chuyên đề phi giai đoạn)
    */
   async create(createTopicDto: CreateTopicDto): Promise<Topic> {
     this.logger.log(`Creating topic: ${createTopicDto.name}`, 'TopicService');
 
-    // Kiểm tra xem PeriodId có tồn tại hay không
-    const period = await this.prisma.period.findUnique({
-      where: { id: createTopicDto.periodId },
-    });
+    // Nếu có periodId, kiểm tra xem Period có tồn tại hay không
+    if (createTopicDto.periodId) {
+      const period = await this.prisma.period.findUnique({
+        where: { id: createTopicDto.periodId },
+      });
 
-    if (!period) {
-      throw new NotFoundException(
-        `Giai đoạn lịch sử với ID "${createTopicDto.periodId}" không tồn tại`,
-      );
+      if (!period) {
+        throw new NotFoundException(
+          `Giai đoạn lịch sử với ID "${createTopicDto.periodId}" không tồn tại`,
+        );
+      }
     }
 
     const topic = await this.prisma.topic.create({
       data: {
-        periodId: createTopicDto.periodId,
+        periodId: createTopicDto.periodId || null,
+        pathType: createTopicDto.pathType ?? (createTopicDto.periodId ? LearningPathType.CHRONOLOGICAL : LearningPathType.THEMATIC),
         name: createTopicDto.name,
         description: createTopicDto.description,
         coverImageUrl: createTopicDto.coverImageUrl,
@@ -60,7 +63,7 @@ export class TopicService {
   }
 
   /**
-   * Lấy danh sách chủ đề (có lọc theo periodId, status, search và phân trang)
+   * Lấy danh sách chủ đề (có lọc theo periodId, pathType, status, search và phân trang)
    */
   async findAll(query: QueryTopicDto): Promise<IPaginatedResult<Topic>> {
     const page = Math.max(1, Number(query.page) || 1);
@@ -71,6 +74,10 @@ export class TopicService {
 
     if (query.periodId) {
       where.periodId = query.periodId;
+    }
+
+    if (query.pathType) {
+      where.pathType = query.pathType;
     }
 
     if (query.status) {
@@ -166,7 +173,7 @@ export class TopicService {
     try {
       await this.redis.set(cacheKey, topic, this.CACHE_TTL);
     } catch (err) {
-      this.logger.warn(`Redis set error: ${err.message}`, 'TopicService');
+      this.logger.warn(`Redis get error: ${err.message}`, 'TopicService');
     }
 
     return topic;

@@ -3,23 +3,25 @@
 // ================================
 
 model Topic {
-    id            String        @id @default(uuid())
-    periodId      String        @map("period_id")
-    name          String        @db.VarChar(255)
-    description   String?       @db.Text
-    coverImageUrl String?       @map("cover_image_url") @db.VarChar(500)
-    isSequential  Boolean       @default(false) @map("is_sequential")
-    displayOrder  Int           @default(0) @map("display_order")
-    status        ContentStatus @default(DRAFT)
-    createdAt     DateTime      @default(now()) @map("created_at")
-    updatedAt     DateTime      @updatedAt @map("updated_at")
+    id            String            @id @default(uuid())
+    periodId      String?           @map("period_id")
+    pathType      LearningPathType  @default(CHRONOLOGICAL) @map("path_type")
+    name          String            @db.VarChar(255)
+    description   String?           @db.Text
+    coverImageUrl String?           @map("cover_image_url") @db.VarChar(500)
+    isSequential  Boolean           @default(false) @map("is_sequential")
+    displayOrder  Int               @default(0) @map("display_order")
+    status        ContentStatus     @default(DRAFT)
+    createdAt     DateTime          @default(now()) @map("created_at")
+    updatedAt     DateTime          @updatedAt @map("updated_at")
 
     // Relations
-    period           Period            @relation(fields: [periodId], references: [id], onDelete: Cascade)
+    period           Period?           @relation(fields: [periodId], references: [id], onDelete: Cascade)
     lessons          Lesson[]
     historicalEvents HistoricalEvent[]
 
     @@index([periodId])
+    @@index([pathType])
     @@index([status])
     @@index([displayOrder])
     @@map("topics")

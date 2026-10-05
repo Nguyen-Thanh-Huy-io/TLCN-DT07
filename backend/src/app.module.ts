@@ -18,6 +18,7 @@ import { LessonModule } from './lesson/lesson.module';
 import { HistoricalEventModule } from './historical-event/historical-event.module';
 import { TagModule } from './tag/tag.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     HistoricalEventModule,
     TagModule,
     DashboardModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

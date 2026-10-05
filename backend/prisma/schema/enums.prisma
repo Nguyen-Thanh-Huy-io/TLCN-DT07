@@ -132,3 +132,9 @@ enum DifficultyLevel {
     HARD
 }
 
+
+enum LearningPathType {
+    CHRONOLOGICAL
+    THEMATIC
+    MYTHOLOGICAL
+}

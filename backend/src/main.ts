@@ -9,6 +9,8 @@ import {
 } from 'nest-winston';
 import { Logger } from 'winston';
 import helmet from 'helmet';
+import express from 'express';
+import { join } from 'path';
 import { setupSwagger } from './common/config/swagger.config';
 // import { AllExceptionFilter } from './common/filters/all-exception.filter';
 
@@ -38,10 +40,11 @@ async function bootstrap() {
             directives: {
               defaultSrc: ["'self'"],
               styleSrc: ["'self'", "'unsafe-inline'"],
-              imgSrc: ["'self'", 'data:', 'https:'],
+              imgSrc: ["'self'", 'data:', 'https:', 'http:'],
               scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Required for Swagger UI
             },
           },
+          crossOriginResourcePolicy: { policy: 'cross-origin' as const },
           frameguard: { action: 'deny' as const },
           hidePoweredBy: true,
           hsts: {
@@ -105,6 +108,17 @@ async function bootstrap() {
     credentials: false,
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
+
+  // Phục vụ thư mục static uploads công khai cho frontend
+  app.use(
+    '/uploads',
+    express.static(join(process.cwd(), 'uploads'), {
+      setHeaders: (res) => {
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      },
+    }),
+  );
 
   await app.listen(process.env.PORT ?? 5000, '0.0.0.0');
 

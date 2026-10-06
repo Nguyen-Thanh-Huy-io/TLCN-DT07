@@ -23,6 +23,8 @@ import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { QueryTopicDto } from './dto/query-topic.dto';
 import { TopicResponseDto } from './dto/topic-response.dto';
+import { AssignChildrenDto } from './dto/assign-children.dto';
+import { ReorderTopicsDto } from './dto/reorder-topics.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
 
 @ApiTags('Topics - Chủ đề Lịch sử')
@@ -69,6 +71,19 @@ export class TopicController {
     return this.topicService.findAll(query);
   }
 
+  @Get('tree')
+  @ApiOperation({
+    summary: 'Lấy cấu trúc Cây Tri thức phân cấp (Composite Tree) của các chủ đề',
+    description: 'Trả về cây đa cấp (Root topics kèm children và lessons)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Lấy cây chủ đề thành công',
+  })
+  async getTopicTree(@Query('periodId') periodId?: string) {
+    return this.topicService.getTopicTree(periodId);
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Lấy chi tiết một chủ đề lịch sử theo ID',
@@ -87,6 +102,22 @@ export class TopicController {
   })
   async findOne(@Param('id') id: string) {
     return this.topicService.findOne(id);
+  }
+
+  @Patch('reorder')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Sắp xếp lại thứ tự hiển thị danh sách chủ đề (Batch Reordering)',
+    description: 'Yêu cầu quyền quản trị. Cập nhật displayOrder cho nhiều chủ đề trong 1 transaction.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Cập nhật thứ tự hiển thị thành công',
+  })
+  async reorder(@Body() reorderTopicsDto: ReorderTopicsDto) {
+    return this.topicService.reorder(reorderTopicsDto.items);
   }
 
   @Patch(':id')
@@ -140,5 +171,50 @@ export class TopicController {
   })
   async remove(@Param('id') id: string) {
     return this.topicService.remove(id);
+  }
+
+  @Post(':id/children')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Gắn danh sách chủ đề con vào chủ đề cha',
+    description: 'Yêu cầu quyền quản trị. Gán các chủ đề con vào chủ đề :id.',
+  })
+  @ApiParam({ name: 'id', description: 'UUID của chủ đề cha', type: String })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Gắn các chủ đề con thành công',
+  })
+  async assignChildren(
+    @Param('id') id: string,
+    @Body() assignChildrenDto: AssignChildrenDto,
+  ) {
+    return this.topicService.assignChildren(id, assignChildrenDto.childIds);
+  }
+
+  @Delete(':id/children/:childId')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Tách / Hủy gắn một chủ đề con khỏi chủ đề cha',
+    description: 'Yêu cầu quyền quản trị. Chuyển chủ đề con thành chủ đề gốc độc lập.',
+  })
+  @ApiParam({ name: 'id', description: 'UUID của chủ đề cha', type: String })
+  @ApiParam({
+    name: 'childId',
+    description: 'UUID của chủ đề con cần tách',
+    type: String,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Tách chủ đề con thành công',
+  })
+  async removeChild(
+    @Param('id') id: string,
+    @Param('childId') childId: string,
+  ) {
+    return this.topicService.removeChild(id, childId);
   }
 }

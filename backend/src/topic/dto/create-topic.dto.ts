@@ -23,6 +23,14 @@ export class CreateTopicDto {
   periodId?: string;
 
   @ApiPropertyOptional({
+    example: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',
+    description: 'ID của Chủ đề cha (để trống nếu là chủ đề gốc)',
+  })
+  @IsUUID('4', { message: 'parentId phải là UUID hợp lệ' })
+  @IsOptional()
+  parentId?: string;
+
+  @ApiPropertyOptional({
     enum: LearningPathType,
     example: LearningPathType.CHRONOLOGICAL,
     description: 'Loại tiến trình học: CHRONOLOGICAL (Niên đại), THEMATIC (Chuyên đề xuyên suốt), MYTHOLOGICAL (Huyền sử/Dân gian)',

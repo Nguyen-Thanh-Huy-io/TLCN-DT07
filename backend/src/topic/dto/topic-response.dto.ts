@@ -8,11 +8,17 @@ export class TopicResponseDto {
   })
   id: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-    description: 'ID của giai đoạn thuộc về',
+    description: 'ID của giai đoạn thuộc về (nếu có)',
   })
-  periodId: string;
+  periodId?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',
+    description: 'ID của chủ đề cha (nếu có)',
+  })
+  parentId?: string | null;
 
   @ApiProperty({
     example: 'Khởi nghĩa Hai Bà Trưng',

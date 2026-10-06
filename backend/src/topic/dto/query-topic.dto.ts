@@ -21,6 +21,21 @@ export class QueryTopicDto {
   periodId?: string;
 
   @ApiPropertyOptional({
+    example: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',
+    description: 'Lọc chủ đề con theo ID của Chủ đề cha (UUID)',
+  })
+  @IsUUID('4')
+  @IsOptional()
+  parentId?: string;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Chỉ lấy các chủ đề gốc (không có chủ đề cha)',
+  })
+  @IsOptional()
+  isRootOnly?: boolean;
+
+  @ApiPropertyOptional({
     enum: LearningPathType,
     description: 'Lọc theo loại tiến trình học (CHRONOLOGICAL, THEMATIC, MYTHOLOGICAL)',
   })

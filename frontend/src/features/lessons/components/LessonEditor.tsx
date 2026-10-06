@@ -298,26 +298,26 @@ export function LessonEditor() {
           <span className="text-xs text-slate-400">•</span>
           <span className="text-xs text-slate-500">Độ khó: {DIFFICULTY_LABEL_MAP[difficulty]}</span>
           <span className="text-xs text-slate-400">•</span>
-          <span className="text-xs text-emerald-600 font-semibold">{wordCount} từ vựng</span>
+          <span className="text-xs text-slate-600 font-medium">{wordCount} từ</span>
           <span className="text-xs text-slate-400">•</span>
-          <span className="text-xs text-indigo-600 font-semibold">⏱️ ~{estimatedReadMinutes} phút đọc</span>
+          <span className="text-xs text-slate-600 font-medium">~{estimatedReadMinutes} phút đọc</span>
         </div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight leading-snug">
           {title || 'Chưa có tiêu đề bài học'}
         </h1>
       </div>
 
-      {/* HỘP MỤC LỤC BÀI HỌC WIKI (TABLE OF CONTENTS) - ĐẶT BÊN TRÁI CHUẨN WIKIPEDIA */}
+      {/* HỘP MỤC LỤC BÀI HỌC WIKI (TABLE OF CONTENTS) */}
       {tocItems.length > 0 && (
-        <div className="mb-6 p-3 bg-slate-50/90 border border-slate-200 rounded-md inline-block min-w-[220px] max-w-sm self-start shadow-2xs">
+        <div className="mb-6 p-3 bg-slate-50 border border-slate-200 rounded-md inline-block min-w-[220px] max-w-sm self-start">
           <div className="flex items-center justify-between pb-1.5 border-b border-slate-200 mb-2 gap-4">
-            <span className="text-xs font-bold text-slate-900 tracking-wide">
+            <span className="text-xs font-semibold text-slate-900 tracking-wide">
               Mục lục
             </span>
             <button
               type="button"
               onClick={() => setIsTocCollapsed(!isTocCollapsed)}
-              className="text-[11px] text-blue-600 hover:text-blue-800 font-medium px-1 py-0.5 rounded hover:bg-blue-50"
+              className="text-[11px] text-slate-500 hover:text-slate-800 font-medium px-1 py-0.5 rounded hover:bg-slate-100"
             >
               [{isTocCollapsed ? 'hiện' : 'ẩn'}]
             </button>
@@ -325,7 +325,6 @@ export function LessonEditor() {
           {!isTocCollapsed && (
             <nav className="space-y-1.5 text-xs">
               {tocItems.map((item, idx) => {
-                // Tự động loại bỏ số thứ tự người dùng đã gõ trước tiêu đề (ví dụ "1. Bối cảnh" -> "Bối cảnh")
                 const displayText = item.text.replace(/^(\d+(\.\d+)*\s*[-–.]?\s*)/, '');
 
                 return (
@@ -334,12 +333,12 @@ export function LessonEditor() {
                     style={{ paddingLeft: `${(item.level - 1) * 12}px` }}
                     className="flex items-baseline gap-1.5"
                   >
-                    <span className="text-slate-500 font-medium shrink-0 text-xs">
+                    <span className="text-slate-400 font-mono shrink-0 text-xs">
                       {idx + 1}
                     </span>
                     <a
                       href={`#${item.id}`}
-                      className="text-blue-700 hover:text-blue-900 hover:underline leading-snug"
+                      className="text-slate-700 hover:text-slate-900 hover:underline leading-snug"
                       onClick={(e) => {
                         e.preventDefault();
                         const targetEl = document.getElementById(item.id);
@@ -371,7 +370,7 @@ export function LessonEditor() {
       {/* Album tư liệu đính kèm */}
       {mediaList.length > 0 && (
         <div className="mt-8 pt-5 border-t border-slate-200">
-          <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+          <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-3 flex items-center gap-1.5">
             <Icon name={IconName.GRID} size={14} />
             <span>Tư liệu lịch sử đính kèm ({mediaList.length})</span>
           </h4>
@@ -379,23 +378,23 @@ export function LessonEditor() {
             {mediaList.map((m, idx) => (
               <div
                 key={idx}
-                className="group relative border border-slate-200 rounded-lg p-2 bg-slate-50 hover:bg-white hover:shadow-xs transition-all"
+                className="group relative border border-slate-200 rounded-md p-2 bg-slate-50 hover:bg-white transition-all"
               >
-                <div className="text-[10px] font-bold text-blue-700 uppercase mb-1">
-                  {m.type === MediaType.VIDEO ? '🎬 Video tài liệu' : '🖼 Hiện vật / Ảnh'}
+                <div className="text-[10px] font-semibold text-slate-600 uppercase mb-1">
+                  {m.type === MediaType.VIDEO ? 'Video tài liệu' : 'Hiện vật / Ảnh'}
                 </div>
                 {m.type === MediaType.IMAGE ? (
                   <img
                     src={m.url}
                     alt={m.caption || ''}
-                    className="w-full h-24 object-cover rounded-md border border-slate-200"
+                    className="w-full h-24 object-cover rounded border border-slate-200"
                   />
                 ) : (
-                  <div className="h-24 bg-slate-200 rounded-md flex items-center justify-center text-xs text-slate-600 font-medium">
-                    ▶ Video Player
+                  <div className="h-24 bg-slate-200 rounded flex items-center justify-center text-xs text-slate-600 font-medium">
+                    Video Player
                   </div>
                 )}
-                <p className="mt-1.5 text-xs text-slate-700 line-clamp-2 leading-tight font-medium">
+                <p className="mt-1.5 text-xs text-slate-700 line-clamp-2 leading-tight">
                   {m.caption || 'Chưa có chú thích'}
                 </p>
               </div>
@@ -405,8 +404,8 @@ export function LessonEditor() {
       )}
 
       {/* Nguồn tư liệu trích dẫn */}
-      <div className="mt-6 pt-3 border-t border-slate-100 text-xs text-slate-500 italic bg-amber-50/50 p-3 rounded-lg border border-amber-200/50">
-        <strong className="text-amber-900 not-italic">Nguồn tư liệu tham khảo: </strong>
+      <div className="mt-6 pt-3 border-t border-slate-100 text-xs text-slate-500 italic bg-slate-50 p-3 rounded-md border border-slate-200">
+        <strong className="text-slate-800 not-italic">Nguồn tư liệu tham khảo: </strong>
         <span>{sourceReferenceNote || 'Chưa cập nhật nguồn sử liệu'}</span>
       </div>
     </div>
@@ -416,9 +415,8 @@ export function LessonEditor() {
     <div className="editor-wrap space-y-3">
       {/* 0. Banner thông báo khôi phục bản nháp LocalStorage nếu có */}
       {hasLocalDraft && (
-        <div className="bg-amber-50 border border-amber-300 rounded-xl p-2.5 px-4 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-900 shadow-2xs animate-in fade-in duration-200">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 px-4 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-900">
           <div className="flex items-center gap-2">
-            <span className="text-base">⚠️</span>
             <span>
               Hệ thống phát hiện có bản nháp chưa lưu cục bộ trên máy{lastSavedTime ? ` (lưu lúc ${lastSavedTime})` : ''}. Bạn có muốn khôi phục không?
             </span>
@@ -427,7 +425,7 @@ export function LessonEditor() {
             <button
               type="button"
               onClick={restoreDraft}
-              className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold transition-all shadow-2xs"
+              className="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white rounded font-medium transition-all"
             >
               Khôi phục nháp
             </button>
@@ -442,34 +440,34 @@ export function LessonEditor() {
         </div>
       )}
 
-      {/* 1. Header Toolbar trên cùng: Gom thành 1 thanh điều hướng duy nhất, siêu tinh gọn */}
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-xl px-3.5 py-2 shadow-2xs">
+      {/* 1. Header Toolbar trên cùng: Tinh gọn theo taste-skill */}
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-lg px-3.5 py-2">
         {/* Khối bên trái: Thoát + Tiêu đề trang + Chế độ xem */}
         <div className="flex items-center gap-3 flex-wrap">
           <button
             type="button"
             onClick={() => router.push(APP_ROUTES.LESSONS.LIST)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md border border-slate-200 transition-all cursor-pointer"
             title="Quay lại danh sách bài học"
           >
             <span className="text-sm leading-none">←</span>
-            <span>Thoát trình soạn thảo</span>
+            <span>Quay lại</span>
           </button>
 
           <div className="flex items-center gap-2 pr-2 border-r border-slate-200">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-            <h1 className="text-sm font-bold text-slate-900 tracking-tight whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-slate-900" />
+            <h1 className="text-xs font-bold text-slate-900 tracking-tight whitespace-nowrap">
               {lessonId ? 'Chỉnh sửa Bài học' : 'Soạn thảo Bài học'}
             </h1>
           </div>
 
-          {/* Bộ chuyển đổi chế độ xem: Soạn thảo | Chia đôi | Xem trước */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs font-semibold">
+          {/* Chế độ xem: Soạn thảo | Chia đôi | Xem trước */}
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-md border border-slate-200 text-xs font-medium">
             <button
               type="button"
-              className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-2.5 py-1 rounded transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'EDIT'
-                  ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                  ? 'bg-white text-slate-900 font-semibold shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
               onClick={() => setActiveTab('EDIT')}
@@ -480,25 +478,25 @@ export function LessonEditor() {
             </button>
             <button
               type="button"
-              className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-2.5 py-1 rounded transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'SPLIT'
-                  ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                  ? 'bg-white text-slate-900 font-semibold shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
               onClick={() => {
                 setActiveTab('SPLIT');
-                setShowSidebar(false); // Trong Split 50/50 tự động thu gọn sidebar để không bị chật
+                setShowSidebar(false);
               }}
               title="Soạn thảo bên trái, xem kết quả bên phải"
             >
               <Icon name={IconName.GRID} size={12} />
-              <span>Chia đôi (50/50)</span>
+              <span>Chia đôi</span>
             </button>
             <button
               type="button"
-              className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-2.5 py-1 rounded transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'PREVIEW'
-                  ? 'bg-white text-blue-700 shadow-2xs font-bold'
+                  ? 'bg-white text-slate-900 font-semibold shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
               onClick={() => setActiveTab('PREVIEW')}
@@ -513,52 +511,49 @@ export function LessonEditor() {
           <button
             type="button"
             onClick={() => setIsPreviewModalOpen(true)}
-            className="px-2.5 py-1 text-xs rounded-lg border border-blue-200 bg-blue-50/70 text-blue-700 hover:bg-blue-100 flex items-center gap-1.5 font-bold transition-all cursor-pointer"
+            className="secondary-button !h-7 !text-xs !px-2.5"
             title="Mở popup xem trước toàn màn hình"
           >
-            <span>🔍 Toàn màn hình</span>
+            <Icon name={IconName.EYE} size={12} />
+            <span>Toàn màn hình</span>
           </button>
 
-          {/* Toggle Sidebar Thuộc tính (khi đang ở chế độ Soạn thảo) */}
+          {/* Toggle Sidebar Thuộc tính */}
           {activeTab !== 'PREVIEW' && (
             <button
               type="button"
               onClick={() => setShowSidebar(!showSidebar)}
-              className={`px-2.5 py-1 text-xs rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer ${
-                showSidebar
-                  ? 'bg-blue-50 text-blue-700 border-blue-200 font-semibold'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+              className={`secondary-button !h-7 !text-xs !px-2.5 ${
+                showSidebar ? '!bg-slate-100 !text-slate-900 font-semibold' : ''
               }`}
-              title={showSidebar ? 'Ẩn cột thuộc tính để mở rộng tối đa vùng viết' : 'Hiện cột thuộc tính'}
+              title={showSidebar ? 'Ẩn cột thuộc tính' : 'Hiện cột thuộc tính'}
             >
-              <span>⚙️ Thuộc tính</span>
-              <span className="text-[10px]">{showSidebar ? '✕' : '▼'}</span>
+              <span>Thuộc tính</span>
+              <span className="text-[10px] text-slate-400">{showSidebar ? '✕' : '▼'}</span>
             </button>
           )}
         </div>
 
         {/* Khối bên phải: Trạng thái đồng bộ + Lưu nháp + Gửi duyệt */}
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Trạng thái lưu tự động */}
-          <div className="hidden sm:flex items-center gap-1.5 text-xs px-2 py-1 rounded-md text-slate-500">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs px-2 py-1 text-slate-500">
             {saving ? (
-              <span className="flex items-center gap-1 text-blue-600 font-medium">
-                <span className="animate-spin inline-block text-[11px]">🔄</span>
-                <span>Đang lưu...</span>
+              <span className="text-slate-600 font-medium">
+                Đang lưu...
               </span>
             ) : lastSavedTime ? (
-              <span className="flex items-center gap-1 text-emerald-700 font-medium" title="Bản nháp đã lưu trên máy">
-                <span className="text-emerald-600 font-bold">☁️✓</span>
-                <span>Đã lưu ({lastSavedTime})</span>
+              <span className="text-slate-500 font-mono text-[11px]" title="Bản nháp đã lưu trên máy">
+                Đã lưu lúc {lastSavedTime}
               </span>
             ) : null}
           </div>
 
-          <Badge tone="blue">Trạng thái: {status}</Badge>
+          <Badge tone="gray">{status}</Badge>
 
           <button
             type="button"
-            className="secondary-button !h-8 !text-xs !px-3"
+            className="secondary-button !h-7 !text-xs !px-3"
             onClick={() => submitLesson(ContentStatus.DRAFT)}
             disabled={saving}
           >
@@ -566,11 +561,11 @@ export function LessonEditor() {
           </button>
           <button
             type="button"
-            className="primary-button !h-8 !text-xs !px-3.5 !bg-blue-600 hover:!bg-blue-700 font-bold"
+            className="primary-button !h-7 !text-xs !px-3"
             onClick={() => submitLesson(ContentStatus.PENDING_REVIEW)}
             disabled={saving}
           >
-            {lessonId ? 'Lưu cập nhật' : 'Gửi duyệt'} <Icon name={IconName.ARROW} size={13} />
+            {lessonId ? 'Lưu cập nhật' : 'Gửi duyệt'} <Icon name={IconName.ARROW} size={11} />
           </button>
         </div>
       </header>

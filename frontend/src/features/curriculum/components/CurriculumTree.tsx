@@ -33,7 +33,6 @@ export function CurriculumTree({
 
   const [expandedPeriods, setExpandedPeriods] = useState<Record<string, boolean>>(
     () => {
-      // Default expand all periods
       const initial: Record<string, boolean> = {};
       data.forEach((p) => {
         initial[p.id] = true;
@@ -44,7 +43,6 @@ export function CurriculumTree({
 
   const [expandedTopics, setExpandedTopics] = useState<Record<string, boolean>>(
     () => {
-      // Default expand the first topic of each period
       const initial: Record<string, boolean> = {};
       data.forEach((p) => {
         if (p.topics.length > 0) {
@@ -87,7 +85,6 @@ export function CurriculumTree({
   const filteredData = useMemo(() => {
     let result = data;
 
-    // Apply quick filter level
     if (activeFilter === 'NO_QUIZ') {
       result = result
         .map((p) => ({
@@ -147,30 +144,30 @@ export function CurriculumTree({
   );
 
   return (
-    <div className="curriculum-tree-card bg-white border border-gray-200 rounded-xl p-3.5 flex flex-col h-full shadow-sm">
-      {/* Search and tree actions */}
-      <div className="tree-header mb-2.5">
+    <div className="curriculum-tree-card bg-white border border-slate-200 rounded-lg p-3 flex flex-col h-full">
+      {/* Header with counts and expand/collapse */}
+      <div className="tree-header mb-2.5 pb-2.5 border-b border-slate-100">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">
-              Cây Phân Cấp Học Tập
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-900 tracking-tight">
+              Sơ đồ cây học tập
             </span>
-            <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-semibold border border-slate-200">
-              {totalPeriods} Giai đoạn • {totalTopics} CĐ • {totalLessons} Bài
+            <span className="text-[10px] text-slate-500 font-mono">
+              {totalPeriods} giai đoạn • {totalTopics} chủ đề • {totalLessons} bài
             </span>
           </div>
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className="text-xs text-slate-700 font-semibold hover:text-blue-700 px-2 py-0.5 rounded border border-slate-200 hover:border-blue-300 bg-slate-50 transition-colors"
+              className="text-[11px] text-slate-600 hover:text-slate-900 px-1.5 py-0.5 rounded border border-slate-200 bg-white transition-colors"
               onClick={expandAll}
-              title="Mở rộng tất cả các nhánh"
+              title="Mở rộng tất cả"
             >
               Mở hết
             </button>
             <button
               type="button"
-              className="text-xs text-slate-700 font-semibold hover:text-blue-700 px-2 py-0.5 rounded border border-slate-200 hover:border-blue-300 bg-slate-50 transition-colors"
+              className="text-[11px] text-slate-600 hover:text-slate-900 px-1.5 py-0.5 rounded border border-slate-200 bg-white transition-colors"
               onClick={collapseAll}
               title="Thu gọn tất cả"
             >
@@ -183,33 +180,33 @@ export function CurriculumTree({
         <div className="relative mb-2">
           <input
             type="text"
-            placeholder="Tìm theo giai đoạn, chủ đề, bài học..."
+            placeholder="Tìm theo giai đoạn, chủ đề, bài..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full text-xs py-1.5 pl-7 pr-7 border border-slate-200 rounded-md focus:outline-none focus:border-blue-600 bg-slate-50/70 text-slate-900 placeholder:text-slate-500 font-medium"
+            className="w-full text-xs py-1.5 pl-7 pr-6 border border-slate-200 rounded-md focus:outline-none focus:border-slate-800 bg-slate-50/70 text-slate-900 placeholder:text-slate-400"
           />
-          <div className="absolute left-2 top-2 text-slate-500 pointer-events-none">
-            <Icon name={IconName.SEARCH} size={13} />
+          <div className="absolute left-2.5 top-2 text-slate-400 pointer-events-none">
+            <Icon name={IconName.SEARCH} size={12} />
           </div>
           {searchTerm ? (
             <button
               type="button"
               onClick={() => setSearchTerm('')}
-              className="absolute right-2 top-1.5 text-slate-500 hover:text-slate-800 text-xs font-bold"
+              className="absolute right-2 top-1.5 text-slate-400 hover:text-slate-700 text-xs"
             >
               ✕
             </button>
           ) : null}
         </div>
 
-        {/* Quick Filter Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 text-[10px]">
+        {/* Quick Filter Pills (No emojis) */}
+        <div className="flex items-center gap-1 overflow-x-auto text-[11px]">
           <button
             type="button"
-            className={`px-2 py-0.5 rounded-full transition-colors font-medium ${
+            className={`px-2 py-0.5 rounded transition-colors font-medium ${
               activeFilter === 'ALL'
-                ? 'bg-[#16385f] text-white shadow-2xs'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-slate-900 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
             onClick={() => setActiveFilter('ALL')}
           >
@@ -217,38 +214,38 @@ export function CurriculumTree({
           </button>
           <button
             type="button"
-            className={`px-2 py-0.5 rounded-full transition-colors font-medium ${
+            className={`px-2 py-0.5 rounded transition-colors font-medium ${
               activeFilter === 'PERIODS'
-                ? 'bg-[#16385f] text-white shadow-2xs'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-slate-900 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
             onClick={() => {
               setActiveFilter('PERIODS');
               collapseAll();
             }}
           >
-            🏛️ Giai đoạn
+            Giai đoạn
           </button>
           <button
             type="button"
-            className={`px-2 py-0.5 rounded-full transition-colors font-medium ${
+            className={`px-2 py-0.5 rounded transition-colors font-medium ${
               activeFilter === 'TOPICS'
-                ? 'bg-[#16385f] text-white shadow-2xs'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-slate-900 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
             onClick={() => {
               setActiveFilter('TOPICS');
               expandAll();
             }}
           >
-            📁 Chủ đề
+            Chủ đề
           </button>
           {missingQuizLessons > 0 && (
             <button
               type="button"
-              className={`px-2 py-0.5 rounded-full transition-colors font-medium flex items-center gap-1 ${
+              className={`px-2 py-0.5 rounded transition-colors font-medium flex items-center gap-1 ${
                 activeFilter === 'NO_QUIZ'
-                  ? 'bg-amber-600 text-white shadow-2xs font-semibold'
+                  ? 'bg-amber-700 text-white'
                   : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
               }`}
               onClick={() => {
@@ -257,7 +254,7 @@ export function CurriculumTree({
               }}
               title="Lọc các bài học chưa có câu hỏi trắc nghiệm kiểm tra"
             >
-              <span>⚠️ Thiếu Quiz</span>
+              <span>Thiếu Quiz</span>
               <span className="bg-amber-200 text-amber-900 text-[9px] px-1 rounded-full font-bold">
                 {missingQuizLessons}
               </span>
@@ -269,8 +266,8 @@ export function CurriculumTree({
       {/* Tree Content */}
       <div className="tree-content flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
         {filteredData.length === 0 ? (
-          <div className="p-5 text-center text-xs text-slate-600 font-medium bg-slate-50 rounded-lg border border-dashed border-slate-200">
-            Không tìm thấy mục nào phù hợp với bộ lọc.
+          <div className="p-4 text-center text-xs text-slate-500 bg-slate-50 rounded border border-dashed border-slate-200">
+            Không tìm thấy mục nào phù hợp.
           </div>
         ) : (
           filteredData.map((period) => {
@@ -283,57 +280,53 @@ export function CurriculumTree({
               <div key={period.id} className="period-branch">
                 {/* Level 1: Period Node */}
                 <div
-                  className={`tree-node group level-1 flex items-center justify-between p-2 rounded-md cursor-pointer transition-all ${
+                  className={`tree-node group level-1 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
                     isPeriodSelected
-                      ? 'bg-[#16385f] text-white font-semibold shadow-sm border-l-4 border-l-[#e2b342]'
-                      : 'hover:bg-slate-100/90 text-gray-900 bg-slate-50 font-medium border border-gray-200/60'
+                      ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                      : 'hover:bg-slate-50 text-slate-800'
                   }`}
                   onClick={() => onSelectNode(period)}
                 >
                   <div className="flex items-center gap-1.5 min-w-0 flex-1">
                     <button
                       type="button"
-                      className={`p-0.5 rounded hover:bg-black/10 transition-transform ${
+                      className={`p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform ${
                         isPeriodExpanded ? 'rotate-90' : ''
                       }`}
                       onClick={(e) => togglePeriod(period.id, e)}
                     >
-                      <Icon name={IconName.CHEVRON} size={13} />
+                      <Icon name={IconName.CHEVRON} size={11} />
                     </button>
-                    <Icon name={IconName.CLOCK} size={15} className={isPeriodSelected ? 'text-amber-300' : 'text-blue-700'} />
-                    <span className="text-xs truncate font-semibold" title={period.name}>
+                    <Icon
+                      name={IconName.CLOCK}
+                      size={14}
+                      className={isPeriodSelected ? 'text-slate-900' : 'text-slate-500'}
+                    />
+                    <span className="text-xs truncate font-medium" title={period.name}>
                       {period.name}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 ml-2">
-                    <span
-                      className={`text-[9px] px-1.5 py-0.2 rounded-full font-normal ${
-                        isPeriodSelected
-                          ? 'bg-[#0d2340] text-amber-200'
-                          : 'bg-gray-200 text-gray-600'
-                      }`}
-                    >
-                      {period.topics.length} CĐ
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {period.topics.length} chủ đề
                     </span>
                     <button
                       type="button"
                       title="Thêm chủ đề con thuộc giai đoạn này"
-                      className={`tree-node-action p-1 rounded hover:bg-black/20 ${
-                        isPeriodSelected ? 'text-white' : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                      className="tree-node-action p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900"
                       onClick={(e) => {
                         e.stopPropagation();
                         onAddTopic(period.id);
                       }}
                     >
-                      <Icon name={IconName.PLUS} size={13} />
+                      <Icon name={IconName.PLUS} size={12} />
                     </button>
                   </div>
                 </div>
 
                 {/* Level 2: Topic Nodes */}
                 {isPeriodExpanded && period.topics.length > 0 ? (
-                  <div className="topics-container ml-3 pl-2.5 border-l border-slate-200 my-1 space-y-1">
+                  <div className="topics-container ml-3 pl-2.5 border-l border-slate-200 my-0.5 space-y-0.5">
                     {period.topics.map((topic) => {
                       const isTopicExpanded = !!expandedTopics[topic.id];
                       const isTopicSelected =
@@ -343,62 +336,99 @@ export function CurriculumTree({
                       return (
                         <div key={topic.id} className="topic-branch">
                           <div
-                            className={`tree-node group level-2 flex items-center justify-between p-1.5 rounded-md cursor-pointer transition-all ${
+                            className={`tree-node group level-2 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
                               isTopicSelected
-                                ? 'bg-[#16385f] text-white font-semibold shadow-sm border-l-4 border-l-[#e2b342]'
-                                : 'hover:bg-slate-50 text-gray-800 bg-white border border-gray-100'
+                                ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                                : 'hover:bg-slate-50 text-slate-700'
                             }`}
                             onClick={() => onSelectNode(topic)}
                           >
                             <div className="flex items-center gap-1.5 min-w-0 flex-1">
                               <button
                                 type="button"
-                                className={`p-0.5 rounded hover:bg-black/10 transition-transform ${
+                                className={`p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform ${
                                   isTopicExpanded ? 'rotate-90' : ''
                                 }`}
                                 onClick={(e) => toggleTopic(topic.id, e)}
                               >
-                                <Icon name={IconName.CHEVRON} size={12} />
+                                <Icon name={IconName.CHEVRON} size={11} />
                               </button>
-                              <Icon name={IconName.FOLDER} size={14} className={isTopicSelected ? 'text-amber-300' : 'text-amber-600'} />
-                              <span
-                                className="text-xs truncate"
-                                title={topic.name}
-                              >
+                              <Icon
+                                name={IconName.FOLDER}
+                                size={13}
+                                className={isTopicSelected ? 'text-slate-900' : 'text-slate-500'}
+                              />
+                              <span className="text-xs truncate" title={topic.name}>
                                 {topic.name}
                               </span>
                             </div>
                             <div className="flex items-center gap-1 ml-2">
-                              <span
-                                className={`text-[9px] px-1.5 py-0.2 rounded-full font-normal ${
-                                  isTopicSelected
-                                    ? 'bg-[#0d2340] text-amber-200'
-                                    : 'bg-gray-100 text-gray-600'
-                                }`}
-                              >
+                              <span className="text-[10px] text-slate-400 font-mono">
                                 {topic.lessons.length} bài
                               </span>
                               <button
                                 type="button"
                                 title="Thêm bài học con vào chủ đề này"
-                                className={`tree-node-action p-1 rounded hover:bg-black/20 ${
-                                  isTopicSelected
-                                    ? 'text-white'
-                                    : 'text-slate-600 hover:text-slate-900'
-                                }`}
+                                className="tree-node-action p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onAddLesson(period.id, topic.id);
                                 }}
                               >
-                                <Icon name={IconName.PLUS} size={12} />
+                                <Icon name={IconName.PLUS} size={11} />
                               </button>
                             </div>
                           </div>
 
+                          {/* Level 2.5: Sub-topic Nodes */}
+                          {isTopicExpanded &&
+                          topic.subTopics &&
+                          topic.subTopics.length > 0 ? (
+                            <div className="subtopics-container ml-3 pl-2.5 border-l border-slate-200 my-0.5 space-y-0.5">
+                              {topic.subTopics.map((subTopic) => {
+                                const isSubTopicSelected =
+                                  selectedNode?.type ===
+                                    CurriculumNodeType.TOPIC &&
+                                  selectedNode.id === subTopic.id;
+                                return (
+                                  <div
+                                    key={subTopic.id}
+                                    className={`tree-node group level-2-sub flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
+                                      isSubTopicSelected
+                                        ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                                        : 'hover:bg-slate-50 text-slate-700'
+                                    }`}
+                                    onClick={() => onSelectNode(subTopic)}
+                                  >
+                                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                      <Icon
+                                        name={IconName.FOLDER}
+                                        size={12}
+                                        className={
+                                          isSubTopicSelected
+                                            ? 'text-slate-900'
+                                            : 'text-slate-400'
+                                        }
+                                      />
+                                      <span
+                                        className="text-[11.5px] truncate"
+                                        title={subTopic.name}
+                                      >
+                                        {subTopic.name}
+                                      </span>
+                                    </div>
+                                    <span className="text-[10px] text-slate-400 font-mono">
+                                      {subTopic.lessons.length} bài
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : null}
+
                           {/* Level 3: Lesson Nodes */}
                           {isTopicExpanded && topic.lessons.length > 0 ? (
-                            <div className="lessons-container ml-3 pl-2.5 border-l border-slate-200 my-1 space-y-1">
+                            <div className="lessons-container ml-3 pl-2.5 border-l border-slate-200 my-0.5 space-y-0.5">
                               {topic.lessons.map((lesson) => {
                                 const isLessonSelected =
                                   selectedNode?.type ===
@@ -408,17 +438,25 @@ export function CurriculumTree({
                                 return (
                                   <div
                                     key={lesson.id}
-                                    className={`tree-node group level-3 flex items-center justify-between p-1.5 rounded-md cursor-pointer transition-all ${
+                                    className={`tree-node group level-3 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
                                       isLessonSelected
-                                        ? 'bg-[#16385f] text-white font-semibold shadow-sm border-l-4 border-l-[#e2b342]'
-                                        : 'hover:bg-slate-50 text-gray-700 bg-white border border-gray-100'
+                                        ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                                        : 'hover:bg-slate-50 text-slate-600'
                                     }`}
                                     onClick={() => onSelectNode(lesson)}
                                   >
-                                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                      <Icon name={IconName.BOOK} size={13} className={isLessonSelected ? 'text-amber-300' : 'text-emerald-600'} />
+                                    <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-3">
+                                      <Icon
+                                        name={IconName.BOOK}
+                                        size={12}
+                                        className={
+                                          isLessonSelected
+                                            ? 'text-slate-900'
+                                            : 'text-slate-400'
+                                        }
+                                      />
                                       <span
-                                        className="text-[11px] truncate"
+                                        className="text-[11.5px] truncate"
                                         title={lesson.name}
                                       >
                                         {lesson.name}
@@ -427,20 +465,17 @@ export function CurriculumTree({
                                     <div className="flex items-center gap-1 ml-2">
                                       {lesson.hasQuiz ? (
                                         <span
-                                          className={`text-[8px] px-1 py-0.2 rounded font-bold ${
-                                            isLessonSelected
-                                              ? 'bg-emerald-700 text-white'
-                                              : 'bg-green-100 text-green-800'
-                                          }`}
+                                          className="text-[10px] text-slate-400 font-mono"
+                                          title="Đã có câu hỏi trắc nghiệm"
                                         >
-                                          Quiz ✓
+                                          Quiz
                                         </span>
                                       ) : (
                                         <span
-                                          className="text-[8px] px-1 py-0.2 rounded font-normal text-amber-600 bg-amber-50 border border-amber-200"
-                                          title="Bài học này chưa có Quiz"
+                                          className="text-[10px] text-amber-700 font-mono bg-amber-50 px-1 rounded"
+                                          title="Chưa có câu hỏi trắc nghiệm"
                                         >
-                                          Chưa có Quiz
+                                          No Quiz
                                         </span>
                                       )}
                                     </div>
@@ -460,15 +495,15 @@ export function CurriculumTree({
         )}
       </div>
 
-      {/* Bottom Button to Add Period */}
-      <div className="pt-2 mt-2 border-t border-gray-100">
+      {/* Footer Quick Action */}
+      <div className="tree-footer pt-2 mt-2 border-t border-slate-100">
         <button
           type="button"
-          className="w-full primary-button !h-8 !text-xs flex items-center justify-center gap-1.5"
+          className="w-full py-1.5 px-2 text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded border border-dashed border-slate-200 flex items-center justify-center gap-1.5 transition-colors"
           onClick={onAddPeriod}
         >
-          <Icon name={IconName.PLUS} size={13} />
-          <span>Thêm giai đoạn mới</span>
+          <Icon name={IconName.PLUS} size={12} />
+          <span>Thêm Giai đoạn mới</span>
         </button>
       </div>
     </div>

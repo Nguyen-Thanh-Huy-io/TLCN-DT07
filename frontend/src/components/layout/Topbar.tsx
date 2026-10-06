@@ -30,7 +30,7 @@ export function Topbar({ page, openNav, collapsed, toggleCollapse }: TopbarProps
           title={collapsed ? 'Mở rộng menu bên trái' : 'Thu gọn menu bên trái'}
           aria-label="Thu gọn menu"
         >
-          <Icon name={IconName.MENU} size={18} />
+          <Icon name={IconName.MENU} size={15} />
         </button>
 
         {/* Nút mở drawer trên Mobile */}
@@ -40,50 +40,55 @@ export function Topbar({ page, openNav, collapsed, toggleCollapse }: TopbarProps
           onClick={openNav}
           aria-label="Mở menu di động"
         >
-          <Icon name={IconName.MENU} size={18} />
+          <Icon name={IconName.MENU} size={15} />
         </button>
 
-        <Link href="/" className="hover:text-blue-900 transition-colors font-semibold">
+        <Link
+          href="/"
+          className="text-slate-700 hover:text-slate-900 transition-colors font-medium text-xs"
+        >
           HISGO CMS
         </Link>
-        <Icon name={IconName.CHEVRON} size={14} />
+        <Icon name={IconName.CHEVRON} size={12} className="text-slate-400" />
         {!isRootDashboard && parentLabel && parentRoute ? (
           <>
-            <Link href={parentRoute} className="hover:text-blue-900 transition-colors">
+            <Link
+              href={parentRoute}
+              className="text-slate-600 hover:text-slate-900 transition-colors text-xs"
+            >
               {parentLabel}
             </Link>
-            <Icon name={IconName.CHEVRON} size={14} />
+            <Icon name={IconName.CHEVRON} size={12} className="text-slate-400" />
           </>
         ) : !isRootDashboard && groupTitle !== 'HISGO CMS' ? (
           <>
-            <span>{groupTitle}</span>
-            <Icon name={IconName.CHEVRON} size={14} />
+            <span className="text-slate-600 text-xs">{groupTitle}</span>
+            <Icon name={IconName.CHEVRON} size={12} className="text-slate-400" />
           </>
         ) : null}
-        <strong>{pageTitle}</strong>
+        <strong className="text-slate-900 text-xs font-semibold">{pageTitle}</strong>
       </div>
 
       <div className="top-actions">
         <label className="global-search">
-          <Icon name={IconName.SEARCH} size={17} />
-          <input placeholder="Tìm kiếm trong hệ thống..." />
-          <kbd>⌘ K</kbd>
+          <Icon name={IconName.SEARCH} size={14} className="text-slate-400" />
+          <input placeholder="Tìm nhanh (⌘K)..." />
+          <kbd>⌘K</kbd>
         </label>
         <button
           type="button"
           className="icon-btn notification"
           aria-label="Thông báo"
         >
-          <Icon name={IconName.BELL} />
+          <Icon name={IconName.BELL} size={15} />
           <i />
         </button>
         <span className="top-divider" />
         <Avatar text="MA" small />
         <div className="top-user">
           <strong>Minh Anh</strong>
-          <span>Quản trị viên</span>
+          <span>Admin</span>
         </div>
-        <Icon name={IconName.CHEVRON} size={14} />
       </div>
     </header>
   );

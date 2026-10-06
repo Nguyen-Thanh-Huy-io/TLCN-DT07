@@ -43,12 +43,14 @@ export interface CurriculumTopicNode {
   id: string;
   type: CurriculumNodeType.TOPIC;
   name: string;
-  periodId?: string;
+  periodId?: string | null;
+  parentId?: string | null;
   pathType?: LearningPathType;
   description?: string;
   isSequential: boolean;
   status: ContentStatus;
   orderIndex: number;
+  subTopics?: CurriculumTopicNode[];
   lessons: CurriculumLessonNode[];
   updatedAt?: string;
 }

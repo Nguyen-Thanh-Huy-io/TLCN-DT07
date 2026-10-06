@@ -5,16 +5,24 @@ import { Icon } from '@/components/icons/Icon';
 import { Field, SelectField } from '@/components/common/FormField';
 import { IconName } from '@/constants/icons';
 import { APP_ROUTES } from '@/constants/routes';
-import { ContentStatus } from '@/constants/enums';
-import api, { extractErrorMessage } from '@/services/api';
+import { ContentStatus, LearningPathType } from '@/constants/enums';
+import { TopicApiService } from '@/services/entities/topic.service';
+import { PeriodApiService } from '@/services/entities/period.service';
+import { extractErrorMessage } from '@/services/api';
+import { PeriodItem } from '@/types/models/period.type';
+import { TopicItem } from '@/types/models/topic.type';
 
 export function TopicForm() {
   const router = useRouter();
-  const [loadingPeriods, setLoadingPeriods] = useState(false);
-  const [periodOptions, setPeriodOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const [loadingInitial, setLoadingInitial] = useState(false);
+  const [periodOptions, setPeriodOptions] = useState<PeriodItem[]>([]);
+  const [parentTopicOptions, setParentTopicOptions] = useState<TopicItem[]>([]);
+
   const [form, setForm] = useState({
     name: '',
     selectedPeriodId: '',
+    selectedParentId: '',
+    pathType: LearningPathType.CHRONOLOGICAL,
     displayOrder: '',
     description: '',
     isSequential: false,
@@ -23,22 +31,16 @@ export function TopicForm() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setLoadingPeriods(true);
-    api
-      .get('/periods')
-      .then((res) => {
-        const payload = res.data?.items || res.data?.data || res.data || [];
-        const list = Array.isArray(payload) ? payload : [];
-        setPeriodOptions(list);
-        if (list[0] && !form.selectedPeriodId) {
-          setForm((prev) => ({ ...prev, selectedPeriodId: list[0].id }));
-        }
+    setLoadingInitial(true);
+    Promise.all([
+      PeriodApiService.getPeriods({ limit: 100 }).catch(() => ({ items: [] })),
+      TopicApiService.getTopics({ limit: 100 }).catch(() => ({ items: [] })),
+    ])
+      .then(([periodsRes, topicsRes]) => {
+        setPeriodOptions(periodsRes.items || []);
+        setParentTopicOptions(topicsRes.items || []);
       })
-      .catch((err) => {
-        console.error('Failed to load periods for topic form:', err);
-        setPeriodOptions([]);
-      })
-      .finally(() => setLoadingPeriods(false));
+      .finally(() => setLoadingInitial(false));
   }, []);
 
   const updateField = (field: string, value: string | boolean) => {
@@ -48,11 +50,6 @@ export function TopicForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.selectedPeriodId) {
-      alert('Không có giai đoạn nào để gắn cho chủ đề.');
-      return;
-    }
-
     if (!form.name.trim()) {
       alert('Vui lòng nhập tên chủ đề.');
       return;
@@ -60,8 +57,10 @@ export function TopicForm() {
 
     try {
       setSaving(true);
-      await api.post('/topics', {
-        periodId: form.selectedPeriodId,
+      await TopicApiService.createTopic({
+        periodId: form.selectedPeriodId || undefined,
+        parentId: form.selectedParentId || undefined,
+        pathType: form.pathType,
         name: form.name.trim(),
         description: form.description.trim() || undefined,
         displayOrder: Number(form.displayOrder || 0),
@@ -77,6 +76,20 @@ export function TopicForm() {
     }
   };
 
+  // Chuẩn bị danh sách options cho Giai đoạn
+  const periodDropdownOptions = [
+    '-- Không thuộc giai đoạn (Chuyên đề độc lập / Phi niên đại) --',
+    ...periodOptions.map((p) => `${p.name} (${p.region || 'Toàn cầu'})`),
+  ];
+  const periodDropdownValues = ['', ...periodOptions.map((p) => p.id)];
+
+  // Chuẩn bị danh sách options cho Chủ đề cha
+  const parentDropdownOptions = [
+    '-- Không có (Đây là Chủ đề Gốc) --',
+    ...parentTopicOptions.map((t) => t.name),
+  ];
+  const parentDropdownValues = ['', ...parentTopicOptions.map((t) => t.id)];
+
   return (
     <form className="form-page" onSubmit={handleSubmit}>
       <div className="form-main">
@@ -85,51 +98,80 @@ export function TopicForm() {
             <span>01</span>
             <div>
               <h2>Thông tin cơ bản</h2>
-              <p>Thông tin nhận diện và phân loại nội dung</p>
+              <p>Phân loại thứ bậc và nhận diện chủ đề lịch sử</p>
             </div>
           </div>
-          <SelectField
-            label="Giai đoạn lịch sử"
-            required
-            value={
-              periodOptions.find((p) => p.id === form.selectedPeriodId)?.name ||
-              (loadingPeriods ? 'Đang tải...' : 'Chọn giai đoạn')
-            }
-            onChange={(e) => updateField('selectedPeriodId', e.target.value)}
-            options={periodOptions.map((p) => p.name)}
-            optionValues={periodOptions.map((p) => p.id)}
-          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SelectField
+              label="Chủ đề cha (Phân cấp Cha - Con)"
+              value={
+                parentDropdownOptions[
+                  parentDropdownValues.indexOf(form.selectedParentId)
+                ] || parentDropdownOptions[0]
+              }
+              onChange={(e) => updateField('selectedParentId', e.target.value)}
+              options={parentDropdownOptions}
+              optionValues={parentDropdownValues}
+            />
+
+            <SelectField
+              label="Giai đoạn lịch sử (Tùy chọn)"
+              value={
+                periodDropdownOptions[
+                  periodDropdownValues.indexOf(form.selectedPeriodId)
+                ] || periodDropdownOptions[0]
+              }
+              onChange={(e) => updateField('selectedPeriodId', e.target.value)}
+              options={periodDropdownOptions}
+              optionValues={periodDropdownValues}
+            />
+          </div>
+
           <Field
             label="Tên chủ đề"
             required
-            placeholder="Ví dụ: Chiến dịch Điện Biên Phủ"
+            placeholder="Ví dụ: Cách mạng Pháp 1789 hoặc Nghệ thuật thời Phục Hưng"
             value={form.name}
             onChange={(e) => updateField('name', e.target.value)}
           />
-          <Field
-            label="Thứ tự hiển thị"
-            type="number"
-            placeholder="01"
-            value={form.displayOrder}
-            onChange={(e) => updateField('displayOrder', e.target.value)}
-          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SelectField
+              label="Loại tiến trình học tập"
+              value={form.pathType}
+              onChange={(e) => updateField('pathType', e.target.value)}
+              options={[
+                LearningPathType.CHRONOLOGICAL,
+                LearningPathType.THEMATIC,
+                LearningPathType.MYTHOLOGICAL,
+              ]}
+            />
+            <Field
+              label="Thứ tự hiển thị"
+              type="number"
+              placeholder="01"
+              value={form.displayOrder}
+              onChange={(e) => updateField('displayOrder', e.target.value)}
+            />
+          </div>
         </section>
 
         <section className="form-card">
           <div className="section-title">
             <span>02</span>
             <div>
-              <h2>Nội dung</h2>
-              <p>Mô tả ngắn gọn giúp biên tập viên hiểu rõ nội dung</p>
+              <h2>Nội dung & Bối cảnh</h2>
+              <p>Mô tả ngắn gọn giúp người học và biên tập viên nắm bắt chủ đề</p>
             </div>
           </div>
           <label className="field">
-            <span>Mô tả</span>
+            <span>Mô tả chủ đề</span>
             <textarea
               rows={5}
               value={form.description}
               onChange={(e) => updateField('description', e.target.value)}
-              placeholder="Nhập mô tả tổng quan về chủ đề lịch sử..."
+              placeholder="Nhập mô tả bối cảnh lịch sử, ý nghĩa và phạm vi kiến thức của chủ đề..."
             />
             <small>{form.description.length} / 500 ký tự</small>
           </label>
@@ -140,13 +182,13 @@ export function TopicForm() {
             <span>03</span>
             <div>
               <h2>Cấu hình học tập</h2>
-              <p>Thiết lập cách học sinh tiếp cận chủ đề</p>
+              <p>Thiết lập lộ trình trải nghiệm cho người học</p>
             </div>
           </div>
           <div className="toggle-row">
             <div>
-              <strong>Học tuần tự</strong>
-              <p>Học sinh phải hoàn thành bài trước trước khi mở bài tiếp theo.</p>
+              <strong>Học tuần tự (Sequential)</strong>
+              <p>Học sinh phải hoàn thành bài trước trước khi mở khóa bài tiếp theo trong chủ đề này.</p>
             </div>
             <button
               type="button"
@@ -174,22 +216,30 @@ export function TopicForm() {
           />
           <div className="info-note">
             <Icon name={IconName.SPARK} size={17} />
-            <p>Nội dung ở trạng thái bản nháp chỉ hiển thị trong CMS.</p>
+            <p>Chủ đề ở trạng thái Bản nháp chỉ hiển thị cho Quản trị viên trong CMS.</p>
           </div>
         </div>
 
         <div className="hierarchy-card">
-          <span>HỆ THỐNG NỘI DUNG</span>
+          <span>CẤU TRÚC PHÂN CẤP (COMPOSITE)</span>
           <div className="tree-item muted">
-            <Icon name={IconName.CLOCK} size={16} /> Giai đoạn
+            <Icon name={IconName.CLOCK} size={16} /> Giai đoạn (Tùy chọn)
           </div>
           <i />
+          {form.selectedParentId && (
+            <>
+              <div className="tree-item muted">
+                <Icon name={IconName.FOLDER} size={16} /> Chủ đề cha
+              </div>
+              <i />
+            </>
+          )}
           <div className="tree-item active">
             <Icon name={IconName.FOLDER} size={16} /> Chủ đề đang tạo
           </div>
           <i />
           <div className="tree-item muted">
-            <Icon name={IconName.BOOK} size={16} /> Bài học
+            <Icon name={IconName.BOOK} size={16} /> Bài học trực thuộc
           </div>
         </div>
       </aside>
@@ -203,7 +253,7 @@ export function TopicForm() {
           Hủy
         </button>
         <div>
-          <span>Mọi thay đổi sẽ được lưu vào bản nháp</span>
+          <span>Mọi thay đổi sẽ được lưu vào hệ thống</span>
           <button type="submit" className="primary-button" disabled={saving}>
             {saving ? 'Đang lưu...' : 'Lưu chủ đề'}
           </button>

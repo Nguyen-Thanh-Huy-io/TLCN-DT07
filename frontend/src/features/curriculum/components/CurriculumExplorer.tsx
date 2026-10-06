@@ -41,11 +41,10 @@ export function CurriculumExplorer() {
     useState<AnyCurriculumNode | null>(null);
 
   // Resizable Split Pane Logic
-  const [treeWidth, setTreeWidth] = useState<number>(380);
+  const [treeWidth, setTreeWidth] = useState<number>(360);
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
   useEffect(() => {
-    // Load persisted width from localStorage
     const saved = localStorage.getItem('hisgo_curriculum_tree_width');
     if (saved) {
       const parsed = parseInt(saved, 10);
@@ -89,8 +88,8 @@ export function CurriculumExplorer() {
   };
 
   const handleResetWidth = () => {
-    setTreeWidth(380);
-    localStorage.setItem('hisgo_curriculum_tree_width', '380');
+    setTreeWidth(360);
+    localStorage.setItem('hisgo_curriculum_tree_width', '360');
   };
 
   // Calculate Ancestor Trail for the selected node
@@ -123,11 +122,11 @@ export function CurriculumExplorer() {
           ? res.data
           : res.data?.data || [];
         if (livePeriods.length > 0) {
-          // Keep live periods synced
+          // Keep live synced
         }
       })
       .catch(() => {
-        // Fallback to rich default data
+        // Fallback to mock data
       });
   }, []);
 
@@ -212,101 +211,79 @@ export function CurriculumExplorer() {
   };
 
   return (
-    <div className="curriculum-explorer-view space-y-3">
-      {/* Top Header & Perspective Switcher Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 bg-white border border-[#e2e5e8] rounded-xl p-2 px-3 shadow-2xs">
+    <div className="curriculum-explorer-view space-y-2.5">
+      {/* Sleek Top Perspective & Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-white border border-slate-200 rounded-lg p-2 px-3">
         <div className="flex items-center gap-3">
-          {/* Integrated Clean Title */}
           <div className="flex items-center gap-2 border-r border-slate-200 pr-3 shrink-0">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-            <h1 className="text-sm font-bold text-slate-900 tracking-tight whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-slate-900" />
+            <h1 className="text-xs font-bold text-slate-900 tracking-tight whitespace-nowrap">
               Chương trình học
             </h1>
           </div>
 
-          {/* Perspective View Switcher: Niên đại vs Thể loại chuyên đề */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+          {/* Perspective View Switcher */}
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-md border border-slate-200">
             <button
               type="button"
-              className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${
+              className={`px-2.5 py-1 rounded text-xs flex items-center gap-1.5 transition-all ${
                 perspective === 'CHRONOLOGICAL'
-                  ? 'bg-[#1a385d] text-white shadow-2xs'
-                  : 'text-slate-700 hover:text-slate-900'
+                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900 font-medium'
               }`}
               onClick={() => handleSwitchPerspective('CHRONOLOGICAL')}
-              title="Học theo dòng thời gian các triều đại lịch sử"
+              title="Cấu trúc theo dòng thời gian các thời kỳ lịch sử"
             >
-              <Icon name={IconName.CLOCK} size={13} />
-              <span>Sơ đồ Cây Phân Cấp (Niên đại)</span>
+              <Icon name={IconName.CLOCK} size={12} />
+              <span>Theo Niên đại</span>
             </button>
             <button
               type="button"
-              className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${
+              className={`px-2.5 py-1 rounded text-xs flex items-center gap-1.5 transition-all ${
                 perspective === 'THEMATIC'
-                  ? 'bg-[#1a385d] text-white shadow-2xs'
-                  : 'text-slate-700 hover:text-slate-900'
+                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900 font-medium'
               }`}
               onClick={() => handleSwitchPerspective('THEMATIC')}
-              title="Học theo chuyên đề xuyên suốt: Quân sự, Cổ phục, Văn hóa, Huyền sử"
+              title="Cấu trúc theo thể loại, chuyên đề độc lập"
             >
-              <Icon name={IconName.BOOK} size={13} />
-              <span>Thể loại & Chuyên đề (Phi giai đoạn)</span>
+              <Icon name={IconName.BOOK} size={12} />
+              <span>Theo Chuyên đề</span>
             </button>
           </div>
         </div>
 
-        {/* Quick Link Tools: Quản lý dạng bảng & Thêm mới */}
+        {/* Quick actions */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-1 border-r border-slate-200 pr-2 mr-1">
-            <button
-              type="button"
-              className="px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1 transition-colors"
-              onClick={() => router.push(APP_ROUTES.PERIODS.LIST)}
-              title="Bảng quản lý danh sách Giai đoạn"
-            >
-              <Icon name={IconName.CLOCK} size={12} />
-              <span>DS Giai đoạn</span>
-            </button>
-            <button
-              type="button"
-              className="px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1 transition-colors"
-              onClick={() => router.push(APP_ROUTES.TOPICS.LIST)}
-              title="Bảng quản lý danh sách Chủ đề"
-            >
-              <Icon name={IconName.FOLDER} size={12} />
-              <span>DS Chủ đề</span>
-            </button>
-            <button
-              type="button"
-              className="px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1 transition-colors"
-              onClick={() => router.push(APP_ROUTES.LESSONS.LIST)}
-              title="Bảng quản lý danh sách Bài học & Quiz"
-            >
-              <Icon name={IconName.BOOK} size={12} />
-              <span>DS Bài học & Quiz</span>
-            </button>
-          </div>
-
           <button
             type="button"
-            className="primary-button !h-8 !text-xs !bg-amber-500 hover:!bg-amber-600 !text-slate-950 font-bold px-3 rounded-lg flex items-center gap-1.5 shadow-2xs"
+            className="secondary-button !h-7 !text-xs !px-2.5"
+            onClick={() => router.push(APP_ROUTES.TOPICS.LIST)}
+            title="Xem danh sách chủ đề dạng bảng"
+          >
+            <Icon name={IconName.FOLDER} size={12} />
+            <span>Quản lý Bảng</span>
+          </button>
+          <button
+            type="button"
+            className="primary-button !h-7 !text-xs !px-2.5"
             onClick={handleAddPeriod}
           >
-            <Icon name={IconName.PLUS} size={13} />
-            <span>Thêm mục mới</span>
+            <Icon name={IconName.PLUS} size={12} />
+            <span>Thêm Giai đoạn</span>
           </button>
         </div>
       </div>
 
-      {/* Master-Detail 2-Column Resizable Grid (Full-Height Layout) */}
+      {/* Master-Detail 2-Column Resizable Grid */}
       <div
         id="curriculum-workspace-container"
         style={{
           display: 'grid',
-          gridTemplateColumns: `${treeWidth}px 8px minmax(0, 1fr)`,
-          gap: '8px',
-          height: 'calc(100vh - 150px)',
-          minHeight: '600px',
+          gridTemplateColumns: `${treeWidth}px 6px minmax(0, 1fr)`,
+          gap: '6px',
+          height: 'calc(100vh - 145px)',
+          minHeight: '580px',
           userSelect: isDragging ? 'none' : 'auto',
         }}
       >
@@ -314,7 +291,7 @@ export function CurriculumExplorer() {
         <div
           style={{
             height: '100%',
-            minHeight: '600px',
+            minHeight: '580px',
             width: `${treeWidth}px`,
           }}
         >
@@ -333,13 +310,13 @@ export function CurriculumExplorer() {
           className={`curriculum-resizer-divider ${isDragging ? 'dragging' : ''}`}
           onMouseDown={handleStartDrag}
           onDoubleClick={handleResetWidth}
-          title="Kéo sang trái/phải để thay đổi độ rộng cây phân cấp (Nhấp đúp để đặt lại mặc định)"
+          title="Kéo sang trái/phải để điều chỉnh độ rộng (Nhấp đúp để đặt lại)"
         >
           <div className="resizer-line" />
         </div>
 
         {/* Right Column: Detail Workspace */}
-        <div style={{ height: '100%', minHeight: '600px', minWidth: 0 }}>
+        <div style={{ height: '100%', minHeight: '580px', minWidth: 0 }}>
           <CurriculumDetailPane
             selectedNode={selectedNode}
             ancestors={ancestors}

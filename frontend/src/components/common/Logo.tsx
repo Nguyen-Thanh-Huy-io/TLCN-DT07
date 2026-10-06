@@ -7,14 +7,13 @@ export interface LogoProps {
 export function Logo({ collapsed = false }: LogoProps) {
   return (
     <div className={`logo-wrap ${collapsed ? 'logo-collapsed' : ''}`}>
-      <div className="logo-mark" title="HISGO CONTENT SYSTEM">
+      <div className="logo-mark" title="HISGO CMS">
         <span>H</span>
-        <i />
       </div>
       {!collapsed && (
         <div className="logo-text">
           <strong>HISGO</strong>
-          <small>CONTENT SYSTEM</small>
+          <span className="logo-tag">CMS</span>
         </div>
       )}
     </div>

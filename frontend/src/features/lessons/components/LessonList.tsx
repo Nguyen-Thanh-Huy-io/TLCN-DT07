@@ -78,7 +78,7 @@ export function LessonList() {
 
   const columns: ColumnDef<LessonItem>[] = [
     {
-      header: 'BÀI HỌC',
+      header: 'Bài học',
       cell: (item) => (
         <ContentCell
           icon={IconName.BOOK}
@@ -92,11 +92,11 @@ export function LessonList() {
       ),
     },
     {
-      header: 'CHỦ ĐỀ',
+      header: 'Chủ đề',
       cell: (item) => item.topic?.name || 'Chưa có chủ đề',
     },
     {
-      header: 'ĐỘ KHÓ',
+      header: 'Độ khó',
       cell: (item) => {
         const diff = item.difficulty || DifficultyLevel.MEDIUM;
         return (
@@ -107,11 +107,11 @@ export function LessonList() {
       },
     },
     {
-      header: 'ĐIỂM XP',
+      header: 'Điểm XP',
       cell: (item) => String(item.xpReward ?? 50),
     },
     {
-      header: 'TRẠNG THÁI',
+      header: 'Trạng thái',
       cell: (item) => {
         const status = item.status || ContentStatus.DRAFT;
         return (
@@ -122,7 +122,7 @@ export function LessonList() {
       },
     },
     {
-      header: 'NGƯỜI TẠO',
+      header: 'Người tạo',
       cell: (item) => item.creator?.fullName || item.creator?.username || 'Admin',
     },
   ];

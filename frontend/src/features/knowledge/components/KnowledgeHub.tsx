@@ -37,31 +37,30 @@ export function KnowledgeHub() {
   };
 
   return (
-    <div className="knowledge-hub-view space-y-4">
-
+    <div className="knowledge-hub-view space-y-3">
       {/* Horizontal Tab Navigation Bar */}
-      <div className="bg-white border border-gray-200 rounded-lg p-1.5 shadow-sm flex items-center gap-1 overflow-x-auto">
+      <div className="bg-white border border-slate-200 rounded-lg p-1 flex items-center gap-1 overflow-x-auto">
         {allStrategies.map((strat) => {
           const isActive = strat.config.key === activeTab;
           return (
             <button
               key={strat.config.key}
               type="button"
-              className={`flex-1 min-w-[160px] py-2.5 px-3 rounded-md flex items-center justify-center gap-2 text-xs font-semibold transition-all ${
+              className={`flex-1 min-w-[140px] py-2 px-3 rounded-md flex items-center justify-center gap-2 text-xs transition-colors ${
                 isActive
-                  ? 'bg-[#15395f] text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 bg-transparent'
+                  ? 'bg-slate-900 text-white font-semibold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium'
               }`}
               onClick={() => handleTabChange(strat.config.key)}
             >
-              <Icon name={strat.config.icon} size={15} />
+              <Icon name={strat.config.icon} size={14} />
               <span>{strat.config.label}</span>
               {strat.config.badgeLabel ? (
                 <span
-                  className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                  className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
                     isActive
                       ? 'bg-white/20 text-white'
-                      : 'bg-gray-100 text-gray-500'
+                      : 'bg-slate-100 text-slate-500'
                   }`}
                 >
                   {strat.config.badgeLabel}
@@ -73,18 +72,30 @@ export function KnowledgeHub() {
       </div>
 
       {/* Tab Description Context */}
-      <div className="bg-blue-50/60 border border-blue-100 rounded-lg px-4 py-2.5 text-xs text-blue-900 flex items-center justify-between">
+      <div className="bg-slate-50 border border-slate-200 rounded-md px-3.5 py-2 text-xs text-slate-600 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-blue-600" />
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
           <span>{currentStrategy.config.description}</span>
         </div>
-        <span className="text-[10px] text-blue-500 font-medium">
-          Dữ liệu thời gian thực
-        </span>
+        <button
+          type="button"
+          className="text-xs font-semibold text-slate-900 hover:underline shrink-0"
+          onClick={() => {
+            const routes: Record<KnowledgeTabKey, string> = {
+              [KnowledgeTabKey.LOCATIONS]: '/locations',
+              [KnowledgeTabKey.ENTITIES]: '/entities',
+              [KnowledgeTabKey.EVENTS]: '/events',
+              [KnowledgeTabKey.TAGS]: '/tags',
+            };
+            router.push(routes[activeTab]);
+          }}
+        >
+          Mở toàn trang ↗
+        </button>
       </div>
 
-      {/* Active Tab Table Content */}
-      <div className="tab-body mt-2">
+      {/* Tab Content Rendering */}
+      <div className="knowledge-tab-content">
         {currentStrategy.renderComponent()}
       </div>
     </div>

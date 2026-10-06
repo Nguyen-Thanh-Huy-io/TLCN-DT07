@@ -8,7 +8,7 @@ import { DataTableProps } from '@/types/table.types';
 export function DataTable<T extends object>({
   columns,
   data,
-  searchPlaceholder = 'Tìm kiếm nội dung...',
+  searchPlaceholder = 'Tìm kiếm dữ liệu...',
   searchValue,
   onSearchChange,
   filters = [],
@@ -39,7 +39,7 @@ export function DataTable<T extends object>({
     if (searchValue !== undefined || !query.trim()) return data;
     const lower = query.toLowerCase();
     return data.filter((item) =>
-      JSON.stringify(item).toLowerCase().includes(lower)
+      JSON.stringify(item).toLowerCase().includes(lower),
     );
   }, [data, query, searchValue]);
 
@@ -56,7 +56,7 @@ export function DataTable<T extends object>({
 
   const toggleSelectRow = (idx: number) => {
     setSelectedIds((prev) =>
-      prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
+      prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx],
     );
   };
 
@@ -64,22 +64,32 @@ export function DataTable<T extends object>({
 
   return (
     <div className="panel management-panel">
+      {/* Toolbar */}
       <div className="toolbar">
         <label className="search-box">
-          <Icon name={IconName.SEARCH} size={17} />
+          <Icon name={IconName.SEARCH} size={14} className="text-slate-400" />
           <input
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
             placeholder={searchPlaceholder}
           />
+          {query ? (
+            <button
+              type="button"
+              className="text-slate-400 hover:text-slate-700 text-xs"
+              onClick={() => handleQueryChange('')}
+            >
+              ✕
+            </button>
+          ) : null}
         </label>
         {filters.length > 0 && (
           <div className="filters">
             {filters.map((f, idx) => (
               <button key={idx} type="button" onClick={f.onClick}>
-                <Icon name={IconName.FILTER} size={14} />
-                {f.label}
-                <span>⌄</span>
+                <Icon name={IconName.FILTER} size={12} />
+                <span>{f.label}</span>
+                <span className="text-slate-400 text-xs">⌄</span>
               </button>
             ))}
           </div>
@@ -87,11 +97,11 @@ export function DataTable<T extends object>({
         {primaryButtonLabel && onPrimaryButtonClick && (
           <button
             type="button"
-            className="primary-button"
+            className="primary-button ml-auto"
             onClick={onPrimaryButtonClick}
           >
-            <Icon name={IconName.PLUS} size={17} />
-            {primaryButtonLabel}
+            <Icon name={IconName.PLUS} size={13} />
+            <span>{primaryButtonLabel}</span>
           </button>
         )}
       </div>
@@ -100,21 +110,21 @@ export function DataTable<T extends object>({
       {selectedIds.length > 0 && (
         <div className="batch-toolbar">
           <div className="flex items-center gap-2">
-            <span className="font-semibold">
+            <span className="font-medium text-xs">
               Đã chọn {selectedIds.length} mục
             </span>
             <button
               type="button"
-              className="text-[10px] text-gray-300 hover:text-white underline ml-2"
+              className="text-[11px] text-slate-300 hover:text-white underline ml-2"
               onClick={() => setSelectedIds([])}
             >
-              Bỏ chọn tất cả
+              Bỏ chọn
             </button>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[10px] font-semibold flex items-center gap-1.5 transition-colors"
+              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[11px] font-medium flex items-center gap-1.5 transition-colors"
               onClick={() => {
                 if (
                   confirm(
@@ -133,8 +143,8 @@ export function DataTable<T extends object>({
         </div>
       )}
 
-      <div className="table-scroll">
-        <table className="management-table">
+      <div className="table-wrap">
+        <table>
           <thead>
             <tr>
               <th className="check-col">
@@ -149,7 +159,7 @@ export function DataTable<T extends object>({
                   {col.header}
                 </th>
               ))}
-              <th style={{ textAlign: 'right' }}>THAO TÁC</th>
+              <th style={{ textAlign: 'right' }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -157,7 +167,7 @@ export function DataTable<T extends object>({
               <tr>
                 <td
                   colSpan={columns.length + 2}
-                  style={{ textAlign: 'center', padding: '32px 16px', color: '#64748b' }}
+                  className="text-center py-10 text-slate-500 text-xs"
                 >
                   {emptyMessage}
                 </td>
@@ -165,7 +175,7 @@ export function DataTable<T extends object>({
             ) : (
               filteredData.map((item, rowIdx) => (
                 <tr key={rowIdx}>
-                  <td>
+                  <td className="check-col">
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(rowIdx)}
@@ -182,7 +192,7 @@ export function DataTable<T extends object>({
                     </td>
                   ))}
                   <td>
-                    <div className="row-actions">
+                    <div className="row-actions justify-end">
                       {onView ? (
                         <button
                           type="button"
@@ -190,7 +200,7 @@ export function DataTable<T extends object>({
                           title="Xem chi tiết"
                           onClick={() => onView(item)}
                         >
-                          <Icon name={IconName.EYE} size={14} />
+                          <Icon name={IconName.EYE} size={13} />
                         </button>
                       ) : null}
                       {onEdit ? (
@@ -200,7 +210,7 @@ export function DataTable<T extends object>({
                           title="Chỉnh sửa"
                           onClick={() => onEdit(item)}
                         >
-                          <Icon name={IconName.EDIT} size={14} />
+                          <Icon name={IconName.EDIT} size={13} />
                         </button>
                       ) : null}
                       {onDelete ? (
@@ -210,7 +220,7 @@ export function DataTable<T extends object>({
                           title="Xóa"
                           onClick={() => onDelete(item)}
                         >
-                          <Icon name={IconName.TRASH} size={14} />
+                          <Icon name={IconName.TRASH} size={13} />
                         </button>
                       ) : null}
                       <ActionMenu

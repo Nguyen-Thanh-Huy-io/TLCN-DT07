@@ -102,7 +102,7 @@ export function PeriodList() {
 
   const columns: ColumnDef<PeriodItem>[] = [
     {
-      header: 'GIAI ĐOẠN',
+      header: 'Giai đoạn',
       cell: (item) => (
         <ContentCell
           icon={IconName.CLOCK}
@@ -112,12 +112,12 @@ export function PeriodList() {
       ),
     },
     {
-      header: 'KHU VỰC',
+      header: 'Khu vực',
       accessorKey: 'region',
       cell: (item) => item.region || 'Việt Nam',
     },
     {
-      header: 'THỜI GIAN',
+      header: 'Thời gian',
       cell: (item) =>
         item.startYear !== undefined
           ? item.endYear
@@ -126,12 +126,12 @@ export function PeriodList() {
           : 'Không rõ',
     },
     {
-      header: 'THỨ TỰ',
+      header: 'Thứ tự',
       cell: (item) =>
         String(item.displayOrder ?? item.orderIndex ?? 0).padStart(2, '0'),
     },
     {
-      header: 'TRẠNG THÁI',
+      header: 'Trạng thái',
       cell: (item) => {
         const status = item.status || ContentStatus.PUBLISHED;
         return (
@@ -142,7 +142,7 @@ export function PeriodList() {
       },
     },
     {
-      header: 'CẬP NHẬT',
+      header: 'Cập nhật',
       cell: (item) =>
         item.updatedAt
           ? new Date(item.updatedAt).toLocaleDateString('vi-VN')

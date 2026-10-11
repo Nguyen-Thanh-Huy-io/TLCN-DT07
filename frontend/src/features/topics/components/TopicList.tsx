@@ -17,6 +17,7 @@ import { extractErrorMessage } from '@/services/api';
 type HierarchyFilterType = 'ALL' | 'ROOT_ONLY' | 'CHILD_ONLY';
 
 export interface TopicTreeRow extends TopicItem {
+  depth: number;
   isChild: boolean;
   parentName?: string;
   hasChildren: boolean;
@@ -31,7 +32,7 @@ export function TopicList() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [hierarchyFilter, setHierarchyFilter] = useState<HierarchyFilterType>('ALL');
 
-  // Quản lý trạng thái mở rộng/thu gọn của từng chủ đề cha (mặc định mở rộng tất cả)
+  // Quản lý trạng thái mở rộng/thu gọn của từng chủ đề (mặc định mở rộng tất cả)
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
 
   const fetchTopics = useCallback(async () => {
@@ -40,12 +41,10 @@ export function TopicList() {
       const res = await TopicApiService.getTopics({ limit: 100 });
       if (res.items && res.items.length > 0) {
         setTopics(res.items);
-        // Tự động mở rộng tất cả các chủ đề cha có con
+        // Tự động mở rộng tất cả các node trong cây
         const newExpanded: Record<string, boolean> = {};
         res.items.forEach((t) => {
-          if (!t.parentId) {
-            newExpanded[t.id] = true;
-          }
+          newExpanded[t.id] = true;
         });
         setExpandedMap((prev) => ({ ...newExpanded, ...prev }));
       } else {
@@ -72,7 +71,7 @@ export function TopicList() {
   const expandAll = () => {
     const next: Record<string, boolean> = {};
     topics.forEach((t) => {
-      if (!t.parentId) next[t.id] = true;
+      next[t.id] = true;
     });
     setExpandedMap(next);
   };
@@ -80,7 +79,7 @@ export function TopicList() {
   const collapseAll = () => {
     const next: Record<string, boolean> = {};
     topics.forEach((t) => {
-      if (!t.parentId) next[t.id] = false;
+      next[t.id] = false;
     });
     setExpandedMap(next);
   };
@@ -113,16 +112,10 @@ export function TopicList() {
     }
   };
 
-  // Hoán đổi thứ tự hiển thị nhanh trong phạm vi nhóm cha hoặc nhóm con (Scoped Reorder)
+  // Hoán đổi thứ tự hiển thị nhanh trong phạm vi nhóm cùng cấp (Scoped Reorder theo parentId)
   const handleMoveOrder = async (item: TopicTreeRow, direction: 'UP' | 'DOWN') => {
-    // Xác định nhóm cùng cấp (nếu là con thì gom các con cùng cha; nếu là gốc thì gom các gốc cùng giai đoạn)
     const group = topics
-      .filter((t) => {
-        if (item.isChild) {
-          return t.parentId === item.parentId;
-        }
-        return !t.parentId && (t.period?.id || t.periodId || '') === (item.period?.id || item.periodId || '');
-      })
+      .filter((t) => t.parentId === item.parentId)
       .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 
     const currentIndex = group.findIndex((t) => t.id === item.id);
@@ -167,7 +160,7 @@ export function TopicList() {
     }
   };
 
-  // Xây dựng danh sách cây gom nhóm Cha - Con (Tree-structured rows)
+  // Xây dựng danh sách cây gom nhóm Đa cấp Cha - Con (Composite Tree DFS Traversal)
   const displayRows = useMemo(() => {
     // Map danh sách con theo parentId
     const childrenMap = new Map<string, TopicItem[]>();
@@ -194,6 +187,7 @@ export function TopicList() {
     if (hierarchyFilter === 'ROOT_ONLY') {
       return rootTopics.map((r) => ({
         ...r,
+        depth: 0,
         isChild: false,
         hasChildren: (childrenMap.get(r.id)?.length || 0) > 0,
         childrenCount: childrenMap.get(r.id)?.length || 0,
@@ -202,55 +196,65 @@ export function TopicList() {
 
     if (hierarchyFilter === 'CHILD_ONLY') {
       const allChildren: TopicTreeRow[] = [];
-      childrenMap.forEach((children) => {
+      const collectChildren = (parentId: string, parentName: string, depth: number) => {
+        const children = childrenMap.get(parentId) || [];
         children.forEach((c) => {
-          const parent = topics.find((p) => p.id === c.parentId);
+          const cChildren = childrenMap.get(c.id) || [];
           allChildren.push({
             ...c,
+            depth,
             isChild: true,
-            parentName: parent?.name,
-            hasChildren: false,
-            childrenCount: 0,
+            parentName,
+            hasChildren: cChildren.length > 0,
+            childrenCount: cChildren.length,
           });
+          collectChildren(c.id, c.name, depth + 1);
         });
+      };
+
+      rootTopics.forEach((r) => {
+        collectChildren(r.id, r.name, 1);
       });
-      return allChildren.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+
+      return allChildren;
     }
 
-    // Mặc định: ALL -> Gom nhóm Cha kèm các Con ngay bên dưới nếu đang mở rộng
+    // Mặc định: ALL -> Duyệt cây đa tầng DFS (Depth 0: Gốc -> Depth 1: Giai đoạn -> Depth 2: Chuyên đề)
     const rows: TopicTreeRow[] = [];
 
-    rootTopics.forEach((root) => {
-      const children = childrenMap.get(root.id) || [];
-      const isExpanded = expandedMap[root.id] !== false;
+    const traverse = (node: TopicItem, depth: number, parentName?: string) => {
+      const children = childrenMap.get(node.id) || [];
+      const hasChildren = children.length > 0;
+      const isExpanded = expandedMap[node.id] !== false;
 
-      // Dòng Cha (Root)
       rows.push({
-        ...root,
-        isChild: false,
-        hasChildren: children.length > 0,
+        ...node,
+        depth,
+        isChild: depth > 0,
+        parentName,
+        hasChildren,
         childrenCount: children.length,
       });
 
-      // Các dòng Con (nếu đang mở rộng)
-      if (isExpanded && children.length > 0) {
+      // Nếu node đang được mở rộng, duyệt tiếp các node con
+      if (hasChildren && isExpanded) {
         children.forEach((child) => {
-          rows.push({
-            ...child,
-            isChild: true,
-            parentName: root.name,
-            hasChildren: false,
-            childrenCount: 0,
-          });
+          traverse(child, depth + 1, node.name);
         });
       }
+    };
+
+    rootTopics.forEach((root) => {
+      traverse(root, 0);
     });
 
-    // Xử lý những topic con mồ côi (nếu parentId không tồn tại trong danh sách)
+    // Xử lý node mồ côi (nếu có trường hợp cha không nằm trong danh sách)
+    const visitedIds = new Set(rows.map((r) => r.id));
     topics.forEach((t) => {
-      if (t.parentId && !topics.some((p) => p.id === t.parentId)) {
+      if (!visitedIds.has(t.id)) {
         rows.push({
           ...t,
+          depth: 1,
           isChild: true,
           parentName: 'Không xác định',
           hasChildren: false,
@@ -266,37 +270,25 @@ export function TopicList() {
     {
       header: 'Chủ đề (Phân cấp Cha - Con)',
       cell: (item) => {
-        if (item.isChild) {
-          return (
-            <div className="flex items-center pl-7 py-1 text-slate-700">
-              <span className="text-slate-300 mr-2 font-mono text-xs select-none">└──</span>
-              <div className="flex items-center gap-2">
-                <Icon name={IconName.FOLDER} size={14} className="text-slate-400 shrink-0" />
-                <div>
-                  <div className="font-medium text-xs text-slate-800 flex items-center gap-1.5">
-                    <Link
-                      href={`/topics/${item.id}`}
-                      className="hover:text-blue-600 hover:underline transition-colors cursor-pointer"
-                    >
-                      {item.name}
-                    </Link>
-                    {item.isSequential && (
-                      <span className="text-[10px] text-amber-600 bg-amber-50 px-1 py-0.2 rounded border border-amber-200">
-                        Tuần tự
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[11px] text-slate-400 line-clamp-1">{item.description || 'Chưa có mô tả'}</div>
-                </div>
-              </div>
-            </div>
-          );
-        }
-
-        // Dòng Chủ đề Cha (Root)
         const isExpanded = expandedMap[item.id] !== false;
+        const indentClass =
+          item.depth === 0 ? 'pl-0' : item.depth === 1 ? 'pl-6' : 'pl-12';
+
         return (
-          <div className="flex items-center gap-2 py-0.5">
+          <div className={`flex items-center gap-1.5 py-1 ${indentClass}`}>
+            {/* Ký hiệu phân nhánh cây */}
+            {item.depth === 1 && (
+              <span className="text-slate-300 font-mono text-xs select-none shrink-0 mr-0.5">
+                ├──
+              </span>
+            )}
+            {item.depth >= 2 && (
+              <span className="text-slate-300 font-mono text-xs select-none shrink-0 mr-0.5">
+                └──
+              </span>
+            )}
+
+            {/* Nút Đóng / Mở nhánh */}
             {item.hasChildren ? (
               <button
                 type="button"
@@ -305,41 +297,65 @@ export function TopicList() {
                   toggleExpand(item.id);
                 }}
                 className="w-5 h-5 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 transition text-[10px] shrink-0 font-bold"
-                title={isExpanded ? 'Thu gọn chủ đề con' : 'Mở rộng chủ đề con'}
+                title={isExpanded ? 'Thu gọn nhánh' : 'Mở rộng nhánh'}
               >
                 {isExpanded ? '▼' : '▶'}
               </button>
             ) : (
               <div className="w-5 shrink-0" />
             )}
-            <Icon name={IconName.FOLDER} size={16} className="text-amber-500/80 shrink-0" />
-            <div>
-              <div className="font-semibold text-xs text-slate-900 flex items-center gap-2">
+
+            {/* Biểu tượng phân cấp theo tầng */}
+            {item.depth === 0 ? (
+              <Icon name={IconName.FOLDER} size={16} className="text-amber-500 shrink-0" />
+            ) : item.depth === 1 ? (
+              <Icon name={IconName.FOLDER} size={15} className="text-blue-500 shrink-0" />
+            ) : (
+              <Icon name={IconName.TAG} size={13} className="text-slate-400 shrink-0" />
+            )}
+
+            {/* Thông tin chủ đề */}
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <Link
                   href={`/topics/${item.id}`}
-                  className="hover:text-blue-600 hover:underline transition-colors cursor-pointer"
+                  className={`hover:text-blue-600 hover:underline transition-colors cursor-pointer truncate ${
+                    item.depth === 0
+                      ? 'font-bold text-xs text-slate-900'
+                      : item.depth === 1
+                      ? 'font-semibold text-xs text-slate-800'
+                      : 'font-normal text-xs text-slate-700'
+                  }`}
                 >
                   {item.name}
                 </Link>
+
                 {item.hasChildren && (
                   <span
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleExpand(item.id);
                     }}
-                    className="text-[10px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200 cursor-pointer transition shrink-0 select-none"
-                    title="Nhấp để đóng/mở danh sách con"
+                    className={`text-[10px] font-medium px-1.5 py-0.2 rounded border cursor-pointer transition shrink-0 select-none ${
+                      item.depth === 0
+                        ? 'text-amber-800 bg-amber-50 border-amber-200 hover:bg-amber-100'
+                        : 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                    }`}
+                    title="Nhấp để đóng/mở nhánh con"
                   >
-                    {item.childrenCount} chủ đề con
+                    {item.childrenCount} {item.depth === 0 ? 'giai đoạn' : 'chuyên đề'}
                   </span>
                 )}
+
                 {item.isSequential && (
                   <span className="text-[10px] text-amber-600 bg-amber-50 px-1 py-0.2 rounded border border-amber-200">
                     Tuần tự
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-slate-400 line-clamp-1">{item.description || 'Chưa có mô tả'}</div>
+              <div className="text-[11px] text-slate-400 line-clamp-1 max-w-[500px]">
+                {item.description || 'Chưa có mô tả'}
+              </div>
             </div>
           </div>
         );
@@ -348,36 +364,73 @@ export function TopicList() {
     {
       header: 'Vị trí phân cấp',
       cell: (item) => {
-        if (item.isChild) {
+        if (item.depth === 0) {
           return (
-            <div className="flex flex-col text-xs pl-7">
-              <span className="font-medium text-blue-700 text-[11px] truncate max-w-[180px]">
-                ↳ Con của: {item.parentName || 'Chủ đề cha'}
-              </span>
-              <span className="text-[10px] text-slate-400 font-mono">Nhánh con (Cấp 2)</span>
+            <div className="flex flex-col text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                  Chủ đề gốc (Cấp 1)
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNavigateCreateChild(item.id);
+                  }}
+                  className="text-[10px] font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 transition shrink-0"
+                  title={`Thêm giai đoạn con trực thuộc "${item.name}"`}
+                >
+                  + Thêm giai đoạn
+                </button>
+              </div>
+              <span className="text-[10px] text-slate-400 mt-0.5 font-mono">Cấp cao nhất</span>
             </div>
           );
         }
 
+        if (item.depth === 1) {
+          return (
+            <div className="flex flex-col text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                  Giai đoạn (Cấp 2)
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNavigateCreateChild(item.id);
+                  }}
+                  className="text-[10px] font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 transition shrink-0"
+                  title={`Thêm chuyên đề trực thuộc "${item.name}"`}
+                >
+                  + Thêm chuyên đề
+                </button>
+              </div>
+              <span
+                className="text-[10px] text-slate-500 truncate max-w-[190px] mt-0.5"
+                title={`Thuộc: ${item.parentName || 'Chủ đề gốc'}`}
+              >
+                ↳ Thuộc: {item.parentName || 'Chủ đề gốc'}
+              </span>
+            </div>
+          );
+        }
+
+        // item.depth >= 2 (Chuyên đề / Cấp 3)
         return (
           <div className="flex flex-col text-xs">
-            <span className="font-medium text-slate-800 text-[11px] truncate max-w-[180px]">
-              {item.period?.name || 'Phi niên đại'}
-            </span>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[10px] text-slate-400 font-mono">Chủ đề gốc (Cấp 1)</span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleNavigateCreateChild(item.id);
-                }}
-                className="text-[10px] font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 transition shrink-0"
-                title={`Thêm chủ đề con trực thuộc "${item.name}"`}
-              >
-                + Thêm con
-              </button>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-normal bg-slate-100 text-slate-600 border border-slate-200">
+                Chuyên đề (Cấp 3)
+              </span>
             </div>
+            <span
+              className="text-[10px] text-slate-500 truncate max-w-[190px] mt-0.5"
+              title={`Thuộc: ${item.parentName || 'Giai đoạn'}`}
+            >
+              ↳ Thuộc: {item.parentName || 'Giai đoạn'}
+            </span>
           </div>
         );
       },
@@ -385,33 +438,35 @@ export function TopicList() {
     {
       header: 'Thứ tự',
       cell: (item) => {
-        // Lấy nhóm cùng cấp để kiểm tra xem có chuyển lên/xuống được không
         const group = topics
-          .filter((t) => {
-            if (item.isChild) {
-              return t.parentId === item.parentId;
-            }
-            return !t.parentId && (t.period?.id || t.periodId || '') === (item.period?.id || item.periodId || '');
-          })
+          .filter((t) => t.parentId === item.parentId)
           .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 
         const currentIndex = group.findIndex((t) => t.id === item.id);
         const canMoveUp = currentIndex > 0;
         const canMoveDown = currentIndex !== -1 && currentIndex < group.length - 1;
 
+        const orderBadgeLabel =
+          item.depth === 0
+            ? `Gốc #${String(item.displayOrder ?? 0).padStart(2, '0')}`
+            : item.depth === 1
+            ? `Giai đoạn #${String(item.displayOrder ?? 0).padStart(2, '0')}`
+            : `Chuyên đề #${String(item.displayOrder ?? 0).padStart(2, '0')}`;
+
+        const badgeClass =
+          item.depth === 0
+            ? 'bg-amber-50 text-amber-800 border-amber-200'
+            : item.depth === 1
+            ? 'bg-blue-50 text-blue-700 border-blue-200'
+            : 'bg-slate-100 text-slate-700 border-slate-200';
+
         return (
           <div className="flex items-center gap-2">
             <span
-              className={`font-mono text-xs font-semibold px-1.5 py-0.5 rounded border ${
-                item.isChild
-                  ? 'bg-blue-50 text-blue-700 border-blue-200'
-                  : 'bg-slate-100 text-slate-800 border-slate-200/80'
-              }`}
-              title={item.isChild ? 'Thứ tự trong chủ đề cha' : 'Thứ tự trong giai đoạn'}
+              className={`font-mono text-xs font-semibold px-1.5 py-0.5 rounded border ${badgeClass}`}
+              title={`Thứ tự hiển thị: ${item.displayOrder ?? 0}`}
             >
-              {item.isChild
-                ? `Nhánh #${String(item.displayOrder ?? 0).padStart(2, '0')}`
-                : `Gốc #${String(item.displayOrder ?? 0).padStart(2, '0')}`}
+              {orderBadgeLabel}
             </span>
 
             <div className="flex flex-col -space-y-1">
@@ -448,6 +503,36 @@ export function TopicList() {
                 ▼
               </button>
             </div>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Bài học',
+      cell: (item) => {
+        const count = item._count?.lessons ?? 0;
+        return (
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
+                count > 0
+                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                  : 'bg-slate-100 text-slate-500 border-slate-200'
+              }`}
+            >
+              {count} bài
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/lessons/create?topicId=${item.id}`);
+              }}
+              className="text-[10px] font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 transition cursor-pointer"
+              title={`Tạo bài học mới cho chủ đề "${item.name}"`}
+            >
+              + Bài học
+            </button>
           </div>
         );
       },
@@ -548,7 +633,7 @@ export function TopicList() {
         onPrimaryButtonClick={handleNavigateCreate}
         onEdit={handleNavigateEdit}
         onDelete={(item) => setDeletingTopic(item)}
-        filters={[{ label: 'Giai đoạn' }, { label: 'Trạng thái' }]}
+        filters={[{ label: 'Trạng thái' }]}
       />
 
       <ConfirmDeleteModal

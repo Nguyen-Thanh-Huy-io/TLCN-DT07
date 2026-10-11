@@ -43,6 +43,7 @@ export function TopicModal({
   const [childrenTopics, setChildrenTopics] = useState<TopicItem[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCandidateId, setSelectedCandidateId] = useState('');
 
   const [periodId, setPeriodId] = useState('');
@@ -169,22 +170,29 @@ export function TopicModal({
     return true;
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       alert('Vui lòng nhập tên chủ đề.');
       return;
     }
 
-    onSave({
-      periodId: periodId ? periodId : null,
-      parentId: parentId ? parentId : null,
-      name: name.trim(),
-      description: description.trim() || undefined,
-      isSequential,
-      displayOrder: Number(displayOrder || 0),
-      status,
-    });
+    try {
+      setIsSubmitting(true);
+      await Promise.resolve(
+        onSave({
+          periodId: periodId ? periodId : null,
+          parentId: parentId ? parentId : null,
+          name: name.trim(),
+          description: description.trim() || undefined,
+          isSequential,
+          displayOrder: Number(displayOrder || 0),
+          status,
+        })
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Hành động gắn một chủ đề hiện có vào chủ đề này
@@ -284,7 +292,9 @@ export function TopicModal({
               </label>
 
               <label className="field">
-                <span className="text-xs font-medium text-slate-700">Giai đoạn lịch sử</span>
+                <span className="text-xs font-medium text-slate-700">
+                  Giai đoạn lịch sử <span className="text-slate-400 font-normal">(Tùy chọn)</span>
+                </span>
                 <select
                   value={periodId}
                   onChange={(e) => setPeriodId(e.target.value)}
@@ -299,7 +309,7 @@ export function TopicModal({
                   ))}
                 </select>
                 <span className="text-[11px] text-slate-400 mt-1">
-                  Gắn với giai đoạn niên đại tương ứng hoặc chuyên đề mở rộng.
+                  Không bắt buộc. Gắn với giai đoạn niên đại tương ứng hoặc để trống cho chuyên đề phi niên đại.
                 </span>
               </label>
             </div>
@@ -332,18 +342,18 @@ export function TopicModal({
                   <button
                     type="button"
                     onClick={() => setDisplayOrder(1)}
-                    className="text-[11px] font-medium text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 px-2 py-0.5 rounded transition"
-                    title="Đặt lên vị trí đầu tiên"
+                    className="text-[11px] font-medium text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 px-2 py-0.5 rounded transition cursor-pointer"
+                    title="Đặt thứ tự lên đầu danh sách (#1)"
                   >
-                    Đầu tiên (#1)
+                    Lên đầu danh sách (#1)
                   </button>
                   <button
                     type="button"
                     onClick={() => setDisplayOrder(suggestedNextOrder)}
-                    className="text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded transition"
-                    title="Đặt ở vị trí kế tiếp cuối danh sách"
+                    className="text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded transition cursor-pointer"
+                    title={`Đặt thứ tự xuống cuối danh sách (#${suggestedNextOrder})`}
                   >
-                    Kế tiếp (#{suggestedNextOrder})
+                    Xuống cuối danh sách (#{suggestedNextOrder})
                   </button>
                 </div>
               </div>
@@ -439,10 +449,10 @@ export function TopicModal({
                   onChange={(e) => setStatus(e.target.value as ContentStatus)}
                   className="bg-white"
                 >
-                  <option value={ContentStatus.DRAFT}>Bản nháp (Draft)</option>
-                  <option value={ContentStatus.PENDING_REVIEW}>Chờ duyệt (Pending Review)</option>
-                  <option value={ContentStatus.PUBLISHED}>Xuất bản (Published)</option>
-                  <option value={ContentStatus.ARCHIVED}>Lưu trữ (Archived)</option>
+                  <option value={ContentStatus.DRAFT}>Bản nháp</option>
+                  <option value={ContentStatus.PENDING_REVIEW}>Chờ duyệt</option>
+                  <option value={ContentStatus.PUBLISHED}>Xuất bản</option>
+                  <option value={ContentStatus.ARCHIVED}>Lưu trữ</option>
                 </select>
               </label>
 
@@ -566,11 +576,23 @@ export function TopicModal({
           )}
 
           <div className="modal-actions pt-3 border-t border-slate-100">
-            <button type="button" className="btn-secondary" onClick={onClose}>
+            <button
+              type="button"
+              className="btn-secondary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
               Hủy
             </button>
-            <button type="submit" className="btn-primary">
-              {initialData ? 'Lưu thay đổi' : 'Tạo mới'}
+            <button
+              type="submit"
+              className="btn-primary inline-flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={isSubmitting}
+            >
+              {isSubmitting && (
+                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              )}
+              <span>{isSubmitting ? 'Đang lưu...' : initialData ? 'Lưu thay đổi' : 'Tạo mới'}</span>
             </button>
           </div>
         </form>

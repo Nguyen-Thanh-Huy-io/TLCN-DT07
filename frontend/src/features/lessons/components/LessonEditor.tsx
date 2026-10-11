@@ -19,12 +19,16 @@ import { LessonMediaManager } from './LessonMediaManager';
 import { TopicCoverImagePicker } from '@/features/topics/components/TopicCoverImagePicker';
 import { LessonTemplateFactory } from '../templates/lesson-template.factory';
 import { LessonTemplateType } from '../templates/lesson-template.types';
+import { CurriculumSidePanel } from '@/features/curriculum/components/CurriculumSidePanel';
+import { CurriculumTreePreviewModal } from '@/features/curriculum/components/CurriculumTreePreviewModal';
 
 export function LessonEditor() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<EditorViewMode>(EditorViewMode.EDIT);
   const [showSidebar, setShowSidebar] = useState(true);
   const [isTopicPickerOpen, setIsTopicPickerOpen] = useState(false);
+  const [isCurriculumPreviewOpen, setIsCurriculumPreviewOpen] = useState(false);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
 
   // Facade Hook
   const {
@@ -413,6 +417,24 @@ export function LessonEditor() {
               <span className="text-[10px] text-slate-400">{showSidebar ? '✕' : '▼'}</span>
             </button>
           )}
+
+          {/* Nút Trợ lý Cây tri thức (Side Panel kiểu Ask Gemini) */}
+          <button
+            type="button"
+            onClick={() => setIsSidePanelOpen(!isSidePanelOpen)}
+            className={`group relative secondary-button !h-7 !text-xs !px-2 flex items-center gap-1 cursor-pointer transition ${
+              isSidePanelOpen ? '!bg-blue-50 !text-blue-700 !border-blue-300 font-semibold' : 'hover:!text-blue-700 hover:!border-blue-200'
+            }`}
+            title="Mở bảng trợ lý Cây tri thức ở mép phải (Real-time)"
+          >
+            <Icon name={IconName.GRID} size={13} className={isSidePanelOpen ? 'text-blue-600' : 'text-slate-500 group-hover:text-blue-600 transition'} />
+            <span className="hidden sm:inline">Cây tri thức</span>
+
+            {/* Tooltip hiển thị khi hover */}
+            <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-slate-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow transition-opacity group-hover:opacity-100 z-50">
+              Trợ lý Cây tri thức (Đồng bộ thời gian thực)
+            </span>
+          </button>
         </div>
 
         {/* Khối bên phải: Trạng thái Auto-save trực quan + Lưu nháp + Gửi duyệt */}
@@ -556,31 +578,31 @@ export function LessonEditor() {
                   Phân loại chương trình
                 </h3>
 
-                {/* Chọn chủ đề lịch sử: Thay thế dropdown select thô sơ bằng card trực quan + Modal Picker */}
-                <div className="space-y-1">
-                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide block">
-                    Chủ đề lịch sử <b className="text-rose-500">*</b>
-                  </span>
-                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className="text-xs font-bold text-slate-900 leading-snug line-clamp-2"
-                        title={currentTopic?.name || 'Chưa chọn chủ đề'}
-                      >
-                        {currentTopic?.name || (
-                          <span className="text-slate-400 font-normal">Đang nạp chủ đề...</span>
-                        )}
-                      </div>
-                    </div>
+                {/* Chọn chủ đề lịch sử: Thiết kế card hiển thị rõ ràng, nút Đổi tách biệt không bị ép méo */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                      Chủ đề lịch sử <b className="text-rose-500">*</b>
+                    </span>
                     <button
                       type="button"
                       disabled={saving}
                       onClick={() => setIsTopicPickerOpen(true)}
-                      className="shrink-0 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-200 px-2.5 py-1.5 rounded-md transition shadow-2xs flex items-center gap-1 cursor-pointer"
+                      className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 cursor-pointer"
                     >
-                      <Icon name={IconName.FOLDER} size={12} />
-                      <span>Đổi</span>
+                      <Icon name={IconName.FOLDER} size={11} />
+                      <span>Đổi chủ đề</span>
                     </button>
+                  </div>
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                    <div
+                      className="text-xs font-bold text-slate-900 leading-snug line-clamp-2"
+                      title={currentTopic?.name || 'Chưa chọn chủ đề'}
+                    >
+                      {currentTopic?.name || (
+                        <span className="text-slate-400 font-normal italic">Chưa gắn vào chủ đề nào...</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -674,6 +696,26 @@ export function LessonEditor() {
         subtitle="Chọn chủ đề trong cây tri thức để định vị chính xác vị trí của bài học"
         allowRootSelect={false}
         maxDepth={null}
+      />
+
+      {/* Modal Xem trước Cây tri thức toàn diện */}
+      <CurriculumTreePreviewModal
+        isOpen={isCurriculumPreviewOpen}
+        onClose={() => setIsCurriculumPreviewOpen(false)}
+        highlightTopicId={selectedTopicId || undefined}
+        highlightLessonId={lessonId || undefined}
+        title="Sơ đồ Cây tri thức toàn chương trình"
+        subtitle="Vị trí của bài học này trong cấu trúc lộ trình môn Lịch sử"
+      />
+
+      {/* Trợ lý Sơ đồ Cây tri thức Cố định Mép phải (Ask Gemini / Copilot Style) */}
+      <CurriculumSidePanel
+        isOpen={isSidePanelOpen}
+        onClose={() => setIsSidePanelOpen(false)}
+        currentTopicTitle={title}
+        currentDisplayOrder={displayOrder}
+        highlightTopicId={selectedTopicId || undefined}
+        highlightLessonId={lessonId || undefined}
       />
     </div>
   );

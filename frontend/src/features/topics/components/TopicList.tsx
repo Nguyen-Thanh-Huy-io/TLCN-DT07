@@ -13,6 +13,7 @@ import { ColumnDef } from '@/types/table.types';
 import { TopicItem } from '@/types/models/topic.type';
 import { TopicApiService } from '@/services/entities/topic.service';
 import { extractErrorMessage } from '@/services/api';
+import { CurriculumTreePreviewModal } from '@/features/curriculum/components/CurriculumTreePreviewModal';
 
 type HierarchyFilterType = 'ALL' | 'ROOT_ONLY' | 'CHILD_ONLY';
 
@@ -28,6 +29,7 @@ export function TopicList() {
   const router = useRouter();
   const [topics, setTopics] = useState<TopicItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCurriculumPreviewOpen, setIsCurriculumPreviewOpen] = useState(false);
   const [deletingTopic, setDeletingTopic] = useState<TopicItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [hierarchyFilter, setHierarchyFilter] = useState<HierarchyFilterType>('ALL');
@@ -586,25 +588,43 @@ export function TopicList() {
           </button>
         </div>
 
-        {hierarchyFilter === 'ALL' && (
-          <div className="flex items-center gap-2 text-xs">
-            <button
-              type="button"
-              onClick={expandAll}
-              className="text-slate-500 hover:text-slate-800 px-2 py-1 rounded hover:bg-slate-100 transition"
-            >
-              Mở rộng tất cả
-            </button>
-            <span className="text-slate-300">|</span>
-            <button
-              type="button"
-              onClick={collapseAll}
-              className="text-slate-500 hover:text-slate-800 px-2 py-1 rounded hover:bg-slate-100 transition"
-            >
-              Thu gọn tất cả
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Nút Xem nhanh Cây tri thức kèm Tooltip */}
+          <button
+            type="button"
+            onClick={() => setIsCurriculumPreviewOpen(true)}
+            className="group relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-200 text-xs font-medium text-slate-700 hover:text-blue-700 transition shadow-2xs cursor-pointer"
+            title="Xem toàn bộ sơ đồ Cây tri thức"
+          >
+            <Icon name={IconName.GRID} size={13} className="text-slate-500 group-hover:text-blue-600 transition" />
+            <span>Cây tri thức</span>
+
+            {/* Tooltip hiển thị khi hover */}
+            <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-slate-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow transition-opacity group-hover:opacity-100 z-50">
+              Xem nhanh toàn bộ sơ đồ Cây tri thức môn Lịch sử
+            </span>
+          </button>
+
+          {hierarchyFilter === 'ALL' && (
+            <div className="flex items-center gap-2 text-xs">
+              <button
+                type="button"
+                onClick={expandAll}
+                className="text-slate-500 hover:text-slate-800 px-2 py-1 rounded hover:bg-slate-100 transition"
+              >
+                Mở rộng tất cả
+              </button>
+              <span className="text-slate-300">|</span>
+              <button
+                type="button"
+                onClick={collapseAll}
+                className="text-slate-500 hover:text-slate-800 px-2 py-1 rounded hover:bg-slate-100 transition"
+              >
+                Thu gọn tất cả
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <DataTable<TopicTreeRow>
@@ -625,6 +645,14 @@ export function TopicList() {
         confirmLabel={isDeleting ? 'Đang xóa...' : 'Xác nhận xóa'}
         onConfirm={handleDeleteTopic}
         onClose={() => setDeletingTopic(null)}
+      />
+
+      {/* Modal Xem trước Cây tri thức dùng chung */}
+      <CurriculumTreePreviewModal
+        isOpen={isCurriculumPreviewOpen}
+        onClose={() => setIsCurriculumPreviewOpen(false)}
+        title="Sơ đồ Cây tri thức toàn chương trình"
+        subtitle="Tổng quan toàn bộ hệ thống chủ đề và bài học lịch sử"
       />
     </>
   );

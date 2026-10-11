@@ -39,7 +39,7 @@ export function LessonDifficultySelector({
       <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide block">
         Độ khó bài học
       </label>
-      <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100/80 border border-slate-200/80 rounded-lg">
+      <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100/80 border border-slate-200/80 rounded-lg">
         {(Object.keys(DIFFICULTY_CONFIG) as DifficultyLevel[]).map((level) => {
           const config = DIFFICULTY_CONFIG[level];
           const isSelected = value === level;
@@ -50,14 +50,14 @@ export function LessonDifficultySelector({
               type="button"
               disabled={disabled}
               onClick={() => onChange(level)}
-              className={`py-1.5 px-2 rounded-md text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer border ${
+              className={`py-1.5 px-1 rounded-md text-[11px] font-medium transition flex items-center justify-center gap-1 cursor-pointer border whitespace-nowrap ${
                 isSelected
                   ? config.activeClass
                   : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${config.dotClass}`} />
-              <span>{config.label}</span>
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.dotClass}`} />
+              <span className="truncate">{config.label}</span>
             </button>
           );
         })}

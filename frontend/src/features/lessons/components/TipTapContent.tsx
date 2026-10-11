@@ -119,7 +119,7 @@ export function TipTapContent({
             className={`tiptap-bubble-btn ${editor.isActive('blockquote') ? 'is-active' : ''}`}
             title="Trích dẫn"
           >
-            ❝
+            "
           </button>
           <div className="tiptap-bubble-divider" />
           <button
@@ -128,7 +128,7 @@ export function TipTapContent({
             className={`tiptap-bubble-btn ${editor.isActive('link') ? 'is-active' : ''}`}
             title="Gắn link"
           >
-            🔗
+            Link
           </button>
         </BubbleMenu>
       )}

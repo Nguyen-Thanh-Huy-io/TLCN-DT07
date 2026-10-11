@@ -220,7 +220,7 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
           className={`tiptap-btn quote-btn !px-2 !py-1 text-xs ${editor.isActive('blockquote') ? 'is-active' : ''}`}
           title="Khối trích dẫn danh ngôn / Chiếu chỉ"
         >
-          ❝ Trích dẫn
+          Trích dẫn
         </button>
       </div>
 
@@ -233,17 +233,17 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
           onClick={() => {
             const calloutHtml = `
               <div class="wiki-callout-box">
-                <div class="callout-header">💡 Ý nghĩa lịch sử & Đánh giá</div>
+                <div class="callout-header">Ý nghĩa lịch sử & Đánh giá</div>
                 <p>Nhập nội dung tóm tắt hoặc ý nghĩa lịch sử nổi bật tại đây...</p>
               </div>
               <p></p>
             `;
             editor.chain().focus().insertContent(calloutHtml).run();
           }}
-          className="tiptap-btn !px-2 !py-1 text-xs text-blue-700 hover:bg-blue-50"
+          className="tiptap-btn !px-2 !py-1 text-xs text-blue-700 hover:bg-blue-50 font-medium"
           title="Chèn hộp ghi chú sự kiện / Ý nghĩa lịch sử"
         >
-          💡 Ghi chú
+          Hộp ghi chú
         </button>
         <button
           type="button"
@@ -287,7 +287,7 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
           }`}
           title="Chèn tư liệu đa phương tiện"
         >
-          <span>📎 Chèn tư liệu</span>
+          <span>Chèn tư liệu</span>
           <span className="text-[10px] text-slate-500">▼</span>
         </button>
 
@@ -302,7 +302,7 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
               }}
               className="w-full text-left px-3 py-2 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 flex items-center gap-2 font-medium"
             >
-              <span>📤</span>
+              <span className="text-slate-400 font-bold">↑</span>
               <span>{uploading ? 'Đang tải lên...' : 'Tải ảnh từ máy'}</span>
             </button>
             <button
@@ -313,7 +313,7 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
               }}
               className="w-full text-left px-3 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
             >
-              <span>🖼</span>
+              <span className="text-slate-400 font-bold">#</span>
               <span>Chèn ảnh từ URL</span>
             </button>
             <button
@@ -324,7 +324,7 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
               }}
               className="w-full text-left px-3 py-2 hover:bg-red-50 text-slate-700 hover:text-red-700 flex items-center gap-2 font-medium"
             >
-              <span>🎬</span>
+              <span className="text-rose-500 font-bold">▶</span>
               <span>Nhúng video YouTube</span>
             </button>
             <div className="my-1 border-t border-slate-100" />
@@ -336,7 +336,7 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
               }}
               className="w-full text-left px-3 py-2 hover:bg-blue-50 text-slate-700 hover:text-blue-700 flex items-center gap-2"
             >
-              <span>🔗</span>
+              <span className="text-blue-500 font-bold">@</span>
               <span>Gắn link tham khảo</span>
             </button>
           </div>

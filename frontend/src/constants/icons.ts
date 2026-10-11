@@ -25,6 +25,9 @@ export enum IconName {
   TRASH = 'trash',
   FILTER = 'filter',
   SPARK = 'spark',
+  IMAGE = 'image',
+  FILE = 'file',
+  VIDEO = 'video',
 }
 
 export type IconNameType = `${IconName}`;

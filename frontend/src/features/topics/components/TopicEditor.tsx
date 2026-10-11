@@ -12,6 +12,7 @@ import { LessonApiService } from '@/services/entities/lesson.service';
 import { extractErrorMessage } from '@/services/api';
 import { TopicParentModalPicker } from './TopicParentModalPicker';
 import { TopicCoverImagePicker } from './TopicCoverImagePicker';
+import { CurriculumSidePanel } from '@/features/curriculum/components/CurriculumSidePanel';
 
 export interface TopicEditorProps {
   topicId?: string;
@@ -65,6 +66,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
   // Modal Picker state & Hiển thị danh sách lộ trình cùng cấp
   const [isParentPickerOpen, setIsParentPickerOpen] = useState(false);
   const [showSiblingList, setShowSiblingList] = useState(false);
+  const [isCurriculumPreviewOpen, setIsCurriculumPreviewOpen] = useState(false);
 
   // In-line Quick Create state (Tạo nhanh tại chỗ không chuyển trang)
   const [isQuickChildOpen, setIsQuickChildOpen] = useState(false);
@@ -502,6 +504,27 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
             Hủy bỏ
           </button>
 
+          {/* Nút Trợ lý Sơ đồ Cây tri thức (Ask Gemini / Copilot Style) */}
+          <button
+            type="button"
+            onClick={() => setIsCurriculumPreviewOpen((prev) => !prev)}
+            className={`group relative text-xs px-3 py-2 font-semibold rounded-lg border transition cursor-pointer inline-flex items-center gap-1.5 shadow-2xs ${
+              isCurriculumPreviewOpen
+                ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-100'
+                : 'bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border-slate-300 hover:border-blue-300'
+            }`}
+            title="Bật/Tắt Trợ lý Sơ đồ Cây tri thức bên phải (Ask Gemini Style)"
+          >
+            <Icon name={IconName.GRID} size={14} className={isCurriculumPreviewOpen ? 'text-white' : 'text-blue-600'} />
+            <span>Sơ đồ Cây</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-0.5" />
+
+            {/* Tooltip */}
+            <span className="pointer-events-none absolute -bottom-8 right-0 whitespace-nowrap rounded bg-slate-900 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 shadow transition-opacity group-hover:opacity-100 z-50">
+              Bật/Tắt thanh Trợ lý Sơ đồ Cây tri thức thời gian thực
+            </span>
+          </button>
+
           {/* Nút 1: Lưu bản nháp (Action: DRAFT) */}
           <button
             type="button"
@@ -651,107 +674,8 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
                     {orderExplanationText}
                   </span>
                 </div>
-
-                {siblings.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowSiblingList((prev) => !prev)}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1 cursor-pointer self-start sm:self-auto hover:underline"
-                  >
-                    <span>{showSiblingList ? 'Thu gọn lộ trình' : `Xem lộ trình (${siblings.length + 1} chủ đề)`}</span>
-                    <span className="text-[10px]">{showSiblingList ? '▲' : '▼'}</span>
-                  </button>
-                )}
               </div>
 
-              {/* Timeline trực quan tương tác (Interactive Vertical Timeline) */}
-              {showSiblingList && (
-                <div className="pt-3 border-t border-slate-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-[11px] font-medium text-slate-500">
-                      Lộ trình các chủ đề trong cùng nhánh (Kéo thả hoặc click để đổi thứ tự):
-                    </div>
-                    <span className="text-[10px] text-slate-400">
-                      Tổng số: {previewTimeline.length} chủ đề
-                    </span>
-                  </div>
-
-                  <div className="relative pl-6 space-y-1.5 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                    {previewTimeline.map((item, index) => {
-                      const isTarget = item.isCurrent;
-
-                      return (
-                        <div
-                          key={item.id}
-                          draggable={isTarget}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = 'move';
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            setDisplayOrder(index + 1);
-                          }}
-                          onClick={() => {
-                            if (!isTarget) {
-                              setDisplayOrder(index + 1);
-                            }
-                          }}
-                          className={`relative flex items-center justify-between px-2.5 py-1.5 rounded-lg border transition cursor-pointer select-none ${
-                            isTarget
-                              ? 'bg-blue-50/80 border-blue-300 ring-2 ring-blue-100 shadow-2xs'
-                              : 'bg-white border-slate-200/70 hover:border-blue-300 hover:bg-slate-50/70'
-                          }`}
-                          title={isTarget ? 'Kéo thả để đổi vị trí' : `Bấm vào đây để đặt chủ đề này ở vị trí #${index + 1}`}
-                        >
-                          <span
-                            className={`absolute -left-[1.65rem] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 transition ${
-                              isTarget
-                                ? 'border-blue-600 bg-blue-600 ring-4 ring-blue-100'
-                                : 'border-slate-300 bg-white'
-                            }`}
-                          />
-
-                          <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                            {isTarget && (
-                              <span className="text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing text-xs select-none">
-                                ⋮⋮
-                              </span>
-                            )}
-                            <span
-                              className={`font-mono text-xs font-bold shrink-0 ${
-                                isTarget ? 'text-blue-600' : 'text-slate-400'
-                              }`}
-                            >
-                              #{String(item.displayOrder).padStart(2, '0')}
-                            </span>
-                            <span
-                              className={`text-xs truncate ${
-                                isTarget ? 'font-bold text-blue-950' : 'text-slate-700'
-                              }`}
-                              title={item.name}
-                            >
-                              {item.name}
-                            </span>
-                          </div>
-
-                          <div className="shrink-0 flex items-center gap-1.5">
-                            {isTarget ? (
-                              <span className="text-[10px] text-blue-700 bg-white px-2 py-0.5 rounded font-semibold border border-blue-200 shadow-2xs">
-                                Vị trí đang chọn
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 hover:opacity-100 hover:text-blue-600 transition">
-                                Đặt vào đây
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Block 3: Quản lý Chủ đề con trực thuộc (Chỉ trong Edit Mode) */}
@@ -1076,6 +1000,94 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
 
           {/* CỘT PHẢI (Inspector Sidebar - 1 span) */}
           <div className="space-y-6">
+            {/* Card: XEM TRƯỚC VỊ TRÍ TRÊN CÂY TRI THỨC (Live Real-time Preview) */}
+            <div className="bg-white border border-blue-200/90 rounded-xl p-5 shadow-xs ring-1 ring-blue-50">
+              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Vị trí thực tế trên Cây tri thức
+                  </h3>
+                </div>
+                <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                  #{String(displayOrder).padStart(2, '0')}
+                </span>
+              </div>
+
+              {/* Đường dẫn phân cấp trực quan */}
+              <div className="text-xs text-slate-500 mb-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200/60 leading-relaxed">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">Đường dẫn:</div>
+                <div className="font-medium text-slate-800 text-sm">
+                  {parentBreadcrumb.pathText}
+                </div>
+              </div>
+
+              {/* Danh sách các chủ đề cùng nhánh thời gian thực */}
+              <div className="space-y-1.5 max-h-[360px] overflow-y-auto pr-1">
+                <div className="text-[11px] font-semibold text-slate-500 mb-1.5 flex items-center justify-between">
+                  <span>Thứ tự các chủ đề trong nhánh:</span>
+                  <span className="text-slate-400 font-normal">{previewTimeline.length} mục</span>
+                </div>
+
+                {previewTimeline.map((item, index) => {
+                  const isTarget = item.isCurrent;
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        if (!isTarget) {
+                          setDisplayOrder(index + 1);
+                        }
+                      }}
+                      className={`flex items-center justify-between px-3 py-2 rounded-lg border transition cursor-pointer text-xs ${
+                        isTarget
+                          ? 'bg-blue-600 text-white font-bold border-blue-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200/80 hover:bg-slate-50 hover:border-slate-300'
+                      }`}
+                      title={isTarget ? 'Vị trí của chủ đề bạn đang nhập' : `Click để chèn vào vị trí #${index + 1}`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        <span
+                          className={`font-mono font-bold text-xs shrink-0 ${
+                            isTarget ? 'text-blue-100' : 'text-slate-400'
+                          }`}
+                        >
+                          #{String(item.displayOrder).padStart(2, '0')}
+                        </span>
+                        <span className="truncate text-xs md:text-sm" title={item.name}>
+                          {item.name}
+                        </span>
+                      </div>
+
+                      <div className="shrink-0">
+                        {isTarget ? (
+                          <span className="text-[10px] bg-white text-blue-700 font-bold px-1.5 py-0.5 rounded shadow-2xs">
+                            Đang sửa
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400">
+                            Đặt vào đây
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Vừa sửa bên trái &rarr; Bên phải tự nhảy</span>
+                <button
+                  type="button"
+                  onClick={() => setIsCurriculumPreviewOpen(true)}
+                  className="text-blue-600 hover:text-blue-800 font-semibold cursor-pointer underline"
+                >
+                  Xem toàn cây ↗
+                </button>
+              </div>
+            </div>
+
             {/* Card: Thông tin trạng thái nội dung (Chỉ hiển thị khi xem / chỉnh sửa) */}
             {isEditMode && (
               <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
@@ -1239,6 +1251,15 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
         topics={allTopics}
         selectedParentId={parentId || null}
         currentTopicId={topicId}
+      />
+
+      {/* Trợ lý Sơ đồ Cây tri thức Cố định Mép phải (Ask Gemini / Copilot Style) */}
+      <CurriculumSidePanel
+        isOpen={isCurriculumPreviewOpen}
+        onClose={() => setIsCurriculumPreviewOpen(false)}
+        currentTopicTitle={name}
+        currentDisplayOrder={displayOrder}
+        highlightTopicId={topicId || parentId || undefined}
       />
     </div>
   );

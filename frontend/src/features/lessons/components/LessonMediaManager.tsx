@@ -135,38 +135,38 @@ export function LessonMediaManager({
       </div>
 
       {/* 3 Nút bấm trực quan thêm file/tư liệu (Không dùng dropdown khó nhìn) */}
-      <div className="grid grid-cols-3 gap-1">
+      <div className="grid grid-cols-3 gap-1.5">
         <button
           type="button"
           disabled={disabled || uploading}
           onClick={() => imageFileInputRef.current?.click()}
-          className="py-1.5 px-2 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 rounded-lg text-[11px] font-medium transition flex flex-col items-center gap-0.5 cursor-pointer shadow-2xs text-center"
+          className="py-2 px-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 rounded-lg text-[11px] font-medium transition flex flex-col items-center gap-1 cursor-pointer shadow-2xs text-center"
           title="Tải ảnh hoặc hiện vật lịch sử từ máy"
         >
-          <span className="text-sm">🖼️</span>
-          <span>Tải ảnh</span>
+          <Icon name={IconName.IMAGE} size={15} className="text-blue-600" />
+          <span className="whitespace-nowrap">Tải ảnh</span>
         </button>
 
         <button
           type="button"
           disabled={disabled || uploading}
           onClick={() => docFileInputRef.current?.click()}
-          className="py-1.5 px-2 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 rounded-lg text-[11px] font-medium transition flex flex-col items-center gap-0.5 cursor-pointer shadow-2xs text-center"
+          className="py-2 px-1.5 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 rounded-lg text-[11px] font-medium transition flex flex-col items-center gap-1 cursor-pointer shadow-2xs text-center"
           title="Đính kèm file PDF, Word, tài liệu nghiên cứu"
         >
-          <span className="text-sm">📄</span>
-          <span>File tài liệu</span>
+          <Icon name={IconName.FILE} size={15} className="text-emerald-600" />
+          <span className="whitespace-nowrap">Tài liệu</span>
         </button>
 
         <button
           type="button"
           disabled={disabled || uploading}
           onClick={handleAddUrl}
-          className="py-1.5 px-2 bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 text-slate-700 hover:text-purple-700 rounded-lg text-[11px] font-medium transition flex flex-col items-center gap-0.5 cursor-pointer shadow-2xs text-center"
+          className="py-2 px-1.5 bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 text-slate-700 hover:text-purple-700 rounded-lg text-[11px] font-medium transition flex flex-col items-center gap-1 cursor-pointer shadow-2xs text-center"
           title="Dán link Video YouTube hoặc URL tài liệu"
         >
-          <span className="text-sm">🎬</span>
-          <span>Link Video</span>
+          <Icon name={IconName.VIDEO} size={15} className="text-purple-600" />
+          <span className="whitespace-nowrap">Link Video</span>
         </button>
       </div>
 
@@ -187,8 +187,14 @@ export function LessonMediaManager({
                 className="flex items-center justify-between p-1.5 px-2 bg-slate-50/90 border border-slate-200 rounded-lg text-xs hover:bg-white transition"
               >
                 <div className="flex items-center gap-2 truncate pr-1">
-                  <span className="text-sm shrink-0">
-                    {isDoc ? '📄' : isVideo ? '🎬' : '🖼️'}
+                  <span className="shrink-0 text-slate-500">
+                    {isDoc ? (
+                      <Icon name={IconName.FILE} size={14} className="text-emerald-600" />
+                    ) : isVideo ? (
+                      <Icon name={IconName.VIDEO} size={14} className="text-purple-600" />
+                    ) : (
+                      <Icon name={IconName.IMAGE} size={14} className="text-blue-600" />
+                    )}
                   </span>
                   <div className="min-w-0">
                     <div className="truncate text-slate-800 font-semibold text-[11px]">

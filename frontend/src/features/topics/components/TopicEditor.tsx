@@ -664,51 +664,91 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
                 )}
               </div>
 
-              {/* Timeline dọc thanh lịch (Minimalist Vertical Timeline) */}
+              {/* Timeline trực quan tương tác (Interactive Vertical Timeline) */}
               {showSiblingList && (
                 <div className="pt-3 border-t border-slate-100">
-                  <div className="text-[11px] font-medium text-slate-500 mb-3">
-                    Lộ trình các chủ đề trong cùng nhánh:
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-[11px] font-medium text-slate-500">
+                      Lộ trình các chủ đề trong cùng nhánh (Kéo thả hoặc click để đổi thứ tự):
+                    </div>
+                    <span className="text-[10px] text-slate-400">
+                      Tổng số: {previewTimeline.length} chủ đề
+                    </span>
                   </div>
 
-                  <div className="relative pl-6 space-y-3 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                    {previewTimeline.map((item) => (
-                      <div key={item.id} className="relative flex items-center justify-between group">
-                        <span
-                          className={`absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full border-2 transition ${
-                            item.isCurrent
-                              ? 'border-blue-600 bg-blue-600 ring-4 ring-blue-100'
-                              : 'border-slate-300 bg-white'
+                  <div className="relative pl-6 space-y-1.5 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                    {previewTimeline.map((item, index) => {
+                      const isTarget = item.isCurrent;
+
+                      return (
+                        <div
+                          key={item.id}
+                          draggable={isTarget}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setDisplayOrder(index + 1);
+                          }}
+                          onClick={() => {
+                            if (!isTarget) {
+                              setDisplayOrder(index + 1);
+                            }
+                          }}
+                          className={`relative flex items-center justify-between px-2.5 py-1.5 rounded-lg border transition cursor-pointer select-none ${
+                            isTarget
+                              ? 'bg-blue-50/80 border-blue-300 ring-2 ring-blue-100 shadow-2xs'
+                              : 'bg-white border-slate-200/70 hover:border-blue-300 hover:bg-slate-50/70'
                           }`}
-                        />
-                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                          title={isTarget ? 'Kéo thả để đổi vị trí' : `Bấm vào đây để đặt chủ đề này ở vị trí #${index + 1}`}
+                        >
                           <span
-                            className={`font-mono text-xs font-bold shrink-0 ${
-                              item.isCurrent ? 'text-blue-600' : 'text-slate-400'
+                            className={`absolute -left-[1.65rem] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 transition ${
+                              isTarget
+                                ? 'border-blue-600 bg-blue-600 ring-4 ring-blue-100'
+                                : 'border-slate-300 bg-white'
                             }`}
-                          >
-                            #{String(item.displayOrder).padStart(2, '0')}
-                          </span>
-                          <span
-                            className={`text-xs truncate ${
-                              item.isCurrent ? 'font-semibold text-blue-950' : 'text-slate-700'
-                            }`}
-                            title={item.name}
-                          >
-                            {item.name}
-                          </span>
-                          {item.isCurrent ? (
-                            <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded font-medium border border-blue-200 shrink-0">
-                              Chủ đề này
+                          />
+
+                          <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                            {isTarget && (
+                              <span className="text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing text-xs select-none">
+                                ⋮⋮
+                              </span>
+                            )}
+                            <span
+                              className={`font-mono text-xs font-bold shrink-0 ${
+                                isTarget ? 'text-blue-600' : 'text-slate-400'
+                              }`}
+                            >
+                              #{String(item.displayOrder).padStart(2, '0')}
                             </span>
-                          ) : item.isShifted ? (
-                            <span className="text-[10px] text-slate-400 italic bg-slate-50 px-1.5 py-0.2 rounded border border-slate-100 shrink-0">
-                              Tự động lùi sau
+                            <span
+                              className={`text-xs truncate ${
+                                isTarget ? 'font-bold text-blue-950' : 'text-slate-700'
+                              }`}
+                              title={item.name}
+                            >
+                              {item.name}
                             </span>
-                          ) : null}
+                          </div>
+
+                          <div className="shrink-0 flex items-center gap-1.5">
+                            {isTarget ? (
+                              <span className="text-[10px] text-blue-700 bg-white px-2 py-0.5 rounded font-semibold border border-blue-200 shadow-2xs">
+                                Vị trí đang chọn
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 hover:opacity-100 hover:text-blue-600 transition">
+                                Đặt vào đây
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

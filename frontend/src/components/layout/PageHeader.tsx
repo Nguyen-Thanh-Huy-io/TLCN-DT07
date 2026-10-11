@@ -173,11 +173,13 @@ export function PageHeader({ pathname }: { pathname: string }) {
   const router = useRouter();
   const cleanPath = pathname.replace(/\/$/, '') || '/';
 
-  // In Curriculum Workspace & Lesson Editor, omit the large header to maximize vertical editor space
+  // In Curriculum Workspace, Lesson Editor & Topic Editor, omit the large header to maximize vertical editor space
   if (
     cleanPath === APP_ROUTES.CURRICULUM ||
     cleanPath === APP_ROUTES.LESSONS.CREATE ||
-    cleanPath.startsWith('/lessons/')
+    cleanPath.startsWith('/lessons/') ||
+    cleanPath === APP_ROUTES.TOPICS.CREATE ||
+    cleanPath.startsWith('/topics/')
   ) {
     return null;
   }

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { PeriodItem } from '@/types/models/period.type';
 import { ContentStatus } from '@/constants/enums';
+import { formatHistoricalTimeSpan } from '@/utils/history-year.utils';
 
 export interface PeriodFormData {
   name: string;
@@ -110,7 +111,7 @@ export function PeriodModal({
                 type="number"
                 value={startYear}
                 onChange={(e) => setStartYear(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="1954"
+                placeholder="1954 (hoặc -2000)"
                 required
               />
             </label>
@@ -120,9 +121,36 @@ export function PeriodModal({
                 type="number"
                 value={endYear}
                 onChange={(e) => setEndYear(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="1975 (để trống nếu kéo dài)"
+                placeholder="1975 (hoặc -1000)"
               />
             </label>
+          </div>
+
+          <div style={{ marginTop: -4, marginBottom: 8 }}>
+            <span style={{ fontSize: 11, color: '#64748b' }}>
+              💡 Nhập số âm cho năm Trước Công nguyên (ví dụ: <code>-2000</code> = 2000 TCN).
+            </span>
+            {startYear !== '' && (
+              <div
+                style={{
+                  marginTop: 6,
+                  padding: '6px 10px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  color: '#334155',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span style={{ fontWeight: 600 }}>Hiển thị niên đại:</span>
+                <span style={{ color: '#0f172a', fontWeight: 600 }}>
+                  {formatHistoricalTimeSpan(startYear, endYear)}
+                </span>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

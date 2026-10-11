@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { formatHistoricalYear } from '@/utils/history-year.utils';
 
 export interface EventFormData {
   name: string;
@@ -115,8 +116,13 @@ export function EventModal({
               <input
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                placeholder="Ví dụ: 1954 hoặc 07/05/1954"
+                placeholder="Ví dụ: 1954, -2000 hoặc 07/05/1954"
               />
+              {year && year.trim().startsWith('-') && (
+                <small style={{ fontSize: 11, color: '#0284c7', marginTop: 4, display: 'block' }}>
+                  Hiển thị: <b>{formatHistoricalYear(year)}</b>
+                </small>
+              )}
             </label>
           </div>
           <label className="field">

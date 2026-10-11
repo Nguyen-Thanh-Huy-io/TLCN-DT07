@@ -1,8 +1,8 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import {
-  CurriculumPeriodNode,
   CurriculumTopicNode,
+  CurriculumLessonNode,
   AnyCurriculumNode,
   CurriculumNodeType,
 } from '@/types/models/curriculum-tree.type';
@@ -10,138 +10,211 @@ import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 
 export interface CurriculumTreeProps {
-  data: CurriculumPeriodNode[];
+  data: CurriculumTopicNode[];
   selectedNode: AnyCurriculumNode | null;
   onSelectNode: (node: AnyCurriculumNode) => void;
-  onAddPeriod: () => void;
-  onAddTopic: (periodId: string) => void;
-  onAddLesson: (periodId: string, topicId: string) => void;
+  onAddTopic: (parentId?: string) => void;
+  onAddLesson: (topicId: string) => void;
 }
 
-export type TreeFilterType = 'ALL' | 'PERIODS' | 'TOPICS' | 'NO_QUIZ';
+export type TreeFilterType = 'ALL' | 'ROOT_ONLY' | 'HAS_LESSONS' | 'NO_QUIZ';
 
 export function CurriculumTree({
   data,
   selectedNode,
   onSelectNode,
-  onAddPeriod,
   onAddTopic,
   onAddLesson,
 }: CurriculumTreeProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<TreeFilterType>('ALL');
 
-  const [expandedPeriods, setExpandedPeriods] = useState<Record<string, boolean>>(
-    () => {
-      const initial: Record<string, boolean> = {};
-      data.forEach((p) => {
-        initial[p.id] = true;
-      });
-      return initial;
-    },
-  );
-
+  // Quản lý trạng thái mở rộng của các chủ đề gốc
   const [expandedTopics, setExpandedTopics] = useState<Record<string, boolean>>(
     () => {
       const initial: Record<string, boolean> = {};
-      data.forEach((p) => {
-        if (p.topics.length > 0) {
-          initial[p.topics[0].id] = true;
-        }
+      data.forEach((t) => {
+        initial[t.id] = true;
       });
       return initial;
     },
   );
 
-  const togglePeriod = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedPeriods((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
+  // Quản lý trạng thái mở rộng của các chủ đề con (Cấp 2 & Cấp 3)
+  const [expandedSubTopics, setExpandedSubTopics] = useState<Record<string, boolean>>(
+    () => {
+      const initial: Record<string, boolean> = {};
+      data.forEach((t) => {
+        const subs = t.subTopics || t.children || [];
+        subs.forEach((sub) => {
+          initial[sub.id] = true;
+          const grands = sub.subTopics || sub.children || [];
+          grands.forEach((g) => {
+            initial[g.id] = true;
+          });
+        });
+      });
+      return initial;
+    },
+  );
 
   const toggleTopic = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setExpandedTopics((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const toggleSubTopic = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedSubTopics((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   const expandAll = () => {
-    const pExp: Record<string, boolean> = {};
     const tExp: Record<string, boolean> = {};
-    data.forEach((p) => {
-      pExp[p.id] = true;
-      p.topics.forEach((t) => {
-        tExp[t.id] = true;
+    const sExp: Record<string, boolean> = {};
+    data.forEach((t) => {
+      tExp[t.id] = true;
+      const subs = t.subTopics || t.children || [];
+      subs.forEach((sub) => {
+        sExp[sub.id] = true;
+        const grands = sub.subTopics || sub.children || [];
+        grands.forEach((g) => {
+          sExp[g.id] = true;
+        });
       });
     });
-    setExpandedPeriods(pExp);
     setExpandedTopics(tExp);
+    setExpandedSubTopics(sExp);
   };
 
   const collapseAll = () => {
-    setExpandedPeriods({});
     setExpandedTopics({});
+    setExpandedSubTopics({});
   };
 
-  // Filter tree based on search term & filter type
+  // Lọc dữ liệu theo từ khóa tìm kiếm & bộ lọc
   const filteredData = useMemo(() => {
     let result = data;
 
-    if (activeFilter === 'NO_QUIZ') {
+    if (activeFilter === 'ROOT_ONLY') {
+      result = result.map((t) => ({ ...t, subTopics: [], children: [], lessons: [] }));
+    } else if (activeFilter === 'HAS_LESSONS') {
+      result = result.filter((t) => {
+        const subs = t.subTopics || t.children || [];
+        const hasSubLessons = subs.some((s) => s.lessons && s.lessons.length > 0);
+        return (t.lessons && t.lessons.length > 0) || hasSubLessons;
+      });
+    } else if (activeFilter === 'NO_QUIZ') {
       result = result
-        .map((p) => ({
-          ...p,
-          topics: p.topics
-            .map((t) => ({
-              ...t,
-              lessons: t.lessons.filter((l) => !l.hasQuiz),
+        .map((t) => {
+          const subs = t.subTopics || t.children || [];
+          const filteredSubs = subs
+            .map((s) => ({
+              ...s,
+              lessons: (s.lessons || []).filter((l) => !l.hasQuiz),
             }))
-            .filter((t) => t.lessons.length > 0),
-        }))
-        .filter((p) => p.topics.length > 0);
+            .filter((s) => s.lessons.length > 0);
+
+          const filteredLessons = (t.lessons || []).filter((l) => !l.hasQuiz);
+          if (filteredSubs.length > 0 || filteredLessons.length > 0) {
+            return { ...t, subTopics: filteredSubs, children: filteredSubs, lessons: filteredLessons };
+          }
+          return null;
+        })
+        .filter(Boolean) as CurriculumTopicNode[];
     }
 
     if (!searchTerm.trim()) return result;
     const term = searchTerm.toLowerCase();
 
     return result
-      .map((period) => {
-        const matchesPeriod = period.name.toLowerCase().includes(term);
-        const matchingTopics = period.topics
-          .map((topic) => {
-            const matchesTopic = topic.name.toLowerCase().includes(term);
-            const matchingLessons = topic.lessons.filter((lesson) =>
-              lesson.name.toLowerCase().includes(term),
-            );
+      .map((topic) => {
+        const matchesTopic = topic.name.toLowerCase().includes(term);
+        const subs = topic.subTopics || topic.children || [];
+        const matchingSubs = subs
+          .map((sub) => {
+            const matchesSub = sub.name.toLowerCase().includes(term);
+            const grands = sub.subTopics || sub.children || [];
+            const matchingGrands = grands
+              .map((grand) => {
+                const matchesGrand = grand.name.toLowerCase().includes(term);
+                const matchingGrandLessons = (grand.lessons || []).filter((l) =>
+                  (l.name || l.title || '').toLowerCase().includes(term),
+                );
+                if (matchesGrand || matchingGrandLessons.length > 0) {
+                  return { ...grand, lessons: matchingGrandLessons };
+                }
+                return null;
+              })
+              .filter(Boolean) as CurriculumTopicNode[];
 
-            if (matchesTopic || matchingLessons.length > 0) {
-              return { ...topic, lessons: matchingLessons };
+            const matchingSubLessons = (sub.lessons || []).filter((l) =>
+              (l.name || l.title || '').toLowerCase().includes(term),
+            );
+            if (matchesSub || matchingGrands.length > 0 || matchingSubLessons.length > 0) {
+              return {
+                ...sub,
+                subTopics: matchingGrands,
+                children: matchingGrands,
+                lessons: matchingSubLessons,
+              };
             }
             return null;
           })
           .filter(Boolean) as CurriculumTopicNode[];
 
-        if (matchesPeriod || matchingTopics.length > 0) {
-          return { ...period, topics: matchingTopics };
+        const matchingLessons = (topic.lessons || []).filter((l) =>
+          (l.name || l.title || '').toLowerCase().includes(term),
+        );
+
+        if (matchesTopic || matchingSubs.length > 0 || matchingLessons.length > 0) {
+          return {
+            ...topic,
+            subTopics: matchingSubs,
+            children: matchingSubs,
+            lessons: matchingLessons,
+          };
         }
         return null;
       })
-      .filter(Boolean) as CurriculumPeriodNode[];
+      .filter(Boolean) as CurriculumTopicNode[];
   }, [data, searchTerm, activeFilter]);
 
-  const totalPeriods = data.length;
-  const totalTopics = data.reduce((acc, p) => acc + p.topics.length, 0);
-  const totalLessons = data.reduce(
-    (acc, p) => acc + p.topics.reduce((a, t) => a + t.lessons.length, 0),
-    0,
-  );
-  const missingQuizLessons = data.reduce(
-    (acc, p) =>
-      acc +
-      p.topics.reduce(
-        (a, t) => a + t.lessons.filter((l) => !l.hasQuiz).length,
-        0,
-      ),
-    0,
-  );
+  // Thống kê số lượng hỗ trợ 3 cấp chủ đề
+  const totalRootTopics = data.length;
+  const totalSubTopics = data.reduce((acc, t) => {
+    const subs = t.subTopics || t.children || [];
+    const grandCount = subs.reduce(
+      (gAcc, s) => gAcc + (s.subTopics || s.children || []).length,
+      0,
+    );
+    return acc + subs.length + grandCount;
+  }, 0);
+
+  const totalLessons = data.reduce((acc, t) => {
+    const subs = t.subTopics || t.children || [];
+    let lessonSum = t.lessons?.length || 0;
+    subs.forEach((s) => {
+      lessonSum += s.lessons?.length || 0;
+      const grands = s.subTopics || s.children || [];
+      grands.forEach((g) => {
+        lessonSum += g.lessons?.length || 0;
+      });
+    });
+    return acc + lessonSum;
+  }, 0);
+
+  const missingQuizLessons = data.reduce((acc, t) => {
+    const subs = t.subTopics || t.children || [];
+    let missingSum = (t.lessons || []).filter((l) => !l.hasQuiz).length;
+    subs.forEach((s) => {
+      missingSum += (s.lessons || []).filter((l) => !l.hasQuiz).length;
+      const grands = s.subTopics || s.children || [];
+      grands.forEach((g) => {
+        missingSum += (g.lessons || []).filter((l) => !l.hasQuiz).length;
+      });
+    });
+    return acc + missingSum;
+  }, 0);
 
   return (
     <div className="curriculum-tree-card bg-white border border-slate-200 rounded-lg p-3 flex flex-col h-full">
@@ -153,7 +226,7 @@ export function CurriculumTree({
               Sơ đồ cây học tập
             </span>
             <span className="text-[10px] text-slate-500 font-mono">
-              {totalPeriods} giai đoạn • {totalTopics} chủ đề • {totalLessons} bài
+              {totalRootTopics} chủ đề chính • {totalSubTopics} chủ đề con • {totalLessons} bài
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -180,7 +253,7 @@ export function CurriculumTree({
         <div className="relative mb-2">
           <input
             type="text"
-            placeholder="Tìm theo giai đoạn, chủ đề, bài..."
+            placeholder="Tìm theo chủ đề, bài học..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full text-xs py-1.5 pl-7 pr-6 border border-slate-200 rounded-md focus:outline-none focus:border-slate-800 bg-slate-50/70 text-slate-900 placeholder:text-slate-400"
@@ -199,7 +272,7 @@ export function CurriculumTree({
           ) : null}
         </div>
 
-        {/* Quick Filter Pills (No emojis) */}
+        {/* Quick Filter Pills */}
         <div className="flex items-center gap-1 overflow-x-auto text-[11px]">
           <button
             type="button"
@@ -215,30 +288,30 @@ export function CurriculumTree({
           <button
             type="button"
             className={`px-2 py-0.5 rounded transition-colors font-medium ${
-              activeFilter === 'PERIODS'
+              activeFilter === 'ROOT_ONLY'
                 ? 'bg-slate-900 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
             onClick={() => {
-              setActiveFilter('PERIODS');
+              setActiveFilter('ROOT_ONLY');
               collapseAll();
             }}
           >
-            Giai đoạn
+            Chủ đề chính
           </button>
           <button
             type="button"
             className={`px-2 py-0.5 rounded transition-colors font-medium ${
-              activeFilter === 'TOPICS'
+              activeFilter === 'HAS_LESSONS'
                 ? 'bg-slate-900 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
             onClick={() => {
-              setActiveFilter('TOPICS');
+              setActiveFilter('HAS_LESSONS');
               expandAll();
             }}
           >
-            Chủ đề
+            Có bài học
           </button>
           {missingQuizLessons > 0 && (
             <button
@@ -263,60 +336,67 @@ export function CurriculumTree({
         </div>
       </div>
 
-      {/* Tree Content */}
+      {/* Tree Content: Recursive Topic-Centric Nodes */}
       <div className="tree-content flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
         {filteredData.length === 0 ? (
-          <div className="p-4 text-center text-xs text-slate-500 bg-slate-50 rounded border border-dashed border-slate-200">
-            Không tìm thấy mục nào phù hợp.
+          <div className="p-4 text-center text-xs text-slate-500">
+            Không tìm thấy chủ đề nào phù hợp.
           </div>
         ) : (
-          filteredData.map((period) => {
-            const isPeriodExpanded = !!expandedPeriods[period.id];
-            const isPeriodSelected =
-              selectedNode?.type === CurriculumNodeType.PERIOD &&
-              selectedNode.id === period.id;
+          filteredData.map((rootTopic) => {
+            const subs = rootTopic.subTopics || rootTopic.children || [];
+            const directLessons = rootTopic.lessons || [];
+            const hasChildren = subs.length > 0 || directLessons.length > 0;
+            const isExpanded = !!expandedTopics[rootTopic.id];
+            const isSelected =
+              selectedNode?.type === CurriculumNodeType.TOPIC &&
+              selectedNode.id === rootTopic.id;
 
             return (
-              <div key={period.id} className="period-branch">
-                {/* Level 1: Period Node */}
+              <div key={rootTopic.id} className="topic-root-branch">
+                {/* Level 1: Root Topic Node */}
                 <div
                   className={`tree-node group level-1 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
-                    isPeriodSelected
+                    isSelected
                       ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
                       : 'hover:bg-slate-50 text-slate-800'
                   }`}
-                  onClick={() => onSelectNode(period)}
+                  onClick={() => onSelectNode(rootTopic)}
                 >
                   <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                    <button
-                      type="button"
-                      className={`p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform ${
-                        isPeriodExpanded ? 'rotate-90' : ''
-                      }`}
-                      onClick={(e) => togglePeriod(period.id, e)}
-                    >
-                      <Icon name={IconName.CHEVRON} size={11} />
-                    </button>
+                    {hasChildren ? (
+                      <button
+                        type="button"
+                        className={`p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform ${
+                          isExpanded ? 'rotate-90' : ''
+                        }`}
+                        onClick={(e) => toggleTopic(rootTopic.id, e)}
+                      >
+                        <Icon name={IconName.CHEVRON} size={11} />
+                      </button>
+                    ) : (
+                      <span className="w-3.5 inline-block" />
+                    )}
                     <Icon
-                      name={IconName.CLOCK}
+                      name={IconName.FOLDER}
                       size={14}
-                      className={isPeriodSelected ? 'text-slate-900' : 'text-slate-500'}
+                      className={isSelected ? 'text-slate-900' : 'text-slate-600'}
                     />
-                    <span className="text-xs truncate font-medium" title={period.name}>
-                      {period.name}
+                    <span className="text-xs truncate font-medium" title={rootTopic.name}>
+                      {rootTopic.name}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 ml-2">
                     <span className="text-[10px] text-slate-400 font-mono">
-                      {period.topics.length} chủ đề
+                      {subs.length > 0 ? `${subs.length} con` : `${directLessons.length} bài`}
                     </span>
                     <button
                       type="button"
-                      title="Thêm chủ đề con thuộc giai đoạn này"
+                      title="Thêm chủ đề con thuộc chủ đề này"
                       className="tree-node-action p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onAddTopic(period.id);
+                        onAddTopic(rootTopic.id);
                       }}
                     >
                       <Icon name={IconName.PLUS} size={12} />
@@ -324,55 +404,65 @@ export function CurriculumTree({
                   </div>
                 </div>
 
-                {/* Level 2: Topic Nodes */}
-                {isPeriodExpanded && period.topics.length > 0 ? (
-                  <div className="topics-container ml-3 pl-2.5 border-l border-slate-200 my-0.5 space-y-0.5">
-                    {period.topics.map((topic) => {
-                      const isTopicExpanded = !!expandedTopics[topic.id];
-                      const isTopicSelected =
+                {/* Level 2: Sub-topics & Direct Lessons */}
+                {isExpanded && hasChildren ? (
+                  <div className="subtopics-container ml-3 pl-2.5 border-l border-slate-200 my-0.5 space-y-0.5">
+                    {/* Render Sub-topics (Cấp 2: Giai đoạn) */}
+                    {subs.map((subTopic) => {
+                      const isSubExpanded = !!expandedSubTopics[subTopic.id];
+                      const isSubSelected =
                         selectedNode?.type === CurriculumNodeType.TOPIC &&
-                        selectedNode.id === topic.id;
+                        selectedNode.id === subTopic.id;
+                      const grandChildren = subTopic.subTopics || subTopic.children || [];
+                      const subLessons = subTopic.lessons || [];
+                      const hasSubChildren = grandChildren.length > 0 || subLessons.length > 0;
 
                       return (
-                        <div key={topic.id} className="topic-branch">
+                        <div key={subTopic.id} className="subtopic-branch">
                           <div
                             className={`tree-node group level-2 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
-                              isTopicSelected
+                              isSubSelected
                                 ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
                                 : 'hover:bg-slate-50 text-slate-700'
                             }`}
-                            onClick={() => onSelectNode(topic)}
+                            onClick={() => onSelectNode(subTopic)}
                           >
                             <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                              <button
-                                type="button"
-                                className={`p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform ${
-                                  isTopicExpanded ? 'rotate-90' : ''
-                                }`}
-                                onClick={(e) => toggleTopic(topic.id, e)}
-                              >
-                                <Icon name={IconName.CHEVRON} size={11} />
-                              </button>
+                              {hasSubChildren ? (
+                                <button
+                                  type="button"
+                                  className={`p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform ${
+                                    isSubExpanded ? 'rotate-90' : ''
+                                  }`}
+                                  onClick={(e) => toggleSubTopic(subTopic.id, e)}
+                                >
+                                  <Icon name={IconName.CHEVRON} size={11} />
+                                </button>
+                              ) : (
+                                <span className="w-3.5 inline-block" />
+                              )}
                               <Icon
                                 name={IconName.FOLDER}
-                                size={13}
-                                className={isTopicSelected ? 'text-slate-900' : 'text-slate-500'}
+                                size={12}
+                                className={isSubSelected ? 'text-slate-900' : 'text-slate-400'}
                               />
-                              <span className="text-xs truncate" title={topic.name}>
-                                {topic.name}
+                              <span className="text-[11.5px] truncate font-medium" title={subTopic.name}>
+                                {subTopic.name}
                               </span>
                             </div>
                             <div className="flex items-center gap-1 ml-2">
                               <span className="text-[10px] text-slate-400 font-mono">
-                                {topic.lessons.length} bài
+                                {grandChildren.length > 0
+                                  ? `${grandChildren.length} chuyên đề`
+                                  : `${subLessons.length} bài`}
                               </span>
                               <button
                                 type="button"
-                                title="Thêm bài học con vào chủ đề này"
+                                title="Thêm chuyên đề hoặc bài học vào giai đoạn này"
                                 className="tree-node-action p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onAddLesson(period.id, topic.id);
+                                  onAddTopic(subTopic.id);
                                 }}
                               >
                                 <Icon name={IconName.PLUS} size={11} />
@@ -380,59 +470,128 @@ export function CurriculumTree({
                             </div>
                           </div>
 
-                          {/* Level 2.5: Sub-topic Nodes */}
-                          {isTopicExpanded &&
-                          topic.subTopics &&
-                          topic.subTopics.length > 0 ? (
-                            <div className="subtopics-container ml-3 pl-2.5 border-l border-slate-200 my-0.5 space-y-0.5">
-                              {topic.subTopics.map((subTopic) => {
-                                const isSubTopicSelected =
-                                  selectedNode?.type ===
-                                    CurriculumNodeType.TOPIC &&
-                                  selectedNode.id === subTopic.id;
+                          {/* Level 3: Chuyên đề (Grandchildren) & Direct Lessons */}
+                          {isSubExpanded && hasSubChildren ? (
+                            <div className="grand-container ml-3 pl-2.5 border-l border-slate-200 my-0.5 space-y-0.5">
+                              {/* 1. Các chủ đề con Cấp 3 (Chuyên đề) */}
+                              {grandChildren.map((grand) => {
+                                const isGrandExpanded = !!expandedSubTopics[grand.id];
+                                const isGrandSelected =
+                                  selectedNode?.type === CurriculumNodeType.TOPIC &&
+                                  selectedNode.id === grand.id;
+                                const grandLessons = grand.lessons || [];
+
                                 return (
-                                  <div
-                                    key={subTopic.id}
-                                    className={`tree-node group level-2-sub flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
-                                      isSubTopicSelected
-                                        ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
-                                        : 'hover:bg-slate-50 text-slate-700'
-                                    }`}
-                                    onClick={() => onSelectNode(subTopic)}
-                                  >
-                                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                      <Icon
-                                        name={IconName.FOLDER}
-                                        size={12}
-                                        className={
-                                          isSubTopicSelected
-                                            ? 'text-slate-900'
-                                            : 'text-slate-400'
-                                        }
-                                      />
-                                      <span
-                                        className="text-[11.5px] truncate"
-                                        title={subTopic.name}
-                                      >
-                                        {subTopic.name}
-                                      </span>
+                                  <div key={grand.id} className="grandchild-branch">
+                                    <div
+                                      className={`tree-node group level-3 flex items-center justify-between p-1 px-2 rounded-md cursor-pointer transition-colors ${
+                                        isGrandSelected
+                                          ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                                          : 'hover:bg-slate-50 text-slate-600'
+                                      }`}
+                                      onClick={() => onSelectNode(grand)}
+                                    >
+                                      <div className="flex items-center gap-1 min-w-0 flex-1">
+                                        {grandLessons.length > 0 ? (
+                                          <button
+                                            type="button"
+                                            className={`p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform ${
+                                              isGrandExpanded ? 'rotate-90' : ''
+                                            }`}
+                                            onClick={(e) => toggleSubTopic(grand.id, e)}
+                                          >
+                                            <Icon name={IconName.CHEVRON} size={10} />
+                                          </button>
+                                        ) : (
+                                          <span className="w-3 inline-block" />
+                                        )}
+                                        <Icon
+                                          name={IconName.FOLDER}
+                                          size={11}
+                                          className={
+                                            isGrandSelected ? 'text-slate-900' : 'text-slate-400'
+                                          }
+                                        />
+                                        <span
+                                          className="text-[11px] truncate"
+                                          title={grand.name}
+                                        >
+                                          {grand.name}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-1 ml-1.5">
+                                        <span className="text-[9.5px] text-slate-400 font-mono">
+                                          {grandLessons.length} bài
+                                        </span>
+                                        <button
+                                          type="button"
+                                          title="Thêm bài học vào chuyên đề này"
+                                          className="tree-node-action p-0.5 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onAddLesson(grand.id);
+                                          }}
+                                        >
+                                          <Icon name={IconName.PLUS} size={10} />
+                                        </button>
+                                      </div>
                                     </div>
-                                    <span className="text-[10px] text-slate-400 font-mono">
-                                      {subTopic.lessons.length} bài
-                                    </span>
+
+                                    {/* Bài học thuộc Chuyên đề Cấp 3 */}
+                                    {isGrandExpanded && grandLessons.length > 0 ? (
+                                      <div className="lessons-container ml-3 pl-2 border-l border-slate-200 my-0.5 space-y-0.5">
+                                        {grandLessons.map((lesson) => {
+                                          const isLessonSelected =
+                                            selectedNode?.type === CurriculumNodeType.LESSON &&
+                                            selectedNode.id === lesson.id;
+
+                                          return (
+                                            <div
+                                              key={lesson.id}
+                                              className={`tree-node group level-4 flex items-center justify-between p-1 px-1.5 rounded-md cursor-pointer transition-colors ${
+                                                isLessonSelected
+                                                  ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                                                  : 'hover:bg-slate-50 text-slate-600'
+                                              }`}
+                                              onClick={() => onSelectNode(lesson)}
+                                            >
+                                              <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-1">
+                                                <Icon
+                                                  name={IconName.BOOK}
+                                                  size={11}
+                                                  className={
+                                                    isLessonSelected
+                                                      ? 'text-slate-900'
+                                                      : 'text-slate-400'
+                                                  }
+                                                />
+                                                <span
+                                                  className="text-[10.5px] truncate"
+                                                  title={lesson.name || lesson.title}
+                                                >
+                                                  {lesson.name || lesson.title}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-1 ml-1">
+                                                {lesson.hasQuiz ? (
+                                                  <span className="text-[9px] text-slate-400 font-mono">
+                                                    Quiz
+                                                  </span>
+                                                ) : null}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : null}
                                   </div>
                                 );
                               })}
-                            </div>
-                          ) : null}
 
-                          {/* Level 3: Lesson Nodes */}
-                          {isTopicExpanded && topic.lessons.length > 0 ? (
-                            <div className="lessons-container ml-3 pl-2.5 border-l border-slate-200 my-0.5 space-y-0.5">
-                              {topic.lessons.map((lesson) => {
+                              {/* 2. Các bài học trực tiếp thuộc Giai đoạn (nếu có) */}
+                              {subLessons.map((lesson) => {
                                 const isLessonSelected =
-                                  selectedNode?.type ===
-                                    CurriculumNodeType.LESSON &&
+                                  selectedNode?.type === CurriculumNodeType.LESSON &&
                                   selectedNode.id === lesson.id;
 
                                 return (
@@ -445,45 +604,71 @@ export function CurriculumTree({
                                     }`}
                                     onClick={() => onSelectNode(lesson)}
                                   >
-                                    <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-3">
+                                    <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-2">
                                       <Icon
                                         name={IconName.BOOK}
                                         size={12}
                                         className={
-                                          isLessonSelected
-                                            ? 'text-slate-900'
-                                            : 'text-slate-400'
+                                          isLessonSelected ? 'text-slate-900' : 'text-slate-400'
                                         }
                                       />
                                       <span
                                         className="text-[11.5px] truncate"
-                                        title={lesson.name}
+                                        title={lesson.name || lesson.title}
                                       >
-                                        {lesson.name}
+                                        {lesson.name || lesson.title}
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-1 ml-2">
                                       {lesson.hasQuiz ? (
-                                        <span
-                                          className="text-[10px] text-slate-400 font-mono"
-                                          title="Đã có câu hỏi trắc nghiệm"
-                                        >
+                                        <span className="text-[10px] text-slate-400 font-mono">
                                           Quiz
                                         </span>
-                                      ) : (
-                                        <span
-                                          className="text-[10px] text-amber-700 font-mono bg-amber-50 px-1 rounded"
-                                          title="Chưa có câu hỏi trắc nghiệm"
-                                        >
-                                          No Quiz
-                                        </span>
-                                      )}
+                                      ) : null}
                                     </div>
                                   </div>
                                 );
                               })}
                             </div>
                           ) : null}
+                        </div>
+                      );
+                    })}
+
+                    {/* Render Direct Lessons under Root Topic (if any) */}
+                    {directLessons.map((lesson) => {
+                      const isLessonSelected =
+                        selectedNode?.type === CurriculumNodeType.LESSON &&
+                        selectedNode.id === lesson.id;
+
+                      return (
+                        <div
+                          key={lesson.id}
+                          className={`tree-node group level-3 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
+                            isLessonSelected
+                              ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                              : 'hover:bg-slate-50 text-slate-600'
+                          }`}
+                          onClick={() => onSelectNode(lesson)}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-3">
+                            <Icon
+                              name={IconName.BOOK}
+                              size={12}
+                              className={isLessonSelected ? 'text-slate-900' : 'text-slate-400'}
+                            />
+                            <span
+                              className="text-[11.5px] truncate"
+                              title={lesson.name || lesson.title}
+                            >
+                              {lesson.name || lesson.title}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 ml-2">
+                            {lesson.hasQuiz ? (
+                              <span className="text-[10px] text-slate-400 font-mono">Quiz</span>
+                            ) : null}
+                          </div>
                         </div>
                       );
                     })}
@@ -495,15 +680,15 @@ export function CurriculumTree({
         )}
       </div>
 
-      {/* Footer Quick Action */}
+      {/* Footer Quick Action: Thêm Chủ đề mới */}
       <div className="tree-footer pt-2 mt-2 border-t border-slate-100">
         <button
           type="button"
           className="w-full py-1.5 px-2 text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded border border-dashed border-slate-200 flex items-center justify-center gap-1.5 transition-colors"
-          onClick={onAddPeriod}
+          onClick={() => onAddTopic()}
         >
           <Icon name={IconName.PLUS} size={12} />
-          <span>Thêm Giai đoạn mới</span>
+          <span>Thêm Chủ đề mới</span>
         </button>
       </div>
     </div>

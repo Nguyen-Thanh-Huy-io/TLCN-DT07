@@ -12,6 +12,7 @@ import { ColumnDef } from '@/types/table.types';
 import { PeriodItem } from '@/types/models/period.type';
 import { PeriodApiService } from '@/services/entities/period.service';
 import { extractErrorMessage } from '@/services/api';
+import { formatHistoricalTimeSpan } from '@/utils/history-year.utils';
 
 const DEFAULT_PERIODS: PeriodItem[] = [
   {
@@ -118,12 +119,7 @@ export function PeriodList() {
     },
     {
       header: 'Thời gian',
-      cell: (item) =>
-        item.startYear !== undefined
-          ? item.endYear
-            ? `${item.startYear} – ${item.endYear}`
-            : `Từ ${item.startYear}`
-          : 'Không rõ',
+      cell: (item) => formatHistoricalTimeSpan(item.startYear, item.endYear),
     },
     {
       header: 'Thứ tự',

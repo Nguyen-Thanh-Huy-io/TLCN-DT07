@@ -25,4 +25,21 @@ export class UploadApiService {
     const data = (res.data as any)?.data || res.data;
     return data;
   }
+
+  /**
+   * Upload file tài liệu (PDF, Word, TXT) lên server
+   */
+  static async uploadDocument(file: File): Promise<UploadImageResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await api.post<UploadImageResult>('/upload/document', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    const data = (res.data as any)?.data || res.data;
+    return data;
+  }
 }

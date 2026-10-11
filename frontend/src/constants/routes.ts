@@ -13,6 +13,7 @@ export const APP_ROUTES = {
   TOPICS: {
     LIST: '/topics',
     CREATE: '/topics/create',
+    DETAIL: (id: string) => `/topics/${id}`,
   },
   LESSONS: {
     LIST: '/lessons',

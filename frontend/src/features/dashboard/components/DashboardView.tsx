@@ -113,10 +113,10 @@ export function DashboardView() {
       {/* KPI Stats Grid */}
       <section className="stats-grid">
         <StatCard
-          icon={IconName.CLOCK}
-          value={loading ? '...' : String(counts.periodsCount)}
-          label="Giai đoạn lịch sử"
-          detail="Phân chia theo dòng thời gian"
+          icon={IconName.GRID}
+          value={loading ? '...' : String(counts.topicsCount)}
+          label="Chủ đề học tập"
+          detail="Khung kiến thức trọng tâm"
           tone="blue"
         />
         <StatCard
@@ -353,9 +353,9 @@ export function DashboardView() {
             </div>
             <div className="quick-grid">
               <QuickAction
-                icon={IconName.CLOCK}
-                label="Quản lý Giai đoạn"
-                onClick={() => router.push(APP_ROUTES.PERIODS.LIST)}
+                icon={IconName.GRID}
+                label="Cây chương trình"
+                onClick={() => router.push(APP_ROUTES.CURRICULUM)}
               />
               <QuickAction
                 icon={IconName.FOLDER}

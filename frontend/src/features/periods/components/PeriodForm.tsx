@@ -7,6 +7,7 @@ import { IconName } from '@/constants/icons';
 import { APP_ROUTES } from '@/constants/routes';
 import { ContentStatus } from '@/constants/enums';
 import api, { extractErrorMessage } from '@/services/api';
+import { formatHistoricalTimeSpan } from '@/utils/history-year.utils';
 
 export function PeriodForm() {
   const router = useRouter();
@@ -91,17 +92,43 @@ export function PeriodForm() {
               label="Năm bắt đầu"
               required
               type="number"
-              placeholder="1945"
+              placeholder="1954 (hoặc -2000)"
               value={form.startYear}
               onChange={(e) => updateField('startYear', e.target.value)}
             />
             <Field
               label="Năm kết thúc"
               type="number"
-              placeholder="1954 (không bắt buộc)"
+              placeholder="1975 (hoặc -1000)"
               value={form.endYear}
               onChange={(e) => updateField('endYear', e.target.value)}
             />
+          </div>
+          <div style={{ marginTop: 6 }}>
+            <span style={{ fontSize: 12, color: '#64748b' }}>
+              💡 Nhập số âm cho năm Trước Công nguyên (ví dụ: <code>-2000</code> = 2000 TCN).
+            </span>
+            {form.startYear !== '' && (
+              <div
+                style={{
+                  marginTop: 6,
+                  padding: '8px 12px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 6,
+                  fontSize: 13,
+                  color: '#334155',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span style={{ fontWeight: 600 }}>Hiển thị niên đại:</span>
+                <span style={{ color: '#0f172a', fontWeight: 600 }}>
+                  {formatHistoricalTimeSpan(form.startYear, form.endYear)}
+                </span>
+              </div>
+            )}
           </div>
         </section>
 

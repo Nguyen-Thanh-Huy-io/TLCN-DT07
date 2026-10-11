@@ -1,6 +1,7 @@
 import { ContentStatus, DifficultyLevel, LearningPathType } from '@/constants/enums';
 import {
   CurriculumPeriodNode,
+  CurriculumTopicNode,
   CurriculumNodeType,
 } from '@/types/models/curriculum-tree.type';
 
@@ -457,3 +458,38 @@ export const THEMATIC_CURRICULUM_DATA: CurriculumPeriodNode[] = [
     ],
   },
 ];
+
+/**
+ * Cấu trúc Cây học liệu thuần Chủ đề (Pure Topic-Centric Hierarchy)
+ * Cấp 1: Chủ đề gốc (Root Topics)
+ * Cấp 2: Chủ đề con (Sub-topics)
+ * Cấp 3: Bài học (Lessons)
+ */
+export const DEFAULT_TOPIC_CURRICULUM_DATA: CurriculumTopicNode[] = DEFAULT_CURRICULUM_DATA.map(
+  (p, idx) => ({
+    id: `root-${p.id}`,
+    type: CurriculumNodeType.TOPIC,
+    name: p.name,
+    description: p.description,
+    isSequential: false,
+    status: p.status,
+    orderIndex: idx + 1,
+    displayOrder: idx + 1,
+    pathType: LearningPathType.CHRONOLOGICAL,
+    periodId: p.id,
+    subTopics: p.topics.map((t) => ({
+      ...t,
+      parentId: `root-${p.id}`,
+      subTopics: [],
+      children: [],
+    })),
+    children: p.topics.map((t) => ({
+      ...t,
+      parentId: `root-${p.id}`,
+      subTopics: [],
+      children: [],
+    })),
+    lessons: [],
+  }),
+);
+

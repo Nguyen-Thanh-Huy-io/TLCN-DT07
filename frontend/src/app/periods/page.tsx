@@ -1,5 +1,6 @@
-import { PeriodList } from '@/features/periods/components/PeriodList';
+import { redirect } from 'next/navigation';
+import { APP_ROUTES } from '@/constants/routes';
 
 export default function PeriodsPage() {
-  return <PeriodList />;
+  redirect(APP_ROUTES.CURRICULUM);
 }

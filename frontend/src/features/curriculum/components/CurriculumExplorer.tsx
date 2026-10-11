@@ -1,40 +1,79 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  CurriculumPeriodNode,
+  CurriculumTopicNode,
+  CurriculumLessonNode,
   AnyCurriculumNode,
   CurriculumNodeType,
 } from '@/types/models/curriculum-tree.type';
-import {
-  DEFAULT_CURRICULUM_DATA,
-  THEMATIC_CURRICULUM_DATA,
-} from '../data/curriculum-mock.data';
+import { DEFAULT_TOPIC_CURRICULUM_DATA } from '../data/curriculum-mock.data';
 import { CurriculumTree } from './CurriculumTree';
 import { CurriculumDetailPane } from './CurriculumDetailPane';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { APP_ROUTES } from '@/constants/routes';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
-import api from '@/services/api';
+import { LearningPathType } from '@/constants/enums';
+import { TopicApiService } from '@/services/entities/topic.service';
 
 export type CurriculumPerspectiveMode = 'CHRONOLOGICAL' | 'THEMATIC';
+
+/**
+ * Chuyển đổi dữ liệu cây phân cấp từ Backend API sang CurriculumTopicNode
+ */
+function mapBackendTopicTreeToCurriculum(topics: any[]): CurriculumTopicNode[] {
+  return topics.map((t, idx) => {
+    const lessons: CurriculumLessonNode[] = (t.lessons || []).map((l: any, lIdx: number) => ({
+      id: l.id,
+      type: CurriculumNodeType.LESSON,
+      name: l.title || l.name || '',
+      title: l.title || l.name || '',
+      topicId: t.id,
+      difficulty: l.difficulty,
+      status: l.status,
+      orderIndex: l.displayOrder ?? lIdx + 1,
+      displayOrder: l.displayOrder ?? lIdx + 1,
+      updatedAt: l.updatedAt,
+      thumbnailUrl: l.thumbnailUrl,
+      hasQuiz: false,
+    }));
+
+    const subTopics: CurriculumTopicNode[] = mapBackendTopicTreeToCurriculum(t.children || []);
+
+    return {
+      id: t.id,
+      type: CurriculumNodeType.TOPIC,
+      name: t.name,
+      description: t.description,
+      isSequential: t.isSequential ?? false,
+      status: t.status,
+      orderIndex: t.displayOrder ?? idx + 1,
+      displayOrder: t.displayOrder ?? idx + 1,
+      pathType: t.pathType || LearningPathType.CHRONOLOGICAL,
+      parentId: t.parentId,
+      periodId: t.periodId,
+      subTopics,
+      children: subTopics,
+      lessons,
+      updatedAt: t.updatedAt,
+      period: t.period,
+      _count: t._count,
+    };
+  });
+}
 
 export function CurriculumExplorer() {
   const router = useRouter();
   const [perspective, setPerspective] =
     useState<CurriculumPerspectiveMode>('CHRONOLOGICAL');
 
-  const [chronologicalData, setChronologicalData] =
-    useState<CurriculumPeriodNode[]>(DEFAULT_CURRICULUM_DATA);
-  const [thematicData, setThematicData] =
-    useState<CurriculumPeriodNode[]>(THEMATIC_CURRICULUM_DATA);
-
-  const currentData =
-    perspective === 'CHRONOLOGICAL' ? chronologicalData : thematicData;
+  const [treeData, setTreeData] =
+    useState<CurriculumTopicNode[]>(DEFAULT_TOPIC_CURRICULUM_DATA);
+  const [loading, setLoading] = useState(false);
 
   const [selectedNode, setSelectedNode] = useState<AnyCurriculumNode | null>(
-    DEFAULT_CURRICULUM_DATA[0],
+    DEFAULT_TOPIC_CURRICULUM_DATA[0] || null,
   );
 
   const [deleteTarget, setDeleteTarget] =
@@ -43,6 +82,35 @@ export function CurriculumExplorer() {
   // Resizable Split Pane Logic
   const [treeWidth, setTreeWidth] = useState<number>(360);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+
+  // Tải dữ liệu cây phân cấp thực tế từ Backend
+  const loadTree = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await TopicApiService.getTopicTree();
+      if (Array.isArray(res) && res.length > 0) {
+        const mapped = mapBackendTopicTreeToCurriculum(res);
+        setTreeData(mapped);
+        setSelectedNode((prev) => {
+          if (!prev) return mapped[0] || null;
+          // Giữ node đang chọn nếu còn tồn tại
+          const exists = mapped.some((m) => m.id === prev.id);
+          return exists ? prev : mapped[0] || null;
+        });
+      } else {
+        setTreeData(DEFAULT_TOPIC_CURRICULUM_DATA);
+      }
+    } catch (err) {
+      console.warn('Cannot fetch topic tree, fallback to sample data:', err);
+      setTreeData(DEFAULT_TOPIC_CURRICULUM_DATA);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadTree();
+  }, [loadTree]);
 
   useEffect(() => {
     const saved = localStorage.getItem('hisgo_curriculum_tree_width');
@@ -92,78 +160,75 @@ export function CurriculumExplorer() {
     localStorage.setItem('hisgo_curriculum_tree_width', '360');
   };
 
-  // Calculate Ancestor Trail for the selected node
-  const ancestors = React.useMemo(() => {
+  // Lọc theo góc nhìn (Niên đại vs Chuyên đề)
+  const currentData = useMemo(() => {
+    if (perspective === 'CHRONOLOGICAL') {
+      return treeData.filter((t) => t.pathType !== LearningPathType.THEMATIC);
+    }
+    return treeData.filter((t) => t.pathType === LearningPathType.THEMATIC);
+  }, [treeData, perspective]);
+
+  // Tính toán chuỗi đường dẫn (Breadcrumb / Ancestors)
+  const ancestors = useMemo(() => {
     if (!selectedNode) return [];
-    if (selectedNode.type === CurriculumNodeType.PERIOD) {
+
+    if (selectedNode.type === CurriculumNodeType.TOPIC) {
+      // Nếu là chủ đề con, tìm chủ đề cha trong danh sách
+      if (selectedNode.parentId) {
+        const parent = treeData.find((t) => t.id === selectedNode.parentId);
+        return parent ? [parent, selectedNode] : [selectedNode];
+      }
       return [selectedNode];
     }
-    if (selectedNode.type === CurriculumNodeType.TOPIC) {
-      const period = currentData.find((p) => p.id === selectedNode.periodId);
-      return period ? [period, selectedNode] : [selectedNode];
-    }
-    if (selectedNode.type === CurriculumNodeType.LESSON) {
-      const period = currentData.find((p) => p.id === selectedNode.periodId);
-      const topic = period?.topics.find((t) => t.id === selectedNode.topicId);
-      const trail = [];
-      if (period) trail.push(period);
-      if (topic) trail.push(topic);
-      trail.push(selectedNode);
-      return trail;
-    }
-    return [selectedNode];
-  }, [selectedNode, currentData]);
 
-  useEffect(() => {
-    api
-      .get('/periods')
-      .then((res) => {
-        const livePeriods = Array.isArray(res.data)
-          ? res.data
-          : res.data?.data || [];
-        if (livePeriods.length > 0) {
-          // Keep live synced
+    if (selectedNode.type === CurriculumNodeType.LESSON) {
+      // Tìm chủ đề cha trực tiếp và chủ đề gốc chứa lesson này
+      for (const root of treeData) {
+        if (root.id === selectedNode.topicId) {
+          return [root, selectedNode];
         }
-      })
-      .catch(() => {
-        // Fallback to mock data
-      });
-  }, []);
+        const subs = root.subTopics || root.children || [];
+        for (const sub of subs) {
+          if (sub.id === selectedNode.topicId) {
+            return [root, sub, selectedNode];
+          }
+        }
+      }
+      return [selectedNode];
+    }
+
+    return [selectedNode];
+  }, [selectedNode, treeData]);
 
   const handleSwitchPerspective = (nextMode: CurriculumPerspectiveMode) => {
     setPerspective(nextMode);
-    if (nextMode === 'CHRONOLOGICAL') {
-      setSelectedNode(chronologicalData[0] || null);
-    } else {
-      setSelectedNode(thematicData[0] || null);
-    }
+    const filtered =
+      nextMode === 'CHRONOLOGICAL'
+        ? treeData.filter((t) => t.pathType !== LearningPathType.THEMATIC)
+        : treeData.filter((t) => t.pathType === LearningPathType.THEMATIC);
+    setSelectedNode(filtered[0] || null);
   };
 
   const handleSelectNode = (node: AnyCurriculumNode) => {
     setSelectedNode(node);
   };
 
-  const handleAddPeriod = () => {
-    router.push(APP_ROUTES.PERIODS.CREATE);
+  const handleAddTopic = (parentId?: string) => {
+    if (parentId) {
+      router.push(`${APP_ROUTES.TOPICS.CREATE}?parentId=${parentId}`);
+    } else {
+      router.push(APP_ROUTES.TOPICS.CREATE);
+    }
   };
 
-  const handleAddChildTopic = (periodId: string) => {
-    router.push(`${APP_ROUTES.TOPICS.CREATE}?periodId=${periodId}`);
-  };
-
-  const handleAddChildLesson = (periodId: string, topicId: string) => {
-    router.push(
-      `${APP_ROUTES.LESSONS.CREATE}?periodId=${periodId}&topicId=${topicId}`,
-    );
+  const handleAddChildLesson = (_periodId: string, topicId: string) => {
+    router.push(`${APP_ROUTES.LESSONS.CREATE}?topicId=${topicId}`);
   };
 
   const handleEditNode = (node: AnyCurriculumNode) => {
     switch (node.type) {
-      case CurriculumNodeType.PERIOD:
-        router.push(APP_ROUTES.PERIODS.LIST);
-        break;
       case CurriculumNodeType.TOPIC:
-        router.push(APP_ROUTES.TOPICS.LIST);
+        router.push(APP_ROUTES.TOPICS.DETAIL(node.id));
         break;
       case CurriculumNodeType.LESSON:
         router.push(APP_ROUTES.LESSONS.CREATE);
@@ -175,32 +240,28 @@ export function CurriculumExplorer() {
     setDeleteTarget(node);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
 
-    const updater =
-      perspective === 'CHRONOLOGICAL'
-        ? setChronologicalData
-        : setThematicData;
-
-    if (deleteTarget.type === CurriculumNodeType.PERIOD) {
-      updater((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-      setSelectedNode(null);
-    } else if (deleteTarget.type === CurriculumNodeType.TOPIC) {
-      updater((prev) =>
-        prev.map((p) => ({
-          ...p,
-          topics: p.topics.filter((t) => t.id !== deleteTarget.id),
-        })),
-      );
-      setSelectedNode(null);
+    if (deleteTarget.type === CurriculumNodeType.TOPIC) {
+      try {
+        await TopicApiService.deleteTopic(deleteTarget.id);
+        await loadTree();
+        setSelectedNode(null);
+      } catch (err) {
+        console.error('Failed to delete topic:', err);
+        // Fallback xóa local
+        setTreeData((prev) => prev.filter((t) => t.id !== deleteTarget.id));
+        setSelectedNode(null);
+      }
     } else if (deleteTarget.type === CurriculumNodeType.LESSON) {
-      updater((prev) =>
-        prev.map((p) => ({
-          ...p,
-          topics: p.topics.map((t) => ({
-            ...t,
-            lessons: t.lessons.filter((l) => l.id !== deleteTarget.id),
+      setTreeData((prev) =>
+        prev.map((t) => ({
+          ...t,
+          lessons: t.lessons.filter((l) => l.id !== deleteTarget.id),
+          subTopics: (t.subTopics || []).map((s) => ({
+            ...s,
+            lessons: s.lessons.filter((l) => l.id !== deleteTarget.id),
           })),
         })),
       );
@@ -212,7 +273,7 @@ export function CurriculumExplorer() {
 
   return (
     <div className="curriculum-explorer-view space-y-2.5">
-      {/* Sleek Top Perspective & Action Bar */}
+      {/* Top Perspective & Primary Actions */}
       <div className="flex flex-wrap items-center justify-between gap-2 bg-white border border-slate-200 rounded-lg p-2 px-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 border-r border-slate-200 pr-3 shrink-0">
@@ -232,7 +293,7 @@ export function CurriculumExplorer() {
                   : 'text-slate-600 hover:text-slate-900 font-medium'
               }`}
               onClick={() => handleSwitchPerspective('CHRONOLOGICAL')}
-              title="Cấu trúc theo dòng thời gian các thời kỳ lịch sử"
+              title="Cấu trúc theo dòng thời gian các sự kiện lịch sử"
             >
               <Icon name={IconName.CLOCK} size={12} />
               <span>Theo Niên đại</span>
@@ -253,7 +314,7 @@ export function CurriculumExplorer() {
           </div>
         </div>
 
-        {/* Quick actions */}
+        {/* Quick actions: Không còn nút Thêm Giai đoạn, vào thẳng Tạo Chủ đề */}
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
@@ -267,10 +328,10 @@ export function CurriculumExplorer() {
           <button
             type="button"
             className="primary-button !h-7 !text-xs !px-2.5"
-            onClick={handleAddPeriod}
+            onClick={() => handleAddTopic()}
           >
             <Icon name={IconName.PLUS} size={12} />
-            <span>Thêm Giai đoạn</span>
+            <span>Tạo Chủ đề</span>
           </button>
         </div>
       </div>
@@ -287,7 +348,7 @@ export function CurriculumExplorer() {
           userSelect: isDragging ? 'none' : 'auto',
         }}
       >
-        {/* Left Column: Tree Explorer */}
+        {/* Left Column: Pure Topic-Centric Tree Explorer */}
         <div
           style={{
             height: '100%',
@@ -296,12 +357,11 @@ export function CurriculumExplorer() {
           }}
         >
           <CurriculumTree
-            data={currentData}
+            data={currentData.length > 0 ? currentData : treeData}
             selectedNode={selectedNode}
             onSelectNode={handleSelectNode}
-            onAddPeriod={handleAddPeriod}
-            onAddTopic={handleAddChildTopic}
-            onAddLesson={handleAddChildLesson}
+            onAddTopic={handleAddTopic}
+            onAddLesson={(topicId) => handleAddChildLesson('', topicId)}
           />
         </div>
 
@@ -321,7 +381,7 @@ export function CurriculumExplorer() {
             selectedNode={selectedNode}
             ancestors={ancestors}
             callbacks={{
-              onAddChildTopic: handleAddChildTopic,
+              onAddChildTopic: (parentId) => handleAddTopic(parentId),
               onAddChildLesson: handleAddChildLesson,
               onSelectNode: handleSelectNode,
               onEditNode: handleEditNode,

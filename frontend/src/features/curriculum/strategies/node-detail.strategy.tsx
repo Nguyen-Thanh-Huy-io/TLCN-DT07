@@ -15,6 +15,7 @@ import {
   DIFFICULTY_LABEL_MAP,
   DIFFICULTY_TONE_MAP,
 } from '@/constants/ui-theme';
+import { formatHistoricalTimeSpan } from '@/utils/history-year.utils';
 
 export interface DetailStrategyCallbacks {
   onAddChildTopic?: (periodId: string) => void;
@@ -73,10 +74,7 @@ export class PeriodNodeDetailStrategy implements INodeDetailStrategy {
       (acc, t) => acc + t.lessons.length,
       0,
     );
-    const timeSpan =
-      this.period.startYear !== undefined && this.period.endYear !== undefined
-        ? `${this.period.startYear < 0 ? `${Math.abs(this.period.startYear)} TCN` : this.period.startYear} – ${this.period.endYear}`
-        : 'Chưa xác định';
+    const timeSpan = formatHistoricalTimeSpan(this.period.startYear, this.period.endYear);
 
     return (
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 my-3">
@@ -269,16 +267,28 @@ export class TopicNodeDetailStrategy implements INodeDetailStrategy {
   }
 
   renderChildList(callbacks: DetailStrategyCallbacks): React.ReactNode {
+    const subTopics = this.topic.subTopics || this.topic.children || [];
+
     return (
       <div className="child-list-section mt-3 space-y-3">
         {/* Sub-topics if any */}
-        {this.topic.subTopics && this.topic.subTopics.length > 0 ? (
-          <div>
-            <h3 className="text-xs font-semibold text-slate-900 mb-2">
-              Chủ đề con ({this.topic.subTopics.length})
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-semibold text-slate-900">
+              Chủ đề con ({subTopics.length})
             </h3>
-            <div className="space-y-1.5">
-              {this.topic.subTopics.map((sub, idx) => (
+            <button
+              type="button"
+              className="secondary-button !h-6 !py-0 !px-2 !text-[11px]"
+              onClick={() => callbacks.onAddChildTopic?.(this.topic.id)}
+            >
+              <Icon name={IconName.PLUS} size={11} />
+              <span>Thêm chủ đề con</span>
+            </button>
+          </div>
+          {subTopics.length > 0 ? (
+            <div className="space-y-1.5 mb-3">
+              {subTopics.map((sub) => (
                 <div
                   key={sub.id}
                   className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between cursor-pointer transition-colors"
@@ -291,13 +301,17 @@ export class TopicNodeDetailStrategy implements INodeDetailStrategy {
                     </span>
                   </div>
                   <span className="text-[10px] text-slate-400 font-mono">
-                    {sub.lessons.length} bài
+                    {sub.lessons?.length || 0} bài
                   </span>
                 </div>
               ))}
             </div>
-          </div>
-        ) : null}
+          ) : (
+            <div className="p-3 text-center text-xs text-slate-400 bg-slate-50/50 rounded border border-dashed border-slate-200 mb-3">
+              Chưa có chủ đề con.
+            </div>
+          )}
+        </div>
 
         {/* Lessons List */}
         <div>
@@ -375,6 +389,14 @@ export class TopicNodeDetailStrategy implements INodeDetailStrategy {
         >
           <Icon name={IconName.EDIT} size={12} />
           <span>Sửa chủ đề</span>
+        </button>
+        <button
+          type="button"
+          className="secondary-button !h-7 !text-xs !px-2.5"
+          onClick={() => callbacks.onAddChildTopic?.(this.topic.id)}
+        >
+          <Icon name={IconName.PLUS} size={12} />
+          <span>Thêm chủ đề con</span>
         </button>
         <button
           type="button"

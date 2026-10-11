@@ -65,7 +65,7 @@ export class CurriculumNavStrategy implements INavigationGroupStrategy {
     page: 'curriculum',
     route: APP_ROUTES.CURRICULUM,
     groupId: this.groupId,
-    subtitle: 'Giai đoạn ➔ Chủ đề ➔ Bài học',
+    subtitle: 'Chủ đề ➔ Bài học & Quiz',
   };
 
   private readonly subPageConfigs: Record<string, NavItemConfig> = {
@@ -80,12 +80,12 @@ export class CurriculumNavStrategy implements INavigationGroupStrategy {
     },
     periods: {
       id: 'nav-periods',
-      label: 'Giai đoạn lịch sử',
-      icon: IconName.CLOCK,
-      page: 'periods',
-      route: APP_ROUTES.PERIODS.LIST,
+      label: 'Chương trình học',
+      icon: IconName.GRID,
+      page: 'curriculum',
+      route: APP_ROUTES.CURRICULUM,
       groupId: this.groupId,
-      subtitle: 'Thời kỳ & Niên đại',
+      subtitle: 'Sơ đồ cây & Danh mục học liệu',
     },
     topics: {
       id: 'nav-topics',

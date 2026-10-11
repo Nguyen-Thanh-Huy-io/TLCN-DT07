@@ -7,6 +7,7 @@ import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { EventModal, EventFormData } from './EventModal';
 import { IconName } from '@/constants/icons';
 import api from '@/services/api';
+import { formatHistoricalYear } from '@/utils/history-year.utils';
 
 export interface EventItem {
   id: string;
@@ -232,7 +233,7 @@ export function EventList() {
                     />
                   </td>
                   <td>{evt.topic}</td>
-                  <td>{evt.year}</td>
+                  <td>{formatHistoricalYear(evt.year)}</td>
                   <td>{evt.location || '—'}</td>
                   <td>
                     <ActionMenu

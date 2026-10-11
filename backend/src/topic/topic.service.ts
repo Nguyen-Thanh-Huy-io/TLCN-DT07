@@ -560,6 +560,8 @@ export class TopicService {
             difficulty: true,
             status: true,
             displayOrder: true,
+            thumbnailUrl: true,
+            updatedAt: true,
           },
         },
         period: {

@@ -164,11 +164,11 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
   const parentBreadcrumb = useMemo(() => {
     if (!parentId) {
       return {
-        levelName: 'Cấp 1 (Gốc)',
+        levelName: 'Chủ đề gốc',
         levelBadgeBg: 'bg-amber-50 text-amber-800 border-amber-200',
         title: 'Chủ đề gốc độc lập',
-        pathText: 'Chủ đề gốc cấp 1 (Không có cha)',
-        targetTierText: 'Cấp 1 (Chủ đề gốc cao nhất)',
+        pathText: 'Chủ đề gốc (Không có chủ đề cha)',
+        targetTierText: 'Chủ đề gốc (Cấp cao nhất)',
         depth: 0,
       };
     }
@@ -187,16 +187,15 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
       }
     }
 
-    const levelName = depthCount === 1 ? 'Cấp 2 (Giai đoạn)' : 'Cấp 3 (Chuyên đề)';
-    const levelBadgeBg =
-      depthCount === 1 ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-purple-50 text-purple-700 border-purple-200';
+    const levelName = 'Chủ đề con';
+    const levelBadgeBg = 'bg-blue-50 text-blue-700 border-blue-200';
 
     return {
       levelName,
       levelBadgeBg,
       title: path[path.length - 1],
       pathText: path.join(' > '),
-      targetTierText: `${levelName} trực thuộc`,
+      targetTierText: `Chủ đề con trực thuộc`,
       depth: depthCount,
     };
   }, [parentId, allTopics]);
@@ -604,7 +603,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
                     {parentBreadcrumb.levelName}
                   </span>
                   <span className="text-xs font-bold text-slate-900 truncate" title={parentBreadcrumb.pathText}>
-                    {parentId ? parentBreadcrumb.pathText : 'Chủ đề gốc (Cấp 1)'}
+                    {parentId ? parentBreadcrumb.pathText : 'Chủ đề gốc'}
                   </span>
                 </div>
 

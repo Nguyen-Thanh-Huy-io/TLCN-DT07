@@ -369,7 +369,7 @@ export function TopicList() {
             <div className="flex flex-col text-xs">
               <div className="flex items-center gap-1.5">
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                  Chủ đề gốc (Cấp 1)
+                  Chủ đề gốc
                 </span>
                 <button
                   type="button"
@@ -378,59 +378,41 @@ export function TopicList() {
                     handleNavigateCreateChild(item.id);
                   }}
                   className="text-[10px] font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 transition shrink-0"
-                  title={`Thêm giai đoạn con trực thuộc "${item.name}"`}
+                  title={`Thêm chủ đề con trực thuộc "${item.name}"`}
                 >
-                  + Thêm giai đoạn
+                  + Thêm chủ đề con
                 </button>
               </div>
-              <span className="text-[10px] text-slate-400 mt-0.5 font-mono">Cấp cao nhất</span>
             </div>
           );
         }
 
-        if (item.depth === 1) {
-          return (
-            <div className="flex flex-col text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                  Giai đoạn (Cấp 2)
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleNavigateCreateChild(item.id);
-                  }}
-                  className="text-[10px] font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 transition shrink-0"
-                  title={`Thêm chuyên đề trực thuộc "${item.name}"`}
-                >
-                  + Thêm chuyên đề
-                </button>
-              </div>
-              <span
-                className="text-[10px] text-slate-500 truncate max-w-[190px] mt-0.5"
-                title={`Thuộc: ${item.parentName || 'Chủ đề gốc'}`}
-              >
-                ↳ Thuộc: {item.parentName || 'Chủ đề gốc'}
-              </span>
-            </div>
-          );
-        }
-
-        // item.depth >= 2 (Chuyên đề / Cấp 3)
         return (
           <div className="flex flex-col text-xs">
             <div className="flex items-center gap-1.5">
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-normal bg-slate-100 text-slate-600 border border-slate-200">
-                Chuyên đề (Cấp 3)
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                Chủ đề con
               </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNavigateCreateChild(item.id);
+                }}
+                className="text-[10px] font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 transition shrink-0"
+                title={`Thêm chủ đề con trực thuộc "${item.name}"`}
+              >
+                + Thêm chủ đề con
+              </button>
             </div>
-            <span
-              className="text-[10px] text-slate-500 truncate max-w-[190px] mt-0.5"
-              title={`Thuộc: ${item.parentName || 'Giai đoạn'}`}
-            >
-              ↳ Thuộc: {item.parentName || 'Giai đoạn'}
-            </span>
+            {item.parentName && (
+              <span
+                className="text-[10px] text-slate-500 truncate max-w-[190px] mt-0.5"
+                title={`Thuộc: ${item.parentName}`}
+              >
+                ↳ Thuộc: {item.parentName}
+              </span>
+            )}
           </div>
         );
       },

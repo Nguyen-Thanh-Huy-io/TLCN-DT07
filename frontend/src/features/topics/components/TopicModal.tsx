@@ -389,11 +389,11 @@ export function TopicModal({
                 <div className="text-[11px] text-slate-600">
                   {parentId ? (
                     <span>
-                      Phạm vi: Xếp thứ tự trong Chủ đề cha <b>"{allTopics.find((t) => t.id === parentId)?.name || 'Chủ đề cha'}"</b> (Cấp 2)
+                      Phạm vi: Xếp thứ tự trong Chủ đề cha <b>"{allTopics.find((t) => t.id === parentId)?.name || 'Chủ đề cha'}"</b>
                     </span>
                   ) : (
                     <span>
-                      Phạm vi: Xếp thứ tự trong Giai đoạn <b>"{periods.find((p) => p.id === periodId)?.name || 'Phi niên đại'}"</b> (Cấp 1 - Gốc)
+                      Phạm vi: Xếp thứ tự trong Giai đoạn <b>"{periods.find((p) => p.id === periodId)?.name || 'Phi niên đại'}"</b>
                     </span>
                   )}
                 </div>

@@ -38,7 +38,7 @@ export function TopicParentModalPicker({
   title = 'Chọn vị trí phân cấp cho Chủ đề',
   subtitle = 'Chọn chủ đề cha trực thuộc để định vị chính xác vị trí trong cây tri thức',
   allowRootSelect = true,
-  rootLabel = '⭐ Đặt làm Chủ đề gốc (Cấp 1)',
+  rootLabel = 'Đặt làm Chủ đề gốc',
   rootDescription = 'Chủ đề độc lập ở cấp cao nhất, không trực thuộc bất kỳ chủ đề nào khác',
   maxDepth = 2,
 }: TopicParentModalPickerProps) {
@@ -105,7 +105,7 @@ export function TopicParentModalPicker({
         disabledReason = 'Không thể chọn chính nó hoặc chủ đề con của nó';
       } else if (isDepthExceeded) {
         isSelectable = false;
-        disabledReason = `Đã đạt trần tối đa (Cấp ${(maxDepth ?? 0) + 1}) - Không thể chứa thêm cấp con`;
+        disabledReason = 'Đã đạt giới hạn độ sâu phân cấp tối đa';
       }
 
       const rawChildren = childrenMap.get(topic.id) || [];
@@ -114,7 +114,7 @@ export function TopicParentModalPicker({
       return {
         topic,
         depth,
-        levelName: depth === 0 ? 'Cấp 1 (Gốc)' : depth === 1 ? 'Cấp 2 (Giai đoạn)' : 'Cấp 3 (Chuyên đề)',
+        levelName: depth === 0 ? 'Chủ đề gốc' : 'Chủ đề con',
         isSelectable,
         disabledReason,
         children: childrenNodes,
@@ -133,8 +133,8 @@ export function TopicParentModalPicker({
   const selectedBreadcrumb = useMemo(() => {
     if (!tempSelectedId) {
       return {
-        pathText: 'Chủ đề gốc (Cấp 1) - Không có chủ đề cha',
-        targetLevel: 'Cấp 1 (Chủ đề gốc cao nhất)',
+        pathText: 'Chủ đề gốc - Không có chủ đề cha',
+        targetLevel: 'Chủ đề gốc (Cấp cao nhất)',
       };
     }
 
@@ -152,12 +152,9 @@ export function TopicParentModalPicker({
       }
     }
 
-    const targetTierName =
-      depthCount === 1 ? 'Cấp 2 (Giai đoạn)' : depthCount === 2 ? 'Cấp 3 (Chuyên đề)' : 'Cấp vượt quá';
-
     return {
       pathText: path.join(' > '),
-      targetLevel: `${targetTierName} trực thuộc`,
+      targetLevel: 'Chủ đề con trực thuộc',
     };
   }, [tempSelectedId, topics]);
 
@@ -469,7 +466,7 @@ function TreeNodeItem({
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
               <span className="hidden sm:inline">
-                {node.disabledReason.includes('trần tối đa') ? 'Trần Cấp 3' : 'Đã khóa'}
+                {node.disabledReason.includes('giới hạn') ? 'Đạt giới hạn' : 'Đã khóa'}
               </span>
             </span>
           )}

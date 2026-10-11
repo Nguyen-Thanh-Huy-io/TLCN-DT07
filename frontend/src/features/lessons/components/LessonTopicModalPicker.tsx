@@ -46,10 +46,8 @@ export function LessonTopicModalPicker({
 
     const levelBadge =
       depth === 1
-        ? { text: 'Cấp 1 (Gốc)', bg: 'bg-amber-50 text-amber-800 border-amber-200' }
-        : depth === 2
-        ? { text: 'Cấp 2 (Giai đoạn)', bg: 'bg-blue-50 text-blue-700 border-blue-200' }
-        : { text: 'Cấp 3 (Chuyên đề)', bg: 'bg-purple-50 text-purple-700 border-purple-200' };
+        ? { text: 'Chủ đề gốc', bg: 'bg-amber-50 text-amber-800 border-amber-200' }
+        : { text: 'Chủ đề con', bg: 'bg-blue-50 text-blue-700 border-blue-200' };
 
     return {
       pathText: path.join(' > '),

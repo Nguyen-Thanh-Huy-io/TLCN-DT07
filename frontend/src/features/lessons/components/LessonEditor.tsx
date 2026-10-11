@@ -22,9 +22,16 @@ import { LessonTemplateType } from '../templates/lesson-template.types';
 import { CurriculumSidePanel } from '@/features/curriculum/components/CurriculumSidePanel';
 import { CurriculumTreePreviewModal } from '@/features/curriculum/components/CurriculumTreePreviewModal';
 
+export enum SidebarTab {
+  CLASSIFICATION = 'CLASSIFICATION',
+  MEDIA = 'MEDIA',
+  PUBLISHING = 'PUBLISHING',
+}
+
 export function LessonEditor() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<EditorViewMode>(EditorViewMode.EDIT);
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>(SidebarTab.CLASSIFICATION);
   const [showSidebar, setShowSidebar] = useState(true);
   const [isTopicPickerOpen, setIsTopicPickerOpen] = useState(false);
   const [isCurriculumPreviewOpen, setIsCurriculumPreviewOpen] = useState(false);
@@ -586,99 +593,204 @@ export function LessonEditor() {
             </div>
           )}
 
-          {/* Cột 3: Sidebar Thuộc tính & Tư liệu (Render duy nhất 1 lần, không trùng lặp) */}
-          {showSidebar && (
-            <aside className="flex flex-col gap-3 overflow-y-auto pr-0.5 animate-in slide-in-from-right duration-200">
-              {/* Phân loại chương trình */}
-              <section className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-2.5">
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide border-b border-slate-100 pb-1.5">
-                  Phân loại chương trình
-                </h3>
-
-                {/* Chọn chủ đề lịch sử: Thiết kế card hiển thị rõ ràng, nút Đổi tách biệt không bị ép méo */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                      Chủ đề lịch sử <b className="text-rose-500">*</b>
-                    </span>
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={() => setIsTopicPickerOpen(true)}
-                      className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <Icon name={IconName.FOLDER} size={11} />
-                      <span>Đổi chủ đề</span>
-                    </button>
-                  </div>
-                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
-                    <div
-                      className="text-xs font-bold text-slate-900 leading-snug line-clamp-2"
-                      title={currentTopic?.name || 'Chưa chọn chủ đề'}
-                    >
-                      {currentTopic?.name || (
-                        <span className="text-slate-400 font-normal italic">Chưa gắn vào chủ đề nào...</span>
-                      )}
-                    </div>
-                  </div>
+          {/* Cột 3: Sidebar Thuộc tính chia theo Tab (Phân loại - Media - Xuất bản) */}
+          {showSidebar && !isFullscreen && (
+            <aside className="flex flex-col gap-2.5 overflow-y-auto pr-0.5 animate-in slide-in-from-right duration-200">
+              {/* Thanh Tab chuyển đổi mục cài đặt trong Sidebar */}
+              <div className="bg-white border border-slate-200 rounded-xl p-1.5 shadow-2xs">
+                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100 px-1">
+                  <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                    Thiết lập bài học
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSidebar(false)}
+                    className="text-[11px] text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-1 rounded-md transition cursor-pointer"
+                    title="Thu gọn Sidebar"
+                  >
+                    Thu gọn ✕
+                  </button>
                 </div>
 
-                {/* Chọn độ khó bài học: Thay thế select bằng Segmented Pills trực quan */}
-                <LessonDifficultySelector
-                  value={difficulty}
-                  onChange={setDifficulty}
-                  disabled={saving}
-                />
+                <div className="grid grid-cols-3 gap-1 bg-slate-100/90 p-1 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setSidebarTab(SidebarTab.CLASSIFICATION)}
+                    className={`py-1 px-1 rounded-md text-[11px] font-semibold transition text-center cursor-pointer ${
+                      sidebarTab === SidebarTab.CLASSIFICATION
+                        ? 'bg-white text-blue-700 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Phân loại
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarTab(SidebarTab.MEDIA)}
+                    className={`py-1 px-1 rounded-md text-[11px] font-semibold transition text-center cursor-pointer ${
+                      sidebarTab === SidebarTab.MEDIA
+                        ? 'bg-white text-blue-700 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Media {mediaList.length > 0 ? `(${mediaList.length})` : ''}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarTab(SidebarTab.PUBLISHING)}
+                    className={`py-1 px-1 rounded-md text-[11px] font-semibold transition text-center cursor-pointer ${
+                      sidebarTab === SidebarTab.PUBLISHING
+                        ? 'bg-white text-blue-700 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Xuất bản
+                  </button>
+                </div>
+              </div>
 
-                {/* Thẻ (Tags) bài học */}
-                <LessonTagPicker
-                  selectedTags={selectedTags}
-                  onChange={setSelectedTags}
-                  disabled={saving}
-                />
+              {/* TAB 1: PHÂN LOẠI CHƯƠNG TRÌNH */}
+              {sidebarTab === SidebarTab.CLASSIFICATION && (
+                <div className="space-y-2.5 animate-in fade-in-50 duration-150">
+                  <section className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-3">
+                    {/* Chọn chủ đề lịch sử */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                          Chủ đề lịch sử <b className="text-rose-500">*</b>
+                        </span>
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() => setIsTopicPickerOpen(true)}
+                          className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Icon name={IconName.FOLDER} size={11} />
+                          <span>Đổi chủ đề</span>
+                        </button>
+                      </div>
+                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                        <div
+                          className="text-xs font-bold text-slate-900 leading-snug line-clamp-2"
+                          title={currentTopic?.name || 'Chưa chọn chủ đề'}
+                        >
+                          {currentTopic?.name || (
+                            <span className="text-slate-400 font-normal italic">Chưa gắn vào chủ đề nào...</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
-                {/* Thứ tự bài học tinh gọn */}
-                <LessonOrderField
-                  displayOrder={displayOrder}
-                  onChange={setDisplayOrder}
-                  topicLessons={topicLessons}
-                  loading={loadingTopicLessons}
-                  currentLessonId={lessonId}
-                  currentTitle={title}
-                  disabled={saving}
-                />
-              </section>
+                    {/* Chọn độ khó bài học */}
+                    <LessonDifficultySelector
+                      value={difficulty}
+                      onChange={setDifficulty}
+                      disabled={saving}
+                    />
 
-              {/* Ảnh bìa bài học (Tái sử dụng component TopicCoverImagePicker) */}
-              <TopicCoverImagePicker
-                value={thumbnailUrl}
-                onChange={setThumbnailUrl}
-                disabled={saving}
-                title="Ảnh bìa bài học"
-                compact
-              />
+                    {/* Thẻ (Tags) bài học */}
+                    <LessonTagPicker
+                      selectedTags={selectedTags}
+                      onChange={setSelectedTags}
+                      disabled={saving}
+                    />
 
-              {/* Tư liệu & Đính kèm file tài liệu (Ảnh, Video, PDF, Word) */}
-              <LessonMediaManager
-                mediaList={mediaList}
-                onAddMedia={addMediaItem}
-                onRemoveMedia={removeMediaItem}
-                disabled={saving}
-              />
+                    {/* Thứ tự bài học tinh gọn */}
+                    <LessonOrderField
+                      displayOrder={displayOrder}
+                      onChange={setDisplayOrder}
+                      topicLessons={topicLessons}
+                      loading={loadingTopicLessons}
+                      currentLessonId={lessonId}
+                      currentTitle={title}
+                      disabled={saving}
+                    />
+                  </section>
+                </div>
+              )}
 
-              {/* Nguồn tư liệu tham khảo */}
-              <section className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-1.5">
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide border-b border-slate-100 pb-1.5">
-                  Nguồn tư liệu tham khảo
-                </h3>
-                <textarea
-                  rows={3}
-                  value={sourceReferenceNote}
-                  onChange={(e) => setSourceReferenceNote(e.target.value)}
-                  placeholder="Ví dụ: Đại Việt Sử Ký Toàn Thư..."
-                  className="w-full text-xs p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-600 bg-slate-50/50"
-                />
-              </section>
+              {/* TAB 2: TƯ LIỆU & MEDIA */}
+              {sidebarTab === SidebarTab.MEDIA && (
+                <div className="space-y-2.5 animate-in fade-in-50 duration-150">
+                  {/* Ảnh bìa bài học */}
+                  <TopicCoverImagePicker
+                    value={thumbnailUrl}
+                    onChange={setThumbnailUrl}
+                    disabled={saving}
+                    title="Ảnh bìa bài học"
+                    compact
+                  />
+
+                  {/* Tư liệu & Đính kèm file tài liệu (Ảnh, Video, PDF, Word) */}
+                  <LessonMediaManager
+                    mediaList={mediaList}
+                    onAddMedia={addMediaItem}
+                    onRemoveMedia={removeMediaItem}
+                    disabled={saving}
+                  />
+                </div>
+              )}
+
+              {/* TAB 3: XUẤT BẢN & SỬ LIỆU THAM KHẢO */}
+              {sidebarTab === SidebarTab.PUBLISHING && (
+                <div className="space-y-2.5 animate-in fade-in-50 duration-150">
+                  {/* Trạng thái bài học & Thao tác lưu */}
+                  <section className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-2.5">
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide border-b border-slate-100 pb-1.5 flex items-center justify-between">
+                      <span>Trạng thái bài học</span>
+                      <Badge tone="gray">{status}</Badge>
+                    </h3>
+
+                    <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1.5 text-slate-600">
+                      <div className="flex justify-between">
+                        <span>Độ dài:</span>
+                        <span className="font-bold text-slate-800">{wordCount} từ</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Thời lượng đọc:</span>
+                        <span className="font-bold text-slate-800">~{estimatedReadMinutes} phút</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Tự động lưu:</span>
+                        <span className="font-medium text-emerald-600">Đang bật</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => submitLesson(ContentStatus.PENDING_REVIEW)}
+                        disabled={saving}
+                        className="primary-button !h-8 !text-xs !w-full justify-center cursor-pointer font-bold"
+                      >
+                        {lessonId ? 'Lưu cập nhật' : 'Gửi duyệt bài học'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => submitLesson(ContentStatus.DRAFT)}
+                        disabled={saving}
+                        className="secondary-button !h-8 !text-xs !w-full justify-center cursor-pointer"
+                      >
+                        {saving ? 'Đang lưu...' : 'Lưu bản nháp'}
+                      </button>
+                    </div>
+                  </section>
+
+                  {/* Nguồn tư liệu tham khảo */}
+                  <section className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-1.5">
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide border-b border-slate-100 pb-1.5">
+                      Nguồn tư liệu tham khảo
+                    </h3>
+                    <textarea
+                      rows={4}
+                      value={sourceReferenceNote}
+                      onChange={(e) => setSourceReferenceNote(e.target.value)}
+                      placeholder="Ví dụ: Đại Việt Sử Ký Toàn Thư, Lịch sử Việt Nam tập 10..."
+                      className="w-full text-xs p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-600 bg-slate-50/50"
+                    />
+                  </section>
+                </div>
+              )}
             </aside>
           )}
         </div>

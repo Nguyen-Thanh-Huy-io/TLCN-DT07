@@ -1504,9 +1504,10 @@ tbody tr:hover .quick-row-btn {
 }
 
 .tiptap-content-box {
-  min-height: 420px;
+  min-height: 480px;
+  height: 100%;
   overflow-y: auto;
-  padding: 24px 32px;
+  padding: 20px 24px;
   font-size: 15px;
   line-height: 1.8;
   color: #1e293b;
@@ -1515,7 +1516,8 @@ tbody tr:hover .quick-row-btn {
 
 .tiptap-content-box .tiptap {
   outline: none;
-  min-height: 380px;
+  min-height: 420px;
+  height: 100%;
 }
 
 .tiptap-content-box h1 {

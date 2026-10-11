@@ -29,6 +29,7 @@ export function LessonEditor() {
   const [isTopicPickerOpen, setIsTopicPickerOpen] = useState(false);
   const [isCurriculumPreviewOpen, setIsCurriculumPreviewOpen] = useState(false);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Facade Hook
   const {
@@ -403,8 +404,20 @@ export function LessonEditor() {
             </button>
           </div>
 
+          {/* Nút Toàn màn hình (Fullscreen) */}
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className={`secondary-button !h-7 !text-xs !px-2.5 cursor-pointer transition ${
+              isFullscreen ? '!bg-blue-50 !text-blue-700 !border-blue-300 font-semibold' : ''
+            }`}
+            title={isFullscreen ? 'Thu nhỏ giao diện soạn thảo' : 'Mở rộng soạn thảo toàn màn hình'}
+          >
+            <span>{isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}</span>
+          </button>
+
           {/* Toggle Sidebar Thuộc tính */}
-          {activeTab !== EditorViewMode.PREVIEW && (
+          {!isFullscreen && activeTab !== EditorViewMode.PREVIEW && (
             <button
               type="button"
               onClick={() => setShowSidebar(!showSidebar)}
@@ -471,7 +484,11 @@ export function LessonEditor() {
       ) : (
         <div
           className={`grid gap-4 transition-all ${
-            showSidebar
+            isFullscreen
+              ? 'fixed inset-0 z-50 bg-slate-100 p-4'
+              : ''
+          } ${
+            showSidebar && !isFullscreen
               ? activeTab === EditorViewMode.SPLIT
                 ? 'grid-cols-1 xl:grid-cols-[1fr_1fr_310px] lg:grid-cols-[1fr_1fr_280px]'
                 : 'grid-cols-1 xl:grid-cols-[1fr_320px] lg:grid-cols-[1fr_300px]'
@@ -479,10 +496,10 @@ export function LessonEditor() {
               ? 'grid-cols-1 lg:grid-cols-2'
               : 'grid-cols-1'
           }`}
-          style={{ minHeight: 'calc(100vh - 140px)' }}
+          style={{ minHeight: isFullscreen ? '100vh' : 'calc(100vh - 140px)' }}
         >
           {/* Cột 1: Soạn thảo bài học */}
-          <main className="flex flex-col gap-3 min-h-0 bg-white rounded-xl border border-slate-200 p-5 md:p-6 shadow-xs overflow-y-auto">
+          <main className="flex flex-col gap-3 min-h-0 bg-white rounded-xl border border-slate-200 p-5 md:p-6 shadow-xs overflow-y-auto h-full">
             <div className="flex flex-col gap-1 border-b border-slate-100 pb-2.5">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 TÊN BÀI HỌC LỊCH SỬ

@@ -1,5 +1,7 @@
 import { ContentStatus, DifficultyLevel, MediaType } from '@/constants/enums';
 import { LessonItem } from '@/types/models/lesson.type';
+import { TagItem } from '@/types/models/tag.type';
+import { TopicItem } from '@/types/models/topic.type';
 
 export interface LessonMediaItem {
   id?: string;
@@ -44,7 +46,7 @@ export interface UseLessonEditorFacadeReturn {
   removeMediaItem: (index: number) => void;
 
   // Metadata & Status
-  topics: Array<{ id: string; name: string }>;
+  topics: TopicItem[];
   topicLessons: LessonItem[];
   loadingTopicLessons: boolean;
   loadingLesson: boolean;
@@ -56,10 +58,32 @@ export interface UseLessonEditorFacadeReturn {
   // Auto-save Local Draft
   hasLocalDraft: boolean;
   lastSavedTime: string | null;
+  lastSavedAt: Date | null;
+  autoSaveState: AutoSaveState;
   restoreDraft: () => void;
   dismissDraft: () => void;
 
+  // Tags
+  selectedTags: TagItem[];
+  setSelectedTags: (tags: TagItem[]) => void;
+
   // Actions
   submitLesson: (nextStatus: ContentStatus) => Promise<void>;
+}
+
+/** Trạng thái tự động lưu nháp cục bộ */
+export enum AutoSaveState {
+  IDLE = 'IDLE',
+  PENDING = 'PENDING',
+  SAVED = 'SAVED',
+  ERROR = 'ERROR',
+  SYNCING = 'SYNCING',
+}
+
+/** Chế độ hiển thị của trình soạn thảo */
+export enum EditorViewMode {
+  EDIT = 'EDIT',
+  SPLIT = 'SPLIT',
+  PREVIEW = 'PREVIEW',
 }
 

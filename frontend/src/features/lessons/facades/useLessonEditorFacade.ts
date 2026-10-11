@@ -5,22 +5,29 @@ import { APP_ROUTES } from '@/constants/routes';
 import { ContentStatus, DifficultyLevel, MediaType } from '@/constants/enums';
 import { LessonApiService } from '@/services/entities/lesson.service';
 import { TopicApiService } from '@/services/entities/topic.service';
+import { TagApiService } from '@/services/entities/tag.service';
 import { extractErrorMessage } from '@/services/api';
-import { UseLessonEditorFacadeReturn, LessonMediaItem } from '../types/editor.types';
+import { UseLessonEditorFacadeReturn, LessonMediaItem, AutoSaveState } from '../types/editor.types';
 import { LessonItem } from '@/types/models/lesson.type';
+import { TagItem } from '@/types/models/tag.type';
+import { TopicItem } from '@/types/models/topic.type';
+
+/** Độ trễ debounce cho auto-save (ms) */
+const AUTO_SAVE_DEBOUNCE_MS = 1500;
 
 export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lessonId = searchParams.get('id');
+  const queryTopicId = searchParams.get('topicId') || '';
 
-  const [topics, setTopics] = useState<Array<{ id: string; name: string }>>([]);
+  const [topics, setTopics] = useState<TopicItem[]>([]);
   const [topicLessons, setTopicLessons] = useState<LessonItem[]>([]);
   const [loadingTopicLessons, setLoadingTopicLessons] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingLesson, setLoadingLesson] = useState(false);
 
-  const [selectedTopicId, setSelectedTopicId] = useState('');
+  const [selectedTopicId, setSelectedTopicId] = useState(queryTopicId);
   const [status, setStatus] = useState<ContentStatus>(ContentStatus.DRAFT);
   const [title, setTitle] = useState('');
   const [contentRichText, setContentRichText] = useState('');
@@ -28,6 +35,7 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
   const [sourceReferenceNote, setSourceReferenceNote] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [displayOrder, setDisplayOrder] = useState<number>(0);
+  const [selectedTags, setSelectedTags] = useState<TagItem[]>([]);
 
   // Local Draft Storage
   const draftStorageKey = useMemo(
@@ -36,6 +44,8 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
   );
   const [hasLocalDraft, setHasLocalDraft] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>(AutoSaveState.IDLE);
 
   // Media attachments list
   const [mediaList, setMediaList] = useState<LessonMediaItem[]>([]);
@@ -130,6 +140,7 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
         if (draft.sourceReferenceNote !== undefined) setSourceReferenceNote(draft.sourceReferenceNote);
         if (draft.displayOrder !== undefined) setDisplayOrder(draft.displayOrder);
         if (draft.selectedTopicId) setSelectedTopicId(draft.selectedTopicId);
+        if (Array.isArray(draft.selectedTags)) setSelectedTags(draft.selectedTags);
         setHasLocalDraft(false);
       }
     } catch (err) {
@@ -147,9 +158,13 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
     setHasLocalDraft(false);
   }, [draftStorageKey]);
 
-  // Tự động lưu nháp (Auto-save debounce 1.5s)
+  // Tự động lưu nháp (Auto-save debounce)
+  // Không ghi đè khi người dùng chưa quyết định khôi phục / bỏ qua bản nháp cũ
   useEffect(() => {
+    if (hasLocalDraft) return;
     if (!title && !contentRichText) return;
+
+    setAutoSaveState(AutoSaveState.PENDING);
     const timer = setTimeout(() => {
       try {
         const now = new Date();
@@ -162,17 +177,20 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
           sourceReferenceNote,
           displayOrder,
           selectedTopicId,
+          selectedTags,
           savedAt: timeStr,
         };
         localStorage.setItem(draftStorageKey, JSON.stringify(draftData));
         setLastSavedTime(timeStr);
+        setLastSavedAt(now);
+        setAutoSaveState(AutoSaveState.SAVED);
       } catch {
-        // Ignore localStorage quota
+        setAutoSaveState(AutoSaveState.ERROR);
       }
-    }, 1500);
+    }, AUTO_SAVE_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [title, contentRichText, thumbnailUrl, difficulty, sourceReferenceNote, displayOrder, selectedTopicId, draftStorageKey]);
+  }, [title, contentRichText, thumbnailUrl, difficulty, sourceReferenceNote, displayOrder, selectedTopicId, selectedTags, draftStorageKey, hasLocalDraft]);
 
   // 2. Tải dữ liệu bài học khi đang ở chế độ chỉnh sửa (có ID)
   useEffect(() => {
@@ -189,6 +207,13 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
             setThumbnailUrl(lesson.thumbnailUrl || '');
             setDisplayOrder(lesson.displayOrder ?? 0);
             setStatus(lesson.status || ContentStatus.DRAFT);
+            if (Array.isArray(lesson.lessonTags)) {
+              setSelectedTags(
+                lesson.lessonTags
+                  .map((lt: { tag?: TagItem }) => lt.tag)
+                  .filter((t: TagItem | undefined): t is TagItem => Boolean(t)),
+              );
+            }
             if (Array.isArray(lesson.media) && lesson.media.length > 0) {
               setMediaList(
                 lesson.media.map((m: any, idx: number) => ({
@@ -268,11 +293,20 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
           })),
         };
 
-        if (lessonId) {
-          await LessonApiService.updateLesson(lessonId, payload);
-        } else {
-          await LessonApiService.createLesson(payload);
+        setAutoSaveState(AutoSaveState.SYNCING);
+        const saved = lessonId
+          ? await LessonApiService.updateLesson(lessonId, payload)
+          : await LessonApiService.createLesson(payload);
+
+        // Gắn nhãn (backend thay thế toàn bộ danh sách; yêu cầu tối thiểu 1 nhãn)
+        const savedId = lessonId || saved?.id;
+        if (savedId && selectedTags.length > 0) {
+          await TagApiService.attachTagsToLesson(
+            savedId,
+            selectedTags.map((t) => t.id),
+          );
         }
+
         // Xóa bản nháp lưu trữ cục bộ khi lưu thành công
         try {
           localStorage.removeItem(draftStorageKey);
@@ -282,6 +316,7 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
         router.push(APP_ROUTES.LESSONS.LIST);
       } catch (err: unknown) {
         console.error('Failed to save lesson:', err);
+        setAutoSaveState(AutoSaveState.SAVED);
         alert(
           extractErrorMessage(
             err,
@@ -292,7 +327,7 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
         setSaving(false);
       }
     },
-    [selectedTopicId, title, contentRichText, thumbnailUrl, difficulty, sourceReferenceNote, displayOrder, mediaList, lessonId, draftStorageKey, router]
+    [selectedTopicId, title, contentRichText, thumbnailUrl, difficulty, sourceReferenceNote, displayOrder, mediaList, selectedTags, lessonId, draftStorageKey, router]
   );
 
   return {
@@ -324,8 +359,12 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
     lessonId,
     hasLocalDraft,
     lastSavedTime,
+    lastSavedAt,
+    autoSaveState,
     restoreDraft,
     dismissDraft,
+    selectedTags,
+    setSelectedTags,
     submitLesson,
   };
 }

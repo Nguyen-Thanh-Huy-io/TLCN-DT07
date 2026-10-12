@@ -22,21 +22,10 @@ export function Topbar({ page, openNav, collapsed, toggleCollapse }: TopbarProps
   return (
     <header className="topbar">
       <div className="breadcrumb">
-        {/* Nút thu gọn / mở rộng menu trên Desktop */}
+        {/* Nút mở drawer trên Mobile (chỉ hiển thị khi màn hình nhỏ) */}
         <button
           type="button"
-          className="desktop-collapse-btn"
-          onClick={toggleCollapse}
-          title={collapsed ? 'Mở rộng menu bên trái' : 'Thu gọn menu bên trái'}
-          aria-label="Thu gọn menu"
-        >
-          <Icon name={IconName.MENU} size={15} />
-        </button>
-
-        {/* Nút mở drawer trên Mobile */}
-        <button
-          type="button"
-          className="menu-btn"
+          className="menu-btn lg:hidden"
           onClick={openNav}
           aria-label="Mở menu di động"
         >

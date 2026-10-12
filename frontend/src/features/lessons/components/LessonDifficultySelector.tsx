@@ -6,6 +6,7 @@ export interface LessonDifficultySelectorProps {
   value: DifficultyLevel;
   onChange: (val: DifficultyLevel) => void;
   disabled?: boolean;
+  hideLabel?: boolean;
 }
 
 const DIFFICULTY_CONFIG: Record<
@@ -33,12 +34,15 @@ export function LessonDifficultySelector({
   value,
   onChange,
   disabled = false,
+  hideLabel = false,
 }: LessonDifficultySelectorProps) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide block">
-        Độ khó bài học
-      </label>
+      {!hideLabel && (
+        <label className="text-xs font-bold text-slate-700 uppercase tracking-wide block">
+          Độ khó bài học
+        </label>
+      )}
       <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100/80 border border-slate-200/80 rounded-lg">
         {(Object.keys(DIFFICULTY_CONFIG) as DifficultyLevel[]).map((level) => {
           const config = DIFFICULTY_CONFIG[level];
@@ -50,14 +54,14 @@ export function LessonDifficultySelector({
               type="button"
               disabled={disabled}
               onClick={() => onChange(level)}
-              className={`py-1.5 px-1 rounded-md text-[11px] font-medium transition flex items-center justify-center gap-1 cursor-pointer border whitespace-nowrap ${
+              className={`py-1.5 px-0.5 rounded-md text-[11px] font-semibold transition flex items-center justify-center gap-1 cursor-pointer border select-none ${
                 isSelected
                   ? config.activeClass
                   : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.dotClass}`} />
-              <span className="truncate">{config.label}</span>
+              <span className="shrink-0 tracking-tight">{config.label}</span>
             </button>
           );
         })}

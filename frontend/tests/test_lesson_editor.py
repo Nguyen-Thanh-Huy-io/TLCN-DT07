@@ -1,7 +1,7 @@
 """
-Automated Verification Suite for TipTap Lesson Editor (Phase 1)
-Validates HTTP accessibility, TipTap Editor components, historical typography,
-custom formatting tools, word count feedback and lifecycle action controls.
+Automated Verification Suite for TipTap Lesson Editor (Enhanced Sidebar & Order Timeline)
+Validates HTTP accessibility, TipTap Editor components, sidebar tabs (Classification, Media, Publishing),
+compact controls, displayOrder stepper, and lesson timeline preview.
 """
 
 import html as html_lib
@@ -21,8 +21,9 @@ def test_lesson_create_page_renders_cleanly_with_tiptap():
     # Verify standard workspace and page titles
     assert "TÊN BÀI HỌC LỊCH SỬ" in text or "TÊN BÀI HỌC" in text, "Missing lesson title field"
     assert "NỘI DUNG BÀI HỌC" in text, "Missing rich text section label"
-    assert "Phân loại chương trình" in text or "Phân loại" in text, "Missing classification sidebar"
-    assert "Nguồn tư liệu tham khảo" in text or "Nguồn tham khảo" in text, "Missing source reference note"
+    assert "Phân loại" in text, "Missing classification sidebar tab"
+    assert "Media" in text, "Missing media sidebar tab"
+    assert "Xuất bản" in text, "Missing publishing sidebar tab"
 
 def test_lesson_editor_action_controls_present():
     """
@@ -32,15 +33,15 @@ def test_lesson_editor_action_controls_present():
     assert response.status_code == 200
     text = html_lib.unescape(response.text)
 
-    # Actions on top and bottom
+    # Actions on top bar
     assert "Lưu nháp" in text, "Missing 'Lưu nháp' button"
     assert "Gửi duyệt" in text, "Missing 'Gửi duyệt' button"
     assert "Xem trước" in text, "Missing 'Xem trước' preview action"
-    assert "Thoát trình soạn thảo" in text, "Missing exit action"
+    assert "Quay lại" in text or "Thoát" in text, "Missing exit/back action"
 
 def test_lesson_editor_form_fields_present():
     """
-    Verifies core metadata inputs: difficulty, source note and topics
+    Verifies core metadata inputs in the default active tab (Classification)
     """
     response = requests.get(f"{BASE_URL}/lessons/create", timeout=10)
     assert response.status_code == 200
@@ -48,7 +49,8 @@ def test_lesson_editor_form_fields_present():
 
     assert "Chủ đề" in text, "Missing topic select field"
     assert "Độ khó" in text, "Missing difficulty field"
-    assert "từ vựng lịch sử" in text or "từ" in text, "Missing word counter display"
-    assert "Ảnh bìa bài học" in text, "Missing cover image thumbnail section"
+    assert "từ" in text, "Missing word counter display"
     assert "Thứ tự bài học" in text, "Missing displayOrder input field"
+    assert "Về đầu" in text, "Missing 'Về đầu' compact control button"
+    assert "Về cuối" in text, "Missing 'Về cuối' compact control button"
     assert "phút đọc" in text, "Missing estimated read time indicator"

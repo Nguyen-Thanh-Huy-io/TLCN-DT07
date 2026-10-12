@@ -122,28 +122,28 @@ export function LessonMediaManager({
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-        <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-          <Icon name={IconName.GRID} size={13} className="text-slate-500" />
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+        <h3 className="text-xs md:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+          <Icon name={IconName.GRID} size={14} className="text-slate-500" />
           <span>Tư liệu & Tài liệu ({mediaList.length})</span>
         </h3>
         {uploading && (
-          <span className="text-[10px] text-blue-600 font-semibold animate-pulse">
+          <span className="text-xs text-blue-600 font-semibold animate-pulse">
             Đang tải {uploadType === MediaType.DOCUMENT ? 'tài liệu...' : 'ảnh...'}
           </span>
         )}
       </div>
 
       {/* 3 Nút bấm trực quan thêm file/tư liệu (Không dùng dropdown khó nhìn) */}
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-3 gap-2">
         <button
           type="button"
           disabled={disabled || uploading}
           onClick={() => imageFileInputRef.current?.click()}
-          className="py-2 px-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 rounded-lg text-[11px] font-medium transition flex flex-col items-center gap-1 cursor-pointer shadow-2xs text-center"
+          className="py-2.5 px-2 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 rounded-lg text-xs font-semibold transition flex flex-col items-center gap-1.5 cursor-pointer shadow-2xs text-center"
           title="Tải ảnh hoặc hiện vật lịch sử từ máy"
         >
-          <Icon name={IconName.IMAGE} size={15} className="text-blue-600" />
+          <Icon name={IconName.IMAGE} size={16} className="text-blue-600" />
           <span className="whitespace-nowrap">Tải ảnh</span>
         </button>
 
@@ -151,10 +151,10 @@ export function LessonMediaManager({
           type="button"
           disabled={disabled || uploading}
           onClick={() => docFileInputRef.current?.click()}
-          className="py-2 px-1.5 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 rounded-lg text-[11px] font-medium transition flex flex-col items-center gap-1 cursor-pointer shadow-2xs text-center"
+          className="py-2.5 px-2 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 rounded-lg text-xs font-semibold transition flex flex-col items-center gap-1.5 cursor-pointer shadow-2xs text-center"
           title="Đính kèm file PDF, Word, tài liệu nghiên cứu"
         >
-          <Icon name={IconName.FILE} size={15} className="text-emerald-600" />
+          <Icon name={IconName.FILE} size={16} className="text-emerald-600" />
           <span className="whitespace-nowrap">Tài liệu</span>
         </button>
 
@@ -162,10 +162,10 @@ export function LessonMediaManager({
           type="button"
           disabled={disabled || uploading}
           onClick={handleAddUrl}
-          className="py-2 px-1.5 bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 text-slate-700 hover:text-purple-700 rounded-lg text-[11px] font-medium transition flex flex-col items-center gap-1 cursor-pointer shadow-2xs text-center"
+          className="py-2.5 px-2 bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 text-slate-700 hover:text-purple-700 rounded-lg text-xs font-semibold transition flex flex-col items-center gap-1.5 cursor-pointer shadow-2xs text-center"
           title="Dán link Video YouTube hoặc URL tài liệu"
         >
-          <Icon name={IconName.VIDEO} size={15} className="text-purple-600" />
+          <Icon name={IconName.VIDEO} size={16} className="text-purple-600" />
           <span className="whitespace-nowrap">Link Video</span>
         </button>
       </div>

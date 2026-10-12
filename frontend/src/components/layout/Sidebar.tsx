@@ -59,7 +59,7 @@ export function Sidebar({
             )}
             <button
               type="button"
-              className="mobile-close"
+              className="mobile-close lg:hidden"
               onClick={close}
               aria-label="Đóng menu"
             >

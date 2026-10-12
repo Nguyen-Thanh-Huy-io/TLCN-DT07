@@ -146,8 +146,33 @@ button {
   border-color: var(--text-subtle);
 }
 
-.desktop-collapse-btn {
-  display: grid;
+.mobile-close {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .mobile-close {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    transition: all 0.15s ease;
+  }
+  .mobile-close:hover {
+    background: var(--surface-subtle);
+    color: var(--text-main);
+  }
+}
+
+.menu-btn {
+  display: none;
   place-items: center;
   width: 32px;
   height: 32px;
@@ -159,9 +184,10 @@ button {
   transition: all 0.15s ease;
 }
 
-.desktop-collapse-btn:hover {
-  background: var(--surface-subtle);
-  color: var(--text-main);
+@media (max-width: 1024px) {
+  .menu-btn {
+    display: grid;
+  }
 }
 
 .logo-wrap {
@@ -1507,9 +1533,9 @@ tbody tr:hover .quick-row-btn {
   min-height: 480px;
   height: 100%;
   overflow-y: auto;
-  padding: 20px 24px;
-  font-size: 15px;
-  line-height: 1.8;
+  padding: 24px 28px;
+  font-size: 16px;
+  line-height: 1.7;
   color: #1e293b;
   background-color: #ffffff;
 }
@@ -1518,6 +1544,9 @@ tbody tr:hover .quick-row-btn {
   outline: none;
   min-height: 420px;
   height: 100%;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .tiptap-content-box h1 {

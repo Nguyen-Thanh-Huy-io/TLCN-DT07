@@ -1,0 +1,83 @@
+Cách CMS xử lý bài học — phần quan trọng nhất
+Trong lần trao đổi ngày 11/10, chúng ta đã làm rõ rằng không cần bắt buộc người biên soạn chọn một dạng bài học duy nhất rồi bị giới hạn trong dạng đó.
+Thay vào đó, cần phân biệt ba lớp:
+Lớp 1 — Mẫu trình bày
+
+Dùng để định hướng cách tổ chức bài học. Có thể chọn một mẫu gợi ý hoặc để trống nếu muốn tự xây dựng nội dung.
+Lớp 2 — Các khối nội dung
+
+Bài học có thể kết hợp văn bản, hình ảnh, tư liệu, timeline, hồ sơ nhân vật, bản đồ, nội dung về sự kiện và các thành phần so sánh khi phù hợp.
+Lớp 3 — Dữ liệu tri thức liên kết
+
+Các khối nội dung có thể tham chiếu đến sự kiện, nhân vật, địa điểm và tư liệu được quản lý riêng, thay vì phải tạo lại dữ liệu ở mỗi bài học.
+
+Ví dụ, bài học Chiến dịch Điện Biên Phủ năm 1954 có thể bao gồm:
+- Phần mở đầu và bối cảnh lịch sử.
+- Nội dung diễn biến theo từng đợt tiến công.
+- Timeline các mốc thời gian.
+- Bản đồ chiến dịch.
+- Hồ sơ các nhân vật liên quan.
+- Hình ảnh, tài liệu và nguồn tham khảo.
+- Kết quả và ý nghĩa lịch sử.
+Tất cả được kết hợp trong cùng một bài học. Không cần tạo sáu bài học riêng chỉ vì có sáu dạng thành phần.
+Lưu ý về phạm vi triển khai: các khối trên là định hướng về trải nghiệm biên soạn. Trong phạm vi API mà chúng ta xác định trước đây, Quiz/Question/Answer chưa nằm trong phạm vi triển khai hiện tại. Vì vậy, không nên mặc định rằng chức năng câu hỏi tương tác đã có đầy đủ backend chỉ vì thiết kế giao diện có thể hỗ trợ mở rộng về sau.
+5. Giao diện soạn thảo bài học dùng chung
+Giao diện trong ảnh bạn vừa gửi phù hợp với hướng chúng ta đã thống nhất.
+
+Sidebar trái — Mục lục bài học
+Hiển thị cấu trúc nội dung dạng cây, hỗ trợ chương, mục con, chọn nhanh vị trí và thêm mục.
+
+
+
+
+Main Content — Trình soạn thảo chung
+Tiêu đề, thông tin cơ bản, nội dung rich text, ảnh, tư liệu, phân loại, nguồn tham khảo, lưu nháp và xem trước.
+
+
+
+
+Panel phải — Inspector
+Chỉnh sửa metadata và quản lý các dữ liệu liên quan như sự kiện, nhân vật, địa điểm, timeline, media và nguồn tham khảo.
+
+
+
+Điểm cần phân biệt: khung soạn thảo dùng chung không có nghĩa mọi bài học phải có cùng các khối nội dung. Khung ngoài giữ ổn định; nội dung bên trong được bật, thêm, sắp xếp hoặc bỏ tùy bài học.
+6. Bản đồ, sự kiện, nhân vật và các loại nội dung khác
+Chúng ta đã trao đổi rằng các dạng nội dung này không nên bị ép vào cùng một form CRUD đơn giản.
+Loại dữ liệu	Cách quản lý
+Bài học	Rich-text editor và các khối nội dung
+Sự kiện lịch sử	Form sự kiện, thời gian, diễn biến, quan hệ và tư liệu
+Nhân vật	Hồ sơ nhân vật, thông tin tiểu sử và các liên kết lịch sử
+Địa điểm	Dữ liệu địa lý, vị trí và thông tin liên quan
+Bản đồ	Giao diện bản đồ chuyên biệt, dữ liệu địa điểm và lớp hiển thị khi được hỗ trợ
+Media, tư liệu	Quản lý tài sản, thông tin mô tả và liên kết đến nội dung sử dụng
+Tags	Phân loại và tìm kiếm nội dung
+Nguyên tắc là dữ liệu được quản lý ở nơi phù hợp, nhưng có thể tái sử dụng tại nhiều bài học. Ví dụ, một sự kiện lịch sử đã có trong từ điển tri thức có thể được liên kết vào nhiều bài học thay vì nhập lại toàn bộ.
+7. Quy trình biên soạn và duyệt bài
+#chatgpt-mermaid-_r_jn_{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:16px;fill:rgb(237, 237, 237);}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#chatgpt-mermaid-_r_jn_ .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-_r_jn_ .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-_r_jn_ .error-icon{fill:rgb(48, 48, 48);}#chatgpt-mermaid-_r_jn_ .error-text{fill:rgb(237, 237, 237);stroke:rgb(237, 237, 237);}#chatgpt-mermaid-_r_jn_ .edge-thickness-normal{stroke-width:1px;}#chatgpt-mermaid-_r_jn_ .edge-thickness-thick{stroke-width:3.5px;}#chatgpt-mermaid-_r_jn_ .edge-pattern-solid{stroke-dasharray:0;}#chatgpt-mermaid-_r_jn_ .edge-thickness-invisible{stroke-width:0;fill:none;}#chatgpt-mermaid-_r_jn_ .edge-pattern-dashed{stroke-dasharray:3;}#chatgpt-mermaid-_r_jn_ .edge-pattern-dotted{stroke-dasharray:2;}#chatgpt-mermaid-_r_jn_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-_r_jn_ .marker.cross{stroke:rgb(175, 175, 175);}#chatgpt-mermaid-_r_jn_ svg{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:16px;}#chatgpt-mermaid-_r_jn_ p{margin:0;}#chatgpt-mermaid-_r_jn_ .label{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";color:rgb(237, 237, 237);}#chatgpt-mermaid-_r_jn_ .cluster-label text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-_r_jn_ .cluster-label span{color:rgb(237, 237, 237);}#chatgpt-mermaid-_r_jn_ .cluster-label span p{background-color:transparent;}#chatgpt-mermaid-_r_jn_ .label text,#chatgpt-mermaid-_r_jn_ span{fill:rgb(237, 237, 237);color:rgb(237, 237, 237);}#chatgpt-mermaid-_r_jn_ .node rect,#chatgpt-mermaid-_r_jn_ .node circle,#chatgpt-mermaid-_r_jn_ .node ellipse,#chatgpt-mermaid-_r_jn_ .node polygon,#chatgpt-mermaid-_r_jn_ .node path{fill:rgb(9, 23, 44);stroke:rgb(31, 78, 148);stroke-width:1px;}#chatgpt-mermaid-_r_jn_ .rough-node .label text,#chatgpt-mermaid-_r_jn_ .node .label text,#chatgpt-mermaid-_r_jn_ .image-shape .label,#chatgpt-mermaid-_r_jn_ .icon-shape .label{text-anchor:middle;}#chatgpt-mermaid-_r_jn_ .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#chatgpt-mermaid-_r_jn_ .rough-node .label,#chatgpt-mermaid-_r_jn_ .node .label,#chatgpt-mermaid-_r_jn_ .image-shape .label,#chatgpt-mermaid-_r_jn_ .icon-shape .label{text-align:center;}#chatgpt-mermaid-_r_jn_ .node.clickable{cursor:pointer;}#chatgpt-mermaid-_r_jn_ .root .anchor path{fill:rgb(175, 175, 175)!important;stroke-width:0;stroke:rgb(175, 175, 175);}#chatgpt-mermaid-_r_jn_ .arrowheadPath{fill:rgb(175, 175, 175);}#chatgpt-mermaid-_r_jn_ .edgePath .path{stroke:rgb(175, 175, 175);stroke-width:1px;}#chatgpt-mermaid-_r_jn_ .flowchart-link{stroke:rgb(175, 175, 175);fill:none;}#chatgpt-mermaid-_r_jn_ .edgeLabel{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-_r_jn_ .edgeLabel p{background-color:rgb(0, 0, 0);}#chatgpt-mermaid-_r_jn_ .edgeLabel rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-_r_jn_ .labelBkg{background-color:rgba(0, 0, 0, 0.5);}#chatgpt-mermaid-_r_jn_ .cluster rect{fill:rgb(48, 48, 48);stroke:rgba(255, 255, 255, 0.15);stroke-width:1px;}#chatgpt-mermaid-_r_jn_ .cluster text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-_r_jn_ .cluster span{color:rgb(237, 237, 237);}#chatgpt-mermaid-_r_jn_ div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:12px;background:rgb(48, 48, 48);border:1px solid rgba(255, 255, 255, 0.15);border-radius:2px;pointer-events:none;z-index:100;}#chatgpt-mermaid-_r_jn_ .flowchartTitleText{text-anchor:middle;font-size:18px;fill:rgb(237, 237, 237);}#chatgpt-mermaid-_r_jn_ rect.text{fill:none;stroke-width:0;}#chatgpt-mermaid-_r_jn_ .icon-shape,#chatgpt-mermaid-_r_jn_ .image-shape{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-_r_jn_ .icon-shape p,#chatgpt-mermaid-_r_jn_ .image-shape p{background-color:rgb(0, 0, 0);padding:2px;}#chatgpt-mermaid-_r_jn_ .icon-shape .label rect,#chatgpt-mermaid-_r_jn_ .image-shape .label rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-_r_jn_ .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#chatgpt-mermaid-_r_jn_ .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#chatgpt-mermaid-_r_jn_ .node .neo-node{stroke:rgb(31, 78, 148);}#chatgpt-mermaid-_r_jn_ [data-look="neo"].node rect,#chatgpt-mermaid-_r_jn_ [data-look="neo"].cluster rect,#chatgpt-mermaid-_r_jn_ [data-look="neo"].node polygon{stroke:url(#chatgpt-mermaid-_r_jn_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-_r_jn_ [data-look="neo"].swimlane.cluster rect{filter:none;}#chatgpt-mermaid-_r_jn_ [data-look="neo"].node path{stroke:url(#chatgpt-mermaid-_r_jn_-gradient);stroke-width:1px;}#chatgpt-mermaid-_r_jn_ [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-_r_jn_ [data-look="neo"].node .neo-line path{stroke:rgb(31, 78, 148);filter:none;}#chatgpt-mermaid-_r_jn_ [data-look="neo"].node circle{stroke:url(#chatgpt-mermaid-_r_jn_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-_r_jn_ [data-look="neo"].node circle .state-start{fill:#000000;}#chatgpt-mermaid-_r_jn_ [data-look="neo"].icon-shape .icon{fill:url(#chatgpt-mermaid-_r_jn_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-_r_jn_ [data-look="neo"].icon-shape .icon-neo path{stroke:url(#chatgpt-mermaid-_r_jn_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-_r_jn_ .node text{font-size:14px;font-weight:600;letter-spacing:normal;fill:rgb(153, 206, 255);}#chatgpt-mermaid-_r_jn_ .edgeLabels text{font-size:13px;font-weight:600;letter-spacing:-0.08px;fill:rgb(153, 206, 255);}#chatgpt-mermaid-_r_jn_ .node tspan[font-weight="normal"],#chatgpt-mermaid-_r_jn_ .edgeLabels tspan[font-weight="normal"]{font-weight:600;}#chatgpt-mermaid-_r_jn_ .edgeLabel .label rect{opacity:1;rx:13px;ry:13px;fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-width:1px;}#chatgpt-mermaid-_r_jn_ .node rect,#chatgpt-mermaid-_r_jn_ .node circle,#chatgpt-mermaid-_r_jn_ .node ellipse,#chatgpt-mermaid-_r_jn_ .node polygon,#chatgpt-mermaid-_r_jn_ .node path{fill:rgb(0, 40, 77);stroke:rgba(255, 255, 255, 0.1);stroke-width:1px;}#chatgpt-mermaid-_r_jn_ .node rect{rx:16px;ry:16px;}#chatgpt-mermaid-_r_jn_ .node.mermaid-decision .label-container{fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-dasharray:2,2;}#chatgpt-mermaid-_r_jn_ .edgePaths .flowchart-link{stroke:rgb(175, 175, 175);stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;}#chatgpt-mermaid-_r_jn_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-_r_jn_ :root{--mermaid-font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";}Tạo bài họcChỉnh sửa nội dungLưu nhápGửi duyệtNgười duyệt kiểm traXuất bảnTừ chối kèm lý doĐạt yêu cầuCần chỉnh sửa
+
+
+
+
+
+Các trạng thái đã thống nhất:
+- DRAFT: bản nháp.
+- PENDING_REVIEW: chờ duyệt.
+- PUBLISHED: đã xuất bản.
+- REJECTED: bị từ chối, cần xử lý theo lý do phản hồi.
+Người tạo nội dung chịu trách nhiệm biên soạn. Người duyệt cần kiểm tra nội dung, metadata và nguồn tham khảo; khi từ chối, phải cung cấp lý do. Giao diện duyệt nên hiển thị rõ người tạo, trạng thái và dữ liệu cần xem xét.
+8. Những nguyên tắc kiến trúc đã chốt
+Dùng chung component, không dùng chung mọi màn hình một cách máy móc.
+Các bảng, form, dialog, bộ lọc và trạng thái có thể tái sử dụng. Bản đồ, trình soạn thảo và hồ sơ nhân vật vẫn cần trải nghiệm riêng.
+
+
+Bài học có thể kết hợp nhiều dạng nội dung.
+Mẫu trình bày là tùy chọn; không bắt buộc chọn một loại bài học độc quyền cho toàn bộ nội dung.
+
+
+Tái sử dụng dữ liệu tri thức.
+Sự kiện, nhân vật, địa điểm và tư liệu cần có khả năng liên kết với bài học, hạn chế dữ liệu trùng lặp.
+
+
+Ưu tiên phạm vi API hiện tại.
+Không tự giả định rằng chức năng hoặc entity chưa có trong backend đã tồn tại. Những phần mở rộng phải được xác định riêng.

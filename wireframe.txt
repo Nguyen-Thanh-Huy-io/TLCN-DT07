@@ -1,0 +1,406 @@
+Phân tích UX/UI layout giao diện chỉnh sửa bài học lịch sử
+Giao diện trong ảnh là một dạng Admin Dashboard kết hợp Content Editor (trình soạn thảo nội dung). Đây là hướng thiết kế phù hợp cho hệ thống Sử Ký, vì người biên soạn có thể chỉnh sửa bài học ở khu vực trung tâm, quản lý cấu trúc nội dung bên trái và cập nhật dữ liệu lịch sử ở panel bên phải mà không phải chuyển trang liên tục.
+Tôi sẽ phân tích theo hướng có thể chuyển trực tiếp thành component React/Next.js, CSS và Design Tokens.
+1. Phân chia các vùng layout chính
+
+
+
+
+
+
+
+
+
+A. Header — Thanh điều hướng trên cùng
+Global Navigation
+- Logo Sử Ký và tên hệ thống ở góc trái.
+- Các thao tác điều hướng: Quay lại, Soạn thảo, Chia đôi, Xem trước.
+- Trạng thái đã lưu, Lưu nháp, Cập nhật.
+- Chuông thông báo và avatar ở góc phải.
+Đánh giá: Hợp lý vì các thao tác quan trọng nhất luôn hiển thị, không phụ thuộc vị trí cuộn trang.
+
+
+
+
+
+
+
+
+
+
+
+
+B. Sidebar trái — Điều hướng cấu trúc bài học
+Navigation & Outline
+- Thẻ tóm tắt loại bài học.
+- Mục lục phân cấp: bối cảnh, diễn biến, kết quả, ý nghĩa.
+- Các mục con như từng đợt tiến công.
+- Thiết lập nhanh: sự kiện, nhân vật, địa điểm, timeline, tư liệu, câu hỏi.
+- Thẻ giải thích ngữ cảnh loại bài học.
+Đánh giá: Phù hợp với bài học dài. Mục lục phân cấp giúp người biên soạn xác định vị trí đang sửa và nhảy nhanh đến từng phần.
+
+
+
+
+
+
+
+
+
+
+
+
+C. Main Content — Khu vực biên soạn chính
+Primary Workspace
+- Tiêu đề bài học.
+- Thời gian, địa điểm, độ khó.
+- Ảnh bìa và thẻ phân loại.
+- Trình soạn thảo văn bản có định dạng.
+- Tiêu đề chương, đoạn văn, trích dẫn, tư liệu đính kèm.
+- Thanh điều hướng Bài trước / Bài tiếp theo và thông tin số phút đọc.
+Đánh giá: Đây là vùng quan trọng nhất và được cấp diện tích lớn nhất — đúng với nhiệm vụ chính là viết, chỉnh sửa và tổ chức nội dung.
+
+
+
+
+
+
+
+
+
+
+
+
+D. Panel phải — Metadata & Inspector
+Contextual Inspector
+- Tab Thông tin, Media, Xuất bản.
+- Loại bài học, chủ đề, sự kiện, nhân vật, địa điểm liên quan.
+- Timeline các mốc sự kiện.
+- Tư liệu và media.
+- Nguồn tham khảo.
+Đánh giá: Rất hợp lý khi gom dữ liệu có cấu trúc vào một vùng riêng, tránh làm gián đoạn dòng viết trong Main Content.
+
+
+
+Lưu ý: các hình minh họa bên trên chỉ mô tả loại thành phần giao diện. Phân tích kích thước và bố cục dưới đây dựa trên ảnh bạn cung cấp.
+2. Tỷ lệ và kích thước layout
+Ảnh gốc có kích thước 1536 × 1024 px. Các số liệu dưới đây là ước lượng từ ảnh chụp giao diện, không phải thông số CSS gốc.
+Sơ đồ phân bổ chiều ngang
+Sidebar
+
+Main Content
+
+Panel phải
+
+
+Phân bổ tương đối, chưa tính đầy đủ các khoảng đệm và khoảng cách giữa cột.
+
+Vùng	Chiều rộng ước tính	Tỷ lệ
+Header	Toàn màn hình, cao 64–68 px	100%
+Sidebar trái	250 px	16%
+Main Content	865 px	56%
+Panel phải	365 px	24%
+
+Cấu trúc DOM nên triển khai
+App
+├── Header (sticky, height: 64px)
+└── EditorLayout
+    ├── LeftSidebar (250px)
+    │   ├── LessonTypeCard
+    │   ├── ContentOutline
+    │   └── QuickSettings
+    ├── MainContent (minmax(0, 1fr))
+    │   ├── LessonMetadataForm
+    │   ├── CoverAndTags
+    │   ├── RichTextEditor
+    │   └── EditorFooter
+    └── RightPanel (365px)
+        ├── PanelTabs
+        ├── BasicInformation
+        ├── EventTimeline
+        ├── MediaLibrary
+        └── References
+
+
+Đây là cách tách component tốt hơn việc tạo một component lớn chứa toàn bộ giao diện. Mỗi khối có thể được phát triển và kiểm thử riêng.
+3. Đánh giá khoảng trắng (Whitespace)
+Main Content có diện tích hợp lý
+Vùng biên soạn chiếm phần lớn màn hình, đủ chỗ để hiển thị văn bản dài, tiêu đề chương, ảnh và trích dẫn. Khoảng cách giữa các nhóm thông tin tương đối rõ, giúp người dùng quét nội dung nhanh.
+
+
+Các thẻ nội dung được phân tách tốt
+Việc sử dụng nền trắng, đường viền xám nhạt và khoảng đệm tạo cảm giác gọn gàng mà không cần quá nhiều màu nền hoặc bóng đổ.
+
+
+Sidebar trái hơi dày đặc
+Mục lục, thiết lập nhanh và thẻ giải thích cùng xuất hiện trong một cột hẹp. Với bài học nhiều chương, khu vực này có thể trở nên chật.
+Cải thiện: thu gọn nhóm thiết lập nhanh, cho phép gấp/mở mục lục nhiều cấp và giữ trạng thái mở của chương đang chỉnh sửa.
+
+
+Panel phải chứa nhiều loại dữ liệu
+Timeline, media, nguồn tham khảo và thông tin liên quan cạnh tranh chiều cao. Trên màn hình thấp, người dùng phải cuộn nhiều để đến nội dung phía dưới.
+Cải thiện: mỗi nhóm có thể thu gọn; tab Thông tin, Media và Xuất bản nên có trạng thái và nội dung riêng.
+
+
+Không gian giữa các cột cần được giữ ổn định
+Nên dùng gap khoảng 8–12 px giữa các vùng chính, padding 12–16 px bên trong panel và 16–24 px cho những nhóm nội dung lớn. Tránh dùng margin rời rạc cho từng component.
+
+
+
+Khuyến nghị: đừng tăng khoảng trắng đồng loạt. Hãy giữ vùng soạn thảo thoáng, nhưng ưu tiên tiết kiệm chiều cao ở sidebar và panel phải.
+4. Đánh giá phân cấp thông tin (Visual Hierarchy)
+Giao diện đang sử dụng bốn cấp phân cấp tương đối rõ:
+
+Cấp 1 — Hành động chính
+Cập nhật, Lưu nháp, Xem trước
+Dùng màu xanh navy cho hành động chính; trạng thái lưu dùng màu xanh lá riêng.
+
+
+
+
+Cấp 2 — Nội dung chính
+Tên bài học, tiêu đề chương, nội dung văn bản
+Tiêu đề chương dùng chữ đậm, lớn hơn nội dung thường; tên bài học được ưu tiên ở đầu trang.
+
+
+
+
+Cấp 3 — Dữ liệu cấu trúc
+Chủ đề, sự kiện, địa điểm, timeline, media
+Dùng tiêu đề nhóm, nhãn trường và chip phân loại để phân biệt với nội dung bài viết.
+
+
+
+
+Cấp 4 — Thông tin phụ
+Gợi ý, mô tả trường, trạng thái và thông tin hỗ trợ
+Dùng màu xám trung tính và cỡ chữ nhỏ hơn, nhưng vẫn phải đủ tương phản để đọc.
+
+
+
+Những điểm nên cải thiện
+- Tránh quá nhiều điểm nhấn cùng lúc: chỉ nên có một nút chính nổi bật trong mỗi ngữ cảnh. Cập nhật có thể là nút chính; Lưu nháp là nút phụ.
+- Phân biệt tiêu đề nhóm và nhãn trường: tiêu đề nhóm 14–16 px, nhãn trường 12–13 px, nội dung thường 14–16 px.
+- Giữ màu semantic nhất quán: xanh lá là thành công, vàng/cam là cảnh báo, đỏ là lỗi; không sử dụng các màu này chỉ để trang trí.
+- Giảm phụ thuộc vào màu sắc: mục lục đang dùng số thứ tự, đường nối và thụt lề. Nên giữ những dấu hiệu này để thể hiện cấu trúc ngay cả khi người dùng không phân biệt màu tốt.
+5. Bảng màu đề xuất cho hệ thống Sử Ký
+Phong cách phù hợp nhất với ảnh là Light Editorial + Navy Blue: nền sáng, xanh navy cho thao tác quan trọng, chữ xám đậm và màu vàng đồng làm điểm nhấn mang hơi hướng lịch sử.
+Bảng màu dưới đây là palette đề xuất dựa trên cảm nhận thị giác của ảnh, không phải mã màu được trích xuất chính xác từ file thiết kế gốc.
+Màu nền và bề mặt
+
+App Background
+#F5F6F8
+Màu nền tổng thể
+
+
+Surface
+#FFFFFF
+Card, editor, panel
+
+
+Subtle Surface
+#E8ECF2
+Vùng chọn nhẹ, hover
+
+
+Border
+#E1E5EB
+Đường viền, phân cách
+
+
+Màu chữ và thương hiệu
+
+Primary Navy
+#18365D
+Nút chính, tab đang chọn
+
+
+Primary Text
+#253247
+Tiêu đề, nội dung
+
+
+Secondary Text
+#667085
+Nhãn và mô tả
+
+
+Antique Gold
+#B49A61
+Điểm nhấn lịch sử, biểu tượng
+
+
+Màu trạng thái
+
+Success
+#218653
+
+
+
+Warning
+#B7791F
+
+
+
+Danger
+#C83D45
+
+
+
+
+Tỷ lệ sử dụng màu nên gần với quy tắc 80/15/5: phần lớn là nền trung tính, một phần nhỏ là xanh navy, vàng đồng chỉ dùng làm điểm nhấn. Đây là tỷ lệ định hướng chứ không phải quy chuẩn bắt buộc.
+6. Design Tokens và CSS Grid để code
+Bạn có thể bắt đầu với CSS thuần hoặc chuyển các giá trị này thành token của Tailwind CSS.
+
+:root {
+  /* Colors */
+  --color-bg: #F5F6F8;
+  --color-surface: #FFFFFF;
+  --color-surface-subtle: #E8ECF2;
+  --color-border: #E1E5EB;
+
+  --color-primary: #18365D;
+  --color-primary-hover: #244A78;
+  --color-text: #253247;
+  --color-text-muted: #667085;
+  --color-accent: #B49A61;
+
+  --color-success: #218653;
+  --color-warning: #B7791F;
+  --color-danger: #C83D45;
+
+  /* Layout */
+  --header-height: 64px;
+  --sidebar-width: 250px;
+  --inspector-width: 365px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+
+  /* Shape */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Elevation */
+  --shadow-panel: 0 1px 3px
+    rgba(16, 24, 40, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family: Inter, "Segoe UI", sans-serif;
+  font-size: 14px;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--header-height);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.editor-layout {
+  display: grid;
+  grid-template-columns:
+    var(--sidebar-width)
+    minmax(0, 1fr)
+    var(--inspector-width);
+  gap: 12px;
+  padding: 8px 16px 12px;
+  align-items: start;
+}
+
+.sidebar,
+.main-content,
+.right-panel {
+  min-width: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+}
+
+.sidebar,
+.right-panel {
+  padding: 12px;
+}
+
+.main-content {
+  padding: 16px;
+}
+
+.primary-button {
+  background: var(--color-primary);
+  color: white;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary-button:hover {
+  background: var(--color-primary-hover);
+}
+
+@media (max-width: 1200px) {
+  .editor-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .right-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .editor-layout {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 8px;
+  }
+
+  .sidebar {
+    display: none;
+  }
+}
+
+
+
+Lưu ý khi triển khai: ở breakpoint nhỏ, không nên để panel phải biến mất hoàn toàn nếu người dùng cần chỉnh sửa metadata. Nên cung cấp nút mở Inspector dạng drawer hoặc tab riêng. Tương tự, Sidebar nên có nút mở mục lục trên thiết bị nhỏ.
+7. Các nguyên tắc UX cần bổ sung khi xây dựng thật
+Lưu tự động và trạng thái lưu
+Phân biệt rõ Đang lưu, Đã lưu và Lỗi lưu. Nên debounce thao tác nhập liệu và tránh ghi đè các thay đổi mới hơn bằng một request cũ.
+
+
+Cho phép thu gọn hai panel
+Main Content cần được ưu tiên khi viết bài. Người dùng nên có thể thu gọn Sidebar hoặc Inspector để mở rộng vùng đọc và biên soạn.
+
+
+Mục lục đồng bộ với nội dung
+Khi nhấn vào chương, editor cuộn đến đúng vị trí. Khi thay đổi tiêu đề hoặc thêm chương, mục lục cần cập nhật theo dữ liệu thực, không phải một danh sách tĩnh.
+
+
+Bảo vệ nội dung khi xuất bản
+Cảnh báo trường bắt buộc chưa hoàn thiện, liên kết tư liệu hỏng hoặc nguồn tham khảo còn thiếu trước khi xuất bản.
+
+
+
+Kết luận
+Layout này có nền tảng tốt cho trình quản trị bài học lịch sử. Tôi khuyên bạn giữ cấu trúc Header + Sidebar trái + Main Content + Inspector phải, dùng CSS Grid cho khung chính, Flexbox cho các nhóm bên trong và thiết kế các panel theo cơ chế độc lập.
+Ba ưu tiên quan trọng nhất khi code:
+1. Giữ Main Content rộng và dễ đọc.
+2. Cho phép thu gọn Sidebar và Inspector mà không làm vỡ layout.
+3. Chuẩn hóa màu sắc, spacing, typography và trạng thái tương tác bằng Design Tokens dùng chung toàn hệ thống.

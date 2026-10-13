@@ -126,6 +126,7 @@ export function CurriculumExplorer() {
   }, [treeData, perspective]);
 
   // Tính toán chuỗi đường dẫn (Breadcrumb / Ancestors)
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const ancestors = useMemo(() => {
     if (!selectedNode) return [];
 

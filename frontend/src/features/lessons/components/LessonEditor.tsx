@@ -5,7 +5,7 @@ import { Icon } from '@/components/icons/Icon';
 import { Badge } from '@/components/common/Badge';
 import { IconName } from '@/constants/icons';
 import { APP_ROUTES } from '@/constants/routes';
-import { ContentStatus, MediaType } from '@/constants/enums';
+import { ContentStatus, DifficultyLevel, MediaType } from '@/constants/enums';
 import { DIFFICULTY_LABEL_MAP } from '@/constants/ui-theme';
 import { useLessonEditorFacade } from '../facades/useLessonEditorFacade';
 import { EditorViewMode } from '../types/editor.types';
@@ -21,6 +21,16 @@ import { LessonTemplateFactory } from '../templates/lesson-template.factory';
 import { LessonTemplateType } from '../templates/lesson-template.types';
 import { CurriculumSidePanel } from '@/features/curriculum/components/CurriculumSidePanel';
 import { CurriculumTreePreviewModal } from '@/features/curriculum/components/CurriculumTreePreviewModal';
+import { LessonBlockPalette } from './LessonBlockPalette';
+import { LessonBlockType } from '../types/block-palette.types';
+import { lessonBlockInsertStrategy } from '../strategies/lesson-block-insert.strategy';
+import { LessonHeaderMetaForm } from './LessonHeaderMetaForm';
+import { LessonHeaderMetaData } from '../types/header-meta.types';
+
+export enum LeftSidebarMode {
+  BLOCKS = 'BLOCKS',
+  OUTLINE = 'OUTLINE',
+}
 
 export enum SidebarTab {
   CLASSIFICATION = 'CLASSIFICATION',
@@ -34,6 +44,7 @@ export function LessonEditor() {
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>(SidebarTab.CLASSIFICATION);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showLeftToc, setShowLeftToc] = useState(true);
+  const [leftSidebarMode, setLeftSidebarMode] = useState<LeftSidebarMode>(LeftSidebarMode.BLOCKS);
   const [isTopicPickerOpen, setIsTopicPickerOpen] = useState(false);
   const [isCurriculumPreviewOpen, setIsCurriculumPreviewOpen] = useState(false);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
@@ -92,10 +103,55 @@ export function LessonEditor() {
     submitLesson,
   } = useLessonEditorFacade();
 
+  // Xử lý chèn khối nội dung từ Block Palette vào Editor
+  const handleInsertBlock = (blockType: LessonBlockType) => {
+    const snippet = lessonBlockInsertStrategy.generateSnippet(blockType);
+    if (!contentRichText || contentRichText.trim() === '<p></p>') {
+      setContentRichText(snippet);
+    } else {
+      setContentRichText(contentRichText + '\n' + snippet);
+    }
+  };
+
   // Chủ đề hiện tại đang chọn
   const currentTopic = useMemo(() => {
     return topics.find((t) => t.id === selectedTopicId);
   }, [topics, selectedTopicId]);
+
+  // Thông tin bài học ở đầu trang (Metadata Form Header)
+  const [headerMeta, setHeaderMeta] = useState<LessonHeaderMetaData>({
+    title: '',
+    shortDescription: '',
+    thumbnailUrl: '',
+    tags: [],
+    topicId: '',
+    difficulty: DifficultyLevel.MEDIUM,
+    startDate: '',
+    endDate: '',
+  });
+
+  // Đồng bộ hai chiều từ Facade vào HeaderMeta
+  useEffect(() => {
+    setHeaderMeta((prev) => ({
+      ...prev,
+      title: title ?? prev.title,
+      thumbnailUrl: thumbnailUrl ?? prev.thumbnailUrl,
+      difficulty: difficulty ?? prev.difficulty,
+      topicId: selectedTopicId ?? prev.topicId,
+      tags: selectedTags.length > 0 ? selectedTags.map((t) => t.name) : prev.tags,
+    }));
+  }, [title, thumbnailUrl, difficulty, selectedTopicId, selectedTags]);
+
+  const handleHeaderMetaChange = <K extends keyof LessonHeaderMetaData>(
+    field: K,
+    val: LessonHeaderMetaData[K]
+  ) => {
+    setHeaderMeta((prev) => ({ ...prev, [field]: val }));
+    if (field === 'title') setTitle(val as string);
+    if (field === 'topicId') setSelectedTopicId(val as string);
+    if (field === 'difficulty') setDifficulty(val as DifficultyLevel);
+    if (field === 'thumbnailUrl') setThumbnailUrl((val as string) || '');
+  };
 
   const [isTocCollapsed, setIsTocCollapsed] = useState(false);
 
@@ -543,10 +599,10 @@ export function LessonEditor() {
               className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 transition cursor-pointer font-medium ${
                 showLeftToc ? 'bg-blue-100 text-blue-700 font-bold' : ''
               }`}
-              title={showLeftToc ? 'Ẩn mục lục bên trái' : 'Hiện mục lục bên trái'}
+              title={showLeftToc ? 'Ẩn thanh công cụ khối bên trái' : 'Hiện thanh công cụ khối bên trái'}
             >
-              <Icon name={IconName.BOOK} size={14} />
-              <span>Mục lục {tocItems.length > 0 ? `(${tocItems.length})` : ''}</span>
+              <Icon name={IconName.GRID} size={14} />
+              <span>Khối nội dung</span>
             </button>
           )}
 
@@ -601,68 +657,99 @@ export function LessonEditor() {
           }`}
           style={{ minHeight: isFullscreen ? '100vh' : 'calc(100vh - 165px)' }}
         >
-          {/* CỘT BÊN TRÁI: MỤC LỤC BÀI HỌC (OUTLINE NAVIGATOR KHI SOẠN THẢO) */}
+          {/* CỘT BÊN TRÁI: THÊM KHỐI NỘI DUNG (BLOCK PALETTE THEO IMG.PNG) & MỤC LỤC TO-C */}
           {showLeftToc && !isFullscreen && (
-            <aside className="w-full lg:w-56 xl:w-60 shrink-0 bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex flex-col gap-2 overflow-y-auto max-h-[calc(100vh-170px)] animate-in slide-in-from-left duration-150">
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 px-0.5">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <Icon name={IconName.BOOK} size={13} className="text-blue-600 shrink-0" />
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wide truncate">
-                    Mục lục ({tocItems.length})
-                  </span>
+            <aside className="w-full lg:w-64 xl:w-72 shrink-0 flex flex-col gap-2 max-h-[calc(100vh-80px)] overflow-y-auto lg:sticky lg:top-[68px] self-start animate-in slide-in-from-left duration-150 z-20 custom-editor-scrollbar pr-0.5">
+              {/* Nút chuyển đổi Tab: [Thêm khối] | [Mục lục] */}
+              <div className="bg-white border border-slate-200 rounded-xl p-1.5 shadow-2xs flex items-center justify-between">
+                <div className="grid grid-cols-2 gap-1 bg-slate-100 p-0.5 rounded-lg text-xs w-full">
+                  <button
+                    type="button"
+                    onClick={() => setLeftSidebarMode(LeftSidebarMode.BLOCKS)}
+                    data-testid="tab-left-blocks"
+                    className={`py-1 px-1.5 rounded-md font-bold transition text-center cursor-pointer ${
+                      leftSidebarMode === LeftSidebarMode.BLOCKS
+                        ? 'bg-white text-blue-700 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Thêm khối
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLeftSidebarMode(LeftSidebarMode.OUTLINE)}
+                    data-testid="tab-left-outline"
+                    className={`py-1 px-1.5 rounded-md font-bold transition text-center cursor-pointer ${
+                      leftSidebarMode === LeftSidebarMode.OUTLINE
+                        ? 'bg-white text-blue-700 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Mục lục {tocItems.length > 0 ? `(${tocItems.length})` : ''}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowLeftToc(false)}
-                  className="text-xs text-slate-400 hover:text-slate-700 px-1 py-0.5 rounded cursor-pointer"
-                  title="Thu gọn mục lục"
-                >
-                  ✕
-                </button>
               </div>
 
-              {tocItems.length > 0 ? (
-                <nav className="space-y-1 text-xs overflow-y-auto pr-0.5">
-                  {tocItems.map((item, idx) => {
-                    const displayText = item.text.replace(/^(\d+(\.\d+)*\s*[-–.]?\s*)/, '');
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        style={{ paddingLeft: `${(item.level - 1) * 10 + 4}px` }}
-                        onClick={() => {
-                          let el = document.getElementById(item.id);
-                          if (!el) {
-                            const headings = document.querySelectorAll(
-                              '.tiptap h1, .tiptap h2, .tiptap h3, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3'
-                            );
-                            if (headings && headings[idx]) {
-                              el = headings[idx] as HTMLElement;
-                            }
-                          }
-                          if (el) {
-                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          }
-                        }}
-                        className="w-full text-left py-1.5 px-1.5 rounded-lg hover:bg-blue-50/70 hover:text-blue-700 transition flex items-baseline gap-1.5 cursor-pointer group"
-                        title={`Nhảy tới: ${displayText}`}
-                      >
-                        <span className="text-slate-400 group-hover:text-blue-600 font-mono text-[11px] font-bold shrink-0">
-                          {idx + 1}
-                        </span>
-                        <span className="text-slate-700 group-hover:text-blue-800 font-medium leading-snug line-clamp-2">
-                          {displayText}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </nav>
+              {leftSidebarMode === LeftSidebarMode.BLOCKS ? (
+                <LessonBlockPalette
+                  onSelectBlock={handleInsertBlock}
+                  className="!w-full border-slate-200 !p-2.5 !shadow-2xs"
+                />
               ) : (
-                <div className="p-3 text-center text-xs text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200 space-y-1">
-                  <p className="font-semibold text-slate-600">Chưa có đề mục</p>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Chọn văn bản và bấm <strong>H1, H2, H3</strong> để tạo mục lục tự động.
-                  </p>
+                <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex flex-col gap-2">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 px-0.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Icon name={IconName.BOOK} size={13} className="text-blue-600 shrink-0" />
+                      <span className="text-xs font-bold text-slate-800 uppercase tracking-wide truncate">
+                        Mục lục ({tocItems.length})
+                      </span>
+                    </div>
+                  </div>
+
+                  {tocItems.length > 0 ? (
+                    <nav className="space-y-1 text-xs overflow-y-auto pr-0.5">
+                      {tocItems.map((item, idx) => {
+                        const displayText = item.text.replace(/^(\d+(\.\d+)*\s*[-–.]?\s*)/, '');
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            style={{ paddingLeft: `${(item.level - 1) * 10 + 4}px` }}
+                            onClick={() => {
+                              let el = document.getElementById(item.id);
+                              if (!el) {
+                                const headings = document.querySelectorAll(
+                                  '.tiptap h1, .tiptap h2, .tiptap h3, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3'
+                                );
+                                if (headings && headings[idx]) {
+                                  el = headings[idx] as HTMLElement;
+                                }
+                              }
+                              if (el) {
+                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }
+                            }}
+                            className="w-full text-left py-1.5 px-1.5 rounded-lg hover:bg-blue-50/70 hover:text-blue-700 transition flex items-baseline gap-1.5 cursor-pointer group"
+                            title={`Nhảy tới: ${displayText}`}
+                          >
+                            <span className="text-slate-400 group-hover:text-blue-600 font-mono text-[11px] font-bold shrink-0">
+                              {idx + 1}
+                            </span>
+                            <span className="text-slate-700 group-hover:text-blue-800 font-medium leading-snug line-clamp-2">
+                              {displayText}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </nav>
+                  ) : (
+                    <div className="p-3 text-center text-xs text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200 space-y-1">
+                      <p className="font-semibold text-slate-600">Chưa có đề mục</p>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Chọn văn bản và bấm <strong>H1, H2, H3</strong> để tạo mục lục tự động.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </aside>
@@ -671,18 +758,13 @@ export function LessonEditor() {
           {/* Cột 1: Soạn thảo bài học (Tối ưu không gian viết 760px mx-auto theo mockup img.png) */}
           <main className="flex-1 min-w-0 flex flex-col bg-white rounded-xl border border-slate-200 p-4 md:p-6 shadow-xs overflow-y-auto h-full">
             <div className="w-full max-w-[760px] mx-auto flex flex-col gap-3 flex-1 min-h-0">
-              {/* Tiêu đề bài học */}
-              <div className="flex flex-col gap-1 border-b border-slate-100 pb-2.5">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  TÊN BÀI HỌC LỊCH SỬ
-                </span>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Nhập tiêu đề bài học lịch sử..."
-                  className="w-full text-xl md:text-2xl font-extrabold text-slate-900 placeholder:text-slate-300 border-none outline-none bg-transparent p-0 focus:ring-0 leading-snug"
-                />
-              </div>
+              {/* A. THÔNG TIN BÀI HỌC Ở ĐẦU TRANG (Chuẩn img.png & structure.txt) */}
+              <LessonHeaderMetaForm
+                data={headerMeta}
+                topics={topics.map((t) => ({ id: t.id, name: t.name }))}
+                onChange={handleHeaderMetaChange}
+                className="border-b border-slate-200 pb-5"
+              />
 
               {/* Thông số bài học & Chọn mẫu bố cục sư phạm */}
               <div className="flex items-center justify-between py-1 border-b border-slate-100 flex-wrap gap-2 text-xs text-slate-500">
@@ -760,7 +842,7 @@ export function LessonEditor() {
 
           {/* Cột 3: Sidebar Thuộc tính bên phải (Rộng 320-340px, phẳng hoàn toàn, Accordion cho Phân loại) */}
           {showSidebar && !isFullscreen && (
-            <aside className="w-full lg:w-80 xl:w-[340px] shrink-0 flex flex-col gap-2.5 overflow-y-auto pr-0.5 animate-in slide-in-from-right duration-200">
+            <aside className="w-full lg:w-80 xl:w-[340px] shrink-0 flex flex-col gap-2.5 max-h-[calc(100vh-80px)] overflow-y-auto lg:sticky lg:top-[68px] self-start pr-0.5 animate-in slide-in-from-right duration-200 z-20 custom-editor-scrollbar">
               {/* Thanh Tab chuyển đổi mục cài đặt trong Sidebar */}
               <div className="bg-white border border-slate-200 rounded-xl p-2 shadow-2xs">
                 <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 px-1">

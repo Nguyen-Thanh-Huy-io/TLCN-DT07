@@ -129,7 +129,7 @@ export function TopicList() {
     const targetItem = group[targetIndex];
 
     let currentNewOrder = targetItem.displayOrder ?? 0;
-    let targetNewOrder = item.displayOrder ?? 0;
+    const targetNewOrder = item.displayOrder ?? 0;
 
     if (currentNewOrder === targetNewOrder) {
       if (direction === 'UP') {

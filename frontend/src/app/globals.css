@@ -1529,6 +1529,62 @@ tbody tr:hover .quick-row-btn {
   margin: 0 4px;
 }
 
+/* TIPTAP FLOATING BUBBLE MENU */
+.tiptap-bubble-menu {
+  display: flex !important;
+  align-items: center !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  padding: 4px 6px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  z-index: 9999 !important;
+  gap: 3px !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.tiptap-bubble-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  padding: 0 6px !important;
+  border-radius: 6px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #cbd5e1 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  transition: all 0.15s ease !important;
+  user-select: none !important;
+  white-space: nowrap !important;
+}
+
+.tiptap-bubble-btn:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+.tiptap-bubble-btn.is-active {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.4) !important;
+}
+
+.tiptap-bubble-divider {
+  width: 1px !important;
+  height: 16px !important;
+  background-color: #334155 !important;
+  margin: 0 3px !important;
+  flex-shrink: 0 !important;
+}
+
 .tiptap-content-box {
   min-height: 480px;
   height: 100%;
@@ -1547,6 +1603,37 @@ tbody tr:hover .quick-row-btn {
   max-width: 760px;
   margin-left: auto;
   margin-right: auto;
+  position: relative;
+}
+
+/* ĐƯỜNG CHỈ BÁO VỊ TRÍ THẢ KHỐI (Visual Drop Indicator Line) */
+.ProseMirror-dropcursor,
+.tiptap-dropcursor-line {
+  position: absolute;
+  height: 4px !important;
+  background: linear-gradient(90deg, #2563eb, #3b82f6) !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.7) !important;
+  pointer-events: none;
+  z-index: 50;
+  transition: top 0.05s ease, left 0.05s ease;
+}
+
+.ProseMirror-dropcursor::after,
+.tiptap-dropcursor-line::after {
+  content: '▼ Vị trí chèn khối';
+  position: absolute;
+  right: 0;
+  top: -24px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .tiptap-content-box h1 {
@@ -1695,4 +1782,19 @@ figure.wiki-media-block figcaption {
   .stats-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Custom scrollbar for flexible sidebars */
+.custom-editor-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-editor-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-editor-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+.custom-editor-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

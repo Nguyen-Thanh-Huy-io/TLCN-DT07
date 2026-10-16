@@ -1,5 +1,32 @@
 @import "tailwindcss";
 
+@theme {
+  --color-bg-page: var(--bg-page);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-header: var(--bg-header);
+  --color-ink: var(--ink);
+  --color-text-body: var(--text-body);
+  --color-text-muted: var(--text-muted);
+  --color-on-dark: var(--on-dark);
+  --color-on-dark-muted: var(--on-dark-muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-border-token: var(--border);
+  --color-border-gold: var(--border-gold);
+  --color-overlay-ink: var(--overlay-ink);
+
+  --font-heading: var(--font-heading);
+  --font-body: var(--font-body);
+
+  --radius-card: 10px;
+  --radius-btn: 6px;
+  --radius-hero: 12px;
+
+  --shadow-card: 0 4px 16px rgba(60, 40, 10, 0.10);
+}
+
 /* ========================================================
    TASTE-SKILL DESIGN TOKENS (Minimalist Editorial EdTech)
    - Warm monochrome / Slate & Zinc scale
@@ -13,14 +40,35 @@
   --font-serif: var(--font-merriweather), Georgia, serif;
   --font-mono: "SF Mono", "Geist Mono", "JetBrains Mono", Consolas, monospace;
 
-  /* Neutral Scale */
+  /* HISGO DESIGN TOKENS (Nền tảng khám phá lịch sử Việt Nam) */
+  --bg-page: #F5EEDC;
+  --bg-surface: #FAF6EA;
+  --bg-header: rgba(245, 238, 220, 0.92);
+
+  --ink: #14233F;
+  --text-body: #4A3F33;
+  --text-muted: #7A6B57;
+  --on-dark: #FFFFFF;
+  --on-dark-muted: rgba(255, 255, 255, 0.85);
+
+  --primary: #7A1F24;
+  --primary-hover: #651A1E;
+  --gold: #B8893F;
+  --gold-light: #D4AE67;
+
+  --border: #E2D5B8;
+  --border-gold: #C9A45C;
+  --overlay-ink: #0B1730;
+
+  --font-heading: var(--font-noto-serif), "Noto Serif", Georgia, serif;
+  --font-body: var(--font-be-vietnam-pro), "Be Vietnam Pro", sans-serif;
+
+  /* Neutral Scale (CMS Legacy) */
   --canvas: #f8fafc;
   --surface: #ffffff;
   --surface-subtle: #f1f5f9;
-  --border: #e2e8f0;
   --border-subtle: #edf2f7;
   --text-main: #0f172a;
-  --text-muted: #64748b;
   --text-subtle: #94a3b8;
   --accent: #0f172a;
 
@@ -67,6 +115,82 @@ select {
 
 button {
   cursor: pointer;
+}
+
+/* ========================================================
+   HISGO DEFAULT TYPOGRAPHY & BASE STYLES
+   ======================================================== */
+.hisgo-theme {
+  background-color: var(--bg-page);
+  color: var(--text-body);
+  font-family: var(--font-body);
+  min-height: 100vh;
+}
+
+.hisgo-theme h1,
+.hisgo-theme h2,
+.hisgo-theme h3,
+.hisgo-theme h4,
+.hisgo-theme h5,
+.hisgo-theme h6 {
+  font-family: var(--font-heading);
+  color: var(--ink);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.hisgo-theme h1 {
+  font-size: 2.5rem;
+  letter-spacing: -0.02em;
+}
+
+.hisgo-theme h2 {
+  font-size: 1.875rem;
+  letter-spacing: -0.01em;
+}
+
+.hisgo-theme h3 {
+  font-size: 1.35rem;
+}
+
+.hisgo-theme p {
+  color: var(--text-body);
+  line-height: 1.65;
+  font-family: var(--font-body);
+}
+
+.hisgo-theme a {
+  color: var(--ink);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.hisgo-theme a:hover {
+  color: var(--primary);
+}
+
+/* ========================================================
+   SCROLL REVEAL ANIMATIONS (400ms, ease-out, trượt 12px)
+   ======================================================== */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 400ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.scroll-reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }
 
 /* ========================================================

@@ -37,6 +37,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     });
   };
 
+  // If public HISGO route (Home or Styleguide), render standalone without CMS Admin Sidebar/Topbar
+  const isHisgoPublicRoute = pathname === "/" || pathname === "/styleguide";
+  if (isHisgoPublicRoute) {
+    return <>{children}</>;
+  }
+
   // Derive the 'page' identifier from the first path segment only
   let page = "dashboard";
   if (pathname !== "/") {
@@ -46,7 +52,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   // Handle setPage triggered by Sidebar
   const setPage = (newPage: string) => {
     if (newPage === "dashboard") {
-      router.push("/");
+      router.push("/cms");
     } else {
       router.push(`/${newPage}`);
     }

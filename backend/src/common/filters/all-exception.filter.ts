@@ -22,30 +22,23 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    // Ignore favicon requests - this is normal browser behavior
-    if (request.url === '/favicon.ico') {
-      response.status(204).end();
+    // Ignore favicon and browser/DevTools inspection probes
+    if (
+      request.url === '/favicon.ico' ||
+      request.url.startsWith('/json/version') ||
+      request.url.startsWith('/json')
+    ) {
+      response.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        message: `Cannot ${request.method} ${request.url}`,
+        error: 'Not Found',
+      });
       return;
     }
-
-    console.log('all exceptions', exception);
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal Server Error';
     let error = 'Error';
-
-    // Log the exception
-    this.logger.error('Unhandled exception caught', {
-      context: 'AllExceptionsFilter',
-      statusCode,
-      path: request.url,
-      method: request.method,
-      exception:
-        exception instanceof Error ? exception.message : String(exception),
-      stack: exception instanceof Error ? exception.stack : undefined,
-    });
-    // let errorCode: string | undefined = undefined;
-    // let errorFields: string[] | undefined = undefined;
 
     // Check if exception has a status property
     if (
@@ -70,12 +63,31 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
       error = exception.name;
     }
-
     // Generic JS Error
     else if (exception instanceof Error) {
-      // statusCode = exception.;
       message = exception.message;
       error = exception.name;
+    }
+
+    // Phân loại log: 4xx chỉ log warn/debug, 5xx mới log error
+    if (statusCode >= 500) {
+      this.logger.error('Unhandled exception caught', {
+        context: 'AllExceptionsFilter',
+        statusCode,
+        path: request.url,
+        method: request.method,
+        exception:
+          exception instanceof Error ? exception.message : String(exception),
+        stack: exception instanceof Error ? exception.stack : undefined,
+      });
+    } else {
+      this.logger.warn(`Handled client exception: ${statusCode} ${request.method} ${request.url}`, {
+        context: 'AllExceptionsFilter',
+        statusCode,
+        path: request.url,
+        method: request.method,
+        message,
+      });
     }
 
     response.status(statusCode).json({

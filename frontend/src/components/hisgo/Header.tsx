@@ -17,9 +17,10 @@ export function Header({
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
 
   const navLinks = [
-    { id: "explore", label: "Khám phá lịch sử", href: "#hero" },
-    { id: "timeline", label: "Dòng thời gian", href: "#timeline" },
-    { id: "nhan-vat", label: "Nhân vật", href: "#nhan-vat" },
+    { id: "explore", label: "Trang chủ", href: "/" },
+    { id: "timeline", label: "Dòng thời gian", href: "/dong-thoi-gian" },
+    { id: "nhan-vat", label: "Nhân vật", href: "/nhan-vat" },
+    { id: "di-tich", label: "Di tích", href: "/di-tich" },
     { id: "account", label: "Tài khoản", href: "#dang-ky" },
   ];
 

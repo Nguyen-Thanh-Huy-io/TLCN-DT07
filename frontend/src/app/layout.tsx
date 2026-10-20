@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Merriweather, Noto_Serif } from "next/font/google";
 import "./globals.css";
-import { ClientLayout } from "@/components/layout/ClientLayout";
 
 const beVietnamPro = Be_Vietnam_Pro({
   weight: ["400", "500", "600", "700"],
@@ -47,7 +46,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favicon.svg",
   },
 };
 
@@ -62,7 +61,7 @@ export default function RootLayout({
       className={`${beVietnamPro.variable} ${merriweather.variable} ${notoSerif.variable} font-sans h-full antialiased`}
     >
       <body className="min-h-full">
-        <ClientLayout>{children}</ClientLayout>
+        {children}
       </body>
     </html>
   );

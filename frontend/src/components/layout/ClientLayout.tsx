@@ -37,24 +37,26 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // If public HISGO route (Home or Styleguide), render standalone without CMS Admin Sidebar/Topbar
-  const isHisgoPublicRoute = pathname === "/" || pathname === "/styleguide";
+  // If public HISGO route (landing page, styleguide...), render standalone without CMS Admin Sidebar/Topbar
+  const isHisgoPublicRoute = !pathname.startsWith("/admin");
   if (isHisgoPublicRoute) {
     return <>{children}</>;
   }
 
-  // Derive the 'page' identifier from the first path segment only
+  // Derive the 'page' identifier from the first path segment after /admin/
+  // e.g. /admin/lessons/create → 'lessons', /admin → 'dashboard'
   let page = "dashboard";
-  if (pathname !== "/") {
-    page = pathname.replace(/^\//, "").split("/")[0];
+  const rest = pathname.replace(/^\/admin\/?/, "");
+  if (rest) {
+    page = rest.split("/")[0];
   }
 
   // Handle setPage triggered by Sidebar
   const setPage = (newPage: string) => {
     if (newPage === "dashboard") {
-      router.push("/cms");
+      router.push("/admin");
     } else {
-      router.push(`/${newPage}`);
+      router.push(`/admin/${newPage}`);
     }
     setMobileNav(false);
   };

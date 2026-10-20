@@ -3,40 +3,44 @@
  * Eliminates all magic string paths and route keys
  */
 export const APP_ROUTES = {
-  DASHBOARD: '/',
-  CURRICULUM: '/curriculum',
-  KNOWLEDGE: '/knowledge',
+  // Public Landing Page
+  HOME: '/',
+
+  // CMS Admin routes (all prefixed with /admin)
+  DASHBOARD: '/admin',
+  CURRICULUM: '/admin/curriculum',
+  KNOWLEDGE: '/admin/knowledge',
   PERIODS: {
-    LIST: '/periods',
-    CREATE: '/periods/create',
+    LIST: '/admin/periods',
+    CREATE: '/admin/periods/create',
   },
   TOPICS: {
-    LIST: '/topics',
-    CREATE: '/topics/create',
-    DETAIL: (id: string) => `/topics/${id}`,
+    LIST: '/admin/topics',
+    CREATE: '/admin/topics/create',
+    DETAIL: (id: string) => `/admin/topics/${id}`,
   },
   LESSONS: {
-    LIST: '/lessons',
-    CREATE: '/lessons/create',
+    LIST: '/admin/lessons',
+    CREATE: '/admin/lessons/create',
   },
   EVENTS: {
-    LIST: '/events',
-    CREATE: '/events/create',
+    LIST: '/admin/events',
+    CREATE: '/admin/events/create',
   },
   LOCATIONS: {
-    LIST: '/locations',
-    CREATE: '/locations/create',
+    LIST: '/admin/locations',
+    CREATE: '/admin/locations/create',
   },
   ENTITIES: {
-    LIST: '/entities',
-    CREATE: '/entities/create',
+    LIST: '/admin/entities',
+    CREATE: '/admin/entities/create',
   },
   TAGS: {
-    LIST: '/tags',
-    CREATE: '/tags/create',
+    LIST: '/admin/tags',
+    CREATE: '/admin/tags/create',
   },
-  REVIEW: '/review',
-  USERS: '/users',
+  REVIEW: '/admin/review',
+  USERS: '/admin/users',
 } as const;
 
 export type NavigationPageKey =

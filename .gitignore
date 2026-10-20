@@ -1,64 +1,21 @@
-# Dependencies
 node_modules/
-.pnp
-.pnp.js
-
-# Production / Builds
 dist/
 build/
-out/
-.next/
-
-# Logs
+.cache/
+.env*
+.vite/
+vite.config.*.timestamp-*
+*.tsbuildinfo
+*-debug.log*
 logs/
 *.log
-npm-debug.log*yhb
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+.claude-replay.*
+.tmp-*
+/.figma/design-context/
 
-# Environment files
-.env
-.env*.local
-!.env.example
-
-# IDE & Editor files
-.idea/
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-*.sublime-project
-*.sublime-workspace
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.db
-ehthumbs.db
-
-# Coverage / Tests
-coverage/
-.nyc_output/
-
-# Prisma generated
-/generated/
-generated/
-
-# Temporary
-tmp/
-temp/
-.temp/
-.tmp/
-
-# Python & Testing
-__pycache__/
-*.py[cod]
-.pytest_cache/
-
-# Uploads
-backend/uploads/*
-!backend/uploads/.gitkeep
-uploads/
+# Platform-managed agentplat state, not project source. In the
+# client-initiated single-repo workspace layout (make's `Path: "."` spec) the
+# repo root IS the workspace root, so these land inside this repo rather than
+# beside it.
+/.plugins/
+/.opencode-skills/

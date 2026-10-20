@@ -1,0 +1,151 @@
+import Link from "next/link";
+import { Header } from "@/components/hisgo/Header";
+
+const characters = [
+  {
+    name: "Hai Bà Trưng",
+    years: "40 – 43",
+    era: "Nhà Triệu",
+    role: "Anh hùng dân tộc",
+    description:
+      "Hai nữ anh hùng đã lãnh đạo cuộc khởi nghĩa chống quân Đông Hán, khẳng định tinh thần yêu nước và ý chí giữ nước.",
+    image:
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    name: "Trần Hưng Đạo",
+    years: "1228 – 1300",
+    era: "Nhà Trần",
+    role: "Danh tướng",
+    description:
+      "Tướng quân lừng danh, chỉ huy ba lần kháng chiến chống Nguyên Mông và được tôn vinh như biểu tượng của lòng yêu nước.",
+    image:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    name: "Lý Thường Kiệt",
+    years: "1019 – 1105",
+    era: "Nhà Lý",
+    role: "Danh tướng",
+    description:
+      "Nhà quân sự, nhà chính trị và người sáng lập tư tưởng chiến lược kháng Tống với bề dày trí tuệ và khí phách.",
+    image:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    name: "Nguyễn Trãi",
+    years: "1380 – 1442",
+    era: "Nhà Lê",
+    role: "Nhà văn hóa",
+    description:
+      "Nhà chính trị, nhà văn hóa kiệt xuất, người viết Bình Ngô đại cáo, một di sản văn học mang sức sống vĩnh cửu.",
+    image:
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    name: "Quang Trung",
+    years: "1753 – 1792",
+    era: "Nhà Tây Sơn",
+    role: "Hoàng đế",
+    description:
+      "Người sáng lập triều Tây Sơn, đại thắng quân Thanh và làm nên một kỳ công lớn trong lịch sử dựng nước.",
+    image:
+      "https://images.unsplash.com/photo-1504593811423-6dd665756598?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    name: "Võ Nguyên Giáp",
+    years: "1911 – 2013",
+    era: "Hiện đại",
+    role: "Danh tướng",
+    description:
+      "Đại tướng, chiến lược gia và nhà quân sự tiêu biểu của Việt Nam trong cuộc kháng chiến chống thực dân Pháp.",
+    image:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80",
+  },
+];
+
+function LotusMark() {
+  return (
+    <svg width="36" height="36" viewBox="0 0 60 60" aria-hidden="true" className="text-[#9b7338]">
+      <path d="M30 8c-7 10-9 18-9 23 0 9 5 17 9 21 4-4 9-12 9-21 0-5-2-13-9-23Z" fill="currentColor" opacity="0.9" />
+      <path d="M17 19c-8 5-11 12-11 18 7-2 13-9 16-18 0 0-2 0-5 0Zm26 0c8 5 11 12 11 18-7-2-13-9-16-18 0 0 2 0 5 0Z" fill="currentColor" opacity="0.8" />
+      <path d="M14 31c-5 10-4 18 4 24 7-6 10-14 8-24-5 0-9 0-12 0Zm32 0c5 10 4 18-4 24-7-6-10-14-8-24 5 0 9 0 12 0Z" fill="currentColor" opacity="0.7" />
+      <path d="M18 45c6 5 11 7 12 7s6-2 12-7c-5-3-9-4-12-4s-7 1-12 4Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+export default function NhanVatPage() {
+  return (
+    <main className="min-h-screen bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.82),transparent_20%),linear-gradient(135deg,#f3ecd9_0%,#fbf7ee_50%,#f2e6cb_100%)] px-3 py-4 md:px-6 lg:px-10">
+      <div className="mx-auto w-full max-w-[1400px] overflow-hidden border border-[#d0b27a] bg-[rgba(250,245,235,0.9)] shadow-[0_24px_60px_rgba(73,46,18,0.08)]">
+        <Header activeTab="nhan-vat" />
+
+        <div className="relative overflow-hidden border-t border-[#d0b27a] bg-[linear-gradient(180deg,rgba(250,246,238,0.9),rgba(246,239,225,0.94))] px-4 py-6 md:px-8 lg:px-12">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(147,93,30,0.08),transparent_28%)]" aria-hidden="true" />
+          <div className="relative z-10">
+            <section className="pt-3 md:pt-6">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7c1c24]">Di sản Việt Nam</p>
+              <h1 className="font-[family-name:var(--font-heading)] text-[clamp(2.3rem,4vw,4rem)] leading-[1.05] tracking-[-0.04em] text-[#172b46]">
+                Khám phá nhân vật lịch sử
+              </h1>
+              <p className="mt-3 max-w-3xl text-base text-[#4f5e67] md:text-lg">
+                Những con người đã định hình bước đi của đất nước, tạo nên tinh thần, trí tuệ và bản sắc của dân tộc Việt Nam.
+              </p>
+            </section>
+
+            <section className="mt-8 rounded-[16px] border border-[#d0b27a] bg-[#f7f0e0] p-4 md:p-5">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-3 rounded-full border border-[#d0b27a] bg-white/60 px-4 py-2 text-sm text-[#334a5d] shadow-sm">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <circle cx="11" cy="11" r="6.5" />
+                    <path d="M16 16l4.2 4.2" />
+                  </svg>
+                  Tìm kiếm nhân vật
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs md:text-sm">
+                  <span className="rounded-full border border-[#d0b27a] bg-white/60 px-3 py-1.5 text-[#172b46]">Nhà Lý</span>
+                  <span className="rounded-full border border-[#d0b27a] bg-white/60 px-3 py-1.5 text-[#172b46]">Nhà Trần</span>
+                  <span className="rounded-full border border-[#d0b27a] bg-white/60 px-3 py-1.5 text-[#172b46]">Hiện đại</span>
+                </div>
+              </div>
+            </section>
+
+            <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {characters.map((character) => (
+                <article key={character.name} className="group overflow-hidden rounded-[18px] border border-[#d0b27a] bg-[#fffdf8] shadow-[0_12px_24px_rgba(80,52,19,0.06)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_18px_30px_rgba(80,52,19,0.1)]">
+                  <div className="relative h-64 overflow-hidden">
+                    <img src={character.image} alt={character.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#231b10]/65 via-transparent to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 pb-3 text-white">
+                      <span className="rounded-full border border-white/40 bg-black/10 px-2 py-1 text-[10px] uppercase tracking-[0.16em] backdrop-blur-sm">
+                        {character.era}
+                      </span>
+                      <span className="text-xs font-medium">{character.years}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-5">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        <h2 className="font-[family-name:var(--font-heading)] text-[1.7rem] leading-none text-[#172b46]">{character.name}</h2>
+                        <p className="mt-2 text-sm text-[#4f5e67]">{character.role}</p>
+                      </div>
+                      <Link href="/" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#d0b27a] bg-[#f8f0df] text-[#7c1c24] transition hover:bg-[#efe0bf]" aria-label={`Xem ${character.name}`}>
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                          <path d="M5 12h13M13 6l6 6-6 6" />
+                        </svg>
+                      </Link>
+                    </div>
+
+                    <p className="text-sm leading-6 text-[#4f5e67]">{character.description}</p>
+                  </div>
+                </article>
+              ))}
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}

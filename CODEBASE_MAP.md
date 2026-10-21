@@ -66,7 +66,7 @@ CRUD Tag đầy đủ + `attachTagsToLesson` (`POST /lessons/:id/tags`, chạy `
 - `landing-content.facade.ts`: **Facade** — `getLanding()` gom Period + section Topic + Figures + cache Redis, điểm vào duy nhất cho trang landing.
 - `strategies/landing-section.strategy.ts` + `landing-section.registry.ts`: **Strategy + Registry + Template Method** — lớp trừu tượng `TopicSectionStrategy`, các lớp con (`ChaptersSectionStrategy`...) chỉ khai filter riêng, registry map section→strategy (OCP).
 - `mappers/public-content.mapper.ts`: **Mapper** — hàm thuần format Prisma entity → DTO public (`formatYear`, `estimateReadMinutes`, `toTopic`...).
-- Route: `GET landing`, `periods`, `period/:slug`, `figures`, `figure/:slug`, `topics`, `topic/:slug`.
+- Route: `GET landing`, `periods`, `period/:slug`, `figures`, `figure/:slug`, `topics`, `topic/:slug`, `locations` (danh sách `HistoricalSite` công khai, dùng cho trang `/di-tich`), `events` (danh sách `HistoricalEvent` công khai sắp theo `startYear`, dùng cho trang `/dong-thoi-gian`).
 
 ### `metrics/` — Prometheus metrics
 `metrics.service.ts` (Registry Histogram/Counter/Gauge), `metrics.controller.ts` (`GET /metrics`, `/metrics/json`), `metrics.interceptor.ts` (ghi duration/total mỗi request). Module `@Global()`.
@@ -112,11 +112,15 @@ CRUD Tag đầy đủ + `attachTagsToLesson` (`POST /lessons/:id/tags`, chạy `
 ## 📁 FRONTEND (`frontend/src/`)
 
 ### Routing (`app/`) — Public
-- `page.tsx`: trang chủ (Server Component), gọi `fetchLandingContent()`, render Hero + Timeline/Chapters/Figures/Periods/Topics/Newsletter.
+- `page.tsx`: trang chủ, Server Component async gọi `fetchLandingContent()` (có fallback `data/*.ts` tĩnh khi backend rỗng/lỗi) — render Hero (tĩnh) + `Timeline` (Giai đoạn thật) + `FeaturedStory` (vẫn tĩnh, chưa có model "câu chuyện nổi bật") + `Characters` (Nhân vật thật) + `ExplorePeriodTabs` (Chương/Topic con của Giai đoạn, client island) + `Knowledge` (chủ đề kiến thức, fallback tĩnh vì landing chưa seed section KNOWLEDGE) + `NewsletterSignup` (client island). Tách 2 client island vì Next chặn truyền hàm `onSubmit`/dùng `useState` thẳng từ Server Component (từng gây lỗi 500 "Event handlers cannot be passed to Client Component props").
 - `chuong-su/[slug]/page.tsx`: chi tiết Chương sử/Chuyên đề (`fetchTopicBySlug`).
-- `giai-doan/[slug]/page.tsx`: chi tiết Giai đoạn lịch sử (`fetchPeriodBySlug`).
+- `giai-doan/[slug]/page.tsx`: chi tiết Giai đoạn lịch sử (`fetchPeriodBySlug`) — map Topic con/Nhân vật/Sự kiện thật của giai đoạn vào đúng layout; có trạng thái "không tìm thấy" riêng khi slug không tồn tại (không còn fallback về dữ liệu giả như bản UI clone cũ).
 - `kien-thuc/[slug]/page.tsx`: chỉ re-export `ChapterDetailPage` của `chuong-su/[slug]`.
 - `nhan-vat/[slug]/page.tsx`: hồ sơ nhân vật (`fetchFigureBySlug`).
+- `nhan-vat/page.tsx`: danh sách nhân vật — `fetchFigures()` (`GET /public/figures`).
+- `di-tich/page.tsx`: danh sách di tích — `fetchLocations()` (`GET /public/locations`) + khối "Sự kiện liên quan" từ `fetchEvents()`, link neo sang `/dong-thoi-gian#<slug>`.
+- `dong-thoi-gian/page.tsx`: dòng thời gian đầy đủ — `fetchEvents()` (mỗi event có `id={event.slug}` để `/di-tich` neo tới), kèm Nhân vật tiêu biểu + Giai đoạn liên quan.
+- `chuong-trinh-hoc/page.tsx`, `bai-hoc/[slug]/page.tsx`: xem mục `features/public-curriculum/` bên dưới.
 - `api/subscribe/route.ts`: POST đăng ký newsletter, chống bot (honeypot) + validate email — **lưu vào `Set<string>` RAM (stub), mất khi restart server, chưa nối DB.**
 
 ### Routing (`app/`) — CMS
@@ -135,7 +139,7 @@ CRUD Tag đầy đủ + `attachTagsToLesson` (`POST /lessons/:id/tags`, chạy `
 ### UI dùng chung (`components/`)
 - `common/`: `FormField`, `HistoricalDateRangeField` (mốc thời gian TCN/CN linh hoạt), `SearchableGroupedSelectField`, `ParentContextComboboxField`, `EntityAutocompleteChipsField`, `EntityRelationRepeaterField`, `KnowledgeRelationManager`, `EntityDetailLayout` (layout stepper dùng chung các trang chi tiết Event/Entity/Location), `ConfirmDeleteModal`, `TabbedRichTextEditor` (wrap `TipTapContent` của lessons), `ActionMenu`/`Avatar`/`Badge`/`ContentCell`/`StatCard`/`UserCell`.
 - `layout/`: `ClientLayout` (khung CMS, lưu collapse sidebar vào localStorage), `Sidebar`/`Topbar` (dùng `navigationFacade`), `PageHeader`.
-- `hisgo/`: UI landing public — `Header`/`Footer`, `ChapterCard`/`EraCard`/`FigureCard`/`TopicTile`, `NewsletterBanner` (POST `/api/subscribe`), `PublicDetailView`+`PublicLessonCard`, `SafeImage` (fallback khi lỗi/`USE_IMAGES=false`), `ScrollRevealProvider`, `VideoModal`.
+- `hisgo/`: UI landing public — `Header` (scroll-spy theo id thật trên `page.tsx`: `top/timeline/characters/explore/dang-ky`; nút "Đăng nhập" đang vô hiệu hoá vì chưa có trang `/login`), `Footer`, `ExplorePeriodTabs.tsx` (client island — tab chọn Giai đoạn nổi bật ở trang chủ, nhận `stages` qua prop), `NewsletterSignup.tsx` (client island — form đăng ký, tách riêng để `page.tsx` giữ được là Server Component), `ChapterCard`/`EraCard`/`FigureCard`/`TopicTile`, `NewsletterBanner` (POST `/api/subscribe`), `PublicDetailView`+`PublicLessonCard`, `SafeImage` (fallback khi lỗi/`USE_IMAGES=false`), `ScrollRevealProvider`, `VideoModal`.
 - `sections/hisgo/` (ở `src/sections/hisgo/`, không phải `components/`): `HeroSection`, `HomeSections` (gom các section trang chủ), `TimelineStrip`.
 
 ### Features khác (`features/<x>/`)
@@ -158,6 +162,13 @@ CRUD Tag đầy đủ + `attachTagsToLesson` (`POST /lessons/:id/tags`, chạy `
 - `components/studio/modals/CreateChapterModal.tsx`: tạo Chương mới — CHO PHÉP chọn bài học từ thư viện và sắp xếp thứ tự (▲▼) ngay trong modal trước khi tạo (gọi `createChapter` rồi `addLessonsToChapter` theo đúng thứ tự đã sắp).
 - `components/studio/modals/AddLessonsToChapterModal.tsx`: gom thêm bài học vào 1 Chương ĐÃ CÓ sẵn (khác với CreateChapterModal — việc gom thêm sau khi tạo).
 - `components/studio/modals/LearningPathFormModal.tsx`: tạo/sửa Lộ trình — không còn field "Phân loại lộ trình" (Niên đại/Chuyên đề), trường đó không có tác dụng lọc/hiển thị gì ở phía Lộ trình.
+
+### `features/public-curriculum/` — Trang đọc công khai của Lộ trình học (KHÔNG phải CMS, khác `features/curriculum/`)
+- `components/PublicCurriculumView.tsx`: dùng cho `app/chuong-trinh-hoc/page.tsx` — danh sách Lộ trình học + chi tiết (Chương/bài học) cho người đọc công khai, đồng bộ Lộ trình đang chọn qua URL `?pathId=`.
+- `components/PublicLessonReaderView.tsx`: dùng cho `app/bai-hoc/[slug]/page.tsx` — giao diện đọc 1 bài học công khai.
+- `facades/usePublicCurriculumFacade.ts` / `usePublicLessonReaderFacade.ts`: state + gọi API thật qua `LearningPathApiService`/`LessonApiService` (CÙNG service CMS đang dùng, không phải fetch riêng kiểu `landing.service.ts`).
+- `strategies/public-curriculum.strategies.ts`: lọc danh sách Lộ trình theo `LearningPathFilterType` (`constants/public-curriculum.constants.ts`).
+> ⚠️ Khác với `app/giai-doan`, `/nhan-vat`, `/di-tich`, `/dong-thoi-gian` (dùng `services/entities/landing.service.ts`, fetch trực tiếp `/public/*` không qua React Query/facade), module này tái dùng thẳng các API service của CMS — vì Lộ trình/Bài học không có endpoint `/public/*` riêng, chỉ dựa vào Lesson/LearningPath đã `PUBLISHED`.
 
 ### `types/`, `constants/`, `data/`, `utils/`
 - `types/models/*.type.ts`: interface domain thuần theo resource; `table.types.ts`: `ColumnDef<T>` cho `DataTable`.
@@ -267,6 +278,8 @@ Sequence diagram theo phase (mỗi file có mermaid `sequenceDiagram` + SOLID/pa
 - **`app/periods/page.tsx`**: chỉ redirect sang `/curriculum`, route cũ chưa dọn.
 - **`Subscription`/`Payment`/`Invoice`** (Prisma `subscription.prisma`): có model DB đầy đủ nhưng **chưa có module/service nào trong `backend/src/`** dùng tới.
 - **`LessonLeftSidebar.tsx`**: tồn tại nhưng không được `LessonEditor.tsx` sử dụng hiện tại.
+- **Ảnh fallback trang chủ bị vỡ**: `data/figures.ts`/`data/chapters.ts` trỏ tới `/assets/figures/*.jpg`, `/assets/chapters/*.jpg` — các file này CHƯA tồn tại trong `public/assets/` (chỉ có `hero/temple/citadel/mountain/portrait-1..6/favicon`), nên khi `fetchLandingContent()` trả Figure/Chapter thật có `imageUrl`/`coverImageUrl` rỗng, trang chủ sẽ hiện ảnh vỡ ở vài thẻ. Cần up ảnh thật hoặc đổi fallback sang domain Unsplash như các trang `/nhan-vat`, `/di-tich` đang làm.
+- **Đăng nhập chưa có trang thật**: nút "Đăng nhập" ở `Header.tsx` đang để `disabled` (không trỏ `/login`) vì route đó chưa tồn tại — cần xây khi làm tính năng tài khoản người đọc.
 
 ---
 

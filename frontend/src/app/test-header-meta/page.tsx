@@ -21,8 +21,6 @@ export default function TestHeaderMetaPage() {
     thumbnailUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=400',
     difficulty: DifficultyLevel.MEDIUM,
     tags: ['Kháng chiến chống Pháp', 'Quân sự', 'Cách mạng'],
-    startDate: '19/12/1946',
-    endDate: '07/05/1954',
   });
 
   const handleChange = <K extends keyof LessonHeaderMetaData>(field: K, value: LessonHeaderMetaData[K]) => {
@@ -69,20 +67,12 @@ export default function TestHeaderMetaPage() {
                 <span id="inspect-title" className="text-blue-700 font-bold">{metaData.title || '(Chưa nhập)'}</span>
               </div>
               <div>
-                <strong className="text-slate-600">Chủ đề ID: </strong>
-                <span id="inspect-topic" className="text-emerald-700">{metaData.topicId}</span>
+                <strong className="text-slate-600">Tóm tắt: </strong>
+                <span id="inspect-summary" className="text-emerald-700">{metaData.summary || '(Chưa nhập)'}</span>
               </div>
               <div>
                 <strong className="text-slate-600">Độ khó: </strong>
                 <span id="inspect-difficulty" className="text-amber-700 font-bold">{metaData.difficulty}</span>
-              </div>
-              <div>
-                <strong className="text-slate-600">Thời gian: </strong>
-                <span id="inspect-time">
-                  {metaData.startDate || metaData.endDate
-                    ? `${metaData.startDate || '...'} đến ${metaData.endDate || '...'}`
-                    : 'Không gắn mốc cụ thể (Tùy chọn)'}
-                </span>
               </div>
             </div>
 
@@ -96,7 +86,7 @@ export default function TestHeaderMetaPage() {
               </div>
               <div>
                 <strong className="text-slate-600">Độ dài mô tả ngắn: </strong>
-                <span id="inspect-desc-len">{metaData.shortDescription.length} ký tự</span>
+                <span id="inspect-desc-len">{(metaData.shortDescription || metaData.summary || '').length} ký tự</span>
               </div>
               <div>
                 <strong className="text-slate-600">Ảnh đại diện: </strong>

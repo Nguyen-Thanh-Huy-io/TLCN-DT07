@@ -174,7 +174,7 @@ export function TopicParentModalPicker({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150" data-testid="chapter-picker-modal">
       <div
         className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[88vh]"
         onClick={(e) => e.stopPropagation()}
@@ -314,6 +314,7 @@ export function TopicParentModalPicker({
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
+              data-testid="btn-cancel-chapter-picker"
               onClick={onClose}
               className="text-xs px-3.5 py-2 font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 rounded-lg transition cursor-pointer"
             >
@@ -321,6 +322,7 @@ export function TopicParentModalPicker({
             </button>
             <button
               type="button"
+              data-testid="btn-confirm-chapter-picker"
               onClick={handleConfirm}
               disabled={!allowRootSelect && !tempSelectedId}
               className="text-xs px-4 py-2 font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg shadow-sm transition inline-flex items-center gap-1.5 cursor-pointer"
@@ -368,9 +370,10 @@ function TreeNodeItem({
     : `${node.topic.name}\n[${node.levelName}]`;
 
   return (
-    <div className="tree-picker-item">
+    <div className="tree-picker-item" data-testid={`chapter-item-${node.topic.id}`}>
       <div
         style={indentStyle}
+        data-testid="chapter-item-row"
         onClick={() => {
           if (node.isSelectable) {
             onSelectId(node.topic.id);

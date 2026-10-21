@@ -9,27 +9,37 @@ export const APP_ROUTES = {
   PERIODS: {
     LIST: '/periods',
     CREATE: '/periods/create',
+    DETAIL: (id: string) => `/periods/${id}`,
   },
   TOPICS: {
-    LIST: '/topics',
+    // Không có LIST riêng: trang bảng "danh sách chủ đề" độc lập (/topics) đã bị bỏ —
+    // trùng với tab "Cây phân cấp Chủ đề" trong /curriculum (cùng hiển thị 1 cây
+    // Giai đoạn→Chủ đề→Bài học, chỉ khác dạng bảng phẳng vs cây) — dùng CURRICULUM làm
+    // điểm "quay lại" ở mọi nơi khác. CREATE/DETAIL (form Tạo/Sửa Chủ đề) vẫn giữ.
     CREATE: '/topics/create',
     DETAIL: (id: string) => `/topics/${id}`,
   },
   LESSONS: {
-    LIST: '/lessons',
+    // Không có LIST riêng: trang "danh sách bài học" độc lập (/lessons) đã bị gộp vào
+    // tab "Thư viện" của Curriculum Studio (xem HisgoStudioView.tsx) để tránh 2 nơi cùng
+    // hiển thị 1 danh sách bài học — dùng CURRICULUM làm điểm "quay lại" ở mọi nơi khác.
     CREATE: '/lessons/create',
+    DETAIL: (id: string) => `/lessons/${id}`,
   },
   EVENTS: {
     LIST: '/events',
     CREATE: '/events/create',
+    DETAIL: (id: string) => `/events/${id}`,
   },
   LOCATIONS: {
     LIST: '/locations',
     CREATE: '/locations/create',
+    DETAIL: (id: string) => `/locations/${id}`,
   },
   ENTITIES: {
     LIST: '/entities',
     CREATE: '/entities/create',
+    DETAIL: (id: string) => `/entities/${id}`,
   },
   TAGS: {
     LIST: '/tags',

@@ -61,36 +61,14 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
         },
       };
 
-    case APP_ROUTES.TOPICS.LIST:
-      return {
-        title: 'Chủ đề học tập',
-        subtitle: 'Quản lý các chuyên đề lịch sử theo từng giai đoạn',
-        eyebrow: {
-          parentLabel: 'Chương trình học',
-          parentRoute: APP_ROUTES.CURRICULUM,
-          currentText: 'Chủ đề',
-        },
-      };
-
     case APP_ROUTES.TOPICS.CREATE:
       return {
         title: 'Thêm chủ đề mới',
         subtitle: 'Tạo chuyên đề học tập thuộc giai đoạn lịch sử',
         eyebrow: {
-          parentLabel: 'Chủ đề học tập',
-          parentRoute: APP_ROUTES.TOPICS.LIST,
-          currentText: 'Tạo mới',
-        },
-      };
-
-    case APP_ROUTES.LESSONS.LIST:
-      return {
-        title: 'Bài học & Quiz',
-        subtitle: 'Quản lý nội dung bài học và ngân hàng trắc nghiệm',
-        eyebrow: {
-          parentLabel: 'Chương trình học',
+          parentLabel: 'Cây phân cấp Chủ đề',
           parentRoute: APP_ROUTES.CURRICULUM,
-          currentText: 'Bài học',
+          currentText: 'Tạo mới',
         },
       };
 
@@ -99,8 +77,8 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
         title: 'Tạo bài học mới',
         subtitle: 'Soạn thảo nội dung bài giảng và câu hỏi kiểm tra',
         eyebrow: {
-          parentLabel: 'Bài học',
-          parentRoute: APP_ROUTES.LESSONS.LIST,
+          parentLabel: 'Bài học & Quiz',
+          parentRoute: APP_ROUTES.CURRICULUM,
           currentText: 'Tạo mới',
         },
       };

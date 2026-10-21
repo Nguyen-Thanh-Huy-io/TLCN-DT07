@@ -6,10 +6,10 @@ import { FigureCard } from "@/components/hisgo/FigureCard";
 import { EraCard } from "@/components/hisgo/EraCard";
 import { TopicTile } from "@/components/hisgo/TopicTile";
 import { NewsletterBanner } from "@/components/hisgo/NewsletterBanner";
-import { chaptersData } from "@/data/chapters";
-import { figuresData } from "@/data/figures";
-import { erasData } from "@/data/eras";
-import { topicsData } from "@/data/topics";
+import { chaptersData, ChapterItem } from "@/data/chapters";
+import { figuresData, FigureItem } from "@/data/figures";
+import { erasData, EraItem } from "@/data/eras";
+import { topicsData, TopicItem } from "@/data/topics";
 
 import { TimelineNode } from "@/data/timeline";
 
@@ -40,7 +40,13 @@ export function TimelineSection({ nodes }: TimelineSectionProps = {}) {
 /**
  * 3. Section: Những chương sử đáng nhớ (#chuong-su)
  */
-export function MemorableChaptersSection() {
+interface MemorableChaptersSectionProps {
+  chapters?: ChapterItem[];
+}
+
+export function MemorableChaptersSection({
+  chapters = chaptersData,
+}: MemorableChaptersSectionProps = {}) {
   return (
     <section id="chuong-su" className="w-full py-6 md:py-8 overflow-hidden scroll-mt-20">
       <div className="max-w-[1280px] mx-auto px-6 lg:px-8">
@@ -50,12 +56,12 @@ export function MemorableChaptersSection() {
         />
 
         <div className="mt-7 hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-5">
-          {chaptersData.map((chapter, index) => (
+          {chapters.map((chapter, index) => (
             <ChapterCard
               key={chapter.id}
               chapter={chapter}
               hasTopLeftOrnament={index === 0}
-              hasTopRightOrnament={index === chaptersData.length - 1}
+              hasTopRightOrnament={index === chapters.length - 1}
             />
           ))}
         </div>
@@ -71,7 +77,7 @@ export function MemorableChaptersSection() {
             WebkitOverflowScrolling: "touch",
           }}
         >
-          {chaptersData.map((chapter, index) => (
+          {chapters.map((chapter, index) => (
             <div
               key={chapter.id}
               className="w-[78vw] max-w-[320px] flex-shrink-0"
@@ -80,7 +86,7 @@ export function MemorableChaptersSection() {
               <ChapterCard
                 chapter={chapter}
                 hasTopLeftOrnament={index === 0}
-                hasTopRightOrnament={index === chaptersData.length - 1}
+                hasTopRightOrnament={index === chapters.length - 1}
               />
             </div>
           ))}
@@ -94,7 +100,13 @@ export function MemorableChaptersSection() {
 /**
  * 4. Section: Nhân vật lịch sử tiêu biểu (#nhan-vat)
  */
-export function ProminentFiguresSection() {
+interface ProminentFiguresSectionProps {
+  figures?: FigureItem[];
+}
+
+export function ProminentFiguresSection({
+  figures = figuresData,
+}: ProminentFiguresSectionProps = {}) {
   return (
     <section id="nhan-vat" className="w-full py-6 md:py-8 overflow-hidden scroll-mt-20">
       <div className="max-w-[1280px] mx-auto px-6 lg:px-8">
@@ -104,7 +116,7 @@ export function ProminentFiguresSection() {
         />
 
         <div className="mt-7 hidden sm:grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-5">
-          {figuresData.map((figure) => (
+          {figures.map((figure) => (
             <FigureCard key={figure.id} figure={figure} />
           ))}
         </div>
@@ -120,7 +132,7 @@ export function ProminentFiguresSection() {
             WebkitOverflowScrolling: "touch",
           }}
         >
-          {figuresData.map((figure) => (
+          {figures.map((figure) => (
             <div
               key={figure.id}
               className="w-[44vw] max-w-[180px] flex-shrink-0"
@@ -139,7 +151,13 @@ export function ProminentFiguresSection() {
 /**
  * 5. Section: Khám phá theo giai đoạn (#giai-doan)
  */
-export function PeriodExploreSection() {
+interface PeriodExploreSectionProps {
+  eras?: EraItem[];
+}
+
+export function PeriodExploreSection({
+  eras = erasData,
+}: PeriodExploreSectionProps = {}) {
   return (
     <section id="giai-doan" className="relative w-full py-6 md:py-8 overflow-hidden scroll-mt-20">
       {/* Họa tiết nền mờ tinh tế phía sau Khám phá theo giai đoạn */}
@@ -163,7 +181,7 @@ export function PeriodExploreSection() {
         />
 
         <div className="mt-7 hidden sm:grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-          {erasData.map((era) => (
+          {eras.map((era) => (
             <EraCard key={era.id} era={era} />
           ))}
         </div>
@@ -179,7 +197,7 @@ export function PeriodExploreSection() {
             WebkitOverflowScrolling: "touch",
           }}
         >
-          {erasData.map((era) => (
+          {eras.map((era) => (
             <div
               key={era.id}
               className="w-[62vw] max-w-[260px] flex-shrink-0"
@@ -198,7 +216,13 @@ export function PeriodExploreSection() {
 /**
  * 6. Section: Kiến thức lịch sử (#kien-thuc)
  */
-export function KnowledgeTopicsSection() {
+interface KnowledgeTopicsSectionProps {
+  topics?: TopicItem[];
+}
+
+export function KnowledgeTopicsSection({
+  topics = topicsData,
+}: KnowledgeTopicsSectionProps = {}) {
   return (
     <section id="kien-thuc" className="relative w-full py-6 md:py-8 scroll-mt-20 overflow-hidden">
       {/* Họa tiết nền mờ tinh tế phía sau Kiến thức lịch sử */}
@@ -222,7 +246,7 @@ export function KnowledgeTopicsSection() {
         />
 
         <div className="mt-7 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-5">
-          {topicsData.map((topic) => (
+          {topics.map((topic) => (
             <TopicTile key={topic.id} topic={topic} />
           ))}
         </div>

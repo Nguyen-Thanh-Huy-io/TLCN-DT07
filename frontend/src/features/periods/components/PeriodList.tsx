@@ -1,11 +1,12 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { DataTable } from '@/components/table/DataTable';
 import { ContentCell } from '@/components/common/ContentCell';
 import { Badge } from '@/components/common/Badge';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
-import { PeriodModal, PeriodFormData } from './PeriodModal';
 import { IconName } from '@/constants/icons';
+import { APP_ROUTES } from '@/constants/routes';
 import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import { ContentStatus } from '@/constants/enums';
 import { ColumnDef } from '@/types/table.types';
@@ -14,25 +15,10 @@ import { PeriodApiService } from '@/services/entities/period.service';
 import { extractErrorMessage } from '@/services/api';
 import { formatHistoricalTimeSpan } from '@/utils/history-year.utils';
 
-const DEFAULT_PERIODS: PeriodItem[] = [
-  {
-    id: '1',
-    name: 'Kháng chiến chống Mỹ, cứu nước (1954 - 1975)',
-    description: 'Từ năm 1954 đến Đại thắng mùa Xuân 1975',
-    region: 'Toàn quốc',
-    startYear: 1954,
-    endYear: 1975,
-    displayOrder: 1,
-    status: ContentStatus.PUBLISHED,
-    updatedAt: '2026-09-30',
-  },
-];
-
 export function PeriodList() {
+  const router = useRouter();
   const [periods, setPeriods] = useState<PeriodItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingPeriod, setEditingPeriod] = useState<PeriodItem | null>(null);
   const [deletingPeriod, setDeletingPeriod] = useState<PeriodItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -40,14 +26,11 @@ export function PeriodList() {
     try {
       setLoading(true);
       const res = await PeriodApiService.getPeriods({ limit: 100 });
-      if (res.items && res.items.length > 0) {
-        setPeriods(res.items);
-      } else {
-        setPeriods(DEFAULT_PERIODS);
-      }
+      // Danh sách rỗng là trạng thái hợp lệ — không thay bằng dữ liệu mẫu giả.
+      setPeriods(res.items || []);
     } catch (err) {
-      console.error('Failed to fetch periods, using fallback:', err);
-      setPeriods(DEFAULT_PERIODS);
+      console.error('Failed to fetch periods:', err);
+      setPeriods([]);
     } finally {
       setLoading(false);
     }
@@ -56,35 +39,6 @@ export function PeriodList() {
   useEffect(() => {
     fetchPeriods();
   }, [fetchPeriods]);
-
-  const handleOpenCreate = () => {
-    setEditingPeriod(null);
-    setIsModalOpen(true);
-  };
-
-  const handleOpenEdit = (item: PeriodItem) => {
-    setEditingPeriod(item);
-    setIsModalOpen(true);
-  };
-
-  const handleSavePeriod = async (formData: PeriodFormData) => {
-    try {
-      if (editingPeriod) {
-        await PeriodApiService.updatePeriod(editingPeriod.id, formData);
-        setPeriods((prev) =>
-          prev.map((p) => (p.id === editingPeriod.id ? { ...p, ...formData, updatedAt: new Date().toISOString() } : p))
-        );
-      } else {
-        const newPeriod = await PeriodApiService.createPeriod(formData);
-        setPeriods((prev) => [newPeriod, ...prev]);
-      }
-      setIsModalOpen(false);
-      setEditingPeriod(null);
-    } catch (err: unknown) {
-      console.error('Failed to save period:', err);
-      alert(extractErrorMessage(err, 'Không thể lưu Giai đoạn lịch sử.'));
-    }
-  };
 
   const handleDeletePeriod = async () => {
     if (!deletingPeriod) return;
@@ -103,23 +57,48 @@ export function PeriodList() {
 
   const columns: ColumnDef<PeriodItem>[] = [
     {
-      header: 'Giai đoạn',
+      header: 'Thời kỳ / Giai đoạn',
       cell: (item) => (
-        <ContentCell
-          icon={IconName.CLOCK}
-          title={item.name}
-          sub={item.description || 'Chưa có mô tả'}
-        />
+        <div>
+          <ContentCell
+            icon={IconName.CLOCK}
+            title={item.name}
+            sub={item.description || 'Chưa có mô tả'}
+          />
+          {item.parent && (
+            <div className="mt-1 flex items-center gap-1.5 pl-9 text-[11px] text-amber-700 font-medium">
+              <span className="text-slate-400">↳ Thuộc:</span>
+              <span className="bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                {item.parent.name}
+              </span>
+            </div>
+          )}
+        </div>
       ),
+    },
+    {
+      header: 'Niên đại',
+      cell: (item) => (
+        <span className="text-xs font-medium text-slate-700">
+          {item.timeLabel || formatHistoricalTimeSpan(item.startYear, item.endYear)}
+        </span>
+      ),
+    },
+    {
+      header: 'Chủ đề',
+      cell: (item) => {
+        const topicCount = item._count?.topics || item.topics?.length || 0;
+        return (
+          <Badge tone={topicCount > 0 ? 'blue' : 'neutral'}>
+            {topicCount} chủ đề
+          </Badge>
+        );
+      },
     },
     {
       header: 'Khu vực',
       accessorKey: 'region',
       cell: (item) => item.region || 'Việt Nam',
-    },
-    {
-      header: 'Thời gian',
-      cell: (item) => formatHistoricalTimeSpan(item.startYear, item.endYear),
     },
     {
       header: 'Thứ tự',
@@ -147,7 +126,11 @@ export function PeriodList() {
   ];
 
   if (loading) {
-    return <div style={{ padding: 20 }}>Đang tải dữ liệu...</div>;
+    return (
+      <div className="flex h-96 items-center justify-center text-sm text-slate-500">
+        Đang tải danh sách thời kỳ lịch sử...
+      </div>
+    );
   }
 
   return (
@@ -155,27 +138,18 @@ export function PeriodList() {
       <DataTable<PeriodItem>
         columns={columns}
         data={periods}
-        searchPlaceholder="Tìm kiếm giai đoạn lịch sử..."
-        primaryButtonLabel="Thêm giai đoạn"
-        onPrimaryButtonClick={handleOpenCreate}
-        onEdit={handleOpenEdit}
+        searchPlaceholder="Tìm kiếm thời kỳ, giai đoạn lịch sử..."
+        primaryButtonLabel="Tạo thời kỳ"
+        onPrimaryButtonClick={() => router.push(APP_ROUTES.PERIODS.CREATE)}
+        onView={(item) => router.push(APP_ROUTES.PERIODS.DETAIL(item.id))}
+        onEdit={(item) => router.push(APP_ROUTES.PERIODS.DETAIL(item.id))}
         onDelete={(item) => setDeletingPeriod(item)}
         filters={[{ label: 'Khu vực' }, { label: 'Trạng thái' }]}
       />
 
-      <PeriodModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingPeriod(null);
-        }}
-        onSave={handleSavePeriod}
-        initialData={editingPeriod}
-      />
-
       <ConfirmDeleteModal
         isOpen={Boolean(deletingPeriod)}
-        title="Xóa Giai đoạn lịch sử"
+        title="Xóa Thời kỳ Lịch sử"
         message={`Bạn có chắc chắn muốn xóa "${deletingPeriod?.name}"? Mọi chủ đề, bài học và sự kiện trực thuộc giai đoạn này cũng sẽ bị xóa liên đới (Cascade).`}
         confirmLabel={isDeleting ? 'Đang xóa...' : 'Xác nhận xóa'}
         onConfirm={handleDeletePeriod}

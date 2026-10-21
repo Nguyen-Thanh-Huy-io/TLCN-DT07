@@ -6,7 +6,7 @@ import { ReviewModal } from './ReviewModal';
 import { IconName } from '@/constants/icons';
 import { ContentStatus } from '@/constants/enums';
 import { LessonItem } from '@/types/models/lesson.type';
-import api from '@/services/api';
+import api, { parsePaginatedResponse } from '@/services/api';
 
 export interface ReviewLessonRow {
   id: string;
@@ -71,8 +71,8 @@ export function ReviewList() {
           params: { page: 1, limit: 100 },
         });
 
-        const items = response.data?.items || response.data?.data || [];
-        const rawList = Array.isArray(items) ? items : [];
+        const parsed = parsePaginatedResponse<LessonItem>(response.data);
+        const rawList = parsed.items;
 
         if (rawList.length === 0) {
           setLessonsList(DEFAULT_REVIEW_LESSONS);
@@ -97,12 +97,12 @@ export function ReviewList() {
           return {
             id: lesson.id,
             title: lesson.title || 'Không có tiêu đề',
-            topic: lesson.topic?.name || 'Chưa có chủ đề',
+            topic: lesson.summary || 'Bài đọc độc lập',
             author:
-              lesson.creator?.fullName ||
-              lesson.creator?.username ||
-              lesson.creator?.email ||
-              'N/A',
+              (lesson as any)?.creator?.fullName ||
+              (lesson as any)?.creator?.username ||
+              (lesson as any)?.creator?.email ||
+              'Biên tập viên',
             date: lesson.createdAt
               ? new Date(lesson.createdAt).toLocaleDateString('vi-VN')
               : '-',

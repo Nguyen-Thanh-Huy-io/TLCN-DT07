@@ -4,20 +4,26 @@ import { ContentStatus } from '@/constants/enums';
 
 export interface CreatePeriodDto {
   name: string;
+  parentId?: string | null;
   region?: string;
-  startYear: number;
-  endYear?: number;
+  startYear?: number | null;
+  endYear?: number | null;
+  timeLabel?: string;
   description?: string;
+  coverImageUrl?: string;
   displayOrder?: number;
   status?: ContentStatus;
 }
 
 export interface UpdatePeriodDto {
   name?: string;
+  parentId?: string | null;
   region?: string;
-  startYear?: number;
-  endYear?: number;
+  startYear?: number | null;
+  endYear?: number | null;
+  timeLabel?: string;
   description?: string;
+  coverImageUrl?: string;
   displayOrder?: number;
   status?: ContentStatus;
 }

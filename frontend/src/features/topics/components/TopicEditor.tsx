@@ -4,11 +4,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
-import { ContentStatus, LearningPathType, DifficultyLevel } from '@/constants/enums';
+import { ContentStatus, LearningPathType } from '@/constants/enums';
 import { TopicItem } from '@/types/models/topic.type';
-import { LessonItem } from '@/types/models/lesson.type';
 import { TopicApiService } from '@/services/entities/topic.service';
-import { LessonApiService } from '@/services/entities/lesson.service';
 import { extractErrorMessage } from '@/services/api';
 import { TopicParentModalPicker } from './TopicParentModalPicker';
 import { TopicCoverImagePicker } from './TopicCoverImagePicker';
@@ -60,7 +58,6 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
   // Dữ liệu options
   const [allTopics, setAllTopics] = useState<TopicItem[]>([]);
   const [childrenTopics, setChildrenTopics] = useState<TopicItem[]>([]);
-  const [topicLessons, setTopicLessons] = useState<LessonItem[]>([]);
   const [selectedCandidateId, setSelectedCandidateId] = useState('');
 
   // Modal Picker state & Hiển thị danh sách lộ trình cùng cấp
@@ -71,10 +68,6 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
   // In-line Quick Create state (Tạo nhanh tại chỗ không chuyển trang)
   const [isQuickChildOpen, setIsQuickChildOpen] = useState(false);
   const [quickChildName, setQuickChildName] = useState('');
-
-  const [isQuickLessonOpen, setIsQuickLessonOpen] = useState(false);
-  const [quickLessonTitle, setQuickLessonTitle] = useState('');
-  const [quickLessonDiff, setQuickLessonDiff] = useState<DifficultyLevel>(DifficultyLevel.MEDIUM);
   const [quickCreating, setQuickCreating] = useState(false);
 
   // Form state
@@ -106,9 +99,6 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
         setUpdatedAt(detail.updatedAt || '');
         if (Array.isArray(detail.children)) {
           setChildrenTopics(detail.children);
-        }
-        if (Array.isArray(detail.lessons)) {
-          setTopicLessons(detail.lessons);
         }
       }
     } catch (err) {
@@ -375,23 +365,6 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
     }
   };
 
-  // Hành động xóa bài học trực thuộc chủ đề này
-  const handleDeleteLessonInTopic = async (lId: string, lTitle: string) => {
-    const confirmed = window.confirm(
-      `Bạn có chắc chắn muốn xóa bài học "${lTitle}" khỏi hệ thống? Thao tác này không thể hoàn tác.`
-    );
-    if (!confirmed) return;
-
-    try {
-      setActionLoading(true);
-      await LessonApiService.deleteLesson(lId);
-      if (topicId) await fetchTopicDetail(topicId);
-    } catch (err) {
-      alert(extractErrorMessage(err, 'Không thể xóa bài học'));
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
   // Tạo nhanh Chủ đề con trực thuộc tại chỗ (In-line Quick Create)
   const handleQuickCreateChild = async () => {
@@ -424,36 +397,6 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
     }
   };
 
-  // Tạo nhanh Bài học trực thuộc tại chỗ (In-line Quick Create)
-  const handleQuickCreateLesson = async () => {
-    if (!topicId || !quickLessonTitle.trim()) {
-      alert('Vui lòng nhập tiêu đề bài học');
-      return;
-    }
-
-    try {
-      setQuickCreating(true);
-      const nextLessonOrder = topicLessons.length + 1;
-
-      await LessonApiService.createLesson({
-        topicId,
-        title: quickLessonTitle.trim(),
-        contentRichText: undefined,
-        difficulty: quickLessonDiff,
-        displayOrder: nextLessonOrder,
-        status: ContentStatus.DRAFT,
-      });
-
-      setQuickLessonTitle('');
-      setIsQuickLessonOpen(false);
-      await fetchTopicDetail(topicId);
-    } catch (err) {
-      console.error('Failed to quick create lesson:', err);
-      alert(extractErrorMessage(err, 'Không thể tạo bài học'));
-    } finally {
-      setQuickCreating(false);
-    }
-  };
 
   if (loadingInitial) {
     return (
@@ -839,163 +782,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
               </div>
             )}
 
-            {/* Block 4: Quản lý Bài học trực thuộc & Tạo bài học nhanh (Chỉ trong Edit Mode) */}
-            {isEditMode && topicId && (
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                      <span>04. Bài học trực thuộc chủ đề</span>
-                      <span className="text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-                        {topicLessons.length} bài học
-                      </span>
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Nội dung bài học lịch sử chi tiết cho học sinh học trong chủ đề này
-                    </p>
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsQuickLessonOpen((prev) => !prev)}
-                      className={`text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg shadow-2xs transition cursor-pointer ${
-                        isQuickLessonOpen
-                          ? 'bg-slate-200 text-slate-800 border border-slate-300'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
-                      }`}
-                    >
-                      <span>{isQuickLessonOpen ? '✕ Đóng' : '+ Tạo bài học nhanh'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/lessons/create?topicId=${topicId}`)}
-                      className="text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-md border border-slate-200 transition cursor-pointer"
-                      title="Mở toàn màn hình soạn thảo văn bản phong phú (TipTap)"
-                    >
-                      <span>Soạn chi tiết ↗</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Thanh Tạo Nhanh Bài Học Tại Chỗ (In-line Quick Creator) */}
-                {isQuickLessonOpen && (
-                  <div className="mb-4 p-3 bg-blue-50/60 border border-blue-200 rounded-lg animate-in fade-in duration-150">
-                    <div className="text-[11px] font-bold text-blue-900 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                      <span>Tạo nhanh bài học trực thuộc chủ đề này:</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="text"
-                        value={quickLessonTitle}
-                        onChange={(e) => setQuickLessonTitle(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleQuickCreateLesson()}
-                        placeholder="Nhập tiêu đề bài học (Ví dụ: Trận Ấp Bắc 1963)..."
-                        autoFocus
-                        disabled={quickCreating}
-                        className="flex-1 text-xs px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-600 shadow-2xs font-medium"
-                      />
-
-                      <select
-                        value={quickLessonDiff}
-                        onChange={(e) => setQuickLessonDiff(e.target.value as DifficultyLevel)}
-                        disabled={quickCreating}
-                        className="text-xs px-2.5 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-600 shrink-0"
-                      >
-                        <option value={DifficultyLevel.EASY}>Độ khó: Dễ</option>
-                        <option value={DifficultyLevel.MEDIUM}>Độ khó: Trung bình</option>
-                        <option value={DifficultyLevel.HARD}>Độ khó: Nâng cao</option>
-                      </select>
-
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsQuickLessonOpen(false);
-                            setQuickLessonTitle('');
-                          }}
-                          disabled={quickCreating}
-                          className="px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg transition cursor-pointer"
-                        >
-                          Hủy
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleQuickCreateLesson}
-                          disabled={quickCreating || !quickLessonTitle.trim()}
-                          className="px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg shadow-2xs transition cursor-pointer"
-                        >
-                          {quickCreating ? 'Đang tạo...' : 'Tạo ngay'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Danh sách bài học hiện có */}
-                {topicLessons.length > 0 ? (
-                  <div className="space-y-2">
-                    {topicLessons.map((l, index) => (
-                      <div
-                        key={l.id}
-                        className="flex items-center justify-between bg-slate-50 border border-slate-200 px-3.5 py-2.5 rounded-lg text-xs hover:border-slate-300 transition"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                          <span className="font-mono text-[11px] font-bold text-blue-700 bg-white border border-slate-200 px-1.5 py-0.5 rounded shrink-0">
-                            #{String(l.displayOrder ?? index + 1).padStart(2, '0')}
-                          </span>
-                          <Icon name={IconName.BOOK} size={15} className="text-slate-400 shrink-0" />
-                          <span className="font-medium text-slate-900 truncate" title={l.title}>
-                            {l.title}
-                          </span>
-                          {l.status && (
-                            <span
-                              className={`text-[10px] px-1.5 py-0.2 rounded font-semibold shrink-0 ${
-                                l.status === ContentStatus.PUBLISHED
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
-                              }`}
-                            >
-                              {l.status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => router.push(`/lessons/create?id=${l.id}&topicId=${topicId}`)}
-                            className="text-[11px] text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-white font-medium transition cursor-pointer"
-                          >
-                            Soạn thảo / Sửa
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteLessonInTopic(l.id, l.title)}
-                            disabled={actionLoading}
-                            className="text-[11px] text-rose-600 hover:text-rose-800 px-2 py-1 rounded hover:bg-rose-50 transition cursor-pointer"
-                            title="Xóa bài học này"
-                          >
-                            Xóa
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-xs text-slate-500 bg-slate-50/50 border border-dashed border-slate-200 rounded-lg p-5 text-center">
-                    <p className="mb-2">Chủ đề này chưa có bài học nào.</p>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/lessons/create?topicId=${topicId}`)}
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer"
-                    >
-                      Bấm vào đây để tạo bài học đầu tiên cho chủ đề này
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {/* CỘT PHẢI (Inspector Sidebar - 1 span) */}

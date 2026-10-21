@@ -17,44 +17,6 @@ export interface UserItem {
   createdAt?: string;
 }
 
-const DEFAULT_USERS: UserItem[] = [
-  {
-    id: 'u-1',
-    username: 'admin',
-    fullName: 'Minh Anh',
-    email: 'minhanh.admin@hisgo.vn',
-    role: UserRole.SUPERADMIN,
-    status: UserStatus.ACTIVE,
-    createdAt: '2026-01-15',
-  },
-  {
-    id: 'u-2',
-    username: 'nguyenvana',
-    fullName: 'Nguyễn Văn A',
-    email: 'nguyenvana@gmail.com',
-    role: UserRole.ADMIN,
-    status: UserStatus.ACTIVE,
-    createdAt: '2026-03-10',
-  },
-  {
-    id: 'u-3',
-    username: 'maitrang',
-    fullName: 'Mai Trang',
-    email: 'maitrang.editor@hisgo.vn',
-    role: UserRole.MODERATOR,
-    status: UserStatus.ACTIVE,
-    createdAt: '2026-05-18',
-  },
-  {
-    id: 'u-4',
-    username: 'lehoang',
-    fullName: 'Lê Hoàng',
-    email: 'lehoang@gmail.com',
-    role: UserRole.USER,
-    status: UserStatus.ACTIVE,
-    createdAt: '2026-07-22',
-  },
-];
 
 export function UserList() {
   const [users, setUsers] = useState<UserItem[]>([]);
@@ -65,11 +27,12 @@ export function UserList() {
       .get('/users')
       .then((res) => {
         const data = res.data?.items || res.data?.data || res.data || [];
-        setUsers(Array.isArray(data) && data.length > 0 ? data : DEFAULT_USERS);
+        // Danh sách rỗng là trạng thái hợp lệ — không thay bằng dữ liệu mẫu giả.
+        setUsers(Array.isArray(data) ? data : []);
       })
       .catch((err) => {
-        console.error('Failed to fetch users, using fallback:', err);
-        setUsers(DEFAULT_USERS);
+        console.error('Failed to fetch users:', err);
+        setUsers([]);
       })
       .finally(() => setLoading(false));
   }, []);

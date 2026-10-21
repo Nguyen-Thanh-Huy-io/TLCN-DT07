@@ -198,7 +198,7 @@ export function DashboardView() {
             <button
               type="button"
               className="text-button"
-              onClick={() => router.push(APP_ROUTES.LESSONS.LIST)}
+              onClick={() => router.push(APP_ROUTES.CURRICULUM)}
             >
               Xem tất cả bài học <Icon name={IconName.ARROW} size={15} />
             </button>
@@ -356,11 +356,6 @@ export function DashboardView() {
                 icon={IconName.GRID}
                 label="Cây chương trình"
                 onClick={() => router.push(APP_ROUTES.CURRICULUM)}
-              />
-              <QuickAction
-                icon={IconName.FOLDER}
-                label="Quản lý Chủ đề"
-                onClick={() => router.push(APP_ROUTES.TOPICS.LIST)}
               />
               <QuickAction
                 icon={IconName.BOOK}

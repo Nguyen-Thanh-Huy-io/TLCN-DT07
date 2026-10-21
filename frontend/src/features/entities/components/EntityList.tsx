@@ -1,81 +1,74 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DataTable } from '@/components/table/DataTable';
 import { ContentCell } from '@/components/common/ContentCell';
 import { Badge } from '@/components/common/Badge';
+import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { IconName } from '@/constants/icons';
 import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import { ContentStatus, EntityType } from '@/constants/enums';
+import { APP_ROUTES } from '@/constants/routes';
 import { ColumnDef } from '@/types/table.types';
 import { HistoricalEntityItem } from '@/types/models/historical-entity.type';
-import api from '@/services/api';
+import { HistoricalEntityApiService } from '@/services/entities/historical-entity.service';
+import { extractErrorMessage } from '@/services/api';
 
 const ENTITY_TYPE_LABEL_MAP: Record<EntityType, string> = {
   [EntityType.PERSON]: 'Nhân vật',
   [EntityType.ORGANIZATION]: 'Tổ chức',
-  [EntityType.DYNASTY]: 'Triều đại',
+  [EntityType.DYNASTY]: 'Triều đại & Đế chế',
   [EntityType.MILITARY_FORCE]: 'Lực lượng quân sự',
+  [EntityType.ARTIFACT]: 'Hiện vật & Bảo vật',
+  [EntityType.LOCATION]: 'Địa danh & Di tích',
   [EntityType.OTHER]: 'Khác',
 };
 
-const DEFAULT_ENTITIES: HistoricalEntityItem[] = [
-  {
-    id: 'ent-1',
-    name: 'Đại tướng Võ Nguyên Giáp',
-    type: EntityType.PERSON,
-    biography: 'Tổng tư lệnh tối cao Quân đội Nhân dân Việt Nam trong chiến dịch Điện Biên Phủ',
-    birthYear: 1911,
-    deathYear: 2013,
-    status: ContentStatus.PUBLISHED,
-    updatedAt: '2026-09-25',
-  },
-  {
-    id: 'ent-2',
-    name: 'Quân đội Nhân dân Việt Nam',
-    type: EntityType.MILITARY_FORCE,
-    biography: 'Lực lượng vũ trang nhân dân Việt Nam, thành lập ngày 22/12/1944',
-    birthYear: 1944,
-    status: ContentStatus.PUBLISHED,
-    updatedAt: '2026-09-24',
-  },
-  {
-    id: 'ent-3',
-    name: 'Nhà Hậu Lê',
-    type: EntityType.DYNASTY,
-    biography: 'Triều đại phong kiến trị vì lâu nhất trong lịch sử Việt Nam',
-    birthYear: 1428,
-    deathYear: 1789,
-    status: ContentStatus.PUBLISHED,
-    updatedAt: '2026-09-20',
-  },
-];
 
 export function EntityList() {
+  const router = useRouter();
   const [entities, setEntities] = useState<HistoricalEntityItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingEntity, setDeletingEntity] =
+    useState<HistoricalEntityItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    api
-      .get('/historical-entities')
+    HistoricalEntityApiService.getEntities({ limit: 50 })
       .then((res) => {
-        const data = res.data?.items || res.data?.data || res.data || [];
-        setEntities(Array.isArray(data) && data.length > 0 ? data : DEFAULT_ENTITIES);
+        // Danh sách rỗng là trạng thái hợp lệ — không thay bằng dữ liệu mẫu giả.
+        setEntities(res.items || []);
       })
       .catch((err) => {
-        console.error('Failed to fetch historical entities, using fallback:', err);
-        setEntities(DEFAULT_ENTITIES);
+        console.error('Failed to fetch historical entities:', err);
+        setEntities([]);
       })
       .finally(() => setLoading(false));
   }, []);
 
+  const handleDeleteEntity = async () => {
+    if (!deletingEntity) return;
+    try {
+      setIsDeleting(true);
+      await HistoricalEntityApiService.deleteEntity(deletingEntity.id);
+      setEntities((prev) => prev.filter((e) => e.id !== deletingEntity.id));
+      setDeletingEntity(null);
+    } catch (err) {
+      console.error('Delete entity failed:', err);
+      alert(extractErrorMessage(err, 'Không thể xóa Thực thể lịch sử.'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const columns: ColumnDef<HistoricalEntityItem>[] = [
     {
-      header: 'NHÂN VẬT / TỔ CHỨC',
+      header: 'THỰC THỂ / NHÂN VẬT LỊCH SỬ',
       cell: (item) => (
         <ContentCell
           icon={IconName.USERS}
           title={item.name}
-          sub={item.biography || 'Chưa có tiểu sử'}
+          sub={item.tagline || item.description || 'Chưa có mô tả tóm tắt'}
         />
       ),
     },
@@ -88,14 +81,16 @@ export function EntityList() {
       ),
     },
     {
-      header: 'NĂM SINH - MẤT / HOẠT ĐỘNG',
+      header: 'NIÊN ĐẠI / HOẠT ĐỘNG',
       cell: (item) => {
+        if (item.birthDateLabel && item.deathDateLabel) {
+          return `${item.birthDateLabel} – ${item.deathDateLabel}`;
+        }
         if (item.birthYear && item.deathYear) {
           return `${item.birthYear} – ${item.deathYear}`;
         }
-        if (item.birthYear) {
-          return `Từ năm ${item.birthYear}`;
-        }
+        if (item.birthDateLabel) return item.birthDateLabel;
+        if (item.birthYear) return `Từ năm ${item.birthYear}`;
         return 'Chưa rõ';
       },
     },
@@ -120,17 +115,37 @@ export function EntityList() {
   ];
 
   if (loading) {
-    return <div style={{ padding: 20 }}>Đang tải danh sách nhân vật...</div>;
+    return <div style={{ padding: 20 }}>Đang tải danh sách thực thể lịch sử...</div>;
   }
 
   return (
-    <DataTable<HistoricalEntityItem>
-      columns={columns}
-      data={entities}
-      searchPlaceholder="Tìm kiếm nhân vật, triều đại lịch sử..."
-      primaryButtonLabel="Thêm nhân vật"
-      onPrimaryButtonClick={() => alert('Thêm nhân vật mới')}
-      filters={[{ label: 'Phân loại' }, { label: 'Trạng thái' }]}
-    />
+    <>
+      <DataTable<HistoricalEntityItem>
+        columns={columns}
+        data={entities}
+        searchPlaceholder="Tìm kiếm nhân vật, triều đại, hiện vật lịch sử..."
+        primaryButtonLabel="Tạo mới thực thể"
+        onPrimaryButtonClick={() => {
+          router.push(APP_ROUTES.ENTITIES.CREATE);
+        }}
+        onView={(item) => {
+          router.push(APP_ROUTES.ENTITIES.DETAIL(item.id));
+        }}
+        onEdit={(item) => {
+          router.push(APP_ROUTES.ENTITIES.DETAIL(item.id));
+        }}
+        onDelete={(item) => setDeletingEntity(item)}
+        filters={[{ label: 'Phân loại' }, { label: 'Trạng thái' }]}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={Boolean(deletingEntity)}
+        title="Xóa Thực thể Lịch sử"
+        message={`Bạn có chắc chắn muốn xóa "${deletingEntity?.name}" khỏi cơ sở dữ liệu? Toàn bộ các liên kết đồ thị quan hệ sẽ bị gỡ bỏ.`}
+        confirmLabel={isDeleting ? 'Đang xóa...' : 'Xác nhận xóa'}
+        onConfirm={handleDeleteEntity}
+        onClose={() => setDeletingEntity(null)}
+      />
+    </>
   );
 }

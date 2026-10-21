@@ -10,13 +10,6 @@ import { TagItem } from '@/types/models/tag.type';
 
 export type TagRow = TagItem;
 
-const DEFAULT_TAGS: TagRow[] = [
-  { id: 'tag-1', name: 'Kháng chiến', description: 'Các cuộc kháng chiến bảo vệ Tổ quốc', lessonCount: 18, colorHex: '#2563eb' },
-  { id: 'tag-2', name: 'Nhân vật lịch sử', description: 'Các anh hùng, danh nhân dân tộc', lessonCount: 32, colorHex: '#16a34a' },
-  { id: 'tag-3', name: 'Địa danh', description: 'Chiến trường, di tích lịch sử', lessonCount: 24, colorHex: '#d97706' },
-  { id: 'tag-4', name: 'Chiến dịch', description: 'Các chiến dịch quân sự lớn', lessonCount: 15, colorHex: '#dc2626' },
-];
-
 export function TagList() {
   const [tagsList, setTagsList] = useState<TagRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,11 +23,11 @@ export function TagList() {
       setLoading(true);
       const res = await api.get('/tags');
       const payload = res.data?.items || res.data?.data || res.data || [];
-      const list = Array.isArray(payload) ? payload : [];
-      setTagsList(list.length > 0 ? list : DEFAULT_TAGS);
+      // Danh sách rỗng là trạng thái hợp lệ — không thay bằng dữ liệu mẫu giả.
+      setTagsList(Array.isArray(payload) ? payload : []);
     } catch (err) {
-      console.error('Failed to load tags, using fallback:', err);
-      setTagsList(DEFAULT_TAGS);
+      console.error('Failed to load tags:', err);
+      setTagsList([]);
     } finally {
       setLoading(false);
     }

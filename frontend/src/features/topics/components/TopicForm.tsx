@@ -64,7 +64,7 @@ export function TopicForm() {
         isSequential: form.isSequential,
         status: form.status,
       });
-      router.push(APP_ROUTES.TOPICS.LIST);
+      router.push(APP_ROUTES.CURRICULUM);
     } catch (err: unknown) {
       console.error('Failed to save topic:', err);
       alert(extractErrorMessage(err, 'Không thể lưu chủ đề.'));
@@ -236,7 +236,7 @@ export function TopicForm() {
         <button
           type="button"
           className="secondary-button"
-          onClick={() => router.push(APP_ROUTES.TOPICS.LIST)}
+          onClick={() => router.push(APP_ROUTES.CURRICULUM)}
         >
           Hủy
         </button>

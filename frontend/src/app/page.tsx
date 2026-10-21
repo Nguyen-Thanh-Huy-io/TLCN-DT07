@@ -13,8 +13,12 @@ import {
 import { ScrollRevealProvider } from "@/components/hisgo/ScrollRevealProvider";
 import Image from "next/image";
 import { USE_DECOR } from "@/config";
+import { fetchLandingContent } from "@/services/entities/landing.service";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { timelineNodes, eras, chapters, knowledgeTopics, figures } =
+    await fetchLandingContent();
+
   return (
     <ScrollRevealProvider>
       <div className="hisgo-theme min-h-screen flex flex-col bg-[var(--bg-page)] text-[var(--text-body)] relative overflow-x-hidden">
@@ -114,27 +118,27 @@ export default function HomePage() {
 
           {/* Dòng chảy lịch sử Việt Nam */}
           <div className="scroll-reveal">
-            <TimelineSection />
+            <TimelineSection nodes={timelineNodes} />
           </div>
 
           {/* Những chương sử đáng nhớ */}
           <div className="scroll-reveal">
-            <MemorableChaptersSection />
+            <MemorableChaptersSection chapters={chapters} />
           </div>
 
           {/* Nhân vật lịch sử tiêu biểu */}
           <div className="scroll-reveal">
-            <ProminentFiguresSection />
+            <ProminentFiguresSection figures={figures} />
           </div>
 
           {/* Khám phá theo giai đoạn */}
           <div className="scroll-reveal">
-            <PeriodExploreSection />
+            <PeriodExploreSection eras={eras} />
           </div>
 
           {/* Kiến thức lịch sử */}
           <div className="scroll-reveal">
-            <KnowledgeTopicsSection />
+            <KnowledgeTopicsSection topics={knowledgeTopics} />
           </div>
 
           {/* Newsletter Cùng HISGO */}

@@ -31,6 +31,19 @@ export const DIFFICULTY_LABEL_MAP: Record<DifficultyLevel, string> = {
   [DifficultyLevel.HARD]: 'Khó',
 };
 
+export const PATH_TYPE_LABEL_MAP: Record<string, string> = {
+  CHRONOLOGICAL: 'Niên đại',
+  THEMATIC: 'Chuyên đề',
+  MYTHOLOGICAL: 'Dã sử / Truyền thuyết',
+};
+
+export const PATH_TYPE_TONE_MAP: Record<string, BadgeTone> = {
+  CHRONOLOGICAL: 'blue',
+  THEMATIC: 'amber',
+  MYTHOLOGICAL: 'gray',
+};
+
+
 export interface PageMetaItem {
   title: string;
   subtitle: string;

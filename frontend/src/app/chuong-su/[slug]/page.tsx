@@ -102,7 +102,7 @@ export default async function ChapterDetailPage({
                 className="rounded-xl border border-[#D8C7A6] bg-[#FAF6EA] p-4 flex flex-col sm:flex-row sm:items-start gap-4"
               >
                 <div className="shrink-0 px-3 py-1.5 rounded-lg bg-[#7A1E1E] text-[#FAF6EA] font-bold text-sm text-center min-w-[110px]">
-                  {evt.eventDateNote || `Năm ${evt.eventYear}`}
+                  {evt.eventDateNote || `Năm ${evt.startYear}`}
                 </div>
                 <div className="space-y-1">
                   <h3 className="font-bold text-base text-[#2D241C]">

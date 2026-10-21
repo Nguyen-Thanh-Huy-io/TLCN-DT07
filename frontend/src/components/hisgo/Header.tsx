@@ -17,33 +17,34 @@ export function Header({
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
 
   const navLinks = [
-    { id: "explore", label: "Khám phá lịch sử", href: "#hero" },
-    { id: "timeline", label: "Dòng thời gian", href: "#timeline" },
-    { id: "nhan-vat", label: "Nhân vật", href: "#nhan-vat" },
+    { id: "explore", label: "Trang chủ", href: "/" },
+    { id: "curriculum", label: "Chương trình học", href: "/chuong-trinh-hoc" },
+    { id: "timeline", label: "Dòng thời gian", href: "/dong-thoi-gian" },
+    { id: "nhan-vat", label: "Nhân vật", href: "/nhan-vat" },
+    { id: "di-tich", label: "Di tích", href: "/di-tich" },
     { id: "account", label: "Tài khoản", href: "#dang-ky" },
   ];
 
   // Theo dõi vị trí cuộn bằng IntersectionObserver để active tab tương ứng
+  // (các id dưới đây phải khớp đúng với id thật trên frontend/src/app/page.tsx)
   useEffect(() => {
-    const sections = ["hero", "timeline", "chuong-su", "nhan-vat", "giai-doan", "kien-thuc", "dang-ky"];
+    const sectionToTab: Record<string, string> = {
+      top: "explore",
+      timeline: "timeline",
+      characters: "explore",
+      explore: "explore",
+      "dang-ky": "account",
+    };
 
     const handleScroll = () => {
       const scrollPosition = window.scrollY + 120; // Offset chiều cao header
-      for (const sectionId of sections) {
+      for (const [sectionId, tab] of Object.entries(sectionToTab)) {
         const el = document.getElementById(sectionId);
         if (el) {
           const top = el.offsetTop;
           const height = el.offsetHeight;
           if (scrollPosition >= top && scrollPosition < top + height) {
-            if (sectionId === "hero" || sectionId === "chuong-su") {
-              setActiveTab("explore");
-            } else if (sectionId === "timeline") {
-              setActiveTab("timeline");
-            } else if (sectionId === "nhan-vat") {
-              setActiveTab("nhan-vat");
-            } else if (sectionId === "dang-ky") {
-              setActiveTab("account");
-            }
+            setActiveTab(tab);
             break;
           }
         }
@@ -124,8 +125,7 @@ export function Header({
       <div className="max-w-[1280px] mx-auto px-6 lg:px-8 h-16 md:h-20 flex items-center justify-between">
         {/* Left: Logo Hoa Sen + Text HISGO */}
         <Link
-          href="#hero"
-          onClick={(e) => handleNavClick(e, "#hero", "explore")}
+          href="/"
           className="flex items-center gap-3 group select-none"
         >
           {/* Lotus Flower SVG 7 cánh thanh thoát (2 sắc độ --gold và --gold-light) */}
@@ -139,12 +139,10 @@ export function Header({
               className="drop-shadow-sm"
               aria-hidden="true"
             >
-              {/* Cánh trung tâm chính */}
               <path
                 d="M50 12 C44 28 42 52 50 70 C58 52 56 28 50 12 Z"
                 fill="var(--gold)"
               />
-              {/* 2 cánh tầng giữa */}
               <path
                 d="M48 24 C36 34 32 48 40 68 C46 68 49 54 48 24 Z"
                 fill="var(--gold-light)"
@@ -153,7 +151,6 @@ export function Header({
                 d="M52 24 C64 34 68 48 60 68 C54 68 51 54 52 24 Z"
                 fill="var(--gold-light)"
               />
-              {/* 2 cánh tầng ngoài */}
               <path
                 d="M36 38 C22 48 20 62 30 72 C40 72 43 62 36 38 Z"
                 fill="var(--gold)"
@@ -162,7 +159,6 @@ export function Header({
                 d="M64 38 C78 48 80 62 70 72 C60 72 57 62 64 38 Z"
                 fill="var(--gold)"
               />
-              {/* 2 cánh xòe rộng sát đài sen */}
               <path
                 d="M26 54 C14 62 14 74 24 80 C34 80 37 72 26 54 Z"
                 fill="var(--gold-light)"
@@ -171,7 +167,6 @@ export function Header({
                 d="M74 54 C86 62 86 74 76 80 C66 80 63 72 74 54 Z"
                 fill="var(--gold-light)"
               />
-              {/* Đài sen nâng cánh */}
               <path
                 d="M32 76 C42 84 58 84 68 76 C62 74 38 74 32 76 Z"
                 fill="var(--gold)"
@@ -212,10 +207,12 @@ export function Header({
 
         {/* Right: User Login & Mobile Hamburger */}
         <div className="flex items-center gap-3">
-          {/* Login Button Desktop */}
-          <Link
-            href="/login"
-            className="flex items-center gap-2 px-3.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium font-[family-name:var(--font-body)] text-[var(--ink)] hover:text-[var(--primary)] transition-colors"
+          {/* Đăng nhập: chưa có trang /login thật, tạm vô hiệu hoá thay vì trỏ tới trang chưa tồn tại */}
+          <button
+            type="button"
+            disabled
+            title="Tính năng đăng nhập đang được phát triển"
+            className="flex items-center gap-2 px-3.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium font-[family-name:var(--font-body)] text-[var(--ink)] opacity-50 cursor-not-allowed"
           >
             <svg
               width="18"
@@ -232,7 +229,7 @@ export function Header({
               <circle cx="12" cy="7" r="4" />
             </svg>
             <span>Đăng nhập</span>
-          </Link>
+          </button>
 
           {/* Mobile Menu Button */}
           <button
@@ -296,14 +293,15 @@ export function Header({
             })}
 
             <div className="pt-4 border-t border-[var(--border)]">
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full py-3 px-4 bg-[var(--primary)] text-white text-center rounded-[var(--radius-btn)] font-medium text-sm flex items-center justify-center gap-2"
+              <button
+                type="button"
+                disabled
+                title="Tính năng đăng nhập đang được phát triển"
+                className="w-full py-3 px-4 bg-[var(--primary)] text-white text-center rounded-[var(--radius-btn)] font-medium text-sm flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
               >
                 <span>Đăng nhập tài khoản</span>
                 <span aria-hidden="true">→</span>
-              </Link>
+              </button>
             </div>
           </div>
         </>

@@ -41,6 +41,12 @@ export class LearningPathService {
                     status: true,
                     difficulty: true,
                     thumbnailUrl: true,
+                    description: true,
+                    lessonTags: {
+                      include: {
+                        tag: true,
+                      },
+                    },
                   },
                 },
               },
@@ -70,6 +76,11 @@ export class LearningPathService {
                     difficulty: true,
                     thumbnailUrl: true,
                     description: true,
+                    lessonTags: {
+                      include: {
+                        tag: true,
+                      },
+                    },
                   },
                 },
               },

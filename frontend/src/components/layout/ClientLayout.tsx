@@ -37,8 +37,16 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // If public HISGO route (Home or Styleguide), render standalone without CMS Admin Sidebar/Topbar
-  const isHisgoPublicRoute = pathname === "/" || pathname === "/styleguide";
+  // If public HISGO route (Home, Styleguide, or public user-facing pages), render standalone without CMS Admin Sidebar/Topbar
+  const isHisgoPublicRoute =
+    pathname === "/" ||
+    pathname === "/styleguide" ||
+    pathname.startsWith("/chuong-trinh-hoc") ||
+    pathname.startsWith("/bai-hoc") ||
+    pathname.startsWith("/dong-thoi-gian") ||
+    pathname.startsWith("/nhan-vat") ||
+    pathname.startsWith("/di-tich") ||
+    pathname.startsWith("/giai-doan");
   if (isHisgoPublicRoute) {
     return <>{children}</>;
   }

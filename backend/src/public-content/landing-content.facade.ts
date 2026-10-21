@@ -8,8 +8,10 @@ import {
 } from '../common/constants/cache-keys.constant';
 import {
   LandingResponseDto,
+  PublicEventSummaryDto,
   PublicFigureDetailDto,
   PublicFigureDto,
+  PublicLocationSummaryDto,
   PublicPeriodDetailDto,
   PublicPeriodDto,
   PublicTopicDetailDto,
@@ -86,6 +88,31 @@ export class LandingContentFacade {
 
   getSection(section: LandingSection): Promise<PublicTopicDto[]> {
     return this.registry.resolve(section).fetch();
+  }
+
+  /** Danh sách Di tích / Địa danh lịch sử công khai (HistoricalEntity type=LOCATION). */
+  async getLocations(): Promise<PublicLocationSummaryDto[]> {
+    const entities = await this.prisma.historicalEntity.findMany({
+      where: {
+        type: HistoricalEntityType.LOCATION,
+        status: PUBLIC_CONTENT_STATUS,
+      },
+      include: { historicalSite: true },
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+    });
+    return entities.map((entity) =>
+      PublicContentMapper.toLocationSummary(entity),
+    );
+  }
+
+  /** Danh sách Sự kiện lịch sử công khai, sắp xếp theo mốc thời gian. */
+  async getEvents(): Promise<PublicEventSummaryDto[]> {
+    const events = await this.prisma.historicalEvent.findMany({
+      where: { status: PUBLIC_CONTENT_STATUS },
+      include: { location: { include: { historicalSite: true } } },
+      orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
+    });
+    return events.map((event) => PublicContentMapper.toEventSummary(event));
   }
 
   async getPeriodBySlug(slug: string): Promise<PublicPeriodDetailDto> {

@@ -66,7 +66,7 @@ export function PublicLessonCard({
               key={evt.id}
               className="px-2.5 py-1 rounded-full bg-[#B6842D]/15 text-[#6E4D14] font-medium"
             >
-              ⚔️ {evt.eventYear}: {evt.title}
+              ⚔️ {evt.startYear}: {evt.title}
             </span>
           ))}
         </div>

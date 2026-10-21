@@ -226,7 +226,7 @@ export interface PublicEventSummaryDto {
   id: string;
   slug: string | null;
   title: string;
-  eventYear: number;
+  startYear: number;
   eventDateNote: string | null;
   location: string | null;
   description: string | null;
@@ -305,5 +305,50 @@ export function fetchFigureBySlug(
   return fetchPublicDetail<PublicFigureDetailDto>(
     PUBLIC_API_ENDPOINTS.FIGURE_DETAIL(slug),
   );
+}
+
+export async function fetchFigures(): Promise<PublicFigureDto[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}/public/figures`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchLocations(): Promise<PublicLocationSummaryDto[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}/public/locations`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchEvents(): Promise<PublicEventSummaryDto[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}/public/events`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
 }
 

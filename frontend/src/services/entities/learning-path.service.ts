@@ -10,8 +10,20 @@ export interface ChapterLessonItem {
     title: string;
     slug: string;
     thumbnailUrl?: string | null;
+    description?: string | null;
+    difficulty?: string | null;
     status: string;
     duration?: number;
+    lessonTags?: Array<{
+      id: string;
+      tagId: string;
+      tag?: {
+        id: string;
+        name: string;
+        slug: string;
+        colorHex?: string | null;
+      };
+    }>;
   };
 }
 

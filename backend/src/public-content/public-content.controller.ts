@@ -3,8 +3,10 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { LandingContentFacade } from './landing-content.facade';
 import {
   LandingResponseDto,
+  PublicEventSummaryDto,
   PublicFigureDetailDto,
   PublicFigureDto,
+  PublicLocationSummaryDto,
   PublicPeriodDetailDto,
   PublicPeriodDto,
   PublicTopicDetailDto,
@@ -102,6 +104,30 @@ export class PublicContentController {
   })
   getTopicBySlug(@Param('slug') slug: string): Promise<PublicTopicDetailDto> {
     return this.facade.getTopicBySlug(slug);
+  }
+
+  @Get(PUBLIC_CONTENT_ROUTES.LOCATIONS)
+  @ApiOperation({
+    summary: 'Lấy danh sách di tích / địa danh lịch sử công khai',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: [PublicLocationSummaryDto],
+  })
+  getLocations(): Promise<PublicLocationSummaryDto[]> {
+    return this.facade.getLocations();
+  }
+
+  @Get(PUBLIC_CONTENT_ROUTES.EVENTS)
+  @ApiOperation({
+    summary: 'Lấy danh sách sự kiện lịch sử công khai theo mốc thời gian',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: [PublicEventSummaryDto],
+  })
+  getEvents(): Promise<PublicEventSummaryDto[]> {
+    return this.facade.getEvents();
   }
 }
 

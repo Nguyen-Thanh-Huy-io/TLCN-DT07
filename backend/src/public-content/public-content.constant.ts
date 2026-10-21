@@ -21,6 +21,8 @@ export const PUBLIC_CONTENT_ROUTES = {
   TOPIC_DETAIL: 'topics/:slug',
   FIGURES: 'figures',
   FIGURE_DETAIL: 'figures/:slug',
+  LOCATIONS: 'locations',
+  EVENTS: 'events',
 } as const;
 
 export const PUBLIC_CONTENT_MESSAGES = {

@@ -3,6 +3,7 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { LandingContentFacade } from './landing-content.facade';
 import {
   LandingResponseDto,
+  PublicEventDetailDto,
   PublicEventSummaryDto,
   PublicFigureDetailDto,
   PublicFigureDto,
@@ -128,6 +129,18 @@ export class PublicContentController {
   })
   getEvents(): Promise<PublicEventSummaryDto[]> {
     return this.facade.getEvents();
+  }
+
+  @Get(PUBLIC_CONTENT_ROUTES.EVENT_DETAIL)
+  @ApiOperation({
+    summary: 'Lấy chi tiết sự kiện lịch sử theo slug kèm sự kiện cha/con & sự kiện liên quan',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: PublicEventDetailDto,
+  })
+  getEventBySlug(@Param('slug') slug: string): Promise<PublicEventDetailDto> {
+    return this.facade.getEventBySlug(slug);
   }
 }
 

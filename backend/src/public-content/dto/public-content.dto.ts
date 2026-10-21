@@ -69,6 +69,24 @@ export class PublicLessonSummaryDto {
   locations: PublicLocationSummaryDto[];
 }
 
+export class PublicEventRelationDto {
+  @ApiProperty() relationType: string;
+  @ApiPropertyOptional({ nullable: true }) description: string | null;
+  @ApiProperty({ type: () => PublicEventSummaryDto }) event: PublicEventSummaryDto;
+}
+
+export class PublicEventDetailDto extends PublicEventSummaryDto {
+  @ApiPropertyOptional({ type: () => PublicPeriodDto, nullable: true })
+  period: PublicPeriodDto | null;
+  @ApiPropertyOptional({ type: () => PublicEventSummaryDto, nullable: true })
+  parent: PublicEventSummaryDto | null;
+  @ApiProperty({ type: [PublicEventSummaryDto] }) children: PublicEventSummaryDto[];
+  @ApiProperty({ type: [PublicEventRelationDto] })
+  outgoingRelations: PublicEventRelationDto[];
+  @ApiProperty({ type: [PublicEventRelationDto] })
+  incomingRelations: PublicEventRelationDto[];
+}
+
 export class PublicChildTopicDto extends PublicTopicDto {
   @ApiProperty({ type: [PublicEventSummaryDto] }) events: PublicEventSummaryDto[];
   @ApiProperty({ type: [PublicLessonSummaryDto] })

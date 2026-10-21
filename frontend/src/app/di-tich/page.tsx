@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Header } from "@/components/hisgo/Header";
-import { fetchEvents, fetchLocations } from "@/services/entities/landing.service";
+import { fetchEvents, fetchLocations, PUBLIC_ROUTE_PREFIX } from "@/services/entities/landing.service";
 
 const FALLBACK_LANDMARK_IMAGES = [
   "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=900&q=80",
@@ -104,7 +104,7 @@ export default async function DiTichPage() {
                     event.slug ? (
                       <Link
                         key={event.id}
-                        href={`/dong-thoi-gian#${event.slug}`}
+                        href={`${PUBLIC_ROUTE_PREFIX.EVENT}/${event.slug}`}
                         className="flex items-center gap-3 rounded-lg border border-[#dcc39c] bg-[#faf7f2] px-4 py-3 text-sm font-medium text-[#231b15] transition hover:bg-[#fffdf9]"
                       >
                         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#6817171a] text-[#681717]">

@@ -18,6 +18,7 @@ export const PUBLIC_ROUTE_PREFIX = {
   CHAPTER: '/chuong-su',
   KNOWLEDGE: '/kien-thuc',
   FIGURE: '/nhan-vat',
+  EVENT: '/su-kien',
 } as const;
 
 const DEFAULT_GRADIENTS = [
@@ -232,6 +233,20 @@ export interface PublicEventSummaryDto {
   description: string | null;
 }
 
+export interface PublicEventRelationDto {
+  relationType: string;
+  description: string | null;
+  event: PublicEventSummaryDto;
+}
+
+export interface PublicEventDetailDto extends PublicEventSummaryDto {
+  period: PublicPeriodDto | null;
+  parent: PublicEventSummaryDto | null;
+  children: PublicEventSummaryDto[];
+  outgoingRelations: PublicEventRelationDto[];
+  incomingRelations: PublicEventRelationDto[];
+}
+
 export interface PublicLessonSummaryDto {
   id: string;
   title: string;
@@ -335,6 +350,14 @@ export async function fetchLocations(): Promise<PublicLocationSummaryDto[]> {
   } catch {
     return [];
   }
+}
+
+export function fetchEventBySlug(
+  slug: string,
+): Promise<PublicEventDetailDto | null> {
+  return fetchPublicDetail<PublicEventDetailDto>(
+    `/public/events/${encodeURIComponent(slug)}`,
+  );
 }
 
 export async function fetchEvents(): Promise<PublicEventSummaryDto[]> {

@@ -23,6 +23,7 @@ export const PUBLIC_CONTENT_ROUTES = {
   FIGURE_DETAIL: 'figures/:slug',
   LOCATIONS: 'locations',
   EVENTS: 'events',
+  EVENT_DETAIL: 'events/:slug',
 } as const;
 
 export const PUBLIC_CONTENT_MESSAGES = {
@@ -32,6 +33,8 @@ export const PUBLIC_CONTENT_MESSAGES = {
     `Không tìm thấy chủ đề / chương sử với đường dẫn "${slug}"`,
   FIGURE_NOT_FOUND: (slug: string) =>
     `Không tìm thấy nhân vật lịch sử với đường dẫn "${slug}"`,
+  EVENT_NOT_FOUND: (slug: string) =>
+    `Không tìm thấy sự kiện lịch sử với đường dẫn "${slug}"`,
 } as const;
 
 /** Hậu tố niên đại khi tự sinh timeLabel. */

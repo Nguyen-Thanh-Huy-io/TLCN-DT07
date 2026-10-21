@@ -8,6 +8,7 @@ import {
 } from '../common/constants/cache-keys.constant';
 import {
   LandingResponseDto,
+  PublicEventDetailDto,
   PublicEventSummaryDto,
   PublicFigureDetailDto,
   PublicFigureDto,
@@ -113,6 +114,73 @@ export class LandingContentFacade {
       orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
     });
     return events.map((event) => PublicContentMapper.toEventSummary(event));
+  }
+
+  /** Chi tiết 1 Sự kiện lịch sử: giai đoạn, sự kiện cha/con, sự kiện liên quan (đồ thị nhân-quả). */
+  async getEventBySlug(slug: string): Promise<PublicEventDetailDto> {
+    const event = await this.prisma.historicalEvent.findFirst({
+      where: { slug, status: PUBLIC_CONTENT_STATUS },
+      include: {
+        period: true,
+        location: { include: { historicalSite: true } },
+        parent: {
+          include: { location: { include: { historicalSite: true } } },
+        },
+        children: {
+          where: { status: PUBLIC_CONTENT_STATUS },
+          include: { location: { include: { historicalSite: true } } },
+          orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
+        },
+        outgoingRelations: {
+          include: {
+            targetEvent: {
+              include: { location: { include: { historicalSite: true } } },
+            },
+          },
+        },
+        incomingRelations: {
+          include: {
+            sourceEvent: {
+              include: { location: { include: { historicalSite: true } } },
+            },
+          },
+        },
+      },
+    });
+
+    if (!event) {
+      throw new NotFoundException(PUBLIC_CONTENT_MESSAGES.EVENT_NOT_FOUND(slug));
+    }
+
+    const outgoingRelations = event.outgoingRelations
+      .filter((rel) => rel.targetEvent.status === PUBLIC_CONTENT_STATUS)
+      .map((rel) => ({
+        relationType: rel.relationType,
+        description: rel.description,
+        event: PublicContentMapper.toEventSummary(rel.targetEvent),
+      }));
+
+    const incomingRelations = event.incomingRelations
+      .filter((rel) => rel.sourceEvent.status === PUBLIC_CONTENT_STATUS)
+      .map((rel) => ({
+        relationType: rel.relationType,
+        description: rel.description,
+        event: PublicContentMapper.toEventSummary(rel.sourceEvent),
+      }));
+
+    return {
+      ...PublicContentMapper.toEventSummary(event),
+      period: event.period ? PublicContentMapper.toPeriod(event.period) : null,
+      parent:
+        event.parent && event.parent.status === PUBLIC_CONTENT_STATUS
+          ? PublicContentMapper.toEventSummary(event.parent)
+          : null,
+      children: event.children.map((child) =>
+        PublicContentMapper.toEventSummary(child),
+      ),
+      outgoingRelations,
+      incomingRelations,
+    };
   }
 
   async getPeriodBySlug(slug: string): Promise<PublicPeriodDetailDto> {

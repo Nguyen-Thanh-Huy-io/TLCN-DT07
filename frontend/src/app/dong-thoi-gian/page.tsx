@@ -91,7 +91,16 @@ export default async function DongThoiGianPage() {
                           <div className="font-[Lora] text-lg font-semibold text-[#6e181b]">
                             {event.eventDateNote || `Năm ${event.startYear}`}
                           </div>
-                          <div className="mt-0.5 text-base font-medium text-[#302622]">{event.title}</div>
+                          {event.slug ? (
+                            <Link
+                              href={`${PUBLIC_ROUTE_PREFIX.EVENT}/${event.slug}`}
+                              className="mt-0.5 block text-base font-medium text-[#302622] hover:text-[#6e181b] hover:underline"
+                            >
+                              {event.title}
+                            </Link>
+                          ) : (
+                            <div className="mt-0.5 text-base font-medium text-[#302622]">{event.title}</div>
+                          )}
                           {event.location && (
                             <div className="mt-1 text-xs text-[#776b61]">📍 {event.location}</div>
                           )}

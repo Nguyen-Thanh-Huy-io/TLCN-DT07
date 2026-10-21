@@ -22,7 +22,7 @@ sequenceDiagram
     TopicApi->>Controller: PATCH /topics/:id (UpdateTopicDto)
     Controller->>Service: update(id, updateTopicDto)
     Service->>Validator: validateParentHierarchy(parentId, currentId)
-    Validator->>DB: Kiểm tra chu trình lặp (Cycle check) & Độ sâu (Max depth = 3)
+    Validator->>DB: Kiểm tra chu trình lặp (Cycle check) & Độ sâu an toàn N cấp (Max depth = 20)
     DB-->>Validator: Hợp lệ (Không có vòng lặp)
     Service->>DB: prisma.topic.update({ where: { id }, data: { parentId } })
     DB-->>Service: Updated Topic

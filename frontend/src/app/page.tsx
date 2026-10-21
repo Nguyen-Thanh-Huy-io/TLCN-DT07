@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Header as SiteHeader } from "@/components/hisgo/Header";
+import { Footer } from "@/components/hisgo/Footer";
 import { ExplorePeriodTabs, type ExploreStage } from "@/components/hisgo/ExplorePeriodTabs";
 import { NewsletterSignup } from "@/components/hisgo/NewsletterSignup";
 import { fetchLandingContent } from "@/services/entities/landing.service";
@@ -11,19 +12,6 @@ const ArrowIcon = () => (
   <svg viewBox="0 0 20 20" aria-hidden="true">
     <path d="M3 10h13M11 5l5 5-5 5" />
   </svg>
-);
-
-const LeafMark = ({ light = false }: { light?: boolean }) => (
-  <span
-    className={`landing-page-shell__leaf${light ? " landing-page-shell__leaf--light" : ""}`}
-    aria-hidden="true"
-  >
-    <i />
-    <i />
-    <i />
-    <i />
-    <i />
-  </span>
 );
 
 const SectionTitle = ({
@@ -228,44 +216,6 @@ function Knowledge({ topics }: { topics: TopicItem[] }) {
         <NewsletterSignup />
       </div>
     </section>
-  );
-}
-
-export function Footer() {
-  return (
-    <footer className="landing-page-shell__footer" id="footer">
-      <div className="landing-page-shell__shell landing-page-shell__footer-grid">
-        <div>
-          <a className="landing-page-shell__brand" href="#top">
-            <LeafMark />
-            <strong>HISGO</strong>
-          </a>
-          <p>Khám phá lịch sử · Hiểu về hiện tại · Kiến tạo tương lai</p>
-        </div>
-        <p>
-          Hệ thống dữ liệu riêng, biên tập bởi đội ngũ chuyên gia.
-          <br />
-          Đồng hành cùng học sinh, sinh viên, người yêu lịch sử.
-        </p>
-        <p>
-          Hỗ trợ · Đặt câu hỏi
-          <br />
-          Hướng dẫn sử dụng
-          <br />
-          Liên hệ
-        </p>
-        <div className="landing-page-shell__footer-social">
-          <p>Kết nối với chúng tôi</p>
-          <span>f</span>
-          <span>▶</span>
-          <span>♪</span>
-        </div>
-      </div>
-      <div className="landing-page-shell__shell landing-page-shell__footer-bottom">
-        <span>© 2025 HISGO. All rights reserved.</span>
-        <span>Điều khoản sử dụng&nbsp;&nbsp;&nbsp; Chính sách bảo mật</span>
-      </div>
-    </footer>
   );
 }
 

@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Header } from "@/components/hisgo/Header";
+import { Footer } from "@/components/hisgo/Footer";
 import { PublicAuthService } from "@/services/auth/public-auth.service";
 
 function LoginForm() {
@@ -103,6 +104,7 @@ function LoginForm() {
           </p>
         </div>
       </div>
+      <Footer />
     </main>
   );
 }

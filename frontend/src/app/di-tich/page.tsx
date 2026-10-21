@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Header } from "@/components/hisgo/Header";
+import { Footer } from "@/components/hisgo/Footer";
 import { fetchEvents, fetchLocations, PUBLIC_ROUTE_PREFIX } from "@/services/entities/landing.service";
 
 const FALLBACK_LANDMARK_IMAGES = [
@@ -132,12 +133,10 @@ export default async function DiTichPage() {
               )}
             </section>
 
-            <footer className="mt-8 border-t border-[#dcc39c] pt-5 text-center text-xs tracking-[0.2em] text-[#6a5f53]">
-              © 2026 HISGO — Hệ tri thức số hóa và khám phá không gian lịch sử Việt Nam
-            </footer>
           </div>
         </div>
       </div>
+      <Footer />
     </main>
   );
 }

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/hisgo/Header';
+import { Footer } from '@/components/hisgo/Footer';
 import {
   QuizQuestion,
   QuizQuestionType,
@@ -652,6 +653,7 @@ export function PublicLessonReaderView({
             </>
           )}
         </main>
+        <Footer />
       </div>
     </div>
   );

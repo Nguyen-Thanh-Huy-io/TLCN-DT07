@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Header } from "@/components/hisgo/Header";
+import { Footer } from "@/components/hisgo/Footer";
 import {
   fetchPeriodBySlug,
   PUBLIC_ROUTE_PREFIX,
@@ -69,6 +70,7 @@ function NotFoundState({ slug }: { slug: string }) {
             <ArrowIcon />
           </Link>
         </main>
+        <Footer />
       </div>
     </div>
   );
@@ -262,6 +264,7 @@ export default async function EraDetailPage({ params }: { params: Promise<{ slug
             </div>
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   );

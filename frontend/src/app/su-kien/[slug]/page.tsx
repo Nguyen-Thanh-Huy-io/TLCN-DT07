@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Header } from "@/components/hisgo/Header";
+import { Footer } from "@/components/hisgo/Footer";
 import {
   fetchEventBySlug,
   PUBLIC_ROUTE_PREFIX,
@@ -31,6 +32,7 @@ function NotFoundState({ slug }: { slug: string }) {
             ← Quay về Dòng thời gian
           </Link>
         </main>
+        <Footer />
       </div>
     </div>
   );
@@ -189,6 +191,7 @@ export default async function EventDetailPage({
             </div>
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   );

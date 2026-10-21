@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Header } from "@/components/hisgo/Header";
+import { Footer } from "@/components/hisgo/Footer";
 import { fetchFigures, PUBLIC_ROUTE_PREFIX } from "@/services/entities/landing.service";
 
 const FALLBACK_FIGURE_IMAGE =
@@ -103,6 +104,7 @@ export default async function NhanVatPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </main>
   );
 }

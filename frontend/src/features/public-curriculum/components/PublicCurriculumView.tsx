@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/hisgo/Header';
+import { Footer } from '@/components/hisgo/Footer';
 import {
   DEFAULT_COVER_IMAGES,
   FILTER_TAB_OPTIONS,
@@ -637,6 +638,7 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
             </>
           )}
         </main>
+        <Footer />
       </div>
     </div>
   );

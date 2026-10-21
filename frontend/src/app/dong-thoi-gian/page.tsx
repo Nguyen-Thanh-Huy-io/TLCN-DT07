@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Header } from "@/components/hisgo/Header";
+import { Footer } from "@/components/hisgo/Footer";
 import { TimelineExplorer } from "@/components/hisgo/TimelineExplorer";
 import {
   fetchEvents,
@@ -217,6 +218,7 @@ export default async function DongThoiGianPage() {
           </div>
         </main>
       </div>
+      <Footer />
     </main>
   );
 }

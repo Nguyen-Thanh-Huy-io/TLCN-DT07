@@ -40,6 +40,17 @@ export class HistoricalEventResponseDto {
   })
   location?: string | null;
 
+  @ApiPropertyOptional({
+    example: 'BATTLE',
+    description: 'Phân loại sự kiện',
+  })
+  category?: string;
+
+  @ApiPropertyOptional({
+    description: 'Siêu dữ liệu đặc thù theo thể loại',
+  })
+  metadata?: Record<string, any> | null;
+
   @ApiProperty({ example: 1, description: 'Thứ tự hiển thị' })
   displayOrder: number;
 

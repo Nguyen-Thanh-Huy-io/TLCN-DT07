@@ -14,6 +14,18 @@ export class PeriodResponseDto {
   })
   name: string;
 
+  @ApiProperty({
+    example: 'thoi-ky-bac-thuoc',
+    description: 'Slug đường dẫn thân thiện',
+  })
+  slug: string;
+
+  @ApiPropertyOptional({
+    example: '(179 TCN - 938)',
+    description: 'Nhãn niên đại hiển thị',
+  })
+  timeLabel?: string | null;
+
   @ApiPropertyOptional({
     example: 'Việt Nam',
     description: 'Khu vực hoặc tỉnh thành liên quan',

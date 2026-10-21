@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
-import { ContentStatus } from '@prisma/client';
+import { LessonStatus } from '@prisma/client';
 import {
   DashboardOverviewResponseDto,
   RecentActivityItemDto,
@@ -30,7 +30,6 @@ export class DashboardService {
       publishedLessons,
       draftLessons,
       archivedLessons,
-      rejectedLessons,
       recentLessons,
       recentTopics,
       recentPeriods,
@@ -40,29 +39,21 @@ export class DashboardService {
       this.prisma.topic.count(),
       this.prisma.lesson.count(),
       this.prisma.lesson.count({
-        where: { status: ContentStatus.PENDING_REVIEW },
+        where: { status: LessonStatus.REVIEW },
       }),
       this.prisma.historicalEvent.count(),
       this.prisma.lesson.count({
-        where: { status: ContentStatus.PUBLISHED },
+        where: { status: LessonStatus.PUBLISHED },
       }),
       this.prisma.lesson.count({
-        where: { status: ContentStatus.DRAFT },
+        where: { status: LessonStatus.DRAFT },
       }),
       this.prisma.lesson.count({
-        where: { status: ContentStatus.ARCHIVED },
-      }),
-      this.prisma.lesson.count({
-        where: { status: ContentStatus.REJECTED },
+        where: { status: LessonStatus.ARCHIVED },
       }),
       this.prisma.lesson.findMany({
         take: 5,
         orderBy: { updatedAt: 'desc' },
-        include: {
-          creator: {
-            select: { username: true, email: true },
-          },
-        },
       }),
       this.prisma.topic.findMany({
         take: 3,
@@ -73,17 +64,9 @@ export class DashboardService {
         orderBy: { updatedAt: 'desc' },
       }),
       this.prisma.lesson.findMany({
-        where: { status: ContentStatus.PENDING_REVIEW },
+        where: { status: LessonStatus.REVIEW },
         take: 5,
         orderBy: { createdAt: 'desc' },
-        include: {
-          creator: {
-            select: { username: true, email: true },
-          },
-          topic: {
-            select: { name: true },
-          },
-        },
       }),
     ]);
 
@@ -94,7 +77,7 @@ export class DashboardService {
         title: l.title,
         type: 'LESSON' as const,
         status: l.status,
-        authorName: l.creator?.username || l.creator?.email || 'Quản trị viên',
+        authorName: 'Biên tập viên',
         updatedAt: l.updatedAt,
         route: `/lessons?highlight=${l.id}`,
       })),
@@ -128,9 +111,11 @@ export class DashboardService {
     const pendingLessons: PendingLessonItemDto[] = pendingLessonsRaw.map((pl) => ({
       id: pl.id,
       title: pl.title,
-      topicName: pl.topic?.name || 'Chủ đề chung',
-      creatorName: pl.creator?.username || pl.creator?.email || 'Người soạn thảo',
+      topicName: 'Bài đọc độc lập',
+      creatorName: 'Người soạn thảo',
       createdAt: pl.createdAt,
+      submittedAt: pl.updatedAt,
+      route: `/review?lessonId=${pl.id}`,
     }));
 
     return {
@@ -150,7 +135,7 @@ export class DashboardService {
         draft: draftLessons,
         pendingReview: pendingLessonsCount,
         archived: archivedLessons,
-        rejected: rejectedLessons,
+        rejected: 0,
       },
     };
   }

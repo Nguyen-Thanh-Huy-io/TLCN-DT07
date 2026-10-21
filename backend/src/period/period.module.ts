@@ -3,10 +3,11 @@ import { PeriodController } from './period.controller';
 import { PeriodService } from './period.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
+import { SlugService } from '../common/services/slug.service';
 
 @Module({
   controllers: [PeriodController],
-  providers: [PeriodService, PrismaService, RedisService],
+  providers: [PeriodService, PrismaService, RedisService, SlugService],
   exports: [PeriodService],
 })
 export class PeriodModule {}

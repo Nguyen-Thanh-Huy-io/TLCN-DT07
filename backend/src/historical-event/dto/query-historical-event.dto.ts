@@ -1,5 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { ContentStatus, EventCategory } from '@prisma/client';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryHistoricalEventDto {
@@ -12,21 +21,63 @@ export class QueryHistoricalEventDto {
   topicId?: string;
 
   @ApiPropertyOptional({
+    description: 'Lọc sự kiện theo ID của Thời kỳ / Giai đoạn (Period)',
+  })
+  @IsUUID('4')
+  @IsOptional()
+  periodId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Lọc sự kiện theo ID của Di tích / Địa danh (HistoricalSite entityId)',
+  })
+  @IsUUID('4')
+  @IsOptional()
+  siteId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Alias backward-compatible cho siteId',
+  })
+  @IsUUID('4')
+  @IsOptional()
+  locationId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Lọc sự kiện theo ID của Sự kiện cha (parentId)',
+  })
+  @IsUUID('4')
+  @IsOptional()
+  parentId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Chỉ lấy các sự kiện cấp cao nhất (parentId IS NULL)',
+  })
+  @IsOptional()
+  topLevelOnly?: boolean | string;
+
+  @ApiPropertyOptional({
+    enum: ContentStatus,
+    description: 'Lọc sự kiện theo trạng thái xuất bản (DRAFT, PENDING, PUBLISHED)',
+  })
+  @IsEnum(ContentStatus)
+  @IsOptional()
+  status?: ContentStatus;
+
+  @ApiPropertyOptional({
+    enum: EventCategory,
+    description: 'Lọc sự kiện theo phân loại (BATTLE, WAR, TREATY, REVOLUTION...)',
+  })
+  @IsEnum(EventCategory)
+  @IsOptional()
+  category?: EventCategory;
+
+  @ApiPropertyOptional({
     example: 938,
     description: 'Lọc sự kiện theo năm diễn ra',
   })
   @Type(() => Number)
   @IsInt()
   @IsOptional()
-  eventYear?: number;
-
-  @ApiPropertyOptional({
-    example: 'Bạch Đằng',
-    description: 'Lọc theo địa danh hoặc tên vị trí xảy ra sự kiện',
-  })
-  @IsString()
-  @IsOptional()
-  location?: string;
+  startYear?: number;
 
   @ApiPropertyOptional({
     example: 'Ngô Quyền',

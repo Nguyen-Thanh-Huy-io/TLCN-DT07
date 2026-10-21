@@ -14,6 +14,7 @@ import {
   IPaginatedResult,
 } from './interfaces/period.interface';
 import { Period, ContentStatus, Prisma } from '@prisma/client';
+import { SlugService } from '../common/services/slug.service';
 
 @Injectable()
 export class PeriodService implements IPeriodService {
@@ -24,6 +25,7 @@ export class PeriodService implements IPeriodService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly logger: CustomLoggerService,
+    private readonly slugService: SlugService,
   ) {}
 
   /**
@@ -37,18 +39,18 @@ export class PeriodService implements IPeriodService {
 
     // Business validation: endYear >= startYear nếu có endYear
     if (
-      createPeriodDto.endYear !== undefined &&
-      createPeriodDto.endYear !== null &&
-      createPeriodDto.endYear < createPeriodDto.startYear
+      createPeriodDto.startYear != null && createPeriodDto.endYear != null && createPeriodDto.endYear < createPeriodDto.startYear
     ) {
       throw new BadRequestException(
         'endYear must be greater than or equal to startYear',
       );
     }
 
+    const slug = await this.slugService.generateUnique(createPeriodDto.name, async (candidate) => (await this.prisma.period.count({ where: { slug: candidate } })) > 0);
     const period = await this.prisma.period.create({
       data: {
         name: createPeriodDto.name,
+        slug,
         region: createPeriodDto.region,
         startYear: createPeriodDto.startYear,
         endYear: createPeriodDto.endYear,
@@ -173,7 +175,7 @@ export class PeriodService implements IPeriodService {
         ? updatePeriodDto.endYear
         : existing.endYear;
 
-    if (endYear !== null && endYear !== undefined && endYear < startYear) {
+    if (startYear != null && endYear != null && endYear < startYear) {
       throw new BadRequestException(
         'endYear must be greater than or equal to startYear',
       );

@@ -31,8 +31,8 @@ export class RecentActivityItemDto {
   @ApiProperty({ description: 'Phân loại nội dung', enum: ['LESSON', 'TOPIC', 'PERIOD'] })
   type: 'LESSON' | 'TOPIC' | 'PERIOD';
 
-  @ApiProperty({ description: 'Trạng thái nội dung', enum: ContentStatus })
-  status: ContentStatus;
+  @ApiProperty({ description: 'Trạng thái nội dung' })
+  status: ContentStatus | string;
 
   @ApiProperty({ description: 'Tên người thực hiện / người tạo' })
   authorName: string;

@@ -19,6 +19,10 @@ import { HistoricalEventModule } from './historical-event/historical-event.modul
 import { TagModule } from './tag/tag.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UploadModule } from './upload/upload.module';
+import { LearningPathModule } from './learning-path/learning-path.module';
+import { HistoricalEntityModule } from './historical-entity/historical-entity.module';
+import { PublicContentModule } from './public-content/public-content.module';
+import { QuizModule } from './quiz/quiz.module';
 
 @Module({
   imports: [
@@ -46,6 +50,10 @@ import { UploadModule } from './upload/upload.module';
     TagModule,
     DashboardModule,
     UploadModule,
+    LearningPathModule,
+    HistoricalEntityModule,
+    PublicContentModule,
+    QuizModule,
   ],
   controllers: [AppController],
   providers: [AppService],

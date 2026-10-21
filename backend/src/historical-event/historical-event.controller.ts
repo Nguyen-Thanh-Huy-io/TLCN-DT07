@@ -140,4 +140,56 @@ export class HistoricalEventController {
   async remove(@Param('id') id: string) {
     return this.historicalEventService.remove(id);
   }
+
+  @Post(':id/relations')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Thêm quan hệ tri thức/nhân quả cho sự kiện',
+    description:
+      'Tạo mối liên kết định hướng giữa sự kiện nguồn và sự kiện đích (nguyên nhân, hệ quả, tiền đề...).',
+  })
+  @ApiParam({ name: 'id', description: 'UUID của sự kiện nguồn (Source Event)' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Thêm mối quan hệ sự kiện thành công',
+  })
+  async addRelation(
+    @Param('id') id: string,
+    @Body() dto: any,
+  ) {
+    return this.historicalEventService.addRelation(id, dto);
+  }
+
+  @Delete('relations/:relationId')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Xóa quan hệ giữa 2 sự kiện',
+    description: 'Hủy bỏ liên kết quan hệ theo ID quan hệ.',
+  })
+  @ApiParam({ name: 'relationId', description: 'UUID của quan hệ cần xóa' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Xóa quan hệ thành công',
+  })
+  async removeRelation(@Param('relationId') relationId: string) {
+    return this.historicalEventService.removeRelation(relationId);
+  }
+
+  @Get(':id/graph')
+  @ApiOperation({
+    summary: 'Lấy đồ thị tri thức quan hệ nhân quả (Nodes & Edges) của sự kiện',
+    description:
+      'Trả về cấu trúc dữ liệu mạng lưới quan hệ đa chiều phục vụ trực quan hóa đồ thị tri thức.',
+  })
+  @ApiParam({ name: 'id', description: 'UUID của sự kiện trung tâm' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Lấy đồ thị sự kiện thành công',
+  })
+  async getEventGraph(@Param('id') id: string) {
+    return this.historicalEventService.getEventGraph(id);
+  }
 }
+

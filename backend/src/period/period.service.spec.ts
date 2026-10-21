@@ -3,6 +3,7 @@ import { PeriodService } from './period.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
+import { SlugService } from '../common/services/slug.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ContentStatus } from '@prisma/client';
 
@@ -12,6 +13,8 @@ describe('PeriodService', () => {
   const mockPeriod = {
     id: 'test-uuid-1',
     name: 'Thời kỳ Bắc thuộc',
+    slug: 'thoi-ky-bac-thuoc',
+    timeLabel: '(179 TCN - 938)',
     region: 'Việt Nam',
     startYear: -111,
     endYear: 938,
@@ -38,6 +41,7 @@ describe('PeriodService', () => {
     get: jest.fn().mockResolvedValue(null),
     set: jest.fn().mockResolvedValue('OK'),
     del: jest.fn().mockResolvedValue(1),
+    deleteByPattern: jest.fn().mockResolvedValue(1),
     keys: jest.fn().mockResolvedValue([]),
   };
 
@@ -51,6 +55,7 @@ describe('PeriodService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PeriodService,
+        SlugService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: RedisService, useValue: mockRedisService },
         { provide: CustomLoggerService, useValue: mockCustomLogger },

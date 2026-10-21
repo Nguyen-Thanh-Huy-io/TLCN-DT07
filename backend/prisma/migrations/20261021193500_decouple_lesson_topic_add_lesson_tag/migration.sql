@@ -1,3 +1,6 @@
+-- Add REJECTED to LessonStatus enum if not exists
+ALTER TYPE "LessonStatus" ADD VALUE IF NOT EXISTS 'REJECTED';
+
 -- DropForeignKey
 ALTER TABLE "lessons" DROP CONSTRAINT IF EXISTS "lessons_topic_id_fkey";
 

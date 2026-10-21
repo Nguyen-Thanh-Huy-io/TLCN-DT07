@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
@@ -169,6 +170,11 @@ export class TagService {
         : [];
 
     const validTagIds = validTags.map((t) => t.id);
+
+    if (validTags.length !== uniqueTagIds.length) {
+      const invalidIds = uniqueTagIds.filter((id) => !validTagIds.includes(id));
+      throw new BadRequestException(TAG_MESSAGES.INVALID_TAG_IDS(invalidIds));
+    }
 
     await this.prisma.$transaction(async (tx) => {
       await tx.lessonTag.deleteMany({

@@ -4,10 +4,14 @@ import { LessonStatus } from '@prisma/client';
 
 export class ReviewLessonDto {
   @ApiProperty({
-    enum: [LessonStatus.PUBLISHED, LessonStatus.DRAFT],
+    enum: [
+      LessonStatus.PUBLISHED,
+      LessonStatus.REJECTED,
+      LessonStatus.DRAFT,
+    ],
     example: LessonStatus.PUBLISHED,
     description:
-      'Quyết định kiểm duyệt (PUBLISHED: Cho phép xuất bản, DRAFT: Trả về bản nháp để sửa lại)',
+      'Quyết định kiểm duyệt (PUBLISHED: Cho phép xuất bản, REJECTED: Từ chối phê duyệt, DRAFT: Trả về bản nháp để sửa lại)',
   })
   @IsEnum(LessonStatus)
   @IsNotEmpty({ message: 'Trạng thái duyệt không được để trống' })

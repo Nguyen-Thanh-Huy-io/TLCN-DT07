@@ -158,12 +158,12 @@ export class LessonService {
 
     const cacheKey = `${this.CACHE_PREFIX}:${JSON.stringify({ where, page, limit })}`;
     try {
-      const cached = await this.redis.get(cacheKey);
+      const cached = await this.redis.get<string | IPaginatedResult<any>>(cacheKey);
       if (cached) {
-        return JSON.parse(cached);
+        return typeof cached === 'string' ? JSON.parse(cached) : cached;
       }
     } catch (error) {
-      this.logger.warn(`Redis get failed for ${cacheKey}`, 'LessonService');
+      this.logger.warn(`Redis get/parse failed for ${cacheKey}`, 'LessonService');
     }
 
     const [items, total] = await Promise.all([
@@ -192,7 +192,7 @@ export class LessonService {
     };
 
     try {
-      await this.redis.set(cacheKey, JSON.stringify(result), this.CACHE_TTL);
+      await this.redis.set(cacheKey, result, this.CACHE_TTL);
     } catch (error) {
       this.logger.warn(`Redis set failed for ${cacheKey}`, 'LessonService');
     }
@@ -322,20 +322,33 @@ export class LessonService {
   ): Promise<any> {
     await this.findOne(id);
 
-    const statusStr = String(reviewDto.status);
-    if (statusStr === 'REJECTED' && !reviewDto.rejectionReason?.trim()) {
+    if (
+      reviewDto.status === LessonStatus.REJECTED &&
+      !reviewDto.rejectionReason?.trim()
+    ) {
       throw new BadRequestException('Vui lòng nhập lý do từ chối bài học.');
+    }
+
+    let resolvedApproverId: string | null = null;
+    if (approverUserId) {
+      const approverExists = await this.prisma.authUser.findUnique({
+        where: { id: approverUserId },
+        select: { id: true },
+      });
+      if (approverExists) {
+        resolvedApproverId = approverUserId;
+      }
     }
 
     const updated = await this.prisma.lesson.update({
       where: { id },
       data: {
-        status: (statusStr === 'REJECTED' ? LessonStatus.DRAFT : reviewDto.status) as LessonStatus,
-        approvedBy: approverUserId || null,
+        status: reviewDto.status,
+        approvedBy: resolvedApproverId,
         publishedAt:
           reviewDto.status === LessonStatus.PUBLISHED ? new Date() : null,
         rejectionReason:
-          statusStr === 'REJECTED'
+          reviewDto.status === LessonStatus.REJECTED
             ? reviewDto.rejectionReason?.trim()
             : null,
       },
@@ -349,10 +362,7 @@ export class LessonService {
     });
 
     await this.invalidateCache();
-    return {
-      ...this.formatLessonResponse(updated),
-      status: statusStr === 'REJECTED' ? 'REJECTED' : updated.status,
-    };
+    return this.formatLessonResponse(updated);
   }
 
   /**

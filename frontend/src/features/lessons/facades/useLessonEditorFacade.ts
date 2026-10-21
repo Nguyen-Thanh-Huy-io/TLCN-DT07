@@ -279,9 +279,9 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
           ? await LessonApiService.updateLesson(lessonId, payload)
           : await LessonApiService.createLesson(payload);
 
-        // Gắn nhãn phân loại (Tags) cho bài học (hỗ trợ cả xóa hết thẻ khi mảng rỗng)
+        // Gắn nhãn phân loại (Tags) cho bài học nếu có chọn thẻ
         const savedId = lessonId || saved?.id;
-        if (savedId && (selectedTags.length > 0 || Boolean(lessonId))) {
+        if (savedId && selectedTags.length > 0) {
           try {
             await TagApiService.attachTagsToLesson(
               savedId,

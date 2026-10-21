@@ -81,10 +81,6 @@ export class CreateLessonDto {
   @IsOptional()
   displayOrder?: any;
 
-  @ApiPropertyOptional({ description: 'ID chủ đề liên quan (tùy chọn)' })
-  @IsOptional()
-  topicId?: string;
-
   @ApiPropertyOptional({ description: 'Nguồn tham khảo (tùy chọn)' })
   @IsOptional()
   sourceReferenceNote?: string;

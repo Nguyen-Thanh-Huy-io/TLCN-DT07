@@ -13,5 +13,7 @@ export const TAG_MESSAGES = {
   NOT_FOUND: (id: string) => `Tag với ID "${id}" không tồn tại`,
   NAME_CONFLICT: (name: string) => `Tag với tên "${name}" đã tồn tại`,
   LESSON_NOT_FOUND: (lessonId: string) => `Bài học với ID "${lessonId}" không tồn tại`,
+  INVALID_TAG_IDS: (invalidIds: string[]) =>
+    `Một hoặc nhiều Tag ID không tồn tại: ${invalidIds.join(', ')}`,
   DELETED_SUCCESS: 'Đã xóa Tag thành công',
 } as const;

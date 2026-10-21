@@ -231,6 +231,8 @@ export interface PublicEventSummaryDto {
   eventDateNote: string | null;
   location: string | null;
   description: string | null;
+  category: string;
+  periodSlug: string | null;
 }
 
 export interface PublicEventRelationDto {
@@ -304,6 +306,21 @@ export function fetchPeriodBySlug(
   return fetchPublicDetail<PublicPeriodDetailDto>(
     PUBLIC_API_ENDPOINTS.PERIOD_DETAIL(slug),
   );
+}
+
+export async function fetchPeriods(): Promise<PublicPeriodDto[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}/public/periods`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
 }
 
 export function fetchTopicBySlug(

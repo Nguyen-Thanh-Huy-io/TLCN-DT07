@@ -110,7 +110,10 @@ export class LandingContentFacade {
   async getEvents(): Promise<PublicEventSummaryDto[]> {
     const events = await this.prisma.historicalEvent.findMany({
       where: { status: PUBLIC_CONTENT_STATUS },
-      include: { location: { include: { historicalSite: true } } },
+      include: {
+        location: { include: { historicalSite: true } },
+        period: { select: { slug: true } },
+      },
       orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
     });
     return events.map((event) => PublicContentMapper.toEventSummary(event));

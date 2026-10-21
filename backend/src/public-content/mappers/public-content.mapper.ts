@@ -85,6 +85,7 @@ export class PublicContentMapper {
       location?: (HistoricalEntity & { historicalSite?: HistoricalSite | null }) | null;
       site?: (HistoricalSite & { entity?: HistoricalEntity }) | null;
       historicalLocation?: any;
+      period?: { slug: string } | null;
     },
   ): PublicEventSummaryDto {
     const locName =
@@ -104,6 +105,8 @@ export class PublicContentMapper {
       eventDateNote: event.eventDateNote,
       location: locName,
       description: event.description,
+      category: event.category,
+      periodSlug: event.period?.slug ?? null,
     };
   }
 

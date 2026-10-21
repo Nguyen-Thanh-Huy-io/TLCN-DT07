@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
-import { TopicIcon } from '@prisma/client';
+import { EventCategory, TopicIcon } from '@prisma/client';
 import { LandingSection } from '../public-content.constant';
 
 export class PublicPeriodDto {
@@ -55,6 +55,8 @@ export class PublicEventSummaryDto {
   @ApiPropertyOptional({ nullable: true }) eventDateNote: string | null;
   @ApiPropertyOptional({ nullable: true }) location: string | null;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
+  @ApiProperty({ enum: EventCategory }) category: EventCategory;
+  @ApiPropertyOptional({ nullable: true }) periodSlug: string | null;
 }
 
 export class PublicLessonSummaryDto {

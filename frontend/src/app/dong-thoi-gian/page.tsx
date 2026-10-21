@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Header } from "@/components/hisgo/Header";
+import { TimelineExplorer } from "@/components/hisgo/TimelineExplorer";
 import {
   fetchEvents,
   fetchFigures,
   fetchLandingContent,
+  fetchPeriods,
   PUBLIC_ROUTE_PREFIX,
 } from "@/services/entities/landing.service";
 
@@ -29,14 +31,15 @@ function ArrowIcon({ direction = "right" }: { direction?: "left" | "right" }) {
 }
 
 export default async function DongThoiGianPage() {
-  const [events, figures, landing] = await Promise.all([
+  const [events, figures, landing, allPeriods] = await Promise.all([
     fetchEvents(),
     fetchFigures(),
     fetchLandingContent(),
+    fetchPeriods(),
   ]);
 
   const featuredFigures = figures.slice(0, 3);
-  const periods = landing.eras.slice(0, 4);
+  const relatedPeriods = landing.eras.slice(0, 4);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_12%_5%,rgba(255,255,255,0.72),transparent_30%),linear-gradient(135deg,#f6f0e4_0%,#ece4d3_100%)] px-4 py-6 md:px-8 lg:px-14">
@@ -57,6 +60,31 @@ export default async function DongThoiGianPage() {
             <p className="mt-5 max-w-[720px] text-sm leading-7 text-[#504640] md:text-[15px]">
               Toàn bộ các mốc sự kiện lịch sử đã được xuất bản, sắp xếp theo trình tự thời gian — từ các cuộc kháng chiến giữ nước đến những dấu mốc dựng xây đất nước.
             </p>
+          </section>
+
+          <section className="mt-8 border border-[#d7c5a1] bg-[#f8f3e8] p-5 md:p-7">
+            <div className="mb-4 flex items-center gap-3 text-[#6e181b]">
+              <span className="inline-block h-3 w-3 rotate-45 bg-[#6e181b]" aria-hidden="true" />
+              <h2 className="font-[Lora] text-2xl font-semibold md:text-3xl">Trục thời gian tương tác</h2>
+            </div>
+            <TimelineExplorer
+              periods={allPeriods.map((p) => ({
+                id: p.id,
+                slug: p.slug,
+                name: p.name,
+                startYear: p.startYear,
+                timeLabel: p.timeLabel,
+              }))}
+              events={events.map((e) => ({
+                id: e.id,
+                slug: e.slug,
+                title: e.title,
+                startYear: e.startYear,
+                eventDateNote: e.eventDateNote,
+                category: e.category,
+                periodSlug: e.periodSlug,
+              }))}
+            />
           </section>
 
           <div className="mt-8 grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
@@ -169,11 +197,11 @@ export default async function DongThoiGianPage() {
 
               <section className="border border-[#d7c5a1] bg-[#f8f3e8] p-5 md:p-7">
                 <h2 className="font-[Lora] text-2xl font-semibold text-[#6e181b]">Giai đoạn liên quan</h2>
-                {periods.length === 0 ? (
+                {relatedPeriods.length === 0 ? (
                   <p className="mt-5 text-sm text-[#776b61]">Chưa có giai đoạn nào được xuất bản.</p>
                 ) : (
                   <div className="mt-5 grid gap-4">
-                    {periods.map((era) => (
+                    {relatedPeriods.map((era) => (
                       <Link key={era.id} href={era.href} className="group flex items-center gap-3 rounded-lg border border-[#d7c5a1] bg-white/70 p-2 transition hover:-translate-y-0.5 hover:shadow-md">
                         <div className="flex-1">
                           <div className="font-[Lora] text-lg font-semibold text-[#6e181b]">{era.title}</div>

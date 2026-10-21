@@ -72,6 +72,25 @@ export class LessonController {
     return this.lessonService.findAll(query);
   }
 
+  @Get('slug/:slug')
+  @ApiOperation({
+    summary: 'Lấy chi tiết một bài học lịch sử theo Slug',
+    description: 'Phục vụ truy cập theo đường dẫn thân thiện SEO.',
+  })
+  @ApiParam({ name: 'slug', description: 'URL Slug của bài học', type: String })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Tìm thấy bài học theo slug',
+    type: LessonResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy bài học theo slug',
+  })
+  async findBySlug(@Param('slug') slug: string) {
+    return this.lessonService.findBySlug(slug);
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Lấy chi tiết một bài học lịch sử theo ID',

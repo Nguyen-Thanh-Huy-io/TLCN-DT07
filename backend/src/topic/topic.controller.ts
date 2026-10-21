@@ -80,8 +80,8 @@ export class TopicController {
     status: HttpStatus.OK,
     description: 'Lấy cây chủ đề thành công',
   })
-  async getTopicTree(@Query('periodId') periodId?: string) {
-    return this.topicService.getTopicTree(periodId);
+  async getTopicTree() {
+    return this.topicService.getTopicTree();
   }
 
   @Get(':id')

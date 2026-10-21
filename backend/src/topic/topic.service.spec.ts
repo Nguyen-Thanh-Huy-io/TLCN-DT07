@@ -3,6 +3,7 @@ import { TopicService } from './topic.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
+import { SlugService } from '../common/services/slug.service';
 import { NotFoundException } from '@nestjs/common';
 import { ContentStatus } from '@prisma/client';
 
@@ -21,6 +22,8 @@ describe('TopicService', () => {
     id: 'topic-uuid-1',
     periodId: 'period-uuid-1',
     name: 'Khởi nghĩa Hai Bà Trưng',
+    slug: 'khoi-nghia-hai-ba-trung',
+    isFeatured: false,
     description: 'Cuộc khởi nghĩa chống ách đô hộ nhà Hán',
     coverImageUrl: 'https://example.com/cover.jpg',
     isSequential: false,
@@ -61,6 +64,7 @@ describe('TopicService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TopicService,
+        SlugService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: RedisService, useValue: mockRedisService },
         { provide: CustomLoggerService, useValue: mockCustomLogger },

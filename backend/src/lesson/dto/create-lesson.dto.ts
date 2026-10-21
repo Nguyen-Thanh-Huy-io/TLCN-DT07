@@ -1,71 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsArray,
   IsEnum,
-  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
-  Min,
-  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { ContentStatus, DifficultyLevel, MediaType } from '@prisma/client';
-
-export class CreateLessonMediaDto {
-  @ApiPropertyOptional({
-    enum: MediaType,
-    example: MediaType.IMAGE,
-    description: 'Loại media (IMAGE, VIDEO, DOCUMENT)',
-    default: MediaType.IMAGE,
-  })
-  @IsEnum(MediaType)
-  @IsOptional()
-  type?: MediaType = MediaType.IMAGE;
-
-  @ApiProperty({
-    example: 'https://example.com/images/bach-dang-coc-go.jpg',
-    description: 'Đường dẫn URL của file ảnh/video/tài liệu',
-    maxLength: 500,
-  })
-  @IsString()
-  @IsNotEmpty({ message: 'URL media không được để trống' })
-  @MaxLength(500)
-  url: string;
-
-  @ApiPropertyOptional({
-    example: 'Trận địa cọc gỗ trên sông Bạch Đằng năm 938',
-    description: 'Chú thích hình ảnh/video',
-    maxLength: 255,
-  })
-  @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  caption?: string;
-
-  @ApiPropertyOptional({
-    example: 1,
-    description: 'Thứ tự hiển thị media',
-    default: 0,
-  })
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  @IsOptional()
-  displayOrder?: number = 0;
-}
+import { LessonStatus } from '@prisma/client';
 
 export class CreateLessonDto {
-  @ApiProperty({
-    example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-    description: 'ID của Chủ đề lịch sử (Topic) chứa bài học này (UUID)',
-  })
-  @IsString({ message: 'topicId phải là chuỗi hợp lệ' })
-  @IsNotEmpty({ message: 'topicId không được để trống' })
-  topicId: string;
-
   @ApiProperty({
     example: 'Chiến thắng Bạch Đằng năm 938',
     description: 'Tiêu đề bài học lịch sử',
@@ -77,70 +20,76 @@ export class CreateLessonDto {
   title: string;
 
   @ApiPropertyOptional({
-    example:
-      '<p>Năm 938, Ngô Quyền đã dùng trận địa cọc gỗ cắm trên sông Bạch Đằng...</p>',
-    description: 'Nội dung bài học dạng Rich Text / HTML / Markdown',
+    example: 'chien-thang-bach-dang-nam-938',
+    description: 'URL Slug định danh duy nhất (tự động tạo từ tiêu đề nếu để trống)',
+    maxLength: 255,
   })
   @IsString()
   @IsOptional()
-  contentRichText?: string;
+  @MaxLength(255)
+  slug?: string;
 
   @ApiPropertyOptional({
-    example: 'https://example.com/images/bach-dang.jpg',
-    description: 'URL ảnh xem trước / thumbnail bài học',
-    maxLength: 500,
+    example: 'Tổng quan về chiến thắng Bạch Đằng năm 938 chấm dứt hơn 1000 năm Bắc thuộc.',
+    description: 'Mô tả tóm tắt nội dung bài học',
   })
   @IsString()
   @IsOptional()
-  @MaxLength(500)
+  description?: string;
+
+  @ApiPropertyOptional({
+    example: 'Tổng quan bài học',
+    description: 'Bí danh (alias) tương thích ngược cho description',
+  })
+  @IsString()
+  @IsOptional()
+  summary?: string;
+
+  @ApiPropertyOptional({
+    example: [{ type: 'paragraph', text: 'Năm 938, Ngô Quyền đã dùng trận địa cọc gỗ...' }],
+    description: 'Cấu trúc nội dung bài học dạng JSON / JSONB',
+  })
+  @IsOptional()
+  content?: any;
+
+  @ApiPropertyOptional({
+    example: '<p>Nội dung HTML cũ</p>',
+    description: 'Bí danh (alias) tương thích ngược cho content',
+  })
+  @IsOptional()
+  contentRichText?: any;
+
+  @ApiPropertyOptional({
+    enum: LessonStatus,
+    example: LessonStatus.DRAFT,
+    description: 'Trạng thái bài học (DRAFT, REVIEW, PUBLISHED, ARCHIVED)',
+    default: LessonStatus.DRAFT,
+  })
+  @IsEnum(LessonStatus)
+  @IsOptional()
+  status?: LessonStatus = LessonStatus.DRAFT;
+
+  @ApiPropertyOptional({ description: 'Ảnh bìa bài học (tùy chọn)' })
+  @IsOptional()
   thumbnailUrl?: string;
 
-  @ApiPropertyOptional({
-    enum: DifficultyLevel,
-    example: DifficultyLevel.MEDIUM,
-    description: 'Độ khó bài học (EASY, MEDIUM, HARD)',
-    default: DifficultyLevel.MEDIUM,
-  })
-  @IsEnum(DifficultyLevel)
+  @ApiPropertyOptional({ description: 'Độ khó bài học (tùy chọn)' })
   @IsOptional()
-  difficulty?: DifficultyLevel = DifficultyLevel.MEDIUM;
+  difficulty?: any;
 
-  @ApiPropertyOptional({
-    example: 'Đại Việt Sử Ký Toàn Thư, Tập 1, NXB Khoa Học Xã Hội',
-    description: 'Trích dẫn nguồn tư liệu lịch sử tham khảo',
-  })
-  @IsString()
+  @ApiPropertyOptional({ description: 'Thứ tự hiển thị (tùy chọn)' })
+  @IsOptional()
+  displayOrder?: any;
+
+  @ApiPropertyOptional({ description: 'ID chủ đề liên quan (tùy chọn)' })
+  @IsOptional()
+  topicId?: string;
+
+  @ApiPropertyOptional({ description: 'Nguồn tham khảo (tùy chọn)' })
   @IsOptional()
   sourceReferenceNote?: string;
 
-  @ApiPropertyOptional({
-    example: 1,
-    description: 'Thứ tự hiển thị bài học trong Topic',
-    default: 0,
-  })
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
+  @ApiPropertyOptional({ description: 'Thẻ bài học (tùy chọn)' })
   @IsOptional()
-  displayOrder?: number = 0;
-
-  @ApiPropertyOptional({
-    enum: ContentStatus,
-    example: ContentStatus.DRAFT,
-    description: 'Trạng thái phát hành (DRAFT, PENDING_REVIEW, PUBLISHED...)',
-    default: ContentStatus.DRAFT,
-  })
-  @IsEnum(ContentStatus)
-  @IsOptional()
-  status?: ContentStatus = ContentStatus.DRAFT;
-
-  @ApiPropertyOptional({
-    type: [CreateLessonMediaDto],
-    description: 'Danh sách các ảnh/video minh họa kèm theo bài học',
-  })
-  @IsArray()
-  @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => CreateLessonMediaDto)
-  media?: CreateLessonMediaDto[];
+  tags?: any;
 }

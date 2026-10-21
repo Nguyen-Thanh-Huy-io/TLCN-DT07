@@ -58,30 +58,10 @@ describe('Tag E2E Integration Tests', () => {
 
     await app.init();
 
-    // 1. Tạo Period
-    const periodRes = await request(app.getHttpServer())
-      .post('/periods')
-      .send({
-        name: `Thời kỳ Tag E2E ${Date.now()}`,
-        startYear: 1945,
-        endYear: 1954,
-      });
-    createdPeriodId = periodRes.body.data.id;
-
-    // 2. Tạo Topic
-    const topicRes = await request(app.getHttpServer())
-      .post('/topics')
-      .send({
-        periodId: createdPeriodId,
-        title: `Chủ đề Tag E2E ${Date.now()}`,
-      });
-    createdTopicId = topicRes.body.data.id;
-
-    // 3. Tạo Lesson
+    // Tạo Lesson độc lập (không phụ thuộc Topic)
     const lessonRes = await request(app.getHttpServer())
       .post('/lessons')
       .send({
-        topicId: createdTopicId,
         title: `Bài học Tag E2E ${Date.now()}`,
         contentRichText: 'Nội dung bài học test tag',
       });

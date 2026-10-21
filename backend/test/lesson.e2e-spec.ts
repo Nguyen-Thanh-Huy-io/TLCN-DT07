@@ -11,8 +11,6 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 describe('Lesson E2E Integration Tests', () => {
   let app: INestApplication;
-  let testPeriodId: string;
-  let testTopicId: string;
   let createdLessonId: string;
 
   const mockEmailQueueService = {
@@ -56,62 +54,24 @@ describe('Lesson E2E Integration Tests', () => {
     );
 
     await app.init();
-
-    // 1. Tạo Period mẫu
-    const periodRes = await request(app.getHttpServer())
-      .post('/periods')
-      .send({
-        name: `Period Cho Lesson Test ${Date.now()}`,
-        region: 'Việt Nam',
-        startYear: 938,
-        status: 'PUBLISHED',
-      });
-    testPeriodId = periodRes.body.data.id;
-
-    // 2. Tạo Topic mẫu
-    const topicRes = await request(app.getHttpServer())
-      .post('/topics')
-      .send({
-        periodId: testPeriodId,
-        name: `Topic Cho Lesson Test ${Date.now()}`,
-        status: 'PUBLISHED',
-      });
-    testTopicId = topicRes.body.data.id;
   });
 
   afterAll(async () => {
     if (createdLessonId) {
       await request(app.getHttpServer()).delete(`/lessons/${createdLessonId}`);
     }
-    if (testTopicId) {
-      await request(app.getHttpServer()).delete(`/topics/${testTopicId}`);
-    }
-    if (testPeriodId) {
-      await request(app.getHttpServer()).delete(`/periods/${testPeriodId}`);
-    }
     await app.close();
   });
 
   describe('1. POST /lessons - Tạo mới Lesson', () => {
-    it('thất bại với 404 nếu topicId không tồn tại', async () => {
-      const res = await request(app.getHttpServer()).post('/lessons').send({
-        topicId: '00000000-0000-0000-0000-000000000000',
-        title: 'Bài học không có chủ đề',
-      });
-
-      expect(res.status).toBe(404);
-    });
-
-    it('thành công tạo mới bài học hợp lệ', async () => {
+    it('thành công tạo mới bài học hợp lệ (độc lập với Topic)', async () => {
       const res = await request(app.getHttpServer())
         .post('/lessons')
         .send({
-          topicId: testTopicId,
           title: `Trận Bạch Đằng năm 938 - E2E ${Date.now()}`,
           contentRichText:
             '<p>Chi tiết diễn biến trận đánh cọc gỗ trên sông Bạch Đằng...</p>',
           difficulty: 'MEDIUM',
-          xpReward: 15,
           displayOrder: 1,
           status: 'DRAFT',
         });
@@ -125,9 +85,9 @@ describe('Lesson E2E Integration Tests', () => {
   });
 
   describe('2. GET /lessons - Danh sách Lessons', () => {
-    it('lấy danh sách bài học theo topicId', async () => {
+    it('lấy danh sách bài học có phân trang', async () => {
       const res = await request(app.getHttpServer())
-        .get(`/lessons?topicId=${testTopicId}`)
+        .get('/lessons?page=1&limit=10')
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);

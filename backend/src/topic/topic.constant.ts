@@ -5,10 +5,9 @@
 
 export const TOPIC_HIERARCHY_CONFIG = {
   /**
-   * Giới hạn độ sâu phân cấp tối đa của chủ đề:
-   * Cấp 1 (Gốc) -> Cấp 2 (Con) -> Cấp 3 (Cháu)
+   * Giới hạn độ sâu phân cấp an toàn của chủ đề (hỗ trợ đệ quy N cấp, chống vòng lặp sâu bất thường)
    */
-  MAX_DEPTH: 3,
+  MAX_DEPTH: 20,
 
   /**
    * Thời gian lưu cache Redis cho Topic (giây)
@@ -27,8 +26,8 @@ export const TOPIC_ERROR_MESSAGES = {
   NOT_FOUND: 'Chủ đề lịch sử không tồn tại',
   PARENT_NOT_FOUND: 'Chủ đề cha được chỉ định không tồn tại',
   PERIOD_NOT_FOUND: 'Giai đoạn lịch sử không tồn tại',
-  MAX_DEPTH_EXCEEDED: 'Vượt quá giới hạn phân cấp tối đa: Hệ thống chỉ hỗ trợ tối đa 3 cấp chủ đề (Gốc -> Con -> Cháu)',
-  CYCLE_DETECTED: 'Phát hiện chu trình lặp: Chủ đề cha được chọn là con hoặc cháu của chủ đề hiện tại',
+  MAX_DEPTH_EXCEEDED: 'Vượt quá giới hạn phân cấp an toàn tối đa (20 cấp)',
+  CYCLE_DETECTED: 'Phát hiện chu trình lặp: Chủ đề cha được chọn là chủ đề con/cháu của chủ đề hiện tại',
   CHILD_NOT_BELONG_TO_PARENT: 'Chủ đề con không thuộc về chủ đề cha này',
   CHILD_IDS_REQUIRED: 'Danh sách mã chủ đề con (childIds) không được để trống',
   REORDER_EMPTY: 'Danh sách sắp xếp lại thứ tự (items) không được để trống',

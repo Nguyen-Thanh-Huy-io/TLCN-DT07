@@ -4,41 +4,24 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  IsUUID,
   Max,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContentStatus, DifficultyLevel } from '@prisma/client';
+import { LessonStatus } from '@prisma/client';
 
 export class QueryLessonDto {
   @ApiPropertyOptional({
-    example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-    description: 'Lọc bài học theo ID của Chủ đề (Topic)',
+    enum: LessonStatus,
+    description: 'Lọc theo trạng thái bài học (DRAFT, REVIEW, PUBLISHED, ARCHIVED)',
   })
-  @IsString({ message: 'topicId phải là chuỗi hợp lệ' })
+  @IsEnum(LessonStatus)
   @IsOptional()
-  topicId?: string;
+  status?: LessonStatus;
 
   @ApiPropertyOptional({
-    enum: ContentStatus,
-    description: 'Lọc theo trạng thái xuất bản (PUBLISHED, DRAFT...)',
-  })
-  @IsEnum(ContentStatus)
-  @IsOptional()
-  status?: ContentStatus;
-
-  @ApiPropertyOptional({
-    enum: DifficultyLevel,
-    description: 'Lọc theo độ khó (EASY, MEDIUM, HARD)',
-  })
-  @IsEnum(DifficultyLevel)
-  @IsOptional()
-  difficulty?: DifficultyLevel;
-
-  @ApiPropertyOptional({
-    example: 'Bạch Đằng',
-    description: 'Tìm kiếm theo tiêu đề hoặc nội dung bài học',
+    example: 'bach-dang',
+    description: 'Tìm kiếm theo tiêu đề, slug hoặc mô tả bài học',
   })
   @IsString()
   @IsOptional()
@@ -66,4 +49,25 @@ export class QueryLessonDto {
   @Max(100)
   @IsOptional()
   limit?: number = 10;
+
+  @ApiPropertyOptional({
+    description: 'ID chủ đề liên quan (tùy chọn / tương thích ngược)',
+  })
+  @IsString()
+  @IsOptional()
+  topicId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Lọc theo ID nhãn phân loại (Tag ID)',
+  })
+  @IsString()
+  @IsOptional()
+  tagId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Độ khó bài học (tùy chọn / tương thích ngược)',
+  })
+  @IsString()
+  @IsOptional()
+  difficulty?: string;
 }

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ContentStatus } from '@prisma/client';
+import { ContentStatus, TopicIcon } from '@prisma/client';
 
 export class TopicResponseDto {
   @ApiProperty({
@@ -25,6 +25,30 @@ export class TopicResponseDto {
     description: 'Tên chủ đề lịch sử',
   })
   name: string;
+
+  @ApiProperty({
+    example: 'khoi-nghia-hai-ba-trung',
+    description: 'Slug đường dẫn thân thiện',
+  })
+  slug: string;
+
+  @ApiPropertyOptional({
+    example: 'THỜI BẮC THUỘC',
+    description: 'Nhãn nhỏ phía trên tiêu đề ở landing',
+  })
+  eyebrow?: string | null;
+
+  @ApiPropertyOptional({
+    enum: TopicIcon,
+    description: 'Biểu tượng chủ đề kiến thức',
+  })
+  icon?: TopicIcon | null;
+
+  @ApiProperty({
+    example: false,
+    description: 'Đánh dấu hiển thị nổi bật ở landing',
+  })
+  isFeatured: boolean;
 
   @ApiPropertyOptional({
     example: 'Cuộc khởi nghĩa chống lại ách đô hộ nhà Hán năm 40-43 NCN',

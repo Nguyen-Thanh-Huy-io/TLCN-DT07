@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
@@ -10,10 +9,11 @@ import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { QueryTagDto } from './dto/query-tag.dto';
 import { AttachLessonTagsDto } from './dto/attach-lesson-tags.dto';
+import { TAG_CONFIG, TAG_MESSAGES } from './tag.constant';
 
 @Injectable()
 export class TagService {
-  private readonly CACHE_TTL = 3600; // 1 hour
+  private readonly CACHE_TTL = TAG_CONFIG.CACHE_TTL;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -21,7 +21,7 @@ export class TagService {
   ) {}
 
   private getCacheKey(key: string): string {
-    return `tags:${key}`;
+    return `${TAG_CONFIG.CACHE_PREFIX}:${key}`;
   }
 
   async create(createTagDto: CreateTagDto) {
@@ -31,7 +31,7 @@ export class TagService {
 
     if (existing) {
       throw new ConflictException(
-        `Tag với tên "${createTagDto.name}" đã tồn tại`,
+        TAG_MESSAGES.NAME_CONFLICT(createTagDto.name),
       );
     }
 
@@ -65,6 +65,13 @@ export class TagService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { name: 'asc' },
+        include: {
+          _count: {
+            select: {
+              lessonTags: true,
+            },
+          },
+        },
       }),
       this.prisma.tag.count({ where }),
     ]);
@@ -92,13 +99,15 @@ export class TagService {
       where: { id },
       include: {
         _count: {
-          select: { lessonTags: true },
+          select: {
+            lessonTags: true,
+          },
         },
       },
     });
 
     if (!tag) {
-      throw new NotFoundException(`Tag với ID "${id}" không tồn tại`);
+      throw new NotFoundException(TAG_MESSAGES.NOT_FOUND(id));
     }
 
     await this.redis.set(cacheKey, tag, this.CACHE_TTL);
@@ -117,7 +126,7 @@ export class TagService {
       });
       if (existing) {
         throw new ConflictException(
-          `Tag với tên "${updateTagDto.name}" đã tồn tại`,
+          TAG_MESSAGES.NAME_CONFLICT(updateTagDto.name),
         );
       }
     }
@@ -139,43 +148,46 @@ export class TagService {
     });
 
     await this.clearCache();
-    return { message: `Đã xóa Tag thành công` };
+    return { message: TAG_MESSAGES.DELETED_SUCCESS };
   }
 
   async attachTagsToLesson(lessonId: string, attachDto: AttachLessonTagsDto) {
-    // 1. Check lesson exists
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: lessonId },
     });
     if (!lesson) {
-      throw new NotFoundException(`Bài học với ID "${lessonId}" không tồn tại`);
+      throw new NotFoundException(TAG_MESSAGES.LESSON_NOT_FOUND(lessonId));
     }
 
-    // 2. Check all tags exist
-    const tags = await this.prisma.tag.findMany({
-      where: { id: { in: attachDto.tagIds } },
-    });
-    if (tags.length !== attachDto.tagIds.length) {
-      throw new BadRequestException(
-        `Một hoặc nhiều Tag ID không tồn tại trong hệ thống`,
-      );
-    }
+    const uniqueTagIds = Array.from(new Set(attachDto.tagIds || []));
 
-    // 3. Transaction: Replace old tags with new tags
-    await this.prisma.$transaction([
-      this.prisma.lessonTag.deleteMany({
+    const validTags =
+      uniqueTagIds.length > 0
+        ? await this.prisma.tag.findMany({
+            where: { id: { in: uniqueTagIds } },
+          })
+        : [];
+
+    const validTagIds = validTags.map((t) => t.id);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.lessonTag.deleteMany({
         where: { lessonId },
-      }),
-      this.prisma.lessonTag.createMany({
-        data: attachDto.tagIds.map((tagId) => ({
-          lessonId,
-          tagId,
-        })),
-      }),
-    ]);
+      });
 
-    await this.clearCache();
-    return this.getLessonTags(lessonId);
+      if (validTagIds.length > 0) {
+        await tx.lessonTag.createMany({
+          data: validTagIds.map((tagId) => ({
+            lessonId,
+            tagId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    });
+
+    await this.clearCache(lessonId);
+    return validTags;
   }
 
   async getLessonTags(lessonId: string) {
@@ -186,19 +198,26 @@ export class TagService {
           include: {
             tag: true,
           },
+          orderBy: {
+            createdAt: 'asc',
+          },
         },
       },
     });
 
     if (!lesson) {
-      throw new NotFoundException(`Bài học với ID "${lessonId}" không tồn tại`);
+      throw new NotFoundException(TAG_MESSAGES.LESSON_NOT_FOUND(lessonId));
     }
 
     return lesson.lessonTags.map((lt) => lt.tag);
   }
 
-  private async clearCache() {
-    await this.redis.deleteByPattern('tags:*');
-    await this.redis.deleteByPattern('lessons:*');
+  private async clearCache(lessonId?: string) {
+    if (lessonId) {
+      await this.redis.del(`lesson:detail:${lessonId}`);
+    }
+    await this.redis.deleteByPattern(TAG_CONFIG.TAG_CACHE_PATTERN);
+    await this.redis.deleteByPattern(TAG_CONFIG.LESSON_CACHE_PATTERN);
+    await this.redis.deleteByPattern('lesson:slug:*');
   }
 }

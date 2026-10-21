@@ -11,9 +11,36 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContentStatus, LearningPathType } from '@prisma/client';
+import { ContentStatus, LearningPathType, TopicIcon } from '@prisma/client';
 
 export class CreateTopicDto {
+  @ApiPropertyOptional({
+    example: 'VĂN LANG - ÂU LẠC',
+    description: 'Dòng chữ nhỏ phía trên tiêu đề khi hiển thị ở landing',
+    maxLength: 100,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  eyebrow?: string;
+
+  @ApiPropertyOptional({
+    enum: TopicIcon,
+    description: 'Biểu tượng của chủ đề kiến thức trên landing',
+  })
+  @IsEnum(TopicIcon)
+  @IsOptional()
+  icon?: TopicIcon;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Hiển thị ở section "Những chặng sử đáng nhớ"',
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isFeatured?: boolean;
+
   @ApiPropertyOptional({
     example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
     description: 'ID của Giai đoạn lịch sử (để trống nếu là chủ đề chuyên đề phi giai đoạn)',

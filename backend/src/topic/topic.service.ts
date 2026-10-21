@@ -6,6 +6,8 @@ import {
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
+import { SlugService } from '../common/services/slug.service';
+import { PUBLIC_LANDING_CACHE_KEY } from '../common/constants/cache-keys.constant';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { QueryTopicDto } from './dto/query-topic.dto';
@@ -34,8 +36,9 @@ export interface ITopicTreeNode extends Topic {
   children: ITopicTreeNode[];
   lessons?: any[];
   _count?: {
-    lessons: number;
-    children: number;
+    lessons?: number;
+    children?: number;
+    historicalEvents?: number;
   };
 }
 
@@ -49,6 +52,7 @@ export class TopicService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly logger: CustomLoggerService,
+    private readonly slugService: SlugService,
   ) {}
 
   /**
@@ -108,41 +112,28 @@ export class TopicService {
   async create(createTopicDto: CreateTopicDto): Promise<Topic> {
     this.logger.log(`Creating topic: ${createTopicDto.name}`, 'TopicService');
 
-    let resolvedPeriodId = createTopicDto.periodId || null;
-
     // 1. Kiểm tra chủ đề cha nếu có
     if (createTopicDto.parentId) {
-      const parentTopic = await this.validateParentHierarchy(
+      await this.validateParentHierarchy(
         createTopicDto.parentId,
       );
-      // Nếu chủ đề con không chỉ định periodId, tự động kế thừa periodId từ chủ đề cha
-      if (!resolvedPeriodId && parentTopic.periodId) {
-        resolvedPeriodId = parentTopic.periodId;
-      }
     }
 
-    // 2. Nếu có periodId, kiểm tra xem Period có tồn tại hay không
-    if (resolvedPeriodId) {
-      const period = await this.prisma.period.findUnique({
-        where: { id: resolvedPeriodId },
-      });
-
-      if (!period) {
-        throw new NotFoundException(
-          `Giai đoạn lịch sử với ID "${resolvedPeriodId}" không tồn tại`,
-        );
-      }
-    }
+    const slug = await this.slugService.generateUnique(
+      createTopicDto.name,
+      async (candidate) =>
+        (await this.prisma.topic.count({ where: { slug: candidate } })) > 0,
+    );
 
     const topic = await this.prisma.topic.create({
       data: {
-        periodId: resolvedPeriodId,
+        slug,
+        eyebrow: createTopicDto.eyebrow,
+        icon: createTopicDto.icon,
+        isFeatured: createTopicDto.isFeatured ?? false,
         parentId: createTopicDto.parentId || null,
         pathType:
-          createTopicDto.pathType ??
-          (resolvedPeriodId
-            ? LearningPathType.CHRONOLOGICAL
-            : LearningPathType.THEMATIC),
+          createTopicDto.pathType ?? LearningPathType.CHRONOLOGICAL,
         name: createTopicDto.name.trim(),
         description: createTopicDto.description?.trim(),
         coverImageUrl: createTopicDto.coverImageUrl,
@@ -155,13 +146,6 @@ export class TopicService {
           select: {
             id: true,
             name: true,
-          },
-        },
-        period: {
-          select: {
-            id: true,
-            name: true,
-            region: true,
           },
         },
       },
@@ -180,10 +164,6 @@ export class TopicService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.TopicWhereInput = {};
-
-    if (query.periodId) {
-      where.periodId = query.periodId;
-    }
 
     if (query.parentId) {
       where.parentId = query.parentId;
@@ -230,17 +210,9 @@ export class TopicService {
               name: true,
             },
           },
-          period: {
-            select: {
-              id: true,
-              name: true,
-              region: true,
-            },
-          },
           _count: {
             select: {
               children: true,
-              lessons: true,
             },
           },
         },
@@ -285,7 +257,6 @@ export class TopicService {
           select: {
             id: true,
             name: true,
-            periodId: true,
           },
         },
         children: {
@@ -293,27 +264,9 @@ export class TopicService {
           include: {
             _count: {
               select: {
-                lessons: true,
                 children: true,
               },
             },
-          },
-        },
-        lessons: {
-          orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
-          select: {
-            id: true,
-            title: true,
-            difficulty: true,
-            status: true,
-            displayOrder: true,
-          },
-        },
-        period: {
-          select: {
-            id: true,
-            name: true,
-            region: true,
           },
         },
       },
@@ -351,18 +304,6 @@ export class TopicService {
       }
     }
 
-    // Kiểm tra periodId nếu có thay đổi
-    if (updateTopicDto.periodId) {
-      const period = await this.prisma.period.findUnique({
-        where: { id: updateTopicDto.periodId },
-      });
-      if (!period) {
-        throw new NotFoundException(
-          `Giai đoạn lịch sử mới với ID "${updateTopicDto.periodId}" không tồn tại`,
-        );
-      }
-    }
-
     const updated = await this.prisma.topic.update({
       where: { id },
       data: {
@@ -382,13 +323,6 @@ export class TopicService {
           select: {
             id: true,
             name: true,
-          },
-        },
-        period: {
-          select: {
-            id: true,
-            name: true,
-            region: true,
           },
         },
       },
@@ -439,7 +373,6 @@ export class TopicService {
           where: { id: childId },
           data: {
             parentId: parentId,
-            ...(parent.periodId ? { periodId: parent.periodId } : {}),
           },
         }),
       ),
@@ -542,39 +475,13 @@ export class TopicService {
   /**
    * Lấy cấu trúc cây phân cấp Composite của các Chủ đề
    */
-  async getTopicTree(periodId?: string): Promise<ITopicTreeNode[]> {
-    const where: Prisma.TopicWhereInput = {};
-    if (periodId) {
-      where.periodId = periodId;
-    }
-
+  async getTopicTree(): Promise<ITopicTreeNode[]> {
     const allTopics = await this.prisma.topic.findMany({
-      where,
       orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
       include: {
-        lessons: {
-          orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
-          select: {
-            id: true,
-            title: true,
-            difficulty: true,
-            status: true,
-            displayOrder: true,
-            thumbnailUrl: true,
-            updatedAt: true,
-          },
-        },
-        period: {
-          select: {
-            id: true,
-            name: true,
-            region: true,
-          },
-        },
         _count: {
           select: {
             children: true,
-            lessons: true,
           },
         },
       },
@@ -608,6 +515,7 @@ export class TopicService {
         await this.redis.del(`topic:detail:${id}`);
       }
       await this.redis.deleteByPattern(`${this.CACHE_PREFIX}:*`);
+      await this.redis.del(PUBLIC_LANDING_CACHE_KEY);
     } catch (err) {
       this.logger.warn(
         `Failed to clear topic cache: ${err.message}`,

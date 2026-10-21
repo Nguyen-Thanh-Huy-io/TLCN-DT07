@@ -80,16 +80,32 @@ describe('LessonService', () => {
   });
 
   describe('create', () => {
-    it('should create lesson successfully when topic exists', async () => {
+    it('should create lesson successfully when topic exists and link Knowledge Graph IDs', async () => {
       mockPrismaService.topic.findUnique.mockResolvedValueOnce(mockTopic);
       const dto = {
         topicId: 'topic-uuid-1',
         title: 'Chiến thắng Bạch Đằng năm 938',
+        eventIds: ['event-uuid-1'],
+        entityIds: ['entity-uuid-1'],
+        locationIds: ['location-uuid-1'],
       };
 
       const result = await service.create(dto, 'user-uuid-creator');
       expect(result.id).toBe('lesson-uuid-1');
       expect(result.estimatedReadMinutes).toBe(1);
+      expect(mockPrismaService.lesson.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            lessonEvents: { create: [{ eventId: 'event-uuid-1' }] },
+            lessonEntities: {
+              create: [
+                { entityId: 'entity-uuid-1', role: null },
+                { entityId: 'location-uuid-1', role: 'LOCATION_OF' },
+              ],
+            },
+          }),
+        }),
+      );
     });
 
     it('should throw NotFoundException if topic does not exist', async () => {
@@ -101,6 +117,41 @@ describe('LessonService', () => {
 
       await expect(service.create(dto, 'user-uuid-creator')).rejects.toThrow(
         NotFoundException,
+      );
+    });
+  });
+
+  describe('update', () => {
+    it('should sync Knowledge Graph junction tables when eventIds/entityIds/locationIds are provided', async () => {
+      mockRedisService.get.mockResolvedValueOnce(null);
+      mockPrismaService.lesson.findUnique.mockResolvedValueOnce(mockLesson);
+      mockPrismaService.lesson.update.mockResolvedValueOnce(mockLesson);
+
+      await service.update('lesson-uuid-1', {
+        title: 'Bài học cập nhật',
+        eventIds: ['event-uuid-2'],
+        entityIds: ['entity-uuid-2'],
+        locationIds: ['location-uuid-2'],
+      });
+
+      expect(mockPrismaService.lesson.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'lesson-uuid-1' },
+          data: expect.objectContaining({
+            title: 'Bài học cập nhật',
+            lessonEvents: {
+              deleteMany: {},
+              create: [{ eventId: 'event-uuid-2' }],
+            },
+            lessonEntities: {
+              deleteMany: {},
+              create: [
+                { entityId: 'entity-uuid-2', role: null },
+                { entityId: 'location-uuid-2', role: 'LOCATION_OF' },
+              ],
+            },
+          }),
+        }),
       );
     });
   });

@@ -1,60 +1,50 @@
 // ================================
-// Lesson (Historical Lesson) Model
+// Lesson (Historical Reading Lesson) Model
 // ================================
 
-enum MediaType {
-    IMAGE
-    VIDEO
-    DOCUMENT
+enum LessonStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
 }
 
 model Lesson {
-    id                  String          @id @default(uuid())
-    topicId             String          @map("topic_id")
-    title               String          @db.VarChar(255)
-    contentRichText     String?         @map("content_rich_text") @db.Text
-    thumbnailUrl        String?         @map("thumbnail_url") @db.VarChar(500)
-    difficulty          DifficultyLevel @default(MEDIUM)
-    sourceReferenceNote String?         @map("source_reference_note") @db.Text
-    displayOrder        Int             @default(0) @map("display_order")
-    status              ContentStatus   @default(DRAFT)
-    rejectionReason     String?         @map("rejection_reason") @db.Text
-    publishedAt         DateTime?       @map("published_at")
-    createdBy           String          @map("created_by")
-    approvedBy          String?         @map("approved_by")
-    createdAt           DateTime        @default(now()) @map("created_at")
-    updatedAt           DateTime        @updatedAt @map("updated_at")
+  id          String  @id @default(uuid())
+  title       String  @db.VarChar(255)
+  slug        String  @unique @db.VarChar(255)
+  description String? @db.Text
 
-    // Relations
-    topic      Topic         @relation(fields: [topicId], references: [id], onDelete: Cascade)
-    creator    authUser      @relation("LessonCreator", fields: [createdBy], references: [id])
-    approver   authUser?     @relation("LessonApprover", fields: [approvedBy], references: [id])
-    lessonTags LessonTag[]
-    media      LessonMedia[]
+  // Cấu trúc nội dung bài học
+  content             Json            @default("[]") @db.JsonB
+  contentRichText     String?         @map("content_rich_text") @db.Text
+  thumbnailUrl        String?         @map("thumbnail_url") @db.VarChar(500)
+  difficulty          DifficultyLevel @default(MEDIUM)
+  sourceReferenceNote String?         @map("source_reference_note") @db.Text
 
-    @@index([topicId])
-    @@index([status])
-    @@index([difficulty])
-    @@index([displayOrder])
-    @@map("lessons")
-}
+  status LessonStatus @default(DRAFT)
 
-// ================================
-// LessonMedia (Images/Videos) Model
-// ================================
+  // Liên kết nhiều-nhiều với Nhãn phân loại (Tag) qua bảng trung gian LessonTag
+  lessonTags LessonTag[]
 
-model LessonMedia {
-    id           String    @id @default(uuid())
-    lessonId     String    @map("lesson_id")
-    type         MediaType @default(IMAGE)
-    url          String    @db.VarChar(500)
-    caption      String?   @db.VarChar(255)
-    displayOrder Int       @default(0) @map("display_order")
-    createdAt    DateTime  @default(now()) @map("created_at")
+  // Liên kết nhiều-nhiều với Chương trong các Lộ trình học (Learning Path & Chapter Pool)
+  chapterLessons ChapterLesson[]
 
-    // Relations
-    lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  // Đề ôn tập cuối bài (1 bài học có tối đa 1 đề) — xem model Quiz trong quiz.prisma
+  quiz Quiz?
 
-    @@index([lessonId])
-    @@map("lesson_media")
+  displayOrder Int @default(0) @map("display_order")
+
+  createdBy       String?   @map("created_by")
+  approvedBy      String?   @map("approved_by")
+  publishedAt     DateTime? @map("published_at")
+  rejectionReason String?   @map("rejection_reason") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([displayOrder])
+  @@index([updatedAt])
+  @@map("lessons")
 }

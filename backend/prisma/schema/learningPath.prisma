@@ -1,0 +1,83 @@
+// ================================
+// Learning Path & Curriculum System
+// ================================
+//
+// GHI CHÚ QUAN TRỌNG — phân biệt với `Topic` (xem topic.prisma), dễ nhầm vì cả 2 đều có
+// vẻ "phân loại nội dung", nhưng là 2 khái niệm khác nhau, không thay thế cho nhau được:
+//
+//   • `Topic` (Chủ đề)       = THẺ PHÂN LOẠI độc lập theo môn học (Giai đoạn → Chủ đề →
+//     Chuyên đề). Một bài học (Lesson) luôn thuộc đúng 1 Topic cố định, không phụ thuộc
+//     vào có đang nằm trong Lộ trình nào hay không. Đây là trục phân loại SỬ DỤNG RIÊNG,
+//     cũng là nguồn cho trang chủ công khai (landing page).
+//
+//   • `LearningPath` (Lộ trình) = một KHÓA HỌC/CHƯƠNG TRÌNH HỌC cụ thể, tự chọn và sắp
+//     xếp lại các Lesson có sẵn (bất kể Lesson đó thuộc Topic nào) theo 1 trình tự giảng
+//     dạy riêng cho khóa học này — qua các `Chapter` (Chương) của nó.
+//
+//   • `Chapter` (Chương)      = đơn vị cấu trúc BÊN TRONG đúng 1 LearningPath — không tồn
+//     tại độc lập, không phải thẻ phân loại. `ChapterLesson` là bảng gán Lesson vào 1
+//     Chapter kèm thứ tự hiển thị riêng cho Chapter đó.
+//
+// => 1 Lesson có thể: thuộc 1 Topic (bắt buộc, để phân loại) VÀ xuất hiện trong 0..N
+//    Chapter của 0..N LearningPath khác nhau (tùy chọn, để đóng gói lại thành khóa học).
+
+model LearningPath {
+  id            String           @id @default(uuid())
+  title         String           @db.VarChar(255)
+  slug          String           @unique @db.VarChar(255)
+  description   String?          @db.Text
+  coverImageUrl String?          @map("cover_image_url") @db.VarChar(500)
+  pathType      LearningPathType @default(CHRONOLOGICAL) @map("path_type")
+  isSequential  Boolean          @default(false) @map("is_sequential")
+  displayOrder  Int              @default(0) @map("display_order")
+  status        ContentStatus    @default(DRAFT)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  chapters Chapter[]
+
+  @@index([pathType])
+  @@index([status])
+  @@index([displayOrder])
+  @@map("learning_paths")
+}
+
+model Chapter {
+  id             String        @id @default(uuid())
+  learningPathId String        @map("learning_path_id")
+  title          String        @db.VarChar(255)
+  slug           String        @db.VarChar(255)
+  description    String?       @db.Text
+  displayOrder   Int           @default(0) @map("display_order")
+  status         ContentStatus @default(DRAFT)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  learningPath   LearningPath    @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  chapterLessons ChapterLesson[]
+
+  @@index([learningPathId])
+  @@index([displayOrder])
+  @@map("chapters")
+}
+
+model ChapterLesson {
+  id           String   @id @default(uuid())
+  chapterId    String   @map("chapter_id")
+  lessonId     String   @map("lesson_id")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([chapterId, lessonId])
+  @@index([chapterId])
+  @@index([lessonId])
+  @@index([displayOrder])
+  @@map("chapter_lessons")
+}

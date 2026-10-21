@@ -3,30 +3,30 @@
 // ================================
 
 enum userRole {
-    USER
-    ADMIN
-    MODERATOR
-    SUPERADMIN
+  USER
+  ADMIN
+  MODERATOR
+  SUPERADMIN
 }
 
 enum userStatus {
-    ACTIVE
-    INACTIVE
-    SUSPENDED
-    DELETED
-    BLOCKED
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETED
+  BLOCKED
 }
 
 enum mfaMethod {
-    totp
-    sms
-    email
-    webauthn
+  totp
+  sms
+  email
+  webauthn
 }
 
 enum loginAction {
-    login
-    logout
+  login
+  logout
 }
 
 // ================================
@@ -34,26 +34,26 @@ enum loginAction {
 // ================================
 
 enum email_type {
-    verification
-    password_reset
-    notification
+  verification
+  password_reset
+  notification
 }
 
 enum email_provider {
-    sendgrid
-    mailgun
-    ses
-    stmp
+  sendgrid
+  mailgun
+  ses
+  stmp
 }
 
 enum email_status {
-    sent
-    failed
-    pending
-    bounced
-    delivered
-    opened
-    clicked
+  sent
+  failed
+  pending
+  bounced
+  delivered
+  opened
+  clicked
 }
 
 // ================================
@@ -61,19 +61,19 @@ enum email_status {
 // ================================
 
 enum eventType {
-    create
-    update
-    delete
-    login
-    logout
-    password_change
-    profile_update
+  create
+  update
+  delete
+  login
+  logout
+  password_change
+  profile_update
 }
 
 enum actionType {
-    create
-    update
-    delete
+  create
+  update
+  delete
 }
 
 // ================================
@@ -81,37 +81,37 @@ enum actionType {
 // ================================
 
 enum subscriptionStatus {
-    ACTIVE
-    PAST_DUE
-    CANCELED
-    TRIALING
-    INCOMPLETE
-    INCOMPLETE_EXPIRED
-    UNPAID
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  UNPAID
 }
 
 enum billingInterval {
-    DAY
-    WEEK
-    MONTH
-    YEAR
+  DAY
+  WEEK
+  MONTH
+  YEAR
 }
 
 enum paymentStatus {
-    PENDING
-    PROCESSING
-    SUCCEEDED
-    FAILED
-    CANCELED
-    REFUNDED
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELED
+  REFUNDED
 }
 
 enum invoiceStatus {
-    DRAFT
-    OPEN
-    PAID
-    VOID
-    UNCOLLECTIBLE
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
 }
 
 // ================================
@@ -119,22 +119,90 @@ enum invoiceStatus {
 // ================================
 
 enum ContentStatus {
-    DRAFT
-    PENDING_REVIEW
-    PUBLISHED
-    REJECTED
-    ARCHIVED
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+  ARCHIVED
 }
 
 enum DifficultyLevel {
-    EASY
-    MEDIUM
-    HARD
+  EASY
+  MEDIUM
+  HARD
 }
 
-
 enum LearningPathType {
-    CHRONOLOGICAL
-    THEMATIC
-    MYTHOLOGICAL
+  CHRONOLOGICAL
+  THEMATIC
+  MYTHOLOGICAL
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+// Biểu tượng hiển thị cho chủ đề kiến thức trên landing page
+enum TopicIcon {
+  Landmark
+  Castle
+  Swords
+  Scale
+  BookOpen
+  MapPin
+}
+
+// Phân loại thực thể lịch sử (Master Data dùng chung)
+enum HistoricalEntityType {
+  PERSON
+  ORGANIZATION
+  DYNASTY
+  MILITARY_FORCE
+  ARTIFACT
+  LOCATION
+  OTHER
+}
+
+// Phân loại sự kiện lịch sử (Dựa trên đối chiếu mẫu dữ liệu thực tế)
+enum EventCategory {
+  BATTLE // Trận đánh / Chiến dịch / Hải chiến
+  WAR // Chiến tranh / Xung đột vũ trang / Nội chiến
+  TREATY // Hiệp ước / Hòa ước / Tuyên bố hòa bình
+  REVOLUTION // Cách mạng / Khởi nghĩa / Phong trào
+  POLITICAL_EVENT // Đảo chính / Biến cố chính trị
+  SUMMIT_CONFERENCE // Hội nghị / Thượng đỉnh quốc tế
+  CULTURE_SCIENCE // Văn hóa / Khám phá khoa học / Du hành vũ trụ
+  NATURAL_DISASTER // Thiên tai / Động đất / Đại dịch
+  OTHER // Khác
+}
+
+// Loại quan hệ nhân quả và mạng lưới giữa các sự kiện lịch sử (Event Knowledge Graph)
+enum EventRelationType {
+  CAUSES // Nguyên nhân trực tiếp / Gây ra
+  PRECEDES // Tiền đề / Diễn ra trước
+  FOLLOWS // Tiếp nối / Hệ quả
+  INFLUENCES // Tác động / Ảnh hưởng
+  PARALLEL_TO // Diễn ra đồng thời / Song song
+  OPPOSES // Đối kháng / Phản ứng lại
+  DERIVED_FROM // Bắt nguồn từ
+  OTHER // Mối liên hệ khác
+}
+
+// Trạng thái xác minh học thuật của mối liên hệ sự kiện
+enum VerificationStatus {
+  VERIFIED // Đã xác minh (Đồng thuận chính sử)
+  HYPOTHESIS // Giả thuyết lịch sử
+  DISPUTED // Còn tranh cãi học thuật
+  DRAFT // Bản nháp đang nghiên cứu
+}
+
+// Độ chính xác niên đại cho Thời kỳ lịch sử
+enum DatePrecision {
+  EXACT_YEAR
+  APPROXIMATE
+  CENTURY
+  MILLENNIUM
+  UNKNOWN
 }

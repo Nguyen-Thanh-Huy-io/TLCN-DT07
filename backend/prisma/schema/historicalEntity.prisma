@@ -1,0 +1,120 @@
+// ================================
+// Historical Entity (Master Data: Person, Organization, Dynasty, Military Force, Artifact)
+// ================================
+
+model HistoricalEntity {
+  id           String               @id @default(uuid())
+  periodId     String?              @map("period_id")
+  name         String               @db.VarChar(255)
+  slug         String               @unique @db.VarChar(255)
+  type         HistoricalEntityType @default(PERSON)
+  tagline      String?              @db.VarChar(255)
+  description  String?              @db.Text
+  aliases      String[]             @default([])
+  imageUrl     String?              @map("image_url") @db.VarChar(500)
+  imageCaption String?              @map("image_caption") @db.VarChar(255)
+  metadata     Json?                @db.JsonB
+
+  isFeatured   Boolean       @default(false) @map("is_featured")
+  displayOrder Int           @default(0) @map("display_order")
+  status       ContentStatus @default(DRAFT)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  period         Period?         @relation(fields: [periodId], references: [id], onDelete: SetNull)
+  person         Person?
+  historicalSite HistoricalSite?
+
+  eventEntities HistoricalEventEntity[]
+  media         HistoricalEntityMedia[]
+
+  // Các sự kiện mà thực thể này là địa điểm diễn ra chính
+  primaryEvents HistoricalEvent[] @relation("EventPrimaryLocation")
+
+  // Quan hệ hồi quy N-N đồ thị tri thức (Source & Target)
+  outgoingRelations HistoricalEntityRelation[] @relation("SourceEntityRelation")
+  incomingRelations HistoricalEntityRelation[] @relation("TargetEntityRelation")
+
+  @@index([type])
+  @@index([periodId])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([displayOrder])
+  @@map("historical_entities")
+}
+
+// Bảng con chuyên biệt cho Thực thể dạng Nhân vật lịch sử (1-1 với HistoricalEntity)
+model Person {
+  entityId       String   @id @map("entity_id")
+  birthYear      Int?     @map("birth_year")
+  deathYear      Int?     @map("death_year")
+  birthDateLabel String?  @map("birth_date_label") @db.VarChar(100)
+  deathDateLabel String?  @map("death_date_label") @db.VarChar(100)
+  biography      String?  @db.Text
+  occupation     String?  @db.VarChar(255)
+  titles         String[] @default([])
+
+  entity HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@map("persons")
+}
+
+// Bảng con chuyên biệt cho Thực thể dạng Di tích / Địa danh lịch sử (1-1 với HistoricalEntity)
+model HistoricalSite {
+  entityId           String   @id @map("entity_id")
+  siteType           String   @map("site_type") @db.VarChar(100)
+  address            String?  @db.Text
+  latitude           Decimal? @db.Decimal(10, 7)
+  longitude          Decimal? @db.Decimal(10, 7)
+  constructionYear   Int?     @map("construction_year")
+  constructionLabel  String?  @map("construction_label") @db.VarChar(100)
+  preservationStatus String?  @map("preservation_status") @db.VarChar(100)
+  recognitionLevel   String?  @map("recognition_level") @db.VarChar(100)
+  managingAgency     String?  @map("managing_agency") @db.VarChar(255)
+
+  entity HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@index([siteType])
+  @@map("historical_sites")
+}
+
+// Bảng quan hệ hồi quy N-N giữa các thực thể lịch sử (Knowledge Graph)
+model HistoricalEntityRelation {
+  id             String   @id @default(uuid())
+  sourceEntityId String   @map("source_entity_id")
+  targetEntityId String   @map("target_entity_id")
+  relationType   String   @map("relation_type") @db.VarChar(50)
+  startYear      Int?     @map("start_year")
+  endYear        Int?     @map("end_year")
+  note           String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  sourceEntity HistoricalEntity @relation("SourceEntityRelation", fields: [sourceEntityId], references: [id], onDelete: Cascade)
+  targetEntity HistoricalEntity @relation("TargetEntityRelation", fields: [targetEntityId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceEntityId, targetEntityId, relationType])
+  @@index([sourceEntityId])
+  @@index([targetEntityId])
+  @@index([relationType])
+  @@map("historical_entity_relations")
+}
+
+// Bảng lưu trữ tư liệu đa phương tiện (ảnh, video, tài liệu văn kiện) cho Thực thể Lịch sử
+model HistoricalEntityMedia {
+  id           String    @id @default(uuid())
+  entityId     String    @map("entity_id")
+  type         MediaType @default(IMAGE)
+  url          String    @db.VarChar(500)
+  caption      String?   @db.VarChar(255)
+  displayOrder Int       @default(0) @map("display_order")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  entity HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@index([entityId])
+  @@index([displayOrder])
+  @@map("historical_entity_media")
+}

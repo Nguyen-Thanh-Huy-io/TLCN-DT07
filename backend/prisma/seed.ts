@@ -2,13 +2,16 @@ import 'dotenv/config';
 import {
   PrismaClient,
   ContentStatus,
+  LessonStatus,
   DifficultyLevel,
   userRole,
   userStatus,
   LearningPathType,
+  HistoricalEntityType,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcryptjs';
+import { toSlug } from '../src/common/utils/slug.util';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL as string,
@@ -25,11 +28,14 @@ async function main() {
   // BƯỚC 0: XÓA SẠCH DỮ LIỆU CŨ THEO TRẬT TỰ RÀNG BUỘC KHÓA NGOẠI
   // -------------------------------------------------------------
   console.log('\n[1/5] Đang xóa sạch toàn bộ dữ liệu lịch sử cũ...');
-  await prisma.lessonMedia.deleteMany();
-  await prisma.lessonTag.deleteMany();
+  // Xóa Lộ trình trước (Chapter/ChapterLesson cascade theo) — bảng này độc lập với
+  // Topic/Lesson bên dưới nhưng vẫn phải xóa mỗi lần seed lại để tránh đụng unique slug.
+  await prisma.learningPath.deleteMany();
   await prisma.lesson.deleteMany();
+  await prisma.historicalEvent.updateMany({ data: { parentId: null } });
   await prisma.historicalEvent.deleteMany();
-  // Ngắt quan hệ cha - con của topic trước khi xóa sạch topic
+  await prisma.historicalEntity.deleteMany();
+    // Ngắt quan hệ cha - con của topic trước khi xóa sạch topic
   await prisma.topic.updateMany({ data: { parentId: null } });
   await prisma.topic.deleteMany();
   await prisma.period.deleteMany();
@@ -127,6 +133,8 @@ async function main() {
     data: {
       id: 'a0000000-0000-4000-8000-000000000001',
       name: 'Kháng chiến chống Mỹ, cứu nước (1954 - 1975)',
+      slug: 'khang-chien-chong-my-cuu-nuoc-1954-1975',
+      timeLabel: '(1954 - 1975)',
       region: 'Toàn quốc',
       startYear: 1954,
       endYear: 1975,
@@ -153,9 +161,10 @@ async function main() {
   const rootTopicWar = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000000',
-      periodId: period.id,
+      
       parentId: null,
       name: 'Kháng chiến chống Mỹ, cứu nước (1954 - 1975)',
+      slug: 'chu-de-khang-chien-chong-my-cuu-nuoc-1954-1975',
       description:
         'Toàn bộ tiến trình lịch sử 21 năm kháng chiến chống Mỹ cứu nước của nhân dân Việt Nam: thực hiện đồng thời hai nhiệm vụ chiến lược - xây dựng CNXH ở miền Bắc và đánh bại các chiến lược chiến tranh của đế quốc Mỹ ở miền Nam, tiến tới Đại thắng mùa Xuân 1975 thống nhất non sông.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -171,9 +180,12 @@ async function main() {
   const rootTopic1 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000001',
-      periodId: period.id,
+      
       parentId: rootTopicWar.id,
       name: 'Giai đoạn 1954 - 1960: Giữ gìn lực lượng và Phong trào Đồng Khởi',
+      slug: toSlug('Giai đoạn 1954 - 1960: Giữ gìn lực lượng và Phong trào Đồng Khởi'),
+      eyebrow: 'GIAI ĐOẠN 1954 - 1960',
+      isFeatured: true,
       description:
         'Thời kỳ miền Bắc khôi phục kinh tế, tiến hành cải tạo XHCN; miền Nam kiên cường đấu tranh giữ gìn lực lượng cách mạng, chuyển từ thế phòng ngự sang thế tiến công với phong trào Đồng Khởi vang dội.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -188,9 +200,10 @@ async function main() {
   const child1_1 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000011',
-      periodId: period.id,
+      
       parentId: rootTopic1.id,
       name: 'Xây dựng hậu phương miền Bắc và chi viện cho tiền tuyến (1954 - 1959)',
+      slug: toSlug('Xây dựng hậu phương miền Bắc và chi viện cho tiền tuyến (1954 - 1959)'),
       description:
         'Miền Bắc hoàn thành cải cách ruộng đất, khôi phục kinh tế sau kháng chiến chống Pháp, mở đường Trường Sơn lịch sử (19/5/1959) chi viện miền Nam.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -202,9 +215,10 @@ async function main() {
   const child1_2 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000012',
-      periodId: period.id,
+      
       parentId: rootTopic1.id,
       name: 'Phong trào Đồng Khởi (1959 - 1960) & Sự ra đời của Mặt trận Dân tộc Giải phóng',
+      slug: toSlug('Phong trào Đồng Khởi (1959 - 1960) & Sự ra đời của Mặt trận Dân tộc Giải phóng'),
       description:
         'Nghị quyết Trung ương 15 mở đường cho khởi nghĩa vũ trang, cao trào Đồng Khởi Bến Tre bùng nổ, thành lập Mặt trận Dân tộc Giải phóng miền Nam Việt Nam (20/12/1960).',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -217,9 +231,12 @@ async function main() {
   const rootTopic2 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000002',
-      periodId: period.id,
+      
       parentId: rootTopicWar.id,
       name: 'Giai đoạn 1961 - 1965: Đánh bại chiến lược "Chiến tranh đặc biệt"',
+      slug: toSlug('Giai đoạn 1961 - 1965: Đánh bại chiến lược Chiến tranh đặc biệt'),
+      eyebrow: 'GIAI ĐOẠN 1961 - 1965',
+      isFeatured: true,
       description:
         'Quân và dân miền Nam đánh bại chiến lược Chiến tranh đặc biệt của đế quốc Mỹ với công thức "quân ngụy + vũ khí và cố vấn chỉ huy Mỹ", đập tan quốc sách Ấp chiến lược và các chiến thuật "trực thăng vận", "thiết xa vận".',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -232,9 +249,10 @@ async function main() {
   const child2_1 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000021',
-      periodId: period.id,
+      
       parentId: rootTopic2.id,
       name: 'Chiến thắng Ấp Bắc (1963) và cao trào phá tan Quốc sách Ấp chiến lược',
+      slug: toSlug('Chiến thắng Ấp Bắc (1963) và cao trào phá tan Quốc sách Ấp chiến lược'),
       description:
         'Chiến thắng Ấp Bắc (02/01/1963) bẻ gãy chiến thuật trực thăng vận và thiết xa vận, dấy lên phong trào "Thi đua Ấp Bắc, giết giặc lập công".',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -246,9 +264,10 @@ async function main() {
   const child2_2 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000022',
-      periodId: period.id,
+      
       parentId: rootTopic2.id,
       name: 'Các chiến dịch Bình Giã, Ba Gia, Đồng Xoài - Phá sản hoàn toàn Chiến tranh đặc biệt',
+      slug: toSlug('Các chiến dịch Bình Giã, Ba Gia, Đồng Xoài - Phá sản hoàn toàn Chiến tranh đặc biệt'),
       description:
         'Những đòn tiến công tiêu diệt nhiều tiểu đoàn, trung đoàn chủ lực ngụy tại Đông Nam Bộ và Trung Bộ, buộc Mỹ phải chuyển sang Chiến tranh cục bộ.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -261,9 +280,12 @@ async function main() {
   const rootTopic3 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000003',
-      periodId: period.id,
+      
       parentId: rootTopicWar.id,
       name: 'Giai đoạn 1965 - 1968: Đánh bại "Chiến tranh cục bộ" & Tổng tiến công Tết Mậu Thân',
+      slug: toSlug('Giai đoạn 1965 - 1968: Đánh bại Chiến tranh cục bộ & Tổng tiến công Tết Mậu Thân'),
+      eyebrow: 'GIAI ĐOẠN 1965 - 1968',
+      isFeatured: true,
       description:
         'Đế quốc Mỹ ồ ạt đưa quân viễn chinh vào miền Nam và phát động chiến tranh phá hoại miền Bắc. Quân dân hai miền dũng mãnh giáng trả, đỉnh cao là đòn sấm sét Tết Mậu Thân 1968 làm rung chuyển nước Mỹ.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -276,9 +298,10 @@ async function main() {
   const child3_1 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000031',
-      periodId: period.id,
+      
       parentId: rootTopic3.id,
       name: 'Chiến thắng Núi Thành, Vạn Tường & Bẻ gãy hai cuộc phản công chiến lược mùa khô',
+      slug: toSlug('Chiến thắng Núi Thành, Vạn Tường & Bẻ gãy hai cuộc phản công chiến lược mùa khô'),
       description:
         'Trận Vạn Tường (18/8/1965) khẳng định quân dân ta hoàn toàn có khả năng đánh thắng lính Mỹ xâm lược; bẻ gãy 2 cuộc phản công mùa khô 1965-1966 và 1966-1967.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -290,9 +313,10 @@ async function main() {
   const child3_2 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000032',
-      periodId: period.id,
+      
       parentId: rootTopic3.id,
       name: 'Cuộc Tổng tiến công và nổi dậy Tết Mậu Thân 1968 - Bước ngoặt chiến tranh',
+      slug: toSlug('Cuộc Tổng tiến công và nổi dậy Tết Mậu Thân 1968 - Bước ngoặt chiến tranh'),
       description:
         'Đồng loạt tập kích vào các cơ quan đầu não đối phương tại Sài Gòn và khắp đô thị miền Nam, làm phá sản Chiến tranh cục bộ, buộc Mỹ phải ngồi vào bàn đàm phán tại Paris.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -305,9 +329,12 @@ async function main() {
   const rootTopic4 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000004',
-      periodId: period.id,
+      
       parentId: rootTopicWar.id,
       name: 'Giai đoạn 1969 - 1973: Đánh bại "Việt Nam hóa chiến tranh" & Hiệp định Paris 1973',
+      slug: toSlug('Giai đoạn 1969 - 1973: Đánh bại Việt Nam hóa chiến tranh & Hiệp định Paris 1973'),
+      eyebrow: 'GIAI ĐOẠN 1969 - 1973',
+      isFeatured: true,
       description:
         'Đập tan âm mưu "dùng người Việt đánh người Việt" và tập kích hủy diệt bằng B-52, lập nên kỳ tích "Điện Biên Phủ trên không", buộc Mỹ ký Hiệp định Paris rút hết quân viễn chinh về nước.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -322,9 +349,10 @@ async function main() {
   const child4_1 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000041',
-      periodId: period.id,
+      
       parentId: rootTopic4.id,
       name: 'Chiến thắng Đường 9 - Nam Lào (1971) và Tiến công chiến lược 1972',
+      slug: toSlug('Chiến thắng Đường 9 - Nam Lào (1971) và Tiến công chiến lược 1972'),
       description:
         'Bẻ gãy cuộc hành quân Lam Sơn 719 của địch, đòn tiến công chiến lược năm 1972 chọc thủng 3 phòng tuyến mạnh nhất của địch tại Quảng Trị, Tây Nguyên, Đông Nam Bộ.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -336,9 +364,10 @@ async function main() {
   const child4_2 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000042',
-      periodId: period.id,
+      
       parentId: rootTopic4.id,
       name: 'Trận Điện Biên Phủ trên không 12 ngày đêm (1972) & Ký kết Hiệp định Paris (1973)',
+      slug: toSlug('Trận Điện Biên Phủ trên không 12 ngày đêm (1972) & Ký kết Hiệp định Paris (1973)'),
       description:
         'Quân dân miền Bắc bắn rơi 34 pháo đài bay B-52 của không quân Mỹ trong 12 ngày đêm cuối năm 1972, buộc Mỹ ký Hiệp định Paris ngày 27/01/1973 rút toàn bộ quân về nước.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -351,9 +380,12 @@ async function main() {
   const rootTopic5 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000005',
-      periodId: period.id,
+      
       parentId: rootTopicWar.id,
       name: 'Giai đoạn 1973 - 1975: Tổng tiến công và nổi dậy mùa Xuân 1975 giải phóng miền Nam',
+      slug: toSlug('Giai đoạn 1973 - 1975: Tổng tiến công và nổi dậy mùa Xuân 1975 giải phóng miền Nam'),
+      eyebrow: 'ĐẠI THẮNG MÙA XUÂN 1975',
+      isFeatured: true,
       description:
         'Thời cơ lịch sử chín muồi, quân dân ta mở cuộc Tổng tiến công và nổi dậy thần tốc qua 3 chiến dịch đòn bẩy: Tây Nguyên, Huế - Đà Nẵng và Chiến dịch Hồ Chí Minh lịch sử, giải phóng hoàn toàn miền Nam ngày 30/4/1975.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -368,9 +400,10 @@ async function main() {
   const child5_1 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000051',
-      periodId: period.id,
+      
       parentId: rootTopic5.id,
       name: 'Chiến thắng Phước Long (01/1975) & Hội nghị Bộ Chính trị hạ quyết tâm chiến lược',
+      slug: toSlug('Chiến thắng Phước Long (01/1975) & Hội nghị Bộ Chính trị hạ quyết tâm chiến lược'),
       description:
         'Trận trinh sát chiến lược Phước Long chứng minh quân ngụy đã suy yếu rõ rệt và Mỹ không còn khả năng can thiệp trở lại; Bộ Chính trị quyết định kế hoạch giải phóng miền Nam trong 2 năm 1975-1976.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -382,9 +415,10 @@ async function main() {
   const child5_2 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000052',
-      periodId: period.id,
+      
       parentId: rootTopic5.id,
       name: 'Chiến dịch Tây Nguyên & Chiến dịch giải phóng Huế - Đà Nẵng (Tháng 3/1975)',
+      slug: toSlug('Chiến dịch Tây Nguyên & Chiến dịch giải phóng Huế - Đà Nẵng (Tháng 3/1975)'),
       description:
         'Đòn điểm huyệt Buôn Ma Thuột (10/3/1975) làm rung chuyển toàn bộ chiến trường; tiếp nối là chiến dịch tiến công giải phóng Cố đô Huế (26/3) và thành phố Đà Nẵng (29/3).',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -396,9 +430,10 @@ async function main() {
   const child5_3 = await prisma.topic.create({
     data: {
       id: 'b0000000-0000-4000-8000-000000000053',
-      periodId: period.id,
+      
       parentId: rootTopic5.id,
       name: 'Chiến dịch Hồ Chí Minh lịch sử - Đại thắng ngày 30/4/1975 non sông liền một dải',
+      slug: toSlug('Chiến dịch Hồ Chí Minh lịch sử - Đại thắng ngày 30/4/1975 non sông liền một dải'),
       description:
         '5 cánh quân thần tốc tiến về Sài Gòn - Gia Định, 11 giờ 30 phút ngày 30/4/1975 xe tăng 390 húc đổ cổng Dinh Độc Lập, cờ giải phóng tung bay, kết thúc vẻ vang 21 năm kháng chiến chống Mỹ.',
       pathType: LearningPathType.CHRONOLOGICAL,
@@ -407,7 +442,14 @@ async function main() {
     },
   });
 
-  console.log('✓ Đã tạo thành công 1 Chủ đề Gốc (Cấp 1), 5 Giai đoạn (Cấp 2) và 11 Chuyên đề (Cấp 3) phân cấp chuẩn.');
+  // Đã BỎ seed 6 "Chủ đề kiến thức chuyên đề" (Văn hóa & Đời sống, Kiến trúc & Di
+  // tích...) — đây là danh mục dành cho trang chủ công khai (landing page), không phải
+  // chủ đề bài học thật, không có bài học nào gắn vào, nhưng lại hiện lẫn vào cây
+  // Giai đoạn→Chủ đề→Bài học và trang /topics gây rối, trông như dữ liệu dư thừa. Nếu
+  // sau này cần danh mục riêng cho landing page, nên tạo bảng/model riêng, không mượn
+  // Topic (Topic nên chỉ dùng cho phân loại bài học thật).
+
+  console.log('✓ Đã tạo thành công 1 Chủ đề Gốc (Cấp 1), 5 Giai đoạn (Cấp 2), 11 Chuyên đề (Cấp 3).');
 
   // -------------------------------------------------------------
   // BƯỚC 5: KHỞI TẠO CÁC SỰ KIỆN LỊCH SỬ CHUẨN XÁC (HISTORICAL EVENTS)
@@ -415,140 +457,351 @@ async function main() {
   const eventsData = [
     {
       topicId: child1_1.id,
+      
       title: 'Mở tuyến đường vận tải chiến lược Trường Sơn - Đường Hồ Chí Minh',
+      slug: toSlug('Mở tuyến đường vận tải chiến lược Trường Sơn - Đường Hồ Chí Minh'),
       eventYear: 1959,
+      endYear: 1975,
       eventDateNote: '19/05/1959',
       location: 'Dãy Trường Sơn',
       description:
         'Đoàn 559 được thành lập, mở đường mòn Hồ Chí Minh trên bộ soi đường chi viện sức người, vũ khí từ hậu phương miền Bắc cho tiền tuyến miền Nam.',
+      cause:
+        'Cách mạng miền Nam chuyển sang thế tiến công sau Nghị quyết 15, đòi hỏi tuyến giao liên vận tải chiến lược xuyên Bắc - Nam để chi viện vũ khí, cán bộ và hậu cần.',
+      outcome:
+        'Hình thành mạng lưới đường cơ giới hơn 20.000km xuyên Trường Sơn, vận chuyển hàng triệu tấn vũ khí và hàng triệu lượt bộ đội vào chiến trường miền Nam.',
+      thumbnailUrl:
+        'https://images.unsplash.com/photo-1583417319070-4a69db38a482?auto=format&fit=crop&w=1000&q=80',
+      sourceReferenceNote: 'Lịch sử Đoàn 559 - Bộ đội Trường Sơn, NXB Quân đội Nhân dân',
       displayOrder: 1,
+      status: ContentStatus.PUBLISHED,
     },
     {
       topicId: child1_2.id,
+      
       title: 'Phong trào Đồng Khởi Bến Tre bùng nổ',
-      eventYear: 1960,
+      slug: toSlug('Phong trào Đồng Khởi Bến Tre bùng nổ'),
+      eventYear: 1959,
+      endYear: 1960,
       eventDateNote: '17/01/1960',
       location: 'Mỏ Cày, Bến Tre',
       description:
         'Dưới sự lãnh đạo của Nữ tướng Nguyễn Thị Định và Tỉnh ủy Bến Tre, nhân dân huyện Mỏ Cày đồng loạt nổi dậy, mở đầu cao trào Đồng Khởi khắp miền Nam.',
+      cause:
+        'Chính quyền Ngô Đình Diệm thi hành chính sách "Tố cộng, diệt cộng" tàn bạo với Luật 10/59; Nghị quyết Trung ương 15 (1959) soi đường cho quần chúng nổi dậy.',
+      outcome:
+        'Phá vỡ từng mảng lớn bộ máy cai trị cơ sở của địch ở nông thôn, chuyển cách mạng miền Nam từ thế giữ gìn lực lượng sang thế tiến công, dẫn tới sự ra đời của Mặt trận Dân tộc Giải phóng miền Nam Việt Nam.',
+      thumbnailUrl:
+        'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1000&q=80',
+      sourceReferenceNote: 'Sách giáo khoa Lịch sử 12, NXB Giáo dục Việt Nam, tr. 140 - 144',
       displayOrder: 2,
+      status: ContentStatus.PUBLISHED,
     },
     {
       topicId: child1_2.id,
+      
       title: 'Thành lập Mặt trận Dân tộc Giải phóng miền Nam Việt Nam',
+      slug: toSlug('Thành lập Mặt trận Dân tộc Giải phóng miền Nam Việt Nam'),
       eventYear: 1960,
       eventDateNote: '20/12/1960',
-      location: 'Tây Ninh',
+      location: 'Tân Biên, Tây Ninh',
       description:
         'Mặt trận Dân tộc Giải phóng miền Nam Việt Nam ra đời nhằm đoàn kết toàn dân đánh đổ ách thống trị của đế quốc Mỹ và chính quyền tay sai Ngô Đình Diệm.',
+      cause:
+        'Thắng lợi vang dội của cao trào Đồng Khởi (1959 - 1960) đặt ra yêu cầu bức thiết phải có một tổ chức chính trị công khai quy tụ mọi tầng lớp yêu nước tại miền Nam.',
+      outcome:
+        'Tập hợp đông đảo các giai cấp, dân tộc, tôn giáo dưới ngọn cờ độc lập, dân chủ, hòa bình, trung lập, tiến tới hòa bình thống nhất Tổ quốc.',
+      sourceReferenceNote: 'Văn kiện Đảng Toàn tập, Tập 21, NXB Chính trị Quốc gia',
       displayOrder: 3,
+      status: ContentStatus.PUBLISHED,
     },
     {
       topicId: child2_1.id,
+      
       title: 'Chiến thắng Ấp Bắc chấn động',
+      slug: toSlug('Chiến thắng Ấp Bắc chấn động'),
       eventYear: 1963,
       eventDateNote: '02/01/1963',
       location: 'Cai Lậy, Tiền Giang',
       description:
         'Lực lượng vũ trang cách mạng miền Nam bẻ gãy chiến thuật trực thăng vận và thiết xa vận của Mỹ, mở ra phong trào thi đua "Ấp Bắc giết giặc lập công".',
+      cause:
+        'Mỹ - ngụy huy động hơn 2.000 quân tinh nhuệ cùng máy bay trực thăng và xe thiết giáp M-113 mở cuộc càn quét lớn vào vùng giải phóng Ấp Bắc (Mỹ Tho).',
+      outcome:
+        'Bắn rơi 5 máy bay trực thăng, phá hủy 3 xe thiết giáp M-113, đánh dấu sự phá sản bước đầu của các chiến thuật tân kỳ trong "Chiến tranh đặc biệt".',
+      sourceReferenceNote: 'Lịch sử kháng chiến chống Mỹ, cứu nước 1954 - 1975, Tập III',
       displayOrder: 1,
+      status: ContentStatus.PUBLISHED,
     },
     {
       topicId: child3_1.id,
+      
       title: 'Chiến thắng Vạn Tường - Trận đụng đầu lịch sử với quân viễn chinh Mỹ',
+      slug: toSlug('Chiến thắng Vạn Tường - Trận đụng đầu lịch sử với quân viễn chinh Mỹ'),
       eventYear: 1965,
       eventDateNote: '18/08/1965',
       location: 'Bình Sơn, Quảng Ngãi',
       description:
         'Trận đánh phủ đầu lính thủy đánh bộ Mỹ, chứng minh quân dân miền Nam có đầy đủ khả năng đánh thắng trực diện quân viễn chinh Mỹ.',
+      cause:
+        'Quân viễn chinh Mỹ mở cuộc hành quân "Ánh sáng sao" (Starlite) nhằm tiêu diệt Trung đoàn 1 Chủ lực Quân khu 5 tại thôn Vạn Tường.',
+      outcome:
+        'Loại khỏi vòng chiến đấu khoảng 900 lính Mỹ, bắn cháy 22 xe tăng và xe bọc thép, mở đầu cao trào "Tìm Mỹ mà đánh, lùng ngụy mà diệt".',
+      sourceReferenceNote: 'Lịch sử Quân khu 5 trong kháng chiến chống Mỹ',
       displayOrder: 1,
+      status: ContentStatus.PUBLISHED,
     },
     {
       topicId: child3_2.id,
+      
       title: 'Cuộc Tổng tiến công và nổi dậy Tết Mậu Thân 1968',
+      slug: toSlug('Cuộc Tổng tiến công và nổi dậy Tết Mậu Thân 1968'),
       eventYear: 1968,
       eventDateNote: '30/01/1968',
       location: 'Sài Gòn - Gia Định và toàn miền Nam',
       description:
         'Đòn tập kích bất ngờ vào Tòa Đại sứ Mỹ, Dinh Độc Lập, Bộ Tổng tham mưu ngụy, làm lung lay ý chí xâm lược của chính giới Washington.',
+      cause:
+        'Nhằm giáng một đòn quyết định làm chuyển biến cục diện chiến tranh, buộc Mỹ phải xuống thang chiến tranh và ngồi vào bàn đàm phán.',
+      outcome:
+        'Làm phá sản chiến lược "Chiến tranh cục bộ", buộc Tổng thống Johnson phải tuyên bố ngừng ném bom miền Bắc và chấp nhận đàm phán tại Hội nghị Paris.',
+      sourceReferenceNote: 'Tổng tiến công và nổi dậy Xuân Mậu Thân 1968, NXB Quân đội Nhân dân',
       displayOrder: 1,
+      status: ContentStatus.PUBLISHED,
     },
     {
       topicId: child4_1.id,
+      
       title: 'Chiến thắng chiến dịch Đường 9 - Nam Lào',
+      slug: toSlug('Chiến thắng chiến dịch Đường 9 - Nam Lào'),
       eventYear: 1971,
-      eventDateNote: '23/03/1971',
+      eventDateNote: '30/01 - 23/03/1971',
       location: 'Đường 9 - Nam Lào',
       description:
         'Đập tan cuộc hành quân Lam Sơn 719 của địch, bảo vệ vững chắc tuyến hành lang vận chuyển chiến lược Bắc - Nam.',
+      cause:
+        'Mỹ - ngụy mở cuộc hành quân quy mô lớn "Lam Sơn 719" nhằm cắt đứt tuyến đường chi viện Trường Sơn tại khu vực Đường 9 - Nam Lào.',
+      outcome:
+        'Tiêu diệt phần lớn lực lượng tinh nhuệ của Quân đội Sài Gòn, giáng đòn nặng nề vào công thức "Quân đội Sài Gòn + Hỏa lực Mỹ" của học thuyết Việt Nam hóa chiến tranh.',
+      sourceReferenceNote: 'Chiến dịch phản công Đường 9 - Nam Lào 1971, Viện Lịch sử Quân sự',
       displayOrder: 1,
+      status: ContentStatus.PUBLISHED,
     },
     {
       topicId: child4_2.id,
+      
       title: 'Chiến thắng "Điện Biên Phủ trên không" 12 ngày đêm Hà Nội',
+      slug: toSlug('Chiến thắng Điện Biên Phủ trên không 12 ngày đêm Hà Nội'),
       eventYear: 1972,
       eventDateNote: '18/12 - 30/12/1972',
       location: 'Hà Nội, Hải Phòng',
       description:
         'Quân dân miền Bắc bắn rơi 34 pháo đài bay B-52, đập tan cuộc tập kích đường không chiến lược Linebacker II của đế quốc Mỹ.',
+      cause:
+        'Tổng thống Mỹ Nixon mở chiến dịch tập kích đường không chiến lược Linebacker II bằng siêu pháo đài bay B-52 hòng khuất phục Hà Nội và ép ta ký Hiệp định Paris theo điều khoản của Mỹ.',
+      outcome:
+        'Bắn rơi 81 máy bay Mỹ (có 34 chiếc B-52), buộc chính quyền Nixon tuyên bố ngừng ném bom từ vĩ tuyến 20 trở ra và ký Hiệp định Paris nguyên vẹn.',
+      sourceReferenceNote: 'Lịch sử Quân chủng Phòng không - Không quân Việt Nam',
       displayOrder: 1,
+      status: ContentStatus.PUBLISHED,
     },
     {
       topicId: child4_2.id,
+      
       title: 'Ký kết Hiệp định Paris về chấm dứt chiến tranh tại Việt Nam',
+      slug: toSlug('Ký kết Hiệp định Paris về chấm dứt chiến tranh tại Việt Nam'),
       eventYear: 1973,
       eventDateNote: '27/01/1973',
       location: 'Paris, Pháp',
       description:
         'Mỹ buộc phải cam kết tôn trọng độc lập, chủ quyền, thống nhất và toàn vẹn lãnh thổ của nước Việt Nam, rút hết toàn bộ quân viễn chinh về nước.',
+      cause:
+        'Sau thất bại nặng nề trên cả hai miền Nam - Bắc, đặc biệt là trận Điện Biên Phủ trên không cuối năm 1972, đế quốc Mỹ không còn con đường nào khác ngoài giải pháp ngoại giao.',
+      outcome:
+        'Hoàn thành mục tiêu chiến lược "Đánh cho Mỹ cút", tạo bước ngoặt quyết định về tương quan lực lượng để tiến lên "Đánh cho ngụy nhào" vào mùa Xuân 1975.',
+      sourceReferenceNote: 'Mặt trận Ngoại giao Việt Nam trong kháng chiến chống Mỹ (1954 - 1975)',
       displayOrder: 2,
+      status: ContentStatus.PUBLISHED,
     },
     {
       topicId: child5_1.id,
+      
       title: 'Chiến thắng Đường 14 - Phước Long',
-      eventYear: 1975,
-      eventDateNote: '06/01/1975',
+      slug: toSlug('Chiến thắng Đường 14 - Phước Long'),
+      eventYear: 1974,
+      endYear: 1975,
+      eventDateNote: '13/12/1974 - 06/01/1975',
       location: 'Phước Long, Bình Phước',
       description:
         'Đòn trinh sát chiến lược giải phóng hoàn toàn một thị xã và một tỉnh đầu tiên ở miền Nam, tạo cơ sở thực tiễn để Bộ Chính trị quyết tâm giải phóng miền Nam.',
+      cause:
+        'Thực hiện chủ trương mở chiến dịch tiến công tại Đông Nam Bộ nhằm mở rộng hành lang chiến lược và thăm dò phản ứng thực tế của Mỹ và quân đội Sài Gòn.',
+      outcome:
+        'Giải phóng hoàn toàn tỉnh Phước Long, củng cố quyết tâm chiến lược của Bộ Chính trị giải phóng miền Nam ngay trong năm 1975.',
+      sourceReferenceNote: 'Lịch sử Quân đoàn 4 - Binh đoàn Cửu Long',
       displayOrder: 1,
+      status: ContentStatus.PUBLISHED,
     },
     {
       topicId: child5_2.id,
+      
       title: 'Đột phá khẩu Buôn Ma Thuột - Khai màn Chiến dịch Tây Nguyên',
+      slug: toSlug('Đột phá khẩu Buôn Ma Thuột - Khai màn Chiến dịch Tây Nguyên'),
       eventYear: 1975,
       eventDateNote: '10/03/1975',
       location: 'Buôn Ma Thuột, Đắk Lắk',
       description:
         'Đòn điểm huyệt chiến lược xuất sắc làm rung chuyển và tan rã toàn bộ Quân đoàn 2 ngụy, mở toang cánh cửa xuống đồng bằng duyên hải miền Trung.',
+      cause:
+        'Bộ Chính trị và Quân ủy Trung ương chọn Tây Nguyên làm hướng tiến công chủ yếu trong năm 1975, lấy thị xã Buôn Ma Thuột làm mục tiêu đột phá mở màn.',
+      outcome:
+        'Giải phóng hoàn toàn Tây Nguyên, tiêu diệt Quân đoàn 2 ngụy, chuyển cuộc kháng chiến từ tiến công chiến lược sang Tổng tiến công chiến lược trên toàn miền Nam.',
+      sourceReferenceNote: 'Tổng hành dinh trong mùa Xuân toàn thắng - Đại tướng Võ Nguyên Giáp',
       displayOrder: 1,
+      status: ContentStatus.PUBLISHED,
     },
     {
       topicId: child5_2.id,
+      
       title: 'Giải phóng Cố đô Huế và thành phố Đà Nẵng',
+      slug: toSlug('Giải phóng Cố đô Huế và thành phố Đà Nẵng'),
       eventYear: 1975,
       eventDateNote: '26/03 - 29/03/1975',
       location: 'Huế & Đà Nẵng',
       description:
         'Tiêu diệt và làm tan rã toàn bộ lực lượng Quân đoàn 1 ngụy, giải phóng hoàn toàn dải đất miền Trung, tạo thời cơ "thần tốc" tiến về Sài Gòn.',
+      cause:
+        'Nắm vững thời cơ chiến lược sau thắng lợi Tây Nguyên, Quân giải phóng thần tốc bao vây cô lập và tiến công giải phóng Trị - Thiên - Huế và căn cứ liên hợp Đà Nẵng.',
+      outcome:
+        'Đập tan hoàn toàn ý đồ co cụm chiến lược của địch ở miền Trung, tạo bàn đạp trực tiếp cho 5 cánh quân tiến vào Chiến dịch Hồ Chí Minh.',
+      sourceReferenceNote: 'Đại thắng mùa Xuân 1975 - Văn Tiến Dũng',
       displayOrder: 2,
+      status: ContentStatus.PUBLISHED,
     },
     {
       topicId: child5_3.id,
+      
       title: 'Đại thắng Chiến dịch Hồ Chí Minh - Giải phóng hoàn toàn miền Nam',
+      slug: toSlug('Đại thắng Chiến dịch Hồ Chí Minh - Giải phóng hoàn toàn miền Nam'),
       eventYear: 1975,
-      eventDateNote: '30/04/1975',
+      eventDateNote: '26/04 - 30/04/1975',
       location: 'Dinh Độc Lập, Sài Gòn',
       description:
         '11 giờ 30 phút ngày 30/4/1975, xe tăng 390 húc đổ cổng chính Dinh Độc Lập. Lá cờ Mặt trận Dân tộc Giải phóng tung bay trên nóc dinh, non sông thu về một mối.',
+      cause:
+        'Thời cơ tổng công kích vào sào huyệt cuối cùng của địch tại Sài Gòn - Gia Định đã chín muồi với phương châm "Thần tốc, táo bạo, bất ngờ, chắc thắng".',
+      outcome:
+        'Giải phóng hoàn toàn miền Nam, thống nhất đất nước, kết thúc thắng lợi 21 năm kháng chiến chống Mỹ cứu nước và 30 năm chiến tranh giải phóng dân tộc.',
+      thumbnailUrl:
+        'https://images.unsplash.com/photo-1583417319070-4a69db38a482?auto=format&fit=crop&w=1000&q=80',
+      sourceReferenceNote: 'Đại thắng mùa Xuân 1975 - Đại tướng Văn Tiến Dũng, NXB Quân đội Nhân dân',
       displayOrder: 1,
+      status: ContentStatus.PUBLISHED,
     },
   ];
 
+  const createdEventsMap = new Map<string, any>();
   for (const evt of eventsData) {
-    await prisma.historicalEvent.create({ data: evt });
+    // `topicId` không tồn tại trong schema HistoricalEvent (model này liên kết qua
+    // `periodId`, không qua Topic) — phải loại khỏi payload, nếu không Prisma báo lỗi
+    // "Unknown argument topicId" và dừng hẳn seed giữa đường.
+    const { eventYear, cause, outcome, location, sourceReferenceNote, topicId, ...rest } = evt as any;
+    const metadata = {
+      ...(cause ? { cause } : {}),
+      ...(outcome ? { outcome } : {}),
+      ...(location ? { rawLocation: location } : {}),
+      ...(sourceReferenceNote ? { sourceReferenceNote } : {}),
+    };
+    const created = await prisma.historicalEvent.create({
+      data: {
+        ...rest,
+        // Gắn lại vào Giai đoạn lịch sử duy nhất đã tạo ở bước 4 — trước đây bị bỏ sót
+        // hoàn toàn, khiến sự kiện không hiện đúng khi lọc/nhóm theo Giai đoạn.
+        periodId: period.id,
+        startYear: eventYear,
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+      },
+    });
+    createdEventsMap.set(evt.title, created);
   }
-  console.log(`✓ Đã tạo ${eventsData.length} Sự kiện Lịch sử tiêu biểu với niên đại chính xác.`);
+
+  // Khởi tạo các sự kiện con (Sự kiện thành phần trực thuộc sự kiện cha)
+  const mauThanParent = createdEventsMap.get('Cuộc Tổng tiến công và nổi dậy Tết Mậu Thân 1968');
+  const duong9Parent = createdEventsMap.get('Chiến thắng chiến dịch Đường 9 - Nam Lào');
+
+  const subEventsData: any[] = [];
+  if (mauThanParent) {
+    subEventsData.push(
+      {
+        topicId: mauThanParent.topicId,
+        periodId: mauThanParent.periodId,
+        parentId: mauThanParent.id,
+        title: 'Các đợt tiến công tại các đô thị miền Nam',
+        slug: toSlug('Các đợt tiến công tại các đô thị miền Nam'),
+        eventYear: 1968,
+        eventDateNote: 'Đợt 1 (30/01 - 25/02/1968)',
+        location: 'Các đô thị trọng yếu toàn miền Nam',
+        description: 'Đồng loạt tiến công vào 4 trên 6 thành phố lớn, 37 trên 44 thị xã và hàng trăm quận lỵ.',
+        cause: 'Mục tiêu giáng đòn bất ngờ làm sụp đổ hệ thống phòng thủ hậu cứ đô thị của địch.',
+        outcome: 'Gây chấn động dư luận nước Mỹ, phá vỡ hoàn toàn thế trận bình định nông thôn và phòng thủ đô thị của quân đội Mỹ.',
+        displayOrder: 1,
+        status: ContentStatus.PUBLISHED,
+      },
+      {
+        topicId: mauThanParent.topicId,
+        periodId: mauThanParent.periodId,
+        parentId: mauThanParent.id,
+        title: 'Diễn biến tác chiến tại Sài Gòn - Gia Định',
+        slug: toSlug('Diễn biến tác chiến tại Sài Gòn - Gia Định'),
+        eventYear: 1968,
+        eventDateNote: 'Đêm 30 rạng sáng 31/01/1968',
+        location: 'Sài Gòn - Gia Định',
+        description: 'Các đội Biệt động Sài Gòn tập kích Tòa Đại sứ Mỹ, Dinh Độc Lập, Bộ Tổng tham mưu quân đội Sài Gòn và Đài Phát thanh.',
+        cause: 'Đánh thẳng vào cơ quan đầu não chỉ huy chiến tranh của đối phương giữa trung tâm Sài Gòn.',
+        outcome: 'Tạo hiệu ứng truyền thông toàn cầu, phơi bày sự bất lực của chính quyền Sài Gòn và quân đội Mỹ ngay tại trung tâm thủ phủ.',
+        displayOrder: 2,
+        status: ContentStatus.DRAFT,
+      },
+    );
+  }
+
+  if (duong9Parent) {
+    subEventsData.push({
+      topicId: duong9Parent.topicId,
+      periodId: duong9Parent.periodId,
+      parentId: duong9Parent.id,
+      title: 'Trận đánh điểm cao 543 và bắt sống Ban chỉ huy Lữ đoàn dù 3 địch',
+      slug: toSlug('Trận đánh điểm cao 543 và bắt sống Ban chỉ huy Lữ đoàn dù 3 địch'),
+      eventYear: 1971,
+      eventDateNote: '25/02/1971',
+      location: 'Điểm cao 543, Đường 9 - Nam Lào',
+      description: 'Trung đoàn 102 (Đại đoàn 308) tiêu diệt cứ điểm then chốt trên điểm cao 543, bắt sống đại tá Nguyễn Văn Thọ.',
+      cause: 'Đánh bẻ gãy cánh quân dù tinh nhuệ của quân lực Việt Nam Cộng hòa trong cuộc hành quân Lam Sơn 719.',
+      outcome: 'Làm lung lay tinh thần toàn bộ cánh quân phía bắc của địch, tạo thế bao vây tiêu diệt căn cứ Bản Đông.',
+      displayOrder: 1,
+      status: ContentStatus.PUBLISHED,
+    });
+  }
+
+  for (const subEvt of subEventsData) {
+    // Tương tự: `topicId` không phải field hợp lệ của HistoricalEvent, phải loại bỏ.
+    const { eventYear, cause, outcome, location, sourceReferenceNote, topicId, ...rest } = subEvt as any;
+    const metadata = {
+      ...(cause ? { cause } : {}),
+      ...(outcome ? { outcome } : {}),
+      ...(location ? { rawLocation: location } : {}),
+      ...(sourceReferenceNote ? { sourceReferenceNote } : {}),
+    };
+    await prisma.historicalEvent.create({
+      data: {
+        ...rest,
+        startYear: eventYear,
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+      },
+    });
+  }
+
+  console.log(`✓ Đã tạo ${eventsData.length} Sự kiện Lịch sử cấp cha/độc lập và ${subEventsData.length} Sự kiện thành phần trực thuộc.`);
 
   // -------------------------------------------------------------
   // BƯỚC 6: KHỞI TẠO CÁC BÀI HỌC GIÀU NỘI DUNG RICH TEXT & GÁN TAGS
@@ -634,19 +887,141 @@ async function main() {
       displayOrder: 1,
       status: ContentStatus.PUBLISHED,
       createdBy: adminUser.id,
-      contentRichText: `<h2>1. Âm mưu tàn bạo của Tổng thống Nixon</h2>
-<p>Cuối năm 1972, nhằm ép Việt Nam Dân chủ Cộng hòa nhượng bộ tại bàn đàm phán Paris, Tổng thống Mỹ Nixon phát động chiến dịch tập kích đường không chiến lược <em>Linebacker II</em> rải thảm bom B-52 hủy diệt Hà Nội, Hải Phòng và miền Bắc.</p>
-
-<h2>2. 12 ngày đêm quật ngã "Pháo đài bay"</h2>
-<p>Từ ngày 18/12 đến ngày 30/12/1972, quân và dân miền Bắc với lực lượng nòng cốt là Bộ đội Phòng không - Không quân đã kiên cường giăng lưới lửa nhiều tầng:</p>
-<ul>
-  <li>Bộ đội Tên lửa SAM-2 lập công xuất sắc, bắn rơi pháo đài bay B-52 ngay trên bầu trời Hà Nội.</li>
-  <li>Đêm 27/12/1972, Anh hùng phi công Phạm Tuân lái tiêm kích MiG-21 xuất kích bắn rơi B-52 tại chỗ.</li>
-  <li>Đêm 28/12/1972, phi công Vũ Xuân Thiều dũng cảm công kích và hy sinh anh dũng sau khi tiêu diệt máy bay địch.</li>
-</ul>
-
-<h2>3. Ý nghĩa quyết định buộc Mỹ ký Hiệp định Paris</h2>
-<p>Quân dân ta đã bắn rơi 81 máy bay địch, trong đó có <strong>34 chiếc siêu pháo đài bay B-52</strong>, đập tan huyền thoại bất khả xâm phạm của không lực Hoa Kỳ, buộc Mỹ phải đặt bút ký Hiệp định Paris ngày 27/01/1973.</p>`,
+      // Bài học demo ĐẦY ĐỦ các loại khối của Block Builder (test trực tiếp khi mở trong
+      // CMS): Văn bản, Timeline (có 1 mốc đã có sẵn bài Canvas chi tiết + tư liệu ảnh),
+      // Hàng 2 cột chứa 2 khối Nhân vật, Sự kiện, Hình ảnh, Video (để trống — chưa xác
+      // minh được link tư liệu thật nào, xem báo cáo), Bản đồ, Bảng so sánh, và Liên kết
+      // tài nguyên (sẽ tự được tách sang Panel Thuộc tính > tab Xuất bản khi nạp vào CMS).
+      blocksContent: [
+        {
+          id: 'blk_text_1',
+          type: 'TEXT',
+          content: `<h2>1. Âm mưu tàn bạo của Tổng thống Nixon</h2>
+<p>Trước nguy cơ thất bại hoàn toàn trên bàn đàm phán Paris và trên cả hai chiến trường, cuối năm 1972 Tổng thống Mỹ Richard Nixon quyết định dùng con bài quân sự cuối cùng: phát động chiến dịch tập kích đường không chiến lược <em>Linebacker II</em>, huy động hàng trăm lượt máy bay chiến lược B-52 "rải thảm" bom xuống Hà Nội, Hải Phòng và nhiều tỉnh miền Bắc, với tính toán đưa Việt Nam Dân chủ Cộng hòa "trở về thời kỳ đồ đá" và buộc phải nhượng bộ các điều khoản bất lợi.</p>`,
+        },
+        {
+          id: 'blk_timeline_1',
+          type: 'TIMELINE',
+          title: '12 ngày đêm "Hà Nội - Điện Biên Phủ trên không"',
+          subtitle: 'Các mốc chính từ khi mở màn đến khi ký Hiệp định Paris',
+          orientation: 'VERTICAL',
+          nodes: [
+            {
+              id: 'node_1',
+              year: '18/12/1972',
+              title: 'Mở màn chiến dịch Linebacker II',
+              description: '19h44: quả đạn tên lửa đầu tiên rời bệ phóng, bắn rơi tại chỗ chiếc B-52 đầu tiên ngay trong trận đầu.',
+            },
+            {
+              id: 'node_2',
+              year: '27/12/1972',
+              title: 'Phạm Tuân bắn rơi B-52',
+              description: 'Phi công Phạm Tuân lái MiG-21 xuất kích, trở thành phi công Việt Nam đầu tiên bắn rơi được B-52 trên không.',
+              detailContent: `<p>Đêm 27/12/1972, biên đội MiG-21 do phi công <strong>Phạm Tuân</strong> điều khiển xuất kích từ sân bay Yên Bái, bí mật tiếp cận và phóng tên lửa tiêu diệt 1 máy bay B-52 trước khi thoát ly an toàn.</p><p>Đây là lần đầu tiên không quân một quốc gia dùng máy bay tiêm kích bắn rơi được "siêu pháo đài bay" B-52 của Mỹ, chứng minh B-52 không hề "bất khả xâm phạm" như tuyên truyền của Washington.</p>`,
+            },
+            {
+              id: 'node_3',
+              year: '28/12/1972',
+              title: 'Vũ Xuân Thiều anh dũng hy sinh',
+              description: 'Phi công Vũ Xuân Thiều công kích áp sát mục tiêu, tiêu diệt máy bay địch và hy sinh ngay sau đó.',
+            },
+            {
+              id: 'node_4',
+              year: '30/12/1972',
+              title: 'Nixon tuyên bố ngừng ném bom',
+              description: '7 giờ sáng: trước tổn thất quá nặng, Nixon buộc phải tuyên bố ngừng ném bom từ vĩ tuyến 20 trở ra.',
+            },
+            {
+              id: 'node_5',
+              year: '27/01/1973',
+              title: 'Ký Hiệp định Paris',
+              description: 'Mỹ buộc phải trở lại bàn đàm phán với tư thế kẻ thất bại, ký Hiệp định Paris chấm dứt chiến tranh.',
+            },
+          ],
+        },
+        {
+          id: 'blk_row_1',
+          type: 'SECTION_ROW',
+          columnCount: 2,
+          columns: [
+            {
+              id: 'col_1',
+              widthPercent: 50,
+              blocks: [
+                {
+                  id: 'blk_char_1',
+                  type: 'CHARACTER',
+                  name: 'Phạm Tuân',
+                  years: 'Sinh 1947',
+                  summary: 'Phi công MiG-21, Anh hùng Lực lượng vũ trang nhân dân — người bắn rơi B-52 trên không đêm 27/12/1972. Sau này trở thành phi công vũ trụ đầu tiên của Việt Nam và châu Á (1980).',
+                  avatarUrl: '',
+                },
+              ],
+            },
+            {
+              id: 'col_2',
+              widthPercent: 50,
+              blocks: [
+                {
+                  id: 'blk_char_2',
+                  type: 'CHARACTER',
+                  name: 'Vũ Xuân Thiều',
+                  years: '1945 – 1972',
+                  summary: 'Phi công MiG-21, Anh hùng Lực lượng vũ trang nhân dân (truy tặng). Hy sinh đêm 28/12/1972 sau khi công kích áp sát tiêu diệt máy bay B-52 địch trên vùng trời Sơn La.',
+                  avatarUrl: '',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'blk_event_1',
+          type: 'EVENT',
+          title: 'Chiến dịch Linebacker II',
+          timeLocation: '18/12 - 29/12/1972 • Hà Nội, Hải Phòng',
+          summary: 'Chiến dịch tập kích đường không chiến lược bằng máy bay B-52 của Mỹ nhằm ép Việt Nam Dân chủ Cộng hòa nhượng bộ tại bàn đàm phán Paris, kết thúc bằng thất bại nặng nề của không lực Hoa Kỳ.',
+          thumbnailUrl: '',
+        },
+        {
+          id: 'blk_image_1',
+          type: 'IMAGE',
+          src: 'https://images.unsplash.com/photo-1544813687-63931b2749ea?auto=format&fit=crop&w=1200&q=80',
+          alt: 'Minh họa chủ đề phòng không - không quân',
+          caption: 'Ảnh minh họa chủ đề (tư liệu ảnh thật cần được biên tập viên thay thế trước khi xuất bản).',
+        },
+        {
+          id: 'blk_video_1',
+          type: 'VIDEO',
+          src: '',
+          sourceType: 'URL',
+          caption: '',
+        },
+        {
+          id: 'blk_map_1',
+          type: 'MAP',
+          locationName: 'Hà Nội, Hải Phòng và vùng trời miền Bắc',
+          description: 'Địa bàn diễn ra 12 ngày đêm không chiến — trọng điểm là Thủ đô Hà Nội, nơi quân và dân ta bắn rơi 30/81 máy bay địch, gồm 23/34 chiếc B-52.',
+        },
+        {
+          id: 'blk_table_1',
+          type: 'COMPARISON_TABLE',
+          title: 'Tương quan lực lượng không chiến 12 ngày đêm',
+          colAName: 'Không lực Hoa Kỳ',
+          colBName: 'Phòng không - Không quân Việt Nam',
+          rows: [
+            { criteria: 'Vũ khí chủ lực', colA: 'B-52 "siêu pháo đài bay", F-111, F-4', colB: 'Tên lửa SAM-2, MiG-21, pháo cao xạ' },
+            { criteria: 'Thiệt hại', colA: '81 máy bay bị bắn rơi (34 B-52)', colB: 'Tổn thất về khí tài, một số chiến sĩ hy sinh' },
+            { criteria: 'Kết quả chiến lược', colA: 'Buộc ngừng ném bom, ký Hiệp định Paris', colB: 'Bảo vệ vững chắc Thủ đô, giữ vững hậu phương' },
+          ],
+        },
+        {
+          id: 'blk_reslink_1',
+          type: 'RESOURCE_LINK',
+          title: 'Chiến dịch Linebacker II - Wikipedia tiếng Việt',
+          url: 'https://vi.wikipedia.org/wiki/Chi%E1%BA%BFn_d%E1%BB%8Bch_Linebacker_II',
+          note: 'Tổng hợp diễn biến, số liệu và các nguồn tham khảo quốc tế về chiến dịch.',
+        },
+      ],
       tags: ['Kháng chiến chống Mỹ', 'Phòng không - Không quân', 'Chiến dịch quân sự'],
     },
     {
@@ -719,25 +1094,472 @@ async function main() {
 <p>Chiến dịch Hồ Chí Minh toàn thắng đã kết thúc vẻ vang 21 năm kháng chiến chống Mỹ và 30 năm chiến tranh giải phóng dân tộc (1945 - 1975), chấm dứt vĩnh viễn ách thống trị của chủ nghĩa đế quốc thực dân, non sông thu về một mối, mở ra kỷ nguyên độc lập, tự do và chủ nghĩa xã hội trên toàn vẹn lãnh thổ Việt Nam.</p>`,
       tags: ['Kháng chiến chống Mỹ', 'Chiến dịch quân sự', 'Đại thắng mùa Xuân 1975'],
     },
+    {
+      topicId: child1_1.id,
+      title: 'Tuyến đường vận tải chiến lược Trường Sơn - Đường Hồ Chí Minh huyền thoại',
+      difficulty: DifficultyLevel.MEDIUM,
+      sourceReferenceNote: 'Lịch sử Đoàn 559 - Bộ đội Trường Sơn, NXB Quân đội Nhân dân',
+      displayOrder: 1,
+      status: LessonStatus.REVIEW,
+      createdBy: adminUser.id,
+      contentRichText: `<h2>1. Sự ra đời của Đoàn 559</h2>
+<p>Ngày <strong>19/05/1959</strong>, Thường trực Tổng Quân ủy chính thức giao nhiệm vụ cho Đoàn công tác quân sự đặc biệt (Đoàn 559) mở tuyến đường giao liên, vận tải quân sự dọc dãy Trường Sơn để chi viện cho miền Nam.</p>
+<h2>2. Huyền thoại xẻ dọc Trường Sơn đi cứu nước</h2>
+<p>Vượt qua mưa bom bão đạn và chất độc hóa học của đế quốc Mỹ, Bộ đội Trường Sơn cùng Thanh niên xung phong đã xây dựng hệ thống đường cơ giới hơn 20.000km, đường ống dẫn xăng dầu và đường thông tin liên lạc xuyên rừng.</p>`,
+      tags: ['Kháng chiến chống Mỹ', 'Tuyến chi viện Trường Sơn'],
+    },
+    {
+      topicId: child4_1.id,
+      title: '81 ngày đêm bảo vệ Thành cổ Quảng Trị mùa hè đỏ lửa 1972',
+      difficulty: DifficultyLevel.HARD,
+      sourceReferenceNote: 'Lịch sử Mặt trận Quảng Trị 1972, NXB Quân đội Nhân dân',
+      displayOrder: 1,
+      status: LessonStatus.REVIEW,
+      createdBy: adminUser.id,
+      contentRichText: `<h2>1. Cuộc chiến đấu kiên cường trong lòng Thành cổ</h2>
+<p>Từ ngày 28/06 đến 16/09/1972, các chiến sĩ Quân giải phóng đã kiên cường bám trụ suốt 81 ngày đêm dưới làn mưa bom pháo hủy diệt tương đương 7 quả bom nguyên tử của Mỹ - ngụy.</p>
+<h2>2. Phối hợp chặt chẽ với bàn đàm phán Paris</h2>
+<p>Mỗi ngày kiên cường giữ vững Thành cổ Quảng Trị đã tạo hậu thuẫn trực tiếp cho phái đoàn ngoại giao ta tại Hội nghị Paris.</p>`,
+      tags: ['Kháng chiến chống Mỹ', 'Chiến dịch quân sự'],
+    },
   ];
 
-  for (const les of lessonsData) {
-    const { tags, ...payload } = les;
-    const createdLesson = await prisma.lesson.create({ data: payload });
+  const createdLessonsByTitle: Record<string, string> = {};
 
-    for (const tagName of tags) {
-      const tagId = createdTags[tagName];
-      if (tagId) {
-        await prisma.lessonTag.create({
+  for (const les of lessonsData) {
+    const { tags, topicId: _unusedTopicId, sourceReferenceNote, contentRichText, blocksContent, ...rest } = les as any;
+    const tagIdsToLink = Array.isArray(tags)
+      ? tags.map((tagName: string) => createdTags[tagName]).filter(Boolean)
+      : [];
+
+    const createdLesson = await prisma.lesson.create({
+      data: {
+        ...rest,
+        slug: toSlug(rest.title),
+        content: blocksContent || contentRichText || '',
+        description: `Tóm tắt nội dung: ${rest.title}`,
+        ...(sourceReferenceNote ? { sourceReferenceNote } : {}),
+        ...(tagIdsToLink.length > 0
+          ? {
+              lessonTags: {
+                create: tagIdsToLink.map((tagId: string) => ({ tagId })),
+              },
+            }
+          : {}),
+      },
+    });
+    createdLessonsByTitle[createdLesson.title] = createdLesson.id;
+  }
+  console.log(`✓ Đã tạo ${lessonsData.length} Bài học chuyên sâu.`);
+
+  // -------------------------------------------------------------
+  // BƯỚC 7: KHỞI TẠO CÁC THỰC THỂ LỊCH SỬ DÙNG CHUNG (HISTORICAL ENTITIES)
+  // -------------------------------------------------------------
+  const entitiesData = [
+    {
+      
+      name: 'Chủ tịch Hồ Chí Minh',
+      slug: 'chu-tich-ho-chi-minh',
+      type: HistoricalEntityType.PERSON,
+      tagline: 'Lãnh tụ vĩ đại của dân tộc Việt Nam',
+      biography:
+        'Người sáng lập, rèn luyện Đảng Cộng sản Việt Nam, khai sinh nước Việt Nam Dân chủ Cộng hòa và lãnh đạo cuộc kháng chiến giải phóng dân tộc.',
+      imageUrl: '/assets/figures/ho-chi-minh.jpg',
+      birthYear: 1890,
+      deathYear: 1969,
+      isFeatured: true,
+      displayOrder: 1,
+      status: ContentStatus.PUBLISHED,
+    },
+    {
+      
+      name: 'Đại tướng Võ Nguyên Giáp',
+      slug: 'dai-tuong-vo-nguyen-giap',
+      type: HistoricalEntityType.PERSON,
+      tagline: 'Tổng tư lệnh tối cao Quân đội Nhân dân Việt Nam',
+      biography:
+        'Vị Đại tướng đầu tiên, Tổng tư lệnh Quân đội Nhân dân Việt Nam, người ra bức điện lịch sử "Thần tốc, táo bạo" trong Đại thắng mùa Xuân 1975.',
+      imageUrl: '/assets/figures/vo-nguyen-giap.jpg',
+      birthYear: 1911,
+      deathYear: 2013,
+      isFeatured: true,
+      displayOrder: 2,
+      status: ContentStatus.PUBLISHED,
+    },
+    {
+      
+      name: 'Nữ tướng Nguyễn Thị Định',
+      slug: 'nu-tuong-nguyen-thi-dinh',
+      type: HistoricalEntityType.PERSON,
+      tagline: 'Linh hồn phong trào Đồng Khởi Bến Tre & Đội quân tóc dài',
+      biography:
+        'Nữ tướng đầu tiên của Quân đội Nhân dân Việt Nam, Phó Tư lệnh Quân giải phóng miền Nam Việt Nam.',
+      imageUrl: '/assets/figures/nguyen-thi-dinh.jpg',
+      birthYear: 1920,
+      deathYear: 1992,
+      isFeatured: true,
+      displayOrder: 3,
+      status: ContentStatus.PUBLISHED,
+    },
+    {
+      
+      name: 'Đại tướng Văn Tiến Dũng',
+      slug: 'dai-tuong-van-tien-dung',
+      type: HistoricalEntityType.PERSON,
+      tagline: 'Tư lệnh Chiến dịch Hồ Chí Minh lịch sử (1975)',
+      biography:
+        'Tổng Tham mưu trưởng Quân đội Nhân dân Việt Nam, trực tiếp chỉ huy Chiến dịch Tây Nguyên và Chiến dịch Hồ Chí Minh toàn thắng.',
+      imageUrl: '/assets/figures/van-tien-dung.jpg',
+      birthYear: 1917,
+      deathYear: 2002,
+      isFeatured: true,
+      displayOrder: 4,
+      status: ContentStatus.PUBLISHED,
+    },
+    {
+      
+      name: 'Nhà ngoại giao Nguyễn Thị Bình',
+      slug: 'nha-ngoai-giao-nguyen-thi-binh',
+      type: HistoricalEntityType.PERSON,
+      tagline: 'Trưởng phái đoàn đàm phán tại Hội nghị Paris (1968 - 1973)',
+      biography:
+        'Bộ trưởng Ngoại giao Chính phủ Cách mạng lâm thời Cộng hòa miền Nam Việt Nam, đặt bút ký Hiệp định Paris 1973.',
+      imageUrl: '/assets/figures/nguyen-thi-binh.jpg',
+      birthYear: 1927,
+      isFeatured: true,
+      displayOrder: 5,
+      status: ContentStatus.PUBLISHED,
+    },
+    {
+      
+      name: 'Đại tướng Nguyễn Chí Thanh',
+      slug: 'dai-tuong-nguyen-chi-thanh',
+      type: HistoricalEntityType.PERSON,
+      tagline: 'Chính ủy Quân giải phóng miền Nam Việt Nam',
+      biography:
+        'Người đề ra phương châm "Nắm thắt lưng địch mà đánh", góp phần quyết định đánh bại chiến lược Chiến tranh cục bộ của đế quốc Mỹ.',
+      imageUrl: '/assets/figures/nguyen-chi-thanh.jpg',
+      birthYear: 1914,
+      deathYear: 1967,
+      isFeatured: true,
+      displayOrder: 6,
+      status: ContentStatus.PUBLISHED,
+    },
+    {
+      
+      name: 'Đoàn 559 - Bộ đội Trường Sơn',
+      slug: 'doan-559-bo-doi-truong-son',
+      type: HistoricalEntityType.MILITARY_FORCE,
+      tagline: 'Lực lượng mở đường và bảo đảm chi viện chiến lược Trường Sơn',
+      biography:
+        'Đơn vị vận tải quân sự chiến lược thành lập ngày 19/05/1959, xẻ dọc Trường Sơn chi viện sức người sức của cho chiến trường miền Nam.',
+      birthYear: 1959,
+      deathYear: 1975,
+      isFeatured: false,
+      displayOrder: 7,
+      status: ContentStatus.PUBLISHED,
+    },
+    {
+      
+      name: 'Xe tăng T-54B số hiệu 843 & 390',
+      slug: 'xe-tang-t-54b-so-hieu-843-va-390',
+      type: HistoricalEntityType.ARTIFACT,
+      tagline: 'Bảo vật quốc gia húc đổ cổng Dinh Độc Lập trưa 30/04/1975',
+      biography:
+        'Hai chiếc xe tăng thuộc Đại đội 4, Tiểu đoàn 1, Lữ đoàn Tăng thiết giáp 203, Quân đoàn 2 dẫn đầu đội hình tiến vào Dinh Độc Lập.',
+      birthYear: 1975,
+      isFeatured: false,
+      displayOrder: 8,
+      status: ContentStatus.PUBLISHED,
+    },
+  ];
+
+  const createdEntitiesBySlug: Record<string, string> = {};
+  for (const entity of entitiesData) {
+    // `biography`/`birthYear`/`deathYear` không phải cột của HistoricalEntity — chúng
+    // thuộc bảng con 1-1 `Person` (tách riêng trong schema), phải tạo qua nested write
+    // `person: { create: {...} }`, không được đặt trực tiếp lên HistoricalEntity.
+    const { biography, birthYear, deathYear, ...rest } = entity as any;
+    const hasPersonData = biography !== undefined || birthYear !== undefined || deathYear !== undefined;
+    const createdEntity = await prisma.historicalEntity.create({
+      data: {
+        ...rest,
+        ...(hasPersonData ? { person: { create: { biography, birthYear, deathYear } } } : {}),
+      },
+    });
+    createdEntitiesBySlug[createdEntity.slug] = createdEntity.id;
+  }
+  console.log(`✓ Đã tạo ${entitiesData.length} Thực thể Lịch sử dùng chung (6 Nhân vật tiêu biểu + Lực lượng + Hiện vật).`);
+
+  // -------------------------------------------------------------
+  // BƯỚC 8: KHỞI TẠO ĐỊA DANH & DI TÍCH LỊCH SỬ DÙNG CHUNG (HISTORICAL ENTITY: LOCATION + HISTORICAL SITE)
+  // -------------------------------------------------------------
+  const locationsData = [
+    {
+      name: 'Dinh Độc Lập (Hội trường Thống Nhất)',
+      slug: 'dinh-doc-lap-hoi-truong-thong-nhat',
+      aliases: ['Dinh Norodom', 'Dinh Độc Lập', 'Hội trường Thống Nhất'],
+      siteType: 'MONUMENT',
+      address: '135 Nam Kỳ Khởi Nghĩa, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
+      latitude: 10.777,
+      longitude: 106.6953,
+      tagline:
+        'Nơi xe tăng 843 và 390 húc đổ cổng trưa 30/04/1975, đánh dấu thời khắc toàn thắng của Chiến dịch Hồ Chí Minh.',
+      status: ContentStatus.PUBLISHED,
+    },
+    {
+      name: 'Khu di tích lịch sử Địa đạo Củ Chi',
+      slug: 'khu-di-tich-lich-su-dia-dao-cu-chi',
+      aliases: ['Đất thép thành đồng Củ Chi'],
+      siteType: 'BATTLEFIELD',
+      address: 'Ấp Phú Hiệp, Xã Phú Mỹ Hưng, Huyện Củ Chi, TP. Hồ Chí Minh',
+      latitude: 11.1414,
+      longitude: 106.4625,
+      tagline:
+        'Hệ thống phòng tuyến ngầm dài hơn 250km kiên cường bám trụ sát nách sào huyệt Sài Gòn suốt thời kỳ kháng chiến chống Mỹ.',
+      status: ContentStatus.PUBLISHED,
+    },
+    {
+      name: 'Thành cổ Quảng Trị',
+      slug: 'thanh-co-quang-tri',
+      aliases: ['Thành Đinh Công Tráng'],
+      siteType: 'CITADEL',
+      address: 'Phường 2, Thị xã Quảng Trị, Tỉnh Quảng Trị',
+      latitude: 16.7503,
+      longitude: 107.1872,
+      tagline:
+        'Biểu tượng bất tử của 81 ngày đêm chiến đấu bảo vệ Thành cổ mùa hè đỏ lửa năm 1972, góp phần quyết định trên bàn đàm phán Paris.',
+      status: ContentStatus.PUBLISHED,
+    },
+    {
+      name: 'Đôi bờ Hiền Lương - Bến Hải (Vĩ tuyến 17)',
+      slug: 'doi-bo-hien-luong-ben-hai-vi-tuyen-17',
+      aliases: ['Giới tuyến quân sự tạm thời Vĩ tuyến 17'],
+      siteType: 'MONUMENT',
+      address: 'Xã Hiền Thành, Huyện Vĩnh Linh, Tỉnh Quảng Trị',
+      latitude: 17.0044,
+      longitude: 107.0514,
+      tagline:
+        'Chứng nhân lịch sử 21 năm chia cắt hai miền Nam - Bắc và khát vọng thống nhất non sông của dân tộc Việt Nam.',
+      status: ContentStatus.PUBLISHED,
+    },
+    {
+      name: 'Khu di tích Đồng Khởi Bến Tre',
+      slug: 'khu-di-tich-dong-khoi-ben-tre',
+      aliases: ['Định Thủy - Mỏ Cày'],
+      siteType: 'MONUMENT',
+      address: 'Xã Định Thủy, Huyện Mỏ Cày Nam, Tỉnh Bến Tre',
+      latitude: 10.1235,
+      longitude: 106.3328,
+      tagline:
+        'Cái nôi của phong trào Đồng Khởi năm 1960 mở bước ngoặt chuyển cách mạng miền Nam từ thế giữ gìn lực lượng sang thế tiến công.',
+      status: ContentStatus.PUBLISHED,
+    },
+    {
+      name: 'Hoàng thành Thăng Long - Hầm chỉ huy tác chiến T1',
+      slug: 'hoang-thanh-thang-long-ham-chi-huy-tac-chien-t1',
+      aliases: ['Tổng hành dinh Quân đội Nhân dân Việt Nam (Nhà D67)'],
+      siteType: 'ANCIENT_CAPITAL',
+      address: '19C Hoàng Diệu, Quận Ba Đình, TP. Hà Nội',
+      latitude: 21.0347,
+      longitude: 105.8407,
+      tagline:
+        'Nơi Bộ Chính trị và Quân ủy Trung ương trực tiếp chỉ đạo chống chiến tranh phá hoại miền Bắc và hạ quyết tâm giải phóng miền Nam.',
+      status: ContentStatus.PUBLISHED,
+    },
+  ];
+
+  const createdLocationsBySlug: Record<string, string> = {};
+  for (const loc of locationsData) {
+    const { siteType, address, latitude, longitude, ...entityData } = loc;
+    const createdEntity = await prisma.historicalEntity.create({
+      data: {
+        ...entityData,
+        type: HistoricalEntityType.LOCATION,
+        historicalSite: {
+          create: {
+            siteType,
+            address,
+            latitude,
+            longitude,
+          },
+        },
+      },
+    });
+    createdLocationsBySlug[loc.slug] = createdEntity.id;
+  }
+  console.log(`✓ Đã tạo ${locationsData.length} Địa danh & Di tích lịch sử (HistoricalEntity type LOCATION + HistoricalSite).`);
+
+  // -------------------------------------------------------------
+  // BƯỚC 9: LIÊN KẾT ĐỒ THỊ TRI THỨC (KNOWLEDGE GRAPH JUNCTIONS)
+  // -------------------------------------------------------------
+  const allEvents = await prisma.historicalEvent.findMany();
+  const findEventId = (keyword: string) =>
+    allEvents.find((e) => e.title.includes(keyword))?.id;
+
+  const lessonDongKhoiId =
+    createdLessonsByTitle[
+      'Phong trào Đồng Khởi (1959 - 1960) - Bước ngoặt lịch sử cách mạng miền Nam'
+    ];
+  const lessonParisId =
+    createdLessonsByTitle[
+      'Hiệp định Paris 1973 - Thắng lợi quyết định trên mặt trận ngoại giao'
+    ];
+  const lessonHoChiMinhCampaignId =
+    createdLessonsByTitle['Đại thắng Mùa Xuân 1975 - Chiến dịch Hồ Chí Minh lịch sử'];
+
+  const evtTruongSonId = findEventId('Trường Sơn');
+  const evtDongKhoiId = findEventId('Đồng Khởi Bến Tre');
+  const evtDienBienPhuTrenKhongId = findEventId('Điện Biên Phủ trên không');
+  const evtParisId = findEventId('Hiệp định Paris');
+  const evtHoChiMinhId = findEventId('Chiến dịch Hồ Chí Minh');
+
+  if (evtTruongSonId && createdEntitiesBySlug['doan-559-bo-doi-truong-son']) {
+    await prisma.historicalEventEntity.create({
+      data: {
+        eventId: evtTruongSonId,
+        entityId: createdEntitiesBySlug['doan-559-bo-doi-truong-son'],
+        role: 'Lực lượng mở đường & vận tải chiến lược',
+      },
+    });
+  }
+
+  if (evtDongKhoiId) {
+    if (createdLocationsBySlug['khu-di-tich-dong-khoi-ben-tre']) {
+      await prisma.historicalEvent.update({
+        where: { id: evtDongKhoiId },
+        data: {
+          locationId: createdLocationsBySlug['khu-di-tich-dong-khoi-ben-tre'],
+        },
+      });
+    }
+    if (createdEntitiesBySlug['nu-tuong-nguyen-thi-dinh']) {
+      await prisma.historicalEventEntity.create({
+        data: {
+          eventId: evtDongKhoiId,
+          entityId: createdEntitiesBySlug['nu-tuong-nguyen-thi-dinh'],
+          role: 'LEADER',
+          roleLabel: 'Lãnh đạo khởi nghĩa',
+        },
+      });
+    }
+  }
+
+  if (
+    evtDienBienPhuTrenKhongId &&
+    createdLocationsBySlug['hoang-thanh-thang-long-ham-chi-huy-tac-chien-t1']
+  ) {
+    await prisma.historicalEvent.update({
+      where: { id: evtDienBienPhuTrenKhongId },
+      data: {
+        locationId: createdLocationsBySlug[
+            'hoang-thanh-thang-long-ham-chi-huy-tac-chien-t1'
+          ],
+      },
+    });
+  }
+
+  if (evtParisId && createdEntitiesBySlug['nha-ngoai-giao-nguyen-thi-binh']) {
+    await prisma.historicalEventEntity.create({
+      data: {
+        eventId: evtParisId,
+        entityId: createdEntitiesBySlug['nha-ngoai-giao-nguyen-thi-binh'],
+        role: 'NEGOTIATOR',
+        roleLabel: 'Trưởng phái đoàn đàm phán & Ký kết',
+      },
+    });
+  }
+
+  if (evtHoChiMinhId) {
+    if (createdLocationsBySlug['dinh-doc-lap-hoi-truong-thong-nhat']) {
+      await prisma.historicalEvent.update({
+        where: { id: evtHoChiMinhId },
+        data: {
+          locationId: createdLocationsBySlug['dinh-doc-lap-hoi-truong-thong-nhat'],
+        },
+      });
+    }
+    for (const slugKey of [
+      'dai-tuong-vo-nguyen-giap',
+      'dai-tuong-van-tien-dung',
+      'xe-tang-t-54b-so-hieu-843-va-390',
+    ]) {
+      if (createdEntitiesBySlug[slugKey]) {
+        await prisma.historicalEventEntity.create({
           data: {
-            lessonId: createdLesson.id,
-            tagId: tagId,
+            eventId: evtHoChiMinhId,
+            entityId: createdEntitiesBySlug[slugKey],
           },
         });
       }
     }
   }
-  console.log(`✓ Đã tạo ${lessonsData.length} Bài học chuyên sâu với định dạng Rich Text và liên kết Tags.`);
+
+  // -------------------------------------------------------------
+  // BƯỚC 10: LỘ TRÌNH HỌC MẪU (LearningPath → Chapter → ChapterLesson)
+  // -------------------------------------------------------------
+  // Lưu ý quan trọng: LearningPath/Chapter là 1 trục HOÀN TOÀN KHÁC với Topic (Chủ đề) ở
+  // trên — Topic phân loại bài học theo môn học (không phụ thuộc khóa học nào), còn
+  // LearningPath là 1 KHÓA HỌC cụ thể tự chọn lại các bài học có sẵn (bất kể thuộc Topic
+  // nào) và sắp xếp theo Chương riêng cho khóa học này. Xem ghi chú đầy đủ ở đầu
+  // learningPath.prisma / topic.prisma. Seed 1 lộ trình mẫu ở đây để tab "Chương & nhóm"
+  // trong HISGO Studio không trống khi mới cài đặt.
+  const pickLessonIds = (titles: string[]): string[] =>
+    titles.map((t) => createdLessonsByTitle[t]).filter((id): id is string => Boolean(id));
+
+  const demoPathChapters = [
+    {
+      title: 'Chương 1: Giữ gìn lực lượng & Phong trào Đồng Khởi (1954 - 1963)',
+      lessons: pickLessonIds([
+        'Tuyến đường vận tải chiến lược Trường Sơn - Đường Hồ Chí Minh huyền thoại',
+        'Phong trào Đồng Khởi (1959 - 1960) - Bước ngoặt lịch sử cách mạng miền Nam',
+        'Chiến thắng Ấp Bắc (1963) - Đòn bẻ gãy chiến thuật cơ động của Mỹ',
+      ]),
+    },
+    {
+      title: 'Chương 2: Tổng tiến công Tết Mậu Thân & "Điện Biên Phủ trên không" (1968 - 1972)',
+      lessons: pickLessonIds([
+        'Cuộc Tổng tiến công và nổi dậy Tết Mậu Thân 1968',
+        '81 ngày đêm bảo vệ Thành cổ Quảng Trị mùa hè đỏ lửa 1972',
+        'Trận "Điện Biên Phủ trên không" 12 ngày đêm cuối năm 1972',
+      ]),
+    },
+    {
+      title: 'Chương 3: Hiệp định Paris & Đại thắng Mùa Xuân 1975',
+      lessons: pickLessonIds([
+        'Hiệp định Paris 1973 - Thắng lợi quyết định trên mặt trận ngoại giao',
+        'Chiến dịch Tây Nguyên (Tháng 3/1975) - Đòn điểm huyệt Buôn Ma Thuột',
+        'Đại thắng Mùa Xuân 1975 - Chiến dịch Hồ Chí Minh lịch sử',
+      ]),
+    },
+  ];
+
+  await prisma.learningPath.create({
+    data: {
+      title: 'Lộ trình ôn thi THPT: Kháng chiến chống Mỹ, cứu nước (1954 - 1975)',
+      slug: toSlug('Lo trinh on thi THPT Khang chien chong My cuu nuoc 1954 1975'),
+      description:
+        'Hệ thống lại toàn bộ kiến thức trọng tâm giai đoạn 1954-1975 theo đúng trình tự ôn luyện, chọn lọc từ các bài học đã có trong Thư viện (không trùng với cây phân cấp Chủ đề).',
+      isSequential: true,
+      status: ContentStatus.PUBLISHED,
+      displayOrder: 1,
+      chapters: {
+        create: demoPathChapters.map((ch, chIdx) => ({
+          title: ch.title,
+          slug: toSlug(`${ch.title}-${chIdx}`),
+          displayOrder: chIdx + 1,
+          status: ContentStatus.PUBLISHED,
+          chapterLessons: {
+            create: ch.lessons.map((lessonId, lIdx) => ({
+              lessonId,
+              displayOrder: lIdx + 1,
+            })),
+          },
+        })),
+      },
+    },
+  });
+  console.log('✓ Đã tạo 1 Lộ trình học mẫu (3 Chương, dùng lại bài học có sẵn trong Thư viện).');
 
   console.log('\n================================================================');
   console.log('   HOÀN TẤT SEED DỮ LIỆU CHUẨN XÁC 100%! CƠ SỞ DỮ LIỆU ĐÃ SẴN SÀNG');

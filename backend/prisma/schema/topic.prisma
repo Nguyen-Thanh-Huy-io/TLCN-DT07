@@ -1,32 +1,38 @@
 // ================================
 // Topic (Historical Topic) Model
 // ================================
+//
+// GHI CHÚ: Topic (Chủ đề) là thẻ PHÂN LOẠI độc lập theo môn học (Giai đoạn → Chủ đề →
+// Chuyên đề) — mỗi Lesson luôn thuộc đúng 1 Topic cố định. KHÔNG nhầm với `LearningPath`
+// (Lộ trình = khóa học cụ thể) và `Chapter` (Chương = cấu trúc bên trong 1 Lộ trình) —
+// xem ghi chú đầy đủ ở đầu learningPath.prisma. Một Lesson có thể vừa thuộc 1 Topic, vừa
+// xuất hiện trong nhiều Chapter của nhiều LearningPath khác nhau — 2 trục độc lập nhau.
 
 model Topic {
-    id            String            @id @default(uuid())
-    periodId      String?           @map("period_id")
-    parentId      String?           @map("parent_id")
-    pathType      LearningPathType  @default(CHRONOLOGICAL) @map("path_type")
-    name          String            @db.VarChar(255)
-    description   String?           @db.Text
-    coverImageUrl String?           @map("cover_image_url") @db.VarChar(500)
-    isSequential  Boolean           @default(false) @map("is_sequential")
-    displayOrder  Int               @default(0) @map("display_order")
-    status        ContentStatus     @default(DRAFT)
-    createdAt     DateTime          @default(now()) @map("created_at")
-    updatedAt     DateTime          @updatedAt @map("updated_at")
+  id            String           @id @default(uuid())
+  parentId      String?          @map("parent_id")
+  pathType      LearningPathType @default(CHRONOLOGICAL) @map("path_type")
+  name          String           @db.VarChar(255)
+  slug          String           @unique @db.VarChar(255)
+  eyebrow       String?          @db.VarChar(100)
+  icon          TopicIcon?
+  isFeatured    Boolean          @default(false) @map("is_featured")
+  description   String?          @db.Text
+  coverImageUrl String?          @map("cover_image_url") @db.VarChar(500)
+  isSequential  Boolean          @default(false) @map("is_sequential")
+  displayOrder  Int              @default(0) @map("display_order")
+  status        ContentStatus    @default(DRAFT)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
 
-    // Relations
-    period           Period?           @relation(fields: [periodId], references: [id], onDelete: Cascade)
-    parent           Topic?            @relation("TopicHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-    children         Topic[]           @relation("TopicHierarchy")
-    lessons          Lesson[]
-    historicalEvents HistoricalEvent[]
+  // Relations
+  parent   Topic?  @relation("TopicHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Topic[] @relation("TopicHierarchy")
 
-    @@index([periodId])
-    @@index([parentId])
-    @@index([pathType])
-    @@index([status])
-    @@index([displayOrder])
-    @@map("topics")
+  @@index([parentId])
+  @@index([pathType])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([displayOrder])
+  @@map("topics")
 }

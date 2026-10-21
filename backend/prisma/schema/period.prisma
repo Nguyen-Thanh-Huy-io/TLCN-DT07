@@ -3,23 +3,37 @@
 // ================================
 
 model Period {
-    id            String        @id @default(uuid())
-    name          String        @db.VarChar(255)
-    region        String?       @db.VarChar(100)
-    startYear     Int           @map("start_year")
-    endYear       Int?          @map("end_year")
-    description   String?       @db.Text
-    coverImageUrl String?       @map("cover_image_url") @db.VarChar(500)
-    displayOrder  Int           @default(0) @map("display_order")
-    status        ContentStatus @default(DRAFT)
-    createdAt     DateTime      @default(now()) @map("created_at")
-    updatedAt     DateTime      @updatedAt @map("updated_at")
+  id       String  @id @default(uuid())
+  parentId String? @map("parent_id")
 
-    // Relations
-    topics Topic[]
+  name String @db.VarChar(255)
+  slug String @unique @db.VarChar(255)
 
-    @@index([region])
-    @@index([status])
-    @@index([displayOrder])
-    @@map("periods")
+  // Niên đại có thể không xác định
+  startYear     Int?           @map("start_year")
+  endYear       Int?           @map("end_year")
+  timeLabel     String?        @map("time_label") @db.VarChar(150)
+  datePrecision DatePrecision? @map("date_precision")
+
+  // Phạm vi lịch sử
+  region        String? @db.VarChar(100)
+  description   String? @db.Text
+  coverImageUrl String? @map("cover_image_url") @db.VarChar(500)
+
+  displayOrder Int           @default(0) @map("display_order")
+  status       ContentStatus @default(DRAFT)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  parent   Period?  @relation("PeriodHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Period[] @relation("PeriodHierarchy")
+
+  historicalEntities HistoricalEntity[]
+  historicalEvents   HistoricalEvent[]
+
+  @@index([parentId])
+  @@index([region])
+  @@index([status])
+  @@index([startYear, endYear])
+  @@map("periods")
 }

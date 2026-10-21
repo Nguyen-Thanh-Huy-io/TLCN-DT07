@@ -5,7 +5,6 @@ import {
   CurriculumTopicNode,
   CurriculumLessonNode,
 } from '@/types/models/curriculum-tree.type';
-import { DEFAULT_TOPIC_CURRICULUM_DATA } from '../data/curriculum-mock.data';
 import { mapBackendTopicTreeToCurriculum } from '../utils/curriculum-mapper';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
@@ -34,7 +33,7 @@ export function CurriculumSidePanel({
   highlightLessonId,
   onSelectDisplayOrder,
 }: CurriculumSidePanelProps) {
-  const [treeData, setTreeData] = useState<CurriculumTopicNode[]>(DEFAULT_TOPIC_CURRICULUM_DATA);
+  const [treeData, setTreeData] = useState<CurriculumTopicNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
 
@@ -73,11 +72,11 @@ export function CurriculumSidePanel({
 
         setExpandedMap(newExpanded);
       } else {
-        setTreeData(DEFAULT_TOPIC_CURRICULUM_DATA);
+        setTreeData([]);
       }
     } catch (err) {
-      console.warn('Cannot fetch topic tree, fallback to sample data:', err);
-      setTreeData(DEFAULT_TOPIC_CURRICULUM_DATA);
+      console.error('Lỗi tải cây chủ đề:', err);
+      setTreeData([]);
     } finally {
       setLoading(false);
     }

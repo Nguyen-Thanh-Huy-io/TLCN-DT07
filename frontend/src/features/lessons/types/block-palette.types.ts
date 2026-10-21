@@ -9,6 +9,7 @@ export enum LessonBlockType {
   EVENT = 'EVENT',
   COMPARISON_TABLE = 'COMPARISON_TABLE',
   QUIZ = 'QUIZ',
+  SECTION_ROW = 'SECTION_ROW',
 }
 
 export enum LessonBlockGroup {

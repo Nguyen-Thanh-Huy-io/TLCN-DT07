@@ -4,12 +4,15 @@ import { Editor } from '@tiptap/react';
 import { UploadApiService } from '@/services/entities/upload.service';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
+import { lessonBlockInsertStrategy } from '../strategies/lesson-block-insert.strategy';
+import { LessonBlockType } from '../types/block-palette.types';
 
 interface TipTapToolbarProps {
   editor: Editor | null;
+  label?: string;
 }
 
-export function TipTapToolbar({ editor }: TipTapToolbarProps) {
+export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const plusMenuRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -114,8 +117,32 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   };
 
+  const currentFormatValue = editor.isActive('heading', { level: 1 })
+    ? 'h1'
+    : editor.isActive('heading', { level: 2 })
+    ? 'h2'
+    : editor.isActive('heading', { level: 3 })
+    ? 'h3'
+    : editor.isActive('blockquote')
+    ? 'blockquote'
+    : 'p';
+
+  const handleFormatChange = (val: string) => {
+    if (val === 'h1') {
+      editor.chain().focus().toggleHeading({ level: 1 }).run();
+    } else if (val === 'h2') {
+      editor.chain().focus().toggleHeading({ level: 2 }).run();
+    } else if (val === 'h3') {
+      editor.chain().focus().toggleHeading({ level: 3 }).run();
+    } else if (val === 'blockquote') {
+      editor.chain().focus().toggleBlockquote().run();
+    } else {
+      editor.chain().focus().setParagraph().run();
+    }
+  };
+
   return (
-    <div className="flex items-center justify-between py-1.5 px-3 bg-slate-50 border-b border-slate-200 select-none text-xs">
+    <div className="flex items-center justify-between py-2 px-3 bg-slate-100/90 border-b border-slate-200 select-none text-xs gap-2 flex-wrap">
       {/* Hidden file input for uploading */}
       <input
         type="file"
@@ -125,59 +152,37 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
         style={{ display: 'none' }}
       />
 
-      {/* Cụm công cụ cốt lõi trên 1 HÀNG DUY NHẤT: H1 H2 H3 | B I | • 1. “ | + */}
-      <div className="flex items-center gap-1 flex-wrap">
-        {/* Nhóm Tiêu đề Heading */}
-        <div className="flex items-center gap-0.5">
-          <button
-            type="button"
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            className={`px-2 py-1 rounded font-bold transition cursor-pointer ${
-              editor.isActive('heading', { level: 1 })
-                ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-            title="Tiêu đề chính (H1)"
-          >
-            H1
-          </button>
-          <button
-            type="button"
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            className={`px-2 py-1 rounded font-bold transition cursor-pointer ${
-              editor.isActive('heading', { level: 2 })
-                ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-            title="Mốc sự kiện (H2)"
-          >
-            H2
-          </button>
-          <button
-            type="button"
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            className={`px-2 py-1 rounded font-bold transition cursor-pointer ${
-              editor.isActive('heading', { level: 3 })
-                ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-            title="Tiểu mục (H3)"
-          >
-            H3
-          </button>
-        </div>
+      {/* Cụm công cụ chuẩn tmp.png: [Label] | [Format v] | [B I U] | [• 1. “] | [🔗 🖼] | [+] */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {label && (
+          <span className="font-bold text-slate-800 text-xs pr-1">
+            {label}
+          </span>
+        )}
 
-        <div className="w-[1px] h-4 bg-slate-200 mx-1" />
+        {/* Dropdown Format giống hệt tmp.png */}
+        <select
+          value={currentFormatValue}
+          onChange={(e) => handleFormatChange(e.target.value)}
+          aria-label="Định dạng đoạn văn"
+          className="h-7 px-2.5 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-700 hover:border-slate-400 focus:outline-none focus:border-amber-500 cursor-pointer shadow-2xs"
+        >
+          <option value="p">Format</option>
+          <option value="h1">Tiêu đề H1</option>
+          <option value="h2">Mốc sự kiện H2</option>
+          <option value="h3">Tiểu mục H3</option>
+          <option value="blockquote">Khối trích dẫn</option>
+        </select>
 
-        {/* Nhóm Định dạng chữ */}
-        <div className="flex items-center gap-0.5">
+        {/* Cụm 1: [ B | I | U ] */}
+        <div className="inline-flex items-center bg-white border border-slate-300 rounded-md divide-x divide-slate-200 overflow-hidden shadow-2xs">
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleBold().run()}
-            className={`w-7 h-7 flex items-center justify-center rounded font-bold transition cursor-pointer ${
+            className={`w-7 h-7 flex items-center justify-center font-bold transition cursor-pointer ${
               editor.isActive('bold')
                 ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-700 hover:bg-slate-100'
             }`}
             title="In đậm (Ctrl+B)"
           >
@@ -186,40 +191,50 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={`w-7 h-7 flex items-center justify-center rounded font-serif italic transition cursor-pointer ${
+            className={`w-7 h-7 flex items-center justify-center font-serif italic transition cursor-pointer ${
               editor.isActive('italic')
                 ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-700 hover:bg-slate-100'
             }`}
             title="In nghiêng (Ctrl+I)"
           >
             <i>I</i>
           </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().toggleStrike().run()}
+            className={`w-7 h-7 flex items-center justify-center transition cursor-pointer ${
+              editor.isActive('strike')
+                ? 'bg-slate-200 text-slate-900'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
+            title="Gạch chân / Gạch ngang"
+          >
+            <span className="underline font-semibold">U</span>
+          </button>
         </div>
 
-        <div className="w-[1px] h-4 bg-slate-200 mx-1" />
-
-        {/* Nhóm Danh sách & Trích dẫn */}
-        <div className="flex items-center gap-0.5">
+        {/* Cụm 2: [ Danh sách chấm | Danh sách số | Trích dẫn ] */}
+        <div className="inline-flex items-center bg-white border border-slate-300 rounded-md divide-x divide-slate-200 overflow-hidden shadow-2xs">
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={`w-7 h-7 flex items-center justify-center rounded text-sm font-bold transition cursor-pointer ${
+            className={`w-7 h-7 flex items-center justify-center text-sm font-bold transition cursor-pointer ${
               editor.isActive('bulletList')
                 ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-700 hover:bg-slate-100'
             }`}
             title="Danh sách gạch đầu dòng"
           >
-            •
+            •≡
           </button>
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className={`w-7 h-7 flex items-center justify-center rounded font-bold transition cursor-pointer ${
+            className={`w-7 h-7 flex items-center justify-center font-bold transition cursor-pointer ${
               editor.isActive('orderedList')
                 ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-700 hover:bg-slate-100'
             }`}
             title="Danh sách số thứ tự (1, 2, 3)"
           >
@@ -228,27 +243,50 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            className={`w-7 h-7 flex items-center justify-center rounded text-base font-serif transition cursor-pointer ${
+            className={`w-7 h-7 flex items-center justify-center text-sm font-serif transition cursor-pointer ${
               editor.isActive('blockquote')
                 ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-700 hover:bg-slate-100'
             }`}
             title="Khối trích dẫn (Blockquote)"
           >
-            “
+            ❝
           </button>
         </div>
 
-        <div className="w-[1px] h-4 bg-slate-200 mx-1" />
+        {/* Cụm 3: [ Liên kết | Tải ảnh tư liệu ] giống hệt tmp.png */}
+        <div className="inline-flex items-center bg-white border border-slate-300 rounded-md divide-x divide-slate-200 overflow-hidden shadow-2xs">
+          <button
+            type="button"
+            onClick={handleSetLink}
+            className={`w-7 h-7 flex items-center justify-center transition cursor-pointer ${
+              editor.isActive('link')
+                ? 'bg-slate-200 text-blue-700'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
+            title="Chèn liên kết tham khảo"
+          >
+            🔗
+          </button>
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="w-7 h-7 flex items-center justify-center text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            title="Tải ảnh tư liệu từ máy tính"
+          >
+            🖼
+          </button>
+        </div>
 
-        {/* Nút "+" Mở menu chức năng nâng cao (Đúng theo mockup img.png) */}
+        {/* Nút "+" Mở menu chức năng nâng cao */}
         <div className="relative inline-block text-left" ref={plusMenuRef}>
           <button
             type="button"
             onClick={() => setIsPlusMenuOpen(!isPlusMenuOpen)}
-            className={`w-7 h-7 rounded-md font-bold text-sm flex items-center justify-center border transition-all cursor-pointer ${
+            className={`w-7 h-7 rounded-md font-bold text-sm flex items-center justify-center border transition-all cursor-pointer shadow-2xs ${
               isPlusMenuOpen
-                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                ? 'bg-blue-600 text-white border-blue-600'
                 : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-slate-400'
             }`}
             title="Chèn nội dung & công cụ nâng cao"
@@ -309,6 +347,50 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
 
               <div className="my-1 border-t border-slate-100" />
               <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Chèn khối nội dung (có thể sửa, chọn từ Bách khoa sau khi chèn)
+              </div>
+
+              {/* Chèn khối THẬT (cùng cơ chế với khi kéo-thả từ Thư viện khối bên trái) —
+                  không phải thẻ chữ tĩnh, bấm vào khối sau khi chèn vẫn sửa được bình
+                  thường (đổi tên, chọn liên kết Bách khoa, sửa tóm tắt...). */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPlusMenuOpen(false);
+                  editor.chain().focus().insertContent(lessonBlockInsertStrategy.generateSnippet(LessonBlockType.CHARACTER)).run();
+                }}
+                className="w-full text-left px-3 py-1.5 hover:bg-purple-50 text-slate-700 hover:text-purple-800 flex items-center gap-2 cursor-pointer font-medium"
+              >
+                <span className="text-purple-600">👤</span>
+                <span>Khối Nhân vật</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPlusMenuOpen(false);
+                  editor.chain().focus().insertContent(lessonBlockInsertStrategy.generateSnippet(LessonBlockType.EVENT)).run();
+                }}
+                className="w-full text-left px-3 py-1.5 hover:bg-amber-50 text-slate-700 hover:text-amber-800 flex items-center gap-2 cursor-pointer font-medium"
+              >
+                <span className="text-amber-600">🏛</span>
+                <span>Khối Sự kiện</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPlusMenuOpen(false);
+                  editor.chain().focus().insertContent(lessonBlockInsertStrategy.generateSnippet(LessonBlockType.TIMELINE)).run();
+                }}
+                className="w-full text-left px-3 py-1.5 hover:bg-blue-50 text-slate-700 hover:text-blue-700 flex items-center gap-2 cursor-pointer font-medium"
+              >
+                <span className="text-blue-600">⏱</span>
+                <span>Khối Dòng thời gian</span>
+              </button>
+
+              <div className="my-1 border-t border-slate-100" />
+              <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Công cụ Sử học chuyên sâu
               </div>
 
@@ -329,36 +411,6 @@ export function TipTapToolbar({ editor }: TipTapToolbarProps) {
               >
                 <span className="text-blue-600">📜</span>
                 <span>Hộp ghi chú sự kiện</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsPlusMenuOpen(false);
-                  const timeStr = window.prompt('Nhập năm hoặc mốc thời gian (ví dụ: Năm 1954, 07/05/1954):');
-                  if (!timeStr || !timeStr.trim()) return;
-                  const timelineHtml = ` <span class="wiki-timeline-tag" data-timeline="${timeStr.trim()}">${timeStr.trim()}</span> `;
-                  editor.chain().focus().insertContent(timelineHtml).run();
-                }}
-                className="w-full text-left px-3 py-1.5 hover:bg-amber-50 text-slate-700 hover:text-amber-800 flex items-center gap-2 cursor-pointer font-medium"
-              >
-                <span className="text-amber-600">⏱</span>
-                <span>Thẻ mốc thời gian</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsPlusMenuOpen(false);
-                  const entityName = window.prompt('Nhập tên nhân vật hoặc địa danh (ví dụ: Đại tướng Võ Nguyên Giáp, Đồi A1):');
-                  if (!entityName || !entityName.trim()) return;
-                  const entityHtml = ` <span class="wiki-entity-tag" data-entity="${entityName.trim()}">${entityName.trim()}</span> `;
-                  editor.chain().focus().insertContent(entityHtml).run();
-                }}
-                className="w-full text-left px-3 py-1.5 hover:bg-purple-50 text-slate-700 hover:text-purple-800 flex items-center gap-2 cursor-pointer font-medium"
-              >
-                <span className="text-purple-600">🏛</span>
-                <span>Thẻ Nhân vật / Địa danh</span>
               </button>
 
               <div className="my-1 border-t border-slate-100" />

@@ -22,15 +22,25 @@ export class LessonBlockInsertStrategy implements IBlockInsertStrategy {
       case LessonBlockType.VIDEO:
         return `<div data-type="video-block" data-src="${(options?.src as string) || ''}" data-source-type="${(options?.sourceType as string) || 'URL'}" data-caption="${(options?.caption as string) || ''}"></div>`;
 
-      case LessonBlockType.TIMELINE:
-        return `
-<h3>⏱️ Dòng thời gian mốc son</h3>
-<ul>
-  <li><strong>Mốc mở màn:</strong> Bắt đầu chiến dịch, mở cuộc tiến công vào cứ điểm...</li>
-  <li><strong>Mốc cao trào:</strong> Đột phá phòng tuyến, giành quyền kiểm soát các vị trí trọng yếu...</li>
-  <li><strong>Mốc toàn thắng:</strong> Tổng công kích, đối phương đầu hàng vô điều kiện.</li>
-</ul>
-`;
+      case LessonBlockType.TIMELINE: {
+        const defaultNodes = [
+          {
+            id: 'node_1',
+            year: '1945',
+            title: 'Tuyên bố độc lập',
+            description: 'Sự kiện đánh dấu bước ngoặt lịch sử.',
+          },
+          {
+            id: 'node_2',
+            year: '1954',
+            title: 'Chiến thắng Điện Biên Phủ',
+            description: 'Mốc sự kiện tiếp theo trên dòng thời gian.',
+          },
+        ];
+        const rawNodes = (options?.nodes as unknown[]) || defaultNodes;
+        const encodedNodes = JSON.stringify(rawNodes).replace(/"/g, '&quot;');
+        return `<div data-type="timeline-block" data-title="${(options?.title as string) || 'Timeline — Dòng thời gian'}" data-subtitle="${(options?.subtitle as string) || 'Các mốc lịch sử tiêu biểu'}" data-nodes="${encodedNodes}"></div>`;
+      }
 
       case LessonBlockType.MAP:
         return `
@@ -41,18 +51,10 @@ export class LessonBlockInsertStrategy implements IBlockInsertStrategy {
 `;
 
       case LessonBlockType.CHARACTER:
-        return `
-<blockquote>
-  <p><strong>👤 Nhân vật lịch sử tiêu biểu:</strong></p>
-  <p>Họ tên: Đại tướng Võ Nguyên Giáp. Tổng Tư lệnh kiêm Bí thư Đảng ủy Chiến dịch Điện Biên Phủ với quyết định lịch sử chuyển phương châm từ "Đánh nhanh thắng nhanh" sang "Đánh chắc tiến chắc".</p>
-</blockquote>
-`;
+        return `<div data-type="character-block" data-entity-id="${(options?.entityId as string) || ''}" data-name="${(options?.name as string) || 'Tên nhân vật lịch sử'}" data-years="${(options?.years as string) || 'Năm sinh – năm mất'}" data-summary="${(options?.summary as string) || 'Thông tin giới thiệu ngắn.'}" data-avatar="${(options?.avatarUrl as string) || ''}"></div>`;
 
       case LessonBlockType.EVENT:
-        return `
-<h3>⚔️ Sự kiện lịch sử trọng điểm</h3>
-<p>Bối cảnh, tương quan lực lượng, quyết định chiến lược và diễn biến đột phá làm thay đổi hoàn toàn cục diện chiến trường.</p>
-`;
+        return `<div data-type="event-block" data-event-id="${(options?.eventId as string) || ''}" data-title="${(options?.title as string) || 'Tên sự kiện lịch sử'}" data-time-location="${(options?.timeLocation as string) || 'Thời gian • Địa điểm'}" data-summary="${(options?.summary as string) || 'Mô tả ngắn về diễn biến và ý nghĩa của sự kiện.'}" data-thumbnail="${(options?.thumbnailUrl as string) || ''}"></div>`;
 
       case LessonBlockType.COMPARISON_TABLE:
         return `
@@ -82,11 +84,37 @@ export class LessonBlockInsertStrategy implements IBlockInsertStrategy {
 
       case LessonBlockType.QUIZ:
         return `
-<blockquote>
-  <p><strong>❓ Câu hỏi củng cố bài học:</strong></p>
-  <p>1. Quyết định thay đổi phương châm tác chiến trong chiến dịch Điện Biên Phủ mang ý nghĩa sống còn như thế nào?</p>
-  <p>2. Phân tích nguyên nhân thắng lợi và bài học kinh nghiệm về nghệ thuật quân sự.</p>
-</blockquote>
+<div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px; padding: 16px; margin: 16px 0;" data-type="quiz-block">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+    <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #b45309;">
+      ❓ Câu hỏi trắc nghiệm củng cố bài học
+    </span>
+  </div>
+  <p style="font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 12px;">
+    Quyết định mang tính bước ngoặt chiến lược của Đại tướng Võ Nguyên Giáp trong Chiến dịch Điện Biên Phủ (1954) là gì?
+  </p>
+  <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+    <div style="padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+      <span style="width: 22px; height: 22px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0;">A</span>
+      <span>Tiến hành "Đánh nhanh, thắng nhanh" ngay khi tập kết quân</span>
+    </div>
+    <div style="padding: 10px 14px; background: #ecfdf5; border: 1.5px solid #10b981; border-radius: 8px; display: flex; align-items: center; gap: 10px;" data-correct="true">
+      <span style="width: 22px; height: 22px; border-radius: 50%; background: #10b981; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0;">B</span>
+      <span style="font-weight: 600; color: #065f46;">Chuyển phương châm từ "Đánh nhanh, thắng nhanh" sang "Đánh chắc, tiến chắc" [Đáp án đúng]</span>
+    </div>
+    <div style="padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+      <span style="width: 22px; height: 22px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0;">C</span>
+      <span>Bao vây cô lập lòng chảo Mường Thanh chờ quân tiếp viện</span>
+    </div>
+    <div style="padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+      <span style="width: 22px; height: 22px; border-radius: 50%; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0;">D</span>
+      <span>Tổng công kích ban đêm vào sở chỉ huy De Castries</span>
+    </div>
+  </div>
+  <div style="margin-top: 12px; padding: 10px 14px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 6px; font-size: 12px; color: #166534;">
+    <strong>💡 Lời giải lịch sử:</strong> Quyết định đổi phương châm tác chiến đã hoãn ngày nổ súng để kéo pháo ra, chuẩn bị công sự vững chắc, bảo đảm "chắc thắng mới đánh", làm nên chiến thắng "lừng lẫy năm châu, chấn động địa cầu".
+  </div>
+</div>
 `;
 
       case LessonBlockType.RESOURCE_LINK:

@@ -12,17 +12,24 @@ import { LessonBlockType } from '../types/block-palette.types';
 import { lessonBlockInsertStrategy } from '../strategies/lesson-block-insert.strategy';
 import { ImageBlockExtension } from '../extensions/image-block.extension';
 import { VideoBlockExtension } from '../extensions/video-block.extension';
+import { TimelineBlockExtension } from '../extensions/timeline-block.extension';
+import { CharacterBlockExtension } from '../extensions/character-block.extension';
+import { EventBlockExtension } from '../extensions/event-block.extension';
 
 interface TipTapContentProps {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  label?: string;
+  compact?: boolean;
 }
 
 export function TipTapContent({
   value,
   onChange,
   placeholder = 'Nhập nội dung bài học lịch sử chi tiết...',
+  label,
+  compact = false,
 }: TipTapContentProps) {
   const editorRef = useRef<any>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -41,6 +48,9 @@ export function TipTapContent({
       }),
       ImageBlockExtension,
       VideoBlockExtension,
+      TimelineBlockExtension,
+      CharacterBlockExtension,
+      EventBlockExtension,
       Image.configure({
         inline: true,
         allowBase64: true,
@@ -112,8 +122,14 @@ export function TipTapContent({
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   };
 
+  const [isToolbarExpanded, setIsToolbarExpanded] = useState(false);
+
   return (
-    <div className="tiptap-editor-wrapper relative flex-1 flex flex-col min-h-[480px]">
+    <div
+      className={`tiptap-editor-wrapper relative flex-1 flex flex-col ${
+        compact ? 'min-h-[160px]' : 'min-h-[480px]'
+      }`}
+    >
       {editor && (
         <BubbleMenu
           editor={editor}
@@ -159,6 +175,15 @@ export function TipTapContent({
           </button>
           <button
             type="button"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            className={`tiptap-bubble-btn ${editor.isActive('heading', { level: 3 }) ? 'is-active' : ''}`}
+            title="Tiểu mục (H3)"
+            data-testid="bubble-btn-h3"
+          >
+            H3
+          </button>
+          <button
+            type="button"
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             className={`tiptap-bubble-btn ${editor.isActive('blockquote') ? 'is-active' : ''}`}
             title="Trích dẫn"
@@ -178,7 +203,33 @@ export function TipTapContent({
           </button>
         </BubbleMenu>
       )}
-      <TipTapToolbar editor={editor} />
+
+      {/* Toolbar: Đối với compact mode (khối văn bản tài liệu), mặc định ẩn để viết tự nhiên, chỉ mở khi cần */}
+      {compact ? (
+        <div className="relative">
+          <div className="flex items-center justify-between pb-1 text-xs">
+            <span className="text-[11px] text-slate-400 italic">
+              Bôi đen văn bản để định dạng nhanh (B, I, H2, Trích dẫn)
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsToolbarExpanded(!isToolbarExpanded)}
+              className="text-[11px] font-semibold text-slate-500 hover:text-emerald-700 flex items-center gap-1 px-2 py-0.5 rounded hover:bg-slate-100 transition cursor-pointer"
+              title="Mở thanh công cụ chi tiết"
+            >
+              <span>{isToolbarExpanded ? '▲ Thu gọn công cụ' : '▼ Công cụ chi tiết'}</span>
+            </button>
+          </div>
+          {isToolbarExpanded && (
+            <div className="mb-2 p-1 bg-slate-50 border border-slate-200 rounded-lg animate-in fade-in-50 duration-150">
+              <TipTapToolbar editor={editor} label={label} />
+            </div>
+          )}
+        </div>
+      ) : (
+        <TipTapToolbar editor={editor} label={label} />
+      )}
+
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -190,7 +241,9 @@ export function TipTapContent({
           }
         }}
         onDrop={() => setIsDragOver(false)}
-        className={`tiptap-content-box flex-1 min-h-[420px] transition-all relative ${
+        className={`tiptap-content-box flex-1 ${
+          compact ? 'min-h-[140px] !border-0 !p-1 focus:outline-none' : 'min-h-[420px]'
+        } transition-all relative ${
           isDragOver ? 'ring-2 ring-blue-500 bg-blue-50/10' : ''
         }`}
       >

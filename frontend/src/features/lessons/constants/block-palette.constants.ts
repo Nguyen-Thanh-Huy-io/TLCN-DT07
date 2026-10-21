@@ -20,12 +20,9 @@ export const LESSON_BLOCK_ITEMS: BlockPaletteItem[] = [
     description: 'Video từ YouTube, Vimeo, upload',
     group: LessonBlockGroup.BASIC,
   },
-  {
-    type: LessonBlockType.RESOURCE_LINK,
-    label: 'Tài liệu',
-    description: 'PDF, Word, tài liệu đính kèm',
-    group: LessonBlockGroup.BASIC,
-  },
+  // Lưu ý: khối "Tài liệu/Liên kết tham khảo" (RESOURCE_LINK) đã được chuyển sang
+  // quản lý tập trung ở Panel Thuộc tính > tab "Xuất bản" (luôn hiển thị cố định ở
+  // cuối bài học) thay vì chèn rời rạc giữa nội dung — xem LessonEditor.tsx.
 
   // 2. Nhóm 2: Khối chuyên biệt (img2.png)
   {
@@ -58,10 +55,8 @@ export const LESSON_BLOCK_ITEMS: BlockPaletteItem[] = [
     description: 'So sánh thông tin, số liệu',
     group: LessonBlockGroup.SPECIALIZED,
   },
-  {
-    type: LessonBlockType.QUIZ,
-    label: 'Câu hỏi ôn tập',
-    description: 'Trắc nghiệm, câu hỏi tự luận',
-    group: LessonBlockGroup.SPECIALIZED,
-  },
+  // Lưu ý: khối "Câu hỏi ôn tập" (QUIZ) đã được chuyển sang quản lý tập trung ở Panel
+  // Thuộc tính > tab "Đề ôn tập" (1 đề gồm nhiều câu, luôn ở cuối bài học — xem phần
+  // "hướng B" đã chốt) thay vì chèn rời rạc giữa nội dung. Giữ nguyên type/factory
+  // trong code cho tương lai, chỉ ẩn khỏi palette để tránh 2 nơi cùng tên "Quiz".
 ];

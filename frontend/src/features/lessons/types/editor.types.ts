@@ -26,6 +26,10 @@ export interface UseLessonEditorFacadeReturn {
   // Form State
   title: string;
   setTitle: (val: string) => void;
+  slug: string;
+  setSlug: (val: string) => void;
+  description: string;
+  setDescription: (val: string) => void;
   selectedTopicId: string;
   setSelectedTopicId: (val: string) => void;
   contentRichText: string;
@@ -38,12 +42,15 @@ export interface UseLessonEditorFacadeReturn {
   setThumbnailUrl: (val: string) => void;
   displayOrder: number;
   setDisplayOrder: (val: number) => void;
-  status: ContentStatus;
+  status: ContentStatus | any;
 
   // Media Album
   mediaList: LessonMediaItem[];
   addMediaItem: (item: LessonMediaItem) => void;
   removeMediaItem: (index: number) => void;
+
+  // Nội dung khối thật của bài học (chỉ có giá trị sau khi API trả dữ liệu ở chế độ sửa bài)
+  initialBlockContent: any;
 
   // Metadata & Status
   topics: TopicItem[];
@@ -68,7 +75,7 @@ export interface UseLessonEditorFacadeReturn {
   setSelectedTags: (tags: TagItem[]) => void;
 
   // Actions
-  submitLesson: (nextStatus: ContentStatus) => Promise<void>;
+  submitLesson: (nextStatus: ContentStatus | any, overrideContent?: any) => Promise<void>;
 }
 
 /** Trạng thái tự động lưu nháp cục bộ */
@@ -85,5 +92,20 @@ export enum EditorViewMode {
   EDIT = 'EDIT',
   SPLIT = 'SPLIT',
   PREVIEW = 'PREVIEW',
+}
+
+/** Chế độ hiển thị cột trái (Thêm khối | Mục lục) — đặt ở đây (không phải trong
+ * LessonEditor.tsx) để tránh circular import với các component con dùng enum này. */
+export enum LeftSidebarMode {
+  BLOCKS = 'BLOCKS',
+  OUTLINE = 'OUTLINE',
+}
+
+/** Tab của Panel Thuộc tính bên phải — lý do đặt ở đây giống trên. */
+export enum SidebarTab {
+  CLASSIFICATION = 'CLASSIFICATION',
+  MEDIA = 'MEDIA',
+  QUIZ = 'QUIZ',
+  PUBLISHING = 'PUBLISHING',
 }
 

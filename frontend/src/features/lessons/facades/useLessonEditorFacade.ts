@@ -15,10 +15,10 @@ import { TopicItem } from '@/types/models/topic.type';
 /** Độ trễ debounce cho auto-save (ms) */
 const AUTO_SAVE_DEBOUNCE_MS = 1500;
 
-export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
+export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEditorFacadeReturn {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lessonId = searchParams.get('id');
+  const lessonId = explicitLessonId || searchParams.get('id');
   const queryTopicId = searchParams.get('topicId') || '';
 
   const [topics, setTopics] = useState<TopicItem[]>([]);
@@ -30,6 +30,8 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
   const [selectedTopicId, setSelectedTopicId] = useState(queryTopicId);
   const [status, setStatus] = useState<ContentStatus>(ContentStatus.DRAFT);
   const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
+  const [description, setDescription] = useState('');
   const [contentRichText, setContentRichText] = useState('');
   const [difficulty, setDifficulty] = useState<DifficultyLevel>(DifficultyLevel.MEDIUM);
   const [sourceReferenceNote, setSourceReferenceNote] = useState('');
@@ -49,6 +51,12 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
 
   // Media attachments list
   const [mediaList, setMediaList] = useState<LessonMediaItem[]>([]);
+
+  // Nội dung khối (block JSON) thật của bài học, chỉ có giá trị SAU khi API trả dữ liệu
+  // (ở chế độ sửa bài). Dùng để nạp vào Block Builder đúng 1 lần — không dùng trực tiếp
+  // `contentRichText` làm giá trị khởi tạo Block Builder vì nó rỗng ở lần render đầu tiên
+  // (trước khi fetch xong), nên không thể dùng `useMemo([])` một lần như trước đây.
+  const [initialBlockContent, setInitialBlockContent] = useState<any>(undefined);
 
   const addMediaItem = useCallback((item: LessonMediaItem) => {
     setMediaList((prev) => [...prev, item]);
@@ -75,42 +83,6 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
     loadTopics();
   }, [loadTopics]);
 
-  // 1.1 Tải danh sách bài học thuộc chủ đề để tính toán số lượng và gợi ý thứ tự bài học tiếp theo
-  useEffect(() => {
-    if (!selectedTopicId) {
-      setTopicLessons([]);
-      return;
-    }
-    let isMounted = true;
-    setLoadingTopicLessons(true);
-    LessonApiService.getLessons({ topicId: selectedTopicId, limit: 100 })
-      .then((res) => {
-        if (!isMounted) return;
-        const sorted = (res?.items || []).sort(
-          (a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)
-        );
-        setTopicLessons(sorted);
-        // Nếu là tạo mới bài học và chưa thiết lập thứ tự: tự động gợi ý thứ tự bài kế tiếp (maxOrder + 1)
-        if (!lessonId && sorted.length > 0) {
-          const maxOrder = sorted.reduce(
-            (max, l) => Math.max(max, l.displayOrder || 0),
-            0
-          );
-          setDisplayOrder((prev) => (prev <= 1 ? maxOrder + 1 : prev));
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to load topic lessons for order calculation:', err);
-      })
-      .finally(() => {
-        if (isMounted) setLoadingTopicLessons(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedTopicId, lessonId]);
-
   // Kiểm tra Local Draft tồn tại khi mount
   useEffect(() => {
     try {
@@ -134,7 +106,10 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
       if (savedRaw) {
         const draft = JSON.parse(savedRaw);
         if (draft.title !== undefined) setTitle(draft.title);
-        if (draft.contentRichText !== undefined) setContentRichText(draft.contentRichText);
+        // KHÔNG khôi phục `contentRichText` từ draft: đây là giá trị DẪN XUẤT từ danh sách
+        // Khối (Block Builder) qua `compileToHtml()`, không phải dữ liệu độc lập — nháp cũ
+        // (nhất là lưu từ thời điểm có lỗi JSON.stringify trước khi fix) có thể chứa chuỗi
+        // JSON thô không khớp với Khối thật, khiến tab Xem trước hiển thị sai hẳn vĩnh viễn.
         if (draft.thumbnailUrl !== undefined) setThumbnailUrl(draft.thumbnailUrl);
         if (draft.difficulty !== undefined) setDifficulty(draft.difficulty);
         if (draft.sourceReferenceNote !== undefined) setSourceReferenceNote(draft.sourceReferenceNote);
@@ -200,14 +175,28 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
         .then((lesson: any) => {
           if (lesson) {
             setTitle(lesson.title || '');
-            setSelectedTopicId(lesson.topic?.id || '');
-            setContentRichText(lesson.contentRichText || '');
+            setSlug(lesson.slug || '');
+            setDescription(lesson.description || lesson.summary || '');
+            setSelectedTopicId((lesson as any)?.topic?.id || '');
+            // CHỈ gán `contentRichText` khi nội dung là HTML thuần (bài học cũ/chưa có Block
+            // Builder) — khi `content` là mảng JSON khối, KHÔNG được `JSON.stringify` nó vào
+            // đây, nếu không tab Xem trước sẽ hiển thị thẳng chuỗi JSON thô (lỗi đã gặp).
+            // Để trống và để effect đồng bộ Khối -> HTML trong LessonEditor tự biên dịch lại
+            // HTML thật ngay khi `initialBlockContent` được nạp vào Block Builder.
+            setContentRichText(
+              lesson.contentRichText || (typeof lesson.content === 'string' ? lesson.content : '') || ''
+            );
+            // Ưu tiên `content` (JSON mảng khối) nếu có — giữ đúng cấu trúc Block Builder;
+            // nếu không có thì dùng `contentRichText` (HTML thuần, sẽ nạp thành 1 khối văn bản).
+            setInitialBlockContent(lesson.content ?? lesson.contentRichText ?? null);
             setDifficulty(lesson.difficulty || DifficultyLevel.MEDIUM);
             setSourceReferenceNote(lesson.sourceReferenceNote || '');
             setThumbnailUrl(lesson.thumbnailUrl || '');
             setDisplayOrder(lesson.displayOrder ?? 0);
-            setStatus(lesson.status || ContentStatus.DRAFT);
-            if (Array.isArray(lesson.lessonTags)) {
+            setStatus(lesson.status || (ContentStatus.DRAFT as any));
+            if (Array.isArray(lesson.tags) && lesson.tags.length > 0) {
+              setSelectedTags(lesson.tags);
+            } else if (Array.isArray(lesson.lessonTags)) {
               setSelectedTags(
                 lesson.lessonTags
                   .map((lt: { tag?: TagItem }) => lt.tag)
@@ -263,12 +252,7 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
 
   // 4. Lưu nháp hoặc Gửi duyệt bài học
   const submitLesson = useCallback(
-    async (nextStatus: ContentStatus) => {
-      if (!selectedTopicId) {
-        alert('Không có chủ đề nào để gắn bài học. Hãy tạo chủ đề trước.');
-        return;
-      }
-
+    async (nextStatus: ContentStatus | any, overrideContent?: any) => {
       if (!title.trim()) {
         alert('Vui lòng nhập tên bài học.');
         return;
@@ -276,21 +260,18 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
 
       try {
         setSaving(true);
+        const resolvedContent = overrideContent !== undefined ? overrideContent : (contentRichText.trim() || undefined);
         const payload = {
-          topicId: selectedTopicId,
           title: title.trim(),
-          contentRichText: contentRichText.trim() || undefined,
-          thumbnailUrl: thumbnailUrl.trim() || undefined,
+          slug: slug.trim() || undefined,
+          description: description.trim() || undefined,
+          summary: description.trim() || undefined,
+          content: resolvedContent,
+          contentRichText: typeof resolvedContent === 'string' ? resolvedContent : JSON.stringify(resolvedContent),
+          thumbnailUrl: thumbnailUrl?.trim() || undefined,
           difficulty,
-          sourceReferenceNote: sourceReferenceNote.trim() || undefined,
           status: nextStatus,
           displayOrder: Number(displayOrder) || 0,
-          media: mediaList.map((m, i) => ({
-            type: m.type,
-            url: m.url,
-            caption: m.caption,
-            displayOrder: m.displayOrder ?? i + 1,
-          })),
         };
 
         setAutoSaveState(AutoSaveState.SYNCING);
@@ -298,13 +279,17 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
           ? await LessonApiService.updateLesson(lessonId, payload)
           : await LessonApiService.createLesson(payload);
 
-        // Gắn nhãn (backend thay thế toàn bộ danh sách; yêu cầu tối thiểu 1 nhãn)
+        // Gắn nhãn phân loại (Tags) cho bài học (hỗ trợ cả xóa hết thẻ khi mảng rỗng)
         const savedId = lessonId || saved?.id;
-        if (savedId && selectedTags.length > 0) {
-          await TagApiService.attachTagsToLesson(
-            savedId,
-            selectedTags.map((t) => t.id),
-          );
+        if (savedId && (selectedTags.length > 0 || Boolean(lessonId))) {
+          try {
+            await TagApiService.attachTagsToLesson(
+              savedId,
+              selectedTags.map((t) => t.id),
+            );
+          } catch (tagErr) {
+            console.warn('Could not attach tags to lesson:', tagErr);
+          }
         }
 
         // Xóa bản nháp lưu trữ cục bộ khi lưu thành công
@@ -313,10 +298,22 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
         } catch {
           // Ignore
         }
-        router.push(APP_ROUTES.LESSONS.LIST);
+
+        setStatus(nextStatus);
+        setAutoSaveState(AutoSaveState.SAVED);
+
+        if (!lessonId && savedId) {
+          // Bài học MỚI vừa được tạo: chuyển URL sang trang sửa của chính bài học này
+          // (router.replace — không đẩy thêm lịch sử) để KHÔNG rời khỏi Editor, cho phép
+          // tiếp tục thao tác ngay (ví dụ sang tab "Đề ôn tập" — tab này cần lessonId thật
+          // mới gọi API được). Trước đây luôn `router.push` về danh sách, buộc phải lưu →
+          // bị đẩy ra → mở lại bài mới dùng được Đề ôn tập, rất bất tiện.
+          router.replace(APP_ROUTES.LESSONS.DETAIL(savedId));
+        }
+        // Bài học đã có sẵn (đang sửa): không điều hướng đi đâu cả, ở lại Editor.
       } catch (err: unknown) {
         console.error('Failed to save lesson:', err);
-        setAutoSaveState(AutoSaveState.SAVED);
+        setAutoSaveState(AutoSaveState.ERROR);
         alert(
           extractErrorMessage(
             err,
@@ -327,12 +324,16 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
         setSaving(false);
       }
     },
-    [selectedTopicId, title, contentRichText, thumbnailUrl, difficulty, sourceReferenceNote, displayOrder, mediaList, selectedTags, lessonId, draftStorageKey, router]
+    [slug, description, title, contentRichText, thumbnailUrl, difficulty, displayOrder, selectedTags, lessonId, draftStorageKey, router]
   );
 
   return {
     title,
     setTitle,
+    slug,
+    setSlug,
+    description,
+    setDescription,
     selectedTopicId,
     setSelectedTopicId,
     contentRichText,
@@ -349,6 +350,7 @@ export function useLessonEditorFacade(): UseLessonEditorFacadeReturn {
     mediaList,
     addMediaItem,
     removeMediaItem,
+    initialBlockContent,
     topics,
     topicLessons,
     loadingTopicLessons,

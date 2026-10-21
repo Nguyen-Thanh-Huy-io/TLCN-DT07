@@ -8,19 +8,20 @@ export interface TopicOption {
 
 export interface LessonHeaderMetaData {
   title: string;
-  topicId: string;
-  shortDescription: string;
+  slug?: string;
+  description?: string;
+  summary?: string;
+  shortDescription?: string;
+  topicId?: string;
   thumbnailUrl: string;
-  difficulty: DifficultyLevel;
+  difficulty?: DifficultyLevel;
   tags: string[];
-  startDate: string;
-  endDate: string;
 }
 
 export interface LessonHeaderMetaFormProps {
   data: LessonHeaderMetaData;
   onChange: <K extends keyof LessonHeaderMetaData>(field: K, value: LessonHeaderMetaData[K]) => void;
-  topics: TopicOption[];
+  topics?: TopicOption[];
   onOpenTopicPicker?: () => void;
   disabled?: boolean;
   className?: string;

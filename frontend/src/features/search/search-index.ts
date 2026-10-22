@@ -70,8 +70,9 @@ function figureYears(f: PublicFigureProfileDto): string | undefined {
   return birth || death ? `${birth ?? '?'} — ${death ?? '?'}` : undefined;
 }
 
-function entry(e: Omit<SearchEntry, 'haystack'>): SearchEntry {
-  return { ...e, haystack: normalizeSearch(`${e.title} ${e.subtitle} ${e.year ?? ''}`) };
+/** `keywords`: chữ dùng để tìm nhưng không hiển thị (tên gọi khác, nhân vật liên quan...). */
+function entry(e: Omit<SearchEntry, 'haystack'>, keywords: string[] = []): SearchEntry {
+  return { ...e, haystack: normalizeSearch(`${e.title} ${e.subtitle} ${e.year ?? ''} ${keywords.join(' ')}`) };
 }
 
 /** Chỉ mục tìm kiếm toàn cục: sự kiện, nhân vật, thời kỳ, địa danh, bài học. */
@@ -88,24 +89,30 @@ export function buildSearchIndex(source: SearchSource): SearchEntry[] {
     ...source.events
       .filter((e) => e.slug)
       .map((e) =>
-        entry({
-          id: `e-${e.id}`,
-          type: 'EVENT',
-          title: e.title,
-          subtitle: [regionOfPeriod(e.periodSlug), e.figures[0]?.name].filter(Boolean).join(' • '),
-          year: formatYear(e.startYear),
-          href: SEARCH_ROUTES.EVENT(e.slug as string),
-        }),
+        entry(
+          {
+            id: `e-${e.id}`,
+            type: 'EVENT',
+            title: e.title,
+            subtitle: [regionOfPeriod(e.periodSlug), e.figures[0]?.name].filter(Boolean).join(' · '),
+            year: formatYear(e.startYear),
+            href: SEARCH_ROUTES.EVENT(e.slug as string),
+          },
+          [...e.figures.map((f) => f.name), e.location ?? ''],
+        ),
       ),
     ...source.figures.map((f) =>
-      entry({
-        id: `f-${f.id}`,
-        type: 'FIGURE',
-        title: f.name,
-        subtitle: truncate([f.tagline, ...(f.aliases ?? [])].filter(Boolean).join(' • ') || f.roles.join(', '), 80),
-        year: figureYears(f),
-        href: SEARCH_ROUTES.FIGURE(f.slug),
-      }),
+      entry(
+        {
+          id: `f-${f.id}`,
+          type: 'FIGURE',
+          title: f.name,
+          subtitle: truncate(f.tagline || f.occupation || '', 90),
+          year: figureYears(f),
+          href: SEARCH_ROUTES.FIGURE(f.slug),
+        },
+        [...(f.aliases ?? []), ...f.titles],
+      ),
     ),
     ...source.periods.map((p) =>
       entry({

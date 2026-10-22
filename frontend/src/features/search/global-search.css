@@ -19,7 +19,7 @@
 .gs-types button small { font-size: 11px; color: #9aa39e; }
 .gs-types button.active { border-color: #8d2f2c; background: rgba(141, 47, 44, 0.07); color: #8d2f2c; }
 .gs-body { overflow-y: auto; padding: 8px 10px; }
-.gs-caption { padding: 8px; color: #5f6a65; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+
 .gs-result { width: 100%; display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .gs-result.active { background: #f4f2ec; }
 .gs-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; background: rgba(141, 47, 44, 0.08); color: #b0403a; }
@@ -41,3 +41,12 @@
   .gs-dialog { max-height: calc(100vh - 24px); }
   .gs-footer { display: none; }
 }
+
+/* Nhóm kết quả theo loại */
+.gs-group + .gs-group { margin-top: 6px; padding-top: 6px; border-top: 1px solid #ecebe5; }
+.gs-group > header { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 4px; }
+.gs-group > header span { display: inline-flex; align-items: baseline; gap: 6px; color: #5f6a65; font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.gs-group > header small { font-size: 11px; font-weight: 600; letter-spacing: 0; color: #9aa39e; }
+.gs-group > header button { display: inline-flex; align-items: center; gap: 3px; padding: 2px 4px; border: 0; background: none; color: #8d2f2c; font-size: 12px; font-weight: 700; cursor: pointer; }
+.gs-group > header button:hover { text-decoration: underline; }
+.gs-meta { font-weight: 500; color: #8a7a55; }

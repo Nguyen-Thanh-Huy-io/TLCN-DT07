@@ -8,6 +8,7 @@ import type { LearningPathItem } from '@/services/entities/learning-path.service
 import type { LibraryLesson } from '@/services/entities/learner.service';
 import { regionLabel, sortedRegions } from '@/utils/region.utils';
 import { formatYear, shortPeriodName } from '@/features/search/search-index';
+import { FIGURE_ROLE_LABELS, FigureRole, HistoricalRegion } from '@/constants/enums';
 import type {
   LandingCourse,
   LandingData,
@@ -80,18 +81,64 @@ export function spreadEvenly<T>(items: T[], n: number): T[] {
   return Array.from({ length: n }, (_, i) => items[Math.round((i * (items.length - 1)) / (n - 1))]);
 }
 
-function eventRegion(event: PublicEventSummaryDto, rootOf: ReturnType<typeof rootResolver>): string {
-  return regionLabel(rootOf(event.periodSlug)?.region);
+/**
+ * Khu vực cụ thể nhất của một thời kỳ: đi từ giai đoạn lên thời kỳ cha, lấy khu vực đầu tiên
+ * không chung chung ("Thế giới") — để "Châu Á", "Liên Xô"... không bị gộp thành "Thế giới".
+ */
+function specificRegionResolver(periods: PublicPeriodDto[]) {
+  const byId = new Map(periods.map((p) => [p.id, p]));
+  const bySlug = new Map(periods.map((p) => [p.slug, p]));
+  return (slug: string | null | undefined): string => {
+    let current = slug ? bySlug.get(slug) : undefined;
+    let fallback: string | null = null;
+    while (current) {
+      if (current.region && current.region !== HistoricalRegion.WORLD) return regionLabel(current.region);
+      fallback ??= current.region;
+      current = current.parentId ? byId.get(current.parentId) : undefined;
+    }
+    return regionLabel(fallback);
+  };
 }
 
-function buildSpotlights(events: PublicEventSummaryDto[], rootOf: ReturnType<typeof rootResolver>): LandingSpotlight[] {
+type RegionOf = ReturnType<typeof specificRegionResolver>;
+
+/** Ảnh có sẵn trong /public cho các thời kỳ Việt Nam chưa có ảnh bìa (khớp theo tên). */
+const VN_ERA_COVERS: Array<[RegExp, string]> = [
+  [/dựng nước|hồng bàng|văn lang/i, '/assets/eras/dung-nuoc.jpg'],
+  [/bắc thuộc/i, '/assets/eras/bac-thuoc.jpg'],
+  [/phong kiến/i, '/assets/eras/phong-kien.jpg'],
+  [/cận/i, '/assets/eras/can-dai.jpg'],
+  [/hiện đại/i, '/assets/eras/hien-dai.jpg'],
+];
+
+/** Ảnh bìa thời kỳ: ảnh của chính nó → ảnh giai đoạn con → ảnh sự kiện trong thời kỳ → ảnh có sẵn (chỉ Việt Nam). */
+function eraCover(root: PublicPeriodDto, periods: PublicPeriodDto[], events: PublicEventSummaryDto[], rootOf: ReturnType<typeof rootResolver>) {
+  if (root.coverImageUrl) return root.coverImageUrl;
+  const childCover = periods.find((p) => p.parentId === root.id && p.coverImageUrl)?.coverImageUrl;
+  if (childCover) return childCover;
+  const eventImage = events.find((e) => e.imageUrl && rootOf(e.periodSlug)?.id === root.id)?.imageUrl;
+  if (eventImage) return eventImage;
+  if (regionLabel(root.region) !== HistoricalRegion.VIETNAM) return null;
+  return VN_ERA_COVERS.find(([re]) => re.test(root.name))?.[1] ?? null;
+}
+
+function buildSpotlights(
+  events: PublicEventSummaryDto[],
+  periods: PublicPeriodDto[],
+  rootOf: ReturnType<typeof rootResolver>,
+  regionOf: RegionOf,
+): LandingSpotlight[] {
   const withSlug = events.filter((e) => e.slug);
   // Ưu tiên sự kiện có ảnh, rồi rải theo khu vực để tâm điểm không chỉ một vùng.
   const ranked = [...withSlug].sort((a, b) => Number(Boolean(b.imageUrl)) - Number(Boolean(a.imageUrl)));
   const picked: PublicEventSummaryDto[] = [];
   const seenRegions = new Set<string>();
+  const coverOf = (e: PublicEventSummaryDto) => {
+    const root = rootOf(e.periodSlug);
+    return e.imageUrl ?? (root ? eraCover(root, periods, events, rootOf) : null);
+  };
   for (const e of ranked) {
-    const region = eventRegion(e, rootOf);
+    const region = regionOf(e.periodSlug);
     if (picked.length < 4 && (!seenRegions.has(region) || e.imageUrl)) {
       picked.push(e);
       seenRegions.add(region);
@@ -103,10 +150,10 @@ function buildSpotlights(events: PublicEventSummaryDto[], rootOf: ReturnType<typ
       id: e.id,
       yearLabel: formatYear(e.startYear),
       era: root ? shortPeriodName(root.name) : '',
-      region: eventRegion(e, rootOf),
+      region: regionOf(e.periodSlug),
       title: e.title,
       summary: truncate(e.description, 190),
-      imageUrl: e.imageUrl,
+      imageUrl: coverOf(e),
       figures: e.figures.slice(0, 3).map((f) => f.name),
       href: LANDING_ROUTES.EVENT(e.slug as string),
     };
@@ -134,13 +181,13 @@ function buildEras(
       .map((p) => truncate(shortPeriodName(p.name).split(':')[0], 26)),
     eventCount: eventCounts.get(root.id) ?? 0,
     figureCount: figureCounts.get(root.id) ?? 0,
-    imageUrl: root.coverImageUrl,
+    imageUrl: eraCover(root, periods, events, rootOf),
     size: ERA_SIZES[i % ERA_SIZES.length],
     href: LANDING_ROUTES.PERIOD(root.slug),
   }));
 }
 
-function buildTimeline(events: PublicEventSummaryDto[], rootOf: ReturnType<typeof rootResolver>): LandingTimelineNode[] {
+function buildTimeline(events: PublicEventSummaryDto[], regionOf: RegionOf): LandingTimelineNode[] {
   return [...events]
     .filter((e) => e.slug)
     .sort((a, b) => a.startYear - b.startYear)
@@ -152,20 +199,25 @@ function buildTimeline(events: PublicEventSummaryDto[], rootOf: ReturnType<typeo
       summary: truncate(e.description, 220),
       figure: e.figures[0]?.name ?? null,
       location: e.locations[0]?.name ?? e.location,
-      region: eventRegion(e, rootOf),
+      region: regionOf(e.periodSlug),
       href: LANDING_ROUTES.EVENT(e.slug as string),
     }));
 }
 
-function buildBands(periods: PublicPeriodDto[]): ParallelBand[] {
+/**
+ * Dải cho phần "Đối sánh khu vực": dùng giai đoạn con (khu vực cụ thể như Châu Á, Liên Xô...),
+ * thời kỳ không có giai đoạn con thì dùng chính nó.
+ */
+function buildBands(periods: PublicPeriodDto[], regionOf: RegionOf): ParallelBand[] {
   const currentYear = new Date().getFullYear();
+  const hasChildren = new Set(periods.map((p) => p.parentId).filter(Boolean));
   return periods
-    .filter((p) => !p.parentId)
+    .filter((p) => p.startYear != null && (p.parentId || !hasChildren.has(p.id)))
     .map((p) => ({
       id: p.id,
       name: shortPeriodName(p.name),
       years: p.timeLabel,
-      region: regionLabel(p.region),
+      region: regionOf(p.slug),
       start: p.startYear,
       end: p.endYear ?? currentYear,
       href: LANDING_ROUTES.PERIOD(p.slug),
@@ -188,7 +240,8 @@ function buildFigures(figures: PublicFigureProfileDto[]): LandingFigure[] {
       id: f.id,
       name: f.name,
       years: figureYears(f),
-      roles: (f.roles.length ? f.roles : f.titles).slice(0, 2),
+      // roles là mã enum (GENERAL...) → nhãn tiếng Việt; titles đã là chữ hiển thị.
+      roles: (f.roles.length ? f.roles.map((r) => FIGURE_ROLE_LABELS[r as FigureRole] ?? r) : f.titles).slice(0, 2),
       quote: f.legacy?.famousQuote || f.tagline,
       eventCount: f.events.length,
       imageUrl: f.imageUrl,
@@ -259,14 +312,15 @@ export function buildDailyQuiz(events: PublicEventSummaryDto[], day: Date): Land
 
 export function buildLandingData(source: LandingSource, today: Date = new Date()): LandingData {
   const rootOf = rootResolver(source.periods);
-  const bands = buildBands(source.periods);
+  const regionOf = specificRegionResolver(source.periods);
+  const bands = buildBands(source.periods, regionOf);
   const regions = sortedRegions(bands.map((b) => b.region));
   const courses = buildCourses(source.paths);
   return {
     regions,
-    spotlights: buildSpotlights(source.events, rootOf),
+    spotlights: buildSpotlights(source.events, source.periods, rootOf, regionOf),
     eras: buildEras(source.periods, source.events, source.figures, rootOf),
-    timeline: buildTimeline(source.events, rootOf),
+    timeline: buildTimeline(source.events, regionOf),
     bands,
     figures: buildFigures(source.figures),
     locations: buildLocations(source.locations, source.events),

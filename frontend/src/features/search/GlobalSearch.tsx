@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, History, Landmark, Loader2, MapPin, Search, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, History, Landmark, Loader2, MapPin, Search, Users } from 'lucide-react';
 import { normalizeSearch, type SearchEntry, type SearchEntryType } from './search-index';
 import { loadSearchIndex } from './search.service';
 import './global-search.css';
@@ -31,8 +31,12 @@ const TYPE_ICONS: Record<SearchEntryType, typeof History> = {
   PERIOD: Landmark,
 };
 
-const TYPE_FILTERS: Array<SearchEntryType | 'ALL'> = ['ALL', 'EVENT', 'FIGURE', 'PERIOD', 'LESSON', 'LOCATION'];
-const MAX_RESULTS = 30;
+const GROUP_ORDER: SearchEntryType[] = ['EVENT', 'FIGURE', 'PERIOD', 'LESSON', 'LOCATION'];
+const TYPE_FILTERS: Array<SearchEntryType | 'ALL'> = ['ALL', ...GROUP_ORDER];
+const MAX_RESULTS = 40;
+/** Số mục mỗi nhóm ở tab "Tất cả": khi đang gõ / khi chưa gõ (gợi ý). */
+const PER_GROUP = 4;
+const PER_GROUP_IDLE = 3;
 
 function SearchPanel({ onClose }: { onClose: () => void }) {
   const router = useRouter();
@@ -60,22 +64,25 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
     return c;
   }, [entries, query]);
 
-  const results = useMemo(() => {
+  // Tab "Tất cả": nhóm theo loại, mỗi nhóm vài mục kèm "Xem tất cả"; tab một loại: danh sách dài.
+  const groups = useMemo(() => {
     if (!entries) return [];
     const q = normalizeSearch(query.trim());
-    const pool = type === 'ALL' ? entries : entries.filter((e) => e.type === type);
-    if (!q) {
-      // Gợi ý mặc định: vài mục mỗi loại để thấy độ phủ nội dung.
-      if (type !== 'ALL') return pool.slice(0, MAX_RESULTS);
-      const types: SearchEntryType[] = ['PERIOD', 'EVENT', 'FIGURE', 'LESSON'];
-      return types.flatMap((t) => pool.filter((e) => e.type === t).slice(0, 2));
-    }
     // Khớp ở đầu tiêu đề được ưu tiên trước khớp ở giữa.
-    return pool
-      .filter((e) => e.haystack.includes(q))
-      .sort((a, b) => Number(!normalizeSearch(a.title).startsWith(q)) - Number(!normalizeSearch(b.title).startsWith(q)))
-      .slice(0, MAX_RESULTS);
+    const matched = (q ? entries.filter((e) => e.haystack.includes(q)) : entries)
+      .map((e) => ({ e, head: q ? normalizeSearch(e.title).startsWith(q) : false }))
+      .sort((a, b) => Number(b.head) - Number(a.head))
+      .map((x) => x.e);
+    const types = type === 'ALL' ? GROUP_ORDER : [type];
+    const limit = type === 'ALL' ? (q ? PER_GROUP : PER_GROUP_IDLE) : MAX_RESULTS;
+    return types
+      .map((t) => {
+        const all = matched.filter((e) => e.type === t);
+        return { type: t, total: all.length, items: all.slice(0, limit) };
+      })
+      .filter((g) => g.items.length);
   }, [entries, query, type]);
+  const results = useMemo(() => groups.flatMap((g) => g.items), [groups]);
 
   const go = (entry: SearchEntry | undefined) => {
     if (!entry) return;
@@ -147,33 +154,51 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
             <p>Đang tải dữ liệu tìm kiếm...</p>
           </div>
         ) : results.length ? (
-          <>
-            <div className="gs-caption">{query ? `${counts.get(type) ?? 0} kết quả phù hợp` : 'Gợi ý khám phá'}</div>
-            {results.map((item, i) => {
-              const Icon = TYPE_ICONS[item.type];
-              return (
-                <button
-                  type="button"
-                  className={`gs-result ${i === cursor ? 'active' : ''}`}
-                  key={item.id}
-                  onMouseEnter={() => setCursor(i)}
-                  onClick={() => go(item)}
-                >
-                  <span className="gs-icon">
-                    <Icon />
-                  </span>
+          groups.map((g) => {
+            const Icon = TYPE_ICONS[g.type];
+            return (
+              <section key={g.type} className="gs-group">
+                <header>
                   <span>
-                    <strong>{item.title}</strong>
-                    <small>
-                      {TYPE_LABELS[item.type]}
-                      {item.subtitle ? ` • ${item.subtitle}` : ''}
-                    </small>
+                    {TYPE_LABELS[g.type]}
+                    <small>{g.total}</small>
                   </span>
-                  <span className="gs-meta">{item.year}</span>
-                </button>
-              );
-            })}
-          </>
+                  {type === 'ALL' && g.total > g.items.length && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setType(g.type);
+                        setCursor(0);
+                      }}
+                    >
+                      Xem tất cả <ArrowRight size={13} />
+                    </button>
+                  )}
+                </header>
+                {g.items.map((item) => {
+                  const i = results.indexOf(item);
+                  return (
+                    <button
+                      type="button"
+                      className={`gs-result ${i === cursor ? 'active' : ''}`}
+                      key={item.id}
+                      onMouseEnter={() => setCursor(i)}
+                      onClick={() => go(item)}
+                    >
+                      <span className="gs-icon">
+                        <Icon />
+                      </span>
+                      <span>
+                        <strong>{item.title}</strong>
+                        {item.subtitle && <small>{item.subtitle}</small>}
+                      </span>
+                      <span className="gs-meta">{item.year}</span>
+                    </button>
+                  );
+                })}
+              </section>
+            );
+          })
         ) : (
           <div className="gs-empty">
             <Search />

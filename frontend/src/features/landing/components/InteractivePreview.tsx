@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Columns3, Crown, ExternalLink, History, MapPin } from 'lucide-react';
 import { LANDING_ROUTES, formatYear, spreadEvenly } from '../landing.adapter';
+import { sortedRegions } from '@/utils/region.utils';
 import type { LandingTimelineNode, ParallelBand } from '../landing.types';
 import { HlBadge, HlButton, SectionHead, cn } from './LandingUi';
 
@@ -86,9 +87,10 @@ function MiniTimeline({ nodes }: { nodes: LandingTimelineNode[] }) {
 /** Đặt các thời kỳ của từng khu vực trên cùng một trục năm để thấy chúng diễn ra song song. */
 function ParallelEras({ bands }: { bands: ParallelBand[] }) {
   const rows = useMemo(() => {
-    const byRegion = new Map<string, ParallelBand[]>();
-    for (const b of bands) byRegion.set(b.region, [...(byRegion.get(b.region) ?? []), b]);
-    return [...byRegion.entries()];
+    // Mỗi khu vực một hàng, theo thứ tự chuẩn dùng chung (Việt Nam trước).
+    return sortedRegions(bands.map((b) => b.region)).map(
+      (region) => [region, bands.filter((b) => b.region === region)] as const,
+    );
   }, [bands]);
   const min = Math.min(...bands.map((b) => b.start));
   const max = Math.max(...bands.map((b) => b.end));

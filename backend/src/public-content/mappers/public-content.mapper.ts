@@ -45,6 +45,7 @@ export class PublicContentMapper {
   static toPeriod(period: Period): PublicPeriodDto {
     return {
       id: period.id,
+      parentId: period.parentId,
       slug: period.slug,
       name: period.name,
       timeLabel: period.timeLabel || buildTimeLabel(period.startYear, period.endYear),

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Header } from "@/components/hisgo/Header";
 import { Footer } from "@/components/hisgo/Footer";
-import { TimelineExplorer } from "@/components/hisgo/TimelineExplorer";
+import { TimelineDashboard } from "@/components/hisgo/TimelineDashboard";
 import {
   fetchEvents,
   fetchFigures,
@@ -63,29 +63,8 @@ export default async function DongThoiGianPage() {
             </p>
           </section>
 
-          <section className="mt-8 border border-[#d7c5a1] bg-[#f8f3e8] p-5 md:p-7">
-            <div className="mb-4 flex items-center gap-3 text-[#6e181b]">
-              <span className="inline-block h-3 w-3 rotate-45 bg-[#6e181b]" aria-hidden="true" />
-              <h2 className="font-[Lora] text-2xl font-semibold md:text-3xl">Trục thời gian tương tác</h2>
-            </div>
-            <TimelineExplorer
-              periods={allPeriods.map((p) => ({
-                id: p.id,
-                slug: p.slug,
-                name: p.name,
-                startYear: p.startYear,
-                timeLabel: p.timeLabel,
-              }))}
-              events={events.map((e) => ({
-                id: e.id,
-                slug: e.slug,
-                title: e.title,
-                startYear: e.startYear,
-                eventDateNote: e.eventDateNote,
-                category: e.category,
-                periodSlug: e.periodSlug,
-              }))}
-            />
+          <section className="mt-8">
+            <TimelineDashboard periods={allPeriods} events={events} />
           </section>
 
           <div className="mt-8 grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">

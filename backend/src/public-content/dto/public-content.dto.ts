@@ -5,6 +5,7 @@ import { LandingSection } from '../public-content.constant';
 
 export class PublicPeriodDto {
   @ApiProperty() id: string;
+  @ApiPropertyOptional({ nullable: true }) parentId: string | null;
   @ApiProperty() slug: string;
   @ApiProperty() name: string;
   @ApiProperty({ example: '(thế kỷ VII TCN - thế kỷ II TCN)' })

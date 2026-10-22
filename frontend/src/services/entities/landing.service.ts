@@ -34,6 +34,7 @@ const DEFAULT_TOPIC_ICON: TopicItem['icon'] = 'Landmark';
 
 export interface PublicPeriodDto {
   id: string;
+  parentId: string | null;
   slug: string;
   name: string;
   timeLabel: string;

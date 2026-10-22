@@ -5,7 +5,7 @@ import {
   PublicPeriodDto,
 } from "@/services/entities/landing.service";
 import { EVENT_CATEGORY_LABELS, EventCategory } from "@/constants/enums";
-import type { Era, SubEra, TimeNode, TimelineEvent, TimelineFigure, TimelineLocation } from "./sk-types";
+import type { Attributed, Era, SubEra, TimeNode, TimelineEvent, TimelineFigure, TimelineLocation } from "./sk-types";
 
 function toTimelineFigure(figure: PublicFigureDto): TimelineFigure {
   return {
@@ -29,6 +29,21 @@ function toTimelineLocation(location: PublicLocationSummaryDto): TimelineLocatio
         : undefined,
     description: location.historicalSignificance || location.address || "Chưa có mô tả chi tiết.",
   };
+}
+
+function attributeToEvents<T extends { id: string }>(
+  events: TimelineEvent[],
+  pick: (event: TimelineEvent) => T[],
+): Attributed<T>[] {
+  const byId = new Map<string, Attributed<T>>();
+  for (const event of events) {
+    for (const item of pick(event)) {
+      const existing = byId.get(item.id);
+      if (existing) existing.eventTitles.push(event.title);
+      else byId.set(item.id, { ...item, eventTitles: [event.title] });
+    }
+  }
+  return Array.from(byId.values());
 }
 
 const THEME_COLORS = ["green", "amber"];
@@ -67,13 +82,14 @@ function toTimelineEvent(
     era: eraTitle,
     subEra: subEraTitle,
     category: label,
+    categoryCode: event.category,
     scopeGroup: scopeGroupOf(region),
     domainGroup: domainGroupOf(event.category),
     title: event.title,
     summary: event.description || "Chưa có mô tả cho sự kiện này.",
     content: event.description || "Chưa có nội dung chi tiết cho sự kiện này.",
+    imageUrl: event.imageUrl || undefined,
     tags: event.location ? [event.location] : [],
-    isMilestone: false,
     figures: event.figures.map(toTimelineFigure),
     locations: event.locations.map(toTimelineLocation),
   };
@@ -111,20 +127,16 @@ export function buildEraDataset(periods: PublicPeriodDto[], events: PublicEventS
         .sort(([a], [b]) => a - b)
         .map(([year, yearEvents]): TimeNode => {
           const events = yearEvents.map((e) => toTimelineEvent(e, top.name, leaf.name, region));
-          // A node can bundle several events that merely share a year; only
-          // attribute figures/locations at the node level when there is a
-          // single event, so unrelated events never borrow each other's
-          // people/places. Each event still carries its own real relations.
-          const solo = events.length === 1 ? events[0] : null;
           return {
             id: `node-${yearEvents[0].id}`,
             subEraId: leaf.id,
             dateLabel: dateLabelOf(yearEvents[0]),
             sortYear: year,
-            nodeType: "POINT",
             events,
-            figures: solo?.figures || [],
-            locations: solo?.locations || [],
+            // A node can bundle unrelated events that share a year, so each entry
+            // records which of those events it actually takes part in.
+            figures: attributeToEvents(events, (e) => e.figures),
+            locations: attributeToEvents(events, (e) => e.locations),
           };
         });
 

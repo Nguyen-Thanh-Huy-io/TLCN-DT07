@@ -233,6 +233,7 @@ export interface PublicEventSummaryDto {
   eventDateNote: string | null;
   location: string | null;
   description: string | null;
+  imageUrl: string | null;
   category: string;
   periodSlug: string | null;
   figures: PublicFigureDto[];

@@ -4,7 +4,10 @@ export interface TimelineEvent {
   year: number;
   era: string;
   subEra: string;
+  /** Display label (Vietnamese). */
   category: string;
+  /** Raw EventCategory code from the API. */
+  categoryCode: string;
   scopeGroup: "DOMESTIC" | "WORLD";
   domainGroup: "POLITICS_MILITARY" | "ECONOMY_CULTURE";
   title: string;
@@ -12,9 +15,8 @@ export interface TimelineEvent {
   content: string;
   imageUrl?: string;
   tags: string[];
-  isMilestone?: boolean;
-  figures?: TimelineFigure[];
-  locations?: TimelineLocation[];
+  figures: TimelineFigure[];
+  locations: TimelineLocation[];
 }
 
 export interface TimelineFigure {
@@ -34,25 +36,17 @@ export interface TimelineLocation {
   description: string;
 }
 
-export interface QuizQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correctIndex: number;
-}
+/** A node-level entry keeps the titles of the node's events it actually belongs to. */
+export type Attributed<T> = T & { eventTitles: string[] };
 
 export interface TimeNode {
   id: string;
   subEraId: string;
   dateLabel: string;
   sortYear: number;
-  nodeType: "POINT" | "SPAN";
-  endDateLabel?: string;
-  isMilestone?: boolean;
   events: TimelineEvent[];
-  figures: TimelineFigure[];
-  locations: TimelineLocation[];
-  subPhases?: SubEra[];
+  figures: Attributed<TimelineFigure>[];
+  locations: Attributed<TimelineLocation>[];
 }
 
 export interface SubEra {
@@ -62,7 +56,6 @@ export interface SubEra {
   periodLabel: string;
   summary: string;
   themeColor: string;
-  quizQuestions?: QuizQuestion[];
   timeNodes: TimeNode[];
 }
 

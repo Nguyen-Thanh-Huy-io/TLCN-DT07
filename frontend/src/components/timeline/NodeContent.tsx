@@ -2,23 +2,21 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, Layers, MapPin, Plus, Users, ArrowUpRight } from "lucide-react";
+import { BookOpen, MapPin, Plus, Users } from "lucide-react";
 import { Button } from "./sk-ui";
 import { EventCard } from "./EventCard";
 import { EntityList } from "./EntityList";
-import type { SubEra, TimeNode, TimelineEvent } from "./sk-types";
+import type { TimeNode, TimelineEvent } from "./sk-types";
 
 export function NodeContent({
   node,
   onDetail,
-  onDrill,
   onSave,
   saved,
   workspace = false,
 }: {
   node: TimeNode;
   onDetail: (d: { event: TimelineEvent; node: TimeNode }) => void;
-  onDrill: (s: SubEra) => void;
   onSave: (id: string) => void;
   saved: string[];
   workspace?: boolean;
@@ -70,15 +68,15 @@ export function NodeContent({
               )}
             </div>
           ) : (
-            <EntityList figures={node.figures} locations={node.locations} tab={tab} />
+            <EntityList
+              figures={node.figures}
+              locations={node.locations}
+              tab={tab}
+              showEventTitles={node.events.length > 1}
+            />
           )}
         </motion.div>
       </AnimatePresence>
-      {node.subPhases?.map((s) => (
-        <Button className="sk-drill-button" key={s.id} onClick={() => onDrill(s)}>
-          <Layers size={13} /> Xem giai đoạn chi tiết bên trong <ArrowUpRight size={14} />
-        </Button>
-      ))}
     </div>
   );
 }

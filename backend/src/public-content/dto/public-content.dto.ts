@@ -109,6 +109,7 @@ export class PublicEventSummaryDto {
   @ApiPropertyOptional({ nullable: true }) eventDateNote: string | null;
   @ApiPropertyOptional({ nullable: true }) location: string | null;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
+  @ApiPropertyOptional({ nullable: true }) imageUrl: string | null;
   @ApiProperty({ enum: EventCategory }) category: EventCategory;
   @ApiPropertyOptional({ nullable: true }) periodSlug: string | null;
   @ApiProperty({ type: [PublicFigureDto] }) figures: PublicFigureDto[];

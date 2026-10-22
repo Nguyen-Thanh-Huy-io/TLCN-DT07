@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useMemo, useRef, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import { ArrowDownUp, ArrowRight, Compass, Landmark, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button, Heading, Select } from "./sk-ui";
@@ -10,8 +10,18 @@ import { EraSection } from "./EraSection";
 import { SubEraSection, SplitMode } from "./SubEraSection";
 import { HorizontalExplorer } from "./HorizontalExplorer";
 import { EventDetailModal } from "./EventDetailModal";
-import { QuizModal } from "./QuizModal";
-import type { Era, SubEra, TimeNode, TimelineEvent } from "./sk-types";
+import type { Era, TimeNode, TimelineEvent } from "./sk-types";
+
+const SAVED_STORAGE_KEY = "hisgo:timeline:saved-events";
+
+function readSaved(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SAVED_STORAGE_KEY) ?? "[]");
+    return Array.isArray(raw) ? raw.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?: ReactNode }) {
   const [query, setQuery] = useState("");
@@ -23,10 +33,13 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   const [split, setSplit] = useState<SplitMode>("alternating");
   const [active, setActive] = useState("");
   const [detail, setDetail] = useState<{ event: TimelineEvent; node: TimeNode } | null>(null);
-  const [quiz, setQuiz] = useState<SubEra | null>(null);
-  const [drill, setDrill] = useState<SubEra | null>(null);
   const [selected, setSelected] = useState("");
   const [saved, setSaved] = useState<string[]>([]);
+
+  // Bookmarks are a per-browser convenience; read after mount so server and client render the same.
+  useEffect(() => {
+    setSaved(readSaved());
+  }, []);
   const [bookmarksOnly, setBookmarksOnly] = useState(false);
   const canvas = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: canvas, offset: ["start end", "end start"] });
@@ -46,7 +59,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     setSub("");
     setCategory("");
     setBookmarksOnly(false);
-    setDrill(null);
   };
 
   const matches = (event: TimelineEvent, node: TimeNode) =>
@@ -59,8 +71,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
         .includes(query.toLocaleLowerCase("vi")));
 
   const eras = useMemo(() => {
-    const source = drill ? [{ ...baseEras[0], title: drill.title, periodLabel: drill.periodLabel, subEras: [drill] }] : baseEras;
-    return source
+    return baseEras
       .filter((e) => !era || e.id === era)
       .map((e) => ({
         ...e,
@@ -71,7 +82,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
       }))
       .filter((e) => e.subEras.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseEras, drill, era, sub, category, bookmarksOnly, query, saved]);
+  }, [baseEras, era, sub, category, bookmarksOnly, query, saved]);
 
   const visibleNodes = useMemo(() => eras.flatMap((e) => e.subEras.flatMap((s) => s.timeNodes)), [eras]);
   const selectedNode = visibleNodes.find((n) => n.id === selected) || visibleNodes[0];
@@ -80,14 +91,16 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     setActive(id);
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-  const openQuiz = (s: SubEra) => setQuiz(s);
-  const toggleSaved = (id: string) => setSaved((v) => (v.includes(id) ? v.filter((x) => x !== id) : [...v, id]));
-  const enter = (s: SubEra) => {
-    setDrill(s);
-    setEra("");
-    setSub("");
-    canvas.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const toggleSaved = (id: string) =>
+    setSaved((v) => {
+      const next = v.includes(id) ? v.filter((x) => x !== id) : [...v, id];
+      try {
+        localStorage.setItem(SAVED_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // Storage can be unavailable (private mode); bookmarks then last for this visit only.
+      }
+      return next;
+    });
   const moveEvent = (direction: 1 | -1) => {
     if (!detail) return;
     const entries = allNodes.flatMap((n) => n.events.map((event) => ({ event, node: n })));
@@ -145,7 +158,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
               setTimeout(() => jump(e.subEras[0]?.id), 80);
             }}
             onJumpSubEra={(id) => {
-              if (era || sub || drill) reset();
+              if (era || sub) reset();
               setTimeout(() => jump(id), 80);
             }}
           />
@@ -155,12 +168,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
               <div className="sk-breadcrumb">
                 <Compass size={14} />
                 <span>Lịch sử Việt Nam</span>
-                <strong>{drill ? drill.title : "Tất cả thời kỳ"}</strong>
-                {drill && (
-                  <Button onClick={() => setDrill(null)}>
-                    <X size={14} /> Trở lại
-                  </Button>
-                )}
+                <strong>Tất cả thời kỳ</strong>
               </div>
               <div className="sk-split-control">
                 <SlidersHorizontal size={13} />
@@ -172,7 +180,13 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
               </div>
             </div>
 
-            {visibleNodes.length === 0 ? (
+            {allNodes.length === 0 ? (
+              <div className="sk-empty">
+                <Landmark size={36} />
+                <Heading>Chưa có dấu mốc nào được xuất bản</Heading>
+                <p>Dòng thời gian sẽ hiển thị khi có sự kiện được xuất bản trong hệ thống.</p>
+              </div>
+            ) : visibleNodes.length === 0 ? (
               <div className="sk-empty">
                 <Search size={36} />
                 <Heading>Chưa tìm thấy dấu mốc</Heading>
@@ -197,7 +211,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                       subs={allSubs}
                       onJumpToSub={(node) => setSelected(node.id)}
                       onDetail={setDetail}
-                      onDrill={enter}
                       onSave={toggleSaved}
                       saved={saved}
                     />
@@ -211,9 +224,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                             subEra={s}
                             compact={compact}
                             split={split}
-                            onQuiz={openQuiz}
                             onDetail={setDetail}
-                            onDrill={enter}
                             onSave={toggleSaved}
                             saved={saved}
                             onActive={setActive}
@@ -236,7 +247,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
       </div>
 
       <EventDetailModal detail={detail} onClose={() => setDetail(null)} onSelect={setDetail} onStep={moveEvent} />
-      <QuizModal quiz={quiz} onClose={() => setQuiz(null)} />
     </div>
   );
 }

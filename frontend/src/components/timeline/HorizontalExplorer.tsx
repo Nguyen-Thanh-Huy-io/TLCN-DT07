@@ -12,7 +12,6 @@ export function HorizontalExplorer({
   subs,
   onJumpToSub,
   onDetail,
-  onDrill,
   onSave,
   saved,
 }: {
@@ -22,7 +21,6 @@ export function HorizontalExplorer({
   subs: SubEra[];
   onJumpToSub: (node: TimeNode) => void;
   onDetail: (d: { event: TimelineEvent; node: TimeNode }) => void;
-  onDrill: (s: SubEra) => void;
   onSave: (id: string) => void;
   saved: string[];
 }) {
@@ -35,7 +33,9 @@ export function HorizontalExplorer({
             key={n.id}
             onClick={() => onSelectNode(n.id)}
           >
-            <span>{n.nodeType === "SPAN" ? <span className="sk-span-dot" /> : <span className="sk-scrubber-dot" />}</span>
+            <span>
+              <span className="sk-scrubber-dot" />
+            </span>
             <strong>{n.dateLabel}</strong>
             <small>{n.events.length} sự kiện</small>
           </Button>
@@ -47,7 +47,7 @@ export function HorizontalExplorer({
             <Badge>KHÔNG GIAN KHÁM PHÁ</Badge>
             <Heading>{selectedNode.dateLabel}</Heading>
           </div>
-          <NodeContent node={selectedNode} onDetail={onDetail} onDrill={onDrill} onSave={onSave} saved={saved} workspace />
+          <NodeContent node={selectedNode} onDetail={onDetail} onSave={onSave} saved={saved} workspace />
           <div className="sk-next-phases">
             <span>Khám phá giai đoạn</span>
             {subs

@@ -5,18 +5,27 @@ import { MapPin, Users } from "lucide-react";
 import { Heading, Badge } from "./sk-ui";
 import type { TimelineFigure, TimelineLocation } from "./sk-types";
 
+type WithEvents<T> = T & { eventTitles?: string[] };
+
+function EventTitles({ titles }: { titles?: string[] }) {
+  if (!titles || titles.length === 0) return null;
+  return <small className="sk-entity-events">Trong sự kiện: {titles.join("; ")}</small>;
+}
+
 export function EntityList({
   figures,
   locations,
   tab,
+  showEventTitles = false,
 }: {
-  figures: TimelineFigure[];
-  locations: TimelineLocation[];
+  figures: WithEvents<TimelineFigure>[];
+  locations: WithEvents<TimelineLocation>[];
   tab: string;
+  showEventTitles?: boolean;
 }) {
   if (tab === "figures") {
     if (figures.length === 0) {
-      return <p className="sk-muted">Chưa có dữ liệu nhân vật cho sự kiện này.</p>;
+      return <p className="sk-muted">Chưa có nhân vật nào được liên kết.</p>;
     }
     return (
       <div className="sk-entity-list">
@@ -30,6 +39,7 @@ export function EntityList({
                 {f.slug ? <Link href={`/nhan-vat?nv=${encodeURIComponent(f.slug)}`}>{f.name}</Link> : f.name}
               </Heading>
               <Badge>{f.role}</Badge>
+              {showEventTitles && <EventTitles titles={f.eventTitles} />}
               <p>{f.bio}</p>
             </div>
           </div>
@@ -39,7 +49,7 @@ export function EntityList({
   }
 
   if (locations.length === 0) {
-    return <p className="sk-muted">Chưa có dữ liệu địa điểm cho sự kiện này.</p>;
+    return <p className="sk-muted">Chưa có địa điểm nào được liên kết.</p>;
   }
   return (
     <div className="sk-entity-list">
@@ -54,6 +64,7 @@ export function EntityList({
               {l.modernName}
               {l.coordinates && ` · ${l.coordinates}`}
             </small>
+            {showEventTitles && <EventTitles titles={l.eventTitles} />}
             <p>{l.description}</p>
           </div>
         </div>

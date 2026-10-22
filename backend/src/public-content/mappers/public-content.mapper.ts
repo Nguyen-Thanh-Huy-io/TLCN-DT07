@@ -206,6 +206,7 @@ export class PublicContentMapper {
       eventDateNote: event.eventDateNote,
       location: locName,
       description: event.description,
+      imageUrl: event.thumbnailUrl,
       category: event.category,
       periodSlug: event.period?.slug ?? null,
       figures: participants

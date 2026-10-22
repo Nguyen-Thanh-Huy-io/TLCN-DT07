@@ -227,6 +227,9 @@ export interface PublicLocationSummaryDto {
   /** Mã loại di tích chuẩn hóa (LocationType). */
   siteType?: string;
   siteTypeLabel?: string;
+  /** Mã cấp xếp hạng (danh mục HERITAGE_RANK); null = chưa xếp hạng. */
+  rankCode?: string | null;
+  rankLabel?: string | null;
   recognitionLevel?: string | null;
   constructionLabel?: string | null;
   periodSlug?: string | null;

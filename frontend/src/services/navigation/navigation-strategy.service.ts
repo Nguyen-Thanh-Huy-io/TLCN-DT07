@@ -216,7 +216,6 @@ export class OperationsNavStrategy implements INavigationGroupStrategy {
         page: 'review',
         route: APP_ROUTES.REVIEW,
         groupId: this.groupId,
-        badgeCount: 8,
         subtitle: 'Kiểm duyệt chất lượng',
       },
       {
@@ -228,11 +227,20 @@ export class OperationsNavStrategy implements INavigationGroupStrategy {
         groupId: this.groupId,
         subtitle: 'Tài khoản & Phân quyền',
       },
+      {
+        id: 'nav-taxonomies',
+        label: 'Danh mục dùng chung',
+        icon: IconName.TAG,
+        page: 'taxonomies',
+        route: APP_ROUTES.TAXONOMIES,
+        groupId: this.groupId,
+        subtitle: 'Loại di tích, hiện trạng, xếp hạng...',
+      },
     ];
   }
 
   matchesPage(pageKey: string): boolean {
-    return ['review', 'users'].includes(pageKey);
+    return ['review', 'users', 'taxonomies'].includes(pageKey);
   }
 
   getItemByPage(pageKey: string): NavItemConfig | undefined {
@@ -286,6 +294,7 @@ export class NavigationFacade {
     }
     if (pageKey === 'review') return 'review';
     if (pageKey === 'users') return 'users';
+    if (pageKey === 'taxonomies') return 'taxonomies';
     return 'dashboard';
   }
 

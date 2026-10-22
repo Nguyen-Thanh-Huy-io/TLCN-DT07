@@ -47,6 +47,7 @@ export const APP_ROUTES = {
   },
   REVIEW: '/review',
   USERS: '/users',
+  TAXONOMIES: '/taxonomies',
 } as const;
 
 export type NavigationPageKey =
@@ -61,4 +62,5 @@ export type NavigationPageKey =
   | 'entities'
   | 'tags'
   | 'review'
-  | 'users';
+  | 'users'
+  | 'taxonomies';

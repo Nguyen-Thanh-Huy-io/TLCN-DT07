@@ -91,7 +91,8 @@ export function toHeritageSummaries(
       province: provinceOf(site.address),
       // Khu vực: theo thời kỳ gắn với di tích, không có thì theo thời kỳ của các sự kiện diễn ra tại đó.
       region: regionLabel((ownPeriod ? rootOf(ownPeriod.slug) : undefined)?.region ?? siteEvents.map((e) => rootOf(e.periodSlug)).find(Boolean)?.region ?? null),
-      rank: rankOf(site.recognitionLevel),
+      // Mã xếp hạng từ danh mục dùng chung; dữ liệu cũ chưa quy đổi thì đoán từ chữ.
+      rank: ((site.rankCode as HeritageRank | null | undefined) ?? rankOf(site.recognitionLevel)) || 'UNRANKED',
       category: CATEGORY_BY_SITE_TYPE[site.siteType ?? ''] ?? 'MEMORIAL_STELE',
       recognizedYear: '',
       // Thời kỳ khởi dựng: niên đại xây dựng nếu có, rồi thời kỳ gắn với di tích, rồi sự kiện sớm nhất.

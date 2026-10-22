@@ -98,4 +98,8 @@ export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
     title: 'Người dùng',
     subtitle: 'Quản lý tài khoản và phân quyền hệ thống',
   },
+  taxonomies: {
+    title: 'Danh mục dùng chung',
+    subtitle: 'Loại di tích, hiện trạng, xếp hạng... dùng cho bộ lọc toàn hệ thống',
+  },
 };

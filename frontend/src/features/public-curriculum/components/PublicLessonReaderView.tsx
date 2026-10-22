@@ -4,7 +4,19 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronLeft, Clock3, ExternalLink, ListTree, Menu, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  ChevronLeft,
+  Clock3,
+  ExternalLink,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  X,
+} from 'lucide-react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import {
@@ -18,6 +30,48 @@ import { HubSyllabus, chapterLabel } from './hub/HubSyllabus';
 import { HubLessonQuiz } from './hub/HubLessonQuiz';
 import { HubLessonGate } from './hub/HubLessonGate';
 import { useLessonProgress } from './hub/useLessonProgress';
+import { LessonToc } from './hub/LessonToc';
+import { LessonRelated } from './hub/LessonRelated';
+
+const SYLLABUS_STORAGE_KEY = 'hisgo:lesson-reader:syllabus';
+
+/** Cột đề cương bên trái, dính theo khi cuộn; thu gọn thành một thanh hẹp. */
+function SyllabusColumn({ open, onToggle, children }: { open: boolean; onToggle: () => void; children: React.ReactNode }) {
+  return (
+    <aside className="hidden lg:block">
+      <div className="sticky top-24">
+        {open ? (
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-[0.14em] text-lh-brand">Nội dung lộ trình</span>
+              <button
+                type="button"
+                onClick={onToggle}
+                className="grid size-8 place-items-center rounded-lg text-lh-muted transition hover:bg-lh-surface-2 hover:text-lh-ink"
+                aria-label="Ẩn nội dung lộ trình"
+                title="Ẩn nội dung lộ trình"
+              >
+                <PanelLeftClose className="size-4" />
+              </button>
+            </div>
+            <div className="max-h-[calc(100vh-9rem)] overflow-y-auto pr-1">{children}</div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="flex w-12 flex-col items-center gap-3 rounded-xl border border-lh-line bg-lh-surface py-4 text-lh-muted transition hover:border-lh-brand/40 hover:text-lh-brand"
+            aria-label="Hiện nội dung lộ trình"
+            title="Hiện nội dung lộ trình"
+          >
+            <PanelLeftOpen className="size-4" />
+            <span className="text-xs font-semibold [writing-mode:vertical-rl]">Nội dung lộ trình</span>
+          </button>
+        )}
+      </div>
+    </aside>
+  );
+}
 
 interface PublicLessonReaderViewProps {
   slug: string;
@@ -48,7 +102,32 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
   } = usePublicLessonReaderFacade(slug, pathId);
   const { isCompleted, markCompleted, enroll } = useLessonProgress();
   const [mobileSyllabus, setMobileSyllabus] = useState(false);
+  const [syllabusOpen, setSyllabusOpen] = useState(true);
   const router = useRouter();
+
+  // Nhớ lựa chọn ẩn/hiện đề cương trên trình duyệt này (đọc sau khi mount để SSR khớp).
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(SYLLABUS_STORAGE_KEY) === 'closed') setSyllabusOpen(false);
+    } catch {
+      // Không dùng được storage (chế độ riêng tư) → giữ mặc định mở.
+    }
+  }, []);
+  const toggleSyllabus = () =>
+    setSyllabusOpen((open) => {
+      try {
+        localStorage.setItem(SYLLABUS_STORAGE_KEY, open ? 'closed' : 'open');
+      } catch {
+        // Bỏ qua: chỉ là tiện ích nhớ trạng thái.
+      }
+      return !open;
+    });
+  // Cột: [đề cương] [bài đọc] [mục lục + liên quan — chỉ màn rộng].
+  const readerColumns = learningPath
+    ? syllabusOpen
+      ? 'lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[17rem_minmax(0,1fr)_15rem]'
+      : 'lg:grid-cols-[3rem_minmax(0,1fr)] xl:grid-cols-[3rem_minmax(0,1fr)_15rem]'
+    : 'xl:grid-cols-[minmax(0,1fr)_15rem]';
 
   // Passing the end-of-lesson quiz counts as finishing the lesson.
   useEffect(() => {
@@ -101,7 +180,12 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
             <div className="hidden h-96 animate-pulse rounded-2xl bg-lh-surface-2 lg:block" />
           </div>
         ) : access !== 'GRANTED' ? (
-          <div className={`grid gap-8 ${learningPath ? 'lg:grid-cols-[minmax(0,1fr)_22rem]' : ''}`}>
+          <div className={`grid gap-8 ${learningPath ? (syllabusOpen ? 'lg:grid-cols-[17rem_minmax(0,1fr)]' : 'lg:grid-cols-[3rem_minmax(0,1fr)]') : ''}`}>
+            {learningPath && (
+              <SyllabusColumn open={syllabusOpen} onToggle={toggleSyllabus}>
+                <HubSyllabus path={learningPath} isCompleted={isCompleted} />
+              </SyllabusColumn>
+            )}
             <HubLessonGate
               access={access}
               preview={lockedPreview}
@@ -111,13 +195,6 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
                 await reload();
               }}
             />
-            {learningPath && (
-              <aside className="hidden lg:block">
-                <div className="sticky top-24">
-                  <HubSyllabus path={learningPath} isCompleted={isCompleted} />
-                </div>
-              </aside>
-            )}
           </div>
         ) : error || !lesson ? (
           <div className="mx-auto max-w-xl rounded-2xl border border-lh-red/30 bg-lh-red-soft p-10 text-center">
@@ -128,7 +205,12 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
             </Link>
           </div>
         ) : (
-          <div className={`grid gap-8 ${learningPath ? 'lg:grid-cols-[minmax(0,1fr)_22rem]' : ''}`}>
+          <div className={`grid gap-8 ${readerColumns}`}>
+            {learningPath && (
+              <SyllabusColumn open={syllabusOpen} onToggle={toggleSyllabus}>
+                <HubSyllabus path={learningPath} activeLessonId={lesson.id} isCompleted={isCompleted} />
+              </SyllabusColumn>
+            )}
             <AnimatePresence mode="wait">
               <motion.section
                 key={lesson.id}
@@ -186,30 +268,10 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
                   <img src={lesson.thumbnailUrl || DEFAULT_COVER_IMAGES[0]} alt={lesson.title} className="aspect-[2.2/1] w-full object-cover" />
                 </div>
 
-                {tocItems.length > 1 && (
-                  <nav className="mb-7 rounded-2xl border border-lh-line bg-lh-surface p-4" aria-label="Mục lục bài học">
-                    <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-lh-brand">
-                      <ListTree className="size-4" /> Mục lục
-                    </div>
-                    <ol className="grid gap-1 sm:grid-cols-2">
-                      {tocItems.map((item, idx) => (
-                        <li key={item.id} style={{ paddingLeft: `${Math.max(0, item.level - 1) * 12}px` }}>
-                          <a
-                            href={`#${item.id}`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth' });
-                            }}
-                            className="flex gap-2 rounded-lg px-2 py-1.5 text-sm text-lh-ink transition hover:bg-lh-surface-2 hover:text-lh-brand"
-                          >
-                            <span className="font-bold text-lh-gold">{idx + 1}.</span>
-                            {item.text}
-                          </a>
-                        </li>
-                      ))}
-                    </ol>
-                  </nav>
-                )}
+                {/* Màn hẹp: mục lục nằm trên bài; màn rộng: chuyển sang cột phải. */}
+                <div className="xl:hidden">
+                  <LessonToc items={tocItems} />
+                </div>
 
                 <article className="rounded-2xl border border-lh-line bg-lh-surface p-6 md:p-9">
                   <div
@@ -240,6 +302,10 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
                     </div>
                   )}
                 </article>
+
+                <div className="xl:hidden">
+                  <LessonRelated html={compiledHtml} />
+                </div>
 
                 {quiz && quiz.questions?.length > 0 && (
                   <div className="mt-8">
@@ -278,13 +344,13 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
               </motion.section>
             </AnimatePresence>
 
-            {learningPath && (
-              <aside className="hidden lg:block">
-                <div className="sticky top-24">
-                  <HubSyllabus path={learningPath} activeLessonId={lesson.id} isCompleted={isCompleted} />
-                </div>
-              </aside>
-            )}
+            {/* Cột phải (màn rộng): mục lục + thông tin liên quan, dính theo khi cuộn. */}
+            <aside className="hidden xl:block">
+              <div className="sticky top-24 grid max-h-[calc(100vh-7rem)] gap-6 overflow-y-auto pb-4 pr-1">
+                <LessonToc items={tocItems} compact />
+                <LessonRelated html={compiledHtml} compact />
+              </div>
+            </aside>
           </div>
         )}
 
@@ -300,11 +366,11 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
                 exit={{ opacity: 0 }}
               />
               <motion.aside
-                initial={{ x: '100%' }}
+                initial={{ x: '-100%' }}
                 animate={{ x: 0 }}
-                exit={{ x: '100%' }}
+                exit={{ x: '-100%' }}
                 transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-                className="fixed bottom-0 right-0 top-0 z-[70] w-[min(92vw,24rem)] overflow-y-auto bg-lh-canvas p-4 shadow-2xl lg:hidden"
+                className="fixed bottom-0 left-0 top-0 z-[70] w-[min(92vw,24rem)] overflow-y-auto bg-lh-canvas p-4 shadow-2xl lg:hidden"
               >
                 <div className="mb-4 flex items-center justify-between">
                   <div className="font-[family-name:var(--font-heading)] text-xl font-bold text-lh-ink">Chương trình học</div>

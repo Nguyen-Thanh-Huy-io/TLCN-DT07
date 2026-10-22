@@ -6,7 +6,7 @@ import type {
   PublicPeriodDto,
 } from '@/services/entities/landing.service';
 import type { LibraryLesson } from '@/services/entities/learner.service';
-import { buildSearchIndex, type SearchEntry } from './search-index';
+import { buildSearchIndex, type SearchEntry, type SearchSource } from './search-index';
 
 const ENDPOINTS = {
   PERIODS: '/public/periods',
@@ -27,23 +27,38 @@ async function list<T>(endpoint: string): Promise<T[]> {
   }
 }
 
-let cached: Promise<SearchEntry[]> | null = null;
+let catalog: Promise<SearchSource> | null = null;
 
-/** Tải chỉ mục một lần cho cả phiên (lần đầu mở ô tìm kiếm), các lần sau dùng lại. */
-export function loadSearchIndex(): Promise<SearchEntry[]> {
-  if (!cached) {
-    cached = Promise.all([
+/**
+ * Dữ liệu công khai (thời kỳ, sự kiện, nhân vật, địa danh, bài học) tải một lần cho cả phiên,
+ * dùng chung cho ô tìm kiếm toàn cục và phần "liên quan" của bài học.
+ */
+export function loadPublicCatalog(): Promise<SearchSource> {
+  if (!catalog) {
+    catalog = Promise.all([
       list<PublicPeriodDto>(ENDPOINTS.PERIODS),
       list<PublicEventSummaryDto>(ENDPOINTS.EVENTS),
       list<PublicFigureProfileDto>(ENDPOINTS.FIGURES),
       list<PublicLocationSummaryDto>(ENDPOINTS.LOCATIONS),
       list<LibraryLesson>(ENDPOINTS.LESSONS),
-    ]).then(([periods, events, figures, locations, lessons]) =>
-      buildSearchIndex({ periods, events, figures, locations, lessons }),
-    );
-    cached.then((entries) => {
-      if (entries.length === 0) cached = null; // Lỗi mạng toàn bộ → lần sau thử lại.
+    ]).then(([periods, events, figures, locations, lessons]) => ({ periods, events, figures, locations, lessons }));
+    catalog.then((c) => {
+      // Lỗi mạng toàn bộ → lần sau thử lại.
+      if (!c.periods.length && !c.events.length && !c.figures.length) catalog = null;
     });
   }
-  return cached;
+  return catalog;
+}
+
+let index: Promise<SearchEntry[]> | null = null;
+
+/** Chỉ mục tìm kiếm, dựng một lần từ dữ liệu công khai. */
+export function loadSearchIndex(): Promise<SearchEntry[]> {
+  if (!index) {
+    index = loadPublicCatalog().then(buildSearchIndex);
+    index.then((entries) => {
+      if (entries.length === 0) index = null;
+    });
+  }
+  return index;
 }

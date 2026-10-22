@@ -3,8 +3,9 @@
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import { ArrowDownUp, ArrowRight, Compass, Landmark, Search, SlidersHorizontal, X } from "lucide-react";
-import { Button, Heading, Select } from "./sk-ui";
-import { FilterBar, matchesRegion, regionOptions } from "./FilterBar";
+import { Button, Heading } from "./sk-ui";
+import { EMPTY_FILTERS, FilterBar, matchesRegion, regionOptions, type TimelineFilters } from "./FilterBar";
+import { FilterSheet } from "./FilterSheet";
 import { Minimap } from "./Minimap";
 import { EraSection } from "./EraSection";
 import { SubEraSection, SplitMode } from "./SubEraSection";
@@ -13,6 +14,11 @@ import { EventDetailModal } from "./EventDetailModal";
 import type { Era, TimeNode, TimelineEvent } from "./sk-types";
 
 const SAVED_STORAGE_KEY = "hisgo:timeline:saved-events";
+const SPLIT_LABELS: Record<SplitMode, string> = {
+  alternating: "So le hai bên",
+  scope: "Việt Nam / Thế giới",
+  domain: "Chính trị / Văn hóa",
+};
 
 function readSaved(): string[] {
   try {
@@ -21,6 +27,40 @@ function readSaved(): string[] {
   } catch {
     return [];
   }
+}
+
+type FilterScope = { query: string; bookmarksOnly: boolean; saved: string[] };
+
+function matchesEvent(event: TimelineEvent, node: TimeNode, f: TimelineFilters, scope: FilterScope): boolean {
+  const q = scope.query.toLocaleLowerCase("vi");
+  return (
+    (!f.category || event.category === f.category) &&
+    matchesRegion(event, f.region) &&
+    (!scope.bookmarksOnly || scope.saved.includes(event.id)) &&
+    (!q ||
+      [event.title, event.summary, ...event.tags, ...node.figures.map((x) => x.name), ...node.locations.map((l) => l.name)]
+        .join(" ")
+        .toLocaleLowerCase("vi")
+        .includes(q))
+  );
+}
+
+function filterEras(baseEras: Era[], f: TimelineFilters, scope: FilterScope): Era[] {
+  return baseEras
+    .filter((e) => !f.era || e.id === f.era)
+    .map((e) => ({
+      ...e,
+      subEras: e.subEras
+        .filter((s) => !f.sub || s.id === f.sub)
+        .map((s) => ({
+          ...s,
+          timeNodes: s.timeNodes
+            .map((n) => ({ ...n, events: n.events.filter((ev) => matchesEvent(ev, n, f, scope)) }))
+            .filter((n) => n.events.length),
+        }))
+        .filter((s) => s.timeNodes.length),
+    }))
+    .filter((e) => e.subEras.length);
 }
 
 export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?: ReactNode }) {
@@ -32,6 +72,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   const [horizontal, setHorizontal] = useState(false);
   const [compact, setCompact] = useState(false);
   const [split, setSplit] = useState<SplitMode>("alternating");
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [active, setActive] = useState("");
   const [detail, setDetail] = useState<{ event: TimelineEvent; node: TimeNode } | null>(null);
   const [selected, setSelected] = useState("");
@@ -55,38 +96,30 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     return Array.from(seen);
   }, [allNodes]);
 
+  const filters: TimelineFilters = { era, sub, category, region };
+  const setFilters = (f: TimelineFilters) => {
+    setEra(f.era);
+    setSub(f.sub);
+    setCategory(f.category);
+    setRegion(f.region);
+  };
+
   const reset = () => {
     setQuery("");
-    setEra("");
-    setSub("");
-    setCategory("");
-    setRegion("");
+    setFilters(EMPTY_FILTERS);
     setBookmarksOnly(false);
   };
 
-  const matches = (event: TimelineEvent, node: TimeNode) =>
-    (!category || event.category === category) &&
-    matchesRegion(event, region) &&
-    (!bookmarksOnly || saved.includes(event.id)) &&
-    (!query ||
-      [event.title, event.summary, ...event.tags, ...node.figures.map((f) => f.name), ...node.locations.map((l) => l.name)]
-        .join(" ")
-        .toLocaleLowerCase("vi")
-        .includes(query.toLocaleLowerCase("vi")));
-
-  const eras = useMemo(() => {
-    return baseEras
-      .filter((e) => !era || e.id === era)
-      .map((e) => ({
-        ...e,
-        subEras: e.subEras
-          .filter((s) => !sub || s.id === sub)
-          .map((s) => ({ ...s, timeNodes: s.timeNodes.map((n) => ({ ...n, events: n.events.filter((ev) => matches(ev, n)) })).filter((n) => n.events.length) }))
-          .filter((s) => s.timeNodes.length),
-      }))
-      .filter((e) => e.subEras.length);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseEras, era, sub, category, region, bookmarksOnly, query, saved]);
+  const scope = { query, bookmarksOnly, saved };
+  const eras = useMemo(
+    () => filterEras(baseEras, { era, sub, category, region }, { query, bookmarksOnly, saved }),
+    [baseEras, era, sub, category, region, bookmarksOnly, query, saved],
+  );
+  const countFor = (f: TimelineFilters) =>
+    filterEras(baseEras, f, scope).reduce(
+      (sum, e) => sum + e.subEras.reduce((s, sb) => s + sb.timeNodes.reduce((n, node) => n + node.events.length, 0), 0),
+      0,
+    );
 
   const visibleNodes = useMemo(() => eras.flatMap((e) => e.subEras.flatMap((s) => s.timeNodes)), [eras]);
   const selectedNode = visibleNodes.find((n) => n.id === selected) || visibleNodes[0];
@@ -136,23 +169,31 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
         <FilterBar
           query={query}
           onQuery={setQuery}
-          era={era}
-          onEra={setEra}
-          sub={sub}
-          onSub={setSub}
-          category={category}
-          onCategory={setCategory}
-          region={region}
-          onRegion={setRegion}
-          regions={allRegions}
+          filters={filters}
+          onFilters={setFilters}
+          onOpenSheet={() => setSheetOpen(true)}
+          eras={baseEras}
+          subs={allSubs}
           compact={compact}
           onCompact={() => setCompact(!compact)}
           bookmarksOnly={bookmarksOnly}
           onBookmarksOnly={() => setBookmarksOnly(!bookmarksOnly)}
           savedCount={saved.length}
+        />
+        <FilterSheet
+          open={sheetOpen}
+          value={filters}
+          split={split}
+          onApply={(f, s) => {
+            setFilters(f);
+            setSplit(s);
+            setSheetOpen(false);
+          }}
+          onClose={() => setSheetOpen(false)}
+          countFor={countFor}
           eras={baseEras}
-          subs={allSubs}
           categories={allCategories}
+          regions={allRegions}
         />
 
         <div className="sk-workspace">
@@ -177,14 +218,10 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                 <span>Lịch sử Việt Nam</span>
                 <strong>Tất cả thời kỳ</strong>
               </div>
-              <div className="sk-split-control">
+              <button type="button" className="sk-split-control" onClick={() => setSheetOpen(true)}>
                 <SlidersHorizontal size={13} />
-                <Select label="Phân luồng" value={split} onChange={(v) => setSplit(v as SplitMode)}>
-                  <option value="alternating">So le hai bên</option>
-                  <option value="scope">Trong nước / Thế giới</option>
-                  <option value="domain">Chính trị / Văn hóa</option>
-                </Select>
-              </div>
+                {SPLIT_LABELS[split]}
+              </button>
             </div>
 
             {allNodes.length === 0 ? (

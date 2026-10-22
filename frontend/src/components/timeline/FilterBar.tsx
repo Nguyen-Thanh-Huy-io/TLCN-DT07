@@ -1,8 +1,21 @@
 "use client";
 
-import { Bookmark, LayoutList, Search, X } from "lucide-react";
-import { Button, Input, Select } from "./sk-ui";
+import { Bookmark, LayoutList, Search, SlidersHorizontal, X } from "lucide-react";
+import { Button, Input } from "./sk-ui";
 import type { Era, TimelineEvent } from "./sk-types";
+
+export interface TimelineFilters {
+  era: string;
+  sub: string;
+  category: string;
+  region: string;
+}
+
+export const EMPTY_FILTERS: TimelineFilters = { era: "", sub: "", category: "", region: "" };
+
+export function activeFilterCount(filters: TimelineFilters): number {
+  return [filters.era, filters.sub, filters.category, filters.region].filter(Boolean).length;
+}
 
 /** Quốc gia / khu vực thực sự có dấu mốc (theo Period.region), xếp theo tên. */
 export function regionOptions(events: TimelineEvent[]): string[] {
@@ -17,44 +30,40 @@ export function matchesRegion(event: TimelineEvent, filter: string): boolean {
 export function FilterBar({
   query,
   onQuery,
-  era,
-  onEra,
-  sub,
-  onSub,
-  category,
-  onCategory,
+  filters,
+  onFilters,
+  onOpenSheet,
+  eras,
+  subs,
   compact,
   onCompact,
   bookmarksOnly,
   onBookmarksOnly,
   savedCount,
-  eras,
-  subs,
-  categories,
-  region,
-  onRegion,
-  regions,
 }: {
   query: string;
   onQuery: (v: string) => void;
-  era: string;
-  onEra: (v: string) => void;
-  sub: string;
-  onSub: (v: string) => void;
-  category: string;
-  onCategory: (v: string) => void;
+  filters: TimelineFilters;
+  onFilters: (f: TimelineFilters) => void;
+  onOpenSheet: () => void;
+  eras: Era[];
+  subs: Era["subEras"];
   compact: boolean;
   onCompact: () => void;
   bookmarksOnly: boolean;
   onBookmarksOnly: () => void;
   savedCount: number;
-  eras: Era[];
-  subs: Era["subEras"];
-  categories: string[];
-  region: string;
-  onRegion: (v: string) => void;
-  regions: string[];
 }) {
+  const count = activeFilterCount(filters);
+  // Bộ lọc đang bật hiển thị thành chip có nút xóa, để không phải mở lại hộp thoại.
+  const chips: Array<{ key: string; label: string; clear: Partial<TimelineFilters> }> = [];
+  if (filters.region) chips.push({ key: "region", label: filters.region, clear: { region: "" } });
+  if (filters.era)
+    chips.push({ key: "era", label: eras.find((e) => e.id === filters.era)?.title ?? "Thời kỳ", clear: { era: "", sub: "" } });
+  if (filters.sub)
+    chips.push({ key: "sub", label: subs.find((s) => s.id === filters.sub)?.title ?? "Giai đoạn", clear: { sub: "" } });
+  if (filters.category) chips.push({ key: "category", label: filters.category, clear: { category: "" } });
+
   return (
     <div className="sk-filter-bar">
       <div className="sk-search-field">
@@ -71,43 +80,11 @@ export function FilterBar({
           </Button>
         )}
       </div>
-      <Select
-        label="Thời kỳ"
-        value={era}
-        onChange={(v) => {
-          onEra(v);
-          onSub("");
-        }}
-      >
-        <option value="">Tất cả thời kỳ</option>
-        {eras.map((e) => (
-          <option value={e.id} key={e.id}>
-            {e.title}
-          </option>
-        ))}
-      </Select>
-      <Select label="Giai đoạn" value={sub} onChange={onSub}>
-        <option value="">Giai đoạn</option>
-        {subs.filter((s) => !era || s.eraId === era).map((s) => (
-          <option value={s.id} key={s.id}>
-            {s.title}
-          </option>
-        ))}
-      </Select>
-      <Select label="Danh mục" value={category} onChange={onCategory}>
-        <option value="">Danh mục</option>
-        {categories.map((c) => (
-          <option key={c}>{c}</option>
-        ))}
-      </Select>
-      <Select label="Quốc gia / khu vực" value={region} onChange={onRegion}>
-        <option value="">Tất cả quốc gia / khu vực</option>
-        {regions.map((r) => (
-          <option key={r} value={r}>
-            {r}
-          </option>
-        ))}
-      </Select>
+      <Button className={`sk-filter-open ${count ? "sk-is-on" : ""}`} onClick={onOpenSheet} aria-haspopup="dialog">
+        <SlidersHorizontal size={16} />
+        <span>Bộ lọc</span>
+        {count > 0 && <span className="sk-badge">{count}</span>}
+      </Button>
       <span className="sk-filter-divider" />
       <Button className={`sk-saved-button ${bookmarksOnly ? "sk-is-on" : ""}`} onClick={onBookmarksOnly}>
         <Bookmark size={15} fill={bookmarksOnly ? "currentColor" : "none"} />
@@ -119,6 +96,21 @@ export function FilterBar({
         <span>Thu gọn</span>
         <span className={`sk-switch ${compact ? "sk-on" : ""}`} />
       </Button>
+      {chips.length > 0 && (
+        <div className="sk-active-filters">
+          {chips.map((c) => (
+            <button key={c.key} type="button" onClick={() => onFilters({ ...filters, ...c.clear })} aria-label={`Bỏ lọc ${c.label}`}>
+              {c.label}
+              <X size={13} />
+            </button>
+          ))}
+          {chips.length > 1 && (
+            <button type="button" className="sk-active-clear" onClick={() => onFilters(EMPTY_FILTERS)}>
+              Xóa tất cả
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

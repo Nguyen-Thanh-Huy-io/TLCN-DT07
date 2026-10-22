@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronDown, ChevronsUpDown, Layers, Sparkles } from "lucide-react";
-import { Button, Heading } from "./sk-ui";
+import { ChevronDown, ChevronsUpDown, Layers } from "lucide-react";
+import { Button } from "./sk-ui";
 import type { Era } from "./sk-types";
 
 export function Minimap({
@@ -50,14 +50,6 @@ export function Minimap({
           </div>
         </div>
       ))}
-      <div className="sk-sidebar-note">
-        <div className="sk-note-icon">
-          <Sparkles size={20} />
-        </div>
-        <Heading level={3}>Lịch sử không hề xa.</Heading>
-        <p>Chọn một dấu mốc và bắt đầu hành trình của riêng bạn.</p>
-        <span>Học từ quá khứ, hiểu về hôm nay.</span>
-      </div>
       <div className="sk-sidebar-bottom">
         <span className="sk-status-dot" /> Đang khám phá {totalEvents} dấu mốc
       </div>

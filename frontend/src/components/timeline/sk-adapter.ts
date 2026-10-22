@@ -10,6 +10,7 @@ import type { Era, SubEra, TimeNode, TimelineEvent, TimelineFigure, TimelineLoca
 function toTimelineFigure(figure: PublicFigureDto): TimelineFigure {
   return {
     id: figure.id,
+    slug: figure.slug,
     name: figure.name,
     role: figure.tagline || "Nhân vật lịch sử",
     avatarUrl: figure.imageUrl || undefined,

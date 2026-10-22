@@ -39,6 +39,46 @@ export class PublicFigureDto {
   @ApiPropertyOptional({ nullable: true }) deathYear: number | null;
 }
 
+export class PublicFigureEventDto {
+  @ApiProperty() id: string;
+  @ApiPropertyOptional({ nullable: true }) slug: string | null;
+  @ApiProperty() title: string;
+  @ApiProperty() startYear: number;
+  @ApiPropertyOptional({ nullable: true }) eventDateNote: string | null;
+  @ApiPropertyOptional({ nullable: true }) description: string | null;
+  @ApiProperty({ enum: EventCategory }) category: EventCategory;
+  @ApiPropertyOptional({ nullable: true }) periodSlug: string | null;
+  @ApiProperty({ example: 'COMMANDER' }) role: string;
+  @ApiPropertyOptional({ nullable: true }) roleLabel: string | null;
+  @ApiProperty() isPrimary: boolean;
+}
+
+export class PublicFigureRelationDto {
+  @ApiProperty() figureId: string;
+  @ApiProperty() slug: string;
+  @ApiProperty() name: string;
+  @ApiProperty({ example: 'SUCCESSOR_TO' }) relationType: string;
+  @ApiProperty({ enum: ['OUTGOING', 'INCOMING'] })
+  direction: 'OUTGOING' | 'INCOMING';
+  @ApiPropertyOptional({ nullable: true }) note: string | null;
+  @ApiPropertyOptional({ nullable: true }) startYear: number | null;
+  @ApiPropertyOptional({ nullable: true }) endYear: number | null;
+}
+
+export class PublicFigureProfileDto extends PublicFigureDto {
+  @ApiProperty({ type: [String] }) aliases: string[];
+  @ApiPropertyOptional({ nullable: true }) birthDateLabel: string | null;
+  @ApiPropertyOptional({ nullable: true }) deathDateLabel: string | null;
+  @ApiPropertyOptional({ nullable: true }) biography: string | null;
+  @ApiPropertyOptional({ nullable: true }) occupation: string | null;
+  @ApiProperty({ type: [String] }) titles: string[];
+  @ApiProperty({ type: [String] }) sources: string[];
+  @ApiPropertyOptional({ nullable: true }) periodSlug: string | null;
+  @ApiProperty({ type: [PublicFigureEventDto] }) events: PublicFigureEventDto[];
+  @ApiProperty({ type: [PublicFigureRelationDto] })
+  relationships: PublicFigureRelationDto[];
+}
+
 export class PublicLocationSummaryDto {
   @ApiProperty() id: string;
   @ApiProperty() slug: string;

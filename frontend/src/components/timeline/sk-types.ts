@@ -19,6 +19,7 @@ export interface TimelineEvent {
 
 export interface TimelineFigure {
   id: string;
+  slug?: string;
   name: string;
   role: string;
   avatarUrl?: string;

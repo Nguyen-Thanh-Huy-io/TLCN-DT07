@@ -53,12 +53,14 @@ export function Modal({
   title,
   children,
   sheet = false,
+  className = "",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children?: ReactNode;
   sheet?: boolean;
+  className?: string;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -91,10 +93,10 @@ export function Modal({
             key="sk-content"
             role="dialog"
             aria-modal="true"
-            className={sheet ? "sk-sheet" : "sk-dialog"}
-            initial={sheet ? { x: "100%" } : { opacity: 0, scale: 0.97 }}
-            animate={sheet ? { x: 0 } : { opacity: 1, scale: 1 }}
-            exit={sheet ? { x: "100%" } : { opacity: 0, scale: 0.97 }}
+            className={`${sheet ? "sk-sheet" : "sk-dialog"} ${className}`}
+            initial={sheet ? { x: "100%" } : { opacity: 0, scale: 0.97, x: "-50%", y: "-50%" }}
+            animate={sheet ? { x: 0 } : { opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+            exit={sheet ? { x: "100%" } : { opacity: 0, scale: 0.97, x: "-50%", y: "-50%" }}
             transition={sheet ? { type: "spring", damping: 28, stiffness: 260 } : { duration: 0.18 }}
           >
             <div className="sk-modal-heading">

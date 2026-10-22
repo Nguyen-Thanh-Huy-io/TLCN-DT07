@@ -145,6 +145,18 @@ export const ENTITY_RELATION_TYPE_LABELS: Record<EntityRelationType, string> = {
   [EntityRelationType.OTHER]: 'Quan hệ khác',
 };
 
+/** Nhãn cho mã vai trò của thực thể trong sự kiện (HistoricalEventEntity.role). */
+export const EVENT_ENTITY_ROLE_LABELS: Record<string, string> = {
+  COMMANDER: 'Chỉ huy',
+  PARTICIPANT: 'Tham gia',
+  BELLIGERENT: 'Bên tham chiến',
+  SIGNATORY: 'Đại diện ký kết',
+  LOCATION: 'Địa điểm diễn ra',
+  LEADER: 'Lãnh đạo',
+  INITIATOR: 'Khởi xướng',
+  ARTIFACT_USED: 'Hiện vật liên quan',
+};
+
 export enum EventRelationType {
   CAUSES = 'CAUSES',
   PRECEDES = 'PRECEDES',

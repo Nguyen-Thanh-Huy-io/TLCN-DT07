@@ -358,6 +358,59 @@ export async function fetchFigures(): Promise<PublicFigureDto[]> {
   }
 }
 
+export interface PublicFigureEventDto {
+  id: string;
+  slug: string | null;
+  title: string;
+  startYear: number;
+  eventDateNote: string | null;
+  description: string | null;
+  category: string;
+  periodSlug: string | null;
+  role: string;
+  roleLabel: string | null;
+  isPrimary: boolean;
+}
+
+export interface PublicFigureRelationDto {
+  figureId: string;
+  slug: string;
+  name: string;
+  relationType: string;
+  direction: 'OUTGOING' | 'INCOMING';
+  note: string | null;
+  startYear: number | null;
+  endYear: number | null;
+}
+
+export interface PublicFigureProfileDto extends PublicFigureDto {
+  aliases: string[];
+  birthDateLabel: string | null;
+  deathDateLabel: string | null;
+  biography: string | null;
+  occupation: string | null;
+  titles: string[];
+  sources: string[];
+  periodSlug: string | null;
+  events: PublicFigureEventDto[];
+  relationships: PublicFigureRelationDto[];
+}
+
+export async function fetchFigureDirectory(): Promise<PublicFigureProfileDto[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}/public/figures/directory`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchLocations(): Promise<PublicLocationSummaryDto[]> {
   try {
     const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');

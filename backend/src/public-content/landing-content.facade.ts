@@ -12,6 +12,7 @@ import {
   PublicEventSummaryDto,
   PublicFigureDetailDto,
   PublicFigureDto,
+  PublicFigureProfileDto,
   PublicLocationSummaryDto,
   PublicPeriodDetailDto,
   PublicPeriodDto,
@@ -85,6 +86,35 @@ export class LandingContentFacade {
       orderBy: [{ displayOrder: 'asc' }, { updatedAt: 'desc' }],
     });
     return entities.map((entity) => PublicContentMapper.toFigure(entity));
+  }
+
+  /** Danh bạ nhân vật: toàn bộ nhân vật đã xuất bản kèm sự kiện tham gia & quan hệ với nhân vật khác. */
+  async getFigureDirectory(): Promise<PublicFigureProfileDto[]> {
+    const publishedPerson = {
+      type: HistoricalEntityType.PERSON,
+      status: PUBLIC_CONTENT_STATUS,
+    };
+    const entities = await this.prisma.historicalEntity.findMany({
+      where: publishedPerson,
+      include: {
+        person: true,
+        period: { select: { slug: true } },
+        eventEntities: {
+          where: { event: { status: PUBLIC_CONTENT_STATUS } },
+          include: { event: { include: { period: { select: { slug: true } } } } },
+        },
+        outgoingRelations: {
+          where: { targetEntity: publishedPerson },
+          include: { targetEntity: true },
+        },
+        incomingRelations: {
+          where: { sourceEntity: publishedPerson },
+          include: { sourceEntity: true },
+        },
+      },
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+    });
+    return entities.map((entity) => PublicContentMapper.toFigureProfile(entity));
   }
 
   getSection(section: LandingSection): Promise<PublicTopicDto[]> {

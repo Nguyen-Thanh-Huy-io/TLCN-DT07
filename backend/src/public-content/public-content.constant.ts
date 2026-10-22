@@ -20,6 +20,7 @@ export const PUBLIC_CONTENT_ROUTES = {
   TOPICS: 'topics',
   TOPIC_DETAIL: 'topics/:slug',
   FIGURES: 'figures',
+  FIGURE_DIRECTORY: 'figures/directory',
   FIGURE_DETAIL: 'figures/:slug',
   LOCATIONS: 'locations',
   EVENTS: 'events',

@@ -1,15 +1,19 @@
 import {
   HistoricalEntity,
+  HistoricalEntityRelation,
   HistoricalEvent,
+  HistoricalEventEntity,
   HistoricalSite,
   Lesson,
   Period,
+  Person,
   Topic,
 } from '@prisma/client';
 import { ERA_SUFFIX } from '../public-content.constant';
 import {
   PublicEventSummaryDto,
   PublicFigureDto,
+  PublicFigureProfileDto,
   PublicLessonSummaryDto,
   PublicLocationSummaryDto,
   PublicPeriodDto,
@@ -82,6 +86,78 @@ export class PublicContentMapper {
     };
   }
 
+  static toFigureProfile(
+    entity: HistoricalEntity & {
+      person: Person | null;
+      period: { slug: string } | null;
+      eventEntities: Array<
+        HistoricalEventEntity & {
+          event: HistoricalEvent & { period: { slug: string } | null };
+        }
+      >;
+      outgoingRelations: Array<
+        HistoricalEntityRelation & { targetEntity: HistoricalEntity }
+      >;
+      incomingRelations: Array<
+        HistoricalEntityRelation & { sourceEntity: HistoricalEntity }
+      >;
+    },
+  ): PublicFigureProfileDto {
+    const rawSources = (entity.metadata as { sources?: unknown } | null)?.sources;
+    const sources = Array.isArray(rawSources)
+      ? rawSources.filter((s): s is string => typeof s === 'string')
+      : [];
+
+    return {
+      ...PublicContentMapper.toFigure(entity),
+      aliases: entity.aliases,
+      birthDateLabel: entity.person?.birthDateLabel ?? null,
+      deathDateLabel: entity.person?.deathDateLabel ?? null,
+      biography: entity.person?.biography ?? null,
+      occupation: entity.person?.occupation ?? null,
+      titles: entity.person?.titles ?? [],
+      sources,
+      periodSlug: entity.period?.slug ?? null,
+      events: entity.eventEntities
+        .map((ee) => ({
+          id: ee.event.id,
+          slug: ee.event.slug,
+          title: ee.event.title,
+          startYear: ee.event.startYear,
+          eventDateNote: ee.event.eventDateNote,
+          description: ee.event.description,
+          category: ee.event.category,
+          periodSlug: ee.event.period?.slug ?? null,
+          role: ee.role,
+          roleLabel: ee.roleLabel,
+          isPrimary: ee.isPrimary,
+        }))
+        .sort((a, b) => a.startYear - b.startYear),
+      relationships: [
+        ...entity.outgoingRelations.map((rel) => ({
+          figureId: rel.targetEntity.id,
+          slug: rel.targetEntity.slug,
+          name: rel.targetEntity.name,
+          relationType: rel.relationType,
+          direction: 'OUTGOING' as const,
+          note: rel.note,
+          startYear: rel.startYear,
+          endYear: rel.endYear,
+        })),
+        ...entity.incomingRelations.map((rel) => ({
+          figureId: rel.sourceEntity.id,
+          slug: rel.sourceEntity.slug,
+          name: rel.sourceEntity.name,
+          relationType: rel.relationType,
+          direction: 'INCOMING' as const,
+          note: rel.note,
+          startYear: rel.startYear,
+          endYear: rel.endYear,
+        })),
+      ],
+    };
+  }
+
   static toEventSummary(
     event: HistoricalEvent & {
       location?: (HistoricalEntity & { historicalSite?: HistoricalSite | null }) | null;
@@ -115,7 +191,7 @@ export class PublicContentMapper {
       category: event.category,
       periodSlug: event.period?.slug ?? null,
       figures: participants
-        .filter((e) => e.type !== 'LOCATION')
+        .filter((e) => e.type === 'PERSON')
         .map((e) => PublicContentMapper.toFigure(e)),
       locations: participants
         .filter((e) => e.type === 'LOCATION')

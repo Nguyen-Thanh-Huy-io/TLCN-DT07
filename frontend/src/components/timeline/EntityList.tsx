@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { MapPin, Users } from "lucide-react";
 import { Heading, Badge } from "./sk-ui";
 import type { TimelineFigure, TimelineLocation } from "./sk-types";
@@ -25,7 +26,9 @@ export function EntityList({
               {f.avatarUrl ? <img src={f.avatarUrl} alt={f.name} /> : <Users size={21} />}
             </div>
             <div>
-              <Heading level={3}>{f.name}</Heading>
+              <Heading level={3}>
+                {f.slug ? <Link href={`/nhan-vat?nv=${encodeURIComponent(f.slug)}`}>{f.name}</Link> : f.name}
+              </Heading>
               <Badge>{f.role}</Badge>
               <p>{f.bio}</p>
             </div>

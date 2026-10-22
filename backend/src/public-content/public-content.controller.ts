@@ -7,6 +7,7 @@ import {
   PublicEventSummaryDto,
   PublicFigureDetailDto,
   PublicFigureDto,
+  PublicFigureProfileDto,
   PublicLocationSummaryDto,
   PublicPeriodDetailDto,
   PublicPeriodDto,
@@ -69,6 +70,18 @@ export class PublicContentController {
   })
   getFigures(): Promise<PublicFigureDto[]> {
     return this.facade.getFigures();
+  }
+
+  @Get(PUBLIC_CONTENT_ROUTES.FIGURE_DIRECTORY)
+  @ApiOperation({
+    summary: 'Danh bạ nhân vật: toàn bộ nhân vật kèm sự kiện tham gia & quan hệ',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: [PublicFigureProfileDto],
+  })
+  getFigureDirectory(): Promise<PublicFigureProfileDto[]> {
+    return this.facade.getFigureDirectory();
   }
 
   @Get(PUBLIC_CONTENT_ROUTES.FIGURE_DETAIL)

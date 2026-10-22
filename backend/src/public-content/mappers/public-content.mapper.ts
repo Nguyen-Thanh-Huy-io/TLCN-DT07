@@ -251,6 +251,7 @@ export class PublicContentMapper {
       recognitionLevel: site?.recognitionLevel ?? null,
       constructionLabel: site?.constructionLabel ?? null,
       periodSlug: entity.period?.slug ?? null,
+      ancientNames: entity.aliases ?? [],
     };
   }
 

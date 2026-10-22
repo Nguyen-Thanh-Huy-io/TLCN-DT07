@@ -27,6 +27,7 @@ import {
   textList,
   textOrNull,
 } from './mappers/public-content.mapper';
+import { toHeritageProfile } from './mappers/heritage-profile.mapper';
 import { LandingSectionRegistry } from './strategies/landing-section.registry';
 import {
   LandingSection,
@@ -281,6 +282,7 @@ export class LandingContentFacade {
       events: events.map((e) => PublicContentMapper.toEventSummary(e)),
       figures: [...figures.values()],
       nearby,
+      heritage: toHeritageProfile(entity.metadata),
     };
   }
 

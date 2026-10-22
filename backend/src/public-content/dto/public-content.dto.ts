@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
 import { EventCategory, FigureRole, TopicIcon } from '@prisma/client';
 import { LandingSection } from '../public-content.constant';
+import type { HeritageProfile } from '../mappers/heritage-profile.mapper';
 
 export class PublicPeriodDto {
   @ApiProperty() id: string;
@@ -108,6 +109,8 @@ export class PublicLocationSummaryDto {
   @ApiPropertyOptional({ nullable: true }) recognitionLevel?: string | null;
   @ApiPropertyOptional({ nullable: true }) constructionLabel?: string | null;
   @ApiPropertyOptional({ nullable: true }) periodSlug?: string | null;
+  /** Các tên gọi trong lịch sử (HistoricalEntity.aliases). */
+  @ApiPropertyOptional({ type: [String] }) ancientNames?: string[];
 }
 
 export class PublicEventSummaryDto {
@@ -231,6 +234,8 @@ export class PublicLocationDetailDto extends PublicLocationSummaryDto {
   @ApiProperty({ type: [PublicFigureDto] }) figures: PublicFigureDto[];
   @ApiProperty({ type: [PublicNearbyLocationDto] })
   nearby: PublicNearbyLocationDto[];
+  /** Hồ sơ di sản mở rộng (metadata.heritage) — xem heritage-profile.mapper. */
+  @ApiProperty() heritage: HeritageProfile;
 }
 
 export class PublicSubPeriodDto extends PublicPeriodDto {

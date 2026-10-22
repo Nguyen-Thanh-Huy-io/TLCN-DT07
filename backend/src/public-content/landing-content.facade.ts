@@ -12,6 +12,7 @@ import {
   PublicEventDetailDto,
   PublicEventSummaryDto,
   PublicLibraryLessonDto,
+  PublicLocationDetailDto,
   PublicFigureDetailDto,
   PublicFigureDto,
   PublicFigureProfileDto,
@@ -34,6 +35,24 @@ import {
 } from './public-content.constant';
 
 const CONCURRENT_EVENTS_LIMIT = 12;
+const NEARBY_LOCATIONS_LIMIT = 4;
+const EARTH_RADIUS_KM = 6371;
+
+/** Khoảng cách theo đường tròn lớn (công thức haversine), đơn vị km. */
+function distanceKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const a =
+    Math.sin(rad(lat2 - lat1) / 2) ** 2 +
+    Math.cos(rad(lat1)) *
+      Math.cos(rad(lat2)) *
+      Math.sin(rad(lon2 - lon1) / 2) ** 2;
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(a));
+}
 
 /** "Toàn quốc" là cách ghi khác của Việt Nam khi so khu vực. */
 function normalizeRegion(region: string | null): string | null {
@@ -145,12 +164,124 @@ export class LandingContentFacade {
         type: HistoricalEntityType.LOCATION,
         status: PUBLIC_CONTENT_STATUS,
       },
-      include: { historicalSite: true },
+      include: { historicalSite: true, period: { select: { slug: true } } },
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
     });
     return entities.map((entity) =>
       PublicContentMapper.toLocationSummary(entity),
     );
+  }
+
+  /**
+   * Chi tiết 1 di tích: sự kiện diễn ra tại đây (địa điểm chính hoặc có gắn di tích),
+   * nhân vật tham gia các sự kiện đó, thư viện ảnh và các di tích lân cận theo khoảng cách.
+   */
+  async getLocationBySlug(slug: string): Promise<PublicLocationDetailDto> {
+    const entity = await this.prisma.historicalEntity.findFirst({
+      where: {
+        slug,
+        type: HistoricalEntityType.LOCATION,
+        status: PUBLIC_CONTENT_STATUS,
+      },
+      include: {
+        historicalSite: true,
+        period: true,
+        media: { orderBy: { displayOrder: 'asc' } },
+      },
+    });
+    if (!entity) {
+      throw new NotFoundException(
+        PUBLIC_CONTENT_MESSAGES.LOCATION_NOT_FOUND(slug),
+      );
+    }
+
+    const [events, others] = await Promise.all([
+      this.prisma.historicalEvent.findMany({
+        where: {
+          status: PUBLIC_CONTENT_STATUS,
+          OR: [
+            { locationId: entity.id },
+            { entities: { some: { entityId: entity.id } } },
+          ],
+        },
+        include: {
+          location: { include: { historicalSite: true } },
+          period: { select: { slug: true } },
+          entities: {
+            where: { entity: { status: PUBLIC_CONTENT_STATUS } },
+            include: { entity: { include: { historicalSite: true } } },
+            orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
+          },
+        },
+        orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
+      }),
+      this.prisma.historicalEntity.findMany({
+        where: {
+          type: HistoricalEntityType.LOCATION,
+          status: PUBLIC_CONTENT_STATUS,
+          NOT: { id: entity.id },
+          historicalSite: { latitude: { not: null }, longitude: { not: null } },
+        },
+        include: { historicalSite: true, period: { select: { slug: true } } },
+      }),
+    ]);
+
+    const figures = new Map<string, PublicFigureDto>();
+    for (const event of events) {
+      for (const { entity: participant } of event.entities) {
+        if (participant.type === HistoricalEntityType.PERSON) {
+          figures.set(
+            participant.id,
+            PublicContentMapper.toFigure(participant),
+          );
+        }
+      }
+    }
+
+    const summary = PublicContentMapper.toLocationSummary(entity);
+    const nearby =
+      summary.latitude != null && summary.longitude != null
+        ? others
+            .map((o) => {
+              const s = PublicContentMapper.toLocationSummary(o);
+              return {
+                ...s,
+                distanceKm: Math.round(
+                  distanceKm(
+                    summary.latitude as number,
+                    summary.longitude as number,
+                    s.latitude as number,
+                    s.longitude as number,
+                  ),
+                ),
+              };
+            })
+            .sort((a, b) => a.distanceKm - b.distanceKm)
+            .slice(0, NEARBY_LOCATIONS_LIMIT)
+        : [];
+
+    const site = entity.historicalSite;
+    return {
+      ...summary,
+      tagline: entity.tagline,
+      description: entity.description,
+      imageCaption: entity.imageCaption,
+      constructionYear: site?.constructionYear ?? null,
+      preservationStatus: site?.preservationStatus ?? null,
+      managingAgency: site?.managingAgency ?? null,
+      period: entity.period
+        ? PublicContentMapper.toPeriod(entity.period)
+        : null,
+      media: entity.media.map((m) => ({
+        id: m.id,
+        type: m.type,
+        url: m.url,
+        caption: m.caption,
+      })),
+      events: events.map((e) => PublicContentMapper.toEventSummary(e)),
+      figures: [...figures.values()],
+      nearby,
+    };
   }
 
   /** Danh sách Sự kiện lịch sử công khai, sắp xếp theo mốc thời gian. */

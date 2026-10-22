@@ -9,6 +9,7 @@ import {
   PublicFigureDetailDto,
   PublicFigureDto,
   PublicFigureProfileDto,
+  PublicLocationDetailDto,
   PublicLocationSummaryDto,
   PublicPeriodDetailDto,
   PublicPeriodDto,
@@ -135,6 +136,17 @@ export class PublicContentController {
   })
   getLocations(): Promise<PublicLocationSummaryDto[]> {
     return this.facade.getLocations();
+  }
+
+  @Get(PUBLIC_CONTENT_ROUTES.LOCATION_DETAIL)
+  @ApiOperation({
+    summary: 'Chi tiết di tích: sự kiện, nhân vật, ảnh và di tích lân cận',
+  })
+  @ApiResponse({ status: HttpStatus.OK, type: PublicLocationDetailDto })
+  getLocationBySlug(
+    @Param('slug') slug: string,
+  ): Promise<PublicLocationDetailDto> {
+    return this.facade.getLocationBySlug(slug);
   }
 
   @Get(PUBLIC_CONTENT_ROUTES.EVENTS)

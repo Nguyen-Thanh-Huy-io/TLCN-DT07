@@ -22,6 +22,7 @@ import {
   PublicPeriodDto,
   PublicTopicDto,
 } from '../dto/public-content.dto';
+import { SITE_TYPES, normalizeSiteType } from '../site-type.constant';
 
 export function formatYear(year: number): string {
   return year < 0 ? `${Math.abs(year)} ${ERA_SUFFIX.BCE}` : `${year}`;
@@ -229,9 +230,13 @@ export class PublicContentMapper {
   }
 
   static toLocationSummary(
-    entity: HistoricalEntity & { historicalSite?: HistoricalSite | null },
+    entity: HistoricalEntity & {
+      historicalSite?: HistoricalSite | null;
+      period?: { slug: string } | null;
+    },
   ): PublicLocationSummaryDto {
     const site = entity.historicalSite;
+    const siteType = normalizeSiteType(site?.siteType);
     return {
       id: entity.id,
       slug: entity.slug,
@@ -240,6 +245,12 @@ export class PublicContentMapper {
       latitude: site?.latitude ? Number(site.latitude) : null,
       longitude: site?.longitude ? Number(site.longitude) : null,
       historicalSignificance: entity.tagline || entity.description || null,
+      imageUrl: entity.imageUrl,
+      siteType,
+      siteTypeLabel: SITE_TYPES[siteType],
+      recognitionLevel: site?.recognitionLevel ?? null,
+      constructionLabel: site?.constructionLabel ?? null,
+      periodSlug: entity.period?.slug ?? null,
     };
   }
 

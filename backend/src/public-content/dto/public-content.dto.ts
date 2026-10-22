@@ -101,6 +101,13 @@ export class PublicLocationSummaryDto {
   @ApiPropertyOptional({ nullable: true }) longitude: number | null;
   @ApiPropertyOptional({ nullable: true }) historicalSignificance:
     string | null;
+  @ApiPropertyOptional({ nullable: true }) imageUrl?: string | null;
+  /** Mã loại di tích đã chuẩn hóa (xem site-type.constant). */
+  @ApiPropertyOptional() siteType?: string;
+  @ApiPropertyOptional() siteTypeLabel?: string;
+  @ApiPropertyOptional({ nullable: true }) recognitionLevel?: string | null;
+  @ApiPropertyOptional({ nullable: true }) constructionLabel?: string | null;
+  @ApiPropertyOptional({ nullable: true }) periodSlug?: string | null;
 }
 
 export class PublicEventSummaryDto {
@@ -193,6 +200,37 @@ export class PublicChildTopicDto extends PublicTopicDto {
   events: PublicEventSummaryDto[];
   @ApiProperty({ type: [PublicLessonSummaryDto] })
   lessons: PublicLessonSummaryDto[];
+}
+
+export class PublicLocationMediaDto {
+  @ApiProperty() id: string;
+  @ApiProperty({ example: 'IMAGE' }) type: string;
+  @ApiProperty() url: string;
+  @ApiPropertyOptional({ nullable: true }) caption: string | null;
+}
+
+export class PublicNearbyLocationDto extends PublicLocationSummaryDto {
+  @ApiProperty() distanceKm: number;
+}
+
+export class PublicLocationDetailDto extends PublicLocationSummaryDto {
+  @ApiPropertyOptional({ nullable: true }) tagline: string | null;
+  @ApiPropertyOptional({ nullable: true }) description: string | null;
+  @ApiPropertyOptional({ nullable: true }) imageCaption: string | null;
+  @ApiPropertyOptional({ nullable: true }) constructionYear: number | null;
+  @ApiPropertyOptional({ nullable: true }) preservationStatus: string | null;
+  @ApiPropertyOptional({ nullable: true }) managingAgency: string | null;
+  @ApiPropertyOptional({ type: () => PublicPeriodDto, nullable: true })
+  period: PublicPeriodDto | null;
+  @ApiProperty({ type: [PublicLocationMediaDto] })
+  media: PublicLocationMediaDto[];
+  /** Sự kiện diễn ra tại di tích (địa điểm chính hoặc có gắn di tích này). */
+  @ApiProperty({ type: [PublicEventSummaryDto] })
+  events: PublicEventSummaryDto[];
+  /** Nhân vật tham gia các sự kiện tại đây. */
+  @ApiProperty({ type: [PublicFigureDto] }) figures: PublicFigureDto[];
+  @ApiProperty({ type: [PublicNearbyLocationDto] })
+  nearby: PublicNearbyLocationDto[];
 }
 
 export class PublicSubPeriodDto extends PublicPeriodDto {

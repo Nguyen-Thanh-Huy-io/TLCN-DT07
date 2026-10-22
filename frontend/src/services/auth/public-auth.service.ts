@@ -172,6 +172,14 @@ export const PublicAuthService = {
     }
   },
 
+  /** Cập nhật bản lưu của người dùng hiện tại (vd. sau khi xác minh email) và báo cho UI. */
+  updateCurrentUser(patch: Partial<PublicAuthUser>): void {
+    const current = this.getCurrentUser();
+    if (!current) return;
+    writeStorage(STORAGE_KEYS.USER, JSON.stringify({ ...current, ...patch }));
+    notifySessionChanged();
+  },
+
   isLoggedIn(): boolean {
     return Boolean(this.getAccessToken() && this.getCurrentUser());
   },

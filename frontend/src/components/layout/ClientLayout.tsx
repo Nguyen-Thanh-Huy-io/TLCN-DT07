@@ -53,7 +53,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/su-kien") ||
     pathname.startsWith("/chuong-su") ||
     pathname.startsWith("/kien-thuc") ||
-    pathname.startsWith("/dang-ky");
+    pathname.startsWith("/dang-ky") ||
+    pathname.startsWith("/tai-khoan");
   if (isHisgoPublicRoute) {
     return <>{children}</>;
   }

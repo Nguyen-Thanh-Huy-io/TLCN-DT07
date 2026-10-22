@@ -51,7 +51,6 @@ export function Header({
     { id: "timeline", label: "Dòng thời gian", href: "/dong-thoi-gian" },
     { id: "nhan-vat", label: "Nhân vật", href: "/nhan-vat" },
     { id: "di-tich", label: "Di tích", href: "/di-tich" },
-    { id: "account", label: "Tài khoản", href: "#dang-ky" },
   ];
 
   // Theo dõi vị trí cuộn bằng IntersectionObserver để active tab tương ứng
@@ -62,7 +61,6 @@ export function Header({
       timeline: "timeline",
       characters: "explore",
       explore: "explore",
-      "dang-ky": "account",
     };
 
     const handleScroll = () => {
@@ -257,6 +255,12 @@ export function Header({
                       {USER_ROLE_LABELS[user.role] ?? user.role}
                     </span>
                   </div>
+                  <Link
+                    href="/tai-khoan"
+                    className="block px-3.5 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--bg-page)] hover:text-[var(--primary)] transition-colors"
+                  >
+                    Tài khoản của tôi
+                  </Link>
                   {isStaffRole(user.role) && (
                     <Link
                       href="/cms"
@@ -266,7 +270,7 @@ export function Header({
                     </Link>
                   )}
                   <Link
-                    href="/chuong-trinh-hoc"
+                    href="/tai-khoan#hoc-tap"
                     className="block px-3.5 py-2 text-sm text-[var(--ink)] hover:bg-[var(--bg-page)] hover:text-[var(--primary)] transition-colors"
                   >
                     Lộ trình của tôi
@@ -371,6 +375,13 @@ export function Header({
                   <div className="px-4 text-sm text-[var(--text-body)] truncate">
                     Đang đăng nhập: <strong className="text-[var(--ink)]">{user.username || user.email}</strong>
                   </div>
+                  <Link
+                    href="/tai-khoan"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block w-full py-3 px-4 bg-[var(--primary)] text-white text-center rounded-[var(--radius-btn)] font-medium text-sm"
+                  >
+                    Tài khoản của tôi
+                  </Link>
                   <button
                     type="button"
                     onClick={handleLogout}

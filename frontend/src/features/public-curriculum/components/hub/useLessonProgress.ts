@@ -77,6 +77,15 @@ export function useLessonProgress() {
     [userId],
   );
 
+  const unenroll = useCallback(
+    async (pathId: string) => {
+      if (!userId) return;
+      const overview = await LearnerApiService.unenroll(pathId);
+      setState({ userId, loaded: true, overview });
+    },
+    [userId],
+  );
+
   return {
     /** undefined = chưa biết phiên (đang hydrate). */
     user,
@@ -88,5 +97,6 @@ export function useLessonProgress() {
     isEnrolled,
     markCompleted,
     enroll,
+    unenroll,
   };
 }

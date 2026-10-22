@@ -10,6 +10,7 @@ import { CustomLoggerService } from '../common/services/custom-logger.service';
 import AppError from '../common/errors/app.error';
 import * as bcrypt from 'bcryptjs';
 import config from '../common/config/app.config';
+import { userRole } from '@prisma/client';
 import {
   ILoginResponse,
   IStoredRefreshToken,
@@ -554,8 +555,9 @@ export class AuthService {
       throw invalidCredentialsError;
     }
 
-    // Check email verification
-    if (!user.verified) {
+    // Check email verification — người học (USER) được đăng nhập và học ngay, chỉ nhắc xác minh;
+    // tài khoản nhân sự CMS vẫn bắt buộc đã xác minh email.
+    if (!user.verified && user.role !== userRole.USER) {
       void this.logLoginAttempt({
         authId: user.id,
         ip,

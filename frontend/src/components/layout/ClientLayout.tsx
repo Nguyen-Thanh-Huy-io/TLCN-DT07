@@ -51,6 +51,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/di-tich") ||
     pathname.startsWith("/giai-doan") ||
     pathname.startsWith("/su-kien") ||
+    pathname.startsWith("/heritage") ||
     pathname.startsWith("/chuong-su") ||
     pathname.startsWith("/kien-thuc") ||
     pathname.startsWith("/dang-ky") ||

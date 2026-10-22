@@ -303,7 +303,6 @@ export function ChapterList({
                                   <span className="text-xs font-semibold text-slate-900 line-clamp-1 group-hover:text-emerald-700 group-hover:underline">
                                     {cl.lesson?.title || 'Bài học không có tiêu đề'}
                                   </span>
-                                  <span className="text-[10px] text-slate-400 block">Slug: /{cl.lesson?.slug}</span>
                                 </button>
                               </div>
 

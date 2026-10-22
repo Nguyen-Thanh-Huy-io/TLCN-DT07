@@ -191,7 +191,6 @@ export function AddLessonsToChapterModal({
                     />
                     <div>
                       <span className="text-xs font-semibold text-slate-900 line-clamp-1">{lesson.title}</span>
-                      <span className="text-[10px] text-slate-400">/{lesson.slug}</span>
                     </div>
                   </div>
 

@@ -211,7 +211,9 @@ export function LessonLibraryPanel({
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-3 gap-2">
-                  <span className="text-[11px] text-slate-400 font-mono truncate">/{lesson.slug}</span>
+                  <span className="text-[11px] text-slate-400 truncate">
+                    {lesson.updatedAt ? `Cập nhật ${new Date(lesson.updatedAt).toLocaleDateString('vi-VN')}` : ''}
+                  </span>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
@@ -254,7 +256,6 @@ export function LessonLibraryPanel({
                   <tr key={lesson.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60">
                     <td className="px-3 py-2.5 align-top">
                       <div className="font-bold text-slate-900">{lesson.title}</div>
-                      <div className="text-[11px] font-mono text-blue-600">/{lesson.slug}</div>
                       {Array.isArray(lesson.tags) && lesson.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {lesson.tags.map((tag) => (

@@ -54,6 +54,7 @@ model Person {
   biography      String?  @db.Text
   occupation     String?  @db.VarChar(255)
   titles         String[] @default([])
+  roles          FigureRole[] @default([])
 
   entity HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
 

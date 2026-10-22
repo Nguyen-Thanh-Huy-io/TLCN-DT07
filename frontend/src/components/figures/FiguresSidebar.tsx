@@ -1,41 +1,43 @@
 "use client";
 
-import { Landmark, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { Button } from "@/components/timeline/sk-ui";
-import type { FilterOption } from "./FiguresFilterBar";
+import { FIGURE_ROLE_LABELS, FigureRole } from "@/constants/enums";
+import { FIGURE_ROLE_ICONS, FIGURE_ROLE_ORDER } from "./figure-roles";
 
 export function FiguresSidebar({
-  eras,
-  era,
-  onEra,
+  role,
+  onRole,
   total,
-  countByEra,
+  countByRole,
 }: {
-  eras: FilterOption[];
-  era: string;
-  onEra: (id: string) => void;
+  role: string;
+  onRole: (role: string) => void;
   total: number;
-  countByEra: Map<string, number>;
+  countByRole: Map<FigureRole, number>;
 }) {
   return (
     <aside className="sk-figures-sidebar">
-      <span className="sk-sidebar-label">KHÁM PHÁ THEO THỜI KỲ</span>
-      <Button className={`sk-role-filter ${!era ? "sk-active" : ""}`} onClick={() => onEra("")}>
+      <span className="sk-sidebar-label">KHÁM PHÁ THEO VAI TRÒ</span>
+      <Button className={`sk-role-filter ${!role ? "sk-active" : ""}`} onClick={() => onRole("")}>
         <Users size={17} />
         <span>Tất cả nhân vật</span>
         <small>{total}</small>
       </Button>
-      {eras.map((e) => (
-        <Button
-          key={e.id}
-          className={`sk-role-filter ${era === e.id ? "sk-active" : ""}`}
-          onClick={() => onEra(era === e.id ? "" : e.id)}
-        >
-          <Landmark size={17} />
-          <span className="sk-role-filter-text">{e.title}</span>
-          <small>{countByEra.get(e.id) ?? 0}</small>
-        </Button>
-      ))}
+      {FIGURE_ROLE_ORDER.map((r) => {
+        const Icon = FIGURE_ROLE_ICONS[r];
+        return (
+          <Button
+            key={r}
+            className={`sk-role-filter ${role === r ? "sk-active" : ""}`}
+            onClick={() => onRole(role === r ? "" : r)}
+          >
+            <Icon size={17} />
+            <span className="sk-role-filter-text">{FIGURE_ROLE_LABELS[r]}</span>
+            <small>{countByRole.get(r) ?? 0}</small>
+          </Button>
+        );
+      })}
     </aside>
   );
 }

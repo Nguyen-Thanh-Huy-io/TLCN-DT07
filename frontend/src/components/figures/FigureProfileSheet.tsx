@@ -9,13 +9,15 @@ import { LifeTimeline } from "./LifeTimeline";
 import { RelationshipGraph } from "./RelationshipGraph";
 import { FigureBiography } from "./FigureBiography";
 import type { FigureView } from "./figure-utils";
+import { figureRoles } from "./figure-roles";
+import { FIGURE_ROLE_LABELS } from "@/constants/enums";
 
 export type ProfileTab = "timeline" | "graph" | "bio";
 
 const TABS: Array<{ id: ProfileTab; text: string; icon: typeof History }> = [
   { id: "timeline", text: "Dòng thời gian", icon: History },
   { id: "graph", text: "Mối quan hệ", icon: Network },
-  { id: "bio", text: "Tiểu sử & nguồn", icon: BookOpen },
+  { id: "bio", text: "Tiểu sử & di sản", icon: BookOpen },
 ];
 
 export function FigureProfileSheet({
@@ -35,7 +37,7 @@ export function FigureProfileSheet({
   onClose: () => void;
   onNavigate: (f: FigureView) => void;
 }) {
-  const roles = f ? [f.occupation, ...f.titles].filter((v): v is string => Boolean(v)) : [];
+  const roles = f ? figureRoles(f.roles).map((r) => FIGURE_ROLE_LABELS[r]) : [];
   return (
     <Modal open={!!f} onClose={onClose} title="Hồ sơ nhân vật" className="sk-figure-profile">
       {f && (

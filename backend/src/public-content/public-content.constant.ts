@@ -3,6 +3,9 @@ import { ContentStatus } from '@prisma/client';
 /** Chỉ nội dung đã xuất bản mới được lộ ra ngoài public. */
 export const PUBLIC_CONTENT_STATUS = ContentStatus.PUBLISHED;
 
+/** Khóa trong HistoricalEntity.metadata chứa nội dung "Tiểu sử & di sản" của nhân vật. */
+export const FIGURE_PROFILE_METADATA_KEY = 'profile';
+
 /** Các section động của landing page (lấy dữ liệu từ Topic). */
 export enum LandingSection {
   CHAPTERS = 'CHAPTERS',

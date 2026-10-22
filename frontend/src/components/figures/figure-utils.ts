@@ -5,16 +5,18 @@ export type RelationCategory = "FAMILY" | "ALLY" | "RIVAL" | "CONTEMPORARY";
 
 export const RELATION_CATEGORY_LABELS: Record<RelationCategory, string> = {
   FAMILY: "Gia tộc",
-  ALLY: "Đồng minh / Kế tục",
-  RIVAL: "Đối địch",
-  CONTEMPORARY: "Liên hệ khác",
+  ALLY: "Quân thần",
+  RIVAL: "Đối trọng",
+  CONTEMPORARY: "Cùng thời",
 };
 
+// Relation types not listed here (e.g. OTHER) fall under "Cùng thời".
 const CATEGORY_BY_RELATION: Record<string, RelationCategory> = {
   CHILD_OF: "FAMILY",
   PARENT_OF: "FAMILY",
   SPOUSE_OF: "FAMILY",
   SIBLING_OF: "FAMILY",
+  SERVED_UNDER: "ALLY",
   ALLIED_WITH: "ALLY",
   LEADER_OF: "ALLY",
   MEMBER_OF: "ALLY",
@@ -22,12 +24,15 @@ const CATEGORY_BY_RELATION: Record<string, RelationCategory> = {
   VASSAL_OF: "ALLY",
   SUCCESSOR_TO: "ALLY",
   OPPOSED_TO: "RIVAL",
+  CONTEMPORARY_OF: "CONTEMPORARY",
 };
 
 // Describes the *other* person as seen from the profile being viewed.
 // A relation "A —SUCCESSOR_TO→ B" means A succeeded B: from A's profile B is the predecessor.
 const TARGET_LABELS: Record<string, { OUTGOING: string; INCOMING: string }> = {
   SUCCESSOR_TO: { OUTGOING: "Người tiền nhiệm", INCOMING: "Người kế nhiệm" },
+  SERVED_UNDER: { OUTGOING: "Quân vương / bề trên", INCOMING: "Bề tôi, tướng dưới quyền" },
+  CONTEMPORARY_OF: { OUTGOING: "Cùng thời", INCOMING: "Cùng thời" },
   CHILD_OF: { OUTGOING: "Cha / mẹ", INCOMING: "Con" },
   PARENT_OF: { OUTGOING: "Con", INCOMING: "Cha / mẹ" },
   SPOUSE_OF: { OUTGOING: "Phối ngẫu", INCOMING: "Phối ngẫu" },

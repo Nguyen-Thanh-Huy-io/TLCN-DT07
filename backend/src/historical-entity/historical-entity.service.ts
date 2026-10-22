@@ -161,6 +161,8 @@ export class HistoricalEntityService {
                   deathDateLabel: dto.deathDateLabel?.trim(),
                   occupation: dto.occupation?.trim(),
                   titles: dto.titles ?? [],
+                  roles: dto.roles ?? [],
+                  biography: dto.biography?.trim(),
                 },
               },
             }
@@ -328,6 +330,10 @@ export class HistoricalEntityService {
       deathYear: raw.person?.deathYear ?? null,
       birthDateLabel: raw.person?.birthDateLabel ?? null,
       deathDateLabel: raw.person?.deathDateLabel ?? null,
+      occupation: raw.person?.occupation ?? null,
+      titles: raw.person?.titles ?? [],
+      roles: raw.person?.roles ?? [],
+      biography: raw.person?.biography ?? null,
       siteType: raw.historicalSite?.siteType ?? null,
       address: raw.historicalSite?.address ?? null,
       latitude: raw.historicalSite?.latitude ? Number(raw.historicalSite.latitude) : null,
@@ -385,6 +391,8 @@ export class HistoricalEntityService {
       deathDateLabel: dLabel,
       occupation,
       titles,
+      roles,
+      biography,
       siteType,
       address,
       latitude,
@@ -403,7 +411,9 @@ export class HistoricalEntityService {
       bLabel !== undefined ||
       dLabel !== undefined ||
       occupation !== undefined ||
-      titles !== undefined;
+      titles !== undefined ||
+      roles !== undefined ||
+      biography !== undefined;
 
     const hasSiteUpdates =
       siteType !== undefined ||
@@ -451,6 +461,8 @@ export class HistoricalEntityService {
                     deathDateLabel: dLabel?.trim(),
                     occupation: occupation?.trim(),
                     titles: titles ?? [],
+                    roles: roles ?? [],
+                    biography: biography?.trim(),
                   },
                   update: {
                     ...(bYear !== undefined ? { birthYear: bYear } : {}),
@@ -459,6 +471,8 @@ export class HistoricalEntityService {
                     ...(dLabel !== undefined ? { deathDateLabel: dLabel?.trim() } : {}),
                     ...(occupation !== undefined ? { occupation: occupation?.trim() } : {}),
                     ...(titles !== undefined ? { titles } : {}),
+                    ...(roles !== undefined ? { roles } : {}),
+                    ...(biography !== undefined ? { biography: biography?.trim() } : {}),
                   },
                 },
               },

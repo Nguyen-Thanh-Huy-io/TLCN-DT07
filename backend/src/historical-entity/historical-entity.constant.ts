@@ -25,6 +25,8 @@ export enum EntityRelationType {
   MEMBER_OF = 'MEMBER_OF',           // Vd: Đảng viên thuộc Đảng phái, Binh sĩ thuộc Binh đoàn
   FOUNDER_OF = 'FOUNDER_OF',         // Vd: Vua sáng lập Triều đại, Lãnh tụ thành lập Tổ chức
   SUCCESSOR_TO = 'SUCCESSOR_TO',     // Vd: Vua kế vị Vua trước
+  SERVED_UNDER = 'SERVED_UNDER',     // Vd: Lý Thường Kiệt phụng sự Lý Thánh Tông (quan hệ quân thần)
+  CONTEMPORARY_OF = 'CONTEMPORARY_OF', // Vd: Hai nhân vật cùng thời, không có quan hệ trực tiếp khác
 
   // Huyết thống / Gia tộc
   CHILD_OF = 'CHILD_OF',             // Con cái của

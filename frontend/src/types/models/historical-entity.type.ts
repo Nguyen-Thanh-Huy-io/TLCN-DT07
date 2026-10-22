@@ -2,6 +2,7 @@ import {
   ContentStatus,
   EntityRelationType,
   EntityType,
+  FigureRole,
   MediaType,
 } from '@/constants/enums';
 
@@ -44,6 +45,11 @@ export interface HistoricalEntityItem {
   deathYear?: number | null;
   birthDateLabel?: string | null;
   deathDateLabel?: string | null;
+  // Person fields (cho PERSON)
+  occupation?: string | null;
+  titles?: string[];
+  roles?: FigureRole[];
+  biography?: string | null;
   // Historical Site fields (cho LOCATION)
   siteType?: string | null;
   address?: string | null;

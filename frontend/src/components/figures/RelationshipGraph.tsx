@@ -38,9 +38,7 @@ export function RelationshipGraph({
     .filter((r): r is typeof r & { target: FigureView } => Boolean(r.target))
     .filter((r) => filter === "ALL" || r.category === filter);
 
-  const presentCategories = (Object.keys(RELATION_CATEGORY_LABELS) as RelationCategory[]).filter((c) =>
-    figure.relationships.some((r) => relationCategory(r) === c),
-  );
+  const categories = Object.keys(RELATION_CATEGORY_LABELS) as RelationCategory[];
 
   // An ellipse keeps every name inside the viewBox; nodes are spaced at equal angles from the top.
   const positions = relations.map((r, index) => {
@@ -91,7 +89,7 @@ export function RelationshipGraph({
         <Button className={filter === "ALL" ? "sk-selected" : ""} onClick={() => setFilter("ALL")}>
           Tất cả <span>{figure.relationships.length}</span>
         </Button>
-        {presentCategories.map((c) => (
+        {categories.map((c) => (
           <Button
             className={`sk-relation-${c} ${filter === c ? "sk-selected" : ""}`}
             key={c}
@@ -194,6 +192,11 @@ export function RelationshipGraph({
               </text>
             </motion.g>
           ))}
+          {relations.length === 0 && (
+            <text x={CENTER.x} y="420" textAnchor="middle" className="sk-graph-empty">
+              Chưa có quan hệ thuộc nhóm này.
+            </text>
+          )}
         </svg>
       </div>
       <div className="sk-graph-footnote">

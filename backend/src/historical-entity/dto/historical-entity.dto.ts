@@ -13,7 +13,7 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContentStatus, HistoricalEntityType, MediaType } from '@prisma/client';
+import { ContentStatus, FigureRole, HistoricalEntityType, MediaType } from '@prisma/client';
 import { EntityRelationType } from '../historical-entity.constant';
 
 export class CreateHistoricalEntityDto {
@@ -162,6 +162,25 @@ export class CreateHistoricalEntityDto {
   @IsString({ each: true })
   @IsOptional()
   titles?: string[];
+
+  @ApiPropertyOptional({
+    enum: FigureRole,
+    isArray: true,
+    example: [FigureRole.GENERAL, FigureRole.SCHOLAR],
+    description: 'Vai trò lịch sử, một nhân vật có thể có nhiều vai trò (Dành cho Person)',
+  })
+  @IsArray()
+  @IsEnum(FigureRole, { each: true })
+  @IsOptional()
+  roles?: FigureRole[];
+
+  @ApiPropertyOptional({
+    example: 'Sinh ra trong hoàng tộc nhà Trần, ông sớm nổi tiếng văn võ song toàn...',
+    description: 'Tiểu sử chi tiết (Dành cho Person)',
+  })
+  @IsString()
+  @IsOptional()
+  biography?: string;
 
   @ApiPropertyOptional({
     example: 'Di tích quốc gia đặc biệt',

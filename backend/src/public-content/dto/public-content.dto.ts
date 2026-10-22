@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
-import { EventCategory, TopicIcon } from '@prisma/client';
+import { EventCategory, FigureRole, TopicIcon } from '@prisma/client';
 import { LandingSection } from '../public-content.constant';
 
 export class PublicPeriodDto {
@@ -65,7 +65,19 @@ export class PublicFigureRelationDto {
   @ApiPropertyOptional({ nullable: true }) endYear: number | null;
 }
 
+/** Nội dung "Tiểu sử & di sản", lưu trong HistoricalEntity.metadata.profile (JSONB). */
+export class PublicFigureLegacyDto {
+  @ApiPropertyOptional({ nullable: true }) hometown: string | null;
+  @ApiPropertyOptional({ nullable: true }) backgroundAndYouth: string | null;
+  @ApiProperty({ type: [String] }) notableWorks: string[];
+  @ApiPropertyOptional({ nullable: true }) legacyAndHonors: string | null;
+  @ApiProperty({ type: [String] }) anecdotes: string[];
+  @ApiPropertyOptional({ nullable: true }) famousQuote: string | null;
+}
+
 export class PublicFigureProfileDto extends PublicFigureDto {
+  @ApiProperty({ enum: FigureRole, isArray: true }) roles: FigureRole[];
+  @ApiProperty({ type: PublicFigureLegacyDto }) legacy: PublicFigureLegacyDto;
   @ApiProperty({ type: [String] }) aliases: string[];
   @ApiPropertyOptional({ nullable: true }) birthDateLabel: string | null;
   @ApiPropertyOptional({ nullable: true }) deathDateLabel: string | null;

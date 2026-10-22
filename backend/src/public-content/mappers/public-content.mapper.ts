@@ -9,7 +9,7 @@ import {
   Person,
   Topic,
 } from '@prisma/client';
-import { ERA_SUFFIX } from '../public-content.constant';
+import { ERA_SUFFIX, FIGURE_PROFILE_METADATA_KEY } from '../public-content.constant';
 import {
   PublicEventSummaryDto,
   PublicFigureDto,
@@ -35,6 +35,17 @@ export function buildTimeLabel(
   }
   const end = endYear === null ? ERA_SUFFIX.PRESENT : formatYear(endYear);
   return `(${formatYear(startYear)} - ${end})`;
+}
+
+// metadata is free-form JSONB edited by hand in the CMS, so every value is checked before use.
+function textOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function textList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((v): v is string => typeof v === 'string' && v.trim() !== '').map((v) => v.trim())
+    : [];
 }
 
 export function estimateReadMinutes(contentRichText?: string | null): number {
@@ -103,20 +114,27 @@ export class PublicContentMapper {
       >;
     },
   ): PublicFigureProfileDto {
-    const rawSources = (entity.metadata as { sources?: unknown } | null)?.sources;
-    const sources = Array.isArray(rawSources)
-      ? rawSources.filter((s): s is string => typeof s === 'string')
-      : [];
+    const metadata = (entity.metadata ?? {}) as Record<string, unknown>;
+    const profile = (metadata[FIGURE_PROFILE_METADATA_KEY] ?? {}) as Record<string, unknown>;
 
     return {
       ...PublicContentMapper.toFigure(entity),
+      roles: entity.person?.roles ?? [],
+      legacy: {
+        hometown: textOrNull(profile.hometown),
+        backgroundAndYouth: textOrNull(profile.backgroundAndYouth),
+        notableWorks: textList(profile.notableWorks),
+        legacyAndHonors: textOrNull(profile.legacyAndHonors),
+        anecdotes: textList(profile.anecdotes),
+        famousQuote: textOrNull(profile.famousQuote),
+      },
       aliases: entity.aliases,
       birthDateLabel: entity.person?.birthDateLabel ?? null,
       deathDateLabel: entity.person?.deathDateLabel ?? null,
       biography: entity.person?.biography ?? null,
       occupation: entity.person?.occupation ?? null,
       titles: entity.person?.titles ?? [],
-      sources,
+      sources: textList(metadata.sources),
       periodSlug: entity.period?.slug ?? null,
       events: entity.eventEntities
         .map((ee) => ({

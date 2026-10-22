@@ -105,11 +105,30 @@ export const EVENT_CATEGORY_LABELS: Record<EventCategory, string> = {
   [EventCategory.OTHER]: 'Khác',
 };
 
+/** Vai trò lịch sử của nhân vật — một người có thể có nhiều vai trò. */
+export enum FigureRole {
+  MONARCH = 'MONARCH',
+  GENERAL = 'GENERAL',
+  SCHOLAR = 'SCHOLAR',
+  REVOLUTIONARY = 'REVOLUTIONARY',
+  POLITICIAN = 'POLITICIAN',
+}
+
+export const FIGURE_ROLE_LABELS: Record<FigureRole, string> = {
+  [FigureRole.MONARCH]: 'Vua / Hoàng đế',
+  [FigureRole.GENERAL]: 'Danh tướng',
+  [FigureRole.SCHOLAR]: 'Danh nhân văn hóa',
+  [FigureRole.REVOLUTIONARY]: 'Nhà cách mạng / Lãnh tụ khởi nghĩa',
+  [FigureRole.POLITICIAN]: 'Chính trị gia / Quan lại',
+};
+
 export enum EntityRelationType {
   LEADER_OF = 'LEADER_OF',
   MEMBER_OF = 'MEMBER_OF',
   FOUNDER_OF = 'FOUNDER_OF',
   SUCCESSOR_TO = 'SUCCESSOR_TO',
+  SERVED_UNDER = 'SERVED_UNDER',
+  CONTEMPORARY_OF = 'CONTEMPORARY_OF',
   CHILD_OF = 'CHILD_OF',
   PARENT_OF = 'PARENT_OF',
   SPOUSE_OF = 'SPOUSE_OF',
@@ -130,6 +149,8 @@ export const ENTITY_RELATION_TYPE_LABELS: Record<EntityRelationType, string> = {
   [EntityRelationType.MEMBER_OF]: 'Thành viên / Trực thuộc',
   [EntityRelationType.FOUNDER_OF]: 'Sáng lập / Khởi lập',
   [EntityRelationType.SUCCESSOR_TO]: 'Kế vị / Tiếp nối',
+  [EntityRelationType.SERVED_UNDER]: 'Phụng sự / Bề tôi của',
+  [EntityRelationType.CONTEMPORARY_OF]: 'Cùng thời với',
   [EntityRelationType.CHILD_OF]: 'Con cái của',
   [EntityRelationType.PARENT_OF]: 'Cha mẹ của',
   [EntityRelationType.SPOUSE_OF]: 'Phối ngẫu / Vợ chồng',

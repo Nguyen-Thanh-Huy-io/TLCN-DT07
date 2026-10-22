@@ -2,6 +2,8 @@
 
 import { ArrowDownUp, Search, X } from "lucide-react";
 import { Button, Input, Select } from "@/components/timeline/sk-ui";
+import { FIGURE_ROLE_LABELS } from "@/constants/enums";
+import { FIGURE_ROLE_ORDER } from "./figure-roles";
 
 export type FigureSort = "time" | "name";
 
@@ -17,11 +19,15 @@ export function FiguresFilterBar({
   onEra,
   subEra,
   onSubEra,
+  role,
+  onRole,
   sort,
   onSort,
   eras,
   subEras,
 }: {
+  role: string;
+  onRole: (v: string) => void;
   query: string;
   onQuery: (v: string) => void;
   era: string;
@@ -73,6 +79,14 @@ export function FiguresFilterBar({
               {s.title}
             </option>
           ))}
+      </Select>
+      <Select label="Vai trò của nhân vật" value={role} onChange={onRole}>
+        <option value="">Tất cả vai trò</option>
+        {FIGURE_ROLE_ORDER.map((r) => (
+          <option key={r} value={r}>
+            {FIGURE_ROLE_LABELS[r]}
+          </option>
+        ))}
       </Select>
       <span className="sk-filter-divider" />
       <div className="sk-figure-sort">

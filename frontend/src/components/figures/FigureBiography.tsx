@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Feather, Landmark, Link2, Users } from "lucide-react";
+import { BookOpen, Feather, Landmark, Link2, MapPin, Sparkles, Users } from "lucide-react";
 import { Heading } from "@/components/timeline/sk-ui";
 import { PUBLIC_ROUTE_PREFIX } from "@/services/entities/landing.service";
 import type { FigureView } from "./figure-utils";
 
 export function FigureBiography({ figure: f }: { figure: FigureView }) {
+  const { legacy } = f;
   const roles = [f.occupation, ...f.titles].filter((v): v is string => Boolean(v));
   const biography = f.biography || f.description;
   return (
@@ -14,11 +15,27 @@ export function FigureBiography({ figure: f }: { figure: FigureView }) {
       <div className="sk-profile-section-heading">
         <div>
           <Heading level={3}>Phía sau những trang sử</Heading>
-          <p>Tiểu sử, chức vụ và nguồn tư liệu tham khảo.</p>
+          <p>Quê hương, cuộc đời và những di sản còn ở lại.</p>
         </div>
         <Feather size={21} />
       </div>
       <div className="sk-bio-bento">
+        {legacy.hometown && (
+          <section className="sk-bio-tile sk-hometown">
+            <MapPin size={21} />
+            <span className="sk-section-eyebrow">NƠI KHỞI ĐẦU</span>
+            <Heading level={3}>Quê hương</Heading>
+            <p>{legacy.hometown}</p>
+          </section>
+        )}
+        {legacy.backgroundAndYouth && (
+          <section className="sk-bio-tile sk-youth">
+            <Users size={21} />
+            <span className="sk-section-eyebrow">NHỮNG NĂM THÁNG ĐẦU ĐỜI</span>
+            <Heading level={3}>Xuất thân & thiếu thời</Heading>
+            <p>{legacy.backgroundAndYouth}</p>
+          </section>
+        )}
         {biography && (
           <section className="sk-bio-tile sk-anecdotes">
             <BookOpen size={21} />
@@ -27,17 +44,33 @@ export function FigureBiography({ figure: f }: { figure: FigureView }) {
             <p>{biography}</p>
           </section>
         )}
-        {roles.length > 0 && (
-          <section className="sk-bio-tile sk-hometown">
-            <Users size={21} />
-            <span className="sk-section-eyebrow">VAI TRÒ</span>
-            <Heading level={3}>Chức vụ & danh hiệu</Heading>
-            {roles.map((r, i) => (
-              <div className="sk-bio-work" key={r}>
-                <span>0{i + 1}</span>
-                <p>{r}</p>
+        {legacy.notableWorks.length > 0 && (
+          <section className="sk-bio-tile sk-works">
+            <Feather size={21} />
+            <span className="sk-section-eyebrow">TƯ TƯỞNG ĐỂ LẠI</span>
+            <Heading level={3}>Tác phẩm & chiếu chỉ</Heading>
+            {legacy.notableWorks.map((work, i) => (
+              <div className="sk-bio-work" key={work}>
+                <span>{String(i + 1).padStart(2, "0")}</span>
+                <p>{work}</p>
               </div>
             ))}
+          </section>
+        )}
+        {legacy.legacyAndHonors && (
+          <section className="sk-bio-tile sk-legacy">
+            <Landmark size={21} />
+            <span className="sk-section-eyebrow">VỌNG MÃI NGÀN NĂM</span>
+            <Heading level={3}>Di sản & tôn vinh</Heading>
+            <p>{legacy.legacyAndHonors}</p>
+          </section>
+        )}
+        {roles.length > 0 && (
+          <section className="sk-bio-tile">
+            <Users size={21} />
+            <span className="sk-section-eyebrow">CHỨC VỤ</span>
+            <Heading level={3}>Chức vụ & danh hiệu</Heading>
+            <p>{roles.join(" · ")}</p>
           </section>
         )}
         {f.aliases.length > 0 && (
@@ -57,6 +90,16 @@ export function FigureBiography({ figure: f }: { figure: FigureView }) {
               <Link href={`${PUBLIC_ROUTE_PREFIX.PERIOD}/${f.subEraSlug}`}>{f.subEraTitle}</Link>
               {f.eraTitle && f.eraTitle !== f.subEraTitle && <> · {f.eraTitle}</>}
             </p>
+          </section>
+        )}
+        {legacy.anecdotes.length > 0 && (
+          <section className="sk-bio-tile sk-anecdotes">
+            <Sparkles size={21} />
+            <span className="sk-section-eyebrow">BÊN LỀ CHÍNH SỬ</span>
+            <Heading level={3}>Giai thoại được kể lại</Heading>
+            {legacy.anecdotes.map((a) => (
+              <p key={a}>{a}</p>
+            ))}
           </section>
         )}
         {f.sources.length > 0 && (

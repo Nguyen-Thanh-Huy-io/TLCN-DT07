@@ -154,6 +154,15 @@ enum TopicIcon {
   MapPin
 }
 
+// Vai trò lịch sử của nhân vật (một người có thể có nhiều vai trò)
+enum FigureRole {
+  MONARCH // Vua / Hoàng đế
+  GENERAL // Danh tướng
+  SCHOLAR // Danh nhân văn hóa
+  REVOLUTIONARY // Nhà cách mạng / Lãnh tụ khởi nghĩa
+  POLITICIAN // Chính trị gia / Quan lại
+}
+
 // Phân loại thực thể lịch sử (Master Data dùng chung)
 enum HistoricalEntityType {
   PERSON

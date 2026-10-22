@@ -91,6 +91,32 @@
     "example": "Chân Lạp thần phục Chúa Nguyễn thế kỷ XVII"
   },
   {
+    "code": "SERVED_UNDER",
+    "category": "MILITARY_POLITICAL",
+    "forwardLabel": "Phụng sự, làm bề tôi của",
+    "reverseLabel": "Có bề tôi là",
+    "description": "Quan hệ quân thần: nhân vật làm quan, làm tướng dưới quyền một vị vua hoặc người đứng đầu",
+    "allowedSources": ["PERSON"],
+    "allowedTargets": ["PERSON"],
+    "isSymmetric": false,
+    "inverseCode": "HAS_SUBJECT",
+    "requireTimeRange": false,
+    "example": "Lý Thường Kiệt phụng sự Lý Thánh Tông"
+  },
+  {
+    "code": "CONTEMPORARY_OF",
+    "category": "TEMPORAL",
+    "forwardLabel": "Cùng thời với",
+    "reverseLabel": "Cùng thời với",
+    "description": "Hai nhân vật sống cùng thời, có giao thoa lịch sử nhưng không thuộc các quan hệ trực tiếp khác",
+    "allowedSources": ["PERSON"],
+    "allowedTargets": ["PERSON"],
+    "isSymmetric": true,
+    "inverseCode": "CONTEMPORARY_OF",
+    "requireTimeRange": false,
+    "example": "Ngô Quyền và Đinh Bộ Lĩnh"
+  },
+  {
     "code": "SIGNATORY_OF",
     "category": "MILITARY_POLITICAL",
     "forwardLabel": "Đại diện ký kết",

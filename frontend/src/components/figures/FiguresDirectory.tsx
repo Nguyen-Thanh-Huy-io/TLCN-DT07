@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Compass, RotateCcw, Search, Users, X } from "lucide-react";
 import { Badge, Button, Heading } from "@/components/timeline/sk-ui";
 import type { PublicFigureProfileDto, PublicPeriodDto } from "@/services/entities/landing.service";
@@ -10,6 +10,8 @@ import { FiguresSidebar } from "./FiguresSidebar";
 import { FiguresGrid } from "./FigureCard";
 import { FigureProfileSheet, type ProfileTab } from "./FigureProfileSheet";
 import { buildFigureViews, normalize, type FigureView } from "./figure-utils";
+import { figureRoles, isFigureRole } from "./figure-roles";
+import { FIGURE_ROLE_LABELS, type FigureRole } from "@/constants/enums";
 
 const PROFILE_QUERY_KEY = "nv";
 
@@ -26,19 +28,22 @@ export function FiguresDirectory({
   const [query, setQuery] = useState("");
   const [era, setEra] = useState("");
   const [subEra, setSubEra] = useState("");
+  const [role, setRole] = useState("");
   const [sort, setSort] = useState<FigureSort>("time");
   const [selected, setSelected] = useState<FigureView | null>(
     () => figures.find((f) => f.slug === initialSlug) ?? null,
   );
   const [tab, setTab] = useState<ProfileTab>("timeline");
 
-  // Keep the open profile in the URL so it can be shared and linked from the timeline.
-  useEffect(() => {
+  // Keep the open profile in the URL so it can be shared. Done from event handlers only:
+  // Next.js routes history.replaceState through the app router, which must be mounted first.
+  const selectFigure = useCallback((figure: FigureView | null) => {
+    setSelected(figure);
     const url = new URL(window.location.href);
-    if (selected) url.searchParams.set(PROFILE_QUERY_KEY, selected.slug);
+    if (figure) url.searchParams.set(PROFILE_QUERY_KEY, figure.slug);
     else url.searchParams.delete(PROFILE_QUERY_KEY);
     window.history.replaceState(null, "", url);
-  }, [selected]);
+  }, []);
 
   const eras: FilterOption[] = useMemo(() => {
     const seen = new Map<string, string>();
@@ -52,9 +57,9 @@ export function FiguresDirectory({
     return Array.from(seen, ([id, v]) => ({ id, ...v }));
   }, [figures]);
 
-  const countByEra = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const f of figures) if (f.eraId) counts.set(f.eraId, (counts.get(f.eraId) ?? 0) + 1);
+  const countByRole = useMemo(() => {
+    const counts = new Map<FigureRole, number>();
+    for (const f of figures) for (const r of figureRoles(f.roles)) counts.set(r, (counts.get(r) ?? 0) + 1);
     return counts;
   }, [figures]);
 
@@ -69,23 +74,28 @@ export function FiguresDirectory({
       .filter((f) => {
         if (era && f.eraId !== era) return false;
         if (subEra && f.subEraSlug !== subEra) return false;
+        if (role && !f.roles.includes(role)) return false;
         if (!needle) return true;
         const haystack = [f.name, ...f.aliases, f.occupation ?? "", ...f.titles, ...f.events.map((e) => e.title)].join(" ");
         return normalize(haystack).includes(needle);
       })
       .sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name, "vi") : a.sortYear - b.sortYear));
-  }, [figures, query, era, subEra, sort]);
+  }, [figures, query, era, subEra, role, sort]);
 
   const reset = () => {
     setQuery("");
     setEra("");
     setSubEra("");
+    setRole("");
   };
-  const open = useCallback((figure: FigureView) => {
-    setSelected(figure);
-    setTab("timeline");
-  }, []);
-  const activeFilters = [era, subEra, query].filter(Boolean).length;
+  const open = useCallback(
+    (figure: FigureView) => {
+      selectFigure(figure);
+      setTab("timeline");
+    },
+    [selectFigure],
+  );
+  const activeFilters = [era, subEra, role, query].filter(Boolean).length;
 
   return (
     <div className="sk-app">
@@ -110,26 +120,20 @@ export function FiguresDirectory({
           onEra={setEra}
           subEra={subEra}
           onSubEra={setSubEra}
+          role={role}
+          onRole={setRole}
           sort={sort}
           onSort={setSort}
           eras={eras}
           subEras={subEras}
         />
         <div className="sk-directory-body">
-          <FiguresSidebar
-            eras={eras}
-            era={era}
-            onEra={(id) => {
-              setEra(id);
-              setSubEra("");
-            }}
-            total={figures.length}
-            countByEra={countByEra}
-          />
+          <FiguresSidebar role={role} onRole={setRole} total={figures.length} countByRole={countByRole} />
           <div className="sk-directory-results">
             <div className="sk-results-toolbar">
               <span>
                 Hiển thị <strong>{filtered.length}</strong> nhân vật
+                {role && isFigureRole(role) && <> · {FIGURE_ROLE_LABELS[role]}</>}
               </span>
               {activeFilters > 0 && (
                 <Button onClick={reset}>
@@ -165,8 +169,8 @@ export function FiguresDirectory({
         periods={periods}
         tab={tab}
         onTab={setTab}
-        onClose={() => setSelected(null)}
-        onNavigate={setSelected}
+        onClose={() => selectFigure(null)}
+        onNavigate={selectFigure}
       />
     </div>
   );

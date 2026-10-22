@@ -383,7 +383,18 @@ export interface PublicFigureRelationDto {
   endYear: number | null;
 }
 
+export interface PublicFigureLegacyDto {
+  hometown: string | null;
+  backgroundAndYouth: string | null;
+  notableWorks: string[];
+  legacyAndHonors: string | null;
+  anecdotes: string[];
+  famousQuote: string | null;
+}
+
 export interface PublicFigureProfileDto extends PublicFigureDto {
+  roles: string[];
+  legacy: PublicFigureLegacyDto;
   aliases: string[];
   birthDateLabel: string | null;
   deathDateLabel: string | null;

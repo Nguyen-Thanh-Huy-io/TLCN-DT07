@@ -66,3 +66,4 @@
 .sk-figure-photo { object-fit: cover; height: 100%; }
 .sk-figure-artwork .sk-figure-photo { height: auto; }
 .sk-bio-tile a { color: var(--accent); text-decoration: underline; word-break: break-all; }
+.sk-role-REVOLUTIONARY { background: #f3e9e6; color: #a56a5b; }

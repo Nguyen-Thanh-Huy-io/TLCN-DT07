@@ -29,6 +29,14 @@ import { PeriodItem } from '@/types/models/period.type';
 import { extractErrorMessage } from '@/services/api';
 import { HistoricalEntityItem } from '@/types/models/historical-entity.type';
 import {
+  EMPTY_FIGURE_PROFILE,
+  FIGURE_PROFILE_METADATA_KEY,
+  FigureProfileFields,
+  type FigureProfileForm,
+  figureProfileFromEntity,
+  figureProfileToMetadata,
+} from './FigureProfileFields';
+import {
   HistoricalEventApiService,
   HistoricalEventItem,
 } from '@/services/entities/historical-event.service';
@@ -170,6 +178,8 @@ export function EntityEditor({
   const [recognitionLevel, setRecognitionLevel] = useState<string>('');
   const [managingAgency, setManagingAgency] = useState<string>('');
 
+  const [figureProfile, setFigureProfile] = useState<FigureProfileForm>(EMPTY_FIGURE_PROFILE);
+
   const [metadataJsonText, setMetadataJsonText] = useState('{}');
   const [isFeatured, setIsFeatured] = useState(false);
   const [displayOrder, setDisplayOrder] = useState<number>(0);
@@ -257,8 +267,11 @@ export function EntityEditor({
         setPreservationStatus(data.preservationStatus || '');
         setRecognitionLevel(data.recognitionLevel || '');
         setManagingAgency(data.managingAgency || '');
+        setFigureProfile(figureProfileFromEntity(data));
+        // metadata.profile is edited through the "Hồ sơ nhân vật" form, so keep it out of the raw JSON box.
+        const { [FIGURE_PROFILE_METADATA_KEY]: _profile, ...otherMetadata } = data.metadata ?? {};
         setMetadataJsonText(
-          data.metadata ? JSON.stringify(data.metadata, null, 2) : '{}',
+          Object.keys(otherMetadata).length > 0 ? JSON.stringify(otherMetadata, null, 2) : '{}',
         );
         setIsFeatured(Boolean(data.isFeatured));
         setDisplayOrder(data.displayOrder ?? 0);
@@ -696,6 +709,11 @@ export function EntityEditor({
       return;
     }
 
+    const isPerson = type === EntityType.PERSON;
+    delete parsedMetadata[FIGURE_PROFILE_METADATA_KEY];
+    const profileMetadata = isPerson ? figureProfileToMetadata(figureProfile) : undefined;
+    if (profileMetadata) parsedMetadata[FIGURE_PROFILE_METADATA_KEY] = profileMetadata;
+
     setSavingAction(targetStatus === ContentStatus.PUBLISHED ? 'PUBLISH' : 'DRAFT');
 
     const payload: SaveHistoricalEntityPayload = {
@@ -712,6 +730,8 @@ export function EntityEditor({
       deathYear: deathYear !== '' ? Number(deathYear) : undefined,
       birthDateLabel: birthDateLabel.trim() || undefined,
       deathDateLabel: deathDateLabel.trim() || undefined,
+      roles: isPerson ? figureProfile.roles : undefined,
+      biography: isPerson ? figureProfile.biography.trim() : undefined,
       // Historical Site fields (cho LOCATION)
       siteType: type === EntityType.LOCATION ? (siteType.trim() || 'HISTORICAL_SITE') : undefined,
       address: type === EntityType.LOCATION ? (address.trim() || undefined) : undefined,
@@ -722,7 +742,8 @@ export function EntityEditor({
       preservationStatus: type === EntityType.LOCATION ? (preservationStatus.trim() || undefined) : undefined,
       recognitionLevel: type === EntityType.LOCATION ? (recognitionLevel.trim() || undefined) : undefined,
       managingAgency: type === EntityType.LOCATION ? (managingAgency.trim() || undefined) : undefined,
-      metadata: Object.keys(parsedMetadata).length > 0 ? parsedMetadata : undefined,
+      // Always sent so that clearing the profile fields actually removes them on update.
+      metadata: parsedMetadata,
       isFeatured,
       displayOrder: Number(displayOrder) || 0,
       status: targetStatus,
@@ -1245,15 +1266,20 @@ export function EntityEditor({
       subtitle: 'Soạn thảo nội dung lịch sử chi tiết bằng trình soạn thảo TipTap RichText.',
       icon: IconName.BOOK,
       content: (
-        <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
-          <div className="bg-slate-50/80 px-3.5 py-2 border-b border-slate-200 text-xs font-semibold text-slate-700 flex items-center justify-between">
-            <span>Mô tả chi tiết / Tiểu sử nhân vật / Lịch sử triều đại / Hồ sơ hiện vật</span>
+        <div className="space-y-4">
+          <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+            <div className="bg-slate-50/80 px-3.5 py-2 border-b border-slate-200 text-xs font-semibold text-slate-700 flex items-center justify-between">
+              <span>Mô tả chi tiết / Tiểu sử nhân vật / Lịch sử triều đại / Hồ sơ hiện vật</span>
+            </div>
+            <TipTapContent
+              value={description}
+              onChange={setDescription}
+              placeholder="Soạn thảo hành trạng, sự nghiệp, chiến công hoặc bối cảnh lịch sử chi tiết..."
+            />
           </div>
-          <TipTapContent
-            value={description}
-            onChange={setDescription}
-            placeholder="Soạn thảo hành trạng, sự nghiệp, chiến công hoặc bối cảnh lịch sử chi tiết..."
-          />
+          {type === EntityType.PERSON && (
+            <FigureProfileFields value={figureProfile} onChange={setFigureProfile} />
+          )}
         </div>
       ),
     },

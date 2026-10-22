@@ -49,6 +49,7 @@ export function Minimap({
       <div className="sk-minimap-title">
         <Layers size={16} /> CÁC THỜI KỲ
       </div>
+      {eras.length === 0 && <p className="sk-minimap-empty">Không có thời kỳ nào khớp bộ lọc.</p>}
       {eras.map((e, i) => {
         const open = isOpen(e.id);
         const nodeCount = e.subEras.reduce((n, s) => n + s.timeNodes.length, 0);

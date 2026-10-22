@@ -137,3 +137,5 @@ button.sk-split-control:hover { color: var(--accent); }
   .sk-fs-chip { min-height: 40px; font-size: 13px; padding: 7px 12px; }
   .sk-fs-footer { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
 }
+.sk-minimap-empty { margin: 10px 0; font-size: 12px; color: var(--muted); }
+.sk-fs-card > div + div { margin-top: 2px; }

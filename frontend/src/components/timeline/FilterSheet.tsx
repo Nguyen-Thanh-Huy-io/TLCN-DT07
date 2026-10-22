@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SlidersHorizontal, X } from "lucide-react";
-import { EMPTY_FILTERS, type TimelineFilters } from "./FilterBar";
+import { EMPTY_FILTERS, withoutValue, type TimelineFilters } from "./FilterBar";
 import type { SplitMode } from "./SubEraSection";
 import type { Era } from "./sk-types";
 
@@ -48,10 +48,11 @@ function SheetPanel({ value, split, onApply, onClose, countFor, eras, categories
   // Nháp: chỉ áp dụng khi bấm "Xem N kết quả".
   const [draft, setDraft] = useState(value);
   const [draftSplit, setDraftSplit] = useState(split);
-  const set = (patch: Partial<TimelineFilters>) => setDraft((d) => ({ ...d, ...patch }));
-  const toggle = (key: keyof TimelineFilters, v: string) => set({ [key]: draft[key] === v ? "" : v });
-  const selectedEra = eras.find((e) => e.id === draft.era);
+  const toggle = (key: keyof TimelineFilters, v: string) =>
+    setDraft((d) => (d[key].includes(v) ? withoutValue(d, key, v, eras) : { ...d, [key]: [...d[key], v] }));
+  const selectedEras = eras.filter((e) => draft.eras.includes(e.id));
   const results = countFor(draft);
+  const picked = (n: number) => (n ? <span className="sk-fs-aside">Đã chọn {n}</span> : undefined);
 
   useEffect(() => {
     const original = document.body.style.overflow;
@@ -86,10 +87,10 @@ function SheetPanel({ value, split, onApply, onClose, countFor, eras, categories
 
       <div className="sk-fs-body">
         {regions.length > 1 && (
-          <Section title="Quốc gia / khu vực">
+          <Section title="Quốc gia / khu vực" aside={picked(draft.regions.length)}>
             <div className="sk-fs-chips">
               {regions.map((r) => (
-                <Chip key={r} selected={draft.region === r} onClick={() => toggle("region", r)}>
+                <Chip key={r} selected={draft.regions.includes(r)} onClick={() => toggle("regions", r)}>
                   {r}
                 </Chip>
               ))}
@@ -100,34 +101,37 @@ function SheetPanel({ value, split, onApply, onClose, countFor, eras, categories
         <div className="sk-fs-card">
           <div className="sk-fs-section-head">
             <h3>Thời kỳ</h3>
-            {selectedEra && <span className="sk-fs-aside">{selectedEra.title}</span>}
+            {picked(draft.eras.length + draft.subs.length)}
           </div>
           <div className="sk-fs-chips">
             {eras.map((e) => (
-              <Chip key={e.id} selected={draft.era === e.id} onClick={() => set({ era: draft.era === e.id ? "" : e.id, sub: "" })}>
+              <Chip key={e.id} selected={draft.eras.includes(e.id)} onClick={() => toggle("eras", e.id)}>
                 {e.title}
               </Chip>
             ))}
           </div>
-          {selectedEra && selectedEra.subEras.length > 0 && (
-            <>
-              <div className="sk-fs-sublabel">Giai đoạn</div>
-              <div className="sk-fs-chips">
-                {selectedEra.subEras.map((s) => (
-                  <Chip key={s.id} selected={draft.sub === s.id} onClick={() => toggle("sub", s.id)}>
-                    {s.title}
-                  </Chip>
-                ))}
+          {/* Chọn thời kỳ nào thì hiện giai đoạn của thời kỳ đó để thu hẹp thêm. */}
+          {selectedEras
+            .filter((e) => e.subEras.length > 1)
+            .map((e) => (
+              <div key={e.id}>
+                <div className="sk-fs-sublabel">Giai đoạn · {e.title}</div>
+                <div className="sk-fs-chips">
+                  {e.subEras.map((s) => (
+                    <Chip key={s.id} selected={draft.subs.includes(s.id)} onClick={() => toggle("subs", s.id)}>
+                      {s.title}
+                    </Chip>
+                  ))}
+                </div>
               </div>
-            </>
-          )}
+            ))}
         </div>
 
         {categories.length > 0 && (
-          <Section title="Danh mục sự kiện">
+          <Section title="Danh mục sự kiện" aside={picked(draft.categories.length)}>
             <div className="sk-fs-chips">
               {categories.map((c) => (
-                <Chip key={c} selected={draft.category === c} onClick={() => toggle("category", c)}>
+                <Chip key={c} selected={draft.categories.includes(c)} onClick={() => toggle("categories", c)}>
                   {c}
                 </Chip>
               ))}

@@ -34,8 +34,8 @@ type FilterScope = { query: string; bookmarksOnly: boolean; saved: string[] };
 function matchesEvent(event: TimelineEvent, node: TimeNode, f: TimelineFilters, scope: FilterScope): boolean {
   const q = scope.query.toLocaleLowerCase("vi");
   return (
-    (!f.category || event.category === f.category) &&
-    matchesRegion(event, f.region) &&
+    (f.categories.length === 0 || f.categories.includes(event.category)) &&
+    matchesRegion(event, f.regions) &&
     (!scope.bookmarksOnly || scope.saved.includes(event.id)) &&
     (!q ||
       [event.title, event.summary, ...event.tags, ...node.figures.map((x) => x.name), ...node.locations.map((l) => l.name)]
@@ -47,11 +47,15 @@ function matchesEvent(event: TimelineEvent, node: TimeNode, f: TimelineFilters, 
 
 function filterEras(baseEras: Era[], f: TimelineFilters, scope: FilterScope): Era[] {
   return baseEras
-    .filter((e) => !f.era || e.id === f.era)
-    .map((e) => ({
+    .filter((e) => f.eras.length === 0 || f.eras.includes(e.id))
+    .map((e) => {
+      // Giai đoạn chỉ thu hẹp thời kỳ chứa nó; thời kỳ không chọn giai đoạn nào thì giữ nguyên.
+      const pickedSubs = e.subEras.filter((s) => f.subs.includes(s.id));
+      return { e, pickedSubs };
+    })
+    .map(({ e, pickedSubs }) => ({
       ...e,
-      subEras: e.subEras
-        .filter((s) => !f.sub || s.id === f.sub)
+      subEras: (pickedSubs.length ? pickedSubs : e.subEras)
         .map((s) => ({
           ...s,
           timeNodes: s.timeNodes
@@ -63,12 +67,16 @@ function filterEras(baseEras: Era[], f: TimelineFilters, scope: FilterScope): Er
     .filter((e) => e.subEras.length);
 }
 
+function countEvents(eras: Era[]): number {
+  return eras.reduce(
+    (sum, e) => sum + e.subEras.reduce((s, sb) => s + sb.timeNodes.reduce((n, node) => n + node.events.length, 0), 0),
+    0,
+  );
+}
+
 export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?: ReactNode }) {
   const [query, setQuery] = useState("");
-  const [era, setEra] = useState("");
-  const [sub, setSub] = useState("");
-  const [category, setCategory] = useState("");
-  const [region, setRegion] = useState("");
+  const [filters, setFilters] = useState<TimelineFilters>(EMPTY_FILTERS);
   const [horizontal, setHorizontal] = useState(false);
   const [compact, setCompact] = useState(false);
   const [split, setSplit] = useState<SplitMode>("alternating");
@@ -96,14 +104,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     return Array.from(seen);
   }, [allNodes]);
 
-  const filters: TimelineFilters = { era, sub, category, region };
-  const setFilters = (f: TimelineFilters) => {
-    setEra(f.era);
-    setSub(f.sub);
-    setCategory(f.category);
-    setRegion(f.region);
-  };
-
   const reset = () => {
     setQuery("");
     setFilters(EMPTY_FILTERS);
@@ -112,14 +112,11 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
 
   const scope = { query, bookmarksOnly, saved };
   const eras = useMemo(
-    () => filterEras(baseEras, { era, sub, category, region }, { query, bookmarksOnly, saved }),
-    [baseEras, era, sub, category, region, bookmarksOnly, query, saved],
+    () => filterEras(baseEras, filters, { query, bookmarksOnly, saved }),
+    [baseEras, filters, bookmarksOnly, query, saved],
   );
-  const countFor = (f: TimelineFilters) =>
-    filterEras(baseEras, f, scope).reduce(
-      (sum, e) => sum + e.subEras.reduce((s, sb) => s + sb.timeNodes.reduce((n, node) => n + node.events.length, 0), 0),
-      0,
-    );
+  const countFor = (f: TimelineFilters) => countEvents(filterEras(baseEras, f, scope));
+  const filterKey = JSON.stringify(filters);
 
   const visibleNodes = useMemo(() => eras.flatMap((e) => e.subEras.flatMap((s) => s.timeNodes)), [eras]);
   const selectedNode = visibleNodes.find((n) => n.id === selected) || visibleNodes[0];
@@ -197,18 +194,13 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
         />
 
         <div className="sk-workspace">
+          {/* Minimap đi theo bộ lọc: chỉ liệt kê thời kỳ / giai đoạn còn dấu mốc sau khi lọc. */}
           <Minimap
-            eras={baseEras}
+            eras={eras}
             active={active}
-            totalEvents={allNodes.flatMap((n) => n.events).length}
-            onJumpEra={(e) => {
-              reset();
-              setTimeout(() => jump(e.subEras[0]?.id), 80);
-            }}
-            onJumpSubEra={(id) => {
-              if (era || sub) reset();
-              setTimeout(() => jump(id), 80);
-            }}
+            totalEvents={countEvents(eras)}
+            onJumpEra={(e) => jump(e.subEras[0]?.id)}
+            onJumpSubEra={jump}
           />
 
           <main className="sk-timeline-main" ref={canvas}>
@@ -263,7 +255,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                         <motion.div className="sk-spine-progress" style={{ scaleY: progress }} />
                         {e.subEras.map((s) => (
                           <SubEraSection
-                            key={`${s.id}-${query}-${category}-${region}-${bookmarksOnly}`}
+                            key={`${s.id}-${query}-${filterKey}-${bookmarksOnly}`}
                             subEra={s}
                             compact={compact}
                             split={split}

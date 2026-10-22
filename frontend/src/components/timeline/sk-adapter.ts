@@ -149,6 +149,7 @@ export function buildEraDataset(periods: PublicPeriodDto[], events: PublicEventS
 
       return {
         id: leaf.id,
+        slug: leaf.slug,
         eraId: top.id,
         title: leaf.name,
         periodLabel: leaf.timeLabel,
@@ -160,6 +161,7 @@ export function buildEraDataset(periods: PublicPeriodDto[], events: PublicEventS
 
     return {
       id: top.id,
+      slug: top.slug,
       title: top.name,
       periodLabel: top.timeLabel,
       overview: top.description || "",

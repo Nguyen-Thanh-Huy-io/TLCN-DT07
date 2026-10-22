@@ -150,3 +150,12 @@ button.sk-split-control:hover { color: var(--accent); }
 .sk-split-segment button { padding: 5px 10px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .sk-split-segment button.sk-selected { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .08); }
 @media (max-width: 600px) { .sk-split-segment { width: 100%; overflow-x: auto; } }
+
+/* Liên kết sang trang chi tiết thời kỳ / giai đoạn */
+.sk-era-section { position: relative; }
+.sk-era-link { display: inline-flex; align-items: center; gap: 4px; margin: 10px 0 0 2px; font-size: 13px; font-weight: 600; color: var(--accent); }
+.sk-era-link:hover { text-decoration: underline; }
+.sk-sub-link { display: inline-flex; align-items: center; gap: 4px; color: inherit; }
+.sk-sub-link > svg { opacity: 0; color: var(--accent); transition: opacity .15s; }
+.sk-sub-link:hover h3 { color: var(--accent); }
+.sk-sub-link:hover > svg, .sk-sub-link:focus-visible > svg { opacity: 1; }

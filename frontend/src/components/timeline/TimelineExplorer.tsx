@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
-import { ArrowDownUp, ArrowRight, Compass, Landmark, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowDownUp, ArrowRight, Landmark, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button, Heading } from "./sk-ui";
 import { EMPTY_FILTERS, FilterBar, matchesRegion, regionOptions, type TimelineFilters } from "./FilterBar";
 import { FilterSheet } from "./FilterSheet";
@@ -203,11 +203,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
 
           <main className="sk-timeline-main" ref={canvas}>
             <div className="sk-canvas-toolbar">
-              <div className="sk-breadcrumb">
-                <Compass size={14} />
-                <span>Lịch sử Việt Nam</span>
-                <strong>Tất cả thời kỳ</strong>
-              </div>
               {/* Phân luồng là cách hiển thị (chỉ trục dọc), không phải bộ lọc nên để ngoài. */}
               {!horizontal && (
                 <div className="sk-split-segment" role="group" aria-label="Phân luồng trục dọc">
@@ -262,7 +257,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                     />
                   ) : (
                     eras.map((e, ei) => (
-                      <EraSection key={e.id} title={e.title} period={e.periodLabel} index={ei} overview={e.overview}>
+                      <EraSection key={e.id} title={e.title} slug={e.slug} period={e.periodLabel} index={ei} overview={e.overview}>
                         <motion.div className="sk-spine-progress" style={{ scaleY: progress }} />
                         {e.subEras.map((s) => (
                           <SubEraSection

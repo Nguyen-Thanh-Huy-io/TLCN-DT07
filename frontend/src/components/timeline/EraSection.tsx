@@ -2,17 +2,21 @@
 
 import { ReactNode, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Landmark } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, ChevronDown, Landmark } from "lucide-react";
 import { Button, Heading } from "./sk-ui";
 
 export function EraSection({
   title,
+  slug,
   period,
   index,
   overview,
   children,
 }: {
   title: string;
+  /** Có slug thì hiện liên kết sang trang chi tiết thời kỳ. */
+  slug?: string;
   period: string;
   index: number;
   overview: string;
@@ -34,6 +38,11 @@ export function EraSection({
         </span>
         <ChevronDown className={open ? "" : "sk-rotate"} size={20} />
       </Button>
+      {slug && (
+        <Link href={`/giai-doan/${slug}`} className="sk-era-link">
+          Xem chi tiết thời kỳ <ArrowUpRight size={14} />
+        </Link>
+      )}
       <AnimatePresence>
         {open && (
           <motion.div

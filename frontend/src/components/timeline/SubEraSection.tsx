@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge, Heading } from "./sk-ui";
 import { TimelineNodeItem } from "./TimelineNodeItem";
@@ -34,7 +36,10 @@ export function SubEraSection({
       <div className="sk-sub-heading">
         <div>
           <span className="sk-sub-marker" />
-          <Heading level={3}>{s.title}</Heading>
+          <Link href={`/giai-doan/${s.slug}`} className="sk-sub-link" title="Xem chi tiết giai đoạn">
+            <Heading level={3}>{s.title}</Heading>
+            <ArrowUpRight size={14} />
+          </Link>
           <Badge>{s.periodLabel}</Badge>
           <span className="sk-sub-count">{s.timeNodes.length} dấu mốc</span>
         </div>

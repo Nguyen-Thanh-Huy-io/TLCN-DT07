@@ -55,6 +55,8 @@ export interface TimeNode {
 
 export interface SubEra {
   id: string;
+  /** Slug thời kỳ → trang chi tiết /giai-doan/[slug]. */
+  slug: string;
   eraId: string;
   title: string;
   periodLabel: string;
@@ -65,6 +67,7 @@ export interface SubEra {
 
 export interface Era {
   id: string;
+  slug: string;
   title: string;
   periodLabel: string;
   overview: string;

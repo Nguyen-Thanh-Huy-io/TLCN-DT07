@@ -20,8 +20,12 @@ import { LearningPathFormModal } from './studio/modals/LearningPathFormModal';
 import { CreateChapterModal } from './studio/modals/CreateChapterModal';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { extractErrorMessage } from '@/services/api';
+import { useAuthSession } from '@/services/auth/useAuthSession';
+import { isReviewerRole } from '@/services/auth/public-auth.service';
 
 export type StudioTab = 'CURRICULUM' | 'LESSON_LIBRARY';
+
+const LOCKED_STATUSES: string[] = ['PUBLISHED', 'ARCHIVED'];
 
 /**
  * HISGO Studio — bộ điều phối: giữ toàn bộ state & nghiệp vụ (gọi API, cập nhật lạc
@@ -53,6 +57,16 @@ export function HisgoStudioView() {
   const [libraryLessons, setLibraryLessons] = useState<LessonItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
+
+  // Quyền: xuất bản / sửa cấu trúc lộ trình đã xuất bản là việc của người duyệt.
+  const user = useAuthSession();
+  const isReviewer = Boolean(user && isReviewerRole(user.role));
+  // Thông báo lỗi/hướng dẫn hiển thị ngay trên Studio (thay cho alert + console.error).
+  const [notice, setNotice] = useState<{ tone: 'error' | 'info'; text: string } | null>(null);
+  const showError = useCallback(
+    (err: unknown, fallback: string) => setNotice({ tone: 'error', text: extractErrorMessage(err, fallback) }),
+    [],
+  );
 
   // Trạng thái Accordion các Chương: key là chapterId, value là boolean mở/đóng
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
@@ -110,11 +124,11 @@ export function HisgoStudioView() {
       // KHÔNG tự chọn lộ trình đầu tiên nữa — khi không có `?pathId=` trong URL, màn
       // hình mặc định hiện LearningPathListPanel (danh sách), đúng mô hình List → Detail.
     } catch (err) {
-      console.error('Lỗi tải danh sách lộ trình:', err);
+      showError(err, 'Không tải được danh sách lộ trình.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showError]);
 
   // Tải danh sách Bài học độc lập trong Thư viện
   const loadLibraryLessons = useCallback(async () => {
@@ -123,9 +137,9 @@ export function HisgoStudioView() {
       // `getLessons` trả về { items, total } (PaginatedResult) — KHÔNG có field `.data`.
       setLibraryLessons(res.items || []);
     } catch (err) {
-      console.error('Lỗi tải thư viện bài học:', err);
+      showError(err, 'Không tải được thư viện bài học.');
     }
-  }, []);
+  }, [showError]);
 
   useEffect(() => {
     loadLearningPaths();
@@ -138,6 +152,8 @@ export function HisgoStudioView() {
   const currentPath = useMemo(() => {
     return learningPaths.find((p) => p.id === selectedPathId) || null;
   }, [learningPaths, selectedPathId]);
+  // Biên tập viên mở lộ trình đã xuất bản/lưu trữ: chỉ xem cấu trúc chương.
+  const structureLocked = Boolean(currentPath && !isReviewer && LOCKED_STATUSES.includes(currentPath.status));
 
   // Tự động mở rộng tất cả các chương khi tải xong
   useEffect(() => {
@@ -175,8 +191,7 @@ export function HisgoStudioView() {
       setQuickCreateTitle('');
       await Promise.all([loadLearningPaths(), loadLibraryLessons()]);
     } catch (err) {
-      console.error('Lỗi tạo nhanh bài học:', err);
-      alert('Không thể tạo bài học mới. Vui lòng thử lại!');
+      showError(err, 'Không thể tạo bài học mới. Vui lòng thử lại!');
     } finally {
       setIsQuickCreating(false);
     }
@@ -191,8 +206,7 @@ export function HisgoStudioView() {
       setDeletingLibraryLesson(null);
       await Promise.all([loadLearningPaths(), loadLibraryLessons()]);
     } catch (err: unknown) {
-      console.error('Lỗi xóa bài học:', err);
-      alert(extractErrorMessage(err, 'Không thể xóa bài học.'));
+      showError(err, 'Không thể xóa bài học.');
     } finally {
       setIsDeletingLibraryLesson(false);
     }
@@ -233,8 +247,7 @@ export function HisgoStudioView() {
       await loadLearningPaths();
       setShowAddLessonModal(false);
     } catch (err) {
-      console.error('Lỗi gom bài vào chương:', err);
-      alert('Không thể thêm bài học vào chương. Vui lòng thử lại!');
+      showError(err, 'Không thể thêm bài học vào chương. Vui lòng thử lại!');
     } finally {
       setActionLoading(false);
     }
@@ -252,7 +265,7 @@ export function HisgoStudioView() {
       await LearningPathApiService.removeLessonFromChapter(chapterId, lessonId);
       await loadLearningPaths();
     } catch (err) {
-      console.error('Lỗi bỏ bài khỏi chương:', err);
+      showError(err, 'Không bỏ được bài học khỏi chương.');
     } finally {
       setActionLoading(false);
     }
@@ -291,7 +304,7 @@ export function HisgoStudioView() {
     try {
       await LearningPathApiService.reorderChapterLessons(chapter.id, orderedLessonIds);
     } catch (err) {
-      console.error('Lỗi sắp xếp bài học:', err);
+      showError(err, 'Không lưu được thứ tự bài học.');
       await loadLearningPaths();
     }
   };
@@ -343,7 +356,7 @@ export function HisgoStudioView() {
     try {
       await LearningPathApiService.reorderChapterLessons(chapter.id, orderedLessonIds);
     } catch (err) {
-      console.error('Lỗi khi kéo thả sắp xếp:', err);
+      showError(err, 'Không lưu được thứ tự bài học.');
       await loadLearningPaths();
     }
   };
@@ -365,8 +378,7 @@ export function HisgoStudioView() {
       setNewPathTitle('');
       setNewPathDesc('');
     } catch (err) {
-      console.error('Lỗi tạo lộ trình:', err);
-      alert('Không thể tạo lộ trình. Vui lòng kiểm tra lại!');
+      showError(err, 'Không thể tạo lộ trình. Vui lòng kiểm tra lại!');
     } finally {
       setActionLoading(false);
     }
@@ -393,8 +405,7 @@ export function HisgoStudioView() {
       await loadLearningPaths();
       setShowEditPathModal(false);
     } catch (err) {
-      console.error('Lỗi sửa lộ trình:', err);
-      alert('Không thể lưu thay đổi. Vui lòng kiểm tra lại!');
+      showError(err, 'Không thể lưu thay đổi. Vui lòng kiểm tra lại!');
     } finally {
       setActionLoading(false);
     }
@@ -425,8 +436,7 @@ export function HisgoStudioView() {
       setNewChapterSearchTerm('');
       setNewChapterSelectedLessonIds([]);
     } catch (err) {
-      console.error('Lỗi tạo chương:', err);
-      alert('Không thể tạo chương. Vui lòng kiểm tra lại!');
+      showError(err, 'Không thể tạo chương. Vui lòng kiểm tra lại!');
     } finally {
       setActionLoading(false);
     }
@@ -458,7 +468,7 @@ export function HisgoStudioView() {
       await LearningPathApiService.updateLearningPath(currentPath.id, { status: nextStatus });
       await loadLearningPaths();
     } catch (err) {
-      console.error('Lỗi cập nhật trạng thái lộ trình:', err);
+      showError(err, 'Không đổi được trạng thái lộ trình.');
     } finally {
       setActionLoading(false);
     }
@@ -472,7 +482,7 @@ export function HisgoStudioView() {
       await LearningPathApiService.deleteChapter(chapterId);
       await loadLearningPaths();
     } catch (err) {
-      console.error('Lỗi xóa chương:', err);
+      showError(err, 'Không xóa được chương.');
     } finally {
       setActionLoading(false);
     }
@@ -501,6 +511,19 @@ export function HisgoStudioView() {
 
   return (
     <div className="hisgo-studio-container max-w-7xl mx-auto space-y-4 pb-6 px-4 sm:px-6">
+      {notice && (
+        <div
+          role="alert"
+          className={`flex items-start justify-between gap-3 rounded-lg border px-3.5 py-2.5 text-sm ${
+            notice.tone === 'error' ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+          }`}
+        >
+          <span>{notice.text}</span>
+          <button type="button" onClick={() => setNotice(null)} className="text-xs font-semibold opacity-70 hover:opacity-100">
+            Đóng
+          </button>
+        </div>
+      )}
       <StudioHeader
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -528,8 +551,16 @@ export function HisgoStudioView() {
                   onOpenEditPath={handleOpenEditPathModal}
                   onOpenCreateLesson={() => router.push(APP_ROUTES.LESSONS.CREATE)}
                   onTogglePublishPath={handleTogglePublishPath}
+                  canPublish={isReviewer}
                   actionLoading={actionLoading}
                 />
+
+                {structureLocked && (
+                  <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900">
+                    Lộ trình đang <strong>xuất bản</strong>: bạn chỉ xem được cấu trúc chương. Thêm/bớt chương hoặc bài học
+                    do người duyệt thực hiện (hoặc nhờ người duyệt chuyển lộ trình về bản nháp).
+                  </div>
+                )}
 
                 <ChapterList
                   loading={loading}
@@ -553,6 +584,7 @@ export function HisgoStudioView() {
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
+                  readOnly={structureLocked}
                 />
               </>
             )}

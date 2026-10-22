@@ -11,6 +11,8 @@ interface LearningPathToolbarProps {
   onOpenEditPath: () => void;
   onOpenCreateLesson: () => void;
   onTogglePublishPath: () => void;
+  /** Chỉ người duyệt được xuất bản / chuyển về nháp. */
+  canPublish: boolean;
   actionLoading: boolean;
 }
 
@@ -23,6 +25,7 @@ export function LearningPathToolbar({
   onOpenEditPath,
   onOpenCreateLesson,
   onTogglePublishPath,
+  canPublish,
   actionLoading,
 }: LearningPathToolbarProps) {
   return (
@@ -74,6 +77,7 @@ export function LearningPathToolbar({
           </button>
         </div>
 
+        {canPublish ? (
         <button
           type="button"
           onClick={onTogglePublishPath}
@@ -87,6 +91,11 @@ export function LearningPathToolbar({
           <Icon name={IconName.CHECK} size={13} />
           <span>{currentPath.status === 'PUBLISHED' ? 'Chuyển về Nháp' : 'Xuất bản Lộ trình'}</span>
         </button>
+        ) : (
+          <span className="text-[11px] font-semibold rounded-lg px-2.5 py-1.5 bg-slate-100 text-slate-600">
+            {currentPath.status === 'PUBLISHED' ? 'Đã xuất bản' : 'Bản nháp — người duyệt sẽ xuất bản'}
+          </span>
+        )}
       </div>
     </div>
   );

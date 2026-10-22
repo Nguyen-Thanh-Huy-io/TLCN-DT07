@@ -30,6 +30,8 @@ interface ChapterListProps {
   onDragStart: (lessonId: string) => void;
   onDragOver: (e: React.DragEvent, lessonId: string) => void;
   onDrop: (chapter: ChapterItem, targetLessonId: string) => void;
+  /** Chỉ xem: ẩn mọi nút thay đổi cấu trúc (vd. biên tập viên mở lộ trình đã xuất bản). */
+  readOnly?: boolean;
 }
 
 /** Danh sách Chương dạng accordion + danh sách Lesson trong từng chương (kéo thả / ▲▼
@@ -50,6 +52,7 @@ export function ChapterList({
   onDragStart,
   onDragOver,
   onDrop,
+  readOnly = false,
 }: ChapterListProps) {
   // Phân trang danh sách Chương — lộ trình nhiều chương trước đây dồn hết 1 lần, cuộn
   // rất dài, khó quét. Về trang 1 mỗi khi đổi sang Lộ trình khác (mảng `chapters` đổi
@@ -102,6 +105,7 @@ export function ChapterList({
             </button>
           </div>
 
+          {!readOnly && (
           <button
             type="button"
             id="btn-add-chapter"
@@ -111,6 +115,7 @@ export function ChapterList({
             <Icon name={IconName.PLUS} size={12} />
             <span>Thêm Chương</span>
           </button>
+          )}
         </div>
       </div>
 
@@ -120,6 +125,7 @@ export function ChapterList({
         <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-xl">
           <p className="text-sm font-semibold text-slate-700">Chưa có chương nào trong lộ trình này</p>
           <p className="text-xs text-slate-400 mt-1">Nhấn &quot;Thêm Chương&quot; để bắt đầu xây dựng cấu trúc bài giảng.</p>
+          {!readOnly && (
           <button
             type="button"
             onClick={onOpenCreateChapter}
@@ -127,6 +133,7 @@ export function ChapterList({
           >
             + Thêm chương đầu tiên
           </button>
+          )}
         </div>
       ) : viewMode === 'LIST' ? (
         <div className="overflow-x-auto border border-slate-200 rounded-lg">
@@ -164,6 +171,7 @@ export function ChapterList({
                       </span>
                     </td>
                     <td className="px-3 py-2.5 align-top text-right whitespace-nowrap">
+                      {!readOnly && (<>
                       <button
                         type="button"
                         onClick={() => onOpenAddLessons(chapter)}
@@ -180,6 +188,7 @@ export function ChapterList({
                       >
                         <Icon name={IconName.TRASH} size={13} />
                       </button>
+                      </>)}
                     </td>
                   </tr>
                 );
@@ -234,6 +243,7 @@ export function ChapterList({
                   </div>
 
                   {/* Quick Chapter Actions */}
+                  {!readOnly && (
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
@@ -254,6 +264,7 @@ export function ChapterList({
                       <Icon name={IconName.TRASH} size={13} />
                     </button>
                   </div>
+                  )}
                 </div>
 
                 {/* Danh sách Lesson trong Chương (Có thể kéo thả) */}
@@ -307,6 +318,7 @@ export function ChapterList({
                                   <Icon name={IconName.EDIT} size={12} />
                                 </button>
 
+                                {!readOnly && (
                                 <button
                                   type="button"
                                   onClick={(e) => onRemoveLesson(e, chapter.id, cl.lessonId)}
@@ -315,6 +327,7 @@ export function ChapterList({
                                 >
                                   ✕
                                 </button>
+                                )}
                               </div>
                             </div>
                           );

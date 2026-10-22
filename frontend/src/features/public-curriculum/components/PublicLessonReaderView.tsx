@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -32,6 +32,8 @@ import { HubLessonGate } from './hub/HubLessonGate';
 import { useLessonProgress } from './hub/useLessonProgress';
 import { LessonToc } from './hub/LessonToc';
 import { LessonRelated } from './hub/LessonRelated';
+import { useLessonMedia } from './hub/useLessonMedia';
+import './hub/lesson-reader.css';
 
 const SYLLABUS_STORAGE_KEY = 'hisgo:lesson-reader:syllabus';
 
@@ -103,6 +105,8 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
   const { isCompleted, markCompleted, enroll } = useLessonProgress();
   const [mobileSyllabus, setMobileSyllabus] = useState(false);
   const [syllabusOpen, setSyllabusOpen] = useState(true);
+  const contentRef = useRef<HTMLDivElement>(null);
+  useLessonMedia(contentRef, compiledHtml);
   const router = useRouter();
 
   // Nhớ lựa chọn ẩn/hiện đề cương trên trình duyệt này (đọc sau khi mount để SSR khớp).
@@ -125,9 +129,9 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
   // Cột: [đề cương] [bài đọc] [mục lục + liên quan — chỉ màn rộng].
   const readerColumns = learningPath
     ? syllabusOpen
-      ? 'lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[17rem_minmax(0,1fr)_15rem]'
-      : 'lg:grid-cols-[3rem_minmax(0,1fr)] xl:grid-cols-[3rem_minmax(0,1fr)_15rem]'
-    : 'xl:grid-cols-[minmax(0,1fr)_15rem]';
+      ? 'lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_17rem]'
+      : 'lg:grid-cols-[3rem_minmax(0,1fr)] xl:grid-cols-[3rem_minmax(0,1fr)_17rem]'
+    : 'xl:grid-cols-[minmax(0,1fr)_17rem]';
 
   // Passing the end-of-lesson quiz counts as finishing the lesson.
   useEffect(() => {
@@ -152,7 +156,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
   return (
     <div className="lh-app">
       <Header activeTab="curriculum" />
-      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-[1680px] px-4 py-5 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between gap-3 border-b border-lh-line pb-5">
           <Link href={backHref} className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.ghost} -ml-3`}>
             <ArrowLeft className="size-4" /> Quay lại lộ trình
@@ -265,7 +269,16 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
                 </div>
 
                 <div className="mb-7 overflow-hidden rounded-2xl">
-                  <img src={lesson.thumbnailUrl || DEFAULT_COVER_IMAGES[0]} alt={lesson.title} className="aspect-[2.2/1] w-full object-cover" />
+                  <img
+                    src={lesson.thumbnailUrl || DEFAULT_COVER_IMAGES[0]}
+                    alt={lesson.title}
+                    className="aspect-[2.2/1] w-full object-cover"
+                    onError={(e) => {
+                      // Ảnh bìa nguồn ngoài đã mất → dùng ảnh mặc định thay vì khung vỡ.
+                      const img = e.currentTarget;
+                      if (!img.src.endsWith(DEFAULT_COVER_IMAGES[0])) img.src = DEFAULT_COVER_IMAGES[0];
+                    }}
+                  />
                 </div>
 
                 {/* Màn hẹp: mục lục nằm trên bài; màn rộng: chuyển sang cột phải. */}
@@ -275,6 +288,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
 
                 <article className="rounded-2xl border border-lh-line bg-lh-surface p-6 md:p-9">
                   <div
+                    ref={contentRef}
                     className="tiptap-content-box !p-0 leading-relaxed text-lh-ink"
                     dangerouslySetInnerHTML={{
                       __html: compiledHtml || '<p class="italic">Nội dung bài học đang được biên tập viên cập nhật.</p>',

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { CalendarDays, Landmark, Link2, UserRound } from 'lucide-react';
 import { loadPublicCatalog } from '@/features/search/search.service';
-import { formatYear, normalizeSearch, shortPeriodName, type SearchSource } from '@/features/search/search-index';
+import { formatYear, shortPeriodName, type SearchSource } from '@/features/search/search-index';
 
 const MAX_PER_GROUP = 6;
 /** Tên quá ngắn dễ khớp nhầm khi dò trong văn bản. */
@@ -26,8 +26,14 @@ interface Related {
  * (khối sự kiện / nhân vật), sau đó dò tên được nhắc tới trong nội dung.
  */
 function findRelated(html: string, catalog: SearchSource): Related {
-  const text = normalizeSearch(stripHtml(html));
-  const mentioned = (name: string) => name.length >= MIN_MENTION_LENGTH && text.includes(normalizeSearch(name));
+  // So khớp GIỮ dấu và đúng nguyên từ: bỏ dấu / khớp chuỗi con làm "Phạm Tu" dính vào
+  // "Phạm Tuân", "Lữ Gia" dính vào cụm khác.
+  const text = stripHtml(html).normalize('NFC').toLocaleLowerCase('vi');
+  const mentioned = (name: string) => {
+    if (name.length < MIN_MENTION_LENGTH) return false;
+    const needle = name.normalize('NFC').toLocaleLowerCase('vi').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(^|[^\\p{L}\\p{M}\\p{N}])${needle}(?=$|[^\\p{L}\\p{M}\\p{N}])`, 'u').test(text);
+  };
 
   const eventIds = new Set(idsFromHtml(html, 'data-event-id'));
   const entityIds = new Set(idsFromHtml(html, 'data-entity-id'));

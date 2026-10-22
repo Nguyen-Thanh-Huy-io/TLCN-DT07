@@ -416,7 +416,7 @@ export const AUTH_CONFIG = {
 | `POST` | `/auth/login` | ❌ | Login and get tokens |
 | `POST` | `/auth/refresh-token` | ❌ | Refresh access token |
 | `POST` | `/auth/logout` | ❌ | Logout (revoke refresh token) |
-| `POST` | `/auth/logout-all` | ❌ | Logout all devices |
+| `POST` | `/auth/logout-all` | ✅ | Logout all devices |
 | `GET` | `/auth/google` | ❌ | Initiate Google OAuth |
 | `GET` | `/auth/google/callback` | ❌ | Google OAuth callback |
 | `POST` | `/auth/google/callback` | ❌ | Google OAuth callback (POST) |
@@ -1134,12 +1134,9 @@ Content-Type: application/json
 #### Logout All Devices
 ```http
 POST /auth/logout-all
-Content-Type: application/json
-
-{
-  "userId": "550e8400-e29b-41d4-a716-446655440000"
-}
+Authorization: Bearer <accessToken>
 ```
+Chỉ thu hồi phiên của tài khoản sở hữu access token (không nhận `userId` trong body).
 
 **Response (200 OK):**
 ```json

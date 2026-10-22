@@ -7,8 +7,10 @@ import {
   Query,
   Res,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '../common/guards/auth.guard';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { GoogleOAuthService } from './services/google-oauth.service';
@@ -19,7 +21,6 @@ import {
   LoginDto,
   RefreshTokenDto,
   LogoutDto,
-  LogoutAllDto,
 } from './dto/auth-request.dto';
 import {
   GoogleOAuthInitDto,
@@ -391,15 +392,20 @@ export class AuthController {
    * Logout from all devices
    */
   @ApiOperation({ summary: 'Logout from all devices' })
+  @ApiBearerAuth('JWT-auth')
   @ApiResponseDecorator(200, 'Logged out from all devices successfully')
+  @UseGuards(AuthGuard)
   @Post('logout-all')
-  async logoutAll(@Body() body: LogoutAllDto) {
+  async logoutAll(@Req() req: Request & { user: { userId: string } }) {
+    // Chỉ thu hồi phiên của chính người gọi — không nhận userId từ body
+    // (trước đây ai cũng có thể đăng xuất tài khoản người khác).
+    const userId = req.user.userId;
     this.customLogger.log(
-      `Logout all devices requested for user: ${body.userId}`,
+      `Logout all devices requested for user: ${userId}`,
       'AuthController',
     );
 
-    const result = await this.authService.logoutAllDevices(body.userId);
+    const result = await this.authService.logoutAllDevices(userId);
 
     return {
       success: true,

@@ -6,6 +6,7 @@ import { GoogleOAuthService } from './services/google-oauth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import type { Request } from 'express';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
+import { AuthGuard } from '../common/guards/auth.guard';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -60,7 +61,10 @@ describe('AuthController', () => {
           useValue: mockCustomLoggerService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AuthController>(AuthController);
   });

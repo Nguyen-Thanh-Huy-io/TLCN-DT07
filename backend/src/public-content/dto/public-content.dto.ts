@@ -111,7 +111,15 @@ export class PublicLocationSummaryDto {
   @ApiPropertyOptional({ nullable: true }) periodSlug?: string | null;
   /** Các tên gọi trong lịch sử (HistoricalEntity.aliases). */
   @ApiPropertyOptional({ type: [String] }) ancientNames?: string[];
+  /** Chữ gốc trong DB (tự do) — giao diện dùng preservationCategory + statusNote. */
   @ApiPropertyOptional({ nullable: true }) preservationStatus?: string | null;
+  /** Hiện trạng chuẩn hóa (5 nhóm, xem preservation-status.constant). */
+  @ApiPropertyOptional({ nullable: true }) preservationCategory?: string | null;
+  @ApiPropertyOptional({ nullable: true }) preservationLabel?: string | null;
+  /** Phần chữ còn lại sau khi chuẩn hóa — chỉ hiển thị, không lọc. */
+  @ApiPropertyOptional({ nullable: true }) statusNote?: string | null;
+  /** Đơn vị quản lý (bảo tàng, cơ quan...). */
+  @ApiPropertyOptional({ nullable: true }) managingUnit?: string | null;
   /** Mức độ "trải nghiệm số" có sẵn — để lọc ngay ở danh sách. */
   @ApiPropertyOptional() digital?: {
     hasImage: boolean;

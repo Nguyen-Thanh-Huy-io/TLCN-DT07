@@ -575,6 +575,9 @@ export function HisgoStudioView() {
                     setShowCreateChapterModal(true);
                   }}
                   onOpenAddLessons={handleOpenAddLessonsModal}
+                  onCreateLessonInChapter={(chapter) =>
+                    router.push(`${APP_ROUTES.LESSONS.CREATE}?chapterId=${encodeURIComponent(chapter.id)}`)
+                  }
                   onOpenLesson={(lessonId) => router.push(`/lessons/create?id=${lessonId}`)}
                   onDeleteChapter={handleDeleteChapter}
                   onRemoveLesson={handleRemoveLessonFromChapter}

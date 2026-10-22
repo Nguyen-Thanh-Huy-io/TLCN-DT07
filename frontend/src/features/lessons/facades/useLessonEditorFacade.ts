@@ -6,6 +6,7 @@ import { ContentStatus, DifficultyLevel, MediaType } from '@/constants/enums';
 import { LessonApiService } from '@/services/entities/lesson.service';
 import { TopicApiService } from '@/services/entities/topic.service';
 import { TagApiService } from '@/services/entities/tag.service';
+import { LearningPathApiService } from '@/services/entities/learning-path.service';
 import { extractErrorMessage } from '@/services/api';
 import { UseLessonEditorFacadeReturn, LessonMediaItem, AutoSaveState } from '../types/editor.types';
 import { LessonItem } from '@/types/models/lesson.type';
@@ -20,6 +21,8 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
   const searchParams = useSearchParams();
   const lessonId = explicitLessonId || searchParams.get('id');
   const queryTopicId = searchParams.get('topicId') || '';
+  // Mở từ nút "Soạn bài mới" trong một chương của Studio: lưu lần đầu thì gắn luôn vào chương đó.
+  const targetChapterId = searchParams.get('chapterId');
 
   const [topics, setTopics] = useState<TopicItem[]>([]);
   const [topicLessons, setTopicLessons] = useState<LessonItem[]>([]);
@@ -302,6 +305,14 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
         setStatus(nextStatus);
         setAutoSaveState(AutoSaveState.SAVED);
 
+        if (!lessonId && savedId && targetChapterId) {
+          try {
+            await LearningPathApiService.addLessonsToChapter(targetChapterId, [savedId]);
+          } catch (chapterErr) {
+            alert(extractErrorMessage(chapterErr, 'Đã lưu bài học nhưng chưa gắn được vào chương — hãy thêm từ thư viện trong Studio.'));
+          }
+        }
+
         if (!lessonId && savedId) {
           // Bài học MỚI vừa được tạo: chuyển URL sang trang sửa của chính bài học này
           // (router.replace — không đẩy thêm lịch sử) để KHÔNG rời khỏi Editor, cho phép
@@ -324,7 +335,7 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
         setSaving(false);
       }
     },
-    [slug, description, title, contentRichText, thumbnailUrl, difficulty, displayOrder, selectedTags, lessonId, draftStorageKey, router]
+    [slug, description, title, contentRichText, thumbnailUrl, difficulty, displayOrder, selectedTags, lessonId, draftStorageKey, router, targetChapterId]
   );
 
   return {

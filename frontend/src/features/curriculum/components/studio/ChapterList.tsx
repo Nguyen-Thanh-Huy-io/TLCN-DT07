@@ -16,6 +16,8 @@ interface ChapterListProps {
   onToggleExpand: (chapterId: string) => void;
   onOpenCreateChapter: () => void;
   onOpenAddLessons: (chapter: ChapterItem) => void;
+  /** Mở trình soạn bài mới, lưu xong bài tự gắn vào chương này. */
+  onCreateLessonInChapter: (chapter: ChapterItem) => void;
   onOpenLesson: (lessonId: string) => void;
   onDeleteChapter: (e: React.MouseEvent, chapterId: string, chapterTitle: string) => void;
   onRemoveLesson: (e: React.MouseEvent, chapterId: string, lessonId: string) => void;
@@ -43,6 +45,7 @@ export function ChapterList({
   onToggleExpand,
   onOpenCreateChapter,
   onOpenAddLessons,
+  onCreateLessonInChapter,
   onOpenLesson,
   onDeleteChapter,
   onRemoveLesson,
@@ -174,6 +177,14 @@ export function ChapterList({
                       {!readOnly && (<>
                       <button
                         type="button"
+                        onClick={() => onCreateLessonInChapter(chapter)}
+                        title="Soạn bài mới trong chương này"
+                        className="text-slate-500 hover:text-emerald-700 p-1"
+                      >
+                        <Icon name={IconName.EDIT} size={13} />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => onOpenAddLessons(chapter)}
                         title="Thêm Lesson từ thư viện"
                         className="text-slate-500 hover:text-emerald-700 p-1"
@@ -247,6 +258,16 @@ export function ChapterList({
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
+                      onClick={() => onCreateLessonInChapter(chapter)}
+                      className="primary-button !h-7 !text-xs !px-2.5"
+                      title="Soạn một bài học mới, lưu xong tự gắn vào chương này"
+                    >
+                      <Icon name={IconName.EDIT} size={11} />
+                      <span>Soạn bài mới</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => onOpenAddLessons(chapter)}
                       className="secondary-button !h-7 !text-xs !px-2.5 text-emerald-800 bg-emerald-50/60 border-emerald-300 hover:bg-emerald-100"
                       title="Chọn các bài học độc lập từ Thư viện gom vào chương này"
@@ -274,7 +295,7 @@ export function ChapterList({
                       <div className="py-6 text-center text-xs text-slate-400 bg-white border border-dashed border-slate-200 rounded-lg">
                         <p className="font-medium text-slate-500">Chưa thêm bài vào chương này.</p>
                         <p className="text-[11px] text-slate-400 mt-0.5">
-                          Nhấn <strong>[+ Thêm Lesson từ thư viện]</strong> ở trên để gom các bài học vào chương.
+                          Nhấn <strong>[Soạn bài mới]</strong> để viết bài ngay trong chương, hoặc <strong>[+ Thêm Lesson từ thư viện]</strong> để gom bài có sẵn.
                         </p>
                       </div>
                     ) : (

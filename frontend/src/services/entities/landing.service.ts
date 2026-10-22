@@ -234,6 +234,8 @@ export interface PublicEventSummaryDto {
   description: string | null;
   category: string;
   periodSlug: string | null;
+  figures: PublicFigureDto[];
+  locations: PublicLocationSummaryDto[];
 }
 
 export interface PublicEventRelationDto {

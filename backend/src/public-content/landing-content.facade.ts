@@ -113,6 +113,11 @@ export class LandingContentFacade {
       include: {
         location: { include: { historicalSite: true } },
         period: { select: { slug: true } },
+        entities: {
+          where: { entity: { status: PUBLIC_CONTENT_STATUS } },
+          include: { entity: { include: { historicalSite: true } } },
+          orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
+        },
       },
       orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
     });
@@ -126,6 +131,11 @@ export class LandingContentFacade {
       include: {
         period: true,
         location: { include: { historicalSite: true } },
+        entities: {
+          where: { entity: { status: PUBLIC_CONTENT_STATUS } },
+          include: { entity: { include: { historicalSite: true } } },
+          orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
+        },
         parent: {
           include: { location: { include: { historicalSite: true } } },
         },

@@ -58,6 +58,9 @@ export class PublicEventSummaryDto {
   @ApiPropertyOptional({ nullable: true }) description: string | null;
   @ApiProperty({ enum: EventCategory }) category: EventCategory;
   @ApiPropertyOptional({ nullable: true }) periodSlug: string | null;
+  @ApiProperty({ type: [PublicFigureDto] }) figures: PublicFigureDto[];
+  @ApiProperty({ type: [PublicLocationSummaryDto] })
+  locations: PublicLocationSummaryDto[];
 }
 
 export class PublicLessonSummaryDto {

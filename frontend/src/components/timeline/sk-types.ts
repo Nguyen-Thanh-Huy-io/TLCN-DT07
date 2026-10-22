@@ -13,6 +13,8 @@ export interface TimelineEvent {
   imageUrl?: string;
   tags: string[];
   isMilestone?: boolean;
+  figures?: TimelineFigure[];
+  locations?: TimelineLocation[];
 }
 
 export interface TimelineFigure {

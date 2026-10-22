@@ -70,7 +70,7 @@ export function NodeContent({
               )}
             </div>
           ) : (
-            <EntityList node={node} tab={tab} />
+            <EntityList figures={node.figures} locations={node.locations} tab={tab} />
           )}
         </motion.div>
       </AnimatePresence>

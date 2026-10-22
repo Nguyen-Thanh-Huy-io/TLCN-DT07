@@ -87,6 +87,9 @@ export class PublicContentMapper {
       site?: (HistoricalSite & { entity?: HistoricalEntity }) | null;
       historicalLocation?: any;
       period?: { slug: string } | null;
+      entities?: Array<{
+        entity: HistoricalEntity & { historicalSite?: HistoricalSite | null };
+      }>;
     },
   ): PublicEventSummaryDto {
     const locName =
@@ -98,6 +101,8 @@ export class PublicContentMapper {
       (event.metadata as any)?.rawLocation ||
       null;
 
+    const participants = (event.entities || []).map((ee) => ee.entity);
+
     return {
       id: event.id,
       slug: event.slug,
@@ -108,6 +113,12 @@ export class PublicContentMapper {
       description: event.description,
       category: event.category,
       periodSlug: event.period?.slug ?? null,
+      figures: participants
+        .filter((e) => e.type !== 'LOCATION')
+        .map((e) => PublicContentMapper.toFigure(e)),
+      locations: participants
+        .filter((e) => e.type === 'LOCATION')
+        .map((e) => PublicContentMapper.toLocationSummary(e)),
     };
   }
 

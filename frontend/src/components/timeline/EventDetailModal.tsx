@@ -29,8 +29,8 @@ export function EventDetailModal({
             <Heading level={1}>{detail.event.title}</Heading>
             <div className="sk-detail-text">{detail.event.content}</div>
             <Heading level={3}>Nhân vật & địa danh</Heading>
-            <EntityList node={detail.node} tab="figures" />
-            <EntityList node={detail.node} tab="locations" />
+            <EntityList figures={detail.event.figures || []} locations={detail.event.locations || []} tab="figures" />
+            <EntityList figures={detail.event.figures || []} locations={detail.event.locations || []} tab="locations" />
             <Heading level={3}>Cùng thời điểm</Heading>
             {detail.node.events
               .filter((ev) => ev.id !== detail.event.id)

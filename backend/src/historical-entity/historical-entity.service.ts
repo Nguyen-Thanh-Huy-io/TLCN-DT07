@@ -15,6 +15,7 @@ import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { SlugService } from '../common/services/slug.service';
+import { TaxonomyService } from '../taxonomy/taxonomy.service';
 import { PUBLIC_LANDING_CACHE_KEY } from '../common/constants/cache-keys.constant';
 import {
   CreateEntityMediaDto,
@@ -64,6 +65,7 @@ export class HistoricalEntityService {
     private readonly redis: RedisService,
     private readonly logger: CustomLoggerService,
     private readonly slugService: SlugService,
+    private readonly taxonomy: TaxonomyService,
   ) {}
 
   private validateYearRange(
@@ -187,6 +189,8 @@ export class HistoricalEntityService {
       },
     });
 
+    // Form CMS còn nhập chữ tự do cho loại / hiện trạng / xếp hạng — quy đổi sang danh mục dùng chung.
+    await this.taxonomy.syncSiteTerms(created.id);
     await this.invalidateCache();
     return created;
   }
@@ -515,6 +519,7 @@ export class HistoricalEntityService {
       },
     });
 
+    if (hasSiteUpdates) await this.taxonomy.syncSiteTerms(id);
     await this.invalidateCache(id);
     return updated;
   }

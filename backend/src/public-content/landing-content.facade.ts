@@ -36,6 +36,10 @@ import {
 } from './public-content.constant';
 
 const CONCURRENT_EVENTS_LIMIT = 12;
+/** Di tích kèm các giá trị danh mục dùng chung (loại, hiện trạng, xếp hạng). */
+const SITE_WITH_TERMS = {
+  include: { siteTypeTerm: true, preservation: true, rank: true },
+} as const;
 const NEARBY_LOCATIONS_LIMIT = 4;
 const EARTH_RADIUS_KM = 6371;
 
@@ -166,7 +170,7 @@ export class LandingContentFacade {
         status: PUBLIC_CONTENT_STATUS,
       },
       include: {
-        historicalSite: true,
+        historicalSite: SITE_WITH_TERMS,
         period: { select: { slug: true } },
         _count: { select: { media: true } },
       },
@@ -189,7 +193,7 @@ export class LandingContentFacade {
         status: PUBLIC_CONTENT_STATUS,
       },
       include: {
-        historicalSite: true,
+        historicalSite: SITE_WITH_TERMS,
         period: true,
         media: { orderBy: { displayOrder: 'asc' } },
       },
@@ -228,7 +232,7 @@ export class LandingContentFacade {
           historicalSite: { latitude: { not: null }, longitude: { not: null } },
         },
         include: {
-          historicalSite: true,
+          historicalSite: SITE_WITH_TERMS,
           period: { select: { slug: true } },
           _count: { select: { media: true } },
         },

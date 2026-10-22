@@ -106,6 +106,9 @@ export class PublicLocationSummaryDto {
   /** Mã loại di tích đã chuẩn hóa (xem site-type.constant). */
   @ApiPropertyOptional() siteType?: string;
   @ApiPropertyOptional() siteTypeLabel?: string;
+  /** Mã cấp xếp hạng (danh mục HERITAGE_RANK); null = chưa xếp hạng. */
+  @ApiPropertyOptional({ nullable: true }) rankCode?: string | null;
+  @ApiPropertyOptional({ nullable: true }) rankLabel?: string | null;
   @ApiPropertyOptional({ nullable: true }) recognitionLevel?: string | null;
   @ApiPropertyOptional({ nullable: true }) constructionLabel?: string | null;
   @ApiPropertyOptional({ nullable: true }) periodSlug?: string | null;

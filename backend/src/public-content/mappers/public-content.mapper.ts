@@ -4,6 +4,7 @@ import {
   HistoricalEvent,
   HistoricalEventEntity,
   HistoricalSite,
+  TaxonomyTerm,
   Lesson,
   Period,
   Person,
@@ -24,6 +25,7 @@ import {
 } from '../dto/public-content.dto';
 import { SITE_TYPES, normalizeSiteType } from '../site-type.constant';
 import { toHeritageProfile } from './heritage-profile.mapper';
+import { normalizeRank } from '../../taxonomy/taxonomy.constant';
 import {
   PRESERVATION_CATEGORIES,
   normalizePreservation,
@@ -236,15 +238,39 @@ export class PublicContentMapper {
 
   static toLocationSummary(
     entity: HistoricalEntity & {
-      historicalSite?: HistoricalSite | null;
+      historicalSite?:
+        | (HistoricalSite & {
+            siteTypeTerm?: TaxonomyTerm | null;
+            preservation?: TaxonomyTerm | null;
+            rank?: TaxonomyTerm | null;
+          })
+        | null;
       period?: { slug: string } | null;
       _count?: { media: number };
     },
   ): PublicLocationSummaryDto {
     const site = entity.historicalSite;
-    const siteType = normalizeSiteType(site?.siteType);
     const heritage = toHeritageProfile(entity.metadata);
-    const preservation = normalizePreservation(site?.preservationStatus);
+    // Ưu tiên giá trị danh mục dùng chung (taxonomy_terms); chưa gắn thì quy đổi từ cột chữ cũ.
+    const fallbackType = normalizeSiteType(site?.siteType);
+    const siteType = site?.siteTypeTerm?.code ?? fallbackType;
+    const fallbackPreservation = normalizePreservation(
+      site?.preservationStatus,
+    );
+    const preservation = site?.preservation
+      ? {
+          category: site.preservation.code,
+          label: site.preservation.label,
+          note: site.statusNote,
+        }
+      : {
+          category: fallbackPreservation.category,
+          label: fallbackPreservation.category
+            ? PRESERVATION_CATEGORIES[fallbackPreservation.category]
+            : null,
+          note: fallbackPreservation.note,
+        };
+    const rankCode = site?.rank?.code ?? normalizeRank(site?.recognitionLevel);
     return {
       id: entity.id,
       slug: entity.slug,
@@ -255,16 +281,16 @@ export class PublicContentMapper {
       historicalSignificance: entity.tagline || entity.description || null,
       imageUrl: entity.imageUrl,
       siteType,
-      siteTypeLabel: SITE_TYPES[siteType],
+      siteTypeLabel: site?.siteTypeTerm?.label ?? SITE_TYPES[fallbackType],
+      rankCode,
+      rankLabel: site?.rank?.label ?? null,
       recognitionLevel: site?.recognitionLevel ?? null,
       constructionLabel: site?.constructionLabel ?? null,
       periodSlug: entity.period?.slug ?? null,
       ancientNames: entity.aliases ?? [],
       preservationStatus: site?.preservationStatus ?? null,
       preservationCategory: preservation.category,
-      preservationLabel: preservation.category
-        ? PRESERVATION_CATEGORIES[preservation.category]
-        : null,
+      preservationLabel: preservation.label,
       statusNote: preservation.note,
       managingUnit: site?.managingAgency ?? null,
       digital: {

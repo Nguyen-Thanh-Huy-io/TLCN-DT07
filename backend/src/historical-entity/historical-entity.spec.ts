@@ -5,6 +5,7 @@ import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { SlugService } from '../common/services/slug.service';
+import { TaxonomyService } from '../taxonomy/taxonomy.service';
 import { PUBLIC_LANDING_CACHE_KEY } from '../common/constants/cache-keys.constant';
 import { HistoricalEntityService } from './historical-entity.service';
 import { EntityRelationType } from './historical-entity.constant';
@@ -123,6 +124,7 @@ describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
         { provide: RedisService, useValue: mockRedis },
         { provide: CustomLoggerService, useValue: mockLogger },
         { provide: SlugService, useValue: mockSlugService },
+        { provide: TaxonomyService, useValue: { syncSiteTerms: jest.fn() } },
       ],
     }).compile();
 

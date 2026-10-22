@@ -17,6 +17,7 @@ import { TopicModule } from './topic/topic.module';
 import { LessonModule } from './lesson/lesson.module';
 import { HistoricalEventModule } from './historical-event/historical-event.module';
 import { TagModule } from './tag/tag.module';
+import { TaxonomyModule } from './taxonomy/taxonomy.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UploadModule } from './upload/upload.module';
 import { LearningPathModule } from './learning-path/learning-path.module';
@@ -49,6 +50,7 @@ import { LearnerModule } from './learner/learner.module';
     LessonModule,
     HistoricalEventModule,
     TagModule,
+    TaxonomyModule,
     DashboardModule,
     UploadModule,
     LearningPathModule,

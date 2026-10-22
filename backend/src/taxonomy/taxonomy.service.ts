@@ -1,0 +1,224 @@
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma, TaxonomyTerm } from '@prisma/client';
+import { PrismaService } from '../common/services/prisma.service';
+import { normalizePreservation } from '../public-content/preservation-status.constant';
+import { normalizeSiteType } from '../public-content/site-type.constant';
+import {
+  CreateTaxonomyTermDto,
+  UpdateTaxonomyTermDto,
+} from './dto/taxonomy.dto';
+import {
+  TAXONOMY_GROUPS,
+  TAXONOMY_MESSAGES,
+  normalizeRank,
+} from './taxonomy.constant';
+
+const TERM_ORDER: Prisma.TaxonomyTermOrderByWithRelationInput[] = [
+  { displayOrder: 'asc' },
+  { label: 'asc' },
+];
+
+@Injectable()
+export class TaxonomyService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /** Các nhóm danh mục kèm giá trị (mặc định chỉ giá trị đang dùng) — cho trang công khai và CMS. */
+  listGroups(codes?: string[], includeInactive = false) {
+    return this.prisma.taxonomyGroup.findMany({
+      where: codes?.length ? { code: { in: codes } } : undefined,
+      orderBy: [{ displayOrder: 'asc' }, { code: 'asc' }],
+      include: {
+        terms: {
+          where: includeInactive ? undefined : { isActive: true },
+          orderBy: TERM_ORDER,
+        },
+      },
+    });
+  }
+
+  async createTerm(dto: CreateTaxonomyTermDto) {
+    const group = await this.prisma.taxonomyGroup.findUnique({
+      where: { code: dto.groupCode },
+    });
+    if (!group)
+      throw new NotFoundException(
+        TAXONOMY_MESSAGES.GROUP_NOT_FOUND(dto.groupCode),
+      );
+    await this.assertParentInGroup(dto.parentId, dto.groupCode);
+    try {
+      return await this.prisma.taxonomyTerm.create({
+        data: {
+          ...this.toData(dto),
+          groupCode: dto.groupCode,
+          code: dto.code,
+          label: dto.label.trim(),
+        },
+      });
+    } catch (err) {
+      throw this.mapUniqueError(err, dto.groupCode, dto.code);
+    }
+  }
+
+  async updateTerm(id: string, dto: UpdateTaxonomyTermDto) {
+    const term = await this.findTerm(id);
+    await this.assertParentInGroup(dto.parentId, term.groupCode, id);
+    try {
+      return await this.prisma.taxonomyTerm.update({
+        where: { id },
+        data: {
+          ...this.toData(dto),
+          ...(dto.code !== undefined ? { code: dto.code } : {}),
+          ...(dto.label !== undefined ? { label: dto.label.trim() } : {}),
+        },
+      });
+    } catch (err) {
+      throw this.mapUniqueError(err, term.groupCode, dto.code ?? term.code);
+    }
+  }
+
+  /** Chỉ xóa được giá trị chưa ai dùng; đang dùng thì phải ẩn (isActive = false). */
+  async deleteTerm(id: string) {
+    await this.findTerm(id);
+    const used = await this.prisma.historicalSite.count({
+      where: {
+        OR: [{ siteTypeId: id }, { preservationId: id }, { rankId: id }],
+      },
+    });
+    if (used > 0)
+      throw new ConflictException(TAXONOMY_MESSAGES.TERM_IN_USE(used));
+    await this.prisma.taxonomyTerm.delete({ where: { id } });
+    return { id };
+  }
+
+  /**
+   * Đồng bộ khóa ngoại danh mục của một di tích từ các cột chữ (site_type, preservation_status,
+   * recognition_level) — gọi sau mỗi lần CMS ghi di tích, trong lúc form CMS còn nhập chữ tự do.
+   */
+  async syncSiteTerms(entityId: string) {
+    const site = await this.prisma.historicalSite.findUnique({
+      where: { entityId },
+    });
+    if (!site) return;
+    const terms = await this.prisma.taxonomyTerm.findMany({
+      where: {
+        groupCode: {
+          in: [
+            TAXONOMY_GROUPS.SITE_TYPE,
+            TAXONOMY_GROUPS.PRESERVATION,
+            TAXONOMY_GROUPS.HERITAGE_RANK,
+          ],
+        },
+      },
+    });
+    const preservation = normalizePreservation(site.preservationStatus);
+
+    await this.prisma.historicalSite.update({
+      where: { entityId },
+      data: {
+        siteTypeId: this.matchSiteType(terms, site.siteType)?.id ?? null,
+        preservationId:
+          this.byCode(
+            terms,
+            TAXONOMY_GROUPS.PRESERVATION,
+            preservation.category,
+          )?.id ?? null,
+        statusNote: preservation.note,
+        rankId:
+          this.byCode(
+            terms,
+            TAXONOMY_GROUPS.HERITAGE_RANK,
+            normalizeRank(site.recognitionLevel),
+          )?.id ?? null,
+      },
+    });
+  }
+
+  /** Loại di tích: khớp mã / alias trong DB trước (thêm được từ CMS), rồi mới tới quy tắc cố định. */
+  private matchSiteType(terms: TaxonomyTerm[], raw: string | null) {
+    const value = raw?.trim();
+    if (!value) return undefined;
+    const lower = value.toLocaleLowerCase('vi');
+    const inGroup = terms.filter(
+      (t) => t.groupCode === TAXONOMY_GROUPS.SITE_TYPE,
+    );
+    return (
+      inGroup.find((t) => t.code === value || t.aliases.includes(lower)) ??
+      inGroup.find((t) => t.code === normalizeSiteType(value))
+    );
+  }
+
+  private byCode(terms: TaxonomyTerm[], group: string, code: string | null) {
+    return code
+      ? terms.find((t) => t.groupCode === group && t.code === code)
+      : undefined;
+  }
+
+  private async findTerm(id: string) {
+    const term = await this.prisma.taxonomyTerm.findUnique({ where: { id } });
+    if (!term)
+      throw new NotFoundException(TAXONOMY_MESSAGES.TERM_NOT_FOUND(id));
+    return term;
+  }
+
+  private async assertParentInGroup(
+    parentId: string | undefined,
+    groupCode: string,
+    selfId?: string,
+  ) {
+    if (!parentId) return;
+    const parent = await this.prisma.taxonomyTerm.findUnique({
+      where: { id: parentId },
+    });
+    if (!parent || parent.groupCode !== groupCode || parent.id === selfId) {
+      throw new BadRequestException(TAXONOMY_MESSAGES.PARENT_OTHER_GROUP);
+    }
+  }
+
+  private toData(dto: UpdateTaxonomyTermDto) {
+    return {
+      ...(dto.inverseLabel !== undefined
+        ? { inverseLabel: dto.inverseLabel }
+        : {}),
+      ...(dto.description !== undefined
+        ? { description: dto.description }
+        : {}),
+      ...(dto.icon !== undefined ? { icon: dto.icon } : {}),
+      ...(dto.displayOrder !== undefined
+        ? { displayOrder: dto.displayOrder }
+        : {}),
+      ...(dto.aliases !== undefined
+        ? {
+            aliases: [
+              ...new Set(
+                dto.aliases
+                  .map((a) => a.trim().toLocaleLowerCase('vi'))
+                  .filter(Boolean),
+              ),
+            ],
+          }
+        : {}),
+      ...(dto.parentId !== undefined ? { parentId: dto.parentId } : {}),
+      ...(dto.meta !== undefined
+        ? { meta: dto.meta as Prisma.InputJsonValue }
+        : {}),
+      ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+    };
+  }
+
+  private mapUniqueError(err: unknown, group: string, code: string) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === 'P2002'
+    ) {
+      return new ConflictException(
+        TAXONOMY_MESSAGES.DUPLICATE_CODE(group, code),
+      );
+    }
+    return err;
+  }
+}

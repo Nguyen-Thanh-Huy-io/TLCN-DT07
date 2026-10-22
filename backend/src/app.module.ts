@@ -23,6 +23,7 @@ import { LearningPathModule } from './learning-path/learning-path.module';
 import { HistoricalEntityModule } from './historical-entity/historical-entity.module';
 import { PublicContentModule } from './public-content/public-content.module';
 import { QuizModule } from './quiz/quiz.module';
+import { LearnerModule } from './learner/learner.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { QuizModule } from './quiz/quiz.module';
     HistoricalEntityModule,
     PublicContentModule,
     QuizModule,
+    LearnerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

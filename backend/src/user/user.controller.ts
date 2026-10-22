@@ -5,9 +5,7 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
-  UseGuards,
-  HttpStatus,
+  Delete,  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,7 +18,8 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
-import { AuthGuard } from '../common/guards/auth.guard';
+import { RequireRoles } from '../common/access/access.decorator';
+import { ROLE_GROUPS } from '../common/access/access.constant';
 
 @ApiTags('Users - Quản lý Người dùng')
 @Controller('users')
@@ -28,7 +27,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  @UseGuards(AuthGuard)
+  @RequireRoles(...ROLE_GROUPS.SUPERADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Tạo mới một người dùng (Admin)',
@@ -49,7 +48,7 @@ export class UserController {
   }
 
   @Get()
-  @UseGuards(AuthGuard)
+  @RequireRoles(...ROLE_GROUPS.SUPERADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Lấy danh sách tất cả người dùng',
@@ -66,7 +65,7 @@ export class UserController {
   }
 
   @Get(':id')
-  @UseGuards(AuthGuard)
+  @RequireRoles(...ROLE_GROUPS.SUPERADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Lấy chi tiết một người dùng theo ID',
@@ -87,7 +86,7 @@ export class UserController {
   }
 
   @Patch(':id')
-  @UseGuards(AuthGuard)
+  @RequireRoles(...ROLE_GROUPS.SUPERADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Cập nhật thông tin người dùng / Profile / Role',
@@ -112,7 +111,7 @@ export class UserController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard)
+  @RequireRoles(...ROLE_GROUPS.SUPERADMIN)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Xóa một người dùng (Admin)',

@@ -6,9 +6,7 @@ import {
   Patch,
   Param,
   Delete,
-  Query,
-  UseGuards,
-  HttpStatus,
+  Query,  HttpStatus,
   HttpCode,
 } from '@nestjs/common';
 import {
@@ -23,7 +21,7 @@ import { CreatePeriodDto } from './dto/create-period.dto';
 import { UpdatePeriodDto } from './dto/update-period.dto';
 import { QueryPeriodDto } from './dto/query-period.dto';
 import { PeriodResponseDto } from './dto/period-response.dto';
-import { AuthGuard } from '../common/guards/auth.guard';
+import { ContentWrite } from '../common/access/access.decorator';
 
 @ApiTags('Periods - Giai đoạn Lịch sử')
 @Controller('periods')
@@ -31,7 +29,7 @@ export class PeriodController {
   constructor(private readonly periodService: PeriodService) {}
 
   @Post()
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'period' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Tạo mới một giai đoạn lịch sử',
@@ -89,7 +87,7 @@ export class PeriodController {
   }
 
   @Patch(':id')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'period', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Cập nhật thông tin một giai đoạn lịch sử',
@@ -122,7 +120,7 @@ export class PeriodController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'period', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

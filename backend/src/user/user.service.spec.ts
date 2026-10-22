@@ -4,6 +4,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { PrismaService } from '../common/services/prisma.service';
+import { RedisService } from '../common/services/redis.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { userRole, userStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
@@ -47,6 +48,10 @@ describe('UserService', () => {
         {
           provide: CustomLoggerService,
           useValue: mockCustomLoggerService,
+        },
+        {
+          provide: RedisService,
+          useValue: { del: jest.fn().mockResolvedValue(1) },
         },
       ],
     }).compile();

@@ -6,9 +6,7 @@ import {
   Patch,
   Param,
   Delete,
-  Query,
-  UseGuards,
-  HttpStatus,
+  Query,  HttpStatus,
   HttpCode,
 } from '@nestjs/common';
 import {
@@ -25,7 +23,7 @@ import { QueryTopicDto } from './dto/query-topic.dto';
 import { TopicResponseDto } from './dto/topic-response.dto';
 import { AssignChildrenDto } from './dto/assign-children.dto';
 import { ReorderTopicsDto } from './dto/reorder-topics.dto';
-import { AuthGuard } from '../common/guards/auth.guard';
+import { ContentWrite } from '../common/access/access.decorator';
 
 @ApiTags('Topics - Chủ đề Lịch sử')
 @Controller('topics')
@@ -33,7 +31,7 @@ export class TopicController {
   constructor(private readonly topicService: TopicService) {}
 
   @Post()
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'topic' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Tạo mới một chủ đề lịch sử thuộc Giai đoạn',
@@ -105,7 +103,7 @@ export class TopicController {
   }
 
   @Patch('reorder')
-  @UseGuards(AuthGuard)
+  @ContentWrite()
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -121,7 +119,7 @@ export class TopicController {
   }
 
   @Patch(':id')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'topic', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Cập nhật thông tin một chủ đề lịch sử',
@@ -149,7 +147,7 @@ export class TopicController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'topic', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -174,7 +172,7 @@ export class TopicController {
   }
 
   @Post(':id/children')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'topic', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -194,7 +192,7 @@ export class TopicController {
   }
 
   @Delete(':id/children/:childId')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'topic', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

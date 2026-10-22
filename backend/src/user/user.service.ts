@@ -7,6 +7,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../common/services/prisma.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
+import { RedisService } from '../common/services/redis.service';
+import config from '../common/config/app.config';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -14,6 +16,7 @@ export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly customLogger: CustomLoggerService,
+    private readonly redisService: RedisService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -109,12 +112,21 @@ export class UserService {
 
   async update(id: string, updateUserDto: UpdateUserDto) {
     this.customLogger.log(`Updating user with id: ${id}`, 'UserService');
-    await this.findOne(id);
+    const before = await this.findOne(id);
 
     const { firstName, lastName, bio, avatarUrl, password, ...authData } =
       updateUserDto;
 
+    // Đổi vai trò / trạng thái / mật khẩu phải có hiệu lực ngay: thu hồi mọi token đang dùng.
+    const revokeSessions =
+      Boolean(password) ||
+      (authData.role !== undefined && authData.role !== before.role) ||
+      (authData.status !== undefined && authData.status !== before.status);
+
     const dataToUpdate: any = { ...authData };
+    if (revokeSessions) {
+      dataToUpdate.tokenVersion = { increment: 1 };
+    }
     if (password) {
       dataToUpdate.password = await bcrypt.hash(password, 10);
     }
@@ -133,7 +145,7 @@ export class UserService {
       };
     }
 
-    return this.prisma.authUser.update({
+    const updated = await this.prisma.authUser.update({
       where: { id },
       data: dataToUpdate,
       select: {
@@ -148,6 +160,14 @@ export class UserService {
         updatedAt: true,
       },
     });
+
+    if (revokeSessions) {
+      // AuthGuard cache tokenVersion trong Redis — xóa để lần gọi kế tiếp đọc bản mới.
+      await this.redisService.del(
+        `${config.redis_cache_key_prefix}:token_version:${id}`,
+      );
+    }
+    return updated;
   }
 
   async remove(id: string) {

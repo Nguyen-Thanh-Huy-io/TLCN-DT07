@@ -5,6 +5,7 @@ import {
   LandingResponseDto,
   PublicEventDetailDto,
   PublicEventSummaryDto,
+  PublicLibraryLessonDto,
   PublicFigureDetailDto,
   PublicFigureDto,
   PublicFigureProfileDto,
@@ -50,7 +51,8 @@ export class PublicContentController {
 
   @Get(PUBLIC_CONTENT_ROUTES.PERIOD_DETAIL)
   @ApiOperation({
-    summary: 'Lấy chi tiết giai đoạn lịch sử theo slug kèm chuyên đề, sự kiện & nhân vật',
+    summary:
+      'Lấy chi tiết giai đoạn lịch sử theo slug kèm chuyên đề, sự kiện & nhân vật',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -74,7 +76,8 @@ export class PublicContentController {
 
   @Get(PUBLIC_CONTENT_ROUTES.FIGURE_DIRECTORY)
   @ApiOperation({
-    summary: 'Danh bạ nhân vật: toàn bộ nhân vật kèm sự kiện tham gia & quan hệ',
+    summary:
+      'Danh bạ nhân vật: toàn bộ nhân vật kèm sự kiện tham gia & quan hệ',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -86,7 +89,8 @@ export class PublicContentController {
 
   @Get(PUBLIC_CONTENT_ROUTES.FIGURE_DETAIL)
   @ApiOperation({
-    summary: 'Lấy chi tiết nhân vật / thực thể lịch sử theo slug kèm sự kiện & bài học liên quan',
+    summary:
+      'Lấy chi tiết nhân vật / thực thể lịch sử theo slug kèm sự kiện & bài học liên quan',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -110,7 +114,8 @@ export class PublicContentController {
 
   @Get(PUBLIC_CONTENT_ROUTES.TOPIC_DETAIL)
   @ApiOperation({
-    summary: 'Lấy chi tiết chương sử / chủ đề kiến thức theo slug kèm bài học & sự kiện',
+    summary:
+      'Lấy chi tiết chương sử / chủ đề kiến thức theo slug kèm bài học & sự kiện',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -144,9 +149,19 @@ export class PublicContentController {
     return this.facade.getEvents();
   }
 
+  @Get(PUBLIC_CONTENT_ROUTES.LESSONS)
+  @ApiOperation({
+    summary: 'Thư viện bài học đã xuất bản (không kèm nội dung bài)',
+  })
+  @ApiResponse({ status: HttpStatus.OK, type: [PublicLibraryLessonDto] })
+  getLibraryLessons(): Promise<PublicLibraryLessonDto[]> {
+    return this.facade.getLibraryLessons();
+  }
+
   @Get(PUBLIC_CONTENT_ROUTES.EVENT_DETAIL)
   @ApiOperation({
-    summary: 'Lấy chi tiết sự kiện lịch sử theo slug kèm sự kiện cha/con & sự kiện liên quan',
+    summary:
+      'Lấy chi tiết sự kiện lịch sử theo slug kèm sự kiện cha/con & sự kiện liên quan',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -156,4 +171,3 @@ export class PublicContentController {
     return this.facade.getEventBySlug(slug);
   }
 }
-

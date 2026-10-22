@@ -6,9 +6,7 @@ import {
   Patch,
   Param,
   Delete,
-  Query,
-  UseGuards,
-  HttpStatus,
+  Query,  HttpStatus,
   HttpCode,
 } from '@nestjs/common';
 import {
@@ -23,7 +21,7 @@ import { CreateHistoricalEventDto } from './dto/create-historical-event.dto';
 import { UpdateHistoricalEventDto } from './dto/update-historical-event.dto';
 import { QueryHistoricalEventDto } from './dto/query-historical-event.dto';
 import { HistoricalEventResponseDto } from './dto/historical-event-response.dto';
-import { AuthGuard } from '../common/guards/auth.guard';
+import { ContentWrite } from '../common/access/access.decorator';
 
 @ApiTags('Historical Events - Sự kiện Lịch sử')
 @Controller('historical-events')
@@ -33,7 +31,7 @@ export class HistoricalEventController {
   ) {}
 
   @Post()
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'historicalEvent' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Tạo mới một sự kiện lịch sử thuộc Topic',
@@ -91,7 +89,7 @@ export class HistoricalEventController {
   }
 
   @Patch(':id')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'historicalEvent', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Cập nhật thông tin một sự kiện lịch sử',
@@ -117,7 +115,7 @@ export class HistoricalEventController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'historicalEvent', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -142,7 +140,7 @@ export class HistoricalEventController {
   }
 
   @Post(':id/relations')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'historicalEvent', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Thêm quan hệ tri thức/nhân quả cho sự kiện',
@@ -162,7 +160,7 @@ export class HistoricalEventController {
   }
 
   @Delete('relations/:relationId')
-  @UseGuards(AuthGuard)
+  @ContentWrite()
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Xóa quan hệ giữa 2 sự kiện',

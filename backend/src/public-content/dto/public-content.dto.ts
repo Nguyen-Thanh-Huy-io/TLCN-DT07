@@ -14,7 +14,8 @@ export class PublicPeriodDto {
   @ApiPropertyOptional({ nullable: true }) endYear: number | null;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
   @ApiPropertyOptional({ nullable: true }) coverImageUrl: string | null;
-  @ApiPropertyOptional({ nullable: true, example: 'Việt Nam' }) region: string | null;
+  @ApiPropertyOptional({ nullable: true, example: 'Việt Nam' }) region:
+    string | null;
 }
 
 export class PublicTopicDto {
@@ -98,7 +99,8 @@ export class PublicLocationSummaryDto {
   @ApiPropertyOptional({ nullable: true }) address: string | null;
   @ApiPropertyOptional({ nullable: true }) latitude: number | null;
   @ApiPropertyOptional({ nullable: true }) longitude: number | null;
-  @ApiPropertyOptional({ nullable: true }) historicalSignificance: string | null;
+  @ApiPropertyOptional({ nullable: true }) historicalSignificance:
+    string | null;
 }
 
 export class PublicEventSummaryDto {
@@ -123,7 +125,8 @@ export class PublicLessonSummaryDto {
   @ApiPropertyOptional({ nullable: true }) contentRichText: string | null;
   @ApiPropertyOptional({ nullable: true }) sourceReferenceNote: string | null;
   @ApiProperty() estimatedReadMinutes: number;
-  @ApiProperty({ type: [PublicEventSummaryDto] }) events: PublicEventSummaryDto[];
+  @ApiProperty({ type: [PublicEventSummaryDto] })
+  events: PublicEventSummaryDto[];
   @ApiProperty({ type: [PublicFigureDto] }) entities: PublicFigureDto[];
   @ApiProperty({ type: [PublicLocationSummaryDto] })
   locations: PublicLocationSummaryDto[];
@@ -132,7 +135,26 @@ export class PublicLessonSummaryDto {
 export class PublicEventRelationDto {
   @ApiProperty() relationType: string;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
-  @ApiProperty({ type: () => PublicEventSummaryDto }) event: PublicEventSummaryDto;
+  @ApiProperty({ type: () => PublicEventSummaryDto })
+  event: PublicEventSummaryDto;
+}
+
+export class PublicLessonTagDto {
+  @ApiProperty() id: string;
+  @ApiProperty() name: string;
+  @ApiPropertyOptional({ nullable: true }) colorHex: string | null;
+}
+
+/** Bài học trong thư viện công khai — chỉ thông tin giới thiệu, không có nội dung bài. */
+export class PublicLibraryLessonDto {
+  @ApiProperty() id: string;
+  @ApiProperty() title: string;
+  @ApiProperty() slug: string;
+  @ApiPropertyOptional({ nullable: true }) description: string | null;
+  @ApiPropertyOptional({ nullable: true }) thumbnailUrl: string | null;
+  @ApiProperty() difficulty: string;
+  @ApiProperty() estimatedReadMinutes: number;
+  @ApiProperty({ type: [PublicLessonTagDto] }) tags: PublicLessonTagDto[];
 }
 
 export class PublicEventParticipantDto {
@@ -158,7 +180,8 @@ export class PublicEventDetailDto extends PublicEventSummaryDto {
   period: PublicPeriodDto | null;
   @ApiPropertyOptional({ type: () => PublicEventSummaryDto, nullable: true })
   parent: PublicEventSummaryDto | null;
-  @ApiProperty({ type: [PublicEventSummaryDto] }) children: PublicEventSummaryDto[];
+  @ApiProperty({ type: [PublicEventSummaryDto] })
+  children: PublicEventSummaryDto[];
   @ApiProperty({ type: [PublicEventRelationDto] })
   outgoingRelations: PublicEventRelationDto[];
   @ApiProperty({ type: [PublicEventRelationDto] })
@@ -166,7 +189,8 @@ export class PublicEventDetailDto extends PublicEventSummaryDto {
 }
 
 export class PublicChildTopicDto extends PublicTopicDto {
-  @ApiProperty({ type: [PublicEventSummaryDto] }) events: PublicEventSummaryDto[];
+  @ApiProperty({ type: [PublicEventSummaryDto] })
+  events: PublicEventSummaryDto[];
   @ApiProperty({ type: [PublicLessonSummaryDto] })
   lessons: PublicLessonSummaryDto[];
 }
@@ -174,14 +198,16 @@ export class PublicChildTopicDto extends PublicTopicDto {
 export class PublicPeriodDetailDto extends PublicPeriodDto {
   @ApiProperty({ type: [PublicTopicDto] }) topics: PublicTopicDto[];
   @ApiProperty({ type: [PublicFigureDto] }) figures: PublicFigureDto[];
-  @ApiProperty({ type: [PublicEventSummaryDto] }) events: PublicEventSummaryDto[];
+  @ApiProperty({ type: [PublicEventSummaryDto] })
+  events: PublicEventSummaryDto[];
 }
 
 export class PublicTopicDetailDto extends PublicTopicDto {
   @ApiPropertyOptional({ type: () => PublicPeriodDto, nullable: true })
   period: PublicPeriodDto | null;
   @ApiProperty({ type: [PublicChildTopicDto] }) children: PublicChildTopicDto[];
-  @ApiProperty({ type: [PublicEventSummaryDto] }) events: PublicEventSummaryDto[];
+  @ApiProperty({ type: [PublicEventSummaryDto] })
+  events: PublicEventSummaryDto[];
   @ApiProperty({ type: [PublicLessonSummaryDto] })
   lessons: PublicLessonSummaryDto[];
 }
@@ -189,7 +215,8 @@ export class PublicTopicDetailDto extends PublicTopicDto {
 export class PublicFigureDetailDto extends PublicFigureDto {
   @ApiPropertyOptional({ type: () => PublicPeriodDto, nullable: true })
   period: PublicPeriodDto | null;
-  @ApiProperty({ type: [PublicEventSummaryDto] }) events: PublicEventSummaryDto[];
+  @ApiProperty({ type: [PublicEventSummaryDto] })
+  events: PublicEventSummaryDto[];
   @ApiProperty({ type: [PublicLessonSummaryDto] })
   lessons: PublicLessonSummaryDto[];
 }
@@ -206,4 +233,3 @@ export class QueryPublicTopicsDto {
   @IsEnum(LandingSection)
   section: LandingSection;
 }
-

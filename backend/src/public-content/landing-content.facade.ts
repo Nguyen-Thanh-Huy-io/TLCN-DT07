@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { HistoricalEntityType } from '@prisma/client';
+import { HistoricalEntityType, LessonStatus } from '@prisma/client';
+import { LessonContentStrategyContext } from '../lesson/strategies/content-normalizer.strategy';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import {
@@ -10,6 +11,7 @@ import {
   LandingResponseDto,
   PublicEventDetailDto,
   PublicEventSummaryDto,
+  PublicLibraryLessonDto,
   PublicFigureDetailDto,
   PublicFigureDto,
   PublicFigureProfileDto,
@@ -19,7 +21,11 @@ import {
   PublicTopicDetailDto,
   PublicTopicDto,
 } from './dto/public-content.dto';
-import { PublicContentMapper, textList, textOrNull } from './mappers/public-content.mapper';
+import {
+  PublicContentMapper,
+  textList,
+  textOrNull,
+} from './mappers/public-content.mapper';
 import { LandingSectionRegistry } from './strategies/landing-section.registry';
 import {
   LandingSection,
@@ -101,7 +107,9 @@ export class LandingContentFacade {
         period: { select: { slug: true } },
         eventEntities: {
           where: { event: { status: PUBLIC_CONTENT_STATUS } },
-          include: { event: { include: { period: { select: { slug: true } } } } },
+          include: {
+            event: { include: { period: { select: { slug: true } } } },
+          },
         },
         outgoingRelations: {
           where: { targetEntity: publishedPerson },
@@ -114,7 +122,9 @@ export class LandingContentFacade {
       },
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
     });
-    return entities.map((entity) => PublicContentMapper.toFigureProfile(entity));
+    return entities.map((entity) =>
+      PublicContentMapper.toFigureProfile(entity),
+    );
   }
 
   getSection(section: LandingSection): Promise<PublicTopicDto[]> {
@@ -152,6 +162,36 @@ export class LandingContentFacade {
       orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
     });
     return events.map((event) => PublicContentMapper.toEventSummary(event));
+  }
+
+  /** Thư viện bài học công khai: chỉ bài đã xuất bản, không kèm nội dung (đọc bài cần đăng nhập). */
+  async getLibraryLessons(): Promise<PublicLibraryLessonDto[]> {
+    const lessons = await this.prisma.lesson.findMany({
+      where: { status: LessonStatus.PUBLISHED },
+      include: { lessonTags: { include: { tag: true } } },
+      orderBy: [{ displayOrder: 'asc' }, { publishedAt: 'desc' }],
+    });
+    return lessons.map((lesson) => {
+      const words = LessonContentStrategyContext.extractPlainText(
+        lesson.content,
+      )
+        .split(/\s+/)
+        .filter(Boolean).length;
+      return {
+        id: lesson.id,
+        title: lesson.title,
+        slug: lesson.slug,
+        description: lesson.description,
+        thumbnailUrl: lesson.thumbnailUrl,
+        difficulty: lesson.difficulty,
+        estimatedReadMinutes: Math.max(1, Math.ceil(words / 200)),
+        tags: lesson.lessonTags.map((lt) => ({
+          id: lt.tag.id,
+          name: lt.tag.name,
+          colorHex: lt.tag.colorHex,
+        })),
+      };
+    });
   }
 
   /** Chi tiết 1 Sự kiện lịch sử: giai đoạn, sự kiện cha/con, sự kiện liên quan (đồ thị nhân-quả). */
@@ -192,7 +232,9 @@ export class LandingContentFacade {
     });
 
     if (!event) {
-      throw new NotFoundException(PUBLIC_CONTENT_MESSAGES.EVENT_NOT_FOUND(slug));
+      throw new NotFoundException(
+        PUBLIC_CONTENT_MESSAGES.EVENT_NOT_FOUND(slug),
+      );
     }
 
     const outgoingRelations = event.outgoingRelations
@@ -291,7 +333,9 @@ export class LandingContentFacade {
     });
 
     if (!topic) {
-      throw new NotFoundException(PUBLIC_CONTENT_MESSAGES.TOPIC_NOT_FOUND(slug));
+      throw new NotFoundException(
+        PUBLIC_CONTENT_MESSAGES.TOPIC_NOT_FOUND(slug),
+      );
     }
 
     return {
@@ -343,4 +387,3 @@ export class LandingContentFacade {
     };
   }
 }
-

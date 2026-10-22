@@ -30,6 +30,7 @@ model Lesson {
 
   // Liên kết nhiều-nhiều với Chương trong các Lộ trình học (Learning Path & Chapter Pool)
   chapterLessons ChapterLesson[]
+  progress       LessonProgress[]
 
   // Đề ôn tập cuối bài (1 bài học có tối đa 1 đề) — xem model Quiz trong quiz.prisma
   quiz Quiz?

@@ -9,7 +9,10 @@ import {
   Person,
   Topic,
 } from '@prisma/client';
-import { ERA_SUFFIX, FIGURE_PROFILE_METADATA_KEY } from '../public-content.constant';
+import {
+  ERA_SUFFIX,
+  FIGURE_PROFILE_METADATA_KEY,
+} from '../public-content.constant';
 import {
   PublicEventSummaryDto,
   PublicFigureDto,
@@ -44,7 +47,9 @@ export function textOrNull(value: unknown): string | null {
 
 export function textList(value: unknown): string[] {
   return Array.isArray(value)
-    ? value.filter((v): v is string => typeof v === 'string' && v.trim() !== '').map((v) => v.trim())
+    ? value
+        .filter((v): v is string => typeof v === 'string' && v.trim() !== '')
+        .map((v) => v.trim())
     : [];
 }
 
@@ -63,7 +68,8 @@ export class PublicContentMapper {
       parentId: period.parentId,
       slug: period.slug,
       name: period.name,
-      timeLabel: period.timeLabel || buildTimeLabel(period.startYear, period.endYear),
+      timeLabel:
+        period.timeLabel || buildTimeLabel(period.startYear, period.endYear),
       startYear: period.startYear,
       endYear: period.endYear,
       description: period.description,
@@ -115,7 +121,10 @@ export class PublicContentMapper {
     },
   ): PublicFigureProfileDto {
     const metadata = (entity.metadata ?? {}) as Record<string, unknown>;
-    const profile = (metadata[FIGURE_PROFILE_METADATA_KEY] ?? {}) as Record<string, unknown>;
+    const profile = (metadata[FIGURE_PROFILE_METADATA_KEY] ?? {}) as Record<
+      string,
+      unknown
+    >;
 
     return {
       ...PublicContentMapper.toFigure(entity),
@@ -178,7 +187,8 @@ export class PublicContentMapper {
 
   static toEventSummary(
     event: HistoricalEvent & {
-      location?: (HistoricalEntity & { historicalSite?: HistoricalSite | null }) | null;
+      location?:
+        (HistoricalEntity & { historicalSite?: HistoricalSite | null }) | null;
       site?: (HistoricalSite & { entity?: HistoricalEntity }) | null;
       historicalLocation?: any;
       period?: { slug: string } | null;
@@ -256,7 +266,8 @@ export class PublicContentMapper {
       historicalSignificance: ll.location?.historicalSignificance || null,
     }));
 
-    const content = (lesson as any).content || (lesson as any).contentRichText || '';
+    const content =
+      (lesson as any).content || (lesson as any).contentRichText || '';
 
     return {
       id: lesson.id,
@@ -270,7 +281,8 @@ export class PublicContentMapper {
       entities: ((lesson as any).lessonEntities || [])
         .filter((le: any) => le.entity?.type !== 'LOCATION')
         .map((le: any) => PublicContentMapper.toFigure(le.entity)),
-      locations: locationEntities.length > 0 ? locationEntities : legacyLocations,
+      locations:
+        locationEntities.length > 0 ? locationEntities : legacyLocations,
     };
   }
 }

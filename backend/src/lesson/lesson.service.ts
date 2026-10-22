@@ -1,9 +1,11 @@
 import {
+  ForbiddenException,
   Injectable,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
+import { ACCESS_MESSAGES } from '../common/access/access.constant';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
@@ -36,7 +38,10 @@ export class LessonService {
   /**
    * Sinh Slug duy nhất không trùng lặp trong hệ thống (Single Responsibility Principle)
    */
-  private async generateUniqueSlug(baseTitle: string, excludeId?: string): Promise<string> {
+  private async generateUniqueSlug(
+    baseTitle: string,
+    excludeId?: string,
+  ): Promise<string> {
     const rawSlug = SlugHelper.generateSlug(baseTitle) || 'bai-hoc';
     let candidateSlug = rawSlug;
     let counter = 1;
@@ -78,7 +83,8 @@ export class LessonService {
     return {
       ...lesson,
       summary: lesson.description || '', // Alias tương thích ngược
-      contentRichText: typeof content === 'string' ? content : JSON.stringify(content), // Alias tương thích TipTap
+      contentRichText:
+        typeof content === 'string' ? content : JSON.stringify(content), // Alias tương thích TipTap
       estimatedReadMinutes: this.calculateReadTime(content),
       tags,
     };
@@ -87,18 +93,26 @@ export class LessonService {
   /**
    * Tạo mới bài học lịch sử dạng JSONB
    */
-  async create(createLessonDto: CreateLessonDto, _creatorUserId?: string): Promise<any> {
-    this.logger.log(`Creating lesson: ${createLessonDto.title}`, 'LessonService');
+  async create(
+    createLessonDto: CreateLessonDto,
+    _creatorUserId?: string,
+  ): Promise<any> {
+    this.logger.log(
+      `Creating lesson: ${createLessonDto.title}`,
+      'LessonService',
+    );
 
     const slug = await this.generateUniqueSlug(
       createLessonDto.slug || createLessonDto.title,
     );
 
-    const rawContent = createLessonDto.content !== undefined 
-      ? createLessonDto.content 
-      : createLessonDto.contentRichText;
+    const rawContent =
+      createLessonDto.content !== undefined
+        ? createLessonDto.content
+        : createLessonDto.contentRichText;
 
-    const normalizedContent = LessonContentStrategyContext.normalize(rawContent);
+    const normalizedContent =
+      LessonContentStrategyContext.normalize(rawContent);
     const description = createLessonDto.description ?? createLessonDto.summary;
 
     const lesson = await this.prisma.lesson.create({
@@ -110,7 +124,10 @@ export class LessonService {
         status: createLessonDto.status || LessonStatus.DRAFT,
         difficulty: createLessonDto.difficulty || undefined,
         sourceReferenceNote: createLessonDto.sourceReferenceNote || null,
-        displayOrder: createLessonDto.displayOrder !== undefined ? Number(createLessonDto.displayOrder) : 0,
+        displayOrder:
+          createLessonDto.displayOrder !== undefined
+            ? Number(createLessonDto.displayOrder)
+            : 0,
         thumbnailUrl: createLessonDto.thumbnailUrl || null,
       },
       include: {
@@ -158,12 +175,17 @@ export class LessonService {
 
     const cacheKey = `${this.CACHE_PREFIX}:${JSON.stringify({ where, page, limit })}`;
     try {
-      const cached = await this.redis.get<string | IPaginatedResult<any>>(cacheKey);
+      const cached = await this.redis.get<string | IPaginatedResult<any>>(
+        cacheKey,
+      );
       if (cached) {
         return typeof cached === 'string' ? JSON.parse(cached) : cached;
       }
     } catch (error) {
-      this.logger.warn(`Redis get/parse failed for ${cacheKey}`, 'LessonService');
+      this.logger.warn(
+        `Redis get/parse failed for ${cacheKey}`,
+        'LessonService',
+      );
     }
 
     const [items, total] = await Promise.all([
@@ -238,7 +260,9 @@ export class LessonService {
     });
 
     if (!lesson) {
-      throw new NotFoundException(`Bài học với đường dẫn "${slug}" không tồn tại.`);
+      throw new NotFoundException(
+        `Bài học với đường dẫn "${slug}" không tồn tại.`,
+      );
     }
 
     return this.formatLessonResponse(lesson);
@@ -268,9 +292,10 @@ export class LessonService {
       data.description = description ? description.trim() : null;
     }
 
-    const rawContent = updateLessonDto.content !== undefined 
-      ? updateLessonDto.content 
-      : updateLessonDto.contentRichText;
+    const rawContent =
+      updateLessonDto.content !== undefined
+        ? updateLessonDto.content
+        : updateLessonDto.contentRichText;
 
     if (rawContent !== undefined) {
       data.content = LessonContentStrategyContext.normalize(rawContent);
@@ -321,6 +346,18 @@ export class LessonService {
     approverUserId?: string,
   ): Promise<any> {
     await this.findOne(id);
+
+    // Quy trình 2 người: chỉ duyệt bài đang chờ duyệt, và người duyệt khác người soạn.
+    const current = await this.prisma.lesson.findUnique({
+      where: { id },
+      select: { status: true, createdBy: true },
+    });
+    if (current?.status !== LessonStatus.REVIEW) {
+      throw new ForbiddenException(ACCESS_MESSAGES.NOT_IN_REVIEW);
+    }
+    if (approverUserId && current.createdBy === approverUserId) {
+      throw new ForbiddenException(ACCESS_MESSAGES.CANNOT_REVIEW_OWN);
+    }
 
     if (
       reviewDto.status === LessonStatus.REJECTED &&

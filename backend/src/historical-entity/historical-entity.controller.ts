@@ -9,7 +9,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -17,7 +16,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { AuthGuard } from '../common/guards/auth.guard';
 import {
   CreateEntityMediaDto,
   CreateEntityRelationDto,
@@ -34,6 +32,7 @@ import {
   IEntityGraphData,
   IPaginatedEntities,
 } from './historical-entity.service';
+import { ContentWrite } from '../common/access/access.decorator';
 
 @ApiTags('Historical Entities - Thực thể Lịch sử (Nhân vật, Tổ chức, Triều đại, Hiện vật)')
 @Controller(HISTORICAL_ENTITY_ROUTES.ROOT)
@@ -41,7 +40,7 @@ export class HistoricalEntityController {
   constructor(private readonly service: HistoricalEntityService) {}
 
   @Post()
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'historicalEntity' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Tạo mới thực thể lịch sử (Master Data dùng chung)' })
   @ApiResponse({
@@ -71,7 +70,7 @@ export class HistoricalEntityController {
   }
 
   @Patch(HISTORICAL_ENTITY_ROUTES.BY_ID)
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'historicalEntity', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Cập nhật thực thể lịch sử' })
   @ApiResponse({ status: HttpStatus.OK, type: HistoricalEntityResponseDto })
@@ -80,7 +79,7 @@ export class HistoricalEntityController {
   }
 
   @Delete(HISTORICAL_ENTITY_ROUTES.BY_ID)
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'historicalEntity', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Xóa thực thể lịch sử' })
@@ -92,7 +91,7 @@ export class HistoricalEntityController {
   // Quan hệ hồi quy N-N (Knowledge Graph)
   // ==========================================
   @Post(HISTORICAL_ENTITY_ROUTES.RELATIONS)
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'historicalEntity', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Tạo quan hệ đồ thị giữa thực thể hiện tại với thực thể khác' })
   @ApiResponse({
@@ -107,7 +106,7 @@ export class HistoricalEntityController {
   }
 
   @Delete(HISTORICAL_ENTITY_ROUTES.RELATION_BY_ID)
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'historicalEntity', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Xóa mối quan hệ giữa 2 thực thể' })
@@ -126,7 +125,7 @@ export class HistoricalEntityController {
   // Tư liệu đa phương tiện (Media / Document)
   // ==========================================
   @Post(HISTORICAL_ENTITY_ROUTES.MEDIA)
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'historicalEntity', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Thêm tư liệu media/văn kiện/ảnh cho thực thể' })
   @ApiResponse({
@@ -141,7 +140,7 @@ export class HistoricalEntityController {
   }
 
   @Delete(HISTORICAL_ENTITY_ROUTES.MEDIA_BY_ID)
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'historicalEntity', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Xóa tư liệu media của thực thể' })

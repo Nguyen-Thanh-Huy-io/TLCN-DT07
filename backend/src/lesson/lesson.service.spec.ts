@@ -3,7 +3,11 @@ import { LessonService } from './lesson.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { LessonStatus, DifficultyLevel } from '@prisma/client';
 
 describe('LessonService', () => {
@@ -14,7 +18,8 @@ describe('LessonService', () => {
     title: 'Chiến thắng Bạch Đằng năm 938',
     slug: 'chien-thang-bach-dang-nam-938',
     description: 'Tóm tắt trận Bạch Đằng',
-    content: '<p>Năm 938 Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng</p>',
+    content:
+      '<p>Năm 938 Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng</p>',
     contentRichText:
       '<p>Năm 938 Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng</p>',
     thumbnailUrl: 'https://example.com/thumb.jpg',
@@ -122,8 +127,44 @@ describe('LessonService', () => {
   });
 
   describe('review', () => {
+    // Quy trình 2 người: bài đang chờ duyệt, do người khác (biên tập viên) soạn.
+    const inReview = {
+      status: LessonStatus.REVIEW,
+      createdBy: 'editor-uuid-1',
+    };
+
+    it('should refuse to review a lesson that is not waiting for review', async () => {
+      mockPrismaService.lesson.findUnique.mockResolvedValueOnce(mockLesson);
+      mockPrismaService.lesson.findUnique.mockResolvedValueOnce({
+        ...inReview,
+        status: LessonStatus.DRAFT,
+      });
+
+      await expect(
+        service.review(
+          'lesson-uuid-1',
+          { status: LessonStatus.PUBLISHED },
+          'admin-uuid-1',
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should refuse to let the author approve their own lesson', async () => {
+      mockPrismaService.lesson.findUnique.mockResolvedValueOnce(mockLesson);
+      mockPrismaService.lesson.findUnique.mockResolvedValueOnce(inReview);
+
+      await expect(
+        service.review(
+          'lesson-uuid-1',
+          { status: LessonStatus.PUBLISHED },
+          'editor-uuid-1',
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
     it('should publish lesson when status is PUBLISHED', async () => {
       mockPrismaService.lesson.findUnique.mockResolvedValueOnce(mockLesson);
+      mockPrismaService.lesson.findUnique.mockResolvedValueOnce(inReview);
       mockPrismaService.lesson.update.mockResolvedValueOnce({
         ...mockLesson,
         status: LessonStatus.PUBLISHED,
@@ -142,6 +183,7 @@ describe('LessonService', () => {
 
     it('should throw BadRequestException if REJECTED without rejectionReason', async () => {
       mockPrismaService.lesson.findUnique.mockResolvedValueOnce(mockLesson);
+      mockPrismaService.lesson.findUnique.mockResolvedValueOnce(inReview);
 
       await expect(
         service.review(
@@ -154,6 +196,7 @@ describe('LessonService', () => {
 
     it('should persist REJECTED status and rejectionReason when valid reason provided', async () => {
       mockPrismaService.lesson.findUnique.mockResolvedValueOnce(mockLesson);
+      mockPrismaService.lesson.findUnique.mockResolvedValueOnce(inReview);
       mockPrismaService.lesson.update.mockResolvedValueOnce({
         ...mockLesson,
         status: LessonStatus.REJECTED,

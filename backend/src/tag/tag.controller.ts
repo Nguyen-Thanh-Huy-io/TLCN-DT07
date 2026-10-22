@@ -6,9 +6,7 @@ import {
   Patch,
   Param,
   Delete,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+  Query,} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -20,7 +18,8 @@ import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { QueryTagDto } from './dto/query-tag.dto';
 import { AttachLessonTagsDto } from './dto/attach-lesson-tags.dto';
-import { AuthGuard } from '../common/guards/auth.guard';
+import { ContentWrite, RequireRoles } from '../common/access/access.decorator';
+import { ROLE_GROUPS } from '../common/access/access.constant';
 
 @ApiTags('Tags (Nhãn phân loại)')
 @Controller()
@@ -28,7 +27,7 @@ export class TagController {
   constructor(private readonly tagService: TagService) {}
 
   @Post('tags')
-  @UseGuards(AuthGuard)
+  @ContentWrite()
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Tạo nhãn phân loại mới' })
   @ApiResponse({ status: 201, description: 'Tạo nhãn thành công' })
@@ -54,7 +53,7 @@ export class TagController {
   }
 
   @Patch('tags/:id')
-  @UseGuards(AuthGuard)
+  @ContentWrite()
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Cập nhật nhãn phân loại' })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
@@ -63,7 +62,7 @@ export class TagController {
   }
 
   @Delete('tags/:id')
-  @UseGuards(AuthGuard)
+  @ContentWrite()
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Xóa nhãn phân loại' })
   @ApiResponse({ status: 200, description: 'Xóa nhãn thành công' })
@@ -72,7 +71,7 @@ export class TagController {
   }
 
   @Post('lessons/:id/tags')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'lesson', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Gán danh sách nhãn cho Bài học' })
   @ApiResponse({ status: 200, description: 'Gán nhãn cho bài học thành công' })
@@ -84,6 +83,7 @@ export class TagController {
   }
 
   @Get('lessons/:id/tags')
+  @RequireRoles(...ROLE_GROUPS.STAFF)
   @ApiOperation({ summary: 'Lấy danh sách nhãn của Bài học' })
   @ApiResponse({
     status: 200,

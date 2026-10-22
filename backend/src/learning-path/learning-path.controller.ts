@@ -8,7 +8,6 @@ import {
   Param,
   HttpCode,
   HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,7 +25,7 @@ import {
   AddLessonsToChapterDto,
   ReorderChapterLessonsDto,
 } from './dto/chapter-lesson-action.dto';
-import { AuthGuard } from '../common/guards/auth.guard';
+import { ContentWrite } from '../common/access/access.decorator';
 
 @ApiTags('Learning Paths - Lộ trình học & Cấu trúc chương')
 @Controller('learning-paths')
@@ -50,7 +49,7 @@ export class LearningPathController {
   }
 
   @Post()
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'learningPath' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Tạo lộ trình học mới' })
   createPath(@Body() dto: CreateLearningPathDto) {
@@ -58,7 +57,7 @@ export class LearningPathController {
   }
 
   @Put(':id')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'learningPath', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Cập nhật lộ trình học' })
   updatePath(@Param('id') id: string, @Body() dto: UpdateLearningPathDto) {
@@ -66,7 +65,7 @@ export class LearningPathController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'learningPath', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Xóa lộ trình học' })
   deletePath(@Param('id') id: string) {
@@ -78,7 +77,7 @@ export class LearningPathController {
   // ==========================================
 
   @Post('chapters')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'chapter' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Tạo chương học mới trong lộ trình' })
   createChapter(@Body() dto: CreateChapterDto) {
@@ -86,7 +85,7 @@ export class LearningPathController {
   }
 
   @Put('chapters/:id')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'chapter', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Cập nhật chương học' })
   updateChapter(@Param('id') id: string, @Body() dto: UpdateChapterDto) {
@@ -94,7 +93,7 @@ export class LearningPathController {
   }
 
   @Delete('chapters/:id')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'chapter', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Xóa chương học' })
   deleteChapter(@Param('id') id: string) {
@@ -106,7 +105,7 @@ export class LearningPathController {
   // ==========================================
 
   @Post('chapters/:chapterId/lessons')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'chapter', idParam: 'chapterId' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Gom bài học từ thư viện vào chương' })
   addLessonsToChapter(
@@ -117,7 +116,7 @@ export class LearningPathController {
   }
 
   @Delete('chapters/:chapterId/lessons/:lessonId')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'chapter', idParam: 'chapterId' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Gỡ bài học khỏi chương (giữ nguyên bài trong thư viện)' })
   removeLessonFromChapter(
@@ -128,7 +127,7 @@ export class LearningPathController {
   }
 
   @Put('chapters/:chapterId/lessons/reorder')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'chapter', idParam: 'chapterId' })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Kéo thả sắp xếp lại thứ tự bài học trong chương' })

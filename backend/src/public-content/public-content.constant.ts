@@ -28,6 +28,7 @@ export const PUBLIC_CONTENT_ROUTES = {
   LOCATIONS: 'locations',
   EVENTS: 'events',
   EVENT_DETAIL: 'events/:slug',
+  LESSONS: 'lessons',
 } as const;
 
 export const PUBLIC_CONTENT_MESSAGES = {
@@ -46,4 +47,3 @@ export const ERA_SUFFIX = {
   BCE: 'TCN',
   PRESENT: 'nay',
 } as const;
-

@@ -19,7 +19,9 @@ export class LandingSectionRegistry {
   resolve(section: LandingSection): LandingSectionStrategy {
     const strategy = this.strategies.get(section);
     if (!strategy) {
-      throw new NotFoundException(`Landing section "${section}" chưa được hỗ trợ`);
+      throw new NotFoundException(
+        `Landing section "${section}" chưa được hỗ trợ`,
+      );
     }
     return strategy;
   }

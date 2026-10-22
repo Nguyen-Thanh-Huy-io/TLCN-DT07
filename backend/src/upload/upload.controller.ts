@@ -12,6 +12,7 @@ import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import { ContentWrite } from '../common/access/access.decorator';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads');
 if (!existsSync(UPLOAD_DIR)) {
@@ -22,6 +23,7 @@ if (!existsSync(UPLOAD_DIR)) {
 @Controller('upload')
 export class UploadController {
   @Post('image')
+  @ContentWrite()
   @ApiOperation({ summary: 'Tải lên hình ảnh tư liệu lịch sử (PNG, JPG, WEBP, JPEG)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -91,6 +93,7 @@ export class UploadController {
   }
 
   @Post('document')
+  @ContentWrite()
   @ApiOperation({ summary: 'Tải lên tài liệu nghiên cứu lịch sử (PDF, DOC, DOCX, TXT)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({

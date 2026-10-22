@@ -24,6 +24,8 @@ model authUser {
   emailHistory      emailHistory[]
   activityLogEvents ActivityLogEvent[]
   subscriptions     Subscription[]
+  pathEnrollments   LearningPathEnrollment[]
+  lessonProgress    LessonProgress[]
 
   @@index([email, id, providerId])
   @@index([username])

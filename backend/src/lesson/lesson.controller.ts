@@ -6,9 +6,7 @@ import {
   Patch,
   Param,
   Delete,
-  Query,
-  UseGuards,
-  HttpStatus,
+  Query,  HttpStatus,
   HttpCode,
   Req,
 } from '@nestjs/common';
@@ -25,7 +23,8 @@ import { UpdateLessonDto } from './dto/update-lesson.dto';
 import { QueryLessonDto } from './dto/query-lesson.dto';
 import { ReviewLessonDto } from './dto/review-lesson.dto';
 import { LessonResponseDto } from './dto/lesson-response.dto';
-import { AuthGuard } from '../common/guards/auth.guard';
+import { ContentWrite, RequireRoles } from '../common/access/access.decorator';
+import { ROLE_GROUPS } from '../common/access/access.constant';
 
 @ApiTags('Lessons - Bài học Lịch sử')
 @Controller('lessons')
@@ -33,7 +32,7 @@ export class LessonController {
   constructor(private readonly lessonService: LessonService) {}
 
   @Post()
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'lesson' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Tạo mới một bài học lịch sử',
@@ -59,6 +58,7 @@ export class LessonController {
   }
 
   @Get()
+  @RequireRoles(...ROLE_GROUPS.STAFF)
   @ApiOperation({
     summary: 'Lấy danh sách các bài học lịch sử',
     description:
@@ -73,6 +73,7 @@ export class LessonController {
   }
 
   @Get('slug/:slug')
+  @RequireRoles(...ROLE_GROUPS.STAFF)
   @ApiOperation({
     summary: 'Lấy chi tiết một bài học lịch sử theo Slug',
     description: 'Phục vụ truy cập theo đường dẫn thân thiện SEO.',
@@ -92,6 +93,7 @@ export class LessonController {
   }
 
   @Get(':id')
+  @RequireRoles(...ROLE_GROUPS.STAFF)
   @ApiOperation({
     summary: 'Lấy chi tiết một bài học lịch sử theo ID',
     description:
@@ -112,7 +114,7 @@ export class LessonController {
   }
 
   @Patch(':id')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'lesson', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Cập nhật thông tin bài học lịch sử',
@@ -140,7 +142,7 @@ export class LessonController {
   }
 
   @Patch(':id/review')
-  @UseGuards(AuthGuard)
+  @RequireRoles(...ROLE_GROUPS.REVIEWERS)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Duyệt hoặc Từ chối bài học (Admin / Reviewer)',
@@ -171,7 +173,7 @@ export class LessonController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'lesson', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

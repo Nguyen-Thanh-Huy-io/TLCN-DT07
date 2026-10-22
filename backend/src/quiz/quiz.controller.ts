@@ -5,7 +5,6 @@ import {
   Delete,
   Param,
   Body,
-  UseGuards,
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
@@ -13,7 +12,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@ne
 import { QuizService } from './quiz.service';
 import { UpsertQuizDto } from './dto/upsert-quiz.dto';
 import { QuizResponseDto } from './dto/quiz-response.dto';
-import { AuthGuard } from '../common/guards/auth.guard';
+import { ContentWrite, RequireRoles } from '../common/access/access.decorator';
+import { ROLE_GROUPS } from '../common/access/access.constant';
 
 /**
  * Đề ôn tập cuối bài học — nested dưới Lesson vì quan hệ 1-1, CMS luôn đọc/ghi theo
@@ -25,6 +25,7 @@ export class QuizController {
   constructor(private readonly quizService: QuizService) {}
 
   @Get()
+  @RequireRoles(...ROLE_GROUPS.STAFF)
   @ApiOperation({
     summary: 'Lấy đề ôn tập của 1 bài học',
     description: 'Trả về `null` nếu bài học này chưa có đề ôn tập (không phải lỗi).',
@@ -36,7 +37,7 @@ export class QuizController {
   }
 
   @Put()
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'lesson', idParam: 'lessonId' })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Tạo mới hoặc cập nhật nguyên đề ôn tập của 1 bài học',
@@ -52,7 +53,7 @@ export class QuizController {
   }
 
   @Delete()
-  @UseGuards(AuthGuard)
+  @ContentWrite({ model: 'lesson', idParam: 'lessonId' })
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Xóa đề ôn tập của 1 bài học' })

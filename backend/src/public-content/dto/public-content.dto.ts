@@ -195,11 +195,29 @@ export class PublicChildTopicDto extends PublicTopicDto {
   lessons: PublicLessonSummaryDto[];
 }
 
+export class PublicSubPeriodDto extends PublicPeriodDto {
+  @ApiProperty() eventCount: number;
+  @ApiProperty() figureCount: number;
+}
+
 export class PublicPeriodDetailDto extends PublicPeriodDto {
   @ApiProperty({ type: [PublicTopicDto] }) topics: PublicTopicDto[];
+  /** Nhân vật của thời kỳ và các giai đoạn con, cộng nhân vật tham gia sự kiện trong thời kỳ. */
   @ApiProperty({ type: [PublicFigureDto] }) figures: PublicFigureDto[];
+  /** Sự kiện của thời kỳ và mọi giai đoạn con. */
   @ApiProperty({ type: [PublicEventSummaryDto] })
   events: PublicEventSummaryDto[];
+  @ApiPropertyOptional({ type: () => PublicPeriodDto, nullable: true })
+  parent: PublicPeriodDto | null;
+  @ApiProperty({ type: [PublicSubPeriodDto] }) children: PublicSubPeriodDto[];
+  @ApiProperty({ type: [PublicLocationSummaryDto] })
+  locations: PublicLocationSummaryDto[];
+  /** Thời kỳ ở khu vực khác diễn ra cùng lúc (giao nhau về năm). */
+  @ApiProperty({ type: [PublicPeriodDto] })
+  concurrentPeriods: PublicPeriodDto[];
+  /** Sự kiện ở khu vực khác trong cùng khoảng năm. */
+  @ApiProperty({ type: [PublicEventSummaryDto] })
+  concurrentEvents: PublicEventSummaryDto[];
 }
 
 export class PublicTopicDetailDto extends PublicTopicDto {

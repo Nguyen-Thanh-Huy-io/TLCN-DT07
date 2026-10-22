@@ -33,6 +33,13 @@ import {
   PUBLIC_CONTENT_STATUS,
 } from './public-content.constant';
 
+const CONCURRENT_EVENTS_LIMIT = 12;
+
+/** "Toàn quốc" là cách ghi khác của Việt Nam khi so khu vực. */
+function normalizeRegion(region: string | null): string | null {
+  return region === 'Toàn quốc' ? 'Việt Nam' : region;
+}
+
 /**
  * Facade: điểm vào duy nhất cho dữ liệu landing và các trang chi tiết công khai,
  * che giấu việc gom Period + các section Topic + Nhân vật tiêu biểu + Knowledge Graph + cache.
@@ -285,39 +292,157 @@ export class LandingContentFacade {
     };
   }
 
+  /**
+   * Chi tiết thời kỳ: gom dữ liệu của chính thời kỳ và mọi giai đoạn con
+   * (sự kiện thường gắn vào giai đoạn con), kèm bối cảnh "cùng thời ở khu vực khác".
+   */
   async getPeriodBySlug(slug: string): Promise<PublicPeriodDetailDto> {
-    const period = await this.prisma.period.findFirst({
-      where: { slug, status: PUBLIC_CONTENT_STATUS },
-      include: {
-        historicalEntities: {
-          where: { status: PUBLIC_CONTENT_STATUS },
-          orderBy: [{ displayOrder: 'asc' }],
-        },
-        historicalEvents: {
-          where: { status: PUBLIC_CONTENT_STATUS },
-          include: { location: { include: { historicalSite: true } } },
-          orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
-        },
-      },
+    const periods = await this.prisma.period.findMany({
+      where: { status: PUBLIC_CONTENT_STATUS },
+      orderBy: [{ displayOrder: 'asc' }, { startYear: 'asc' }],
     });
-
+    const period = periods.find((p) => p.slug === slug);
     if (!period) {
       throw new NotFoundException(
         PUBLIC_CONTENT_MESSAGES.PERIOD_NOT_FOUND(slug),
       );
     }
 
-    const sortedEvents = [...period.historicalEvents].sort(
-      (a, b) => a.startYear - b.startYear || a.displayOrder - b.displayOrder,
-    );
+    const byId = new Map(periods.map((p) => [p.id, p]));
+    const rootOf = (id: string | null) => {
+      let current = id ? byId.get(id) : undefined;
+      while (current?.parentId && byId.has(current.parentId)) {
+        current = byId.get(current.parentId);
+      }
+      return current;
+    };
+    const scopeIds = [period.id];
+    for (let i = 0; i < scopeIds.length; i++) {
+      for (const p of periods) {
+        if (p.parentId === scopeIds[i]) scopeIds.push(p.id);
+      }
+    }
+    const ownRegion = normalizeRegion(rootOf(period.id)?.region ?? null);
+    const currentYear = new Date().getFullYear();
+    // Thời kỳ thiếu năm bắt đầu thì không tìm được "cùng thời" — dùng khoảng rỗng.
+    const rangeStart = period.startYear ?? currentYear + 1;
+    const rangeEnd = period.endYear ?? currentYear;
+
+    const eventInclude = {
+      location: { include: { historicalSite: true } },
+      period: { select: { slug: true } },
+      entities: {
+        where: { entity: { status: PUBLIC_CONTENT_STATUS } },
+        include: { entity: { include: { historicalSite: true } } },
+        orderBy: [
+          { isPrimary: 'desc' as const },
+          { displayOrder: 'asc' as const },
+        ],
+      },
+    };
+
+    const [events, scopedEntities, nearbyEvents] = await Promise.all([
+      this.prisma.historicalEvent.findMany({
+        where: { status: PUBLIC_CONTENT_STATUS, periodId: { in: scopeIds } },
+        include: eventInclude,
+        orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
+      }),
+      this.prisma.historicalEntity.findMany({
+        where: { status: PUBLIC_CONTENT_STATUS, periodId: { in: scopeIds } },
+        include: { person: true, historicalSite: true },
+        orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+      }),
+      this.prisma.historicalEvent.findMany({
+        where: {
+          status: PUBLIC_CONTENT_STATUS,
+          startYear: { gte: rangeStart, lte: rangeEnd },
+          NOT: { periodId: { in: scopeIds } },
+        },
+        include: eventInclude,
+        orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
+      }),
+    ]);
+
+    // Nhân vật / địa danh: gắn trực tiếp với thời kỳ + xuất hiện trong sự kiện của thời kỳ.
+    const figures = new Map<string, PublicFigureDto>();
+    const locations = new Map<string, PublicLocationSummaryDto>();
+    for (const entity of scopedEntities) {
+      if (entity.type === HistoricalEntityType.PERSON) {
+        figures.set(entity.id, PublicContentMapper.toFigure(entity));
+      } else if (entity.type === HistoricalEntityType.LOCATION) {
+        locations.set(entity.id, PublicContentMapper.toLocationSummary(entity));
+      }
+    }
+    for (const event of events) {
+      for (const { entity } of event.entities) {
+        if (
+          entity.type === HistoricalEntityType.PERSON &&
+          !figures.has(entity.id)
+        ) {
+          figures.set(entity.id, PublicContentMapper.toFigure(entity));
+        }
+        if (
+          entity.type === HistoricalEntityType.LOCATION &&
+          !locations.has(entity.id)
+        ) {
+          locations.set(
+            entity.id,
+            PublicContentMapper.toLocationSummary(entity),
+          );
+        }
+      }
+      if (event.location && !locations.has(event.location.id)) {
+        locations.set(
+          event.location.id,
+          PublicContentMapper.toLocationSummary(event.location),
+        );
+      }
+    }
+
+    const children = periods
+      .filter((p) => p.parentId === period.id)
+      .sort((a, b) => (a.startYear ?? 0) - (b.startYear ?? 0))
+      .map((child) => ({
+        ...PublicContentMapper.toPeriod(child),
+        eventCount: events.filter((e) => e.periodId === child.id).length,
+        figureCount: scopedEntities.filter(
+          (e) =>
+            e.periodId === child.id && e.type === HistoricalEntityType.PERSON,
+        ).length,
+      }));
+
+    const concurrentPeriods = periods
+      .filter(
+        (p) =>
+          !p.parentId &&
+          p.id !== rootOf(period.id)?.id &&
+          normalizeRegion(p.region) !== ownRegion &&
+          p.startYear != null &&
+          p.startYear <= rangeEnd &&
+          (p.endYear ?? currentYear) >= rangeStart,
+      )
+      .map((p) => PublicContentMapper.toPeriod(p));
+
+    const concurrentEvents = nearbyEvents
+      .filter(
+        (e) =>
+          normalizeRegion(rootOf(e.periodId)?.region ?? null) !== ownRegion,
+      )
+      .slice(0, CONCURRENT_EVENTS_LIMIT)
+      .map((e) => PublicContentMapper.toEventSummary(e));
+
+    const parent = period.parentId ? byId.get(period.parentId) : undefined;
 
     return {
       ...PublicContentMapper.toPeriod(period),
       topics: [],
-      figures: period.historicalEntities.map((e) =>
-        PublicContentMapper.toFigure(e),
-      ),
-      events: sortedEvents.map((ev) => PublicContentMapper.toEventSummary(ev)),
+      figures: [...figures.values()],
+      events: events.map((ev) => PublicContentMapper.toEventSummary(ev)),
+      parent: parent ? PublicContentMapper.toPeriod(parent) : null,
+      children,
+      locations: [...locations.values()],
+      concurrentPeriods,
+      concurrentEvents,
     };
   }
 

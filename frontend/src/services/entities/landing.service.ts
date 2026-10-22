@@ -287,10 +287,22 @@ export interface PublicChildTopicDto extends PublicTopicDto {
   lessons: PublicLessonSummaryDto[];
 }
 
+export interface PublicSubPeriodDto extends PublicPeriodDto {
+  eventCount: number;
+  figureCount: number;
+}
+
 export interface PublicPeriodDetailDto extends PublicPeriodDto {
   topics: PublicTopicDto[];
+  /** Gồm cả nhân vật của các giai đoạn con và nhân vật tham gia sự kiện. */
   figures: PublicFigureDto[];
+  /** Gồm cả sự kiện của các giai đoạn con. */
   events: PublicEventSummaryDto[];
+  parent: PublicPeriodDto | null;
+  children: PublicSubPeriodDto[];
+  locations: PublicLocationSummaryDto[];
+  concurrentPeriods: PublicPeriodDto[];
+  concurrentEvents: PublicEventSummaryDto[];
 }
 
 export interface PublicTopicDetailDto extends PublicTopicDto {

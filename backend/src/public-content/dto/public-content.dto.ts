@@ -14,6 +14,7 @@ export class PublicPeriodDto {
   @ApiPropertyOptional({ nullable: true }) endYear: number | null;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
   @ApiPropertyOptional({ nullable: true }) coverImageUrl: string | null;
+  @ApiPropertyOptional({ nullable: true, example: 'Việt Nam' }) region: string | null;
 }
 
 export class PublicTopicDto {

@@ -53,6 +53,7 @@ export class PublicContentMapper {
       endYear: period.endYear,
       description: period.description,
       coverImageUrl: period.coverImageUrl,
+      region: period.region,
     };
   }
 

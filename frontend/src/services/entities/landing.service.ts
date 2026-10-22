@@ -42,6 +42,7 @@ export interface PublicPeriodDto {
   endYear: number | null;
   description: string | null;
   coverImageUrl: string | null;
+  region: string | null;
 }
 
 export interface PublicTopicDto {

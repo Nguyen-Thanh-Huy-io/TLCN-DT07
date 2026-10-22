@@ -40,12 +40,24 @@ function domainGroupOf(category: string): "POLITICS_MILITARY" | "ECONOMY_CULTURE
   return category === "CULTURE_SCIENCE" ? "ECONOMY_CULTURE" : "POLITICS_MILITARY";
 }
 
+const DOMESTIC_REGIONS = new Set(["Việt Nam", "Toàn quốc"]);
+
+function scopeGroupOf(region: string | null): "DOMESTIC" | "WORLD" {
+  if (!region) return "DOMESTIC";
+  return DOMESTIC_REGIONS.has(region) ? "DOMESTIC" : "WORLD";
+}
+
 function dateLabelOf(event: PublicEventSummaryDto): string {
   if (event.eventDateNote) return event.eventDateNote;
   return event.startYear < 0 ? `${Math.abs(event.startYear)} TCN` : `Năm ${event.startYear}`;
 }
 
-function toTimelineEvent(event: PublicEventSummaryDto, eraTitle: string, subEraTitle: string): TimelineEvent {
+function toTimelineEvent(
+  event: PublicEventSummaryDto,
+  eraTitle: string,
+  subEraTitle: string,
+  region: string | null,
+): TimelineEvent {
   const label = categoryLabel(event.category);
   return {
     id: event.id,
@@ -54,7 +66,7 @@ function toTimelineEvent(event: PublicEventSummaryDto, eraTitle: string, subEraT
     era: eraTitle,
     subEra: subEraTitle,
     category: label,
-    scopeGroup: "DOMESTIC",
+    scopeGroup: scopeGroupOf(region),
     domainGroup: domainGroupOf(event.category),
     title: event.title,
     summary: event.description || "Chưa có mô tả cho sự kiện này.",
@@ -85,6 +97,7 @@ export function buildEraDataset(periods: PublicPeriodDto[], events: PublicEventS
       .sort((a, b) => (a.startYear ?? 0) - (b.startYear ?? 0));
 
     const subEras: SubEra[] = leafPeriods.map((leaf, leafIndex): SubEra => {
+      const region = leaf.region ?? top.region ?? null;
       const leafEvents = (eventsByPeriodSlug.get(leaf.slug) || []).sort((a, b) => a.startYear - b.startYear);
       const nodesByYear = new Map<number, PublicEventSummaryDto[]>();
       for (const event of leafEvents) {
@@ -96,7 +109,7 @@ export function buildEraDataset(periods: PublicPeriodDto[], events: PublicEventS
       const timeNodes: TimeNode[] = Array.from(nodesByYear.entries())
         .sort(([a], [b]) => a - b)
         .map(([year, yearEvents]): TimeNode => {
-          const events = yearEvents.map((e) => toTimelineEvent(e, top.name, leaf.name));
+          const events = yearEvents.map((e) => toTimelineEvent(e, top.name, leaf.name, region));
           // A node can bundle several events that merely share a year; only
           // attribute figures/locations at the node level when there is a
           // single event, so unrelated events never borrow each other's

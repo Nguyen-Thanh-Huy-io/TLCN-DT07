@@ -463,6 +463,20 @@ export function fetchEventBySlug(
   );
 }
 
+/** Lấy danh sách công khai bất kỳ (server-side), lỗi → mảng rỗng. */
+export async function fetchPublicList<T>(endpoint: string): Promise<T[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}${endpoint}`, { cache: 'no-store' });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchEvents(): Promise<PublicEventSummaryDto[]> {
   try {
     const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');

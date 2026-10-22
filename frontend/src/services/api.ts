@@ -1,100 +1,8 @@
 import axios from 'axios';
+import { PublicAuthService } from './auth/public-auth.service';
 
 // Lấy base URL từ biến môi trường (mặc định là localhost:5001 cho backend hiện tại)
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-
-/**
- * Hằng số cấu hình tài khoản quản trị viên cho CMS
- */
-export const CMS_ADMIN_CREDENTIALS = {
-  EMAIL: 'admin@hisgo.edu.vn',
-  PASSWORD: 'Admin@123456',
-  STORAGE_KEY: 'access_token',
-} as const;
-
-/**
- * Trình quản lý phiên xác thực CMS (Singleton Pattern)
- * Hỗ trợ Silent Auto-Authentication và hàng đợi làm mới token chống race condition
- */
-export class AuthSessionManager {
-  private static loginPromise: Promise<string | null> | null = null;
-
-  public static getStoredToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    try {
-      return localStorage.getItem(CMS_ADMIN_CREDENTIALS.STORAGE_KEY);
-    } catch {
-      return null;
-    }
-  }
-
-  public static setStoredToken(token: string): void {
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(CMS_ADMIN_CREDENTIALS.STORAGE_KEY, token);
-    } catch {
-      // Ignore in restricted environments
-    }
-  }
-
-  public static clearStoredToken(): void {
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.removeItem(CMS_ADMIN_CREDENTIALS.STORAGE_KEY);
-    } catch {
-      // Ignore
-    }
-  }
-
-  /**
-   * Đảm bảo luôn có Access Token hợp lệ trước khi gửi mutation requests
-   */
-  public static async ensureAccessToken(): Promise<string | null> {
-    const existing = this.getStoredToken();
-    if (existing) return existing;
-    return this.refreshOrLogin();
-  }
-
-  /**
-   * Tự động đăng nhập ngầm để lấy access token mới khi chưa có hoặc khi token hết hạn
-   */
-  public static async refreshOrLogin(): Promise<string | null> {
-    if (typeof window === 'undefined') return null;
-
-    if (this.loginPromise) {
-      return this.loginPromise;
-    }
-
-    this.loginPromise = (async () => {
-      try {
-        const response = await axios.post(
-          `${API_URL}/auth/login`,
-          {
-            email: CMS_ADMIN_CREDENTIALS.EMAIL,
-            password: CMS_ADMIN_CREDENTIALS.PASSWORD,
-          },
-          { headers: { 'Content-Type': 'application/json' }, timeout: 8000 }
-        );
-
-        const data = response.data?.data?.data || response.data?.data || response.data;
-        const accessToken = data?.accessToken || data?.tokens?.accessToken;
-
-        if (accessToken) {
-          this.setStoredToken(accessToken);
-          return accessToken;
-        }
-        return null;
-      } catch (err) {
-        console.warn('[AuthSessionManager] Không thể tự động xác thực phiên quản trị viên:', err);
-        return null;
-      } finally {
-        this.loginPromise = null;
-      }
-    })();
-
-    return this.loginPromise;
-  }
-}
 
 const api = axios.create({
   baseURL: API_URL,
@@ -104,34 +12,24 @@ const api = axios.create({
   withCredentials: false,
 });
 
-// Thêm Request Interceptor: Tự động gắn Bearer Token và Silent Auto-Auth nếu cần
-api.interceptors.request.use(
-  async (config) => {
-    if (typeof window !== 'undefined') {
-      let token = AuthSessionManager.getStoredToken();
-      const method = config.method?.toLowerCase() || 'get';
-
-      // Với các request thay đổi dữ liệu (POST, PUT, PATCH, DELETE) nếu chưa có token -> tự động đăng nhập ngầm
-      if (!token && ['post', 'put', 'patch', 'delete'].includes(method)) {
-        token = await AuthSessionManager.ensureAccessToken();
-      }
-
-      if (token && config.headers) {
-        config.headers['Authorization'] = `Bearer ${token}`;
-      }
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+// Gắn access token của phiên đăng nhập hiện tại (dùng chung cho trang công khai và CMS).
+// Không còn tự đăng nhập ngầm bằng tài khoản quản trị: quyền được quyết định theo người dùng thật.
+api.interceptors.request.use((config) => {
+  const token = PublicAuthService.getAccessToken();
+  if (token && config.headers) {
+    config.headers['Authorization'] = `Bearer ${token}`;
   }
-);
+  return config;
+});
 
-// Thêm Response Interceptor: Tự động retry khi gặp lỗi 401 Unauthorized
+function redirectToLogin(): void {
+  if (typeof window === 'undefined' || window.location.pathname.startsWith('/login')) return;
+  const back = window.location.pathname + window.location.search;
+  window.location.assign(`/login?redirect=${encodeURIComponent(back)}`);
+}
+
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
@@ -143,22 +41,20 @@ api.interceptors.response.use(
       return Promise.resolve({ data: [] });
     }
 
-    // Xử lý lỗi 401 Unauthorized: Tự động xóa token cũ, đăng nhập lấy token mới và retry lại 1 lần
+    // 401: access token hết hạn → đổi refresh token rồi gửi lại 1 lần; không được thì về trang đăng nhập.
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
-      if (typeof window !== 'undefined') {
-        AuthSessionManager.clearStoredToken();
-        const newToken = await AuthSessionManager.refreshOrLogin();
-        if (newToken) {
-          originalRequest.headers = originalRequest.headers || {};
-          originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-          return api(originalRequest);
-        }
+      const newToken = await PublicAuthService.refresh();
+      if (newToken) {
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+        return api(originalRequest);
       }
+      redirectToLogin();
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export function extractErrorMessage(error: unknown, fallbackMessage: string): string {

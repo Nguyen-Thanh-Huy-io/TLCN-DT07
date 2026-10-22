@@ -5,6 +5,8 @@ import { Icon } from '@/components/icons/Icon';
 import { Avatar } from '@/components/common/Avatar';
 import { IconName } from '@/constants/icons';
 import { navigationFacade } from '@/services/navigation/navigation-strategy.service';
+import { useAuthSession } from '@/services/auth/useAuthSession';
+import { USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
 
 export interface TopbarProps {
   page: string;
@@ -18,6 +20,7 @@ export function Topbar({ page, openNav, collapsed, toggleCollapse }: TopbarProps
     navigationFacade.resolveBreadcrumb(page);
 
   const isRootDashboard = page === 'dashboard' || page === '';
+  const user = useAuthSession();
 
   return (
     <header className="topbar">
@@ -73,10 +76,10 @@ export function Topbar({ page, openNav, collapsed, toggleCollapse }: TopbarProps
           <i />
         </button>
         <span className="top-divider" />
-        <Avatar text="MA" small />
+        <Avatar text={(user?.username || user?.email || '').slice(0, 2).toUpperCase()} small />
         <div className="top-user">
-          <strong>Minh Anh</strong>
-          <span>Admin</span>
+          <strong>{user?.username || user?.email}</strong>
+          <span>{user ? USER_ROLE_LABELS[user.role] ?? user.role : ''}</span>
         </div>
       </div>
     </header>

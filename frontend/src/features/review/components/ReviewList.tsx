@@ -6,7 +6,8 @@ import { ReviewModal } from './ReviewModal';
 import { IconName } from '@/constants/icons';
 import { ContentStatus } from '@/constants/enums';
 import { LessonItem } from '@/types/models/lesson.type';
-import api, { parsePaginatedResponse } from '@/services/api';
+import api, { extractErrorMessage, parsePaginatedResponse } from '@/services/api';
+import { useAuthSession } from '@/services/auth/useAuthSession';
 
 export interface ReviewLessonRow {
   id: string;
@@ -18,43 +19,17 @@ export interface ReviewLessonRow {
   status: 'Chờ duyệt' | 'Đã duyệt' | 'Bị từ chối';
   rawStatus?: string;
   rejectionReason?: string | null;
+  /** Bài do chính người đang đăng nhập soạn — không được tự duyệt. */
+  isOwn: boolean;
 }
 
-const DEFAULT_REVIEW_LESSONS: ReviewLessonRow[] = [
-  {
-    id: 'rev-1',
-    title: 'Chiến dịch Điện Biên Phủ năm 1954',
-    topic: 'Chiến dịch Điện Biên Phủ',
-    author: 'Nguyễn Văn A',
-    date: '22/09/2026',
-    summary:
-      'Bài học tổng hợp chi tiết 3 đợt tiến công của quân ta, phân tích tầm vóc lịch sử của chiến thắng lừng lẫy năm châu, chấn động địa cầu.',
-    status: 'Chờ duyệt',
-    rawStatus: ContentStatus.PENDING_REVIEW,
-  },
-  {
-    id: 'rev-2',
-    title: 'Nguyên nhân bùng nổ Toàn quốc kháng chiến',
-    topic: 'Kháng chiến toàn quốc',
-    author: 'Mai Trang',
-    date: '21/09/2026',
-    summary:
-      'Lời kêu gọi Toàn quốc kháng chiến của Chủ tịch Hồ Chí Minh đêm ngày 19/12/1946 tại Vạn Phúc, Hà Đông.',
-    status: 'Chờ duyệt',
-    rawStatus: ContentStatus.PENDING_REVIEW,
-  },
-  {
-    id: 'rev-3',
-    title: 'Nội dung Hiệp định Genève 1954',
-    topic: 'Hiệp định Genève',
-    author: 'Lê Hoàng',
-    date: '20/09/2026',
-    summary:
-      'Các điều khoản chính của hiệp định về chấm dứt chiến sự ở Đông Dương, rút quân và giới tuyến quân sự tạm thời tại vĩ tuyến 17.',
-    status: 'Đã duyệt',
-    rawStatus: ContentStatus.PUBLISHED,
-  },
-];
+// Bài học dùng LessonStatus (DRAFT | REVIEW | PUBLISHED | REJECTED | ARCHIVED). Bản nháp chưa gửi
+// duyệt nên không xuất hiện ở đây.
+const REVIEW_TAB_BY_STATUS: Record<string, ReviewLessonRow['status']> = {
+  REVIEW: 'Chờ duyệt',
+  PUBLISHED: 'Đã duyệt',
+  REJECTED: 'Bị từ chối',
+};
 
 export function ReviewList() {
   const [tab, setTab] = useState<'Chờ duyệt' | 'Đã duyệt' | 'Bị từ chối'>('Chờ duyệt');
@@ -62,6 +37,8 @@ export function ReviewList() {
   const [lessonsList, setLessonsList] = useState<ReviewLessonRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const currentUserId = useAuthSession()?.id ?? null;
 
   useEffect(() => {
     const fetchLessonsForReview = async () => {
@@ -74,20 +51,10 @@ export function ReviewList() {
         const parsed = parsePaginatedResponse<LessonItem>(response.data);
         const rawList = parsed.items;
 
-        if (rawList.length === 0) {
-          setLessonsList(DEFAULT_REVIEW_LESSONS);
-          return;
-        }
-
-        const mapped: ReviewLessonRow[] = rawList.map((lesson: LessonItem) => {
-          const rawStatus = lesson.status || ContentStatus.DRAFT;
-          const statusMap: Record<string, ReviewLessonRow['status']> = {
-            [ContentStatus.DRAFT]: 'Chờ duyệt',
-            [ContentStatus.PENDING_REVIEW]: 'Chờ duyệt',
-            [ContentStatus.PUBLISHED]: 'Đã duyệt',
-            [ContentStatus.REJECTED]: 'Bị từ chối',
-            [ContentStatus.ARCHIVED]: 'Bị từ chối',
-          };
+        const mapped: ReviewLessonRow[] = rawList
+          .filter((lesson: LessonItem) => REVIEW_TAB_BY_STATUS[lesson.status])
+          .map((lesson: LessonItem) => {
+          const rawStatus = lesson.status;
 
           const summary = (lesson.contentRichText || '')
             .replace(/<[^>]*>/g, ' ')
@@ -107,23 +74,25 @@ export function ReviewList() {
               ? new Date(lesson.createdAt).toLocaleDateString('vi-VN')
               : '-',
             summary: summary.length > 220 ? `${summary.slice(0, 220)}...` : summary,
-            status: statusMap[rawStatus] || 'Chờ duyệt',
+            status: REVIEW_TAB_BY_STATUS[rawStatus],
             rawStatus,
             rejectionReason: lesson.rejectionReason || null,
+            isOwn: Boolean(currentUserId && lesson.createdBy === currentUserId),
           };
         });
 
         setLessonsList(mapped);
       } catch (error) {
-        console.error('Failed to fetch review lessons, using fallback:', error);
-        setLessonsList(DEFAULT_REVIEW_LESSONS);
+        console.error('Failed to fetch review lessons:', error);
+        setLessonsList([]);
+        setNotice({ tone: 'error', text: extractErrorMessage(error, 'Không tải được danh sách bài học.') });
       } finally {
         setLoading(false);
       }
     };
 
     fetchLessonsForReview();
-  }, []);
+  }, [currentUserId]);
 
   const handleApprove = async (lesson: ReviewLessonRow) => {
     try {
@@ -139,10 +108,9 @@ export function ReviewList() {
         )
       );
 
-      alert(`Đã phê duyệt bài học "${lesson.title}" thành công!`);
+      setNotice({ tone: 'ok', text: `Đã phê duyệt bài học "${lesson.title}".` });
     } catch (error) {
-      console.error('Approve lesson failed:', error);
-      alert('Không thể duyệt bài học. Vui lòng kiểm tra quyền admin và token.');
+      setNotice({ tone: 'error', text: extractErrorMessage(error, 'Không thể duyệt bài học.') });
     }
   };
 
@@ -166,10 +134,9 @@ export function ReviewList() {
         )
       );
 
-      alert(`Đã từ chối bài học "${lesson.title}". Lý do: ${reason}`);
+      setNotice({ tone: 'ok', text: `Đã từ chối bài học "${lesson.title}". Lý do: ${reason}` });
     } catch (error) {
-      console.error('Reject lesson failed:', error);
-      alert('Không thể từ chối bài học. Vui lòng kiểm tra quyền admin và token.');
+      setNotice({ tone: 'error', text: extractErrorMessage(error, 'Không thể từ chối bài học.') });
     }
   };
 
@@ -198,6 +165,20 @@ export function ReviewList() {
           </button>
         ))}
       </div>
+      {notice && (
+        <div
+          role="status"
+          style={{
+            margin: '12px 0',
+            padding: '10px 14px',
+            borderRadius: 8,
+            background: notice.tone === 'ok' ? '#ecfdf5' : '#fef2f2',
+            color: notice.tone === 'ok' ? '#065f46' : '#991b1b',
+          }}
+        >
+          {notice.text}
+        </div>
+      )}
       <div className="toolbar">
         <label className="search-box">
           <Icon name={IconName.SEARCH} size={17} />
@@ -257,13 +238,17 @@ export function ReviewList() {
                     <span className="source-ok">✓ Đã cung cấp</span>
                   </td>
                   <td>
-                    <button
-                      type="button"
-                      className="review-button"
-                      onClick={() => setSelectedLesson(r)}
-                    >
-                      <Icon name={IconName.EYE} size={16} /> Xem & duyệt
-                    </button>
+                    {r.isOwn && r.status === 'Chờ duyệt' ? (
+                      <span title="Quy trình 2 người: bài cần một người duyệt khác">Bài của bạn — chờ người khác duyệt</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="review-button"
+                        onClick={() => setSelectedLesson(r)}
+                      >
+                        <Icon name={IconName.EYE} size={16} /> {r.status === 'Chờ duyệt' ? 'Xem & duyệt' : 'Xem'}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))

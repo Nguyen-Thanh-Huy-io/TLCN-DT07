@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { PublicAuthService, PublicAuthUser } from "@/services/auth/public-auth.service";
+import { PublicAuthService, USER_ROLE_LABELS, isStaffRole } from "@/services/auth/public-auth.service";
+import { useAuthSession } from "@/services/auth/useAuthSession";
 
 interface HeaderProps {
   activeSectionId?: string;
@@ -15,18 +16,14 @@ export function Header({
 }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(initialActiveTab || activeSectionId);
-  const [user, setUser] = useState<PublicAuthUser | null>(null);
+  // undefined lúc SSR/hydrate → hiển thị như chưa đăng nhập.
+  const user = useAuthSession() ?? null;
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-
-  // Đọc trạng thái đăng nhập từ localStorage phía client (không lộ trong SSR)
-  useEffect(() => {
-    setUser(PublicAuthService.getCurrentUser());
-  }, []);
 
   useEffect(() => {
     if (!userMenuOpen) return;
@@ -41,7 +38,6 @@ export function Header({
 
   const handleLogout = async () => {
     await PublicAuthService.logout();
-    setUser(null);
     setUserMenuOpen(false);
     setMobileMenuOpen(false);
     router.refresh();
@@ -257,7 +253,24 @@ export function Header({
                 <div className="absolute right-0 mt-2 w-48 rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] py-1.5 shadow-xl z-50">
                   <div className="px-3.5 py-2 text-xs text-[var(--text-body)] truncate border-b border-[var(--border)]">
                     {user.email}
+                    <span className="mt-0.5 block font-semibold text-[var(--primary)]">
+                      {USER_ROLE_LABELS[user.role] ?? user.role}
+                    </span>
                   </div>
+                  {isStaffRole(user.role) && (
+                    <Link
+                      href="/cms"
+                      className="block px-3.5 py-2 text-sm text-[var(--ink)] hover:bg-[var(--bg-page)] hover:text-[var(--primary)] transition-colors"
+                    >
+                      Vào trang quản trị
+                    </Link>
+                  )}
+                  <Link
+                    href="/chuong-trinh-hoc"
+                    className="block px-3.5 py-2 text-sm text-[var(--ink)] hover:bg-[var(--bg-page)] hover:text-[var(--primary)] transition-colors"
+                  >
+                    Lộ trình của tôi
+                  </Link>
                   <button
                     type="button"
                     onClick={handleLogout}

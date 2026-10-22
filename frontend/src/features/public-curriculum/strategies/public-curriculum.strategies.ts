@@ -1,5 +1,4 @@
 import { LearningPathItem } from '@/services/entities/learning-path.service';
-import { LessonItem } from '@/types/models/lesson.type';
 import {
   QuizQuestion,
   QuizQuestionType,
@@ -14,6 +13,14 @@ import { LearningPathFilterType } from '../constants/public-curriculum.constants
 // ==========================================
 // 1. STRATEGY LỌC LỘ TRÌNH HỌC & BÀI HỌC (OCP)
 // ==========================================
+
+/** Đủ dùng cho cả LessonItem (CMS) lẫn LibraryLesson (thư viện công khai). */
+export interface FilterableLesson {
+  title: string;
+  description?: string | null;
+  tags?: Array<{ id: string }>;
+  lessonTags?: Array<{ tagId: string }>;
+}
 
 export interface IPathFilterStrategy {
   matches(path: LearningPathItem, keyword: string): boolean;
@@ -77,11 +84,11 @@ export class PathFilterStrategyRegistry {
     return paths.filter((path) => strategy.matches(path, normalizedKeyword));
   }
 
-  static filterLessons(
-    lessons: LessonItem[],
+  static filterLessons<T extends FilterableLesson>(
+    lessons: T[],
     rawKeyword: string,
     selectedTagId: string | null,
-  ): LessonItem[] {
+  ): T[] {
     const normalizedKeyword = rawKeyword.trim().toLowerCase();
     return lessons.filter((lesson) => {
       if (selectedTagId) {

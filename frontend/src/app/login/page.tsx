@@ -98,6 +98,15 @@ function LoginForm() {
           </form>
 
           <p className="mt-6 text-center text-xs text-[#776b61]">
+            Chưa có tài khoản?{" "}
+            <Link
+              href={`/dang-ky?redirect=${encodeURIComponent(redirectTo)}`}
+              className="font-semibold text-[#6e181b] hover:underline"
+            >
+              Đăng ký miễn phí
+            </Link>
+          </p>
+          <p className="mt-2 text-center text-xs text-[#776b61]">
             <Link href="/" className="font-semibold text-[#6e181b] hover:underline">
               ← Quay về trang chủ
             </Link>

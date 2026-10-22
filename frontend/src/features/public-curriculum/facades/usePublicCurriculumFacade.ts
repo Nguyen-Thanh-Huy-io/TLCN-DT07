@@ -6,9 +6,7 @@ import {
   LearningPathItem,
   ChapterItem,
 } from '@/services/entities/learning-path.service';
-import { LessonApiService } from '@/services/entities/lesson.service';
-import { LessonItem } from '@/types/models/lesson.type';
-import { TagItem } from '@/types/models/tag.type';
+import { LearnerApiService, type LibraryLesson } from '@/services/entities/learner.service';
 import { LearningPathFilterType } from '../constants/public-curriculum.constants';
 import { PathFilterStrategyRegistry } from '../strategies/public-curriculum.strategies';
 
@@ -20,7 +18,7 @@ export function publishedChapterLessons(chapter: ChapterItem) {
 
 export function usePublicCurriculumFacade(initialPathId?: string | null) {
   const [paths, setPaths] = useState<LearningPathItem[]>([]);
-  const [libraryLessons, setLibraryLessons] = useState<LessonItem[]>([]);
+  const [libraryLessons, setLibraryLessons] = useState<LibraryLesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,13 +38,13 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
     try {
       const [pathsRes, lessonsRes] = await Promise.all([
         LearningPathApiService.getLearningPaths(),
-        LessonApiService.getLessons({ limit: 50 }),
+        LearnerApiService.getLibrary(),
       ]);
 
-      const safePaths = Array.isArray(pathsRes) ? pathsRes : [];
+      // /learning-paths trả cả bản nháp cho CMS; trang công khai chỉ hiện lộ trình đã xuất bản.
+      const safePaths = (Array.isArray(pathsRes) ? pathsRes : []).filter((p) => p.status === PUBLISHED_STATUS);
       setPaths(safePaths);
-      // /lessons also returns drafts and lessons under review; the public site shows published ones only.
-      setLibraryLessons((lessonsRes.items || []).filter((l) => l.status === PUBLISHED_STATUS));
+      setLibraryLessons(lessonsRes);
 
       if (safePaths.length > 0) {
         const defaultPath =
@@ -106,15 +104,10 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
   }, []);
 
   // Tổng hợp danh sách tất cả Tag có trong thư viện bài học
-  const availableTags = useMemo<TagItem[]>(() => {
-    const tagMap = new Map<string, TagItem>();
+  const availableTags = useMemo<LibraryLesson['tags']>(() => {
+    const tagMap = new Map<string, LibraryLesson['tags'][number]>();
     for (const lesson of libraryLessons) {
-      const tags =
-        lesson.tags ||
-        (lesson.lessonTags || [])
-          .map((lt) => lt.tag)
-          .filter((t): t is TagItem => Boolean(t));
-      for (const tag of tags) {
+      for (const tag of lesson.tags) {
         if (tag && tag.id && !tagMap.has(tag.id)) {
           tagMap.set(tag.id, tag);
         }

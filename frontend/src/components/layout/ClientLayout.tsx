@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { usePathname, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { CmsAccessGate } from "@/components/layout/CmsAccessGate";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'hisgo_sidebar_collapsed';
 
@@ -37,16 +38,22 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // If public HISGO route (Home, Styleguide, or public user-facing pages), render standalone without CMS Admin Sidebar/Topbar
+  // If public HISGO route (Home, Styleguide, Login, or public user-facing pages), render standalone without CMS Admin Sidebar/Topbar
   const isHisgoPublicRoute =
     pathname === "/" ||
+    pathname === "/login" ||
+    pathname.startsWith("/login") ||
     pathname === "/styleguide" ||
     pathname.startsWith("/chuong-trinh-hoc") ||
     pathname.startsWith("/bai-hoc") ||
     pathname.startsWith("/dong-thoi-gian") ||
     pathname.startsWith("/nhan-vat") ||
     pathname.startsWith("/di-tich") ||
-    pathname.startsWith("/giai-doan");
+    pathname.startsWith("/giai-doan") ||
+    pathname.startsWith("/su-kien") ||
+    pathname.startsWith("/chuong-su") ||
+    pathname.startsWith("/kien-thuc") ||
+    pathname.startsWith("/dang-ky");
   if (isHisgoPublicRoute) {
     return <>{children}</>;
   }
@@ -68,6 +75,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
+    <CmsAccessGate page={page}>
     <div className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
       <Sidebar
         page={page}
@@ -90,5 +98,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
+    </CmsAccessGate>
   );
 }

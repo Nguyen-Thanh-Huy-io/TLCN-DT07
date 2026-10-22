@@ -5,7 +5,11 @@ import { UserCell } from '@/components/common/UserCell';
 import { Badge } from '@/components/common/Badge';
 import { ColumnDef } from '@/types/table.types';
 import { UserRole, UserStatus } from '@/constants/enums';
-import api from '@/services/api';
+import api, { extractErrorMessage } from '@/services/api';
+import { useAuthSession } from '@/services/auth/useAuthSession';
+import { USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
+
+const ROLE_OPTIONS: UserRole[] = [UserRole.USER, UserRole.MODERATOR, UserRole.ADMIN, UserRole.SUPERADMIN];
 
 export interface UserItem {
   id: string;
@@ -21,6 +25,19 @@ export interface UserItem {
 export function UserList() {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const currentUserId = useAuthSession()?.id ?? null;
+
+  // Đổi vai trò: backend thu hồi phiên cũ của tài khoản đó, người dùng phải đăng nhập lại.
+  const changeRole = async (user: UserItem, role: UserRole) => {
+    try {
+      await api.patch(`/users/${user.id}`, { role });
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role } : u)));
+      setNotice({ tone: 'ok', text: `Đã đổi vai trò của ${user.username} thành ${USER_ROLE_LABELS[role]}.` });
+    } catch (err) {
+      setNotice({ tone: 'error', text: extractErrorMessage(err, 'Không thể đổi vai trò.') });
+    }
+  };
 
   useEffect(() => {
     api
@@ -69,7 +86,23 @@ export function UserList() {
           [UserRole.USER]: 'gray',
         };
         const tone = roleToneMap[item.role] || 'gray';
-        return <Badge tone={tone}>{item.role}</Badge>;
+        if (item.id === currentUserId) {
+          return <Badge tone={tone}>{USER_ROLE_LABELS[item.role] ?? item.role} (bạn)</Badge>;
+        }
+        return (
+          <select
+            aria-label={`Vai trò của ${item.username}`}
+            value={item.role}
+            onChange={(e) => changeRole(item, e.target.value as UserRole)}
+            style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #d0d5dd', background: '#fff' }}
+          >
+            {ROLE_OPTIONS.map((role) => (
+              <option key={role} value={role}>
+                {USER_ROLE_LABELS[role]}
+              </option>
+            ))}
+          </select>
+        );
       },
     },
     {
@@ -94,13 +127,31 @@ export function UserList() {
   }
 
   return (
+    <>
+    {notice && (
+      <div
+        role="status"
+        style={{
+          marginBottom: 12,
+          padding: '10px 14px',
+          borderRadius: 8,
+          background: notice.tone === 'ok' ? '#ecfdf5' : '#fef2f2',
+          color: notice.tone === 'ok' ? '#065f46' : '#991b1b',
+        }}
+      >
+        {notice.text}
+      </div>
+    )}
     <DataTable<UserItem>
       columns={columns}
       data={users}
       searchPlaceholder="Tìm kiếm tài khoản người dùng..."
       primaryButtonLabel="Thêm người dùng"
-      onPrimaryButtonClick={() => alert('Thêm người dùng mới')}
+      onPrimaryButtonClick={() =>
+        setNotice({ tone: 'ok', text: 'Người dùng tự tạo tài khoản ở trang Đăng ký; sau đó đổi vai trò tại đây.' })
+      }
       filters={[{ label: 'Vai trò' }, { label: 'Trạng thái' }]}
     />
+    </>
   );
 }

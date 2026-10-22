@@ -6,6 +6,9 @@ import { Avatar } from '@/components/common/Avatar';
 import { IconName } from '@/constants/icons';
 import { navigationFacade } from '@/services/navigation/navigation-strategy.service';
 import { NavGroupConfig, NavItemConfig } from '@/constants/navigation';
+import { useAuthSession } from '@/services/auth/useAuthSession';
+import { PublicAuthService, USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
+import { canAccessCmsPage } from '@/components/layout/CmsAccessGate';
 
 export interface SidebarProps {
   page: string;
@@ -24,10 +27,20 @@ export function Sidebar({
   collapsed = false,
   toggleCollapse,
 }: SidebarProps) {
+  const user = useAuthSession();
+  // Ẩn mục menu mà vai trò hiện tại không vào được (vd. biên tập viên không thấy Duyệt bài).
   const navGroups: NavGroupConfig[] = useMemo(
-    () => navigationFacade.getNavGroups(),
-    [],
+    () =>
+      navigationFacade
+        .getNavGroups()
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => canAccessCmsPage(item.page, user?.role)),
+        }))
+        .filter((group) => group.items.length > 0),
+    [user?.role],
   );
+  const displayName = user?.username || user?.email || '';
 
   return (
     <>
@@ -115,22 +128,19 @@ export function Sidebar({
             collapsed ? 'sidebar-user-collapsed' : ''
           }`}
         >
-          <Avatar text="MA" small />
+          <Avatar text={displayName.slice(0, 2).toUpperCase()} small />
           {!collapsed && (
             <div>
-              <strong>Minh Anh</strong>
-              <span>Quản trị viên</span>
+              <strong>{displayName}</strong>
+              <span>{user ? USER_ROLE_LABELS[user.role] ?? user.role : ''}</span>
             </div>
           )}
           <button
             type="button"
             title="Đăng xuất"
-            onClick={() => {
-              if (
-                confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống CMS?')
-              ) {
-                alert('Đã đăng xuất thành công!');
-              }
+            onClick={async () => {
+              await PublicAuthService.logout();
+              window.location.assign('/login');
             }}
           >
             <Icon name={IconName.LOGOUT} size={15} />

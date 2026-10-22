@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { LessonApiService } from '@/services/entities/lesson.service';
+import { LearnerApiService, NOT_ENROLLED_CODE } from '@/services/entities/learner.service';
+import { useAuthSession } from '@/services/auth/useAuthSession';
 import {
   LearningPathApiService,
   LearningPathItem,
 } from '@/services/entities/learning-path.service';
-import { QuizApiService } from '@/services/entities/quiz.service';
 import { LessonItem } from '@/types/models/lesson.type';
 import { QuizItem, QuizQuestionType } from '@/features/lessons/types/quiz.types';
 import { LessonBlockType } from '@/features/lessons/types/block-palette.types';
@@ -21,6 +21,9 @@ import {
 } from '../strategies/public-curriculum.strategies';
 
 const PUBLISHED_STATUS = 'PUBLISHED';
+
+/** GRANTED: đọc được · LOGIN_REQUIRED: chưa đăng nhập · NOT_ENROLLED: chưa đăng ký lộ trình chứa bài. */
+export type LessonAccess = 'GRANTED' | 'LOGIN_REQUIRED' | 'NOT_ENROLLED';
 
 export interface AdjacentLessonLink {
   id: string;
@@ -84,24 +87,43 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
   const [userAnswers, setUserAnswers] = useState<Record<string, UserQuizAnswer>>({});
   const [submittedQuiz, setSubmittedQuiz] = useState(false);
 
+  const [access, setAccess] = useState<LessonAccess>('GRANTED');
+  const user = useAuthSession();
+  const userId = user === undefined ? undefined : (user?.id ?? null);
+
   const loadData = useCallback(async () => {
-    if (!slug) return;
+    // Chờ biết phiên đăng nhập (undefined lúc hydrate) rồi mới quyết định quyền đọc.
+    if (!slug || userId === undefined) return;
     setLoading(true);
     setError(null);
     setSubmittedQuiz(false);
     setUserAnswers({});
+    setLesson(null);
+    setQuiz(null);
+
+    // Lộ trình chứa bài (công khai) — để hiện đề cương và nút đăng ký kể cả khi bài đang khóa.
+    const allPaths = await LearningPathApiService.getLearningPaths().catch(() => []);
+    const publishedPaths = (Array.isArray(allPaths) ? allPaths : []).filter(
+      (p) => p.status === PUBLISHED_STATUS,
+    );
+    const containsLesson = (p: LearningPathItem) =>
+      (p.chapters || []).some((ch) => (ch.chapterLessons || []).some((cl) => cl.lesson?.slug === slug));
+    setLearningPath(
+      (pathId && publishedPaths.find((p) => p.id === pathId && containsLesson(p))) ||
+        publishedPaths.find(containsLesson) ||
+        null,
+    );
+
+    if (!userId) {
+      setAccess('LOGIN_REQUIRED');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const lessonData = await LessonApiService.getLessonBySlug(slug);
+      const { lesson: lessonData, quiz: quizRes } = await LearnerApiService.getLesson(slug);
+      setAccess('GRANTED');
       setLesson(lessonData);
-
-      // Tải song song Quiz cuối bài và Lộ trình học (nếu có pathId hoặc tự dò lộ trình chứa bài học)
-      const [quizRes, allPathsRes] = await Promise.all([
-        lessonData?.id
-          ? QuizApiService.getQuiz(lessonData.id).catch(() => null)
-          : Promise.resolve(null),
-        LearningPathApiService.getLearningPaths().catch(() => []),
-      ]);
-
       setQuiz(quizRes);
 
       // Khởi tạo thứ tự mặc định cho câu hỏi ORDERING để người học có thể bấm đổi chỗ ngay
@@ -114,29 +136,28 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
         }
         setUserAnswers(initialOrderingAnswers);
       }
-
-      if (Array.isArray(allPathsRes) && allPathsRes.length > 0) {
-        const matchedPath =
-          (pathId && allPathsRes.find((p) => p.id === pathId)) ||
-          allPathsRes.find((p) =>
-            (p.chapters || []).some((ch) =>
-              (ch.chapterLessons || []).some(
-                (cl) => cl.lesson?.slug === slug || cl.lessonId === lessonData?.id,
-              ),
-            ),
-          ) ||
-          null;
-        setLearningPath(matchedPath);
-      }
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message ||
-          'Không tìm thấy bài học hoặc bài học chưa được xuất bản.',
-      );
+      if (err?.response?.status === 403 && err?.response?.data?.code === NOT_ENROLLED_CODE) {
+        setAccess('NOT_ENROLLED');
+      } else {
+        setError(
+          err?.response?.data?.message ||
+            'Không tìm thấy bài học hoặc bài học chưa được xuất bản.',
+        );
+      }
     } finally {
       setLoading(false);
     }
-  }, [slug, pathId]);
+  }, [slug, pathId, userId]);
+
+  /** Thông tin giới thiệu bài (từ đề cương công khai) để hiện khi bài còn khóa. */
+  const lockedPreview = useMemo(() => {
+    for (const ch of learningPath?.chapters || []) {
+      const found = (ch.chapterLessons || []).find((cl) => cl.lesson?.slug === slug);
+      if (found) return found.lesson;
+    }
+    return null;
+  }, [learningPath, slug]);
 
   useEffect(() => {
     loadData();
@@ -275,6 +296,9 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
   }, [quiz]);
 
   return {
+    access,
+    lockedPreview,
+    reload: loadData,
     lesson,
     learningPath,
     quiz,

@@ -16,6 +16,7 @@ import { usePublicLessonReaderFacade } from '../facades/usePublicLessonReaderFac
 import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubBadge, HubButton } from './hub/HubUi';
 import { HubSyllabus, chapterLabel } from './hub/HubSyllabus';
 import { HubLessonQuiz } from './hub/HubLessonQuiz';
+import { HubLessonGate } from './hub/HubLessonGate';
 import { useLessonProgress } from './hub/useLessonProgress';
 
 interface PublicLessonReaderViewProps {
@@ -25,6 +26,9 @@ interface PublicLessonReaderViewProps {
 
 export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewProps) {
   const {
+    access,
+    lockedPreview,
+    reload,
     lesson,
     learningPath,
     quiz,
@@ -42,13 +46,13 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
     handleSubmitQuiz,
     handleRetryQuiz,
   } = usePublicLessonReaderFacade(slug, pathId);
-  const { isCompleted, markCompleted } = useLessonProgress();
+  const { isCompleted, markCompleted, enroll } = useLessonProgress();
   const [mobileSyllabus, setMobileSyllabus] = useState(false);
   const router = useRouter();
 
   // Passing the end-of-lesson quiz counts as finishing the lesson.
   useEffect(() => {
-    if (lesson && submittedQuiz && quizEvaluation?.passed) markCompleted(lesson.id);
+    if (lesson && submittedQuiz && quizEvaluation?.passed) void markCompleted(lesson.id);
   }, [lesson, submittedQuiz, quizEvaluation, markCompleted]);
 
   const { prevLesson, nextLesson, flatLessons, currentIndex, currentChapter } = navigationContext;
@@ -57,9 +61,9 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
     ? `${PUBLIC_CURRICULUM_ROUTES.CURRICULUM}?pathId=${learningPath.id}`
     : PUBLIC_CURRICULUM_ROUTES.CURRICULUM;
 
-  const completeAndContinue = () => {
+  const completeAndContinue = async () => {
     if (!lesson) return;
-    markCompleted(lesson.id);
+    await markCompleted(lesson.id);
     if (nextLesson) router.push(lessonHref(nextLesson.slug));
   };
 
@@ -82,7 +86,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
           {learningPath && (
             <div className="hidden text-right lg:block">
               <div className="max-w-sm truncate text-sm font-bold text-lh-ink">{learningPath.title}</div>
-              <div className="text-xs text-lh-muted">Tiến độ lưu trên trình duyệt này</div>
+              <div className="text-xs text-lh-muted">Tiến độ lưu vào tài khoản của bạn</div>
             </div>
           )}
         </div>
@@ -95,6 +99,25 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
               <div className="h-40 animate-pulse rounded-2xl bg-lh-surface-2" />
             </div>
             <div className="hidden h-96 animate-pulse rounded-2xl bg-lh-surface-2 lg:block" />
+          </div>
+        ) : access !== 'GRANTED' ? (
+          <div className={`grid gap-8 ${learningPath ? 'lg:grid-cols-[minmax(0,1fr)_22rem]' : ''}`}>
+            <HubLessonGate
+              access={access}
+              preview={lockedPreview}
+              learningPath={learningPath}
+              onEnroll={async (pathId) => {
+                await enroll(pathId);
+                await reload();
+              }}
+            />
+            {learningPath && (
+              <aside className="hidden lg:block">
+                <div className="sticky top-24">
+                  <HubSyllabus path={learningPath} isCompleted={isCompleted} />
+                </div>
+              </aside>
+            )}
           </div>
         ) : error || !lesson ? (
           <div className="mx-auto max-w-xl rounded-2xl border border-lh-red/30 bg-lh-red-soft p-10 text-center">
@@ -247,7 +270,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
                       {done ? <ArrowRight className="size-4" /> : <CheckCircle2 className="size-4" />}
                     </HubButton>
                   ) : (
-                    <HubButton onClick={() => lesson && markCompleted(lesson.id)} disabled={done}>
+                    <HubButton onClick={() => lesson && void markCompleted(lesson.id)} disabled={done}>
                       {done ? 'Đã hoàn thành bài học' : 'Đánh dấu hoàn thành'} <CheckCircle2 className="size-4" />
                     </HubButton>
                   )}

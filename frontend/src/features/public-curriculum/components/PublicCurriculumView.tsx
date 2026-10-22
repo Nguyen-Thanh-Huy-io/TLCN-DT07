@@ -1,9 +1,23 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, BookOpen, CheckCircle2, ChevronRight, Layers, Library, ListTree, RotateCcw, Search, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  BookmarkPlus,
+  BookOpen,
+  CheckCircle2,
+  ChevronRight,
+  Layers,
+  Library,
+  ListTree,
+  LogIn,
+  RotateCcw,
+  Search,
+  Sparkles,
+} from 'lucide-react';
+import { extractErrorMessage } from '@/services/api';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import type { LearningPathItem } from '@/services/entities/learning-path.service';
@@ -31,11 +45,11 @@ function nextLessonOf(path: LearningPathItem, isCompleted: (id: string) => boole
 function CurriculumStatsHeader({
   stats,
   completedCount,
-  continueHref,
+  cta,
 }: {
   stats: { totalPaths: number; totalChapters: number; totalLessons: number };
   completedCount: number;
-  continueHref: string | null;
+  cta: { href: string; label: string };
 }) {
   const tiles = [
     { icon: Layers, value: stats.totalPaths, label: 'lộ trình', color: 'text-amber-200' },
@@ -55,13 +69,11 @@ function CurriculumStatsHeader({
             Học sử theo lộ trình, từng chương một.
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-white/75 sm:text-base">
-            Mỗi lộ trình gồm các chương và bài đọc có đề ôn tập cuối bài. Tiến độ của bạn được lưu ngay trên trình duyệt này.
+            Mỗi lộ trình gồm các chương và bài đọc có đề ôn tập cuối bài. Đăng ký miễn phí một lộ trình để đọc bài và lưu tiến độ vào tài khoản của bạn.
           </p>
-          {continueHref && (
-            <Link href={continueHref} className={`${HUB_BUTTON_BASE} mt-5 bg-white text-lh-brand hover:bg-white/90`}>
-              {completedCount ? 'Học tiếp ngay' : 'Bắt đầu học'} <ArrowRight className="size-4" />
-            </Link>
-          )}
+          <Link href={cta.href} className={`${HUB_BUTTON_BASE} mt-5 bg-white text-lh-brand hover:bg-white/90`}>
+            {cta.label} <ArrowRight className="size-4" />
+          </Link>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-2">
           {tiles.map((item) => (
@@ -83,13 +95,32 @@ function CourseCard({
   selected,
   isCompleted,
   onShowSyllabus,
+  loggedIn,
+  enrolled,
+  onEnroll,
 }: {
   path: LearningPathItem;
   index: number;
   selected: boolean;
   isCompleted: (id: string) => boolean;
   onShowSyllabus: () => void;
+  loggedIn: boolean;
+  enrolled: boolean;
+  onEnroll: () => Promise<void>;
 }) {
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollError, setEnrollError] = useState<string | null>(null);
+  const handleEnroll = async () => {
+    setEnrolling(true);
+    setEnrollError(null);
+    try {
+      await onEnroll();
+    } catch (err) {
+      setEnrollError(extractErrorMessage(err, 'Không thể đăng ký lộ trình. Vui lòng thử lại.'));
+    } finally {
+      setEnrolling(false);
+    }
+  };
   const lessons = pathLessons(path);
   const complete = lessons.filter((l) => isCompleted(l.id)).length;
   const percent = lessons.length ? Math.round((complete / lessons.length) * 100) : 0;
@@ -130,29 +161,41 @@ function CourseCard({
         <div className="mt-5">
           <div className="mb-2 flex justify-between text-xs">
             <span className="font-semibold text-lh-ink">
-              {complete ? `Đã học ${complete}/${lessons.length} bài` : 'Chưa bắt đầu'}
+              {!enrolled ? 'Chưa đăng ký' : complete ? `Đã học ${complete}/${lessons.length} bài` : 'Đã đăng ký · chưa bắt đầu'}
             </span>
             <span className="font-bold text-lh-brand">{percent}%</span>
           </div>
           <HubProgress value={percent} />
         </div>
         <div className="mt-5 grid gap-2 sm:grid-cols-[1fr_auto]">
-          {next ? (
-            <Link
-              href={PUBLIC_CURRICULUM_ROUTES.LESSON_DETAIL(next.slug, path.id)}
-              className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS[complete ? 'primary' : 'outline']}`}
-            >
-              {complete ? 'Tiếp tục học' : 'Vào bài đầu tiên'} <ChevronRight className="size-4" />
-            </Link>
-          ) : (
+          {!next ? (
             <span className="rounded-xl bg-lh-surface-2 px-4 py-2.5 text-center text-sm text-lh-muted">
               Lộ trình chưa có bài học được xuất bản
             </span>
+          ) : !loggedIn ? (
+            <Link
+              href={`/login?redirect=${encodeURIComponent(`${PUBLIC_CURRICULUM_ROUTES.CURRICULUM}?pathId=${path.id}`)}`}
+              className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.outline}`}
+            >
+              <LogIn className="size-4" /> Đăng nhập để đăng ký học
+            </Link>
+          ) : !enrolled ? (
+            <HubButton onClick={handleEnroll} disabled={enrolling}>
+              <BookmarkPlus className="size-4" /> {enrolling ? 'Đang đăng ký...' : 'Đăng ký học (miễn phí)'}
+            </HubButton>
+          ) : (
+            <Link
+              href={PUBLIC_CURRICULUM_ROUTES.LESSON_DETAIL(next.slug, path.id)}
+              className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.primary}`}
+            >
+              {complete ? 'Tiếp tục học' : 'Vào bài đầu tiên'} <ChevronRight className="size-4" />
+            </Link>
           )}
           <HubButton variant={selected ? 'secondary' : 'ghost'} onClick={onShowSyllabus}>
             <ListTree className="size-4" /> Đề cương
           </HubButton>
         </div>
+        {enrollError && <p className="mt-2 text-sm text-lh-red">{enrollError}</p>}
       </div>
     </motion.article>
   );
@@ -180,13 +223,17 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
     collapseAllChapters,
     reload,
   } = usePublicCurriculumFacade(initialPathId);
-  const { completedIds, isCompleted } = useLessonProgress();
+  const { completedIds, isCompleted, isEnrolled, enroll, loggedIn } = useLessonProgress();
 
-  const continueHref = useMemo(() => {
-    const path = filteredPaths.find((p) => pathLessons(p).some((l) => isCompleted(l.id))) ?? filteredPaths[0];
+  const cta = useMemo(() => {
+    if (!loggedIn) return { href: `/dang-ky?redirect=${encodeURIComponent(PUBLIC_CURRICULUM_ROUTES.CURRICULUM)}`, label: 'Đăng ký tài khoản' };
+    const enrolledPaths = filteredPaths.filter((p) => isEnrolled(p.id));
+    const path = enrolledPaths.find((p) => pathLessons(p).some((l) => isCompleted(l.id))) ?? enrolledPaths[0];
     const next = path ? nextLessonOf(path, isCompleted) : null;
-    return path && next ? PUBLIC_CURRICULUM_ROUTES.LESSON_DETAIL(next.slug, path.id) : null;
-  }, [filteredPaths, isCompleted]);
+    return path && next
+      ? { href: PUBLIC_CURRICULUM_ROUTES.LESSON_DETAIL(next.slug, path.id), label: 'Học tiếp ngay' }
+      : { href: '#lo-trinh', label: 'Chọn lộ trình để bắt đầu' };
+  }, [filteredPaths, isCompleted, isEnrolled, loggedIn]);
 
   const showSyllabus = (path: LearningPathItem) => {
     handleSelectPath(path);
@@ -197,7 +244,7 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
     <div className="lh-app">
       <Header activeTab="curriculum" />
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-9 lg:px-8">
-        <CurriculumStatsHeader stats={stats} completedCount={completedIds.length} continueHref={continueHref} />
+        <CurriculumStatsHeader stats={stats} completedCount={completedIds.length} cta={cta} />
 
         <section id="lo-trinh" className="scroll-mt-24 py-10">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -256,6 +303,9 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
                       selected={activePath?.id === path.id}
                       isCompleted={isCompleted}
                       onShowSyllabus={() => showSyllabus(path)}
+                      loggedIn={loggedIn}
+                      enrolled={isEnrolled(path.id)}
+                      onEnroll={() => enroll(path.id)}
                     />
                   ))}
                 </AnimatePresence>
@@ -346,7 +396,7 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
             <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {filteredLibraryLessons.map((lesson, idx) => {
                 const difficulty = lesson.difficulty ? PUBLIC_DIFFICULTY_META[lesson.difficulty] : null;
-                const tags = lesson.tags || (lesson.lessonTags || []).map((lt) => lt.tag).filter(Boolean);
+                const tags = lesson.tags;
                 return (
                   <Link
                     key={lesson.id}

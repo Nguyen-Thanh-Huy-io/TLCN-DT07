@@ -1,58 +1,92 @@
 'use client';
 
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { LearnerApiService, type LearnerOverview } from '@/services/entities/learner.service';
+import { useAuthSession } from '@/services/auth/useAuthSession';
 
-const STORAGE_KEY = 'hisgo:curriculum:completed-lessons';
-const EMPTY = '[]';
-const listeners = new Set<() => void>();
-
-function readRaw(): string {
-  try {
-    return window.localStorage.getItem(STORAGE_KEY) ?? EMPTY;
-  } catch {
-    return EMPTY;
-  }
+/**
+ * Tiến độ học của tài khoản đang đăng nhập, lấy từ backend (/me/learning).
+ * Một store dùng chung cho mọi component để danh mục, đề cương và trang đọc bài
+ * cùng cập nhật ngay khi người học đăng ký lộ trình hoặc hoàn thành bài.
+ */
+interface ProgressState {
+  userId: string | null;
+  loaded: boolean;
+  overview: LearnerOverview;
 }
 
-function parse(raw: string): string[] {
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
-  } catch {
-    return [];
-  }
+const EMPTY: LearnerOverview = { enrolledPathIds: [], completedLessonIds: [] };
+let state: ProgressState = { userId: null, loaded: false, overview: EMPTY };
+let inflight: Promise<void> | null = null;
+const listeners = new Set<() => void>();
+
+function setState(next: ProgressState) {
+  state = next;
+  listeners.forEach((notify) => notify());
 }
 
 function subscribe(onChange: () => void) {
   listeners.add(onChange);
-  window.addEventListener('storage', onChange);
-  return () => {
-    listeners.delete(onChange);
-    window.removeEventListener('storage', onChange);
-  };
+  return () => listeners.delete(onChange);
 }
 
-/**
- * Bài đã hoàn thành của người đọc hiện tại. Trang công khai không có tài khoản người học,
- * nên tiến độ chỉ lưu trên trình duyệt này (localStorage) — mất khi xóa dữ liệu trang.
- */
+function load(userId: string): Promise<void> {
+  if (inflight) return inflight;
+  inflight = LearnerApiService.getOverview()
+    .then((overview) => setState({ userId, loaded: true, overview }))
+    .catch(() => setState({ userId, loaded: true, overview: EMPTY }))
+    .finally(() => {
+      inflight = null;
+    });
+  return inflight;
+}
+
 export function useLessonProgress() {
-  // Server snapshot is empty so server and first client render match.
-  const raw = useSyncExternalStore(subscribe, readRaw, () => EMPTY);
-  const completedIds = useMemo(() => parse(raw), [raw]);
+  const user = useAuthSession();
+  const snapshot = useSyncExternalStore(subscribe, () => state, () => state);
+  const userId = user?.id ?? null;
 
-  const markCompleted = useCallback((lessonId: string) => {
-    const current = parse(readRaw());
-    if (current.includes(lessonId)) return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify([...current, lessonId]));
-    } catch {
-      return; // Trình duyệt chặn lưu trữ: không ghi được tiến độ.
+  useEffect(() => {
+    if (!userId) {
+      if (state.userId !== null || state.loaded) setState({ userId: null, loaded: false, overview: EMPTY });
+      return;
     }
-    listeners.forEach((notify) => notify());
-  }, []);
+    if (state.userId !== userId || !state.loaded) void load(userId);
+  }, [userId]);
 
-  const isCompleted = useCallback((lessonId: string) => completedIds.includes(lessonId), [completedIds]);
+  const current = snapshot.userId === userId ? snapshot.overview : EMPTY;
 
-  return { completedIds, isCompleted, markCompleted };
+  const isCompleted = useCallback((lessonId: string) => current.completedLessonIds.includes(lessonId), [current]);
+  const isEnrolled = useCallback((pathId: string) => current.enrolledPathIds.includes(pathId), [current]);
+
+  const markCompleted = useCallback(
+    async (lessonId: string) => {
+      if (!userId || current.completedLessonIds.includes(lessonId)) return;
+      const overview = await LearnerApiService.completeLesson(lessonId);
+      setState({ userId, loaded: true, overview });
+    },
+    [userId, current],
+  );
+
+  const enroll = useCallback(
+    async (pathId: string) => {
+      if (!userId) return;
+      const overview = await LearnerApiService.enroll(pathId);
+      setState({ userId, loaded: true, overview });
+    },
+    [userId],
+  );
+
+  return {
+    /** undefined = chưa biết phiên (đang hydrate). */
+    user,
+    loggedIn: Boolean(user),
+    ready: user === null || (Boolean(userId) && snapshot.userId === userId && snapshot.loaded),
+    completedIds: current.completedLessonIds,
+    enrolledPathIds: current.enrolledPathIds,
+    isCompleted,
+    isEnrolled,
+    markCompleted,
+    enroll,
+  };
 }

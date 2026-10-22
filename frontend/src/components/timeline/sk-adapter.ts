@@ -57,15 +57,29 @@ function domainGroupOf(category: string): "POLITICS_MILITARY" | "ECONOMY_CULTURE
 }
 
 const DOMESTIC_REGIONS = new Set(["Việt Nam", "Toàn quốc"]);
+export const UNKNOWN_REGION = "Chưa phân vùng";
+
+/** Tên quốc gia/khu vực để lọc: "Toàn quốc" (cả nước) gộp vào "Việt Nam". */
+function regionLabel(region: string | null): string {
+  if (!region) return UNKNOWN_REGION;
+  return region === "Toàn quốc" ? "Việt Nam" : region;
+}
 
 function scopeGroupOf(region: string | null): "DOMESTIC" | "WORLD" {
   if (!region) return "DOMESTIC";
   return DOMESTIC_REGIONS.has(region) ? "DOMESTIC" : "WORLD";
 }
 
+/** Nhãn ngắn hiển thị trên trục/thẻ. Ghi chú niên đại dài (vd. "Theo truyền thuyết...") chỉ hiện ở chi tiết. */
+const MAX_DATE_LABEL_LENGTH = 24;
+
+function yearLabel(year: number): string {
+  return year < 0 ? `${Math.abs(year)} TCN` : `Năm ${year}`;
+}
+
 function dateLabelOf(event: PublicEventSummaryDto): string {
-  if (event.eventDateNote) return event.eventDateNote;
-  return event.startYear < 0 ? `${Math.abs(event.startYear)} TCN` : `Năm ${event.startYear}`;
+  const note = event.eventDateNote?.trim();
+  return note && note.length <= MAX_DATE_LABEL_LENGTH ? note : yearLabel(event.startYear);
 }
 
 function toTimelineEvent(
@@ -78,12 +92,14 @@ function toTimelineEvent(
   return {
     id: event.id,
     dateLabel: dateLabelOf(event),
+    dateNote: event.eventDateNote || undefined,
     year: event.startYear,
     era: eraTitle,
     subEra: subEraTitle,
     category: label,
     categoryCode: event.category,
     scopeGroup: scopeGroupOf(region),
+    region: regionLabel(region),
     domainGroup: domainGroupOf(event.category),
     title: event.title,
     summary: event.description || "Chưa có mô tả cho sự kiện này.",
@@ -130,7 +146,7 @@ export function buildEraDataset(periods: PublicPeriodDto[], events: PublicEventS
           return {
             id: `node-${yearEvents[0].id}`,
             subEraId: leaf.id,
-            dateLabel: dateLabelOf(yearEvents[0]),
+            dateLabel: yearEvents.length > 1 ? yearLabel(year) : dateLabelOf(yearEvents[0]),
             sortYear: year,
             events,
             // A node can bundle unrelated events that share a year, so each entry

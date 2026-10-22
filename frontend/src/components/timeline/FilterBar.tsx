@@ -2,7 +2,17 @@
 
 import { Bookmark, LayoutList, Search, X } from "lucide-react";
 import { Button, Input, Select } from "./sk-ui";
-import type { Era } from "./sk-types";
+import type { Era, TimelineEvent } from "./sk-types";
+
+/** Quốc gia / khu vực thực sự có dấu mốc (theo Period.region), xếp theo tên. */
+export function regionOptions(events: TimelineEvent[]): string[] {
+  return Array.from(new Set(events.map((ev) => ev.region))).sort((a, b) => a.localeCompare(b, "vi"));
+}
+
+/** "" = tất cả quốc gia / khu vực. */
+export function matchesRegion(event: TimelineEvent, filter: string): boolean {
+  return !filter || event.region === filter;
+}
 
 export function FilterBar({
   query,
@@ -21,6 +31,9 @@ export function FilterBar({
   eras,
   subs,
   categories,
+  region,
+  onRegion,
+  regions,
 }: {
   query: string;
   onQuery: (v: string) => void;
@@ -38,6 +51,9 @@ export function FilterBar({
   eras: Era[];
   subs: Era["subEras"];
   categories: string[];
+  region: string;
+  onRegion: (v: string) => void;
+  regions: string[];
 }) {
   return (
     <div className="sk-filter-bar">
@@ -82,6 +98,14 @@ export function FilterBar({
         <option value="">Danh mục</option>
         {categories.map((c) => (
           <option key={c}>{c}</option>
+        ))}
+      </Select>
+      <Select label="Quốc gia / khu vực" value={region} onChange={onRegion}>
+        <option value="">Tất cả quốc gia / khu vực</option>
+        {regions.map((r) => (
+          <option key={r} value={r}>
+            {r}
+          </option>
         ))}
       </Select>
       <span className="sk-filter-divider" />

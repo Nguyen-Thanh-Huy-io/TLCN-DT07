@@ -35,3 +35,60 @@
 .sk-card-head .sk-category { background: var(--soft); }
 .sk-card-head .sk-save-card { flex-shrink: 0; display: grid; place-items: center; border: 1px solid var(--border); }
 .sk-entity-events { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+
+/* ---------- Minimap gọn: accordion theo thời kỳ, mỗi giai đoạn 1 dòng ---------- */
+.sk-tree-era { border-bottom: 1px solid var(--border); padding: 6px 0; }
+.sk-tree-era:last-of-type { border-bottom: 0; }
+.sk-tree-parent-row { display: flex; align-items: center; gap: 4px; }
+.sk-tree-parent { flex: 1; min-width: 0; align-items: flex-start; padding: 6px 0; }
+.sk-tree-text { min-width: 0; }
+.sk-tree-parent strong { display: block; font-size: 14px; line-height: 1.35; }
+.sk-tree-parent small { font-size: 12px; margin-top: 3px; }
+.sk-tree-toggle { flex: none; width: 28px; height: 28px; border-radius: 6px; color: #8b9783; }
+.sk-tree-toggle svg { transition: transform .2s; }
+.sk-tree-era.sk-open .sk-tree-toggle svg { transform: rotate(180deg); }
+.sk-tree-toggle:hover { background: var(--soft); }
+.sk-tree-children { margin: 6px 0 10px 12px; }
+.sk-tree-children .sk-button { display: flex; align-items: center; gap: 8px; padding: 7px 8px; }
+.sk-tree-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sk-tree-years { flex: none; font-size: 11px; color: #8d9786; background: var(--soft); border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
+.sk-tree-children .sk-active .sk-tree-years { background: #fff; color: #4d6b40; }
+
+/* ---------- Trục ngang 3 tầng ---------- */
+.sk-scrubber { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.sk-scrubber-arrow { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); }
+.sk-scrubber-arrow:disabled { opacity: .35; cursor: default; }
+.sk-horizontal-track { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 14px 6px 18px; scroll-snap-type: x proximity; outline: none; }
+.sk-horizontal-track:focus-visible { box-shadow: 0 0 0 2px #91a77b; }
+.sk-scrubber-group { display: flex; flex-direction: column; flex: none; padding: 0 6px; border-right: 1px dashed #cfd7c4; }
+.sk-scrubber-group:last-child { border-right: 0; }
+.sk-scrubber-band { align-self: stretch; margin: 0 4px 14px; padding: 5px 10px; border: 0; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 600; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; cursor: pointer; }
+.sk-scrubber-band.sk-selected { background: #527440; color: #fff; }
+.sk-scrubber-nodes { display: flex; }
+.sk-scrubber-node { display: flex; flex-direction: column; align-items: center; width: 150px; min-width: 150px; gap: 6px; padding: 0 8px; border: 0; background: none; cursor: pointer; scroll-snap-align: center; position: relative; text-align: center; }
+.sk-scrubber-node::after { content: ""; position: absolute; height: 2px; background: #cdd7c0; top: 8px; left: 50%; width: 100%; }
+.sk-scrubber-nodes .sk-scrubber-node:last-child::after { display: none; }
+.sk-scrubber-node strong { font-family: var(--sk-font-display); font-size: 16px; color: var(--text); }
+.sk-scrubber-node small { width: 100%; font-size: 12px; line-height: 1.4; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sk-scrubber-node em { font-style: normal; font-size: 11px; color: #6d8b51; }
+.sk-scrubber-node.sk-selected strong, .sk-scrubber-node.sk-selected small { color: #3f5c31; font-weight: 600; }
+.sk-scrubber-node:hover .sk-scrubber-dot { background: #6d8b51; }
+
+.sk-panel-title { justify-content: space-between; flex-wrap: wrap; }
+.sk-panel-title > div:first-child { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sk-panel-nav { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.sk-panel-nav .sk-button { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; gap: 4px; font-size: 13px; }
+.sk-panel-nav .sk-button:disabled { opacity: .4; }
+
+@media (max-width: 640px) {
+  .sk-scrubber { grid-template-columns: minmax(0, 1fr); }
+  .sk-scrubber-arrow { display: none; }
+  .sk-scrubber-node { width: 120px; min-width: 120px; }
+}
+
+.sk-detail-note { margin: 6px 0 14px; font-size: 13px; line-height: 1.6; color: var(--muted); font-style: italic; }
+.sk-tree-children .sk-button { align-items: flex-start; }
+.sk-tree-children .sk-tree-dot { top: 15px; }
+.sk-tree-name { white-space: normal; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; line-height: 1.35; }
+.sk-tree-name small { display: block; margin-top: 3px; font-size: 11px; color: #929b8c; }
+.sk-tree-children .sk-active .sk-tree-name small { color: #5f7d4f; }

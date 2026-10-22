@@ -1,6 +1,8 @@
 export interface TimelineEvent {
   id: string;
   dateLabel: string;
+  /** Ghi chú niên đại đầy đủ (có thể dài) — chỉ hiện ở khung chi tiết. */
+  dateNote?: string;
   year: number;
   era: string;
   subEra: string;
@@ -9,6 +11,8 @@ export interface TimelineEvent {
   /** Raw EventCategory code from the API. */
   categoryCode: string;
   scopeGroup: "DOMESTIC" | "WORLD";
+  /** Khu vực theo Period.region của giai đoạn chứa sự kiện (vd. "Việt Nam", "Châu Á"). */
+  region: string;
   domainGroup: "POLITICS_MILITARY" | "ECONOMY_CULTURE";
   title: string;
   summary: string;

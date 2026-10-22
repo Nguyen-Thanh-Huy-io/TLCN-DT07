@@ -27,6 +27,9 @@ export function EventDetailModal({
             <Badge>{detail.event.category}</Badge>
             <span className="sk-detail-date">{detail.event.dateLabel}</span>
             <Heading level={1}>{detail.event.title}</Heading>
+            {detail.event.dateNote && detail.event.dateNote !== detail.event.dateLabel && (
+              <p className="sk-detail-note">{detail.event.dateNote}</p>
+            )}
             <div className="sk-detail-text">{detail.event.content}</div>
             <Heading level={3}>Nhân vật & địa danh</Heading>
             <EntityList figures={detail.event.figures || []} locations={detail.event.locations || []} tab="figures" />

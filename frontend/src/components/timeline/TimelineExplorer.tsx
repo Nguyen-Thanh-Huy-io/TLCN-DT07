@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import { ArrowDownUp, ArrowRight, Compass, Landmark, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button, Heading, Select } from "./sk-ui";
-import { FilterBar } from "./FilterBar";
+import { FilterBar, matchesRegion, regionOptions } from "./FilterBar";
 import { Minimap } from "./Minimap";
 import { EraSection } from "./EraSection";
 import { SubEraSection, SplitMode } from "./SubEraSection";
@@ -28,6 +28,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   const [era, setEra] = useState("");
   const [sub, setSub] = useState("");
   const [category, setCategory] = useState("");
+  const [region, setRegion] = useState("");
   const [horizontal, setHorizontal] = useState(false);
   const [compact, setCompact] = useState(false);
   const [split, setSplit] = useState<SplitMode>("alternating");
@@ -47,6 +48,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
 
   const allSubs = useMemo(() => baseEras.flatMap((e) => e.subEras), [baseEras]);
   const allNodes = useMemo(() => allSubs.flatMap((s) => s.timeNodes), [allSubs]);
+  const allRegions = useMemo(() => regionOptions(allNodes.flatMap((n) => n.events)), [allNodes]);
   const allCategories = useMemo(() => {
     const seen = new Set<string>();
     for (const n of allNodes) for (const ev of n.events) seen.add(ev.category);
@@ -58,11 +60,13 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     setEra("");
     setSub("");
     setCategory("");
+    setRegion("");
     setBookmarksOnly(false);
   };
 
   const matches = (event: TimelineEvent, node: TimeNode) =>
     (!category || event.category === category) &&
+    matchesRegion(event, region) &&
     (!bookmarksOnly || saved.includes(event.id)) &&
     (!query ||
       [event.title, event.summary, ...event.tags, ...node.figures.map((f) => f.name), ...node.locations.map((l) => l.name)]
@@ -82,7 +86,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
       }))
       .filter((e) => e.subEras.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseEras, era, sub, category, bookmarksOnly, query, saved]);
+  }, [baseEras, era, sub, category, region, bookmarksOnly, query, saved]);
 
   const visibleNodes = useMemo(() => eras.flatMap((e) => e.subEras.flatMap((s) => s.timeNodes)), [eras]);
   const selectedNode = visibleNodes.find((n) => n.id === selected) || visibleNodes[0];
@@ -138,6 +142,9 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
           onSub={setSub}
           category={category}
           onCategory={setCategory}
+          region={region}
+          onRegion={setRegion}
+          regions={allRegions}
           compact={compact}
           onCompact={() => setCompact(!compact)}
           bookmarksOnly={bookmarksOnly}
@@ -209,7 +216,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                       selectedNode={selectedNode}
                       onSelectNode={setSelected}
                       subs={allSubs}
-                      onJumpToSub={(node) => setSelected(node.id)}
                       onDetail={setDetail}
                       onSave={toggleSaved}
                       saved={saved}
@@ -220,7 +226,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                         <motion.div className="sk-spine-progress" style={{ scaleY: progress }} />
                         {e.subEras.map((s) => (
                           <SubEraSection
-                            key={`${s.id}-${query}-${category}-${bookmarksOnly}`}
+                            key={`${s.id}-${query}-${category}-${region}-${bookmarksOnly}`}
                             subEra={s}
                             compact={compact}
                             split={split}

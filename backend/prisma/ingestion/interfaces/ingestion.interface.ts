@@ -3,6 +3,7 @@ import {
   DatePrecision,
   EventCategory,
   EventRelationType,
+  FigureRole,
   HistoricalEntityType,
   VerificationStatus,
 } from '@prisma/client';
@@ -32,6 +33,7 @@ export interface IPersonExtensionSeed {
   biography: string;
   occupation?: string | null;
   titles?: string[];
+  roles?: FigureRole[];
 }
 
 export interface IHistoricalSiteExtensionSeed {

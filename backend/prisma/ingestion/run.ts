@@ -10,6 +10,27 @@ import { PeriodCatalogBuilder } from './catalogs/period.catalog';
 import { EntityCatalogBuilder } from './catalogs/entities.catalog';
 import { EventCatalogBuilder } from './catalogs/events.catalog';
 import { RAW_RELATIONS } from './catalogs/relations.catalog';
+import { BATCH_03_EVENTS } from './catalogs/events.batch-03.catalog';
+import { BATCH_03_RELATIONS } from './catalogs/relations.batch-03.catalog';
+import { FIGURE_PROFILES } from './catalogs/figure-profiles.catalog';
+import { IEntitySeedRecord, IRelationsSeedDataset } from './interfaces/ingestion.interface';
+
+const RELATIONS: IRelationsSeedDataset = {
+  eventEntityRelations: [...RAW_RELATIONS.eventEntityRelations, ...BATCH_03_RELATIONS.eventEntityRelations],
+  entityRelations: [...RAW_RELATIONS.entityRelations, ...BATCH_03_RELATIONS.entityRelations],
+  eventCausalRelations: [...RAW_RELATIONS.eventCausalRelations, ...BATCH_03_RELATIONS.eventCausalRelations],
+};
+
+// Gộp hồ sơ batch 03 vào bản ghi nhân vật: roles → Person.roles, profile → metadata.profile.
+function withFigureProfile(e: IEntitySeedRecord): IEntitySeedRecord {
+  const seed = FIGURE_PROFILES[e.slug];
+  if (e.type !== 'PERSON' || !seed) return e;
+  return {
+    ...e,
+    metadata: seed.profile ? { ...e.metadata, profile: seed.profile } : e.metadata,
+    person: e.person ? { ...e.person, roles: seed.roles } : e.person,
+  };
+}
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL as string });
 const prisma = new PrismaClient({ adapter });
@@ -59,7 +80,7 @@ async function main() {
   console.log(`✓ Periods: ${periods.length}`);
 
   // ---------- 2. ENTITIES ----------
-  const entities = EntityCatalogBuilder.buildCatalog();
+  const entities = EntityCatalogBuilder.buildCatalog().map(withFigureProfile);
   const entitySlugToId = new Map<string, string>();
 
   for (const e of entities) {
@@ -116,7 +137,7 @@ async function main() {
   console.log(`✓ Entities: ${entities.length}`);
 
   // ---------- 3. EVENTS (2 lượt: tạo trước, gắn parentId sau) ----------
-  const events = EventCatalogBuilder.buildCatalog();
+  const events = [...EventCatalogBuilder.buildCatalog(), ...BATCH_03_EVENTS];
   const eventSlugToId = new Map<string, string>();
 
   for (const ev of events) {
@@ -183,7 +204,7 @@ async function main() {
 
   // ---------- 4. RELATIONS ----------
   let eeCount = 0;
-  for (const r of RAW_RELATIONS.eventEntityRelations) {
+  for (const r of RELATIONS.eventEntityRelations) {
     const eventId = eventSlugToId.get(r.eventSlug);
     const entityId = entitySlugToId.get(r.entitySlug);
     if (!eventId || !entityId) {
@@ -200,7 +221,7 @@ async function main() {
   console.log(`✓ HistoricalEventEntity: ${eeCount}`);
 
   let erCount = 0;
-  for (const r of RAW_RELATIONS.entityRelations) {
+  for (const r of RELATIONS.entityRelations) {
     const sourceEntityId = entitySlugToId.get(r.sourceEntitySlug);
     const targetEntityId = entitySlugToId.get(r.targetEntitySlug);
     if (!sourceEntityId || !targetEntityId) {
@@ -230,7 +251,7 @@ async function main() {
   console.log(`✓ HistoricalEntityRelation: ${erCount}`);
 
   let evrCount = 0;
-  for (const r of RAW_RELATIONS.eventCausalRelations) {
+  for (const r of RELATIONS.eventCausalRelations) {
     const sourceEventId = eventSlugToId.get(r.sourceEventSlug);
     const targetEventId = eventSlugToId.get(r.targetEventSlug);
     if (!sourceEventId || !targetEventId) {

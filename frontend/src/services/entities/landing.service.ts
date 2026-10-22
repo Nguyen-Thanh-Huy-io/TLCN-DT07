@@ -230,6 +230,31 @@ export interface PublicLocationSummaryDto {
   recognitionLevel?: string | null;
   constructionLabel?: string | null;
   periodSlug?: string | null;
+  /** Các tên gọi trong lịch sử. */
+  ancientNames?: string[];
+}
+
+/** Hồ sơ di sản mở rộng (metadata.heritage ở backend). */
+export interface PublicHeritageProfileDto {
+  recognizedYear: string | null;
+  architecturalStyle: string | null;
+  openingHours: string | null;
+  constructionTimeline: Array<{
+    id: string;
+    dateLabel: string;
+    dynasty: string;
+    actionType: 'FOUNDED' | 'EXPANDED' | 'DAMAGED' | 'RESTORED';
+    description: string;
+  }>;
+  subStructures: Array<{
+    id: string;
+    name: string;
+    type: 'ARCHITECTURE' | 'NATIONAL_TREASURE';
+    periodBuilt: string;
+    description: string;
+    imageUrl: string | null;
+  }>;
+  thenAndNow: { ancientImageUrl: string; ancientLabel: string; modernImageUrl: string; modernLabel: string } | null;
 }
 
 export interface PublicLocationDetailDto extends PublicLocationSummaryDto {
@@ -244,6 +269,7 @@ export interface PublicLocationDetailDto extends PublicLocationSummaryDto {
   events: PublicEventSummaryDto[];
   figures: PublicFigureDto[];
   nearby: Array<PublicLocationSummaryDto & { distanceKm: number }>;
+  heritage: PublicHeritageProfileDto;
 }
 
 export function fetchLocationBySlug(slug: string): Promise<PublicLocationDetailDto | null> {

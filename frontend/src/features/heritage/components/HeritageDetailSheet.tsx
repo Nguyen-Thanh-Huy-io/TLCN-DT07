@@ -13,6 +13,7 @@ import {
   Hammer,
   History,
   Landmark,
+  Loader2,
   MapPin,
   Paintbrush,
   ShieldAlert,
@@ -32,7 +33,7 @@ import {
   type SubStructureItem,
 } from '../heritage.types';
 import { BeforeAfterImageSlider } from './BeforeAfterImageSlider';
-import { Badge, Card, ScrollArea, Separator, Sheet, Tabs, cn } from '../ui';
+import { Badge, Card, HeritageImage, ScrollArea, Separator, Sheet, Tabs, cn } from '../ui';
 
 type TabKey = 'overview' | 'structures' | 'timeline' | 'links';
 
@@ -47,6 +48,15 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h3 className="hx-serif mb-3 text-xl font-bold">{children}</h3>;
 }
 
+/** Trạng thái trống khi di tích chưa có loại dữ liệu này — nói rõ thay vì để trắng. */
+function EmptyNote({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-[var(--hx-line)] px-5 py-10 text-center text-sm leading-6 text-[var(--hx-muted)]">
+      {children}
+    </div>
+  );
+}
+
 /* Tab 1 — Tổng quan & Đối chiếu Xưa – Nay */
 function ThenAndNowView({ h }: { h: HistoricalHeritage }) {
   const [zoomed, setZoomed] = useState<number | null>(null);
@@ -55,14 +65,16 @@ function ThenAndNowView({ h }: { h: HistoricalHeritage }) {
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="p-5">
           <p className="text-xs font-bold uppercase tracking-wider text-[var(--hx-primary)]">Giá trị lịch sử</p>
-          <p className="mt-2 text-sm leading-7">{h.shortSummary}</p>
+          <p className="mt-2 text-sm leading-7">{h.shortSummary || 'Chưa có phần giới thiệu cho di tích này.'}</p>
         </Card>
-        <Card className="p-5">
-          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--hx-primary)]">
-            <Paintbrush className="size-3.5" /> Phong cách kiến trúc & nghệ thuật
-          </p>
-          <p className="mt-2 text-sm leading-7">{h.architecturalStyle}</p>
-        </Card>
+        {h.architecturalStyle && (
+          <Card className="p-5">
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--hx-primary)]">
+              <Paintbrush className="size-3.5" /> Phong cách kiến trúc & nghệ thuật
+            </p>
+            <p className="mt-2 text-sm leading-7">{h.architecturalStyle}</p>
+          </Card>
+        )}
       </div>
 
       {h.thenAndNowComparison && (
@@ -136,6 +148,9 @@ function SubStructuresExplorer({ items }: { items: SubStructureItem[] }) {
     { value: 'NATIONAL_TREASURE', label: 'Bảo vật / Hiện vật', count: items.filter((i) => i.type === 'NATIONAL_TREASURE').length },
   ];
 
+  if (items.length === 0) {
+    return <EmptyNote>Chưa có dữ liệu về các hạng mục kiến trúc hay hiện vật bên trong di tích này.</EmptyNote>;
+  }
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
@@ -169,7 +184,7 @@ function SubStructuresExplorer({ items }: { items: SubStructureItem[] }) {
               >
                 <button type="button" onClick={() => setOpenId(open ? null : item.id)} aria-expanded={open} className={cn('grid w-full text-left', open ? 'sm:grid-cols-2' : '')}>
                   <motion.div layout className={cn('relative overflow-hidden', open ? 'aspect-[4/3]' : 'aspect-[16/9]')}>
-                    <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+                    <HeritageImage src={item.imageUrl} alt={item.name} className="h-full w-full" />
                     <Badge tone={item.type === 'NATIONAL_TREASURE' ? 'gold' : 'dark'} className="absolute left-3 top-3">
                       {item.type === 'NATIONAL_TREASURE' ? <Gem className="size-3" /> : <Landmark className="size-3" />}
                       {item.type === 'NATIONAL_TREASURE' ? 'Bảo vật / Hiện vật' : 'Kiến trúc'}
@@ -193,6 +208,9 @@ function SubStructuresExplorer({ items }: { items: SubStructureItem[] }) {
 
 /* Tab 3 — Biên niên sử xây dựng, biến cố & trùng tu */
 function ConstructionTimeline({ items }: { items: HistoricalHeritage['constructionTimeline'] }) {
+  if (items.length === 0) {
+    return <EmptyNote>Chưa có biên niên sử xây dựng, biến cố và trùng tu cho di tích này.</EmptyNote>;
+  }
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap gap-3 text-xs">
@@ -243,7 +261,8 @@ function LinksAndVisitor({ h }: { h: HistoricalHeritage }) {
       <div className="space-y-6">
         <section>
           <SectionTitle>Sự kiện lịch sử gắn liền</SectionTitle>
-          <ul className="divide-y divide-[var(--hx-line)] overflow-hidden rounded-2xl border border-[var(--hx-line)] bg-[var(--hx-surface)]">
+          {h.linkedEvents.length === 0 && <EmptyNote>Chưa có sự kiện nào được gắn với di tích này.</EmptyNote>}
+          <ul className={cn('divide-y divide-[var(--hx-line)] overflow-hidden rounded-2xl border border-[var(--hx-line)] bg-[var(--hx-surface)]', h.linkedEvents.length === 0 && 'hidden')}>
             {h.linkedEvents.map((e) => {
               const body = (
                 <>
@@ -266,7 +285,7 @@ function LinksAndVisitor({ h }: { h: HistoricalHeritage }) {
             })}
           </ul>
         </section>
-        <section>
+        <section className={h.linkedFigures.length ? '' : 'hidden'}>
           <SectionTitle>Danh nhân gắn bó</SectionTitle>
           <div className="grid gap-3 sm:grid-cols-2">
             {h.linkedFigures.map((f) => {
@@ -304,16 +323,18 @@ function LinksAndVisitor({ h }: { h: HistoricalHeritage }) {
         <div className="space-y-3 text-sm">
           <p className="flex gap-2">
             <MapPin className="mt-0.5 size-4 shrink-0 text-[var(--hx-primary)]" />
-            {h.visitorInfo.addressText}
+            {h.visitorInfo.addressText || 'Chưa có địa chỉ'}
           </p>
           <p className="flex gap-2">
             <Clock3 className="mt-0.5 size-4 shrink-0 text-[var(--hx-primary)]" />
-            {h.visitorInfo.openingHours}
+            {h.visitorInfo.openingHours || 'Chưa có thông tin giờ mở cửa'}
           </p>
-          <p className="flex gap-2">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[var(--hx-primary)]" />
-            {h.visitorInfo.preservationStatus}
-          </p>
+          {h.visitorInfo.preservationStatus && (
+            <p className="flex gap-2">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[var(--hx-primary)]" />
+              {h.visitorInfo.preservationStatus}
+            </p>
+          )}
         </div>
         <Separator />
         <dl className="grid grid-cols-2 gap-3 text-xs">
@@ -323,7 +344,7 @@ function LinksAndVisitor({ h }: { h: HistoricalHeritage }) {
           </div>
           <div>
             <dt className="text-[var(--hx-muted)]">Năm công nhận</dt>
-            <dd className="font-semibold">{h.recognizedYear}</dd>
+            <dd className="font-semibold">{h.recognizedYear || '—'}</dd>
           </div>
           <div>
             <dt className="text-[var(--hx-muted)]">Vùng</dt>
@@ -352,7 +373,7 @@ export function HeritageDetailSheet({ heritage, onClose }: { heritage: Historica
       {h && (
         <ScrollArea className="flex-1">
           <header className="relative">
-            <img src={h.coverImageUrl} alt={h.name} className="h-64 w-full object-cover sm:h-80" />
+            <HeritageImage src={h.coverImageUrl} alt={h.name} category={h.category} className="h-64 w-full sm:h-80" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 space-y-2 p-5 text-white sm:p-8">
               <div className="flex flex-wrap gap-2">
@@ -377,7 +398,7 @@ export function HeritageDetailSheet({ heritage, onClose }: { heritage: Historica
               onChange={setTab}
               items={[
                 { value: 'overview', label: 'Tổng quan & Xưa – Nay', icon: <BookOpen className="size-4" /> },
-                { value: 'structures', label: `Kiến trúc & Bảo vật (${h.subStructures.length})`, icon: <Landmark className="size-4" /> },
+                { value: 'structures', label: `Kiến trúc & Bảo vật${h.subStructures.length ? ` (${h.subStructures.length})` : ''}`, icon: <Landmark className="size-4" /> },
                 { value: 'timeline', label: 'Biên niên sử', icon: <CalendarDays className="size-4" /> },
                 { value: 'links', label: 'Sự kiện, Nhân vật & Tham quan', icon: <Users className="size-4" /> },
               ]}
@@ -387,10 +408,15 @@ export function HeritageDetailSheet({ heritage, onClose }: { heritage: Historica
           <div className="px-5 py-6 sm:px-8">
             <AnimatePresence mode="wait">
               <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
+                {!h.detailLoaded && tab !== 'overview' ? (
+                  <div className="flex items-center justify-center gap-2 py-16 text-sm text-[var(--hx-muted)]">
+                    <Loader2 className="size-4 animate-spin" /> Đang tải chi tiết di tích...
+                  </div>
+                ) : null}
                 {tab === 'overview' && <ThenAndNowView h={h} />}
-                {tab === 'structures' && <SubStructuresExplorer items={h.subStructures} />}
-                {tab === 'timeline' && <ConstructionTimeline items={h.constructionTimeline} />}
-                {tab === 'links' && <LinksAndVisitor h={h} />}
+                {h.detailLoaded !== false && tab === 'structures' && <SubStructuresExplorer items={h.subStructures} />}
+                {h.detailLoaded !== false && tab === 'timeline' && <ConstructionTimeline items={h.constructionTimeline} />}
+                {h.detailLoaded !== false && tab === 'links' && <LinksAndVisitor h={h} />}
               </motion.div>
             </AnimatePresence>
           </div>

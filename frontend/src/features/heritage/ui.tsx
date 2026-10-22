@@ -6,9 +6,9 @@
  * phụ thuộc. Màu lấy từ biến --hx-* (heritage.css) để hỗ trợ sáng / tối.
  */
 
-import { ReactNode, useEffect, useId, useRef } from 'react';
+import { ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { Castle, Landmark, Mountain, Tent, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -219,4 +219,42 @@ export function Sheet({
       )}
     </AnimatePresence>
   );
+}
+
+const CATEGORY_ICONS: Record<string, typeof Castle> = {
+  CITADEL_PALACE: Castle,
+  TEMPLE_SHRINE: Mountain,
+  REVOLUTIONARY_BASE: Tent,
+  MEMORIAL_STELE: Landmark,
+};
+
+/** Ảnh di tích; thiếu ảnh hoặc ảnh hỏng thì hiện nền + biểu tượng loại hình (không dùng ảnh ngẫu nhiên). */
+export function HeritageImage({
+  src,
+  alt,
+  category,
+  className,
+}: {
+  src: string | null | undefined;
+  alt: string;
+  category?: string;
+  className?: string;
+}) {
+  const [broken, setBroken] = useState(false);
+  if (!src || broken) {
+    const Icon = CATEGORY_ICONS[category ?? ''] ?? Landmark;
+    return (
+      <div
+        role="img"
+        aria-label={alt}
+        className={cn(
+          'grid place-items-center bg-[radial-gradient(circle_at_75%_20%,rgba(224,182,88,0.3),transparent_45%),linear-gradient(135deg,#1b2e27,#4a201f)] text-[#f0c86c]/70',
+          className,
+        )}
+      >
+        <Icon className="size-1/4 max-h-16 max-w-16" />
+      </div>
+    );
+  }
+  return <img src={src} alt={alt} className={cn('object-cover', className)} onError={() => setBroken(true)} />;
 }

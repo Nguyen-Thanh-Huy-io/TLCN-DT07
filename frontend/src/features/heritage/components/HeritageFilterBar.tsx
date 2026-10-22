@@ -41,7 +41,7 @@ export function matchesHeritage(h: HistoricalHeritage, f: HeritageFilters): bool
   if (f.era !== ALL && h.foundedEra !== f.era) return false;
   const q = normalize(f.query.trim());
   if (!q) return true;
-  return normalize([h.name, ...h.ancientNames, h.province, ...h.subStructures.map((s) => s.name)].join(' ')).includes(q);
+  return normalize([h.name, ...h.ancientNames, h.province, h.siteTypeLabel ?? '', ...h.subStructures.map((s) => s.name)].join(' ')).includes(q);
 }
 
 const RANK_PILLS: Array<HeritageRank | typeof ALL> = [ALL, 'UNESCO', 'SPECIAL_NATIONAL', 'NATIONAL'];

@@ -135,7 +135,25 @@ export class PublicEventRelationDto {
   @ApiProperty({ type: () => PublicEventSummaryDto }) event: PublicEventSummaryDto;
 }
 
+export class PublicEventParticipantDto {
+  @ApiProperty() entityId: string;
+  @ApiProperty() role: string;
+  @ApiPropertyOptional({ nullable: true }) roleLabel: string | null;
+  @ApiProperty() isPrimary: boolean;
+}
+
 export class PublicEventDetailDto extends PublicEventSummaryDto {
+  @ApiPropertyOptional({ nullable: true }) summary: string | null;
+  @ApiPropertyOptional({ nullable: true }) startMonth: number | null;
+  @ApiPropertyOptional({ nullable: true }) startDay: number | null;
+  @ApiPropertyOptional({ nullable: true }) endYear: number | null;
+  @ApiPropertyOptional({ nullable: true }) endMonth: number | null;
+  @ApiPropertyOptional({ nullable: true }) endDay: number | null;
+  @ApiPropertyOptional({ nullable: true }) cause: string | null;
+  @ApiPropertyOptional({ nullable: true }) outcome: string | null;
+  @ApiProperty({ type: [String] }) sources: string[];
+  @ApiProperty({ type: [PublicEventParticipantDto] })
+  participants: PublicEventParticipantDto[];
   @ApiPropertyOptional({ type: () => PublicPeriodDto, nullable: true })
   period: PublicPeriodDto | null;
   @ApiPropertyOptional({ type: () => PublicEventSummaryDto, nullable: true })

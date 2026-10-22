@@ -246,7 +246,24 @@ export interface PublicEventRelationDto {
   event: PublicEventSummaryDto;
 }
 
+export interface PublicEventParticipantDto {
+  entityId: string;
+  role: string;
+  roleLabel: string | null;
+  isPrimary: boolean;
+}
+
 export interface PublicEventDetailDto extends PublicEventSummaryDto {
+  summary: string | null;
+  startMonth: number | null;
+  startDay: number | null;
+  endYear: number | null;
+  endMonth: number | null;
+  endDay: number | null;
+  cause: string | null;
+  outcome: string | null;
+  sources: string[];
+  participants: PublicEventParticipantDto[];
   period: PublicPeriodDto | null;
   parent: PublicEventSummaryDto | null;
   children: PublicEventSummaryDto[];

@@ -38,11 +38,11 @@ export function buildTimeLabel(
 }
 
 // metadata is free-form JSONB edited by hand in the CMS, so every value is checked before use.
-function textOrNull(value: unknown): string | null {
+export function textOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-function textList(value: unknown): string[] {
+export function textList(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((v): v is string => typeof v === 'string' && v.trim() !== '').map((v) => v.trim())
     : [];

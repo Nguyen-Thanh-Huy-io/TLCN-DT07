@@ -19,7 +19,7 @@ import {
   PublicTopicDetailDto,
   PublicTopicDto,
 } from './dto/public-content.dto';
-import { PublicContentMapper } from './mappers/public-content.mapper';
+import { PublicContentMapper, textList, textOrNull } from './mappers/public-content.mapper';
 import { LandingSectionRegistry } from './strategies/landing-section.registry';
 import {
   LandingSection,
@@ -211,8 +211,25 @@ export class LandingContentFacade {
         event: PublicContentMapper.toEventSummary(rel.sourceEvent),
       }));
 
+    const metadata = (event.metadata ?? {}) as Record<string, unknown>;
+
     return {
       ...PublicContentMapper.toEventSummary(event),
+      summary: event.summary,
+      startMonth: event.startMonth,
+      startDay: event.startDay,
+      endYear: event.endYear,
+      endMonth: event.endMonth,
+      endDay: event.endDay,
+      cause: textOrNull(metadata.cause),
+      outcome: textOrNull(metadata.outcome),
+      sources: textList(metadata.sources),
+      participants: event.entities.map((ee) => ({
+        entityId: ee.entityId,
+        role: ee.role,
+        roleLabel: ee.roleLabel,
+        isPrimary: ee.isPrimary,
+      })),
       period: event.period ? PublicContentMapper.toPeriod(event.period) : null,
       parent:
         event.parent && event.parent.status === PUBLIC_CONTENT_STATUS

@@ -25,6 +25,50 @@
   --radius-hero: 12px;
 
   --shadow-card: 0 4px 16px rgba(60, 40, 10, 0.10);
+
+  /* Learning hub (chương trình học / bài học) — values live on .lh-app */
+  --color-lh-canvas: var(--lh-canvas);
+  --color-lh-surface: var(--lh-surface);
+  --color-lh-surface-2: var(--lh-surface-2);
+  --color-lh-surface-3: var(--lh-surface-3);
+  --color-lh-ink: var(--lh-ink);
+  --color-lh-muted: var(--lh-muted);
+  --color-lh-line: var(--lh-line);
+  --color-lh-brand: var(--lh-brand);
+  --color-lh-brand-strong: var(--lh-brand-strong);
+  --color-lh-brand-soft: var(--lh-brand-soft);
+  --color-lh-gold: var(--lh-gold);
+  --color-lh-gold-soft: var(--lh-gold-soft);
+  --color-lh-red: var(--lh-red);
+  --color-lh-red-soft: var(--lh-red-soft);
+  --shadow-lh-card: 0 1px 2px oklch(0.25 0.02 160 / 0.04), 0 8px 24px oklch(0.25 0.02 160 / 0.05);
+  --shadow-lh-card-hover: 0 16px 40px oklch(0.25 0.02 160 / 0.12);
+}
+
+.lh-app {
+  --lh-canvas: oklch(0.975 0.009 85);
+  --lh-surface: oklch(0.995 0.004 85);
+  --lh-surface-2: oklch(0.956 0.01 85);
+  --lh-surface-3: oklch(0.91 0.015 85);
+  --lh-ink: oklch(0.25 0.025 165);
+  --lh-muted: oklch(0.52 0.025 165);
+  --lh-line: oklch(0.89 0.016 85);
+  --lh-brand: oklch(0.36 0.075 164);
+  --lh-brand-strong: oklch(0.3 0.075 164);
+  --lh-brand-soft: oklch(0.92 0.045 164);
+  --lh-gold: oklch(0.58 0.12 72);
+  --lh-gold-soft: oklch(0.93 0.07 82);
+  --lh-red: oklch(0.5 0.15 30);
+  --lh-red-soft: oklch(0.93 0.04 30);
+  min-height: 100vh;
+  background: var(--lh-canvas);
+  color: var(--lh-ink);
+  font-family: var(--font-body);
+}
+
+.lh-paper-pattern {
+  background-image: radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0);
+  background-size: 22px 22px;
 }
 
 .landing-page-shell {

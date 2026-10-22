@@ -20,6 +20,8 @@ import {
   UserQuizAnswer,
 } from '../strategies/public-curriculum.strategies';
 
+const PUBLISHED_STATUS = 'PUBLISHED';
+
 export interface AdjacentLessonLink {
   id: string;
   title: string;
@@ -171,9 +173,10 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
     const flatLessons: AdjacentLessonLink[] = [];
     let currentChapter: { id: string; title: string; index: number } | null = null;
 
-    (learningPath.chapters || []).forEach((ch, chIdx) => {
-      (ch.chapterLessons || []).forEach((cl) => {
-        if (!cl.lesson) return;
+    // for...of (not forEach) so TypeScript tracks the assignment to currentChapter.
+    for (const [chIdx, ch] of (learningPath.chapters || []).entries()) {
+      for (const cl of ch.chapterLessons || []) {
+        if (!cl.lesson || cl.lesson.status !== PUBLISHED_STATUS) continue;
         if (cl.lesson.id === lesson.id || cl.lesson.slug === lesson.slug) {
           currentChapter = { id: ch.id, title: ch.title, index: chIdx + 1 };
         }
@@ -183,8 +186,8 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
           slug: cl.lesson.slug,
           chapterTitle: ch.title,
         });
-      });
-    });
+      }
+    }
 
     const currentIndex = flatLessons.findIndex(
       (item) => item.id === lesson.id || item.slug === lesson.slug,

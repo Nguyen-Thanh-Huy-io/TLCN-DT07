@@ -4,12 +4,19 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   LearningPathApiService,
   LearningPathItem,
+  ChapterItem,
 } from '@/services/entities/learning-path.service';
 import { LessonApiService } from '@/services/entities/lesson.service';
 import { LessonItem } from '@/types/models/lesson.type';
 import { TagItem } from '@/types/models/tag.type';
 import { LearningPathFilterType } from '../constants/public-curriculum.constants';
 import { PathFilterStrategyRegistry } from '../strategies/public-curriculum.strategies';
+
+const PUBLISHED_STATUS = 'PUBLISHED';
+
+export function publishedChapterLessons(chapter: ChapterItem) {
+  return (chapter.chapterLessons || []).filter((cl) => cl.lesson?.status === PUBLISHED_STATUS);
+}
 
 export function usePublicCurriculumFacade(initialPathId?: string | null) {
   const [paths, setPaths] = useState<LearningPathItem[]>([]);
@@ -38,7 +45,8 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
 
       const safePaths = Array.isArray(pathsRes) ? pathsRes : [];
       setPaths(safePaths);
-      setLibraryLessons(lessonsRes.items || []);
+      // /lessons also returns drafts and lessons under review; the public site shows published ones only.
+      setLibraryLessons((lessonsRes.items || []).filter((l) => l.status === PUBLISHED_STATUS));
 
       if (safePaths.length > 0) {
         const defaultPath =
@@ -138,7 +146,7 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
         (sum, p) =>
           sum +
           (p.chapters || []).reduce(
-            (cSum, ch) => cSum + (ch.chapterLessons?.length || 0),
+            (cSum, ch) => cSum + publishedChapterLessons(ch).length,
             0,
           ),
         0,

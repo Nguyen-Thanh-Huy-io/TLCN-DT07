@@ -27,7 +27,6 @@ import {
   ACTION_LABELS,
   CATEGORY_LABELS,
   RANK_LABELS,
-  REGION_LABELS,
   type ConstructionActionType,
   type HistoricalHeritage,
   type SubStructureItem,
@@ -347,8 +346,8 @@ function LinksAndVisitor({ h }: { h: HistoricalHeritage }) {
             <dd className="font-semibold">{h.recognizedYear || '—'}</dd>
           </div>
           <div>
-            <dt className="text-[var(--hx-muted)]">Vùng</dt>
-            <dd className="font-semibold">{REGION_LABELS[h.region]}</dd>
+            <dt className="text-[var(--hx-muted)]">Khu vực</dt>
+            <dd className="font-semibold">{h.region}</dd>
           </div>
           <div>
             <dt className="text-[var(--hx-muted)]">Loại hình</dt>

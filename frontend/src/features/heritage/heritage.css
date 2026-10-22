@@ -30,6 +30,20 @@
   --hx-primary-strong: #f08f81;
   --hx-primary-soft: rgba(224, 122, 108, 0.14);
 }
+/* Hộp thoại lọc chip dùng chung (components/filters, style sk-fs-* trong sk-timeline.css) đọc biến
+   kiểu .sk-app — ánh xạ sang bảng màu của trang để hộp thoại theo đúng chế độ sáng / tối. */
+.hx-app {
+  --bg: var(--hx-bg);
+  --surface: var(--hx-surface);
+  --text: var(--hx-ink);
+  --muted: var(--hx-muted);
+  --border: var(--hx-line);
+  --soft: var(--hx-primary-soft);
+  --accent: var(--hx-primary);
+}
+.hx-app .sk-fs-apply { background: var(--hx-primary); }
+.hx-app .sk-fs-apply:hover:not(:disabled) { background: var(--hx-primary-strong); }
+
 .hx-serif { font-family: var(--hx-serif); }
 
 .hx-scroll { scrollbar-width: thin; scrollbar-color: var(--hx-line) transparent; }

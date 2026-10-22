@@ -18,6 +18,7 @@ import { EMPTY_HERITAGE_FILTERS, HeritageFilterBar, matchesHeritage, type Herita
 import { FeaturedHeritageHero, HeritageCard } from './HeritageCards';
 import { HeritageDetailSheet } from './HeritageDetailSheet';
 import { Button, Select, cn } from '../ui';
+import '@/components/timeline/sk-timeline.css';
 import '../heritage.css';
 
 const THEME_KEY = 'hisgo:heritage:theme';
@@ -131,7 +132,7 @@ export function HeritageExplorer({
 
         {featured && <FeaturedHeritageHero heritage={featured} onExplore={() => select(featured.slug)} />}
 
-        <HeritageFilterBar filters={filters} onChange={setFilters} heritages={summaries} resultCount={visible.length} />
+        <HeritageFilterBar filters={filters} onChange={setFilters} heritages={summaries} periods={periods} resultCount={visible.length} />
 
         {visible.length ? (
           <motion.div layout className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

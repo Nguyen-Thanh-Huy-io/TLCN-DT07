@@ -232,6 +232,15 @@ export interface PublicLocationSummaryDto {
   periodSlug?: string | null;
   /** Các tên gọi trong lịch sử. */
   ancientNames?: string[];
+  preservationStatus?: string | null;
+  /** Mức độ "trải nghiệm số" có sẵn của di tích. */
+  digital?: {
+    hasImage: boolean;
+    galleryCount: number;
+    hasThenAndNow: boolean;
+    hasChronicle: boolean;
+    hasStructures: boolean;
+  };
 }
 
 /** Hồ sơ di sản mở rộng (metadata.heritage ở backend). */

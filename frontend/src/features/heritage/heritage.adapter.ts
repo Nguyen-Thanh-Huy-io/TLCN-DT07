@@ -6,7 +6,8 @@ import type {
   PublicLocationSummaryDto,
   PublicPeriodDto,
 } from '@/services/entities/landing.service';
-import type { HeritageCategory, HeritageRank, HeritageRegion, HistoricalHeritage } from './heritage.types';
+import type { DigitalFeature, HeritageCategory, HeritageRank, HistoricalHeritage } from './heritage.types';
+import { regionLabel } from '@/utils/region.utils';
 
 /** Loại di tích chi tiết của hệ thống → nhóm loại hình hiển thị. */
 const CATEGORY_BY_SITE_TYPE: Record<string, HeritageCategory> = {
@@ -28,29 +29,12 @@ function rankOf(level: string | null | undefined): HeritageRank {
   return 'UNRANKED';
 }
 
-/** Tỉnh / thành = phần cuối của địa chỉ, bỏ tiền tố hành chính. */
+/** Địa phương = phần cuối của địa chỉ (tỉnh / thành / vùng), bỏ tiền tố hành chính kiểu Việt Nam nếu có. */
 function provinceOf(address: string | null): string {
   const last = address?.split(',').pop()?.trim();
-  if (!last) return 'Chưa rõ tỉnh thành';
-  // Bỏ tiền tố hành chính để "TP. Hà Nội" và "Hà Nội" là một mục lọc; riêng TP. Hồ Chí Minh giữ tên đầy đủ.
+  if (!last) return 'Chưa rõ địa phương';
   const name = last.replace(/^(tỉnh|thành phố|tp\.?)\s*/i, '').trim();
   return /^hồ chí minh$/i.test(name) ? 'TP. Hồ Chí Minh' : name;
-}
-
-const NORTH_PROVINCES = /hà nội|hải phòng|quảng ninh|bắc ninh|bắc giang|hải dương|hưng yên|thái bình|nam định|ninh bình|hà nam|vĩnh phúc|phú thọ|thái nguyên|tuyên quang|hà giang|cao bằng|lạng sơn|lào cai|yên bái|điện biên|lai châu|sơn la|hòa bình|bắc kạn/;
-const CENTRAL_PROVINCES = /thanh hóa|nghệ an|hà tĩnh|quảng bình|quảng trị|huế|đà nẵng|quảng nam|quảng ngãi|bình định|phú yên|khánh hòa|ninh thuận|bình thuận|kon tum|gia lai|đắk lắk|đắk nông|lâm đồng/;
-
-/**
- * Vùng miền: theo vĩ độ nếu có tọa độ (ranh giới xấp xỉ Bắc Bộ ~20°B, Nam Bộ ~11.5°B),
- * không có thì đoán theo tên tỉnh trong địa chỉ.
- */
-function regionOf(site: PublicLocationSummaryDto): HeritageRegion {
-  if (site.latitude != null) return site.latitude >= 20 ? 'NORTH' : site.latitude >= 11.5 ? 'CENTRAL' : 'SOUTH';
-  const addr = (site.address ?? '').toLocaleLowerCase('vi');
-  if (!addr) return 'UNKNOWN';
-  if (NORTH_PROVINCES.test(addr)) return 'NORTH';
-  if (CENTRAL_PROVINCES.test(addr)) return 'CENTRAL';
-  return 'SOUTH';
 }
 
 function periodHelpers(periods: PublicPeriodDto[]) {
@@ -76,13 +60,30 @@ export function toHeritageSummaries(
     const ownPeriod = site.periodSlug ? bySlug.get(site.periodSlug) : undefined;
     const eras = [...new Set(siteEvents.map((e) => rootOf(e.periodSlug)).filter(Boolean).map((p) => shortPeriodName(p!.name)))];
     const firstEvent = [...siteEvents].sort((a, b) => a.startYear - b.startYear)[0];
+    // Thời kỳ gốc + giai đoạn con của di tích và của các sự kiện tại đó (dùng cho bộ lọc Thời kỳ → Triều đại).
+    const periodSlugs = [site.periodSlug, ...siteEvents.map((e) => e.periodSlug)].filter((s): s is string => Boolean(s));
+    const eraIds = [...new Set(periodSlugs.map((s) => rootOf(s)?.id).filter((v): v is string => Boolean(v)))];
+    const subEraIds = [
+      ...new Set(periodSlugs.map((s) => bySlug.get(s)).filter((p) => p?.parentId).map((p) => p!.id)),
+    ];
+    const figures = new Map<string, string>();
+    for (const e of siteEvents) for (const f of e.figures) figures.set(f.id, f.name);
+    const d = site.digital;
+    const digital: DigitalFeature[] = [
+      ...(d?.hasImage || site.imageUrl ? (['HAS_IMAGE'] as const) : []),
+      ...(d && d.galleryCount > 0 ? (['HAS_GALLERY'] as const) : []),
+      ...(d?.hasThenAndNow ? (['HAS_THEN_NOW'] as const) : []),
+      ...(d?.hasChronicle ? (['HAS_CHRONICLE'] as const) : []),
+      ...(d?.hasStructures ? (['HAS_STRUCTURES'] as const) : []),
+    ];
     return {
       id: site.id,
       slug: site.slug,
       name: site.name,
       ancientNames: site.ancientNames ?? [],
       province: provinceOf(site.address),
-      region: regionOf(site),
+      // Khu vực: theo thời kỳ gắn với di tích, không có thì theo thời kỳ của các sự kiện diễn ra tại đó.
+      region: regionLabel((ownPeriod ? rootOf(ownPeriod.slug) : undefined)?.region ?? siteEvents.map((e) => rootOf(e.periodSlug)).find(Boolean)?.region ?? null),
       rank: rankOf(site.recognitionLevel),
       category: CATEGORY_BY_SITE_TYPE[site.siteType ?? ''] ?? 'MEMORIAL_STELE',
       recognizedYear: '',
@@ -100,9 +101,18 @@ export function toHeritageSummaries(
       linkedEvents: [],
       linkedFigures: [],
       siteTypeLabel: site.siteTypeLabel,
+      siteType: site.siteType,
+      facets: {
+        eraIds,
+        subEraIds,
+        figures: [...figures].map(([id, name]) => ({ id, name })),
+        events: siteEvents.map((e) => ({ id: e.id, title: e.title })),
+        preservation: site.preservationStatus ?? null,
+        digital,
+      },
       eventCount: siteEvents.length,
       detailLoaded: false,
-      visitorInfo: { addressText: site.address ?? '', openingHours: '', preservationStatus: '' },
+      visitorInfo: { addressText: site.address ?? '', openingHours: '', preservationStatus: site.preservationStatus ?? '' },
     };
   });
 }

@@ -165,7 +165,11 @@ export class LandingContentFacade {
         type: HistoricalEntityType.LOCATION,
         status: PUBLIC_CONTENT_STATUS,
       },
-      include: { historicalSite: true, period: { select: { slug: true } } },
+      include: {
+        historicalSite: true,
+        period: { select: { slug: true } },
+        _count: { select: { media: true } },
+      },
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
     });
     return entities.map((entity) =>
@@ -223,7 +227,11 @@ export class LandingContentFacade {
           NOT: { id: entity.id },
           historicalSite: { latitude: { not: null }, longitude: { not: null } },
         },
-        include: { historicalSite: true, period: { select: { slug: true } } },
+        include: {
+          historicalSite: true,
+          period: { select: { slug: true } },
+          _count: { select: { media: true } },
+        },
       }),
     ]);
 

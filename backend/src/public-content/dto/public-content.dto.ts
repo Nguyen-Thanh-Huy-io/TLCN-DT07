@@ -111,6 +111,15 @@ export class PublicLocationSummaryDto {
   @ApiPropertyOptional({ nullable: true }) periodSlug?: string | null;
   /** Các tên gọi trong lịch sử (HistoricalEntity.aliases). */
   @ApiPropertyOptional({ type: [String] }) ancientNames?: string[];
+  @ApiPropertyOptional({ nullable: true }) preservationStatus?: string | null;
+  /** Mức độ "trải nghiệm số" có sẵn — để lọc ngay ở danh sách. */
+  @ApiPropertyOptional() digital?: {
+    hasImage: boolean;
+    galleryCount: number;
+    hasThenAndNow: boolean;
+    hasChronicle: boolean;
+    hasStructures: boolean;
+  };
 }
 
 export class PublicEventSummaryDto {
@@ -221,7 +230,6 @@ export class PublicLocationDetailDto extends PublicLocationSummaryDto {
   @ApiPropertyOptional({ nullable: true }) description: string | null;
   @ApiPropertyOptional({ nullable: true }) imageCaption: string | null;
   @ApiPropertyOptional({ nullable: true }) constructionYear: number | null;
-  @ApiPropertyOptional({ nullable: true }) preservationStatus: string | null;
   @ApiPropertyOptional({ nullable: true }) managingAgency: string | null;
   @ApiPropertyOptional({ type: () => PublicPeriodDto, nullable: true })
   period: PublicPeriodDto | null;

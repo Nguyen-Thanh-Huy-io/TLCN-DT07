@@ -23,6 +23,7 @@ import {
   PublicTopicDto,
 } from '../dto/public-content.dto';
 import { SITE_TYPES, normalizeSiteType } from '../site-type.constant';
+import { toHeritageProfile } from './heritage-profile.mapper';
 
 export function formatYear(year: number): string {
   return year < 0 ? `${Math.abs(year)} ${ERA_SUFFIX.BCE}` : `${year}`;
@@ -233,10 +234,12 @@ export class PublicContentMapper {
     entity: HistoricalEntity & {
       historicalSite?: HistoricalSite | null;
       period?: { slug: string } | null;
+      _count?: { media: number };
     },
   ): PublicLocationSummaryDto {
     const site = entity.historicalSite;
     const siteType = normalizeSiteType(site?.siteType);
+    const heritage = toHeritageProfile(entity.metadata);
     return {
       id: entity.id,
       slug: entity.slug,
@@ -252,6 +255,14 @@ export class PublicContentMapper {
       constructionLabel: site?.constructionLabel ?? null,
       periodSlug: entity.period?.slug ?? null,
       ancientNames: entity.aliases ?? [],
+      preservationStatus: site?.preservationStatus ?? null,
+      digital: {
+        hasImage: Boolean(entity.imageUrl),
+        galleryCount: entity._count?.media ?? 0,
+        hasThenAndNow: Boolean(heritage.thenAndNow),
+        hasChronicle: heritage.constructionTimeline.length > 0,
+        hasStructures: heritage.subStructures.length > 0,
+      },
     };
   }
 

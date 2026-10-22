@@ -1,5 +1,3 @@
-import { textOrNull } from './public-content.mapper';
-
 /**
  * Hồ sơ di sản mở rộng của một di tích, lưu trong HistoricalEntity.metadata.heritage
  * (không cần migration). Mọi trường đều tùy chọn; dữ liệu sai kiểu bị bỏ qua.
@@ -12,6 +10,11 @@ import { textOrNull } from './public-content.mapper';
  * }
  */
 export const HERITAGE_METADATA_KEY = 'heritage';
+
+/** Chuỗi không rỗng sau khi cắt khoảng trắng, ngược lại null (tự định nghĩa để không import vòng với public-content.mapper). */
+function textOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
 
 const ACTION_TYPES = ['FOUNDED', 'EXPANDED', 'DAMAGED', 'RESTORED'] as const;
 const STRUCTURE_TYPES = ['ARCHITECTURE', 'NATIONAL_TREASURE'] as const;

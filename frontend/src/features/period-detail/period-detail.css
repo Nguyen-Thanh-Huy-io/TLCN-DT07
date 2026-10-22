@@ -54,6 +54,11 @@
 .pd-sidebar > ol > li > a { display: block; padding: 8px 10px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--pd-muted); }
 .pd-sidebar > ol > li > a:hover { background: var(--pd-surface); color: var(--pd-text); }
 .pd-sidebar > ol > li > a.active { background: color-mix(in srgb, var(--pd-primary) 8%, var(--pd-surface)); color: var(--pd-primary-2); }
+.pd-sidebar-row { display: flex; align-items: center; gap: 2px; }
+.pd-sidebar-row > a { flex: 1; min-width: 0; }
+.pd-sidebar-toggle { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border: 0; border-radius: 6px; background: none; color: var(--pd-muted); cursor: pointer; transition: transform 0.2s, background 0.15s; }
+.pd-sidebar-toggle:hover { background: var(--pd-surface); color: var(--pd-text); }
+.pd-sidebar-toggle.open { transform: rotate(180deg); }
 .pd-sidebar-sub { margin: 2px 0 8px 12px !important; padding-left: 8px !important; border-left: 1px solid var(--pd-line); }
 .pd-sidebar-sub a { display: block; padding: 5px 8px; border-radius: 6px; font-size: 13px; line-height: 1.4; color: var(--pd-text); }
 .pd-sidebar-sub a:hover { background: var(--pd-surface); color: var(--pd-primary-2); }
@@ -185,7 +190,7 @@
   /* Màn hẹp: mục lục thành thanh ngang dính trên cùng, bỏ danh sách con. */
   .pd-layout { grid-template-columns: 1fr; gap: 0; }
   .pd-sidebar { top: env(safe-area-inset-top, 0px); z-index: 30; max-height: none; margin: 24px -20px 0; padding: 0 20px; overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: 1px solid var(--pd-line); background: color-mix(in srgb, var(--pd-bg) 94%, transparent); backdrop-filter: blur(10px); }
-  .pd-sidebar-label, .pd-sidebar-sub { display: none; }
+  .pd-sidebar-label, .pd-sidebar-sub, .pd-sidebar-toggle { display: none; }
   .pd-sidebar > ol { display: flex; gap: 2px; }
   .pd-sidebar > ol > li > a { padding: 12px 10px; border-radius: 0; white-space: nowrap; border-bottom: 2px solid transparent; }
   .pd-sidebar > ol > li > a.active { background: none; border-bottom-color: var(--pd-primary-2); }

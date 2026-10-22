@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, CalendarRange, Compass, Globe2, Landmark, Layers, MapPin, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarRange, ChevronDown, Compass, Globe2, Landmark, Layers, MapPin, Users } from 'lucide-react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import type { PublicPeriodDetailDto, PublicPeriodDto } from '@/services/entities/landing.service';
@@ -75,6 +75,8 @@ export function PeriodDetailView({
     },
   ].filter((s) => s.show);
   const active = useActiveSection(sections.map((s) => s.id));
+  // Danh sách con ở mục lục: mặc định mở theo mục đang đọc, người dùng thu/mở tay được.
+  const [toggled, setToggled] = useState<Record<string, boolean>>({});
   const scrollToStage = (id: string) => document.getElementById(`stage-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   const stats = [
@@ -139,12 +141,28 @@ export function PeriodDetailView({
           <aside className="pd-sidebar" aria-label="Mục trong trang">
             <span className="pd-sidebar-label">Trong trang này</span>
             <ol>
-              {sections.map((s) => (
+              {sections.map((s) => {
+                const hasSub = (s.id === 'giai-doan' && period.children.length > 0) || (s.id === 'su-kien' && period.events.length > 0);
+                const open = hasSub && (toggled[s.id] ?? active === s.id);
+                return (
                 <li key={s.id}>
-                  <a href={`#${s.id}`} className={active === s.id ? 'active' : ''}>
-                    {s.label}
-                  </a>
-                  {s.id === 'giai-doan' && (
+                  <div className="pd-sidebar-row">
+                    <a href={`#${s.id}`} className={active === s.id ? 'active' : ''}>
+                      {s.label}
+                    </a>
+                    {hasSub && (
+                      <button
+                        type="button"
+                        className={`pd-sidebar-toggle ${open ? 'open' : ''}`}
+                        aria-expanded={open}
+                        aria-label={open ? `Thu gọn ${s.label}` : `Mở danh sách ${s.label}`}
+                        onClick={() => setToggled((t) => ({ ...t, [s.id]: !open }))}
+                      >
+                        <ChevronDown size={15} />
+                      </button>
+                    )}
+                  </div>
+                  {open && s.id === 'giai-doan' && (
                     <ol className="pd-sidebar-sub">
                       {period.children.map((c) => (
                         <li key={c.id}>
@@ -156,7 +174,7 @@ export function PeriodDetailView({
                       ))}
                     </ol>
                   )}
-                  {s.id === 'su-kien' && period.events.length > 0 && (
+                  {open && s.id === 'su-kien' && (
                     <ol className="pd-sidebar-sub">
                       {period.events.map((e) => (
                         <li key={e.id}>
@@ -169,7 +187,8 @@ export function PeriodDetailView({
                     </ol>
                   )}
                 </li>
-              ))}
+                );
+              })}
             </ol>
           </aside>
 

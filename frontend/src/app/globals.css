@@ -45,7 +45,9 @@
   --shadow-lh-card-hover: 0 16px 40px oklch(0.25 0.02 160 / 0.12);
 }
 
-.lh-app {
+/* Declared on :root (not .lh-app): the --color-lh-* theme tokens above are
+   resolved where they are defined, i.e. on :root. */
+:root {
   --lh-canvas: oklch(0.975 0.009 85);
   --lh-surface: oklch(0.995 0.004 85);
   --lh-surface-2: oklch(0.956 0.01 85);
@@ -60,6 +62,9 @@
   --lh-gold-soft: oklch(0.93 0.07 82);
   --lh-red: oklch(0.5 0.15 30);
   --lh-red-soft: oklch(0.93 0.04 30);
+}
+
+.lh-app {
   min-height: 100vh;
   background: var(--lh-canvas);
   color: var(--lh-ink);

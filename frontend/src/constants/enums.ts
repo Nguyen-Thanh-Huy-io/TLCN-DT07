@@ -50,14 +50,30 @@ export enum ScoringMode {
   WEIGHTED = 'WEIGHTED',
 }
 
+/** Loại di tích — đồng bộ với backend public-content/site-type.constant. */
 export enum LocationType {
-  BATTLEFIELD = 'BATTLEFIELD',
-  MONUMENT = 'MONUMENT',
   ANCIENT_CAPITAL = 'ANCIENT_CAPITAL',
   CITADEL = 'CITADEL',
+  PALACE = 'PALACE',
+  BATTLEFIELD = 'BATTLEFIELD',
+  RESISTANCE_BASE = 'RESISTANCE_BASE',
   TEMPLE = 'TEMPLE',
+  ARCHAEOLOGICAL_SITE = 'ARCHAEOLOGICAL_SITE',
+  MONUMENT = 'MONUMENT',
   OTHER = 'OTHER',
 }
+
+export const LOCATION_TYPE_LABELS: Record<LocationType, string> = {
+  [LocationType.ANCIENT_CAPITAL]: 'Cố đô / Kinh thành',
+  [LocationType.CITADEL]: 'Thành lũy',
+  [LocationType.PALACE]: 'Cung điện / Dinh thự',
+  [LocationType.BATTLEFIELD]: 'Chiến trường',
+  [LocationType.RESISTANCE_BASE]: 'Căn cứ kháng chiến',
+  [LocationType.TEMPLE]: 'Đền / Chùa',
+  [LocationType.ARCHAEOLOGICAL_SITE]: 'Di chỉ khảo cổ',
+  [LocationType.MONUMENT]: 'Di tích / Địa danh lịch sử',
+  [LocationType.OTHER]: 'Khác',
+};
 
 export enum EntityType {
   PERSON = 'PERSON',

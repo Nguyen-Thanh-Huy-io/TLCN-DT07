@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { ContentStatus, LocationType } from '@/constants/enums';
+import { ContentStatus, LOCATION_TYPE_LABELS, LocationType } from '@/constants/enums';
 import { HistoricalLocationItem } from '@/types/models/historical-location.type';
 
 export interface LocationFormData {
@@ -141,16 +141,11 @@ export function LocationModal({
                 onChange={(e) => setType(e.target.value as LocationType)}
                 disabled={isReadOnly}
               >
-                <option value={LocationType.BATTLEFIELD}>
-                  Chiến trường (BATTLEFIELD)
-                </option>
-                <option value={LocationType.MONUMENT}>Di tích (MONUMENT)</option>
-                <option value={LocationType.ANCIENT_CAPITAL}>
-                  Cố đô / Kinh thành (ANCIENT_CAPITAL)
-                </option>
-                <option value={LocationType.CITADEL}>Thành lũy (CITADEL)</option>
-                <option value={LocationType.TEMPLE}>Đền / Chùa (TEMPLE)</option>
-                <option value={LocationType.OTHER}>Khác (OTHER)</option>
+                {Object.values(LocationType).map((t) => (
+                  <option key={t} value={t}>
+                    {LOCATION_TYPE_LABELS[t]}
+                  </option>
+                ))}
               </select>
             </label>
           </div>

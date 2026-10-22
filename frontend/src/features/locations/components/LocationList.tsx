@@ -7,20 +7,13 @@ import { Badge } from '@/components/common/Badge';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { IconName } from '@/constants/icons';
 import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
-import { ContentStatus, LocationType } from '@/constants/enums';
+import { ContentStatus, LOCATION_TYPE_LABELS, LocationType } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import { ColumnDef } from '@/types/table.types';
 import { HistoricalLocationItem } from '@/types/models/historical-location.type';
 import api, { parsePaginatedResponse, extractErrorMessage } from '@/services/api';
 
-const LOCATION_TYPE_LABEL_MAP: Record<LocationType, string> = {
-  [LocationType.BATTLEFIELD]: 'Chiến trường',
-  [LocationType.MONUMENT]: 'Di tích',
-  [LocationType.ANCIENT_CAPITAL]: 'Cố đô / Kinh thành',
-  [LocationType.CITADEL]: 'Thành lũy',
-  [LocationType.TEMPLE]: 'Đền / Chùa',
-  [LocationType.OTHER]: 'Khác',
-};
+const LOCATION_TYPE_LABEL_MAP: Record<LocationType, string> = LOCATION_TYPE_LABELS;
 
 
 export function LocationList() {

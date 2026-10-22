@@ -223,6 +223,31 @@ export interface PublicLocationSummaryDto {
   latitude: number | null;
   longitude: number | null;
   historicalSignificance: string | null;
+  imageUrl?: string | null;
+  /** Mã loại di tích chuẩn hóa (LocationType). */
+  siteType?: string;
+  siteTypeLabel?: string;
+  recognitionLevel?: string | null;
+  constructionLabel?: string | null;
+  periodSlug?: string | null;
+}
+
+export interface PublicLocationDetailDto extends PublicLocationSummaryDto {
+  tagline: string | null;
+  description: string | null;
+  imageCaption: string | null;
+  constructionYear: number | null;
+  preservationStatus: string | null;
+  managingAgency: string | null;
+  period: PublicPeriodDto | null;
+  media: Array<{ id: string; type: string; url: string; caption: string | null }>;
+  events: PublicEventSummaryDto[];
+  figures: PublicFigureDto[];
+  nearby: Array<PublicLocationSummaryDto & { distanceKm: number }>;
+}
+
+export function fetchLocationBySlug(slug: string): Promise<PublicLocationDetailDto | null> {
+  return fetchPublicDetail<PublicLocationDetailDto>(`/public/locations/${encodeURIComponent(slug)}`);
 }
 
 export interface PublicEventSummaryDto {

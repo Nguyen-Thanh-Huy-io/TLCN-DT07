@@ -35,6 +35,7 @@ export const LANDING_ROUTES = {
   CURRICULUM: '/chuong-trinh-hoc',
   FIGURES: '/nhan-vat',
   LOCATIONS: '/di-tich',
+  LOCATION: (slug: string) => `/di-tich/${slug}`,
   EVENT: (slug: string) => `/su-kien/${slug}`,
   FIGURE: (slug: string) => `/nhan-vat/${slug}`,
   PERIOD: (slug: string) => `/giai-doan/${slug}`,
@@ -263,7 +264,7 @@ function buildLocations(locations: PublicLocationSummaryDto[], events: PublicEve
       address: l.address,
       significance: truncate(l.historicalSignificance, 120),
       eventCount: counts.get(l.id) ?? 0,
-      href: LANDING_ROUTES.LOCATIONS,
+      href: LANDING_ROUTES.LOCATION(l.slug),
     }));
 }
 

@@ -265,14 +265,14 @@ export function PeriodDetailView({
               />
               <div className="pd-locations">
                 {period.locations.map((l) => (
-                  <div key={l.id} className="pd-location">
+                  <Link key={l.id} href={PERIOD_ROUTES.LOCATION(l.slug)} className="pd-location">
                     <MapPin size={16} />
                     <div>
                       <strong>{l.name}</strong>
                       {l.address && <small>{l.address}</small>}
                       {l.historicalSignificance && <p>{l.historicalSignificance}</p>}
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </section>

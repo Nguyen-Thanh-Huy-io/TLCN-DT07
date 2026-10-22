@@ -118,7 +118,11 @@ export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
                         {(e.locations[0]?.name || e.location) && (
                           <span>
                             <MapPin size={13} />
-                            {e.locations[0]?.name ?? e.location}
+                            {e.locations[0]?.slug ? (
+                              <Link href={PERIOD_ROUTES.LOCATION(e.locations[0].slug)}>{e.locations[0].name}</Link>
+                            ) : (
+                              e.locations[0]?.name ?? e.location
+                            )}
                           </span>
                         )}
                       </div>

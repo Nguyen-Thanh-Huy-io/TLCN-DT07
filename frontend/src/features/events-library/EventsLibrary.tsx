@@ -244,6 +244,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
           <ol className="el-list">
             {visible.map(({ event, eraName, region }) => {
               const place = event.locations[0]?.name ?? event.location;
+              const placeSlug = event.locations[0]?.slug;
               const href = event.slug ? `/su-kien/${event.slug}` : null;
               return (
                 <li key={event.id}>
@@ -266,7 +267,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
                       {place && (
                         <span>
                           <MapPin size={12} />
-                          {place}
+                          {placeSlug ? <Link href={`/di-tich/${placeSlug}`}>{place}</Link> : place}
                         </span>
                       )}
                     </div>

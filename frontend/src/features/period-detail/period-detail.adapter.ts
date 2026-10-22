@@ -14,6 +14,7 @@ export const PERIOD_ROUTES = {
   EVENT: (slug: string) => `/su-kien/${slug}`,
   FIGURE: (slug: string) => `/nhan-vat/${slug}`,
   LOCATIONS: '/di-tich',
+  LOCATION: (slug: string) => `/di-tich/${slug}`,
   TIMELINE: '/dong-thoi-gian',
 } as const;
 

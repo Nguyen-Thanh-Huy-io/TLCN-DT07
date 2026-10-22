@@ -34,6 +34,7 @@ export const SEARCH_ROUTES = {
   PERIOD: (slug: string) => `/giai-doan/${slug}`,
   LESSON: (slug: string) => `/bai-hoc/${slug}`,
   LOCATIONS: '/di-tich',
+  LOCATION: (slug: string) => `/di-tich/${slug}`,
 } as const;
 
 export function normalizeSearch(text: string): string {
@@ -130,7 +131,7 @@ export function buildSearchIndex(source: SearchSource): SearchEntry[] {
         type: 'LOCATION',
         title: l.name,
         subtitle: l.address ?? 'Di tích & địa danh',
-        href: SEARCH_ROUTES.LOCATIONS,
+        href: SEARCH_ROUTES.LOCATION(l.slug),
       }),
     ),
     ...source.lessons.map((l) =>

@@ -7,6 +7,7 @@ import type {
 import type { LearningPathItem } from '@/services/entities/learning-path.service';
 import type { LibraryLesson } from '@/services/entities/learner.service';
 import { regionLabel, sortedRegions } from '@/utils/region.utils';
+import { formatYear, shortPeriodName } from '@/features/search/search-index';
 import type {
   LandingCourse,
   LandingData,
@@ -17,7 +18,6 @@ import type {
   LandingSpotlight,
   LandingTimelineNode,
   ParallelBand,
-  SearchEntry,
 } from './landing.types';
 
 export interface LandingSource {
@@ -47,30 +47,7 @@ const PATH_KIND_LABELS: Record<LearningPathItem['pathType'], string> = {
   THEMATIC: 'Theo chủ đề',
 };
 
-export { regionLabel };
-
-export function formatYear(year: number): string {
-  return year < 0 ? `${Math.abs(year)} TCN` : String(year);
-}
-
-/** "Lịch sử Thế giới: Thời kỳ Trung đại (476 - 1492)" → "Thế giới Trung đại". */
-export function shortPeriodName(name: string): string {
-  return name
-    .replace(/\s*\([^)]*\)\s*$/, '')
-    .replace(/^Lịch sử\s+/i, '')
-    .replace(/:\s*Thời kỳ\s+/i, ' ')
-    .replace(/^(Thời kỳ|Thời đại|Giai đoạn)\s+/i, '')
-    .trim();
-}
-
-export function normalizeSearch(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toLowerCase();
-}
+export { regionLabel, formatYear, shortPeriodName };
 
 function truncate(text: string | null | undefined, max: number): string {
   if (!text) return '';
@@ -280,65 +257,6 @@ export function buildDailyQuiz(events: PublicEventSummaryDto[], day: Date): Land
   };
 }
 
-function searchEntry(entry: Omit<SearchEntry, 'haystack'>): SearchEntry {
-  return { ...entry, haystack: normalizeSearch(`${entry.title} ${entry.subtitle} ${entry.year ?? ''}`) };
-}
-
-function buildSearch(source: LandingSource, rootOf: ReturnType<typeof rootResolver>): SearchEntry[] {
-  return [
-    ...source.events
-      .filter((e) => e.slug)
-      .map((e) =>
-        searchEntry({
-          id: `e-${e.id}`,
-          type: 'EVENT',
-          title: e.title,
-          subtitle: [eventRegion(e, rootOf), e.figures[0]?.name].filter(Boolean).join(' • '),
-          year: formatYear(e.startYear),
-          href: LANDING_ROUTES.EVENT(e.slug as string),
-        }),
-      ),
-    ...source.figures.map((f) =>
-      searchEntry({
-        id: `f-${f.id}`,
-        type: 'FIGURE',
-        title: f.name,
-        subtitle: truncate(f.tagline || f.roles.join(', '), 70),
-        year: figureYears(f) ?? undefined,
-        href: LANDING_ROUTES.FIGURE(f.slug),
-      }),
-    ),
-    ...source.periods.map((p) =>
-      searchEntry({
-        id: `p-${p.id}`,
-        type: 'PERIOD',
-        title: shortPeriodName(p.name),
-        subtitle: regionLabel(p.region),
-        year: p.timeLabel,
-        href: LANDING_ROUTES.PERIOD(p.slug),
-      }),
-    ),
-    ...source.locations.map((l) =>
-      searchEntry({
-        id: `l-${l.id}`,
-        type: 'LOCATION',
-        title: l.name,
-        subtitle: l.address ?? 'Di tích & địa danh',
-        href: LANDING_ROUTES.LOCATIONS,
-      }),
-    ),
-    ...source.lessons.map((l) =>
-      searchEntry({
-        id: `b-${l.id}`,
-        type: 'LESSON',
-        title: l.title,
-        subtitle: `Bài học • ${l.estimatedReadMinutes} phút đọc`,
-        href: LANDING_ROUTES.LESSON(l.slug),
-      }),
-    ),
-  ];
-}
-
 export function buildLandingData(source: LandingSource, today: Date = new Date()): LandingData {
   const rootOf = rootResolver(source.periods);
   const bands = buildBands(source.periods);
@@ -354,7 +272,6 @@ export function buildLandingData(source: LandingSource, today: Date = new Date()
     locations: buildLocations(source.locations, source.events),
     courses,
     quiz: buildDailyQuiz(source.events, today),
-    search: buildSearch(source, rootOf),
     stats: {
       events: source.events.length,
       figures: source.figures.length,

@@ -1,0 +1,243 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
+import { BookOpen, History, Landmark, Loader2, MapPin, Search, Users } from 'lucide-react';
+import { normalizeSearch, type SearchEntry, type SearchEntryType } from './search-index';
+import { loadSearchIndex } from './search.service';
+import './global-search.css';
+
+/** Phát sự kiện này (vd. từ ô tìm kiếm ở hero trang chủ) để mở ô tìm kiếm toàn cục. */
+export const OPEN_GLOBAL_SEARCH_EVENT = 'hisgo:open-search';
+
+export function openGlobalSearch() {
+  window.dispatchEvent(new Event(OPEN_GLOBAL_SEARCH_EVENT));
+}
+
+const TYPE_LABELS: Record<SearchEntryType, string> = {
+  EVENT: 'Sự kiện',
+  FIGURE: 'Nhân vật',
+  LOCATION: 'Địa danh',
+  LESSON: 'Bài học',
+  PERIOD: 'Thời kỳ',
+};
+
+const TYPE_ICONS: Record<SearchEntryType, typeof History> = {
+  EVENT: History,
+  FIGURE: Users,
+  LOCATION: MapPin,
+  LESSON: BookOpen,
+  PERIOD: Landmark,
+};
+
+const TYPE_FILTERS: Array<SearchEntryType | 'ALL'> = ['ALL', 'EVENT', 'FIGURE', 'PERIOD', 'LESSON', 'LOCATION'];
+const MAX_RESULTS = 30;
+
+function SearchPanel({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [entries, setEntries] = useState<SearchEntry[] | null>(null);
+  const [query, setQuery] = useState('');
+  const [type, setType] = useState<SearchEntryType | 'ALL'>('ALL');
+  const [cursor, setCursor] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    loadSearchIndex().then((e) => alive && setEntries(e));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const counts = useMemo(() => {
+    const q = normalizeSearch(query.trim());
+    const c = new Map<SearchEntryType | 'ALL', number>();
+    for (const e of entries ?? []) {
+      if (q && !e.haystack.includes(q)) continue;
+      c.set(e.type, (c.get(e.type) ?? 0) + 1);
+      c.set('ALL', (c.get('ALL') ?? 0) + 1);
+    }
+    return c;
+  }, [entries, query]);
+
+  const results = useMemo(() => {
+    if (!entries) return [];
+    const q = normalizeSearch(query.trim());
+    const pool = type === 'ALL' ? entries : entries.filter((e) => e.type === type);
+    if (!q) {
+      // Gợi ý mặc định: vài mục mỗi loại để thấy độ phủ nội dung.
+      if (type !== 'ALL') return pool.slice(0, MAX_RESULTS);
+      const types: SearchEntryType[] = ['PERIOD', 'EVENT', 'FIGURE', 'LESSON'];
+      return types.flatMap((t) => pool.filter((e) => e.type === t).slice(0, 2));
+    }
+    // Khớp ở đầu tiêu đề được ưu tiên trước khớp ở giữa.
+    return pool
+      .filter((e) => e.haystack.includes(q))
+      .sort((a, b) => Number(!normalizeSearch(a.title).startsWith(q)) - Number(!normalizeSearch(b.title).startsWith(q)))
+      .slice(0, MAX_RESULTS);
+  }, [entries, query, type]);
+
+  const go = (entry: SearchEntry | undefined) => {
+    if (!entry) return;
+    onClose();
+    router.push(entry.href);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setCursor((c) => Math.min(c + 1, results.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setCursor((c) => Math.max(c - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      go(results[cursor]);
+    }
+  };
+
+  return (
+    <motion.div
+      className="gs-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tìm kiếm toàn cục"
+      initial={{ opacity: 0, y: -18, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -12, scale: 0.98 }}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <div className="gs-input">
+        <Search size={20} />
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setCursor(0);
+          }}
+          onKeyDown={onKeyDown}
+          placeholder="Tìm sự kiện, nhân vật, thời kỳ, bài học, năm..."
+          aria-label="Từ khóa tìm kiếm"
+        />
+        <kbd>ESC</kbd>
+      </div>
+      <div className="gs-types" role="tablist" aria-label="Loại kết quả">
+        {TYPE_FILTERS.map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={type === t}
+            className={type === t ? 'active' : ''}
+            onClick={() => {
+              setType(t);
+              setCursor(0);
+            }}
+          >
+            {t === 'ALL' ? 'Tất cả' : TYPE_LABELS[t]}
+            {entries && <small>{counts.get(t) ?? 0}</small>}
+          </button>
+        ))}
+      </div>
+      <div className="gs-body">
+        {!entries ? (
+          <div className="gs-empty">
+            <Loader2 className="gs-spin" />
+            <p>Đang tải dữ liệu tìm kiếm...</p>
+          </div>
+        ) : results.length ? (
+          <>
+            <div className="gs-caption">{query ? `${counts.get(type) ?? 0} kết quả phù hợp` : 'Gợi ý khám phá'}</div>
+            {results.map((item, i) => {
+              const Icon = TYPE_ICONS[item.type];
+              return (
+                <button
+                  type="button"
+                  className={`gs-result ${i === cursor ? 'active' : ''}`}
+                  key={item.id}
+                  onMouseEnter={() => setCursor(i)}
+                  onClick={() => go(item)}
+                >
+                  <span className="gs-icon">
+                    <Icon />
+                  </span>
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>
+                      {TYPE_LABELS[item.type]}
+                      {item.subtitle ? ` • ${item.subtitle}` : ''}
+                    </small>
+                  </span>
+                  <span className="gs-meta">{item.year}</span>
+                </button>
+              );
+            })}
+          </>
+        ) : (
+          <div className="gs-empty">
+            <Search />
+            <p>Chưa tìm thấy tư liệu phù hợp</p>
+            <small>Thử tên một nhân vật, một thời kỳ hoặc một năm (vd. 938)</small>
+          </div>
+        )}
+      </div>
+      <div className="gs-footer">
+        <span>
+          <kbd>↑</kbd>
+          <kbd>↓</kbd> di chuyển
+        </span>
+        <span>
+          <kbd>↵</kbd> mở
+        </span>
+        <span>Gõ không dấu cũng được</span>
+      </div>
+    </motion.div>
+  );
+}
+
+/** Nút tìm kiếm trên Header + hộp thoại tìm toàn cục (Ctrl/⌘ + K ở mọi trang công khai). */
+export function GlobalSearch() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setOpen(true);
+      }
+      if (e.key === 'Escape') setOpen(false);
+    };
+    const onOpen = () => setOpen(true);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener(OPEN_GLOBAL_SEARCH_EVENT, onOpen);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener(OPEN_GLOBAL_SEARCH_EVENT, onOpen);
+    };
+  }, []);
+
+  return (
+    <>
+      <button type="button" className="gs-trigger" onClick={() => setOpen(true)} aria-label="Tìm kiếm (Ctrl+K)">
+        <Search size={16} />
+        <span>Tìm kiếm...</span>
+        <kbd>Ctrl K</kbd>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="gs-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={() => setOpen(false)}
+          >
+            {/* Mount mới mỗi lần mở → từ khóa và con trỏ tự reset. */}
+            <SearchPanel onClose={() => setOpen(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}

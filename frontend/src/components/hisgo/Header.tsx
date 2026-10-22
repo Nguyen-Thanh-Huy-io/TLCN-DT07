@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { PublicAuthService, USER_ROLE_LABELS, isStaffRole } from "@/services/auth/public-auth.service";
 import { useAuthSession } from "@/services/auth/useAuthSession";
+import { GlobalSearch } from "@/features/search/GlobalSearch";
 
 interface HeaderProps {
   activeSectionId?: string;
@@ -49,6 +50,7 @@ export function Header({
     { id: "explore", label: "Trang chủ", href: "/" },
     { id: "curriculum", label: "Chương trình học", href: "/chuong-trinh-hoc" },
     { id: "timeline", label: "Dòng thời gian", href: "/dong-thoi-gian" },
+    { id: "su-kien", label: "Sự kiện", href: "/su-kien" },
     { id: "nhan-vat", label: "Nhân vật", href: "/nhan-vat" },
     { id: "di-tich", label: "Di tích", href: "/di-tich" },
   ];
@@ -232,8 +234,9 @@ export function Header({
           })}
         </nav>
 
-        {/* Right: User Login & Mobile Hamburger */}
+        {/* Right: Search, User Login & Mobile Hamburger */}
         <div className="flex items-center gap-3">
+          <GlobalSearch />
           {user ? (
             <div ref={userMenuRef} className="relative hidden md:block">
               <button

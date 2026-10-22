@@ -1,16 +1,3 @@
-export type SearchEntryType = 'EVENT' | 'FIGURE' | 'LOCATION' | 'LESSON' | 'PERIOD';
-
-export interface SearchEntry {
-  id: string;
-  type: SearchEntryType;
-  title: string;
-  subtitle: string;
-  year?: string;
-  href: string;
-  /** Chuỗi đã bỏ dấu, chữ thường — dùng để so khớp nhanh. */
-  haystack: string;
-}
-
 export interface LandingSpotlight {
   id: string;
   yearLabel: string;
@@ -113,6 +100,5 @@ export interface LandingData {
   locations: LandingLocation[];
   courses: LandingCourse[];
   quiz: LandingQuiz | null;
-  search: SearchEntry[];
   stats: LandingStats;
 }

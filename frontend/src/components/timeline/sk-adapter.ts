@@ -5,6 +5,7 @@ import {
   PublicPeriodDto,
 } from "@/services/entities/landing.service";
 import { EVENT_CATEGORY_LABELS, EventCategory } from "@/constants/enums";
+import { isDomesticRegion, regionLabel } from "@/utils/region.utils";
 import type { Attributed, Era, SubEra, TimeNode, TimelineEvent, TimelineFigure, TimelineLocation } from "./sk-types";
 
 function toTimelineFigure(figure: PublicFigureDto): TimelineFigure {
@@ -56,18 +57,8 @@ function domainGroupOf(category: string): "POLITICS_MILITARY" | "ECONOMY_CULTURE
   return category === "CULTURE_SCIENCE" ? "ECONOMY_CULTURE" : "POLITICS_MILITARY";
 }
 
-const DOMESTIC_REGIONS = new Set(["Việt Nam", "Toàn quốc"]);
-export const UNKNOWN_REGION = "Chưa phân vùng";
-
-/** Tên quốc gia/khu vực để lọc: "Toàn quốc" (cả nước) gộp vào "Việt Nam". */
-function regionLabel(region: string | null): string {
-  if (!region) return UNKNOWN_REGION;
-  return region === "Toàn quốc" ? "Việt Nam" : region;
-}
-
 function scopeGroupOf(region: string | null): "DOMESTIC" | "WORLD" {
-  if (!region) return "DOMESTIC";
-  return DOMESTIC_REGIONS.has(region) ? "DOMESTIC" : "WORLD";
+  return isDomesticRegion(region) ? "DOMESTIC" : "WORLD";
 }
 
 /** Nhãn ngắn hiển thị trên trục/thẻ. Ghi chú niên đại dài (vd. "Theo truyền thuyết...") chỉ hiện ở chi tiết. */

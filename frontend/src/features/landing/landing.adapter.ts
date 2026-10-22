@@ -6,6 +6,7 @@ import type {
 } from '@/services/entities/landing.service';
 import type { LearningPathItem } from '@/services/entities/learning-path.service';
 import type { LibraryLesson } from '@/services/entities/learner.service';
+import { regionLabel, sortedRegions } from '@/utils/region.utils';
 import type {
   LandingCourse,
   LandingData,
@@ -39,7 +40,6 @@ export const LANDING_ROUTES = {
   LESSON: (slug: string) => `/bai-hoc/${slug}`,
 } as const;
 
-const UNKNOWN_REGION = 'Chưa phân vùng';
 const COURSE_COVERS = ['/assets/hero.jpg', '/assets/citadel.jpg', '/assets/temple.jpg', '/assets/mountain.jpg'];
 const ERA_SIZES: LandingEra['size'][] = ['wide', 'tall', 'normal', 'wide', 'normal', 'normal'];
 const PATH_KIND_LABELS: Record<LearningPathItem['pathType'], string> = {
@@ -47,10 +47,7 @@ const PATH_KIND_LABELS: Record<LearningPathItem['pathType'], string> = {
   THEMATIC: 'Theo chủ đề',
 };
 
-export function regionLabel(region: string | null | undefined): string {
-  if (!region) return UNKNOWN_REGION;
-  return region === 'Toàn quốc' ? 'Việt Nam' : region;
-}
+export { regionLabel };
 
 export function formatYear(year: number): string {
   return year < 0 ? `${Math.abs(year)} TCN` : String(year);
@@ -345,7 +342,7 @@ function buildSearch(source: LandingSource, rootOf: ReturnType<typeof rootResolv
 export function buildLandingData(source: LandingSource, today: Date = new Date()): LandingData {
   const rootOf = rootResolver(source.periods);
   const bands = buildBands(source.periods);
-  const regions = [...new Set(bands.map((b) => b.region))];
+  const regions = sortedRegions(bands.map((b) => b.region));
   const courses = buildCourses(source.paths);
   return {
     regions,

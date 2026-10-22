@@ -1,5 +1,6 @@
 import { EVENT_CATEGORY_LABELS, EventCategory } from '@/constants/enums';
-import { formatYear, regionLabel, shortPeriodName } from '@/features/landing/landing.adapter';
+import { formatYear, shortPeriodName } from '@/features/landing/landing.adapter';
+import { regionLabel } from '@/utils/region.utils';
 import type {
   PublicEventSummaryDto,
   PublicPeriodDetailDto,

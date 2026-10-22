@@ -19,7 +19,7 @@ import { FigureProfileSheet, type ProfileTab } from "./FigureProfileSheet";
 import { buildFigureViews, normalize, type FigureView } from "./figure-utils";
 import { FIGURE_ROLE_ORDER, figureRoles, isFigureRole } from "./figure-roles";
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from "@/components/filters/ChipFilter";
-import { regionLabel } from "@/features/landing/landing.adapter";
+import { regionLabel, sortedRegions } from "@/utils/region.utils";
 import { FIGURE_ROLE_LABELS, type FigureRole } from "@/constants/enums";
 
 const PROFILE_QUERY_KEY = "nv";
@@ -71,10 +71,7 @@ export function FiguresDirectory({
     return (eraId: string | null) => (eraId ? byId.get(eraId) ?? null : null);
   }, [periods]);
   const regions = useMemo(
-    () =>
-      Array.from(new Set(figures.map((f) => regionOfEra(f.eraId)).filter((r): r is string => Boolean(r)))).sort((a, b) =>
-        a.localeCompare(b, "vi"),
-      ),
+    () => sortedRegions(figures.map((f) => regionOfEra(f.eraId)).filter((r): r is string => Boolean(r))),
     [figures, regionOfEra],
   );
 

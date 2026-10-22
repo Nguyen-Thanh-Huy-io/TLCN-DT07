@@ -3,6 +3,7 @@
 import { Bookmark, LayoutList, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button, Input } from "./sk-ui";
 import type { Era, TimelineEvent } from "./sk-types";
+import { sortedRegions } from "@/utils/region.utils";
 
 /** Mỗi nhóm cho chọn nhiều giá trị; mảng rỗng = không lọc theo nhóm đó. */
 export interface TimelineFilters {
@@ -28,9 +29,9 @@ export function withoutValue(filters: TimelineFilters, key: keyof TimelineFilter
   return next;
 }
 
-/** Quốc gia / khu vực thực sự có dấu mốc (theo Period.region), xếp theo tên. */
+/** Quốc gia / khu vực thực sự có dấu mốc (theo Period.region), theo thứ tự chuẩn dùng chung. */
 export function regionOptions(events: TimelineEvent[]): string[] {
-  return Array.from(new Set(events.map((ev) => ev.region))).sort((a, b) => a.localeCompare(b, "vi"));
+  return sortedRegions(events.map((ev) => ev.region));
 }
 
 /** [] = tất cả quốc gia / khu vực. */

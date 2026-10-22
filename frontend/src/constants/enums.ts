@@ -214,3 +214,28 @@ export const VERIFICATION_STATUS_LABELS: Record<VerificationStatus, string> = {
   [VerificationStatus.DRAFT]: 'Bản nháp đang nghiên cứu',
 };
 
+/**
+ * Chuẩn hóa khu vực lịch sử (Đồng bộ với Backend HistoricalRegion, không dùng Magic String)
+ */
+export enum HistoricalRegion {
+  VIETNAM = 'Việt Nam',
+  NATIONWIDE = 'Toàn quốc',
+  WORLD = 'Thế giới',
+  SOVIET_UNION = 'Liên Xô',
+  ASIA = 'Châu Á',
+  EUROPE_MEDITERRANEAN = 'Châu Âu & Địa Trung Hải',
+  EUROPE_NORTH_AMERICA = 'Châu Âu & Bắc Mỹ',
+  SOUTHEAST_ASIA = 'Đông Nam Á',
+}
+
+export const HISTORICAL_REGION_OPTIONS: string[] = [
+  HistoricalRegion.VIETNAM,
+  HistoricalRegion.WORLD,
+  HistoricalRegion.SOVIET_UNION,
+  HistoricalRegion.SOUTHEAST_ASIA,
+  HistoricalRegion.ASIA,
+  HistoricalRegion.EUROPE_MEDITERRANEAN,
+  HistoricalRegion.EUROPE_NORTH_AMERICA,
+];
+
+

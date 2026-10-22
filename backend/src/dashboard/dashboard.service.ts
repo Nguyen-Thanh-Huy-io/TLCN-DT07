@@ -8,6 +8,10 @@ import {
   PendingLessonItemDto,
 } from './dto/dashboard-overview.dto';
 
+/** Chủ đề / giai đoạn chưa lưu người tạo; bài học tạo trước khi có cột created_by. */
+const UNKNOWN_AUTHOR = '—';
+const NOT_IN_PATH = 'Chưa gắn vào lộ trình nào';
+
 @Injectable()
 export class DashboardService {
   constructor(
@@ -66,9 +70,30 @@ export class DashboardService {
       this.prisma.lesson.findMany({
         where: { status: LessonStatus.REVIEW },
         take: 5,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          chapterLessons: {
+            take: 1,
+            include: {
+              chapter: { select: { title: true, learningPath: { select: { title: true } } } },
+            },
+          },
+        },
       }),
     ]);
+
+    // Tên người soạn thật (lesson.createdBy là id tài khoản) — chỉ bài học có cột này.
+    const authorIds = [...new Set([...recentLessons, ...pendingLessonsRaw].map((l) => l.createdBy).filter((id): id is string => Boolean(id)))];
+    const authors = await this.prisma.authUser.findMany({
+      where: { id: { in: authorIds } },
+      select: { id: true, username: true, userProfile: { select: { firstName: true, lastName: true } } },
+    });
+    const authorName = (id: string | null) => {
+      const user = authors.find((a) => a.id === id);
+      if (!user) return UNKNOWN_AUTHOR;
+      const full = [user.userProfile?.lastName, user.userProfile?.firstName].filter(Boolean).join(' ');
+      return full || user.username;
+    };
 
     // Chuyển đổi dữ liệu các thực thể thành danh sách hoạt động gần đây
     const activities: RecentActivityItemDto[] = [
@@ -77,7 +102,7 @@ export class DashboardService {
         title: l.title,
         type: 'LESSON' as const,
         status: l.status,
-        authorName: 'Biên tập viên',
+        authorName: authorName(l.createdBy),
         updatedAt: l.updatedAt,
         route: `/lessons?highlight=${l.id}`,
       })),
@@ -86,7 +111,7 @@ export class DashboardService {
         title: t.name,
         type: 'TOPIC' as const,
         status: t.status,
-        authorName: 'Hệ thống',
+        authorName: UNKNOWN_AUTHOR,
         updatedAt: t.updatedAt,
         route: `/topics?highlight=${t.id}`,
       })),
@@ -95,7 +120,7 @@ export class DashboardService {
         title: p.name,
         type: 'PERIOD' as const,
         status: p.status,
-        authorName: 'Hệ thống',
+        authorName: UNKNOWN_AUTHOR,
         updatedAt: p.updatedAt,
         route: `/periods?highlight=${p.id}`,
       })),
@@ -111,8 +136,10 @@ export class DashboardService {
     const pendingLessons: PendingLessonItemDto[] = pendingLessonsRaw.map((pl) => ({
       id: pl.id,
       title: pl.title,
-      topicName: 'Bài đọc độc lập',
-      creatorName: 'Người soạn thảo',
+      topicName: pl.chapterLessons[0]
+        ? `${pl.chapterLessons[0].chapter.learningPath.title} › ${pl.chapterLessons[0].chapter.title}`
+        : NOT_IN_PATH,
+      creatorName: authorName(pl.createdBy),
       createdAt: pl.createdAt,
       submittedAt: pl.updatedAt,
       route: `/review?lessonId=${pl.id}`,

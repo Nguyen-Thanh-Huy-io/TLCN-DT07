@@ -12,6 +12,10 @@ import {
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcryptjs';
 import { toSlug } from '../src/common/utils/slug.util';
+import {
+  DIEN_BIEN_PHU_BLOCKS_DATA,
+  DIEN_BIEN_PHU_QUIZ_DATA,
+} from './seed-lesson-dien-bien-phu';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL as string,
@@ -883,145 +887,11 @@ async function main() {
       topicId: child4_2.id,
       title: 'Trận "Điện Biên Phủ trên không" 12 ngày đêm cuối năm 1972',
       difficulty: DifficultyLevel.HARD,
-      sourceReferenceNote: 'Lịch sử Bộ chủng Phòng không - Không quân Việt Nam',
+      sourceReferenceNote: 'Lịch sử Quân chủng Phòng không - Không quân & Lịch sử Quân sự Việt Nam (NXB Quân đội Nhân dân)',
       displayOrder: 1,
       status: ContentStatus.PUBLISHED,
       createdBy: adminUser.id,
-      // Bài học demo ĐẦY ĐỦ các loại khối của Block Builder (test trực tiếp khi mở trong
-      // CMS): Văn bản, Timeline (có 1 mốc đã có sẵn bài Canvas chi tiết + tư liệu ảnh),
-      // Hàng 2 cột chứa 2 khối Nhân vật, Sự kiện, Hình ảnh, Video (để trống — chưa xác
-      // minh được link tư liệu thật nào, xem báo cáo), Bản đồ, Bảng so sánh, và Liên kết
-      // tài nguyên (sẽ tự được tách sang Panel Thuộc tính > tab Xuất bản khi nạp vào CMS).
-      blocksContent: [
-        {
-          id: 'blk_text_1',
-          type: 'TEXT',
-          content: `<h2>1. Âm mưu tàn bạo của Tổng thống Nixon</h2>
-<p>Trước nguy cơ thất bại hoàn toàn trên bàn đàm phán Paris và trên cả hai chiến trường, cuối năm 1972 Tổng thống Mỹ Richard Nixon quyết định dùng con bài quân sự cuối cùng: phát động chiến dịch tập kích đường không chiến lược <em>Linebacker II</em>, huy động hàng trăm lượt máy bay chiến lược B-52 "rải thảm" bom xuống Hà Nội, Hải Phòng và nhiều tỉnh miền Bắc, với tính toán đưa Việt Nam Dân chủ Cộng hòa "trở về thời kỳ đồ đá" và buộc phải nhượng bộ các điều khoản bất lợi.</p>`,
-        },
-        {
-          id: 'blk_timeline_1',
-          type: 'TIMELINE',
-          title: '12 ngày đêm "Hà Nội - Điện Biên Phủ trên không"',
-          subtitle: 'Các mốc chính từ khi mở màn đến khi ký Hiệp định Paris',
-          orientation: 'VERTICAL',
-          nodes: [
-            {
-              id: 'node_1',
-              year: '18/12/1972',
-              title: 'Mở màn chiến dịch Linebacker II',
-              description: '19h44: quả đạn tên lửa đầu tiên rời bệ phóng, bắn rơi tại chỗ chiếc B-52 đầu tiên ngay trong trận đầu.',
-            },
-            {
-              id: 'node_2',
-              year: '27/12/1972',
-              title: 'Phạm Tuân bắn rơi B-52',
-              description: 'Phi công Phạm Tuân lái MiG-21 xuất kích, trở thành phi công Việt Nam đầu tiên bắn rơi được B-52 trên không.',
-              detailContent: `<p>Đêm 27/12/1972, biên đội MiG-21 do phi công <strong>Phạm Tuân</strong> điều khiển xuất kích từ sân bay Yên Bái, bí mật tiếp cận và phóng tên lửa tiêu diệt 1 máy bay B-52 trước khi thoát ly an toàn.</p><p>Đây là lần đầu tiên không quân một quốc gia dùng máy bay tiêm kích bắn rơi được "siêu pháo đài bay" B-52 của Mỹ, chứng minh B-52 không hề "bất khả xâm phạm" như tuyên truyền của Washington.</p>`,
-            },
-            {
-              id: 'node_3',
-              year: '28/12/1972',
-              title: 'Vũ Xuân Thiều anh dũng hy sinh',
-              description: 'Phi công Vũ Xuân Thiều công kích áp sát mục tiêu, tiêu diệt máy bay địch và hy sinh ngay sau đó.',
-            },
-            {
-              id: 'node_4',
-              year: '30/12/1972',
-              title: 'Nixon tuyên bố ngừng ném bom',
-              description: '7 giờ sáng: trước tổn thất quá nặng, Nixon buộc phải tuyên bố ngừng ném bom từ vĩ tuyến 20 trở ra.',
-            },
-            {
-              id: 'node_5',
-              year: '27/01/1973',
-              title: 'Ký Hiệp định Paris',
-              description: 'Mỹ buộc phải trở lại bàn đàm phán với tư thế kẻ thất bại, ký Hiệp định Paris chấm dứt chiến tranh.',
-            },
-          ],
-        },
-        {
-          id: 'blk_row_1',
-          type: 'SECTION_ROW',
-          columnCount: 2,
-          columns: [
-            {
-              id: 'col_1',
-              widthPercent: 50,
-              blocks: [
-                {
-                  id: 'blk_char_1',
-                  type: 'CHARACTER',
-                  name: 'Phạm Tuân',
-                  years: 'Sinh 1947',
-                  summary: 'Phi công MiG-21, Anh hùng Lực lượng vũ trang nhân dân — người bắn rơi B-52 trên không đêm 27/12/1972. Sau này trở thành phi công vũ trụ đầu tiên của Việt Nam và châu Á (1980).',
-                  avatarUrl: '',
-                },
-              ],
-            },
-            {
-              id: 'col_2',
-              widthPercent: 50,
-              blocks: [
-                {
-                  id: 'blk_char_2',
-                  type: 'CHARACTER',
-                  name: 'Vũ Xuân Thiều',
-                  years: '1945 – 1972',
-                  summary: 'Phi công MiG-21, Anh hùng Lực lượng vũ trang nhân dân (truy tặng). Hy sinh đêm 28/12/1972 sau khi công kích áp sát tiêu diệt máy bay B-52 địch trên vùng trời Sơn La.',
-                  avatarUrl: '',
-                },
-              ],
-            },
-          ],
-        },
-        {
-          id: 'blk_event_1',
-          type: 'EVENT',
-          title: 'Chiến dịch Linebacker II',
-          timeLocation: '18/12 - 29/12/1972 • Hà Nội, Hải Phòng',
-          summary: 'Chiến dịch tập kích đường không chiến lược bằng máy bay B-52 của Mỹ nhằm ép Việt Nam Dân chủ Cộng hòa nhượng bộ tại bàn đàm phán Paris, kết thúc bằng thất bại nặng nề của không lực Hoa Kỳ.',
-          thumbnailUrl: '',
-        },
-        {
-          id: 'blk_image_1',
-          type: 'IMAGE',
-          src: 'https://images.unsplash.com/photo-1544813687-63931b2749ea?auto=format&fit=crop&w=1200&q=80',
-          alt: 'Minh họa chủ đề phòng không - không quân',
-          caption: 'Ảnh minh họa chủ đề (tư liệu ảnh thật cần được biên tập viên thay thế trước khi xuất bản).',
-        },
-        {
-          id: 'blk_video_1',
-          type: 'VIDEO',
-          src: '',
-          sourceType: 'URL',
-          caption: '',
-        },
-        {
-          id: 'blk_map_1',
-          type: 'MAP',
-          locationName: 'Hà Nội, Hải Phòng và vùng trời miền Bắc',
-          description: 'Địa bàn diễn ra 12 ngày đêm không chiến — trọng điểm là Thủ đô Hà Nội, nơi quân và dân ta bắn rơi 30/81 máy bay địch, gồm 23/34 chiếc B-52.',
-        },
-        {
-          id: 'blk_table_1',
-          type: 'COMPARISON_TABLE',
-          title: 'Tương quan lực lượng không chiến 12 ngày đêm',
-          colAName: 'Không lực Hoa Kỳ',
-          colBName: 'Phòng không - Không quân Việt Nam',
-          rows: [
-            { criteria: 'Vũ khí chủ lực', colA: 'B-52 "siêu pháo đài bay", F-111, F-4', colB: 'Tên lửa SAM-2, MiG-21, pháo cao xạ' },
-            { criteria: 'Thiệt hại', colA: '81 máy bay bị bắn rơi (34 B-52)', colB: 'Tổn thất về khí tài, một số chiến sĩ hy sinh' },
-            { criteria: 'Kết quả chiến lược', colA: 'Buộc ngừng ném bom, ký Hiệp định Paris', colB: 'Bảo vệ vững chắc Thủ đô, giữ vững hậu phương' },
-          ],
-        },
-        {
-          id: 'blk_reslink_1',
-          type: 'RESOURCE_LINK',
-          title: 'Chiến dịch Linebacker II - Wikipedia tiếng Việt',
-          url: 'https://vi.wikipedia.org/wiki/Chi%E1%BA%BFn_d%E1%BB%8Bch_Linebacker_II',
-          note: 'Tổng hợp diễn biến, số liệu và các nguồn tham khảo quốc tế về chiến dịch.',
-        },
-      ],
+      blocksContent: DIEN_BIEN_PHU_BLOCKS_DATA,
       tags: ['Kháng chiến chống Mỹ', 'Phòng không - Không quân', 'Chiến dịch quân sự'],
     },
     {
@@ -1151,6 +1021,26 @@ async function main() {
     createdLessonsByTitle[createdLesson.title] = createdLesson.id;
   }
   console.log(`✓ Đã tạo ${lessonsData.length} Bài học chuyên sâu.`);
+
+  const lessonDienBienPhuId =
+    createdLessonsByTitle['Trận "Điện Biên Phủ trên không" 12 ngày đêm cuối năm 1972'];
+  if (lessonDienBienPhuId) {
+    await prisma.quiz.upsert({
+      where: { lessonId: lessonDienBienPhuId },
+      update: {
+        title: DIEN_BIEN_PHU_QUIZ_DATA.title,
+        passingScorePercent: DIEN_BIEN_PHU_QUIZ_DATA.passingScorePercent,
+        questions: DIEN_BIEN_PHU_QUIZ_DATA.questions,
+      },
+      create: {
+        lessonId: lessonDienBienPhuId,
+        title: DIEN_BIEN_PHU_QUIZ_DATA.title,
+        passingScorePercent: DIEN_BIEN_PHU_QUIZ_DATA.passingScorePercent,
+        questions: DIEN_BIEN_PHU_QUIZ_DATA.questions,
+      },
+    });
+    console.log(`✓ Đã tạo Đề ôn tập nhanh (Quiz) 5 dạng câu hỏi cho bài học Điện Biên Phủ trên không.`);
+  }
 
   // -------------------------------------------------------------
   // BƯỚC 7: KHỞI TẠO CÁC THỰC THỂ LỊCH SỬ DÙNG CHUNG (HISTORICAL ENTITIES)
@@ -1536,7 +1426,7 @@ async function main() {
 
   await prisma.learningPath.create({
     data: {
-      title: 'Lộ trình ôn thi THPT: Kháng chiến chống Mỹ, cứu nước (1954 - 1975)',
+      title: 'Kháng chiến chống Mỹ, cứu nước (1954 - 1975)',
       slug: toSlug('Lo trinh on thi THPT Khang chien chong My cuu nuoc 1954 1975'),
       description:
         'Hệ thống lại toàn bộ kiến thức trọng tâm giai đoạn 1954-1975 theo đúng trình tự ôn luyện, chọn lọc từ các bài học đã có trong Thư viện (không trùng với cây phân cấp Chủ đề).',

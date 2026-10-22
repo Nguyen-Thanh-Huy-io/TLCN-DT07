@@ -17,6 +17,7 @@ import {
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/useAuthSession';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
+import '../dashboard.css';
 
 export function DashboardView() {
   const router = useRouter();
@@ -321,24 +322,26 @@ export function DashboardView() {
 
             {data?.pendingLessons && data.pendingLessons.length > 0 ? (
               data.pendingLessons.map((item, i) => (
-                <div className="pending-item" key={item.id}>
-                  <div className="pending-index">
-                    {String(i + 1).padStart(2, '0')}
-                  </div>
-                  <div>
-                    <strong>{item.title}</strong>
-                    <span>{item.topicName}</span>
-                    <small>
-                      {item.creatorName} · {typeof item.createdAt === 'string' && item.createdAt.includes('T') ? new Date(item.createdAt).toLocaleDateString('vi-VN') : item.createdAt}
+                <div className="flex items-start gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0" key={item.id}>
+                  <span className="mt-0.5 font-mono text-xs font-bold text-slate-400">{String(i + 1).padStart(2, '0')}</span>
+                  <div className="min-w-0 flex-1">
+                    <strong className="block text-sm font-semibold leading-snug text-slate-900">{item.title}</strong>
+                    <span className="mt-0.5 block truncate text-xs text-slate-500">{item.topicName}</span>
+                    <small className="mt-0.5 block text-[11px] text-slate-400">
+                      {item.creatorName} ·{' '}
+                      {typeof item.createdAt === 'string' && item.createdAt.includes('T')
+                        ? new Date(item.createdAt).toLocaleDateString('vi-VN')
+                        : item.createdAt}
                     </small>
                   </div>
                   {isReviewer && (
                     <button
                       type="button"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 hover:border-emerald-300 hover:text-emerald-800"
                       onClick={() => router.push(`${APP_ROUTES.REVIEW}?id=${item.id}`)}
                       title="Mở bài học để duyệt"
                     >
-                      <Icon name={IconName.EYE} size={16} /> Duyệt
+                      <Icon name={IconName.EYE} size={14} /> Duyệt
                     </button>
                   )}
                 </div>

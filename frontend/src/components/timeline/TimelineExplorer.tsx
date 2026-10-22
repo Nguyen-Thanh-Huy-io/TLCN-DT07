@@ -180,10 +180,8 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
         <FilterSheet
           open={sheetOpen}
           value={filters}
-          split={split}
-          onApply={(f, s) => {
+          onApply={(f) => {
             setFilters(f);
-            setSplit(s);
             setSheetOpen(false);
           }}
           onClose={() => setSheetOpen(false)}
@@ -210,10 +208,23 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                 <span>Lịch sử Việt Nam</span>
                 <strong>Tất cả thời kỳ</strong>
               </div>
-              <button type="button" className="sk-split-control" onClick={() => setSheetOpen(true)}>
-                <SlidersHorizontal size={13} />
-                {SPLIT_LABELS[split]}
-              </button>
+              {/* Phân luồng là cách hiển thị (chỉ trục dọc), không phải bộ lọc nên để ngoài. */}
+              {!horizontal && (
+                <div className="sk-split-segment" role="group" aria-label="Phân luồng trục dọc">
+                  <SlidersHorizontal size={13} />
+                  {(Object.keys(SPLIT_LABELS) as SplitMode[]).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      className={split === mode ? "sk-selected" : ""}
+                      aria-pressed={split === mode}
+                      onClick={() => setSplit(mode)}
+                    >
+                      {SPLIT_LABELS[mode]}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {allNodes.length === 0 ? (

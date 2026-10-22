@@ -139,3 +139,14 @@ button.sk-split-control:hover { color: var(--accent); }
 }
 .sk-minimap-empty { margin: 10px 0; font-size: 12px; color: var(--muted); }
 .sk-fs-card > div + div { margin-top: 2px; }
+.sk-fs-chip small { display: block; margin-top: 2px; font-size: 11px; font-weight: 500; color: var(--muted); }
+.sk-fs-search { display: flex; align-items: center; gap: 8px; height: 40px; margin-bottom: 12px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--muted); }
+.sk-fs-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--text); font-size: 14px; }
+.sk-fs-search button { display: grid; place-items: center; border: 0; background: none; color: var(--muted); }
+.sk-fs-none { margin: 0; font-size: 13px; color: var(--muted); }
+.sk-fs-more { display: inline-flex; align-items: center; gap: 4px; margin-top: 12px; padding: 0; border: 0; background: none; color: var(--accent); font-size: 14px; font-weight: 600; }
+.sk-split-segment { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 8px; background: var(--soft); color: var(--muted); margin-left: auto; }
+.sk-split-segment > svg { margin: 0 4px; }
+.sk-split-segment button { padding: 5px 10px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.sk-split-segment button.sk-selected { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .08); }
+@media (max-width: 600px) { .sk-split-segment { width: 100%; overflow-x: auto; } }

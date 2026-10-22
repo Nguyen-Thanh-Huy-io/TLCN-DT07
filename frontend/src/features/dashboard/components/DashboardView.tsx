@@ -14,6 +14,9 @@ import {
   DashboardApiService,
   DashboardOverviewData,
 } from '@/services/entities/dashboard.service';
+import { extractErrorMessage } from '@/services/api';
+import { useAuthSession } from '@/services/auth/useAuthSession';
+import { isReviewerRole } from '@/services/auth/public-auth.service';
 
 export function DashboardView() {
   const router = useRouter();
@@ -21,6 +24,9 @@ export function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const user = useAuthSession();
+  const isReviewer = Boolean(user && isReviewerRole(user.role));
 
   const loadOverview = useCallback(async (isRefresh = false) => {
     try {
@@ -29,9 +35,10 @@ export function DashboardView() {
 
       const res = await DashboardApiService.getOverview();
       setData(res);
+      setError(null);
       setLastRefreshed(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
     } catch (err) {
-      console.error('Failed to load dashboard overview:', err);
+      setError(extractErrorMessage(err, 'Không tải được số liệu tổng quan.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -76,11 +83,8 @@ export function DashboardView() {
       <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-            </span>
-            <span className="text-xs font-semibold text-slate-700">Trực tuyến</span>
+            <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${error ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+            <span className="text-xs font-semibold text-slate-700">{error ? 'Mất kết nối dữ liệu' : 'Dữ liệu trực tiếp'}</span>
           </div>
           <span className="text-slate-300">|</span>
           <span className="text-xs text-slate-500">
@@ -110,20 +114,29 @@ export function DashboardView() {
         </div>
       </section>
 
+      {error && (
+        <section role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <span>{error}</span>
+          <button type="button" className="font-semibold underline" onClick={() => loadOverview(true)}>
+            Thử lại
+          </button>
+        </section>
+      )}
+
       {/* KPI Stats Grid */}
       <section className="stats-grid">
         <StatCard
-          icon={IconName.GRID}
-          value={loading ? '...' : String(counts.topicsCount)}
-          label="Chủ đề học tập"
-          detail="Khung kiến thức trọng tâm"
+          icon={IconName.CLOCK}
+          value={loading ? '...' : String(counts.periodsCount)}
+          label="Thời kỳ & giai đoạn"
+          detail="Khung thời gian của nội dung"
           tone="blue"
         />
         <StatCard
           icon={IconName.FOLDER}
-          value={loading ? '...' : String(counts.topicsCount)}
-          label="Chủ đề học tập"
-          detail="Chủ đề kiến thức trọng tâm"
+          value={loading ? '...' : String(counts.historicalEventsCount)}
+          label="Sự kiện lịch sử"
+          detail={`${counts.topicsCount} chủ đề kiến thức`}
           tone="gold"
         />
         <StatCard
@@ -319,13 +332,15 @@ export function DashboardView() {
                       {item.creatorName} · {typeof item.createdAt === 'string' && item.createdAt.includes('T') ? new Date(item.createdAt).toLocaleDateString('vi-VN') : item.createdAt}
                     </small>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => router.push(`${APP_ROUTES.REVIEW}?id=${item.id}`)}
-                    title="Mở bài học để duyệt"
-                  >
-                    <Icon name={IconName.EYE} size={16} /> Duyệt
-                  </button>
+                  {isReviewer && (
+                    <button
+                      type="button"
+                      onClick={() => router.push(`${APP_ROUTES.REVIEW}?id=${item.id}`)}
+                      title="Mở bài học để duyệt"
+                    >
+                      <Icon name={IconName.EYE} size={16} /> Duyệt
+                    </button>
+                  )}
                 </div>
               ))
             ) : (
@@ -334,13 +349,15 @@ export function DashboardView() {
               </div>
             )}
 
-            <button
-              type="button"
-              className="panel-footer"
-              onClick={() => router.push(APP_ROUTES.REVIEW)}
-            >
-              Xem tất cả bài chờ duyệt <Icon name={IconName.ARROW} size={15} />
-            </button>
+            {isReviewer && (
+              <button
+                type="button"
+                className="panel-footer"
+                onClick={() => router.push(APP_ROUTES.REVIEW)}
+              >
+                Xem tất cả bài chờ duyệt <Icon name={IconName.ARROW} size={15} />
+              </button>
+            )}
           </div>
 
           {/* Bảng điều khiển thao tác nhanh */}
@@ -363,11 +380,19 @@ export function DashboardView() {
                 primary
                 onClick={() => router.push(APP_ROUTES.LESSONS.CREATE)}
               />
-              <QuickAction
-                icon={IconName.CHECK}
-                label="Duyệt bài học"
-                onClick={() => router.push(APP_ROUTES.REVIEW)}
-              />
+              {isReviewer ? (
+                <QuickAction
+                  icon={IconName.CHECK}
+                  label="Duyệt bài học"
+                  onClick={() => router.push(APP_ROUTES.REVIEW)}
+                />
+              ) : (
+                <QuickAction
+                  icon={IconName.FOLDER}
+                  label="Tư liệu lịch sử"
+                  onClick={() => router.push('/knowledge')}
+                />
+              )}
             </div>
           </div>
         </div>

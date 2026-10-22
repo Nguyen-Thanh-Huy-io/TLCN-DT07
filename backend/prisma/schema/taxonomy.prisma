@@ -1,0 +1,64 @@
+// ================================
+// Danh mục dùng chung (Taxonomy)
+// ================================
+// Thay cho các enum / chữ tự do mô tả nội dung lịch sử (loại di tích, hiện trạng, xếp hạng,
+// khu vực, danh mục sự kiện, vai trò, loại quan hệ...). Thêm / sửa giá trị trong CMS,
+// không cần sửa code. Enum điều khiển logic hệ thống (ContentStatus, userRole...) vẫn giữ trong code.
+
+model TaxonomyGroup {
+  code         String  @id @db.VarChar(50)
+  label        String  @db.VarChar(150)
+  description  String? @db.Text
+  /**
+   * Một đối tượng gắn được nhiều giá trị của nhóm này (vd. vai trò nhân vật).
+   */
+  multiValued  Boolean @default(false) @map("multi_valued")
+  /**
+   * Giá trị trong nhóm có quan hệ cha – con (vd. Châu Á > Đông Nam Á).
+   */
+  hierarchical Boolean @default(false)
+  displayOrder Int     @default(0) @map("display_order")
+
+  terms TaxonomyTerm[]
+
+  @@map("taxonomy_groups")
+}
+
+model TaxonomyTerm {
+  id           String   @id @default(uuid())
+  groupCode    String   @map("group_code") @db.VarChar(50)
+  code         String   @db.VarChar(64)
+  label        String   @db.VarChar(150)
+  /**
+   * Nhãn chiều ngược cho các nhóm quan hệ (vd. "cha của" ↔ "con của").
+   */
+  inverseLabel String?  @map("inverse_label") @db.VarChar(150)
+  description  String?  @db.Text
+  icon         String?  @db.VarChar(50)
+  displayOrder Int      @default(0) @map("display_order")
+  /**
+   * Các cách ghi tự do cũ / đồng nghĩa — dùng để tự quy đổi dữ liệu nhập vào.
+   */
+  aliases      String[] @default([])
+  parentId     String?  @map("parent_id")
+  /**
+   * Thuộc tính riêng của từng nhóm.
+   */
+  meta         Json?    @db.JsonB
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  group    TaxonomyGroup  @relation(fields: [groupCode], references: [code], onDelete: Restrict, onUpdate: Cascade)
+  parent   TaxonomyTerm?  @relation("TaxonomyTermHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children TaxonomyTerm[] @relation("TaxonomyTermHierarchy")
+
+  sitesByType         HistoricalSite[] @relation("SiteTypeTerm")
+  sitesByPreservation HistoricalSite[] @relation("SitePreservationTerm")
+  sitesByRank         HistoricalSite[] @relation("SiteRankTerm")
+
+  @@unique([groupCode, code])
+  @@index([groupCode, isActive])
+  @@index([parentId])
+  @@map("taxonomy_terms")
+}

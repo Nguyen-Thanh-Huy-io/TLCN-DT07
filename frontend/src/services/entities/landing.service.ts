@@ -233,6 +233,12 @@ export interface PublicLocationSummaryDto {
   /** Các tên gọi trong lịch sử. */
   ancientNames?: string[];
   preservationStatus?: string | null;
+  /** Hiện trạng chuẩn hóa: INTACT | MUSEUM_MEMORIAL | ARCHAEOLOGICAL_RUIN | RESTORED | ACTIVE_SITE. */
+  preservationCategory?: string | null;
+  preservationLabel?: string | null;
+  /** Ghi chú còn lại sau khi chuẩn hóa hiện trạng — chỉ hiển thị. */
+  statusNote?: string | null;
+  managingUnit?: string | null;
   /** Mức độ "trải nghiệm số" có sẵn của di tích. */
   digital?: {
     hasImage: boolean;

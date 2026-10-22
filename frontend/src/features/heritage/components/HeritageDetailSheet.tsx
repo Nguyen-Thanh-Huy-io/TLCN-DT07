@@ -328,10 +328,22 @@ function LinksAndVisitor({ h }: { h: HistoricalHeritage }) {
             <Clock3 className="mt-0.5 size-4 shrink-0 text-[var(--hx-primary)]" />
             {h.visitorInfo.openingHours || 'Chưa có thông tin giờ mở cửa'}
           </p>
-          {h.visitorInfo.preservationStatus && (
+          {(h.visitorInfo.preservationStatus || h.statusNote) && (
             <p className="flex gap-2">
               <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[var(--hx-primary)]" />
-              {h.visitorInfo.preservationStatus}
+              <span>
+                {h.visitorInfo.preservationStatus}
+                {h.statusNote && <span className="block text-xs text-[var(--hx-muted)]">{h.statusNote}</span>}
+              </span>
+            </p>
+          )}
+          {h.managingUnit && (
+            <p className="flex gap-2">
+              <Landmark className="mt-0.5 size-4 shrink-0 text-[var(--hx-primary)]" />
+              <span>
+                <span className="block text-xs text-[var(--hx-muted)]">Đơn vị quản lý</span>
+                {h.managingUnit}
+              </span>
             </p>
           )}
         </div>

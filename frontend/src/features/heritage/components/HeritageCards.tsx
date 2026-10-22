@@ -89,6 +89,15 @@ export function HeritageCard({ heritage, onOpen }: { heritage: HistoricalHeritag
           <Landmark className="size-3.5" /> Khởi dựng: {heritage.foundedEra}
         </p>
         <p className="line-clamp-3 text-sm leading-6 text-[var(--hx-muted)]">{heritage.shortSummary}</p>
+        {(heritage.visitorInfo.preservationStatus || heritage.managingUnit) && (
+          <p className="text-xs leading-5 text-[var(--hx-muted)]">
+            {heritage.visitorInfo.preservationStatus && (
+              <span className="font-semibold text-[var(--hx-ink)]">{heritage.visitorInfo.preservationStatus}</span>
+            )}
+            {heritage.visitorInfo.preservationStatus && heritage.managingUnit && ' · '}
+            {heritage.managingUnit}
+          </p>
+        )}
         <p className="mt-auto flex items-center gap-1.5 border-t border-[var(--hx-line)] pt-3 text-xs text-[var(--hx-muted)]">
           <CalendarDays className="size-3.5" />
           {architecture > 0 && `${architecture} hạng mục kiến trúc • `}

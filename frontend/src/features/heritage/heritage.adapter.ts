@@ -6,7 +6,14 @@ import type {
   PublicLocationSummaryDto,
   PublicPeriodDto,
 } from '@/services/entities/landing.service';
-import type { DigitalFeature, HeritageCategory, HeritageRank, HistoricalHeritage } from './heritage.types';
+import {
+  PRESERVATION_LABELS,
+  type DigitalFeature,
+  type HeritageCategory,
+  type HeritageRank,
+  type HistoricalHeritage,
+  type PreservationCategory,
+} from './heritage.types';
 import { regionLabel } from '@/utils/region.utils';
 
 /** Loại di tích chi tiết của hệ thống → nhóm loại hình hiển thị. */
@@ -107,12 +114,18 @@ export function toHeritageSummaries(
         subEraIds,
         figures: [...figures].map(([id, name]) => ({ id, name })),
         events: siteEvents.map((e) => ({ id: e.id, title: e.title })),
-        preservation: site.preservationStatus ?? null,
+        preservation: (site.preservationCategory as PreservationCategory | null) ?? null,
         digital,
       },
       eventCount: siteEvents.length,
       detailLoaded: false,
-      visitorInfo: { addressText: site.address ?? '', openingHours: '', preservationStatus: site.preservationStatus ?? '' },
+      managingUnit: site.managingUnit ?? null,
+      statusNote: site.statusNote ?? null,
+      visitorInfo: {
+        addressText: site.address ?? '',
+        openingHours: '',
+        preservationStatus: site.preservationCategory ? PRESERVATION_LABELS[site.preservationCategory as PreservationCategory] : '',
+      },
     };
   });
 }
@@ -151,7 +164,7 @@ export function withHeritageDetail(base: HistoricalHeritage, d: PublicLocationDe
     visitorInfo: {
       addressText: d.address ?? '',
       openingHours: h.openingHours ?? '',
-      preservationStatus: d.preservationStatus ?? '',
+      preservationStatus: base.visitorInfo.preservationStatus,
     },
   };
 }

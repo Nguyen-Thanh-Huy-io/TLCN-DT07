@@ -67,9 +67,13 @@ export interface HistoricalHeritage {
   eventCount?: number;
   /** false = mới có thông tin tóm tắt, chi tiết (sự kiện, hạng mục...) chưa tải. */
   detailLoaded?: boolean;
+  /** Đơn vị quản lý (bảo tàng, cơ quan...) và ghi chú hiện trạng — hiển thị, không dùng để lọc. */
+  managingUnit?: string | null;
+  statusNote?: string | null;
   visitorInfo: {
     addressText: string;
     openingHours: string;
+    /** Nhãn hiện trạng chuẩn hóa (rỗng = chưa có). */
     preservationStatus: string;
   };
 }
@@ -84,13 +88,25 @@ export const DIGITAL_FEATURE_LABELS: Record<DigitalFeature, string> = {
   HAS_STRUCTURES: 'Có hạng mục / hiện vật',
 };
 
+/** Hiện trạng chuẩn hóa — bộ lọc cố định đúng 5 nhóm (đồng bộ backend preservation-status.constant). */
+export type PreservationCategory = 'INTACT' | 'MUSEUM_MEMORIAL' | 'ARCHAEOLOGICAL_RUIN' | 'RESTORED' | 'ACTIVE_SITE';
+
+export const PRESERVATION_LABELS: Record<PreservationCategory, string> = {
+  INTACT: '🏛️ Bảo tồn nguyên vẹn',
+  MUSEUM_MEMORIAL: '🕯️ Bảo tàng & Khu tưởng niệm',
+  ARCHAEOLOGICAL_RUIN: '🏺 Phế tích & Khảo cổ',
+  RESTORED: '🛠️ Đã trùng tu / Phục dựng',
+  ACTIVE_SITE: '🚀 Công trình đang hoạt động',
+};
+
 export interface HeritageFacets {
   /** Thời kỳ gốc và giai đoạn con (id Period) của di tích và các sự kiện tại đó. */
   eraIds: string[];
   subEraIds: string[];
   figures: Array<{ id: string; name: string }>;
   events: Array<{ id: string; title: string }>;
-  preservation: string | null;
+  /** Mã hiện trạng chuẩn hóa (null = chưa có thông tin). */
+  preservation: PreservationCategory | null;
   digital: DigitalFeature[];
 }
 

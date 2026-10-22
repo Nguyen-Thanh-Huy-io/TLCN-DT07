@@ -9,10 +9,12 @@ import type { PublicPeriodDto } from '@/services/entities/landing.service';
 import { sortedRegions } from '@/utils/region.utils';
 import {
   DIGITAL_FEATURE_LABELS,
+  PRESERVATION_LABELS,
   RANK_SHORT_LABELS,
   type DigitalFeature,
   type HeritageRank,
   type HistoricalHeritage,
+  type PreservationCategory,
 } from '../heritage.types';
 import { Input, cn } from '../ui';
 
@@ -161,9 +163,11 @@ function buildOptions(items: HistoricalHeritage[], periods: PublicPeriodDto[]): 
       label: LOCATION_TYPE_LABELS[t as LocationType] ?? t,
       hint: count((h) => (h.siteType ?? LocationType.OTHER) === t),
     })),
-    preservation: present(items.map((h) => h.facets?.preservation).filter((v): v is string => Boolean(v))).map((v) => ({
-      value: v,
-      label: v,
+    // Luôn đúng 5 nhóm cố định, kể cả nhóm chưa có di tích (hiện số 0).
+    preservation: (Object.keys(PRESERVATION_LABELS) as PreservationCategory[]).map((p) => ({
+      value: p,
+      label: PRESERVATION_LABELS[p],
+      hint: count((h) => h.facets?.preservation === p),
     })),
     digital: (Object.keys(DIGITAL_FEATURE_LABELS) as DigitalFeature[]).map((d) => ({
       value: d,

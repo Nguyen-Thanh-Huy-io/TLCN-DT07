@@ -71,8 +71,6 @@ export class QueryHistoricalEventDto {
   @IsOptional()
   category?: string;
 
-  /** Nội bộ: id loại đã mở rộng xuống loại con (service tính, client không gửi). */
-  categoryTermIds?: string[];
 
   @ApiPropertyOptional({
     example: 938,
@@ -114,3 +112,11 @@ export class QueryHistoricalEventDto {
   @IsOptional()
   limit?: number = 10;
 }
+
+/**
+ * Truy vấn gửi xuống repository: thêm id loại đã mở rộng xuống loại con (service tính).
+ * Để ngoài class DTO vì ValidationPipe (forbidNonWhitelisted) từ chối mọi thuộc tính không khai báo validate.
+ */
+export type HistoricalEventListQuery = QueryHistoricalEventDto & {
+  categoryTermIds?: string[];
+};

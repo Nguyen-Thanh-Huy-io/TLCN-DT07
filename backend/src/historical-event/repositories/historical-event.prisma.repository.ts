@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ContentStatus, EventCategory, MediaType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
 import { IHistoricalEventRepository } from './historical-event.repository.interface';
-import { QueryHistoricalEventDto } from '../dto/query-historical-event.dto';
+import { HistoricalEventListQuery } from '../dto/query-historical-event.dto';
 import {
   CreateHistoricalEventDomainModel,
   HistoricalEventEntityModel,
@@ -206,7 +206,7 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
   }
 
   async findMany(
-    query: QueryHistoricalEventDto,
+    query: HistoricalEventListQuery,
   ): Promise<{ items: HistoricalEventEntityModel[]; total: number }> {
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));

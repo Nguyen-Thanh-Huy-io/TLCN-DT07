@@ -1,4 +1,4 @@
-import { QueryHistoricalEventDto } from '../dto/query-historical-event.dto';
+import { HistoricalEventListQuery } from '../dto/query-historical-event.dto';
 import {
   CreateHistoricalEventDomainModel,
   HistoricalEventEntityModel,
@@ -33,7 +33,7 @@ export interface IHistoricalEventRepository {
    * Tìm danh sách sự kiện có phân trang và lọc
    */
   findMany(
-    query: QueryHistoricalEventDto,
+    query: HistoricalEventListQuery,
   ): Promise<{ items: HistoricalEventEntityModel[]; total: number }>;
 
   /**

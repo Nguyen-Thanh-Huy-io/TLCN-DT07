@@ -108,6 +108,8 @@ export const REVISION_FIELDS: Record<RevisionContentType, RevisionField[]> = {
     { key: 'aliases', label: 'Tên gọi khác', kind: 'list' },
     { key: 'imageUrl', label: 'Ảnh', kind: 'image' },
     { key: 'imageCaption', label: 'Chú thích ảnh', kind: 'text' },
+    { key: 'startYear', label: 'Năm bắt đầu tồn tại', kind: 'text' },
+    { key: 'endYear', label: 'Năm kết thúc tồn tại', kind: 'text' },
     { key: 'periodIds', label: 'Giai đoạn', kind: 'refs', ref: 'period' },
     { key: 'birthYear', label: 'Năm sinh', kind: 'text' },
     { key: 'deathYear', label: 'Năm mất', kind: 'text' },
@@ -175,7 +177,7 @@ export const REVISION_FIELDS: Record<RevisionContentType, RevisionField[]> = {
 export const ENTITY_TYPE_LABELS: Record<string, string> = {
   PERSON: 'Nhân vật',
   ORGANIZATION: 'Tổ chức',
-  DYNASTY: 'Triều đại',
+  DYNASTY: 'Triều đại / Quốc gia / Chính thể',
   MILITARY_FORCE: 'Lực lượng quân sự',
   ARTIFACT: 'Hiện vật',
   LOCATION: 'Địa danh / di tích',

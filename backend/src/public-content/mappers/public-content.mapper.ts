@@ -207,6 +207,8 @@ export class PublicContentMapper {
       period?: { slug: string } | null;
       entities?: Array<{
         entity: HistoricalEntity & { historicalSite?: HistoricalSite | null };
+        role?: string;
+        roleLabel?: string | null;
       }>;
       outgoingRelations?: Array<{ targetEventId: string; relationType: string }>;
       incomingRelations?: Array<{ sourceEventId: string; relationType: string }>;
@@ -236,6 +238,18 @@ export class PublicContentMapper {
       categoryIds: event.categoryIds ?? [],
       endYear: event.endYear ?? null,
       parentId: event.parentId ?? null,
+      actors: (event.entities ?? [])
+        .filter((ee) => !['PERSON', 'LOCATION'].includes(ee.entity.type))
+        .map((ee) => ({
+          id: ee.entity.id,
+          name: ee.entity.name,
+          slug: ee.entity.slug ?? null,
+          type: ee.entity.type,
+          role: ee.role ?? 'PARTICIPANT',
+          roleLabel: ee.roleLabel ?? null,
+          startYear: ee.entity.startYear ?? null,
+          endYear: ee.entity.endYear ?? null,
+        })),
       relations: [
         ...(event.outgoingRelations ?? []).map((r) => ({
           eventId: r.targetEventId,

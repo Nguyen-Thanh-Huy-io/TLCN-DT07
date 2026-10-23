@@ -147,6 +147,21 @@ export class PublicEventLinkDto {
   @ApiProperty({ enum: ['OUTGOING', 'INCOMING'] }) direction: 'OUTGOING' | 'INCOMING';
 }
 
+/**
+ * Chủ thể tham gia sự kiện không phải nhân vật / địa danh: triều đại / quốc gia / chính thể,
+ * tổ chức, lực lượng, hiện vật — kèm vai trò trong sự kiện và thời gian tồn tại.
+ */
+export class PublicEventActorDto {
+  @ApiProperty() id: string;
+  @ApiProperty() name: string;
+  @ApiPropertyOptional({ nullable: true }) slug: string | null;
+  @ApiProperty({ example: 'DYNASTY' }) type: string;
+  @ApiProperty({ example: 'BELLIGERENT' }) role: string;
+  @ApiPropertyOptional({ nullable: true }) roleLabel: string | null;
+  @ApiPropertyOptional({ nullable: true }) startYear: number | null;
+  @ApiPropertyOptional({ nullable: true }) endYear: number | null;
+}
+
 export class PublicEventSummaryDto {
   @ApiProperty() id: string;
   @ApiPropertyOptional({ nullable: true }) slug: string | null;
@@ -157,6 +172,7 @@ export class PublicEventSummaryDto {
   /** Sự kiện cha (vd. cuộc kháng chiến chứa chiến dịch này). */
   @ApiPropertyOptional({ nullable: true }) parentId: string | null;
   @ApiProperty({ type: [PublicEventLinkDto] }) relations: PublicEventLinkDto[];
+  @ApiProperty({ type: [PublicEventActorDto] }) actors: PublicEventActorDto[];
   @ApiPropertyOptional({ nullable: true }) eventDateNote: string | null;
   @ApiPropertyOptional({ nullable: true }) location: string | null;
   @ApiPropertyOptional({ nullable: true }) description: string | null;

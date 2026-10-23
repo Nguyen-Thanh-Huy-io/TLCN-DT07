@@ -153,6 +153,10 @@ export class HistoricalEntityService {
         metadata: Object.keys(finalMetadata).length > 0 ? (finalMetadata as Prisma.InputJsonValue) : Prisma.JsonNull,
         isFeatured: dto.isFeatured ?? false,
         displayOrder: dto.displayOrder ?? 0,
+        startYear: dto.startYear,
+        endYear: dto.endYear,
+        startYear: dto.startYear,
+        endYear: dto.endYear,
         status: dto.status ?? ContentStatus.DRAFT,
         ...(entityType === HistoricalEntityType.PERSON
           ? {

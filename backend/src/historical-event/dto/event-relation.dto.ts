@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { EventRelationType, VerificationStatus } from '@prisma/client';
+import { VerificationStatus } from '@prisma/client';
 import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class CreateEventRelationDto {
@@ -12,13 +12,13 @@ export class CreateEventRelationDto {
   targetEventId: string;
 
   @ApiProperty({
-    description: 'Loại quan hệ ngữ nghĩa / nhân quả giữa hai sự kiện',
-    enum: EventRelationType,
-    example: EventRelationType.CAUSES,
+    description:
+      'Mã loại quan hệ trong danh mục EVENT_RELATION (thêm loại mới ở "Danh mục dùng chung")',
+    example: 'CAUSES',
   })
-  @IsEnum(EventRelationType, { message: 'relationType không hợp lệ' })
+  @IsString()
   @IsNotEmpty({ message: 'relationType không được để trống' })
-  relationType: EventRelationType;
+  relationType: string;
 
   @ApiPropertyOptional({
     description: 'Giải thích, mô tả chi tiết mối quan hệ nhân quả',
@@ -81,8 +81,8 @@ export class EventRelationResponseDto {
   @ApiProperty()
   targetEventId: string;
 
-  @ApiProperty({ enum: EventRelationType })
-  relationType: EventRelationType;
+  @ApiProperty({ example: 'CAUSES' })
+  relationType: string;
 
   @ApiPropertyOptional()
   description?: string;
@@ -116,8 +116,8 @@ export class EventGraphEdgeDto {
   @ApiProperty()
   target: string;
 
-  @ApiProperty({ enum: EventRelationType })
-  relationType: EventRelationType;
+  @ApiProperty({ example: 'CAUSES' })
+  relationType: string;
 
   @ApiPropertyOptional()
   label?: string;

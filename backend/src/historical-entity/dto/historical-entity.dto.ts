@@ -13,8 +13,7 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContentStatus, FigureRole, HistoricalEntityType, MediaType } from '@prisma/client';
-import { EntityRelationType } from '../historical-entity.constant';
+import { ContentStatus, HistoricalEntityType, MediaType } from '@prisma/client';
 
 export class CreateHistoricalEntityDto {
   @ApiPropertyOptional({
@@ -164,15 +163,15 @@ export class CreateHistoricalEntityDto {
   titles?: string[];
 
   @ApiPropertyOptional({
-    enum: FigureRole,
     isArray: true,
-    example: [FigureRole.GENERAL, FigureRole.SCHOLAR],
-    description: 'Vai trò lịch sử, một nhân vật có thể có nhiều vai trò (Dành cho Person)',
+    example: ['GENERAL', 'SCHOLAR'],
+    description:
+      'Mã vai trò lịch sử trong danh mục FIGURE_ROLE; một nhân vật có thể có nhiều vai trò (Dành cho Person)',
   })
   @IsArray()
-  @IsEnum(FigureRole, { each: true })
+  @IsString({ each: true })
   @IsOptional()
-  roles?: FigureRole[];
+  roles?: string[];
 
   @ApiPropertyOptional({
     example: 'Sinh ra trong hoàng tộc nhà Trần, ông sớm nổi tiếng văn võ song toàn...',
@@ -359,13 +358,13 @@ export class CreateEntityRelationDto {
   targetEntityId: string;
 
   @ApiProperty({
-    enum: EntityRelationType,
-    example: EntityRelationType.LEADER_OF,
-    description: 'Loại quan hệ ngữ nghĩa giữa 2 thực thể',
+    example: 'LEADER_OF',
+    description:
+      'Mã loại quan hệ trong danh mục ENTITY_RELATION (thêm loại mới ở "Danh mục dùng chung")',
   })
-  @IsEnum(EntityRelationType)
+  @IsString()
   @IsNotEmpty()
-  relationType: EntityRelationType;
+  relationType: string;
 
   @ApiPropertyOptional({
     example: 1285,
@@ -518,7 +517,7 @@ export class EntityRelationResponseDto {
   @ApiProperty() id: string;
   @ApiProperty() sourceEntityId: string;
   @ApiProperty() targetEntityId: string;
-  @ApiProperty({ enum: EntityRelationType }) relationType: EntityRelationType;
+  @ApiProperty({ example: 'LEADER_OF' }) relationType: string;
   @ApiPropertyOptional({ nullable: true }) startYear?: number | null;
   @ApiPropertyOptional({ nullable: true }) endYear?: number | null;
   @ApiPropertyOptional({ nullable: true }) note?: string | null;

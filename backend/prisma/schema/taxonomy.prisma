@@ -53,11 +53,13 @@ model TaxonomyTerm {
   parent   TaxonomyTerm?  @relation("TaxonomyTermHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children TaxonomyTerm[] @relation("TaxonomyTermHierarchy")
 
-  sitesByType         HistoricalSite[]        @relation("SiteTypeTerm")
-  sitesByPreservation HistoricalSite[]        @relation("SitePreservationTerm")
-  sitesByRank         HistoricalSite[]        @relation("SiteRankTerm")
-  periodsByRegion     Period[]                @relation("PeriodRegionTerm")
-  eventEntityRoles    HistoricalEventEntity[] @relation("EventEntityRoleTerm")
+  sitesByType         HistoricalSite[]           @relation("SiteTypeTerm")
+  sitesByPreservation HistoricalSite[]           @relation("SitePreservationTerm")
+  sitesByRank         HistoricalSite[]           @relation("SiteRankTerm")
+  periodsByRegion     Period[]                   @relation("PeriodRegionTerm")
+  eventEntityRoles    HistoricalEventEntity[]    @relation("EventEntityRoleTerm")
+  entityRelations     HistoricalEntityRelation[] @relation("EntityRelationTypeTerm")
+  eventRelations      HistoricalEventRelation[]  @relation("EventRelationTypeTerm")
 
   @@unique([groupCode, code])
   @@index([groupCode, isActive])

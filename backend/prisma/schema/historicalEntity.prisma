@@ -46,18 +46,22 @@ model HistoricalEntity {
 
 // Bảng con chuyên biệt cho Thực thể dạng Nhân vật lịch sử (1-1 với HistoricalEntity)
 model Person {
-  entityId       String       @id @map("entity_id")
-  birthYear      Int?         @map("birth_year")
-  deathYear      Int?         @map("death_year")
-  birthDateLabel String?      @map("birth_date_label") @db.VarChar(100)
-  deathDateLabel String?      @map("death_date_label") @db.VarChar(100)
-  biography      String?      @db.Text
-  occupation     String?      @db.VarChar(255)
-  titles         String[]     @default([])
-  roles          FigureRole[] @default([])
+  entityId       String   @id @map("entity_id")
+  birthYear      Int?     @map("birth_year")
+  deathYear      Int?     @map("death_year")
+  birthDateLabel String?  @map("birth_date_label") @db.VarChar(100)
+  deathDateLabel String?  @map("death_date_label") @db.VarChar(100)
+  biography      String?  @db.Text
+  occupation     String?  @db.VarChar(255)
+  titles         String[] @default([])
+  /// Mã vai trò nhân vật (nhóm FIGURE_ROLE trong danh mục dùng chung) — thêm vai trò mới từ CMS.
+  roles          String[] @default([])
+  /// Id tương ứng của roles, trigger tự đồng bộ.
+  roleIds        String[] @default([]) @map("role_ids")
 
   entity HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
 
+  @@index([roleIds], type: Gin)
   @@map("persons")
 }
 
@@ -102,16 +106,20 @@ model HistoricalEntityRelation {
   sourceEntityId String   @map("source_entity_id")
   targetEntityId String   @map("target_entity_id")
   relationType   String   @map("relation_type") @db.VarChar(50)
+  /// Loại quan hệ theo danh mục ENTITY_RELATION — trigger gắn theo mã relation_type.
+  relationTypeId String?  @map("relation_type_id")
   startYear      Int?     @map("start_year")
   endYear        Int?     @map("end_year")
   note           String?  @db.Text
   createdAt      DateTime @default(now()) @map("created_at")
 
   // Relations
-  sourceEntity HistoricalEntity @relation("SourceEntityRelation", fields: [sourceEntityId], references: [id], onDelete: Cascade)
-  targetEntity HistoricalEntity @relation("TargetEntityRelation", fields: [targetEntityId], references: [id], onDelete: Cascade)
+  sourceEntity     HistoricalEntity @relation("SourceEntityRelation", fields: [sourceEntityId], references: [id], onDelete: Cascade)
+  targetEntity     HistoricalEntity @relation("TargetEntityRelation", fields: [targetEntityId], references: [id], onDelete: Cascade)
+  relationTypeTerm TaxonomyTerm?    @relation("EntityRelationTypeTerm", fields: [relationTypeId], references: [id], onDelete: SetNull)
 
   @@unique([sourceEntityId, targetEntityId, relationType])
+  @@index([relationTypeId])
   @@index([sourceEntityId])
   @@index([targetEntityId])
   @@index([relationType])

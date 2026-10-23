@@ -44,6 +44,8 @@ const CATEGORY_TERMS = [
   { id: 't-soc', groupCode: 'EVENT_CATEGORY', code: 'SOCIETY_CULTURE', label: 'Văn hóa – Xã hội', parentId: null, aliases: [], meta: { legacyCategory: 'CULTURE_SCIENCE' } },
   { id: 't-legend', groupCode: 'EVENT_CATEGORY', code: 'LEGEND', label: 'Truyền thuyết', parentId: 't-soc', aliases: [], meta: null },
   { id: 't-other', groupCode: 'EVENT_CATEGORY', code: 'OTHER', label: 'Khác', parentId: null, aliases: [], meta: null },
+  // Nhóm khác cùng bảng: loại quan hệ sự kiện (chỉ khớp khi lọc theo nhóm EVENT_RELATION).
+  { id: 't-causes', groupCode: 'EVENT_RELATION', code: 'CAUSES', label: 'Là nguyên nhân của', parentId: null, aliases: ['gây ra'], meta: null },
 ];
 
 describe('HistoricalEventService (loại sự kiện theo danh mục dùng chung)', () => {
@@ -350,14 +352,24 @@ describe('HistoricalEventService (loại sự kiện theo danh mục dùng chung
         relationType: 'LEADS_TO',
       });
 
+      // Alias "gây ra" được quy về mã chuẩn CAUSES của danh mục EVENT_RELATION.
       const res = await service.addRelation('event-uuid-1', {
         targetEventId: 'event-uuid-2',
-        relationType: 'LEADS_TO' as any,
+        relationType: 'gây ra',
         description: 'Chiến thắng dẫn tới hòa bình',
       });
 
       expect(res.id).toBe('rel-1');
-      expect(mockRepository.addRelation).toHaveBeenCalled();
+      expect(mockRepository.addRelation).toHaveBeenCalledWith(
+        expect.objectContaining({ relationType: 'CAUSES' }),
+      );
+    });
+
+    it('từ chối loại quan hệ không có trong danh mục', async () => {
+      mockRepository.findById.mockResolvedValue(mockEvent);
+      await expect(
+        service.addRelation('event-uuid-1', { targetEventId: 'event-uuid-2', relationType: 'LEADS_TO' }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('xóa quan hệ thành công', async () => {

@@ -124,7 +124,14 @@ describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
         { provide: RedisService, useValue: mockRedis },
         { provide: CustomLoggerService, useValue: mockLogger },
         { provide: SlugService, useValue: mockSlugService },
-        { provide: TaxonomyService, useValue: { syncSiteTerms: jest.fn() } },
+        {
+          provide: TaxonomyService,
+          useValue: {
+            syncSiteTerms: jest.fn(),
+            requireTermCode: jest.fn(async (_g: string, v: string) => v),
+            requireTermCodes: jest.fn(async (_g: string, v: string[]) => v),
+          },
+        },
       ],
     }).compile();
 

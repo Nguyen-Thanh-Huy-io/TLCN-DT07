@@ -100,7 +100,14 @@ export class TaxonomyService {
       (await this.prisma.historicalEvent.count({
         where: { categoryIds: { has: id } },
       })) +
-      (await this.prisma.historicalEventEntity.count({ where: { roleId: id } }));
+      (await this.prisma.historicalEventEntity.count({ where: { roleId: id } })) +
+      (await this.prisma.historicalEntityRelation.count({
+        where: { relationTypeId: id },
+      })) +
+      (await this.prisma.historicalEventRelation.count({
+        where: { relationTypeId: id },
+      })) +
+      (await this.prisma.person.count({ where: { roleIds: { has: id } } }));
     if (used > 0)
       throw new ConflictException(TAXONOMY_MESSAGES.TERM_IN_USE(used));
     await this.prisma.taxonomyTerm.delete({ where: { id } });
@@ -209,6 +216,33 @@ export class TaxonomyService {
       .filter((t) => t.id === codeOrId || t.code === codeOrId)
       .map((t) => t.id);
     return roots.length ? descendantIds(terms, roots) : [];
+  }
+
+  /** Mã chuẩn của một giá trị (khớp mã / nhãn / alias); không thuộc nhóm thì báo lỗi 400. */
+  async requireTermCode(group: string, raw: string) {
+    const [code] = await this.requireTermCodes(group, [raw]);
+    return code;
+  }
+
+  /** Như requireTermCode cho nhiều giá trị (bỏ trùng, giữ thứ tự). */
+  async requireTermCodes(group: string, raws: string[]) {
+    if (!raws.length) return [];
+    const terms = await this.prisma.taxonomyTerm.findMany({
+      where: { groupCode: group },
+    });
+    const codes: string[] = [];
+    const unknown: string[] = [];
+    for (const raw of raws) {
+      const term = this.matchTerm(terms, group, raw, () => null);
+      if (!term) unknown.push(raw);
+      else if (!codes.includes(term.code)) codes.push(term.code);
+    }
+    if (unknown.length) {
+      throw new BadRequestException(
+        TAXONOMY_MESSAGES.UNKNOWN_TERMS(group, unknown),
+      );
+    }
+    return codes;
   }
 
   async resolveTermId(group: string, raw: string | null | undefined) {

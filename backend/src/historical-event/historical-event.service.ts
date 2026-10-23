@@ -18,6 +18,7 @@ import {
 } from './historical-event.constant';
 import type { IHistoricalEventRepository } from './repositories/historical-event.repository.interface';
 import { TaxonomyService } from '../taxonomy/taxonomy.service';
+import { TAXONOMY_GROUPS } from '../taxonomy/taxonomy.constant';
 import { normalizeEventMetadata } from '../taxonomy/event-category.util';
 import {
   CreateHistoricalEventDomainModel,
@@ -458,7 +459,11 @@ export class HistoricalEventService {
     const relation = await this.repository.addRelation({
       sourceEventId,
       targetEventId: dto.targetEventId,
-      relationType: dto.relationType,
+      // Mã / nhãn / alias → mã chuẩn trong danh mục EVENT_RELATION; không có thì 400.
+      relationType: await this.taxonomy.requireTermCode(
+        TAXONOMY_GROUPS.EVENT_RELATION,
+        dto.relationType,
+      ),
       description: dto.description,
       status: dto.status,
       sourceReference: dto.sourceReference,

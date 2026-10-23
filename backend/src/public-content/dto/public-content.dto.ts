@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
-import { EventCategory, FigureRole, TopicIcon } from '@prisma/client';
+import { EventCategory, TopicIcon } from '@prisma/client';
 import { LandingSection } from '../public-content.constant';
 import type { HeritageProfile } from '../mappers/heritage-profile.mapper';
 
@@ -83,7 +83,8 @@ export class PublicFigureLegacyDto {
 }
 
 export class PublicFigureProfileDto extends PublicFigureDto {
-  @ApiProperty({ enum: FigureRole, isArray: true }) roles: FigureRole[];
+  /** Mã vai trò trong danh mục FIGURE_ROLE (nhãn lấy từ /public/taxonomies). */
+  @ApiProperty({ isArray: true, example: ['GENERAL'] }) roles: string[];
   @ApiProperty({ type: PublicFigureLegacyDto }) legacy: PublicFigureLegacyDto;
   @ApiProperty({ type: [String] }) aliases: string[];
   @ApiPropertyOptional({ nullable: true }) birthDateLabel: string | null;

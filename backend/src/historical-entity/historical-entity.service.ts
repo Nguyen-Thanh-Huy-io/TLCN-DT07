@@ -16,6 +16,7 @@ import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { SlugService } from '../common/services/slug.service';
 import { TaxonomyService } from '../taxonomy/taxonomy.service';
+import { TAXONOMY_GROUPS } from '../taxonomy/taxonomy.constant';
 import { PUBLIC_LANDING_CACHE_KEY } from '../common/constants/cache-keys.constant';
 import {
   CreateEntityMediaDto,
@@ -163,7 +164,10 @@ export class HistoricalEntityService {
                   deathDateLabel: dto.deathDateLabel?.trim(),
                   occupation: dto.occupation?.trim(),
                   titles: dto.titles ?? [],
-                  roles: dto.roles ?? [],
+                  roles: await this.taxonomy.requireTermCodes(
+                    TAXONOMY_GROUPS.FIGURE_ROLE,
+                    dto.roles ?? [],
+                  ),
                   biography: dto.biography?.trim(),
                 },
               },
@@ -402,7 +406,7 @@ export class HistoricalEntityService {
       deathDateLabel: dLabel,
       occupation,
       titles,
-      roles,
+      roles: rawRoles,
       biography,
       siteType,
       address,
@@ -416,6 +420,15 @@ export class HistoricalEntityService {
       statusNote,
       ...baseDto
     } = dto;
+
+    // Vai trò nhân vật theo danh mục FIGURE_ROLE (mã / nhãn / alias → mã chuẩn).
+    const roles =
+      rawRoles === undefined
+        ? undefined
+        : await this.taxonomy.requireTermCodes(
+            TAXONOMY_GROUPS.FIGURE_ROLE,
+            rawRoles,
+          );
 
     const hasPersonUpdates =
       bYear !== undefined ||
@@ -568,7 +581,10 @@ export class HistoricalEntityService {
       data: {
         sourceEntityId,
         targetEntityId: dto.targetEntityId,
-        relationType: dto.relationType,
+        relationType: await this.taxonomy.requireTermCode(
+          TAXONOMY_GROUPS.ENTITY_RELATION,
+          dto.relationType,
+        ),
         startYear: dto.startYear,
         endYear: dto.endYear,
         note: dto.note?.trim(),

@@ -113,17 +113,22 @@ model HistoricalEventRelation {
   id              String             @id @default(uuid())
   sourceEventId   String             @map("source_event_id")
   targetEventId   String             @map("target_event_id")
-  relationType    EventRelationType  @default(CAUSES) @map("relation_type")
+  /// Mã loại quan hệ (nhóm EVENT_RELATION trong danh mục dùng chung) — thêm loại mới từ CMS.
+  relationType    String             @default("CAUSES") @map("relation_type") @db.VarChar(50)
+  /// Id tương ứng, trigger gắn theo mã relation_type.
+  relationTypeId  String?            @map("relation_type_id")
   description     String?            @db.Text
   status          VerificationStatus @default(VERIFIED)
   sourceReference String?            @map("source_reference") @db.Text
   createdAt       DateTime           @default(now()) @map("created_at")
 
   // Relations
-  sourceEvent HistoricalEvent @relation("SourceEventRelation", fields: [sourceEventId], references: [id], onDelete: Cascade)
-  targetEvent HistoricalEvent @relation("TargetEventRelation", fields: [targetEventId], references: [id], onDelete: Cascade)
+  sourceEvent      HistoricalEvent @relation("SourceEventRelation", fields: [sourceEventId], references: [id], onDelete: Cascade)
+  targetEvent      HistoricalEvent @relation("TargetEventRelation", fields: [targetEventId], references: [id], onDelete: Cascade)
+  relationTypeTerm TaxonomyTerm?   @relation("EventRelationTypeTerm", fields: [relationTypeId], references: [id], onDelete: SetNull)
 
   @@unique([sourceEventId, targetEventId, relationType])
+  @@index([relationTypeId])
   @@index([sourceEventId])
   @@index([targetEventId])
   @@index([relationType])

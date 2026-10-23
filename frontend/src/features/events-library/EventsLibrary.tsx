@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowDownUp, ArrowRight, History, MapPin, Search, SlidersHorizontal, Users, X } from 'lucide-react';
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from '@/components/filters/ChipFilter';
@@ -8,6 +8,8 @@ import { EVENT_CATEGORY_LABELS, EventCategory } from '@/constants/enums';
 import { formatYear, normalizeSearch, shortPeriodName } from '@/features/search/search-index';
 import type { PublicEventSummaryDto, PublicPeriodDto } from '@/services/entities/landing.service';
 import { regionLabel, sortedRegions } from '@/utils/region.utils';
+import type { TaxonomyTermItem } from '@/services/entities/taxonomy.service';
+import { ancestorChain, flattenTree, loadPublicTaxonomy } from '@/features/taxonomy/taxonomy-tree';
 import './events-library.css';
 
 /** Giá trị "chưa gắn" dùng chung cho nhóm thời kỳ. */
@@ -39,11 +41,13 @@ interface EventRow {
   region: string;
   haystack: string;
   linkFlags: Set<LinkKey>;
+  /** Loại đã gắn và mọi loại cha của chúng — lọc theo nút cha ra cả nút con. */
+  categoryPath: Set<string>;
 }
 
 const categoryLabel = (c: string) => EVENT_CATEGORY_LABELS[c as EventCategory] ?? c;
 
-function buildRows(events: PublicEventSummaryDto[], periods: PublicPeriodDto[]): EventRow[] {
+function buildRows(events: PublicEventSummaryDto[], periods: PublicPeriodDto[], terms: TaxonomyTermItem[]): EventRow[] {
   const bySlug = new Map(periods.map((p) => [p.slug, p]));
   const byId = new Map(periods.map((p) => [p.id, p]));
   return events.map((event) => {
@@ -62,6 +66,7 @@ function buildRows(events: PublicEventSummaryDto[], periods: PublicPeriodDto[]):
         [event.title, event.description ?? '', event.location ?? '', ...event.figures.map((f) => f.name), String(event.startYear)].join(' '),
       ),
       linkFlags: flags,
+      categoryPath: new Set((event.categoryIds ?? []).flatMap((id) => ancestorChain(terms, id).map((t) => t.id))),
     };
   });
 }
@@ -69,7 +74,7 @@ function buildRows(events: PublicEventSummaryDto[], periods: PublicPeriodDto[]):
 function matches(row: EventRow, f: EventFilters, needle: string): boolean {
   if (f.regions.length && !f.regions.includes(row.region)) return false;
   if (f.eras.length && !f.eras.includes(row.eraId)) return false;
-  if (f.categories.length && !f.categories.includes(row.event.category)) return false;
+  if (f.categories.length && !f.categories.some((c) => row.categoryPath.has(c))) return false;
   if (f.links.length && !f.links.some((l) => row.linkFlags.has(l as LinkKey))) return false;
   return !needle || row.haystack.includes(needle);
 }
@@ -79,7 +84,17 @@ function matches(row: EventRow, f: EventFilters, needle: string): boolean {
  * thời kỳ, nhân vật hay địa danh (những sự kiện này không xuất hiện trên Dòng thời gian).
  */
 export function EventsLibrary({ events, periods }: { events: PublicEventSummaryDto[]; periods: PublicPeriodDto[] }) {
-  const rows = useMemo(() => buildRows(events, periods), [events, periods]);
+  // Loại sự kiện theo cây "Danh mục dùng chung"; chưa tải xong thì thẻ dùng nhãn enum cũ.
+  const [categoryTerms, setCategoryTerms] = useState<TaxonomyTermItem[]>([]);
+  useEffect(() => {
+    loadPublicTaxonomy('EVENT_CATEGORY')
+      .then((group) => setCategoryTerms(group?.terms ?? []))
+      .catch(() => setCategoryTerms([]));
+  }, []);
+  const rows = useMemo(() => buildRows(events, periods, categoryTerms), [events, periods, categoryTerms]);
+  const termLabel = (id: string) => categoryTerms.find((t) => t.id === id)?.label ?? id;
+  const primaryLabel = (event: PublicEventSummaryDto) =>
+    event.categoryIds?.[0] && categoryTerms.length ? termLabel(event.categoryIds[0]) : categoryLabel(event.category);
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<EventFilters>(EMPTY);
   const [sort, setSort] = useState<Sort>('year-asc');
@@ -113,7 +128,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
   const chips = [
     ...filters.regions.map((v) => ({ key: 'regions' as const, value: v, label: v })),
     ...filters.eras.map((v) => ({ key: 'eras' as const, value: v, label: eras.find(([id]) => id === v)?.[1].label ?? v })),
-    ...filters.categories.map((v) => ({ key: 'categories' as const, value: v, label: categoryLabel(v) })),
+    ...filters.categories.map((v) => ({ key: 'categories' as const, value: v, label: termLabel(v) })),
     ...filters.links.map((v) => ({ key: 'links' as const, value: v, label: LINK_OPTIONS[v as LinkKey] })),
   ];
   const active = filterCount(filters);
@@ -196,7 +211,10 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
             const eraOptions = eras
               .filter(([id, e]) => !draft.regions.length || draft.eras.includes(id) || draft.regions.includes(e.region))
               .map(([id, e]) => ({ value: id, label: e.label, hint: `${count((r) => r.eraId === id)} sự kiện` }));
-            const categories = [...new Set(rows.map((r) => r.event.category))];
+            // Cây loại: chỉ hiện nút có sự kiện (tính cả nút con), cha đứng trước con.
+            const categories = flattenTree(categoryTerms)
+              .map(({ term, depth }) => ({ term, depth, n: count((r) => r.categoryPath.has(term.id)) }))
+              .filter((c) => c.n > 0);
             const links = (Object.keys(LINK_OPTIONS) as LinkKey[]).filter((k) => count((r) => r.linkFlags.has(k)) > 0);
             return (
               <>
@@ -215,7 +233,11 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
                 </FilterSection>
                 <FilterSection title="Danh mục sự kiện" aside={<PickedCount count={draft.categories.length} />}>
                   <ChipGroup
-                    options={categories.map((c) => ({ value: c, label: categoryLabel(c) }))}
+                    options={categories.map(({ term, depth, n }) => ({
+                      value: term.id,
+                      label: depth > 0 ? `› ${term.label}` : term.label,
+                      hint: `${n} sự kiện`,
+                    }))}
                     selected={draft.categories}
                     onToggle={(v) => toggle('categories', v)}
                     searchLabel="Tìm danh mục..."
@@ -252,7 +274,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
                   <div className="el-main">
                     {href ? <Link href={href}>{event.title}</Link> : <strong>{event.title}</strong>}
                     <div className="el-meta">
-                      <span className="el-tag">{categoryLabel(event.category)}</span>
+                      <span className="el-tag">{primaryLabel(event)}</span>
                       <span>{eraName ? `${eraName} · ${region}` : 'Chưa gắn thời kỳ'}</span>
                       {event.figures.length > 0 && (
                         <span>

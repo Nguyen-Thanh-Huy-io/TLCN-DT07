@@ -27,13 +27,14 @@ import {
   EntityType,
   LearningPathType,
   EventCategory,
-  EVENT_CATEGORY_LABELS,
   EventRelationType,
   EVENT_RELATION_TYPE_LABELS,
   VerificationStatus,
   VERIFICATION_STATUS_LABELS,
 } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
+import { TaxonomyApiService, type TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
+import { EventCategoryPanel } from './EventCategoryPanel';
 import {
   HistoricalEventApiService,
   SaveHistoricalEventPayload,
@@ -144,7 +145,11 @@ export function EventEditor({ eventId }: EventEditorProps) {
 
   // Mục 1. Thông tin cơ bản & Phân cấp cây sự kiện
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<EventCategory>(EventCategory.BATTLE);
+  // Loại sự kiện theo "Danh mục dùng chung" (cây, nhiều loại; phần tử đầu là loại chính).
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [categoryGroup, setCategoryGroup] = useState<TaxonomyGroupItem>();
+  /** Mã enum cũ của bản ghi chưa có categoryIds — quy đổi khi danh mục tải xong. */
+  const [legacyCategory, setLegacyCategory] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<Record<string, any>>({});
   const [summary, setSummary] = useState('');
   const [description, setDescription] = useState('');
@@ -264,6 +269,21 @@ export function EventEditor({ eventId }: EventEditorProps) {
     }
   }, [autoDisplayText, isCustomDisplayMode]);
 
+  useEffect(() => {
+    TaxonomyApiService.getGroups(['EVENT_CATEGORY'])
+      .then(([group]) => setCategoryGroup(group))
+      .catch((err) => console.warn('Failed to fetch event categories:', err));
+  }, []);
+
+  // Bản ghi cũ chỉ có mã enum: chọn sẵn loại cùng mã (hoặc alias) trong danh mục.
+  useEffect(() => {
+    if (!legacyCategory || !categoryGroup) return;
+    const lower = legacyCategory.toLowerCase();
+    const term = categoryGroup.terms.find((t) => t.code === legacyCategory || t.aliases.includes(lower));
+    if (term) setCategoryIds((ids) => (ids.length ? ids : [term.id]));
+    setLegacyCategory(null);
+  }, [legacyCategory, categoryGroup]);
+
   const loadReferenceDataAndDetail = useCallback(async () => {
     try {
       setLoadingInitial(true);
@@ -357,7 +377,8 @@ export function EventEditor({ eventId }: EventEditorProps) {
           setIsSubEvent(false);
         }
         setStatus(detail.status || ContentStatus.PUBLISHED);
-        setCategory((detail.category as EventCategory) || EventCategory.BATTLE);
+        if (detail.categoryIds?.length) setCategoryIds(detail.categoryIds);
+        else setLegacyCategory(detail.category || null);
         setMetadata(
           detail.metadata && typeof detail.metadata === 'object' && !Array.isArray(detail.metadata)
             ? (detail.metadata as Record<string, any>)
@@ -770,7 +791,8 @@ export function EventEditor({ eventId }: EventEditorProps) {
   const handleFillSampleData = () => {
     const sampleTitle = 'Mở tuyến đường vận tải chiến lược Trường Sơn - Đường Hồ Chí Minh';
     setTitle(sampleTitle);
-    setCategory(EventCategory.BATTLE);
+    const battle = categoryGroup?.terms.find((t) => t.code === EventCategory.BATTLE);
+    if (battle) setCategoryIds([battle.id]);
     setMetadata({
       belligerents: ['Quân đội Nhân dân Việt Nam', 'Quân đội Hoa Kỳ và Việt Nam Cộng hòa'],
       commanders: ['Võ Bẩm', 'Đồng Sỹ Nguyên'],
@@ -973,7 +995,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
       parentId: parentId ? parentId : null,
       thumbnailUrl: thumbnailUrl.trim() || undefined,
       status: action === 'PUBLISH' ? ContentStatus.PUBLISHED : targetStatus,
-      category,
+      categoryIds,
       metadata: Object.keys(mergedMetadata).length > 0 ? mergedMetadata : undefined,
       entityIds: selectedEntityIds,
       media: mediaList.map((m, idx) => ({
@@ -1131,26 +1153,19 @@ export function EventEditor({ eventId }: EventEditorProps) {
                 </div>
               </label>
 
-              {/* Thể loại sự kiện & Phân loại sử học */}
-              <label className="block">
+              {/* Loại sự kiện theo cây danh mục dùng chung + thông tin riêng theo loại */}
+              <div className="block">
                 <span className="text-xs font-semibold text-slate-700 block mb-1.5">
-                  Thể loại sự kiện <b className="text-rose-500">*</b>
+                  Loại sự kiện <b className="text-rose-500">*</b>
                 </span>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as EventCategory)}
-                  className="w-full text-xs font-semibold px-3.5 py-2.5 bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 cursor-pointer"
-                >
-                  {Object.values(EventCategory).map((cat) => (
-                    <option key={cat} value={cat}>
-                      {EVENT_CATEGORY_LABELS[cat] || cat}
-                    </option>
-                  ))}
-                </select>
-                <span className="text-[10px] text-slate-400 mt-1 block">
-                  Phân loại chuẩn theo 1.500+ mẫu sử liệu thực tế để kích hoạt các trường dữ liệu chuyên biệt tương ứng.
-                </span>
-              </label>
+                <EventCategoryPanel
+                  group={categoryGroup}
+                  value={categoryIds}
+                  onChange={setCategoryIds}
+                  metadata={metadata}
+                  onMetadataChange={setMetadata}
+                />
+              </div>
 
               {/* Tóm tắt ngắn: Chiều cao ban đầu 130px, tự co giãn, có thanh cuộn và đếm ký tự */}
               <label className="block">

@@ -44,6 +44,8 @@ export interface HistoricalEventItem {
   displayOrder: number;
   status: ContentStatus;
   category?: EventCategory;
+  /** Id loại sự kiện (danh mục EVENT_CATEGORY), phần tử đầu là loại chính. */
+  categoryIds?: string[];
   metadata?: Record<string, any> | null;
   createdAt?: string;
   updatedAt?: string;
@@ -93,7 +95,8 @@ export interface HistoricalEventQueryParams {
   parentId?: string;
   topLevelOnly?: boolean;
   status?: ContentStatus;
-  category?: EventCategory;
+  /** Mã hoặc id loại sự kiện; gồm cả loại con. */
+  category?: string;
   startYear?: number;
 }
 
@@ -114,6 +117,7 @@ export interface SaveHistoricalEventPayload {
   summary?: string;
   description?: string;
   category?: EventCategory;
+  categoryIds?: string[];
   metadata?: Record<string, any> | null;
   thumbnailUrl?: string;
   displayOrder?: number;

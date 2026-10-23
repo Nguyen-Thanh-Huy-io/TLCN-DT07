@@ -304,6 +304,8 @@ export interface PublicEventSummaryDto {
   description: string | null;
   imageUrl: string | null;
   category: string;
+  /** Id loại trong danh mục EVENT_CATEGORY (phần tử đầu là loại chính). */
+  categoryIds?: string[];
   periodSlug: string | null;
   figures: PublicFigureDto[];
   locations: PublicLocationSummaryDto[];
@@ -465,6 +467,8 @@ export interface PublicFigureEventDto {
   eventDateNote: string | null;
   description: string | null;
   category: string;
+  /** Id loại trong danh mục EVENT_CATEGORY (phần tử đầu là loại chính). */
+  categoryIds?: string[];
   periodSlug: string | null;
   role: string;
   roleLabel: string | null;

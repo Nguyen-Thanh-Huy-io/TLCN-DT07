@@ -9,6 +9,7 @@ import {
   type TaxonomyGroupItem,
   type TaxonomyTermItem,
 } from '@/services/entities/taxonomy.service';
+import { FIELD_TYPE_LABELS, fieldsOf, flattenTree, type TaxonomyFieldDef } from './taxonomy-tree';
 
 interface Draft {
   id: string | null;
@@ -19,9 +20,28 @@ interface Draft {
   displayOrder: string;
   aliases: string;
   isActive: boolean;
+  parentId: string;
+  /** Trường thông tin riêng (meta.fields) — nhóm loại sự kiện. */
+  fields: TaxonomyFieldDef[];
+  meta: Record<string, any> | null;
 }
 
-const EMPTY_DRAFT: Draft = { id: null, code: '', label: '', inverseLabel: '', icon: '', displayOrder: '0', aliases: '', isActive: true };
+const EMPTY_DRAFT: Draft = {
+  id: null,
+  code: '',
+  label: '',
+  inverseLabel: '',
+  icon: '',
+  displayOrder: '0',
+  aliases: '',
+  isActive: true,
+  parentId: '',
+  fields: [],
+  meta: null,
+};
+
+/** Nhóm có trường thông tin riêng khai báo theo từng giá trị (kế thừa theo cây). */
+const GROUPS_WITH_FIELDS = new Set(['EVENT_CATEGORY']);
 
 const toDraft = (t: TaxonomyTermItem): Draft => ({
   id: t.id,
@@ -32,6 +52,9 @@ const toDraft = (t: TaxonomyTermItem): Draft => ({
   displayOrder: String(t.displayOrder),
   aliases: t.aliases.join(', '),
   isActive: t.isActive,
+  parentId: t.parentId ?? '',
+  fields: fieldsOf(t),
+  meta: t.meta,
 });
 
 const FIELD = 'h-9 w-full rounded-md border border-slate-200 bg-white px-2.5 text-sm outline-none focus:border-emerald-500 disabled:bg-slate-50';
@@ -68,6 +91,13 @@ export function TaxonomyManager() {
 
   const group = useMemo(() => groups.find((g) => g.code === activeGroup), [groups, activeGroup]);
   const isRelationGroup = Boolean(group?.code.includes('RELATION'));
+  const hasFields = Boolean(group && GROUPS_WITH_FIELDS.has(group.code));
+  const rows = useMemo(
+    () => (group ? (group.hierarchical ? flattenTree(group.terms) : group.terms.map((term) => ({ term, depth: 0 }))) : []),
+    [group],
+  );
+  const updateField = (index: number, patch: Partial<TaxonomyFieldDef>) =>
+    draft && setDraft({ ...draft, fields: draft.fields.map((f, i) => (i === index ? { ...f, ...patch } : f)) });
 
   const save = async () => {
     if (!draft || !group) return;
@@ -85,6 +115,17 @@ export function TaxonomyManager() {
         .map((a) => a.trim())
         .filter(Boolean),
       isActive: draft.isActive,
+      ...(group.hierarchical ? { parentId: draft.parentId || null } : {}),
+      ...(hasFields
+        ? {
+            meta: {
+              ...(draft.meta ?? {}),
+              fields: draft.fields
+                .map((f) => ({ ...f, key: f.key.trim(), label: f.label.trim() || f.key.trim() }))
+                .filter((f) => f.key),
+            },
+          }
+        : {}),
     };
     setSaving(true);
     try {
@@ -209,6 +250,56 @@ export function TaxonomyManager() {
                   placeholder="thành cổ, thành lũy..."
                 />
               </label>
+              {group.hierarchical && (
+                <label className="text-xs font-semibold text-slate-600 sm:col-span-3">
+                  Thuộc nhóm cha
+                  <select className={FIELD} value={draft.parentId} onChange={(e) => setDraft({ ...draft, parentId: e.target.value })}>
+                    <option value="">— Cấp gốc —</option>
+                    {flattenTree(group.terms)
+                      .filter(({ term }) => term.id !== draft.id)
+                      .map(({ term, depth }) => (
+                        <option key={term.id} value={term.id}>
+                          {'\u00a0\u00a0'.repeat(depth)}
+                          {term.label}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              )}
+              {hasFields && (
+                <div className="space-y-2 sm:col-span-6">
+                  <div className="text-xs font-semibold text-slate-600">
+                    Trường thông tin riêng <span className="font-normal text-slate-400">— nút con tự kế thừa trường của nút cha</span>
+                  </div>
+                  {draft.fields.map((field, i) => (
+                    <div key={i} className="grid gap-2 sm:grid-cols-[1fr_1.4fr_9rem_auto]">
+                      <input className={FIELD} placeholder="Mã (vd. casualties)" value={field.key} onChange={(e) => updateField(i, { key: e.target.value })} />
+                      <input className={FIELD} placeholder="Nhãn hiển thị" value={field.label} onChange={(e) => updateField(i, { label: e.target.value })} />
+                      <select className={FIELD} value={field.type} onChange={(e) => updateField(i, { type: e.target.value as TaxonomyFieldDef['type'] })}>
+                        {Object.entries(FIELD_TYPE_LABELS).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className="px-2 text-xs font-semibold text-slate-400 hover:text-rose-600"
+                        onClick={() => setDraft({ ...draft, fields: draft.fields.filter((_, k) => k !== i) })}
+                      >
+                        Bỏ
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-emerald-700 hover:underline"
+                    onClick={() => setDraft({ ...draft, fields: [...draft.fields, { key: '', label: '', type: 'text' }] })}
+                  >
+                    + Thêm trường
+                  </button>
+                </div>
+              )}
               <label className="flex items-center gap-2 self-end text-xs font-semibold text-slate-600 sm:col-span-1">
                 <input type="checkbox" checked={draft.isActive} onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })} />
                 Đang dùng
@@ -236,13 +327,19 @@ export function TaxonomyManager() {
                 </tr>
               </thead>
               <tbody>
-                {group.terms.map((t) => (
+                {rows.map(({ term: t, depth }) => (
                   <tr key={t.id} className={`border-b border-slate-50 last:border-b-0 ${t.isActive ? '' : 'opacity-60'}`}>
                     <td className="px-4 py-2.5 font-mono text-xs text-slate-400">{t.displayOrder}</td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2.5" style={{ paddingLeft: `${1 + depth * 1.25}rem` }}>
                       <div className="font-semibold text-slate-900">
+                        {depth > 0 && <span className="text-slate-300">└ </span>}
                         {t.icon && t.icon.length <= 3 ? `${t.icon} ` : ''}
                         {t.label}
+                        {fieldsOf(t).length > 0 && (
+                          <span className="ml-1.5 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                            +{fieldsOf(t).length} trường
+                          </span>
+                        )}
                         {t.inverseLabel && <span className="font-normal text-slate-500"> ↔ {t.inverseLabel}</span>}
                       </div>
                       <div className="font-mono text-[11px] text-slate-400">{t.code}</div>

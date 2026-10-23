@@ -11,6 +11,8 @@ export interface TaxonomyTermItem {
   displayOrder: number;
   aliases: string[];
   parentId: string | null;
+  /** Thuộc tính riêng của nhóm (vd. fields — trường thông tin của loại sự kiện). */
+  meta: Record<string, any> | null;
   isActive: boolean;
 }
 
@@ -24,7 +26,7 @@ export interface TaxonomyGroupItem {
 }
 
 export type TaxonomyTermInput = Partial<
-  Pick<TaxonomyTermItem, 'code' | 'label' | 'inverseLabel' | 'description' | 'icon' | 'displayOrder' | 'aliases' | 'parentId' | 'isActive'>
+  Pick<TaxonomyTermItem, 'code' | 'label' | 'inverseLabel' | 'description' | 'icon' | 'displayOrder' | 'aliases' | 'parentId' | 'meta' | 'isActive'>
 > & { groupCode?: string };
 
 const unwrap = <T>(res: { data?: { data?: T } & T }) => (res.data?.data ?? res.data) as T;

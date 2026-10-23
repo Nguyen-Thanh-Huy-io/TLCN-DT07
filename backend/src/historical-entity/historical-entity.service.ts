@@ -155,8 +155,6 @@ export class HistoricalEntityService {
         displayOrder: dto.displayOrder ?? 0,
         startYear: dto.startYear,
         endYear: dto.endYear,
-        startYear: dto.startYear,
-        endYear: dto.endYear,
         status: dto.status ?? ContentStatus.DRAFT,
         ...(entityType === HistoricalEntityType.PERSON
           ? {

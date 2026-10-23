@@ -191,23 +191,6 @@ export class CreateHistoricalEntityDto {
   endYear?: number;
 
   @ApiPropertyOptional({
-    example: 544,
-    description:
-      'Năm bắt đầu tồn tại — triều đại / quốc gia / chính thể, tổ chức, lực lượng (âm = TCN)',
-  })
-  @IsInt()
-  @IsOptional()
-  startYear?: number;
-
-  @ApiPropertyOptional({
-    example: 602,
-    description: 'Năm kết thúc tồn tại (để trống nếu còn tồn tại / chưa rõ)',
-  })
-  @IsInt()
-  @IsOptional()
-  endYear?: number;
-
-  @ApiPropertyOptional({
     example: 'Sinh ra trong hoàng tộc nhà Trần, ông sớm nổi tiếng văn võ song toàn...',
     description: 'Tiểu sử chi tiết (Dành cho Person)',
   })

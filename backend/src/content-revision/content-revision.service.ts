@@ -53,6 +53,19 @@ export function diffPayloads(
     .map((f) => ({ ...f, before: before[f.key] ?? null, after: after[f.key] ?? null }));
 }
 
+/**
+ * Trường biên tập viên thật sự đổi trong bản sửa (so với nội dung lúc bắt đầu sửa); null nếu bản sửa
+ * cũ chưa lưu bản gốc — khi đó coi mọi trường là của bản sửa.
+ */
+function editedKeys(type: RevisionContentType, revision: ContentRevision): string[] | null {
+  const base = revision.basePayload as Payload | null;
+  if (!base) return null;
+  const payload = revision.payload as Payload;
+  return REVISION_FIELDS[type]
+    .map((f) => f.key)
+    .filter((key) => stable(base[key]) !== stable(payload[key]));
+}
+
 @Injectable()
 export class ContentRevisionService {
   constructor(
@@ -94,7 +107,8 @@ export class ContentRevisionService {
     const target = this.targets.get(type);
     const detail = await target.load(contentId);
     // Bản sửa = nội dung hiện tại + phần gửi lên, để so sánh / áp dụng luôn trên đủ trường.
-    const payload = { ...target.toPayload(detail), ...pickFields(type, body) };
+    const live = target.toPayload(detail);
+    const payload = { ...live, ...pickFields(type, body) };
     const existing = await this.findPending(type, contentId);
     const data = {
       title: String(payload.title ?? payload.name ?? target.title(detail) ?? '').slice(0, 255),
@@ -111,6 +125,8 @@ export class ContentRevisionService {
             kind: REVISION_KIND.PROPOSAL,
             status: REVISION_STATUS.PENDING,
             version: (await this.liveVersion(type, contentId)) + 1,
+            // Bản gốc giữ nguyên khi ghi đè bản sửa: luôn là nội dung lúc bắt đầu sửa.
+            basePayload: live as Prisma.InputJsonValue,
           },
         });
     return { revisionPending: true, message: REVISION_MESSAGES.PROPOSED, revision };
@@ -149,8 +165,12 @@ export class ContentRevisionService {
       throw new ForbiddenException(REVISION_MESSAGES.CANNOT_REVIEW_OWN);
     }
     const type = this.assertType(revision.contentType);
+    // Chỉ áp dụng trường biên tập viên đã đổi — không ghi đè thay đổi người duyệt làm trong lúc chờ.
+    const keys = editedKeys(type, revision);
+    const payload = revision.payload as Payload;
+    const toApply = keys ? Object.fromEntries(keys.map((k) => [k, payload[k]])) : payload;
     await this.snapshot(type, revision.contentId, reviewerId);
-    await this.targets.get(type).apply(revision.contentId, revision.payload as Payload);
+    await this.targets.get(type).apply(revision.contentId, toApply);
     return this.prisma.contentRevision.update({
       where: { id },
       data: {
@@ -202,8 +222,23 @@ export class ContentRevisionService {
     return {
       revision: await this.withPeople(revision),
       // before = nội dung đang hiện, after = bản sửa (hoặc phiên bản cũ: thấy khôi phục sẽ đổi gì).
-      changes: diffPayloads(type, current, payload),
+      // Bản sửa có bản gốc: chỉ hiện trường biên tập viên đã đổi (đúng phần sẽ được áp dụng).
+      changes: this.proposalChanges(type, revision, current) ?? diffPayloads(type, current, payload),
     };
+  }
+
+  private proposalChanges(
+    type: RevisionContentType,
+    revision: ContentRevision,
+    current: Payload,
+  ): RevisionChange[] | null {
+    if (revision.kind !== REVISION_KIND.PROPOSAL) return null;
+    const keys = editedKeys(type, revision);
+    if (!keys) return null;
+    const payload = revision.payload as Payload;
+    return REVISION_FIELDS[type]
+      .filter((f) => keys.includes(f.key))
+      .map((f) => ({ ...f, before: current[f.key] ?? null, after: payload[f.key] ?? null }));
   }
 
   /** Danh sách bản sửa chờ duyệt (trang Duyệt bài). */

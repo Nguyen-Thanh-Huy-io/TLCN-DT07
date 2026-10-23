@@ -76,11 +76,24 @@ describe('ContentRevisionService', () => {
 
     const approved = await service.approve(revision.id, 'reviewer');
 
-    expect(apply).toHaveBeenCalledWith('ev-1', { title: 'Trận Bạch Đằng', summary: 'Bản sửa' });
+    expect(apply).toHaveBeenCalledWith('ev-1', { summary: 'Bản sửa' });
     expect(live.summary).toBe('Bản sửa');
     const snapshot = prisma.rows.find((r) => r.kind === 'SNAPSHOT');
     expect(snapshot).toMatchObject({ version: 1, payload: { summary: 'Ngô Quyền đánh tan quân Nam Hán' } });
     expect(approved).toMatchObject({ status: 'APPROVED', reviewerId: 'reviewer', version: 2 });
+  });
+
+  it('duyệt chỉ áp dụng trường biên tập viên đã đổi, không ghi đè sửa trực tiếp của người duyệt', async () => {
+    const { revision } = await service.propose('EVENT', 'ev-1', { summary: 'Bản sửa' }, 'editor');
+    // Người duyệt sửa thẳng tiêu đề trong lúc bản sửa đang chờ.
+    live.title = 'Trận Bạch Đằng năm 938';
+
+    const detail = await service.detail(revision.id);
+    expect(detail.changes.map((c) => c.key)).toEqual(['summary']);
+
+    await service.approve(revision.id, 'reviewer');
+    expect(apply).toHaveBeenLastCalledWith('ev-1', { summary: 'Bản sửa' });
+    expect(live).toMatchObject({ title: 'Trận Bạch Đằng năm 938', summary: 'Bản sửa' });
   });
 
   it('không được tự duyệt bản sửa của chính mình', async () => {

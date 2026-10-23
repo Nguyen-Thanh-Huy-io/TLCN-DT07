@@ -22,6 +22,9 @@ model ContentRevision {
   /// Tiêu đề nội dung tại thời điểm ghi (hiển thị danh sách không cần tra bảng nội dung)
   title       String    @db.VarChar(255)
   payload     Json      @db.JsonB
+  /// PROPOSAL: nội dung lúc biên tập viên bắt đầu sửa — duyệt chỉ áp dụng các trường thật sự đổi so với
+  /// bản này, nên không ghi đè thay đổi người duyệt làm trực tiếp trong lúc bản sửa đang chờ.
+  basePayload Json?     @map("base_payload") @db.JsonB
   /// PROPOSAL: người đề xuất · SNAPSHOT: người thực hiện thay đổi làm bản này thành cũ
   authorId    String?   @map("author_id")
   reviewerId  String?   @map("reviewer_id")

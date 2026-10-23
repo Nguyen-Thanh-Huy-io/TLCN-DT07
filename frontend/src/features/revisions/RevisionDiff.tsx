@@ -137,7 +137,13 @@ function Marked({ mark, title, children }: { mark: Mark; title: ReactNode; child
 }
 
 /** So khớp hai danh sách theo khóa: thêm / bỏ / sửa / đổi vị trí. */
-function matchRows(before: Row[], after: Row[], keyOf: (r: Row, i: number) => string) {
+function matchRows(
+  before: Row[],
+  after: Row[],
+  keyOf: (r: Row, i: number) => string,
+  /** Phần được so (mặc định cả dòng) — bỏ trường ẩn như thứ tự để không báo "Sửa" giả. */
+  view: (r: Row) => unknown = (r) => r,
+) {
   const oldMap = new Map(before.map((r, i) => [keyOf(r, i), { row: r, index: i }]));
   const newKeys = new Set(after.map((r, i) => keyOf(r, i)));
   const keptOld = before.map((r, i) => keyOf(r, i)).filter((k) => newKeys.has(k));
@@ -147,7 +153,7 @@ function matchRows(before: Row[], after: Row[], keyOf: (r: Row, i: number) => st
     const key = keyOf(r, i);
     const old = oldMap.get(key);
     if (!old) out.push({ mark: 'add', after: r, key });
-    else if (stable(old.row) !== stable(r)) out.push({ mark: 'edit', before: old.row, after: r, key });
+    else if (stable(view(old.row)) !== stable(view(r))) out.push({ mark: 'edit', before: old.row, after: r, key });
     else if (keptOld.indexOf(key) !== keptNew.indexOf(key)) out.push({ mark: 'move', before: old.row, after: r, key });
   });
   before.forEach((r, i) => {
@@ -194,15 +200,31 @@ function blockTitle(block: Row) {
   return `${BLOCK_LABELS[type] ?? type}${head ? ` — ${head.slice(0, 90)}${head.length > 90 ? '…' : ''}` : ''}`;
 }
 
+/** Nội dung bài học → danh sách khối: bài cũ lưu chuỗi HTML được coi là một khối "Đoạn văn". */
+function toBlocks(content: unknown): Row[] {
+  if (Array.isArray(content)) return content as Row[];
+  if (typeof content === 'string' && content.trim()) return [{ id: '__html', type: 'TEXT', content }];
+  return [];
+}
+
 function BlocksDiff({ before, after }: { before: unknown; after: unknown }) {
-  const rows = matchRows(
-    Array.isArray(before) ? (before as Row[]) : [],
-    Array.isArray(after) ? (after as Row[]) : [],
-    (r, i) => String(r.id ?? `#${i}`),
-  );
-  if (!rows.length) return <p className="text-xs text-slate-500">Chỉ đổi định dạng bên trong, nội dung chữ không đổi.</p>;
+  const oldBlocks = toBlocks(before);
+  const newBlocks = toBlocks(after);
+  const rows = matchRows(oldBlocks, newBlocks, (r, i) => String(r.id ?? `#${i}`));
+  // Bản sửa làm trống nội dung: cảnh báo rõ, người duyệt không được bỏ sót.
+  const wiped = blockText(oldBlocks).trim() !== '' && blockText(newBlocks).trim() === '';
+  const formatOnly = Array.isArray(before) !== Array.isArray(after) && !wiped;
   return (
     <div className="space-y-2">
+      {wiped && (
+        <p className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-800">
+          ⚠ Bản sửa này làm trống toàn bộ nội dung bài học.
+        </p>
+      )}
+      {formatOnly && (
+        <p className="text-xs text-slate-500">Nội dung chuyển giữa dạng văn bản HTML và dạng khối — đối chiếu kỹ phần chữ bên dưới.</p>
+      )}
+      {!rows.length && <p className="text-xs text-slate-500">Các khối giữ nguyên chữ; chỉ thuộc tính hiển thị của khối thay đổi.</p>}
       {rows.map((r) => (
         <Marked key={r.key + r.mark} mark={r.mark} title={blockTitle((r.after ?? r.before) as Row)}>
           {r.mark === 'edit' && <TextDiff before={blockText(r.before)} after={blockText(r.after)} />}
@@ -220,6 +242,7 @@ function RelationsDiff({ before, after, name }: { before: unknown; after: unknow
     Array.isArray(before) ? (before as Row[]) : [],
     Array.isArray(after) ? (after as Row[]) : [],
     (r) => String(r.entityId),
+    (r) => ({ role: r.role ?? null, roleLabel: r.roleLabel || null, isPrimary: Boolean(r.isPrimary), notes: r.notes || null }),
   );
   const describe = (r?: Row) =>
     r ? `${name(r.role)}${r.roleLabel ? ` · ${r.roleLabel}` : ''}${r.isPrimary ? ' · tiêu biểu' : ''}` : '';
@@ -250,6 +273,7 @@ function MediaDiff({ before, after }: { before: unknown; after: unknown }) {
     Array.isArray(before) ? (before as Row[]) : [],
     Array.isArray(after) ? (after as Row[]) : [],
     (r) => String(r.url),
+    (r) => ({ type: r.type ?? null, caption: r.caption || null }),
   );
   return (
     <div className="space-y-2">

@@ -307,6 +307,11 @@ export interface PublicEventSummaryDto {
   category: string;
   /** Id loại trong danh mục EVENT_CATEGORY (phần tử đầu là loại chính). */
   categoryIds?: string[];
+  /** Năm kết thúc (null = trong một năm / chưa rõ). */
+  endYear?: number | null;
+  parentId?: string | null;
+  /** Quan hệ với sự kiện khác (đồ thị tri thức). */
+  relations?: PublicEventLinkDto[];
   periodSlug: string | null;
   figures: PublicFigureDto[];
   locations: PublicLocationSummaryDto[];
@@ -458,6 +463,13 @@ export async function fetchFigures(): Promise<PublicFigureDto[]> {
   } catch {
     return [];
   }
+}
+
+export interface PublicEventLinkDto {
+  eventId: string;
+  relationType: string;
+  /** OUTGOING: sự kiện này → eventId · INCOMING: eventId → sự kiện này. */
+  direction: 'OUTGOING' | 'INCOMING';
 }
 
 export interface PublicFigureEventDto {

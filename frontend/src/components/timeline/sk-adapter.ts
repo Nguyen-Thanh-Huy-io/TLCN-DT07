@@ -102,7 +102,79 @@ function toTimelineEvent(
     tags: event.location ? [event.location] : [],
     figures: event.figures.map(toTimelineFigure),
     locations: event.locations.map(toTimelineLocation),
+    ...spanOf(event),
+    parentId: event.parentId ?? null,
+    relations: event.relations ?? [],
+    endedByEventId: event.relations?.find((r) => r.relationType === "ENDED_BY" && r.direction === "OUTGOING")?.eventId,
   };
+}
+
+/** Sự kiện kéo dài nhiều năm: năm kết thúc + nhãn khoảng thời gian. */
+function spanOf(event: PublicEventSummaryDto): Pick<TimelineEvent, "endYear" | "spanLabel"> {
+  const end = event.endYear;
+  if (end === null || end === undefined || end <= event.startYear) return {};
+  // Không có năm 0: từ 1 TCN tới 1 SCN là 1 năm.
+  const years = end - event.startYear - (event.startYear < 0 && end > 0 ? 1 : 0);
+  return { endYear: end, spanLabel: `${eraYear(event.startYear)} – ${eraYear(end)} · ${years} năm` };
+}
+
+const eraYear = (year: number) => (year < 0 ? `${Math.abs(year)} TCN` : String(year));
+
+/**
+ * Đặt mốc kết thúc của các sự kiện kéo dài: ở sự kiện "Kết thúc bằng" nếu có, không thì ở năm kết
+ * thúc — trong giai đoạn chứa năm đó (ưu tiên cùng thời kỳ), thêm mốc riêng nếu năm đó chưa có mốc.
+ */
+function placeEndings(eras: Era[], leafRanges: Map<string, { start: number; end: number }>) {
+  const subs = eras.flatMap((era) => era.subEras.map((sub) => ({ era, sub })));
+  const nodeOfEvent = new Map<string, { node: TimeNode; eraId: string; sub: SubEra }>();
+  for (const { era, sub } of subs)
+    for (const node of sub.timeNodes) for (const ev of node.events) nodeOfEvent.set(ev.id, { node, eraId: era.id, sub });
+
+  for (const [eventId, home] of nodeOfEvent) {
+    const ev = home.node.events.find((e) => e.id === eventId)!;
+    if (ev.endYear === undefined && !ev.endedByEventId) continue;
+    const startLabel = eraYear(ev.year);
+    const via = ev.endedByEventId ? nodeOfEvent.get(ev.endedByEventId) : undefined;
+    if (via) {
+      const viaEvent = via.node.events.find((e) => e.id === ev.endedByEventId)!;
+      via.node.endings.push({
+        eventId,
+        title: ev.title,
+        startLabel,
+        endLabel: eraYear(viaEvent.year),
+        viaEventId: viaEvent.id,
+        viaTitle: viaEvent.title,
+      });
+      continue;
+    }
+    if (ev.endYear === undefined) continue;
+    const endYear = ev.endYear;
+    const contains = (s: SubEra) => {
+      const r = leafRanges.get(s.id);
+      return r ? r.start <= endYear && endYear <= r.end : false;
+    };
+    const target =
+      subs.find(({ era, sub }) => era.id === home.eraId && contains(sub))?.sub ??
+      subs.find(({ sub }) => contains(sub))?.sub ??
+      home.sub;
+    const ending = { eventId, title: ev.title, startLabel, endLabel: eraYear(endYear) };
+    const existing = target.timeNodes.find((n) => n.sortYear === endYear);
+    if (existing) {
+      existing.endings.push(ending);
+    } else {
+      target.timeNodes.push({
+        id: `end-node-${eventId}`,
+        subEraId: target.id,
+        dateLabel: yearLabel(endYear),
+        sortYear: endYear,
+        events: [],
+        figures: [],
+        locations: [],
+        endings: [ending],
+      });
+      target.timeNodes.sort((a, b) => a.sortYear - b.sortYear);
+    }
+  }
 }
 
 export function buildEraDataset(
@@ -122,7 +194,14 @@ export function buildEraDataset(
     eventsByPeriodSlug.set(event.periodSlug, list);
   }
 
-  return topPeriods.map((top): Era => {
+  // Khoảng năm của từng giai đoạn — để đặt mốc kết thúc đúng giai đoạn.
+  const leafRanges = new Map(
+    periods
+      .filter((p) => p.parentId)
+      .map((p) => [p.id, { start: p.startYear ?? -Infinity, end: p.endYear ?? Infinity }]),
+  );
+
+  const eras = topPeriods.map((top): Era => {
     const leafPeriods = periods
       .filter((p) => p.parentId === top.id)
       .sort((a, b) => (a.startYear ?? 0) - (b.startYear ?? 0));
@@ -151,6 +230,7 @@ export function buildEraDataset(
             // records which of those events it actually takes part in.
             figures: attributeToEvents(events, (e) => e.figures),
             locations: attributeToEvents(events, (e) => e.locations),
+            endings: [],
           };
         });
 
@@ -175,4 +255,7 @@ export function buildEraDataset(
       subEras,
     };
   }).filter((era) => era.subEras.length > 0);
+
+  placeEndings(eras, leafRanges);
+  return eras;
 }

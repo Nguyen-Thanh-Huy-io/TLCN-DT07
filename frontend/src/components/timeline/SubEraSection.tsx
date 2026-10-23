@@ -47,11 +47,12 @@ export function SubEraSection({
       <div className="sk-nodes">
         <div className="sk-spine" />
         {s.timeNodes.map((node, index) => {
+          const first = node.events[0];
           const right =
-            split === "scope"
-              ? node.events[0].scopeGroup === "WORLD"
-              : split === "domain"
-                ? node.events[0].domainGroup === "ECONOMY_CULTURE"
+            split === "scope" && first
+              ? first.scopeGroup === "WORLD"
+              : split === "domain" && first
+                ? first.domainGroup === "ECONOMY_CULTURE"
                 : index % 2 === 1;
           return (
             <TimelineNodeItem

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRegionOrder } from "@/features/taxonomy/usePublicTaxonomy";
+import { usePublicTaxonomyTerms, useRegionOrder } from "@/features/taxonomy/usePublicTaxonomy";
+import { TimelineFocusContext, computeRelated, type RelatedReason, type TimelineFocusState } from "./TimelineFocus";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
-import { ArrowDownUp, ArrowRight, Landmark, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowDownUp, ArrowRight, Landmark, Network, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button, Heading } from "./sk-ui";
 import { EMPTY_FILTERS, FilterBar, matchesRegion, regionOptions, type TimelineFilters } from "./FilterBar";
 import { FilterSheet } from "./FilterSheet";
@@ -30,7 +31,7 @@ function readSaved(): string[] {
   }
 }
 
-type FilterScope = { query: string; bookmarksOnly: boolean; saved: string[] };
+type FilterScope = { query: string; bookmarksOnly: boolean; saved: string[]; onlyIds?: Set<string> | null };
 
 function matchesEvent(event: TimelineEvent, node: TimeNode, f: TimelineFilters, scope: FilterScope): boolean {
   const q = scope.query.toLocaleLowerCase("vi");
@@ -38,6 +39,7 @@ function matchesEvent(event: TimelineEvent, node: TimeNode, f: TimelineFilters, 
     (f.categories.length === 0 || f.categories.includes(event.category)) &&
     matchesRegion(event, f.regions) &&
     (!scope.bookmarksOnly || scope.saved.includes(event.id)) &&
+    (!scope.onlyIds || scope.onlyIds.has(event.id)) &&
     (!q ||
       [event.title, event.summary, ...event.tags, ...node.figures.map((x) => x.name), ...node.locations.map((l) => l.name)]
         .join(" ")
@@ -61,7 +63,8 @@ function filterEras(baseEras: Era[], f: TimelineFilters, scope: FilterScope): Er
           ...s,
           timeNodes: s.timeNodes
             .map((n) => ({ ...n, events: n.events.filter((ev) => matchesEvent(ev, n, f, scope)) }))
-            .filter((n) => n.events.length),
+            // Mốc chỉ gồm mốc kết thúc vẫn giữ (trừ khi đang lọc "chỉ liên quan" mà không dính sự kiện nào).
+            .filter((n) => n.events.length || (n.endings.length && (!scope.onlyIds || n.endings.some((x) => scope.onlyIds!.has(x.eventId))))),
         }))
         .filter((s) => s.timeNodes.length),
     }))
@@ -92,6 +95,11 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     setSaved(readSaved());
   }, []);
   const [bookmarksOnly, setBookmarksOnly] = useState(false);
+  // Chế độ "Liên kết" (đồ thị tri thức trên dòng thời gian).
+  const [focus, setFocus] = useState<TimelineEvent | null>(null);
+  const [onlyRelated, setOnlyRelated] = useState(false);
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const relationTerms = usePublicTaxonomyTerms("EVENT_RELATION");
   const canvas = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: canvas, offset: ["start end", "end start"] });
   const progress = useSpring(scrollYProgress, { stiffness: 70, damping: 25 });
@@ -112,10 +120,39 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     setBookmarksOnly(false);
   };
 
-  const scope = { query, bookmarksOnly, saved };
+  const allEvents = useMemo(() => allNodes.flatMap((n) => n.events), [allNodes]);
+  const related = useMemo<Map<string, RelatedReason[]>>(
+    () => (focus ? computeRelated(focus, allEvents, relationTerms) : new Map()),
+    [focus, allEvents, relationTerms],
+  );
+  const onlyIds = useMemo(
+    () => (focus && onlyRelated ? new Set([focus.id, ...related.keys()]) : null),
+    [focus, onlyRelated, related],
+  );
+  const reveal = (domId: string) => {
+    // Đang lọc "chỉ liên quan" có thể ẩn mốc cần tới — bỏ lọc trước khi cuộn.
+    if (!document.getElementById(domId) && onlyRelated) setOnlyRelated(false);
+    window.setTimeout(() => {
+      document.getElementById(domId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setFlashId(domId);
+      window.setTimeout(() => setFlashId((v) => (v === domId ? null : v)), 2200);
+    }, 60);
+  };
+  const focusState: TimelineFocusState = {
+    focus,
+    related,
+    setFocus: (ev) => {
+      setFocus(ev);
+      if (!ev) setOnlyRelated(false);
+    },
+    reveal,
+    flashId,
+  };
+
+  const scope = { query, bookmarksOnly, saved, onlyIds };
   const eras = useMemo(
-    () => filterEras(baseEras, filters, { query, bookmarksOnly, saved }),
-    [baseEras, filters, bookmarksOnly, query, saved],
+    () => filterEras(baseEras, filters, { query, bookmarksOnly, saved, onlyIds }),
+    [baseEras, filters, bookmarksOnly, query, saved, onlyIds],
   );
   const countFor = (f: TimelineFilters) => countEvents(filterEras(baseEras, f, scope));
   const filterKey = JSON.stringify(filters);
@@ -145,7 +182,10 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     setDetail(entries[(i + direction + entries.length) % entries.length]);
   };
 
+  const strongCount = [...related.values()].filter((r) => r.some((x) => x.strong)).length;
+
   return (
+    <TimelineFocusContext.Provider value={focusState}>
     <div className="sk-app">
       {hero}
       <div className="sk-explorer">
@@ -192,6 +232,27 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
           categories={allCategories}
           regions={allRegions}
         />
+
+        {focus && (
+          <div className="sk-focus-bar" role="status">
+            <Network size={16} />
+            <div>
+              <strong>Đang xem liên kết của: {focus.title}</strong>
+              <small>
+                {related.size} sự kiện liên quan ({strongCount} liên kết trực tiếp)
+                {focus.spanLabel && <> · kéo dài {focus.spanLabel}</>}
+              </small>
+            </div>
+            <label className="sk-focus-only">
+              <input type="checkbox" checked={onlyRelated} onChange={(e) => setOnlyRelated(e.target.checked)} />
+              Chỉ hiện sự kiện liên quan
+            </label>
+            <Button onClick={() => reveal(`ev-${focus.id}`)}>Tới sự kiện</Button>
+            <Button aria-label="Tắt chế độ liên kết" onClick={() => focusState.setFocus(null)}>
+              <X size={15} />
+            </Button>
+          </div>
+        )}
 
         <div className="sk-workspace">
           {/* Minimap đi theo bộ lọc: chỉ liệt kê thời kỳ / giai đoạn còn dấu mốc sau khi lọc. */}
@@ -249,8 +310,8 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                 >
                   {horizontal ? (
                     <HorizontalExplorer
-                      visibleNodes={visibleNodes}
-                      selectedNode={selectedNode}
+                      visibleNodes={visibleNodes.filter((n) => n.events.length)}
+                      selectedNode={selectedNode?.events.length ? selectedNode : visibleNodes.find((n) => n.events.length)!}
                       onSelectNode={setSelected}
                       subs={allSubs}
                       onDetail={setDetail}
@@ -291,5 +352,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
 
       <EventDetailModal detail={detail} onClose={() => setDetail(null)} onSelect={setDetail} onStep={moveEvent} />
     </div>
+    </TimelineFocusContext.Provider>
   );
 }

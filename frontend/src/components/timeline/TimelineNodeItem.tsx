@@ -2,9 +2,41 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Undo2 } from "lucide-react";
 import { Button } from "./sk-ui";
 import { NodeContent } from "./NodeContent";
+import { useTimelineFocus } from "./TimelineFocus";
 import type { TimeNode, TimelineEvent } from "./sk-types";
+
+/** Các sự kiện kéo dài kết thúc tại mốc này, kèm nút quay về lúc bắt đầu. */
+function EndingList({ node }: { node: TimeNode }) {
+  const { reveal, flashId, focus } = useTimelineFocus();
+  if (!node.endings.length) return null;
+  return (
+    <ul className="sk-endings">
+      {node.endings.map((end) => (
+        <li
+          key={end.eventId}
+          id={`end-${end.eventId}`}
+          className={`${flashId === `end-${end.eventId}` ? "sk-flash" : ""} ${focus && focus.id !== end.eventId ? "sk-focus-dim" : ""}`}
+        >
+          <span className="sk-ending-mark" aria-hidden />
+          <div>
+            <strong>Kết thúc: {end.title}</strong>
+            <small>
+              {end.startLabel} – {end.endLabel}
+              {end.viaTitle && <> · kết thúc bằng “{end.viaTitle}”</>}
+            </small>
+          </div>
+          <Button className="sk-link-button" onClick={() => reveal(`ev-${end.eventId}`)}>
+            <Undo2 size={13} /> Về lúc bắt đầu
+          </Button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 
 export function TimelineNodeItem({
   node,
@@ -22,12 +54,36 @@ export function TimelineNodeItem({
   saved: string[];
 }) {
   const [expanded, setExpanded] = useState(false);
+  const { focus, related } = useTimelineFocus();
   const isOpen = !compact || expanded;
+  // Chế độ Liên kết: mốc không chứa sự kiện liên quan thì mờ; mốc nằm trong khoảng thời gian của
+  // sự kiện đang chọn (sự kiện kéo dài) có thanh đánh dấu dọc trục.
+  const touched =
+    !focus ||
+    node.events.some((e) => e.id === focus.id || related.has(e.id)) ||
+    node.endings.some((e) => e.eventId === focus.id);
+  const inSpan =
+    focus?.endYear !== undefined && node.sortYear > focus.year && node.sortYear < focus.endYear;
+  const endOnly = node.events.length === 0;
+
+  if (endOnly) {
+    return (
+      <div className={`sk-timeline-node sk-end-node ${right ? "sk-right" : "sk-left"} ${touched ? "" : "sk-node-dim"} ${inSpan ? "sk-span-node" : ""}`}>
+        <span className="sk-node-dot sk-end-dot" aria-hidden />
+        <div className="sk-node-date">
+          <span className="sk-end-date">{node.dateLabel}</span>
+        </div>
+        <div className="sk-node-content">
+          <EndingList node={node} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
       layout
-      className={`sk-timeline-node ${right ? "sk-right" : "sk-left"}`}
+      className={`sk-timeline-node ${right ? "sk-right" : "sk-left"} ${touched ? "" : "sk-node-dim"} ${inSpan ? "sk-span-node" : ""}`}
       initial={{ opacity: 0, y: 25 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.1 }}
@@ -55,6 +111,7 @@ export function TimelineNodeItem({
             </motion.div>
           )}
         </AnimatePresence>
+        <EndingList node={node} />
       </div>
     </motion.div>
   );

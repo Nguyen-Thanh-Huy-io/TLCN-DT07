@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Bookmark, Flag, Globe2, Landmark, Swords, type LucideIcon } from "lucide-react";
+import { ArrowRight, BookOpen, Bookmark, Flag, Globe2, Landmark, Network, Swords, TimerReset, type LucideIcon } from "lucide-react";
+import { useTimelineFocus } from "./TimelineFocus";
 import { Heading, Badge, Button } from "./sk-ui";
 import type { TimelineEvent } from "./sk-types";
 
@@ -23,6 +24,11 @@ export function EventCard({
   saved: boolean;
   onSave: () => void;
 }) {
+  const { focus, related, setFocus, reveal, flashId } = useTimelineFocus();
+  const reasons = related.get(event.id);
+  const isFocus = focus?.id === event.id;
+  // Chế độ Liên kết: sự kiện đang chọn và sự kiện liên quan sáng lên, phần còn lại mờ đi.
+  const focusClass = !focus ? "" : isFocus ? "sk-focus-self" : reasons ? "sk-focus-related" : "sk-focus-dim";
   const CategoryIcon = CATEGORY_ICONS[event.categoryCode] ?? Landmark;
   const category = (
     <Badge className="sk-category">
@@ -44,7 +50,11 @@ export function EventCard({
   );
 
   return (
-    <motion.article layout className={`sk-event-card ${event.imageUrl ? "" : "sk-no-image"}`}>
+    <motion.article
+      layout
+      id={`ev-${event.id}`}
+      className={`sk-event-card ${event.imageUrl ? "" : "sk-no-image"} ${focusClass} ${flashId === `ev-${event.id}` ? "sk-flash" : ""}`}
+    >
       {event.imageUrl && (
         <div className="sk-card-image" onClick={onOpen}>
           <img src={event.imageUrl} alt={event.title} loading="lazy" />
@@ -65,8 +75,18 @@ export function EventCard({
             <Globe2 size={11} />
             {event.scopeGroup === "DOMESTIC" ? "Trong nước" : "Thế giới"}
           </span>
-          <span>{event.dateLabel}</span>
+          <span>{event.spanLabel ?? event.dateLabel}</span>
         </div>
+        {reasons && (
+          <ul className="sk-related-reasons">
+            {reasons.slice(0, 3).map((r) => (
+              <li key={r.text} className={r.strong ? "sk-strong" : ""}>
+                {r.text}
+              </li>
+            ))}
+            {reasons.length > 3 && <li>+{reasons.length - 3} liên kết khác</li>}
+          </ul>
+        )}
         <Button className="sk-card-title" onClick={onOpen}>
           <Heading level={3}>{event.title}</Heading>
           <ArrowRight size={17} />
@@ -78,9 +98,28 @@ export function EventCard({
               <span key={t}>#{t}</span>
             ))}
           </div>
-          <Button onClick={onOpen}>
-            Khám phá <ArrowRight size={13} />
-          </Button>
+          <div className="sk-card-actions">
+            {(event.endYear !== undefined || event.endedByEventId) && (
+              <Button
+                className="sk-link-button"
+                title="Cuộn tới mốc kết thúc của sự kiện này"
+                onClick={() => reveal(`end-${event.id}`)}
+              >
+                <TimerReset size={13} /> Lúc kết thúc
+              </Button>
+            )}
+            <Button
+              className={`sk-link-button ${isFocus ? "sk-selected" : ""}`}
+              title="Làm sáng các sự kiện liên quan trên dòng thời gian"
+              aria-pressed={isFocus}
+              onClick={() => setFocus(isFocus ? null : event)}
+            >
+              <Network size={13} /> {isFocus ? "Tắt liên kết" : "Liên kết"}
+            </Button>
+            <Button onClick={onOpen}>
+              Khám phá <ArrowRight size={13} />
+            </Button>
+          </div>
         </div>
       </div>
     </motion.article>

@@ -311,6 +311,15 @@ export class LandingContentFacade {
           include: { entity: { include: { historicalSite: true } } },
           orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
         },
+        // Quan hệ với sự kiện khác — dòng thời gian làm sáng các mốc liên quan khi bấm một sự kiện.
+        outgoingRelations: {
+          where: { targetEvent: { status: PUBLIC_CONTENT_STATUS } },
+          select: { targetEventId: true, relationType: true },
+        },
+        incomingRelations: {
+          where: { sourceEvent: { status: PUBLIC_CONTENT_STATUS } },
+          select: { sourceEventId: true, relationType: true },
+        },
       },
       orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
     });

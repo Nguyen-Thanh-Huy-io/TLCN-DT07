@@ -208,6 +208,8 @@ export class PublicContentMapper {
       entities?: Array<{
         entity: HistoricalEntity & { historicalSite?: HistoricalSite | null };
       }>;
+      outgoingRelations?: Array<{ targetEventId: string; relationType: string }>;
+      incomingRelations?: Array<{ sourceEventId: string; relationType: string }>;
     },
   ): PublicEventSummaryDto {
     const locName =
@@ -232,6 +234,20 @@ export class PublicContentMapper {
       imageUrl: event.thumbnailUrl,
       category: event.category,
       categoryIds: event.categoryIds ?? [],
+      endYear: event.endYear ?? null,
+      parentId: event.parentId ?? null,
+      relations: [
+        ...(event.outgoingRelations ?? []).map((r) => ({
+          eventId: r.targetEventId,
+          relationType: r.relationType,
+          direction: 'OUTGOING' as const,
+        })),
+        ...(event.incomingRelations ?? []).map((r) => ({
+          eventId: r.sourceEventId,
+          relationType: r.relationType,
+          direction: 'INCOMING' as const,
+        })),
+      ],
       periodSlug: event.period?.slug ?? null,
       figures: participants
         .filter((e) => e.type === 'PERSON')

@@ -139,11 +139,24 @@ export class PublicLocationSummaryDto {
   };
 }
 
+/** Quan hệ của sự kiện với sự kiện khác (đồ thị tri thức trên dòng thời gian). */
+export class PublicEventLinkDto {
+  @ApiProperty() eventId: string;
+  @ApiProperty({ example: 'CAUSES' }) relationType: string;
+  /** OUTGOING: sự kiện này → eventId · INCOMING: eventId → sự kiện này. */
+  @ApiProperty({ enum: ['OUTGOING', 'INCOMING'] }) direction: 'OUTGOING' | 'INCOMING';
+}
+
 export class PublicEventSummaryDto {
   @ApiProperty() id: string;
   @ApiPropertyOptional({ nullable: true }) slug: string | null;
   @ApiProperty() title: string;
   @ApiProperty() startYear: number;
+  /** Năm kết thúc (null = sự kiện diễn ra trong một năm / chưa rõ). */
+  @ApiPropertyOptional({ nullable: true }) endYear: number | null;
+  /** Sự kiện cha (vd. cuộc kháng chiến chứa chiến dịch này). */
+  @ApiPropertyOptional({ nullable: true }) parentId: string | null;
+  @ApiProperty({ type: [PublicEventLinkDto] }) relations: PublicEventLinkDto[];
   @ApiPropertyOptional({ nullable: true }) eventDateNote: string | null;
   @ApiPropertyOptional({ nullable: true }) location: string | null;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
@@ -206,7 +219,6 @@ export class PublicEventDetailDto extends PublicEventSummaryDto {
   @ApiPropertyOptional({ nullable: true }) summary: string | null;
   @ApiPropertyOptional({ nullable: true }) startMonth: number | null;
   @ApiPropertyOptional({ nullable: true }) startDay: number | null;
-  @ApiPropertyOptional({ nullable: true }) endYear: number | null;
   @ApiPropertyOptional({ nullable: true }) endMonth: number | null;
   @ApiPropertyOptional({ nullable: true }) endDay: number | null;
   @ApiPropertyOptional({ nullable: true }) cause: string | null;

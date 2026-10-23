@@ -139,12 +139,44 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
         subtitle: 'Quản lý tài khoản biên tập viên và phân quyền hệ thống',
       };
 
-    default:
+    case APP_ROUTES.TAXONOMIES:
       return {
-        title: 'Quản trị hệ thống',
-        subtitle: 'Hệ thống Quản lý Nội dung HISGO',
+        title: 'Danh mục dùng chung',
+        subtitle: 'Loại di tích, vùng, loại sự kiện, vai trò, quan hệ... dùng cho bộ lọc và hiển thị toàn hệ thống',
       };
+
+    default:
+      return (
+        resolveDetailHeader(cleanPath) ?? {
+          title: 'Quản trị hệ thống',
+          subtitle: 'Hệ thống Quản lý Nội dung HISGO',
+        }
+      );
   }
+}
+
+/** Trang tạo mới / chi tiết của tri thức (/events/:id...) — tiêu đề theo loại nội dung thay vì tiêu đề chung. */
+const DETAIL_HEADERS = [
+  { list: APP_ROUTES.EVENTS.LIST, create: APP_ROUTES.EVENTS.CREATE, noun: 'sự kiện lịch sử', crumb: 'Sự kiện', tab: 'EVENTS' },
+  { list: APP_ROUTES.ENTITIES.LIST, create: APP_ROUTES.ENTITIES.CREATE, noun: 'nhân vật / thực thể', crumb: 'Nhân vật', tab: 'ENTITIES' },
+  { list: APP_ROUTES.LOCATIONS.LIST, create: APP_ROUTES.LOCATIONS.CREATE, noun: 'địa danh / di tích', crumb: 'Địa danh', tab: 'LOCATIONS' },
+] as const;
+
+function resolveDetailHeader(cleanPath: string): PageHeaderInfo | null {
+  const match = DETAIL_HEADERS.find((d) => cleanPath.startsWith(`${d.list}/`));
+  if (!match) return null;
+  const isCreate = cleanPath === match.create;
+  return {
+    title: isCreate ? `Thêm ${match.noun}` : `Chi tiết & chỉnh sửa ${match.noun}`,
+    subtitle: isCreate
+      ? 'Điền thông tin theo từng mục; lưu nháp được bất cứ lúc nào'
+      : 'Sửa nội dung, liên kết tri thức và trạng thái xuất bản',
+    eyebrow: {
+      parentLabel: 'Từ điển tri thức',
+      parentRoute: `${APP_ROUTES.KNOWLEDGE}?tab=${match.tab}`,
+      currentText: match.crumb,
+    },
+  };
 }
 
 export function PageHeader({ pathname }: { pathname: string }) {

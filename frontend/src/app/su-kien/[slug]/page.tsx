@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Header } from "@/components/hisgo/Header";
 import { Footer } from "@/components/hisgo/Footer";
-import { fetchEventBySlug, fetchEvents } from "@/services/entities/landing.service";
+import { fetchEventBySlug, fetchEvents, fetchTaxonomyTerms } from "@/services/entities/landing.service";
 import { buildEventReaderModel } from "@/components/event-detail/ce-adapter";
 import { EventHero, EventQuickNav } from "@/components/event-detail/EventHero";
 import { EventReader } from "@/components/event-detail/EventReader";
@@ -13,7 +13,12 @@ export default async function EventDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [event, allEvents] = await Promise.all([fetchEventBySlug(slug), fetchEvents()]);
+  const [event, allEvents, categories, roles] = await Promise.all([
+    fetchEventBySlug(slug),
+    fetchEvents(),
+    fetchTaxonomyTerms("EVENT_CATEGORY"),
+    fetchTaxonomyTerms("EVENT_ROLE"),
+  ]);
 
   if (!event) {
     return (
@@ -32,7 +37,7 @@ export default async function EventDetailPage({
     );
   }
 
-  const model = buildEventReaderModel(event, allEvents);
+  const model = buildEventReaderModel(event, allEvents, { categories, roles });
 
   return (
     <div className="ce-app">

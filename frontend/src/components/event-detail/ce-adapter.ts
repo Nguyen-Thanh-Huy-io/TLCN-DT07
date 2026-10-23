@@ -3,8 +3,15 @@ import {
   type PublicEventDetailDto,
   type PublicEventSummaryDto,
 } from "@/services/entities/landing.service";
-import { EVENT_CATEGORY_LABELS, EventCategory } from "@/constants/enums";
 import type { ArticleSection, EntityMention, EventReaderModel } from "./ce-types";
+import type { TaxonomyTermItem } from "@/services/entities/taxonomy.service";
+import { eventCategoryLabel, eventRoleLabel } from "@/features/taxonomy/taxonomy-labels";
+
+/** Giá trị danh mục dùng chung để gắn nhãn (loại sự kiện, vai trò); thiếu thì dùng nhãn cũ. */
+export interface EventReaderTaxonomy {
+  categories?: TaxonomyTermItem[];
+  roles?: TaxonomyTermItem[];
+}
 
 export function formatYear(year: number): string {
   return year < 0 ? `${Math.abs(year)} TCN` : `${year}`;
@@ -31,13 +38,18 @@ function eventHref(slug: string | null): string {
   return slug ? `${PUBLIC_ROUTE_PREFIX.EVENT}/${slug}` : "/dong-thoi-gian";
 }
 
-function buildMentions(event: PublicEventDetailDto): EntityMention[] {
+function buildMentions(event: PublicEventDetailDto, roleTerms: TaxonomyTermItem[]): EntityMention[] {
   const roles = new Map(event.participants.map((p) => [p.entityId, p]));
+  // Không có mô tả riêng thì hiện tên vai trò chuẩn (trừ "Tham gia" chung chung).
+  const roleName = (id: string) => {
+    const role = roles.get(id)?.role;
+    return role && role !== "PARTICIPANT" ? eventRoleLabel(roleTerms, role) : null;
+  };
   const figures: EntityMention[] = event.figures.map((f) => ({
     id: f.id,
     type: "FIGURE",
     name: f.name,
-    roleLabel: roles.get(f.id)?.roleLabel ?? f.tagline,
+    roleLabel: roles.get(f.id)?.roleLabel ?? roleName(f.id) ?? f.tagline,
     summary: f.tagline || f.description,
     imageUrl: f.imageUrl,
     href: `/nhan-vat?nv=${encodeURIComponent(f.slug)}`,
@@ -47,7 +59,7 @@ function buildMentions(event: PublicEventDetailDto): EntityMention[] {
     id: l.id,
     type: "LOCATION",
     name: l.name,
-    roleLabel: roles.get(l.id)?.roleLabel ?? l.address,
+    roleLabel: roles.get(l.id)?.roleLabel ?? roleName(l.id) ?? l.address,
     summary: l.historicalSignificance,
     imageUrl: null,
     href: "/di-tich",
@@ -76,8 +88,9 @@ function adjacent(event: PublicEventDetailDto, all: PublicEventSummaryDto[]) {
 export function buildEventReaderModel(
   event: PublicEventDetailDto,
   allEvents: PublicEventSummaryDto[],
+  taxonomy: EventReaderTaxonomy = {},
 ): EventReaderModel {
-  const mentions = buildMentions(event);
+  const mentions = buildMentions(event, taxonomy.roles ?? []);
   const sections: ArticleSection[] = [];
 
   if (event.cause) sections.push({ id: "boi-canh", title: "Bối cảnh & nguyên nhân", paragraphs: [event.cause] });
@@ -107,7 +120,7 @@ export function buildEventReaderModel(
     title: event.title,
     dateLabel: eventDateLabel(event),
     dateNote: event.eventDateNote,
-    categoryLabel: EVENT_CATEGORY_LABELS[event.category as EventCategory] || event.category,
+    categoryLabel: eventCategoryLabel(taxonomy.categories ?? [], event),
     periodName: event.period?.name ?? null,
     periodHref: event.period ? `${PUBLIC_ROUTE_PREFIX.PERIOD}/${event.period.slug}` : null,
     parent: event.parent ? { title: event.parent.title, href: eventHref(event.parent.slug) } : null,

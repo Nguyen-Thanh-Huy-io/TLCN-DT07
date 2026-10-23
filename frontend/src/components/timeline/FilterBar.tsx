@@ -30,8 +30,11 @@ export function withoutValue(filters: TimelineFilters, key: keyof TimelineFilter
 }
 
 /** Quốc gia / khu vực thực sự có dấu mốc (theo Period.region), theo thứ tự chuẩn dùng chung. */
-export function regionOptions(events: TimelineEvent[]): string[] {
-  return sortedRegions(events.map((ev) => ev.region));
+export function regionOptions(events: TimelineEvent[], order?: readonly string[]): string[] {
+  return sortedRegions(
+    events.map((ev) => ev.region),
+    order,
+  );
 }
 
 /** [] = tất cả quốc gia / khu vực. */

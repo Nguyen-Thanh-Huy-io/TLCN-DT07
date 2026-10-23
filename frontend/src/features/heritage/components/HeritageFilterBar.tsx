@@ -1,5 +1,6 @@
 'use client';
 
+import { useRegionOrder } from '@/features/taxonomy/usePublicTaxonomy';
 import { useMemo, useState } from 'react';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue, type ChipOption } from '@/components/filters/ChipFilter';
@@ -109,7 +110,7 @@ interface FacetOptions {
 }
 
 /** Chỉ đưa vào bộ lọc những giá trị thực sự có trong dữ liệu, kèm số di tích. */
-function buildOptions(items: HistoricalHeritage[], periods: PublicPeriodDto[]): FacetOptions {
+function buildOptions(items: HistoricalHeritage[], periods: PublicPeriodDto[], regionOrder?: readonly string[]): FacetOptions {
   const count = (pick: (h: HistoricalHeritage) => boolean) => `${items.filter(pick).length} di tích`;
   const periodById = new Map(periods.map((p) => [p.id, p]));
   const byStart = (a: PublicPeriodDto, b: PublicPeriodDto) => (a.startYear ?? 0) - (b.startYear ?? 0);
@@ -151,7 +152,10 @@ function buildOptions(items: HistoricalHeritage[], periods: PublicPeriodDto[]): 
       .map(([id, name]) => ({ value: id, label: name, hint: count((h) => h.facets?.figures.some((f) => f.id === id) ?? false) }))
       .sort((a, b) => a.label.localeCompare(b.label, 'vi')),
     events: [...events].map(([id, title]) => ({ value: id, label: title })),
-    regions: sortedRegions(items.map((h) => h.region)).map((r) => ({ value: r, label: r, hint: count((h) => h.region === r) })),
+    regions: sortedRegions(
+      items.map((h) => h.region),
+      regionOrder,
+    ).map((r) => ({ value: r, label: r, hint: count((h) => h.region === r) })),
     localitiesByRegion,
     ranks: RANK_ORDER.filter((r) => items.some((h) => h.rank === r)).map((r) => ({
       value: r,
@@ -204,7 +208,8 @@ export function HeritageFilterBar({
   resultCount: number;
 }) {
   const [open, setOpen] = useState(false);
-  const options = useMemo(() => buildOptions(heritages, periods), [heritages, periods]);
+  const regionOrder = useRegionOrder();
+  const options = useMemo(() => buildOptions(heritages, periods, regionOrder), [heritages, periods, regionOrder]);
 
   const labelOf = (key: FacetKey, value: string): string => {
     if (key === 'subEras') return [...options.subErasByEra.values()].flat().find((o) => o.value === value)?.label ?? value;

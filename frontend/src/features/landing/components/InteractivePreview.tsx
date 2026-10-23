@@ -1,5 +1,6 @@
 'use client';
 
+import { useRegionOrder } from '@/features/taxonomy/usePublicTaxonomy';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -86,12 +87,16 @@ function MiniTimeline({ nodes }: { nodes: LandingTimelineNode[] }) {
 
 /** Đặt các thời kỳ của từng khu vực trên cùng một trục năm để thấy chúng diễn ra song song. */
 function ParallelEras({ bands }: { bands: ParallelBand[] }) {
+  const regionOrder = useRegionOrder();
   const rows = useMemo(() => {
     // Mỗi khu vực một hàng, theo thứ tự chuẩn dùng chung (Việt Nam trước).
-    return sortedRegions(bands.map((b) => b.region)).map(
+    return sortedRegions(
+      bands.map((b) => b.region),
+      regionOrder,
+    ).map(
       (region) => [region, bands.filter((b) => b.region === region)] as const,
     );
-  }, [bands]);
+  }, [bands, regionOrder]);
   const min = Math.min(...bands.map((b) => b.start));
   const max = Math.max(...bands.map((b) => b.end));
   const span = Math.max(1, max - min);

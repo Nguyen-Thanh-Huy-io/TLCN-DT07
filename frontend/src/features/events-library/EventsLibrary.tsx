@@ -10,6 +10,7 @@ import type { PublicEventSummaryDto, PublicPeriodDto } from '@/services/entities
 import { regionLabel, sortedRegions } from '@/utils/region.utils';
 import type { TaxonomyTermItem } from '@/services/entities/taxonomy.service';
 import { ancestorChain, flattenTree, loadPublicTaxonomy } from '@/features/taxonomy/taxonomy-tree';
+import { useRegionOrder } from '@/features/taxonomy/usePublicTaxonomy';
 import './events-library.css';
 
 /** Giá trị "chưa gắn" dùng chung cho nhóm thời kỳ. */
@@ -101,7 +102,8 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
   const [sheetOpen, setSheetOpen] = useState(false);
   const needle = normalizeSearch(query.trim());
 
-  const regions = useMemo(() => sortedRegions(rows.map((r) => r.region)), [rows]);
+  const regionOrder = useRegionOrder();
+  const regions = useMemo(() => sortedRegions(rows.map((r) => r.region), regionOrder), [rows, regionOrder]);
   const eras = useMemo(() => {
     const seen = new Map<string, { label: string; region: string; start: number }>();
     for (const r of rows) {

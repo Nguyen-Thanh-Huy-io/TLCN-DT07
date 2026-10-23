@@ -24,12 +24,36 @@ export function isDomesticRegion(region: string | null | undefined): boolean {
  * khu vực chuẩn theo thứ tự của HISTORICAL_REGION_OPTIONS, khu vực lạ xếp sau theo ABC,
  * "Chưa phân vùng" luôn cuối.
  */
-export function sortedRegions(regions: Iterable<string | null | undefined>): string[] {
+export function sortedRegions(
+  regions: Iterable<string | null | undefined>,
+  /** Thứ tự chuẩn (nhãn) — lấy từ danh mục REGION; thiếu thì dùng thứ tự mặc định trong code. */
+  order: readonly string[] = HISTORICAL_REGION_OPTIONS,
+): string[] {
   const unique = Array.from(new Set(Array.from(regions, regionLabel)));
   const rank = (r: string) => {
     if (r === UNKNOWN_REGION) return Number.MAX_SAFE_INTEGER;
-    const i = HISTORICAL_REGION_OPTIONS.indexOf(r);
-    return i === -1 ? HISTORICAL_REGION_OPTIONS.length : i;
+    const i = order.indexOf(r);
+    return i === -1 ? order.length : i;
   };
   return unique.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b, 'vi'));
+}
+
+/** Thứ tự khu vực theo cây danh mục REGION (cha trước con, mỗi cấp theo thứ tự hiển thị); rỗng → mặc định. */
+export function regionOrderFromTerms(terms: Array<{ label: string; displayOrder: number; parentId: string | null; id: string }>): readonly string[] {
+  if (!terms.length) return HISTORICAL_REGION_OPTIONS;
+  const children = new Map<string | null, typeof terms>();
+  for (const t of terms) {
+    const parent = t.parentId && terms.some((p) => p.id === t.parentId) ? t.parentId : null;
+    children.set(parent, [...(children.get(parent) ?? []), t]);
+  }
+  const out: string[] = [];
+  const walk = (parent: string | null) => {
+    for (const t of [...(children.get(parent) ?? [])].sort((a, b) => a.displayOrder - b.displayOrder)) {
+      if (out.includes(t.label)) continue;
+      out.push(t.label);
+      walk(t.id);
+    }
+  };
+  walk(null);
+  return out;
 }

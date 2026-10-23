@@ -18,6 +18,7 @@ import { FiguresGrid } from "./FigureCard";
 import { FigureProfileSheet, type ProfileTab } from "./FigureProfileSheet";
 import { buildFigureViews, normalize, type FigureView } from "./figure-utils";
 import { figureRoles, useFigureRoles } from "./figure-roles";
+import { useRegionOrder } from "@/features/taxonomy/usePublicTaxonomy";
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from "@/components/filters/ChipFilter";
 import { regionLabel, sortedRegions } from "@/utils/region.utils";
 
@@ -69,9 +70,10 @@ export function FiguresDirectory({
     const byId = new Map(periods.map((p) => [p.id, regionLabel(p.region)]));
     return (eraId: string | null) => (eraId ? byId.get(eraId) ?? null : null);
   }, [periods]);
+  const regionOrder = useRegionOrder();
   const regions = useMemo(
-    () => sortedRegions(figures.map((f) => regionOfEra(f.eraId)).filter((r): r is string => Boolean(r))),
-    [figures, regionOfEra],
+    () => sortedRegions(figures.map((f) => regionOfEra(f.eraId)).filter((r): r is string => Boolean(r)), regionOrder),
+    [figures, regionOfEra, regionOrder],
   );
 
   // Bỏ thời kỳ thì bỏ luôn các giai đoạn thuộc thời kỳ đó.

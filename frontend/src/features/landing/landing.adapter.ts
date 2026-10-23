@@ -6,7 +6,7 @@ import type {
 } from '@/services/entities/landing.service';
 import type { LearningPathItem } from '@/services/entities/learning-path.service';
 import type { LibraryLesson } from '@/services/entities/learner.service';
-import { regionLabel, sortedRegions } from '@/utils/region.utils';
+import { regionLabel, regionOrderFromTerms, sortedRegions } from '@/utils/region.utils';
 import { formatYear, shortPeriodName } from '@/features/search/search-index';
 import { FIGURE_ROLE_LABELS, FigureRole, HistoricalRegion } from '@/constants/enums';
 import type {
@@ -20,6 +20,7 @@ import type {
   LandingTimelineNode,
   ParallelBand,
 } from './landing.types';
+import type { TaxonomyTermItem } from '@/services/entities/taxonomy.service';
 
 export interface LandingSource {
   periods: PublicPeriodDto[];
@@ -28,6 +29,8 @@ export interface LandingSource {
   locations: PublicLocationSummaryDto[];
   lessons: LibraryLesson[];
   paths: LearningPathItem[];
+  /** Danh mục dùng chung: thứ tự khu vực, nhãn vai trò nhân vật (thiếu thì dùng mặc định trong code). */
+  taxonomy?: { regions?: TaxonomyTermItem[]; figureRoles?: TaxonomyTermItem[] };
 }
 
 export const LANDING_ROUTES = {
@@ -233,7 +236,9 @@ function figureYears(f: PublicFigureProfileDto): string | null {
   return `${birth ?? '?'} — ${death ?? '?'}`;
 }
 
-function buildFigures(figures: PublicFigureProfileDto[]): LandingFigure[] {
+function buildFigures(figures: PublicFigureProfileDto[], roleTerms: TaxonomyTermItem[]): LandingFigure[] {
+  const roleLabel = (code: string) =>
+    roleTerms.find((t) => t.code === code)?.label ?? FIGURE_ROLE_LABELS[code as FigureRole] ?? code;
   return [...figures]
     .sort((a, b) => Number(Boolean(b.imageUrl)) - Number(Boolean(a.imageUrl)) || b.events.length - a.events.length)
     .slice(0, 8)
@@ -242,7 +247,7 @@ function buildFigures(figures: PublicFigureProfileDto[]): LandingFigure[] {
       name: f.name,
       years: figureYears(f),
       // roles là mã enum (GENERAL...) → nhãn tiếng Việt; titles đã là chữ hiển thị.
-      roles: (f.roles.length ? f.roles.map((r) => FIGURE_ROLE_LABELS[r as FigureRole] ?? r) : f.titles).slice(0, 2),
+      roles: (f.roles.length ? f.roles.map(roleLabel) : f.titles).slice(0, 2),
       quote: f.legacy?.famousQuote || f.tagline,
       eventCount: f.events.length,
       imageUrl: f.imageUrl,
@@ -315,7 +320,10 @@ export function buildLandingData(source: LandingSource, today: Date = new Date()
   const rootOf = rootResolver(source.periods);
   const regionOf = specificRegionResolver(source.periods);
   const bands = buildBands(source.periods, regionOf);
-  const regions = sortedRegions(bands.map((b) => b.region));
+  const regions = sortedRegions(
+    bands.map((b) => b.region),
+    regionOrderFromTerms(source.taxonomy?.regions ?? []),
+  );
   const courses = buildCourses(source.paths);
   return {
     regions,
@@ -323,7 +331,7 @@ export function buildLandingData(source: LandingSource, today: Date = new Date()
     eras: buildEras(source.periods, source.events, source.figures, rootOf),
     timeline: buildTimeline(source.events, regionOf),
     bands,
-    figures: buildFigures(source.figures),
+    figures: buildFigures(source.figures, source.taxonomy?.figureRoles ?? []),
     locations: buildLocations(source.locations, source.events),
     courses,
     quiz: buildDailyQuiz(source.events, today),

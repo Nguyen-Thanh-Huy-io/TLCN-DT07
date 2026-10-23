@@ -1,5 +1,6 @@
 "use client";
 
+import { useRegionOrder } from "@/features/taxonomy/usePublicTaxonomy";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import { ArrowDownUp, ArrowRight, Landmark, Search, SlidersHorizontal, X } from "lucide-react";
@@ -97,7 +98,8 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
 
   const allSubs = useMemo(() => baseEras.flatMap((e) => e.subEras), [baseEras]);
   const allNodes = useMemo(() => allSubs.flatMap((s) => s.timeNodes), [allSubs]);
-  const allRegions = useMemo(() => regionOptions(allNodes.flatMap((n) => n.events)), [allNodes]);
+  const regionOrder = useRegionOrder();
+  const allRegions = useMemo(() => regionOptions(allNodes.flatMap((n) => n.events), regionOrder), [allNodes, regionOrder]);
   const allCategories = useMemo(() => {
     const seen = new Set<string>();
     for (const n of allNodes) for (const ev of n.events) seen.add(ev.category);

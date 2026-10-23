@@ -6,6 +6,7 @@ import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { SlugService } from '../common/services/slug.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ContentStatus } from '@prisma/client';
+import { TaxonomyService } from '../taxonomy/taxonomy.service';
 
 describe('PeriodService', () => {
   let service: PeriodService;
@@ -59,6 +60,10 @@ describe('PeriodService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: RedisService, useValue: mockRedisService },
         { provide: CustomLoggerService, useValue: mockCustomLogger },
+        {
+          provide: TaxonomyService,
+          useValue: { resolveTermId: jest.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
 

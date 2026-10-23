@@ -109,6 +109,7 @@ export class LandingContentFacade {
     const periods = await this.prisma.period.findMany({
       where: { status: PUBLIC_CONTENT_STATUS },
       orderBy: [{ displayOrder: 'asc' }, { startYear: 'asc' }],
+      include: { regionTerm: true },
     });
     return periods.map((period) => PublicContentMapper.toPeriod(period));
   }
@@ -445,6 +446,7 @@ export class LandingContentFacade {
     const periods = await this.prisma.period.findMany({
       where: { status: PUBLIC_CONTENT_STATUS },
       orderBy: [{ displayOrder: 'asc' }, { startYear: 'asc' }],
+      include: { regionTerm: true },
     });
     const period = periods.find((p) => p.slug === slug);
     if (!period) {

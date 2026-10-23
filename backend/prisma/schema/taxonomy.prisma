@@ -56,6 +56,7 @@ model TaxonomyTerm {
   sitesByType         HistoricalSite[] @relation("SiteTypeTerm")
   sitesByPreservation HistoricalSite[] @relation("SitePreservationTerm")
   sitesByRank         HistoricalSite[] @relation("SiteRankTerm")
+  periodsByRegion     Period[]         @relation("PeriodRegionTerm")
 
   @@unique([groupCode, code])
   @@index([groupCode, isActive])

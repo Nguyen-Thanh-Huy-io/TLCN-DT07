@@ -17,6 +17,8 @@ model Period {
 
   // Phạm vi lịch sử
   region        String? @db.VarChar(100)
+  /// Khu vực theo danh mục dùng chung (nhóm REGION); cột region chữ giữ song song trong lúc chuyển đổi.
+  regionId      String? @map("region_id")
   description   String? @db.Text
   coverImageUrl String? @map("cover_image_url") @db.VarChar(500)
 
@@ -25,14 +27,16 @@ model Period {
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
 
-  parent   Period?  @relation("PeriodHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children Period[] @relation("PeriodHierarchy")
+  parent     Period?       @relation("PeriodHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children   Period[]      @relation("PeriodHierarchy")
+  regionTerm TaxonomyTerm? @relation("PeriodRegionTerm", fields: [regionId], references: [id], onDelete: SetNull)
 
   historicalEntities HistoricalEntity[]
   historicalEvents   HistoricalEvent[]
 
   @@index([parentId])
   @@index([region])
+  @@index([regionId])
   @@index([status])
   @@index([startYear, endYear])
   @@map("periods")

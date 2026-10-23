@@ -15,6 +15,8 @@ import {
 } from './interfaces/period.interface';
 import { Period, ContentStatus, Prisma } from '@prisma/client';
 import { SlugService } from '../common/services/slug.service';
+import { TaxonomyService } from '../taxonomy/taxonomy.service';
+import { TAXONOMY_GROUPS } from '../taxonomy/taxonomy.constant';
 
 @Injectable()
 export class PeriodService implements IPeriodService {
@@ -26,7 +28,16 @@ export class PeriodService implements IPeriodService {
     private readonly redis: RedisService,
     private readonly logger: CustomLoggerService,
     private readonly slugService: SlugService,
+    private readonly taxonomy: TaxonomyService,
   ) {}
+
+  /** Khu vực nhập chữ (CMS) → giá trị danh mục REGION; không khớp thì để trống, chữ gốc vẫn giữ. */
+  private async resolveRegionId(region: string | null | undefined) {
+    return (
+      (await this.taxonomy.resolveTermId(TAXONOMY_GROUPS.REGION, region)) ??
+      null
+    );
+  }
 
   /**
    * Tạo mới một giai đoạn lịch sử
@@ -52,6 +63,7 @@ export class PeriodService implements IPeriodService {
         name: createPeriodDto.name,
         slug,
         region: createPeriodDto.region,
+        regionId: await this.resolveRegionId(createPeriodDto.region),
         startYear: createPeriodDto.startYear,
         endYear: createPeriodDto.endYear,
         description: createPeriodDto.description,
@@ -183,7 +195,12 @@ export class PeriodService implements IPeriodService {
 
     const updated = await this.prisma.period.update({
       where: { id },
-      data: updatePeriodDto,
+      data: {
+        ...updatePeriodDto,
+        ...(updatePeriodDto.region !== undefined
+          ? { regionId: await this.resolveRegionId(updatePeriodDto.region) }
+          : {}),
+      },
     });
 
     // Invalidate caches

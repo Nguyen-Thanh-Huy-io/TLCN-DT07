@@ -70,7 +70,9 @@ export function estimateReadMinutes(contentRichText?: string | null): number {
 }
 
 export class PublicContentMapper {
-  static toPeriod(period: Period): PublicPeriodDto {
+  static toPeriod(
+    period: Period & { regionTerm?: TaxonomyTerm | null },
+  ): PublicPeriodDto {
     return {
       id: period.id,
       parentId: period.parentId,
@@ -82,7 +84,9 @@ export class PublicContentMapper {
       endYear: period.endYear,
       description: period.description,
       coverImageUrl: period.coverImageUrl,
-      region: period.region,
+      // Nhãn theo danh mục REGION ("Toàn quốc" → "Việt Nam"); chưa gắn thì dùng chữ gốc.
+      region: period.regionTerm?.label ?? period.region,
+      regionCode: period.regionTerm?.code ?? null,
     };
   }
 

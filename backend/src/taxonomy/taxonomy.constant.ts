@@ -3,6 +3,7 @@ export const TAXONOMY_GROUPS = {
   SITE_TYPE: 'SITE_TYPE',
   PRESERVATION: 'PRESERVATION',
   HERITAGE_RANK: 'HERITAGE_RANK',
+  REGION: 'REGION',
 } as const;
 
 export type TaxonomyGroupCode =

@@ -17,6 +17,9 @@ export class PublicPeriodDto {
   @ApiPropertyOptional({ nullable: true }) coverImageUrl: string | null;
   @ApiPropertyOptional({ nullable: true, example: 'Việt Nam' }) region:
     string | null;
+  /** Mã khu vực trong danh mục REGION (null = chưa phân vùng). */
+  @ApiPropertyOptional({ nullable: true, example: 'VIETNAM' })
+  regionCode?: string | null;
 }
 
 export class PublicTopicDto {

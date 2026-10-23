@@ -84,11 +84,12 @@ export class TaxonomyService {
   /** Chỉ xóa được giá trị chưa ai dùng; đang dùng thì phải ẩn (isActive = false). */
   async deleteTerm(id: string) {
     await this.findTerm(id);
-    const used = await this.prisma.historicalSite.count({
-      where: {
-        OR: [{ siteTypeId: id }, { preservationId: id }, { rankId: id }],
-      },
-    });
+    const used =
+      (await this.prisma.historicalSite.count({
+        where: {
+          OR: [{ siteTypeId: id }, { preservationId: id }, { rankId: id }],
+        },
+      })) + (await this.prisma.period.count({ where: { regionId: id } }));
     if (used > 0)
       throw new ConflictException(TAXONOMY_MESSAGES.TERM_IN_USE(used));
     await this.prisma.taxonomyTerm.delete({ where: { id } });
@@ -142,6 +143,15 @@ export class TaxonomyService {
           )?.id ?? null,
       },
     });
+  }
+
+  /** Chữ tự do / mã → id giá trị đang dùng trong nhóm (khớp mã, nhãn, alias). */
+  async resolveTermId(group: string, raw: string | null | undefined) {
+    if (!raw?.trim()) return undefined;
+    const terms = await this.prisma.taxonomyTerm.findMany({
+      where: { groupCode: group },
+    });
+    return this.matchTerm(terms, group, raw, () => null)?.id;
   }
 
   /**

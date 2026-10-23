@@ -24,11 +24,11 @@ export function EventCard({
   saved: boolean;
   onSave: () => void;
 }) {
-  const { focus, related, setFocus, reveal, flashId } = useTimelineFocus();
+  const { focus, lens, related, setFocus, setLens, reveal, flashId } = useTimelineFocus();
   const reasons = related.get(event.id);
   const isFocus = focus?.id === event.id;
-  // Chế độ Liên kết: sự kiện đang chọn và sự kiện liên quan sáng lên, phần còn lại mờ đi.
-  const focusClass = !focus ? "" : isFocus ? "sk-focus-self" : reasons ? "sk-focus-related" : "sk-focus-dim";
+  // Chế độ Liên kết / lăng kính chủ thể: sự kiện liên quan sáng lên, phần còn lại mờ đi.
+  const focusClass = !focus && !lens ? "" : isFocus ? "sk-focus-self" : reasons ? "sk-focus-related" : "sk-focus-dim";
   const CategoryIcon = CATEGORY_ICONS[event.categoryCode] ?? Landmark;
   const category = (
     <Badge className="sk-category">
@@ -77,6 +77,21 @@ export function EventCard({
           </span>
           <span>{event.spanLabel ?? event.dateLabel}</span>
         </div>
+        {event.actors.length > 0 && (
+          <div className="sk-actors">
+            {event.actors.slice(0, 3).map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                className={`sk-actor-chip ${lens?.id === a.id ? "sk-selected" : ""}`}
+                title="Xem mọi sự kiện có chủ thể này trên dòng thời gian"
+                onClick={() => setLens(lens?.id === a.id ? null : a)}
+              >
+                {a.name}
+              </button>
+            ))}
+          </div>
+        )}
         {reasons && (
           <ul className="sk-related-reasons">
             {reasons.slice(0, 3).map((r) => (

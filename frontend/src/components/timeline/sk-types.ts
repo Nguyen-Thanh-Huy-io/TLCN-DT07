@@ -30,6 +30,19 @@ export interface TimelineEvent {
   relations: Array<{ eventId: string; relationType: string; direction: "OUTGOING" | "INCOMING" }>;
   /** Sự kiện đánh dấu kết thúc (quan hệ "Kết thúc bằng"), nếu có. */
   endedByEventId?: string;
+  /** Chủ thể tham gia (triều đại / quốc gia, tổ chức, lực lượng, hiện vật). */
+  actors: TimelineActor[];
+}
+
+/** Chủ thể của sự kiện — bấm vào để bật "lăng kính" theo chủ thể trên dòng thời gian. */
+export interface TimelineActor {
+  id: string;
+  name: string;
+  type: string;
+  role: string;
+  roleLabel: string | null;
+  startYear: number | null;
+  endYear: number | null;
 }
 
 /** Mốc kết thúc của một sự kiện kéo dài, đặt ở năm kết thúc trên dòng thời gian. */

@@ -54,16 +54,22 @@ export function TimelineNodeItem({
   saved: string[];
 }) {
   const [expanded, setExpanded] = useState(false);
-  const { focus, related } = useTimelineFocus();
+  const { focus, lens, related } = useTimelineFocus();
   const isOpen = !compact || expanded;
   // Chế độ Liên kết: mốc không chứa sự kiện liên quan thì mờ; mốc nằm trong khoảng thời gian của
   // sự kiện đang chọn (sự kiện kéo dài) có thanh đánh dấu dọc trục.
   const touched =
-    !focus ||
-    node.events.some((e) => e.id === focus.id || related.has(e.id)) ||
-    node.endings.some((e) => e.eventId === focus.id);
-  const inSpan =
-    focus?.endYear !== undefined && node.sortYear > focus.year && node.sortYear < focus.endYear;
+    (!focus && !lens) ||
+    node.events.some((e) => e.id === focus?.id || related.has(e.id)) ||
+    node.endings.some((e) => e.eventId === focus?.id || related.has(e.eventId));
+  // Khoảng thời gian: của sự kiện kéo dài đang chọn, hoặc thời gian tồn tại của chủ thể đang xem.
+  const range: [number, number] | null =
+    focus?.endYear !== undefined
+      ? [focus.year, focus.endYear]
+      : lens && (lens.startYear !== null || lens.endYear !== null)
+        ? [lens.startYear ?? -Infinity, lens.endYear ?? Infinity]
+        : null;
+  const inSpan = Boolean(range && node.sortYear > range[0] && node.sortYear < range[1]);
   const endOnly = node.events.length === 0;
 
   if (endOnly) {

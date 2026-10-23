@@ -106,6 +106,7 @@ function toTimelineEvent(
     parentId: event.parentId ?? null,
     relations: event.relations ?? [],
     endedByEventId: event.relations?.find((r) => r.relationType === "ENDED_BY" && r.direction === "OUTGOING")?.eventId,
+    actors: event.actors ?? [],
   };
 }
 

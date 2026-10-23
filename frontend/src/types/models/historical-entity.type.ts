@@ -41,6 +41,9 @@ export interface HistoricalEntityItem {
   imageUrl?: string | null;
   imageCaption?: string | null;
   birthYear?: number | null;
+  /** Năm tồn tại — triều đại / quốc gia / chính thể, tổ chức, lực lượng. */
+  startYear?: number | null;
+  endYear?: number | null;
   deathYear?: number | null;
   birthDateLabel?: string | null;
   deathDateLabel?: string | null;

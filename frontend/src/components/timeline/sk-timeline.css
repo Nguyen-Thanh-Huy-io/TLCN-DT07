@@ -197,3 +197,6 @@ button.sk-split-control:hover { color: var(--accent); }
   .sk-end-dot { left: 7px !important; }
   .sk-card-actions { justify-content: flex-start; }
 }
+.sk-actors { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 0; }
+.sk-actor-chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid #d7dfcb; background: #f4f7ef; color: #5f7350; cursor: pointer; }
+.sk-actor-chip:hover, .sk-actor-chip.sk-selected { border-color: #b0403a; background: #fbecea; color: #8d2f2c; }

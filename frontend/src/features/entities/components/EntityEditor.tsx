@@ -65,7 +65,7 @@ export interface EntityEditorProps {
 
 export const ENTITY_TYPE_LABELS: Record<EntityType, string> = {
   [EntityType.PERSON]: 'Nhân vật lịch sử',
-  [EntityType.DYNASTY]: 'Triều đại / Vương triều / Đế chế',
+  [EntityType.DYNASTY]: 'Triều đại / Quốc gia / Chính thể',
   [EntityType.ORGANIZATION]: 'Tổ chức / Đảng phái / Liên minh',
   [EntityType.MILITARY_FORCE]: 'Lực lượng quân sự / Binh đoàn',
   [EntityType.ARTIFACT]: 'Hiện vật / Bảo vật quốc gia',
@@ -98,15 +98,15 @@ function getTimeLabels(type: EntityType) {
       };
     case EntityType.DYNASTY:
       return {
-        startYear: 'Năm khởi lập / Lên ngôi',
-        endYear: 'Năm kết thúc / Thoái vị',
+        startYear: 'Năm thành lập / khởi lập',
+        endYear: 'Năm kết thúc / giải thể',
         startDateLabel: 'Thời điểm khởi lập (dạng chữ)',
         endDateLabel: 'Thời điểm kết thúc (dạng chữ)',
         startPlaceholder: '1225',
         endPlaceholder: '1400',
         startDatePlaceholder: 'Tháng 12 năm Ất Dậu (1225)...',
         endDatePlaceholder: 'Năm Canh Thìn (1400)...',
-        taglinePlaceholder: 'Ví dụ: Triều đại quân chủ dài nhất lịch sử Việt Nam...',
+        taglinePlaceholder: 'Ví dụ: Nhà nước Liên bang Xô viết (1922–1991), Triều đại quân chủ dài nhất Việt Nam...',
       };
     case EntityType.ORGANIZATION:
     case EntityType.MILITARY_FORCE:
@@ -280,8 +280,9 @@ export function EntityEditor({
           ? [data.periodId]
           : [];
         setPeriodIds(loadedPeriodIds);
-        setBirthYear(data.birthYear ?? '');
-        setDeathYear(data.deathYear ?? '');
+        // Nhân vật: năm sinh – mất · loại khác (triều đại / quốc gia, tổ chức...): năm tồn tại.
+        setBirthYear(data.birthYear ?? data.startYear ?? '');
+        setDeathYear(data.deathYear ?? data.endYear ?? '');
         setBirthDateLabel(data.birthDateLabel || '');
         setDeathDateLabel(data.deathDateLabel || '');
         setSiteType(data.siteTypeCode || data.siteType || 'MONUMENT');
@@ -753,8 +754,11 @@ export function EntityEditor({
       imageCaption: imageCaption.trim() || undefined,
       periodId: periodId || (periodIds.length > 0 ? periodIds[0] : null),
       periodIds: periodIds.length > 0 ? periodIds : undefined,
-      birthYear: birthYear !== '' ? Number(birthYear) : undefined,
-      deathYear: deathYear !== '' ? Number(deathYear) : undefined,
+      birthYear: isPerson && birthYear !== '' ? Number(birthYear) : undefined,
+      deathYear: isPerson && deathYear !== '' ? Number(deathYear) : undefined,
+      // Loại khác nhân vật / địa danh lưu năm tồn tại trên chính thực thể.
+      startYear: !isPerson && type !== EntityType.LOCATION && birthYear !== '' ? Number(birthYear) : undefined,
+      endYear: !isPerson && type !== EntityType.LOCATION && deathYear !== '' ? Number(deathYear) : undefined,
       birthDateLabel: birthDateLabel.trim() || undefined,
       deathDateLabel: deathDateLabel.trim() || undefined,
       roles: isPerson ? figureProfile.roles : undefined,

@@ -1,7 +1,15 @@
 "use client";
 
 import { usePublicTaxonomyTerms, useRegionOrder } from "@/features/taxonomy/usePublicTaxonomy";
-import { TimelineFocusContext, computeRelated, type RelatedReason, type TimelineFocusState } from "./TimelineFocus";
+import {
+  TimelineFocusContext,
+  computeLens,
+  computeRelated,
+  lifespanLabel,
+  type RelatedReason,
+  type TimelineFocusState,
+} from "./TimelineFocus";
+import { eventRoleLabel } from "@/features/taxonomy/taxonomy-labels";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import { ArrowDownUp, ArrowRight, Landmark, Network, Search, SlidersHorizontal, X } from "lucide-react";
@@ -13,7 +21,7 @@ import { EraSection } from "./EraSection";
 import { SubEraSection, SplitMode } from "./SubEraSection";
 import { HorizontalExplorer } from "./HorizontalExplorer";
 import { EventDetailModal } from "./EventDetailModal";
-import type { Era, TimeNode, TimelineEvent } from "./sk-types";
+import type { Era, TimeNode, TimelineActor, TimelineEvent } from "./sk-types";
 
 const SAVED_STORAGE_KEY = "hisgo:timeline:saved-events";
 const SPLIT_LABELS: Record<SplitMode, string> = {
@@ -97,6 +105,8 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   const [bookmarksOnly, setBookmarksOnly] = useState(false);
   // Chế độ "Liên kết" (đồ thị tri thức trên dòng thời gian).
   const [focus, setFocus] = useState<TimelineEvent | null>(null);
+  const [lens, setLens] = useState<TimelineActor | null>(null);
+  const roleTerms = usePublicTaxonomyTerms("EVENT_ROLE");
   const [onlyRelated, setOnlyRelated] = useState(false);
   const [flashId, setFlashId] = useState<string | null>(null);
   const relationTerms = usePublicTaxonomyTerms("EVENT_RELATION");
@@ -122,12 +132,17 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
 
   const allEvents = useMemo(() => allNodes.flatMap((n) => n.events), [allNodes]);
   const related = useMemo<Map<string, RelatedReason[]>>(
-    () => (focus ? computeRelated(focus, allEvents, relationTerms) : new Map()),
-    [focus, allEvents, relationTerms],
+    () =>
+      focus
+        ? computeRelated(focus, allEvents, relationTerms)
+        : lens
+          ? computeLens(lens, allEvents, (code) => eventRoleLabel(roleTerms, code))
+          : new Map(),
+    [focus, lens, allEvents, relationTerms, roleTerms],
   );
   const onlyIds = useMemo(
-    () => (focus && onlyRelated ? new Set([focus.id, ...related.keys()]) : null),
-    [focus, onlyRelated, related],
+    () => ((focus || lens) && onlyRelated ? new Set([...(focus ? [focus.id] : []), ...related.keys()]) : null),
+    [focus, lens, onlyRelated, related],
   );
   const reveal = (domId: string) => {
     // Đang lọc "chỉ liên quan" có thể ẩn mốc cần tới — bỏ lọc trước khi cuộn.
@@ -140,9 +155,17 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   };
   const focusState: TimelineFocusState = {
     focus,
+    lens,
+    // Liên kết của sự kiện và lăng kính chủ thể loại trừ nhau — bật cái này thì tắt cái kia.
+    setLens: (actor) => {
+      setLens(actor);
+      setFocus(null);
+      if (!actor) setOnlyRelated(false);
+    },
     related,
     setFocus: (ev) => {
       setFocus(ev);
+      setLens(null);
       if (!ev) setOnlyRelated(false);
     },
     reveal,
@@ -233,6 +256,25 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
           regions={allRegions}
         />
 
+        {lens && (
+          <div className="sk-focus-bar" role="status">
+            <Network size={16} />
+            <div>
+              <strong>Lăng kính: {lens.name}</strong>
+              <small>
+                {related.size} sự kiện có chủ thể này
+                {lifespanLabel(lens) && <> · tồn tại {lifespanLabel(lens)} (thanh đánh dấu dọc trục)</>}
+              </small>
+            </div>
+            <label className="sk-focus-only">
+              <input type="checkbox" checked={onlyRelated} onChange={(e) => setOnlyRelated(e.target.checked)} />
+              Chỉ hiện các sự kiện này
+            </label>
+            <Button aria-label="Tắt lăng kính chủ thể" onClick={() => focusState.setLens(null)}>
+              <X size={15} />
+            </Button>
+          </div>
+        )}
         {focus && (
           <div className="sk-focus-bar" role="status">
             <Network size={16} />

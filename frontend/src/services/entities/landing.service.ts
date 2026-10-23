@@ -312,6 +312,8 @@ export interface PublicEventSummaryDto {
   parentId?: string | null;
   /** Quan hệ với sự kiện khác (đồ thị tri thức). */
   relations?: PublicEventLinkDto[];
+  /** Chủ thể không phải nhân vật / địa danh: triều đại / quốc gia, tổ chức, lực lượng, hiện vật. */
+  actors?: PublicEventActorDto[];
   periodSlug: string | null;
   figures: PublicFigureDto[];
   locations: PublicLocationSummaryDto[];
@@ -463,6 +465,17 @@ export async function fetchFigures(): Promise<PublicFigureDto[]> {
   } catch {
     return [];
   }
+}
+
+export interface PublicEventActorDto {
+  id: string;
+  name: string;
+  slug: string | null;
+  type: string;
+  role: string;
+  roleLabel: string | null;
+  startYear: number | null;
+  endYear: number | null;
 }
 
 export interface PublicEventLinkDto {

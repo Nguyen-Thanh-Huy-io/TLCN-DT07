@@ -22,6 +22,12 @@ import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/useAuthSession';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
+import {
+  ContentRevisionApiService,
+  isRevisionPending,
+  type ContentRevisionItem,
+} from '@/services/entities/content-revision.service';
+import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
 
 export type StudioTab = 'CURRICULUM' | 'LESSON_LIBRARY';
 
@@ -154,6 +160,31 @@ export function HisgoStudioView() {
   }, [learningPaths, selectedPathId]);
   // Biên tập viên mở lộ trình đã xuất bản/lưu trữ: chỉ xem cấu trúc chương.
   const structureLocked = Boolean(currentPath && !isReviewer && LOCKED_STATUSES.includes(currentPath.status));
+
+  // Phiên bản hóa lộ trình / chương đã xuất bản: bản sửa chờ duyệt + bản phủ để form mở tiếp.
+  const [pathPending, setPathPending] = useState<{
+    revision: ContentRevisionItem;
+    draft: { title?: string; description?: string | null };
+  } | null>(null);
+  const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
+  const [editChapter, setEditChapter] = useState<{ id: string; title: string; description: string } | null>(null);
+
+  const refreshPathPending = useCallback(async () => {
+    if (!currentPath || currentPath.status !== 'PUBLISHED') {
+      setPathPending(null);
+      return;
+    }
+    try {
+      setPathPending(await ContentRevisionApiService.openDraft('LEARNING_PATH', currentPath.id));
+    } catch {
+      setPathPending(null);
+    }
+  }, [currentPath]);
+
+  useEffect(() => {
+    setRevisionNotice(null);
+    void refreshPathPending();
+  }, [refreshPathPending]);
 
   // Tự động mở rộng tất cả các chương khi tải xong
   useEffect(() => {
@@ -386,8 +417,10 @@ export function HisgoStudioView() {
 
   const handleOpenEditPathModal = () => {
     if (!currentPath) return;
-    setEditPathTitle(currentPath.title);
-    setEditPathDesc(currentPath.description || '');
+    // Biên tập viên có bản sửa đang chờ: mở tiếp bản sửa đó (lưu sẽ cập nhật bản sửa).
+    const source = !isReviewer && pathPending ? pathPending.draft : currentPath;
+    setEditPathTitle(source.title || currentPath.title);
+    setEditPathDesc(source.description || '');
     setShowEditPathModal(true);
   };
 
@@ -398,14 +431,58 @@ export function HisgoStudioView() {
     }
     try {
       setActionLoading(true);
-      await LearningPathApiService.updateLearningPath(currentPath.id, {
+      const saved = await LearningPathApiService.updateLearningPath(currentPath.id, {
         title: editPathTitle.trim(),
         description: editPathDesc.trim() || undefined,
       });
-      await loadLearningPaths();
       setShowEditPathModal(false);
+      if (isRevisionPending(saved)) {
+        // Lộ trình đang xuất bản: thành bản sửa chờ duyệt, bản công khai giữ nguyên.
+        setRevisionNotice(saved.message);
+        await refreshPathPending();
+        return;
+      }
+      await loadLearningPaths();
     } catch (err) {
       showError(err, 'Không thể lưu thay đổi. Vui lòng kiểm tra lại!');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  /** Mở sửa tên / mô tả chương; biên tập viên có bản sửa chờ duyệt thì mở tiếp bản sửa đó. */
+  const handleOpenEditChapter = async (chapter: { id: string; title: string; description?: string | null; status?: string }) => {
+    let source = { title: chapter.title, description: chapter.description ?? '' };
+    if (!isReviewer && chapter.status === 'PUBLISHED') {
+      try {
+        const open = await ContentRevisionApiService.openDraft<{ title?: string; description?: string | null }>('CHAPTER', chapter.id);
+        if (open) source = { title: open.draft.title ?? chapter.title, description: open.draft.description ?? '' };
+      } catch {
+        // Không tải được bản sửa: mở bản hiện tại.
+      }
+    }
+    setEditChapter({ id: chapter.id, ...source });
+  };
+
+  const handleUpdateChapter = async () => {
+    if (!editChapter || !editChapter.title.trim()) {
+      alert('Vui lòng nhập tên chương!');
+      return;
+    }
+    try {
+      setActionLoading(true);
+      const saved = await LearningPathApiService.updateChapter(editChapter.id, {
+        title: editChapter.title.trim(),
+        description: editChapter.description.trim() || undefined,
+      });
+      setEditChapter(null);
+      if (isRevisionPending(saved)) {
+        setRevisionNotice(`Chương: ${saved.message}`);
+        return;
+      }
+      await loadLearningPaths();
+    } catch (err) {
+      showError(err, 'Không thể lưu chương. Vui lòng kiểm tra lại!');
     } finally {
       setActionLoading(false);
     }
@@ -555,10 +632,27 @@ export function HisgoStudioView() {
                   actionLoading={actionLoading}
                 />
 
+                {currentPath && (
+                  <div className="mt-3">
+                    <EditorRevisionBanner
+                      type="LEARNING_PATH"
+                      contentId={currentPath.id}
+                      status={currentPath.status}
+                      pending={pathPending?.revision ?? null}
+                      notice={revisionNotice}
+                      onChanged={(message) => {
+                        setRevisionNotice(message);
+                        void loadLearningPaths();
+                        void refreshPathPending();
+                      }}
+                    />
+                  </div>
+                )}
+
                 {structureLocked && (
                   <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900">
-                    Lộ trình đang <strong>xuất bản</strong>: bạn chỉ xem được cấu trúc chương. Thêm/bớt chương hoặc bài học
-                    do người duyệt thực hiện (hoặc nhờ người duyệt chuyển lộ trình về bản nháp).
+                    Lộ trình đang <strong>xuất bản</strong>: tên, mô tả lộ trình và chương sửa được (thành bản sửa chờ duyệt);
+                    thêm/bớt chương hoặc bài học do người duyệt thực hiện.
                   </div>
                 )}
 
@@ -588,6 +682,7 @@ export function HisgoStudioView() {
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   readOnly={structureLocked}
+                  onEditChapter={(chapter) => void handleOpenEditChapter(chapter)}
                 />
               </>
             )}
@@ -665,6 +760,21 @@ export function HisgoStudioView() {
         submitLoadingLabel="Đang lưu..."
         loading={actionLoading}
         submitId="btn-confirm-edit-path"
+      />
+
+      <LearningPathFormModal
+        isOpen={Boolean(editChapter)}
+        heading="Sửa chương"
+        title={editChapter?.title ?? ''}
+        onTitleChange={(title) => setEditChapter((c) => (c ? { ...c, title } : c))}
+        description={editChapter?.description ?? ''}
+        onDescriptionChange={(description) => setEditChapter((c) => (c ? { ...c, description } : c))}
+        onClose={() => setEditChapter(null)}
+        onSubmit={handleUpdateChapter}
+        submitLabel="Lưu thay đổi"
+        submitLoadingLabel="Đang lưu..."
+        loading={actionLoading}
+        submitId="btn-confirm-edit-chapter"
       />
 
       <CreateChapterModal

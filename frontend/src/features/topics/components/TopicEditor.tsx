@@ -8,6 +8,12 @@ import { ContentStatus, LearningPathType } from '@/constants/enums';
 import { TopicItem } from '@/types/models/topic.type';
 import { TopicApiService } from '@/services/entities/topic.service';
 import { extractErrorMessage } from '@/services/api';
+import {
+  isRevisionPending,
+  withPendingDraft,
+  type ContentRevisionItem,
+} from '@/services/entities/content-revision.service';
+import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
 import { TopicParentModalPicker } from './TopicParentModalPicker';
 import { TopicCoverImagePicker } from './TopicCoverImagePicker';
 import { CurriculumSidePanel } from '@/features/curriculum/components/CurriculumSidePanel';
@@ -79,13 +85,22 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
   const [description, setDescription] = useState('');
   const [isSequential, setIsSequential] = useState(false);
   const [status, setStatus] = useState<ContentStatus>(ContentStatus.PUBLISHED);
+  // Phiên bản hóa: bản sửa chờ duyệt đang mở, thông báo sau khi lưu, khóa tải lại sau duyệt / khôi phục.
+  const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
+  const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [createdAt, setCreatedAt] = useState<string>('');
   const [updatedAt, setUpdatedAt] = useState<string>('');
 
   // Tải chi tiết chủ đề con nếu đang ở edit mode
   const fetchTopicDetail = useCallback(async (id: string) => {
     try {
-      const detail = await TopicApiService.getTopicById(id);
+      const fetched = await TopicApiService.getTopicById(id);
+      // Đang xuất bản mà có bản sửa chờ duyệt → biên tập viên mở bản sửa đó để sửa tiếp.
+      const { detail, pending } = fetched
+        ? await withPendingDraft('TOPIC', id, fetched)
+        : { detail: fetched, pending: null };
+      setPendingRevision(pending);
       if (detail) {
         setName(detail.name || '');
         setCoverImageUrl(detail.coverImageUrl || '');
@@ -127,7 +142,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
         console.error('Failed to load topics:', err);
       })
       .finally(() => setLoadingInitial(false));
-  }, [isEditMode, topicId, queryParentId, fetchTopicDetail]);
+  }, [isEditMode, topicId, queryParentId, fetchTopicDetail, reloadKey]);
 
   // Lọc các chủ đề anh/chị/em (siblings) cùng chủ đề cha
   const siblings = useMemo(() => {
@@ -310,7 +325,15 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
       };
 
       if (isEditMode && topicId) {
-        await TopicApiService.updateTopic(topicId, payload);
+        const saved = await TopicApiService.updateTopic(topicId, payload);
+        if (isRevisionPending(saved)) {
+          // Nội dung đang xuất bản: thay đổi thành bản sửa chờ duyệt, bản công khai giữ nguyên.
+          setPendingRevision(saved.revision);
+          setRevisionNotice(saved.message);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          return;
+        }
       } else {
         await TopicApiService.createTopic({
           ...payload,
@@ -411,6 +434,19 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-2">
+      {isEditMode && (
+        <EditorRevisionBanner
+          type="TOPIC"
+          contentId={topicId}
+          status={status}
+          pending={pendingRevision}
+          notice={revisionNotice}
+          onChanged={(message) => {
+            setRevisionNotice(message);
+            setReloadKey((k) => k + 1);
+          }}
+        />
+      )}
       {/* Top Header Bar & Action Controls */}
       <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-200">
         <div>

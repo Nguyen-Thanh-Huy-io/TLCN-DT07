@@ -21,6 +21,12 @@ import {
 } from '@/services/entities/period.service';
 import { PeriodItem } from '@/types/models/period.type';
 import { extractErrorMessage } from '@/services/api';
+import {
+  isRevisionPending,
+  withPendingDraft,
+  type ContentRevisionItem,
+} from '@/services/entities/content-revision.service';
+import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
 import { TaxonomyApiService, type TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
 import { TaxonomySelect } from '@/features/taxonomy/TaxonomySelect';
 import { formatHistoricalYear } from '@/utils/history-year.utils';
@@ -46,6 +52,10 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
   const [coverImageUrl, setCoverImageUrl] = useState('');
   const [displayOrder, setDisplayOrder] = useState<number>(0);
   const [status, setStatus] = useState<ContentStatus>(ContentStatus.DRAFT);
+  // Phiên bản hóa: bản sửa chờ duyệt đang mở, thông báo sau khi lưu, khóa tải lại sau duyệt / khôi phục.
+  const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
+  const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Related Data for View
   const [parentPeriod, setParentPeriod] = useState<{ id: string; name: string } | null>(null);
@@ -78,7 +88,10 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
 
     setLoading(true);
     PeriodApiService.getPeriodById(periodId)
-      .then((data) => {
+      // Đang xuất bản mà có bản sửa chờ duyệt → biên tập viên mở bản sửa đó để sửa tiếp.
+      .then((fetched) => withPendingDraft('PERIOD', periodId, fetched))
+      .then(({ detail: data, pending }) => {
+        setPendingRevision(pending);
         setName(data.name || '');
         setParentId(data.parentId || '');
         setParentPeriod(data.parent || null);
@@ -99,7 +112,7 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
         alert(extractErrorMessage(err, 'Không thể tải thông tin thời kỳ lịch sử.'));
       })
       .finally(() => setLoading(false));
-  }, [periodId]);
+  }, [periodId, reloadKey]);
 
   // Candidate parents: all periods except current period itself
   const parentCandidates = useMemo(() => {
@@ -191,7 +204,15 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
 
     try {
       if (isEdit && periodId) {
-        await PeriodApiService.updatePeriod(periodId, payload);
+        const saved = await PeriodApiService.updatePeriod(periodId, payload);
+        if (isRevisionPending(saved)) {
+          // Nội dung đang xuất bản: thay đổi thành bản sửa chờ duyệt, bản công khai giữ nguyên.
+          setPendingRevision(saved.revision);
+          setRevisionNotice(saved.message);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setSavingAction(null);
+          return;
+        }
       } else {
         await PeriodApiService.createPeriod(payload as CreatePeriodDto);
       }
@@ -595,6 +616,19 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
       onPublish={() => handleSave(ContentStatus.PUBLISHED)}
       onCancel={() => router.push(APP_ROUTES.PERIODS.LIST)}
       sections={sections}
+      banner={
+        <EditorRevisionBanner
+          type="PERIOD"
+          contentId={periodId}
+          status={status}
+          pending={pendingRevision}
+          notice={revisionNotice}
+          onChanged={(message) => {
+            setRevisionNotice(message);
+            setReloadKey((k) => k + 1);
+          }}
+        />
+      }
     />
   );
 }

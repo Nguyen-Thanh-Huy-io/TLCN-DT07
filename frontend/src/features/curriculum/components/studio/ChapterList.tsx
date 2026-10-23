@@ -34,6 +34,8 @@ interface ChapterListProps {
   onDrop: (chapter: ChapterItem, targetLessonId: string) => void;
   /** Chỉ xem: ẩn mọi nút thay đổi cấu trúc (vd. biên tập viên mở lộ trình đã xuất bản). */
   readOnly?: boolean;
+  /** Sửa tên / mô tả chương — vẫn mở khi chỉ xem cấu trúc (thành bản sửa chờ duyệt). */
+  onEditChapter?: (chapter: ChapterItem) => void;
 }
 
 /** Danh sách Chương dạng accordion + danh sách Lesson trong từng chương (kéo thả / ▲▼
@@ -56,6 +58,7 @@ export function ChapterList({
   onDragOver,
   onDrop,
   readOnly = false,
+  onEditChapter,
 }: ChapterListProps) {
   // Phân trang danh sách Chương — lộ trình nhiều chương trước đây dồn hết 1 lần, cuộn
   // rất dài, khó quét. Về trang 1 mỗi khi đổi sang Lộ trình khác (mảng `chapters` đổi
@@ -174,6 +177,16 @@ export function ChapterList({
                       </span>
                     </td>
                     <td className="px-3 py-2.5 align-top text-right whitespace-nowrap">
+                      {onEditChapter && (
+                        <button
+                          type="button"
+                          onClick={() => onEditChapter(chapter)}
+                          title="Sửa tên / mô tả chương"
+                          className="px-1 text-[11px] font-semibold text-slate-500 hover:text-emerald-700"
+                        >
+                          Sửa
+                        </button>
+                      )}
                       {!readOnly && (<>
                       <button
                         type="button"
@@ -254,6 +267,18 @@ export function ChapterList({
                   </div>
 
                   {/* Quick Chapter Actions */}
+                  {readOnly && onEditChapter && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditChapter(chapter);
+                      }}
+                      className="secondary-button !h-7 !text-xs !px-2.5"
+                    >
+                      Sửa tên / mô tả
+                    </button>
+                  )}
                   {!readOnly && (
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     <button
@@ -276,6 +301,16 @@ export function ChapterList({
                       <span>Thêm Lesson từ thư viện</span>
                     </button>
 
+                    {onEditChapter && (
+                      <button
+                        type="button"
+                        onClick={() => onEditChapter(chapter)}
+                        className="secondary-button !h-7 !text-xs !px-2.5"
+                        title="Sửa tên / mô tả chương"
+                      >
+                        Sửa
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => onDeleteChapter(e, chapter.id, chapter.title)}

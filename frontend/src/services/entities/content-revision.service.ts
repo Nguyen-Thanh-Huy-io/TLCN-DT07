@@ -1,12 +1,23 @@
 import api from '../api';
 import { PublicAuthService, isReviewerRole } from '../auth/public-auth.service';
 
-export type RevisionContentType = 'LESSON' | 'EVENT' | 'ENTITY';
+export type RevisionContentType =
+  | 'LESSON'
+  | 'EVENT'
+  | 'ENTITY'
+  | 'PERIOD'
+  | 'TOPIC'
+  | 'LEARNING_PATH'
+  | 'CHAPTER';
 
 export const REVISION_TYPE_LABELS: Record<RevisionContentType, string> = {
   LESSON: 'Bài học',
   EVENT: 'Sự kiện',
   ENTITY: 'Nhân vật / thực thể',
+  PERIOD: 'Giai đoạn',
+  TOPIC: 'Chủ đề',
+  LEARNING_PATH: 'Lộ trình học',
+  CHAPTER: 'Chương',
 };
 
 export interface RevisionPerson {
@@ -38,9 +49,30 @@ export interface ContentRevisionItem {
 export interface RevisionChange {
   key: string;
   label: string;
-  kind: 'text' | 'longtext' | 'list' | 'json';
+  /** Cách hiển thị (đồng bộ REVISION_FIELDS phía backend). */
+  kind:
+    | 'text'
+    | 'longtext'
+    | 'bool'
+    | 'image'
+    | 'list'
+    | 'ref'
+    | 'refs'
+    | 'blocks'
+    | 'relations'
+    | 'media'
+    | 'object';
+  ref?: string;
   before: unknown;
   after: unknown;
+}
+
+/** id / mã → tên (giai đoạn, thực thể, giá trị danh mục...); khóa "field:<key>" là nhãn trường metadata. */
+export type RevisionLabels = Record<string, string>;
+
+export interface RevisionHistoryItem extends ContentRevisionItem {
+  /** Nhãn các trường lần thay đổi này đụng tới. */
+  changedFields: string[];
 }
 
 /** Phản hồi khi biên tập viên lưu nội dung đang xuất bản: thành bản sửa chờ duyệt. */
@@ -61,7 +93,7 @@ export const ContentRevisionApiService = {
   pending: async () => unwrap<ContentRevisionItem[]>(await api.get('/content-revisions/pending')),
 
   history: async (type: RevisionContentType, id: string) =>
-    unwrap<{ liveVersion: number; items: ContentRevisionItem[] }>(
+    unwrap<{ liveVersion: number; items: RevisionHistoryItem[] }>(
       await api.get(`/content-revisions/content/${typePath(type)}/${id}`),
     ),
 
@@ -72,7 +104,7 @@ export const ContentRevisionApiService = {
     ),
 
   detail: async (revisionId: string) =>
-    unwrap<{ revision: ContentRevisionItem; changes: RevisionChange[] }>(
+    unwrap<{ revision: ContentRevisionItem; changes: RevisionChange[]; labels: RevisionLabels }>(
       await api.get(`/content-revisions/${revisionId}`),
     ),
 

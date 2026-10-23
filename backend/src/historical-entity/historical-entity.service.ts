@@ -182,6 +182,7 @@ export class HistoricalEntityService {
                   preservationStatus: dto.preservationStatus?.trim(),
                   recognitionLevel: dto.recognitionLevel?.trim(),
                   managingAgency: dto.managingAgency?.trim(),
+                  statusNote: dto.statusNote?.trim() || null,
                 },
               },
             }
@@ -264,7 +265,9 @@ export class HistoricalEntityService {
       where: { id },
       include: {
         person: true,
-        historicalSite: true,
+        historicalSite: {
+          include: { siteTypeTerm: true, preservation: true, rank: true },
+        },
         outgoingRelations: {
           include: {
             targetEntity: {
@@ -347,6 +350,10 @@ export class HistoricalEntityService {
       preservationStatus: raw.historicalSite?.preservationStatus ?? null,
       recognitionLevel: raw.historicalSite?.recognitionLevel ?? null,
       managingAgency: raw.historicalSite?.managingAgency ?? null,
+      statusNote: raw.historicalSite?.statusNote ?? null,
+      siteTypeCode: raw.historicalSite?.siteTypeTerm?.code ?? null,
+      preservationCode: raw.historicalSite?.preservation?.code ?? null,
+      rankCode: raw.historicalSite?.rank?.code ?? null,
       outgoingRelations: raw.outgoingRelations?.map((rel: any) => ({
         ...rel,
         targetEntity: {
@@ -406,6 +413,7 @@ export class HistoricalEntityService {
       preservationStatus,
       recognitionLevel,
       managingAgency,
+      statusNote,
       ...baseDto
     } = dto;
 
@@ -428,7 +436,8 @@ export class HistoricalEntityService {
       constructionLabel !== undefined ||
       preservationStatus !== undefined ||
       recognitionLevel !== undefined ||
-      managingAgency !== undefined;
+      managingAgency !== undefined ||
+      statusNote !== undefined;
 
     let updatedMetadata: any = undefined;
     if (baseDto.metadata !== undefined || dto.periodIds !== undefined) {
@@ -496,6 +505,7 @@ export class HistoricalEntityService {
                     preservationStatus: preservationStatus?.trim(),
                     recognitionLevel: recognitionLevel?.trim(),
                     managingAgency: managingAgency?.trim(),
+                    statusNote: statusNote?.trim() || null,
                   },
                   update: {
                     ...(siteType !== undefined ? { siteType: siteType.trim() } : {}),
@@ -507,6 +517,9 @@ export class HistoricalEntityService {
                     ...(preservationStatus !== undefined ? { preservationStatus: preservationStatus?.trim() } : {}),
                     ...(recognitionLevel !== undefined ? { recognitionLevel: recognitionLevel?.trim() } : {}),
                     ...(managingAgency !== undefined ? { managingAgency: managingAgency?.trim() } : {}),
+                    ...(statusNote !== undefined
+                      ? { statusNote: statusNote?.trim() || null }
+                      : {}),
                   },
                 },
               },

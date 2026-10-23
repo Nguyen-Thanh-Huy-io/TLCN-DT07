@@ -256,6 +256,15 @@ export class CreateHistoricalEntityDto {
   managingAgency?: string;
 
   @ApiPropertyOptional({
+    example: 'Đang tu bổ khu chính điện',
+    description:
+      'Ghi chú hiện trạng hiển thị kèm nhóm hiện trạng (Dành cho HistoricalSite)',
+  })
+  @IsString()
+  @IsOptional()
+  statusNote?: string;
+
+  @ApiPropertyOptional({
     example: {
       dynasty: 'Nhà Trần',
       hometown: 'Nam Định',
@@ -469,6 +478,7 @@ export class HistoricalSiteResponseDto {
   @ApiPropertyOptional({ nullable: true }) preservationStatus?: string | null;
   @ApiPropertyOptional({ nullable: true }) recognitionLevel?: string | null;
   @ApiPropertyOptional({ nullable: true }) managingAgency?: string | null;
+  @ApiPropertyOptional({ nullable: true }) statusNote?: string | null;
 }
 
 export class HistoricalEntityResponseDto {

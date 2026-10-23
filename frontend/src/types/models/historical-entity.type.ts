@@ -60,6 +60,11 @@ export interface HistoricalEntityItem {
   preservationStatus?: string | null;
   recognitionLevel?: string | null;
   managingAgency?: string | null;
+  statusNote?: string | null;
+  /** Mã danh mục dùng chung đã gắn (loại, hiện trạng, xếp hạng) — để form CMS chọn sẵn. */
+  siteTypeCode?: string | null;
+  preservationCode?: string | null;
+  rankCode?: string | null;
   metadata?: Record<string, any> | null;
   isFeatured?: boolean;
   displayOrder?: number;

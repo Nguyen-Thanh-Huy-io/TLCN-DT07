@@ -120,42 +120,53 @@ export class TaxonomyService {
     await this.prisma.historicalSite.update({
       where: { entityId },
       data: {
-        siteTypeId: this.matchSiteType(terms, site.siteType)?.id ?? null,
+        siteTypeId:
+          this.matchTerm(terms, TAXONOMY_GROUPS.SITE_TYPE, site.siteType, (v) =>
+            normalizeSiteType(v),
+          )?.id ?? null,
         preservationId:
-          this.byCode(
+          this.matchTerm(
             terms,
             TAXONOMY_GROUPS.PRESERVATION,
-            preservation.category,
+            site.preservationStatus,
+            () => preservation.category,
           )?.id ?? null,
-        statusNote: preservation.note,
+        // Form CMS chọn mã + nhập ghi chú riêng; chỉ chữ tự do kiểu cũ mới sinh ghi chú tự động.
+        ...(preservation.note ? { statusNote: preservation.note } : {}),
         rankId:
-          this.byCode(
+          this.matchTerm(
             terms,
             TAXONOMY_GROUPS.HERITAGE_RANK,
-            normalizeRank(site.recognitionLevel),
+            site.recognitionLevel,
+            normalizeRank,
           )?.id ?? null,
       },
     });
   }
 
-  /** Loại di tích: khớp mã / alias trong DB trước (thêm được từ CMS), rồi mới tới quy tắc cố định. */
-  private matchSiteType(terms: TaxonomyTerm[], raw: string | null) {
+  /**
+   * Khớp mã / alias trong DB trước (giá trị thêm từ CMS khớp được ngay), rồi mới tới quy tắc
+   * cố định cho dữ liệu chữ tự do cũ.
+   */
+  private matchTerm(
+    terms: TaxonomyTerm[],
+    group: string,
+    raw: string | null,
+    fallback: (value: string) => string | null,
+  ) {
     const value = raw?.trim();
     if (!value) return undefined;
     const lower = value.toLocaleLowerCase('vi');
-    const inGroup = terms.filter(
-      (t) => t.groupCode === TAXONOMY_GROUPS.SITE_TYPE,
-    );
+    const inGroup = terms.filter((t) => t.groupCode === group);
+    const code = fallback(value);
     return (
-      inGroup.find((t) => t.code === value || t.aliases.includes(lower)) ??
-      inGroup.find((t) => t.code === normalizeSiteType(value))
+      inGroup.find(
+        (t) =>
+          t.code === value.toUpperCase() ||
+          t.label.toLocaleLowerCase('vi') === lower ||
+          t.aliases.includes(lower),
+      ) ?? (code ? inGroup.find((t) => t.code === code) : undefined)
     );
-  }
-
-  private byCode(terms: TaxonomyTerm[], group: string, code: string | null) {
-    return code
-      ? terms.find((t) => t.groupCode === group && t.code === code)
-      : undefined;
   }
 
   private async findTerm(id: string) {

@@ -49,6 +49,7 @@ export interface SaveHistoricalEntityPayload {
   preservationStatus?: string | null;
   recognitionLevel?: string | null;
   managingAgency?: string | null;
+  statusNote?: string | null;
   metadata?: Record<string, any> | null;
   isFeatured?: boolean;
   displayOrder?: number;

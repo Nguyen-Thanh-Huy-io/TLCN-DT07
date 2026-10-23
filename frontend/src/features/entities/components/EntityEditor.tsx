@@ -25,6 +25,10 @@ import {
   SaveHistoricalEntityPayload,
 } from '@/services/entities/historical-entity.service';
 import { PeriodApiService } from '@/services/entities/period.service';
+import { TaxonomyApiService, type TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
+import { TaxonomySelect } from '@/features/taxonomy/TaxonomySelect';
+
+const SITE_TAXONOMY_GROUPS = ['SITE_TYPE', 'PRESERVATION', 'HERITAGE_RANK'];
 import { PeriodItem } from '@/types/models/period.type';
 import { extractErrorMessage } from '@/services/api';
 import { HistoricalEntityItem } from '@/types/models/historical-entity.type';
@@ -168,7 +172,7 @@ export function EntityEditor({
   const [birthDateLabel, setBirthDateLabel] = useState('');
   const [deathDateLabel, setDeathDateLabel] = useState('');
   // Historical Site fields (cho LOCATION)
-  const [siteType, setSiteType] = useState<string>('HISTORICAL_SITE');
+  const [siteType, setSiteType] = useState<string>('MONUMENT');
   const [address, setAddress] = useState<string>('');
   const [latitude, setLatitude] = useState<number | ''>('');
   const [longitude, setLongitude] = useState<number | ''>('');
@@ -177,6 +181,9 @@ export function EntityEditor({
   const [preservationStatus, setPreservationStatus] = useState<string>('');
   const [recognitionLevel, setRecognitionLevel] = useState<string>('');
   const [managingAgency, setManagingAgency] = useState<string>('');
+  const [statusNote, setStatusNote] = useState<string>('');
+  // Loại / hiện trạng / xếp hạng lấy từ "Danh mục dùng chung" thay cho ô chữ tự do.
+  const [siteTaxonomies, setSiteTaxonomies] = useState<Record<string, TaxonomyGroupItem>>({});
 
   const [figureProfile, setFigureProfile] = useState<FigureProfileForm>(EMPTY_FIGURE_PROFILE);
 
@@ -231,6 +238,9 @@ export function EntityEditor({
       setAllEntities(entityRes.items || []);
       setAllEvents(eventRes.items || []);
     });
+    TaxonomyApiService.getGroups(SITE_TAXONOMY_GROUPS)
+      .then((groups) => setSiteTaxonomies(Object.fromEntries(groups.map((g) => [g.code, g]))))
+      .catch(() => setSiteTaxonomies({}));
   }, []);
 
   // Fetch Existing Entity (If Edit Mode)
@@ -258,15 +268,16 @@ export function EntityEditor({
         setDeathYear(data.deathYear ?? '');
         setBirthDateLabel(data.birthDateLabel || '');
         setDeathDateLabel(data.deathDateLabel || '');
-        setSiteType(data.siteType || 'HISTORICAL_SITE');
+        setSiteType(data.siteTypeCode || data.siteType || 'MONUMENT');
         setAddress(data.address || '');
         setLatitude(data.latitude ?? '');
         setLongitude(data.longitude ?? '');
         setConstructionYear(data.constructionYear ?? '');
         setConstructionLabel(data.constructionLabel || '');
-        setPreservationStatus(data.preservationStatus || '');
-        setRecognitionLevel(data.recognitionLevel || '');
+        setPreservationStatus(data.preservationCode || data.preservationStatus || '');
+        setRecognitionLevel(data.rankCode || data.recognitionLevel || '');
         setManagingAgency(data.managingAgency || '');
+        setStatusNote(data.statusNote || '');
         setFigureProfile(figureProfileFromEntity(data));
         // metadata.profile is edited through the "Hồ sơ nhân vật" form, so keep it out of the raw JSON box.
         const { [FIGURE_PROFILE_METADATA_KEY]: _profile, ...otherMetadata } = data.metadata ?? {};
@@ -733,15 +744,16 @@ export function EntityEditor({
       roles: isPerson ? figureProfile.roles : undefined,
       biography: isPerson ? figureProfile.biography.trim() : undefined,
       // Historical Site fields (cho LOCATION)
-      siteType: type === EntityType.LOCATION ? (siteType.trim() || 'HISTORICAL_SITE') : undefined,
+      siteType: type === EntityType.LOCATION ? (siteType.trim() || 'MONUMENT') : undefined,
       address: type === EntityType.LOCATION ? (address.trim() || undefined) : undefined,
       latitude: type === EntityType.LOCATION && latitude !== '' ? Number(latitude) : undefined,
       longitude: type === EntityType.LOCATION && longitude !== '' ? Number(longitude) : undefined,
       constructionYear: type === EntityType.LOCATION && constructionYear !== '' ? Number(constructionYear) : undefined,
       constructionLabel: type === EntityType.LOCATION ? (constructionLabel.trim() || undefined) : undefined,
-      preservationStatus: type === EntityType.LOCATION ? (preservationStatus.trim() || undefined) : undefined,
-      recognitionLevel: type === EntityType.LOCATION ? (recognitionLevel.trim() || undefined) : undefined,
+      preservationStatus: type === EntityType.LOCATION ? preservationStatus.trim() : undefined,
+      recognitionLevel: type === EntityType.LOCATION ? recognitionLevel.trim() : undefined,
       managingAgency: type === EntityType.LOCATION ? (managingAgency.trim() || undefined) : undefined,
+      statusNote: type === EntityType.LOCATION ? statusNote.trim() : undefined,
       // Always sent so that clearing the profile fields actually removes them on update.
       metadata: parsedMetadata,
       isFeatured,
@@ -972,12 +984,11 @@ export function EntityEditor({
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                     Loại hình di tích
                   </label>
-                  <input
-                    type="text"
+                  <TaxonomySelect
+                    group={siteTaxonomies.SITE_TYPE}
                     value={siteType}
-                    onChange={(e) => setSiteType(e.target.value)}
-                    placeholder="VD: Cố đô, Chiến trường, Đình đền..."
-                    className="w-full text-xs px-3.5 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 transition"
+                    onChange={setSiteType}
+                    emptyLabel={null}
                   />
                 </div>
 
@@ -1015,12 +1026,11 @@ export function EntityEditor({
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                     Cấp xếp hạng di tích
                   </label>
-                  <input
-                    type="text"
+                  <TaxonomySelect
+                    group={siteTaxonomies.HERITAGE_RANK}
                     value={recognitionLevel}
-                    onChange={(e) => setRecognitionLevel(e.target.value)}
-                    placeholder="VD: Quốc gia đặc biệt, Di sản UNESCO..."
-                    className="w-full text-xs px-3.5 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 transition"
+                    onChange={setRecognitionLevel}
+                    emptyLabel="Chưa xếp hạng"
                   />
                 </div>
 
@@ -1028,12 +1038,11 @@ export function EntityEditor({
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                     Tình trạng bảo tồn
                   </label>
-                  <input
-                    type="text"
+                  <TaxonomySelect
+                    group={siteTaxonomies.PRESERVATION}
                     value={preservationStatus}
-                    onChange={(e) => setPreservationStatus(e.target.value)}
-                    placeholder="VD: Tốt, Đang tôn tạo, Phế tích..."
-                    className="w-full text-xs px-3.5 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 transition"
+                    onChange={setPreservationStatus}
+                    emptyLabel="Chưa xác định"
                   />
                 </div>
 
@@ -1048,6 +1057,20 @@ export function EntityEditor({
                     placeholder="VD: Trung tâm Bảo tồn Di sản..."
                     className="w-full text-xs px-3.5 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 transition"
                   />
+                </div>
+
+                <div className="md:col-span-12">
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    Ghi chú hiện trạng
+                  </label>
+                  <input
+                    type="text"
+                    value={statusNote}
+                    onChange={(e) => setStatusNote(e.target.value)}
+                    placeholder="VD: Đang tu bổ khu chính điện, mở cửa một phần..."
+                    className="w-full text-xs px-3.5 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 transition"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Hiển thị kèm nhóm hiện trạng trên trang di tích, không dùng để lọc</span>
                 </div>
               </div>
             </div>

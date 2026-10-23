@@ -31,8 +31,8 @@ const unwrap = <T>(res: { data?: { data?: T } & T }) => (res.data?.data ?? res.d
 
 /** Danh mục dùng chung (taxonomy) — CMS: xem cả giá trị đang ẩn; sửa cần quyền người duyệt. */
 export class TaxonomyApiService {
-  static async getGroups(): Promise<TaxonomyGroupItem[]> {
-    return unwrap(await api.get('/taxonomies'));
+  static async getGroups(groups?: string[]): Promise<TaxonomyGroupItem[]> {
+    return unwrap(await api.get('/taxonomies', { params: groups?.length ? { groups: groups.join(',') } : undefined }));
   }
 
   static async createTerm(input: TaxonomyTermInput & { groupCode: string; code: string; label: string }) {

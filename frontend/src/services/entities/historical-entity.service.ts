@@ -2,7 +2,6 @@ import {
   ContentStatus,
   EntityRelationType,
   EntityType,
-  FigureRole,
   MediaType,
 } from '@/constants/enums';
 import { PaginatedResult, parsePaginatedResponse } from '../api';
@@ -37,7 +36,8 @@ export interface SaveHistoricalEntityPayload {
   birthDateLabel?: string | null;
   deathDateLabel?: string | null;
   // Person fields (cho PERSON)
-  roles?: FigureRole[];
+  /** Mã vai trò (danh mục FIGURE_ROLE). */
+  roles?: string[];
   biography?: string | null;
   // Historical Site fields (cho LOCATION)
   siteType?: string | null;

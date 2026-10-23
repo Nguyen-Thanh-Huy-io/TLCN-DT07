@@ -17,10 +17,9 @@ import { FiguresSidebar } from "./FiguresSidebar";
 import { FiguresGrid } from "./FigureCard";
 import { FigureProfileSheet, type ProfileTab } from "./FigureProfileSheet";
 import { buildFigureViews, normalize, type FigureView } from "./figure-utils";
-import { FIGURE_ROLE_ORDER, figureRoles, isFigureRole } from "./figure-roles";
+import { figureRoles, useFigureRoles } from "./figure-roles";
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from "@/components/filters/ChipFilter";
 import { regionLabel, sortedRegions } from "@/utils/region.utils";
-import { FIGURE_ROLE_LABELS, type FigureRole } from "@/constants/enums";
 
 const PROFILE_QUERY_KEY = "nv";
 
@@ -98,8 +97,10 @@ export function FiguresDirectory({
     [regionOfEra, subEras],
   );
 
+  // Vai trò theo "Danh mục dùng chung" (thứ tự, nhãn do CMS quản lý).
+  const figureRoleTaxonomy = useFigureRoles();
   const countByRole = useMemo(() => {
-    const counts = new Map<FigureRole, number>();
+    const counts = new Map<string, number>();
     for (const f of figures) for (const r of figureRoles(f.roles)) counts.set(r, (counts.get(r) ?? 0) + 1);
     return counts;
   }, [figures]);
@@ -130,7 +131,7 @@ export function FiguresDirectory({
     ...filters.regions.map((v) => ({ key: "regions" as const, value: v, label: v })),
     ...filters.eras.map((v) => ({ key: "eras" as const, value: v, label: eraTitle(v) })),
     ...filters.subs.map((v) => ({ key: "subs" as const, value: v, label: subEras.find((s) => s.id === v)?.title ?? "Giai đoạn" })),
-    ...filters.roles.map((v) => ({ key: "roles" as const, value: v, label: isFigureRole(v) ? FIGURE_ROLE_LABELS[v] : v })),
+    ...filters.roles.map((v) => ({ key: "roles" as const, value: v, label: figureRoleTaxonomy.label(v) })),
   ];
   const open = useCallback(
     (figure: FigureView) => {
@@ -217,10 +218,10 @@ export function FiguresDirectory({
                 </FilterSection>
                 <FilterSection title="Vai trò" aside={<PickedCount count={draft.roles.length} />}>
                   <ChipGroup
-                    options={FIGURE_ROLE_ORDER.filter((r) => countByRole.get(r)).map((r) => ({
-                      value: r,
-                      label: FIGURE_ROLE_LABELS[r],
-                      hint: `${countByRole.get(r)} nhân vật`,
+                    options={figureRoleTaxonomy.options.filter((r) => countByRole.get(r.code)).map((r) => ({
+                      value: r.code,
+                      label: r.label,
+                      hint: `${countByRole.get(r.code)} nhân vật`,
                     }))}
                     selected={draft.roles}
                     onToggle={(v) => toggle("roles", v)}

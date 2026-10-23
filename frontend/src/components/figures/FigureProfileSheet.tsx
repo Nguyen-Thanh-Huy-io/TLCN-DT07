@@ -9,8 +9,7 @@ import { LifeTimeline } from "./LifeTimeline";
 import { RelationshipGraph } from "./RelationshipGraph";
 import { FigureBiography } from "./FigureBiography";
 import type { FigureView } from "./figure-utils";
-import { figureRoles } from "./figure-roles";
-import { FIGURE_ROLE_LABELS } from "@/constants/enums";
+import { figureRoles, useFigureRoles } from "./figure-roles";
 
 export type ProfileTab = "timeline" | "graph" | "bio";
 
@@ -37,7 +36,8 @@ export function FigureProfileSheet({
   onClose: () => void;
   onNavigate: (f: FigureView) => void;
 }) {
-  const roles = f ? figureRoles(f.roles).map((r) => FIGURE_ROLE_LABELS[r]) : [];
+  const { label: roleLabel } = useFigureRoles();
+  const roles = f ? figureRoles(f.roles).map(roleLabel) : [];
   return (
     <Modal open={!!f} onClose={onClose} title="Hồ sơ nhân vật" className="sk-figure-profile">
       {f && (

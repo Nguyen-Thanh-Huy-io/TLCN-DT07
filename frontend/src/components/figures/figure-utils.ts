@@ -1,5 +1,7 @@
 import type { PublicFigureProfileDto, PublicFigureRelationDto, PublicPeriodDto } from "@/services/entities/landing.service";
-import { ENTITY_RELATION_TYPE_LABELS, EntityRelationType } from "@/constants/enums";
+import { ENTITY_RELATION_TYPE_LABELS } from "@/constants/enums";
+import type { TaxonomyTermItem } from "@/services/entities/taxonomy.service";
+import { relationLabel } from "@/features/taxonomy/taxonomy-labels";
 
 export type RelationCategory = "FAMILY" | "ALLY" | "RIVAL" | "CONTEMPORARY";
 
@@ -48,11 +50,11 @@ export function relationCategory(relation: PublicFigureRelationDto): RelationCat
   return CATEGORY_BY_RELATION[relation.relationType] || "CONTEMPORARY";
 }
 
-export function relationTargetLabel(relation: PublicFigureRelationDto): string {
+export function relationTargetLabel(relation: PublicFigureRelationDto, relationTerms: TaxonomyTermItem[] = []): string {
   const mapped = TARGET_LABELS[relation.relationType];
   if (mapped) return mapped[relation.direction];
-  const base = ENTITY_RELATION_TYPE_LABELS[relation.relationType as EntityRelationType] || relation.relationType;
-  return relation.direction === "INCOMING" ? `${base} (chiều ngược)` : base;
+  // Loại quan hệ mới (thêm trong "Danh mục dùng chung"): nhãn / nhãn chiều ngược của danh mục.
+  return relationLabel(relationTerms, relation.relationType, relation.direction, ENTITY_RELATION_TYPE_LABELS);
 }
 
 export interface FigureView extends PublicFigureProfileDto {

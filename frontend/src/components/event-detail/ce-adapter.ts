@@ -11,6 +11,8 @@ import { eventCategoryLabel, eventRoleLabel } from "@/features/taxonomy/taxonomy
 export interface EventReaderTaxonomy {
   categories?: TaxonomyTermItem[];
   roles?: TaxonomyTermItem[];
+  /** Nhóm EVENT_RELATION — nhãn chiều ngược cho quan hệ hướng tới sự kiện này. */
+  relations?: TaxonomyTermItem[];
 }
 
 export function formatYear(year: number): string {

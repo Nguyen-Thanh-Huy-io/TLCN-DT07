@@ -2,7 +2,6 @@ import {
   ContentStatus,
   EntityRelationType,
   EntityType,
-  FigureRole,
   MediaType,
 } from '@/constants/enums';
 
@@ -48,7 +47,8 @@ export interface HistoricalEntityItem {
   // Person fields (cho PERSON)
   occupation?: string | null;
   titles?: string[];
-  roles?: FigureRole[];
+  /** Mã vai trò (danh mục FIGURE_ROLE). */
+  roles?: string[];
   biography?: string | null;
   // Historical Site fields (cho LOCATION)
   siteType?: string | null;

@@ -44,6 +44,34 @@ export function eventCategoryRootCode(terms: TaxonomyTermItem[], event: EventCat
   return term?.code;
 }
 
+/**
+ * Nhãn loại quan hệ theo hướng nhìn: từ phía nguồn (OUTGOING) dùng nhãn, từ phía đích (INCOMING)
+ * dùng nhãn chiều ngược ("Cha mẹ của" ↔ "Con của"). Không có trong danh mục thì dùng nhãn dự phòng.
+ */
+export function relationLabel(
+  terms: TaxonomyTermItem[],
+  code: string,
+  direction: 'OUTGOING' | 'INCOMING' = 'OUTGOING',
+  fallback: Record<string, string> = {},
+): string {
+  const term = terms.find((t) => t.code === code);
+  if (term) return direction === 'INCOMING' ? (term.inverseLabel ?? term.label) : term.label;
+  return fallback[code] ?? code;
+}
+
+/** Lựa chọn [mã, nhãn] cho ô chọn loại quan hệ: giá trị đang dùng của danh mục + giá trị hiện tại. */
+export function relationOptions(
+  terms: TaxonomyTermItem[],
+  fallback: Record<string, string>,
+  current?: string,
+): Array<[string, string]> {
+  const options: Array<[string, string]> = terms.length
+    ? terms.filter((t) => t.isActive || t.code === current).map((t) => [t.code, t.label])
+    : Object.entries(fallback);
+  if (current && !options.some(([code]) => code === current)) options.push([current, fallback[current] ?? current]);
+  return options;
+}
+
 export function eventRoleLabel(terms: TaxonomyTermItem[], code: string | null | undefined): string {
   if (!code) return '';
   return terms.find((t) => t.code === code)?.label ?? EVENT_ENTITY_ROLE_LABELS[code] ?? code;

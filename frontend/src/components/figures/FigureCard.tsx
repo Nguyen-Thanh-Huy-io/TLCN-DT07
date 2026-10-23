@@ -3,13 +3,13 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, ArrowUpRight, Clock3, History, Landmark, Quote } from "lucide-react";
 import { Badge, Button, Heading } from "@/components/timeline/sk-ui";
-import { FIGURE_ROLE_LABELS } from "@/constants/enums";
 import { FigurePortrait } from "./FigurePortrait";
-import { FIGURE_ROLE_ICONS, figureRoles } from "./figure-roles";
+import { figureRoles, useFigureRoles } from "./figure-roles";
 import type { FigureView } from "./figure-utils";
 
 export function FigureCard({ figure: f, onOpen }: { figure: FigureView; onOpen: () => void }) {
   const roles = figureRoles(f.roles);
+  const { label: roleLabel, icon: roleIcon } = useFigureRoles();
   return (
     <article className="sk-directory-figure-card">
       <Button className="sk-figure-artwork" onClick={onOpen} aria-label={`Mở hồ sơ ${f.name}`}>
@@ -33,11 +33,11 @@ export function FigureCard({ figure: f, onOpen }: { figure: FigureView; onOpen: 
         {roles.length > 0 && (
           <div className="sk-figure-role-badges">
             {roles.map((r) => {
-              const Icon = FIGURE_ROLE_ICONS[r];
+              const Icon = roleIcon(r);
               return (
                 <Badge className={`sk-role-${r}`} key={r}>
                   <Icon size={10} />
-                  {FIGURE_ROLE_LABELS[r]}
+                  {roleLabel(r)}
                 </Badge>
               );
             })}

@@ -36,6 +36,7 @@ import { APP_ROUTES } from '@/constants/routes';
 import { TaxonomyApiService, type TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
 import { EventCategoryPanel } from './EventCategoryPanel';
 import { EventEntityRoles, emptyEventRole, type EventEntityRoleValue } from './EventEntityRoles';
+import { relationLabel, relationOptions } from '@/features/taxonomy/taxonomy-labels';
 import {
   HistoricalEventApiService,
   SaveHistoricalEventPayload,
@@ -151,6 +152,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
   const [categoryGroup, setCategoryGroup] = useState<TaxonomyGroupItem>();
   // Vai trò từng thực thể đã gắn (mã theo nhóm EVENT_ROLE + mô tả tự do).
   const [roleGroup, setRoleGroup] = useState<TaxonomyGroupItem>();
+  const [relationGroup, setRelationGroup] = useState<TaxonomyGroupItem>();
   const [entityRoles, setEntityRoles] = useState<Record<string, EventEntityRoleValue>>({});
   /** Mã enum cũ của bản ghi chưa có categoryIds — quy đổi khi danh mục tải xong. */
   const [legacyCategory, setLegacyCategory] = useState<string | null>(null);
@@ -189,7 +191,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
     Array<{
       id?: string;
       targetEventId: string;
-      relationType: EventRelationType;
+      relationType: string;
       description?: string;
       status?: VerificationStatus;
       sourceReference?: string;
@@ -200,7 +202,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
 
   // State cho Form tạo quan hệ sự kiện mới (Grid chuẩn: 50%-50% / 25%-25%-50%)
   const [newTargetEventId, setNewTargetEventId] = useState('');
-  const [newEventRelationType, setNewEventRelationType] = useState<EventRelationType>(
+  const [newEventRelationType, setNewEventRelationType] = useState<string>(
     EventRelationType.CAUSES,
   );
   const [newEventRelationDesc, setNewEventRelationDesc] = useState('');
@@ -274,10 +276,11 @@ export function EventEditor({ eventId }: EventEditorProps) {
   }, [autoDisplayText, isCustomDisplayMode]);
 
   useEffect(() => {
-    TaxonomyApiService.getGroups(['EVENT_CATEGORY', 'EVENT_ROLE'])
+    TaxonomyApiService.getGroups(['EVENT_CATEGORY', 'EVENT_ROLE', 'EVENT_RELATION'])
       .then((groups) => {
         setCategoryGroup(groups.find((g) => g.code === 'EVENT_CATEGORY'));
         setRoleGroup(groups.find((g) => g.code === 'EVENT_ROLE'));
+        setRelationGroup(groups.find((g) => g.code === 'EVENT_RELATION'));
       })
       .catch((err) => console.warn('Failed to fetch event taxonomies:', err));
   }, []);
@@ -1388,13 +1391,13 @@ export function EventEditor({ eventId }: EventEditorProps) {
                   <select
                     value={newEventRelationType}
                     onChange={(e) =>
-                      setNewEventRelationType(e.target.value as EventRelationType)
+                      setNewEventRelationType(e.target.value)
                     }
                     className="w-full text-xs font-medium px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 transition"
                   >
-                    {Object.entries(EVENT_RELATION_TYPE_LABELS).map(([k, label]) => (
+                    {relationOptions(relationGroup?.terms ?? [], EVENT_RELATION_TYPE_LABELS, newEventRelationType).map(([k, label]) => (
                       <option key={k} value={k}>
-                        {label} ({k})
+                        {label}
                       </option>
                     ))}
                   </select>
@@ -1482,7 +1485,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
                         <span>{target?.title || rel.targetEventId}</span>
                       </div>
                       <div className="col-span-3 text-indigo-700 font-medium">
-                        {EVENT_RELATION_TYPE_LABELS[rel.relationType] || rel.relationType}
+                        {relationLabel(relationGroup?.terms ?? [], rel.relationType, 'OUTGOING', EVENT_RELATION_TYPE_LABELS)}
                       </div>
                       <div className="col-span-4 text-slate-600 text-[11px] truncate">
                         <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 mr-1.5">
@@ -1523,7 +1526,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
                       className="text-xs px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between text-slate-600"
                     >
                       <span>
-                        <b className="text-slate-800">{inc.sourceEvent?.title || inc.sourceEventId}</b> → {EVENT_RELATION_TYPE_LABELS[inc.relationType as EventRelationType] || inc.relationType} → Sự kiện này
+                        <b className="text-slate-800">{inc.sourceEvent?.title || inc.sourceEventId}</b> → {relationLabel(relationGroup?.terms ?? [], inc.relationType, 'OUTGOING', EVENT_RELATION_TYPE_LABELS)} → Sự kiện này
                       </span>
                       {inc.description && <span className="text-[11px] text-slate-400 italic">{inc.description}</span>}
                     </div>

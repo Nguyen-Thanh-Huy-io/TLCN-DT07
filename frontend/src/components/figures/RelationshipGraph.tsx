@@ -1,5 +1,6 @@
 "use client";
 
+import { usePublicTaxonomyTerms } from "@/features/taxonomy/usePublicTaxonomy";
 import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Compass, Network } from "lucide-react";
@@ -27,12 +28,13 @@ export function RelationshipGraph({
   const [filter, setFilter] = useState<RelationCategory | "ALL">("ALL");
   const [hovered, setHovered] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
+  const relationTerms = usePublicTaxonomyTerms("ENTITY_RELATION");
 
   const relations = figure.relationships
     .map((relation) => ({
       relation,
       category: relationCategory(relation),
-      label: relationTargetLabel(relation),
+      label: relationTargetLabel(relation, relationTerms),
       target: directory.find((f) => f.id === relation.figureId),
     }))
     .filter((r): r is typeof r & { target: FigureView } => Boolean(r.target))

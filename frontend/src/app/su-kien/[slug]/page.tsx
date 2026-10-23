@@ -13,11 +13,12 @@ export default async function EventDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [event, allEvents, categories, roles] = await Promise.all([
+  const [event, allEvents, categories, roles, relations] = await Promise.all([
     fetchEventBySlug(slug),
     fetchEvents(),
     fetchTaxonomyTerms("EVENT_CATEGORY"),
     fetchTaxonomyTerms("EVENT_ROLE"),
+    fetchTaxonomyTerms("EVENT_RELATION"),
   ]);
 
   if (!event) {
@@ -37,7 +38,7 @@ export default async function EventDetailPage({
     );
   }
 
-  const model = buildEventReaderModel(event, allEvents, { categories, roles });
+  const model = buildEventReaderModel(event, allEvents, { categories, roles, relations });
 
   return (
     <div className="ce-app">

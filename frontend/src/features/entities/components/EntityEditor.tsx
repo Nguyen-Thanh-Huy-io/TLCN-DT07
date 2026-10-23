@@ -27,8 +27,9 @@ import {
 import { PeriodApiService } from '@/services/entities/period.service';
 import { TaxonomyApiService, type TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
 import { TaxonomySelect } from '@/features/taxonomy/TaxonomySelect';
+import { relationLabel as taxonomyRelationLabel, relationOptions } from '@/features/taxonomy/taxonomy-labels';
 
-const SITE_TAXONOMY_GROUPS = ['SITE_TYPE', 'PRESERVATION', 'HERITAGE_RANK'];
+const SITE_TAXONOMY_GROUPS = ['SITE_TYPE', 'PRESERVATION', 'HERITAGE_RANK', 'ENTITY_RELATION'];
 import { PeriodItem } from '@/types/models/period.type';
 import { extractErrorMessage } from '@/services/api';
 import { HistoricalEntityItem } from '@/types/models/historical-entity.type';
@@ -69,7 +70,7 @@ export const ENTITY_TYPE_LABELS: Record<EntityType, string> = {
 interface RelationDraft {
   id?: string;
   targetEntityId: string;
-  relationType: EntityRelationType;
+  relationType: string;
   startYear?: number | '';
   endYear?: number | '';
   note?: string;
@@ -184,6 +185,8 @@ export function EntityEditor({
   const [statusNote, setStatusNote] = useState<string>('');
   // Loại / hiện trạng / xếp hạng lấy từ "Danh mục dùng chung" thay cho ô chữ tự do.
   const [siteTaxonomies, setSiteTaxonomies] = useState<Record<string, TaxonomyGroupItem>>({});
+  // Loại quan hệ giữa thực thể theo danh mục ENTITY_RELATION (có nhãn chiều ngược).
+  const relationTerms = siteTaxonomies.ENTITY_RELATION?.terms ?? [];
 
   const [figureProfile, setFigureProfile] = useState<FigureProfileForm>(EMPTY_FIGURE_PROFILE);
 
@@ -216,7 +219,7 @@ export function EntityEditor({
 
   // New Relation Input State
   const [newTargetId, setNewTargetId] = useState('');
-  const [newRelationType, setNewRelationType] = useState<EntityRelationType>(
+  const [newRelationType, setNewRelationType] = useState<string>(
     EntityRelationType.LEADER_OF,
   );
   const [newStartYear, setNewStartYear] = useState<number | ''>('');
@@ -620,7 +623,7 @@ export function EntityEditor({
           typeLabel = 'Hiện vật';
         }
 
-        const relationLabel = ENTITY_RELATION_TYPE_LABELS[rel.relationType] || rel.relationType;
+        const relationLabel = taxonomyRelationLabel(relationTerms, rel.relationType, 'OUTGOING', ENTITY_RELATION_TYPE_LABELS);
 
         list.push({
           id: `entity:${ent.id}`,
@@ -1385,13 +1388,13 @@ export function EntityEditor({
                   <select
                     value={newRelationType}
                     onChange={(e) =>
-                      setNewRelationType(e.target.value as EntityRelationType)
+                      setNewRelationType(e.target.value)
                     }
                     className="w-full text-xs font-medium px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 transition"
                   >
-                    {Object.entries(ENTITY_RELATION_TYPE_LABELS).map(([k, label]) => (
+                    {relationOptions(relationTerms, ENTITY_RELATION_TYPE_LABELS, newRelationType).map(([k, label]) => (
                       <option key={k} value={k}>
-                        {label} ({k})
+                        {label}
                       </option>
                     ))}
                   </select>
@@ -1476,7 +1479,7 @@ export function EntityEditor({
                         <span>{target?.name || rel.targetEntityId}</span>
                       </div>
                       <div className="col-span-3 text-amber-700 font-medium">
-                        {ENTITY_RELATION_TYPE_LABELS[rel.relationType] || rel.relationType}
+                        {taxonomyRelationLabel(relationTerms, rel.relationType, 'OUTGOING', ENTITY_RELATION_TYPE_LABELS)}
                       </div>
                       <div className="col-span-4 text-slate-500 text-[11px]">
                         {rel.startYear ? `${rel.startYear} - ${rel.endYear || 'nay'}` : ''}
@@ -1513,7 +1516,7 @@ export function EntityEditor({
                     <div key={inc.id} className="p-2 bg-slate-50 rounded-lg flex items-center justify-between">
                       <span>
                         <strong className="text-slate-800">{inc.sourceEntity?.name || inc.sourceEntityId}</strong>{' '}
-                        trỏ tới theo kiểu <em>{inc.relationType}</em>
+                        — <em>{taxonomyRelationLabel(relationTerms, inc.relationType, 'INCOMING', ENTITY_RELATION_TYPE_LABELS)}</em>
                       </span>
                       <span className="text-[11px] text-slate-400">{inc.note || ''}</span>
                     </div>

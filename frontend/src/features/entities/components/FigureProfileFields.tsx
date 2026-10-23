@@ -1,13 +1,14 @@
 'use client';
 
-import { FIGURE_ROLE_LABELS, FigureRole } from '@/constants/enums';
+import { useFigureRoles } from '@/components/figures/figure-roles';
 import { HistoricalEntityItem } from '@/types/models/historical-entity.type';
 
 /** Key inside HistoricalEntity.metadata that holds the "Tiểu sử & di sản" content (read by the public API). */
 export const FIGURE_PROFILE_METADATA_KEY = 'profile';
 
 export interface FigureProfileForm {
-  roles: FigureRole[];
+  /** Mã vai trò trong danh mục FIGURE_ROLE (thêm vai trò mới ở "Danh mục dùng chung"). */
+  roles: string[];
   biography: string;
   hometown: string;
   backgroundAndYouth: string;
@@ -90,7 +91,8 @@ export function FigureProfileFields({
   onChange: (next: FigureProfileForm) => void;
 }) {
   const set = <K extends keyof FigureProfileForm>(key: K, v: FigureProfileForm[K]) => onChange({ ...value, [key]: v });
-  const toggleRole = (role: FigureRole) =>
+  const { options: roleOptions } = useFigureRoles();
+  const toggleRole = (role: string) =>
     set('roles', value.roles.includes(role) ? value.roles.filter((r) => r !== role) : [...value.roles, role]);
 
   return (
@@ -102,7 +104,11 @@ export function FigureProfileFields({
 
       <Field label="Vai trò" hint="chọn nhiều">
         <div className="flex flex-wrap gap-2">
-          {Object.values(FigureRole).map((role) => {
+          {[
+            ...roleOptions,
+            // Vai trò đã gắn nhưng đang ẩn / chưa có trong danh mục vẫn hiện để bỏ chọn được.
+            ...value.roles.filter((r) => !roleOptions.some((o) => o.code === r)).map((code) => ({ code, label: code })),
+          ].map(({ code: role, label }) => {
             const active = value.roles.includes(role);
             return (
               <button
@@ -115,7 +121,7 @@ export function FigureProfileFields({
                     : 'bg-white border-slate-200 text-slate-600 hover:border-amber-400'
                 }`}
               >
-                {FIGURE_ROLE_LABELS[role]}
+                {label}
               </button>
             );
           })}

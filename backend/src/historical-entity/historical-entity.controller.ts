@@ -70,7 +70,7 @@ export class HistoricalEntityController {
   }
 
   @Patch(HISTORICAL_ENTITY_ROUTES.BY_ID)
-  @ContentWrite({ model: 'historicalEntity', idParam: 'id' })
+  @ContentWrite({ model: 'historicalEntity', idParam: 'id', versioned: true })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Cập nhật thực thể lịch sử' })
   @ApiResponse({ status: HttpStatus.OK, type: HistoricalEntityResponseDto })

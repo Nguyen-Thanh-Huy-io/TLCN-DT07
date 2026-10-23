@@ -114,7 +114,7 @@ export class LessonController {
   }
 
   @Patch(':id')
-  @ContentWrite({ model: 'lesson', idParam: 'id' })
+  @ContentWrite({ model: 'lesson', idParam: 'id', versioned: true })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Cập nhật thông tin bài học lịch sử',

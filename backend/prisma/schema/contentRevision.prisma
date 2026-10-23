@@ -1,0 +1,36 @@
+// ================================
+// Phiên bản hóa nội dung đã xuất bản (bài học, sự kiện, thực thể)
+// ================================
+// - PROPOSAL: bản sửa của biên tập viên cho nội dung đang xuất bản — bản công khai giữ nguyên tới khi
+//   người duyệt chấp thuận. Mỗi nội dung tối đa một PROPOSAL đang chờ (PENDING); sửa tiếp thì ghi đè.
+// - SNAPSHOT: ảnh chụp nội dung ngay trước mỗi lần thay đổi được áp dụng (duyệt bản sửa, người duyệt
+//   sửa trực tiếp, khôi phục) — dùng cho lịch sử, so sánh và khôi phục.
+// payload luôn cùng dạng với dữ liệu gửi lên API cập nhật (chỉ các trường biên tập được), nên so sánh
+// và áp dụng không phụ thuộc cấu trúc bảng.
+
+model ContentRevision {
+  id          String    @id @default(uuid())
+  /// LESSON | EVENT | ENTITY
+  contentType String    @map("content_type") @db.VarChar(20)
+  contentId   String    @map("content_id")
+  /// PROPOSAL | SNAPSHOT
+  kind        String    @db.VarChar(20)
+  /// PROPOSAL: PENDING | APPROVED | REJECTED · SNAPSHOT: ARCHIVED
+  status      String    @db.VarChar(20)
+  /// PROPOSAL: số phiên bản sẽ thành khi được duyệt · SNAPSHOT: số phiên bản của nội dung đã chụp
+  version     Int
+  /// Tiêu đề nội dung tại thời điểm ghi (hiển thị danh sách không cần tra bảng nội dung)
+  title       String    @db.VarChar(255)
+  payload     Json      @db.JsonB
+  /// PROPOSAL: người đề xuất · SNAPSHOT: người thực hiện thay đổi làm bản này thành cũ
+  authorId    String?   @map("author_id")
+  reviewerId  String?   @map("reviewer_id")
+  reviewNote  String?   @map("review_note") @db.Text
+  reviewedAt  DateTime? @map("reviewed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([contentType, contentId, createdAt])
+  @@index([kind, status])
+  @@map("content_revisions")
+}

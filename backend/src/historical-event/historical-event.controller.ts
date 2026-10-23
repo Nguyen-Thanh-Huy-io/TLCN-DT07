@@ -89,7 +89,7 @@ export class HistoricalEventController {
   }
 
   @Patch(':id')
-  @ContentWrite({ model: 'historicalEvent', idParam: 'id' })
+  @ContentWrite({ model: 'historicalEvent', idParam: 'id', versioned: true })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Cập nhật thông tin một sự kiện lịch sử',

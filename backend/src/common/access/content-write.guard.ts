@@ -15,6 +15,11 @@ import {
   ROLE_GROUPS,
 } from './access.constant';
 import { currentUser } from './roles.guard';
+import { VERSIONED_MODELS } from '../../content-revision/content-revision.constant';
+import {
+  REVISION_DIRECTIVE_KEY,
+  type RevisionDirective,
+} from '../../content-revision/content-revision.interceptor';
 
 /** Model có cột `status` mà endpoint ghi tác động tới, và tên route param chứa id của nó. */
 export interface ContentResource {
@@ -27,6 +32,11 @@ export interface ContentResource {
     | 'learningPath'
     | 'chapter';
   idParam?: string;
+  /**
+   * Endpoint cập nhật chính của nội dung có phiên bản hóa: sửa nội dung đang xuất bản không bị chặn
+   * mà thành bản sửa chờ duyệt (biên tập viên) hoặc được chụp lịch sử trước khi sửa (người duyệt).
+   */
+  versioned?: boolean;
 }
 
 /**
@@ -63,6 +73,27 @@ export class ContentWriteGuard implements CanActivate {
     const nextStatus = (request.body as { status?: unknown } | undefined)
       ?.status;
 
+    const id =
+      resource?.idParam && typeof request.params[resource.idParam] === 'string'
+        ? (request.params[resource.idParam] as string)
+        : null;
+    const current = id && resource ? await this.findStatus(resource.model, id) : null;
+
+    // Sửa nội dung đang xuất bản qua endpoint có phiên bản hóa → phiên bản (không chặn).
+    const versionedType = resource?.versioned ? VERSIONED_MODELS[resource.model] : undefined;
+    if (versionedType && id && current === 'PUBLISHED') {
+      const directive: RevisionDirective = {
+        mode: isReviewer ? 'SNAPSHOT' : 'PROPOSE',
+        type: versionedType,
+        contentId: id,
+      };
+      (request as Request & { [REVISION_DIRECTIVE_KEY]?: RevisionDirective })[
+        REVISION_DIRECTIVE_KEY
+      ] = directive;
+      // Bản sửa của biên tập viên không mang trạng thái (status bị bỏ khi lưu bản sửa).
+      if (!isReviewer) return true;
+    }
+
     if (typeof nextStatus === 'string') {
       if (
         resource?.model === 'lesson' &&
@@ -75,15 +106,8 @@ export class ContentWriteGuard implements CanActivate {
       }
     }
 
-    if (!isReviewer && resource?.idParam) {
-      const id = request.params[resource.idParam];
-      const current =
-        typeof id === 'string'
-          ? await this.findStatus(resource.model, id)
-          : null;
-      if (current && LOCKED_FOR_EDITORS.includes(current)) {
-        throw new ForbiddenException(ACCESS_MESSAGES.EDITOR_LOCKED);
-      }
+    if (!isReviewer && current && LOCKED_FOR_EDITORS.includes(current)) {
+      throw new ForbiddenException(ACCESS_MESSAGES.EDITOR_LOCKED);
     }
     return true;
   }

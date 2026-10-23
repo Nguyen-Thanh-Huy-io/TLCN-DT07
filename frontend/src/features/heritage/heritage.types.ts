@@ -1,5 +1,5 @@
 /** Cấp xếp hạng di tích. */
-export type HeritageRank = 'UNESCO' | 'SPECIAL_NATIONAL' | 'NATIONAL' | 'PROVINCIAL' | 'UNRANKED';
+export type HeritageRank = 'UNESCO' | 'INTERNATIONAL' | 'SPECIAL_NATIONAL' | 'NATIONAL' | 'PROVINCIAL' | 'UNRANKED';
 
 /** Loại hình di tích. */
 export type HeritageCategory = 'CITADEL_PALACE' | 'TEMPLE_SHRINE' | 'REVOLUTIONARY_BASE' | 'MEMORIAL_STELE';
@@ -112,6 +112,7 @@ export interface HeritageFacets {
 
 export const RANK_LABELS: Record<HeritageRank, string> = {
   UNESCO: 'Di sản Thế giới UNESCO',
+  INTERNATIONAL: 'Di tích được công nhận quốc tế',
   SPECIAL_NATIONAL: 'Di tích cấp quốc gia đặc biệt',
   NATIONAL: 'Di tích cấp quốc gia',
   PROVINCIAL: 'Di tích cấp địa phương',
@@ -120,6 +121,7 @@ export const RANK_LABELS: Record<HeritageRank, string> = {
 
 export const RANK_SHORT_LABELS: Record<HeritageRank, string> = {
   UNESCO: 'UNESCO',
+  INTERNATIONAL: 'Công nhận quốc tế',
   SPECIAL_NATIONAL: 'Quốc gia đặc biệt',
   NATIONAL: 'Cấp quốc gia',
   PROVINCIAL: 'Cấp địa phương',

@@ -24,7 +24,7 @@ import '../heritage.css';
 const THEME_KEY = 'hisgo:heritage:theme';
 const LIST_PATH = '/di-tich';
 
-const RANK_ORDER = ['UNESCO', 'SPECIAL_NATIONAL', 'NATIONAL', 'PROVINCIAL', 'UNRANKED'];
+const RANK_ORDER = ['UNESCO', 'INTERNATIONAL', 'SPECIAL_NATIONAL', 'NATIONAL', 'PROVINCIAL', 'UNRANKED'];
 
 /**
  * Trang Di tích (/di-tich, /di-tich/[slug]): tâm điểm + bộ lọc + lưới di tích + khung chi tiết 4 tab.

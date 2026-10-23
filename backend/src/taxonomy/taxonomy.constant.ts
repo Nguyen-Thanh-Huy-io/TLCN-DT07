@@ -37,6 +37,7 @@ export function normalizeRank(raw: string | null | undefined): string | null {
   const t = raw?.toLocaleLowerCase('vi').trim();
   if (!t) return null;
   if (/unesco|thế giới/.test(t)) return 'UNESCO';
+  if (/quốc tế/.test(t)) return 'INTERNATIONAL';
   if (/đặc biệt/.test(t)) return 'SPECIAL_NATIONAL';
   if (/quốc gia/.test(t)) return 'NATIONAL';
   if (/tỉnh|thành phố/.test(t)) return 'PROVINCIAL';

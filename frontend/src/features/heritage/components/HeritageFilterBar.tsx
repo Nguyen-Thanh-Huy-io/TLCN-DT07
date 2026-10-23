@@ -50,7 +50,7 @@ export const EMPTY_HERITAGE_FILTERS: HeritageFilters = {
 
 type FacetKey = Exclude<keyof HeritageFilters, 'query'>;
 const FACET_KEYS: FacetKey[] = ['eras', 'subEras', 'figures', 'events', 'regions', 'localities', 'ranks', 'types', 'preservation', 'digital'];
-const RANK_ORDER: HeritageRank[] = ['UNESCO', 'SPECIAL_NATIONAL', 'NATIONAL', 'PROVINCIAL', 'UNRANKED'];
+const RANK_ORDER: HeritageRank[] = ['UNESCO', 'INTERNATIONAL', 'SPECIAL_NATIONAL', 'NATIONAL', 'PROVINCIAL', 'UNRANKED'];
 
 export const heritageFilterCount = (f: HeritageFilters) => FACET_KEYS.reduce((n, k) => n + f[k].length, 0);
 

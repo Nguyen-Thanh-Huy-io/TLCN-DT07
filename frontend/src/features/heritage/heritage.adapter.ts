@@ -30,6 +30,7 @@ function rankOf(level: string | null | undefined): HeritageRank {
   const t = (level ?? '').toLocaleLowerCase('vi');
   if (!t) return 'UNRANKED';
   if (t.includes('unesco') || t.includes('thế giới')) return 'UNESCO';
+  if (t.includes('quốc tế')) return 'INTERNATIONAL';
   if (t.includes('đặc biệt')) return 'SPECIAL_NATIONAL';
   if (t.includes('quốc gia')) return 'NATIONAL';
   if (t.includes('tỉnh') || t.includes('thành phố')) return 'PROVINCIAL';

@@ -57,7 +57,7 @@ export class LearningPathController {
   }
 
   @Put(':id')
-  @ContentWrite({ model: 'learningPath', idParam: 'id' })
+  @ContentWrite({ model: 'learningPath', idParam: 'id', versioned: true })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Cập nhật lộ trình học' })
   updatePath(@Param('id') id: string, @Body() dto: UpdateLearningPathDto) {
@@ -85,7 +85,7 @@ export class LearningPathController {
   }
 
   @Put('chapters/:id')
-  @ContentWrite({ model: 'chapter', idParam: 'id' })
+  @ContentWrite({ model: 'chapter', idParam: 'id', versioned: true })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Cập nhật chương học' })
   updateChapter(@Param('id') id: string, @Body() dto: UpdateChapterDto) {

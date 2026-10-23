@@ -87,7 +87,7 @@ export class PeriodController {
   }
 
   @Patch(':id')
-  @ContentWrite({ model: 'period', idParam: 'id' })
+  @ContentWrite({ model: 'period', idParam: 'id', versioned: true })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Cập nhật thông tin một giai đoạn lịch sử',

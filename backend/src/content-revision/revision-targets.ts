@@ -3,6 +3,10 @@ import { ModuleRef } from '@nestjs/core';
 import { HistoricalEntityService } from '../historical-entity/historical-entity.service';
 import { HistoricalEventService } from '../historical-event/historical-event.service';
 import { LessonService } from '../lesson/lesson.service';
+import { LearningPathService } from '../learning-path/learning-path.service';
+import { PeriodService } from '../period/period.service';
+import { TopicService } from '../topic/topic.service';
+import { PrismaService } from '../common/services/prisma.service';
 import {
   REVISION_FIELDS,
   REVISION_MESSAGES,
@@ -117,5 +121,42 @@ export class RevisionTargets {
       apply: (id, p) => this.svc(HistoricalEntityService).update(id, p as any),
       overlay: (d, p) => ({ ...d, ...p }),
     },
+    PERIOD: this.simple('PERIOD', {
+      load: (id) => this.svc(PeriodService).findOne(id) as Promise<Detail>,
+      title: (d) => d.name,
+      apply: (id, p) => this.svc(PeriodService).update(id, p as any),
+    }),
+    TOPIC: this.simple('TOPIC', {
+      load: (id) => this.svc(TopicService).findOne(id) as Promise<Detail>,
+      title: (d) => d.name,
+      apply: (id, p) => this.svc(TopicService).update(id, p as any),
+    }),
+    LEARNING_PATH: this.simple('LEARNING_PATH', {
+      load: (id) => this.svc(LearningPathService).findPathById(id) as Promise<Detail>,
+      title: (d) => d.title,
+      apply: (id, p) => this.svc(LearningPathService).updatePath(id, p as any),
+    }),
+    CHAPTER: this.simple('CHAPTER', {
+      load: async (id) => {
+        const chapter = await this.svc(PrismaService).chapter.findUnique({ where: { id } });
+        if (!chapter) throw new NotFoundException(REVISION_MESSAGES.NOT_FOUND);
+        return chapter as Detail;
+      },
+      title: (d) => d.title,
+      apply: (id, p) => this.svc(LearningPathService).updateChapter(id, p as any),
+    }),
   };
+
+  /** Nội dung có cấu trúc phẳng: payload = các trường biên tập được, phủ bản sửa = ghép đè. */
+  private simple(
+    type: RevisionContentType,
+    parts: Pick<RevisionTarget, 'load' | 'title' | 'apply'>,
+  ): RevisionTarget {
+    return {
+      ...parts,
+      status: (d) => d.status,
+      toPayload: (d) => pickFields(type, d),
+      overlay: (d, p) => ({ ...d, ...p }),
+    };
+  }
 }

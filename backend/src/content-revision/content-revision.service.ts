@@ -7,6 +7,7 @@ import {
 import { ContentRevision, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import {
+  ENTITY_TYPE_LABELS,
   REVISION_CONTENT_TYPES,
   REVISION_FIELDS,
   REVISION_KIND,
@@ -37,6 +38,7 @@ export interface RevisionChange {
   key: string;
   label: string;
   kind: string;
+  ref?: string;
   before: unknown;
   after: unknown;
 }
@@ -219,12 +221,78 @@ export class ContentRevisionService {
     const target = this.targets.get(type);
     const current = target.toPayload(await target.load(revision.contentId));
     const payload = revision.payload as Payload;
+    // before = nội dung đang hiện, after = bản sửa (hoặc phiên bản cũ: thấy khôi phục sẽ đổi gì).
+    // Bản sửa có bản gốc: chỉ hiện trường biên tập viên đã đổi (đúng phần sẽ được áp dụng).
+    const changes = this.proposalChanges(type, revision, current) ?? diffPayloads(type, current, payload);
     return {
       revision: await this.withPeople(revision),
-      // before = nội dung đang hiện, after = bản sửa (hoặc phiên bản cũ: thấy khôi phục sẽ đổi gì).
-      // Bản sửa có bản gốc: chỉ hiện trường biên tập viên đã đổi (đúng phần sẽ được áp dụng).
-      changes: this.proposalChanges(type, revision, current) ?? diffPayloads(type, current, payload),
+      changes,
+      labels: await this.resolveLabels(changes),
     };
+  }
+
+  /**
+   * Tên hiển thị cho id / mã xuất hiện trong phần so sánh: giai đoạn, chủ đề, thực thể, sự kiện,
+   * giá trị danh mục (loại sự kiện, vai trò...), loại thực thể, nhãn trường thông tin riêng.
+   */
+  private async resolveLabels(changes: RevisionChange[]): Promise<Record<string, string>> {
+    const ids: Record<string, Set<string>> = {
+      period: new Set(), topic: new Set(), entity: new Set(), event: new Set(), term: new Set(),
+    };
+    const add = (bucket: string, value: unknown) => {
+      for (const v of Array.isArray(value) ? value : [value]) {
+        if (typeof v === 'string' && v) ids[bucket]?.add(v);
+      }
+    };
+    const labels: Record<string, string> = {};
+    for (const c of changes) {
+      for (const side of [c.before, c.after]) {
+        if ((c.kind === 'ref' || c.kind === 'refs') && c.ref) {
+          if (c.ref === 'entityType') {
+            for (const v of [side].flat()) if (typeof v === 'string') labels[v] = ENTITY_TYPE_LABELS[v] ?? v;
+          } else add(c.ref, side);
+        }
+        if (c.kind === 'relations' && Array.isArray(side)) {
+          for (const r of side as Payload[]) {
+            add('entity', r.entityId);
+            add('term', r.role);
+          }
+        }
+      }
+    }
+    const [periods, topics, entities, events, terms, fieldTerms] = await Promise.all([
+      ids.period.size ? this.prisma.period.findMany({ where: { id: { in: [...ids.period] } }, select: { id: true, name: true } }) : [],
+      ids.topic.size ? this.prisma.topic.findMany({ where: { id: { in: [...ids.topic] } }, select: { id: true, name: true } }) : [],
+      ids.entity.size
+        ? this.prisma.historicalEntity.findMany({ where: { id: { in: [...ids.entity] } }, select: { id: true, name: true } })
+        : [],
+      ids.event.size
+        ? this.prisma.historicalEvent.findMany({ where: { id: { in: [...ids.event] } }, select: { id: true, title: true } })
+        : [],
+      ids.term.size
+        ? this.prisma.taxonomyTerm.findMany({
+            where: { OR: [{ id: { in: [...ids.term] } }, { code: { in: [...ids.term] } }] },
+            select: { id: true, code: true, label: true },
+          })
+        : [],
+      // Nhãn trường thông tin riêng (metadata) khai báo trong danh mục loại sự kiện.
+      changes.some((c) => c.kind === 'object')
+        ? this.prisma.taxonomyTerm.findMany({ where: { groupCode: 'EVENT_CATEGORY' }, select: { meta: true } })
+        : [],
+    ]);
+    for (const p of periods) labels[p.id] = p.name;
+    for (const t of topics) labels[t.id] = t.name;
+    for (const e of entities) labels[e.id] = e.name;
+    for (const e of events) labels[e.id] = e.title;
+    for (const t of terms) {
+      labels[t.id] = t.label;
+      labels[t.code] ??= t.label;
+    }
+    for (const t of fieldTerms) {
+      const fields = (t.meta as { fields?: Array<{ key: string; label: string }> } | null)?.fields ?? [];
+      for (const fd of fields) labels[`field:${fd.key}`] ??= fd.label;
+    }
+    return labels;
   }
 
   private proposalChanges(
@@ -257,9 +325,29 @@ export class ContentRevisionService {
       where: { contentType: type, contentId },
       orderBy: { createdAt: 'desc' },
     });
+    const target = this.targets.get(type);
+    const live = target.toPayload(await target.load(contentId));
+    // Mỗi phiên bản cũ so với phiên bản ngay sau nó (bản mới nhất so với bản đang xuất bản):
+    // lần thay đổi đó đã đổi những trường nào — để hiển thị dạng dòng thời gian.
+    const snapshots = rows
+      .filter((r) => r.kind === REVISION_KIND.SNAPSHOT)
+      .sort((a, b) => a.version - b.version);
+    const nextOf = new Map(
+      snapshots.map((snap, i) => [snap.id, (snapshots[i + 1]?.payload as Payload | undefined) ?? live]),
+    );
+    const summarize = (r: ContentRevision) => {
+      const changes =
+        r.kind === REVISION_KIND.SNAPSHOT
+          ? diffPayloads(type, r.payload as Payload, nextOf.get(r.id) ?? live)
+          : (this.proposalChanges(type, r, r.basePayload as Payload) ??
+            diffPayloads(type, live, r.payload as Payload));
+      return changes.map((c) => c.label);
+    };
     return {
       liveVersion: await this.liveVersion(type, contentId),
-      items: await Promise.all(rows.map((r) => this.withPeople(r))),
+      items: await Promise.all(
+        rows.map(async (r) => ({ ...(await this.withPeople(r)), changedFields: summarize(r) })),
+      ),
     };
   }
 

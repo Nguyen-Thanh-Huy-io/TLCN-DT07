@@ -119,7 +119,7 @@ export class TopicController {
   }
 
   @Patch(':id')
-  @ContentWrite({ model: 'topic', idParam: 'id' })
+  @ContentWrite({ model: 'topic', idParam: 'id', versioned: true })
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Cập nhật thông tin một chủ đề lịch sử',

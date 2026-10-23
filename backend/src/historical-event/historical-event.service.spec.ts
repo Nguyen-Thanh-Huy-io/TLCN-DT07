@@ -273,6 +273,29 @@ describe('HistoricalEventService (loại sự kiện theo danh mục dùng chung
     });
   });
 
+  describe('update', () => {
+    it('chỉ gửi entityIds thì giữ vai trò, mô tả vai trò của liên kết cũ; thực thể mới là PARTICIPANT', async () => {
+      mockRepository.findById.mockResolvedValueOnce({
+        ...mockEvent,
+        entities: [
+          { entityId: 'ngo-quyen', role: 'COMMANDER', roleLabel: 'Chủ tướng', isPrimary: true, displayOrder: 0, notes: 'ghi chú' },
+        ],
+      });
+
+      await service.update('event-uuid-1', { entityIds: ['ngo-quyen', 'entity-moi'] });
+
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        'event-uuid-1',
+        expect.objectContaining({
+          entities: [
+            { entityId: 'ngo-quyen', role: 'COMMANDER', roleLabel: 'Chủ tướng', isPrimary: true, displayOrder: 0, notes: 'ghi chú' },
+            { entityId: 'entity-moi', role: 'PARTICIPANT', roleLabel: null, isPrimary: false, displayOrder: 1, notes: null },
+          ],
+        }),
+      );
+    });
+  });
+
   describe('findAll', () => {
     it('lọc theo nút cha ra cả loại con', async () => {
       mockRedisService.get.mockResolvedValueOnce(null);

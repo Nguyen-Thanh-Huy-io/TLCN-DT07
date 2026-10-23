@@ -99,7 +99,8 @@ export class TaxonomyService {
       (await this.prisma.period.count({ where: { regionId: id } })) +
       (await this.prisma.historicalEvent.count({
         where: { categoryIds: { has: id } },
-      }));
+      })) +
+      (await this.prisma.historicalEventEntity.count({ where: { roleId: id } }));
     if (used > 0)
       throw new ConflictException(TAXONOMY_MESSAGES.TERM_IN_USE(used));
     await this.prisma.taxonomyTerm.delete({ where: { id } });

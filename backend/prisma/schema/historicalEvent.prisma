@@ -58,7 +58,9 @@ model HistoricalEventEntity {
   entityId String @map("entity_id")
 
   // 1. Mã chuẩn hóa dùng cho Code / Filter / Vẽ cạnh Đồ thị (Chọn từ Dropdown)
-  role String @default("PARTICIPANT") @db.VarChar(50)
+  role   String  @default("PARTICIPANT") @db.VarChar(50)
+  /// Vai trò theo danh mục dùng chung (nhóm EVENT_ROLE) — trigger tự gắn theo mã role.
+  roleId String? @map("role_id")
 
   // 2. Nhãn hiển thị tiếng Việt cụ thể trong sự kiện này (Không bắt buộc - Gõ tự do trên CMS)
   // VD: "Tổng chỉ huy chiến dịch", "Nơi ký kết hiệp định", "Phe thắng trận"
@@ -76,13 +78,15 @@ model HistoricalEventEntity {
   createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  event  HistoricalEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  entity HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  event    HistoricalEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  entity   HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  roleTerm TaxonomyTerm?    @relation("EventEntityRoleTerm", fields: [roleId], references: [id], onDelete: SetNull)
 
   @@id([eventId, entityId])
   @@index([eventId, isPrimary])
   @@index([entityId])
   @@index([role])
+  @@index([roleId])
   @@map("historical_event_entities")
 }
 

@@ -236,6 +236,27 @@ export class HistoricalEventService {
     return result;
   }
 
+  /**
+   * Client chỉ gửi danh sách id thực thể (form CMS cũ): giữ nguyên vai trò, mô tả vai trò, cờ chính
+   * và ghi chú của liên kết đã có — trước đây mỗi lần lưu đều đặt lại thành PARTICIPANT.
+   */
+  private keepExistingRoles(existing: HistoricalEventEntityModel, entityIds: string[]) {
+    const previous = new Map(
+      ((existing as any).entities ?? []).map((e: any) => [e.entityId, e]),
+    );
+    return Array.from(new Set(entityIds)).map((entityId, idx) => {
+      const old: any = previous.get(entityId);
+      return {
+        entityId,
+        role: old?.role || 'PARTICIPANT',
+        roleLabel: old?.roleLabel ?? null,
+        isPrimary: Boolean(old?.isPrimary),
+        displayOrder: old?.displayOrder ?? idx,
+        notes: old?.notes ?? null,
+      };
+    });
+  }
+
   private formatEvent(event: HistoricalEventEntityModel): HistoricalEventEntityModel {
     if (!event) return event;
     const locationEntity = (event as any).location;
@@ -351,14 +372,7 @@ export class HistoricalEventService {
             ).values(),
           )
         : entityIds !== undefined
-        ? Array.from(new Set(entityIds)).map((entityId, idx) => ({
-            entityId,
-            role: 'PARTICIPANT',
-            roleLabel: null,
-            isPrimary: false,
-            displayOrder: idx,
-            notes: null,
-          }))
+        ? this.keepExistingRoles(existing, entityIds)
         : undefined;
 
     const locationId = rest.locationId !== undefined ? rest.locationId : (rest as any).siteId !== undefined ? (rest as any).siteId : undefined;

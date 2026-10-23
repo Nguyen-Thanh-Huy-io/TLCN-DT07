@@ -5,6 +5,7 @@ export const TAXONOMY_GROUPS = {
   HERITAGE_RANK: 'HERITAGE_RANK',
   REGION: 'REGION',
   EVENT_CATEGORY: 'EVENT_CATEGORY',
+  EVENT_ROLE: 'EVENT_ROLE',
 } as const;
 
 export type TaxonomyGroupCode =

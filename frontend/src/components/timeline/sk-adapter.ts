@@ -4,7 +4,8 @@ import {
   PublicLocationSummaryDto,
   PublicPeriodDto,
 } from "@/services/entities/landing.service";
-import { EVENT_CATEGORY_LABELS, EventCategory } from "@/constants/enums";
+import type { TaxonomyTermItem } from "@/services/entities/taxonomy.service";
+import { eventCategoryLabel, eventCategoryRootCode } from "@/features/taxonomy/taxonomy-labels";
 import { isDomesticRegion, regionLabel } from "@/utils/region.utils";
 import type { Attributed, Era, SubEra, TimeNode, TimelineEvent, TimelineFigure, TimelineLocation } from "./sk-types";
 
@@ -49,12 +50,13 @@ function attributeToEvents<T extends { id: string }>(
 
 const THEME_COLORS = ["green", "amber"];
 
-function categoryLabel(category: string): string {
-  return EVENT_CATEGORY_LABELS[category as EventCategory] || category;
-}
+/** Nhánh gốc của cây loại sự kiện thuộc nhóm "Kinh tế – Văn hóa" trên dòng thời gian. */
+const CULTURE_ROOTS = new Set(["SOCIETY_CULTURE", "SCIENCE_DISCOVERY"]);
 
-function domainGroupOf(category: string): "POLITICS_MILITARY" | "ECONOMY_CULTURE" {
-  return category === "CULTURE_SCIENCE" ? "ECONOMY_CULTURE" : "POLITICS_MILITARY";
+function domainGroupOf(terms: TaxonomyTermItem[], event: PublicEventSummaryDto): "POLITICS_MILITARY" | "ECONOMY_CULTURE" {
+  const root = eventCategoryRootCode(terms, event);
+  const isCulture = root ? CULTURE_ROOTS.has(root) : event.category === "CULTURE_SCIENCE";
+  return isCulture ? "ECONOMY_CULTURE" : "POLITICS_MILITARY";
 }
 
 function scopeGroupOf(region: string | null): "DOMESTIC" | "WORLD" {
@@ -78,8 +80,9 @@ function toTimelineEvent(
   eraTitle: string,
   subEraTitle: string,
   region: string | null,
+  categoryTerms: TaxonomyTermItem[],
 ): TimelineEvent {
-  const label = categoryLabel(event.category);
+  const label = eventCategoryLabel(categoryTerms, event);
   return {
     id: event.id,
     dateLabel: dateLabelOf(event),
@@ -91,7 +94,7 @@ function toTimelineEvent(
     categoryCode: event.category,
     scopeGroup: scopeGroupOf(region),
     region: regionLabel(region),
-    domainGroup: domainGroupOf(event.category),
+    domainGroup: domainGroupOf(categoryTerms, event),
     title: event.title,
     summary: event.description || "Chưa có mô tả cho sự kiện này.",
     content: event.description || "Chưa có nội dung chi tiết cho sự kiện này.",
@@ -102,7 +105,11 @@ function toTimelineEvent(
   };
 }
 
-export function buildEraDataset(periods: PublicPeriodDto[], events: PublicEventSummaryDto[]): Era[] {
+export function buildEraDataset(
+  periods: PublicPeriodDto[],
+  events: PublicEventSummaryDto[],
+  categoryTerms: TaxonomyTermItem[] = [],
+): Era[] {
   const topPeriods = periods
     .filter((p) => !p.parentId)
     .sort((a, b) => (a.startYear ?? 0) - (b.startYear ?? 0));
@@ -133,7 +140,7 @@ export function buildEraDataset(periods: PublicPeriodDto[], events: PublicEventS
       const timeNodes: TimeNode[] = Array.from(nodesByYear.entries())
         .sort(([a], [b]) => a - b)
         .map(([year, yearEvents]): TimeNode => {
-          const events = yearEvents.map((e) => toTimelineEvent(e, top.name, leaf.name, region));
+          const events = yearEvents.map((e) => toTimelineEvent(e, top.name, leaf.name, region, categoryTerms));
           return {
             id: `node-${yearEvents[0].id}`,
             subEraId: leaf.id,

@@ -239,7 +239,12 @@ export class CreateHistoricalEventDto {
   @IsArray()
   entityRelations?: Array<{
     entityId: string;
+    /** Mã vai trò trong danh mục EVENT_ROLE (COMMANDER, LOCATION...). */
     role?: string;
+    roleLabel?: string | null;
+    isPrimary?: boolean;
+    displayOrder?: number;
+    notes?: string | null;
   }>;
 
   @ApiPropertyOptional({

@@ -1,4 +1,3 @@
-import { EVENT_CATEGORY_LABELS, EventCategory } from '@/constants/enums';
 import { formatYear, shortPeriodName } from '@/features/landing/landing.adapter';
 import { regionLabel } from '@/utils/region.utils';
 import type {
@@ -17,10 +16,6 @@ export const PERIOD_ROUTES = {
   LOCATION: (slug: string) => `/di-tich/${slug}`,
   TIMELINE: '/dong-thoi-gian',
 } as const;
-
-export function categoryLabel(category: string): string {
-  return EVENT_CATEGORY_LABELS[category as EventCategory] ?? category;
-}
 
 /** Nhãn năm của sự kiện: ghi chú ngắn nếu có, không thì năm. */
 export function eventYearLabel(event: PublicEventSummaryDto): string {

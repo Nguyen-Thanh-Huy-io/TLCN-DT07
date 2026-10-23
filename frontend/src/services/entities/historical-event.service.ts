@@ -15,6 +15,10 @@ export interface HistoricalEventEntityItem {
   eventId?: string;
   entityId: string;
   role?: string | null;
+  roleLabel?: string | null;
+  isPrimary?: boolean;
+  displayOrder?: number;
+  notes?: string | null;
   entity?: {
     id: string;
     name: string;
@@ -126,6 +130,10 @@ export interface SaveHistoricalEventPayload {
   entityRelations?: Array<{
     entityId: string;
     role?: string;
+    roleLabel?: string | null;
+    isPrimary?: boolean;
+    displayOrder?: number;
+    notes?: string | null;
   }>;
   media?: Array<{
     type?: MediaType;

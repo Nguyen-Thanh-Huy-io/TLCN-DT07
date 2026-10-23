@@ -4,7 +4,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Check, History, Shield, Sparkles } from "lucide-react";
 import { Badge, Heading } from "@/components/timeline/sk-ui";
-import { EVENT_CATEGORY_LABELS, EVENT_ENTITY_ROLE_LABELS, EventCategory } from "@/constants/enums";
+import { eventCategoryLabel, eventRoleLabel } from "@/features/taxonomy/taxonomy-labels";
+import { usePublicTaxonomyTerms } from "@/features/taxonomy/usePublicTaxonomy";
 import { PUBLIC_ROUTE_PREFIX, type PublicPeriodDto } from "@/services/entities/landing.service";
 import { periodTitle, type FigureView } from "./figure-utils";
 
@@ -14,6 +15,8 @@ function dateLabel(startYear: number, note: string | null) {
 }
 
 export function LifeTimeline({ figure, periods }: { figure: FigureView; periods: PublicPeriodDto[] }) {
+  const categoryTerms = usePublicTaxonomyTerms("EVENT_CATEGORY");
+  const roleTerms = usePublicTaxonomyTerms("EVENT_ROLE");
   return (
     <div className="sk-life-timeline">
       <div className="sk-profile-section-heading">
@@ -28,7 +31,7 @@ export function LifeTimeline({ figure, periods }: { figure: FigureView; periods:
       {figure.events.length ? (
         figure.events.map((e) => {
           const subEra = periodTitle(periods, e.periodSlug);
-          const role = e.roleLabel || EVENT_ENTITY_ROLE_LABELS[e.role] || e.role;
+          const role = e.roleLabel || eventRoleLabel(roleTerms, e.role);
           return (
             <motion.article
               key={e.id}
@@ -51,7 +54,7 @@ export function LifeTimeline({ figure, periods }: { figure: FigureView; periods:
               <div className="sk-life-events">
                 <div className="sk-life-event">
                   <div>
-                    <Badge>{EVENT_CATEGORY_LABELS[e.category as EventCategory] || e.category}</Badge>
+                    <Badge>{eventCategoryLabel(categoryTerms, e)}</Badge>
                     {e.isPrimary && (
                       <span>
                         <Sparkles size={11} /> VAI TRÒ CHÍNH

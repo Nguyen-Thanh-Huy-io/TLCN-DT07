@@ -4,19 +4,24 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, LayoutGrid, List, MapPin, Users, X } from 'lucide-react';
 import type { PublicPeriodDetailDto } from '@/services/entities/landing.service';
-import { PERIOD_ROUTES, categoryLabel, eventYearLabel, groupEventsByStage } from '../period-detail.adapter';
+import { PERIOD_ROUTES, eventYearLabel, groupEventsByStage } from '../period-detail.adapter';
+import { categoryKeyLabel, eventCategoryKey, eventCategoryLabel } from '@/features/taxonomy/taxonomy-labels';
+import { usePublicTaxonomyTerms } from '@/features/taxonomy/usePublicTaxonomy';
 
 /** Dòng sự kiện của thời kỳ, chia theo giai đoạn, lọc nhiều danh mục cùng lúc. */
 export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
+  // Loại chính theo "Danh mục dùng chung" (Truyền thuyết, Tôn giáo...), chưa tải xong thì nhãn enum cũ.
+  const categoryTerms = usePublicTaxonomyTerms('EVENT_CATEGORY');
+  const categoryLabel = (key: string) => categoryKeyLabel(categoryTerms, key);
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const e of period.events) counts.set(e.category, (counts.get(e.category) ?? 0) + 1);
+    for (const e of period.events) counts.set(eventCategoryKey(e), (counts.get(eventCategoryKey(e)) ?? 0) + 1);
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);
   }, [period.events]);
   const [picked, setPicked] = useState<string[]>([]);
   const [view, setView] = useState<'list' | 'cards'>('list');
   const toggle = (c: string) => setPicked((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
-  const visible = picked.length ? period.events.filter((e) => picked.includes(e.category)) : period.events;
+  const visible = picked.length ? period.events.filter((e) => picked.includes(eventCategoryKey(e))) : period.events;
   const groups = groupEventsByStage(period, visible);
 
   if (period.events.length === 0) {
@@ -78,7 +83,7 @@ export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
                     <div>
                       {e.slug ? <Link href={PERIOD_ROUTES.EVENT(e.slug)}>{e.title}</Link> : <strong>{e.title}</strong>}
                       <small>
-                        {categoryLabel(e.category)}
+                        {eventCategoryLabel(categoryTerms, e)}
                         {e.figures.length > 0 && ` · ${e.figures.slice(0, 2).map((f) => f.name).join(', ')}`}
                         {(e.locations[0]?.name || e.location) && ` · ${e.locations[0]?.name ?? e.location}`}
                       </small>
@@ -99,7 +104,7 @@ export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
                   <article>
                     {e.imageUrl && <img src={e.imageUrl} alt="" />}
                     <div>
-                      <span className="pd-tag">{categoryLabel(e.category)}</span>
+                      <span className="pd-tag">{eventCategoryLabel(categoryTerms, e)}</span>
                       <h4>{e.slug ? <Link href={PERIOD_ROUTES.EVENT(e.slug)}>{e.title}</Link> : e.title}</h4>
                       {e.description && <p>{e.description}</p>}
                       <div className="pd-event-meta">

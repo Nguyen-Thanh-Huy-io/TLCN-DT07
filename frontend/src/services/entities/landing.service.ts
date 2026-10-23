@@ -3,6 +3,7 @@ import { erasData, EraItem } from '@/data/eras';
 import { figuresData, FigureItem } from '@/data/figures';
 import { timelineData, TimelineNode } from '@/data/timeline';
 import { topicsData, TopicItem } from '@/data/topics';
+import type { TaxonomyGroupItem, TaxonomyTermItem } from './taxonomy.service';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -557,6 +558,22 @@ export async function fetchPublicList<T>(endpoint: string): Promise<T[]> {
     const body = await response.json();
     const payload = body?.data ?? body;
     return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Giá trị đang dùng của một nhóm "Danh mục dùng chung" (server component). */
+export async function fetchTaxonomyTerms(groupCode: string): Promise<TaxonomyTermItem[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}/public/taxonomies?groups=${encodeURIComponent(groupCode)}`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const groups = (body?.data ?? body) as TaxonomyGroupItem[];
+    return Array.isArray(groups) ? (groups.find((g) => g.code === groupCode)?.terms ?? []) : [];
   } catch {
     return [];
   }

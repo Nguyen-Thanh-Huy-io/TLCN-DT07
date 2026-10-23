@@ -35,6 +35,7 @@ import {
 import { APP_ROUTES } from '@/constants/routes';
 import { TaxonomyApiService, type TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
 import { EventCategoryPanel } from './EventCategoryPanel';
+import { EventEntityRoles, emptyEventRole, type EventEntityRoleValue } from './EventEntityRoles';
 import {
   HistoricalEventApiService,
   SaveHistoricalEventPayload,
@@ -148,6 +149,9 @@ export function EventEditor({ eventId }: EventEditorProps) {
   // Loại sự kiện theo "Danh mục dùng chung" (cây, nhiều loại; phần tử đầu là loại chính).
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [categoryGroup, setCategoryGroup] = useState<TaxonomyGroupItem>();
+  // Vai trò từng thực thể đã gắn (mã theo nhóm EVENT_ROLE + mô tả tự do).
+  const [roleGroup, setRoleGroup] = useState<TaxonomyGroupItem>();
+  const [entityRoles, setEntityRoles] = useState<Record<string, EventEntityRoleValue>>({});
   /** Mã enum cũ của bản ghi chưa có categoryIds — quy đổi khi danh mục tải xong. */
   const [legacyCategory, setLegacyCategory] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<Record<string, any>>({});
@@ -270,9 +274,12 @@ export function EventEditor({ eventId }: EventEditorProps) {
   }, [autoDisplayText, isCustomDisplayMode]);
 
   useEffect(() => {
-    TaxonomyApiService.getGroups(['EVENT_CATEGORY'])
-      .then(([group]) => setCategoryGroup(group))
-      .catch((err) => console.warn('Failed to fetch event categories:', err));
+    TaxonomyApiService.getGroups(['EVENT_CATEGORY', 'EVENT_ROLE'])
+      .then((groups) => {
+        setCategoryGroup(groups.find((g) => g.code === 'EVENT_CATEGORY'));
+        setRoleGroup(groups.find((g) => g.code === 'EVENT_ROLE'));
+      })
+      .catch((err) => console.warn('Failed to fetch event taxonomies:', err));
   }, []);
 
   // Bản ghi cũ chỉ có mã enum: chọn sẵn loại cùng mã (hoặc alias) trong danh mục.
@@ -392,6 +399,19 @@ export function EventEditor({ eventId }: EventEditorProps) {
             detail.entities
               .map((item) => item.entityId || item.entity?.id || '')
               .filter(Boolean),
+          );
+          setEntityRoles(
+            Object.fromEntries(
+              detail.entities.map((item) => [
+                item.entityId,
+                {
+                  role: item.role || emptyEventRole(item.entity?.type).role,
+                  roleLabel: item.roleLabel || '',
+                  isPrimary: Boolean(item.isPrimary),
+                  notes: item.notes ?? null,
+                },
+              ]),
+            ),
           );
         }
 
@@ -997,7 +1017,18 @@ export function EventEditor({ eventId }: EventEditorProps) {
       status: action === 'PUBLISH' ? ContentStatus.PUBLISHED : targetStatus,
       categoryIds,
       metadata: Object.keys(mergedMetadata).length > 0 ? mergedMetadata : undefined,
-      entityIds: selectedEntityIds,
+      // Gửi kèm vai trò để lưu không làm mất vai trò / mô tả đã có.
+      entityRelations: selectedEntityIds.map((entityId, idx) => {
+        const value = entityRoles[entityId] ?? emptyEventRole(entities.find((e) => e.id === entityId)?.type);
+        return {
+          entityId,
+          role: value.role,
+          roleLabel: value.roleLabel.trim() || null,
+          isPrimary: value.isPrimary,
+          displayOrder: idx,
+          notes: value.notes,
+        };
+      }),
       media: mediaList.map((m, idx) => ({
         type: m.type,
         url: m.url,
@@ -1512,6 +1543,15 @@ export function EventEditor({ eventId }: EventEditorProps) {
               linkedItems={linkedKnowledgeItems}
               onAddItems={handleAddKnowledgeItems}
               onRemoveItem={handleRemoveKnowledgeItem}
+            />
+            <EventEntityRoles
+              group={roleGroup}
+              entities={selectedEntityIds
+                .filter((id) => id !== parentId)
+                .map((id) => entities.find((e) => e.id === id))
+                .filter((e): e is NonNullable<typeof e> => Boolean(e))}
+              roles={entityRoles}
+              onChange={setEntityRoles}
             />
           </div>
         </div>

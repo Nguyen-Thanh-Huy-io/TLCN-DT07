@@ -8,8 +8,9 @@ import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import {
   ContentStatus,
   EventCategory,
-  EVENT_CATEGORY_LABELS,
 } from '@/constants/enums';
+import { TaxonomyApiService, type TaxonomyTermItem } from '@/services/entities/taxonomy.service';
+import { eventCategoryLabel } from '@/features/taxonomy/taxonomy-labels';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 import { APP_ROUTES } from '@/constants/routes';
@@ -48,6 +49,13 @@ export function EventList() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | ContentStatus>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | EventCategory>('ALL');
   const [topLevelOnly, setTopLevelOnly] = useState<boolean>(false);
+  // Nhãn loại chính theo "Danh mục dùng chung" (cả giá trị đang ẩn).
+  const [categoryTerms, setCategoryTerms] = useState<TaxonomyTermItem[]>([]);
+  useEffect(() => {
+    TaxonomyApiService.getGroups(['EVENT_CATEGORY'])
+      .then(([group]) => setCategoryTerms(group?.terms ?? []))
+      .catch(() => setCategoryTerms([]));
+  }, []);
 
   // Trạng thái mở rộng các nhánh cây
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -314,7 +322,7 @@ export function EventList() {
 
             {item.category && (
               <span className="text-[10px] font-semibold px-2 py-0.2 rounded-full bg-amber-50 text-amber-900 border border-amber-200/80 shrink-0 hidden sm:inline-block">
-                {EVENT_CATEGORY_LABELS[item.category] || item.category}
+                {eventCategoryLabel(categoryTerms, item)}
               </span>
             )}
           </div>
@@ -634,7 +642,7 @@ export function EventList() {
                               {/* Badge phân loại thể loại sự kiện */}
                               {item.category && (
                                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 shrink-0">
-                                  {EVENT_CATEGORY_LABELS[item.category] || item.category}
+                                  {eventCategoryLabel(categoryTerms, item)}
                                 </span>
                               )}
                             </div>
@@ -748,7 +756,7 @@ export function EventList() {
                                           </span>
                                           {child.category && (
                                             <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-amber-50 text-amber-900 border border-amber-200 shrink-0">
-                                              {EVENT_CATEGORY_LABELS[child.category] || child.category}
+                                              {eventCategoryLabel(categoryTerms, child)}
                                             </span>
                                           )}
                                         </div>
@@ -858,7 +866,7 @@ export function EventList() {
                             )}
                             {item.category && (
                               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 shrink-0">
-                                {EVENT_CATEGORY_LABELS[item.category] || item.category}
+                                {eventCategoryLabel(categoryTerms, item)}
                               </span>
                             )}
                           </div>

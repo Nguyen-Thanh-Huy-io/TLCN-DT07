@@ -21,6 +21,9 @@ model HistoricalEvent {
   thumbnailUrl  String?       @map("thumbnail_url") @db.VarChar(500)
   displayOrder  Int           @default(0) @map("display_order")
   category      EventCategory @default(OTHER)
+  /// Loại sự kiện theo danh mục dùng chung (nhóm EVENT_CATEGORY), phần tử đầu là loại chính.
+  /// Cột category (enum) giữ song song, luôn đồng bộ theo loại chính, cho dữ liệu nhập cũ.
+  categoryIds   String[]      @default([]) @map("category_ids")
   metadata      Json?         @db.JsonB
   status        ContentStatus @default(PUBLISHED)
   createdAt     DateTime      @default(now()) @map("created_at")
@@ -43,6 +46,7 @@ model HistoricalEvent {
   @@index([parentId])
   @@index([startYear, startMonth, startDay])
   @@index([category])
+  @@index([categoryIds], type: Gin)
   @@index([displayOrder])
   @@index([status])
   @@map("historical_events")

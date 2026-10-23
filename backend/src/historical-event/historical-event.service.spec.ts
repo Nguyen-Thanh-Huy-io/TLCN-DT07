@@ -6,15 +6,47 @@ import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { SlugService } from '../common/services/slug.service';
 import { HISTORICAL_EVENT_TOKENS } from './historical-event.constant';
-import { EventMetadataStrategyRegistry } from './strategies/event-metadata-strategy.registry';
-import {
-  BattleMetadataStrategy,
-  TreatyMetadataStrategy,
-  NaturalDisasterMetadataStrategy,
-  DefaultEventMetadataStrategy,
-} from './strategies/category-metadata.strategies';
+import { TaxonomyService } from '../taxonomy/taxonomy.service';
+import { PrismaService } from '../common/services/prisma.service';
 
-describe('HistoricalEventService (SOLID - Clean Architecture & Strategy Pattern Validation)', () => {
+/** Cây loại sự kiện thu nhỏ: trường thông tin khai báo ở nút và kế thừa xuống nút con. */
+const CATEGORY_TERMS = [
+  {
+    id: 't-mil', groupCode: 'EVENT_CATEGORY', code: 'MILITARY', label: 'Quân sự', parentId: null, aliases: [],
+    meta: {
+      legacyCategory: 'WAR',
+      fields: [
+        { key: 'belligerents', label: 'Các bên tham chiến', type: 'list' },
+        { key: 'commanders', label: 'Chỉ huy', type: 'list' },
+        { key: 'strength', label: 'Binh lực', type: 'text' },
+        { key: 'casualties', label: 'Thương vong', type: 'text' },
+      ],
+    },
+  },
+  {
+    id: 't-battle', groupCode: 'EVENT_CATEGORY', code: 'BATTLE', label: 'Trận đánh', parentId: 't-mil', aliases: ['trận đánh'],
+    meta: { fields: [{ key: 'tactics', label: 'Chiến thuật', type: 'textarea' }] },
+  },
+  {
+    id: 't-pol', groupCode: 'EVENT_CATEGORY', code: 'POLITICS_DIPLOMACY', label: 'Chính trị', parentId: null, aliases: [],
+    meta: { legacyCategory: 'POLITICAL_EVENT', fields: [{ key: 'participants', label: 'Các bên', type: 'list' }] },
+  },
+  {
+    id: 't-treaty', groupCode: 'EVENT_CATEGORY', code: 'TREATY', label: 'Hiệp ước', parentId: 't-pol', aliases: [],
+    meta: {
+      fields: [
+        { key: 'signatories', label: 'Các bên ký kết', type: 'list' },
+        { key: 'ratifiedDate', label: 'Ngày phê chuẩn', type: 'text' },
+        { key: 'termsSummary', label: 'Tóm tắt điều khoản', type: 'textarea' },
+      ],
+    },
+  },
+  { id: 't-soc', groupCode: 'EVENT_CATEGORY', code: 'SOCIETY_CULTURE', label: 'Văn hóa – Xã hội', parentId: null, aliases: [], meta: { legacyCategory: 'CULTURE_SCIENCE' } },
+  { id: 't-legend', groupCode: 'EVENT_CATEGORY', code: 'LEGEND', label: 'Truyền thuyết', parentId: 't-soc', aliases: [], meta: null },
+  { id: 't-other', groupCode: 'EVENT_CATEGORY', code: 'OTHER', label: 'Khác', parentId: null, aliases: [], meta: null },
+];
+
+describe('HistoricalEventService (loại sự kiện theo danh mục dùng chung)', () => {
   let service: HistoricalEventService;
 
   const mockEvent = {
@@ -84,11 +116,11 @@ describe('HistoricalEventService (SOLID - Clean Architecture & Strategy Pattern 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HistoricalEventService,
-        BattleMetadataStrategy,
-        TreatyMetadataStrategy,
-        NaturalDisasterMetadataStrategy,
-        DefaultEventMetadataStrategy,
-        EventMetadataStrategyRegistry,
+        TaxonomyService,
+        {
+          provide: PrismaService,
+          useValue: { taxonomyTerm: { findMany: jest.fn().mockResolvedValue(CATEGORY_TERMS) } },
+        },
         {
           provide: HISTORICAL_EVENT_TOKENS.REPOSITORY,
           useValue: mockRepository,
@@ -107,7 +139,7 @@ describe('HistoricalEventService (SOLID - Clean Architecture & Strategy Pattern 
   });
 
   describe('create', () => {
-    it('tạo sự kiện độc lập (Master Data) với category và metadata chuẩn hóa theo Strategy qua Repository Domain Model', async () => {
+    it('tạo sự kiện từ mã enum cũ: gắn loại tương ứng và chuẩn hóa metadata theo trường kế thừa', async () => {
       const dto = {
         title: 'Trận Bạch Đằng năm 938',
         startYear: 938,
@@ -130,13 +162,13 @@ describe('HistoricalEventService (SOLID - Clean Architecture & Strategy Pattern 
       expect(mockRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           category: EventCategory.BATTLE,
+          categoryIds: ['t-battle'],
           startYear: 938,
           metadata: {
             belligerents: ['Đại Cồ Việt', 'Nam Hán'],
             commanders: ['Ngô Quyền', 'Lưu Hoằng Thao'],
             casualties: 'Lưu Hoằng Thao tử trận',
             tactics: 'Đóng cọc ngầm lòng sông',
-            strength: null,
           },
           entities: [
             expect.objectContaining({
@@ -175,7 +207,7 @@ describe('HistoricalEventService (SOLID - Clean Architecture & Strategy Pattern 
       await expect(service.create(dto)).rejects.toThrow(NotFoundException);
     });
 
-    it('tạo sự kiện hiệp ước chuẩn hóa signatories qua TreatyMetadataStrategy', async () => {
+    it('tạo sự kiện hiệp ước chuẩn hóa signatories theo trường của loại Hiệp ước', async () => {
       const dto = {
         title: 'Hiệp định Paris năm 1973',
         startYear: 1973,
@@ -202,17 +234,57 @@ describe('HistoricalEventService (SOLID - Clean Architecture & Strategy Pattern 
     });
   });
 
+  describe('loại sự kiện nhiều giá trị', () => {
+    it('gắn nhiều loại: loại đầu là loại chính, metadata gộp trường của mọi loại và giữ khóa lạ', async () => {
+      await service.create({
+        title: 'Hòa ước sau chiến thắng',
+        startYear: 1077,
+        categoryIds: ['t-treaty', 't-battle'],
+        metadata: {
+          signatories: 'Đại Việt; Nhà Tống',
+          tactics: '  Đánh vào lòng địch  ',
+          cause: 'Giữ nguyên khóa không khai báo',
+        },
+      });
+      expect(mockRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: EventCategory.TREATY,
+          categoryIds: ['t-treaty', 't-battle'],
+          metadata: {
+            signatories: ['Đại Việt', 'Nhà Tống'],
+            tactics: 'Đánh vào lòng địch',
+            cause: 'Giữ nguyên khóa không khai báo',
+          },
+        }),
+      );
+    });
+
+    it('loại mới ngoài enum cũ (Truyền thuyết) ghi enum theo legacyCategory của nút cha', async () => {
+      await service.create({ title: 'Sơn Tinh – Thủy Tinh', startYear: -258, categoryIds: ['t-legend'] });
+      expect(mockRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ category: EventCategory.CULTURE_SCIENCE, categoryIds: ['t-legend'] }),
+      );
+    });
+
+    it('từ chối id loại không thuộc danh mục', async () => {
+      await expect(
+        service.create({ title: 'Sai loại', startYear: 1000, categoryIds: ['khong-ton-tai'] }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
   describe('findAll', () => {
-    it('gọi repository.findMany và trả về kết quả phân trang khi cache miss', async () => {
+    it('lọc theo nút cha ra cả loại con', async () => {
       mockRedisService.get.mockResolvedValueOnce(null);
 
-      const result = await service.findAll({ page: 1, limit: 10, category: EventCategory.BATTLE });
+      const result = await service.findAll({ page: 1, limit: 10, category: 'MILITARY' });
       expect(result.items).toEqual([mockEvent]);
       expect(result.total).toBe(1);
       expect(mockRepository.findMany).toHaveBeenCalledWith({
         page: 1,
         limit: 10,
-        category: EventCategory.BATTLE,
+        category: 'MILITARY',
+        categoryTermIds: ['t-mil', 't-battle'],
       });
     });
   });

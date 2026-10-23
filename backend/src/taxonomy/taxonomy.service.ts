@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, TaxonomyTerm } from '@prisma/client';
+import { EventCategory, Prisma, TaxonomyTerm } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { normalizePreservation } from '../public-content/preservation-status.constant';
 import { normalizeSiteType } from '../public-content/site-type.constant';
@@ -17,6 +17,12 @@ import {
   TAXONOMY_MESSAGES,
   normalizeRank,
 } from './taxonomy.constant';
+import {
+  EventFieldDef,
+  collectEventFields,
+  descendantIds,
+  legacyEventCategory,
+} from './event-category.util';
 
 const TERM_ORDER: Prisma.TaxonomyTermOrderByWithRelationInput[] = [
   { displayOrder: 'asc' },
@@ -89,7 +95,11 @@ export class TaxonomyService {
         where: {
           OR: [{ siteTypeId: id }, { preservationId: id }, { rankId: id }],
         },
-      })) + (await this.prisma.period.count({ where: { regionId: id } }));
+      })) +
+      (await this.prisma.period.count({ where: { regionId: id } })) +
+      (await this.prisma.historicalEvent.count({
+        where: { categoryIds: { has: id } },
+      }));
     if (used > 0)
       throw new ConflictException(TAXONOMY_MESSAGES.TERM_IN_USE(used));
     await this.prisma.taxonomyTerm.delete({ where: { id } });
@@ -146,6 +156,60 @@ export class TaxonomyService {
   }
 
   /** Chữ tự do / mã → id giá trị đang dùng trong nhóm (khớp mã, nhãn, alias). */
+  /**
+   * Loại sự kiện cho một lần ghi: danh sách id (CMS) hoặc mã enum cũ (dữ liệu nhập / client cũ).
+   * Trả về id đã kiểm tra (loại đầu là loại chính), giá trị enum đồng bộ và các trường thông tin
+   * kế thừa theo cây để chuẩn hóa metadata.
+   */
+  async resolveEventCategories(input: {
+    categoryIds?: string[] | null;
+    category?: string | null;
+  }): Promise<{
+    categoryIds: string[];
+    category: EventCategory;
+    fields: EventFieldDef[];
+  }> {
+    const terms = await this.prisma.taxonomyTerm.findMany({
+      where: { groupCode: TAXONOMY_GROUPS.EVENT_CATEGORY },
+    });
+    let ids = [...new Set((input.categoryIds ?? []).filter(Boolean))];
+    const unknown = ids.filter((id) => !terms.some((t) => t.id === id));
+    if (unknown.length) {
+      throw new BadRequestException(
+        TAXONOMY_MESSAGES.UNKNOWN_TERMS(
+          TAXONOMY_GROUPS.EVENT_CATEGORY,
+          unknown,
+        ),
+      );
+    }
+    if (!ids.length) {
+      const matched =
+        this.matchTerm(
+          terms,
+          TAXONOMY_GROUPS.EVENT_CATEGORY,
+          input.category ?? null,
+          () => null,
+        ) ?? terms.find((t) => t.code === EventCategory.OTHER);
+      ids = matched ? [matched.id] : [];
+    }
+    return {
+      categoryIds: ids,
+      category: legacyEventCategory(terms, ids[0]),
+      fields: collectEventFields(terms, ids),
+    };
+  }
+
+  /** Id loại sự kiện để lọc theo mã / id (kể cả mọi nút con); mã không tồn tại → mảng rỗng. */
+  async eventCategoryFilterIds(codeOrId: string) {
+    const terms = await this.prisma.taxonomyTerm.findMany({
+      where: { groupCode: TAXONOMY_GROUPS.EVENT_CATEGORY },
+    });
+    const roots = terms
+      .filter((t) => t.id === codeOrId || t.code === codeOrId)
+      .map((t) => t.id);
+    return roots.length ? descendantIds(terms, roots) : [];
+  }
+
   async resolveTermId(group: string, raw: string | null | undefined) {
     if (!raw?.trim()) return undefined;
     const terms = await this.prisma.taxonomyTerm.findMany({

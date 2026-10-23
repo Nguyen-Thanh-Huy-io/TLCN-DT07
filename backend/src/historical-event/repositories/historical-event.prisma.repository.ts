@@ -228,8 +228,9 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
       where.status = query.status;
     }
 
-    if (query.category) {
-      where.category = query.category;
+    if (query.categoryTermIds) {
+      // Mã loại không tồn tại → mảng rỗng → không khớp sự kiện nào.
+      where.categoryIds = { hasSome: query.categoryTermIds };
     }
 
     if (query.startYear !== undefined && query.startYear !== null) {

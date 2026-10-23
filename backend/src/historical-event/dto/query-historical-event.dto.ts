@@ -63,12 +63,16 @@ export class QueryHistoricalEventDto {
   status?: ContentStatus;
 
   @ApiPropertyOptional({
-    enum: EventCategory,
-    description: 'Lọc sự kiện theo phân loại (BATTLE, WAR, TREATY, REVOLUTION...)',
+    example: 'MILITARY',
+    description:
+      'Lọc theo mã hoặc id loại sự kiện trong danh mục dùng chung; gồm cả loại con (MILITARY → trận đánh, chiến tranh)',
   })
-  @IsEnum(EventCategory)
+  @IsString()
   @IsOptional()
-  category?: EventCategory;
+  category?: string;
+
+  /** Nội bộ: id loại đã mở rộng xuống loại con (service tính, client không gửi). */
+  categoryTermIds?: string[];
 
   @ApiPropertyOptional({
     example: 938,

@@ -166,6 +166,7 @@ export class PublicContentMapper {
           eventDateNote: ee.event.eventDateNote,
           description: ee.event.description,
           category: ee.event.category,
+          categoryIds: ee.event.categoryIds ?? [],
           periodSlug: ee.event.period?.slug ?? null,
           role: ee.role,
           roleLabel: ee.roleLabel,
@@ -230,6 +231,7 @@ export class PublicContentMapper {
       description: event.description,
       imageUrl: event.thumbnailUrl,
       category: event.category,
+      categoryIds: event.categoryIds ?? [],
       periodSlug: event.period?.slug ?? null,
       figures: participants
         .filter((e) => e.type === 'PERSON')

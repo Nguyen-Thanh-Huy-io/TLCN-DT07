@@ -52,6 +52,8 @@ export class PublicFigureEventDto {
   @ApiPropertyOptional({ nullable: true }) eventDateNote: string | null;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
   @ApiProperty({ enum: EventCategory }) category: EventCategory;
+  /** Id loại trong danh mục EVENT_CATEGORY (phần tử đầu là loại chính) — nhãn / cây lấy từ /public/taxonomies. */
+  @ApiProperty({ type: [String] }) categoryIds: string[];
   @ApiPropertyOptional({ nullable: true }) periodSlug: string | null;
   @ApiProperty({ example: 'COMMANDER' }) role: string;
   @ApiPropertyOptional({ nullable: true }) roleLabel: string | null;
@@ -146,6 +148,8 @@ export class PublicEventSummaryDto {
   @ApiPropertyOptional({ nullable: true }) description: string | null;
   @ApiPropertyOptional({ nullable: true }) imageUrl: string | null;
   @ApiProperty({ enum: EventCategory }) category: EventCategory;
+  /** Id loại trong danh mục EVENT_CATEGORY (phần tử đầu là loại chính) — nhãn / cây lấy từ /public/taxonomies. */
+  @ApiProperty({ type: [String] }) categoryIds: string[];
   @ApiPropertyOptional({ nullable: true }) periodSlug: string | null;
   @ApiProperty({ type: [PublicFigureDto] }) figures: PublicFigureDto[];
   @ApiProperty({ type: [PublicLocationSummaryDto] })

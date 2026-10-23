@@ -200,7 +200,18 @@ export class CreateHistoricalEventDto {
   category?: EventCategory;
 
   @ApiPropertyOptional({
-    description: 'Thông số siêu dữ liệu đặc thù theo từng thể loại (Strategy Pattern)',
+    type: [String],
+    description:
+      'Id các loại sự kiện trong danh mục dùng chung (nhóm EVENT_CATEGORY); phần tử đầu là loại chính. Có giá trị thì ưu tiên hơn category.',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  categoryIds?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Thông tin riêng theo loại sự kiện — trường khai báo trong meta.fields của danh mục loại sự kiện (kế thừa theo cây); khóa khác giữ nguyên',
     example: {
       belligerents: ['Đại Cồ Việt', 'Nhà Tống'],
       commanders: ['Lê Hoàn', 'Hầu Nhân Bảo'],

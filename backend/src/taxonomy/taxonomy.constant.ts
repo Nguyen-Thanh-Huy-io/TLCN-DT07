@@ -4,6 +4,7 @@ export const TAXONOMY_GROUPS = {
   PRESERVATION: 'PRESERVATION',
   HERITAGE_RANK: 'HERITAGE_RANK',
   REGION: 'REGION',
+  EVENT_CATEGORY: 'EVENT_CATEGORY',
 } as const;
 
 export type TaxonomyGroupCode =
@@ -20,6 +21,8 @@ export const TAXONOMY_MESSAGES = {
   TERM_NOT_FOUND: (id: string) => `Không tìm thấy giá trị danh mục "${id}"`,
   DUPLICATE_CODE: (group: string, code: string) =>
     `Nhóm "${group}" đã có mã "${code}"`,
+  UNKNOWN_TERMS: (group: string, ids: string[]) =>
+    `Giá trị không thuộc nhóm "${group}": ${ids.join(', ')}`,
   PARENT_OTHER_GROUP: 'Giá trị cha phải thuộc cùng nhóm danh mục.',
   TERM_IN_USE: (count: number) =>
     `Giá trị đang được ${count} bản ghi sử dụng — hãy ẩn (isActive = false) thay vì xóa.`,

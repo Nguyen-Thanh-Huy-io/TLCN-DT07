@@ -14,6 +14,7 @@ export interface CreateHistoricalEventDomainModel {
   displayOrder?: number;
   status?: string;
   category?: string;
+  categoryIds?: string[];
   metadata?: Record<string, any> | null;
   topicId?: string | null;
   periodId?: string | null;
@@ -51,6 +52,7 @@ export interface UpdateHistoricalEventDomainModel {
   displayOrder?: number;
   status?: string;
   category?: string;
+  categoryIds?: string[];
   metadata?: Record<string, any> | null;
   topicId?: string | null;
   periodId?: string | null;
@@ -89,6 +91,8 @@ export interface HistoricalEventEntityModel {
   displayOrder: number;
   status: string;
   category: string;
+  /** Id loại sự kiện (danh mục EVENT_CATEGORY), phần tử đầu là loại chính. */
+  categoryIds: string[];
   metadata?: Record<string, any> | null;
   topicId?: string | null;
   periodId?: string | null;

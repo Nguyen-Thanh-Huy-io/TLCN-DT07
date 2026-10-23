@@ -17,7 +17,8 @@ import {
   HISTORICAL_EVENT_TOKENS,
 } from './historical-event.constant';
 import type { IHistoricalEventRepository } from './repositories/historical-event.repository.interface';
-import { EventMetadataStrategyRegistry } from './strategies/event-metadata-strategy.registry';
+import { TaxonomyService } from '../taxonomy/taxonomy.service';
+import { normalizeEventMetadata } from '../taxonomy/event-category.util';
 import {
   CreateHistoricalEventDomainModel,
   HistoricalEventEntityModel,
@@ -40,7 +41,7 @@ export class HistoricalEventService {
     private readonly redis: RedisService,
     private readonly logger: CustomLoggerService,
     private readonly slugService: SlugService,
-    private readonly metadataStrategyRegistry: EventMetadataStrategyRegistry,
+    private readonly taxonomy: TaxonomyService,
   ) {}
 
   private validateYearRange(startYear?: number, endYear?: number | null): void {
@@ -108,11 +109,15 @@ export class HistoricalEventService {
           async (candidate) => await this.repository.existsBySlug(candidate),
         );
 
-    const { entityIds, entityRelations, category, metadata, ...rest } = dto;
+    const { entityIds, entityRelations, category, categoryIds, metadata, ...rest } = dto;
 
-    // Áp dụng Strategy Pattern xử lý metadata
-    const strategy = this.metadataStrategyRegistry.getStrategy(category as any);
-    const normalizedMetadata = strategy.validateAndNormalize(metadata);
+    // Loại sự kiện từ danh mục dùng chung; trường thông tin kế thừa theo cây chuẩn hóa metadata.
+    const categories = await this.taxonomy.resolveEventCategories({ categoryIds, category });
+    const normalizedMetadata = normalizeEventMetadata(
+      categories.fields,
+      metadata,
+      HISTORICAL_EVENT_ERRORS.INVALID_METADATA_FORMAT,
+    );
 
     const relationRecords =
       entityRelations && entityRelations.length > 0
@@ -164,7 +169,8 @@ export class HistoricalEventService {
       thumbnailUrl: rest.thumbnailUrl,
       displayOrder: rest.displayOrder ?? 0,
       status: rest.status,
-      category: category,
+      category: categories.category,
+      categoryIds: categories.categoryIds,
       metadata: normalizedMetadata,
       entities: relationRecords,
       media: rest.media,
@@ -199,7 +205,11 @@ export class HistoricalEventService {
       );
     }
 
-    const { items, total } = await this.repository.findMany(query);
+    // Lọc theo loại: mã / id loại kèm mọi loại con (vd. "MILITARY" ra cả trận đánh, chiến tranh).
+    const categoryTermIds = query.category
+      ? await this.taxonomy.eventCategoryFilterIds(query.category)
+      : undefined;
+    const { items, total } = await this.repository.findMany({ ...query, categoryTermIds });
 
     const formattedItems = items.map((item) => this.formatEvent(item));
     const result: IPaginatedResult<HistoricalEventEntityModel> = {
@@ -300,14 +310,25 @@ export class HistoricalEventService {
 
     await this.ensureReferencesExist(dto);
 
-    const { entityIds, entityRelations, category, metadata, ...rest } = dto;
+    const { entityIds, entityRelations, category, categoryIds, metadata, ...rest } = dto;
 
-    const targetCategory = category ?? existing.category;
+    const categoriesChanged = categoryIds !== undefined || category !== undefined;
+    const categories =
+      categoriesChanged || metadata !== undefined
+        ? await this.taxonomy.resolveEventCategories(
+            categoriesChanged
+              ? { categoryIds, category }
+              : { categoryIds: existing.categoryIds, category: existing.category },
+          )
+        : undefined;
 
     let normalizedMetadata: Record<string, any> | null | undefined = undefined;
-    if (metadata !== undefined) {
-      const strategy = this.metadataStrategyRegistry.getStrategy(targetCategory as any);
-      normalizedMetadata = strategy.validateAndNormalize(metadata);
+    if (metadata !== undefined && categories) {
+      normalizedMetadata = normalizeEventMetadata(
+        categories.fields,
+        metadata,
+        HISTORICAL_EVENT_ERRORS.INVALID_METADATA_FORMAT,
+      );
     }
 
     const relationRecords =
@@ -361,7 +382,9 @@ export class HistoricalEventService {
       ...(rest.periodId !== undefined ? { periodId: rest.periodId } : {}),
       ...(locationId !== undefined ? { locationId } : {}),
       ...(rest.parentId !== undefined ? { parentId: rest.parentId } : {}),
-      ...(category !== undefined ? { category } : {}),
+      ...(categoriesChanged && categories
+        ? { category: categories.category, categoryIds: categories.categoryIds }
+        : {}),
       ...(metadata !== undefined ? { metadata: normalizedMetadata } : {}),
       ...(relationRecords !== undefined ? { entities: relationRecords } : {}),
       ...(rest.media !== undefined ? { media: rest.media } : {}),

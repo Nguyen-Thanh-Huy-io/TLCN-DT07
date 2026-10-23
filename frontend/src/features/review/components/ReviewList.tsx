@@ -153,12 +153,14 @@ export function ReviewList() {
 
   return (
     <div className="panel management-panel">
-      <div className="tabs">
+      <div className="mb-3 flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1">
         {(['Chờ duyệt', 'Đã duyệt', 'Bị từ chối'] as const).map((x) => (
           <button
             key={x}
             type="button"
-            className={tab === x ? 'active' : ''}
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
+              tab === x ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
             onClick={() => setTab(x)}
           >
             {x}

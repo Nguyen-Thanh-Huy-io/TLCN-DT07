@@ -42,6 +42,8 @@ export interface EntityDetailLayoutProps {
   onFillSampleData?: () => void;
   onPreview?: () => void;
   sections: FormSectionConfig[];
+  /** Dải thông báo phía trên biểu mẫu (vd. phiên bản / bản sửa chờ duyệt). */
+  banner?: React.ReactNode;
 }
 
 export function EntityDetailLayout({
@@ -57,6 +59,7 @@ export function EntityDetailLayout({
   onFillSampleData,
   onPreview,
   sections,
+  banner,
 }: EntityDetailLayoutProps) {
   const [activeIndex, setActiveIndex] = useState<number>(0);
 
@@ -190,6 +193,8 @@ export function EntityDetailLayout({
           </div>
         </div>
       </div>
+
+      {banner}
 
       {/* Main Split Layout: LEFT BAR ("CÁC PHẦN CỦA BIỂU MẪU") + RIGHT FORM PANEL */}
       <form

@@ -35,6 +35,12 @@ import {
 import { APP_ROUTES } from '@/constants/routes';
 import { TaxonomyApiService, type TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
 import { EventCategoryPanel } from './EventCategoryPanel';
+import {
+  isRevisionPending,
+  withPendingDraft,
+  type ContentRevisionItem,
+} from '@/services/entities/content-revision.service';
+import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
 import { EventEntityRoles, emptyEventRole, type EventEntityRoleValue } from './EventEntityRoles';
 import { relationLabel, relationOptions } from '@/features/taxonomy/taxonomy-labels';
 import {
@@ -150,6 +156,9 @@ export function EventEditor({ eventId }: EventEditorProps) {
   // Loại sự kiện theo "Danh mục dùng chung" (cây, nhiều loại; phần tử đầu là loại chính).
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [categoryGroup, setCategoryGroup] = useState<TaxonomyGroupItem>();
+  // Phiên bản hóa: bản sửa chờ duyệt đang mở (form hiện bản sửa) và thông báo sau khi lưu.
+  const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
+  const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
   // Vai trò từng thực thể đã gắn (mã theo nhóm EVENT_ROLE + mô tả tự do).
   const [roleGroup, setRoleGroup] = useState<TaxonomyGroupItem>();
   const [relationGroup, setRelationGroup] = useState<TaxonomyGroupItem>();
@@ -329,7 +338,10 @@ export function EventEditor({ eventId }: EventEditorProps) {
       setOtherEvents(eventItems);
 
       if (isEditMode && eventId) {
-        const detail = await HistoricalEventApiService.getEventById(eventId);
+        const fetched = await HistoricalEventApiService.getEventById(eventId);
+        // Đang xuất bản mà có bản sửa chờ duyệt → mở bản sửa đó để sửa tiếp không mất phần trước.
+        const { detail, pending } = await withPendingDraft('EVENT', eventId, fetched);
+        setPendingRevision(pending);
         setTitle(detail.title || '');
         if (detail.slug) {
           setCustomSlug(detail.slug);
@@ -1047,6 +1059,13 @@ export function EventEditor({ eventId }: EventEditorProps) {
           eventId,
           payload,
         );
+        if (isRevisionPending(updated)) {
+          // Nội dung đang xuất bản: thay đổi thành bản sửa chờ duyệt, bản công khai giữ nguyên.
+          setPendingRevision(updated.revision);
+          setRevisionNotice(updated.message);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
         setStatus(updated.status || payload.status || ContentStatus.PUBLISHED);
         setUpdatedAt(updated.updatedAt || new Date().toISOString());
         if (action === 'DRAFT') {
@@ -1712,6 +1731,19 @@ export function EventEditor({ eventId }: EventEditorProps) {
         onFillSampleData={handleFillSampleData}
         onPreview={() => setIsPreviewOpen(true)}
         sections={sections}
+        banner={
+          <EditorRevisionBanner
+            type="EVENT"
+            contentId={eventId}
+            status={status}
+            pending={pendingRevision}
+            notice={revisionNotice}
+            onChanged={(message) => {
+              setRevisionNotice(message);
+              void loadReferenceDataAndDetail();
+            }}
+          />
+        }
       />
 
       {/* Modal Xem trước Sự kiện lịch sử */}

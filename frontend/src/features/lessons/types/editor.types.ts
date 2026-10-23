@@ -2,6 +2,7 @@ import { ContentStatus, DifficultyLevel, MediaType } from '@/constants/enums';
 import { LessonItem } from '@/types/models/lesson.type';
 import { TagItem } from '@/types/models/tag.type';
 import { TopicItem } from '@/types/models/topic.type';
+import type { ContentRevisionItem } from '@/services/entities/content-revision.service';
 
 export interface LessonMediaItem {
   id?: string;
@@ -76,6 +77,10 @@ export interface UseLessonEditorFacadeReturn {
 
   // Actions
   submitLesson: (nextStatus: ContentStatus | any, overrideContent?: any) => Promise<void>;
+  /** Bản sửa chờ duyệt đang mở của bài đang xuất bản (form đang hiện bản sửa này). */
+  pendingRevision: ContentRevisionItem | null;
+  revisionNotice: string | null;
+  onRevisionChanged: (message: string) => void;
 }
 
 /** Trạng thái tự động lưu nháp cục bộ */

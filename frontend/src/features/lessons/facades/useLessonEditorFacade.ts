@@ -12,6 +12,11 @@ import { UseLessonEditorFacadeReturn, LessonMediaItem, AutoSaveState } from '../
 import { LessonItem } from '@/types/models/lesson.type';
 import { TagItem } from '@/types/models/tag.type';
 import { TopicItem } from '@/types/models/topic.type';
+import {
+  isRevisionPending,
+  withPendingDraft,
+  type ContentRevisionItem,
+} from '@/services/entities/content-revision.service';
 
 /** Độ trễ debounce cho auto-save (ms) */
 const AUTO_SAVE_DEBOUNCE_MS = 1500;
@@ -32,6 +37,10 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
 
   const [selectedTopicId, setSelectedTopicId] = useState(queryTopicId);
   const [status, setStatus] = useState<ContentStatus>(ContentStatus.DRAFT);
+  // Phiên bản hóa: bản sửa chờ duyệt đang mở, thông báo sau khi lưu, khóa tải lại sau duyệt / khôi phục.
+  const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
+  const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
@@ -175,7 +184,10 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
     if (lessonId) {
       setLoadingLesson(true);
       LessonApiService.getLessonById(lessonId)
-        .then((lesson: any) => {
+        // Đang xuất bản mà có bản sửa chờ duyệt → mở bản sửa đó để sửa tiếp không mất phần trước.
+        .then((fetched: any) => withPendingDraft('LESSON', lessonId, fetched))
+        .then(({ detail: lesson, pending }: { detail: any; pending: ContentRevisionItem | null }) => {
+          setPendingRevision(pending);
           if (lesson) {
             setTitle(lesson.title || '');
             setSlug(lesson.slug || '');
@@ -237,7 +249,7 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
       setSourceReferenceNote('Viện Sử học (2017), Lịch sử Việt Nam, tập 10, NXB Khoa học Xã hội.');
       setDisplayOrder(1);
     }
-  }, [lessonId]);
+  }, [lessonId, reloadKey]);
 
   // 3. Tính số lượng từ vựng (Word count) & thời gian đọc ước tính (~200 từ / phút)
   const wordCount = useMemo(() => {
@@ -281,6 +293,19 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
         const saved = lessonId
           ? await LessonApiService.updateLesson(lessonId, payload)
           : await LessonApiService.createLesson(payload);
+
+        if (isRevisionPending(saved)) {
+          // Bài đang xuất bản: thay đổi thành bản sửa chờ duyệt, bản công khai giữ nguyên.
+          setPendingRevision(saved.revision);
+          setRevisionNotice(saved.message);
+          setAutoSaveState(AutoSaveState.SAVED);
+          try {
+            localStorage.removeItem(draftStorageKey);
+          } catch {
+            // Ignore
+          }
+          return;
+        }
 
         // Gắn nhãn phân loại (Tags) cho bài học nếu có chọn thẻ
         const savedId = lessonId || saved?.id;
@@ -379,5 +404,12 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
     selectedTags,
     setSelectedTags,
     submitLesson,
+    pendingRevision,
+    revisionNotice,
+    /** Sau khi duyệt / khôi phục từ hộp lịch sử phiên bản: báo và tải lại bài. */
+    onRevisionChanged: (message: string) => {
+      setRevisionNotice(message);
+      setReloadKey((k) => k + 1);
+    },
   };
 }

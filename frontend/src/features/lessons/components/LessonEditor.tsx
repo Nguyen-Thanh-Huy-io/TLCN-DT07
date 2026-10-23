@@ -20,6 +20,7 @@ import { LessonPreviewContent } from './LessonPreviewContent';
 import { LessonPropertiesPanel } from './properties/LessonPropertiesPanel';
 import { buildLessonTocAndHtml } from '../utils/lesson-toc.util';
 import { useQuizEditor } from '../facades/useQuizEditor';
+import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
 
 export interface LessonEditorProps {
   lessonId?: string;
@@ -102,6 +103,9 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
     selectedTags,
     setSelectedTags,
     submitLesson,
+    pendingRevision,
+    revisionNotice,
+    onRevisionChanged,
   } = useLessonEditorFacade(propLessonId);
 
   // Facade quản lý danh sách các Khối nội dung độc lập (Block-based Page Builder)
@@ -295,6 +299,17 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
         onCloseMoreMenu={() => setIsMoreMenuOpen(false)}
         moreMenuRef={moreMenuRef}
       />
+
+      <div className="px-4 pt-3 sm:px-6">
+        <EditorRevisionBanner
+          type="LESSON"
+          contentId={lessonId}
+          status={status}
+          pending={pendingRevision}
+          notice={revisionNotice}
+          onChanged={onRevisionChanged}
+        />
+      </div>
 
       <LessonEditorSubHeader
         activeTab={activeTab}

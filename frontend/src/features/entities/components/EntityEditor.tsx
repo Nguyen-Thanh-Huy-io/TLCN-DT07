@@ -27,6 +27,12 @@ import {
 import { PeriodApiService } from '@/services/entities/period.service';
 import { TaxonomyApiService, type TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
 import { TaxonomySelect } from '@/features/taxonomy/TaxonomySelect';
+import {
+  isRevisionPending,
+  withPendingDraft,
+  type ContentRevisionItem,
+} from '@/services/entities/content-revision.service';
+import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
 import { relationLabel as taxonomyRelationLabel, relationOptions } from '@/features/taxonomy/taxonomy-labels';
 
 const SITE_TAXONOMY_GROUPS = ['SITE_TYPE', 'PRESERVATION', 'HERITAGE_RANK', 'ENTITY_RELATION'];
@@ -194,6 +200,10 @@ export function EntityEditor({
   const [isFeatured, setIsFeatured] = useState(false);
   const [displayOrder, setDisplayOrder] = useState<number>(0);
   const [status, setStatus] = useState<ContentStatus>(ContentStatus.DRAFT);
+  // Phiên bản hóa: bản sửa chờ duyệt đang mở, thông báo sau khi lưu, khóa tải lại sau duyệt / khôi phục.
+  const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
+  const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Relations & Media State
   const [relations, setRelations] = useState<RelationDraft[]>([]);
@@ -252,7 +262,10 @@ export function EntityEditor({
 
     setLoading(true);
     HistoricalEntityApiService.getEntityById(entityId)
-      .then((data) => {
+      // Đang xuất bản mà có bản sửa chờ duyệt → mở bản sửa đó để sửa tiếp không mất phần trước.
+      .then((fetched) => withPendingDraft('ENTITY', entityId, fetched))
+      .then(({ detail: data, pending }) => {
+        setPendingRevision(pending);
         setName(data.name || '');
         setType(data.type || EntityType.PERSON);
         setTagline(data.tagline || '');
@@ -369,7 +382,7 @@ export function EntityEditor({
         router.push(APP_ROUTES.ENTITIES.LIST);
       })
       .finally(() => setLoading(false));
-  }, [entityId, router]);
+  }, [entityId, router, reloadKey]);
 
   // Aliases Handling
   const handleAddAlias = () => {
@@ -767,7 +780,14 @@ export function EntityEditor({
     try {
       let savedEntityId = entityId;
       if (isEdit && entityId) {
-        await HistoricalEntityApiService.updateEntity(entityId, payload);
+        const updated = await HistoricalEntityApiService.updateEntity(entityId, payload);
+        if (isRevisionPending(updated)) {
+          // Nội dung đang xuất bản: thay đổi thành bản sửa chờ duyệt, bản công khai giữ nguyên.
+          setPendingRevision(updated.revision);
+          setRevisionNotice(updated.message);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
       } else {
         const created = await HistoricalEntityApiService.createEntity(payload);
         savedEntityId = created.id;
@@ -1640,6 +1660,19 @@ export function EntityEditor({
       onPublish={() => handleSave(ContentStatus.PUBLISHED)}
       onCancel={() => router.push(targetReturnRoute)}
       sections={sections}
+      banner={
+        <EditorRevisionBanner
+          type="ENTITY"
+          contentId={entityId}
+          status={status}
+          pending={pendingRevision}
+          notice={revisionNotice}
+          onChanged={(message) => {
+            setRevisionNotice(message);
+            setReloadKey((k) => k + 1);
+          }}
+        />
+      }
     />
   );
 }

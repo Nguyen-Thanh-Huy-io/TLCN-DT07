@@ -94,7 +94,7 @@ export function ChapterList({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold text-slate-900 tracking-tight">Cấu trúc chương</h2>
-          <span className="text-xs text-slate-400">Danh sách chương và bài học trong lộ trình</span>
+          <span className="text-xs text-slate-600 font-medium">Danh sách chương và bài học trong lộ trình</span>
         </div>
         <div className="flex items-center gap-2">
           {/* Chuyển đổi Accordion / Danh sách */}
@@ -126,7 +126,7 @@ export function ChapterList({
             type="button"
             id="btn-add-chapter"
             onClick={onOpenCreateChapter}
-            className="primary-button !h-7 !text-xs !px-3"
+            className="primary-button !h-8 !text-xs !px-3.5 font-bold"
           >
             <Icon name={IconName.PLUS} size={12} />
             <span>Thêm Chương</span>
@@ -136,16 +136,16 @@ export function ChapterList({
       </div>
 
       {loading ? (
-        <div className="py-12 text-center text-xs text-slate-400">Đang tải cấu trúc chương...</div>
+        <div className="py-12 text-center text-xs text-slate-600 font-medium">Đang tải cấu trúc chương...</div>
       ) : !chapters || chapters.length === 0 ? (
         <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-xl">
-          <p className="text-sm font-semibold text-slate-700">Chưa có chương nào trong lộ trình này</p>
-          <p className="text-xs text-slate-400 mt-1">Nhấn &quot;Thêm Chương&quot; để bắt đầu xây dựng cấu trúc bài giảng.</p>
+          <p className="text-sm font-semibold text-slate-800">Chưa có chương nào trong lộ trình này</p>
+          <p className="text-xs text-slate-600 mt-1">Nhấn &quot;Thêm Chương&quot; để bắt đầu xây dựng cấu trúc bài giảng.</p>
           {!readOnly && (
           <button
             type="button"
             onClick={onOpenCreateChapter}
-            className="primary-button !h-8 !text-xs !px-4 mt-4"
+            className="primary-button !h-8 !text-xs !px-4 mt-4 font-bold"
           >
             + Thêm chương đầu tiên
           </button>
@@ -155,7 +155,7 @@ export function ChapterList({
         <div className="overflow-x-auto border border-slate-200 rounded-lg">
           <table className="w-full text-xs">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-left text-slate-500 font-semibold">
+              <tr className="bg-slate-50 border-b border-slate-200 text-left text-slate-700 font-bold">
                 <th className="px-3 py-2 w-10">#</th>
                 <th className="px-3 py-2">Chương</th>
                 <th className="px-3 py-2">Số bài học</th>
@@ -168,16 +168,16 @@ export function ChapterList({
                 const lessonCount = chapter.chapterLessons?.length || 0;
                 return (
                   <tr key={chapter.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60">
-                    <td className={`${TABLE_CELL_TOP} font-mono text-slate-400`}>{chIdx + 1}</td>
+                    <td className={`${TABLE_CELL_TOP} font-mono text-slate-600 font-medium`}>{chIdx + 1}</td>
                     <td className={TABLE_CELL_TOP}>
                       <div className="font-bold text-slate-900">{chapter.title}</div>
                       {chapter.description && (
-                        <div className="text-[11px] text-slate-500 line-clamp-1">{chapter.description}</div>
+                        <div className="text-xs text-slate-600 line-clamp-1 mt-0.5">{chapter.description}</div>
                       )}
                     </td>
                     <td className={TABLE_CELL_TOP}>
                       <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
+                        className={`text-xs px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap ${
                           lessonCount > 0 ? BADGE_HAS_LESSONS : BADGE_NO_LESSONS
                         }`}
                       >
@@ -190,7 +190,7 @@ export function ChapterList({
                           type="button"
                           onClick={() => onEditChapter(chapter)}
                           title="Sửa tên / mô tả chương"
-                          className="px-1 text-[11px] font-semibold text-slate-500 hover:text-emerald-700"
+                          className="px-2 py-0.5 text-xs font-semibold text-slate-600 hover:text-emerald-700 rounded border border-slate-200 mr-1"
                         >
                           Sửa
                         </button>
@@ -200,7 +200,7 @@ export function ChapterList({
                         type="button"
                         onClick={() => onCreateLessonInChapter(chapter)}
                         title="Soạn bài mới trong chương này"
-                        className="text-slate-500 hover:text-emerald-700 p-1"
+                        className="text-slate-600 hover:text-emerald-700 p-1"
                       >
                         <Icon name={IconName.EDIT} size={13} />
                       </button>
@@ -208,7 +208,7 @@ export function ChapterList({
                         type="button"
                         onClick={() => onOpenAddLessons(chapter)}
                         title="Thêm Lesson từ thư viện"
-                        className="text-slate-500 hover:text-emerald-700 p-1"
+                        className="text-slate-600 hover:text-emerald-700 p-1"
                       >
                         <Icon name={IconName.PLUS} size={13} />
                       </button>
@@ -216,7 +216,7 @@ export function ChapterList({
                         type="button"
                         onClick={(e) => onDeleteChapter(e, chapter.id, chapter.title)}
                         title="Xóa chương"
-                        className="text-slate-400 hover:text-rose-600 p-1"
+                        className="text-slate-500 hover:text-rose-600 p-1"
                       >
                         <Icon name={IconName.TRASH} size={13} />
                       </button>
@@ -238,15 +238,15 @@ export function ChapterList({
             return (
               <div
                 key={chapter.id}
-                className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50 transition-all hover:border-slate-300"
+                className="border border-slate-200 rounded-xl overflow-hidden bg-white transition-all hover:border-slate-300 shadow-2xs"
               >
                 {/* Header của Chương */}
                 <div
                   onClick={() => onToggleExpand(chapter.id)}
-                  className="flex items-center justify-between p-3.5 px-4 bg-white border-b border-slate-200 cursor-pointer select-none"
+                  className="flex items-center justify-between p-3.5 px-4 bg-white cursor-pointer select-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-slate-400 hover:text-slate-600 transition-transform">
+                    <span className="text-slate-500 hover:text-slate-700 transition-transform">
                       <Icon
                         name={IconName.CHEVRON}
                         size={14}
@@ -259,7 +259,7 @@ export function ChapterList({
                           Chương {chIdx + 1}. {chapter.title}
                         </span>
                         <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
                             lessonCount > 0 ? BADGE_HAS_LESSONS : BADGE_NO_LESSONS
                           }`}
                         >
@@ -267,7 +267,7 @@ export function ChapterList({
                         </span>
                       </div>
                       {chapter.description && (
-                        <p className="text-xs text-slate-500 mt-0.5">{chapter.description}</p>
+                        <p className="text-xs text-slate-600 mt-0.5">{chapter.description}</p>
                       )}
                     </div>
                   </div>
@@ -280,7 +280,7 @@ export function ChapterList({
                         e.stopPropagation();
                         onEditChapter(chapter);
                       }}
-                      className="secondary-button !h-7 !text-xs !px-2.5"
+                      className="secondary-button !h-8 !text-xs !px-3 font-semibold"
                     >
                       Sửa tên / mô tả
                     </button>
@@ -290,20 +290,20 @@ export function ChapterList({
                     <button
                       type="button"
                       onClick={() => onCreateLessonInChapter(chapter)}
-                      className="primary-button !h-7 !text-xs !px-2.5"
+                      className="primary-button !h-8 !text-xs !px-3 font-bold"
                       title="Soạn một bài học mới, lưu xong tự gắn vào chương này"
                     >
-                      <Icon name={IconName.EDIT} size={11} />
+                      <Icon name={IconName.EDIT} size={12} />
                       <span>Soạn bài mới</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => onOpenAddLessons(chapter)}
-                      className="secondary-button !h-7 !text-xs !px-2.5 text-emerald-800 bg-emerald-50/60 border-emerald-300 hover:bg-emerald-100"
+                      className="secondary-button !h-8 !text-xs !px-3 font-semibold text-emerald-800 bg-emerald-50/70 border-emerald-300 hover:bg-emerald-100"
                       title="Chọn các bài học độc lập từ Thư viện gom vào chương này"
                     >
-                      <Icon name={IconName.PLUS} size={11} />
+                      <Icon name={IconName.PLUS} size={12} />
                       <span>Thêm Lesson từ thư viện</span>
                     </button>
 
@@ -311,7 +311,7 @@ export function ChapterList({
                       <button
                         type="button"
                         onClick={() => onEditChapter(chapter)}
-                        className="secondary-button !h-7 !text-xs !px-2.5"
+                        className="secondary-button !h-8 !text-xs !px-3 font-semibold"
                         title="Sửa tên / mô tả chương"
                       >
                         Sửa
@@ -320,7 +320,7 @@ export function ChapterList({
                     <button
                       type="button"
                       onClick={(e) => onDeleteChapter(e, chapter.id, chapter.title)}
-                      className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
                       title="Xóa chương"
                     >
                       <Icon name={IconName.TRASH} size={13} />
@@ -329,71 +329,69 @@ export function ChapterList({
                   )}
                 </div>
 
-                {/* Danh sách Lesson trong Chương (Có thể kéo thả) */}
+                {/* Danh sách Lesson trong Chương (Dạng List phẳng chuẩn mực, loại bỏ nested cards) */}
                 {isExpanded && (
-                  <div className="p-3 bg-slate-50 space-y-2">
+                  <div className="bg-white border-t border-slate-200 divide-y divide-slate-100">
                     {lessonCount === 0 ? (
-                      <div className="py-6 text-center text-xs text-slate-400 bg-white border border-dashed border-slate-200 rounded-lg">
-                        <p className="font-medium text-slate-500">Chưa thêm bài vào chương này.</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
+                      <div className="py-5 px-4 text-center text-xs text-slate-600 bg-slate-50/50">
+                        <p className="font-semibold text-slate-700">Chưa thêm bài vào chương này.</p>
+                        <p className="text-xs text-slate-500 mt-1">
                           Nhấn <strong>[Soạn bài mới]</strong> để viết bài ngay trong chương, hoặc <strong>[+ Thêm Lesson từ thư viện]</strong> để gom bài có sẵn.
                         </p>
                       </div>
                     ) : (
-                      <div className="space-y-1.5">
-                        {chapter.chapterLessons.map((cl, lIdx) => {
-                          return (
-                            <div
-                              key={cl.id}
-                              className="flex items-center justify-between p-2.5 px-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 shadow-2xs transition-all"
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs font-mono font-bold text-slate-500 w-5 text-center">
-                                  {lIdx + 1}
+                      chapter.chapterLessons.map((cl, lIdx) => {
+                        return (
+                          <div
+                            key={cl.id}
+                            className="flex items-center justify-between py-2.5 px-4 hover:bg-slate-50/80 transition-all"
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <span className="text-xs font-mono font-bold text-slate-600 w-5 text-center shrink-0">
+                                {lIdx + 1}
+                              </span>
+
+                              <div className="w-6 h-6 rounded bg-emerald-100/70 text-emerald-800 flex items-center justify-center shrink-0">
+                                <Icon name={IconName.FILE} size={12} />
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => onOpenLesson(cl.lessonId)}
+                                className="text-left cursor-pointer group min-w-0"
+                                title="Mở soạn thảo bài học này"
+                              >
+                                <span className="text-xs font-semibold text-slate-900 line-clamp-1 group-hover:text-emerald-700 group-hover:underline">
+                                  {cl.lesson?.title || 'Bài học không có tiêu đề'}
                                 </span>
-
-                                <div className="w-6 h-6 rounded bg-emerald-100/60 text-emerald-800 flex items-center justify-center shrink-0">
-                                  <Icon name={IconName.FILE} size={12} />
-                                </div>
-
-                                <button
-                                  type="button"
-                                  onClick={() => onOpenLesson(cl.lessonId)}
-                                  className="text-left cursor-pointer group"
-                                  title="Mở soạn thảo bài học này"
-                                >
-                                  <span className="text-xs font-semibold text-slate-900 line-clamp-1 group-hover:text-emerald-700 group-hover:underline">
-                                    {cl.lesson?.title || 'Bài học không có tiêu đề'}
-                                  </span>
-                                </button>
-                              </div>
-
-                              {/* Actions */}
-                              <div className="flex items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => onOpenLesson(cl.lessonId)}
-                                  className="p-1 rounded text-slate-500 hover:text-emerald-700 hover:bg-emerald-50"
-                                  title="Mở soạn thảo"
-                                >
-                                  <Icon name={IconName.EDIT} size={12} />
-                                </button>
-
-                                {!readOnly && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => onRemoveLesson(e, chapter.id, cl.lessonId)}
-                                  className="p-1 text-slate-400 hover:text-rose-600 rounded ml-1 text-xs leading-none"
-                                  title="Bỏ bài học khỏi chương này"
-                                >
-                                  ✕
-                                </button>
-                                )}
-                              </div>
+                              </button>
                             </div>
-                          );
-                        })}
-                      </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-1.5 shrink-0 ml-3">
+                              <button
+                                type="button"
+                                onClick={() => onOpenLesson(cl.lessonId)}
+                                className="p-1.5 rounded text-slate-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                title="Mở soạn thảo"
+                              >
+                                <Icon name={IconName.EDIT} size={13} />
+                              </button>
+
+                              {!readOnly && (
+                              <button
+                                type="button"
+                                onClick={(e) => onRemoveLesson(e, chapter.id, cl.lessonId)}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 rounded ml-1 text-xs leading-none cursor-pointer"
+                                title="Bỏ bài học khỏi chương này"
+                              >
+                                ✕
+                              </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 )}

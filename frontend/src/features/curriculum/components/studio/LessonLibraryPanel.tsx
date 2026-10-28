@@ -107,7 +107,7 @@ export function LessonLibraryPanel({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <h2 className="text-sm font-bold text-slate-900 tracking-tight">Thư viện Lesson độc lập</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-600 mt-0.5 font-medium">
             Các bài học được soạn thảo và lưu độc lập. Có thể tái sử dụng vào nhiều lộ trình / chương khác nhau.
           </p>
         </div>
@@ -121,7 +121,7 @@ export function LessonLibraryPanel({
               onChange={(e) => onSearchChange(e.target.value)}
               className="form-input !h-8 !text-xs !pl-8 !pr-3 w-60"
             />
-            <span className="absolute left-2.5 top-2 text-slate-400">
+            <span className="absolute left-2.5 top-2 text-slate-500">
               <Icon name={IconName.SEARCH} size={13} />
             </span>
           </div>
@@ -160,7 +160,7 @@ export function LessonLibraryPanel({
             </button>
           </div>
 
-          <button type="button" onClick={onCreateLesson} className="primary-button !h-8 !text-xs !px-3.5">
+          <button type="button" onClick={onCreateLesson} className="primary-button !h-8 !text-xs !px-3.5 font-bold">
             <Icon name={IconName.PLUS} size={13} />
             <span>+ Soạn bài mới</span>
           </button>
@@ -168,7 +168,7 @@ export function LessonLibraryPanel({
       </div>
 
       {lessons.length === 0 ? (
-        <div className="py-12 text-center text-xs text-slate-400">Không tìm thấy bài học nào phù hợp.</div>
+        <div className="py-12 text-center text-xs text-slate-600 font-medium">Không tìm thấy bài học nào phù hợp.</div>
       ) : viewMode === LibraryViewMode.GRID ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -180,21 +180,21 @@ export function LessonLibraryPanel({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
                         lesson.status === LessonStatus.PUBLISHED ? BADGE_PUBLISHED : BADGE_DRAFT
                       }`}
                     >
                       {lesson.status === LessonStatus.PUBLISHED ? LABEL_PUBLISHED : LABEL_DRAFT}
                     </span>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-xs text-slate-500 font-medium">
                       {lesson.createdAt ? new Date(lesson.createdAt).toLocaleDateString('vi-VN') : ''}
                     </span>
                   </div>
 
-                  <h3 className="text-xs font-bold text-slate-900 line-clamp-2">{lesson.title}</h3>
+                  <h3 className="text-sm font-bold text-slate-900 line-clamp-2">{lesson.title}</h3>
 
                   {lesson.description && (
-                    <p className="text-xs text-slate-500 line-clamp-2">{lesson.description}</p>
+                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{lesson.description}</p>
                   )}
 
                   {Array.isArray(lesson.tags) && lesson.tags.length > 0 && (
@@ -202,7 +202,7 @@ export function LessonLibraryPanel({
                       {lesson.tags.map((tag) => (
                         <span
                           key={tag.id}
-                          className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200"
+                          className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200"
                           style={
                             tag.colorHex
                               ? {
@@ -221,7 +221,7 @@ export function LessonLibraryPanel({
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-3 gap-2">
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-xs text-slate-500 truncate">
                     {lesson.updatedAt ? `Cập nhật ${new Date(lesson.updatedAt).toLocaleDateString('vi-VN')}` : ''}
                   </span>
                   <div className="flex items-center gap-2 shrink-0">
@@ -229,14 +229,14 @@ export function LessonLibraryPanel({
                       type="button"
                       onClick={() => onDeleteLesson(lesson)}
                       title="Xóa bài học"
-                      className="text-xs font-semibold text-slate-400 hover:text-rose-600 flex items-center"
+                      className="text-xs font-semibold text-slate-500 hover:text-rose-700 flex items-center p-1 cursor-pointer"
                     >
                       <Icon name={IconName.TRASH} size={13} />
                     </button>
                     <button
                       type="button"
                       onClick={() => onOpenLesson(lesson.id)}
-                      className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
+                      className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer"
                     >
                       <span>Mở soạn thảo</span>
                       <Icon name={IconName.ARROW} size={11} />
@@ -253,7 +253,7 @@ export function LessonLibraryPanel({
           <div className="overflow-x-auto border border-slate-200 rounded-lg">
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-left text-slate-500 font-semibold">
+                <tr className="bg-slate-50 border-b border-slate-200 text-left text-slate-700 font-bold">
                   <th className="px-3 py-2">Bài học &amp; Slug</th>
                   <th className="px-3 py-2">Tóm tắt</th>
                   <th className="px-3 py-2">Trạng thái</th>
@@ -271,7 +271,7 @@ export function LessonLibraryPanel({
                           {lesson.tags.map((tag) => (
                             <span
                               key={tag.id}
-                              className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200"
+                              className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200"
                               style={
                                 tag.colorHex
                                   ? {
@@ -288,19 +288,19 @@ export function LessonLibraryPanel({
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-2.5 align-top text-slate-500 max-w-xs">
-                      <span className="line-clamp-2">{lesson.description || 'Chưa có mô tả tóm tắt'}</span>
+                    <td className="px-3 py-2.5 align-top text-slate-600 max-w-xs">
+                      <span className="line-clamp-2 leading-relaxed">{lesson.description || 'Chưa có mô tả tóm tắt'}</span>
                     </td>
                     <td className="px-3 py-2.5 align-top">
                       <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                        className={`text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap ${
                           lesson.status === LessonStatus.PUBLISHED ? BADGE_PUBLISHED : BADGE_DRAFT
                         }`}
                       >
                         {lesson.status === LessonStatus.PUBLISHED ? LABEL_PUBLISHED : LABEL_DRAFT}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 align-top text-slate-500 font-mono whitespace-nowrap">
+                    <td className="px-3 py-2.5 align-top text-slate-600 font-mono whitespace-nowrap">
                       {lesson.updatedAt ? new Date(lesson.updatedAt).toLocaleDateString('vi-VN') : '-'}
                     </td>
                     <td className="px-3 py-2.5 align-top text-right whitespace-nowrap">
@@ -308,7 +308,7 @@ export function LessonLibraryPanel({
                         type="button"
                         onClick={() => onOpenLesson(lesson.id)}
                         title="Mở soạn thảo"
-                        className="text-slate-500 hover:text-emerald-700 p-1"
+                        className="text-slate-600 hover:text-emerald-700 p-1 cursor-pointer"
                       >
                         <Icon name={IconName.EDIT} size={13} />
                       </button>
@@ -316,7 +316,7 @@ export function LessonLibraryPanel({
                         type="button"
                         onClick={() => onDeleteLesson(lesson)}
                         title="Xóa bài học"
-                        className="text-slate-400 hover:text-rose-600 p-1"
+                        className="text-slate-500 hover:text-rose-700 p-1 cursor-pointer"
                       >
                         <Icon name={IconName.TRASH} size={13} />
                       </button>

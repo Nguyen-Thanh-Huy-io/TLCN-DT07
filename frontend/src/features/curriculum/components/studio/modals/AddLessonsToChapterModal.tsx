@@ -99,14 +99,14 @@ export function AddLessonsToChapterModal({
             <span>{isQuickCreating ? 'Đang tạo...' : 'Tạo bài học'}</span>
           </button>
         </div>
-        <p className="text-[11px] text-slate-400">
+        <p className="text-xs text-slate-500">
           Bài học được tạo ở dạng bản nháp trống — mở lại trong &quot;Thư viện Lesson&quot; để soạn nội dung chi tiết.
         </p>
 
         {/* Danh sách bài học ĐÃ CHỌN và sắp xếp thứ tự trong modal */}
         {selectedLessons.length > 0 && (
           <div className="space-y-1.5 max-h-40 overflow-y-auto border border-emerald-200 bg-emerald-50/30 rounded-lg p-2.5">
-            <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wide mb-1">
+            <div className="text-xs font-bold text-emerald-900 uppercase tracking-wide mb-1">
               Thứ tự bài học trong chương ({selectedLessons.length} bài)
             </div>
             {selectedLessons.map((lesson, idx) => (
@@ -196,8 +196,8 @@ export function AddLessonsToChapterModal({
                   </div>
 
                   <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      lesson.status === LessonStatus.PUBLISHED ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      lesson.status === LessonStatus.PUBLISHED ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-900 border border-amber-200'
                     }`}
                   >
                     {lesson.status === LessonStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}

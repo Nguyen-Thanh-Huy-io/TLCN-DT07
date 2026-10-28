@@ -28,7 +28,7 @@ export default function CurriculumPage() {
             type="button"
             id="btn-switch-studio"
             onClick={() => setViewMode(CurriculumViewMode.STUDIO)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
               viewMode === CurriculumViewMode.STUDIO
                 ? 'bg-emerald-800 text-white shadow-2xs'
                 : INACTIVE_TAB_CLASSES
@@ -40,7 +40,7 @@ export default function CurriculumPage() {
             type="button"
             id="btn-switch-tree"
             onClick={() => setViewMode(CurriculumViewMode.TOPIC_TREE)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
               viewMode === CurriculumViewMode.TOPIC_TREE
                 ? 'bg-slate-900 text-white shadow-2xs'
                 : INACTIVE_TAB_CLASSES
@@ -50,8 +50,8 @@ export default function CurriculumPage() {
           </button>
         </div>
 
-        <span className="text-[11px] text-slate-400">
-          Chế độ hiện tại: {VIEW_MODE_LABELS[viewMode]}
+        <span className="text-xs font-medium text-slate-600">
+          Chế độ hiện tại: <strong className="text-slate-800">{VIEW_MODE_LABELS[viewMode]}</strong>
         </span>
       </div>
 

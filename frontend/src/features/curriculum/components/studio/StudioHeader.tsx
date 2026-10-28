@@ -29,17 +29,17 @@ export function StudioHeader({ activeTab, onTabChange, currentPath, libraryCount
               <h1 className="text-xl font-bold tracking-tight text-slate-900">HISGO Studio</h1>
               {currentPath && (
                 <span
-                  className={`px-2 py-0.5 text-xs font-medium rounded-full border ${
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
                     currentPath.status === ContentStatus.PUBLISHED
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : 'bg-amber-50 text-amber-900 border-amber-200'
                   }`}
                 >
                   {currentPath.status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">Biên soạn bài học và tổ chức thành lộ trình học</p>
+            <p className="text-xs text-slate-600 mt-0.5 font-medium">Biên soạn bài học và tổ chức thành lộ trình học</p>
           </div>
         </div>
 
@@ -49,7 +49,7 @@ export function StudioHeader({ activeTab, onTabChange, currentPath, libraryCount
             type="button"
             id="tab-curriculum-chapters"
             onClick={() => onTabChange(StudioTab.CURRICULUM)}
-            className={`px-3.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-2 transition-all ${
+            className={`px-3.5 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${
               activeTab === StudioTab.CURRICULUM
                 ? 'bg-white text-slate-900 shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -62,7 +62,7 @@ export function StudioHeader({ activeTab, onTabChange, currentPath, libraryCount
             type="button"
             id="tab-lesson-library"
             onClick={() => onTabChange(StudioTab.LESSON_LIBRARY)}
-            className={`px-3.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-2 transition-all ${
+            className={`px-3.5 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${
               activeTab === StudioTab.LESSON_LIBRARY
                 ? 'bg-white text-slate-900 shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -70,7 +70,7 @@ export function StudioHeader({ activeTab, onTabChange, currentPath, libraryCount
           >
             <Icon name={IconName.FILE} size={14} />
             <span>Thư viện Lesson</span>
-            <span className="bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full text-[10px]">
+            <span className="bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full text-xs font-bold">
               {libraryCount}
             </span>
           </button>

@@ -35,7 +35,7 @@ export function LearningPathToolbar({
         <button
           type="button"
           onClick={onBackToList}
-          className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-emerald-700 transition cursor-pointer"
+          className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-emerald-700 transition cursor-pointer"
         >
           <span>←</span>
           <span>Danh sách lộ trình</span>
@@ -47,17 +47,17 @@ export function LearningPathToolbar({
             type="button"
             onClick={onOpenEditPath}
             title="Sửa thông tin lộ trình này"
-            className="p-1 text-slate-400 hover:text-emerald-700 rounded shrink-0"
+            className="p-1 text-slate-500 hover:text-emerald-700 rounded shrink-0"
           >
             <Icon name={IconName.EDIT} size={14} />
           </button>
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-slate-500">
-          <span className="font-semibold text-slate-700">{currentPath.chapters?.length || 0} chương</span>
+        <div className="flex items-center gap-3 text-xs text-slate-600">
+          <span className="font-semibold text-slate-800">{currentPath.chapters?.length || 0} chương</span>
           {currentPath.description && (
             <>
-              <span className="text-slate-300">&bull;</span>
+              <span className="text-slate-400">&bull;</span>
               <span className="truncate max-w-md">{currentPath.description}</span>
             </>
           )}
@@ -93,7 +93,7 @@ export function LearningPathToolbar({
           <span>{currentPath.status === ContentStatus.PUBLISHED ? 'Chuyển về Nháp' : 'Xuất bản Lộ trình'}</span>
         </button>
         ) : (
-          <span className="text-[11px] font-semibold rounded-lg px-2.5 py-1.5 bg-slate-100 text-slate-600">
+          <span className="text-xs font-semibold rounded-lg px-2.5 py-1.5 bg-slate-100 text-slate-700">
             {currentPath.status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp — người duyệt sẽ xuất bản'}
           </span>
         )}

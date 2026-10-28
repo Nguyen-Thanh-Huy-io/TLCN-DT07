@@ -29,15 +29,15 @@ export function HubButton({
 }
 
 const BADGE_TONES = {
-  neutral: 'bg-lh-surface-2 text-lh-muted',
-  brand: 'bg-lh-brand-soft text-lh-brand',
-  gold: 'bg-lh-gold-soft text-lh-gold',
-  red: 'bg-lh-red-soft text-lh-red',
+  neutral: 'bg-lh-surface-2 text-lh-ink/80 font-medium',
+  brand: 'bg-lh-brand-soft text-lh-brand font-bold',
+  gold: 'bg-lh-gold-soft text-lh-gold font-bold',
+  red: 'bg-lh-red-soft text-lh-red font-bold',
 } as const;
 
 export function HubBadge({ children, tone = 'neutral' }: { children: ReactNode; tone?: keyof typeof BADGE_TONES }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${BADGE_TONES[tone]}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[13px] ${BADGE_TONES[tone]}`}>
       {children}
     </span>
   );

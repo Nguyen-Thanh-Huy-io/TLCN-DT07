@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Layers,
-  Library,
   ListTree,
   LogIn,
   RotateCcw,
@@ -69,19 +68,21 @@ function CurriculumStatsHeader({
           <h1 className="mt-4 max-w-2xl font-[family-name:var(--font-heading)] text-3xl font-bold leading-tight sm:text-4xl">
             Học sử theo lộ trình, từng chương một.
           </h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-white/75 sm:text-base">
+          <p className="mt-2 max-w-xl text-sm leading-6 text-white/90 sm:text-base">
             Mỗi lộ trình gồm các chương và bài đọc có đề ôn tập cuối bài. Đăng ký miễn phí một lộ trình để đọc bài và lưu tiến độ vào tài khoản của bạn.
           </p>
           <Link href={cta.href} className={`${HUB_BUTTON_BASE} mt-5 bg-white text-lh-brand hover:bg-white/90`}>
             {cta.label} <ArrowRight className="size-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-4 lg:grid-cols-2">
           {tiles.map((item) => (
-            <div key={item.label} className="rounded-2xl border border-white/10 bg-white/8 p-3 backdrop-blur sm:p-4">
-              <item.icon className={`mb-3 size-5 ${item.color}`} />
-              <div className="text-xl font-extrabold sm:text-2xl">{item.value}</div>
-              <div className="mt-0.5 text-xs text-white/65">{item.label}</div>
+            <div key={item.label} className="border-l-2 border-white/30 py-1 pl-3.5 sm:pl-4">
+              <div className="flex items-center gap-2">
+                <item.icon className={`size-5 ${item.color}`} />
+                <div className="text-xl font-extrabold sm:text-2xl">{item.value}</div>
+              </div>
+              <div className="mt-1 text-sm font-medium text-white/90">{item.label}</div>
             </div>
           ))}
         </div>
@@ -141,16 +142,16 @@ function CourseCard({
         <img
           src={path.coverImageUrl || DEFAULT_COVER_IMAGES[index % DEFAULT_COVER_IMAGES.length]}
           alt=""
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-transparent" />
         <div className="absolute left-4 top-4 flex gap-2">
           <HubBadge tone={path.pathType === LearningPathType.THEMATIC ? 'gold' : 'brand'}>{meta?.label ?? path.pathType}</HubBadge>
           {path.isSequential && <HubBadge tone="neutral">Học tuần tự</HubBadge>}
         </div>
-        <div className="absolute bottom-4 left-4 flex items-center gap-2 text-xs font-medium text-white">
+        <div className="absolute bottom-4 left-4 flex items-center gap-2 text-sm font-semibold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
           <ListTree className="size-3.5" /> {(path.chapters || []).length} chương
-          <span className="text-white/40">•</span>
+          <span className="text-white/75">•</span>
           <BookOpen className="size-3.5" /> {lessons.length} bài
         </div>
       </div>
@@ -160,7 +161,7 @@ function CourseCard({
           <p className="mt-2 line-clamp-2 text-sm leading-6 text-lh-muted">{path.description || meta?.description}</p>
         )}
         <div className="mt-5">
-          <div className="mb-2 flex justify-between text-xs">
+          <div className="mb-2 flex justify-between text-sm">
             <span className="font-semibold text-lh-ink">
               {!enrolled ? 'Chưa đăng ký' : complete ? `Đã học ${complete}/${lessons.length} bài` : 'Đã đăng ký · chưa bắt đầu'}
             </span>
@@ -250,11 +251,8 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
         <section id="lo-trinh" className="scroll-mt-24 py-10">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-lh-brand">
-                <span className="h-px w-8 bg-lh-brand" /> Chương trình chọn lọc
-              </div>
               <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-lh-ink">Lộ trình khám phá lịch sử</h2>
-              <p className="mt-2 text-sm text-lh-muted">Học theo mạch giai đoạn, sự kiện và nhân vật của dân tộc.</p>
+              <p className="mt-2 text-sm text-lh-muted">Chương trình chọn lọc — Học theo mạch giai đoạn, sự kiện và nhân vật của dân tộc.</p>
             </div>
             <div className="relative w-full md:w-80">
               <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-lh-muted" />
@@ -328,17 +326,19 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
           <section id="de-cuong" className="scroll-mt-24 border-t border-lh-line py-10">
             <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
               <div>
-                <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-lh-brand">
-                  <span className="h-px w-8 bg-lh-brand" /> Đề cương lộ trình
-                </div>
                 <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-lh-ink">{activePath.title}</h2>
-                {activePath.description && <p className="mt-3 text-sm leading-7 text-lh-muted">{activePath.description}</p>}
-                <div className="mt-6 grid gap-3">
+                <p className="mt-1 text-sm text-lh-muted">Đề cương chi tiết lộ trình học tập</p>
+                {activePath.description && (
+                  <p className="mt-3 max-w-prose text-sm leading-7 text-lh-muted">{activePath.description}</p>
+                )}
+                <div className="mt-6 divide-y divide-lh-line rounded-2xl border border-lh-line bg-lh-surface">
                   {(activePath.chapters || []).map((chapter, i) => (
-                    <div key={chapter.id} className="rounded-2xl border border-lh-line bg-lh-surface p-4">
+                    <div key={chapter.id} className="p-4">
                       <div className="text-xs font-bold uppercase tracking-wider text-lh-gold">Chương {i + 1}</div>
                       <div className="mt-1 font-semibold text-lh-ink">{chapterLabel(chapter.title)}</div>
-                      {chapter.description && <p className="mt-1 text-sm leading-6 text-lh-muted">{chapter.description}</p>}
+                      {chapter.description && (
+                        <p className="mt-1 max-w-prose text-sm leading-6 text-lh-muted">{chapter.description}</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -365,12 +365,10 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
           <section id="thu-vien" className="scroll-mt-24 border-t border-lh-line py-10">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
               <div>
-                <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-lh-brand">
-                  <Library className="size-4" /> Kho tri thức mở
-                </div>
                 <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-lh-ink">
                   Thư viện bài học ({filteredLibraryLessons.length})
                 </h2>
+                <p className="mt-1 text-sm text-lh-muted">Kho tri thức mở với các bài đọc và tài liệu ôn tập trọng tâm</p>
               </div>
               {availableTags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -408,7 +406,7 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
                       <img
                         src={lesson.thumbnailUrl || DEFAULT_COVER_IMAGES[idx % DEFAULT_COVER_IMAGES.length]}
                         alt=""
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="h-full w-full object-cover"
                       />
                       {isCompleted(lesson.id) && (
                         <span className="absolute right-3 top-3">
@@ -419,7 +417,7 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
                       )}
                     </div>
                     <div className="flex flex-1 flex-col p-4">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-lh-muted">
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-lh-muted">
                         <BookOpen className="size-3.5" /> ~{lesson.estimatedReadMinutes || 3} phút đọc
                         {difficulty && <HubBadge tone="gold">{difficulty.label}</HubBadge>}
                       </div>
@@ -431,7 +429,7 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
                         <div className="flex flex-wrap gap-1">
                           {tags.slice(0, 2).map((tag) =>
                             tag ? (
-                              <span key={tag.id} className="rounded-full bg-lh-surface-2 px-2 py-0.5 text-xs font-medium text-lh-muted">
+                              <span key={tag.id} className="rounded-full bg-lh-surface-2 px-2.5 py-1 text-xs font-semibold text-lh-ink/80">
                                 #{tag.name}
                               </span>
                             ) : null,

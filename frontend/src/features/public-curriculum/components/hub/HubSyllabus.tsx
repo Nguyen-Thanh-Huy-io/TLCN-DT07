@@ -73,12 +73,12 @@ export function HubSyllabus({
                 onClick={() => toggle(chapter.id)}
                 className="flex w-full cursor-pointer items-start gap-3 p-4 text-left transition hover:bg-lh-surface-2"
               >
-                <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-lh-surface-2 text-xs font-bold text-lh-muted">
+                <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-lh-surface-2 text-xs font-bold text-lh-ink">
                   {String(chapterIndex + 1).padStart(2, '0')}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-bold leading-5 text-lh-ink">{chapterLabel(chapter.title)}</span>
-                  <span className="mt-1 block text-xs text-lh-muted">
+                  <span className="mt-1 block text-[13px] font-medium text-lh-muted">
                     {chapterDone}/{chapterLessons.length} bài
                   </span>
                 </span>

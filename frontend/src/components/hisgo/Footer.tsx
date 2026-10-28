@@ -61,14 +61,14 @@ export function Footer() {
                 HISGO
               </span>
             </div>
-            <p className="text-[13px] font-medium tracking-normal text-[var(--text-body)] leading-relaxed">
+            <p className="text-sm font-medium tracking-normal text-[var(--text-body)] leading-relaxed">
               Lịch sử Việt Nam — Hành trình của dân tộc
             </p>
           </div>
 
           {/* Cột 2: Mô tả */}
           <div className="space-y-2 lg:px-8 lg:border-l lg:border-[var(--border-gold)]/30">
-            <p className="text-[13px] md:text-sm text-[var(--text-body)] leading-relaxed font-normal">
+            <p className="text-sm text-[var(--text-body)] leading-relaxed font-normal">
               HISGO là nền tảng khám phá lịch sử Việt Nam dành cho mọi người,
               giúp bạn hiểu hơn về cội nguồn, trân trọng hiện tại và hướng tới
               tương lai.
@@ -172,7 +172,7 @@ export function Footer() {
         </div>
 
         {/* Dòng dưới cùng */}
-        <div className="pt-6 flex flex-col md:flex-row items-center justify-between text-xs text-[var(--ink)]/80 font-medium gap-3 text-center md:text-left">
+        <div className="pt-6 flex flex-col md:flex-row items-center justify-between text-sm text-[var(--ink)] font-medium gap-3 text-center md:text-left">
           <p>© {currentYear} HISGO. All rights reserved.</p>
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6">
             <Link

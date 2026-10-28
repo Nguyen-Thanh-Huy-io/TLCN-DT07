@@ -53,14 +53,14 @@
   --lh-surface-2: oklch(0.956 0.01 85);
   --lh-surface-3: oklch(0.91 0.015 85);
   --lh-ink: oklch(0.25 0.025 165);
-  --lh-muted: oklch(0.52 0.025 165);
+  --lh-muted: oklch(0.40 0.03 165);
   --lh-line: oklch(0.89 0.016 85);
   --lh-brand: oklch(0.36 0.075 164);
   --lh-brand-strong: oklch(0.3 0.075 164);
   --lh-brand-soft: oklch(0.92 0.045 164);
-  --lh-gold: oklch(0.58 0.12 72);
+  --lh-gold: oklch(0.44 0.12 72);
   --lh-gold-soft: oklch(0.93 0.07 82);
-  --lh-red: oklch(0.5 0.15 30);
+  --lh-red: oklch(0.45 0.15 30);
   --lh-red-soft: oklch(0.93 0.04 30);
 }
 

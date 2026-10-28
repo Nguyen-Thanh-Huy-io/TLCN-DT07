@@ -31,10 +31,10 @@ export function EventDetailModal({
               <p className="sk-detail-note">{detail.event.dateNote}</p>
             )}
             <div className="sk-detail-text">{detail.event.content}</div>
-            <Heading level={3}>Nhân vật & địa danh</Heading>
+            <Heading level={2}>Nhân vật & địa danh</Heading>
             <EntityList figures={detail.event.figures || []} locations={detail.event.locations || []} tab="figures" />
             <EntityList figures={detail.event.figures || []} locations={detail.event.locations || []} tab="locations" />
-            <Heading level={3}>Cùng thời điểm</Heading>
+            <Heading level={2}>Cùng thời điểm</Heading>
             {detail.node.events
               .filter((ev) => ev.id !== detail.event.id)
               .map((ev) => (

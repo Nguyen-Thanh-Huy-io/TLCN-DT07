@@ -13,7 +13,11 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContentStatus, HistoricalEntityType, MediaType } from '@prisma/client';
+import {
+  ContentStatus,
+  HistoricalEntityType,
+  MediaType,
+} from '@prisma/client';
 
 export class CreateHistoricalEntityDto {
   @ApiPropertyOptional({
@@ -29,14 +33,14 @@ export class CreateHistoricalEntityDto {
       'a0000000-0000-4000-8000-000000000001',
       'a0000000-0000-4000-8000-000000000002',
     ],
-    description: 'Danh sách các thời kỳ / giai đoạn lịch sử mà thực thể thuộc về hoặc trải qua',
+    description:
+      'Danh sách các thời kỳ / giai đoạn lịch sử mà thực thể thuộc về hoặc trải qua',
     type: [String],
   })
   @IsArray()
   @IsUUID('4', { each: true })
   @IsOptional()
   periodIds?: string[];
-
 
   @ApiProperty({
     example: 'Trần Hưng Đạo',
@@ -108,7 +112,8 @@ export class CreateHistoricalEntityDto {
 
   @ApiPropertyOptional({
     example: 1228,
-    description: 'Năm sinh hoặc năm thành lập (hỗ trợ số âm cho TCN) - Tương thích ngược',
+    description:
+      'Năm sinh hoặc năm thành lập (hỗ trợ số âm cho TCN) - Tương thích ngược',
   })
   @Type(() => Number)
   @IsInt()
@@ -126,7 +131,8 @@ export class CreateHistoricalEntityDto {
 
   @ApiPropertyOptional({
     example: 'Khoảng năm 1228',
-    description: 'Nhãn hiển thị ngày sinh/thành lập dạng chữ - Tương thích ngược',
+    description:
+      'Nhãn hiển thị ngày sinh/thành lập dạng chữ - Tương thích ngược',
     maxLength: 100,
   })
   @IsString()
@@ -191,7 +197,8 @@ export class CreateHistoricalEntityDto {
   endYear?: number;
 
   @ApiPropertyOptional({
-    example: 'Sinh ra trong hoàng tộc nhà Trần, ông sớm nổi tiếng văn võ song toàn...',
+    example:
+      'Sinh ra trong hoàng tộc nhà Trần, ông sớm nổi tiếng văn võ song toàn...',
     description: 'Tiểu sử chi tiết (Dành cho Person)',
   })
   @IsString()
@@ -200,7 +207,8 @@ export class CreateHistoricalEntityDto {
 
   @ApiPropertyOptional({
     example: 'Di tích quốc gia đặc biệt',
-    description: 'Loại hình di tích (Dành cho HistoricalSite: Đền thờ, Lăng mộ, Chiến trường...)',
+    description:
+      'Loại hình di tích (Dành cho HistoricalSite: Đền thờ, Lăng mộ, Chiến trường...)',
   })
   @IsString()
   @IsOptional()
@@ -232,7 +240,8 @@ export class CreateHistoricalEntityDto {
 
   @ApiPropertyOptional({
     example: 1300,
-    description: 'Năm xây dựng hoặc khởi dựng di tích (Dành cho HistoricalSite)',
+    description:
+      'Năm xây dựng hoặc khởi dựng di tích (Dành cho HistoricalSite)',
   })
   @Type(() => Number)
   @IsInt()
@@ -402,7 +411,8 @@ export class CreateEntityRelationDto {
   endYear?: number;
 
   @ApiPropertyOptional({
-    example: 'Tổng chỉ huy trong cuộc kháng chiến chống quân Nguyên Mông lần 2 và 3',
+    example:
+      'Tổng chỉ huy trong cuộc kháng chiến chống quân Nguyên Mông lần 2 và 3',
     description: 'Ghi chú bổ sung ngữ cảnh cho mối quan hệ',
   })
   @IsString()
@@ -512,7 +522,10 @@ export class HistoricalEntityResponseDto {
   @ApiPropertyOptional({ nullable: true }) deathYear?: number | null;
   @ApiPropertyOptional({ nullable: true }) birthDateLabel?: string | null;
   @ApiPropertyOptional({ nullable: true }) deathDateLabel?: string | null;
-  @ApiPropertyOptional({ nullable: true }) metadata?: Record<string, any> | null;
+  @ApiPropertyOptional({ nullable: true }) metadata?: Record<
+    string,
+    any
+  > | null;
   @ApiProperty() isFeatured: boolean;
   @ApiProperty() displayOrder: number;
   @ApiProperty({ enum: ContentStatus }) status: ContentStatus;
@@ -520,7 +533,10 @@ export class HistoricalEntityResponseDto {
   @ApiProperty() updatedAt: Date;
   @ApiPropertyOptional({ type: () => PersonResponseDto, nullable: true })
   person?: PersonResponseDto | null;
-  @ApiPropertyOptional({ type: () => HistoricalSiteResponseDto, nullable: true })
+  @ApiPropertyOptional({
+    type: () => HistoricalSiteResponseDto,
+    nullable: true,
+  })
   historicalSite?: HistoricalSiteResponseDto | null;
   @ApiPropertyOptional({ type: () => [EntityRelationResponseDto] })
   outgoingRelations?: EntityRelationResponseDto[];
@@ -544,4 +560,3 @@ export class EntityRelationResponseDto {
   @ApiPropertyOptional({ type: () => HistoricalEntityResponseDto })
   sourceEntity?: HistoricalEntityResponseDto;
 }
-

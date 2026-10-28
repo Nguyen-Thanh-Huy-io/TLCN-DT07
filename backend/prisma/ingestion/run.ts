@@ -3,43 +3,23 @@
  * ghi thẳng vào Postgres qua Prisma, idempotent theo slug (upsert), không
  * cần gọi API ngoài. Chạy: `npx ts-node prisma/ingestion/run.ts`.
  */
-import 'dotenv/config';
+import * as path from 'path';
+import * as dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PeriodCatalogBuilder } from './catalogs/period.catalog';
-import { EntityCatalogBuilder } from './catalogs/entities.catalog';
-import { EventCatalogBuilder } from './catalogs/events.catalog';
-import { RAW_RELATIONS } from './catalogs/relations.catalog';
-import { BATCH_03_EVENTS } from './catalogs/events.batch-03.catalog';
-import { BATCH_03_RELATIONS } from './catalogs/relations.batch-03.catalog';
-import { FIGURE_PROFILES } from './catalogs/figure-profiles.catalog';
-import { IEntitySeedRecord, IRelationsSeedDataset } from './interfaces/ingestion.interface';
+import { CatalogProviderRegistry } from './strategies/catalog-provider.registry';
 
-const RELATIONS: IRelationsSeedDataset = {
-  eventEntityRelations: [...RAW_RELATIONS.eventEntityRelations, ...BATCH_03_RELATIONS.eventEntityRelations],
-  entityRelations: [...RAW_RELATIONS.entityRelations, ...BATCH_03_RELATIONS.entityRelations],
-  eventCausalRelations: [...RAW_RELATIONS.eventCausalRelations, ...BATCH_03_RELATIONS.eventCausalRelations],
-};
-
-// Gộp hồ sơ batch 03 vào bản ghi nhân vật: roles → Person.roles, profile → metadata.profile.
-function withFigureProfile(e: IEntitySeedRecord): IEntitySeedRecord {
-  const seed = FIGURE_PROFILES[e.slug];
-  if (e.type !== 'PERSON' || !seed) return e;
-  return {
-    ...e,
-    metadata: seed.profile ? { ...e.metadata, profile: seed.profile } : e.metadata,
-    person: e.person ? { ...e.person, roles: seed.roles } : e.person,
-  };
-}
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL as string });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('=== PHASE 4 RUNNER: ghi catalogs vào DB ===');
+  console.log('=== PHASE 4 RUNNER: ghi catalogs vào DB (Composite Provider Registry) ===');
+  const dataset = CatalogProviderRegistry.getAggregatedDataset();
 
   // ---------- 1. PERIODS ----------
-  const periods = PeriodCatalogBuilder.buildCatalog();
+  const periods = dataset.periods;
   const periodSlugToId = new Map<string, string>();
 
   for (const p of periods) {
@@ -80,7 +60,7 @@ async function main() {
   console.log(`✓ Periods: ${periods.length}`);
 
   // ---------- 2. ENTITIES ----------
-  const entities = EntityCatalogBuilder.buildCatalog().map(withFigureProfile);
+  const entities = dataset.entities;
   const entitySlugToId = new Map<string, string>();
 
   for (const e of entities) {
@@ -137,7 +117,7 @@ async function main() {
   console.log(`✓ Entities: ${entities.length}`);
 
   // ---------- 3. EVENTS (2 lượt: tạo trước, gắn parentId sau) ----------
-  const events = [...EventCatalogBuilder.buildCatalog(), ...BATCH_03_EVENTS];
+  const events = dataset.events;
   const eventSlugToId = new Map<string, string>();
 
   for (const ev of events) {
@@ -203,6 +183,7 @@ async function main() {
   console.log(`✓ Events: ${events.length}`);
 
   // ---------- 4. RELATIONS ----------
+  const RELATIONS = dataset.relations;
   let eeCount = 0;
   for (const r of RELATIONS.eventEntityRelations) {
     const eventId = eventSlugToId.get(r.eventSlug);

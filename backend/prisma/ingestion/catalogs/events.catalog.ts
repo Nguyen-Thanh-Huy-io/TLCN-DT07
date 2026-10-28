@@ -29,7 +29,7 @@ const RAW_EVENTS: IEventSeedRecord[] = [
     summary: 'Theo truyền thuyết, các vua Hùng nối đời dựng và cai quản nước Văn Lang tại vùng Phong Châu.',
     description:
       'Nước Văn Lang được truyền thống sử Việt ghi là nhà nước đầu tiên của người Việt, do 18 đời vua Hùng nối tiếp cai quản. Đây là mốc khởi nguồn mang tính biểu tượng cho ý thức dân tộc, nhưng số đời vua và niên đại cụ thể chưa có bằng chứng khảo cổ học đương thời xác nhận đầy đủ.',
-    thumbnailUrl: null,
+    thumbnailUrl: '/assets/events/hung-vuong-dung-nuoc-van-lang.jpg',
     displayOrder: 1,
     category: EventCategory.POLITICAL_EVENT,
     metadata: {

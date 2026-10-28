@@ -80,7 +80,9 @@ export class HistoricalEntityService {
       deathYear !== null &&
       deathYear < birthYear
     ) {
-      throw new BadRequestException(HISTORICAL_ENTITY_ERRORS.INVALID_YEAR_RANGE);
+      throw new BadRequestException(
+        HISTORICAL_ENTITY_ERRORS.INVALID_YEAR_RANGE,
+      );
     }
   }
 
@@ -150,7 +152,10 @@ export class HistoricalEntityService {
         aliases: dto.aliases ?? [],
         imageUrl: dto.imageUrl,
         imageCaption: dto.imageCaption?.trim(),
-        metadata: Object.keys(finalMetadata).length > 0 ? (finalMetadata as Prisma.InputJsonValue) : Prisma.JsonNull,
+        metadata:
+          Object.keys(finalMetadata).length > 0
+            ? (finalMetadata as Prisma.InputJsonValue)
+            : Prisma.JsonNull,
         isFeatured: dto.isFeatured ?? false,
         displayOrder: dto.displayOrder ?? 0,
         startYear: dto.startYear,
@@ -181,8 +186,14 @@ export class HistoricalEntityService {
                 create: {
                   siteType: dto.siteType?.trim() || 'HISTORICAL_SITE',
                   address: dto.address?.trim(),
-                  latitude: dto.latitude !== undefined && dto.latitude !== null ? new Prisma.Decimal(dto.latitude) : undefined,
-                  longitude: dto.longitude !== undefined && dto.longitude !== null ? new Prisma.Decimal(dto.longitude) : undefined,
+                  latitude:
+                    dto.latitude !== undefined && dto.latitude !== null
+                      ? new Prisma.Decimal(dto.latitude)
+                      : undefined,
+                  longitude:
+                    dto.longitude !== undefined && dto.longitude !== null
+                      ? new Prisma.Decimal(dto.longitude)
+                      : undefined,
                   constructionYear: dto.constructionYear,
                   constructionLabel: dto.constructionLabel?.trim(),
                   preservationStatus: dto.preservationStatus?.trim(),
@@ -238,19 +249,25 @@ export class HistoricalEntityService {
     const mappedItems = items.map((item: any) => ({
       ...item,
       periodIds:
-        item.metadata && typeof item.metadata === 'object' && Array.isArray(item.metadata.periodIds)
+        item.metadata &&
+        typeof item.metadata === 'object' &&
+        Array.isArray(item.metadata.periodIds)
           ? item.metadata.periodIds
           : item.periodId
-          ? [item.periodId]
-          : [],
+            ? [item.periodId]
+            : [],
       birthYear: item.person?.birthYear ?? null,
       deathYear: item.person?.deathYear ?? null,
       birthDateLabel: item.person?.birthDateLabel ?? null,
       deathDateLabel: item.person?.deathDateLabel ?? null,
       siteType: item.historicalSite?.siteType ?? null,
       address: item.historicalSite?.address ?? null,
-      latitude: item.historicalSite?.latitude ? Number(item.historicalSite.latitude) : null,
-      longitude: item.historicalSite?.longitude ? Number(item.historicalSite.longitude) : null,
+      latitude: item.historicalSite?.latitude
+        ? Number(item.historicalSite.latitude)
+        : null,
+      longitude: item.historicalSite?.longitude
+        ? Number(item.historicalSite.longitude)
+        : null,
     }));
 
     return {
@@ -330,11 +347,13 @@ export class HistoricalEntityService {
 
     const raw = entity as any;
     const metadataPeriodIds =
-      raw.metadata && typeof raw.metadata === 'object' && Array.isArray(raw.metadata.periodIds)
+      raw.metadata &&
+      typeof raw.metadata === 'object' &&
+      Array.isArray(raw.metadata.periodIds)
         ? raw.metadata.periodIds
         : raw.periodId
-        ? [raw.periodId]
-        : [];
+          ? [raw.periodId]
+          : [];
 
     const mappedEntity: any = {
       ...raw,
@@ -349,8 +368,12 @@ export class HistoricalEntityService {
       biography: raw.person?.biography ?? null,
       siteType: raw.historicalSite?.siteType ?? null,
       address: raw.historicalSite?.address ?? null,
-      latitude: raw.historicalSite?.latitude ? Number(raw.historicalSite.latitude) : null,
-      longitude: raw.historicalSite?.longitude ? Number(raw.historicalSite.longitude) : null,
+      latitude: raw.historicalSite?.latitude
+        ? Number(raw.historicalSite.latitude)
+        : null,
+      longitude: raw.historicalSite?.longitude
+        ? Number(raw.historicalSite.longitude)
+        : null,
       constructionYear: raw.historicalSite?.constructionYear ?? null,
       constructionLabel: raw.historicalSite?.constructionLabel ?? null,
       preservationStatus: raw.historicalSite?.preservationStatus ?? null,
@@ -380,7 +403,11 @@ export class HistoricalEntityService {
       primaryEvents: raw.primaryEvents || [],
     };
 
-    await this.redis.set(cacheKey, mappedEntity, HISTORICAL_ENTITY_CACHE.TTL_SECONDS);
+    await this.redis.set(
+      cacheKey,
+      mappedEntity,
+      HISTORICAL_ENTITY_CACHE.TTL_SECONDS,
+    );
     return mappedEntity;
   }
 
@@ -456,13 +483,20 @@ export class HistoricalEntityService {
 
     let updatedMetadata: any = undefined;
     if (baseDto.metadata !== undefined || dto.periodIds !== undefined) {
-      const currentMeta = (existingRaw.metadata && typeof existingRaw.metadata === 'object') ? existingRaw.metadata : {};
-      const newMeta = baseDto.metadata !== undefined ? baseDto.metadata : currentMeta;
+      const currentMeta =
+        existingRaw.metadata && typeof existingRaw.metadata === 'object'
+          ? existingRaw.metadata
+          : {};
+      const newMeta =
+        baseDto.metadata !== undefined ? baseDto.metadata : currentMeta;
       const combined = { ...newMeta };
       if (dto.periodIds !== undefined) {
         combined.periodIds = dto.periodIds;
       }
-      updatedMetadata = Object.keys(combined).length > 0 ? (combined as Prisma.InputJsonValue) : Prisma.JsonNull;
+      updatedMetadata =
+        Object.keys(combined).length > 0
+          ? (combined as Prisma.InputJsonValue)
+          : Prisma.JsonNull;
     }
 
     const { periodIds: _discardPeriodIds, ...cleanedBaseDto } = baseDto as any;
@@ -472,11 +506,16 @@ export class HistoricalEntityService {
       data: {
         ...cleanedBaseDto,
         name: baseDto.name ? baseDto.name.trim() : undefined,
-        tagline: baseDto.tagline !== undefined ? baseDto.tagline?.trim() : undefined,
+        tagline:
+          baseDto.tagline !== undefined ? baseDto.tagline?.trim() : undefined,
         description:
-          baseDto.description !== undefined ? baseDto.description?.trim() : undefined,
+          baseDto.description !== undefined
+            ? baseDto.description?.trim()
+            : undefined,
         imageCaption:
-          baseDto.imageCaption !== undefined ? baseDto.imageCaption?.trim() : undefined,
+          baseDto.imageCaption !== undefined
+            ? baseDto.imageCaption?.trim()
+            : undefined,
         metadata: updatedMetadata,
         ...(hasPersonUpdates
           ? {
@@ -495,12 +534,20 @@ export class HistoricalEntityService {
                   update: {
                     ...(bYear !== undefined ? { birthYear: bYear } : {}),
                     ...(dYear !== undefined ? { deathYear: dYear } : {}),
-                    ...(bLabel !== undefined ? { birthDateLabel: bLabel?.trim() } : {}),
-                    ...(dLabel !== undefined ? { deathDateLabel: dLabel?.trim() } : {}),
-                    ...(occupation !== undefined ? { occupation: occupation?.trim() } : {}),
+                    ...(bLabel !== undefined
+                      ? { birthDateLabel: bLabel?.trim() }
+                      : {}),
+                    ...(dLabel !== undefined
+                      ? { deathDateLabel: dLabel?.trim() }
+                      : {}),
+                    ...(occupation !== undefined
+                      ? { occupation: occupation?.trim() }
+                      : {}),
                     ...(titles !== undefined ? { titles } : {}),
                     ...(roles !== undefined ? { roles } : {}),
-                    ...(biography !== undefined ? { biography: biography?.trim() } : {}),
+                    ...(biography !== undefined
+                      ? { biography: biography?.trim() }
+                      : {}),
                   },
                 },
               },
@@ -513,8 +560,14 @@ export class HistoricalEntityService {
                   create: {
                     siteType: siteType?.trim() || 'HISTORICAL_SITE',
                     address: address?.trim(),
-                    latitude: latitude !== undefined && latitude !== null ? new Prisma.Decimal(latitude) : undefined,
-                    longitude: longitude !== undefined && longitude !== null ? new Prisma.Decimal(longitude) : undefined,
+                    latitude:
+                      latitude !== undefined && latitude !== null
+                        ? new Prisma.Decimal(latitude)
+                        : undefined,
+                    longitude:
+                      longitude !== undefined && longitude !== null
+                        ? new Prisma.Decimal(longitude)
+                        : undefined,
                     constructionYear,
                     constructionLabel: constructionLabel?.trim(),
                     preservationStatus: preservationStatus?.trim(),
@@ -523,15 +576,43 @@ export class HistoricalEntityService {
                     statusNote: statusNote?.trim() || null,
                   },
                   update: {
-                    ...(siteType !== undefined ? { siteType: siteType.trim() } : {}),
-                    ...(address !== undefined ? { address: address?.trim() } : {}),
-                    ...(latitude !== undefined ? { latitude: latitude !== null ? new Prisma.Decimal(latitude) : null } : {}),
-                    ...(longitude !== undefined ? { longitude: longitude !== null ? new Prisma.Decimal(longitude) : null } : {}),
-                    ...(constructionYear !== undefined ? { constructionYear } : {}),
-                    ...(constructionLabel !== undefined ? { constructionLabel: constructionLabel?.trim() } : {}),
-                    ...(preservationStatus !== undefined ? { preservationStatus: preservationStatus?.trim() } : {}),
-                    ...(recognitionLevel !== undefined ? { recognitionLevel: recognitionLevel?.trim() } : {}),
-                    ...(managingAgency !== undefined ? { managingAgency: managingAgency?.trim() } : {}),
+                    ...(siteType !== undefined
+                      ? { siteType: siteType.trim() }
+                      : {}),
+                    ...(address !== undefined
+                      ? { address: address?.trim() }
+                      : {}),
+                    ...(latitude !== undefined
+                      ? {
+                          latitude:
+                            latitude !== null
+                              ? new Prisma.Decimal(latitude)
+                              : null,
+                        }
+                      : {}),
+                    ...(longitude !== undefined
+                      ? {
+                          longitude:
+                            longitude !== null
+                              ? new Prisma.Decimal(longitude)
+                              : null,
+                        }
+                      : {}),
+                    ...(constructionYear !== undefined
+                      ? { constructionYear }
+                      : {}),
+                    ...(constructionLabel !== undefined
+                      ? { constructionLabel: constructionLabel?.trim() }
+                      : {}),
+                    ...(preservationStatus !== undefined
+                      ? { preservationStatus: preservationStatus?.trim() }
+                      : {}),
+                    ...(recognitionLevel !== undefined
+                      ? { recognitionLevel: recognitionLevel?.trim() }
+                      : {}),
+                    ...(managingAgency !== undefined
+                      ? { managingAgency: managingAgency?.trim() }
+                      : {}),
                     ...(statusNote !== undefined
                       ? { statusNote: statusNote?.trim() || null }
                       : {}),
@@ -570,7 +651,9 @@ export class HistoricalEntityService {
     dto: CreateEntityRelationDto,
   ): Promise<HistoricalEntityRelation> {
     if (sourceEntityId === dto.targetEntityId) {
-      throw new BadRequestException(HISTORICAL_ENTITY_ERRORS.RELATION_SELF_LOOP);
+      throw new BadRequestException(
+        HISTORICAL_ENTITY_ERRORS.RELATION_SELF_LOOP,
+      );
     }
     this.validateRelationYearRange(dto.startYear, dto.endYear);
 
@@ -701,7 +784,11 @@ export class HistoricalEntityService {
       edges,
     };
 
-    await this.redis.set(cacheKey, graphData, HISTORICAL_ENTITY_CACHE.TTL_SECONDS);
+    await this.redis.set(
+      cacheKey,
+      graphData,
+      HISTORICAL_ENTITY_CACHE.TTL_SECONDS,
+    );
     return graphData;
   }
 

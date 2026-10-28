@@ -85,10 +85,11 @@ export const BATCH_03_RELATIONS: IRelationsSeedDataset = {
     link('khoi-nghia-ba-trieu', 'den-ba-trieu', 'LOCATION', 'Vùng núi Tùng (Hậu Lộc) nơi Bà Triệu hy sinh, nay có đền thờ', 7, false),
 
     // ---------- Nhà Tiền Lý ----------
-    link('khoi-nghia-ly-bi', 'ly-bi', 'LEADER', 'Thủ lĩnh khởi nghĩa', 1),
-    link('khoi-nghia-ly-bi', 'tinh-thieu', 'PARTICIPANT', 'Hào kiệt theo Lý Bí khởi nghĩa', 2, false),
-    link('khoi-nghia-ly-bi', 'pham-tu', 'PARTICIPANT', 'Tướng theo Lý Bí khởi nghĩa', 3, false),
-    link('khoi-nghia-ly-bi', 'trieu-quang-phuc', 'PARTICIPANT', 'Theo cha là Triệu Túc tham gia nghĩa quân', 4, false),
+    link('khoi-nghia-ly-bi', 'thanh-long-bien', 'LOCATION', 'Châu thành trung tâm chính trị Giao Châu được nghĩa quân giải phóng', 1, true),
+    link('khoi-nghia-ly-bi', 'ly-bi', 'LEADER', 'Thủ lĩnh tối cao phát động và chỉ huy toàn diện cuộc khởi nghĩa', 2, true),
+    link('khoi-nghia-ly-bi', 'pham-tu', 'COMMANDER', 'Đại tướng chỉ huy các trận đánh tan phản công Lương tại Lôi Châu và phá tan quân Lâm Ấp tại Cửu Đức', 3, false),
+    link('khoi-nghia-ly-bi', 'tinh-thieu', 'PARTICIPANT', 'Mưu sĩ đắc lực, quân sư hoạch định tổ chức lực lượng khởi nghĩa', 4, false),
+    link('khoi-nghia-ly-bi', 'trieu-quang-phuc', 'PARTICIPANT', 'Tướng trẻ xuất sắc cùng nghĩa quân tiễu trừ tàn quân đô hộ', 5, false),
     link('ly-nam-de-lap-nuoc-van-xuan', 'ly-bi', 'LEADER', 'Xưng Nam Việt Đế', 1),
     link('ly-nam-de-lap-nuoc-van-xuan', 'tinh-thieu', 'PARTICIPANT', 'Đứng đầu ban văn', 2, false),
     link('ly-nam-de-lap-nuoc-van-xuan', 'pham-tu', 'PARTICIPANT', 'Đứng đầu ban võ', 3, false),

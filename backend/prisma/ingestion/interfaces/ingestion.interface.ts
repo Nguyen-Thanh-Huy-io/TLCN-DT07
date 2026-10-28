@@ -7,7 +7,10 @@ import {
   HistoricalEntityType,
   VerificationStatus,
 } from '@prisma/client';
-import { HistoricalDataSourceType } from '../constants/ingestion.constants';
+import {
+  HistoricalDataSourceType,
+  HistoricalRegion,
+} from '../constants/ingestion.constants';
 
 export interface IPeriodSeedRecord {
   id: string;
@@ -136,3 +139,22 @@ export interface IHistoricalDataSourceStrategy<TQuery = any, TResult = any> {
   readonly sourceType: HistoricalDataSourceType;
   fetchData(query: TQuery): Promise<TResult>;
 }
+
+/**
+ * Strategy Interface cho Bộ định tuyến Thời kỳ theo Khu vực (OCP / SRP)
+ */
+export interface IPeriodResolutionStrategy {
+  supports(region: HistoricalRegion): boolean;
+  resolveSlug(year: number): string;
+}
+
+/**
+ * Provider Interface cho các gói dữ liệu lịch sử theo khu vực (Composite / Provider Pattern)
+ */
+export interface ICatalogDatasetProvider {
+  readonly regionName: string;
+  getEntities(): IEntitySeedRecord[];
+  getEvents(): IEventSeedRecord[];
+  getRelations(): IRelationsSeedDataset;
+}
+

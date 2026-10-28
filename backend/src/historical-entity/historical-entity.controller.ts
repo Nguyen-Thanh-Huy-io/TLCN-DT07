@@ -34,7 +34,9 @@ import {
 } from './historical-entity.service';
 import { ContentWrite } from '../common/access/access.decorator';
 
-@ApiTags('Historical Entities - Thực thể Lịch sử (Nhân vật, Tổ chức, Triều đại, Hiện vật)')
+@ApiTags(
+  'Historical Entities - Thực thể Lịch sử (Nhân vật, Tổ chức, Triều đại, Hiện vật)',
+)
 @Controller(HISTORICAL_ENTITY_ROUTES.ROOT)
 export class HistoricalEntityController {
   constructor(private readonly service: HistoricalEntityService) {}
@@ -42,7 +44,9 @@ export class HistoricalEntityController {
   @Post()
   @ContentWrite({ model: 'historicalEntity' })
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Tạo mới thực thể lịch sử (Master Data dùng chung)' })
+  @ApiOperation({
+    summary: 'Tạo mới thực thể lịch sử (Master Data dùng chung)',
+  })
   @ApiResponse({
     status: HttpStatus.CREATED,
     type: HistoricalEntityResponseDto,
@@ -93,7 +97,9 @@ export class HistoricalEntityController {
   @Post(HISTORICAL_ENTITY_ROUTES.RELATIONS)
   @ContentWrite({ model: 'historicalEntity', idParam: 'id' })
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Tạo quan hệ đồ thị giữa thực thể hiện tại với thực thể khác' })
+  @ApiOperation({
+    summary: 'Tạo quan hệ đồ thị giữa thực thể hiện tại với thực thể khác',
+  })
   @ApiResponse({
     status: HttpStatus.CREATED,
     type: EntityRelationResponseDto,
@@ -115,7 +121,9 @@ export class HistoricalEntityController {
   }
 
   @Get(HISTORICAL_ENTITY_ROUTES.GRAPH)
-  @ApiOperation({ summary: 'Lấy dữ liệu mạng lưới quan hệ Knowledge Graph của thực thể' })
+  @ApiOperation({
+    summary: 'Lấy dữ liệu mạng lưới quan hệ Knowledge Graph của thực thể',
+  })
   @ApiResponse({ status: HttpStatus.OK })
   getEntityGraph(@Param('id') id: string): Promise<IEntityGraphData> {
     return this.service.getEntityGraph(id);
@@ -132,10 +140,7 @@ export class HistoricalEntityController {
     status: HttpStatus.CREATED,
     type: EntityMediaResponseDto,
   })
-  addMedia(
-    @Param('id') entityId: string,
-    @Body() dto: CreateEntityMediaDto,
-  ) {
+  addMedia(@Param('id') entityId: string, @Body() dto: CreateEntityMediaDto) {
     return this.service.addMedia(entityId, dto);
   }
 

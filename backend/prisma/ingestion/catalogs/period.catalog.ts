@@ -1,6 +1,12 @@
 import { ContentStatus, DatePrecision } from '@prisma/client';
 import { toSlug } from '../../../src/common/utils/slug.util';
+import {
+  HISTORICAL_REGIONS,
+  HistoricalRegion,
+  PERIOD_SLUGS,
+} from '../constants/ingestion.constants';
 import { IPeriodSeedRecord } from '../interfaces/ingestion.interface';
+import { PeriodResolutionStrategyRegistry } from '../strategies/period-resolution.strategies';
 
 interface IRawPeriodDef {
   id: string;
@@ -30,7 +36,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 938,
     timeLabel: '2879 TCN – 938',
     datePrecision: DatePrecision.APPROXIMATE,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Nơi khởi nguồn của những nền văn hóa đặc sắc (Văn hóa Đông Sơn - Văn Lang Âu Lạc, Văn hóa Sa Huỳnh - Lâm Ấp Champa, Văn hóa Đồng Nai Óc Eo - Phù Nam) hình thành nền tảng văn minh nông nghiệp lúa nước, tiếp nối bởi hơn một thiên niên kỷ kiên cường đấu tranh chống Bắc thuộc giành lại độc lập tự chủ.',
     coverImageUrl:
@@ -45,7 +51,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: -208,
     timeLabel: '2879 TCN – 208 TCN',
     datePrecision: DatePrecision.APPROXIMATE,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Khởi nguồn từ truyền thuyết Kinh Dương Vương (nước Xích Quỷ), Lạc Long Quân - Âu Cơ, đến 18 đời Vua Hùng dựng nước Văn Lang tại Phong Châu và Thục Phán An Dương Vương hợp nhất Âu Việt - Lạc Việt lập nên nhà Thục (nước Âu Lạc, 257 TCN - 208 TCN) đóng đô ở Cổ Loa.',
     coverImageUrl:
@@ -60,7 +66,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 39,
     timeLabel: '208 TCN – 39 CN',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Gồm giai đoạn Nhà Triệu (208 TCN - 111 TCN) của Triệu Đà đặt tên nước Nam Việt đóng đô ở Phiên Ngưng, và giai đoạn Thuộc Hán (111 TCN - 39) khi Hán Vũ Đế thôn tính Nam Việt, chia làm 9 quận (trong đó có Giao Chỉ, Cửu Chân, Nhật Nam) với chính sách cai trị hà khắc.',
   },
@@ -73,7 +79,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 43,
     timeLabel: '40 – 43',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Cuộc khởi nghĩa oanh liệt dưới sự lãnh đạo của hai chị em Trưng Trắc và Trưng Nhị đánh chiếm 65 thành trì ở Giao Chỉ, Cửu Chân, Nhật Nam, Hợp Phố, giành quyền tự chủ trong 3 năm trước khi anh dũng tuẫn tiết tại sông Hát khi chống quân Mã Viện nhà Đông Hán.',
   },
@@ -86,7 +92,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 543,
     timeLabel: '43 – 543',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Trải qua ách đô hộ của các triều đại Đông Hán, Đông Ngô, Tấn, Lưu Tống, Nam Tề, Lương. Tiêu biểu có cuộc khởi nghĩa Bà Triệu (Triệu Thị Trinh) năm 248 chống Đông Ngô và khởi nghĩa anh em Lý Trường Nhân - Lý Thúc Hiến (468 - 485) chống Lưu Tống, Nam Tề.',
   },
@@ -99,7 +105,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 602,
     timeLabel: '544 – 602',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Năm 542 Lý Bí khởi nghĩa đánh bại nhà Lương, mùa xuân năm 544 xưng là Lý Nam Đế, đặt quốc hiệu Vạn Xuân. Tiếp nối bởi Triệu Việt Vương (Triệu Quang Phục, 548 - 571) tại đầm Dạ Trạch, Đào Lang Vương (Lý Thiên Bảo) và Hậu Lý Nam Đế (Lý Phật Tử, 571 - 602).',
   },
@@ -112,7 +118,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 905,
     timeLabel: '602 – 905',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Thời kỳ chịu sự cai trị của nhà Tùy và nhà Đường. Nhân dân liên tục nổi dậy với các cuộc khởi nghĩa lớn: Mai Thúc Loan xưng Mai Hắc Đế ở Hoan Châu (713 - 722), Bố Cái Đại Vương Phùng Hưng (766 - 791) và khởi nghĩa Dương Thanh (819 - 820).',
   },
@@ -125,7 +131,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 938,
     timeLabel: '905 – 938',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Khúc Thừa Dụ giành quyền tự chủ năm 905 xưng Tiết độ sứ, truyền cho Khúc Hạo (907 - 917) cải cách chính sự và Khúc Thừa Mỹ (917 - 930). Năm 931, Dương Đình Nghệ đánh tan quân Nam Hán giành lại thành Đại La, và năm 938 Ngô Quyền đại thắng Bạch Đằng chấm dứt Bắc thuộc.',
   },
@@ -142,7 +148,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1883,
     timeLabel: '939 – 1883',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Hơn 9 thế kỷ của 10 triều đại phong kiến Việt Nam từ khi Ngô Quyền xưng vương tại Cổ Loa (939), trải qua Đinh - Tiền Lê - Lý - Trần - Hồ - Hậu Lê - Mạc - Trịnh Nguyễn phân tranh - Tây Sơn đến triều Nguyễn độc lập tự chủ (1802 - 1883).',
   },
@@ -155,7 +161,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1009,
     timeLabel: '939 – 1009',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Nhà Ngô (939 - 965: Ngô Quyền, Dương Bình Vương, Hậu Ngô Vương & Loạn 12 sứ quân), Nhà Đinh (968 - 980: Đinh Tiên Hoàng dẹp loạn 12 sứ quân lập nước Đại Cồ Việt ở Hoa Lư, Đinh Phế Đế) và Nhà Tiền Lê (980 - 1009: Lê Đại Hành phá Tống bình Chiêm, Lê Trung Tông, Lê Ngọa Triều).',
   },
@@ -168,7 +174,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1225,
     timeLabel: '1009 – 1225',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Trải qua 9 đời vua: Lý Thái Tổ (dời đô về Thăng Long 1010), Lý Thái Tông, Lý Thánh Tông (đặt quốc hiệu Đại Việt), Lý Nhân Tông (cùng Thái phi Ỷ Lan, Lý Đạo Thành, Lý Thường Kiệt 2 lần đánh tan quân Tống), Lý Thần Tông, Lý Anh Tông (Tô Hiến Thành phò tá), Lý Cao Tông, Lý Huệ Tông và Lý Chiêu Hoàng.',
   },
@@ -181,7 +187,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1400,
     timeLabel: '1225 – 1400',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       '175 năm trị vì qua 12 đời vua (Trần Thái Tông, Thánh Tông, Nhân Tông, Anh Tông, Minh Tông, Hiến Tông, Dụ Tông, Nghệ Tông, Duệ Tông, Phế Đế, Thuận Tông, Thiếu Đế) với chiến công hiển hách 3 lần đại phá quân Nguyên - Mông (1258, 1285, 1288) và sự ra đời của Thiền phái Trúc Lâm Yên Tử.',
   },
@@ -194,7 +200,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1428,
     timeLabel: '1400 – 1428',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Nhà Hồ (1400 - 1407: Hồ Quý Ly, Hồ Hán Thương đặt quốc hiệu Đại Ngu), Nhà Hậu Trần (1407 - 1413: Giản Định Đế, Trùng Quang Đế) và Thời kỳ Bắc thuộc lần IV (1413 - 1428) khi quân Minh đô hộ tàn bạo trước khi bị Khởi nghĩa Lam Sơn của Lê Lợi đánh đuổi.',
   },
@@ -207,7 +213,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1527,
     timeLabel: '1428 – 1527',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Khởi đầu từ Lê Thái Tổ (Lê Lợi), trải qua Lê Thái Tông, Lê Nhân Tông và đạt đến đỉnh cao cực thịnh dưới triều vua Lê Thánh Tông (1460 - 1497), Lê Hiến Tông, Lê Túc Tông trước khi suy yếu thời Lê Uy Mục, Lê Tương Dực, Lê Chiêu Tông và Lê Cung Hoàng.',
   },
@@ -220,7 +226,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1592,
     timeLabel: '1527 – 1592',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Cục diện phân tranh giữa Bắc Triều Nhà Mạc (Mạc Đăng Dung, Mạc Đăng Doanh, Mạc Phúc Hải, Mạc Phúc Nguyên, Mạc Mậu Hợp, Mạc Toàn) và Nam Triều Lê Trung Hưng do Nguyễn Kim, Trịnh Kiểm, Trịnh Tùng phò tá (Lê Trang Tông, Trung Tông, Anh Tông, Thế Tông).',
   },
@@ -233,7 +239,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1778,
     timeLabel: '1593 – 1778',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Đất nước chia làm Đàng Ngoài (Vua Lê Trung Hưng từ Lê Kính Tông đến Lê Mẫn Đế - Chúa Trịnh từ Trịnh Tùng đến Trịnh Bồng) và Đàng Trong (các Chúa Nguyễn từ Chúa Tiên Nguyễn Hoàng, Chúa Sãi Nguyễn Phúc Nguyên đến Chúa Định Nguyễn Phúc Thuần mở mang bờ cõi xuống tận đồng bằng sông Cửu Long).',
   },
@@ -246,7 +252,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1802,
     timeLabel: '1778 – 1802',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Ba anh em Nguyễn Nhạc (Thái Đức Hoàng đế), Nguyễn Huệ (Quang Trung Hoàng đế) và Nguyễn Lữ xóa bỏ thế phân liệt Trịnh - Nguyễn, đại phá 5 vạn quân Xiêm tại Rạch Gầm - Xoài Mút (1785) và 29 vạn quân Thanh tại Ngọc Hồi - Đống Đa (1789), truyền đến thời Cảnh Thịnh (Nguyễn Quang Toản).',
   },
@@ -259,7 +265,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1883,
     timeLabel: '1802 – 1883',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Trải qua 4 đời hoàng đế độc lập: Gia Long (1802 - 1820, thống nhất đất nước từ Nam chí Bắc, đặt quốc hiệu Việt Nam), Minh Mạng (1820 - 1840, cải cách hành chính, đặt quốc hiệu Đại Nam rộng lớn), Thiệu Trị (1841 - 1847) và Tự Đức (1847 - 1883, đối mặt với cuộc xâm lược của Pháp từ năm 1858).',
   },
@@ -276,7 +282,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 2026,
     timeLabel: '1883 – Nay',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Từ thời kỳ Pháp thuộc và các vua triều Nguyễn giai đoạn 1883 - 1945, đến thắng lợi của Cách mạng Tháng Tám khai sinh nước Việt Nam Dân chủ Cộng hòa, hai cuộc kháng chiến chống Pháp (1945 - 1954), chống Mỹ (1954 - 1975) và nước Cộng hòa Xã hội Chủ nghĩa Việt Nam (1976 - nay).',
   },
@@ -289,7 +295,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1945,
     timeLabel: '1883 – 1945',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Giai đoạn các vua Dục Đức, Hiệp Hòa, Kiến Phúc, Hàm Nghi (chiếu Cần Vương), Đồng Khánh, Thành Thái, Duy Tân, Khải Định, Bảo Đại; song hành cùng các phong trào yêu nước và hành trình Nguyễn Ái Quốc thành lập Đảng Cộng sản Việt Nam (1930) lãnh đạo Cách mạng Tháng Tám (1945).',
   },
@@ -302,7 +308,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1954,
     timeLabel: '1945 – 1954',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Ngày 02/09/1945 Chủ tịch Hồ Chí Minh đọc Tuyên ngôn Độc lập tại Quảng trường Ba Đình. Toàn dân tộc bước vào 9 năm kháng chiến chống thực dân Pháp (Hà Nội 1946, Việt Bắc 1947, Biên giới 1950) và kết thúc bằng Chiến thắng Điện Biên Phủ (07/05/1954) cùng Hiệp định Giơnevơ.',
   },
@@ -316,7 +322,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1975,
     timeLabel: '(1954 - 1975)',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Toàn quốc',
+    region: HISTORICAL_REGIONS.NATIONWIDE,
     description:
       'Giai đoạn lịch sử oanh liệt của dân tộc Việt Nam: thực hiện đồng thời hai nhiệm vụ chiến lược - xây dựng chủ nghĩa xã hội ở miền Bắc làm hậu phương lớn vững chắc và tiến hành cách mạng dân tộc dân chủ nhân dân ở miền Nam, kiên cường đánh bại các chiến lược chiến tranh của đế quốc Mỹ, đỉnh cao là Đại thắng mùa Xuân 1975, thu non sông về một mối.',
     coverImageUrl:
@@ -331,7 +337,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 2026,
     timeLabel: '1976 – Nay',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Việt Nam',
+    region: HISTORICAL_REGIONS.VIETNAM,
     description:
       'Năm 1976 hoàn thành thống nhất đất nước về mặt nhà nước với tên nước Cộng hòa Xã hội Chủ nghĩa Việt Nam, thủ đô Hà Nội, Sài Gòn đổi tên thành TP. Hồ Chí Minh; bảo vệ biên giới Tổ quốc, tiến hành công cuộc Đổi mới (1986) và hội nhập quốc tế sâu rộng.',
   },
@@ -348,7 +354,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1492,
     timeLabel: '476 – 1492',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Thế giới',
+    region: HISTORICAL_REGIONS.WORLD,
     description:
       'Thời kỳ hình thành và phát triển của chế độ phong kiến ở Châu Âu và Châu Á: các vương triều Đường - Tống - Nguyên - Minh, Đế quốc Byzantine, Thời đại Hoàng kim Hồi giáo, các cuộc Thập tự chinh, Đế quốc Mông Cổ, Văn hóa Phục Hưng và các cuộc Đại phát kiến địa lý.',
   },
@@ -361,7 +367,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1500,
     timeLabel: '581 – 1500',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Châu Á',
+    region: HISTORICAL_REGIONS.ASIA,
     description:
       'Sự thịnh trị của nhà Đường, Tứ đại phát minh thời Tống, các cuộc chinh phạt Á - Âu của Đế quốc Mông Cổ (Thành Cát Tư Hãn, Hốt Tất Liệt), hải trình Trịnh Hòa thời Minh và kỷ nguyên Angkor - Majapahit tại Đông Nam Á.',
   },
@@ -374,7 +380,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1492,
     timeLabel: '476 – 1492',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Châu Âu & Địa Trung Hải',
+    region: HISTORICAL_REGIONS.EUROPE_MEDITERRANEAN,
     description:
       'Đế quốc Byzantine, Charlemagne, Đại hiến chương Magna Carta (1215), Chiến tranh Trăm Năm, sự sụp đổ của Constantinople (1453), phong trào Văn hóa Phục Hưng và các chuyến hải trình tìm ra châu Mỹ của Columbus (1492).',
   },
@@ -387,7 +393,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1914,
     timeLabel: '1500 – 1914',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Thế giới',
+    region: HISTORICAL_REGIONS.WORLD,
     description:
       'Thời đại của các cuộc Cách mạng Tư sản (Anh, Mỹ, Pháp), Thời kỳ Khai sáng, những cuộc Chiến tranh của Napoleon, Cách mạng Công nghiệp lần thứ nhất và thứ hai, Nội chiến Hoa Kỳ, Minh Trị Duy Tân và sự hình thành các đế quốc thực dân.',
   },
@@ -400,7 +406,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1815,
     timeLabel: '1640 – 1815',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Châu Âu & Bắc Mỹ',
+    region: HISTORICAL_REGIONS.EUROPE_NORTH_AMERICA,
     description:
       'Cách mạng Tư sản Anh, Chiến tranh Giành độc lập Hoa Kỳ (Tuyên ngôn Độc lập 1776), Đại Cách mạng Pháp (1789) và các chiến dịch quân sự của Hoàng đế Napoleon Bonaparte cho đến Hội nghị Viên (1815).',
   },
@@ -413,7 +419,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1914,
     timeLabel: '1815 – 1914',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Thế giới',
+    region: HISTORICAL_REGIONS.WORLD,
     description:
       'Bùng nổ máy hơi nước, đường sắt, điện năng; Nội chiến Hoa Kỳ (1861 - 1865); thống nhất Đức và Ý; Công xã Paris (1871); công cuộc Minh Trị Duy Tân tại Nhật Bản (1868) và Cách mạng Tân Hợi tại Trung Quốc (1911).',
   },
@@ -426,7 +432,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 2026,
     timeLabel: '1914 – Nay',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Thế giới',
+    region: HISTORICAL_REGIONS.WORLD,
     description:
       'Thế kỷ XX và đầu thế kỷ XXI với hai cuộc Chiến tranh Thế giới thứ nhất (1914 - 1918) và thứ hai (1939 - 1945), Cách mạng Tháng Mười Nga (1917), Chiến tranh Lạnh (1947 - 1991), kỷ nguyên chinh phục vũ trụ và toàn cầu hóa.',
   },
@@ -439,7 +445,7 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 1945,
     timeLabel: '1914 – 1945',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Thế giới',
+    region: HISTORICAL_REGIONS.WORLD,
     description:
       'Đại chiến Thế giới lần thứ nhất, Cách mạng Tháng Mười Nga (1917), Đại suy thoái kinh tế 1929 - 1933 và cuộc Chiến tranh Thế giới thứ hai chống chủ nghĩa phát xít (Stalingrad, Normandy, Berlin, kết thúc năm 1945).',
   },
@@ -452,9 +458,37 @@ const RAW_PERIODS: IRawPeriodDef[] = [
     endYear: 2026,
     timeLabel: '1945 – Nay',
     datePrecision: DatePrecision.EXACT_YEAR,
-    region: 'Thế giới',
+    region: HISTORICAL_REGIONS.WORLD,
     description:
       'Sự ra đời của Liên Hợp Quốc, trật tự hai cực Ianta, phong trào phi thực dân hóa Á - Phi - Mỹ Latinh, cuộc chạy đua vũ trụ (Vostok 1, Apollo 11), sự sụp đổ Bức tường Berlin (1989) và trật tự thế giới đa cực thế kỷ XXI.',
+  },
+  {
+    id: 'a0000000-0000-4000-8000-000000000603',
+    parentSlug: PERIOD_SLUGS.WORLD_MODERN_ERA,
+    name: 'Liên Xô: Cách mạng Tháng Mười, Xây dựng CNXH & Chiến tranh Vệ quốc Vĩ đại (1917 - 1945)',
+    slug: PERIOD_SLUGS.SOVIET_REVOLUTION_GREAT_PATRIOTIC_WAR,
+    startYear: 1917,
+    endYear: 1945,
+    timeLabel: '1917 – 1945',
+    datePrecision: DatePrecision.EXACT_YEAR,
+    region: HISTORICAL_REGIONS.SOVIET_UNION,
+    description:
+      'Khởi đầu từ thắng lợi của Cách mạng Tháng Mười Nga năm 1917 dưới sự lãnh đạo của V.I. Lenin, thành lập Liên bang Cộng hòa Xã hội Chủ nghĩa Xô viết (1922), công nghiệp hóa xã hội chủ nghĩa và cuộc Chiến tranh Vệ quốc Vĩ đại (1941 - 1945) đánh bại chủ nghĩa phát xít.',
+    coverImageUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Raising_a_flag_over_the_Reichstag_-_Restoration.jpg/800px-Raising_a_flag_over_the_Reichstag_-_Restoration.jpg',
+  },
+  {
+    id: 'a0000000-0000-4000-8000-000000000604',
+    parentSlug: PERIOD_SLUGS.WORLD_MODERN_ERA,
+    name: 'Liên Xô: Siêu cường Chiến tranh Lạnh, Kỷ nguyên Vũ trụ & Cải tổ (1945 - 1991)',
+    slug: PERIOD_SLUGS.SOVIET_COLD_WAR_SPACE_ERA,
+    startYear: 1945,
+    endYear: 1991,
+    timeLabel: '1945 – 1991',
+    datePrecision: DatePrecision.EXACT_YEAR,
+    region: HISTORICAL_REGIONS.SOVIET_UNION,
+    description:
+      'Liên Xô vươn lên thành siêu cường trụ cột của hệ thống xã hội chủ nghĩa trong Chiến tranh Lạnh, đi đầu kỷ nguyên chinh phục vũ trụ (vệ tinh Sputnik 1 năm 1957, chuyến bay Vostok 1 của Yuri Gagarin năm 1961) trước khi tiến hành công cuộc Cải tổ (Perestroika) và tan rã vào tháng 12/1991.',
   },
 ];
 
@@ -479,46 +513,19 @@ export class PeriodCatalogBuilder {
 
   /**
    * Tự động định tuyến Period phù hợp cho Thực thể hoặc Sự kiện dựa theo năm và khu vực
-   * Khớp chính xác 100% với phân kỳ Lịch sử Việt Nam và 3 thời kỳ Lịch sử Thế giới
+   * Áp dụng Strategy + Registry Pattern (PeriodResolutionStrategyRegistry) tuân thủ OCP.
    */
-  public static resolvePeriodSlug(year: number | null | undefined, isVietnam: boolean): string {
-    const y = year ?? 1900;
-    if (isVietnam) {
-      if (y <= -208) return 'thoi-hong-bang-xich-quy-van-lang-au-lac';
-      if (y <= 39) return 'thoi-ky-bac-thuoc-lan-1-208-tcn-39';
-      if (y <= 43) return 'giai-doan-trung-nu-vuong-40-43';
-      if (y <= 543) return 'thoi-ky-bac-thuoc-lan-2-43-543';
-      if (y <= 602) return 'thoi-ky-nha-tien-ly-544-602';
-      if (y <= 904) return 'thoi-ky-bac-thuoc-lan-3-602-905';
-      if (y <= 938) return 'thoi-ky-tu-chu-905-938';
-      if (y <= 1009) return 'nha-ngo-nha-dinh-nha-tien-le-939-1009';
-      if (y <= 1225) return 'trieu-dai-nha-ly-1009-1225';
-      if (y <= 1399) return 'trieu-dai-nha-tran-1225-1400';
-      if (y <= 1427) return 'nha-ho-nha-hau-tran-va-bac-thuoc-lan-4-1400-1428';
-      if (y <= 1526) return 'nha-hau-le-le-so-1428-1527';
-      if (y <= 1592) return 'thoi-ky-bac-trieu-nam-trieu-1527-1592';
-      if (y <= 1777) return 'thoi-ky-trinh-nguyen-phan-tranh-1593-1778';
-      if (y <= 1801) return 'trieu-dai-nha-tay-son-1778-1802';
-      if (y <= 1882) return 'thoi-ky-thong-nhat-nha-nguyen-doc-lap-1802-1883';
-      if (y <= 1945) return 'nha-nguyen-thoi-ky-phap-thuoc-1883-1945';
-      if (y <= 1954) return 'viet-nam-dan-chu-cong-hoa-khang-chien-chong-phap-1945-1954';
-      if (y <= 1975) return 'khang-chien-chong-my-cuu-nuoc-1954-1975';
-      return 'cong-hoa-xa-hoi-chu-nghia-viet-nam-1976-nay';
-    }
+  public static resolvePeriodSlug(
+    year: number | null | undefined,
+    regionOrIsVietnam: HistoricalRegion | boolean,
+  ): string {
+    const region =
+      typeof regionOrIsVietnam === 'boolean'
+        ? regionOrIsVietnam
+          ? HistoricalRegion.VIETNAM
+          : HistoricalRegion.WORLD
+        : regionOrIsVietnam;
 
-    // Lịch sử Thế giới: Trung đại -> Cận đại -> Hiện đại
-    if (y <= 1492) {
-      return 'trung-dai-chau-au-thap-tu-chinh-va-phuc-hung';
-    }
-    if (y <= 1815) {
-      return 'can-dai-cach-mang-tu-san-va-napoleon';
-    }
-    if (y <= 1913) {
-      return 'can-dai-cach-mang-cong-nghiep-va-minh-tri-duy-tan';
-    }
-    if (y <= 1945) {
-      return 'hien-dai-hai-cuoc-chien-tranh-the-gioi-1914-1945';
-    }
-    return 'hien-dai-chien-tranh-lanh-va-the-gioi-da-cuc-1945-nay';
+    return PeriodResolutionStrategyRegistry.resolve(year, region);
   }
 }

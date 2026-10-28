@@ -1563,6 +1563,40 @@ const RAW_ENTITIES: IEntitySeedRecord[] = [
     }
   },
   {
+    "slug": "thanh-long-bien",
+    "periodSlug": "thoi-ky-nha-tien-ly-544-602",
+    "name": "Thành Long Biên",
+    "type": "LOCATION",
+    "tagline": "Châu thành trung tâm chính trị của Giao Châu thời Bắc thuộc và nơi nghĩa quân Lý Bí giải phóng mùa xuân 542.",
+    "description": "Thành Long Biên là trị sở của Giao Châu dưới các triều đại đô hộ phương Bắc, đặc biệt là triều Lương thế kỷ VI. Mùa xuân năm 542, nghĩa quân Lý Bí tiến đánh giải phóng thành Long Biên, đuổi Thứ sử Tiêu Tư bỏ chạy về nước, mở đầu trang sử độc lập tự chủ của nhà Tiền Lý.",
+    "aliases": [
+      "Châu thành Long Biên",
+      "Long Biên cổ thành"
+    ],
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Long_Bien_Bridge_2019.jpg/800px-Long_Bien_Bridge_2019.jpg",
+    "imageCaption": "Khu vực địa vực lịch sử Long Biên bên bờ sông Hồng",
+    "isFeatured": true,
+    "displayOrder": 8,
+    "status": "PUBLISHED",
+    "person": null,
+    "historicalSite": {
+      "siteType": "Thành lũy / Trị sở lịch sử",
+      "address": "Vùng tả ngạn sông Hồng (nay thuộc khu vực Bắc Ninh - Hà Nội)",
+      "latitude": 21.05,
+      "longitude": 105.88,
+      "constructionYear": null,
+      "constructionLabel": "Thế kỷ VI",
+      "preservationStatus": "Địa vực khảo cổ lịch sử",
+      "recognitionLevel": "Di tích Lịch sử Đặc biệt",
+      "managingAgency": "UBND TP. Hà Nội"
+    },
+    "metadata": {
+      "sources": [
+        "https://vi.wikipedia.org/wiki/Long_Bi%C3%AAn_(th%E1%BB%9Di_B%E1%BA%AFc_thu%E1%BB%99c)"
+      ]
+    }
+  },
+  {
     "slug": "cua-song-to-lich",
     "periodSlug": "thoi-ky-nha-tien-ly-544-602",
     "name": "Cửa sông Tô Lịch",

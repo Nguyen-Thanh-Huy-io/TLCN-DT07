@@ -21,34 +21,34 @@ export const HISTORICAL_ENTITY_CACHE = {
  */
 export enum EntityRelationType {
   // Lãnh đạo / Trực thuộc / Thành viên
-  LEADER_OF = 'LEADER_OF',           // Vd: Vua lãnh đạo Triều đại, Tướng chỉ huy Quân đoàn
-  MEMBER_OF = 'MEMBER_OF',           // Vd: Đảng viên thuộc Đảng phái, Binh sĩ thuộc Binh đoàn
-  FOUNDER_OF = 'FOUNDER_OF',         // Vd: Vua sáng lập Triều đại, Lãnh tụ thành lập Tổ chức
-  SUCCESSOR_TO = 'SUCCESSOR_TO',     // Vd: Vua kế vị Vua trước
-  SERVED_UNDER = 'SERVED_UNDER',     // Vd: Lý Thường Kiệt phụng sự Lý Thánh Tông (quan hệ quân thần)
+  LEADER_OF = 'LEADER_OF', // Vd: Vua lãnh đạo Triều đại, Tướng chỉ huy Quân đoàn
+  MEMBER_OF = 'MEMBER_OF', // Vd: Đảng viên thuộc Đảng phái, Binh sĩ thuộc Binh đoàn
+  FOUNDER_OF = 'FOUNDER_OF', // Vd: Vua sáng lập Triều đại, Lãnh tụ thành lập Tổ chức
+  SUCCESSOR_TO = 'SUCCESSOR_TO', // Vd: Vua kế vị Vua trước
+  SERVED_UNDER = 'SERVED_UNDER', // Vd: Lý Thường Kiệt phụng sự Lý Thánh Tông (quan hệ quân thần)
   CONTEMPORARY_OF = 'CONTEMPORARY_OF', // Vd: Hai nhân vật cùng thời, không có quan hệ trực tiếp khác
 
   // Huyết thống / Gia tộc
-  CHILD_OF = 'CHILD_OF',             // Con cái của
-  PARENT_OF = 'PARENT_OF',           // Cha mẹ của
-  SPOUSE_OF = 'SPOUSE_OF',           // Vợ/chồng của
-  SIBLING_OF = 'SIBLING_OF',         // Anh chị em ruột
+  CHILD_OF = 'CHILD_OF', // Con cái của
+  PARENT_OF = 'PARENT_OF', // Cha mẹ của
+  SPOUSE_OF = 'SPOUSE_OF', // Vợ/chồng của
+  SIBLING_OF = 'SIBLING_OF', // Anh chị em ruột
 
   // Chính trị & Quân sự
-  ALLIED_WITH = 'ALLIED_WITH',       // Liên minh với
-  OPPOSED_TO = 'OPPOSED_TO',         // Đối địch / Kình địch với
-  VASSAL_OF = 'VASSAL_OF',           // Chư hầu / Thần phục
+  ALLIED_WITH = 'ALLIED_WITH', // Liên minh với
+  OPPOSED_TO = 'OPPOSED_TO', // Đối địch / Kình địch với
+  VASSAL_OF = 'VASSAL_OF', // Chư hầu / Thần phục
 
   // Văn hóa / Tác giả / Lưu trữ
-  AUTHOR_OF = 'AUTHOR_OF',           // Tác giả của Văn kiện / Hiện vật
-  HOUSED_AT = 'HOUSED_AT',           // Lưu giữ / Trưng bày tại
-  COMMEMORATES = 'COMMEMORATES',     // Tưởng niệm / Vinh danh
+  AUTHOR_OF = 'AUTHOR_OF', // Tác giả của Văn kiện / Hiện vật
+  HOUSED_AT = 'HOUSED_AT', // Lưu giữ / Trưng bày tại
+  COMMEMORATES = 'COMMEMORATES', // Tưởng niệm / Vinh danh
 
   // Vị trí địa lý / Trực thuộc không gian
-  LOCATED_IN = 'LOCATED_IN',         // Nằm trong / Đặt tại
-  CAPITAL_OF = 'CAPITAL_OF',         // Kinh đô của
+  LOCATED_IN = 'LOCATED_IN', // Nằm trong / Đặt tại
+  CAPITAL_OF = 'CAPITAL_OF', // Kinh đô của
 
-  OTHER = 'OTHER',                   // Quan hệ khác
+  OTHER = 'OTHER', // Quan hệ khác
 }
 
 export const HISTORICAL_ENTITY_ERRORS = {

@@ -237,21 +237,72 @@ export const BATCH_03_EVENTS: IEventSeedRecord[] = [
   {
     slug: 'khoi-nghia-ly-bi',
     periodSlug: 'thoi-ky-nha-tien-ly-544-602',
-    locationSlug: null,
+    locationSlug: 'thanh-long-bien',
     parentSlug: null,
-    title: 'Khởi nghĩa Lý Bí',
+    title: 'Khởi nghĩa Lý Bí giải phóng Giao Châu',
     startYear: 542,
-    eventDateNote: 'Mùa xuân năm 542.',
-    summary: 'Lý Bí liên kết hào kiệt các châu nổi dậy, đánh đuổi thứ sử nhà Lương là Tiêu Tư, chiếm thành Long Biên.',
+    startMonth: 1,
+    endYear: 543,
+    endMonth: 5,
+    eventDateNote: 'Mùa xuân năm 542 – tháng 5 năm 543.',
+    summary:
+      'Cuộc khởi nghĩa vũ trang quật khởi bùng nổ vào mùa xuân năm 542 dưới sự lãnh đạo của hào trưởng Lý Bí cùng hào kiệt các châu, nhanh chóng đánh chiếm châu thành Long Biên, đuổi Thứ sử nhà Lương Tiêu Tư tháo chạy về nước. Sau đó, nghĩa quân liên tiếp đánh tan hai cuộc phản công quy mô lớn của triều đình nhà Lương tại Hợp Phố, bán đảo Lôi Châu và đập tan cuộc xâm lấn của quân Lâm Ấp ở phía Nam, hoàn thành thắng lợi sự nghiệp giải phóng toàn bộ đất nước và mở đường thành lập nước Vạn Xuân độc lập năm 544.',
     description:
-      'Lý Bí từng làm quan cho nhà Lương nhưng bất bình bỏ về quê. Năm 542, ông liên kết hào kiệt nhiều nơi — trong đó có Tinh Thiều, Phạm Tu, Triệu Túc — khởi nghĩa. Thứ sử Tiêu Tư bỏ chạy, nghĩa quân làm chủ châu thành Long Biên và lần lượt đánh bại các đợt phản công của nhà Lương trong hai năm 542 – 543.',
-    thumbnailUrl: null,
+      'Mùa xuân năm 542, từ vùng đất Thái Bình, hào trưởng Lý Bí chính thức dựng cờ dấy binh khởi nghĩa. Đông đảo nhân dân và hào kiệt khắp các châu huyện thuộc Giao Châu — tiêu biểu như Tinh Thiều, lão tướng Phạm Tu ở Thanh Liệt, cha con Triệu Túc và Triệu Quang Phục ở Chu Diên — đã đồng lòng kéo về quy tụ dưới cờ nghĩa. Nghĩa quân thần tốc tiến đánh cơ quan đầu não của chính quyền đô hộ tại thành Long Biên. Thứ sử Tiêu Tư hoảng sợ cùng cực, bí mật đem vàng bạc đút lót cho nghĩa quân rồi bỏ trốn về Quảng Châu. Chỉ trong vòng chưa đầy ba tháng, nghĩa quân đã giải phóng toàn bộ châu thành và làm chủ hầu hết các quận huyện trọng yếu.\n\nTháng 4 năm 542, sau khi nghe tin thành Long Biên thất thủ, vua Lương Vũ Đế tức tốc hạ lệnh cho Thứ sử Việt Châu là Trần Hầu và Thứ sử Quảng Châu là Tôn Quýnh đem đại quân tiến sang hòng đè bẹp nghĩa quân. Với tầm nhìn quân sự chủ động, Lý Bí không chờ giặc đến chân thành mà chủ động chia quân tiến lên vùng biên ải phía Bắc, đón đánh và tiêu diệt tan tác đạo quân phản công của giặc tại Hợp Phố (vùng vịnh Bắc Bộ), thu hồi toàn bộ vùng duyên hải biên giới.\n\nĐầu năm 543, triều Lương cay cú dốc toàn lực tổ chức cuộc viễn chinh phản kích lần thứ hai với quy mô lớn hơn, cử các danh tướng lão luyện Tôn Quýnh, Lư Tử Hùng đem đại quân tràn xuống phương Nam. Nắm bắt được mâu thuẫn nội bộ và sự khiếp nhược của quân Lương, Lý Bí phối hợp cùng đại tướng Phạm Tu tổ chức thế trận mai phục hiểm hóc tại mũi bán đảo Lôi Châu (Quảng Đông ngày nay). Trận tập kích sấm sét của nghĩa quân đã đánh tan nát đạo quân viễn chinh nhà Lương, tàn quân chết đuối và tan rã đến bảy tám phần mười, hai tướng chỉ huy giặc tháo chạy về nước rồi bị vua Lương xử tử.\n\nTháng 5 năm 543, trong lúc quân dân Giao Châu đang củng cố phòng thủ phương Bắc, vua nước Lâm Ấp ở phương Nam nhân cơ hội đem đại quân xâm lấn quận Cửu Đức (vùng Hà Tĩnh ngày nay). Lý Bí lập tức ủy thác binh quyền cho lão tướng Phạm Tu dẫn quân nam hạ. Dưới sự chỉ huy mưu lược của Phạm Tu, nghĩa quân đã giáng một đòn chí mạng, đánh tan tác quân xâm lược Lâm Ấp tại Cửu Đức, chém tướng giặc và buộc Lâm Ấp phải rút tàn quân về nước, giữ vững toàn vẹn biên cương non sông.',
+    thumbnailUrl:
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Statue_of_Ly_Nam_De.jpg/800px-Statue_of_Ly_Nam_De.jpg',
     displayOrder: 1,
     category: EventCategory.REVOLUTION,
     metadata: {
-      cause: 'Chính sách cai trị hà khắc, phân biệt đối xử của nhà Lương với người bản xứ.',
-      outcome: 'Giành lại quyền làm chủ Giao Châu, tạo tiền đề cho việc lập nước Vạn Xuân.',
-      sources: [wiki('Lý_Nam_Đế')],
+      cause:
+        'Từ đầu thế kỷ VI, triều Lương (Nam triều phương Bắc) thi hành chính sách cai trị và bóc lột vô cùng tàn bạo đối với nhân dân Giao Châu. Thứ sử Tiêu Tư — một kẻ thuộc tôn thất nhà Lương — nổi tiếng tham lam, hà khắc, đã đặt ra hàng trăm thứ thuế vô lý từ muối, sắt đến cả cây cau, cây chuối, đẩy người dân vào cảnh khốn cùng.\n\nBên cạnh đó, triều đình nhà Lương thi hành chế độ phân biệt đẳng cấp sĩ tộc cực đoan, coi thường và tước đoạt mọi cơ hội thăng tiến của người bản xứ phương Nam. Điển hình là bi kịch của danh sĩ Tinh Thiều — người học rộng tài cao, từng lặn lội sang tận kinh đô Kiến Khang thi đỗ chức cử nhưng viên Thượng thư lệnh Lương cho rằng họ Tinh không thuộc dòng dõi danh gia vọng tộc nên chỉ chuẩn cho làm chức "Gác cổng thành". Tinh Thiều uất ức bỏ về quê, nung nấu ý chí đánh đổ chế độ đô hộ.\n\nLý Bí (Lý Bôn) xuất thân từ hào tộc lâu đời tại vùng Thái Bình, từng được bổ giữ chức Giám quân ở Đức Châu (Hà Tĩnh). Thấu hiểu nỗi thống khổ của muôn dân và căm ghét chế độ cai trị tàn bạo của Tiêu Tư, ông đã chủ động từ quan, trở về quê hương liên kết với các tù trưởng, hào kiệt uy tín như Triệu Túc (hào trưởng Chu Diên), Phạm Tu (võ tướng Thanh Liệt), Tinh Thiều để mưu tính đại sự khởi nghĩa giành độc lập.',
+      outcome:
+        'Thắng lợi oanh liệt của Khởi nghĩa Lý Bí đã quét sạch hoàn toàn ách thống trị đô hộ hà khắc của nhà Lương, chấm dứt thời kỳ Bắc thuộc lần thứ hai kéo dài gần 5 thế kỷ (từ sau cuộc kháng chiến của Hai Bà Trưng năm 43 đến năm 544).\n\nCuộc khởi nghĩa là mốc son chói lọi khẳng định ý chí tự chủ, tinh thần quật khởi kiên cường và ý thức dân tộc tự cường sâu sắc của nhân dân ta, minh chứng cho sức mạnh đoàn kết của toàn thể hào kiệt và bách tính các châu huyện.\n\nThắng lợi toàn diện này là tiền đề trực tiếp để mùa xuân năm 544 (tháng 2 âm lịch), Lý Bí lên ngôi Hoàng đế, lấy hiệu là Lý Nam Đế, đặt quốc hiệu là Vạn Xuân với ước nguyện đất nước mãi trường tồn muôn vạn mùa xuân, đặt niên hiệu riêng Thiên Đức, thành lập triều đình độc lập và cho xây dựng ngôi chùa Khai Quốc (nay là chùa Trấn Quốc trên bờ Hồ Tây, Hà Nội).',
+      sources: [
+        wiki('Khởi_nghĩa_Lý_Bí'),
+        wiki('Lý_Nam_Đế'),
+        wiki('Phạm_Tu'),
+        'Đại Việt sử ký toàn thư, Ngoại kỷ toàn thư, Quyển 4 (Kỷ Tiền Lý)',
+        'Việt sử lược, Quyển 1',
+        'Lương thư, Liệt truyện, Quyển 3 & Quyển 54',
+        'Lịch sử Việt Nam, Tập 1, Viện Sử học, NXB Khoa học Xã hội',
+      ],
+      campaignPhases: [
+        {
+          phase: 'Giai đoạn 1',
+          time: 'Mùa xuân 542',
+          title: 'Dấy binh dẹp loạn & Giải phóng thành Long Biên',
+          description:
+            'Lý Bí phát động khởi nghĩa từ Thái Bình, nghĩa quân thần tốc hạ thành Long Biên, Tiêu Tư bỏ chạy về Quảng Châu.',
+        },
+        {
+          phase: 'Giai đoạn 2',
+          time: 'Tháng 4/542',
+          title: 'Chủ động đón đánh tan phản công Lương tại Hợp Phố',
+          description:
+            'Lý Bí điều quân lên vùng biên ải Hợp Phố tiêu diệt đạo quân phản công của Trần Hầu và Tôn Quýnh.',
+        },
+        {
+          phase: 'Giai đoạn 3',
+          time: 'Đầu năm 543',
+          title: 'Phục kích đại phá quân phản công Lôi Châu',
+          description:
+            'Phối hợp cùng Phạm Tu lập trận địa mai phục tại mũi bán đảo Lôi Châu, tiêu diệt cánh quân của Tôn Quýnh, Lư Tử Hùng.',
+        },
+        {
+          phase: 'Giai đoạn 4',
+          time: 'Tháng 5/543',
+          title: 'Đại tướng Phạm Tu đánh tan quân xâm lược Lâm Ấp tại Cửu Đức',
+          description:
+            'Lão tướng Phạm Tu cầm quân nam hạ chém tướng Lâm Ấp, giữ vững toàn vẹn biên cương phía Nam.',
+        },
+      ],
+      forces: {
+        insurgents:
+          'Nghĩa quân Lý Bí liên minh cùng hào kiệt các châu (Chu Diên, Thanh Liệt, Cửu Đức...)',
+        occupiers:
+          'Chính quyền đô hộ nhà Lương (Thứ sử Tiêu Tư) và quân viễn chinh (Trần Hầu, Tôn Quýnh, Lư Tử Hùng)',
+      },
     },
     status: ContentStatus.PUBLISHED,
   },

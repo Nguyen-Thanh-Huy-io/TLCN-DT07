@@ -8,6 +8,7 @@ import { NodeContent } from "./NodeContent";
 import { shortTitle } from "./Minimap";
 import type { SubEra, TimeNode, TimelineEvent } from "./sk-types";
 import { KeyboardKey } from "@/constants/enums";
+import { SK_SELECTED_CLASS } from "./sk-shared";
 
 /**
  * Trục ngang theo mô hình 3 tầng:
@@ -85,7 +86,7 @@ export function HorizontalExplorer({
             <div className={`sk-scrubber-group sk-theme-${sub.themeColor}`} key={sub.id}>
               <button
                 type="button"
-                className={`sk-scrubber-band ${selectedSub?.id === sub.id ? "sk-selected" : ""}`}
+                className={`sk-scrubber-band ${selectedSub?.id === sub.id ? SK_SELECTED_CLASS : ""}`}
                 title={sub.title}
                 onClick={() => onSelectNode(nodes[0].id)}
               >
@@ -102,7 +103,7 @@ export function HorizontalExplorer({
                       role="option"
                       aria-selected={isSelected}
                       data-node-id={n.id}
-                      className={`sk-scrubber-node ${isSelected ? "sk-selected" : ""}`}
+                      className={`sk-scrubber-node ${isSelected ? SK_SELECTED_CLASS : ""}`}
                       key={n.id}
                       title={n.events.map((ev) => ev.title).join("\n")}
                       onClick={() => onSelectNode(n.id)}
@@ -140,7 +141,7 @@ export function HorizontalExplorer({
           >
             <div className="sk-panel-title">
               <div>
-                <Badge>{selectedSub ? shortTitle(selectedSub.title) : "KHÔNG GIAN KHÁM PHÁ"}</Badge>
+                <Badge>{selectedSub ? shortTitle(selectedSub.title) : "Không gian khám phá"}</Badge>
                 <Heading>{selectedNode.dateLabel}</Heading>
               </div>
               <div className="sk-panel-nav">

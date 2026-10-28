@@ -5,6 +5,7 @@ import { ArrowRight, BookOpen, Bookmark, Flag, Globe2, Landmark, Network, Swords
 import { useTimelineFocus } from "./TimelineFocus";
 import { Heading, Badge, Button } from "./sk-ui";
 import { type TimelineEvent, EventScopeGroup } from "./sk-types";
+import { SK_SELECTED_CLASS } from "./sk-shared";
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   BATTLE: Swords,
@@ -83,7 +84,7 @@ export function EventCard({
               <button
                 key={a.id}
                 type="button"
-                className={`sk-actor-chip ${lens?.id === a.id ? "sk-selected" : ""}`}
+                className={`sk-actor-chip ${lens?.id === a.id ? SK_SELECTED_CLASS : ""}`}
                 title="Xem mọi sự kiện có chủ thể này trên dòng thời gian"
                 onClick={() => setLens(lens?.id === a.id ? null : a)}
               >
@@ -124,7 +125,7 @@ export function EventCard({
               </Button>
             )}
             <Button
-              className={`sk-link-button ${isFocus ? "sk-selected" : ""}`}
+              className={`sk-link-button ${isFocus ? SK_SELECTED_CLASS : ""}`}
               title="Làm sáng các sự kiện liên quan trên dòng thời gian"
               aria-pressed={isFocus}
               onClick={() => setFocus(isFocus ? null : event)}

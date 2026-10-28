@@ -61,8 +61,8 @@ export function Footer() {
                 HISGO
               </span>
             </div>
-            <p className="text-[12px] font-semibold tracking-wider text-[var(--text-body)] uppercase leading-relaxed">
-              LỊCH SỬ VIỆT NAM — HÀNH TRÌNH CỦA DÂN TỘC
+            <p className="text-[13px] font-medium tracking-normal text-[var(--text-body)] leading-relaxed">
+              Lịch sử Việt Nam — Hành trình của dân tộc
             </p>
           </div>
 

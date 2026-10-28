@@ -31,7 +31,7 @@ export function EraSection({
         </span>
         <span>
           <small>
-            THỜI KỲ 0{index + 1} <i /> {period}
+            Thời kỳ 0{index + 1} <i /> {period}
           </small>
           <Heading>{title}</Heading>
           <p>{overview}</p>

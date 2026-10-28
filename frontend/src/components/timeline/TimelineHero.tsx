@@ -8,7 +8,7 @@ export function TimelineHero({ periodCount, eventCount }: { periodCount: number;
       <div className="sk-hero-shade" />
       <div className="sk-hero-content">
         <div className="sk-eyebrow">
-          <span /> MỖI DẤU MỐC, MỘT CÂU CHUYỆN
+          <span /> Mỗi dấu mốc, một câu chuyện
         </div>
         <h1>
           Chạm vào quá khứ.
@@ -38,7 +38,7 @@ export function TimelineHero({ periodCount, eventCount }: { periodCount: number;
         <span>Tràng An, Ninh Bình</span>
         <span className="sk-photo-credit">Ảnh: Fernando Strabuli / Unsplash</span>
       </div>
-      <span className="sk-hero-vertical">HÀNH TRÌNH XUYÊN THỜI GIAN</span>
+      <span className="sk-hero-vertical">Hành trình xuyên thời gian</span>
     </section>
   );
 }

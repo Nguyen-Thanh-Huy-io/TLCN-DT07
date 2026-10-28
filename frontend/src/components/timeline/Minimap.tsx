@@ -47,7 +47,7 @@ export function Minimap({
   return (
     <aside className="sk-minimap">
       <div className="sk-minimap-title">
-        <Layers size={16} /> CÁC THỜI KỲ
+        <Layers size={16} /> Các thời kỳ
       </div>
       {eras.length === 0 && <p className="sk-minimap-empty">Không có thời kỳ nào khớp bộ lọc.</p>}
       {eras.map((e, i) => {

@@ -21,6 +21,7 @@ import { EraSection } from "./EraSection";
 import { SubEraSection, SplitMode } from "./SubEraSection";
 import { HorizontalExplorer } from "./HorizontalExplorer";
 import { EventDetailModal } from "./EventDetailModal";
+import { SK_SELECTED_CLASS } from "./sk-shared";
 import type { Era, TimeNode, TimelineActor, TimelineEvent } from "./sk-types";
 
 const SAVED_STORAGE_KEY = "hisgo:timeline:saved-events";
@@ -214,15 +215,14 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
       <div className="sk-explorer">
         <div className="sk-explorer-intro">
           <div>
-            <span className="sk-section-eyebrow">KHÁM PHÁ LỊCH SỬ</span>
-            <Heading level={2}>{bookmarksOnly ? "Dấu mốc đã lưu" : "Dòng chảy ngàn năm"}</Heading>
+            <Heading level={2}>{bookmarksOnly ? "Dấu mốc đã lưu" : "Dòng chảy lịch sử ngàn năm"}</Heading>
             <p>Mỗi thời kỳ là một chương. Mỗi dấu mốc là một câu chuyện.</p>
           </div>
           <div className="sk-view-toggle">
-            <Button className={!horizontal ? "sk-selected" : ""} onClick={() => setHorizontal(false)}>
+            <Button className={!horizontal ? SK_SELECTED_CLASS : ""} onClick={() => setHorizontal(false)}>
               <ArrowDownUp size={15} /> Trục dọc
             </Button>
-            <Button className={horizontal ? "sk-selected" : ""} onClick={() => setHorizontal(true)}>
+            <Button className={horizontal ? SK_SELECTED_CLASS : ""} onClick={() => setHorizontal(true)}>
               <ArrowRight size={16} /> Trục ngang
             </Button>
           </div>
@@ -316,7 +316,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                     <button
                       key={mode}
                       type="button"
-                      className={split === mode ? "sk-selected" : ""}
+                      className={split === mode ? SK_SELECTED_CLASS : ""}
                       aria-pressed={split === mode}
                       onClick={() => setSplit(mode)}
                     >

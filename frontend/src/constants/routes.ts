@@ -50,17 +50,26 @@ export const APP_ROUTES = {
   TAXONOMIES: '/taxonomies',
 } as const;
 
-export type NavigationPageKey =
-  | 'dashboard'
-  | 'curriculum'
-  | 'knowledge'
-  | 'periods'
-  | 'topics'
-  | 'lessons'
-  | 'events'
-  | 'locations'
-  | 'entities'
-  | 'tags'
-  | 'review'
-  | 'users'
-  | 'taxonomies';
+export const SAMPLE_REMOTE_LINKS = {
+  TRUONG_SON_IMAGE:
+    'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1000&q=80',
+  TRUONG_SON_VIDEO: 'https://www.youtube.com/watch?v=sample-truong-son',
+  TRUONG_SON_DOCUMENT: 'https://example.com/tai-lieu-duong-truong-son.pdf',
+} as const;
+
+export enum NavigationPageKey {
+  DASHBOARD = 'dashboard',
+  CURRICULUM = 'curriculum',
+  KNOWLEDGE = 'knowledge',
+  PERIODS = 'periods',
+  TOPICS = 'topics',
+  LESSONS = 'lessons',
+  EVENTS = 'events',
+  LOCATIONS = 'locations',
+  ENTITIES = 'entities',
+  TAGS = 'tags',
+  REVIEW = 'review',
+  USERS = 'users',
+  TAXONOMIES = 'taxonomies',
+}
+

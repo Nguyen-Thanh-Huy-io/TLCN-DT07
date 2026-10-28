@@ -46,7 +46,7 @@ const eslintConfig = defineConfig([
         },
       ],
 
-      // 2. Strict syntax: Disallow direct raw fetch calls and hardcoded remote URLs
+      // 2. Strict syntax: Disallow direct raw fetch calls, hardcoded remote URLs, and Magic Strings
       "no-restricted-syntax": [
         "warn",
         {
@@ -59,19 +59,37 @@ const eslintConfig = defineConfig([
           message:
             "Không được hardcode trực tiếp URL remote (http/https). Bắt buộc đưa vào biến môi trường hoặc '@/constants/routes'.",
         },
+        {
+          selector:
+            "BinaryExpression[operator=/^(===|!==)$/]:not(:has(UnaryExpression[operator='typeof'])) > Literal[value=/^[a-zA-Z0-9_-]{2,}$/]",
+          message:
+            "Phát hiện Magic String trong phép so sánh logic (===, !==). Bắt buộc định nghĩa Enum hoặc hằng số tập trung tại '@/constants/...' để đảm bảo nguyên tắc SOLID (OCP).",
+        },
+        {
+          selector: "SwitchCase > Literal[value=/^[a-zA-Z0-9_-]{2,}$/]",
+          message:
+            "Phát hiện Magic String trong switch-case. Bắt buộc sử dụng Enum hoặc hằng số tập trung tại '@/constants/...'.",
+        },
       ],
 
-      // 3. SonarJS: Eliminate Magic Strings
+      // 3. SonarJS: Eliminate Magic Strings (Threshold nâng cấp lên 2 theo yêu cầu)
       "sonarjs/no-duplicate-string": [
         "warn",
         {
-          threshold: 3,
+          threshold: 2,
           ignoreStrings: "^(use client|use server|button|submit|text|/| |)$",
         },
       ],
 
       // 4. SonarJS: Cognitive Complexity limit <= 15
       "sonarjs/cognitive-complexity": ["warn", 15],
+    },
+  },
+  {
+    // Bỏ qua kiểm tra chuỗi trùng lặp trên các file Mock Data / Seed tĩnh
+    files: ["src/data/**"],
+    rules: {
+      "sonarjs/no-duplicate-string": "off",
     },
   },
 ]);

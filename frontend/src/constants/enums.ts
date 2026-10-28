@@ -202,6 +202,7 @@ export enum EventRelationType {
   PARALLEL_TO = 'PARALLEL_TO',
   OPPOSES = 'OPPOSES',
   DERIVED_FROM = 'DERIVED_FROM',
+  ENDED_BY = 'ENDED_BY',
   OTHER = 'OTHER',
 }
 
@@ -213,6 +214,7 @@ export const EVENT_RELATION_TYPE_LABELS: Record<EventRelationType, string> = {
   [EventRelationType.PARALLEL_TO]: 'Diễn ra đồng thời / Song song',
   [EventRelationType.OPPOSES]: 'Đối kháng / Phản ứng lại',
   [EventRelationType.DERIVED_FROM]: 'Bắt nguồn từ',
+  [EventRelationType.ENDED_BY]: 'Kết thúc bằng',
   [EventRelationType.OTHER]: 'Mối liên hệ khác',
 };
 
@@ -253,5 +255,206 @@ export const HISTORICAL_REGION_OPTIONS: string[] = [
   HistoricalRegion.EUROPE_MEDITERRANEAN,
   HistoricalRegion.EUROPE_NORTH_AMERICA,
 ];
+
+/**
+ * Hành động lưu/duyệt nội dung
+ */
+export enum ContentAction {
+  DRAFT = 'DRAFT',
+  PUBLISH = 'PUBLISH',
+  APPROVE = 'APPROVE',
+  REJECT = 'REJECT',
+}
+
+/**
+ * Phím bàn phím chuẩn cho keyboard navigation (thay thế Magic String e.key)
+ */
+export enum KeyboardKey {
+  ENTER = 'Enter',
+  ESCAPE = 'Escape',
+  TAB = 'Tab',
+  SPACE = ' ',
+  ARROW_UP = 'ArrowUp',
+  ARROW_DOWN = 'ArrowDown',
+  ARROW_LEFT = 'ArrowLeft',
+  ARROW_RIGHT = 'ArrowRight',
+  HOME = 'Home',
+  END = 'End',
+}
+
+/**
+ * Chế độ xem cây lộ trình học tập HISGO Studio
+ */
+export enum CurriculumViewMode {
+  STUDIO = 'STUDIO',
+  TOPIC_TREE = 'TOPIC_TREE',
+}
+
+/**
+ * Tab làm việc trong HISGO Studio
+ */
+export enum StudioTab {
+  CURRICULUM = 'CURRICULUM',
+  LESSON_LIBRARY = 'LESSON_LIBRARY',
+}
+
+/**
+ * Kiểu trường hiển thị trong bản ghi so sánh phiên bản (Revision Diff)
+ */
+export enum RevisionFieldKind {
+  TEXT = 'text',
+  LONGTEXT = 'longtext',
+  BOOL = 'bool',
+  IMAGE = 'image',
+  LIST = 'list',
+  REF = 'ref',
+  REFS = 'refs',
+  BLOCKS = 'blocks',
+  RELATIONS = 'relations',
+  MEDIA = 'media',
+  OBJECT = 'object',
+}
+
+/**
+ * Hướng di chuyển / sắp xếp thứ tự
+ */
+export enum SortDirection {
+  UP = 'UP',
+  DOWN = 'DOWN',
+}
+
+/**
+ * Kiểu thông báo UI
+ */
+export enum NoticeTone {
+  ERROR = 'error',
+  SUCCESS = 'success',
+  INFO = 'info',
+  OK = 'ok',
+}
+
+export enum AuthProviderType {
+  LOCAL = 'local',
+  GOOGLE = 'google',
+  GITHUB = 'github',
+}
+
+/**
+ * Xếp hạng di tích lịch sử
+ */
+export enum HeritageRank {
+  SPECIAL_NATIONAL = 'SPECIAL_NATIONAL',
+  NATIONAL = 'NATIONAL',
+  PROVINCIAL = 'PROVINCIAL',
+  UNESCO = 'UNESCO',
+  INTERNATIONAL = 'INTERNATIONAL',
+  UNRANKED = 'UNRANKED',
+  OTHER = 'OTHER',
+}
+
+/**
+ * Loại hạng mục công trình / hiện vật bên trong di tích
+ */
+export enum SubStructureType {
+  ARCHITECTURE = 'ARCHITECTURE',
+  NATIONAL_TREASURE = 'NATIONAL_TREASURE',
+}
+
+/**
+ * Tab chi tiết di tích lịch sử
+ */
+export enum HeritageTab {
+  OVERVIEW = 'overview',
+  STRUCTURES = 'structures',
+  TIMELINE = 'timeline',
+  LINKS = 'links',
+}
+
+/**
+ * Mã nhóm phân loại Taxonomy
+ */
+export enum TaxonomyGroupCode {
+  EVENT_CATEGORY = 'EVENT_CATEGORY',
+  EVENT_ROLE = 'EVENT_ROLE',
+  EVENT_RELATION = 'EVENT_RELATION',
+}
+
+/**
+ * Kiểu trường dữ liệu linh hoạt của danh mục (Taxonomy Field Type)
+ */
+export enum CategoryFieldType {
+  NUMBER = 'number',
+  TEXTAREA = 'textarea',
+  LIST = 'list',
+  TEXT = 'text',
+}
+
+/**
+ * Khóa trường dữ liệu của bài học (Lesson Field Key)
+ */
+export enum LessonFieldKey {
+  TITLE = 'title',
+  SLUG = 'slug',
+  DESCRIPTION = 'description',
+  SHORT_DESCRIPTION = 'shortDescription',
+  SUMMARY = 'summary',
+  TOPIC_ID = 'topicId',
+  DIFFICULTY = 'difficulty',
+  THUMBNAIL_URL = 'thumbnailUrl',
+}
+
+/**
+ * Mục accordion trong tab phân loại bài học
+ */
+export enum ClassificationSectionKey {
+  TAGS = 'tags',
+  DIFFICULTY = 'difficulty',
+}
+
+/**
+ * Bộ lọc chung
+ */
+export enum CommonFilterOption {
+  ALL = 'ALL',
+}
+
+/**
+ * Bộ lọc sơ đồ cây chương trình học (Curriculum Tree Filter)
+ */
+export enum CurriculumTreeFilter {
+  ALL = 'ALL',
+  ROOT_ONLY = 'ROOT_ONLY',
+  HAS_LESSONS = 'HAS_LESSONS',
+  NO_QUIZ = 'NO_QUIZ',
+}
+
+/**
+ * Trạng thái submission của biểu mẫu UI
+ */
+export enum FormStatus {
+  IDLE = 'idle',
+  LOADING = 'loading',
+  SUCCESS = 'success',
+  ERROR = 'error',
+}
+
+/**
+ * Chế độ hiển thị modal quản trị / chỉnh sửa thực thể
+ */
+export enum ModalMode {
+  VIEW = 'view',
+  EDIT = 'edit',
+  CREATE = 'create',
+}
+
+/**
+ * Chế độ hiển thị danh sách sự kiện
+ */
+export enum EventListViewMode {
+  TREE = 'TREE',
+  TREE_VIEW = 'TREE_VIEW',
+  FLAT = 'FLAT',
+}
+
 
 

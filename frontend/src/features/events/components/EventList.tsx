@@ -302,14 +302,14 @@ export function EventList() {
               className={
                 isRoot
                   ? 'text-slate-700 shrink-0'
-                  : 'text-slate-400 shrink-0'
+                  : 'text-slate-600 shrink-0'
               }
             />
 
             <Link
               href={APP_ROUTES.EVENTS.DETAIL(item.id)}
               className={`truncate hover:text-blue-700 hover:underline transition ${
-                isRoot ? 'text-[13px] font-bold text-slate-900' : 'text-xs font-medium text-slate-800'
+                isRoot ? 'text-sm font-bold text-slate-900' : 'text-xs font-medium text-slate-800'
               }`}
               title={item.title}
             >
@@ -318,7 +318,7 @@ export function EventList() {
             </Link>
 
             {item.category && (
-              <span className="text-[10px] font-semibold px-2 py-0.2 rounded-full bg-amber-50 text-amber-900 border border-amber-200/80 shrink-0 hidden sm:inline-block">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 shrink-0 hidden sm:inline-block">
                 {eventCategoryLabel(categoryTerms, item)}
               </span>
             )}
@@ -326,21 +326,21 @@ export function EventList() {
 
           {/* Cụm Phải: Số lượng con (5 con / 2 chuyên đề / 1 bài) + Nút thao tác */}
           <div className="flex items-center gap-3 shrink-0 ml-2">
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="text-xs text-slate-600 font-mono font-medium">
               {hasChildren ? `${node.children.length} con` : '1 bài'}
             </span>
 
-            <div className="flex items-center gap-1.5 opacity-80 hover:opacity-100">
+            <div className="flex items-center gap-1.5 opacity-90 hover:opacity-100">
               <Link
                 href={APP_ROUTES.EVENTS.DETAIL(item.id)}
-                className="text-[11px] font-medium text-slate-600 hover:text-slate-900 px-2 py-0.5 rounded border border-slate-200 bg-white hover:bg-slate-50 transition"
+                className="text-xs font-medium text-slate-700 hover:text-slate-900 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 transition"
               >
                 Sửa
               </Link>
               <button
                 type="button"
                 onClick={() => handleDeletePrompt(item)}
-                className="text-[11px] font-medium text-rose-600 hover:text-rose-800 px-2 py-0.5 rounded border border-rose-200 bg-white hover:bg-rose-50 transition cursor-pointer"
+                className="text-xs font-medium text-rose-700 hover:text-rose-900 px-2.5 py-1 rounded-md border border-rose-200 bg-white hover:bg-rose-50 transition cursor-pointer"
               >
                 Xóa
               </button>
@@ -370,15 +370,15 @@ export function EventList() {
       {/* 1. Header Quản lý Sự kiện */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
               Quản lý sự kiện
             </h1>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 font-bold">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 font-bold">
               {eventsList.length} sự kiện
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-sm text-slate-600 mt-1">
             Sự kiện lịch sử • Phân cấp và diễn biến
           </p>
         </div>
@@ -386,7 +386,7 @@ export function EventList() {
         <button
           type="button"
           onClick={handleNavigateCreate}
-          className="px-4 py-2.5 rounded-full bg-[#5C3D1E] hover:bg-[#432c15] text-white font-bold text-xs inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+          className="px-4 py-2 rounded-full bg-[#5C3D1E] hover:bg-[#432c15] text-white font-bold text-sm inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
         >
           <span>+</span>
           <span>Thêm sự kiện</span>
@@ -398,7 +398,7 @@ export function EventList() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           {/* Ô tìm kiếm */}
           <div className="relative min-w-[280px] flex-1 max-w-md">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
               🔍
             </span>
             <input
@@ -406,20 +406,20 @@ export function EventList() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm kiếm sự kiện, địa điểm, diễn biến..."
-              className="w-full text-xs pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-600 focus:bg-white focus:ring-2 focus:ring-amber-100 transition"
+              className="w-full text-sm pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-500 focus:outline-none focus:border-amber-600 focus:bg-white focus:ring-2 focus:ring-amber-100 transition"
             />
           </div>
 
           {/* Bộ chuyển đổi chế độ xem: Cây phân cấp | Danh sách phẳng */}
           <div className="flex items-center gap-2">
-            <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/80 text-xs">
+            <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/80 text-xs sm:text-[13px]">
               <button
                 type="button"
                 onClick={() => setViewMode(EventListViewMode.TREE)}
                 className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
                   viewMode === EventListViewMode.TREE
                     ? 'bg-[#EFE3C8] text-[#5C3D1E] shadow-2xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-700 hover:text-slate-900'
                 }`}
               >
                 Bảng phân cấp
@@ -430,7 +430,7 @@ export function EventList() {
                 className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
                   viewMode === EventListViewMode.TREE_VIEW
                     ? 'bg-[#EFE3C8] text-[#5C3D1E] shadow-2xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-700 hover:text-slate-900'
                 }`}
               >
                 Sơ đồ cây
@@ -441,7 +441,7 @@ export function EventList() {
                 className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
                   viewMode === EventListViewMode.FLAT
                     ? 'bg-[#EFE3C8] text-[#5C3D1E] shadow-2xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-700 hover:text-slate-900'
                 }`}
               >
                 Danh sách phẳng
@@ -451,15 +451,15 @@ export function EventList() {
         </div>
 
         {/* Dải bộ lọc: Thời kỳ, Trạng thái, Checkbox cấp cao nhất, Thao tác cây */}
-        <div className="flex items-center justify-between gap-3 flex-wrap pt-2 border-t border-slate-100 text-xs">
+        <div className="flex items-center justify-between gap-3 flex-wrap pt-2 border-t border-slate-100 text-xs sm:text-[13px]">
           <div className="flex items-center gap-3 flex-wrap">
             {/* Lọc theo Thời kỳ */}
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-slate-600">Thời kỳ:</span>
+              <span className="font-semibold text-slate-700">Thời kỳ:</span>
               <select
                 value={selectedPeriodId}
                 onChange={(e) => setSelectedPeriodId(e.target.value)}
-                className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer"
+                className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs sm:text-[13px] text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer"
               >
                 <option value="ALL">Tất cả thời kỳ</option>
                 {periods.map((p) => (
@@ -472,11 +472,11 @@ export function EventList() {
 
             {/* Lọc theo Trạng thái */}
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-slate-600">Trạng thái:</span>
+              <span className="font-semibold text-slate-700">Trạng thái:</span>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer"
+                className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs sm:text-[13px] text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer"
               >
                 <option value="ALL">Tất cả ({eventsList.length})</option>
                 <option value={ContentStatus.PUBLISHED}>
@@ -489,7 +489,7 @@ export function EventList() {
             </div>
 
             {/* Checkbox Chỉ xem cấp cao nhất */}
-            <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 font-medium select-none">
+            <label className="flex items-center gap-1.5 cursor-pointer text-slate-800 font-medium select-none">
               <input
                 type="checkbox"
                 checked={topLevelOnly}
@@ -506,14 +506,14 @@ export function EventList() {
               <button
                 type="button"
                 onClick={expandAll}
-                className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200 transition cursor-pointer"
+                className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200 transition cursor-pointer"
               >
                 Mở rộng cây
               </button>
               <button
                 type="button"
                 onClick={collapseAll}
-                className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200 transition cursor-pointer"
+                className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200 transition cursor-pointer"
               >
                 Thu gọn
               </button>
@@ -524,13 +524,13 @@ export function EventList() {
 
       {/* 3. BẢNG DỮ LIỆU: TREE TABLE HOẶC DANH SÁCH PHẲNG */}
       {loading ? (
-        <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center text-xs text-slate-500">
+        <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center text-sm text-slate-600">
           Đang tải dữ liệu phân cấp sự kiện lịch sử...
         </div>
       ) : (
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
           {/* Header Bảng: 5 cột đặc thù của Sự kiện + Thao tác */}
-          <div className="grid grid-cols-12 px-5 py-3 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+          <div className="grid grid-cols-12 px-5 py-3.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider">
             <div className="col-span-4">Tên sự kiện / phân cấp</div>
             <div className="col-span-2">Thời gian</div>
             <div className="col-span-2">Địa điểm</div>
@@ -617,7 +617,7 @@ export function EventList() {
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <Link
                                 href={APP_ROUTES.EVENTS.DETAIL(item.id)}
-                                className="text-xs font-bold text-slate-900 hover:text-blue-700 hover:underline transition"
+                                className="text-sm font-bold text-slate-900 hover:text-blue-700 hover:underline transition"
                               >
                                 {item.title}
                               </Link>
@@ -627,24 +627,24 @@ export function EventList() {
                                 <button
                                   type="button"
                                   onClick={() => toggleExpand(item.id)}
-                                  className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100 transition cursor-pointer shrink-0"
+                                  className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100 transition cursor-pointer shrink-0"
                                 >
                                   {isExpanded ? '▼' : '▶'} {rootNode.childCount} mục con
                                 </button>
                               ) : (
-                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
                                   Sự kiện độc lập
                                 </span>
                               )}
                               {/* Badge phân loại thể loại sự kiện */}
                               {item.category && (
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 shrink-0">
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 shrink-0">
                                   {eventCategoryLabel(categoryTerms, item)}
                                 </span>
                               )}
                             </div>
 
-                            <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                            <div className="text-xs text-slate-600 line-clamp-1 mt-1 leading-relaxed">
                               {item.summary || 'Sự kiện trong hệ thống sử học'}
                             </div>
                           </div>
@@ -658,7 +658,7 @@ export function EventList() {
                               : formatHistoricalYear(item.startYear)}
                           </span>
                           {item.eventDateNote && (
-                            <div className="text-[10px] text-slate-500 mt-0.5 font-mono truncate">
+                            <div className="text-xs text-slate-600 mt-0.5 font-mono truncate">
                               {item.eventDateNote}
                             </div>
                           )}
@@ -677,7 +677,7 @@ export function EventList() {
                             {periodName}
                           </span>
                           {item.topic?.name && (
-                            <span className="text-[10px] text-slate-500 block truncate mt-0.5" title={item.topic.name}>
+                            <span className="text-xs text-slate-600 block truncate mt-0.5" title={item.topic.name}>
                               ↳ {item.topic.name}
                             </span>
                           )}
@@ -694,120 +694,121 @@ export function EventList() {
                         <div className="col-span-1 flex items-center justify-end gap-1.5 text-xs">
                           <Link
                             href={APP_ROUTES.EVENTS.DETAIL(item.id)}
-                            className="px-2 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition font-medium border border-slate-200"
+                            className="px-2.5 py-1 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition font-medium border border-slate-200"
                           >
                             Sửa
                           </Link>
                           <button
                             type="button"
                             onClick={() => handleDeletePrompt(item)}
-                            className="px-2 py-1 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition font-medium border border-rose-200 cursor-pointer"
+                            className="px-2.5 py-1 text-rose-700 hover:text-rose-900 hover:bg-rose-50 rounded-lg transition font-medium border border-rose-200 cursor-pointer"
                           >
                             Xóa
                           </button>
                         </div>
                       </div>
 
-                      {/* KHỐI CON XỔ RA NẰM TRỌN TRONG SỰ KIỆN CHA */}
+                      {/* KHỐI CON XỔ RA (TREE TABLE SUB-ROWS, LOẠI BỎ NESTED CARDS) */}
                       {hasChildren && isExpanded && !topLevelOnly && (
-                        <div className="bg-[#FAF7F2] border-t border-b border-amber-200/80 px-6 py-3.5 mx-4 my-2 rounded-2xl border border-amber-300/80 shadow-xs">
-                          {/* Tiêu đề thanh phân cấp con */}
-                          <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-amber-200/60 text-xs">
-                            <div className="flex items-center gap-2 font-bold text-[#5C3D1E]">
-                              <span className="text-amber-700 text-sm">↳</span>
-                              <span>SỰ KIỆN THÀNH PHẦN TRỰC THUỘC ({rootNode.children.length})</span>
+                        <div className="bg-amber-50/40 border-y border-amber-200/70 divide-y divide-amber-100/80">
+                          {/* Thanh định hướng phân cấp con */}
+                          <div className="px-5 py-2 flex items-center justify-between text-xs bg-amber-100/50 text-amber-950 font-medium">
+                            <div className="flex items-center gap-2">
+                              <span className="text-amber-800 font-bold">↳</span>
+                              <span className="font-semibold">CÁC SỰ KIỆN THÀNH PHẦN TRỰC THUỘC ({rootNode.children.length})</span>
                             </div>
-                            <span className="text-[11px] text-slate-500">
-                              Thuộc diễn biến: <strong className="text-slate-800 font-semibold">{item.title}</strong>
+                            <span className="text-slate-600 text-xs">
+                              Thuộc diễn biến: <strong className="text-slate-900 font-semibold">{item.title}</strong>
                             </span>
                           </div>
 
-                          {/* Danh sách các thẻ sự kiện con */}
-                          <div className="space-y-2">
-                            {rootNode.children.map((childNode, idx) => {
-                              const child = childNode.item;
-                              const childDisplayLoc =
-                                child.historicalLocation?.name || (child.metadata?.rawLocation as string) || 'Chưa gắn địa điểm';
+                          {/* Danh sách các dòng sự kiện con */}
+                          {rootNode.children.map((childNode, idx) => {
+                            const child = childNode.item;
+                            const childDisplayLoc =
+                              child.historicalLocation?.name || (child.metadata?.rawLocation as string) || 'Chưa gắn địa điểm';
 
-                              return (
-                                <div
-                                  key={child.id}
-                                  className="bg-white border border-slate-200/90 rounded-xl p-3 hover:border-amber-400 hover:shadow-xs transition"
-                                >
-                                  <div className="grid grid-cols-12 items-center gap-3">
-                                    {/* Cột tên con kèm ký hiệu nhánh cây */}
-                                    <div className="col-span-5 flex items-start gap-2.5 min-w-0">
-                                      <span className="text-amber-600 font-mono text-sm mt-0.5 shrink-0 font-bold">
-                                        {idx === rootNode.children.length - 1 ? '└──' : '├──'}
-                                      </span>
-                                      <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                          <Link
-                                            href={APP_ROUTES.EVENTS.DETAIL(child.id)}
-                                            className="text-xs font-bold text-slate-900 hover:text-blue-700 hover:underline"
-                                          >
-                                            {child.title}
-                                          </Link>
-                                          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-sky-50 text-sky-700 border border-sky-200 shrink-0">
-                                            Sự kiện thành phần
-                                          </span>
-                                          {child.category && (
-                                            <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-amber-50 text-amber-900 border border-amber-200 shrink-0">
-                                              {eventCategoryLabel(categoryTerms, child)}
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
-                                          {child.summary || 'Sự kiện thành phần trong chiến dịch'}
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* Cột thời gian */}
-                                    <div className="col-span-2 text-xs">
-                                      <span className="font-mono font-bold text-amber-900 bg-amber-50/80 border border-amber-200 px-1.5 py-0.5 rounded text-[11px]">
-                                        {formatHistoricalYear(child.startYear)}
-                                      </span>
-                                      {child.eventDateNote && (
-                                        <div className="text-[10px] text-slate-500 font-mono truncate mt-0.5">
-                                          {child.eventDateNote}
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Cột địa điểm */}
-                                    <div className="col-span-2 text-xs text-slate-700 truncate" title={childDisplayLoc}>
-                                      {childDisplayLoc}
-                                    </div>
-
-                                    {/* Cột trạng thái */}
-                                    <div className="col-span-1">
-                                      <Badge tone={STATUS_TONE_MAP[child.status || ContentStatus.PUBLISHED]}>
-                                        {STATUS_LABEL_MAP[child.status || ContentStatus.PUBLISHED]}
-                                      </Badge>
-                                    </div>
-
-                                    {/* Cột thao tác */}
-                                    <div className="col-span-2 flex items-center justify-end gap-1.5 text-xs">
+                            return (
+                              <div
+                                key={child.id}
+                                className="grid grid-cols-12 items-center px-5 py-2.5 hover:bg-amber-100/60 transition"
+                              >
+                                {/* Cột 1: Tên con kèm ký hiệu nhánh cây */}
+                                <div className="col-span-4 flex items-start gap-2.5 min-w-0 pl-2">
+                                  <span className="text-amber-800 font-mono text-sm mt-0.5 shrink-0 font-bold">
+                                    {idx === rootNode.children.length - 1 ? '└──' : '├──'}
+                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
                                       <Link
                                         href={APP_ROUTES.EVENTS.DETAIL(child.id)}
-                                        className="px-2 py-0.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded border border-slate-200 text-[11px]"
+                                        className="text-xs sm:text-[13px] font-bold text-slate-900 hover:text-blue-700 hover:underline"
                                       >
-                                        Sửa
+                                        {child.title}
                                       </Link>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDeletePrompt(child)}
-                                        className="px-2 py-0.5 text-rose-600 hover:bg-rose-50 rounded border border-rose-200 text-[11px] cursor-pointer"
-                                      >
-                                        Xóa
-                                      </button>
+                                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200 shrink-0">
+                                        Sự kiện thành phần
+                                      </span>
+                                      {child.category && (
+                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 shrink-0">
+                                          {eventCategoryLabel(categoryTerms, child)}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-slate-600 line-clamp-1 mt-0.5">
+                                      {child.summary || 'Sự kiện thành phần trong chiến dịch'}
                                     </div>
                                   </div>
                                 </div>
-                              );
-                            })}
-                          </div>
+
+                                {/* Cột 2: Thời gian */}
+                                <div className="col-span-2 text-xs">
+                                  <span className="font-mono font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-xs inline-block">
+                                    {formatHistoricalYear(child.startYear)}
+                                  </span>
+                                  {child.eventDateNote && (
+                                    <div className="text-xs text-slate-600 font-mono truncate mt-0.5">
+                                      {child.eventDateNote}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Cột 3: Địa điểm */}
+                                <div className="col-span-2 text-xs text-slate-800 truncate pr-2" title={childDisplayLoc}>
+                                  {childDisplayLoc}
+                                </div>
+
+                                {/* Cột 4: Giai đoạn / quan hệ cha */}
+                                <div className="col-span-2 text-xs text-slate-600 truncate pr-2" title={`Thuộc: ${item.title}`}>
+                                  <span className="text-slate-500 font-mono">↳</span> {item.title}
+                                </div>
+
+                                {/* Cột 5: Trạng thái */}
+                                <div className="col-span-1">
+                                  <Badge tone={STATUS_TONE_MAP[child.status || ContentStatus.PUBLISHED]}>
+                                    {STATUS_LABEL_MAP[child.status || ContentStatus.PUBLISHED]}
+                                  </Badge>
+                                </div>
+
+                                {/* Cột 6: Thao tác */}
+                                <div className="col-span-1 flex items-center justify-end gap-1.5 text-xs">
+                                  <Link
+                                    href={APP_ROUTES.EVENTS.DETAIL(child.id)}
+                                    className="px-2 py-1 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded text-xs font-medium border border-slate-200"
+                                  >
+                                    Sửa
+                                  </Link>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeletePrompt(child)}
+                                    className="px-2 py-1 text-rose-700 hover:text-rose-900 hover:bg-rose-50 rounded text-xs font-medium border border-rose-200 cursor-pointer"
+                                  >
+                                    Xóa
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -852,22 +853,22 @@ export function EventList() {
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <Link
                               href={APP_ROUTES.EVENTS.DETAIL(item.id)}
-                              className="font-bold text-xs text-slate-900 hover:text-blue-700 hover:underline transition truncate"
+                              className="font-bold text-sm text-slate-900 hover:text-blue-700 hover:underline transition truncate"
                             >
                               {item.title}
                             </Link>
                             {item.parent && (
-                              <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded font-medium">
+                              <span className="text-xs text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
                                 Thuộc: {item.parent.title}
                               </span>
                             )}
                             {item.category && (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 shrink-0">
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 shrink-0">
                                 {eventCategoryLabel(categoryTerms, item)}
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                          <p className="text-xs text-slate-600 line-clamp-1 mt-1 leading-relaxed">
                             {item.summary || 'Sự kiện trong hệ thống sử học'}
                           </p>
                         </div>
@@ -892,7 +893,7 @@ export function EventList() {
                           {periodName}
                         </span>
                         {item.topic?.name && (
-                          <span className="text-[10px] text-slate-500 block truncate mt-0.5" title={item.topic.name}>
+                          <span className="text-xs text-slate-600 block truncate mt-0.5" title={item.topic.name}>
                             ↳ {item.topic.name}
                           </span>
                         )}
@@ -907,14 +908,14 @@ export function EventList() {
                       <div className="col-span-1 flex items-center justify-end gap-1.5 text-xs">
                         <Link
                           href={APP_ROUTES.EVENTS.DETAIL(item.id)}
-                          className="px-2 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition font-medium border border-slate-200"
+                          className="px-2.5 py-1 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition font-medium border border-slate-200"
                         >
                           Sửa
                         </Link>
                         <button
                           type="button"
                           onClick={() => handleDeletePrompt(item)}
-                          className="px-2 py-1 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition font-medium border border-rose-200 cursor-pointer"
+                          className="px-2.5 py-1 text-rose-700 hover:text-rose-900 hover:bg-rose-50 rounded-lg transition font-medium border border-rose-200 cursor-pointer"
                         >
                           Xóa
                         </button>
@@ -929,11 +930,11 @@ export function EventList() {
       )}
 
       {/* Dòng ghi chú nguyên tắc dữ liệu phân cấp chuẩn */}
-      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-500 flex items-center justify-between gap-3 flex-wrap">
+      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 flex items-center justify-between gap-3 flex-wrap">
         <div>
           Cấu trúc cây phân cấp thể hiện mối quan hệ giữa các chiến dịch lớn và các sự kiện/trận đánh thành phần đã được kiểm duyệt trong cơ sở dữ liệu lịch sử.
         </div>
-        <div className="font-medium text-slate-600">
+        <div className="font-medium text-slate-800">
           Tổng cộng: <b>{filteredEvents.length}</b> sự kiện phù hợp
         </div>
       </div>

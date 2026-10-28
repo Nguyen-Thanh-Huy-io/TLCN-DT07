@@ -46,21 +46,21 @@ export function KnowledgeHub() {
             <button
               key={strat.config.key}
               type="button"
-              className={`flex-1 min-w-[140px] py-2 px-3 rounded-md flex items-center justify-center gap-2 text-xs transition-colors ${
+              className={`flex-1 min-w-[140px] py-2.5 px-3 rounded-md flex items-center justify-center gap-2 text-sm transition-colors ${
                 isActive
                   ? 'bg-slate-900 text-white font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-medium'
               }`}
               onClick={() => handleTabChange(strat.config.key)}
             >
-              <Icon name={strat.config.icon} size={14} />
+              <Icon name={strat.config.icon} size={16} />
               <span>{strat.config.label}</span>
               {strat.config.badgeLabel ? (
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                  className={`text-xs px-2 py-0.5 rounded font-mono font-semibold ${
                     isActive
                       ? 'bg-white/20 text-white'
-                      : 'bg-slate-100 text-slate-500'
+                      : 'bg-slate-100 text-slate-600'
                   }`}
                 >
                   {strat.config.badgeLabel}
@@ -72,14 +72,14 @@ export function KnowledgeHub() {
       </div>
 
       {/* Tab Description Context */}
-      <div className="bg-slate-50 border border-slate-200 rounded-md px-3.5 py-2 text-xs text-slate-600 flex items-center justify-between">
+      <div className="bg-slate-50 border border-slate-200 rounded-md px-3.5 py-2.5 text-sm text-slate-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
           <span>{currentStrategy.config.description}</span>
         </div>
         <button
           type="button"
-          className="text-xs font-semibold text-slate-900 hover:underline shrink-0"
+          className="text-sm font-semibold text-slate-900 hover:underline shrink-0"
           onClick={() => {
             const routes: Record<KnowledgeTabKey, string> = {
               [KnowledgeTabKey.LOCATIONS]: '/locations',

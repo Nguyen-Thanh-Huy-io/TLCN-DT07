@@ -51,12 +51,12 @@ function useActiveSection(ids: string[]) {
   return active;
 }
 
-function SectionHead({ id, eyebrow, title, aside }: { id: string; eyebrow: string; title: string; aside?: React.ReactNode }) {
+function SectionHead({ id, title, subtitle, aside }: { id: string; title: string; subtitle?: string; aside?: React.ReactNode }) {
   return (
     <div className="pd-section-head" id={`${id}-head`}>
       <div>
-        <span className="pd-eyebrow">{eyebrow}</span>
         <h2>{title}</h2>
+        {subtitle && <p className="pd-section-subtitle">{subtitle}</p>}
       </div>
       {aside}
     </div>
@@ -203,14 +203,22 @@ export function PeriodDetailView({
 
         <div className="pd-body">
           <section id={PeriodSectionId.OVERVIEW} className="pd-section">
-            <SectionHead id={PeriodSectionId.OVERVIEW} eyebrow="Tổng quan" title="Thời kỳ trên trục thời gian" />
+            <SectionHead
+              id={PeriodSectionId.OVERVIEW}
+              title="Tổng quan thời kỳ trên trục thời gian"
+              subtitle="Diễn biến các giai đoạn lịch sử và mật độ phân bổ các sự kiện trọng yếu"
+            />
             <TimeRuler period={period} onPickStage={scrollToStage} />
             <p className="pd-hint">Mỗi dải màu là một giai đoạn, mỗi chấm là một sự kiện — bấm để đi tới.</p>
           </section>
 
           {period.children.length > 0 && (
             <section id={PeriodSectionId.STAGES} className="pd-section">
-              <SectionHead id={PeriodSectionId.STAGES} eyebrow="Cấu trúc thời kỳ" title={`${period.children.length} giai đoạn`} />
+              <SectionHead
+                id={PeriodSectionId.STAGES}
+                title={`Cấu trúc các giai đoạn lịch sử (${period.children.length})`}
+                subtitle="Phân chia chi tiết các mốc phát triển và bước ngoặt chuyển giao"
+              />
               <ol className="pd-stages">
                 {period.children.map((c, i) => (
                   <li key={c.id} id={`stage-${c.id}`} className={`tone-${i % 4}`}>
@@ -238,13 +246,21 @@ export function PeriodDetailView({
           )}
 
           <section id={PeriodSectionId.EVENTS} className="pd-section">
-            <SectionHead id={PeriodSectionId.EVENTS} eyebrow="Diễn biến" title="Dòng sự kiện" />
+            <SectionHead
+              id={PeriodSectionId.EVENTS}
+              title="Dòng sự kiện lịch sử"
+              subtitle="Biên niên diễn biến các sự kiện, hiệp định và trận đánh quan trọng"
+            />
             <EventStream period={period} />
           </section>
 
           {period.figures.length > 0 && (
             <section id={PeriodSectionId.FIGURES} className="pd-section">
-              <SectionHead id={PeriodSectionId.FIGURES} eyebrow="Con người" title="Nhân vật trong thời kỳ" />
+              <SectionHead
+                id={PeriodSectionId.FIGURES}
+                title={`Nhân vật lịch sử trong thời kỳ (${period.figures.length})`}
+                subtitle="Các bậc tiền nhân, lãnh tụ khởi nghĩa và danh nhân văn hóa"
+              />
               <div className="pd-figures">
                 {period.figures.map((f) => (
                   <Link key={f.id} href={PERIOD_ROUTES.FIGURE(f.slug)} className="pd-figure">
@@ -264,8 +280,8 @@ export function PeriodDetailView({
             <section id={PeriodSectionId.LOCATIONS} className="pd-section">
               <SectionHead
                 id={PeriodSectionId.LOCATIONS}
-                eyebrow="Không gian"
-                title="Địa danh & di tích"
+                title={`Địa danh & di tích lịch sử (${period.locations.length})`}
+                subtitle="Các kinh đô cổ, thành quách, vùng chiến lược và không gian văn hóa"
                 aside={
                   <Link href={PERIOD_ROUTES.LOCATIONS} className="pd-link">
                     Tất cả di tích <ArrowRight size={14} />
@@ -289,7 +305,11 @@ export function PeriodDetailView({
 
           {sections.some((s) => s.id === PeriodSectionId.CONCURRENT) && (
             <section id={PeriodSectionId.CONCURRENT} className="pd-section">
-              <SectionHead id={PeriodSectionId.CONCURRENT} eyebrow="Đối sánh" title={`Cùng thời ${period.timeLabel}, ở nơi khác`} />
+              <SectionHead
+                id={PeriodSectionId.CONCURRENT}
+                title={`Bối cảnh thế giới cùng thời kỳ (${period.timeLabel})`}
+                subtitle="Đối sánh các diễn biến lịch sử diễn ra đồng thời ở các khu vực khác"
+              />
               <div className="pd-concurrent">
                 {period.concurrentPeriods.length > 0 && (
                   <div>

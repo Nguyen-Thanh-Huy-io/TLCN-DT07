@@ -78,19 +78,22 @@ export function TimeRuler({ period, onPickStage }: { period: PublicPeriodDetailD
         </div>
       )}
       <div className="pd-ruler-track">
-        {clusters.map((c, i) => (
-          <a
-            key={c.events[0].id}
-            href={`#ev-${c.events[0].id}`}
-            className={`pd-ruler-dot ${c.events.length > 1 ? 'is-group' : ''} ${i % 2 ? 'label-low' : ''}`}
-            style={{ left: `${c.pos}%` }}
-            title={c.events.map((e) => `${formatYear(e.startYear)} · ${e.title}`).join('\n')}
-            aria-label={`${yearRange(c.events)}: ${c.events.length} sự kiện`}
-          >
-            {c.events.length > 1 && <b>{c.events.length}</b>}
-            <span className="pd-ruler-dot-label">{yearRange(c.events)}</span>
-          </a>
-        ))}
+        {clusters.map((c, i) => {
+          const alignClass = c.pos < 8 ? 'align-start' : c.pos > 92 ? 'align-end' : 'align-mid';
+          return (
+            <a
+              key={c.events[0].id}
+              href={`#ev-${c.events[0].id}`}
+              className={`pd-ruler-dot ${c.events.length > 1 ? 'is-group' : ''} ${i % 2 ? 'label-low' : ''} ${alignClass}`}
+              style={{ left: `${c.pos}%` }}
+              title={c.events.map((e) => `${formatYear(e.startYear)} · ${e.title}`).join('\n')}
+              aria-label={`${yearRange(c.events)}: ${c.events.length} sự kiện`}
+            >
+              {c.events.length > 1 && <b>{c.events.length}</b>}
+              <span className="pd-ruler-dot-label">{yearRange(c.events)}</span>
+            </a>
+          );
+        })}
       </div>
       <div className="pd-ruler-ticks">
         {/* Năm ở mép chỉ ghi khi chưa có chấm sự kiện nằm sẵn ở mép đó (tránh lặp nhãn). */}

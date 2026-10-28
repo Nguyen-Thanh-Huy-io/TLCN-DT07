@@ -67,16 +67,18 @@ export function DataTable<T extends object>({
       {/* Toolbar */}
       <div className="toolbar">
         <label className="search-box">
-          <Icon name={IconName.SEARCH} size={14} className="text-slate-400" />
+          <Icon name={IconName.SEARCH} size={15} className="text-slate-500" />
           <input
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
             placeholder={searchPlaceholder}
+            className="text-slate-800 placeholder:text-slate-500 font-medium text-xs sm:text-sm"
           />
           {query ? (
             <button
               type="button"
-              className="text-slate-400 hover:text-slate-700 text-xs"
+              aria-label="Xóa nội dung tìm kiếm"
+              className="text-slate-500 hover:text-slate-800 text-xs font-bold px-1"
               onClick={() => handleQueryChange('')}
             >
               ✕
@@ -86,10 +88,10 @@ export function DataTable<T extends object>({
         {filters.length > 0 && (
           <div className="filters">
             {filters.map((f, idx) => (
-              <button key={idx} type="button" onClick={f.onClick}>
-                <Icon name={IconName.FILTER} size={12} />
+              <button key={idx} type="button" onClick={f.onClick} className="text-slate-700 hover:text-slate-900 font-semibold text-xs sm:text-sm">
+                <Icon name={IconName.FILTER} size={14} className="text-slate-600" />
                 <span>{f.label}</span>
-                <span className="text-slate-400 text-xs">⌄</span>
+                <span className="text-slate-600 text-xs font-bold">⌄</span>
               </button>
             ))}
           </div>
@@ -97,10 +99,10 @@ export function DataTable<T extends object>({
         {primaryButtonLabel && onPrimaryButtonClick && (
           <button
             type="button"
-            className="primary-button ml-auto"
+            className="primary-button ml-auto !h-9 !px-3.5 !text-xs sm:!text-sm font-bold"
             onClick={onPrimaryButtonClick}
           >
-            <Icon name={IconName.PLUS} size={13} />
+            <Icon name={IconName.PLUS} size={15} />
             <span>{primaryButtonLabel}</span>
           </button>
         )}
@@ -110,12 +112,12 @@ export function DataTable<T extends object>({
       {selectedIds.length > 0 && (
         <div className="batch-toolbar">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-xs">
+            <span className="font-semibold text-xs sm:text-sm text-white">
               Đã chọn {selectedIds.length} mục
             </span>
             <button
               type="button"
-              className="text-[11px] text-slate-300 hover:text-white underline ml-2"
+              className="text-xs text-slate-200 hover:text-white underline ml-2 font-semibold"
               onClick={() => setSelectedIds([])}
             >
               Bỏ chọn
@@ -124,7 +126,7 @@ export function DataTable<T extends object>({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[11px] font-medium flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-bold flex items-center gap-1.5 transition-colors"
               onClick={() => {
                 if (
                   confirm(
@@ -136,7 +138,7 @@ export function DataTable<T extends object>({
                 }
               }}
             >
-              <Icon name={IconName.TRASH} size={12} />
+              <Icon name={IconName.TRASH} size={14} />
               <span>Xóa các mục đã chọn</span>
             </button>
           </div>
@@ -167,7 +169,7 @@ export function DataTable<T extends object>({
               <tr>
                 <td
                   colSpan={columns.length + 2}
-                  className="text-center py-10 text-slate-500 text-xs"
+                  className="text-center py-10 text-slate-600 text-sm font-medium"
                 >
                   {emptyMessage}
                 </td>
@@ -200,7 +202,7 @@ export function DataTable<T extends object>({
                           title="Xem chi tiết"
                           onClick={() => onView(item)}
                         >
-                          <Icon name={IconName.EYE} size={13} />
+                          <Icon name={IconName.EYE} size={15} />
                         </button>
                       ) : null}
                       {onEdit ? (
@@ -210,7 +212,7 @@ export function DataTable<T extends object>({
                           title="Chỉnh sửa"
                           onClick={() => onEdit(item)}
                         >
-                          <Icon name={IconName.EDIT} size={13} />
+                          <Icon name={IconName.EDIT} size={15} />
                         </button>
                       ) : null}
                       {onDelete ? (
@@ -220,7 +222,7 @@ export function DataTable<T extends object>({
                           title="Xóa"
                           onClick={() => onDelete(item)}
                         >
-                          <Icon name={IconName.TRASH} size={13} />
+                          <Icon name={IconName.TRASH} size={15} />
                         </button>
                       ) : null}
                       <ActionMenu
@@ -238,13 +240,14 @@ export function DataTable<T extends object>({
       </div>
 
       <div className="pagination">
-        <span>
+        <span className="text-xs sm:text-sm text-slate-700 font-medium">
           Hiển thị 1–{filteredData.length} trong {displayTotal} kết quả
         </span>
-        <div>
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             disabled={currentPage <= 1}
+            aria-label="Trang trước"
             onClick={() => onPageChange && onPageChange(currentPage - 1)}
           >
             ‹
@@ -254,6 +257,7 @@ export function DataTable<T extends object>({
               key={pg}
               type="button"
               className={pg === currentPage ? 'selected' : ''}
+              aria-label={`Trang ${pg}`}
               onClick={() => onPageChange && onPageChange(pg)}
             >
               {pg}
@@ -262,6 +266,7 @@ export function DataTable<T extends object>({
           <button
             type="button"
             disabled={currentPage >= totalPages}
+            aria-label="Trang sau"
             onClick={() => onPageChange && onPageChange(currentPage + 1)}
           >
             ›

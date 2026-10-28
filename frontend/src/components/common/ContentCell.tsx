@@ -15,8 +15,8 @@ export function ContentCell({ icon, title, sub }: ContentCellProps) {
         <Icon name={icon} size={17} />
       </span>
       <div>
-        <strong>{title}</strong>
-        <small>{sub}</small>
+        <strong className="text-slate-900 text-sm font-semibold">{title}</strong>
+        <small className="text-slate-600 text-xs font-normal mt-0.5 block">{sub}</small>
       </div>
     </div>
   );

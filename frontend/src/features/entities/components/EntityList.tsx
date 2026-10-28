@@ -83,15 +83,17 @@ export function EntityList() {
     {
       header: 'NIÊN ĐẠI / HOẠT ĐỘNG',
       cell: (item) => {
+        let label = 'Chưa rõ';
         if (item.birthDateLabel && item.deathDateLabel) {
-          return `${item.birthDateLabel} – ${item.deathDateLabel}`;
+          label = `${item.birthDateLabel} – ${item.deathDateLabel}`;
+        } else if (item.birthYear && item.deathYear) {
+          label = `${item.birthYear} – ${item.deathYear}`;
+        } else if (item.birthDateLabel) {
+          label = item.birthDateLabel;
+        } else if (item.birthYear) {
+          label = `Từ năm ${item.birthYear}`;
         }
-        if (item.birthYear && item.deathYear) {
-          return `${item.birthYear} – ${item.deathYear}`;
-        }
-        if (item.birthDateLabel) return item.birthDateLabel;
-        if (item.birthYear) return `Từ năm ${item.birthYear}`;
-        return 'Chưa rõ';
+        return <span className="text-slate-700 text-xs font-medium">{label}</span>;
       },
     },
     {
@@ -107,10 +109,13 @@ export function EntityList() {
     },
     {
       header: 'CẬP NHẬT',
-      cell: (item) =>
-        item.updatedAt
-          ? new Date(item.updatedAt).toLocaleDateString('vi-VN')
-          : 'Chưa cập nhật',
+      cell: (item) => (
+        <span className="text-slate-700 text-xs font-medium">
+          {item.updatedAt
+            ? new Date(item.updatedAt).toLocaleDateString('vi-VN')
+            : 'Chưa cập nhật'}
+        </span>
+      ),
     },
   ];
 

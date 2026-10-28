@@ -1132,15 +1132,15 @@
 
   /* Muted Pastels (taste-skill specification) */
   --pastel-green-bg: #edf3ec;
-  --pastel-green-text: #346538;
+  --pastel-green-text: #1e4620;
   --pastel-blue-bg: #e1f3fe;
-  --pastel-blue-text: #1f6c9f;
+  --pastel-blue-text: #144e75;
   --pastel-amber-bg: #fbf3db;
-  --pastel-amber-text: #956400;
+  --pastel-amber-text: #78350f;
   --pastel-red-bg: #fdebec;
-  --pastel-red-text: #9f2f2d;
+  --pastel-red-text: #991b1b;
   --pastel-gray-bg: #f1f5f9;
-  --pastel-gray-text: #475569;
+  --pastel-gray-text: #334155;
 
   font-family: var(--font-sans);
   color: var(--text-main);
@@ -1315,7 +1315,7 @@ button {
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
-  color: var(--text-muted);
+  color: #334155;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -1341,7 +1341,7 @@ button {
     border-radius: 6px;
     border: 1px solid var(--border);
     background: transparent;
-    color: var(--text-muted);
+    color: #334155;
     cursor: pointer;
     font-size: 16px;
     line-height: 1;
@@ -1361,7 +1361,7 @@ button {
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
-  color: var(--text-muted);
+  color: #334155;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1413,7 +1413,7 @@ button {
   padding: 1.5px 5px;
   border-radius: 4px;
   background: var(--surface-subtle);
-  color: var(--text-muted);
+  color: #334155;
   border: 1px solid var(--border);
 }
 
@@ -1490,7 +1490,7 @@ button {
   display: grid;
   place-items: center;
   background: #f1f5f9;
-  color: var(--text-muted);
+  color: #334155;
   border: 1px solid var(--border);
   border-radius: 9999px;
   font-weight: 600;
@@ -1561,14 +1561,14 @@ button {
 
 .sidebar-user span {
   display: block;
-  color: var(--text-muted);
+  color: #334155;
   font-size: 12px;
 }
 
 .sidebar-user button {
   background: none;
   border: 0;
-  color: var(--text-muted);
+  color: #334155;
   padding: 4px;
   border-radius: 4px;
   transition: all 0.12s ease;
@@ -1614,11 +1614,11 @@ button {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--text-muted);
+  color: #334155;
 }
 
 .breadcrumb a {
-  color: var(--text-muted);
+  color: #334155;
   text-decoration: none;
   transition: color 0.12s ease;
 }
@@ -1671,7 +1671,7 @@ button {
 }
 
 .global-search kbd {
-  color: var(--text-muted);
+  color: #334155;
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -1688,7 +1688,7 @@ button {
   place-items: center;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text-muted);
+  color: #334155;
   position: relative;
   border-radius: 6px;
   transition: all 0.15s ease;
@@ -1731,7 +1731,7 @@ button {
 }
 
 .top-user span {
-  color: var(--text-muted);
+  color: #334155;
   font-size: 12px;
 }
 
@@ -1769,7 +1769,7 @@ button {
 
 .page-title p {
   margin: 4px 0 0;
-  color: var(--text-muted);
+  color: #334155;
   font-size: 13px;
 }
 
@@ -1784,8 +1784,8 @@ button {
   border: 0;
   background: none;
   padding: 0;
-  color: var(--text-muted);
-  font-size: 11.5px;
+  color: #334155;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -1826,7 +1826,7 @@ button {
   border-radius: 6px;
   display: grid;
   place-items: center;
-  color: var(--text-muted);
+  color: #334155;
   background: var(--surface-subtle);
   border: 1px solid var(--border-subtle);
 }
@@ -1842,7 +1842,7 @@ button {
 }
 
 .stat-label {
-  color: var(--text-muted);
+  color: #334155;
   font-size: 12.5px;
   font-weight: 500;
 }
@@ -1852,7 +1852,7 @@ button {
   margin-top: 12px;
   padding-top: 8px;
   color: var(--text-subtle);
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .stat-detail span {
@@ -1912,7 +1912,7 @@ button {
   align-items: center;
   gap: 8px;
   padding: 0 10px;
-  color: var(--text-muted);
+  color: #334155;
   transition: all 0.15s ease;
 }
 
@@ -2036,12 +2036,12 @@ table {
 }
 
 thead th {
-  padding: 10px 16px;
+  padding: 11px 16px;
   background: #f8fafc;
   border-bottom: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 11.5px;
-  font-weight: 600;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   white-space: nowrap;
@@ -2088,7 +2088,7 @@ input[type="checkbox"] {
   width: 30px;
   height: 30px;
   border-radius: 6px;
-  color: var(--text-muted);
+  color: #334155;
   background: var(--surface-subtle);
   border: 1px solid var(--border-subtle);
   display: grid;
@@ -2106,8 +2106,8 @@ input[type="checkbox"] {
 
 .content-cell small {
   display: block;
-  color: var(--text-muted);
-  font-size: 11.5px;
+  color: #334155;
+  font-size: 12px;
   margin-top: 1px;
 }
 
@@ -2144,7 +2144,7 @@ input[type="checkbox"] {
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  color: var(--text-muted);
+  color: #334155;
   font-size: 12.5px;
 }
 
@@ -2154,15 +2154,15 @@ input[type="checkbox"] {
 }
 
 .pagination button {
-  min-width: 30px;
-  height: 30px;
-  padding: 0 6px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
   border: 1px solid var(--border);
   background: white;
   border-radius: 6px;
-  color: #475569;
+  color: #1e293b;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   display: grid;
   place-items: center;
   transition: all 0.12s ease;
@@ -2180,7 +2180,10 @@ input[type="checkbox"] {
 }
 
 .pagination button:disabled {
-  opacity: 0.4;
+  opacity: 0.65;
+  color: #64748b;
+  background: #f8fafc;
+  border-color: #e2e8f0;
   cursor: not-allowed;
 }
 
@@ -2205,15 +2208,15 @@ input[type="checkbox"] {
   gap: 4px;
 }
 
-.quick-row-btn {
-  width: 28px;
-  height: 28px;
+.quick-row-btn, .action-more {
+  width: 30px;
+  height: 30px;
   border: 1px solid transparent;
   border-radius: 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: #334155;
   background: transparent;
   transition: all 0.12s ease;
   cursor: pointer;
@@ -2247,7 +2250,7 @@ tbody tr:hover .quick-row-btn {
   padding: 2.5px 8px;
   border-radius: 9999px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.3;
   white-space: nowrap;
 }
@@ -2326,7 +2329,7 @@ tbody tr:hover .quick-row-btn {
   display: grid;
   place-items: center;
   background: var(--surface-subtle);
-  color: var(--text-muted);
+  color: #334155;
   font-size: 12px;
   font-weight: 700;
   font-family: var(--font-mono);
@@ -2341,8 +2344,8 @@ tbody tr:hover .quick-row-btn {
 
 .section-title p {
   margin: 2px 0 0;
-  font-size: 11.5px;
-  color: var(--text-muted);
+  font-size: 12px;
+  color: #334155;
 }
 
 .field {
@@ -2406,7 +2409,7 @@ tbody tr:hover .quick-row-btn {
   display: grid;
   place-content: center;
   text-align: center;
-  color: var(--text-muted);
+  color: #334155;
   padding: 16px;
 }
 
@@ -2443,8 +2446,8 @@ tbody tr:hover .quick-row-btn {
 }
 
 .toggle-row p {
-  font-size: 11.5px;
-  color: var(--text-muted);
+  font-size: 12px;
+  color: #334155;
   margin: 2px 0 0;
 }
 
@@ -2582,7 +2585,7 @@ tbody tr:hover .quick-row-btn {
   background: transparent;
   border: 0;
   font-size: 20px;
-  color: var(--text-muted);
+  color: #334155;
   width: 28px;
   height: 28px;
   border-radius: 4px;
@@ -2844,7 +2847,7 @@ tbody tr:hover .quick-row-btn {
 
 .tiptap-content-box blockquote {
   margin: 1.25rem 0;
-  padding: 10px 16px;
+  padding: 11px 16px;
   border-left: 3px solid #0f172a;
   background-color: #f8fafc;
   color: #334155;
@@ -2890,7 +2893,7 @@ figure.wiki-media-block img {
 
 figure.wiki-media-block figcaption {
   font-size: 12px;
-  color: var(--text-muted);
+  color: #334155;
   margin-top: 6px;
   font-style: italic;
 }

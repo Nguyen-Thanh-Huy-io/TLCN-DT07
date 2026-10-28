@@ -23,7 +23,7 @@ export function ActionMenu({ onEdit, onDelete, onView }: ActionMenuProps) {
           setOpen(!open);
         }}
       >
-        <Icon name={IconName.MORE} />
+        <Icon name={IconName.MORE} size={15} className="text-slate-700" />
       </button>
       {open && (
         <>
@@ -31,36 +31,48 @@ export function ActionMenu({ onEdit, onDelete, onView }: ActionMenuProps) {
             className="action-menu-backdrop"
             onClick={() => setOpen(false)}
           />
-          <div className="action-dropdown">
+          <div className="action-dropdown shadow-md border border-slate-200">
             <button
               type="button"
-              className="dropdown-item"
+              className="dropdown-item text-xs font-semibold text-slate-700 hover:text-slate-900"
               onClick={() => {
                 setOpen(false);
-                onView ? onView() : alert('Xem thông tin chi tiết');
+                if (onView) {
+                  onView();
+                } else {
+                  alert('Xem thông tin chi tiết');
+                }
               }}
             >
-              <Icon name={IconName.EYE} size={14} /> Xem chi tiết
+              <Icon name={IconName.EYE} size={15} className="text-slate-600" /> Xem chi tiết
             </button>
             <button
               type="button"
-              className="dropdown-item"
+              className="dropdown-item text-xs font-semibold text-slate-700 hover:text-slate-900"
               onClick={() => {
                 setOpen(false);
-                onEdit ? onEdit() : alert('Chỉnh sửa nội dung');
+                if (onEdit) {
+                  onEdit();
+                } else {
+                  alert('Chỉnh sửa nội dung');
+                }
               }}
             >
-              <Icon name={IconName.EDIT} size={14} /> Chỉnh sửa
+              <Icon name={IconName.EDIT} size={15} className="text-slate-600" /> Chỉnh sửa
             </button>
             <button
               type="button"
-              className="dropdown-item danger"
+              className="dropdown-item danger text-xs font-semibold text-red-600 hover:text-red-700"
               onClick={() => {
                 setOpen(false);
-                onDelete ? onDelete() : alert('Xóa mục này');
+                if (onDelete) {
+                  onDelete();
+                } else {
+                  alert('Xóa mục này');
+                }
               }}
             >
-              <Icon name={IconName.TRASH} size={14} /> Xóa
+              <Icon name={IconName.TRASH} size={15} className="text-red-600" /> Xóa
             </button>
           </div>
         </>

@@ -79,14 +79,27 @@ export function LocationList() {
     {
       header: 'ĐỊA CHỈ',
       accessorKey: 'address',
-      cell: (item) => item.address || '—',
+      cell: (item) => (
+        <span className="text-slate-700 text-xs sm:text-sm font-normal">
+          {item.address || '—'}
+        </span>
+      ),
     },
     {
       header: 'TỌA ĐỘ',
-      cell: (item) =>
-        item.latitude && item.longitude
-          ? `${Number(item.latitude).toFixed(4)}, ${Number(item.longitude).toFixed(4)}`
-          : 'Chưa cập nhật',
+      cell: (item) => (
+        <span
+          className={
+            item.latitude && item.longitude
+              ? 'text-slate-700 font-mono text-xs font-medium'
+              : 'text-slate-600 italic text-xs'
+          }
+        >
+          {item.latitude && item.longitude
+            ? `${Number(item.latitude).toFixed(4)}, ${Number(item.longitude).toFixed(4)}`
+            : 'Chưa cập nhật'}
+        </span>
+      ),
     },
     {
       header: 'TRẠNG THÁI',
@@ -101,10 +114,13 @@ export function LocationList() {
     },
     {
       header: 'CẬP NHẬT',
-      cell: (item) =>
-        item.updatedAt
-          ? new Date(item.updatedAt).toLocaleDateString('vi-VN')
-          : 'Chưa cập nhật',
+      cell: (item) => (
+        <span className="text-slate-700 text-xs font-medium">
+          {item.updatedAt
+            ? new Date(item.updatedAt).toLocaleDateString('vi-VN')
+            : 'Chưa cập nhật'}
+        </span>
+      ),
     },
   ];
 

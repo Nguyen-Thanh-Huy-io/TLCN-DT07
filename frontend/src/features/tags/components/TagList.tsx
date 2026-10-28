@@ -87,22 +87,23 @@ export function TagList() {
     <div className="panel management-panel">
       <div className="toolbar">
         <label className="search-box">
-          <Icon name={IconName.SEARCH} size={17} />
+          <Icon name={IconName.SEARCH} size={15} className="text-slate-500" />
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm kiếm thẻ phân loại..."
+            className="text-slate-800 placeholder:text-slate-500 font-medium text-xs sm:text-sm"
           />
         </label>
         <button
           type="button"
-          className="primary-button"
+          className="primary-button !h-9 !px-3.5 !text-xs sm:!text-sm font-bold ml-auto"
           onClick={() => {
             setEditingTag(null);
             setIsModalOpen(true);
           }}
         >
-          <Icon name={IconName.PLUS} size={17} />
+          <Icon name={IconName.PLUS} size={15} />
           Thêm thẻ mới
         </button>
       </div>
@@ -150,11 +151,11 @@ export function TagList() {
                           display: 'inline-block',
                         }}
                       />
-                      <strong>{tag.name}</strong>
+                      <strong className="text-slate-900 text-sm font-semibold">{tag.name}</strong>
                     </div>
                   </td>
-                  <td>{tag.description || 'Chưa có mô tả'}</td>
-                  <td>{tag.lessonCount ?? 0} bài học</td>
+                  <td className="text-slate-700 text-xs sm:text-sm">{tag.description || 'Chưa có mô tả'}</td>
+                  <td className="text-slate-700 text-xs sm:text-sm font-medium">{tag.lessonCount ?? 0} bài học</td>
                   <td>
                     <ActionMenu
                       onEdit={() => {
@@ -173,7 +174,7 @@ export function TagList() {
       </div>
 
       <div className="pagination">
-        <span>Hiển thị 1–{filteredTags.length} trong {filteredTags.length} thẻ</span>
+        <span className="text-xs sm:text-sm text-slate-700 font-medium">Hiển thị 1–{filteredTags.length} trong {filteredTags.length} thẻ</span>
         <div>
           <button type="button" className="selected">1</button>
         </div>

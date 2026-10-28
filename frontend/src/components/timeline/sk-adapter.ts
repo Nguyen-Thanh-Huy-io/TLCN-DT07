@@ -7,7 +7,19 @@ import {
 import type { TaxonomyTermItem } from "@/services/entities/taxonomy.service";
 import { eventCategoryLabel, eventCategoryRootCode } from "@/features/taxonomy/taxonomy-labels";
 import { isDomesticRegion, regionLabel } from "@/utils/region.utils";
-import type { Attributed, Era, SubEra, TimeNode, TimelineEvent, TimelineFigure, TimelineLocation } from "./sk-types";
+import { EventCategory, EventRelationType } from "@/constants/enums";
+import {
+  EventDomainGroup,
+  EventScopeGroup,
+  TimelineRelationDirection,
+  type Attributed,
+  type Era,
+  type SubEra,
+  type TimeNode,
+  type TimelineEvent,
+  type TimelineFigure,
+  type TimelineLocation,
+} from "./sk-types";
 
 function toTimelineFigure(figure: PublicFigureDto): TimelineFigure {
   return {
@@ -53,14 +65,14 @@ const THEME_COLORS = ["green", "amber"];
 /** Nhánh gốc của cây loại sự kiện thuộc nhóm "Kinh tế – Văn hóa" trên dòng thời gian. */
 const CULTURE_ROOTS = new Set(["SOCIETY_CULTURE", "SCIENCE_DISCOVERY"]);
 
-function domainGroupOf(terms: TaxonomyTermItem[], event: PublicEventSummaryDto): "POLITICS_MILITARY" | "ECONOMY_CULTURE" {
+function domainGroupOf(terms: TaxonomyTermItem[], event: PublicEventSummaryDto): EventDomainGroup {
   const root = eventCategoryRootCode(terms, event);
-  const isCulture = root ? CULTURE_ROOTS.has(root) : event.category === "CULTURE_SCIENCE";
-  return isCulture ? "ECONOMY_CULTURE" : "POLITICS_MILITARY";
+  const isCulture = root ? CULTURE_ROOTS.has(root) : event.category === EventCategory.CULTURE_SCIENCE;
+  return isCulture ? EventDomainGroup.ECONOMY_CULTURE : EventDomainGroup.POLITICS_MILITARY;
 }
 
-function scopeGroupOf(region: string | null): "DOMESTIC" | "WORLD" {
-  return isDomesticRegion(region) ? "DOMESTIC" : "WORLD";
+function scopeGroupOf(region: string | null): EventScopeGroup {
+  return isDomesticRegion(region) ? EventScopeGroup.DOMESTIC : EventScopeGroup.WORLD;
 }
 
 /** Nhãn ngắn hiển thị trên trục/thẻ. Ghi chú niên đại dài (vd. "Theo truyền thuyết...") chỉ hiện ở chi tiết. */
@@ -105,7 +117,11 @@ function toTimelineEvent(
     ...spanOf(event),
     parentId: event.parentId ?? null,
     relations: event.relations ?? [],
-    endedByEventId: event.relations?.find((r) => r.relationType === "ENDED_BY" && r.direction === "OUTGOING")?.eventId,
+    endedByEventId: event.relations?.find(
+      (r) =>
+        r.relationType === EventRelationType.ENDED_BY &&
+        r.direction === TimelineRelationDirection.OUTGOING,
+    )?.eventId,
     actors: event.actors ?? [],
   };
 }

@@ -13,6 +13,13 @@ import { topicsData, TopicItem } from "@/data/topics";
 
 import { TimelineNode } from "@/data/timeline";
 
+const SCROLL_PADDING_16PX = '16px';
+const SCROLL_SNAP_X_MANDATORY = 'x mandatory';
+const HERO_BG_ART_URL = "url('/assets/decor/hero-bg-art.png')";
+const MASK_RADIAL_ELLIPSE = 'radial-gradient(ellipse at center, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 80%)';
+const MASK_RADIAL_CIRCLE = 'radial-gradient(circle at center, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 75%)';
+const MASK_LINEAR_TOP = 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)';
+
 /**
  * 2. Section Timeline: Dòng chảy lịch sử Việt Nam (#timeline)
  * Khoảng cách dọc tiêu chuẩn tối đa 64px (md:py-8 py-6) để không bị cộng dồn
@@ -71,9 +78,9 @@ export function MemorableChaptersSection({
         <div
           className="flex overflow-x-auto gap-3 px-4 pb-4 no-scrollbar"
           style={{
-            scrollSnapType: "x mandatory",
-            scrollPaddingLeft: "16px",
-            scrollPaddingRight: "16px",
+            scrollSnapType: SCROLL_SNAP_X_MANDATORY,
+            scrollPaddingLeft: SCROLL_PADDING_16PX,
+            scrollPaddingRight: SCROLL_PADDING_16PX,
             WebkitOverflowScrolling: "touch",
           }}
         >
@@ -126,9 +133,9 @@ export function ProminentFiguresSection({
         <div
           className="flex overflow-x-auto gap-3 px-4 pb-4 no-scrollbar"
           style={{
-            scrollSnapType: "x mandatory",
-            scrollPaddingLeft: "16px",
-            scrollPaddingRight: "16px",
+            scrollSnapType: SCROLL_SNAP_X_MANDATORY,
+            scrollPaddingLeft: SCROLL_PADDING_16PX,
+            scrollPaddingRight: SCROLL_PADDING_16PX,
             WebkitOverflowScrolling: "touch",
           }}
         >
@@ -164,12 +171,12 @@ export function PeriodExploreSection({
       <div
         className="pointer-events-none absolute inset-0 z-0 opacity-[0.06] select-none"
         style={{
-          backgroundImage: "url('/assets/decor/hero-bg-art.png')",
+          backgroundImage: HERO_BG_ART_URL,
           backgroundPosition: "center 40%",
           backgroundSize: "cover",
           backgroundRepeat: "no-repeat",
-          WebkitMaskImage: "radial-gradient(ellipse at center, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 80%)",
-          maskImage: "radial-gradient(ellipse at center, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 80%)",
+          WebkitMaskImage: MASK_RADIAL_ELLIPSE,
+          maskImage: MASK_RADIAL_ELLIPSE,
         }}
         aria-hidden="true"
       />
@@ -191,9 +198,9 @@ export function PeriodExploreSection({
         <div
           className="flex overflow-x-auto gap-3 px-4 pb-4 no-scrollbar"
           style={{
-            scrollSnapType: "x mandatory",
-            scrollPaddingLeft: "16px",
-            scrollPaddingRight: "16px",
+            scrollSnapType: SCROLL_SNAP_X_MANDATORY,
+            scrollPaddingLeft: SCROLL_PADDING_16PX,
+            scrollPaddingRight: SCROLL_PADDING_16PX,
             WebkitOverflowScrolling: "touch",
           }}
         >
@@ -233,8 +240,8 @@ export function KnowledgeTopicsSection({
           backgroundPosition: "center",
           backgroundSize: "cover",
           backgroundRepeat: "repeat",
-          WebkitMaskImage: "radial-gradient(circle at center, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 75%)",
-          maskImage: "radial-gradient(circle at center, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 75%)",
+          WebkitMaskImage: MASK_RADIAL_CIRCLE,
+          maskImage: MASK_RADIAL_CIRCLE,
         }}
         aria-hidden="true"
       />
@@ -265,12 +272,12 @@ export function NewsletterSection() {
       <div
         className="pointer-events-none absolute inset-0 z-0 opacity-[0.06] select-none"
         style={{
-          backgroundImage: "url('/assets/decor/hero-bg-art.png')",
+          backgroundImage: HERO_BG_ART_URL,
           backgroundPosition: "center bottom",
           backgroundSize: "contain",
           backgroundRepeat: "no-repeat",
-          WebkitMaskImage: "linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)",
-          maskImage: "linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)",
+          WebkitMaskImage: MASK_LINEAR_TOP,
+          maskImage: MASK_LINEAR_TOP,
         }}
         aria-hidden="true"
       />

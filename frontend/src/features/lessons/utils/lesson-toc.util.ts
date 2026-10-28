@@ -24,6 +24,8 @@ function getBlockTocLabel(block: LessonBlockItem): string | null {
       return `Bản đồ: ${block.locationName}`;
     case LessonBlockType.COMPARISON_TABLE:
       return block.title?.trim() || 'Bảng so sánh';
+    case LessonBlockType.QUIZ:
+      return 'Câu hỏi tự kiểm tra nhanh';
     default:
       return null;
   }

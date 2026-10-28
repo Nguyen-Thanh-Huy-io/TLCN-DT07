@@ -1,4 +1,5 @@
 "use client";
+import { KeyboardKey } from '@/constants/enums';
 
 import { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -65,7 +66,7 @@ export function Modal({
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === KeyboardKey.ESCAPE) onClose();
     };
     document.addEventListener("keydown", onKeyDown);
     const originalOverflow = document.body.style.overflow;

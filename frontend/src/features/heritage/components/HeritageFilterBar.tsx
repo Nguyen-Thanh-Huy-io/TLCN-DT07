@@ -48,8 +48,21 @@ export const EMPTY_HERITAGE_FILTERS: HeritageFilters = {
   digital: [],
 };
 
-type FacetKey = Exclude<keyof HeritageFilters, 'query'>;
-const FACET_KEYS: FacetKey[] = ['eras', 'subEras', 'figures', 'events', 'regions', 'localities', 'ranks', 'types', 'preservation', 'digital'];
+export enum HeritageFacetKey {
+  ERAS = 'eras',
+  SUB_ERAS = 'subEras',
+  FIGURES = 'figures',
+  EVENTS = 'events',
+  REGIONS = 'regions',
+  LOCALITIES = 'localities',
+  RANKS = 'ranks',
+  TYPES = 'types',
+  PRESERVATION = 'preservation',
+  DIGITAL = 'digital',
+}
+
+type FacetKey = HeritageFacetKey | Exclude<keyof HeritageFilters, 'query'>;
+const FACET_KEYS: FacetKey[] = Object.values(HeritageFacetKey);
 const RANK_ORDER: HeritageRank[] = ['UNESCO', 'INTERNATIONAL', 'SPECIAL_NATIONAL', 'NATIONAL', 'PROVINCIAL', 'UNRANKED'];
 
 export const heritageFilterCount = (f: HeritageFilters) => FACET_KEYS.reduce((n, k) => n + f[k].length, 0);
@@ -212,8 +225,8 @@ export function HeritageFilterBar({
   const options = useMemo(() => buildOptions(heritages, periods, regionOrder), [heritages, periods, regionOrder]);
 
   const labelOf = (key: FacetKey, value: string): string => {
-    if (key === 'subEras') return [...options.subErasByEra.values()].flat().find((o) => o.value === value)?.label ?? value;
-    if (key === 'localities') return value;
+    if (key === HeritageFacetKey.SUB_ERAS) return [...options.subErasByEra.values()].flat().find((o) => o.value === value)?.label ?? value;
+    if (key === HeritageFacetKey.LOCALITIES) return value;
     const list = options[key as Exclude<FacetKey, 'subEras' | 'localities'>] as ChipOption[];
     return list.find((o) => o.value === value)?.label ?? value;
   };
@@ -289,11 +302,11 @@ export function HeritageFilterBar({
             setDraft((d) => {
               const next = { ...d, [key]: toggleValue(d[key], v) };
               // Bỏ thời kỳ thì bỏ luôn các giai đoạn con của nó; bỏ khu vực thì bỏ địa phương thuộc khu vực đó.
-              if (key === 'eras' && !next.eras.includes(v)) {
+              if (key === HeritageFacetKey.ERAS && !next.eras.includes(v)) {
                 const subs = new Set((options.subErasByEra.get(v) ?? []).map((o) => o.value));
                 next.subEras = next.subEras.filter((s) => !subs.has(s));
               }
-              if (key === 'regions' && !next.regions.includes(v)) {
+              if (key === HeritageFacetKey.REGIONS && !next.regions.includes(v)) {
                 const locs = new Set((options.localitiesByRegion.get(v) ?? []).map((o) => o.value));
                 next.localities = next.localities.filter((l) => !locs.has(l));
               }

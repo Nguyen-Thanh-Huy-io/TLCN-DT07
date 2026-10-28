@@ -28,13 +28,16 @@ function redirectToLogin(): void {
   window.location.assign(`/login?redirect=${encodeURIComponent(back)}`);
 }
 
+export const API_ERROR_NETWORK_CODE = 'ERR_NETWORK';
+export const API_NETWORK_ERROR_MESSAGE = 'Network Error';
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
     // Xử lý lỗi Network Error khi backend offline (ECONNREFUSED)
-    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+    if (error.code === API_ERROR_NETWORK_CODE || error.message === API_NETWORK_ERROR_MESSAGE) {
       console.warn(
         `[API Gateway] Backend hiện chưa khởi động hoặc không thể kết nối tới ${API_URL}. Hệ thống tự động chuyển sang chế độ dữ liệu offline (Mock Data).`,
       );

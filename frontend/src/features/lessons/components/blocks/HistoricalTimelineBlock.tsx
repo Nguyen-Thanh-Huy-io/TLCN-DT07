@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
-import { EventPickerModal } from './EventPickerModal';
+import { EventPickerModal, EventSelectionPayload, normalizePickedEvent } from './EventPickerModal';
 import { HistoricalEventItem } from '@/services/entities/historical-event.service';
 
 export interface TimelineNodeMedia {
@@ -90,14 +90,15 @@ export const HistoricalTimelineBlock: React.FC<HistoricalTimelineBlockProps> = (
     updateState(currentTitle, currentSubtitle, updated);
   };
 
-  // Thêm mốc chọn từ kho tri thức HISGO
-  const handleSelectEventFromStore = (event: HistoricalEventItem) => {
+  // Thêm mốc chọn từ kho tri thức HISGO hoặc Wikipedia
+  const handleSelectEventFromStore = (event: HistoricalEventItem | EventSelectionPayload) => {
+    const norm = normalizePickedEvent(event);
     const newNode: TimelineNode = {
       id: `node_${Date.now()}`,
-      year: String(event.startYear || 'Lịch sử'),
-      title: event.title,
-      description: event.summary || event.description || 'Sự kiện lịch sử trọng đại.',
-      eventId: event.id,
+      year: String(norm.year || 'Lịch sử'),
+      title: norm.title,
+      description: norm.summary || 'Sự kiện lịch sử trọng đại.',
+      eventId: norm.eventId,
     };
     const updated = [...currentNodes, newNode];
     updateState(currentTitle, currentSubtitle, updated);

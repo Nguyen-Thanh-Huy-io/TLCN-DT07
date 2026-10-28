@@ -8,7 +8,7 @@ import type { LearningPathItem } from '@/services/entities/learning-path.service
 import type { LibraryLesson } from '@/services/entities/learner.service';
 import { regionLabel, regionOrderFromTerms, sortedRegions } from '@/utils/region.utils';
 import { formatYear, shortPeriodName } from '@/features/search/search-index';
-import { FIGURE_ROLE_LABELS, FigureRole, HistoricalRegion } from '@/constants/enums';
+import { FIGURE_ROLE_LABELS, FigureRole, HistoricalRegion, ContentStatus } from '@/constants/enums';
 import type {
   LandingCourse,
   LandingData,
@@ -275,13 +275,13 @@ function buildLocations(locations: PublicLocationSummaryDto[], events: PublicEve
 
 function buildCourses(paths: LearningPathItem[]): LandingCourse[] {
   return paths
-    .filter((p) => p.status === 'PUBLISHED')
+    .filter((p) => p.status === ContentStatus.PUBLISHED)
     .sort((a, b) => a.displayOrder - b.displayOrder)
     .slice(0, 3)
     .map((p, i) => {
       const lessons = (p.chapters || []).flatMap((ch) =>
         (ch.chapterLessons || [])
-          .filter((cl) => cl.lesson?.status === 'PUBLISHED')
+          .filter((cl) => cl.lesson?.status === ContentStatus.PUBLISHED)
           .map((cl) => ({ id: cl.lesson.id, slug: cl.lesson.slug })),
       );
       return {
@@ -339,7 +339,7 @@ export function buildLandingData(source: LandingSource, today: Date = new Date()
       events: source.events.length,
       figures: source.figures.length,
       locations: source.locations.length,
-      paths: source.paths.filter((p) => p.status === 'PUBLISHED').length,
+      paths: source.paths.filter((p) => p.status === ContentStatus.PUBLISHED).length,
       regions: regions.length,
     },
   };

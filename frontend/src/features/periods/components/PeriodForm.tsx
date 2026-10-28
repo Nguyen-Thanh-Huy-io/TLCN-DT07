@@ -5,7 +5,11 @@ import { Icon } from '@/components/icons/Icon';
 import { Field, SelectField } from '@/components/common/FormField';
 import { IconName } from '@/constants/icons';
 import { APP_ROUTES } from '@/constants/routes';
-import { ContentStatus } from '@/constants/enums';
+import {
+  ContentStatus,
+  HISTORICAL_REGION_OPTIONS,
+  HistoricalRegion,
+} from '@/constants/enums';
 import api, { extractErrorMessage } from '@/services/api';
 import { formatHistoricalTimeSpan } from '@/utils/history-year.utils';
 
@@ -13,7 +17,7 @@ export function PeriodForm() {
   const router = useRouter();
   const [form, setForm] = useState({
     name: '',
-    region: 'Việt Nam',
+    region: HistoricalRegion.VIETNAM as string,
     displayOrder: '',
     startYear: '',
     endYear: '',
@@ -37,7 +41,7 @@ export function PeriodForm() {
       setSaving(true);
       await api.post('/periods', {
         name: form.name.trim(),
-        region: form.region || 'Việt Nam',
+        region: form.region || HistoricalRegion.VIETNAM,
         startYear: Number(form.startYear),
         endYear: form.endYear ? Number(form.endYear) : undefined,
         description: form.description.trim() || undefined,
@@ -77,7 +81,7 @@ export function PeriodForm() {
               required
               value={form.region}
               onChange={(e) => updateField('region', e.target.value)}
-              options={['Việt Nam', 'Thế giới', 'Đông Nam Á']}
+              options={HISTORICAL_REGION_OPTIONS}
             />
             <Field
               label="Thứ tự hiển thị"

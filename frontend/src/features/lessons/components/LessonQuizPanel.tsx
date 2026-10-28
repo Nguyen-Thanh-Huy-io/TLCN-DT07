@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/common/Badge';
-import { UseQuizEditorReturn } from '../facades/useQuizEditor';
+import { QuizSaveState, UseQuizEditorReturn } from '../facades/useQuizEditor';
 import { QuizQuestionCard } from './quiz/QuizQuestionCard';
 import { AddQuestionMenu } from './quiz/AddQuestionMenu';
 
@@ -62,7 +62,7 @@ export function LessonQuizPanel({ lessonId, quiz }: LessonQuizPanelProps) {
             min={0}
             max={100}
             value={quiz.passingScorePercent}
-            onChange={(e) => quiz.setPassingScorePercent(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) => quiz.setPassingScorePercent(e.target.value ? Number(e.target.value) : '')}
             placeholder="Tùy chọn"
             className="w-full text-xs p-1.5 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
@@ -95,10 +95,10 @@ export function LessonQuizPanel({ lessonId, quiz }: LessonQuizPanelProps) {
         <button
           type="button"
           onClick={quiz.save}
-          disabled={quiz.saving === 'SAVING'}
+          disabled={quiz.saving === QuizSaveState.SAVING}
           className="primary-button !h-8 !text-xs !px-4 flex-1 justify-center"
         >
-          {quiz.saving === 'SAVING' ? 'Đang lưu...' : quiz.hasQuiz ? 'Lưu thay đổi đề' : 'Lưu đề ôn tập'}
+          {quiz.saving === QuizSaveState.SAVING ? 'Đang lưu...' : quiz.hasQuiz ? 'Lưu thay đổi đề' : 'Lưu đề ôn tập'}
         </button>
         {quiz.hasQuiz && (
           <button
@@ -110,7 +110,7 @@ export function LessonQuizPanel({ lessonId, quiz }: LessonQuizPanelProps) {
           </button>
         )}
       </div>
-      {quiz.saving === 'SAVED' && (
+      {quiz.saving === QuizSaveState.SAVED && (
         <p className="text-[11px] text-emerald-600 text-center">Đã lưu đề ôn tập.</p>
       )}
     </div>

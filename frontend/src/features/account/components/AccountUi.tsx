@@ -1,16 +1,17 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { NoticeTone } from '@/constants/enums';
 
 export const FIELD_CLASS =
   'h-11 w-full rounded-xl border border-lh-line bg-lh-surface px-3.5 text-sm text-lh-ink outline-none transition focus:border-lh-brand/50 focus:ring-2 focus:ring-lh-brand/10';
 
-export type NoticeState = { tone: 'ok' | 'error'; text: string } | null;
+export type NoticeState = { tone: NoticeTone | 'ok' | 'error'; text: string } | null;
 
 export function Notice({ notice }: { notice: NoticeState }) {
   if (!notice) return null;
   return (
-    <p role="status" className={`mt-2 text-sm ${notice.tone === 'ok' ? 'text-lh-brand' : 'text-lh-red'}`}>
+    <p role="status" className={`mt-2 text-sm ${notice.tone === NoticeTone.OK ? 'text-lh-brand' : 'text-lh-red'}`}>
       {notice.text}
     </p>
   );

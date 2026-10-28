@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { BookmarkPlus, LockKeyhole, LogIn, UserPlus } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import type { LearningPathItem } from '@/services/entities/learning-path.service';
-import type { LessonAccess } from '../../facades/usePublicLessonReaderFacade';
+import { type LessonAccess, LessonAccessState } from '../../facades/usePublicLessonReaderFacade';
 import { DEFAULT_COVER_IMAGES } from '../../constants/public-curriculum.constants';
 import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubButton } from './HubUi';
 
@@ -59,7 +59,7 @@ export function HubLessonGate({
         </h1>
         {preview?.description && <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-lh-muted">{preview.description}</p>}
 
-        {access === 'LOGIN_REQUIRED' ? (
+        {access === LessonAccessState.LOGIN_REQUIRED ? (
           <>
             <p className="mx-auto mt-5 max-w-md text-sm text-lh-ink">
               Đăng nhập và đăng ký lộ trình (miễn phí) để đọc toàn bộ bài học, làm đề ôn tập và lưu tiến độ.

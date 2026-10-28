@@ -1,5 +1,6 @@
 import { EVENT_CATEGORY_LABELS, EVENT_ENTITY_ROLE_LABELS, EventCategory } from '@/constants/enums';
 import type { TaxonomyTermItem } from '@/services/entities/taxonomy.service';
+import { TimelineRelationDirection } from '@/components/timeline/sk-types';
 
 /**
  * Nhãn hiển thị lấy từ "Danh mục dùng chung"; chưa có danh mục (tải lỗi / dữ liệu cũ) thì rơi về
@@ -51,11 +52,11 @@ export function eventCategoryRootCode(terms: TaxonomyTermItem[], event: EventCat
 export function relationLabel(
   terms: TaxonomyTermItem[],
   code: string,
-  direction: 'OUTGOING' | 'INCOMING' = 'OUTGOING',
+  direction: TimelineRelationDirection | 'OUTGOING' | 'INCOMING' = TimelineRelationDirection.OUTGOING,
   fallback: Record<string, string> = {},
 ): string {
   const term = terms.find((t) => t.code === code);
-  if (term) return direction === 'INCOMING' ? (term.inverseLabel ?? term.label) : term.label;
+  if (term) return direction === TimelineRelationDirection.INCOMING ? (term.inverseLabel ?? term.label) : term.label;
   return fallback[code] ?? code;
 }
 

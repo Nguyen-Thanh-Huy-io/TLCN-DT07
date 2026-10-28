@@ -9,6 +9,7 @@ import {
   MatchingQuestion,
 } from '@/features/lessons/types/quiz.types';
 import { LearningPathFilterType } from '../constants/public-curriculum.constants';
+import { LearningPathType } from '@/constants/enums';
 
 // ==========================================
 // 1. STRATEGY LỌC LỘ TRÌNH HỌC & BÀI HỌC (OCP)
@@ -56,13 +57,13 @@ class AllPathsFilterStrategy implements IPathFilterStrategy {
 
 class ChronologicalPathsFilterStrategy implements IPathFilterStrategy {
   matches(path: LearningPathItem, keyword: string): boolean {
-    return path.pathType === 'CHRONOLOGICAL' && matchesKeywordInPath(path, keyword);
+    return path.pathType === LearningPathType.CHRONOLOGICAL && matchesKeywordInPath(path, keyword);
   }
 }
 
 class ThematicPathsFilterStrategy implements IPathFilterStrategy {
   matches(path: LearningPathItem, keyword: string): boolean {
-    return path.pathType === 'THEMATIC' && matchesKeywordInPath(path, keyword);
+    return path.pathType === LearningPathType.THEMATIC && matchesKeywordInPath(path, keyword);
   }
 }
 

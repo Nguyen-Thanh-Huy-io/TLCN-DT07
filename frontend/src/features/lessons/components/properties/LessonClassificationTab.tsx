@@ -3,13 +3,15 @@
 import React from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
-import { DifficultyLevel } from '@/constants/enums';
+import { DifficultyLevel, ClassificationSectionKey } from '@/constants/enums';
 import { DIFFICULTY_LABEL_MAP } from '@/constants/ui-theme';
 import { LessonDifficultySelector } from '../LessonDifficultySelector';
 import { LessonTagPicker } from '../LessonTagPicker';
-import { LessonOrderField } from '../LessonOrderField';
 import { TagItem } from '@/types/models/tag.type';
 import { LessonItem } from '@/types/models/lesson.type';
+
+const ACCORDION_OPEN_CLASSES = 'mt-3 pt-2 border-t border-slate-100 animate-in fade-in-50 duration-150';
+const ROTATE_ARROW_CLASS = 'rotate-180';
 
 interface LessonClassificationTabProps {
   currentTopicName?: string;
@@ -40,13 +42,16 @@ export function LessonClassificationTab({
   openSection,
   setOpenSection,
 }: LessonClassificationTabProps) {
+  const isTagsOpen = openSection !== ClassificationSectionKey.DIFFICULTY;
+  const isDifficultyOpen = openSection === ClassificationSectionKey.DIFFICULTY;
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl divide-y divide-slate-100 shadow-2xs overflow-hidden animate-in fade-in-50 duration-150">
       {/* Mục 1: Thẻ phân loại (Tags) */}
       <div className="p-3" data-testid="sidebar-tags-field">
         <button
           type="button"
-          onClick={() => setOpenSection(openSection === 'tags' ? null : 'tags')}
+          onClick={() => setOpenSection(openSection === ClassificationSectionKey.TAGS ? null : ClassificationSectionKey.TAGS)}
           className="w-full flex items-center justify-between text-left cursor-pointer group"
         >
           <div className="flex items-center gap-2">
@@ -57,15 +62,11 @@ export function LessonClassificationTab({
             <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
               {selectedTags.length > 0 ? `${selectedTags.length} thẻ` : 'Chưa gắn thẻ'}
             </span>
-            <span className={`text-slate-400 text-xs transition-transform ${openSection !== 'difficulty' ? 'rotate-180' : ''}`}>▼</span>
+            <span className={`text-slate-400 text-xs transition-transform ${isTagsOpen ? ROTATE_ARROW_CLASS : ''}`}>▼</span>
           </div>
         </button>
 
-        <div
-          className={
-            openSection !== 'difficulty' ? 'mt-3 pt-2 border-t border-slate-100 animate-in fade-in-50 duration-150' : 'hidden'
-          }
-        >
+        <div className={isTagsOpen ? ACCORDION_OPEN_CLASSES : 'hidden'}>
           <LessonTagPicker selectedTags={selectedTags} onChange={setSelectedTags} disabled={saving} hideLabel />
         </div>
       </div>
@@ -74,7 +75,7 @@ export function LessonClassificationTab({
       <div className="p-3">
         <button
           type="button"
-          onClick={() => setOpenSection(openSection === 'difficulty' ? null : 'difficulty')}
+          onClick={() => setOpenSection(isDifficultyOpen ? null : ClassificationSectionKey.DIFFICULTY)}
           className="w-full flex items-center justify-between text-left cursor-pointer group"
         >
           <div className="flex items-center gap-2">
@@ -85,17 +86,11 @@ export function LessonClassificationTab({
             <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
               {DIFFICULTY_LABEL_MAP[difficulty] || difficulty}
             </span>
-            <span className={`text-slate-400 text-xs transition-transform ${openSection === 'difficulty' ? 'rotate-180' : ''}`}>▼</span>
+            <span className={`text-slate-400 text-xs transition-transform ${isDifficultyOpen ? ROTATE_ARROW_CLASS : ''}`}>▼</span>
           </div>
         </button>
 
-        <div
-          className={
-            openSection === 'difficulty'
-              ? 'mt-3 pt-2 border-t border-slate-100 animate-in fade-in-50 duration-150'
-              : 'hidden'
-          }
-        >
+        <div className={isDifficultyOpen ? ACCORDION_OPEN_CLASSES : 'hidden'}>
           <LessonDifficultySelector value={difficulty} onChange={setDifficulty} disabled={saving} hideLabel />
         </div>
       </div>

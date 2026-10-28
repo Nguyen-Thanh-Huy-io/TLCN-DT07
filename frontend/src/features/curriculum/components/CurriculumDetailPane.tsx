@@ -1,12 +1,18 @@
 'use client';
 import React from 'react';
-import { AnyCurriculumNode } from '@/types/models/curriculum-tree.type';
+import { AnyCurriculumNode, CurriculumNodeType } from '@/types/models/curriculum-tree.type';
 import {
   NodeDetailStrategyFactory,
   DetailStrategyCallbacks,
 } from '../strategies/node-detail.strategy';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
+
+const BREADCRUMB_ICON_MAP: Record<CurriculumNodeType, IconName> = {
+  [CurriculumNodeType.PERIOD]: IconName.CLOCK,
+  [CurriculumNodeType.TOPIC]: IconName.FOLDER,
+  [CurriculumNodeType.LESSON]: IconName.BOOK,
+};
 
 export interface CurriculumDetailPaneProps {
   selectedNode: AnyCurriculumNode | null;
@@ -63,13 +69,7 @@ export function CurriculumDetailPane({
                   onClick={() => !isLast && callbacks.onSelectNode(item)}
                 >
                   <Icon
-                    name={
-                      item.type === 'PERIOD'
-                        ? IconName.CLOCK
-                        : item.type === 'TOPIC'
-                        ? IconName.FOLDER
-                        : IconName.BOOK
-                    }
+                    name={BREADCRUMB_ICON_MAP[item.type as CurriculumNodeType] || IconName.BOOK}
                     size={12}
                     className={isLast ? 'text-slate-900' : 'text-slate-400'}
                   />

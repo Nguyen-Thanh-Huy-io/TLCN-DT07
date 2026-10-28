@@ -1,13 +1,21 @@
 'use client';
+import { CurriculumTreeFilter } from '@/constants/enums';
 import React, { useState, useMemo } from 'react';
 import {
   CurriculumTopicNode,
-  CurriculumLessonNode,
   AnyCurriculumNode,
   CurriculumNodeType,
 } from '@/types/models/curriculum-tree.type';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
+
+const SELECTED_NODE_STYLE = 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300';
+const FILTER_BTN_ACTIVE = 'bg-slate-900 text-white';
+const FILTER_BTN_INACTIVE = 'bg-slate-100 text-slate-600 hover:bg-slate-200';
+const CHEVRON_BTN_BASE = 'p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform';
+const ACTION_BTN_CLASS = 'tree-node-action p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900';
+const ACTION_SUB_BTN_CLASS = 'tree-node-action p-0.5 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900';
+const LESSON_COUNT_LABEL = ' bài';
 
 export interface CurriculumTreeProps {
   data: CurriculumTopicNode[];
@@ -17,7 +25,7 @@ export interface CurriculumTreeProps {
   onAddLesson: (topicId: string) => void;
 }
 
-export type TreeFilterType = 'ALL' | 'ROOT_ONLY' | 'HAS_LESSONS' | 'NO_QUIZ';
+export type TreeFilterType = CurriculumTreeFilter;
 
 export function CurriculumTree({
   data,
@@ -27,7 +35,7 @@ export function CurriculumTree({
   onAddLesson,
 }: CurriculumTreeProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilter, setActiveFilter] = useState<TreeFilterType>('ALL');
+  const [activeFilter, setActiveFilter] = useState<CurriculumTreeFilter>(CurriculumTreeFilter.ALL);
 
   // Quản lý trạng thái mở rộng của các chủ đề gốc
   const [expandedTopics, setExpandedTopics] = useState<Record<string, boolean>>(
@@ -95,15 +103,15 @@ export function CurriculumTree({
   const filteredData = useMemo(() => {
     let result = data;
 
-    if (activeFilter === 'ROOT_ONLY') {
+    if (activeFilter === CurriculumTreeFilter.ROOT_ONLY) {
       result = result.map((t) => ({ ...t, subTopics: [], children: [], lessons: [] }));
-    } else if (activeFilter === 'HAS_LESSONS') {
+    } else if (activeFilter === CurriculumTreeFilter.HAS_LESSONS) {
       result = result.filter((t) => {
         const subs = t.subTopics || t.children || [];
         const hasSubLessons = subs.some((s) => s.lessons && s.lessons.length > 0);
         return (t.lessons && t.lessons.length > 0) || hasSubLessons;
       });
-    } else if (activeFilter === 'NO_QUIZ') {
+    } else if (activeFilter === CurriculumTreeFilter.NO_QUIZ) {
       result = result
         .map((t) => {
           const subs = t.subTopics || t.children || [];
@@ -226,7 +234,7 @@ export function CurriculumTree({
               Sơ đồ cây học tập
             </span>
             <span className="text-[10px] text-slate-500 font-mono">
-              {totalRootTopics} chủ đề chính • {totalSubTopics} chủ đề con • {totalLessons} bài
+              {totalRootTopics} chủ đề chính • {totalSubTopics} chủ đề con • {totalLessons}{LESSON_COUNT_LABEL}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -277,23 +285,23 @@ export function CurriculumTree({
           <button
             type="button"
             className={`px-2 py-0.5 rounded transition-colors font-medium ${
-              activeFilter === 'ALL'
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              activeFilter === CurriculumTreeFilter.ALL
+                ? FILTER_BTN_ACTIVE
+                : FILTER_BTN_INACTIVE
             }`}
-            onClick={() => setActiveFilter('ALL')}
+            onClick={() => setActiveFilter(CurriculumTreeFilter.ALL)}
           >
             Tất cả
           </button>
           <button
             type="button"
             className={`px-2 py-0.5 rounded transition-colors font-medium ${
-              activeFilter === 'ROOT_ONLY'
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              activeFilter === CurriculumTreeFilter.ROOT_ONLY
+                ? FILTER_BTN_ACTIVE
+                : FILTER_BTN_INACTIVE
             }`}
             onClick={() => {
-              setActiveFilter('ROOT_ONLY');
+              setActiveFilter(CurriculumTreeFilter.ROOT_ONLY);
               collapseAll();
             }}
           >
@@ -302,12 +310,12 @@ export function CurriculumTree({
           <button
             type="button"
             className={`px-2 py-0.5 rounded transition-colors font-medium ${
-              activeFilter === 'HAS_LESSONS'
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              activeFilter === CurriculumTreeFilter.HAS_LESSONS
+                ? FILTER_BTN_ACTIVE
+                : FILTER_BTN_INACTIVE
             }`}
             onClick={() => {
-              setActiveFilter('HAS_LESSONS');
+              setActiveFilter(CurriculumTreeFilter.HAS_LESSONS);
               expandAll();
             }}
           >
@@ -317,12 +325,12 @@ export function CurriculumTree({
             <button
               type="button"
               className={`px-2 py-0.5 rounded transition-colors font-medium flex items-center gap-1 ${
-                activeFilter === 'NO_QUIZ'
+                activeFilter === CurriculumTreeFilter.NO_QUIZ
                   ? 'bg-amber-700 text-white'
                   : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
               }`}
               onClick={() => {
-                setActiveFilter('NO_QUIZ');
+                setActiveFilter(CurriculumTreeFilter.NO_QUIZ);
                 expandAll();
               }}
               title="Lọc các bài học chưa có câu hỏi trắc nghiệm kiểm tra"
@@ -358,7 +366,7 @@ export function CurriculumTree({
                 <div
                   className={`tree-node group level-1 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
                     isSelected
-                      ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                      ? SELECTED_NODE_STYLE
                       : 'hover:bg-slate-50 text-slate-800'
                   }`}
                   onClick={() => onSelectNode(rootTopic)}
@@ -367,7 +375,7 @@ export function CurriculumTree({
                     {hasChildren ? (
                       <button
                         type="button"
-                        className={`p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform ${
+                        className={`${CHEVRON_BTN_BASE} ${
                           isExpanded ? 'rotate-90' : ''
                         }`}
                         onClick={(e) => toggleTopic(rootTopic.id, e)}
@@ -388,12 +396,12 @@ export function CurriculumTree({
                   </div>
                   <div className="flex items-center gap-1.5 ml-2">
                     <span className="text-[10px] text-slate-400 font-mono">
-                      {subs.length > 0 ? `${subs.length} con` : `${directLessons.length} bài`}
+                      {subs.length > 0 ? `${subs.length} con` : `${directLessons.length}${LESSON_COUNT_LABEL}`}
                     </span>
                     <button
                       type="button"
                       title="Thêm chủ đề con thuộc chủ đề này"
-                      className="tree-node-action p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900"
+                      className={ACTION_BTN_CLASS}
                       onClick={(e) => {
                         e.stopPropagation();
                         onAddTopic(rootTopic.id);
@@ -422,7 +430,7 @@ export function CurriculumTree({
                           <div
                             className={`tree-node group level-2 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
                               isSubSelected
-                                ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                                ? SELECTED_NODE_STYLE
                                 : 'hover:bg-slate-50 text-slate-700'
                             }`}
                             onClick={() => onSelectNode(subTopic)}
@@ -431,7 +439,7 @@ export function CurriculumTree({
                               {hasSubChildren ? (
                                 <button
                                   type="button"
-                                  className={`p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform ${
+                                  className={`${CHEVRON_BTN_BASE} ${
                                     isSubExpanded ? 'rotate-90' : ''
                                   }`}
                                   onClick={(e) => toggleSubTopic(subTopic.id, e)}
@@ -454,12 +462,12 @@ export function CurriculumTree({
                               <span className="text-[10px] text-slate-400 font-mono">
                                 {grandChildren.length > 0
                                   ? `${grandChildren.length} chuyên đề`
-                                  : `${subLessons.length} bài`}
+                                  : `${subLessons.length}${LESSON_COUNT_LABEL}`}
                               </span>
                               <button
                                 type="button"
                                 title="Thêm chuyên đề hoặc bài học vào giai đoạn này"
-                                className="tree-node-action p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900"
+                                className={ACTION_BTN_CLASS}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onAddTopic(subTopic.id);
@@ -486,7 +494,7 @@ export function CurriculumTree({
                                     <div
                                       className={`tree-node group level-3 flex items-center justify-between p-1 px-2 rounded-md cursor-pointer transition-colors ${
                                         isGrandSelected
-                                          ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                                          ? SELECTED_NODE_STYLE
                                           : 'hover:bg-slate-50 text-slate-600'
                                       }`}
                                       onClick={() => onSelectNode(grand)}
@@ -495,7 +503,7 @@ export function CurriculumTree({
                                         {grandLessons.length > 0 ? (
                                           <button
                                             type="button"
-                                            className={`p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform ${
+                                            className={`${CHEVRON_BTN_BASE} ${
                                               isGrandExpanded ? 'rotate-90' : ''
                                             }`}
                                             onClick={(e) => toggleSubTopic(grand.id, e)}
@@ -521,12 +529,12 @@ export function CurriculumTree({
                                       </div>
                                       <div className="flex items-center gap-1 ml-1.5">
                                         <span className="text-[9.5px] text-slate-400 font-mono">
-                                          {grandLessons.length} bài
+                                          {grandLessons.length}{LESSON_COUNT_LABEL}
                                         </span>
                                         <button
                                           type="button"
                                           title="Thêm bài học vào chuyên đề này"
-                                          className="tree-node-action p-0.5 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900"
+                                          className={ACTION_SUB_BTN_CLASS}
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             onAddLesson(grand.id);
@@ -550,7 +558,7 @@ export function CurriculumTree({
                                               key={lesson.id}
                                               className={`tree-node group level-4 flex items-center justify-between p-1 px-1.5 rounded-md cursor-pointer transition-colors ${
                                                 isLessonSelected
-                                                  ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                                                  ? SELECTED_NODE_STYLE
                                                   : 'hover:bg-slate-50 text-slate-600'
                                               }`}
                                               onClick={() => onSelectNode(lesson)}
@@ -599,7 +607,7 @@ export function CurriculumTree({
                                     key={lesson.id}
                                     className={`tree-node group level-3 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
                                       isLessonSelected
-                                        ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                                        ? SELECTED_NODE_STYLE
                                         : 'hover:bg-slate-50 text-slate-600'
                                     }`}
                                     onClick={() => onSelectNode(lesson)}
@@ -646,7 +654,7 @@ export function CurriculumTree({
                           key={lesson.id}
                           className={`tree-node group level-3 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
                             isLessonSelected
-                              ? 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300'
+                              ? SELECTED_NODE_STYLE
                               : 'hover:bg-slate-50 text-slate-600'
                           }`}
                           onClick={() => onSelectNode(lesson)}

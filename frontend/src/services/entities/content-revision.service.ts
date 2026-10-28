@@ -1,5 +1,20 @@
 import api from '../api';
 import { PublicAuthService, isReviewerRole } from '../auth/public-auth.service';
+import { RevisionFieldKind, ContentStatus } from '@/constants/enums';
+
+export { RevisionFieldKind };
+
+export enum RevisionKind {
+  PROPOSAL = 'PROPOSAL',
+  SNAPSHOT = 'SNAPSHOT',
+}
+
+export enum RevisionStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  ARCHIVED = 'ARCHIVED',
+}
 
 export type RevisionContentType =
   | 'LESSON'
@@ -31,8 +46,8 @@ export interface ContentRevisionItem {
   contentType: RevisionContentType;
   contentId: string;
   /** PROPOSAL: bản sửa chờ duyệt · SNAPSHOT: phiên bản cũ trong lịch sử */
-  kind: 'PROPOSAL' | 'SNAPSHOT';
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'ARCHIVED';
+  kind: RevisionKind | 'PROPOSAL' | 'SNAPSHOT';
+  status: RevisionStatus | 'PENDING' | 'APPROVED' | 'REJECTED' | 'ARCHIVED';
   version: number;
   title: string;
   payload: Record<string, unknown>;
@@ -50,18 +65,7 @@ export interface RevisionChange {
   key: string;
   label: string;
   /** Cách hiển thị (đồng bộ REVISION_FIELDS phía backend). */
-  kind:
-    | 'text'
-    | 'longtext'
-    | 'bool'
-    | 'image'
-    | 'list'
-    | 'ref'
-    | 'refs'
-    | 'blocks'
-    | 'relations'
-    | 'media'
-    | 'object';
+  kind: RevisionFieldKind | `${RevisionFieldKind}`;
   ref?: string;
   before: unknown;
   after: unknown;
@@ -128,7 +132,7 @@ export async function withPendingDraft<T extends { status?: string | null }>(
   id: string,
   detail: T,
 ): Promise<{ detail: T; pending: ContentRevisionItem | null }> {
-  if (detail.status !== 'PUBLISHED') return { detail, pending: null };
+  if (detail.status !== ContentStatus.PUBLISHED) return { detail, pending: null };
   try {
     const open = await ContentRevisionApiService.openDraft<T>(type, id);
     if (!open) return { detail, pending: null };

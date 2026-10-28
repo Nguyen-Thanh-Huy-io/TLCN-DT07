@@ -1,4 +1,5 @@
 'use client';
+import { CommonFilterOption, LessonStatus } from '@/constants/enums';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
@@ -16,9 +17,20 @@ interface LessonLibraryPanelProps {
   onDeleteLesson: (lesson: LessonItem) => void;
 }
 
-type LibraryViewMode = 'GRID' | 'LIST';
+export enum LibraryViewMode {
+  GRID = 'GRID',
+  LIST = 'LIST',
+}
 
 const PAGE_SIZE = 9;
+
+const BTN_VIEW_MODE_BASE = 'w-7 h-7 flex items-center justify-center rounded-md transition';
+const BTN_VIEW_MODE_ACTIVE = 'bg-white text-emerald-700 shadow-2xs';
+const BTN_VIEW_MODE_INACTIVE = 'text-slate-500 hover:text-slate-800';
+const BADGE_PUBLISHED = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+const BADGE_DRAFT = 'bg-amber-50 text-amber-700 border border-amber-200';
+const LABEL_PUBLISHED = 'Đã xuất bản';
+const LABEL_DRAFT = 'Bản nháp';
 
 /** Tab "Thư viện Lesson": danh sách mọi bài học độc lập, tìm kiếm + lọc trạng thái,
  * có thể mở lại để soạn thảo hoặc tái sử dụng vào nhiều lộ trình/chương khác nhau.
@@ -34,7 +46,7 @@ export function LessonLibraryPanel({
   onOpenLesson,
   onDeleteLesson,
 }: LessonLibraryPanelProps) {
-  const [viewMode, setViewMode] = useState<LibraryViewMode>('GRID');
+  const [viewMode, setViewMode] = useState<LibraryViewMode>(LibraryViewMode.GRID);
   const [page, setPage] = useState(1);
 
   const totalPages = Math.max(1, Math.ceil(lessons.length / PAGE_SIZE));
@@ -119,29 +131,29 @@ export function LessonLibraryPanel({
             onChange={(e) => onStatusFilterChange(e.target.value)}
             className="form-input !h-8 !text-xs !py-0 w-36"
           >
-            <option value="ALL">Tất cả trạng thái</option>
-            <option value="PUBLISHED">Đã xuất bản</option>
-            <option value="DRAFT">Bản nháp</option>
+            <option value={CommonFilterOption.ALL}>Tất cả trạng thái</option>
+            <option value={LessonStatus.PUBLISHED}>Đã xuất bản</option>
+            <option value={LessonStatus.DRAFT}>Bản nháp</option>
           </select>
 
           {/* Chuyển đổi Lưới / Danh sách */}
           <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
             <button
               type="button"
-              onClick={() => setViewMode('GRID')}
+              onClick={() => setViewMode(LibraryViewMode.GRID)}
               title="Xem dạng lưới"
-              className={`w-7 h-7 flex items-center justify-center rounded-md transition ${
-                viewMode === 'GRID' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+              className={`${BTN_VIEW_MODE_BASE} ${
+                viewMode === LibraryViewMode.GRID ? BTN_VIEW_MODE_ACTIVE : BTN_VIEW_MODE_INACTIVE
               }`}
             >
               <Icon name={IconName.GRID} size={13} />
             </button>
             <button
               type="button"
-              onClick={() => setViewMode('LIST')}
+              onClick={() => setViewMode(LibraryViewMode.LIST)}
               title="Xem dạng danh sách"
-              className={`w-7 h-7 flex items-center justify-center rounded-md transition ${
-                viewMode === 'LIST' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+              className={`${BTN_VIEW_MODE_BASE} ${
+                viewMode === LibraryViewMode.LIST ? BTN_VIEW_MODE_ACTIVE : BTN_VIEW_MODE_INACTIVE
               }`}
             >
               <Icon name={IconName.MENU} size={13} />
@@ -157,7 +169,7 @@ export function LessonLibraryPanel({
 
       {lessons.length === 0 ? (
         <div className="py-12 text-center text-xs text-slate-400">Không tìm thấy bài học nào phù hợp.</div>
-      ) : viewMode === 'GRID' ? (
+      ) : viewMode === LibraryViewMode.GRID ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {pagedLessons.map((lesson) => (
@@ -169,12 +181,10 @@ export function LessonLibraryPanel({
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                        lesson.status === 'PUBLISHED'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        lesson.status === LessonStatus.PUBLISHED ? BADGE_PUBLISHED : BADGE_DRAFT
                       }`}
                     >
-                      {lesson.status === 'PUBLISHED' ? 'Đã xuất bản' : 'Bản nháp'}
+                      {lesson.status === LessonStatus.PUBLISHED ? LABEL_PUBLISHED : LABEL_DRAFT}
                     </span>
                     <span className="text-[11px] text-slate-400">
                       {lesson.createdAt ? new Date(lesson.createdAt).toLocaleDateString('vi-VN') : ''}
@@ -284,12 +294,10 @@ export function LessonLibraryPanel({
                     <td className="px-3 py-2.5 align-top">
                       <span
                         className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
-                          lesson.status === 'PUBLISHED'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          lesson.status === LessonStatus.PUBLISHED ? BADGE_PUBLISHED : BADGE_DRAFT
                         }`}
                       >
-                        {lesson.status === 'PUBLISHED' ? 'Đã xuất bản' : 'Bản nháp'}
+                        {lesson.status === LessonStatus.PUBLISHED ? LABEL_PUBLISHED : LABEL_DRAFT}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 align-top text-slate-500 font-mono whitespace-nowrap">

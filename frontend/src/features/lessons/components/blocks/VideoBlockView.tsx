@@ -1,4 +1,5 @@
 'use client';
+import { KeyboardKey } from '@/constants/enums';
 
 import React, { useState, useRef } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
@@ -194,7 +195,7 @@ export function VideoBlockView(props: NodeViewProps) {
                   type="text"
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleApplyUrl()}
+                  onKeyDown={(e) => e.key === KeyboardKey.ENTER && handleApplyUrl()}
                   placeholder={VIDEO_BLOCK_CONSTANTS.INPUT_URL_PLACEHOLDER}
                   data-testid="input-video-url"
                   className="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"

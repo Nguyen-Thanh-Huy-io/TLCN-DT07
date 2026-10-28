@@ -16,6 +16,7 @@ import {
 } from '../types/block-builder.types';
 import { RowLayoutStrategy } from '../strategies/row-layout.strategy';
 import { BlockWidthStrategy } from '../strategies/block-width.strategy';
+import { MediaType } from '@/constants/enums';
 
 let idCounter = 0;
 export const generateBlockId = (prefix: string = 'block'): string => {
@@ -223,7 +224,7 @@ export class LessonBlockFactory {
                 ? `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-top: 10px;">
                     ${n.mediaList
                       .map((m) =>
-                        m.type === 'IMAGE'
+                        m.type === MediaType.IMAGE
                           ? `<div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff;">
                               <img src="${m.url}" alt="${m.caption || ''}" style="width: 100%; height: 110px; object-fit: cover;" />
                               ${m.caption ? `<div style="font-size: 11px; color: #64748b; padding: 4px 6px; font-style: italic;">${m.caption}</div>` : ''}
@@ -327,25 +328,40 @@ export class LessonBlockFactory {
             </table>
           </div>`;
 
-      case LessonBlockType.QUIZ:
+      case LessonBlockType.QUIZ: {
+        const correctOpt = block.options.find((o) => o.isCorrect);
+        const correctLetter = correctOpt
+          ? String.fromCharCode(65 + block.options.indexOf(correctOpt))
+          : '';
         return `
-          <div class="my-6 p-4 bg-amber-50/50 border border-amber-200 rounded-xl">
-            <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #b45309;">❓ Câu hỏi ôn tập</span>
-            <p style="font-size: 14px; font-weight: 600; color: #0f172a; margin: 8px 0 12px 0;">${block.question}</p>
-            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+          <div class="my-6 p-5 bg-amber-50/60 border border-amber-200 rounded-2xl shadow-xs font-sans">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+              <span style="font-size: 15px;">❓</span>
+              <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #b45309;">Câu hỏi tự kiểm tra nhanh</span>
+            </div>
+            <p style="font-size: 15px; font-weight: 600; color: #0f172a; margin: 6px 0 14px 0; line-height: 1.5;">${block.question}</p>
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13.5px;">
               ${block.options
                 .map(
                   (opt, i) => `
-                <div style="padding: 8px 12px; background: ${opt.isCorrect ? '#ecfdf5' : '#ffffff'}; border: 1px solid ${opt.isCorrect ? '#10b981' : '#e2e8f0'}; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
-                  <span style="font-weight: 700;">${String.fromCharCode(65 + i)}.</span>
-                  <span>${opt.text}</span>
-                  ${opt.isCorrect ? '<span style="font-size: 11px; color: #059669; font-weight: 600; margin-left: auto;">[Đáp án đúng]</span>' : ''}
+                <div style="padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; gap: 10px;">
+                  <span style="font-weight: 700; color: #b45309; min-width: 20px;">${String.fromCharCode(65 + i)}.</span>
+                  <span style="color: #334155;">${opt.text}</span>
                 </div>`
                 )
                 .join('')}
             </div>
-            ${block.explanation ? `<p style="font-size: 12px; color: #166534; background: #f0fdf4; padding: 8px 12px; border-radius: 6px; margin-top: 10px;">💡 ${block.explanation}</p>` : ''}
+            <details style="margin-top: 14px; padding: 10px 14px; background: #fefce8; border: 1px dashed #ca8a04; border-radius: 10px; font-size: 13px;">
+              <summary style="cursor: pointer; font-weight: 600; color: #854d0e; list-style: none;">
+                ▸ Bấm để xem đáp án đúng & giải thích chi tiết
+              </summary>
+              <div style="margin-top: 8px; border-top: 1px solid #fef08a; padding-top: 8px; color: #713f12; line-height: 1.6;">
+                <div><strong style="color: #15803d;">✓ Đáp án đúng:</strong> <strong>${correctLetter}. ${correctOpt?.text || ''}</strong></div>
+                ${block.explanation ? `<div style="margin-top: 4px; color: #4b5563;">💡 <em>${block.explanation}</em></div>` : ''}
+              </div>
+            </details>
           </div>`;
+      }
 
       case LessonBlockType.RESOURCE_LINK:
         return `

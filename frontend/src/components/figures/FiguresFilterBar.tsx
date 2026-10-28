@@ -3,7 +3,10 @@
 import { ArrowDownUp, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button, Input } from "@/components/timeline/sk-ui";
 
-export type FigureSort = "time" | "name";
+export enum FigureSort {
+  TIME = "time",
+  NAME = "name",
+}
 
 export interface FilterOption {
   id: string;
@@ -24,7 +27,10 @@ export function figureFilterCount(f: FigureFilters): number {
   return f.regions.length + f.eras.length + f.subs.length + f.roles.length;
 }
 
-const SORT_LABELS: Record<FigureSort, string> = { time: "Theo thời gian", name: "Theo tên A–Z" };
+const SORT_LABELS: Record<FigureSort, string> = {
+  [FigureSort.TIME]: "Theo thời gian",
+  [FigureSort.NAME]: "Theo tên A–Z",
+};
 
 export function FiguresFilterBar({
   query,

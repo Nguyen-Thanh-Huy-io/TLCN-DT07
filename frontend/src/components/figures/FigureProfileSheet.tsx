@@ -11,12 +11,18 @@ import { FigureBiography } from "./FigureBiography";
 import type { FigureView } from "./figure-utils";
 import { figureRoles, useFigureRoles } from "./figure-roles";
 
-export type ProfileTab = "timeline" | "graph" | "bio";
+export enum FigureProfileTab {
+  TIMELINE = "timeline",
+  GRAPH = "graph",
+  BIO = "bio",
+}
 
-const TABS: Array<{ id: ProfileTab; text: string; icon: typeof History }> = [
-  { id: "timeline", text: "Dòng thời gian", icon: History },
-  { id: "graph", text: "Mối quan hệ", icon: Network },
-  { id: "bio", text: "Tiểu sử & di sản", icon: BookOpen },
+export type ProfileTab = FigureProfileTab | "timeline" | "graph" | "bio";
+
+const TABS: Array<{ id: FigureProfileTab; text: string; icon: typeof History }> = [
+  { id: FigureProfileTab.TIMELINE, text: "Dòng thời gian", icon: History },
+  { id: FigureProfileTab.GRAPH, text: "Mối quan hệ", icon: Network },
+  { id: FigureProfileTab.BIO, text: "Tiểu sử & di sản", icon: BookOpen },
 ];
 
 export function FigureProfileSheet({
@@ -101,9 +107,9 @@ export function FigureProfileSheet({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.18 }}
               >
-                {tab === "timeline" ? (
+                {tab === FigureProfileTab.TIMELINE ? (
                   <LifeTimeline figure={f} periods={periods} />
-                ) : tab === "graph" ? (
+                ) : tab === FigureProfileTab.GRAPH ? (
                   <RelationshipGraph figure={f} directory={directory} onNavigate={onNavigate} />
                 ) : (
                   <FigureBiography figure={f} />

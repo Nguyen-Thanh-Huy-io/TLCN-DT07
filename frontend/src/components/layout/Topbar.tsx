@@ -7,6 +7,7 @@ import { IconName } from '@/constants/icons';
 import { navigationFacade } from '@/services/navigation/navigation-strategy.service';
 import { useAuthSession } from '@/services/auth/useAuthSession';
 import { USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
+import { NavigationPageKey } from '@/constants/routes';
 
 export interface TopbarProps {
   page: string;
@@ -19,7 +20,7 @@ export function Topbar({ page, openNav, collapsed, toggleCollapse }: TopbarProps
   const { groupTitle, parentLabel, parentRoute, pageTitle } =
     navigationFacade.resolveBreadcrumb(page);
 
-  const isRootDashboard = page === 'dashboard' || page === '';
+  const isRootDashboard = page === NavigationPageKey.DASHBOARD || !page;
   const user = useAuthSession();
 
   return (

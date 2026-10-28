@@ -5,10 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/common/Badge';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
-import {
-  ContentStatus,
-  EventCategory,
-} from '@/constants/enums';
+import { ContentStatus, EventCategory, CommonFilterOption, EventListViewMode } from '@/constants/enums';
 import { TaxonomyApiService, type TaxonomyTermItem } from '@/services/entities/taxonomy.service';
 import { eventCategoryLabel } from '@/features/taxonomy/taxonomy-labels';
 import { Icon } from '@/components/icons/Icon';
@@ -40,12 +37,12 @@ export function EventList() {
   const [periods, setPeriods] = useState<PeriodFilterOption[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Chế độ xem: 'TREE' (Bảng cây phân cấp) | 'TREE_VIEW' (Sơ đồ cây nhánh thư mục như image.png) | 'FLAT' (Danh sách phẳng)
-  const [viewMode, setViewMode] = useState<'TREE' | 'TREE_VIEW' | 'FLAT'>('TREE');
+  // Chế độ xem: TREE (Bảng cây phân cấp) | TREE_VIEW (Sơ đồ cây nhánh thư mục) | FLAT (Danh sách phẳng)
+  const [viewMode, setViewMode] = useState<EventListViewMode>(EventListViewMode.TREE);
 
   // Bộ lọc
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPeriodId, setSelectedPeriodId] = useState<string>('ALL');
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string>(CommonFilterOption.ALL);
   const [statusFilter, setStatusFilter] = useState<'ALL' | ContentStatus>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | EventCategory>('ALL');
   const [topLevelOnly, setTopLevelOnly] = useState<boolean>(false);
@@ -175,11 +172,11 @@ export function EventList() {
   const filteredEvents = useMemo(() => {
     return eventsList.filter((item) => {
       // 1. Lọc theo trạng thái
-      if (statusFilter !== 'ALL' && (item.status || ContentStatus.PUBLISHED) !== statusFilter) {
+      if (statusFilter !== CommonFilterOption.ALL && (item.status || ContentStatus.PUBLISHED) !== statusFilter) {
         return false;
       }
       // 2. Lọc theo Thời kỳ
-      if (selectedPeriodId !== 'ALL') {
+      if (selectedPeriodId !== CommonFilterOption.ALL) {
         const itemPeriodId = item.periodId || item.topic?.periodId;
         if (itemPeriodId !== selectedPeriodId) {
           return false;
@@ -231,10 +228,10 @@ export function EventList() {
       const childrenNodes = rawChildren
         .filter((child) => {
           // Đảm bảo con cũng thỏa mãn bộ lọc trạng thái và thời kỳ nếu đang bật
-          if (statusFilter !== 'ALL' && (child.status || ContentStatus.PUBLISHED) !== statusFilter) {
+          if (statusFilter !== CommonFilterOption.ALL && (child.status || ContentStatus.PUBLISHED) !== statusFilter) {
             return false;
           }
-          if (selectedPeriodId !== 'ALL') {
+          if (selectedPeriodId !== CommonFilterOption.ALL) {
             const childPeriodId = child.periodId || child.topic?.periodId;
             if (childPeriodId && childPeriodId !== selectedPeriodId) {
               return false;
@@ -418,9 +415,9 @@ export function EventList() {
             <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/80 text-xs">
               <button
                 type="button"
-                onClick={() => setViewMode('TREE')}
+                onClick={() => setViewMode(EventListViewMode.TREE)}
                 className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
-                  viewMode === 'TREE'
+                  viewMode === EventListViewMode.TREE
                     ? 'bg-[#EFE3C8] text-[#5C3D1E] shadow-2xs font-bold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -429,9 +426,9 @@ export function EventList() {
               </button>
               <button
                 type="button"
-                onClick={() => setViewMode('TREE_VIEW')}
+                onClick={() => setViewMode(EventListViewMode.TREE_VIEW)}
                 className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
-                  viewMode === 'TREE_VIEW'
+                  viewMode === EventListViewMode.TREE_VIEW
                     ? 'bg-[#EFE3C8] text-[#5C3D1E] shadow-2xs font-bold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -440,9 +437,9 @@ export function EventList() {
               </button>
               <button
                 type="button"
-                onClick={() => setViewMode('FLAT')}
+                onClick={() => setViewMode(EventListViewMode.FLAT)}
                 className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
-                  viewMode === 'FLAT'
+                  viewMode === EventListViewMode.FLAT
                     ? 'bg-[#EFE3C8] text-[#5C3D1E] shadow-2xs font-bold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -504,7 +501,7 @@ export function EventList() {
           </div>
 
           {/* Nút thao tác mở rộng / thu gọn cây */}
-          {(viewMode === 'TREE' || viewMode === 'TREE_VIEW') && !topLevelOnly && (
+          {(viewMode === EventListViewMode.TREE || viewMode === EventListViewMode.TREE_VIEW) && !topLevelOnly && (
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -543,7 +540,7 @@ export function EventList() {
           </div>
 
           {/* Dữ liệu hàng */}
-          {viewMode === 'TREE_VIEW' ? (
+          {viewMode === EventListViewMode.TREE_VIEW ? (
             treeNodes.length === 0 ? (
               <div className="p-10 text-center text-xs text-slate-500">
                 Không tìm thấy sự kiện nào phù hợp với bộ lọc phân cấp.
@@ -553,7 +550,7 @@ export function EventList() {
                 {treeNodes.map((rootNode) => renderEventTreeNode(rootNode, 0))}
               </div>
             )
-          ) : viewMode === 'TREE' ? (
+          ) : viewMode === EventListViewMode.TREE ? (
             treeNodes.length === 0 ? (
               <div className="p-10 text-center text-xs text-slate-500">
                 Không tìm thấy sự kiện nào phù hợp với bộ lọc phân cấp.

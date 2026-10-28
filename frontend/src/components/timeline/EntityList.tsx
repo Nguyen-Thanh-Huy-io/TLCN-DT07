@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { MapPin, Users } from "lucide-react";
 import { Heading, Badge } from "./sk-ui";
-import type { TimelineFigure, TimelineLocation } from "./sk-types";
+import { type TimelineFigure, type TimelineLocation, NodeContentTab } from "./sk-types";
 
 type WithEvents<T> = T & { eventTitles?: string[] };
 
@@ -20,10 +20,10 @@ export function EntityList({
 }: {
   figures: WithEvents<TimelineFigure>[];
   locations: WithEvents<TimelineLocation>[];
-  tab: string;
+  tab: NodeContentTab | string;
   showEventTitles?: boolean;
 }) {
-  if (tab === "figures") {
+  if (tab === NodeContentTab.FIGURES) {
     if (figures.length === 0) {
       return <p className="sk-muted">Chưa có nhân vật nào được liên kết.</p>;
     }

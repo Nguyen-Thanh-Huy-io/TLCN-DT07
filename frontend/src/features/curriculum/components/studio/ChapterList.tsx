@@ -7,7 +7,17 @@ import { ChapterItem } from '@/services/entities/learning-path.service';
 
 const PAGE_SIZE = 5;
 
-type ChapterViewMode = 'ACCORDION' | 'LIST';
+export enum ChapterViewMode {
+  ACCORDION = 'ACCORDION',
+  LIST = 'LIST',
+}
+
+const BTN_VIEW_MODE_BASE = 'w-7 h-7 flex items-center justify-center rounded-md transition';
+const BTN_VIEW_MODE_ACTIVE = 'bg-white text-emerald-700 shadow-2xs';
+const BTN_VIEW_MODE_INACTIVE = 'text-slate-500 hover:text-slate-800';
+const TABLE_CELL_TOP = 'px-3 py-2.5 align-top';
+const BADGE_HAS_LESSONS = 'bg-emerald-50 text-emerald-800 border border-emerald-200';
+const BADGE_NO_LESSONS = 'bg-slate-100 text-slate-500';
 
 interface ChapterListProps {
   loading: boolean;
@@ -70,7 +80,7 @@ export function ChapterList({
 
   // Chuyển đổi Accordion (mặc định, xổ Lesson trong từng Chương) / Danh sách (bảng gọn,
   // quét nhanh nhiều chương — như kiểu Lưới/Danh sách ở tab Thư viện).
-  const [viewMode, setViewMode] = useState<ChapterViewMode>('ACCORDION');
+  const [viewMode, setViewMode] = useState<ChapterViewMode>(ChapterViewMode.ACCORDION);
 
   const totalPages = Math.max(1, Math.ceil((chapters?.length || 0) / PAGE_SIZE));
   const pagedChapters = useMemo(() => {
@@ -91,20 +101,20 @@ export function ChapterList({
           <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
             <button
               type="button"
-              onClick={() => setViewMode('ACCORDION')}
+              onClick={() => setViewMode(ChapterViewMode.ACCORDION)}
               title="Xem dạng xổ chi tiết (Accordion)"
-              className={`w-7 h-7 flex items-center justify-center rounded-md transition ${
-                viewMode === 'ACCORDION' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+              className={`${BTN_VIEW_MODE_BASE} ${
+                viewMode === ChapterViewMode.ACCORDION ? BTN_VIEW_MODE_ACTIVE : BTN_VIEW_MODE_INACTIVE
               }`}
             >
               <Icon name={IconName.FOLDER} size={13} />
             </button>
             <button
               type="button"
-              onClick={() => setViewMode('LIST')}
+              onClick={() => setViewMode(ChapterViewMode.LIST)}
               title="Xem dạng danh sách (bảng gọn)"
-              className={`w-7 h-7 flex items-center justify-center rounded-md transition ${
-                viewMode === 'LIST' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+              className={`${BTN_VIEW_MODE_BASE} ${
+                viewMode === ChapterViewMode.LIST ? BTN_VIEW_MODE_ACTIVE : BTN_VIEW_MODE_INACTIVE
               }`}
             >
               <Icon name={IconName.MENU} size={13} />
@@ -141,7 +151,7 @@ export function ChapterList({
           </button>
           )}
         </div>
-      ) : viewMode === 'LIST' ? (
+      ) : viewMode === ChapterViewMode.LIST ? (
         <div className="overflow-x-auto border border-slate-200 rounded-lg">
           <table className="w-full text-xs">
             <thead>
@@ -158,25 +168,23 @@ export function ChapterList({
                 const lessonCount = chapter.chapterLessons?.length || 0;
                 return (
                   <tr key={chapter.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60">
-                    <td className="px-3 py-2.5 align-top font-mono text-slate-400">{chIdx + 1}</td>
-                    <td className="px-3 py-2.5 align-top">
+                    <td className={`${TABLE_CELL_TOP} font-mono text-slate-400`}>{chIdx + 1}</td>
+                    <td className={TABLE_CELL_TOP}>
                       <div className="font-bold text-slate-900">{chapter.title}</div>
                       {chapter.description && (
                         <div className="text-[11px] text-slate-500 line-clamp-1">{chapter.description}</div>
                       )}
                     </td>
-                    <td className="px-3 py-2.5 align-top">
+                    <td className={TABLE_CELL_TOP}>
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
-                          lessonCount > 0
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                            : 'bg-slate-100 text-slate-500'
+                          lessonCount > 0 ? BADGE_HAS_LESSONS : BADGE_NO_LESSONS
                         }`}
                       >
                         {lessonCount > 0 ? `${lessonCount} bài học` : 'Chưa thêm bài'}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 align-top text-right whitespace-nowrap">
+                    <td className={`${TABLE_CELL_TOP} text-right whitespace-nowrap`}>
                       {onEditChapter && (
                         <button
                           type="button"
@@ -252,9 +260,7 @@ export function ChapterList({
                         </span>
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            lessonCount > 0
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                              : 'bg-slate-100 text-slate-500'
+                            lessonCount > 0 ? BADGE_HAS_LESSONS : BADGE_NO_LESSONS
                           }`}
                         >
                           {lessonCount > 0 ? `${lessonCount} bài học` : 'Chưa thêm bài'}

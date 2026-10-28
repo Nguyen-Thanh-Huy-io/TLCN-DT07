@@ -3,9 +3,19 @@ import {
   type PublicEventDetailDto,
   type PublicEventSummaryDto,
 } from "@/services/entities/landing.service";
-import type { ArticleSection, EntityMention, EventReaderModel } from "./ce-types";
+import {
+  EVENT_RELATION_TYPE_LABELS,
+} from "@/constants/enums";
+import {
+  type ArticleSection,
+  type EntityMention,
+  type EventReaderModel,
+  type EventRelationLink,
+  MentionType,
+  RelationDirection,
+} from "./ce-types";
 import type { TaxonomyTermItem } from "@/services/entities/taxonomy.service";
-import { eventCategoryLabel, eventRoleLabel } from "@/features/taxonomy/taxonomy-labels";
+import { eventCategoryLabel, eventRoleLabel, relationLabel } from "@/features/taxonomy/taxonomy-labels";
 
 /** Giá trị danh mục dùng chung để gắn nhãn (loại sự kiện, vai trò); thiếu thì dùng nhãn cũ. */
 export interface EventReaderTaxonomy {
@@ -40,16 +50,18 @@ function eventHref(slug: string | null): string {
   return slug ? `${PUBLIC_ROUTE_PREFIX.EVENT}/${slug}` : "/dong-thoi-gian";
 }
 
+const PARTICIPANT_ROLE_CODE = "PARTICIPANT";
+
 function buildMentions(event: PublicEventDetailDto, roleTerms: TaxonomyTermItem[]): EntityMention[] {
   const roles = new Map(event.participants.map((p) => [p.entityId, p]));
   // Không có mô tả riêng thì hiện tên vai trò chuẩn (trừ "Tham gia" chung chung).
   const roleName = (id: string) => {
     const role = roles.get(id)?.role;
-    return role && role !== "PARTICIPANT" ? eventRoleLabel(roleTerms, role) : null;
+    return role && role !== PARTICIPANT_ROLE_CODE ? eventRoleLabel(roleTerms, role) : null;
   };
   const figures: EntityMention[] = event.figures.map((f) => ({
     id: f.id,
-    type: "FIGURE",
+    type: MentionType.FIGURE,
     name: f.name,
     roleLabel: roles.get(f.id)?.roleLabel ?? roleName(f.id) ?? f.tagline,
     summary: f.tagline || f.description,
@@ -59,12 +71,12 @@ function buildMentions(event: PublicEventDetailDto, roleTerms: TaxonomyTermItem[
   }));
   const locations: EntityMention[] = event.locations.map((l) => ({
     id: l.id,
-    type: "LOCATION",
+    type: MentionType.LOCATION,
     name: l.name,
     roleLabel: roles.get(l.id)?.roleLabel ?? roleName(l.id) ?? l.address,
     summary: l.historicalSignificance,
-    imageUrl: null,
-    href: "/di-tich",
+    imageUrl: l.imageUrl ?? null,
+    href: `/di-tich/${l.slug}`,
     isPrimary: roles.get(l.id)?.isPrimary ?? false,
   }));
   return [...figures, ...locations];
@@ -87,6 +99,47 @@ function adjacent(event: PublicEventDetailDto, all: PublicEventSummaryDto[]) {
   return index < 0 ? { previous: null, next: null } : { previous: pick(siblings[index - 1]), next: pick(siblings[index + 1]) };
 }
 
+function splitParagraphs(text: string | null | undefined): string[] {
+  if (!text) return [];
+  return text
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+function buildRelationLinks(event: PublicEventDetailDto, relationTerms: TaxonomyTermItem[]): EventRelationLink[] {
+  const incoming: EventRelationLink[] = (event.incomingRelations || []).map((r) => {
+    // Quan hệ hướng tới sự kiện này: đọc theo nhãn chiều ngược của danh mục.
+    const typeLabel = relationLabel(relationTerms, r.relationType, RelationDirection.INCOMING, EVENT_RELATION_TYPE_LABELS);
+    return {
+      id: r.event.id,
+      title: r.event.title,
+      href: eventHref(r.event.slug),
+      dateLabel: formatYear(r.event.startYear),
+      relationType: r.relationType,
+      relationLabel: typeLabel,
+      description: r.description,
+      direction: RelationDirection.INCOMING,
+    };
+  });
+
+  const outgoing: EventRelationLink[] = (event.outgoingRelations || []).map((r) => {
+    const typeLabel = relationLabel(relationTerms, r.relationType, RelationDirection.OUTGOING, EVENT_RELATION_TYPE_LABELS);
+    return {
+      id: r.event.id,
+      title: r.event.title,
+      href: eventHref(r.event.slug),
+      dateLabel: formatYear(r.event.startYear),
+      relationType: r.relationType,
+      relationLabel: typeLabel,
+      description: r.description,
+      direction: RelationDirection.OUTGOING,
+    };
+  });
+
+  return [...incoming, ...outgoing];
+}
+
 export function buildEventReaderModel(
   event: PublicEventDetailDto,
   allEvents: PublicEventSummaryDto[],
@@ -94,13 +147,24 @@ export function buildEventReaderModel(
 ): EventReaderModel {
   const mentions = buildMentions(event, taxonomy.roles ?? []);
   const sections: ArticleSection[] = [];
+  const causeParagraphs = splitParagraphs(event.cause);
+  const descParagraphs = splitParagraphs(event.description);
+  const outcomeParagraphs = splitParagraphs(event.outcome);
+  const relationLinks = buildRelationLinks(event, taxonomy.relations ?? []);
 
-  if (event.cause) sections.push({ id: "boi-canh", title: "Bối cảnh & nguyên nhân", paragraphs: [event.cause] });
-  if (event.description || event.children.length) {
+  if (causeParagraphs.length) {
+    sections.push({
+      id: "boi-canh",
+      title: "Bối cảnh & nguyên nhân",
+      paragraphs: causeParagraphs,
+    });
+  }
+
+  if (descParagraphs.length || event.children.length) {
     sections.push({
       id: "dien-bien",
-      title: "Diễn biến",
-      paragraphs: event.description ? [event.description] : [],
+      title: "Diễn biến lịch sử",
+      paragraphs: descParagraphs,
       children: event.children.map((c) => ({
         id: c.id,
         title: c.title,
@@ -109,14 +173,46 @@ export function buildEventReaderModel(
       })),
     });
   }
-  if (event.outcome) sections.push({ id: "ket-qua", title: "Kết quả & ý nghĩa", paragraphs: [event.outcome] });
-  if (mentions.length) {
-    sections.push({ id: "nhan-vat-dia-danh", title: "Nhân vật & địa danh", paragraphs: [], participants: mentions });
+
+  if (outcomeParagraphs.length) {
+    sections.push({
+      id: "ket-qua",
+      title: "Kết quả & ý nghĩa lịch sử",
+      paragraphs: outcomeParagraphs,
+    });
   }
-  if (event.sources.length) sections.push({ id: "nguon", title: "Nguồn tham khảo", paragraphs: [], sources: event.sources });
+
+  if (relationLinks.length) {
+    sections.push({
+      id: "quan-he-nhan-qua",
+      title: "Dòng chảy lịch sử & Mối liên hệ nhân – quả",
+      paragraphs: [
+        "Sự kiện này nằm trong chuỗi liên kết nhân – quả của dòng chảy lịch sử dân tộc, có tác động qua lại mật thiết với các mốc biến cố trước và sau:",
+      ],
+      relations: relationLinks,
+    });
+  }
+
+  if (mentions.length) {
+    sections.push({
+      id: "nhan-vat-dia-danh",
+      title: "Nhân vật & địa danh lịch sử",
+      paragraphs: [],
+      participants: mentions,
+    });
+  }
+
+  if (event.sources.length) {
+    sections.push({
+      id: "nguon",
+      title: "Tài liệu & nguồn tham khảo",
+      paragraphs: [],
+      sources: event.sources,
+    });
+  }
 
   const { previous, next } = adjacent(event, allEvents);
-  const primaryLocation = mentions.find((m) => m.type === "LOCATION" && m.isPrimary) ?? null;
+  const primaryLocation = mentions.find((m) => m.type === MentionType.LOCATION && m.isPrimary) ?? null;
 
   return {
     title: event.title,

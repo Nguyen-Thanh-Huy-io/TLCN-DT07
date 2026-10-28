@@ -1,4 +1,5 @@
 "use client";
+import { KeyboardKey } from '@/constants/enums';
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -92,13 +93,13 @@ export function Header({
     document.body.style.overflow = "hidden";
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === KeyboardKey.ESCAPE) {
         setMobileMenuOpen(false);
         toggleButtonRef.current?.focus();
         return;
       }
 
-      if (e.key === "Tab" && menuRef.current) {
+      if (e.key === KeyboardKey.TAB && menuRef.current) {
         const focusableElements = menuRef.current.querySelectorAll<HTMLElement>(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         );

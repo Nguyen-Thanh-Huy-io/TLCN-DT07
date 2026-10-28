@@ -6,7 +6,7 @@ import { BookOpen, MapPin, Plus, Users } from "lucide-react";
 import { Button } from "./sk-ui";
 import { EventCard } from "./EventCard";
 import { EntityList } from "./EntityList";
-import type { TimeNode, TimelineEvent } from "./sk-types";
+import { type TimeNode, type TimelineEvent, NodeContentTab } from "./sk-types";
 
 export function NodeContent({
   node,
@@ -21,13 +21,13 @@ export function NodeContent({
   saved: string[];
   workspace?: boolean;
 }) {
-  const [tab, setTab] = useState("events");
+  const [tab, setTab] = useState<NodeContentTab>(NodeContentTab.EVENTS);
   const [more, setMore] = useState(false);
 
   const tabs = [
-    { id: "events", label: "Sự kiện", icon: BookOpen, count: node.events.length },
-    { id: "figures", label: "Nhân vật", icon: Users, count: node.figures.length },
-    { id: "locations", label: "Địa điểm", icon: MapPin, count: node.locations.length },
+    { id: NodeContentTab.EVENTS, label: "Sự kiện", icon: BookOpen, count: node.events.length },
+    { id: NodeContentTab.FIGURES, label: "Nhân vật", icon: Users, count: node.figures.length },
+    { id: NodeContentTab.LOCATIONS, label: "Địa điểm", icon: MapPin, count: node.locations.length },
   ];
 
   return (
@@ -49,7 +49,7 @@ export function NodeContent({
       </div>
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          {tab === "events" ? (
+          {tab === NodeContentTab.EVENTS ? (
             <div className="sk-event-list">
               {node.events.slice(0, more ? undefined : 2).map((event) => (
                 <EventCard

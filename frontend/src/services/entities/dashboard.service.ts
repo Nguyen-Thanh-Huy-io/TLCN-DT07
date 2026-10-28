@@ -1,6 +1,12 @@
 import api from '../api';
 import { ContentStatus } from '@/constants/enums';
 
+export enum DashboardActivityType {
+  LESSON = 'LESSON',
+  TOPIC = 'TOPIC',
+  PERIOD = 'PERIOD',
+}
+
 export interface DashboardCounts {
   periodsCount: number;
   topicsCount: number;
@@ -13,7 +19,7 @@ export interface DashboardCounts {
 export interface RecentActivityItem {
   id: string;
   title: string;
-  type: 'LESSON' | 'TOPIC' | 'PERIOD';
+  type: DashboardActivityType | 'LESSON' | 'TOPIC' | 'PERIOD';
   status: ContentStatus;
   authorName: string;
   updatedAt: string;

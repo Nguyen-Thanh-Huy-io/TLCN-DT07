@@ -2,10 +2,27 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Editor } from '@tiptap/react';
 import { UploadApiService } from '@/services/entities/upload.service';
-import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
 import { lessonBlockInsertStrategy } from '../strategies/lesson-block-insert.strategy';
 import { LessonBlockType } from '../types/block-palette.types';
+
+export enum TextFormatType {
+  PARAGRAPH = 'p',
+  H1 = 'h1',
+  H2 = 'h2',
+  H3 = 'h3',
+  BLOCKQUOTE = 'blockquote',
+}
+
+const BTN_ACTIVE_CLASS = 'bg-slate-200 text-slate-900';
+const BTN_INACTIVE_CLASS = 'text-slate-700 hover:bg-slate-100';
+
+const FORMAT_STRATEGIES: Record<TextFormatType, (editor: Editor) => void> = {
+  [TextFormatType.H1]: (editor) => editor.chain().focus().toggleHeading({ level: 1 }).run(),
+  [TextFormatType.H2]: (editor) => editor.chain().focus().toggleHeading({ level: 2 }).run(),
+  [TextFormatType.H3]: (editor) => editor.chain().focus().toggleHeading({ level: 3 }).run(),
+  [TextFormatType.BLOCKQUOTE]: (editor) => editor.chain().focus().toggleBlockquote().run(),
+  [TextFormatType.PARAGRAPH]: (editor) => editor.chain().focus().setParagraph().run(),
+};
 
 interface TipTapToolbarProps {
   editor: Editor | null;
@@ -117,28 +134,19 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   };
 
-  const currentFormatValue = editor.isActive('heading', { level: 1 })
-    ? 'h1'
+  const currentFormatValue: TextFormatType = editor.isActive('heading', { level: 1 })
+    ? TextFormatType.H1
     : editor.isActive('heading', { level: 2 })
-    ? 'h2'
+    ? TextFormatType.H2
     : editor.isActive('heading', { level: 3 })
-    ? 'h3'
+    ? TextFormatType.H3
     : editor.isActive('blockquote')
-    ? 'blockquote'
-    : 'p';
+    ? TextFormatType.BLOCKQUOTE
+    : TextFormatType.PARAGRAPH;
 
   const handleFormatChange = (val: string) => {
-    if (val === 'h1') {
-      editor.chain().focus().toggleHeading({ level: 1 }).run();
-    } else if (val === 'h2') {
-      editor.chain().focus().toggleHeading({ level: 2 }).run();
-    } else if (val === 'h3') {
-      editor.chain().focus().toggleHeading({ level: 3 }).run();
-    } else if (val === 'blockquote') {
-      editor.chain().focus().toggleBlockquote().run();
-    } else {
-      editor.chain().focus().setParagraph().run();
-    }
+    const strategy = FORMAT_STRATEGIES[val as TextFormatType] || FORMAT_STRATEGIES[TextFormatType.PARAGRAPH];
+    strategy(editor);
   };
 
   return (
@@ -167,11 +175,11 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
           aria-label="Định dạng đoạn văn"
           className="h-7 px-2.5 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-700 hover:border-slate-400 focus:outline-none focus:border-amber-500 cursor-pointer shadow-2xs"
         >
-          <option value="p">Format</option>
-          <option value="h1">Tiêu đề H1</option>
-          <option value="h2">Mốc sự kiện H2</option>
-          <option value="h3">Tiểu mục H3</option>
-          <option value="blockquote">Khối trích dẫn</option>
+          <option value={TextFormatType.PARAGRAPH}>Format</option>
+          <option value={TextFormatType.H1}>Tiêu đề H1</option>
+          <option value={TextFormatType.H2}>Mốc sự kiện H2</option>
+          <option value={TextFormatType.H3}>Tiểu mục H3</option>
+          <option value={TextFormatType.BLOCKQUOTE}>Khối trích dẫn</option>
         </select>
 
         {/* Cụm 1: [ B | I | U ] */}
@@ -181,8 +189,8 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
             onClick={() => editor.chain().focus().toggleBold().run()}
             className={`w-7 h-7 flex items-center justify-center font-bold transition cursor-pointer ${
               editor.isActive('bold')
-                ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-700 hover:bg-slate-100'
+                ? BTN_ACTIVE_CLASS
+                : BTN_INACTIVE_CLASS
             }`}
             title="In đậm (Ctrl+B)"
           >
@@ -193,8 +201,8 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
             onClick={() => editor.chain().focus().toggleItalic().run()}
             className={`w-7 h-7 flex items-center justify-center font-serif italic transition cursor-pointer ${
               editor.isActive('italic')
-                ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-700 hover:bg-slate-100'
+                ? BTN_ACTIVE_CLASS
+                : BTN_INACTIVE_CLASS
             }`}
             title="In nghiêng (Ctrl+I)"
           >
@@ -205,8 +213,8 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
             onClick={() => editor.chain().focus().toggleStrike().run()}
             className={`w-7 h-7 flex items-center justify-center transition cursor-pointer ${
               editor.isActive('strike')
-                ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-700 hover:bg-slate-100'
+                ? BTN_ACTIVE_CLASS
+                : BTN_INACTIVE_CLASS
             }`}
             title="Gạch chân / Gạch ngang"
           >
@@ -221,8 +229,8 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             className={`w-7 h-7 flex items-center justify-center text-sm font-bold transition cursor-pointer ${
               editor.isActive('bulletList')
-                ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-700 hover:bg-slate-100'
+                ? BTN_ACTIVE_CLASS
+                : BTN_INACTIVE_CLASS
             }`}
             title="Danh sách gạch đầu dòng"
           >
@@ -233,8 +241,8 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             className={`w-7 h-7 flex items-center justify-center font-bold transition cursor-pointer ${
               editor.isActive('orderedList')
-                ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-700 hover:bg-slate-100'
+                ? BTN_ACTIVE_CLASS
+                : BTN_INACTIVE_CLASS
             }`}
             title="Danh sách số thứ tự (1, 2, 3)"
           >
@@ -245,8 +253,8 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             className={`w-7 h-7 flex items-center justify-center text-sm font-serif transition cursor-pointer ${
               editor.isActive('blockquote')
-                ? 'bg-slate-200 text-slate-900'
-                : 'text-slate-700 hover:bg-slate-100'
+                ? BTN_ACTIVE_CLASS
+                : BTN_INACTIVE_CLASS
             }`}
             title="Khối trích dẫn (Blockquote)"
           >
@@ -262,7 +270,7 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
             className={`w-7 h-7 flex items-center justify-center transition cursor-pointer ${
               editor.isActive('link')
                 ? 'bg-slate-200 text-blue-700'
-                : 'text-slate-700 hover:bg-slate-100'
+                : BTN_INACTIVE_CLASS
             }`}
             title="Chèn liên kết tham khảo"
           >
@@ -272,7 +280,7 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
             type="button"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="w-7 h-7 flex items-center justify-center text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            className={`w-7 h-7 flex items-center justify-center ${BTN_INACTIVE_CLASS} transition cursor-pointer`}
             title="Tải ảnh tư liệu từ máy tính"
           >
             🖼

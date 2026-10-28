@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { ContentStatus, LOCATION_TYPE_LABELS, LocationType } from '@/constants/enums';
+import { ContentStatus, LOCATION_TYPE_LABELS, LocationType, ModalMode } from '@/constants/enums';
 import { HistoricalLocationItem } from '@/types/models/historical-location.type';
 
 export interface LocationFormData {
@@ -15,12 +15,18 @@ export interface LocationFormData {
 
 export interface LocationModalProps {
   isOpen: boolean;
-  mode: 'view' | 'edit' | 'create';
+  mode: ModalMode | 'view' | 'edit' | 'create';
   onClose: () => void;
   onSave: (data: LocationFormData) => void;
   onSwitchToEdit?: () => void;
   initialData?: HistoricalLocationItem | null;
 }
+
+const LOCATION_MODAL_TITLES: Record<ModalMode, string> = {
+  [ModalMode.VIEW]: 'Chi tiết Địa danh / Di tích lịch sử',
+  [ModalMode.EDIT]: 'Chỉnh sửa Địa danh / Di tích lịch sử',
+  [ModalMode.CREATE]: 'Thêm Địa danh / Di tích mới',
+};
 
 export function LocationModal({
   isOpen,
@@ -78,7 +84,7 @@ export function LocationModal({
 
   if (!isOpen) return null;
 
-  const isReadOnly = mode === 'view';
+  const isReadOnly = mode === ModalMode.VIEW;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,11 +114,7 @@ export function LocationModal({
       >
         <div className="modal-header">
           <h2>
-            {mode === 'view'
-              ? 'Chi tiết Địa danh / Di tích lịch sử'
-              : mode === 'edit'
-                ? 'Chỉnh sửa Địa danh / Di tích lịch sử'
-                : 'Thêm Địa danh / Di tích mới'}
+            {LOCATION_MODAL_TITLES[mode as ModalMode] || LOCATION_MODAL_TITLES[ModalMode.CREATE]}
           </h2>
           <button type="button" className="modal-close" onClick={onClose}>
             ×
@@ -237,7 +239,7 @@ export function LocationModal({
               )
             ) : (
               <button type="submit" className="btn-primary">
-                {mode === 'edit' ? 'Lưu thay đổi' : 'Tạo mới'}
+                {mode === ModalMode.EDIT ? 'Lưu thay đổi' : 'Tạo mới'}
               </button>
             )}
           </div>

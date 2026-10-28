@@ -3,9 +3,19 @@
 import { useCallback, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronsLeftRight } from 'lucide-react';
+import { KeyboardKey } from '@/constants/enums';
 
 const KEY_STEP = 5;
 const KEY_STEP_LARGE = 20;
+
+type SliderKeyHandler = (currentPos: number, step: number, clamp: (v: number) => number) => number;
+
+const SLIDER_KEY_HANDLERS: Partial<Record<KeyboardKey, SliderKeyHandler>> = {
+  [KeyboardKey.ARROW_LEFT]: (p, step, clamp) => clamp(p - step),
+  [KeyboardKey.ARROW_RIGHT]: (p, step, clamp) => clamp(p + step),
+  [KeyboardKey.HOME]: () => 0,
+  [KeyboardKey.END]: () => 100,
+};
 
 /**
  * Thanh kéo đối chiếu Xưa – Nay: ảnh "xưa" phủ lên ảnh "nay", phần hiển thị cắt bằng
@@ -51,12 +61,10 @@ export function BeforeAfterImageSlider({
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    const handler = SLIDER_KEY_HANDLERS[e.key as KeyboardKey];
+    if (!handler) return;
     const step = e.shiftKey ? KEY_STEP_LARGE : KEY_STEP;
-    if (e.key === 'ArrowLeft') setPos((p) => clamp(p - step));
-    else if (e.key === 'ArrowRight') setPos((p) => clamp(p + step));
-    else if (e.key === 'Home') setPos(0);
-    else if (e.key === 'End') setPos(100);
-    else return;
+    setPos((p) => handler(p, step, clamp));
     e.preventDefault();
   };
 

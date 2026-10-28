@@ -1,4 +1,5 @@
 'use client';
+import { ContentStatus } from '@/constants/enums';
 
 import React from 'react';
 import { Icon } from '@/components/icons/Icon';
@@ -69,12 +70,12 @@ export function LearningPathListPanel({ paths, loading, onSelectPath, onCreatePa
                 <div className="flex items-center justify-between gap-2">
                   <span
                     className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      path.status === 'PUBLISHED'
+                      path.status === ContentStatus.PUBLISHED
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : 'bg-amber-50 text-amber-700 border border-amber-200'
                     }`}
                   >
-                    {path.status === 'PUBLISHED' ? 'Đã xuất bản' : 'Bản nháp'}
+                    {path.status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
                   </span>
                   <Icon name={IconName.ARROW} size={13} className="text-slate-300 group-hover:text-emerald-600" />
                 </div>

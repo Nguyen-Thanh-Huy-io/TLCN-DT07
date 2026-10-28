@@ -1,4 +1,5 @@
 'use client';
+import { LessonStatus } from '@/constants/enums';
 
 import React from 'react';
 import { Icon } from '@/components/icons/Icon';
@@ -199,10 +200,10 @@ export function CreateChapterModal({
                       </div>
                       <span
                         className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                          lesson.status === 'PUBLISHED' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                          lesson.status === LessonStatus.PUBLISHED ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
                         }`}
                       >
-                        {lesson.status === 'PUBLISHED' ? 'Đã xuất bản' : 'Bản nháp'}
+                        {lesson.status === LessonStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
                       </span>
                     </label>
                   );

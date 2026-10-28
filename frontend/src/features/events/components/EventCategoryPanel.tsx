@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import type { TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
 import { collectFields, flattenTree, pathLabel, type TaxonomyFieldDef } from '@/features/taxonomy/taxonomy-tree';
+import { CategoryFieldType } from '@/constants/enums';
 
 interface EventCategoryPanelProps {
   /** Nhóm EVENT_CATEGORY (cả giá trị đang ẩn để hiện đúng loại cũ đã gắn). */
@@ -44,7 +45,7 @@ export function EventCategoryPanel({ group, value, onChange, metadata, onMetadat
   const setField = (field: TaxonomyFieldDef, raw: string) => {
     // Danh sách giữ nguyên chữ đang gõ (để xuống dòng được); backend tách thành mảng khi lưu.
     let next: unknown = raw;
-    if (field.type === 'number') next = raw === '' ? null : Number(raw);
+    if (field.type === CategoryFieldType.NUMBER) next = raw === '' ? null : Number(raw);
     onMetadataChange({ ...metadata, [field.key]: next });
   };
 
@@ -119,29 +120,34 @@ export function EventCategoryPanel({ group, value, onChange, metadata, onMetadat
         <div className="space-y-3 rounded-xl border border-amber-200/70 bg-amber-50/40 p-3.5">
           <div className="text-xs font-bold text-slate-900">Thông tin riêng theo loại</div>
           <div className="grid gap-3 sm:grid-cols-2">
-            {fields.map((field) => (
-              <label key={field.key} className={`block ${field.type === 'textarea' || field.type === 'list' ? 'sm:col-span-2' : ''}`}>
-                <span className="mb-1 block text-[11px] font-semibold text-slate-700">
-                  {field.label}
-                  {field.type === 'list' && <span className="font-normal text-slate-400"> — mỗi dòng một mục</span>}
-                </span>
-                {field.type === 'textarea' || field.type === 'list' ? (
-                  <textarea
-                    rows={3}
-                    value={field.type === 'list' ? listText(metadata[field.key]) : (metadata[field.key] ?? '')}
-                    onChange={(e) => setField(field, e.target.value)}
-                    className={INPUT}
-                  />
-                ) : (
-                  <input
-                    type={field.type === 'number' ? 'number' : 'text'}
-                    value={metadata[field.key] ?? ''}
-                    onChange={(e) => setField(field, e.target.value)}
-                    className={INPUT}
-                  />
-                )}
-              </label>
-            ))}
+            {fields.map((field) => {
+              const isMultiLine = field.type === CategoryFieldType.TEXTAREA || field.type === CategoryFieldType.LIST;
+              const isList = field.type === CategoryFieldType.LIST;
+              const isNumber = field.type === CategoryFieldType.NUMBER;
+              return (
+                <label key={field.key} className={`block ${isMultiLine ? 'sm:col-span-2' : ''}`}>
+                  <span className="mb-1 block text-[11px] font-semibold text-slate-700">
+                    {field.label}
+                    {isList && <span className="font-normal text-slate-400"> — mỗi dòng một mục</span>}
+                  </span>
+                  {isMultiLine ? (
+                    <textarea
+                      rows={3}
+                      value={isList ? listText(metadata[field.key]) : (metadata[field.key] ?? '')}
+                      onChange={(e) => setField(field, e.target.value)}
+                      className={INPUT}
+                    />
+                  ) : (
+                    <input
+                      type={isNumber ? 'number' : 'text'}
+                      value={metadata[field.key] ?? ''}
+                      onChange={(e) => setField(field, e.target.value)}
+                      className={INPUT}
+                    />
+                  )}
+                </label>
+              );
+            })}
           </div>
         </div>
       )}

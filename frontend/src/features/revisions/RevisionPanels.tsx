@@ -1,4 +1,5 @@
 'use client';
+import { ContentStatus } from '@/constants/enums';
 
 import { useCallback, useEffect, useState } from 'react';
 import { extractErrorMessage } from '@/services/api';
@@ -7,6 +8,8 @@ import { isReviewerRole } from '@/services/auth/public-auth.service';
 import {
   ContentRevisionApiService,
   REVISION_TYPE_LABELS,
+  RevisionKind,
+  RevisionStatus,
   type ContentRevisionItem,
   type RevisionChange,
   type RevisionContentType,
@@ -50,7 +53,7 @@ export function RevisionDetailModal({
   }, [revisionId]);
 
   const rev = data?.revision;
-  const isProposal = rev?.kind === 'PROPOSAL';
+  const isProposal = rev?.kind === RevisionKind.PROPOSAL;
   const isOwn = Boolean(rev && user && rev.authorId === user.id);
 
   const run = async (action: () => Promise<unknown>, message: string) => {
@@ -101,12 +104,12 @@ export function RevisionDetailModal({
           ) : (
             !error && <div className="h-32 animate-pulse rounded-xl bg-slate-100" />
           )}
-          {rev?.status === 'REJECTED' && rev.reviewNote && (
+          {rev?.status === RevisionStatus.REJECTED && rev.reviewNote && (
             <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800">Lý do từ chối: {rev.reviewNote}</p>
           )}
         </div>
 
-        {rev && isReviewer && (isProposal ? rev.status === 'PENDING' : true) && (
+        {rev && isReviewer && (isProposal ? rev.status === RevisionStatus.PENDING : true) && (
           <div className="space-y-2 border-t border-slate-100 px-5 py-4">
             {isProposal ? (
               <>
@@ -210,8 +213,8 @@ export function RevisionHistoryModal({
   // Mốc mới nhất trước: bản sửa theo lúc cập nhật, phiên bản cũ theo lúc bị thay thế.
   const items = [...(history?.items ?? [])].sort(
     (a, b) =>
-      new Date(b.kind === 'PROPOSAL' ? b.updatedAt : b.createdAt).getTime() -
-      new Date(a.kind === 'PROPOSAL' ? a.updatedAt : a.createdAt).getTime(),
+      new Date(b.kind === RevisionKind.PROPOSAL ? b.updatedAt : b.createdAt).getTime() -
+      new Date(a.kind === RevisionKind.PROPOSAL ? a.updatedAt : a.createdAt).getTime(),
   );
 
   return (
@@ -248,7 +251,7 @@ export function RevisionHistoryModal({
               )}
               {items.map((item) => {
                 const style = NODE_STYLE[item.status];
-                const proposal = item.kind === 'PROPOSAL';
+                const proposal = item.kind === RevisionKind.PROPOSAL;
                 return (
                   <li key={item.id} className="relative mb-5 pl-6 last:mb-0">
                     <span className={`absolute -left-[8px] top-1.5 size-3.5 rounded-full ring-4 ${style.dot}`} />
@@ -268,8 +271,8 @@ export function RevisionHistoryModal({
                         {proposal
                           ? `${item.author?.username ?? 'không rõ'} đề xuất · ${formatTime(item.updatedAt)}`
                           : `Bị thay lúc ${formatTime(item.createdAt)} bởi ${item.author?.username ?? 'không rõ'}`}
-                        {proposal && item.reviewer && item.status !== 'PENDING' &&
-                          ` · ${item.reviewer.username} ${item.status === 'APPROVED' ? 'duyệt' : 'từ chối'} ${formatTime(item.reviewedAt)}`}
+                        {proposal && item.reviewer && item.status !== RevisionStatus.PENDING &&
+                          ` · ${item.reviewer.username} ${item.status === RevisionStatus.APPROVED ? 'duyệt' : 'từ chối'} ${formatTime(item.reviewedAt)}`}
                       </p>
                       <div className="mt-2">
                         <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
@@ -277,7 +280,7 @@ export function RevisionHistoryModal({
                         </div>
                         <FieldChips fields={item.changedFields ?? []} />
                       </div>
-                      {item.status === 'REJECTED' && item.reviewNote && (
+                      {item.status === RevisionStatus.REJECTED && item.reviewNote && (
                         <p className="mt-2 rounded-md bg-rose-50 px-2 py-1 text-xs text-rose-800">Lý do: {item.reviewNote}</p>
                       )}
                       <span className="mt-2 inline-block text-xs font-semibold text-sky-700">
@@ -331,7 +334,7 @@ export function EditorRevisionBanner({
   const isReviewer = Boolean(user && isReviewerRole(user.role));
   const [historyOpen, setHistoryOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
-  if (!contentId || status !== 'PUBLISHED') return null;
+  if (!contentId || status !== ContentStatus.PUBLISHED) return null;
 
   return (
     <div className="mb-4 space-y-2">

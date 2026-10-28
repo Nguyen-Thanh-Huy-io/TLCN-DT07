@@ -13,11 +13,37 @@ import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import {
   DashboardApiService,
   DashboardOverviewData,
+  DashboardActivityType,
 } from '@/services/entities/dashboard.service';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/useAuthSession';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
 import '../dashboard.css';
+
+interface ActivityTypeConfig {
+  icon: IconName;
+  label: string;
+}
+
+const ACTIVITY_TYPE_REGISTRY: Record<string, ActivityTypeConfig> = {
+  [DashboardActivityType.LESSON]: {
+    icon: IconName.BOOK,
+    label: 'Bài học',
+  },
+  [DashboardActivityType.TOPIC]: {
+    icon: IconName.FOLDER,
+    label: 'Chủ đề',
+  },
+  [DashboardActivityType.PERIOD]: {
+    icon: IconName.CLOCK,
+    label: 'Giai đoạn',
+  },
+};
+
+const DEFAULT_ACTIVITY_CONFIG: ActivityTypeConfig = {
+  icon: IconName.CLOCK,
+  label: 'Giai đoạn',
+};
 
 export function DashboardView() {
   const router = useRouter();
@@ -232,19 +258,9 @@ export function DashboardView() {
               <tbody>
                 {data?.recentActivities && data.recentActivities.length > 0 ? (
                   data.recentActivities.map((item) => {
-                    const iconName =
-                      item.type === 'LESSON'
-                        ? IconName.BOOK
-                        : item.type === 'TOPIC'
-                        ? IconName.FOLDER
-                        : IconName.CLOCK;
-
-                    const typeLabel =
-                      item.type === 'LESSON'
-                        ? 'Bài học'
-                        : item.type === 'TOPIC'
-                        ? 'Chủ đề'
-                        : 'Giai đoạn';
+                    const config = ACTIVITY_TYPE_REGISTRY[item.type] || DEFAULT_ACTIVITY_CONFIG;
+                    const iconName = config.icon;
+                    const typeLabel = config.label;
 
                     const formattedDate = new Date(item.updatedAt).toLocaleDateString('vi-VN', {
                       day: '2-digit',

@@ -4,11 +4,11 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Landmark, UserRound } from "lucide-react";
-import type { EntityMention } from "./ce-types";
+import { type EntityMention, MentionType } from "./ce-types";
 
 export function EntityPopover({ entity, children }: { entity: EntityMention; children: ReactNode }) {
   const [open, setOpen] = useState(false);
-  const isFigure = entity.type === "FIGURE";
+  const isFigure = entity.type === MentionType.FIGURE;
   return (
     <span className="ce-entity-wrap" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <button

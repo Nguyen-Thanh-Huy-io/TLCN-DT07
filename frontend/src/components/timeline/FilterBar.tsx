@@ -2,7 +2,7 @@
 
 import { Bookmark, LayoutList, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button, Input } from "./sk-ui";
-import type { Era, TimelineEvent } from "./sk-types";
+import { type Era, type TimelineEvent, TimelineFacetKey } from "./sk-types";
 import { sortedRegions } from "@/utils/region.utils";
 
 /** Mỗi nhóm cho chọn nhiều giá trị; mảng rỗng = không lọc theo nhóm đó. */
@@ -22,7 +22,7 @@ export function activeFilterCount(filters: TimelineFilters): number {
 /** Bỏ một giá trị khỏi nhóm; bỏ thời kỳ thì bỏ luôn các giai đoạn thuộc thời kỳ đó. */
 export function withoutValue(filters: TimelineFilters, key: keyof TimelineFilters, value: string, eras: Era[]): TimelineFilters {
   const next = { ...filters, [key]: filters[key].filter((v) => v !== value) };
-  if (key === "eras") {
+  if (key === TimelineFacetKey.ERAS) {
     const dropped = new Set(eras.find((e) => e.id === value)?.subEras.map((s) => s.id));
     next.subs = next.subs.filter((s) => !dropped.has(s));
   }

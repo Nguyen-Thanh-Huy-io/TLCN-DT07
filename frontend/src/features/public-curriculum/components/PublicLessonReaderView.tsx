@@ -24,7 +24,7 @@ import {
   PUBLIC_CURRICULUM_ROUTES,
   PUBLIC_DIFFICULTY_META,
 } from '../constants/public-curriculum.constants';
-import { usePublicLessonReaderFacade } from '../facades/usePublicLessonReaderFacade';
+import { usePublicLessonReaderFacade, LessonAccessState } from '../facades/usePublicLessonReaderFacade';
 import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubBadge, HubButton } from './hub/HubUi';
 import { HubSyllabus, chapterLabel } from './hub/HubSyllabus';
 import { HubLessonQuiz } from './hub/HubLessonQuiz';
@@ -36,6 +36,7 @@ import { useLessonMedia } from './hub/useLessonMedia';
 import './hub/lesson-reader.css';
 
 const SYLLABUS_STORAGE_KEY = 'hisgo:lesson-reader:syllabus';
+const SYLLABUS_STORAGE_CLOSED = 'closed';
 
 /** Cột đề cương bên trái, dính theo khi cuộn; thu gọn thành một thanh hẹp. */
 function SyllabusColumn({ open, onToggle, children }: { open: boolean; onToggle: () => void; children: React.ReactNode }) {
@@ -112,7 +113,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
   // Nhớ lựa chọn ẩn/hiện đề cương trên trình duyệt này (đọc sau khi mount để SSR khớp).
   useEffect(() => {
     try {
-      if (localStorage.getItem(SYLLABUS_STORAGE_KEY) === 'closed') setSyllabusOpen(false);
+      if (localStorage.getItem(SYLLABUS_STORAGE_KEY) === SYLLABUS_STORAGE_CLOSED) setSyllabusOpen(false);
     } catch {
       // Không dùng được storage (chế độ riêng tư) → giữ mặc định mở.
     }
@@ -183,7 +184,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
             </div>
             <div className="hidden h-96 animate-pulse rounded-2xl bg-lh-surface-2 lg:block" />
           </div>
-        ) : access !== 'GRANTED' ? (
+        ) : access !== LessonAccessState.GRANTED ? (
           <div className={`grid gap-8 ${learningPath ? (syllabusOpen ? 'lg:grid-cols-[17rem_minmax(0,1fr)]' : 'lg:grid-cols-[3rem_minmax(0,1fr)]') : ''}`}>
             {learningPath && (
               <SyllabusColumn open={syllabusOpen} onToggle={toggleSyllabus}>

@@ -1,4 +1,4 @@
-import { LocationType } from '@/constants/enums';
+import { LocationType, MediaType } from '@/constants/enums';
 import { formatYear, shortPeriodName } from '@/features/search/search-index';
 import type {
   PublicEventSummaryDto,
@@ -137,7 +137,7 @@ export function withHeritageDetail(base: HistoricalHeritage, d: PublicLocationDe
   const h = d.heritage;
   const gallery = [
     ...(d.imageUrl ? [{ url: d.imageUrl, caption: d.imageCaption || d.name }] : []),
-    ...d.media.filter((m) => m.type === 'IMAGE').map((m) => ({ url: m.url, caption: m.caption ?? d.name })),
+    ...d.media.filter((m) => m.type === MediaType.IMAGE).map((m) => ({ url: m.url, caption: m.caption ?? d.name })),
   ];
   return {
     ...base,

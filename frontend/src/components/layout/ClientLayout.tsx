@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { CmsAccessGate } from "@/components/layout/CmsAccessGate";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'hisgo_sidebar_collapsed';
+const STORAGE_VALUE_TRUE = 'true';
+const DASHBOARD_PAGE_KEY = 'dashboard';
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,7 +21,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     try {
       const savedState = localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY);
       if (savedState !== null) {
-        setCollapsed(savedState === 'true');
+        setCollapsed(savedState === STORAGE_VALUE_TRUE);
       }
     } catch {
       // Ignore localStorage errors in SSR or restricted environments
@@ -61,14 +63,14 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   }
 
   // Derive the 'page' identifier from the first path segment only
-  let page = "dashboard";
+  let page = DASHBOARD_PAGE_KEY;
   if (pathname !== "/") {
     page = pathname.replace(/^\//, "").split("/")[0];
   }
 
   // Handle setPage triggered by Sidebar
   const setPage = (newPage: string) => {
-    if (newPage === "dashboard") {
+    if (newPage === DASHBOARD_PAGE_KEY) {
       router.push("/cms");
     } else {
       router.push(`/${newPage}`);

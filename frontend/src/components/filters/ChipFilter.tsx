@@ -1,4 +1,5 @@
 "use client";
+import { KeyboardKey } from '@/constants/enums';
 
 import { ReactNode, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -131,7 +132,7 @@ function DialogPanel({
   useEffect(() => {
     const original = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === KeyboardKey.ESCAPE && onClose();
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = original;

@@ -13,7 +13,8 @@ import type {
   PublicPeriodDto,
 } from '@/services/entities/landing.service';
 import { toHeritageSummaries, withHeritageDetail } from '../heritage.adapter';
-import type { HistoricalHeritage } from '../heritage.types';
+import type { HistoricalHeritage, HeritageRank as HeritageRankType } from '../heritage.types';
+import { HeritageRank } from '@/constants/enums';
 import { EMPTY_HERITAGE_FILTERS, HeritageFilterBar, matchesHeritage, type HeritageFilters } from './HeritageFilterBar';
 import { FeaturedHeritageHero, HeritageCard } from './HeritageCards';
 import { HeritageDetailSheet } from './HeritageDetailSheet';
@@ -21,10 +22,22 @@ import { Button, Select, cn } from '../ui';
 import '@/components/timeline/sk-timeline.css';
 import '../heritage.css';
 
+export enum AppThemeMode {
+  DARK = 'dark',
+  LIGHT = 'light',
+}
+
 const THEME_KEY = 'hisgo:heritage:theme';
 const LIST_PATH = '/di-tich';
 
-const RANK_ORDER = ['UNESCO', 'INTERNATIONAL', 'SPECIAL_NATIONAL', 'NATIONAL', 'PROVINCIAL', 'UNRANKED'];
+const RANK_ORDER: HeritageRankType[] = [
+  HeritageRank.UNESCO,
+  HeritageRank.INTERNATIONAL,
+  HeritageRank.SPECIAL_NATIONAL,
+  HeritageRank.NATIONAL,
+  HeritageRank.PROVINCIAL,
+  HeritageRank.UNRANKED,
+];
 
 /**
  * Trang Di tích (/di-tich, /di-tich/[slug]): tâm điểm + bộ lọc + lưới di tích + khung chi tiết 4 tab.
@@ -56,7 +69,7 @@ export function HeritageExplorer({
   // Nhớ chế độ sáng / tối trên trình duyệt này (đọc sau khi mount để SSR khớp).
   useEffect(() => {
     try {
-      if (localStorage.getItem(THEME_KEY) === 'dark') setDark(true);
+      if (localStorage.getItem(THEME_KEY) === AppThemeMode.DARK) setDark(true);
     } catch {
       // Không dùng được storage → giữ chế độ sáng.
     }
@@ -64,7 +77,7 @@ export function HeritageExplorer({
   const toggleTheme = () =>
     setDark((d) => {
       try {
-        localStorage.setItem(THEME_KEY, d ? 'light' : 'dark');
+        localStorage.setItem(THEME_KEY, d ? AppThemeMode.LIGHT : AppThemeMode.DARK);
       } catch {
         // Bỏ qua: chỉ là tiện ích nhớ lựa chọn.
       }
@@ -97,7 +110,12 @@ export function HeritageExplorer({
   }, []);
 
   const visible = useMemo(() => summaries.filter((h) => matchesHeritage(h, filters)), [summaries, filters]);
-  const featured = summaries.find((h) => h.coverImageUrl && (h.rank === 'UNESCO' || h.rank === 'SPECIAL_NATIONAL')) ?? summaries[0];
+  const featured =
+    summaries.find(
+      (h) =>
+        h.coverImageUrl &&
+        (h.rank === HeritageRank.UNESCO || h.rank === HeritageRank.SPECIAL_NATIONAL),
+    ) ?? summaries[0];
   const selectedBase = summaries.find((h) => h.slug === selectedSlug) ?? null;
   const selected: HistoricalHeritage | null =
     selectedBase && details[selectedBase.slug] ? withHeritageDetail(selectedBase, details[selectedBase.slug]) : selectedBase;

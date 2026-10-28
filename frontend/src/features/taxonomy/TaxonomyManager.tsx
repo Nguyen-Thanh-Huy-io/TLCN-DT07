@@ -10,6 +10,7 @@ import {
   type TaxonomyTermItem,
 } from '@/services/entities/taxonomy.service';
 import { FIELD_TYPE_LABELS, fieldsOf, flattenTree, type TaxonomyFieldDef } from './taxonomy-tree';
+import { NoticeTone } from '@/constants/enums';
 
 interface Draft {
   id: string | null;
@@ -172,7 +173,7 @@ export function TaxonomyManager() {
         <div
           role="status"
           className={`flex items-start justify-between gap-3 rounded-lg border px-3.5 py-2.5 text-sm ${
-            notice.tone === 'error' ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+            notice.tone === NoticeTone.ERROR ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'
           }`}
         >
           <span>{notice.text}</span>

@@ -1,4 +1,5 @@
 'use client';
+import { ContentStatus } from '@/constants/enums';
 
 import React from 'react';
 import { Icon } from '@/components/icons/Icon';
@@ -83,17 +84,17 @@ export function LearningPathToolbar({
           onClick={onTogglePublishPath}
           disabled={actionLoading}
           className={`!h-8 !text-xs !px-3 font-semibold rounded-lg flex items-center gap-1.5 transition-all ${
-            currentPath.status === 'PUBLISHED'
+            currentPath.status === ContentStatus.PUBLISHED
               ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
               : 'bg-emerald-700 text-white hover:bg-emerald-800'
           }`}
         >
           <Icon name={IconName.CHECK} size={13} />
-          <span>{currentPath.status === 'PUBLISHED' ? 'Chuyển về Nháp' : 'Xuất bản Lộ trình'}</span>
+          <span>{currentPath.status === ContentStatus.PUBLISHED ? 'Chuyển về Nháp' : 'Xuất bản Lộ trình'}</span>
         </button>
         ) : (
           <span className="text-[11px] font-semibold rounded-lg px-2.5 py-1.5 bg-slate-100 text-slate-600">
-            {currentPath.status === 'PUBLISHED' ? 'Đã xuất bản' : 'Bản nháp — người duyệt sẽ xuất bản'}
+            {currentPath.status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp — người duyệt sẽ xuất bản'}
           </span>
         )}
       </div>

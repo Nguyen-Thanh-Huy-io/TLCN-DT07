@@ -1,4 +1,5 @@
 'use client';
+import { KeyboardKey, CommonFilterOption } from '@/constants/enums';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -73,8 +74,8 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
       .map((e) => ({ e, head: q ? normalizeSearch(e.title).startsWith(q) : false }))
       .sort((a, b) => Number(b.head) - Number(a.head))
       .map((x) => x.e);
-    const types = type === 'ALL' ? GROUP_ORDER : [type];
-    const limit = type === 'ALL' ? (q ? PER_GROUP : PER_GROUP_IDLE) : MAX_RESULTS;
+    const types = type === CommonFilterOption.ALL ? GROUP_ORDER : [type];
+    const limit = type === CommonFilterOption.ALL ? (q ? PER_GROUP : PER_GROUP_IDLE) : MAX_RESULTS;
     return types
       .map((t) => {
         const all = matched.filter((e) => e.type === t);
@@ -91,13 +92,13 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
+    if (e.key === KeyboardKey.ARROW_DOWN) {
       e.preventDefault();
       setCursor((c) => Math.min(c + 1, results.length - 1));
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === KeyboardKey.ARROW_UP) {
       e.preventDefault();
       setCursor((c) => Math.max(c - 1, 0));
-    } else if (e.key === 'Enter') {
+    } else if (e.key === KeyboardKey.ENTER) {
       e.preventDefault();
       go(results[cursor]);
     }
@@ -142,7 +143,7 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
               setCursor(0);
             }}
           >
-            {t === 'ALL' ? 'Tất cả' : TYPE_LABELS[t]}
+            {t === CommonFilterOption.ALL ? 'Tất cả' : TYPE_LABELS[t]}
             {entries && <small>{counts.get(t) ?? 0}</small>}
           </button>
         ))}
@@ -163,7 +164,7 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
                     {TYPE_LABELS[g.type]}
                     <small>{g.total}</small>
                   </span>
-                  {type === 'ALL' && g.total > g.items.length && (
+                  {type === CommonFilterOption.ALL && g.total > g.items.length && (
                     <button
                       type="button"
                       onClick={() => {
@@ -221,17 +222,19 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+const SEARCH_TRIGGER_KEY = 'k';
+
 /** Nút tìm kiếm trên Header + hộp thoại tìm toàn cục (Ctrl/⌘ + K ở mọi trang công khai). */
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === SEARCH_TRIGGER_KEY) {
         e.preventDefault();
         setOpen(true);
       }
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === KeyboardKey.ESCAPE) setOpen(false);
     };
     const onOpen = () => setOpen(true);
     window.addEventListener('keydown', onKey);

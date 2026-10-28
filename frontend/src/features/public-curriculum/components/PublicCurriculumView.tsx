@@ -21,6 +21,7 @@ import { extractErrorMessage } from '@/services/api';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import type { LearningPathItem } from '@/services/entities/learning-path.service';
+import { LearningPathType } from '@/constants/enums';
 import {
   DEFAULT_COVER_IMAGES,
   FILTER_TAB_OPTIONS,
@@ -144,7 +145,7 @@ function CourseCard({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-transparent" />
         <div className="absolute left-4 top-4 flex gap-2">
-          <HubBadge tone={path.pathType === 'THEMATIC' ? 'gold' : 'brand'}>{meta?.label ?? path.pathType}</HubBadge>
+          <HubBadge tone={path.pathType === LearningPathType.THEMATIC ? 'gold' : 'brand'}>{meta?.label ?? path.pathType}</HubBadge>
           {path.isSequential && <HubBadge tone="neutral">Học tuần tự</HubBadge>}
         </div>
         <div className="absolute bottom-4 left-4 flex items-center gap-2 text-xs font-medium text-white">

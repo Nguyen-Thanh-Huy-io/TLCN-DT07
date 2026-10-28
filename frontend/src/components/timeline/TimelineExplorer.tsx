@@ -91,7 +91,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   const [filters, setFilters] = useState<TimelineFilters>(EMPTY_FILTERS);
   const [horizontal, setHorizontal] = useState(false);
   const [compact, setCompact] = useState(false);
-  const [split, setSplit] = useState<SplitMode>("alternating");
+  const [split, setSplit] = useState<SplitMode>(SplitMode.ALTERNATING);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [active, setActive] = useState("");
   const [detail, setDetail] = useState<{ event: TimelineEvent; node: TimeNode } | null>(null);

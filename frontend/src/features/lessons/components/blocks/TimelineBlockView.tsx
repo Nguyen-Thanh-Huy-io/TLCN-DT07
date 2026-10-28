@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { TIMELINE_BLOCK_CONSTANTS } from '../../constants/block-node.constants';
-import { EventPickerModal } from './EventPickerModal';
+import { EventPickerModal, EventSelectionPayload, normalizePickedEvent } from './EventPickerModal';
 import { AddBlockBelowMenu } from './AddBlockBelowMenu';
 import { LessonBlockType } from '../../types/block-palette.types';
 import { lessonBlockInsertStrategy } from '../../strategies/lesson-block-insert.strategy';
@@ -11,6 +11,7 @@ import { HistoricalEventItem } from '@/services/entities/historical-event.servic
 import { TimelineNode } from './HistoricalTimelineBlock';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
+import { MoveDirection } from '../quiz/QuizQuestionEditors';
 
 let nodeCounter = 0;
 const getUniqueNodeId = () => {
@@ -72,14 +73,15 @@ export function TimelineBlockView(props: NodeViewProps) {
     updateNodes([...nodes, newNode]);
   };
 
-  // Thêm mốc từ kho tri thức HISGO
-  const handleSelectEvent = (event: HistoricalEventItem) => {
+  // Thêm mốc từ kho tri thức HISGO hoặc Wikipedia
+  const handleSelectEvent = (event: HistoricalEventItem | EventSelectionPayload) => {
+    const norm = normalizePickedEvent(event);
     const newNode: TimelineNode = {
       id: getUniqueNodeId(),
-      year: String(event.startYear || 'Lịch sử'),
-      title: event.title,
-      description: event.summary || event.description || 'Sự kiện lịch sử trọng đại.',
-      eventId: event.id,
+      year: String(norm.year || 'Lịch sử'),
+      title: norm.title,
+      description: norm.summary || 'Sự kiện lịch sử trọng đại.',
+      eventId: norm.eventId,
     };
     updateNodes([...nodes, newNode]);
   };
@@ -101,8 +103,8 @@ export function TimelineBlockView(props: NodeViewProps) {
   };
 
   // Di chuyển node lên / xuống
-  const handleMoveNode = (idx: number, direction: 'UP' | 'DOWN') => {
-    const targetIdx = direction === 'UP' ? idx - 1 : idx + 1;
+  const handleMoveNode = (idx: number, direction: MoveDirection | 'UP' | 'DOWN') => {
+    const targetIdx = direction === MoveDirection.UP ? idx - 1 : idx + 1;
     if (targetIdx < 0 || targetIdx >= nodes.length) return;
     const copy = [...nodes];
     const temp = copy[idx];

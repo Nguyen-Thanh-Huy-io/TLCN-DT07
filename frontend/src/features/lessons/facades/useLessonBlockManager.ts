@@ -8,7 +8,9 @@ import {
   RowSectionBlockData,
   TimelineBlockData,
   TimelineOrientation,
+  SplitSide,
 } from '../types/block-builder.types';
+import { MoveDirection } from '../components/quiz/QuizQuestionEditors';
 import { LessonBlockFactory, generateBlockId } from '../factories/lesson-block.factory';
 import { RowLayoutStrategy } from '../strategies/row-layout.strategy';
 
@@ -21,7 +23,7 @@ export interface UseLessonBlockManagerReturn {
   updateBlock: (id: string, updates: Partial<LessonBlockItem>) => void;
   removeBlock: (id: string) => void;
   moveBlock: (fromIndex: number, toIndex: number) => void;
-  moveBlockByDirection: (id: string, direction: 'UP' | 'DOWN') => void;
+  moveBlockByDirection: (id: string, direction: MoveDirection | 'UP' | 'DOWN') => void;
   compileToHtml: () => string;
   compileToJson: () => LessonBlockItem[];
   loadFromContent: (content: any) => void;
@@ -39,7 +41,7 @@ export interface UseLessonBlockManagerReturn {
   addBlockToColumn: (rowId: string, columnId: string, type: LessonBlockType, targetIndex?: number) => string;
   updateBlockInColumn: (rowId: string, columnId: string, blockId: string, updates: Partial<LessonBlockItem>) => void;
   removeBlockFromColumn: (rowId: string, columnId: string, blockId: string) => void;
-  splitBlockIntoRow: (targetBlockId: string, droppedType: LessonBlockType, side: 'LEFT' | 'RIGHT') => void;
+  splitBlockIntoRow: (targetBlockId: string, droppedType: LessonBlockType, side: SplitSide | 'LEFT' | 'RIGHT') => void;
 }
 
 /**
@@ -251,10 +253,10 @@ export function useLessonBlockManager(initialContent?: any): UseLessonBlockManag
 
   // Di chuyển khối Lên / Xuống
   const moveBlockByDirection = useCallback(
-    (id: string, direction: 'UP' | 'DOWN') => {
+    (id: string, direction: MoveDirection | 'UP' | 'DOWN') => {
       const idx = blocks.findIndex((b) => b.id === id);
       if (idx === -1) return;
-      const targetIdx = direction === 'UP' ? idx - 1 : idx + 1;
+      const targetIdx = direction === MoveDirection.UP ? idx - 1 : idx + 1;
       moveBlock(idx, targetIdx);
     },
     [blocks, moveBlock]
@@ -405,7 +407,7 @@ export function useLessonBlockManager(initialContent?: any): UseLessonBlockManag
 
   // Tách một khối thành Hàng 2 Cột khi kéo thả vào mép trái / mép phải (Side-by-side split)
   const splitBlockIntoRow = useCallback(
-    (targetBlockId: string, droppedType: LessonBlockType, side: 'LEFT' | 'RIGHT') => {
+    (targetBlockId: string, droppedType: LessonBlockType, side: SplitSide | 'LEFT' | 'RIGHT') => {
       setBlocks((prev) => {
         const targetIdx = prev.findIndex((b) => b.id === targetBlockId);
         if (targetIdx === -1) return prev;
@@ -416,8 +418,8 @@ export function useLessonBlockManager(initialContent?: any): UseLessonBlockManag
         const col1Id = generateBlockId('col');
         const col2Id = generateBlockId('col');
 
-        const leftBlock = side === 'LEFT' ? newBlock : targetBlock;
-        const rightBlock = side === 'LEFT' ? targetBlock : newBlock;
+        const leftBlock = side === SplitSide.LEFT ? newBlock : targetBlock;
+        const rightBlock = side === SplitSide.LEFT ? targetBlock : newBlock;
 
         const rowSectionBlock: RowSectionBlockData = {
           id: generateBlockId('section_row'),

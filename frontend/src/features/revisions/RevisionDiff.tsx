@@ -2,6 +2,21 @@
 
 import type { ReactNode } from 'react';
 import type { RevisionChange, RevisionLabels } from '@/services/entities/content-revision.service';
+import { MediaType, RevisionFieldKind } from '@/constants/enums';
+
+enum DiffTone {
+  OLD = 'old',
+  NEW = 'new',
+}
+
+enum DiffMark {
+  ADD = 'add',
+  DEL = 'del',
+  EDIT = 'edit',
+  MOVE = 'move',
+}
+
+const NO_CAPTION = '(không chú thích)';
 
 type Row = Record<string, unknown>;
 
@@ -70,8 +85,8 @@ function TextDiff({ before, after }: { before: string; after: string }) {
   if (!parts) {
     return (
       <div className="grid gap-2 md:grid-cols-2">
-        <Box tone="old">{before || '(trống)'}</Box>
-        <Box tone="new">{after || '(trống)'}</Box>
+        <Box tone={DiffTone.OLD}>{before || '(trống)'}</Box>
+        <Box tone={DiffTone.NEW}>{after || '(trống)'}</Box>
       </div>
     );
   }
@@ -88,15 +103,16 @@ function TextDiff({ before, after }: { before: string; after: string }) {
 
 /* ---------- Khối hiển thị nhỏ ---------- */
 
-function Box({ tone, children }: { tone: 'old' | 'new'; children: ReactNode }) {
+function Box({ tone, children }: { tone: DiffTone; children: ReactNode }) {
+  const isOld = tone === DiffTone.OLD;
   return (
     <div
       className={`max-h-60 overflow-auto whitespace-pre-wrap break-words rounded-lg border p-2.5 text-sm ${
-        tone === 'old' ? 'border-rose-200 bg-rose-50/60 text-slate-600' : 'border-emerald-200 bg-emerald-50/60 text-slate-800'
+        isOld ? 'border-rose-200 bg-rose-50/60 text-slate-600' : 'border-emerald-200 bg-emerald-50/60 text-slate-800'
       }`}
     >
-      <div className={`mb-1 text-[10px] font-bold uppercase tracking-wide ${tone === 'old' ? 'text-rose-700' : 'text-emerald-700'}`}>
-        {tone === 'old' ? 'Trước' : 'Sau'}
+      <div className={`mb-1 text-[10px] font-bold uppercase tracking-wide ${isOld ? 'text-rose-700' : 'text-emerald-700'}`}>
+        {isOld ? 'Trước' : 'Sau'}
       </div>
       {children}
     </div>
@@ -113,15 +129,14 @@ function Swap({ before, after }: { before: ReactNode; after: ReactNode }) {
   );
 }
 
-type Mark = 'add' | 'del' | 'edit' | 'move';
-const MARK_STYLE: Record<Mark, { cls: string; text: string }> = {
-  add: { cls: 'border-emerald-200 bg-emerald-50/60', text: 'Thêm' },
-  del: { cls: 'border-rose-200 bg-rose-50/60 opacity-80', text: 'Bỏ' },
-  edit: { cls: 'border-amber-200 bg-amber-50/60', text: 'Sửa' },
-  move: { cls: 'border-sky-200 bg-sky-50/60', text: 'Đổi vị trí' },
+const MARK_STYLE: Record<DiffMark, { cls: string; text: string }> = {
+  [DiffMark.ADD]: { cls: 'border-emerald-200 bg-emerald-50/60', text: 'Thêm' },
+  [DiffMark.DEL]: { cls: 'border-rose-200 bg-rose-50/60 opacity-80', text: 'Bỏ' },
+  [DiffMark.EDIT]: { cls: 'border-amber-200 bg-amber-50/60', text: 'Sửa' },
+  [DiffMark.MOVE]: { cls: 'border-sky-200 bg-sky-50/60', text: 'Đổi vị trí' },
 };
 
-function Marked({ mark, title, children }: { mark: Mark; title: ReactNode; children?: ReactNode }) {
+function Marked({ mark, title, children }: { mark: DiffMark; title: ReactNode; children?: ReactNode }) {
   const style = MARK_STYLE[mark];
   return (
     <div className={`rounded-lg border p-2.5 ${style.cls}`}>
@@ -129,7 +144,7 @@ function Marked({ mark, title, children }: { mark: Mark; title: ReactNode; child
         <span className="rounded bg-white/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
           {style.text}
         </span>
-        <span className={`font-semibold text-slate-800 ${mark === 'del' ? 'line-through' : ''}`}>{title}</span>
+        <span className={`font-semibold text-slate-800 ${mark === DiffMark.DEL ? 'line-through' : ''}`}>{title}</span>
       </div>
       {children && <div className="mt-2">{children}</div>}
     </div>
@@ -148,17 +163,17 @@ function matchRows(
   const newKeys = new Set(after.map((r, i) => keyOf(r, i)));
   const keptOld = before.map((r, i) => keyOf(r, i)).filter((k) => newKeys.has(k));
   const keptNew = after.map((r, i) => keyOf(r, i)).filter((k) => oldMap.has(k));
-  const out: Array<{ mark: Mark; before?: Row; after?: Row; key: string }> = [];
+  const out: Array<{ mark: DiffMark; before?: Row; after?: Row; key: string }> = [];
   after.forEach((r, i) => {
     const key = keyOf(r, i);
     const old = oldMap.get(key);
-    if (!old) out.push({ mark: 'add', after: r, key });
-    else if (stable(view(old.row)) !== stable(view(r))) out.push({ mark: 'edit', before: old.row, after: r, key });
-    else if (keptOld.indexOf(key) !== keptNew.indexOf(key)) out.push({ mark: 'move', before: old.row, after: r, key });
+    if (!old) out.push({ mark: DiffMark.ADD, after: r, key });
+    else if (stable(view(old.row)) !== stable(view(r))) out.push({ mark: DiffMark.EDIT, before: old.row, after: r, key });
+    else if (keptOld.indexOf(key) !== keptNew.indexOf(key)) out.push({ mark: DiffMark.MOVE, before: old.row, after: r, key });
   });
   before.forEach((r, i) => {
     const key = keyOf(r, i);
-    if (!newKeys.has(key)) out.push({ mark: 'del', before: r, key });
+    if (!newKeys.has(key)) out.push({ mark: DiffMark.DEL, before: r, key });
   });
   return out;
 }
@@ -227,8 +242,8 @@ function BlocksDiff({ before, after }: { before: unknown; after: unknown }) {
       {!rows.length && <p className="text-xs text-slate-500">Các khối giữ nguyên chữ; chỉ thuộc tính hiển thị của khối thay đổi.</p>}
       {rows.map((r) => (
         <Marked key={r.key + r.mark} mark={r.mark} title={blockTitle((r.after ?? r.before) as Row)}>
-          {r.mark === 'edit' && <TextDiff before={blockText(r.before)} after={blockText(r.after)} />}
-          {r.mark === 'add' && <p className="whitespace-pre-wrap text-sm text-slate-700">{blockText(r.after).slice(0, 600)}</p>}
+          {r.mark === DiffMark.EDIT && <TextDiff before={blockText(r.before)} after={blockText(r.after)} />}
+          {r.mark === DiffMark.ADD && <p className="whitespace-pre-wrap text-sm text-slate-700">{blockText(r.after).slice(0, 600)}</p>}
         </Marked>
       ))}
     </div>
@@ -249,10 +264,10 @@ function RelationsDiff({ before, after, name }: { before: unknown; after: unknow
   return (
     <div className="space-y-2">
       {rows
-        .filter((r) => r.mark !== 'move')
+        .filter((r) => r.mark !== DiffMark.MOVE)
         .map((r) => (
           <Marked key={r.key + r.mark} mark={r.mark} title={name((r.after ?? r.before)?.entityId)}>
-            {r.mark === 'edit' ? (
+            {r.mark === DiffMark.EDIT ? (
               <Swap before={describe(r.before) || '(trống)'} after={describe(r.after) || '(trống)'} />
             ) : (
               <span className="text-xs text-slate-600">{describe(r.after ?? r.before)}</span>
@@ -278,15 +293,15 @@ function MediaDiff({ before, after }: { before: unknown; after: unknown }) {
   return (
     <div className="space-y-2">
       {rows
-        .filter((r) => r.mark !== 'move')
+        .filter((r) => r.mark !== DiffMark.MOVE)
         .map((r) => {
           const item = (r.after ?? r.before) as Row;
           return (
             <Marked key={r.key + r.mark} mark={r.mark} title={String(item.caption || item.url)}>
               <div className="flex flex-wrap items-center gap-3">
-                {item.type === 'IMAGE' && <Thumb src={String(item.url)} />}
-                {r.mark === 'edit' && (
-                  <Swap before={String(r.before?.caption || '(không chú thích)')} after={String(r.after?.caption || '(không chú thích)')} />
+                {item.type === MediaType.IMAGE && <Thumb src={String(item.url)} />}
+                {r.mark === DiffMark.EDIT && (
+                  <Swap before={String(r.before?.caption || NO_CAPTION)} after={String(r.after?.caption || NO_CAPTION)} />
                 )}
                 <a href={String(item.url)} target="_blank" rel="noreferrer" className="break-all text-xs text-sky-700 hover:underline">
                   {String(item.url)}
@@ -365,6 +380,58 @@ function ChipsDiff({ before, after, name }: { before: unknown; after: unknown; n
   );
 }
 
+/* ---------- Chiến lược hiển thị khác biệt (Strategy Pattern - Tuân thủ OCP) ---------- */
+
+interface DiffStrategyContext {
+  change: RevisionChange;
+  name: (v: unknown) => string;
+  labels: RevisionLabels;
+}
+
+const DIFF_RENDER_STRATEGIES: Record<RevisionFieldKind, (ctx: DiffStrategyContext) => ReactNode> = {
+  [RevisionFieldKind.LONGTEXT]: ({ change }) => (
+    <TextDiff before={stripHtml(String(change.before ?? ''))} after={stripHtml(String(change.after ?? ''))} />
+  ),
+  [RevisionFieldKind.LIST]: ({ change }) => (
+    <ChipsDiff before={change.before} after={change.after} name={(v) => String(v)} />
+  ),
+  [RevisionFieldKind.REFS]: ({ change, name }) => (
+    <ChipsDiff before={change.before} after={change.after} name={name} />
+  ),
+  [RevisionFieldKind.REF]: ({ change, name }) => (
+    <Swap before={name(change.before)} after={name(change.after)} />
+  ),
+  [RevisionFieldKind.BOOL]: ({ change }) => (
+    <Swap before={change.before ? 'Có' : 'Không'} after={change.after ? 'Có' : 'Không'} />
+  ),
+  [RevisionFieldKind.IMAGE]: ({ change }) => (
+    <div className="flex flex-wrap items-center gap-3">
+      {isEmpty(change.before) ? <span className="text-xs text-slate-400">(chưa có ảnh)</span> : <Thumb src={String(change.before)} />}
+      <span className="text-slate-400">→</span>
+      {isEmpty(change.after) ? <span className="text-xs text-slate-400">(bỏ ảnh)</span> : <Thumb src={String(change.after)} />}
+    </div>
+  ),
+  [RevisionFieldKind.BLOCKS]: ({ change }) => (
+    <BlocksDiff before={change.before} after={change.after} />
+  ),
+  [RevisionFieldKind.RELATIONS]: ({ change, name }) => (
+    <RelationsDiff before={change.before} after={change.after} name={name} />
+  ),
+  [RevisionFieldKind.MEDIA]: ({ change }) => (
+    <MediaDiff before={change.before} after={change.after} />
+  ),
+  [RevisionFieldKind.OBJECT]: ({ change, labels }) => (
+    <ObjectDiff before={change.before} after={change.after} labels={labels} />
+  ),
+  [RevisionFieldKind.TEXT]: ({ change }) => (
+    <Swap before={isEmpty(change.before) ? '(trống)' : String(change.before)} after={isEmpty(change.after) ? '(trống)' : String(change.after)} />
+  ),
+};
+
+const defaultDiffStrategy = ({ change }: DiffStrategyContext): ReactNode => (
+  <Swap before={isEmpty(change.before) ? '(trống)' : String(change.before)} after={isEmpty(change.after) ? '(trống)' : String(change.after)} />
+);
+
 /* ---------- Thành phần chính ---------- */
 
 /** Chỉ các trường thay đổi, mỗi kiểu trường hiển thị theo cách dễ đọc nhất (tên thay cho id). */
@@ -385,45 +452,8 @@ export function RevisionDiff({ changes, labels = {} }: { changes: RevisionChange
         <span className="rounded-sm bg-emerald-100 px-1 text-emerald-900">được thêm</span> — trường không đổi được ẩn.
       </p>
       {changes.map((c) => {
-        let body: ReactNode;
-        switch (c.kind) {
-          case 'longtext':
-            body = <TextDiff before={stripHtml(String(c.before ?? ''))} after={stripHtml(String(c.after ?? ''))} />;
-            break;
-          case 'list':
-          case 'refs':
-            body = <ChipsDiff before={c.before} after={c.after} name={c.kind === 'refs' ? name : (v) => String(v)} />;
-            break;
-          case 'ref':
-            body = <Swap before={name(c.before)} after={name(c.after)} />;
-            break;
-          case 'bool':
-            body = <Swap before={c.before ? 'Có' : 'Không'} after={c.after ? 'Có' : 'Không'} />;
-            break;
-          case 'image':
-            body = (
-              <div className="flex flex-wrap items-center gap-3">
-                {isEmpty(c.before) ? <span className="text-xs text-slate-400">(chưa có ảnh)</span> : <Thumb src={String(c.before)} />}
-                <span className="text-slate-400">→</span>
-                {isEmpty(c.after) ? <span className="text-xs text-slate-400">(bỏ ảnh)</span> : <Thumb src={String(c.after)} />}
-              </div>
-            );
-            break;
-          case 'blocks':
-            body = <BlocksDiff before={c.before} after={c.after} />;
-            break;
-          case 'relations':
-            body = <RelationsDiff before={c.before} after={c.after} name={name} />;
-            break;
-          case 'media':
-            body = <MediaDiff before={c.before} after={c.after} />;
-            break;
-          case 'object':
-            body = <ObjectDiff before={c.before} after={c.after} labels={labels} />;
-            break;
-          default:
-            body = <Swap before={isEmpty(c.before) ? '(trống)' : String(c.before)} after={isEmpty(c.after) ? '(trống)' : String(c.after)} />;
-        }
+        const strategy = DIFF_RENDER_STRATEGIES[c.kind as RevisionFieldKind] ?? defaultDiffStrategy;
+        const body = strategy({ change: c, name, labels });
         return (
           <section key={c.key} className="rounded-xl border border-slate-200 bg-slate-50/40 p-3">
             <div className="mb-2 text-xs font-bold text-slate-700">{c.label}</div>

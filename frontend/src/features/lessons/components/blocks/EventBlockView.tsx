@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { EVENT_BLOCK_CONSTANTS } from '../../constants/block-node.constants';
-import { EventPickerModal } from './EventPickerModal';
+import { EventPickerModal, EventSelectionPayload, normalizePickedEvent } from './EventPickerModal';
 import { AddBlockBelowMenu } from './AddBlockBelowMenu';
 import { LessonBlockType } from '../../types/block-palette.types';
 import { lessonBlockInsertStrategy } from '../../strategies/lesson-block-insert.strategy';
@@ -17,21 +17,15 @@ export function EventBlockView(props: NodeViewProps) {
 
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
-  // Chọn sự kiện từ kho tri thức HISGO
-  const handleSelectEvent = (event: HistoricalEventItem) => {
-    const timeLoc = [
-      event.startYear ? `Năm ${event.startYear}` : '',
-      event.historicalLocation?.name || '',
-    ]
-      .filter(Boolean)
-      .join(' • ');
-
+  // Chọn sự kiện từ kho tri thức HISGO hoặc Wikipedia
+  const handleSelectEvent = (event: HistoricalEventItem | EventSelectionPayload) => {
+    const norm = normalizePickedEvent(event);
     updateAttributes({
-      eventId: event.id,
-      title: event.title,
-      timeLocation: timeLoc || `${event.startYear || ''}`,
-      summary: event.summary || event.description || '',
-      thumbnailUrl: event.thumbnailUrl || '',
+      eventId: norm.eventId || '',
+      title: norm.title,
+      timeLocation: norm.timeLocation || '',
+      summary: norm.summary || '',
+      thumbnailUrl: norm.thumbnailUrl || '',
     });
   };
 

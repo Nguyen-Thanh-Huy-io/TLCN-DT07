@@ -3,15 +3,13 @@ import React, { useState } from "react";
 import { newsletterData } from "@/data/newsletter";
 import { OrnamentFrame } from "@/components/hisgo/OrnamentFrame";
 import Image from "next/image";
-
+import { FormStatus } from "@/constants/enums";
 import { USE_IMAGES } from "@/config";
-
-type FormStatus = "idle" | "loading" | "success" | "error";
 
 export function NewsletterBanner() {
   const [email, setEmail] = useState("");
   const [honeypot, setHoneypot] = useState("");
-  const [status, setStatus] = useState<FormStatus>("idle");
+  const [status, setStatus] = useState<FormStatus>(FormStatus.IDLE);
   const [responseMessage, setResponseMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,12 +17,12 @@ export function NewsletterBanner() {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email.trim())) {
-      setStatus("error");
+      setStatus(FormStatus.ERROR);
       setResponseMessage(newsletterData.errorMessage);
       return;
     }
 
-    setStatus("loading");
+    setStatus(FormStatus.LOADING);
     setResponseMessage("");
 
     try {
@@ -37,15 +35,15 @@ export function NewsletterBanner() {
       const data = await res.json();
 
       if (res.ok && data.ok) {
-        setStatus("success");
+        setStatus(FormStatus.SUCCESS);
         setResponseMessage(data.message || newsletterData.successMessage);
         setEmail("");
       } else {
-        setStatus("error");
+        setStatus(FormStatus.ERROR);
         setResponseMessage(data.message || newsletterData.errorMessage);
       }
     } catch {
-      setStatus("error");
+      setStatus(FormStatus.ERROR);
       setResponseMessage(newsletterData.errorMessage);
     }
   };
@@ -116,20 +114,20 @@ export function NewsletterBanner() {
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
-                    if (status === "error") setStatus("idle");
+                    if (status === FormStatus.ERROR) setStatus(FormStatus.IDLE);
                   }}
-                  disabled={status === "loading"}
+                  disabled={status === FormStatus.LOADING}
                   placeholder={newsletterData.inputPlaceholder}
-                  aria-invalid={status === "error"}
+                  aria-invalid={status === FormStatus.ERROR}
                   aria-describedby="newsletter-status-message"
                   className="w-full sm:flex-1 h-10 px-3 bg-transparent text-sm text-[var(--ink)] placeholder-[var(--text-muted)] focus:outline-none"
                 />
                 <button
                   type="submit"
-                  disabled={status === "loading"}
+                  disabled={status === FormStatus.LOADING}
                   className="h-10 px-6 bg-[var(--primary)] hover:bg-[var(--primary-hover)] disabled:opacity-70 text-white font-medium text-sm rounded-[calc(var(--radius-btn)-2px)] transition-colors shadow-sm flex items-center justify-center gap-2 flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] cursor-pointer"
                 >
-                  {status === "loading" ? (
+                  {status === FormStatus.LOADING ? (
                     <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <span>{newsletterData.buttonText}</span>
@@ -143,12 +141,12 @@ export function NewsletterBanner() {
                 aria-live="polite"
                 className="absolute -bottom-6 left-0 right-0 text-left"
               >
-                {status === "success" && (
+                {status === FormStatus.SUCCESS && (
                   <p className="text-xs font-semibold text-emerald-800 animate-fadeIn truncate">
                     ✓ {responseMessage}
                   </p>
                 )}
-                {status === "error" && (
+                {status === FormStatus.ERROR && (
                   <p className="text-xs font-semibold text-rose-800 animate-fadeIn truncate">
                     ✕ {responseMessage}
                   </p>

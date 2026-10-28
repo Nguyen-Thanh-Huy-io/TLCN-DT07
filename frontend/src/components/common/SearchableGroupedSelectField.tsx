@@ -1,5 +1,6 @@
 'use client';
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { KeyboardKey } from '@/constants/enums';
 
 export interface GroupedSelectOption {
   id: string;
@@ -82,7 +83,7 @@ export function SearchableGroupedSelectField({
   }, [isOpen]);
 
   // Tìm option đang được chọn để hiển thị tên đầy đủ và gắn vào native tooltip `title`
-  let selectedOption: (GroupOption & { groupLabel: string }) | null = null;
+  let selectedOption: (GroupedSelectOption & { groupLabel: string }) | null = null;
   for (const grp of groups) {
     const found = grp.options.find((opt) => opt.id === value);
     if (found) {
@@ -173,7 +174,7 @@ export function SearchableGroupedSelectField({
                   setIsOpen(false);
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (e.key === KeyboardKey.ENTER || e.key === KeyboardKey.SPACE) {
                     e.stopPropagation();
                     onChange('');
                     setIsOpen(false);

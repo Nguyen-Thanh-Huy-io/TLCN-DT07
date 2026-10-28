@@ -13,6 +13,11 @@ export enum TimelineOrientation {
   HORIZONTAL = 'HORIZONTAL', // ↔ Trục ngang
 }
 
+export enum SplitSide {
+  LEFT = 'LEFT',
+  RIGHT = 'RIGHT',
+}
+
 export interface BaseBlockData {
   id: string;
   type: LessonBlockType;

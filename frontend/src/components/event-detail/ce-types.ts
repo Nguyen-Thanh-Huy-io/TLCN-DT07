@@ -1,8 +1,16 @@
-export type MentionType = "FIGURE" | "LOCATION";
+export enum MentionType {
+  FIGURE = "FIGURE",
+  LOCATION = "LOCATION",
+}
+
+export enum RelationDirection {
+  INCOMING = "INCOMING",
+  OUTGOING = "OUTGOING",
+}
 
 export interface EntityMention {
   id: string;
-  type: MentionType;
+  type: MentionType | string;
   name: string;
   roleLabel: string | null;
   summary: string | null;
@@ -18,6 +26,17 @@ export interface ChildEventLink {
   dateLabel: string;
 }
 
+export interface EventRelationLink {
+  id: string;
+  title: string;
+  href: string;
+  dateLabel: string;
+  relationType: string;
+  relationLabel: string;
+  description: string | null;
+  direction: RelationDirection | "INCOMING" | "OUTGOING";
+}
+
 export interface ArticleSection {
   id: string;
   title: string;
@@ -25,6 +44,7 @@ export interface ArticleSection {
   children?: ChildEventLink[];
   participants?: EntityMention[];
   sources?: string[];
+  relations?: EventRelationLink[];
 }
 
 export interface AdjacentEvent {

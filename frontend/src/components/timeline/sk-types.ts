@@ -1,3 +1,38 @@
+export enum EventScopeGroup {
+  DOMESTIC = "DOMESTIC",
+  WORLD = "WORLD",
+}
+
+export enum EventDomainGroup {
+  POLITICS_MILITARY = "POLITICS_MILITARY",
+  ECONOMY_CULTURE = "ECONOMY_CULTURE",
+}
+
+export enum TimelineRelationDirection {
+  OUTGOING = "OUTGOING",
+  INCOMING = "INCOMING",
+}
+
+export enum TimelineActorType {
+  DYNASTY = "DYNASTY",
+  ORGANIZATION = "ORGANIZATION",
+  FORCE = "FORCE",
+  ARTIFACT = "ARTIFACT",
+}
+
+export enum NodeContentTab {
+  EVENTS = "events",
+  FIGURES = "figures",
+  LOCATIONS = "locations",
+}
+
+export enum TimelineFacetKey {
+  ERAS = "eras",
+  SUBS = "subs",
+  CATEGORIES = "categories",
+  REGIONS = "regions",
+}
+
 export interface TimelineEvent {
   id: string;
   dateLabel: string;
@@ -10,10 +45,10 @@ export interface TimelineEvent {
   category: string;
   /** Raw EventCategory code from the API. */
   categoryCode: string;
-  scopeGroup: "DOMESTIC" | "WORLD";
+  scopeGroup: EventScopeGroup | "DOMESTIC" | "WORLD";
   /** Khu vực theo Period.region của giai đoạn chứa sự kiện (vd. "Việt Nam", "Châu Á"). */
   region: string;
-  domainGroup: "POLITICS_MILITARY" | "ECONOMY_CULTURE";
+  domainGroup: EventDomainGroup | "POLITICS_MILITARY" | "ECONOMY_CULTURE";
   title: string;
   summary: string;
   content: string;

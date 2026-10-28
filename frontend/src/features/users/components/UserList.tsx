@@ -4,7 +4,7 @@ import { DataTable } from '@/components/table/DataTable';
 import { UserCell } from '@/components/common/UserCell';
 import { Badge } from '@/components/common/Badge';
 import { ColumnDef } from '@/types/table.types';
-import { UserRole, UserStatus } from '@/constants/enums';
+import { UserRole, UserStatus, NoticeTone } from '@/constants/enums';
 import api, { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/useAuthSession';
 import { USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
@@ -135,8 +135,8 @@ export function UserList() {
           marginBottom: 12,
           padding: '10px 14px',
           borderRadius: 8,
-          background: notice.tone === 'ok' ? '#ecfdf5' : '#fef2f2',
-          color: notice.tone === 'ok' ? '#065f46' : '#991b1b',
+          background: notice.tone === NoticeTone.OK ? '#ecfdf5' : '#fef2f2',
+          color: notice.tone === NoticeTone.OK ? '#065f46' : '#991b1b',
         }}
       >
         {notice.text}

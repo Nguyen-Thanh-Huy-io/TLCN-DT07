@@ -18,6 +18,43 @@ export interface EventSelectionPayload {
   sourceType: 'HISGO' | 'WIKIPEDIA';
 }
 
+export interface NormalizedEventPayload {
+  eventId?: string;
+  title: string;
+  year?: string;
+  timeLocation?: string;
+  summary: string;
+  thumbnailUrl?: string;
+}
+
+export function normalizePickedEvent(event: HistoricalEventItem | EventSelectionPayload): NormalizedEventPayload {
+  if ('sourceType' in event) {
+    return {
+      eventId: event.eventId,
+      title: event.title,
+      year: event.timeLocation || '',
+      timeLocation: event.timeLocation,
+      summary: event.summary,
+      thumbnailUrl: event.thumbnailUrl,
+    };
+  }
+  const timeLoc = [
+    event.startYear ? `Năm ${event.startYear}` : '',
+    event.historicalLocation?.name || '',
+  ]
+    .filter(Boolean)
+    .join(' • ');
+
+  return {
+    eventId: event.id,
+    title: event.title,
+    year: event.startYear ? String(event.startYear) : undefined,
+    timeLocation: timeLoc || `${event.startYear || ''}`,
+    summary: event.summary || event.description || '',
+    thumbnailUrl: event.thumbnailUrl || undefined,
+  };
+}
+
 interface EventPickerModalProps {
   isOpen: boolean;
   onClose: () => void;

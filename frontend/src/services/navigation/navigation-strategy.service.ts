@@ -10,6 +10,12 @@ import {
   NavigationPageKey,
 } from '@/constants';
 
+const LABEL_CURRICULUM = NAV_ITEM_LABELS.CURRICULUM;
+const LABEL_KNOWLEDGE = NAV_ITEM_LABELS.KNOWLEDGE;
+const SUBTITLE_CURRICULUM = 'Sơ đồ cây & Danh mục học liệu';
+const NAV_CURRICULUM_ID = 'nav-curriculum';
+const NAV_KNOWLEDGE_ID = 'nav-knowledge';
+
 /**
  * Strategy Interface for Navigation Groups (Open-Closed Principle)
  */
@@ -34,7 +40,7 @@ export class DashboardNavStrategy implements INavigationGroupStrategy {
         id: 'nav-dashboard',
         label: 'Dashboard',
         icon: IconName.GRID,
-        page: 'dashboard',
+        page: NavigationPageKey.DASHBOARD,
         route: APP_ROUTES.DASHBOARD,
         groupId: this.groupId,
         subtitle: 'Thống kê & KPI',
@@ -43,7 +49,7 @@ export class DashboardNavStrategy implements INavigationGroupStrategy {
   }
 
   matchesPage(pageKey: string): boolean {
-    return pageKey === 'dashboard' || pageKey === '';
+    return pageKey === NavigationPageKey.DASHBOARD || !pageKey;
   }
 
   getItemByPage(pageKey: string): NavItemConfig | undefined {
@@ -59,48 +65,48 @@ export class CurriculumNavStrategy implements INavigationGroupStrategy {
   readonly title = NAV_GROUP_TITLES[NavGroupId.CURRICULUM];
 
   private readonly primaryItem: NavItemConfig = {
-    id: 'nav-curriculum',
-    label: NAV_ITEM_LABELS.CURRICULUM,
+    id: NAV_CURRICULUM_ID,
+    label: LABEL_CURRICULUM,
     icon: IconName.GRID,
-    page: 'curriculum',
+    page: NavigationPageKey.CURRICULUM,
     route: APP_ROUTES.CURRICULUM,
     groupId: this.groupId,
     subtitle: 'Chủ đề ➔ Bài học & Quiz',
   };
 
   private readonly subPageConfigs: Record<string, NavItemConfig> = {
-    curriculum: {
-      id: 'nav-curriculum',
-      label: NAV_ITEM_LABELS.CURRICULUM,
+    [NavigationPageKey.CURRICULUM]: {
+      id: NAV_CURRICULUM_ID,
+      label: LABEL_CURRICULUM,
       icon: IconName.GRID,
-      page: 'curriculum',
+      page: NavigationPageKey.CURRICULUM,
       route: APP_ROUTES.CURRICULUM,
       groupId: this.groupId,
-      subtitle: 'Sơ đồ cây & Danh mục học liệu',
+      subtitle: SUBTITLE_CURRICULUM,
     },
-    periods: {
+    [NavigationPageKey.PERIODS]: {
       id: 'nav-periods',
-      label: 'Chương trình học',
+      label: LABEL_CURRICULUM,
       icon: IconName.GRID,
-      page: 'curriculum',
+      page: NavigationPageKey.CURRICULUM,
       route: APP_ROUTES.CURRICULUM,
       groupId: this.groupId,
-      subtitle: 'Sơ đồ cây & Danh mục học liệu',
+      subtitle: SUBTITLE_CURRICULUM,
     },
-    topics: {
+    [NavigationPageKey.TOPICS]: {
       id: 'nav-topics',
       label: 'Chủ đề học tập',
       icon: IconName.FOLDER,
-      page: 'topics',
+      page: NavigationPageKey.TOPICS,
       route: APP_ROUTES.CURRICULUM,
       groupId: this.groupId,
       subtitle: 'Chuyên đề lịch sử',
     },
-    lessons: {
+    [NavigationPageKey.LESSONS]: {
       id: 'nav-lessons',
       label: 'Bài học & Quiz',
       icon: IconName.BOOK,
-      page: 'lessons',
+      page: NavigationPageKey.LESSONS,
       route: APP_ROUTES.CURRICULUM,
       groupId: this.groupId,
       subtitle: 'Nội dung & Kiểm tra',
@@ -113,7 +119,12 @@ export class CurriculumNavStrategy implements INavigationGroupStrategy {
   }
 
   matchesPage(pageKey: string): boolean {
-    return ['curriculum', 'periods', 'topics', 'lessons'].includes(pageKey);
+    return [
+      NavigationPageKey.CURRICULUM,
+      NavigationPageKey.PERIODS,
+      NavigationPageKey.TOPICS,
+      NavigationPageKey.LESSONS,
+    ].includes(pageKey as NavigationPageKey);
   }
 
   getItemByPage(pageKey: string): NavItemConfig | undefined {
@@ -129,57 +140,57 @@ export class KnowledgeBaseNavStrategy implements INavigationGroupStrategy {
   readonly title = NAV_GROUP_TITLES[NavGroupId.KNOWLEDGE];
 
   private readonly primaryItem: NavItemConfig = {
-    id: 'nav-knowledge',
-    label: NAV_ITEM_LABELS.KNOWLEDGE,
+    id: NAV_KNOWLEDGE_ID,
+    label: LABEL_KNOWLEDGE,
     icon: IconName.BOOK,
-    page: 'knowledge',
+    page: NavigationPageKey.KNOWLEDGE,
     route: APP_ROUTES.KNOWLEDGE,
     groupId: this.groupId,
     subtitle: 'Địa danh, Nhân vật, Sự kiện, Thẻ',
   };
 
   private readonly subPageConfigs: Record<string, NavItemConfig> = {
-    knowledge: {
-      id: 'nav-knowledge',
-      label: NAV_ITEM_LABELS.KNOWLEDGE,
+    [NavigationPageKey.KNOWLEDGE]: {
+      id: NAV_KNOWLEDGE_ID,
+      label: LABEL_KNOWLEDGE,
       icon: IconName.BOOK,
-      page: 'knowledge',
+      page: NavigationPageKey.KNOWLEDGE,
       route: APP_ROUTES.KNOWLEDGE,
       groupId: this.groupId,
       subtitle: 'Kho tri thức tập trung',
     },
-    locations: {
+    [NavigationPageKey.LOCATIONS]: {
       id: 'nav-locations',
       label: 'Địa danh lịch sử',
       icon: IconName.CALENDAR,
-      page: 'locations',
+      page: NavigationPageKey.LOCATIONS,
       route: APP_ROUTES.LOCATIONS.LIST,
       groupId: this.groupId,
       subtitle: 'Tọa độ & Di tích',
     },
-    entities: {
+    [NavigationPageKey.ENTITIES]: {
       id: 'nav-entities',
       label: 'Nhân vật & Triều đại',
       icon: IconName.USERS,
-      page: 'entities',
+      page: NavigationPageKey.ENTITIES,
       route: APP_ROUTES.ENTITIES.LIST,
       groupId: this.groupId,
       subtitle: 'Tiểu sử & Dòng họ',
     },
-    events: {
+    [NavigationPageKey.EVENTS]: {
       id: 'nav-events',
       label: 'Sự kiện lịch sử',
       icon: IconName.CLOCK,
-      page: 'events',
+      page: NavigationPageKey.EVENTS,
       route: APP_ROUTES.EVENTS.LIST,
       groupId: this.groupId,
       subtitle: 'Dòng thời gian',
     },
-    tags: {
+    [NavigationPageKey.TAGS]: {
       id: 'nav-tags',
       label: 'Thẻ phân loại',
       icon: IconName.TAG,
-      page: 'tags',
+      page: NavigationPageKey.TAGS,
       route: APP_ROUTES.TAGS.LIST,
       groupId: this.groupId,
       subtitle: 'Nhãn phân loại',
@@ -192,7 +203,13 @@ export class KnowledgeBaseNavStrategy implements INavigationGroupStrategy {
   }
 
   matchesPage(pageKey: string): boolean {
-    return ['knowledge', 'locations', 'entities', 'events', 'tags'].includes(pageKey);
+    return [
+      NavigationPageKey.KNOWLEDGE,
+      NavigationPageKey.LOCATIONS,
+      NavigationPageKey.ENTITIES,
+      NavigationPageKey.EVENTS,
+      NavigationPageKey.TAGS,
+    ].includes(pageKey as NavigationPageKey);
   }
 
   getItemByPage(pageKey: string): NavItemConfig | undefined {
@@ -213,7 +230,7 @@ export class OperationsNavStrategy implements INavigationGroupStrategy {
         id: 'nav-review',
         label: 'Duyệt bài học',
         icon: IconName.CHECK,
-        page: 'review',
+        page: NavigationPageKey.REVIEW,
         route: APP_ROUTES.REVIEW,
         groupId: this.groupId,
         subtitle: 'Kiểm duyệt chất lượng',
@@ -222,7 +239,7 @@ export class OperationsNavStrategy implements INavigationGroupStrategy {
         id: 'nav-users',
         label: 'Người dùng & Quyền',
         icon: IconName.USERS,
-        page: 'users',
+        page: NavigationPageKey.USERS,
         route: APP_ROUTES.USERS,
         groupId: this.groupId,
         subtitle: 'Tài khoản & Phân quyền',
@@ -231,7 +248,7 @@ export class OperationsNavStrategy implements INavigationGroupStrategy {
         id: 'nav-taxonomies',
         label: 'Danh mục dùng chung',
         icon: IconName.TAG,
-        page: 'taxonomies',
+        page: NavigationPageKey.TAXONOMIES,
         route: APP_ROUTES.TAXONOMIES,
         groupId: this.groupId,
         subtitle: 'Loại di tích, hiện trạng, xếp hạng...',
@@ -240,7 +257,11 @@ export class OperationsNavStrategy implements INavigationGroupStrategy {
   }
 
   matchesPage(pageKey: string): boolean {
-    return ['review', 'users', 'taxonomies'].includes(pageKey);
+    return [
+      NavigationPageKey.REVIEW,
+      NavigationPageKey.USERS,
+      NavigationPageKey.TAXONOMIES,
+    ].includes(pageKey as NavigationPageKey);
   }
 
   getItemByPage(pageKey: string): NavItemConfig | undefined {
@@ -286,16 +307,31 @@ export class NavigationFacade {
    * Resolve which primary item on the sidebar should be highlighted active
    */
   public resolveActiveSidebarPage(pageKey: string): NavigationPageKey {
-    if (['curriculum', 'periods', 'topics', 'lessons'].includes(pageKey)) {
-      return 'curriculum';
+    if (
+      [
+        NavigationPageKey.CURRICULUM,
+        NavigationPageKey.PERIODS,
+        NavigationPageKey.TOPICS,
+        NavigationPageKey.LESSONS,
+      ].includes(pageKey as NavigationPageKey)
+    ) {
+      return NavigationPageKey.CURRICULUM;
     }
-    if (['knowledge', 'locations', 'entities', 'events', 'tags'].includes(pageKey)) {
-      return 'knowledge';
+    if (
+      [
+        NavigationPageKey.KNOWLEDGE,
+        NavigationPageKey.LOCATIONS,
+        NavigationPageKey.ENTITIES,
+        NavigationPageKey.EVENTS,
+        NavigationPageKey.TAGS,
+      ].includes(pageKey as NavigationPageKey)
+    ) {
+      return NavigationPageKey.KNOWLEDGE;
     }
-    if (pageKey === 'review') return 'review';
-    if (pageKey === 'users') return 'users';
-    if (pageKey === 'taxonomies') return 'taxonomies';
-    return 'dashboard';
+    if (pageKey === NavigationPageKey.REVIEW) return NavigationPageKey.REVIEW;
+    if (pageKey === NavigationPageKey.USERS) return NavigationPageKey.USERS;
+    if (pageKey === NavigationPageKey.TAXONOMIES) return NavigationPageKey.TAXONOMIES;
+    return NavigationPageKey.DASHBOARD;
   }
 
   /**
@@ -326,11 +362,24 @@ export class NavigationFacade {
     // Handle hierarchy breadcrumbs
     let parentLabel: string | undefined;
     let parentRoute: string | undefined;
-    if (['periods', 'topics', 'lessons'].includes(pageKey)) {
-      parentLabel = 'Chương trình học';
+    if (
+      [
+        NavigationPageKey.PERIODS,
+        NavigationPageKey.TOPICS,
+        NavigationPageKey.LESSONS,
+      ].includes(pageKey as NavigationPageKey)
+    ) {
+      parentLabel = LABEL_CURRICULUM;
       parentRoute = APP_ROUTES.CURRICULUM;
-    } else if (['locations', 'entities', 'events', 'tags'].includes(pageKey)) {
-      parentLabel = 'Từ điển tri thức';
+    } else if (
+      [
+        NavigationPageKey.LOCATIONS,
+        NavigationPageKey.ENTITIES,
+        NavigationPageKey.EVENTS,
+        NavigationPageKey.TAGS,
+      ].includes(pageKey as NavigationPageKey)
+    ) {
+      parentLabel = LABEL_KNOWLEDGE;
       parentRoute = APP_ROUTES.KNOWLEDGE;
     }
 

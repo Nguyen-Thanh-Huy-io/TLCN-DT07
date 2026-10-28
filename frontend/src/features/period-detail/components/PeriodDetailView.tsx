@@ -11,6 +11,15 @@ import { TimeRuler } from './TimeRuler';
 import { EventStream } from './EventStream';
 import '../period-detail.css';
 
+export enum PeriodSectionId {
+  OVERVIEW = 'tong-quan',
+  STAGES = 'giai-doan',
+  EVENTS = 'su-kien',
+  FIGURES = 'nhan-vat',
+  LOCATIONS = 'dia-danh',
+  CONCURRENT = 'cung-thoi',
+}
+
 function initials(name: string): string {
   const words = name.split(/\s+/).filter(Boolean);
   return words.length > 1 ? `${words[0][0]}${words[words.length - 1][0]}` : name.slice(0, 2);
@@ -63,13 +72,13 @@ export function PeriodDetailView({
 }) {
   const region = regionLabel(period.region ?? period.parent?.region ?? null);
   const sections = [
-    { id: 'tong-quan', label: 'Tổng quan', show: true },
-    { id: 'giai-doan', label: `Giai đoạn (${period.children.length})`, show: period.children.length > 0 },
-    { id: 'su-kien', label: `Sự kiện (${period.events.length})`, show: true },
-    { id: 'nhan-vat', label: `Nhân vật (${period.figures.length})`, show: period.figures.length > 0 },
-    { id: 'dia-danh', label: `Địa danh (${period.locations.length})`, show: period.locations.length > 0 },
+    { id: PeriodSectionId.OVERVIEW, label: 'Tổng quan', show: true },
+    { id: PeriodSectionId.STAGES, label: `Giai đoạn (${period.children.length})`, show: period.children.length > 0 },
+    { id: PeriodSectionId.EVENTS, label: `Sự kiện (${period.events.length})`, show: true },
+    { id: PeriodSectionId.FIGURES, label: `Nhân vật (${period.figures.length})`, show: period.figures.length > 0 },
+    { id: PeriodSectionId.LOCATIONS, label: `Địa danh (${period.locations.length})`, show: period.locations.length > 0 },
     {
-      id: 'cung-thoi',
+      id: PeriodSectionId.CONCURRENT,
       label: 'Cùng thời ở nơi khác',
       show: period.concurrentPeriods.length + period.concurrentEvents.length > 0,
     },
@@ -142,7 +151,7 @@ export function PeriodDetailView({
             <span className="pd-sidebar-label">Trong trang này</span>
             <ol>
               {sections.map((s) => {
-                const hasSub = (s.id === 'giai-doan' && period.children.length > 0) || (s.id === 'su-kien' && period.events.length > 0);
+                const hasSub = (s.id === PeriodSectionId.STAGES && period.children.length > 0) || (s.id === PeriodSectionId.EVENTS && period.events.length > 0);
                 const open = hasSub && (toggled[s.id] ?? active === s.id);
                 return (
                 <li key={s.id}>
@@ -162,7 +171,7 @@ export function PeriodDetailView({
                       </button>
                     )}
                   </div>
-                  {open && s.id === 'giai-doan' && (
+                  {open && s.id === PeriodSectionId.STAGES && (
                     <ol className="pd-sidebar-sub">
                       {period.children.map((c) => (
                         <li key={c.id}>
@@ -174,7 +183,7 @@ export function PeriodDetailView({
                       ))}
                     </ol>
                   )}
-                  {open && s.id === 'su-kien' && (
+                  {open && s.id === PeriodSectionId.EVENTS && (
                     <ol className="pd-sidebar-sub">
                       {period.events.map((e) => (
                         <li key={e.id}>
@@ -193,15 +202,15 @@ export function PeriodDetailView({
           </aside>
 
         <div className="pd-body">
-          <section id="tong-quan" className="pd-section">
-            <SectionHead id="tong-quan" eyebrow="Tổng quan" title="Thời kỳ trên trục thời gian" />
+          <section id={PeriodSectionId.OVERVIEW} className="pd-section">
+            <SectionHead id={PeriodSectionId.OVERVIEW} eyebrow="Tổng quan" title="Thời kỳ trên trục thời gian" />
             <TimeRuler period={period} onPickStage={scrollToStage} />
             <p className="pd-hint">Mỗi dải màu là một giai đoạn, mỗi chấm là một sự kiện — bấm để đi tới.</p>
           </section>
 
           {period.children.length > 0 && (
-            <section id="giai-doan" className="pd-section">
-              <SectionHead id="giai-doan" eyebrow="Cấu trúc thời kỳ" title={`${period.children.length} giai đoạn`} />
+            <section id={PeriodSectionId.STAGES} className="pd-section">
+              <SectionHead id={PeriodSectionId.STAGES} eyebrow="Cấu trúc thời kỳ" title={`${period.children.length} giai đoạn`} />
               <ol className="pd-stages">
                 {period.children.map((c, i) => (
                   <li key={c.id} id={`stage-${c.id}`} className={`tone-${i % 4}`}>
@@ -228,14 +237,14 @@ export function PeriodDetailView({
             </section>
           )}
 
-          <section id="su-kien" className="pd-section">
-            <SectionHead id="su-kien" eyebrow="Diễn biến" title="Dòng sự kiện" />
+          <section id={PeriodSectionId.EVENTS} className="pd-section">
+            <SectionHead id={PeriodSectionId.EVENTS} eyebrow="Diễn biến" title="Dòng sự kiện" />
             <EventStream period={period} />
           </section>
 
           {period.figures.length > 0 && (
-            <section id="nhan-vat" className="pd-section">
-              <SectionHead id="nhan-vat" eyebrow="Con người" title="Nhân vật trong thời kỳ" />
+            <section id={PeriodSectionId.FIGURES} className="pd-section">
+              <SectionHead id={PeriodSectionId.FIGURES} eyebrow="Con người" title="Nhân vật trong thời kỳ" />
               <div className="pd-figures">
                 {period.figures.map((f) => (
                   <Link key={f.id} href={PERIOD_ROUTES.FIGURE(f.slug)} className="pd-figure">
@@ -252,9 +261,9 @@ export function PeriodDetailView({
           )}
 
           {period.locations.length > 0 && (
-            <section id="dia-danh" className="pd-section">
+            <section id={PeriodSectionId.LOCATIONS} className="pd-section">
               <SectionHead
-                id="dia-danh"
+                id={PeriodSectionId.LOCATIONS}
                 eyebrow="Không gian"
                 title="Địa danh & di tích"
                 aside={
@@ -278,9 +287,9 @@ export function PeriodDetailView({
             </section>
           )}
 
-          {sections.some((s) => s.id === 'cung-thoi') && (
-            <section id="cung-thoi" className="pd-section">
-              <SectionHead id="cung-thoi" eyebrow="Đối sánh" title={`Cùng thời ${period.timeLabel}, ở nơi khác`} />
+          {sections.some((s) => s.id === PeriodSectionId.CONCURRENT) && (
+            <section id={PeriodSectionId.CONCURRENT} className="pd-section">
+              <SectionHead id={PeriodSectionId.CONCURRENT} eyebrow="Đối sánh" title={`Cùng thời ${period.timeLabel}, ở nơi khác`} />
               <div className="pd-concurrent">
                 {period.concurrentPeriods.length > 0 && (
                   <div>

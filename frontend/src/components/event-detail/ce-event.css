@@ -123,6 +123,22 @@
 .ce-end-mark { display: flex; align-items: center; justify-content: center; gap: 14px; color: var(--ce-gold); margin: 40px 0 70px; }
 .ce-end-mark small { font-size: 12px; letter-spacing: 1.4px; text-align: center; }
 
+/* ---------- Relation Grid ---------- */
+.ce-relation-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin: 20px 0 30px; }
+.ce-relation-card { display: flex; flex-direction: column; padding: 18px 20px; border: 1px solid var(--ce-line); border-radius: 8px; background: var(--ce-paper-strong); text-decoration: none; color: var(--ce-ink); box-shadow: 0 4px 14px #26332c08; transition: border-color .2s, transform .2s, box-shadow .2s; }
+.ce-relation-card:hover { border-color: var(--ce-accent); transform: translateY(-3px); box-shadow: 0 8px 22px #26332c12; }
+.ce-relation-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+.ce-relation-direction { font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 4px; }
+.ce-relation-direction.ce-outgoing { background: var(--ce-accent-soft); color: var(--ce-accent); }
+.ce-relation-direction.ce-incoming { background: var(--ce-olive-soft); color: var(--ce-olive); }
+.ce-relation-badge { font-size: 11px; color: var(--ce-muted); letter-spacing: .5px; background: var(--ce-paper); padding: 3px 7px; border-radius: 3px; border: 1px solid var(--ce-line); }
+.ce-relation-title { font: 600 16px/1.4 var(--ce-serif); color: var(--ce-ink); margin-bottom: 8px; }
+.ce-relation-desc { font-size: 13.5px; line-height: 1.6; color: var(--ce-muted); margin: 0 0 14px; flex: 1; }
+.ce-relation-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px dashed var(--ce-line); font-size: 12px; }
+.ce-relation-year { font-weight: 600; color: var(--ce-gold); }
+.ce-relation-cta { display: inline-flex; align-items: center; gap: 3px; color: var(--ce-accent); font-weight: 500; }
+
+
 /* ---------- Context sidebar ---------- */
 .ce-context { border: 1px solid var(--ce-line); background: var(--ce-paper-strong); padding: 20px; border-radius: 8px; box-shadow: var(--ce-shadow); }
 .ce-context-title { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: 1px; color: var(--ce-accent); padding-bottom: 14px; border-bottom: 1px solid var(--ce-line); }

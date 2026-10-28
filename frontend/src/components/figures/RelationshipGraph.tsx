@@ -1,4 +1,5 @@
 "use client";
+import { KeyboardKey, CommonFilterOption } from '@/constants/enums';
 
 import { usePublicTaxonomyTerms } from "@/features/taxonomy/usePublicTaxonomy";
 import { useState } from "react";
@@ -38,7 +39,7 @@ export function RelationshipGraph({
       target: directory.find((f) => f.id === relation.figureId),
     }))
     .filter((r): r is typeof r & { target: FigureView } => Boolean(r.target))
-    .filter((r) => filter === "ALL" || r.category === filter);
+    .filter((r) => filter === CommonFilterOption.ALL || r.category === filter);
 
   const categories = Object.keys(RELATION_CATEGORY_LABELS) as RelationCategory[];
 
@@ -88,7 +89,7 @@ export function RelationshipGraph({
         <Network size={21} />
       </div>
       <div className="sk-relationship-filters">
-        <Button className={filter === "ALL" ? "sk-selected" : ""} onClick={() => setFilter("ALL")}>
+        <Button className={filter === CommonFilterOption.ALL ? "sk-selected" : ""} onClick={() => setFilter("ALL")}>
           Tất cả <span>{figure.relationships.length}</span>
         </Button>
         {categories.map((c) => (
@@ -166,7 +167,7 @@ export function RelationshipGraph({
                 onNavigate(p.target);
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
+                if (e.key === KeyboardKey.ENTER || e.key === " ") {
                   e.preventDefault();
                   setHovered(null);
                   onNavigate(p.target);

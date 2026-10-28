@@ -4,7 +4,7 @@ import { Icon } from '@/components/icons/Icon';
 import { UserCell } from '@/components/common/UserCell';
 import { ReviewModal } from './ReviewModal';
 import { IconName } from '@/constants/icons';
-import { ContentStatus } from '@/constants/enums';
+import { ContentStatus, NoticeTone } from '@/constants/enums';
 import { LessonItem } from '@/types/models/lesson.type';
 import api, { extractErrorMessage, parsePaginatedResponse } from '@/services/api';
 import { useAuthSession } from '@/services/auth/useAuthSession';
@@ -174,8 +174,8 @@ export function ReviewList() {
             margin: '12px 0',
             padding: '10px 14px',
             borderRadius: 8,
-            background: notice.tone === 'ok' ? '#ecfdf5' : '#fef2f2',
-            color: notice.tone === 'ok' ? '#065f46' : '#991b1b',
+            background: notice.tone === NoticeTone.OK ? '#ecfdf5' : '#fef2f2',
+            color: notice.tone === NoticeTone.OK ? '#065f46' : '#991b1b',
           }}
         >
           {notice.text}

@@ -1,4 +1,5 @@
 'use client';
+import { CommonFilterOption, HeritageRank, HeritageTab, SubStructureType } from '@/constants/enums';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -34,7 +35,7 @@ import {
 import { BeforeAfterImageSlider } from './BeforeAfterImageSlider';
 import { Badge, Card, HeritageImage, ScrollArea, Separator, Sheet, Tabs, cn } from '../ui';
 
-type TabKey = 'overview' | 'structures' | 'timeline' | 'links';
+type TabKey = HeritageTab;
 
 const ACTION_STYLE: Record<ConstructionActionType, { icon: typeof Sprout; tone: string }> = {
   FOUNDED: { icon: Sprout, tone: 'bg-emerald-600' },
@@ -136,15 +137,17 @@ function ThenAndNowView({ h }: { h: HistoricalHeritage }) {
   );
 }
 
+const LABEL_NATIONAL_TREASURE = 'Bảo vật / Hiện vật';
+
 /* Tab 2 — Hạng mục kiến trúc & Bảo vật */
 function SubStructuresExplorer({ items }: { items: SubStructureItem[] }) {
-  const [kind, setKind] = useState<'ALL' | SubStructureItem['type']>('ALL');
+  const [kind, setKind] = useState<CommonFilterOption | SubStructureType>(CommonFilterOption.ALL);
   const [openId, setOpenId] = useState<string | null>(null);
-  const visible = kind === 'ALL' ? items : items.filter((i) => i.type === kind);
-  const kinds: Array<{ value: typeof kind; label: string; count: number }> = [
-    { value: 'ALL', label: 'Tất cả', count: items.length },
-    { value: 'ARCHITECTURE', label: 'Hạng mục kiến trúc', count: items.filter((i) => i.type === 'ARCHITECTURE').length },
-    { value: 'NATIONAL_TREASURE', label: 'Bảo vật / Hiện vật', count: items.filter((i) => i.type === 'NATIONAL_TREASURE').length },
+  const visible = kind === CommonFilterOption.ALL ? items : items.filter((i) => i.type === kind);
+  const kinds: Array<{ value: CommonFilterOption | SubStructureType; label: string; count: number }> = [
+    { value: CommonFilterOption.ALL, label: 'Tất cả', count: items.length },
+    { value: SubStructureType.ARCHITECTURE, label: 'Hạng mục kiến trúc', count: items.filter((i) => i.type === SubStructureType.ARCHITECTURE).length },
+    { value: SubStructureType.NATIONAL_TREASURE, label: LABEL_NATIONAL_TREASURE, count: items.filter((i) => i.type === SubStructureType.NATIONAL_TREASURE).length },
   ];
 
   if (items.length === 0) {
@@ -172,6 +175,7 @@ function SubStructuresExplorer({ items }: { items: SubStructureItem[] }) {
         <AnimatePresence mode="popLayout">
           {visible.map((item) => {
             const open = openId === item.id;
+            const isNationalTreasure = item.type === SubStructureType.NATIONAL_TREASURE;
             return (
               <motion.article
                 key={item.id}
@@ -184,9 +188,9 @@ function SubStructuresExplorer({ items }: { items: SubStructureItem[] }) {
                 <button type="button" onClick={() => setOpenId(open ? null : item.id)} aria-expanded={open} className={cn('grid w-full text-left', open ? 'sm:grid-cols-2' : '')}>
                   <motion.div layout className={cn('relative overflow-hidden', open ? 'aspect-[4/3]' : 'aspect-[16/9]')}>
                     <HeritageImage src={item.imageUrl} alt={item.name} className="h-full w-full" />
-                    <Badge tone={item.type === 'NATIONAL_TREASURE' ? 'gold' : 'dark'} className="absolute left-3 top-3">
-                      {item.type === 'NATIONAL_TREASURE' ? <Gem className="size-3" /> : <Landmark className="size-3" />}
-                      {item.type === 'NATIONAL_TREASURE' ? 'Bảo vật / Hiện vật' : 'Kiến trúc'}
+                    <Badge tone={isNationalTreasure ? 'gold' : 'dark'} className="absolute left-3 top-3">
+                      {isNationalTreasure ? <Gem className="size-3" /> : <Landmark className="size-3" />}
+                      {isNationalTreasure ? LABEL_NATIONAL_TREASURE : 'Kiến trúc'}
                     </Badge>
                   </motion.div>
                   <motion.div layout className="space-y-1.5 p-4">
@@ -374,10 +378,12 @@ function LinksAndVisitor({ h }: { h: HistoricalHeritage }) {
 export function HeritageDetailSheet({ heritage, onClose }: { heritage: HistoricalHeritage | null; onClose: () => void }) {
   const h = heritage;
   // Mở di tích khác thì quay về tab Tổng quan (đặt lại ngay trong render, không cần effect).
-  const [view, setView] = useState<{ id: string | null; tab: TabKey }>({ id: h?.id ?? null, tab: 'overview' });
-  if (h && view.id !== h.id) setView({ id: h.id, tab: 'overview' });
+  const [view, setView] = useState<{ id: string | null; tab: TabKey }>({ id: h?.id ?? null, tab: HeritageTab.OVERVIEW });
+  if (h && view.id !== h.id) setView({ id: h.id, tab: HeritageTab.OVERVIEW });
   const tab = view.tab;
   const setTab = (t: TabKey) => setView((v) => ({ ...v, tab: t }));
+
+  const isSpecialRank = h?.rank === HeritageRank.UNESCO || h?.rank === HeritageRank.SPECIAL_NATIONAL;
 
   return (
     <Sheet open={Boolean(h)} onClose={onClose} label={h ? `Chi tiết ${h.name}` : 'Chi tiết di tích'}>
@@ -388,7 +394,7 @@ export function HeritageDetailSheet({ heritage, onClose }: { heritage: Historica
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 space-y-2 p-5 text-white sm:p-8">
               <div className="flex flex-wrap gap-2">
-                <Badge tone={h.rank === 'UNESCO' || h.rank === 'SPECIAL_NATIONAL' ? 'gold' : 'dark'}>
+                <Badge tone={isSpecialRank ? 'gold' : 'dark'}>
                   <Award className="size-3.5" /> {RANK_LABELS[h.rank]}
                 </Badge>
                 <Badge tone="dark">
@@ -408,10 +414,10 @@ export function HeritageDetailSheet({ heritage, onClose }: { heritage: Historica
               value={tab}
               onChange={setTab}
               items={[
-                { value: 'overview', label: 'Tổng quan & Xưa – Nay', icon: <BookOpen className="size-4" /> },
-                { value: 'structures', label: `Kiến trúc & Bảo vật${h.subStructures.length ? ` (${h.subStructures.length})` : ''}`, icon: <Landmark className="size-4" /> },
-                { value: 'timeline', label: 'Biên niên sử', icon: <CalendarDays className="size-4" /> },
-                { value: 'links', label: 'Sự kiện, Nhân vật & Tham quan', icon: <Users className="size-4" /> },
+                { value: HeritageTab.OVERVIEW, label: 'Tổng quan & Xưa – Nay', icon: <BookOpen className="size-4" /> },
+                { value: HeritageTab.STRUCTURES, label: `Kiến trúc & Bảo vật${h.subStructures.length ? ` (${h.subStructures.length})` : ''}`, icon: <Landmark className="size-4" /> },
+                { value: HeritageTab.TIMELINE, label: 'Biên niên sử', icon: <CalendarDays className="size-4" /> },
+                { value: HeritageTab.LINKS, label: 'Sự kiện, Nhân vật & Tham quan', icon: <Users className="size-4" /> },
               ]}
             />
           </div>
@@ -419,15 +425,15 @@ export function HeritageDetailSheet({ heritage, onClose }: { heritage: Historica
           <div className="px-5 py-6 sm:px-8">
             <AnimatePresence mode="wait">
               <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
-                {!h.detailLoaded && tab !== 'overview' ? (
+                {!h.detailLoaded && tab !== HeritageTab.OVERVIEW ? (
                   <div className="flex items-center justify-center gap-2 py-16 text-sm text-[var(--hx-muted)]">
                     <Loader2 className="size-4 animate-spin" /> Đang tải chi tiết di tích...
                   </div>
                 ) : null}
-                {tab === 'overview' && <ThenAndNowView h={h} />}
-                {h.detailLoaded !== false && tab === 'structures' && <SubStructuresExplorer items={h.subStructures} />}
-                {h.detailLoaded !== false && tab === 'timeline' && <ConstructionTimeline items={h.constructionTimeline} />}
-                {h.detailLoaded !== false && tab === 'links' && <LinksAndVisitor h={h} />}
+                {tab === HeritageTab.OVERVIEW && <ThenAndNowView h={h} />}
+                {h.detailLoaded !== false && tab === HeritageTab.STRUCTURES && <SubStructuresExplorer items={h.subStructures} />}
+                {h.detailLoaded !== false && tab === HeritageTab.TIMELINE && <ConstructionTimeline items={h.constructionTimeline} />}
+                {h.detailLoaded !== false && tab === HeritageTab.LINKS && <LinksAndVisitor h={h} />}
               </motion.div>
             </AnimatePresence>
           </div>

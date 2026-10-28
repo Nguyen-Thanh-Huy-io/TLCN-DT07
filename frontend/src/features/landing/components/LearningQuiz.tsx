@@ -9,6 +9,12 @@ import { LANDING_ROUTES } from '../landing.adapter';
 import type { LandingCourse, LandingQuiz } from '../landing.types';
 import { HlBadge, HlButton, HlProgress, SectionHead, cn } from './LandingUi';
 
+export enum QuizOptionState {
+  CORRECT = 'correct',
+  WRONG = 'wrong',
+  MUTED = 'muted',
+}
+
 function CourseCard({ course }: { course: LandingCourse }) {
   const { isEnrolled, isCompleted } = useLessonProgress();
   const enrolled = isEnrolled(course.id);
@@ -63,13 +69,20 @@ function DailyQuiz({ quiz }: { quiz: LandingQuiz }) {
       <p className="hl-quiz-question">{quiz.question}</p>
       <div className="hl-quiz-options">
         {quiz.options.map((option, i) => {
-          const state = answer === null ? '' : i === quiz.correctIndex ? 'correct' : i === answer ? 'wrong' : 'muted';
+          const state =
+            answer === null
+              ? ''
+              : i === quiz.correctIndex
+              ? QuizOptionState.CORRECT
+              : i === answer
+              ? QuizOptionState.WRONG
+              : QuizOptionState.MUTED;
           return (
             <button type="button" className={state} disabled={answer !== null} key={option} onClick={() => setAnswer(i)}>
               <span>{String.fromCharCode(65 + i)}</span>
               {option}
-              {state === 'correct' && <Check />}
-              {state === 'wrong' && <X />}
+              {state === QuizOptionState.CORRECT && <Check />}
+              {state === QuizOptionState.WRONG && <X />}
             </button>
           );
         })}

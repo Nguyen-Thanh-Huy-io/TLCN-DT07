@@ -4,14 +4,20 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, LayoutGrid, List, MapPin, Users, X } from 'lucide-react';
 import type { PublicPeriodDetailDto } from '@/services/entities/landing.service';
+import { TaxonomyGroupCode } from '@/constants/enums';
 import { PERIOD_ROUTES, eventYearLabel, groupEventsByStage } from '../period-detail.adapter';
 import { categoryKeyLabel, eventCategoryKey, eventCategoryLabel } from '@/features/taxonomy/taxonomy-labels';
 import { usePublicTaxonomyTerms } from '@/features/taxonomy/usePublicTaxonomy';
 
+export enum EventStreamViewMode {
+  LIST = 'list',
+  CARDS = 'cards',
+}
+
 /** Dòng sự kiện của thời kỳ, chia theo giai đoạn, lọc nhiều danh mục cùng lúc. */
 export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
   // Loại chính theo "Danh mục dùng chung" (Truyền thuyết, Tôn giáo...), chưa tải xong thì nhãn enum cũ.
-  const categoryTerms = usePublicTaxonomyTerms('EVENT_CATEGORY');
+  const categoryTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.EVENT_CATEGORY);
   const categoryLabel = (key: string) => categoryKeyLabel(categoryTerms, key);
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
@@ -19,7 +25,7 @@ export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);
   }, [period.events]);
   const [picked, setPicked] = useState<string[]>([]);
-  const [view, setView] = useState<'list' | 'cards'>('list');
+  const [view, setView] = useState<EventStreamViewMode>(EventStreamViewMode.LIST);
   const toggle = (c: string) => setPicked((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
   const visible = picked.length ? period.events.filter((e) => picked.includes(eventCategoryKey(e))) : period.events;
   const groups = groupEventsByStage(period, visible);
@@ -33,14 +39,26 @@ export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
     );
   }
 
+  const isListView = view === EventStreamViewMode.LIST;
+
   return (
     <>
       <div className="pd-stream-toolbar">
         <div className="pd-view-toggle" role="group" aria-label="Kiểu hiển thị sự kiện">
-          <button type="button" className={view === 'list' ? 'active' : ''} aria-pressed={view === 'list'} onClick={() => setView('list')}>
+          <button
+            type="button"
+            className={isListView ? 'active' : ''}
+            aria-pressed={isListView}
+            onClick={() => setView(EventStreamViewMode.LIST)}
+          >
             <List size={14} /> Danh sách
           </button>
-          <button type="button" className={view === 'cards' ? 'active' : ''} aria-pressed={view === 'cards'} onClick={() => setView('cards')}>
+          <button
+            type="button"
+            className={view === EventStreamViewMode.CARDS ? 'active' : ''}
+            aria-pressed={view === EventStreamViewMode.CARDS}
+            onClick={() => setView(EventStreamViewMode.CARDS)}
+          >
             <LayoutGrid size={14} /> Thẻ chi tiết
           </button>
         </div>
@@ -75,7 +93,7 @@ export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
                 </Link>
               )}
             </header>
-            {view === 'list' ? (
+            {isListView ? (
               <ol className="pd-event-list">
                 {g.events.map((e) => (
                   <li key={e.id} id={`ev-${e.id}`}>

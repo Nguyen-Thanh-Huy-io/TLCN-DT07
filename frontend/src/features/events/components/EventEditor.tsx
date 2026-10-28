@@ -13,11 +13,6 @@ import {
   KnowledgeRelationItem,
   KnowledgeRelationType,
 } from '@/components/common/KnowledgeRelationManager';
-import {
-  ParentContextComboboxField,
-  ParentContextCategory,
-  ParentContextOption,
-} from '@/components/common/ParentContextComboboxField';
 import { TopicCoverImagePicker } from '@/features/topics/components/TopicCoverImagePicker';
 import { LessonMediaManager } from '@/features/lessons/components/LessonMediaManager';
 import { LessonMediaItem } from '@/features/lessons/types/editor.types';
@@ -31,10 +26,19 @@ import {
   EVENT_RELATION_TYPE_LABELS,
   VerificationStatus,
   VERIFICATION_STATUS_LABELS,
+  TaxonomyGroupCode,
+  ContentAction,
+  MediaType,
 } from '@/constants/enums';
-import { APP_ROUTES } from '@/constants/routes';
+import { APP_ROUTES, SAMPLE_REMOTE_LINKS } from '@/constants/routes';
 import { TaxonomyApiService, type TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
 import { EventCategoryPanel } from './EventCategoryPanel';
+
+const SAMPLE_START_DATE = '19/05/1959';
+const SAMPLE_END_DATE = '30/04/1975';
+const LABEL_SUBTITLE_PERIOD = 'Thời kỳ lịch sử';
+const LABEL_SUBTITLE_TOPIC = 'Chủ đề lịch sử';
+const LABEL_SUBTITLE_LOCATION = 'Địa danh lịch sử';
 import {
   isRevisionPending,
   withPendingDraft,
@@ -101,11 +105,12 @@ interface EntityOption {
   tagline?: string | null;
 }
 
+const LEGACY_PERSON_TYPES: readonly string[] = ['FIGURE', 'HISTORICAL_FIGURE'];
+
 function isPersonEntityType(type?: string | null): boolean {
   return (
     type === EntityType.PERSON ||
-    type === 'FIGURE' ||
-    type === 'HISTORICAL_FIGURE' ||
+    Boolean(type && LEGACY_PERSON_TYPES.includes(type)) ||
     (!isForceEntityType(type) && !isArtifactEntityType(type))
   );
 }
@@ -178,10 +183,10 @@ export function EventEditor({ eventId }: EventEditorProps) {
   const [timelineMode, setTimelineMode] = useState<TimelineMode>(
     TimelineMode.RANGE,
   );
-  const [startDateInput, setStartDateInput] = useState<string>('19/05/1959');
+  const [startDateInput, setStartDateInput] = useState<string>(SAMPLE_START_DATE);
   const [startIsBce, setStartIsBce] = useState<boolean>(false);
 
-  const [endDateInput, setEndDateInput] = useState<string>('30/04/1975');
+  const [endDateInput, setEndDateInput] = useState<string>(SAMPLE_END_DATE);
   const [endIsBce, setEndIsBce] = useState<boolean>(false);
 
   const [eventDateNote, setEventDateNote] = useState('');
@@ -285,11 +290,11 @@ export function EventEditor({ eventId }: EventEditorProps) {
   }, [autoDisplayText, isCustomDisplayMode]);
 
   useEffect(() => {
-    TaxonomyApiService.getGroups(['EVENT_CATEGORY', 'EVENT_ROLE', 'EVENT_RELATION'])
+    TaxonomyApiService.getGroups([TaxonomyGroupCode.EVENT_CATEGORY, TaxonomyGroupCode.EVENT_ROLE, TaxonomyGroupCode.EVENT_RELATION])
       .then((groups) => {
-        setCategoryGroup(groups.find((g) => g.code === 'EVENT_CATEGORY'));
-        setRoleGroup(groups.find((g) => g.code === 'EVENT_ROLE'));
-        setRelationGroup(groups.find((g) => g.code === 'EVENT_RELATION'));
+        setCategoryGroup(groups.find((g) => g.code === TaxonomyGroupCode.EVENT_CATEGORY));
+        setRoleGroup(groups.find((g) => g.code === TaxonomyGroupCode.EVENT_ROLE));
+        setRelationGroup(groups.find((g) => g.code === TaxonomyGroupCode.EVENT_RELATION));
       })
       .catch((err) => console.warn('Failed to fetch event taxonomies:', err));
   }, []);
@@ -529,7 +534,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
         name: p.name,
         type: KnowledgeRelationType.PERIOD,
         typeLabel: 'Thời kỳ',
-        subtitle: 'Thời kỳ lịch sử',
+        subtitle: LABEL_SUBTITLE_PERIOD,
         yearLabel,
       });
     });
@@ -542,7 +547,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
         name: t.name,
         type: KnowledgeRelationType.TOPIC,
         typeLabel: 'Chủ đề',
-        subtitle: t.eyebrow || 'Chủ đề lịch sử',
+        subtitle: t.eyebrow || LABEL_SUBTITLE_TOPIC,
       });
     });
 
@@ -554,7 +559,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
         name: loc.name,
         type: KnowledgeRelationType.LOCATION,
         typeLabel: 'Địa điểm',
-        subtitle: loc.address || 'Địa danh lịch sử',
+        subtitle: loc.address || LABEL_SUBTITLE_LOCATION,
       });
     });
 
@@ -615,7 +620,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
           type: KnowledgeRelationType.PERIOD,
           typeLabel: 'Thời kỳ',
           relationLabel: `Thuộc thời kỳ`,
-          subtitle: 'Thời kỳ lịch sử',
+          subtitle: LABEL_SUBTITLE_PERIOD,
           yearLabel:
             found.startYear !== undefined
               ? `${formatHistoricalYear(found.startYear)} – ${
@@ -639,7 +644,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
           type: KnowledgeRelationType.TOPIC,
           typeLabel: 'Chủ đề',
           relationLabel: 'Thuộc chủ đề',
-          subtitle: found.eyebrow || 'Chủ đề lịch sử',
+          subtitle: found.eyebrow || LABEL_SUBTITLE_TOPIC,
         });
       }
     }
@@ -655,7 +660,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
           type: KnowledgeRelationType.LOCATION,
           typeLabel: 'Địa điểm',
           relationLabel: 'Địa danh / Di tích diễn ra',
-          subtitle: found.address || 'Địa danh lịch sử',
+          subtitle: found.address || LABEL_SUBTITLE_LOCATION,
         });
       }
     }
@@ -836,9 +841,9 @@ export function EventEditor({ eventId }: EventEditorProps) {
       tactics: 'Vận chuyển cơ giới kết hợp gùi thồ, xẻ dọc Trường Sơn đi cứu nước',
     });
     setTimelineMode(TimelineMode.RANGE);
-    setStartDateInput('19/05/1959');
+    setStartDateInput(SAMPLE_START_DATE);
     setStartIsBce(false);
-    setEndDateInput('30/04/1975');
+    setEndDateInput(SAMPLE_END_DATE);
     setEndIsBce(false);
     setIsCustomDisplayMode(false);
     setLocationLabel('Dãy Trường Sơn');
@@ -848,9 +853,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
     setDescription(
       '<p><strong>Bối cảnh & Nguyên nhân:</strong> Cách mạng miền Nam chuyển sang thế tiến công sau Nghị quyết Trung ương 15 (1959), đòi hỏi tuyến giao thông quân sự huyết mạch xuyên dãy Trường Sơn.</p><p><strong>Diễn biến:</strong> Ngày 19/5/1959, Quân ủy Trung ương quyết định thành lập <strong>Đoàn công tác quân sự đặc biệt (Đoàn 559)</strong> do Thượng tá Võ Bẩm làm Đoàn trưởng, mở tuyến vận tải chiến lược Trường Sơn chi viện sức người, sức của từ hậu phương lớn miền Bắc cho tiền tuyến lớn miền Nam.</p><p><strong>Kết quả & Ý nghĩa:</strong> Xây dựng mạng lưới đường bộ và đường ống xăng dầu dài gần 20.000 km, góp phần quyết định vào Đại thắng mùa Xuân năm 1975.</p>',
     );
-    setThumbnailUrl(
-      'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1000&q=80',
-    );
+    setThumbnailUrl(SAMPLE_REMOTE_LINKS.TRUONG_SON_IMAGE);
     setSourceReferenceNote(
       'Sách giáo khoa Lịch sử 12, NXB Giáo dục Việt Nam; Lịch sử Bộ đội Trường Sơn - Đường Hồ Chí Minh',
     );
@@ -889,19 +892,19 @@ export function EventEditor({ eventId }: EventEditorProps) {
     setMediaList([
       {
         type: 'IMAGE' as any,
-        url: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1000&q=80',
+        url: SAMPLE_REMOTE_LINKS.TRUONG_SON_IMAGE,
         caption: 'Đoàn xe vận tải quân sự vượt Trường Sơn chi viện tiền tuyến',
         displayOrder: 1,
       },
       {
         type: 'VIDEO' as any,
-        url: 'https://www.youtube.com/watch?v=sample-truong-son',
+        url: SAMPLE_REMOTE_LINKS.TRUONG_SON_VIDEO,
         caption: 'Phim tài liệu: Huyền thoại đường Trường Sơn',
         displayOrder: 2,
       },
       {
         type: 'DOCUMENT' as any,
-        url: 'https://example.com/tai-lieu-duong-truong-son.pdf',
+        url: SAMPLE_REMOTE_LINKS.TRUONG_SON_DOCUMENT,
         caption: 'Tài liệu tham khảo: Lịch sử Bộ đội Trường Sơn',
         displayOrder: 3,
       },
@@ -974,7 +977,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
     if (!parsedStart.valid || parsedStart.signedYear === null) {
       alert(
         parsedStart.error ||
-          'Vui lòng nhập Mốc bắt đầu hợp lệ theo định dạng DD/MM/YYYY hoặc YYYY (VD: 19/05/1959 hoặc 1959).',
+          `Vui lòng nhập Mốc bắt đầu hợp lệ theo định dạng DD/MM/YYYY hoặc YYYY (VD: ${SAMPLE_START_DATE} hoặc 1959).`,
       );
       return;
     }
@@ -1004,7 +1007,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
       eventDateNote.trim() || autoDisplayText || undefined;
 
     const targetStatus =
-      action === 'DRAFT' ? ContentStatus.DRAFT : status || ContentStatus.PUBLISHED;
+      action === ContentStatus.DRAFT ? ContentStatus.DRAFT : status || ContentStatus.PUBLISHED;
 
     const mergedMetadata: Record<string, any> = {
       ...metadata,
@@ -1029,7 +1032,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
       locationId: locationId || undefined,
       parentId: parentId ? parentId : null,
       thumbnailUrl: thumbnailUrl.trim() || undefined,
-      status: action === 'PUBLISH' ? ContentStatus.PUBLISHED : targetStatus,
+      status: action === ContentAction.PUBLISH ? ContentStatus.PUBLISHED : targetStatus,
       categoryIds,
       metadata: Object.keys(mergedMetadata).length > 0 ? mergedMetadata : undefined,
       // Gửi kèm vai trò để lưu không làm mất vai trò / mô tả đã có.
@@ -1068,12 +1071,12 @@ export function EventEditor({ eventId }: EventEditorProps) {
         }
         setStatus(updated.status || payload.status || ContentStatus.PUBLISHED);
         setUpdatedAt(updated.updatedAt || new Date().toISOString());
-        if (action === 'DRAFT') {
+        if (action === ContentStatus.DRAFT) {
           setLastDraftSavedAt(new Date().toLocaleTimeString('vi-VN'));
         }
       } else {
         const created = await HistoricalEventApiService.createEvent(payload);
-        if (action === 'DRAFT') {
+        if (action === ContentStatus.DRAFT) {
           setLastDraftSavedAt(new Date().toLocaleTimeString('vi-VN'));
           // Nếu tạo mới ở dạng nháp, chuyển sang chế độ edit của bản ghi vừa tạo
           if (created?.id) {
@@ -1082,7 +1085,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
           }
         }
       }
-      if (action === 'PUBLISH') {
+      if (action === ContentAction.PUBLISH) {
         router.push(APP_ROUTES.EVENTS.LIST);
       }
     } catch (err) {
@@ -1820,7 +1823,7 @@ export function EventEditor({ eventId }: EventEditorProps) {
                       className="p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between"
                     >
                       <span className="truncate text-slate-700 font-medium">
-                        {m.type === 'VIDEO' ? '🎥 Video' : m.type === 'DOCUMENT' ? '📄 Tài liệu' : '🖼 Ảnh'}: {m.caption || m.url}
+                        {m.type === MediaType.VIDEO ? '🎥 Video' : m.type === MediaType.DOCUMENT ? '📄 Tài liệu' : '🖼 Ảnh'}: {m.caption || m.url}
                       </span>
                     </div>
                   ))}

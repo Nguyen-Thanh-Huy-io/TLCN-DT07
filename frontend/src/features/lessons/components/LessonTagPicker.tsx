@@ -1,4 +1,5 @@
 'use client';
+import { KeyboardKey } from '@/constants/enums';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { TagItem } from '@/types/models/tag.type';
 import { TagApiService } from '@/services/entities/tag.service';
@@ -221,7 +222,7 @@ export function LessonTagPicker({
             }}
             onFocus={() => setIsOpen(true)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === KeyboardKey.ENTER) {
                 e.preventDefault();
                 if (search.trim()) {
                   if (exactMatchingTag) {

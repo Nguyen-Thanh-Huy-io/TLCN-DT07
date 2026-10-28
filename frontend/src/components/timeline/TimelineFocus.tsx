@@ -4,7 +4,12 @@ import { createContext, useContext } from "react";
 import type { TaxonomyTermItem } from "@/services/entities/taxonomy.service";
 import { relationLabel } from "@/features/taxonomy/taxonomy-labels";
 import { EVENT_RELATION_TYPE_LABELS } from "@/constants/enums";
-import type { TimelineActor, TimelineEvent } from "./sk-types";
+import {
+  type TimelineActor,
+  type TimelineEvent,
+  TimelineActorType,
+  TimelineRelationDirection,
+} from "./sk-types";
 
 /** Lý do một sự kiện liên quan tới sự kiện đang chọn. strong = liên kết trực tiếp. */
 export interface RelatedReason {
@@ -60,7 +65,14 @@ export function computeRelated(
 
   for (const r of focus.relations) {
     // Nhãn đọc từ phía sự kiện kia: "là nguyên nhân của" ↔ "bắt nguồn trực tiếp từ".
-    const label = relationLabel(relationTerms, r.relationType, r.direction === "OUTGOING" ? "INCOMING" : "OUTGOING", EVENT_RELATION_TYPE_LABELS);
+    const label = relationLabel(
+      relationTerms,
+      r.relationType,
+      r.direction === TimelineRelationDirection.OUTGOING
+        ? TimelineRelationDirection.INCOMING
+        : TimelineRelationDirection.OUTGOING,
+      EVENT_RELATION_TYPE_LABELS,
+    );
     add(r.eventId, { text: `${label} “${focus.title}”`, strong: true });
   }
   if (focus.parentId) {
@@ -71,7 +83,7 @@ export function computeRelated(
 
   // Chủ thể nhỏ (tổ chức, lực lượng, hiện vật) là liên kết gián tiếp. Triều đại / quốc gia nối tới
   // quá nhiều sự kiện nên không lan qua — xem bằng lăng kính chủ thể thay vào đó.
-  const actorIds = new Map(focus.actors.filter((a) => a.type !== "DYNASTY").map((a) => [a.id, a.name]));
+  const actorIds = new Map(focus.actors.filter((a) => a.type !== TimelineActorType.DYNASTY).map((a) => [a.id, a.name]));
   for (const e of all) for (const a of e.actors) if (actorIds.has(a.id)) add(e.id, { text: `Cùng chủ thể ${a.name}`, strong: false });
 
   const figureIds = new Map(focus.figures.map((f) => [f.id, f.name]));

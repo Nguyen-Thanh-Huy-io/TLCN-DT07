@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ChevronRight,
   ExternalLink,
+  GitFork,
   Landmark,
   Link as LinkIcon,
   MapPin,
@@ -15,7 +16,16 @@ import {
   UserRound,
 } from "lucide-react";
 import { MentionText } from "./EntityPopover";
-import type { ArticleSection, EntityMention, EventReaderModel } from "./ce-types";
+import {
+  MentionType,
+  RelationDirection,
+  type ArticleSection,
+  type EntityMention,
+  type EventReaderModel,
+  type EventRelationLink,
+} from "./ce-types";
+
+const SECTION_ID_DEVELOPMENTS = "dien-bien";
 
 function initials(name: string): string {
   return name
@@ -91,7 +101,7 @@ function ParticipantGrid({ participants }: { participants: EntityMention[] }) {
     <div className="ce-insight-grid">
       {participants.map((p) => (
         <Link key={p.id} href={p.href}>
-          {p.type === "FIGURE" ? <UserRound /> : <Landmark />}
+          {p.type === MentionType.FIGURE ? <UserRound /> : <Landmark />}
           <strong>{p.name}</strong>
           {p.roleLabel && <p>{p.roleLabel}</p>}
         </Link>
@@ -118,6 +128,32 @@ function SourceList({ sources }: { sources: string[] }) {
   );
 }
 
+function RelationGrid({ relations }: { relations: EventRelationLink[] }) {
+  return (
+    <div className="ce-relation-grid">
+      {relations.map((rel) => (
+        <Link key={`${rel.direction}-${rel.id}`} href={rel.href} className="ce-relation-card">
+          <div className="ce-relation-header">
+            <span className={`ce-relation-direction ce-${rel.direction.toLowerCase()}`}>
+              <GitFork size={13} />
+              {rel.direction === RelationDirection.OUTGOING ? "Hệ quả tiếp nối" : "Bắt nguồn từ"}
+            </span>
+            <span className="ce-relation-badge">{rel.relationLabel}</span>
+          </div>
+          <strong className="ce-relation-title">{rel.title}</strong>
+          {rel.description && <p className="ce-relation-desc">{rel.description}</p>}
+          <div className="ce-relation-footer">
+            <span className="ce-relation-year">{rel.dateLabel}</span>
+            <span className="ce-relation-cta">
+              Xem chi tiết <ChevronRight size={14} />
+            </span>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 function Article({ model }: { model: EventReaderModel }) {
   return (
     <article className="ce-article">
@@ -133,7 +169,7 @@ function Article({ model }: { model: EventReaderModel }) {
               <MentionText text={p} mentions={model.mentions} />
             </p>
           ))}
-          {s.id === "dien-bien" && model.dateNote && (
+          {s.id === SECTION_ID_DEVELOPMENTS && model.dateNote && (
             <div className="ce-context-quote">
               <Quote />
               <blockquote>{model.dateNote}</blockquote>
@@ -151,6 +187,7 @@ function Article({ model }: { model: EventReaderModel }) {
               ))}
             </div>
           )}
+          {s.relations && <RelationGrid relations={s.relations} />}
           {s.participants && <ParticipantGrid participants={s.participants} />}
           {s.sources && <SourceList sources={s.sources} />}
         </Section>
@@ -168,8 +205,8 @@ function Article({ model }: { model: EventReaderModel }) {
 }
 
 function ContextSidebar({ model }: { model: EventReaderModel }) {
-  const figures = model.mentions.filter((m) => m.type === "FIGURE");
-  const locations = model.mentions.filter((m) => m.type === "LOCATION");
+  const figures = model.mentions.filter((m) => m.type === MentionType.FIGURE);
+  const locations = model.mentions.filter((m) => m.type === MentionType.LOCATION);
   return (
     <aside className="ce-context ce-sticky-card">
       <div className="ce-context-title">

@@ -1,4 +1,5 @@
 'use client';
+import { KeyboardKey } from '@/constants/enums';
 
 /*
  * Thành phần giao diện theo quy chuẩn shadcn/ui (Button, Badge, Card, Input, Select, Tabs,
@@ -170,7 +171,7 @@ export function Sheet({
     if (!open) return;
     const original = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === KeyboardKey.ESCAPE && onClose();
     window.addEventListener('keydown', onKey);
     panel.current?.focus();
     return () => {

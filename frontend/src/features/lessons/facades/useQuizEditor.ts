@@ -4,8 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { QuizApiService } from '@/services/entities/quiz.service';
 import { QuizQuestion, QuizQuestionType } from '../types/quiz.types';
 import { createDefaultQuestion } from '../factories/quiz-question.factory';
+import { MoveDirection } from '../components/quiz/QuizQuestionEditors';
 
-export type QuizSaveState = 'IDLE' | 'SAVING' | 'SAVED' | 'ERROR';
+export enum QuizSaveState {
+  IDLE = 'IDLE',
+  SAVING = 'SAVING',
+  SAVED = 'SAVED',
+  ERROR = 'ERROR',
+}
 
 export interface UseQuizEditorReturn {
   loading: boolean;
@@ -19,7 +25,7 @@ export interface UseQuizEditorReturn {
   addQuestion: (type: QuizQuestionType) => void;
   updateQuestion: (id: string, updates: Partial<QuizQuestion>) => void;
   removeQuestion: (id: string) => void;
-  moveQuestion: (id: string, direction: 'UP' | 'DOWN') => void;
+  moveQuestion: (id: string, direction: MoveDirection | 'UP' | 'DOWN') => void;
   save: () => Promise<void>;
   deleteQuiz: () => Promise<void>;
 }
@@ -32,7 +38,7 @@ export interface UseQuizEditorReturn {
  */
 export function useQuizEditor(lessonId: string | null | undefined): UseQuizEditorReturn {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<QuizSaveState>('IDLE');
+  const [saving, setSaving] = useState<QuizSaveState>(QuizSaveState.IDLE);
   const [title, setTitle] = useState('');
   const [passingScorePercent, setPassingScorePercent] = useState<number | ''>('');
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -82,11 +88,11 @@ export function useQuizEditor(lessonId: string | null | undefined): UseQuizEdito
     setQuestions((prev) => prev.filter((q) => q.id !== id));
   }, []);
 
-  const moveQuestion = useCallback((id: string, direction: 'UP' | 'DOWN') => {
+  const moveQuestion = useCallback((id: string, direction: MoveDirection | 'UP' | 'DOWN') => {
     setQuestions((prev) => {
       const idx = prev.findIndex((q) => q.id === id);
       if (idx === -1) return prev;
-      const targetIdx = direction === 'UP' ? idx - 1 : idx + 1;
+      const targetIdx = direction === MoveDirection.UP ? idx - 1 : idx + 1;
       if (targetIdx < 0 || targetIdx >= prev.length) return prev;
       const copy = [...prev];
       [copy[idx], copy[targetIdx]] = [copy[targetIdx], copy[idx]];
@@ -104,18 +110,18 @@ export function useQuizEditor(lessonId: string | null | undefined): UseQuizEdito
       return;
     }
     try {
-      setSaving('SAVING');
+      setSaving(QuizSaveState.SAVING);
       await QuizApiService.upsertQuiz(lessonId, {
         title: title.trim() || undefined,
-        passingScorePercent: passingScorePercent === '' ? undefined : Number(passingScorePercent),
+        passingScorePercent: typeof passingScorePercent === 'number' ? passingScorePercent : undefined,
         questions,
       });
       setHasQuiz(true);
-      setSaving('SAVED');
+      setSaving(QuizSaveState.SAVED);
     } catch (err: any) {
       console.error('Lỗi lưu đề ôn tập:', err);
       alert(err?.response?.data?.message || 'Không thể lưu đề ôn tập. Vui lòng kiểm tra lại các câu hỏi.');
-      setSaving('ERROR');
+      setSaving(QuizSaveState.ERROR);
     }
   }, [lessonId, title, passingScorePercent, questions]);
 
@@ -128,7 +134,7 @@ export function useQuizEditor(lessonId: string | null | undefined): UseQuizEdito
       setTitle('');
       setPassingScorePercent('');
       setHasQuiz(false);
-      setSaving('IDLE');
+      setSaving(QuizSaveState.IDLE);
     } catch (err) {
       console.error('Lỗi xóa đề ôn tập:', err);
       alert('Không thể xóa đề ôn tập.');

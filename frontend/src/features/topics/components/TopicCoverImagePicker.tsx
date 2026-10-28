@@ -1,4 +1,5 @@
 'use client';
+import { KeyboardKey } from '@/constants/enums';
 import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
@@ -329,7 +330,7 @@ export function TopicCoverImagePicker({
                   type="url"
                   value={inputUrl}
                   onChange={(e) => setInputUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleApplyUrl()}
+                  onKeyDown={(e) => e.key === KeyboardKey.ENTER && handleApplyUrl()}
                   placeholder="https://example.com/cover-image.jpg"
                   disabled={disabled}
                   className="flex-1 text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:border-blue-400 transition"

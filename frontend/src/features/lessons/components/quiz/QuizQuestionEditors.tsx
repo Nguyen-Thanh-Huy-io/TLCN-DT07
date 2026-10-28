@@ -1,4 +1,5 @@
 'use client';
+import { KeyboardKey } from '@/constants/enums';
 
 import React from 'react';
 import {
@@ -10,6 +11,16 @@ import {
   TrueFalseQuestion,
 } from '../../types/quiz.types';
 import { generateQuizId } from '../../factories/quiz-question.factory';
+
+export enum MoveDirection {
+  UP = 'UP',
+  DOWN = 'DOWN',
+}
+
+export enum MatchingSide {
+  LEFT = 'leftItems',
+  RIGHT = 'rightItems',
+}
 
 type OnChange<T extends QuizQuestion> = (updates: Partial<T>) => void;
 
@@ -177,8 +188,8 @@ export function OrderingEditor({
   const updateLabel = (itemId: string, label: string) => {
     setItemsAndOrder(data.items.map((i) => (i.id === itemId ? { ...i, label } : i)));
   };
-  const moveItem = (idx: number, dir: 'UP' | 'DOWN') => {
-    const target = dir === 'UP' ? idx - 1 : idx + 1;
+  const moveItem = (idx: number, dir: MoveDirection | 'UP' | 'DOWN') => {
+    const target = dir === MoveDirection.UP ? idx - 1 : idx + 1;
     if (target < 0 || target >= data.items.length) return;
     const copy = [...data.items];
     [copy[idx], copy[target]] = [copy[target], copy[idx]];
@@ -241,15 +252,15 @@ export function MatchingEditor({
   data: MatchingQuestion;
   onChange: OnChange<MatchingQuestion>;
 }) {
-  const updateSide = (side: 'leftItems' | 'rightItems', itemId: string, label: string) => {
+  const updateSide = (side: MatchingSide | 'leftItems' | 'rightItems', itemId: string, label: string) => {
     onChange({ [side]: data[side].map((i) => (i.id === itemId ? { ...i, label } : i)) } as any);
   };
-  const addSideItem = (side: 'leftItems' | 'rightItems') => {
-    onChange({ [side]: [...data[side], { id: generateQuizId(side === 'leftItems' ? 'l' : 'r'), label: '' }] } as any);
+  const addSideItem = (side: MatchingSide | 'leftItems' | 'rightItems') => {
+    onChange({ [side]: [...data[side], { id: generateQuizId(side === MatchingSide.LEFT ? 'l' : 'r'), label: '' }] } as any);
   };
-  const removeSideItem = (side: 'leftItems' | 'rightItems', itemId: string) => {
+  const removeSideItem = (side: MatchingSide | 'leftItems' | 'rightItems', itemId: string) => {
     const next = data[side].filter((i) => i.id !== itemId);
-    const pairKey = side === 'leftItems' ? 'leftId' : 'rightId';
+    const pairKey = side === MatchingSide.LEFT ? 'leftId' : 'rightId';
     onChange({
       [side]: next,
       correctPairs: data.correctPairs.filter((p) => p[pairKey] !== itemId),
@@ -269,10 +280,10 @@ export function MatchingEditor({
         onChange={onChange}
       />
       <div className="grid grid-cols-2 gap-2">
-        {(['leftItems', 'rightItems'] as const).map((side) => (
+        {([MatchingSide.LEFT, MatchingSide.RIGHT] as const).map((side) => (
           <div key={side} className="space-y-1.5">
             <span className="text-[11px] font-semibold text-slate-500">
-              {side === 'leftItems' ? 'Bên trái' : 'Bên phải'}
+              {side === MatchingSide.LEFT ? 'Bên trái' : 'Bên phải'}
             </span>
             {data[side].map((item) => (
               <div key={item.id} className="flex items-center gap-1">
@@ -370,7 +381,7 @@ export function FillInBlankEditor({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
+            if (e.key === KeyboardKey.ENTER) {
               e.preventDefault();
               addAnswer();
             }

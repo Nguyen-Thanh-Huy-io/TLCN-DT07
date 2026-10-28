@@ -28,10 +28,17 @@ import {
   type ContentRevisionItem,
 } from '@/services/entities/content-revision.service';
 import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
+import {
+  ContentStatus,
+  StudioTab,
+  SortDirection,
+  CommonFilterOption,
+  NoticeTone,
+} from '@/constants/enums';
 
-export type StudioTab = 'CURRICULUM' | 'LESSON_LIBRARY';
+export { StudioTab };
 
-const LOCKED_STATUSES: string[] = ['PUBLISHED', 'ARCHIVED'];
+const LOCKED_STATUSES: string[] = [ContentStatus.PUBLISHED, ContentStatus.ARCHIVED];
 
 /**
  * HISGO Studio — bộ điều phối: giữ toàn bộ state & nghiệp vụ (gọi API, cập nhật lạc
@@ -43,7 +50,7 @@ export function HisgoStudioView() {
   const searchParams = useSearchParams();
 
   // Active Tab: 'CURRICULUM' (Chương & nhóm) hoặc 'LESSON_LIBRARY' (Thư viện Lesson)
-  const [activeTab, setActiveTab] = useState<StudioTab>('CURRICULUM');
+  const [activeTab, setActiveTab] = useState<StudioTab>(StudioTab.CURRICULUM);
 
   // Dữ liệu Lộ trình và Bài học
   const [learningPaths, setLearningPaths] = useState<LearningPathItem[]>([]);
@@ -68,9 +75,9 @@ export function HisgoStudioView() {
   const user = useAuthSession();
   const isReviewer = Boolean(user && isReviewerRole(user.role));
   // Thông báo lỗi/hướng dẫn hiển thị ngay trên Studio (thay cho alert + console.error).
-  const [notice, setNotice] = useState<{ tone: 'error' | 'info'; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ tone: NoticeTone | 'error' | 'info'; text: string } | null>(null);
   const showError = useCallback(
-    (err: unknown, fallback: string) => setNotice({ tone: 'error', text: extractErrorMessage(err, fallback) }),
+    (err: unknown, fallback: string) => setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(err, fallback) }),
     [],
   );
 
@@ -170,7 +177,7 @@ export function HisgoStudioView() {
   const [editChapter, setEditChapter] = useState<{ id: string; title: string; description: string } | null>(null);
 
   const refreshPathPending = useCallback(async () => {
-    if (!currentPath || currentPath.status !== 'PUBLISHED') {
+    if (!currentPath || currentPath.status !== ContentStatus.PUBLISHED) {
       setPathPending(null);
       return;
     }
@@ -249,11 +256,11 @@ export function HisgoStudioView() {
     );
   };
 
-  const handleMoveSelectedLessonInModal = (lessonId: string, direction: 'UP' | 'DOWN') => {
+  const handleMoveSelectedLessonInModal = (lessonId: string, direction: SortDirection | 'UP' | 'DOWN') => {
     setSelectedLessonIdsForChapter((prev) => {
       const idx = prev.indexOf(lessonId);
       if (idx === -1) return prev;
-      const targetIdx = direction === 'UP' ? idx - 1 : idx + 1;
+      const targetIdx = direction === SortDirection.UP ? idx - 1 : idx + 1;
       if (targetIdx < 0 || targetIdx >= prev.length) return prev;
       const copy = [...prev];
       [copy[idx], copy[targetIdx]] = [copy[targetIdx], copy[idx]];
@@ -306,11 +313,11 @@ export function HisgoStudioView() {
     e: React.MouseEvent,
     chapter: ChapterItem,
     currentIndex: number,
-    direction: 'UP' | 'DOWN',
+    direction: SortDirection | 'UP' | 'DOWN',
   ) => {
     e.stopPropagation();
     const items = [...(chapter.chapterLessons || [])];
-    const targetIndex = direction === 'UP' ? currentIndex - 1 : currentIndex + 1;
+    const targetIndex = direction === SortDirection.UP ? currentIndex - 1 : currentIndex + 1;
     if (targetIndex < 0 || targetIndex >= items.length) return;
 
     const temp = items[currentIndex];
@@ -453,7 +460,7 @@ export function HisgoStudioView() {
   /** Mở sửa tên / mô tả chương; biên tập viên có bản sửa chờ duyệt thì mở tiếp bản sửa đó. */
   const handleOpenEditChapter = async (chapter: { id: string; title: string; description?: string | null; status?: string }) => {
     let source = { title: chapter.title, description: chapter.description ?? '' };
-    if (!isReviewer && chapter.status === 'PUBLISHED') {
+    if (!isReviewer && chapter.status === ContentStatus.PUBLISHED) {
       try {
         const open = await ContentRevisionApiService.openDraft<{ title?: string; description?: string | null }>('CHAPTER', chapter.id);
         if (open) source = { title: open.draft.title ?? chapter.title, description: open.draft.description ?? '' };
@@ -525,11 +532,11 @@ export function HisgoStudioView() {
     );
   };
 
-  const handleMoveNewChapterLessonOrder = (lessonId: string, direction: 'UP' | 'DOWN') => {
+  const handleMoveNewChapterLessonOrder = (lessonId: string, direction: SortDirection | 'UP' | 'DOWN') => {
     setNewChapterSelectedLessonIds((prev) => {
       const idx = prev.indexOf(lessonId);
       if (idx === -1) return prev;
-      const targetIdx = direction === 'UP' ? idx - 1 : idx + 1;
+      const targetIdx = direction === SortDirection.UP ? idx - 1 : idx + 1;
       if (targetIdx < 0 || targetIdx >= prev.length) return prev;
       const copy = [...prev];
       [copy[idx], copy[targetIdx]] = [copy[targetIdx], copy[idx]];
@@ -539,7 +546,7 @@ export function HisgoStudioView() {
 
   const handleTogglePublishPath = async () => {
     if (!currentPath) return;
-    const nextStatus = currentPath.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
+    const nextStatus = currentPath.status === ContentStatus.PUBLISHED ? ContentStatus.DRAFT : ContentStatus.PUBLISHED;
     try {
       setActionLoading(true);
       await LearningPathApiService.updateLearningPath(currentPath.id, { status: nextStatus });
@@ -571,7 +578,7 @@ export function HisgoStudioView() {
         !librarySearchTerm ||
         l.title.toLowerCase().includes(librarySearchTerm.toLowerCase()) ||
         l.slug.toLowerCase().includes(librarySearchTerm.toLowerCase());
-      const matchStatus = libraryStatusFilter === 'ALL' || l.status === libraryStatusFilter;
+      const matchStatus = libraryStatusFilter === CommonFilterOption.ALL || l.status === libraryStatusFilter;
       return matchSearch && matchStatus;
     });
   }, [libraryLessons, librarySearchTerm, libraryStatusFilter]);
@@ -592,7 +599,7 @@ export function HisgoStudioView() {
         <div
           role="alert"
           className={`flex items-start justify-between gap-3 rounded-lg border px-3.5 py-2.5 text-sm ${
-            notice.tone === 'error' ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+            notice.tone === NoticeTone.ERROR ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'
           }`}
         >
           <span>{notice.text}</span>
@@ -608,7 +615,7 @@ export function HisgoStudioView() {
         libraryCount={libraryLessons.length}
       />
 
-      {activeTab === 'CURRICULUM' && (
+      {activeTab === StudioTab.CURRICULUM && (
         <div className="space-y-4">
           <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs">
             {!currentPath ? (
@@ -690,7 +697,7 @@ export function HisgoStudioView() {
         </div>
       )}
 
-      {activeTab === 'LESSON_LIBRARY' && (
+      {activeTab === StudioTab.LESSON_LIBRARY && (
         <LessonLibraryPanel
           lessons={filteredLibraryLessons}
           searchTerm={librarySearchTerm}

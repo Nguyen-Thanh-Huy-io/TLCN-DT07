@@ -10,17 +10,18 @@ import {
   FiguresFilterBar,
   figureFilterCount,
   type FigureFilters,
-  type FigureSort,
+  FigureSort,
   type FilterOption,
 } from "./FiguresFilterBar";
 import { FiguresSidebar } from "./FiguresSidebar";
 import { FiguresGrid } from "./FigureCard";
-import { FigureProfileSheet, type ProfileTab } from "./FigureProfileSheet";
+import { FigureProfileSheet, FigureProfileTab, type ProfileTab } from "./FigureProfileSheet";
 import { buildFigureViews, normalize, type FigureView } from "./figure-utils";
 import { figureRoles, useFigureRoles } from "./figure-roles";
 import { useRegionOrder } from "@/features/taxonomy/usePublicTaxonomy";
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from "@/components/filters/ChipFilter";
 import { regionLabel, sortedRegions } from "@/utils/region.utils";
+import { TimelineRelationDirection } from "@/components/timeline/sk-types";
 
 const PROFILE_QUERY_KEY = "nv";
 
@@ -37,11 +38,11 @@ export function FiguresDirectory({
   const [query, setQuery] = useState("");
   const [filters, setFiltersRaw] = useState<FigureFilters>(EMPTY_FIGURE_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [sort, setSort] = useState<FigureSort>("time");
+  const [sort, setSort] = useState<FigureSort>(FigureSort.TIME);
   const [selected, setSelected] = useState<FigureView | null>(
     () => figures.find((f) => f.slug === initialSlug) ?? null,
   );
-  const [tab, setTab] = useState<ProfileTab>("timeline");
+  const [tab, setTab] = useState<ProfileTab>(FigureProfileTab.TIMELINE);
 
   // Keep the open profile in the URL so it can be shared. Done from event handlers only:
   // Next.js routes history.replaceState through the app router, which must be mounted first.
@@ -108,7 +109,7 @@ export function FiguresDirectory({
   }, [figures]);
 
   const relationCount = useMemo(
-    () => figures.reduce((n, f) => n + f.relationships.filter((r) => r.direction === "OUTGOING").length, 0),
+    () => figures.reduce((n, f) => n + f.relationships.filter((r) => r.direction === TimelineRelationDirection.OUTGOING).length, 0),
     [figures],
   );
 
@@ -116,7 +117,7 @@ export function FiguresDirectory({
     const needle = normalize(query.trim());
     return figures
       .filter((f) => matches(f, filters, needle))
-      .sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name, "vi") : a.sortYear - b.sortYear));
+      .sort((a, b) => (sort === FigureSort.NAME ? a.name.localeCompare(b.name, "vi") : a.sortYear - b.sortYear));
   }, [figures, query, filters, sort, matches]);
   const countFor = (draft: FigureFilters) => {
     const needle = normalize(query.trim());
@@ -138,7 +139,7 @@ export function FiguresDirectory({
   const open = useCallback(
     (figure: FigureView) => {
       selectFigure(figure);
-      setTab("timeline");
+      setTab(FigureProfileTab.TIMELINE);
     },
     [selectFigure],
   );

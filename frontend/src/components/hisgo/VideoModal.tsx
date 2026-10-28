@@ -1,4 +1,5 @@
 "use client";
+import { KeyboardKey } from '@/constants/enums';
 import React, { useEffect, useRef } from "react";
 
 interface VideoModalProps {
@@ -24,12 +25,12 @@ export function VideoModal({ isOpen, onClose, videoUrl }: VideoModalProps) {
 
     // Lắng nghe phím ESC và Tab để trap focus
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === KeyboardKey.ESCAPE) {
         onClose();
         return;
       }
 
-      if (e.key === "Tab") {
+      if (e.key === KeyboardKey.TAB) {
         if (!modalRef.current) return;
         const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'

@@ -1,4 +1,5 @@
 'use client';
+import { ContentStatus } from '@/constants/enums';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -19,7 +20,7 @@ export function LearningSection() {
 
   useEffect(() => {
     LearningPathApiService.getLearningPaths()
-      .then((all) => setPaths((Array.isArray(all) ? all : []).filter((p) => p.status === 'PUBLISHED')))
+      .then((all) => setPaths((Array.isArray(all) ? all : []).filter((p) => p.status === ContentStatus.PUBLISHED)))
       .catch(() => setPaths([]));
   }, []);
 

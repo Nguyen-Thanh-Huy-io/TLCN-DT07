@@ -23,8 +23,17 @@ const LINK_OPTIONS = {
 } as const;
 type LinkKey = keyof typeof LINK_OPTIONS;
 
-type Sort = 'year-asc' | 'year-desc' | 'name';
-const SORT_LABELS: Record<Sort, string> = { 'year-asc': 'Cũ → mới', 'year-desc': 'Mới → cũ', name: 'Tên A–Z' };
+export enum EventSortOption {
+  YEAR_ASC = 'year-asc',
+  YEAR_DESC = 'year-desc',
+  NAME = 'name',
+}
+export type Sort = EventSortOption | 'year-asc' | 'year-desc' | 'name';
+const SORT_LABELS: Record<EventSortOption, string> = {
+  [EventSortOption.YEAR_ASC]: 'Cũ → mới',
+  [EventSortOption.YEAR_DESC]: 'Mới → cũ',
+  [EventSortOption.NAME]: 'Tên A–Z',
+};
 
 interface EventFilters {
   regions: string[];
@@ -98,7 +107,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
     event.categoryIds?.[0] && categoryTerms.length ? termLabel(event.categoryIds[0]) : categoryLabel(event.category);
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<EventFilters>(EMPTY);
-  const [sort, setSort] = useState<Sort>('year-asc');
+  const [sort, setSort] = useState<Sort>(EventSortOption.YEAR_ASC);
   const [sheetOpen, setSheetOpen] = useState(false);
   const needle = normalizeSearch(query.trim());
 
@@ -119,9 +128,9 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
   const visible = useMemo(() => {
     const list = rows.filter((r) => matches(r, filters, needle));
     return list.sort((a, b) =>
-      sort === 'name'
+      sort === EventSortOption.NAME
         ? a.event.title.localeCompare(b.event.title, 'vi')
-        : sort === 'year-desc'
+        : sort === EventSortOption.YEAR_DESC
           ? b.event.startYear - a.event.startYear
           : a.event.startYear - b.event.startYear,
     );

@@ -7,6 +7,7 @@ import { AccountApiService, type MyProfile } from '@/services/auth/account.servi
 import { PublicAuthService } from '@/services/auth/public-auth.service';
 import { HubButton } from '@/features/public-curriculum/components/hub/HubUi';
 import { AccountCard, FIELD_CLASS, FieldLabel, Notice, type NoticeState } from './AccountUi';
+import { AuthProviderType } from '@/constants/enums';
 
 // Khớp AuthUtilsService.validatePassword phía backend.
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
@@ -18,7 +19,7 @@ export function SecuritySection({ profile }: { profile: MyProfile }) {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<NoticeState>(null);
   const [confirmLogoutAll, setConfirmLogoutAll] = useState(false);
-  const isLocal = profile.provider === 'local';
+  const isLocal = profile.provider === AuthProviderType.LOCAL;
 
   const changePassword = async (event: React.FormEvent) => {
     event.preventDefault();

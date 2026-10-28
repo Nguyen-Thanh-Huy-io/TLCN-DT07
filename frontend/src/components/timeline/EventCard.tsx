@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, Bookmark, Flag, Globe2, Landmark, Network, Swords, TimerReset, type LucideIcon } from "lucide-react";
 import { useTimelineFocus } from "./TimelineFocus";
 import { Heading, Badge, Button } from "./sk-ui";
-import type { TimelineEvent } from "./sk-types";
+import { type TimelineEvent, EventScopeGroup } from "./sk-types";
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   BATTLE: Swords,
@@ -73,7 +73,7 @@ export function EventCard({
         <div className="sk-card-meta">
           <span>
             <Globe2 size={11} />
-            {event.scopeGroup === "DOMESTIC" ? "Trong nước" : "Thế giới"}
+            {event.scopeGroup === EventScopeGroup.DOMESTIC ? "Trong nước" : "Thế giới"}
           </span>
           <span>{event.spanLabel ?? event.dateLabel}</span>
         </div>

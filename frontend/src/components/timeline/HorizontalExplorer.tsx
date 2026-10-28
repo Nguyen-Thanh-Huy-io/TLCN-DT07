@@ -7,6 +7,7 @@ import { Badge, Button, Heading } from "./sk-ui";
 import { NodeContent } from "./NodeContent";
 import { shortTitle } from "./Minimap";
 import type { SubEra, TimeNode, TimelineEvent } from "./sk-types";
+import { KeyboardKey } from "@/constants/enums";
 
 /**
  * Trục ngang theo mô hình 3 tầng:
@@ -71,10 +72,10 @@ export function HorizontalExplorer({
           aria-label="Các mốc thời gian"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "ArrowRight") {
+            if (e.key === KeyboardKey.ARROW_RIGHT) {
               e.preventDefault();
               step(1);
-            } else if (e.key === "ArrowLeft") {
+            } else if (e.key === KeyboardKey.ARROW_LEFT) {
               e.preventDefault();
               step(-1);
             }

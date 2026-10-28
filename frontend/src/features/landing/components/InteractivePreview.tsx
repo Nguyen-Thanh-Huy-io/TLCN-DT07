@@ -14,6 +14,11 @@ const ALL_REGIONS = 'Tất cả';
 const MAX_NODES = 8;
 const AXIS_TICKS = [-2500, -1500, -500, 500, 1000, 1500, 2000];
 
+export enum InteractivePreviewTab {
+  TIMELINE = 'timeline',
+  PARALLEL = 'parallel',
+}
+
 function MiniTimeline({ nodes }: { nodes: LandingTimelineNode[] }) {
   const regions = useMemo(() => [ALL_REGIONS, ...new Set(nodes.map((n) => n.region))], [nodes]);
   const [region, setRegion] = useState(ALL_REGIONS);
@@ -157,7 +162,7 @@ function ParallelEras({ bands }: { bands: ParallelBand[] }) {
 }
 
 export function InteractivePreview({ nodes, bands }: { nodes: LandingTimelineNode[]; bands: ParallelBand[] }) {
-  const [tab, setTab] = useState<'timeline' | 'parallel'>('timeline');
+  const [tab, setTab] = useState<InteractivePreviewTab>(InteractivePreviewTab.TIMELINE);
   return (
     <section className="hl-section hl-container">
       <SectionHead
@@ -166,18 +171,30 @@ export function InteractivePreview({ nodes, bands }: { nodes: LandingTimelineNod
         description="Thử tương tác với niên biểu, hoặc đặt các khu vực cạnh nhau để thấy những gì diễn ra cùng lúc."
       />
       <div className="hl-tabs">
-        <button type="button" className={tab === 'timeline' ? 'active' : ''} onClick={() => setTab('timeline')}>
+        <button
+          type="button"
+          className={tab === InteractivePreviewTab.TIMELINE ? 'active' : ''}
+          onClick={() => setTab(InteractivePreviewTab.TIMELINE)}
+        >
           <History />
           Mini Timeline
         </button>
-        <button type="button" className={tab === 'parallel' ? 'active' : ''} onClick={() => setTab('parallel')}>
+        <button
+          type="button"
+          className={tab === InteractivePreviewTab.PARALLEL ? 'active' : ''}
+          onClick={() => setTab(InteractivePreviewTab.PARALLEL)}
+        >
           <Columns3 />
           Đối sánh khu vực
         </button>
       </div>
       <div className="hl-preview-shell">
         <AnimatePresence mode="wait">
-          {tab === 'timeline' ? <MiniTimeline key="t" nodes={nodes} /> : <ParallelEras key="p" bands={bands} />}
+          {tab === InteractivePreviewTab.TIMELINE ? (
+            <MiniTimeline key="t" nodes={nodes} />
+          ) : (
+            <ParallelEras key="p" bands={bands} />
+          )}
         </AnimatePresence>
       </div>
       <p className="hl-preview-note">

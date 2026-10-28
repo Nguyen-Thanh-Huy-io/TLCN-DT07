@@ -12,13 +12,7 @@ import { LessonMediaManager } from '@/features/lessons/components/LessonMediaMan
 import { LessonMediaItem } from '@/features/lessons/types/editor.types';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
-import {
-  ContentStatus,
-  EntityRelationType,
-  EntityType,
-  ENTITY_RELATION_TYPE_LABELS,
-  MediaType,
-} from '@/constants/enums';
+import { ContentStatus, EntityRelationType, EntityType, ENTITY_RELATION_TYPE_LABELS, MediaType, KeyboardKey } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import {
   HistoricalEntityApiService,
@@ -910,7 +904,7 @@ export function EntityEditor({
                 value={aliasInput}
                 onChange={(e) => setAliasInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === KeyboardKey.ENTER) {
                     e.preventDefault();
                     handleAddAlias();
                   }

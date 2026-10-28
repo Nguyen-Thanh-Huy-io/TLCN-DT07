@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { ContentStatus, EntityType } from '@/constants/enums';
+import { ContentStatus, EntityType, ModalMode } from '@/constants/enums';
 import { HistoricalEntityItem } from '@/types/models/historical-entity.type';
 
 export interface EntityFormData {
@@ -16,12 +16,18 @@ export interface EntityFormData {
 
 export interface EntityModalProps {
   isOpen: boolean;
-  mode: 'view' | 'edit' | 'create';
+  mode: ModalMode | 'view' | 'edit' | 'create';
   onClose: () => void;
   onSave: (data: EntityFormData) => void;
   onSwitchToEdit?: () => void;
   initialData?: HistoricalEntityItem | null;
 }
+
+const MODAL_TITLES: Record<ModalMode, string> = {
+  [ModalMode.VIEW]: 'Chi tiết Nhân vật / Thực thể lịch sử',
+  [ModalMode.EDIT]: 'Chỉnh sửa Nhân vật / Thực thể lịch sử',
+  [ModalMode.CREATE]: 'Thêm Nhân vật / Thực thể mới',
+};
 
 export function EntityModal({
   isOpen,
@@ -66,7 +72,7 @@ export function EntityModal({
 
   if (!isOpen) return null;
 
-  const isReadOnly = mode === 'view';
+  const isReadOnly = mode === ModalMode.VIEW;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,11 +103,7 @@ export function EntityModal({
       >
         <div className="modal-header">
           <h2>
-            {mode === 'view'
-              ? 'Chi tiết Nhân vật / Thực thể lịch sử'
-              : mode === 'edit'
-                ? 'Chỉnh sửa Nhân vật / Thực thể lịch sử'
-                : 'Thêm Nhân vật / Thực thể mới'}
+            {MODAL_TITLES[mode as ModalMode] || MODAL_TITLES[ModalMode.CREATE]}
           </h2>
           <button type="button" className="modal-close" onClick={onClose}>
             ×
@@ -247,7 +249,7 @@ export function EntityModal({
               )
             ) : (
               <button type="submit" className="btn-primary">
-                {mode === 'edit' ? 'Lưu thay đổi' : 'Tạo mới'}
+                {mode === ModalMode.EDIT ? 'Lưu thay đổi' : 'Tạo mới'}
               </button>
             )}
           </div>

@@ -19,11 +19,19 @@ import {
   QuizGradingStrategyRegistry,
   UserQuizAnswer,
 } from '../strategies/public-curriculum.strategies';
+import { ContentStatus } from '@/constants/enums';
+import { MoveDirection } from '@/features/lessons/components/quiz/QuizQuestionEditors';
 
-const PUBLISHED_STATUS = 'PUBLISHED';
+const PUBLISHED_STATUS = ContentStatus.PUBLISHED;
 
 /** GRANTED: đọc được · LOGIN_REQUIRED: chưa đăng nhập · NOT_ENROLLED: chưa đăng ký lộ trình chứa bài. */
-export type LessonAccess = 'GRANTED' | 'LOGIN_REQUIRED' | 'NOT_ENROLLED';
+export enum LessonAccessState {
+  GRANTED = 'GRANTED',
+  LOGIN_REQUIRED = 'LOGIN_REQUIRED',
+  NOT_ENROLLED = 'NOT_ENROLLED',
+}
+
+export type LessonAccess = LessonAccessState | 'GRANTED' | 'LOGIN_REQUIRED' | 'NOT_ENROLLED';
 
 export interface AdjacentLessonLink {
   id: string;
@@ -232,12 +240,12 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
   }, [submittedQuiz]);
 
   const moveOrderingItem = useCallback(
-    (questionId: string, fromIdx: number, direction: 'UP' | 'DOWN') => {
+    (questionId: string, fromIdx: number, direction: MoveDirection | 'UP' | 'DOWN') => {
       if (submittedQuiz) return;
       setUserAnswers((prev) => {
         const current = prev[questionId];
         if (!Array.isArray(current)) return prev;
-        const targetIdx = direction === 'UP' ? fromIdx - 1 : fromIdx + 1;
+        const targetIdx = direction === MoveDirection.UP ? fromIdx - 1 : fromIdx + 1;
         if (targetIdx < 0 || targetIdx >= current.length) return prev;
         const next = [...current];
         const [moved] = next.splice(fromIdx, 1);

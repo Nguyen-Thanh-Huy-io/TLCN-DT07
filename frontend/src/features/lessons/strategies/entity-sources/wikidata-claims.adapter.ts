@@ -14,6 +14,8 @@ export interface IParsedWikidataCoords {
   longitude: number;
 }
 
+const WIKIDATA_ZERO_PAD = '00';
+
 export class WikidataClaimsAdapter {
   /**
    * Bóc tách ngày tháng năm sinh (P569) và mất (P570) chuẩn xác từ Wikidata claims
@@ -100,12 +102,12 @@ export class WikidataClaimsAdapter {
     const day = match[3];
 
     // Precision 11: Đến ngày (Day) -> DD/MM/YYYY
-    if (precision >= 11 && day !== '00' && month !== '00') {
+    if (precision >= 11 && day !== WIKIDATA_ZERO_PAD && month !== WIKIDATA_ZERO_PAD) {
       return `${day}/${month}/${year}`;
     }
 
     // Precision 10: Đến tháng (Month) -> MM/YYYY
-    if (precision === 10 && month !== '00') {
+    if (precision === 10 && month !== WIKIDATA_ZERO_PAD) {
       return `${month}/${year}`;
     }
 

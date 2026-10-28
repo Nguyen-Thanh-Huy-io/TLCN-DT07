@@ -1,4 +1,5 @@
 'use client';
+import { KeyboardKey, LessonStatus } from '@/constants/enums';
 
 import React from 'react';
 import { Icon } from '@/components/icons/Icon';
@@ -80,7 +81,7 @@ export function AddLessonsToChapterModal({
             value={quickCreateTitle}
             onChange={(e) => onQuickCreateTitleChange(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === KeyboardKey.ENTER) {
                 e.preventDefault();
                 onQuickCreate();
               }
@@ -196,10 +197,10 @@ export function AddLessonsToChapterModal({
 
                   <span
                     className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      lesson.status === 'PUBLISHED' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                      lesson.status === LessonStatus.PUBLISHED ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
                     }`}
                   >
-                    {lesson.status === 'PUBLISHED' ? 'Đã xuất bản' : 'Bản nháp'}
+                    {lesson.status === LessonStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
                   </span>
                 </label>
               );

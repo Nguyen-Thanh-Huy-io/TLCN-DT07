@@ -1,6 +1,8 @@
 'use client';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ContentStatus, DifficultyLevel, MediaType } from '@/constants/enums';
+import { ContentStatus, DifficultyLevel, MediaType, LessonFieldKey } from '@/constants/enums';
+
+const EMPTY_PARAGRAPH_HTML = '<p></p>';
 import { useLessonEditorFacade } from '../facades/useLessonEditorFacade';
 import { useLessonBlockManager } from '../facades/useLessonBlockManager';
 import { BlockBuilderCanvas } from './builder/BlockBuilderCanvas';
@@ -181,14 +183,17 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
     val: LessonHeaderMetaData[K]
   ) => {
     setHeaderMeta((prev) => ({ ...prev, [field]: val }));
-    if (field === 'title') setTitle(val as string);
-    if (field === 'slug') setSlug(val as string);
-    if (field === 'description' || field === 'shortDescription' || field === 'summary') {
-      setDescription(val as string);
-    }
-    if (field === 'topicId') setSelectedTopicId(val as string);
-    if (field === 'difficulty') setDifficulty(val as DifficultyLevel);
-    if (field === 'thumbnailUrl') setThumbnailUrl((val as string) || '');
+    const setters: Partial<Record<LessonFieldKey, (v: unknown) => void>> = {
+      [LessonFieldKey.TITLE]: (v) => setTitle(v as string),
+      [LessonFieldKey.SLUG]: (v) => setSlug(v as string),
+      [LessonFieldKey.DESCRIPTION]: (v) => setDescription(v as string),
+      [LessonFieldKey.SHORT_DESCRIPTION]: (v) => setDescription(v as string),
+      [LessonFieldKey.SUMMARY]: (v) => setDescription(v as string),
+      [LessonFieldKey.TOPIC_ID]: (v) => setSelectedTopicId(v as string),
+      [LessonFieldKey.DIFFICULTY]: (v) => setDifficulty(v as DifficultyLevel),
+      [LessonFieldKey.THUMBNAIL_URL]: (v) => setThumbnailUrl((v as string) || ''),
+    };
+    setters[field as unknown as LessonFieldKey]?.(val);
   };
 
   const [isTocCollapsed, setIsTocCollapsed] = useState(false);
@@ -369,7 +374,7 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
 
                         if (
                           contentRichText &&
-                          contentRichText.trim() !== '<p></p>' &&
+                          contentRichText.trim() !== EMPTY_PARAGRAPH_HTML &&
                           contentRichText.trim().length > 20
                         ) {
                           const confirmReplace = window.confirm(

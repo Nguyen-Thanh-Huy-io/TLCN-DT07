@@ -2,10 +2,12 @@
 
 import { motion } from 'framer-motion';
 import { Award, CalendarDays, Compass, Landmark, MapPin } from 'lucide-react';
+import { HeritageRank, SubStructureType } from '@/constants/enums';
 import { CATEGORY_LABELS, RANK_LABELS, RANK_SHORT_LABELS, type HistoricalHeritage } from '../heritage.types';
 import { Badge, Button, HeritageImage } from '../ui';
 
-const isGoldRank = (h: HistoricalHeritage) => h.rank === 'UNESCO' || h.rank === 'SPECIAL_NATIONAL';
+const isGoldRank = (h: HistoricalHeritage) =>
+  h.rank === HeritageRank.UNESCO || h.rank === HeritageRank.SPECIAL_NATIONAL;
 
 /** Khung tâm điểm: 1 di sản UNESCO / Quốc gia Đặc biệt ở đầu trang. */
 export function FeaturedHeritageHero({ heritage, onExplore }: { heritage: HistoricalHeritage; onExplore: () => void }) {
@@ -50,7 +52,9 @@ export function FeaturedHeritageHero({ heritage, onExplore }: { heritage: Histor
 }
 
 export function HeritageCard({ heritage, onOpen }: { heritage: HistoricalHeritage; onOpen: () => void }) {
-  const architecture = heritage.subStructures.filter((s) => s.type === 'ARCHITECTURE').length;
+  const architecture = heritage.subStructures.filter(
+    (s) => s.type === SubStructureType.ARCHITECTURE,
+  ).length;
   return (
     <motion.button
       type="button"

@@ -2,6 +2,13 @@
 
 import React from 'react';
 import type { TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
+import { EntityType } from '@/constants/enums';
+
+export enum EventDefaultRoleCode {
+  LOCATION = 'LOCATION',
+  ARTIFACT_USED = 'ARTIFACT_USED',
+  PARTICIPANT = 'PARTICIPANT',
+}
 
 export interface EventEntityRoleValue {
   role: string;
@@ -23,9 +30,9 @@ const INPUT =
 
 /** Vai trò mặc định khi gắn thực thể mới: địa danh → Địa điểm diễn ra, hiện vật → Hiện vật liên quan. */
 export function defaultEventRole(type?: string | null): string {
-  if (type === 'LOCATION') return 'LOCATION';
-  if (type === 'ARTIFACT') return 'ARTIFACT_USED';
-  return 'PARTICIPANT';
+  if (type === EntityType.LOCATION) return EventDefaultRoleCode.LOCATION;
+  if (type === EntityType.ARTIFACT) return EventDefaultRoleCode.ARTIFACT_USED;
+  return EventDefaultRoleCode.PARTICIPANT;
 }
 
 export const emptyEventRole = (type?: string | null): EventEntityRoleValue => ({

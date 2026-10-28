@@ -27,7 +27,6 @@ export function LandingHero({
 
   return (
     <section className="hl-hero" id="top">
-      <div className="hl-hero-glow" />
       <div className="hl-container hl-hero-grid">
         <motion.div
           className="hl-hero-copy"
@@ -35,10 +34,7 @@ export function LandingHero({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.65 }}
         >
-          <HlBadge>
-            <Sparkles size={14} />
-            Nền tảng khám phá lịch sử tương tác
-          </HlBadge>
+          <p className="hl-hero-lead">Nền tảng khám phá lịch sử tương tác</p>
           <h1>
             Chạm vào quá khứ.
             <br />
@@ -46,7 +42,7 @@ export function LandingHero({
           </h1>
           <p>
             Khám phá dòng chảy lịch sử Việt Nam và thế giới qua niên biểu đa tầng, những nhân vật làm nên thời
-            đại và các lộ trình học có cấu trúc — đặt mỗi sự kiện trong bối cảnh khu vực của nó.
+            đại và các lộ trình học có cấu trúc, đặt mỗi sự kiện trong bối cảnh khu vực của nó.
           </p>
           <button className="hl-hero-search" onClick={openSearch} type="button">
             <Search />
@@ -100,10 +96,10 @@ export function LandingHero({
             transition={{ duration: 0.7, delay: 0.1 }}
           >
             <div className="hl-spotlight-top">
-              <span>
-                <Sparkles />
+              <h2 className="hl-spotlight-heading">
+                <Sparkles size={14} />
                 Tâm điểm lịch sử
-              </span>
+              </h2>
               <span className="hl-live-dot">{item.region}</span>
             </div>
             <AnimatePresence mode="wait">

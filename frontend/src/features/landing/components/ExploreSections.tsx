@@ -31,7 +31,7 @@ export function CorePillars({ stats }: { stats: LandingStats }) {
       icon: Landmark,
       no: '03',
       title: 'Di tích & Địa danh',
-      text: 'Những không gian còn lưu dấu sự kiện — nơi lịch sử đã thực sự diễn ra.',
+      text: 'Những không gian còn lưu dấu sự kiện, nơi lịch sử đã thực sự diễn ra.',
       href: LANDING_ROUTES.LOCATIONS,
       meta: `${stats.locations} địa danh`,
       color: 'blue',
@@ -50,9 +50,8 @@ export function CorePillars({ stats }: { stats: LandingStats }) {
   return (
     <section className="hl-section hl-container">
       <SectionHead
-        eyebrow="Hệ sinh thái HISGO"
-        title="Bốn lối vào lịch sử"
-        description="Chọn cách khám phá phù hợp với nhịp học và sự tò mò của riêng bạn."
+        title="Bốn lối vào khám phá lịch sử"
+        description="Hệ sinh thái HISGO với đa dạng góc nhìn, phù hợp nhịp học và sự tò mò của riêng bạn."
       />
       <div className="hl-pillar-grid">
         {pillars.map((p) => (
@@ -84,9 +83,8 @@ export function EraBento({ eras }: { eras: LandingEra[] }) {
     <section className="hl-section hl-era-section" id="explore">
       <div className="hl-container">
         <SectionHead
-          eyebrow="Khám phá theo thời kỳ"
-          title={`Hành trình qua ${eras.length} kỷ nguyên`}
-          description="Việt Nam và thế giới, mỗi thời kỳ là một lớp ký ức — với sự kiện, con người và không gian đan cài."
+          title={`Hành trình qua ${eras.length} kỷ nguyên lịch sử`}
+          description="Việt Nam và thế giới, mỗi thời kỳ là một lớp ký ức với sự kiện, con người và không gian đan cài."
           action={
             <HlButton href={LANDING_ROUTES.TIMELINE} variant="ghost">
               Xem toàn bộ niên biểu

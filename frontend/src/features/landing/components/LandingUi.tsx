@@ -58,7 +58,7 @@ export function SectionHead({
   description,
   action,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description?: string;
   action?: ReactNode;
@@ -66,10 +66,12 @@ export function SectionHead({
   return (
     <div className="hl-section-head">
       <div>
-        <div className="hl-eyebrow">
-          <span />
-          {eyebrow}
-        </div>
+        {eyebrow && (
+          <div className="hl-eyebrow">
+            <span />
+            {eyebrow}
+          </div>
+        )}
         <h2>{title}</h2>
         {description && <p>{description}</p>}
       </div>

@@ -94,7 +94,7 @@ function DailyQuiz({ quiz }: { quiz: LandingQuiz }) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
           >
-            <strong>{correct ? 'Chính xác!' : `Chưa đúng — đáp án là ${quiz.options[quiz.correctIndex]}.`}</strong>
+            <strong>{correct ? 'Chính xác!' : `Chưa đúng: đáp án là ${quiz.options[quiz.correctIndex]}.`}</strong>
             {quiz.explanation && <p>{quiz.explanation}</p>}
             <Link href={quiz.href}>
               Đọc sự kiện <ArrowRight />
@@ -117,9 +117,8 @@ export function LearningQuiz({ courses, quiz }: { courses: LandingCourse[]; quiz
   return (
     <section className="hl-section hl-container">
       <SectionHead
-        eyebrow="Học sâu — Nhớ lâu"
-        title="Lộ trình dành riêng cho bạn"
-        description="Học theo chương trình có cấu trúc, kiểm tra kiến thức ngay sau mỗi chặng."
+        title="Lộ trình học tập dành riêng cho bạn"
+        description="Học theo chương trình có cấu trúc, kiểm tra kiến thức ngay sau mỗi chặng để nhớ lâu hơn."
         action={
           <HlButton href={LANDING_ROUTES.CURRICULUM} variant="ghost">
             Tất cả lộ trình

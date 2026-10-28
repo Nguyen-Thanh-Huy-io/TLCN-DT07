@@ -28,9 +28,8 @@ export function EntitiesSection({ figures, locations }: { figures: LandingFigure
     <section className="hl-section hl-entities-section" id="characters">
       <div className="hl-container">
         <SectionHead
-          eyebrow="Con người & Không gian"
-          title="Những dấu ấn còn mãi"
-          description="Gặp những con người làm nên thời đại và những địa danh còn lưu dấu sự kiện."
+          title="Những con người và không gian còn lưu dấu"
+          description="Gặp gỡ những nhân vật làm nên thời đại và các di tích, địa danh lịch sử trường tồn."
           action={
             <HlButton href={isFiguresTab ? LANDING_ROUTES.FIGURES : LANDING_ROUTES.LOCATIONS} variant="ghost">
               {isFiguresTab ? 'Tất cả nhân vật' : 'Tất cả di tích'}

@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, BookOpen, Check, Globe2, GraduationCap, History, MapPin, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, Globe2, GraduationCap, History, MapPin, ShieldCheck, Users } from 'lucide-react';
 import { useAuthSession } from '@/services/auth/useAuthSession';
 import { LANDING_ROUTES } from '../landing.adapter';
 import type { LandingStats } from '../landing.types';
@@ -17,24 +17,19 @@ export function JoinBanner() {
   return (
     <section className="hl-section hl-container">
       <Reveal className="hl-join">
-        <div className="hl-join-orb one" />
-        <div className="hl-join-orb two" />
         <div className="hl-join-grid">
           <div className="hl-join-copy">
             <span className="hl-join-icon">
               <Globe2 />
             </span>
-            <HlBadge>
-              <Sparkles />
-              Việt Nam trong dòng chảy thế giới
-            </HlBadge>
+            <HlBadge>Việt Nam trong dòng chảy thế giới</HlBadge>
             <h2>
               Đừng chỉ đọc lịch sử.
               <br />
               <em>Hãy đi cùng nó.</em>
             </h2>
             <p>
-              Từ Văn Lang đến thế giới hiện đại — học theo lộ trình, đối sánh các khu vực và hiểu vì sao mỗi sự kiện
+              Từ Văn Lang đến thế giới hiện đại: học theo lộ trình, đối sánh các khu vực và hiểu vì sao mỗi sự kiện
               xảy ra đúng lúc ấy.
             </p>
             <div className="hl-join-proof">

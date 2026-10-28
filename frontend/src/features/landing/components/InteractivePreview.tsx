@@ -166,9 +166,8 @@ export function InteractivePreview({ nodes, bands }: { nodes: LandingTimelineNod
   return (
     <section className="hl-section hl-container">
       <SectionHead
-        eyebrow="Chạm để trải nghiệm"
-        title="Lịch sử không chỉ để đọc"
-        description="Thử tương tác với niên biểu, hoặc đặt các khu vực cạnh nhau để thấy những gì diễn ra cùng lúc."
+        title="Lịch sử không chỉ để đọc, mà để trải nghiệm"
+        description="Tương tác trực quan cùng niên biểu đa tầng và đối sánh các khu vực diễn ra trong cùng thời điểm."
       />
       <div className="hl-tabs">
         <button

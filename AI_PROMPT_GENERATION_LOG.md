@@ -558,3 +558,52 @@ sequenceDiagram
 ### 4. Kết quả kiểm thử tự động (Automated Validation):
 - **Backend Unit Tests (`npx jest src/quiz/validators/quiz-question.validator.spec.ts`)**: `PASS` (13/13 tests).
 - **Frontend TypeScript (`npx tsc --noEmit`)**: `PASS` (`0 errors`).
+
+
+---
+
+## ĐỢT 11: TRIỂN KHAI DẠNG 3 — ĐÚNG / SAI (`QuizQuestionType.TRUE_FALSE`) & COMPONENT DÙNG CHUNG `TrueFalseAnswerSelector`
+
+### 1. Yêu cầu của người dùng (User Request):
+> "ok commit push rồi làm dạng 3 theo plan A"
+
+### 2. Sơ đồ tuần tự (Sequence Diagram - Mermaid):
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Giáo viên / Admin
+    actor Learner as Học sinh (Public Hub)
+    participant QModal as QuestionBankModal / TrueFalseEditor
+    participant Selector as TrueFalseAnswerSelector (Reusable Component)
+    participant API as QuestionController / TrueFalseValidationStrategy
+    participant Grader as TrueFalseGrader (Strategy Pattern)
+    participant QuizUI as HubLessonQuiz
+
+    Admin->>QModal: Chọn dạng câu hỏi "Đúng / Sai" (TRUE_FALSE)
+    QModal->>Selector: Hiển thị 2 thẻ chọn đáp án: Đúng (True) & Sai (False)
+    Admin->>Selector: Chọn Đúng (true) hoặc Sai (false) & nhập giải thích chung
+    QModal->>API: POST/PUT /questions { type: TRUE_FALSE, data: { correctAnswer: boolean } }
+    API->>API: TrueFalseValidationStrategy.validateAndNormalize (kiểm tra typeof correctAnswer === 'boolean')
+    API-->>QModal: Lưu thành công vào Ngân hàng câu hỏi
+
+    Learner->>QuizUI: Làm bài ôn tập gặp câu hỏi TRUE_FALSE
+    Learner->>QuizUI: Chọn nút "Đúng" hoặc "Sai"
+    Learner->>QuizUI: Nhấn "Kiểm tra đáp án"
+    QuizUI->>Grader: TrueFalseGrader.isCorrect(question, booleanAnswer)
+    Grader-->>QuizUI: Trả về kết quả & tô màu xanh/đỏ kèm biểu tượng Check/X
+```
+
+### 3. Chi tiết triển khai (SOLID & Code Reuse):
+1. **Backend Validator Strategy Pattern ([`quiz-question.validator.ts`](backend/src/quiz/validators/quiz-question.validator.ts))**:
+   - Loại bỏ cấu trúc `switch (q.type)` cũ, chuyển hoàn toàn sang **Strategy + Template Method Pattern** thông qua interface `IQuestionValidationStrategy`, `BaseChoiceValidationStrategy`, `TrueFalseValidationStrategy`, và bảng ánh xạ `QUESTION_VALIDATION_STRATEGIES`.
+2. **Component chọn đáp án Đúng/Sai tái sử dụng ([`TrueFalseAnswerSelector.tsx`](frontend/src/components/common/TrueFalseAnswerSelector.tsx))**:
+   - Thiết kế component dùng chung hiển thị 2 thẻ **Đúng (True)** (tông xanh lá `emerald`) và **Sai (False)** (tông đỏ `rose`) kèm badge trạng thái đáp án đang chọn.
+   - Tái sử dụng đồng thời tại cả **`QuestionBankModal.tsx`** và **`TrueFalseEditor`** trong **`QuizQuestionEditors.tsx`** (`compact` mode).
+3. **Ngân hàng câu hỏi & Giao diện làm bài ([`QuestionBankModal.tsx`](frontend/src/features/quiz/components/QuestionBankModal.tsx), [`QuestionBankView.tsx`](frontend/src/features/quiz/components/QuestionBankView.tsx), [`HubLessonQuiz.tsx`](frontend/src/features/public-curriculum/components/hub/HubLessonQuiz.tsx))**:
+   - Mở khóa `QuizQuestionType.TRUE_FALSE` (`isReady: true`) trên `QuestionBankModal`.
+   - Hiển thị nhanh đáp án đúng `Đúng (True)` hoặc `Sai (False)` ngay trên bảng danh sách `QuestionBankView.tsx`.
+   - Bổ sung trạng thái phản hồi trực quan (xanh/đỏ + icon `Check`/`X`) sau khi nộp bài cho câu hỏi `TRUE_FALSE` tại `HubLessonQuiz.tsx`.
+
+### 4. Kết quả kiểm thử tự động (Automated Validation):
+- **Backend Unit Tests (`npx jest src/quiz/validators/quiz-question.validator.spec.ts`)**: `PASS` (13/13 tests).
+- **Frontend TypeScript (`npx tsc --noEmit`)**: `PASS` (`0 errors`).

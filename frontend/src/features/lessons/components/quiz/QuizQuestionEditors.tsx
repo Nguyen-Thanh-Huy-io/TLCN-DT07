@@ -16,6 +16,7 @@ import {
   CollapsibleExplanationField,
   OptionExplanationBox,
 } from '@/components/common/CollapsibleExplanationField';
+import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
 
 export enum MoveDirection {
   UP = 'UP',
@@ -245,26 +246,11 @@ export function TrueFalseEditor({
         promptPlaceholder="Câu khẳng định cần đánh giá Đúng/Sai..."
         onChange={onChange}
       />
-      <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-semibold w-fit">
-        <button
-          type="button"
-          onClick={() => onChange({ correctAnswer: true })}
-          className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
-            data.correctAnswer ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Đúng
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange({ correctAnswer: false })}
-          className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
-            !data.correctAnswer ? 'bg-rose-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Sai
-        </button>
-      </div>
+      <TrueFalseAnswerSelector
+        compact
+        value={data.correctAnswer}
+        onChange={(correctAnswer) => onChange({ correctAnswer })}
+      />
       <CollapsibleExplanationField
         value={data.explanation}
         onChange={(explanation) => onChange({ explanation })}

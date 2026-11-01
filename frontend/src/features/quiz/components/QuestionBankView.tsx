@@ -423,9 +423,12 @@ export function QuestionBankView() {
                     color: 'text-slate-600 bg-slate-100 border-slate-200',
                   };
 
-                  // Tìm danh sách các đáp án đúng nếu có
+                  // Tìm danh sách các đáp án đúng nếu có (Single/Multiple Choice hoặc True/False)
                   const optionsList = Array.isArray(q.data?.options) ? q.data.options : [];
                   const correctOptions = optionsList.filter((opt: any) => opt.isCorrect);
+                  const hasTrueFalseAnswer =
+                    q.type === QuizQuestionType.TRUE_FALSE &&
+                    typeof q.data?.correctAnswer === 'boolean';
 
                   return (
                     <tr
@@ -468,6 +471,24 @@ export function QuestionBankView() {
                               </span>
                               <strong className="text-emerald-700 truncate max-w-md">
                                 {correctOptions.map((o: any) => o.text).join(' • ')}
+                              </strong>
+                            </div>
+                          )}
+
+                          {hasTrueFalseAnswer && (
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                  q.data.correctAnswer ? 'bg-emerald-500' : 'bg-rose-500'
+                                }`}
+                              />
+                              <span className="shrink-0">Đáp án đúng:</span>
+                              <strong
+                                className={
+                                  q.data.correctAnswer ? 'text-emerald-700' : 'text-rose-700'
+                                }
+                              >
+                                {q.data.correctAnswer ? 'Đúng (True)' : 'Sai (False)'}
                               </strong>
                             </div>
                           )}

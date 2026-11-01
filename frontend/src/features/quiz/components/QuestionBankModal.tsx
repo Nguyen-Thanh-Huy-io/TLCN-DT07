@@ -53,6 +53,7 @@ import {
   CollapsibleExplanationField,
   OptionExplanationBox,
 } from '@/components/common/CollapsibleExplanationField';
+import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
 
 interface QuestionBankModalProps {
   isOpen: boolean;
@@ -90,7 +91,7 @@ const QUESTION_TYPE_CARDS: QuestionTypeCardConfig[] = [
     title: 'Đúng / Sai',
     subtitle: '(True / False)',
     icon: HelpCircle,
-    isReady: false,
+    isReady: true,
   },
   {
     type: QuizQuestionType.ORDERING,
@@ -133,6 +134,7 @@ export function QuestionBankModal({
     { id: generateQuizId('opt'), text: '', isCorrect: false },
     { id: generateQuizId('opt'), text: '', isCorrect: false },
   ]);
+  const [correctAnswer, setCorrectAnswer] = useState<boolean>(true);
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
   const [isGeneralNoteOpen, setIsGeneralNoteOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -177,6 +179,11 @@ export function QuestionBankModal({
       setPoints(initialQuestion.points ?? 1);
       setTopicIds(initialQuestion.topics?.map((t) => t.id) || []);
       setLessonIds(initialQuestion.lessons?.map((l) => l.id) || []);
+      if (typeof initialQuestion.data?.correctAnswer === 'boolean') {
+        setCorrectAnswer(initialQuestion.data.correctAnswer);
+      } else {
+        setCorrectAnswer(true);
+      }
       if (initialQuestion.data?.options && Array.isArray(initialQuestion.data.options)) {
         setOptions(initialQuestion.data.options);
         const notesMap: Record<string, boolean> = {};
@@ -197,6 +204,7 @@ export function QuestionBankModal({
       setTopicIds([]);
       setLessonIds([]);
       setExpandedNotes({});
+      setCorrectAnswer(true);
       setOptions([
         { id: generateQuizId('opt'), text: '', isCorrect: true },
         { id: generateQuizId('opt'), text: '', isCorrect: false },
@@ -304,6 +312,11 @@ export function QuestionBankModal({
 
     try {
       setSubmitting(true);
+      const questionData =
+        type === QuizQuestionType.TRUE_FALSE
+          ? { correctAnswer }
+          : { options };
+
       const payload: CreateQuestionPayload = {
         type,
         prompt: prompt.trim(),
@@ -312,9 +325,7 @@ export function QuestionBankModal({
         points: Number(points) > 0 ? Number(points) : 1,
         topicIds,
         lessonIds,
-        data: {
-          options,
-        },
+        data: questionData,
       };
 
       if (initialQuestion?.id) {
@@ -547,165 +558,171 @@ export function QuestionBankModal({
             </div>
           </div>
 
-          {/* Section 3: Options List with Drag Handle, Input, Correct Toggle & Delete */}
-          <div className="space-y-2.5 pt-1">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <label className="block text-xs font-bold text-slate-800">
-                  Các phương án lựa chọn <span className="text-blue-600 font-normal">(Options)</span>
-                </label>
-                {type === QuizQuestionType.MULTIPLE_CHOICE ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                    <CheckSquare size={12} />
-                    <span>
-                      Chế độ Check Box: Đang chọn {options.filter((o) => o.isCorrect).length}/{options.length} đáp án đúng
+          {/* Section 3: Options List (Single/Multiple Choice) OR True/False Selector */}
+          {type === QuizQuestionType.TRUE_FALSE ? (
+            <div className="pt-1">
+              <TrueFalseAnswerSelector value={correctAnswer} onChange={setCorrectAnswer} />
+            </div>
+          ) : (
+            <div className="space-y-2.5 pt-1">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Các phương án lựa chọn <span className="text-blue-600 font-normal">(Options)</span>
+                  </label>
+                  {type === QuizQuestionType.MULTIPLE_CHOICE ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      <CheckSquare size={12} />
+                      <span>
+                        Chế độ Check Box: Đang chọn {options.filter((o) => o.isCorrect).length}/{options.length} đáp án đúng
+                      </span>
                     </span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <CircleDot size={12} />
-                    <span>Chế độ Radio: 1 đáp án đúng duy nhất</span>
-                  </span>
-                )}
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <CircleDot size={12} />
+                      <span>Chế độ Radio: 1 đáp án đúng duy nhất</span>
+                    </span>
+                  )}
+                </div>
+                <span className="text-[11px] text-slate-400">
+                  {type === QuizQuestionType.MULTIPLE_CHOICE ? (
+                    <>
+                      Tích chọn ô <strong>Correct</strong> tại <strong>một hoặc nhiều</strong> phương án đúng
+                    </>
+                  ) : (
+                    <>
+                      Tích chọn ô <strong>Correct</strong> tại phương án đúng duy nhất
+                    </>
+                  )}
+                </span>
               </div>
-              <span className="text-[11px] text-slate-400">
-                {type === QuizQuestionType.MULTIPLE_CHOICE ? (
-                  <>
-                    Tích chọn ô <strong>Correct</strong> tại <strong>một hoặc nhiều</strong> phương án đúng
-                  </>
-                ) : (
-                  <>
-                    Tích chọn ô <strong>Correct</strong> tại phương án đúng duy nhất
-                  </>
-                )}
-              </span>
-            </div>
 
-            <div className="space-y-2">
-              {options.map((opt, idx) => {
-                const labelLetter = String.fromCharCode(65 + idx);
-                const isNoteOpen = expandedNotes[opt.id];
+              <div className="space-y-2">
+                {options.map((opt, idx) => {
+                  const labelLetter = String.fromCharCode(65 + idx);
+                  const isNoteOpen = expandedNotes[opt.id];
 
-                return (
-                  <div
-                    key={opt.id}
-                    className={`p-2.5 rounded-xl border transition-all ${
-                      opt.isCorrect
-                        ? 'border-blue-400 bg-blue-50/20'
-                        : 'border-slate-200 bg-white hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      {/* Drag Grip Handle */}
-                      <span className="text-slate-400 cursor-grab hover:text-slate-600 shrink-0">
-                        <GripVertical size={15} />
-                      </span>
+                  return (
+                    <div
+                      key={opt.id}
+                      className={`p-2.5 rounded-xl border transition-all ${
+                        opt.isCorrect
+                          ? 'border-blue-400 bg-blue-50/20'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {/* Drag Grip Handle */}
+                        <span className="text-slate-400 cursor-grab hover:text-slate-600 shrink-0">
+                          <GripVertical size={15} />
+                        </span>
 
-                      {/* Radio / Checkbox indicator icon */}
-                      <span
-                        onClick={() => handleToggleOptionCorrect(opt.id)}
-                        className="cursor-pointer shrink-0"
-                      >
-                        {type === QuizQuestionType.MULTIPLE_CHOICE ? (
-                          opt.isCorrect ? (
-                            <CheckSquare size={16} className="text-blue-600" />
+                        {/* Radio / Checkbox indicator icon */}
+                        <span
+                          onClick={() => handleToggleOptionCorrect(opt.id)}
+                          className="cursor-pointer shrink-0"
+                        >
+                          {type === QuizQuestionType.MULTIPLE_CHOICE ? (
+                            opt.isCorrect ? (
+                              <CheckSquare size={16} className="text-blue-600" />
+                            ) : (
+                              <span className="w-4 h-4 rounded border border-slate-300 block hover:border-blue-500" />
+                            )
+                          ) : opt.isCorrect ? (
+                            <CircleDot size={16} className="text-blue-600" />
                           ) : (
-                            <span className="w-4 h-4 rounded border border-slate-300 block hover:border-blue-500" />
-                          )
-                        ) : opt.isCorrect ? (
-                          <CircleDot size={16} className="text-blue-600" />
-                        ) : (
-                          <span className="w-4 h-4 rounded-full border border-slate-300 block hover:border-blue-500" />
-                        )}
-                      </span>
+                            <span className="w-4 h-4 rounded-full border border-slate-300 block hover:border-blue-500" />
+                          )}
+                        </span>
 
-                      {/* Letter tag */}
-                      <span className="text-xs font-bold text-slate-500 w-4 shrink-0">
-                        {labelLetter}.
-                      </span>
+                        {/* Letter tag */}
+                        <span className="text-xs font-bold text-slate-500 w-4 shrink-0">
+                          {labelLetter}.
+                        </span>
 
-                      {/* Option Text Input */}
-                      <input
-                        type="text"
-                        value={opt.text}
-                        onChange={(e) => handleUpdateOptionText(opt.id, e.target.value)}
-                        placeholder={`Nội dung lựa chọn ${labelLetter}...`}
-                        className="flex-1 text-xs sm:text-sm p-1 bg-transparent border-0 focus:outline-none text-slate-900 placeholder:text-slate-400"
-                      />
-
-                      {/* Option Explanation Note Button */}
-                      <button
-                        type="button"
-                        onClick={() => toggleOptionNote(opt.id)}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer shrink-0 ${
-                          opt.explanation
-                            ? 'border-amber-300 bg-amber-50 text-amber-800 font-semibold'
-                            : isNoteOpen
-                            ? 'border-blue-300 bg-blue-50 text-blue-700'
-                            : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                        }`}
-                        title="Ghi chú giải thích vì sao đáp án này đúng hoặc sai"
-                      >
-                        <Lightbulb
-                          size={12}
-                          className={opt.explanation ? 'text-amber-600' : 'text-slate-400'}
+                        {/* Option Text Input */}
+                        <input
+                          type="text"
+                          value={opt.text}
+                          onChange={(e) => handleUpdateOptionText(opt.id, e.target.value)}
+                          placeholder={`Nội dung lựa chọn ${labelLetter}...`}
+                          className="flex-1 text-xs sm:text-sm p-1 bg-transparent border-0 focus:outline-none text-slate-900 placeholder:text-slate-400"
                         />
-                        <span>{opt.explanation ? 'Có giải thích' : '+ Giải thích'}</span>
-                      </button>
 
-                      {/* Correct Checkbox Toggle */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleOptionCorrect(opt.id)}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 ${
-                          opt.isCorrect
-                            ? 'border-blue-600 bg-blue-600 text-white shadow-xs'
-                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:border-slate-300'
-                        }`}
-                      >
-                        {opt.isCorrect ? (
-                          <Check size={12} strokeWidth={3} />
-                        ) : (
-                          <span className="w-3 h-3 rounded-xs border border-slate-300" />
-                        )}
-                        <span>Correct</span>
-                      </button>
+                        {/* Option Explanation Note Button */}
+                        <button
+                          type="button"
+                          onClick={() => toggleOptionNote(opt.id)}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer shrink-0 ${
+                            opt.explanation
+                              ? 'border-amber-300 bg-amber-50 text-amber-800 font-semibold'
+                              : isNoteOpen
+                              ? 'border-blue-300 bg-blue-50 text-blue-700'
+                              : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                          }`}
+                          title="Ghi chú giải thích vì sao đáp án này đúng hoặc sai"
+                        >
+                          <Lightbulb
+                            size={12}
+                            className={opt.explanation ? 'text-amber-600' : 'text-slate-400'}
+                          />
+                          <span>{opt.explanation ? 'Có giải thích' : '+ Giải thích'}</span>
+                        </button>
 
-                      {/* Delete Option Icon */}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveOption(opt.id)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0"
-                        title="Xóa lựa chọn này"
-                      >
-                        <X size={15} />
-                      </button>
+                        {/* Correct Checkbox Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleOptionCorrect(opt.id)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 ${
+                            opt.isCorrect
+                              ? 'border-blue-600 bg-blue-600 text-white shadow-xs'
+                              : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:border-slate-300'
+                          }`}
+                        >
+                          {opt.isCorrect ? (
+                            <Check size={12} strokeWidth={3} />
+                          ) : (
+                            <span className="w-3 h-3 rounded-xs border border-slate-300" />
+                          )}
+                          <span>Correct</span>
+                        </button>
+
+                        {/* Delete Option Icon */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOption(opt.id)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0"
+                          title="Xóa lựa chọn này"
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+
+                      {/* Collapsible Per-Option Explanation Sub-Input (Reusable Component) */}
+                      {isNoteOpen && (
+                        <OptionExplanationBox
+                          labelLetter={labelLetter}
+                          isCorrect={opt.isCorrect}
+                          value={opt.explanation}
+                          onChange={(val) => handleUpdateOptionExplanation(opt.id, val)}
+                        />
+                      )}
                     </div>
+                  );
+                })}
+              </div>
 
-                    {/* Collapsible Per-Option Explanation Sub-Input (Reusable Component) */}
-                    {isNoteOpen && (
-                      <OptionExplanationBox
-                        labelLetter={labelLetter}
-                        isCorrect={opt.isCorrect}
-                        value={opt.explanation}
-                        onChange={(val) => handleUpdateOptionExplanation(opt.id, val)}
-                      />
-                    )}
-                  </div>
-                );
-              })}
+              {/* Add Option Button */}
+              <button
+                type="button"
+                onClick={handleAddOption}
+                className="w-full py-2.5 border border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/40 rounded-xl text-xs font-semibold text-blue-600 transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+              >
+                <Plus size={14} />
+                <span>Thêm phương án lựa chọn (Add Option)</span>
+              </button>
             </div>
-
-            {/* Add Option Button */}
-            <button
-              type="button"
-              onClick={handleAddOption}
-              className="w-full py-2.5 border border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/40 rounded-xl text-xs font-semibold text-blue-600 transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
-            >
-              <Plus size={14} />
-              <span>Thêm phương án lựa chọn (Add Option)</span>
-            </button>
-          </div>
+          )}
 
           {/* Section 4: Collapsible & Auto-fit General Explanation Card (Reusable Component) */}
           <div className="pt-1">
@@ -719,9 +736,11 @@ export function QuestionBankModal({
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
           <span className="text-[11px] text-slate-500 hidden sm:inline">
-            {type === QuizQuestionType.MULTIPLE_CHOICE
-              ? 'Loại 2: Trắc nghiệm nhiều đáp án đúng (Multiple Choice / Check Box) • Lưu vào Ngân hàng trung tâm'
-              : 'Loại 1: Trắc nghiệm 1 đáp án (Single Choice / Radio Button) • Lưu vào Ngân hàng trung tâm'}
+            {type === QuizQuestionType.TRUE_FALSE
+              ? 'Loại 3: Câu hỏi Đúng / Sai (True / False) • Lưu vào Ngân hàng trung tâm'
+              : type === QuizQuestionType.MULTIPLE_CHOICE
+                ? 'Loại 2: Trắc nghiệm nhiều đáp án đúng (Multiple Choice / Check Box) • Lưu vào Ngân hàng trung tâm'
+                : 'Loại 1: Trắc nghiệm 1 đáp án (Single Choice / Radio Button) • Lưu vào Ngân hàng trung tâm'}
           </span>
 
           <div className="flex items-center gap-2.5 ml-auto">

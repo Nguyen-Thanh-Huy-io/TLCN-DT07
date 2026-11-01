@@ -120,21 +120,33 @@ function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingI
         {[
           { value: true, label: 'Đúng' },
           { value: false, label: 'Sai' },
-        ].map((choice) => (
-          <button
-            key={choice.label}
-            type="button"
-            disabled={submitted}
-            onClick={() => setAnswer(q.id, choice.value)}
-            className={`${OPTION_BASE} cursor-pointer justify-center ${
-              answer === choice.value
-                ? 'border-lh-brand bg-lh-brand text-white'
-                : 'border-lh-line text-lh-ink hover:bg-lh-surface-2'
-            }`}
-          >
-            {choice.label}
-          </button>
-        ))}
+        ].map((choice) => {
+          const selected = answer === choice.value;
+          const isRightChoice = q.correctAnswer === choice.value;
+          const state = submitted
+            ? isRightChoice
+              ? 'border-lh-brand bg-lh-brand-soft text-lh-brand font-semibold'
+              : selected
+                ? 'border-lh-red bg-lh-red-soft text-lh-red font-semibold'
+                : 'border-lh-line text-lh-muted opacity-70'
+            : selected
+              ? 'border-lh-brand bg-lh-brand text-white font-semibold'
+              : 'border-lh-line text-lh-ink hover:bg-lh-surface-2';
+
+          return (
+            <button
+              key={choice.label}
+              type="button"
+              disabled={submitted}
+              onClick={() => setAnswer(q.id, choice.value)}
+              className={`${OPTION_BASE} cursor-pointer justify-center ${state}`}
+            >
+              {submitted && isRightChoice && <Check className="size-4 shrink-0" />}
+              {submitted && selected && !isRightChoice && <X className="size-4 shrink-0" />}
+              <span>{choice.label}</span>
+            </button>
+          );
+        })}
       </div>
     );
   }

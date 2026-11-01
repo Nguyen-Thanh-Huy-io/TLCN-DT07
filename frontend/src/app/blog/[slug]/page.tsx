@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
+import { CommentThread } from '@/components/hisgo/CommentThread';
 import { blogPosts } from '@/data/blog';
 
 export default async function BlogArticlePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -82,6 +83,8 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
             </div>
           </aside>
         </div>
+
+        <CommentThread />
       </article>
 
       <Footer />

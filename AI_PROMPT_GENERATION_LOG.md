@@ -487,3 +487,26 @@ sequenceDiagram
 - **Prisma Migration (`npx prisma migrate deploy`)**: Thành công (`35 migrations applied`).
 - **Frontend TypeScript (`npx tsc --noEmit`)**: `0 errors`.
 - **Backend Build Typecheck (`npx tsc -p tsconfig.build.json --noEmit`)**: `0 errors`.
+
+
+---
+
+## ĐỢT 9: TÁI CẤU TRÚC COMPONENT CHỌN CÂY PHÂN CẤP DÙNG CHUNG (`TreeSelectModal` & `TreeSelectTrigger`)
+
+### 1. Yêu cầu của người dùng (User Request):
+> "có code tái sử dụng như chưa? tại thấy cũng nhiều chỗ xài á" (Kèm ảnh mẫu `Select a category`)
+
+### 2. Kiến trúc SOLID & Composite Pattern (`frontend/src/components/common/TreeSelectModal.tsx`):
+- **Tách biệt hoàn toàn UI hiển thị cây và dữ liệu nghiệp vụ (SRP & OCP)**:
+  - **`TreeSelectNode`**: Cấu trúc node đệ quy tổng quát (`id`, `label`, `selectable`, `selectChildrenOnClick`, `children`) dùng chung cho mọi phân hệ (Chủ đề `Topic`, Bài học `Lesson`, Thời kỳ `Period`, Sự kiện `HistoricalEvent`, Phân loại `Taxonomy`...).
+  - **`TreeSelectModal`**: Component Modal dùng chung toàn hệ thống chuẩn thiết kế mẫu:
+    - Header `Select a category` + nút đóng `✕`.
+    - Cây phân cấp đóng/mở (`∨` / `>`) kèm thanh cuộn dọc bên phải.
+    - Viền dọc xanh lá bên trái (`border-l-4 border-emerald-700 bg-emerald-100/70`) khi một nhánh/mục được chọn.
+    - Hỗ trợ linh hoạt cả **Multi-select** (`multiple={true}`) và **Single-select** (`multiple={false}`).
+  - **`TreeSelectTrigger`**: Component ô bấm mở modal dùng chung, tự động hiển thị danh sách thẻ (chips) đã chọn kèm nút xóa nhanh (`×`) và nút `+ Chọn thêm`.
+  - **Adapters (`buildTopicTreeNodes`, `buildLessonTreeNodes`)**: Chuyển đổi dữ liệu phẳng sang cấu trúc `TreeSelectNode[]`.
+- **Áp dụng tái sử dụng tại các phân hệ**:
+  - `frontend/src/features/quiz/components/CategoryTreePicker.tsx` (rút gọn từ 466 dòng xuống 86 dòng).
+  - `frontend/src/features/quiz/components/QuestionBankModal.tsx` (sử dụng `TreeSelectTrigger`).
+  - `frontend/src/features/lessons/components/LessonTopicModalPicker.tsx` (sử dụng `TreeSelectModal` ở chế độ chọn đơn `multiple={false}`).

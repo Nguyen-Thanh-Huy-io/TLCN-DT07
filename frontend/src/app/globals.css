@@ -1424,16 +1424,58 @@ button {
 }
 
 .nav-group {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
-.nav-group p {
-  color: var(--text-subtle);
-  font-size: 12px;
-  letter-spacing: 0.05em;
-  font-weight: 600;
-  margin: 0 10px 6px;
+.nav-group-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-subtle, #64748b);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.nav-group-header:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: #1e293b;
+}
+
+.nav-group-header p {
+  color: inherit;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  margin: 0;
   text-transform: uppercase;
+}
+
+.nav-group-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: rotate(90deg);
+  opacity: 0.7;
+}
+
+.nav-group-chevron.collapsed {
+  transform: rotate(0deg);
+  opacity: 0.5;
+}
+
+.nav-group-items {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .nav-group-divider {

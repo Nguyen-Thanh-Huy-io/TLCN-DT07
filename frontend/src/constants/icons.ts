@@ -28,6 +28,11 @@ export enum IconName {
   IMAGE = 'image',
   FILE = 'file',
   VIDEO = 'video',
+  SETTINGS = 'settings',
+  CHART = 'chart',
+  HELP_CIRCLE = 'help-circle',
+  MAP_PIN = 'map-pin',
+  SHIELD = 'shield',
 }
 
 export type IconNameType = `${IconName}`;

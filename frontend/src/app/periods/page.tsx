@@ -1,6 +1,11 @@
-import { redirect } from 'next/navigation';
-import { APP_ROUTES } from '@/constants/routes';
+'use client';
 
+import React from 'react';
+import { PeriodList } from '@/features/periods/components/PeriodList';
+
+/**
+ * Trang Quản lý triều đại, thời kỳ và nền văn minh (7.1)
+ */
 export default function PeriodsPage() {
-  redirect(APP_ROUTES.CURRICULUM);
+  return <PeriodList />;
 }

@@ -6,27 +6,35 @@ import { NavigationPageKey } from './routes';
  */
 export enum NavGroupId {
   DASHBOARD = 'DASHBOARD',
-  CURRICULUM = 'CURRICULUM',
+  LEARNING = 'LEARNING',
   KNOWLEDGE = 'KNOWLEDGE',
-  OPERATIONS = 'OPERATIONS',
+  SYSTEM = 'SYSTEM',
 }
 
 /**
- * Display names for navigation groups
+ * Display names for navigation groups (Phân nhóm trực quan cho 7.1)
  */
 export const NAV_GROUP_TITLES: Record<NavGroupId, string> = {
-  [NavGroupId.DASHBOARD]: 'TỔNG QUAN',
-  [NavGroupId.CURRICULUM]: 'CHƯƠNG TRÌNH HỌC',
-  [NavGroupId.KNOWLEDGE]: 'TỪ ĐIỂN TRI THỨC',
-  [NavGroupId.OPERATIONS]: 'KIỂM DUYỆT & VẬN HÀNH',
+  [NavGroupId.DASHBOARD]: 'TỔNG QUAN & BÁO CÁO',
+  [NavGroupId.LEARNING]: 'QUẢN TRỊ BÀI HỌC & QUIZ',
+  [NavGroupId.KNOWLEDGE]: 'KHO DỮ LIỆU LỊCH SỬ',
+  [NavGroupId.SYSTEM]: 'HỆ THỐNG & PHÂN QUYỀN',
 };
 
 export const NAV_ITEM_LABELS = {
-  CURRICULUM: 'Chương trình học',
-  KNOWLEDGE: 'Từ điển tri thức',
-  DASHBOARD: 'Dashboard',
+  DASHBOARD: 'Dashboard tổng quan',
+  ANALYTICS: 'Thống kê học tập và hoạt động',
+  LESSONS: 'Quản lý bài học',
+  QUESTIONS: 'Ngân hàng câu hỏi',
+  QUIZZES: 'Quản lý bộ Quiz',
+  MEDIA: 'Quản lý nguồn tư liệu và media',
+  EVENTS: 'Quản lý sự kiện lịch sử',
+  ENTITIES: 'Quản lý nhân vật',
+  PERIODS: 'Quản lý triều đại, thời kỳ & văn minh',
+  LOCATIONS: 'Quản lý địa danh và liên kết',
+  USERS: 'Quản lý người dùng và phân quyền',
+  SETTINGS: 'Cài đặt hệ thống',
   REVIEW: 'Duyệt bài học',
-  USERS: 'Người dùng & Quyền',
 } as const;
 
 /**

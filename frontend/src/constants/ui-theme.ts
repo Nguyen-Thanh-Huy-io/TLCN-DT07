@@ -50,6 +50,10 @@ export interface PageMetaItem {
 }
 
 export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
+  cms: {
+    title: 'Tổng quan',
+    subtitle: 'Quản lý nội dung học tập và chỉ số vận hành trên HISGO',
+  },
   dashboard: {
     title: 'Tổng quan',
     subtitle: 'Quản lý nội dung học tập trên HISGO',
@@ -101,5 +105,25 @@ export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
   taxonomies: {
     title: 'Danh mục dùng chung',
     subtitle: 'Loại di tích, hiện trạng, xếp hạng... dùng cho bộ lọc toàn hệ thống',
+  },
+  media: {
+    title: 'Quản lý nguồn tư liệu và media',
+    subtitle: 'Kho lưu trữ tập trung hình ảnh, tư liệu số và video lịch sử',
+  },
+  questions: {
+    title: 'Ngân hàng câu hỏi',
+    subtitle: 'Kho câu hỏi trắc nghiệm, tương tác và phân loại độ khó',
+  },
+  quizzes: {
+    title: 'Quản lý bộ Quiz',
+    subtitle: 'Cấu hình bộ đề ôn tập, kiểm tra và tiêu chí đánh giá theo bài học',
+  },
+  analytics: {
+    title: 'Thống kê học tập và hoạt động',
+    subtitle: 'Chỉ số tiến độ người học, hiệu suất bài học và nhật ký hệ thống',
+  },
+  settings: {
+    title: 'Cài đặt hệ thống',
+    subtitle: 'Cấu hình tham số hệ thống, kiểm duyệt và danh mục dùng chung',
   },
 };

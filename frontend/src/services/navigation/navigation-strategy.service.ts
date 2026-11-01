@@ -8,13 +8,7 @@ import {
   APP_ROUTES,
   PAGE_META,
   NavigationPageKey,
-} from '@/constants';
-
-const LABEL_CURRICULUM = NAV_ITEM_LABELS.CURRICULUM;
-const LABEL_KNOWLEDGE = NAV_ITEM_LABELS.KNOWLEDGE;
-const SUBTITLE_CURRICULUM = 'Sơ đồ cây & Danh mục học liệu';
-const NAV_CURRICULUM_ID = 'nav-curriculum';
-const NAV_KNOWLEDGE_ID = 'nav-knowledge';
+} from '../../constants';
 
 /**
  * Strategy Interface for Navigation Groups (Open-Closed Principle)
@@ -28,244 +22,267 @@ export interface INavigationGroupStrategy {
 }
 
 /**
- * Strategy 1: Dashboard / Overview
+ * Strategy 1: Dashboard & Analytics (Tổng quan & Báo cáo)
  */
 export class DashboardNavStrategy implements INavigationGroupStrategy {
   readonly groupId = NavGroupId.DASHBOARD;
   readonly title = NAV_GROUP_TITLES[NavGroupId.DASHBOARD];
 
+  private readonly items: NavItemConfig[] = [
+    {
+      id: 'nav-dashboard',
+      label: NAV_ITEM_LABELS.DASHBOARD,
+      icon: IconName.GRID,
+      page: NavigationPageKey.DASHBOARD,
+      route: APP_ROUTES.DASHBOARD,
+      groupId: this.groupId,
+      subtitle: 'KPI & tổng quan hoạt động CMS',
+    },
+    {
+      id: 'nav-analytics',
+      label: NAV_ITEM_LABELS.ANALYTICS,
+      icon: IconName.CHART,
+      page: NavigationPageKey.ANALYTICS,
+      route: APP_ROUTES.ANALYTICS,
+      groupId: this.groupId,
+      subtitle: 'Tiến độ học tập & nhật ký tương tác',
+    },
+  ];
+
   getItems(): NavItemConfig[] {
-    return [
-      {
-        id: 'nav-dashboard',
-        label: 'Dashboard',
-        icon: IconName.GRID,
-        page: NavigationPageKey.DASHBOARD,
-        route: APP_ROUTES.DASHBOARD,
-        groupId: this.groupId,
-        subtitle: 'Thống kê & KPI',
-      },
-    ];
+    return this.items;
   }
 
   matchesPage(pageKey: string): boolean {
-    return pageKey === NavigationPageKey.DASHBOARD || !pageKey;
+    return [
+      NavigationPageKey.DASHBOARD,
+      NavigationPageKey.ANALYTICS,
+      NavigationPageKey.CMS,
+    ].includes(pageKey as NavigationPageKey);
   }
 
   getItemByPage(pageKey: string): NavItemConfig | undefined {
-    return this.matchesPage(pageKey) ? this.getItems()[0] : undefined;
+    if (pageKey === NavigationPageKey.ANALYTICS) {
+      return this.items[1];
+    }
+    return this.items[0];
   }
 }
 
 /**
- * Strategy 2: Curriculum / Trục xương sống học tập (Giai đoạn -> Chủ đề -> Bài học)
+ * Strategy 2: Learning & Assessments (Quản trị Bài học & Quiz)
  */
-export class CurriculumNavStrategy implements INavigationGroupStrategy {
-  readonly groupId = NavGroupId.CURRICULUM;
-  readonly title = NAV_GROUP_TITLES[NavGroupId.CURRICULUM];
+export class LearningNavStrategy implements INavigationGroupStrategy {
+  readonly groupId = NavGroupId.LEARNING;
+  readonly title = NAV_GROUP_TITLES[NavGroupId.LEARNING];
 
-  private readonly primaryItem: NavItemConfig = {
-    id: NAV_CURRICULUM_ID,
-    label: LABEL_CURRICULUM,
-    icon: IconName.GRID,
-    page: NavigationPageKey.CURRICULUM,
-    route: APP_ROUTES.CURRICULUM,
-    groupId: this.groupId,
-    subtitle: 'Chủ đề ➔ Bài học & Quiz',
-  };
-
-  private readonly subPageConfigs: Record<string, NavItemConfig> = {
-    [NavigationPageKey.CURRICULUM]: {
-      id: NAV_CURRICULUM_ID,
-      label: LABEL_CURRICULUM,
-      icon: IconName.GRID,
-      page: NavigationPageKey.CURRICULUM,
-      route: APP_ROUTES.CURRICULUM,
-      groupId: this.groupId,
-      subtitle: SUBTITLE_CURRICULUM,
-    },
-    [NavigationPageKey.PERIODS]: {
-      id: 'nav-periods',
-      label: LABEL_CURRICULUM,
-      icon: IconName.GRID,
-      page: NavigationPageKey.CURRICULUM,
-      route: APP_ROUTES.CURRICULUM,
-      groupId: this.groupId,
-      subtitle: SUBTITLE_CURRICULUM,
-    },
-    [NavigationPageKey.TOPICS]: {
-      id: 'nav-topics',
-      label: 'Chủ đề học tập',
-      icon: IconName.FOLDER,
-      page: NavigationPageKey.TOPICS,
-      route: APP_ROUTES.CURRICULUM,
-      groupId: this.groupId,
-      subtitle: 'Chuyên đề lịch sử',
-    },
-    [NavigationPageKey.LESSONS]: {
+  private readonly items: NavItemConfig[] = [
+    {
       id: 'nav-lessons',
-      label: 'Bài học & Quiz',
+      label: NAV_ITEM_LABELS.LESSONS,
       icon: IconName.BOOK,
-      page: NavigationPageKey.LESSONS,
+      page: NavigationPageKey.CURRICULUM,
       route: APP_ROUTES.CURRICULUM,
       groupId: this.groupId,
-      subtitle: 'Nội dung & Kiểm tra',
+      subtitle: 'Lộ trình, chủ đề & bài giảng',
     },
-  };
+    {
+      id: 'nav-questions',
+      label: NAV_ITEM_LABELS.QUESTIONS,
+      icon: IconName.HELP_CIRCLE,
+      page: NavigationPageKey.QUESTIONS,
+      route: APP_ROUTES.QUESTIONS,
+      groupId: this.groupId,
+      subtitle: 'Kho câu hỏi trắc nghiệm & tương tác',
+    },
+    {
+      id: 'nav-quizzes',
+      label: NAV_ITEM_LABELS.QUIZZES,
+      icon: IconName.SPARK,
+      page: NavigationPageKey.QUIZZES,
+      route: APP_ROUTES.QUIZZES,
+      groupId: this.groupId,
+      subtitle: 'Đề ôn tập & kiểm tra theo bài',
+    },
+    {
+      id: 'nav-media',
+      label: NAV_ITEM_LABELS.MEDIA,
+      icon: IconName.IMAGE,
+      page: NavigationPageKey.MEDIA,
+      route: APP_ROUTES.MEDIA,
+      groupId: this.groupId,
+      subtitle: 'Kho tư liệu ảnh, video & văn bản',
+    },
+  ];
 
   getItems(): NavItemConfig[] {
-    // Only return the unified primary workspace item for sidebar to prevent cognitive overload
-    return [this.primaryItem];
+    return this.items;
   }
 
   matchesPage(pageKey: string): boolean {
     return [
       NavigationPageKey.CURRICULUM,
-      NavigationPageKey.PERIODS,
       NavigationPageKey.TOPICS,
       NavigationPageKey.LESSONS,
+      NavigationPageKey.QUESTIONS,
+      NavigationPageKey.QUIZZES,
+      NavigationPageKey.MEDIA,
     ].includes(pageKey as NavigationPageKey);
   }
 
   getItemByPage(pageKey: string): NavItemConfig | undefined {
-    return this.subPageConfigs[pageKey] || (this.matchesPage(pageKey) ? this.primaryItem : undefined);
+    switch (pageKey) {
+      case NavigationPageKey.QUESTIONS:
+        return this.items[1];
+      case NavigationPageKey.QUIZZES:
+        return this.items[2];
+      case NavigationPageKey.MEDIA:
+        return this.items[3];
+      default:
+        return this.items[0];
+    }
   }
 }
 
 /**
- * Strategy 3: Knowledge Base / Từ điển tri thức vệ tinh (Địa danh, Nhân vật, Sự kiện, Thẻ)
+ * Strategy 3: Historical Knowledge Data (Kho Dữ liệu Lịch sử)
  */
-export class KnowledgeBaseNavStrategy implements INavigationGroupStrategy {
+export class KnowledgeNavStrategy implements INavigationGroupStrategy {
   readonly groupId = NavGroupId.KNOWLEDGE;
   readonly title = NAV_GROUP_TITLES[NavGroupId.KNOWLEDGE];
 
-  private readonly primaryItem: NavItemConfig = {
-    id: NAV_KNOWLEDGE_ID,
-    label: LABEL_KNOWLEDGE,
-    icon: IconName.BOOK,
-    page: NavigationPageKey.KNOWLEDGE,
-    route: APP_ROUTES.KNOWLEDGE,
-    groupId: this.groupId,
-    subtitle: 'Địa danh, Nhân vật, Sự kiện, Thẻ',
-  };
-
-  private readonly subPageConfigs: Record<string, NavItemConfig> = {
-    [NavigationPageKey.KNOWLEDGE]: {
-      id: NAV_KNOWLEDGE_ID,
-      label: LABEL_KNOWLEDGE,
-      icon: IconName.BOOK,
-      page: NavigationPageKey.KNOWLEDGE,
-      route: APP_ROUTES.KNOWLEDGE,
-      groupId: this.groupId,
-      subtitle: 'Kho tri thức tập trung',
-    },
-    [NavigationPageKey.LOCATIONS]: {
-      id: 'nav-locations',
-      label: 'Địa danh lịch sử',
-      icon: IconName.CALENDAR,
-      page: NavigationPageKey.LOCATIONS,
-      route: APP_ROUTES.LOCATIONS.LIST,
-      groupId: this.groupId,
-      subtitle: 'Tọa độ & Di tích',
-    },
-    [NavigationPageKey.ENTITIES]: {
-      id: 'nav-entities',
-      label: 'Nhân vật & Triều đại',
-      icon: IconName.USERS,
-      page: NavigationPageKey.ENTITIES,
-      route: APP_ROUTES.ENTITIES.LIST,
-      groupId: this.groupId,
-      subtitle: 'Tiểu sử & Dòng họ',
-    },
-    [NavigationPageKey.EVENTS]: {
+  private readonly items: NavItemConfig[] = [
+    {
       id: 'nav-events',
-      label: 'Sự kiện lịch sử',
+      label: NAV_ITEM_LABELS.EVENTS,
       icon: IconName.CLOCK,
       page: NavigationPageKey.EVENTS,
       route: APP_ROUTES.EVENTS.LIST,
       groupId: this.groupId,
-      subtitle: 'Dòng thời gian',
+      subtitle: 'Biên niên sự kiện & trận đánh',
     },
-    [NavigationPageKey.TAGS]: {
-      id: 'nav-tags',
-      label: 'Thẻ phân loại',
-      icon: IconName.TAG,
-      page: NavigationPageKey.TAGS,
-      route: APP_ROUTES.TAGS.LIST,
+    {
+      id: 'nav-entities',
+      label: NAV_ITEM_LABELS.ENTITIES,
+      icon: IconName.USERS,
+      page: NavigationPageKey.ENTITIES,
+      route: APP_ROUTES.ENTITIES.LIST,
       groupId: this.groupId,
-      subtitle: 'Nhãn phân loại',
+      subtitle: 'Hồ sơ nhân vật, danh nhân & dòng họ',
     },
-  };
+    {
+      id: 'nav-periods',
+      label: NAV_ITEM_LABELS.PERIODS,
+      icon: IconName.CALENDAR,
+      page: NavigationPageKey.PERIODS,
+      route: APP_ROUTES.PERIODS.LIST,
+      groupId: this.groupId,
+      subtitle: 'Niên đại, triều đại & các nền văn minh',
+    },
+    {
+      id: 'nav-locations',
+      label: NAV_ITEM_LABELS.LOCATIONS,
+      icon: IconName.MAP_PIN,
+      page: NavigationPageKey.LOCATIONS,
+      route: APP_ROUTES.LOCATIONS.LIST,
+      groupId: this.groupId,
+      subtitle: 'Di tích, kinh đô, thành lũy & bản đồ',
+    },
+  ];
 
   getItems(): NavItemConfig[] {
-    // Only return unified primary workspace item for sidebar to prevent cognitive overload
-    return [this.primaryItem];
+    return this.items;
   }
 
   matchesPage(pageKey: string): boolean {
     return [
-      NavigationPageKey.KNOWLEDGE,
-      NavigationPageKey.LOCATIONS,
-      NavigationPageKey.ENTITIES,
       NavigationPageKey.EVENTS,
+      NavigationPageKey.ENTITIES,
+      NavigationPageKey.PERIODS,
+      NavigationPageKey.LOCATIONS,
+      NavigationPageKey.KNOWLEDGE,
       NavigationPageKey.TAGS,
     ].includes(pageKey as NavigationPageKey);
   }
 
   getItemByPage(pageKey: string): NavItemConfig | undefined {
-    return this.subPageConfigs[pageKey] || (this.matchesPage(pageKey) ? this.primaryItem : undefined);
+    switch (pageKey) {
+      case NavigationPageKey.EVENTS:
+        return this.items[0];
+      case NavigationPageKey.ENTITIES:
+        return this.items[1];
+      case NavigationPageKey.PERIODS:
+        return this.items[2];
+      case NavigationPageKey.LOCATIONS:
+        return this.items[3];
+      default:
+        return this.items[0];
+    }
   }
 }
 
 /**
- * Strategy 4: Operations / Kiểm duyệt & Vận hành
+ * Strategy 4: System Administration & Governance (Hệ thống & Phân quyền)
  */
-export class OperationsNavStrategy implements INavigationGroupStrategy {
-  readonly groupId = NavGroupId.OPERATIONS;
-  readonly title = NAV_GROUP_TITLES[NavGroupId.OPERATIONS];
+export class SystemNavStrategy implements INavigationGroupStrategy {
+  readonly groupId = NavGroupId.SYSTEM;
+  readonly title = NAV_GROUP_TITLES[NavGroupId.SYSTEM];
+
+  private readonly items: NavItemConfig[] = [
+    {
+      id: 'nav-users',
+      label: NAV_ITEM_LABELS.USERS,
+      icon: IconName.SHIELD,
+      page: NavigationPageKey.USERS,
+      route: APP_ROUTES.USERS,
+      groupId: this.groupId,
+      subtitle: 'Tài khoản, vai trò & bảo mật',
+    },
+    {
+      id: 'nav-settings',
+      label: NAV_ITEM_LABELS.SETTINGS,
+      icon: IconName.SETTINGS,
+      page: NavigationPageKey.SETTINGS,
+      route: APP_ROUTES.SETTINGS,
+      groupId: this.groupId,
+      subtitle: 'Danh mục taxonomy & tham số hệ thống',
+    },
+    {
+      id: 'nav-review',
+      label: NAV_ITEM_LABELS.REVIEW,
+      icon: IconName.CHECK,
+      page: NavigationPageKey.REVIEW,
+      route: APP_ROUTES.REVIEW,
+      groupId: this.groupId,
+      subtitle: 'Kiểm duyệt chất lượng nội dung',
+    },
+  ];
 
   getItems(): NavItemConfig[] {
-    return [
-      {
-        id: 'nav-review',
-        label: 'Duyệt bài học',
-        icon: IconName.CHECK,
-        page: NavigationPageKey.REVIEW,
-        route: APP_ROUTES.REVIEW,
-        groupId: this.groupId,
-        subtitle: 'Kiểm duyệt chất lượng',
-      },
-      {
-        id: 'nav-users',
-        label: 'Người dùng & Quyền',
-        icon: IconName.USERS,
-        page: NavigationPageKey.USERS,
-        route: APP_ROUTES.USERS,
-        groupId: this.groupId,
-        subtitle: 'Tài khoản & Phân quyền',
-      },
-      {
-        id: 'nav-taxonomies',
-        label: 'Danh mục dùng chung',
-        icon: IconName.TAG,
-        page: NavigationPageKey.TAXONOMIES,
-        route: APP_ROUTES.TAXONOMIES,
-        groupId: this.groupId,
-        subtitle: 'Loại di tích, hiện trạng, xếp hạng...',
-      },
-    ];
+    return this.items;
   }
 
   matchesPage(pageKey: string): boolean {
     return [
-      NavigationPageKey.REVIEW,
       NavigationPageKey.USERS,
+      NavigationPageKey.SETTINGS,
       NavigationPageKey.TAXONOMIES,
+      NavigationPageKey.REVIEW,
     ].includes(pageKey as NavigationPageKey);
   }
 
   getItemByPage(pageKey: string): NavItemConfig | undefined {
-    return this.getItems().find((item) => item.page === pageKey);
+    switch (pageKey) {
+      case NavigationPageKey.USERS:
+        return this.items[0];
+      case NavigationPageKey.SETTINGS:
+      case NavigationPageKey.TAXONOMIES:
+        return this.items[1];
+      case NavigationPageKey.REVIEW:
+        return this.items[2];
+      default:
+        return this.items[0];
+    }
   }
 }
 
@@ -279,9 +296,9 @@ export class NavigationFacade {
   private constructor() {
     this.strategies = [
       new DashboardNavStrategy(),
-      new CurriculumNavStrategy(),
-      new KnowledgeBaseNavStrategy(),
-      new OperationsNavStrategy(),
+      new LearningNavStrategy(),
+      new KnowledgeNavStrategy(),
+      new SystemNavStrategy(),
     ];
   }
 
@@ -293,7 +310,7 @@ export class NavigationFacade {
   }
 
   /**
-   * Get all navigation groups with their respective items (Clean 5 items total)
+   * Get all navigation groups with their respective items
    */
   public getNavGroups(): NavGroupConfig[] {
     return this.strategies.map((strategy) => ({
@@ -307,31 +324,40 @@ export class NavigationFacade {
    * Resolve which primary item on the sidebar should be highlighted active
    */
   public resolveActiveSidebarPage(pageKey: string): NavigationPageKey {
-    if (
-      [
-        NavigationPageKey.CURRICULUM,
-        NavigationPageKey.PERIODS,
-        NavigationPageKey.TOPICS,
-        NavigationPageKey.LESSONS,
-      ].includes(pageKey as NavigationPageKey)
-    ) {
-      return NavigationPageKey.CURRICULUM;
+    switch (pageKey) {
+      case NavigationPageKey.CMS:
+      case NavigationPageKey.DASHBOARD:
+        return NavigationPageKey.DASHBOARD;
+      case NavigationPageKey.ANALYTICS:
+        return NavigationPageKey.ANALYTICS;
+      case NavigationPageKey.CURRICULUM:
+      case NavigationPageKey.TOPICS:
+      case NavigationPageKey.LESSONS:
+        return NavigationPageKey.CURRICULUM;
+      case NavigationPageKey.QUESTIONS:
+        return NavigationPageKey.QUESTIONS;
+      case NavigationPageKey.QUIZZES:
+        return NavigationPageKey.QUIZZES;
+      case NavigationPageKey.MEDIA:
+        return NavigationPageKey.MEDIA;
+      case NavigationPageKey.EVENTS:
+        return NavigationPageKey.EVENTS;
+      case NavigationPageKey.ENTITIES:
+        return NavigationPageKey.ENTITIES;
+      case NavigationPageKey.PERIODS:
+        return NavigationPageKey.PERIODS;
+      case NavigationPageKey.LOCATIONS:
+        return NavigationPageKey.LOCATIONS;
+      case NavigationPageKey.USERS:
+        return NavigationPageKey.USERS;
+      case NavigationPageKey.SETTINGS:
+      case NavigationPageKey.TAXONOMIES:
+        return NavigationPageKey.SETTINGS;
+      case NavigationPageKey.REVIEW:
+        return NavigationPageKey.REVIEW;
+      default:
+        return NavigationPageKey.DASHBOARD;
     }
-    if (
-      [
-        NavigationPageKey.KNOWLEDGE,
-        NavigationPageKey.LOCATIONS,
-        NavigationPageKey.ENTITIES,
-        NavigationPageKey.EVENTS,
-        NavigationPageKey.TAGS,
-      ].includes(pageKey as NavigationPageKey)
-    ) {
-      return NavigationPageKey.KNOWLEDGE;
-    }
-    if (pageKey === NavigationPageKey.REVIEW) return NavigationPageKey.REVIEW;
-    if (pageKey === NavigationPageKey.USERS) return NavigationPageKey.USERS;
-    if (pageKey === NavigationPageKey.TAXONOMIES) return NavigationPageKey.TAXONOMIES;
-    return NavigationPageKey.DASHBOARD;
   }
 
   /**
@@ -349,44 +375,17 @@ export class NavigationFacade {
       strat.matchesPage(pageKey),
     );
 
-    const groupTitle = matchingStrategy
-      ? matchingStrategy.title
-      : 'HISGO CMS';
-
+    const groupTitle = matchingStrategy ? matchingStrategy.title : 'HISGO CMS';
     const item = matchingStrategy?.getItemByPage(pageKey);
     const meta = PAGE_META[pageKey as NavigationPageKey];
 
     const pageTitle = item?.label ?? meta?.title ?? 'Quản lý';
     const pageSubtitle = item?.subtitle ?? meta?.subtitle ?? '';
 
-    // Handle hierarchy breadcrumbs
-    let parentLabel: string | undefined;
-    let parentRoute: string | undefined;
-    if (
-      [
-        NavigationPageKey.PERIODS,
-        NavigationPageKey.TOPICS,
-        NavigationPageKey.LESSONS,
-      ].includes(pageKey as NavigationPageKey)
-    ) {
-      parentLabel = LABEL_CURRICULUM;
-      parentRoute = APP_ROUTES.CURRICULUM;
-    } else if (
-      [
-        NavigationPageKey.LOCATIONS,
-        NavigationPageKey.ENTITIES,
-        NavigationPageKey.EVENTS,
-        NavigationPageKey.TAGS,
-      ].includes(pageKey as NavigationPageKey)
-    ) {
-      parentLabel = LABEL_KNOWLEDGE;
-      parentRoute = APP_ROUTES.KNOWLEDGE;
-    }
-
     return {
       groupTitle,
-      parentLabel,
-      parentRoute,
+      parentLabel: undefined,
+      parentRoute: undefined,
       pageTitle,
       pageSubtitle,
       hierarchyTag: item?.hierarchyTag,

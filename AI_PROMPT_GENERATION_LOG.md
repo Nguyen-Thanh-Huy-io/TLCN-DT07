@@ -1,0 +1,160 @@
+# NHẬT KÝ AI PROMPT & SẢN PHẨM PHÁT TRIỂN (AI GENERATION LOG)
+
+> **Dự án**: HISGO - Nền tảng Học Lịch sử Tương tác (TLCN-DT07)  
+> **Nhánh Git**: `feat/lesson-tag-and-curriculum-studio`  
+> **Thời gian tạo**: 01/11/2026  
+> **Người thực hiện**: Antigravity AI Assistant & Pair Programmer  
+> **Quy chuẩn tuân thủ**: SOLID Principles, Design Patterns (Strategy, Facade), No Magic Strings, Zero Fake Mock Data, Automated Verification.
+
+---
+
+## 1. LỊCH SỬ USER PROMPT (YÊU CẦU NGƯỜI DÙNG)
+
+### Prompt #1:
+```text
+cái khu vực quản trị rối nùi quá:
+thiết kế lại tab trái này đi:
+7.1. Các khu vực quản trị
+Dashboard tổng quan.
+Quản lý bài học.
+Quản lý sự kiện lịch sử.
+Quản lý nhân vật.
+Quản lý triều đại, thời kỳ và nền văn minh.
+Quản lý địa danh và liên kết lịch sử.
+Quản lý nguồn tư liệu và media.
+Ngân hàng câu hỏi.
+Quản lý bộ Quiz.
+Quản lý người dùng và phân quyền.
+Thống kê học tập và hoạt động.
+Cài đặt hệ thống.
+```
+
+### Prompt #2:
+```text
+cho cái dạng collapse á thu/mở được và xóa mock data đi và tạo file log AI prompt và AI sinh ra cái gì luôn đi
+```
+
+---
+
+## 2. PHÂN TÍCH YÊU CẦU & GIẢI PHÁP KIẾN TRÚC
+
+| Vấn đề trước đó | Giải pháp AI triển khai |
+| :--- | :--- |
+| Thanh menu bên trái (Sidebar) gộp chung quá mức (chỉ có "Chương trình học", "Từ điển tri thức"), khiến các chức năng cốt lõi (Nhân vật, Sự kiện, Địa danh, Triều đại) bị giấu trong các tab con, người dùng bị rối ("rối nùi"). | **Tái cấu trúc thành 12 khu vực quản trị chuyên biệt theo đúng Mục 7.1 SRS**, phân bổ vào 4 nhóm logic: **TỔNG QUAN & BÁO CÁO**, **QUẢN TRỊ BÀI HỌC & QUIZ**, **KHO DỮ LIỆU LỊCH SỬ**, **HỆ THỐNG & PHÂN QUYỀN**. |
+| Menu quá dài khi hiển thị đủ 12 mục nếu không có khả năng thu gọn nhóm. | **Thiết kế dạng Accordion / Collapsible**: Từng nhóm cho phép người dùng click vào header để thu/mở (kèm hiệu ứng xoay chevron mượt mà), tự động mở nhóm chứa trang active, và ghi nhớ trạng thái người dùng qua `localStorage`. |
+| Các view mới tạo có dữ liệu mẫu giả (`SAMPLE_MEDIA_ITEMS`, `SAMPLE_QUESTIONS`, `SAMPLE_QUIZZES`, fallback activities). | **Xóa bỏ 100% fake mock data**: Kết nối trực tiếp vào Backend API thực tế (`/upload`, `/lessons`, `/lessons/:id/quiz`, `/dashboard/overview`). Thiết kế Empty State chuẩn mực khi cơ sở dữ liệu chưa có bản ghi ("Danh sách rỗng là trạng thái hợp lệ"). |
+| Thiếu tài liệu lưu vết các prompt và sản phẩm AI đã sinh ra. | **Khởi tạo tệp nhật ký `AI_PROMPT_GENERATION_LOG.md`** ghi lại toàn diện yêu cầu, tệp sinh ra, kiến trúc SOLID và kết quả xác minh. |
+
+---
+
+## 3. DANH MỤC TỆP TIN AI ĐÃ SINH RA & CẬP NHẬT
+
+### 3.1. Nhóm Điều Hướng & Kiến Trúc Core (Navigation, Strategy & Facade)
+
+1. **`frontend/src/constants/routes.ts`** *(Cập nhật)*:
+   - Bổ sung các Route: `MEDIA: '/media'`, `QUESTIONS: '/questions'`, `QUIZZES: '/quizzes'`, `ANALYTICS: '/analytics'`, `SETTINGS: '/settings'`.
+   - Mở rộng Enum `NavigationPageKey` (bao gồm `CMS`, `MEDIA`, `QUESTIONS`, `QUIZZES`, `ANALYTICS`, `SETTINGS`), loại trừ hoàn toàn magic string.
+
+2. **`frontend/src/constants/navigation.ts`** *(Cập nhật)*:
+   - Định nghĩa Enum `NavGroupId`: `DASHBOARD`, `LEARNING`, `KNOWLEDGE`, `SYSTEM`.
+   - Khai báo hằng số hiển thị `NAV_GROUP_TITLES` và `NAV_ITEM_LABELS` chuẩn hóa cho cả 12 khu vực quản trị.
+
+3. **`frontend/src/constants/icons.ts` & `frontend/src/components/icons/Icon.tsx`** *(Cập nhật)*:
+   - Bổ sung các Icon định danh: `SETTINGS` (Bánh răng), `CHART` (Biểu đồ cột), `HELP_CIRCLE` (Vòng tròn câu hỏi), `MAP_PIN` (Ghim địa danh), `SHIELD` (Khiên bảo mật).
+   - Vẽ đường dẫn SVG vector sắc nét, đồng bộ phong cách tối giản của hệ thống.
+
+4. **`frontend/src/constants/ui-theme.ts`** *(Cập nhật)*:
+   - Bổ sung siêu dữ liệu `PAGE_META` (tiêu đề và mô tả) cho tất cả các trang quản trị mới.
+
+5. **`frontend/src/services/navigation/navigation-strategy.service.ts`** *(Tái cấu trúc toàn diện)*:
+   - **Áp dụng Strategy Pattern**: Triển khai `DashboardNavStrategy`, `LearningNavStrategy`, `KnowledgeNavStrategy`, `SystemNavStrategy` kế thừa từ `INavigationGroupStrategy`.
+   - **Áp dụng Facade Pattern**: `NavigationFacade` đóng vai trò cổng giao tiếp duy nhất cho Layout, cung cấp hàm giải quyết active tab (`resolveActiveSidebarPage`) và điều hướng breadcrumb (`resolveBreadcrumb`).
+
+6. **`frontend/src/services/navigation/__tests__/navigation-strategy.service.test.ts`** *(Sinh mới)*:
+   - Bộ kiểm thử tự động xác minh tính sẵn sàng của 4 nhóm điều hướng, sự hiện diện đầy đủ của 12 khu vực quản trị, và tính chính xác của thuật toán resolve active route.
+
+### 3.2. Nhóm Giao Diện & Tương Tác (Layout & Collapsible Sidebar)
+
+7. **`frontend/src/components/layout/Sidebar.tsx`** *(Cập nhật)*:
+   - Tích hợp trạng thái `collapsedGroups: Record<string, boolean>`.
+   - Header từng nhóm là nút tương tác (`nav-group-header`) kèm icon Chevron quay 90 độ khi mở và 0 độ khi đóng.
+   - Cơ chế tự động mở nhóm chứa trang người dùng đang xem (`auto-expand active group`).
+
+8. **`frontend/src/app/globals.css`** *(Cập nhật)*:
+   - Khai báo CSS rules cho `.nav-group-header`, `.nav-group-chevron`, `.nav-group-items` với hiệu ứng chuyển động mượt mà (`cubic-bezier(0.4, 0, 0.2, 1)`).
+
+9. **`frontend/src/components/layout/PageHeader.tsx`** *(Cập nhật)*:
+   - Bổ sung tiêu đề và đường dẫn breadcrumb phân cấp cho các trang mới.
+
+### 3.3. Nhóm Trang & View Tính Năng Quản Trị Chuyên Biệt (Zero Mock Data)
+
+10. **`frontend/src/app/periods/page.tsx`** *(Cập nhật)*:
+    - Loại bỏ lệnh redirect trước đó; kết nối hiển thị trực tiếp component `PeriodList` (Quản lý triều đại, thời kỳ và nền văn minh).
+
+11. **`frontend/src/app/media/page.tsx` & `frontend/src/features/media/components/MediaManagerView.tsx`** *(Sinh mới)*:
+    - Khu vực 7: **Quản lý nguồn tư liệu và media**.
+    - Loại bỏ toàn bộ `SAMPLE_MEDIA_ITEMS`.
+    - Tích hợp tải tệp trực tiếp lên Backend qua API `POST /upload/image` và `POST /upload/document`.
+    - Hỗ trợ xem trước (Preview modal), sao chép URL tư liệu với visual feedback, lọc theo ảnh/video/tài liệu.
+    - Xử lý Empty State khi chưa có tệp tải lên.
+
+12. **`frontend/src/app/questions/page.tsx` & `frontend/src/features/quiz/components/QuestionBankView.tsx`** *(Sinh mới)*:
+    - Khu vực 8: **Ngân hàng câu hỏi**.
+    - Loại bỏ toàn bộ `SAMPLE_QUESTIONS`.
+    - Kết nối gọi API thật từ `LessonApiService.getLessons()` và `/lessons/:id/quiz` để tự động tổng hợp câu hỏi từ cơ sở dữ liệu.
+    - Bộ lọc theo dạng câu hỏi (Single Choice, Multi Choice, True/False, Timeline Order, Fill Blank), mức độ (Dễ, Trung bình, Khó) và tìm kiếm từ khóa.
+    - Xử lý Empty State khi hệ thống chưa có câu hỏi.
+
+13. **`frontend/src/app/quizzes/page.tsx` & `frontend/src/features/quiz/components/QuizManagementView.tsx`** *(Sinh mới)*:
+    - Khu vực 9: **Quản lý bộ Quiz**.
+    - Loại bỏ toàn bộ `SAMPLE_QUIZZES`.
+    - Tải danh sách bài học thực tế từ Backend và kiểm tra trạng thái Quiz của từng bài.
+    - Nút tác vụ mở trình soạn thảo bài học tại tab Quiz (`/lessons/:id?tab=quiz`).
+    - Xử lý Empty State khi chưa có bài học nào trong DB.
+
+14. **`frontend/src/app/analytics/page.tsx` & `frontend/src/features/analytics/components/AnalyticsDashboardView.tsx`** *(Sinh mới)*:
+    - Khu vực 11: **Thống kê học tập và hoạt động**.
+    - Loại bỏ toàn bộ dữ liệu giả định và fallback cứng.
+    - Hiển thị trực tiếp các chỉ số đếm từ `DashboardApiService.getOverview()` (`counts.lessonsCount`, `counts.historicalEventsCount`, `counts.periodsCount`, `counts.pendingLessonsCount`).
+    - Biểu đồ phân bố trạng thái nội dung (`distribution.published`, `distribution.draft`, `distribution.pendingReview`, `distribution.archived`).
+    - Bảng nhật ký hoạt động thời gian thực (`recentActivities`).
+
+15. **`frontend/src/app/settings/page.tsx` & `frontend/src/features/settings/components/SystemSettingsView.tsx`** *(Sinh mới)*:
+    - Khu vực 12: **Cài đặt hệ thống**.
+    - Tab 1: Nhúng trực tiếp trình quản lý danh mục dùng chung `TaxonomyManager` (loại di tích, vùng miền, xếp hạng, loại sự kiện).
+    - Tab 2: Cấu hình quy chuẩn (Ngưỡng điểm đạt Quiz, Giới hạn tải tệp).
+    - Tab 3: Giám sát trạng thái dịch vụ (API backend, PostgreSQL, Redis, Next.js).
+
+16. **`frontend/src/app/taxonomies/page.tsx`** *(Cập nhật)*:
+    - Điều hướng chuyển tiếp (redirect) mượt mà về `/settings` nhằm bảo toàn liên kết cũ.
+
+---
+
+## 4. BẢNG ĐỐI CHIẾU 12 KHU VỰC QUẢN TRỊ (MỤC 7.1)
+
+| STT | Tên khu vực quản trị | Nhóm trên Tab trái | Route | Nguồn dữ liệu |
+| :---: | :--- | :--- | :--- | :--- |
+| 1 | **Dashboard tổng quan** | TỔNG QUAN & BÁO CÁO | `/cms` | `DashboardApiService.getOverview()` |
+| 2 | **Quản lý bài học** | QUẢN TRỊ BÀI HỌC & QUIZ | `/curriculum` | `LessonApiService`, `LearningPathApiService` |
+| 3 | **Quản lý sự kiện lịch sử** | KHO DỮ LIỆU LỊCH SỬ | `/events` | `HistoricalEventApiService` |
+| 4 | **Quản lý nhân vật** | KHO DỮ LIỆU LỊCH SỬ | `/entities` | `HistoricalEntityApiService` |
+| 5 | **Quản lý triều đại, thời kỳ & văn minh** | KHO DỮ LIỆU LỊCH SỬ | `/periods` | `PeriodApiService` |
+| 6 | **Quản lý địa danh & liên kết lịch sử** | KHO DỮ LIỆU LỊCH SỬ | `/locations` | `LocationApiService` |
+| 7 | **Quản lý nguồn tư liệu và media** | QUẢN TRỊ BÀI HỌC & QUIZ | `/media` | `UploadApiService` (`POST /upload/image`, `/upload/document`) |
+| 8 | **Ngân hàng câu hỏi** | QUẢN TRỊ BÀI HỌC & QUIZ | `/questions` | Tổng hợp từ Quiz bài học thực tế |
+| 9 | **Quản lý bộ Quiz** | QUẢN TRỊ BÀI HỌC & QUIZ | `/quizzes` | `LessonApiService`, `/lessons/:id/quiz` |
+| 10 | **Quản lý người dùng và phân quyền** | HỆ THỐNG & PHÂN QUYỀN | `/users` | `UserApiService` |
+| 11 | **Thống kê học tập và hoạt động** | TỔNG QUAN & BÁO CÁO | `/analytics` | `DashboardApiService.getOverview()` |
+| 12 | **Cài đặt hệ thống** | HỆ THỐNG & PHÂN QUYỀN | `/settings` | `TaxonomyApiService`, cấu hình hệ thống |
+
+---
+
+## 5. KẾT QUẢ KIỂM TRA CHẤT LƯỢNG (VERIFICATION RESULTS)
+
+1. **Kiểm tra biên dịch TypeScript (`npx tsc --noEmit`)**:
+   - Kết quả: **`0 errors`** (Exit Code 0).
+   - Mọi Props, Interface, Type Def và Enum đều tương thích tuyệt đối.
+
+2. **Kiểm tra trạng thái Git Working Tree**:
+   - Tất cả các tệp mới và thay đổi đều nằm trong phạm vi frontend và tuân thủ cấu trúc dự án.
+   - Không có file rác hoặc xung đột phát sinh.

@@ -45,6 +45,11 @@ export const APP_ROUTES = {
     LIST: '/tags',
     CREATE: '/tags/create',
   },
+  MEDIA: '/media',
+  QUESTIONS: '/questions',
+  QUIZZES: '/quizzes',
+  ANALYTICS: '/analytics',
+  SETTINGS: '/settings',
   REVIEW: '/review',
   USERS: '/users',
   TAXONOMIES: '/taxonomies',
@@ -58,6 +63,7 @@ export const SAMPLE_REMOTE_LINKS = {
 } as const;
 
 export enum NavigationPageKey {
+  CMS = 'cms',
   DASHBOARD = 'dashboard',
   CURRICULUM = 'curriculum',
   KNOWLEDGE = 'knowledge',
@@ -68,6 +74,11 @@ export enum NavigationPageKey {
   LOCATIONS = 'locations',
   ENTITIES = 'entities',
   TAGS = 'tags',
+  MEDIA = 'media',
+  QUESTIONS = 'questions',
+  QUIZZES = 'quizzes',
+  ANALYTICS = 'analytics',
+  SETTINGS = 'settings',
   REVIEW = 'review',
   USERS = 'users',
   TAXONOMIES = 'taxonomies',

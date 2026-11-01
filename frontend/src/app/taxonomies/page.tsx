@@ -1,5 +1,6 @@
-import { TaxonomyManager } from "@/features/taxonomy/TaxonomyManager";
+import { redirect } from 'next/navigation';
+import { APP_ROUTES } from '@/constants/routes';
 
 export default function TaxonomiesPage() {
-  return <TaxonomyManager />;
+  redirect(APP_ROUTES.SETTINGS);
 }

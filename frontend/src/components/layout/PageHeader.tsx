@@ -145,6 +145,36 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
         subtitle: 'Loại di tích, vùng, loại sự kiện, vai trò, quan hệ... dùng cho bộ lọc và hiển thị toàn hệ thống',
       };
 
+    case APP_ROUTES.MEDIA:
+      return {
+        title: 'Quản lý nguồn tư liệu và media',
+        subtitle: 'Kho lưu trữ hình ảnh, video và tài liệu minh họa bài giảng lịch sử',
+      };
+
+    case APP_ROUTES.QUESTIONS:
+      return {
+        title: 'Ngân hàng câu hỏi',
+        subtitle: 'Kho câu hỏi đánh giá theo bài học, dạng trắc nghiệm và độ khó',
+      };
+
+    case APP_ROUTES.QUIZZES:
+      return {
+        title: 'Quản lý bộ Quiz',
+        subtitle: 'Quản lý bộ đề ôn tập, thời lượng và tiêu chuẩn đạt của bài học',
+      };
+
+    case APP_ROUTES.ANALYTICS:
+      return {
+        title: 'Thống kê học tập và hoạt động',
+        subtitle: 'Báo cáo chỉ số người học, tỷ lệ hoàn thành và nhật ký vận hành',
+      };
+
+    case APP_ROUTES.SETTINGS:
+      return {
+        title: 'Cài đặt hệ thống',
+        subtitle: 'Quản lý danh mục taxonomy và các tham số cấu hình chung',
+      };
+
     default:
       return (
         resolveDetailHeader(cleanPath) ?? {

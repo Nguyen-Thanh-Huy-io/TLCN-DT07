@@ -1,5 +1,5 @@
 'use client';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { Logo } from '@/components/common/Logo';
 import { Avatar } from '@/components/common/Avatar';
@@ -42,6 +42,29 @@ export function Sidebar({
   );
   const displayName = user?.username || user?.email || '';
 
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+
+  // Tự động mở rộng nhóm chứa mục đang active khi chuyển trang
+  useEffect(() => {
+    const activeKey = navigationFacade.resolveActiveSidebarPage(page);
+    const activeGroup = navGroups.find((g) =>
+      g.items.some((item) => item.page === activeKey),
+    );
+    if (activeGroup && collapsedGroups[activeGroup.id]) {
+      setCollapsedGroups((prev) => ({
+        ...prev,
+        [activeGroup.id]: false,
+      }));
+    }
+  }, [page, navGroups]);
+
+  const toggleGroup = (groupId: string) => {
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
+    }));
+  };
+
   return (
     <>
       <div
@@ -82,45 +105,72 @@ export function Sidebar({
         </div>
 
         <nav className="custom-scrollbar">
-          {navGroups.map((group) => (
-            <div className="nav-group" key={group.id}>
-              {!collapsed ? (
-                <p>{group.label}</p>
-              ) : (
-                <div className="nav-group-divider" title={group.label} />
-              )}
-              {group.items.map((item: NavItemConfig) => {
-                const activeKey =
-                  navigationFacade.resolveActiveSidebarPage(page);
-                const isActive = activeKey === item.page;
-                return (
+          {navGroups.map((group) => {
+            const isGroupCollapsed = Boolean(collapsedGroups[group.id]);
+            return (
+              <div className="nav-group" key={group.id}>
+                {!collapsed ? (
                   <button
-                    key={item.id}
                     type="button"
-                    className={`nav-item ${isActive ? 'active' : ''} ${
-                      collapsed ? 'nav-item-collapsed' : ''
-                    }`}
-                    onClick={() => {
-                      setPage(item.page);
-                      close();
-                    }}
-                    title={`${item.label} ${
-                      item.subtitle ? `(${item.subtitle})` : ''
-                    }`}
+                    className="nav-group-header"
+                    onClick={() => toggleGroup(group.id)}
+                    aria-expanded={!isGroupCollapsed}
+                    title={
+                      isGroupCollapsed
+                        ? `Mở rộng nhóm ${group.label}`
+                        : `Thu gọn nhóm ${group.label}`
+                    }
                   >
-                    <Icon name={item.icon} size={16} />
-                    {!collapsed && <span>{item.label}</span>}
-                    {!collapsed && item.badgeCount ? (
-                      <em>{item.badgeCount}</em>
-                    ) : null}
-                    {collapsed && item.badgeCount ? (
-                      <i className="nav-collapsed-badge-dot" />
-                    ) : null}
+                    <p>{group.label}</p>
+                    <span
+                      className={`nav-group-chevron ${
+                        isGroupCollapsed ? 'collapsed' : ''
+                      }`}
+                    >
+                      <Icon name={IconName.CHEVRON} size={11} />
+                    </span>
                   </button>
-                );
-              })}
-            </div>
-          ))}
+                ) : (
+                  <div className="nav-group-divider" title={group.label} />
+                )}
+
+                {(!isGroupCollapsed || collapsed) && (
+                  <div className="nav-group-items">
+                    {group.items.map((item: NavItemConfig) => {
+                      const activeKey =
+                        navigationFacade.resolveActiveSidebarPage(page);
+                      const isActive = activeKey === item.page;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={`nav-item ${isActive ? 'active' : ''} ${
+                            collapsed ? 'nav-item-collapsed' : ''
+                          }`}
+                          onClick={() => {
+                            setPage(item.page);
+                            close();
+                          }}
+                          title={`${item.label} ${
+                            item.subtitle ? `(${item.subtitle})` : ''
+                          }`}
+                        >
+                          <Icon name={item.icon} size={16} />
+                          {!collapsed && <span>{item.label}</span>}
+                          {!collapsed && item.badgeCount ? (
+                            <em>{item.badgeCount}</em>
+                          ) : null}
+                          {collapsed && item.badgeCount ? (
+                            <i className="nav-collapsed-badge-dot" />
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         <div

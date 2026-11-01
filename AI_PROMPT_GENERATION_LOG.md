@@ -402,3 +402,34 @@ Quy trình Feature-by-Feature:
 - **Backend Build (`npm run build`)**: Biên dịch thành công không có cảnh báo/lỗi.
 - **Backend Unit Tests (`jest quiz-question.validator.spec.ts`)**: `13/13 tests PASS`.
 - **Frontend TypeScript (`npx tsc --noEmit`)**: `0 errors`.
+
+
+---
+
+## ĐỢT 7: TÍCH HỢP BỘ CHỌN CÂY PHÂN CẤP DANH MỤC (CATEGORY TREE PICKER) THAY THẾ DROPDOWN
+
+### 1. Yêu cầu của người dùng (User Request):
+> "đổi 2 cái dropdown thành giao diện như hình đi"  
+> Kèm hình ảnh (`media_1793554102331_2b1cf50b.png`) minh họa giao diện **Select a category** dạng cây thư mục phân cấp với các chevron gập mở (`∨`, `>`), đường chỉ thị xanh lá cây (`border-l-4 border-emerald-600`) trên item được chọn, nút đóng (`✕`) và thanh cuộn.
+
+### 2. Thiết kế Kiến trúc & Giải pháp (SOLID & Composite Tree Pattern):
+1. **Component Mới: `CategoryTreePicker.tsx`**:
+   - Áp dụng cấu trúc phân cấp cây đa tầng (Composite Pattern) gộp chung **Chủ đề (`Topic`)** và **Bài học (`Lesson`)** thành một cây thống nhất:
+     - Gốc: Chủ đề tổng quát (*Kháng chiến chống Mỹ, cứu nước (1954 - 1975)*).
+     - Cấp 1 & 2: Các giai đoạn / chuyên đề lịch sử (*Giai đoạn 1954 - 1960*, *Giai đoạn 1961 - 1965*, *Giai đoạn 1969 - 1973*...).
+     - Cấp lá: Các bài học thực tế (*Trận "Điện Biên Phủ trên không"*, *81 ngày đêm Thành cổ Quảng Trị*, *Chiến dịch Tây Nguyên*...).
+   - **Giao diện chuẩn xác 1:1 theo mẫu thiết kế**:
+     - Header: Tiêu đề `Select a category` kèm nút xóa lựa chọn / đóng (`✕`).
+     - Thanh chỉ thị xanh lá cây (`border-l-[3px] border-emerald-600 bg-emerald-50/80 text-emerald-950 font-semibold`) khi một node được kích hoạt.
+     - Chevrons gập mở linh hoạt (`ChevronDown` / `ChevronRight`) cho từng cấp độ.
+     - Thanh cuộn dọc gọn gàng (`max-h-60 overflow-y-auto`).
+     - Footer hiển thị trạng thái và nhãn item đang được gán (`[BÀI HỌC]` hoặc `[CHỦ ĐỀ]`) kèm nút `Hủy chọn`.
+2. **Tích hợp vào `QuestionBankModal.tsx`**:
+   - Thay thế hoàn toàn 2 dropdown native `<select>` thô sơ bằng `CategoryTreePicker`.
+   - Khi chọn một Bài học (`Lesson`): Tự động gán cả `lessonId` và liên kết ngược lên `topicId` cha.
+   - Khi chọn một Chủ đề (`Topic`): Gán `topicId` và xóa `lessonId` (dành cho câu hỏi tổng hợp).
+   - Khi nhấn `✕` hoặc `Hủy chọn`: Đặt về `Chung` (câu hỏi tự do trong ngân hàng).
+
+### 3. Kết quả kiểm thử tự động (Verification):
+- **Frontend TypeScript (`npx tsc --noEmit`)**: `0 errors`.
+- **Backend Unit Tests (`jest quiz-question.validator.spec.ts`)**: `13/13 tests PASS`.

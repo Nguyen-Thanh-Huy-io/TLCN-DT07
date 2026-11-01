@@ -41,6 +41,7 @@ import { LessonApiService } from '@/services/entities/lesson.service';
 import { LessonItem } from '@/types/models/lesson.type';
 import { TopicApiService } from '@/services/entities/topic.service';
 import { TopicItem } from '@/types/models/topic.type';
+import { CategoryTreePicker } from './CategoryTreePicker';
 
 interface QuestionBankModalProps {
   isOpen: boolean;
@@ -438,41 +439,24 @@ export function QuestionBankModal({
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Phân loại / Chủ đề <span className="text-slate-400 font-normal">(Topic)</span>
-                </label>
-                <select
-                  value={topicId}
-                  onChange={(e) => setTopicId(e.target.value)}
-                  className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700"
-                >
-                  <option value="">Chung (Không chọn chủ đề cụ thể)</option>
-                  {topicsList.map((tp) => (
-                    <option key={tp.id} value={tp.id}>
-                      {tp.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Liên kết bài học <span className="text-slate-400 font-normal">(Lesson)</span>
-                </label>
-                <select
-                  value={lessonId}
-                  onChange={(e) => setLessonId(e.target.value)}
-                  className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-700"
-                >
-                  <option value="">Chung (Chưa liên kết bài học)</option>
-                  {lessonsList.map((ls) => (
-                    <option key={ls.id} value={ls.id}>
-                      {ls.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <CategoryTreePicker
+                topics={topicsList}
+                lessons={lessonsList}
+                selectedTopicId={topicId}
+                selectedLessonId={lessonId}
+                onSelectTopic={(id) => {
+                  setTopicId(id);
+                  setLessonId('');
+                }}
+                onSelectLesson={(id, parentTopicId) => {
+                  setLessonId(id);
+                  if (parentTopicId) setTopicId(parentTopicId);
+                }}
+                onClear={() => {
+                  setTopicId('');
+                  setLessonId('');
+                }}
+              />
             </div>
           </div>
 

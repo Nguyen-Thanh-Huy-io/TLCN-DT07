@@ -26,6 +26,7 @@ import { HistoricalEntityModule } from './historical-entity/historical-entity.mo
 import { PublicContentModule } from './public-content/public-content.module';
 import { QuizModule } from './quiz/quiz.module';
 import { LearnerModule } from './learner/learner.module';
+import { BlogModule } from './blog/blog.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { LearnerModule } from './learner/learner.module';
     PublicContentModule,
     QuizModule,
     LearnerModule,
+    BlogModule,
   ],
   controllers: [AppController],
   providers: [AppService],

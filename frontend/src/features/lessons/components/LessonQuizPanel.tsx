@@ -1,10 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/common/Badge';
+import { Icon } from '@/components/icons/Icon';
+import { IconName } from '@/constants/icons';
 import { QuizSaveState, UseQuizEditorReturn } from '../facades/useQuizEditor';
 import { QuizQuestionCard } from './quiz/QuizQuestionCard';
 import { AddQuestionMenu } from './quiz/AddQuestionMenu';
+import { QuestionBankPickerModal } from '@/features/quiz/components/QuestionBankPickerModal';
 
 interface LessonQuizPanelProps {
   lessonId: string | null;
@@ -16,6 +19,8 @@ interface LessonQuizPanelProps {
  * Nhận `quiz` từ LessonEditor (dùng chung 1 instance với phần hiển thị ở tab Xem trước)
  * thay vì tự gọi `useQuizEditor` riêng — tránh gọi API tải đề 2 lần không cần thiết. */
 export function LessonQuizPanel({ lessonId, quiz }: LessonQuizPanelProps) {
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+
   if (!lessonId) {
     return (
       <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs">
@@ -89,7 +94,26 @@ export function LessonQuizPanel({ lessonId, quiz }: LessonQuizPanelProps) {
         </div>
       )}
 
-      <AddQuestionMenu onPick={quiz.addQuestion} />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setIsPickerOpen(true)}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg border border-blue-200 bg-blue-50/70 hover:bg-blue-100/70 text-blue-700 text-xs font-semibold transition cursor-pointer"
+        >
+          <Icon name={IconName.BOOK} size={13} />
+          <span>Chọn từ Ngân hàng</span>
+        </button>
+        <div className="w-32 shrink-0">
+          <AddQuestionMenu onPick={quiz.addQuestion} />
+        </div>
+      </div>
+
+      <QuestionBankPickerModal
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onPick={quiz.addQuestions}
+        alreadySelectedIds={quiz.questions.map((q) => q.id)}
+      />
 
       <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
         <button

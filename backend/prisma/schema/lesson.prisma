@@ -34,6 +34,7 @@ model Lesson {
 
   // Đề ôn tập cuối bài (1 bài học có tối đa 1 đề) — xem model Quiz trong quiz.prisma
   quiz Quiz?
+  questions Question[]
 
   displayOrder Int @default(0) @map("display_order")
 

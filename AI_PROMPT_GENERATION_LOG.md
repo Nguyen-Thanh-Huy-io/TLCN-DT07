@@ -218,3 +218,42 @@ cho cái dạng collapse á thu/mở được và xóa mock data đi và tạo f
 - **Frontend TypeScript (`tsc --noEmit`)**:
   - `0 errors` (Exit Code 0).
 
+---
+
+## ĐỢT 2: CHUẨN HÓA KIẾN TRÚC "NGÂN HÀNG CÂU HỎI ➜ CHỌN VÀO ĐỀ QUIZ BÀI HỌC"
+
+### 1. Phản hồi của người dùng (User Feedback):
+> "vcl làm trong Ngân hàng câu hỏi còn Còn Quản lý bộ Quiz (Quiz Set) là nơi tập hợp các câu hỏi đó thành một bài Quiz hoàn chỉnh để người dùng tham gia.
+> Đề ôn tập thì chọn từ ngân hàng câu hỏi á"
+
+### 2. Thiết kế Kiến trúc mới (Centralized Question Bank Architecture):
+1. **Ngân hàng câu hỏi (`/questions`)**:
+   - Kho lưu trữ tập trung của mọi câu hỏi trong hệ thống.
+   - Hỗ trợ tạo mới câu hỏi (khởi đầu với Loại 1: Trắc nghiệm 1 đáp án `SINGLE_CHOICE`), chỉnh sửa, xóa và lọc theo Loại / Độ khó / Từ khóa.
+   - Bảng cơ sở dữ liệu `questions` (`Question` model trong PostgreSQL) lưu độc lập, có thể tái sử dụng cho nhiều bài học và bộ quiz.
+2. **Chọn câu hỏi từ Ngân hàng vào Đề ôn tập bài học (`LessonQuizPanel`)**:
+   - Thêm nút hành động: **"Chọn từ Ngân hàng"** (Select from Question Bank).
+   - Mở modal `QuestionBankPickerModal`: cho phép lọc, tìm kiếm và tích chọn các câu hỏi đã có trong Ngân hàng để chèn ngay vào đề ôn tập bài học.
+   - Vẫn giữ nút "Thêm câu hỏi" để tạo nhanh tại chỗ nếu muốn.
+3. **Quản lý bộ Quiz (`/quizzes`)**:
+   - Tập hợp các câu hỏi từ ngân hàng câu hỏi thành một bài Quiz hoàn chỉnh để người dùng tham gia.
+
+### 3. Các tệp triển khai mới và nâng cấp:
+1. **`backend/prisma/schema/quiz.prisma` & `lesson.prisma`**:
+   - Bổ sung model `Question` (bảng `questions`), quan hệ `Lesson.questions`.
+   - Chạy `prisma db push` đồng bộ bảng cơ sở dữ liệu thành công.
+2. **`backend/src/quiz/question.service.ts` & `question.controller.ts`**:
+   - Xây dựng API CRUD đầy đủ cho Ngân hàng câu hỏi: `GET /questions`, `POST /questions`, `GET /questions/:id`, `PUT /questions/:id`, `DELETE /questions/:id`.
+   - Tự động nạp (backfill) 10 câu hỏi lịch sử ban đầu từ các bài học vào ngân hàng câu hỏi.
+3. **`frontend/src/services/entities/question.service.ts`** *(Sinh mới)*:
+   - Dịch vụ gọi API `QuestionApiService` kết nối các endpoint ngân hàng câu hỏi.
+4. **`frontend/src/features/quiz/components/QuestionBankModal.tsx`** *(Sinh mới)*:
+   - Modal tạo mới và chỉnh sửa câu hỏi trong Ngân hàng câu hỏi (hỗ trợ nhập prompt, chọn dạng câu hỏi, radio chọn đáp án đúng cho Trắc nghiệm 1 đáp án, độ khó, điểm số, giải thích).
+5. **`frontend/src/features/quiz/components/QuestionBankPickerModal.tsx`** *(Sinh mới)*:
+   - Modal chọn câu hỏi từ Ngân hàng để đưa vào đề ôn tập bài học.
+6. **`frontend/src/features/quiz/components/QuestionBankView.tsx`** *(Cập nhật toàn diện)*:
+   - Nút "+ Thêm câu hỏi vào ngân hàng", danh sách thẻ câu hỏi thực tế, nút Sửa/Xóa và bộ lọc theo loại/độ khó.
+7. **`frontend/src/features/lessons/components/LessonQuizPanel.tsx` & `useQuizEditor.ts`**:
+   - Thêm nút "Chọn từ Ngân hàng", phương thức `addQuestions(picked)` chèn danh sách câu hỏi đã chọn vào đề.
+
+

@@ -23,6 +23,7 @@ export interface UseQuizEditorReturn {
   questions: QuizQuestion[];
   hasQuiz: boolean;
   addQuestion: (type: QuizQuestionType) => void;
+  addQuestions: (newQuestions: QuizQuestion[]) => void;
   updateQuestion: (id: string, updates: Partial<QuizQuestion>) => void;
   removeQuestion: (id: string) => void;
   moveQuestion: (id: string, direction: MoveDirection | 'UP' | 'DOWN') => void;
@@ -76,6 +77,14 @@ export function useQuizEditor(lessonId: string | null | undefined): UseQuizEdito
 
   const addQuestion = useCallback((type: QuizQuestionType) => {
     setQuestions((prev) => [...prev, createDefaultQuestion(type)]);
+  }, []);
+
+  const addQuestions = useCallback((newQuestions: QuizQuestion[]) => {
+    setQuestions((prev) => {
+      const existingIds = new Set(prev.map((q) => q.id));
+      const toAdd = newQuestions.filter((q) => !existingIds.has(q.id));
+      return [...prev, ...toAdd];
+    });
   }, []);
 
   const updateQuestion = useCallback((id: string, updates: Partial<QuizQuestion>) => {
@@ -151,6 +160,7 @@ export function useQuizEditor(lessonId: string | null | undefined): UseQuizEdito
     questions,
     hasQuiz,
     addQuestion,
+    addQuestions,
     updateQuestion,
     removeQuestion,
     moveQuestion,

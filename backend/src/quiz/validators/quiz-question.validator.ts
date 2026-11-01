@@ -57,7 +57,17 @@ function validateOneQuestion(raw: unknown, index: number): QuizQuestion {
         if (typeof opt?.id !== 'string' || typeof opt?.text !== 'string') {
           fail(index, `lựa chọn #${optIdx + 1} thiếu \`id\`/\`text\`.`);
         }
-        return { id: opt.id, text: opt.text, isCorrect: Boolean(opt.isCorrect) };
+        if (opt.explanation !== undefined && typeof opt.explanation !== 'string') {
+          fail(index, `lựa chọn #${optIdx + 1} có \`explanation\` không phải là chuỗi.`);
+        }
+        return {
+          id: opt.id,
+          text: opt.text,
+          isCorrect: Boolean(opt.isCorrect),
+          ...(typeof opt.explanation === 'string' && opt.explanation.trim()
+            ? { explanation: opt.explanation.trim() }
+            : {}),
+        };
       });
       const correctCount = normalized.filter((o) => o.isCorrect).length;
       if (correctCount !== 1) {
@@ -75,7 +85,17 @@ function validateOneQuestion(raw: unknown, index: number): QuizQuestion {
         if (typeof opt?.id !== 'string' || typeof opt?.text !== 'string') {
           fail(index, `lựa chọn #${optIdx + 1} thiếu \`id\`/\`text\`.`);
         }
-        return { id: opt.id, text: opt.text, isCorrect: Boolean(opt.isCorrect) };
+        if (opt.explanation !== undefined && typeof opt.explanation !== 'string') {
+          fail(index, `lựa chọn #${optIdx + 1} có \`explanation\` không phải là chuỗi.`);
+        }
+        return {
+          id: opt.id,
+          text: opt.text,
+          isCorrect: Boolean(opt.isCorrect),
+          ...(typeof opt.explanation === 'string' && opt.explanation.trim()
+            ? { explanation: opt.explanation.trim() }
+            : {}),
+        };
       });
       if (!normalized.some((o) => o.isCorrect)) {
         fail(index, 'MULTIPLE_CHOICE cần ít nhất 1 lựa chọn đúng (`isCorrect: true`).');

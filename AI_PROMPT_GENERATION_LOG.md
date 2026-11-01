@@ -313,5 +313,30 @@ cho cái dạng collapse á thu/mở được và xóa mock data đi và tạo f
   - Không dữ liệu ảo / Mock data (kết nối trực tiếp PostgreSQL via NestJS Backend).
   - Dừng lại tại **Loại 1: Trắc nghiệm 1 đáp án (Single Choice)** để người dùng trực tiếp kiểm thử trước khi chuyển sang Loại 2.
 
+---
+
+## ĐỢT 4: MỞ RỘNG TÍNH NĂNG GHI CHÚ / GIẢI THÍCH RIÊNG CHO TỪNG PHƯƠNG ÁN ĐÁP ÁN (PER-OPTION FEEDBACK)
+
+### 1. Yêu cầu của người dùng (User Request):
+> "desscription này là cho mỗi câu hỏi luôn không (ghi chú sao đúng sai (nếu có)"  
+> Phản hồi tiếp theo: "ok làm đi mở rộng"
+
+### 2. Thiết kế Kiến trúc & Sequence Diagram:
+Quy trình Feature-by-Feature:
+1. **Model / Data Structure**:
+   - `SingleChoiceQuestionOption`: Bổ sung thuộc tính `explanation?: string` (Ghi chú giải thích vì sao đáp án này đúng hoặc vì sao phương án gây nhiễu này sai).
+2. **Backend Validator & Testing**:
+   - `validateAndNormalizeQuestions`: Xác thực và chuẩn hóa `opt.explanation` (chuỗi không rỗng được trim sạch).
+   - `backend/src/quiz/validators/quiz-question.validator.spec.ts`: Bổ sung test case kiểm tra việc lưu trữ và xác thực `explanation` của từng phương án (13/13 unit tests passed).
+3. **UI Integration**:
+   - **`QuestionBankModal.tsx`**: Mỗi hàng đáp án có nút `[💡 + Giải thích]`. Khi click, mở rộng trường nhập ghi chú riêng có màu sắc phân biệt giữa Đáp án đúng và Phương án sai.
+   - **`QuizQuestionEditors.tsx`**: Tích hợp nút `[💡 + Giải thích]` đồng bộ cho `SingleChoiceEditor` trong giao diện bài học.
+   - **`HubLessonQuiz.tsx`**: Trải nghiệm người học nâng cao: Sau khi nộp bài, nếu học sinh chọn đáp án sai sẽ nhìn thấy ngay lưu ý của phương án đã chọn và giải thích vì sao đáp án đúng là chính xác, kèm lời giải thích chung.
+
+### 3. Kết quả kiểm thử tự động (Verification):
+- **Frontend TypeScript (`npx tsc --noEmit`)**: `0 errors`.
+- **Backend Unit Tests (`jest quiz-question.validator.spec.ts`)**: `13/13 tests PASS`.
+
+
 
 

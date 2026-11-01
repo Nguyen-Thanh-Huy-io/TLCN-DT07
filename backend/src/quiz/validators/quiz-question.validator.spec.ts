@@ -28,6 +28,26 @@ describe('QuizQuestionValidator (Automated Unit Tests)', () => {
       expect(result[0].prompt).toBe('Chiến thắng Điện Biên Phủ trên không diễn ra vào năm nào?');
     });
 
+    it('chuẩn hóa thành công câu hỏi trắc nghiệm 1 đáp án hợp lệ kèm giải thích riêng cho từng phương án', () => {
+      const raw = [
+        {
+          id: 'q_sc_opt_exp',
+          type: QuizQuestionType.SINGLE_CHOICE,
+          prompt: 'Chiến thắng Điện Biên Phủ trên không diễn ra vào năm nào?',
+          explanation: 'Diễn ra vào tháng 12 năm 1972.',
+          options: [
+            { id: 'opt_1', text: 'Năm 1972', isCorrect: true, explanation: 'Chính xác! Tháng 12/1972 tại Hà Nội và Hải Phòng.' },
+            { id: 'opt_2', text: 'Năm 1975', isCorrect: false, explanation: 'Sai. Năm 1975 là Chiến dịch Hồ Chí Minh giải phóng miền Nam.' },
+          ],
+        },
+      ];
+      const result = validateAndNormalizeQuestions(raw);
+      expect(result).toHaveLength(1);
+      const scQuestion = result[0] as any;
+      expect(scQuestion.options[0].explanation).toBe('Chính xác! Tháng 12/1972 tại Hà Nội và Hải Phòng.');
+      expect(scQuestion.options[1].explanation).toBe('Sai. Năm 1975 là Chiến dịch Hồ Chí Minh giải phóng miền Nam.');
+    });
+
     it('ném lỗi nếu SINGLE_CHOICE có nhiều hơn 1 đáp án đúng', () => {
       const raw = [
         {

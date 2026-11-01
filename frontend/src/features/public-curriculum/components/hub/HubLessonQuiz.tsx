@@ -302,14 +302,44 @@ export function HubLessonQuiz({
                 setAnswer={setAnswer}
                 moveOrderingItem={moveOrderingItem}
               />
-              {submitted && detail && (!detail.isCorrect || q.explanation) && (
-                <div className="mt-4 rounded-xl bg-lh-surface-2 p-4 text-sm leading-6 text-lh-muted">
+              {submitted && detail && (
+                <div className="mt-4 rounded-xl bg-lh-surface-2 p-4 text-sm leading-6 text-lh-muted space-y-2">
                   {!detail.isCorrect && detail.correctSummary && (
                     <p className="font-semibold text-lh-brand">Đáp án đúng: {detail.correctSummary}</p>
                   )}
+
+                  {/* Ghi chú giải thích riêng cho từng lựa chọn của Single Choice */}
+                  {q.type === QuizQuestionType.SINGLE_CHOICE && (() => {
+                    const selectedOpt = q.options.find((o) => o.id === answers[q.id]);
+                    const correctOpt = q.options.find((o) => o.isCorrect);
+                    const selectedLetter = selectedOpt ? String.fromCharCode(65 + q.options.indexOf(selectedOpt)) : '';
+                    const correctLetter = correctOpt ? String.fromCharCode(65 + q.options.indexOf(correctOpt)) : '';
+
+                    return (
+                      <>
+                        {selectedOpt?.explanation && (
+                          <div className={`p-2.5 rounded-lg border text-xs leading-relaxed ${
+                            selectedOpt.isCorrect
+                              ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
+                              : 'bg-rose-50/80 border-rose-200 text-rose-900'
+                          }`}>
+                            <strong>💡 Lưu ý phương án {selectedLetter} ({selectedOpt.isCorrect ? 'Đúng' : 'Bạn đã chọn'}): </strong>
+                            {selectedOpt.explanation}
+                          </div>
+                        )}
+                        {!detail.isCorrect && correctOpt?.explanation && correctOpt.id !== selectedOpt?.id && (
+                          <div className="p-2.5 rounded-lg border bg-emerald-50/80 border-emerald-200 text-emerald-900 text-xs leading-relaxed">
+                            <strong>✅ Vì sao phương án {correctLetter} là đáp án đúng: </strong>
+                            {correctOpt.explanation}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+
                   {q.explanation && (
-                    <p className={!detail.isCorrect ? 'mt-1' : ''}>
-                      <span className="font-bold text-lh-ink">Giải thích: </span>
+                    <p className="text-xs text-lh-ink/80 pt-1 border-t border-lh-line">
+                      <span className="font-bold text-lh-ink">Giải thích chung: </span>
                       {q.explanation}
                     </p>
                   )}

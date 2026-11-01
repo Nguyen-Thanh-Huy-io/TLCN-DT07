@@ -22,6 +22,7 @@ import {
   ImageIcon,
   X,
   Plus,
+  Lightbulb,
 } from 'lucide-react';
 import {
   QUIZ_QUESTION_TYPE_META,
@@ -103,12 +104,15 @@ export function QuestionBankModal({
   const [points, setPoints] = useState<number>(1);
   const [lessonId, setLessonId] = useState<string>('');
   const [lessonsList, setLessonsList] = useState<LessonItem[]>([]);
-  const [options, setOptions] = useState<Array<{ id: string; text: string; isCorrect: boolean }>>([
+  const [options, setOptions] = useState<
+    Array<{ id: string; text: string; isCorrect: boolean; explanation?: string }>
+  >([
     { id: generateQuizId('opt'), text: '', isCorrect: true },
     { id: generateQuizId('opt'), text: '', isCorrect: false },
     { id: generateQuizId('opt'), text: '', isCorrect: false },
     { id: generateQuizId('opt'), text: '', isCorrect: false },
   ]);
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [noticeMsg, setNoticeMsg] = useState('');
@@ -142,6 +146,13 @@ export function QuestionBankModal({
       setLessonId(initialQuestion.lessonId || '');
       if (initialQuestion.data?.options && Array.isArray(initialQuestion.data.options)) {
         setOptions(initialQuestion.data.options);
+        const notesMap: Record<string, boolean> = {};
+        initialQuestion.data.options.forEach((opt: any) => {
+          if (opt.explanation && opt.explanation.trim()) {
+            notesMap[opt.id] = true;
+          }
+        });
+        setExpandedNotes(notesMap);
       }
     } else {
       setType(QuizQuestionType.SINGLE_CHOICE);
@@ -150,6 +161,7 @@ export function QuestionBankModal({
       setDifficulty('MEDIUM');
       setPoints(1);
       setLessonId('');
+      setExpandedNotes({});
       setOptions([
         { id: generateQuizId('opt'), text: '', isCorrect: true },
         { id: generateQuizId('opt'), text: '', isCorrect: false },
@@ -180,6 +192,14 @@ export function QuestionBankModal({
 
   const handleUpdateOptionText = (optId: string, text: string) => {
     setOptions((prev) => prev.map((o) => (o.id === optId ? { ...o, text } : o)));
+  };
+
+  const handleUpdateOptionExplanation = (optId: string, explanation: string) => {
+    setOptions((prev) => prev.map((o) => (o.id === optId ? { ...o, explanation } : o)));
+  };
+
+  const toggleOptionNote = (optId: string) => {
+    setExpandedNotes((prev) => ({ ...prev, [optId]: !prev[optId] }));
   };
 
   const handleAddOption = () => {
@@ -538,74 +558,141 @@ export function QuestionBankModal({
             <div className="space-y-2">
               {options.map((opt, idx) => {
                 const labelLetter = String.fromCharCode(65 + idx);
+                const isNoteOpen = expandedNotes[opt.id];
 
                 return (
                   <div
                     key={opt.id}
-                    className={`flex items-center gap-2.5 p-2 px-3 rounded-xl border transition-all ${
+                    className={`p-2.5 rounded-xl border transition-all ${
                       opt.isCorrect
-                        ? 'border-blue-400 bg-blue-50/30'
+                        ? 'border-blue-400 bg-blue-50/20'
                         : 'border-slate-200 bg-white hover:border-slate-300'
                     }`}
                   >
-                    {/* Drag Grip Handle */}
-                    <span className="text-slate-400 cursor-grab hover:text-slate-600 shrink-0">
-                      <GripVertical size={15} />
-                    </span>
+                    <div className="flex items-center gap-2.5">
+                      {/* Drag Grip Handle */}
+                      <span className="text-slate-400 cursor-grab hover:text-slate-600 shrink-0">
+                        <GripVertical size={15} />
+                      </span>
 
-                    {/* Radio indicator icon */}
-                    <span
-                      onClick={() => handleSetSingleCorrect(opt.id)}
-                      className="cursor-pointer shrink-0"
-                    >
-                      {opt.isCorrect ? (
-                        <CircleDot size={16} className="text-blue-600" />
-                      ) : (
-                        <span className="w-4 h-4 rounded-full border border-slate-300 block hover:border-blue-500" />
-                      )}
-                    </span>
+                      {/* Radio indicator icon */}
+                      <span
+                        onClick={() => handleSetSingleCorrect(opt.id)}
+                        className="cursor-pointer shrink-0"
+                      >
+                        {opt.isCorrect ? (
+                          <CircleDot size={16} className="text-blue-600" />
+                        ) : (
+                          <span className="w-4 h-4 rounded-full border border-slate-300 block hover:border-blue-500" />
+                        )}
+                      </span>
 
-                    {/* Letter tag */}
-                    <span className="text-xs font-bold text-slate-500 w-4 shrink-0">
-                      {labelLetter}.
-                    </span>
+                      {/* Letter tag */}
+                      <span className="text-xs font-bold text-slate-500 w-4 shrink-0">
+                        {labelLetter}.
+                      </span>
 
-                    {/* Option Text Input */}
-                    <input
-                      type="text"
-                      value={opt.text}
-                      onChange={(e) => handleUpdateOptionText(opt.id, e.target.value)}
-                      placeholder={`Nội dung lựa chọn ${labelLetter}...`}
-                      className="flex-1 text-xs sm:text-sm p-1.5 bg-transparent border-0 focus:outline-none text-slate-900 placeholder:text-slate-400"
-                    />
+                      {/* Option Text Input */}
+                      <input
+                        type="text"
+                        value={opt.text}
+                        onChange={(e) => handleUpdateOptionText(opt.id, e.target.value)}
+                        placeholder={`Nội dung lựa chọn ${labelLetter}...`}
+                        className="flex-1 text-xs sm:text-sm p-1 bg-transparent border-0 focus:outline-none text-slate-900 placeholder:text-slate-400"
+                      />
 
-                    {/* Correct Checkbox Toggle */}
-                    <button
-                      type="button"
-                      onClick={() => handleSetSingleCorrect(opt.id)}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 ${
-                        opt.isCorrect
-                          ? 'border-blue-600 bg-blue-600 text-white shadow-xs'
-                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:border-slate-300'
-                      }`}
-                    >
-                      {opt.isCorrect ? (
-                        <Check size={12} strokeWidth={3} />
-                      ) : (
-                        <span className="w-3 h-3 rounded-xs border border-slate-300" />
-                      )}
-                      <span>Correct</span>
-                    </button>
+                      {/* Option Explanation Note Button */}
+                      <button
+                        type="button"
+                        onClick={() => toggleOptionNote(opt.id)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer shrink-0 ${
+                          opt.explanation
+                            ? 'border-amber-300 bg-amber-50 text-amber-800 font-semibold'
+                            : isNoteOpen
+                            ? 'border-blue-300 bg-blue-50 text-blue-700'
+                            : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                        }`}
+                        title="Ghi chú giải thích vì sao đáp án này đúng hoặc sai"
+                      >
+                        <Lightbulb
+                          size={12}
+                          className={opt.explanation ? 'text-amber-600' : 'text-slate-400'}
+                        />
+                        <span>{opt.explanation ? 'Có giải thích' : '+ Giải thích'}</span>
+                      </button>
 
-                    {/* Delete Option Icon */}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveOption(opt.id)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0"
-                      title="Xóa lựa chọn này"
-                    >
-                      <X size={15} />
-                    </button>
+                      {/* Correct Checkbox Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => handleSetSingleCorrect(opt.id)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 ${
+                          opt.isCorrect
+                            ? 'border-blue-600 bg-blue-600 text-white shadow-xs'
+                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:border-slate-300'
+                        }`}
+                      >
+                        {opt.isCorrect ? (
+                          <Check size={12} strokeWidth={3} />
+                        ) : (
+                          <span className="w-3 h-3 rounded-xs border border-slate-300" />
+                        )}
+                        <span>Correct</span>
+                      </button>
+
+                      {/* Delete Option Icon */}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveOption(opt.id)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0"
+                        title="Xóa lựa chọn này"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+
+                    {/* Collapsible Per-Option Explanation Sub-Input */}
+                    {isNoteOpen && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 pl-8 pr-1 flex items-start gap-2">
+                        <span className="text-amber-600 mt-1 shrink-0">
+                          <Lightbulb size={13} />
+                        </span>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-700">
+                              Giải thích riêng khi học sinh chọn đáp án {labelLetter} (
+                              {opt.isCorrect ? (
+                                <span className="text-emerald-600">Đáp án đúng</span>
+                              ) : (
+                                <span className="text-amber-600">Phương án sai / gây nhiễu</span>
+                              )}
+                              ):
+                            </span>
+                            {opt.explanation && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateOptionExplanation(opt.id, '')}
+                                className="text-[10px] text-rose-500 hover:text-rose-700 underline cursor-pointer"
+                              >
+                                Xóa ghi chú
+                              </button>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            value={opt.explanation || ''}
+                            onChange={(e) =>
+                              handleUpdateOptionExplanation(opt.id, e.target.value)
+                            }
+                            placeholder={
+                              opt.isCorrect
+                                ? `Vì sao đáp án ${labelLetter} là chính xác (cơ sở lịch sử, bối cảnh)...`
+                                : `Vì sao học sinh chọn đáp án ${labelLetter} là sai (lỗi nhầm mốc thời gian, sự kiện)...`
+                            }
+                            className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

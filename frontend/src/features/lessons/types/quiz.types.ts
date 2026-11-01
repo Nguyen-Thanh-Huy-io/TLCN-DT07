@@ -22,6 +22,7 @@ export interface MultipleChoiceOption {
   id: string;
   text: string;
   isCorrect: boolean;
+  explanation?: string; // Ghi chú giải thích riêng cho lựa chọn này (ví dụ: vì sao sai / đúng)
 }
 
 export interface SingleChoiceQuestion extends BaseQuizQuestion {

@@ -69,8 +69,18 @@ export function SingleChoiceEditor({
   data: SingleChoiceQuestion;
   onChange: OnChange<SingleChoiceQuestion>;
 }) {
+  const [expandedOptionNotes, setExpandedOptionNotes] = React.useState<Record<string, boolean>>({});
+
   const updateOption = (optId: string, text: string) => {
     onChange({ options: data.options.map((o) => (o.id === optId ? { ...o, text } : o)) });
+  };
+  const updateOptionExplanation = (optId: string, explanation: string) => {
+    onChange({
+      options: data.options.map((o) => (o.id === optId ? { ...o, explanation } : o)),
+    });
+  };
+  const toggleNote = (optId: string) => {
+    setExpandedOptionNotes((prev) => ({ ...prev, [optId]: !prev[optId] }));
   };
   const setCorrect = (optId: string) => {
     onChange({ options: data.options.map((o) => ({ ...o, isCorrect: o.id === optId })) });
@@ -96,36 +106,67 @@ export function SingleChoiceEditor({
         promptPlaceholder="Câu hỏi trắc nghiệm 1 đáp án..."
         onChange={onChange}
       />
-      <div className="space-y-1.5">
-        {data.options.map((opt, idx) => (
-          <div key={opt.id} className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title="Đánh dấu là đáp án đúng duy nhất">
-              <input
-                type="radio"
-                name={`correct_opt_${data.id}`}
-                checked={opt.isCorrect}
-                onChange={() => setCorrect(opt.id)}
-                className="w-4 h-4 text-emerald-600 shrink-0 cursor-pointer"
-              />
-              <span className="text-xs font-bold text-slate-500 w-4">{String.fromCharCode(65 + idx)}.</span>
-            </label>
-            <input
-              type="text"
-              value={opt.text}
-              onChange={(e) => updateOption(opt.id, e.target.value)}
-              placeholder={`Nội dung lựa chọn ${String.fromCharCode(65 + idx)}...`}
-              className={smallInputCls}
-            />
-            <button
-              type="button"
-              onClick={() => removeOption(opt.id)}
-              className="text-slate-400 hover:text-rose-600 cursor-pointer shrink-0 px-1"
-              title="Xóa lựa chọn"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+      <div className="space-y-2">
+        {data.options.map((opt, idx) => {
+          const isNoteOpen = expandedOptionNotes[opt.id] || Boolean(opt.explanation?.trim());
+          const labelLetter = String.fromCharCode(65 + idx);
+
+          return (
+            <div key={opt.id} className="space-y-1">
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title="Đánh dấu là đáp án đúng duy nhất">
+                  <input
+                    type="radio"
+                    name={`correct_opt_${data.id}`}
+                    checked={opt.isCorrect}
+                    onChange={() => setCorrect(opt.id)}
+                    className="w-4 h-4 text-emerald-600 shrink-0 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-slate-500 w-4">{labelLetter}.</span>
+                </label>
+                <input
+                  type="text"
+                  value={opt.text}
+                  onChange={(e) => updateOption(opt.id, e.target.value)}
+                  placeholder={`Nội dung lựa chọn ${labelLetter}...`}
+                  className={smallInputCls}
+                />
+                <button
+                  type="button"
+                  onClick={() => toggleNote(opt.id)}
+                  className={`text-[11px] px-2 py-1 rounded border transition-colors shrink-0 cursor-pointer ${
+                    opt.explanation
+                      ? 'border-amber-300 bg-amber-50 text-amber-800 font-medium'
+                      : 'border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                  }`}
+                  title="Ghi chú giải thích cho đáp án này"
+                >
+                  {opt.explanation ? '💡 Có giải thích' : '💡 + Giải thích'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeOption(opt.id)}
+                  className="text-slate-400 hover:text-rose-600 cursor-pointer shrink-0 px-1"
+                  title="Xóa lựa chọn"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {isNoteOpen && (
+                <div className="pl-7 pr-1">
+                  <input
+                    type="text"
+                    value={opt.explanation || ''}
+                    onChange={(e) => updateOptionExplanation(opt.id, e.target.value)}
+                    placeholder={`Giải thích vì sao đáp án ${labelLetter} ${opt.isCorrect ? 'đúng' : 'sai'}...`}
+                    className="w-full text-[11px] p-1.5 bg-slate-50 border border-slate-200 rounded text-slate-700 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
       <button
         type="button"

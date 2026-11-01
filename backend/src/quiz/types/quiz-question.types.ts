@@ -19,14 +19,28 @@ interface BaseQuizQuestion {
   explanation?: string;
 }
 
+export interface SingleChoiceQuestionOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+  explanation?: string; // Ghi chú giải thích riêng cho lựa chọn này (ví dụ: vì sao sai/đúng)
+}
+
 export interface SingleChoiceQuestion extends BaseQuizQuestion {
   type: QuizQuestionType.SINGLE_CHOICE;
-  options: Array<{ id: string; text: string; isCorrect: boolean }>;
+  options: SingleChoiceQuestionOption[];
+}
+
+export interface MultipleChoiceQuestionOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+  explanation?: string; // Ghi chú giải thích riêng cho lựa chọn này
 }
 
 export interface MultipleChoiceQuestion extends BaseQuizQuestion {
   type: QuizQuestionType.MULTIPLE_CHOICE;
-  options: Array<{ id: string; text: string; isCorrect: boolean }>;
+  options: MultipleChoiceQuestionOption[];
 }
 
 export interface TrueFalseQuestion extends BaseQuizQuestion {

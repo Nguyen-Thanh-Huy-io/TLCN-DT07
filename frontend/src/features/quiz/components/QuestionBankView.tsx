@@ -423,9 +423,9 @@ export function QuestionBankView() {
                     color: 'text-slate-600 bg-slate-100 border-slate-200',
                   };
 
-                  // Tìm đáp án đúng nếu có
+                  // Tìm danh sách các đáp án đúng nếu có
                   const optionsList = Array.isArray(q.data?.options) ? q.data.options : [];
-                  const correctOption = optionsList.find((opt: any) => opt.isCorrect);
+                  const correctOptions = optionsList.filter((opt: any) => opt.isCorrect);
 
                   return (
                     <tr
@@ -460,12 +460,14 @@ export function QuestionBankView() {
                           </p>
 
                           {/* Quick Answer Preview */}
-                          {correctOption && (
+                          {correctOptions.length > 0 && (
                             <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                              <span>Đáp án đúng:</span>
-                              <strong className="text-emerald-700 truncate max-w-sm">
-                                {correctOption.text}
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              <span className="shrink-0">
+                                Đáp án đúng{correctOptions.length > 1 ? ` (${correctOptions.length})` : ''}:
+                              </span>
+                              <strong className="text-emerald-700 truncate max-w-md">
+                                {correctOptions.map((o: any) => o.text).join(' • ')}
                               </strong>
                             </div>
                           )}

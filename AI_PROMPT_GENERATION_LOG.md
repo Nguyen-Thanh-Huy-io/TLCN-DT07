@@ -510,3 +510,51 @@ sequenceDiagram
   - `frontend/src/features/quiz/components/CategoryTreePicker.tsx` (rút gọn từ 466 dòng xuống 86 dòng).
   - `frontend/src/features/quiz/components/QuestionBankModal.tsx` (sử dụng `TreeSelectTrigger`).
   - `frontend/src/features/lessons/components/LessonTopicModalPicker.tsx` (sử dụng `TreeSelectModal` ở chế độ chọn đơn `multiple={false}`).
+
+
+---
+
+## ĐỢT 10: TRIỂN KHAI DẠNG 2 — CHECK BOX (`QuizQuestionType.MULTIPLE_CHOICE` — TRẮC NGHIỆM NHIỀU ĐÁP ÁN ĐÚNG)
+
+### 1. Yêu cầu của người dùng (User Request):
+> "chia commit đăng github rồi tiếp theo làm dạng checkbox đi. Nhưng trước tiên trl câu hỏi có cần tạo nhánh mới ko?" -> "ok plan A"
+
+### 2. Sơ đồ tuần tự (Sequence Diagram - Mermaid):
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Giáo viên / Admin
+    actor Learner as Học sinh (Public Hub)
+    participant QModal as QuestionBankModal / MultipleChoiceEditor
+    participant API as QuestionController / QuizQuestionValidator
+    participant Grader as MultipleChoiceGrader (Strategy Pattern)
+    participant QuizUI as HubLessonQuiz
+
+    Admin->>QModal: Chọn dạng câu hỏi "Check Box" (MULTIPLE_CHOICE)
+    Admin->>QModal: Tick chọn >= 1 đáp án đúng (CheckSquare) & nhập giải thích riêng từng phương án
+    QModal->>API: POST/PUT /questions { type: MULTIPLE_CHOICE, data: { options } }
+    API->>API: MultipleChoiceStrategy.validateAndNormalize (kiểm tra >= 2 options, >= 1 isCorrect, chuẩn hóa explanation)
+    API-->>QModal: Lưu thành công vào Ngân hàng câu hỏi
+
+    Learner->>QuizUI: Làm bài ôn tập gặp câu hỏi MULTIPLE_CHOICE
+    Learner->>QuizUI: Tick chọn nhiều phương án (toggle optionId trong mảng string[])
+    Learner->>QuizUI: Nhấn "Kiểm tra đáp án"
+    QuizUI->>Grader: MultipleChoiceGrader.isCorrect(question, selectedIds[])
+    Grader-->>QuizUI: Trả về kết quả đối chiếu tập hợp đáp án đúng + getCorrectSummary() + giải thích từng phương án
+```
+
+### 3. Chi tiết triển khai (SOLID & Strategy Pattern):
+1. **Backend Validator & Unit Test ([`quiz-question.validator.ts`](backend/src/quiz/validators/quiz-question.validator.ts), [`quiz-question.validator.spec.ts`](backend/src/quiz/validators/quiz-question.validator.spec.ts))**:
+   - `MultipleChoiceStrategy` (kế thừa `BaseChoiceValidationStrategy`) kiểm tra tối thiểu 2 lựa chọn, ít nhất 1 lựa chọn có `isCorrect: true`, và bảo toàn `explanation` riêng cho từng phương án.
+   - Bổ sung Unit Test kiểm chứng câu hỏi `MULTIPLE_CHOICE` có từ 2 đáp án đúng trở lên kèm giải thích riêng từng phương án.
+2. **Ngân hàng câu hỏi & Trình soạn thảo bài học ([`QuestionBankModal.tsx`](frontend/src/features/quiz/components/QuestionBankModal.tsx), [`QuizQuestionEditors.tsx`](frontend/src/features/lessons/components/quiz/QuizQuestionEditors.tsx), [`QuestionBankView.tsx`](frontend/src/features/quiz/components/QuestionBankView.tsx))**:
+   - Kích hoạt `QuizQuestionType.MULTIPLE_CHOICE` (`isReady: true`) trên thanh chọn dạng câu hỏi của `QuestionBankModal`.
+   - Hỗ trợ chọn đồng thời nhiều đáp án đúng bằng biểu tượng `CheckSquare` (trong `QuestionBankModal`) và `<input type="checkbox" />` (trong `MultipleChoiceEditor`), kèm nút `💡 + Giải thích` (`OptionExplanationBox`) và `CollapsibleExplanationField` tái sử dụng.
+   - Cập nhật bảng danh sách `QuestionBankView.tsx` hiển thị đầy đủ tất cả các đáp án đúng (`correctOptions.map(o => o.text).join(' • ')`) kèm số lượng đáp án đúng.
+3. **Chấm điểm tự động & Giao diện học sinh ([`public-curriculum.strategies.ts`](frontend/src/features/public-curriculum/strategies/public-curriculum.strategies.ts), [`HubLessonQuiz.tsx`](frontend/src/features/public-curriculum/components/hub/HubLessonQuiz.tsx))**:
+   - Cập nhật `MultipleChoiceGrader` (Strategy Pattern) đối chiếu chính xác tập hợp `selectedIds: string[]` của người học với tập hợp các phương án `isCorrect: true` của câu hỏi, và ghép chuỗi toàn bộ đáp án đúng trong `getCorrectSummary`.
+   - Cập nhật `HubLessonQuiz.tsx` cho phép người học tick chọn/bỏ chọn nhiều phương án (ô vuông checkbox), hiển thị chỉ dẫn *(Có thể chọn nhiều đáp án đúng)* và hiển thị giải thích chi tiết của từng phương án sau khi nộp bài.
+
+### 4. Kết quả kiểm thử tự động (Automated Validation):
+- **Backend Unit Tests (`npx jest src/quiz/validators/quiz-question.validator.spec.ts`)**: `PASS` (13/13 tests).
+- **Frontend TypeScript (`npx tsc --noEmit`)**: `PASS` (`0 errors`).

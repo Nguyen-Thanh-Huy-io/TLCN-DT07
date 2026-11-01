@@ -113,9 +113,9 @@ export class PathFilterStrategyRegistry {
 // ==========================================
 
 export type UserQuizAnswer =
-  | string // MULTIPLE_CHOICE (optionId) | FILL_IN_BLANK (text)
+  | string // SINGLE_CHOICE (optionId) | FILL_IN_BLANK (text)
   | boolean // TRUE_FALSE
-  | string[] // ORDERING (ordered itemIds)
+  | string[] // MULTIPLE_CHOICE (selected optionIds) | ORDERING (ordered itemIds)
   | Record<string, string>; // MATCHING (leftId -> rightId)
 
 export interface IQuizQuestionGrader<T extends QuizQuestion = QuizQuestion> {
@@ -123,31 +123,34 @@ export interface IQuizQuestionGrader<T extends QuizQuestion = QuizQuestion> {
   getCorrectSummary(question: T): string;
 }
 
-class SingleChoiceGrader implements IQuizQuestionGrader<SingleChoiceQuestion> {
-  isCorrect(question: SingleChoiceQuestion, answer: UserQuizAnswer | undefined): boolean {
-    if (typeof answer !== 'string') return false;
-    const correctOption = question.options.find((o) => o.isCorrect);
-    return Boolean(correctOption && correctOption.id === answer);
+abstract class BaseChoiceGrader<
+  T extends SingleChoiceQuestion | MultipleChoiceQuestion,
+> implements IQuizQuestionGrader<T> {
+  isCorrect(question: T, answer: UserQuizAnswer | undefined): boolean {
+    const selectedIds = Array.isArray(answer)
+      ? answer
+      : typeof answer === 'string' && answer
+        ? [answer]
+        : [];
+    const correctIds = question.options.filter((o) => o.isCorrect).map((o) => o.id);
+    if (correctIds.length === 0 || selectedIds.length !== correctIds.length) {
+      return false;
+    }
+    const selectedSet = new Set(selectedIds);
+    return correctIds.every((id) => selectedSet.has(id));
   }
 
-  getCorrectSummary(question: SingleChoiceQuestion): string {
-    const correctOption = question.options.find((o) => o.isCorrect);
-    return correctOption ? correctOption.text : '';
+  getCorrectSummary(question: T): string {
+    return question.options
+      .filter((o) => o.isCorrect)
+      .map((o) => o.text)
+      .join(' • ');
   }
 }
 
-class MultipleChoiceGrader implements IQuizQuestionGrader<MultipleChoiceQuestion> {
-  isCorrect(question: MultipleChoiceQuestion, answer: UserQuizAnswer | undefined): boolean {
-    if (typeof answer !== 'string') return false;
-    const correctOption = question.options.find((o) => o.isCorrect);
-    return Boolean(correctOption && correctOption.id === answer);
-  }
+class SingleChoiceGrader extends BaseChoiceGrader<SingleChoiceQuestion> {}
 
-  getCorrectSummary(question: MultipleChoiceQuestion): string {
-    const correctOption = question.options.find((o) => o.isCorrect);
-    return correctOption ? correctOption.text : '';
-  }
-}
+class MultipleChoiceGrader extends BaseChoiceGrader<MultipleChoiceQuestion> {}
 
 class TrueFalseGrader implements IQuizQuestionGrader<TrueFalseQuestion> {
   isCorrect(question: TrueFalseQuestion, answer: UserQuizAnswer | undefined): boolean {

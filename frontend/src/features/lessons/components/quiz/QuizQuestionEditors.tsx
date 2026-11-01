@@ -55,49 +55,83 @@ function PromptField({
   );
 }
 
-export function SingleChoiceEditor({
+function ChoiceQuestionEditorBase<T extends SingleChoiceQuestion | MultipleChoiceQuestion>({
   data,
+  multiple,
   onChange,
 }: {
-  data: SingleChoiceQuestion;
-  onChange: OnChange<SingleChoiceQuestion>;
+  data: T;
+  multiple: boolean;
+  onChange: OnChange<T>;
 }) {
   const [expandedOptionNotes, setExpandedOptionNotes] = React.useState<Record<string, boolean>>({});
+  const correctCount = data.options.filter((o) => o.isCorrect).length;
 
   const updateOption = (optId: string, text: string) => {
-    onChange({ options: data.options.map((o) => (o.id === optId ? { ...o, text } : o)) });
+    onChange({ options: data.options.map((o) => (o.id === optId ? { ...o, text } : o)) } as Partial<T>);
   };
   const updateOptionExplanation = (optId: string, explanation: string) => {
     onChange({
       options: data.options.map((o) => (o.id === optId ? { ...o, explanation } : o)),
-    });
+    } as Partial<T>);
   };
   const toggleNote = (optId: string) => {
     setExpandedOptionNotes((prev) => ({ ...prev, [optId]: !prev[optId] }));
   };
-  const setCorrect = (optId: string) => {
-    onChange({ options: data.options.map((o) => ({ ...o, isCorrect: o.id === optId })) });
+  const handleSelectCorrect = (optId: string) => {
+    if (!multiple) {
+      onChange({ options: data.options.map((o) => ({ ...o, isCorrect: o.id === optId })) } as Partial<T>);
+      return;
+    }
+    const next = data.options.map((o) => (o.id === optId ? { ...o, isCorrect: !o.isCorrect } : o));
+    if (!next.some((o) => o.isCorrect)) {
+      alert('Câu hỏi Check Box cần ít nhất 1 đáp án đúng.');
+      return;
+    }
+    onChange({ options: next } as Partial<T>);
   };
   const addOption = () => {
-    onChange({ options: [...data.options, { id: generateQuizId('opt'), text: '', isCorrect: false }] });
+    onChange({
+      options: [...data.options, { id: generateQuizId('opt'), text: '', isCorrect: false }],
+    } as Partial<T>);
   };
   const removeOption = (optId: string) => {
     if (data.options.length <= 2) {
-      alert('Trắc nghiệm 1 đáp án cần ít nhất 2 lựa chọn.');
+      alert('Câu hỏi trắc nghiệm cần ít nhất 2 lựa chọn.');
       return;
     }
     const next = data.options.filter((o) => o.id !== optId);
     if (!next.some((o) => o.isCorrect)) next[0].isCorrect = true;
-    onChange({ options: next });
+    onChange({ options: next } as Partial<T>);
   };
 
   return (
     <div className="space-y-2.5">
       <PromptField
         prompt={data.prompt}
-        promptPlaceholder="Câu hỏi trắc nghiệm 1 đáp án..."
-        onChange={onChange}
+        promptPlaceholder={
+          multiple
+            ? 'Câu hỏi trắc nghiệm nhiều đáp án đúng (Check Box)...'
+            : 'Câu hỏi trắc nghiệm 1 đáp án...'
+        }
+        onChange={(updates) => onChange(updates as Partial<T>)}
       />
+
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="font-semibold text-slate-600">Các phương án lựa chọn:</span>
+        <span
+          className={`px-2 py-0.5 rounded-full font-semibold border ${
+            multiple
+              ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          }`}
+        >
+          {multiple
+            ? `☑ Check Box: Đang chọn ${correctCount}/${data.options.length} đáp án đúng`
+            : '◉ Radio: Chọn 1 đáp án đúng duy nhất'}
+        </span>
+      </div>
+
       <div className="space-y-2">
         {data.options.map((opt, idx) => {
           const isNoteOpen = expandedOptionNotes[opt.id] || Boolean(opt.explanation?.trim());
@@ -106,13 +140,18 @@ export function SingleChoiceEditor({
           return (
             <div key={opt.id} className="space-y-1">
               <div className="flex items-center gap-2">
-                <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title="Đánh dấu là đáp án đúng duy nhất">
+                <label
+                  className="flex items-center gap-1.5 cursor-pointer shrink-0"
+                  title={multiple ? 'Tick chọn (nhiều đáp án đúng)' : 'Chọn đáp án đúng duy nhất'}
+                >
                   <input
-                    type="radio"
-                    name={`correct_opt_${data.id}`}
+                    type={multiple ? 'checkbox' : 'radio'}
+                    name={multiple ? undefined : `correct_opt_${data.id}`}
                     checked={opt.isCorrect}
-                    onChange={() => setCorrect(opt.id)}
-                    className="w-4 h-4 text-emerald-600 shrink-0 cursor-pointer"
+                    onChange={() => handleSelectCorrect(opt.id)}
+                    className={`w-4 h-4 text-emerald-600 shrink-0 cursor-pointer ${
+                      multiple ? 'rounded' : ''
+                    }`}
                   />
                   <span className="text-xs font-bold text-slate-500 w-4">{labelLetter}.</span>
                 </label>
@@ -166,10 +205,20 @@ export function SingleChoiceEditor({
       </button>
       <CollapsibleExplanationField
         value={data.explanation}
-        onChange={(explanation) => onChange({ explanation })}
+        onChange={(explanation) => onChange({ explanation } as Partial<T>)}
       />
     </div>
   );
+}
+
+export function SingleChoiceEditor({
+  data,
+  onChange,
+}: {
+  data: SingleChoiceQuestion;
+  onChange: OnChange<SingleChoiceQuestion>;
+}) {
+  return <ChoiceQuestionEditorBase data={data} multiple={false} onChange={onChange} />;
 }
 
 export function MultipleChoiceEditor({
@@ -179,73 +228,7 @@ export function MultipleChoiceEditor({
   data: MultipleChoiceQuestion;
   onChange: OnChange<MultipleChoiceQuestion>;
 }) {
-  const updateOption = (optId: string, text: string) => {
-    onChange({ options: data.options.map((o) => (o.id === optId ? { ...o, text } : o)) });
-  };
-  const setCorrect = (optId: string) => {
-    onChange({ options: data.options.map((o) => ({ ...o, isCorrect: o.id === optId })) });
-  };
-  const addOption = () => {
-    onChange({ options: [...data.options, { id: generateQuizId('opt'), text: '', isCorrect: false }] });
-  };
-  const removeOption = (optId: string) => {
-    if (data.options.length <= 2) {
-      alert('Trắc nghiệm cần ít nhất 2 lựa chọn.');
-      return;
-    }
-    const next = data.options.filter((o) => o.id !== optId);
-    if (!next.some((o) => o.isCorrect)) next[0].isCorrect = true;
-    onChange({ options: next });
-  };
-
-  return (
-    <div className="space-y-2.5">
-      <PromptField
-        prompt={data.prompt}
-        promptPlaceholder="Câu hỏi trắc nghiệm..."
-        onChange={onChange}
-      />
-      <div className="space-y-1.5">
-        {data.options.map((opt) => (
-          <div key={opt.id} className="flex items-center gap-2">
-            <input
-              type="radio"
-              checked={opt.isCorrect}
-              onChange={() => setCorrect(opt.id)}
-              title="Đánh dấu là đáp án đúng"
-              className="w-3.5 h-3.5 text-emerald-600 shrink-0"
-            />
-            <input
-              type="text"
-              value={opt.text}
-              onChange={(e) => updateOption(opt.id, e.target.value)}
-              placeholder="Nội dung lựa chọn..."
-              className={smallInputCls}
-            />
-            <button
-              type="button"
-              onClick={() => removeOption(opt.id)}
-              className="text-slate-400 hover:text-rose-600 cursor-pointer shrink-0 px-1"
-              title="Xóa lựa chọn"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={addOption}
-        className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-dashed border-blue-300 rounded-lg py-1.5 w-full cursor-pointer transition"
-      >
-        + Thêm lựa chọn
-      </button>
-      <CollapsibleExplanationField
-        value={data.explanation}
-        onChange={(explanation) => onChange({ explanation })}
-      />
-    </div>
-  );
+  return <ChoiceQuestionEditorBase data={data} multiple={true} onChange={onChange} />;
 }
 
 export function TrueFalseEditor({

@@ -115,23 +115,42 @@ describe('QuizQuestionValidator (Automated Unit Tests)', () => {
   });
 
   describe('3. Nhiều đáp án (MULTIPLE_CHOICE)', () => {
-    it('chuẩn hóa thành công câu hỏi có từ 2 đáp án đúng trở lên', () => {
+    it('chuẩn hóa thành công câu hỏi có từ 2 đáp án đúng trở lên kèm giải thích từng phương án', () => {
       const raw = [
         {
           id: 'q_mc_1',
           type: QuizQuestionType.MULTIPLE_CHOICE,
           prompt: 'Những phi công nào sau đây đã bắn rơi B-52?',
+          explanation: 'Cả Phạm Tuân và Vũ Xuân Thiều đều lập công bắn rơi B-52 trong tháng 12/1972.',
           options: [
-            { id: 'o1', text: 'Phạm Tuân', isCorrect: true },
-            { id: 'o2', text: 'Vũ Xuân Thiều', isCorrect: true },
-            { id: 'o3', text: 'Người khác', isCorrect: false },
+            {
+              id: 'o1',
+              text: 'Phạm Tuân',
+              isCorrect: true,
+              explanation: 'Đúng: Bắn rơi B-52 đêm 27/12/1972.',
+            },
+            {
+              id: 'o2',
+              text: 'Vũ Xuân Thiều',
+              isCorrect: true,
+              explanation: 'Đúng: Anh dũng cảm tử tiêu diệt B-52 đêm 28/12/1972.',
+            },
+            {
+              id: 'o3',
+              text: 'Phương án gây nhiễu',
+              isCorrect: false,
+              explanation: 'Sai: Đây là phương án gây nhiễu.',
+            },
           ],
         },
       ];
       const result = validateAndNormalizeQuestions(raw);
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe(QuizQuestionType.MULTIPLE_CHOICE);
-      expect((result[0] as any).options.filter((o: any) => o.isCorrect)).toHaveLength(2);
+      const mcQuestion = result[0] as any;
+      expect(mcQuestion.options.filter((o: any) => o.isCorrect)).toHaveLength(2);
+      expect(mcQuestion.options[0].explanation).toBe('Đúng: Bắn rơi B-52 đêm 27/12/1972.');
+      expect(mcQuestion.options[1].explanation).toBe('Đúng: Anh dũng cảm tử tiêu diệt B-52 đêm 28/12/1972.');
     });
 
     it('ném lỗi nếu không có lựa chọn nào đúng', () => {

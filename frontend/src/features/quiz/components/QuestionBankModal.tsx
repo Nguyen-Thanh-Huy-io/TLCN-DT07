@@ -83,7 +83,7 @@ const QUESTION_TYPE_CARDS: QuestionTypeCardConfig[] = [
     title: 'Check Box',
     subtitle: '(Multiple Choice)',
     icon: CheckSquare,
-    isReady: false,
+    isReady: true,
   },
   {
     type: QuizQuestionType.TRUE_FALSE,
@@ -219,10 +219,25 @@ export function QuestionBankModal({
     }
     setNoticeMsg('');
     setType(targetType);
+
+    // Nếu chuyển về SINGLE_CHOICE mà đang có nhiều hơn 1 đáp án đúng thì giữ lại đáp án đúng đầu tiên
+    if (targetType === QuizQuestionType.SINGLE_CHOICE) {
+      setOptions((prev) => {
+        const firstCorrectIdx = prev.findIndex((o) => o.isCorrect);
+        const keepIdx = firstCorrectIdx >= 0 ? firstCorrectIdx : 0;
+        return prev.map((o, idx) => ({ ...o, isCorrect: idx === keepIdx }));
+      });
+    }
   };
 
-  const handleSetSingleCorrect = (optId: string) => {
-    setOptions((prev) => prev.map((o) => ({ ...o, isCorrect: o.id === optId })));
+  const handleToggleOptionCorrect = (optId: string) => {
+    if (type === QuizQuestionType.MULTIPLE_CHOICE) {
+      setOptions((prev) =>
+        prev.map((o) => (o.id === optId ? { ...o, isCorrect: !o.isCorrect } : o))
+      );
+    } else {
+      setOptions((prev) => prev.map((o) => ({ ...o, isCorrect: o.id === optId })));
+    }
   };
 
   const handleUpdateOptionText = (optId: string, text: string) => {
@@ -264,7 +279,10 @@ export function QuestionBankModal({
       return;
     }
 
-    if (type === QuizQuestionType.SINGLE_CHOICE) {
+    if (
+      type === QuizQuestionType.SINGLE_CHOICE ||
+      type === QuizQuestionType.MULTIPLE_CHOICE
+    ) {
       if (options.length < 2) {
         setErrorMsg('Cần ít nhất 2 phương án lựa chọn.');
         return;
@@ -274,8 +292,12 @@ export function QuestionBankModal({
         return;
       }
       const correctCount = options.filter((o) => o.isCorrect).length;
-      if (correctCount !== 1) {
+      if (type === QuizQuestionType.SINGLE_CHOICE && correctCount !== 1) {
         setErrorMsg('Vui lòng đánh dấu chọn chính xác 1 đáp án đúng (Correct).');
+        return;
+      }
+      if (type === QuizQuestionType.MULTIPLE_CHOICE && correctCount < 1) {
+        setErrorMsg('Vui lòng đánh dấu chọn ít nhất 1 đáp án đúng (Correct) cho câu hỏi nhiều lựa chọn.');
         return;
       }
     }
@@ -527,12 +549,35 @@ export function QuestionBankModal({
 
           {/* Section 3: Options List with Drag Handle, Input, Correct Toggle & Delete */}
           <div className="space-y-2.5 pt-1">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-slate-800">
-                Các phương án lựa chọn <span className="text-blue-600 font-normal">(Options)</span>
-              </label>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <label className="block text-xs font-bold text-slate-800">
+                  Các phương án lựa chọn <span className="text-blue-600 font-normal">(Options)</span>
+                </label>
+                {type === QuizQuestionType.MULTIPLE_CHOICE ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    <CheckSquare size={12} />
+                    <span>
+                      Chế độ Check Box: Đang chọn {options.filter((o) => o.isCorrect).length}/{options.length} đáp án đúng
+                    </span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <CircleDot size={12} />
+                    <span>Chế độ Radio: 1 đáp án đúng duy nhất</span>
+                  </span>
+                )}
+              </div>
               <span className="text-[11px] text-slate-400">
-                Tích chọn ô <strong>Correct</strong> tại phương án đúng duy nhất
+                {type === QuizQuestionType.MULTIPLE_CHOICE ? (
+                  <>
+                    Tích chọn ô <strong>Correct</strong> tại <strong>một hoặc nhiều</strong> phương án đúng
+                  </>
+                ) : (
+                  <>
+                    Tích chọn ô <strong>Correct</strong> tại phương án đúng duy nhất
+                  </>
+                )}
               </span>
             </div>
 
@@ -556,12 +601,18 @@ export function QuestionBankModal({
                         <GripVertical size={15} />
                       </span>
 
-                      {/* Radio indicator icon */}
+                      {/* Radio / Checkbox indicator icon */}
                       <span
-                        onClick={() => handleSetSingleCorrect(opt.id)}
+                        onClick={() => handleToggleOptionCorrect(opt.id)}
                         className="cursor-pointer shrink-0"
                       >
-                        {opt.isCorrect ? (
+                        {type === QuizQuestionType.MULTIPLE_CHOICE ? (
+                          opt.isCorrect ? (
+                            <CheckSquare size={16} className="text-blue-600" />
+                          ) : (
+                            <span className="w-4 h-4 rounded border border-slate-300 block hover:border-blue-500" />
+                          )
+                        ) : opt.isCorrect ? (
                           <CircleDot size={16} className="text-blue-600" />
                         ) : (
                           <span className="w-4 h-4 rounded-full border border-slate-300 block hover:border-blue-500" />
@@ -605,7 +656,7 @@ export function QuestionBankModal({
                       {/* Correct Checkbox Toggle */}
                       <button
                         type="button"
-                        onClick={() => handleSetSingleCorrect(opt.id)}
+                        onClick={() => handleToggleOptionCorrect(opt.id)}
                         className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 ${
                           opt.isCorrect
                             ? 'border-blue-600 bg-blue-600 text-white shadow-xs'
@@ -668,7 +719,9 @@ export function QuestionBankModal({
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
           <span className="text-[11px] text-slate-500 hidden sm:inline">
-            Loại 1: Trắc nghiệm 1 đáp án (Single Choice) • Lưu vào Ngân hàng trung tâm
+            {type === QuizQuestionType.MULTIPLE_CHOICE
+              ? 'Loại 2: Trắc nghiệm nhiều đáp án đúng (Multiple Choice / Check Box) • Lưu vào Ngân hàng trung tâm'
+              : 'Loại 1: Trắc nghiệm 1 đáp án (Single Choice / Radio Button) • Lưu vào Ngân hàng trung tâm'}
           </span>
 
           <div className="flex items-center gap-2.5 ml-auto">

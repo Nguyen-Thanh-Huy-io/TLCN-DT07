@@ -30,11 +30,37 @@ interface QuestionProps {
 const OPTION_BASE = 'flex w-full items-center gap-3 rounded-xl border p-4 text-left text-sm font-medium transition';
 
 function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingItem }: QuestionProps) {
-  if (q.type === QuizQuestionType.SINGLE_CHOICE) {
+  if (
+    q.type === QuizQuestionType.SINGLE_CHOICE ||
+    q.type === QuizQuestionType.MULTIPLE_CHOICE
+  ) {
+    const isMulti = q.type === QuizQuestionType.MULTIPLE_CHOICE;
+    const selectedIds = Array.isArray(answer)
+      ? (answer as string[])
+      : typeof answer === 'string' && answer
+        ? [answer]
+        : [];
+
+    const handleSelectOption = (optId: string) => {
+      if (!isMulti) {
+        setAnswer(q.id, optId);
+        return;
+      }
+      const next = selectedIds.includes(optId)
+        ? selectedIds.filter((id) => id !== optId)
+        : [...selectedIds, optId];
+      setAnswer(q.id, next);
+    };
+
     return (
       <div className="mt-5 space-y-3">
+        {isMulti && (
+          <p className="text-xs font-medium text-lh-muted italic">
+            (Có thể chọn nhiều đáp án đúng)
+          </p>
+        )}
         {q.options.map((opt, idx) => {
-          const selected = answer === opt.id;
+          const selected = selectedIds.includes(opt.id);
           const state = submitted
             ? opt.isCorrect
               ? 'border-lh-brand bg-lh-brand-soft text-lh-brand font-semibold'
@@ -44,16 +70,19 @@ function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingI
             : selected
               ? 'border-lh-brand bg-lh-brand-soft/60 text-lh-ink font-semibold'
               : 'border-lh-line text-lh-ink hover:border-lh-brand/30 hover:bg-lh-surface-2';
+
           return (
             <button
               key={opt.id}
               type="button"
               disabled={submitted}
-              onClick={() => setAnswer(q.id, opt.id)}
+              onClick={() => handleSelectOption(opt.id)}
               className={`${OPTION_BASE} cursor-pointer ${state}`}
             >
               <span
-                className={`grid size-7 shrink-0 place-items-center rounded-full border text-xs font-bold ${
+                className={`grid size-7 shrink-0 place-items-center ${
+                  isMulti ? 'rounded-md' : 'rounded-full'
+                } border text-xs font-bold ${
                   submitted && opt.isCorrect
                     ? 'border-lh-brand bg-lh-brand text-white'
                     : selected
@@ -71,48 +100,13 @@ function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingI
                   ) : (
                     String.fromCharCode(65 + idx)
                   )
+                ) : isMulti && selected ? (
+                  <Check className="size-3.5" />
                 ) : (
                   String.fromCharCode(65 + idx)
                 )}
               </span>
               <span className="flex-1 text-left">{opt.text}</span>
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
-
-  if (q.type === QuizQuestionType.MULTIPLE_CHOICE) {
-    return (
-      <div className="mt-5 space-y-3">
-        {q.options.map((opt, idx) => {
-          const selected = answer === opt.id;
-          const state = submitted
-            ? opt.isCorrect
-              ? 'border-lh-brand bg-lh-brand-soft text-lh-brand'
-              : selected
-                ? 'border-lh-red bg-lh-red-soft text-lh-red'
-                : 'border-lh-line text-lh-muted'
-            : selected
-              ? 'border-lh-brand bg-lh-brand-soft/60 text-lh-ink'
-              : 'border-lh-line text-lh-ink hover:border-lh-brand/30 hover:bg-lh-surface-2';
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              disabled={submitted}
-              onClick={() => setAnswer(q.id, opt.id)}
-              className={`${OPTION_BASE} cursor-pointer ${state}`}
-            >
-              <span
-                className={`grid size-7 shrink-0 place-items-center rounded-full border text-xs font-bold ${
-                  selected ? 'border-lh-brand bg-lh-brand text-white' : 'border-lh-line'
-                }`}
-              >
-                {submitted && opt.isCorrect ? <Check className="size-4" /> : String.fromCharCode(65 + idx)}
-              </span>
-              {opt.text}
             </button>
           );
         })}
@@ -311,34 +305,49 @@ export function HubLessonQuiz({
                     <p className="font-semibold text-lh-brand">Đáp án đúng: {detail.correctSummary}</p>
                   )}
 
-                  {/* Ghi chú giải thích riêng cho từng lựa chọn của Single Choice */}
-                  {q.type === QuizQuestionType.SINGLE_CHOICE && (() => {
-                    const selectedOpt = q.options.find((o) => o.id === answers[q.id]);
-                    const correctOpt = q.options.find((o) => o.isCorrect);
-                    const selectedLetter = selectedOpt ? String.fromCharCode(65 + q.options.indexOf(selectedOpt)) : '';
-                    const correctLetter = correctOpt ? String.fromCharCode(65 + q.options.indexOf(correctOpt)) : '';
+                  {/* Ghi chú giải thích riêng cho từng lựa chọn (Dùng chung cho Single Choice & Multiple Choice) */}
+                  {(q.type === QuizQuestionType.SINGLE_CHOICE ||
+                    q.type === QuizQuestionType.MULTIPLE_CHOICE) &&
+                    (() => {
+                      const rawAns = answers[q.id];
+                      const selectedSet = new Set(
+                        Array.isArray(rawAns)
+                          ? rawAns
+                          : typeof rawAns === 'string' && rawAns
+                            ? [rawAns]
+                            : [],
+                      );
+                      const relevantOptions = q.options
+                        .map((opt, i) => ({ opt, letter: String.fromCharCode(65 + i) }))
+                        .filter(
+                          ({ opt }) =>
+                            Boolean(opt.explanation?.trim()) &&
+                            (opt.isCorrect || selectedSet.has(opt.id)),
+                        );
 
-                    return (
-                      <>
-                        {selectedOpt?.explanation && (
-                          <div className={`p-2.5 rounded-lg border text-xs leading-relaxed ${
-                            selectedOpt.isCorrect
-                              ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
-                              : 'bg-rose-50/80 border-rose-200 text-rose-900'
-                          }`}>
-                            <strong>💡 Lưu ý phương án {selectedLetter} ({selectedOpt.isCorrect ? 'Đúng' : 'Bạn đã chọn'}): </strong>
-                            {selectedOpt.explanation}
-                          </div>
-                        )}
-                        {!detail.isCorrect && correctOpt?.explanation && correctOpt.id !== selectedOpt?.id && (
-                          <div className="p-2.5 rounded-lg border bg-emerald-50/80 border-emerald-200 text-emerald-900 text-xs leading-relaxed">
-                            <strong>✅ Vì sao phương án {correctLetter} là đáp án đúng: </strong>
-                            {correctOpt.explanation}
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
+                      if (relevantOptions.length === 0) return null;
+
+                      return (
+                        <div className="space-y-1.5">
+                          {relevantOptions.map(({ opt, letter }) => (
+                            <div
+                              key={opt.id}
+                              className={`p-2.5 rounded-lg border text-xs leading-relaxed ${
+                                opt.isCorrect
+                                  ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
+                                  : 'bg-rose-50/80 border-rose-200 text-rose-900'
+                              }`}
+                            >
+                              <strong>
+                                {opt.isCorrect ? '✅' : '💡'} Phương án {letter} (
+                                {opt.isCorrect ? 'Đáp án đúng' : 'Bạn đã chọn'}):{' '}
+                              </strong>
+                              {opt.explanation}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
 
                   {q.explanation && (
                     <p className="text-xs text-lh-ink/80 pt-1 border-t border-lh-line">

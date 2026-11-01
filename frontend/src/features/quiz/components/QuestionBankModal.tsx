@@ -48,6 +48,11 @@ import {
   TopicCategoryModalPicker,
   LessonCategoryModalPicker,
 } from './CategoryTreePicker';
+import { TreeSelectTrigger } from '@/components/common/TreeSelectModal';
+import {
+  CollapsibleExplanationField,
+  OptionExplanationBox,
+} from '@/components/common/CollapsibleExplanationField';
 
 interface QuestionBankModalProps {
   isOpen: boolean;
@@ -129,6 +134,7 @@ export function QuestionBankModal({
     { id: generateQuizId('opt'), text: '', isCorrect: false },
   ]);
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
+  const [isGeneralNoteOpen, setIsGeneralNoteOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [noticeMsg, setNoticeMsg] = useState('');
@@ -166,6 +172,7 @@ export function QuestionBankModal({
       setType(initialQuestion.type);
       setPrompt(initialQuestion.prompt || '');
       setExplanation(initialQuestion.explanation || '');
+      setIsGeneralNoteOpen(Boolean(initialQuestion.explanation && initialQuestion.explanation.trim()));
       setDifficulty(initialQuestion.difficulty || 'MEDIUM');
       setPoints(initialQuestion.points ?? 1);
       setTopicIds(initialQuestion.topics?.map((t) => t.id) || []);
@@ -184,6 +191,7 @@ export function QuestionBankModal({
       setType(QuizQuestionType.SINGLE_CHOICE);
       setPrompt('');
       setExplanation('');
+      setIsGeneralNoteOpen(false);
       setDifficulty('MEDIUM');
       setPoints(1);
       setTopicIds([]);
@@ -452,48 +460,17 @@ export function QuestionBankModal({
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Phân loại / Chủ đề <span className="text-slate-400 font-normal">(Topics)</span>
                 </label>
-                <div
+                <TreeSelectTrigger
                   onClick={() => setIsTopicModalOpen(true)}
-                  className="w-full min-h-[38px] px-3 py-1.5 bg-white border border-slate-200 hover:border-emerald-500 rounded-xl flex flex-wrap items-center gap-1.5 cursor-pointer transition-colors group"
-                >
-                  {topicIds.length === 0 ? (
-                    <div className="flex items-center justify-between w-full text-xs text-slate-500">
-                      <span className="flex items-center gap-1.5">
-                        <Folder size={13} className="text-slate-400 group-hover:text-emerald-600" />
-                        <span>Chung (Bấm để chọn chủ đề...)</span>
-                      </span>
-                      <ChevronRight size={14} className="text-slate-400" />
-                    </div>
-                  ) : (
-                    <>
-                      {topicIds.map((id) => {
-                        const tp = topicsList.find((t) => t.id === id);
-                        const label = tp?.name || 'Chủ đề đã chọn';
-                        return (
-                          <span
-                            key={id}
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 text-[11px] font-medium max-w-full"
-                          >
-                            <span className="truncate max-w-[180px]" title={label}>
-                              {label}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setTopicIds((prev) => prev.filter((item) => item !== id))}
-                              className="text-emerald-600 hover:text-rose-600 ml-0.5 cursor-pointer"
-                            >
-                              <X size={11} />
-                            </button>
-                          </span>
-                        );
-                      })}
-                      <span className="text-[10px] font-semibold text-emerald-700 ml-auto shrink-0">
-                        + Chọn thêm
-                      </span>
-                    </>
-                  )}
-                </div>
+                  placeholder="Chung (Bấm để chọn chủ đề...)"
+                  icon={<Folder size={13} className="text-slate-400 group-hover:text-emerald-600" />}
+                  badgeColor="emerald"
+                  selectedItems={topicIds.map((id) => ({
+                    id,
+                    label: topicsList.find((t) => t.id === id)?.name || 'Chủ đề đã chọn',
+                  }))}
+                  onRemoveItem={(id) => setTopicIds((prev) => prev.filter((item) => item !== id))}
+                />
               </div>
 
               {/* Ô 2: Liên kết bài học (Lesson Multi-Select Modal Trigger) */}
@@ -501,48 +478,17 @@ export function QuestionBankModal({
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Liên kết bài học <span className="text-slate-400 font-normal">(Lessons)</span>
                 </label>
-                <div
+                <TreeSelectTrigger
                   onClick={() => setIsLessonModalOpen(true)}
-                  className="w-full min-h-[38px] px-3 py-1.5 bg-white border border-slate-200 hover:border-emerald-500 rounded-xl flex flex-wrap items-center gap-1.5 cursor-pointer transition-colors group"
-                >
-                  {lessonIds.length === 0 ? (
-                    <div className="flex items-center justify-between w-full text-xs text-slate-500">
-                      <span className="flex items-center gap-1.5">
-                        <BookOpen size={13} className="text-slate-400 group-hover:text-emerald-600" />
-                        <span>Chung (Bấm để chọn bài học...)</span>
-                      </span>
-                      <ChevronRight size={14} className="text-slate-400" />
-                    </div>
-                  ) : (
-                    <>
-                      {lessonIds.map((id) => {
-                        const ls = lessonsList.find((l) => l.id === id);
-                        const label = ls?.title || 'Bài học đã chọn';
-                        return (
-                          <span
-                            key={id}
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-900 text-[11px] font-medium max-w-full"
-                          >
-                            <span className="truncate max-w-[180px]" title={label}>
-                              {label}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setLessonIds((prev) => prev.filter((item) => item !== id))}
-                              className="text-blue-600 hover:text-rose-600 ml-0.5 cursor-pointer"
-                            >
-                              <X size={11} />
-                            </button>
-                          </span>
-                        );
-                      })}
-                      <span className="text-[10px] font-semibold text-blue-700 ml-auto shrink-0">
-                        + Chọn thêm
-                      </span>
-                    </>
-                  )}
-                </div>
+                  placeholder="Chung (Bấm để chọn bài học...)"
+                  icon={<BookOpen size={13} className="text-slate-400 group-hover:text-emerald-600" />}
+                  badgeColor="blue"
+                  selectedItems={lessonIds.map((id) => ({
+                    id,
+                    label: lessonsList.find((l) => l.id === id)?.title || 'Bài học đã chọn',
+                  }))}
+                  onRemoveItem={(id) => setLessonIds((prev) => prev.filter((item) => item !== id))}
+                />
               </div>
             </div>
           </div>
@@ -574,18 +520,9 @@ export function QuestionBankModal({
                 onChange={setPrompt}
                 placeholder="Nhập nội dung câu hỏi lịch sử chi tiết (hỗ trợ in đậm, in nghiêng, trích dẫn, danh sách, tải ảnh tư liệu, video YouTube...)"
                 showToolbar={true}
-                minHeightClass="min-h-[170px] p-3 text-sm font-medium"
+                minHeightClass="min-h-[110px]"
               />
             </div>
-
-            {/* Description / Explanation Optional Field */}
-            <input
-              type="text"
-              value={explanation}
-              onChange={(e) => setExplanation(e.target.value)}
-              placeholder="Description (Optional) - Giải thích đáp án chung hoặc chú thích thêm khi hoàn thành..."
-              className="w-full text-xs p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder:text-slate-400 text-slate-700 font-medium"
-            />
           </div>
 
           {/* Section 3: Options List with Drag Handle, Input, Correct Toggle & Delete */}
@@ -694,48 +631,14 @@ export function QuestionBankModal({
                       </button>
                     </div>
 
-                    {/* Collapsible Per-Option Explanation Sub-Input */}
+                    {/* Collapsible Per-Option Explanation Sub-Input (Reusable Component) */}
                     {isNoteOpen && (
-                      <div className="mt-2.5 pt-2 border-t border-slate-100 pl-8 pr-1 flex items-start gap-2">
-                        <span className="text-amber-600 mt-1 shrink-0">
-                          <Lightbulb size={13} />
-                        </span>
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-slate-700">
-                              Giải thích riêng khi học sinh chọn đáp án {labelLetter} (
-                              {opt.isCorrect ? (
-                                <span className="text-emerald-600">Đáp án đúng</span>
-                              ) : (
-                                <span className="text-amber-600">Phương án sai / gây nhiễu</span>
-                              )}
-                              ):
-                            </span>
-                            {opt.explanation && (
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateOptionExplanation(opt.id, '')}
-                                className="text-[10px] text-rose-500 hover:text-rose-700 underline cursor-pointer"
-                              >
-                                Xóa ghi chú
-                              </button>
-                            )}
-                          </div>
-                          <input
-                            type="text"
-                            value={opt.explanation || ''}
-                            onChange={(e) =>
-                              handleUpdateOptionExplanation(opt.id, e.target.value)
-                            }
-                            placeholder={
-                              opt.isCorrect
-                                ? `Vì sao đáp án ${labelLetter} là chính xác (cơ sở lịch sử, bối cảnh)...`
-                                : `Vì sao học sinh chọn đáp án ${labelLetter} là sai (lỗi nhầm mốc thời gian, sự kiện)...`
-                            }
-                            className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500"
-                          />
-                        </div>
-                      </div>
+                      <OptionExplanationBox
+                        labelLetter={labelLetter}
+                        isCorrect={opt.isCorrect}
+                        value={opt.explanation}
+                        onChange={(val) => handleUpdateOptionExplanation(opt.id, val)}
+                      />
                     )}
                   </div>
                 );
@@ -751,6 +654,14 @@ export function QuestionBankModal({
               <Plus size={14} />
               <span>Thêm phương án lựa chọn (Add Option)</span>
             </button>
+          </div>
+
+          {/* Section 4: Collapsible & Auto-fit General Explanation Card (Reusable Component) */}
+          <div className="pt-1">
+            <CollapsibleExplanationField
+              value={explanation}
+              onChange={setExplanation}
+            />
           </div>
         </div>
 

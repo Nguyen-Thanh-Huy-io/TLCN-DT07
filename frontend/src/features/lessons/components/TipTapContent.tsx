@@ -131,7 +131,7 @@ export function TipTapContent({
   return (
     <div
       className={`tiptap-editor-wrapper relative flex-1 flex flex-col ${
-        minHeightClass ? 'min-h-[160px]' : compact ? 'min-h-[160px]' : 'min-h-[480px]'
+        minHeightClass ? '' : compact ? 'min-h-[120px]' : 'min-h-[320px]'
       }`}
     >
       {editor && (
@@ -246,11 +246,13 @@ export function TipTapContent({
         }}
         onDrop={() => setIsDragOver(false)}
         className={`tiptap-content-box flex-1 ${
+          compact || minHeightClass ? 'tiptap-content-box--compact' : ''
+        } ${
           minHeightClass
             ? minHeightClass
             : compact
-            ? 'min-h-[140px] !border-0 !p-1 focus:outline-none'
-            : 'min-h-[420px]'
+            ? 'min-h-[110px] !border-0 !p-3 focus:outline-none'
+            : 'min-h-[280px]'
         } transition-all relative ${
           isDragOver ? 'ring-2 ring-blue-500 bg-blue-50/10' : ''
         }`}

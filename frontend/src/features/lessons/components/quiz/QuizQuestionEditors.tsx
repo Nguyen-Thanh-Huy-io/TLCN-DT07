@@ -12,6 +12,10 @@ import {
   TrueFalseQuestion,
 } from '../../types/quiz.types';
 import { generateQuizId } from '../../factories/quiz-question.factory';
+import {
+  CollapsibleExplanationField,
+  OptionExplanationBox,
+} from '@/components/common/CollapsibleExplanationField';
 
 export enum MoveDirection {
   UP = 'UP',
@@ -30,35 +34,24 @@ const inputCls =
 const smallInputCls =
   'flex-1 text-xs p-1.5 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500';
 
-/** Khung chung: câu dẫn + giải thích đáp án (dùng cho mọi dạng câu hỏi) */
-function PromptAndExplanation({
+/** Khung chung: câu dẫn đề bài (tự động giãn chiều cao theo độ dài văn bản) */
+function PromptField({
   prompt,
-  explanation,
   promptPlaceholder,
   onChange,
 }: {
   prompt: string;
-  explanation?: string;
   promptPlaceholder: string;
   onChange: (updates: { prompt?: string; explanation?: string }) => void;
 }) {
   return (
-    <>
-      <textarea
-        rows={2}
-        value={prompt}
-        onChange={(e) => onChange({ prompt: e.target.value })}
-        placeholder={promptPlaceholder}
-        className={`${inputCls} resize-none font-medium`}
-      />
-      <input
-        type="text"
-        value={explanation || ''}
-        onChange={(e) => onChange({ explanation: e.target.value })}
-        placeholder="Giải thích đáp án (tùy chọn, hiện sau khi học sinh trả lời)..."
-        className={`${inputCls} text-slate-500`}
-      />
-    </>
+    <textarea
+      rows={Math.max(2, Math.ceil((prompt?.length || 0) / 80))}
+      value={prompt}
+      onChange={(e) => onChange({ prompt: e.target.value })}
+      placeholder={promptPlaceholder}
+      className={`${inputCls} resize-y font-medium leading-relaxed`}
+    />
   );
 }
 
@@ -99,10 +92,9 @@ export function SingleChoiceEditor({
   };
 
   return (
-    <div className="space-y-2">
-      <PromptAndExplanation
+    <div className="space-y-2.5">
+      <PromptField
         prompt={data.prompt}
-        explanation={data.explanation}
         promptPlaceholder="Câu hỏi trắc nghiệm 1 đáp án..."
         onChange={onChange}
       />
@@ -154,15 +146,12 @@ export function SingleChoiceEditor({
               </div>
 
               {isNoteOpen && (
-                <div className="pl-7 pr-1">
-                  <input
-                    type="text"
-                    value={opt.explanation || ''}
-                    onChange={(e) => updateOptionExplanation(opt.id, e.target.value)}
-                    placeholder={`Giải thích vì sao đáp án ${labelLetter} ${opt.isCorrect ? 'đúng' : 'sai'}...`}
-                    className="w-full text-[11px] p-1.5 bg-slate-50 border border-slate-200 rounded text-slate-700 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
+                <OptionExplanationBox
+                  labelLetter={labelLetter}
+                  isCorrect={opt.isCorrect}
+                  value={opt.explanation}
+                  onChange={(val) => updateOptionExplanation(opt.id, val)}
+                />
               )}
             </div>
           );
@@ -175,6 +164,10 @@ export function SingleChoiceEditor({
       >
         + Thêm lựa chọn
       </button>
+      <CollapsibleExplanationField
+        value={data.explanation}
+        onChange={(explanation) => onChange({ explanation })}
+      />
     </div>
   );
 }
@@ -206,10 +199,9 @@ export function MultipleChoiceEditor({
   };
 
   return (
-    <div className="space-y-2">
-      <PromptAndExplanation
+    <div className="space-y-2.5">
+      <PromptField
         prompt={data.prompt}
-        explanation={data.explanation}
         promptPlaceholder="Câu hỏi trắc nghiệm..."
         onChange={onChange}
       />
@@ -248,6 +240,10 @@ export function MultipleChoiceEditor({
       >
         + Thêm lựa chọn
       </button>
+      <CollapsibleExplanationField
+        value={data.explanation}
+        onChange={(explanation) => onChange({ explanation })}
+      />
     </div>
   );
 }
@@ -260,10 +256,9 @@ export function TrueFalseEditor({
   onChange: OnChange<TrueFalseQuestion>;
 }) {
   return (
-    <div className="space-y-2">
-      <PromptAndExplanation
+    <div className="space-y-2.5">
+      <PromptField
         prompt={data.prompt}
-        explanation={data.explanation}
         promptPlaceholder="Câu khẳng định cần đánh giá Đúng/Sai..."
         onChange={onChange}
       />
@@ -287,6 +282,10 @@ export function TrueFalseEditor({
           Sai
         </button>
       </div>
+      <CollapsibleExplanationField
+        value={data.explanation}
+        onChange={(explanation) => onChange({ explanation })}
+      />
     </div>
   );
 }
@@ -323,10 +322,9 @@ export function OrderingEditor({
   };
 
   return (
-    <div className="space-y-2">
-      <PromptAndExplanation
+    <div className="space-y-2.5">
+      <PromptField
         prompt={data.prompt}
-        explanation={data.explanation}
         promptPlaceholder="Ví dụ: Sắp xếp các sự kiện sau theo đúng thứ tự thời gian..."
         onChange={onChange}
       />
@@ -359,6 +357,10 @@ export function OrderingEditor({
       >
         + Thêm mốc
       </button>
+      <CollapsibleExplanationField
+        value={data.explanation}
+        onChange={(explanation) => onChange({ explanation })}
+      />
     </div>
   );
 }
@@ -390,10 +392,9 @@ export function MatchingEditor({
   };
 
   return (
-    <div className="space-y-2">
-      <PromptAndExplanation
+    <div className="space-y-2.5">
+      <PromptField
         prompt={data.prompt}
-        explanation={data.explanation}
         promptPlaceholder="Ví dụ: Nối nhân vật với vai trò của họ..."
         onChange={onChange}
       />
@@ -447,6 +448,10 @@ export function MatchingEditor({
           );
         })}
       </div>
+      <CollapsibleExplanationField
+        value={data.explanation}
+        onChange={(explanation) => onChange({ explanation })}
+      />
     </div>
   );
 }
@@ -475,10 +480,9 @@ export function FillInBlankEditor({
   };
 
   return (
-    <div className="space-y-2">
-      <PromptAndExplanation
+    <div className="space-y-2.5">
+      <PromptField
         prompt={data.prompt}
-        explanation={data.explanation}
         promptPlaceholder="Ví dụ: Chiến dịch Điện Biên Phủ toàn thắng vào năm ___."
         onChange={onChange}
       />
@@ -520,6 +524,10 @@ export function FillInBlankEditor({
         />
         Phân biệt hoa/thường khi chấm
       </label>
+      <CollapsibleExplanationField
+        value={data.explanation}
+        onChange={(explanation) => onChange({ explanation })}
+      />
     </div>
   );
 }

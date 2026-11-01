@@ -33,6 +33,7 @@ import { TipTapContent } from '@/features/lessons/components/TipTapContent';
 import {
   QUIZ_QUESTION_TYPE_META,
   QuizQuestionType,
+  OrderingItem,
 } from '@/features/lessons/types/quiz.types';
 import { generateQuizId } from '@/features/lessons/factories/quiz-question.factory';
 import {
@@ -54,6 +55,7 @@ import {
   OptionExplanationBox,
 } from '@/components/common/CollapsibleExplanationField';
 import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
+import { TimelineOrderingItemsEditor } from '@/components/common/TimelineOrderingItemsEditor';
 
 interface QuestionBankModalProps {
   isOpen: boolean;
@@ -98,7 +100,7 @@ const QUESTION_TYPE_CARDS: QuestionTypeCardConfig[] = [
     title: 'Dòng thời gian',
     subtitle: '(Timeline Order)',
     icon: Clock,
-    isReady: false,
+    isReady: true,
   },
   {
     type: QuizQuestionType.MATCHING,
@@ -135,6 +137,11 @@ export function QuestionBankModal({
     { id: generateQuizId('opt'), text: '', isCorrect: false },
   ]);
   const [correctAnswer, setCorrectAnswer] = useState<boolean>(true);
+  const [orderingItems, setOrderingItems] = useState<OrderingItem[]>([
+    { id: generateQuizId('item'), label: '' },
+    { id: generateQuizId('item'), label: '' },
+    { id: generateQuizId('item'), label: '' },
+  ]);
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
   const [isGeneralNoteOpen, setIsGeneralNoteOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -184,6 +191,25 @@ export function QuestionBankModal({
       } else {
         setCorrectAnswer(true);
       }
+      if (Array.isArray(initialQuestion.data?.items) && initialQuestion.data.items.length >= 2) {
+        const rawItems: OrderingItem[] = initialQuestion.data.items;
+        const rawOrder: string[] = Array.isArray(initialQuestion.data.correctOrder)
+          ? initialQuestion.data.correctOrder
+          : [];
+        if (rawOrder.length === rawItems.length) {
+          const itemMap = new Map(rawItems.map((it) => [it.id, it]));
+          const sorted = rawOrder.map((id) => itemMap.get(id)).filter(Boolean) as OrderingItem[];
+          setOrderingItems(sorted.length === rawItems.length ? sorted : rawItems);
+        } else {
+          setOrderingItems(rawItems);
+        }
+      } else {
+        setOrderingItems([
+          { id: generateQuizId('item'), label: '' },
+          { id: generateQuizId('item'), label: '' },
+          { id: generateQuizId('item'), label: '' },
+        ]);
+      }
       if (initialQuestion.data?.options && Array.isArray(initialQuestion.data.options)) {
         setOptions(initialQuestion.data.options);
         const notesMap: Record<string, boolean> = {};
@@ -205,6 +231,11 @@ export function QuestionBankModal({
       setLessonIds([]);
       setExpandedNotes({});
       setCorrectAnswer(true);
+      setOrderingItems([
+        { id: generateQuizId('item'), label: '' },
+        { id: generateQuizId('item'), label: '' },
+        { id: generateQuizId('item'), label: '' },
+      ]);
       setOptions([
         { id: generateQuizId('opt'), text: '', isCorrect: true },
         { id: generateQuizId('opt'), text: '', isCorrect: false },
@@ -310,12 +341,31 @@ export function QuestionBankModal({
       }
     }
 
+    if (type === QuizQuestionType.ORDERING) {
+      if (orderingItems.length < 2) {
+        setErrorMsg('Cần ít nhất 2 mốc sự kiện để sắp xếp dòng thời gian.');
+        return;
+      }
+      if (orderingItems.some((it) => !it.label.trim())) {
+        setErrorMsg('Vui lòng nhập đầy đủ nội dung cho tất cả các mốc sự kiện.');
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
       const questionData =
         type === QuizQuestionType.TRUE_FALSE
           ? { correctAnswer }
-          : { options };
+          : type === QuizQuestionType.ORDERING
+            ? {
+                items: orderingItems.map((it) => ({
+                  id: it.id,
+                  label: it.label.trim(),
+                })),
+                correctOrder: orderingItems.map((it) => it.id),
+              }
+            : { options };
 
       const payload: CreateQuestionPayload = {
         type,
@@ -558,10 +608,18 @@ export function QuestionBankModal({
             </div>
           </div>
 
-          {/* Section 3: Options List (Single/Multiple Choice) OR True/False Selector */}
+          {/* Section 3: Options List (Single/Multiple Choice), True/False Selector, OR Timeline Ordering */}
           {type === QuizQuestionType.TRUE_FALSE ? (
             <div className="pt-1">
               <TrueFalseAnswerSelector value={correctAnswer} onChange={setCorrectAnswer} />
+            </div>
+          ) : type === QuizQuestionType.ORDERING ? (
+            <div className="pt-1">
+              <TimelineOrderingItemsEditor
+                items={orderingItems}
+                onChange={setOrderingItems}
+                onError={setErrorMsg}
+              />
             </div>
           ) : (
             <div className="space-y-2.5 pt-1">
@@ -736,11 +794,13 @@ export function QuestionBankModal({
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
           <span className="text-[11px] text-slate-500 hidden sm:inline">
-            {type === QuizQuestionType.TRUE_FALSE
-              ? 'Loại 3: Câu hỏi Đúng / Sai (True / False) • Lưu vào Ngân hàng trung tâm'
-              : type === QuizQuestionType.MULTIPLE_CHOICE
-                ? 'Loại 2: Trắc nghiệm nhiều đáp án đúng (Multiple Choice / Check Box) • Lưu vào Ngân hàng trung tâm'
-                : 'Loại 1: Trắc nghiệm 1 đáp án (Single Choice / Radio Button) • Lưu vào Ngân hàng trung tâm'}
+            {type === QuizQuestionType.ORDERING
+              ? 'Loại 4: Sắp xếp dòng thời gian (Timeline Order) • Lưu vào Ngân hàng trung tâm'
+              : type === QuizQuestionType.TRUE_FALSE
+                ? 'Loại 3: Câu hỏi Đúng / Sai (True / False) • Lưu vào Ngân hàng trung tâm'
+                : type === QuizQuestionType.MULTIPLE_CHOICE
+                  ? 'Loại 2: Trắc nghiệm nhiều đáp án đúng (Multiple Choice / Check Box) • Lưu vào Ngân hàng trung tâm'
+                  : 'Loại 1: Trắc nghiệm 1 đáp án (Single Choice / Radio Button) • Lưu vào Ngân hàng trung tâm'}
           </span>
 
           <div className="flex items-center gap-2.5 ml-auto">

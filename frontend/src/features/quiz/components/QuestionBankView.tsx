@@ -493,6 +493,29 @@ export function QuestionBankView() {
                             </div>
                           )}
 
+                          {q.type === QuizQuestionType.ORDERING &&
+                            Array.isArray(q.data?.items) &&
+                            q.data.items.length > 0 && (
+                              <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                                <span className="shrink-0">
+                                  Thứ tự đúng ({q.data.items.length} mốc):
+                                </span>
+                                <strong className="text-amber-800 truncate max-w-md">
+                                  {(Array.isArray(q.data.correctOrder) &&
+                                  q.data.correctOrder.length === q.data.items.length
+                                    ? q.data.correctOrder.map(
+                                        (id: string) =>
+                                          q.data.items.find((it: any) => it.id === id)?.label || id
+                                      )
+                                    : q.data.items.map((it: any) => it.label)
+                                  )
+                                    .map((lbl: string, i: number) => `${i + 1}. ${lbl}`)
+                                    .join(' → ')}
+                                </strong>
+                              </div>
+                            )}
+
                           {q.explanation && (
                             <p className="text-[10px] text-slate-400 italic line-clamp-1">
                               💡 {q.explanation}

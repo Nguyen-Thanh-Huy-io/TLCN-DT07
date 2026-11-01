@@ -17,6 +17,7 @@ import {
   OptionExplanationBox,
 } from '@/components/common/CollapsibleExplanationField';
 import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
+import { TimelineOrderingItemsEditor } from '@/components/common/TimelineOrderingItemsEditor';
 
 export enum MoveDirection {
   UP = 'UP',
@@ -266,30 +267,6 @@ export function OrderingEditor({
   data: OrderingQuestion;
   onChange: OnChange<OrderingQuestion>;
 }) {
-  // `correctOrder` luôn chính là thứ tự hiện tại của `items` — tác giả sắp mốc theo
-  // đúng thứ tự thời gian thật bằng nút ▲▼, không cần nhập riêng "đáp án đúng".
-  const setItemsAndOrder = (items: OrderingQuestion['items']) => {
-    onChange({ items, correctOrder: items.map((i) => i.id) });
-  };
-  const updateLabel = (itemId: string, label: string) => {
-    setItemsAndOrder(data.items.map((i) => (i.id === itemId ? { ...i, label } : i)));
-  };
-  const moveItem = (idx: number, dir: MoveDirection | 'UP' | 'DOWN') => {
-    const target = dir === MoveDirection.UP ? idx - 1 : idx + 1;
-    if (target < 0 || target >= data.items.length) return;
-    const copy = [...data.items];
-    [copy[idx], copy[target]] = [copy[target], copy[idx]];
-    setItemsAndOrder(copy);
-  };
-  const addItem = () => setItemsAndOrder([...data.items, { id: generateQuizId('item'), label: '' }]);
-  const removeItem = (itemId: string) => {
-    if (data.items.length <= 2) {
-      alert('Cần ít nhất 2 mốc để sắp xếp.');
-      return;
-    }
-    setItemsAndOrder(data.items.filter((i) => i.id !== itemId));
-  };
-
   return (
     <div className="space-y-2.5">
       <PromptField
@@ -297,35 +274,11 @@ export function OrderingEditor({
         promptPlaceholder="Ví dụ: Sắp xếp các sự kiện sau theo đúng thứ tự thời gian..."
         onChange={onChange}
       />
-      <p className="text-[11px] text-slate-400">
-        Nhập các mốc theo đúng thứ tự thời gian thật — hệ thống sẽ xáo trộn khi hiển thị cho học sinh.
-      </p>
-      <div className="space-y-1.5">
-        {data.items.map((item, idx) => (
-          <div key={item.id} className="flex items-center gap-1.5">
-            <span className="text-xs font-mono font-bold text-slate-400 w-5 text-center shrink-0">
-              {idx + 1}
-            </span>
-            <input
-              type="text"
-              value={item.label}
-              onChange={(e) => updateLabel(item.id, e.target.value)}
-              placeholder="Nội dung mốc sự kiện..."
-              className={smallInputCls}
-            />
-            <button type="button" onClick={() => moveItem(idx, 'UP')} disabled={idx === 0} className="p-1 text-slate-400 hover:text-blue-600 disabled:opacity-30 cursor-pointer">▲</button>
-            <button type="button" onClick={() => moveItem(idx, 'DOWN')} disabled={idx === data.items.length - 1} className="p-1 text-slate-400 hover:text-blue-600 disabled:opacity-30 cursor-pointer">▼</button>
-            <button type="button" onClick={() => removeItem(item.id)} className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer">✕</button>
-          </div>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={addItem}
-        className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-dashed border-blue-300 rounded-lg py-1.5 w-full cursor-pointer transition"
-      >
-        + Thêm mốc
-      </button>
+      <TimelineOrderingItemsEditor
+        compact
+        items={data.items}
+        onChange={(items) => onChange({ items, correctOrder: items.map((i) => i.id) })}
+      />
       <CollapsibleExplanationField
         value={data.explanation}
         onChange={(explanation) => onChange({ explanation })}

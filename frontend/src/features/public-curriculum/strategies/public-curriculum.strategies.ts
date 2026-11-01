@@ -1,5 +1,6 @@
 import { LearningPathItem } from '@/services/entities/learning-path.service';
 import {
+  QuizItem,
   QuizQuestion,
   QuizQuestionType,
   SingleChoiceQuestion,
@@ -230,4 +231,90 @@ export class QuizGradingStrategyRegistry {
       correctSummary: grader.getCorrectSummary(question),
     };
   }
+}
+
+// ==========================================
+// 3. STRATEGY XÁO TRỘN NGẪU NHIÊN ĐỀ ÔN TẬP CHO HỌC SINH (FISHER-YATES SHUFFLE)
+// ==========================================
+
+/**
+ * Thuật toán Fisher-Yates Shuffle thuần túy (không làm biến đổi mảng gốc)
+ */
+export function shuffleArray<T>(items: readonly T[]): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+/**
+ * Xáo trộn ngẫu nhiên mảng ID của câu hỏi ORDERING và đảm bảo kết quả sau khi xáo
+ * KHÔNG vô tình trùng khít 100% với đáp án đúng `correctOrder` (khi có >= 2 mốc).
+ */
+export function shuffleOrderingIds(itemIds: readonly string[], correctOrder: readonly string[]): string[] {
+  if (itemIds.length < 2) return [...itemIds];
+  const shuffled = shuffleArray(itemIds);
+  const isIdenticalToCorrect =
+    shuffled.length === correctOrder.length &&
+    shuffled.every((id, idx) => id === correctOrder[idx]);
+
+  if (isIdenticalToCorrect) {
+    [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+  }
+  return shuffled;
+}
+
+/**
+ * Chuẩn bị phiên làm bài mới cho Học sinh:
+ * - Dạng 1 (SINGLE_CHOICE) & Dạng 2 (MULTIPLE_CHOICE): Đảo ngẫu nhiên vị trí các đáp án A, B, C, D.
+ * - Dạng 3 (TRUE_FALSE): Giữ cố định 2 nút Đúng / Sai trực quan.
+ * - Dạng 4 (ORDERING): Đảo ngẫu nhiên thứ tự các mốc sự kiện khởi tạo (đảm bảo khác `correctOrder`).
+ * - Dạng 5 (MATCHING): Đảo ngẫu nhiên cột vế phải (`rightItems`).
+ */
+export function prepareQuizSessionForLearner(rawQuiz: QuizItem): {
+  preparedQuiz: QuizItem;
+  initialAnswers: Record<string, UserQuizAnswer>;
+} {
+  const initialAnswers: Record<string, UserQuizAnswer> = {};
+
+  const shuffledQuestions: QuizQuestion[] = (rawQuiz.questions || []).map((q) => {
+    if (
+      q.type === QuizQuestionType.SINGLE_CHOICE ||
+      q.type === QuizQuestionType.MULTIPLE_CHOICE
+    ) {
+      return {
+        ...q,
+        options: shuffleArray(q.options),
+      };
+    }
+
+    if (q.type === QuizQuestionType.ORDERING) {
+      const allIds = q.items.map((it) => it.id);
+      const targetCorrect =
+        Array.isArray(q.correctOrder) && q.correctOrder.length === allIds.length
+          ? q.correctOrder
+          : allIds;
+      initialAnswers[q.id] = shuffleOrderingIds(allIds, targetCorrect);
+      return q;
+    }
+
+    if (q.type === QuizQuestionType.MATCHING) {
+      return {
+        ...q,
+        rightItems: shuffleArray(q.rightItems),
+      };
+    }
+
+    return q;
+  });
+
+  return {
+    preparedQuiz: {
+      ...rawQuiz,
+      questions: shuffledQuestions,
+    },
+    initialAnswers,
+  };
 }

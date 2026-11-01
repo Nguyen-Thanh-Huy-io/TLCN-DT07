@@ -16,6 +16,7 @@ import {
 } from '@/features/lessons/types/block-builder.types';
 import { buildLessonTocAndHtml, LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
 import {
+  prepareQuizSessionForLearner,
   QuizGradingStrategyRegistry,
   UserQuizAnswer,
 } from '../strategies/public-curriculum.strategies';
@@ -132,17 +133,14 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
       const { lesson: lessonData, quiz: quizRes } = await LearnerApiService.getLesson(slug);
       setAccess('GRANTED');
       setLesson(lessonData);
-      setQuiz(quizRes);
 
-      // Khởi tạo thứ tự mặc định cho câu hỏi ORDERING để người học có thể bấm đổi chỗ ngay
+      // Xáo trộn vị trí đáp án (Single/Multiple Choice), mốc thời gian (Ordering) và cột ghép (Matching) cho học sinh
       if (quizRes?.questions) {
-        const initialOrderingAnswers: Record<string, UserQuizAnswer> = {};
-        for (const q of quizRes.questions) {
-          if (q.type === QuizQuestionType.ORDERING) {
-            initialOrderingAnswers[q.id] = q.items.map((it) => it.id);
-          }
-        }
-        setUserAnswers(initialOrderingAnswers);
+        const { preparedQuiz, initialAnswers } = prepareQuizSessionForLearner(quizRes);
+        setQuiz(preparedQuiz);
+        setUserAnswers(initialAnswers);
+      } else {
+        setQuiz(quizRes);
       }
     } catch (err: any) {
       if (err?.response?.status === 403 && err?.response?.data?.code === NOT_ENROLLED_CODE) {
@@ -291,13 +289,9 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
   const handleRetryQuiz = useCallback(() => {
     setSubmittedQuiz(false);
     if (quiz?.questions) {
-      const resetAnswers: Record<string, UserQuizAnswer> = {};
-      for (const q of quiz.questions) {
-        if (q.type === QuizQuestionType.ORDERING) {
-          resetAnswers[q.id] = q.items.map((it) => it.id);
-        }
-      }
-      setUserAnswers(resetAnswers);
+      const { preparedQuiz, initialAnswers } = prepareQuizSessionForLearner(quiz);
+      setQuiz(preparedQuiz);
+      setUserAnswers(initialAnswers);
     } else {
       setUserAnswers({});
     }

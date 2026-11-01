@@ -607,3 +607,51 @@ sequenceDiagram
 ### 4. Kết quả kiểm thử tự động (Automated Validation):
 - **Backend Unit Tests (`npx jest src/quiz/validators/quiz-question.validator.spec.ts`)**: `PASS` (13/13 tests).
 - **Frontend TypeScript (`npx tsc --noEmit`)**: `PASS` (`0 errors`).
+
+
+---
+
+## ĐỢT 12: TRIỂN KHAI DẠNG 4 — SẮP XẾP DÒNG THỜI GIAN (`QuizQuestionType.ORDERING`) & COMPONENT DÙNG CHUNG `TimelineOrderingItemsEditor`
+
+### 1. Yêu cầu của người dùng (User Request):
+> "ok" (Triển khai Dạng 4: Dòng thời gian — `QuizQuestionType.ORDERING` với component tái sử dụng `TimelineOrderingItemsEditor`)
+
+### 2. Sơ đồ tuần tự (Sequence Diagram - Mermaid):
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Giáo viên / Admin
+    actor Learner as Học sinh (Public Hub)
+    participant QModal as QuestionBankModal / OrderingEditor
+    participant Editor as TimelineOrderingItemsEditor (Reusable Component)
+    participant API as QuestionController / OrderingValidationStrategy
+    participant Grader as OrderingGrader (Strategy Pattern)
+    participant QuizUI as HubLessonQuiz
+
+    Admin->>QModal: Chọn dạng câu hỏi "Dòng thời gian" (ORDERING)
+    QModal->>Editor: Hiển thị danh sách các mốc sự kiện theo thứ tự thời gian
+    Admin->>Editor: Nhập mốc sự kiện & Kéo thả (Drag & Drop) hoặc bấm ▲▼ để sắp thứ tự chuẩn
+    QModal->>API: POST/PUT /questions { type: ORDERING, data: { items, correctOrder } }
+    API->>API: OrderingValidationStrategy.validateAndNormalize (kiểm tra >= 2 items, correctOrder khớp 1:1)
+    API-->>QModal: Lưu thành công vào Ngân hàng câu hỏi
+
+    Learner->>QuizUI: Làm bài ôn tập gặp câu hỏi ORDERING
+    Learner->>QuizUI: Di chuyển các mốc sự kiện Lên (▲) / Xuống (▼)
+    Learner->>QuizUI: Nhấn "Kiểm tra đáp án"
+    QuizUI->>Grader: OrderingGrader.isCorrect(question, orderedIds[])
+    Grader-->>QuizUI: Trả về kết quả & tô màu xanh/đỏ từng vị trí mốc sự kiện + getCorrectSummary()
+```
+
+### 3. Chi tiết triển khai (SOLID & Code Reuse):
+1. **Component soạn thảo Dòng thời gian tái sử dụng ([`TimelineOrderingItemsEditor.tsx`](frontend/src/components/common/TimelineOrderingItemsEditor.tsx))**:
+   - Hỗ trợ đồng thời **kéo thả trực tiếp (HTML5 Drag & Drop)** thông qua tay nắm `GripVertical` và các nút di chuyển nhanh **Lên (`▲`) / Xuống (`▼`)**.
+   - Hiển thị huy hiệu thứ tự `Mốc 1`, `Mốc 2`... và tự động đồng bộ `correctOrder = items.map(i => i.id)`.
+   - Tái sử dụng tại cả 2 nơi: **`QuestionBankModal.tsx`** và **`OrderingEditor`** trong **`QuizQuestionEditors.tsx`** (`compact` mode, giảm hơn 50 dòng code lặp).
+2. **Ngân hàng câu hỏi & Giao diện làm bài ([`QuestionBankModal.tsx`](frontend/src/features/quiz/components/QuestionBankModal.tsx), [`QuestionBankView.tsx`](frontend/src/features/quiz/components/QuestionBankView.tsx), [`HubLessonQuiz.tsx`](frontend/src/features/public-curriculum/components/hub/HubLessonQuiz.tsx))**:
+   - Mở khóa `QuizQuestionType.ORDERING` (`isReady: true`) trên `QuestionBankModal`, tự động khôi phục thứ tự mốc chuẩn từ `correctOrder` khi chỉnh sửa câu hỏi có sẵn.
+   - Bổ sung dòng xem trước `Thứ tự đúng (N mốc): 1. Mốc A → 2. Mốc B...` ngay trên bảng danh sách `QuestionBankView.tsx`.
+   - Nâng cấp `HubLessonQuiz.tsx` tô màu xanh (`✓`) cho từng mốc đã đặt đúng vị trí và màu đỏ (`✕`) cho mốc đặt sai vị trí sau khi nộp bài.
+
+### 4. Kết quả kiểm thử tự động (Automated Validation):
+- **Backend Unit Tests (`npx jest src/quiz/validators/quiz-question.validator.spec.ts`)**: `PASS` (13/13 tests).
+- **Frontend TypeScript (`npx tsc --noEmit`)**: `PASS` (`0 errors`).

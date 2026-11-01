@@ -166,32 +166,94 @@ function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingI
 
   if (q.type === QuizQuestionType.ORDERING) {
     const order = Array.isArray(answer) ? (answer as string[]) : q.items.map((i) => i.id);
+
+    const handleReorderDragDrop = (fromIdx: number, toIdx: number) => {
+      if (submitted || fromIdx === toIdx || toIdx < 0 || toIdx >= order.length) return;
+      const next = [...order];
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      setAnswer(q.id, next);
+    };
+
     return (
       <div className="mt-5 space-y-2">
-        {order.map((itemId, idx) => (
-          <div key={itemId} className="flex items-center justify-between gap-3 rounded-xl border border-lh-line bg-lh-surface px-4 py-3 text-sm text-lh-ink">
-            <span className="flex items-center gap-3">
-              <span className="grid size-7 place-items-center rounded-full bg-lh-surface-2 text-xs font-bold text-lh-brand">{idx + 1}</span>
-              {q.items.find((i) => i.id === itemId)?.label || itemId}
-            </span>
-            {!submitted && (
-              <span className="flex gap-1">
-                <HubButton variant="outline" className="size-8 p-0" disabled={idx === 0} onClick={() => moveOrderingItem(q.id, idx, 'UP')} aria-label="Đưa lên">
-                  <ArrowUp className="size-4" />
-                </HubButton>
-                <HubButton
-                  variant="outline"
-                  className="size-8 p-0"
-                  disabled={idx === order.length - 1}
-                  onClick={() => moveOrderingItem(q.id, idx, 'DOWN')}
-                  aria-label="Đưa xuống"
+        <p className="text-xs font-medium text-lh-muted italic">
+          (Kéo thả trực tiếp hoặc bấm mũi tên Lên/Xuống để sắp xếp các mốc theo đúng thứ tự thời gian từ trước đến sau)
+        </p>
+        {order.map((itemId, idx) => {
+          const isPositionCorrect = submitted && q.correctOrder[idx] === itemId;
+          const rowState = submitted
+            ? isPositionCorrect
+              ? 'border-lh-brand bg-lh-brand-soft text-lh-brand font-semibold'
+              : 'border-lh-red bg-lh-red-soft text-lh-red'
+            : 'border-lh-line bg-lh-surface text-lh-ink cursor-grab active:cursor-grabbing hover:border-lh-brand/40';
+
+          return (
+            <div
+              key={itemId}
+              draggable={!submitted}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', String(idx));
+              }}
+              onDragOver={(e) => {
+                if (!submitted) e.preventDefault();
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const fromIdx = Number(e.dataTransfer.getData('text/plain'));
+                if (!Number.isNaN(fromIdx)) {
+                  handleReorderDragDrop(fromIdx, idx);
+                }
+              }}
+              className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm transition ${rowState}`}
+            >
+              <span className="flex items-center gap-3">
+                <span
+                  className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold ${
+                    submitted
+                      ? isPositionCorrect
+                        ? 'bg-lh-brand text-white'
+                        : 'bg-lh-red text-white'
+                      : 'bg-lh-surface-2 text-lh-brand'
+                  }`}
                 >
-                  <ArrowDown className="size-4" />
-                </HubButton>
+                  {submitted ? (
+                    isPositionCorrect ? (
+                      <Check className="size-4" />
+                    ) : (
+                      <X className="size-4" />
+                    )
+                  ) : (
+                    idx + 1
+                  )}
+                </span>
+                <span>{q.items.find((i) => i.id === itemId)?.label || itemId}</span>
               </span>
-            )}
-          </div>
-        ))}
+              {!submitted && (
+                <span className="flex gap-1 shrink-0">
+                  <HubButton
+                    variant="outline"
+                    className="size-8 p-0"
+                    disabled={idx === 0}
+                    onClick={() => moveOrderingItem(q.id, idx, 'UP')}
+                    aria-label="Đưa lên"
+                  >
+                    <ArrowUp className="size-4" />
+                  </HubButton>
+                  <HubButton
+                    variant="outline"
+                    className="size-8 p-0"
+                    disabled={idx === order.length - 1}
+                    onClick={() => moveOrderingItem(q.id, idx, 'DOWN')}
+                    aria-label="Đưa xuống"
+                  >
+                    <ArrowDown className="size-4" />
+                  </HubButton>
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   }

@@ -22,6 +22,8 @@ interface TipTapContentProps {
   placeholder?: string;
   label?: string;
   compact?: boolean;
+  minHeightClass?: string;
+  showToolbar?: boolean;
 }
 
 export function TipTapContent({
@@ -30,6 +32,8 @@ export function TipTapContent({
   placeholder = 'Nhập nội dung bài học lịch sử chi tiết...',
   label,
   compact = false,
+  minHeightClass,
+  showToolbar = false,
 }: TipTapContentProps) {
   const editorRef = useRef<any>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -127,7 +131,7 @@ export function TipTapContent({
   return (
     <div
       className={`tiptap-editor-wrapper relative flex-1 flex flex-col ${
-        compact ? 'min-h-[160px]' : 'min-h-[480px]'
+        minHeightClass ? 'min-h-[160px]' : compact ? 'min-h-[160px]' : 'min-h-[480px]'
       }`}
     >
       {editor && (
@@ -204,8 +208,8 @@ export function TipTapContent({
         </BubbleMenu>
       )}
 
-      {/* Toolbar: Đối với compact mode (khối văn bản tài liệu), mặc định ẩn để viết tự nhiên, chỉ mở khi cần */}
-      {compact ? (
+      {/* Toolbar: Nếu showToolbar=true, hiển thị trực tiếp. Nếu compact=true và showToolbar=false, hiển thị nút mở rộng */}
+      {compact && !showToolbar ? (
         <div className="relative">
           <div className="flex items-center justify-between pb-1 text-xs">
             <span className="text-[11px] text-slate-400 italic">
@@ -242,7 +246,11 @@ export function TipTapContent({
         }}
         onDrop={() => setIsDragOver(false)}
         className={`tiptap-content-box flex-1 ${
-          compact ? 'min-h-[140px] !border-0 !p-1 focus:outline-none' : 'min-h-[420px]'
+          minHeightClass
+            ? minHeightClass
+            : compact
+            ? 'min-h-[140px] !border-0 !p-1 focus:outline-none'
+            : 'min-h-[420px]'
         } transition-all relative ${
           isDragOver ? 'ring-2 ring-blue-500 bg-blue-50/10' : ''
         }`}

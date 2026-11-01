@@ -23,7 +23,10 @@ import {
   X,
   Plus,
   Lightbulb,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
+import { TipTapContent } from '@/features/lessons/components/TipTapContent';
 import {
   QUIZ_QUESTION_TYPE_META,
   QuizQuestionType,
@@ -116,6 +119,7 @@ export function QuestionBankModal({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [noticeMsg, setNoticeMsg] = useState('');
+  const [isMaximized, setIsMaximized] = useState(false);
 
   // Tải danh sách bài học để gán chuyên đề / phân loại
   useEffect(() => {
@@ -223,7 +227,8 @@ export function QuestionBankModal({
     if (e) e.preventDefault();
     setErrorMsg('');
 
-    if (!prompt.trim()) {
+    const cleanPromptText = prompt.replace(/<[^>]+>/g, '').trim();
+    if (!cleanPromptText && !prompt.includes('<img')) {
       setErrorMsg('Vui lòng nhập nội dung câu hỏi.');
       return;
     }
@@ -278,26 +283,45 @@ export function QuestionBankModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+      <div
+        className={`bg-white shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-all duration-200 animate-in fade-in zoom-in-95 ${
+          isMaximized
+            ? 'fixed inset-2 z-50 rounded-2xl max-h-[calc(100vh-16px)]'
+            : 'w-full max-w-5xl lg:max-w-6xl max-h-[94vh] rounded-2xl'
+        }`}
+      >
         {/* Header */}
-        <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-              {initialQuestion ? 'Cập nhật câu hỏi' : 'Tạo câu hỏi mới'}
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <span>{initialQuestion ? 'Cập nhật câu hỏi' : 'Tạo câu hỏi mới'}</span>
+              <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+                CMS Rich Text Editor
+              </span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Soạn thảo câu hỏi trắc nghiệm chuẩn sư phạm, phân loại chuyên đề và quản lý đáp án
+              Soạn thảo câu hỏi trắc nghiệm chuẩn sư phạm, hỗ trợ định dạng văn bản chuyên sâu và tải ảnh tư liệu
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-            title="Đóng cửa sổ"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsMaximized(!isMaximized)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              title={isMaximized ? 'Thu nhỏ cửa sổ' : 'Phóng to toàn màn hình'}
+            >
+              {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              title="Đóng cửa sổ"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Modal Scrollable Body */}
@@ -439,98 +463,14 @@ export function QuestionBankModal({
               </div>
             </div>
 
-            {/* Rich Editor Box with Toolbar */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all bg-white">
-              {/* Toolbar */}
-              <div className="flex items-center flex-wrap gap-0.5 px-2.5 py-1.5 bg-slate-50/80 border-b border-slate-200 text-slate-600 text-xs">
-                <button
-                  type="button"
-                  className="p-1.5 rounded hover:bg-slate-200 text-slate-700 font-bold transition"
-                  title="In đậm (Bold)"
-                >
-                  <Bold size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="p-1.5 rounded hover:bg-slate-200 text-slate-700 italic transition"
-                  title="In nghiêng (Italic)"
-                >
-                  <Italic size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="p-1.5 rounded hover:bg-slate-200 text-slate-700 underline transition"
-                  title="Gạch chân (Underline)"
-                >
-                  <Underline size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="p-1.5 rounded hover:bg-slate-200 text-slate-700 line-through transition"
-                  title="Gạch ngang (Strikethrough)"
-                >
-                  <Strikethrough size={13} />
-                </button>
-                <div className="w-[1px] h-4 bg-slate-300 mx-1" />
-                <button
-                  type="button"
-                  className="p-1.5 rounded hover:bg-slate-200 text-slate-700 transition"
-                  title="Tô sáng (Highlight)"
-                >
-                  <Highlighter size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="p-1.5 rounded hover:bg-slate-200 text-slate-700 transition"
-                  title="Danh sách dấu đầu dòng"
-                >
-                  <List size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="p-1.5 rounded hover:bg-slate-200 text-slate-700 transition"
-                  title="Danh sách số"
-                >
-                  <ListOrdered size={13} />
-                </button>
-                <div className="w-[1px] h-4 bg-slate-300 mx-1" />
-                <button
-                  type="button"
-                  className="p-1.5 rounded hover:bg-slate-200 text-slate-700 transition"
-                  title="Chỉ số dưới (Subscript)"
-                >
-                  <Subscript size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="p-1.5 rounded hover:bg-slate-200 text-slate-700 transition"
-                  title="Chỉ số trên (Superscript)"
-                >
-                  <Superscript size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="p-1.5 rounded hover:bg-slate-200 text-slate-700 transition"
-                  title="Chèn liên kết"
-                >
-                  <Link2 size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="p-1.5 rounded hover:bg-slate-200 text-slate-700 transition"
-                  title="Chèn hình ảnh tư liệu"
-                >
-                  <ImageIcon size={13} />
-                </button>
-              </div>
-
-              {/* Text Area */}
-              <textarea
-                rows={3}
+            {/* Rich Editor Box using CMS TipTapContent */}
+            <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+              <TipTapContent
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Ví dụ: Chiến thắng Điện Biên Phủ trên không diễn ra vào năm nào?"
-                className="w-full p-3 text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none resize-none bg-white"
+                onChange={setPrompt}
+                placeholder="Nhập nội dung câu hỏi lịch sử chi tiết (hỗ trợ in đậm, in nghiêng, trích dẫn, danh sách, tải ảnh tư liệu, video YouTube...)"
+                showToolbar={true}
+                minHeightClass="min-h-[170px] p-3 text-sm font-medium"
               />
             </div>
 
@@ -539,8 +479,8 @@ export function QuestionBankModal({
               type="text"
               value={explanation}
               onChange={(e) => setExplanation(e.target.value)}
-              placeholder="Description (Optional) - Giải thích đáp án hoặc chú thích thêm khi hoàn thành..."
-              className="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder:text-slate-400 text-slate-700"
+              placeholder="Description (Optional) - Giải thích đáp án chung hoặc chú thích thêm khi hoàn thành..."
+              className="w-full text-xs p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder:text-slate-400 text-slate-700 font-medium"
             />
           </div>
 

@@ -146,9 +146,10 @@ export function QuestionBankView() {
         selectedDifficulty === 'all' || q.difficulty === selectedDifficulty;
       const matchLesson =
         selectedLessonId === 'all' || q.lessonId === selectedLessonId;
+      const cleanPrompt = (q.prompt || '').replace(/<[^>]+>/g, ' ').toLowerCase();
       const matchSearch =
         search === '' ||
-        q.prompt.toLowerCase().includes(search.toLowerCase()) ||
+        cleanPrompt.includes(search.toLowerCase()) ||
         (q.explanation && q.explanation.toLowerCase().includes(search.toLowerCase())) ||
         (q.lesson?.title && q.lesson.title.toLowerCase().includes(search.toLowerCase()));
       return matchType && matchDiff && matchLesson && matchSearch;
@@ -447,8 +448,11 @@ export function QuestionBankView() {
                       {/* Prompt & Options preview */}
                       <td className="py-3.5 px-4">
                         <div className="space-y-1">
-                          <p className="font-semibold text-slate-900 leading-snug line-clamp-2">
-                            {q.prompt}
+                          <p
+                            className="font-semibold text-slate-900 leading-snug line-clamp-2"
+                            title={q.prompt.replace(/<[^>]+>/g, ' ').trim()}
+                          >
+                            {q.prompt.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
                           </p>
 
                           {/* Quick Answer Preview */}

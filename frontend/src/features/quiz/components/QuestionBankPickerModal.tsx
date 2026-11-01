@@ -234,7 +234,7 @@ export function QuestionBankPickerModal({
                     </div>
 
                     <p className="text-xs font-semibold text-slate-900 leading-relaxed">
-                      {q.prompt}
+                      {q.prompt.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
                     </p>
 
                     {/* Options preview for single choice */}

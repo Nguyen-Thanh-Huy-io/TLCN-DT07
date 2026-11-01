@@ -294,7 +294,10 @@ export function HubLessonQuiz({
                   </HubBadge>
                 )}
               </div>
-              <h3 className="mt-3 font-[family-name:var(--font-heading)] text-xl font-bold leading-8 text-lh-ink">{q.prompt}</h3>
+              <div
+                className="mt-3 font-[family-name:var(--font-heading)] text-xl font-bold leading-8 text-lh-ink [&>p]:mb-2 [&>p:last-child]:mb-0 [&_img]:rounded-xl [&_img]:my-3 [&_img]:max-h-96"
+                dangerouslySetInnerHTML={{ __html: q.prompt }}
+              />
               <QuestionBody
                 question={q}
                 answer={answers[q.id]}

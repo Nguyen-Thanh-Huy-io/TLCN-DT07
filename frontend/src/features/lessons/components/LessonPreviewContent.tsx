@@ -331,7 +331,10 @@ export function LessonPreviewContent({
                         {QUIZ_QUESTION_TYPE_META[q.type].shortLabel}
                       </span>
                     </div>
-                    <p className="text-sm font-medium text-slate-900">{q.prompt}</p>
+                    <div
+                      className="text-sm font-medium text-slate-900 prose prose-slate max-w-none"
+                      dangerouslySetInnerHTML={{ __html: q.prompt }}
+                    />
                     {renderQuizQuestionBody(q)}
                     {q.explanation && (
                       <p className="text-[11px] text-slate-500 italic mt-2 bg-white/70 border border-slate-200 rounded px-2 py-1">

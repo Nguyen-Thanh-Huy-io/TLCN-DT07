@@ -337,6 +337,36 @@ Quy trình Feature-by-Feature:
 - **Frontend TypeScript (`npx tsc --noEmit`)**: `0 errors`.
 - **Backend Unit Tests (`jest quiz-question.validator.spec.ts`)**: `13/13 tests PASS`.
 
+---
+
+## ĐỢT 5: TÁI SỬ DỤNG CMS RICH TEXT EDITOR (TIPTAP) VÀ MỞ RỘNG KÍCH THƯỚC MODAL (BUNG TO + TOÀN MÀN HÌNH)
+
+### 1. Yêu cầu của người dùng (User Request):
+> "cái này chưa làm à sao không tái sử dụng cái đó bên CMS á và cho bung to ra đi dễ nhìn"  
+> Kèm hình ảnh (`media_1793546184463_fa2ccbb1.png`) chụp thanh toolbar và ô nhập câu hỏi.
+
+### 2. Phân tích & Giải pháp Kiến trúc (SOLID):
+1. **Tái sử dụng CMS Rich Text Editor (`TipTapContent`)**:
+   - Thay thế hoàn toàn thanh công cụ giả lập và textarea thuần bằng component `TipTapContent` đã có sẵn trong CMS (`frontend/src/features/lessons/components/TipTapContent.tsx`).
+   - Mở rộng prop `showToolbar={true}` và `minHeightClass="min-h-[170px]"` cho `TipTapContent`, cho phép hiển thị đầy đủ thanh công cụ định dạng chuẩn:
+     - Định dạng: Format, H1, H2, H3, Blockquote.
+     - Phông chữ: In đậm (B), In nghiêng (I), Gạch chân (U), Gạch ngang (S).
+     - Danh sách: Gạch đầu dòng (`•≡`), Đánh số thứ tự (`1.`), Trích dẫn (`“`).
+     - Tư liệu: Chèn liên kết (`Link`), Tải ảnh tư liệu từ máy tính cá nhân hoặc qua URL, Nhúng Video YouTube.
+     - BubbleMenu: Bôi đen văn bản để format nhanh.
+2. **Bung to kích thước Modal & Chế độ Toàn màn hình (Maximize)**:
+   - Tăng độ rộng mặc định của Modal từ `max-w-4xl` lên `w-[96vw] max-w-5xl lg:max-w-6xl` với chiều cao tối đa `max-h-[94vh]`.
+   - Bổ sung nút **Phóng to / Thu nhỏ (`Maximize2` / `Minimize2`)** ở góc trên bên phải header để người dùng có thể mở rộng toàn màn hình (`inset-2`) khi soạn câu hỏi dài hoặc chèn ảnh tư liệu lớn.
+3. **Hiển thị định dạng Rich Text đồng bộ trên toàn hệ thống**:
+   - `QuestionBankView.tsx`: Làm sạch các thẻ HTML (`stripHtml`) để cột câu hỏi trong bảng danh sách hiển thị văn bản gọn gàng, không bị dính tag `<p>`.
+   - `HubLessonQuiz.tsx`: Render HTML câu hỏi bằng `dangerouslySetInnerHTML` kèm định dạng typography sắc nét (ảnh tư liệu bo góc, hiển thị in đậm, in nghiêng chuẩn xác cho người học).
+   - `LessonPreviewContent.tsx` & `QuestionBankPickerModal.tsx`: Đồng bộ hiển thị định dạng phong phú.
+
+### 3. Kết quả kiểm thử tự động (Verification):
+- **Frontend TypeScript (`npx tsc --noEmit`)**: `0 errors`.
+- **Backend Unit Tests (`jest quiz-question.validator.spec.ts`)**: `13/13 tests PASS`.
+
+
 
 
 

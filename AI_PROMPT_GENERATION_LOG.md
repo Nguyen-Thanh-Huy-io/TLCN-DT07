@@ -370,3 +370,35 @@ Quy trình Feature-by-Feature:
 
 
 
+
+
+---
+
+## ĐỢT 6: CHUẨN HÓA CẤU TRÚC PHÂN LOẠI CÂU HỎI (CHỦ ĐỀ & BÀI HỌC) VÀ TINH GỌN MÔ HÌNH DỮ LIỆU
+
+### 1. Yêu cầu của người dùng (User Request):
+> "hướng 2 á còn cái bài học thì kiểu: Liên kết bài học – lấy từ danh sách bài học hiện có. Trường này mới sử dụng những tiêu đề như trong ảnh:
+> - Trận Điện Biên Phủ trên không...
+> - 81 ngày đêm bảo vệ Thành cổ Quảng Trị...
+> - Chiến dịch Tây Nguyên...
+> - Cuộc Tổng tiến công và nổi dậy Tết Mậu Thân..."  
+> "periodId?: string; gắn với Question luôn à? Có kì không" -> "ok bỏ đi"
+
+### 2. Phân tích & Giải pháp Kiến trúc (SOLID & Database Normalization):
+1. **Lược bỏ `periodId` trực tiếp trên `Question` (Chuẩn hóa 3NF)**:
+   - Loại bỏ thuộc tính `periodId` khỏi `Question` và các DTO để tránh dư thừa dữ liệu (Data Redundancy) và nguy cơ xung đột logic (Data Inconsistency).
+   - Hệ thống quản lý quan hệ thời kỳ thông qua thực thể cấp trung `Topic` (Chủ đề lịch sử).
+2. **Tách biệt 2 cấp phân loại rõ ràng trên Modal (`QuestionBankModal.tsx`)**:
+   - **Phân loại / Chủ đề (`Topic`)**: Nạp danh sách từ `TopicApiService.getTopics({ limit: 100 })` và lưu vào `topicId`. Cho phép câu hỏi thuộc về một chuyên đề lớn dùng chung cho ngân hàng đề thi.
+   - **Liên kết bài học (`Lesson`)**: Nạp danh sách từ `LessonApiService.getLessons({ limit: 100 })` và lưu vào `lessonId`. Chứa các bài học cụ thể: *Trận Điện Biên Phủ trên không*, *81 ngày đêm bảo vệ Thành cổ Quảng Trị*, *Chiến dịch Tây Nguyên*, *Cuộc Tổng tiến công và nổi dậy Tết Mậu Thân*...
+3. **Đồng bộ cơ sở dữ liệu và Backend**:
+   - `quiz.prisma`: Thiết lập mối quan hệ `@relation` giữa `Question` và `Topic` (`topicId`).
+   - `topic.prisma`: Thiết lập quan hệ ngược `questions Question[]`.
+   - `QuestionService`: Tự động nạp kèm thông tin của cả `lesson` và `topic` (`select: { id: true, title/name: true }`) trong các phương thức `findAll`, `findOne`, `create`, `update`.
+   - `QuestionBankView.tsx`: Cột "Chuyên đề / Bài học" hiển thị phân cấp trực quan: Huy hiệu Chủ đề màu xanh đậm và Tiêu đề bài học kèm icon `BookOpen`.
+
+### 3. Kết quả kiểm thử tự động (Verification):
+- **Prisma Schema & Database Sync (`npx prisma db push`)**: Thành công, database đồng bộ hoàn toàn.
+- **Backend Build (`npm run build`)**: Biên dịch thành công không có cảnh báo/lỗi.
+- **Backend Unit Tests (`jest quiz-question.validator.spec.ts`)**: `13/13 tests PASS`.
+- **Frontend TypeScript (`npx tsc --noEmit`)**: `0 errors`.

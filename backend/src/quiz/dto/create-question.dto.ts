@@ -43,11 +43,6 @@ export class CreateQuestionDto {
   @IsString()
   @IsOptional()
   topicId?: string;
-
-  @ApiPropertyOptional({ description: 'UUID thời kỳ' })
-  @IsString()
-  @IsOptional()
-  periodId?: string;
 }
 
 export class UpdateQuestionDto extends CreateQuestionDto {}

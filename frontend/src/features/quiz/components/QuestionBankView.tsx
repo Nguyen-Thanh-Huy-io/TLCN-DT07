@@ -151,6 +151,7 @@ export function QuestionBankView() {
         search === '' ||
         cleanPrompt.includes(search.toLowerCase()) ||
         (q.explanation && q.explanation.toLowerCase().includes(search.toLowerCase())) ||
+        (q.topic?.name && q.topic.name.toLowerCase().includes(search.toLowerCase())) ||
         (q.lesson?.title && q.lesson.title.toLowerCase().includes(search.toLowerCase()));
       return matchType && matchDiff && matchLesson && matchSearch;
     });
@@ -482,20 +483,30 @@ export function QuestionBankView() {
                         </span>
                       </td>
 
-                      {/* Lesson / Category */}
+                      {/* Lesson / Topic */}
                       <td className="py-3.5 px-3">
-                        {q.lesson?.title ? (
-                          <div className="flex items-center gap-1 text-slate-700">
-                            <BookOpen size={13} className="text-slate-400 shrink-0" />
-                            <span className="truncate max-w-[180px] font-medium" title={q.lesson.title}>
-                              {q.lesson.title}
+                        <div className="space-y-1">
+                          {q.topic?.name && (
+                            <div className="flex items-center gap-1.5 text-blue-900" title={`Chủ đề: ${q.topic.name}`}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                              <span className="truncate max-w-[190px] font-semibold text-[11px]">
+                                {q.topic.name}
+                              </span>
+                            </div>
+                          )}
+                          {q.lesson?.title ? (
+                            <div className="flex items-center gap-1 text-slate-600" title={`Bài học: ${q.lesson.title}`}>
+                              <BookOpen size={12} className="text-slate-400 shrink-0" />
+                              <span className="truncate max-w-[190px] font-medium text-[11px]">
+                                {q.lesson.title}
+                              </span>
+                            </div>
+                          ) : !q.topic?.name ? (
+                            <span className="text-slate-400 italic text-[11px]">
+                              Chung / Chưa gán
                             </span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 italic text-[11px]">
-                            Chung / Chưa gán
-                          </span>
-                        )}
+                          ) : null}
+                        </div>
                       </td>
 
                       {/* Difficulty */}

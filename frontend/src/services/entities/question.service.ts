@@ -12,7 +12,7 @@ export interface QuestionBankItem {
   lessonId?: string | null;
   lesson?: { id: string; title: string } | null;
   topicId?: string | null;
-  periodId?: string | null;
+  topic?: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -33,6 +33,7 @@ export interface CreateQuestionPayload {
   points?: number;
   data: any;
   lessonId?: string;
+  topicId?: string;
 }
 
 export class QuestionApiService {
@@ -41,6 +42,7 @@ export class QuestionApiService {
     type?: QuizQuestionType;
     difficulty?: string;
     lessonId?: string;
+    topicId?: string;
     page?: number;
     limit?: number;
   }): Promise<QuestionBankListResponse> {

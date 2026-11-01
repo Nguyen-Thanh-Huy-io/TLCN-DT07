@@ -28,6 +28,7 @@ model Topic {
   // Relations
   parent   Topic?  @relation("TopicHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children Topic[] @relation("TopicHierarchy")
+  questions Question[]
 
   @@index([parentId])
   @@index([pathType])

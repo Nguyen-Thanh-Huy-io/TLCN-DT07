@@ -14,13 +14,14 @@ export class QuestionService {
   }
 
   async findAll(query: QueryQuestionDto) {
-    const { search, type, difficulty, lessonId, page = 1, limit = 50 } = query;
+    const { search, type, difficulty, lessonId, topicId, page = 1, limit = 50 } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
     if (type) where.type = type;
     if (difficulty && difficulty !== 'all') where.difficulty = difficulty;
     if (lessonId) where.lessonId = lessonId;
+    if (topicId) where.topicId = topicId;
     if (search && search.trim()) {
       where.OR = [
         { prompt: { contains: search.trim(), mode: 'insensitive' } },
@@ -37,6 +38,9 @@ export class QuestionService {
         include: {
           lesson: {
             select: { id: true, title: true },
+          },
+          topic: {
+            select: { id: true, name: true },
           },
         },
       }),
@@ -58,6 +62,9 @@ export class QuestionService {
       include: {
         lesson: {
           select: { id: true, title: true },
+        },
+        topic: {
+          select: { id: true, name: true },
         },
       },
     });
@@ -88,11 +95,13 @@ export class QuestionService {
         data: dto.data || {},
         lessonId: dto.lessonId || null,
         topicId: dto.topicId || null,
-        periodId: dto.periodId || null,
       },
       include: {
         lesson: {
           select: { id: true, title: true },
+        },
+        topic: {
+          select: { id: true, name: true },
         },
       },
     });
@@ -121,11 +130,13 @@ export class QuestionService {
         data: dto.data || {},
         lessonId: dto.lessonId || null,
         topicId: dto.topicId || null,
-        periodId: dto.periodId || null,
       },
       include: {
         lesson: {
           select: { id: true, title: true },
+        },
+        topic: {
+          select: { id: true, name: true },
         },
       },
     });

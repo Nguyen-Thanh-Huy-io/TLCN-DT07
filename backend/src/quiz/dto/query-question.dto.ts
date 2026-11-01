@@ -24,6 +24,11 @@ export class QueryQuestionDto {
   @IsOptional()
   lessonId?: string;
 
+  @ApiPropertyOptional({ description: 'UUID chủ đề / chuyên đề' })
+  @IsString()
+  @IsOptional()
+  topicId?: string;
+
   @ApiPropertyOptional({ description: 'Số trang', default: 1 })
   @Type(() => Number)
   @IsInt()

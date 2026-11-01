@@ -256,4 +256,62 @@ cho cái dạng collapse á thu/mở được và xóa mock data đi và tạo f
 7. **`frontend/src/features/lessons/components/LessonQuizPanel.tsx` & `useQuizEditor.ts`**:
    - Thêm nút "Chọn từ Ngân hàng", phương thức `addQuestions(picked)` chèn danh sách câu hỏi đã chọn vào đề.
 
+---
+
+## ĐỢT 3: TÁI THIẾT KẾ MODAL TẠO CÂU HỎI THEO MẪU DRIBBLE & CHUYỂN TRANG CHỦ SANG DẠNG LIST / TABLE VIEW
+
+### 1. Yêu cầu của người dùng (User Request & Image Reference):
+> "giao diện tạo câu hỏi vậy được không? còn cái trang chủ tạo thì dạng list"  
+> Kèm hình ảnh tham chiếu thiết kế Dribbble (`media_1793545218823_d825fe35.png`):
+> - **Modal "Create New Question"**:
+>   - Phần chọn loại câu hỏi nằm ngang (horizontal card tiles) gồm icon, tên dạng câu hỏi, chú thích ngoặc đơn và nút radio badge ở góc trên phải.
+>   - Ô nhập Điểm số ("Question Mark") và ô chọn phân loại/chuyên đề ("Assign Category") nằm bên phải ngang hàng với selector.
+>   - Vùng nhập câu hỏi ("Question") có thanh công cụ định dạng phong phú (B, I, U, S, highlight, lists, subscript, superscript, link, image).
+>   - Ô "Description (Optional)" để nhập giải thích đáp án / chú thích.
+>   - Danh sách "Options" gồm: drag handle `::`, icon radio, ô input nội dung, nút checkbox `[✓] Correct` để chọn duy nhất 1 đáp án đúng (Single Choice), và nút xóa `✕`.
+>   - Nút "+ Thêm lựa chọn" (Add Option) viền nét đứt.
+> - **Trang chủ Ngân hàng câu hỏi (`/questions`)**:
+>   - Hiển thị dạng **Table / List View** hiện đại chuẩn SaaS (như nền mờ phía sau modal trong hình ảnh).
+>   - Các cột: Checkbox chọn hàng loạt, STT, Nội dung câu hỏi (Prompt) kèm preview đáp án đúng, Dạng câu hỏi (Badge), Chuyên đề / Bài học, Độ khó, Điểm số, Thao tác (Sửa, Xóa).
+>   - Tích hợp thanh tìm kiếm, bộ lọc đa tiêu chí, thanh tác vụ hàng loạt (Xóa đã chọn), thanh phân trang.
+
+### 2. Các tệp tin đã triển khai & nâng cấp:
+
+1. **`frontend/src/features/quiz/components/QuestionBankModal.tsx`** *(Tái thiết kế toàn diện theo chuẩn UI Dribbble)*:
+   - Thẻ chọn loại câu hỏi: Render mảng `QUESTION_TYPE_CARDS` theo đúng lộ trình Giai đoạn 1 (Radio Button - Single Choice [kích hoạt], Check Box - Multiple Choice, Đúng / Sai - True/False, Dòng thời gian - Timeline, Ghép nối - Matching).
+   - Thiết kế chuẩn từng pixel theo ảnh:
+     - Header: "Tạo câu hỏi mới" / "Cập nhật câu hỏi" với close button tròn.
+     - Top row: 5 thẻ chọn loại câu hỏi (kèm radio checked badge góc trên phải) + Question Mark (numeric input) + Assign Category (select dropdown lấy từ danh sách bài học thực tế qua `LessonApiService`).
+     - Question body: Toolbar phong phú (`Bold`, `Italic`, `Underline`, `Strikethrough`, `Highlighter`, `List`, `ListOrdered`, `Subscript`, `Superscript`, `Link2`, `ImageIcon`) + Textarea nhập prompt + Input "Description (Optional)".
+     - Options list: Mỗi dòng có Drag handle (`GripVertical`), radio dot, input nội dung, nút toggle `[✓] Correct` (màu xanh dương đậm khi chọn đúng), nút xóa `✕`.
+     - Footer: Ghi chú loại câu hỏi + nút Hủy bỏ & Lưu câu hỏi.
+
+2. **`frontend/src/features/quiz/components/QuestionBankView.tsx`** *(Chuyển đổi hoàn toàn sang Table / List View)*:
+   - Header bar: Tiêu đề "Ngân hàng câu hỏi tập trung" + Nút "+ Thêm câu hỏi mới".
+   - Stats Ribbon: Tổng số câu hỏi, Trắc nghiệm 1 đáp án (Loại 1), Đã gán vào Bài học.
+   - Filter Bar: Ô tìm kiếm từ khóa (Search), Bộ lọc Dạng câu hỏi (Type), Bộ lọc Bài học/Chuyên đề (Lesson), Bộ lọc Độ khó (Difficulty).
+   - Table View chuẩn SaaS:
+     - Cột Checkbox đa năng (chọn tất cả / chọn từng dòng).
+     - Cột `#` (STT theo phân trang).
+     - Cột `Nội dung câu hỏi (Prompt)`: hiển thị câu hỏi, nhãn "Đáp án đúng:" thu gọn và trích đoạn giải thích.
+     - Cột `Dạng câu hỏi`: Badge tím/xanh kèm icon tương ứng.
+     - Cột `Chuyên đề / Bài học`: Tên bài học liên kết hoặc nhãn "Chung / Chưa gán".
+     - Cột `Độ khó`: Badge Dễ (xanh lá), Trung bình (vàng), Khó (tím).
+     - Cột `Điểm`: Số điểm kèm đơn vị đ.
+     - Cột `Thao tác`: Nút Sửa (`Edit3`) và Xóa (`Trash2`).
+   - Bulk Action Bar: Hiển thị khi tích chọn 1 hoặc nhiều câu hỏi để xóa hàng loạt hoặc bỏ chọn.
+   - Pagination Footer: Thông tin hiển thị số lượng và nút chuyển trang Trước / Sau.
+
+### 3. Kết quả xác minh chất lượng (Verification):
+- **Frontend TypeScript (`npx tsc --noEmit`)**:
+  - `0 errors` (Hoàn toàn vượt qua kiểm tra kiểu).
+- **Backend Unit Tests (`jest quiz-question.validator.spec.ts`)**:
+  - `12/12 tests PASS` (Trắc nghiệm 1 đáp án, Đúng/Sai, Nhiều đáp án, Timeline, Matching).
+- **Kiến trúc & Tiêu chuẩn**:
+  - Tuân thủ SOLID (SRP, OCP, DIP).
+  - Không Magic Strings (sử dụng Enums và hằng số).
+  - Không dữ liệu ảo / Mock data (kết nối trực tiếp PostgreSQL via NestJS Backend).
+  - Dừng lại tại **Loại 1: Trắc nghiệm 1 đáp án (Single Choice)** để người dùng trực tiếp kiểm thử trước khi chuyển sang Loại 2.
+
+
 

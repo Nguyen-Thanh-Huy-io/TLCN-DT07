@@ -25,6 +25,9 @@ import {
   Lightbulb,
   Maximize2,
   Minimize2,
+  Folder,
+  BookOpen,
+  ChevronRight,
 } from 'lucide-react';
 import { TipTapContent } from '@/features/lessons/components/TipTapContent';
 import {
@@ -41,7 +44,10 @@ import { LessonApiService } from '@/services/entities/lesson.service';
 import { LessonItem } from '@/types/models/lesson.type';
 import { TopicApiService } from '@/services/entities/topic.service';
 import { TopicItem } from '@/types/models/topic.type';
-import { CategoryTreePicker } from './CategoryTreePicker';
+import {
+  TopicCategoryModalPicker,
+  LessonCategoryModalPicker,
+} from './CategoryTreePicker';
 
 interface QuestionBankModalProps {
   isOpen: boolean;
@@ -108,10 +114,12 @@ export function QuestionBankModal({
   const [explanation, setExplanation] = useState('');
   const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>('MEDIUM');
   const [points, setPoints] = useState<number>(1);
-  const [topicId, setTopicId] = useState<string>('');
+  const [topicIds, setTopicIds] = useState<string[]>([]);
   const [topicsList, setTopicsList] = useState<TopicItem[]>([]);
-  const [lessonId, setLessonId] = useState<string>('');
+  const [lessonIds, setLessonIds] = useState<string[]>([]);
   const [lessonsList, setLessonsList] = useState<LessonItem[]>([]);
+  const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
+  const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
   const [options, setOptions] = useState<
     Array<{ id: string; text: string; isCorrect: boolean; explanation?: string }>
   >([
@@ -160,8 +168,8 @@ export function QuestionBankModal({
       setExplanation(initialQuestion.explanation || '');
       setDifficulty(initialQuestion.difficulty || 'MEDIUM');
       setPoints(initialQuestion.points ?? 1);
-      setTopicId(initialQuestion.topicId || '');
-      setLessonId(initialQuestion.lessonId || '');
+      setTopicIds(initialQuestion.topics?.map((t) => t.id) || []);
+      setLessonIds(initialQuestion.lessons?.map((l) => l.id) || []);
       if (initialQuestion.data?.options && Array.isArray(initialQuestion.data.options)) {
         setOptions(initialQuestion.data.options);
         const notesMap: Record<string, boolean> = {};
@@ -178,8 +186,8 @@ export function QuestionBankModal({
       setExplanation('');
       setDifficulty('MEDIUM');
       setPoints(1);
-      setTopicId('');
-      setLessonId('');
+      setTopicIds([]);
+      setLessonIds([]);
       setExpandedNotes({});
       setOptions([
         { id: generateQuizId('opt'), text: '', isCorrect: true },
@@ -272,8 +280,8 @@ export function QuestionBankModal({
         explanation: explanation.trim() || undefined,
         difficulty,
         points: Number(points) > 0 ? Number(points) : 1,
-        topicId: topicId || undefined,
-        lessonId: lessonId || undefined,
+        topicIds,
+        lessonIds,
         data: {
           options,
         },
@@ -439,24 +447,103 @@ export function QuestionBankModal({
                 />
               </div>
 
-              <CategoryTreePicker
-                topics={topicsList}
-                lessons={lessonsList}
-                selectedTopicId={topicId}
-                selectedLessonId={lessonId}
-                onSelectTopic={(id) => {
-                  setTopicId(id);
-                  setLessonId('');
-                }}
-                onSelectLesson={(id, parentTopicId) => {
-                  setLessonId(id);
-                  if (parentTopicId) setTopicId(parentTopicId);
-                }}
-                onClear={() => {
-                  setTopicId('');
-                  setLessonId('');
-                }}
-              />
+              {/* Ô 1: Phân loại / Chủ đề (Topic Multi-Select Modal Trigger) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Phân loại / Chủ đề <span className="text-slate-400 font-normal">(Topics)</span>
+                </label>
+                <div
+                  onClick={() => setIsTopicModalOpen(true)}
+                  className="w-full min-h-[38px] px-3 py-1.5 bg-white border border-slate-200 hover:border-emerald-500 rounded-xl flex flex-wrap items-center gap-1.5 cursor-pointer transition-colors group"
+                >
+                  {topicIds.length === 0 ? (
+                    <div className="flex items-center justify-between w-full text-xs text-slate-500">
+                      <span className="flex items-center gap-1.5">
+                        <Folder size={13} className="text-slate-400 group-hover:text-emerald-600" />
+                        <span>Chung (Bấm để chọn chủ đề...)</span>
+                      </span>
+                      <ChevronRight size={14} className="text-slate-400" />
+                    </div>
+                  ) : (
+                    <>
+                      {topicIds.map((id) => {
+                        const tp = topicsList.find((t) => t.id === id);
+                        const label = tp?.name || 'Chủ đề đã chọn';
+                        return (
+                          <span
+                            key={id}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 text-[11px] font-medium max-w-full"
+                          >
+                            <span className="truncate max-w-[180px]" title={label}>
+                              {label}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setTopicIds((prev) => prev.filter((item) => item !== id))}
+                              className="text-emerald-600 hover:text-rose-600 ml-0.5 cursor-pointer"
+                            >
+                              <X size={11} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                      <span className="text-[10px] font-semibold text-emerald-700 ml-auto shrink-0">
+                        + Chọn thêm
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Ô 2: Liên kết bài học (Lesson Multi-Select Modal Trigger) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Liên kết bài học <span className="text-slate-400 font-normal">(Lessons)</span>
+                </label>
+                <div
+                  onClick={() => setIsLessonModalOpen(true)}
+                  className="w-full min-h-[38px] px-3 py-1.5 bg-white border border-slate-200 hover:border-emerald-500 rounded-xl flex flex-wrap items-center gap-1.5 cursor-pointer transition-colors group"
+                >
+                  {lessonIds.length === 0 ? (
+                    <div className="flex items-center justify-between w-full text-xs text-slate-500">
+                      <span className="flex items-center gap-1.5">
+                        <BookOpen size={13} className="text-slate-400 group-hover:text-emerald-600" />
+                        <span>Chung (Bấm để chọn bài học...)</span>
+                      </span>
+                      <ChevronRight size={14} className="text-slate-400" />
+                    </div>
+                  ) : (
+                    <>
+                      {lessonIds.map((id) => {
+                        const ls = lessonsList.find((l) => l.id === id);
+                        const label = ls?.title || 'Bài học đã chọn';
+                        return (
+                          <span
+                            key={id}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-900 text-[11px] font-medium max-w-full"
+                          >
+                            <span className="truncate max-w-[180px]" title={label}>
+                              {label}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setLessonIds((prev) => prev.filter((item) => item !== id))}
+                              className="text-blue-600 hover:text-rose-600 ml-0.5 cursor-pointer"
+                            >
+                              <X size={11} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                      <span className="text-[10px] font-semibold text-blue-700 ml-auto shrink-0">
+                        + Chọn thêm
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -692,6 +779,24 @@ export function QuestionBankModal({
           </div>
         </div>
       </div>
+
+      {/* Modal chọn nhiều Chủ đề (Select a category - Topics only) */}
+      <TopicCategoryModalPicker
+        isOpen={isTopicModalOpen}
+        onClose={() => setIsTopicModalOpen(false)}
+        topics={topicsList}
+        selectedTopicIds={topicIds}
+        onChangeSelected={setTopicIds}
+      />
+
+      {/* Modal chọn nhiều Bài học liên kết (Select lessons - Lessons only) */}
+      <LessonCategoryModalPicker
+        isOpen={isLessonModalOpen}
+        onClose={() => setIsLessonModalOpen(false)}
+        lessons={lessonsList}
+        selectedLessonIds={lessonIds}
+        onChangeSelected={setLessonIds}
+      />
     </div>
   );
 }

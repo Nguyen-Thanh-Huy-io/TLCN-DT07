@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
 import { QuizQuestionType } from '../types/quiz-question.types';
 
 export class CreateQuestionDto {
@@ -34,15 +34,17 @@ export class CreateQuestionDto {
   @IsNotEmpty()
   data: any;
 
-  @ApiPropertyOptional({ description: 'UUID bài học liên kết' })
-  @IsString()
+  @ApiPropertyOptional({ description: 'Danh sách UUID các bài học liên kết', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  lessonId?: string;
+  lessonIds?: string[];
 
-  @ApiPropertyOptional({ description: 'UUID chuyên đề' })
-  @IsString()
+  @ApiPropertyOptional({ description: 'Danh sách UUID các chuyên đề liên kết', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  topicId?: string;
+  topicIds?: string[];
 }
 
 export class UpdateQuestionDto extends CreateQuestionDto {}

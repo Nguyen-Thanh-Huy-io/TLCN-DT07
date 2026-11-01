@@ -9,10 +9,8 @@ export interface QuestionBankItem {
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   points: number;
   data: any;
-  lessonId?: string | null;
-  lesson?: { id: string; title: string } | null;
-  topicId?: string | null;
-  topic?: { id: string; name: string } | null;
+  lessons?: Array<{ id: string; title: string }>;
+  topics?: Array<{ id: string; name: string }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -32,8 +30,8 @@ export interface CreateQuestionPayload {
   difficulty?: 'EASY' | 'MEDIUM' | 'HARD';
   points?: number;
   data: any;
-  lessonId?: string;
-  topicId?: string;
+  lessonIds?: string[];
+  topicIds?: string[];
 }
 
 export class QuestionApiService {

@@ -40,18 +40,14 @@ model Question {
   difficulty  String   @default("MEDIUM") @db.VarChar(20) // EASY, MEDIUM, HARD
   points      Int      @default(10)
   data        Json     @default("{}") @db.JsonB
-  lessonId    String?  @map("lesson_id")
-  topicId     String?  @map("topic_id")
 
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
-  topic       Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  lessons     Lesson[]
+  topics      Topic[]
 
   @@index([type])
   @@index([difficulty])
-  @@index([lessonId])
-  @@index([topicId])
   @@map("questions")
 }

@@ -145,14 +145,15 @@ export function QuestionBankView() {
       const matchDiff =
         selectedDifficulty === 'all' || q.difficulty === selectedDifficulty;
       const matchLesson =
-        selectedLessonId === 'all' || q.lessonId === selectedLessonId;
+        selectedLessonId === 'all' ||
+        (q.lessons && q.lessons.some((l) => l.id === selectedLessonId));
       const cleanPrompt = (q.prompt || '').replace(/<[^>]+>/g, ' ').toLowerCase();
       const matchSearch =
         search === '' ||
         cleanPrompt.includes(search.toLowerCase()) ||
         (q.explanation && q.explanation.toLowerCase().includes(search.toLowerCase())) ||
-        (q.topic?.name && q.topic.name.toLowerCase().includes(search.toLowerCase())) ||
-        (q.lesson?.title && q.lesson.title.toLowerCase().includes(search.toLowerCase()));
+        (q.topics && q.topics.some((t) => t.name.toLowerCase().includes(search.toLowerCase()))) ||
+        (q.lessons && q.lessons.some((l) => l.title.toLowerCase().includes(search.toLowerCase())));
       return matchType && matchDiff && matchLesson && matchSearch;
     });
   }, [questions, selectedType, selectedDifficulty, selectedLessonId, search]);
@@ -187,7 +188,9 @@ export function QuestionBankView() {
     const singleChoiceCount = questions.filter(
       (q) => q.type === QuizQuestionType.SINGLE_CHOICE
     ).length;
-    const linkedLessonCount = questions.filter((q) => q.lessonId).length;
+    const linkedLessonCount = questions.filter(
+      (q) => (q.lessons && q.lessons.length > 0) || (q.topics && q.topics.length > 0)
+    ).length;
     return {
       total: questions.length,
       singleChoice: singleChoiceCount,
@@ -486,22 +489,49 @@ export function QuestionBankView() {
                       {/* Lesson / Topic */}
                       <td className="py-3.5 px-3">
                         <div className="space-y-1">
-                          {q.topic?.name && (
-                            <div className="flex items-center gap-1.5 text-blue-900" title={`Chủ đề: ${q.topic.name}`}>
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-                              <span className="truncate max-w-[190px] font-semibold text-[11px]">
-                                {q.topic.name}
-                              </span>
+                          {q.topics && q.topics.length > 0 && (
+                            <div className="flex flex-col gap-0.5">
+                              {q.topics.slice(0, 2).map((t) => (
+                                <div
+                                  key={t.id}
+                                  className="flex items-center gap-1.5 text-emerald-900"
+                                  title={`Chủ đề: ${t.name}`}
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                                  <span className="truncate max-w-[190px] font-semibold text-[11px]">
+                                    {t.name}
+                                  </span>
+                                </div>
+                              ))}
+                              {q.topics.length > 2 && (
+                                <span className="text-[10px] font-semibold text-emerald-700 pl-3">
+                                  +{q.topics.length - 2} chủ đề khác
+                                </span>
+                              )}
                             </div>
                           )}
-                          {q.lesson?.title ? (
-                            <div className="flex items-center gap-1 text-slate-600" title={`Bài học: ${q.lesson.title}`}>
-                              <BookOpen size={12} className="text-slate-400 shrink-0" />
-                              <span className="truncate max-w-[190px] font-medium text-[11px]">
-                                {q.lesson.title}
-                              </span>
+
+                          {q.lessons && q.lessons.length > 0 ? (
+                            <div className="flex flex-col gap-0.5">
+                              {q.lessons.slice(0, 2).map((l) => (
+                                <div
+                                  key={l.id}
+                                  className="flex items-center gap-1 text-slate-600"
+                                  title={`Bài học: ${l.title}`}
+                                >
+                                  <BookOpen size={12} className="text-slate-400 shrink-0" />
+                                  <span className="truncate max-w-[190px] font-medium text-[11px]">
+                                    {l.title}
+                                  </span>
+                                </div>
+                              ))}
+                              {q.lessons.length > 2 && (
+                                <span className="text-[10px] font-semibold text-blue-700 pl-4">
+                                  +{q.lessons.length - 2} bài học khác
+                                </span>
+                              )}
                             </div>
-                          ) : !q.topic?.name ? (
+                          ) : !q.topics || q.topics.length === 0 ? (
                             <span className="text-slate-400 italic text-[11px]">
                               Chung / Chưa gán
                             </span>

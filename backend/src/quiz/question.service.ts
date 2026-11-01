@@ -20,8 +20,8 @@ export class QuestionService {
     const where: any = {};
     if (type) where.type = type;
     if (difficulty && difficulty !== 'all') where.difficulty = difficulty;
-    if (lessonId) where.lessonId = lessonId;
-    if (topicId) where.topicId = topicId;
+    if (lessonId) where.lessons = { some: { id: lessonId } };
+    if (topicId) where.topics = { some: { id: topicId } };
     if (search && search.trim()) {
       where.OR = [
         { prompt: { contains: search.trim(), mode: 'insensitive' } },
@@ -36,10 +36,10 @@ export class QuestionService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          lesson: {
+          lessons: {
             select: { id: true, title: true },
           },
-          topic: {
+          topics: {
             select: { id: true, name: true },
           },
         },
@@ -60,10 +60,10 @@ export class QuestionService {
     const question = await this.prisma.question.findUnique({
       where: { id },
       include: {
-        lesson: {
+        lessons: {
           select: { id: true, title: true },
         },
-        topic: {
+        topics: {
           select: { id: true, name: true },
         },
       },
@@ -85,6 +85,9 @@ export class QuestionService {
     };
     validateAndNormalizeQuestions([rawToValidate]);
 
+    const lessonIds = Array.from(new Set((dto.lessonIds || []).filter(Boolean)));
+    const topicIds = Array.from(new Set((dto.topicIds || []).filter(Boolean)));
+
     return this.prisma.question.create({
       data: {
         type: dto.type,
@@ -93,14 +96,18 @@ export class QuestionService {
         difficulty: dto.difficulty || 'MEDIUM',
         points: dto.points || 10,
         data: dto.data || {},
-        lessonId: dto.lessonId || null,
-        topicId: dto.topicId || null,
+        ...(lessonIds.length > 0
+          ? { lessons: { connect: lessonIds.map((id) => ({ id })) } }
+          : {}),
+        ...(topicIds.length > 0
+          ? { topics: { connect: topicIds.map((id) => ({ id })) } }
+          : {}),
       },
       include: {
-        lesson: {
+        lessons: {
           select: { id: true, title: true },
         },
-        topic: {
+        topics: {
           select: { id: true, name: true },
         },
       },
@@ -119,6 +126,9 @@ export class QuestionService {
     };
     validateAndNormalizeQuestions([rawToValidate]);
 
+    const lessonIds = Array.from(new Set((dto.lessonIds || []).filter(Boolean)));
+    const topicIds = Array.from(new Set((dto.topicIds || []).filter(Boolean)));
+
     return this.prisma.question.update({
       where: { id },
       data: {
@@ -128,14 +138,14 @@ export class QuestionService {
         difficulty: dto.difficulty || 'MEDIUM',
         points: dto.points || 10,
         data: dto.data || {},
-        lessonId: dto.lessonId || null,
-        topicId: dto.topicId || null,
+        lessons: { set: lessonIds.map((itemId) => ({ id: itemId })) },
+        topics: { set: topicIds.map((itemId) => ({ id: itemId })) },
       },
       include: {
-        lesson: {
+        lessons: {
           select: { id: true, title: true },
         },
-        topic: {
+        topics: {
           select: { id: true, name: true },
         },
       },
@@ -170,7 +180,7 @@ export class QuestionService {
               difficulty: 'MEDIUM',
               points: 10,
               data: restData,
-              lessonId: quiz.lessonId,
+              ...(quiz.lessonId ? { lessons: { connect: [{ id: quiz.lessonId }] } } : {}),
             },
           });
         }

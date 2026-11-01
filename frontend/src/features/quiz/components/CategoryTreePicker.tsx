@@ -1,95 +1,42 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronDown, ChevronRight, X, BookOpen, Folder, Check } from 'lucide-react';
+import { ChevronDown, ChevronRight, X, Check, Folder, BookOpen } from 'lucide-react';
 import { TopicItem } from '@/types/models/topic.type';
 import { LessonItem } from '@/types/models/lesson.type';
 
-export interface CategoryTreePickerProps {
+// ============================================================================
+// 1. MODAL CHỌN NHIỀU CHỦ ĐỀ (SELECT A CATEGORY - TOPICS ONLY)
+// ============================================================================
+
+export interface TopicCategoryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
   topics: TopicItem[];
-  lessons: LessonItem[];
-  selectedTopicId: string;
-  selectedLessonId: string;
-  onSelectTopic: (topicId: string) => void;
-  onSelectLesson: (lessonId: string, parentTopicId?: string) => void;
-  onClear: () => void;
-  className?: string;
+  selectedTopicIds: string[];
+  onChangeSelected: (topicIds: string[]) => void;
 }
 
-export interface CategoryTreeNode {
+interface TopicTreeNode {
   id: string;
   name: string;
-  type: 'TOPIC' | 'LESSON';
   depth: number;
-  topicId?: string;
-  lessonId?: string;
-  parentTopicId?: string;
-  children: CategoryTreeNode[];
+  children: TopicTreeNode[];
 }
 
-/**
- * Liên kết bài học vào chuyên đề / chủ đề phù hợp dựa trên nội dung & từ khóa lịch sử
- */
-function matchLessonToTopicId(lesson: LessonItem, topics: TopicItem[]): string | undefined {
-  const titleLower = lesson.title.toLowerCase();
-
-  // 1. Kiểm tra đối sánh từ khóa đặc thù với các chủ đề con
-  for (const t of topics) {
-    const tLower = t.name.toLowerCase();
-    if (tLower.includes('đồng khởi') && titleLower.includes('đồng khởi')) return t.id;
-    if (tLower.includes('ấp bắc') && titleLower.includes('ấp bắc')) return t.id;
-    if (tLower.includes('mậu thân') && titleLower.includes('mậu thân')) return t.id;
-    if (
-      tLower.includes('điện biên phủ trên không') &&
-      titleLower.includes('điện biên phủ trên không')
-    )
-      return t.id;
-    if (tLower.includes('hiệp định paris') && titleLower.includes('hiệp định paris')) return t.id;
-    if (tLower.includes('quảng trị') && titleLower.includes('quảng trị')) return t.id;
-    if (tLower.includes('tây nguyên') && titleLower.includes('tây nguyên')) return t.id;
-    if (
-      tLower.includes('hồ chí minh') &&
-      (titleLower.includes('hồ chí minh') || titleLower.includes('mùa xuân 1975'))
-    )
-      return t.id;
-    if (
-      tLower.includes('chi viện') &&
-      (titleLower.includes('trường sơn') || titleLower.includes('chi viện'))
-    )
-      return t.id;
-  }
-
-  // 2. Nếu là các chủ đề giai đoạn chung
-  for (const t of topics) {
-    const tLower = t.name.toLowerCase();
-    if (tLower.includes('1954 - 1960') && titleLower.includes('1954 - 1960')) return t.id;
-    if (tLower.includes('1961 - 1965') && titleLower.includes('1963')) return t.id;
-    if (tLower.includes('1965 - 1968') && titleLower.includes('1968')) return t.id;
-    if (tLower.includes('1969 - 1973') && (titleLower.includes('1972') || titleLower.includes('1973')))
-      return t.id;
-    if (tLower.includes('1973 - 1975') && titleLower.includes('1975')) return t.id;
-  }
-
-  return undefined;
-}
-
-export function CategoryTreePicker({
+export function TopicCategoryModalPicker({
+  isOpen,
+  onClose,
   topics,
-  lessons,
-  selectedTopicId,
-  selectedLessonId,
-  onSelectTopic,
-  onSelectLesson,
-  onClear,
-  className = '',
-}: CategoryTreePickerProps) {
+  selectedTopicIds,
+  onChangeSelected,
+}: TopicCategoryModalProps) {
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
 
-  // Xây dựng cây phân cấp Category Tree (Topics -> Sub-Topics -> Lessons)
-  const treeNodes = useMemo<CategoryTreeNode[]>(() => {
+  // Xây dựng cây phân cấp chỉ dành riêng cho Topic (Chủ đề cha -> Chủ đề giai đoạn -> Chuyên đề con)
+  const treeNodes = useMemo<TopicTreeNode[]>(() => {
     if (!topics || topics.length === 0) return [];
 
-    // Phân loại topics theo parentId
     const childrenMap = new Map<string, TopicItem[]>();
     const rootTopics: TopicItem[] = [];
 
@@ -103,232 +50,417 @@ export function CategoryTreePicker({
       }
     });
 
-    // Gom nhóm bài học theo topicId
-    const lessonMap = new Map<string, LessonItem[]>();
-    const unassignedLessons: LessonItem[] = [];
-
-    lessons.forEach((ls) => {
-      const matchedTopicId = matchLessonToTopicId(ls, topics);
-      if (matchedTopicId) {
-        const arr = lessonMap.get(matchedTopicId) || [];
-        arr.push(ls);
-        lessonMap.set(matchedTopicId, arr);
-      } else {
-        unassignedLessons.push(ls);
-      }
-    });
-
-    const buildTopicNode = (topic: TopicItem, depth: number): CategoryTreeNode => {
-      const subTopics = childrenMap.get(topic.id) || [];
-      const directLessons = lessonMap.get(topic.id) || [];
-
-      const topicChildren: CategoryTreeNode[] = subTopics.map((sub) =>
-        buildTopicNode(sub, depth + 1)
+    const buildNode = (topic: TopicItem, depth: number): TopicTreeNode => {
+      const children = (childrenMap.get(topic.id) || []).map((child) =>
+        buildNode(child, depth + 1)
       );
-
-      const lessonChildren: CategoryTreeNode[] = directLessons.map((ls) => ({
-        id: `ls-${ls.id}`,
-        name: ls.title,
-        type: 'LESSON',
-        depth: depth + 1,
-        lessonId: ls.id,
-        parentTopicId: topic.id,
-        children: [],
-      }));
-
       return {
-        id: `tp-${topic.id}`,
+        id: topic.id,
         name: topic.name,
-        type: 'TOPIC',
         depth,
-        topicId: topic.id,
-        children: [...topicChildren, ...lessonChildren],
+        children,
       };
     };
 
-    const result = rootTopics.map((rt) => buildTopicNode(rt, 0));
+    return rootTopics.map((rt) => buildNode(rt, 0));
+  }, [topics]);
 
-    // Nếu có bài học chưa gán vào cây, thêm vào nhánh Bài học khác ở cuối
-    if (unassignedLessons.length > 0) {
-      result.push({
-        id: 'tp-unassigned',
-        name: 'Bài học khác',
-        type: 'TOPIC',
-        depth: 0,
-        children: unassignedLessons.map((ls) => ({
-          id: `ls-${ls.id}`,
-          name: ls.title,
-          type: 'LESSON',
-          depth: 1,
-          lessonId: ls.id,
-          children: [],
-        })),
-      });
-    }
-
-    return result;
-  }, [topics, lessons]);
-
-  // Mở rộng tất cả các node mặc định để người dùng dễ theo dõi
+  // Mặc định bung mở toàn bộ cây khi mở modal
   useEffect(() => {
-    if (treeNodes.length > 0) {
+    if (isOpen && treeNodes.length > 0) {
       const exp: Record<string, boolean> = {};
-      const traverse = (node: CategoryTreeNode) => {
-        // Mặc định mở rộng cấp 0 và cấp 1
-        if (node.depth <= 1) exp[node.id] = true;
+      const traverse = (node: TopicTreeNode) => {
+        exp[node.id] = true;
         node.children.forEach(traverse);
       };
       treeNodes.forEach(traverse);
-      setExpandedNodes((prev) => ({ ...exp, ...prev }));
+      setExpandedNodes(exp);
     }
-  }, [treeNodes]);
+  }, [isOpen, treeNodes]);
+
+  if (!isOpen) return null;
 
   const toggleExpand = (nodeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setExpandedNodes((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
-  const handleNodeClick = (node: CategoryTreeNode) => {
-    if (node.type === 'LESSON' && node.lessonId) {
-      onSelectLesson(node.lessonId, node.parentTopicId);
-    } else if (node.type === 'TOPIC' && node.topicId) {
-      onSelectTopic(node.topicId);
+  const toggleSelectTopic = (topicId: string) => {
+    if (selectedTopicIds.includes(topicId)) {
+      onChangeSelected(selectedTopicIds.filter((id) => id !== topicId));
+    } else {
+      onChangeSelected([...selectedTopicIds, topicId]);
     }
   };
 
-  // Tìm tên hiển thị của item đang chọn
-  const activeLabel = useMemo(() => {
-    if (selectedLessonId) {
-      const ls = lessons.find((l) => l.id === selectedLessonId);
-      if (ls) return { text: ls.title, type: 'Bài học' };
-    }
-    if (selectedTopicId) {
-      const tp = topics.find((t) => t.id === selectedTopicId);
-      if (tp) return { text: tp.name, type: 'Chủ đề' };
-    }
-    return null;
-  }, [selectedLessonId, selectedTopicId, lessons, topics]);
-
-  const renderNode = (node: CategoryTreeNode) => {
+  const renderTopicNode = (node: TopicTreeNode) => {
     const isExpanded = !!expandedNodes[node.id];
     const hasChildren = node.children.length > 0;
-
-    const isSelected =
-      (node.type === 'LESSON' && node.lessonId === selectedLessonId) ||
-      (node.type === 'TOPIC' && !selectedLessonId && node.topicId === selectedTopicId);
-
-    // Thụt lề theo độ sâu (indentation)
-    const indentPadding = `${node.depth * 14 + 6}px`;
+    const isSelected = selectedTopicIds.includes(node.id);
+    const indentPx = node.depth * 24 + 12;
 
     return (
       <div key={node.id} className="select-none">
         <div
-          onClick={() => handleNodeClick(node)}
-          style={{ paddingLeft: indentPadding }}
-          className={`group flex items-center gap-1.5 py-1.5 pr-2.5 text-xs transition-colors cursor-pointer border-l-[3px] ${
+          onClick={() => toggleSelectTopic(node.id)}
+          style={{ paddingLeft: `${indentPx}px` }}
+          className={`group flex items-center gap-2 py-2.5 pr-4 text-sm transition-colors cursor-pointer border-l-4 ${
             isSelected
-              ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 font-semibold shadow-2xs'
-              : 'border-transparent text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+              ? 'border-emerald-700 bg-emerald-100/70 text-slate-900 font-medium'
+              : 'border-transparent text-slate-800 hover:bg-slate-50'
           }`}
-          title={node.name}
         >
-          {/* Chevron expand/collapse toggle */}
           {hasChildren ? (
             <button
               type="button"
               onClick={(e) => toggleExpand(node.id, e)}
-              className="p-0.5 rounded-sm hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition shrink-0 cursor-pointer"
+              className="p-0.5 rounded hover:bg-black/5 text-slate-600 transition shrink-0 cursor-pointer"
             >
-              {isExpanded ? (
-                <ChevronDown size={13} strokeWidth={2.5} />
-              ) : (
-                <ChevronRight size={13} strokeWidth={2.5} />
-              )}
+              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </button>
           ) : (
-            <span className="w-4 shrink-0" />
+            <span className="w-5 shrink-0" />
           )}
 
-          {/* Node Icon */}
-          {node.type === 'TOPIC' ? (
-            <Folder
-              size={13}
-              className={`shrink-0 ${isSelected ? 'text-emerald-700' : 'text-blue-500'}`}
-            />
-          ) : (
-            <BookOpen
-              size={13}
-              className={`shrink-0 ${isSelected ? 'text-emerald-700' : 'text-amber-600'}`}
-            />
-          )}
+          <span className="flex-1 leading-snug">{node.name}</span>
 
-          {/* Label Text */}
-          <span className="truncate flex-1 text-[11.5px] leading-snug">{node.name}</span>
-
-          {/* Selected checkmark */}
           {isSelected && (
-            <span className="text-emerald-700 shrink-0">
-              <Check size={12} strokeWidth={3} />
-            </span>
+            <Check size={15} strokeWidth={2.5} className="text-emerald-700 shrink-0" />
           )}
         </div>
 
-        {/* Children nodes */}
-        {hasChildren && isExpanded && (
-          <div className="relative">
-            {node.children.map(renderNode)}
-          </div>
-        )}
+        {hasChildren && isExpanded && <div>{node.children.map(renderTopicNode)}</div>}
       </div>
     );
   };
 
   return (
     <div
-      className={`bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col overflow-hidden ${className}`}
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-[1px] animate-in fade-in duration-150"
+      onClick={onClose}
     >
-      {/* 1. Header (Select a category) */}
-      <div className="px-3.5 py-2.5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-        <h4 className="text-xs font-bold text-slate-800 tracking-tight">Select a category</h4>
-        <button
-          type="button"
-          onClick={onClear}
-          title="Bỏ chọn danh mục (Đặt về chung)"
-          className="text-slate-400 hover:text-slate-700 p-1 rounded-md hover:bg-slate-100 transition cursor-pointer"
-        >
-          <X size={14} />
-        </button>
-      </div>
+      <div
+        className="bg-white rounded-xl shadow-2xl border border-slate-200/80 w-full max-w-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header chuẩn mẫu: Select a category + nút X */}
+        <div className="px-6 pt-5 pb-3 flex items-center justify-between bg-white">
+          <h3 className="text-lg font-semibold text-slate-900">
+            Select a category <span className="text-xs font-normal text-slate-400">(Chọn một hoặc nhiều Chủ đề)</span>
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-500 hover:text-slate-800 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-      {/* 2. Hierarchical Tree Content Area */}
-      <div className="overflow-y-auto max-h-56 sm:max-h-60 p-1 divide-y divide-slate-50/50">
-        {treeNodes.length === 0 ? (
-          <div className="p-4 text-center text-xs text-slate-400 italic">
-            Đang tải cây danh mục...
-          </div>
-        ) : (
-          treeNodes.map(renderNode)
-        )}
-      </div>
+        {/* Body: Cây phân cấp có thanh cuộn bên phải */}
+        <div className="px-6 pb-4 max-h-[380px] overflow-y-auto space-y-0.5">
+          {treeNodes.length === 0 ? (
+            <div className="py-8 text-center text-sm text-slate-400 italic">
+              Không có dữ liệu chủ đề.
+            </div>
+          ) : (
+            treeNodes.map(renderTopicNode)
+          )}
+        </div>
 
-      {/* 3. Footer indicator showing current selected category */}
-      {activeLabel && (
-        <div className="px-3 py-1.5 bg-emerald-50/50 border-t border-emerald-100 text-[11px] text-emerald-900 flex items-center justify-between gap-1.5">
-          <div className="flex items-center gap-1 min-w-0">
-            <span className="text-[10px] uppercase font-bold text-emerald-700 px-1 py-0.5 rounded bg-emerald-100/60 shrink-0">
-              {activeLabel.type}
-            </span>
-            <span className="truncate font-semibold text-emerald-950">{activeLabel.text}</span>
+        {/* Footer điều khiển */}
+        <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+          <div className="text-xs text-slate-600">
+            Đã chọn: <strong className="text-emerald-700">{selectedTopicIds.length}</strong> chủ đề
+            {selectedTopicIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onChangeSelected([])}
+                className="ml-3 text-slate-400 hover:text-rose-600 underline cursor-pointer"
+              >
+                Bỏ chọn tất cả
+              </button>
+            )}
           </div>
           <button
             type="button"
-            onClick={onClear}
-            className="text-[10px] text-emerald-700 hover:text-emerald-900 font-semibold underline shrink-0 cursor-pointer"
+            onClick={onClose}
+            className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg transition cursor-pointer"
           >
-            Hủy chọn
+            Xác nhận ({selectedTopicIds.length})
           </button>
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 2. MODAL CHỌN NHIỀU BÀI HỌC (SELECT LESSONS - LESSONS TREE)
+// ============================================================================
+
+export interface LessonCategoryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  lessons: LessonItem[];
+  selectedLessonIds: string[];
+  onChangeSelected: (lessonIds: string[]) => void;
+}
+
+interface LessonGroupNode {
+  id: string;
+  label: string;
+  lessons: LessonItem[];
+}
+
+/**
+ * Phân nhóm bài học theo giai đoạn lịch sử để hiển thị dạng cây gập mở giống mẫu
+ */
+function groupLessonsIntoTree(lessons: LessonItem[]): LessonGroupNode[] {
+  const groups: LessonGroupNode[] = [
+    {
+      id: 'grp-1954-1960',
+      label: 'Giai đoạn 1954 - 1960: Phong trào Đồng Khởi & Chi viện Trường Sơn',
+      lessons: [],
+    },
+    {
+      id: 'grp-1961-1968',
+      label: 'Giai đoạn 1961 - 1968: Chiến tranh đặc biệt & Tổng tiến công Tết Mậu Thân',
+      lessons: [],
+    },
+    {
+      id: 'grp-1969-1973',
+      label: 'Giai đoạn 1969 - 1973: Quảng Trị, Điện Biên Phủ trên không & Hiệp định Paris',
+      lessons: [],
+    },
+    {
+      id: 'grp-1973-1975',
+      label: 'Giai đoạn 1973 - 1975: Chiến dịch Tây Nguyên & Đại thắng Mùa Xuân 1975',
+      lessons: [],
+    },
+    {
+      id: 'grp-other',
+      label: 'Các bài học lịch sử khác',
+      lessons: [],
+    },
+  ];
+
+  lessons.forEach((ls) => {
+    const t = ls.title.toLowerCase();
+    if (t.includes('đồng khởi') || t.includes('trường sơn') || t.includes('1959') || t.includes('1960')) {
+      groups[0].lessons.push(ls);
+    } else if (t.includes('ấp bắc') || t.includes('mậu thân') || t.includes('1963') || t.includes('1968')) {
+      groups[1].lessons.push(ls);
+    } else if (
+      t.includes('điện biên phủ trên không') ||
+      t.includes('quảng trị') ||
+      t.includes('paris') ||
+      t.includes('1972') ||
+      t.includes('1973')
+    ) {
+      groups[2].lessons.push(ls);
+    } else if (t.includes('tây nguyên') || t.includes('mùa xuân 1975') || t.includes('hồ chí minh') || t.includes('1975')) {
+      groups[3].lessons.push(ls);
+    } else {
+      groups[4].lessons.push(ls);
+    }
+  });
+
+  return groups.filter((g) => g.lessons.length > 0);
+}
+
+export function LessonCategoryModalPicker({
+  isOpen,
+  onClose,
+  lessons,
+  selectedLessonIds,
+  onChangeSelected,
+}: LessonCategoryModalProps) {
+  const [rootExpanded, setRootExpanded] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const lessonGroups = useMemo(() => groupLessonsIntoTree(lessons), [lessons]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setRootExpanded(true);
+      const exp: Record<string, boolean> = {};
+      lessonGroups.forEach((g) => {
+        exp[g.id] = true;
+      });
+      setExpandedGroups(exp);
+    }
+  }, [isOpen, lessonGroups]);
+
+  if (!isOpen) return null;
+
+  const toggleGroup = (groupId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
+  };
+
+  const toggleSelectLesson = (lessonId: string) => {
+    if (selectedLessonIds.includes(lessonId)) {
+      onChangeSelected(selectedLessonIds.filter((id) => id !== lessonId));
+    } else {
+      onChangeSelected([...selectedLessonIds, lessonId]);
+    }
+  };
+
+  const toggleSelectAllInGroup = (groupLessons: LessonItem[]) => {
+    const groupIds = groupLessons.map((l) => l.id);
+    const allSelected = groupIds.every((id) => selectedLessonIds.includes(id));
+    if (allSelected) {
+      onChangeSelected(selectedLessonIds.filter((id) => !groupIds.includes(id)));
+    } else {
+      const next = Array.from(new Set([...selectedLessonIds, ...groupIds]));
+      onChangeSelected(next);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-[1px] animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl shadow-2xl border border-slate-200/80 w-full max-w-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header chuẩn mẫu: Select lessons + nút X */}
+        <div className="px-6 pt-5 pb-3 flex items-center justify-between bg-white">
+          <h3 className="text-lg font-semibold text-slate-900">
+            Select lessons <span className="text-xs font-normal text-slate-400">(Chọn một hoặc nhiều Bài học liên kết)</span>
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-500 hover:text-slate-800 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body: Cây phân cấp Bài học chuẩn giao diện mẫu */}
+        <div className="px-6 pb-4 max-h-[380px] overflow-y-auto space-y-0.5 select-none">
+          {lessons.length === 0 ? (
+            <div className="py-8 text-center text-sm text-slate-400 italic">
+              Không có dữ liệu bài học.
+            </div>
+          ) : (
+            <div>
+              {/* Root Node */}
+              <div
+                onClick={() => setRootExpanded((prev) => !prev)}
+                className={`flex items-center gap-2 py-2.5 px-3 text-sm font-medium cursor-pointer border-l-4 transition-colors ${
+                  selectedLessonIds.length > 0
+                    ? 'border-emerald-700 bg-emerald-100/70 text-slate-900'
+                    : 'border-transparent text-slate-800 hover:bg-slate-50'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRootExpanded((prev) => !prev);
+                  }}
+                  className="p-0.5 rounded hover:bg-black/5 text-slate-600 transition shrink-0 cursor-pointer"
+                >
+                  {rootExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                <span className="flex-1">Danh sách Bài học Lịch sử ({lessons.length} bài)</span>
+              </div>
+
+              {/* Group Nodes & Leaf Lessons */}
+              {rootExpanded &&
+                lessonGroups.map((group) => {
+                  const isGroupExpanded = !!expandedGroups[group.id];
+                  const allGroupSelected = group.lessons.every((l) =>
+                    selectedLessonIds.includes(l.id)
+                  );
+
+                  return (
+                    <div key={group.id}>
+                      {/* Nhánh giai đoạn */}
+                      <div
+                        onClick={() => toggleSelectAllInGroup(group.lessons)}
+                        style={{ paddingLeft: '32px' }}
+                        className={`flex items-center gap-2 py-2 pr-4 text-sm cursor-pointer border-l-4 transition-colors ${
+                          allGroupSelected
+                            ? 'border-emerald-700 bg-emerald-100/50 text-slate-900 font-medium'
+                            : 'border-transparent text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => toggleGroup(group.id, e)}
+                          className="p-0.5 rounded hover:bg-black/5 text-slate-600 transition shrink-0 cursor-pointer"
+                        >
+                          {isGroupExpanded ? (
+                            <ChevronDown size={15} />
+                          ) : (
+                            <ChevronRight size={15} />
+                          )}
+                        </button>
+                        <span className="flex-1 leading-snug">{group.label}</span>
+                      </div>
+
+                      {/* Các bài học cụ thể bên trong nhánh */}
+                      {isGroupExpanded &&
+                        group.lessons.map((ls) => {
+                          const isSelected = selectedLessonIds.includes(ls.id);
+                          return (
+                            <div
+                              key={ls.id}
+                              onClick={() => toggleSelectLesson(ls.id)}
+                              style={{ paddingLeft: '64px' }}
+                              className={`flex items-center justify-between gap-2 py-2 pr-4 text-sm cursor-pointer border-l-4 transition-colors ${
+                                isSelected
+                                  ? 'border-emerald-700 bg-emerald-100/70 text-slate-900 font-medium'
+                                  : 'border-transparent text-slate-800 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span className="leading-snug">{ls.title}</span>
+                              {isSelected && (
+                                <Check
+                                  size={15}
+                                  strokeWidth={2.5}
+                                  className="text-emerald-700 shrink-0"
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer điều khiển */}
+        <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+          <div className="text-xs text-slate-600">
+            Đã chọn: <strong className="text-emerald-700">{selectedLessonIds.length}</strong> bài học
+            {selectedLessonIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onChangeSelected([])}
+                className="ml-3 text-slate-400 hover:text-rose-600 underline cursor-pointer"
+              >
+                Bỏ chọn tất cả
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg transition cursor-pointer"
+          >
+            Xác nhận ({selectedLessonIds.length})
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

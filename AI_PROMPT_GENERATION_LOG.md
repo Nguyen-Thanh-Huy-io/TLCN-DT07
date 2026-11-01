@@ -433,3 +433,57 @@ Quy trình Feature-by-Feature:
 ### 3. Kết quả kiểm thử tự động (Verification):
 - **Frontend TypeScript (`npx tsc --noEmit`)**: `0 errors`.
 - **Backend Unit Tests (`jest quiz-question.validator.spec.ts`)**: `13/13 tests PASS`.
+
+
+---
+
+## ĐỢT 8: QUAN HỆ NHIỀU-NHIỀU (TOPICS & LESSONS) + 2 MODAL PICKER PHÂN CẤP ĐỘC LẬP
+
+### 1. Yêu cầu của người dùng (User Request):
+> "còn cái liên kết bài học đâu? cái category đó chỉ bên topic thôi. Và khi bấm vào thì hiện modal á và có thể gắn nhiều topic nữa tương tự bài học cũng làm giao diện mẫu và có thể nhiều lesson"  
+> "topicId String? ... topicIds String[] trùng topicId không vậy" -> "ok làm đi nhớ migration nữa nhé"
+
+### 2. Thiết kế Kiến trúc & Sequence Diagram (SOLID & Many-to-Many RDBMS):
+```mermaid
+sequenceDiagram
+    actor Admin as Quản trị viên (CMS)
+    participant QModal as QuestionBankModal
+    participant TModal as TopicCategoryModalPicker
+    participant LModal as LessonCategoryModalPicker
+    participant API as QuestionController / QuestionService
+    participant DB as PostgreSQL (Prisma M2M)
+
+    Admin->>QModal: Click ô "Phân loại / Chủ đề (Topics)"
+    QModal->>TModal: Mở Modal "Select a category" (chỉ hiển thị cây Topic)
+    Admin->>TModal: Chọn nhiều Topic (Multi-select, highlight viền xanh lá)
+    TModal-->>QModal: Cập nhật topicIds: string[] (hiển thị chips)
+
+    Admin->>QModal: Click ô "Liên kết bài học (Lessons)"
+    QModal->>LModal: Mở Modal "Select lessons" (hiển thị cây Bài học)
+    Admin->>LModal: Chọn nhiều Bài học (Multi-select, highlight viền xanh lá)
+    LModal-->>QModal: Cập nhật lessonIds: string[] (hiển thị chips)
+
+    Admin->>QModal: Nhấn "Lưu câu hỏi"
+    QModal->>API: POST/PUT /questions { topicIds, lessonIds, ... }
+    API->>DB: Lưu Question & đồng bộ bảng trung gian _QuestionToTopic, _LessonToQuestion
+    DB-->>API: Question kèm topics[] & lessons[]
+    API-->>QModal: Thành công & cập nhật bảng danh sách
+```
+
+### 3. Chi tiết triển khai:
+1. **Database Schema & Migration (`20261102004500_question_bank_many_to_many_topics_lessons`)**:
+   - Xóa bỏ hoàn toàn các cột đơn lẻ gây trùng lặp (`lesson_id`, `topic_id`, `period_id`) trên bảng `questions`.
+   - Chuyển sang quan hệ Nhiều - Nhiều chuẩn RDBMS (`lessons Lesson[]` và `topics Topic[]`) thông qua 2 bảng trung gian `_LessonToQuestion` và `_QuestionToTopic`.
+   - Kịch bản Migration tự động bảo toàn dữ liệu cũ trước khi xóa cột đơn.
+2. **Backend (`CreateQuestionDto` & `QuestionService`)**:
+   - Nhận `topicIds?: string[]` và `lessonIds?: string[]`.
+   - Sử dụng `connect` khi tạo mới và `set` khi cập nhật để đồng bộ danh sách Chủ đề và Bài học liên kết.
+3. **Frontend (`CategoryTreePicker.tsx`, `QuestionBankModal.tsx`, `QuestionBankView.tsx`)**:
+   - **Ô 1 - Phân loại / Chủ đề (`Topics`)**: Hiển thị các thẻ (chips) chủ đề đã chọn; khi bấm vào sẽ bật **`TopicCategoryModalPicker`** (`Select a category`) chỉ chứa cây phân cấp các Chủ đề, hỗ trợ chọn nhiều mục.
+   - **Ô 2 - Liên kết bài học (`Lessons`)**: Hiển thị các thẻ (chips) bài học đã chọn; khi bấm vào sẽ bật **`LessonCategoryModalPicker`** (`Select lessons`) hiển thị cây phân cấp các Bài học hiện có (*Trận Điện Biên Phủ trên không*, *81 ngày đêm Thành cổ Quảng Trị*, *Chiến dịch Tây Nguyên*...), hỗ trợ chọn nhiều bài học.
+   - **Bảng danh sách (`QuestionBankView.tsx`)**: Hiển thị danh sách các Chủ đề và Bài học đã gắn cho từng câu hỏi.
+
+### 4. Kết quả kiểm thử tự động (Verification):
+- **Prisma Migration (`npx prisma migrate deploy`)**: Thành công (`35 migrations applied`).
+- **Frontend TypeScript (`npx tsc --noEmit`)**: `0 errors`.
+- **Backend Build Typecheck (`npx tsc -p tsconfig.build.json --noEmit`)**: `0 errors`.

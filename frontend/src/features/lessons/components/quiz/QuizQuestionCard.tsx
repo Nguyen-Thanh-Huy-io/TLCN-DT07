@@ -9,6 +9,7 @@ import {
   MatchingEditor,
   MultipleChoiceEditor,
   OrderingEditor,
+  SingleChoiceEditor,
   TrueFalseEditor,
 } from './QuizQuestionEditors';
 
@@ -88,6 +89,8 @@ export function QuizQuestionCard({ index, total, question, onChange, onRemove, o
 
 function renderEditor(question: QuizQuestion, onChange: (updates: Partial<QuizQuestion>) => void) {
   switch (question.type) {
+    case QuizQuestionType.SINGLE_CHOICE:
+      return <SingleChoiceEditor data={question} onChange={onChange as any} />;
     case QuizQuestionType.MULTIPLE_CHOICE:
       return <MultipleChoiceEditor data={question} onChange={onChange as any} />;
     case QuizQuestionType.TRUE_FALSE:

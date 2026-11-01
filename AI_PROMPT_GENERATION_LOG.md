@@ -158,3 +158,63 @@ cho cái dạng collapse á thu/mở được và xóa mock data đi và tạo f
 2. **Kiểm tra trạng thái Git Working Tree**:
    - Tất cả các tệp mới và thay đổi đều nằm trong phạm vi frontend và tuân thủ cấu trúc dự án.
    - Không có file rác hoặc xung đột phát sinh.
+
+---
+
+# GIAI ĐOẠN 1: TÍNH NĂNG QUIZ CỐT LÕI (5 DẠNG ƯU TIÊN)
+**Mục tiêu**: Nghiên cứu & triển khai Feature-by-Feature (Sequence Diagram -> Backend Code -> UI Integration -> Automated Validation), tuân thủ tuyệt đối SOLID & Design Patterns (Factory, Strategy, Facade, No Magic Strings).
+
+## ĐỢT 1: LOẠI 1 - TRẮC NGHIỆM 1 ĐÁP ÁN (`SINGLE_CHOICE`)
+
+### 1. Yêu cầu của người dùng (User Prompt):
+> "Nghiên cứu:
+> Ưu tiên Loại Quiz
+> 1 Trắc nghiệm 1 đáp án
+> 2 Đúng / Sai
+> 3 Nhiều đáp án
+> 4 Sắp xếp dòng thời gian
+> 5 Ghép nối
+> ...
+> ê xong 1 loại thì dừng để tôi test nữa nhé"
+
+### 2. Thiết kế Kiến trúc & Design Patterns áp dụng:
+1. **Sequence Diagram**:
+   - Luồng CMS: Tác giả -> `AddQuestionMenu` -> `QuizQuestionFactory` -> `SingleChoiceEditor` -> `useQuizEditor` Facade -> `QuizApiService` -> NestJS Backend (`QuizController` / `QuizService`) -> `validateAndNormalizeQuestions` (Strategy Validator) -> Lưu cột JSONB `Quiz.questions` trong PostgreSQL.
+   - Luồng Người học: Người học -> `HubLessonQuiz` -> `SingleChoice` interactive options -> Chọn 1 option (Radio button / thẻ chọn) -> Bấm nộp bài -> `QuizGradingStrategyRegistry` gọi `SingleChoiceGrader` (Strategy Pattern) -> Trả về kết quả đúng/sai, điểm số và tóm tắt đáp án chuẩn kèm giải thích lịch sử.
+2. **SOLID Principles**:
+   - **SRP**: Tách biệt rõ `SingleChoiceQuestion`, `SingleChoiceEditor`, `SingleChoiceGrader` và validator riêng cho câu hỏi 1 đáp án.
+   - **OCP**: Thêm loại mới mà không làm vỡ các loại câu hỏi khác. Đăng ký tự động vào `QuizGradingStrategyRegistry` và `QuizQuestionFactory`.
+   - **LSP & DIP**: `SingleChoiceGrader` tuân thủ interface `IQuizQuestionGrader<SingleChoiceQuestion>`.
+   - **No Magic Strings**: Toàn bộ sử dụng enum `QuizQuestionType.SINGLE_CHOICE`.
+
+### 3. Các tệp được tạo mới và cập nhật:
+1. **`backend/src/quiz/types/quiz-question.types.ts`**:
+   - Thêm `SINGLE_CHOICE = 'SINGLE_CHOICE'` vào enum `QuizQuestionType`.
+   - Định nghĩa interface `SingleChoiceQuestion extends BaseQuizQuestion`.
+2. **`backend/src/quiz/validators/quiz-question.validator.ts`**:
+   - Bổ sung xác thực riêng cho `SINGLE_CHOICE`: Bắt buộc mảng options có độ dài $\ge 2$, kiểm tra mỗi option có `id`, `text`, `isCorrect` và **chính xác 1 lựa chọn đúng** (`isCorrect: true`).
+3. **`backend/src/quiz/validators/quiz-question.validator.spec.ts`** *(Mới)*:
+   - 12 unit tests tự động kiểm thử toàn diện mọi trường hợp (hợp lệ, nhiều hơn 1 đáp án đúng, không có đáp án đúng nào, không phải mảng...).
+4. **`frontend/src/features/lessons/types/quiz.types.ts`**:
+   - Bổ sung `QuizQuestionType.SINGLE_CHOICE` và metadata badge (`text-blue-600 bg-blue-50 border-blue-200`, nhãn "Trắc nghiệm 1 đáp án").
+5. **`frontend/src/features/lessons/factories/quiz-question.factory.ts`**:
+   - Factory sinh mẫu câu hỏi `SINGLE_CHOICE` với 2 options mẫu (1 đúng, 1 sai).
+6. **`frontend/src/features/lessons/components/quiz/QuizQuestionEditors.tsx`**:
+   - Tạo `SingleChoiceEditor` với radio button để tác giả chọn duy nhất 1 đáp án đúng, gắn số hiệu A, B, C..., cho phép thêm/xóa/sửa đáp án linh hoạt.
+7. **`frontend/src/features/lessons/components/quiz/QuizQuestionCard.tsx` & `LessonPreviewContent.tsx`**:
+   - Tích hợp `SingleChoiceEditor` và hiển thị bản xem trước cho biên tập viên.
+8. **`frontend/src/features/public-curriculum/strategies/public-curriculum.strategies.ts`**:
+   - Tạo `SingleChoiceGrader` cài đặt `IQuizQuestionGrader<SingleChoiceQuestion>`.
+   - Đăng ký vào `QuizGradingStrategyRegistry.graders`.
+9. **`frontend/src/features/public-curriculum/components/hub/HubLessonQuiz.tsx`**:
+   - Xây dựng giao diện tương tác cho người học: các thẻ lựa chọn A, B, C, D trực quan, chọn 1 đáp án duy nhất; sau khi nộp bài hiển thị trạng thái đúng/sai, viền màu, icon Check/X và giải thích đáp án.
+10. **`frontend/src/features/quiz/components/QuestionBankView.tsx`**:
+    - Chuẩn hóa loại `SINGLE_CHOICE` vào bộ lọc ngân hàng câu hỏi.
+
+### 4. Kết quả kiểm thử tự động (Automated Verification):
+- **Backend Jest Tests**:
+  - `PASS src/quiz/validators/quiz-question.validator.spec.ts` (12/12 tests Passed).
+  - `PASS src/lesson/lesson-enrichment.spec.ts` (12/12 tests Passed).
+- **Frontend TypeScript (`tsc --noEmit`)**:
+  - `0 errors` (Exit Code 0).
+

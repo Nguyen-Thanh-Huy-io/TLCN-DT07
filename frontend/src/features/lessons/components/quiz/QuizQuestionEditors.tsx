@@ -8,6 +8,7 @@ import {
   MultipleChoiceQuestion,
   OrderingQuestion,
   QuizQuestion,
+  SingleChoiceQuestion,
   TrueFalseQuestion,
 } from '../../types/quiz.types';
 import { generateQuizId } from '../../factories/quiz-question.factory';
@@ -58,6 +59,82 @@ function PromptAndExplanation({
         className={`${inputCls} text-slate-500`}
       />
     </>
+  );
+}
+
+export function SingleChoiceEditor({
+  data,
+  onChange,
+}: {
+  data: SingleChoiceQuestion;
+  onChange: OnChange<SingleChoiceQuestion>;
+}) {
+  const updateOption = (optId: string, text: string) => {
+    onChange({ options: data.options.map((o) => (o.id === optId ? { ...o, text } : o)) });
+  };
+  const setCorrect = (optId: string) => {
+    onChange({ options: data.options.map((o) => ({ ...o, isCorrect: o.id === optId })) });
+  };
+  const addOption = () => {
+    onChange({ options: [...data.options, { id: generateQuizId('opt'), text: '', isCorrect: false }] });
+  };
+  const removeOption = (optId: string) => {
+    if (data.options.length <= 2) {
+      alert('Trắc nghiệm 1 đáp án cần ít nhất 2 lựa chọn.');
+      return;
+    }
+    const next = data.options.filter((o) => o.id !== optId);
+    if (!next.some((o) => o.isCorrect)) next[0].isCorrect = true;
+    onChange({ options: next });
+  };
+
+  return (
+    <div className="space-y-2">
+      <PromptAndExplanation
+        prompt={data.prompt}
+        explanation={data.explanation}
+        promptPlaceholder="Câu hỏi trắc nghiệm 1 đáp án..."
+        onChange={onChange}
+      />
+      <div className="space-y-1.5">
+        {data.options.map((opt, idx) => (
+          <div key={opt.id} className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 cursor-pointer shrink-0" title="Đánh dấu là đáp án đúng duy nhất">
+              <input
+                type="radio"
+                name={`correct_opt_${data.id}`}
+                checked={opt.isCorrect}
+                onChange={() => setCorrect(opt.id)}
+                className="w-4 h-4 text-emerald-600 shrink-0 cursor-pointer"
+              />
+              <span className="text-xs font-bold text-slate-500 w-4">{String.fromCharCode(65 + idx)}.</span>
+            </label>
+            <input
+              type="text"
+              value={opt.text}
+              onChange={(e) => updateOption(opt.id, e.target.value)}
+              placeholder={`Nội dung lựa chọn ${String.fromCharCode(65 + idx)}...`}
+              className={smallInputCls}
+            />
+            <button
+              type="button"
+              onClick={() => removeOption(opt.id)}
+              className="text-slate-400 hover:text-rose-600 cursor-pointer shrink-0 px-1"
+              title="Xóa lựa chọn"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={addOption}
+        className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-dashed border-blue-300 rounded-lg py-1.5 w-full cursor-pointer transition"
+      >
+        + Thêm lựa chọn
+      </button>
+    </div>
   );
 }
 

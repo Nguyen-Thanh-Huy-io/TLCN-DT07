@@ -4,6 +4,7 @@
  * không phải cột DB (theo đúng cách `LessonBlockType` của Lesson.content đang làm).
  */
 export enum QuizQuestionType {
+  SINGLE_CHOICE = 'SINGLE_CHOICE',
   MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
   TRUE_FALSE = 'TRUE_FALSE',
   ORDERING = 'ORDERING',
@@ -16,6 +17,11 @@ interface BaseQuizQuestion {
   type: QuizQuestionType;
   prompt: string;
   explanation?: string;
+}
+
+export interface SingleChoiceQuestion extends BaseQuizQuestion {
+  type: QuizQuestionType.SINGLE_CHOICE;
+  options: Array<{ id: string; text: string; isCorrect: boolean }>;
 }
 
 export interface MultipleChoiceQuestion extends BaseQuizQuestion {
@@ -48,6 +54,7 @@ export interface FillInBlankQuestion extends BaseQuizQuestion {
 }
 
 export type QuizQuestion =
+  | SingleChoiceQuestion
   | MultipleChoiceQuestion
   | TrueFalseQuestion
   | OrderingQuestion

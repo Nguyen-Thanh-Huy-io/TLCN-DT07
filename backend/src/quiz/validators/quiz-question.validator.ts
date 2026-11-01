@@ -48,6 +48,24 @@ function validateOneQuestion(raw: unknown, index: number): QuizQuestion {
   };
 
   switch (q.type as QuizQuestionType) {
+    case QuizQuestionType.SINGLE_CHOICE: {
+      const options = q.options;
+      if (!Array.isArray(options) || options.length < 2) {
+        fail(index, 'SINGLE_CHOICE cần `options` là mảng ít nhất 2 lựa chọn.');
+      }
+      const normalized = options.map((opt: any, optIdx: number) => {
+        if (typeof opt?.id !== 'string' || typeof opt?.text !== 'string') {
+          fail(index, `lựa chọn #${optIdx + 1} thiếu \`id\`/\`text\`.`);
+        }
+        return { id: opt.id, text: opt.text, isCorrect: Boolean(opt.isCorrect) };
+      });
+      const correctCount = normalized.filter((o) => o.isCorrect).length;
+      if (correctCount !== 1) {
+        fail(index, 'SINGLE_CHOICE cần chính xác 1 lựa chọn đúng (`isCorrect: true`).');
+      }
+      return { ...base, type: QuizQuestionType.SINGLE_CHOICE, options: normalized };
+    }
+
     case QuizQuestionType.MULTIPLE_CHOICE: {
       const options = q.options;
       if (!Array.isArray(options) || options.length < 2) {

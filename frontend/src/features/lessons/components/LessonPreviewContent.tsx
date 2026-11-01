@@ -67,6 +67,7 @@ export function LessonPreviewContent({
   // ngay trong bản xem trước (không phải giao diện làm bài thật mà học sinh sẽ thấy).
   const renderQuizQuestionBody = (q: QuizQuestion) => {
     switch (q.type) {
+      case QuizQuestionType.SINGLE_CHOICE:
       case QuizQuestionType.MULTIPLE_CHOICE:
         return (
           <div className="space-y-1.5 mt-2">

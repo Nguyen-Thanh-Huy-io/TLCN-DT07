@@ -2,6 +2,7 @@ import { LearningPathItem } from '@/services/entities/learning-path.service';
 import {
   QuizQuestion,
   QuizQuestionType,
+  SingleChoiceQuestion,
   MultipleChoiceQuestion,
   TrueFalseQuestion,
   FillInBlankQuestion,
@@ -122,6 +123,19 @@ export interface IQuizQuestionGrader<T extends QuizQuestion = QuizQuestion> {
   getCorrectSummary(question: T): string;
 }
 
+class SingleChoiceGrader implements IQuizQuestionGrader<SingleChoiceQuestion> {
+  isCorrect(question: SingleChoiceQuestion, answer: UserQuizAnswer | undefined): boolean {
+    if (typeof answer !== 'string') return false;
+    const correctOption = question.options.find((o) => o.isCorrect);
+    return Boolean(correctOption && correctOption.id === answer);
+  }
+
+  getCorrectSummary(question: SingleChoiceQuestion): string {
+    const correctOption = question.options.find((o) => o.isCorrect);
+    return correctOption ? correctOption.text : '';
+  }
+}
+
 class MultipleChoiceGrader implements IQuizQuestionGrader<MultipleChoiceQuestion> {
   isCorrect(question: MultipleChoiceQuestion, answer: UserQuizAnswer | undefined): boolean {
     if (typeof answer !== 'string') return false;
@@ -192,6 +206,7 @@ class MatchingGrader implements IQuizQuestionGrader<MatchingQuestion> {
 
 export class QuizGradingStrategyRegistry {
   private static readonly graders: Record<QuizQuestionType, IQuizQuestionGrader<any>> = {
+    [QuizQuestionType.SINGLE_CHOICE]: new SingleChoiceGrader(),
     [QuizQuestionType.MULTIPLE_CHOICE]: new MultipleChoiceGrader(),
     [QuizQuestionType.TRUE_FALSE]: new TrueFalseGrader(),
     [QuizQuestionType.FILL_IN_BLANK]: new FillInBlankGrader(),

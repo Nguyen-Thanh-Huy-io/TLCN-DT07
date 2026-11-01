@@ -3,8 +3,9 @@
  * (`backend/src/quiz/types/quiz-question.types.ts`) và schema `Quiz.questions` (JSONB).
  */
 export enum QuizQuestionType {
-  MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+  SINGLE_CHOICE = 'SINGLE_CHOICE',
   TRUE_FALSE = 'TRUE_FALSE',
+  MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
   ORDERING = 'ORDERING',
   MATCHING = 'MATCHING',
   FILL_IN_BLANK = 'FILL_IN_BLANK',
@@ -21,6 +22,11 @@ export interface MultipleChoiceOption {
   id: string;
   text: string;
   isCorrect: boolean;
+}
+
+export interface SingleChoiceQuestion extends BaseQuizQuestion {
+  type: QuizQuestionType.SINGLE_CHOICE;
+  options: MultipleChoiceOption[];
 }
 
 export interface MultipleChoiceQuestion extends BaseQuizQuestion {
@@ -68,6 +74,7 @@ export interface FillInBlankQuestion extends BaseQuizQuestion {
 }
 
 export type QuizQuestion =
+  | SingleChoiceQuestion
   | MultipleChoiceQuestion
   | TrueFalseQuestion
   | OrderingQuestion
@@ -88,9 +95,9 @@ export const QUIZ_QUESTION_TYPE_META: Record<
   QuizQuestionType,
   { label: string; shortLabel: string; color: string }
 > = {
-  [QuizQuestionType.MULTIPLE_CHOICE]: {
-    label: 'Trắc nghiệm',
-    shortLabel: 'Trắc nghiệm',
+  [QuizQuestionType.SINGLE_CHOICE]: {
+    label: 'Trắc nghiệm 1 đáp án',
+    shortLabel: '1 đáp án',
     color: 'text-blue-600 bg-blue-50 border-blue-200',
   },
   [QuizQuestionType.TRUE_FALSE]: {
@@ -98,19 +105,24 @@ export const QUIZ_QUESTION_TYPE_META: Record<
     shortLabel: 'Đúng/Sai',
     color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
   },
+  [QuizQuestionType.MULTIPLE_CHOICE]: {
+    label: 'Nhiều đáp án đúng',
+    shortLabel: 'Nhiều đáp án',
+    color: 'text-indigo-600 bg-indigo-50 border-indigo-200',
+  },
   [QuizQuestionType.ORDERING]: {
-    label: 'Sắp xếp thời gian',
+    label: 'Sắp xếp dòng thời gian',
     shortLabel: 'Sắp xếp',
     color: 'text-amber-600 bg-amber-50 border-amber-200',
   },
   [QuizQuestionType.MATCHING]: {
-    label: 'Nối cột',
-    shortLabel: 'Nối cột',
+    label: 'Ghép nối',
+    shortLabel: 'Ghép nối',
     color: 'text-violet-600 bg-violet-50 border-violet-200',
   },
   [QuizQuestionType.FILL_IN_BLANK]: {
     label: 'Điền vào chỗ trống',
-    shortLabel: 'Điền chỗ trống',
+    shortLabel: 'Điền khuyết',
     color: 'text-cyan-600 bg-cyan-50 border-cyan-200',
   },
 };

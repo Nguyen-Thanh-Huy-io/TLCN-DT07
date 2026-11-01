@@ -9,7 +9,7 @@ import api from '@/services/api';
 
 export interface QuestionBankItem {
   id: string;
-  type: 'single_choice' | 'multi_choice' | 'true_false' | 'timeline_order' | 'fill_blank';
+  type: 'single_choice' | 'multi_choice' | 'true_false' | 'timeline_order' | 'matching' | 'fill_blank';
   prompt: string;
   options?: { id: string; text: string; isCorrect: boolean }[];
   explanation: string;
@@ -25,6 +25,7 @@ const TYPE_LABELS: Record<string, string> = {
   multi_choice: 'Nhiều đáp án đúng',
   true_false: 'Đúng / Sai',
   timeline_order: 'Sắp xếp thời gian',
+  matching: 'Ghép nối',
   fill_blank: 'Điền khuyết',
 };
 
@@ -55,9 +56,22 @@ export function QuestionBankView() {
             const quiz = quizRes.data?.data || quizRes.data;
             if (quiz && Array.isArray(quiz.questions)) {
               for (const q of quiz.questions) {
+                const normalizedType =
+                  q.type === 'SINGLE_CHOICE'
+                    ? 'single_choice'
+                    : q.type === 'MULTIPLE_CHOICE'
+                      ? 'multi_choice'
+                      : q.type === 'TRUE_FALSE'
+                        ? 'true_false'
+                        : q.type === 'ORDERING'
+                          ? 'timeline_order'
+                          : q.type === 'MATCHING'
+                            ? 'matching'
+                            : 'fill_blank';
+
                 loadedQuestions.push({
                   id: q.id || `q-${Math.random()}`,
-                  type: q.type || 'single_choice',
+                  type: normalizedType as any,
                   prompt: q.prompt || q.question || 'Câu hỏi ôn tập',
                   options: q.options || [],
                   explanation: q.explanation || '',

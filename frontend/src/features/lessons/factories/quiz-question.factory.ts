@@ -11,12 +11,24 @@ export function createDefaultQuestion(type: QuizQuestionType): QuizQuestion {
   const id = generateQuizId('q');
 
   switch (type) {
+    case QuizQuestionType.SINGLE_CHOICE:
+      return {
+        id,
+        type,
+        prompt: '',
+        options: [
+          { id: generateQuizId('opt'), text: '', isCorrect: true },
+          { id: generateQuizId('opt'), text: '', isCorrect: false },
+        ],
+      };
+
     case QuizQuestionType.MULTIPLE_CHOICE:
       return {
         id,
         type,
         prompt: '',
         options: [
+          { id: generateQuizId('opt'), text: '', isCorrect: true },
           { id: generateQuizId('opt'), text: '', isCorrect: true },
           { id: generateQuizId('opt'), text: '', isCorrect: false },
         ],

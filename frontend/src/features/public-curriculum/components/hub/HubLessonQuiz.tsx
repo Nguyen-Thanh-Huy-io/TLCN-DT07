@@ -30,6 +30,59 @@ interface QuestionProps {
 const OPTION_BASE = 'flex w-full items-center gap-3 rounded-xl border p-4 text-left text-sm font-medium transition';
 
 function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingItem }: QuestionProps) {
+  if (q.type === QuizQuestionType.SINGLE_CHOICE) {
+    return (
+      <div className="mt-5 space-y-3">
+        {q.options.map((opt, idx) => {
+          const selected = answer === opt.id;
+          const state = submitted
+            ? opt.isCorrect
+              ? 'border-lh-brand bg-lh-brand-soft text-lh-brand font-semibold'
+              : selected
+                ? 'border-lh-red bg-lh-red-soft text-lh-red'
+                : 'border-lh-line text-lh-muted opacity-70'
+            : selected
+              ? 'border-lh-brand bg-lh-brand-soft/60 text-lh-ink font-semibold'
+              : 'border-lh-line text-lh-ink hover:border-lh-brand/30 hover:bg-lh-surface-2';
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              disabled={submitted}
+              onClick={() => setAnswer(q.id, opt.id)}
+              className={`${OPTION_BASE} cursor-pointer ${state}`}
+            >
+              <span
+                className={`grid size-7 shrink-0 place-items-center rounded-full border text-xs font-bold ${
+                  submitted && opt.isCorrect
+                    ? 'border-lh-brand bg-lh-brand text-white'
+                    : selected
+                      ? submitted
+                        ? 'border-lh-red bg-lh-red text-white'
+                        : 'border-lh-brand bg-lh-brand text-white'
+                      : 'border-lh-line bg-white'
+                }`}
+              >
+                {submitted ? (
+                  opt.isCorrect ? (
+                    <Check className="size-4" />
+                  ) : selected ? (
+                    <X className="size-4" />
+                  ) : (
+                    String.fromCharCode(65 + idx)
+                  )
+                ) : (
+                  String.fromCharCode(65 + idx)
+                )}
+              </span>
+              <span className="flex-1 text-left">{opt.text}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   if (q.type === QuizQuestionType.MULTIPLE_CHOICE) {
     return (
       <div className="mt-5 space-y-3">

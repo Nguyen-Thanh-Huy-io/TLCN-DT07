@@ -51,6 +51,7 @@ export function Header({
     { id: "explore", label: "Trang chủ", href: "/" },
     { id: "curriculum", label: "Chương trình học", href: "/chuong-trinh-hoc" },
     { id: "timeline", label: "Dòng thời gian", href: "/dong-thoi-gian" },
+    { id: "blog", label: "Blog", href: "/blog" },
     { id: "su-kien", label: "Sự kiện", href: "/su-kien" },
     { id: "nhan-vat", label: "Nhân vật", href: "/nhan-vat" },
     { id: "di-tich", label: "Di tích", href: "/di-tich" },

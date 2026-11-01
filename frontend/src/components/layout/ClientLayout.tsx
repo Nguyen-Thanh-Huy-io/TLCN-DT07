@@ -46,6 +46,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     pathname === "/login" ||
     pathname.startsWith("/login") ||
     pathname === "/styleguide" ||
+    pathname.startsWith("/blog") ||
     pathname.startsWith("/chuong-trinh-hoc") ||
     pathname.startsWith("/bai-hoc") ||
     pathname.startsWith("/dong-thoi-gian") ||

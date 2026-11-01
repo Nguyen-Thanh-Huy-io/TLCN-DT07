@@ -1,0 +1,276 @@
+// ================================
+// Blog & Discussion Feature
+// ================================
+//
+// Luồng kiểm duyệt bài viết:
+//   User soạn bài     → status = DRAFT
+//   User gửi duyệt    → status = PENDING_REVIEW
+//   ADMIN từ chối     → status = REJECTED  + rejectionReason
+//   ADMIN duyệt       → status = PUBLISHED + publishedAt = now()
+//   Ẩn bài            → status = ARCHIVED
+//   Xóa mềm vi phạm   → status = REMOVED   + deletedAt = now()
+//
+// Luồng comment 2 cấp (enforce ở Service layer):
+//   parentId = null   → comment gốc  (level 1)
+//   parentId = <id>   → reply vào comment gốc (level 2)
+//   Service từ chối reply vào reply → tránh level 3+
+
+// ================================
+// Enums riêng cho Blog
+// ================================
+
+enum PostType {
+  BLOG       // Bài viết dài, có cấu trúc
+  DISCUSSION // Câu hỏi / chủ đề thảo luận ngắn
+}
+
+enum PostStatus {
+  DRAFT          // User đang soạn, chưa gửi duyệt
+  PENDING_REVIEW // Đã gửi, chờ ADMIN duyệt
+  PUBLISHED      // Đã duyệt, hiển thị công khai
+  REJECTED       // ADMIN từ chối (kèm rejectionReason)
+  ARCHIVED       // Ẩn khỏi feed, vẫn truy cập qua link
+  REMOVED        // Xóa mềm (vi phạm nội dung)
+}
+
+enum CommentStatus {
+  VISIBLE // Hiển thị bình thường
+  HIDDEN  // Ẩn bởi ADMIN (vẫn thấy nếu có link)
+  REMOVED // Xóa mềm (vi phạm)
+}
+
+// ================================
+// Post — Bài viết / Thảo luận
+// ================================
+
+model Post {
+  id          String     @id @default(uuid())
+  authorId    String     @map("author_id")
+  type        PostType   @default(BLOG)
+  status      PostStatus @default(DRAFT)
+
+  title           String  @db.VarChar(300)
+  slug            String  @unique @db.VarChar(300)
+  /// Tóm tắt ngắn hiển thị trên card/feed
+  summary         String? @db.VarChar(500)
+  /// Nội dung dạng block JSON (giống Lesson.content)
+  content         Json    @default("[]") @db.JsonB
+  contentRichText String? @map("content_rich_text") @db.Text
+  thumbnailUrl    String? @map("thumbnail_url") @db.VarChar(500)
+  coverImageUrl   String? @map("cover_image_url") @db.VarChar(500)
+
+  // Counters denormalized — tránh COUNT(*) mỗi lần query feed
+  // Cập nhật bằng: service +1/-1 mỗi khi có like/comment/bookmark mới
+  viewCount     Int @default(0) @map("view_count")
+  commentCount  Int @default(0) @map("comment_count")
+  likeCount     Int @default(0) @map("like_count")
+  bookmarkCount Int @default(0) @map("bookmark_count")
+
+  isPinned Boolean @default(false) @map("is_pinned")
+
+  // Kiểm duyệt
+  reviewerId      String?   @map("reviewer_id")
+  reviewNote      String?   @map("review_note") @db.Text
+  reviewedAt      DateTime? @map("reviewed_at")
+  publishedAt     DateTime? @map("published_at")
+  rejectionReason String?   @map("rejection_reason") @db.Text
+
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  author          authUser             @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  comments        PostComment[]
+  media           PostMedia[]
+  postTags        PostTag[]
+  historicalLinks PostHistoricalLink[]
+  reactions       PostReaction[]
+  bookmarks       PostBookmark[]
+
+  @@index([authorId])
+  @@index([status])
+  @@index([type])
+  @@index([isPinned])
+  @@index([publishedAt])
+  @@index([status, publishedAt]) // Feed công khai: status=PUBLISHED, sắp theo ngày
+  @@index([deletedAt])
+  @@map("posts")
+}
+
+// ================================
+// PostComment — Comment & Reply (2 cấp)
+// ================================
+//
+// Adjacency List — parentId lưu ID comment cha:
+//   parentId = null  → comment gốc (level 1)
+//   parentId ≠ null  → reply (level 2, và chỉ level 2)
+//
+// Khi comment bị xóa: set deletedAt + status = REMOVED,
+// KHÔNG hard-delete để reply con không bị mất (orphan).
+// UI hiển thị "[Bình luận đã bị xóa]" khi deletedAt != null.
+
+model PostComment {
+  id       String        @id @default(uuid())
+  postId   String        @map("post_id")
+  authorId String        @map("author_id")
+  parentId String?       @map("parent_id")
+  content  String        @db.Text
+  status   CommentStatus @default(VISIBLE)
+
+  // Denormalized counter
+  likeCount Int @default(0) @map("like_count")
+
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  post      Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    authUser          @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  parent    PostComment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies   PostComment[]     @relation("CommentReplies")
+  reactions CommentReaction[]
+
+  @@index([postId, parentId])    // Lấy level-1 của 1 post: WHERE postId=? AND parentId IS NULL
+  @@index([parentId])            // Lấy replies của 1 comment: WHERE parentId=?
+  @@index([postId, createdAt])   // Sắp xếp theo thời gian
+  @@index([authorId])
+  @@map("post_comments")
+}
+
+// ================================
+// PostMedia — Ảnh / Video đính kèm bài viết
+// ================================
+
+model PostMedia {
+  id           String    @id @default(uuid())
+  postId       String    @map("post_id")
+  /// Tái dụng enum MediaType đã có: IMAGE | VIDEO | DOCUMENT
+  type         MediaType @default(IMAGE)
+  url          String    @db.VarChar(500)
+  caption      String?   @db.VarChar(255)
+  /// Kích thước file tính bằng bytes
+  fileSize     Int?      @map("file_size")
+  mimeType     String?   @map("mime_type") @db.VarChar(100)
+  displayOrder Int       @default(0) @map("display_order")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([displayOrder])
+  @@map("post_media")
+}
+
+// ================================
+// PostHistoricalLink — Gắn bài viết vào nội dung lịch sử
+// ================================
+//
+// Polymorphic-lite: lưu (entityType, entityId) thay vì 3 cột FK nullable
+//   entityType = "EVENT"  → entityId trỏ vào historical_events.id
+//   entityType = "ENTITY" → entityId trỏ vào historical_entities.id
+//   entityType = "PERIOD" → entityId trỏ vào periods.id
+//
+// Không dùng FK cứng để giữ schema linh hoạt khi thêm loại mới.
+// Integrity kiểm tra ở Service layer khi insert.
+
+model PostHistoricalLink {
+  id         String   @id @default(uuid())
+  postId     String   @map("post_id")
+  /// "EVENT" | "ENTITY" | "PERIOD"
+  entityType String   @map("entity_type") @db.VarChar(20)
+  entityId   String   @map("entity_id")
+  /// Ghi chú liên quan (vd: "Bài viết phân tích chiến dịch này")
+  note       String?  @db.VarChar(255)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, entityType, entityId])
+  @@index([entityType, entityId]) // Tìm "bài nào đề cập sự kiện X"
+  @@index([postId])
+  @@map("post_historical_links")
+}
+
+// ================================
+// PostTag — Tag tự do cho bài viết (N-N)
+// ================================
+//
+// Tái dụng bảng Tag đã có (hiện dùng cho LessonTag).
+
+model PostTag {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  tagId     String   @map("tag_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, tagId])
+  @@index([postId])
+  @@index([tagId])
+  @@map("post_tags")
+}
+
+// ================================
+// PostReaction — Like bài viết
+// ================================
+//
+// 1 user chỉ like 1 bài 1 lần (unique constraint).
+// Khi like:   INSERT + Post.likeCount += 1
+// Khi unlike: DELETE + Post.likeCount -= 1
+
+model PostReaction {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user authUser @relation("PostReactionUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("post_reactions")
+}
+
+// ================================
+// CommentReaction — Like comment
+// ================================
+
+model CommentReaction {
+  id        String   @id @default(uuid())
+  commentId String   @map("comment_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  comment PostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    authUser    @relation("CommentReactionUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+  @@map("comment_reactions")
+}
+
+// ================================
+// PostBookmark — Lưu / Bookmark bài viết
+// ================================
+
+model PostBookmark {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user authUser @relation("PostBookmarkUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId]) // "Tìm tất cả bài user này đã bookmark"
+  @@index([postId])
+  @@map("post_bookmarks")
+}

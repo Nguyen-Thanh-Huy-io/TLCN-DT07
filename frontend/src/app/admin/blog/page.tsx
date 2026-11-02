@@ -166,6 +166,11 @@ export default function AdminBlogReviewPage() {
 
   const selectedItem = filtered.find((item) => item.id === selectedId) || items.find((item) => item.id === selectedId) || null;
 
+  const openReviewItem = (itemId: string) => {
+    setSelectedId(itemId);
+    setPendingReason('');
+  };
+
   const handleReview = async (status: 'PUBLISHED' | 'REJECTED', reason?: string) => {
     if (!selectedItem) return;
 
@@ -344,7 +349,7 @@ export default function AdminBlogReviewPage() {
                           <button
                             type="button"
                             className="rounded-full border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-1.5 text-sm font-medium text-[var(--ink)] transition-colors hover:border-[var(--gold)]"
-                            onClick={() => setSelectedId(item.id)}
+                            onClick={() => openReviewItem(item.id)}
                           >
                             Xem
                           </button>
@@ -360,7 +365,7 @@ export default function AdminBlogReviewPage() {
                               <button
                                 type="button"
                                 className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-100"
-                                onClick={() => setSelectedId(item.id)}
+                                onClick={() => openReviewItem(item.id)}
                               >
                                 Từ chối
                               </button>
@@ -388,7 +393,10 @@ export default function AdminBlogReviewPage() {
               <button
                 type="button"
                 className="rounded-full border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text-muted)]"
-                onClick={() => setSelectedId(null)}
+                onClick={() => {
+                  setSelectedId(null);
+                  setPendingReason('');
+                }}
               >
                 Đóng
               </button>

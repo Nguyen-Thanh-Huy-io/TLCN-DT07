@@ -1,16 +1,24 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const DEFAULT_BLOG_AUTHOR_ID = process.env.NEXT_PUBLIC_BLOG_AUTHOR_ID || 'd2168a5d-05d7-4110-a304-94b17fe5bae5';
 
 type StoryBlock = {
   id: string;
   type: 'paragraph' | 'image';
   text?: string;
   caption?: string;
+  imageUrl?: string;
 };
+
+const DEFAULT_COVER_IMAGE =
+  'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=1200&q=80';
 
 const suggestedTags = ['#la-ma', '#kientruc', '#ho-so', '#de-quoc', '#thuan-loi', '#ky-uc'];
 const categoryOptions = ['Lịch sử cổ đại', 'Lịch sử trung đại', 'Lịch sử hiện đại', 'Chiến tranh thế giới', 'Văn hóa'];
@@ -35,7 +43,19 @@ const initialBlocks: StoryBlock[] = [
   },
 ];
 
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 200);
+
 export default function BlogCreatePage() {
+  const router = useRouter();
   const [title, setTitle] = useState('Cổng La Mã và không gian quyền lực');
   const [excerpt, setExcerpt] = useState(
     'Từ cổng chiến thắng đến quy hoạch thành phố, kiến trúc La Mã đã biến các không gian công cộng thành lời tuyên ngôn quyền lực sống động.'
@@ -44,6 +64,39 @@ export default function BlogCreatePage() {
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState(['#la-ma', '#kientruc', '#ky-uc']);
   const [blocks, setBlocks] = useState<StoryBlock[]>(initialBlocks);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
+  const [coverImageUrl, setCoverImageUrl] = useState<string>(DEFAULT_COVER_IMAGE);
+
+  const handleCoverImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setCoverImageUrl(previewUrl);
+  };
+
+  const handleBlockImageChange = (blockId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setBlocks((current) =>
+      current.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              imageUrl: previewUrl,
+            }
+          : block
+      )
+    );
+  };
 
   const addTag = () => {
     const value = tagInput.trim();
@@ -77,6 +130,7 @@ export default function BlogCreatePage() {
         id: `image-${Date.now()}`,
         type: 'image',
         caption: 'Chú thích ảnh hoặc nguồn tham khảo cho khối hình ảnh này.',
+        imageUrl: DEFAULT_COVER_IMAGE,
       },
     ]);
   };
@@ -98,8 +152,72 @@ export default function BlogCreatePage() {
     setBlocks((current) => current.filter((block) => block.id !== id));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    const normalizedTitle = title.trim();
+    const normalizedExcerpt = excerpt.trim();
+
+    if (!normalizedTitle || !normalizedExcerpt) {
+      setSubmitError('Tiêu đề và tóm tắt bài viết là bắt buộc.');
+      return;
+    }
+
+    const payload = {
+      authorId: DEFAULT_BLOG_AUTHOR_ID,
+      title: normalizedTitle,
+      summary: normalizedExcerpt,
+      type: 'BLOG',
+      status: 'DRAFT',
+      slug: `${slugify(normalizedTitle)}-${Date.now().toString(36)}`,
+      content: blocks
+        .filter((block) =>
+          (block.type === 'paragraph' && block.text?.trim()) ||
+          (block.type === 'image' && (block.caption?.trim() || block.imageUrl))
+        )
+        .map((block) => {
+          if (block.type === 'paragraph') {
+            return { type: 'paragraph', text: block.text?.trim() ?? '' };
+          }
+
+          return {
+            type: 'image',
+            caption: block.caption?.trim() ?? '',
+            url: block.imageUrl ?? coverImageUrl,
+          };
+        }),
+      contentRichText: blocks
+        .filter((block) => block.type === 'paragraph' && block.text?.trim())
+        .map((block) => `<p>${block.text?.trim()}</p>`)
+        .join(''),
+      thumbnailUrl: coverImageUrl,
+      coverImageUrl: coverImageUrl,
+    };
+
+    setSubmitError('');
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const responseData = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(responseData?.message || 'Không thể tạo bài viết.');
+      }
+
+      router.push('/blog');
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Có lỗi xảy ra khi đăng bài.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -163,12 +281,29 @@ export default function BlogCreatePage() {
                 <label htmlFor="cover-upload" className="mb-2 block text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
                   Ảnh bìa
                 </label>
-                <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-[20px] border border-dashed border-[var(--border)] bg-[var(--bg-surface)] text-center text-[var(--text-muted)]">
+
+                {coverImageUrl ? (
+                  <div className="overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--bg-page)]">
+                    <div
+                      className="h-52 w-full bg-cover bg-center"
+                      style={{ backgroundImage: `url('${coverImageUrl}')` }}
+                    />
+                  </div>
+                ) : null}
+
+                <div className="mt-3 flex h-40 flex-col items-center justify-center gap-3 rounded-[20px] border border-dashed border-[var(--border)] bg-[var(--bg-surface)] text-center text-[var(--text-muted)]">
                   <span className="text-3xl">🖼️</span>
                   <div>
                     <p className="text-sm font-medium text-[var(--ink)]">Đăng tải ảnh bìa</p>
                     <p className="mt-1 text-xs uppercase tracking-[0.18em]">Tỷ lệ hình ảnh 16:10</p>
                   </div>
+                  <input
+                    id="cover-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverImageChange}
+                    className="block w-full max-w-[220px] text-sm text-[var(--text-muted)] file:mr-4 file:rounded-full file:border-0 file:bg-[var(--bg-page)] file:px-3 file:py-2 file:text-xs file:font-medium file:uppercase file:tracking-[0.18em] file:text-[var(--ink)]"
+                  />
                 </div>
               </div>
 
@@ -232,12 +367,29 @@ export default function BlogCreatePage() {
                       />
                     ) : (
                       <div className="space-y-3">
-                        <div className="flex h-40 items-center justify-center rounded-[16px] border border-dashed border-[var(--border)] bg-[var(--bg-page)] text-center text-[var(--text-muted)]">
-                          <div>
-                            <div className="text-2xl">📷</div>
-                            <p className="mt-2 text-sm font-medium text-[var(--ink)]">Thêm ảnh cho khối này</p>
+                        {block.imageUrl ? (
+                          <div className="overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--bg-page)]">
+                            <div
+                              className="h-40 w-full bg-cover bg-center"
+                              style={{ backgroundImage: `url('${block.imageUrl}')` }}
+                            />
                           </div>
-                        </div>
+                        ) : (
+                          <div className="flex h-40 items-center justify-center rounded-[16px] border border-dashed border-[var(--border)] bg-[var(--bg-page)] text-center text-[var(--text-muted)]">
+                            <div>
+                              <div className="text-2xl">📷</div>
+                              <p className="mt-2 text-sm font-medium text-[var(--ink)]">Thêm ảnh cho khối này</p>
+                            </div>
+                          </div>
+                        )}
+
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) => handleBlockImageChange(block.id, event)}
+                          className="block w-full text-sm text-[var(--text-muted)] file:mr-4 file:rounded-full file:border-0 file:bg-[var(--bg-page)] file:px-3 file:py-2 file:text-xs file:font-medium file:uppercase file:tracking-[0.18em] file:text-[var(--ink)]"
+                        />
+
                         <input
                           type="text"
                           value={block.caption ?? ''}
@@ -318,21 +470,29 @@ export default function BlogCreatePage() {
               </div>
             </div>
 
+            {submitError ? (
+              <div className="rounded-[16px] border border-red-500/40 bg-red-500/5 px-4 py-3 text-sm text-red-600">
+                {submitError}
+              </div>
+            ) : null}
+
             <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
               <button
                 type="button"
+                onClick={() => setShowPreview((current) => !current)}
                 className="inline-flex items-center justify-center rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-xs font-medium uppercase tracking-[0.16em] text-[var(--ink)] transition-colors hover:border-[var(--gold)]"
               >
-                Xem trước
+                {showPreview ? 'Ẩn preview' : 'Xem trước'}
               </button>
               <button
                 type="submit"
-                className="group inline-flex items-center gap-3 rounded-[var(--radius-btn)] border border-[var(--gold)] bg-[var(--bg-page)] px-4 py-2.5 text-xs font-medium uppercase tracking-[0.16em] text-[var(--ink)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--gold)]"
+                disabled={isSubmitting}
+                className="group inline-flex items-center gap-3 rounded-[var(--radius-btn)] border border-[var(--gold)] bg-[var(--bg-page)] px-4 py-2.5 text-xs font-medium uppercase tracking-[0.16em] text-[var(--ink)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--gold)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--gold)] bg-[var(--bg-surface)] text-sm leading-none transition-colors group-hover:bg-[var(--bg-page)]">
-                  ✓
+                  {isSubmitting ? '…' : '✓'}
                 </span>
-                Đăng bài
+                {isSubmitting ? 'Đang đăng...' : 'Đăng bài'}
               </button>
             </div>
           </form>
@@ -371,6 +531,87 @@ export default function BlogCreatePage() {
           </aside>
         </div>
       </div>
+
+      {showPreview ? (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(18,17,15,0.72)] px-4 py-8 backdrop-blur-sm">
+          <div className="relative w-full max-w-4xl overflow-hidden rounded-[30px] border border-[var(--border)] bg-[var(--bg-page)] shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border)] bg-[var(--bg-page)]/95 px-5 py-4 backdrop-blur">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Xem trước bài viết</p>
+              <button
+                type="button"
+                onClick={() => setShowPreview(false)}
+                className="rounded-full border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-[var(--ink)] transition-colors hover:border-[var(--gold)]"
+              >
+                Đóng
+              </button>
+            </div>
+
+            <div className="max-h-[80vh] overflow-y-auto">
+              <div className="overflow-hidden border-b border-[var(--border)]">
+                <div
+                  className="h-64 w-full bg-cover bg-center"
+                  style={{
+                    backgroundImage: `url('${coverImageUrl || DEFAULT_COVER_IMAGE}')`,
+                  }}
+                />
+              </div>
+
+              <article className="space-y-6 px-5 pb-8 pt-6 md:px-8 md:pb-10 md:pt-8">
+                <div className="flex flex-wrap gap-2">
+                  {tags.length > 0 ? (
+                    tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-[var(--border)] bg-[var(--bg-surface)] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]"
+                      >
+                        {tag}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                      Chưa có tag
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">{category}</p>
+
+                <h2 className="font-[family-name:var(--font-heading)] text-3xl leading-tight text-[var(--ink)] md:text-5xl">
+                  {title || 'Tiêu đề bài viết'}
+                </h2>
+
+                <p className="text-base leading-7 text-[var(--text-body)] md:text-lg">
+                  {excerpt || 'Tóm tắt bài viết sẽ hiển thị ở đây.'}
+                </p>
+
+                <div className="space-y-6 text-base leading-8 text-[var(--text-body)] md:text-lg">
+                  {blocks.length > 0 ? (
+                    blocks.map((block) =>
+                      block.type === 'paragraph' ? (
+                        <p key={block.id}>{block.text || 'Đoạn văn sẽ xuất hiện ở đây.'}</p>
+                      ) : (
+                        <figure key={block.id} className="space-y-3">
+                          <div
+                            className="h-60 w-full rounded-[20px] bg-cover bg-center md:h-80"
+                            style={{
+                              backgroundImage: `url('${block.imageUrl || DEFAULT_COVER_IMAGE}')`,
+                            }}
+                          />
+                          <figcaption className="text-sm italic text-[var(--text-muted)]">
+                            {block.caption || 'Chú thích ảnh sẽ hiển thị ở đây.'}
+                          </figcaption>
+                        </figure>
+                      )
+                    )
+                  ) : (
+                    <p>Chưa có nội dung để xem trước.</p>
+                  )}
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <Footer />
     </main>

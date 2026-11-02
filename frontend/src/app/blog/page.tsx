@@ -12,10 +12,13 @@ export default function BlogPage() {
       <div className="max-w-[1280px] mx-auto px-6 lg:px-8 py-8 md:py-12">
         <section className="mb-12 border-b border-[var(--border)] bg-transparent pb-6">
           <div className="max-w-5xl">
-            <p className="text-sm uppercase tracking-[0.22em] text-[var(--text-muted)] font-medium">HISGO Journal</p>
+            <p className="text-sm uppercase tracking-[0.22em] text-[var(--text-muted)] font-medium">Lịch sử Việt Nam</p>
             <h1 className="mt-3 text-4xl md:text-5xl lg:text-[4rem] font-bold font-[family-name:var(--font-heading)] text-[var(--ink)] leading-[0.94] tracking-[-0.04em]">
-              Lịch sử được kể bằng văn bản, bối cảnh và hệ quả.
+              Từ di tích, nhân vật và biến cố đến ký ức cộng đồng.
             </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--text-body)]">
+              HISGO Journal đưa người đọc từ những dấu mốc Việt Nam tới các chiều sâu văn hóa, chính trị và đời sống hàng ngày.
+            </p>
           </div>
 
           <div className="mt-8 max-w-4xl">
@@ -100,7 +103,7 @@ export default function BlogPage() {
           <aside className="space-y-5">
             <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-5">
               <h3 className="text-xl font-bold font-[family-name:var(--font-heading)] text-[var(--ink)]">
-                Lựa chọn của biên tập
+                Lịch sử Việt Nam chọn lọc
               </h3>
               <div className="mt-4 space-y-4">
                 {popularPosts.map((post) => (
@@ -124,12 +127,12 @@ export default function BlogPage() {
             </div>
 
             <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-5">
-              <h3 className="text-xl font-bold font-[family-name:var(--font-heading)] text-[var(--ink)]">Kho lưu trữ</h3>
+              <h3 className="text-xl font-bold font-[family-name:var(--font-heading)] text-[var(--ink)]">Mùa lưu trữ Việt Nam</h3>
               <ul className="mt-4 space-y-3 text-sm text-[var(--text-body)]">
-                <li className="flex items-center justify-between border-b border-[var(--border)] pb-2"><span>Mùa xuân 2026</span><span>12 bài</span></li>
-                <li className="flex items-center justify-between border-b border-[var(--border)] pb-2"><span>Mùa đông 2025</span><span>9 bài</span></li>
-                <li className="flex items-center justify-between border-b border-[var(--border)] pb-2"><span>Mùa thu 2025</span><span>14 bài</span></li>
-                <li className="flex items-center justify-between"><span>Ghi chép thực địa</span><span>7 bài</span></li>
+                <li className="flex items-center justify-between border-b border-[var(--border)] pb-2"><span>Nhà nước & quyền lực</span><span>12 bài</span></li>
+                <li className="flex items-center justify-between border-b border-[var(--border)] pb-2"><span>Thành thị & giao thương</span><span>9 bài</span></li>
+                <li className="flex items-center justify-between border-b border-[var(--border)] pb-2"><span>Nhân vật & ký ức</span><span>14 bài</span></li>
+                <li className="flex items-center justify-between"><span>Mở rộng thế giới</span><span>7 bài</span></li>
               </ul>
             </div>
           </aside>
@@ -138,10 +141,10 @@ export default function BlogPage() {
         <section className="mt-16">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-[var(--text-muted)]">Mới nhất</p>
-              <h2 className="mt-2 text-3xl font-bold font-[family-name:var(--font-heading)] text-[var(--ink)]">Bài viết gần đây</h2>
+              <p className="text-sm uppercase tracking-[0.2em] text-[var(--text-muted)]">Mở rộng</p>
+              <h2 className="mt-2 text-3xl font-bold font-[family-name:var(--font-heading)] text-[var(--ink)]">So sánh với lịch sử thế giới</h2>
             </div>
-            <Link href="/blog" className="text-sm font-medium text-[var(--primary)] hover:text-[var(--primary-hover)]">Xem kho lưu trữ →</Link>
+            <Link href="/blog" className="text-sm font-medium text-[var(--primary)] hover:text-[var(--primary-hover)]">Xem thêm →</Link>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">

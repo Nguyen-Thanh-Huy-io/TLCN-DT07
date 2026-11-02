@@ -25,13 +25,12 @@
     "postinstall": "prisma generate",
     "migrate:deploy": "prisma migrate deploy",
     "docker:dev": "docker compose -f docker-compose.yaml up -d",
-    "seed": "ts-node prisma/seed.ts",
     "seed:taxonomy": "ts-node prisma/seeds/taxonomy-v1.seed.ts",
     "seed:pilot": "ts-node prisma/seeds/pilot-v1.seed.ts",
-    "seed:all": "npm run seed:taxonomy && npm run seed:pilot && npm run seed"
+    "seed:all": "npm run seed:taxonomy && npm run seed:pilot"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node prisma/seeds/taxonomy-v1.seed.ts"
   },
   "dependencies": {
     "@nest-lab/throttler-storage-redis": "^1.1.0",

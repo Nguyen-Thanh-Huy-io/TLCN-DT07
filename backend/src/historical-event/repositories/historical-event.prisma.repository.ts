@@ -345,7 +345,7 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
     status?: any;
     sourceReference?: string;
   }): Promise<any> {
-    return this.prisma.historicalEventRelation.create({
+    const relation = await this.prisma.historicalEventRelation.create({
       data: {
         sourceEventId: data.sourceEventId,
         targetEventId: data.targetEventId,
@@ -379,9 +379,45 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
         },
       },
     });
+
+    // Dual-write: Đồng bộ sang bảng HistoricalStatement (Knowledge Graph mới)
+    try {
+      const term = await this.prisma.taxonomyTerm.findFirst({
+        where: { groupCode: 'EVENT_RELATION', code: data.relationType },
+      });
+      if (term) {
+        await this.prisma.historicalStatement.upsert({
+          where: { id: relation.id },
+          create: {
+            id: relation.id,
+            subjectEventId: data.sourceEventId,
+            predicateId: term.id,
+            objectEventId: data.targetEventId,
+            qualifiers: data.description
+              ? { description: data.description, sourceReference: data.sourceReference }
+              : undefined,
+            verificationStatus: data.status || 'VERIFIED',
+          },
+          update: {
+            qualifiers: data.description
+              ? { description: data.description, sourceReference: data.sourceReference }
+              : undefined,
+            verificationStatus: data.status || 'VERIFIED',
+          },
+        });
+      }
+    } catch {
+      // Ignored for dual-write resilience
+    }
+
+    return relation;
   }
 
   async removeRelation(relationId: string): Promise<any> {
+    await this.prisma.historicalStatement
+      .delete({ where: { id: relationId } })
+      .catch(() => undefined);
+
     return this.prisma.historicalEventRelation.delete({
       where: { id: relationId },
     });

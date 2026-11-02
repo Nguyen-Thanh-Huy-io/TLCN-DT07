@@ -42,6 +42,10 @@ model HistoricalEntity {
   outgoingRelations HistoricalEntityRelation[] @relation("SourceEntityRelation")
   incomingRelations HistoricalEntityRelation[] @relation("TargetEntityRelation")
 
+  // Knowledge Graph Statements (Subject & Object)
+  subjectStatements HistoricalStatement[] @relation("StatementSubjectEntity")
+  objectStatements  HistoricalStatement[] @relation("StatementObjectEntity")
+
   @@index([type])
   @@index([periodId])
   @@index([status])

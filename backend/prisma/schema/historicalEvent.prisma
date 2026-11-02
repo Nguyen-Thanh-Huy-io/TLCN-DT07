@@ -43,6 +43,11 @@ model HistoricalEvent {
   outgoingRelations HistoricalEventRelation[] @relation("SourceEventRelation")
   incomingRelations HistoricalEventRelation[] @relation("TargetEventRelation")
 
+  // Knowledge Graph Statements (Subject & Object)
+  subjectStatements HistoricalStatement[]   @relation("StatementSubjectEvent")
+  objectStatements  HistoricalStatement[]   @relation("StatementObjectEvent")
+  eventPeriods      HistoricalEventPeriod[]
+
   @@index([periodId])
   @@index([locationId])
   @@index([parentId])

@@ -10,6 +10,9 @@ import { PUBLIC_LANDING_CACHE_KEY } from '../common/constants/cache-keys.constan
 import { HistoricalEntityService } from './historical-entity.service';
 import { EntityRelationType } from './historical-entity.constant';
 
+import { PersonEntityDelegate } from './delegates/person-entity.delegate';
+import { SiteEntityDelegate } from './delegates/site-entity.delegate';
+
 describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
   let service: HistoricalEntityService;
 
@@ -120,6 +123,8 @@ describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HistoricalEntityService,
+        PersonEntityDelegate,
+        SiteEntityDelegate,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: RedisService, useValue: mockRedis },
         { provide: CustomLoggerService, useValue: mockLogger },
@@ -215,7 +220,7 @@ describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
       }),
     );
     expect(res.items).toHaveLength(1);
-    expect(res.items[0].birthYear).toBe(1911);
+    expect(res.items[0].person?.birthYear).toBe(1911);
   });
 
   // Test Quan hệ hồi quy N-N

@@ -61,6 +61,9 @@ model TaxonomyTerm {
   entityRelations     HistoricalEntityRelation[] @relation("EntityRelationTypeTerm")
   eventRelations      HistoricalEventRelation[]  @relation("EventRelationTypeTerm")
 
+  // Knowledge Graph Statements
+  statements          HistoricalStatement[]      @relation("StatementPredicate")
+
   @@unique([groupCode, code])
   @@index([groupCode, isActive])
   @@index([parentId])

@@ -218,3 +218,18 @@ enum DatePrecision {
   RANGE
   UNKNOWN
 }
+
+// Kiểu giá trị literal của phát biểu tri thức (Statement Literal Object)
+enum StatementValueType {
+  STRING
+  NUMBER
+  DATE
+  JSON
+}
+
+// Mức độ ưu tiên / thẩm quyền của phát biểu tri thức (Statement Rank theo chuẩn Wikidata)
+enum StatementRank {
+  PREFERRED
+  NORMAL
+  DEPRECATED
+}

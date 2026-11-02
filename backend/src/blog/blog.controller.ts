@@ -87,6 +87,36 @@ export class BlogController {
     return this.blogService.createComment(postId, dto.authorId, dto);
   }
 
+  @Patch(':id/comments/:commentId')
+  @ApiOperation({ summary: 'Chỉnh sửa comment của người tạo' })
+  updateComment(
+    @Param('id') postId: string,
+    @Param('commentId') commentId: string,
+    @Body() dto: { authorId: string; content: string },
+  ) {
+    return this.blogService.updateComment(postId, commentId, dto.authorId, dto);
+  }
+
+  @Delete(':id/comments/:commentId')
+  @ApiOperation({ summary: 'Xóa mềm comment' })
+  deleteComment(
+    @Param('id') postId: string,
+    @Param('commentId') commentId: string,
+    @Body() dto: { authorId: string },
+  ) {
+    return this.blogService.deleteComment(postId, commentId, dto.authorId);
+  }
+
+  @Post(':id/comments/:commentId/like')
+  @ApiOperation({ summary: 'Like / unlike comment' })
+  toggleCommentLike(
+    @Param('id') postId: string,
+    @Param('commentId') commentId: string,
+    @Body() dto: { userId: string },
+  ) {
+    return this.blogService.toggleCommentLike(postId, commentId, dto.userId);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Xóa mềm bài viết' })
   remove(@Param('id') id: string) {

@@ -13,78 +13,170 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
     notFound();
   }
 
+  const editorialGallery = [
+    post.image,
+    'https://images.unsplash.com/photo-1521295121783-8a321d551ad2?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=1200&q=80',
+  ];
+
+  const outline = [
+    'Bối cảnh và niên đại',
+    'Hình ảnh và vật chất',
+    'Nhân vật và quyền lực',
+    'Dấu ấn trong ký ức',
+  ];
+
   return (
     <main className="min-h-screen bg-[var(--bg-page)] text-[var(--ink)]">
       <Header activeTab="blog" />
 
-      <article className="max-w-[1100px] mx-auto px-6 lg:px-8 py-8 md:py-12">
+      <article className="mx-auto max-w-[1260px] px-5 py-8 md:px-8 md:py-12">
         <div className="mb-6 flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-          <Link href="/blog" className="hover:text-[var(--primary)]">Blog</Link>
+          <Link href="/blog" className="transition-colors hover:text-[var(--primary)]">
+            Blog
+          </Link>
           <span>•</span>
           <span>{post.category}</span>
         </div>
 
-        <header className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-5 md:p-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{post.accent}</p>
-              <h1 className="mt-3 text-4xl md:text-5xl font-bold font-[family-name:var(--font-heading)] leading-[1.06] text-[var(--ink)]">
-                {post.title}
-              </h1>
+        <header className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="overflow-hidden rounded-[26px] border border-[var(--border)] bg-[var(--bg-surface)] shadow-[0_18px_38px_rgba(17,17,19,0.06)]">
+            <div className="relative h-[420px] md:h-[520px]">
+              <img src={post.image} alt={post.title} className="h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#121214]/75 via-[#121214]/10 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-5 md:p-8">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--bg-page)]/90">{post.accent}</p>
+                <h1 className="mt-3 max-w-3xl text-4xl font-bold font-[family-name:var(--font-heading)] leading-[0.96] text-white md:text-5xl xl:text-[4rem]">
+                  {post.title}
+                </h1>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[26px] border border-[var(--border)] bg-[var(--bg-surface)] p-6 md:p-7">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Nhà xuất bản HISGO</p>
+            <p className="mt-5 text-2xl font-medium leading-snug text-[var(--ink)] font-[family-name:var(--font-heading)]">
+              {post.excerpt}
+            </p>
+
+            <div className="mt-6 space-y-3 border-t border-[var(--border)] pt-5 text-sm text-[var(--text-body)]">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[var(--text-muted)]">Tác giả</span>
+                <span className="font-medium text-[var(--ink)]">{post.author}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[var(--text-muted)]">Ngày</span>
+                <span>{post.date}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[var(--text-muted)]">Thời lượng</span>
+                <span>{post.readTime}</span>
+              </div>
             </div>
 
-            <div className="text-sm text-[var(--text-muted)] md:text-right">
-              <p>Tác giả: {post.author}</p>
-              <p className="mt-1">{post.date} • {post.readTime}</p>
+            <div className="mt-6">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Chủ đề</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {outline.map((item) => (
+                  <span key={item} className="rounded-full border border-[var(--border)] bg-[var(--bg-page)] px-2.5 py-1 text-xs tracking-[0.08em] text-[var(--ink)]">
+                    {item}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </header>
 
-        <div className="mt-8 overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg-surface)]">
-          <img src={post.image} alt={post.title} className="h-[360px] w-full object-cover md:h-[480px]" />
-        </div>
-
-        <div className="mt-8 grid gap-8 lg:grid-cols-[0.75fr_1.75fr_0.5fr]">
-          <aside className="lg:pt-6">
-            <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+        <div className="mt-8 grid gap-8 xl:grid-cols-[220px_minmax(0,1fr)_260px]">
+          <aside className="self-start xl:pt-3">
+            <div className="rounded-[22px] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
               <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Trong bài này</p>
-              <ul className="mt-4 space-y-3 text-sm text-[var(--text-body)]">
-                <li>• Bối cảnh và niên đại</li>
-                <li>• Nghệ thuật và văn hóa vật chất</li>
-                <li>• Hệ quả chính trị</li>
-                <li>• Ký ức qua các thế hệ</li>
+              <ul className="mt-4 space-y-3 text-sm leading-6 text-[var(--text-body)]">
+                {outline.map((item, index) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="mt-[5px] inline-flex h-5 w-5 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-page)] text-[10px] font-semibold text-[var(--ink)]">
+                      {index + 1}
+                    </span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </aside>
 
-          <div className="prose max-w-none">
-            <p className="text-lg leading-relaxed text-[var(--text-body)] first-letter:text-5xl first-letter:font-bold first-letter:font-[family-name:var(--font-heading)] first-letter:text-[var(--ink)]">
-              {post.excerpt}
-            </p>
+          <div className="space-y-8">
+            <section className="rounded-[26px] border border-[var(--border)] bg-[var(--bg-surface)] p-6 md:p-8">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Mở đầu</p>
+              <p className="mt-4 text-[1.15rem] leading-[1.9] text-[var(--text-body)] md:text-[1.35rem]">
+                {post.excerpt}
+              </p>
+            </section>
 
-            <div className="mt-8 space-y-6 text-lg leading-8 text-[var(--text-body)]">
-              {post.content.map((paragraph, index) => (
-                <p key={`${post.slug}-${index}`}>{paragraph}</p>
-              ))}
-            </div>
+            {post.content.map((paragraph, index) => (
+              <section
+                key={`${post.slug}-paragraph-${index}`}
+                className="rounded-[24px] border border-[var(--border)] bg-[var(--bg-surface)] p-6 md:p-8"
+              >
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-page)] text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                    {index + 1}
+                  </span>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                    Chương {index + 1}
+                  </p>
+                </div>
+                <p className="text-lg leading-[1.9] text-[var(--text-body)] md:text-[1.125rem]">
+                  {paragraph}
+                </p>
+              </section>
+            ))}
+
+            <section className="rounded-[26px] border border-[var(--border)] bg-[var(--bg-surface)] p-5 md:p-6">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Bộ sưu tập hình ảnh</p>
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
+                {editorialGallery.map((image, index) => (
+                  <figure key={`${image}-${index}`} className="overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--bg-page)]">
+                    <img src={image} alt={`${post.title} ${index + 1}`} className="h-52 w-full object-cover md:h-64" />
+                    <figcaption className="border-t border-[var(--border)] px-3 py-2 text-xs leading-5 text-[var(--text-muted)]">
+                      {index === 0 ? 'Ảnh bìa và không gian khởi dựng câu chuyện.' : 'Tài liệu hỗ trợ về vật chất và không gian sống.'}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </section>
+
+            <blockquote className="rounded-[26px] border border-[var(--border)] bg-[var(--bg-surface)] p-6 md:p-8">
+              <p className="text-lg italic leading-[1.8] text-[var(--ink)] md:text-[1.45rem]">
+                “Câu chuyện lịch sử không chỉ là về sự kiện. Nó là cách ta nhìn những khoảng trống giữa chúng, nơi ký ức được dựng nên bằng đá, lời nói và nhịp sống hằng ngày.”
+              </p>
+            </blockquote>
           </div>
 
-          <aside className="lg:pt-6">
-            <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+          <aside className="self-start xl:pt-3">
+            <div className="rounded-[22px] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
               <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Liên quan</p>
               <div className="mt-4 space-y-4">
-                {blogPosts.filter((item) => item.slug !== post.slug).slice(0, 3).map((related) => (
-                  <Link key={related.slug} href={`/blog/${related.slug}`} className="block rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--bg-page)] p-3 transition-colors hover:border-[var(--gold)]">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{related.category}</p>
-                    <h3 className="mt-2 text-sm font-semibold text-[var(--ink)]">{related.title}</h3>
-                  </Link>
-                ))}
+                {blogPosts
+                  .filter((item) => item.slug !== post.slug)
+                  .slice(0, 3)
+                  .map((related) => (
+                    <Link
+                      key={related.slug}
+                      href={`/blog/${related.slug}`}
+                      className="block rounded-[18px] border border-[var(--border)] bg-[var(--bg-page)] p-3 transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]"
+                    >
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{related.category}</p>
+                      <h3 className="mt-2 text-sm font-semibold leading-6 text-[var(--ink)]">{related.title}</h3>
+                    </Link>
+                  ))}
               </div>
             </div>
           </aside>
         </div>
 
-        <CommentThread />
+        <div className="mt-8">
+          <CommentThread />
+        </div>
       </article>
 
       <Footer />

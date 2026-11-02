@@ -20,6 +20,17 @@ type StoryBlock = {
 const DEFAULT_COVER_IMAGE =
   'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=1200&q=80';
 
+const normalizeImageUrl = (url?: string | null) => {
+  if (!url) return '';
+
+  const trimmed = url.trim();
+  const currentApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+  return trimmed
+    .replace(/^http:\/\/localhost:5000(?=\/)/, currentApiUrl)
+    .replace(/^http:\/\/127\.0\.0\.1:5000(?=\/)/, currentApiUrl);
+};
+
 const suggestedTags = ['#la-ma', '#kientruc', '#ho-so', '#de-quoc', '#thuan-loi', '#ky-uc'];
 const categoryOptions = ['Lịch sử cổ đại', 'Lịch sử trung đại', 'Lịch sử hiện đại', 'Chiến tranh thế giới', 'Văn hóa'];
 
@@ -94,7 +105,7 @@ export default function BlogCreatePage() {
     }
 
     try {
-      const uploadedUrl = await uploadImageToServer(file);
+      const uploadedUrl = normalizeImageUrl(await uploadImageToServer(file));
       setCoverImageUrl(uploadedUrl);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Không thể tải ảnh bìa lên.');
@@ -108,7 +119,7 @@ export default function BlogCreatePage() {
     }
 
     try {
-      const uploadedUrl = await uploadImageToServer(file);
+      const uploadedUrl = normalizeImageUrl(await uploadImageToServer(file));
       setBlocks((current) =>
         current.map((block) =>
           block.id === blockId
@@ -310,9 +321,13 @@ export default function BlogCreatePage() {
 
                 {coverImageUrl ? (
                   <div className="overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--bg-page)]">
-                    <div
-                      className="h-52 w-full bg-cover bg-center"
-                      style={{ backgroundImage: `url('${coverImageUrl}')` }}
+                    <img
+                      src={normalizeImageUrl(coverImageUrl) || DEFAULT_COVER_IMAGE}
+                      alt="Ảnh bìa"
+                      className="h-52 w-full object-cover"
+                      onError={(event) => {
+                        event.currentTarget.src = DEFAULT_COVER_IMAGE;
+                      }}
                     />
                   </div>
                 ) : null}
@@ -395,9 +410,13 @@ export default function BlogCreatePage() {
                       <div className="space-y-3">
                         {block.imageUrl ? (
                           <div className="overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--bg-page)]">
-                            <div
-                              className="h-40 w-full bg-cover bg-center"
-                              style={{ backgroundImage: `url('${block.imageUrl}')` }}
+                            <img
+                              src={normalizeImageUrl(block.imageUrl) || DEFAULT_COVER_IMAGE}
+                              alt={block.caption || 'Hình ảnh bài viết'}
+                              className="h-40 w-full object-cover"
+                              onError={(event) => {
+                                event.currentTarget.src = DEFAULT_COVER_IMAGE;
+                              }}
                             />
                           </div>
                         ) : (
@@ -617,10 +636,12 @@ export default function BlogCreatePage() {
                         <p key={block.id}>{block.text || 'Đoạn văn sẽ xuất hiện ở đây.'}</p>
                       ) : (
                         <figure key={block.id} className="space-y-3">
-                          <div
-                            className="h-60 w-full rounded-[20px] bg-cover bg-center md:h-80"
-                            style={{
-                              backgroundImage: `url('${block.imageUrl || DEFAULT_COVER_IMAGE}')`,
+                          <img
+                            src={normalizeImageUrl(block.imageUrl) || DEFAULT_COVER_IMAGE}
+                            alt={block.caption || 'Hình ảnh bài viết'}
+                            className="h-60 w-full rounded-[20px] object-cover md:h-80"
+                            onError={(event) => {
+                              event.currentTarget.src = DEFAULT_COVER_IMAGE;
                             }}
                           />
                           <figcaption className="text-sm italic text-[var(--text-muted)]">

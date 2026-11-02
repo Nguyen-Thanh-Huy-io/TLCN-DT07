@@ -26,6 +26,7 @@ export const NAV_ITEM_LABELS = {
   KNOWLEDGE: 'Từ điển tri thức',
   DASHBOARD: 'Dashboard',
   REVIEW: 'Duyệt bài học',
+  BLOG_REVIEW: 'Duyệt blog',
   USERS: 'Người dùng & Quyền',
 } as const;
 

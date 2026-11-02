@@ -236,6 +236,15 @@ export class OperationsNavStrategy implements INavigationGroupStrategy {
         subtitle: 'Kiểm duyệt chất lượng',
       },
       {
+        id: 'nav-blog-review',
+        label: 'Duyệt blog',
+        icon: IconName.FILE,
+        page: NavigationPageKey.BLOG_REVIEW,
+        route: APP_ROUTES.ADMIN_BLOG_REVIEW,
+        groupId: this.groupId,
+        subtitle: 'Phê duyệt bài viết blog',
+      },
+      {
         id: 'nav-users',
         label: 'Người dùng & Quyền',
         icon: IconName.USERS,
@@ -259,6 +268,7 @@ export class OperationsNavStrategy implements INavigationGroupStrategy {
   matchesPage(pageKey: string): boolean {
     return [
       NavigationPageKey.REVIEW,
+      NavigationPageKey.BLOG_REVIEW,
       NavigationPageKey.USERS,
       NavigationPageKey.TAXONOMIES,
     ].includes(pageKey as NavigationPageKey);
@@ -329,6 +339,7 @@ export class NavigationFacade {
       return NavigationPageKey.KNOWLEDGE;
     }
     if (pageKey === NavigationPageKey.REVIEW) return NavigationPageKey.REVIEW;
+    if (pageKey === NavigationPageKey.BLOG_REVIEW) return NavigationPageKey.BLOG_REVIEW;
     if (pageKey === NavigationPageKey.USERS) return NavigationPageKey.USERS;
     if (pageKey === NavigationPageKey.TAXONOMIES) return NavigationPageKey.TAXONOMIES;
     return NavigationPageKey.DASHBOARD;

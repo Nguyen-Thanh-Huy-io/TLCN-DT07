@@ -12,7 +12,7 @@ import { canAccessCmsPage } from '@/components/layout/CmsAccessGate';
 
 export interface SidebarProps {
   page: string;
-  setPage: (p: string) => void;
+  setPage: (p: string, route?: string) => void;
   open: boolean;
   close: () => void;
   collapsed?: boolean;
@@ -101,7 +101,7 @@ export function Sidebar({
                       collapsed ? 'nav-item-collapsed' : ''
                     }`}
                     onClick={() => {
-                      setPage(item.page);
+                      setPage(item.page, item.route);
                       close();
                     }}
                     title={`${item.label} ${

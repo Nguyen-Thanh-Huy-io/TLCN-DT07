@@ -1,60 +1,388 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { SectionTitle } from '@/components/hisgo/SectionTitle';
 
-type CommentItem = {
-  id: number;
+const DEFAULT_COMMENT_AUTHOR_ID = process.env.NEXT_PUBLIC_BLOG_AUTHOR_ID || 'd2168a5d-05d7-4110-a304-94b17fe5bae5';
+const DEFAULT_COMMENT_USERNAME = process.env.NEXT_PUBLIC_COMMENT_USERNAME || 'admin_hisgo';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+type ReplyItem = {
+  id: string;
   author: string;
-  role: string;
+  authorId?: string;
+  time: string;
+  content: string;
+  likes?: number;
+};
+
+type CommentItem = {
+  id: string;
+  author: string;
+  authorId?: string;
   time: string;
   content: string;
   likes: number;
-  replies?: Array<{
-    author: string;
-    time: string;
-    content: string;
-  }>;
+  replies?: ReplyItem[];
   accent?: string;
 };
 
-const comments: CommentItem[] = [
-  {
-    id: 1,
-    author: 'Nguyễn Minh Anh',
-    role: 'Học viên lịch sử',
-    time: '2 giờ trước',
-    content:
-      'Điểm mạnh nhất trong bài viết là cách nó đặt kiến trúc La Mã trong mối quan hệ với quyền lực và đời sống hàng ngày. Hình ảnh cổng thành không còn là vật thể cô lập mà trở thành một biểu tượng của sự sắp xếp không gian trong toàn bộ đế quốc.',
-    likes: 18,
-    accent: 'Lượt thích nhiều',
-    replies: [
-      {
-        author: 'Trần Huyền',
-        time: '1 giờ trước',
-        content:
-          'Tôi thấy đồng ý nhất với phần mô tả về “không gian như một lời tuyên ngôn”. Đây đúng là cách nhìn khiến một tàn tích trở nên sống động hơn.',
-      },
-    ],
-  },
-  {
-    id: 2,
-    author: 'Đỗ Quỳnh',
-    role: 'Nghiên cứu văn hóa',
-    time: '5 giờ trước',
-    content:
-      'Mỗi đoạn đều gợi ra rằng kiến trúc không chỉ có mục đích kỹ thuật. Nó là phương tiện để cộng đồng nhìn thấy quyền lực và thừa nhận trật tự. Đó là cách rất hợp với góc nhìn HISGO: lịch sử không chỉ là sự kiện, mà là cảm giác của không gian.',
-    likes: 12,
-  },
-  {
-    id: 3,
-    author: 'Minh Khang',
-    role: 'Giảng viên',
-    time: 'Hôm qua',
-    content:
-      'Tôi muốn đề xuất thêm một nhánh nghiên cứu về cách các thành phố La Mã biến các cổng vòm thành trung tâm biểu tượng của việc đi qua, từ quan hệ công dân đến cư dân thuộc địa. Một góc nhìn rất đáng mở rộng cho các bài sau.',
-    likes: 9,
-  },
-];
+const toRelativeTime = (value?: string) => {
+  if (!value) return 'vừa xong';
 
-export function CommentThread() {
+  const then = new Date(value).getTime();
+  const now = Date.now();
+  const diffMinutes = Math.max(1, Math.round((now - then) / 60000));
+
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays} ngày trước`;
+};
+
+const normalizeReply = (item: any, fallbackName = DEFAULT_COMMENT_USERNAME): ReplyItem => ({
+  id: item?.id || String(Math.random()),
+  author: item?.author?.username || fallbackName,
+  authorId: item?.author?.id || item?.authorId || '',
+  time: toRelativeTime(item?.createdAt),
+  content: item?.content || '[Bình luận đã bị xóa]',
+  likes: Number(item?.likeCount ?? item?.likes ?? 0),
+});
+
+const normalizeComment = (item: any, fallbackName = DEFAULT_COMMENT_USERNAME): CommentItem => ({
+  id: item?.id || String(Math.random()),
+  author: item?.author?.username || fallbackName,
+  authorId: item?.author?.id || item?.authorId || '',
+  time: toRelativeTime(item?.createdAt),
+  content: item?.content || '[Bình luận đã bị xóa]',
+  likes: Number(item?.likeCount ?? item?.likes ?? 0),
+  replies: Array.isArray(item?.replies)
+    ? item.replies.map((reply: any) => normalizeReply(reply, fallbackName))
+    : [],
+});
+
+const replaceCommentById = (items: CommentItem[], commentId: string, updater: (item: CommentItem) => CommentItem): CommentItem[] =>
+  items.map((comment) => {
+    if (comment.id === commentId) {
+      return updater(comment);
+    }
+
+    const nextReplies = comment.replies ? replaceCommentById(comment.replies as unknown as CommentItem[], commentId, updater) : comment.replies;
+    if (nextReplies !== comment.replies) {
+      return {
+        ...comment,
+        replies: nextReplies as ReplyItem[],
+      };
+    }
+
+    return comment;
+  });
+
+export function CommentThread({ postId }: { postId?: string }) {
+  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [name] = useState(DEFAULT_COMMENT_USERNAME);
+  const [content, setContent] = useState('');
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [feedbackNotice, setFeedbackNotice] = useState('');
+  const socketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    if (!postId) {
+      return;
+    }
+
+    const loadComments = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          setComments([]);
+          return;
+        }
+
+        const data = await response.json();
+        const list = Array.isArray(data) ? data : data?.data || [];
+        setComments(list.map((item: any) => normalizeComment(item, name)));
+      } catch {
+        setComments([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const socket = io(API_BASE_URL, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+    });
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      socket.emit('join-post-room', { postId, userId: DEFAULT_COMMENT_AUTHOR_ID });
+    });
+
+    socket.on('post:comment-added', (payload: any) => {
+      const nextComment = payload?.comment ? normalizeComment(payload.comment, name) : normalizeComment(payload, name);
+      setComments((current) => {
+        const exists = current.some((item) => item.id === nextComment.id);
+        if (exists) {
+          return current;
+        }
+        return [nextComment, ...current];
+      });
+      setFeedbackNotice('Bình luận đã được ghi nhận và hiển thị ngay.');
+      setTimeout(() => setFeedbackNotice(''), 2200);
+    });
+
+    socket.on('post:comment-updated', (payload: any) => {
+      const commentId = payload?.commentId || payload?.comment?.id;
+      if (!commentId) return;
+
+      setComments((current) => {
+        if (payload?.type === 'deleted') {
+          return current.map((comment) =>
+            comment.id === commentId
+              ? { ...comment, content: '[Bình luận đã bị xóa]' }
+              : { ...comment, replies: comment.replies ? comment.replies.filter((reply) => reply.id !== commentId) : [] },
+          );
+        }
+
+        if (payload?.type === 'updated') {
+          const nextComment = normalizeComment(payload.comment || { id: commentId, content: commentId, author: { username: name } }, name);
+          return current.map((comment) => (comment.id === commentId ? nextComment : comment));
+        }
+
+        if (payload?.type === 'liked') {
+          return current.map((comment) => {
+            if (comment.id !== commentId) return comment;
+            return { ...comment, likes: Number(payload.likeCount ?? comment.likes) };
+          });
+        }
+
+        return current;
+      });
+    });
+
+    loadComments();
+
+    return () => {
+      socket.emit('leave-post-room', { postId });
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [postId, name]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!postId) {
+      setSubmitError('Bài viết chưa sẵn sàng để nhận bình luận.');
+      return;
+    }
+
+    const trimmed = content.trim();
+    if (!trimmed) {
+      setSubmitError('Vui lòng nhập nội dung bình luận.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          authorId: DEFAULT_COMMENT_AUTHOR_ID,
+          content: trimmed,
+        }),
+      });
+
+      const responseData = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(responseData?.message || 'Không thể gửi bình luận.');
+      }
+
+      const createdComment = normalizeComment(
+        responseData || { content: trimmed, author: { username: name }, createdAt: new Date().toISOString() },
+        name,
+      );
+      setComments((current) => [createdComment, ...current]);
+      setContent('');
+      setFeedbackNotice('Bình luận của bạn đã được ghi nhận.');
+      setTimeout(() => setFeedbackNotice(''), 2200);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Có lỗi xảy ra khi gửi bình luận.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReplySubmit = async (commentId: string) => {
+    const trimmed = (replyDrafts[commentId] || '').trim();
+    if (!trimmed) {
+      setSubmitError('Vui lòng nhập nội dung trả lời.');
+      return;
+    }
+
+    setSubmitError('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          authorId: DEFAULT_COMMENT_AUTHOR_ID,
+          content: trimmed,
+          parentId: commentId,
+        }),
+      });
+
+      const responseData = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(responseData?.message || 'Không thể gửi trả lời.');
+      }
+
+      const reply = normalizeReply(responseData || { content: trimmed, author: { username: name }, createdAt: new Date().toISOString() }, name);
+      setComments((current) =>
+        current.map((comment) =>
+          comment.id === commentId
+            ? {
+                ...comment,
+                replies: [...(comment.replies || []), reply],
+              }
+            : comment,
+        ),
+      );
+      setReplyDrafts((current) => ({ ...current, [commentId]: '' }));
+      setReplyingTo(null);
+      setFeedbackNotice('Trả lời đã được gửi.');
+      setTimeout(() => setFeedbackNotice(''), 2200);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Có lỗi xảy ra khi trả lời.');
+    }
+  };
+
+  const handleEditSubmit = async (commentId: string) => {
+    const trimmed = editDraft.trim();
+    if (!trimmed) {
+      setSubmitError('Nội dung chỉnh sửa không được để trống.');
+      return;
+    }
+
+    setSubmitError('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          authorId: DEFAULT_COMMENT_AUTHOR_ID,
+          content: trimmed,
+        }),
+      });
+
+      const responseData = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(responseData?.message || 'Không thể cập nhật bình luận.');
+      }
+
+      const updated = normalizeComment(responseData || { id: commentId, content: trimmed, author: { username: name }, createdAt: new Date().toISOString() }, name);
+      setComments((current) => current.map((comment) => (comment.id === commentId ? updated : comment)));
+      setEditingCommentId(null);
+      setEditDraft('');
+      setFeedbackNotice('Bình luận đã được chỉnh sửa.');
+      setTimeout(() => setFeedbackNotice(''), 2200);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật bình luận.');
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!postId) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ authorId: DEFAULT_COMMENT_AUTHOR_ID }),
+      });
+
+      const responseData = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(responseData?.message || 'Không thể xóa bình luận.');
+      }
+
+      setComments((current) =>
+        current.map((comment) =>
+          comment.id === commentId
+            ? { ...comment, content: '[Bình luận đã bị xóa]' }
+            : {
+                ...comment,
+                replies: comment.replies ? comment.replies.filter((reply) => reply.id !== commentId) : [],
+              },
+        ),
+      );
+      setFeedbackNotice('Bình luận đã được xóa.');
+      setTimeout(() => setFeedbackNotice(''), 2200);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa bình luận.');
+    }
+  };
+
+  const handleToggleLike = async (commentId: string) => {
+    if (!postId) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: DEFAULT_COMMENT_AUTHOR_ID }),
+      });
+
+      const responseData = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(responseData?.message || 'Không thể thích bình luận.');
+      }
+
+      setComments((current) =>
+        current.map((comment) =>
+          comment.id === commentId
+            ? {
+                ...comment,
+                likes: Number(responseData?.likeCount ?? comment.likes),
+              }
+            : comment,
+        ),
+      );
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Có lỗi xảy ra khi thích bình luận.');
+    }
+  };
+
   return (
     <section className="mx-auto mt-16 max-w-[1100px] px-6 pb-20 lg:px-8">
       <div className="mb-8">
@@ -63,86 +391,151 @@ export function CommentThread() {
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
         <div className="space-y-5">
-          {comments.map((comment) => (
-            <article
-              key={comment.id}
-              className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-4 md:p-5"
-            >
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--gold)] bg-[var(--bg-page)] text-sm font-semibold text-[var(--ink)]">
-                  {comment.author
-                    .split(' ')
-                    .slice(-2)
-                    .map((word) => word[0])
-                    .join('')
-                    .slice(0, 2)}
-                </div>
+          {isLoading ? (
+            <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-5 text-sm text-[var(--text-muted)]">
+              Đang tải bình luận...
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="rounded-[var(--radius-card)] border border-dashed border-[var(--border)] bg-[var(--bg-surface)] p-5 text-sm text-[var(--text-muted)]">
+              Chưa có bình luận nào cho bài viết này. Hãy là người đầu tiên đặt câu hỏi hoặc chia sẻ nhận xét.
+            </div>
+          ) : (
+            comments.map((comment) => (
+              <article
+                key={comment.id}
+                className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-4 md:p-5"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--gold)] bg-[var(--bg-page)] text-sm font-semibold text-[var(--ink)]">
+                    {comment.author
+                      .split(' ')
+                      .slice(-2)
+                      .map((word) => word[0])
+                      .join('')
+                      .slice(0, 2)}
+                  </div>
 
-                <div className="flex-1">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
+                  <div className="flex-1">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-base font-semibold text-[var(--ink)]">{comment.author}</h3>
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                        {comment.role} • {comment.time}
-                      </p>
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-muted)]">{comment.time}</p>
                     </div>
 
-                    {comment.accent ? (
-                      <span className="inline-flex items-center rounded-full border border-[var(--gold)] px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--gold)]">
-                        {comment.accent}
-                      </span>
+                    {editingCommentId === comment.id ? (
+                      <div className="mt-3 space-y-3">
+                        <textarea
+                          rows={4}
+                          value={editDraft}
+                          onChange={(event) => setEditDraft(event.target.value)}
+                          className="w-full resize-none rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--ink)]"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEditSubmit(comment.id)}
+                            className="rounded-[var(--radius-btn)] bg-[var(--gold)] px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-[var(--ink)]"
+                          >
+                            Lưu
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingCommentId(null);
+                              setEditDraft('');
+                            }}
+                            className="rounded-[var(--radius-btn)] border border-[var(--border)] px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]"
+                          >
+                            Huỷ
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-base leading-7 text-[var(--text-body)]">{comment.content}</p>
+                    )}
+
+                    <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                      <button type="button" onClick={() => handleToggleLike(comment.id)} className="transition-colors hover:text-[var(--gold)]">
+                        Thích ({comment.likes})
+                      </button>
+                      <button type="button" onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)} className="transition-colors hover:text-[var(--gold)]">
+                        Trả lời
+                      </button>
+                      {comment.authorId === DEFAULT_COMMENT_AUTHOR_ID ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingCommentId(comment.id);
+                              setEditDraft(comment.content === '[Bình luận đã bị xóa]' ? '' : comment.content);
+                            }}
+                            className="transition-colors hover:text-[var(--gold)]"
+                          >
+                            Sửa
+                          </button>
+                          <button type="button" onClick={() => handleDeleteComment(comment.id)} className="transition-colors hover:text-red-500">
+                            Xóa
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
+
+                    {replyingTo === comment.id ? (
+                      <div className="mt-4 space-y-3 rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--bg-page)] p-3">
+                        <textarea
+                          rows={3}
+                          value={replyDrafts[comment.id] || ''}
+                          onChange={(event) => setReplyDrafts((current) => ({ ...current, [comment.id]: event.target.value }))}
+                          placeholder="Viết câu trả lời..."
+                          className="w-full resize-none rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--ink)]"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleReplySubmit(comment.id)}
+                            className="rounded-[var(--radius-btn)] bg-[var(--gold)] px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-[var(--ink)]"
+                          >
+                            Gửi trả lời
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReplyingTo(null);
+                              setReplyDrafts((current) => ({ ...current, [comment.id]: '' }));
+                            }}
+                            className="rounded-[var(--radius-btn)] border border-[var(--border)] px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]"
+                          >
+                            Huỷ
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {comment.replies && comment.replies.length > 0 ? (
+                      <div className="mt-4 space-y-3 border-l border-[var(--border)] pl-4">
+                        {comment.replies.map((reply, index) => (
+                          <div key={`${comment.id}-reply-${index}`} className="rounded-[var(--radius-btn)] bg-[var(--bg-page)] p-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-semibold text-[var(--ink)]">{reply.author}</p>
+                              <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">{reply.time}</span>
+                            </div>
+                            <p className="mt-2 text-sm leading-6 text-[var(--text-body)]">{reply.content}</p>
+                          </div>
+                        ))}
+                      </div>
                     ) : null}
                   </div>
-
-                  <p className="mt-3 text-base leading-7 text-[var(--text-body)]">{comment.content}</p>
-
-                  <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                    <button type="button" className="transition-colors hover:text-[var(--gold)]">
-                      Thích ({comment.likes})
-                    </button>
-                    <button type="button" className="transition-colors hover:text-[var(--gold)]">
-                      Trả lời
-                    </button>
-                    <button type="button" className="transition-colors hover:text-[var(--gold)]">
-                      Chia sẻ
-                    </button>
-                  </div>
-
-                  {comment.replies && comment.replies.length > 0 ? (
-                    <div className="mt-4 space-y-3 border-l border-[var(--border)] pl-4">
-                      {comment.replies.map((reply, index) => (
-                        <div key={`${comment.id}-reply-${index}`} className="rounded-[var(--radius-btn)] bg-[var(--bg-page)] p-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-sm font-semibold text-[var(--ink)]">{reply.author}</p>
-                            <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                              {reply.time}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-sm leading-6 text-[var(--text-body)]">{reply.content}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))
+          )}
         </div>
 
         <aside className="space-y-5">
           <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-5">
             <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Để lại phản hồi</p>
-            <form className="mt-4 space-y-4">
-              <div>
-                <label htmlFor="comment-name" className="mb-2 block text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                  Tên của bạn
-                </label>
-                <input
-                  id="comment-name"
-                  type="text"
-                  defaultValue="Bạn đọc HISGO"
-                  className="w-full rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--ink)] outline-none transition-colors focus:border-[var(--gold)]"
-                />
+            <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
+              <div className="rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--ink)]">
+                {name}
               </div>
 
               <div>
@@ -152,41 +545,22 @@ export function CommentThread() {
                 <textarea
                   id="comment-text"
                   rows={5}
-                  placeholder="Bạn nghĩ gì về tác phẩm và cách bài viết tiếp cận chủ đề này?"
+                  value={content}
+                  onChange={(event) => setContent(event.target.value)}
+                  placeholder="Bạn nghĩ gì về bài viết này?"
                   className="w-full resize-none rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--ink)] outline-none transition-colors focus:border-[var(--gold)]"
                 />
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                    Đính kèm
-                  </p>
-                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-[var(--ink)] transition-colors hover:border-[var(--gold)]">
-                    <span>Ảnh</span>
-                    <input type="file" accept="image/*" className="hidden" />
-                  </label>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {['🏛️', '📜', '🧭', '✨', '🗿', '🧱'].map((icon) => (
-                    <button
-                      key={icon}
-                      type="button"
-                      className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-page)] text-lg transition-colors hover:border-[var(--gold)] hover:text-[var(--gold)]"
-                      aria-label={`Chèn biểu tượng ${icon}`}
-                    >
-                      {icon}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
+              {feedbackNotice ? <p className="text-sm text-[var(--gold)]">{feedbackNotice}</p> : null}
 
               <button
                 type="submit"
-                className="inline-flex items-center justify-center rounded-[var(--radius-btn)] bg-[var(--gold)] px-4 py-2.5 text-xs font-medium uppercase tracking-[0.18em] text-[var(--ink)] transition-opacity hover:opacity-90"
+                disabled={isSubmitting}
+                className="inline-flex items-center justify-center rounded-[var(--radius-btn)] bg-[var(--gold)] px-4 py-2.5 text-xs font-medium uppercase tracking-[0.18em] text-[var(--ink)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Gửi bình luận
+                {isSubmitting ? 'Đang gửi...' : 'Gửi bình luận'}
               </button>
             </form>
           </div>
@@ -196,15 +570,11 @@ export function CommentThread() {
             <ul className="mt-4 space-y-3 text-sm text-[var(--text-body)]">
               <li className="flex items-center justify-between border-b border-[var(--border)] pb-2">
                 <span>Chủ đề nổi bật</span>
-                <span className="text-[var(--gold)]">24</span>
+                <span className="text-[var(--gold)]">{comments.length || 0}</span>
               </li>
               <li className="flex items-center justify-between border-b border-[var(--border)] pb-2">
                 <span>Đang thảo luận</span>
-                <span className="text-[var(--gold)]">11</span>
-              </li>
-              <li className="flex items-center justify-between">
-                <span>Phản hồi mới</span>
-                <span className="text-[var(--gold)]">7</span>
+                <span className="text-[var(--gold)]">{Math.max(1, comments.length)}</span>
               </li>
             </ul>
           </div>

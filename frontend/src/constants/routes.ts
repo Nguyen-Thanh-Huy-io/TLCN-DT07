@@ -46,6 +46,7 @@ export const APP_ROUTES = {
     CREATE: '/tags/create',
   },
   REVIEW: '/review',
+  ADMIN_BLOG_REVIEW: '/admin/blog',
   USERS: '/users',
   TAXONOMIES: '/taxonomies',
 } as const;
@@ -69,6 +70,7 @@ export enum NavigationPageKey {
   ENTITIES = 'entities',
   TAGS = 'tags',
   REVIEW = 'review',
+  BLOG_REVIEW = 'blog-review',
   USERS = 'users',
   TAXONOMIES = 'taxonomies',
 }

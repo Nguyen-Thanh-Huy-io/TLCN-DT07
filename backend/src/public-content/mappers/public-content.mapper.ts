@@ -1,9 +1,9 @@
 import {
   HistoricalEntity,
-  HistoricalEntityRelation,
   HistoricalEvent,
-  HistoricalEventEntity,
+  HistoricalEventParticipant,
   HistoricalSite,
+  HistoricalStatement,
   TaxonomyTerm,
   Lesson,
   Period,
@@ -122,16 +122,23 @@ export class PublicContentMapper {
     entity: HistoricalEntity & {
       person: Person | null;
       period: { slug: string } | null;
-      eventEntities: Array<
-        HistoricalEventEntity & {
+      eventParticipations: Array<
+        HistoricalEventParticipant & {
+          roleTerm: TaxonomyTerm | null;
           event: HistoricalEvent & { period: { slug: string } | null };
         }
       >;
-      outgoingRelations: Array<
-        HistoricalEntityRelation & { targetEntity: HistoricalEntity }
+      subjectStatements: Array<
+        HistoricalStatement & {
+          predicate: TaxonomyTerm;
+          objectEntity: HistoricalEntity | null;
+        }
       >;
-      incomingRelations: Array<
-        HistoricalEntityRelation & { sourceEntity: HistoricalEntity }
+      objectStatements: Array<
+        HistoricalStatement & {
+          predicate: TaxonomyTerm;
+          subjectEntity: HistoricalEntity | null;
+        }
       >;
     },
   ): PublicFigureProfileDto {
@@ -162,44 +169,48 @@ export class PublicContentMapper {
       titles: entity.person?.titles ?? [],
       sources: textList(metadata.sources),
       periodSlug: entity.period?.slug ?? null,
-      events: entity.eventEntities
-        .map((ee) => ({
-          id: ee.event.id,
-          slug: ee.event.slug,
-          title: ee.event.title,
-          startYear: ee.event.startYear ?? null,
+      events: entity.eventParticipations
+        .map((ep) => ({
+          id: ep.event.id,
+          slug: ep.event.slug,
+          title: ep.event.title,
+          startYear: ep.event.startYear ?? null,
           eventDateNote:
-            ee.event.dateText ?? ee.event.eventDateNote ?? null,
-          description: ee.event.description,
-          category: ee.event.category,
-          categoryIds: ee.event.categoryIds ?? [],
-          periodSlug: ee.event.period?.slug ?? null,
-          role: ee.role,
-          roleLabel: ee.roleLabel,
-          isPrimary: ee.isPrimary,
+            ep.event.dateText ?? ep.event.eventDateNote ?? null,
+          description: ep.event.description,
+          category: ep.event.category,
+          categoryIds: ep.event.categoryIds ?? [],
+          periodSlug: ep.event.period?.slug ?? null,
+          role: ep.roleTerm?.code ?? 'PARTICIPANT',
+          roleLabel: ep.roleLabelOverride ?? ep.roleTerm?.label ?? null,
+          isPrimary: ep.isPrimary,
         }))
         .sort(compareHistoricalDates),
       relationships: [
-        ...entity.outgoingRelations.map((rel) => ({
-          figureId: rel.targetEntity.id,
-          slug: rel.targetEntity.slug,
-          name: rel.targetEntity.name,
-          relationType: rel.relationType,
-          direction: 'OUTGOING' as const,
-          note: rel.note,
-          startYear: rel.startYear,
-          endYear: rel.endYear,
-        })),
-        ...entity.incomingRelations.map((rel) => ({
-          figureId: rel.sourceEntity.id,
-          slug: rel.sourceEntity.slug,
-          name: rel.sourceEntity.name,
-          relationType: rel.relationType,
-          direction: 'INCOMING' as const,
-          note: rel.note,
-          startYear: rel.startYear,
-          endYear: rel.endYear,
-        })),
+        ...entity.subjectStatements
+          .filter((rel) => rel.objectEntity)
+          .map((rel) => ({
+            figureId: rel.objectEntity!.id,
+            slug: rel.objectEntity!.slug,
+            name: rel.objectEntity!.name,
+            relationType: rel.predicate.code,
+            direction: 'OUTGOING' as const,
+            note: (rel.qualifiers as any)?.note ?? null,
+            startYear: rel.validFromYear,
+            endYear: rel.validToYear,
+          })),
+        ...entity.objectStatements
+          .filter((rel) => rel.subjectEntity)
+          .map((rel) => ({
+            figureId: rel.subjectEntity!.id,
+            slug: rel.subjectEntity!.slug,
+            name: rel.subjectEntity!.name,
+            relationType: rel.predicate.code,
+            direction: 'INCOMING' as const,
+            note: (rel.qualifiers as any)?.note ?? null,
+            startYear: rel.validFromYear,
+            endYear: rel.validToYear,
+          })),
       ],
     };
   }
@@ -211,13 +222,19 @@ export class PublicContentMapper {
       site?: (HistoricalSite & { entity?: HistoricalEntity }) | null;
       historicalLocation?: any;
       period?: { slug: string } | null;
-      entities?: Array<{
+      participants?: Array<{
         entity: HistoricalEntity & { historicalSite?: HistoricalSite | null };
-        role?: string;
-        roleLabel?: string | null;
+        roleTerm?: TaxonomyTerm | null;
+        roleLabelOverride?: string | null;
       }>;
-      outgoingRelations?: Array<{ targetEventId: string; relationType: string }>;
-      incomingRelations?: Array<{ sourceEventId: string; relationType: string }>;
+      subjectStatements?: Array<{
+        objectEventId: string | null;
+        predicate: { code: string };
+      }>;
+      objectStatements?: Array<{
+        subjectEventId: string | null;
+        predicate: { code: string };
+      }>;
     },
   ): PublicEventSummaryDto {
     const locName =
@@ -229,7 +246,7 @@ export class PublicContentMapper {
       (event.metadata as any)?.rawLocation ||
       null;
 
-    const participants = (event.entities || []).map((ee) => ee.entity);
+    const participants = (event.participants || []).map((p) => p.entity);
 
     return {
       id: event.id,
@@ -244,29 +261,33 @@ export class PublicContentMapper {
       categoryIds: event.categoryIds ?? [],
       endYear: event.endYear ?? null,
       parentId: event.parentId ?? null,
-      actors: (event.entities ?? [])
-        .filter((ee) => !['PERSON', 'LOCATION'].includes(ee.entity.type))
-        .map((ee) => ({
-          id: ee.entity.id,
-          name: ee.entity.name,
-          slug: ee.entity.slug ?? null,
-          type: ee.entity.type,
-          role: ee.role ?? 'PARTICIPANT',
-          roleLabel: ee.roleLabel ?? null,
-          startYear: ee.entity.startYear ?? null,
-          endYear: ee.entity.endYear ?? null,
+      actors: (event.participants ?? [])
+        .filter((p) => !['PERSON', 'LOCATION'].includes(p.entity.type))
+        .map((p) => ({
+          id: p.entity.id,
+          name: p.entity.name,
+          slug: p.entity.slug ?? null,
+          type: p.entity.type,
+          role: p.roleTerm?.code ?? 'PARTICIPANT',
+          roleLabel: p.roleLabelOverride ?? p.roleTerm?.label ?? null,
+          startYear: p.entity.startYear ?? null,
+          endYear: p.entity.endYear ?? null,
         })),
       relations: [
-        ...(event.outgoingRelations ?? []).map((r) => ({
-          eventId: r.targetEventId,
-          relationType: r.relationType,
-          direction: 'OUTGOING' as const,
-        })),
-        ...(event.incomingRelations ?? []).map((r) => ({
-          eventId: r.sourceEventId,
-          relationType: r.relationType,
-          direction: 'INCOMING' as const,
-        })),
+        ...(event.subjectStatements ?? [])
+          .filter((r) => r.objectEventId)
+          .map((r) => ({
+            eventId: r.objectEventId as string,
+            relationType: r.predicate.code,
+            direction: 'OUTGOING' as const,
+          })),
+        ...(event.objectStatements ?? [])
+          .filter((r) => r.subjectEventId)
+          .map((r) => ({
+            eventId: r.subjectEventId as string,
+            relationType: r.predicate.code,
+            direction: 'INCOMING' as const,
+          })),
       ],
       periodSlug: event.period?.slug ?? null,
       figures: participants

@@ -138,19 +138,20 @@ export class LandingContentFacade {
       include: {
         person: true,
         period: { select: { slug: true } },
-        eventEntities: {
+        eventParticipations: {
           where: { event: { status: PUBLIC_CONTENT_STATUS } },
           include: {
+            roleTerm: true,
             event: { include: { period: { select: { slug: true } } } },
           },
         },
-        outgoingRelations: {
-          where: { targetEntity: publishedPerson },
-          include: { targetEntity: true },
+        subjectStatements: {
+          where: { objectEntity: publishedPerson },
+          include: { predicate: true, objectEntity: true },
         },
-        incomingRelations: {
-          where: { sourceEntity: publishedPerson },
-          include: { sourceEntity: true },
+        objectStatements: {
+          where: { subjectEntity: publishedPerson },
+          include: { predicate: true, subjectEntity: true },
         },
       },
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
@@ -212,15 +213,15 @@ export class LandingContentFacade {
           status: PUBLIC_CONTENT_STATUS,
           OR: [
             { locationId: entity.id },
-            { entities: { some: { entityId: entity.id } } },
+            { participants: { some: { entityId: entity.id } } },
           ],
         },
         include: {
           location: { include: { historicalSite: true } },
           period: { select: { slug: true } },
-          entities: {
+          participants: {
             where: { entity: { status: PUBLIC_CONTENT_STATUS } },
-            include: { entity: { include: { historicalSite: true } } },
+            include: { entity: { include: { historicalSite: true } }, roleTerm: true },
             orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
           },
         },
@@ -243,7 +244,7 @@ export class LandingContentFacade {
 
     const figures = new Map<string, PublicFigureDto>();
     for (const event of events) {
-      for (const { entity: participant } of event.entities) {
+      for (const { entity: participant } of event.participants) {
         if (participant.type === HistoricalEntityType.PERSON) {
           figures.set(
             participant.id,
@@ -307,19 +308,19 @@ export class LandingContentFacade {
       include: {
         location: { include: { historicalSite: true } },
         period: { select: { slug: true } },
-        entities: {
+        participants: {
           where: { entity: { status: PUBLIC_CONTENT_STATUS } },
-          include: { entity: { include: { historicalSite: true } } },
+          include: { entity: { include: { historicalSite: true } }, roleTerm: true },
           orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
         },
         // Quan hệ với sự kiện khác — dòng thời gian làm sáng các mốc liên quan khi bấm một sự kiện.
-        outgoingRelations: {
-          where: { targetEvent: { status: PUBLIC_CONTENT_STATUS } },
-          select: { targetEventId: true, relationType: true },
+        subjectStatements: {
+          where: { objectEvent: { status: PUBLIC_CONTENT_STATUS } },
+          select: { objectEventId: true, predicate: { select: { code: true } } },
         },
-        incomingRelations: {
-          where: { sourceEvent: { status: PUBLIC_CONTENT_STATUS } },
-          select: { sourceEventId: true, relationType: true },
+        objectStatements: {
+          where: { subjectEvent: { status: PUBLIC_CONTENT_STATUS } },
+          select: { subjectEventId: true, predicate: { select: { code: true } } },
         },
       },
       orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
@@ -364,9 +365,9 @@ export class LandingContentFacade {
       include: {
         period: true,
         location: { include: { historicalSite: true } },
-        entities: {
+        participants: {
           where: { entity: { status: PUBLIC_CONTENT_STATUS } },
-          include: { entity: { include: { historicalSite: true } } },
+          include: { entity: { include: { historicalSite: true } }, roleTerm: true },
           orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
         },
         parent: {
@@ -377,16 +378,20 @@ export class LandingContentFacade {
           include: { location: { include: { historicalSite: true } } },
           orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
         },
-        outgoingRelations: {
+        subjectStatements: {
+          where: { objectEventId: { not: null } },
           include: {
-            targetEvent: {
+            predicate: true,
+            objectEvent: {
               include: { location: { include: { historicalSite: true } } },
             },
           },
         },
-        incomingRelations: {
+        objectStatements: {
+          where: { subjectEventId: { not: null } },
           include: {
-            sourceEvent: {
+            predicate: true,
+            subjectEvent: {
               include: { location: { include: { historicalSite: true } } },
             },
           },
@@ -400,20 +405,20 @@ export class LandingContentFacade {
       );
     }
 
-    const outgoingRelations = event.outgoingRelations
-      .filter((rel) => rel.targetEvent.status === PUBLIC_CONTENT_STATUS)
+    const outgoingRelations = event.subjectStatements
+      .filter((rel) => rel.objectEvent?.status === PUBLIC_CONTENT_STATUS)
       .map((rel) => ({
-        relationType: rel.relationType,
-        description: rel.description,
-        event: PublicContentMapper.toEventSummary(rel.targetEvent),
+        relationType: rel.predicate?.code ?? null,
+        description: (rel.qualifiers as any)?.description ?? null,
+        event: PublicContentMapper.toEventSummary(rel.objectEvent!),
       }));
 
-    const incomingRelations = event.incomingRelations
-      .filter((rel) => rel.sourceEvent.status === PUBLIC_CONTENT_STATUS)
+    const incomingRelations = event.objectStatements
+      .filter((rel) => rel.subjectEvent?.status === PUBLIC_CONTENT_STATUS)
       .map((rel) => ({
-        relationType: rel.relationType,
-        description: rel.description,
-        event: PublicContentMapper.toEventSummary(rel.sourceEvent),
+        relationType: rel.predicate?.code ?? null,
+        description: (rel.qualifiers as any)?.description ?? null,
+        event: PublicContentMapper.toEventSummary(rel.subjectEvent!),
       }));
 
     const metadata = (event.metadata ?? {}) as Record<string, unknown>;
@@ -429,11 +434,11 @@ export class LandingContentFacade {
       cause: textOrNull(metadata.cause),
       outcome: textOrNull(metadata.outcome),
       sources: textList(metadata.sources),
-      participants: event.entities.map((ee) => ({
-        entityId: ee.entityId,
-        role: ee.role,
-        roleLabel: ee.roleLabel,
-        isPrimary: ee.isPrimary,
+      participants: event.participants.map((p) => ({
+        entityId: p.entityId,
+        role: p.roleTerm?.code ?? 'PARTICIPANT',
+        roleLabel: p.roleLabelOverride ?? p.roleTerm?.label ?? null,
+        isPrimary: p.isPrimary,
       })),
       period: event.period ? PublicContentMapper.toPeriod(event.period) : null,
       parent:
@@ -488,9 +493,9 @@ export class LandingContentFacade {
     const eventInclude = {
       location: { include: { historicalSite: true } },
       period: { select: { slug: true } },
-      entities: {
+      participants: {
         where: { entity: { status: PUBLIC_CONTENT_STATUS } },
-        include: { entity: { include: { historicalSite: true } } },
+        include: { entity: { include: { historicalSite: true } }, roleTerm: true },
         orderBy: [
           { isPrimary: 'desc' as const },
           { displayOrder: 'asc' as const },
@@ -531,7 +536,7 @@ export class LandingContentFacade {
       }
     }
     for (const event of events) {
-      for (const { entity } of event.entities) {
+      for (const { entity } of event.participants) {
         if (
           entity.type === HistoricalEntityType.PERSON &&
           !figures.has(entity.id)
@@ -638,7 +643,7 @@ export class LandingContentFacade {
       where: { slug, status: PUBLIC_CONTENT_STATUS },
       include: {
         period: true,
-        eventEntities: {
+        eventParticipations: {
           include: {
             event: {
               include: { location: { include: { historicalSite: true } } },
@@ -654,7 +659,7 @@ export class LandingContentFacade {
       );
     }
 
-    const relatedEvents = entity.eventEntities
+    const relatedEvents = entity.eventParticipations
       .map((ee) => ee.event)
       .filter((e) => e.status === PUBLIC_CONTENT_STATUS)
       .sort(compareHistoricalDates);

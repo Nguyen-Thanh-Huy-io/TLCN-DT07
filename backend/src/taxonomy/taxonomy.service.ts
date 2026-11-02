@@ -100,12 +100,11 @@ export class TaxonomyService {
       (await this.prisma.historicalEvent.count({
         where: { categoryIds: { has: id } },
       })) +
-      (await this.prisma.historicalEventEntity.count({ where: { roleId: id } })) +
-      (await this.prisma.historicalEntityRelation.count({
-        where: { relationTypeId: id },
+      (await this.prisma.historicalEventParticipant.count({
+        where: { roleTermId: id },
       })) +
-      (await this.prisma.historicalEventRelation.count({
-        where: { relationTypeId: id },
+      (await this.prisma.historicalStatement.count({
+        where: { predicateId: id },
       })) +
       (await this.prisma.person.count({ where: { roleIds: { has: id } } }));
     if (used > 0)

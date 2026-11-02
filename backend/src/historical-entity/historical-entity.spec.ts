@@ -84,12 +84,14 @@ describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
-    historicalEntityRelation: {
+    historicalStatement: {
       findUnique: jest.fn(),
       findMany: jest.fn(),
       create: jest.fn(),
-      upsert: jest.fn(),
       delete: jest.fn(),
+    },
+    taxonomyTerm: {
+      findFirst: jest.fn(),
     },
     historicalEntityMedia: {
       findUnique: jest.fn(),
@@ -254,9 +256,14 @@ describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
       mockPrisma.historicalEntity.findUnique
         .mockResolvedValueOnce(mockEntity)
         .mockResolvedValueOnce(mockTargetEntity);
-      mockPrisma.historicalEntityRelation.create.mockResolvedValueOnce(
-        mockRelation,
-      );
+      mockPrisma.taxonomyTerm.findFirst.mockResolvedValueOnce({
+        id: 'term-1',
+        code: EntityRelationType.LEADER_OF,
+      });
+      mockPrisma.historicalStatement.create.mockResolvedValueOnce({
+        id: 'rel-1',
+        createdAt: mockRelation.createdAt,
+      });
 
       const rel = await service.addRelation('ent-1', {
         targetEntityId: 'ent-2',
@@ -265,12 +272,12 @@ describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
         endYear: 1975,
       });
 
-      expect(mockPrisma.historicalEntityRelation.create).toHaveBeenCalledWith(
+      expect(mockPrisma.historicalStatement.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            sourceEntityId: 'ent-1',
-            targetEntityId: 'ent-2',
-            relationType: EntityRelationType.LEADER_OF,
+            subjectEntityId: 'ent-1',
+            objectEntityId: 'ent-2',
+            predicateId: 'term-1',
           }),
         }),
       );
@@ -279,11 +286,17 @@ describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
 
     it('getEntityGraph trả về danh sách nodes và edges từ quan hệ', async () => {
       mockPrisma.historicalEntity.findUnique.mockResolvedValueOnce(mockEntity);
-      mockPrisma.historicalEntityRelation.findMany
+      mockPrisma.historicalStatement.findMany
         .mockResolvedValueOnce([
           {
-            ...mockRelation,
-            targetEntity: mockTargetEntity,
+            id: mockRelation.id,
+            subjectEntityId: mockRelation.sourceEntityId,
+            objectEntityId: mockRelation.targetEntityId,
+            predicate: { code: EntityRelationType.LEADER_OF },
+            validFromYear: mockRelation.startYear,
+            validToYear: mockRelation.endYear,
+            qualifiers: { note: mockRelation.note },
+            objectEntity: mockTargetEntity,
           },
         ])
         .mockResolvedValueOnce([]);

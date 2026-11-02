@@ -136,7 +136,7 @@ export class HistoricalEventService {
       HISTORICAL_EVENT_ERRORS.INVALID_METADATA_FORMAT,
     );
 
-    const relationRecords =
+    const relationRecordsBase =
       entityRelations && entityRelations.length > 0
         ? Array.from(
             new Map(
@@ -165,6 +165,7 @@ export class HistoricalEventService {
             notes: null,
           }))
         : [];
+    const relationRecords = await this.resolveRoleTermIds(relationRecordsBase);
 
     const locationId = rest.locationId || (rest as any).siteId || null;
     const createModel: CreateHistoricalEventDomainModel = {
@@ -274,6 +275,26 @@ export class HistoricalEventService {
         notes: old?.notes ?? null,
       };
     });
+  }
+
+  /**
+   * Gắn roleTermId (danh mục EVENT_ROLE) cho từng bản ghi tham gia sự kiện trước khi lưu
+   * vào `HistoricalEventParticipant` — bảng chuẩn hoá thay cho `HistoricalEventEntity` cũ.
+   * Không khớp được role tự do thì roleTermId = null, vẫn giữ `role`/`roleLabel` làm nhãn hiển thị.
+   */
+  private async resolveRoleTermIds<
+    T extends { role?: string | null },
+  >(records: T[]): Promise<Array<T & { roleTermId: string | null }>> {
+    return Promise.all(
+      records.map(async (r) => ({
+        ...r,
+        roleTermId:
+          (await this.taxonomy.resolveTermId(
+            TAXONOMY_GROUPS.EVENT_ROLE,
+            r.role,
+          )) ?? null,
+      })),
+    );
   }
 
   private formatEvent(event: HistoricalEventEntityModel): HistoricalEventEntityModel {
@@ -449,7 +470,7 @@ export class HistoricalEventService {
       );
     }
 
-    const relationRecords =
+    const relationRecordsBase =
       entityRelations !== undefined
         ? Array.from(
             new Map(
@@ -470,6 +491,10 @@ export class HistoricalEventService {
           )
         : entityIds !== undefined
         ? this.keepExistingRoles(existing, entityIds)
+        : undefined;
+    const relationRecords =
+      relationRecordsBase !== undefined
+        ? await this.resolveRoleTermIds(relationRecordsBase)
         : undefined;
 
     const locationId = rest.locationId !== undefined ? rest.locationId : (rest as any).siteId !== undefined ? (rest as any).siteId : undefined;

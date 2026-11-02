@@ -58,9 +58,6 @@ model TaxonomyTerm {
   sitesByRank         HistoricalSite[]           @relation("SiteRankTerm")
   periodsByRegion     Period[]                   @relation("PeriodRegionTerm")
   periodsByType       Period[]                   @relation("PeriodTypeTerm")
-  eventEntityRoles    HistoricalEventEntity[]    @relation("EventEntityRoleTerm")
-  entityRelations     HistoricalEntityRelation[] @relation("EntityRelationTypeTerm")
-  eventRelations      HistoricalEventRelation[]  @relation("EventRelationTypeTerm")
 
   // Knowledge Graph Statements
   statements          HistoricalStatement[]      @relation("StatementPredicate")

@@ -32,16 +32,11 @@ model HistoricalEntity {
   person         Person?
   historicalSite HistoricalSite?
 
-  eventEntities       HistoricalEventEntity[]
   eventParticipations HistoricalEventParticipant[]
   media               HistoricalEntityMedia[]
 
   // Các sự kiện mà thực thể này là địa điểm diễn ra chính
   primaryEvents HistoricalEvent[] @relation("EventPrimaryLocation")
-
-  // Quan hệ hồi quy N-N đồ thị tri thức (Source & Target)
-  outgoingRelations HistoricalEntityRelation[] @relation("SourceEntityRelation")
-  incomingRelations HistoricalEntityRelation[] @relation("TargetEntityRelation")
 
   // Knowledge Graph Statements (Subject & Object)
   subjectStatements HistoricalStatement[] @relation("StatementSubjectEntity")
@@ -54,32 +49,6 @@ model HistoricalEntity {
   @@index([displayOrder])
   @@index([startYear, endYear])
   @@map("historical_entities")
-}
-
-// Bảng quan hệ hồi quy N-N giữa các thực thể lịch sử (Knowledge Graph)
-model HistoricalEntityRelation {
-  id             String   @id @default(uuid())
-  sourceEntityId String   @map("source_entity_id")
-  targetEntityId String   @map("target_entity_id")
-  relationType   String   @map("relation_type") @db.VarChar(50)
-  /// Loại quan hệ theo danh mục ENTITY_RELATION — trigger gắn theo mã relation_type.
-  relationTypeId String?  @map("relation_type_id")
-  startYear      Int?     @map("start_year")
-  endYear        Int?     @map("end_year")
-  note           String?  @db.Text
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  // Relations
-  sourceEntity     HistoricalEntity @relation("SourceEntityRelation", fields: [sourceEntityId], references: [id], onDelete: Cascade)
-  targetEntity     HistoricalEntity @relation("TargetEntityRelation", fields: [targetEntityId], references: [id], onDelete: Cascade)
-  relationTypeTerm TaxonomyTerm?    @relation("EntityRelationTypeTerm", fields: [relationTypeId], references: [id], onDelete: SetNull)
-
-  @@unique([sourceEntityId, targetEntityId, relationType])
-  @@index([relationTypeId])
-  @@index([sourceEntityId])
-  @@index([targetEntityId])
-  @@index([relationType])
-  @@map("historical_entity_relations")
 }
 
 // Bảng lưu trữ tư liệu đa phương tiện (ảnh, video, tài liệu văn kiện) cho Thực thể Lịch sử

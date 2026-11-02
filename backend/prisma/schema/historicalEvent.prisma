@@ -36,12 +36,7 @@ model HistoricalEvent {
   location HistoricalEntity?       @relation("EventPrimaryLocation", fields: [locationId], references: [id], onDelete: SetNull)
   parent   HistoricalEvent?        @relation("HistoricalEventHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children HistoricalEvent[]       @relation("HistoricalEventHierarchy")
-  entities HistoricalEventEntity[]
   media    HistoricalEventMedia[]
-
-  // Quan hệ mạng lưới tri thức & nhân quả (Event Causal Knowledge Graph)
-  outgoingRelations HistoricalEventRelation[] @relation("SourceEventRelation")
-  incomingRelations HistoricalEventRelation[] @relation("TargetEventRelation")
 
   // Knowledge Graph Statements (Subject & Object)
   subjectStatements HistoricalStatement[]   @relation("StatementSubjectEvent")
@@ -62,44 +57,6 @@ model HistoricalEvent {
   @@map("historical_events")
 }
 
-// Bảng nối nhiều-nhiều: Sự kiện Lịch sử ↔ Thực thể Lịch sử (Nhân vật, Địa điểm, Lực lượng, Hiện vật)
-model HistoricalEventEntity {
-  eventId  String @map("event_id")
-  entityId String @map("entity_id")
-
-  // 1. Mã chuẩn hóa dùng cho Code / Filter / Vẽ cạnh Đồ thị (Chọn từ Dropdown)
-  role   String  @default("PARTICIPANT") @db.VarChar(50)
-  /// Vai trò theo danh mục dùng chung (nhóm EVENT_ROLE) — trigger tự gắn theo mã role.
-  roleId String? @map("role_id")
-
-  // 2. Nhãn hiển thị tiếng Việt cụ thể trong sự kiện này (Không bắt buộc - Gõ tự do trên CMS)
-  // VD: "Tổng chỉ huy chiến dịch", "Nơi ký kết hiệp định", "Phe thắng trận"
-  roleLabel String? @map("role_label") @db.VarChar(150)
-
-  // 3. Cờ đánh dấu Thực thể/Địa điểm tiêu biểu nhất của sự kiện (Hiện lên Card / Ghim bản đồ chính)
-  isPrimary Boolean @default(false) @map("is_primary")
-
-  // 4. Thứ tự sắp xếp hiển thị trên UI (Ai/Địa điểm nào hiện trước)
-  displayOrder Int @default(0) @map("display_order")
-
-  // 5. Ghi chú chi tiết thêm về sự tham gia của thực thể trong sự kiện (nếu có)
-  notes String? @db.Text
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  event    HistoricalEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  entity   HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  roleTerm TaxonomyTerm?    @relation("EventEntityRoleTerm", fields: [roleId], references: [id], onDelete: SetNull)
-
-  @@id([eventId, entityId])
-  @@index([eventId, isPrimary])
-  @@index([entityId])
-  @@index([role])
-  @@index([roleId])
-  @@map("historical_event_entities")
-}
-
 // Bảng lưu trữ đa phương tiện (ảnh, video, tài liệu) cho Sự kiện Lịch sử
 model HistoricalEventMedia {
   id           String    @id @default(uuid())
@@ -116,34 +73,6 @@ model HistoricalEventMedia {
   @@index([eventId])
   @@index([displayOrder])
   @@map("historical_event_media")
-}
-
-// Bảng quan hệ mạng lưới đồ thị tri thức & nhân quả giữa các sự kiện lịch sử (Event Knowledge Graph)
-model HistoricalEventRelation {
-  id              String             @id @default(uuid())
-  sourceEventId   String             @map("source_event_id")
-  targetEventId   String             @map("target_event_id")
-  /// Mã loại quan hệ (nhóm EVENT_RELATION trong danh mục dùng chung) — thêm loại mới từ CMS.
-  relationType    String             @default("CAUSES") @map("relation_type") @db.VarChar(50)
-  /// Id tương ứng, trigger gắn theo mã relation_type.
-  relationTypeId  String?            @map("relation_type_id")
-  description     String?            @db.Text
-  status          VerificationStatus @default(VERIFIED)
-  sourceReference String?            @map("source_reference") @db.Text
-  createdAt       DateTime           @default(now()) @map("created_at")
-
-  // Relations
-  sourceEvent      HistoricalEvent @relation("SourceEventRelation", fields: [sourceEventId], references: [id], onDelete: Cascade)
-  targetEvent      HistoricalEvent @relation("TargetEventRelation", fields: [targetEventId], references: [id], onDelete: Cascade)
-  relationTypeTerm TaxonomyTerm?   @relation("EventRelationTypeTerm", fields: [relationTypeId], references: [id], onDelete: SetNull)
-
-  @@unique([sourceEventId, targetEventId, relationType])
-  @@index([relationTypeId])
-  @@index([sourceEventId])
-  @@index([targetEventId])
-  @@index([relationType])
-  @@index([status])
-  @@map("historical_event_relations")
 }
 
 // ================================

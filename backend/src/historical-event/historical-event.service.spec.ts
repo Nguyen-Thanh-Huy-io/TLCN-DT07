@@ -290,8 +290,8 @@ describe('HistoricalEventService (loại sự kiện theo danh mục dùng chung
         'event-uuid-1',
         expect.objectContaining({
           entities: [
-            { entityId: 'ngo-quyen', role: 'COMMANDER', roleLabel: 'Chủ tướng', isPrimary: true, displayOrder: 0, notes: 'ghi chú' },
-            { entityId: 'entity-moi', role: 'PARTICIPANT', roleLabel: null, isPrimary: false, displayOrder: 1, notes: null },
+            { entityId: 'ngo-quyen', role: 'COMMANDER', roleLabel: 'Chủ tướng', isPrimary: true, displayOrder: 0, notes: 'ghi chú', roleTermId: null },
+            { entityId: 'entity-moi', role: 'PARTICIPANT', roleLabel: null, isPrimary: false, displayOrder: 1, notes: null, roleTermId: null },
           ],
         }),
       );

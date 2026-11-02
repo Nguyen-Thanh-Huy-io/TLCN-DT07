@@ -22,6 +22,17 @@ const adapter = new PrismaPg({
 });
 const prisma = new PrismaClient({ adapter });
 
+/**
+ * Tra roleTermId theo mã trong danh mục EVENT_ROLE (cùng nhóm CMS dùng khi tạo quan hệ
+ * Event-Entity) — dùng cho HistoricalEventParticipant thay cho cột role chữ tự do cũ.
+ */
+async function resolveEventRoleTermId(code: string): Promise<string | null> {
+  const term = await prisma.taxonomyTerm.findFirst({
+    where: { groupCode: 'EVENT_ROLE', code: code.toUpperCase() },
+  });
+  return term?.id ?? null;
+}
+
 async function main() {
   console.log('================================================================');
   console.log('   BẮT ĐẦU QUY TRÌNH LÀM SẠCH VÀ SEEDING DỮ LIỆU CHUẨN LỊCH SỬ   ');
@@ -1305,11 +1316,11 @@ async function main() {
   const evtHoChiMinhId = findEventId('Chiến dịch Hồ Chí Minh');
 
   if (evtTruongSonId && createdEntitiesBySlug['doan-559-bo-doi-truong-son']) {
-    await prisma.historicalEventEntity.create({
+    await prisma.historicalEventParticipant.create({
       data: {
         eventId: evtTruongSonId,
         entityId: createdEntitiesBySlug['doan-559-bo-doi-truong-son'],
-        role: 'Lực lượng mở đường & vận tải chiến lược',
+        roleLabelOverride: 'Lực lượng mở đường & vận tải chiến lược',
       },
     });
   }
@@ -1324,12 +1335,12 @@ async function main() {
       });
     }
     if (createdEntitiesBySlug['nu-tuong-nguyen-thi-dinh']) {
-      await prisma.historicalEventEntity.create({
+      await prisma.historicalEventParticipant.create({
         data: {
           eventId: evtDongKhoiId,
           entityId: createdEntitiesBySlug['nu-tuong-nguyen-thi-dinh'],
-          role: 'LEADER',
-          roleLabel: 'Lãnh đạo khởi nghĩa',
+          roleTermId: await resolveEventRoleTermId('LEADER'),
+          roleLabelOverride: 'Lãnh đạo khởi nghĩa',
         },
       });
     }
@@ -1350,12 +1361,12 @@ async function main() {
   }
 
   if (evtParisId && createdEntitiesBySlug['nha-ngoai-giao-nguyen-thi-binh']) {
-    await prisma.historicalEventEntity.create({
+    await prisma.historicalEventParticipant.create({
       data: {
         eventId: evtParisId,
         entityId: createdEntitiesBySlug['nha-ngoai-giao-nguyen-thi-binh'],
-        role: 'NEGOTIATOR',
-        roleLabel: 'Trưởng phái đoàn đàm phán & Ký kết',
+        roleTermId: await resolveEventRoleTermId('SIGNATORY'),
+        roleLabelOverride: 'Trưởng phái đoàn đàm phán & Ký kết',
       },
     });
   }
@@ -1375,7 +1386,7 @@ async function main() {
       'xe-tang-t-54b-so-hieu-843-va-390',
     ]) {
       if (createdEntitiesBySlug[slugKey]) {
-        await prisma.historicalEventEntity.create({
+        await prisma.historicalEventParticipant.create({
           data: {
             eventId: evtHoChiMinhId,
             entityId: createdEntitiesBySlug[slugKey],

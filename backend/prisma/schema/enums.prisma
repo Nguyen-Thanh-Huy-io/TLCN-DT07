@@ -187,18 +187,6 @@ enum EventCategory {
   OTHER // Khác
 }
 
-// Loại quan hệ nhân quả và mạng lưới giữa các sự kiện lịch sử (Event Knowledge Graph)
-enum EventRelationType {
-  CAUSES // Nguyên nhân trực tiếp / Gây ra
-  PRECEDES // Tiền đề / Diễn ra trước
-  FOLLOWS // Tiếp nối / Hệ quả
-  INFLUENCES // Tác động / Ảnh hưởng
-  PARALLEL_TO // Diễn ra đồng thời / Song song
-  OPPOSES // Đối kháng / Phản ứng lại
-  DERIVED_FROM // Bắt nguồn từ
-  OTHER // Mối liên hệ khác
-}
-
 // Trạng thái xác minh học thuật của mối liên hệ sự kiện
 enum VerificationStatus {
   VERIFIED // Đã xác minh (Đồng thuận chính sử)

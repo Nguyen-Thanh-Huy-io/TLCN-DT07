@@ -27,6 +27,7 @@ export interface CreateHistoricalEventDomainModel {
   entities?: Array<{
     entityId: string;
     role?: string;
+    roleTermId?: string | null;
     roleLabel?: string | null;
     isPrimary?: boolean;
     displayOrder?: number;
@@ -67,6 +68,7 @@ export interface UpdateHistoricalEventDomainModel {
   entities?: Array<{
     entityId: string;
     role?: string;
+    roleTermId?: string | null;
     roleLabel?: string | null;
     isPrimary?: boolean;
     displayOrder?: number;

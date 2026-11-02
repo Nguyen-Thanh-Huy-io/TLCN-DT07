@@ -7,7 +7,6 @@ import {
   ContentStatus,
   HistoricalEntity,
   HistoricalEntityMedia,
-  HistoricalEntityRelation,
   HistoricalEntityType,
   Prisma,
 } from '@prisma/client';
@@ -42,6 +41,21 @@ import {
   QueryPersonTimelineDto,
   PersonTimelineResponseDto,
 } from './timeline/timeline.dto';
+
+/**
+ * Quan hệ Entity-Entity chiếu từ HistoricalStatement — thay cho model
+ * `HistoricalEntityRelation` cũ (đã bỏ, xem migration dọn bảng cũ).
+ */
+export interface EntityRelationView {
+  id: string;
+  sourceEntityId: string;
+  targetEntityId: string;
+  relationType: string;
+  startYear: number | null;
+  endYear: number | null;
+  note: string | null;
+  createdAt: Date;
+}
 
 export interface IPaginatedEntities {
   items: HistoricalEntity[];
@@ -443,7 +457,7 @@ export class HistoricalEntityService {
   async addRelation(
     sourceEntityId: string,
     dto: CreateEntityRelationDto,
-  ): Promise<HistoricalEntityRelation> {
+  ): Promise<EntityRelationView> {
     if (sourceEntityId === dto.targetEntityId) {
       throw new BadRequestException(
         HISTORICAL_ENTITY_ERRORS.RELATION_SELF_LOOP,
@@ -456,55 +470,43 @@ export class HistoricalEntityService {
       this.findOne(dto.targetEntityId),
     ]);
 
-    const relation = await this.prisma.historicalEntityRelation.create({
-      data: {
-        sourceEntityId,
-        targetEntityId: dto.targetEntityId,
-        relationType: await this.taxonomy.requireTermCode(
-          TAXONOMY_GROUPS.ENTITY_RELATION,
-          dto.relationType,
-        ),
-        startYear: dto.startYear,
-        endYear: dto.endYear,
-        note: dto.note?.trim(),
-      },
+    const relationTypeCode = await this.taxonomy.requireTermCode(
+      TAXONOMY_GROUPS.ENTITY_RELATION,
+      dto.relationType,
+    );
+    const term = await this.prisma.taxonomyTerm.findFirst({
+      where: { groupCode: TAXONOMY_GROUPS.ENTITY_RELATION, code: relationTypeCode },
     });
-
-    // Dual-write: Đồng bộ sang bảng HistoricalStatement (Knowledge Graph mới)
-    try {
-      const term = await this.prisma.taxonomyTerm.findFirst({
-        where: { groupCode: 'ENTITY_RELATION', code: relation.relationType },
-      });
-      if (term) {
-        await this.prisma.historicalStatement.upsert({
-          where: { id: relation.id },
-          create: {
-            id: relation.id,
-            subjectEntityId: sourceEntityId,
-            predicateId: term.id,
-            objectEntityId: dto.targetEntityId,
-            validFromYear: dto.startYear || null,
-            validToYear: dto.endYear || null,
-            qualifiers: dto.note ? { note: dto.note } : undefined,
-            verificationStatus: 'VERIFIED',
-          },
-          update: {
-            validFromYear: dto.startYear || null,
-            validToYear: dto.endYear || null,
-            qualifiers: dto.note ? { note: dto.note } : undefined,
-          },
-        });
-      }
-    } catch (e) {
-      this.logger?.warn(
-        `Dual-write HistoricalStatement thất bại: ${(e as Error).message}`,
-        HistoricalEntityService.name,
+    if (!term) {
+      throw new NotFoundException(
+        `Không tìm thấy TaxonomyTerm ENTITY_RELATION.${relationTypeCode}.`,
       );
     }
 
+    const statement = await this.prisma.historicalStatement.create({
+      data: {
+        subjectEntityId: sourceEntityId,
+        predicateId: term.id,
+        objectEntityId: dto.targetEntityId,
+        validFromYear: dto.startYear || null,
+        validToYear: dto.endYear || null,
+        qualifiers: dto.note ? { note: dto.note } : undefined,
+        verificationStatus: 'VERIFIED',
+      },
+    });
+
     await this.invalidateCache(sourceEntityId);
     await this.invalidateCache(dto.targetEntityId);
-    return relation;
+    return {
+      id: statement.id,
+      sourceEntityId,
+      targetEntityId: dto.targetEntityId,
+      relationType: relationTypeCode,
+      startYear: dto.startYear ?? null,
+      endYear: dto.endYear ?? null,
+      note: dto.note ?? null,
+      createdAt: statement.createdAt,
+    };
   }
 
   /**
@@ -513,26 +515,19 @@ export class HistoricalEntityService {
   async removeRelation(
     relationId: string,
   ): Promise<{ success: boolean; message: string }> {
-    const relation = await this.prisma.historicalEntityRelation.findUnique({
+    const statement = await this.prisma.historicalStatement.findUnique({
       where: { id: relationId },
     });
-    if (!relation) {
+    if (!statement) {
       throw new NotFoundException(
         HISTORICAL_ENTITY_ERRORS.RELATION_NOT_FOUND(relationId),
       );
     }
 
-    await this.prisma.historicalEntityRelation.delete({
-      where: { id: relationId },
-    });
+    await this.prisma.historicalStatement.delete({ where: { id: relationId } });
 
-    // Dual-write: Xoá statement tương ứng nếu có
-    await this.prisma.historicalStatement
-      .delete({ where: { id: relationId } })
-      .catch(() => undefined);
-
-    await this.invalidateCache(relation.sourceEntityId);
-    await this.invalidateCache(relation.targetEntityId);
+    if (statement.subjectEntityId) await this.invalidateCache(statement.subjectEntityId);
+    if (statement.objectEntityId) await this.invalidateCache(statement.objectEntityId);
     return {
       success: true,
       message: HISTORICAL_ENTITY_MESSAGES.RELATION_DELETED,
@@ -581,39 +576,50 @@ export class HistoricalEntityService {
       deathYear: rootRaw.deathYear ?? null,
     });
 
+    // Đồ thị quan hệ lấy từ HistoricalStatement — gồm cả quan hệ nhập qua CMS cũ
+    // (nhóm taxonomy ENTITY_RELATION) và quan hệ tri thức mới (nhóm PREDICATE), miễn là
+    // Subject/Object đều là Entity (loại trừ statement có Object là Event hoặc literal).
     const [outgoing, incoming] = await Promise.all([
-      this.prisma.historicalEntityRelation.findMany({
-        where: { sourceEntityId: id },
-        include: { targetEntity: { include: { person: true } } },
+      this.prisma.historicalStatement.findMany({
+        where: { subjectEntityId: id, objectEntityId: { not: null } },
+        include: {
+          predicate: true,
+          objectEntity: { include: { person: true } },
+        },
       }),
-      this.prisma.historicalEntityRelation.findMany({
-        where: { targetEntityId: id },
-        include: { sourceEntity: { include: { person: true } } },
+      this.prisma.historicalStatement.findMany({
+        where: { objectEntityId: id, subjectEntityId: { not: null } },
+        include: {
+          predicate: true,
+          subjectEntity: { include: { person: true } },
+        },
       }),
     ]);
 
     for (const rel of outgoing) {
-      if (!nodeMap.has(rel.targetEntityId)) {
-        nodeMap.set(rel.targetEntityId, {
-          id: rel.targetEntity.id,
-          name: rel.targetEntity.name,
-          type: rel.targetEntity.type,
-          imageUrl: rel.targetEntity.imageUrl,
-          birthYear: rel.targetEntity.person?.birthYear ?? null,
-          deathYear: rel.targetEntity.person?.deathYear ?? null,
+      const target = rel.objectEntity!;
+      if (!nodeMap.has(target.id)) {
+        nodeMap.set(target.id, {
+          id: target.id,
+          name: target.name,
+          type: target.type,
+          imageUrl: target.imageUrl,
+          birthYear: (target as any).person?.birthYear ?? null,
+          deathYear: (target as any).person?.deathYear ?? null,
         });
       }
     }
 
     for (const rel of incoming) {
-      if (!nodeMap.has(rel.sourceEntityId)) {
-        nodeMap.set(rel.sourceEntityId, {
-          id: rel.sourceEntity.id,
-          name: rel.sourceEntity.name,
-          type: rel.sourceEntity.type,
-          imageUrl: rel.sourceEntity.imageUrl,
-          birthYear: rel.sourceEntity.person?.birthYear ?? null,
-          deathYear: rel.sourceEntity.person?.deathYear ?? null,
+      const source = rel.subjectEntity!;
+      if (!nodeMap.has(source.id)) {
+        nodeMap.set(source.id, {
+          id: source.id,
+          name: source.name,
+          type: source.type,
+          imageUrl: source.imageUrl,
+          birthYear: (source as any).person?.birthYear ?? null,
+          deathYear: (source as any).person?.deathYear ?? null,
         });
       }
     }
@@ -621,21 +627,21 @@ export class HistoricalEntityService {
     const edges = [
       ...outgoing.map((rel) => ({
         id: rel.id,
-        source: rel.sourceEntityId,
-        target: rel.targetEntityId,
-        relationType: rel.relationType,
-        startYear: rel.startYear,
-        endYear: rel.endYear,
-        note: rel.note,
+        source: rel.subjectEntityId as string,
+        target: rel.objectEntityId as string,
+        relationType: rel.predicate?.code ?? null,
+        startYear: rel.validFromYear,
+        endYear: rel.validToYear,
+        note: (rel.qualifiers as any)?.note ?? null,
       })),
       ...incoming.map((rel) => ({
         id: rel.id,
-        source: rel.sourceEntityId,
-        target: rel.targetEntityId,
-        relationType: rel.relationType,
-        startYear: rel.startYear,
-        endYear: rel.endYear,
-        note: rel.note,
+        source: rel.subjectEntityId as string,
+        target: rel.objectEntityId as string,
+        relationType: rel.predicate?.code ?? null,
+        startYear: rel.validFromYear,
+        endYear: rel.validToYear,
+        note: (rel.qualifiers as any)?.note ?? null,
       })),
     ];
 

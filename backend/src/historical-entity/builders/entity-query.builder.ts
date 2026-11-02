@@ -188,41 +188,7 @@ export class EntityQueryBuilder {
       historicalSite: {
         include: { siteTypeTerm: true, preservation: true, rank: true },
       },
-      outgoingRelations: {
-        include: {
-          targetEntity: {
-            include: {
-              person: true,
-            },
-          },
-        },
-      },
-      incomingRelations: {
-        include: {
-          sourceEntity: {
-            include: {
-              person: true,
-            },
-          },
-        },
-      },
       media: {
-        orderBy: { displayOrder: 'asc' },
-      },
-      eventEntities: {
-        include: {
-          event: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              startYear: true,
-              endYear: true,
-              category: true,
-              thumbnailUrl: true,
-            },
-          },
-        },
         orderBy: { displayOrder: 'asc' },
       },
       eventParticipations: {

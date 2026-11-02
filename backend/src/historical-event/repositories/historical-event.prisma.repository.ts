@@ -248,6 +248,20 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
             },
           },
         },
+        participants: {
+          include: {
+            entity: {
+              select: { id: true, name: true, slug: true, type: true, imageUrl: true },
+            },
+            roleTerm: true,
+            references: {
+              include: {
+                reference: true,
+              },
+            },
+          },
+          orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
+        },
       },
     });
 

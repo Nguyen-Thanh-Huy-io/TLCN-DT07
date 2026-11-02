@@ -33,6 +33,10 @@ export const STATEMENT_ERROR_MESSAGES = {
   OBJECT_EVENT_NOT_FOUND: 'Sự kiện đối tượng (objectEventId) không tồn tại.',
   PREDICATE_NOT_FOUND: 'Mối quan hệ (predicateId) không tồn tại trong Taxonomy.',
   PREDICATE_NOT_ACTIVE: 'Mối quan hệ (predicateId) đang bị vô hiệu hóa.',
+  PREDICATE_SUBJECT_TYPE_INVALID:
+    'Loại Chủ thể không hợp lệ với Predicate này (xem TaxonomyPredicateRule.allowedSubjectTypes).',
+  PREDICATE_OBJECT_TYPE_INVALID:
+    'Loại Đối tượng không hợp lệ với Predicate này (xem TaxonomyPredicateRule.allowedObjectTypes).',
   INVALID_YEAR_RANGE: 'Năm kết thúc (validToYear) phải lớn hơn hoặc bằng năm bắt đầu (validFromYear).',
   NO_YEAR_ZERO: 'Lịch sử không có năm 0 (dùng số âm cho TCN: -1 = 1 TCN, 1 = 1 SCN).',
   STATEMENT_NOT_FOUND: 'Không tìm thấy phát biểu lịch sử.',

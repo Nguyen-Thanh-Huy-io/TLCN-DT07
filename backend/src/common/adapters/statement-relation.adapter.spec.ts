@@ -161,5 +161,39 @@ describe('StatementRelationAdapter', () => {
 
       expect(result.statements.length).toBe(2);
     });
+
+    it('nên ưu tiên dữ liệu từ HistoricalEventParticipant cho Event khi có participants', () => {
+      const rawEvent = {
+        id: 'event-bach-dang',
+        title: 'Trận Bạch Đằng (1288)',
+        participants: [
+          {
+            id: 'part-1',
+            eventId: 'event-bach-dang',
+            entityId: 'ent-tran-hung-dao',
+            roleLabelOverride: 'Tiết chế Quốc công',
+            isPrimary: true,
+            displayOrder: 1,
+            startYear: 1288,
+            endYear: 1288,
+            notes: 'Chỉ huy trận thủy chiến',
+            roleTerm: { code: 'COMMANDER', label: 'Chỉ huy' },
+            entity: { id: 'ent-tran-hung-dao', name: 'Trần Hưng Đạo', slug: 'tran-hung-dao', type: 'PERSON' },
+            references: [{ id: 'ref-1', pageNumber: 'tr. 62' }],
+          },
+        ],
+        subjectStatements: [],
+        objectStatements: [],
+      };
+
+      const result = StatementRelationAdapter.adaptEvent(rawEvent);
+
+      expect(result.entities.length).toBe(1);
+      expect(result.entities[0].entityId).toBe('ent-tran-hung-dao');
+      expect(result.entities[0].role).toBe('COMMANDER');
+      expect(result.entities[0].roleLabel).toBe('Tiết chế Quốc công');
+      expect(result.entities[0].startYear).toBe(1288);
+      expect(result.participants.length).toBe(1);
+    });
   });
 });

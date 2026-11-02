@@ -169,4 +169,58 @@ describe('PersonTimelineBuilder', () => {
     expect(result.items[1].type).toBe(TIMELINE_ITEM_TYPE.DISSOLUTION);
     expect(result.items[1].year).toBe(1225);
   });
+
+  it('nên tích hợp HistoricalEventParticipant với đầy đủ vai trò, sự kiện và tài liệu dẫn chứng', () => {
+    const entity = {
+      id: 'entity-tran-hung-dao',
+      name: 'Trần Hưng Đạo',
+      type: HistoricalEntityType.PERSON,
+    };
+    builder.setEntity(entity);
+
+    const participant = {
+      id: 'part-1',
+      eventId: 'event-bach-dang',
+      entityId: 'entity-tran-hung-dao',
+      roleLabelOverride: 'Tiết chế Quốc công',
+      startYear: 1288,
+      endYear: 1288,
+      isPrimary: true,
+      notes: 'Trực tiếp chỉ huy đại thắng Bạch Đằng tiêu diệt thủy quân Nguyên Mông',
+      roleTerm: {
+        code: 'COMMANDER',
+        label: 'Chỉ huy',
+      },
+      event: {
+        id: 'event-bach-dang',
+        title: 'Trận Bạch Đằng (1288)',
+        slug: 'tran-bach-dang-1288',
+        startYear: 1288,
+        thumbnailUrl: 'https://example.com/bach-dang.jpg',
+      },
+      references: [
+        {
+          reference: {
+            id: 'ref-dtsvlk',
+            title: 'Đại Việt Sử Ký Toàn Thư',
+            author: 'Ngô Sĩ Liên',
+          },
+          pageNumber: 'Tập 2, tr. 62',
+        },
+      ],
+    };
+
+    builder.addEventParticipant(participant);
+    const result = builder.build();
+
+    expect(result.items.length).toBe(1);
+    const item = result.items[0];
+    expect(item.type).toBe(TIMELINE_ITEM_TYPE.EVENT_PARTICIPATION);
+    expect(item.title).toBe('Tiết chế Quốc công: Trận Bạch Đằng (1288)');
+    expect(item.year).toBe(1288);
+    expect(item.isPrimary).toBe(true);
+    expect(item.event?.title).toBe('Trận Bạch Đằng (1288)');
+    expect(item.references?.length).toBe(1);
+    expect(item.references?.[0].title).toBe('Đại Việt Sử Ký Toàn Thư');
+  });
 });

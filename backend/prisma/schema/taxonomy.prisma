@@ -57,15 +57,44 @@ model TaxonomyTerm {
   sitesByPreservation HistoricalSite[]           @relation("SitePreservationTerm")
   sitesByRank         HistoricalSite[]           @relation("SiteRankTerm")
   periodsByRegion     Period[]                   @relation("PeriodRegionTerm")
+  periodsByType       Period[]                   @relation("PeriodTypeTerm")
   eventEntityRoles    HistoricalEventEntity[]    @relation("EventEntityRoleTerm")
   entityRelations     HistoricalEntityRelation[] @relation("EntityRelationTypeTerm")
   eventRelations      HistoricalEventRelation[]  @relation("EventRelationTypeTerm")
 
   // Knowledge Graph Statements
   statements          HistoricalStatement[]      @relation("StatementPredicate")
+  predicateRule       TaxonomyPredicateRule?
+
+  // Sự kiện và Thực thể tham gia
+  eventParticipants   HistoricalEventParticipant[] @relation("EventParticipantRoleTerm")
+
+  // Nguồn tham khảo phân loại theo Format và Nature
+  referencesByFormat  HistoricalReference[]        @relation("ReferenceFormatTerm")
+  referencesByNature  HistoricalReference[]        @relation("ReferenceNatureTerm")
 
   @@unique([groupCode, code])
   @@index([groupCode, isActive])
   @@index([parentId])
   @@map("taxonomy_terms")
+}
+
+// ================================
+// Quy tắc vị từ quan hệ tri thức (Predicate Rule Engine)
+// ================================
+model TaxonomyPredicateRule {
+  id                   String   @id @default(uuid())
+  predicateTermId      String   @unique @map("predicate_term_id")
+  allowedSubjectTypes  String[] @default([]) @map("allowed_subject_types")
+  allowedObjectTypes   String[] @default([]) @map("allowed_object_types")
+  isSymmetric          Boolean  @default(false) @map("is_symmetric")
+  isTransitive         Boolean  @default(false) @map("is_transitive")
+  allowedQualifiers    String[] @default([]) @map("allowed_qualifiers")
+  isRequiredQualifiers String[] @default([]) @map("is_required_qualifiers")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  predicateTerm TaxonomyTerm @relation(fields: [predicateTermId], references: [id], onDelete: Cascade)
+
+  @@map("taxonomy_predicate_rules")
 }

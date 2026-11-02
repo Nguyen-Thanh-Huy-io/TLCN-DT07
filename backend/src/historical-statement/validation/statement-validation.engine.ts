@@ -103,7 +103,10 @@ export class StatementValidationEngine {
     // 5. Kiểm tra sự tồn tại trong DB (Chủ thể, Đối tượng, Predicate)
     await this.validateDatabaseExistence(payload, subjectKind, objectKind);
 
-    // 6. Kiểm tra trùng lặp quan hệ (Duplicate check)
+    // 6. Kiểm tra Predicate có hợp lệ với loại Subject/Object theo TaxonomyPredicateRule
+    await this.validatePredicateRule(payload, subjectKind, objectKind);
+
+    // 7. Kiểm tra trùng lặp quan hệ (Duplicate check)
     await this.validateUniqueness(payload, subjectKind, objectKind, currentStatementId);
 
     return { subjectKind, objectKind };
@@ -205,6 +208,82 @@ export class StatementValidationEngine {
         );
       }
     }
+  }
+
+  /**
+   * Kiểm tra loại Subject/Object thực tế có khớp allowedSubjectTypes/allowedObjectTypes
+   * của TaxonomyPredicateRule gắn với Predicate (nếu Predicate có khai báo rule).
+   * Loại thực tế: entityType của HistoricalEntity (PERSON, ORGANIZATION...) hoặc
+   * literal 'HISTORICAL_EVENT' khi node là HistoricalEvent.
+   */
+  private async validatePredicateRule(
+    payload: StatementValidationPayload,
+    subjectKind: StatementNodeKind,
+    objectKind: StatementNodeKind,
+  ): Promise<void> {
+    const rule = await this.prisma.taxonomyPredicateRule.findUnique({
+      where: { predicateTermId: payload.predicateId },
+    });
+
+    // Predicate chưa khai báo rule (ví dụ predicate tự do mới tạo) — bỏ qua, không chặn.
+    if (!rule) return;
+
+    const subjectType = await this.resolveNodeType(
+      subjectKind,
+      payload.subjectEntityId,
+      payload.subjectEventId,
+    );
+    if (
+      rule.allowedSubjectTypes.length > 0 &&
+      subjectType &&
+      !rule.allowedSubjectTypes.includes(subjectType)
+    ) {
+      throw new BadRequestException(
+        STATEMENT_ERROR_MESSAGES.PREDICATE_SUBJECT_TYPE_INVALID,
+      );
+    }
+
+    if (objectKind === STATEMENT_NODE_KIND.LITERAL) {
+      // Literal không có "loại thực thể" để so với allowedObjectTypes.
+      return;
+    }
+
+    const objectType = await this.resolveNodeType(
+      objectKind,
+      payload.objectEntityId,
+      payload.objectEventId,
+    );
+    if (
+      rule.allowedObjectTypes.length > 0 &&
+      objectType &&
+      !rule.allowedObjectTypes.includes(objectType)
+    ) {
+      throw new BadRequestException(
+        STATEMENT_ERROR_MESSAGES.PREDICATE_OBJECT_TYPE_INVALID,
+      );
+    }
+  }
+
+  /**
+   * Trả về mã loại thực tế của 1 node: entityType (PERSON, ORGANIZATION...) nếu là Entity,
+   * hoặc 'HISTORICAL_EVENT' nếu là Event.
+   */
+  private async resolveNodeType(
+    kind: StatementNodeKind,
+    entityId?: string | null,
+    eventId?: string | null,
+  ): Promise<string | null> {
+    if (kind === STATEMENT_NODE_KIND.EVENT && eventId) {
+      return 'HISTORICAL_EVENT';
+    }
+    if (kind === STATEMENT_NODE_KIND.ENTITY && entityId) {
+      const entity = await this.prisma.historicalEntity.findUnique({
+        where: { id: entityId },
+        select: { type: true },
+      });
+      return entity?.type ?? null;
+    }
+    return null;
   }
 
   /**

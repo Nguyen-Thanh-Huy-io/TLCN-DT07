@@ -20,6 +20,10 @@ model Period {
   region        String? @db.VarChar(100)
   /// Khu vực theo danh mục dùng chung (nhóm REGION); cột region chữ giữ song song trong lúc chuyển đổi.
   regionId      String? @map("region_id")
+  /// Loại thời kỳ theo danh mục dùng chung (nhóm PERIOD_TYPE) — vd DYNASTY_PERIOD, WAR_PERIOD,
+  /// TRANSITION_PERIOD. Bổ sung theo Data Dictionary v1.0 mục 6.1 (trước đây model này thiếu
+  /// trường này, Taxonomy PERIOD_TYPE đã seed nhưng không có cột nào để gắn vào).
+  periodTypeId  String? @map("period_type_id")
   description   String? @db.Text
   coverImageUrl String? @map("cover_image_url") @db.VarChar(500)
 
@@ -28,9 +32,10 @@ model Period {
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
 
-  parent     Period?       @relation("PeriodHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children   Period[]      @relation("PeriodHierarchy")
-  regionTerm TaxonomyTerm? @relation("PeriodRegionTerm", fields: [regionId], references: [id], onDelete: SetNull)
+  parent         Period?       @relation("PeriodHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Period[]      @relation("PeriodHierarchy")
+  regionTerm     TaxonomyTerm? @relation("PeriodRegionTerm", fields: [regionId], references: [id], onDelete: SetNull)
+  periodTypeTerm TaxonomyTerm? @relation("PeriodTypeTerm", fields: [periodTypeId], references: [id], onDelete: SetNull)
 
   historicalEntities HistoricalEntity[]
   historicalEvents   HistoricalEvent[]
@@ -39,6 +44,7 @@ model Period {
   @@index([parentId])
   @@index([region])
   @@index([regionId])
+  @@index([periodTypeId])
   @@index([status])
   @@index([startYear, endYear])
   @@map("periods")

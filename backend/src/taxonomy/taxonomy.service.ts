@@ -297,6 +297,27 @@ export class TaxonomyService {
     if (!parent || parent.groupCode !== groupCode || parent.id === selfId) {
       throw new BadRequestException(TAXONOMY_MESSAGES.PARENT_OTHER_GROUP);
     }
+
+    // Chặn vòng lặp phân cấp nhiều cấp (A -> B -> C -> A), không chỉ cấp cha trực tiếp.
+    if (selfId) {
+      const visited = new Set<string>();
+      let currentId: string | null = parentId;
+      while (currentId) {
+        if (currentId === selfId) {
+          throw new BadRequestException(
+            'Không thể gán parentId: tạo vòng lặp phân cấp TaxonomyTerm.',
+          );
+        }
+        if (visited.has(currentId)) break;
+        visited.add(currentId);
+        const ancestor: { parentId: string | null } | null =
+          await this.prisma.taxonomyTerm.findUnique({
+            where: { id: currentId },
+            select: { parentId: true },
+          });
+        currentId = ancestor?.parentId ?? null;
+      }
+    }
   }
 
   private toData(dto: UpdateTaxonomyTermDto) {

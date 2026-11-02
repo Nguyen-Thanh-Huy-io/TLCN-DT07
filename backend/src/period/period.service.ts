@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
@@ -34,6 +35,41 @@ export class PeriodService implements IPeriodService {
     private readonly taxonomy: TaxonomyService,
   ) {}
 
+  /**
+   * Chặn vòng lặp phân cấp Period (A là cha của B, B lại là cha/ông của A).
+   * Duyệt từ parentId đề xuất đi lên tới gốc; nếu gặp lại selfId thì là vòng lặp.
+   */
+  private async assertNoParentCycle(
+    selfId: string | undefined,
+    parentId: string | null | undefined,
+  ): Promise<void> {
+    if (!parentId) return;
+    if (selfId && parentId === selfId) {
+      throw new BadRequestException(
+        'Period không thể tự làm cha của chính nó.',
+      );
+    }
+
+    const visited = new Set<string>();
+    let currentId: string | null = parentId;
+    while (currentId) {
+      if (selfId && currentId === selfId) {
+        throw new BadRequestException(
+          'Không thể gán parentId: tạo vòng lặp phân cấp Period.',
+        );
+      }
+      if (visited.has(currentId)) break; // vòng lặp đã tồn tại từ trước, không lặp vô hạn ở đây
+      visited.add(currentId);
+
+      const parent: { parentId: string | null } | null =
+        await this.prisma.period.findUnique({
+          where: { id: currentId },
+          select: { parentId: true },
+        });
+      currentId = parent?.parentId ?? null;
+    }
+  }
+
   /** Khu vực nhập chữ (CMS) → giá trị danh mục REGION; không khớp thì để trống, chữ gốc vẫn giữ. */
   private async resolveRegionId(region: string | null | undefined) {
     return (
@@ -65,6 +101,8 @@ export class PeriodService implements IPeriodService {
       resolvedDate.endYear,
       'endYear must be greater than or equal to startYear',
     );
+
+    await this.assertNoParentCycle(undefined, createPeriodDto.parentId);
 
     const slug = await this.slugService.generateUnique(
       createPeriodDto.name,
@@ -197,6 +235,10 @@ export class PeriodService implements IPeriodService {
    */
   async update(id: string, updatePeriodDto: UpdatePeriodDto): Promise<Period> {
     const existing = await this.findOne(id);
+
+    if (updatePeriodDto.parentId !== undefined) {
+      await this.assertNoParentCycle(id, updatePeriodDto.parentId);
+    }
 
     const hasDateUpdates =
       updatePeriodDto.dateText !== undefined ||

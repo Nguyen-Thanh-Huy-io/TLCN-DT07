@@ -122,6 +122,7 @@ export interface HistoricalEntityItem {
       thumbnailUrl?: string | null;
     };
   }>;
+  eventParticipations?: HistoricalEventParticipantItem[];
   primaryEvents?: Array<{
     id: string;
     title: string;
@@ -131,4 +132,47 @@ export interface HistoricalEntityItem {
     category?: string;
     thumbnailUrl?: string | null;
   }>;
+}
+
+export interface HistoricalEventParticipantItem {
+  id: string;
+  eventId: string;
+  entityId: string;
+  roleTermId?: string | null;
+  roleLabelOverride?: string | null;
+  isPrimary: boolean;
+  displayOrder: number;
+  startYear?: number | null;
+  endYear?: number | null;
+  notes?: string | null;
+  roleTerm?: {
+    id: string;
+    code: string;
+    label: string;
+  } | null;
+  event?: {
+    id: string;
+    title: string;
+    slug: string;
+    startYear?: number | null;
+    endYear?: number | null;
+    category?: string;
+    thumbnailUrl?: string | null;
+  } | null;
+  entity?: Partial<HistoricalEntityItem> | null;
+  references?: Array<{
+    id: string;
+    referenceId: string;
+    pageNumber?: string | null;
+    chapter?: string | null;
+    quote?: string | null;
+    note?: string | null;
+    reference?: {
+      id: string;
+      title: string;
+      author?: string | null;
+    };
+  }>;
+  createdAt?: string;
+  updatedAt?: string;
 }

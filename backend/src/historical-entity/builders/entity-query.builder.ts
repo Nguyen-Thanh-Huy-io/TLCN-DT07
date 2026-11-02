@@ -174,6 +174,7 @@ export class EntityQueryBuilder {
         },
       })),
       eventEntities: raw.eventEntities || [],
+      eventParticipations: raw.eventParticipations || [],
       primaryEvents: raw.primaryEvents || [],
     };
   }
@@ -223,6 +224,28 @@ export class EntityQueryBuilder {
           },
         },
         orderBy: { displayOrder: 'asc' },
+      },
+      eventParticipations: {
+        include: {
+          roleTerm: true,
+          event: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              startYear: true,
+              endYear: true,
+              category: true,
+              thumbnailUrl: true,
+            },
+          },
+          references: {
+            include: {
+              reference: true,
+            },
+          },
+        },
+        orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
       },
       primaryEvents: {
         select: {

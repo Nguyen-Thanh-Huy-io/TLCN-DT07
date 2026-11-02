@@ -84,6 +84,9 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
     taxonomyTerm: {
       findUnique: jest.fn(),
     },
+    taxonomyPredicateRule: {
+      findUnique: jest.fn(),
+    },
     $transaction: jest.fn(async (callback) => callback(mockPrisma)),
   };
 

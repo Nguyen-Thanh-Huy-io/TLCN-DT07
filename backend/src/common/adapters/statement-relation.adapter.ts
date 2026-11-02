@@ -9,9 +9,10 @@ export class StatementRelationAdapter {
     const subjectStmts: any[] = rawEntity.subjectStatements || [];
     const objectStmts: any[] = rawEntity.objectStatements || [];
     const allStatements = [...subjectStmts, ...objectStmts];
+    const hasParticipations = Boolean(rawEntity.eventParticipations && rawEntity.eventParticipations.length > 0);
 
-    // Nếu không có phát biểu nào (dữ liệu mock test cũ), giữ nguyên quan hệ gốc
-    if (allStatements.length === 0) {
+    // Nếu không có phát biểu nào và không có dữ liệu tham gia mới, giữ nguyên quan hệ gốc
+    if (allStatements.length === 0 && !hasParticipations) {
       return {
         ...rawEntity,
         statements: [],
@@ -95,7 +96,30 @@ export class StatementRelationAdapter {
         createdAt: stmt.createdAt,
       }));
 
-    const eventEntitiesFromStatements = [...eventsFromSubject, ...eventsFromObject];
+    const eventsFromStatements = [...eventsFromSubject, ...eventsFromObject];
+
+    // 4. Quan hệ từ bảng chuẩn hóa mới: HistoricalEventParticipant
+    const eventsFromParticipations = (rawEntity.eventParticipations || []).map((p: any) => ({
+      eventId: p.eventId,
+      entityId: rawEntity.id,
+      role: p.roleTerm?.code || 'PARTICIPANT',
+      roleLabel: p.roleLabelOverride || p.roleTerm?.label || null,
+      isPrimary: Boolean(p.isPrimary),
+      displayOrder: p.displayOrder ?? 0,
+      notes: p.notes || null,
+      startYear: p.startYear,
+      endYear: p.endYear,
+      event: p.event,
+      references: p.references || [],
+      createdAt: p.createdAt,
+    }));
+
+    const resolvedEventEntities =
+      eventsFromParticipations.length > 0
+        ? eventsFromParticipations
+        : eventsFromStatements.length > 0
+          ? eventsFromStatements
+          : rawEntity.eventEntities || [];
 
     return {
       ...rawEntity,
@@ -107,10 +131,8 @@ export class StatementRelationAdapter {
         incomingFromStatements.length > 0
           ? incomingFromStatements
           : rawEntity.incomingRelations || [],
-      eventEntities:
-        eventEntitiesFromStatements.length > 0
-          ? eventEntitiesFromStatements
-          : rawEntity.eventEntities || [],
+      eventEntities: resolvedEventEntities,
+      eventParticipations: rawEntity.eventParticipations || [],
       statements: allStatements,
     };
   }
@@ -125,8 +147,9 @@ export class StatementRelationAdapter {
     const subjectStmts: any[] = rawEvent.subjectStatements || [];
     const objectStmts: any[] = rawEvent.objectStatements || [];
     const allStatements = [...subjectStmts, ...objectStmts];
+    const hasParticipants = Boolean(rawEvent.participants && rawEvent.participants.length > 0);
 
-    if (allStatements.length === 0) {
+    if (allStatements.length === 0 && !hasParticipants) {
       return {
         ...rawEvent,
         statements: [],
@@ -166,7 +189,30 @@ export class StatementRelationAdapter {
 
     const entitiesFromStatements = [...entitiesFromObject, ...entitiesFromSubject];
 
-    // 2. Quan hệ Sự kiện - Sự kiện (Chiều xuôi: Event -> Event)
+    // 2. Thực thể từ bảng chuẩn hóa mới: HistoricalEventParticipant
+    const entitiesFromParticipants = (rawEvent.participants || []).map((p: any) => ({
+      eventId: rawEvent.id,
+      entityId: p.entityId,
+      role: p.roleTerm?.code || 'PARTICIPANT',
+      roleLabel: p.roleLabelOverride || p.roleTerm?.label || null,
+      isPrimary: Boolean(p.isPrimary),
+      displayOrder: p.displayOrder ?? 0,
+      notes: p.notes || null,
+      startYear: p.startYear,
+      endYear: p.endYear,
+      entity: p.entity,
+      references: p.references || [],
+      createdAt: p.createdAt,
+    }));
+
+    const resolvedEntities =
+      entitiesFromParticipants.length > 0
+        ? entitiesFromParticipants
+        : entitiesFromStatements.length > 0
+          ? entitiesFromStatements
+          : rawEvent.entities || [];
+
+    // 3. Quan hệ Sự kiện - Sự kiện (Chiều xuôi: Event -> Event)
     const outgoingFromStatements = subjectStmts
       .filter((stmt) => stmt.objectEventId && stmt.objectEvent)
       .map((stmt) => ({
@@ -202,10 +248,8 @@ export class StatementRelationAdapter {
 
     return {
       ...rawEvent,
-      entities:
-        entitiesFromStatements.length > 0
-          ? entitiesFromStatements
-          : rawEvent.entities || [],
+      entities: resolvedEntities,
+      participants: rawEvent.participants || [],
       outgoingRelations:
         outgoingFromStatements.length > 0
           ? outgoingFromStatements

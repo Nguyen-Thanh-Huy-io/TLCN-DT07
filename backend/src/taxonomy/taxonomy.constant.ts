@@ -1,6 +1,15 @@
 /** Mã các nhóm danh mục đang dùng (dữ liệu nằm trong bảng taxonomy_groups / taxonomy_terms). */
 export const TAXONOMY_GROUPS = {
+  // 7 nhóm Taxonomy chuẩn hóa theo Taxonomy Specification v1.0
+  EVENT_TYPE: 'EVENT_TYPE',
+  PERIOD_TYPE: 'PERIOD_TYPE',
   SITE_TYPE: 'SITE_TYPE',
+  PREDICATE: 'PREDICATE',
+  ROLE_TYPE: 'ROLE_TYPE',
+  SOURCE_FORMAT: 'SOURCE_FORMAT',
+  SOURCE_NATURE: 'SOURCE_NATURE',
+
+  // Nhóm cũ phục vụ backward-compatibility
   PRESERVATION: 'PRESERVATION',
   HERITAGE_RANK: 'HERITAGE_RANK',
   REGION: 'REGION',
@@ -13,6 +22,86 @@ export const TAXONOMY_GROUPS = {
 
 export type TaxonomyGroupCode =
   (typeof TAXONOMY_GROUPS)[keyof typeof TAXONOMY_GROUPS];
+
+/**
+ * 15 Vị từ chuẩn hóa v1.0 trong Knowledge Graph (Subject -> Predicate -> Object)
+ */
+export const PREDICATE_CODES = {
+  FOUNDED: 'FOUNDED',
+  SUCCEEDED_BY: 'SUCCEEDED_BY',
+  CHILD_OF: 'CHILD_OF',
+  PARENT_OF: 'PARENT_OF',
+  SPOUSE_OF: 'SPOUSE_OF',
+  ALLY_OF: 'ALLY_OF',
+  OPPONENT_OF: 'OPPONENT_OF',
+  PRECEDED_BY: 'PRECEDED_BY',
+  CAUSED_BY: 'CAUSED_BY',
+  SUB_EVENT_OF: 'SUB_EVENT_OF',
+  LOCATED_AT: 'LOCATED_AT',
+  MEMBER_OF: 'MEMBER_OF',
+  CAPITAL_OF: 'CAPITAL_OF',
+  AUTHORED: 'AUTHORED',
+  CONTEMPORARY_OF: 'CONTEMPORARY_OF',
+} as const;
+
+export type PredicateCode =
+  (typeof PREDICATE_CODES)[keyof typeof PREDICATE_CODES];
+
+/**
+ * 13 Vai trò tham gia sự kiện chuẩn hóa v1.0 (HistoricalEventParticipant.roleTerm)
+ */
+export const ROLE_TYPE_CODES = {
+  COMMANDER: 'COMMANDER',
+  PARTICIPANT: 'PARTICIPANT',
+  OPPONENT: 'OPPONENT',
+  MEDIATOR: 'MEDIATOR',
+  WITNESS: 'WITNESS',
+  ALLY: 'ALLY',
+  DIPLOMAT: 'DIPLOMAT',
+  VICTIM: 'VICTIM',
+  CASUALTY: 'CASUALTY',
+  INSPIRER: 'INSPIRER',
+  COURIER: 'COURIER',
+  MILITARY_ADVISER: 'MILITARY_ADVISER',
+  OTHER_ROLE: 'OTHER_ROLE',
+} as const;
+
+export type RoleTypeCode =
+  (typeof ROLE_TYPE_CODES)[keyof typeof ROLE_TYPE_CODES];
+
+/**
+ * 10 Hình thức nguồn tham khảo chuẩn hóa v1.0 (HistoricalReference.formatTerm)
+ */
+export const SOURCE_FORMAT_CODES = {
+  BOOK: 'BOOK',
+  JOURNAL_ARTICLE: 'JOURNAL_ARTICLE',
+  RESEARCH_PAPER: 'RESEARCH_PAPER',
+  DECREE: 'DECREE',
+  MEMOIR: 'MEMOIR',
+  MAP: 'MAP',
+  EPIGRAPHY: 'EPIGRAPHY',
+  CHRONICLE: 'CHRONICLE',
+  ARCHIVAL_DOCUMENT: 'ARCHIVAL_DOCUMENT',
+  OTHER_FORMAT: 'OTHER_FORMAT',
+} as const;
+
+export type SourceFormatCode =
+  (typeof SOURCE_FORMAT_CODES)[keyof typeof SOURCE_FORMAT_CODES];
+
+/**
+ * 6 Bản chất nguồn tham khảo chuẩn hóa v1.0 (HistoricalReference.natureTerm)
+ */
+export const SOURCE_NATURE_CODES = {
+  PRIMARY_SOURCE: 'PRIMARY_SOURCE',
+  SECONDARY_SOURCE: 'SECONDARY_SOURCE',
+  TERTIARY_SOURCE: 'TERTIARY_SOURCE',
+  ORAL_HISTORY: 'ORAL_HISTORY',
+  CONTEMPORARY_RECORD: 'CONTEMPORARY_RECORD',
+  ARCHAEOLOGICAL_EVIDENCE: 'ARCHAEOLOGICAL_EVIDENCE',
+} as const;
+
+export type SourceNatureCode =
+  (typeof SOURCE_NATURE_CODES)[keyof typeof SOURCE_NATURE_CODES];
 
 export const TAXONOMY_ROUTES = {
   PUBLIC: 'public/taxonomies',

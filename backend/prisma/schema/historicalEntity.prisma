@@ -32,8 +32,9 @@ model HistoricalEntity {
   person         Person?
   historicalSite HistoricalSite?
 
-  eventEntities HistoricalEventEntity[]
-  media         HistoricalEntityMedia[]
+  eventEntities       HistoricalEventEntity[]
+  eventParticipations HistoricalEventParticipant[]
+  media               HistoricalEntityMedia[]
 
   // Các sự kiện mà thực thể này là địa điểm diễn ra chính
   primaryEvents HistoricalEvent[] @relation("EventPrimaryLocation")

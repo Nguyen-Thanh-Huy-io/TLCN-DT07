@@ -21,6 +21,9 @@ describe('PersonTimelineService', () => {
       historicalStatement: {
         findMany: jest.fn(),
       },
+      historicalEventParticipant: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
     };
 
     redis = {

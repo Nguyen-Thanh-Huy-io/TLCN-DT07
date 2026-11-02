@@ -6,6 +6,7 @@ import {
   TIMELINE_ITEM_ORDER_WEIGHT,
   TIMELINE_ITEM_TYPE,
   TIMELINE_SORT_ORDER,
+  TimelineDirection,
   TimelineSortOrder,
 } from './timeline.constant';
 import { PersonTimelineItemDto, PersonTimelineResponseDto } from './timeline.dto';
@@ -130,6 +131,66 @@ export class PersonTimelineBuilder {
         isPrimary: true,
       });
     }
+
+    return this;
+  }
+
+  /**
+   * Thêm một mốc thời gian từ sự tham gia sự kiện (HistoricalEventParticipant)
+   */
+  addEventParticipant(participant: any): this {
+    if (!participant || !participant.event) return this;
+
+    const event = participant.event;
+    const year = participant.startYear ?? event.startYear ?? null;
+    const month = event.startMonth ?? null;
+    const day = event.startDay ?? null;
+    const dateText =
+      event.dateText || (year !== null ? formatHistoricalYear(year) : null);
+    const roleLabel =
+      participant.roleLabelOverride ||
+      participant.roleTerm?.label ||
+      'Tham gia';
+
+    this.items.push({
+      id: `participant-${participant.id}`,
+      type: TIMELINE_ITEM_TYPE.EVENT_PARTICIPATION,
+      title: `${roleLabel}: ${event.title}`,
+      year,
+      month,
+      day,
+      dateText,
+      datePrecision: event.datePrecision,
+      description: participant.notes || event.summary || null,
+      isPrimary: Boolean(participant.isPrimary),
+      role: participant.roleTerm?.code || 'PARTICIPANT',
+      roleLabel,
+      direction: TimelineDirection.OUTGOING,
+      event: {
+        id: event.id,
+        title: event.title,
+        slug: event.slug,
+        category: event.category || 'OTHER',
+        thumbnailUrl: event.thumbnailUrl || null,
+        dateText: event.dateText || null,
+      },
+      predicate: participant.roleTerm
+        ? {
+            id: participant.roleTerm.id,
+            code: participant.roleTerm.code,
+            label: participant.roleTerm.label,
+            inverseLabel: participant.roleTerm.inverseLabel || null,
+          }
+        : null,
+      references:
+        participant.references?.map((ref: any) => ({
+          id: ref.reference?.id,
+          title: ref.reference?.title,
+          author: ref.reference?.author,
+          pageNumber: ref.pageNumber,
+          quote: ref.quote,
+        })) || [],
+    });
 
     return this;
   }

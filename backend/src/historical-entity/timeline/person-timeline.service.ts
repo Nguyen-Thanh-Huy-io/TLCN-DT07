@@ -95,11 +95,30 @@ export class PersonTimelineService {
       },
     });
 
-    // 3. Khởi tạo Builder & lắp ráp các mốc thời gian
+    // 3. Truy vấn các sự kiện mà thực thể trực tiếp tham gia (HistoricalEventParticipant)
+    const participations = await this.prisma.historicalEventParticipant.findMany({
+      where: { entityId },
+      include: {
+        event: true,
+        roleTerm: true,
+        references: {
+          include: {
+            reference: true,
+          },
+        },
+      },
+    });
+
+    // 4. Khởi tạo Builder & lắp ráp các mốc thời gian
     this.builder.reset().setEntity(entity, entity.person);
 
     // Mốc sinh ra (hoặc thành lập)
     this.builder.addBirthOrFoundingMilestone();
+
+    // Mốc tham gia các sự kiện lịch sử (HistoricalEventParticipant)
+    for (const participation of participations) {
+      this.builder.addEventParticipant(participation);
+    }
 
     // Chiếu các phát biểu tri thức sang các mốc sự kiện/quan hệ
     for (const statement of statements) {
@@ -115,7 +134,7 @@ export class PersonTimelineService {
     // Mốc qua đời (hoặc kết thúc)
     this.builder.addDeathOrDissolutionMilestone();
 
-    // 4. Xây dựng và sắp xếp mốc thời gian theo trục niên đại
+    // 5. Xây dựng và sắp xếp mốc thời gian theo trục niên đại
     const result = this.builder.build(order);
 
     // Lưu cache (1 giờ)

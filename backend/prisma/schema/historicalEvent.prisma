@@ -48,6 +48,9 @@ model HistoricalEvent {
   objectStatements  HistoricalStatement[]   @relation("StatementObjectEvent")
   eventPeriods      HistoricalEventPeriod[]
 
+  // Thực thể / Nhân vật tham gia sự kiện (Historical Event Participants)
+  participants      HistoricalEventParticipant[]
+
   @@index([periodId])
   @@index([locationId])
   @@index([parentId])
@@ -141,4 +144,33 @@ model HistoricalEventRelation {
   @@index([relationType])
   @@index([status])
   @@map("historical_event_relations")
+}
+
+// ================================
+// Thực thể / Nhân vật tham gia Sự kiện Lịch sử (Historical Event Participants)
+// ================================
+model HistoricalEventParticipant {
+  id                String   @id @default(uuid())
+  eventId           String   @map("event_id")
+  entityId          String   @map("entity_id")
+  roleTermId        String?  @map("role_term_id")
+  roleLabelOverride String?  @map("role_label_override") @db.VarChar(150)
+  isPrimary         Boolean  @default(false) @map("is_primary")
+  displayOrder      Int      @default(0) @map("display_order")
+  startYear         Int?     @map("start_year")
+  endYear           Int?     @map("end_year")
+  notes             String?  @db.Text
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  event      HistoricalEvent                       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  entity     HistoricalEntity                      @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  roleTerm   TaxonomyTerm?                         @relation("EventParticipantRoleTerm", fields: [roleTermId], references: [id], onDelete: SetNull)
+  references HistoricalEventParticipantReference[]
+
+  @@index([eventId, entityId])
+  @@index([roleTermId])
+  @@index([isPrimary])
+  @@index([startYear, endYear])
+  @@map("historical_event_participants")
 }

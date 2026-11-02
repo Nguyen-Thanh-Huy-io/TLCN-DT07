@@ -655,3 +655,53 @@ sequenceDiagram
 ### 4. Kết quả kiểm thử tự động (Automated Validation):
 - **Backend Unit Tests (`npx jest src/quiz/validators/quiz-question.validator.spec.ts`)**: `PASS` (13/13 tests).
 - **Frontend TypeScript (`npx tsc --noEmit`)**: `PASS` (`0 errors`).
+
+
+---
+
+## ĐỢT 13: TRIỂN KHAI DẠNG 5 — GHÉP NỐI CẶP THÔNG TIN (`QuizQuestionType.MATCHING`) & COMPONENT DÙNG CHUNG `MatchingPairsEditor`
+
+### 1. Yêu cầu của người dùng (User Request):
+> "ok" (Commit & Push Dạng 4 rồi triển khai Dạng 5: Ghép nối — `QuizQuestionType.MATCHING` với component tái sử dụng `MatchingPairsEditor`)
+
+### 2. Sơ đồ tuần tự (Sequence Diagram - Mermaid):
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Giáo viên / Admin
+    actor Learner as Học sinh (Public Hub)
+    participant QModal as QuestionBankModal / MatchingEditor
+    participant Editor as MatchingPairsEditor (Reusable Component)
+    participant API as QuestionController / MatchingValidationStrategy
+    participant Shuffler as prepareQuizSessionForLearner
+    participant Grader as MatchingGrader (Strategy Pattern)
+    participant QuizUI as HubLessonQuiz
+
+    Admin->>QModal: Chọn dạng câu hỏi "Ghép nối" (MATCHING)
+    QModal->>Editor: Hiển thị danh sách hàng cặp tương ứng (Vế A ↔ Vế B)
+    Admin->>Editor: Nhập từng cặp đúng trên cùng 1 hàng (tự động sinh leftItems, rightItems, correctPairs)
+    QModal->>API: POST/PUT /questions { type: MATCHING, data: { leftItems, rightItems, correctPairs } }
+    API->>API: MatchingValidationStrategy.validateAndNormalize
+    API-->>QModal: Lưu thành công vào Ngân hàng câu hỏi
+
+    Learner->>Shuffler: Tải đề ôn tập hoặc nhấn "Làm lại"
+    Shuffler-->>QuizUI: Đảo ngẫu nhiên danh sách rightItems (đảm bảo khác thứ tự gốc)
+    Learner->>QuizUI: Chọn Vế B tương ứng cho từng mục Vế A
+    Learner->>QuizUI: Nhấn "Kiểm tra đáp án"
+    QuizUI->>Grader: MatchingGrader.isCorrect(question, pairsMap)
+    Grader-->>QuizUI: Trả về kết quả & tô màu xanh/đỏ từng cặp ghép nối + getCorrectSummary()
+```
+
+### 3. Chi tiết triển khai (SOLID & Code Reuse):
+1. **Component soạn thảo Ghép nối tái sử dụng ([`MatchingPairsEditor.tsx`](frontend/src/components/common/MatchingPairsEditor.tsx))**:
+   - Cho phép giáo viên nhập trực tiếp **Vế A (Sự kiện / Nhân vật)** và **Vế B tương ứng (Ý nghĩa / Vai trò)** trên cùng một hàng trực quan thay vì phải nhập rời 2 danh sách rồi chọn lại bằng dropdown.
+   - Tự động ánh xạ `leftItems`, `rightItems` và `correctPairs` 1:1.
+   - Tái sử dụng tại cả 2 nơi: **`QuestionBankModal.tsx`** và **`MatchingEditor`** trong **`QuizQuestionEditors.tsx`** (`compact` mode, giảm hơn 60 dòng code lặp).
+2. **Xáo trộn cột Vế B & Phản hồi trực quan ([`public-curriculum.strategies.ts`](frontend/src/features/public-curriculum/strategies/public-curriculum.strategies.ts), [`HubLessonQuiz.tsx`](frontend/src/features/public-curriculum/components/hub/HubLessonQuiz.tsx), [`QuestionBankView.tsx`](frontend/src/features/quiz/components/QuestionBankView.tsx))**:
+   - Khi học sinh mở bài hoặc bấm *Làm lại*, `prepareQuizSessionForLearner` tự động đảo ngẫu nhiên `rightItems` và đảm bảo không trùng khít 100% với thứ tự hàng của `leftItems`.
+   - Hiển thị nhanh `Cặp nối đúng (N cặp): Vế A ↔ Vế B | ...` ngay trên bảng danh sách `QuestionBankView.tsx`.
+   - Tô màu xanh (`✓`) cho từng cặp học sinh nối đúng và màu đỏ (`✕`) cho cặp nối sai tại `HubLessonQuiz.tsx`.
+
+### 4. Kết quả kiểm thử tự động (Automated Validation):
+- **Backend Unit Tests (`npx jest src/quiz/validators/quiz-question.validator.spec.ts`)**: `PASS` (13/13 tests).
+- **Frontend TypeScript (`npx tsc --noEmit`)**: `PASS` (`0 errors`).

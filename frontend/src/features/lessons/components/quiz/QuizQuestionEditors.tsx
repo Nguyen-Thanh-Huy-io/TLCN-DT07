@@ -18,6 +18,7 @@ import {
 } from '@/components/common/CollapsibleExplanationField';
 import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
 import { TimelineOrderingItemsEditor } from '@/components/common/TimelineOrderingItemsEditor';
+import { MatchingPairsEditor } from '@/components/common/MatchingPairsEditor';
 
 export enum MoveDirection {
   UP = 'UP',
@@ -294,82 +295,20 @@ export function MatchingEditor({
   data: MatchingQuestion;
   onChange: OnChange<MatchingQuestion>;
 }) {
-  const updateSide = (side: MatchingSide | 'leftItems' | 'rightItems', itemId: string, label: string) => {
-    onChange({ [side]: data[side].map((i) => (i.id === itemId ? { ...i, label } : i)) } as any);
-  };
-  const addSideItem = (side: MatchingSide | 'leftItems' | 'rightItems') => {
-    onChange({ [side]: [...data[side], { id: generateQuizId(side === MatchingSide.LEFT ? 'l' : 'r'), label: '' }] } as any);
-  };
-  const removeSideItem = (side: MatchingSide | 'leftItems' | 'rightItems', itemId: string) => {
-    const next = data[side].filter((i) => i.id !== itemId);
-    const pairKey = side === MatchingSide.LEFT ? 'leftId' : 'rightId';
-    onChange({
-      [side]: next,
-      correctPairs: data.correctPairs.filter((p) => p[pairKey] !== itemId),
-    } as any);
-  };
-  const updatePairRight = (leftId: string, rightId: string) => {
-    const existing = data.correctPairs.filter((p) => p.leftId !== leftId);
-    onChange({ correctPairs: [...existing, { leftId, rightId }] });
-  };
-
   return (
     <div className="space-y-2.5">
       <PromptField
         prompt={data.prompt}
-        promptPlaceholder="Ví dụ: Nối nhân vật với vai trò của họ..."
+        promptPlaceholder="Ví dụ: Nối nhân vật lịch sử với vai trò tương ứng của họ..."
         onChange={onChange}
       />
-      <div className="grid grid-cols-2 gap-2">
-        {([MatchingSide.LEFT, MatchingSide.RIGHT] as const).map((side) => (
-          <div key={side} className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-slate-500">
-              {side === MatchingSide.LEFT ? 'Bên trái' : 'Bên phải'}
-            </span>
-            {data[side].map((item) => (
-              <div key={item.id} className="flex items-center gap-1">
-                <input
-                  type="text"
-                  value={item.label}
-                  onChange={(e) => updateSide(side, item.id, e.target.value)}
-                  placeholder="Nội dung..."
-                  className={smallInputCls}
-                />
-                <button type="button" onClick={() => removeSideItem(side, item.id)} className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer shrink-0">✕</button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => addSideItem(side)}
-              className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 border border-dashed border-blue-300 rounded-md py-1 w-full cursor-pointer"
-            >
-              + Thêm
-            </button>
-          </div>
-        ))}
-      </div>
-      <div className="space-y-1.5 pt-1 border-t border-slate-100">
-        <span className="text-[11px] font-semibold text-slate-500">Cặp nối đúng</span>
-        {data.leftItems.map((left) => {
-          const pair = data.correctPairs.find((p) => p.leftId === left.id);
-          return (
-            <div key={left.id} className="flex items-center gap-2 text-xs">
-              <span className="flex-1 truncate text-slate-700">{left.label || '(chưa đặt tên)'}</span>
-              <span className="text-slate-300">↔</span>
-              <select
-                value={pair?.rightId || ''}
-                onChange={(e) => updatePairRight(left.id, e.target.value)}
-                className="flex-1 text-xs p-1.5 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="" disabled>-- chọn --</option>
-                {data.rightItems.map((r) => (
-                  <option key={r.id} value={r.id}>{r.label || '(chưa đặt tên)'}</option>
-                ))}
-              </select>
-            </div>
-          );
-        })}
-      </div>
+      <MatchingPairsEditor
+        compact
+        leftItems={data.leftItems}
+        rightItems={data.rightItems}
+        correctPairs={data.correctPairs}
+        onChange={(next) => onChange(next)}
+      />
       <CollapsibleExplanationField
         value={data.explanation}
         onChange={(explanation) => onChange({ explanation })}

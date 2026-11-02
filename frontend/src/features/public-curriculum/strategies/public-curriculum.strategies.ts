@@ -301,9 +301,19 @@ export function prepareQuizSessionForLearner(rawQuiz: QuizItem): {
     }
 
     if (q.type === QuizQuestionType.MATCHING) {
+      const shuffledRight = shuffleArray(q.rightItems);
+      if (shuffledRight.length >= 2) {
+        const pairByLeft = new Map(q.correctPairs.map((p) => [p.leftId, p.rightId]));
+        const isAlignedWithLeft = q.leftItems.every(
+          (left, idx) => shuffledRight[idx]?.id === pairByLeft.get(left.id),
+        );
+        if (isAlignedWithLeft) {
+          [shuffledRight[0], shuffledRight[1]] = [shuffledRight[1], shuffledRight[0]];
+        }
+      }
       return {
         ...q,
-        rightItems: shuffleArray(q.rightItems),
+        rightItems: shuffledRight,
       };
     }
 

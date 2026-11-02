@@ -516,6 +516,32 @@ export function QuestionBankView() {
                               </div>
                             )}
 
+                          {q.type === QuizQuestionType.MATCHING &&
+                            Array.isArray(q.data?.leftItems) &&
+                            Array.isArray(q.data?.rightItems) &&
+                            Array.isArray(q.data?.correctPairs) &&
+                            q.data.correctPairs.length > 0 && (
+                              <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                                <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
+                                <span className="shrink-0">
+                                  Cặp nối đúng ({q.data.correctPairs.length} cặp):
+                                </span>
+                                <strong className="text-violet-800 truncate max-w-md">
+                                  {q.data.correctPairs
+                                    .map((p: any) => {
+                                      const l =
+                                        q.data.leftItems.find((i: any) => i.id === p.leftId)
+                                          ?.label || p.leftId;
+                                      const r =
+                                        q.data.rightItems.find((i: any) => i.id === p.rightId)
+                                          ?.label || p.rightId;
+                                      return `${l} ↔ ${r}`;
+                                    })
+                                    .join(' | ')}
+                                </strong>
+                              </div>
+                            )}
+
                           {q.explanation && (
                             <p className="text-[10px] text-slate-400 italic line-clamp-1">
                               💡 {q.explanation}

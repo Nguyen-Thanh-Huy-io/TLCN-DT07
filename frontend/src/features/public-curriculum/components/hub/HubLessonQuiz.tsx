@@ -259,28 +259,71 @@ function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingI
   }
 
   if (q.type === QuizQuestionType.MATCHING) {
-    const pairs = answer && typeof answer === 'object' && !Array.isArray(answer) ? (answer as Record<string, string>) : {};
+    const pairs =
+      answer && typeof answer === 'object' && !Array.isArray(answer)
+        ? (answer as Record<string, string>)
+        : {};
+    const correctPairMap = new Map(q.correctPairs.map((p) => [p.leftId, p.rightId]));
+
     return (
       <div className="mt-5 space-y-2.5">
-        {q.leftItems.map((left) => (
-          <div key={left.id} className="grid gap-2 rounded-xl border border-lh-line bg-lh-surface p-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-            <span className="text-sm font-medium text-lh-ink">{left.label}</span>
-            <span className="hidden text-lh-muted sm:inline">↔</span>
-            <select
-              disabled={submitted}
-              value={pairs[left.id] || ''}
-              onChange={(e) => setAnswer(q.id, { ...pairs, [left.id]: e.target.value })}
-              className="h-10 rounded-xl border border-lh-line bg-lh-surface-2 px-3 text-sm text-lh-ink outline-none"
+        <p className="text-xs font-medium text-lh-muted italic">
+          (Chọn phương án ở cột bên phải tương ứng với từng mục ở cột bên trái)
+        </p>
+        {q.leftItems.map((left, idx) => {
+          const selectedRightId = pairs[left.id] || '';
+          const isPairCorrect =
+            submitted && Boolean(selectedRightId) && correctPairMap.get(left.id) === selectedRightId;
+          const rowState = submitted
+            ? isPairCorrect
+              ? 'border-lh-brand bg-lh-brand-soft/60 text-lh-brand'
+              : 'border-lh-red bg-lh-red-soft/60 text-lh-red'
+            : 'border-lh-line bg-lh-surface';
+
+          return (
+            <div
+              key={left.id}
+              className={`grid gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center transition ${rowState}`}
             >
-              <option value="">— Chọn vế ghép —</option>
-              {q.rightItems.map((right) => (
-                <option key={right.id} value={right.id}>
-                  {right.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
+              <span className="flex items-center gap-2.5 text-sm font-medium text-lh-ink">
+                <span
+                  className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold ${
+                    submitted
+                      ? isPairCorrect
+                        ? 'bg-lh-brand text-white'
+                        : 'bg-lh-red text-white'
+                      : 'bg-lh-surface-2 text-lh-brand'
+                  }`}
+                >
+                  {submitted ? (
+                    isPairCorrect ? (
+                      <Check className="size-3.5" />
+                    ) : (
+                      <X className="size-3.5" />
+                    )
+                  ) : (
+                    idx + 1
+                  )}
+                </span>
+                <span>{left.label}</span>
+              </span>
+              <span className="hidden text-lh-muted sm:inline">↔</span>
+              <select
+                disabled={submitted}
+                value={selectedRightId}
+                onChange={(e) => setAnswer(q.id, { ...pairs, [left.id]: e.target.value })}
+                className="h-10 rounded-xl border border-lh-line bg-lh-surface-2 px-3 text-sm text-lh-ink outline-none"
+              >
+                <option value="">— Chọn vế ghép —</option>
+                {q.rightItems.map((right) => (
+                  <option key={right.id} value={right.id}>
+                    {right.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          );
+        })}
       </div>
     );
   }

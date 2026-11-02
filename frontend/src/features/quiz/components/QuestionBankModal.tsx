@@ -56,6 +56,36 @@ import {
 } from '@/components/common/CollapsibleExplanationField';
 import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
 import { TimelineOrderingItemsEditor } from '@/components/common/TimelineOrderingItemsEditor';
+import {
+  MatchingPairsEditor,
+  MatchingPairsValue,
+} from '@/components/common/MatchingPairsEditor';
+
+function createDefaultMatchingPairs(): MatchingPairsValue {
+  const l1 = generateQuizId('l');
+  const r1 = generateQuizId('r');
+  const l2 = generateQuizId('l');
+  const r2 = generateQuizId('r');
+  const l3 = generateQuizId('l');
+  const r3 = generateQuizId('r');
+  return {
+    leftItems: [
+      { id: l1, label: '' },
+      { id: l2, label: '' },
+      { id: l3, label: '' },
+    ],
+    rightItems: [
+      { id: r1, label: '' },
+      { id: r2, label: '' },
+      { id: r3, label: '' },
+    ],
+    correctPairs: [
+      { leftId: l1, rightId: r1 },
+      { leftId: l2, rightId: r2 },
+      { leftId: l3, rightId: r3 },
+    ],
+  };
+}
 
 interface QuestionBankModalProps {
   isOpen: boolean;
@@ -107,7 +137,7 @@ const QUESTION_TYPE_CARDS: QuestionTypeCardConfig[] = [
     title: 'Ghép nối',
     subtitle: '(Matching Pairs)',
     icon: ArrowLeftRight,
-    isReady: false,
+    isReady: true,
   },
 ];
 
@@ -142,6 +172,9 @@ export function QuestionBankModal({
     { id: generateQuizId('item'), label: '' },
     { id: generateQuizId('item'), label: '' },
   ]);
+  const [matchingPairsValue, setMatchingPairsValue] = useState<MatchingPairsValue>(
+    createDefaultMatchingPairs
+  );
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
   const [isGeneralNoteOpen, setIsGeneralNoteOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -210,6 +243,20 @@ export function QuestionBankModal({
           { id: generateQuizId('item'), label: '' },
         ]);
       }
+      if (
+        Array.isArray(initialQuestion.data?.leftItems) &&
+        Array.isArray(initialQuestion.data?.rightItems) &&
+        Array.isArray(initialQuestion.data?.correctPairs) &&
+        initialQuestion.data.leftItems.length >= 2
+      ) {
+        setMatchingPairsValue({
+          leftItems: initialQuestion.data.leftItems,
+          rightItems: initialQuestion.data.rightItems,
+          correctPairs: initialQuestion.data.correctPairs,
+        });
+      } else {
+        setMatchingPairsValue(createDefaultMatchingPairs());
+      }
       if (initialQuestion.data?.options && Array.isArray(initialQuestion.data.options)) {
         setOptions(initialQuestion.data.options);
         const notesMap: Record<string, boolean> = {};
@@ -236,6 +283,7 @@ export function QuestionBankModal({
         { id: generateQuizId('item'), label: '' },
         { id: generateQuizId('item'), label: '' },
       ]);
+      setMatchingPairsValue(createDefaultMatchingPairs());
       setOptions([
         { id: generateQuizId('opt'), text: '', isCorrect: true },
         { id: generateQuizId('opt'), text: '', isCorrect: false },
@@ -352,6 +400,20 @@ export function QuestionBankModal({
       }
     }
 
+    if (type === QuizQuestionType.MATCHING) {
+      if (matchingPairsValue.leftItems.length < 2) {
+        setErrorMsg('Cần ít nhất 2 cặp thông tin để tạo câu hỏi ghép nối.');
+        return;
+      }
+      if (
+        matchingPairsValue.leftItems.some((it) => !it.label.trim()) ||
+        matchingPairsValue.rightItems.some((it) => !it.label.trim())
+      ) {
+        setErrorMsg('Vui lòng nhập đầy đủ nội dung Vế A và Vế B cho tất cả các cặp ghép nối.');
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
       const questionData =
@@ -365,7 +427,19 @@ export function QuestionBankModal({
                 })),
                 correctOrder: orderingItems.map((it) => it.id),
               }
-            : { options };
+            : type === QuizQuestionType.MATCHING
+              ? {
+                  leftItems: matchingPairsValue.leftItems.map((it) => ({
+                    id: it.id,
+                    label: it.label.trim(),
+                  })),
+                  rightItems: matchingPairsValue.rightItems.map((it) => ({
+                    id: it.id,
+                    label: it.label.trim(),
+                  })),
+                  correctPairs: matchingPairsValue.correctPairs,
+                }
+              : { options };
 
       const payload: CreateQuestionPayload = {
         type,
@@ -608,7 +682,7 @@ export function QuestionBankModal({
             </div>
           </div>
 
-          {/* Section 3: Options List (Single/Multiple Choice), True/False Selector, OR Timeline Ordering */}
+          {/* Section 3: Options List (Single/Multiple Choice), True/False Selector, Timeline Ordering, OR Matching Pairs */}
           {type === QuizQuestionType.TRUE_FALSE ? (
             <div className="pt-1">
               <TrueFalseAnswerSelector value={correctAnswer} onChange={setCorrectAnswer} />
@@ -618,6 +692,16 @@ export function QuestionBankModal({
               <TimelineOrderingItemsEditor
                 items={orderingItems}
                 onChange={setOrderingItems}
+                onError={setErrorMsg}
+              />
+            </div>
+          ) : type === QuizQuestionType.MATCHING ? (
+            <div className="pt-1">
+              <MatchingPairsEditor
+                leftItems={matchingPairsValue.leftItems}
+                rightItems={matchingPairsValue.rightItems}
+                correctPairs={matchingPairsValue.correctPairs}
+                onChange={setMatchingPairsValue}
                 onError={setErrorMsg}
               />
             </div>
@@ -794,13 +878,15 @@ export function QuestionBankModal({
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
           <span className="text-[11px] text-slate-500 hidden sm:inline">
-            {type === QuizQuestionType.ORDERING
-              ? 'Loại 4: Sắp xếp dòng thời gian (Timeline Order) • Lưu vào Ngân hàng trung tâm'
-              : type === QuizQuestionType.TRUE_FALSE
-                ? 'Loại 3: Câu hỏi Đúng / Sai (True / False) • Lưu vào Ngân hàng trung tâm'
-                : type === QuizQuestionType.MULTIPLE_CHOICE
-                  ? 'Loại 2: Trắc nghiệm nhiều đáp án đúng (Multiple Choice / Check Box) • Lưu vào Ngân hàng trung tâm'
-                  : 'Loại 1: Trắc nghiệm 1 đáp án (Single Choice / Radio Button) • Lưu vào Ngân hàng trung tâm'}
+            {type === QuizQuestionType.MATCHING
+              ? 'Loại 5: Ghép nối cặp thông tin (Matching Pairs) • Lưu vào Ngân hàng trung tâm'
+              : type === QuizQuestionType.ORDERING
+                ? 'Loại 4: Sắp xếp dòng thời gian (Timeline Order) • Lưu vào Ngân hàng trung tâm'
+                : type === QuizQuestionType.TRUE_FALSE
+                  ? 'Loại 3: Câu hỏi Đúng / Sai (True / False) • Lưu vào Ngân hàng trung tâm'
+                  : type === QuizQuestionType.MULTIPLE_CHOICE
+                    ? 'Loại 2: Trắc nghiệm nhiều đáp án đúng (Multiple Choice / Check Box) • Lưu vào Ngân hàng trung tâm'
+                    : 'Loại 1: Trắc nghiệm 1 đáp án (Single Choice / Radio Button) • Lưu vào Ngân hàng trung tâm'}
           </span>
 
           <div className="flex items-center gap-2.5 ml-auto">

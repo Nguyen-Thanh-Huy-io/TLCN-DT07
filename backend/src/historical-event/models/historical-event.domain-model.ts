@@ -118,5 +118,6 @@ export interface HistoricalEventEntityModel {
   children?: any[];
   entities?: any[];
   media?: any[];
+  statements?: any[];
   _count?: { children: number };
 }

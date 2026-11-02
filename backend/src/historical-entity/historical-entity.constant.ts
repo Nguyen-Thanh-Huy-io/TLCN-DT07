@@ -4,12 +4,14 @@ export const HISTORICAL_ENTITY_ROUTES = {
   RELATIONS: ':id/relations',
   RELATION_BY_ID: ':id/relations/:relationId',
   GRAPH: ':id/graph',
+  TIMELINE: ':id/timeline',
   MEDIA: ':id/media',
   MEDIA_BY_ID: ':id/media/:mediaId',
 } as const;
 
 export const HISTORICAL_ENTITY_CACHE = {
   LIST_PREFIX: 'historical_entities:list',
+  LIST_PATTERN: 'historical_entities:list*',
   DETAIL_PREFIX: 'historical_entity:detail',
   GRAPH_PREFIX: 'historical_entity:graph',
   TTL_SECONDS: 3600,

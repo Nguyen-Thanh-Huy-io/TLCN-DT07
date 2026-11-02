@@ -12,6 +12,7 @@ import { EntityRelationType } from './historical-entity.constant';
 
 import { PersonEntityDelegate } from './delegates/person-entity.delegate';
 import { SiteEntityDelegate } from './delegates/site-entity.delegate';
+import { PersonTimelineService } from './timeline/person-timeline.service';
 
 describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
   let service: HistoricalEntityService;
@@ -125,6 +126,10 @@ describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
         HistoricalEntityService,
         PersonEntityDelegate,
         SiteEntityDelegate,
+        {
+          provide: PersonTimelineService,
+          useValue: { getTimeline: jest.fn() },
+        },
         { provide: PrismaService, useValue: mockPrisma },
         { provide: RedisService, useValue: mockRedis },
         { provide: CustomLoggerService, useValue: mockLogger },

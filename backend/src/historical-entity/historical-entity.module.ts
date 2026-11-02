@@ -7,6 +7,9 @@ import { HistoricalEntityService } from './historical-entity.service';
 import { TaxonomyModule } from '../taxonomy/taxonomy.module';
 import { PersonEntityDelegate } from './delegates/person-entity.delegate';
 import { SiteEntityDelegate } from './delegates/site-entity.delegate';
+import { PersonTimelineBuilder } from './timeline/person-timeline.builder';
+import { StatementDirectionProjector } from './timeline/statement-direction.projector';
+import { PersonTimelineService } from './timeline/person-timeline.service';
 
 @Module({
   imports: [TaxonomyModule],
@@ -15,10 +18,19 @@ import { SiteEntityDelegate } from './delegates/site-entity.delegate';
     HistoricalEntityService,
     PersonEntityDelegate,
     SiteEntityDelegate,
+    PersonTimelineBuilder,
+    StatementDirectionProjector,
+    PersonTimelineService,
     PrismaService,
     RedisService,
     SlugService,
   ],
-  exports: [HistoricalEntityService, PersonEntityDelegate, SiteEntityDelegate],
+  exports: [
+    HistoricalEntityService,
+    PersonEntityDelegate,
+    SiteEntityDelegate,
+    PersonTimelineService,
+    PersonTimelineBuilder,
+  ],
 })
 export class HistoricalEntityModule {}

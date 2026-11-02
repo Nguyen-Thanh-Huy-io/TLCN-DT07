@@ -37,6 +37,11 @@ import {
 import { PersonEntityDelegate } from './delegates/person-entity.delegate';
 import { SiteEntityDelegate } from './delegates/site-entity.delegate';
 import { EntityQueryBuilder } from './builders/entity-query.builder';
+import { PersonTimelineService } from './timeline/person-timeline.service';
+import {
+  QueryPersonTimelineDto,
+  PersonTimelineResponseDto,
+} from './timeline/timeline.dto';
 
 export interface IPaginatedEntities {
   items: HistoricalEntity[];
@@ -76,6 +81,7 @@ export class HistoricalEntityService {
     private readonly taxonomy: TaxonomyService,
     private readonly personDelegate: PersonEntityDelegate,
     private readonly siteDelegate: SiteEntityDelegate,
+    private readonly timelineService: PersonTimelineService,
   ) {}
 
   private validateYearRange(
@@ -531,6 +537,16 @@ export class HistoricalEntityService {
       success: true,
       message: HISTORICAL_ENTITY_MESSAGES.RELATION_DELETED,
     };
+  }
+
+  /**
+   * Lấy Timeline tổng hợp động của thực thể (kết hợp Master Data và Knowledge Graph)
+   */
+  async getTimeline(
+    id: string,
+    query?: QueryPersonTimelineDto,
+  ): Promise<PersonTimelineResponseDto> {
+    return this.timelineService.getTimeline(id, query);
   }
 
   /**

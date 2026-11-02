@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { QueryHistoricalEntityDto } from '../dto/historical-entity.dto';
+import { StatementRelationAdapter } from '../../common/adapters/statement-relation.adapter';
 
 export class EntityQueryBuilder {
   /**
@@ -94,7 +95,9 @@ export class EntityQueryBuilder {
   /**
    * Ánh xạ chi tiết thực thể cho findOne
    */
-  static mapDetailItem(raw: any): any {
+  static mapDetailItem(rawInput: any): any {
+    const raw = StatementRelationAdapter.adaptEntity(rawInput);
+
     const metadataPeriodIds =
       raw.metadata &&
       typeof raw.metadata === 'object' &&
@@ -230,6 +233,58 @@ export class EntityQueryBuilder {
           endYear: true,
           category: true,
           thumbnailUrl: true,
+        },
+      },
+      subjectStatements: {
+        include: {
+          predicate: true,
+          objectEntity: {
+            include: {
+              person: true,
+            },
+          },
+          objectEvent: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              startYear: true,
+              endYear: true,
+              category: true,
+              thumbnailUrl: true,
+            },
+          },
+          references: {
+            include: {
+              reference: true,
+            },
+          },
+        },
+      },
+      objectStatements: {
+        include: {
+          predicate: true,
+          subjectEntity: {
+            include: {
+              person: true,
+            },
+          },
+          subjectEvent: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              startYear: true,
+              endYear: true,
+              category: true,
+              thumbnailUrl: true,
+            },
+          },
+          references: {
+            include: {
+              reference: true,
+            },
+          },
         },
       },
     };

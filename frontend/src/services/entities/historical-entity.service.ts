@@ -11,6 +11,7 @@ import {
   HistoricalEntityMediaItem,
   HistoricalEntityRelationItem,
 } from '@/types/models/historical-entity.type';
+import { PersonTimelineResponse } from '@/types/models/person-timeline.type';
 
 export interface HistoricalEntityQueryParams {
   page?: number;
@@ -157,6 +158,17 @@ export const HistoricalEntityApiService = {
       `${HISTORICAL_ENTITY_ENDPOINT}/${id}/graph`,
     );
     return (response.data?.data ?? response.data) as EntityGraphData;
+  },
+
+  getTimeline: async (
+    id: string,
+    params?: { order?: 'asc' | 'desc'; includeStatements?: boolean },
+  ): Promise<PersonTimelineResponse> => {
+    const response = await api.get(
+      `${HISTORICAL_ENTITY_ENDPOINT}/${id}/timeline`,
+      { params },
+    );
+    return (response.data?.data ?? response.data) as PersonTimelineResponse;
   },
 
   // Media

@@ -32,6 +32,10 @@ import {
   IEntityGraphData,
   IPaginatedEntities,
 } from './historical-entity.service';
+import {
+  QueryPersonTimelineDto,
+  PersonTimelineResponseDto,
+} from './timeline/timeline.dto';
 import { ContentWrite } from '../common/access/access.decorator';
 
 @ApiTags(
@@ -127,6 +131,24 @@ export class HistoricalEntityController {
   @ApiResponse({ status: HttpStatus.OK })
   getEntityGraph(@Param('id') id: string): Promise<IEntityGraphData> {
     return this.service.getEntityGraph(id);
+  }
+
+  @Get(HISTORICAL_ENTITY_ROUTES.TIMELINE)
+  @ApiOperation({
+    summary: 'Lấy Timeline niên đại tổng hợp động của nhân vật / thực thể',
+    description:
+      'Tự động kết hợp mốc sinh, mất và các phát biểu lịch sử (tham gia sự kiện, chức vụ) đã được sắp xếp theo trình tự thời gian.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Lấy Timeline thành công',
+    type: PersonTimelineResponseDto,
+  })
+  getTimeline(
+    @Param('id') id: string,
+    @Query() query: QueryPersonTimelineDto,
+  ): Promise<PersonTimelineResponseDto> {
+    return this.service.getTimeline(id, query);
   }
 
   // ==========================================

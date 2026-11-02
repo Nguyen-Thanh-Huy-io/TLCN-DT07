@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ContentStatus, EventCategory, MediaType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
 import { IHistoricalEventRepository } from './historical-event.repository.interface';
+import { StatementRelationAdapter } from '../../common/adapters/statement-relation.adapter';
 import { HistoricalEventListQuery } from '../dto/query-historical-event.dto';
 import {
   CreateHistoricalEventDomainModel,
@@ -199,10 +200,59 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
             { displayOrder: 'asc' },
           ],
         },
+        subjectStatements: {
+          include: {
+            predicate: true,
+            objectEntity: {
+              select: { id: true, name: true, slug: true, type: true },
+            },
+            objectEvent: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                startYear: true,
+                endYear: true,
+                category: true,
+                thumbnailUrl: true,
+              },
+            },
+            references: {
+              include: {
+                reference: true,
+              },
+            },
+          },
+        },
+        objectStatements: {
+          include: {
+            predicate: true,
+            subjectEntity: {
+              select: { id: true, name: true, slug: true, type: true },
+            },
+            subjectEvent: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                startYear: true,
+                endYear: true,
+                category: true,
+                thumbnailUrl: true,
+              },
+            },
+            references: {
+              include: {
+                reference: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    return item as unknown as HistoricalEventEntityModel | null;
+    const adapted = StatementRelationAdapter.adaptEvent(item);
+    return adapted as unknown as HistoricalEventEntityModel | null;
   }
 
   async findMany(

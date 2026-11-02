@@ -1,5 +1,6 @@
 import {
   ContentStatus,
+  DatePrecision,
   EntityRelationType,
   EntityType,
   MediaType,
@@ -40,25 +41,39 @@ export interface HistoricalEntityItem {
   aliases?: string[];
   imageUrl?: string | null;
   imageCaption?: string | null;
-  birthYear?: number | null;
-  /** Năm tồn tại — triều đại / quốc gia / chính thể, tổ chức, lực lượng. */
+  /** Thời gian tồn tại — triều đại / quốc gia / chính thể, tổ chức, lực lượng. */
+  dateText?: string | null;
   startYear?: number | null;
   endYear?: number | null;
+  datePrecision?: DatePrecision | null;
+  // Person fields (tách riêng nhóm trường Ngày sinh & Ngày mất cho PERSON)
+  birthDateText?: string | null;
+  birthYear?: number | null;
+  birthMonth?: number | null;
+  birthDay?: number | null;
+  birthPrecision?: DatePrecision | null;
+  deathDateText?: string | null;
   deathYear?: number | null;
+  deathMonth?: number | null;
+  deathDay?: number | null;
+  deathPrecision?: DatePrecision | null;
   birthDateLabel?: string | null;
   deathDateLabel?: string | null;
-  // Person fields (cho PERSON)
   occupation?: string | null;
   titles?: string[];
   /** Mã vai trò (danh mục FIGURE_ROLE). */
   roles?: string[];
   biography?: string | null;
-  // Historical Site fields (cho LOCATION)
+  // Historical Site fields (cho LOCATION / Di tích)
   siteType?: string | null;
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  constructionDateText?: string | null;
   constructionYear?: number | null;
+  constructionMonth?: number | null;
+  constructionDay?: number | null;
+  constructionEndYear?: number | null;
   constructionLabel?: string | null;
   preservationStatus?: string | null;
   recognitionLevel?: string | null;

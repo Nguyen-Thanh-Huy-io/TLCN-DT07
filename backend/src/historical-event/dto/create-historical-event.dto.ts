@@ -1,5 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ContentStatus, EventCategory, MediaType } from '@prisma/client';
+import {
+  ContentStatus,
+  DatePrecision,
+  EventCategory,
+  MediaType,
+} from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -71,14 +76,25 @@ export class CreateHistoricalEventDto {
   @MaxLength(255)
   slug?: string;
 
-  @ApiProperty({
-    example: 1959,
-    description: 'Năm bắt đầu diễn ra sự kiện (Số nguyên, có thể âm với TCN)',
+  @ApiPropertyOptional({
+    example: 'Đêm 18/12/1972',
+    description: 'Thời gian nguyên bản (VD: "Đêm 18/12/1972", "Tháng 8/1945")',
+    maxLength: 150,
   })
+  @IsString()
+  @IsOptional()
+  @MaxLength(150)
+  dateText?: string;
+
+  @ApiPropertyOptional({
+    example: 1959,
+    description:
+      'Năm bắt đầu diễn ra sự kiện (Số nguyên, âm cho TCN, không bắt buộc cho sự kiện chưa rõ thời gian)',
+  })
+  @IsOptional()
   @Type(() => Number)
   @IsInt({ message: 'Năm diễn ra sự kiện phải là số nguyên' })
-  @IsNotEmpty({ message: 'Năm diễn ra sự kiện không được để trống' })
-  startYear: number;
+  startYear?: number | null;
 
   @ApiPropertyOptional({
     example: 5,
@@ -89,7 +105,7 @@ export class CreateHistoricalEventDto {
   @IsInt()
   @Min(1)
   @Max(12)
-  startMonth?: number;
+  startMonth?: number | null;
 
   @ApiPropertyOptional({
     example: 19,
@@ -100,7 +116,7 @@ export class CreateHistoricalEventDto {
   @IsInt()
   @Min(1)
   @Max(31)
-  startDay?: number;
+  startDay?: number | null;
 
   @ApiPropertyOptional({
     example: 1975,
@@ -109,7 +125,7 @@ export class CreateHistoricalEventDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  endYear?: number;
+  endYear?: number | null;
 
   @ApiPropertyOptional({
     example: 4,
@@ -120,7 +136,7 @@ export class CreateHistoricalEventDto {
   @IsInt()
   @Min(1)
   @Max(12)
-  endMonth?: number;
+  endMonth?: number | null;
 
   @ApiPropertyOptional({
     example: 30,
@@ -131,11 +147,22 @@ export class CreateHistoricalEventDto {
   @IsInt()
   @Min(1)
   @Max(31)
-  endDay?: number;
+  endDay?: number | null;
+
+  @ApiPropertyOptional({
+    enum: DatePrecision,
+    example: DatePrecision.DAY,
+    description:
+      'Độ chính xác thời gian (DAY, MONTH, YEAR, DECADE, CENTURY, APPROXIMATE, RANGE, UNKNOWN)',
+  })
+  @IsOptional()
+  @IsEnum(DatePrecision)
+  datePrecision?: DatePrecision;
 
   @ApiPropertyOptional({
     example: '19/05/1959 – 30/04/1975',
-    description: 'Chuỗi thời gian hiển thị trên giao diện bài viết',
+    description:
+      'Chuỗi thời gian hiển thị trên giao diện bài viết (tương thích ngược với dateText)',
     maxLength: 150,
   })
   @IsString()
@@ -260,4 +287,3 @@ export class CreateHistoricalEventDto {
     displayOrder?: number;
   }>;
 }
-

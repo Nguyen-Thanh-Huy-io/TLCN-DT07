@@ -25,6 +25,10 @@ import {
   HistoricalEventEntityModel,
   UpdateHistoricalEventDomainModel,
 } from './models/historical-event.domain-model';
+import {
+  HistoricalDateParser,
+  validateHistoricalYearRange,
+} from '../common/utils/historical-date.parser';
 
 export interface IPaginatedResult<T> {
   items: T[];
@@ -45,15 +49,15 @@ export class HistoricalEventService {
     private readonly taxonomy: TaxonomyService,
   ) {}
 
-  private validateYearRange(startYear?: number, endYear?: number | null): void {
-    if (
-      startYear !== undefined &&
-      endYear !== undefined &&
-      endYear !== null &&
-      endYear < startYear
-    ) {
-      throw new BadRequestException(HISTORICAL_EVENT_ERRORS.INVALID_YEAR_RANGE);
-    }
+  private validateYearRange(
+    startYear?: number | null,
+    endYear?: number | null,
+  ): void {
+    validateHistoricalYearRange(
+      startYear,
+      endYear,
+      HISTORICAL_EVENT_ERRORS.INVALID_YEAR_RANGE,
+    );
   }
 
   private async ensureReferencesExist(dto: {
@@ -100,7 +104,19 @@ export class HistoricalEventService {
       'HistoricalEventService',
     );
 
-    this.validateYearRange(dto.startYear, dto.endYear);
+    const resolvedDate = HistoricalDateParser.resolveRangeFields({
+      dateText: dto.dateText,
+      legacyLabel: dto.eventDateNote,
+      startYear: dto.startYear,
+      startMonth: dto.startMonth,
+      startDay: dto.startDay,
+      endYear: dto.endYear,
+      endMonth: dto.endMonth,
+      endDay: dto.endDay,
+      datePrecision: dto.datePrecision,
+    });
+
+    this.validateYearRange(resolvedDate.startYear, resolvedDate.endYear);
     await this.ensureReferencesExist(dto);
 
     const slug = dto.slug?.trim()
@@ -158,13 +174,15 @@ export class HistoricalEventService {
       parentId: rest.parentId || null,
       title: rest.title.trim(),
       slug,
-      startYear: rest.startYear,
-      startMonth: rest.startMonth ?? null,
-      startDay: rest.startDay ?? null,
-      endYear: rest.endYear ?? null,
-      endMonth: rest.endMonth ?? null,
-      endDay: rest.endDay ?? null,
-      eventDateNote: rest.eventDateNote,
+      dateText: resolvedDate.dateText,
+      startYear: resolvedDate.startYear,
+      startMonth: resolvedDate.startMonth,
+      startDay: resolvedDate.startDay,
+      endYear: resolvedDate.endYear,
+      endMonth: resolvedDate.endMonth,
+      endDay: resolvedDate.endDay,
+      datePrecision: resolvedDate.datePrecision,
+      eventDateNote: rest.eventDateNote ?? resolvedDate.dateText,
       summary: rest.summary,
       description: rest.description,
       thumbnailUrl: rest.thumbnailUrl,
@@ -264,6 +282,12 @@ export class HistoricalEventService {
     const locName = locationEntity?.name || locationEntity?.historicalSite?.address || (event.metadata as any)?.rawLocation || null;
     return {
       ...event,
+      ...(event.dateText !== undefined
+        ? {
+            dateText: event.dateText ?? event.eventDateNote ?? null,
+            eventDateNote: event.eventDateNote ?? event.dateText ?? null,
+          }
+        : {}),
       locationId: (event as any).locationId ?? null,
       location: locName,
       historicalLocation: event.historicalLocation || (locationEntity ? {
@@ -325,9 +349,81 @@ export class HistoricalEventService {
   ): Promise<HistoricalEventEntityModel> {
     const existing = await this.findOne(id);
 
-    const startYear =
-      dto.startYear !== undefined ? dto.startYear : existing.startYear;
-    const endYear = dto.endYear !== undefined ? dto.endYear : existing.endYear;
+    const hasDateUpdates =
+      dto.dateText !== undefined ||
+      dto.eventDateNote !== undefined ||
+      dto.startYear !== undefined ||
+      dto.startMonth !== undefined ||
+      dto.startDay !== undefined ||
+      dto.endYear !== undefined ||
+      dto.endMonth !== undefined ||
+      dto.endDay !== undefined ||
+      dto.datePrecision !== undefined;
+
+    const resolvedDate = hasDateUpdates
+      ? HistoricalDateParser.resolveRangeFields({
+          dateText:
+            dto.dateText !== undefined
+              ? dto.dateText
+              : dto.eventDateNote !== undefined
+                ? dto.eventDateNote
+                : existing.dateText,
+          legacyLabel: dto.eventDateNote ?? existing.eventDateNote,
+          startYear:
+            dto.startYear !== undefined
+              ? dto.startYear
+              : existing.startYear !== null &&
+                  dto.dateText === undefined &&
+                  dto.eventDateNote === undefined
+                ? existing.startYear
+                : undefined,
+          startMonth:
+            dto.startMonth !== undefined
+              ? dto.startMonth
+              : existing.startMonth !== undefined &&
+                  dto.dateText === undefined &&
+                  dto.eventDateNote === undefined
+                ? existing.startMonth
+                : undefined,
+          startDay:
+            dto.startDay !== undefined
+              ? dto.startDay
+              : existing.startDay !== undefined &&
+                  dto.dateText === undefined &&
+                  dto.eventDateNote === undefined
+                ? existing.startDay
+                : undefined,
+          endYear:
+            dto.endYear !== undefined
+              ? dto.endYear
+              : existing.endYear !== undefined &&
+                  dto.dateText === undefined &&
+                  dto.eventDateNote === undefined
+                ? existing.endYear
+                : undefined,
+          endMonth:
+            dto.endMonth !== undefined
+              ? dto.endMonth
+              : existing.endMonth !== undefined &&
+                  dto.dateText === undefined &&
+                  dto.eventDateNote === undefined
+                ? existing.endMonth
+                : undefined,
+          endDay:
+            dto.endDay !== undefined
+              ? dto.endDay
+              : existing.endDay !== undefined &&
+                  dto.dateText === undefined &&
+                  dto.eventDateNote === undefined
+                ? existing.endDay
+                : undefined,
+          datePrecision:
+            dto.datePrecision !== undefined ? dto.datePrecision : undefined,
+        })
+      : null;
+
+    const startYear = resolvedDate ? resolvedDate.startYear : existing.startYear;
+    const endYear = resolvedDate ? resolvedDate.endYear : existing.endYear;
     this.validateYearRange(startYear, endYear);
 
     await this.ensureReferencesExist(dto);
@@ -381,13 +477,22 @@ export class HistoricalEventService {
     const updateModel: UpdateHistoricalEventDomainModel = {
       ...(rest.title !== undefined ? { title: rest.title.trim() } : {}),
       ...(rest.slug !== undefined ? { slug: rest.slug } : {}),
-      ...(rest.startYear !== undefined ? { startYear: rest.startYear } : {}),
-      ...(rest.startMonth !== undefined ? { startMonth: rest.startMonth } : {}),
-      ...(rest.startDay !== undefined ? { startDay: rest.startDay } : {}),
-      ...(rest.endYear !== undefined ? { endYear: rest.endYear } : {}),
-      ...(rest.endMonth !== undefined ? { endMonth: rest.endMonth } : {}),
-      ...(rest.endDay !== undefined ? { endDay: rest.endDay } : {}),
-      ...(rest.eventDateNote !== undefined ? { eventDateNote: rest.eventDateNote } : {}),
+      ...(resolvedDate
+        ? {
+            dateText: resolvedDate.dateText,
+            eventDateNote:
+              rest.eventDateNote !== undefined
+                ? rest.eventDateNote
+                : resolvedDate.dateText,
+            startYear: resolvedDate.startYear,
+            startMonth: resolvedDate.startMonth,
+            startDay: resolvedDate.startDay,
+            endYear: resolvedDate.endYear,
+            endMonth: resolvedDate.endMonth,
+            endDay: resolvedDate.endDay,
+            datePrecision: resolvedDate.datePrecision,
+          }
+        : {}),
       ...(rest.summary !== undefined ? { summary: rest.summary } : {}),
       ...(rest.description !== undefined ? { description: rest.description } : {}),
       ...(rest.thumbnailUrl !== undefined ? { thumbnailUrl: rest.thumbnailUrl } : {}),
@@ -408,7 +513,7 @@ export class HistoricalEventService {
     const updated = await this.repository.update(id, updateModel);
 
     await this.invalidateCache(id);
-    return updated;
+    return this.formatEvent(updated);
   }
 
   /**

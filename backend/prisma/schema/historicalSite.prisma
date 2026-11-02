@@ -1,0 +1,46 @@
+// ================================
+// HistoricalSite (Di tích / Địa danh lịch sử - 1-1 với HistoricalEntity)
+// ================================
+
+model HistoricalSite {
+  entityId             String         @id @map("entity_id")
+  siteType             String         @map("site_type") @db.VarChar(100)
+  address              String?        @db.Text
+  latitude             Decimal?       @db.Decimal(10, 7)
+  longitude            Decimal?       @db.Decimal(10, 7)
+  constructionDateText String?        @map("construction_date_text") @db.VarChar(150)
+  constructionYear     Int?           @map("construction_year")
+  constructionMonth    Int?           @map("construction_month")
+  constructionDay      Int?           @map("construction_day")
+  constructionEndYear  Int?           @map("construction_end_year")
+  datePrecision        DatePrecision? @map("date_precision")
+
+  // Cột tương thích ngược giữ song song với constructionDateText
+  constructionLabel    String?        @map("construction_label") @db.VarChar(150)
+
+  preservationStatus   String?        @map("preservation_status") @db.VarChar(100)
+  recognitionLevel     String?        @map("recognition_level") @db.VarChar(100)
+  managingAgency       String?        @map("managing_agency") @db.VarChar(255)
+
+  // Danh mục dùng chung (taxonomy_terms) — thay dần cho các cột chữ site_type / preservation_status /
+  // recognition_level. Cột chữ cũ giữ song song trong giai đoạn chuyển đổi.
+  siteTypeId           String?        @map("site_type_id")
+  preservationId       String?        @map("preservation_id")
+  rankId               String?        @map("rank_id")
+  /**
+   * Phần ghi chú còn lại sau khi quy hiện trạng về danh mục — chỉ hiển thị.
+   */
+  statusNote           String?        @map("status_note") @db.Text
+
+  entity       HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  siteTypeTerm TaxonomyTerm?    @relation("SiteTypeTerm", fields: [siteTypeId], references: [id], onDelete: SetNull)
+  preservation TaxonomyTerm?    @relation("SitePreservationTerm", fields: [preservationId], references: [id], onDelete: SetNull)
+  rank         TaxonomyTerm?    @relation("SiteRankTerm", fields: [rankId], references: [id], onDelete: SetNull)
+
+  @@index([siteType])
+  @@index([siteTypeId])
+  @@index([preservationId])
+  @@index([rankId])
+  @@index([constructionYear])
+  @@map("historical_sites")
+}

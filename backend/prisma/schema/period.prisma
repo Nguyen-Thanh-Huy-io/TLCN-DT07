@@ -10,6 +10,7 @@ model Period {
   slug String @unique @db.VarChar(255)
 
   // Niên đại có thể không xác định
+  dateText      String?        @map("date_text") @db.VarChar(150)
   startYear     Int?           @map("start_year")
   endYear       Int?           @map("end_year")
   timeLabel     String?        @map("time_label") @db.VarChar(150)

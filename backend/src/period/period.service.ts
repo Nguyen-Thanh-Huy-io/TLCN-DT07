@@ -1,7 +1,6 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
@@ -17,6 +16,10 @@ import { Period, ContentStatus, Prisma } from '@prisma/client';
 import { SlugService } from '../common/services/slug.service';
 import { TaxonomyService } from '../taxonomy/taxonomy.service';
 import { TAXONOMY_GROUPS } from '../taxonomy/taxonomy.constant';
+import {
+  HistoricalDateParser,
+  validateHistoricalYearRange,
+} from '../common/utils/historical-date.parser';
 
 @Injectable()
 export class PeriodService implements IPeriodService {
@@ -48,24 +51,38 @@ export class PeriodService implements IPeriodService {
       'PeriodService',
     );
 
-    // Business validation: endYear >= startYear nếu có endYear
-    if (
-      createPeriodDto.startYear != null && createPeriodDto.endYear != null && createPeriodDto.endYear < createPeriodDto.startYear
-    ) {
-      throw new BadRequestException(
-        'endYear must be greater than or equal to startYear',
-      );
-    }
+    const resolvedDate = HistoricalDateParser.resolveRangeFields({
+      dateText: createPeriodDto.dateText,
+      legacyLabel: createPeriodDto.timeLabel,
+      startYear: createPeriodDto.startYear,
+      endYear: createPeriodDto.endYear,
+      datePrecision: createPeriodDto.datePrecision,
+    });
 
-    const slug = await this.slugService.generateUnique(createPeriodDto.name, async (candidate) => (await this.prisma.period.count({ where: { slug: candidate } })) > 0);
+    // Business validation: không có năm 0 và endYear >= startYear nếu có cả hai
+    validateHistoricalYearRange(
+      resolvedDate.startYear,
+      resolvedDate.endYear,
+      'endYear must be greater than or equal to startYear',
+    );
+
+    const slug = await this.slugService.generateUnique(
+      createPeriodDto.name,
+      async (candidate) =>
+        (await this.prisma.period.count({ where: { slug: candidate } })) > 0,
+    );
     const period = await this.prisma.period.create({
       data: {
+        parentId: createPeriodDto.parentId ?? null,
         name: createPeriodDto.name,
         slug,
         region: createPeriodDto.region,
         regionId: await this.resolveRegionId(createPeriodDto.region),
-        startYear: createPeriodDto.startYear,
-        endYear: createPeriodDto.endYear,
+        dateText: resolvedDate.dateText,
+        timeLabel: createPeriodDto.timeLabel ?? resolvedDate.dateText,
+        startYear: resolvedDate.startYear,
+        endYear: resolvedDate.endYear,
+        datePrecision: resolvedDate.datePrecision,
         description: createPeriodDto.description,
         coverImageUrl: createPeriodDto.coverImageUrl,
         displayOrder: createPeriodDto.displayOrder ?? 0,
@@ -181,22 +198,70 @@ export class PeriodService implements IPeriodService {
   async update(id: string, updatePeriodDto: UpdatePeriodDto): Promise<Period> {
     const existing = await this.findOne(id);
 
-    const startYear = updatePeriodDto.startYear ?? existing.startYear;
-    const endYear =
-      updatePeriodDto.endYear !== undefined
-        ? updatePeriodDto.endYear
-        : existing.endYear;
+    const hasDateUpdates =
+      updatePeriodDto.dateText !== undefined ||
+      updatePeriodDto.timeLabel !== undefined ||
+      updatePeriodDto.startYear !== undefined ||
+      updatePeriodDto.endYear !== undefined ||
+      updatePeriodDto.datePrecision !== undefined;
 
-    if (startYear != null && endYear != null && endYear < startYear) {
-      throw new BadRequestException(
-        'endYear must be greater than or equal to startYear',
-      );
-    }
+    const resolvedDate = hasDateUpdates
+      ? HistoricalDateParser.resolveRangeFields({
+          dateText:
+            updatePeriodDto.dateText !== undefined
+              ? updatePeriodDto.dateText
+              : updatePeriodDto.timeLabel !== undefined
+                ? updatePeriodDto.timeLabel
+                : existing.dateText,
+          legacyLabel: updatePeriodDto.timeLabel ?? existing.timeLabel,
+          startYear:
+            updatePeriodDto.startYear !== undefined
+              ? updatePeriodDto.startYear
+              : existing.startYear !== null &&
+                  updatePeriodDto.dateText === undefined &&
+                  updatePeriodDto.timeLabel === undefined
+                ? existing.startYear
+                : undefined,
+          endYear:
+            updatePeriodDto.endYear !== undefined
+              ? updatePeriodDto.endYear
+              : existing.endYear !== null &&
+                  updatePeriodDto.dateText === undefined &&
+                  updatePeriodDto.timeLabel === undefined
+                ? existing.endYear
+                : undefined,
+          datePrecision:
+            updatePeriodDto.datePrecision !== undefined
+              ? updatePeriodDto.datePrecision
+              : undefined,
+        })
+      : null;
+
+    const startYear = resolvedDate ? resolvedDate.startYear : existing.startYear;
+    const endYear = resolvedDate ? resolvedDate.endYear : existing.endYear;
+
+    validateHistoricalYearRange(
+      startYear,
+      endYear,
+      'endYear must be greater than or equal to startYear',
+    );
 
     const updated = await this.prisma.period.update({
       where: { id },
       data: {
         ...updatePeriodDto,
+        ...(resolvedDate
+          ? {
+              dateText: resolvedDate.dateText,
+              timeLabel:
+                updatePeriodDto.timeLabel !== undefined
+                  ? updatePeriodDto.timeLabel
+                  : resolvedDate.dateText,
+              startYear: resolvedDate.startYear,
+              endYear: resolvedDate.endYear,
+              datePrecision: resolvedDate.datePrecision,
+            }
+          : {}),
         ...(updatePeriodDto.region !== undefined
           ? { regionId: await this.resolveRegionId(updatePeriodDto.region) }
           : {}),

@@ -1,4 +1,9 @@
-import { ContentStatus, EventCategory, MediaType } from '@/constants/enums';
+import {
+  ContentStatus,
+  DatePrecision,
+  EventCategory,
+  MediaType,
+} from '@/constants/enums';
 import { PaginatedResult, parsePaginatedResponse } from '../api';
 import api from '../api';
 
@@ -35,12 +40,14 @@ export interface HistoricalEventItem {
   parentId?: string | null;
   title: string;
   slug?: string | null;
-  startYear: number;
+  dateText?: string | null;
+  startYear: number | null;
   startMonth?: number | null;
   startDay?: number | null;
   endYear?: number | null;
   endMonth?: number | null;
   endDay?: number | null;
+  datePrecision?: DatePrecision | null;
   eventDateNote?: string | null;
   summary?: string | null;
   description?: string | null;
@@ -57,7 +64,7 @@ export interface HistoricalEventItem {
     id: string;
     title: string;
     slug?: string;
-    startYear?: number;
+    startYear?: number | null;
   } | null;
   children?: HistoricalEventItem[];
   _count?: {
@@ -111,12 +118,14 @@ export interface SaveHistoricalEventPayload {
   parentId?: string | null;
   title: string;
   slug?: string;
-  startYear: number;
+  dateText?: string | null;
+  startYear?: number | null;
   startMonth?: number | null;
   startDay?: number | null;
   endYear?: number | null;
   endMonth?: number | null;
   endDay?: number | null;
+  datePrecision?: DatePrecision | null;
   eventDateNote?: string;
   summary?: string;
   description?: string;
@@ -210,4 +219,3 @@ export const HistoricalEventApiService = {
     return response.data?.data ?? response.data;
   },
 };
-

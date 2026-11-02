@@ -456,5 +456,31 @@ export enum EventListViewMode {
   FLAT = 'FLAT',
 }
 
+/**
+ * Độ chính xác thời gian lịch sử dùng chung (Đồng bộ với Prisma DatePrecision)
+ */
+export enum DatePrecision {
+  DAY = 'DAY',
+  MONTH = 'MONTH',
+  YEAR = 'YEAR',
+  DECADE = 'DECADE',
+  CENTURY = 'CENTURY',
+  APPROXIMATE = 'APPROXIMATE',
+  RANGE = 'RANGE',
+  UNKNOWN = 'UNKNOWN',
+}
+
+export const DATE_PRECISION_LABELS: Record<DatePrecision, string> = {
+  [DatePrecision.DAY]: 'Ngày cụ thể (Ngày/Tháng/Năm)',
+  [DatePrecision.MONTH]: 'Tháng & Năm',
+  [DatePrecision.YEAR]: 'Năm cụ thể',
+  [DatePrecision.DECADE]: 'Thập niên',
+  [DatePrecision.CENTURY]: 'Thế kỷ',
+  [DatePrecision.APPROXIMATE]: 'Ước lượng / Khoảng',
+  [DatePrecision.RANGE]: 'Khoảng thời gian (Từ năm – Đến năm)',
+  [DatePrecision.UNKNOWN]: 'Chưa xác định',
+};
+
+
 
 

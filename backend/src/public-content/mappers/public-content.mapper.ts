@@ -30,6 +30,7 @@ import {
   PRESERVATION_CATEGORIES,
   normalizePreservation,
 } from '../preservation-status.constant';
+import { compareHistoricalDates } from '../../common/utils/historical-date.parser';
 
 export function formatYear(year: number): string {
   return year < 0 ? `${Math.abs(year)} ${ERA_SUFFIX.BCE}` : `${year}`;
@@ -79,7 +80,9 @@ export class PublicContentMapper {
       slug: period.slug,
       name: period.name,
       timeLabel:
-        period.timeLabel || buildTimeLabel(period.startYear, period.endYear),
+        period.dateText ||
+        period.timeLabel ||
+        buildTimeLabel(period.startYear, period.endYear),
       startYear: period.startYear,
       endYear: period.endYear,
       description: period.description,
@@ -150,8 +153,10 @@ export class PublicContentMapper {
         famousQuote: textOrNull(profile.famousQuote),
       },
       aliases: entity.aliases,
-      birthDateLabel: entity.person?.birthDateLabel ?? null,
-      deathDateLabel: entity.person?.deathDateLabel ?? null,
+      birthDateLabel:
+        entity.person?.birthDateText ?? entity.person?.birthDateLabel ?? null,
+      deathDateLabel:
+        entity.person?.deathDateText ?? entity.person?.deathDateLabel ?? null,
       biography: entity.person?.biography ?? null,
       occupation: entity.person?.occupation ?? null,
       titles: entity.person?.titles ?? [],
@@ -162,8 +167,9 @@ export class PublicContentMapper {
           id: ee.event.id,
           slug: ee.event.slug,
           title: ee.event.title,
-          startYear: ee.event.startYear,
-          eventDateNote: ee.event.eventDateNote,
+          startYear: ee.event.startYear ?? null,
+          eventDateNote:
+            ee.event.dateText ?? ee.event.eventDateNote ?? null,
           description: ee.event.description,
           category: ee.event.category,
           categoryIds: ee.event.categoryIds ?? [],
@@ -172,7 +178,7 @@ export class PublicContentMapper {
           roleLabel: ee.roleLabel,
           isPrimary: ee.isPrimary,
         }))
-        .sort((a, b) => a.startYear - b.startYear),
+        .sort(compareHistoricalDates),
       relationships: [
         ...entity.outgoingRelations.map((rel) => ({
           figureId: rel.targetEntity.id,
@@ -229,8 +235,8 @@ export class PublicContentMapper {
       id: event.id,
       slug: event.slug,
       title: event.title,
-      startYear: event.startYear,
-      eventDateNote: event.eventDateNote,
+      startYear: event.startYear ?? null,
+      eventDateNote: event.dateText ?? event.eventDateNote ?? null,
       location: locName,
       description: event.description,
       imageUrl: event.thumbnailUrl,
@@ -321,7 +327,8 @@ export class PublicContentMapper {
       rankCode,
       rankLabel: site?.rank?.label ?? null,
       recognitionLevel: site?.recognitionLevel ?? null,
-      constructionLabel: site?.constructionLabel ?? null,
+      constructionLabel:
+        site?.constructionDateText ?? site?.constructionLabel ?? null,
       periodSlug: entity.period?.slug ?? null,
       ancientNames: entity.aliases ?? [],
       preservationStatus: site?.preservationStatus ?? null,

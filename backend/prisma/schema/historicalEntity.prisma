@@ -15,15 +15,17 @@ model HistoricalEntity {
   imageCaption String?              @map("image_caption") @db.VarChar(255)
   metadata     Json?                @db.JsonB
 
-  isFeatured   Boolean       @default(false) @map("is_featured")
-  displayOrder Int           @default(0) @map("display_order")
+  isFeatured    Boolean        @default(false) @map("is_featured")
+  displayOrder  Int            @default(0) @map("display_order")
   /// Thời gian tồn tại của triều đại / quốc gia / chính thể, tổ chức, lực lượng (nhân vật dùng
   /// năm sinh – mất ở bảng persons).
-  startYear    Int?          @map("start_year")
-  endYear      Int?          @map("end_year")
-  status       ContentStatus @default(DRAFT)
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  dateText      String?        @map("date_text") @db.VarChar(150)
+  startYear     Int?           @map("start_year")
+  endYear       Int?           @map("end_year")
+  datePrecision DatePrecision? @map("date_precision")
+  status        ContentStatus  @default(DRAFT)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
 
   // Relations
   period         Period?         @relation(fields: [periodId], references: [id], onDelete: SetNull)
@@ -45,63 +47,8 @@ model HistoricalEntity {
   @@index([status])
   @@index([isFeatured])
   @@index([displayOrder])
+  @@index([startYear, endYear])
   @@map("historical_entities")
-}
-
-// Bảng con chuyên biệt cho Thực thể dạng Nhân vật lịch sử (1-1 với HistoricalEntity)
-model Person {
-  entityId       String   @id @map("entity_id")
-  birthYear      Int?     @map("birth_year")
-  deathYear      Int?     @map("death_year")
-  birthDateLabel String?  @map("birth_date_label") @db.VarChar(100)
-  deathDateLabel String?  @map("death_date_label") @db.VarChar(100)
-  biography      String?  @db.Text
-  occupation     String?  @db.VarChar(255)
-  titles         String[] @default([])
-  /// Mã vai trò nhân vật (nhóm FIGURE_ROLE trong danh mục dùng chung) — thêm vai trò mới từ CMS.
-  roles          String[] @default([])
-  /// Id tương ứng của roles, trigger tự đồng bộ.
-  roleIds        String[] @default([]) @map("role_ids")
-
-  entity HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
-
-  @@index([roleIds], type: Gin)
-  @@map("persons")
-}
-
-// Bảng con chuyên biệt cho Thực thể dạng Di tích / Địa danh lịch sử (1-1 với HistoricalEntity)
-model HistoricalSite {
-  entityId           String   @id @map("entity_id")
-  siteType           String   @map("site_type") @db.VarChar(100)
-  address            String?  @db.Text
-  latitude           Decimal? @db.Decimal(10, 7)
-  longitude          Decimal? @db.Decimal(10, 7)
-  constructionYear   Int?     @map("construction_year")
-  constructionLabel  String?  @map("construction_label") @db.VarChar(100)
-  preservationStatus String?  @map("preservation_status") @db.VarChar(100)
-  recognitionLevel   String?  @map("recognition_level") @db.VarChar(100)
-  managingAgency     String?  @map("managing_agency") @db.VarChar(255)
-
-  // Danh mục dùng chung (taxonomy_terms) — thay dần cho các cột chữ site_type / preservation_status /
-  // recognition_level. Cột chữ cũ giữ song song trong giai đoạn chuyển đổi.
-  siteTypeId     String? @map("site_type_id")
-  preservationId String? @map("preservation_id")
-  rankId         String? @map("rank_id")
-  /**
-   * Phần ghi chú còn lại sau khi quy hiện trạng về danh mục — chỉ hiển thị.
-   */
-  statusNote     String? @map("status_note") @db.Text
-
-  entity       HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  siteTypeTerm TaxonomyTerm?    @relation("SiteTypeTerm", fields: [siteTypeId], references: [id], onDelete: SetNull)
-  preservation TaxonomyTerm?    @relation("SitePreservationTerm", fields: [preservationId], references: [id], onDelete: SetNull)
-  rank         TaxonomyTerm?    @relation("SiteRankTerm", fields: [rankId], references: [id], onDelete: SetNull)
-
-  @@index([siteType])
-  @@index([siteTypeId])
-  @@index([preservationId])
-  @@index([rankId])
-  @@map("historical_sites")
 }
 
 // Bảng quan hệ hồi quy N-N giữa các thực thể lịch sử (Knowledge Graph)

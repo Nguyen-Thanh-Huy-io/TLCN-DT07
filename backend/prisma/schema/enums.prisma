@@ -207,11 +207,14 @@ enum VerificationStatus {
   DRAFT // Bản nháp đang nghiên cứu
 }
 
-// Độ chính xác niên đại cho Thời kỳ lịch sử
+// Độ chính xác niên đại dùng chung cho toàn bộ dữ liệu lịch sử
 enum DatePrecision {
-  EXACT_YEAR
-  APPROXIMATE
+  DAY
+  MONTH
+  YEAR
+  DECADE
   CENTURY
-  MILLENNIUM
+  APPROXIMATE
+  RANGE
   UNKNOWN
 }

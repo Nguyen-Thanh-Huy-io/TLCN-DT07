@@ -34,6 +34,7 @@ import {
   PUBLIC_CONTENT_MESSAGES,
   PUBLIC_CONTENT_STATUS,
 } from './public-content.constant';
+import { compareHistoricalDates } from '../common/utils/historical-date.parser';
 
 const CONCURRENT_EVENTS_LIMIT = 12;
 /** Di tích kèm các giá trị danh mục dùng chung (loại, hiện trạng, xếp hạng). */
@@ -557,7 +558,7 @@ export class LandingContentFacade {
 
     const children = periods
       .filter((p) => p.parentId === period.id)
-      .sort((a, b) => (a.startYear ?? 0) - (b.startYear ?? 0))
+      .sort(compareHistoricalDates)
       .map((child) => ({
         ...PublicContentMapper.toPeriod(child),
         eventCount: events.filter((e) => e.periodId === child.id).length,
@@ -656,7 +657,7 @@ export class LandingContentFacade {
     const relatedEvents = entity.eventEntities
       .map((ee) => ee.event)
       .filter((e) => e.status === PUBLIC_CONTENT_STATUS)
-      .sort((a, b) => a.startYear - b.startYear);
+      .sort(compareHistoricalDates);
 
     return {
       ...PublicContentMapper.toFigure(entity),

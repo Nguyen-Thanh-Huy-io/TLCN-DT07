@@ -1,12 +1,16 @@
+import { DatePrecision } from '@prisma/client';
+
 export interface CreateHistoricalEventDomainModel {
   title: string;
   slug: string;
-  startYear: number;
+  dateText?: string | null;
+  startYear?: number | null;
   startMonth?: number | null;
   startDay?: number | null;
   endYear?: number | null;
   endMonth?: number | null;
   endDay?: number | null;
+  datePrecision?: DatePrecision | null;
   eventDateNote?: string | null;
   summary?: string | null;
   description?: string | null;
@@ -39,12 +43,14 @@ export interface CreateHistoricalEventDomainModel {
 export interface UpdateHistoricalEventDomainModel {
   title?: string;
   slug?: string;
-  startYear?: number;
+  dateText?: string | null;
+  startYear?: number | null;
   startMonth?: number | null;
   startDay?: number | null;
   endYear?: number | null;
   endMonth?: number | null;
   endDay?: number | null;
+  datePrecision?: DatePrecision | null;
   eventDateNote?: string | null;
   summary?: string | null;
   description?: string | null;
@@ -78,12 +84,14 @@ export interface HistoricalEventEntityModel {
   id: string;
   title: string;
   slug: string;
-  startYear: number;
+  dateText?: string | null;
+  startYear: number | null;
   startMonth?: number | null;
   startDay?: number | null;
   endYear?: number | null;
   endMonth?: number | null;
   endDay?: number | null;
+  datePrecision?: DatePrecision | null;
   eventDateNote?: string | null;
   summary?: string | null;
   description?: string | null;

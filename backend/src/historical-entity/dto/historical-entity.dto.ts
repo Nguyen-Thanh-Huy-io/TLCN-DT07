@@ -9,12 +9,14 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import {
   ContentStatus,
+  DatePrecision,
   HistoricalEntityType,
   MediaType,
 } from '@prisma/client';
@@ -110,29 +112,155 @@ export class CreateHistoricalEntityDto {
   @MaxLength(255)
   imageCaption?: string;
 
+  // ==========================================
+  // Nhóm trường thời gian cho HistoricalEntity (Triều đại / Tổ chức / Thực thể)
+  // ==========================================
   @ApiPropertyOptional({
-    example: 1228,
+    example: '1225–1400',
     description:
-      'Năm sinh hoặc năm thành lập (hỗ trợ số âm cho TCN) - Tương thích ngược',
+      'Thời gian tồn tại nguyên bản của Thực thể / Triều đại (tự chuẩn hóa sang startYear, endYear, datePrecision)',
+    maxLength: 150,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(150)
+  dateText?: string;
+
+  @ApiPropertyOptional({
+    example: 544,
+    description:
+      'Năm bắt đầu tồn tại — triều đại / quốc gia / chính thể, tổ chức, lực lượng (âm = TCN)',
   })
   @Type(() => Number)
   @IsInt()
   @IsOptional()
-  birthYear?: number;
+  startYear?: number | null;
+
+  @ApiPropertyOptional({
+    example: 602,
+    description: 'Năm kết thúc tồn tại (để trống nếu còn tồn tại / chưa rõ)',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @IsOptional()
+  endYear?: number | null;
+
+  @ApiPropertyOptional({
+    enum: DatePrecision,
+    example: DatePrecision.RANGE,
+    description: 'Độ chính xác thời gian tồn tại của Thực thể / Di tích',
+  })
+  @IsEnum(DatePrecision)
+  @IsOptional()
+  datePrecision?: DatePrecision;
+
+  // ==========================================
+  // Nhóm trường thời gian tách riêng Ngày sinh / Ngày mất cho Person
+  // ==========================================
+  @ApiPropertyOptional({
+    example: 'Năm 1890',
+    description: 'Ngày sinh nguyên bản (Dành cho Person)',
+    maxLength: 100,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  birthDateText?: string;
+
+  @ApiPropertyOptional({
+    example: 1228,
+    description: 'Năm sinh (hỗ trợ số âm cho TCN)',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @IsOptional()
+  birthYear?: number | null;
+
+  @ApiPropertyOptional({
+    example: 5,
+    description: 'Tháng sinh (1..12, tùy chọn)',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  @IsOptional()
+  birthMonth?: number | null;
+
+  @ApiPropertyOptional({
+    example: 19,
+    description: 'Ngày sinh (1..31, tùy chọn)',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  @IsOptional()
+  birthDay?: number | null;
+
+  @ApiPropertyOptional({
+    enum: DatePrecision,
+    example: DatePrecision.YEAR,
+    description: 'Độ chính xác ngày sinh (Dành cho Person)',
+  })
+  @IsEnum(DatePrecision)
+  @IsOptional()
+  birthPrecision?: DatePrecision;
+
+  @ApiPropertyOptional({
+    example: 'Ngày 2/9/1969',
+    description: 'Ngày mất nguyên bản (Dành cho Person)',
+    maxLength: 100,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  deathDateText?: string;
 
   @ApiPropertyOptional({
     example: 1300,
-    description: 'Năm mất hoặc năm kết thúc hoạt động - Tương thích ngược',
+    description: 'Năm mất (hỗ trợ số âm cho TCN)',
   })
   @Type(() => Number)
   @IsInt()
   @IsOptional()
-  deathYear?: number;
+  deathYear?: number | null;
+
+  @ApiPropertyOptional({
+    example: 9,
+    description: 'Tháng mất (1..12, tùy chọn)',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  @IsOptional()
+  deathMonth?: number | null;
+
+  @ApiPropertyOptional({
+    example: 2,
+    description: 'Ngày mất (1..31, tùy chọn)',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  @IsOptional()
+  deathDay?: number | null;
+
+  @ApiPropertyOptional({
+    enum: DatePrecision,
+    example: DatePrecision.DAY,
+    description: 'Độ chính xác ngày mất (Dành cho Person)',
+  })
+  @IsEnum(DatePrecision)
+  @IsOptional()
+  deathPrecision?: DatePrecision;
 
   @ApiPropertyOptional({
     example: 'Khoảng năm 1228',
     description:
-      'Nhãn hiển thị ngày sinh/thành lập dạng chữ - Tương thích ngược',
+      'Nhãn hiển thị ngày sinh/thành lập dạng chữ - Tương thích ngược với birthDateText',
     maxLength: 100,
   })
   @IsString()
@@ -142,7 +270,8 @@ export class CreateHistoricalEntityDto {
 
   @ApiPropertyOptional({
     example: 'Mùa thu năm Canh Tý (1300)',
-    description: 'Nhãn hiển thị ngày mất/kết thúc dạng chữ - Tương thích ngược',
+    description:
+      'Nhãn hiển thị ngày mất/kết thúc dạng chữ - Tương thích ngược với deathDateText',
     maxLength: 100,
   })
   @IsString()
@@ -180,23 +309,6 @@ export class CreateHistoricalEntityDto {
   roles?: string[];
 
   @ApiPropertyOptional({
-    example: 544,
-    description:
-      'Năm bắt đầu tồn tại — triều đại / quốc gia / chính thể, tổ chức, lực lượng (âm = TCN)',
-  })
-  @IsInt()
-  @IsOptional()
-  startYear?: number;
-
-  @ApiPropertyOptional({
-    example: 602,
-    description: 'Năm kết thúc tồn tại (để trống nếu còn tồn tại / chưa rõ)',
-  })
-  @IsInt()
-  @IsOptional()
-  endYear?: number;
-
-  @ApiPropertyOptional({
     example:
       'Sinh ra trong hoàng tộc nhà Trần, ông sớm nổi tiếng văn võ song toàn...',
     description: 'Tiểu sử chi tiết (Dành cho Person)',
@@ -205,6 +317,9 @@ export class CreateHistoricalEntityDto {
   @IsOptional()
   biography?: string;
 
+  // ==========================================
+  // Nhóm trường cho HistoricalSite (Di tích lịch sử)
+  // ==========================================
   @ApiPropertyOptional({
     example: 'Di tích quốc gia đặc biệt',
     description:
@@ -239,6 +354,16 @@ export class CreateHistoricalEntityDto {
   longitude?: number;
 
   @ApiPropertyOptional({
+    example: 'Thế kỷ XIV',
+    description: 'Thời gian xây dựng nguyên bản (Dành cho HistoricalSite)',
+    maxLength: 150,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(150)
+  constructionDateText?: string;
+
+  @ApiPropertyOptional({
     example: 1300,
     description:
       'Năm xây dựng hoặc khởi dựng di tích (Dành cho HistoricalSite)',
@@ -246,14 +371,49 @@ export class CreateHistoricalEntityDto {
   @Type(() => Number)
   @IsInt()
   @IsOptional()
-  constructionYear?: number;
+  constructionYear?: number | null;
+
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Tháng xây dựng (1..12, tùy chọn, dành cho HistoricalSite)',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  @IsOptional()
+  constructionMonth?: number | null;
+
+  @ApiPropertyOptional({
+    example: 15,
+    description: 'Ngày xây dựng (1..31, tùy chọn, dành cho HistoricalSite)',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  @IsOptional()
+  constructionDay?: number | null;
+
+  @ApiPropertyOptional({
+    example: 1320,
+    description:
+      'Năm hoàn thành xây dựng nếu di tích xây dựng qua nhiều giai đoạn (Dành cho HistoricalSite)',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @IsOptional()
+  constructionEndYear?: number | null;
 
   @ApiPropertyOptional({
     example: 'Thế kỷ XIV',
-    description: 'Nhãn thời gian xây dựng (Dành cho HistoricalSite)',
+    description:
+      'Nhãn thời gian xây dựng tương thích ngược với constructionDateText (Dành cho HistoricalSite)',
+    maxLength: 150,
   })
   @IsString()
   @IsOptional()
+  @MaxLength(150)
   constructionLabel?: string;
 
   @ApiPropertyOptional({
@@ -484,8 +644,18 @@ export class EntityMediaResponseDto {
 
 export class PersonResponseDto {
   @ApiProperty() entityId: string;
+  @ApiPropertyOptional({ nullable: true }) birthDateText?: string | null;
   @ApiPropertyOptional({ nullable: true }) birthYear?: number | null;
+  @ApiPropertyOptional({ nullable: true }) birthMonth?: number | null;
+  @ApiPropertyOptional({ nullable: true }) birthDay?: number | null;
+  @ApiPropertyOptional({ enum: DatePrecision, nullable: true })
+  birthPrecision?: DatePrecision | null;
+  @ApiPropertyOptional({ nullable: true }) deathDateText?: string | null;
   @ApiPropertyOptional({ nullable: true }) deathYear?: number | null;
+  @ApiPropertyOptional({ nullable: true }) deathMonth?: number | null;
+  @ApiPropertyOptional({ nullable: true }) deathDay?: number | null;
+  @ApiPropertyOptional({ enum: DatePrecision, nullable: true })
+  deathPrecision?: DatePrecision | null;
   @ApiPropertyOptional({ nullable: true }) birthDateLabel?: string | null;
   @ApiPropertyOptional({ nullable: true }) deathDateLabel?: string | null;
   @ApiPropertyOptional({ nullable: true }) biography?: string | null;
@@ -499,7 +669,13 @@ export class HistoricalSiteResponseDto {
   @ApiPropertyOptional({ nullable: true }) address?: string | null;
   @ApiPropertyOptional({ nullable: true }) latitude?: number | null;
   @ApiPropertyOptional({ nullable: true }) longitude?: number | null;
+  @ApiPropertyOptional({ nullable: true }) constructionDateText?: string | null;
   @ApiPropertyOptional({ nullable: true }) constructionYear?: number | null;
+  @ApiPropertyOptional({ nullable: true }) constructionMonth?: number | null;
+  @ApiPropertyOptional({ nullable: true }) constructionDay?: number | null;
+  @ApiPropertyOptional({ nullable: true }) constructionEndYear?: number | null;
+  @ApiPropertyOptional({ enum: DatePrecision, nullable: true })
+  datePrecision?: DatePrecision | null;
   @ApiPropertyOptional({ nullable: true }) constructionLabel?: string | null;
   @ApiPropertyOptional({ nullable: true }) preservationStatus?: string | null;
   @ApiPropertyOptional({ nullable: true }) recognitionLevel?: string | null;
@@ -518,8 +694,23 @@ export class HistoricalEntityResponseDto {
   @ApiProperty({ type: [String] }) aliases: string[];
   @ApiPropertyOptional({ nullable: true }) imageUrl?: string | null;
   @ApiPropertyOptional({ nullable: true }) imageCaption?: string | null;
+  @ApiPropertyOptional({ nullable: true }) dateText?: string | null;
+  @ApiPropertyOptional({ nullable: true }) startYear?: number | null;
+  @ApiPropertyOptional({ nullable: true }) endYear?: number | null;
+  @ApiPropertyOptional({ enum: DatePrecision, nullable: true })
+  datePrecision?: DatePrecision | null;
+  @ApiPropertyOptional({ nullable: true }) birthDateText?: string | null;
   @ApiPropertyOptional({ nullable: true }) birthYear?: number | null;
+  @ApiPropertyOptional({ nullable: true }) birthMonth?: number | null;
+  @ApiPropertyOptional({ nullable: true }) birthDay?: number | null;
+  @ApiPropertyOptional({ enum: DatePrecision, nullable: true })
+  birthPrecision?: DatePrecision | null;
+  @ApiPropertyOptional({ nullable: true }) deathDateText?: string | null;
   @ApiPropertyOptional({ nullable: true }) deathYear?: number | null;
+  @ApiPropertyOptional({ nullable: true }) deathMonth?: number | null;
+  @ApiPropertyOptional({ nullable: true }) deathDay?: number | null;
+  @ApiPropertyOptional({ enum: DatePrecision, nullable: true })
+  deathPrecision?: DatePrecision | null;
   @ApiPropertyOptional({ nullable: true }) birthDateLabel?: string | null;
   @ApiPropertyOptional({ nullable: true }) deathDateLabel?: string | null;
   @ApiPropertyOptional({ nullable: true }) metadata?: Record<

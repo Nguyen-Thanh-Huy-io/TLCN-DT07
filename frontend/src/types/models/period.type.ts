@@ -1,4 +1,6 @@
-import { ContentStatus } from '@/constants/enums';
+import { ContentStatus, DatePrecision } from '@/constants/enums';
+
+export { DatePrecision };
 
 export interface PeriodItem {
   id: string;
@@ -14,8 +16,10 @@ export interface PeriodItem {
   children?: Array<{
     id: string;
     name: string;
+    dateText?: string | null;
     startYear?: number | null;
     endYear?: number | null;
+    datePrecision?: DatePrecision | null;
     timeLabel?: string | null;
     status?: ContentStatus;
     displayOrder?: number;
@@ -35,8 +39,10 @@ export interface PeriodItem {
     children?: number;
   };
   region?: string | null;
+  dateText?: string | null;
   startYear?: number | null;
   endYear?: number | null;
+  datePrecision?: DatePrecision | null;
   timeLabel?: string | null;
   description?: string | null;
   coverImageUrl?: string | null;

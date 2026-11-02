@@ -30,6 +30,10 @@ import {
   HISTORICAL_ENTITY_ERRORS,
   HISTORICAL_ENTITY_MESSAGES,
 } from './historical-entity.constant';
+import {
+  HistoricalDateParser,
+  validateHistoricalYearRange,
+} from '../common/utils/historical-date.parser';
 
 export interface IPaginatedEntities {
   items: HistoricalEntity[];
@@ -70,37 +74,25 @@ export class HistoricalEntityService {
   ) {}
 
   private validateYearRange(
-    birthYear?: number | null,
-    deathYear?: number | null,
+    startYear?: number | null,
+    endYear?: number | null,
   ): void {
-    if (
-      birthYear !== undefined &&
-      birthYear !== null &&
-      deathYear !== undefined &&
-      deathYear !== null &&
-      deathYear < birthYear
-    ) {
-      throw new BadRequestException(
-        HISTORICAL_ENTITY_ERRORS.INVALID_YEAR_RANGE,
-      );
-    }
+    validateHistoricalYearRange(
+      startYear,
+      endYear,
+      HISTORICAL_ENTITY_ERRORS.INVALID_YEAR_RANGE,
+    );
   }
 
   private validateRelationYearRange(
     startYear?: number | null,
     endYear?: number | null,
   ): void {
-    if (
-      startYear !== undefined &&
-      startYear !== null &&
-      endYear !== undefined &&
-      endYear !== null &&
-      endYear < startYear
-    ) {
-      throw new BadRequestException(
-        HISTORICAL_ENTITY_ERRORS.RELATION_INVALID_YEAR_RANGE,
-      );
-    }
+    validateHistoricalYearRange(
+      startYear,
+      endYear,
+      HISTORICAL_ENTITY_ERRORS.RELATION_INVALID_YEAR_RANGE,
+    );
   }
 
   private async ensurePeriodExists(periodId?: string | null): Promise<void> {
@@ -121,7 +113,54 @@ export class HistoricalEntityService {
       'HistoricalEntityService',
     );
 
-    this.validateYearRange(dto.birthYear, dto.deathYear);
+    const entityType = dto.type ?? HistoricalEntityType.PERSON;
+
+    // 1. Chuẩn hóa thời gian tồn tại của HistoricalEntity (Triều đại / Tổ chức / Thực thể)
+    const resolvedEntityDate = HistoricalDateParser.resolveRangeFields({
+      dateText: dto.dateText,
+      startYear: dto.startYear,
+      endYear: dto.endYear,
+      datePrecision: dto.datePrecision,
+    });
+    this.validateYearRange(
+      resolvedEntityDate.startYear,
+      resolvedEntityDate.endYear,
+    );
+
+    // 2. Chuẩn hóa ngày sinh & ngày mất tách riêng cho Person
+    const resolvedBirthDate = HistoricalDateParser.resolveSinglePointFields({
+      dateText: dto.birthDateText,
+      legacyLabel: dto.birthDateLabel,
+      year: dto.birthYear,
+      month: dto.birthMonth,
+      day: dto.birthDay,
+      precision: dto.birthPrecision,
+    });
+    const resolvedDeathDate = HistoricalDateParser.resolveSinglePointFields({
+      dateText: dto.deathDateText,
+      legacyLabel: dto.deathDateLabel,
+      year: dto.deathYear,
+      month: dto.deathMonth,
+      day: dto.deathDay,
+      precision: dto.deathPrecision,
+    });
+    this.validateYearRange(resolvedBirthDate.year, resolvedDeathDate.year);
+
+    // 3. Chuẩn hóa thời gian xây dựng cho HistoricalSite (Di tích)
+    const resolvedConstructionDate = HistoricalDateParser.resolveRangeFields({
+      dateText: dto.constructionDateText,
+      legacyLabel: dto.constructionLabel,
+      startYear: dto.constructionYear,
+      startMonth: dto.constructionMonth,
+      startDay: dto.constructionDay,
+      endYear: dto.constructionEndYear,
+      datePrecision: dto.datePrecision,
+    });
+    this.validateYearRange(
+      resolvedConstructionDate.startYear,
+      resolvedConstructionDate.endYear,
+    );
+
     await this.ensurePeriodExists(dto.periodId);
 
     const slug = await this.slugService.generateUnique(
@@ -131,8 +170,6 @@ export class HistoricalEntityService {
           where: { slug: candidate },
         })) > 0,
     );
-
-    const entityType = dto.type ?? HistoricalEntityType.PERSON;
 
     const finalMetadata: Record<string, any> = {
       ...(dto.metadata || {}),
@@ -158,17 +195,29 @@ export class HistoricalEntityService {
             : Prisma.JsonNull,
         isFeatured: dto.isFeatured ?? false,
         displayOrder: dto.displayOrder ?? 0,
-        startYear: dto.startYear,
-        endYear: dto.endYear,
+        dateText: resolvedEntityDate.dateText,
+        startYear: resolvedEntityDate.startYear,
+        endYear: resolvedEntityDate.endYear,
+        datePrecision: resolvedEntityDate.datePrecision,
         status: dto.status ?? ContentStatus.DRAFT,
         ...(entityType === HistoricalEntityType.PERSON
           ? {
               person: {
                 create: {
-                  birthYear: dto.birthYear,
-                  deathYear: dto.deathYear,
-                  birthDateLabel: dto.birthDateLabel?.trim(),
-                  deathDateLabel: dto.deathDateLabel?.trim(),
+                  birthDateText: resolvedBirthDate.dateText,
+                  birthYear: resolvedBirthDate.year,
+                  birthMonth: resolvedBirthDate.month,
+                  birthDay: resolvedBirthDate.day,
+                  birthPrecision: resolvedBirthDate.precision,
+                  deathDateText: resolvedDeathDate.dateText,
+                  deathYear: resolvedDeathDate.year,
+                  deathMonth: resolvedDeathDate.month,
+                  deathDay: resolvedDeathDate.day,
+                  deathPrecision: resolvedDeathDate.precision,
+                  birthDateLabel:
+                    dto.birthDateLabel?.trim() ?? resolvedBirthDate.dateText,
+                  deathDateLabel:
+                    dto.deathDateLabel?.trim() ?? resolvedDeathDate.dateText,
                   occupation: dto.occupation?.trim(),
                   titles: dto.titles ?? [],
                   roles: await this.taxonomy.requireTermCodes(
@@ -194,8 +243,15 @@ export class HistoricalEntityService {
                     dto.longitude !== undefined && dto.longitude !== null
                       ? new Prisma.Decimal(dto.longitude)
                       : undefined,
-                  constructionYear: dto.constructionYear,
-                  constructionLabel: dto.constructionLabel?.trim(),
+                  constructionDateText: resolvedConstructionDate.dateText,
+                  constructionYear: resolvedConstructionDate.startYear,
+                  constructionMonth: resolvedConstructionDate.startMonth,
+                  constructionDay: resolvedConstructionDate.startDay,
+                  constructionEndYear: resolvedConstructionDate.endYear,
+                  datePrecision: resolvedConstructionDate.datePrecision,
+                  constructionLabel:
+                    dto.constructionLabel?.trim() ??
+                    resolvedConstructionDate.dateText,
                   preservationStatus: dto.preservationStatus?.trim(),
                   recognitionLevel: dto.recognitionLevel?.trim(),
                   managingAgency: dto.managingAgency?.trim(),
@@ -256,10 +312,22 @@ export class HistoricalEntityService {
           : item.periodId
             ? [item.periodId]
             : [],
+      birthDateText:
+        item.person?.birthDateText ?? item.person?.birthDateLabel ?? null,
       birthYear: item.person?.birthYear ?? null,
+      birthMonth: item.person?.birthMonth ?? null,
+      birthDay: item.person?.birthDay ?? null,
+      birthPrecision: item.person?.birthPrecision ?? null,
+      deathDateText:
+        item.person?.deathDateText ?? item.person?.deathDateLabel ?? null,
       deathYear: item.person?.deathYear ?? null,
-      birthDateLabel: item.person?.birthDateLabel ?? null,
-      deathDateLabel: item.person?.deathDateLabel ?? null,
+      deathMonth: item.person?.deathMonth ?? null,
+      deathDay: item.person?.deathDay ?? null,
+      deathPrecision: item.person?.deathPrecision ?? null,
+      birthDateLabel:
+        item.person?.birthDateLabel ?? item.person?.birthDateText ?? null,
+      deathDateLabel:
+        item.person?.deathDateLabel ?? item.person?.deathDateText ?? null,
       siteType: item.historicalSite?.siteType ?? null,
       address: item.historicalSite?.address ?? null,
       latitude: item.historicalSite?.latitude
@@ -268,6 +336,18 @@ export class HistoricalEntityService {
       longitude: item.historicalSite?.longitude
         ? Number(item.historicalSite.longitude)
         : null,
+      constructionDateText:
+        item.historicalSite?.constructionDateText ??
+        item.historicalSite?.constructionLabel ??
+        null,
+      constructionYear: item.historicalSite?.constructionYear ?? null,
+      constructionMonth: item.historicalSite?.constructionMonth ?? null,
+      constructionDay: item.historicalSite?.constructionDay ?? null,
+      constructionEndYear: item.historicalSite?.constructionEndYear ?? null,
+      constructionLabel:
+        item.historicalSite?.constructionLabel ??
+        item.historicalSite?.constructionDateText ??
+        null,
     }));
 
     return {
@@ -358,10 +438,22 @@ export class HistoricalEntityService {
     const mappedEntity: any = {
       ...raw,
       periodIds: metadataPeriodIds,
+      birthDateText:
+        raw.person?.birthDateText ?? raw.person?.birthDateLabel ?? null,
       birthYear: raw.person?.birthYear ?? null,
+      birthMonth: raw.person?.birthMonth ?? null,
+      birthDay: raw.person?.birthDay ?? null,
+      birthPrecision: raw.person?.birthPrecision ?? null,
+      deathDateText:
+        raw.person?.deathDateText ?? raw.person?.deathDateLabel ?? null,
       deathYear: raw.person?.deathYear ?? null,
-      birthDateLabel: raw.person?.birthDateLabel ?? null,
-      deathDateLabel: raw.person?.deathDateLabel ?? null,
+      deathMonth: raw.person?.deathMonth ?? null,
+      deathDay: raw.person?.deathDay ?? null,
+      deathPrecision: raw.person?.deathPrecision ?? null,
+      birthDateLabel:
+        raw.person?.birthDateLabel ?? raw.person?.birthDateText ?? null,
+      deathDateLabel:
+        raw.person?.deathDateLabel ?? raw.person?.deathDateText ?? null,
       occupation: raw.person?.occupation ?? null,
       titles: raw.person?.titles ?? [],
       roles: raw.person?.roles ?? [],
@@ -374,8 +466,18 @@ export class HistoricalEntityService {
       longitude: raw.historicalSite?.longitude
         ? Number(raw.historicalSite.longitude)
         : null,
+      constructionDateText:
+        raw.historicalSite?.constructionDateText ??
+        raw.historicalSite?.constructionLabel ??
+        null,
       constructionYear: raw.historicalSite?.constructionYear ?? null,
-      constructionLabel: raw.historicalSite?.constructionLabel ?? null,
+      constructionMonth: raw.historicalSite?.constructionMonth ?? null,
+      constructionDay: raw.historicalSite?.constructionDay ?? null,
+      constructionEndYear: raw.historicalSite?.constructionEndYear ?? null,
+      constructionLabel:
+        raw.historicalSite?.constructionLabel ??
+        raw.historicalSite?.constructionDateText ??
+        null,
       preservationStatus: raw.historicalSite?.preservationStatus ?? null,
       recognitionLevel: raw.historicalSite?.recognitionLevel ?? null,
       managingAgency: raw.historicalSite?.managingAgency ?? null,
@@ -418,19 +520,21 @@ export class HistoricalEntityService {
     const existing = await this.findOne(id);
     const existingRaw = existing as any;
 
-    const birthYear =
-      dto.birthYear !== undefined ? dto.birthYear : existingRaw.birthYear;
-    const deathYear =
-      dto.deathYear !== undefined ? dto.deathYear : existingRaw.deathYear;
-
-    this.validateYearRange(birthYear, deathYear);
-    if (dto.periodId) {
-      await this.ensurePeriodExists(dto.periodId);
-    }
-
     const {
+      dateText: eDateText,
+      startYear: eStartYear,
+      endYear: eEndYear,
+      datePrecision: eDatePrecision,
+      birthDateText: bDateText,
       birthYear: bYear,
+      birthMonth: bMonth,
+      birthDay: bDay,
+      birthPrecision: bPrecision,
+      deathDateText: dDateText,
       deathYear: dYear,
+      deathMonth: dMonth,
+      deathDay: dDay,
+      deathPrecision: dPrecision,
       birthDateLabel: bLabel,
       deathDateLabel: dLabel,
       occupation,
@@ -441,7 +545,11 @@ export class HistoricalEntityService {
       address,
       latitude,
       longitude,
+      constructionDateText: cDateText,
       constructionYear,
+      constructionMonth,
+      constructionDay,
+      constructionEndYear,
       constructionLabel,
       preservationStatus,
       recognitionLevel,
@@ -449,6 +557,200 @@ export class HistoricalEntityService {
       statusNote,
       ...baseDto
     } = dto;
+
+    // 1. Chuẩn hóa thời gian tồn tại của HistoricalEntity nếu có cập nhật
+    const hasEntityDateUpdates =
+      eDateText !== undefined ||
+      eStartYear !== undefined ||
+      eEndYear !== undefined ||
+      eDatePrecision !== undefined;
+
+    const resolvedEntityDate = hasEntityDateUpdates
+      ? HistoricalDateParser.resolveRangeFields({
+          dateText: eDateText !== undefined ? eDateText : existingRaw.dateText,
+          startYear:
+            eStartYear !== undefined
+              ? eStartYear
+              : existingRaw.startYear !== null && eDateText === undefined
+                ? existingRaw.startYear
+                : undefined,
+          endYear:
+            eEndYear !== undefined
+              ? eEndYear
+              : existingRaw.endYear !== null && eDateText === undefined
+                ? existingRaw.endYear
+                : undefined,
+          datePrecision: eDatePrecision,
+        })
+      : null;
+
+    this.validateYearRange(
+      resolvedEntityDate ? resolvedEntityDate.startYear : existingRaw.startYear,
+      resolvedEntityDate ? resolvedEntityDate.endYear : existingRaw.endYear,
+    );
+
+    // 2. Chuẩn hóa ngày sinh / ngày mất của Person nếu có cập nhật
+    const hasBirthDateUpdates =
+      bDateText !== undefined ||
+      bLabel !== undefined ||
+      bYear !== undefined ||
+      bMonth !== undefined ||
+      bDay !== undefined ||
+      bPrecision !== undefined;
+
+    const resolvedBirthDate = hasBirthDateUpdates
+      ? HistoricalDateParser.resolveSinglePointFields({
+          dateText:
+            bDateText !== undefined
+              ? bDateText
+              : bLabel !== undefined
+                ? bLabel
+                : existingRaw.birthDateText,
+          legacyLabel: bLabel ?? existingRaw.birthDateLabel,
+          year:
+            bYear !== undefined
+              ? bYear
+              : existingRaw.birthYear !== null &&
+                  bDateText === undefined &&
+                  bLabel === undefined
+                ? existingRaw.birthYear
+                : undefined,
+          month:
+            bMonth !== undefined
+              ? bMonth
+              : existingRaw.birthMonth !== null &&
+                  bDateText === undefined &&
+                  bLabel === undefined
+                ? existingRaw.birthMonth
+                : undefined,
+          day:
+            bDay !== undefined
+              ? bDay
+              : existingRaw.birthDay !== null &&
+                  bDateText === undefined &&
+                  bLabel === undefined
+                ? existingRaw.birthDay
+                : undefined,
+          precision: bPrecision,
+        })
+      : null;
+
+    const hasDeathDateUpdates =
+      dDateText !== undefined ||
+      dLabel !== undefined ||
+      dYear !== undefined ||
+      dMonth !== undefined ||
+      dDay !== undefined ||
+      dPrecision !== undefined;
+
+    const resolvedDeathDate = hasDeathDateUpdates
+      ? HistoricalDateParser.resolveSinglePointFields({
+          dateText:
+            dDateText !== undefined
+              ? dDateText
+              : dLabel !== undefined
+                ? dLabel
+                : existingRaw.deathDateText,
+          legacyLabel: dLabel ?? existingRaw.deathDateLabel,
+          year:
+            dYear !== undefined
+              ? dYear
+              : existingRaw.deathYear !== null &&
+                  dDateText === undefined &&
+                  dLabel === undefined
+                ? existingRaw.deathYear
+                : undefined,
+          month:
+            dMonth !== undefined
+              ? dMonth
+              : existingRaw.deathMonth !== null &&
+                  dDateText === undefined &&
+                  dLabel === undefined
+                ? existingRaw.deathMonth
+                : undefined,
+          day:
+            dDay !== undefined
+              ? dDay
+              : existingRaw.deathDay !== null &&
+                  dDateText === undefined &&
+                  dLabel === undefined
+                ? existingRaw.deathDay
+                : undefined,
+          precision: dPrecision,
+        })
+      : null;
+
+    this.validateYearRange(
+      resolvedBirthDate ? resolvedBirthDate.year : existingRaw.birthYear,
+      resolvedDeathDate ? resolvedDeathDate.year : existingRaw.deathYear,
+    );
+
+    // 3. Chuẩn hóa thời gian xây dựng của HistoricalSite nếu có cập nhật
+    const hasConstructionDateUpdates =
+      cDateText !== undefined ||
+      constructionLabel !== undefined ||
+      constructionYear !== undefined ||
+      constructionMonth !== undefined ||
+      constructionDay !== undefined ||
+      constructionEndYear !== undefined;
+
+    const resolvedConstructionDate = hasConstructionDateUpdates
+      ? HistoricalDateParser.resolveRangeFields({
+          dateText:
+            cDateText !== undefined
+              ? cDateText
+              : constructionLabel !== undefined
+                ? constructionLabel
+                : existingRaw.constructionDateText,
+          legacyLabel: constructionLabel ?? existingRaw.constructionLabel,
+          startYear:
+            constructionYear !== undefined
+              ? constructionYear
+              : existingRaw.constructionYear !== null &&
+                  cDateText === undefined &&
+                  constructionLabel === undefined
+                ? existingRaw.constructionYear
+                : undefined,
+          startMonth:
+            constructionMonth !== undefined
+              ? constructionMonth
+              : existingRaw.constructionMonth !== null &&
+                  cDateText === undefined &&
+                  constructionLabel === undefined
+                ? existingRaw.constructionMonth
+                : undefined,
+          startDay:
+            constructionDay !== undefined
+              ? constructionDay
+              : existingRaw.constructionDay !== null &&
+                  cDateText === undefined &&
+                  constructionLabel === undefined
+                ? existingRaw.constructionDay
+                : undefined,
+          endYear:
+            constructionEndYear !== undefined
+              ? constructionEndYear
+              : existingRaw.constructionEndYear !== null &&
+                  cDateText === undefined &&
+                  constructionLabel === undefined
+                ? existingRaw.constructionEndYear
+                : undefined,
+          datePrecision: eDatePrecision,
+        })
+      : null;
+
+    this.validateYearRange(
+      resolvedConstructionDate
+        ? resolvedConstructionDate.startYear
+        : existingRaw.constructionYear,
+      resolvedConstructionDate
+        ? resolvedConstructionDate.endYear
+        : existingRaw.constructionEndYear,
+    );
+
+    if (dto.periodId) {
+      await this.ensurePeriodExists(dto.periodId);
+    }
 
     // Vai trò nhân vật theo danh mục FIGURE_ROLE (mã / nhãn / alias → mã chuẩn).
     const roles =
@@ -460,10 +762,8 @@ export class HistoricalEntityService {
           );
 
     const hasPersonUpdates =
-      bYear !== undefined ||
-      dYear !== undefined ||
-      bLabel !== undefined ||
-      dLabel !== undefined ||
+      hasBirthDateUpdates ||
+      hasDeathDateUpdates ||
       occupation !== undefined ||
       titles !== undefined ||
       roles !== undefined ||
@@ -474,8 +774,7 @@ export class HistoricalEntityService {
       address !== undefined ||
       latitude !== undefined ||
       longitude !== undefined ||
-      constructionYear !== undefined ||
-      constructionLabel !== undefined ||
+      hasConstructionDateUpdates ||
       preservationStatus !== undefined ||
       recognitionLevel !== undefined ||
       managingAgency !== undefined ||
@@ -517,28 +816,64 @@ export class HistoricalEntityService {
             ? baseDto.imageCaption?.trim()
             : undefined,
         metadata: updatedMetadata,
+        ...(resolvedEntityDate
+          ? {
+              dateText: resolvedEntityDate.dateText,
+              startYear: resolvedEntityDate.startYear,
+              endYear: resolvedEntityDate.endYear,
+              datePrecision: resolvedEntityDate.datePrecision,
+            }
+          : {}),
         ...(hasPersonUpdates
           ? {
               person: {
                 upsert: {
                   create: {
-                    birthYear: bYear,
-                    deathYear: dYear,
-                    birthDateLabel: bLabel?.trim(),
-                    deathDateLabel: dLabel?.trim(),
+                    birthDateText: resolvedBirthDate?.dateText,
+                    birthYear: resolvedBirthDate?.year,
+                    birthMonth: resolvedBirthDate?.month,
+                    birthDay: resolvedBirthDate?.day,
+                    birthPrecision: resolvedBirthDate?.precision,
+                    deathDateText: resolvedDeathDate?.dateText,
+                    deathYear: resolvedDeathDate?.year,
+                    deathMonth: resolvedDeathDate?.month,
+                    deathDay: resolvedDeathDate?.day,
+                    deathPrecision: resolvedDeathDate?.precision,
+                    birthDateLabel:
+                      bLabel?.trim() ?? resolvedBirthDate?.dateText,
+                    deathDateLabel:
+                      dLabel?.trim() ?? resolvedDeathDate?.dateText,
                     occupation: occupation?.trim(),
                     titles: titles ?? [],
                     roles: roles ?? [],
                     biography: biography?.trim(),
                   },
                   update: {
-                    ...(bYear !== undefined ? { birthYear: bYear } : {}),
-                    ...(dYear !== undefined ? { deathYear: dYear } : {}),
-                    ...(bLabel !== undefined
-                      ? { birthDateLabel: bLabel?.trim() }
+                    ...(resolvedBirthDate
+                      ? {
+                          birthDateText: resolvedBirthDate.dateText,
+                          birthYear: resolvedBirthDate.year,
+                          birthMonth: resolvedBirthDate.month,
+                          birthDay: resolvedBirthDate.day,
+                          birthPrecision: resolvedBirthDate.precision,
+                          birthDateLabel:
+                            bLabel !== undefined
+                              ? bLabel?.trim()
+                              : resolvedBirthDate.dateText,
+                        }
                       : {}),
-                    ...(dLabel !== undefined
-                      ? { deathDateLabel: dLabel?.trim() }
+                    ...(resolvedDeathDate
+                      ? {
+                          deathDateText: resolvedDeathDate.dateText,
+                          deathYear: resolvedDeathDate.year,
+                          deathMonth: resolvedDeathDate.month,
+                          deathDay: resolvedDeathDate.day,
+                          deathPrecision: resolvedDeathDate.precision,
+                          deathDateLabel:
+                            dLabel !== undefined
+                              ? dLabel?.trim()
+                              : resolvedDeathDate.dateText,
+                        }
                       : {}),
                     ...(occupation !== undefined
                       ? { occupation: occupation?.trim() }
@@ -568,8 +903,15 @@ export class HistoricalEntityService {
                       longitude !== undefined && longitude !== null
                         ? new Prisma.Decimal(longitude)
                         : undefined,
-                    constructionYear,
-                    constructionLabel: constructionLabel?.trim(),
+                    constructionDateText: resolvedConstructionDate?.dateText,
+                    constructionYear: resolvedConstructionDate?.startYear,
+                    constructionMonth: resolvedConstructionDate?.startMonth,
+                    constructionDay: resolvedConstructionDate?.startDay,
+                    constructionEndYear: resolvedConstructionDate?.endYear,
+                    datePrecision: resolvedConstructionDate?.datePrecision,
+                    constructionLabel:
+                      constructionLabel?.trim() ??
+                      resolvedConstructionDate?.dateText,
                     preservationStatus: preservationStatus?.trim(),
                     recognitionLevel: recognitionLevel?.trim(),
                     managingAgency: managingAgency?.trim(),
@@ -598,11 +940,21 @@ export class HistoricalEntityService {
                               : null,
                         }
                       : {}),
-                    ...(constructionYear !== undefined
-                      ? { constructionYear }
-                      : {}),
-                    ...(constructionLabel !== undefined
-                      ? { constructionLabel: constructionLabel?.trim() }
+                    ...(resolvedConstructionDate
+                      ? {
+                          constructionDateText:
+                            resolvedConstructionDate.dateText,
+                          constructionYear: resolvedConstructionDate.startYear,
+                          constructionMonth:
+                            resolvedConstructionDate.startMonth,
+                          constructionDay: resolvedConstructionDate.startDay,
+                          constructionEndYear: resolvedConstructionDate.endYear,
+                          datePrecision: resolvedConstructionDate.datePrecision,
+                          constructionLabel:
+                            constructionLabel !== undefined
+                              ? constructionLabel?.trim()
+                              : resolvedConstructionDate.dateText,
+                        }
                       : {}),
                     ...(preservationStatus !== undefined
                       ? { preservationStatus: preservationStatus?.trim() }

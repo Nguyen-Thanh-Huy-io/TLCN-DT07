@@ -32,20 +32,32 @@ export class CreatePeriodDto {
   name: string;
 
   @ApiPropertyOptional({
-    example: '(thế kỷ VII TCN - thế kỷ II TCN)',
+    example: '179 TCN – 40 SCN',
     description:
-      'Nhãn niên đại hiển thị trên landing. Bỏ trống thì tự sinh từ startYear/endYear',
-    maxLength: 100,
+      'Cách diễn đạt thời gian nguyên bản của thời kỳ (chuẩn hóa tự động sang startYear, endYear, datePrecision)',
+    maxLength: 150,
   })
   @IsString()
   @IsOptional()
-  @MaxLength(100)
+  @MaxLength(150)
+  dateText?: string;
+
+  @ApiPropertyOptional({
+    example: '(thế kỷ VII TCN - thế kỷ II TCN)',
+    description:
+      'Nhãn niên đại hiển thị trên landing (tương thích ngược với dateText). Bỏ trống thì tự sinh từ startYear/endYear',
+    maxLength: 150,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(150)
   timeLabel?: string;
 
   @ApiPropertyOptional({
     enum: DatePrecision,
-    example: DatePrecision.EXACT_YEAR,
-    description: 'Độ chính xác niên đại (EXACT_YEAR, APPROXIMATE, CENTURY...)',
+    example: DatePrecision.RANGE,
+    description:
+      'Độ chính xác niên đại (DAY, MONTH, YEAR, DECADE, CENTURY, APPROXIMATE, RANGE, UNKNOWN)',
   })
   @IsOptional()
   @IsEnum(DatePrecision)

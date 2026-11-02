@@ -145,7 +145,7 @@ export const DATASET_PATHS = {
 
 export const DEFAULT_ENUM_VALUES = {
   STATUS: ContentStatus.PUBLISHED,
-  PRECISION: DatePrecision.EXACT_YEAR,
+  PRECISION: DatePrecision.YEAR,
   VERIFICATION: VerificationStatus.VERIFIED,
   EVENT_CATEGORY: EventCategory.OTHER,
   ENTITY_TYPE: HistoricalEntityType.PERSON,

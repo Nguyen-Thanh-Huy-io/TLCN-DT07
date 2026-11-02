@@ -48,7 +48,7 @@ export class PublicFigureEventDto {
   @ApiProperty() id: string;
   @ApiPropertyOptional({ nullable: true }) slug: string | null;
   @ApiProperty() title: string;
-  @ApiProperty() startYear: number;
+  @ApiPropertyOptional({ nullable: true }) startYear: number | null;
   @ApiPropertyOptional({ nullable: true }) eventDateNote: string | null;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
   @ApiProperty({ enum: EventCategory }) category: EventCategory;
@@ -166,7 +166,7 @@ export class PublicEventSummaryDto {
   @ApiProperty() id: string;
   @ApiPropertyOptional({ nullable: true }) slug: string | null;
   @ApiProperty() title: string;
-  @ApiProperty() startYear: number;
+  @ApiPropertyOptional({ nullable: true }) startYear: number | null;
   /** Năm kết thúc (null = sự kiện diễn ra trong một năm / chưa rõ). */
   @ApiPropertyOptional({ nullable: true }) endYear: number | null;
   /** Sự kiện cha (vd. cuộc kháng chiến chứa chiến dịch này). */
@@ -286,7 +286,8 @@ export class PublicLocationDetailDto extends PublicLocationSummaryDto {
   @ApiProperty({ type: [PublicEventSummaryDto] })
   events: PublicEventSummaryDto[];
   /** Nhân vật tham gia các sự kiện tại đây. */
-  @ApiProperty({ type: [PublicFigureDto] }) figures: PublicFigureDto[];
+  @ApiProperty({ type: [PublicFigureDto] })
+  figures: PublicFigureDto[];
   @ApiProperty({ type: [PublicNearbyLocationDto] })
   nearby: PublicNearbyLocationDto[];
   /** Hồ sơ di sản mở rộng (metadata.heritage) — xem heritage-profile.mapper. */

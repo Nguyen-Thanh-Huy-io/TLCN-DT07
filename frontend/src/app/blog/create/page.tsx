@@ -54,6 +54,24 @@ const slugify = (value: string) =>
     .replace(/-+/g, '-')
     .slice(0, 200);
 
+const uploadImageToServer = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/upload/image`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  const responseData = await response.json().catch(() => null);
+
+  if (!response.ok || !responseData?.url) {
+    throw new Error(responseData?.message || 'Không thể tải ảnh lên server.');
+  }
+
+  return responseData.url as string;
+};
+
 export default function BlogCreatePage() {
   const router = useRouter();
   const [title, setTitle] = useState('Cổng La Mã và không gian quyền lực');
@@ -69,33 +87,41 @@ export default function BlogCreatePage() {
   const [showPreview, setShowPreview] = useState(false);
   const [coverImageUrl, setCoverImageUrl] = useState<string>(DEFAULT_COVER_IMAGE);
 
-  const handleCoverImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
-    setCoverImageUrl(previewUrl);
+    try {
+      const uploadedUrl = await uploadImageToServer(file);
+      setCoverImageUrl(uploadedUrl);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Không thể tải ảnh bìa lên.');
+    }
   };
 
-  const handleBlockImageChange = (blockId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBlockImageChange = async (blockId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
-    setBlocks((current) =>
-      current.map((block) =>
-        block.id === blockId
-          ? {
-              ...block,
-              imageUrl: previewUrl,
-            }
-          : block
-      )
-    );
+    try {
+      const uploadedUrl = await uploadImageToServer(file);
+      setBlocks((current) =>
+        current.map((block) =>
+          block.id === blockId
+            ? {
+                ...block,
+                imageUrl: uploadedUrl,
+              }
+            : block
+        )
+      );
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Không thể tải ảnh vào khối nội dung.');
+    }
   };
 
   const addTag = () => {

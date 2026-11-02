@@ -63,18 +63,19 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // Derive the 'page' identifier from the first path segment only
+  // Derive the 'page' identifier from the first path segment only, while keeping nonstandard CMS routes like /admin/blog mapped correctly.
   let page = DASHBOARD_PAGE_KEY;
   if (pathname !== "/") {
-    page = pathname.replace(/^\//, "").split("/")[0];
+    const firstSegment = pathname.replace(/^\//, "").split("/")[0];
+    page = firstSegment === 'admin' ? 'blog-review' : firstSegment;
   }
 
   // Handle setPage triggered by Sidebar
-  const setPage = (newPage: string) => {
+  const setPage = (newPage: string, route?: string) => {
     if (newPage === DASHBOARD_PAGE_KEY) {
       router.push("/cms");
     } else {
-      router.push(`/${newPage}`);
+      router.push(route ?? `/${newPage}`);
     }
     setMobileNav(false);
   };

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
+import { CreatePostComposer } from '@/components/hisgo/CreatePostComposer';
 import { blogCategories, featuredPost, popularPosts, recentPosts } from '@/data/blog';
 
 export default function BlogPage() {
@@ -9,16 +10,16 @@ export default function BlogPage() {
       <Header activeTab="blog" />
 
       <div className="max-w-[1280px] mx-auto px-6 lg:px-8 py-8 md:py-12">
-        <section className="mb-12 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-5 md:p-7">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-sm uppercase tracking-[0.18em] text-[var(--text-muted)] font-medium">HISGO Journal</p>
-              <h1 className="mt-3 text-4xl md:text-5xl font-bold font-[family-name:var(--font-heading)] text-[var(--ink)] leading-tight">
-                Lịch sử được kể bằng văn bản, bối cảnh và hệ quả.
-              </h1>
-            </div>
+        <section className="mb-12 border-b border-[var(--border)] bg-transparent pb-6">
+          <div className="max-w-5xl">
+            <p className="text-sm uppercase tracking-[0.22em] text-[var(--text-muted)] font-medium">HISGO Journal</p>
+            <h1 className="mt-3 text-4xl md:text-5xl lg:text-[4rem] font-bold font-[family-name:var(--font-heading)] text-[var(--ink)] leading-[0.94] tracking-[-0.04em]">
+              Lịch sử được kể bằng văn bản, bối cảnh và hệ quả.
+            </h1>
+          </div>
 
-            <div className="flex w-full max-w-xl items-center gap-3 rounded-[var(--radius-btn)] border border-[var(--border)] bg-white/60 px-3 py-2.5 shadow-sm">
+          <div className="mt-8 max-w-4xl">
+            <div className="flex w-full items-center gap-3 rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2.5 shadow-[0_1px_0_rgba(0,0,0,0.02)]">
               <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 text-[var(--text-muted)]">
                 <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
                 <path d="M16 16L21 21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -43,6 +44,10 @@ export default function BlogPage() {
               </button>
             ))}
           </div>
+        </section>
+
+        <section className="mb-12">
+          <CreatePostComposer />
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">

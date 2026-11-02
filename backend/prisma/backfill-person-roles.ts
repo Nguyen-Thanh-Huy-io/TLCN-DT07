@@ -4,27 +4,30 @@
  * Chạy: npx ts-node prisma/backfill-person-roles.ts
  */
 import 'dotenv/config';
-import { FigureRole, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
-const OCCUPATION_TO_ROLE: Record<string, FigureRole> = {
-  vua: FigureRole.MONARCH,
-  'hoàng đế': FigureRole.MONARCH,
-  'quân chủ': FigureRole.MONARCH,
-  'nữ vương': FigureRole.MONARCH,
-  'vua trong truyền thuyết': FigureRole.MONARCH,
-  'tướng lĩnh': FigureRole.GENERAL,
-  'nữ tướng theo truyền thuyết': FigureRole.GENERAL,
-  'thiền sư': FigureRole.SCHOLAR,
-  'lãnh tụ khởi nghĩa': FigureRole.REVOLUTIONARY,
-  'thủ lĩnh khởi nghĩa': FigureRole.REVOLUTIONARY,
-  'thừa tướng': FigureRole.POLITICIAN,
-  'quan lại': FigureRole.POLITICIAN,
-  'thái thú': FigureRole.POLITICIAN,
+// Mã vai trò khớp TaxonomyTerm nhóm FIGURE_ROLE (trước đây là enum FigureRole — đã xoá
+// khỏi schema 2026-11-03 vì chỉ còn mỗi script này dùng, trong khi API sống đã chuyển
+// hẳn sang Taxonomy từ lâu, trigger DB tự gắn roleIds theo đúng các mã này).
+const OCCUPATION_TO_ROLE: Record<string, string> = {
+  vua: 'MONARCH',
+  'hoàng đế': 'MONARCH',
+  'quân chủ': 'MONARCH',
+  'nữ vương': 'MONARCH',
+  'vua trong truyền thuyết': 'MONARCH',
+  'tướng lĩnh': 'GENERAL',
+  'nữ tướng theo truyền thuyết': 'GENERAL',
+  'thiền sư': 'SCHOLAR',
+  'lãnh tụ khởi nghĩa': 'REVOLUTIONARY',
+  'thủ lĩnh khởi nghĩa': 'REVOLUTIONARY',
+  'thừa tướng': 'POLITICIAN',
+  'quan lại': 'POLITICIAN',
+  'thái thú': 'POLITICIAN',
 };
 
 async function main() {

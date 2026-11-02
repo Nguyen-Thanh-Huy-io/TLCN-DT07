@@ -460,6 +460,15 @@ export const ROLE_TYPES = [
   { code: 'COURIER', label: 'Liên lạc / Giao liên', aliases: ['MESSENGER'] },
   { code: 'MILITARY_ADVISER', label: 'Quân sư / Cố vấn quân sự', aliases: ['STRATEGIST', 'ADVISER'] },
   { code: 'OTHER_ROLE', label: 'Vai trò khác', aliases: [] },
+  // --- Gộp từ nhóm EVENT_ROLE cũ (2026-11-03) — EVENT_ROLE và ROLE_TYPE từng là 2 nhóm
+  // taxonomy riêng cho cùng khái niệm "vai trò trong sự kiện"; COMMANDER/PARTICIPANT đã
+  // trùng nhau (giữ nguyên ở trên), 5 mã dưới đây là phần EVENT_ROLE có mà ROLE_TYPE
+  // chưa có. "LEADER" không cần thêm riêng vì đã khớp alias của COMMANDER.
+  { code: 'INITIATOR', label: 'Khởi xướng', aliases: ['khởi xướng', 'phát động'] },
+  { code: 'BELLIGERENT', label: 'Bên tham chiến', aliases: ['bên tham chiến', 'phe tham chiến'] },
+  { code: 'SIGNATORY', label: 'Đại diện ký kết', aliases: ['đại diện ký kết', 'bên ký kết'] },
+  { code: 'LOCATION', label: 'Địa điểm diễn ra', aliases: ['địa điểm', 'nơi diễn ra'] },
+  { code: 'ARTIFACT_USED', label: 'Hiện vật liên quan', aliases: ['hiện vật', 'hiện vật liên quan'] },
 ];
 
 export const SOURCE_FORMATS = [

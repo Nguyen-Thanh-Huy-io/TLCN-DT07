@@ -23,12 +23,13 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 /**
- * Tra roleTermId theo mã trong danh mục EVENT_ROLE (cùng nhóm CMS dùng khi tạo quan hệ
- * Event-Entity) — dùng cho HistoricalEventParticipant thay cho cột role chữ tự do cũ.
+ * Tra roleTermId theo mã trong danh mục ROLE_TYPE (cùng nhóm CMS dùng khi tạo quan hệ
+ * Event-Entity — đã gộp EVENT_ROLE vào ROLE_TYPE ngày 2026-11-03) — dùng cho
+ * HistoricalEventParticipant thay cho cột role chữ tự do cũ.
  */
 async function resolveEventRoleTermId(code: string): Promise<string | null> {
   const term = await prisma.taxonomyTerm.findFirst({
-    where: { groupCode: 'EVENT_ROLE', code: code.toUpperCase() },
+    where: { groupCode: 'ROLE_TYPE', code: code.toUpperCase() },
   });
   return term?.id ?? null;
 }

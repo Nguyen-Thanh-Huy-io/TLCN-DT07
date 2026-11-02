@@ -278,8 +278,9 @@ export class HistoricalEventService {
   }
 
   /**
-   * Gắn roleTermId (danh mục EVENT_ROLE) cho từng bản ghi tham gia sự kiện trước khi lưu
-   * vào `HistoricalEventParticipant` — bảng chuẩn hoá thay cho `HistoricalEventEntity` cũ.
+   * Gắn roleTermId (danh mục ROLE_TYPE — đã gộp EVENT_ROLE vào đây 2026-11-03, xem
+   * hisgo-pilot-v1 memory) cho từng bản ghi tham gia sự kiện trước khi lưu vào
+   * `HistoricalEventParticipant` — bảng chuẩn hoá thay cho `HistoricalEventEntity` cũ.
    * Không khớp được role tự do thì roleTermId = null, vẫn giữ `role`/`roleLabel` làm nhãn hiển thị.
    */
   private async resolveRoleTermIds<
@@ -290,7 +291,7 @@ export class HistoricalEventService {
         ...r,
         roleTermId:
           (await this.taxonomy.resolveTermId(
-            TAXONOMY_GROUPS.EVENT_ROLE,
+            TAXONOMY_GROUPS.ROLE_TYPE,
             r.role,
           )) ?? null,
       })),

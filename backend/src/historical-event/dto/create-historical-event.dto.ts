@@ -266,7 +266,7 @@ export class CreateHistoricalEventDto {
   @IsArray()
   entityRelations?: Array<{
     entityId: string;
-    /** Mã vai trò trong danh mục EVENT_ROLE (COMMANDER, LOCATION...). */
+    /** Mã vai trò trong danh mục ROLE_TYPE (COMMANDER, LOCATION...). */
     role?: string;
     roleLabel?: string | null;
     isPrimary?: boolean;

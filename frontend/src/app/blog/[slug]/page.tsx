@@ -5,6 +5,9 @@ import { Footer } from '@/components/hisgo/Footer';
 import { CommentThread } from '@/components/hisgo/CommentThread';
 import { blogPosts as fallbackPosts } from '@/data/blog';
 
+const DEFAULT_BLOG_COVER =
+  'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=1200&q=80';
+
 const stripHtml = (value?: string | null) =>
   (value ?? '')
     .replace(/<[^>]*>/g, ' ')
@@ -47,7 +50,12 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
 
   const title = post.title || 'Bài viết HISGO';
   const summary = stripHtml(post.summary || post.excerpt || post.contentRichText || '') || 'Bài viết đang chờ xuất bản.';
-  const image = post.coverImageUrl || post.thumbnailUrl || post.image || fallbackPosts[0].image;
+  const image =
+    post.coverImageUrl ||
+    post.thumbnailUrl ||
+    post.image ||
+    fallbackPosts[0]?.image ||
+    DEFAULT_BLOG_COVER;
   const author = post.author?.fullName || post.author?.username || post.author || post.authorName || 'HISGO Editorial';
   const publishedAt = post.publishedAt || post.createdAt;
   const dateLabel = publishedAt ? new Date(publishedAt).toLocaleDateString('vi-VN') : post.date || 'Mới';

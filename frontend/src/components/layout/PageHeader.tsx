@@ -133,6 +133,12 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
         subtitle: 'Kiểm duyệt chất lượng và phê duyệt xuất bản bài học',
       };
 
+    case APP_ROUTES.ADMIN_BLOG_REVIEW:
+      return {
+        title: 'Duyệt blog',
+        subtitle: 'Kiểm duyệt và phê duyệt bài viết trước khi xuất bản lên blog công khai',
+      };
+
     case APP_ROUTES.USERS:
       return {
         title: 'Người dùng & Quyền',

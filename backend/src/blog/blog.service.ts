@@ -475,6 +475,180 @@ export class BlogService {
     return created;
   }
 
+  async updateComment(postId: string, commentId: string, authorId: string, dto: { content: string }) {
+    await this.ensureUserExists(authorId);
+    await this.ensurePostExists(postId);
+
+    const comment = await this.prisma.postComment.findFirst({
+      where: {
+        id: commentId,
+        postId,
+        deletedAt: null,
+      },
+    });
+
+    if (!comment) {
+      throw new NotFoundException(`Comment ${commentId} không tồn tại hoặc đã bị xóa`);
+    }
+
+    if (comment.authorId !== authorId) {
+      throw new BadRequestException('Bạn không có quyền chỉnh sửa comment này');
+    }
+
+    const nextContent = dto.content?.trim();
+    if (!nextContent) {
+      throw new BadRequestException('Nội dung comment không được để trống');
+    }
+
+    const updated = await this.prisma.postComment.update({
+      where: { id: commentId },
+      data: {
+        content: nextContent,
+        status: 'VISIBLE',
+      },
+      include: {
+        author: { select: { id: true, username: true } },
+      },
+    });
+
+    this.blogGateway.emitCommentUpdated(postId, {
+      type: 'updated',
+      commentId,
+      comment: updated,
+    });
+
+    return updated;
+  }
+
+  async deleteComment(postId: string, commentId: string, authorId: string) {
+    await this.ensureUserExists(authorId);
+    await this.ensurePostExists(postId);
+
+    const comment = await this.prisma.postComment.findFirst({
+      where: {
+        id: commentId,
+        postId,
+        deletedAt: null,
+      },
+    });
+
+    if (!comment) {
+      throw new NotFoundException(`Comment ${commentId} không tồn tại hoặc đã bị xóa`);
+    }
+
+    if (comment.authorId !== authorId) {
+      throw new BadRequestException('Bạn không có quyền xóa comment này');
+    }
+
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      const updatedComment = await tx.postComment.update({
+        where: { id: commentId },
+        data: {
+          deletedAt: new Date(),
+          status: 'REMOVED',
+        },
+      });
+
+      await tx.post.update({
+        where: { id: postId },
+        data: {
+          commentCount: { decrement: 1 },
+        },
+      });
+
+      return updatedComment;
+    });
+
+    this.blogGateway.emitCommentUpdated(postId, {
+      type: 'deleted',
+      commentId,
+      comment: deleted,
+    });
+
+    return {
+      success: true,
+      commentId,
+      postId,
+    };
+  }
+
+  async toggleCommentLike(postId: string, commentId: string, userId: string) {
+    await this.ensureUserExists(userId);
+    await this.ensurePostExists(postId);
+
+    const comment = await this.prisma.postComment.findFirst({
+      where: {
+        id: commentId,
+        postId,
+        deletedAt: null,
+      },
+    });
+
+    if (!comment) {
+      throw new NotFoundException(`Comment ${commentId} không tồn tại hoặc đã bị xóa`);
+    }
+
+    const existing = await this.prisma.commentReaction.findUnique({
+      where: {
+        commentId_userId: {
+          commentId,
+          userId,
+        },
+      },
+    });
+
+    let liked = true;
+    let nextLikeCount = comment.likeCount;
+
+    if (existing) {
+      await this.prisma.commentReaction.delete({
+        where: {
+          commentId_userId: {
+            commentId,
+            userId,
+          },
+        },
+      });
+      await this.prisma.postComment.update({
+        where: { id: commentId },
+        data: {
+          likeCount: { decrement: 1 },
+        },
+      });
+      liked = false;
+      nextLikeCount = Math.max(comment.likeCount - 1, 0);
+    } else {
+      await this.prisma.commentReaction.create({
+        data: {
+          commentId,
+          userId,
+        },
+      });
+      await this.prisma.postComment.update({
+        where: { id: commentId },
+        data: {
+          likeCount: { increment: 1 },
+        },
+      });
+      nextLikeCount = comment.likeCount + 1;
+    }
+
+    this.blogGateway.emitCommentUpdated(postId, {
+      type: 'liked',
+      commentId,
+      userId,
+      liked,
+      likeCount: nextLikeCount,
+    });
+
+    return {
+      commentId,
+      userId,
+      liked,
+      likeCount: nextLikeCount,
+    };
+  }
+
   async getComments(postId: string) {
     await this.ensurePostExists(postId);
 
@@ -487,6 +661,9 @@ export class BlogService {
       include: {
         author: { select: { id: true, username: true } },
         replies: {
+          where: {
+            deletedAt: null,
+          },
           include: {
             author: { select: { id: true, username: true } },
           },

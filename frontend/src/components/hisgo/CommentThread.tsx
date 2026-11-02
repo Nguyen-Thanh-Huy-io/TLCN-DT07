@@ -3,10 +3,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { SectionTitle } from '@/components/hisgo/SectionTitle';
+import { PublicAuthService } from '@/services/auth/public-auth.service';
 
 const DEFAULT_COMMENT_AUTHOR_ID = process.env.NEXT_PUBLIC_BLOG_AUTHOR_ID || 'd2168a5d-05d7-4110-a304-94b17fe5bae5';
-const DEFAULT_COMMENT_USERNAME = process.env.NEXT_PUBLIC_COMMENT_USERNAME || 'admin_hisgo';
+const DEFAULT_COMMENT_USERNAME = process.env.NEXT_PUBLIC_COMMENT_USERNAME || 'Khách';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+const getCurrentCommentUser = () => {
+  const user = PublicAuthService.getCurrentUser();
+  return {
+    id: user?.id || DEFAULT_COMMENT_AUTHOR_ID,
+    username: user?.username || DEFAULT_COMMENT_USERNAME,
+  };
+};
 
 type ReplyItem = {
   id: string;
@@ -47,7 +56,7 @@ const normalizeReply = (item: any, fallbackName = DEFAULT_COMMENT_USERNAME): Rep
   author: item?.author?.username || fallbackName,
   authorId: item?.author?.id || item?.authorId || '',
   time: toRelativeTime(item?.createdAt),
-  content: item?.content || '[Bình luận đã bị xóa]',
+  content: item?.content ?? '',
   likes: Number(item?.likeCount ?? item?.likes ?? 0),
 });
 
@@ -56,38 +65,102 @@ const normalizeComment = (item: any, fallbackName = DEFAULT_COMMENT_USERNAME): C
   author: item?.author?.username || fallbackName,
   authorId: item?.author?.id || item?.authorId || '',
   time: toRelativeTime(item?.createdAt),
-  content: item?.content || '[Bình luận đã bị xóa]',
+  content: item?.content ?? '',
   likes: Number(item?.likeCount ?? item?.likes ?? 0),
   replies: Array.isArray(item?.replies)
     ? item.replies.map((reply: any) => normalizeReply(reply, fallbackName))
     : [],
 });
 
-const replaceCommentById = (items: CommentItem[], commentId: string, updater: (item: CommentItem) => CommentItem): CommentItem[] =>
+const updateCommentTree = (
+  items: CommentItem[],
+  targetId: string,
+  commentUpdater: (item: CommentItem) => CommentItem,
+  replyUpdater?: (item: ReplyItem) => ReplyItem,
+): CommentItem[] =>
   items.map((comment) => {
-    if (comment.id === commentId) {
-      return updater(comment);
+    if (comment.id === targetId) {
+      return commentUpdater(comment);
     }
 
-    const nextReplies = comment.replies ? replaceCommentById(comment.replies as unknown as CommentItem[], commentId, updater) : comment.replies;
-    if (nextReplies !== comment.replies) {
+    if (!comment.replies || comment.replies.length === 0) {
+      return comment;
+    }
+
+    let changed = false;
+    const nextReplies = comment.replies.map((reply) => {
+      if (reply.id !== targetId) {
+        return reply;
+      }
+
+      changed = true;
+      return replyUpdater ? replyUpdater(reply) : reply;
+    });
+
+    if (!changed) {
+      return comment;
+    }
+
+    return {
+      ...comment,
+      replies: nextReplies,
+    };
+  });
+
+const markDeletedInTree = (items: CommentItem[], targetId: string): CommentItem[] =>
+  items
+    .filter((comment) => comment.id !== targetId)
+    .map((comment) => {
+      if (!comment.replies || comment.replies.length === 0) {
+        return comment;
+      }
+
+      const nextReplies = comment.replies.filter((reply) => reply.id !== targetId);
       return {
         ...comment,
-        replies: nextReplies as ReplyItem[],
+        replies: nextReplies,
+      };
+    });
+
+const isSameCommentSignature = (left: Pick<CommentItem, 'id' | 'author' | 'content'>, right: Pick<CommentItem, 'id' | 'author' | 'content'>) => {
+  if (left.id && right.id && left.id === right.id) {
+    return true;
+  }
+
+  return left.author === right.author && left.content === right.content;
+};
+
+const appendReplyToComment = (items: CommentItem[], parentId: string, reply: ReplyItem): CommentItem[] =>
+  items.map((comment) => {
+    if (comment.id === parentId) {
+      return {
+        ...comment,
+        replies: [...(comment.replies || []), reply],
       };
     }
 
-    return comment;
+    if (!comment.replies || comment.replies.length === 0) {
+      return comment;
+    }
+
+    return {
+      ...comment,
+      replies: comment.replies.some((replyItem) => replyItem.id === reply.id)
+        ? comment.replies
+        : comment.replies,
+    };
   });
 
 export function CommentThread({ postId }: { postId?: string }) {
+  const currentUser = getCurrentCommentUser();
   const [comments, setComments] = useState<CommentItem[]>([]);
-  const [name] = useState(DEFAULT_COMMENT_USERNAME);
+  const [name] = useState(currentUser.username);
   const [content, setContent] = useState('');
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -129,16 +202,31 @@ export function CommentThread({ postId }: { postId?: string }) {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      socket.emit('join-post-room', { postId, userId: DEFAULT_COMMENT_AUTHOR_ID });
+      socket.emit('join-post-room', { postId, userId: currentUser.id });
     });
 
     socket.on('post:comment-added', (payload: any) => {
-      const nextComment = payload?.comment ? normalizeComment(payload.comment, name) : normalizeComment(payload, name);
+      const incoming = payload?.comment ?? payload;
+      const nextComment = normalizeComment(incoming, name);
+      const parentId = incoming?.parentId ?? payload?.parentId;
+
       setComments((current) => {
-        const exists = current.some((item) => item.id === nextComment.id);
+        const exists = current.some((item) => item.id === nextComment.id || isSameCommentSignature(item, nextComment));
         if (exists) {
           return current;
         }
+
+        if (parentId) {
+          return current.map((comment) =>
+            comment.id === parentId
+              ? {
+                  ...comment,
+                  replies: [...(comment.replies || []), { ...nextComment, authorId: nextComment.authorId || incoming?.author?.id }],
+                }
+              : comment,
+          );
+        }
+
         return [nextComment, ...current];
       });
       setFeedbackNotice('Bình luận đã được ghi nhận và hiển thị ngay.');
@@ -151,16 +239,24 @@ export function CommentThread({ postId }: { postId?: string }) {
 
       setComments((current) => {
         if (payload?.type === 'deleted') {
-          return current.map((comment) =>
-            comment.id === commentId
-              ? { ...comment, content: '[Bình luận đã bị xóa]' }
-              : { ...comment, replies: comment.replies ? comment.replies.filter((reply) => reply.id !== commentId) : [] },
-          );
+          return markDeletedInTree(current, commentId);
         }
 
         if (payload?.type === 'updated') {
-          const nextComment = normalizeComment(payload.comment || { id: commentId, content: commentId, author: { username: name } }, name);
-          return current.map((comment) => (comment.id === commentId ? nextComment : comment));
+          const existing = current.find((item) => item.id === commentId) ?? current.flatMap((item) => item.replies ?? []).find((reply) => reply.id === commentId);
+          const updatedComment = normalizeComment(payload.comment || { id: commentId, content: '', author: { username: name } }, name);
+          const mergedUpdated = {
+            ...updatedComment,
+            authorId: updatedComment.authorId || (existing as any)?.authorId || currentUser.id,
+            author: updatedComment.author || (existing as any)?.author || name,
+          };
+
+          return updateCommentTree(
+            current,
+            commentId,
+            () => mergedUpdated,
+            (reply) => ({ ...reply, content: mergedUpdated.content, time: mergedUpdated.time }),
+          );
         }
 
         if (payload?.type === 'liked') {
@@ -182,6 +278,8 @@ export function CommentThread({ postId }: { postId?: string }) {
       socketRef.current = null;
     };
   }, [postId, name]);
+
+  const isCommentOwner = (authorId?: string) => Boolean(authorId && authorId === currentUser.id);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -207,7 +305,7 @@ export function CommentThread({ postId }: { postId?: string }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          authorId: DEFAULT_COMMENT_AUTHOR_ID,
+          authorId: currentUser.id,
           content: trimmed,
         }),
       });
@@ -222,7 +320,13 @@ export function CommentThread({ postId }: { postId?: string }) {
         responseData || { content: trimmed, author: { username: name }, createdAt: new Date().toISOString() },
         name,
       );
-      setComments((current) => [createdComment, ...current]);
+      setComments((current) => {
+        const exists = current.some((item) => isSameCommentSignature(item, createdComment));
+        if (exists) {
+          return current;
+        }
+        return [createdComment, ...current];
+      });
       setContent('');
       setFeedbackNotice('Bình luận của bạn đã được ghi nhận.');
       setTimeout(() => setFeedbackNotice(''), 2200);
@@ -249,7 +353,7 @@ export function CommentThread({ postId }: { postId?: string }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          authorId: DEFAULT_COMMENT_AUTHOR_ID,
+          authorId: currentUser.id,
           content: trimmed,
           parentId: commentId,
         }),
@@ -296,7 +400,7 @@ export function CommentThread({ postId }: { postId?: string }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          authorId: DEFAULT_COMMENT_AUTHOR_ID,
+          authorId: currentUser.id,
           content: trimmed,
         }),
       });
@@ -306,8 +410,25 @@ export function CommentThread({ postId }: { postId?: string }) {
         throw new Error(responseData?.message || 'Không thể cập nhật bình luận.');
       }
 
+      const currentComment = comments.find((item) => item.id === commentId);
       const updated = normalizeComment(responseData || { id: commentId, content: trimmed, author: { username: name }, createdAt: new Date().toISOString() }, name);
-      setComments((current) => current.map((comment) => (comment.id === commentId ? updated : comment)));
+      const mergedUpdated = {
+        ...updated,
+        authorId: updated.authorId || currentComment?.authorId || currentUser.id,
+        author: updated.author || currentComment?.author || name,
+        content: trimmed,
+        time: 'vừa xong',
+      };
+
+      setComments((current) => {
+        const next = updateCommentTree(
+          current,
+          commentId,
+          () => mergedUpdated,
+          (reply) => ({ ...reply, content: trimmed, time: 'vừa xong' }),
+        );
+        return next;
+      });
       setEditingCommentId(null);
       setEditDraft('');
       setFeedbackNotice('Bình luận đã được chỉnh sửa.');
@@ -326,7 +447,7 @@ export function CommentThread({ postId }: { postId?: string }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ authorId: DEFAULT_COMMENT_AUTHOR_ID }),
+        body: JSON.stringify({ authorId: currentUser.id }),
       });
 
       const responseData = await response.json().catch(() => null);
@@ -334,16 +455,7 @@ export function CommentThread({ postId }: { postId?: string }) {
         throw new Error(responseData?.message || 'Không thể xóa bình luận.');
       }
 
-      setComments((current) =>
-        current.map((comment) =>
-          comment.id === commentId
-            ? { ...comment, content: '[Bình luận đã bị xóa]' }
-            : {
-                ...comment,
-                replies: comment.replies ? comment.replies.filter((reply) => reply.id !== commentId) : [],
-              },
-        ),
-      );
+      setComments((current) => markDeletedInTree(current, commentId));
       setFeedbackNotice('Bình luận đã được xóa.');
       setTimeout(() => setFeedbackNotice(''), 2200);
     } catch (error) {
@@ -360,7 +472,7 @@ export function CommentThread({ postId }: { postId?: string }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId: DEFAULT_COMMENT_AUTHOR_ID }),
+        body: JSON.stringify({ userId: currentUser.id }),
       });
 
       const responseData = await response.json().catch(() => null);
@@ -385,6 +497,37 @@ export function CommentThread({ postId }: { postId?: string }) {
 
   return (
     <section className="mx-auto mt-16 max-w-[1100px] px-6 pb-20 lg:px-8">
+      {deleteConfirmId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-5 shadow-2xl">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Xác nhận</p>
+            <h3 className="mt-2 text-xl font-semibold text-[var(--ink)]">Xóa bình luận này?</h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-body)]">
+              Hành động này sẽ ẩn bình luận khỏi bài viết và không thể hoàn tác trực tiếp từ giao diện.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmId(null)}
+                className="rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--bg-page)] px-3.5 py-2 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]"
+              >
+                Huỷ
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteConfirmId(null);
+                  handleDeleteComment(deleteConfirmId);
+                }}
+                className="rounded-[var(--radius-btn)] bg-red-600 px-3.5 py-2 text-[10px] uppercase tracking-[0.16em] text-white"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="mb-8">
         <SectionTitle title="Bình luận và phản hồi" subtitle="Thảo luận sâu hơn về không gian, ký ức và quyền lực trong bài viết" />
       </div>
@@ -453,26 +596,41 @@ export function CommentThread({ postId }: { postId?: string }) {
                       <p className="mt-3 text-base leading-7 text-[var(--text-body)]">{comment.content}</p>
                     )}
 
-                    <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                      <button type="button" onClick={() => handleToggleLike(comment.id)} className="transition-colors hover:text-[var(--gold)]">
+                    <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleLike(comment.id)}
+                        className="rounded-full border border-[var(--border)] bg-[var(--bg-page)] px-2.5 py-1.5 transition-all duration-200 hover:border-[var(--gold)] hover:text-[var(--gold)]"
+                      >
                         Thích ({comment.likes})
                       </button>
-                      <button type="button" onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)} className="transition-colors hover:text-[var(--gold)]">
+
+                      <button
+                        type="button"
+                        onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                        className="rounded-full border border-[var(--border)] bg-[var(--bg-page)] px-2.5 py-1.5 transition-all duration-200 hover:border-[var(--gold)] hover:text-[var(--gold)]"
+                      >
                         Trả lời
                       </button>
-                      {comment.authorId === DEFAULT_COMMENT_AUTHOR_ID ? (
+
+                      {isCommentOwner(comment.authorId) ? (
                         <>
                           <button
                             type="button"
                             onClick={() => {
                               setEditingCommentId(comment.id);
-                              setEditDraft(comment.content === '[Bình luận đã bị xóa]' ? '' : comment.content);
+                              setEditDraft(comment.content);
                             }}
-                            className="transition-colors hover:text-[var(--gold)]"
+                            className="rounded-full border border-[var(--border)] bg-[var(--bg-page)] px-2.5 py-1.5 transition-all duration-200 hover:border-[var(--gold)] hover:text-[var(--gold)]"
                           >
                             Sửa
                           </button>
-                          <button type="button" onClick={() => handleDeleteComment(comment.id)} className="transition-colors hover:text-red-500">
+
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmId(comment.id)}
+                            className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1.5 text-red-600 transition-all duration-200 hover:border-red-300 hover:bg-red-100"
+                          >
                             Xóa
                           </button>
                         </>
@@ -518,7 +676,60 @@ export function CommentThread({ postId }: { postId?: string }) {
                               <p className="text-sm font-semibold text-[var(--ink)]">{reply.author}</p>
                               <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">{reply.time}</span>
                             </div>
-                            <p className="mt-2 text-sm leading-6 text-[var(--text-body)]">{reply.content}</p>
+
+                            {editingCommentId === reply.id ? (
+                              <div className="mt-3 space-y-3">
+                                <textarea
+                                  rows={3}
+                                  value={editDraft}
+                                  onChange={(event) => setEditDraft(event.target.value)}
+                                  className="w-full resize-none rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2 text-sm text-[var(--ink)]"
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditSubmit(reply.id)}
+                                    className="rounded-[var(--radius-btn)] bg-[var(--gold)] px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-[var(--ink)]"
+                                  >
+                                    Lưu
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingCommentId(null);
+                                      setEditDraft('');
+                                    }}
+                                    className="rounded-[var(--radius-btn)] border border-[var(--border)] px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]"
+                                  >
+                                    Huỷ
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="mt-2 text-sm leading-6 text-[var(--text-body)]">{reply.content}</p>
+                            )}
+
+                            {reply.authorId && reply.authorId === currentUser.id ? (
+                              <div className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingCommentId(reply.id);
+                                    setEditDraft(reply.content);
+                                  }}
+                                  className="rounded-full border border-[var(--border)] bg-[var(--bg-page)] px-2.5 py-1.5"
+                                >
+                                  Sửa
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteConfirmId(reply.id)}
+                                  className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1.5 text-red-600"
+                                >
+                                  Xóa
+                                </button>
+                              </div>
+                            ) : null}
                           </div>
                         ))}
                       </div>

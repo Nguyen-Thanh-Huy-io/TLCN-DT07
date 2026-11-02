@@ -10,17 +10,8 @@ import { ContentStatus } from '@prisma/client';
 describe('TopicService', () => {
   let service: TopicService;
 
-  const mockPeriod = {
-    id: 'period-uuid-1',
-    name: 'Thời kỳ Bắc thuộc',
-    region: 'Việt Nam',
-    startYear: -111,
-    endYear: 938,
-  };
-
   const mockTopic = {
     id: 'topic-uuid-1',
-    periodId: 'period-uuid-1',
     name: 'Khởi nghĩa Hai Bà Trưng',
     slug: 'khoi-nghia-hai-ba-trung',
     isFeatured: false,
@@ -34,9 +25,6 @@ describe('TopicService', () => {
   };
 
   const mockPrismaService = {
-    period: {
-      findUnique: jest.fn().mockResolvedValue(mockPeriod),
-    },
     topic: {
       create: jest.fn().mockResolvedValue(mockTopic),
       findMany: jest.fn().mockResolvedValue([mockTopic]),
@@ -80,10 +68,8 @@ describe('TopicService', () => {
   });
 
   describe('create', () => {
-    it('should successfully create a topic when period exists', async () => {
-      mockPrismaService.period.findUnique.mockResolvedValueOnce(mockPeriod);
+    it('should successfully create a topic', async () => {
       const dto = {
-        periodId: 'period-uuid-1',
         name: 'Khởi nghĩa Hai Bà Trưng',
       };
 
@@ -92,10 +78,12 @@ describe('TopicService', () => {
       expect(mockPrismaService.topic.create).toHaveBeenCalled();
     });
 
-    it('should throw NotFoundException if period does not exist', async () => {
-      mockPrismaService.period.findUnique.mockResolvedValueOnce(null);
+    // Topic không có periodId (xem comment đầu topic.prisma — Chủ đề là thẻ phân loại
+    // độc lập theo môn học, không gắn Giai đoạn); create() chỉ validate parentId.
+    it('should throw NotFoundException if parent topic does not exist', async () => {
+      mockPrismaService.topic.findUnique.mockResolvedValueOnce(null);
       const dto = {
-        periodId: 'non-existent-period',
+        parentId: 'non-existent-topic',
         name: 'Chủ đề mới',
       };
 

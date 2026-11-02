@@ -156,7 +156,10 @@ export class TopicService {
   }
 
   /**
-   * Lấy danh sách chủ đề (hỗ trợ lọc theo periodId, parentId, isRootOnly, search...)
+   * Lấy danh sách chủ đề (hỗ trợ lọc theo parentId, isRootOnly, pathType, status, search).
+   * KHÔNG lọc theo periodId: Topic không có quan hệ với Period (xem comment đầu
+   * topic.prisma) — DTO vẫn khai báo field này cho tương thích API cũ, nhưng service
+   * không đọc/dùng.
    */
   async findAll(query: QueryTopicDto): Promise<IPaginatedResult<Topic>> {
     const page = Math.max(1, Number(query.page) || 1);

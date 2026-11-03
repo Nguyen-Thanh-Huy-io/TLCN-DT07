@@ -2,12 +2,14 @@ import React from 'react';
 import Link from 'next/link';
 import {
   fetchFigureBySlug,
-  PUBLIC_ROUTE_PREFIX,
+  fetchFigureDirectory,
+  fetchPeriods,
 } from '@/services/entities/landing.service';
-import {
-  PublicDetailLayout,
-  PublicLessonCard,
-} from '@/components/hisgo/PublicDetailView';
+import { PublicDetailLayout, PublicLessonCard } from '@/components/hisgo/PublicDetailView';
+import { Header } from '@/components/hisgo/Header';
+import { Footer } from '@/components/hisgo/Footer';
+import { FigureFullProfile } from '@/components/figures/FigureFullProfile';
+import { buildFigureViews } from '@/components/figures/figure-utils';
 
 export default async function FigureDetailPage({
   params,
@@ -15,9 +17,13 @@ export default async function FigureDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const figure = await fetchFigureBySlug(slug);
+  const [detail, directoryRaw, periods] = await Promise.all([
+    fetchFigureBySlug(slug),
+    fetchFigureDirectory(),
+    fetchPeriods(),
+  ]);
 
-  if (!figure) {
+  if (!detail) {
     return (
       <PublicDetailLayout
         eyebrow="NHÂN VẬT & THỰC THỂ LỊCH SỬ"
@@ -33,49 +39,58 @@ export default async function FigureDetailPage({
     );
   }
 
-  const yearsLabel = figure.birthYear
-    ? `(${figure.birthYear} – ${figure.deathYear ?? 'nay'})`
-    : '';
+  const directory = buildFigureViews(directoryRaw, periods);
+  const figure = directory.find((f) => f.slug === slug);
+
+  // Nhân vật có trong getFigureBySlug nhưng chưa xuất hiện trong directory công khai (vd.
+  // khác trạng thái xuất bản) — hiếm, dùng tạm layout cơ bản thay vì trắng trang.
+  if (!figure) {
+    return (
+      <PublicDetailLayout
+        eyebrow="HỒ SƠ NHÂN VẬT LỊCH SỬ"
+        title={detail.name}
+        subtitle={detail.tagline}
+      >
+        <section className="rounded-xl border border-[#D8C7A6] bg-[#FAF6EA] p-6 space-y-3">
+          <h2 className="text-xl font-bold text-[#7A1E1E]">Tiểu sử & Dấu ấn lịch sử</h2>
+          <p className="text-base leading-relaxed text-[#2D241C]">
+            {detail.description || detail.tagline}
+          </p>
+        </section>
+        {detail.lessons.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="text-2xl font-bold text-[#7A1E1E] border-b border-[#D8C7A6] pb-2">
+              Bài học Lịch sử liên quan ({detail.lessons.length})
+            </h2>
+            <div className="space-y-6">
+              {detail.lessons.map((lesson) => (
+                <PublicLessonCard key={lesson.id} lesson={lesson} />
+              ))}
+            </div>
+          </section>
+        )}
+      </PublicDetailLayout>
+    );
+  }
 
   return (
-    <PublicDetailLayout
-      eyebrow={`HỒ SƠ NHÂN VẬT LỊCH SỬ ${yearsLabel}`}
-      title={figure.name}
-      subtitle={figure.tagline}
-    >
-      {/* 1. Tiểu sử & Sự nghiệp */}
-      <section className="rounded-xl border border-[#D8C7A6] bg-[#FAF6EA] p-6 space-y-3">
-        <h2 className="text-xl font-bold text-[#7A1E1E]">
-          Tiểu sử & Dấu ấn lịch sử
-        </h2>
-        <p className="text-base leading-relaxed text-[#2D241C]">
-          {figure.description || figure.tagline}
-        </p>
-        {figure.period && (
-          <div className="pt-2">
-            <Link
-              href={`${PUBLIC_ROUTE_PREFIX.PERIOD}/${figure.period.slug}`}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#1C446C] hover:underline"
-            >
-              🕰 Thuộc thời kỳ: {figure.period.name} {figure.period.timeLabel}
-            </Link>
-          </div>
-        )}
-      </section>
+    <div className="bg-[#F5EFE1] min-h-screen pb-16">
+      <Header />
+      <FigureFullProfile figure={figure} directory={directory} periods={periods} />
 
-      {/* 2. Các Bài học gắn với nhân vật trong Đồ thị Tri thức */}
-      {figure.lessons.length > 0 && (
-        <section className="space-y-4">
+      {detail.lessons.length > 0 && (
+        <section className="mx-auto max-w-[900px] px-8 space-y-4">
           <h2 className="text-2xl font-bold text-[#7A1E1E] border-b border-[#D8C7A6] pb-2">
-            Bài học Lịch sử liên quan ({figure.lessons.length})
+            Bài học Lịch sử liên quan ({detail.lessons.length})
           </h2>
           <div className="space-y-6">
-            {figure.lessons.map((lesson) => (
+            {detail.lessons.map((lesson) => (
               <PublicLessonCard key={lesson.id} lesson={lesson} />
             ))}
           </div>
         </section>
       )}
-    </PublicDetailLayout>
+      <Footer />
+    </div>
   );
 }

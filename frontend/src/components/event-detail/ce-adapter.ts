@@ -66,7 +66,7 @@ function buildMentions(event: PublicEventDetailDto, roleTerms: TaxonomyTermItem[
     roleLabel: roles.get(f.id)?.roleLabel ?? roleName(f.id) ?? f.tagline,
     summary: f.tagline || f.description,
     imageUrl: f.imageUrl,
-    href: `/nhan-vat?nv=${encodeURIComponent(f.slug)}`,
+    href: `/nhan-vat/${encodeURIComponent(f.slug)}`,
     isPrimary: roles.get(f.id)?.isPrimary ?? false,
   }));
   const locations: EntityMention[] = event.locations.map((l) => ({

@@ -16,6 +16,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { MentionText } from "./EntityPopover";
+import { useFigureProfile } from "@/components/figures/FigureProfileProvider";
 import {
   MentionType,
   RelationDirection,
@@ -97,15 +98,32 @@ function Section({ id, eyebrow, title, children }: { id: string; eyebrow: string
 }
 
 function ParticipantGrid({ participants }: { participants: EntityMention[] }) {
+  const figureProfile = useFigureProfile();
   return (
     <div className="ce-insight-grid">
-      {participants.map((p) => (
-        <Link key={p.id} href={p.href}>
-          {p.type === MentionType.FIGURE ? <UserRound /> : <Landmark />}
-          <strong>{p.name}</strong>
-          {p.roleLabel && <p>{p.roleLabel}</p>}
-        </Link>
-      ))}
+      {participants.map((p) => {
+        const isFigure = p.type === MentionType.FIGURE;
+        return (
+          <Link
+            key={p.id}
+            href={p.href}
+            onClick={
+              isFigure && figureProfile
+                ? (e) => {
+                    const slug = figureSlugFromHref(p.href);
+                    if (!slug) return;
+                    e.preventDefault();
+                    figureProfile.openFigure(slug);
+                  }
+                : undefined
+            }
+          >
+            {isFigure ? <UserRound /> : <Landmark />}
+            <strong>{p.name}</strong>
+            {p.roleLabel && <p>{p.roleLabel}</p>}
+          </Link>
+        );
+      })}
     </div>
   );
 }
@@ -204,9 +222,14 @@ function Article({ model }: { model: EventReaderModel }) {
   );
 }
 
+function figureSlugFromHref(href: string): string | null {
+  return new URLSearchParams(href.split("?")[1]).get("nv");
+}
+
 function ContextSidebar({ model }: { model: EventReaderModel }) {
   const figures = model.mentions.filter((m) => m.type === MentionType.FIGURE);
   const locations = model.mentions.filter((m) => m.type === MentionType.LOCATION);
+  const figureProfile = useFigureProfile();
   return (
     <aside className="ce-context ce-sticky-card">
       <div className="ce-context-title">
@@ -237,7 +260,20 @@ function ContextSidebar({ model }: { model: EventReaderModel }) {
           <small className="ce-mini-label">NHÂN VẬT CHÍNH</small>
           <div className="ce-figure-list">
             {figures.map((f) => (
-              <Link key={f.id} href={f.href}>
+              <Link
+                key={f.id}
+                href={f.href}
+                onClick={
+                  figureProfile
+                    ? (e) => {
+                        const slug = figureSlugFromHref(f.href);
+                        if (!slug) return;
+                        e.preventDefault();
+                        figureProfile.openFigure(slug);
+                      }
+                    : undefined
+                }
+              >
                 <span>{f.imageUrl ? <img src={f.imageUrl} alt="" /> : initials(f.name)}</span>
                 <span>
                   <strong>{f.name}</strong>

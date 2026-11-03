@@ -5,10 +5,12 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Landmark, UserRound } from "lucide-react";
 import { type EntityMention, MentionType } from "./ce-types";
+import { useFigureProfile } from "@/components/figures/FigureProfileProvider";
 
 export function EntityPopover({ entity, children }: { entity: EntityMention; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const isFigure = entity.type === MentionType.FIGURE;
+  const figureProfile = useFigureProfile();
   return (
     <span className="ce-entity-wrap" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <button
@@ -38,7 +40,19 @@ export function EntityPopover({ entity, children }: { entity: EntityMention; chi
               </span>
             </span>
             {entity.summary && <span className="ce-entity-summary">{entity.summary}</span>}
-            <Link href={entity.href}>
+            <Link
+              href={entity.href}
+              onClick={
+                isFigure && figureProfile
+                  ? (e) => {
+                      const slug = new URLSearchParams(entity.href.split("?")[1]).get("nv");
+                      if (!slug) return;
+                      e.preventDefault();
+                      figureProfile.openFigure(slug);
+                    }
+                  : undefined
+              }
+            >
               {isFigure ? "Xem hồ sơ nhân vật" : "Xem các di tích"} <ArrowRight />
             </Link>
           </motion.span>

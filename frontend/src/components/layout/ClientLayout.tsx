@@ -5,6 +5,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { usePathname, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CmsAccessGate } from "@/components/layout/CmsAccessGate";
+import { FigureProfileProvider } from "@/components/figures/FigureProfileProvider";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'hisgo_sidebar_collapsed';
 const STORAGE_VALUE_TRUE = 'true';
@@ -59,7 +60,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/dang-ky") ||
     pathname.startsWith("/tai-khoan");
   if (isHisgoPublicRoute) {
-    return <>{children}</>;
+    return <FigureProfileProvider>{children}</FigureProfileProvider>;
   }
 
   // Derive the 'page' identifier from the first path segment only

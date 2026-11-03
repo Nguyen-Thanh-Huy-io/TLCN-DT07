@@ -4,6 +4,25 @@ import Link from "next/link";
 import { MapPin, Users } from "lucide-react";
 import { Heading, Badge } from "./sk-ui";
 import { type TimelineFigure, type TimelineLocation, NodeContentTab } from "./sk-types";
+import { useFigureProfile } from "@/components/figures/FigureProfileProvider";
+
+/** Mở hồ sơ nhân vật tại chỗ (modal) nếu có Provider bao ngoài; không thì mới điều hướng sang /nhan-vat?nv=. */
+function FigureLink({ slug, name }: { slug: string; name: string }) {
+  const figureProfile = useFigureProfile();
+  const href = `/nhan-vat?nv=${encodeURIComponent(slug)}`;
+  if (!figureProfile) return <Link href={href}>{name}</Link>;
+  return (
+    <a
+      href={href}
+      onClick={(e) => {
+        e.preventDefault();
+        figureProfile.openFigure(slug);
+      }}
+    >
+      {name}
+    </a>
+  );
+}
 
 type WithEvents<T> = T & { eventTitles?: string[] };
 
@@ -36,7 +55,7 @@ export function EntityList({
             </div>
             <div>
               <Heading level={3}>
-                {f.slug ? <Link href={`/nhan-vat?nv=${encodeURIComponent(f.slug)}`}>{f.name}</Link> : f.name}
+                {f.slug ? <FigureLink slug={f.slug} name={f.name} /> : f.name}
               </Heading>
               <Badge>{f.role}</Badge>
               {showEventTitles && <EventTitles titles={f.eventTitles} />}

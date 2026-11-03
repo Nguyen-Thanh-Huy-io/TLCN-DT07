@@ -110,11 +110,14 @@
 .ce-child-list svg { width: 16px; color: var(--ce-muted); }
 
 .ce-insight-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 8px; }
-.ce-insight-grid > a { border: 1px solid var(--ce-line); background: var(--ce-paper-strong); padding: 20px 16px; border-radius: 6px; color: var(--ce-ink); text-decoration: none; transition: border-color .2s; }
+.ce-insight-grid > a { position: relative; border: 1px solid var(--ce-line); background: var(--ce-paper-strong); padding: 20px 16px; border-radius: 6px; color: var(--ce-ink); text-decoration: none; transition: border-color .2s; }
 .ce-insight-grid > a:hover { border-color: var(--ce-accent); }
 .ce-insight-grid svg { width: 20px; color: var(--ce-accent); margin-bottom: 12px; display: block; }
 .ce-insight-grid strong { display: block; font: 600 16px var(--ce-serif); margin-bottom: 8px; }
 .ce-insight-grid p { font-size: 14px; line-height: 1.65; margin: 0; }
+/* Chỉ báo "bấm để xem chi tiết" ở góc trên phải thẻ — không lẫn với icon loại thực thể. */
+.ce-insight-grid .ce-insight-chevron { position: absolute; top: 14px; right: 14px; width: 16px !important; height: 16px; margin-bottom: 0 !important; color: var(--ce-muted) !important; transition: color .2s; }
+.ce-insight-grid > a:hover .ce-insight-chevron { color: var(--ce-accent) !important; }
 
 .ce-source-list { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 15px; color: var(--ce-muted); }
 .ce-source-list a { color: var(--ce-accent); word-break: break-word; display: inline-flex; align-items: center; gap: 6px; }

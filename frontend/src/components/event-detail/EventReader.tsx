@@ -121,6 +121,7 @@ function ParticipantGrid({ participants }: { participants: EntityMention[] }) {
             {isFigure ? <UserRound /> : <Landmark />}
             <strong>{p.name}</strong>
             {p.roleLabel && <p>{p.roleLabel}</p>}
+            <ChevronRight className="ce-insight-chevron" />
           </Link>
         );
       })}

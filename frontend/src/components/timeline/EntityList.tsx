@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Users } from "lucide-react";
+import { ArrowUpRight, MapPin, Users } from "lucide-react";
 import { Heading, Badge } from "./sk-ui";
 import { type TimelineFigure, type TimelineLocation, NodeContentTab } from "./sk-types";
 import { useFigureProfile } from "@/components/figures/FigureProfileProvider";
@@ -10,7 +10,12 @@ import { useFigureProfile } from "@/components/figures/FigureProfileProvider";
 function FigureLink({ slug, name }: { slug: string; name: string }) {
   const figureProfile = useFigureProfile();
   const href = `/nhan-vat?nv=${encodeURIComponent(slug)}`;
-  if (!figureProfile) return <Link href={href}>{name}</Link>;
+  const content = (
+    <>
+      {name} <ArrowUpRight size={14} className="sk-entity-link-icon" />
+    </>
+  );
+  if (!figureProfile) return <Link href={href}>{content}</Link>;
   return (
     <a
       href={href}
@@ -19,7 +24,7 @@ function FigureLink({ slug, name }: { slug: string; name: string }) {
         figureProfile.openFigure(slug);
       }}
     >
-      {name}
+      {content}
     </a>
   );
 }

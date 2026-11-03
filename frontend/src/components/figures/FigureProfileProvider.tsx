@@ -8,6 +8,11 @@ import {
 } from "@/services/entities/landing.service";
 import { FigureProfileSheet, FigureProfileTab, type ProfileTab } from "./FigureProfileSheet";
 import { buildFigureViews, type FigureView } from "./figure-utils";
+// Style cho FigureProfileSheet/FigurePortrait (chân dung, badge vai trò...) — trước đây chỉ
+// trang /nhan-vat tự import nên mở modal từ nơi khác (Dòng thời gian, /su-kien/[slug]) bị
+// thiếu CSS, chân dung render ra khối đen. Import ở đây để có bất cứ đâu Provider được mount.
+import "@/components/timeline/sk-timeline.css";
+import "./sk-figures.css";
 
 interface FigureProfileContextValue {
   /** Mở hồ sơ nhân vật dạng modal tại chỗ, không rời khỏi trang hiện tại. */

@@ -108,6 +108,7 @@ function toTimelineEvent(
     region: regionLabel(region),
     domainGroup: domainGroupOf(categoryTerms, event),
     title: event.title,
+    slug: event.slug,
     summary: event.description || "Chưa có mô tả cho sự kiện này.",
     content: event.description || "Chưa có nội dung chi tiết cho sự kiện này.",
     imageUrl: event.imageUrl || undefined,
@@ -219,9 +220,13 @@ export function buildEraDataset(
   );
 
   const eras = topPeriods.map((top): Era => {
-    const leafPeriods = periods
+    const children = periods
       .filter((p) => p.parentId === top.id)
       .sort((a, b) => (a.startYear ?? 0) - (b.startYear ?? 0));
+    // Thời kỳ gốc không có giai đoạn con (vd. "Cách mạng tháng Tám") vẫn cần hiện lên —
+    // coi chính nó là 1 "leaf" duy nhất, nếu không mọi sự kiện gắn thẳng vào nó sẽ bị bỏ
+    // qua hoàn toàn (subEras rỗng → era bị lọc khỏi dòng thời gian, xem cuối hàm).
+    const leafPeriods = children.length > 0 ? children : [top];
 
     const subEras: SubEra[] = leafPeriods.map((leaf, leafIndex): SubEra => {
       const region = leaf.region ?? top.region ?? null;

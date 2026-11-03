@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import { Badge, Button, Heading, Modal } from "./sk-ui";
 import { EntityList } from "./EntityList";
@@ -31,6 +32,15 @@ export function EventDetailModal({
               <p className="sk-detail-note">{detail.event.dateNote}</p>
             )}
             <div className="sk-detail-text">{detail.event.content}</div>
+            {detail.event.slug && (
+              <Link
+                className="sk-related-event"
+                href={`/su-kien/${detail.event.slug}`}
+                style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+              >
+                Xem chi tiết sự kiện <ArrowUpRight size={16} />
+              </Link>
+            )}
             <Heading level={2}>Nhân vật & địa danh</Heading>
             <EntityList figures={detail.event.figures || []} locations={detail.event.locations || []} tab="figures" />
             <EntityList figures={detail.event.figures || []} locations={detail.event.locations || []} tab="locations" />

@@ -50,6 +50,8 @@ export interface TimelineEvent {
   region: string;
   domainGroup: EventDomainGroup | "POLITICS_MILITARY" | "ECONOMY_CULTURE";
   title: string;
+  /** Slug sự kiện → liên kết trang chi tiết /su-kien/[slug]. */
+  slug?: string | null;
   summary: string;
   content: string;
   imageUrl?: string;

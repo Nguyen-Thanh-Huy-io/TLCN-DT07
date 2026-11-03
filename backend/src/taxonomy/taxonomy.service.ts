@@ -100,9 +100,6 @@ export class TaxonomyService {
       (await this.prisma.historicalEvent.count({
         where: { categoryIds: { has: id } },
       })) +
-      (await this.prisma.historicalEventParticipant.count({
-        where: { roleTermId: id },
-      })) +
       (await this.prisma.historicalStatement.count({
         where: { predicateId: id },
       })) +

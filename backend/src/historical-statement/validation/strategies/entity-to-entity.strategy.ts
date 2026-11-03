@@ -9,37 +9,29 @@ import {
   StatementNodeKind,
 } from '../../historical-statement.constant';
 
+/**
+ * Subject luôn là HistoricalEntity (Event nằm trong đó, type=EVENT) — strategy này
+ * chỉ còn phân biệt theo Object: Entity hay Literal.
+ */
 export class EntityToEntityValidationStrategy
   implements IStatementValidationStrategy
 {
   readonly name = 'EntityToEntityValidationStrategy';
 
-  canHandle(
-    subjectKind: StatementNodeKind,
-    objectKind: StatementNodeKind,
-  ): boolean {
-    return (
-      subjectKind === STATEMENT_NODE_KIND.ENTITY &&
-      objectKind === STATEMENT_NODE_KIND.ENTITY
-    );
+  canHandle(objectKind: StatementNodeKind): boolean {
+    return objectKind === STATEMENT_NODE_KIND.ENTITY;
   }
 
   async validate(context: StatementValidationContext): Promise<void> {
     const { payload } = context;
 
-    if (!payload.subjectEntityId) {
-      throw new BadRequestException(
-        STATEMENT_ERROR_MESSAGES.SUBJECT_ENTITY_NOT_FOUND,
-      );
-    }
-
-    if (!payload.objectEntityId) {
+    if (!payload.objectId) {
       throw new BadRequestException(
         STATEMENT_ERROR_MESSAGES.OBJECT_ENTITY_NOT_FOUND,
       );
     }
 
-    if (payload.subjectEntityId === payload.objectEntityId) {
+    if (payload.subjectId === payload.objectId) {
       throw new BadRequestException(STATEMENT_ERROR_MESSAGES.NO_SELF_LOOP);
     }
   }

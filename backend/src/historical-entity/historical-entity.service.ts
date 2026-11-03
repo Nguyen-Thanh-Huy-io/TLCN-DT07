@@ -485,9 +485,9 @@ export class HistoricalEntityService {
 
     const statement = await this.prisma.historicalStatement.create({
       data: {
-        subjectEntityId: sourceEntityId,
+        subjectId: sourceEntityId,
         predicateId: term.id,
-        objectEntityId: dto.targetEntityId,
+        objectId: dto.targetEntityId,
         validFromYear: dto.startYear || null,
         validToYear: dto.endYear || null,
         qualifiers: dto.note ? { note: dto.note } : undefined,
@@ -526,8 +526,8 @@ export class HistoricalEntityService {
 
     await this.prisma.historicalStatement.delete({ where: { id: relationId } });
 
-    if (statement.subjectEntityId) await this.invalidateCache(statement.subjectEntityId);
-    if (statement.objectEntityId) await this.invalidateCache(statement.objectEntityId);
+    await this.invalidateCache(statement.subjectId);
+    if (statement.objectId) await this.invalidateCache(statement.objectId);
     return {
       success: true,
       message: HISTORICAL_ENTITY_MESSAGES.RELATION_DELETED,
@@ -581,23 +581,23 @@ export class HistoricalEntityService {
     // Subject/Object đều là Entity (loại trừ statement có Object là Event hoặc literal).
     const [outgoing, incoming] = await Promise.all([
       this.prisma.historicalStatement.findMany({
-        where: { subjectEntityId: id, objectEntityId: { not: null } },
+        where: { subjectId: id, objectId: { not: null } },
         include: {
           predicate: true,
-          objectEntity: { include: { person: true } },
+          object: { include: { person: true } },
         },
       }),
       this.prisma.historicalStatement.findMany({
-        where: { objectEntityId: id, subjectEntityId: { not: null } },
+        where: { objectId: id },
         include: {
           predicate: true,
-          subjectEntity: { include: { person: true } },
+          subject: { include: { person: true } },
         },
       }),
     ]);
 
     for (const rel of outgoing) {
-      const target = rel.objectEntity!;
+      const target = rel.object!;
       if (!nodeMap.has(target.id)) {
         nodeMap.set(target.id, {
           id: target.id,
@@ -611,7 +611,7 @@ export class HistoricalEntityService {
     }
 
     for (const rel of incoming) {
-      const source = rel.subjectEntity!;
+      const source = rel.subject!;
       if (!nodeMap.has(source.id)) {
         nodeMap.set(source.id, {
           id: source.id,
@@ -627,8 +627,8 @@ export class HistoricalEntityService {
     const edges = [
       ...outgoing.map((rel) => ({
         id: rel.id,
-        source: rel.subjectEntityId as string,
-        target: rel.objectEntityId as string,
+        source: rel.subjectId as string,
+        target: rel.objectId as string,
         relationType: rel.predicate?.code ?? null,
         startYear: rel.validFromYear,
         endYear: rel.validToYear,
@@ -636,8 +636,8 @@ export class HistoricalEntityService {
       })),
       ...incoming.map((rel) => ({
         id: rel.id,
-        source: rel.subjectEntityId as string,
-        target: rel.objectEntityId as string,
+        source: rel.subjectId as string,
+        target: rel.objectId as string,
         relationType: rel.predicate?.code ?? null,
         startYear: rel.validFromYear,
         endYear: rel.validToYear,

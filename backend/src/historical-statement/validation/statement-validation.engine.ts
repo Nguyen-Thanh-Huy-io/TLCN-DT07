@@ -14,9 +14,6 @@ import {
   StatementValidationPayload,
 } from './statement-validation.interface';
 import { EntityToEntityValidationStrategy } from './strategies/entity-to-entity.strategy';
-import { EntityToEventValidationStrategy } from './strategies/entity-to-event.strategy';
-import { EventToEventValidationStrategy } from './strategies/event-to-event.strategy';
-import { EventToEntityValidationStrategy } from './strategies/event-to-entity.strategy';
 import { LiteralValidationStrategy } from './strategies/literal.strategy';
 
 @Injectable()
@@ -26,52 +23,32 @@ export class StatementValidationEngine {
   constructor(private readonly prisma: PrismaService) {
     this.strategies = [
       new EntityToEntityValidationStrategy(),
-      new EntityToEventValidationStrategy(),
-      new EventToEventValidationStrategy(),
-      new EventToEntityValidationStrategy(),
       new LiteralValidationStrategy(),
     ];
   }
 
   /**
-   * Xác thực toàn bộ ràng buộc nghiệp vụ và tính hợp lệ của phát biểu lịch sử
+   * Xác thực toàn bộ ràng buộc nghiệp vụ và tính hợp lệ của phát biểu lịch sử.
+   * Subject luôn là 1 HistoricalEntity (Event cũng là Entity, type=EVENT).
    */
   async validateStatement(
     payload: StatementValidationPayload,
     currentStatementId?: string,
-  ): Promise<{
-    subjectKind: StatementNodeKind;
-    objectKind: StatementNodeKind;
-  }> {
-    // 1. Kiểm tra chính xác 1 Subject
-    const hasSubjectEntity = Boolean(payload.subjectEntityId);
-    const hasSubjectEvent = Boolean(payload.subjectEventId);
-
-    if (
-      (!hasSubjectEntity && !hasSubjectEvent) ||
-      (hasSubjectEntity && hasSubjectEvent)
-    ) {
+  ): Promise<{ objectKind: StatementNodeKind }> {
+    if (!payload.subjectId) {
       throw new BadRequestException(
-        STATEMENT_ERROR_MESSAGES.EXACTLY_ONE_SUBJECT,
+        STATEMENT_ERROR_MESSAGES.SUBJECT_ENTITY_NOT_FOUND,
       );
     }
 
-    const subjectKind: StatementNodeKind = hasSubjectEntity
-      ? STATEMENT_NODE_KIND.ENTITY
-      : STATEMENT_NODE_KIND.EVENT;
-
-    // 2. Kiểm tra chính xác 1 Object
-    const hasObjectEntity = Boolean(payload.objectEntityId);
-    const hasObjectEvent = Boolean(payload.objectEventId);
+    // 1. Kiểm tra chính xác 1 Object
+    const hasObjectEntity = Boolean(payload.objectId);
     const hasObjectValue =
       payload.objectValue !== undefined &&
       payload.objectValue !== null &&
       Boolean(payload.objectValueType);
 
-    const objectCount =
-      (hasObjectEntity ? 1 : 0) +
-      (hasObjectEvent ? 1 : 0) +
-      (hasObjectValue ? 1 : 0);
+    const objectCount = (hasObjectEntity ? 1 : 0) + (hasObjectValue ? 1 : 0);
 
     if (objectCount !== 1) {
       throw new BadRequestException(
@@ -79,37 +56,32 @@ export class StatementValidationEngine {
       );
     }
 
-    let objectKind: StatementNodeKind = STATEMENT_NODE_KIND.LITERAL;
-    if (hasObjectEntity) {
-      objectKind = STATEMENT_NODE_KIND.ENTITY;
-    } else if (hasObjectEvent) {
-      objectKind = STATEMENT_NODE_KIND.EVENT;
-    }
+    const objectKind: StatementNodeKind = hasObjectEntity
+      ? STATEMENT_NODE_KIND.ENTITY
+      : STATEMENT_NODE_KIND.LITERAL;
 
-    // 3. Ràng buộc thời gian (Không có năm 0, năm kết thúc >= năm bắt đầu)
+    // 2. Ràng buộc thời gian (Không có năm 0, năm kết thúc >= năm bắt đầu)
     this.validateChronology(payload.validFromYear, payload.validToYear);
 
-    // 4. Tìm và kích hoạt Strategy tương ứng
-    const strategy = this.strategies.find((s) =>
-      s.canHandle(subjectKind, objectKind),
-    );
+    // 3. Tìm và kích hoạt Strategy tương ứng
+    const strategy = this.strategies.find((s) => s.canHandle(objectKind));
 
     if (!strategy) {
       throw new BadRequestException('Không tìm thấy chiến lược xác thực phù hợp.');
     }
 
-    await strategy.validate({ payload, subjectKind, objectKind });
+    await strategy.validate({ payload, objectKind });
 
-    // 5. Kiểm tra sự tồn tại trong DB (Chủ thể, Đối tượng, Predicate)
-    await this.validateDatabaseExistence(payload, subjectKind, objectKind);
+    // 4. Kiểm tra sự tồn tại trong DB (Chủ thể, Đối tượng, Predicate)
+    await this.validateDatabaseExistence(payload, objectKind);
 
-    // 6. Kiểm tra Predicate có hợp lệ với loại Subject/Object theo TaxonomyPredicateRule
-    await this.validatePredicateRule(payload, subjectKind, objectKind);
+    // 5. Kiểm tra Predicate có hợp lệ với loại Subject/Object theo TaxonomyPredicateRule
+    await this.validatePredicateRule(payload, objectKind);
 
-    // 7. Kiểm tra trùng lặp quan hệ (Duplicate check)
-    await this.validateUniqueness(payload, subjectKind, objectKind, currentStatementId);
+    // 6. Kiểm tra trùng lặp quan hệ (Duplicate check)
+    await this.validateUniqueness(payload, objectKind, currentStatementId);
 
-    return { subjectKind, objectKind };
+    return { objectKind };
   }
 
   /**
@@ -139,7 +111,6 @@ export class StatementValidationEngine {
    */
   private async validateDatabaseExistence(
     payload: StatementValidationPayload,
-    subjectKind: StatementNodeKind,
     objectKind: StatementNodeKind,
   ): Promise<void> {
     // A. Kiểm tra Predicate Taxonomy Term
@@ -158,35 +129,20 @@ export class StatementValidationEngine {
     }
 
     // B. Kiểm tra Subject
-    if (subjectKind === STATEMENT_NODE_KIND.ENTITY && payload.subjectEntityId) {
-      const exists = await this.prisma.historicalEntity.findUnique({
-        where: { id: payload.subjectEntityId },
-        select: { id: true },
-      });
-      if (!exists) {
-        throw new NotFoundException(
-          STATEMENT_ERROR_MESSAGES.SUBJECT_ENTITY_NOT_FOUND,
-        );
-      }
-    } else if (
-      subjectKind === STATEMENT_NODE_KIND.EVENT &&
-      payload.subjectEventId
-    ) {
-      const exists = await this.prisma.historicalEvent.findUnique({
-        where: { id: payload.subjectEventId },
-        select: { id: true },
-      });
-      if (!exists) {
-        throw new NotFoundException(
-          STATEMENT_ERROR_MESSAGES.SUBJECT_EVENT_NOT_FOUND,
-        );
-      }
+    const subjectExists = await this.prisma.historicalEntity.findUnique({
+      where: { id: payload.subjectId },
+      select: { id: true },
+    });
+    if (!subjectExists) {
+      throw new NotFoundException(
+        STATEMENT_ERROR_MESSAGES.SUBJECT_ENTITY_NOT_FOUND,
+      );
     }
 
     // C. Kiểm tra Object
-    if (objectKind === STATEMENT_NODE_KIND.ENTITY && payload.objectEntityId) {
+    if (objectKind === STATEMENT_NODE_KIND.ENTITY && payload.objectId) {
       const exists = await this.prisma.historicalEntity.findUnique({
-        where: { id: payload.objectEntityId },
+        where: { id: payload.objectId },
         select: { id: true },
       });
       if (!exists) {
@@ -194,31 +150,15 @@ export class StatementValidationEngine {
           STATEMENT_ERROR_MESSAGES.OBJECT_ENTITY_NOT_FOUND,
         );
       }
-    } else if (
-      objectKind === STATEMENT_NODE_KIND.EVENT &&
-      payload.objectEventId
-    ) {
-      const exists = await this.prisma.historicalEvent.findUnique({
-        where: { id: payload.objectEventId },
-        select: { id: true },
-      });
-      if (!exists) {
-        throw new NotFoundException(
-          STATEMENT_ERROR_MESSAGES.OBJECT_EVENT_NOT_FOUND,
-        );
-      }
     }
   }
 
   /**
-   * Kiểm tra loại Subject/Object thực tế có khớp allowedSubjectTypes/allowedObjectTypes
-   * của TaxonomyPredicateRule gắn với Predicate (nếu Predicate có khai báo rule).
-   * Loại thực tế: entityType của HistoricalEntity (PERSON, ORGANIZATION...) hoặc
-   * literal 'HISTORICAL_EVENT' khi node là HistoricalEvent.
+   * Kiểm tra loại Subject/Object thực tế (entityType của HistoricalEntity — bao gồm cả
+   * EVENT) có khớp allowedSubjectTypes/allowedObjectTypes của TaxonomyPredicateRule.
    */
   private async validatePredicateRule(
     payload: StatementValidationPayload,
-    subjectKind: StatementNodeKind,
     objectKind: StatementNodeKind,
   ): Promise<void> {
     const rule = await this.prisma.taxonomyPredicateRule.findUnique({
@@ -228,11 +168,7 @@ export class StatementValidationEngine {
     // Predicate chưa khai báo rule (ví dụ predicate tự do mới tạo) — bỏ qua, không chặn.
     if (!rule) return;
 
-    const subjectType = await this.resolveNodeType(
-      subjectKind,
-      payload.subjectEntityId,
-      payload.subjectEventId,
-    );
+    const subjectType = await this.resolveNodeType(payload.subjectId);
     if (
       rule.allowedSubjectTypes.length > 0 &&
       subjectType &&
@@ -248,11 +184,7 @@ export class StatementValidationEngine {
       return;
     }
 
-    const objectType = await this.resolveNodeType(
-      objectKind,
-      payload.objectEntityId,
-      payload.objectEventId,
-    );
+    const objectType = await this.resolveNodeType(payload.objectId);
     if (
       rule.allowedObjectTypes.length > 0 &&
       objectType &&
@@ -265,25 +197,18 @@ export class StatementValidationEngine {
   }
 
   /**
-   * Trả về mã loại thực tế của 1 node: entityType (PERSON, ORGANIZATION...) nếu là Entity,
-   * hoặc 'HISTORICAL_EVENT' nếu là Event.
+   * Trả về mã loại thực tế (entityType) của 1 Entity — EVENT là 1 giá trị bình thường
+   * của HistoricalEntityType, không còn cần đặc cách.
    */
   private async resolveNodeType(
-    kind: StatementNodeKind,
     entityId?: string | null,
-    eventId?: string | null,
   ): Promise<string | null> {
-    if (kind === STATEMENT_NODE_KIND.EVENT && eventId) {
-      return 'HISTORICAL_EVENT';
-    }
-    if (kind === STATEMENT_NODE_KIND.ENTITY && entityId) {
-      const entity = await this.prisma.historicalEntity.findUnique({
-        where: { id: entityId },
-        select: { type: true },
-      });
-      return entity?.type ?? null;
-    }
-    return null;
+    if (!entityId) return null;
+    const entity = await this.prisma.historicalEntity.findUnique({
+      where: { id: entityId },
+      select: { type: true },
+    });
+    return entity?.type ?? null;
   }
 
   /**
@@ -291,7 +216,6 @@ export class StatementValidationEngine {
    */
   private async validateUniqueness(
     payload: StatementValidationPayload,
-    subjectKind: StatementNodeKind,
     objectKind: StatementNodeKind,
     currentStatementId?: string,
   ): Promise<void> {
@@ -302,22 +226,12 @@ export class StatementValidationEngine {
 
     const whereClause: any = {
       predicateId: payload.predicateId,
+      subjectId: payload.subjectId,
+      objectId: payload.objectId,
     };
 
     if (currentStatementId) {
       whereClause.id = { not: currentStatementId };
-    }
-
-    if (subjectKind === STATEMENT_NODE_KIND.ENTITY) {
-      whereClause.subjectEntityId = payload.subjectEntityId;
-    } else {
-      whereClause.subjectEventId = payload.subjectEventId;
-    }
-
-    if (objectKind === STATEMENT_NODE_KIND.ENTITY) {
-      whereClause.objectEntityId = payload.objectEntityId;
-    } else {
-      whereClause.objectEventId = payload.objectEventId;
     }
 
     const duplicate = await this.prisma.historicalStatement.findFirst({

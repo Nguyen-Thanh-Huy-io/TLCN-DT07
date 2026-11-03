@@ -266,8 +266,9 @@ export class ContentRevisionService {
       ids.entity.size
         ? this.prisma.historicalEntity.findMany({ where: { id: { in: [...ids.entity] } }, select: { id: true, name: true } })
         : [],
+      // Event giờ là 1 HistoricalEntity (type=EVENT), tên lấy từ "name" chung.
       ids.event.size
-        ? this.prisma.historicalEvent.findMany({ where: { id: { in: [...ids.event] } }, select: { id: true, title: true } })
+        ? this.prisma.historicalEntity.findMany({ where: { id: { in: [...ids.event] } }, select: { id: true, name: true } })
         : [],
       ids.term.size
         ? this.prisma.taxonomyTerm.findMany({
@@ -283,7 +284,7 @@ export class ContentRevisionService {
     for (const p of periods) labels[p.id] = p.name;
     for (const t of topics) labels[t.id] = t.name;
     for (const e of entities) labels[e.id] = e.name;
-    for (const e of events) labels[e.id] = e.title;
+    for (const e of events) labels[e.id] = e.name;
     for (const t of terms) {
       labels[t.id] = t.label;
       labels[t.code] ??= t.label;

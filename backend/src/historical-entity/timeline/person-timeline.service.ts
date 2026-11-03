@@ -48,18 +48,20 @@ export class PersonTimelineService {
       throw new NotFoundException(HISTORICAL_ENTITY_ERRORS.NOT_FOUND(entityId));
     }
 
-    // 2. Truy vấn hai chiều toàn bộ phát biểu liên quan (Target là Subject hoặc Object)
+    // 2. Truy vấn hai chiều toàn bộ phát biểu liên quan (Target là Subject hoặc Object).
+    // Event giờ là 1 HistoricalEntity (type=EVENT) nên tham gia sự kiện cũng đi qua
+    // Statement như mọi quan hệ khác — không còn HistoricalEventParticipant riêng.
     const statementWhere: any = {
-      OR: [{ subjectEntityId: entityId }, { objectEntityId: entityId }],
+      OR: [{ subjectId: entityId }, { objectId: entityId }],
     };
 
     if (!includeStatements) {
-      // Chỉ lấy các phát biểu liên kết tới Sự kiện
+      // Chỉ lấy các phát biểu liên kết tới Sự kiện (đối phương có type=EVENT)
       statementWhere.AND = [
         {
           OR: [
-            { subjectEventId: { not: null } },
-            { objectEventId: { not: null } },
+            { subject: { type: 'EVENT' } },
+            { object: { type: 'EVENT' } },
           ],
         },
       ];
@@ -69,22 +71,36 @@ export class PersonTimelineService {
       where: statementWhere,
       include: {
         predicate: true,
-        subjectEvent: true,
-        objectEvent: true,
-        subjectEntity: {
+        subject: {
           select: {
             id: true,
             name: true,
             slug: true,
             type: true,
+            imageUrl: true,
+            dateText: true,
+            startYear: true,
+            startMonth: true,
+            startDay: true,
+            datePrecision: true,
+            description: true,
+            event: { select: { categoryIds: true } },
           },
         },
-        objectEntity: {
+        object: {
           select: {
             id: true,
             name: true,
             slug: true,
             type: true,
+            imageUrl: true,
+            dateText: true,
+            startYear: true,
+            startMonth: true,
+            startDay: true,
+            datePrecision: true,
+            description: true,
+            event: { select: { categoryIds: true } },
           },
         },
         references: {
@@ -95,30 +111,11 @@ export class PersonTimelineService {
       },
     });
 
-    // 3. Truy vấn các sự kiện mà thực thể trực tiếp tham gia (HistoricalEventParticipant)
-    const participations = await this.prisma.historicalEventParticipant.findMany({
-      where: { entityId },
-      include: {
-        event: true,
-        roleTerm: true,
-        references: {
-          include: {
-            reference: true,
-          },
-        },
-      },
-    });
-
-    // 4. Khởi tạo Builder & lắp ráp các mốc thời gian
+    // 3. Khởi tạo Builder & lắp ráp các mốc thời gian
     this.builder.reset().setEntity(entity, entity.person);
 
     // Mốc sinh ra (hoặc thành lập)
     this.builder.addBirthOrFoundingMilestone();
-
-    // Mốc tham gia các sự kiện lịch sử (HistoricalEventParticipant)
-    for (const participation of participations) {
-      this.builder.addEventParticipant(participation);
-    }
 
     // Chiếu các phát biểu tri thức sang các mốc sự kiện/quan hệ
     for (const statement of statements) {

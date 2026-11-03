@@ -38,35 +38,15 @@ export class QueryHistoricalStatementDto {
   @Max(STATEMENT_CONSTANTS.MAX_LIMIT)
   limit?: number = STATEMENT_CONSTANTS.DEFAULT_LIMIT;
 
-  @ApiPropertyOptional({ description: 'ID nút chủ thể (Entity hoặc Event)' })
+  @ApiPropertyOptional({ description: 'Lọc theo Subject (HistoricalEntity ID)' })
   @IsOptional()
   @IsString()
   subjectId?: string;
 
-  @ApiPropertyOptional({ description: 'Lọc riêng theo Subject Entity ID' })
-  @IsOptional()
-  @IsString()
-  subjectEntityId?: string;
-
-  @ApiPropertyOptional({ description: 'Lọc riêng theo Subject Event ID' })
-  @IsOptional()
-  @IsString()
-  subjectEventId?: string;
-
-  @ApiPropertyOptional({ description: 'ID nút đối tượng (Entity hoặc Event)' })
+  @ApiPropertyOptional({ description: 'Lọc theo Object (HistoricalEntity ID)' })
   @IsOptional()
   @IsString()
   objectId?: string;
-
-  @ApiPropertyOptional({ description: 'Lọc riêng theo Object Entity ID' })
-  @IsOptional()
-  @IsString()
-  objectEntityId?: string;
-
-  @ApiPropertyOptional({ description: 'Lọc riêng theo Object Event ID' })
-  @IsOptional()
-  @IsString()
-  objectEventId?: string;
 
   @ApiPropertyOptional({
     description: 'Lọc tất cả các quan hệ liên quan đến một Node (dù là Subject hay Object)',

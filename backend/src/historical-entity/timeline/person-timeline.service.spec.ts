@@ -21,9 +21,6 @@ describe('PersonTimelineService', () => {
       historicalStatement: {
         findMany: jest.fn(),
       },
-      historicalEventParticipant: {
-        findMany: jest.fn().mockResolvedValue([]),
-      },
     };
 
     redis = {
@@ -84,21 +81,22 @@ describe('PersonTimelineService', () => {
     const mockStatements = [
       {
         id: 'stmt-1',
-        subjectEntityId: 'entity-nguyen-trai',
-        objectEventId: 'event-lam-son',
+        subjectId: 'entity-nguyen-trai',
+        objectId: 'event-lam-son',
         predicate: {
           id: 'pred-1',
           code: 'PARTICIPATED_IN',
           label: 'Tham gia',
           inverseLabel: 'Có sự tham gia của',
         },
-        objectEvent: {
+        object: {
           id: 'event-lam-son',
-          title: 'Khởi nghĩa Lam Sơn',
+          type: 'EVENT',
+          name: 'Khởi nghĩa Lam Sơn',
           slug: 'khoi-nghia-lam-son',
-          category: 'WAR',
           startYear: 1418,
           dateText: '1418 - 1427',
+          event: { categoryIds: [] },
         },
         qualifiers: {
           role: 'MILITARY_ADVISER',

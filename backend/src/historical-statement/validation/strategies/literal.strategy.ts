@@ -15,10 +15,7 @@ export class LiteralValidationStrategy
 {
   readonly name = 'LiteralValidationStrategy';
 
-  canHandle(
-    _subjectKind: StatementNodeKind,
-    objectKind: StatementNodeKind,
-  ): boolean {
+  canHandle(objectKind: StatementNodeKind): boolean {
     return objectKind === STATEMENT_NODE_KIND.LITERAL;
   }
 

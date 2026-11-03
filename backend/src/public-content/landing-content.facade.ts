@@ -41,6 +41,27 @@ const CONCURRENT_EVENTS_LIMIT = 12;
 const SITE_WITH_TERMS = {
   include: { siteTypeTerm: true, preservation: true, rank: true },
 } as const;
+/**
+ * Include dùng chung cho mọi truy vấn HistoricalEntity(type=EVENT) — location, participants
+ * và quan hệ nhân-quả Event↔Event đều chiếu từ subjectStatements/objectStatements
+ * (xem PublicContentMapper.toEventSummary).
+ */
+const EVENT_STATEMENT_INCLUDE = {
+  event: true,
+  period: { select: { slug: true } },
+  subjectStatements: {
+    include: {
+      predicate: true,
+      object: { include: { historicalSite: true } },
+    },
+  },
+  objectStatements: {
+    include: {
+      predicate: true,
+      subject: { include: { historicalSite: true } },
+    },
+  },
+} as const;
 const NEARBY_LOCATIONS_LIMIT = 4;
 const EARTH_RADIUS_KM = 6371;
 
@@ -138,20 +159,18 @@ export class LandingContentFacade {
       include: {
         person: true,
         period: { select: { slug: true } },
-        eventParticipations: {
-          where: { event: { status: PUBLIC_CONTENT_STATUS } },
+        // Tham gia sự kiện (object.type=EVENT) và quan hệ với nhân vật khác (object khác
+        // EVENT) đều nằm trong subjectStatements/objectStatements — xem toFigureProfile.
+        subjectStatements: {
+          where: { object: { status: PUBLIC_CONTENT_STATUS } },
           include: {
-            roleTerm: true,
-            event: { include: { period: { select: { slug: true } } } },
+            predicate: true,
+            object: { include: { event: true, period: { select: { slug: true } } } },
           },
         },
-        subjectStatements: {
-          where: { objectEntity: publishedPerson },
-          include: { predicate: true, objectEntity: true },
-        },
         objectStatements: {
-          where: { subjectEntity: publishedPerson },
-          include: { predicate: true, subjectEntity: true },
+          where: { subject: publishedPerson },
+          include: { predicate: true, subject: true },
         },
       },
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
@@ -208,23 +227,16 @@ export class LandingContentFacade {
     }
 
     const [events, others] = await Promise.all([
-      this.prisma.historicalEvent.findMany({
+      this.prisma.historicalEntity.findMany({
         where: {
+          type: HistoricalEntityType.EVENT,
           status: PUBLIC_CONTENT_STATUS,
           OR: [
-            { locationId: entity.id },
-            { participants: { some: { entityId: entity.id } } },
+            { subjectStatements: { some: { predicate: { code: 'OCCURRED_AT' }, objectId: entity.id } } },
+            { objectStatements: { some: { subjectId: entity.id } } },
           ],
         },
-        include: {
-          location: { include: { historicalSite: true } },
-          period: { select: { slug: true } },
-          participants: {
-            where: { entity: { status: PUBLIC_CONTENT_STATUS } },
-            include: { entity: { include: { historicalSite: true } }, roleTerm: true },
-            orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
-          },
-        },
+        include: EVENT_STATEMENT_INCLUDE,
         orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
       }),
       this.prisma.historicalEntity.findMany({
@@ -244,8 +256,9 @@ export class LandingContentFacade {
 
     const figures = new Map<string, PublicFigureDto>();
     for (const event of events) {
-      for (const { entity: participant } of event.participants) {
-        if (participant.type === HistoricalEntityType.PERSON) {
+      for (const stmt of event.objectStatements) {
+        const participant = stmt.subject;
+        if (participant && participant.type === HistoricalEntityType.PERSON) {
           figures.set(
             participant.id,
             PublicContentMapper.toFigure(participant),
@@ -303,26 +316,9 @@ export class LandingContentFacade {
 
   /** Danh sách Sự kiện lịch sử công khai, sắp xếp theo mốc thời gian. */
   async getEvents(): Promise<PublicEventSummaryDto[]> {
-    const events = await this.prisma.historicalEvent.findMany({
-      where: { status: PUBLIC_CONTENT_STATUS },
-      include: {
-        location: { include: { historicalSite: true } },
-        period: { select: { slug: true } },
-        participants: {
-          where: { entity: { status: PUBLIC_CONTENT_STATUS } },
-          include: { entity: { include: { historicalSite: true } }, roleTerm: true },
-          orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
-        },
-        // Quan hệ với sự kiện khác — dòng thời gian làm sáng các mốc liên quan khi bấm một sự kiện.
-        subjectStatements: {
-          where: { objectEvent: { status: PUBLIC_CONTENT_STATUS } },
-          select: { objectEventId: true, predicate: { select: { code: true } } },
-        },
-        objectStatements: {
-          where: { subjectEvent: { status: PUBLIC_CONTENT_STATUS } },
-          select: { subjectEventId: true, predicate: { select: { code: true } } },
-        },
-      },
+    const events = await this.prisma.historicalEntity.findMany({
+      where: { type: HistoricalEntityType.EVENT, status: PUBLIC_CONTENT_STATUS },
+      include: EVENT_STATEMENT_INCLUDE,
       orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
     });
     return events.map((event) => PublicContentMapper.toEventSummary(event));
@@ -360,39 +356,16 @@ export class LandingContentFacade {
 
   /** Chi tiết 1 Sự kiện lịch sử: giai đoạn, sự kiện cha/con, sự kiện liên quan (đồ thị nhân-quả). */
   async getEventBySlug(slug: string): Promise<PublicEventDetailDto> {
-    const event = await this.prisma.historicalEvent.findFirst({
-      where: { slug, status: PUBLIC_CONTENT_STATUS },
+    const event = await this.prisma.historicalEntity.findFirst({
+      where: { slug, type: HistoricalEntityType.EVENT, status: PUBLIC_CONTENT_STATUS },
       include: {
+        ...EVENT_STATEMENT_INCLUDE,
         period: true,
-        location: { include: { historicalSite: true } },
-        participants: {
-          where: { entity: { status: PUBLIC_CONTENT_STATUS } },
-          include: { entity: { include: { historicalSite: true } }, roleTerm: true },
-          orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
-        },
-        parent: {
-          include: { location: { include: { historicalSite: true } } },
-        },
-        children: {
-          where: { status: PUBLIC_CONTENT_STATUS },
-          include: { location: { include: { historicalSite: true } } },
-          orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
-        },
-        subjectStatements: {
-          where: { objectEventId: { not: null } },
+        event: {
           include: {
-            predicate: true,
-            objectEvent: {
-              include: { location: { include: { historicalSite: true } } },
-            },
-          },
-        },
-        objectStatements: {
-          where: { subjectEventId: { not: null } },
-          include: {
-            predicate: true,
-            subjectEvent: {
-              include: { location: { include: { historicalSite: true } } },
+            parent: { include: { entity: true } },
+            children: {
+              include: { entity: true },
             },
           },
         },
@@ -406,26 +379,32 @@ export class LandingContentFacade {
     }
 
     const outgoingRelations = event.subjectStatements
-      .filter((rel) => rel.objectEvent?.status === PUBLIC_CONTENT_STATUS)
+      .filter((rel) => rel.object?.type === 'EVENT' && rel.object?.status === PUBLIC_CONTENT_STATUS)
       .map((rel) => ({
         relationType: rel.predicate?.code ?? null,
         description: (rel.qualifiers as any)?.description ?? null,
-        event: PublicContentMapper.toEventSummary(rel.objectEvent!),
+        event: PublicContentMapper.toEventSummary(rel.object as any),
       }));
 
     const incomingRelations = event.objectStatements
-      .filter((rel) => rel.subjectEvent?.status === PUBLIC_CONTENT_STATUS)
+      .filter((rel) => rel.subject?.type === 'EVENT' && rel.subject?.status === PUBLIC_CONTENT_STATUS)
       .map((rel) => ({
         relationType: rel.predicate?.code ?? null,
         description: (rel.qualifiers as any)?.description ?? null,
-        event: PublicContentMapper.toEventSummary(rel.subjectEvent!),
+        event: PublicContentMapper.toEventSummary(rel.subject as any),
       }));
 
+    const participantStmts = event.objectStatements.filter(
+      (s) => s.subject && s.subject.type !== 'EVENT',
+    );
+
     const metadata = (event.metadata ?? {}) as Record<string, unknown>;
+    const parentEntity = event.event?.parent?.entity ?? null;
+    const childEntities = event.event?.children.map((c) => c.entity) ?? [];
 
     return {
       ...PublicContentMapper.toEventSummary(event),
-      summary: event.summary,
+      summary: event.tagline,
       startMonth: event.startMonth,
       startDay: event.startDay,
       endYear: event.endYear,
@@ -434,20 +413,20 @@ export class LandingContentFacade {
       cause: textOrNull(metadata.cause),
       outcome: textOrNull(metadata.outcome),
       sources: textList(metadata.sources),
-      participants: event.participants.map((p) => ({
-        entityId: p.entityId,
-        role: p.roleTerm?.code ?? 'PARTICIPANT',
-        roleLabel: p.roleLabelOverride ?? p.roleTerm?.label ?? null,
-        isPrimary: p.isPrimary,
+      participants: participantStmts.map((s) => ({
+        entityId: s.subjectId as string,
+        role: (s.qualifiers as any)?.role ?? s.predicate.code ?? 'PARTICIPANT',
+        roleLabel: (s.qualifiers as any)?.roleLabel ?? null,
+        isPrimary: Boolean(s.isPrimary),
       })),
       period: event.period ? PublicContentMapper.toPeriod(event.period) : null,
       parent:
-        event.parent && event.parent.status === PUBLIC_CONTENT_STATUS
-          ? PublicContentMapper.toEventSummary(event.parent)
+        parentEntity && parentEntity.status === PUBLIC_CONTENT_STATUS
+          ? PublicContentMapper.toEventSummary(parentEntity)
           : null,
-      children: event.children.map((child) =>
-        PublicContentMapper.toEventSummary(child),
-      ),
+      children: childEntities
+        .filter((c) => c.status === PUBLIC_CONTENT_STATUS)
+        .map((child) => PublicContentMapper.toEventSummary(child)),
       outgoingRelations,
       incomingRelations,
     };
@@ -490,23 +469,14 @@ export class LandingContentFacade {
     const rangeStart = period.startYear ?? currentYear + 1;
     const rangeEnd = period.endYear ?? currentYear;
 
-    const eventInclude = {
-      location: { include: { historicalSite: true } },
-      period: { select: { slug: true } },
-      participants: {
-        where: { entity: { status: PUBLIC_CONTENT_STATUS } },
-        include: { entity: { include: { historicalSite: true } }, roleTerm: true },
-        orderBy: [
-          { isPrimary: 'desc' as const },
-          { displayOrder: 'asc' as const },
-        ],
-      },
-    };
-
     const [events, scopedEntities, nearbyEvents] = await Promise.all([
-      this.prisma.historicalEvent.findMany({
-        where: { status: PUBLIC_CONTENT_STATUS, periodId: { in: scopeIds } },
-        include: eventInclude,
+      this.prisma.historicalEntity.findMany({
+        where: {
+          type: HistoricalEntityType.EVENT,
+          status: PUBLIC_CONTENT_STATUS,
+          periodId: { in: scopeIds },
+        },
+        include: EVENT_STATEMENT_INCLUDE,
         orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
       }),
       this.prisma.historicalEntity.findMany({
@@ -514,13 +484,14 @@ export class LandingContentFacade {
         include: { person: true, historicalSite: true },
         orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
       }),
-      this.prisma.historicalEvent.findMany({
+      this.prisma.historicalEntity.findMany({
         where: {
+          type: HistoricalEntityType.EVENT,
           status: PUBLIC_CONTENT_STATUS,
           startYear: { gte: rangeStart, lte: rangeEnd },
           NOT: { periodId: { in: scopeIds } },
         },
-        include: eventInclude,
+        include: EVENT_STATEMENT_INCLUDE,
         orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
       }),
     ]);
@@ -536,7 +507,9 @@ export class LandingContentFacade {
       }
     }
     for (const event of events) {
-      for (const { entity } of event.participants) {
+      for (const stmt of event.objectStatements) {
+        const entity = stmt.subject;
+        if (!entity) continue;
         if (
           entity.type === HistoricalEntityType.PERSON &&
           !figures.has(entity.id)
@@ -553,10 +526,14 @@ export class LandingContentFacade {
           );
         }
       }
-      if (event.location && !locations.has(event.location.id)) {
+      const locationStmt = event.subjectStatements.find(
+        (s) => s.predicate.code === 'OCCURRED_AT' && s.object,
+      );
+      const eventLocation = locationStmt?.object ?? null;
+      if (eventLocation && !locations.has(eventLocation.id)) {
         locations.set(
-          event.location.id,
-          PublicContentMapper.toLocationSummary(event.location),
+          eventLocation.id,
+          PublicContentMapper.toLocationSummary(eventLocation),
         );
       }
     }
@@ -643,12 +620,9 @@ export class LandingContentFacade {
       where: { slug, status: PUBLIC_CONTENT_STATUS },
       include: {
         period: true,
-        eventParticipations: {
-          include: {
-            event: {
-              include: { location: { include: { historicalSite: true } } },
-            },
-          },
+        subjectStatements: {
+          where: { object: { type: HistoricalEntityType.EVENT } },
+          include: { object: { include: EVENT_STATEMENT_INCLUDE } },
         },
       },
     });
@@ -659,8 +633,8 @@ export class LandingContentFacade {
       );
     }
 
-    const relatedEvents = entity.eventParticipations
-      .map((ee) => ee.event)
+    const relatedEvents = entity.subjectStatements
+      .map((ee) => ee.object!)
       .filter((e) => e.status === PUBLIC_CONTENT_STATUS)
       .sort(compareHistoricalDates);
 

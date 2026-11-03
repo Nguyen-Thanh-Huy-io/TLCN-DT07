@@ -20,8 +20,8 @@ export class StatementDirectionProjector {
    */
   project(payload: IProjectedStatementPayload): PersonTimelineItemDto | null {
     const { targetEntityId, statement } = payload;
-    const isSubject = statement.subjectEntityId === targetEntityId;
-    const isObject = statement.objectEntityId === targetEntityId;
+    const isSubject = statement.subjectId === targetEntityId;
+    const isObject = statement.objectId === targetEntityId;
 
     if (!isSubject && !isObject) {
       return null;
@@ -44,13 +44,10 @@ export class StatementDirectionProjector {
       activeLabel = predicate?.inverseLabel || predicate?.label || 'Liên quan đến';
     }
 
-    const counterpartEvent = isSubject
-      ? statement.objectEvent
-      : statement.subjectEvent;
-
-    const counterpartEntity = isSubject
-      ? statement.objectEntity
-      : statement.subjectEntity;
+    const counterpart = isSubject ? statement.object : statement.subject;
+    const counterpartEvent =
+      counterpart?.type === 'EVENT' ? counterpart : null;
+    const counterpartEntity = counterpart;
 
     const qualifiers = (statement.qualifiers as Record<string, any>) || {};
     const role = qualifiers.role || qualifiers.roleCode || null;
@@ -65,7 +62,8 @@ export class StatementDirectionProjector {
       quote: ref.quote || null,
     }));
 
-    // Trường hợp 1: Quan hệ kết nối với Sự kiện (Event Participation)
+    // Trường hợp 1: Quan hệ kết nối với Sự kiện (Event Participation) — Event giờ là 1
+    // HistoricalEntity (type=EVENT), dùng chung các trường name/dateText/imageUrl.
     if (counterpartEvent) {
       const year = statement.validFromYear ?? counterpartEvent.startYear ?? null;
       const month = counterpartEvent.startMonth ?? null;
@@ -74,8 +72,8 @@ export class StatementDirectionProjector {
         counterpartEvent.dateText ||
         (year ? formatHistoricalYear(year) : null);
 
-      let title = counterpartEvent.title;
-      let description = counterpartEvent.summary || counterpartEvent.description;
+      const title = counterpartEvent.name;
+      let description = counterpartEvent.description;
       if (notes) {
         description = description ? `${notes}\n\n${description}` : notes;
       }
@@ -101,10 +99,10 @@ export class StatementDirectionProjector {
         },
         event: {
           id: counterpartEvent.id,
-          title: counterpartEvent.title,
+          title: counterpartEvent.name,
           slug: counterpartEvent.slug,
-          category: counterpartEvent.category,
-          thumbnailUrl: counterpartEvent.thumbnailUrl,
+          category: counterpartEvent.event?.categoryIds?.[0] ?? null,
+          thumbnailUrl: counterpartEvent.imageUrl,
           dateText: counterpartEvent.dateText,
         },
         references,

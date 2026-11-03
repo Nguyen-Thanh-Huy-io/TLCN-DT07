@@ -46,21 +46,14 @@ export class CreateStatementReferenceInputDto {
 }
 
 export class CreateHistoricalStatementDto {
-  @ApiPropertyOptional({
-    description: 'ID của thực thể chủ thể (HistoricalEntity ID)',
+  @ApiProperty({
+    description:
+      'ID của thực thể chủ thể (HistoricalEntity ID — Event cũng là 1 HistoricalEntity, type=EVENT)',
     example: 'clx...entity-id',
   })
-  @IsOptional()
   @IsString()
-  subjectEntityId?: string;
-
-  @ApiPropertyOptional({
-    description: 'ID của sự kiện chủ thể (HistoricalEvent ID)',
-    example: 'clx...event-id',
-  })
-  @IsOptional()
-  @IsString()
-  subjectEventId?: string;
+  @IsNotEmpty()
+  subjectId: string;
 
   @ApiProperty({
     description: 'ID của mối quan hệ (TaxonomyTerm ID)',
@@ -71,20 +64,13 @@ export class CreateHistoricalStatementDto {
   predicateId: string;
 
   @ApiPropertyOptional({
-    description: 'ID của thực thể đối tượng (HistoricalEntity ID)',
+    description:
+      'ID của thực thể đối tượng (HistoricalEntity ID — Event cũng là 1 HistoricalEntity, type=EVENT)',
     example: 'clx...target-entity-id',
   })
   @IsOptional()
   @IsString()
-  objectEntityId?: string;
-
-  @ApiPropertyOptional({
-    description: 'ID của sự kiện đối tượng (HistoricalEvent ID)',
-    example: 'clx...target-event-id',
-  })
-  @IsOptional()
-  @IsString()
-  objectEventId?: string;
+  objectId?: string;
 
   @ApiPropertyOptional({
     description: 'Giá trị hằng số (Literal Value) nếu quan hệ trỏ đến thuộc tính',

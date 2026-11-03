@@ -2,11 +2,9 @@ import { StatementNodeKind } from '../historical-statement.constant';
 import { StatementValueType } from '@prisma/client';
 
 export interface StatementValidationPayload {
-  subjectEntityId?: string | null;
-  subjectEventId?: string | null;
+  subjectId: string;
   predicateId: string;
-  objectEntityId?: string | null;
-  objectEventId?: string | null;
+  objectId?: string | null;
   objectValue?: any | null;
   objectValueType?: StatementValueType | null;
   validFromYear?: number | null;
@@ -15,12 +13,11 @@ export interface StatementValidationPayload {
 
 export interface StatementValidationContext {
   payload: StatementValidationPayload;
-  subjectKind: StatementNodeKind;
   objectKind: StatementNodeKind;
 }
 
 export interface IStatementValidationStrategy {
   readonly name: string;
-  canHandle(subjectKind: StatementNodeKind, objectKind: StatementNodeKind): boolean;
+  canHandle(objectKind: StatementNodeKind): boolean;
   validate(context: StatementValidationContext): Promise<void>;
 }

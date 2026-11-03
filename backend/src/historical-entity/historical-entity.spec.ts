@@ -275,8 +275,8 @@ describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
       expect(mockPrisma.historicalStatement.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            subjectEntityId: 'ent-1',
-            objectEntityId: 'ent-2',
+            subjectId: 'ent-1',
+            objectId: 'ent-2',
             predicateId: 'term-1',
           }),
         }),
@@ -290,13 +290,13 @@ describe('Phase 2 - HistoricalEntityService Unit Tests', () => {
         .mockResolvedValueOnce([
           {
             id: mockRelation.id,
-            subjectEntityId: mockRelation.sourceEntityId,
-            objectEntityId: mockRelation.targetEntityId,
+            subjectId: mockRelation.sourceEntityId,
+            objectId: mockRelation.targetEntityId,
             predicate: { code: EntityRelationType.LEADER_OF },
             validFromYear: mockRelation.startYear,
             validToYear: mockRelation.endYear,
             qualifiers: { note: mockRelation.note },
-            objectEntity: mockTargetEntity,
+            object: mockTargetEntity,
           },
         ])
         .mockResolvedValueOnce([]);

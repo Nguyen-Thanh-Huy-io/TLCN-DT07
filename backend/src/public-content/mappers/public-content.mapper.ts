@@ -1,7 +1,6 @@
 import {
   HistoricalEntity,
   HistoricalEvent,
-  HistoricalEventParticipant,
   HistoricalSite,
   HistoricalStatement,
   TaxonomyTerm,
@@ -122,22 +121,21 @@ export class PublicContentMapper {
     entity: HistoricalEntity & {
       person: Person | null;
       period: { slug: string } | null;
-      eventParticipations: Array<
-        HistoricalEventParticipant & {
-          roleTerm: TaxonomyTerm | null;
-          event: HistoricalEvent & { period: { slug: string } | null };
-        }
-      >;
       subjectStatements: Array<
         HistoricalStatement & {
           predicate: TaxonomyTerm;
-          objectEntity: HistoricalEntity | null;
+          object:
+            | (HistoricalEntity & {
+                event?: HistoricalEvent | null;
+                period?: { slug: string } | null;
+              })
+            | null;
         }
       >;
       objectStatements: Array<
         HistoricalStatement & {
           predicate: TaxonomyTerm;
-          subjectEntity: HistoricalEntity | null;
+          subject: (HistoricalEntity & { event?: HistoricalEvent | null }) | null;
         }
       >;
     },
@@ -147,6 +145,15 @@ export class PublicContentMapper {
       string,
       unknown
     >;
+
+    // Tham gia sự kiện giờ là 1 HistoricalStatement có object.type === 'EVENT'
+    // (Event cũng là 1 HistoricalEntity) — không còn bảng HistoricalEventParticipant riêng.
+    const eventStatements = entity.subjectStatements.filter(
+      (rel) => rel.object?.type === 'EVENT',
+    );
+    const entityRelationStatements = [
+      ...entity.subjectStatements.filter((rel) => rel.object && rel.object.type !== 'EVENT'),
+    ];
 
     return {
       ...PublicContentMapper.toFigure(entity),
@@ -169,42 +176,42 @@ export class PublicContentMapper {
       titles: entity.person?.titles ?? [],
       sources: textList(metadata.sources),
       periodSlug: entity.period?.slug ?? null,
-      events: entity.eventParticipations
-        .map((ep) => ({
-          id: ep.event.id,
-          slug: ep.event.slug,
-          title: ep.event.title,
-          startYear: ep.event.startYear ?? null,
-          eventDateNote:
-            ep.event.dateText ?? ep.event.eventDateNote ?? null,
-          description: ep.event.description,
-          category: ep.event.category,
-          categoryIds: ep.event.categoryIds ?? [],
-          periodSlug: ep.event.period?.slug ?? null,
-          role: ep.roleTerm?.code ?? 'PARTICIPANT',
-          roleLabel: ep.roleLabelOverride ?? ep.roleTerm?.label ?? null,
-          isPrimary: ep.isPrimary,
-        }))
+      events: eventStatements
+        .map((rel) => {
+          const ev = rel.object!;
+          return {
+            id: ev.id,
+            slug: ev.slug,
+            title: ev.name,
+            startYear: ev.startYear ?? null,
+            eventDateNote: ev.dateText ?? ev.event?.eventDateNote ?? null,
+            description: ev.description,
+            category: (ev.metadata as any)?.category ?? 'OTHER',
+            categoryIds: ev.event?.categoryIds ?? [],
+            periodSlug: ev.period?.slug ?? null,
+            role: (rel.qualifiers as any)?.role ?? rel.predicate.code ?? 'PARTICIPANT',
+            roleLabel: (rel.qualifiers as any)?.roleLabel ?? null,
+            isPrimary: rel.isPrimary,
+          };
+        })
         .sort(compareHistoricalDates),
       relationships: [
-        ...entity.subjectStatements
-          .filter((rel) => rel.objectEntity)
-          .map((rel) => ({
-            figureId: rel.objectEntity!.id,
-            slug: rel.objectEntity!.slug,
-            name: rel.objectEntity!.name,
-            relationType: rel.predicate.code,
-            direction: 'OUTGOING' as const,
-            note: (rel.qualifiers as any)?.note ?? null,
-            startYear: rel.validFromYear,
-            endYear: rel.validToYear,
-          })),
+        ...entityRelationStatements.map((rel) => ({
+          figureId: rel.object!.id,
+          slug: rel.object!.slug,
+          name: rel.object!.name,
+          relationType: rel.predicate.code,
+          direction: 'OUTGOING' as const,
+          note: (rel.qualifiers as any)?.note ?? null,
+          startYear: rel.validFromYear,
+          endYear: rel.validToYear,
+        })),
         ...entity.objectStatements
-          .filter((rel) => rel.subjectEntity)
+          .filter((rel) => rel.subject && rel.subject.type !== 'EVENT')
           .map((rel) => ({
-            figureId: rel.subjectEntity!.id,
-            slug: rel.subjectEntity!.slug,
-            name: rel.subjectEntity!.name,
+            figureId: rel.subject!.id,
+            slug: rel.subject!.slug,
+            name: rel.subject!.name,
             relationType: rel.predicate.code,
             direction: 'INCOMING' as const,
             note: (rel.qualifiers as any)?.note ?? null,
@@ -215,76 +222,91 @@ export class PublicContentMapper {
     };
   }
 
+  /**
+   * Event giờ là 1 HistoricalEntity (type=EVENT) — location/participants/quan hệ
+   * Event↔Event đều chiếu từ subjectStatements/objectStatements:
+   *  - OCCURRED_AT (subject=event, object=Location) → location.
+   *  - object.type === 'EVENT' trên subjectStatements / subject.type === 'EVENT' trên
+   *    objectStatements → quan hệ nhân-quả Event↔Event (nhóm EVENT_RELATION).
+   *  - Còn lại trên objectStatements (subject không phải EVENT) → người/thực thể tham gia.
+   */
   static toEventSummary(
-    event: HistoricalEvent & {
-      location?:
-        (HistoricalEntity & { historicalSite?: HistoricalSite | null }) | null;
-      site?: (HistoricalSite & { entity?: HistoricalEntity }) | null;
-      historicalLocation?: any;
+    event: HistoricalEntity & {
+      event?: (HistoricalEvent & { parentId?: string | null; categoryIds?: string[] }) | null;
       period?: { slug: string } | null;
-      participants?: Array<{
-        entity: HistoricalEntity & { historicalSite?: HistoricalSite | null };
-        roleTerm?: TaxonomyTerm | null;
-        roleLabelOverride?: string | null;
-      }>;
       subjectStatements?: Array<{
-        objectEventId: string | null;
+        objectId: string | null;
         predicate: { code: string };
+        object?:
+          | (HistoricalEntity & { historicalSite?: HistoricalSite | null })
+          | null;
       }>;
       objectStatements?: Array<{
-        subjectEventId: string | null;
+        subjectId: string | null;
+        isPrimary?: boolean;
+        qualifiers?: any;
         predicate: { code: string };
+        subject?:
+          | (HistoricalEntity & { historicalSite?: HistoricalSite | null })
+          | null;
       }>;
     },
   ): PublicEventSummaryDto {
+    const subjectStmts = event.subjectStatements ?? [];
+    const objectStmts = event.objectStatements ?? [];
+
+    const locationStmt = subjectStmts.find(
+      (s) => s.predicate.code === 'OCCURRED_AT' && s.object,
+    );
+    const locationEntity = locationStmt?.object ?? null;
     const locName =
-      event.location?.name ||
-      event.location?.historicalSite?.address ||
-      event.site?.entity?.name ||
-      event.site?.address ||
-      event.historicalLocation?.name ||
+      locationEntity?.name ||
+      locationEntity?.historicalSite?.address ||
       (event.metadata as any)?.rawLocation ||
       null;
 
-    const participants = (event.participants || []).map((p) => p.entity);
+    const participantStmts = objectStmts.filter(
+      (s) => s.subject && s.subject.type !== 'EVENT',
+    );
+    const participants = participantStmts.map((s) => s.subject!);
 
     return {
       id: event.id,
       slug: event.slug,
-      title: event.title,
+      title: event.name,
       startYear: event.startYear ?? null,
-      eventDateNote: event.dateText ?? event.eventDateNote ?? null,
+      eventDateNote: event.dateText ?? event.event?.eventDateNote ?? null,
       location: locName,
       description: event.description,
-      imageUrl: event.thumbnailUrl,
-      category: event.category,
-      categoryIds: event.categoryIds ?? [],
+      imageUrl: event.imageUrl,
+      category: (event.metadata as any)?.category ?? 'OTHER',
+      categoryIds: event.event?.categoryIds ?? [],
       endYear: event.endYear ?? null,
-      parentId: event.parentId ?? null,
-      actors: (event.participants ?? [])
-        .filter((p) => !['PERSON', 'LOCATION'].includes(p.entity.type))
-        .map((p) => ({
-          id: p.entity.id,
-          name: p.entity.name,
-          slug: p.entity.slug ?? null,
-          type: p.entity.type,
-          role: p.roleTerm?.code ?? 'PARTICIPANT',
-          roleLabel: p.roleLabelOverride ?? p.roleTerm?.label ?? null,
-          startYear: p.entity.startYear ?? null,
-          endYear: p.entity.endYear ?? null,
+      parentId: event.event?.parentId ?? null,
+      actors: participantStmts
+        .filter((s) => !['PERSON', 'LOCATION'].includes(s.subject!.type))
+        .map((s) => ({
+          id: s.subject!.id,
+          name: s.subject!.name,
+          slug: s.subject!.slug ?? null,
+          type: s.subject!.type,
+          role: (s.qualifiers as any)?.role ?? s.predicate.code ?? 'PARTICIPANT',
+          roleLabel: (s.qualifiers as any)?.roleLabel ?? null,
+          startYear: s.subject!.startYear ?? null,
+          endYear: s.subject!.endYear ?? null,
         })),
       relations: [
-        ...(event.subjectStatements ?? [])
-          .filter((r) => r.objectEventId)
+        ...subjectStmts
+          .filter((r) => r.object?.type === 'EVENT' && r.objectId)
           .map((r) => ({
-            eventId: r.objectEventId as string,
+            eventId: r.objectId as string,
             relationType: r.predicate.code,
             direction: 'OUTGOING' as const,
           })),
-        ...(event.objectStatements ?? [])
-          .filter((r) => r.subjectEventId)
+        ...objectStmts
+          .filter((r) => r.subject?.type === 'EVENT' && r.subjectId)
           .map((r) => ({
-            eventId: r.subjectEventId as string,
+            eventId: r.subjectId as string,
             relationType: r.predicate.code,
             direction: 'INCOMING' as const,
           })),

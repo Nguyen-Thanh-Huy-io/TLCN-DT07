@@ -72,10 +72,8 @@ export class HistoricalReferenceService {
             statement: {
               include: {
                 predicate: true,
-                subjectEntity: true,
-                subjectEvent: true,
-                objectEntity: true,
-                objectEvent: true,
+                subject: true,
+                object: true,
               },
             },
           },

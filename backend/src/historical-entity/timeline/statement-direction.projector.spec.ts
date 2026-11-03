@@ -15,24 +15,25 @@ describe('StatementDirectionProjector', () => {
     const targetId = 'person-nguyen-trai';
     const statement = {
       id: 'stmt-1',
-      subjectEntityId: targetId,
-      objectEventId: 'event-lam-son',
+      subjectId: targetId,
+      objectId: 'event-lam-son',
       predicate: {
         id: 'pred-1',
         code: 'PARTICIPATED_IN',
         label: 'Tham gia',
         inverseLabel: 'Có sự tham gia của',
       },
-      objectEvent: {
+      object: {
         id: 'event-lam-son',
-        title: 'Khởi nghĩa Lam Sơn',
+        type: 'EVENT',
+        name: 'Khởi nghĩa Lam Sơn',
         slug: 'khoi-nghia-lam-son',
-        category: 'WAR',
         startYear: 1418,
         startMonth: 2,
         startDay: 7,
         dateText: '1418 - 1427',
-        summary: 'Khởi nghĩa chống quân Minh',
+        description: 'Khởi nghĩa chống quân Minh',
+        event: { categoryIds: ['cat-war'] },
       },
       qualifiers: {
         role: 'MILITARY_ADVISER',
@@ -72,19 +73,19 @@ describe('StatementDirectionProjector', () => {
     const targetId = 'person-nguyen-trai';
     const statement = {
       id: 'stmt-2',
-      subjectEventId: 'event-lam-son',
-      objectEntityId: targetId,
+      subjectId: 'event-lam-son',
+      objectId: targetId,
       predicate: {
         id: 'pred-1',
         code: 'PARTICIPATED_IN',
         label: 'Tham gia',
         inverseLabel: 'Có sự tham gia của',
       },
-      subjectEvent: {
+      subject: {
         id: 'event-lam-son',
-        title: 'Khởi nghĩa Lam Sơn',
+        type: 'EVENT',
+        name: 'Khởi nghĩa Lam Sơn',
         slug: 'khoi-nghia-lam-son',
-        category: 'WAR',
         startYear: 1418,
       },
       qualifiers: {
@@ -105,8 +106,8 @@ describe('StatementDirectionProjector', () => {
     const targetId = 'person-nguyen-trai';
     const statement = {
       id: 'stmt-3',
-      subjectEntityId: targetId,
-      objectEntityId: 'person-le-loi',
+      subjectId: targetId,
+      objectId: 'person-le-loi',
       predicate: {
         id: 'pred-sym',
         code: 'CONTEMPORARY_OF',
@@ -114,8 +115,9 @@ describe('StatementDirectionProjector', () => {
         inverseLabel: 'Cùng thời với',
         meta: { isSymmetric: true },
       },
-      objectEntity: {
+      object: {
         id: 'person-le-loi',
+        type: 'PERSON',
         name: 'Lê Lợi',
         slug: 'le-loi',
       },
@@ -137,8 +139,8 @@ describe('StatementDirectionProjector', () => {
   it('nên trả về null nếu targetEntity không thuộc Subject lẫn Object', () => {
     const statement = {
       id: 'stmt-other',
-      subjectEntityId: 'other-1',
-      objectEntityId: 'other-2',
+      subjectId: 'other-1',
+      objectId: 'other-2',
       predicate: { id: 'p', code: 'REL', label: 'Rel' },
     };
 

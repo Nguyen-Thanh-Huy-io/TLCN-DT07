@@ -46,11 +46,9 @@ export class HistoricalStatementService {
     return this.prisma.$transaction(async (tx) => {
       const statement = await tx.historicalStatement.create({
         data: {
-          subjectEntityId: statementData.subjectEntityId || null,
-          subjectEventId: statementData.subjectEventId || null,
+          subjectId: statementData.subjectId,
           predicateId: statementData.predicateId,
-          objectEntityId: statementData.objectEntityId || null,
-          objectEventId: statementData.objectEventId || null,
+          objectId: statementData.objectId || null,
           objectValue: statementData.objectValue ?? null,
           objectValueType: statementData.objectValueType || null,
           validFromYear: statementData.validFromYear || null,
@@ -93,24 +91,12 @@ export class HistoricalStatementService {
     }
 
     const mergedPayload = {
-      subjectEntityId:
-        dto.subjectEntityId !== undefined
-          ? dto.subjectEntityId
-          : existing.subjectEntityId,
-      subjectEventId:
-        dto.subjectEventId !== undefined
-          ? dto.subjectEventId
-          : existing.subjectEventId,
+      subjectId:
+        dto.subjectId !== undefined ? dto.subjectId : existing.subjectId,
       predicateId:
         dto.predicateId !== undefined ? dto.predicateId : existing.predicateId,
-      objectEntityId:
-        dto.objectEntityId !== undefined
-          ? dto.objectEntityId
-          : existing.objectEntityId,
-      objectEventId:
-        dto.objectEventId !== undefined
-          ? dto.objectEventId
-          : existing.objectEventId,
+      objectId:
+        dto.objectId !== undefined ? dto.objectId : existing.objectId,
       objectValue:
         dto.objectValue !== undefined
           ? dto.objectValue
@@ -210,40 +196,17 @@ export class HistoricalStatementService {
 
     // Lọc theo Node ID ở bất kỳ vị trí nào
     if (query.nodeId) {
-      where.OR = [
-        { subjectEntityId: query.nodeId },
-        { subjectEventId: query.nodeId },
-        { objectEntityId: query.nodeId },
-        { objectEventId: query.nodeId },
-      ];
+      where.OR = [{ subjectId: query.nodeId }, { objectId: query.nodeId }];
     }
 
     // Lọc theo Subject
     if (query.subjectId) {
-      where.OR = [
-        { subjectEntityId: query.subjectId },
-        { subjectEventId: query.subjectId },
-      ];
-    }
-    if (query.subjectEntityId) {
-      where.subjectEntityId = query.subjectEntityId;
-    }
-    if (query.subjectEventId) {
-      where.subjectEventId = query.subjectEventId;
+      where.subjectId = query.subjectId;
     }
 
     // Lọc theo Object
     if (query.objectId) {
-      where.OR = [
-        { objectEntityId: query.objectId },
-        { objectEventId: query.objectId },
-      ];
-    }
-    if (query.objectEntityId) {
-      where.objectEntityId = query.objectEntityId;
-    }
-    if (query.objectEventId) {
-      where.objectEventId = query.objectEventId;
+      where.objectId = query.objectId;
     }
 
     // Lọc theo Predicate
@@ -303,22 +266,18 @@ export class HistoricalStatementService {
   }
 
   /**
-   * Duyệt đồ thị tri thức (Knowledge Graph Traversal) xung quanh 1 Node (Entity hoặc Event)
+   * Duyệt đồ thị tri thức (Knowledge Graph Traversal) xung quanh 1 Node (HistoricalEntity —
+   * Event cũng là 1 Entity, type=EVENT)
    */
   async getGraph(query: QueryStatementGraphDto): Promise<StatementGraphResponseDto> {
     const { nodeId, depth = STATEMENT_CONSTANTS.DEFAULT_GRAPH_DEPTH } = query;
 
-    // 1. Kiểm tra node gốc tồn tại (là Entity hay Event)
-    const [rootEntity, rootEvent] = await Promise.all([
-      this.prisma.historicalEntity.findUnique({
-        where: { id: nodeId },
-      }),
-      this.prisma.historicalEvent.findUnique({
-        where: { id: nodeId },
-      }),
-    ]);
+    // 1. Kiểm tra node gốc tồn tại
+    const rootEntity = await this.prisma.historicalEntity.findUnique({
+      where: { id: nodeId },
+    });
 
-    if (!rootEntity && !rootEvent) {
+    if (!rootEntity) {
       throw new NotFoundException(STATEMENT_ERROR_MESSAGES.TARGET_NODE_NOT_FOUND);
     }
 
@@ -326,33 +285,18 @@ export class HistoricalStatementService {
     const edgeMap = new Map<string, GraphEdgeDto>();
 
     // Đưa node gốc vào Map
-    if (rootEntity) {
-      nodeMap.set(rootEntity.id, {
-        id: rootEntity.id,
-        label: rootEntity.name,
-        kind: 'ENTITY',
-        typeCode: rootEntity.type,
-        typeLabel: rootEntity.type,
-        avatarUrl: rootEntity.imageUrl || undefined,
-        startYear: rootEntity.startYear,
-        endYear: rootEntity.endYear,
-        dateText: rootEntity.dateText,
-        distance: 0,
-      });
-    } else if (rootEvent) {
-      nodeMap.set(rootEvent.id, {
-        id: rootEvent.id,
-        label: rootEvent.title,
-        kind: 'EVENT',
-        typeCode: rootEvent.category,
-        typeLabel: rootEvent.category,
-        avatarUrl: rootEvent.thumbnailUrl || undefined,
-        startYear: rootEvent.startYear,
-        endYear: rootEvent.endYear,
-        dateText: rootEvent.dateText,
-        distance: 0,
-      });
-    }
+    nodeMap.set(rootEntity.id, {
+      id: rootEntity.id,
+      label: rootEntity.name,
+      kind: 'ENTITY',
+      typeCode: rootEntity.type,
+      typeLabel: rootEntity.type,
+      avatarUrl: rootEntity.imageUrl || undefined,
+      startYear: rootEntity.startYear,
+      endYear: rootEntity.endYear,
+      dateText: rootEntity.dateText,
+      distance: 0,
+    });
 
     // 2. Thuật toán BFS duyệt đồ thị theo từng bậc (hop)
     let currentFrontier = new Set<string>([nodeId]);
@@ -367,18 +311,14 @@ export class HistoricalStatementService {
       const statements = await this.prisma.historicalStatement.findMany({
         where: {
           OR: [
-            { subjectEntityId: { in: frontierArray } },
-            { subjectEventId: { in: frontierArray } },
-            { objectEntityId: { in: frontierArray } },
-            { objectEventId: { in: frontierArray } },
+            { subjectId: { in: frontierArray } },
+            { objectId: { in: frontierArray } },
           ],
         },
         include: {
           predicate: true,
-          subjectEntity: true,
-          subjectEvent: true,
-          objectEntity: true,
-          objectEvent: true,
+          subject: true,
+          object: true,
         },
         take: STATEMENT_CONSTANTS.MAX_GRAPH_NODES,
       });
@@ -386,8 +326,8 @@ export class HistoricalStatementService {
       const nextFrontier = new Set<string>();
 
       for (const stmt of statements) {
-        const sourceId = stmt.subjectEntityId || stmt.subjectEventId;
-        const targetId = stmt.objectEntityId || stmt.objectEventId;
+        const sourceId = stmt.subjectId;
+        const targetId = stmt.objectId;
 
         // Lưu cạnh (Edge)
         if (sourceId && targetId) {
@@ -405,65 +345,35 @@ export class HistoricalStatementService {
           });
 
           // Xử lý node nguồn (Source)
-          if (!nodeMap.has(sourceId)) {
-            if (stmt.subjectEntity) {
-              nodeMap.set(sourceId, {
-                id: sourceId,
-                label: stmt.subjectEntity.name,
-                kind: 'ENTITY',
-                typeCode: stmt.subjectEntity.type,
-                typeLabel: stmt.subjectEntity.type,
-                avatarUrl: stmt.subjectEntity.imageUrl || undefined,
-                startYear: stmt.subjectEntity.startYear,
-                endYear: stmt.subjectEntity.endYear,
-                dateText: stmt.subjectEntity.dateText,
-                distance: currentDepth,
-              });
-            } else if (stmt.subjectEvent) {
-              nodeMap.set(sourceId, {
-                id: sourceId,
-                label: stmt.subjectEvent.title,
-                kind: 'EVENT',
-                typeCode: stmt.subjectEvent.category,
-                typeLabel: stmt.subjectEvent.category,
-                avatarUrl: stmt.subjectEvent.thumbnailUrl || undefined,
-                startYear: stmt.subjectEvent.startYear,
-                endYear: stmt.subjectEvent.endYear,
-                dateText: stmt.subjectEvent.dateText,
-                distance: currentDepth,
-              });
-            }
+          if (!nodeMap.has(sourceId) && stmt.subject) {
+            nodeMap.set(sourceId, {
+              id: sourceId,
+              label: stmt.subject.name,
+              kind: 'ENTITY',
+              typeCode: stmt.subject.type,
+              typeLabel: stmt.subject.type,
+              avatarUrl: stmt.subject.imageUrl || undefined,
+              startYear: stmt.subject.startYear,
+              endYear: stmt.subject.endYear,
+              dateText: stmt.subject.dateText,
+              distance: currentDepth,
+            });
           }
 
           // Xử lý node đích (Target)
-          if (!nodeMap.has(targetId)) {
-            if (stmt.objectEntity) {
-              nodeMap.set(targetId, {
-                id: targetId,
-                label: stmt.objectEntity.name,
-                kind: 'ENTITY',
-                typeCode: stmt.objectEntity.type,
-                typeLabel: stmt.objectEntity.type,
-                avatarUrl: stmt.objectEntity.imageUrl || undefined,
-                startYear: stmt.objectEntity.startYear,
-                endYear: stmt.objectEntity.endYear,
-                dateText: stmt.objectEntity.dateText,
-                distance: currentDepth,
-              });
-            } else if (stmt.objectEvent) {
-              nodeMap.set(targetId, {
-                id: targetId,
-                label: stmt.objectEvent.title,
-                kind: 'EVENT',
-                typeCode: stmt.objectEvent.category,
-                typeLabel: stmt.objectEvent.category,
-                avatarUrl: stmt.objectEvent.thumbnailUrl || undefined,
-                startYear: stmt.objectEvent.startYear,
-                endYear: stmt.objectEvent.endYear,
-                dateText: stmt.objectEvent.dateText,
-                distance: currentDepth,
-              });
-            }
+          if (!nodeMap.has(targetId) && stmt.object) {
+            nodeMap.set(targetId, {
+              id: targetId,
+              label: stmt.object.name,
+              kind: 'ENTITY',
+              typeCode: stmt.object.type,
+              typeLabel: stmt.object.type,
+              avatarUrl: stmt.object.imageUrl || undefined,
+              startYear: stmt.object.startYear,
+              endYear: stmt.object.endYear,
+              dateText: stmt.object.dateText,
+              distance: currentDepth,
+            });
           }
 
           if (!visited.has(sourceId)) {
@@ -518,7 +428,7 @@ export class HistoricalStatementService {
           description: true,
         },
       },
-      subjectEntity: {
+      subject: {
         select: {
           id: true,
           name: true,
@@ -527,37 +437,13 @@ export class HistoricalStatementService {
           type: true,
         },
       },
-      subjectEvent: {
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          dateText: true,
-          startYear: true,
-          endYear: true,
-          category: true,
-          thumbnailUrl: true,
-        },
-      },
-      objectEntity: {
+      object: {
         select: {
           id: true,
           name: true,
           slug: true,
           imageUrl: true,
           type: true,
-        },
-      },
-      objectEvent: {
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          dateText: true,
-          startYear: true,
-          endYear: true,
-          category: true,
-          thumbnailUrl: true,
         },
       },
       references: {

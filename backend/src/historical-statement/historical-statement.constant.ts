@@ -14,7 +14,6 @@ export const STATEMENT_CONSTANTS = {
 
 export const STATEMENT_NODE_KIND = {
   ENTITY: 'ENTITY',
-  EVENT: 'EVENT',
   LITERAL: 'LITERAL',
 } as const;
 
@@ -27,10 +26,8 @@ export const STATEMENT_ERROR_MESSAGES = {
   EXACTLY_ONE_OBJECT:
     'Phát biểu phải có đúng một Đối tượng (objectEntityId, objectEventId, hoặc objectValue kèm objectValueType).',
   NO_SELF_LOOP: 'Chủ thể và đối tượng không được trùng nhau (không tạo tự lặp).',
-  SUBJECT_ENTITY_NOT_FOUND: 'Thực thể chủ thể (subjectEntityId) không tồn tại.',
-  SUBJECT_EVENT_NOT_FOUND: 'Sự kiện chủ thể (subjectEventId) không tồn tại.',
-  OBJECT_ENTITY_NOT_FOUND: 'Thực thể đối tượng (objectEntityId) không tồn tại.',
-  OBJECT_EVENT_NOT_FOUND: 'Sự kiện đối tượng (objectEventId) không tồn tại.',
+  SUBJECT_ENTITY_NOT_FOUND: 'Thực thể chủ thể (subjectId) không tồn tại.',
+  OBJECT_ENTITY_NOT_FOUND: 'Thực thể đối tượng (objectId) không tồn tại.',
   PREDICATE_NOT_FOUND: 'Mối quan hệ (predicateId) không tồn tại trong Taxonomy.',
   PREDICATE_NOT_ACTIVE: 'Mối quan hệ (predicateId) đang bị vô hiệu hóa.',
   PREDICATE_SUBJECT_TYPE_INVALID:

@@ -119,7 +119,9 @@ export class ContentWriteGuard implements CanActivate {
     const where = { where: { id }, select: { status: true } } as const;
     const row = await {
       lesson: () => this.prisma.lesson.findUnique(where),
-      historicalEvent: () => this.prisma.historicalEvent.findUnique(where),
+      // HistoricalEvent giờ chỉ là bảng con của HistoricalEntity (type=EVENT) — status
+      // nằm ở Entity cha, entity_id của Event trùng với id của Entity (xem schema).
+      historicalEvent: () => this.prisma.historicalEntity.findUnique(where),
       historicalEntity: () => this.prisma.historicalEntity.findUnique(where),
       period: () => this.prisma.period.findUnique(where),
       topic: () => this.prisma.topic.findUnique(where),

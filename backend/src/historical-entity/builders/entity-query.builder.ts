@@ -173,9 +173,6 @@ export class EntityQueryBuilder {
           deathYear: rel.sourceEntity?.person?.deathYear ?? null,
         },
       })),
-      eventEntities: raw.eventEntities || [],
-      eventParticipations: raw.eventParticipations || [],
-      primaryEvents: raw.primaryEvents || [],
     };
   }
 
@@ -191,56 +188,14 @@ export class EntityQueryBuilder {
       media: {
         orderBy: { displayOrder: 'asc' },
       },
-      eventParticipations: {
-        include: {
-          roleTerm: true,
-          event: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              startYear: true,
-              endYear: true,
-              category: true,
-              thumbnailUrl: true,
-            },
-          },
-          references: {
-            include: {
-              reference: true,
-            },
-          },
-        },
-        orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
-      },
-      primaryEvents: {
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          startYear: true,
-          endYear: true,
-          category: true,
-          thumbnailUrl: true,
-        },
-      },
+      event: true,
       subjectStatements: {
         include: {
           predicate: true,
-          objectEntity: {
+          object: {
             include: {
               person: true,
-            },
-          },
-          objectEvent: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              startYear: true,
-              endYear: true,
-              category: true,
-              thumbnailUrl: true,
+              event: true,
             },
           },
           references: {
@@ -253,20 +208,10 @@ export class EntityQueryBuilder {
       objectStatements: {
         include: {
           predicate: true,
-          subjectEntity: {
+          subject: {
             include: {
               person: true,
-            },
-          },
-          subjectEvent: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              startYear: true,
-              endYear: true,
-              category: true,
-              thumbnailUrl: true,
+              event: true,
             },
           },
           references: {

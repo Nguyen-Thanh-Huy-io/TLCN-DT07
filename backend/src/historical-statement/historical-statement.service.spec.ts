@@ -4,13 +4,12 @@ import { HistoricalStatementService } from './historical-statement.service';
 import { StatementValidationEngine } from './validation/statement-validation.engine';
 import { PrismaService } from '../common/services/prisma.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
-import { StatementRank, StatementValueType, VerificationStatus } from '@prisma/client';
+import { StatementValueType } from '@prisma/client';
 import { STATEMENT_ERROR_MESSAGES } from './historical-statement.constant';
 
 describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', () => {
   let service: HistoricalStatementService;
   let validationEngine: StatementValidationEngine;
-  let prisma: any;
 
   const mockEntityA = {
     id: 'ent-a',
@@ -34,30 +33,11 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
     dateText: '1380 - 1442',
   };
 
-  const mockEventLamSon = {
-    id: 'evt-lam-son',
-    title: 'Khởi nghĩa Lam Sơn',
-    slug: 'khoi-nghia-lam-son',
-    category: 'WAR_CAMPAIGN',
-    thumbnailUrl: 'https://example.com/lamson.png',
-    startYear: 1418,
-    endYear: 1427,
-    dateText: '1418 - 1427',
-  };
-
   const mockPredicateAdvised = {
     id: 'pred-advised',
     code: 'ADVISED',
     label: 'Mưu sĩ / Cố vấn cho',
     inverseLabel: 'Được cố vấn bởi',
-    isActive: true,
-  };
-
-  const mockPredicateParticipated = {
-    id: 'pred-participated',
-    code: 'PARTICIPATED_IN',
-    label: 'Tham gia',
-    inverseLabel: 'Có sự tham gia của',
     isActive: true,
   };
 
@@ -76,9 +56,6 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
       deleteMany: jest.fn(),
     },
     historicalEntity: {
-      findUnique: jest.fn(),
-    },
-    historicalEvent: {
       findUnique: jest.fn(),
     },
     taxonomyTerm: {
@@ -116,38 +93,13 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
 
     service = module.get<HistoricalStatementService>(HistoricalStatementService);
     validationEngine = module.get<StatementValidationEngine>(StatementValidationEngine);
-    prisma = module.get(PrismaService);
   });
 
   describe('1. Strategy Pattern Validation Rules', () => {
-    it('ném lỗi BadRequestException khi cả 2 subject đều null (Vi phạm Exactly One Subject)', async () => {
-      await expect(
-        validationEngine.validateStatement({
-          predicateId: 'pred-1',
-          objectEntityId: 'ent-b',
-        }),
-      ).rejects.toThrow(
-        new BadRequestException(STATEMENT_ERROR_MESSAGES.EXACTLY_ONE_SUBJECT),
-      );
-    });
-
-    it('ném lỗi BadRequestException khi truyền cả subjectEntityId và subjectEventId', async () => {
-      await expect(
-        validationEngine.validateStatement({
-          subjectEntityId: 'ent-a',
-          subjectEventId: 'evt-1',
-          predicateId: 'pred-1',
-          objectEntityId: 'ent-b',
-        }),
-      ).rejects.toThrow(
-        new BadRequestException(STATEMENT_ERROR_MESSAGES.EXACTLY_ONE_SUBJECT),
-      );
-    });
-
     it('ném lỗi BadRequestException khi vi phạm Exactly One Object (không có object nào)', async () => {
       await expect(
         validationEngine.validateStatement({
-          subjectEntityId: 'ent-a',
+          subjectId: 'ent-a',
           predicateId: 'pred-1',
         }),
       ).rejects.toThrow(
@@ -155,12 +107,12 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
       );
     });
 
-    it('ném lỗi BadRequestException khi tự lặp Self Loop (subjectEntityId === objectEntityId)', async () => {
+    it('ném lỗi BadRequestException khi tự lặp Self Loop (subjectId === objectId)', async () => {
       await expect(
         validationEngine.validateStatement({
-          subjectEntityId: 'ent-a',
+          subjectId: 'ent-a',
           predicateId: 'pred-1',
-          objectEntityId: 'ent-a',
+          objectId: 'ent-a',
         }),
       ).rejects.toThrow(
         new BadRequestException(STATEMENT_ERROR_MESSAGES.NO_SELF_LOOP),
@@ -170,9 +122,9 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
     it('ném lỗi BadRequestException khi phạm quy ước lịch sử không có năm 0', async () => {
       await expect(
         validationEngine.validateStatement({
-          subjectEntityId: 'ent-a',
+          subjectId: 'ent-a',
           predicateId: 'pred-1',
-          objectEntityId: 'ent-b',
+          objectId: 'ent-b',
           validFromYear: 0,
         }),
       ).rejects.toThrow(
@@ -183,9 +135,9 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
     it('ném lỗi BadRequestException khi validToYear < validFromYear', async () => {
       await expect(
         validationEngine.validateStatement({
-          subjectEntityId: 'ent-a',
+          subjectId: 'ent-a',
           predicateId: 'pred-1',
-          objectEntityId: 'ent-b',
+          objectId: 'ent-b',
           validFromYear: 1427,
           validToYear: 1418,
         }),
@@ -199,9 +151,9 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
 
       await expect(
         validationEngine.validateStatement({
-          subjectEntityId: 'ent-a',
+          subjectId: 'ent-a',
           predicateId: 'invalid-predicate',
-          objectEntityId: 'ent-b',
+          objectId: 'ent-b',
         }),
       ).rejects.toThrow(
         new NotFoundException(STATEMENT_ERROR_MESSAGES.PREDICATE_NOT_FOUND),
@@ -216,9 +168,9 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
 
       await expect(
         validationEngine.validateStatement({
-          subjectEntityId: 'ent-a',
+          subjectId: 'ent-a',
           predicateId: 'pred-inactive',
-          objectEntityId: 'ent-b',
+          objectId: 'ent-b',
         }),
       ).rejects.toThrow(
         new BadRequestException(STATEMENT_ERROR_MESSAGES.PREDICATE_NOT_ACTIVE),
@@ -234,9 +186,9 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
 
       await expect(
         validationEngine.validateStatement({
-          subjectEntityId: 'ent-b',
+          subjectId: 'ent-b',
           predicateId: 'pred-advised',
-          objectEntityId: 'ent-a',
+          objectId: 'ent-a',
         }),
       ).rejects.toThrow(
         new BadRequestException(STATEMENT_ERROR_MESSAGES.DUPLICATE_STATEMENT),
@@ -244,10 +196,13 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
     });
 
     it('Literal Strategy: ném lỗi nếu objectValueType là NUMBER nhưng truyền chữ không thể parse', async () => {
+      mockPrisma.taxonomyTerm.findUnique.mockResolvedValueOnce(mockPredicateAdvised);
+      mockPrisma.historicalEntity.findUnique.mockResolvedValueOnce({ id: 'ent-a' });
+
       await expect(
         validationEngine.validateStatement({
-          subjectEntityId: 'ent-a',
-          predicateId: 'pred-1',
+          subjectId: 'ent-a',
+          predicateId: 'pred-advised',
           objectValue: 'not-a-number',
           objectValueType: StatementValueType.NUMBER,
         }),
@@ -266,26 +221,26 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
       const createdStatementId = 'stmt-100';
       mockPrisma.historicalStatement.create.mockResolvedValueOnce({
         id: createdStatementId,
-        subjectEntityId: 'ent-b',
+        subjectId: 'ent-b',
         predicateId: 'pred-advised',
-        objectEntityId: 'ent-a',
+        objectId: 'ent-a',
       });
 
       mockPrisma.historicalStatement.findUnique.mockResolvedValueOnce({
         id: createdStatementId,
-        subjectEntityId: 'ent-b',
+        subjectId: 'ent-b',
         predicateId: 'pred-advised',
-        objectEntityId: 'ent-a',
+        objectId: 'ent-a',
         predicate: mockPredicateAdvised,
-        subjectEntity: mockEntityB,
-        objectEntity: mockEntityA,
+        subject: mockEntityB,
+        object: mockEntityA,
         references: [],
       });
 
       const res = await service.create({
-        subjectEntityId: 'ent-b',
+        subjectId: 'ent-b',
         predicateId: 'pred-advised',
-        objectEntityId: 'ent-a',
+        objectId: 'ent-a',
         validFromYear: 1418,
         validToYear: 1428,
         isPrimary: true,
@@ -314,9 +269,9 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
     it('cập nhật phát biểu lịch sử thành công', async () => {
       mockPrisma.historicalStatement.findUnique.mockResolvedValueOnce({
         id: 'stmt-1',
-        subjectEntityId: 'ent-b',
+        subjectId: 'ent-b',
         predicateId: 'pred-advised',
-        objectEntityId: 'ent-a',
+        objectId: 'ent-a',
         validFromYear: 1418,
         validToYear: 1428,
       });
@@ -334,9 +289,9 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
 
       mockPrisma.historicalStatement.findUnique.mockResolvedValueOnce({
         id: 'stmt-1',
-        subjectEntityId: 'ent-b',
+        subjectId: 'ent-b',
         predicateId: 'pred-advised',
-        objectEntityId: 'ent-a',
+        objectId: 'ent-a',
         validFromYear: 1418,
         validToYear: 1433,
         predicate: mockPredicateAdvised,
@@ -374,24 +329,21 @@ describe('HistoricalStatementService & Validation Engine (Stage 2 Test Suite)', 
   describe('3. Knowledge Graph Traversal (getGraph)', () => {
     it('duyệt đồ thị đa bậc BFS xung quanh 1 Entity và trả về Nodes & Edges chuẩn xác', async () => {
       mockPrisma.historicalEntity.findUnique.mockResolvedValueOnce(mockEntityA);
-      mockPrisma.historicalEvent.findUnique.mockResolvedValueOnce(null);
 
       // BFS Level 1
       mockPrisma.historicalStatement.findMany.mockResolvedValueOnce([
         {
           id: 'edge-1',
-          subjectEntityId: 'ent-b',
+          subjectId: 'ent-b',
           predicateId: 'pred-advised',
-          objectEntityId: 'ent-a',
+          objectId: 'ent-a',
           validFromYear: 1418,
           validToYear: 1428,
           isPrimary: true,
           qualifiers: null,
           predicate: mockPredicateAdvised,
-          subjectEntity: mockEntityB,
-          subjectEvent: null,
-          objectEntity: mockEntityA,
-          objectEvent: null,
+          subject: mockEntityB,
+          object: mockEntityA,
         },
       ]);
 

@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ContentStatus, EventCategory, MediaType, Prisma } from '@prisma/client';
+import { ContentStatus, MediaType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
 import { IHistoricalEventRepository } from './historical-event.repository.interface';
-import { StatementRelationAdapter } from '../../common/adapters/statement-relation.adapter';
 import { HistoricalEventListQuery } from '../dto/query-historical-event.dto';
 import {
   CreateHistoricalEventDomainModel,
@@ -10,99 +9,196 @@ import {
   UpdateHistoricalEventDomainModel,
 } from '../models/historical-event.domain-model';
 
+/**
+ * Event giờ là 1 HistoricalEntity (type=EVENT) + 1 dòng HistoricalEvent con (entity_id làm
+ * khoá) — giống mẫu Person/HistoricalSite. Participants/location/quan hệ Event↔Event đều
+ * đi qua HistoricalStatement (không còn HistoricalEventParticipant/HistoricalEventMedia
+ * riêng — media dùng chung HistoricalEntityMedia).
+ */
 @Injectable()
 export class HistoricalEventPrismaRepository implements IHistoricalEventRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  private get standardIncludes() {
+  private get standardEntityInclude() {
     return {
       period: {
         select: { id: true, name: true, startYear: true, endYear: true },
       },
-      parent: {
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          startYear: true,
-        },
-      },
-      _count: {
-        select: { children: true },
-      },
-      location: {
+      event: {
         include: {
-          historicalSite: true,
-        },
-      },
-      participants: {
-        include: {
-          entity: {
-            select: { id: true, name: true, slug: true, type: true },
+          parent: {
+            include: {
+              entity: {
+                select: { id: true, name: true, slug: true, startYear: true },
+              },
+            },
           },
-          roleTerm: true,
+          children: {
+            include: {
+              entity: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  startYear: true,
+                  status: true,
+                },
+              },
+            },
+          },
         },
-        orderBy: [{ isPrimary: 'desc' as const }, { displayOrder: 'asc' as const }],
       },
-      media: {
-        orderBy: { displayOrder: 'asc' as const },
-      },
+      media: { orderBy: { displayOrder: 'asc' as const } },
     };
   }
 
-  /**
-   * Chiếu `HistoricalEventParticipant[]` (bảng chuẩn hoá) về đúng shape `entities[]` cũ
-   * (`HistoricalEventEntity`) mà mapper/frontend đang đọc — tránh phải sửa toàn bộ phía
-   * đọc chỉ vì đổi bảng lưu trữ bên dưới.
-   */
-  private static mapParticipantsToLegacyEntities(participants: any[]): any[] {
-    return (participants || []).map((p) => ({
-      eventId: p.eventId,
-      entityId: p.entityId,
-      role: p.roleTerm?.code || 'PARTICIPANT',
-      roleId: p.roleTermId,
-      roleLabel: p.roleLabelOverride || p.roleTerm?.label || null,
-      isPrimary: p.isPrimary,
-      displayOrder: p.displayOrder,
-      notes: p.notes,
-      createdAt: p.createdAt,
-      entity: p.entity,
+  /** Lấy TaxonomyTerm.id của 1 predicate trong nhóm PREDICATE theo code, lỗi nếu không có. */
+  private async requirePredicateId(code: string): Promise<string> {
+    const term = await this.prisma.taxonomyTerm.findFirst({
+      where: { groupCode: 'PREDICATE', code },
+    });
+    if (!term) {
+      throw new Error(`Không tìm thấy TaxonomyTerm PREDICATE.${code}.`);
+    }
+    return term.id;
+  }
+
+  /** Chiếu 1 Entity (type=EVENT, kèm include) về đúng shape HistoricalEventEntityModel cũ. */
+  private async toEventModel(entity: any): Promise<HistoricalEventEntityModel> {
+    const eventRow = entity.event || {};
+
+    const [participantStatements, locationStatement] = await Promise.all([
+      this.prisma.historicalStatement.findMany({
+        where: { objectId: entity.id, subject: { type: { not: 'EVENT' } } },
+        include: {
+          subject: {
+            select: { id: true, name: true, slug: true, type: true, imageUrl: true },
+          },
+          predicate: true,
+          references: { include: { reference: true } },
+        },
+        orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
+      }),
+      this.prisma.historicalStatement.findFirst({
+        where: { subjectId: entity.id, predicate: { code: 'OCCURRED_AT' } },
+        include: {
+          object: { include: { historicalSite: true } },
+        },
+      }),
+    ]);
+
+    const entities = participantStatements.map((stmt) => ({
+      eventId: entity.id,
+      entityId: stmt.subjectId,
+      role: (stmt.qualifiers as any)?.role || stmt.predicate?.code || 'PARTICIPANT',
+      roleLabel: (stmt.qualifiers as any)?.roleLabel || null,
+      isPrimary: Boolean(stmt.isPrimary),
+      displayOrder: stmt.displayOrder,
+      notes: (stmt.qualifiers as any)?.notes || null,
+      createdAt: stmt.createdAt,
+      entity: stmt.subject,
+      references: stmt.references || [],
     }));
+
+    const locationEntity = locationStatement?.object || null;
+
+    return {
+      id: entity.id,
+      title: entity.name,
+      slug: entity.slug,
+      dateText: entity.dateText,
+      startYear: entity.startYear,
+      startMonth: entity.startMonth,
+      startDay: entity.startDay,
+      endYear: entity.endYear,
+      endMonth: entity.endMonth,
+      endDay: entity.endDay,
+      datePrecision: entity.datePrecision,
+      eventDateNote: eventRow.eventDateNote,
+      summary: entity.tagline,
+      description: entity.description,
+      thumbnailUrl: entity.imageUrl,
+      displayOrder: entity.displayOrder,
+      status: entity.status,
+      category: (entity.metadata as any)?.category ?? 'OTHER',
+      categoryIds: eventRow.categoryIds || [],
+      metadata: entity.metadata,
+      topicId: null,
+      periodId: entity.periodId,
+      siteId: locationEntity?.id ?? null,
+      locationId: locationEntity?.id ?? null,
+      parentId: eventRow.parentId,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      period: entity.period,
+      location: locationEntity,
+      historicalLocation: locationEntity
+        ? {
+            id: locationEntity.id,
+            name: locationEntity.name,
+            slug: locationEntity.slug || '',
+            address: locationEntity.historicalSite?.address || null,
+            type: locationEntity.historicalSite?.siteType || locationEntity.type,
+          }
+        : null,
+      parent: eventRow.parent
+        ? {
+            id: eventRow.parent.entity.id,
+            title: eventRow.parent.entity.name,
+            slug: eventRow.parent.entity.slug,
+            startYear: eventRow.parent.entity.startYear,
+          }
+        : null,
+      children: (eventRow.children || []).map((c: any) => ({
+        id: c.entity.id,
+        title: c.entity.name,
+        slug: c.entity.slug,
+        startYear: c.entity.startYear,
+        status: c.entity.status,
+      })),
+      entities,
+      media: entity.media || [],
+      _count: { children: (eventRow.children || []).length },
+    };
   }
 
   async create(data: CreateHistoricalEventDomainModel): Promise<HistoricalEventEntityModel> {
-    const { entities, media, category, status, topicId, ...rest } = data;
-    const relationRecords = entities && entities.length > 0 ? entities : [];
-    const mediaRecords = media && media.length > 0 ? media : [];
+    const { entities, media, category, categoryIds, locationId, parentId, ...rest } = data;
 
-    const prismaCreateData: Prisma.HistoricalEventUncheckedCreateInput = {
-      ...rest,
-      category: category ? (category as EventCategory) : EventCategory.OTHER,
-      status: status ? (status as ContentStatus) : ContentStatus.PUBLISHED,
-      metadata: rest.metadata ? (rest.metadata as Prisma.InputJsonValue) : undefined,
-    };
-
-    const created = await this.prisma.historicalEvent.create({
+    const created = await this.prisma.historicalEntity.create({
       data: {
-        ...prismaCreateData,
-        ...(relationRecords.length > 0
-          ? {
-              participants: {
-                create: relationRecords.map((r, idx) => ({
-                  entityId: r.entityId,
-                  roleTermId: (r as any).roleTermId || null,
-                  roleLabelOverride: (r as any).roleLabel || null,
-                  isPrimary: Boolean((r as any).isPrimary),
-                  displayOrder: (r as any).displayOrder ?? idx,
-                  notes: (r as any).notes || null,
-                })),
-              },
-            }
-          : {}),
-        ...(mediaRecords.length > 0
+        type: 'EVENT',
+        name: rest.title.trim(),
+        slug: rest.slug,
+        description: rest.description || null,
+        tagline: rest.summary || null,
+        imageUrl: rest.thumbnailUrl || null,
+        periodId: rest.periodId || null,
+        displayOrder: rest.displayOrder ?? 0,
+        status: (rest.status as ContentStatus) ?? ContentStatus.PUBLISHED,
+        dateText: rest.dateText,
+        startYear: rest.startYear,
+        startMonth: rest.startMonth,
+        startDay: rest.startDay,
+        endYear: rest.endYear,
+        endMonth: rest.endMonth,
+        endDay: rest.endDay,
+        datePrecision: rest.datePrecision,
+        metadata: {
+          ...(rest.metadata || {}),
+          ...(category ? { category } : {}),
+        } as Prisma.InputJsonValue,
+        event: {
+          create: {
+            parentId: parentId || null,
+            categoryIds: categoryIds || [],
+            eventDateNote: rest.eventDateNote ?? null,
+          },
+        },
+        ...(media && media.length > 0
           ? {
               media: {
-                create: mediaRecords.map((m, idx) => ({
+                create: media.map((m, idx) => ({
                   type: m.type ? (m.type as MediaType) : MediaType.IMAGE,
                   url: m.url,
                   caption: m.caption || null,
@@ -112,59 +208,136 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
             }
           : {}),
       },
-      include: this.standardIncludes,
+      include: this.standardEntityInclude,
     });
-    return {
-      ...created,
-      entities: HistoricalEventPrismaRepository.mapParticipantsToLegacyEntities(
-        (created as any).participants,
-      ),
-    } as unknown as HistoricalEventEntityModel;
+
+    if (entities && entities.length > 0) {
+      await this.syncParticipants(created.id, entities);
+    }
+    if (locationId) {
+      await this.syncLocation(created.id, locationId);
+    }
+
+    return this.toEventModel(created);
+  }
+
+  private async syncParticipants(
+    eventEntityId: string,
+    records: Array<{
+      entityId: string;
+      role?: string;
+      roleLabel?: string | null;
+      isPrimary?: boolean;
+      displayOrder?: number;
+      notes?: string | null;
+    }>,
+  ): Promise<void> {
+    await this.prisma.historicalStatement.deleteMany({
+      where: {
+        objectId: eventEntityId,
+        subject: { type: { not: 'EVENT' } },
+      },
+    });
+
+    const participatedInId = await this.requirePredicateId('PARTICIPATED_IN');
+
+    for (const [idx, r] of records.entries()) {
+      const roleCode = r.role?.trim() || 'PARTICIPANT';
+      const predicateId =
+        (await this.prisma.taxonomyTerm
+          .findFirst({ where: { groupCode: 'PREDICATE', code: roleCode } })
+          .then((t) => t?.id)) || participatedInId;
+
+      await this.prisma.historicalStatement.create({
+        data: {
+          subjectId: r.entityId,
+          predicateId,
+          objectId: eventEntityId,
+          isPrimary: Boolean(r.isPrimary),
+          displayOrder: r.displayOrder ?? idx,
+          qualifiers: {
+            role: roleCode,
+            roleLabel: r.roleLabel || null,
+            notes: r.notes || null,
+          },
+        },
+      });
+    }
+  }
+
+  private async syncLocation(eventEntityId: string, locationId: string | null): Promise<void> {
+    await this.prisma.historicalStatement.deleteMany({
+      where: { subjectId: eventEntityId, predicate: { code: 'OCCURRED_AT' } },
+    });
+    if (!locationId) return;
+
+    const occurredAtId = await this.requirePredicateId('OCCURRED_AT');
+    await this.prisma.historicalStatement.create({
+      data: {
+        subjectId: eventEntityId,
+        predicateId: occurredAtId,
+        objectId: locationId,
+      },
+    });
   }
 
   async update(
     id: string,
     data: UpdateHistoricalEventDomainModel,
   ): Promise<HistoricalEventEntityModel> {
-    const { entities, media, category, status, metadata, topicId, ...rest } = data;
-    const shouldSyncEntities = entities !== undefined;
-    const relationRecords = entities && entities.length > 0 ? entities : [];
-    const shouldSyncMedia = media !== undefined;
-    const mediaRecords = media && media.length > 0 ? media : [];
+    const { entities, media, category, categoryIds, locationId, parentId, ...rest } = data;
 
-    const prismaUpdateData: Prisma.HistoricalEventUncheckedUpdateInput = {
-      ...rest,
-      ...(category !== undefined ? { category: category as EventCategory } : {}),
-      ...(status !== undefined ? { status: status as ContentStatus } : {}),
-      ...(metadata !== undefined
-        ? { metadata: metadata ? (metadata as Prisma.InputJsonValue) : Prisma.JsonNull }
-        : {}),
-    };
+    const existing = await this.prisma.historicalEntity.findUnique({
+      where: { id },
+      select: { metadata: true },
+    });
+    const existingMetadata =
+      existing?.metadata && typeof existing.metadata === 'object'
+        ? (existing.metadata as Record<string, any>)
+        : {};
 
-    const updated = await this.prisma.historicalEvent.update({
+    const updated = await this.prisma.historicalEntity.update({
       where: { id },
       data: {
-        ...prismaUpdateData,
-        ...(shouldSyncEntities
+        ...(rest.title !== undefined ? { name: rest.title.trim() } : {}),
+        ...(rest.slug !== undefined ? { slug: rest.slug } : {}),
+        ...(rest.description !== undefined ? { description: rest.description } : {}),
+        ...(rest.summary !== undefined ? { tagline: rest.summary } : {}),
+        ...(rest.thumbnailUrl !== undefined ? { imageUrl: rest.thumbnailUrl } : {}),
+        ...(rest.periodId !== undefined ? { periodId: rest.periodId } : {}),
+        ...(rest.displayOrder !== undefined ? { displayOrder: rest.displayOrder } : {}),
+        ...(rest.status !== undefined ? { status: rest.status as ContentStatus } : {}),
+        ...(rest.dateText !== undefined ? { dateText: rest.dateText } : {}),
+        ...(rest.startYear !== undefined ? { startYear: rest.startYear } : {}),
+        ...(rest.startMonth !== undefined ? { startMonth: rest.startMonth } : {}),
+        ...(rest.startDay !== undefined ? { startDay: rest.startDay } : {}),
+        ...(rest.endYear !== undefined ? { endYear: rest.endYear } : {}),
+        ...(rest.endMonth !== undefined ? { endMonth: rest.endMonth } : {}),
+        ...(rest.endDay !== undefined ? { endDay: rest.endDay } : {}),
+        ...(rest.datePrecision !== undefined ? { datePrecision: rest.datePrecision } : {}),
+        ...(rest.metadata !== undefined || category !== undefined
           ? {
-              participants: {
-                deleteMany: {},
-                create: relationRecords.map((r, idx) => ({
-                  entityId: r.entityId,
-                  roleTermId: (r as any).roleTermId || null,
-                  roleLabelOverride: (r as any).roleLabel || null,
-                  isPrimary: Boolean((r as any).isPrimary),
-                  displayOrder: (r as any).displayOrder ?? idx,
-                  notes: (r as any).notes || null,
-                })),
-              },
+              metadata: {
+                ...existingMetadata,
+                ...(rest.metadata || {}),
+                ...(category !== undefined ? { category } : {}),
+              } as Prisma.InputJsonValue,
             }
           : {}),
-        ...(shouldSyncMedia
+        event: {
+          update: {
+            ...(parentId !== undefined ? { parentId } : {}),
+            ...(categoryIds !== undefined ? { categoryIds } : {}),
+            ...(rest.eventDateNote !== undefined
+              ? { eventDateNote: rest.eventDateNote }
+              : {}),
+          },
+        },
+        ...(media !== undefined
           ? {
               media: {
                 deleteMany: {},
-                create: mediaRecords.map((m, idx) => ({
+                create: media.map((m, idx) => ({
                   type: m.type ? (m.type as MediaType) : MediaType.IMAGE,
                   url: m.url,
                   caption: m.caption || null,
@@ -174,103 +347,26 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
             }
           : {}),
       },
-      include: this.standardIncludes,
+      include: this.standardEntityInclude,
     });
-    return {
-      ...updated,
-      entities: HistoricalEventPrismaRepository.mapParticipantsToLegacyEntities(
-        (updated as any).participants,
-      ),
-    } as unknown as HistoricalEventEntityModel;
+
+    if (entities !== undefined) {
+      await this.syncParticipants(id, entities);
+    }
+    if (locationId !== undefined) {
+      await this.syncLocation(id, locationId);
+    }
+
+    return this.toEventModel(updated);
   }
 
   async findById(id: string): Promise<HistoricalEventEntityModel | null> {
-    const item = await this.prisma.historicalEvent.findUnique({
-      where: { id },
-      include: {
-        ...this.standardIncludes,
-        children: {
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            startYear: true,
-            status: true,
-          },
-          orderBy: [
-            { startYear: 'asc' },
-            { startMonth: 'asc' },
-            { startDay: 'asc' },
-            { displayOrder: 'asc' },
-          ],
-        },
-        subjectStatements: {
-          include: {
-            predicate: true,
-            objectEntity: {
-              select: { id: true, name: true, slug: true, type: true },
-            },
-            objectEvent: {
-              select: {
-                id: true,
-                title: true,
-                slug: true,
-                startYear: true,
-                endYear: true,
-                category: true,
-                thumbnailUrl: true,
-              },
-            },
-            references: {
-              include: {
-                reference: true,
-              },
-            },
-          },
-        },
-        objectStatements: {
-          include: {
-            predicate: true,
-            subjectEntity: {
-              select: { id: true, name: true, slug: true, type: true },
-            },
-            subjectEvent: {
-              select: {
-                id: true,
-                title: true,
-                slug: true,
-                startYear: true,
-                endYear: true,
-                category: true,
-                thumbnailUrl: true,
-              },
-            },
-            references: {
-              include: {
-                reference: true,
-              },
-            },
-          },
-        },
-        participants: {
-          include: {
-            entity: {
-              select: { id: true, name: true, slug: true, type: true, imageUrl: true },
-            },
-            roleTerm: true,
-            references: {
-              include: {
-                reference: true,
-              },
-            },
-          },
-          orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
-        },
-      },
+    const entity = await this.prisma.historicalEntity.findUnique({
+      where: { id, type: 'EVENT' },
+      include: this.standardEntityInclude,
     });
-
-    const adapted = StatementRelationAdapter.adaptEvent(item);
-    return adapted as unknown as HistoricalEventEntityModel | null;
+    if (!entity) return null;
+    return this.toEventModel(entity);
   }
 
   async findMany(
@@ -280,8 +376,9 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
     const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
     const skip = (page - 1) * limit;
 
-    const where: Prisma.HistoricalEventWhereInput = {};
-    const andConditions: Prisma.HistoricalEventWhereInput[] = [];
+    const where: Prisma.HistoricalEntityWhereInput = { type: 'EVENT' };
+    const andConditions: Prisma.HistoricalEntityWhereInput[] = [];
+    const eventFilter: Prisma.HistoricalEventWhereInput = {};
 
     if (query.periodId) {
       where.periodId = query.periodId;
@@ -289,7 +386,11 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
 
     const siteFilterId = query.siteId || query.locationId;
     if (siteFilterId) {
-      where.locationId = siteFilterId;
+      andConditions.push({
+        subjectStatements: {
+          some: { predicate: { code: 'OCCURRED_AT' }, objectId: siteFilterId },
+        },
+      });
     }
 
     if (query.status) {
@@ -297,8 +398,7 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
     }
 
     if (query.categoryTermIds) {
-      // Mã loại không tồn tại → mảng rỗng → không khớp sự kiện nào.
-      where.categoryIds = { hasSome: query.categoryTermIds };
+      eventFilter.categoryIds = { hasSome: query.categoryTermIds };
     }
 
     if (query.startYear !== undefined && query.startYear !== null) {
@@ -308,29 +408,29 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
     if (query.search) {
       andConditions.push({
         OR: [
-          { title: { contains: query.search, mode: 'insensitive' } },
-          { summary: { contains: query.search, mode: 'insensitive' } },
+          { name: { contains: query.search, mode: 'insensitive' } },
+          { tagline: { contains: query.search, mode: 'insensitive' } },
           { description: { contains: query.search, mode: 'insensitive' } },
         ],
       });
     }
 
     if (query.parentId) {
-      where.parentId = query.parentId;
-    } else if (
-      query.topLevelOnly === true ||
-      query.topLevelOnly === 'true'
-    ) {
-      where.parentId = null;
+      eventFilter.parentId = query.parentId;
+    } else if (query.topLevelOnly === true || query.topLevelOnly === 'true') {
+      eventFilter.parentId = null;
     }
 
+    if (Object.keys(eventFilter).length > 0) {
+      where.event = eventFilter;
+    }
     if (andConditions.length > 0) {
       where.AND = andConditions;
     }
 
     const [total, items] = await Promise.all([
-      this.prisma.historicalEvent.count({ where }),
-      this.prisma.historicalEvent.findMany({
+      this.prisma.historicalEntity.count({ where }),
+      this.prisma.historicalEntity.findMany({
         where,
         skip,
         take: limit,
@@ -340,22 +440,17 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
           { startDay: 'asc' },
           { displayOrder: 'asc' },
         ],
-        include: this.standardIncludes,
+        include: this.standardEntityInclude,
       }),
     ]);
 
-    const mappedItems = items.map((item) => ({
-      ...item,
-      entities: HistoricalEventPrismaRepository.mapParticipantsToLegacyEntities(
-        (item as any).participants,
-      ),
-    }));
-    return { items: mappedItems as unknown as HistoricalEventEntityModel[], total };
+    const mappedItems = await Promise.all(items.map((item) => this.toEventModel(item)));
+    return { items: mappedItems, total };
   }
 
   async existsBySlug(slug: string): Promise<boolean> {
-    const count = await this.prisma.historicalEvent.count({
-      where: { slug },
+    const count = await this.prisma.historicalEntity.count({
+      where: { slug, type: 'EVENT' },
     });
     return count > 0;
   }
@@ -379,22 +474,17 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
     parentExists: boolean;
   }> {
     const checkSiteId = dto.siteId || dto.locationId;
-    const [periodCount, locationCount, parentCount] =
-      await Promise.all([
-        dto.periodId
-          ? this.prisma.period.count({ where: { id: dto.periodId } })
-          : Promise.resolve(1),
-        checkSiteId
-          ? this.prisma.historicalEntity.count({
-              where: { id: checkSiteId },
-            })
-          : Promise.resolve(1),
-        dto.parentId
-          ? this.prisma.historicalEvent.count({
-              where: { id: dto.parentId },
-            })
-          : Promise.resolve(1),
-      ]);
+    const [periodCount, locationCount, parentCount] = await Promise.all([
+      dto.periodId
+        ? this.prisma.period.count({ where: { id: dto.periodId } })
+        : Promise.resolve(1),
+      checkSiteId
+        ? this.prisma.historicalEntity.count({ where: { id: checkSiteId } })
+        : Promise.resolve(1),
+      dto.parentId
+        ? this.prisma.historicalEvent.count({ where: { entityId: dto.parentId } })
+        : Promise.resolve(1),
+    ]);
 
     return {
       topicExists: true,
@@ -405,34 +495,40 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
   }
 
   async delete(id: string): Promise<HistoricalEventEntityModel> {
-    const deleted = await this.prisma.historicalEvent.delete({
+    const existing = await this.prisma.historicalEntity.findUnique({
       where: { id },
+      include: this.standardEntityInclude,
     });
-    return deleted as unknown as HistoricalEventEntityModel;
+    const model = existing ? await this.toEventModel(existing) : (existing as any);
+    await this.prisma.historicalEntity.delete({ where: { id } });
+    return model;
   }
 
   private static readonly RELATION_EVENT_SELECT = {
     id: true,
-    title: true,
+    name: true,
     slug: true,
     startYear: true,
     endYear: true,
-    category: true,
-    thumbnailUrl: true,
+    imageUrl: true,
   } as const;
 
   /** Chiếu 1 HistoricalStatement Event↔Event về shape `relation` cũ (HistoricalEventRelation). */
   private static mapStatementToLegacyEventRelation(stmt: any): any {
     return {
       id: stmt.id,
-      sourceEventId: stmt.subjectEventId,
-      targetEventId: stmt.objectEventId,
+      sourceEventId: stmt.subjectId,
+      targetEventId: stmt.objectId,
       relationType: stmt.predicate?.code ?? null,
       description: (stmt.qualifiers as any)?.description ?? null,
       status: stmt.verificationStatus,
       sourceReference: (stmt.qualifiers as any)?.sourceReference ?? null,
-      sourceEvent: stmt.subjectEvent,
-      targetEvent: stmt.objectEvent,
+      sourceEvent: stmt.subject
+        ? { ...stmt.subject, title: stmt.subject.name, thumbnailUrl: stmt.subject.imageUrl }
+        : null,
+      targetEvent: stmt.object
+        ? { ...stmt.object, title: stmt.object.name, thumbnailUrl: stmt.object.imageUrl }
+        : null,
     };
   }
 
@@ -455,9 +551,9 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
 
     const statement = await this.prisma.historicalStatement.create({
       data: {
-        subjectEventId: data.sourceEventId,
+        subjectId: data.sourceEventId,
         predicateId: term.id,
-        objectEventId: data.targetEventId,
+        objectId: data.targetEventId,
         qualifiers: data.description
           ? { description: data.description, sourceReference: data.sourceReference }
           : undefined,
@@ -465,8 +561,8 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
       },
       include: {
         predicate: true,
-        subjectEvent: { select: HistoricalEventPrismaRepository.RELATION_EVENT_SELECT },
-        objectEvent: { select: HistoricalEventPrismaRepository.RELATION_EVENT_SELECT },
+        subject: { select: HistoricalEventPrismaRepository.RELATION_EVENT_SELECT },
+        object: { select: HistoricalEventPrismaRepository.RELATION_EVENT_SELECT },
       },
     });
 
@@ -482,11 +578,11 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
       where: { id: relationId },
       include: {
         predicate: true,
-        subjectEvent: { select: HistoricalEventPrismaRepository.RELATION_EVENT_SELECT },
-        objectEvent: { select: HistoricalEventPrismaRepository.RELATION_EVENT_SELECT },
+        subject: { select: HistoricalEventPrismaRepository.RELATION_EVENT_SELECT },
+        object: { select: HistoricalEventPrismaRepository.RELATION_EVENT_SELECT },
       },
     });
-    if (!statement || !statement.subjectEventId || !statement.objectEventId) return null;
+    if (!statement) return null;
     return HistoricalEventPrismaRepository.mapStatementToLegacyEventRelation(statement);
   }
 
@@ -496,17 +592,23 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
   }> {
     const [outgoingStatements, incomingStatements] = await Promise.all([
       this.prisma.historicalStatement.findMany({
-        where: { subjectEventId: eventId, objectEventId: { not: null } },
+        where: {
+          subjectId: eventId,
+          predicate: { groupCode: 'EVENT_RELATION' },
+        },
         include: {
           predicate: true,
-          objectEvent: { select: HistoricalEventPrismaRepository.RELATION_EVENT_SELECT },
+          object: { select: HistoricalEventPrismaRepository.RELATION_EVENT_SELECT },
         },
       }),
       this.prisma.historicalStatement.findMany({
-        where: { objectEventId: eventId, subjectEventId: { not: null } },
+        where: {
+          objectId: eventId,
+          predicate: { groupCode: 'EVENT_RELATION' },
+        },
         include: {
           predicate: true,
-          subjectEvent: { select: HistoricalEventPrismaRepository.RELATION_EVENT_SELECT },
+          subject: { select: HistoricalEventPrismaRepository.RELATION_EVENT_SELECT },
         },
       }),
     ]);
@@ -521,4 +623,3 @@ export class HistoricalEventPrismaRepository implements IHistoricalEventReposito
     };
   }
 }
-

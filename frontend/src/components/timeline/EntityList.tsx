@@ -36,7 +36,7 @@ export function EntityList({
             </div>
             <div>
               <Heading level={3}>
-                {f.slug ? <Link href={`/nhan-vat/${encodeURIComponent(f.slug)}`}>{f.name}</Link> : f.name}
+                {f.slug ? <Link href={`/nhan-vat?nv=${encodeURIComponent(f.slug)}`}>{f.name}</Link> : f.name}
               </Heading>
               <Badge>{f.role}</Badge>
               {showEventTitles && <EventTitles titles={f.eventTitles} />}

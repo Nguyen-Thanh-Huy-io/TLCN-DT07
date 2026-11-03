@@ -57,26 +57,6 @@ enum email_status {
 }
 
 // ================================
-// Activity Related Enums
-// ================================
-
-enum eventType {
-  create
-  update
-  delete
-  login
-  logout
-  password_change
-  profile_update
-}
-
-enum actionType {
-  create
-  update
-  delete
-}
-
-// ================================
 // Subscription Related Enums
 // ================================
 

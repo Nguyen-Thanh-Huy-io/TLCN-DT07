@@ -3,7 +3,6 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { AuthUtilsService } from './services/auth-utils.service';
 import { AUTH_CONFIG } from './config/auth.config';
 import { PrismaService } from '../common/services/prisma.service';
-import { ActivityLogService } from '../common/services/activity-log.service';
 import { RedisService } from '../common/services/redis.service';
 import { EmailQueueService } from '../common/queues/email/email.queue';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
@@ -24,7 +23,6 @@ export class AuthService {
   constructor(
     private readonly authUtilsService: AuthUtilsService,
     private readonly prismaService: PrismaService,
-    private readonly activityLogService: ActivityLogService,
     private readonly redisService: RedisService,
     private readonly emailQueueService: EmailQueueService,
     private readonly customLogger: CustomLoggerService,
@@ -138,22 +136,6 @@ export class AuthService {
             userAgent: userAgent,
           },
         });
-
-        // Log user registration activity
-        await this.activityLogService.logCreate(
-          'authUser',
-          user.id,
-          {
-            email,
-            username,
-            role: 'USER',
-            status: 'ACTIVE',
-            verified: 'false',
-            provider: 'local',
-          },
-          { ip, userAgent, actionedBy: user.id, device },
-          tx,
-        );
 
         return user;
       },
@@ -272,22 +254,6 @@ export class AuthService {
         where: { id: user.id },
         data: { verified: true },
       });
-
-      // Log verification activity
-      await this.activityLogService.logCustomEvent(
-        'authUser',
-        user.id,
-        'profile_update',
-        { ip, userAgent, actionedBy: user.id },
-        [
-          {
-            fieldName: 'verified',
-            oldValue: 'false',
-            newValue: 'true',
-          },
-        ],
-        tx,
-      );
     });
 
     // Delete verification code from Redis

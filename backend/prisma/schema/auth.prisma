@@ -22,7 +22,6 @@ model authUser {
   authSecurity      authSecurity?
   loginHistory      loginHistory[]
   emailHistory      emailHistory[]
-  activityLogEvents ActivityLogEvent[]
   subscriptions     Subscription[]
   pathEnrollments   LearningPathEnrollment[]
   lessonProgress    LessonProgress[]

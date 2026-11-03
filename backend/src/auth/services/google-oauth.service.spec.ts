@@ -3,7 +3,6 @@ import { GoogleOAuthService } from './google-oauth.service';
 import { CustomLoggerService } from '../../common/services/custom-logger.service';
 import { RedisService } from '../../common/services/redis.service';
 import { PrismaService } from '../../common/services/prisma.service';
-import { ActivityLogService } from '../../common/services/activity-log.service';
 import { AuthUtilsService } from './auth-utils.service';
 
 describe('GoogleOAuthService', () => {
@@ -42,11 +41,6 @@ describe('GoogleOAuthService', () => {
     $transaction: jest.fn((fn) => fn(mockPrismaService)),
   };
 
-  const mockActivityLogService = {
-    logCreate: jest.fn(),
-    logCustomEvent: jest.fn(),
-  };
-
   const mockAuthUtilsService = {
     generateSecureId: jest.fn().mockReturnValue('test-jti-id'),
     createAccessToken: jest.fn().mockReturnValue('test-access-token'),
@@ -76,10 +70,6 @@ describe('GoogleOAuthService', () => {
           provide: PrismaService,
 
           useValue: mockPrismaService,
-        },
-        {
-          provide: ActivityLogService,
-          useValue: mockActivityLogService,
         },
         {
           provide: AuthUtilsService,

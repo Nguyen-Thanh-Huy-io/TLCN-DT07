@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { AuthUtilsService } from './services/auth-utils.service';
 import { PrismaService } from '../common/services/prisma.service';
-import { ActivityLogService } from '../common/services/activity-log.service';
 import { RedisService } from '../common/services/redis.service';
 import { EmailQueueService } from '../common/queues/email/email.queue';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
@@ -91,12 +90,6 @@ describe('AuthService', () => {
       generateSecureId: jest.fn(),
     };
 
-    const mockActivityLogService = {
-      logCreate: jest.fn(),
-      logUpdate: jest.fn(),
-      logCustomEvent: jest.fn(),
-    };
-
     const mockRedisService = {
       set: jest.fn(),
       get: jest.fn(),
@@ -126,10 +119,6 @@ describe('AuthService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
-        },
-        {
-          provide: ActivityLogService,
-          useValue: mockActivityLogService,
         },
         {
           provide: RedisService,

@@ -6,7 +6,6 @@ import { AccountService } from './account.service';
 import { AuthUtilsService } from './services/auth-utils.service';
 import { GoogleOAuthService } from './services/google-oauth.service';
 import { PrismaService } from '../common/services/prisma.service';
-import { ActivityLogService } from '../common/services/activity-log.service';
 import { EmailService } from '../common/services/email.service';
 import { RedisService } from '../common/services/redis.service';
 import { QueueModule } from '../common/modules';
@@ -20,7 +19,6 @@ import { QueueModule } from '../common/modules';
     AuthUtilsService,
     GoogleOAuthService,
     PrismaService,
-    ActivityLogService,
     EmailService,
     RedisService,
   ],

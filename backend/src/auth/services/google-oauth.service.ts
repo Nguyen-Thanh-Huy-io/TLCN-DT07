@@ -5,7 +5,6 @@ import { JwksClient } from 'jwks-rsa';
 import { CustomLoggerService } from '../../common/services/custom-logger.service';
 import { RedisService } from '../../common/services/redis.service';
 import { PrismaService } from '../../common/services/prisma.service';
-import { ActivityLogService } from '../../common/services/activity-log.service';
 import { AuthUtilsService } from './auth-utils.service';
 import {
   GOOGLE_OAUTH_CONFIG,
@@ -36,7 +35,6 @@ export class GoogleOAuthService {
     private readonly customLogger: CustomLoggerService,
     private readonly redisService: RedisService,
     private readonly prismaService: PrismaService,
-    private readonly activityLogService: ActivityLogService,
     private readonly authUtilsService: AuthUtilsService,
   ) {
     // Initialize JWKS client for Google public key retrieval
@@ -494,22 +492,6 @@ export class GoogleOAuthService {
             avatarUrl: googleUser.picture || null,
           },
         });
-
-        // Log user registration activity
-        await this.activityLogService.logCreate(
-          'authUser',
-          newUser.id,
-          {
-            email: googleUser.email,
-            username,
-            role: 'USER',
-            status: 'ACTIVE',
-            verified: 'true',
-            provider: 'google',
-          },
-          { ip, userAgent, actionedBy: newUser.id, device },
-          tx,
-        );
 
         return newUser;
       });

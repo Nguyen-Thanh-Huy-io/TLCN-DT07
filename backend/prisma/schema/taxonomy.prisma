@@ -63,9 +63,6 @@ model TaxonomyTerm {
   statements          HistoricalStatement[]      @relation("StatementPredicate")
   predicateRule       TaxonomyPredicateRule?
 
-  // Sự kiện và Thực thể tham gia
-  eventParticipants   HistoricalEventParticipant[] @relation("EventParticipantRoleTerm")
-
   // Nguồn tham khảo phân loại theo Format và Nature
   referencesByFormat  HistoricalReference[]        @relation("ReferenceFormatTerm")
   referencesByNature  HistoricalReference[]        @relation("ReferenceNatureTerm")

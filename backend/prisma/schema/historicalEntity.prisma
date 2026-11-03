@@ -1,5 +1,6 @@
 // ================================
-// Historical Entity (Master Data: Person, Organization, Dynasty, Military Force, Artifact)
+// Historical Entity (Master Data: Person, Organization, Dynasty, Military Force, Artifact,
+// Location, Event — MỌI đối tượng lịch sử có danh tính riêng dùng chung 1 bảng này)
 // ================================
 
 model HistoricalEntity {
@@ -17,11 +18,15 @@ model HistoricalEntity {
 
   isFeatured    Boolean        @default(false) @map("is_featured")
   displayOrder  Int            @default(0) @map("display_order")
-  /// Thời gian tồn tại của triều đại / quốc gia / chính thể, tổ chức, lực lượng (nhân vật dùng
-  /// năm sinh – mất ở bảng persons).
+  /// Thời gian tồn tại / diễn ra — dùng chung cho triều đại, quốc gia, tổ chức, lực lượng
+  /// VÀ sự kiện (type=EVENT). Nhân vật dùng năm sinh – mất riêng ở bảng persons.
   dateText      String?        @map("date_text") @db.VarChar(150)
   startYear     Int?           @map("start_year")
+  startMonth    Int?           @map("start_month")
+  startDay      Int?           @map("start_day")
   endYear       Int?           @map("end_year")
+  endMonth      Int?           @map("end_month")
+  endDay        Int?           @map("end_day")
   datePrecision DatePrecision? @map("date_precision")
   status        ContentStatus  @default(DRAFT)
   createdAt     DateTime       @default(now()) @map("created_at")
@@ -31,16 +36,14 @@ model HistoricalEntity {
   period         Period?         @relation(fields: [periodId], references: [id], onDelete: SetNull)
   person         Person?
   historicalSite HistoricalSite?
+  event          HistoricalEvent?
 
-  eventParticipations HistoricalEventParticipant[]
-  media               HistoricalEntityMedia[]
+  media HistoricalEntityMedia[]
 
-  // Các sự kiện mà thực thể này là địa điểm diễn ra chính
-  primaryEvents HistoricalEvent[] @relation("EventPrimaryLocation")
-
-  // Knowledge Graph Statements (Subject & Object)
-  subjectStatements HistoricalStatement[] @relation("StatementSubjectEntity")
-  objectStatements  HistoricalStatement[] @relation("StatementObjectEntity")
+  // Knowledge Graph Statements (Subject & Object) — Event nằm trong HistoricalEntity nên
+  // chỉ còn 1 cột subjectId/objectId mỗi chiều, không cần tách riêng theo loại Entity/Event.
+  subjectStatements HistoricalStatement[] @relation("StatementSubject")
+  objectStatements  HistoricalStatement[] @relation("StatementObject")
 
   @@index([type])
   @@index([periodId])
@@ -51,7 +54,8 @@ model HistoricalEntity {
   @@map("historical_entities")
 }
 
-// Bảng lưu trữ tư liệu đa phương tiện (ảnh, video, tài liệu văn kiện) cho Thực thể Lịch sử
+// Bảng lưu trữ tư liệu đa phương tiện (ảnh, video, tài liệu văn kiện) — dùng chung cho
+// MỌI loại HistoricalEntity (nhân vật, tổ chức, di tích, sự kiện...).
 model HistoricalEntityMedia {
   id           String    @id @default(uuid())
   entityId     String    @map("entity_id")

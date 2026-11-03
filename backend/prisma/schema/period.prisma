@@ -37,9 +37,9 @@ model Period {
   regionTerm     TaxonomyTerm? @relation("PeriodRegionTerm", fields: [regionId], references: [id], onDelete: SetNull)
   periodTypeTerm TaxonomyTerm? @relation("PeriodTypeTerm", fields: [periodTypeId], references: [id], onDelete: SetNull)
 
+  // Event nằm trong HistoricalEntity (type=EVENT) nên chỉ cần 1 back-relation này —
+  // không còn historicalEvents/eventPeriods riêng.
   historicalEntities HistoricalEntity[]
-  historicalEvents   HistoricalEvent[]
-  eventPeriods       HistoricalEventPeriod[]
 
   @@index([parentId])
   @@index([region])

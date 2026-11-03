@@ -26,33 +26,12 @@ model HistoricalReference {
 
   // Quan hệ nối với các phát biểu lịch sử (1 nguồn có thể chứng minh nhiều phát biểu)
   statementReferences   HistoricalStatementReference[]
-  // Quan hệ nối với nhân vật / lực lượng tham gia sự kiện (chứng minh vai trò lịch sử)
-  participantReferences HistoricalEventParticipantReference[]
 
   @@index([title])
   @@index([author])
   @@index([formatTermId])
   @@index([natureTermId])
   @@map("historical_references")
-}
-
-model HistoricalEventParticipantReference {
-  id            String   @id @default(uuid())
-  participantId String   @map("participant_id")
-  referenceId   String   @map("reference_id")
-  pageNumber    String?  @map("page_number") @db.VarChar(50)
-  chapter       String?  @db.VarChar(150)
-  quote         String?  @db.Text
-  note          String?  @db.Text
-  createdAt     DateTime @default(now()) @map("created_at")
-
-  participant HistoricalEventParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  reference   HistoricalReference        @relation(fields: [referenceId], references: [id], onDelete: Cascade)
-
-  @@unique([participantId, referenceId, pageNumber])
-  @@index([participantId])
-  @@index([referenceId])
-  @@map("historical_event_participant_references")
 }
 
 model HistoricalStatementReference {

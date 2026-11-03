@@ -162,6 +162,7 @@ enum HistoricalEntityType {
   MILITARY_FORCE
   ARTIFACT
   LOCATION
+  EVENT
   OTHER
 }
 

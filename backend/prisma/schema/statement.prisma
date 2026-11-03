@@ -1,20 +1,20 @@
 // ================================
 // Historical Statement (Knowledge Graph: Subject -> Predicate -> Object / Literal)
 // ================================
+// Event nằm trong HistoricalEntity (type=EVENT) nên Subject/Object chỉ còn 1 cột mỗi
+// chiều — không còn phân biệt "Entity" vs "Event" ở tầng khoá ngoại.
 
 model HistoricalStatement {
   id String @id @default(uuid())
 
-  // 1. Subject (Đúng 1 trong 2: Entity hoặc Event)
-  subjectEntityId String? @map("subject_entity_id")
-  subjectEventId  String? @map("subject_event_id")
+  // 1. Subject — luôn là 1 HistoricalEntity (có thể là Person, Organization, Event...).
+  subjectId String @map("subject_id")
 
   // 2. Predicate (Khóa ngoại đến danh mục TaxonomyTerm)
   predicateId String @map("predicate_id")
 
-  // 3. Object (Đúng 1 trong 3: Entity, Event, hoặc Literal Value)
-  objectEntityId  String?             @map("object_entity_id")
-  objectEventId   String?             @map("object_event_id")
+  // 3. Object (Đúng 1 trong 2: HistoricalEntity hoặc Literal Value)
+  objectId        String?             @map("object_id")
   objectValue     Json?               @map("object_value") @db.JsonB
   objectValueType StatementValueType? @map("object_value_type")
 
@@ -26,7 +26,7 @@ model HistoricalStatement {
   displayOrder Int     @default(0) @map("display_order")
   isPrimary    Boolean @default(false) @map("is_primary")
 
-  // 6. Thông tin bổ sung (roleCode, roleLabel, notes, v.v.)
+  // 6. Thông tin bổ sung (role, roleLabel, notes, v.v.)
   qualifiers         Json?              @db.JsonB
   verificationStatus VerificationStatus @default(VERIFIED) @map("verification_status")
   rank               StatementRank      @default(NORMAL)
@@ -35,39 +35,18 @@ model HistoricalStatement {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Foreign Key Relations
-  subjectEntity HistoricalEntity? @relation("StatementSubjectEntity", fields: [subjectEntityId], references: [id], onDelete: Cascade)
-  subjectEvent  HistoricalEvent?  @relation("StatementSubjectEvent", fields: [subjectEventId], references: [id], onDelete: Cascade)
-  predicate     TaxonomyTerm      @relation("StatementPredicate", fields: [predicateId], references: [id], onDelete: Restrict)
-  objectEntity  HistoricalEntity? @relation("StatementObjectEntity", fields: [objectEntityId], references: [id], onDelete: Cascade)
-  objectEvent   HistoricalEvent?  @relation("StatementObjectEvent", fields: [objectEventId], references: [id], onDelete: Cascade)
+  subject   HistoricalEntity  @relation("StatementSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+  predicate TaxonomyTerm      @relation("StatementPredicate", fields: [predicateId], references: [id], onDelete: Restrict)
+  object    HistoricalEntity? @relation("StatementObject", fields: [objectId], references: [id], onDelete: Cascade)
 
   // Nguồn tham khảo chứng minh phát biểu
   references HistoricalStatementReference[]
 
-  @@index([subjectEntityId])
-  @@index([subjectEventId])
+  @@index([subjectId])
   @@index([predicateId])
-  @@index([objectEntityId])
-  @@index([objectEventId])
+  @@index([objectId])
   @@index([validFromYear, validToYear])
   @@index([isPrimary])
   @@index([displayOrder])
   @@map("historical_statements")
-}
-
-// Bảng nối nhiều-nhiều Sự kiện Lịch sử ↔ Thời kỳ Lịch sử
-model HistoricalEventPeriod {
-  eventId  String @map("event_id")
-  periodId String @map("period_id")
-
-  isPrimary    Boolean @default(false) @map("is_primary")
-  displayOrder Int     @default(0) @map("display_order")
-
-  event  HistoricalEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  period Period          @relation(fields: [periodId], references: [id], onDelete: Cascade)
-
-  @@id([eventId, periodId])
-  @@index([periodId])
-  @@index([eventId])
-  @@map("historical_event_periods")
 }

@@ -6,6 +6,7 @@ import { Badge, Heading } from "@/components/timeline/sk-ui";
 import type { PublicPeriodDto } from "@/services/entities/landing.service";
 import { FigurePortrait } from "./FigurePortrait";
 import { LifeTimeline } from "./LifeTimeline";
+import { LifeTimelineHero } from "./LifeTimelineHero";
 import { RelationshipGraph } from "./RelationshipGraph";
 import { FigureBiography } from "./FigureBiography";
 import { figureRoles, useFigureRoles } from "./figure-roles";
@@ -57,6 +58,7 @@ export function FigureFullProfile({
       </div>
 
       <div className="sk-profile-full-body">
+        <LifeTimelineHero events={figure.events} />
         <LifeTimeline figure={figure} periods={periods} />
         <RelationshipGraph figure={figure} directory={directory} onNavigate={(f) => router.push(`/nhan-vat/${f.slug}`)} />
         <FigureBiography figure={figure} />

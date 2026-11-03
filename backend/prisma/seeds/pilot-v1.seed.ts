@@ -213,11 +213,13 @@ async function upsertEvent(input: EventInput) {
   }
   let parentId: string | null = null;
   if (input.parentSlug) {
-    const parent = await prisma.historicalEvent.findUnique({ where: { slug: input.parentSlug } });
+    const parent = await prisma.historicalEntity.findUnique({ where: { slug: input.parentSlug } });
     parentId = parent?.id ?? null;
   }
-  const data = {
-    title: input.title,
+
+  const entityData = {
+    name: input.title,
+    type: HistoricalEntityType.EVENT,
     startYear: input.startYear ?? null,
     startMonth: input.startMonth ?? null,
     startDay: input.startDay ?? null,
@@ -225,33 +227,82 @@ async function upsertEvent(input: EventInput) {
     endMonth: input.endMonth ?? null,
     endDay: input.endDay ?? null,
     datePrecision: input.datePrecision,
-    summary: input.summary ?? null,
-    description: input.description ?? null,
-    categoryIds,
-    locationId,
-    parentId,
+    tagline: input.summary ?? null,
+    // Frontend (sk-adapter.ts toTimelineEvent) đọc `description` cho cả phần tóm tắt lẫn
+    // nội dung chi tiết trên Dòng thời gian — Pilot chỉ viết `summary` 1 câu nên mặc định
+    // description = summary luôn, trừ khi có content dài hơn khai báo riêng.
+    description: input.description ?? input.summary ?? null,
     status: ContentStatus.PUBLISHED,
   };
-  return prisma.historicalEvent.upsert({
-    where: { slug: input.slug },
-    create: { slug: input.slug, ...data },
-    update: data,
+
+  const existing = await prisma.historicalEntity.findUnique({ where: { slug: input.slug } });
+  const event = existing
+    ? await prisma.historicalEntity.update({
+        where: { id: existing.id },
+        data: {
+          ...entityData,
+          event: { update: { categoryIds, parentId } },
+        },
+      })
+    : await prisma.historicalEntity.create({
+        data: {
+          slug: input.slug,
+          ...entityData,
+          event: { create: { categoryIds, parentId } },
+        },
+      });
+
+  // Vị trí diễn ra sự kiện gắn qua Statement OCCURRED_AT (subject=event, object=location) —
+  // không còn cột location_id trực tiếp trên bảng con HistoricalEvent.
+  await linkEventLocation(event.id, locationId);
+  return event;
+}
+
+/** Gắn địa điểm chính diễn ra sự kiện qua Statement OCCURRED_AT (subject=event, object=location). */
+async function linkEventLocation(eventEntityId: string, locationId: string | null) {
+  const occurredAtId = await termId('PREDICATE', 'OCCURRED_AT');
+  const existing = await prisma.historicalStatement.findFirst({
+    where: { subjectId: eventEntityId, predicateId: occurredAtId },
   });
+  if (!locationId) {
+    if (existing) await prisma.historicalStatement.delete({ where: { id: existing.id } });
+    return;
+  }
+  if (existing) {
+    await prisma.historicalStatement.update({ where: { id: existing.id }, data: { objectId: locationId } });
+  } else {
+    await prisma.historicalStatement.create({
+      data: { subjectId: eventEntityId, predicateId: occurredAtId, objectId: locationId },
+    });
+  }
 }
 
 async function linkEventPeriod(eventSlug: string, periodSlug: string, isPrimary = true) {
   const [event, period] = await Promise.all([
-    prisma.historicalEvent.findUnique({ where: { slug: eventSlug } }),
+    prisma.historicalEntity.findUnique({ where: { slug: eventSlug } }),
     prisma.period.findUnique({ where: { slug: periodSlug } }),
   ]);
   if (!event || !period) {
     throw new Error(`[pilot-v1.seed] Không tìm thấy event "${eventSlug}" hoặc period "${periodSlug}" để nối.`);
   }
-  await prisma.historicalEventPeriod.upsert({
-    where: { eventId_periodId: { eventId: event.id, periodId: period.id } },
-    create: { eventId: event.id, periodId: period.id, isPrimary },
-    update: { isPrimary },
+  // Event giờ là 1 HistoricalEntity — không còn bảng nối HistoricalEventPeriod, chỉ set
+  // trực tiếp cột period_id trên Entity. Chỉ set cho liên kết chính (isPrimary) để 1 sự
+  // kiện thuộc nhiều Period (hiếm) vẫn chỉ có đúng 1 "periodId chính".
+  if (isPrimary && !event.periodId) {
+    await prisma.historicalEntity.update({
+      where: { id: event.id },
+      data: { periodId: period.id },
+    });
+  }
+}
+
+/** Gắn predicate PREDICATE.<code> cho 1 phát biểu tham gia sự kiện, fallback PARTICIPATED_IN. */
+async function resolveParticipantPredicateId(roleCode: string): Promise<string> {
+  const term = await prisma.taxonomyTerm.findFirst({
+    where: { groupCode: 'PREDICATE', code: roleCode },
   });
+  if (term) return term.id;
+  return termId('PREDICATE', 'PARTICIPATED_IN');
 }
 
 async function addParticipant(input: {
@@ -264,32 +315,35 @@ async function addParticipant(input: {
   endYear?: number;
   notes?: string;
 }) {
-  const [event, entity, roleTermId] = await Promise.all([
-    prisma.historicalEvent.findUnique({ where: { slug: input.eventSlug } }),
+  const [event, entity, predicateId] = await Promise.all([
+    prisma.historicalEntity.findUnique({ where: { slug: input.eventSlug } }),
     prisma.historicalEntity.findUnique({ where: { slug: input.entitySlug } }),
-    termId('ROLE_TYPE', input.roleCode),
+    resolveParticipantPredicateId(input.roleCode),
   ]);
   if (!event || !entity) {
     throw new Error(
       `[pilot-v1.seed] Không tìm thấy event "${input.eventSlug}" hoặc entity "${input.entitySlug}" để gắn participant.`,
     );
   }
-  const existing = await prisma.historicalEventParticipant.findFirst({
-    where: { eventId: event.id, entityId: entity.id, roleTermId },
+  const existing = await prisma.historicalStatement.findFirst({
+    where: { subjectId: entity.id, objectId: event.id, predicateId },
   });
   const data = {
-    roleLabelOverride: input.roleLabelOverride ?? null,
     isPrimary: input.isPrimary ?? false,
-    startYear: input.startYear ?? null,
-    endYear: input.endYear ?? null,
-    notes: input.notes ?? null,
+    validFromYear: input.startYear ?? null,
+    validToYear: input.endYear ?? null,
+    qualifiers: {
+      role: input.roleCode,
+      roleLabel: input.roleLabelOverride ?? null,
+      notes: input.notes ?? null,
+    },
   };
   if (existing) {
-    await prisma.historicalEventParticipant.update({ where: { id: existing.id }, data });
+    await prisma.historicalStatement.update({ where: { id: existing.id }, data });
     return existing.id;
   }
-  const created = await prisma.historicalEventParticipant.create({
-    data: { eventId: event.id, entityId: entity.id, roleTermId, ...data },
+  const created = await prisma.historicalStatement.create({
+    data: { subjectId: entity.id, objectId: event.id, predicateId, ...data },
   });
   return created.id;
 }
@@ -299,16 +353,12 @@ type NodeRef =
   | { kind: 'event'; slug: string }
   | { kind: 'literal'; value: any; valueType: StatementValueType };
 
-async function resolveNode(ref: NodeRef): Promise<{ entityId?: string; eventId?: string }> {
-  if (ref.kind === 'entity') {
+/** Event giờ cũng là 1 HistoricalEntity — cả 'entity' và 'event' đều tra bằng slug Entity. */
+async function resolveNode(ref: NodeRef): Promise<{ entityId?: string }> {
+  if (ref.kind === 'entity' || ref.kind === 'event') {
     const e = await prisma.historicalEntity.findUnique({ where: { slug: ref.slug } });
-    if (!e) throw new Error(`[pilot-v1.seed] Entity "${ref.slug}" không tồn tại.`);
+    if (!e) throw new Error(`[pilot-v1.seed] "${ref.slug}" không tồn tại.`);
     return { entityId: e.id };
-  }
-  if (ref.kind === 'event') {
-    const e = await prisma.historicalEvent.findUnique({ where: { slug: ref.slug } });
-    if (!e) throw new Error(`[pilot-v1.seed] Event "${ref.slug}" không tồn tại.`);
-    return { eventId: e.id };
   }
   return {};
 }
@@ -330,13 +380,12 @@ async function addStatement(input: StatementInput) {
     termId('PREDICATE', input.predicateCode),
     resolveNode(input.subject),
     input.object.kind === 'literal'
-      ? Promise.resolve<{ entityId?: string; eventId?: string }>({})
+      ? Promise.resolve<{ entityId?: string }>({})
       : resolveNode(input.object),
   ]);
 
   const data: any = {
-    subjectEntityId: subjectRef.entityId ?? null,
-    subjectEventId: subjectRef.eventId ?? null,
+    subjectId: subjectRef.entityId,
     predicateId,
     qualifiers: input.qualifiers ?? undefined,
     validFromYear: input.validFromYear ?? null,
@@ -349,16 +398,12 @@ async function addStatement(input: StatementInput) {
     data.objectValue = input.object.value;
     data.objectValueType = input.object.valueType;
   } else {
-    data.objectEntityId = objectRef.entityId ?? null;
-    data.objectEventId = objectRef.eventId ?? null;
+    data.objectId = objectRef.entityId;
   }
 
   // Chống trùng: cùng subject + predicate + object thì update thay vì tạo bản ghi mới.
-  const whereDup: any = { predicateId };
-  if (data.subjectEntityId) whereDup.subjectEntityId = data.subjectEntityId;
-  if (data.subjectEventId) whereDup.subjectEventId = data.subjectEventId;
-  if (data.objectEntityId) whereDup.objectEntityId = data.objectEntityId;
-  if (data.objectEventId) whereDup.objectEventId = data.objectEventId;
+  const whereDup: any = { predicateId, subjectId: data.subjectId };
+  if (data.objectId) whereDup.objectId = data.objectId;
 
   const existing =
     input.object.kind === 'literal'
@@ -868,8 +913,12 @@ export async function seedPilotV1() {
     await linkEventPeriod(evt, 'cach-mang-phap');
   }
   for (const evt of ['thanh-lap-de-nhat-cong-hoa', 'xu-tu-louis-xvi', 'thoi-ky-khung-bo', 'dao-chinh-18-brumaire']) {
-    await linkEventPeriod(evt, 'cach-mang-phap');
+    // Nối period con (cụ thể hơn) TRƯỚC — linkEventPeriod chỉ set cột period_id trực
+    // tiếp 1 lần duy nhất (event chưa có periodId), nên thứ tự quyết định event cuối
+    // cùng trỏ periodId vào thời kỳ con hay thời kỳ cha. Period con phải thắng, vì
+    // trang Dòng thời gian (sk-adapter.ts) chỉ nhóm sự kiện theo thời kỳ CON (leaf).
     await linkEventPeriod(evt, 'de-nhat-cong-hoa-phap');
+    await linkEventPeriod(evt, 'cach-mang-phap');
   }
 
   await addParticipant({ eventSlug: 'hoi-nghi-estates-general', entitySlug: 'louis-xvi', roleCode: 'OTHER_ROLE', isPrimary: true, roleLabelOverride: 'Nhà vua triệu tập hội nghị' });

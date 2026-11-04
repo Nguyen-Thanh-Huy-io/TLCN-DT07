@@ -119,24 +119,33 @@ export function LessonPropertiesPanel({
   const docTabs = [
     {
       key: SidebarTab.CLASSIFICATION,
+      icon: '📋',
       label: 'Hồ sơ',
+      sublabel: 'Chủ đề & Thẻ',
       title: 'Chủ đề chính, ảnh bìa, thẻ tag và độ khó',
     },
     {
       key: SidebarTab.MEDIA,
-      label: `Tài liệu ${mediaCount > 0 ? `(${mediaCount})` : ''}`,
+      icon: '📎',
+      label: 'Tài liệu',
+      badge: mediaCount > 0 ? `${mediaCount}` : undefined,
+      badgeColor: 'bg-blue-100 text-blue-700',
       title: 'Tài liệu và tệp nghiên cứu đính kèm',
     },
     {
       key: SidebarTab.QUIZ,
+      icon: '❓',
       label: 'Đề ôn tập',
       disabled: !lessonId,
       badge: !lessonId ? '!' : undefined,
+      badgeColor: 'bg-amber-100 text-amber-800',
       title: !lessonId ? 'Cần lưu bài học trước khi tạo đề ôn tập' : 'Đề ôn tập trắc nghiệm',
     },
     {
       key: SidebarTab.PUBLISHING,
+      icon: '🚀',
       label: 'Xuất bản',
+      sublabel: 'Nguồn & Trạng thái',
       title: 'Nguồn tư liệu, liên kết và xuất bản',
     },
   ];
@@ -190,9 +199,9 @@ export function LessonPropertiesPanel({
           </button>
         </div>
 
-        {/* TẦNG 2: 4 Sub-tabs của Bài học (Chỉ hiện khi ở chế độ Toàn bài học, không bị co dúm) */}
+        {/* TẦNG 2: 4 Sub-tabs của Bài học (Dạng lưới 2x2 thoáng đãng, không bao giờ bị cắt chữ) */}
         {!isBlockMode && (
-          <div className="grid grid-cols-4 gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200/80 animate-in fade-in-50 duration-100">
+          <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200/80 animate-in fade-in-50 duration-100">
             {docTabs.map((t) => {
               const isQuizLocked = t.key === SidebarTab.QUIZ && t.disabled;
               const isActive = sidebarTab === t.key;
@@ -202,21 +211,22 @@ export function LessonPropertiesPanel({
                   type="button"
                   title={t.title}
                   onClick={() => setSidebarTab(t.key)}
-                  className={`py-1.5 px-1 rounded-md text-[11px] font-bold transition text-center cursor-pointer flex items-center justify-center gap-0.5 relative ${
+                  className={`py-2 px-2.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-between gap-1 border ${
                     isActive
-                      ? 'bg-white text-blue-700 shadow-2xs border border-slate-200/70'
+                      ? 'bg-white text-blue-700 shadow-xs border-blue-400/60 ring-1 ring-blue-500/20'
                       : isQuizLocked
-                      ? 'text-slate-400 hover:text-slate-600 opacity-70'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                      ? 'bg-slate-50/50 text-slate-400 border-dashed border-slate-200 hover:text-slate-600'
+                      : 'bg-white/70 text-slate-700 border-slate-200/70 hover:bg-white hover:text-slate-900'
                   }`}
                 >
-                  <span className="truncate">{t.label}</span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs shrink-0">{t.icon}</span>
+                    <span className="truncate">{t.label}</span>
+                  </div>
                   {t.badge && (
                     <span
-                      className={`text-[9px] px-1 py-0 rounded-full font-bold leading-none ${
-                        isQuizLocked
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'text-emerald-500'
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold leading-tight shrink-0 ${
+                        t.badgeColor ?? 'bg-slate-200 text-slate-700'
                       }`}
                     >
                       {t.badge}

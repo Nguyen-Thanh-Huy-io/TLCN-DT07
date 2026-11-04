@@ -109,7 +109,11 @@ export const HistoricalEntityApiService = {
 
   getEntityById: async (id: string): Promise<HistoricalEntityItem> => {
     const response = await api.get(`${HISTORICAL_ENTITY_ENDPOINT}/${id}`);
-    return (response.data?.data ?? response.data) as HistoricalEntityItem;
+    const resolved = response.data?.data ?? response.data;
+    if (!resolved || typeof resolved !== 'object' || Array.isArray(resolved)) {
+      throw new Error(`Không tìm thấy thực thể lịch sử với mã: ${id}`);
+    }
+    return resolved as HistoricalEntityItem;
   },
 
   createEntity: async (

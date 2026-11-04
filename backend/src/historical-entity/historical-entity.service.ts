@@ -264,8 +264,10 @@ export class HistoricalEntityService {
     const cached = await this.redis.get<HistoricalEntity>(cacheKey);
     if (cached) return cached;
 
-    const entity = await this.prisma.historicalEntity.findUnique({
-      where: { id },
+    const entity = await this.prisma.historicalEntity.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
       include: EntityQueryBuilder.getDetailInclude(),
     });
     if (!entity) {

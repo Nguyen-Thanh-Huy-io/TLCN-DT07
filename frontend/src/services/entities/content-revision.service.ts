@@ -132,12 +132,17 @@ export async function withPendingDraft<T extends { status?: string | null }>(
   id: string,
   detail: T,
 ): Promise<{ detail: T; pending: ContentRevisionItem | null }> {
-  if (detail.status !== ContentStatus.PUBLISHED) return { detail, pending: null };
+  if (!detail || typeof detail !== 'object' || detail.status !== ContentStatus.PUBLISHED) {
+    return { detail, pending: null };
+  }
   try {
     const open = await ContentRevisionApiService.openDraft<T>(type, id);
     if (!open) return { detail, pending: null };
     const reviewer = isReviewerRole(PublicAuthService.getCurrentUser()?.role);
-    return { detail: reviewer ? detail : open.draft, pending: open.revision };
+    const resolvedDraft = open.draft && typeof open.draft === 'object' && !Array.isArray(open.draft)
+      ? { ...detail, ...open.draft }
+      : detail;
+    return { detail: reviewer ? detail : resolvedDraft, pending: open.revision ?? null };
   } catch {
     return { detail, pending: null };
   }

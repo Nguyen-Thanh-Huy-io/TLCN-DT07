@@ -188,6 +188,9 @@ export function EntityEditor({
       // Đang xuất bản mà có bản sửa chờ duyệt → mở bản sửa đó để sửa tiếp không mất phần trước.
       .then((fetched) => withPendingDraft('ENTITY', entityId, fetched))
       .then(({ detail: data, pending }) => {
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+          throw new Error('Dữ liệu thực thể lịch sử không tồn tại hoặc bị lỗi.');
+        }
         setPendingRevision(pending);
         setName(data.name || '');
         setType(data.type || EntityType.PERSON);

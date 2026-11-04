@@ -17,7 +17,7 @@ import { Button, Heading } from "./sk-ui";
 import { EMPTY_FILTERS, FilterBar, matchesRegion, regionOptions, type TimelineFilters } from "./FilterBar";
 import { FilterSheet } from "./FilterSheet";
 import { Minimap } from "./Minimap";
-import { EraScrollSpyBadge } from "./EraScrollSpyBadge";
+import { TimelineStickyHeader } from "./TimelineStickyHeader";
 import { EraSection } from "./EraSection";
 import { SubEraSection, SplitMode } from "./SubEraSection";
 import { HorizontalExplorer } from "./HorizontalExplorer";
@@ -259,6 +259,19 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
           regions={allRegions}
         />
 
+        {/* Thanh Breadcrumb dính trên đỉnh khi cuộn (Kiểu A): hiển thị Thời kỳ to › Thời kỳ nhỏ & Dropdown danh mục */}
+        {!dockSidebar && (
+          <TimelineStickyHeader
+            eras={eras}
+            activeSubEraId={active}
+            totalEvents={countEvents(eras)}
+            onJumpEra={(e) => jump(e.subEras[0]?.id)}
+            onJumpSubEra={jump}
+            onToggleDock={() => setDockSidebar(true)}
+            isDocked={false}
+          />
+        )}
+
         {lens && (
           <div className="sk-focus-bar" role="status">
             <Network size={16} />
@@ -308,9 +321,9 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                   type="button"
                   className="sk-dock-toggle-btn"
                   onClick={() => setDockSidebar(false)}
-                  title="Thu gọn thành huy hiệu nổi để mở rộng không gian dòng thời gian"
+                  title="Thu gọn sang thanh bám đỉnh để mở rộng tối đa không gian"
                 >
-                  Thu gọn sang dạng nổi
+                  Thu gọn sang thanh bám đỉnh
                 </button>
               </div>
               <Minimap
@@ -321,19 +334,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                 onJumpSubEra={jump}
               />
             </div>
-          )}
-
-          {/* Khi không ghim sidebar: hiển thị Floating Scroll Spy Pill bám theo cuộn trang */}
-          {!dockSidebar && (
-            <EraScrollSpyBadge
-              eras={eras}
-              activeSubEraId={active}
-              totalEvents={countEvents(eras)}
-              onJumpEra={(e) => jump(e.subEras[0]?.id)}
-              onJumpSubEra={jump}
-              onToggleDock={() => setDockSidebar(true)}
-              isDocked={false}
-            />
           )}
 
           <main className="sk-timeline-main" ref={canvas}>

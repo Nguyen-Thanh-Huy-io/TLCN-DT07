@@ -3088,3 +3088,39 @@ sequenceDiagram
 - **Kiến trúc & CSS**:
   - `TimelineExplorer.tsx`: Thêm class `.sk-workspace-full` (`grid-template-columns: minmax(0, 1fr)`) khi sidebar không ghim, xóa bỏ khoảng trống cố định 215px.
   - `sk-timeline.css`: Hiệu ứng kính mờ (Glassmorphism backdrop-blur), đổ bóng nổi khối, bo góc dạng pill hiện đại và tương thích hoàn toàn với cả Light Mode & Dark Mode.
+
+---
+
+## ĐỢT 35: Chuyển đổi sang Kiểu A — Sticky Timeline Header (Thanh Breadcrumb Bám Đỉnh Dưới FilterBar)
+
+### 1. Sơ đồ Tuần tự (Sequence Diagram)
+```mermaid
+sequenceDiagram
+    actor Reader as Người học / Người xem
+    participant Viewport as Màn hình Timeline
+    participant SubEra as SubEraSection (onViewportEnter)
+    participant Explorer as TimelineExplorer (active, dockSidebar)
+    participant StickyBar as TimelineStickyHeader (Thanh Breadcrumb dính trên đỉnh)
+    participant Dropdown as Popover Dropdown (Góc phải thanh bar)
+
+    Reader->>Viewport: Cuộn dọc xem dòng thời gian (Scroll Timeline)
+    Viewport->>SubEra: Mốc thời gian đi vào tầm nhìn
+    SubEra->>Explorer: onActive(subEra.id)
+    Explorer->>StickyBar: Cập nhật activeSubEraId & danh sách eras
+    Note over StickyBar: Hiển thị breadcrumb thanh lịch: [01] Nhà Trần (1225-1400) › Ba lần kháng chiến...
+    StickyBar-->>Reader: Thanh bám đỉnh (sticky top: 64px) mỏng 42px, 100% không che đè nội dung
+    Reader->>StickyBar: Click nút "Thời kỳ (1/12) ▾"
+    StickyBar->>Dropdown: Thả dropdown popover ngay góc phải dưới nút bấm
+    Reader->>Dropdown: Chọn thời kỳ / giai đoạn khác
+    Dropdown->>Explorer: onJumpSubEra(id) -> cuộn mượt tới vị trí & đóng dropdown
+```
+
+### 2. Các điểm cải tiến cốt lõi
+- **Loại bỏ hoàn toàn widget pill nổi lơ lửng** (vốn giống chatbot và che khuất các nút thao tác phía dưới).
+- **Tạo mới [`TimelineStickyHeader.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/components/timeline/TimelineStickyHeader.tsx)**:
+  - Thanh Breadcrumb bám đỉnh cao chỉ 42px (`position: sticky; top: 64px; z-index: 18;`), kết hợp nền kính mờ `backdrop-filter: blur(12px)`.
+  - Hiển thị cấu trúc dẫn hướng chuyên nghiệp:
+    `[01] Nhà Trần (1225–1400) › Ba lần kháng chiến chống Nguyên – Mông · 1258–1288`.
+  - Bên phải có nút dropdown `Thời kỳ (X/N) ▾`: Mở popover menu góc phải thả xuống ngay dưới nút, cho phép chọn bất kỳ thời kỳ nào mà không che timeline.
+  - Tích hợp nút `Ghim cột bên` nếu người dùng muốn chuyển sang chế độ sidebar cố định.
+- **Automated Verification**: `tsc --noEmit` hoàn tất với 0 lỗi cú pháp và kiểu dữ liệu.

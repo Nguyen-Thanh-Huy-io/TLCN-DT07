@@ -34,15 +34,6 @@ export interface PeriodEditorProps {
   periodId?: string;
 }
 
-const HISTORICAL_COLOR_PRESETS = [
-  { label: 'Nâu Đất Cổ Đại', color: '#8c5338', desc: 'Đồ Đá, Đồ Đồng, Hùng Vương' },
-  { label: 'Đỏ Son Hoàng Triều', color: '#9e2a2b', desc: 'Đinh, Tiền Lê, Lý, Trần, Hậu Lê' },
-  { label: 'Xanh Rêu Di Tích', color: '#2d6a4f', desc: 'Văn minh sông Hồng, ngàn năm văn hiến' },
-  { label: 'Vàng Đồng Khởi Nghĩa', color: '#b07d2b', desc: 'Tây Sơn, Hai Bà Trưng, Bà Triệu' },
-  { label: 'Xanh Chàm Độc Lập', color: '#1d3557', desc: 'Cận đại, Kháng chiến, Độc lập dân tộc' },
-  { label: 'Đất Nung Sa Huỳnh', color: '#b25d38', desc: 'Văn hóa Sa Huỳnh, Phù Nam, Champa' },
-];
-
 const SKELETON_OVERVIEW = `<h2>1. Bối cảnh lịch sử & Không gian địa lý</h2><p>Khái quát về bối cảnh hình thành, cương thổ và điều kiện tự nhiên - xã hội trong giai đoạn này...</p><h2>2. Đặc trưng kinh tế - văn hóa & Đời sống xã hội</h2><p>Các chuyển biến về thể chế, sản xuất nông nghiệp/thương mại, tín ngưỡng và văn hóa chủ đạo...</p><h2>3. Vị trí thời đại & Ý nghĩa lịch sử</h2><p>Đóng góp của thời kỳ đối với tiến trình phát triển chung của dân tộc hoặc khu vực...</p>`;
 
 const SKELETON_MILESTONES = `<h2>1. Sự kiện mở đầu & Xác lập kỷ nguyên</h2><p>Nguyên nhân và biến cố lịch sử đánh dấu sự bắt đầu của thời kỳ này...</p><h2>2. Các bước ngoặt & Diễn biến chủ đạo</h2><p>Tóm lược những xung đột, cải cách hoặc thành tựu nổi bật xuyên suốt thời gian tồn tại...</p><h2>3. Chuyển giao & Kết thúc</h2><p>Bối cảnh khép lại thời kỳ và mở ra giai đoạn lịch sử kế tiếp...</p>`;
@@ -528,66 +519,67 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
                 </div>
               ) : (
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <span className="text-xs font-semibold text-slate-700">
-                      Chọn gam màu lịch sử đại diện:
+                      Tự chọn mã màu hoặc tạo ngẫu nhiên:
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-mono text-slate-500 uppercase">{colorTheme}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const randomColor = `#${Math.floor(Math.random() * 16777215)
+                          .toString(16)
+                          .padStart(6, '0')}`;
+                        setColorTheme(randomColor);
+                      }}
+                      className="text-xs px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 font-medium transition cursor-pointer flex items-center gap-1.5 shadow-2xs self-start sm:self-auto"
+                    >
+                      <span>🎲</span>
+                      <span>Đổi màu ngẫu nhiên</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
+                    <input
+                      type="color"
+                      value={colorTheme}
+                      onChange={(e) => setColorTheme(e.target.value)}
+                      className="w-9 h-9 rounded-lg cursor-pointer border border-slate-200 p-0.5 shrink-0 bg-transparent"
+                      title="Nhấp để mở bảng chọn màu"
+                    />
+                    <div className="flex-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Mã màu HEX
+                      </label>
                       <input
-                        type="color"
+                        type="text"
                         value={colorTheme}
                         onChange={(e) => setColorTheme(e.target.value)}
-                        className="w-6 h-6 rounded cursor-pointer border-0 p-0"
-                        title="Chọn màu tùy chỉnh"
+                        placeholder="#8C5338"
+                        className="w-full text-xs font-mono font-bold text-slate-800 uppercase focus:outline-none bg-transparent"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    {HISTORICAL_COLOR_PRESETS.map((p) => {
-                      const isPicked = colorTheme.toLowerCase() === p.color.toLowerCase();
-                      return (
-                        <button
-                          key={p.color}
-                          type="button"
-                          onClick={() => setColorTheme(p.color)}
-                          className={`p-2 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
-                            isPicked
-                              ? 'border-amber-600 bg-amber-50/60 ring-2 ring-amber-200'
-                              : 'border-slate-200 bg-white hover:bg-slate-50'
-                          }`}
-                        >
-                          <span
-                            className="w-5 h-5 rounded-lg shrink-0 shadow-2xs"
-                            style={{ backgroundColor: p.color }}
-                          />
-                          <div className="min-w-0">
-                            <div className="text-[11px] font-bold text-slate-800 truncate">{p.label}</div>
-                            <div className="text-[9px] text-slate-400 truncate">{p.desc}</div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-
                   {/* Bản xem trước dải banner tạo bằng màu */}
                   <div
-                    className="h-16 rounded-xl flex items-center justify-between px-4 text-white shadow-xs"
+                    className="h-16 rounded-xl flex items-center justify-between px-4 text-white shadow-xs transition-colors"
                     style={{
                       background: `linear-gradient(135deg, ${colorTheme} 0%, #1a1a1a 100%)`,
                     }}
                   >
                     <div>
-                      <div className="text-[11px] font-bold tracking-wide uppercase opacity-90">
+                      <div className="text-[10px] font-bold tracking-wider uppercase opacity-80">
                         Thanh nhận diện Timeline
                       </div>
-                      <div className="text-xs font-semibold mt-0.5">
+                      <div className="text-xs font-bold mt-0.5 truncate">
                         {name || 'Kỷ nguyên lịch sử'}
                       </div>
                     </div>
                     <span className="text-xl">🏛️</span>
                   </div>
+                  <span className="text-[11px] text-slate-400 block leading-tight">
+                    💡 Màu này dùng để tô dải màu của thời kỳ trên trục Timeline và làm banner nền khi không có ảnh chụp tư liệu.
+                  </span>
                 </div>
               )}
             </div>

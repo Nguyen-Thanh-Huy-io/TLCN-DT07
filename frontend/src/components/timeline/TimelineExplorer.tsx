@@ -17,6 +17,7 @@ import { Button, Heading } from "./sk-ui";
 import { EMPTY_FILTERS, FilterBar, matchesRegion, regionOptions, type TimelineFilters } from "./FilterBar";
 import { FilterSheet } from "./FilterSheet";
 import { Minimap } from "./Minimap";
+import { EraScrollSpyBadge } from "./EraScrollSpyBadge";
 import { EraSection } from "./EraSection";
 import { SubEraSection, SplitMode } from "./SubEraSection";
 import { HorizontalExplorer } from "./HorizontalExplorer";
@@ -98,6 +99,8 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   const [detail, setDetail] = useState<{ event: TimelineEvent; node: TimeNode } | null>(null);
   const [selected, setSelected] = useState("");
   const [saved, setSaved] = useState<string[]>([]);
+  // Cho phép chuyển đổi giữa dạng Floating Scroll Spy (giải phóng diện tích ngang) và ghim sidebar cố định
+  const [dockSidebar, setDockSidebar] = useState(false);
 
   // Bookmarks are a per-browser convenience; read after mount so server and client render the same.
   useEffect(() => {
@@ -296,15 +299,42 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
           </div>
         )}
 
-        <div className="sk-workspace">
-          {/* Minimap đi theo bộ lọc: chỉ liệt kê thời kỳ / giai đoạn còn dấu mốc sau khi lọc. */}
-          <Minimap
-            eras={eras}
-            active={active}
-            totalEvents={countEvents(eras)}
-            onJumpEra={(e) => jump(e.subEras[0]?.id)}
-            onJumpSubEra={jump}
-          />
+        <div className={`sk-workspace ${!dockSidebar ? "sk-workspace-full" : ""}`}>
+          {/* Khi ghim sidebar: hiển thị Minimap cố định bên trái */}
+          {dockSidebar && (
+            <div className="sk-minimap-dock-wrap">
+              <div className="sk-minimap-dock-header">
+                <button
+                  type="button"
+                  className="sk-dock-toggle-btn"
+                  onClick={() => setDockSidebar(false)}
+                  title="Thu gọn thành huy hiệu nổi để mở rộng không gian dòng thời gian"
+                >
+                  Thu gọn sang dạng nổi
+                </button>
+              </div>
+              <Minimap
+                eras={eras}
+                active={active}
+                totalEvents={countEvents(eras)}
+                onJumpEra={(e) => jump(e.subEras[0]?.id)}
+                onJumpSubEra={jump}
+              />
+            </div>
+          )}
+
+          {/* Khi không ghim sidebar: hiển thị Floating Scroll Spy Pill bám theo cuộn trang */}
+          {!dockSidebar && (
+            <EraScrollSpyBadge
+              eras={eras}
+              activeSubEraId={active}
+              totalEvents={countEvents(eras)}
+              onJumpEra={(e) => jump(e.subEras[0]?.id)}
+              onJumpSubEra={jump}
+              onToggleDock={() => setDockSidebar(true)}
+              isDocked={false}
+            />
+          )}
 
           <main className="sk-timeline-main" ref={canvas}>
             <div className="sk-canvas-toolbar">

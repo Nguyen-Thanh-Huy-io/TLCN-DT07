@@ -3052,3 +3052,39 @@ sequenceDiagram
   - **Kéo đường chia cột (`role="separator"`)**: Kéo qua lại giữa 2 cột để đổi tỷ lệ cột trực tiếp.
   - **Kéo thả Block (`draggable`)**: Kéo thả đổi vị trí các block con trong chương.
   - **Thanh nổi ngữ cảnh ngay trên Canvas**: Chọn Ảnh chỉnh nhanh tỷ lệ (`16:10`, `4:3`, `21:9`, `Tự nhiên`) & căn chỉnh (`Lấp đầy`, `Vừa khung`); chọn Văn bản chỉnh nhanh Font, Cỡ chữ & Số cột; chọn Trích dẫn chỉnh nhanh kiểu trích dẫn (`Ngoặc kép`, `Viền dọc`, `Tối giản`).
+
+---
+
+## ĐỢT 34: Triển khai Dynamic Scroll Spy Indicator (Cách 1) Giải phóng Diện tích Timeline
+
+### 1. Sơ đồ Tuần tự (Sequence Diagram)
+```mermaid
+sequenceDiagram
+    actor Reader as Người học / Người xem
+    participant Viewport as Trình duyệt (Cuộn trang Timeline)
+    participant SubEraSec as SubEraSection (Framer Motion onViewportEnter)
+    participant Explorer as TimelineExplorer (State: active, dockSidebar)
+    participant SpyBadge as EraScrollSpyBadge (Pill nổi bám theo cuộn)
+    participant Drawer as Drawer Popover (Danh mục toàn bộ thời kỳ)
+
+    Reader->>Viewport: Cuộn dọc dòng thời gian (Scroll Timeline)
+    Viewport->>SubEraSec: Phần tử giai đoạn xuất hiện trong viewport
+    SubEraSec->>Explorer: onActive(subEra.id) -> cập nhật activeSubEraId
+    Explorer->>SpyBadge: Props { eras, activeSubEraId, isDocked }
+    Note over SpyBadge: Tra cứu phân cấp: Era lớn (index, title, period) & SubEra nhỏ (title, period)
+    SpyBadge-->>Reader: Cập nhật hiển thị huy hiệu nổi "01 Nhà Trần (1225-1400) ↳ Ba lần kháng chiến chống Nguyên - Mông"
+    Reader->>SpyBadge: Click vào Floating Pill
+    SpyBadge->>Drawer: Mở Drawer Popover danh mục thời kỳ dạng nổi (không xô lệch layout)
+    Reader->>Drawer: Bấm vào một giai đoạn con (SubEra)
+    Drawer->>Explorer: onJumpSubEra(subEraId) -> cuộn mượt tới mốc & đóng Drawer
+```
+
+### 2. Tổng kết các giải pháp kiến trúc & SOLID
+- **Mục tiêu**: Thay vì cột cố định 215px bên trái (`Minimap`) thu hẹp không gian của dòng thời gian, giải phóng 100% diện tích chiều ngang cho timeline cards, spine line và nodes.
+- **Thành phần mới**: `EraScrollSpyBadge.tsx`:
+  - **Scroll Spy Pill bám theo cuộn**: Luôn hiển thị ở góc trái dưới màn hình (`bottom: 24px; left: 24px`), tự động nhận diện **Thời kỳ lớn** (số thứ tự, tên triều đại, niên đại) và **Thời kỳ nhỏ / giai đoạn con** tương ứng với vị trí người dùng đang cuộn tới.
+  - **Drawer Popover dạng nổi**: Khi bấm vào pill, mở popover danh mục các thời kỳ với cây phân cấp Accordion, cho phép nhảy nhanh (Jump to) mà không chiếm layout cố định.
+  - **Linh hoạt (Toggle Dock)**: Cho phép người dùng chuyển đổi linh hoạt giữa chế độ toàn màn hình nổi (Floating Spy Pill) và chế độ ghim cố định cột bên trái (Pinned Sidebar) theo sở thích.
+- **Kiến trúc & CSS**:
+  - `TimelineExplorer.tsx`: Thêm class `.sk-workspace-full` (`grid-template-columns: minmax(0, 1fr)`) khi sidebar không ghim, xóa bỏ khoảng trống cố định 215px.
+  - `sk-timeline.css`: Hiệu ứng kính mờ (Glassmorphism backdrop-blur), đổ bóng nổi khối, bo góc dạng pill hiện đại và tương thích hoàn toàn với cả Light Mode & Dark Mode.

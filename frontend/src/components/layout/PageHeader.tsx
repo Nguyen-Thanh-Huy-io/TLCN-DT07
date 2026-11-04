@@ -41,21 +41,21 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
 
     case APP_ROUTES.PERIODS.LIST:
       return {
-        title: 'Giai đoạn lịch sử',
+        title: 'Thời kỳ lịch sử',
         subtitle: 'Quản lý danh sách các thời kỳ và niên đại lịch sử',
         eyebrow: {
           parentLabel: 'Chương trình học',
           parentRoute: APP_ROUTES.CURRICULUM,
-          currentText: 'Giai đoạn',
+          currentText: 'Thời kỳ lịch sử',
         },
       };
 
     case APP_ROUTES.PERIODS.CREATE:
       return {
-        title: 'Thêm giai đoạn mới',
+        title: 'Thêm thời kỳ mới',
         subtitle: 'Thêm thời kỳ lịch sử vào trục thời gian học tập',
         eyebrow: {
-          parentLabel: 'Giai đoạn lịch sử',
+          parentLabel: 'Thời kỳ lịch sử',
           parentRoute: APP_ROUTES.PERIODS.LIST,
           currentText: 'Tạo mới',
         },
@@ -230,7 +230,9 @@ export function PageHeader({ pathname }: { pathname: string }) {
     cleanPath === APP_ROUTES.EVENTS.CREATE ||
     cleanPath.startsWith('/events/') ||
     cleanPath === APP_ROUTES.LOCATIONS.CREATE ||
-    cleanPath.startsWith('/locations/')
+    cleanPath.startsWith('/locations/') ||
+    cleanPath === APP_ROUTES.PERIODS.CREATE ||
+    cleanPath.startsWith('/periods/')
   ) {
     return null;
   }

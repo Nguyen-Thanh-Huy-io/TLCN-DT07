@@ -36,6 +36,7 @@ interface LessonPropertiesPanelProps {
 
   // Media
   thumbnailUrl: string;
+  onThumbnailChange?: (url: string) => void;
   mediaList: LessonMediaItem[];
   onAddMedia: (item: LessonMediaItem) => void;
   onRemoveMedia: (index: number) => void;
@@ -80,6 +81,7 @@ export function LessonPropertiesPanel({
   openSection,
   setOpenSection,
   thumbnailUrl,
+  onThumbnailChange,
   mediaList,
   onAddMedia,
   onRemoveMedia,
@@ -158,6 +160,7 @@ export function LessonPropertiesPanel({
       {sidebarTab === SidebarTab.MEDIA && (
         <LessonMediaTab
           thumbnailUrl={thumbnailUrl}
+          onThumbnailChange={onThumbnailChange}
           mediaList={mediaList}
           onAddMedia={onAddMedia}
           onRemoveMedia={onRemoveMedia}

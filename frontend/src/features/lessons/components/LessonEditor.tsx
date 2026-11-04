@@ -2,14 +2,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ContentStatus, DifficultyLevel, MediaType, LessonFieldKey } from '@/constants/enums';
 
-const EMPTY_PARAGRAPH_HTML = '<p></p>';
 import { useLessonEditorFacade } from '../facades/useLessonEditorFacade';
 import { useLessonBlockManager } from '../facades/useLessonBlockManager';
 import { BlockBuilderCanvas } from './builder/BlockBuilderCanvas';
 import { EditorViewMode, LeftSidebarMode, SidebarTab } from '../types/editor.types';
 import { TopicParentModalPicker } from '@/features/topics/components/TopicParentModalPicker';
-import { LessonTemplateFactory } from '../templates/lesson-template.factory';
-import { LessonTemplateType } from '../templates/lesson-template.types';
 import { CurriculumSidePanel } from '@/features/curriculum/components/CurriculumSidePanel';
 import { CurriculumTreePreviewModal } from '@/features/curriculum/components/CurriculumTreePreviewModal';
 import { LessonBlockType } from '../types/block-palette.types';
@@ -361,56 +358,12 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
                 className="border-b border-slate-200 pb-5"
               />
 
-              {/* Thông số bài học & Chọn mẫu bố cục sư phạm */}
-              <div className="flex items-center justify-between py-1 border-b border-slate-100 flex-wrap gap-2 text-xs text-slate-500">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">NỘI DUNG BÀI HỌC</span>
-                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1">
-                    <span className="text-xs text-slate-600 font-semibold">Mẫu bố cục:</span>
-                    <select
-                      onChange={(e) => {
-                        const tplType = e.target.value as LessonTemplateType;
-                        if (!tplType || tplType === LessonTemplateType.BLANK) return;
-
-                        if (
-                          contentRichText &&
-                          contentRichText.trim() !== EMPTY_PARAGRAPH_HTML &&
-                          contentRichText.trim().length > 20
-                        ) {
-                          const confirmReplace = window.confirm(
-                            'Nội dung soạn thảo hiện tại sẽ được thay thế bằng cấu trúc mẫu mới. Bạn có chắc chắn muốn áp dụng không?'
-                          );
-                          if (!confirmReplace) {
-                            e.target.value = '';
-                            return;
-                          }
-                        }
-
-                        const tplHtml = LessonTemplateFactory.generateContent(tplType, {
-                          lessonTitle: title || 'Bài học Lịch sử',
-                          topicName: currentTopic?.name,
-                        });
-                        blockManager.loadFromContent(tplHtml);
-                        e.target.value = '';
-                      }}
-                      defaultValue=""
-                      className="text-xs font-medium text-slate-700 bg-transparent border-none outline-none cursor-pointer focus:ring-0 pr-1"
-                    >
-                      <option value="" disabled>
-                        -- Chọn mẫu bố cục để nạp --
-                      </option>
-                      {LessonTemplateFactory.getAllTemplateMetas()
-                        .filter((t) => t.type !== LessonTemplateType.BLANK)
-                        .map((tpl) => (
-                          <option key={tpl.type} value={tpl.type}>
-                            {tpl.label} ({tpl.badge})
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                </div>
-
-                <span className="font-medium">
+              {/* Thông số bài học */}
+              <div className="flex items-center justify-between py-2 border-b border-slate-200/80 text-xs text-slate-500">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  NỘI DUNG BÀI HỌC
+                </span>
+                <span className="font-medium text-slate-600">
                   <strong>{wordCount}</strong> từ <span className="text-slate-300 mx-1">•</span> ~{estimatedReadMinutes} phút đọc
                 </span>
               </div>
@@ -463,6 +416,7 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
               openSection={openSection}
               setOpenSection={setOpenSection}
               thumbnailUrl={thumbnailUrl}
+              onThumbnailChange={(url) => handleHeaderMetaChange('thumbnailUrl', url)}
               mediaList={mediaList}
               onAddMedia={addMediaItem}
               onRemoveMedia={removeMediaItem}

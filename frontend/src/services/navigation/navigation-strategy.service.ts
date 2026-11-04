@@ -177,7 +177,7 @@ export class KnowledgeNavStrategy implements INavigationGroupStrategy {
       page: NavigationPageKey.PERIODS,
       route: APP_ROUTES.PERIODS.LIST,
       groupId: this.groupId,
-      subtitle: 'Niên đại, triều đại & các nền văn minh',
+      subtitle: 'Niên đại, thời kỳ & tiến trình lịch sử',
     },
     {
       id: 'nav-locations',

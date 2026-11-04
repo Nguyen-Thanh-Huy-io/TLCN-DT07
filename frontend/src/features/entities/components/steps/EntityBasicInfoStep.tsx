@@ -420,6 +420,24 @@ export function EntityBasicInfoStep({
         </div>
       )}
 
+      {/* 4.6. Hướng dẫn & Lưu ý cho Thực thể tùy chỉnh / Khác (OTHER) */}
+      {type === EntityType.OTHER && (
+        <div className="pt-4 border-t border-slate-200/80 space-y-2 bg-blue-50/40 p-4 rounded-2xl border border-blue-200/60">
+          <div className="flex items-start gap-2.5">
+            <span className="text-base select-none">💡</span>
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-blue-950">
+                Thực thể tùy chỉnh / Khác (Chưa có schema cố định)
+              </h4>
+              <p className="text-[11px] text-blue-800/90 mt-0.5 leading-relaxed">
+                Áp dụng cho các văn kiện (Hiệp định, Tuyên ngôn), phong trào, học thuyết, khái niệm hoặc các đối tượng lịch sử chưa có bảng dữ liệu riêng.
+                Bạn có thể thiết lập niên đại xuất hiện / kết thúc ở đây; soạn thảo bài viết chuyên sâu ở Bước 2; và gắn liên kết với Sự kiện, Nhân vật hoặc Địa danh ở Bước 3.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 5. Thời kỳ & Niên đại (Tìm kiếm Autocomplete + Khối Niên đại rõ ràng) */}
       <div className="pt-5 border-t border-slate-200/80 space-y-4">
         {/* Header mục thời kỳ */}
@@ -430,7 +448,7 @@ export function EntityBasicInfoStep({
               Thời kỳ & Giai đoạn lịch sử
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Tìm kiếm và gắn các thời kỳ / triều đại lịch sử liên quan đến {strategy.targetName}.
+              Tìm kiếm và gắn các thời kỳ lịch sử liên quan đến {strategy.targetName}.
             </p>
           </div>
           {periodIds.length > 0 && (

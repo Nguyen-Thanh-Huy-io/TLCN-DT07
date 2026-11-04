@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { DataTable } from '@/components/table/DataTable';
 import { ContentCell } from '@/components/common/ContentCell';
@@ -31,6 +31,11 @@ const CREATABLE_ENTITY_TYPES: Array<{ type: EntityType; label: string; desc: str
   { type: EntityType.ORGANIZATION, label: 'Tổ chức / Liên minh', desc: 'Đảng phái, hội đồng, liên minh...' },
   { type: EntityType.MILITARY_FORCE, label: 'Lực lượng quân sự', desc: 'Binh đoàn, cánh quân, nghĩa quân...' },
   { type: EntityType.ARTIFACT, label: 'Hiện vật / Bảo vật', desc: 'Bảo vật quốc gia, cổ vật, vũ khí...' },
+  {
+    type: EntityType.OTHER,
+    label: 'Thực thể tùy chỉnh / Khác',
+    desc: 'Hiệp ước, văn kiện, phong trào, học thuyết, khái niệm lịch sử...',
+  },
 ];
 
 export interface EntityListProps {
@@ -49,6 +54,7 @@ export function EntityList({
   const router = useRouter();
   const [entities, setEntities] = useState<HistoricalEntityItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<EntityType | 'ALL'>('ALL');
   const [deletingEntity, setDeletingEntity] =
     useState<HistoricalEntityItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -242,11 +248,56 @@ export function EntityList({
     return APP_ROUTES.ENTITIES.DETAIL(id);
   };
 
+  const displayedEntities = useMemo(() => {
+    if (selectedCategory === 'ALL') return entities;
+    return entities.filter((e) => e.type === selectedCategory);
+  }, [entities, selectedCategory]);
+
   return (
     <>
+      {!isFiguresMode && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2.5 mb-3 border-b border-slate-200/80 text-xs font-semibold">
+          {[
+            { key: 'ALL', label: 'Tất cả thực thể' },
+            { key: EntityType.DYNASTY, label: 'Triều đại & Đế chế' },
+            { key: EntityType.ORGANIZATION, label: 'Tổ chức & Liên minh' },
+            { key: EntityType.MILITARY_FORCE, label: 'Lực lượng quân sự' },
+            { key: EntityType.ARTIFACT, label: 'Hiện vật & Bảo vật' },
+            { key: EntityType.OTHER, label: 'Thực thể tùy chỉnh / Khác' },
+          ].map((tab) => {
+            const count =
+              tab.key === 'ALL'
+                ? entities.length
+                : entities.filter((e) => e.type === tab.key).length;
+            const isActive = selectedCategory === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setSelectedCategory(tab.key as any)}
+                className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                  isActive
+                    ? 'bg-amber-600 text-white shadow-2xs font-bold'
+                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    isActive ? 'bg-amber-700/80 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <DataTable<HistoricalEntityItem>
         columns={columns}
-        data={entities}
+        data={displayedEntities}
         searchPlaceholder={
           isFiguresMode
             ? 'Tìm kiếm nhân vật, danh nhân, tướng lĩnh, anh hùng lịch sử...'

@@ -472,6 +472,97 @@ export class DefaultEntityStrategy implements EntityTypeStrategy {
 }
 
 /**
+ * Strategy dành cho Thực thể tùy chỉnh / Khác (OTHER)
+ * Áp dụng khi đối tượng lịch sử chưa có schema chuyên biệt (Hiệp ước, Văn kiện, Phong trào, Học thuyết, Khái niệm...)
+ */
+export class CustomOtherEntityStrategy implements EntityTypeStrategy {
+  readonly type = EntityType.OTHER;
+  readonly label = 'Thực thể tùy chỉnh / Khác';
+  readonly targetName = 'thực thể tùy chỉnh';
+
+  getSectionConfig(stepIndex: number) {
+    switch (stepIndex) {
+      case 1:
+        return {
+          title: 'Thông tin thực thể tùy chỉnh',
+          subtitle: 'Tên văn kiện / phong trào / khái niệm, nhãn nhận diện và thời gian xuất hiện.',
+        };
+      case 2:
+        return {
+          title: 'Nội dung & Lịch sử chi tiết',
+          subtitle: 'Soạn thảo bối cảnh, các điều khoản / nội dung cốt lõi và ý nghĩa lịch sử.',
+        };
+      case 3:
+        return {
+          title: 'Mạng lưới liên kết tri thức',
+          subtitle: 'Liên kết thực thể này với sự kiện, nhân vật, triều đại hoặc địa danh liên quan.',
+        };
+      case 4:
+        return {
+          title: 'Kiểm tra & Xuất bản',
+          subtitle: 'Kiểm tra mức độ đầy đủ dữ liệu và đưa thực thể lên đồ thị tri thức.',
+        };
+      default:
+        return { title: '', subtitle: '' };
+    }
+  }
+
+  readonly fields = {
+    nameLabel: 'Tên thực thể / Văn kiện / Phong trào',
+    namePlaceholder: 'Ví dụ: Hiệp định Genève 1954, Phong trào Cần Vương, Tuyên ngôn Độc lập...',
+    taglineLabel: 'Mô tả nhận diện ngắn (1 dòng)',
+    taglinePlaceholder: 'Ví dụ: Văn kiện ngoại giao mang tính bước ngoặt, Phong trào yêu nước chống Pháp...',
+    taglineHint: 'Mô tả ngắn gọn đặc trưng bản chất của thực thể',
+    aliasLabel: 'Tên gọi khác / Viết tắt',
+    aliasPlaceholder: 'Nhập tên gọi khác và nhấn Thêm',
+    avatarTitle: 'Ảnh tư liệu / Bản chụp văn bản',
+    avatarCaptionPlaceholder: 'Ví dụ: Bản chụp chữ ký hiệp định, Tranh vẽ phong trào...',
+    chronologyHeader: 'Niên đại / Thời gian diễn ra hoặc có hiệu lực',
+    chronologyHint: 'Thời gian bắt đầu/ký kết và thời gian kết thúc/hết hiệu lực (nếu có)',
+    startYearLabel: 'Năm bắt đầu / Ký kết',
+    endYearLabel: 'Năm kết thúc / Hết hiệu lực',
+    startDateLabel: 'Thời điểm cụ thể (dạng chữ)',
+    endDateLabel: 'Thời điểm kết thúc (dạng chữ)',
+    startYearPlaceholder: '1954',
+    endYearPlaceholder: '',
+    startDatePlaceholder: 'Ngày 21 tháng 7 năm 1954...',
+    endDatePlaceholder: 'Để trống nếu có giá trị vĩnh viễn hoặc chưa kết thúc...',
+  };
+
+  readonly relationsConfig = {
+    sectionTitle: 'Mạng lưới liên kết tri thức (Sự kiện, Nhân vật, Địa danh, Triều đại)',
+    allowedTabs: [
+      KnowledgeRelationType.ALL,
+      KnowledgeRelationType.EVENT,
+      KnowledgeRelationType.PERSON,
+      KnowledgeRelationType.LOCATION,
+      KnowledgeRelationType.FORCE,
+      KnowledgeRelationType.ARTIFACT,
+    ],
+    targetEntityName: 'thực thể',
+  };
+
+  readonly contentSkeletons: ContentSkeleton[] = [
+    {
+      label: '+ Chèn sườn bài Văn kiện / Hiệp định',
+      html: [
+        '<h2>1. Bối cảnh lịch sử & Hoàn cảnh ra đời</h2><p></p>',
+        '<h2>2. Nội dung cốt lõi & Các điều khoản chính</h2><p></p>',
+        '<h2>3. Ý nghĩa lịch sử & Tác động thời đại</h2><p></p>',
+      ].join(''),
+    },
+    {
+      label: '+ Chèn sườn bài Phong trào / Xu hướng',
+      html: [
+        '<h2>1. Nguyên nhân & Bối cảnh bùng nổ</h2><p></p>',
+        '<h2>2. Diễn biến qua các giai đoạn chính</h2><p></p>',
+        '<h2>3. Kết quả, Nguyên nhân thắng lợi/thất bại & Bài học kinh nghiệm</h2><p></p>',
+      ].join(''),
+    },
+  ];
+}
+
+/**
  * Registry quản lý các Entity Strategy (Pattern: Registry + Strategy + Factory)
  * Tuân thủ Open/Closed Principle (OCP):
  * Khi có loại thực thể mới, chỉ cần tạo Strategy class và đăng ký vào Registry.
@@ -486,6 +577,7 @@ export class EntityStrategyRegistry {
     this.register(new LocationEntityStrategy());
     this.register(new DynastyEntityStrategy());
     this.register(new ArtifactEntityStrategy());
+    this.register(new CustomOtherEntityStrategy());
     this.register(
       new DefaultEntityStrategy(
         EntityType.ORGANIZATION,

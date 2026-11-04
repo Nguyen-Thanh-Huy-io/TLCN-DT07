@@ -44,6 +44,9 @@ export interface EntityDetailLayoutProps {
   sections: FormSectionConfig[];
   banner?: React.ReactNode;
   navigationLayout?: 'SIDEBAR' | 'HORIZONTAL_STEPPER';
+  activeSectionIndex?: number;
+  onActiveSectionIndexChange?: (index: number) => void;
+  hideHeaderPublish?: boolean;
 }
 
 export function EntityDetailLayout({
@@ -61,8 +64,21 @@ export function EntityDetailLayout({
   sections,
   banner,
   navigationLayout = 'SIDEBAR',
+  activeSectionIndex,
+  onActiveSectionIndexChange,
+  hideHeaderPublish = false,
 }: EntityDetailLayoutProps) {
-  const [activeIndex, setActiveIndex] = useState<number>(0);
+  const [internalActiveIndex, setInternalActiveIndex] = useState<number>(0);
+  const isControlled = activeSectionIndex !== undefined;
+  const activeIndex = isControlled ? activeSectionIndex : internalActiveIndex;
+
+  const setActiveIndex = (idxOrFn: number | ((prev: number) => number)) => {
+    const next = typeof idxOrFn === 'function' ? idxOrFn(activeIndex) : idxOrFn;
+    if (!isControlled) {
+      setInternalActiveIndex(next);
+    }
+    onActiveSectionIndexChange?.(next);
+  };
 
   const totalSections = sections.length;
   const currentSection = sections[activeIndex] || sections[0];
@@ -164,17 +180,19 @@ export function EntityDetailLayout({
                 </span>
               </button>
 
-              <button
-                type="button"
-                onClick={onPublish}
-                disabled={Boolean(savingAction)}
-                className="text-sm px-4 py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
-              >
-                <Icon name={IconName.CHECK} size={15} />
-                <span>
-                  {savingAction === ContentAction.PUBLISH ? 'Đang xuất bản...' : 'Xuất bản'}
-                </span>
-              </button>
+              {!hideHeaderPublish && (
+                <button
+                  type="button"
+                  onClick={onPublish}
+                  disabled={Boolean(savingAction)}
+                  className="text-sm px-4 py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
+                >
+                  <Icon name={IconName.CHECK} size={15} />
+                  <span>
+                    {savingAction === ContentAction.PUBLISH ? 'Đang xuất bản...' : 'Xuất bản'}
+                  </span>
+                </button>
+              )}
 
               <button
                 type="button"

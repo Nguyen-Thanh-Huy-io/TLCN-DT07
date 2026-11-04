@@ -1,12 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import { TopicCoverImagePicker } from '@/features/topics/components/TopicCoverImagePicker';
 import { TaxonomySelect } from '@/features/taxonomy/TaxonomySelect';
 import { TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
 import { EntityType, KeyboardKey } from '@/constants/enums';
 import { PeriodItem } from '@/types/models/period.type';
-import { ENTITY_TYPE_LABELS, type TimeLabels } from '../entity-editor.constants';
+import { ENTITY_TYPE_LABELS } from '../entity-editor.constants';
 import { FigureProfileFields, type FigureProfileForm } from '../FigureProfileFields';
+import { EntityStrategyRegistry } from '../../strategies/entity-type.strategy';
 
 export interface EntityBasicInfoStepProps {
   name: string;
@@ -15,7 +17,6 @@ export interface EntityBasicInfoStepProps {
   onTypeChange: (v: EntityType) => void;
   /** true khi vào form từ 1 lối tạo đã biết trước loại (vd. "Tạo Địa danh") — khoá ô chọn, hiện huy hiệu tĩnh thay vì hỏi lại. */
   isTypeLocked?: boolean;
-  timeLabels: TimeLabels;
 
   tagline: string;
   onTaglineChange: (v: string) => void;
@@ -66,23 +67,21 @@ export interface EntityBasicInfoStepProps {
   onDeathDateLabelChange: (v: string) => void;
   yearValidationError: string | null;
 
-  // Cài đặt hiển thị & nổi bật (chuyển từ Mục 4 lên)
-  isFeatured: boolean;
-  onIsFeaturedChange: (v: boolean) => void;
-  displayOrder: number;
-  onDisplayOrderChange: (v: number) => void;
   figureProfile?: FigureProfileForm;
   onFigureProfileChange?: (v: FigureProfileForm) => void;
 }
 
-/** Bước 1 — Thông tin chung: tên, phân loại, danh xưng, bí danh, ảnh, (Di tích), thời kỳ & niên đại. */
+/**
+ * Bước 1 — Thông tin chung:
+ * Tên, phân loại, mô tả nhận diện, tên gọi khác, ảnh tư liệu, tọa độ di tích (nếu là Location),
+ * chọn các thời kỳ liên quan và niên đại (rút gọn còn 2 ô số + nút mở rộng chữ).
+ */
 export function EntityBasicInfoStep({
   name,
   onNameChange,
   type,
   onTypeChange,
   isTypeLocked,
-  timeLabels,
   tagline,
   onTaglineChange,
   aliases,
@@ -125,26 +124,29 @@ export function EntityBasicInfoStep({
   deathDateLabel,
   onDeathDateLabelChange,
   yearValidationError,
-  isFeatured,
-  onIsFeaturedChange,
-  displayOrder,
-  onDisplayOrderChange,
   figureProfile,
   onFigureProfileChange,
 }: EntityBasicInfoStepProps) {
+  const strategy = EntityStrategyRegistry.get(type);
+
+  // Mở rộng/thu gọn tùy chỉnh niên đại văn bản (chữ)
+  const [isCustomDateTextOpen, setIsCustomDateTextOpen] = useState(
+    () => Boolean(birthDateLabel.trim()) || Boolean(deathDateLabel.trim()),
+  );
+
   return (
     <div className="space-y-5">
       {/* 1. Tên và Phân loại */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
         <div className="md:col-span-8">
           <label className="block mb-1 text-xs font-semibold text-slate-700">
-            Tên thực thể lịch sử <span className="text-rose-500">*</span>
+            {strategy.fields.nameLabel} <span className="text-rose-500">*</span>
           </label>
           <input
             type="text"
             value={name}
             onChange={(e) => onNameChange(e.target.value)}
-            placeholder="Ví dụ: Trần Hưng Đạo, Nhà Hậu Lê, Trống đồng Đông Sơn..."
+            placeholder={strategy.fields.namePlaceholder}
             className="w-full text-xs font-medium px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 transition"
           />
         </div>
@@ -155,7 +157,7 @@ export function EntityBasicInfoStep({
           </label>
           {isTypeLocked ? (
             <div className="w-full flex items-center text-xs font-semibold px-3.5 py-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl">
-              {ENTITY_TYPE_LABELS[type]}
+              {strategy.label}
             </div>
           ) : (
             <select
@@ -177,25 +179,25 @@ export function EntityBasicInfoStep({
       <div>
         <div className="flex items-center justify-between mb-1">
           <label className="text-xs font-semibold text-slate-700">
-            Danh xưng / Mô tả nhận diện ngắn (1 dòng)
+            {strategy.fields.taglineLabel}
           </label>
           <span className="text-[11px] text-slate-400">
-            Hiển thị dưới tên ở danh sách, thẻ preview hoặc tooltip
+            {strategy.fields.taglineHint}
           </span>
         </div>
         <input
           type="text"
           value={tagline}
           onChange={(e) => onTaglineChange(e.target.value)}
-          placeholder={timeLabels.taglinePlaceholder}
+          placeholder={strategy.fields.taglinePlaceholder}
           className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 transition"
         />
       </div>
 
-      {/* 3. Bí danh / Tên khác (Bỏ khung viền con bao quanh) */}
+      {/* 3. Tên gọi khác / Tên cổ / Bí danh */}
       <div>
         <label className="block text-xs font-semibold text-slate-700 mb-1">
-          Bí danh / Tên khác / Tước hiệu / Tên húy
+          {strategy.fields.aliasLabel}
         </label>
         <div className="flex gap-2">
           <input
@@ -208,7 +210,7 @@ export function EntityBasicInfoStep({
                 onAddAlias();
               }
             }}
-            placeholder="Nhập tên khác (VD: Trần Quốc Tuấn, Hưng Đạo Đại Vương...) rồi nhấn Thêm"
+            placeholder={strategy.fields.aliasPlaceholder}
             className="flex-1 text-xs px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 transition"
           />
           <button
@@ -241,13 +243,13 @@ export function EntityBasicInfoStep({
         )}
       </div>
 
-      {/* 4. Ảnh đại diện & Chú thích ảnh (Nằm ngay cạnh hoặc dưới ảnh, không khung bao) */}
+      {/* 4. Ảnh đại diện & Chú thích ảnh tư liệu */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start pt-1">
         <div className="md:col-span-5">
           <TopicCoverImagePicker
             value={imageUrl}
             onChange={onImageUrlChange}
-            title="Ảnh đại diện / Chân dung / Hiện vật"
+            title={strategy.fields.avatarTitle}
             compact
           />
         </div>
@@ -259,11 +261,11 @@ export function EntityBasicInfoStep({
             rows={3}
             value={imageCaption}
             onChange={(e) => onImageCaptionChange(e.target.value)}
-            placeholder="Ví dụ: Tượng đồng Hưng Đạo Đại Vương tại đền Kiếp Bạc, Hải Dương..."
+            placeholder={strategy.fields.avatarCaptionPlaceholder}
             className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 transition"
           />
           <p className="text-[11px] text-slate-400">
-            Hiển thị nguồn gốc hoặc thông tin hiện vật khi xem ảnh phóng to.
+            Hiển thị nguồn gốc hoặc chi tiết hiện vật khi phóng to ảnh.
           </p>
         </div>
       </div>
@@ -286,9 +288,6 @@ export function EntityBasicInfoStep({
                 Tọa độ bản đồ, địa chỉ hành chính và cấp bảo tồn di tích văn hóa.
               </p>
             </div>
-            <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-200">
-              Historical Site
-            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
@@ -313,7 +312,7 @@ export function EntityBasicInfoStep({
                 group={siteTaxonomies.SITE_TYPE}
                 value={siteType}
                 onChange={onSiteTypeChange}
-                emptyLabel={null}
+                emptyLabel="-- Chọn loại hình di tích --"
               />
             </div>
 
@@ -401,17 +400,17 @@ export function EntityBasicInfoStep({
         </div>
       )}
 
-      {/* 5. Thời kỳ & Niên đại hoạt động (Hỗ trợ nhiều thời kỳ & Niên đại đa dạng) */}
-      <div className="pt-5 border-t border-slate-200/80 space-y-5">
-        {/* Header mục 5 */}
+      {/* 5. Thời kỳ & Niên đại (Gom gọn gàng) */}
+      <div className="pt-5 border-t border-slate-200/80 space-y-4">
+        {/* Header mục thời kỳ */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 pb-1">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
-              Thời kỳ & Niên đại hoạt động
+              Thời kỳ & Giai đoạn lịch sử
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Một thực thể có thể hoạt động hoặc gắn liền với nhiều giai đoạn lịch sử khác nhau.
+              Chọn các thời kỳ / giai đoạn lịch sử mà {strategy.targetName} gắn liền.
             </p>
           </div>
           {periodIds.length > 0 && (
@@ -421,19 +420,9 @@ export function EntityBasicInfoStep({
           )}
         </div>
 
-        {/* Chọn nhiều thời kỳ / giai đoạn lịch sử */}
+        {/* Danh sách chip thời kỳ */}
         <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/70 space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-slate-800">
-              Các thời kỳ / giai đoạn lịch sử liên quan
-            </label>
-            <span className="text-[11px] text-slate-400">
-              (Nhấp vào chip để chọn / bỏ chọn nhiều thời kỳ)
-            </span>
-          </div>
-
-          {/* Danh sách các chip thời kỳ */}
-          <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
+          <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto pr-1">
             {periods.map((p) => {
               const isSelected = periodIds.includes(p.id);
               const isPrimary = periodId === p.id;
@@ -451,17 +440,15 @@ export function EntityBasicInfoStep({
                     } else {
                       const next = [...periodIds, p.id];
                       onPeriodIdsChange(next);
-                      if (!periodId) {
-                        onPeriodIdChange(p.id);
-                      }
+                      if (!periodId) onPeriodIdChange(p.id);
                     }
                   }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
-                    isSelected
-                      ? isPrimary
-                        ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                        : 'bg-amber-50 text-amber-900 border-amber-300 font-semibold'
-                      : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition inline-flex items-center gap-1.5 cursor-pointer ${
+                    isPrimary
+                      ? 'bg-amber-600 text-white border-amber-600 font-bold shadow-2xs'
+                      : isSelected
+                      ? 'bg-amber-100/90 text-amber-900 border-amber-300 font-semibold'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300 hover:bg-amber-50/50'
                   }`}
                 >
                   <span>{p.name}</span>
@@ -515,83 +502,93 @@ export function EntityBasicInfoStep({
           )}
         </div>
 
-        {/* Khối niên đại chi tiết (Timeline & Nhãn văn bản) */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-4">
+        {/* Khối Niên đại: 2 ô chính (Số năm) + toggle mở rộng chữ */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-              Niên đại & Thời điểm hoạt động
+              {strategy.fields.chronologyHeader}
             </span>
             <span className="text-[11px] text-slate-400">
-              Hỗ trợ số âm cho năm Trước Công Nguyên (TCN)
+              {strategy.fields.chronologyHint}
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Cột bắt đầu / Sinh */}
-            <div className="p-3.5 bg-slate-50/60 border border-slate-200/60 rounded-xl space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {timeLabels.startYear} <span className="font-normal text-slate-400">(Số năm)</span>
-                </label>
-                <input
-                  type="number"
-                  value={birthYear}
-                  onChange={(e) =>
-                    onBirthYearChange(e.target.value ? Number(e.target.value) : '')
-                  }
-                  placeholder={`Ví dụ: ${timeLabels.startPlaceholder}`}
-                  className="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 transition"
-                />
-                <span className="text-[11px] text-slate-400 mt-1 block">
-                  Dùng định vị trên trục Timeline & bộ lọc
-                </span>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {timeLabels.startDateLabel} <span className="font-normal text-slate-400">(Văn bản hiển thị)</span>
-                </label>
-                <input
-                  type="text"
-                  value={birthDateLabel}
-                  onChange={(e) => onBirthDateLabelChange(e.target.value)}
-                  placeholder={`Ví dụ: ${timeLabels.startDatePlaceholder}`}
-                  className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 transition"
-                />
-              </div>
+            <div className="p-3 bg-slate-50/60 border border-slate-200/60 rounded-xl space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700">
+                {strategy.fields.startYearLabel} <span className="font-normal text-slate-400">(Số năm)</span>
+              </label>
+              <input
+                type="number"
+                value={birthYear}
+                onChange={(e) =>
+                  onBirthYearChange(e.target.value ? Number(e.target.value) : '')
+                }
+                placeholder={`Ví dụ: ${strategy.fields.startYearPlaceholder}`}
+                className="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 transition"
+              />
+              <span className="text-[10px] text-slate-400 block">
+                Dùng định vị trên trục Timeline & bộ lọc
+              </span>
             </div>
 
-            {/* Cột kết thúc / Mất */}
-            <div className="p-3.5 bg-slate-50/60 border border-slate-200/60 rounded-xl space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {timeLabels.endYear} <span className="font-normal text-slate-400">(Số năm)</span>
-                </label>
-                <input
-                  type="number"
-                  value={deathYear}
-                  onChange={(e) =>
-                    onDeathYearChange(e.target.value ? Number(e.target.value) : '')
-                  }
-                  placeholder={`Ví dụ: ${timeLabels.endPlaceholder}`}
-                  className="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 transition"
-                />
-                <span className="text-[11px] text-slate-400 mt-1 block">
-                  Để trống nếu chưa rõ hoặc vẫn còn hoạt động
-                </span>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {timeLabels.endDateLabel} <span className="font-normal text-slate-400">(Văn bản hiển thị)</span>
-                </label>
-                <input
-                  type="text"
-                  value={deathDateLabel}
-                  onChange={(e) => onDeathDateLabelChange(e.target.value)}
-                  placeholder={`Ví dụ: ${timeLabels.endDatePlaceholder}`}
-                  className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 transition"
-                />
-              </div>
+            <div className="p-3 bg-slate-50/60 border border-slate-200/60 rounded-xl space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700">
+                {strategy.fields.endYearLabel} <span className="font-normal text-slate-400">(Số năm)</span>
+              </label>
+              <input
+                type="number"
+                value={deathYear}
+                onChange={(e) =>
+                  onDeathYearChange(e.target.value ? Number(e.target.value) : '')
+                }
+                placeholder={`Ví dụ: ${strategy.fields.endYearPlaceholder || 'Để trống nếu còn tồn tại'}`}
+                className="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 transition"
+              />
+              <span className="text-[10px] text-slate-400 block">
+                Để trống nếu chưa rõ hoặc vẫn còn hoạt động/tồn tại
+              </span>
             </div>
+          </div>
+
+          {/* Toggle mở rộng: Tùy chỉnh chữ hiển thị (nếu có niên đại dạng chữ) */}
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setIsCustomDateTextOpen((prev) => !prev)}
+              className="text-xs font-semibold text-amber-700 hover:text-amber-800 flex items-center gap-1.5 transition select-none cursor-pointer py-1"
+            >
+              <span>{isCustomDateTextOpen ? '▾ Thu gọn niên đại văn bản' : '▸ Tùy chỉnh văn bản hiển thị niên đại (dạng chữ)'}</span>
+            </button>
+
+            {isCustomDateTextOpen && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2.5 pt-3 border-t border-slate-100">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    {strategy.fields.startDateLabel}
+                  </label>
+                  <input
+                    type="text"
+                    value={birthDateLabel}
+                    onChange={(e) => onBirthDateLabelChange(e.target.value)}
+                    placeholder={`Ví dụ: ${strategy.fields.startDatePlaceholder}`}
+                    className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    {strategy.fields.endDateLabel}
+                  </label>
+                  <input
+                    type="text"
+                    value={deathDateLabel}
+                    onChange={(e) => onDeathDateLabelChange(e.target.value)}
+                    placeholder={`Ví dụ: ${strategy.fields.endDatePlaceholder}`}
+                    className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 transition"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -603,45 +600,6 @@ export function EntityBasicInfoStep({
             <span>{yearValidationError}</span>
           </div>
         )}
-      </div>
-
-      {/* 6. Cài đặt hiển thị & nổi bật trên Landing Page (Chuyển từ Mục 4 lên) */}
-      <div className="pt-5 border-t border-slate-200/80">
-        <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/70">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-                Cài đặt hiển thị & Độ ưu tiên
-              </span>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                Chọn cờ nổi bật để xuất hiện ở các vị trí danh dự trên trang chủ Hisgo.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-6 pt-1">
-            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={isFeatured}
-                onChange={(e) => onIsFeaturedChange(e.target.checked)}
-                className="rounded text-amber-500 focus:ring-amber-500 w-4 h-4 cursor-pointer"
-              />
-              <span>★ Đánh dấu nổi bật (Hiển thị tại Landing Page)</span>
-            </label>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600 font-medium">Thứ tự ưu tiên:</span>
-              <input
-                type="number"
-                value={displayOrder}
-                onChange={(e) => onDisplayOrderChange(Number(e.target.value) || 0)}
-                className="w-20 text-xs font-semibold px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-center focus:outline-none focus:border-amber-500"
-              />
-              <span className="text-[11px] text-slate-400">(Số nhỏ hơn hiển thị trước)</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

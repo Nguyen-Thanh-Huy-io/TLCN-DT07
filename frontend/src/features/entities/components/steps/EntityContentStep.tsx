@@ -1,22 +1,9 @@
 'use client';
 
 import { EntityType } from '@/constants/enums';
-import { ContentBlockEditor, type ContentSkeleton } from '../ContentBlockEditor';
+import { ContentBlockEditor } from '../ContentBlockEditor';
 import { type FigureProfileForm } from '../FigureProfileFields';
-import { ENTITY_TYPE_LABELS } from '../entity-editor.constants';
-
-/** Sườn bài gợi ý cho Tiểu sử nhân vật — xoá tiêu đề nào không có tư liệu, viết vào tiêu đề nào có. */
-export const PERSON_CONTENT_SKELETONS: ContentSkeleton[] = [
-  {
-    label: '+ Chèn sườn bài Nhân vật',
-    html: [
-      '<h2>Xuất thân & thiếu thời</h2><p></p>',
-      '<h2>Sự nghiệp & các mốc son</h2><p></p>',
-      '<h2>Giai thoại lịch sử</h2><p></p>',
-      '<h2>Di sản & tôn vinh</h2><p></p>',
-    ].join(''),
-  },
-];
+import { EntityStrategyRegistry } from '../../strategies/entity-type.strategy';
 
 export interface EntityContentStepProps {
   type: EntityType;
@@ -33,7 +20,7 @@ export interface EntityContentStepProps {
   onPublish?: () => void;
 }
 
-/** Bước 2 — Nội dung & Tiểu sử: Tập trung 100% vào Studio Page Builder 3 cột. */
+/** Bước 2 — Nội dung chi tiết: Sử dụng Strategy Pattern để chèn đúng sườn bài và danh mục thực thể. */
 export function EntityContentStep({
   type,
   name,
@@ -44,6 +31,7 @@ export function EntityContentStep({
   onContentBlocksChange,
   onPublish,
 }: EntityContentStepProps) {
+  const strategy = EntityStrategyRegistry.get(type);
   const yearsText =
     birthYear || deathYear ? `${birthYear || '?'} – ${deathYear || '?'}` : '';
   const subtitle = tagline
@@ -56,10 +44,10 @@ export function EntityContentStep({
     <ContentBlockEditor
       value={contentBlocks}
       onChange={onContentBlocksChange}
-      skeletons={type === EntityType.PERSON ? PERSON_CONTENT_SKELETONS : undefined}
+      skeletons={strategy.contentSkeletons}
       documentTitle={name?.trim() || 'Chưa đặt tên'}
       documentSubtitle={subtitle}
-      entityCategory={ENTITY_TYPE_LABELS[type] || 'THỰC THỂ LỊCH SỬ'}
+      entityCategory={strategy.label.toUpperCase()}
       onPublish={onPublish}
     />
   );

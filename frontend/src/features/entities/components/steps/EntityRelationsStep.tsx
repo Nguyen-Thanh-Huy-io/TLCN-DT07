@@ -10,7 +10,11 @@ import {
 } from '@/components/common/KnowledgeRelationManager';
 import type { RelationDraft } from '../entity-editor.constants';
 
+import { EntityType } from '@/constants/enums';
+import { EntityStrategyRegistry } from '../../strategies/entity-type.strategy';
+
 export interface EntityRelationsStepProps {
+  type?: EntityType;
   availableKnowledgeItems: KnowledgeRelationItem[];
   linkedKnowledgeItems: KnowledgeRelationItem[];
   onAddKnowledgeItems: (items: KnowledgeRelationItem[]) => void;
@@ -27,6 +31,7 @@ export interface EntityRelationsStepProps {
 
 /** Bước 3 — Quan hệ & Bối cảnh: thêm liên kết qua khung Tri thức, tinh chỉnh loại quan hệ/niên đại/ghi chú bên dưới. */
 export function EntityRelationsStep({
+  type = EntityType.OTHER,
   availableKnowledgeItems,
   linkedKnowledgeItems,
   onAddKnowledgeItems,
@@ -38,6 +43,8 @@ export function EntityRelationsStep({
   onRemoveRelation,
   incomingRelations,
 }: EntityRelationsStepProps) {
+  const strategy = EntityStrategyRegistry.get(type);
+
   return (
     <div className="space-y-6">
       {/* Cụm 1: Khối Quản lý Quan hệ Tri thức chuẩn (KnowledgeRelationManager) */}
@@ -45,7 +52,7 @@ export function EntityRelationsStep({
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
-            Liên kết Thực thể & Bối cảnh (Nhân vật, Địa điểm, Sự kiện — Thời kỳ chọn ở Mục 1)
+            {strategy.relationsConfig.sectionTitle}
           </span>
           <span className="text-[11px] text-slate-400">
             Đồ thị tri thức & Mạng lưới quan hệ ({linkedKnowledgeItems.length})
@@ -57,6 +64,8 @@ export function EntityRelationsStep({
           linkedItems={linkedKnowledgeItems}
           onAddItems={onAddKnowledgeItems}
           onRemoveItem={onRemoveKnowledgeItem}
+          allowedTabs={strategy.relationsConfig.allowedTabs}
+          targetEntityName={strategy.targetName}
         />
       </div>
 

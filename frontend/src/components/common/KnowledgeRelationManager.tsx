@@ -33,6 +33,10 @@ export interface KnowledgeRelationManagerProps {
   // Callbacks cập nhật
   onAddItems: (items: KnowledgeRelationItem[]) => void;
   onRemoveItem: (id: string) => void;
+  // Các tab được phép hiển thị (nếu không truyền sẽ hiện tất cả)
+  allowedTabs?: KnowledgeRelationType[];
+  // Tên thực thể mục tiêu đang liên kết (ví dụ: 'địa danh', 'nhân vật', 'sự kiện')
+  targetEntityName?: string;
 }
 
 const TAB_CONFIGS: Array<{ type: KnowledgeRelationType; label: string }> = [
@@ -67,13 +71,26 @@ export function KnowledgeRelationManager({
   linkedItems,
   onAddItems,
   onRemoveItem,
+  allowedTabs,
+  targetEntityName = 'thực thể',
 }: KnowledgeRelationManagerProps) {
-  const [activeTab, setActiveTab] = useState<KnowledgeRelationType>(KnowledgeRelationType.ALL);
+  const tabs = useMemo(() => {
+    if (!allowedTabs || allowedTabs.length === 0) return TAB_CONFIGS;
+    return TAB_CONFIGS.filter((t) => allowedTabs.includes(t.type));
+  }, [allowedTabs]);
+
+  const [activeTab, setActiveTab] = useState<KnowledgeRelationType>(() => {
+    if (allowedTabs && allowedTabs.length > 0) return allowedTabs[0];
+    return KnowledgeRelationType.ALL;
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<KnowledgeRelationItem | null>(null);
 
   // State bên trong Modal
-  const [modalTab, setModalTab] = useState<KnowledgeRelationType>(KnowledgeRelationType.ALL);
+  const [modalTab, setModalTab] = useState<KnowledgeRelationType>(() => {
+    if (allowedTabs && allowedTabs.length > 0) return allowedTabs[0];
+    return KnowledgeRelationType.ALL;
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [modalSelectedIds, setModalSelectedIds] = useState<Set<string>>(new Set());
 
@@ -161,7 +178,7 @@ export function KnowledgeRelationManager({
 
         {/* Thanh Tabs Lọc Loại Thực Thể (Pill Tabs đồng bộ tone của Left Sidebar) */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {TAB_CONFIGS.map((tab) => {
+          {tabs.map((tab) => {
             const isActive = activeTab === tab.type;
             return (
               <button
@@ -199,7 +216,7 @@ export function KnowledgeRelationManager({
               >
                 + Thêm liên kết
               </button>{' '}
-              để gắn vào sự kiện.
+              để gắn vào {targetEntityName}.
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
@@ -335,7 +352,7 @@ export function KnowledgeRelationManager({
                   Chọn loại để lọc nhanh danh mục. Không bắt buộc nhập loại quan hệ.
                 </div>
                 <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-1 scrollbar-none">
-                  {TAB_CONFIGS.map((tab) => {
+                  {tabs.map((tab) => {
                     const isActive = modalTab === tab.type;
                     return (
                       <button

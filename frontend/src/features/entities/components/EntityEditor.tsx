@@ -44,6 +44,7 @@ import {
   KnowledgeRelationType,
 } from '@/components/common/KnowledgeRelationManager';
 import { ENTITY_TYPE_LABELS, getTimeLabels, type RelationDraft } from './entity-editor.constants';
+import { EntityStrategyRegistry } from '../strategies/entity-type.strategy';
 import { EntityBasicInfoStep } from './steps/EntityBasicInfoStep';
 import { EntityContentStep } from './steps/EntityContentStep';
 import { EntityRelationsStep } from './steps/EntityRelationsStep';
@@ -79,6 +80,9 @@ export function EntityEditor({
   const isLocationMode =
     resolvedInitialType === EntityType.LOCATION ||
     returnRoute === APP_ROUTES.LOCATIONS.LIST;
+  const isFigureMode =
+    resolvedInitialType === EntityType.PERSON ||
+    returnRoute === APP_ROUTES.FIGURES.LIST;
   // Vào form từ 1 lối tạo đã biết trước loại (vd. /locations/create hoặc ?type=PERSON) thì khoá hẳn ô "Phân
   // loại thực thể" — không hỏi lại cái người dùng vừa chọn. Chỉ còn hỏi khi vào từ lối tạo
   // chung /entities/create (chưa biết trước là Nhân vật/Triều đại/Tổ chức/...).
@@ -87,6 +91,8 @@ export function EntityEditor({
   // Core Entity State
   const [name, setName] = useState('');
   const [type, setType] = useState<EntityType>(resolvedInitialType);
+  const strategy = useMemo(() => EntityStrategyRegistry.get(type), [type]);
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const timeLabels = useMemo(() => getTimeLabels(type), [type]);
   const [tagline, setTagline] = useState('');
   const [description, setDescription] = useState('');
@@ -102,7 +108,7 @@ export function EntityEditor({
   const [birthDateLabel, setBirthDateLabel] = useState('');
   const [deathDateLabel, setDeathDateLabel] = useState('');
   // Historical Site fields (cho LOCATION)
-  const [siteType, setSiteType] = useState<string>('MONUMENT');
+  const [siteType, setSiteType] = useState<string>('');
   const [address, setAddress] = useState<string>('');
   const [latitude, setLatitude] = useState<number | ''>('');
   const [longitude, setLongitude] = useState<number | ''>('');
@@ -681,13 +687,13 @@ export function EntityEditor({
     }
   };
 
-  // Form Sections Config (4 Tab tinh gọn)
+  // Form Sections Config (4 Tab tinh gọn sử dụng Strategy Pattern)
   const sections: FormSectionConfig[] = [
     {
       id: 'general-info',
       stepNumber: 1,
-      title: 'Thông tin chung',
-      subtitle: 'Tên gọi, phân loại, danh xưng ngắn, hình ảnh, thời kỳ và niên đại hoạt động.',
+      title: strategy.getSectionConfig(1).title,
+      subtitle: strategy.getSectionConfig(1).subtitle,
       icon: IconName.TAG,
       content: (
         <EntityBasicInfoStep
@@ -696,7 +702,6 @@ export function EntityEditor({
           type={type}
           onTypeChange={setType}
           isTypeLocked={isTypeLocked}
-          timeLabels={timeLabels}
           tagline={tagline}
           onTaglineChange={setTagline}
           aliases={aliases}
@@ -739,10 +744,6 @@ export function EntityEditor({
           deathDateLabel={deathDateLabel}
           onDeathDateLabelChange={setDeathDateLabel}
           yearValidationError={yearValidationError}
-          isFeatured={isFeatured}
-          onIsFeaturedChange={setIsFeatured}
-          displayOrder={displayOrder}
-          onDisplayOrderChange={setDisplayOrder}
           figureProfile={figureProfile}
           onFigureProfileChange={setFigureProfile}
         />
@@ -751,8 +752,8 @@ export function EntityEditor({
     {
       id: 'content-detail',
       stepNumber: 2,
-      title: 'Nội dung & Tiểu sử',
-      subtitle: 'Soạn thảo nội dung lịch sử chi tiết bằng khối Văn bản/Hình ảnh/Video/Timeline...',
+      title: strategy.getSectionConfig(2).title,
+      subtitle: strategy.getSectionConfig(2).subtitle,
       icon: IconName.BOOK,
       content: (
         <EntityContentStep
@@ -774,12 +775,13 @@ export function EntityEditor({
     {
       id: 'related-entities',
       stepNumber: 3,
-      title: 'Quan hệ & Bối cảnh',
-      subtitle: 'Thiết lập liên kết đa chiều giữa thực thể này với Sự kiện tham gia, Nhân vật, Địa điểm.',
+      title: strategy.getSectionConfig(3).title,
+      subtitle: strategy.getSectionConfig(3).subtitle,
       icon: IconName.USERS,
       badgeCount: relations.length + incomingRelations.length + linkedEvents.length,
       content: (
         <EntityRelationsStep
+          type={type}
           availableKnowledgeItems={availableKnowledgeItems}
           linkedKnowledgeItems={linkedKnowledgeItems}
           onAddKnowledgeItems={handleAddKnowledgeItems}
@@ -796,8 +798,8 @@ export function EntityEditor({
     {
       id: 'media-and-publish',
       stepNumber: 4,
-      title: 'Kiểm tra & Xuất bản',
-      subtitle: 'Xem lại bảng kiểm tra chất lượng và lựa chọn trạng thái lưu trữ hoặc công bố.',
+      title: strategy.getSectionConfig(4).title,
+      subtitle: strategy.getSectionConfig(4).subtitle,
       icon: IconName.CHECK,
       content: (
         <EntityPublishStep
@@ -809,7 +811,9 @@ export function EntityEditor({
           birthYear={birthYear}
           deathYear={deathYear}
           isFeatured={isFeatured}
+          onIsFeaturedChange={setIsFeatured}
           displayOrder={displayOrder}
+          onDisplayOrderChange={setDisplayOrder}
           timelineNodesCount={
             Array.isArray(contentBlocks)
               ? contentBlocks.reduce((acc: number, b: any) => {
@@ -822,9 +826,7 @@ export function EntityEditor({
           }
           relationsCount={relations.length + linkedEvents.length}
           status={status}
-          savingAction={savingAction}
-          onSaveDraft={() => handleSave(ContentStatus.DRAFT)}
-          onPublish={() => handleSave(ContentStatus.PUBLISHED)}
+          onNavigateToStep={(s) => setActiveSectionIndex(s - 1)}
         />
       ),
     },
@@ -848,6 +850,17 @@ export function EntityEditor({
             : 'Tạo mới địa danh / di tích',
         },
       ]
+    : isFigureMode
+    ? [
+        { label: 'CMS', href: APP_ROUTES.DASHBOARD },
+        { label: 'Từ điển tri thức', href: APP_ROUTES.KNOWLEDGE },
+        { label: 'Nhân vật lịch sử', href: APP_ROUTES.FIGURES.LIST },
+        {
+          label: isEdit
+            ? `Chỉnh sửa: ${name || 'Nhân vật'}`
+            : 'Tạo mới nhân vật lịch sử',
+        },
+      ]
     : [
         { label: 'Bảng điều khiển', href: APP_ROUTES.DASHBOARD },
         { label: 'Thực thể lịch sử', href: APP_ROUTES.ENTITIES.LIST },
@@ -864,6 +877,10 @@ export function EntityEditor({
     ? isEdit
       ? name || 'Chỉnh sửa địa danh / di tích'
       : 'Tạo mới địa danh / di tích lịch sử'
+    : isFigureMode
+    ? isEdit
+      ? name || 'Chỉnh sửa nhân vật'
+      : 'Tạo mới nhân vật lịch sử'
     : isEdit
     ? name || 'Chỉnh sửa thực thể'
     : isTypeLocked
@@ -872,6 +889,8 @@ export function EntityEditor({
 
   const pageSubtitle = isLocationMode
     ? 'Quản lý thông tin địa danh, di tích lịch sử, tọa độ địa lý, hiện trạng bảo tồn và sự kiện liên quan.'
+    : isFigureMode
+    ? 'Quản lý hồ sơ nhân vật, danh nhân, tiểu sử, công trạng và mạng lưới liên hệ tri thức.'
     : 'Quản lý thông tin nhân vật, triều đại, tổ chức, hiện vật và mạng lưới liên hệ tri thức.';
 
   return (
@@ -887,6 +906,8 @@ export function EntityEditor({
       onCancel={() => router.push(targetReturnRoute)}
       sections={sections}
       navigationLayout="HORIZONTAL_STEPPER"
+      activeSectionIndex={activeSectionIndex}
+      onActiveSectionIndexChange={setActiveSectionIndex}
       banner={
         <EditorRevisionBanner
           type="ENTITY"

@@ -36,9 +36,16 @@ export function TaxonomySelect({
   // Dữ liệu cũ nhập chữ tự do chưa khớp giá trị nào — vẫn hiện để biên tập viên thấy và chọn lại.
   const isLegacy = Boolean(value) && group !== undefined && !matched;
 
+  if (!group) {
+    return (
+      <select disabled className={className ?? SELECT_CLASS}>
+        <option value="">Đang tải danh mục...</option>
+      </select>
+    );
+  }
+
   return (
-    <select value={selected} onChange={(e) => onChange(e.target.value)} className={className ?? SELECT_CLASS} disabled={!group}>
-      {!group && <option value={value}>Đang tải danh mục...</option>}
+    <select value={selected} onChange={(e) => onChange(e.target.value)} className={className ?? SELECT_CLASS}>
       {emptyLabel !== null && <option value="">{emptyLabel}</option>}
       {isLegacy && <option value={value}>{value} (chưa quy đổi — hãy chọn lại)</option>}
       {terms.map((t) => (

@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { EntityType, ContentStatus } from '@/constants/enums';
-import { ENTITY_TYPE_LABELS } from '../entity-editor.constants';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
+import { EntityStrategyRegistry } from '../../strategies/entity-type.strategy';
 
 export interface EntityPublishStepProps {
   name: string;
@@ -15,18 +15,19 @@ export interface EntityPublishStepProps {
   birthYear?: number | '';
   deathYear?: number | '';
   isFeatured: boolean;
+  onIsFeaturedChange: (v: boolean) => void;
   displayOrder: number;
+  onDisplayOrderChange: (v: number) => void;
   timelineNodesCount: number;
   relationsCount: number;
   status: ContentStatus;
-  savingAction: 'DRAFT' | 'PUBLISH' | null;
-  onSaveDraft: () => void;
-  onPublish: () => void;
+  onNavigateToStep?: (stepIndex: number) => void;
 }
 
 /**
  * Bước 4 — Kiểm tra & Xuất bản:
- * Bảng tổng kết trạng thái hoàn thiện của thực thể, loại bỏ hoàn toàn ô nhập code JSON và tải file trùng lặp.
+ * Bảng tổng kết trạng thái hoàn thiện của thực thể, cài đặt hiển thị ưu tiên.
+ * Loại bỏ các nút lưu/xuất bản thừa ở giữa trang, giữ thanh điều hướng dưới cùng làm điểm kích hoạt duy nhất.
  */
 export function EntityPublishStep({
   name,
@@ -37,25 +38,26 @@ export function EntityPublishStep({
   birthYear,
   deathYear,
   isFeatured,
+  onIsFeaturedChange,
   displayOrder,
+  onDisplayOrderChange,
   timelineNodesCount,
   relationsCount,
   status,
-  savingAction,
-  onSaveDraft,
-  onPublish,
+  onNavigateToStep,
 }: EntityPublishStepProps) {
+  const strategy = EntityStrategyRegistry.get(type);
   const isNameFilled = Boolean(name.trim());
   const isImageFilled = Boolean(imageUrl.trim());
   const isPeriodFilled = Boolean(periodName);
 
   const checklist = [
-    { label: 'Tên thực thể lịch sử', ok: isNameFilled, required: true },
-    { label: 'Phân loại thực thể', ok: true, required: true },
-    { label: 'Ảnh đại diện / tư liệu chính', ok: isImageFilled, required: false },
-    { label: 'Gắn thời kỳ lịch sử', ok: isPeriodFilled, required: false },
-    { label: 'Dòng thời gian / Diễn biến', ok: timelineNodesCount > 0, required: false },
-    { label: 'Mạng lưới liên kết tri thức', ok: relationsCount > 0, required: false },
+    { label: strategy.fields.nameLabel, ok: isNameFilled, required: true, step: 1 },
+    { label: 'Phân loại thực thể', ok: true, required: true, step: 1 },
+    { label: strategy.fields.avatarTitle, ok: isImageFilled, required: false, step: 1 },
+    { label: 'Thời kỳ / Giai đoạn lịch sử', ok: isPeriodFilled, required: false, step: 1 },
+    { label: 'Nội dung & Diễn biến chi tiết', ok: timelineNodesCount > 0, required: false, step: 2 },
+    { label: strategy.relationsConfig.sectionTitle, ok: relationsCount > 0, required: false, step: 3 },
   ];
 
   return (
@@ -79,7 +81,7 @@ export function EntityPublishStep({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                {ENTITY_TYPE_LABELS[type]}
+                {strategy.label}
               </span>
               {isFeatured && (
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
@@ -88,18 +90,18 @@ export function EntityPublishStep({
                 </span>
               )}
               <span className="text-[11px] text-slate-400 font-mono">
-                Trạng thái hiện tại: {status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
+                Trạng thái: {status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
               </span>
             </div>
 
             <h3 className="text-xl font-bold text-slate-900 mt-2 truncate">
-              {name || <span className="text-slate-400 italic font-normal">Chưa đặt tên thực thể</span>}
+              {name || <span className="text-slate-400 italic font-normal">Chưa đặt tên {strategy.targetName}</span>}
             </h3>
 
             {tagline ? (
               <p className="text-xs text-slate-600 mt-1 line-clamp-2">{tagline}</p>
             ) : (
-              <p className="text-xs text-slate-400 italic mt-1">Chưa có danh xưng hoặc mô tả nhận diện ngắn</p>
+              <p className="text-xs text-slate-400 italic mt-1">Chưa có mô tả nhận diện ngắn</p>
             )}
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-slate-500 pt-2 border-t border-slate-200/60">
@@ -118,11 +120,11 @@ export function EntityPublishStep({
                 </div>
               )}
               <div>
-                <span className="text-slate-400">Mốc timeline:</span>{' '}
-                <strong className="text-slate-700">{timelineNodesCount} mốc</strong>
+                <span className="text-slate-400">Khối nội dung:</span>{' '}
+                <strong className="text-slate-700">{timelineNodesCount} mục</strong>
               </div>
               <div>
-                <span className="text-slate-400">Liên kết tri thức:</span>{' '}
+                <span className="text-slate-400">Mạng lưới liên kết:</span>{' '}
                 <strong className="text-slate-700">{relationsCount} mục</strong>
               </div>
             </div>
@@ -134,14 +136,19 @@ export function EntityPublishStep({
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2 mb-3">
           <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-          Tiêu chuẩn hoàn thiện nội dung
+          Tiêu chuẩn hoàn thiện dữ liệu
         </h4>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {checklist.map((item, i) => (
             <div
               key={i}
+              role={onNavigateToStep ? 'button' : undefined}
+              tabIndex={onNavigateToStep ? 0 : undefined}
+              onClick={() => onNavigateToStep?.(item.step)}
               className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition ${
+                onNavigateToStep ? 'cursor-pointer hover:shadow-2xs' : ''
+              } ${
                 item.ok
                   ? 'bg-emerald-50/50 border-emerald-200 text-emerald-900 font-medium'
                   : item.required
@@ -172,39 +179,50 @@ export function EntityPublishStep({
         </div>
       </div>
 
-      {/* 3. Lựa chọn thao tác xuất bản */}
-      <div className="bg-slate-50/80 border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <h4 className="text-sm font-bold text-slate-900">Sẵn sàng lưu trữ hoặc công bố?</h4>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Bạn có thể lưu dưới dạng bản nháp để tiếp tục chỉnh sửa sau hoặc xuất bản lên Hisgo ngay.
+      {/* 3. Cài đặt hiển thị & Độ ưu tiên (Được chuyển từ Mục 1 sang Mục 4) */}
+      <div className="bg-slate-50/80 border border-slate-200 rounded-2xl p-5 shadow-xs">
+        <div className="mb-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+            Cài đặt hiển thị & Độ ưu tiên
+          </span>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            Cấu hình vị trí ưu tiên và gắn cờ nổi bật trên trang chủ và danh mục HISGO.
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-6 pt-1">
+          <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={isFeatured}
+              onChange={(e) => onIsFeaturedChange(e.target.checked)}
+              className="rounded text-amber-500 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+            />
+            <span>★ Đánh dấu nổi bật (Hiển thị tại Landing Page)</span>
+          </label>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-          <button
-            type="button"
-            onClick={onSaveDraft}
-            disabled={Boolean(savingAction) || !isNameFilled}
-            className="text-xs px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold transition cursor-pointer disabled:opacity-50 shadow-2xs"
-          >
-            {savingAction === 'DRAFT' ? 'Đang lưu...' : 'Lưu làm Bản nháp'}
-          </button>
-
-          <button
-            type="button"
-            onClick={onPublish}
-            disabled={Boolean(savingAction) || !isNameFilled}
-            className="text-xs px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold transition cursor-pointer disabled:opacity-50 shadow-sm flex items-center gap-1.5"
-          >
-            {savingAction === 'PUBLISH' ? (
-              <span className="w-3.5 h-3.5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
-            ) : (
-              <Icon name={IconName.CHECK} size={15} />
-            )}
-            <span>Xuất bản ngay</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-600 font-medium">Thứ tự ưu tiên:</span>
+            <input
+              type="number"
+              value={displayOrder}
+              onChange={(e) => onDisplayOrderChange(Number(e.target.value) || 0)}
+              className="w-20 text-xs font-semibold px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-center focus:outline-none focus:border-amber-500"
+            />
+            <span className="text-[11px] text-slate-400">(Số nhỏ hơn hiển thị trước)</span>
+          </div>
         </div>
+      </div>
+
+      {/* 4. Thông báo điều hướng thân thiện (Loại bỏ 2 nút Lưu/Xuất bản lặp lại ở giữa trang) */}
+      <div className="bg-amber-950 text-amber-50 rounded-2xl p-5 text-xs space-y-2 border border-amber-900/50 shadow-sm">
+        <div className="font-bold text-white flex items-center gap-2">
+          <span>✨</span>
+          <span>Sẵn sàng lưu trữ và công bố</span>
+        </div>
+        <p className="text-amber-200/90 leading-relaxed">
+          Sau khi kiểm tra đầy đủ các mục, bạn có thể bấm <strong>Lưu bản nháp</strong> để tiếp tục cập nhật sau hoặc bấm <strong>✓ Hoàn tất & Xuất bản</strong> ở thanh điều hướng chân trang để đưa {strategy.targetName} lên Timeline và Bản đồ số.
+        </p>
       </div>
     </div>
   );

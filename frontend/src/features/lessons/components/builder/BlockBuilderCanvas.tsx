@@ -1,7 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { LessonBlockItem, RowSectionBlockData } from '../../types/block-builder.types';
+import {
+  LessonBlockItem,
+  RowSectionBlockData,
+  MapBlockData,
+  ComparisonTableBlockData,
+  CalloutBlockData,
+  QuoteBlockData,
+  HeadingBlockData,
+  RelatedPeopleBlockData,
+  RelatedEventsBlockData,
+  StoryChapterBlockData,
+} from '../../types/block-builder.types';
 import { LessonBlockType } from '../../types/block-palette.types';
 import { BlockWidthStrategy } from '../../strategies/block-width.strategy';
 import { AddBlockDivider } from './AddBlockDivider';
@@ -13,7 +24,9 @@ import { EventBlockItemEditor } from './EventBlockItemEditor';
 import { RowSectionBlockEditor } from './RowSectionBlockEditor';
 import { MapBlockItemEditor } from './MapBlockItemEditor';
 import { ComparisonTableBlockItemEditor } from './ComparisonTableBlockItemEditor';
-import { MapBlockData, ComparisonTableBlockData } from '../../types/block-builder.types';
+import { CalloutBlockItemEditor } from './CalloutBlockItemEditor';
+import { QuoteBlockItemEditor } from './QuoteBlockItemEditor';
+import { StoryChapterBlockEditor } from './StoryChapterBlockEditor';
 
 interface BlockBuilderCanvasProps {
   blocks: LessonBlockItem[];
@@ -51,7 +64,6 @@ export function BlockBuilderCanvas({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const handleDividerAddOrDrop = (type: LessonBlockType, atIndex: number) => {
-    // Nếu là thao tác kéo thả sắp xếp khối đã có
     if (draggedIndex !== null) {
       let targetIndex = atIndex;
       if (draggedIndex < targetIndex) {
@@ -62,7 +74,6 @@ export function BlockBuilderCanvas({
       return;
     }
 
-    // Nếu là thêm mới từ Menu hoặc Palette
     onAddBlock(type, atIndex);
   };
 
@@ -74,6 +85,32 @@ export function BlockBuilderCanvas({
             content={block.content}
             onChange={(val) => onUpdateBlock(block.id, { content: val })}
           />
+        );
+
+      case LessonBlockType.HEADING: {
+        const heading = block as HeadingBlockData;
+        const sizeClass =
+          heading.level === 1
+            ? 'text-2xl font-serif font-bold text-stone-900'
+            : heading.level === 3
+            ? 'text-base font-serif font-bold text-stone-800'
+            : 'text-xl font-serif font-bold text-stone-900';
+        return (
+          <input
+            type="text"
+            value={heading.text || ''}
+            onChange={(e) => onUpdateBlock(block.id, { text: e.target.value })}
+            placeholder="Nhập tiêu đề phân mục..."
+            className={`w-full bg-transparent border-0 focus:outline-none ${sizeClass}`}
+          />
+        );
+      }
+
+      case LessonBlockType.DIVIDER:
+        return (
+          <div className="py-2">
+            <hr className="border-t border-stone-200" />
+          </div>
         );
 
       case LessonBlockType.TIMELINE:
@@ -100,22 +137,64 @@ export function BlockBuilderCanvas({
           />
         );
 
-      case LessonBlockType.IMAGE:
+      case LessonBlockType.RELATED_PEOPLE: {
+        const rel = block as RelatedPeopleBlockData;
         return (
           <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <h3 className="text-xl font-serif font-bold text-stone-900">
+                {rel.title || 'Nhân vật liên quan'}
+              </h3>
+              <span className="text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded bg-blue-50 text-blue-800">
+                DỮ LIỆU ĐỘNG
+              </span>
+            </div>
+            <p className="text-sm text-stone-600 max-w-[65ch]">
+              {rel.people?.length
+                ? rel.people.map((p) => p.name).join(', ')
+                : 'Tự động trích xuất danh sách nhân vật lịch sử liên kết từ đồ thị tri thức.'}
+            </p>
+          </div>
+        );
+      }
+
+      case LessonBlockType.RELATED_EVENTS: {
+        const relEv = block as RelatedEventsBlockData;
+        return (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <h3 className="text-xl font-serif font-bold text-stone-900">
+                {relEv.title || 'Sự kiện liên quan'}
+              </h3>
+              <span className="text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded bg-blue-50 text-blue-800">
+                DỮ LIỆU ĐỘNG
+              </span>
+            </div>
+            <p className="text-sm text-stone-600 max-w-[65ch]">
+              {relEv.events?.length
+                ? relEv.events.map((ev) => `${ev.title} (${ev.year || ''})`).join(' · ')
+                : 'Tự động hiển thị các sự kiện lịch sử có liên kết với thực thể này.'}
+            </p>
+          </div>
+        );
+      }
+
+      case LessonBlockType.IMAGE:
+        return (
+          <div className="space-y-3">
             <input
               type="text"
               value={block.src}
               onChange={(e) => onUpdateBlock(block.id, { src: e.target.value })}
               placeholder="Nhập đường dẫn URL hình ảnh tư liệu..."
-              className="w-full text-xs p-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full text-sm px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
             />
             {block.src && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={block.src}
                 alt={block.alt || 'Ảnh bài học'}
-                className="max-h-60 rounded-xl object-contain mx-auto border border-slate-100"
+                className="max-h-60 rounded-lg object-contain mx-auto"
               />
             )}
             <input
@@ -123,23 +202,23 @@ export function BlockBuilderCanvas({
               value={block.caption || ''}
               onChange={(e) => onUpdateBlock(block.id, { caption: e.target.value })}
               placeholder="Nhập chú thích cho hình ảnh (tùy chọn)..."
-              className="w-full text-xs italic text-center text-slate-500 bg-transparent border-b border-slate-200 focus:outline-none py-1"
+              className="w-full text-sm italic text-center text-stone-600 bg-transparent border-b border-stone-200 focus:outline-none py-1.5"
             />
           </div>
         );
 
       case LessonBlockType.VIDEO:
         return (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <input
               type="text"
               value={block.src}
               onChange={(e) => onUpdateBlock(block.id, { src: e.target.value })}
               placeholder="Nhập URL video YouTube / tư liệu..."
-              className="w-full text-xs p-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full text-sm px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
             />
             {block.src && (
-              <div className="aspect-video bg-black rounded-xl overflow-hidden max-w-xl mx-auto">
+              <div className="aspect-video bg-black rounded-lg overflow-hidden max-w-xl mx-auto">
                 <iframe src={block.src} title="Video" className="w-full h-full border-0" allowFullScreen />
               </div>
             )}
@@ -158,6 +237,22 @@ export function BlockBuilderCanvas({
         return (
           <ComparisonTableBlockItemEditor
             data={block as ComparisonTableBlockData}
+            onChange={(updates) => onUpdateBlock(block.id, updates)}
+          />
+        );
+
+      case LessonBlockType.CALLOUT:
+        return (
+          <CalloutBlockItemEditor
+            data={block as CalloutBlockData}
+            onChange={(updates) => onUpdateBlock(block.id, updates)}
+          />
+        );
+
+      case LessonBlockType.QUOTE:
+        return (
+          <QuoteBlockItemEditor
+            data={block as QuoteBlockData}
             onChange={(updates) => onUpdateBlock(block.id, updates)}
           />
         );
@@ -183,12 +278,88 @@ export function BlockBuilderCanvas({
           />
         );
 
+      case LessonBlockType.STORY_CHAPTER:
+        return (
+          <StoryChapterBlockEditor
+            data={block as StoryChapterBlockData}
+            onChange={(updates) => onUpdateBlock(block.id, updates)}
+            renderNestedBlock={(childBlock, onUpdateChild) =>
+              renderGenericChildBlock(childBlock, onUpdateChild)
+            }
+          />
+        );
+
       default:
         return (
-          <div className="p-3 bg-slate-50 rounded-lg text-xs text-slate-500 italic">
+          <div className="p-3 bg-stone-50 rounded-lg text-xs text-stone-500 italic">
             Khối nội dung {block.type}
           </div>
         );
+    }
+  };
+
+  const renderGenericChildBlock = (
+    childBlock: LessonBlockItem,
+    onUpdateChild: (updates: Partial<LessonBlockItem>) => void
+  ) => {
+    switch (childBlock.type) {
+      case LessonBlockType.TEXT:
+        return (
+          <TextBlockEditor
+            content={childBlock.content}
+            onChange={(val) => onUpdateChild({ content: val })}
+          />
+        );
+      case LessonBlockType.CHARACTER:
+        return (
+          <CharacterBlockItemEditor
+            data={childBlock}
+            onChange={onUpdateChild}
+          />
+        );
+      case LessonBlockType.EVENT:
+        return (
+          <EventBlockItemEditor
+            data={childBlock}
+            onChange={onUpdateChild}
+          />
+        );
+      case LessonBlockType.IMAGE:
+        return (
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={childBlock.src}
+              onChange={(e) => onUpdateChild({ src: e.target.value })}
+              placeholder="Đường dẫn hình ảnh tư liệu..."
+              className="w-full text-sm px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
+            />
+            {childBlock.src && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={childBlock.src}
+                alt={childBlock.alt || 'Ảnh tư liệu'}
+                className="max-h-48 rounded-lg object-contain"
+              />
+            )}
+          </div>
+        );
+      case LessonBlockType.CALLOUT:
+        return (
+          <CalloutBlockItemEditor
+            data={childBlock as CalloutBlockData}
+            onChange={onUpdateChild}
+          />
+        );
+      case LessonBlockType.QUOTE:
+        return (
+          <QuoteBlockItemEditor
+            data={childBlock as QuoteBlockData}
+            onChange={onUpdateChild}
+          />
+        );
+      default:
+        return null;
     }
   };
 
@@ -244,7 +415,7 @@ export function BlockBuilderCanvas({
                 onUpdateBlockInColumn?.(rowId, colId, childBlock.id, { src: e.target.value })
               }
               placeholder="URL hình ảnh..."
-              className="w-full text-xs p-1.5 border border-slate-200 rounded-lg"
+              className="w-full text-xs p-1.5 border border-stone-200 rounded-lg"
             />
             {childBlock.src && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -270,16 +441,29 @@ export function BlockBuilderCanvas({
             onChange={(updates) => onUpdateBlockInColumn?.(rowId, colId, childBlock.id, updates)}
           />
         );
+      case LessonBlockType.CALLOUT:
+        return (
+          <CalloutBlockItemEditor
+            data={childBlock as CalloutBlockData}
+            onChange={(updates) => onUpdateBlockInColumn?.(rowId, colId, childBlock.id, updates)}
+          />
+        );
+      case LessonBlockType.QUOTE:
+        return (
+          <QuoteBlockItemEditor
+            data={childBlock as QuoteBlockData}
+            onChange={(updates) => onUpdateBlockInColumn?.(rowId, colId, childBlock.id, updates)}
+          />
+        );
       default:
         return (
-          <div className="text-xs text-slate-500 italic p-2 bg-slate-50 rounded">
+          <div className="text-xs text-stone-500 italic p-2 bg-stone-50 rounded">
             Khối {childBlock.type}
           </div>
         );
     }
   };
 
-  // Tự động phân chia các khối thành các hàng hiển thị (Visual Rows) dựa trên thuộc tính width
   interface VisualRowItem {
     block: LessonBlockItem;
     globalIndex: number;
@@ -309,8 +493,7 @@ export function BlockBuilderCanvas({
   }
 
   return (
-    <div data-testid="block-builder-canvas" className="w-full space-y-1">
-      {/* Vạch chèn trước khối đầu tiên */}
+    <div data-testid="block-builder-canvas" className="w-full space-y-2">
       <AddBlockDivider
         insertIndex={0}
         onAddBlock={(type, atIndex) => handleDividerAddOrDrop(type, atIndex)}
@@ -322,7 +505,7 @@ export function BlockBuilderCanvas({
 
         return (
           <React.Fragment key={`row-${rIdx}`}>
-            <div className="w-full flex flex-wrap gap-3 items-stretch">
+            <div className="w-full flex flex-wrap gap-4 items-stretch">
               {row.map(({ block, globalIndex }) => (
                 <BlockCardWrapper
                   key={block.id}
@@ -346,7 +529,6 @@ export function BlockBuilderCanvas({
               ))}
             </div>
 
-            {/* Vạch chèn giữa các hàng */}
             <AddBlockDivider
               insertIndex={nextInsertIndex}
               onAddBlock={(type, atIndex) => handleDividerAddOrDrop(type, atIndex)}

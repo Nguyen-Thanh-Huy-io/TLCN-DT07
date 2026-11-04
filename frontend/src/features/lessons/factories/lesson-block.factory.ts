@@ -13,16 +13,99 @@ import {
   MapBlockData,
   RowSectionBlockData,
   TimelineOrientation,
+  CalloutBlockData,
+  QuoteBlockData,
+  HeadingBlockData,
+  DividerBlockData,
+  RelatedPeopleBlockData,
+  RelatedEventsBlockData,
+  StoryChapterBlockData,
+  StoryChapterLayout,
 } from '../types/block-builder.types';
 import { RowLayoutStrategy } from '../strategies/row-layout.strategy';
 import { BlockWidthStrategy } from '../strategies/block-width.strategy';
-import { MediaType } from '@/constants/enums';
+import {
+  createBlockUUID,
+  getChapterLabel,
+  StoryChapterLayoutStrategy,
+} from '../strategies/story-chapter-layout.strategy';
 
-let idCounter = 0;
 export const generateBlockId = (prefix: string = 'block'): string => {
-  idCounter += 1;
-  return `${prefix}_${Date.now()}_${idCounter}`;
+  return createBlockUUID(prefix);
 };
+
+function createSampleStoryChapters() {
+  const chap1 = StoryChapterLayoutStrategy.createChapterContainer(
+    0,
+    'MAGAZINE_GRID',
+    {
+      title: 'Trước trận Bạch Đằng',
+      subtitle: 'Bối cảnh lịch sử',
+      columnRatio: '4_8',
+      blocks: [
+        {
+          id: createBlockUUID('text'),
+          type: LessonBlockType.TEXT,
+          zone: 'LEFT',
+          content:
+            '<p>Ngày 9 tháng 4 năm 1288, trên dòng sông Bạch Đằng, quân dân Đại Việt dưới sự chỉ huy của Hưng Đạo Vương Trần Quốc Tuấn đã làm nên một chiến thắng lẫy lừng trong lịch sử dân tộc.</p><p>Chiến thắng Bạch Đằng không chỉ là một trận đánh quân sự vĩ đại, mà còn là biểu tượng của trí tuệ, bản lĩnh và ý chí quật cường của dân tộc Việt Nam qua nhiều thế kỷ.</p>',
+        } as TextBlockData,
+        {
+          id: createBlockUUID('text'),
+          type: LessonBlockType.TEXT,
+          zone: 'RIGHT',
+          content:
+            '<p>Thế kỷ XIII, quân Nguyên – Mông với tham vọng xâm lược Đại Việt lần thứ ba, đã huy động lực lượng hùng hậu, quyết tâm tiêu diệt nhà Trần. Trước tình thế nguy cấp, triều đình nhà Trần đã chủ động chuẩn bị kế sách, trong đó nổi bật là tài năng quân sự của Hưng Đạo Vương Trần Quốc Tuấn.</p>',
+        } as TextBlockData,
+        {
+          id: createBlockUUID('image'),
+          type: LessonBlockType.IMAGE,
+          zone: 'RIGHT',
+          src: '',
+          alt: 'Trước trận Bạch Đằng',
+          caption:
+            'Chiến địa sông Bạch Đằng trong trang sử kháng chiến chống Nguyên – Mông',
+        } as ImageBlockData,
+      ],
+    }
+  );
+
+  const chap2 = StoryChapterLayoutStrategy.createChapterContainer(
+    1,
+    'ASYMMETRIC',
+    {
+      title: 'Trận chiến lịch sử',
+      subtitle: 'Diễn biến chính',
+      columnRatio: '4_8',
+      blocks: [
+        {
+          id: createBlockUUID('quote'),
+          type: LessonBlockType.QUOTE,
+          zone: 'LEFT',
+          quoteText: 'Bạch Đằng giang, ngàn đời vang danh...',
+          author: 'Trần Quốc Tuấn',
+        } as QuoteBlockData,
+        {
+          id: createBlockUUID('text'),
+          type: LessonBlockType.TEXT,
+          zone: 'RIGHT',
+          content:
+            '<p>Ngày 9 tháng 4 năm 1288, quân ta đã lợi dụng thủy triều lên xuống, bố trí trận địa mai phục, tạo nên thế trận hiểm hóc, tiêu diệt hàng vạn quân địch, buộc quân Nguyên phải rút lui trong thảm bại.</p>',
+        } as TextBlockData,
+        {
+          id: createBlockUUID('image'),
+          type: LessonBlockType.IMAGE,
+          zone: 'RIGHT',
+          src: '',
+          alt: 'Trận chiến lịch sử',
+          caption: 'Minh họa đoàn chiến thuyền giao chiến trên sông Bạch Đằng',
+        } as ImageBlockData,
+      ],
+    }
+  );
+
+  return [chap1, chap2];
+}
 
 export class LessonBlockFactory {
   /**
@@ -46,21 +129,44 @@ export class LessonBlockFactory {
           id,
           type: LessonBlockType.TIMELINE,
           width: defaultWidth,
-          title: 'Timeline — Dòng thời gian',
+          title: 'Dòng thời gian lịch sử',
           subtitle: 'Các mốc lịch sử tiêu biểu',
           orientation: TimelineOrientation.VERTICAL,
+          sourceMode: 'HYBRID',
+          maxEvents: 10,
+          filterConfig: {
+            statusPublishedOnly: true,
+          },
+          displayConfig: {
+            sceneStyle: 'MUSEUM_SPLIT',
+            dateFormat: 'YEAR_ONLY',
+            sortOrder: 'CHRONOLOGICAL',
+            showDescription: true,
+            showImage: true,
+            showLocation: false,
+            showRole: true,
+            showDetailButton: true,
+            itemsPerPage: 4,
+          },
           nodes: [
             {
               id: 'node_1',
               year: '1945',
               title: 'Tuyên bố độc lập',
-              description: 'Sự kiện đánh dấu bước ngoặt lịch sử mở ra kỷ nguyên mới.',
+              description: 'Sự kiện đánh dấu bước ngoặt lịch sử mở ra kỷ nguyên mới cho dân tộc Việt Nam.',
+              contentHtml:
+                '<h3>Tuyên bố độc lập</h3><p>Sự kiện đánh dấu bước ngoặt lịch sử mở ra kỷ nguyên mới cho dân tộc Việt Nam.</p>',
+              isManual: false,
             },
             {
               id: 'node_2',
               year: '1954',
               title: 'Chiến thắng Điện Biên Phủ',
               description: 'Mốc son chấn động địa cầu, kết thúc thắng lợi cuộc kháng chiến chống Pháp.',
+              contentHtml:
+                '<h3>Chiến thắng Điện Biên Phủ</h3><p>Mốc son chấn động địa cầu, kết thúc thắng lợi cuộc kháng chiến chống Pháp.</p>',
+              locationName: 'Điện Biên',
+              isManual: false,
             },
           ],
         } as TimelineBlockData;
@@ -199,6 +305,108 @@ export class LessonBlockFactory {
         } as RowSectionBlockData;
       }
 
+      case LessonBlockType.CALLOUT:
+        return {
+          id,
+          type: LessonBlockType.CALLOUT,
+          width: defaultWidth,
+          variant: 'HISTORICAL_NOTE',
+          title: 'Lưu ý từ góc nhìn Sử học',
+          content: 'Các nhà nghiên cứu lịch sử nhấn mạnh rằng mốc thời gian này có ý nghĩa chuyển hướng chiến lược toàn cục cho phong trào kháng chiến.',
+        } as CalloutBlockData;
+
+      case LessonBlockType.QUOTE:
+        return {
+          id,
+          type: LessonBlockType.QUOTE,
+          width: defaultWidth,
+          quoteText: 'Đầu tôi chưa rơi xuống đất, xin bệ hạ đừng lo!',
+          author: 'Thái sư Trần Thủ Độ',
+          sourceContext: 'Kháng chiến chống Nguyên Mông lần thứ nhất (1258)',
+        } as QuoteBlockData;
+
+      case LessonBlockType.HEADING:
+        return {
+          id,
+          type: LessonBlockType.HEADING,
+          width: defaultWidth,
+          level: 2,
+          text: 'Tiêu đề phân mục mới',
+        } as HeadingBlockData;
+
+      case LessonBlockType.DIVIDER:
+        return {
+          id,
+          type: LessonBlockType.DIVIDER,
+          width: defaultWidth,
+        } as DividerBlockData;
+
+      case LessonBlockType.RELATED_PEOPLE:
+        return {
+          id,
+          type: LessonBlockType.RELATED_PEOPLE,
+          width: defaultWidth,
+          title: 'Nhân vật liên quan',
+          description: 'Các danh tướng, hoàng thân hoặc nhân vật lịch sử đồng hành',
+          sourceMode: 'AUTO',
+          people: [
+            { id: 'p1', name: 'Trần Thánh Tông', role: 'Hoàng đế thứ 2 nhà Trần' },
+            { id: 'p2', name: 'Trần Nhân Tông', role: 'Phật hoàng, lãnh đạo kháng chiến' },
+            { id: 'p3', name: 'Yết Kiêu', role: 'Tướng cận vệ, danh tướng thủy quân' },
+            { id: 'p4', name: 'Dã Tượng', role: 'Tướng tài chỉ huy tượng binh' },
+          ],
+        } as RelatedPeopleBlockData;
+
+      case LessonBlockType.RELATED_EVENTS:
+        return {
+          id,
+          type: LessonBlockType.RELATED_EVENTS,
+          width: defaultWidth,
+          title: 'Sự kiện liên quan',
+          description: 'Các mốc chiến dịch và hội nghị lịch sử tiêu biểu',
+          sourceMode: 'AUTO',
+          events: [
+            { id: 'e1', title: 'Hội nghị Diên Hồng', year: 1284 },
+            { id: 'e2', title: 'Đại thắng Bạch Đằng', year: 1288 },
+            { id: 'e3', title: 'Hội nghị Bình Than', year: 1282 },
+          ],
+        } as RelatedEventsBlockData;
+
+      case LessonBlockType.STORY_CHAPTER: {
+        const sampleChapters = createSampleStoryChapters();
+        const firstChap = sampleChapters[0];
+        return {
+          id,
+          type: LessonBlockType.STORY_CHAPTER,
+          width: defaultWidth,
+          storyTitle: 'Chiến thắng Bạch Đằng năm 1288',
+          subjectType: 'EVENT',
+          showToc: true,
+          autoNumberChapters: true,
+          chapters: sampleChapters,
+          chapterNumber: getChapterLabel(0),
+          title: firstChap.title,
+          subtitle: firstChap.subtitle || 'Thế kỷ XIII • Sông Bạch Đằng',
+          leadText: '',
+          contentHtml: '',
+          timeLabel: '09/04/1288',
+          locationName: 'Sông Bạch Đằng',
+          referenceSource: 'Đại Việt Sử Ký Toàn Thư — Quốc sử quán triều Nguyễn',
+          imageUrl: '',
+          imageCaption: '',
+          layout: StoryChapterLayout.IMAGE_LEFT_TEXT_RIGHT,
+          config: firstChap.config,
+          displayConfig: {
+            showChapterNumber: true,
+            showTime: true,
+            showLocation: true,
+            showReferenceSource: true,
+          },
+          subChapters: [],
+          nestedBlocks: [],
+        } as StoryChapterBlockData;
+      }
+
       default:
         return {
           id,
@@ -219,48 +427,39 @@ export class LessonBlockFactory {
       case LessonBlockType.TIMELINE: {
         const nodesHtml = block.nodes
           .map((n) => {
-            const mediaHtml =
-              n.mediaList && n.mediaList.length > 0
-                ? `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-top: 10px;">
-                    ${n.mediaList
-                      .map((m) =>
-                        m.type === MediaType.IMAGE
-                          ? `<div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff;">
-                              <img src="${m.url}" alt="${m.caption || ''}" style="width: 100%; height: 110px; object-fit: cover;" />
-                              ${m.caption ? `<div style="font-size: 11px; color: #64748b; padding: 4px 6px; font-style: italic;">${m.caption}</div>` : ''}
-                            </div>`
-                          : `<div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #000000; height: 110px;">
-                              <iframe src="${m.url}" style="width: 100%; height: 100%; border: 0;" allowfullscreen></iframe>
-                            </div>`
-                      )
-                      .join('')}
-                  </div>`
-                : '';
+            const thumbHtml = n.thumbnailUrl
+              ? `<figure style="margin: 10px 0; border-radius: 10px; overflow: hidden; border: 1px solid #e7e5e4; background: #fafaf9;">
+                  <img src="${n.thumbnailUrl}" alt="${n.mediaCaption || n.title || ''}" style="width: 100%; max-height: 280px; object-fit: cover; display: block;" />
+                  ${n.mediaCaption ? `<figcaption style="font-size: 13px; color: #57534e; padding: 6px 10px; font-style: italic;">${n.mediaCaption}</figcaption>` : ''}
+                </figure>`
+              : '';
+
+            const narrativeHtml = n.contentHtml
+              ? `<div style="font-size: 15px; color: #1c1917; line-height: 1.65;">${n.contentHtml}</div>`
+              : `<div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px; font-family: serif;">${n.title}</div>
+                 <p style="font-size: 15px; color: #475569; margin: 0; line-height: 1.6;">${n.description}</p>`;
 
             const detailHtml = LessonBlockFactory.renderCollapsibleDetail(n.detailContent, 'Xem chi tiết diễn biến');
 
             return `
-            <div style="position: relative; margin-bottom: 20px;">
-              <div style="position: absolute; left: -29px; top: 4px; width: 14px; height: 14px; border-radius: 50%; background: #2563eb; border: 3px solid #ffffff; box-shadow: 0 0 0 2px #bfdbfe;"></div>
-              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px;">
-                <div style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 4px; font-family: serif;">
-                  <span style="color: #1d4ed8; font-family: sans-serif;">${n.year}</span> — ${n.title}
-                </div>
-                <p style="font-size: 13px; color: #475569; margin: 0; line-height: 1.5;">${n.description}</p>
-                ${mediaHtml}
-                ${detailHtml}
+            <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #e7e5e4;">
+              <div style="margin-bottom: 8px;">
+                <span style="display: inline-block; background: #1c1917; color: #ffffff; font-family: serif; font-weight: 700; font-size: 13px; padding: 3px 10px; border-radius: 6px;">${n.year}</span>
               </div>
+              ${narrativeHtml}
+              ${thumbHtml}
+              ${detailHtml}
             </div>`;
           })
           .join('');
 
         return `
-          <div class="hisgo-timeline-block my-6 p-5 bg-white border border-slate-200 rounded-2xl shadow-xs font-sans">
-            <h4 style="font-size: 17px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0; font-family: serif; display: flex; align-items: center; gap: 6px;">
-              <span>⏱️</span><span>${block.title}</span>
+          <div class="hisgo-timeline-block my-6 p-5 bg-white border border-stone-200 rounded-2xl font-sans">
+            <h4 style="font-size: 20px; font-weight: 700; color: #1c1917; margin: 0 0 4px 0; font-family: serif;">
+              ${block.title}
             </h4>
-            ${block.subtitle ? `<p style="font-size: 13px; color: #64748b; margin: 0 0 16px 0;">${block.subtitle}</p>` : ''}
-            <div style="position: relative; padding-left: 24px; margin: 16px 0; border-left: 2px solid #bfdbfe;">
+            ${block.subtitle ? `<p style="font-size: 15px; color: #57534e; margin: 0 0 16px 0;">${block.subtitle}</p>` : ''}
+            <div style="padding-left: 20px; margin: 16px 0; border-left: 2px solid #d6d3d1;">
               ${nodesHtml}
             </div>
           </div>`;
@@ -378,10 +577,150 @@ export class LessonBlockFactory {
             <p class="mt-1 mb-0 text-slate-600">${block.description}</p>
           </blockquote>`;
 
+      case LessonBlockType.CALLOUT: {
+        const callout = block as CalloutBlockData;
+        const borderColors = {
+          HISTORICAL_NOTE: '#d97706',
+          INFO: '#2563eb',
+          WARNING: '#dc2626',
+          SUCCESS: '#059669',
+        };
+        const bgColors = {
+          HISTORICAL_NOTE: '#fef3c7',
+          INFO: '#eff6ff',
+          WARNING: '#fef2f2',
+          SUCCESS: '#ecfdf5',
+        };
+        const icons = {
+          HISTORICAL_NOTE: '📜',
+          INFO: '💡',
+          WARNING: '⚠️',
+          SUCCESS: '✨',
+        };
+        const color = borderColors[callout.variant] || '#d97706';
+        const bg = bgColors[callout.variant] || '#fef3c7';
+        const icon = icons[callout.variant] || '📜';
+        return `
+          <div style="margin: 18px 0; padding: 14px 18px; background: ${bg}; border-left: 4px solid ${color}; border-radius: 8px; font-family: inherit;">
+            <div style="font-weight: 700; font-size: 14px; color: #0f172a; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+              <span>${icon}</span> <span>${callout.title || 'Lưu ý lịch sử'}</span>
+            </div>
+            <div style="font-size: 13px; color: #334155; line-height: 1.6;">${callout.content || ''}</div>
+          </div>`;
+      }
+
+      case LessonBlockType.QUOTE: {
+        const quote = block as QuoteBlockData;
+        return `
+          <blockquote style="margin: 22px 0; padding: 16px 20px; background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 12px 12px 0;">
+            <p style="font-family: Georgia, Cambria, serif; font-style: italic; font-size: 15px; color: #1e293b; margin: 0 0 10px 0; line-height: 1.7;">“${quote.quoteText || ''}”</p>
+            <div style="font-size: 12px; font-weight: 600; color: #78350f; text-align: right;">
+              — <span>${quote.author || 'Khuyết danh'}</span>
+              ${quote.sourceContext ? `<span style="font-weight: normal; color: #92400e; font-style: italic;"> (${quote.sourceContext})</span>` : ''}
+            </div>
+          </blockquote>`;
+      }
+
+      case LessonBlockType.HEADING: {
+        const heading = block as HeadingBlockData;
+        const tag = `h${heading.level || 2}`;
+        return `<${tag} style="font-weight: 700; color: #0f172a; margin: 24px 0 12px 0;">${heading.text || ''}</${tag}>`;
+      }
+
+      case LessonBlockType.DIVIDER:
+        return `<hr style="margin: 28px 0; border: none; border-top: 1px solid #e2e8f0;" />`;
+
+      case LessonBlockType.RELATED_PEOPLE: {
+        const rel = block as RelatedPeopleBlockData;
+        return `
+          <div style="margin: 24px 0; padding: 18px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fafaf9;">
+            <div style="font-size: 14px; font-weight: 700; color: #1c1917; margin-bottom: 4px;">👥 ${rel.title}</div>
+            ${rel.description ? `<p style="font-size: 12px; color: #78716c; margin-top: 0; margin-bottom: 12px;">${rel.description}</p>` : ''}
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              ${rel.people.map((p) => `
+                <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #ffffff; border: 1px solid #e7e5e4; border-radius: 8px; font-size: 12px; font-weight: 600; color: #292524;">
+                  <span>👤</span> <span>${p.name}</span>
+                  ${p.role ? `<span style="font-size: 11px; font-weight: normal; color: #a8a29e;">• ${p.role}</span>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>`;
+      }
+
+      case LessonBlockType.RELATED_EVENTS: {
+        const rel = block as RelatedEventsBlockData;
+        return `
+          <div style="margin: 24px 0; padding: 18px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fafaf9;">
+            <div style="font-size: 14px; font-weight: 700; color: #1c1917; margin-bottom: 4px;">⚔️ ${rel.title}</div>
+            ${rel.description ? `<p style="font-size: 12px; color: #78716c; margin-top: 0; margin-bottom: 12px;">${rel.description}</p>` : ''}
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              ${rel.events.map((e) => `
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #ffffff; border: 1px solid #e7e5e4; border-radius: 8px; font-size: 12px;">
+                  <span style="font-weight: 600; color: #292524;">⚔️ ${e.title}</span>
+                  ${e.year ? `<span style="font-size: 11px; font-family: monospace; color: #b45309; font-weight: 700;">Năm ${e.year}</span>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>`;
+      }
+
       case LessonBlockType.SECTION_ROW:
         return RowLayoutStrategy.compileRowToHtml(block as RowSectionBlockData, (b) =>
           LessonBlockFactory.blockToHtml(b)
         );
+
+      case LessonBlockType.STORY_CHAPTER: {
+        const sc = block as StoryChapterBlockData;
+        const cfg = sc.displayConfig || {
+          showChapterNumber: true,
+          showTime: true,
+          showLocation: true,
+          showReferenceSource: true,
+        };
+        const chapters = StoryChapterLayoutStrategy.normalizeStoryChapters(sc)
+          .slice()
+          .sort((a, b) => a.order - b.order);
+
+        const tocHtml =
+          sc.showToc !== false && chapters.length > 1
+            ? `<nav style="margin-bottom: 24px; padding: 12px 16px; background: #f5f1ea; border: 1px solid #e7e5e4; border-radius: 10px;">
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #78716c; margin-bottom: 8px;">Mục lục chương (${chapters.length} chương)</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                  ${chapters
+                    .map(
+                      (ch, i) => `
+                    <a href="#story-chap-${ch.id}" style="text-decoration: none; padding: 4px 10px; background: #ffffff; border: 1px solid #d6d3d1; border-radius: 6px; font-size: 12px; color: #1c1917; font-weight: 600;">
+                      ${getChapterLabel(i)}: ${ch.title}
+                    </a>`
+                    )
+                    .join('')}
+                </div>
+              </nav>`
+            : '';
+
+        const chaptersHtml = chapters
+          .map((ch, idx) => {
+            const chapterNumberLabel = getChapterLabel(idx);
+            const blocksHtml = (ch.blocks || [])
+              .map((child) => LessonBlockFactory.blockToHtml(child))
+              .join('');
+
+            return `
+              <article id="story-chap-${ch.id}" style="${idx > 0 ? 'margin-top: 32px; padding-top: 28px; border-top: 1px solid #d6d3d1;' : ''}">
+                ${cfg.showChapterNumber ? `<div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #57534e; margin-bottom: 6px; font-family: serif;">${chapterNumberLabel}${ch.subtitle ? ` • ${ch.subtitle}` : ''}</div>` : ''}
+                <h2 style="font-size: 28px; font-weight: 700; font-family: serif; color: #1c1917; margin: 0 0 12px 0;">${ch.title}</h2>
+                <div style="margin-top: 12px;">${blocksHtml}</div>
+              </article>`;
+          })
+          .join('');
+
+        return `
+          <section class="hisgo-story-chapter my-8 p-7 bg-[#faf7f2] border border-stone-200 rounded-2xl">
+            ${tocHtml}
+            ${chaptersHtml}
+            ${cfg.showReferenceSource && sc.referenceSource ? `<div style="margin-top: 20px; padding-top: 12px; border-top: 1px dashed #d6d3d1; font-size: 13px; color: #57534e; font-style: italic;">Nguồn tham khảo: ${sc.referenceSource}</div>` : ''}
+          </section>`;
+      }
 
       default:
         return '';

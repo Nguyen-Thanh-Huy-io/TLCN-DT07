@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Plus } from 'lucide-react';
 import { LessonBlockType, LessonBlockGroup } from '../../types/block-palette.types';
 import { LESSON_BLOCK_ITEMS } from '../../constants/block-palette.constants';
+import { BLOCK_TYPE_ICONS } from './BlockLibraryPalette';
 
 interface AddBlockDividerProps {
   insertIndex: number;
@@ -19,7 +21,6 @@ export function AddBlockDivider({
   const [isDragOver, setIsDragOver] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Đóng popover khi nhấp ra ngoài
   useEffect(() => {
     const handleDocClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -58,88 +59,91 @@ export function AddBlockDivider({
         }
       }}
       onDrop={handleDrop}
-      className={`relative my-2 py-1 flex items-center justify-center group/divider transition-all select-none ${className}`}
+      className={`relative my-1 py-1 flex items-center justify-center group/divider transition-colors select-none ${className}`}
       ref={menuRef}
     >
-      {/* Vạch chèn màu xanh chuẩn img6.png */}
       <div
-        className={`w-full h-0.5 rounded transition-all ${
+        className={`w-full h-px transition-colors ${
           isDragOver
-            ? 'bg-blue-600 h-1 shadow-md scale-y-125'
+            ? 'bg-stone-800'
             : isOpen
-            ? 'bg-blue-400'
-            : 'bg-transparent group-hover/divider:bg-blue-300'
+            ? 'bg-stone-300'
+            : 'bg-transparent group-hover/divider:bg-stone-200'
         }`}
       />
 
-      {/* Nút [+] Chèn khối ở giữa chuẩn img7.png */}
       <div className="absolute inset-x-0 flex items-center justify-center pointer-events-none">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           data-testid={`btn-insert-block-${insertIndex}`}
           title="Chèn khối vào vị trí này"
-          className={`pointer-events-auto h-6 px-2.5 rounded-full text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-2xs ${
+          className={`pointer-events-auto px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 transition-opacity cursor-pointer ${
             isOpen || isDragOver
-              ? 'bg-blue-600 text-white shadow-md scale-105'
-              : 'opacity-0 group-hover/divider:opacity-100 bg-white text-blue-600 border border-blue-200 hover:bg-blue-50'
+              ? 'opacity-100 bg-stone-900 text-white'
+              : 'opacity-0 group-hover/divider:opacity-100 bg-white text-stone-700 border border-stone-300 hover:border-stone-500 hover:text-stone-900'
           }`}
         >
-          <span className="text-xs font-black leading-none">+</span>
+          <Plus className="w-3.5 h-3.5" strokeWidth={2.2} />
           <span>Chèn khối</span>
         </button>
       </div>
 
-      {/* Popover chọn loại khối để chèn */}
       {isOpen && (
         <div
           data-testid="popover-insert-block-menu"
-          className="absolute top-full mt-1.5 z-50 w-72 bg-white rounded-xl shadow-xl border border-slate-200 p-2.5 animate-in fade-in zoom-in-95 duration-150"
+          className="absolute top-full mt-2 z-50 w-72 bg-white rounded-xl shadow-lg border border-stone-200 p-3"
         >
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1 pb-1.5">
-            Chọn loại khối muốn chèn
+          <div className="text-xs font-bold text-stone-600 uppercase tracking-wider px-1 pb-2">
+            Chèn khối nội dung
           </div>
 
-          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-            {/* Nhóm cơ bản */}
+          <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
             <div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase px-1">Nội dung cơ bản</span>
-              <div className="grid grid-cols-2 gap-1 mt-1">
-                {basicItems.map((item) => (
-                  <button
-                    key={item.type}
-                    type="button"
-                    data-testid={`btn-popover-block-${item.type}`}
-                    onClick={() => {
-                      onAddBlock(item.type, insertIndex);
-                      setIsOpen(false);
-                    }}
-                    className="p-1.5 text-left rounded-lg border border-slate-100 hover:border-blue-300 hover:bg-blue-50/50 transition cursor-pointer flex flex-col min-w-0"
-                  >
-                    <span className="text-xs font-semibold text-slate-800 truncate">{item.label}</span>
-                  </button>
-                ))}
+              <span className="text-xs font-semibold text-stone-600 uppercase px-1">Cơ bản</span>
+              <div className="grid grid-cols-2 gap-1.5 mt-1">
+                {basicItems.map((item) => {
+                  const IconComp = BLOCK_TYPE_ICONS[item.type];
+                  return (
+                    <button
+                      key={item.type}
+                      type="button"
+                      data-testid={`btn-popover-block-${item.type}`}
+                      onClick={() => {
+                        onAddBlock(item.type, insertIndex);
+                        setIsOpen(false);
+                      }}
+                      className="p-2 text-left rounded-lg hover:bg-stone-100 transition-colors cursor-pointer flex items-center gap-2 min-w-0"
+                    >
+                      {IconComp && <IconComp className="w-4 h-4 text-stone-600 shrink-0" />}
+                      <span className="text-sm font-medium text-stone-800 truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Nhóm chuyên biệt */}
-            <div className="pt-1.5 border-t border-slate-100">
-              <span className="text-[10px] font-bold text-slate-500 uppercase px-1">Khối chuyên biệt</span>
-              <div className="grid grid-cols-2 gap-1 mt-1">
-                {specializedItems.map((item) => (
-                  <button
-                    key={item.type}
-                    type="button"
-                    data-testid={`btn-popover-block-${item.type}`}
-                    onClick={() => {
-                      onAddBlock(item.type, insertIndex);
-                      setIsOpen(false);
-                    }}
-                    className="p-1.5 text-left rounded-lg border border-slate-100 hover:border-blue-300 hover:bg-blue-50/50 transition cursor-pointer flex flex-col min-w-0"
-                  >
-                    <span className="text-xs font-semibold text-slate-800 truncate">{item.label}</span>
-                  </button>
-                ))}
+            <div className="pt-2 border-t border-stone-100">
+              <span className="text-xs font-semibold text-stone-600 uppercase px-1">Tri thức lịch sử</span>
+              <div className="grid grid-cols-2 gap-1.5 mt-1">
+                {specializedItems.map((item) => {
+                  const IconComp = BLOCK_TYPE_ICONS[item.type];
+                  return (
+                    <button
+                      key={item.type}
+                      type="button"
+                      data-testid={`btn-popover-block-${item.type}`}
+                      onClick={() => {
+                        onAddBlock(item.type, insertIndex);
+                        setIsOpen(false);
+                      }}
+                      className="p-2 text-left rounded-lg hover:bg-stone-100 transition-colors cursor-pointer flex items-center gap-2 min-w-0"
+                    >
+                      {IconComp && <IconComp className="w-4 h-4 text-stone-600 shrink-0" />}
+                      <span className="text-sm font-medium text-stone-800 truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

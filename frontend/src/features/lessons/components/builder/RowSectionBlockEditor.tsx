@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import { Columns3, Plus, Trash2, X } from 'lucide-react';
 import { RowSectionBlockData, LessonBlockItem } from '../../types/block-builder.types';
 import { LessonBlockType, LessonBlockGroup } from '../../types/block-palette.types';
 import { LESSON_BLOCK_ITEMS } from '../../constants/block-palette.constants';
@@ -8,8 +9,7 @@ import { ROW_RATIO_PRESETS } from '../../constants/row-layout.constants';
 import { RowLayoutStrategy } from '../../strategies/row-layout.strategy';
 import { ColumnResizer } from './ColumnResizer';
 import { BlockPlacementRuleEngine } from '../../rules/block-placement.rule';
-import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { useActiveEditor } from '../../context/ActiveEditorContext';
 
 interface RowSectionBlockEditorProps {
   data: RowSectionBlockData;
@@ -24,18 +24,17 @@ interface RowSectionBlockEditorProps {
 export function RowSectionBlockEditor({
   data,
   onUpdateRowRatio,
-  onChangeColumnCount,
   onAddBlockToColumn,
   onRemoveBlockFromColumn,
   renderChildBlock,
 }: RowSectionBlockEditorProps) {
+  const { activeSubElement, setActiveSubElement } = useActiveEditor();
   const containerRef = useRef<HTMLDivElement>(null);
   const [activePickerColumnId, setActivePickerColumnId] = useState<string | null>(null);
   const [dragOverColId, setDragOverColId] = useState<string | null>(null);
   const [dragError, setDragError] = useState<string | null>(null);
 
   const columnCount = data.columnCount || data.columns.length || 1;
-  const presets = ROW_RATIO_PRESETS[columnCount] || [];
 
   const basicItems = LESSON_BLOCK_ITEMS.filter(
     (i) => i.group === LessonBlockGroup.BASIC && i.type !== LessonBlockType.SECTION_ROW
@@ -86,75 +85,19 @@ export function RowSectionBlockEditor({
   return (
     <div
       data-testid={`row-section-editor-${data.id}`}
-      className="space-y-3 font-sans w-full"
+      onClick={() => setActiveSubElement(null)}
+      className="space-y-4 font-sans w-full"
     >
-      {/* 1. THANH ĐIỀU KHIỂN CẤU HÌNH HÀNG (ROW CONTROL BAR) */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100 bg-slate-50/70 p-2.5 rounded-xl border border-slate-200/80">
-        {/* Số lượng cột: 1, 2, 3, 4 */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">
-            Số cột:
-          </span>
-          {[1, 2, 3, 4].map((num) => (
-            <button
-              key={num}
-              type="button"
-              data-testid={`btn-col-count-${num}`}
-              onClick={() => onChangeColumnCount(num)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
-                columnCount === num
-                  ? 'bg-blue-600 text-white shadow-2xs'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              <span>{num}</span>
-              <span className="text-[10px] opacity-80">cột</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Tỷ lệ nhanh (Presets) */}
-        {presets.length > 0 && columnCount > 1 && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">
-              Tỷ lệ:
-            </span>
-            {presets.map((preset) => {
-              const currentValues = data.columns.map((c) => Math.round(c.widthPercent));
-              const isMatch =
-                preset.values.length === currentValues.length &&
-                preset.values.every((v, i) => Math.abs(v - currentValues[i]) <= 1);
-
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  data-testid={`btn-preset-ratio-${preset.id}`}
-                  onClick={() => onUpdateRowRatio(preset.values)}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition cursor-pointer ${
-                    isMatch
-                      ? 'bg-blue-100 text-blue-700 border border-blue-300 font-bold'
-                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  {preset.label.split(' ')[0]}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 2. KHUNG LƯỚI ĐA CỘT (RESPONSIVE GRID) */}
+      {/* KHUNG LƯỚI ĐA CỘT (EDITORIAL MULTI-COLUMN SPREAD — MỌI CẤU HÌNH SỐ CỘT & TỶ LỆ NẰM BÊN INSPECTOR PHẢI) */}
       <div
         ref={containerRef}
         data-testid="row-columns-grid"
-        className="w-full flex flex-col md:grid gap-3 relative transition-all"
+        className="w-full flex flex-col md:grid gap-6 relative items-start"
         style={{ gridTemplateColumns: gridTemplate }}
       >
         {data.columns.map((col, colIdx) => (
           <React.Fragment key={col.id}>
-            {/* Thẻ Cột nội dung (Drop zone Lớp 3) */}
+            {/* Cột nội dung */}
             <div
               data-testid={`column-container-${colIdx}`}
               onDragOver={(e) => handleColDragOver(e, col)}
@@ -163,103 +106,120 @@ export function RowSectionBlockEditor({
                 setDragError(null);
               }}
               onDrop={(e) => handleColDrop(e, col)}
-              className={`flex-1 min-w-0 flex flex-col rounded-xl p-3 relative group/col transition-all ${
+              className={`flex-1 min-w-0 flex flex-col relative group/col transition-colors ${
                 dragOverColId === col.id
                   ? dragError
-                    ? 'bg-rose-50/50 border-2 border-dashed border-rose-500'
-                    : 'bg-blue-50/60 border-2 border-dashed border-blue-500 shadow-sm'
-                  : 'bg-slate-50/50 border border-dashed border-slate-300 hover:border-slate-400'
+                    ? 'bg-rose-50/50 ring-2 ring-rose-500 rounded-xl p-2'
+                    : 'bg-stone-100/70 ring-2 ring-stone-900 rounded-xl p-2'
+                  : ''
               }`}
             >
               {dragOverColId === col.id && (
                 <div
-                  className={`absolute inset-x-2 top-2 p-1.5 rounded-lg text-[10px] font-bold text-center z-20 ${
-                    dragError
-                      ? 'bg-rose-600 text-white shadow-md'
-                      : 'bg-blue-600 text-white shadow-md animate-pulse'
+                  className={`mb-2 py-1.5 px-3 rounded-lg text-sm font-semibold text-center z-20 ${
+                    dragError ? 'bg-rose-700 text-white' : 'bg-stone-900 text-white'
                   }`}
                 >
-                  {dragError || `+ Thả để chèn vào Cột ${colIdx + 1}`}
+                  {dragError || `Thả để chèn vào Cột ${colIdx + 1}`}
                 </div>
               )}
-              {/* Header nhỏ của cột: Tên & Tỷ lệ % */}
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200/80">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  <span className="text-[11px] font-bold text-slate-700 uppercase">
-                    Cột {colIdx + 1}
-                  </span>
-                  <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
-                    {Math.round(col.widthPercent)}%
-                  </span>
-                </div>
 
-                <span className="text-[10px] text-slate-400 font-medium">
-                  {col.blocks.length} khối
+              {/* Nhãn cột tinh tế */}
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-stone-200/80 text-xs font-semibold text-stone-600">
+                <span>
+                  Cột {colIdx + 1} ({Math.round(col.widthPercent)}%)
                 </span>
+                <span>{col.blocks.length} khối</span>
               </div>
 
-              {/* Danh sách các khối con bên trong cột */}
-              <div className="space-y-3 flex-1 min-h-[80px]">
+              {/* Danh sách các khối con bên trong cột (Phẳng, không đóng khung chồng chéo) */}
+              <div className="space-y-4 flex-1 min-h-[72px]">
                 {col.blocks.length === 0 ? (
-                  <div className="py-6 text-center text-xs text-slate-400 italic">
-                    Cột đang trống
+                  <div className="py-6 text-center text-sm text-stone-600 italic border border-dashed border-stone-300 rounded-xl">
+                    Cột đang trống — Bấm nút bên dưới để thêm nội dung
                   </div>
                 ) : (
-                  col.blocks.map((childBlock) => (
-                    <div
-                      key={childBlock.id}
-                      className="relative group/child bg-white rounded-xl border border-slate-200 shadow-2xs p-3 transition hover:border-blue-300"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => onRemoveBlockFromColumn(col.id, childBlock.id)}
-                        title="Xóa khối này khỏi cột"
-                        className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition cursor-pointer text-xs z-10"
+                  col.blocks.map((childBlock, childIdx) => {
+                    const subKey = `${col.id}::${childBlock.id}`;
+                    const isChildActive =
+                      activeSubElement?.parentBlockId === data.id &&
+                      activeSubElement?.subId === subKey;
+                    const itemDef = LESSON_BLOCK_ITEMS.find(
+                      (i) => i.type === childBlock.type
+                    );
+                    return (
+                      <div
+                        key={`${col.id}_${childBlock.id}_${childIdx}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveSubElement({
+                            parentBlockId: data.id,
+                            subType: 'NESTED_BLOCK',
+                            subId: subKey,
+                            label: `Cột ${colIdx + 1} · ${
+                              itemDef?.label || 'Khối con'
+                            }`,
+                          });
+                        }}
+                        className={`relative group/child pb-3 border-b border-stone-200/60 last:border-b-0 last:pb-0 cursor-pointer rounded-xl transition-all ${
+                          isChildActive
+                            ? 'ring-2 ring-blue-500/85 bg-blue-50/20 p-2 -mx-2'
+                            : 'hover:ring-1 hover:ring-stone-300/80 p-1.5 -mx-1.5'
+                        }`}
                       >
-                        ✕
-                      </button>
-                      {renderChildBlock(childBlock, col.id)}
-                    </div>
-                  ))
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveBlockFromColumn(col.id, childBlock.id);
+                          }}
+                          title="Xóa khối này khỏi cột"
+                          className="absolute top-1 right-1 p-1.5 text-stone-600 hover:text-rose-700 hover:bg-rose-50 rounded-md opacity-0 group-hover/child:opacity-100 transition-opacity cursor-pointer z-10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        {renderChildBlock(childBlock, col.id)}
+                      </div>
+                    );
+                  })
                 )}
               </div>
 
               {/* Nút [+ Chèn khối vào cột] */}
-              <div className="mt-3 pt-2 border-t border-slate-200/60 relative">
+              <div className="mt-3 pt-2 border-t border-stone-200/70 relative">
                 <button
                   type="button"
                   data-testid={`btn-add-block-to-col-${colIdx}`}
                   onClick={() =>
                     setActivePickerColumnId(activePickerColumnId === col.id ? null : col.id)
                   }
-                  className="w-full py-1.5 px-3 rounded-lg border border-dashed border-slate-300 hover:border-blue-400 bg-white hover:bg-blue-50/50 text-blue-600 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  className="w-full py-1.5 px-3 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <Icon name={IconName.PLUS} size={13} />
-                  <span>Chèn khối vào Cột {colIdx + 1}</span>
+                  <Plus className="w-4 h-4" />
+                  <span>Thêm khối vào Cột {colIdx + 1}</span>
                 </button>
 
                 {/* Popover chọn loại khối để chèn vào cột này */}
                 {activePickerColumnId === col.id && (
                   <div
                     data-testid={`popover-picker-col-${colIdx}`}
-                    className="absolute bottom-full mb-1.5 left-0 z-50 w-64 bg-white rounded-xl shadow-xl border border-slate-200 p-2 animate-in fade-in zoom-in-95 duration-100"
+                    className="absolute bottom-full mb-2 left-0 z-50 w-72 bg-white rounded-xl shadow-lg border border-stone-300 p-3"
                   >
-                    <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-stone-200">
+                      <span className="text-xs font-bold text-stone-700 uppercase tracking-wider">
                         Chọn khối cho Cột {colIdx + 1}
                       </span>
                       <button
                         type="button"
                         onClick={() => setActivePickerColumnId(null)}
-                        className="text-xs text-slate-400 hover:text-slate-700"
+                        className="text-stone-600 hover:text-stone-950 p-1 rounded cursor-pointer"
                       >
-                        ✕
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
 
-                    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
-                      <div className="grid grid-cols-2 gap-1">
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-0.5">
+                      <div className="grid grid-cols-2 gap-1.5">
                         {basicItems.map((item) => {
                           const check = BlockPlacementRuleEngine.validate(item.type, {
                             location: 'COLUMN',
@@ -277,13 +237,13 @@ export function RowSectionBlockEditor({
                                 onAddBlockToColumn(col.id, item.type);
                                 setActivePickerColumnId(null);
                               }}
-                              className={`p-1.5 text-left rounded-lg border transition ${
+                              className={`px-2.5 py-2 text-left rounded-lg transition-colors ${
                                 check.allowed
-                                  ? 'border-slate-100 hover:border-blue-300 hover:bg-blue-50/60 cursor-pointer'
-                                  : 'border-slate-100 opacity-40 cursor-not-allowed bg-slate-50'
+                                  ? 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-900 cursor-pointer'
+                                  : 'opacity-40 cursor-not-allowed bg-stone-50 text-stone-500'
                               }`}
                             >
-                              <span className="text-xs font-semibold text-slate-800 block truncate">
+                              <span className="text-sm font-medium block truncate">
                                 {item.label}
                               </span>
                             </button>
@@ -291,7 +251,7 @@ export function RowSectionBlockEditor({
                         })}
                       </div>
 
-                      <div className="pt-1 border-t border-slate-100 grid grid-cols-2 gap-1">
+                      <div className="pt-2 border-t border-stone-200 grid grid-cols-2 gap-1.5">
                         {specializedItems.map((item) => {
                           const check = BlockPlacementRuleEngine.validate(item.type, {
                             location: 'COLUMN',
@@ -309,13 +269,13 @@ export function RowSectionBlockEditor({
                                 onAddBlockToColumn(col.id, item.type);
                                 setActivePickerColumnId(null);
                               }}
-                              className={`p-1.5 text-left rounded-lg border transition ${
+                              className={`px-2.5 py-2 text-left rounded-lg transition-colors ${
                                 check.allowed
-                                  ? 'border-slate-100 hover:border-blue-300 hover:bg-blue-50/60 cursor-pointer'
-                                  : 'border-slate-100 opacity-40 cursor-not-allowed bg-slate-50'
+                                  ? 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-900 cursor-pointer'
+                                  : 'opacity-40 cursor-not-allowed bg-stone-50 text-stone-500'
                               }`}
                             >
-                              <span className="text-xs font-semibold text-slate-800 block truncate">
+                              <span className="text-sm font-medium block truncate">
                                 {item.label}
                               </span>
                             </button>

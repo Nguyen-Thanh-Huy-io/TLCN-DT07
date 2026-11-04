@@ -69,6 +69,13 @@ function ensureUniqueBlockIds(items: LessonBlockItem[], seen: Set<string> = new 
         })),
       };
     }
+    if (block.type === LessonBlockType.STORY_CHAPTER) {
+      return {
+        ...block,
+        id,
+        nestedBlocks: ensureUniqueBlockIds(block.nestedBlocks || [], seen),
+      };
+    }
     return { ...block, id };
   });
 }
@@ -142,7 +149,7 @@ export function useLessonBlockManager(initialContent?: any): UseLessonBlockManag
         {
           id: 'block_default_timeline',
           type: LessonBlockType.TIMELINE,
-          title: 'Timeline — Dòng thời gian',
+          title: 'Dòng thời gian lịch sử',
           subtitle: 'Các mốc lịch sử tiêu biểu',
           orientation: TimelineOrientation.VERTICAL,
           nodes: [
@@ -150,13 +157,17 @@ export function useLessonBlockManager(initialContent?: any): UseLessonBlockManag
               id: 'node_1',
               year: '1945',
               title: 'Tuyên bố độc lập',
-              description: 'Sự kiện đánh dấu bước ngoặt lịch sử mở ra kỷ nguyên mới.',
+              description: 'Sự kiện đánh dấu bước ngoặt lịch sử mở ra kỷ nguyên mới cho dân tộc Việt Nam.',
+              contentHtml:
+                '<h3>Tuyên bố độc lập</h3><p>Sự kiện đánh dấu bước ngoặt lịch sử mở ra kỷ nguyên mới cho dân tộc Việt Nam.</p>',
             },
             {
               id: 'node_2',
               year: '1954',
               title: 'Chiến thắng Điện Biên Phủ',
               description: 'Mốc son chấn động địa cầu, kết thúc thắng lợi cuộc kháng chiến chống Pháp.',
+              contentHtml:
+                '<h3>Chiến thắng Điện Biên Phủ</h3><p>Mốc son chấn động địa cầu, kết thúc thắng lợi cuộc kháng chiến chống Pháp.</p>',
             },
           ],
         } as TimelineBlockData,
@@ -286,7 +297,7 @@ export function useLessonBlockManager(initialContent?: any): UseLessonBlockManag
         let newColumns = [...row.columns];
 
         if (targetCount > row.columns.length) {
-          // Thêm cột mới
+          // Thêm cột mới (bất biến - không mutate mảng cũ)
           while (newColumns.length < targetCount) {
             const colId = generateBlockId('col');
             newColumns.push({
@@ -296,15 +307,21 @@ export function useLessonBlockManager(initialContent?: any): UseLessonBlockManag
             });
           }
         } else if (targetCount < row.columns.length) {
-          // Giảm số cột: gộp khối từ các cột thừa vào cột cuối cùng còn lại
-          const keptColumns = newColumns.slice(0, targetCount);
+          // Giảm số cột: gộp khối từ các cột thừa vào cột cuối cùng còn lại (pure immutable update)
+          const keptColumns = newColumns.slice(0, targetCount).map((c) => ({
+            ...c,
+            blocks: [...c.blocks],
+          }));
           const removedColumns = newColumns.slice(targetCount);
           const orphanedBlocks = removedColumns.flatMap((c) => c.blocks);
           if (orphanedBlocks.length > 0 && keptColumns.length > 0) {
-            keptColumns[keptColumns.length - 1].blocks = [
-              ...keptColumns[keptColumns.length - 1].blocks,
-              ...orphanedBlocks,
-            ];
+            const lastIdx = keptColumns.length - 1;
+            const existingIds = new Set(keptColumns[lastIdx].blocks.map((b) => b.id));
+            const uniqueOrphans = orphanedBlocks.filter((b) => !existingIds.has(b.id));
+            keptColumns[lastIdx] = {
+              ...keptColumns[lastIdx],
+              blocks: [...keptColumns[lastIdx].blocks, ...uniqueOrphans],
+            };
           }
           newColumns = keptColumns;
         }
@@ -352,6 +369,7 @@ export function useLessonBlockManager(initialContent?: any): UseLessonBlockManag
           const row = block as RowSectionBlockData;
           const updatedColumns = row.columns.map((col) => {
             if (col.id !== columnId) return col;
+            if (col.blocks.some((b) => b.id === newChild.id)) return col;
             const childList = [...col.blocks];
             if (typeof targetIndex === 'number' && targetIndex >= 0 && targetIndex <= childList.length) {
               childList.splice(targetIndex, 0, newChild);

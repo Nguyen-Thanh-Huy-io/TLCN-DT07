@@ -16,11 +16,20 @@ export interface TimelineNodeMedia {
 export interface TimelineNode {
   id: string;
   year: string;
+  dateLabel?: string; // Nhãn ngày/thời gian tuỳ biến (vd: "Thế kỷ X", "Khoảng 1285", "Xuân 1975")
   title: string;
   description: string;
+  /** Nội dung văn bản giàu định dạng hợp nhất của phân cảnh (Composite Story Scene) */
+  contentHtml?: string;
   eventId?: string;
+  locationName?: string; // Địa điểm diễn ra sự kiện
+  role?: string; // Vai trò của thực thể trong sự kiện (vd: "Tổng chỉ huy", "Tham gia")
+  thumbnailUrl?: string; // Ảnh tư liệu hoặc ảnh nền phân cảnh
+  mediaCaption?: string; // Chú thích ảnh tư liệu của phân cảnh
   detailContent?: string;
   mediaList?: TimelineNodeMedia[];
+  isManual?: boolean; // Mốc được nhập hoặc bổ sung thủ công
+  confidence?: 'EXACT' | 'APPROXIMATE' | 'UNCERTAIN'; // Độ chính xác niên đại
 }
 
 export interface HistoricalTimelineBlockProps {

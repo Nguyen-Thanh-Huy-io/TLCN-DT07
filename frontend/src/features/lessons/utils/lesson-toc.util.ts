@@ -1,6 +1,43 @@
 import { LessonBlockType } from '../types/block-palette.types';
-import { LessonBlockItem, RowSectionBlockData } from '../types/block-builder.types';
+import { LessonBlockItem, ResourceLinkBlockData, RowSectionBlockData } from '../types/block-builder.types';
 import { LessonBlockFactory } from '../factories/lesson-block.factory';
+
+/**
+ * Chuẩn hóa `content` thô (mảng khối JSON, chuỗi JSON, hoặc chuỗi HTML cũ) thành danh sách
+ * khối + tách riêng khối Liên kết tài nguyên — dùng chung cho mọi nơi hiển thị nội dung dạng
+ * khối công khai (bài học, tiểu sử nhân vật...), không chỉ riêng Lesson.
+ */
+export function normalizeContentToBlocks(rawContent: unknown): {
+  blocks: LessonBlockItem[];
+  resourceLinks: ResourceLinkBlockData[];
+} {
+  let items: LessonBlockItem[] = [];
+  if (Array.isArray(rawContent)) {
+    items = rawContent;
+  } else if (typeof rawContent === 'string' && rawContent.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(rawContent);
+      if (Array.isArray(parsed)) {
+        items = parsed;
+      } else {
+        items = [{ id: 'text_fallback', type: LessonBlockType.TEXT, content: rawContent }];
+      }
+    } catch {
+      items = [{ id: 'text_fallback', type: LessonBlockType.TEXT, content: rawContent }];
+    }
+  }
+
+  const blocks: LessonBlockItem[] = [];
+  const resourceLinks: ResourceLinkBlockData[] = [];
+  for (const item of items) {
+    if (item.type === LessonBlockType.RESOURCE_LINK) {
+      resourceLinks.push(item as ResourceLinkBlockData);
+    } else {
+      blocks.push(item);
+    }
+  }
+  return { blocks, resourceLinks };
+}
 
 export interface LessonTocEntry {
   id: string;

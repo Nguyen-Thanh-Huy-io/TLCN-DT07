@@ -1,16 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import {
+  Plus,
+  Database,
+  MapPin,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  ImagePlus,
+  Upload,
+  X,
+  Sparkles,
+} from 'lucide-react';
 import { TimelineBlockData, TimelineOrientation } from '../../types/block-builder.types';
 import { TimelineNode } from '../blocks/HistoricalTimelineBlock';
 import { EventPickerModal, EventSelectionPayload, normalizePickedEvent } from '../blocks/EventPickerModal';
-import { TimelineNodeCanvasDrawer } from './TimelineNodeCanvasDrawer';
 import { TimelineLayoutStrategy } from '../../strategies/timeline-layout.strategy';
+import { TimelineSceneStrategy } from '../../strategies/timeline-scene.strategy';
 import { HistoricalEventItem } from '@/services/entities/historical-event.service';
-import { TIMELINE_BLOCK_CONSTANTS } from '../../constants/block-node.constants';
-import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
 import { MoveDirection } from '../quiz/QuizQuestionEditors';
+import { TipTapContent } from '../TipTapContent';
 
 interface TimelineBlockItemEditorProps {
   data: TimelineBlockData;
@@ -25,42 +37,100 @@ const getUniqueNodeId = () => {
 
 export function TimelineBlockItemEditor({ data, onChange }: TimelineBlockItemEditorProps) {
   const [isEventPickerOpen, setIsEventPickerOpen] = useState(false);
-  const [drawerNodeIdx, setDrawerNodeIdx] = useState<number | null>(null);
+  const [mediaPanelNodeIdx, setMediaPanelNodeIdx] = useState<number | null>(null);
 
-  // State thu gọn từng mốc sự kiện (Collapsible node state)
-  const [collapsedNodes, setCollapsedNodes] = useState<Record<number, boolean>>({});
+  const nodes = useMemo(() => data.nodes || [], [data.nodes]);
+  const displayConfig = data.displayConfig || {
+    sceneStyle: 'MUSEUM_SPLIT',
+    dateFormat: 'YEAR_ONLY',
+    sortOrder: 'CHRONOLOGICAL',
+    showDescription: true,
+    showImage: true,
+    showLocation: false,
+    showRole: true,
+  };
 
-  const nodes = data.nodes || [];
+  const sceneStyle = displayConfig.sceneStyle || 'MUSEUM_SPLIT';
+  const showImage = displayConfig.showImage !== false;
+  const showLocation = Boolean(displayConfig.showLocation);
+  const isReverseSort = displayConfig.sortOrder === 'REVERSE_CHRONOLOGICAL';
+  const maxEvents = data.maxEvents ?? 10;
 
   const handleUpdateNodes = (newNodes: TimelineNode[]) => {
     onChange({ nodes: newNodes });
   };
 
   const handleAddManualNode = () => {
+    const defaultTitle = 'Mốc sự kiện mới';
+    const defaultDesc = 'Nhập diễn biến, bối cảnh và ý nghĩa lịch sử tại đây. Bôi đen chữ để định dạng hoặc gắn liên kết ở cột phải...';
     const newNode: TimelineNode = {
       id: getUniqueNodeId(),
       year: '1975',
-      title: 'Mốc sự kiện mới',
-      description: 'Nhập tóm tắt diễn biến và ý nghĩa lịch sử tại đây...',
+      title: defaultTitle,
+      description: defaultDesc,
+      contentHtml: `<h3>${defaultTitle}</h3><p>${defaultDesc}</p>`,
+      isManual: true,
     };
-    handleUpdateNodes([...nodes, newNode]);
+    const next = [...nodes, newNode];
+    handleUpdateNodes(next);
   };
 
   const handleSelectEvent = (event: HistoricalEventItem | EventSelectionPayload) => {
     const norm = normalizePickedEvent(event);
+
+    // Chống trùng sự kiện
+    const isDuplicate = nodes.some(
+      (n) =>
+        (norm.eventId && n.eventId === norm.eventId) ||
+        (n.title.trim().toLowerCase() === norm.title.trim().toLowerCase() &&
+          String(n.year) === String(norm.year))
+    );
+    if (isDuplicate) {
+      alert(`Sự kiện "${norm.title}" (${norm.year}) đã tồn tại trên dòng thời gian này.`);
+      return;
+    }
+
+    const summaryText = norm.summary || 'Sự kiện lịch sử trọng đại.';
     const newNode: TimelineNode = {
       id: getUniqueNodeId(),
       year: String(norm.year || 'Lịch sử'),
       title: norm.title,
-      description: norm.summary || 'Sự kiện lịch sử trọng đại.',
+      description: summaryText,
+      contentHtml: `<h3>${norm.title}</h3><p>${summaryText}</p>`,
       eventId: norm.eventId,
+      locationName: (event as any).locationName || (norm as any).locationName,
+      thumbnailUrl: (event as any).imageUrl || (norm as any).thumbnailUrl,
+      mediaCaption: norm.title,
+      isManual: false,
     };
     handleUpdateNodes([...nodes, newNode]);
   };
 
-  const handleNodeChange = (idx: number, field: keyof TimelineNode, val: string) => {
-    const next = nodes.map((n, i) => (i === idx ? { ...n, [field]: val } : n));
+  const handleNodeFieldChange = (idx: number, updates: Partial<TimelineNode>) => {
+    const next = nodes.map((n, i) => (i === idx ? { ...n, ...updates } : n));
     handleUpdateNodes(next);
+  };
+
+  const handleNodeRichTextChange = (idx: number, html: string) => {
+    const current = nodes[idx];
+    if (!current) return;
+    const synced = TimelineSceneStrategy.syncNodeFromHtml(current, html);
+    const next = nodes.map((n, i) => (i === idx ? synced : n));
+    handleUpdateNodes(next);
+  };
+
+  const handleUploadLocalImage = (idx: number, file: File | undefined) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        handleNodeFieldChange(idx, {
+          thumbnailUrl: reader.result,
+          mediaCaption: nodes[idx]?.mediaCaption || nodes[idx]?.title || '',
+        });
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleDeleteNode = (idx: number) => {
@@ -69,6 +139,9 @@ export function TimelineBlockItemEditor({ data, onChange }: TimelineBlockItemEdi
       return;
     }
     handleUpdateNodes(nodes.filter((_, i) => i !== idx));
+    if (mediaPanelNodeIdx === idx) {
+      setMediaPanelNodeIdx(null);
+    }
   };
 
   const handleMoveNode = (idx: number, direction: MoveDirection | 'UP' | 'DOWN') => {
@@ -79,244 +152,336 @@ export function TimelineBlockItemEditor({ data, onChange }: TimelineBlockItemEdi
     copy[idx] = copy[targetIdx];
     copy[targetIdx] = temp;
     handleUpdateNodes(copy);
-  };
-
-  const toggleNodeCollapse = (idx: number) => {
-    setCollapsedNodes((prev) => ({
-      ...prev,
-      [idx]: !prev[idx],
-    }));
-  };
-
-  const toggleAllCollapse = (collapseAll: boolean) => {
-    const next: Record<number, boolean> = {};
-    nodes.forEach((_, idx) => {
-      next[idx] = collapseAll;
-    });
-    setCollapsedNodes(next);
+    if (mediaPanelNodeIdx === idx) {
+      setMediaPanelNodeIdx(targetIdx);
+    }
   };
 
   const orientation = data.orientation || TimelineOrientation.VERTICAL;
   const isHorizontal = TimelineLayoutStrategy.isHorizontal(orientation);
-  const layoutOpt = TimelineLayoutStrategy.getOption(orientation);
 
-  const areAllCollapsed = nodes.length > 0 && nodes.every((_, idx) => collapsedNodes[idx]);
+  const indexedNodes = useMemo(() => {
+    const list = nodes.map((node, originalIdx) => ({ node, originalIdx }));
+    if (isReverseSort) {
+      list.reverse();
+    }
+    return list.slice(0, maxEvents);
+  }, [nodes, isReverseSort, maxEvents]);
+
+  const sourceBadge = useMemo(() => {
+    if (data.sourceMode === 'MANUAL') {
+      return { label: 'THỦ CÔNG', className: 'bg-stone-900 text-white' };
+    }
+    return { label: 'DỮ LIỆU ĐỘNG', className: 'bg-blue-50 text-blue-900' };
+  }, [data.sourceMode]);
+
+  const cleanTitle =
+    data.title && data.title !== 'Timeline — Dòng thời gian'
+      ? data.title
+      : 'Dòng thời gian lịch sử';
 
   return (
-    <div data-testid="timeline-block-item-editor" className="space-y-3 font-sans">
-      {/* Tiêu đề & Phụ đề */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <input
-          type="text"
-          value={data.title}
-          onChange={(e) => onChange({ title: e.target.value })}
-          placeholder={TIMELINE_BLOCK_CONSTANTS.TITLE}
-          data-testid="input-timeline-title"
-          className="flex-1 text-sm font-bold text-slate-800 uppercase px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
-        <input
-          type="text"
-          value={data.subtitle}
-          onChange={(e) => onChange({ subtitle: e.target.value })}
-          placeholder={TIMELINE_BLOCK_CONSTANTS.DEFAULT_SUBTITLE}
-          data-testid="input-timeline-subtitle"
-          className="flex-1 text-sm font-serif font-bold text-slate-900 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
-      </div>
-
-      {/* Thanh tùy chọn hướng hiển thị & Thu gọn/Mở rộng mốc */}
-      <div className="flex items-center justify-between pt-1 pb-1 border-b border-slate-100 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            Hướng trục:
-          </span>
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs font-semibold">
-            <button
-              type="button"
-              data-testid="btn-timeline-orientation-vertical"
-              onClick={() => onChange({ orientation: TimelineOrientation.VERTICAL })}
-              className={`px-2 py-0.5 rounded-md transition flex items-center gap-1 cursor-pointer ${
-                !isHorizontal
-                  ? 'bg-white text-blue-700 shadow-2xs font-bold'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
+    <div data-testid="timeline-block-item-editor" className="space-y-5 font-sans">
+      {/* 1. HEADER BIÊN NIÊN SỬ */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h3 className="text-[22px] font-serif font-bold text-stone-900 tracking-tight leading-snug">
+              {cleanTitle}
+            </h3>
+            <span
+              className={`text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-md ${sourceBadge.className}`}
             >
-              <span>↕ Dọc</span>
-            </button>
-            <button
-              type="button"
-              data-testid="btn-timeline-orientation-horizontal"
-              onClick={() => onChange({ orientation: TimelineOrientation.HORIZONTAL })}
-              className={`px-2 py-0.5 rounded-md transition flex items-center gap-1 cursor-pointer ${
-                isHorizontal
-                  ? 'bg-white text-blue-700 shadow-2xs font-bold'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <span>↔ Ngang</span>
-            </button>
+              {sourceBadge.label}
+            </span>
+            <span className="text-xs font-semibold text-stone-700 bg-stone-100 px-2.5 py-0.5 rounded-md">
+              {sceneStyle === 'CINEMATIC_BACKDROP' ? 'Phong cách Điện ảnh' : 'Phong cách Triển lãm'}
+            </span>
           </div>
+          <p className="text-base text-stone-600 mt-1 max-w-[65ch]">
+            {data.subtitle ||
+              `Trình bày câu chuyện lịch sử qua ${indexedNodes.length} phân cảnh theo trình tự thời gian.`}
+          </p>
         </div>
 
-        {/* Nút thu gọn / mở rộng nhanh toàn bộ mốc để quét dễ dàng */}
-        <button
-          type="button"
-          onClick={() => toggleAllCollapse(!areAllCollapsed)}
-          className="text-[11px] font-semibold text-slate-600 hover:text-blue-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-md transition cursor-pointer flex items-center gap-1.5"
-          title="Thu gọn để xem toàn bộ danh sách mốc dễ quét"
-        >
-          <span>{areAllCollapsed ? '▼ Mở rộng các mốc' : '▲ Thu gọn các mốc'}</span>
-          <span className="text-[10px] text-slate-400">({nodes.length} mốc)</span>
-        </button>
+        {/* Cụm nút thêm phân cảnh */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleAddManualNode}
+            data-testid="btn-add-manual-node"
+            className="px-3 py-1.5 text-sm font-medium text-stone-800 hover:text-stone-950 bg-white hover:bg-stone-50 rounded-lg border border-stone-300 transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Thêm mốc</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsEventPickerOpen(true)}
+            data-testid="btn-pick-timeline-event"
+            className="px-3 py-1.5 text-sm font-medium text-stone-800 hover:text-stone-950 bg-white hover:bg-stone-50 rounded-lg border border-stone-300 transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <Database className="w-4 h-4 text-stone-700" />
+            <span>Chọn từ kho</span>
+          </button>
+        </div>
       </div>
 
-      {/* Trục dòng thời gian */}
-      <div className={layoutOpt.containerClass} data-timeline-orientation={orientation}>
-        {nodes.map((n, idx) => {
-          const isNodeCollapsed = collapsedNodes[idx] ?? false;
+      {/* 2. TRỤC DÒNG THỜI GIAN PHÂN CẢNH ĐA NĂNG (COMPOSITE STORY TIMELINE) */}
+      <div
+        className={
+          isHorizontal
+            ? 'overflow-x-auto flex flex-row gap-8 pt-4 pb-4 px-1 border-t border-stone-300 mt-4'
+            : 'pl-6 border-l-2 border-stone-300 ml-2 space-y-8 my-4'
+        }
+        data-timeline-orientation={orientation}
+      >
+        {indexedNodes.map(({ node: n, originalIdx: idx }) => {
+          const thumb = n.thumbnailUrl || n.mediaList?.[0]?.url || '';
+          const isMediaOpen = mediaPanelNodeIdx === idx;
+          const resolvedHtml = TimelineSceneStrategy.resolveNodeContentHtml(n);
 
           return (
             <div
               key={n.id || idx}
               data-testid={`timeline-node-${idx}`}
-              className={`${layoutOpt.nodeCardClass} transition-all duration-150 ${
-                isNodeCollapsed ? '!pb-2 !pt-2 hover:bg-slate-50/80 cursor-pointer' : ''
+              className={`group/node transition-colors duration-150 ${
+                isHorizontal ? 'min-w-[340px] max-w-[420px] shrink-0' : 'pb-6 border-b border-stone-200/80 last:border-b-0 last:pb-0'
               }`}
-              onClick={isNodeCollapsed ? () => toggleNodeCollapse(idx) : undefined}
             >
-              {/* Điểm tròn đánh dấu */}
-              <div className={layoutOpt.nodeDotClass} />
-
-              {/* Nút thao tác node */}
-              <div
-                className="absolute top-2 right-2 opacity-80 group-hover/node:opacity-100 transition-opacity flex items-center gap-1 bg-white p-0.5 rounded border border-slate-200 shadow-2xs z-10"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Nút toggle thu gọn/mở rộng riêng mốc này — dùng chevron xoay (▶/▼), KHÔNG
-                    dùng chung ký tự ▲ với nút "chuyển lên" bên dưới nữa, vì trước đây 2 nút
-                    khác chức năng cùng hiện ký tự ▲ đứng sát nhau (rõ nhất ở mốc cuối: không
-                    có nút "chuyển xuống" nên còn lại "▲ ▲ ✕" — không phân biệt được cái nào
-                    thu gọn, cái nào di chuyển). */}
-                <button
-                  type="button"
-                  onClick={() => toggleNodeCollapse(idx)}
-                  title={isNodeCollapsed ? 'Mở rộng chi tiết mốc' : 'Thu gọn mốc'}
-                  className="px-1 text-slate-600 hover:text-blue-700 cursor-pointer"
-                >
-                  <Icon
-                    name={IconName.CHEVRON}
-                    size={11}
-                    className={`transition-transform ${isNodeCollapsed ? '' : 'rotate-90'}`}
+              {/* THANH ĐIỀU KHIỂN MỐC THỜI GIAN (NIÊN ĐẠI + ĐỊA ĐIỂM + ĐÍNH KÈM ẢNH) */}
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <input
+                    type="text"
+                    value={n.year}
+                    onChange={(e) => handleNodeFieldChange(idx, { year: e.target.value })}
+                    placeholder="Niên đại (1945)"
+                    aria-label="Niên đại hoặc mốc thời gian"
+                    className="w-28 text-sm font-serif font-bold text-white bg-stone-900 rounded-md px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-stone-400 text-center"
                   />
-                </button>
 
-                <span className="w-px h-3 bg-slate-200" />
-
-                {idx > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => handleMoveNode(idx, 'UP')}
-                    title={isHorizontal ? 'Di chuyển sang trái' : 'Chuyển lên'}
-                    className="px-1 text-slate-500 hover:text-blue-600 cursor-pointer text-xs"
-                  >
-                    {isHorizontal ? '◀' : '▲'}
-                  </button>
-                )}
-                {idx < nodes.length - 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleMoveNode(idx, 'DOWN')}
-                    title={isHorizontal ? 'Di chuyển sang phải' : 'Chuyển xuống'}
-                    className="px-1 text-slate-500 hover:text-blue-600 cursor-pointer text-xs"
-                  >
-                    {isHorizontal ? '▶' : '▼'}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleDeleteNode(idx)}
-                  title="Xóa mốc"
-                  className="px-1 text-slate-400 hover:text-red-600 cursor-pointer text-xs"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Form sửa node: Nếu thu gọn thì chỉ hiển thị 1 dòng ngắn gọn */}
-              {isNodeCollapsed ? (
-                <div className="flex items-center gap-2 pr-20 select-none">
-                  <span className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-0.5 shrink-0">
-                    {n.year || 'Năm'}
-                  </span>
-                  <span className="text-xs font-bold text-slate-900 truncate">
-                    {n.title || 'Mốc sự kiện'}
-                  </span>
-                  {(n.mediaList?.length || 0) > 0 && (
-                    <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-medium shrink-0">
-                      📷 {n.mediaList?.length}
-                    </span>
+                  {showLocation && (
+                    <div className="flex items-center gap-1 text-sm text-stone-700 bg-stone-100 rounded-md px-2.5 py-1">
+                      <MapPin className="w-3.5 h-3.5 text-stone-700 shrink-0" />
+                      <input
+                        type="text"
+                        value={n.locationName || ''}
+                        onChange={(e) => handleNodeFieldChange(idx, { locationName: e.target.value })}
+                        placeholder="Địa điểm diễn ra..."
+                        className="bg-transparent text-sm text-stone-800 focus:outline-none w-36"
+                      />
+                    </div>
                   )}
-                  {n.detailContent && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title="Có bài chi tiết" />
+
+                  {n.eventId && (
+                    <span className="text-xs font-semibold text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded-md flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      <span>Kho HISGO</span>
+                    </span>
                   )}
                 </div>
-              ) : (
-                <div className="space-y-2 pr-16 pt-1">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={n.year}
-                      onChange={(e) => handleNodeChange(idx, 'year', e.target.value)}
-                      placeholder={TIMELINE_BLOCK_CONSTANTS.YEAR_PLACEHOLDER}
-                      className="w-24 text-sm font-bold text-blue-700 bg-blue-50/60 border border-blue-200/60 rounded px-2 py-1 focus:bg-white focus:outline-none"
-                    />
-                    <span className="text-slate-300">—</span>
-                    <input
-                      type="text"
-                      value={n.title}
-                      onChange={(e) => handleNodeChange(idx, 'title', e.target.value)}
-                      placeholder={TIMELINE_BLOCK_CONSTANTS.TITLE_PLACEHOLDER}
-                      className="flex-1 text-sm font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none px-1 py-1"
-                    />
-                  </div>
-                  <textarea
-                    rows={3}
-                    value={n.description}
-                    onChange={(e) => handleNodeChange(idx, 'description', e.target.value)}
-                    placeholder={TIMELINE_BLOCK_CONSTANTS.DESC_PLACEHOLDER}
-                    className="w-full text-sm leading-relaxed text-slate-600 bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none p-1.5 rounded"
-                  />
 
-                  {/* Nút mở Canvas chi tiết mốc (Ảnh/Video & Văn bản phân tích sâu) — thiết
-                      kế lại thành 1 panel đầy đặn (icon + trạng thái rõ ràng + mũi tên mở),
-                      thay cho pill nhỏ trước đây nhìn mờ nhạt, dễ bị bỏ sót giữa các field. */}
+                {/* Thanh thao tác nhanh của phân cảnh */}
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    data-testid={`btn-open-node-canvas-${idx}`}
-                    onClick={() => setDrawerNodeIdx(idx)}
-                    className="w-full pt-2 flex items-center gap-3 p-2.5 bg-white hover:bg-blue-50/40 border border-slate-200 hover:border-blue-300 rounded-xl transition cursor-pointer text-left group/canvas-btn"
+                    data-testid={`btn-node-media-${idx}`}
+                    onClick={() => setMediaPanelNodeIdx(isMediaOpen ? null : idx)}
+                    className={`px-2.5 py-1 text-sm font-medium rounded-md transition-colors cursor-pointer flex items-center gap-1.5 ${
+                      isMediaOpen || thumb
+                        ? 'bg-stone-900 text-white'
+                        : 'text-stone-800 hover:bg-stone-100'
+                    }`}
+                    title="Đính kèm ảnh tư liệu hoặc ảnh nền cho phân cảnh này"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0 group-hover/canvas-btn:bg-blue-100 transition">
-                      <Icon name={IconName.GRID} size={16} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold text-slate-900">Chi tiết Canvas</span>
-                        {n.detailContent && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title="Đã có bài phân tích chi tiết" />
+                    <ImagePlus className="w-3.5 h-3.5" />
+                    <span>{thumb ? 'Ảnh tư liệu' : 'Thêm ảnh'}</span>
+                  </button>
+
+                  {idx > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleMoveNode(idx, 'UP')}
+                      title={isHorizontal ? 'Sang trái' : 'Lên trên'}
+                      className="p-1.5 text-stone-700 hover:text-stone-950 hover:bg-stone-100 rounded-md cursor-pointer"
+                    >
+                      {isHorizontal ? (
+                        <ChevronLeft className="w-4 h-4" />
+                      ) : (
+                        <ChevronUp className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
+                  {idx < nodes.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleMoveNode(idx, 'DOWN')}
+                      title={isHorizontal ? 'Sang phải' : 'Xuống dưới'}
+                      className="p-1.5 text-stone-700 hover:text-stone-950 hover:bg-stone-100 rounded-md cursor-pointer"
+                    >
+                      {isHorizontal ? (
+                        <ChevronRight className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteNode(idx)}
+                    title="Xóa mốc sự kiện"
+                    className="p-1.5 text-stone-700 hover:text-rose-700 hover:bg-rose-50 rounded-md cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* KHUNG ĐÍNH KÈM ẢNH TƯ LIỆU / ẢNH NỀN TRỰC TIẾP TRONG PHÂN CẢNH */}
+              {isMediaOpen && (
+                <div className="mb-4 p-3.5 bg-stone-50 border border-stone-200 rounded-xl space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-stone-700">
+                      Tư liệu hình ảnh của mốc {n.year}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setMediaPanelNodeIdx(null)}
+                      className="text-stone-600 hover:text-stone-950 p-1 rounded cursor-pointer"
+                      title="Đóng khung ảnh"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                      type="text"
+                      value={n.thumbnailUrl || ''}
+                      onChange={(e) => handleNodeFieldChange(idx, { thumbnailUrl: e.target.value })}
+                      placeholder="Dán đường dẫn ảnh tư liệu (https://...)"
+                      className="flex-1 min-w-[220px] text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 text-stone-900"
+                    />
+                    <label className="px-3 py-2 text-sm font-medium text-stone-800 bg-white hover:bg-stone-100 border border-stone-300 rounded-lg cursor-pointer flex items-center gap-1.5 shrink-0">
+                      <Upload className="w-4 h-4" />
+                      <span>Tải ảnh lên</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleUploadLocalImage(idx, e.target.files?.[0])}
+                        className="hidden"
+                      />
+                    </label>
+                    {thumb && (
+                      <button
+                        type="button"
+                        onClick={() => handleNodeFieldChange(idx, { thumbnailUrl: '', mediaCaption: '' })}
+                        className="px-3 py-2 text-sm font-medium text-rose-700 bg-white hover:bg-rose-50 border border-stone-300 rounded-lg cursor-pointer"
+                      >
+                        Gỡ ảnh
+                      </button>
+                    )}
+                  </div>
+
+                  <input
+                    type="text"
+                    value={n.mediaCaption || ''}
+                    onChange={(e) => handleNodeFieldChange(idx, { mediaCaption: e.target.value })}
+                    placeholder="Chú thích ảnh tư liệu hoặc nguồn trích dẫn bảo tàng..."
+                    className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 text-stone-800"
+                  />
+                </div>
+              )}
+
+              {/* THÂN PHÂN CẢNH: ĐIỀU PHỐI THEO PHONG CÁCH (CINEMATIC_BACKDROP vs MUSEUM_SPLIT) */}
+              {sceneStyle === 'CINEMATIC_BACKDROP' && showImage && thumb ? (
+                <div className="space-y-3">
+                  {/* Khung đại cảnh Điện ảnh (Google Arts & Culture Story Backdrop) */}
+                  <div className="relative rounded-xl overflow-hidden aspect-[21/9] bg-stone-900">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={thumb}
+                      alt={n.title || 'Ảnh đại cảnh lịch sử'}
+                      className="w-full h-full object-cover opacity-90"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-950/35 to-transparent flex flex-col justify-end p-5">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold uppercase tracking-widest text-amber-300">
+                          Niên đại {n.year}
+                        </span>
+                        {n.locationName && (
+                          <span className="text-xs text-stone-200">• {n.locationName}</span>
                         )}
                       </div>
-                      <span className="text-xs text-slate-500 truncate block">
-                        {n.detailContent
-                          ? `Đã có bài viết chi tiết${(n.mediaList?.length || 0) > 0 ? ` • ${n.mediaList?.length} tư liệu ảnh/video` : ''}`
-                          : 'Chưa có nội dung — bấm để viết bài phân tích, chèn ảnh/video'}
-                      </span>
+                      <h4 className="text-xl font-serif font-bold text-white leading-snug">
+                        {n.title}
+                      </h4>
+                      {n.mediaCaption && (
+                        <p className="text-sm text-stone-200 mt-1 italic">{n.mediaCaption}</p>
+                      )}
                     </div>
-                    <span className="text-xs font-semibold text-blue-700 group-hover/canvas-btn:text-blue-900 flex items-center gap-1 shrink-0">
-                      <span>{n.detailContent ? 'Sửa' : 'Viết'}</span>
-                      <Icon name={IconName.ARROW} size={12} />
-                    </span>
-                  </button>
+                  </div>
+
+                  {/* Vùng soạn thảo Văn bản Giàu định dạng hợp nhất */}
+                  <div className="pt-1">
+                    <TipTapContent
+                      value={resolvedHtml}
+                      onChange={(html) => handleNodeRichTextChange(idx, html)}
+                      compact={true}
+                      remoteToolbarOnly={true}
+                      minHeightClass="min-h-[84px]"
+                      placeholder="Nhập tiêu đề và câu chuyện lịch sử của mốc này..."
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* Phong cách Triển lãm Tư liệu (MUSEUM_SPLIT — Mặc định) */
+                <div
+                  className={
+                    showImage && thumb && !isHorizontal
+                      ? 'grid grid-cols-1 md:grid-cols-12 gap-6 items-start'
+                      : 'space-y-3'
+                  }
+                >
+                  {/* Cột Nội dung Văn bản Giàu định dạng (Kết nối trực tiếp với Bảng Thuộc tính Cột Phải) */}
+                  <div className={showImage && thumb && !isHorizontal ? 'md:col-span-7' : 'w-full'}>
+                    <TipTapContent
+                      value={resolvedHtml}
+                      onChange={(html) => handleNodeRichTextChange(idx, html)}
+                      compact={true}
+                      remoteToolbarOnly={true}
+                      minHeightClass="min-h-[84px]"
+                      placeholder="Nhập tiêu đề và diễn biến lịch sử tại đây..."
+                    />
+                  </div>
+
+                  {/* Cột Khung Ảnh Tư liệu Triển lãm (nếu có ảnh) */}
+                  {showImage && thumb && (
+                    <figure
+                      className={
+                        !isHorizontal
+                          ? 'md:col-span-5 rounded-xl overflow-hidden border border-stone-200 bg-stone-50'
+                          : 'rounded-xl overflow-hidden border border-stone-200 bg-stone-50'
+                      }
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={thumb}
+                        alt={n.mediaCaption || n.title || 'Tư liệu lịch sử'}
+                        className="w-full aspect-[16/10] object-cover"
+                      />
+                      <figcaption className="px-3 py-2 border-t border-stone-200 bg-white">
+                        <input
+                          type="text"
+                          value={n.mediaCaption || ''}
+                          onChange={(e) => handleNodeFieldChange(idx, { mediaCaption: e.target.value })}
+                          placeholder="Nhập chú thích ảnh tư liệu..."
+                          className="w-full text-sm text-stone-700 italic bg-transparent focus:outline-none"
+                        />
+                      </figcaption>
+                    </figure>
+                  )}
                 </div>
               )}
             </div>
@@ -324,49 +489,17 @@ export function TimelineBlockItemEditor({ data, onChange }: TimelineBlockItemEdi
         })}
       </div>
 
-      {/* Nút thêm mốc */}
-      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
-        <button
-          type="button"
-          onClick={handleAddManualNode}
-          data-testid="btn-add-manual-node"
-          className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition cursor-pointer"
-        >
-          {TIMELINE_BLOCK_CONSTANTS.BTN_ADD_MANUAL}
-        </button>
-        <button
-          type="button"
-          onClick={() => setIsEventPickerOpen(true)}
-          data-testid="btn-pick-timeline-event"
-          className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition cursor-pointer flex items-center gap-1"
-        >
-          <Icon name={IconName.SEARCH} size={12} />
-          <span>{TIMELINE_BLOCK_CONSTANTS.BTN_PICK_EVENT}</span>
-        </button>
-      </div>
+      {nodes.length > maxEvents && (
+        <div className="text-sm text-stone-600 italic text-center">
+          Đang hiển thị {maxEvents}/{nodes.length} sự kiện theo giới hạn cấu hình ở cột thuộc tính.
+        </div>
+      )}
 
-      {/* Modal chọn Sự kiện từ kho dữ liệu */}
       <EventPickerModal
         isOpen={isEventPickerOpen}
         onClose={() => setIsEventPickerOpen(false)}
         onSelectEvent={handleSelectEvent}
       />
-
-      {/* Drawer Canvas phân tích chi tiết cho mốc được chọn
-          — trước đây thiếu `isOpen` nên component luôn tự return null (xem guard
-          `if (!isOpen || !localNode) return null` trong TimelineNodeCanvasDrawer),
-          và prop lưu bài sai tên (`onSave` thay vì `onSaveNode` thật của component). */}
-      {drawerNodeIdx !== null && nodes[drawerNodeIdx] && (
-        <TimelineNodeCanvasDrawer
-          isOpen
-          node={nodes[drawerNodeIdx]}
-          onClose={() => setDrawerNodeIdx(null)}
-          onSaveNode={(updatedNode) => {
-            const next = nodes.map((n, i) => (i === drawerNodeIdx ? updatedNode : n));
-            handleUpdateNodes(next);
-          }}
-        />
-      )}
     </div>
   );
 }

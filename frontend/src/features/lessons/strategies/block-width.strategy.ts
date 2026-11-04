@@ -30,8 +30,8 @@ export class BlockWidthStrategy {
     },
     [BlockWidthType.AUTO]: {
       type: BlockWidthType.AUTO,
-      label: 'Auto',
-      shortLabel: 'Auto',
+      label: 'Tự động',
+      shortLabel: 'Tự động',
       cssClass: 'w-auto max-w-full',
     },
   };

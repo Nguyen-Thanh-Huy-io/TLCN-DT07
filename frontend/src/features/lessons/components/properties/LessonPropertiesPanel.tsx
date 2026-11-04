@@ -114,13 +114,9 @@ export function LessonPropertiesPanel({
   onSaveLesson,
   saving,
 }: LessonPropertiesPanelProps) {
-  const tabs = [
-    {
-      key: SidebarTab.BLOCK,
-      label: 'Khối',
-      badge: activeBlock ? '●' : undefined,
-      title: activeBlock ? `Chỉnh khối: ${activeBlock.type}` : 'Thuộc tính khối đang chọn',
-    },
+  const isBlockMode = sidebarTab === SidebarTab.BLOCK;
+
+  const docTabs = [
     {
       key: SidebarTab.CLASSIFICATION,
       label: 'Hồ sơ',
@@ -133,7 +129,7 @@ export function LessonPropertiesPanel({
     },
     {
       key: SidebarTab.QUIZ,
-      label: 'Đề ôn',
+      label: 'Đề ôn tập',
       disabled: !lessonId,
       badge: !lessonId ? '!' : undefined,
       title: !lessonId ? 'Cần lưu bài học trước khi tạo đề ôn tập' : 'Đề ôn tập trắc nghiệm',
@@ -147,10 +143,10 @@ export function LessonPropertiesPanel({
 
   return (
     <aside className="w-full lg:w-80 xl:w-[350px] shrink-0 flex flex-col gap-2.5 max-h-[calc(100vh-80px)] overflow-y-auto lg:sticky lg:top-[68px] self-start pr-0.5 animate-in slide-in-from-right duration-200 z-20 custom-editor-scrollbar">
-      <div className="bg-white border border-slate-200 rounded-xl p-2 shadow-2xs">
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 px-1">
+      <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-2">
+        <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 px-0.5">
           <span className="text-xs md:text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-            {sidebarTab === SidebarTab.BLOCK ? 'Thuộc tính khối' : 'Thuộc tính bài học'}
+            {isBlockMode ? 'Thuộc tính khối' : 'Cài đặt bài học'}
           </span>
           <button
             type="button"
@@ -162,40 +158,75 @@ export function LessonPropertiesPanel({
           </button>
         </div>
 
-        <div className="grid grid-cols-5 gap-1 bg-slate-100/90 p-1 rounded-lg">
-          {tabs.map((t) => {
-            const isQuizLocked = t.key === SidebarTab.QUIZ && t.disabled;
-            const isActive = sidebarTab === t.key;
-            return (
-              <button
-                key={t.key}
-                type="button"
-                title={t.title}
-                onClick={() => setSidebarTab(t.key)}
-                className={`py-1.5 px-0.5 rounded-md text-[11px] font-bold transition text-center cursor-pointer flex items-center justify-center gap-0.5 relative ${
-                  isActive
-                    ? 'bg-white text-blue-700 shadow-2xs'
-                    : isQuizLocked
-                    ? 'text-slate-400 hover:text-slate-600 opacity-70'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span className="truncate">{t.label}</span>
-                {t.badge && (
-                  <span
-                    className={`text-[9px] px-1 py-0 rounded-full font-bold leading-none ${
-                      isQuizLocked
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'text-emerald-500'
-                    }`}
-                  >
-                    {t.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* TẦNG 1: Chuyển đổi giữa [Thuộc tính khối] và [Cài đặt bài học] */}
+        <div className="grid grid-cols-2 gap-1.5 bg-slate-100 p-1 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setSidebarTab(SidebarTab.BLOCK)}
+            className={`py-2 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              isBlockMode
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+            }`}
+          >
+            <span>⚙️ Khối đang chọn</span>
+            {activeBlock && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (isBlockMode) {
+                setSidebarTab(SidebarTab.CLASSIFICATION);
+              }
+            }}
+            className={`py-2 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              !isBlockMode
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+            }`}
+          >
+            <span>📄 Toàn bài học</span>
+          </button>
         </div>
+
+        {/* TẦNG 2: 4 Sub-tabs của Bài học (Chỉ hiện khi ở chế độ Toàn bài học, không bị co dúm) */}
+        {!isBlockMode && (
+          <div className="grid grid-cols-4 gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200/80 animate-in fade-in-50 duration-100">
+            {docTabs.map((t) => {
+              const isQuizLocked = t.key === SidebarTab.QUIZ && t.disabled;
+              const isActive = sidebarTab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  title={t.title}
+                  onClick={() => setSidebarTab(t.key)}
+                  className={`py-1.5 px-1 rounded-md text-[11px] font-bold transition text-center cursor-pointer flex items-center justify-center gap-0.5 relative ${
+                    isActive
+                      ? 'bg-white text-blue-700 shadow-2xs border border-slate-200/70'
+                      : isQuizLocked
+                      ? 'text-slate-400 hover:text-slate-600 opacity-70'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <span className="truncate">{t.label}</span>
+                  {t.badge && (
+                    <span
+                      className={`text-[9px] px-1 py-0 rounded-full font-bold leading-none ${
+                        isQuizLocked
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'text-emerald-500'
+                      }`}
+                    >
+                      {t.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {sidebarTab === SidebarTab.BLOCK && (

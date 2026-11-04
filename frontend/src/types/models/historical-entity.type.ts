@@ -38,6 +38,8 @@ export interface HistoricalEntityItem {
   type: EntityType;
   tagline?: string | null;
   description?: string | null;
+  /** Nội dung tường thuật dạng Block Builder (giống Lesson.content); null/undefined = chưa có, dùng `description`. */
+  contentBlocks?: unknown;
   aliases?: string[];
   imageUrl?: string | null;
   imageCaption?: string | null;

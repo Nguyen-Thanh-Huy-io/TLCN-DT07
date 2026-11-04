@@ -78,6 +78,7 @@
 .ce-section-number { font: 500 15px var(--ce-serif); color: var(--ce-accent); border-bottom: 1px solid var(--ce-accent); padding-bottom: 4px; }
 .ce-article h2 { font: 600 32px/1.25 var(--ce-serif); letter-spacing: -.5px; margin: 16px 0 24px; color: var(--ce-ink); }
 .ce-article p { font: 400 16px/1.95 var(--ce-sans); color: #4f5a50; margin: 0 0 22px; }
+.ce-bio-chapter { font: 600 20px var(--ce-serif); color: var(--ce-ink); margin: 0 0 14px; padding-top: 6px; }
 .ce-empty { font-style: italic; }
 
 .ce-entity-wrap { position: relative; display: inline; }
@@ -146,6 +147,13 @@
 .ce-context { border: 1px solid var(--ce-line); background: var(--ce-paper-strong); padding: 20px; border-radius: 8px; box-shadow: var(--ce-shadow); }
 .ce-context-title { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: 1px; color: var(--ce-accent); padding-bottom: 14px; border-bottom: 1px solid var(--ce-line); }
 .ce-context-title svg { width: 15px; }
+.ce-context h3 { margin: 0 0 4px; font: 600 18px var(--ce-serif); color: var(--ce-ink); text-align: center; padding-bottom: 14px; border-bottom: 1px solid var(--ce-line); }
+.ce-infobox dl { margin: 10px 0 0; }
+.ce-infobox-row { display: flex; gap: 14px; padding: 9px 0; border-bottom: 1px solid var(--ce-line); font-size: 13px; }
+.ce-infobox-row:last-child { border-bottom: none; }
+.ce-infobox-row dt { flex: none; width: 92px; color: var(--ce-muted); font-weight: 600; }
+.ce-infobox-row dd { margin: 0; flex: 1; color: var(--ce-ink); line-height: 1.5; }
+.ce-infobox-row dd a { color: var(--ce-accent); }
 .ce-meta-row { display: flex; gap: 12px; padding: 16px 0 0; }
 .ce-meta-row > svg { width: 18px; color: var(--ce-gold); }
 .ce-meta-row > span { display: flex; flex-direction: column; gap: 5px; }
@@ -220,3 +228,10 @@
   .ce-context-quote { padding: 22px; }
   .ce-context-quote blockquote { font-size: 16px; }
 }
+
+/* ---------- Nội dung dạng khối (Block Builder): kế thừa typography ce-article, chỉ chỉnh khoảng cách.
+   Dùng chung cho Tiểu sử nhân vật (/nhan-vat) và Diễn biến sự kiện (/su-kien). ---------- */
+.ce-bio-blocks h2 { font: 600 20px var(--ce-serif); color: var(--ce-ink); margin: 28px 0 12px; }
+.ce-bio-blocks h3 { font: 600 17px var(--ce-serif); color: var(--ce-ink); margin: 22px 0 10px; }
+.ce-bio-blocks p { font: 400 15.5px/1.85 var(--ce-sans); color: #40493f; margin: 0 0 14px; }
+.ce-bio-blocks > *:first-child { margin-top: 0; }

@@ -183,11 +183,15 @@ function Article({ model }: { model: EventReaderModel }) {
       )}
       {model.sections.map((s, i) => (
         <Section key={s.id} id={s.id} eyebrow={String(i + 1).padStart(2, "0")} title={s.title}>
-          {s.paragraphs.map((p) => (
-            <p key={p.slice(0, 40)}>
-              <MentionText text={p} mentions={model.mentions} />
-            </p>
-          ))}
+          {s.html ? (
+            <div className="ce-bio-blocks" dangerouslySetInnerHTML={{ __html: s.html }} />
+          ) : (
+            s.paragraphs.map((p) => (
+              <p key={p.slice(0, 40)}>
+                <MentionText text={p} mentions={model.mentions} />
+              </p>
+            ))
+          )}
           {s.id === SECTION_ID_DEVELOPMENTS && model.dateNote && (
             <div className="ce-context-quote">
               <Quote />

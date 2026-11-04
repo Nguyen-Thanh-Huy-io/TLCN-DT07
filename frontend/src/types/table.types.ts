@@ -21,6 +21,8 @@ export interface DataTableProps<T> {
   filters?: DataTableFilter[];
   primaryButtonLabel?: string;
   onPrimaryButtonClick?: () => void;
+  /** Nút hoặc menu tùy biến thay thế primary button đơn */
+  customPrimaryAction?: React.ReactNode;
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
   onView?: (item: T) => void;

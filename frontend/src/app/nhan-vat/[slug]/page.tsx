@@ -5,10 +5,8 @@ import {
   fetchFigureDirectory,
   fetchPeriods,
 } from '@/services/entities/landing.service';
-import { PublicDetailLayout, PublicLessonCard } from '@/components/hisgo/PublicDetailView';
-import { Header } from '@/components/hisgo/Header';
-import { Footer } from '@/components/hisgo/Footer';
-import { FigureFullProfile } from '@/components/figures/FigureFullProfile';
+import { PublicDetailLayout } from '@/components/hisgo/PublicDetailView';
+import { FigureDetailView } from '@/components/figure-detail/FigureDetailView';
 import { buildFigureViews } from '@/components/figures/figure-utils';
 
 export default async function FigureDetailPage({
@@ -57,40 +55,11 @@ export default async function FigureDetailPage({
             {detail.description || detail.tagline}
           </p>
         </section>
-        {detail.lessons.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-2xl font-bold text-[#7A1E1E] border-b border-[#D8C7A6] pb-2">
-              Bài học Lịch sử liên quan ({detail.lessons.length})
-            </h2>
-            <div className="space-y-6">
-              {detail.lessons.map((lesson) => (
-                <PublicLessonCard key={lesson.id} lesson={lesson} />
-              ))}
-            </div>
-          </section>
-        )}
       </PublicDetailLayout>
     );
   }
 
   return (
-    <div className="bg-[#F5EFE1] min-h-screen pb-16">
-      <Header />
-      <FigureFullProfile figure={figure} directory={directory} periods={periods} />
-
-      {detail.lessons.length > 0 && (
-        <section className="mx-auto max-w-[900px] px-8 space-y-4">
-          <h2 className="text-2xl font-bold text-[#7A1E1E] border-b border-[#D8C7A6] pb-2">
-            Bài học Lịch sử liên quan ({detail.lessons.length})
-          </h2>
-          <div className="space-y-6">
-            {detail.lessons.map((lesson) => (
-              <PublicLessonCard key={lesson.id} lesson={lesson} />
-            ))}
-          </div>
-        </section>
-      )}
-      <Footer />
-    </div>
+    <FigureDetailView figure={figure} directory={directory} periods={periods} lessons={detail.lessons} />
   );
 }

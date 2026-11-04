@@ -9,12 +9,8 @@ import {
 } from '@/services/entities/learning-path.service';
 import { LessonItem } from '@/types/models/lesson.type';
 import { QuizItem, QuizQuestionType } from '@/features/lessons/types/quiz.types';
-import { LessonBlockType } from '@/features/lessons/types/block-palette.types';
-import {
-  LessonBlockItem,
-  ResourceLinkBlockData,
-} from '@/features/lessons/types/block-builder.types';
-import { buildLessonTocAndHtml, LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
+import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
+import { buildLessonTocAndHtml, LessonTocEntry, normalizeContentToBlocks } from '@/features/lessons/utils/lesson-toc.util';
 import {
   prepareQuizSessionForLearner,
   QuizGradingStrategyRegistry,
@@ -39,50 +35,6 @@ export interface AdjacentLessonLink {
   title: string;
   slug: string;
   chapterTitle: string;
-}
-
-function normalizeContentToBlocks(rawContent: any): {
-  blocks: LessonBlockItem[];
-  resourceLinks: ResourceLinkBlockData[];
-} {
-  let items: LessonBlockItem[] = [];
-  if (Array.isArray(rawContent)) {
-    items = rawContent;
-  } else if (typeof rawContent === 'string' && rawContent.trim().length > 0) {
-    try {
-      const parsed = JSON.parse(rawContent);
-      if (Array.isArray(parsed)) {
-        items = parsed;
-      } else {
-        items = [
-          {
-            id: 'text_fallback',
-            type: LessonBlockType.TEXT,
-            content: rawContent,
-          },
-        ];
-      }
-    } catch {
-      items = [
-        {
-          id: 'text_fallback',
-          type: LessonBlockType.TEXT,
-          content: rawContent,
-        },
-      ];
-    }
-  }
-
-  const blocks: LessonBlockItem[] = [];
-  const resourceLinks: ResourceLinkBlockData[] = [];
-  for (const item of items) {
-    if (item.type === LessonBlockType.RESOURCE_LINK) {
-      resourceLinks.push(item as ResourceLinkBlockData);
-    } else {
-      blocks.push(item);
-    }
-  }
-  return { blocks, resourceLinks };
 }
 
 export function usePublicLessonReaderFacade(slug: string, pathId?: string | null) {

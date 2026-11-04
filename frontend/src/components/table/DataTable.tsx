@@ -14,6 +14,7 @@ export function DataTable<T extends object>({
   filters = [],
   primaryButtonLabel,
   onPrimaryButtonClick,
+  customPrimaryAction,
   onEdit,
   onDelete,
   onView,
@@ -96,7 +97,9 @@ export function DataTable<T extends object>({
             ))}
           </div>
         )}
-        {primaryButtonLabel && onPrimaryButtonClick && (
+        {customPrimaryAction ? (
+          <div className="ml-auto">{customPrimaryAction}</div>
+        ) : primaryButtonLabel && onPrimaryButtonClick ? (
           <button
             type="button"
             className="primary-button ml-auto !h-9 !px-3.5 !text-xs sm:!text-sm font-bold"
@@ -105,7 +108,7 @@ export function DataTable<T extends object>({
             <Icon name={IconName.PLUS} size={15} />
             <span>{primaryButtonLabel}</span>
           </button>
-        )}
+        ) : null}
       </div>
 
       {/* Batch Actions Floating Toolbar */}

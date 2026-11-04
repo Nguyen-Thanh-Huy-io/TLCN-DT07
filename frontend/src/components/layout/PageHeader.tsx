@@ -214,12 +214,19 @@ export function PageHeader({ pathname }: { pathname: string }) {
   const cleanPath = pathname.replace(/\/$/, '') || '/';
 
   // In Curriculum Workspace, Lesson Editor & Topic Editor, omit the large header to maximize vertical editor space
+  // Also omit for entity/event/location editors because EntityDetailLayout already renders its own comprehensive header and breadcrumbs.
   if (
     cleanPath === APP_ROUTES.CURRICULUM ||
     cleanPath === APP_ROUTES.LESSONS.CREATE ||
     cleanPath.startsWith('/lessons/') ||
     cleanPath === APP_ROUTES.TOPICS.CREATE ||
-    cleanPath.startsWith('/topics/')
+    cleanPath.startsWith('/topics/') ||
+    cleanPath === APP_ROUTES.ENTITIES.CREATE ||
+    cleanPath.startsWith('/entities/') ||
+    cleanPath === APP_ROUTES.EVENTS.CREATE ||
+    cleanPath.startsWith('/events/') ||
+    cleanPath === APP_ROUTES.LOCATIONS.CREATE ||
+    cleanPath.startsWith('/locations/')
   ) {
     return null;
   }

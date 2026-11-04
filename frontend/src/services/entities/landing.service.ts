@@ -334,6 +334,8 @@ export interface PublicEventParticipantDto {
 
 export interface PublicEventDetailDto extends PublicEventSummaryDto {
   summary: string | null;
+  /** Nội dung diễn biến dạng Block Builder (giống Lesson.content); null = chưa có, dùng `description`. */
+  contentBlocks?: unknown;
   startMonth: number | null;
   startDay: number | null;
   endYear: number | null;
@@ -528,6 +530,8 @@ export interface PublicFigureProfileDto extends PublicFigureDto {
   birthDateLabel: string | null;
   deathDateLabel: string | null;
   biography: string | null;
+  /** Nội dung tường thuật dạng Block Builder (giống Lesson.content); null = chưa có, dùng `biography`. */
+  contentBlocks?: unknown;
   occupation: string | null;
   titles: string[];
   sources: string[];

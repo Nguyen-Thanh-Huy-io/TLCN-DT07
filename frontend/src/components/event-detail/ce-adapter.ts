@@ -16,6 +16,7 @@ import {
 } from "./ce-types";
 import type { TaxonomyTermItem } from "@/services/entities/taxonomy.service";
 import { eventCategoryLabel, eventRoleLabel, relationLabel } from "@/features/taxonomy/taxonomy-labels";
+import { buildLessonTocAndHtml, normalizeContentToBlocks } from "@/features/lessons/utils/lesson-toc.util";
 
 /** Giá trị danh mục dùng chung để gắn nhãn (loại sự kiện, vai trò); thiếu thì dùng nhãn cũ. */
 export interface EventReaderTaxonomy {
@@ -151,6 +152,10 @@ export function buildEventReaderModel(
   const descParagraphs = splitParagraphs(event.description);
   const outcomeParagraphs = splitParagraphs(event.outcome);
   const relationLinks = buildRelationLinks(event, taxonomy.relations ?? []);
+  // Diễn biến dạng khối (Block Builder — hỗ trợ ảnh/video/timeline...); rỗng thì rơi về
+  // paragraphs tách từ `description` thuần như trước (dữ liệu cũ/sự kiện chưa soạn khối).
+  const descBlocks = normalizeContentToBlocks(event.contentBlocks).blocks;
+  const descHtml = descBlocks.length > 0 ? buildLessonTocAndHtml(descBlocks).html : "";
 
   if (causeParagraphs.length) {
     sections.push({
@@ -160,11 +165,12 @@ export function buildEventReaderModel(
     });
   }
 
-  if (descParagraphs.length || event.children.length) {
+  if (descHtml || descParagraphs.length || event.children.length) {
     sections.push({
       id: "dien-bien",
       title: "Diễn biến lịch sử",
-      paragraphs: descParagraphs,
+      paragraphs: descHtml ? [] : descParagraphs,
+      html: descHtml || undefined,
       children: event.children.map((c) => ({
         id: c.id,
         title: c.title,

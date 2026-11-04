@@ -41,6 +41,8 @@ export interface ArticleSection {
   id: string;
   title: string;
   paragraphs: string[];
+  /** Nội dung đã biên dịch từ Block Builder — khi có, hiển thị thay cho `paragraphs`. */
+  html?: string;
   children?: ChildEventLink[];
   participants?: EntityMention[];
   sources?: string[];

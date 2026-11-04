@@ -1,10 +1,11 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { DataTable } from '@/components/table/DataTable';
 import { ContentCell } from '@/components/common/ContentCell';
 import { Badge } from '@/components/common/Badge';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
+import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import { ContentStatus, EntityType } from '@/constants/enums';
@@ -24,6 +25,13 @@ const ENTITY_TYPE_LABEL_MAP: Record<EntityType, string> = {
   [EntityType.OTHER]: 'Khác',
 };
 
+const CREATABLE_ENTITY_TYPES: Array<{ type: EntityType; label: string; desc: string }> = [
+  { type: EntityType.PERSON, label: 'Nhân vật lịch sử', desc: 'Vua chúa, tướng lĩnh, anh hùng, danh nhân...' },
+  { type: EntityType.DYNASTY, label: 'Triều đại / Quốc gia', desc: 'Các triều đại, nhà nước, thể chế...' },
+  { type: EntityType.ORGANIZATION, label: 'Tổ chức / Liên minh', desc: 'Đảng phái, hội đồng, liên minh...' },
+  { type: EntityType.MILITARY_FORCE, label: 'Lực lượng quân sự', desc: 'Binh đoàn, cánh quân, nghĩa quân...' },
+  { type: EntityType.ARTIFACT, label: 'Hiện vật / Bảo vật', desc: 'Bảo vật quốc gia, cổ vật, vũ khí...' },
+];
 
 export function EntityList() {
   const router = useRouter();
@@ -32,6 +40,22 @@ export function EntityList() {
   const [deletingEntity, setDeletingEntity] =
     useState<HistoricalEntityItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
+  const createMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (createMenuRef.current && !createMenuRef.current.contains(e.target as Node)) {
+        setIsCreateMenuOpen(false);
+      }
+    };
+    if (isCreateMenuOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isCreateMenuOpen]);
 
   useEffect(() => {
     HistoricalEntityApiService.getEntities({ limit: 50 })
@@ -123,16 +147,70 @@ export function EntityList() {
     return <div style={{ padding: 20 }}>Đang tải danh sách thực thể lịch sử...</div>;
   }
 
+  const renderCreateMenu = () => (
+    <div className="relative inline-block text-left" ref={createMenuRef}>
+      <button
+        type="button"
+        className="primary-button !h-9 !px-3.5 !text-xs sm:!text-sm font-bold flex items-center gap-1.5 shadow-sm"
+        onClick={() => setIsCreateMenuOpen((prev) => !prev)}
+      >
+        <Icon name={IconName.PLUS} size={15} />
+        <span>+ Thêm thực thể</span>
+        <span className="text-[10px] ml-0.5 opacity-80">▼</span>
+      </button>
+
+      {isCreateMenuOpen && (
+        <div className="absolute right-0 mt-1.5 w-64 rounded-xl bg-white shadow-xl border border-slate-200 z-50 py-1.5 text-xs animate-in fade-in zoom-in-95 duration-100">
+          <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+            Chọn loại thực thể muốn tạo
+          </div>
+          {CREATABLE_ENTITY_TYPES.map((item) => (
+            <button
+              key={item.type}
+              type="button"
+              className="w-full text-left px-3.5 py-2.5 hover:bg-amber-50/80 transition flex flex-col group cursor-pointer"
+              onClick={() => {
+                setIsCreateMenuOpen(false);
+                router.push(`${APP_ROUTES.ENTITIES.CREATE}?type=${item.type}`);
+              }}
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="font-bold text-slate-800 group-hover:text-amber-900">
+                  {item.label}
+                </span>
+                <span className="text-slate-300 group-hover:text-amber-600 font-bold">
+                  →
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-400 mt-0.5 leading-snug line-clamp-1">
+                {item.desc}
+              </span>
+            </button>
+          ))}
+          <div className="border-t border-slate-100 mt-1 pt-1">
+            <button
+              type="button"
+              className="w-full text-left px-3.5 py-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 text-[11px] font-medium transition cursor-pointer"
+              onClick={() => {
+                setIsCreateMenuOpen(false);
+                router.push(APP_ROUTES.ENTITIES.CREATE);
+              }}
+            >
+              Chưa xác định loại (Chọn sau trong form)
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
       <DataTable<HistoricalEntityItem>
         columns={columns}
         data={entities}
         searchPlaceholder="Tìm kiếm nhân vật, triều đại, hiện vật lịch sử..."
-        primaryButtonLabel="Tạo mới thực thể"
-        onPrimaryButtonClick={() => {
-          router.push(APP_ROUTES.ENTITIES.CREATE);
-        }}
+        customPrimaryAction={renderCreateMenu()}
         onView={(item) => {
           router.push(APP_ROUTES.ENTITIES.DETAIL(item.id));
         }}

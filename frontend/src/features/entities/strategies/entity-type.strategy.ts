@@ -186,13 +186,13 @@ export class LocationEntityStrategy implements EntityTypeStrategy {
     chronologyHeader: 'Niên đại khởi dựng / Tồn tại',
     chronologyHint: 'Mốc thời gian xây dựng, thành lập hoặc niên đại khảo cổ phát hiện',
     startYearLabel: 'Năm khởi dựng / Xây dựng',
-    endYearLabel: 'Năm kết thúc / Hiện trạng',
+    endYearLabel: 'Năm biến mất / Phá hủy (nếu có)',
     startDateLabel: 'Thời điểm khởi dựng (dạng chữ)',
-    endDateLabel: 'Thời điểm kết thúc / Tu bổ (dạng chữ)',
+    endDateLabel: 'Thời điểm biến mất / Mốc tu bổ lớn (dạng chữ)',
     startYearPlaceholder: '1010',
-    endYearPlaceholder: '',
+    endYearPlaceholder: 'Để trống nếu còn tồn tại đến nay',
     startDatePlaceholder: 'Mùa thu năm Canh Tuất (1010)...',
-    endDatePlaceholder: 'Vẫn còn tồn tại và được bảo tồn...',
+    endDatePlaceholder: 'Để trống nếu còn tồn tại hoặc ghi mốc tu bổ...',
   };
 
   readonly relationsConfig = {

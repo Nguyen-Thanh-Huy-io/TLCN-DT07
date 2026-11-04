@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { TopicCoverImagePicker } from '@/features/topics/components/TopicCoverImagePicker';
 import { TaxonomySelect } from '@/features/taxonomy/TaxonomySelect';
 import { TaxonomyGroupItem } from '@/services/entities/taxonomy.service';
@@ -133,6 +133,26 @@ export function EntityBasicInfoStep({
   const [isCustomDateTextOpen, setIsCustomDateTextOpen] = useState(
     () => Boolean(birthDateLabel.trim()) || Boolean(deathDateLabel.trim()),
   );
+
+  // Tìm kiếm và chọn thời kỳ lịch sử
+  const [periodSearch, setPeriodSearch] = useState('');
+  const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false);
+
+  const filteredPeriods = useMemo(() => {
+    const q = periodSearch.trim().toLowerCase();
+    const unselected = periods.filter((p) => !periodIds.includes(p.id));
+    if (!q) {
+      return unselected.slice(0, 8);
+    }
+    return unselected
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.startYear && String(p.startYear).includes(q)) ||
+          (p.endYear && String(p.endYear).includes(q)),
+      )
+      .slice(0, 10);
+  }, [periods, periodIds, periodSearch]);
 
   return (
     <div className="space-y-5">
@@ -400,7 +420,7 @@ export function EntityBasicInfoStep({
         </div>
       )}
 
-      {/* 5. Thời kỳ & Niên đại (Gom gọn gàng) */}
+      {/* 5. Thời kỳ & Niên đại (Tìm kiếm Autocomplete + Khối Niên đại rõ ràng) */}
       <div className="pt-5 border-t border-slate-200/80 space-y-4">
         {/* Header mục thời kỳ */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 pb-1">
@@ -410,7 +430,7 @@ export function EntityBasicInfoStep({
               Thời kỳ & Giai đoạn lịch sử
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Chọn các thời kỳ / giai đoạn lịch sử mà {strategy.targetName} gắn liền.
+              Tìm kiếm và gắn các thời kỳ / triều đại lịch sử liên quan đến {strategy.targetName}.
             </p>
           </div>
           {periodIds.length > 0 && (
@@ -420,86 +440,159 @@ export function EntityBasicInfoStep({
           )}
         </div>
 
-        {/* Danh sách chip thời kỳ */}
+        {/* Khung Autocomplete tìm kiếm + Danh sách thời kỳ đã chọn */}
         <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/70 space-y-3">
-          <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto pr-1">
-            {periods.map((p) => {
-              const isSelected = periodIds.includes(p.id);
-              const isPrimary = periodId === p.id;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => {
-                    if (isSelected) {
-                      const next = periodIds.filter((id) => id !== p.id);
-                      onPeriodIdsChange(next);
-                      if (periodId === p.id) {
-                        onPeriodIdChange(next.length > 0 ? next[0] : '');
-                      }
-                    } else {
-                      const next = [...periodIds, p.id];
-                      onPeriodIdsChange(next);
-                      if (!periodId) onPeriodIdChange(p.id);
-                    }
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition inline-flex items-center gap-1.5 cursor-pointer ${
-                    isPrimary
-                      ? 'bg-amber-600 text-white border-amber-600 font-bold shadow-2xs'
-                      : isSelected
-                      ? 'bg-amber-100/90 text-amber-900 border-amber-300 font-semibold'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300 hover:bg-amber-50/50'
-                  }`}
-                >
-                  <span>{p.name}</span>
-                  {p.startYear && (
-                    <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded ${
-                        isPrimary
-                          ? 'bg-amber-700/80 text-amber-100'
-                          : isSelected
-                          ? 'bg-amber-200/70 text-amber-800'
-                          : 'bg-slate-100 text-slate-500'
-                      }`}
+          {/* Ô tìm kiếm Autocomplete */}
+          <div className="relative">
+            <input
+              type="text"
+              value={periodSearch}
+              onChange={(e) => {
+                setPeriodSearch(e.target.value);
+                setIsPeriodDropdownOpen(true);
+              }}
+              onFocus={() => setIsPeriodDropdownOpen(true)}
+              placeholder="🔍 Gõ tên hoặc năm để tìm thời kỳ (VD: Nhà Trần, 1945, Kháng chiến...)"
+              className="w-full text-xs px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 transition shadow-2xs"
+            />
+            {periodSearch && (
+              <button
+                type="button"
+                onClick={() => setPeriodSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+              >
+                ✕
+              </button>
+            )}
+
+            {/* Dropdown danh sách thời kỳ tìm được */}
+            {isPeriodDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setIsPeriodDropdownOpen(false)}
+                />
+                <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden max-h-56 overflow-y-auto divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-3 py-1.5 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>Gợi ý thời kỳ ({filteredPeriods.length})</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsPeriodDropdownOpen(false)}
+                      className="text-slate-400 hover:text-slate-700 font-bold"
                     >
-                      {p.startYear} - {p.endYear || '?'}
-                    </span>
+                      Đóng ✕
+                    </button>
+                  </div>
+                  {filteredPeriods.length === 0 ? (
+                    <div className="p-3 text-center text-xs text-slate-500">
+                      Không tìm thấy thời kỳ nào phù hợp với &quot;{periodSearch}&quot;
+                    </div>
+                  ) : (
+                    filteredPeriods.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          const next = [...periodIds, p.id];
+                          onPeriodIdsChange(next);
+                          if (!periodId) onPeriodIdChange(p.id);
+                          setPeriodSearch('');
+                          setIsPeriodDropdownOpen(false);
+                        }}
+                        className="w-full px-3.5 py-2 text-left hover:bg-amber-50/60 flex items-center justify-between text-xs transition cursor-pointer"
+                      >
+                        <span className="font-semibold text-slate-800">{p.name}</span>
+                        {p.startYear && (
+                          <span className="text-[11px] font-mono text-slate-400 font-normal">
+                            {p.startYear} – {p.endYear || '?'}
+                          </span>
+                        )}
+                      </button>
+                    ))
                   )}
-                  {isSelected && (
-                    <span className="text-xs leading-none ml-0.5">
-                      {isPrimary ? '★' : '✓'}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Đặt thời kỳ trọng tâm / chính */}
-          {periodIds.length > 0 && (
-            <div className="pt-2 border-t border-slate-200/60 flex flex-col sm:flex-row sm:items-center gap-2">
-              <span className="text-[11px] font-semibold text-slate-600">
-                Thời kỳ tiêu biểu nhất (Chính):
-              </span>
-              <select
-                value={periodId}
-                onChange={(e) => onPeriodIdChange(e.target.value)}
-                className="text-xs font-semibold px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-amber-900 focus:outline-none focus:border-amber-500"
-              >
-                {periodIds.map((pid) => {
-                  const matched = periods.find((p) => p.id === pid);
-                  return (
-                    <option key={pid} value={pid}>
-                      ★ {matched?.name || pid}
-                    </option>
-                  );
-                })}
-              </select>
-              <span className="text-[11px] text-slate-400">
-                (Dùng làm mốc phân loại ưu tiên trên danh mục)
+          {/* Danh sách các thời kỳ ĐÃ ĐƯỢC CHỌN (Gọn gàng, không bị phình giao diện) */}
+          <div className="pt-1">
+            <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <span>Thời kỳ đã liên kết:</span>
+              <span className="font-normal text-slate-400">
+                (Bấm ★ để chọn làm thời kỳ chính)
               </span>
             </div>
-          )}
+
+            {periodIds.length === 0 ? (
+              <div className="p-3 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-400 bg-white/50">
+                Chưa có thời kỳ nào được chọn. Gõ vào ô tìm kiếm ở trên để gắn thời kỳ cho {strategy.targetName}.
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {periodIds.map((pid) => {
+                  const p = periods.find((item) => item.id === pid);
+                  const isPrimary = periodId === pid;
+                  return (
+                    <div
+                      key={pid}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition shadow-2xs ${
+                        isPrimary
+                          ? 'bg-amber-600 text-white border-amber-600 font-semibold'
+                          : 'bg-white text-slate-800 border-slate-200 hover:border-amber-300'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onPeriodIdChange(pid)}
+                        className={`text-xs transition cursor-pointer ${
+                          isPrimary
+                            ? 'text-amber-200 hover:text-white'
+                            : 'text-slate-300 hover:text-amber-600'
+                        }`}
+                        title={isPrimary ? 'Đang là thời kỳ tiêu biểu chính' : 'Bấm để đặt làm thời kỳ chính'}
+                      >
+                        {isPrimary ? '★' : '☆'}
+                      </button>
+
+                      <span className="font-medium">{p?.name || pid}</span>
+
+                      {p?.startYear && (
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                            isPrimary
+                              ? 'bg-amber-700/80 text-amber-100'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {p.startYear} - {p.endYear || '?'}
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = periodIds.filter((id) => id !== pid);
+                          onPeriodIdsChange(next);
+                          if (periodId === pid) {
+                            onPeriodIdChange(next.length > 0 ? next[0] : '');
+                          }
+                        }}
+                        className={`font-bold ml-1 transition cursor-pointer ${
+                          isPrimary
+                            ? 'text-amber-200 hover:text-white'
+                            : 'text-slate-400 hover:text-rose-600'
+                        }`}
+                        title="Gỡ thời kỳ này"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Khối Niên đại: 2 ô chính (Số năm) + toggle mở rộng chữ */}
@@ -546,7 +639,9 @@ export function EntityBasicInfoStep({
                 className="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 transition"
               />
               <span className="text-[10px] text-slate-400 block">
-                Để trống nếu chưa rõ hoặc vẫn còn hoạt động/tồn tại
+                {type === EntityType.LOCATION
+                  ? 'Để trống nếu công trình vẫn còn tồn tại đến nay (tình trạng bảo tồn chọn ở mục trên)'
+                  : 'Để trống nếu chưa rõ hoặc vẫn còn hoạt động'}
               </span>
             </div>
           </div>

@@ -46,7 +46,6 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
   // Core Period State
   const [name, setName] = useState('');
   const [summary, setSummary] = useState(''); // Tóm tắt ngắn 150-250 ký tự cho thẻ Timeline/Card
-  const [primaryStream, setPrimaryStream] = useState<'VIETNAM' | 'WORLD'>('VIETNAM'); // Tuyến chính để phân tab
   const [parentId, setParentId] = useState<string>('');
   const [startYear, setStartYear] = useState<number | ''>('');
   const [endYear, setEndYear] = useState<number | ''>('');
@@ -105,11 +104,6 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
         setTimeLabel(data.timeLabel || '');
         const currentRegion = data.region || 'Việt Nam';
         setRegion(currentRegion);
-        if (currentRegion.toLowerCase().includes('thế giới') || currentRegion.toLowerCase().includes('châu')) {
-          setPrimaryStream('WORLD');
-        } else {
-          setPrimaryStream('VIETNAM');
-        }
 
         // Tách lead summary và detailed description nếu có
         if (data.description) {
@@ -268,7 +262,7 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
       startYear: startYear !== '' ? Number(startYear) : null,
       endYear: endYear !== '' ? Number(endYear) : null,
       timeLabel: timeLabel.trim() || undefined,
-      region: region.trim() || (primaryStream === 'VIETNAM' ? 'Việt Nam' : 'Thế giới'),
+      region: region.trim() || 'Việt Nam',
       description: combinedDescription || undefined,
       coverImageUrl: visualMode === 'IMAGE' ? (coverImageUrl.trim() || undefined) : undefined,
       displayOrder: Number(displayOrder) || 0,
@@ -303,48 +297,12 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
       id: 'general-info',
       stepNumber: 1,
       title: 'Thông tin chung & Niên đại',
-      subtitle: 'Tên thời kỳ, tuyến phân loại, tóm tắt cốt lõi, khung niên đại và nhận diện trực quan.',
+      subtitle: 'Tên thời kỳ, tóm tắt cốt lõi, khung niên đại, khu vực và nhận diện trực quan.',
       icon: IconName.TAG,
       content: (
         <div className="space-y-6">
-          {/* 1. Tuyến lịch sử chính & Tên thời kỳ & Phân cấp */}
+          {/* 1. Tên thời kỳ & Phân cấp & Tóm tắt ngắn */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200">
-              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <span>🧭</span> Tuyến lịch sử chủ đạo (Phân chia tab Timeline)
-              </span>
-              <div className="inline-flex rounded-xl bg-white p-1 border border-slate-200 shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPrimaryStream('VIETNAM');
-                    if (region === 'Thế giới') setRegion('Việt Nam');
-                  }}
-                  className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                    primaryStream === 'VIETNAM'
-                      ? 'bg-amber-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <span>🇻🇳</span> Lịch sử Việt Nam
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPrimaryStream('WORLD');
-                    if (region === 'Việt Nam') setRegion('Thế giới');
-                  }}
-                  className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                    primaryStream === 'WORLD'
-                      ? 'bg-stone-900 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <span>🌍</span> Lịch sử Thế giới
-                </button>
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               <div className="md:col-span-7">
                 <label className="block mb-1.5 text-xs font-bold text-slate-800">
@@ -902,7 +860,7 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
                 >
                   <span className="text-2xl">🏛️</span>
                   <span className="text-[10px] mt-1 font-semibold uppercase opacity-90 truncate max-w-full">
-                    {primaryStream === 'VIETNAM' ? 'Sử Việt' : 'Thế giới'}
+                    {region || 'Thời kỳ'}
                   </span>
                 </div>
               )}
@@ -910,7 +868,7 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                    {primaryStream === 'VIETNAM' ? '🇻🇳 Lịch sử Việt Nam' : '🌍 Lịch sử Thế giới'}
+                    Thời kỳ lịch sử
                   </span>
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-100 text-stone-800 border border-stone-300">
                     {region}

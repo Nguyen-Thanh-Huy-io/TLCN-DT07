@@ -68,3 +68,44 @@
 [id^="heading-"] {
   scroll-margin-top: 5.5rem;
 }
+
+/* Kiểu chữ chuẩn cho bài đọc lịch sử: Ngăn lỗi font tách dấu tiếng Việt trên Windows */
+.tiptap-content-box blockquote p,
+.tiptap-content-box blockquote,
+.tiptap-content-box .hisgo-story-chapter h2,
+.tiptap-content-box .story-chapter-spread h2 {
+  font-family: var(--font-merriweather), 'Noto Serif', Georgia, serif !important;
+}
+
+/* Khối văn bản đọc chuẩn báo chí (Editorial Typography & Comfortable line length) */
+.tiptap-content-box p {
+  line-height: 1.8;
+  margin-bottom: 1.15rem;
+  color: #292524;
+}
+
+.tiptap-content-box p.lead {
+  font-size: 1.15rem;
+  line-height: 1.85;
+  color: #1c1917;
+  font-weight: 500;
+  font-family: var(--font-merriweather), 'Noto Serif', Georgia, serif;
+}
+
+/* Khối câu chuyện lịch sử (Story Chapter) dạng tạp chí cao cấp */
+.hisgo-story-chapter {
+  background-color: #faf7f2;
+  box-shadow: 0 4px 20px -2px rgba(28, 25, 23, 0.05);
+}
+
+.story-quick-nav a:hover {
+  background-color: #f5f5f4 !important;
+  color: #854d0e !important;
+  border-color: #d6d3d1 !important;
+  transform: translateY(-1px);
+}
+
+.story-editorial-split figure img {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}

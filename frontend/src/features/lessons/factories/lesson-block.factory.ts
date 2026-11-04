@@ -436,7 +436,7 @@ export class LessonBlockFactory {
 
             const narrativeHtml = n.contentHtml
               ? `<div style="font-size: 15px; color: #1c1917; line-height: 1.65;">${n.contentHtml}</div>`
-              : `<div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px; font-family: serif;">${n.title}</div>
+              : `<div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px; font-family: var(--font-merriweather), 'Noto Serif', serif;">${n.title}</div>
                  <p style="font-size: 15px; color: #475569; margin: 0; line-height: 1.6;">${n.description}</p>`;
 
             const detailHtml = LessonBlockFactory.renderCollapsibleDetail(n.detailContent, 'Xem chi tiết diễn biến');
@@ -444,7 +444,7 @@ export class LessonBlockFactory {
             return `
             <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #e7e5e4;">
               <div style="margin-bottom: 8px;">
-                <span style="display: inline-block; background: #1c1917; color: #ffffff; font-family: serif; font-weight: 700; font-size: 13px; padding: 3px 10px; border-radius: 6px;">${n.year}</span>
+                <span style="display: inline-block; background: #1c1917; color: #ffffff; font-family: var(--font-merriweather), 'Noto Serif', serif; font-weight: 700; font-size: 13px; padding: 3px 10px; border-radius: 6px;">${n.year}</span>
               </div>
               ${narrativeHtml}
               ${thumbHtml}
@@ -455,7 +455,7 @@ export class LessonBlockFactory {
 
         return `
           <div class="hisgo-timeline-block my-6 p-5 bg-white border border-stone-200 rounded-2xl font-sans">
-            <h4 style="font-size: 20px; font-weight: 700; color: #1c1917; margin: 0 0 4px 0; font-family: serif;">
+            <h4 style="font-size: 20px; font-weight: 700; color: #1c1917; margin: 0 0 4px 0; font-family: var(--font-merriweather), 'Noto Serif', serif;">
               ${block.title}
             </h4>
             ${block.subtitle ? `<p style="font-size: 15px; color: #57534e; margin: 0 0 16px 0;">${block.subtitle}</p>` : ''}
@@ -484,7 +484,7 @@ export class LessonBlockFactory {
         return `
           <div class="hisgo-event-block my-6 p-4 bg-amber-50/60 border border-amber-200 rounded-2xl">
             <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #b45309; background: #fef3c7; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 6px;">MỐC LỊCH SỬ</span>
-            <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0; font-family: serif;">${block.title}</h3>
+            <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0; font-family: var(--font-merriweather), 'Noto Serif', serif;">${block.title}</h3>
             <div style="font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 8px;">${block.timeLocation}</div>
             <p style="font-size: 13px; color: #334155; line-height: 1.6; margin: 0;">${block.summary}</p>
             ${LessonBlockFactory.renderCollapsibleDetail(block.detailContent)}
@@ -612,11 +612,11 @@ export class LessonBlockFactory {
       case LessonBlockType.QUOTE: {
         const quote = block as QuoteBlockData;
         return `
-          <blockquote style="margin: 22px 0; padding: 16px 20px; background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 12px 12px 0;">
-            <p style="font-family: Georgia, Cambria, serif; font-style: italic; font-size: 15px; color: #1e293b; margin: 0 0 10px 0; line-height: 1.7;">“${quote.quoteText || ''}”</p>
-            <div style="font-size: 12px; font-weight: 600; color: #78350f; text-align: right;">
+          <blockquote style="margin: 24px 0; padding: 18px 24px; background: #fdfaf3; border-left: 4px solid #c2410c; border-radius: 0 14px 14px 0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+            <p style="font-family: var(--font-merriweather), 'Noto Serif', Georgia, serif; font-style: italic; font-size: 16px; color: #1c1917; margin: 0 0 12px 0; line-height: 1.75; letter-spacing: -0.01em;">“${quote.quoteText || ''}”</p>
+            <div style="font-size: 13px; font-weight: 600; color: #78350f; text-align: right; font-family: var(--font-be-vietnam-pro), sans-serif;">
               — <span>${quote.author || 'Khuyết danh'}</span>
-              ${quote.sourceContext ? `<span style="font-weight: normal; color: #92400e; font-style: italic;"> (${quote.sourceContext})</span>` : ''}
+              ${quote.sourceContext ? `<span style="font-weight: normal; color: #9a3412; font-style: italic;"> (${quote.sourceContext})</span>` : ''}
             </div>
           </blockquote>`;
       }
@@ -681,15 +681,16 @@ export class LessonBlockFactory {
           .slice()
           .sort((a, b) => a.order - b.order);
 
+        // Thanh điều hướng chương (Quick Chapter Navigator) dạng Pills tinh tế
         const tocHtml =
           sc.showToc !== false && chapters.length > 1
-            ? `<nav style="margin-bottom: 24px; padding: 12px 16px; background: #f5f1ea; border: 1px solid #e7e5e4; border-radius: 10px;">
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #78716c; margin-bottom: 8px;">Mục lục chương (${chapters.length} chương)</div>
-                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            ? `<nav class="story-quick-nav mb-8 p-3.5 bg-stone-100/70 border border-stone-200/80 rounded-xl">
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #78716c; margin-bottom: 8px;">Mục lục chương (${chapters.length} chương)</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                   ${chapters
                     .map(
                       (ch, i) => `
-                    <a href="#story-chap-${ch.id}" style="text-decoration: none; padding: 4px 10px; background: #ffffff; border: 1px solid #d6d3d1; border-radius: 6px; font-size: 12px; color: #1c1917; font-weight: 600;">
+                    <a href="#story-chap-${ch.id}" style="text-decoration: none; padding: 5px 12px; background: #ffffff; border: 1px solid #e7e5e4; border-radius: 9999px; font-size: 12px; color: #292524; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: all 0.15s ease;">
                       ${getChapterLabel(i)}: ${ch.title}
                     </a>`
                     )
@@ -701,24 +702,59 @@ export class LessonBlockFactory {
         const chaptersHtml = chapters
           .map((ch, idx) => {
             const chapterNumberLabel = getChapterLabel(idx);
-            const blocksHtml = (ch.blocks || [])
-              .map((child) => LessonBlockFactory.blockToHtml(child))
-              .join('');
+
+            // Bóc tách khối theo Zone (LEFT / RIGHT / FULL) để dàn trang báo chí nghệ thuật
+            const leftBlocks = (ch.blocks || []).filter((b) => b.zone === 'LEFT');
+            const rightBlocks = (ch.blocks || []).filter((b) => b.zone === 'RIGHT');
+            const fullBlocks = (ch.blocks || []).filter((b) => !b.zone || b.zone === 'FULL');
+
+            const hasTwoColumns = leftBlocks.length > 0 && rightBlocks.length > 0;
+            const ratioKey = ch.config?.layout?.columnRatio || '6_6';
+            const ratioGridClass =
+              ratioKey === '4_8'
+                ? { left: 'md:col-span-5 lg:col-span-4', right: 'md:col-span-7 lg:col-span-8' }
+                : ratioKey === '5_7'
+                ? { left: 'md:col-span-5', right: 'md:col-span-7' }
+                : ratioKey === '7_5'
+                ? { left: 'md:col-span-7', right: 'md:col-span-5' }
+                : ratioKey === '8_4'
+                ? { left: 'md:col-span-8', right: 'md:col-span-4' }
+                : { left: 'md:col-span-6', right: 'md:col-span-6' };
+
+            const renderZoneBlocks = (bList: LessonBlockItem[]) =>
+              bList.map((child) => LessonBlockFactory.blockToHtml(child)).join('\n');
+
+            let bodyHtml = '';
+            if (hasTwoColumns) {
+              bodyHtml = `
+                ${fullBlocks.length > 0 ? `<div class="story-full-zone space-y-4 mb-6">${renderZoneBlocks(fullBlocks)}</div>` : ''}
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start my-4">
+                  <div class="col-span-12 ${ratioGridClass.left} space-y-4">
+                    ${renderZoneBlocks(leftBlocks)}
+                  </div>
+                  <div class="col-span-12 ${ratioGridClass.right} space-y-4">
+                    ${renderZoneBlocks(rightBlocks)}
+                  </div>
+                </div>
+              `;
+            } else {
+              bodyHtml = `<div class="space-y-4">${renderZoneBlocks(ch.blocks || [])}</div>`;
+            }
 
             return `
-              <article id="story-chap-${ch.id}" style="${idx > 0 ? 'margin-top: 32px; padding-top: 28px; border-top: 1px solid #d6d3d1;' : ''}">
-                ${cfg.showChapterNumber ? `<div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #57534e; margin-bottom: 6px; font-family: serif;">${chapterNumberLabel}${ch.subtitle ? ` • ${ch.subtitle}` : ''}</div>` : ''}
-                <h2 style="font-size: 28px; font-weight: 700; font-family: serif; color: #1c1917; margin: 0 0 12px 0;">${ch.title}</h2>
-                <div style="margin-top: 12px;">${blocksHtml}</div>
+              <article id="story-chap-${ch.id}" class="story-chapter-spread" style="${idx > 0 ? 'margin-top: 40px; padding-top: 36px; border-top: 1px solid #e7e5e4;' : ''}">
+                ${cfg.showChapterNumber ? `<div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a16207; margin-bottom: 6px; font-family: var(--font-merriweather), 'Noto Serif', serif;">${chapterNumberLabel}${ch.subtitle ? ` • ${ch.subtitle}` : ''}</div>` : ''}
+                <h2 style="font-size: 26px; font-weight: 700; font-family: var(--font-merriweather), 'Noto Serif', serif; color: #1c1917; margin: 0 0 16px 0; line-height: 1.35;">${ch.title}</h2>
+                <div class="story-chapter-body">${bodyHtml}</div>
               </article>`;
           })
           .join('');
 
         return `
-          <section class="hisgo-story-chapter my-8 p-7 bg-[#faf7f2] border border-stone-200 rounded-2xl">
+          <section class="hisgo-story-chapter my-8 p-6 sm:p-9 bg-[#faf7f2] border border-stone-200/90 rounded-2xl shadow-2xs">
             ${tocHtml}
             ${chaptersHtml}
-            ${cfg.showReferenceSource && sc.referenceSource ? `<div style="margin-top: 20px; padding-top: 12px; border-top: 1px dashed #d6d3d1; font-size: 13px; color: #57534e; font-style: italic;">Nguồn tham khảo: ${sc.referenceSource}</div>` : ''}
+            ${cfg.showReferenceSource && sc.referenceSource ? `<div style="margin-top: 24px; padding-top: 14px; border-top: 1px dashed #d6d3d1; font-size: 13px; color: #78716c; font-style: italic;">Nguồn tham khảo: ${sc.referenceSource}</div>` : ''}
           </section>`;
       }
 

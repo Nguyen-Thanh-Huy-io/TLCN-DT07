@@ -1,6 +1,15 @@
 import { LessonBlockType } from '../types/block-palette.types';
-import { LessonBlockItem, ResourceLinkBlockData, RowSectionBlockData } from '../types/block-builder.types';
+import {
+  LessonBlockItem,
+  ResourceLinkBlockData,
+  RowSectionBlockData,
+  StoryChapterBlockData,
+} from '../types/block-builder.types';
 import { LessonBlockFactory } from '../factories/lesson-block.factory';
+import {
+  StoryChapterLayoutStrategy,
+  getChapterLabel,
+} from '../strategies/story-chapter-layout.strategy';
 
 /**
  * Chuẩn hóa `content` thô (mảng khối JSON, chuỗi JSON, hoặc chuỗi HTML cũ) thành danh sách
@@ -96,10 +105,43 @@ export function buildLessonTocAndHtml(
     });
   };
 
-  // Mọi khối khác: bọc 1 id neo quanh HTML đã biên dịch của khối đó, gắn kèm 1 mục lục
+  // Mọi khối khác: bọc id neo quanh HTML đã biên dịch của khối đó, gắn kèm mục lục tương ứng
   const renderBlockWithAnchor = (block: LessonBlockItem, level: number): string => {
     if (block.type === LessonBlockType.TEXT) {
       return renderTextBlock(block.content);
+    }
+
+    // Khối Câu chuyện lịch sử (STORY_CHAPTER): Đưa cả Tiêu đề câu chuyện và từng Chương vào Mục lục
+    if (block.type === LessonBlockType.STORY_CHAPTER) {
+      const sc = block as StoryChapterBlockData;
+      const chapters = StoryChapterLayoutStrategy.normalizeStoryChapters(sc)
+        .slice()
+        .sort((a, b) => a.order - b.order);
+
+      anchorCount++;
+      const storyRootId = `story-root-${block.id || anchorCount}`;
+      const storyTitle = sc.storyTitle?.trim() || 'Câu chuyện lịch sử';
+
+      // 1. Mục cha (level 1): Tiêu đề câu chuyện
+      tocItems.push({
+        id: storyRootId,
+        text: storyTitle,
+        level: level,
+      });
+
+      // 2. Các mục con (level 2): Từng chương (Chương I, Chương II...)
+      chapters.forEach((ch, idx) => {
+        const chapterLabel = getChapterLabel(idx);
+        const chapTitle = ch.title?.trim() || `Chương ${idx + 1}`;
+        tocItems.push({
+          id: `story-chap-${ch.id}`,
+          text: `${chapterLabel}: ${chapTitle}`,
+          level: level + 1,
+        });
+      });
+
+      const html = LessonBlockFactory.blockToHtml(block);
+      return `<div id="${storyRootId}">${html}</div>`;
     }
 
     const html = LessonBlockFactory.blockToHtml(block);

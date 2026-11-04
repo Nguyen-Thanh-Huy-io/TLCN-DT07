@@ -60,3 +60,11 @@
 .lesson-yt-missing { display: grid; gap: 6px; text-align: center; color: var(--lh-muted); font-size: 13px; }
 .lesson-yt-missing strong { color: var(--lh-ink); font-size: 14px; }
 .lesson-yt-missing a { color: var(--lh-brand); font-weight: 600; }
+
+/* Neo cuộn mục lục (TOC Scroll Anchors): tránh bị thanh điều hướng che lấp tiêu đề khi bấm vào mục lục */
+[id^="story-chap-"],
+[id^="story-root-"],
+[id^="block-anchor-"],
+[id^="heading-"] {
+  scroll-margin-top: 5.5rem;
+}

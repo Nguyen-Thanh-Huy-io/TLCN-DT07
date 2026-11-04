@@ -34,6 +34,10 @@ export interface PeriodEditorProps {
   periodId?: string;
 }
 
+const SKELETON_OVERVIEW = `<h2>1. Bối cảnh lịch sử & Không gian địa lý</h2><p>Khái quát về bối cảnh hình thành, cương thổ và điều kiện tự nhiên - xã hội trong giai đoạn này...</p><h2>2. Đặc trưng kinh tế - văn hóa & Đời sống xã hội</h2><p>Các chuyển biến về thể chế, sản xuất nông nghiệp/thương mại, tín ngưỡng và văn hóa chủ đạo...</p><h2>3. Vị trí thời đại & Ý nghĩa lịch sử</h2><p>Đóng góp của thời kỳ đối với tiến trình phát triển chung của dân tộc hoặc khu vực...</p>`;
+
+const SKELETON_MILESTONES = `<h2>1. Sự kiện mở đầu & Xác lập kỷ nguyên</h2><p>Nguyên nhân và biến cố lịch sử đánh dấu sự bắt đầu của thời kỳ này...</p><h2>2. Các bước ngoặt & Diễn biến chủ đạo</h2><p>Tóm lược những xung đột, cải cách hoặc thành tựu nổi bật xuyên suốt thời gian tồn tại...</p><h2>3. Chuyển giao & Kết thúc</h2><p>Bối cảnh khép lại thời kỳ và mở ra giai đoạn lịch sử kế tiếp...</p>`;
+
 export function PeriodEditor({ periodId }: PeriodEditorProps) {
   const router = useRouter();
   const isEdit = Boolean(periodId);
@@ -432,13 +436,54 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
       id: 'content',
       stepNumber: 2,
       title: 'Tổng quan lịch sử',
-      subtitle: 'Soạn thảo bối cảnh lịch sử, ý nghĩa và diễn biến chủ đạo của thời kỳ.',
+      subtitle:
+        'Khái quát bối cảnh xã hội, chính trị và đặc điểm chung của lát cắt thời gian này.',
       icon: IconName.BOOK,
       content: (
         <div className="space-y-3">
-          <label className="block text-xs font-bold text-slate-800">
-            Nội dung bài viết tổng quan <span className="text-rose-500">*</span>
-          </label>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <label className="block text-xs font-bold text-slate-800">
+                Nội dung bài viết tổng quan về thời kỳ <span className="text-rose-500">*</span>
+              </label>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Thời kỳ là &ldquo;cái hộp thời gian&rdquo; quy ước chứa đựng mọi diễn biến, nhân vật và di tích bên trong.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-slate-400 font-medium">Gợi ý dàn bài:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    description &&
+                    !confirm('Chèn dàn ý mẫu sẽ thay thế nội dung hiện tại. Bạn có chắc chắn không?')
+                  ) {
+                    return;
+                  }
+                  setDescription(SKELETON_OVERVIEW);
+                }}
+                className="text-xs px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition cursor-pointer"
+              >
+                + Bối cảnh & Ý nghĩa
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    description &&
+                    !confirm('Chèn dàn ý mẫu sẽ thay thế nội dung hiện tại. Bạn có chắc chắn không?')
+                  ) {
+                    return;
+                  }
+                  setDescription(SKELETON_MILESTONES);
+                }}
+                className="text-xs px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium transition cursor-pointer"
+              >
+                + Tiến trình mở - kết
+              </button>
+            </div>
+          </div>
           <TipTapContent
             value={description}
             onChange={setDescription}

@@ -34,7 +34,7 @@ describe('Navigation Strategy & Facade Pattern Suite (Section 7.1 Admin Areas)',
       NavigationPageKey.CURRICULUM, // 2. Quản lý bài học
       NavigationPageKey.EVENTS, // 3. Quản lý sự kiện lịch sử
       NavigationPageKey.ENTITIES, // 4. Quản lý nhân vật
-      NavigationPageKey.PERIODS, // 5. Quản lý triều đại, thời kỳ & văn minh
+      NavigationPageKey.PERIODS, // 5. Quản lý thời kỳ lịch sử
       NavigationPageKey.LOCATIONS, // 6. Quản lý địa danh và liên kết
       NavigationPageKey.MEDIA, // 7. Quản lý nguồn tư liệu và media
       NavigationPageKey.QUESTIONS, // 8. Ngân hàng câu hỏi

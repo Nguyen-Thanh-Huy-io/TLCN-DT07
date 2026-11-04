@@ -31,7 +31,7 @@ export const NAV_ITEM_LABELS = {
   EVENTS: 'Quản lý sự kiện lịch sử',
   FIGURES: 'Quản lý nhân vật lịch sử',
   ENTITIES: 'Quản lý thực thể khác (Triều đại, Hiện vật...)',
-  PERIODS: 'Quản lý triều đại, thời kỳ & văn minh',
+  PERIODS: 'Quản lý thời kỳ lịch sử',
   LOCATIONS: 'Quản lý địa danh và liên kết',
   USERS: 'Quản lý người dùng và phân quyền',
   SETTINGS: 'Cài đặt hệ thống',

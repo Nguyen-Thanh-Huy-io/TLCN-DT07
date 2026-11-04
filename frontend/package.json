@@ -1,0 +1,46 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "audit:dup": "jscpd src",
+    "audit:knip": "knip",
+    "audit": "npm run lint && npm run audit:dup && npm run audit:knip"
+  },
+  "dependencies": {
+    "@tiptap/extension-image": "^3.31.4",
+    "@tiptap/extension-link": "^3.31.4",
+    "@tiptap/extension-placeholder": "^3.31.4",
+    "@tiptap/extension-youtube": "^3.31.4",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/react": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
+    "axios": "^1.18.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^14.5.0",
+    "lucide-react": "^1.56.0",
+    "next": "16.3.6",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwind-merge": "^3.7.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.6",
+    "eslint-plugin-check-file": "^3.3.2",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "jscpd": "^5.3.3",
+    "knip": "^6.38.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

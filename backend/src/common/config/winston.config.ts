@@ -10,7 +10,6 @@ const transports: winston.transport[] = [
       winston.format.splat(),
       winston.format.colorize(),
       winston.format.printf(({ timestamp, level, message, context, trace }) => {
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-base-to-string
         return `${timestamp} [${context || 'Application'}] ${level}: ${message}${trace ? `\n${trace}` : ''}`;
       }),
     ),

@@ -1,0 +1,115 @@
+"use client";
+import React, { useState, useEffect } from "react";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Topbar } from "@/components/layout/Topbar";
+import { usePathname, useRouter } from "next/navigation";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { CmsAccessGate } from "@/components/layout/CmsAccessGate";
+import { FigureProfileProvider } from "@/components/figures/FigureProfileProvider";
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
+
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'hisgo_sidebar_collapsed';
+const STORAGE_VALUE_TRUE = 'true';
+const DASHBOARD_PAGE_KEY = 'dashboard';
+
+export function ClientLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [mobileNav, setMobileNav] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Restore collapsed state from localStorage on client-side mount
+  useEffect(() => {
+    try {
+      const savedState = localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY);
+      if (savedState !== null) {
+        setCollapsed(savedState === STORAGE_VALUE_TRUE);
+      }
+    } catch {
+      // Ignore localStorage errors in SSR or restricted environments
+    }
+  }, []);
+
+  const toggleCollapse = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(next));
+      } catch {
+        // Ignore
+      }
+      return next;
+    });
+  };
+
+  // If public HISGO route (Home, Styleguide, Login, or public user-facing pages), render standalone without CMS Admin Sidebar/Topbar
+  const isHisgoPublicRoute =
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname.startsWith("/login") ||
+    pathname === "/styleguide" ||
+    pathname.startsWith("/chuong-trinh-hoc") ||
+    pathname.startsWith("/bai-hoc") ||
+    pathname.startsWith("/dong-thoi-gian") ||
+    pathname.startsWith("/nhan-vat") ||
+    pathname.startsWith("/di-tich") ||
+    pathname.startsWith("/giai-doan") ||
+    pathname.startsWith("/su-kien") ||
+    pathname.startsWith("/heritage") ||
+    pathname.startsWith("/chuong-su") ||
+    pathname.startsWith("/kien-thuc") ||
+    pathname.startsWith("/dang-ky") ||
+    pathname.startsWith("/tai-khoan");
+  if (isHisgoPublicRoute) {
+    return (
+      <FigureProfileProvider>
+        {children}
+        <ScrollToTopButton />
+      </FigureProfileProvider>
+    );
+  }
+
+  // Derive the 'page' identifier from the first path segment only
+  let page = DASHBOARD_PAGE_KEY;
+  if (pathname !== "/") {
+    page = pathname.replace(/^\//, "").split("/")[0];
+  }
+
+  // Handle setPage triggered by Sidebar
+  const setPage = (newPage: string) => {
+    if (newPage === DASHBOARD_PAGE_KEY) {
+      router.push("/cms");
+    } else {
+      router.push(`/${newPage}`);
+    }
+    setMobileNav(false);
+  };
+
+  return (
+    <CmsAccessGate page={page}>
+    <div className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
+      <Sidebar
+        page={page}
+        setPage={setPage}
+        open={mobileNav}
+        close={() => setMobileNav(false)}
+        collapsed={collapsed}
+        toggleCollapse={toggleCollapse}
+      />
+      <div className="main-shell">
+        <Topbar
+          page={page}
+          openNav={() => setMobileNav(true)}
+          collapsed={collapsed}
+          toggleCollapse={toggleCollapse}
+        />
+        <main className="page">
+          <PageHeader pathname={pathname} />
+          {children}
+        </main>
+      </div>
+    </div>
+    <ScrollToTopButton />
+    </CmsAccessGate>
+  );
+}

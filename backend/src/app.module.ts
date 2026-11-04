@@ -12,6 +12,23 @@ import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './common/config/winston.config';
 import { LoggerModule } from './common/modules/logger.module';
 
+import { PeriodModule } from './period/period.module';
+import { TopicModule } from './topic/topic.module';
+import { LessonModule } from './lesson/lesson.module';
+import { HistoricalEventModule } from './historical-event/historical-event.module';
+import { TagModule } from './tag/tag.module';
+import { TaxonomyModule } from './taxonomy/taxonomy.module';
+import { ContentRevisionModule } from './content-revision/content-revision.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { UploadModule } from './upload/upload.module';
+import { LearningPathModule } from './learning-path/learning-path.module';
+import { HistoricalEntityModule } from './historical-entity/historical-entity.module';
+import { HistoricalStatementModule } from './historical-statement/historical-statement.module';
+import { HistoricalReferenceModule } from './historical-reference/historical-reference.module';
+import { PublicContentModule } from './public-content/public-content.module';
+import { QuizModule } from './quiz/quiz.module';
+import { LearnerModule } from './learner/learner.module';
+
 @Module({
   imports: [
     // Load environment variables globally
@@ -31,6 +48,22 @@ import { LoggerModule } from './common/modules/logger.module';
     MetricsModule,
     AuthModule,
     UserModule,
+    PeriodModule,
+    TopicModule,
+    LessonModule,
+    HistoricalEventModule,
+    TagModule,
+    TaxonomyModule,
+    ContentRevisionModule,
+    DashboardModule,
+    UploadModule,
+    LearningPathModule,
+    HistoricalEntityModule,
+    HistoricalStatementModule,
+    HistoricalReferenceModule,
+    PublicContentModule,
+    QuizModule,
+    LearnerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -8,7 +8,8 @@ export class GoogleOAuthInitDto {
   @ApiProperty({
     required: false,
     example: 'http://localhost:3000/dashboard',
-    description: 'Frontend URL to redirect to after successful Google authentication',
+    description:
+      'Frontend URL to redirect to after successful Google authentication',
   })
   @IsOptional()
   @IsUrl()

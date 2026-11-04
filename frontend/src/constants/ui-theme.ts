@@ -1,0 +1,133 @@
+import { ContentStatus, DifficultyLevel } from './enums';
+import { NavigationPageKey } from './routes';
+
+export type BadgeTone = 'green' | 'blue' | 'amber' | 'red' | 'gray';
+
+export const STATUS_TONE_MAP: Record<ContentStatus, BadgeTone> = {
+  [ContentStatus.DRAFT]: 'gray',
+  [ContentStatus.PENDING_REVIEW]: 'amber',
+  [ContentStatus.PUBLISHED]: 'green',
+  [ContentStatus.REJECTED]: 'red',
+  [ContentStatus.ARCHIVED]: 'gray',
+};
+
+export const STATUS_LABEL_MAP: Record<ContentStatus, string> = {
+  [ContentStatus.DRAFT]: 'Bản nháp',
+  [ContentStatus.PENDING_REVIEW]: 'Chờ duyệt',
+  [ContentStatus.PUBLISHED]: 'Xuất bản',
+  [ContentStatus.REJECTED]: 'Từ chối',
+  [ContentStatus.ARCHIVED]: 'Lưu trữ',
+};
+
+export const DIFFICULTY_TONE_MAP: Record<DifficultyLevel, BadgeTone> = {
+  [DifficultyLevel.EASY]: 'green',
+  [DifficultyLevel.MEDIUM]: 'blue',
+  [DifficultyLevel.HARD]: 'red',
+};
+
+export const DIFFICULTY_LABEL_MAP: Record<DifficultyLevel, string> = {
+  [DifficultyLevel.EASY]: 'Dễ',
+  [DifficultyLevel.MEDIUM]: 'Trung bình',
+  [DifficultyLevel.HARD]: 'Khó',
+};
+
+export const PATH_TYPE_LABEL_MAP: Record<string, string> = {
+  CHRONOLOGICAL: 'Niên đại',
+  THEMATIC: 'Chuyên đề',
+  MYTHOLOGICAL: 'Dã sử / Truyền thuyết',
+};
+
+export const PATH_TYPE_TONE_MAP: Record<string, BadgeTone> = {
+  CHRONOLOGICAL: 'blue',
+  THEMATIC: 'amber',
+  MYTHOLOGICAL: 'gray',
+};
+
+
+export interface PageMetaItem {
+  title: string;
+  subtitle: string;
+}
+
+export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
+  cms: {
+    title: 'Tổng quan',
+    subtitle: 'Quản lý nội dung học tập và chỉ số vận hành trên HISGO',
+  },
+  dashboard: {
+    title: 'Tổng quan',
+    subtitle: 'Quản lý nội dung học tập trên HISGO',
+  },
+  curriculum: {
+    title: 'Cây chương trình học',
+    subtitle: 'Cấu trúc phân cấp Giai đoạn ➔ Chủ đề ➔ Bài học & Quiz',
+  },
+  knowledge: {
+    title: 'Từ điển tri thức',
+    subtitle: 'Kho lưu trữ Địa danh, Nhân vật, Sự kiện và Thẻ phân loại',
+  },
+  periods: {
+    title: 'Giai đoạn lịch sử',
+    subtitle: 'Quản lý các giai đoạn lịch sử trong hệ thống',
+  },
+  topics: {
+    title: 'Chủ đề lịch sử',
+    subtitle: 'Tổ chức chủ đề theo từng giai đoạn lịch sử',
+  },
+  lessons: {
+    title: 'Bài học',
+    subtitle: 'Quản lý nội dung bài học lịch sử',
+  },
+  events: {
+    title: 'Sự kiện lịch sử',
+    subtitle: 'Quản lý các mốc sự kiện theo chủ đề',
+  },
+  locations: {
+    title: 'Địa danh lịch sử',
+    subtitle: 'Quản lý các địa danh, di tích và kinh đô lịch sử',
+  },
+  entities: {
+    title: 'Nhân vật lịch sử',
+    subtitle: 'Quản lý các nhân vật, triều đại và tổ chức lịch sử',
+  },
+  figures: {
+    title: 'Nhân vật lịch sử',
+    subtitle: 'Quản lý các nhân vật, triều đại và tổ chức lịch sử',
+  },
+  tags: {
+    title: 'Thẻ',
+    subtitle: 'Quản lý nhãn phân loại nội dung',
+  },
+  review: {
+    title: 'Duyệt bài học',
+    subtitle: 'Kiểm tra chất lượng trước khi xuất bản',
+  },
+  users: {
+    title: 'Người dùng',
+    subtitle: 'Quản lý tài khoản và phân quyền hệ thống',
+  },
+  taxonomies: {
+    title: 'Danh mục dùng chung',
+    subtitle: 'Loại di tích, hiện trạng, xếp hạng... dùng cho bộ lọc toàn hệ thống',
+  },
+  media: {
+    title: 'Quản lý nguồn tư liệu và media',
+    subtitle: 'Kho lưu trữ tập trung hình ảnh, tư liệu số và video lịch sử',
+  },
+  questions: {
+    title: 'Ngân hàng câu hỏi',
+    subtitle: 'Kho câu hỏi trắc nghiệm, tương tác và phân loại độ khó',
+  },
+  quizzes: {
+    title: 'Quản lý bộ Quiz',
+    subtitle: 'Cấu hình bộ đề ôn tập, kiểm tra và tiêu chí đánh giá theo bài học',
+  },
+  analytics: {
+    title: 'Thống kê học tập và hoạt động',
+    subtitle: 'Chỉ số tiến độ người học, hiệu suất bài học và nhật ký hệ thống',
+  },
+  settings: {
+    title: 'Cài đặt hệ thống',
+    subtitle: 'Cấu hình tham số hệ thống, kiểm duyệt và danh mục dùng chung',
+  },
+};

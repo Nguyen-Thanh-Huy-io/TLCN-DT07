@@ -1,24 +1,21 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Injectable } from '@nestjs/common';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { AuthUtilsService } from './services/auth-utils.service';
 import { AUTH_CONFIG } from './config/auth.config';
 import { PrismaService } from '../common/services/prisma.service';
-import { ActivityLogService } from '../common/services/activity-log.service';
 import { RedisService } from '../common/services/redis.service';
 import { EmailQueueService } from '../common/queues/email/email.queue';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import AppError from '../common/errors/app.error';
 import * as bcrypt from 'bcryptjs';
 import config from '../common/config/app.config';
+import { userRole } from '@prisma/client';
 import {
   ILoginResponse,
   IStoredRefreshToken,
   UserRole,
 } from './interfaces/auth.interface';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 
 @Injectable()
@@ -26,7 +23,6 @@ export class AuthService {
   constructor(
     private readonly authUtilsService: AuthUtilsService,
     private readonly prismaService: PrismaService,
-    private readonly activityLogService: ActivityLogService,
     private readonly redisService: RedisService,
     private readonly emailQueueService: EmailQueueService,
     private readonly customLogger: CustomLoggerService,
@@ -140,22 +136,6 @@ export class AuthService {
             userAgent: userAgent,
           },
         });
-
-        // Log user registration activity
-        await this.activityLogService.logCreate(
-          'authUser',
-          user.id,
-          {
-            email,
-            username,
-            role: 'USER',
-            status: 'ACTIVE',
-            verified: 'false',
-            provider: 'local',
-          },
-          { ip, userAgent, actionedBy: user.id, device },
-          tx,
-        );
 
         return user;
       },
@@ -274,22 +254,6 @@ export class AuthService {
         where: { id: user.id },
         data: { verified: true },
       });
-
-      // Log verification activity
-      await this.activityLogService.logCustomEvent(
-        'authUser',
-        user.id,
-        'profile_update',
-        { ip, userAgent, actionedBy: user.id },
-        [
-          {
-            fieldName: 'verified',
-            oldValue: 'false',
-            newValue: 'true',
-          },
-        ],
-        tx,
-      );
     });
 
     // Delete verification code from Redis
@@ -557,8 +521,9 @@ export class AuthService {
       throw invalidCredentialsError;
     }
 
-    // Check email verification
-    if (!user.verified) {
+    // Check email verification — người học (USER) được đăng nhập và học ngay, chỉ nhắc xác minh;
+    // tài khoản nhân sự CMS vẫn bắt buộc đã xác minh email.
+    if (!user.verified && user.role !== userRole.USER) {
       void this.logLoginAttempt({
         authId: user.id,
         ip,

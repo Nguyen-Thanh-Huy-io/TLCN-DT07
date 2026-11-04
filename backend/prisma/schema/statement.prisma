@@ -1,0 +1,52 @@
+// ================================
+// Historical Statement (Knowledge Graph: Subject -> Predicate -> Object / Literal)
+// ================================
+// Event nằm trong HistoricalEntity (type=EVENT) nên Subject/Object chỉ còn 1 cột mỗi
+// chiều — không còn phân biệt "Entity" vs "Event" ở tầng khoá ngoại.
+
+model HistoricalStatement {
+  id String @id @default(uuid())
+
+  // 1. Subject — luôn là 1 HistoricalEntity (có thể là Person, Organization, Event...).
+  subjectId String @map("subject_id")
+
+  // 2. Predicate (Khóa ngoại đến danh mục TaxonomyTerm)
+  predicateId String @map("predicate_id")
+
+  // 3. Object (Đúng 1 trong 2: HistoricalEntity hoặc Literal Value)
+  objectId        String?             @map("object_id")
+  objectValue     Json?               @map("object_value") @db.JsonB
+  objectValueType StatementValueType? @map("object_value_type")
+
+  // 4. Khoảng thời gian phát biểu có hiệu lực (tuân thủ quy ước TCN/SCN không năm 0)
+  validFromYear Int? @map("valid_from_year")
+  validToYear   Int? @map("valid_to_year")
+
+  // 5. Cột thật cho truy vấn và sắp xếp hiển thị
+  displayOrder Int     @default(0) @map("display_order")
+  isPrimary    Boolean @default(false) @map("is_primary")
+
+  // 6. Thông tin bổ sung (role, roleLabel, notes, v.v.)
+  qualifiers         Json?              @db.JsonB
+  verificationStatus VerificationStatus @default(VERIFIED) @map("verification_status")
+  rank               StatementRank      @default(NORMAL)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Foreign Key Relations
+  subject   HistoricalEntity  @relation("StatementSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+  predicate TaxonomyTerm      @relation("StatementPredicate", fields: [predicateId], references: [id], onDelete: Restrict)
+  object    HistoricalEntity? @relation("StatementObject", fields: [objectId], references: [id], onDelete: Cascade)
+
+  // Nguồn tham khảo chứng minh phát biểu
+  references HistoricalStatementReference[]
+
+  @@index([subjectId])
+  @@index([predicateId])
+  @@index([objectId])
+  @@index([validFromYear, validToYear])
+  @@index([isPrimary])
+  @@index([displayOrder])
+  @@map("historical_statements")
+}

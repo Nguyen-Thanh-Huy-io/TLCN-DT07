@@ -1,0 +1,354 @@
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { PrismaService } from '../common/services/prisma.service';
+import { RedisService } from '../common/services/redis.service';
+import { CustomLoggerService } from '../common/services/custom-logger.service';
+import { CreatePeriodDto } from './dto/create-period.dto';
+import { UpdatePeriodDto } from './dto/update-period.dto';
+import { QueryPeriodDto } from './dto/query-period.dto';
+import {
+  IPeriodService,
+  IPaginatedResult,
+} from './interfaces/period.interface';
+import { Period, ContentStatus, Prisma } from '@prisma/client';
+import { SlugService } from '../common/services/slug.service';
+import { TaxonomyService } from '../taxonomy/taxonomy.service';
+import { TAXONOMY_GROUPS } from '../taxonomy/taxonomy.constant';
+import {
+  HistoricalDateParser,
+  validateHistoricalYearRange,
+} from '../common/utils/historical-date.parser';
+
+@Injectable()
+export class PeriodService implements IPeriodService {
+  private readonly CACHE_PREFIX = 'periods:list';
+  private readonly CACHE_TTL = 3600; // 1 hour
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+    private readonly logger: CustomLoggerService,
+    private readonly slugService: SlugService,
+    private readonly taxonomy: TaxonomyService,
+  ) {}
+
+  /**
+   * Chặn vòng lặp phân cấp Period (A là cha của B, B lại là cha/ông của A).
+   * Duyệt từ parentId đề xuất đi lên tới gốc; nếu gặp lại selfId thì là vòng lặp.
+   */
+  private async assertNoParentCycle(
+    selfId: string | undefined,
+    parentId: string | null | undefined,
+  ): Promise<void> {
+    if (!parentId) return;
+    if (selfId && parentId === selfId) {
+      throw new BadRequestException(
+        'Period không thể tự làm cha của chính nó.',
+      );
+    }
+
+    const visited = new Set<string>();
+    let currentId: string | null = parentId;
+    while (currentId) {
+      if (selfId && currentId === selfId) {
+        throw new BadRequestException(
+          'Không thể gán parentId: tạo vòng lặp phân cấp Period.',
+        );
+      }
+      if (visited.has(currentId)) break; // vòng lặp đã tồn tại từ trước, không lặp vô hạn ở đây
+      visited.add(currentId);
+
+      const parent: { parentId: string | null } | null =
+        await this.prisma.period.findUnique({
+          where: { id: currentId },
+          select: { parentId: true },
+        });
+      currentId = parent?.parentId ?? null;
+    }
+  }
+
+  /** Khu vực nhập chữ (CMS) → giá trị danh mục REGION; không khớp thì để trống, chữ gốc vẫn giữ. */
+  private async resolveRegionId(region: string | null | undefined) {
+    return (
+      (await this.taxonomy.resolveTermId(TAXONOMY_GROUPS.REGION, region)) ??
+      null
+    );
+  }
+
+  /**
+   * Tạo mới một giai đoạn lịch sử
+   */
+  async create(createPeriodDto: CreatePeriodDto): Promise<Period> {
+    this.logger.log(
+      `Creating period: ${createPeriodDto.name}`,
+      'PeriodService',
+    );
+
+    const resolvedDate = HistoricalDateParser.resolveRangeFields({
+      dateText: createPeriodDto.dateText,
+      legacyLabel: createPeriodDto.timeLabel,
+      startYear: createPeriodDto.startYear,
+      endYear: createPeriodDto.endYear,
+      datePrecision: createPeriodDto.datePrecision,
+    });
+
+    // Business validation: không có năm 0 và endYear >= startYear nếu có cả hai
+    validateHistoricalYearRange(
+      resolvedDate.startYear,
+      resolvedDate.endYear,
+      'endYear must be greater than or equal to startYear',
+    );
+
+    await this.assertNoParentCycle(undefined, createPeriodDto.parentId);
+
+    const slug = await this.slugService.generateUnique(
+      createPeriodDto.name,
+      async (candidate) =>
+        (await this.prisma.period.count({ where: { slug: candidate } })) > 0,
+    );
+    const period = await this.prisma.period.create({
+      data: {
+        parentId: createPeriodDto.parentId ?? null,
+        name: createPeriodDto.name,
+        slug,
+        region: createPeriodDto.region,
+        regionId: await this.resolveRegionId(createPeriodDto.region),
+        dateText: resolvedDate.dateText,
+        timeLabel: createPeriodDto.timeLabel ?? resolvedDate.dateText,
+        startYear: resolvedDate.startYear,
+        endYear: resolvedDate.endYear,
+        datePrecision: resolvedDate.datePrecision,
+        description: createPeriodDto.description,
+        coverImageUrl: createPeriodDto.coverImageUrl,
+        displayOrder: createPeriodDto.displayOrder ?? 0,
+        status: createPeriodDto.status ?? ContentStatus.DRAFT,
+      },
+    });
+
+    // Invalidate list caches
+    await this.invalidateCache();
+
+    return period;
+  }
+
+  /**
+   * Lấy danh sách giai đoạn có phân trang, lọc theo vùng/tỉnh thành, status và tìm kiếm
+   */
+  async findAll(query: QueryPeriodDto): Promise<IPaginatedResult<Period>> {
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query.limit) || 10));
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.PeriodWhereInput = {};
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.region) {
+      where.region = {
+        contains: query.region,
+        mode: 'insensitive',
+      };
+    }
+
+    if (query.search) {
+      where.OR = [
+        { name: { contains: query.search, mode: 'insensitive' } },
+        { description: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const cacheKey = `${this.CACHE_PREFIX}:${JSON.stringify({ where, page, limit })}`;
+    try {
+      const cached = await this.redis.get<IPaginatedResult<Period>>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    } catch (err) {
+      this.logger.warn(`Redis get error: ${err.message}`, 'PeriodService');
+    }
+
+    const [total, items] = await Promise.all([
+      this.prisma.period.count({ where }),
+      this.prisma.period.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: [{ displayOrder: 'asc' }, { startYear: 'asc' }],
+      }),
+    ]);
+
+    const result: IPaginatedResult<Period> = {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+
+    try {
+      await this.redis.set(cacheKey, result, this.CACHE_TTL);
+    } catch (err) {
+      this.logger.warn(`Redis set error: ${err.message}`, 'PeriodService');
+    }
+
+    return result;
+  }
+
+  /**
+   * Lấy chi tiết một giai đoạn theo ID
+   */
+  async findOne(id: string): Promise<Period> {
+    const cacheKey = `period:detail:${id}`;
+    try {
+      const cached = await this.redis.get<Period>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    } catch (err) {
+      this.logger.warn(`Redis get error: ${err.message}`, 'PeriodService');
+    }
+
+    const period = await this.prisma.period.findUnique({
+      where: { id },
+    });
+
+    if (!period) {
+      throw new NotFoundException(`Period with ID "${id}" not found`);
+    }
+
+    try {
+      await this.redis.set(cacheKey, period, this.CACHE_TTL);
+    } catch (err) {
+      this.logger.warn(`Redis set error: ${err.message}`, 'PeriodService');
+    }
+
+    return period;
+  }
+
+  /**
+   * Cập nhật một giai đoạn lịch sử
+   */
+  async update(id: string, updatePeriodDto: UpdatePeriodDto): Promise<Period> {
+    const existing = await this.findOne(id);
+
+    if (updatePeriodDto.parentId !== undefined) {
+      await this.assertNoParentCycle(id, updatePeriodDto.parentId);
+    }
+
+    const hasDateUpdates =
+      updatePeriodDto.dateText !== undefined ||
+      updatePeriodDto.timeLabel !== undefined ||
+      updatePeriodDto.startYear !== undefined ||
+      updatePeriodDto.endYear !== undefined ||
+      updatePeriodDto.datePrecision !== undefined;
+
+    const resolvedDate = hasDateUpdates
+      ? HistoricalDateParser.resolveRangeFields({
+          dateText:
+            updatePeriodDto.dateText !== undefined
+              ? updatePeriodDto.dateText
+              : updatePeriodDto.timeLabel !== undefined
+                ? updatePeriodDto.timeLabel
+                : existing.dateText,
+          legacyLabel: updatePeriodDto.timeLabel ?? existing.timeLabel,
+          startYear:
+            updatePeriodDto.startYear !== undefined
+              ? updatePeriodDto.startYear
+              : existing.startYear !== null &&
+                  updatePeriodDto.dateText === undefined &&
+                  updatePeriodDto.timeLabel === undefined
+                ? existing.startYear
+                : undefined,
+          endYear:
+            updatePeriodDto.endYear !== undefined
+              ? updatePeriodDto.endYear
+              : existing.endYear !== null &&
+                  updatePeriodDto.dateText === undefined &&
+                  updatePeriodDto.timeLabel === undefined
+                ? existing.endYear
+                : undefined,
+          datePrecision:
+            updatePeriodDto.datePrecision !== undefined
+              ? updatePeriodDto.datePrecision
+              : undefined,
+        })
+      : null;
+
+    const startYear = resolvedDate ? resolvedDate.startYear : existing.startYear;
+    const endYear = resolvedDate ? resolvedDate.endYear : existing.endYear;
+
+    validateHistoricalYearRange(
+      startYear,
+      endYear,
+      'endYear must be greater than or equal to startYear',
+    );
+
+    const updated = await this.prisma.period.update({
+      where: { id },
+      data: {
+        ...updatePeriodDto,
+        ...(resolvedDate
+          ? {
+              dateText: resolvedDate.dateText,
+              timeLabel:
+                updatePeriodDto.timeLabel !== undefined
+                  ? updatePeriodDto.timeLabel
+                  : resolvedDate.dateText,
+              startYear: resolvedDate.startYear,
+              endYear: resolvedDate.endYear,
+              datePrecision: resolvedDate.datePrecision,
+            }
+          : {}),
+        ...(updatePeriodDto.region !== undefined
+          ? { regionId: await this.resolveRegionId(updatePeriodDto.region) }
+          : {}),
+      },
+    });
+
+    // Invalidate caches
+    await this.invalidateCache(id);
+
+    return updated;
+  }
+
+  /**
+   * Xóa một giai đoạn
+   */
+  async remove(id: string): Promise<{ success: boolean; message: string }> {
+    await this.findOne(id);
+
+    await this.prisma.period.delete({
+      where: { id },
+    });
+
+    await this.invalidateCache(id);
+
+    return {
+      success: true,
+      message: `Period with ID "${id}" has been deleted successfully`,
+    };
+  }
+
+  /**
+   * Xóa cache liên quan khi có mutation
+   */
+  private async invalidateCache(id?: string): Promise<void> {
+    try {
+      if (id) {
+        await this.redis.del(`period:detail:${id}`);
+      }
+      // Xóa tất cả query cache danh sách periods an toàn bằng scan pattern
+      await this.redis.deleteByPattern(`${this.CACHE_PREFIX}:*`);
+    } catch (err) {
+      this.logger.warn(
+        `Failed to clear period cache: ${err.message}`,
+        'PeriodService',
+      );
+    }
+  }
+}

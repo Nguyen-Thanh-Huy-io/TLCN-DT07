@@ -1,0 +1,625 @@
+import { chaptersData, ChapterItem } from '@/data/chapters';
+import { erasData, EraItem } from '@/data/eras';
+import { figuresData, FigureItem } from '@/data/figures';
+import { timelineData, TimelineNode } from '@/data/timeline';
+import { topicsData, TopicItem } from '@/data/topics';
+import type { TaxonomyGroupItem, TaxonomyTermItem } from './taxonomy.service';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+export const PUBLIC_API_ENDPOINTS = {
+  LANDING: '/public/landing',
+  PERIOD_DETAIL: (slug: string) => `/public/periods/${encodeURIComponent(slug)}`,
+  TOPIC_DETAIL: (slug: string) => `/public/topics/${encodeURIComponent(slug)}`,
+  FIGURE_DETAIL: (slug: string) => `/public/figures/${encodeURIComponent(slug)}`,
+} as const;
+
+export const PUBLIC_ROUTE_PREFIX = {
+  PERIOD: '/giai-doan',
+  CHAPTER: '/chuong-su',
+  KNOWLEDGE: '/kien-thuc',
+  FIGURE: '/nhan-vat',
+  EVENT: '/su-kien',
+} as const;
+
+const DEFAULT_GRADIENTS = [
+  'linear-gradient(135deg, #1C446C 0%, #356B98 45%, #D4A359 100%)',
+  'linear-gradient(135deg, #5B2434 0%, #8C3B4A 50%, #D99B66 100%)',
+  'linear-gradient(135deg, #7A2E1D 0%, #B85233 50%, #E2A857 100%)',
+  'linear-gradient(135deg, #3D291D 0%, #63432B 50%, #8A643E 100%)',
+  'linear-gradient(135deg, #1E3A5F 0%, #3B6998 50%, #89B3D9 100%)',
+  'linear-gradient(135deg, #4B3621 0%, #7C5A38 50%, #C59B6D 100%)',
+] as const;
+
+const DEFAULT_TOPIC_ICON: TopicItem['icon'] = 'Landmark';
+
+export interface PublicPeriodDto {
+  id: string;
+  parentId: string | null;
+  slug: string;
+  name: string;
+  timeLabel: string;
+  startYear: number;
+  endYear: number | null;
+  description: string | null;
+  coverImageUrl: string | null;
+  region: string | null;
+}
+
+export interface PublicTopicDto {
+  id: string;
+  slug: string;
+  name: string;
+  eyebrow: string | null;
+  icon: TopicItem['icon'] | null;
+  description: string | null;
+  coverImageUrl: string | null;
+}
+
+export interface PublicFigureDto {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  birthYear: number | null;
+  deathYear: number | null;
+}
+
+export interface LandingPageContent {
+  timelineNodes: TimelineNode[];
+  eras: EraItem[];
+  chapters: ChapterItem[];
+  knowledgeTopics: TopicItem[];
+  figures: FigureItem[];
+}
+
+function buildInitials(title: string): string {
+  const words = title
+    .replace(/[^a-zA-ZÀ-ỹ0-9\s]/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) return 'LS';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
+}
+
+function pickGradient(index: number): string {
+  return DEFAULT_GRADIENTS[index % DEFAULT_GRADIENTS.length];
+}
+
+export class LandingContentMapper {
+  static toTimelineNode(period: PublicPeriodDto): TimelineNode {
+    return {
+      id: period.id,
+      slug: period.slug,
+      title: period.name,
+      period: period.timeLabel,
+      image: period.coverImageUrl || '/assets/timeline/van-lang.jpg',
+      alt: period.name,
+      letter: buildInitials(period.name),
+    };
+  }
+
+  static toEraItem(period: PublicPeriodDto, index: number): EraItem {
+    return {
+      id: period.id,
+      slug: period.slug,
+      title: period.name,
+      period: period.timeLabel,
+      image: period.coverImageUrl || '/assets/eras/dung-nuoc.jpg',
+      alt: period.name,
+      href: `${PUBLIC_ROUTE_PREFIX.PERIOD}/${period.slug}`,
+      gradient: pickGradient(index),
+    };
+  }
+
+  static toChapterItem(topic: PublicTopicDto, index: number): ChapterItem {
+    return {
+      id: topic.id,
+      slug: topic.slug,
+      eyebrow: topic.eyebrow || topic.name.toUpperCase(),
+      title: topic.name,
+      description: topic.description || '',
+      image: topic.coverImageUrl || '/assets/chapters/van-lang-au-lac.jpg',
+      alt: topic.name,
+      href: `${PUBLIC_ROUTE_PREFIX.CHAPTER}/${topic.slug}`,
+      gradient: pickGradient(index),
+    };
+  }
+
+  static toKnowledgeItem(topic: PublicTopicDto): TopicItem {
+    return {
+      id: topic.id,
+      slug: topic.slug,
+      title: topic.name,
+      icon: topic.icon || DEFAULT_TOPIC_ICON,
+      href: `${PUBLIC_ROUTE_PREFIX.KNOWLEDGE}/${topic.slug}`,
+    };
+  }
+
+  static toFigureItem(figure: PublicFigureDto, index: number): FigureItem {
+    return {
+      id: figure.id,
+      slug: figure.slug,
+      name: figure.name,
+      tagline: figure.tagline || figure.description || '',
+      image: figure.imageUrl || '/assets/figures/hung-vuong.jpg',
+      alt: figure.name,
+      href: `${PUBLIC_ROUTE_PREFIX.FIGURE}/${figure.slug}`,
+      letter: buildInitials(figure.name),
+      gradient: pickGradient(index),
+    };
+  }
+}
+
+export async function fetchLandingContent(): Promise<LandingPageContent> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(
+      `${serverApiUrl}${PUBLIC_API_ENDPOINTS.LANDING}`,
+      { cache: 'no-store' },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const body = await response.json();
+    const payload = body?.data ?? body;
+
+    const periods: PublicPeriodDto[] = Array.isArray(payload?.periods)
+      ? payload.periods
+      : [];
+    const chapters: PublicTopicDto[] = Array.isArray(payload?.chapters)
+      ? payload.chapters
+      : [];
+    const knowledge: PublicTopicDto[] = Array.isArray(payload?.knowledge)
+      ? payload.knowledge
+      : [];
+    const figures: PublicFigureDto[] = Array.isArray(payload?.figures)
+      ? payload.figures
+      : [];
+
+    return {
+      timelineNodes:
+        periods.length > 0
+          ? periods.map((p) => LandingContentMapper.toTimelineNode(p))
+          : timelineData,
+      eras:
+        periods.length > 0
+          ? periods.map((p, i) => LandingContentMapper.toEraItem(p, i))
+          : erasData,
+      chapters:
+        chapters.length > 0
+          ? chapters.map((c, i) => LandingContentMapper.toChapterItem(c, i))
+          : chaptersData,
+      knowledgeTopics:
+        knowledge.length > 0
+          ? knowledge.map((k) => LandingContentMapper.toKnowledgeItem(k))
+          : topicsData,
+      figures:
+        figures.length > 0
+          ? figures.map((f, i) => LandingContentMapper.toFigureItem(f, i))
+          : figuresData,
+    };
+  } catch {
+    return {
+      timelineNodes: timelineData,
+      eras: erasData,
+      chapters: chaptersData,
+      knowledgeTopics: topicsData,
+      figures: figuresData,
+    };
+  }
+}
+
+export interface PublicLocationSummaryDto {
+  id: string;
+  slug: string;
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  historicalSignificance: string | null;
+  imageUrl?: string | null;
+  /** Mã loại di tích chuẩn hóa (LocationType). */
+  siteType?: string;
+  siteTypeLabel?: string;
+  /** Mã cấp xếp hạng (danh mục HERITAGE_RANK); null = chưa xếp hạng. */
+  rankCode?: string | null;
+  rankLabel?: string | null;
+  recognitionLevel?: string | null;
+  constructionLabel?: string | null;
+  periodSlug?: string | null;
+  /** Các tên gọi trong lịch sử. */
+  ancientNames?: string[];
+  preservationStatus?: string | null;
+  /** Hiện trạng chuẩn hóa: INTACT | MUSEUM_MEMORIAL | ARCHAEOLOGICAL_RUIN | RESTORED | ACTIVE_SITE. */
+  preservationCategory?: string | null;
+  preservationLabel?: string | null;
+  /** Ghi chú còn lại sau khi chuẩn hóa hiện trạng — chỉ hiển thị. */
+  statusNote?: string | null;
+  managingUnit?: string | null;
+  /** Mức độ "trải nghiệm số" có sẵn của di tích. */
+  digital?: {
+    hasImage: boolean;
+    galleryCount: number;
+    hasThenAndNow: boolean;
+    hasChronicle: boolean;
+    hasStructures: boolean;
+  };
+}
+
+/** Hồ sơ di sản mở rộng (metadata.heritage ở backend). */
+export interface PublicHeritageProfileDto {
+  recognizedYear: string | null;
+  architecturalStyle: string | null;
+  openingHours: string | null;
+  constructionTimeline: Array<{
+    id: string;
+    dateLabel: string;
+    dynasty: string;
+    actionType: 'FOUNDED' | 'EXPANDED' | 'DAMAGED' | 'RESTORED';
+    description: string;
+  }>;
+  subStructures: Array<{
+    id: string;
+    name: string;
+    type: 'ARCHITECTURE' | 'NATIONAL_TREASURE';
+    periodBuilt: string;
+    description: string;
+    imageUrl: string | null;
+  }>;
+  thenAndNow: { ancientImageUrl: string; ancientLabel: string; modernImageUrl: string; modernLabel: string } | null;
+}
+
+export interface PublicLocationDetailDto extends PublicLocationSummaryDto {
+  tagline: string | null;
+  description: string | null;
+  imageCaption: string | null;
+  constructionYear: number | null;
+  preservationStatus: string | null;
+  managingAgency: string | null;
+  period: PublicPeriodDto | null;
+  media: Array<{ id: string; type: string; url: string; caption: string | null }>;
+  events: PublicEventSummaryDto[];
+  figures: PublicFigureDto[];
+  nearby: Array<PublicLocationSummaryDto & { distanceKm: number }>;
+  heritage: PublicHeritageProfileDto;
+}
+
+export function fetchLocationBySlug(slug: string): Promise<PublicLocationDetailDto | null> {
+  return fetchPublicDetail<PublicLocationDetailDto>(`/public/locations/${encodeURIComponent(slug)}`);
+}
+
+export interface PublicEventSummaryDto {
+  id: string;
+  slug: string | null;
+  title: string;
+  startYear: number;
+  eventDateNote: string | null;
+  location: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  category: string;
+  /** Id loại trong danh mục EVENT_CATEGORY (phần tử đầu là loại chính). */
+  categoryIds?: string[];
+  /** Năm kết thúc (null = trong một năm / chưa rõ). */
+  endYear?: number | null;
+  parentId?: string | null;
+  /** Quan hệ với sự kiện khác (đồ thị tri thức). */
+  relations?: PublicEventLinkDto[];
+  /** Chủ thể không phải nhân vật / địa danh: triều đại / quốc gia, tổ chức, lực lượng, hiện vật. */
+  actors?: PublicEventActorDto[];
+  periodSlug: string | null;
+  figures: PublicFigureDto[];
+  locations: PublicLocationSummaryDto[];
+}
+
+export interface PublicEventRelationDto {
+  relationType: string;
+  description: string | null;
+  event: PublicEventSummaryDto;
+}
+
+export interface PublicEventParticipantDto {
+  entityId: string;
+  role: string;
+  roleLabel: string | null;
+  isPrimary: boolean;
+}
+
+export interface PublicEventDetailDto extends PublicEventSummaryDto {
+  summary: string | null;
+  /** Nội dung diễn biến dạng Block Builder (giống Lesson.content); null = chưa có, dùng `description`. */
+  contentBlocks?: unknown;
+  startMonth: number | null;
+  startDay: number | null;
+  endYear: number | null;
+  endMonth: number | null;
+  endDay: number | null;
+  cause: string | null;
+  outcome: string | null;
+  sources: string[];
+  participants: PublicEventParticipantDto[];
+  period: PublicPeriodDto | null;
+  parent: PublicEventSummaryDto | null;
+  children: PublicEventSummaryDto[];
+  outgoingRelations: PublicEventRelationDto[];
+  incomingRelations: PublicEventRelationDto[];
+}
+
+export interface PublicLessonSummaryDto {
+  id: string;
+  title: string;
+  contentRichText: string | null;
+  sourceReferenceNote: string | null;
+  estimatedReadMinutes: number;
+  events: PublicEventSummaryDto[];
+  entities: PublicFigureDto[];
+  locations: PublicLocationSummaryDto[];
+}
+
+export interface PublicChildTopicDto extends PublicTopicDto {
+  events: PublicEventSummaryDto[];
+  lessons: PublicLessonSummaryDto[];
+}
+
+export interface PublicSubPeriodDto extends PublicPeriodDto {
+  eventCount: number;
+  figureCount: number;
+}
+
+export interface PublicPeriodDetailDto extends PublicPeriodDto {
+  topics: PublicTopicDto[];
+  /** Gồm cả nhân vật của các giai đoạn con và nhân vật tham gia sự kiện. */
+  figures: PublicFigureDto[];
+  /** Gồm cả sự kiện của các giai đoạn con. */
+  events: PublicEventSummaryDto[];
+  parent: PublicPeriodDto | null;
+  children: PublicSubPeriodDto[];
+  locations: PublicLocationSummaryDto[];
+  concurrentPeriods: PublicPeriodDto[];
+  concurrentEvents: PublicEventSummaryDto[];
+}
+
+export interface PublicTopicDetailDto extends PublicTopicDto {
+  period: PublicPeriodDto | null;
+  children: PublicChildTopicDto[];
+  events: PublicEventSummaryDto[];
+  lessons: PublicLessonSummaryDto[];
+}
+
+export interface PublicFigureDetailDto extends PublicFigureDto {
+  period: PublicPeriodDto | null;
+  events: PublicEventSummaryDto[];
+  lessons: PublicLessonSummaryDto[];
+}
+
+async function fetchPublicDetail<T>(endpoint: string): Promise<T | null> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}${endpoint}`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const body = await response.json();
+    return (body?.data ?? body) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function fetchPeriodBySlug(
+  slug: string,
+): Promise<PublicPeriodDetailDto | null> {
+  return fetchPublicDetail<PublicPeriodDetailDto>(
+    PUBLIC_API_ENDPOINTS.PERIOD_DETAIL(slug),
+  );
+}
+
+export async function fetchPeriods(): Promise<PublicPeriodDto[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}/public/periods`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
+}
+
+export function fetchTopicBySlug(
+  slug: string,
+): Promise<PublicTopicDetailDto | null> {
+  return fetchPublicDetail<PublicTopicDetailDto>(
+    PUBLIC_API_ENDPOINTS.TOPIC_DETAIL(slug),
+  );
+}
+
+export function fetchFigureBySlug(
+  slug: string,
+): Promise<PublicFigureDetailDto | null> {
+  return fetchPublicDetail<PublicFigureDetailDto>(
+    PUBLIC_API_ENDPOINTS.FIGURE_DETAIL(slug),
+  );
+}
+
+export async function fetchFigures(): Promise<PublicFigureDto[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}/public/figures`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
+}
+
+export interface PublicEventActorDto {
+  id: string;
+  name: string;
+  slug: string | null;
+  type: string;
+  role: string;
+  roleLabel: string | null;
+  startYear: number | null;
+  endYear: number | null;
+}
+
+export interface PublicEventLinkDto {
+  eventId: string;
+  relationType: string;
+  /** OUTGOING: sự kiện này → eventId · INCOMING: eventId → sự kiện này. */
+  direction: 'OUTGOING' | 'INCOMING';
+}
+
+export interface PublicFigureEventDto {
+  id: string;
+  slug: string | null;
+  title: string;
+  startYear: number;
+  eventDateNote: string | null;
+  description: string | null;
+  category: string;
+  /** Id loại trong danh mục EVENT_CATEGORY (phần tử đầu là loại chính). */
+  categoryIds?: string[];
+  periodSlug: string | null;
+  role: string;
+  roleLabel: string | null;
+  isPrimary: boolean;
+}
+
+export interface PublicFigureRelationDto {
+  figureId: string;
+  slug: string;
+  name: string;
+  relationType: string;
+  direction: 'OUTGOING' | 'INCOMING';
+  note: string | null;
+  startYear: number | null;
+  endYear: number | null;
+}
+
+export interface PublicFigureLegacyDto {
+  hometown: string | null;
+  backgroundAndYouth: string | null;
+  notableWorks: string[];
+  legacyAndHonors: string | null;
+  anecdotes: string[];
+  famousQuote: string | null;
+}
+
+export interface PublicFigureProfileDto extends PublicFigureDto {
+  roles: string[];
+  legacy: PublicFigureLegacyDto;
+  aliases: string[];
+  birthDateLabel: string | null;
+  deathDateLabel: string | null;
+  biography: string | null;
+  /** Nội dung tường thuật dạng Block Builder (giống Lesson.content); null = chưa có, dùng `biography`. */
+  contentBlocks?: unknown;
+  occupation: string | null;
+  titles: string[];
+  sources: string[];
+  periodSlug: string | null;
+  events: PublicFigureEventDto[];
+  relationships: PublicFigureRelationDto[];
+}
+
+export async function fetchFigureDirectory(): Promise<PublicFigureProfileDto[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}/public/figures/directory`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchLocations(): Promise<PublicLocationSummaryDto[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}/public/locations`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
+}
+
+export function fetchEventBySlug(
+  slug: string,
+): Promise<PublicEventDetailDto | null> {
+  return fetchPublicDetail<PublicEventDetailDto>(
+    `/public/events/${encodeURIComponent(slug)}`,
+  );
+}
+
+/** Lấy danh sách công khai bất kỳ (server-side), lỗi → mảng rỗng. */
+export async function fetchPublicList<T>(endpoint: string): Promise<T[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}${endpoint}`, { cache: 'no-store' });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Giá trị đang dùng của một nhóm "Danh mục dùng chung" (server component). */
+export async function fetchTaxonomyTerms(groupCode: string): Promise<TaxonomyTermItem[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}/public/taxonomies?groups=${encodeURIComponent(groupCode)}`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const groups = (body?.data ?? body) as TaxonomyGroupItem[];
+    return Array.isArray(groups) ? (groups.find((g) => g.code === groupCode)?.terms ?? []) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchEvents(): Promise<PublicEventSummaryDto[]> {
+  try {
+    const serverApiUrl = API_URL.replace('://localhost', '://127.0.0.1');
+    const response = await fetch(`${serverApiUrl}/public/events`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return [];
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
+}
+

@@ -1,0 +1,62 @@
+/* Media trong bài đọc: ảnh hỏng và video YouTube dạng xem trước (xem useLessonMedia). */
+
+.lesson-media-missing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 160px;
+  margin: 1.5rem auto;
+  padding: 20px;
+  border: 1px dashed var(--lh-line);
+  border-radius: 12px;
+  background: var(--lh-surface-2);
+  color: var(--lh-muted);
+  font-size: 13px;
+  text-align: center;
+}
+.lesson-media-missing small { font-size: 12px; opacity: 0.8; }
+
+.lesson-yt {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  max-width: 48rem;
+  margin: 1.5rem auto;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000;
+}
+.lesson-yt > img { width: 100%; height: 100%; object-fit: cover; opacity: 0.85; }
+.lesson-yt > iframe { width: 100%; height: 100%; border: 0; }
+.lesson-yt-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.lesson-yt-play span {
+  width: 68px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(220, 38, 38, 0.92);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s;
+}
+.lesson-yt-play span::after {
+  content: "";
+  display: block;
+  margin: 14px 0 0 27px;
+  border-style: solid;
+  border-width: 10px 0 10px 17px;
+  border-color: transparent transparent transparent #fff;
+}
+.lesson-yt-play:hover span { transform: scale(1.08); }
+.lesson-yt.is-missing { display: grid; place-items: center; background: var(--lh-surface-2); border: 1px dashed var(--lh-line); }
+.lesson-yt-missing { display: grid; gap: 6px; text-align: center; color: var(--lh-muted); font-size: 13px; }
+.lesson-yt-missing strong { color: var(--lh-ink); font-size: 14px; }
+.lesson-yt-missing a { color: var(--lh-brand); font-weight: 600; }

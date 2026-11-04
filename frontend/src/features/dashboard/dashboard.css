@@ -1,0 +1,92 @@
+/* Bố cục Dashboard CMS — khôi phục từ globals.css cũ (bị xóa nhầm ở commit ebd5f6a khi viết lại globals). */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.85fr);
+  gap: 18px;
+}
+
+.text-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #9a711e;
+  background: none;
+  border: 0;
+  font-size: 13px;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.text-button:hover {
+  color: #78530e;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.right-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.count-pill {
+  border: 0;
+  background: #f8ecce;
+  color: #98701e;
+  width: 28px;
+  height: 26px;
+  border-radius: 13px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.panel-footer {
+  width: 100%;
+  height: 40px;
+  background: #f8fafc;
+  border: 0;
+  border-top: 1px solid #f1f5f9;
+  color: #96701f;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: background 0.15s ease;
+}
+
+.panel-footer:hover {
+  background: #f1f5f9;
+}
+
+.quick-panel .panel-head {
+  min-height: 60px;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 14px;
+  gap: 10px;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr; }
+  .right-stack {
+    grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 760px) {
+  .dashboard-grid,
+  .right-stack {
+    grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .quick-grid {
+    grid-template-columns: 1fr; }
+}

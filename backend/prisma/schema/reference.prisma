@@ -1,0 +1,54 @@
+// ================================
+// Historical Reference & Sources (Nguồn sử liệu, tư liệu, thư tịch cổ dùng chung)
+// ================================
+
+model HistoricalReference {
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(500)
+  author      String?  @db.VarChar(255)
+  publisher   String?  @db.VarChar(255)
+  publishYear Int?     @map("publish_year")
+  url         String?  @db.VarChar(1000)
+  isbn        String?  @db.VarChar(50)
+  doi         String?  @db.VarChar(100)
+  metadata    Json?    @db.JsonB
+
+  // Taxonomy liên kết: Hình thức nguồn (SOURCE_FORMAT) và Bản chất nguồn (SOURCE_NATURE)
+  formatTermId String?  @map("format_term_id")
+  natureTermId String?  @map("nature_term_id")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations Taxonomy
+  formatTerm TaxonomyTerm? @relation("ReferenceFormatTerm", fields: [formatTermId], references: [id], onDelete: SetNull)
+  natureTerm TaxonomyTerm? @relation("ReferenceNatureTerm", fields: [natureTermId], references: [id], onDelete: SetNull)
+
+  // Quan hệ nối với các phát biểu lịch sử (1 nguồn có thể chứng minh nhiều phát biểu)
+  statementReferences   HistoricalStatementReference[]
+
+  @@index([title])
+  @@index([author])
+  @@index([formatTermId])
+  @@index([natureTermId])
+  @@map("historical_references")
+}
+
+model HistoricalStatementReference {
+  id          String   @id @default(uuid())
+  statementId String   @map("statement_id")
+  referenceId String   @map("reference_id")
+  pageNumber  String?  @map("page_number") @db.VarChar(50)
+  chapter     String?  @db.VarChar(150)
+  quote       String?  @db.Text
+  note        String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  statement HistoricalStatement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  reference HistoricalReference @relation(fields: [referenceId], references: [id], onDelete: Cascade)
+
+  @@unique([statementId, referenceId, pageNumber])
+  @@index([statementId])
+  @@index([referenceId])
+  @@map("historical_statement_references")
+}

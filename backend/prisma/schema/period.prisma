@@ -1,0 +1,51 @@
+// ================================
+// Period (Historical Period) Model
+// ================================
+
+model Period {
+  id       String  @id @default(uuid())
+  parentId String? @map("parent_id")
+
+  name String @db.VarChar(255)
+  slug String @unique @db.VarChar(255)
+
+  // Niên đại có thể không xác định
+  dateText      String?        @map("date_text") @db.VarChar(150)
+  startYear     Int?           @map("start_year")
+  endYear       Int?           @map("end_year")
+  timeLabel     String?        @map("time_label") @db.VarChar(150)
+  datePrecision DatePrecision? @map("date_precision")
+
+  // Phạm vi lịch sử
+  region        String? @db.VarChar(100)
+  /// Khu vực theo danh mục dùng chung (nhóm REGION); cột region chữ giữ song song trong lúc chuyển đổi.
+  regionId      String? @map("region_id")
+  /// Loại thời kỳ theo danh mục dùng chung (nhóm PERIOD_TYPE) — vd DYNASTY_PERIOD, WAR_PERIOD,
+  /// TRANSITION_PERIOD. Bổ sung theo Data Dictionary v1.0 mục 6.1 (trước đây model này thiếu
+  /// trường này, Taxonomy PERIOD_TYPE đã seed nhưng không có cột nào để gắn vào).
+  periodTypeId  String? @map("period_type_id")
+  description   String? @db.Text
+  coverImageUrl String? @map("cover_image_url") @db.VarChar(500)
+
+  displayOrder Int           @default(0) @map("display_order")
+  status       ContentStatus @default(DRAFT)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  parent         Period?       @relation("PeriodHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Period[]      @relation("PeriodHierarchy")
+  regionTerm     TaxonomyTerm? @relation("PeriodRegionTerm", fields: [regionId], references: [id], onDelete: SetNull)
+  periodTypeTerm TaxonomyTerm? @relation("PeriodTypeTerm", fields: [periodTypeId], references: [id], onDelete: SetNull)
+
+  // Event nằm trong HistoricalEntity (type=EVENT) nên chỉ cần 1 back-relation này —
+  // không còn historicalEvents/eventPeriods riêng.
+  historicalEntities HistoricalEntity[]
+
+  @@index([parentId])
+  @@index([region])
+  @@index([regionId])
+  @@index([periodTypeId])
+  @@index([status])
+  @@index([startYear, endYear])
+  @@map("periods")
+}

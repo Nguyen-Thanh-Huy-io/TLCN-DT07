@@ -2,12 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { AuthUtilsService } from './services/auth-utils.service';
 import { PrismaService } from '../common/services/prisma.service';
-import { ActivityLogService } from '../common/services/activity-log.service';
 import { RedisService } from '../common/services/redis.service';
 import { EmailQueueService } from '../common/queues/email/email.queue';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import AppError from '../common/errors/app.error';
-import * as bcrypt from 'bcryptjs';
 
 // Mock the AUTH_CONFIG to use numeric values for VERIFICATION
 jest.mock('./config/auth.config', () => ({
@@ -57,7 +55,6 @@ describe('AuthService', () => {
   let service: AuthService;
   let prismaService: jest.Mocked<PrismaService>;
   let authUtilsService: jest.Mocked<AuthUtilsService>;
-  let activityLogService: jest.Mocked<ActivityLogService>;
   let redisService: jest.Mocked<RedisService>;
   let emailQueueService: jest.Mocked<EmailQueueService>;
 
@@ -93,12 +90,6 @@ describe('AuthService', () => {
       generateSecureId: jest.fn(),
     };
 
-    const mockActivityLogService = {
-      logCreate: jest.fn(),
-      logUpdate: jest.fn(),
-      logCustomEvent: jest.fn(),
-    };
-
     const mockRedisService = {
       set: jest.fn(),
       get: jest.fn(),
@@ -130,10 +121,6 @@ describe('AuthService', () => {
           useValue: mockPrismaService,
         },
         {
-          provide: ActivityLogService,
-          useValue: mockActivityLogService,
-        },
-        {
           provide: RedisService,
           useValue: mockRedisService,
         },
@@ -151,7 +138,6 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
     prismaService = module.get(PrismaService);
     authUtilsService = module.get(AuthUtilsService);
-    activityLogService = module.get(ActivityLogService);
     redisService = module.get(RedisService);
     emailQueueService = module.get(EmailQueueService);
   });

@@ -19,6 +19,10 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
   }
 
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
+    if (process.env.NODE_ENV === 'test') {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest();
     const path = request.url as string;
 
@@ -46,4 +50,18 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     // Check if route has @SkipThrottle decorator
     return super.shouldSkip(context);
   }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    try {
+      return await super.canActivate(context);
+    } catch (error) {
+      // Nếu lỗi 429 Too Many Requests hợp lệ thì vẫn chặn
+      if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
+        throw error;
+      }
+      // Nếu Redis tạm thời chưa kết nối kịp (ECONNREFUSED / MaxRetriesPerRequestError), không làm sập API 500
+      return true;
+    }
+  }
 }
+

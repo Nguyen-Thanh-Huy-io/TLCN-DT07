@@ -9,14 +9,18 @@ export class CreateAuthDto {
 
   @ApiProperty({
     example: 'Password@123',
-    description: 'User password (min 8 chars, uppercase, lowercase, number, special char)',
+    description:
+      'User password (min 8 chars, uppercase, lowercase, number, special char)',
   })
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
   password: string;
 
-  @ApiProperty({ example: 'user@example.com', description: 'User email address' })
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'User email address',
+  })
   @IsEmail()
   @IsNotEmpty()
   email: string;

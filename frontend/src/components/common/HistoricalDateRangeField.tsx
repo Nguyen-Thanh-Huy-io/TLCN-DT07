@@ -44,15 +44,147 @@ type PrecisionMode = 'CENTURY' | 'YEAR' | 'APPROXIMATE' | 'DAY' | 'FREE_TEXT';
 interface CenturyOption {
   value: number;
   label: string;
+  roman: string;
+  searchText: string;
 }
 
 const CENTURY_OPTIONS: CenturyOption[] = Array.from({ length: 21 }, (_, i) => {
   const num = i + 1;
+  const roman = toRomanNumeral(num);
   return {
     value: num,
-    label: `Thế kỷ ${toRomanNumeral(num)} (TK ${num})`,
+    label: `Thế kỷ ${roman} (TK ${num})`,
+    roman,
+    searchText: `${num} ${roman.toLowerCase()} thế kỷ ${num} tk ${num}`,
   };
 });
+
+/**
+ * Combobox Chọn Thế Kỷ có tìm kiếm nhanh (Select with Search).
+ * Cho phép gõ số (19, 10), số La Mã (XIX, X) hoặc chọn từ danh sách gợi ý.
+ */
+function CenturyCombobox({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (val: number) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const selectedOpt = CENTURY_OPTIONS.find((opt) => opt.value === value) || CENTURY_OPTIONS[18];
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchQuery('');
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredOptions = React.useMemo(() => {
+    if (!searchQuery.trim()) return CENTURY_OPTIONS;
+    const q = searchQuery.trim().toLowerCase();
+    return CENTURY_OPTIONS.filter((opt) => opt.searchText.includes(q));
+  }, [searchQuery]);
+
+  const handleSelect = (num: number) => {
+    onChange(num);
+    setIsOpen(false);
+    setSearchQuery('');
+  };
+
+  return (
+    <div className="relative" ref={wrapperRef}>
+      {/* Ô kích hoạt / gõ tìm kiếm */}
+      <div
+        className={`w-full text-xs font-semibold px-3 py-2 bg-white border rounded-xl flex items-center justify-between cursor-pointer transition shadow-2xs ${
+          isOpen
+            ? 'border-amber-500 ring-2 ring-amber-100'
+            : 'border-slate-200 hover:border-slate-300'
+        }`}
+        onClick={() => {
+          setIsOpen(true);
+          inputRef.current?.focus();
+        }}
+      >
+        {isOpen ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && filteredOptions[0]) {
+                handleSelect(filteredOptions[0].value);
+              } else if (e.key === 'Escape') {
+                setIsOpen(false);
+              }
+            }}
+            placeholder="Gõ số (19) hoặc La Mã (XIX)..."
+            className="w-full text-xs font-semibold bg-transparent focus:outline-none placeholder:text-slate-400 placeholder:font-normal"
+            autoFocus
+          />
+        ) : (
+          <span className="text-slate-800 truncate">
+            {selectedOpt.label}
+          </span>
+        )}
+
+        <div className="flex items-center gap-1 ml-1 text-slate-400 text-[10px]">
+          <span>▾</span>
+        </div>
+      </div>
+
+      {/* Popover danh sách gợi ý */}
+      {isOpen && (
+        <div className="absolute left-0 mt-1.5 w-full max-h-52 overflow-y-auto rounded-xl bg-white shadow-xl border border-slate-200 z-50 py-1 text-xs animate-in fade-in zoom-in-95 duration-100">
+          <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+            Gợi ý thế kỷ (Gõ để lọc nhanh)
+          </div>
+
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((opt) => {
+              const isSelected = opt.value === value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handleSelect(opt.value)}
+                  className={`w-full text-left px-3 py-1.5 flex items-center justify-between transition cursor-pointer ${
+                    isSelected
+                      ? 'bg-amber-50 text-amber-900 font-bold'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-mono text-amber-800 font-bold">
+                      {opt.roman}
+                    </span>
+                    <span>Thế kỷ {opt.roman}</span>
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">
+                    TK {opt.value}
+                  </span>
+                </button>
+              );
+            })
+          ) : (
+            <div className="px-3 py-2 text-center text-slate-400 text-xs">
+              Không tìm thấy thế kỷ phù hợp
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * Sub-component điều khiển độc lập cho một mốc thời gian (Bắt đầu hoặc Kết thúc).
@@ -232,21 +364,13 @@ function SingleDatePointControl({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <span className="block text-[11px] text-slate-500 mb-1">Chọn thế kỷ:</span>
-              <select
+              <CenturyCombobox
                 value={centuryNum}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
+                onChange={(val) => {
                   setCenturyNum(val);
                   applyCentury(val, centurySub, isBce);
                 }}
-                className="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 shadow-2xs"
-              >
-                {CENTURY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div>

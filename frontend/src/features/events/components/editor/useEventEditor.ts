@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   ContentStatus,
   ContentAction,
+  DatePrecision,
   EntityType,
   EventCategory,
   EventRelationType,
@@ -875,9 +876,13 @@ export function useEventEditor(eventId?: string) {
       startYear: parsedStart.signedYear,
       startMonth: parsedStart.month,
       startDay: parsedStart.day,
-      endYear: signedEndYear,
+      endYear: signedEndYear || (timelineMode === TimelineMode.POINT && parsedStart.precision === DatePrecision.CENTURY ? parsedStart.approxEndYear || null : null),
       endMonth: endMonthVal,
       endDay: endDayVal,
+      datePrecision:
+        parsedStart.precision ||
+        (timelineMode === TimelineMode.RANGE ? DatePrecision.RANGE : DatePrecision.YEAR),
+      dateText: finalDisplayNote,
       eventDateNote: finalDisplayNote,
       summary: summary.trim() || undefined,
       description: description.trim() || extractedHtml || summary.trim() || undefined,

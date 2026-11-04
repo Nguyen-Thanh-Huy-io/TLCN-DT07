@@ -235,6 +235,8 @@ export function buildSuggestedEventDisplayString(
   return strategy.buildDisplayString(start, end);
 }
 
+import { DatePrecision } from '../constants/enums';
+
 export interface FlexibleDateParseResult {
   valid: boolean;
   error?: string;
@@ -244,6 +246,8 @@ export interface FlexibleDateParseResult {
   signedYear: number | null;
   era: HistoricalEra;
   displayPoint: string;
+  precision?: DatePrecision;
+  approxEndYear?: number | null;
 }
 
 function getDaysInMonth(month: number, year: number): number {
@@ -255,165 +259,22 @@ function getDaysInMonth(month: number, year: number): number {
   return 31;
 }
 
+export * from './date-parser';
+import { defaultHistoricalDateParser } from './date-parser';
+
 /**
- * Phân tích chuỗi ngày tháng linh hoạt trong 1 ô input duy nhất:
- * Hỗ trợ:
- *   - "DD/MM/YYYY" (VD: "19/05/1959" hoặc "2/9/1945")
- *   - "MM/YYYY"    (VD: "05/1959")
- *   - "YYYY"       (VD: "1959" hoặc "257")
+ * Phân tích chuỗi ngày tháng / niên đại linh hoạt trong 1 ô input duy nhất:
+ * Hỗ trợ các mẫu (Strategy Pattern):
+ *   1. Ngày tháng năm chuẩn: "DD/MM/YYYY", "MM/YYYY", "YYYY" (VD: "19/05/1959", "1959")
+ *   2. Niên đại thế kỷ: "Khoảng thế kỷ 19", "Thế kỷ XIX", "Đầu thế kỷ XX", "Cuối thế kỷ 18"
+ *   3. Niên đại ước lượng: "Khoảng năm 938", "~1945", "Khoảng 1789"
  * Kết hợp với checkbox `isBce` (Trước CN - TCN).
  */
 export function parseFlexibleHistoricalDate(
   rawInput: string,
   isBce: boolean,
 ): FlexibleDateParseResult {
-  const trimmed = (rawInput || '').trim();
-  const era = isBce ? HistoricalEra.BCE : HistoricalEra.CE;
-
-  if (!trimmed) {
-    return {
-      valid: false,
-      day: null,
-      month: null,
-      absYear: null,
-      signedYear: null,
-      era,
-      displayPoint: '',
-    };
-  }
-
-  // Cho phép phân cách bằng '/' hoặc '-' hoặc '.'
-  const normalized = trimmed.replace(/[.-]/g, '/');
-  const parts = normalized.split('/').map((p) => p.trim());
-
-  let day: number | null = null;
-  let month: number | null = null;
-  let absYear: number | null = null;
-
-  if (parts.length === 1) {
-    // Định dạng YYYY
-    if (!/^\d{1,4}$/.test(parts[0])) {
-      return {
-        valid: false,
-        error: 'Định dạng không hợp lệ. Nhập DD/MM/YYYY, MM/YYYY hoặc YYYY.',
-        day: null,
-        month: null,
-        absYear: null,
-        signedYear: null,
-        era,
-        displayPoint: '',
-      };
-    }
-    absYear = parseInt(parts[0], 10);
-  } else if (parts.length === 2) {
-    // Định dạng MM/YYYY
-    if (!/^\d{1,2}$/.test(parts[0]) || !/^\d{1,4}$/.test(parts[1])) {
-      return {
-        valid: false,
-        error: 'Định dạng MM/YYYY không hợp lệ (VD: 05/1959).',
-        day: null,
-        month: null,
-        absYear: null,
-        signedYear: null,
-        era,
-        displayPoint: '',
-      };
-    }
-    month = parseInt(parts[0], 10);
-    absYear = parseInt(parts[1], 10);
-  } else if (parts.length === 3) {
-    // Định dạng DD/MM/YYYY
-    if (
-      !/^\d{1,2}$/.test(parts[0]) ||
-      !/^\d{1,2}$/.test(parts[1]) ||
-      !/^\d{1,4}$/.test(parts[2])
-    ) {
-      return {
-        valid: false,
-        error: 'Định dạng DD/MM/YYYY không hợp lệ (VD: 19/05/1959).',
-        day: null,
-        month: null,
-        absYear: null,
-        signedYear: null,
-        era,
-        displayPoint: '',
-      };
-    }
-    day = parseInt(parts[0], 10);
-    month = parseInt(parts[1], 10);
-    absYear = parseInt(parts[2], 10);
-  } else {
-    return {
-      valid: false,
-      error: 'Định dạng không hợp lệ. Nhập DD/MM/YYYY hoặc YYYY.',
-      day: null,
-      month: null,
-      absYear: null,
-      signedYear: null,
-      era,
-      displayPoint: '',
-    };
-  }
-
-  if (!absYear || absYear <= 0) {
-    return {
-      valid: false,
-      error: 'Năm phải lớn hơn 0.',
-      day: null,
-      month: null,
-      absYear: null,
-      signedYear: null,
-      era,
-      displayPoint: '',
-    };
-  }
-
-  if (month !== null && (month < 1 || month > 12)) {
-    return {
-      valid: false,
-      error: 'Tháng phải từ 01 đến 12.',
-      day,
-      month,
-      absYear,
-      signedYear: null,
-      era,
-      displayPoint: '',
-    };
-  }
-
-  if (day !== null && month !== null) {
-    const maxDay = getDaysInMonth(month, absYear);
-    if (day < 1 || day > maxDay) {
-      return {
-        valid: false,
-        error: `Ngày không hợp lệ (Tháng ${month}/${absYear} tối đa ${maxDay} ngày).`,
-        day,
-        month,
-        absYear,
-        signedYear: null,
-        era,
-        displayPoint: '',
-      };
-    }
-  }
-
-  const signedYear = isBce ? -absYear : absYear;
-  const displayPoint = formatSingleDatePoint({
-    day,
-    month,
-    year: absYear,
-    era,
-  });
-
-  return {
-    valid: true,
-    day,
-    month,
-    absYear,
-    signedYear,
-    era,
-    displayPoint,
-  };
+  return defaultHistoricalDateParser.parse(rawInput, isBce);
 }
 
 /**

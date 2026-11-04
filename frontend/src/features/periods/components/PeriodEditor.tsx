@@ -34,6 +34,15 @@ export interface PeriodEditorProps {
   periodId?: string;
 }
 
+const HISTORICAL_COLOR_PRESETS = [
+  { label: 'Nâu Đất Cổ Đại', color: '#8c5338', desc: 'Đồ Đá, Đồ Đồng, Hùng Vương' },
+  { label: 'Đỏ Son Hoàng Triều', color: '#9e2a2b', desc: 'Đinh, Tiền Lê, Lý, Trần, Hậu Lê' },
+  { label: 'Xanh Rêu Di Tích', color: '#2d6a4f', desc: 'Văn minh sông Hồng, ngàn năm văn hiến' },
+  { label: 'Vàng Đồng Khởi Nghĩa', color: '#b07d2b', desc: 'Tây Sơn, Hai Bà Trưng, Bà Triệu' },
+  { label: 'Xanh Chàm Độc Lập', color: '#1d3557', desc: 'Cận đại, Kháng chiến, Độc lập dân tộc' },
+  { label: 'Đất Nung Sa Huỳnh', color: '#b25d38', desc: 'Văn hóa Sa Huỳnh, Phù Nam, Champa' },
+];
+
 const SKELETON_OVERVIEW = `<h2>1. Bối cảnh lịch sử & Không gian địa lý</h2><p>Khái quát về bối cảnh hình thành, cương thổ và điều kiện tự nhiên - xã hội trong giai đoạn này...</p><h2>2. Đặc trưng kinh tế - văn hóa & Đời sống xã hội</h2><p>Các chuyển biến về thể chế, sản xuất nông nghiệp/thương mại, tín ngưỡng và văn hóa chủ đạo...</p><h2>3. Vị trí thời đại & Ý nghĩa lịch sử</h2><p>Đóng góp của thời kỳ đối với tiến trình phát triển chung của dân tộc hoặc khu vực...</p>`;
 
 const SKELETON_MILESTONES = `<h2>1. Sự kiện mở đầu & Xác lập kỷ nguyên</h2><p>Nguyên nhân và biến cố lịch sử đánh dấu sự bắt đầu của thời kỳ này...</p><h2>2. Các bước ngoặt & Diễn biến chủ đạo</h2><p>Tóm lược những xung đột, cải cách hoặc thành tựu nổi bật xuyên suốt thời gian tồn tại...</p><h2>3. Chuyển giao & Kết thúc</h2><p>Bối cảnh khép lại thời kỳ và mở ra giai đoạn lịch sử kế tiếp...</p>`;
@@ -45,18 +54,20 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
 
   // Core Period State
   const [name, setName] = useState('');
+  const [summary, setSummary] = useState(''); // Tóm tắt ngắn 150-250 ký tự cho thẻ Timeline/Card
+  const [primaryStream, setPrimaryStream] = useState<'VIETNAM' | 'WORLD'>('VIETNAM'); // Tuyến chính để phân tab
   const [parentId, setParentId] = useState<string>('');
   const [startYear, setStartYear] = useState<number | ''>('');
   const [endYear, setEndYear] = useState<number | ''>('');
   const [timeLabel, setTimeLabel] = useState('');
   const [region, setRegion] = useState('Việt Nam');
-  // Khu vực chọn từ "Danh mục dùng chung" (nhóm REGION) — lưu nhãn, backend tự gắn mã.
   const [regionGroup, setRegionGroup] = useState<TaxonomyGroupItem>();
   const [description, setDescription] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [colorTheme, setColorTheme] = useState('#8c5338'); // Màu sắc kỷ nguyên khi không có ảnh thật
+  const [visualMode, setVisualMode] = useState<'IMAGE' | 'COLOR_THEME'>('IMAGE');
   const [displayOrder, setDisplayOrder] = useState<number>(0);
   const [status, setStatus] = useState<ContentStatus>(ContentStatus.DRAFT);
-  // Phiên bản hóa: bản sửa chờ duyệt đang mở, thông báo sau khi lưu, khóa tải lại sau duyệt / khôi phục.
   const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
   const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -92,7 +103,6 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
 
     setLoading(true);
     PeriodApiService.getPeriodById(periodId)
-      // Đang xuất bản mà có bản sửa chờ duyệt → biên tập viên mở bản sửa đó để sửa tiếp.
       .then((fetched) => withPendingDraft('PERIOD', periodId, fetched))
       .then(({ detail: data, pending }) => {
         setPendingRevision(pending);
@@ -102,9 +112,35 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
         setStartYear(data.startYear ?? '');
         setEndYear(data.endYear ?? '');
         setTimeLabel(data.timeLabel || '');
-        setRegion(data.region || 'Việt Nam');
-        setDescription(data.description || '');
+        const currentRegion = data.region || 'Việt Nam';
+        setRegion(currentRegion);
+        if (currentRegion.toLowerCase().includes('thế giới') || currentRegion.toLowerCase().includes('châu')) {
+          setPrimaryStream('WORLD');
+        } else {
+          setPrimaryStream('VIETNAM');
+        }
+
+        // Tách lead summary và detailed description nếu có
+        if (data.description) {
+          const leadMatch = data.description.match(/^<p class="lead[^>]*>([\s\S]*?)<\/p>/i);
+          if (leadMatch) {
+            setSummary(leadMatch[1].replace(/<[^>]*>/g, '').trim());
+            setDescription(data.description.replace(leadMatch[0], '').trim());
+          } else if (!data.description.includes('<') && data.description.length <= 300) {
+            setSummary(data.description.trim());
+            setDescription('');
+          } else {
+            setDescription(data.description);
+          }
+        } else {
+          setSummary('');
+          setDescription('');
+        }
+
         setCoverImageUrl(data.coverImageUrl || '');
+        if (!data.coverImageUrl) {
+          setVisualMode('COLOR_THEME');
+        }
         setDisplayOrder(data.displayOrder ?? 0);
         setStatus(data.status || ContentStatus.DRAFT);
         setChildrenPeriods(data.children || []);
@@ -123,7 +159,7 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
     return allPeriods.filter((p) => p.id !== periodId);
   }, [allPeriods, periodId]);
 
-  // Year range validation
+  // Year range validation (chỉ validate khi có cả 2 số nguyên hợp lệ)
   const yearValidationError = useMemo(() => {
     if (
       startYear !== '' &&
@@ -148,8 +184,9 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
   const checklist = useMemo(() => {
     const isNameValid = Boolean(name.trim());
     const isChronologyValid = startYear !== '' || Boolean(timeLabel.trim());
+    const isSummaryValid = Boolean(summary.trim());
     const isDescValid = Boolean(description && description.trim().length > 20);
-    const isCoverValid = Boolean(coverImageUrl);
+    const isVisualValid = Boolean(coverImageUrl || visualMode === 'COLOR_THEME');
     const isHierarchyValid = (topics?.length || 0) > 0 || (childrenPeriods?.length || 0) > 0;
 
     return [
@@ -162,9 +199,17 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
         targetStepIndex: 0,
       },
       {
+        id: 'summary',
+        label: 'Tóm tắt ngắn (Thẻ Timeline & Card)',
+        description: '1-2 câu khái quát đặc trưng cốt lõi (150-250 ký tự)',
+        completed: isSummaryValid,
+        required: false,
+        targetStepIndex: 0,
+      },
+      {
         id: 'chronology',
         label: 'Khung niên đại (Bắt đầu / Kết thúc)',
-        description: 'Phạm vi thời gian ước định của thời kỳ',
+        description: 'Định vị số năm hoặc có nhãn chữ hiển thị',
         completed: isChronologyValid,
         required: false,
         targetStepIndex: 0,
@@ -172,16 +217,16 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
       {
         id: 'description',
         label: 'Mô tả / Tổng quan lịch sử',
-        description: 'Soạn thảo bối cảnh lịch sử, ý nghĩa và diễn biến chủ đạo',
+        description: 'Bài viết tổng quan bối cảnh thời kỳ ở Mục 2',
         completed: isDescValid,
-        required: true,
+        required: false,
         targetStepIndex: 1,
       },
       {
-        id: 'coverImageUrl',
-        label: 'Ảnh bìa banner đại diện',
-        description: 'Hình ảnh đại diện cho kỷ nguyên trên Timeline & Từ điển',
-        completed: isCoverValid,
+        id: 'visual',
+        label: 'Ảnh bìa hoặc Màu sắc đại diện',
+        description: 'Hình ảnh tư liệu hoặc bảng màu vẽ thanh Timeline',
+        completed: isVisualValid,
         required: false,
         targetStepIndex: 0,
       },
@@ -196,7 +241,7 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
         targetStepIndex: 2,
       },
     ];
-  }, [name, startYear, timeLabel, description, coverImageUrl, topics, childrenPeriods, isEdit]);
+  }, [name, summary, startYear, timeLabel, description, coverImageUrl, visualMode, topics, childrenPeriods, isEdit]);
 
   const completedCount = checklist.filter((i) => i.completed).length;
   const isAllRequiredDone = checklist.filter((i) => i.required).every((i) => i.completed);
@@ -204,7 +249,7 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
   // Save Handler
   const handleSave = async (targetStatus?: ContentStatus) => {
     if (!name.trim()) {
-      alert('Vui lòng nhập tên thời kỳ / giai đoạn lịch sử.');
+      alert('Vui lòng nhập tên thời kỳ lịch sử.');
       setActiveStepIndex(0);
       return;
     }
@@ -217,15 +262,24 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
     const effectiveStatus = targetStatus || status;
     setSavingAction(effectiveStatus === ContentStatus.PUBLISHED ? 'PUBLISH' : 'DRAFT');
 
+    // Kết hợp summary và description thành cấu trúc chuẩn
+    let combinedDescription = description.trim();
+    if (summary.trim()) {
+      const leadHtml = `<p class="lead font-medium text-slate-700">${summary.trim()}</p>`;
+      combinedDescription = combinedDescription
+        ? `${leadHtml}\n\n${combinedDescription}`
+        : leadHtml;
+    }
+
     const payload: CreatePeriodDto | UpdatePeriodDto = {
       name: name.trim(),
       parentId: parentId || null,
       startYear: startYear !== '' ? Number(startYear) : null,
       endYear: endYear !== '' ? Number(endYear) : null,
       timeLabel: timeLabel.trim() || undefined,
-      region: region.trim() || 'Việt Nam',
-      description: description.trim() || undefined,
-      coverImageUrl: coverImageUrl.trim() || undefined,
+      region: region.trim() || (primaryStream === 'VIETNAM' ? 'Việt Nam' : 'Thế giới'),
+      description: combinedDescription || undefined,
+      coverImageUrl: visualMode === 'IMAGE' ? (coverImageUrl.trim() || undefined) : undefined,
       displayOrder: Number(displayOrder) || 0,
       status: effectiveStatus,
     };
@@ -234,7 +288,6 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
       if (isEdit && periodId) {
         const saved = await PeriodApiService.updatePeriod(periodId, payload);
         if (isRevisionPending(saved)) {
-          // Nội dung đang xuất bản: thay đổi thành bản sửa chờ duyệt, bản công khai giữ nguyên.
           setPendingRevision(saved.revision);
           setRevisionNotice(saved.message);
           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -259,48 +312,108 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
       id: 'general-info',
       stepNumber: 1,
       title: 'Thông tin chung & Niên đại',
-      subtitle: 'Tên thời kỳ, phân cấp kỷ nguyên cha, khung niên đại, khu vực và ảnh bìa đại diện.',
+      subtitle: 'Tên thời kỳ, tuyến phân loại, tóm tắt cốt lõi, khung niên đại và nhận diện trực quan.',
       icon: IconName.TAG,
       content: (
         <div className="space-y-6">
-          {/* 1. Tên thời kỳ & Thời kỳ cha */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <div className="md:col-span-7">
-              <label className="block mb-1.5 text-xs font-bold text-slate-800">
-                Tên thời kỳ lịch sử <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ví dụ: Thời kỳ Bắc thuộc và Chống Bắc thuộc, Thời nhà Trần..."
-                className="w-full text-xs font-medium px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 transition"
-              />
+          {/* 1. Tuyến lịch sử chính & Tên thời kỳ & Phân cấp */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <span>🧭</span> Tuyến lịch sử chủ đạo (Phân chia tab Timeline)
+              </span>
+              <div className="inline-flex rounded-xl bg-white p-1 border border-slate-200 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPrimaryStream('VIETNAM');
+                    if (region === 'Thế giới') setRegion('Việt Nam');
+                  }}
+                  className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    primaryStream === 'VIETNAM'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>🇻🇳</span> Lịch sử Việt Nam
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPrimaryStream('WORLD');
+                    if (region === 'Việt Nam') setRegion('Thế giới');
+                  }}
+                  className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    primaryStream === 'WORLD'
+                      ? 'bg-stone-900 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>🌍</span> Lịch sử Thế giới
+                </button>
+              </div>
             </div>
 
-            <div className="md:col-span-5">
-              <label className="block mb-1.5 text-xs font-bold text-slate-800">
-                Thuộc thời kỳ cha (Phân cấp kỷ nguyên)
-              </label>
-              <select
-                value={parentId}
-                onChange={(e) => setParentId(e.target.value)}
-                className="w-full text-xs font-medium px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 transition"
-              >
-                <option value="">-- Là thời kỳ độc lập / Kỷ nguyên gốc --</option>
-                {parentCandidates.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} {p.startYear ? `(${p.startYear})` : ''}
-                  </option>
-                ))}
-              </select>
-              <span className="text-[11px] text-slate-400 mt-1 block">
-                Nếu đây là giai đoạn con (ví dụ: Thời Trưng Nữ Vương thuộc Thời kỳ Bắc thuộc).
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+              <div className="md:col-span-7">
+                <label className="block mb-1.5 text-xs font-bold text-slate-800">
+                  Tên thời kỳ lịch sử <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ví dụ: Thời kỳ Bắc thuộc, Thời kỳ Phục Hưng, Thời kỳ Kháng chiến chống Mỹ..."
+                  className="w-full text-xs font-medium px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 transition"
+                />
+              </div>
+
+              <div className="md:col-span-5">
+                <label className="block mb-1.5 text-xs font-bold text-slate-800">
+                  Thuộc thời kỳ cha (Phân cấp hộp lồng hộp)
+                </label>
+                <select
+                  value={parentId}
+                  onChange={(e) => setParentId(e.target.value)}
+                  className="w-full text-xs font-medium px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 transition"
+                >
+                  <option value="">-- Là thời kỳ độc lập / Kỷ nguyên gốc --</option>
+                  {parentCandidates.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} {p.startYear ? `(${p.startYear})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  Chọn thời kỳ cha nếu đây là phân kỳ con (Ví dụ: Bắc thuộc lần 1 thuộc Thời kỳ Bắc thuộc).
+                </span>
+              </div>
+            </div>
+
+            {/* Trường hợp B: Tóm tắt ngắn (150-250 ký tự) cho thẻ Timeline & Card */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-slate-800">
+                  Tóm tắt ngắn / Đặc trưng cốt lõi (Thẻ Timeline & Card)
+                </label>
+                <span className="text-[11px] font-mono text-slate-400">
+                  {summary.length}/250 ký tự gợi ý
+                </span>
+              </div>
+              <textarea
+                rows={2}
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                placeholder="Ví dụ: Hơn 1000 năm kiên cường đấu tranh bảo vệ bản sắc và giành lại quyền tự chủ của dân tộc Việt Nam..."
+                className="w-full text-xs font-medium px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 transition leading-relaxed resize-none"
+              />
+              <span className="text-[11px] text-slate-500 mt-1 block">
+                💡 Giữ cô đọng từ 100 - 250 ký tự. Dùng để hiển thị trên thẻ card Timeline, trang chủ và kết quả tìm kiếm khi học sinh tra cứu.
               </span>
             </div>
           </div>
 
-          {/* 2. Niên đại & Nhãn chữ hiển thị */}
+          {/* 2. Niên đại & Nhãn chữ hiển thị (Xử lý thấu đáo Trường hợp A) */}
           <div className="p-4 bg-amber-50/50 border border-amber-200/80 rounded-2xl space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
@@ -315,45 +428,50 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
               <div className="md:col-span-3">
                 <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Năm bắt đầu (Số nguyên)
+                  Năm bắt đầu (Số định vị Timeline)
                 </label>
                 <input
                   type="number"
                   value={startYear}
                   onChange={(e) => setStartYear(e.target.value ? Number(e.target.value) : '')}
-                  placeholder="Ví dụ: -179 hoặc 1954"
+                  placeholder="Ví dụ: -700, 1010, 1400..."
                   className="w-full text-xs px-3.5 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 transition"
                 />
-                <span className="text-[10px] text-slate-400 mt-0.5 block">Nhập số âm nếu là TCN</span>
+                <span className="text-[10px] text-slate-500 mt-0.5 block leading-tight">
+                  Dùng định vị mốc tọa độ trên Timeline (Thế kỷ XV nhập ước lượng 1400, Thế kỷ VII TCN nhập -700).
+                </span>
               </div>
 
               <div className="md:col-span-3">
                 <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Năm kết thúc (Số nguyên)
+                  Năm kết thúc (Số định vị Timeline)
                 </label>
                 <input
                   type="number"
                   value={endYear}
                   onChange={(e) => setEndYear(e.target.value ? Number(e.target.value) : '')}
-                  placeholder="Ví dụ: 938 hoặc 1975"
+                  placeholder="Ví dụ: 938, 1975..."
                   className="w-full text-xs px-3.5 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 transition"
                 />
-                <span className="text-[10px] text-slate-400 mt-0.5 block">Để trống nếu tiếp diễn</span>
+                <span className="text-[10px] text-slate-500 mt-0.5 block leading-tight">
+                  Để trống nếu chưa rõ hoặc kỷ nguyên tiếp diễn.
+                </span>
               </div>
 
               <div className="md:col-span-6">
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Nhãn niên đại dạng chữ (Tùy chọn hiển thị)
+                <label className="block text-[11px] font-bold text-amber-950 mb-1 flex items-center gap-1">
+                  <span>Nhãn niên đại dạng chữ (Ưu tiên hiển thị cho người học)</span>
+                  <span className="text-amber-600">⭐</span>
                 </label>
                 <input
                   type="text"
                   value={timeLabel}
                   onChange={(e) => setTimeLabel(e.target.value)}
-                  placeholder="Ví dụ: thế kỷ VII TCN - thế kỷ II TCN, hoặc Năm 1954 - 1975"
-                  className="w-full text-xs px-3.5 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 transition"
+                  placeholder="Ví dụ: Thế kỷ VII TCN – Thế kỷ II TCN, hoặc Thời Tiền sử..."
+                  className="w-full text-xs px-3.5 py-2 bg-white border border-amber-300 rounded-xl focus:outline-none focus:border-amber-500 transition font-medium"
                 />
-                <span className="text-[10px] text-slate-400 mt-0.5 block">
-                  Ưu tiên hiển thị chữ này thay vì số ghép nếu có nhập
+                <span className="text-[10px] text-amber-900 mt-0.5 block leading-tight">
+                  🌟 &ldquo;Phao cứu sinh&rdquo; cho thời kỳ cổ đại: Hệ thống sẽ ưu tiên hiển thị dòng chữ này cho người học thay vì số ghép.
                 </span>
               </div>
             </div>
@@ -363,21 +481,121 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
             )}
           </div>
 
-          {/* 3. Khu vực địa lý & Ảnh bìa */}
+          {/* 3. Nhận diện trực quan (Xử lý thấu đáo Trường hợp C: Ảnh bìa hoặc Bảng màu kỷ nguyên) */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-            <div className="md:col-span-5">
-              <TopicCoverImagePicker
-                value={coverImageUrl}
-                onChange={setCoverImageUrl}
-                title="Ảnh bìa thời kỳ / Banner đại diện"
-                compact
-              />
+            <div className="md:col-span-6 space-y-3">
+              <div className="flex items-center justify-between pb-1">
+                <label className="block text-xs font-bold text-slate-800">
+                  Nhận diện hình ảnh / Màu sắc đại diện
+                </label>
+                <div className="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setVisualMode('IMAGE')}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
+                      visualMode === 'IMAGE'
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Ảnh tư liệu
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVisualMode('COLOR_THEME')}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
+                      visualMode === 'COLOR_THEME'
+                        ? 'bg-white text-amber-900 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Màu sắc kỷ nguyên
+                  </button>
+                </div>
+              </div>
+
+              {visualMode === 'IMAGE' ? (
+                <div>
+                  <TopicCoverImagePicker
+                    value={coverImageUrl}
+                    onChange={setCoverImageUrl}
+                    title="Ảnh bìa thời kỳ / Banner đại diện"
+                    compact
+                  />
+                  <span className="text-[11px] text-slate-400 mt-1 block">
+                    Khuyên dùng tranh khắc, di vật khảo cổ, bản đồ cổ hoặc ảnh tư liệu lịch sử.
+                  </span>
+                </div>
+              ) : (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-700">
+                      Chọn gam màu lịch sử đại diện:
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-mono text-slate-500 uppercase">{colorTheme}</span>
+                      <input
+                        type="color"
+                        value={colorTheme}
+                        onChange={(e) => setColorTheme(e.target.value)}
+                        className="w-6 h-6 rounded cursor-pointer border-0 p-0"
+                        title="Chọn màu tùy chỉnh"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {HISTORICAL_COLOR_PRESETS.map((p) => {
+                      const isPicked = colorTheme.toLowerCase() === p.color.toLowerCase();
+                      return (
+                        <button
+                          key={p.color}
+                          type="button"
+                          onClick={() => setColorTheme(p.color)}
+                          className={`p-2 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
+                            isPicked
+                              ? 'border-amber-600 bg-amber-50/60 ring-2 ring-amber-200'
+                              : 'border-slate-200 bg-white hover:bg-slate-50'
+                          }`}
+                        >
+                          <span
+                            className="w-5 h-5 rounded-lg shrink-0 shadow-2xs"
+                            style={{ backgroundColor: p.color }}
+                          />
+                          <div className="min-w-0">
+                            <div className="text-[11px] font-bold text-slate-800 truncate">{p.label}</div>
+                            <div className="text-[9px] text-slate-400 truncate">{p.desc}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Bản xem trước dải banner tạo bằng màu */}
+                  <div
+                    className="h-16 rounded-xl flex items-center justify-between px-4 text-white shadow-xs"
+                    style={{
+                      background: `linear-gradient(135deg, ${colorTheme} 0%, #1a1a1a 100%)`,
+                    }}
+                  >
+                    <div>
+                      <div className="text-[11px] font-bold tracking-wide uppercase opacity-90">
+                        Thanh nhận diện Timeline
+                      </div>
+                      <div className="text-xs font-semibold mt-0.5">
+                        {name || 'Kỷ nguyên lịch sử'}
+                      </div>
+                    </div>
+                    <span className="text-xl">🏛️</span>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="md:col-span-7 space-y-4">
+            <div className="md:col-span-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                  Phạm vi địa lý / Vùng miền
+                  Phạm vi địa lý / Vùng miền chi tiết
                 </label>
                 <TaxonomySelect
                   group={regionGroup}
@@ -388,7 +606,7 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
                   className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 transition"
                 />
                 <span className="text-[11px] text-slate-400 mt-1 block">
-                  Chọn phân vùng lãnh thổ áp dụng (Việt Nam, Thế giới...). Thêm tại &quot;Danh mục dùng chung&quot;.
+                  Địa bàn diễn ra chính (Đồng bằng Bắc Bộ, Thăng Long, Cả nước, Đông Nam Á...).
                 </span>
               </div>
 
@@ -501,7 +719,6 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
       content: (
         <div className="space-y-6">
           {!isEdit ? (
-            /* Thông báo thân thiện khi tạo mới: Giải quyết triệt để lỗi "Con gà và quả trứng" */
             <div className="p-6 bg-gradient-to-br from-amber-50/80 via-white to-slate-50 border border-amber-200/90 rounded-2xl space-y-3 shadow-xs">
               <div className="flex items-center gap-2.5 text-amber-900 font-bold text-sm">
                 <span className="text-base">💡</span>
@@ -525,7 +742,6 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
               </div>
             </div>
           ) : (
-            /* Khi đang ở chế độ Edit: Hiển thị đầy đủ danh sách Quản lý */
             <>
               {/* Khối 1: Danh sách Chủ đề học tập (Topics) */}
               <div className="space-y-3">
@@ -679,23 +895,30 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
           {/* 1. Thẻ tóm tắt thông tin thời kỳ (Live Preview Card) */}
           <div className="bg-gradient-to-br from-amber-50/60 via-white to-slate-50 border border-amber-200/80 rounded-2xl p-5 shadow-xs">
             <div className="flex flex-col sm:flex-row gap-5 items-start">
-              {coverImageUrl ? (
+              {visualMode === 'IMAGE' && coverImageUrl ? (
                 <img
                   src={coverImageUrl}
                   alt={name || 'Ảnh bìa thời kỳ'}
                   className="w-28 h-28 sm:w-32 sm:h-28 rounded-xl object-cover border border-amber-200 shrink-0 shadow-2xs"
                 />
               ) : (
-                <div className="w-28 h-28 sm:w-32 sm:h-28 rounded-xl bg-slate-100 border border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 shrink-0">
-                  <Icon name={IconName.IMAGE} size={26} />
-                  <span className="text-[10px] mt-1">Chưa có banner</span>
+                <div
+                  className="w-28 h-28 sm:w-32 sm:h-28 rounded-xl flex flex-col items-center justify-center text-white shrink-0 shadow-2xs p-3 text-center"
+                  style={{
+                    background: `linear-gradient(135deg, ${colorTheme} 0%, #1a1a1a 100%)`,
+                  }}
+                >
+                  <span className="text-2xl">🏛️</span>
+                  <span className="text-[10px] mt-1 font-semibold uppercase opacity-90 truncate max-w-full">
+                    {primaryStream === 'VIETNAM' ? 'Sử Việt' : 'Thế giới'}
+                  </span>
                 </div>
               )}
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                    Thời kỳ lịch sử
+                    {primaryStream === 'VIETNAM' ? '🇻🇳 Lịch sử Việt Nam' : '🌍 Lịch sử Thế giới'}
                   </span>
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-100 text-stone-800 border border-stone-300">
                     {region}
@@ -709,10 +932,10 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
                   {name || <span className="text-slate-400 italic font-normal">Chưa đặt tên thời kỳ</span>}
                 </h3>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-slate-600">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-slate-600">
                   <div>
-                    <span className="text-slate-400">Niên đại:</span>{' '}
-                    <strong className="text-amber-900">{autoTimePreview}</strong>
+                    <span className="text-slate-400">Niên đại hiển thị:</span>{' '}
+                    <strong className="text-amber-900 font-bold">{autoTimePreview}</strong>
                   </div>
                   {parentId && (
                     <div>
@@ -724,18 +947,18 @@ export function PeriodEditor({ periodId }: PeriodEditorProps) {
                   )}
                   {displayOrder > 0 && (
                     <div>
-                      <span className="text-slate-400">Thứ tự ưu tiên:</span>{' '}
+                      <span className="text-slate-400">Ưu tiên:</span>{' '}
                       <strong className="text-slate-800">#{displayOrder}</strong>
                     </div>
                   )}
                 </div>
 
-                {description ? (
-                  <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
-                    {description.replace(/<[^>]*>/g, '').trim()}
+                {summary ? (
+                  <p className="text-xs text-slate-700 mt-2.5 line-clamp-2 leading-relaxed bg-amber-50/50 p-2 rounded-lg border border-amber-100">
+                    <strong>Tóm tắt:</strong> {summary}
                   </p>
                 ) : (
-                  <p className="text-xs text-slate-400 italic mt-2">Chưa có nội dung tổng quan bối cảnh</p>
+                  <p className="text-xs text-slate-400 italic mt-2">Chưa có tóm tắt đặc trưng cốt lõi</p>
                 )}
               </div>
             </div>

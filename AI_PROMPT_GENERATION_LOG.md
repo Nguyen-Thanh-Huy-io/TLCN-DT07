@@ -3230,3 +3230,44 @@ sequenceDiagram
    - **Vị trí 1 (Trên Sticky FilterBar)**: Nằm ngay cạnh nút "Bộ lọc" trên thanh tìm kiếm luôn bám đỉnh.
    - **Vị trí 2 (Floating Side Tab)**: Một tab nổi nhỏ xinh `📑 Mục lục` nằm cố định ở giữa mép phải màn hình (`right: 0`), người dùng đang cuộn ở bất cứ đâu cũng với tới được chỉ trong 1 cú click.
 3. **Xác thực tự động**: `tsc --noEmit` hoàn tất với 0 lỗi.
+
+---
+
+## ĐỢT 39: Nâng Cấp Card Grid Tạp Chí Sự Kiện, Thay Infinite Scroll Bằng Pagination & Nút Xem Toàn Bộ Trang Nhân Vật Trên Modal
+
+### 1. Sơ đồ Tuần tự (Sequence Diagram)
+```mermaid
+sequenceDiagram
+    actor User as Người học / Người xem
+    participant EvPage as EventsLibrary (/su-kien)
+    participant FigPage as FiguresDirectory (/nhan-vat)
+    participant FigModal as FigureProfileSheet (Modal Hồ sơ nhân vật)
+    participant FullFigPage as Trang Đầy Đủ (/nhan-vat/[slug])
+    participant Pager as Pagination Component (Dùng chung)
+
+    Note over EvPage: Trang /su-kien: Nâng cấp Card Grid Tạp chí + Chuyển Grid/List View
+    EvPage->>Pager: Hiển thị 12 sự kiện / trang kèm số trang [1] [2]...
+    User->>Pager: Chuyển trang sự kiện -> Tự động cuộn mượt lên đầu danh sách
+
+    Note over FigPage: Trang /nhan-vat: Xóa bỏ Infinite Scroll tải nặng
+    FigPage->>Pager: Hiển thị 16 nhân vật / trang
+    User->>FigPage: Bấm xem thẻ nhân vật bất kỳ
+    FigPage->>FigModal: Mở modal "Hồ sơ nhân vật"
+    Note over FigModal: Bổ sung nút liên kết nổi bật "[ ↗ Xem trang chi tiết đầy đủ ]"
+    User->>FigModal: Bấm nút xem trang chi tiết
+    FigModal->>FullFigPage: Điều hướng ra /nhan-vat/[slug] với URL và bài viết toàn văn
+```
+
+### 2. Các điểm cải tiến cốt lõi
+1. **Trang Sự kiện (`/su-kien`) chuyển mình thành Tạp chí Lịch sử**:
+   - Thay danh sách gạch đầu dòng `<ol>` thô sơ bằng **Card Grid chuyên nghiệp**: Ảnh bìa sự kiện (hoặc fallback gradient hoa văn lịch sử), Badge năm/niên đại, Badge danh mục, Tiêu đề font heading, Tóm tắt 2 dòng, Thẻ nhân vật & Địa danh liên quan, Nút điều hướng "Khám phá sự kiện".
+   - Hỗ trợ nút chuyển đổi nhanh **Dạng Lưới (Grid View)** và **Dạng Danh Sách (List View)**.
+2. **Khắc phục triệt để vấn đề Infinite Scroll (Bằng Component `Pagination` dùng chung)**:
+   - Xây dựng component chuẩn mực [`Pagination.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/components/common/Pagination.tsx) với điều hướng `[Trước] 1 2 ... [Sau]`.
+   - Áp dụng trên cả `/su-kien` (12 sự kiện/trang) và `/nhan-vat` (16 nhân vật/trang).
+   - Tự động cuộn lên đầu danh sách khi chuyển trang và reset về trang 1 khi lọc hoặc tìm kiếm.
+3. **Thêm Nút "Xem trang chi tiết đầy đủ" trên Modal Nhân vật ([`FigureProfileSheet.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/components/figures/FigureProfileSheet.tsx))**:
+   - Thêm nút liên kết `[ ↗ Xem trang chi tiết đầy đủ ]` trên Header của modal.
+   - Cho phép người dùng chuyển thẳng từ modal sang trang riêng biệt `/nhan-vat/[slug]`.
+4. **Xác thực tự động (Automated Verification)**:
+   - TypeScript compiler (`tsc --noEmit`): **0 lỗi** (Exit code 0).

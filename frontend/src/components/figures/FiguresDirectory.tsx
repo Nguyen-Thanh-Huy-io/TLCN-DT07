@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Compass, RotateCcw, Search, Users, X } from "lucide-react";
 import { Badge, Button, Heading } from "@/components/timeline/sk-ui";
+import { Pagination } from "@/components/common/Pagination";
 import type { PublicFigureProfileDto, PublicPeriodDto } from "@/services/entities/landing.service";
 import { FiguresHero } from "./FiguresHero";
 import {
@@ -24,6 +25,7 @@ import { regionLabel, sortedRegions } from "@/utils/region.utils";
 import { TimelineRelationDirection } from "@/components/timeline/sk-types";
 
 const PROFILE_QUERY_KEY = "nv";
+const FIGURES_PAGE_SIZE = 16;
 
 export function FiguresDirectory({
   figures: rawFigures,
@@ -43,6 +45,12 @@ export function FiguresDirectory({
     () => figures.find((f) => f.slug === initialSlug) ?? null,
   );
   const [tab, setTab] = useState<ProfileTab>(FigureProfileTab.TIMELINE);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset về trang 1 khi lọc hoặc tìm kiếm
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, filters, sort]);
 
   // Keep the open profile in the URL so it can be shared. Done from event handlers only:
   // Next.js routes history.replaceState through the app router, which must be mounted first.
@@ -119,6 +127,17 @@ export function FiguresDirectory({
       .filter((f) => matches(f, filters, needle))
       .sort((a, b) => (sort === FigureSort.NAME ? a.name.localeCompare(b.name, "vi") : a.sortYear - b.sortYear));
   }, [figures, query, filters, sort, matches]);
+
+  // Phân trang dữ liệu
+  const paginatedFigures = useMemo(() => {
+    const start = (currentPage - 1) * FIGURES_PAGE_SIZE;
+    return filtered.slice(start, start + FIGURES_PAGE_SIZE);
+  }, [filtered, currentPage]);
+
+  const handlePageChange = (p: number) => {
+    setCurrentPage(p);
+    document.getElementById("sk-directory-anchor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const countFor = (draft: FigureFilters) => {
     const needle = normalize(query.trim());
     return figures.filter((f) => matches(f, cleanSubs(draft), needle)).length;
@@ -243,7 +262,7 @@ export function FiguresDirectory({
             total={figures.length}
             countByRole={countByRole}
           />
-          <div className="sk-directory-results">
+          <div className="sk-directory-results" id="sk-directory-anchor">
             <div className="sk-results-toolbar">
               <span>
                 Hiển thị <strong>{filtered.length}</strong> nhân vật
@@ -255,7 +274,16 @@ export function FiguresDirectory({
               )}
             </div>
             {filtered.length ? (
-              <FiguresGrid figures={filtered} onOpen={open} />
+              <>
+                <FiguresGrid figures={paginatedFigures} onOpen={open} />
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={filtered.length}
+                  pageSize={FIGURES_PAGE_SIZE}
+                  onPageChange={handlePageChange}
+                  itemLabel="nhân vật lịch sử"
+                />
+              </>
             ) : (
               <div className="sk-empty">
                 <Search size={34} />

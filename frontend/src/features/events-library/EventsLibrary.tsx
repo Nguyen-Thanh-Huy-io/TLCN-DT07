@@ -2,8 +2,22 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowDownUp, ArrowRight, History, MapPin, Search, SlidersHorizontal, Users, X } from 'lucide-react';
+import {
+  ArrowDownUp,
+  ArrowRight,
+  Calendar,
+  History,
+  ImageIcon,
+  LayoutGrid,
+  List,
+  MapPin,
+  Search,
+  SlidersHorizontal,
+  Users,
+  X,
+} from 'lucide-react';
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from '@/components/filters/ChipFilter';
+import { Pagination } from '@/components/common/Pagination';
 import { EVENT_CATEGORY_LABELS, EventCategory } from '@/constants/enums';
 import { formatYear, normalizeSearch, shortPeriodName } from '@/features/search/search-index';
 import type { PublicEventSummaryDto, PublicPeriodDto } from '@/services/entities/landing.service';
@@ -15,6 +29,7 @@ import './events-library.css';
 
 /** Giá trị "chưa gắn" dùng chung cho nhóm thời kỳ. */
 const NO_PERIOD = '__none__';
+const PAGE_SIZE = 12;
 
 const LINK_OPTIONS = {
   NO_PERIOD: 'Chưa gắn thời kỳ',
@@ -73,7 +88,13 @@ function buildRows(events: PublicEventSummaryDto[], periods: PublicPeriodDto[], 
       eraName: root ? shortPeriodName(root.name) : null,
       region: regionLabel(root?.region),
       haystack: normalizeSearch(
-        [event.title, event.description ?? '', event.location ?? '', ...event.figures.map((f) => f.name), String(event.startYear)].join(' '),
+        [
+          event.title,
+          event.description ?? '',
+          event.location ?? '',
+          ...event.figures.map((f) => f.name),
+          String(event.startYear),
+        ].join(' '),
       ),
       linkFlags: flags,
       categoryPath: new Set((event.categoryIds ?? []).flatMap((id) => ancestorChain(terms, id).map((t) => t.id))),
@@ -90,8 +111,8 @@ function matches(row: EventRow, f: EventFilters, needle: string): boolean {
 }
 
 /**
- * Thư viện sự kiện: mọi sự kiện đã xuất bản ở một chỗ — kể cả sự kiện chưa gắn
- * thời kỳ, nhân vật hay địa danh (những sự kiện này không xuất hiện trên Dòng thời gian).
+ * Thư viện sự kiện: Lưới thẻ sự kiện tạp chí lịch sử chuyên nghiệp
+ * Hỗ trợ chuyển đổi Grid / List, phân trang Pagination rõ ràng.
  */
 export function EventsLibrary({ events, periods }: { events: PublicEventSummaryDto[]; periods: PublicPeriodDto[] }) {
   // Loại sự kiện theo cây "Danh mục dùng chung"; chưa tải xong thì thẻ dùng nhãn enum cũ.
@@ -101,15 +122,25 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
       .then((group) => setCategoryTerms(group?.terms ?? []))
       .catch(() => setCategoryTerms([]));
   }, []);
+
   const rows = useMemo(() => buildRows(events, periods, categoryTerms), [events, periods, categoryTerms]);
   const termLabel = (id: string) => categoryTerms.find((t) => t.id === id)?.label ?? id;
   const primaryLabel = (event: PublicEventSummaryDto) =>
     event.categoryIds?.[0] && categoryTerms.length ? termLabel(event.categoryIds[0]) : categoryLabel(event.category);
+
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<EventFilters>(EMPTY);
   const [sort, setSort] = useState<Sort>(EventSortOption.YEAR_ASC);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [currentPage, setCurrentPage] = useState(1);
+
   const needle = normalizeSearch(query.trim());
+
+  // Reset trang về 1 khi đổi bộ lọc hoặc tìm kiếm
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, filters, sort]);
 
   const regionOrder = useRegionOrder();
   const regions = useMemo(() => sortedRegions(rows.map((r) => r.region), regionOrder), [rows, regionOrder]);
@@ -123,6 +154,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
     }
     return [...seen.entries()].sort((a, b) => a[1].start - b[1].start);
   }, [rows, periods]);
+
   const count = (pick: (r: EventRow) => boolean) => rows.filter(pick).length;
 
   const visible = useMemo(() => {
@@ -136,6 +168,17 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
     );
   }, [rows, filters, needle, sort]);
 
+  // Phân trang dữ liệu
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return visible.slice(start, start + PAGE_SIZE);
+  }, [visible, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    document.getElementById('el-content-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const chips = [
     ...filters.regions.map((v) => ({ key: 'regions' as const, value: v, label: v })),
     ...filters.eras.map((v) => ({ key: 'eras' as const, value: v, label: eras.find(([id]) => id === v)?.[1].label ?? v })),
@@ -146,22 +189,24 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
 
   return (
     <div className="sk-app el-app">
+      {/* Intro Header */}
       <section className="el-intro">
-        <span className="sk-section-eyebrow">THƯ VIỆN SỰ KIỆN</span>
-        <h1>Mọi sự kiện, ở một nơi</h1>
+        <span className="sk-section-eyebrow">KHO TƯ LIỆU LỊCH SỬ</span>
+        <h1>Thư viện Sự kiện Lịch sử</h1>
         <p>
-          {rows.length} sự kiện của Việt Nam và thế giới — tìm theo tên, năm, nhân vật hay địa danh, lọc theo khu vực, thời kỳ,
-          danh mục.
+          Khám phá {rows.length} dấu mốc lịch sử hào hùng của dân tộc Việt Nam và thế giới. Tra cứu toàn diện theo niên đại,
+          thời kỳ, nhân vật và chiến trường xưa.
         </p>
       </section>
 
-      <div className="el-wrap">
+      <div className="el-wrap" id="el-content-anchor">
+        {/* Filter Bar */}
         <div className="sk-filter-bar">
           <div className="sk-search-field">
             <Search size={17} />
             <input
               aria-label="Tìm sự kiện"
-              placeholder="Tìm sự kiện, năm, nhân vật, địa danh..."
+              placeholder="Tìm tên sự kiện, năm, nhân vật, địa danh..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -171,19 +216,54 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
               </button>
             )}
           </div>
-          <button type="button" className={`sk-button sk-filter-open ${active ? 'sk-is-on' : ''}`} onClick={() => setSheetOpen(true)}>
+
+          <button
+            type="button"
+            className={`sk-button sk-filter-open ${active ? 'sk-is-on' : ''}`}
+            onClick={() => setSheetOpen(true)}
+          >
             <SlidersHorizontal size={16} />
             <span>Bộ lọc</span>
             {active > 0 && <span className="sk-badge">{active}</span>}
           </button>
+
           <div className="sk-split-segment" role="group" aria-label="Sắp xếp sự kiện">
             <ArrowDownUp size={13} />
             {(Object.keys(SORT_LABELS) as Sort[]).map((s) => (
-              <button key={s} type="button" className={sort === s ? 'sk-selected' : ''} aria-pressed={sort === s} onClick={() => setSort(s)}>
+              <button
+                key={s}
+                type="button"
+                className={sort === s ? 'sk-selected' : ''}
+                aria-pressed={sort === s}
+                onClick={() => setSort(s)}
+              >
                 {SORT_LABELS[s]}
               </button>
             ))}
           </div>
+
+          {/* Nút chuyển chế độ xem Grid / List */}
+          <div className="el-view-mode-toggle" role="group" aria-label="Chế độ hiển thị">
+            <button
+              type="button"
+              className={`el-view-btn ${viewMode === 'grid' ? 'sk-active' : ''}`}
+              onClick={() => setViewMode('grid')}
+              title="Xem dạng lưới thẻ tạp chí"
+              aria-label="Xem dạng lưới"
+            >
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              type="button"
+              className={`el-view-btn ${viewMode === 'list' ? 'sk-active' : ''}`}
+              onClick={() => setViewMode('list')}
+              title="Xem dạng danh sách"
+              aria-label="Xem dạng danh sách"
+            >
+              <List size={16} />
+            </button>
+          </div>
+
           {chips.length > 0 && (
             <div className="sk-active-filters">
               {chips.map((c) => (
@@ -206,6 +286,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
           )}
         </div>
 
+        {/* Modal Bộ lọc Dialog */}
         <FilterDialog
           open={sheetOpen}
           value={filters}
@@ -222,7 +303,6 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
             const eraOptions = eras
               .filter(([id, e]) => !draft.regions.length || draft.eras.includes(id) || draft.regions.includes(e.region))
               .map(([id, e]) => ({ value: id, label: e.label, hint: `${count((r) => r.eraId === id)} sự kiện` }));
-            // Cây loại: chỉ hiện nút có sự kiện (tính cả nút con), cha đứng trước con.
             const categories = flattenTree(categoryTerms)
               .map(({ term, depth }) => ({ term, depth, n: count((r) => r.categoryPath.has(term.id)) }))
               .filter((c) => c.n > 0);
@@ -269,56 +349,165 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
           }}
         </FilterDialog>
 
+        {/* Status Toolbar */}
         <div className="el-toolbar">
-          Hiển thị <strong>{visible.length}</strong> / {rows.length} sự kiện
+          <span>
+            Tìm thấy <strong>{visible.length}</strong> sự kiện lịch sử
+          </span>
+          {active > 0 && (
+            <button
+              type="button"
+              className="el-reset-link"
+              onClick={() => {
+                setQuery('');
+                setFilters(EMPTY);
+              }}
+            >
+              Đặt lại bộ lọc
+            </button>
+          )}
         </div>
 
-        {visible.length ? (
-          <ol className="el-list">
-            {visible.map(({ event, eraName, region }) => {
-              const place = event.locations[0]?.name ?? event.location;
-              const placeSlug = event.locations[0]?.slug;
-              const href = event.slug ? `/su-kien/${event.slug}` : null;
-              return (
-                <li key={event.id}>
-                  <span className="el-year">{formatYear(event.startYear)}</span>
-                  <div className="el-main">
-                    {href ? <Link href={href}>{event.title}</Link> : <strong>{event.title}</strong>}
-                    <div className="el-meta">
-                      <span className="el-tag">{primaryLabel(event)}</span>
-                      <span>{eraName ? `${eraName} · ${region}` : 'Chưa gắn thời kỳ'}</span>
-                      {event.figures.length > 0 && (
-                        <span>
-                          <Users size={12} />
-                          {event.figures
-                            .slice(0, 2)
-                            .map((f) => f.name)
-                            .join(', ')}
-                          {event.figures.length > 2 && ` +${event.figures.length - 2}`}
+        {/* Nội dung danh sách sự kiện */}
+        {visible.length > 0 ? (
+          <>
+            {viewMode === 'grid' ? (
+              /* DẠNG 1: LƯỚI THẺ SỰ KIỆN TẠP CHÍ (CARD GRID) */
+              <div className="el-grid">
+                {paginatedRows.map(({ event, eraName, region }) => {
+                  const place = event.locations[0]?.name ?? event.location;
+                  const href = event.slug ? `/su-kien/${event.slug}` : null;
+                  const yearLabel = event.endYear && event.endYear !== event.startYear
+                    ? `${formatYear(event.startYear)} – ${formatYear(event.endYear)}`
+                    : formatYear(event.startYear);
+
+                  return (
+                    <article key={event.id} className="el-card">
+                      {/* Ảnh bìa sự kiện */}
+                      <div className="el-card-media">
+                        {event.imageUrl ? (
+                          <img src={event.imageUrl} alt={event.title} loading="lazy" />
+                        ) : (
+                          <div className="el-card-fallback-media">
+                            <ImageIcon size={32} className="opacity-30" />
+                          </div>
+                        )}
+                        <span className="el-card-year-badge">
+                          <Calendar size={12} />
+                          {yearLabel}
                         </span>
+                      </div>
+
+                      {/* Thân thẻ sự kiện */}
+                      <div className="el-card-body">
+                        <div className="el-card-meta-top">
+                          <span className="el-tag">{primaryLabel(event)}</span>
+                          <span className="el-era-tag">{eraName ? `${eraName}` : 'Thời kỳ chung'}</span>
+                        </div>
+
+                        <h3 className="el-card-title">
+                          {href ? <Link href={href}>{event.title}</Link> : event.title}
+                        </h3>
+
+                        {event.description && (
+                          <p className="el-card-desc">{event.description}</p>
+                        )}
+
+                        {/* Thông tin nhân vật và địa danh */}
+                        <div className="el-card-entities">
+                          {event.figures.length > 0 && (
+                            <div className="el-card-entity-item" title={event.figures.map((f) => f.name).join(', ')}>
+                              <Users size={13} />
+                              <span>
+                                {event.figures.slice(0, 2).map((f) => f.name).join(', ')}
+                                {event.figures.length > 2 && ` +${event.figures.length - 2}`}
+                              </span>
+                            </div>
+                          )}
+                          {place && (
+                            <div className="el-card-entity-item" title={place}>
+                              <MapPin size={13} />
+                              <span>{place}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Footer thẻ */}
+                        {href && (
+                          <div className="el-card-footer">
+                            <Link href={href} className="el-card-link">
+                              <span>Khám phá sự kiện</span>
+                              <ArrowRight size={14} />
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              /* DẠNG 2: DANH SÁCH CHI TIẾT (LIST VIEW) */
+              <ol className="el-list">
+                {paginatedRows.map(({ event, eraName, region }) => {
+                  const place = event.locations[0]?.name ?? event.location;
+                  const placeSlug = event.locations[0]?.slug;
+                  const href = event.slug ? `/su-kien/${event.slug}` : null;
+                  const yearLabel = event.endYear && event.endYear !== event.startYear
+                    ? `${formatYear(event.startYear)}–${formatYear(event.endYear)}`
+                    : formatYear(event.startYear);
+
+                  return (
+                    <li key={event.id} className="el-list-item">
+                      <div className="el-list-year">
+                        <strong>{yearLabel}</strong>
+                        <span className="el-tag">{primaryLabel(event)}</span>
+                      </div>
+                      <div className="el-main">
+                        {href ? <Link href={href}>{event.title}</Link> : <strong>{event.title}</strong>}
+                        {event.description && <p className="el-list-desc">{event.description}</p>}
+                        <div className="el-meta">
+                          <span>{eraName ? `${eraName} · ${region}` : 'Chưa gắn thời kỳ'}</span>
+                          {event.figures.length > 0 && (
+                            <span>
+                              <Users size={12} />
+                              {event.figures.slice(0, 2).map((f) => f.name).join(', ')}
+                              {event.figures.length > 2 && ` +${event.figures.length - 2}`}
+                            </span>
+                          )}
+                          {place && (
+                            <span>
+                              <MapPin size={12} />
+                              {placeSlug ? <Link href={`/di-tich/${placeSlug}`}>{place}</Link> : place}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {href && (
+                        <Link href={href} className="el-go" aria-label={`Đọc ${event.title}`}>
+                          <ArrowRight size={16} />
+                        </Link>
                       )}
-                      {place && (
-                        <span>
-                          <MapPin size={12} />
-                          {placeSlug ? <Link href={`/di-tich/${placeSlug}`}>{place}</Link> : place}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {href && (
-                    <Link href={href} className="el-go" aria-label={`Đọc ${event.title}`}>
-                      <ArrowRight size={16} />
-                    </Link>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+
+            {/* Phân trang Pagination */}
+            <Pagination
+              currentPage={currentPage}
+              totalItems={visible.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={handlePageChange}
+              itemLabel="sự kiện lịch sử"
+            />
+          </>
         ) : (
           <div className="sk-empty">
-            <History size={34} />
+            <History size={36} />
             <h2>Chưa tìm thấy sự kiện</h2>
-            <p>Thử từ khóa khác hoặc bỏ bớt bộ lọc.</p>
+            <p>Thử từ khóa khác hoặc xóa bớt các tiêu chí lọc đang chọn.</p>
             {(active > 0 || query) && (
               <button
                 type="button"

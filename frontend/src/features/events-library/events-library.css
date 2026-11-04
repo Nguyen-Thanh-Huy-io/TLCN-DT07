@@ -1,27 +1,395 @@
-/* Thư viện sự kiện (/su-kien) — tiền tố el-, dùng biến màu của .sk-app. */
+/* Thư viện sự kiện (/su-kien) — Nâng cấp Card Grid & List View Tạp chí Lịch sử */
 
-.el-app { padding-bottom: 72px; }
-.el-intro { max-width: 1120px; margin: 0 auto; padding: 44px 20px 22px; }
-.el-intro h1 { margin: 8px 0 0; font-family: var(--sk-font-display); font-size: clamp(1.9rem, 4vw, 2.8rem); line-height: 1.15; color: var(--text); }
-.el-intro p { margin: 10px 0 0; max-width: 680px; font-size: 15px; line-height: 1.7; color: var(--muted); }
-.el-wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
-.el-wrap .sk-filter-bar { flex-wrap: wrap; }
-.el-toolbar { margin: 18px 2px 10px; font-size: 13px; color: var(--muted); }
-.el-toolbar strong { color: var(--text); }
-.el-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); overflow: hidden; }
-.el-list li { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 13px 16px; border-bottom: 1px solid var(--border); transition: background .15s; }
-.el-list li:last-child { border-bottom: 0; }
-.el-list li:hover { background: var(--bg); }
-.el-year { font-family: var(--sk-font-display); font-size: 16px; font-weight: 700; color: var(--accent); }
-.el-main { min-width: 0; }
-.el-main > a, .el-main > strong { display: block; font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--text); }
-.el-main > a:hover { color: var(--accent); }
-.el-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 4px; font-size: 12px; color: var(--muted); }
-.el-meta > span { display: inline-flex; align-items: center; gap: 4px; }
-.el-tag { padding: 1px 8px; border-radius: 999px; background: var(--soft); color: var(--accent); font-weight: 600; }
-.el-go { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; color: var(--muted); }
-.el-go:hover { background: var(--soft); color: var(--accent); }
-@media (max-width: 600px) {
-  .el-list li { grid-template-columns: 1fr auto; gap: 6px 10px; }
-  .el-year { grid-column: 1 / -1; font-size: 14px; }
+.el-app {
+  padding-bottom: 80px;
+}
+
+.el-intro {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 44px 24px 24px;
+}
+
+.el-intro h1 {
+  margin: 8px 0 0;
+  font-family: var(--sk-font-display);
+  font-size: clamp(2rem, 4vw, 2.85rem);
+  line-height: 1.2;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.el-intro p {
+  margin: 12px 0 0;
+  max-width: 720px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.el-wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.el-wrap .sk-filter-bar {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Nút chuyển chế độ xem Grid / List */
+.el-view-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--soft);
+  margin-left: auto;
+}
+
+.el-view-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.el-view-btn:hover {
+  color: var(--text);
+}
+
+.el-view-btn.sk-active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Thanh toolbar đếm số lượng & đặt lại bộ lọc */
+.el-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20px 4px 14px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.el-toolbar strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.el-reset-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   1. CARD GRID (DẠNG LƯỚI THẺ TẠP CHÍ LỊCH SỬ)
+   ========================================================================== */
+.el-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 24px;
+  margin-top: 10px;
+}
+
+.el-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(25, 41, 30, 0.04);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+}
+
+.el-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 30px rgba(25, 41, 30, 0.1);
+  border-color: #bcd0b6;
+}
+
+.el-card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #1a251e;
+  overflow: hidden;
+}
+
+.el-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.el-card:hover .el-card-media img {
+  transform: scale(1.05);
+}
+
+.el-card-fallback-media {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1c2e24 0%, #294032 50%, #15221b 100%);
+  display: grid;
+  place-items: center;
+  color: #a4be9a;
+}
+
+.el-card-year-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(14, 25, 18, 0.85);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-family: var(--sk-font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.el-card-body {
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.el-card-meta-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.el-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.el-era-tag {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.el-card-title {
+  margin: 0 0 10px;
+  font-family: var(--sk-font-display);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.el-card-title a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.el-card-title a:hover {
+  color: var(--accent);
+}
+
+.el-card-desc {
+  margin: 0 0 16px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #4a5c4d;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.el-card-entities {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.el-card-entity-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.el-card-footer {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.el-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+  transition: gap 0.15s ease;
+}
+
+.el-card-link:hover {
+  gap: 9px;
+}
+
+/* ==========================================================================
+   2. LIST VIEW (DẠNG DANH SÁCH NÂNG CẤP)
+   ========================================================================== */
+.el-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.el-list-item {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.el-list-item:last-child {
+  border-bottom: 0;
+}
+
+.el-list-item:hover {
+  background: var(--soft);
+}
+
+.el-list-year {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.el-list-year strong {
+  font-family: var(--sk-font-display);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.el-main {
+  min-width: 0;
+}
+
+.el-main > a,
+.el-main > strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.el-main > a:hover {
+  color: var(--accent);
+}
+
+.el-list-desc {
+  margin: 4px 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.el-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.el-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.el-go {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+
+.el-go:hover {
+  background: var(--surface);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (max-width: 768px) {
+  .el-grid {
+    grid-template-columns: 1fr;
+  }
+  .el-list-item {
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+  }
+  .el-list-year {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+  }
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, Clock3, History, Network } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, Clock3, ExternalLink, History, Network } from "lucide-react";
 import { Badge, Button, Heading, Modal } from "@/components/timeline/sk-ui";
 import type { PublicPeriodDto } from "@/services/entities/landing.service";
 import { FigurePortrait } from "./FigurePortrait";
@@ -74,6 +75,18 @@ export function FigureProfileSheet({
                   </div>
                 )}
                 {(f.tagline || f.description) && <p className="sk-profile-short-bio">{f.tagline || f.description}</p>}
+                {f.slug && (
+                  <div className="sk-profile-actions">
+                    <Link
+                      href={`/nhan-vat/${f.slug}`}
+                      className="sk-profile-detail-link"
+                      title={`Xem toàn bộ trang chi tiết của ${f.name}`}
+                    >
+                      <span>Xem trang chi tiết đầy đủ</span>
+                      <ExternalLink size={14} />
+                    </Link>
+                  </div>
+                )}
               </div>
             </motion.div>
           </AnimatePresence>

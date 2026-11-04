@@ -3159,3 +3159,100 @@ figure.wiki-media-block figcaption {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ==========================================================================
+   Shared Global UI: Pagination Component
+   ========================================================================== */
+.sk-pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 0 16px;
+  margin-top: 24px;
+  border-top: 1px solid #dbe0d4;
+  flex-wrap: wrap;
+}
+
+.sk-pagination-info {
+  font-size: 13px;
+  color: #5a6b57;
+}
+
+.sk-pagination-info strong {
+  color: #1e2d21;
+}
+
+.sk-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sk-pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid #dbe0d4;
+  background: #ffffff;
+  color: #1e2d21;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sk-pagination-btn:hover:not(:disabled) {
+  background: #eff3ea;
+  border-color: #37543e;
+  color: #37543e;
+}
+
+.sk-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sk-pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sk-pagination-num-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 6px;
+  border-radius: 8px;
+  border: 1px solid #dbe0d4;
+  background: #ffffff;
+  color: #1e2d21;
+  font-size: 13px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sk-pagination-num-btn:hover:not(.sk-active) {
+  background: #eff3ea;
+  border-color: #37543e;
+}
+
+.sk-pagination-num-btn.sk-active {
+  background: #37543e;
+  border-color: #37543e;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(55, 84, 62, 0.25);
+}
+
+.sk-pagination-dots {
+  display: inline-block;
+  padding: 0 6px;
+  color: #8b9985;
+  font-size: 13px;
+}

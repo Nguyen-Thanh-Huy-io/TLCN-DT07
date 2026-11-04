@@ -105,3 +105,31 @@
   .sk-life-hero-cover { aspect-ratio: 16/10; }
   .sk-life-hero-rail { max-height: none; }
 }
+
+/* Nút liên kết sang toàn bộ trang chi tiết nhân vật */
+.sk-profile-actions {
+  margin-top: 14px;
+}
+
+.sk-profile-detail-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--soft, #eff3ea);
+  border: 1px solid var(--border, #dbe0d4);
+  color: var(--accent, #37543e);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.sk-profile-detail-link:hover {
+  background: #37543e;
+  border-color: #37543e;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(55, 84, 62, 0.2);
+}

@@ -3,42 +3,43 @@
 import React from 'react';
 import { LessonMediaManager } from '../LessonMediaManager';
 import { LessonMediaItem } from '../../types/editor.types';
-import { TopicCoverImagePicker } from '@/features/topics/components/TopicCoverImagePicker';
 
 interface LessonMediaTabProps {
-  thumbnailUrl: string;
-  onThumbnailChange?: (url: string) => void;
   mediaList: LessonMediaItem[];
   onAddMedia: (item: LessonMediaItem) => void;
   onRemoveMedia: (index: number) => void;
   disabled: boolean;
 }
 
-/** Tab "Media" trong Panel Thuộc tính: quản lý Ảnh đại diện bài học và tài liệu/tư liệu đính kèm. */
+/** Tab "Tài liệu đính kèm" trong Panel Thuộc tính: quản lý file PDF, tài liệu nghiên cứu và tư liệu tham khảo đính kèm bài học. */
 export function LessonMediaTab({
-  thumbnailUrl,
-  onThumbnailChange,
   mediaList,
   onAddMedia,
   onRemoveMedia,
   disabled,
 }: LessonMediaTabProps) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-4 animate-in fade-in-50 duration-150">
-      {/* Ảnh đại diện bài học (đặt ở sidebar thuộc tính, giữ canvas bài học thông thoáng) */}
-      <div className="space-y-1.5">
-        <TopicCoverImagePicker
-          value={thumbnailUrl}
-          onChange={(url) => onThumbnailChange?.(url)}
-          disabled={disabled}
-          title="Ảnh đại diện bài học"
-          compact
-        />
+    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-3 animate-in fade-in-50 duration-150">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div>
+          <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+            Tài liệu & Tệp đính kèm
+          </span>
+          <p className="text-[10px] text-slate-500 mt-0.5">
+            Tải lên tài liệu PDF, tư liệu lịch sử hoặc file tham khảo cho học sinh.
+          </p>
+        </div>
+        <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+          {mediaList.length} tệp
+        </span>
       </div>
 
-      <div className="border-t border-slate-100 pt-3">
-        <LessonMediaManager mediaList={mediaList} onAddMedia={onAddMedia} onRemoveMedia={onRemoveMedia} disabled={disabled} />
-      </div>
+      <LessonMediaManager
+        mediaList={mediaList}
+        onAddMedia={onAddMedia}
+        onRemoveMedia={onRemoveMedia}
+        disabled={disabled}
+      />
     </div>
   );
 }

@@ -175,6 +175,26 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
     }));
   }, [title, slug, description, thumbnailUrl, difficulty, selectedTopicId, selectedTags]);
 
+  // Lấy khối đang được chọn trên canvas để chỉnh thuộc tính (tái sử dụng Block Inspector)
+  const activeBlock = useMemo(() => {
+    if (!blockManager.activeBlockId) return null;
+    return blockManager.blocks.find((b) => b.id === blockManager.activeBlockId) || null;
+  }, [blockManager.blocks, blockManager.activeBlockId]);
+
+  const activeBlockIndex = useMemo(() => {
+    if (!blockManager.activeBlockId) return undefined;
+    const idx = blockManager.blocks.findIndex((b) => b.id === blockManager.activeBlockId);
+    return idx >= 0 ? idx : undefined;
+  }, [blockManager.blocks, blockManager.activeBlockId]);
+
+  // Khi click chọn một khối trên canvas, tự động mở sidebar và chuyển sang tab Thuộc tính khối
+  useEffect(() => {
+    if (blockManager.activeBlockId) {
+      setSidebarTab(SidebarTab.BLOCK);
+      setShowSidebar(true);
+    }
+  }, [blockManager.activeBlockId]);
+
   const handleHeaderMetaChange = <K extends keyof LessonHeaderMetaData>(
     field: K,
     val: LessonHeaderMetaData[K]
@@ -358,13 +378,13 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
                 className="border-b border-slate-200 pb-5"
               />
 
-              {/* Thông số bài học */}
-              <div className="flex items-center justify-between py-2 border-b border-slate-200/80 text-xs text-slate-500">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              {/* Tiêu đề vùng soạn thảo */}
+              <div className="flex items-center justify-between py-1.5 border-b border-slate-100 text-xs text-slate-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   NỘI DUNG BÀI HỌC
                 </span>
-                <span className="font-medium text-slate-600">
-                  <strong>{wordCount}</strong> từ <span className="text-slate-300 mx-1">•</span> ~{estimatedReadMinutes} phút đọc
+                <span className="text-[11px] text-slate-400 italic">
+                  Nhấp vào khối để tùy chỉnh thuộc tính ở cột phải
                 </span>
               </div>
 
@@ -386,6 +406,28 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
                   onRemoveBlockFromColumn={blockManager.removeBlockFromColumn}
                 />
               </div>
+
+              {/* Footer trạng thái trình soạn thảo (StatusBar kiểu Medium / Word) */}
+              <div className="shrink-0 flex items-center justify-between pt-3 mt-4 border-t border-slate-200 text-xs text-slate-500 select-none">
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-slate-700">
+                    <strong>{wordCount}</strong> từ
+                  </span>
+                  <span className="text-slate-300">•</span>
+                  <span>~{estimatedReadMinutes} phút đọc</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-slate-400">
+                    {blockManager.blocks.length} khối nội dung
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="text-[11px] text-slate-600 font-medium">
+                    {lastSavedTime ? `Đã lưu lúc ${lastSavedTime}` : 'Tự động lưu đang bật'}
+                  </span>
+                </div>
+              </div>
             </div>
           </main>
 
@@ -402,6 +444,12 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
               setSidebarTab={setSidebarTab}
               onClose={() => setShowSidebar(false)}
               mediaCount={mediaList.length}
+              activeBlock={activeBlock}
+              activeBlockIndex={activeBlockIndex}
+              onUpdateBlock={blockManager.updateBlock}
+              onRemoveBlock={blockManager.removeBlock}
+              onChangeRowColumnCount={blockManager.setRowColumnCount}
+              onUpdateRowRatio={blockManager.setRowRatio}
               currentTopicName={currentTopic?.name}
               onOpenTopicPicker={() => setIsTopicPickerOpen(true)}
               difficulty={difficulty}

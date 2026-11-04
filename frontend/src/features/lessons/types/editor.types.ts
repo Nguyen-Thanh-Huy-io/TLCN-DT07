@@ -108,6 +108,7 @@ export enum LeftSidebarMode {
 
 /** Tab của Panel Thuộc tính bên phải — lý do đặt ở đây giống trên. */
 export enum SidebarTab {
+  BLOCK = 'BLOCK',
   CLASSIFICATION = 'CLASSIFICATION',
   MEDIA = 'MEDIA',
   QUIZ = 'QUIZ',

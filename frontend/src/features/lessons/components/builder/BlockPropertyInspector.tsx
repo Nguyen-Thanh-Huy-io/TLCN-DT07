@@ -33,6 +33,7 @@ export interface BlockPropertyInspectorProps {
   onChangeRowColumnCount?: (rowId: string, count: number) => void;
   onUpdateRowRatio?: (rowId: string, widths: number[]) => void;
   onClose?: () => void;
+  className?: string;
 }
 
 const BLOCK_TYPE_VI_LABELS: Record<string, string> = {
@@ -119,19 +120,19 @@ const BLOCK_INSPECTOR_STRATEGIES: BlockInspectorStrategyMap = {
 };
 
 export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
-  const { block, blockIndex, onUpdateBlock, onRemoveBlock, onClose } = props;
+  const { block, blockIndex, onUpdateBlock, onRemoveBlock, onClose, className } = props;
 
   if (!block) {
     return (
-      <aside className="w-72 bg-white border-l border-stone-200 p-6 flex flex-col items-center justify-center text-center text-stone-700 shrink-0 select-none">
+      <aside className={className || "w-72 bg-white border-l border-stone-200 p-6 flex flex-col items-center justify-center text-center text-stone-700 shrink-0 select-none"}>
         <span className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center mb-3 text-white">
           <Settings2 className="w-5 h-5" strokeWidth={1.75} />
         </span>
         <strong className="text-base font-bold text-stone-900">
           Thuộc tính khối
         </strong>
-        <p className="text-base text-stone-600 mt-1 max-w-[220px] leading-relaxed">
-          Nhấp vào bất kỳ khối nào trên trang để tùy chỉnh thông số và định dạng.
+        <p className="text-xs text-stone-600 mt-1 max-w-[220px] leading-relaxed">
+          Nhấp vào bất kỳ khối nào trên trang để tùy chỉnh thông số và định dạng riêng.
         </p>
       </aside>
     );
@@ -142,7 +143,7 @@ export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
   const renderStrategy = BLOCK_INSPECTOR_STRATEGIES[block.type];
 
   return (
-    <aside className="w-72 bg-white border-l border-stone-200 flex flex-col justify-between shrink-0 h-full overflow-y-auto select-none">
+    <aside className={className || "w-72 bg-white border-l border-stone-200 flex flex-col justify-between shrink-0 h-full overflow-y-auto select-none"}>
       <div className="p-4 space-y-4">
         {/* Header Inspector */}
         <div className="flex items-center justify-between border-b border-stone-200 pb-3">

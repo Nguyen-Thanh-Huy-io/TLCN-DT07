@@ -43,21 +43,6 @@ export function LessonPublishingTab({
         <Badge tone="gray">{status}</Badge>
       </div>
 
-      <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-lg text-xs space-y-1.5 text-slate-600">
-        <div className="flex justify-between">
-          <span>Độ dài:</span>
-          <span className="font-bold text-slate-800">{wordCount} từ</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Thời lượng đọc:</span>
-          <span className="font-bold text-slate-800">~{estimatedReadMinutes} phút</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Tự động lưu:</span>
-          <span className="font-medium text-emerald-600">Đang bật</span>
-        </div>
-      </div>
-
       <div className="border-t border-slate-100 pt-2.5">
         <span className="text-xs font-bold text-slate-700 uppercase tracking-wide block mb-1.5">Nguồn tư liệu tham khảo</span>
         <textarea

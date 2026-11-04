@@ -108,67 +108,77 @@ export function EntityList({
 
   const isFiguresMode = filterType === EntityType.PERSON;
 
-  const columns: ColumnDef<HistoricalEntityItem>[] = [
-    {
-      header: isFiguresMode ? 'DANH NHÂN / NHÂN VẬT LỊCH SỬ' : 'THỰC THỂ / NHÂN VẬT LỊCH SỬ',
-      cell: (item) => (
-        <ContentCell
-          icon={IconName.USERS}
-          title={item.name}
-          sub={item.tagline || item.description || 'Chưa có mô tả tóm tắt'}
-        />
-      ),
-    },
-    {
-      header: 'PHÂN LOẠI',
-      cell: (item) => (
-        <Badge tone="blue">
-          {ENTITY_TYPE_LABEL_MAP[item.type] || item.type}
-        </Badge>
-      ),
-    },
-    {
-      header: 'NIÊN ĐẠI / HOẠT ĐỘNG',
-      cell: (item) => {
-        let label = 'Chưa rõ';
-        if (item.birthDateLabel && item.deathDateLabel) {
-          label = `${item.birthDateLabel} – ${item.deathDateLabel}`;
-        } else if (item.birthYear && item.deathYear) {
-          label = `${item.birthYear} – ${item.deathYear}`;
-        } else if (item.birthDateLabel) {
-          label = item.birthDateLabel;
-        } else if (item.birthYear) {
-          label = `Từ năm ${item.birthYear}`;
-        }
-        return <span className="text-slate-700 text-xs font-medium">{label}</span>;
-      },
-    },
-    {
-      header: 'TRẠNG THÁI',
-      cell: (item) => {
-        const status = item.status || ContentStatus.PUBLISHED;
-        return (
-          <Badge tone={STATUS_TONE_MAP[status]}>
-            {STATUS_LABEL_MAP[status]}
-          </Badge>
-        );
-      },
-    },
-    {
-      header: 'CẬP NHẬT',
-      cell: (item) => (
-        <span className="text-slate-700 text-xs font-medium">
-          {item.updatedAt
-            ? new Date(item.updatedAt).toLocaleDateString('vi-VN')
-            : 'Chưa cập nhật'}
-        </span>
-      ),
-    },
-  ];
+  const displayedEntities = useMemo(() => {
+    if (selectedCategory === 'ALL') return entities;
+    return entities.filter((e) => e.type === selectedCategory);
+  }, [entities, selectedCategory]);
 
-  if (loading) {
-    return <div style={{ padding: 20 }}>Đang tải danh sách thực thể lịch sử...</div>;
-  }
+  const columns = useMemo<ColumnDef<HistoricalEntityItem>[]>(
+    () => [
+      {
+        header: isFiguresMode ? 'DANH NHÂN / NHÂN VẬT LỊCH SỬ' : 'THỰC THỂ / NHÂN VẬT LỊCH SỬ',
+        cell: (item) => (
+          <ContentCell
+            icon={IconName.USERS}
+            title={item.name}
+            sub={item.tagline || item.description || 'Chưa có mô tả tóm tắt'}
+          />
+        ),
+      },
+      {
+        header: 'PHÂN LOẠI',
+        cell: (item) => (
+          <Badge tone="blue">
+            {ENTITY_TYPE_LABEL_MAP[item.type] || item.type}
+          </Badge>
+        ),
+      },
+      {
+        header: 'NIÊN ĐẠI / HOẠT ĐỘNG',
+        cell: (item) => {
+          let label = 'Chưa rõ';
+          if (item.birthDateLabel && item.deathDateLabel) {
+            label = `${item.birthDateLabel} – ${item.deathDateLabel}`;
+          } else if (item.birthYear && item.deathYear) {
+            label = `${item.birthYear} – ${item.deathYear}`;
+          } else if (item.birthDateLabel) {
+            label = item.birthDateLabel;
+          } else if (item.birthYear) {
+            label = `Từ năm ${item.birthYear}`;
+          }
+          return <span className="text-slate-700 text-xs font-medium">{label}</span>;
+        },
+      },
+      {
+        header: 'TRẠNG THÁI',
+        cell: (item) => {
+          const status = item.status || ContentStatus.PUBLISHED;
+          return (
+            <Badge tone={STATUS_TONE_MAP[status]}>
+              {STATUS_LABEL_MAP[status]}
+            </Badge>
+          );
+        },
+      },
+      {
+        header: 'CẬP NHẬT',
+        cell: (item) => (
+          <span className="text-slate-700 text-xs font-medium">
+            {item.updatedAt
+              ? new Date(item.updatedAt).toLocaleDateString('vi-VN')
+              : 'Chưa cập nhật'}
+          </span>
+        ),
+      },
+    ],
+    [isFiguresMode],
+  );
+
+  const resolveDetailUrl = (id: string) => {
+    if (detailRoutePrefix) return `${detailRoutePrefix}/${id}`;
+    if (isFiguresMode) return APP_ROUTES.FIGURES.DETAIL(id);
+    return APP_ROUTES.ENTITIES.DETAIL(id);
+  };
 
   const renderCreateMenu = () => {
     if (isFiguresMode) {
@@ -242,16 +252,14 @@ export function EntityList({
     );
   };
 
-  const resolveDetailUrl = (id: string) => {
-    if (detailRoutePrefix) return `${detailRoutePrefix}/${id}`;
-    if (isFiguresMode) return APP_ROUTES.FIGURES.DETAIL(id);
-    return APP_ROUTES.ENTITIES.DETAIL(id);
-  };
-
-  const displayedEntities = useMemo(() => {
-    if (selectedCategory === 'ALL') return entities;
-    return entities.filter((e) => e.type === selectedCategory);
-  }, [entities, selectedCategory]);
+  if (loading) {
+    return (
+      <div className="flex h-96 items-center justify-center text-sm text-slate-500">
+        <div className="w-5 h-5 border-2 border-slate-300 border-t-amber-800 rounded-full animate-spin mr-2" />
+        <span>Đang tải danh sách {isFiguresMode ? 'nhân vật' : 'thực thể'} lịch sử...</span>
+      </div>
+    );
+  }
 
   return (
     <>

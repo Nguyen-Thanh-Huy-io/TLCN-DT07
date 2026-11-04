@@ -172,6 +172,7 @@ export class PublicContentMapper {
       deathDateLabel:
         entity.person?.deathDateText ?? entity.person?.deathDateLabel ?? null,
       biography: entity.person?.biography ?? null,
+      contentBlocks: (entity as { contentBlocks?: unknown }).contentBlocks ?? null,
       occupation: entity.person?.occupation ?? null,
       titles: entity.person?.titles ?? [],
       sources: textList(metadata.sources),

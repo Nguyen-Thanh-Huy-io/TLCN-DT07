@@ -405,6 +405,7 @@ export class LandingContentFacade {
     return {
       ...PublicContentMapper.toEventSummary(event),
       summary: event.tagline,
+      contentBlocks: (event as { contentBlocks?: unknown }).contentBlocks ?? null,
       startMonth: event.startMonth,
       startDay: event.startDay,
       endYear: event.endYear,

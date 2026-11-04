@@ -83,6 +83,13 @@ export class CreateHistoricalEntityDto {
   description?: string;
 
   @ApiPropertyOptional({
+    description:
+      'Nội dung tường thuật dạng Block Builder (giống Lesson.content — mảng khối Văn bản/Hình ảnh/Video/Timeline/...). Dùng chung cho mọi loại thực thể (Tiểu sử nhân vật, Diễn biến sự kiện...); null = xoá, undefined = không đổi.',
+  })
+  @IsOptional()
+  contentBlocks?: unknown;
+
+  @ApiPropertyOptional({
     example: ['Trần Quốc Tuấn', 'Hưng Đạo Đại Vương', 'Đức Thánh Trần'],
     description: 'Danh sách bí danh, tên húy, chữ Hán hoặc tước hiệu',
     type: [String],
@@ -691,6 +698,7 @@ export class HistoricalEntityResponseDto {
   @ApiProperty({ enum: HistoricalEntityType }) type: HistoricalEntityType;
   @ApiPropertyOptional({ nullable: true }) tagline?: string | null;
   @ApiPropertyOptional({ nullable: true }) description?: string | null;
+  @ApiPropertyOptional({ nullable: true }) contentBlocks?: unknown;
   @ApiProperty({ type: [String] }) aliases: string[];
   @ApiPropertyOptional({ nullable: true }) imageUrl?: string | null;
   @ApiPropertyOptional({ nullable: true }) imageCaption?: string | null;

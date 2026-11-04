@@ -593,6 +593,47 @@ export async function seedPilotV1() {
     await upsertPerson(e.id, { biography: p.tagline });
   }
 
+  // Hồ sơ nhân vật mẫu đầy đủ (Thân thế/Sự nghiệp/Di sản/Tác phẩm/Giai thoại) cho Trần
+  // Hưng Đạo — minh hoạ trang /nhan-vat/[slug] đọc được nội dung chương hồi thật, không
+  // chỉ 1 câu tagline. Tóm lược và diễn đạt lại theo lời riêng (không sao chép nguyên văn
+  // Wikipedia), ngắn hơn đáng kể so với nguồn.
+  {
+    const thd = await prisma.historicalEntity.findUnique({ where: { slug: 'tran-hung-dao' } });
+    if (thd) {
+      await prisma.historicalEntity.update({
+        where: { id: thd.id },
+        data: {
+          metadata: {
+            profile: {
+              hometown: 'Phủ Thiên Trường (nay thuộc Nam Định)',
+              backgroundAndYouth:
+                'Là con trai của Trần Liễu — anh ruột vua Trần Thái Tông — Trần Quốc Tuấn lớn lên giữa mâu thuẫn nội tộc sau sự kiện năm 1237, khi cha ông bị ép nhường vợ cho em trai theo lệnh Thái sư Trần Thủ Độ. Từ nhỏ ông được người cô là Thụy Bà công chúa nuôi dưỡng.',
+              legacyAndHonors:
+                'Sau khi mất năm 1300, ông được dân gian tôn xưng "Đức Thánh Trần" và thờ phụng ở nhiều nơi, tiêu biểu là đền Kiếp Bạc (Hải Dương). Ông được xem là một trong những nhà quân sự kiệt xuất nhất lịch sử Việt Nam.',
+              notableWorks: ['Hịch tướng sĩ', 'Binh thư yếu lược', 'Vạn Kiếp tông bí truyền thư'],
+              anecdotes: [
+                'Trước khi mất, Trần Liễu từng dặn con phải trả thù giúp cha. Trần Quốc Tuấn đem lời ấy dò ý hai gia thần Dã Tượng và Yết Kiêu — cả hai đều khuyên giữ trọn trung hiếu, khiến ông cảm phục mà từ bỏ ý định.',
+              ],
+              famousQuote: 'Khoan thư sức dân để làm kế sâu rễ bền gốc, đó là thượng sách giữ nước vậy.',
+            },
+          },
+        },
+      });
+      await prisma.person.update({
+        where: { entityId: thd.id },
+        data: {
+          biography:
+            'Trần Quốc Tuấn giữ vai trò khá mờ nhạt trong cuộc kháng chiến năm 1258, nhưng tới cuộc xâm lược lần hai của quân Nguyên năm 1285, ông được giao chức Quốc công tiết chế, trực tiếp chỉ huy quân đội Đại Việt. Gạt bỏ hiềm khích gia tộc, ông dốc sức phò tá vua Trần Nhân Tông đánh đuổi quân xâm lược.\n\nTrong cuộc chiến 1287-1288, ông tiếp tục lập đại công với chiến thắng trên sông Bạch Đằng, vận dụng kế đóng cọc gỗ theo con nước — lấy cảm hứng từ chiến thắng của Ngô Quyền năm 938. Năm 1289, triều đình phong ông tước hiệu Hưng Đạo đại vương.',
+        },
+      });
+    }
+  }
+
+  // Trần Liễu — cha của Trần Hưng Đạo, minh hoạ trường "Thân phụ" trong hộp thông tin
+  // kiểu Wikipedia (/nhan-vat/[slug]) chiếu từ Statement CHILD_OF, không cần cột DB riêng.
+  await upsertEntity({ slug: 'tran-lieu', name: 'Trần Liễu', type: HistoricalEntityType.PERSON, tagline: 'Thân phụ của Trần Hưng Đạo, anh ruột vua Trần Thái Tông' });
+  await addStatement({ subject: { kind: 'entity', slug: 'tran-hung-dao' }, predicateCode: 'CHILD_OF', object: { kind: 'entity', slug: 'tran-lieu' } });
+
   await Promise.all([
     upsertEntity({ slug: 'dai-viet', name: 'Đại Việt', type: HistoricalEntityType.ORGANIZATION, tagline: 'Quốc hiệu Việt Nam thời Trần' }),
     upsertEntity({ slug: 'nha-tran-entity', name: 'Nhà Trần (triều đại)', type: HistoricalEntityType.DYNASTY, tagline: 'Triều đại cai trị Đại Việt 1225-1400' }),

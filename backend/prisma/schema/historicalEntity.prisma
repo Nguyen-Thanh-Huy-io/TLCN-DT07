@@ -15,6 +15,11 @@ model HistoricalEntity {
   imageUrl     String?              @map("image_url") @db.VarChar(500)
   imageCaption String?              @map("image_caption") @db.VarChar(255)
   metadata     Json?                @db.JsonB
+  /// Nội dung tường thuật dạng khối (Block Builder — Văn bản/Hình ảnh/Video/Timeline/...),
+  /// dùng chung cho mọi loại thực thể (Tiểu sử nhân vật, Diễn biến sự kiện...). Trang công
+  /// khai tự biên dịch ra HTML (xem buildLessonTocAndHtml ở frontend). Null = chưa có, dùng
+  /// `description` (văn bản thuần) làm dự phòng.
+  contentBlocks Json?               @map("content_blocks") @db.JsonB
 
   isFeatured    Boolean        @default(false) @map("is_featured")
   displayOrder  Int            @default(0) @map("display_order")

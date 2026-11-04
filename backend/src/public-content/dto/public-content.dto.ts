@@ -90,6 +90,8 @@ export class PublicFigureProfileDto extends PublicFigureDto {
   @ApiPropertyOptional({ nullable: true }) birthDateLabel: string | null;
   @ApiPropertyOptional({ nullable: true }) deathDateLabel: string | null;
   @ApiPropertyOptional({ nullable: true }) biography: string | null;
+  /** Nội dung tường thuật dạng khối (Block Builder); null = chưa có, dùng `biography`. */
+  @ApiPropertyOptional({ nullable: true }) contentBlocks?: unknown | null;
   @ApiPropertyOptional({ nullable: true }) occupation: string | null;
   @ApiProperty({ type: [String] }) titles: string[];
   @ApiProperty({ type: [String] }) sources: string[];
@@ -233,6 +235,8 @@ export class PublicEventParticipantDto {
 
 export class PublicEventDetailDto extends PublicEventSummaryDto {
   @ApiPropertyOptional({ nullable: true }) summary: string | null;
+  /** Nội dung diễn biến dạng khối (Block Builder); null = chưa có, dùng `description`. */
+  @ApiPropertyOptional({ nullable: true }) contentBlocks?: unknown | null;
   @ApiPropertyOptional({ nullable: true }) startMonth: number | null;
   @ApiPropertyOptional({ nullable: true }) startDay: number | null;
   @ApiPropertyOptional({ nullable: true }) endMonth: number | null;

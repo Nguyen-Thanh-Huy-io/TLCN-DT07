@@ -190,6 +190,10 @@ export class HistoricalEntityService {
         type: entityType,
         tagline: dto.tagline?.trim(),
         description: dto.description?.trim(),
+        contentBlocks:
+          dto.contentBlocks === null
+            ? Prisma.JsonNull
+            : (dto.contentBlocks as Prisma.InputJsonValue | undefined),
         aliases: dto.aliases ?? [],
         imageUrl: dto.imageUrl,
         imageCaption: dto.imageCaption?.trim(),
@@ -375,6 +379,7 @@ export class HistoricalEntityService {
       titles: _tit,
       roles: _rol,
       biography: _bio,
+      contentBlocks: _cb,
       siteType: _st,
       address: _addr,
       latitude: _lat,
@@ -409,6 +414,12 @@ export class HistoricalEntityService {
           cleanedBaseDto.imageCaption !== undefined
             ? cleanedBaseDto.imageCaption?.trim()
             : undefined,
+        contentBlocks:
+          dto.contentBlocks === undefined
+            ? undefined
+            : dto.contentBlocks === null
+              ? Prisma.JsonNull
+              : (dto.contentBlocks as Prisma.InputJsonValue),
         metadata: updatedMetadata,
         ...(resolvedEntityDate
           ? {

@@ -134,6 +134,98 @@ Không cần việc backend (`latitude`/`longitude` đã có trong `PublicLocati
 
 **CMS:** biên tập viên tạo 1 Sự kiện bình thường (`/entities/create`, type=EVENT), gắn `OCCURRED_AT` tới di tích (**đã làm được, không cần sửa gì**), chỉ cần thêm 1 field chọn "Hành động xây dựng" (hiện tại ẩn vì chỉ hợp khi sự kiện đó thuộc loại trùng tu) — **cần quyết định đặt field này ở đâu trong form Event** (mục 3 câu hỏi mở).
 
+## 2.9 Đợt 1 — Kế hoạch backend chi tiết, sẵn sàng code (đào sâu theo yêu cầu)
+
+Đã đọc lại chính xác đoạn code sẽ sửa (`landing-content.facade.ts`, hàm `getLocationBySlug`, dòng 270-315) — đây là nơi **duy nhất** cần sửa backend cho cả mục 1 và mục 5, vì mục 2 + mục 6 không cần backend (đã xác nhận ở mục 0).
+
+### A. Migration — thêm cột `display_tag` (phục vụ mục 5: Đối chiếu Xưa–Nay)
+
+```prisma
+// historicalEntity.prisma — model HistoricalEntityMedia
+model HistoricalEntityMedia {
+  id           String    @id @default(uuid())
+  entityId     String    @map("entity_id")
+  type         MediaType @default(IMAGE)
+  url          String    @db.VarChar(500)
+  caption      String?   @db.VarChar(255)
+  displayOrder Int       @default(0) @map("display_order")
+  /// Gắn nhãn hiển thị đặc biệt — hiện chỉ dùng "ANCIENT_PHOTO"/"MODERN_PHOTO" cho khối Đối chiếu
+  /// Xưa-Nay ở trang Di tích. Null = ảnh thường, vào thư viện ảnh mặc định.
+  displayTag   String?   @map("display_tag") @db.VarChar(50)   // MỚI
+  createdAt    DateTime  @default(now()) @map("created_at")
+  entity HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  @@index([entityId])
+  @@index([displayOrder])
+  @@map("historical_entity_media")
+}
+```
+Quy trình migration (đúng chuẩn đã dùng cho `content_blocks` — xem `hisgo-migrations` — thêm cột đơn giản, `migrate diff` tự lo được, không cần viết tay):
+```bash
+npx prisma migrate diff --from-config-datasource --to-schema prisma/schema \
+  --script -o prisma/migrations/<timestamp>_add_media_display_tag/migration.sql
+# review file sinh ra — chỉ nên là 1 dòng ALTER TABLE ... ADD COLUMN "display_tag" VARCHAR(50);
+npx prisma migrate deploy
+npx prisma generate
+```
+Đây là migration **an toàn tuyệt đối** (thêm cột nullable, không đụng dữ liệu cũ) — không cần backup đặc biệt như migration của `reference-entity-plan.md`.
+
+### B. DTO — thêm 2 field vào `public-content.dto.ts`
+
+```ts
+// PublicLocationMediaDto — thêm field mới
+export class PublicLocationMediaDto {
+  @ApiProperty() id: string;
+  @ApiProperty({ example: 'IMAGE' }) type: string;
+  @ApiProperty() url: string;
+  @ApiPropertyOptional({ nullable: true }) caption: string | null;
+  @ApiPropertyOptional({ nullable: true }) displayTag?: string | null;   // MỚI — "ANCIENT_PHOTO" | "MODERN_PHOTO" | null
+}
+
+// PublicLocationDetailDto — thêm 1 field (mục 1, contentBlocks đã có sẵn trên model, chỉ chưa expose)
+export class PublicLocationDetailDto extends PublicLocationSummaryDto {
+  ... // giữ nguyên các field cũ
+  @ApiPropertyOptional({ nullable: true })
+  contentBlocks?: unknown;   // MỚI
+}
+```
+
+### C. Facade — sửa đúng 3 chỗ trong `getLocationBySlug()` (`landing-content.facade.ts:293-314`)
+
+```ts
+const site = entity.historicalSite;
+return {
+  ...summary,
+  tagline: entity.tagline,
+  description: entity.description,
+  contentBlocks: (entity as { contentBlocks?: unknown }).contentBlocks ?? null,  // MỚI — dòng thêm
+  imageCaption: entity.imageCaption,
+  constructionYear: site?.constructionYear ?? null,
+  preservationStatus: site?.preservationStatus ?? null,
+  managingAgency: site?.managingAgency ?? null,
+  period: entity.period ? PublicContentMapper.toPeriod(entity.period) : null,
+  media: entity.media.map((m) => ({
+    id: m.id,
+    type: m.type,
+    url: m.url,
+    caption: m.caption,
+    displayTag: (m as { displayTag?: string | null }).displayTag ?? null,   // MỚI — dòng sửa
+  })),
+  events: events.map((e) => PublicContentMapper.toEventSummary(e)),
+  figures: [...figures.values()],
+  nearby,
+  heritage: toHeritageProfile(entity.metadata),
+};
+```
+Không cần sửa include Prisma — `media` đã được include sẵn ở dòng 220 (`media: { orderBy: { displayOrder: 'asc' } }`), cột mới tự động có mặt trong object `m` sau khi `prisma generate` lại.
+
+### D. CMS — field chọn `displayTag` khi upload ảnh cho Location
+
+`LessonMediaManager` (component tái dùng cho media của mọi loại `HistoricalEntity`, kể cả LOCATION) hiện không có khái niệm "gắn nhãn hiển thị". Cần thêm 1 dropdown tuỳ chọn (mặc định "Không gắn") chỉ hiện khi đang sửa entity type=LOCATION — đây là phần **frontend**, nằm ngoài phạm vi "backend trước" đang tập trung, ghi chú lại để làm ở bước sau khi quay lại frontend.
+
+### E. Việc KHÔNG đổi — để tránh nhầm khi code
+- Không đụng `entity-query.builder.ts` (file đó phục vụ CMS admin, không phải public) — mục 1/5 chỉ ảnh hưởng tầng Public API.
+- Không đụng `PublicLocationSummaryDto` (danh sách rút gọn) — `contentBlocks` chỉ cần ở Detail, danh sách không cần nội dung đầy đủ.
+
 ## 3. Câu hỏi cần chốt trước khi code
 
 1. **Mục 4**: `CONSTRUCTION_ACTION` nên là `categoryIds` dùng chung với `EVENT_CATEGORY` (1 sự kiện vừa gắn "Trùng tu" vừa gắn category khác nếu cần), hay tách cột riêng `constructionActionCode` trên `HistoricalEvent`? Dùng chung category thì không cần sửa schema `HistoricalEvent`, nhưng lẫn 2 khái niệm khác nhau (loại sự kiện vs hành động xây dựng) vào 1 mảng.

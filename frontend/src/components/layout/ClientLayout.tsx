@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CmsAccessGate } from "@/components/layout/CmsAccessGate";
 import { FigureProfileProvider } from "@/components/figures/FigureProfileProvider";
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'hisgo_sidebar_collapsed';
 const STORAGE_VALUE_TRUE = 'true';
@@ -60,7 +61,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/dang-ky") ||
     pathname.startsWith("/tai-khoan");
   if (isHisgoPublicRoute) {
-    return <FigureProfileProvider>{children}</FigureProfileProvider>;
+    return (
+      <FigureProfileProvider>
+        {children}
+        <ScrollToTopButton />
+      </FigureProfileProvider>
+    );
   }
 
   // Derive the 'page' identifier from the first path segment only
@@ -103,6 +109,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
+    <ScrollToTopButton />
     </CmsAccessGate>
   );
 }

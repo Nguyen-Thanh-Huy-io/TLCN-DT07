@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, LayoutList, Search, SlidersHorizontal, X } from "lucide-react";
+import { BookOpen, Bookmark, LayoutList, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button, Input } from "./sk-ui";
 import { type Era, type TimelineEvent, TimelineFacetKey } from "./sk-types";
 import { sortedRegions } from "@/utils/region.utils";
@@ -55,6 +55,8 @@ export function FilterBar({
   bookmarksOnly,
   onBookmarksOnly,
   savedCount,
+  onOpenToc,
+  eraCount = 0,
 }: {
   query: string;
   onQuery: (v: string) => void;
@@ -68,6 +70,8 @@ export function FilterBar({
   bookmarksOnly: boolean;
   onBookmarksOnly: () => void;
   savedCount: number;
+  onOpenToc?: () => void;
+  eraCount?: number;
 }) {
   const count = activeFilterCount(filters);
   // Bộ lọc đang bật hiển thị thành chip có nút xóa, để không phải mở lại hộp thoại.
@@ -94,6 +98,17 @@ export function FilterBar({
           </Button>
         )}
       </div>
+      {onOpenToc && (
+        <Button
+          className="sk-toc-filter-btn"
+          onClick={onOpenToc}
+          title="Mở mục lục danh sách các thời kỳ lịch sử"
+        >
+          <BookOpen size={16} />
+          <span>Mục lục</span>
+          {eraCount > 0 && <span className="sk-badge">{eraCount}</span>}
+        </Button>
+      )}
       <Button className={`sk-filter-open ${count ? "sk-is-on" : ""}`} onClick={onOpenSheet} aria-haspopup="dialog">
         <SlidersHorizontal size={16} />
         <span>Bộ lọc</span>

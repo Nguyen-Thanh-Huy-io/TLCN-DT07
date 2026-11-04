@@ -206,8 +206,8 @@ button.sk-split-control:hover { color: var(--accent); }
 .sk-entity-card h3 a:hover .sk-entity-link-icon { opacity: 1; }
 
 /* ==========================================================================
-   Sticky Timeline Header (Kiểu A - Breadcrumb bám đỉnh dưới FilterBar)
-   Giải phóng 100% diện tích chiều ngang cho Timeline & cập nhật vị trí theo cuộn
+   Kiến trúc Timeline Toàn Màn Hình Tự Nhiên (Natural Sticky Era + Right TOC Drawer)
+   Giải phóng 100% diện tích chiều ngang & chịu tải hàng trăm thời kỳ
    ========================================================================== */
 .sk-workspace.sk-workspace-full {
   grid-template-columns: minmax(0, 1fr);
@@ -245,269 +245,346 @@ button.sk-split-control:hover { color: var(--accent); }
   border-color: var(--accent);
 }
 
-/* Khung bám đỉnh dưới FilterBar */
-.sk-sticky-header-wrapper {
-  position: sticky;
-  top: 64px;
-  z-index: 18;
-  margin-top: 8px;
-  margin-bottom: 6px;
+/* 1. ERA BANNER TỰ NHIÊN TRONG DÒNG CHẢY TRANG (KHÔNG CỐ ĐỊNH ĐÈ LÊN MÀN HÌNH) */
+.sk-era-banner {
+  box-shadow: 0 2px 8px rgba(25, 41, 30, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  cursor: pointer;
 }
 
-.sk-sticky-timeline-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  height: 42px;
-  padding: 0 14px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
-  box-shadow: 0 3px 12px rgba(20, 36, 26, 0.04);
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+.sk-era-banner:hover {
+  box-shadow: 0 4px 14px rgba(25, 41, 30, 0.1);
+  transform: translateY(-1px);
 }
 
-.sk-dark .sk-sticky-timeline-bar {
-  background: rgba(29, 41, 34, 0.94);
-  border-color: #344137;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+.sk-era-banner-text {
+  text-align: left;
+  flex: 1;
+  min-width: 0;
 }
 
-/* Breadcrumb dẫn hướng: 01 Nhà Trần (1225-1400) › Ba lần kháng chiến... */
-.sk-sticky-breadcrumb {
+.sk-era-banner-text small {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.sk-sticky-era-badge {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 5px;
-  background: #37543e;
-  color: #ffffff;
-  font-family: var(--sk-font-display);
   font-size: 12px;
   font-weight: 700;
-  flex-shrink: 0;
-}
-
-.sk-dark .sk-sticky-era-badge {
-  background: #47684d;
-}
-
-.sk-sticky-crumb-btn {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  background: none;
-  border: 0;
-  padding: 2px 4px;
-  border-radius: 4px;
-  font-size: 13px;
-  color: var(--text);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s;
-}
-
-.sk-sticky-crumb-btn:hover {
-  background: var(--soft);
-  color: var(--accent);
-}
-
-.sk-sticky-crumb-title {
-  font-weight: 700;
-  color: var(--text);
-}
-
-.sk-sticky-crumb-period {
-  font-size: 11px;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.sk-sticky-sep {
-  color: var(--muted);
-  opacity: 0.6;
-  flex-shrink: 0;
-}
-
-.sk-sticky-sub-crumb {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sk-sticky-sub-title {
-  font-weight: 600;
+  letter-spacing: 0.5px;
   color: #2e472a;
+}
+
+.sk-dark .sk-era-banner-text small {
+  color: #b5d5a7;
+}
+
+.sk-era-banner-text h2 {
+  font-family: var(--sk-font-display);
+  font-size: 24px;
+  margin: 3px 0 4px;
+  font-weight: 600;
+  color: #1e2c20;
+}
+
+.sk-dark .sk-era-banner-text h2 {
+  color: #e8ede4;
+}
+
+.sk-era-banner-text p {
+  color: #3b4e3a;
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.sk-dark .sk-sticky-sub-title {
-  color: #bcdbb4;
+.sk-dark .sk-era-banner-text p {
+  color: #a6b7a7;
 }
 
-/* Nhóm nút tác vụ bên phải */
-.sk-sticky-actions {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.sk-sticky-menu-trigger {
+/* 2. NÚT MỤC LỤC TRÊN THANH FILTER BAR (LUÔN BÁM ĐỈNH) */
+.sk-toc-filter-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 12px;
+  padding: 0 12px;
+  height: 37px;
+  border-radius: 5px;
+  background: var(--soft);
+  color: var(--accent);
+  font-size: 13px;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
 }
 
-.sk-sticky-menu-trigger:hover,
-.sk-sticky-menu-trigger.sk-active {
-  background: var(--soft);
+.sk-toc-filter-btn:hover {
+  background: #e2ebd8;
   border-color: var(--accent);
-  color: var(--accent);
+  color: #244229;
 }
 
-.sk-chevron-icon {
-  transition: transform 0.2s ease;
-}
-
-.sk-chevron-icon.sk-rotated {
-  transform: rotate(180deg);
-}
-
-.sk-sticky-dock-trigger {
-  display: inline-flex;
+/* 3. NÚT TAB NỔI BÊN MÉP PHẢI MÀN HÌNH (DỄ THAO TÁC Ở MỌI VỊ TRÍ CUỘN) */
+.sk-toc-floating-side-tab {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  z-index: 55;
+  display: flex;
   align-items: center;
-  gap: 5px;
-  height: 30px;
-  padding: 0 9px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
+  gap: 6px;
+  padding: 10px 14px 10px 12px;
+  border-radius: 10px 0 0 10px;
   background: var(--surface);
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.sk-sticky-dock-trigger:hover {
-  background: var(--soft);
+  border: 1px solid var(--border);
+  border-right: 0;
   color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: -4px 6px 18px rgba(18, 38, 25, 0.12);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
 }
 
-/* Backdrop cho Dropdown Popover */
-.sk-sticky-dropdown-backdrop {
+.sk-toc-floating-side-tab:hover {
+  padding-right: 18px;
+  background: var(--soft);
+  color: #1e3c23;
+  box-shadow: -6px 8px 24px rgba(18, 38, 25, 0.2);
+}
+
+.sk-dark .sk-toc-floating-side-tab {
+  background: #1d2922;
+  border-color: #344137;
+  color: #a4c297;
+  box-shadow: -4px 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.sk-dark .sk-toc-floating-side-tab:hover {
+  background: #26362b;
+  color: #c9e5bf;
+}
+
+/* 3. DRAWER MỤC LỤC TRƯỢT TỪ MÉP PHẢI (CHỊU TẢI HÀNG TRĂM THỜI KỲ) */
+.sk-toc-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 80;
+  background: rgba(15, 27, 20, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
-/* Dropdown Menu thả xuống ở góc phải thanh Bar */
-.sk-sticky-dropdown-popover {
-  position: absolute;
-  top: calc(100% + 8px);
+.sk-toc-drawer {
+  position: fixed;
+  top: 0;
   right: 0;
-  width: min(400px, calc(100vw - 32px));
-  max-height: min(500px, 70vh);
+  bottom: 0;
+  width: min(420px, 92vw);
+  z-index: 85;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 16px 40px rgba(16, 36, 24, 0.18), 0 2px 8px rgba(0, 0, 0, 0.05);
-  z-index: 50;
+  box-shadow: -12px 0 40px rgba(10, 28, 18, 0.2);
+  border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.sk-dark .sk-sticky-dropdown-popover {
+.sk-dark .sk-toc-drawer {
   background: #1d2922;
-  border-color: #344137;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  border-left-color: #344137;
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.55);
 }
 
-.sk-sticky-popover-header {
+.sk-toc-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 18px 20px 14px;
   border-bottom: 1px solid var(--border);
   background: var(--soft);
 }
 
-.sk-sticky-popover-header strong {
-  font-size: 13px;
+.sk-toc-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sk-toc-title h3 {
+  margin: 0;
+  font-family: var(--sk-font-display);
+  font-size: 17px;
+  font-weight: 700;
   color: var(--text);
+}
+
+.sk-toc-title small {
   display: block;
-}
-
-.sk-sticky-popover-header small {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
-  font-weight: 500;
+  margin-top: 2px;
 }
 
-.sk-sticky-popover-close {
-  width: 24px;
-  height: 24px;
-  border-radius: 5px;
+.sk-toc-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   border: 0;
   background: none;
   color: var(--muted);
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
-.sk-sticky-popover-close:hover {
-  background: rgba(0, 0, 0, 0.06);
+.sk-toc-close-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
   color: var(--text);
 }
 
-.sk-sticky-popover-list {
-  padding: 8px 12px;
+/* Ô tìm kiếm nhanh cho hàng trăm thời kỳ */
+.sk-toc-search-wrap {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.sk-toc-search-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sk-toc-search-input:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(55, 84, 62, 0.15);
+}
+
+.sk-toc-search-icon {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.sk-toc-search-input input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.sk-toc-search-input input::placeholder {
+  color: var(--muted);
+}
+
+.sk-toc-clear-btn {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.sk-toc-clear-btn:hover {
+  color: var(--text);
+}
+
+/* Thân danh sách thời kỳ */
+.sk-toc-body {
+  padding: 12px 18px;
   overflow-y: auto;
   flex: 1;
 }
 
-.sk-sticky-popover-list .sk-current-era-active {
-  background: rgba(55, 84, 62, 0.06);
-  border-radius: 8px;
-  padding-inline: 6px;
-  margin-inline: -6px;
+.sk-toc-empty {
+  padding: 30px 10px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
 }
 
-@media (max-width: 680px) {
-  .sk-sticky-timeline-bar {
-    padding: 0 10px;
-    height: 38px;
-  }
-  .sk-sticky-crumb-period {
-    display: none;
-  }
-  .sk-sticky-dock-trigger .sk-dock-text {
-    display: none;
-  }
+.sk-toc-body .sk-current-era-active {
+  background: rgba(55, 84, 62, 0.06);
+  border-radius: 8px;
+  padding-inline: 8px;
+  margin-inline: -8px;
+}
+
+.sk-toc-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--soft);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* 4. NÚT CUỘN NHANH LÊN ĐẦU TRANG (SCROLL TO TOP BUTTON) */
+.sk-scroll-top-btn {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 60;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  box-shadow: 0 8px 24px rgba(18, 38, 25, 0.16), 0 2px 6px rgba(0, 0, 0, 0.05);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s, background 0.2s, color 0.2s;
+}
+
+.sk-scroll-top-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(18, 38, 25, 0.24), 0 4px 10px rgba(0, 0, 0, 0.08);
+  background: var(--soft);
+  color: #233e2a;
+}
+
+.sk-dark .sk-scroll-top-btn {
+  background: #1d2922;
+  border-color: #344137;
+  color: #a4c297;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.sk-dark .sk-scroll-top-btn:hover {
+  background: #26362b;
+  color: #d1e8c7;
+}
+
+.sk-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

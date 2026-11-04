@@ -12,12 +12,12 @@ import {
 import { eventRoleLabel } from "@/features/taxonomy/taxonomy-labels";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
-import { ArrowDownUp, ArrowRight, Landmark, Network, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowDownUp, ArrowRight, BookOpen, Landmark, Network, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button, Heading } from "./sk-ui";
 import { EMPTY_FILTERS, FilterBar, matchesRegion, regionOptions, type TimelineFilters } from "./FilterBar";
 import { FilterSheet } from "./FilterSheet";
 import { Minimap } from "./Minimap";
-import { TimelineStickyHeader } from "./TimelineStickyHeader";
+import { EraTocDrawer } from "./EraTocDrawer";
 import { EraSection } from "./EraSection";
 import { SubEraSection, SplitMode } from "./SubEraSection";
 import { HorizontalExplorer } from "./HorizontalExplorer";
@@ -99,8 +99,10 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   const [detail, setDetail] = useState<{ event: TimelineEvent; node: TimeNode } | null>(null);
   const [selected, setSelected] = useState("");
   const [saved, setSaved] = useState<string[]>([]);
-  // Cho phép chuyển đổi giữa dạng Floating Scroll Spy (giải phóng diện tích ngang) và ghim sidebar cố định
+  // Cho phép chuyển đổi giữa toàn màn hình thoáng đãng và ghim sidebar cố định
   const [dockSidebar, setDockSidebar] = useState(false);
+  // Drawer mục lục trượt từ mép phải ra (chịu tải hàng trăm thời kỳ có tìm kiếm)
+  const [tocOpen, setTocOpen] = useState(false);
 
   // Bookmarks are a per-browser convenience; read after mount so server and client render the same.
   useEffect(() => {
@@ -244,6 +246,8 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
           bookmarksOnly={bookmarksOnly}
           onBookmarksOnly={() => setBookmarksOnly(!bookmarksOnly)}
           savedCount={saved.length}
+          onOpenToc={() => setTocOpen(true)}
+          eraCount={eras.length}
         />
         <FilterSheet
           open={sheetOpen}
@@ -258,19 +262,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
           categories={allCategories}
           regions={allRegions}
         />
-
-        {/* Thanh Breadcrumb dính trên đỉnh khi cuộn (Kiểu A): hiển thị Thời kỳ to › Thời kỳ nhỏ & Dropdown danh mục */}
-        {!dockSidebar && (
-          <TimelineStickyHeader
-            eras={eras}
-            activeSubEraId={active}
-            totalEvents={countEvents(eras)}
-            onJumpEra={(e) => jump(e.subEras[0]?.id)}
-            onJumpSubEra={jump}
-            onToggleDock={() => setDockSidebar(true)}
-            isDocked={false}
-          />
-        )}
 
         {lens && (
           <div className="sk-focus-bar" role="status">
@@ -423,6 +414,29 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
       </div>
 
       <EventDetailModal detail={detail} onClose={() => setDetail(null)} onSelect={setDetail} onStep={moveEvent} />
+
+      {/* Nút Tab nổi tiện lợi ở mép phải màn hình: luôn xuất hiện để mở Mục lục bất kỳ lúc nào */}
+      <button
+        type="button"
+        className="sk-toc-floating-side-tab"
+        onClick={() => setTocOpen(true)}
+        title="Mục lục thời kỳ lịch sử"
+        aria-label="Mở mục lục thời kỳ"
+      >
+        <BookOpen size={15} />
+        <span>Mục lục</span>
+      </button>
+
+      {/* Drawer Mục lục trượt từ mép phải ra (có ô tìm kiếm, chịu tải hàng trăm thời kỳ) */}
+      <EraTocDrawer
+        open={tocOpen}
+        onClose={() => setTocOpen(false)}
+        eras={eras}
+        activeSubEraId={active}
+        totalEvents={countEvents(eras)}
+        onJumpEra={(e) => jump(e.subEras[0]?.id)}
+        onJumpSubEra={jump}
+      />
     </div>
     </TimelineFocusContext.Provider>
   );

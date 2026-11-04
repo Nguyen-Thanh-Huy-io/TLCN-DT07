@@ -3124,3 +3124,109 @@ sequenceDiagram
   - Bên phải có nút dropdown `Thời kỳ (X/N) ▾`: Mở popover menu góc phải thả xuống ngay dưới nút, cho phép chọn bất kỳ thời kỳ nào mà không che timeline.
   - Tích hợp nút `Ghim cột bên` nếu người dùng muốn chuyển sang chế độ sidebar cố định.
 - **Automated Verification**: `tsc --noEmit` hoàn tất với 0 lỗi cú pháp và kiểu dữ liệu.
+
+---
+
+## ĐỢT 36: Tinh chỉnh Tự nhiên Toàn màn hình — Sticky Era Banner Tự Nhiên, Drawer Mục Lục Tìm Kiếm Phải & Nút Cuộn Lên Đầu Trang
+
+### 1. Sơ đồ Tuần tự (Sequence Diagram)
+```mermaid
+sequenceDiagram
+    actor Reader as Người học / Người xem
+    participant Viewport as Màn hình Trình duyệt
+    participant StickyBanner as EraSection (Sticky Era Banner top: 60px)
+    participant Toolbar as sk-canvas-toolbar (Nút Mục lục)
+    participant TocDrawer as EraTocDrawer (Drawer mép phải có ô Search)
+    participant ScrollTop as ScrollToTopButton (Nút tròn góc dưới phải)
+
+    Reader->>Viewport: Cuộn timeline qua thời kỳ Nhà Trần
+    Viewport->>StickyBanner: Banner Nhà Trần bám đỉnh tự nhiên (sticky)
+    Note over StickyBanner: Cuộn tới thời kỳ tiếp theo -> Banner mới tự động đẩy banner cũ lên
+    
+    Reader->>Toolbar: Click "Mục lục thời kỳ (X)"
+    Toolbar->>TocDrawer: Trượt drawer từ mép phải ra (không xô lệch timeline)
+    Reader->>TocDrawer: Nhập từ khóa tìm kiếm (Ví dụ: "Lê", "Nguyễn")
+    Note over TocDrawer: Lọc thời gian thực giữa hàng trăm thời kỳ
+    Reader->>TocDrawer: Bấm vào một giai đoạn con -> cuộn mượt tới và tự đóng drawer
+
+    Reader->>Viewport: Cuộn xuống sâu hơn 350px
+    Viewport->>ScrollTop: Nút "Cuộn lên đầu trang" hiện mượt mà ở góc dưới phải
+    Reader->>ScrollTop: Bấm vào nút -> window.scrollTo({ top: 0, behavior: 'smooth' })
+```
+
+### 2. Các điểm cải tiến nổi bật
+1. **Xóa sạch thanh Breadcrumb thô cứng**: Không còn thanh ngang bị lặp tên dài ngoằng ở trên đỉnh hay cục pill che nút bấm.
+2. **Sticky Era Banner tự nhiên (`sk-era-sticky-header`)**:
+   - Tận dụng chính Banner thời kỳ uy nghi có sẵn của từng thời kỳ (`EraSection`).
+   - Cấu hình `position: sticky; top: 60px; z-index: 10;`. Khi cuộn trong phạm vi thời kỳ đó, banner dính nhẹ ở đỉnh. Khi chạm tới thời kỳ kế tiếp, thời kỳ mới sẽ đẩy thời kỳ cũ lên theo cơ chế cuộn phân đoạn tự nhiên 100% của CSS.
+3. **Mục lục trượt từ mép phải ([`EraTocDrawer.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/components/timeline/EraTocDrawer.tsx))**:
+   - Nút `[ 📑 Mục lục thời kỳ ]` đặt gọn gàng trên thanh công cụ toolbar.
+   - Khi bấm, Drawer trượt êm ái từ mép phải ra (giống Notion/Wikipedia).
+   - Tích hợp **ô tìm kiếm thời gian thực** (Real-time Search Input), giải quyết triệt để bài toán **hàng trăm thời kỳ**: người dùng chỉ cần gõ 1-2 ký tự là tìm ra ngay lập tức.
+4. **Nút cuộn nhanh lên đầu trang ([`ScrollToTopButton.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/components/timeline/ScrollToTopButton.tsx))**:
+   - Nút tròn thanh lịch ở góc phải chân trang (`bottom: 28px; right: 28px`).
+   - Tự động xuất hiện khi người dùng cuộn sâu qua 350px.
+   - Bấm vào cuộn mượt mà lên đầu trang và tự ẩn đi.
+5. **Xác thực tự động (Automated Verification)**:
+   - TypeScript compiler (`tsc --noEmit`): **0 lỗi** (Exit code 0).
+
+---
+
+## ĐỢT 37: Nâng cấp Nút Cuộn Lên Đầu Trang Thành Component Dùng Chung Toàn Hệ Thống (`ScrollToTopButton`)
+
+### 1. Sơ đồ Tuần tự (Sequence Diagram)
+```mermaid
+sequenceDiagram
+    actor User as Người dùng ở bất kỳ trang nào (Home / Bài học / Dòng thời gian / CMS)
+    participant Viewport as Màn hình Trình duyệt
+    participant ClientLayout as ClientLayout (Root Shell Component)
+    participant ScrollBtn as ScrollToTopButton (Shared UI Component)
+
+    User->>Viewport: Cuộn xuống quá 350px ở bất kỳ trang nào trong HISGO
+    Viewport->>ScrollBtn: window.scrollY > 350px
+    ScrollBtn-->>User: Hiện nút tròn mượt mà ở góc dưới bên phải (bottom: 28px; right: 28px)
+    User->>ScrollBtn: Click vào nút
+    ScrollBtn->>Viewport: window.scrollTo({ top: 0, behavior: 'smooth' })
+    Viewport-->>User: Cuộn mượt mà lên trên cùng & nút tự động ẩn đi
+```
+
+### 2. Các điểm cải tiến cốt lõi
+- **Tái cấu trúc thành Shared Component**: Đặt tại [`frontend/src/components/common/ScrollToTopButton.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/components/common/ScrollToTopButton.tsx).
+- **Tích hợp toàn cầu (Global Integration)**:
+  - Nhúng trực tiếp vào [`frontend/src/components/layout/ClientLayout.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/components/layout/ClientLayout.tsx), bao phủ **100% các trang của HISGO** (cả trang người dùng công khai lẫn giao diện quản trị CMS).
+  - Bổ sung style dùng chung trong [`frontend/src/app/globals.css`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/app/globals.css) để hoạt động độc lập, không phụ thuộc vào css riêng lẻ của từng trang.
+- **Xác thực tự động**: `tsc --noEmit` hoàn tất với 0 lỗi.
+
+---
+
+## ĐỢT 38: Tối Ưu Tầm Nhìn & Vị Trí Mục Lục Động (Bỏ Ghim Banner To, Nút Mục Lục Trên Sticky FilterBar + Floating Side Tab)
+
+### 1. Sơ đồ Tuần tự (Sequence Diagram)
+```mermaid
+sequenceDiagram
+    actor Reader as Người học / Người xem
+    participant Viewport as Màn hình Timeline
+    participant FilterBar as FilterBar (Sticky Top luôn dính ở đỉnh)
+    participant SideTab as Floating Side Tab (Mép phải màn hình)
+    participant TocDrawer as EraTocDrawer (Drawer mục lục có Search)
+
+    Reader->>Viewport: Cuộn xuống sâu đến năm 1944 (Banner thời kỳ trôi tự nhiên, không che đè tầm nhìn)
+    Note over Viewport: Tầm nhìn 100% thoáng đãng, các mốc sự kiện hiển thị rõ ràng
+    
+    alt Người dùng thao tác ở thanh trên
+        Reader->>FilterBar: Bấm nút "Mục lục (X)" (luôn có sẵn trên thanh FilterBar bám đỉnh)
+        FilterBar->>TocDrawer: Mở Drawer mục lục
+    else Người dùng thao tác tiện tay bên phải
+        Reader->>SideTab: Bấm Tab nổi "Mục lục" ở mép phải màn hình
+        SideTab->>TocDrawer: Mở Drawer mục lục
+    end
+
+    Reader->>TocDrawer: Gõ tìm kiếm thời kỳ hoặc chọn thời kỳ -> cuộn mượt tới và tự đóng
+```
+
+### 2. Các điểm cải tiến cốt lõi
+1. **Giải phóng hoàn toàn đỉnh màn hình**: Bỏ ghim `position: sticky` trên Banner thời kỳ. Banner hiển thị tự nhiên trong dòng chảy trang, giúp màn hình cực kỳ thoáng mắt, không còn chiếc hộp to 130px che đè tầm nhìn khi cuộn.
+2. **Nút Mục lục luôn luôn trong tầm tay (Tiện lợi gấp đôi)**:
+   - **Vị trí 1 (Trên Sticky FilterBar)**: Nằm ngay cạnh nút "Bộ lọc" trên thanh tìm kiếm luôn bám đỉnh.
+   - **Vị trí 2 (Floating Side Tab)**: Một tab nổi nhỏ xinh `📑 Mục lục` nằm cố định ở giữa mép phải màn hình (`right: 0`), người dùng đang cuộn ở bất cứ đâu cũng với tới được chỉ trong 1 cú click.
+3. **Xác thực tự động**: `tsc --noEmit` hoàn tất với 0 lỗi.

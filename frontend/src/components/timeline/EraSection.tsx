@@ -24,17 +24,17 @@ export function EraSection({
 }) {
   const [open, setOpen] = useState(true);
   return (
-    <section className="sk-era-section">
+    <section className="sk-era-section" id={`era-${slug || index}`}>
       <Button className="sk-era-banner" onClick={() => setOpen(!open)} aria-expanded={open}>
         <span className="sk-era-banner-icon">
           <Landmark size={23} />
         </span>
-        <span>
+        <span className="sk-era-banner-text">
           <small>
-            Thời kỳ 0{index + 1} <i /> {period}
+            Thời kỳ {String(index + 1).padStart(2, "0")} <i /> {period}
           </small>
           <Heading>{title}</Heading>
-          <p>{overview}</p>
+          {overview && <p>{overview}</p>}
         </span>
         <ChevronDown className={open ? "" : "sk-rotate"} size={20} />
       </Button>

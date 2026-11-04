@@ -94,10 +94,11 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
         },
       };
 
+    case APP_ROUTES.FIGURES.LIST:
     case APP_ROUTES.ENTITIES.LIST:
       return {
         title: 'Nhân vật lịch sử',
-        subtitle: 'Quản lý các nhân vật, danh nhân và triều đại lịch sử',
+        subtitle: 'Quản lý các nhân vật, danh nhân và anh hùng lịch sử',
         eyebrow: {
           parentLabel: 'Từ điển tri thức',
           parentRoute: `${APP_ROUTES.KNOWLEDGE}?tab=ENTITIES`,
@@ -188,6 +189,7 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
 /** Trang tạo mới / chi tiết của tri thức (/events/:id...) — tiêu đề theo loại nội dung thay vì tiêu đề chung. */
 const DETAIL_HEADERS = [
   { list: APP_ROUTES.EVENTS.LIST, create: APP_ROUTES.EVENTS.CREATE, noun: 'sự kiện lịch sử', crumb: 'Sự kiện', tab: 'EVENTS' },
+  { list: APP_ROUTES.FIGURES.LIST, create: APP_ROUTES.FIGURES.CREATE, noun: 'nhân vật lịch sử', crumb: 'Nhân vật', tab: 'ENTITIES' },
   { list: APP_ROUTES.ENTITIES.LIST, create: APP_ROUTES.ENTITIES.CREATE, noun: 'nhân vật / thực thể', crumb: 'Nhân vật', tab: 'ENTITIES' },
   { list: APP_ROUTES.LOCATIONS.LIST, create: APP_ROUTES.LOCATIONS.CREATE, noun: 'địa danh / di tích', crumb: 'Địa danh', tab: 'LOCATIONS' },
 ] as const;
@@ -223,6 +225,8 @@ export function PageHeader({ pathname }: { pathname: string }) {
     cleanPath.startsWith('/topics/') ||
     cleanPath === APP_ROUTES.ENTITIES.CREATE ||
     cleanPath.startsWith('/entities/') ||
+    cleanPath === APP_ROUTES.FIGURES.CREATE ||
+    cleanPath.startsWith('/figures/') ||
     cleanPath === APP_ROUTES.EVENTS.CREATE ||
     cleanPath.startsWith('/events/') ||
     cleanPath === APP_ROUTES.LOCATIONS.CREATE ||

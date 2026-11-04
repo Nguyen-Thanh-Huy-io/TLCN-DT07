@@ -90,6 +90,10 @@ export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
     title: 'Nhân vật lịch sử',
     subtitle: 'Quản lý các nhân vật, triều đại và tổ chức lịch sử',
   },
+  figures: {
+    title: 'Nhân vật lịch sử',
+    subtitle: 'Quản lý các nhân vật, triều đại và tổ chức lịch sử',
+  },
   tags: {
     title: 'Thẻ',
     subtitle: 'Quản lý nhãn phân loại nội dung',

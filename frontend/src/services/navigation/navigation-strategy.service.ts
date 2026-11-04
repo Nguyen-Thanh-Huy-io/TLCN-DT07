@@ -162,13 +162,13 @@ export class KnowledgeNavStrategy implements INavigationGroupStrategy {
       subtitle: 'Biên niên sự kiện & trận đánh',
     },
     {
-      id: 'nav-entities',
-      label: NAV_ITEM_LABELS.ENTITIES,
+      id: 'nav-figures',
+      label: NAV_ITEM_LABELS.FIGURES,
       icon: IconName.USERS,
-      page: NavigationPageKey.ENTITIES,
-      route: APP_ROUTES.ENTITIES.LIST,
+      page: NavigationPageKey.FIGURES,
+      route: APP_ROUTES.FIGURES.LIST,
       groupId: this.groupId,
-      subtitle: 'Hồ sơ nhân vật, danh nhân & dòng họ',
+      subtitle: 'Hồ sơ danh nhân, tướng lĩnh & anh hùng',
     },
     {
       id: 'nav-periods',
@@ -197,6 +197,7 @@ export class KnowledgeNavStrategy implements INavigationGroupStrategy {
   matchesPage(pageKey: string): boolean {
     return [
       NavigationPageKey.EVENTS,
+      NavigationPageKey.FIGURES,
       NavigationPageKey.ENTITIES,
       NavigationPageKey.PERIODS,
       NavigationPageKey.LOCATIONS,
@@ -209,6 +210,7 @@ export class KnowledgeNavStrategy implements INavigationGroupStrategy {
     switch (pageKey) {
       case NavigationPageKey.EVENTS:
         return this.items[0];
+      case NavigationPageKey.FIGURES:
       case NavigationPageKey.ENTITIES:
         return this.items[1];
       case NavigationPageKey.PERIODS:
@@ -342,8 +344,10 @@ export class NavigationFacade {
         return NavigationPageKey.MEDIA;
       case NavigationPageKey.EVENTS:
         return NavigationPageKey.EVENTS;
+      case NavigationPageKey.FIGURES:
+        return NavigationPageKey.FIGURES;
       case NavigationPageKey.ENTITIES:
-        return NavigationPageKey.ENTITIES;
+        return NavigationPageKey.FIGURES;
       case NavigationPageKey.PERIODS:
         return NavigationPageKey.PERIODS;
       case NavigationPageKey.LOCATIONS:

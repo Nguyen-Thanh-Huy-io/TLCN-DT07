@@ -31,6 +31,11 @@ export const APP_ROUTES = {
     CREATE: '/events/create',
     DETAIL: (id: string) => `/events/${id}`,
   },
+  FIGURES: {
+    LIST: '/figures',
+    CREATE: '/figures/create',
+    DETAIL: (id: string) => `/figures/${id}`,
+  },
   LOCATIONS: {
     LIST: '/locations',
     CREATE: '/locations/create',
@@ -71,6 +76,7 @@ export enum NavigationPageKey {
   TOPICS = 'topics',
   LESSONS = 'lessons',
   EVENTS = 'events',
+  FIGURES = 'figures',
   LOCATIONS = 'locations',
   ENTITIES = 'entities',
   TAGS = 'tags',

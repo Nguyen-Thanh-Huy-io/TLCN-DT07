@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { KnowledgeTabKey } from '../types/knowledge-hub.type';
 import { KnowledgeTabStrategyFactory } from '../strategies/knowledge-tab.strategy';
 import { Icon } from '@/components/icons/Icon';
+import { APP_ROUTES } from '@/constants/routes';
 
 export function KnowledgeHub() {
   const router = useRouter();
@@ -82,10 +83,10 @@ export function KnowledgeHub() {
           className="text-sm font-semibold text-slate-900 hover:underline shrink-0"
           onClick={() => {
             const routes: Record<KnowledgeTabKey, string> = {
-              [KnowledgeTabKey.LOCATIONS]: '/locations',
-              [KnowledgeTabKey.ENTITIES]: '/entities',
-              [KnowledgeTabKey.EVENTS]: '/events',
-              [KnowledgeTabKey.TAGS]: '/tags',
+              [KnowledgeTabKey.LOCATIONS]: APP_ROUTES.LOCATIONS.LIST,
+              [KnowledgeTabKey.ENTITIES]: APP_ROUTES.FIGURES.LIST,
+              [KnowledgeTabKey.EVENTS]: APP_ROUTES.EVENTS.LIST,
+              [KnowledgeTabKey.TAGS]: APP_ROUTES.TAGS.LIST,
             };
             router.push(routes[activeTab]);
           }}

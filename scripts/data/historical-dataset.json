@@ -1,0 +1,1089 @@
+
+{
+  "metadata": {
+    "datasetName": "HISGO - Vietnamese History Dataset",
+    "version": "1.0.0",
+    "language": "vi",
+    "country": "Vietnam",
+    "period": "1225-1400",
+    "description": "Bộ dữ liệu lịch sử triều đại nhà Trần và ba lần kháng chiến chống Nguyên Mông",
+    "sourcePolicy": "Mỗi thông tin lịch sử cần có nguồn tham khảo được kiểm chứng",
+    "generatedFor": "HISGO"
+  },
+
+  "topics": [
+    {
+      "id": "topic-tran-dynasty",
+      "parentId": null,
+      "pathType": "CHRONOLOGICAL",
+      "name": "Triều đại nhà Trần",
+      "slug": "trieu-dai-nha-tran",
+      "eyebrow": "1225 - 1400",
+      "icon": "Castle",
+      "isFeatured": true,
+      "description": "Tìm hiểu quá trình hình thành, phát triển và suy yếu của triều đại nhà Trần, một trong những triều đại có vai trò quan trọng trong lịch sử Việt Nam.",
+      "coverImageUrl": "/images/history/tran-dynasty.jpg",
+      "isSequential": true,
+      "displayOrder": 1,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "topic-resistance-wars",
+      "parentId": "topic-tran-dynasty",
+      "pathType": "CHRONOLOGICAL",
+      "name": "Ba lần kháng chiến chống Nguyên Mông",
+      "slug": "ba-lan-khang-chien-chong-nguyen-mong",
+      "eyebrow": "1258 - 1288",
+      "icon": "Swords",
+      "isFeatured": true,
+      "description": "Khám phá ba cuộc kháng chiến chống quân xâm lược Nguyên Mông dưới thời nhà Trần.",
+      "coverImageUrl": "/images/history/resistance-wars.jpg",
+      "isSequential": true,
+      "displayOrder": 2,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "topic-tran-culture",
+      "parentId": "topic-tran-dynasty",
+      "pathType": "THEMATIC",
+      "name": "Văn hóa và xã hội thời Trần",
+      "slug": "van-hoa-xa-hoi-thoi-tran",
+      "eyebrow": "Thế kỷ XIII - XIV",
+      "icon": "BookOpen",
+      "isFeatured": false,
+      "description": "Tìm hiểu văn hóa, giáo dục, Phật giáo, quân sự và đời sống xã hội dưới triều Trần.",
+      "isSequential": false,
+      "displayOrder": 3,
+      "status": "PUBLISHED"
+    }
+  ],
+
+  "categories": [
+    {
+      "id": "cat-dynasty",
+      "parentId": null,
+      "name": "Triều đại",
+      "slug": "trieu-dai",
+      "description": "Các triều đại trong lịch sử Việt Nam.",
+      "icon": "crown",
+      "kind": "DYNASTY",
+      "displayOrder": 1
+    },
+    {
+      "id": "cat-person",
+      "parentId": null,
+      "name": "Nhân vật lịch sử",
+      "slug": "nhan-vat-lich-su",
+      "description": "Các vị vua, tướng lĩnh, nhà tư tưởng và nhân vật lịch sử.",
+      "icon": "user-round",
+      "kind": "PERSON",
+      "displayOrder": 2
+    },
+    {
+      "id": "cat-event",
+      "parentId": null,
+      "name": "Sự kiện lịch sử",
+      "slug": "su-kien-lich-su",
+      "description": "Các sự kiện chính trị, quân sự, văn hóa và xã hội.",
+      "icon": "swords",
+      "kind": "EVENT",
+      "displayOrder": 3
+    },
+    {
+      "id": "cat-location",
+      "parentId": null,
+      "name": "Địa danh lịch sử",
+      "slug": "dia-danh-lich-su",
+      "description": "Các địa điểm có ý nghĩa trong lịch sử.",
+      "icon": "map-pin",
+      "kind": "LOCATION",
+      "displayOrder": 4
+    },
+    {
+      "id": "cat-document",
+      "parentId": null,
+      "name": "Tác phẩm và tư liệu",
+      "slug": "tac-pham-tu-lieu",
+      "description": "Các tác phẩm văn học, quân sự và tư liệu lịch sử.",
+      "icon": "scroll-text",
+      "kind": "OTHER",
+      "displayOrder": 5
+    }
+  ],
+
+  "articles": [
+    {
+      "id": "article-tran-dynasty",
+      "categoryId": "cat-dynasty",
+      "topicId": "topic-tran-dynasty",
+      "title": "Nhà Trần",
+      "slug": "nha-tran",
+      "summary": "Triều đại nhà Trần tồn tại từ năm 1225 đến năm 1400, nổi bật với ba lần chiến thắng quân Nguyên Mông.",
+      "coverImageUrl": "/images/articles/tran-dynasty.jpg",
+      "coverCaption": "Triều đại nhà Trần trong lịch sử Việt Nam",
+      "contentBlocks": [
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "Sự thành lập"
+        },
+        {
+          "type": "TEXT",
+          "text": "Năm 1225, Lý Chiêu Hoàng nhường ngôi cho Trần Cảnh, mở đầu triều đại nhà Trần. Đây là sự chuyển giao quyền lực từ nhà Lý sang nhà Trần."
+        },
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "Thời kỳ phát triển"
+        },
+        {
+          "type": "TEXT",
+          "text": "Nhà Trần xây dựng bộ máy chính quyền, củng cố quân đội và phát triển kinh tế. Triều đại này đạt được nhiều thành tựu nổi bật trong quân sự, văn hóa và chính trị."
+        },
+        {
+          "type": "CALLOUT",
+          "variant": "INFO",
+          "text": "Một trong những dấu ấn lớn nhất của nhà Trần là ba lần đánh bại các cuộc xâm lược của quân Nguyên Mông."
+        },
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "Sự suy yếu"
+        },
+        {
+          "type": "TEXT",
+          "text": "Cuối thế kỷ XIV, triều đình nhà Trần suy yếu do những vấn đề nội bộ và khủng hoảng chính trị. Năm 1400, Hồ Quý Ly lên ngôi, thành lập nhà Hồ."
+        }
+      ],
+      "metadata": {
+        "aliases": ["Trần triều"],
+        "region": "Đại Việt",
+        "period": "1225-1400",
+        "person": null,
+        "event": null,
+        "site": null
+      },
+      "dateText": "1225 - 1400",
+      "startYear": 1225,
+      "endYear": 1400,
+      "datePrecision": "RANGE",
+      "isFeatured": true,
+      "displayOrder": 1,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "article-tran-hung-dao",
+      "categoryId": "cat-person",
+      "topicId": "topic-resistance-wars",
+      "title": "Trần Hưng Đạo",
+      "slug": "tran-hung-dao",
+      "summary": "Trần Hưng Đạo là danh tướng kiệt xuất của nhà Trần, giữ vai trò quan trọng trong ba lần kháng chiến chống Nguyên Mông.",
+      "coverImageUrl": "/images/articles/tran-hung-dao.jpg",
+      "coverCaption": "Tượng Hưng Đạo Đại Vương",
+      "contentBlocks": [
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "Thân thế"
+        },
+        {
+          "type": "TEXT",
+          "text": "Trần Quốc Tuấn (1228-1300), tước Hưng Đạo Vương, là một hoàng thân và nhà quân sự lỗi lạc của triều Trần."
+        },
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "Vai trò quân sự"
+        },
+        {
+          "type": "TEXT",
+          "text": "Ông được giao trọng trách Quốc công Tiết chế, thống lĩnh quân đội Đại Việt trong các cuộc kháng chiến chống quân Nguyên Mông."
+        },
+        {
+          "type": "QUOTE",
+          "text": "Hịch tướng sĩ",
+          "author": "Trần Quốc Tuấn",
+          "note": "Tác phẩm nổi tiếng nhằm khích lệ tinh thần chiến đấu của quân sĩ."
+        },
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "Di sản"
+        },
+        {
+          "type": "TEXT",
+          "text": "Trần Hưng Đạo được hậu thế tôn vinh là một trong những vị anh hùng dân tộc tiêu biểu của Việt Nam."
+        }
+      ],
+      "metadata": {
+        "aliases": ["Trần Quốc Tuấn", "Hưng Đạo Đại Vương"],
+        "region": "Đại Việt",
+        "person": {
+          "birthYear": 1228,
+          "deathYear": 1300,
+          "dynasty": "Nhà Trần",
+          "titles": [
+            "Hưng Đạo Vương",
+            "Quốc công Tiết chế"
+          ],
+          "occupation": [
+            "Danh tướng",
+            "Nhà quân sự"
+          ]
+        }
+      },
+      "dateText": "1228 - 1300",
+      "startYear": 1228,
+      "endYear": 1300,
+      "datePrecision": "RANGE",
+      "isFeatured": true,
+      "displayOrder": 2,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "article-tran-nhan-tong",
+      "categoryId": "cat-person",
+      "topicId": "topic-resistance-wars",
+      "title": "Trần Nhân Tông",
+      "slug": "tran-nhan-tong",
+      "summary": "Trần Nhân Tông là vị vua thứ ba của triều Trần, lãnh đạo Đại Việt trong cuộc kháng chiến năm 1285 và 1287-1288.",
+      "coverImageUrl": "/images/articles/tran-nhan-tong.jpg",
+      "contentBlocks": [
+        {
+          "type": "TEXT",
+          "text": "Trần Nhân Tông (1258-1308) là con của vua Trần Thánh Tông. Ông trị vì từ năm 1278 đến năm 1293."
+        },
+        {
+          "type": "TEXT",
+          "text": "Trong thời gian trị vì, ông cùng triều đình tổ chức kháng chiến chống quân Nguyên Mông, góp phần bảo vệ nền độc lập Đại Việt."
+        },
+        {
+          "type": "TEXT",
+          "text": "Sau khi nhường ngôi, ông xuất gia và trở thành người sáng lập thiền phái Trúc Lâm Yên Tử."
+        }
+      ],
+      "metadata": {
+        "aliases": ["Điều Ngự Giác Hoàng"],
+        "region": "Đại Việt",
+        "person": {
+          "birthYear": 1258,
+          "deathYear": 1308,
+          "reignStart": 1278,
+          "reignEnd": 1293,
+          "dynasty": "Nhà Trần",
+          "occupation": ["Hoàng đế", "Thiền sư"]
+        }
+      },
+      "dateText": "1258 - 1308",
+      "startYear": 1258,
+      "endYear": 1308,
+      "datePrecision": "RANGE",
+      "isFeatured": true,
+      "displayOrder": 3,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "article-dien-hong",
+      "categoryId": "cat-event",
+      "topicId": "topic-resistance-wars",
+      "title": "Hội nghị Diên Hồng",
+      "slug": "hoi-nghi-dien-hong",
+      "summary": "Hội nghị Diên Hồng năm 1284 thể hiện tinh thần đồng lòng chống ngoại xâm của quân dân Đại Việt.",
+      "contentBlocks": [
+        {
+          "type": "TEXT",
+          "text": "Trước nguy cơ quân Nguyên Mông xâm lược lần thứ hai, triều đình nhà Trần tổ chức Hội nghị Diên Hồng vào năm 1284."
+        },
+        {
+          "type": "TEXT",
+          "text": "Hội nghị quy tụ các bô lão trong cả nước để hỏi ý kiến về chủ trương hòa hay đánh trước sức ép xâm lược."
+        },
+        {
+          "type": "CALLOUT",
+          "variant": "SUCCESS",
+          "text": "Hội nghị là biểu tượng của tinh thần đoàn kết và ý chí bảo vệ đất nước."
+        }
+      ],
+      "metadata": {
+        "aliases": ["Hội nghị các bô lão"],
+        "region": "Thăng Long",
+        "event": {
+          "eventType": "Political",
+          "participants": [
+            "Trần Thánh Tông",
+            "Các bô lão Đại Việt"
+          ],
+          "outcome": "Thể hiện quyết tâm chống quân xâm lược"
+        }
+      },
+      "dateText": "Năm 1284",
+      "startYear": 1284,
+      "endYear": 1284,
+      "datePrecision": "YEAR",
+      "displayOrder": 4,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "article-bach-dang",
+      "categoryId": "cat-event",
+      "topicId": "topic-resistance-wars",
+      "title": "Chiến thắng Bạch Đằng năm 1288",
+      "slug": "chien-thang-bach-dang-1288",
+      "summary": "Chiến thắng Bạch Đằng năm 1288 là thắng lợi quyết định của quân dân Đại Việt trong cuộc kháng chiến chống Nguyên Mông lần thứ ba.",
+      "contentBlocks": [
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "Bối cảnh"
+        },
+        {
+          "type": "TEXT",
+          "text": "Sau khi tiến hành xâm lược Đại Việt lần thứ ba, quân Nguyên gặp nhiều khó khăn về hậu cần và bị quân dân Đại Việt tổ chức phản công."
+        },
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "Diễn biến"
+        },
+        {
+          "type": "TEXT",
+          "text": "Dưới sự chỉ huy của Trần Hưng Đạo, quân Đại Việt bố trí trận địa cọc trên sông Bạch Đằng và lợi dụng quy luật thủy triều để đánh quân địch."
+        },
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "Kết quả"
+        },
+        {
+          "type": "TEXT",
+          "text": "Thủy quân Nguyên bị đánh bại, nhiều thuyền chiến bị tiêu diệt hoặc bắt giữ. Chiến thắng góp phần kết thúc cuộc kháng chiến lần thứ ba."
+        }
+      ],
+      "metadata": {
+        "aliases": ["Trận Bạch Đằng 1288"],
+        "region": "Sông Bạch Đằng",
+        "event": {
+          "eventType": "Military",
+          "participants": [
+            "Trần Hưng Đạo",
+            "Quân đội Đại Việt",
+            "Thủy quân Nguyên"
+          ],
+          "outcome": "Đại Việt giành chiến thắng"
+        }
+      },
+      "dateText": "Tháng 3 năm 1288",
+      "startYear": 1288,
+      "endYear": 1288,
+      "datePrecision": "MONTH",
+      "isFeatured": true,
+      "displayOrder": 5,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "article-van-kiep",
+      "categoryId": "cat-location",
+      "topicId": "topic-resistance-wars",
+      "title": "Vạn Kiếp",
+      "slug": "van-kiep",
+      "summary": "Vạn Kiếp là căn cứ quân sự quan trọng gắn với hoạt động chỉ huy và tổ chức kháng chiến của Trần Hưng Đạo.",
+      "contentBlocks": [
+        {
+          "type": "TEXT",
+          "text": "Vạn Kiếp thuộc khu vực Chí Linh, Hải Dương ngày nay. Đây là vị trí có ý nghĩa chiến lược trong hệ thống phòng thủ của nhà Trần."
+        },
+        {
+          "type": "TEXT",
+          "text": "Trong các cuộc kháng chiến chống Nguyên Mông, khu vực này được sử dụng làm căn cứ quân sự và nơi tập trung lực lượng."
+        }
+      ],
+      "metadata": {
+        "aliases": ["Phủ Vạn Kiếp"],
+        "region": "Chí Linh, Hải Dương",
+        "site": {
+          "siteType": "Military Base",
+          "modernLocation": "Chí Linh, Hải Phòng, Việt Nam",
+          "historicalSignificance": "Căn cứ quân sự quan trọng thời Trần"
+        }
+      },
+      "dateText": "Thế kỷ XIII",
+      "startYear": 1201,
+      "endYear": 1300,
+      "datePrecision": "CENTURY",
+      "displayOrder": 6,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "article-hich-tuong-si",
+      "categoryId": "cat-document",
+      "topicId": "topic-tran-culture",
+      "title": "Hịch tướng sĩ",
+      "slug": "hich-tuong-si",
+      "summary": "Hịch tướng sĩ là tác phẩm chính luận nổi tiếng của Trần Quốc Tuấn, khích lệ tinh thần yêu nước và ý chí chiến đấu.",
+      "contentBlocks": [
+        {
+          "type": "TEXT",
+          "text": "Hịch tướng sĩ được Trần Quốc Tuấn viết trước cuộc kháng chiến chống quân Nguyên Mông lần thứ hai."
+        },
+        {
+          "type": "TEXT",
+          "text": "Tác phẩm phân tích tình hình đất nước, phê phán thái độ thờ ơ trước vận mệnh quốc gia và khơi dậy lòng trung thành, tinh thần chiến đấu của tướng sĩ."
+        }
+      ],
+      "metadata": {
+        "aliases": ["Dụ chư tỳ tướng hịch văn"],
+        "region": "Đại Việt",
+        "work": {
+          "author": "Trần Quốc Tuấn",
+          "genre": "Hịch",
+          "historicalContext": "Kháng chiến chống Nguyên Mông lần thứ hai"
+        }
+      },
+      "dateText": "Trước năm 1285",
+      "startYear": 1284,
+      "endYear": 1284,
+      "datePrecision": "APPROXIMATE",
+      "displayOrder": 7,
+      "status": "PUBLISHED"
+    }
+  ],
+
+  "timelines": [
+    {
+      "id": "timeline-tran-dynasty",
+      "topicId": "topic-tran-dynasty",
+      "title": "Dòng thời gian triều đại nhà Trần",
+      "slug": "dong-thoi-gian-nha-tran",
+      "description": "Các dấu mốc quan trọng từ khi thành lập đến khi kết thúc triều đại nhà Trần.",
+      "displayOrder": 1,
+      "status": "PUBLISHED",
+      "nodes": [
+        {
+          "id": "node-1225",
+          "articleId": "article-tran-dynasty",
+          "title": "Thành lập triều đại nhà Trần",
+          "description": "Trần Cảnh lên ngôi hoàng đế, mở đầu triều đại nhà Trần.",
+          "dateText": "Năm 1225",
+          "year": 1225,
+          "month": null,
+          "day": null,
+          "displayOrder": 1
+        },
+        {
+          "id": "node-1258",
+          "articleId": "article-tran-nhan-tong",
+          "title": "Kháng chiến chống Nguyên Mông lần thứ nhất",
+          "description": "Quân dân Đại Việt đánh bại cuộc xâm lược của quân Mông Cổ.",
+          "dateText": "Năm 1258",
+          "year": 1258,
+          "displayOrder": 2
+        },
+        {
+          "id": "node-1284",
+          "articleId": "article-dien-hong",
+          "title": "Hội nghị Diên Hồng",
+          "description": "Triều đình tham khảo ý kiến các bô lão về chủ trương chống ngoại xâm.",
+          "dateText": "Năm 1284",
+          "year": 1284,
+          "displayOrder": 3
+        },
+        {
+          "id": "node-1288",
+          "articleId": "article-bach-dang",
+          "title": "Chiến thắng Bạch Đằng",
+          "description": "Quân dân Đại Việt giành thắng lợi quyết định trong cuộc kháng chiến lần thứ ba.",
+          "dateText": "Tháng 3 năm 1288",
+          "year": 1288,
+          "month": 3,
+          "displayOrder": 4
+        },
+        {
+          "id": "node-1400",
+          "articleId": "article-tran-dynasty",
+          "title": "Kết thúc triều đại nhà Trần",
+          "description": "Hồ Quý Ly lên ngôi, thành lập nhà Hồ.",
+          "dateText": "Năm 1400",
+          "year": 1400,
+          "displayOrder": 5
+        }
+      ]
+    },
+    {
+      "id": "timeline-resistance",
+      "topicId": "topic-resistance-wars",
+      "title": "Ba lần kháng chiến chống Nguyên Mông",
+      "slug": "timeline-ba-lan-khang-chien",
+      "description": "Diễn biến ba cuộc kháng chiến từ năm 1258 đến năm 1288.",
+      "displayOrder": 1,
+      "status": "PUBLISHED",
+      "nodes": [
+        {
+          "id": "node-resistance-1",
+          "articleId": "article-tran-dynasty",
+          "title": "Kháng chiến lần thứ nhất",
+          "description": "Quân dân nhà Trần đánh bại cuộc xâm lược của quân Mông Cổ, với chiến thắng Đông Bộ Đầu.",
+          "dateText": "1258",
+          "year": 1258,
+          "displayOrder": 1
+        },
+        {
+          "id": "node-resistance-2",
+          "articleId": "article-dien-hong",
+          "title": "Kháng chiến lần thứ hai",
+          "description": "Đại Việt đánh bại cuộc xâm lược của quân Nguyên, với những chiến thắng quan trọng tại Hàm Tử, Chương Dương và Tây Kết.",
+          "dateText": "1285",
+          "year": 1285,
+          "displayOrder": 2
+        },
+        {
+          "id": "node-resistance-3",
+          "articleId": "article-bach-dang",
+          "title": "Kháng chiến lần thứ ba",
+          "description": "Quân dân Đại Việt giành thắng lợi quyết định trên sông Bạch Đằng.",
+          "dateText": "1287 - 1288",
+          "year": 1287,
+          "endYear": 1288,
+          "displayOrder": 3
+        }
+      ]
+    }
+  ],
+
+  "articleLinks": [
+    {
+      "id": "link-001",
+      "sourceId": "article-tran-hung-dao",
+      "targetId": "article-bach-dang",
+      "label": "Chỉ huy",
+      "note": "Trần Hưng Đạo giữ vai trò tổng chỉ huy quân đội Đại Việt trong chiến thắng Bạch Đằng năm 1288.",
+      "displayOrder": 1
+    },
+    {
+      "id": "link-002",
+      "sourceId": "article-tran-hung-dao",
+      "targetId": "article-hich-tuong-si",
+      "label": "Tác giả",
+      "note": "Trần Quốc Tuấn là tác giả Hịch tướng sĩ.",
+      "displayOrder": 2
+    },
+    {
+      "id": "link-003",
+      "sourceId": "article-tran-nhan-tong",
+      "targetId": "article-bach-dang",
+      "label": "Lãnh đạo",
+      "note": "Trần Nhân Tông cùng triều đình lãnh đạo cuộc kháng chiến chống Nguyên lần thứ ba.",
+      "displayOrder": 3
+    },
+    {
+      "id": "link-004",
+      "sourceId": "article-tran-dynasty",
+      "targetId": "article-tran-hung-dao",
+      "label": "Danh tướng",
+      "note": "Trần Hưng Đạo là danh tướng tiêu biểu dưới triều Trần.",
+      "displayOrder": 4
+    }
+  ],
+
+  "tags": [
+    {
+      "id": "tag-military",
+      "name": "Quân sự",
+      "description": "Lịch sử quân sự và chiến tranh",
+      "colorHex": "#DC2626"
+    },
+    {
+      "id": "tag-national-hero",
+      "name": "Anh hùng dân tộc",
+      "description": "Những nhân vật có đóng góp lớn cho đất nước",
+      "colorHex": "#D97706"
+    },
+    {
+      "id": "tag-resistance",
+      "name": "Kháng chiến",
+      "description": "Các cuộc đấu tranh bảo vệ độc lập",
+      "colorHex": "#B91C1C"
+    },
+    {
+      "id": "tag-culture",
+      "name": "Văn hóa",
+      "description": "Di sản văn hóa và tư tưởng",
+      "colorHex": "#7C3AED"
+    },
+    {
+      "id": "tag-politics",
+      "name": "Chính trị",
+      "description": "Lịch sử chính trị và tổ chức nhà nước",
+      "colorHex": "#2563EB"
+    }
+  ],
+
+  "articleTags": [
+    {
+      "id": "at-001",
+      "articleId": "article-tran-dynasty",
+      "tagId": "tag-politics"
+    },
+    {
+      "id": "at-002",
+      "articleId": "article-tran-hung-dao",
+      "tagId": "tag-national-hero"
+    },
+    {
+      "id": "at-003",
+      "articleId": "article-tran-hung-dao",
+      "tagId": "tag-military"
+    },
+    {
+      "id": "at-004",
+      "articleId": "article-bach-dang",
+      "tagId": "tag-resistance"
+    },
+    {
+      "id": "at-005",
+      "articleId": "article-bach-dang",
+      "tagId": "tag-military"
+    },
+    {
+      "id": "at-006",
+      "articleId": "article-hich-tuong-si",
+      "tagId": "tag-culture"
+    }
+  ],
+
+  "learningPaths": [
+    {
+      "id": "path-tran-dynasty",
+      "title": "Khám phá triều đại nhà Trần",
+      "slug": "kham-pha-trieu-dai-nha-tran",
+      "description": "Lộ trình học từ sự thành lập nhà Trần đến ba lần kháng chiến chống Nguyên Mông.",
+      "pathType": "CHRONOLOGICAL",
+      "isSequential": true,
+      "displayOrder": 1,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "path-military",
+      "title": "Những chiến công quân sự thời Trần",
+      "slug": "chien-cong-quan-su-thoi-tran",
+      "description": "Tìm hiểu chiến lược, nhân vật và những trận đánh tiêu biểu thời Trần.",
+      "pathType": "THEMATIC",
+      "isSequential": false,
+      "displayOrder": 2,
+      "status": "PUBLISHED"
+    }
+  ],
+
+  "chapters": [
+    {
+      "id": "chapter-001",
+      "learningPathId": "path-tran-dynasty",
+      "title": "Sự hình thành nhà Trần",
+      "slug": "su-hinh-thanh-nha-tran",
+      "description": "Bối cảnh chuyển giao quyền lực và sự thành lập triều Trần.",
+      "displayOrder": 1,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "chapter-002",
+      "learningPathId": "path-tran-dynasty",
+      "title": "Ba lần kháng chiến chống Nguyên Mông",
+      "slug": "ba-lan-khang-chien",
+      "description": "Ba cuộc kháng chiến bảo vệ nền độc lập Đại Việt.",
+      "displayOrder": 2,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "chapter-003",
+      "learningPathId": "path-tran-dynasty",
+      "title": "Văn hóa và di sản nhà Trần",
+      "slug": "van-hoa-di-san-nha-tran",
+      "description": "Các giá trị văn hóa và di sản lịch sử thời Trần.",
+      "displayOrder": 3,
+      "status": "PUBLISHED"
+    }
+  ],
+
+  "lessons": [
+    {
+      "id": "lesson-001",
+      "topicId": "topic-tran-dynasty",
+      "title": "Sự thành lập triều đại nhà Trần",
+      "slug": "su-thanh-lap-trieu-dai-nha-tran",
+      "description": "Tìm hiểu hoàn cảnh lịch sử dẫn đến sự thành lập nhà Trần.",
+      "content": [
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "1. Bối cảnh lịch sử"
+        },
+        {
+          "type": "TEXT",
+          "text": "Đầu thế kỷ XIII, nhà Lý suy yếu. Các vấn đề chính trị và xã hội khiến triều đình gặp nhiều khó khăn."
+        },
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "2. Sự thành lập"
+        },
+        {
+          "type": "TEXT",
+          "text": "Năm 1225, Lý Chiêu Hoàng nhường ngôi cho Trần Cảnh, đánh dấu sự kết thúc của nhà Lý và mở đầu triều đại nhà Trần."
+        },
+        {
+          "type": "CALLOUT",
+          "variant": "INFO",
+          "text": "Ghi nhớ: Năm 1225 là mốc thành lập triều đại nhà Trần."
+        },
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "3. Ý nghĩa"
+        },
+        {
+          "type": "TEXT",
+          "text": "Sự chuyển giao quyền lực mở ra một giai đoạn lịch sử mới, trong đó nhà Trần xây dựng và củng cố đất nước."
+        }
+      ],
+      "contentRichText": "Sự thành lập triều đại nhà Trần diễn ra vào năm 1225 khi Lý Chiêu Hoàng nhường ngôi cho Trần Cảnh.",
+      "difficulty": "EASY",
+      "sourceReferenceNote": "Tham khảo Đại Việt sử ký toàn thư và các tài liệu lịch sử Việt Nam.",
+      "status": "PUBLISHED",
+      "displayOrder": 1
+    },
+    {
+      "id": "lesson-002",
+      "topicId": "topic-resistance-wars",
+      "title": "Ba lần kháng chiến chống Nguyên Mông",
+      "slug": "ba-lan-khang-chien-chong-nguyen-mong",
+      "description": "Tìm hiểu bối cảnh, diễn biến và kết quả ba cuộc kháng chiến.",
+      "content": [
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "1. Cuộc kháng chiến lần thứ nhất (1258)"
+        },
+        {
+          "type": "TEXT",
+          "text": "Quân Mông Cổ tiến vào Đại Việt. Trước sức mạnh của đối phương, quân Trần chủ động rút lui chiến lược, bảo toàn lực lượng rồi tổ chức phản công."
+        },
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "2. Cuộc kháng chiến lần thứ hai (1285)"
+        },
+        {
+          "type": "TEXT",
+          "text": "Quân Nguyên tiến công Đại Việt từ nhiều hướng. Quân dân nhà Trần tổ chức phản công và giành nhiều thắng lợi tại Hàm Tử, Chương Dương và Tây Kết."
+        },
+        {
+          "type": "HEADING",
+          "level": 2,
+          "text": "3. Cuộc kháng chiến lần thứ ba (1287-1288)"
+        },
+        {
+          "type": "TEXT",
+          "text": "Quân Nguyên tiếp tục xâm lược Đại Việt. Quân dân nhà Trần tập trung đánh vào hệ thống hậu cần và tổ chức trận quyết chiến trên sông Bạch Đằng năm 1288."
+        },
+        {
+          "type": "CALLOUT",
+          "variant": "SUCCESS",
+          "text": "Kết quả: Cả ba cuộc xâm lược đều thất bại, nền độc lập của Đại Việt được bảo vệ."
+        }
+      ],
+      "contentRichText": "Ba lần kháng chiến chống Nguyên Mông diễn ra vào các năm 1258, 1285 và 1287-1288.",
+      "difficulty": "MEDIUM",
+      "sourceReferenceNote": "Tham khảo Đại Việt sử ký toàn thư và các công trình nghiên cứu lịch sử thời Trần.",
+      "status": "PUBLISHED",
+      "displayOrder": 2
+    },
+    {
+      "id": "lesson-003",
+      "topicId": "topic-resistance-wars",
+      "title": "Nghệ thuật quân sự trong chiến thắng Bạch Đằng",
+      "slug": "nghe-thuat-quan-su-bach-dang",
+      "description": "Phân tích cách tổ chức trận địa, sử dụng thủy triều và chiến thuật nghi binh.",
+      "content": [
+        {
+          "type": "TEXT",
+          "text": "Địa hình sông Bạch Đằng có vai trò quan trọng trong kế hoạch tác chiến của quân dân Đại Việt."
+        },
+        {
+          "type": "TEXT",
+          "text": "Quân Trần bố trí trận địa cọc ngầm và lợi dụng thủy triều để hạn chế khả năng cơ động của chiến thuyền địch."
+        },
+        {
+          "type": "TEXT",
+          "text": "Khi thủy triều xuống, quân Đại Việt tổ chức phản công, khiến nhiều chiến thuyền Nguyên bị mắc cạn và chịu tổn thất nặng."
+        }
+      ],
+      "contentRichText": "Chiến thắng Bạch Đằng năm 1288 thể hiện nghệ thuật quân sự và khả năng tận dụng địa hình, thủy triều.",
+      "difficulty": "HARD",
+      "sourceReferenceNote": "Tài liệu nghiên cứu về chiến thắng Bạch Đằng năm 1288.",
+      "status": "PUBLISHED",
+      "displayOrder": 3
+    }
+  ],
+
+  "chapterLessons": [
+    {
+      "id": "cl-001",
+      "chapterId": "chapter-001",
+      "lessonId": "lesson-001",
+      "displayOrder": 1
+    },
+    {
+      "id": "cl-002",
+      "chapterId": "chapter-002",
+      "lessonId": "lesson-002",
+      "displayOrder": 1
+    },
+    {
+      "id": "cl-003",
+      "chapterId": "chapter-002",
+      "lessonId": "lesson-003",
+      "displayOrder": 2
+    }
+  ],
+
+  "lessonTags": [
+    {
+      "id": "lt-001",
+      "lessonId": "lesson-001",
+      "tagId": "tag-politics"
+    },
+    {
+      "id": "lt-002",
+      "lessonId": "lesson-002",
+      "tagId": "tag-resistance"
+    },
+    {
+      "id": "lt-003",
+      "lessonId": "lesson-003",
+      "tagId": "tag-military"
+    }
+  ],
+
+  "quizzes": [
+    {
+      "id": "quiz-001",
+      "lessonId": "lesson-001",
+      "title": "Kiểm tra: Sự thành lập nhà Trần",
+      "description": "Kiểm tra kiến thức về sự chuyển giao quyền lực từ nhà Lý sang nhà Trần.",
+      "passingScorePercent": 70,
+      "timeLimitMinutes": 10,
+      "questions": [
+        {
+          "id": "quiz-q001",
+          "type": "MULTIPLE_CHOICE",
+          "prompt": "Triều đại nhà Trần được thành lập vào năm nào?",
+          "options": [
+            { "id": "a", "text": "1009" },
+            { "id": "b", "text": "1225" },
+            { "id": "c", "text": "1258" },
+            { "id": "d", "text": "1400" }
+          ],
+          "correctAnswer": "b",
+          "explanation": "Năm 1225, Lý Chiêu Hoàng nhường ngôi cho Trần Cảnh."
+        },
+        {
+          "id": "quiz-q002",
+          "type": "TRUE_FALSE",
+          "prompt": "Nhà Trần được thành lập sau khi nhà Lý kết thúc.",
+          "correctAnswer": true,
+          "explanation": "Đúng. Sự kiện nhường ngôi năm 1225 đánh dấu sự kết thúc của nhà Lý."
+        }
+      ]
+    },
+    {
+      "id": "quiz-002",
+      "lessonId": "lesson-002",
+      "title": "Kiểm tra: Ba lần kháng chiến chống Nguyên Mông",
+      "description": "Kiểm tra kiến thức về các cuộc kháng chiến.",
+      "passingScorePercent": 80,
+      "timeLimitMinutes": 15,
+      "questions": [
+        {
+          "id": "quiz-q003",
+          "type": "MULTIPLE_CHOICE",
+          "prompt": "Ba lần kháng chiến chống Nguyên Mông diễn ra vào những giai đoạn nào?",
+          "options": [
+            { "id": "a", "text": "1258, 1285, 1287-1288" },
+            { "id": "b", "text": "1225, 1258, 1288" },
+            { "id": "c", "text": "1280, 1285, 1290" },
+            { "id": "d", "text": "1258, 1270, 1400" }
+          ],
+          "correctAnswer": "a",
+          "explanation": "Ba cuộc kháng chiến diễn ra vào năm 1258, năm 1285 và giai đoạn 1287-1288."
+        },
+        {
+          "id": "quiz-q004",
+          "type": "TRUE_FALSE",
+          "prompt": "Trần Hưng Đạo là một trong những người chỉ huy quan trọng trong ba cuộc kháng chiến.",
+          "correctAnswer": true,
+          "explanation": "Trần Hưng Đạo giữ vai trò quan trọng trong việc tổ chức và chỉ huy quân đội Đại Việt."
+        },
+        {
+          "id": "quiz-q005",
+          "type": "ORDERING",
+          "prompt": "Sắp xếp các cuộc kháng chiến theo thứ tự thời gian.",
+          "items": [
+            { "id": "a", "text": "Kháng chiến lần thứ nhất" },
+            { "id": "b", "text": "Kháng chiến lần thứ hai" },
+            { "id": "c", "text": "Kháng chiến lần thứ ba" }
+          ],
+          "correctOrder": ["a", "b", "c"],
+          "explanation": "Thứ tự lần lượt là 1258, 1285 và 1287-1288."
+        },
+        {
+          "id": "quiz-q006",
+          "type": "MATCHING",
+          "prompt": "Nối sự kiện với niên đại tương ứng.",
+          "leftItems": [
+            { "id": "a", "text": "Kháng chiến lần thứ nhất" },
+            { "id": "b", "text": "Kháng chiến lần thứ hai" },
+            { "id": "c", "text": "Chiến thắng Bạch Đằng" }
+          ],
+          "rightItems": [
+            { "id": "x", "text": "1258" },
+            { "id": "y", "text": "1285" },
+            { "id": "z", "text": "1288" }
+          ],
+          "correctPairs": [
+            { "left": "a", "right": "x" },
+            { "left": "b", "right": "y" },
+            { "left": "c", "right": "z" }
+          ],
+          "explanation": "Mỗi cuộc kháng chiến và chiến thắng đều gắn với một mốc niên đại cụ thể."
+        },
+        {
+          "id": "quiz-q007",
+          "type": "FILL_IN_BLANK",
+          "prompt": "Người chỉ huy quân đội Đại Việt trong chiến thắng Bạch Đằng năm 1288 là ______.",
+          "correctAnswer": "Trần Hưng Đạo",
+          "acceptedAnswers": [
+            "Trần Quốc Tuấn",
+            "Hưng Đạo Vương"
+          ],
+          "explanation": "Trần Quốc Tuấn, tức Hưng Đạo Vương, là vị tổng chỉ huy quân đội Đại Việt."
+        }
+      ]
+    }
+  ],
+
+  "questions": [
+    {
+      "id": "bank-q001",
+      "type": "MULTIPLE_CHOICE",
+      "prompt": "Ai là tác giả của Hịch tướng sĩ?",
+      "explanation": "Hịch tướng sĩ là tác phẩm của Trần Quốc Tuấn.",
+      "difficulty": "EASY",
+      "points": 10,
+      "data": {
+        "options": [
+          { "id": "a", "text": "Trần Thái Tông" },
+          { "id": "b", "text": "Trần Quốc Tuấn" },
+          { "id": "c", "text": "Trần Nhân Tông" },
+          { "id": "d", "text": "Lê Lợi" }
+        ],
+        "correctAnswer": "b"
+      },
+      "lessonIds": ["lesson-002"],
+      "topicIds": [
+        "topic-tran-dynasty",
+        "topic-resistance-wars"
+      ]
+    },
+    {
+      "id": "bank-q002",
+      "type": "TRUE_FALSE",
+      "prompt": "Chiến thắng Bạch Đằng năm 1288 kết thúc cuộc kháng chiến chống Nguyên Mông lần thứ ba.",
+      "explanation": "Chiến thắng Bạch Đằng là thắng lợi quyết định của cuộc kháng chiến lần thứ ba.",
+      "difficulty": "EASY",
+      "points": 10,
+      "data": {
+        "correctAnswer": true
+      },
+      "lessonIds": ["lesson-002", "lesson-003"],
+      "topicIds": ["topic-resistance-wars"]
+    },
+    {
+      "id": "bank-q003",
+      "type": "ORDERING",
+      "prompt": "Sắp xếp các sự kiện sau theo trình tự lịch sử.",
+      "explanation": "Nhà Trần thành lập năm 1225, kháng chiến lần thứ nhất diễn ra năm 1258, hội nghị Diên Hồng năm 1284 và chiến thắng Bạch Đằng năm 1288.",
+      "difficulty": "MEDIUM",
+      "points": 20,
+      "data": {
+        "items": [
+          { "id": "a", "text": "Thành lập nhà Trần" },
+          { "id": "b", "text": "Kháng chiến lần thứ nhất" },
+          { "id": "c", "text": "Hội nghị Diên Hồng" },
+          { "id": "d", "text": "Chiến thắng Bạch Đằng" }
+        ],
+        "correctOrder": ["a", "b", "c", "d"]
+      },
+      "lessonIds": ["lesson-001", "lesson-002"],
+      "topicIds": ["topic-tran-dynasty"]
+    },
+    {
+      "id": "bank-q004",
+      "type": "MATCHING",
+      "prompt": "Nối nhân vật với vai trò lịch sử tương ứng.",
+      "explanation": "Mỗi nhân vật có một vai trò tiêu biểu trong lịch sử triều Trần.",
+      "difficulty": "MEDIUM",
+      "points": 20,
+      "data": {
+        "leftItems": [
+          { "id": "a", "text": "Trần Hưng Đạo" },
+          { "id": "b", "text": "Trần Nhân Tông" },
+          { "id": "c", "text": "Trần Cảnh" }
+        ],
+        "rightItems": [
+          { "id": "x", "text": "Hoàng đế đầu tiên của nhà Trần" },
+          { "id": "y", "text": "Danh tướng nhà Trần" },
+          { "id": "z", "text": "Vua lãnh đạo Đại Việt trong các cuộc kháng chiến" }
+        ],
+        "correctPairs": [
+          { "left": "a", "right": "y" },
+          { "left": "b", "right": "z" },
+          { "left": "c", "right": "x" }
+        ]
+      },
+      "lessonIds": ["lesson-001", "lesson-002"],
+      "topicIds": ["topic-tran-dynasty"]
+    },
+    {
+      "id": "bank-q005",
+      "type": "FILL_IN_BLANK",
+      "prompt": "Triều đại nhà Trần được thành lập vào năm ______.",
+      "explanation": "Năm 1225 đánh dấu sự thành lập nhà Trần.",
+      "difficulty": "EASY",
+      "points": 10,
+      "data": {
+        "correctAnswer": "1225",
+        "acceptedAnswers": ["1225"]
+      },
+      "lessonIds": ["lesson-001"],
+      "topicIds": ["topic-tran-dynasty"]
+    },
+    {
+      "id": "bank-q006",
+      "type": "MULTIPLE_CHOICE",
+      "prompt": "Đâu là một trong những nguyên nhân quan trọng dẫn đến thắng lợi của quân dân Đại Việt trong ba lần kháng chiến?",
+      "explanation": "Tinh thần đoàn kết toàn dân, sự chỉ huy của triều đình và nghệ thuật quân sự là những yếu tố quan trọng.",
+      "difficulty": "HARD",
+      "points": 30,
+      "data": {
+        "options": [
+          { "id": "a", "text": "Chỉ dựa vào ưu thế về quân số" },
+          { "id": "b", "text": "Tinh thần đoàn kết và chiến lược quân sự phù hợp" },
+          { "id": "c", "text": "Không cần tổ chức quân đội" },
+          { "id": "d", "text": "Chỉ sử dụng chiến thuật phòng thủ cố định" }
+        ],
+        "correctAnswer": "b"
+      },
+      "lessonIds": ["lesson-002", "lesson-003"],
+      "topicIds": ["topic-resistance-wars"]
+    }
+  ]
+}

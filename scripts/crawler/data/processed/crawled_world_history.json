@@ -1,0 +1,446 @@
+{
+  "topics": [
+    {
+      "rootSlug": "lich-su-the-gioi",
+      "rootName": "Lịch sử Thế giới",
+      "childSlug": "the-chien-thu-hai",
+      "childName": "Chiến tranh Thế giới thứ hai (1939 - 1945)",
+      "eyebrow": "1939 - 1945",
+      "description": "Cuộc chiến tranh quy mô toàn cầu đẫm máu nhất trong lịch sử nhân loại giữa phe Đồng Minh và phe Trục."
+    },
+    {
+      "rootSlug": "lich-su-the-gioi",
+      "rootName": "Lịch sử Thế giới",
+      "childSlug": "cach-mang-phap",
+      "childName": "Cách mạng Pháp và Thời kỳ Napoléon",
+      "eyebrow": "1789 - 1815",
+      "description": "Cuộc đại cách mạng tư sản làm thay đổi sâu sắc lịch sử nước Pháp và toàn bộ châu Âu."
+    }
+  ],
+  "timelines": [
+    {
+      "slug": "dong-thoi-gian-the-chien-2",
+      "title": "Chiến tranh thế giới thứ hai",
+      "description": "Các mốc lịch sử then chốt từ khi Đức xâm lược Ba Lan đến ngày Phát xít Nhật đầu hàng Đồng Minh.",
+      "topicSlug": "the-chien-thu-hai",
+      "nodes": [
+        {
+          "title": "Đức xâm lược Ba Lan — Bùng nổ Thế chiến thứ hai",
+          "year": 1939,
+          "month": 9,
+          "day": 1,
+          "dateText": "01/09/1939",
+          "articleSlug": "chien-tranh-the-gioi-thu-hai",
+          "description": "Quân đội phát xít Đức bất ngờ nổ súng tấn công Ba Lan, mở màn cho cuộc thế chiến đẫm máu kéo dài 6 năm."
+        },
+        {
+          "title": "Trận Stalingrad — Bước ngoặt chiến tranh",
+          "year": 1942,
+          "month": 8,
+          "day": 23,
+          "dateText": "1942 - 1943",
+          "articleSlug": "tran-stalingrad",
+          "description": "Hồng quân Liên Xô bao vây và tiêu diệt hoàn toàn Tập đoàn quân số 6 của Đức, xoay chuyển cục diện chiến tranh sang thế phản công."
+        },
+        {
+          "title": "Đức ký văn kiện đầu hàng không điều kiện",
+          "year": 1945,
+          "month": 5,
+          "day": 8,
+          "dateText": "08/05/1945",
+          "articleSlug": "chien-tranh-the-gioi-thu-hai",
+          "description": "Phát xít Đức chính thức đầu hàng tại Berlin, đánh dấu ngày Chiến thắng tại châu Âu."
+        }
+      ]
+    },
+    {
+      "slug": "thoi-ky-napoleon",
+      "title": "Thời kỳ Napoléon Bonaparte",
+      "description": "Kỷ nguyên bành trướng quân sự và cải cách pháp điển hóa vĩ đại của Napoléon khắp châu Âu.",
+      "topicSlug": "cach-mang-phap",
+      "nodes": [
+        {
+          "title": "Napoléon đăng quang Hoàng đế Pháp",
+          "year": 1804,
+          "month": 12,
+          "day": 2,
+          "dateText": "02/12/1804",
+          "articleSlug": "napoleon-bonaparte",
+          "description": "Napoléon Bonaparte tự tay đặt vương miện lên đầu tại Nhà thờ Đức Bà Paris, mở ra Đệ Nhất Đế chế Pháp."
+        },
+        {
+          "title": "Trận Waterloo — Đoạn kết của Napoléon",
+          "year": 1815,
+          "month": 6,
+          "day": 18,
+          "dateText": "18/06/1815",
+          "articleSlug": "tran-waterloo",
+          "description": "Liên quân Anh - Phổ do Công tước Wellington chỉ huy đánh bại quân Pháp, chấm dứt thời kỳ Trăm ngày của Napoléon."
+        }
+      ]
+    }
+  ],
+  "articles": [
+    {
+      "title": "Chiến tranh thế giới thứ hai",
+      "slug": "chien-tranh-the-gioi-thu-hai",
+      "categorySlug": "su-kien",
+      "topicSlug": "the-chien-thu-hai",
+      "tags": [
+        "Thế chiến thứ hai",
+        "Lịch sử Thế giới"
+      ],
+      "region": "Châu Âu",
+      "summary": "Chiến tranh thế giới thứ hai (còn được nhắc đến với các tên gọi Đệ nhị thế chiến, Thế chiến II hay Đại chiến thế giới lần thứ hai) là một cuộc chiến tranh thế giới bắt đầu từ ngày 1 tháng 9 năm 1939 và chấm dứt vào ngày 2 tháng 9 năm 1945. Cuộc chiến có sự tham gia của đại đa số các quốc gia trên th...",
+      "dateText": "1939 - 1945",
+      "startYear": 1939,
+      "endYear": 1945,
+      "metadata": {
+        "event": {
+          "dateNote": "1 tháng 9 1939 – 2 tháng 9 1945 (1939-09-01 – 1945-09-02)(6 năm và 1 ngày)",
+          "outcome": "Khối Đồng Minh chiến thắng Đức Quốc Xã, Phát xít Ý và Đế quốc Nhật Bản sụp đổ Quân đội Đồng Minh chiếm đóng Đức, Nhật Bản, Áo; Cộng hòa Ý thành lập, thay thế Vương quốc Ý Khởi đầu Kỷ nguyên hạt nhân Hội Quốc Liên giải thể, Liên Hiệp Quốc thành lập Hoa Kỳ và Liên Xô trỗi dậy, trở thành hai siêu cường quốc của thế giới; Chiến tranh Lạnh bắt đầu (xem Hậu quả của Chiến tranh thế giới thứ hai)"
+        },
+        "region": "Châu Âu"
+      },
+      "contentBlocks": [
+        {
+          "id": "d8380808-5c57-4faa-bea5-9d5c0ff897a4",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Chiến tranh thế giới thứ hai (còn được nhắc đến với các tên gọi Đệ nhị thế chiến, Thế chiến II hay Đại chiến thế giới lần thứ hai) là một cuộc chiến tranh thế giới bắt đầu từ ngày 1 tháng 9 năm 1939 và chấm dứt vào ngày 2 tháng 9 năm 1945. Cuộc chiến có sự tham gia của đại đa số các quốc gia trên thế giới — bao gồm tất cả các cường quốc — tạo thành hai liên minh quân sự đối lập: Đồng Minh và Phe Trục. Trong diện mạo một cuộc chiến tranh toàn diện, Thế chiến II có sự tham gia trực tiếp của hơn 100 triệu nhân sự từ hơn 30 quốc gia. Các bên tham chiến chính đã dồn toàn bộ nguồn lực kinh tế, công nghiệp và khoa học cho nỗ lực tham chiến, làm mờ đi ranh giới giữa nguồn lực dân sự và quân sự. Chiến tranh thế giới thứ hai là cuộc xung đột đẫm máu nhất trong lịch sử nhân loại, gây nên cái chết của 70 đến 85 triệu người, với số lượng thường dân tử vong nhiều hơn quân nhân. Hàng chục triệu người đã phải bỏ mạng trong các vụ thảm sát, diệt chủng (trong đó có Holocaust), chết vì thiếu lương thực hay vì bệnh tật. Máy bay đóng vai trò quan trọng đối với tiến trình cuộc chiến, bao gồm ném bom chiến lược vào các trung tâm dân cư, và đối với sự phát triển vũ khí hạt nhân cũng như hai lần duy nhất sử dụng loại vũ khí này trong chiến tranh.</p>"
+        },
+        {
+          "id": "d1bf8ed0-4144-4117-b8c3-b24476e9a1c5",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Mặc dù có nhiều ý kiến khác nhau, nhưng chiến tranh thế giới thứ hai thường được coi là bắt đầu khi Đức phát động cuộc xâm lược Ba Lan vào ngày 1 tháng 9 năm 1939, tiếp nối với việc cả Vương quốc Anh lẫn Pháp tuyên chiến với Đức 2 ngày sau đó. Kể từ cuối năm 1939 cho tới đầu năm 1941, thông qua một loạt chiến dịch quân sự và hiệp ước, Đức đã chinh phục hoặc kiểm soát phần lớn lục địa châu Âu, đồng thời thành lập liên minh phe Trục với Ý và Nhật Bản cũng như với một số nước khác sau đó. Theo Hiệp ước Molotov – Ribbentrop được ký kết vào tháng 8 năm 1939, Đức và Liên Xô phân chia và sáp nhập lãnh thổ các nước láng giềng châu Âu bao gồm Ba Lan, Phần Lan, Romania và các nước Baltic. Sau khi các chiến dịch tại Bắc Phi và Đông Phi bắt đầu và Pháp thất thủ giữa năm 1940, chiến tranh vẫn tiếp diễn chủ yếu giữa các cường quốc Trục châu Âu và Đế quốc Anh, với chiến sự tại Balkan, Trận không chiến nước Anh (Blitz) và Trận chiến Đại Tây Dương. Vào ngày 22 tháng 6 năm 1941, Đức dẫn đầu các nước Phe Trục châu Âu tiến hành xâm lược Liên Xô, mở ra Mặt trận phía Đông. Là chiến trường trên bộ lớn nhất trong lịch sử, cuộc chiến với Liên Xô đã khiến quân đội phe Trục, mà chủ yếu là Wehrmacht của Đức, sa lầy trong một cuộc chiến tiêu hao.</p>"
+        },
+        {
+          "id": "8c0870ee-22e3-4520-ab0d-615328ef190f",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Với tham vọng thống trị châu Á và Thái Bình Dương, Nhật Bản đã gây chiến với Trung Hoa Dân Quốc vào năm 1937. Vào tháng 12 năm 1941, Nhật Bản tiến hành tấn công gần như cùng lúc các lãnh thổ của Hoa Kỳ và Anh tại Đông Nam Á và Trung Thái Bình Dương, bao gồm cả cuộc tấn công nhằm vào hạm đội Mỹ đóng tại Trân Châu Cảng. Sau khi Hoa Kỳ lẫn Anh tuyên chiến với Nhật Bản, các nước phe Trục Châu Âu tuyên chiến với Hoa Kỳ theo cam kết trong hiệp ước liên minh. Nhật Bản nhanh chóng làm chủ phần lớn Tây Thái Bình Dương, nhưng bước tiến của họ đã bị chặn đứng sau khi để thua trận Midway quan trọng vào năm 1942. Không lâu sau đó, Đức và Ý bị đánh bật khỏi Bắc Phi và phải hứng chịu thất bại quyết định tại Stalingrad trước Liên Xô. Những thất bại then chốt trong năm 1943 – bao gồm một loạt thất bại của Đức trên Mặt trận phía Đông, cuộc xâm lược đảo Sicilia và lục địa Ý của Đồng Minh, cũng như cuộc tấn công của Đồng Minh ở Thái Bình Dương – đã khiến phe Trục đánh mất thế chủ động và buộc phải rút lui chiến lược trên mọi mặt trận. Năm 1944, Đồng Minh phương Tây xâm lược nước Pháp do Đức chiếm đóng, trong khi Liên Xô giành lại những lãnh thổ bị mất và đang trên đường tiến vào lãnh thổ Đức và các quốc gia Phe Trục khác. Trong suốt hai năm 1944 và 1945, chiến sự dần đảo chiều trên lục địa châu Á, trong khi quân Đồng Minh làm tê liệt lực lượng Hải quân Nhật Bản và chiếm đóng đảo quan trọng ở phía Tây Thái Bình Dương.</p>"
+        },
+        {
+          "id": "1c4e2e45-5599-4879-b848-ddbe386e6d15",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Sau khi giải phóng các vùng lãnh thổ do Đức chiếm đóng, Đồng Minh phương Tây và Liên Xô tiến hành xâm lược nước Đức. Chiến tranh tại châu Âu kết thúc sau cái chết của Adolf Hitler, chỉ ít lâu trước khi Berlin thất thủ vào tay quân đội Liên Xô và Đức đầu hàng vô điều kiện vào ngày 8 tháng 5 năm 1945. Sau khi Tuyên bố Potsdam của Đồng Minh vào ngày 26 tháng 7 năm 1945 bị phía Nhật Bản khước từ, Hoa Kỳ đã thả hai quả bom nguyên tử đầu tiên xuống thành phố Hiroshima vào ngày 6 và Nagasaki vào ngày 9 tháng 8 năm 1945. Đối mặt trước một cuộc xâm lược sắp xảy ra vào quần đảo Nhật Bản và việc Liên Xô tham chiến, tiến hành xâm lược Mãn Châu vào ngày 9 tháng 8, Nhật Bản tuyên bố đầu hàng vào ngày 15 tháng 8 năm 1945, ấn định chiến thắng toàn diện trên chiến trường Châu Á cho Phe Đồng Minh. Sau chiến tranh, cả Đức lẫn Nhật Bản bị chiếm đóng. Các tòa án tội ác chiến tranh được mở nhằm xét xử các nhà lãnh đạo Đức và Nhật Bản. Bất chấp tội ác chiến tranh được ghi nhận đầy đủ (chủ yếu gây ra ở Hy Lạp và Nam Tư), phần lớn các nhà lãnh đạo và tướng lĩnh Ý vẫn được ân xá nhờ vào các hoạt động ngoại giao.</p>"
+        },
+        {
+          "id": "f6d5d95d-5d72-4e04-a9fa-22f70c6ccc6a",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Chiến tranh thế giới thứ hai thay đổi cục diện chính trị lẫn cấu trúc xã hội toàn cầu. Tổ chức Liên Hiệp Quốc (LHQ) được thành lập nhằm thúc đẩy hợp tác quốc tế và ngăn chặn các cuộc xung đột trong tương lai. Các cường quốc chiến thắng, bao gồm Trung Quốc, Pháp, Liên Xô, Vương quốc Anh và Hoa Kỳ, trở thành thành viên thường trực của Hội đồng Bảo an Liên Hợp Quốc. Liên Xô và Hoa Kỳ nổi lên như hai siêu cường đối trọng nhau, tạo tiền đề cho Chiến tranh Lạnh kéo dài gần nửa thế kỷ. Trong bối cảnh châu Âu bị tàn phá, ảnh hưởng của các cường quốc suy yếu, khởi đầu quá trình phi thực dân hóa ở châu Phi và châu Á. Hầu hết các quốc gia có ngành công nghiệp bị thiệt hại đều hướng tới việc phục hồi và mở rộng kinh tế. Sự hội nhập chính trị, đặc biệt là ở châu Âu, vốn bắt đầu như một nỗ lực ngăn chặn các hành động thù địch trong tương lai đã chấm dứt những mối thù địch trước chiến tranh và rèn luyện ý thức về bản sắc chung.</p>"
+        },
+        {
+          "id": "7273c45b-103b-46a0-b380-bf566e0ec891",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Thời điểm bắt đầu cuộc chiến tại Châu Âu thường được xem là khi quân Đức tiến hành xâm lược Ba Lan vào ngày 1 tháng 9 năm 1939 và khi Vương quốc Anh và Pháp tuyên chiến với Đức hai ngày sau đó. Đối với chiến tranh Thái Bình Dương, giới học giả chưa có sự thống nhất trong việc tính ngày bắt đầu cuộc chiến. Có người tán thành thời điểm Nhật Bản xâm lược Trung Quốc vào ngày 7 tháng 7 năm 1937 trong khi một số người khác lại coi sự kiện Nhật Bản xâm lược Mãn Châu vào ngày 19 tháng 9 năm 1931 mới là ngày khởi đầu cuộc chiến.</p>"
+        },
+        {
+          "id": "88d9eb53-44e3-43af-b603-be8dddb8aa86",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Một số học giả khác tán thành với ý kiến của sử gia người Anh A. J. P. Taylor, cho rằng Chiến tranh Trung–Nhật cùng với chiến tranh ở châu Âu và các thuộc địa xảy ra song song cho trước khi hợp thành một cuộc chiến duy nhất vào năm 1941. Bài viết này của Wikipedia sử dụng cách tính ngày truyền thống. Một số thời điểm khác đôi khi cũng được sử dụng làm ngày bắt đầu Chiến tranh thế giới thứ hai bao gồm cuộc xâm lược Abyssinia của Ý vào ngày 3 tháng 10 năm 1935. Nhà sử học người Anh Antony Beevor xem trận Khalkhin Gol giữa Nhật Bản và Liên Xô từ tháng 5 đến tháng 9 năm 1939 là ngày khởi đầu của Thế chiến thứ hai.</p>"
+        },
+        {
+          "id": "1f1e8fa1-3bdf-4f7e-9e96-74f8a1419a77",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Tương tự như ngày bắt đầu, ngày kết thúc chính xác của cuộc chiến cũng không được các học giả thống nhất rộng rãi. Một số người chấp nhận ngày 14 tháng 8 năm 1945 khi hiệp định đình chiến giữa Nhật Bản và Đồng Minh được ký kết (Ngày V-J) là ngày chiến tranh kết thúc thay vì ngày 2 tháng 9 năm 1945 khi Nhật Bản chính thức đầu hàng, chấm dứt chiến tranh tại châu Á. Năm 1951, một hiệp ước hòa bình giữa Nhật Bản và Đồng Minh được ký kết. Năm 1990, một hiệp ước liên quan đến tương lai của Đức cho phép hai phần Đông và Tây của nước này thống nhất đã được thông qua, giải quyết hầu hết các vấn đề tồn đọng sau Thế chiến II. Cho đến khi Liên Xô giải tán, giữa hai nước Xô – Nhật không có hiệp ước hòa bình chính thức nào được ký kết.</p>"
+        }
+      ]
+    },
+    {
+      "title": "Trận Stalingrad",
+      "slug": "tran-stalingrad",
+      "categorySlug": "su-kien",
+      "topicSlug": "the-chien-thu-hai",
+      "tags": [
+        "Thế chiến thứ hai",
+        "Liên Xô"
+      ],
+      "region": "Châu Âu",
+      "summary": "Trận Stalingrad (23 tháng 8 năm 1942 – 2 tháng 2 năm 1943) là một trận đánh lớn diễn ra trong Chiến tranh Xô-Đức giữa Đức Quốc xã cùng với các nước thuộc địa và Hồng quân Liên Xô tại thành phố Stalingrad (nay là Volgograd) ở miền Tây Nam nước Nga. Trận đánh diễn ra từ tháng 8 năm 1942 đến ngày 2 thá...",
+      "dateText": "1942 - 1943",
+      "startYear": 1942,
+      "endYear": 1943,
+      "metadata": {
+        "event": {
+          "dateNote": "23 tháng 8 năm 1942 – 2 tháng 2 năm 1943(5 tháng, 1 tuần và 3 ngày)",
+          "outcome": "Liên Xô chiến thắng Tập đoàn quân số 6 của Đức bị tiêu diệt"
+        },
+        "region": "Châu Âu"
+      },
+      "contentBlocks": [
+        {
+          "id": "c3ca1c76-e645-4550-9848-1ea8fa8c497a",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Trận Stalingrad (23 tháng 8 năm 1942 – 2 tháng 2 năm 1943) là một trận đánh lớn diễn ra trong Chiến tranh Xô-Đức giữa Đức Quốc xã cùng với các nước thuộc địa và Hồng quân Liên Xô tại thành phố Stalingrad (nay là Volgograd) ở miền Tây Nam nước Nga. Trận đánh diễn ra từ tháng 8 năm 1942 đến ngày 2 tháng 2 năm 1943, và thường được đánh giá như một bước ngoặt quan trọng và bước đầu làm xoay chuyển cục diện trong chiến tranh thế giới thứ 2, thậm chí là một trong những bước ngoặt lớn nhất của nền quân sự thế giới trong thế kỷ XX. Đây cũng là trận đánh đẫm máu nhất trong lịch sử thế giới1.250.000 #, với tổng số thương vong của hai bên lên đến 2,1 - 2,5 triệu quân, khiến nó trở thành trận chiến khốc liệt nhất trong toàn Thế chiến 2 và trong lịch sử toàn thế giới. Trận chiến đặc trưng bởi những cuộc chiến đấu tầm gần đẫm máu và các cuộc không kích vào dân thường, nó trở thành biểu tượng của chiến tranh đô thị, và là trận đánh trong đô thị lớn nhất cũng như tổn thất lớn nhất trong lịch sử quân sự.</p>"
+        },
+        {
+          "id": "1d043829-61b2-41e0-ba10-e5b10808463f",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Số binh sĩ tham gia trận đánh này nhiều hơn hẳn các chiến dịch lớn khác trong Thế chiến 2, và nó cũng nổi tiếng vì mức độ ác liệt, tổn thất cực lớn cũng như thương vong cao về dân thường. Việc quân Đức thất bại trong việc đánh chiếm Stalingrad và việc Hồng quân Liên Xô phản công bao vây tiêu diệt 33 vạn quân của Tập đoàn quân số 6 (Đức Quốc Xã) cùng với nhiều lực lượng khác của phe Trục xung quanh thành phố đã dẫn tới một trong những thất bại quan trọng nhất của phát xít Đức trong thế chiến thứ hai. Với chiến thắng điểm ngoặt này, Hồng quân đã cầm chắc lợi thế của cuộc Chiến tranh Vệ quốc Vĩ đại. Song, đây không chỉ là một bước ngoặt quyết định và quan trọng nhất trong cuộc chiến tranh vệ quốc mà còn cả của Chiến tranh thế giới thứ hai vì nó cùng với các chiến thắng ở Tunisia đã mang lại lợi thế và củng cố niềm tin thắng lợi cho toàn khối Đồng Minh, và bắt đầu cho giai đoạn Hồng quân Liên Xô chủ động tổ chức phản công trên toàn mặt trận và đóng góp một phần đáng kể vào sự đầu hàng của phát xít Đức hai năm rưỡi sau đó.</p>"
+        },
+        {
+          "id": "39584480-d0fe-4051-af36-54183a6a85e3",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Đợt tấn công Stalingrad của phát xít Đức tiến triển nhanh vào giai đoạn nửa sau năm 1942 dưới sự hỗ trợ mạnh mẽ của không quân Đức Luftwaffe, những trận oanh tạc của lực lượng này đã biến phần lớn thành phố trở thành đống gạch vụn. Tuy nhiên quân Đức nhanh chóng bị sa lầy trong những trận đánh đẫm máu trên đường phố và trong từng căn nhà; và mặc dù đã kiểm soát 90% thành phố nhưng quân Đức đã hoàn toàn thất bại trong việc triệt tiêu những ổ đề kháng cuối cùng của Hồng quân Liên Xô vốn bám trụ một cách vững chắc và kiên cường bên bờ Tây sông Volga, trong lúc đó thì thời tiết khắc nghiệt của mùa đông nước Nga đang đến gần. Cho đến nay, vẫn chưa nhà sử học nào có thể lý giải tại sao Adolf Hitler lại có một quyết định nóng vội như vậy.</p>"
+        },
+        {
+          "id": "58cfba2f-b6de-4c66-8510-fbdd160875ce",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Ngày 19 tháng 11 năm 1942, Hồng quân Liên Xô mở chiến dịch Sao Thiên Vương, một đợt tấn công vu hồi gồm hai gọng kìm đánh vào cạnh sườn của Tập đoàn quân số 6 (Đức Quốc xã) đóng tại Stalingrad. Đòn tấn công này đã hoàn toàn thay đổi cục diện của trận đánh: cạnh sườn yếu kém của quân Đức nhanh chóng sụp đổ tan tành và 33 vạn quân của Tập đoàn quân số 6 bị bao vây trong nội thành Stalingrad. Khi mùa đông đến, cái đói, cái lạnh khủng khiếp và những đợt tấn công liên tục của Hồng quân Liên Xô đã làm suy kiệt nhanh chóng lực lượng Đức, tuy nhiên mệnh lệnh không được đầu hàng của Hitler do niềm tin vào \"sức mạnh ý chí\", vấn đề danh dự nước Đức cùng các tính toán chiến lược khác đã buộc họ phải tiếp tục cố bám trụ mà không được tự ý phá vây. Vào tháng 12 năm 1942, phát xít Đức mở Chiến dịch Bão Mùa đông nhằm giải cứu đội quân bị vây nhưng thất bại, và theo sau đó là toàn bộ hệ thống tiếp vận cho khối quân bị vây cũng sụp đổ theo. Đầu tháng 2 năm 1943, sức kháng cự của khối quân này hoàn toàn bị dập tắt, và Tập đoàn quân số 6 bị tiêu diệt hoàn toàn vào ngày 2 tháng 2 năm 1943. Đối với nước Đức thất thế, trận thua này là tin xấu nhất của họ, và sau thất bại này họ sẽ còn thua trận Kursk với tầm quan trọng chẳng kém. Về phần mình, Hồng quân Liên Xô đã phải chịu tổn thất rất lớn lao trong chiến thắng quyết định này.</p>"
+        },
+        {
+          "id": "4865fe6c-9fe9-4363-8a7c-59858af6ad51",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Ngày 6 tháng 12 năm 1941, sau khi chặn đứng đà tiến công của phát xít Đức vào thủ đô Moskva, Hồng quân Liên Xô mở đợt phản công nhằm vào các lực lượng của quân đội phát xít Đức (Wehrmacht) đang công kích thành phố và đã đánh họ bật ra khỏi ngoại vi của thủ đô Xô viết. Tuy nhiên đến mùa xuân năm 1942, cơ bản quân Đức chặn được đà phản công của Hồng quân và ổn định mặt trận tại phòng tuyến mới kéo dài từ Leningrad ở phía Bắc đến thành phố Rostov ở phía Nam. Có một số điểm lồi trên mặt trận được hình thành do các đợt phản công của quân Đức, chủ yếu ở Tây Bắc của Moskva và phía Nam của Kharkov, tuy nhiên các vị trí này không đe dọa nhiều đến quân Đức. Ở phía Nam, phát xít Đức đã kiểm soát phần lớn lãnh thổ Ukraina và bán đảo Krym mặc dù lúc này Sevastopol và một phần bán đảo Kerch vẫn nằm trong tay Hồng quân Liên Xô.</p>"
+        },
+        {
+          "id": "1a12a9e8-ed76-430c-8b39-95a6d817a92a",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Lúc này Bộ chỉ huy Đức, đứng đầu là Adolf Hitler, nhận thấy rằng không thể đánh thắng Liên bang Xô viết bằng một cuộc chiến tranh chớp nhoáng. Để đánh thắng phía Đức phải tính đến cách đánh tiêu hao: trước tiên phải thủ tiêu các nguồn lực vật chất để Liên Xô suy kiệt trước khi bị đánh bại hoàn toàn. Chiến cuộc mùa hè năm 1942 diễn ra với ý tưởng chỉ đạo chiến lược như vậy và với mục tiêu chiếm những nguồn cung cấp chiến lược quan trọng hàng đầu của Liên Xô - lúa mì, các nguyên liệu công nghiệp sống còn là điện, than, và đặc biệt là dầu mỏ. Tất cả những thứ đó đều nằm ở phía Nam nước Nga, ở dãy núi Kavkaz và Baku - trung tâm công nghiệp khai thác dầu mỏ lớn nhất của Liên Xô - và đó là những mục tiêu tối thượng của chiến dịch.</p>"
+        },
+        {
+          "id": "747c7ac1-caf9-4e84-b791-2662adbfa06d",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Việc chiếm được thành phố này có tầm quan trọng rất lớn đối với Hitler và cả Mussolini vì hai lý do chính. Thứ nhất, đây là một thành phố công nghiệp lớn nằm trên sông Volga - con đường giao thông vận tải mang tầm quan trọng chiến lược nối liền Biển Caspi và miền Bắc nước Nga. Sự quan trọng của nó đã được chính Adolf Hitler đã phải nói rằng \"Nếu tôi không chiếm được các mỏ dầu tại Maikop và Grozny thì tôi đành phải kết thúc cuộc chiến này\". Vì vậy việc để mất Stalingrad vào tay phát xít Đức sẽ gây ảnh hưởng nghiêm trọng đến khả năng vận chuyển hàng hóa đến phía Bắc của đất nước cũng như tạo cho quân Đức một chỗ trú chân qua mùa đông. Thứ hai, việc đánh chiếm Stalingrad sẽ củng cố sườn phía Đông của quân Đức vốn đang tiến nhanh về vựa dầu tại vùng Kavkaz với mục tiêu cắt đứt nguồn cung ứng dầu hỏa cho Hồng quân Liên Xô. Thêm nữa, thành phố này mang tên của lãnh tụ I. V. Stalin, việc đánh chiếm thành phố này cũng sẽ là một thắng lợi quan trọng về mặt tinh thần và tư tưởng.</p>"
+        },
+        {
+          "id": "c2bc6e4a-0dad-43f3-916e-87b19e1b5f68",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Hồng quân Liên Xô nhận ra rằng họ đang chịu một sức ép nghiêm trọng về thời gian và nhân lực, vật lực, vì vậy tất cả những ai có thể cầm súng chiến đấu đều được điều về bảo vệ Stalingrad. Vào thời kỳ này của chiến tranh, khả năng tác chiến cơ động cao của Hồng quân vẫn còn kém hơn so với phát xít Đức, tuy nhiên việc chiến đấu trong thành phố đã giúp giảm thiểu những thiệt thòi của Hồng quân vì nơi đây là địa bàn của việc giao tranh bằng vũ khí cầm tay của bộ binh chiếm ưu thế chứ không phải là nơi dành cho việc giao chiến giữa các lực lượng tăng thiết giáp.</p>"
+        }
+      ]
+    },
+    {
+      "title": "Napoléon Bonaparte",
+      "slug": "napoleon-bonaparte",
+      "categorySlug": "nhan-vat",
+      "topicSlug": "cach-mang-phap",
+      "tags": [
+        "Pháp",
+        "Nhân vật Thế giới"
+      ],
+      "region": "Châu Âu",
+      "summary": "Napoléon Bonaparte (tên khai sinh là Napoleone Buonaparte;[chú thích 1] 15 tháng 8 năm 1769 – 5 tháng 5 năm 1821), sau này được biết đến với tôn hiệu Napoléon I, là một chỉ huy quân sự và nhà lãnh đạo chính trị người Pháp, đã trở nên nổi tiếng trong thời kỳ Cách mạng Pháp và lãnh đạo các chiến dịch ...",
+      "dateText": "1769 - 1821",
+      "startYear": 1769,
+      "endYear": 1821,
+      "metadata": {
+        "person": {
+          "birthDateLabel": "(1769-08-15)15 tháng 8 năm 1769Ajaccio, Corse, Vương quốc Pháp",
+          "deathDateLabel": "5 tháng 5 năm 1821(1821-05-05) (51 tuổi)Longwood, Saint Helena",
+          "titles": "18 tháng 5 năm 1804 – 6 tháng 4 năm 1814"
+        },
+        "region": "Châu Âu"
+      },
+      "contentBlocks": [
+        {
+          "id": "afffadb8-b7c9-428c-81f7-ec206a8cbe1a",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Napoléon Bonaparte (tên khai sinh là Napoleone Buonaparte; 15 tháng 8 năm 1769 – 5 tháng 5 năm 1821), sau này được biết đến với tôn hiệu Napoléon I, là một chỉ huy quân sự và nhà lãnh đạo chính trị người Pháp, đã trở nên nổi tiếng trong thời kỳ Cách mạng Pháp và lãnh đạo các chiến dịch thành công trong cuộc Chiến tranh Cách mạng Pháp. Ông là người lãnh đạo de facto của Cộng hòa Pháp với tư cách Tổng tài thứ nhất từ năm 1799 đến năm 1804, sau đó là Hoàng đế Pháp từ năm 1804 đến năm 1814 và trở lại ngai vàng vào năm 1815. Di sản chính trị và văn hóa của Napoléon vẫn tồn tại cho đến ngày nay, với tư cách là một nhà lãnh đạo nổi tiếng và gây nhiều tranh cãi. Ông khởi xướng nhiều cải cách tự do đã tồn tại lâu dài trong xã hội và được coi là một trong những chỉ huy quân sự vĩ đại nhất trong lịch sử. Các chiến dịch của ông vẫn được nghiên cứu tại các học viện quân sự trên thế giới. Trong thời gian diễn ra chiến tranh Napoléon, có khoảng từ ba đến sáu triệu dân thường và binh lính đã thiệt mạng.</p>"
+        },
+        {
+          "id": "10d0459e-08dd-40e9-9f5f-f888710bf2ac",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Napoléon sinh ra trên đảo Corse, không lâu sau khi bị Pháp sáp nhập, trong một gia đình bản địa xuất thân từ tầng lớp quý tộc nhỏ ở Ý. Ông ủng hộ Cách mạng Pháp năm 1789 trong khi đang phục vụ trong quân đội Pháp và cố gắng truyền bá lý tưởng của nó đến quê hương Corse của mình. Ông nhanh chóng thăng tiến trong quân đội sau khi cứu được Hội đồng Đốc chính Pháp bằng việc nổ súng trấn áp quân nổi dậy bảo hoàng. Năm 1796, ông bắt đầu chiến dịch quân sự chống lại người Áo và đồng minh Ý của họ, ghi điểm bằng những chiến thắng quyết định và trở thành một anh hùng dân tộc. Hai năm sau, ông dẫn đầu một cuộc viễn chinh quân sự tới Ai Cập, đóng vai trò như bàn đạp cho quyền lực chính trị. Ông đã dàn dựng một cuộc đảo chính vào tháng 11 năm 1799 và trở thành Tổng tài thứ nhất của nền Cộng hòa.</p>"
+        },
+        {
+          "id": "0d59f673-0c67-40c6-904a-2360eea3395f",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Sự khác biệt với Vương quốc Anh đã khiến Pháp phải đối mặt với Chiến tranh Liên minh thứ Ba vào năm 1805. Napoléon đã phá tan liên minh này bằng các chiến thắng trong chiến dịch Ulm và trận Austerlitz, dẫn đến sự tan rã của Đế quốc La Mã Thần thánh. Năm 1806, Liên minh thứ Tư đã cầm vũ khí chống lại ông. Napoléon hạ gục Phổ trong các trận Jena và Auerstedt, dẫn dắt đoàn quân Grande Armée vào Đông Âu và đánh bại Nga vào tháng 6 năm 1807 tại Friedland. Thắng lợi này đã buộc các quốc gia bại trận của Liên minh thứ Tư phải chấp nhận Hiệp ước Tilsit. Hai năm sau đó, người Áo lại thách thức Pháp một lần nữa trong Chiến tranh Liên minh thứ Năm, nhưng Napoleon đã củng cố sự kiểm soát của mình đối với châu Âu sau chiến thắng trong trận Wagram.</p>"
+        },
+        {
+          "id": "a2fb263b-d7f5-48cc-a117-836b92baa579",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Với hy vọng mở rộng Hệ thống Lục địa, lệnh cấm vận của ông nhằm vào nước Anh, Napoléon xâm chiếm bán đảo Iberia và tuyên bố anh trai mình là Joseph làm Vua Tây Ban Nha vào năm 1808. Người Tây Ban Nha và Bồ Đào Nha nổi dậy trong Chiến tranh Bán đảo với sự hỗ trợ của quân đội Anh, dẫn đến thất bại của các tướng lĩnh dưới trướng Napoléon. Napoléon phát động cuộc xâm lược nước Nga vào mùa hè năm 1812. Kết quả của chiến dịch này chứng kiến cuộc rút lui thảm khốc của Grande Armée. Năm 1813, Phổ và Áo cùng với lực lượng Nga gia nhập Liên minh thứ Sáu chống lại Pháp, dẫn đến một đội quân liên minh lớn đánh bại Napoléon tại trận Leipzig. Liên quân xâm lược Pháp và chiếm được Paris, buộc Napoléon phải thoái vị vào tháng 4 năm 1814. Ông bị lưu đày đến đảo Elba, nằm giữa Corse và Ý. Ở Pháp, dòng họ Bourbon đã được khôi phục quyền lực.</p>"
+        },
+        {
+          "id": "ec1ca3b6-f9d3-42c3-a75c-366e0f854b4d",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Napoléon trốn thoát vào tháng 2 năm 1815 và nắm quyền kiểm soát nước Pháp. Đồng minh phản ứng bằng việc hình thành Liên minh thứ Bảy, đánh bại Napoléon trong trận Waterloo vào tháng 6 năm 1815. Người Anh đã lưu đày ông đến đảo Saint Helena xa xôi ở Đại Tây Dương, nơi ông qua đời vào năm 1821, thọ 51 tuổi.</p>"
+        },
+        {
+          "id": "057420d9-111a-4725-b748-dc138c99b5d8",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Napoléon đã có ảnh hưởng sâu rộng đến thế giới hiện đại, mang đến các cải cách tự do cho các vùng đất ông chinh phục, đặc biệt là những vùng đất ở Các quốc gia vùng đất thấp, một phần nước Ý và Đức hiện đại. Ông thi hành nhiều chính sách khai phóng ở Pháp và Tây Âu.</p>"
+        },
+        {
+          "id": "a90e53dc-0975-4f76-be9d-8118f5884af9",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Napoléon Bonaparte là con thứ hai trong một gia đình có tám người con, chào đời tại dinh thự \"Casa Buonaparte\" ở thị trấn Ajaccio, đảo Corse vào ngày 15 tháng 8 năm 1769, một năm sau khi hòn đảo này được Cộng hòa Genova chuyển giao cho Pháp. Ông được đặt tên thánh là Napoleone di Buonaparte, theo tên một người chú (trước đó ông bà Bonaparte đã có một con trai đặt tên là Napoleone nhưng đã mất sớm). Ở tuổi 20, ông lấy tên là Napoléon Bonaparte cho có vẻ Pháp hơn.</p>"
+        },
+        {
+          "id": "3160a539-2482-4f42-97dd-8f876fbcbae3",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Dòng họ Bonaparte ở Corse bắt nguồn từ giới quý tộc nhỏ Ý ở Lombardia, những người đã đến Corse từ Liguria từ thế kỷ XVI. Cha của ông là Nobile Carlo Buonaparte, một luật sư, từng được chỉ định làm đại diện của đảo Corse trước triều đình vua Louis XVI. Người có ảnh hưởng lớn đến Napoléon trong suốt thời thơ ấu là mẹ ông, Letizia Ramolino, kỷ luật nghiêm khắc của bà đã kiềm chế đứa bé ngỗ nghịch.</p>"
+        }
+      ]
+    },
+    {
+      "title": "Trận Waterloo",
+      "slug": "tran-waterloo",
+      "categorySlug": "su-kien",
+      "topicSlug": "cach-mang-phap",
+      "tags": [
+        "Napoléon",
+        "Châu Âu"
+      ],
+      "region": "Châu Âu",
+      "summary": "Trận Waterloo (phiên âm tiếng Việt: Oa-téc-lô) là trận chiến diễn ra vào Chủ nhật ngày 18 tháng 6 năm 1815, gần Waterloo, thuộc Bỉ. Quân Pháp dưới sự chỉ huy của Hoàng đế Napoleon Bonaparte đã bị đánh bại bởi hai đội quân của Liên minh thứ bảy, quân Anh- một liên minh bao gồm nhiều đơn vị từ Anh, Hà...",
+      "dateText": "1815",
+      "startYear": 1815,
+      "endYear": 1815,
+      "metadata": {
+        "event": {
+          "dateNote": "18 tháng 6 năm 1815",
+          "outcome": "Chiến thắng quyết định của Liên minh Kết thúc Liên minh thứ bảy Thất bại chung cuộc của Napoleon Napoleon xuống chiếu thoái vị lần hai Kết thúc những cuộc chiến tranh của Napoleon"
+        },
+        "region": "Châu Âu"
+      },
+      "contentBlocks": [
+        {
+          "id": "972310b7-af95-4432-80eb-4bc7e354fd79",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Trận Waterloo (phiên âm tiếng Việt: Oa-téc-lô) là trận chiến diễn ra vào Chủ nhật ngày 18 tháng 6 năm 1815, gần Waterloo, thuộc Bỉ. Quân Pháp dưới sự chỉ huy của Hoàng đế Napoleon Bonaparte đã bị đánh bại bởi hai đội quân của Liên minh thứ bảy, quân Anh- một liên minh bao gồm nhiều đơn vị từ Anh, Hà Lan, Hanover, Brunswick và Nassau, dưới sự chỉ huy của Arthur Wellesley, Công tước thứ nhất của Wellington, và quân Phổ dưới sự chỉ huy của Thống chế Gebhard Leberecht von Blücher. Trận chiến đã đánh dấu sự kết thúc của Những cuộc chiến tranh của Napoleon.</p>"
+        },
+        {
+          "id": "5045a273-87e8-4bee-bc2f-900a72449208",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Vào lúc Napoléon trở lại nắm quyền vào tháng Ba năm 1815, các nước chống lại ông đã thành lập Liên minh thứ bảy, và bắt đầu huy động quân đội. Hai lực lượng lớn dưới quyền chỉ huy của Wellington và Blücher đóng quân gần phía đông bắc nước Pháp. Napoléon đã dự định tấn công riêng rẽ để hi vọng tiêu diệt họ trước khi họ kết hợp cùng các thành viên khác trong Liên minh để tiến hành một cuộc xâm lăng vào nước Pháp. Vào 16 tháng Sáu, Napoleon đã thành công trong việc tấn công lực lượng chính quân Phổ tại Trận Ligny với lực lượng chính của ông, hệ quả là quân Phổ rút lui về phía bắc vào 17 tháng Sáu, nhưng rút lui trong trật tự. Napoleon phái một phần ba lực lượng để đuổi theo quân Phổ, dẫn tới Trận Wavre với hậu quân Phổ vào 18-19 tháng Sáu và kết quả quân Phổ đã giữ 33,000 lính Pháp khiến họ không thể tham gia trận Waterloo. Cũng vào 16 tháng Sáu, một phần nhỏ quân Pháp đã tham gia Trận Quatre Bras với quân Anh. Quân Anh đã giữ khu vực của họ vào 6 tháng Sáu, nhưng sự rút lui của quân Phổ đã khiến Wellington rút về phía Bắc tới Waterloo vào 17 tháng Sáu.</p>"
+        },
+        {
+          "id": "cd7c50b0-32ab-4602-b472-39948691a5c3",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Nhờ nắm được thông tin rằng quân Phổ có thể hỗ trợ ông, Wellington đã quyết định nghênh chiến tại thôn nhỏ Mont-Saint-Jean phía bên kia đường Brussels, gần làng Waterloo. Nơi ông chống lại nhiều cuộc tấn công liên tục bởi quân Phổ trong suốt buổi chiều 18 tháng Sáu, được viện trợ bởi quân Phổ, đội quân đã tấn công vào sườn quân Pháp và giáng cho Pháp nhiều thương vong. Vào buổi tối Napoleon đã tấn công quân Anh với lực lượng dự bị cuối cùng của ông, tiểu đoàn bộ binh kì cựu của Cận vệ Hoàng gia Pháp. Với việc quân Phổ phá vỡ sườn phải quân Pháp, quân Anh đã đẩy lùi Cận vệ Hoàng gia, và quân Pháp bị đánh bại.</p>"
+        },
+        {
+          "id": "20ca94c4-6e09-4478-a7ef-41ebc977dadd",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Waterloo là trận quyết định của Chiến dịch Waterloo và trận cuối của Napoleon. Theo Wellington, trận chiến là \"điều kịch tính mà bạn chưa bao giờ gặp trong cuộc đời\". Napoleon đã thoái vị bốn ngày sau, và lực lượng liên minh tiến vào Paris 7 tháng Bảy. Thất bại tại Waterloo đã kết thúc sự thống trị của Napoleon cũng như hoàng đế Pháp và đánh dấu kết thúc sự trở lại Một Trăm Ngày của ông từ nơi lưu đày. Kết thúc Đệ Nhất Đế chế Pháp và thiết lập một cột mốc quan trọng giữa những cuộc chiến kéo dài khắp châu Âu và nhiều thập kỉ hòa bình. Chiến trường được xác định vị trí ở Braine-l'Alleud và Lasne thuộc nước Bỉ, khoảng 15 km phía nam Brussels và khoảng 2 km từ thị trấn Waterloo. Vị trí chiến trường ngày nay nổi bật hơn hết là đài tưởng niệm Lion's Mound (Đồi Sư tử), một gò nhân tạo khổng lồ được xây dựng từ đất của chiến trường; địa hình của chiến trường gần gò chưa được bảo tồn.</p>"
+        },
+        {
+          "id": "422559ed-9d24-4cf8-acbb-5b9b96e93c14",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Sau thất bại thê thảm của Napoléon trong cuộc xâm lược nước Nga vào năm 1812, các liệt cường châu Âu liên kết lại để cùng tấn công nước Pháp. Quân Liên minh thứ sáu đã đánh tan tác quân Pháp trong trận thư hùng đẫm máu ở Leipzig vào tháng 10 năm 1813, mang lại chiến thắng toàn diện cho ngọn lửa đấu tranh Giải phóng Dân tộc của người Đức thoát khỏi ách đô hộ của Pháp. Sau thất bại tại Leipzig, Napoléon trở về Pháp và liền phải đối phó với sự tiến công thẳng vào chính quốc Pháp của quân Liên minh thứ sáu vào năm 1814. Với chiến thắng trong trận Paris, quân sĩ Liên minh đã chiếm lĩnh được đế đô Paris trong cùng năm. Napoléon buộc phải thoái vị và bị lưu đày tới đảo Elba. Thế nhưng cựu hoàng Pháp hãy còn đầy tham vọng này không chịu ngồi yên. Biết được dân chúng Pháp vẫn ủng hộ mình, vào tháng 4 năm 1815, Napoléon đã bí mật trốn khỏi nơi giam cầm quay trở về nước. Nhận được tin, vua Louis XVIII đã cử quân đội đến bắt giữ ông. Thế nhưng trong mắt người dân và binh lính Pháp lúc bấy giờ thì Napoléon vẫn là một người anh hùng đã mang về vinh quang cho nước Pháp. Hầu hết các tướng hoặc kính phục hoặc nể sợ tài năng quân sự của Napoléon, vì thế hết đoàn quân này đến đoàn quân khác được cử đi để bắt Napoléon cuối cùng lại quay về dưới quyền chỉ huy của cựu hoàng. Chỉ trong vòng ba tuần, Napoléon đã khôi phục được Đế quyền của mình. Điều này thể hiện sự dễ dàng của giới quân sự Pháp trong việc lên nắm Triều chính.</p>"
+        },
+        {
+          "id": "91e5291b-99e2-4a0b-b1d9-7060d9c4bf5c",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Vào ngày 13 tháng 3 năm 1815, sáu ngày trước khi Napoléon về đến Paris, các cường quốc tại Hội nghị Viên tuyên bố ông là kẻ ngoài vòng pháp luật. Bốn ngày sau đó, Anh, Nga, Áo, Phổ cùng nhau điều động quân đội để tấn công Napoléon, với mỗi nước kể trên đều góp không dưới 15 vạn binh sĩ. Đoàn quân của họ có tổng lực là khoảng 60 vạn binh sĩ. Biết rằng khả năng dùng thương lượng để ngăn cản các nước thuộc Liên minh thứ bảy tiến công nước Pháp là không thể, Napoléon chỉ còn lại hy vọng cuối cùng là tấn công trước khi họ kết hợp với nhau. Nếu tiêu diệt được quân Liên minh ở phía nam Brussels trước khi họ được tăng viện thì Napoléon sẽ có thể buộc người Anh quay về biển và đánh bật người Phổ khỏi cuộc chiến. Một khi Anh và Phổ đã thất bại rồi thì Napoléon có thể tiến hành đàm phán với Áo và Nga để duy trì cục diện. Tuy tổng lực của liên quân Anh - Phổ mạnh mẽ hơn quân Pháp đáng kể, liên quân Anh - Phổ lại chưa tổ chức Chiến dịch kỹ lưỡng. Một điều đáng lưu ý nữa là ở Bỉ có rất nhiều người nói tiếng Pháp ủng hộ ông, một chiến thắng của Pháp có thể thúc đẩy một cuộc cách mạng thân Pháp ở đó. Quân Anh ở Bỉ cũng chỉ là lực lượng hạng hai; vì phần lớn những binh sĩ giỏi nhất của họ trong cuộc chiến ở bán đảo Tây-Bồ đã được đưa tới Hoa Kỳ cho cuộc chiến năm 1812.</p>"
+        },
+        {
+          "id": "cdbf551d-1fe7-4efe-8acd-9f7c17c15485",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Napoléon đã gây dựng được đoàn quân gồm 36 vạn quân, nhưng ông chỉ tung được 125 nghìn binh lính lên chiến địa. Chín ngày trước khi Napoléon bị đánh bại tại Waterloo, bốn liệt cường Anh, Áo, Phổ và Nga đã ký kết điều khoản cuối cùng tại Hội nghị Viên, theo đó nước Pháp phải quay trở lại đường biên giới như hồi năm 1790. Vào năm 1795, chính quyền Cách mạng Pháp đã thành công trong việc chia cắt các kẻ thù của mình, và giờ đây Napoléon mong muốn nước Pháp sẽ lập lại được thắng lợi này.</p>"
+        },
+        {
+          "id": "fcd7bfce-b239-4d87-933b-981e1f64616b",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Sau khi Napoléon Bonaparte trở lại nắm quyền vào năm 1815, các nước chống lại ông đã cùng nhau thành lập khối Liên minh thứ bảy, và bắt đầu điều động quân đội. Hai lực lượng lớn dưới quyền của Wellington và von Blücher tiến sát biên giới phía đông bắc nước Pháp. Napoléon quyết định tấn công để tiêu diệt họ trước khi họ kết hợp cùng các thành viên khác trong khối Liên minh để tiến hành một cuộc xâm lăng vào nước Pháp. Trận Waterloo chính là cuộc chiến quyết định trong chiến dịch Waterloo diễn ra ba ngày (từ 16-19 tháng 6 năm 1815) này. Trước đó, vài trận đánh đẫm máu đã kết thúc với thất bại của Napoléon trong việc ngăn cách các kẻ thù của ông - sự lặp lại của chiến bại của ông hồi chiến tranh Liên minh thứ sáu.</p>"
+        }
+      ]
+    },
+    {
+      "title": "Julius Caesar",
+      "slug": "julius-caesar",
+      "categorySlug": "nhan-vat",
+      "topicSlug": "lich-su-the-gioi",
+      "tags": [
+        "La Mã cổ đại",
+        "Lịch sử Thế giới"
+      ],
+      "region": "La Mã",
+      "summary": "Gaius Julius Caesar viết theo người La Mã là Gaivs Ivlivs Caesar (tiếng Latinh: [ˈɡaːiʊs ˈjuːliʊs ˈkae̯sar]; 12 tháng 7 năm 100 TCN – 15 tháng 3 năm 44 TCN) là một vị tướng và chính khách người La Mã. Là thành viên của Chế độ tam hùng lần thứ nhất, Caesar đã lãnh đạo quân đội La Mã trong cuộc Chiến ...",
+      "dateText": "100",
+      "startYear": 100,
+      "endYear": 100,
+      "metadata": {
+        "person": {
+          "birthDateLabel": "12 tháng 7 năm 100 TCNRoma, Cộng hòa La Mã, La Mã cổ đại",
+          "deathDateLabel": "15 tháng 3 năm 44 TCN (55 tuổi)Roma, Cộng hòa La Mã, La Mã cổ đại"
+        },
+        "region": "La Mã"
+      },
+      "contentBlocks": [
+        {
+          "id": "fbabf82d-d2f3-4ad8-a13f-9d4b936df4e3",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Gaius Julius Caesar viết theo người La Mã là Gaivs Ivlivs Caesar (tiếng Latinh: [ˈɡaːiʊs ˈjuːliʊs ˈkae̯sar]; 12 tháng 7 năm 100 TCN – 15 tháng 3 năm 44 TCN) là một vị tướng và chính khách người La Mã. Là thành viên của Chế độ tam hùng lần thứ nhất, Caesar đã lãnh đạo quân đội La Mã trong cuộc Chiến tranh xứ Gallia trước khi đánh bại Pompey trong một cuộc nội chiến và cai trị Cộng hòa La Mã với tư cách là nhà độc tài từ năm 49 TCN cho đến khi bị ám sát vào năm 44 TCN. Ông đóng vai trò quan trọng trong các sự kiện dẫn đến sự sụp đổ của Cộng hòa La Mã và sự trỗi dậy của Đế chế La Mã.</p>"
+        },
+        {
+          "id": "239f0410-bb30-4ca7-a42f-4313a4af9eed",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Vào năm 60 TCN, Caesar, Crassus và Pompey đã cùng nhau thành lập Chế độ tam hùng lần thứ nhất, một liên minh chi phối nền chính trị La Mã trong vài năm. Những nỗ lực nhằm tích lũy quyền lực của họ với tư cách là người thuộc phe Đại chúng (Populare) đã bị những người theo phe Quý tộc (Optimate) phản đối trong Viện nguyên lão La Mã, trong đó có cả Cato Trẻ với sự hỗ trợ thường xuyên của Cicero. Caesar đã vươn lên trở thành một trong những chính trị gia quyền lực nhất tại Cộng hòa La Mã thông qua một chuỗi các chiến thắng quân sự tại cuộc Chiến tranh xứ Gallia, hoàn thành vào năm 51 TCN, mở rộng đáng kể lãnh thổ La Mã. Trong khoảng thời gian này, ông vừa xâm lược nước Anh vừa xây dựng một cây cầu bắc qua sông Rhine. Những thành công này và với sự hỗ trợ từ đội quân thiện chiến của mình đã đe dọa làm lu mờ vị thế của Pompey, người đã hậu thuẫn với Viện Nguyên lão sau cái chết của Crassus vào năm 53 TCN. Sau khi Chiến tranh xứ Gallia kết thúc, Viện Nguyên lão ra lệnh cho Caesar từ chức chỉ huy quân sự và trở về Rome. Vào năm 49 TCN, Caesar công khai thách thức Viện Nguyên lão bằng việc vượt sông Rubicon và tiến về Rome với tư cách người dẫn đầu một đội quân. Điều này dẫn đến cuộc nội chiến Caesar, mà ông đã giành chiến thắng, mang lại cho ông một vị trí có quyền lực và ảnh hưởng gần như tuyệt đối vào năm 45 TCN.</p>"
+        },
+        {
+          "id": "857ef46b-335d-480c-a14e-5c0d28a00a21",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Sau khi nắm quyền kiểm soát chính phủ, Caesar bắt đầu thực hiện một chương trình cải cách xã hội và chính phủ, bao gồm cả việc tạo ra lịch Julius. Ông đã trao quyền công dân cho nhiều cư dân sống ở các vùng xa xôi của Cộng hòa La Mã. Ông khởi xướng cải cách ruộng đất và hỗ trợ các cựu binh. Ông tập trung hóa bộ máy quan chức của nền Cộng hòa và được xưng tụng là \"nhà độc tài trọn đời\" (dictator perpetuo). Những cải cách theo chủ nghĩa dân túy và độc tài của ông đã khiến giới tinh hoa tức giận, những người bắt đầu âm mưu chống lại ông. Vào ngày 15 tháng 3 năm 44 TCN, Caesar bị ám sát bởi một nhóm thượng nghị sĩ nổi loạn do Brutus và Cassius cầm đầu, những người này đã đâm chết ông. Một loạt các cuộc nội chiến mới nổ ra và chính phủ hợp hiến của nước Cộng hòa không bao giờ được khôi phục hoàn toàn. Cháu trai và là người thừa kế của Caesar Octavian, sau này được gọi là Augustus, đã lên nắm quyền sau khi đánh bại các đối thủ của mình trong cuộc nội chiến cuối cùng của Cộng hòa La Mã. Octavian củng cố quyền lực của bản thân, và kỷ nguyên của Đế chế La Mã bắt đầu.</p>"
+        },
+        {
+          "id": "141ac286-749c-4ea6-baa3-68629171a36c",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Caesar là một nhà văn và nhà sử học cũng như là một chính khách tài ba; phần lớn cuộc đời ông được biết đến từ những lời kể của chính ông về các chiến dịch quân sự của mình. Những nguồn khác bao gồm các bức thư và bài phát biểu của Cicero, các tác phẩm lịch sử của Sallust. Các tác phẩm tiểu sử sau này về Caesar của Suetonius và Plutarch cũng đều là những nguồn quan trọng. Caesar được nhiều sử gia coi là một trong những nhà chỉ huy quân sự vĩ đại nhất trong lịch sử. Tên của ông sau đó được xem như đồng nghĩa với từ \"Hoàng đế\"; tước hiệu \"Caesar\" đã được sử dụng trong suốt thời kỳ Đế chế La Mã, gián tiếp hình thành nên nhiều biệt hiệu hiện đại như Kaiser và Sa hoàng. Ông thường xuyên xuất hiện trong những tác phẩm văn học và nghệ thuật, đồng thời quan điểm chính trị của ông, được gọi là Chủ nghĩa Caesar, đã truyền cảm hứng cho các chính trị gia hiện đại.</p>"
+        },
+        {
+          "id": "86e5cf1d-b9a4-4a93-a7e0-ed4049f4f2a7",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Caesar sinh trong một gia đình quý tộc thuộc thị tộc Julia, tự xưng là hậu duệ của Iulus, con của hoàng tử Aeneas thành Troia và thần tình yêu Venus. Về cái tên Ceasar, sử gia Pliny Già giải thích tên Ceasar có lẽ bắt đầu từ một tổ tiên nào đó của Ceasar đã được sinh mổ (mổ César, từ nguyên caesus hay caedere có nghĩa là cắt hay mổ trong tiếng La Tinh), nhưng trong suốt một thời gian dài tới tận thế kỷ 12 người ta vẫn hay hiểu lầm rằng Caesar được sinh mổ; nhưng không đúng Ceasar không phải người đầu tiên mang tên này và là vì vào lúc bấy giờ, người ta chỉ thực hiện các ca sinh mổ trên cơ thể phụ nữ đã chết, trong khi mẹ của Caesar sống rất lâu sau khi ông ra đời. Còn bộ sử Historia Augusta thì chép ba cách giải thích: có thể Ceasar có một vầng trán cao với nhiều tóc (tiếng La Tinh: caesaries), hoặc có thể ông có mắt xám sáng (oculis caesiis), hoặc là ông giết được voi (caesai trong tiếng Moor) trên chiến trận.</p>"
+        },
+        {
+          "id": "6a7d8c45-84eb-47b3-91fc-12683809ad91",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Dù cho có một nguồn gốc và địa vị hoàn hảo, dòng tộc Julii-Caesares không giàu có lắm so với mức bình thường của các gia đình quý tộc La Mã khác. Không thành viên nào trong gia đình Caesar làm được điều gì nổi bật vào thời gian này, mặc dù thế hệ cha của Caesar đã phục hồi phần nào sự thịnh vượng của gia tộc. Cha của Caesar, cũng được gọi là Gaius Julius Caesar, đã làm tới chức thống đốc Asia thuộc La Mã, có lẽ bởi vì sự ảnh hưởng của Gaius Marius, anh hùng chiến tranh và một nhà chính trị nổi bật lúc bấy giờ, người đã cưới chị của cha Caesar, Julia. Mẹ của Caesar, Aurelia Cotta, là con gái của một gia đình có uy thế đã có rất nhiều người làm tới chức quan Chấp chính tối cao. Cả gia đình ông sống trong một căn nhà khiêm tốn tại vùng Subura, một khu vực nghèo lân cận La Mã, nơi mà Marcus Antonius Gnipho, một nhà hùng biện đồng thời là một nhà văn phạm đến từ xứ Gaule, được mướn làm thầy dạy học cho Caesar. Ngoài Caesar, gia đình ông còn có hai con gái đều được gọi là Julia. Vài điều ít ỏi này được ghi nhận là tuổi thơ của Caesar. Bản tiểu sử về Caesar của Suetonius và Plutarch bắt đầu vào tuổi thiếu niên của Caesar. Những điều trước đó đã không tìm thấy một sự ghi chép nào.</p>"
+        },
+        {
+          "id": "86638ca1-f2d8-45d7-a35c-c09557e4ac65",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Caesar trưởng thành trong thời kỳ hỗn loạn của La Mã. Cuộc chiến tranh Đồng Minh giữa La Mã và các đồng minh của họ (91 – 88 TCN) nổi lên vì sự tranh cãi về quyền của công dân La Mã. Khi mà vua Mithridates VI xứ Pontos đe dọa các tỉnh phương đông của La Mã; thì ở trong nội bộ, La Mã bị chia rẽ thành hai phe: Phe Quý tộc (Optimate), phe mà muốn giữ quyền hành thống trị cho các quý tộc, và phe Đại chúng (Populare), phe muốn ngay lập tức sự chia sẻ quyền lực rộng rãi hơn thông qua quyền bầu cử trực tiếp.</p>"
+        },
+        {
+          "id": "c23ab585-31f7-4727-9e78-f2078d84ea72",
+          "type": "TEXT",
+          "width": "FULL",
+          "content": "<p>Chú Marius của Caesar là một người thuộc phe Đại chúng; còn đối thủ của ông Lucius Cornelius Sulla là một người thuộc phe Quý tộc. Cả hai nổi lên trong Chiến tranh Đồng Minh, và cả hai đều muốn chỉ huy cuộc chiến tranh chống lại vua Mithridates VI, điều mà ban đầu được giao cho Sulla; nhưng khi Sulla rời La Mã để chỉ huy lực lượng của mình, một Hộ Dân quan La Mã (Tribunus plebis) thông qua một bộ luật trao lại quyền lực cho Marius, nó như thông điệp cho Sulla rằng ông ta sẽ không thể rời khỏi doanh trại của mình mà còn sống. Sulla bèn tiến quân về Rôma và buộc Marius phải lưu vong. Tuy nhiên khi Sulla quay trở lại cuộc chiến của mình, một đồng minh của ông, Lucius Cornelius Cinna, chiếm lấy Rôma và công khai tuyên bố Sulla là \"một kẻ thù của xã hội\". Lực lượng của Marius trả thù những người theo Sulla rất tàn bạo. Marius chết ở năm 84 TCN nhưng phe cánh của ông ta vẫn còn rất mạnh.</p>"
+        }
+      ]
+    }
+  ]
+}

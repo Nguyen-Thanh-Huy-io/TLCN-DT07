@@ -4,7 +4,7 @@ import {
   PublicLocationSummaryDto,
   PublicPeriodDto,
 } from "@/services/entities/landing.service";
-import type { TaxonomyTermItem } from "@/services/entities/taxonomy.service";
+import type { TaxonomyTermItem } from "@/services/public/public-taxonomy";
 import { eventCategoryLabel, eventCategoryRootCode } from "@/features/taxonomy/taxonomy-labels";
 import { isDomesticRegion, regionLabel } from "@/utils/region.utils";
 import { EVENT_CATEGORY_CODES, EventRelationType } from "@/constants/enums";

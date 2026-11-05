@@ -60,39 +60,27 @@ export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
   },
   curriculum: {
     title: 'Cây chương trình học',
-    subtitle: 'Cấu trúc phân cấp Giai đoạn ➔ Chủ đề ➔ Bài học & Quiz',
-  },
-  knowledge: {
-    title: 'Từ điển tri thức',
-    subtitle: 'Kho lưu trữ Địa danh, Nhân vật, Sự kiện và Thẻ phân loại',
-  },
-  periods: {
-    title: 'Giai đoạn lịch sử',
-    subtitle: 'Quản lý các giai đoạn lịch sử trong hệ thống',
+    subtitle: 'Cấu trúc phân cấp Chủ đề ➔ Bài học & Quiz',
   },
   topics: {
     title: 'Chủ đề lịch sử',
-    subtitle: 'Tổ chức chủ đề theo từng giai đoạn lịch sử',
+    subtitle: 'Tổ chức chủ đề phân cấp cha – con',
   },
   lessons: {
     title: 'Bài học',
     subtitle: 'Quản lý nội dung bài học lịch sử',
   },
-  events: {
-    title: 'Sự kiện lịch sử',
-    subtitle: 'Quản lý các mốc sự kiện theo chủ đề',
+  articles: {
+    title: 'Bài viết',
+    subtitle: 'Nhân vật, sự kiện, di tích, triều đại… theo chuyên mục và tag',
   },
-  locations: {
-    title: 'Địa danh lịch sử',
-    subtitle: 'Quản lý các địa danh, di tích và kinh đô lịch sử',
+  categories: {
+    title: 'Chuyên mục',
+    subtitle: 'Phân loại bài viết, quyết định trang công khai hiển thị bài',
   },
-  entities: {
-    title: 'Nhân vật lịch sử',
-    subtitle: 'Quản lý các nhân vật, triều đại và tổ chức lịch sử',
-  },
-  figures: {
-    title: 'Nhân vật lịch sử',
-    subtitle: 'Quản lý các nhân vật, triều đại và tổ chức lịch sử',
+  timelines: {
+    title: 'Dòng thời gian',
+    subtitle: 'Trình tự các mốc lịch sử, mốc có thể trỏ tới bài viết',
   },
   tags: {
     title: 'Thẻ',
@@ -105,10 +93,6 @@ export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
   users: {
     title: 'Người dùng',
     subtitle: 'Quản lý tài khoản và phân quyền hệ thống',
-  },
-  taxonomies: {
-    title: 'Danh mục dùng chung',
-    subtitle: 'Loại di tích, hiện trạng, xếp hạng... dùng cho bộ lọc toàn hệ thống',
   },
   media: {
     title: 'Quản lý nguồn tư liệu và media',

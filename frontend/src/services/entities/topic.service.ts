@@ -4,7 +4,6 @@ import { ContentStatus, LearningPathType } from '@/constants/enums';
 import { PaginatedResult } from '../api';
 
 export interface CreateTopicDto {
-  periodId?: string;
   parentId?: string;
   pathType?: LearningPathType;
   name: string;
@@ -16,7 +15,6 @@ export interface CreateTopicDto {
 }
 
 export interface UpdateTopicDto {
-  periodId?: string | null;
   parentId?: string | null;
   pathType?: LearningPathType;
   name?: string;
@@ -29,13 +27,12 @@ export interface UpdateTopicDto {
 
 export class TopicApiService {
   /**
-   * Lấy danh sách Chủ đề có phân trang và lọc theo Giai đoạn / Chủ đề cha
+   * Lấy danh sách Chủ đề có phân trang và lọc theo Chủ đề cha
    */
   static async getTopics(params?: {
     page?: number;
     limit?: number;
     search?: string;
-    periodId?: string;
     parentId?: string;
     isRootOnly?: boolean;
     status?: ContentStatus;
@@ -47,8 +44,8 @@ export class TopicApiService {
   /**
    * Lấy cấu trúc Cây Tri thức phân cấp (Composite Tree) của các chủ đề
    */
-  static async getTopicTree(periodId?: string): Promise<TopicItem[]> {
-    const res = await api.get('/topics/tree', { params: { periodId } });
+  static async getTopicTree(): Promise<TopicItem[]> {
+    const res = await api.get('/topics/tree');
     return res.data?.data || res.data || [];
   }
 

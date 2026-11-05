@@ -67,15 +67,15 @@ export function AnalyticsDashboardView() {
         />
         <StatCard
           icon={IconName.CLOCK}
-          label="Mốc sự kiện lịch sử"
-          value={loading ? '...' : String(counts?.historicalEventsCount ?? 0)}
-          detail="Biên niên sử đã lưu"
+          label="Bài viết"
+          value={loading ? '...' : String(counts?.articlesCount ?? 0)}
+          detail="Nhân vật, sự kiện, di tích…"
         />
         <StatCard
           icon={IconName.CALENDAR}
-          label="Giai đoạn & Thời kỳ"
-          value={loading ? '...' : String(counts?.periodsCount ?? 0)}
-          detail="Trục thời gian học tập"
+          label="Dòng thời gian"
+          value={loading ? '...' : String(counts?.timelinesCount ?? 0)}
+          detail="Trình tự các mốc lịch sử"
         />
         <StatCard
           icon={IconName.CHECK}

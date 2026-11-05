@@ -7,7 +7,7 @@ import { EventPickerModal, EventSelectionPayload, normalizePickedEvent } from '.
 import { AddBlockBelowMenu } from './AddBlockBelowMenu';
 import { LessonBlockType } from '../../types/block-palette.types';
 import { lessonBlockInsertStrategy } from '../../strategies/lesson-block-insert.strategy';
-import { HistoricalEventItem } from '@/services/entities/historical-event.service';
+import type { ArticleItem } from '@/services/entities/article.service';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 
@@ -18,7 +18,7 @@ export function EventBlockView(props: NodeViewProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   // Chọn sự kiện từ kho tri thức HISGO hoặc Wikipedia
-  const handleSelectEvent = (event: HistoricalEventItem | EventSelectionPayload) => {
+  const handleSelectEvent = (event: ArticleItem | EventSelectionPayload) => {
     const norm = normalizePickedEvent(event);
     updateAttributes({
       eventId: norm.eventId || '',

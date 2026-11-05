@@ -154,7 +154,7 @@ export function CurriculumExplorer() {
     }
   };
 
-  const handleAddChildLesson = (_periodId: string, topicId: string) => {
+  const handleAddChildLesson = (_parentId: string, topicId: string) => {
     router.push(`${APP_ROUTES.LESSONS.CREATE}?topicId=${topicId}`);
   };
 

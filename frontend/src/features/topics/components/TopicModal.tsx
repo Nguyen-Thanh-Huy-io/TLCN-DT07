@@ -1,16 +1,13 @@
 'use client';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { TopicItem } from '@/types/models/topic.type';
-import { PeriodItem } from '@/types/models/period.type';
 import { ContentStatus } from '@/constants/enums';
-import { PeriodApiService } from '@/services/entities/period.service';
 import { TopicApiService } from '@/services/entities/topic.service';
 import { extractErrorMessage } from '@/services/api';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 
 export interface TopicFormData {
-  periodId?: string | null;
   parentId?: string | null;
   name: string;
   description?: string;
@@ -38,7 +35,6 @@ export function TopicModal({
   onRefreshList,
   onOpenCreateChild,
 }: TopicModalProps) {
-  const [periods, setPeriods] = useState<PeriodItem[]>([]);
   const [allTopics, setAllTopics] = useState<TopicItem[]>([]);
   const [childrenTopics, setChildrenTopics] = useState<TopicItem[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(false);
@@ -46,7 +42,6 @@ export function TopicModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCandidateId, setSelectedCandidateId] = useState('');
 
-  const [periodId, setPeriodId] = useState('');
   const [parentId, setParentId] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -68,18 +63,14 @@ export function TopicModal({
   useEffect(() => {
     if (isOpen) {
       setLoadingInitial(true);
-      Promise.all([
-        PeriodApiService.getPeriods({ limit: 100 }).catch(() => ({ items: [] })),
-        TopicApiService.getTopics({ limit: 100 }).catch(() => ({ items: [] })),
-      ])
-        .then(([perRes, topRes]) => {
-          setPeriods(perRes.items || []);
+      TopicApiService.getTopics({ limit: 100 })
+        .catch(() => ({ items: [] as TopicItem[] }))
+        .then((topRes) => {
           setAllTopics(topRes.items || []);
         })
         .finally(() => setLoadingInitial(false));
 
       if (initialData) {
-        setPeriodId(initialData.period?.id || initialData.periodId || '');
         setParentId(initialData.parentId || '');
         setName(initialData.name || '');
         setDescription(initialData.description || '');
@@ -88,7 +79,6 @@ export function TopicModal({
         setStatus(initialData.status || ContentStatus.PUBLISHED);
         fetchChildren(initialData.id);
       } else {
-        setPeriodId('');
         setParentId(defaultParentId || '');
         setName('');
         setDescription('');
@@ -101,17 +91,16 @@ export function TopicModal({
     }
   }, [isOpen, initialData, defaultParentId, fetchChildren]);
 
-  // Lọc các chủ đề anh/chị/em (siblings) cùng giai đoạn và cùng chủ đề cha
+  // Lọc các chủ đề anh/chị/em (siblings) cùng chủ đề cha
   const siblings = useMemo(() => {
     return allTopics
       .filter((t) => {
         const sameParent = (t.parentId || '') === (parentId || '');
-        const samePeriod = (t.period?.id || t.periodId || '') === (periodId || '');
         const notSelf = !initialData || t.id !== initialData.id;
-        return sameParent && samePeriod && notSelf;
+        return sameParent && notSelf;
       })
       .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-  }, [allTopics, parentId, periodId, initialData]);
+  }, [allTopics, parentId, initialData]);
 
   // Tính vị trí kế tiếp gợi ý
   const maxSiblingOrder = siblings.length > 0 ? Math.max(...siblings.map((s) => s.displayOrder ?? 0)) : 0;
@@ -122,7 +111,7 @@ export function TopicModal({
     if (!initialData && siblings.length > 0) {
       setDisplayOrder(suggestedNextOrder);
     }
-  }, [parentId, periodId, siblings.length, initialData, suggestedNextOrder]);
+  }, [parentId, siblings.length, initialData, suggestedNextOrder]);
 
   // Danh sách kết hợp xem trước trực quan (Timeline Sequence Preview)
   const previewSequence = useMemo(() => {
@@ -181,7 +170,6 @@ export function TopicModal({
       setIsSubmitting(true);
       await Promise.resolve(
         onSave({
-          periodId: periodId ? periodId : null,
           parentId: parentId ? parentId : null,
           name: name.trim(),
           description: description.trim() || undefined,
@@ -291,27 +279,6 @@ export function TopicModal({
                 </span>
               </label>
 
-              <label className="field">
-                <span className="text-xs font-medium text-slate-700">
-                  Giai đoạn lịch sử <span className="text-slate-400 font-normal">(Tùy chọn)</span>
-                </span>
-                <select
-                  value={periodId}
-                  onChange={(e) => setPeriodId(e.target.value)}
-                  disabled={loadingInitial}
-                  className="bg-white"
-                >
-                  <option value="">-- Không thuộc giai đoạn (Phi niên đại) --</option>
-                  {periods.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                <span className="text-[11px] text-slate-400 mt-1">
-                  Không bắt buộc. Gắn với giai đoạn niên đại tương ứng hoặc để trống cho chuyên đề phi niên đại.
-                </span>
-              </label>
             </div>
           </div>
 
@@ -393,7 +360,7 @@ export function TopicModal({
                     </span>
                   ) : (
                     <span>
-                      Phạm vi: Xếp thứ tự trong Giai đoạn <b>"{periods.find((p) => p.id === periodId)?.name || 'Phi niên đại'}"</b>
+                      Phạm vi: Xếp thứ tự trong nhóm <b>chủ đề gốc</b>
                     </span>
                   )}
                 </div>

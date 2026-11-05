@@ -11,7 +11,7 @@ export const relatedPeopleBlockPlugin: BlockPlugin<RelatedPeopleBlockData> = {
     width: defaultWidth,
     title: 'Nhân vật liên quan',
     description: 'Các danh tướng, hoàng thân hoặc nhân vật lịch sử đồng hành',
-    sourceMode: 'AUTO',
+    sourceMode: 'MANUAL',
     people: [
       { id: 'p1', name: 'Trần Thánh Tông', role: 'Hoàng đế thứ 2 nhà Trần' },
       { id: 'p2', name: 'Trần Nhân Tông', role: 'Phật hoàng, lãnh đạo kháng chiến' },

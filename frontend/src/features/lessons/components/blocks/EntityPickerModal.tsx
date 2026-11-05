@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
-import { HistoricalEntityItem } from '@/types/models/historical-entity.type';
+import type { ArticleItem } from '@/services/entities/article.service';
 import {
   EntitySourceType,
   IEntityDetailPreview,
@@ -31,7 +31,7 @@ export interface EntitySelectionPayload {
 interface EntityPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectEntity: (entity: EntitySelectionPayload | HistoricalEntityItem) => void;
+  onSelectEntity: (entity: EntitySelectionPayload | ArticleItem) => void;
 }
 
 export const EntityPickerModal: React.FC<EntityPickerModalProps> = ({

@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { UserSquare2, Database, Sparkles } from 'lucide-react';
 import { CharacterBlockData } from '../../types/block-builder.types';
 import { EntityPickerModal, EntitySelectionPayload } from '../blocks/EntityPickerModal';
-import { HistoricalEntityItem } from '@/types/models/historical-entity.type';
+import type { ArticleItem } from '@/services/entities/article.service';
+import { dateLabelOf } from '@/utils/year-label';
 import { CHARACTER_BLOCK_CONSTANTS } from '../../constants/block-node.constants';
 
 interface CharacterBlockItemEditorProps {
@@ -15,9 +16,9 @@ interface CharacterBlockItemEditorProps {
 export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemEditorProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
-  const handleSelectEntity = (entity: EntitySelectionPayload | HistoricalEntityItem) => {
+  const handleSelectEntity = (entity: EntitySelectionPayload | ArticleItem) => {
     let formattedYears = '';
-    const name = entity.name;
+    const name = 'sourceType' in entity ? entity.name : entity.title;
     let summary = '';
     let avatarUrl = '';
     let entityId: string | undefined = undefined;
@@ -32,11 +33,9 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
       wikidataId = entity.wikidataId;
       sourceUrl = entity.sourceUrl;
     } else {
-      formattedYears = entity.birthYear
-        ? `${entity.birthYear} – ${entity.deathYear ?? 'Nay'}`
-        : entity.birthDateLabel || '';
-      summary = entity.tagline || entity.description || '';
-      avatarUrl = entity.imageUrl || '';
+      formattedYears = dateLabelOf(entity);
+      summary = entity.summary || '';
+      avatarUrl = entity.coverImageUrl || '';
       entityId = entity.id;
     }
 

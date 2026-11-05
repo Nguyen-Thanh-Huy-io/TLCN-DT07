@@ -153,40 +153,40 @@ export class KnowledgeNavStrategy implements INavigationGroupStrategy {
 
   private readonly items: NavItemConfig[] = [
     {
-      id: 'nav-events',
-      label: NAV_ITEM_LABELS.EVENTS,
+      id: 'nav-articles',
+      label: NAV_ITEM_LABELS.ARTICLES,
+      icon: IconName.FILE,
+      page: NavigationPageKey.ARTICLES,
+      route: APP_ROUTES.ARTICLES.LIST,
+      groupId: this.groupId,
+      subtitle: 'Nhân vật, sự kiện, di tích, triều đại…',
+    },
+    {
+      id: 'nav-timelines',
+      label: NAV_ITEM_LABELS.TIMELINES,
       icon: IconName.CLOCK,
-      page: NavigationPageKey.EVENTS,
-      route: APP_ROUTES.EVENTS.LIST,
+      page: NavigationPageKey.TIMELINES,
+      route: APP_ROUTES.TIMELINES.LIST,
       groupId: this.groupId,
-      subtitle: 'Biên niên sự kiện & trận đánh',
+      subtitle: 'Các mốc theo trình tự, trỏ tới bài viết',
     },
     {
-      id: 'nav-figures',
-      label: NAV_ITEM_LABELS.FIGURES,
-      icon: IconName.USERS,
-      page: NavigationPageKey.FIGURES,
-      route: APP_ROUTES.FIGURES.LIST,
+      id: 'nav-categories',
+      label: NAV_ITEM_LABELS.CATEGORIES,
+      icon: IconName.FOLDER,
+      page: NavigationPageKey.CATEGORIES,
+      route: APP_ROUTES.CATEGORIES,
       groupId: this.groupId,
-      subtitle: 'Hồ sơ danh nhân, tướng lĩnh & anh hùng',
+      subtitle: 'Bài viết thuộc loại gì',
     },
     {
-      id: 'nav-periods',
-      label: NAV_ITEM_LABELS.PERIODS,
-      icon: IconName.CALENDAR,
-      page: NavigationPageKey.PERIODS,
-      route: APP_ROUTES.PERIODS.LIST,
+      id: 'nav-tags',
+      label: NAV_ITEM_LABELS.TAGS,
+      icon: IconName.TAG,
+      page: NavigationPageKey.TAGS,
+      route: APP_ROUTES.TAGS.LIST,
       groupId: this.groupId,
-      subtitle: 'Niên đại, thời kỳ & tiến trình lịch sử',
-    },
-    {
-      id: 'nav-locations',
-      label: NAV_ITEM_LABELS.LOCATIONS,
-      icon: IconName.MAP_PIN,
-      page: NavigationPageKey.LOCATIONS,
-      route: APP_ROUTES.LOCATIONS.LIST,
-      groupId: this.groupId,
-      subtitle: 'Di tích, kinh đô, thành lũy & bản đồ',
+      subtitle: 'Gom bài viết & bài học theo chủ đề',
     },
   ];
 
@@ -195,31 +195,11 @@ export class KnowledgeNavStrategy implements INavigationGroupStrategy {
   }
 
   matchesPage(pageKey: string): boolean {
-    return [
-      NavigationPageKey.EVENTS,
-      NavigationPageKey.FIGURES,
-      NavigationPageKey.ENTITIES,
-      NavigationPageKey.PERIODS,
-      NavigationPageKey.LOCATIONS,
-      NavigationPageKey.KNOWLEDGE,
-      NavigationPageKey.TAGS,
-    ].includes(pageKey as NavigationPageKey);
+    return this.items.some((item) => item.page === pageKey);
   }
 
   getItemByPage(pageKey: string): NavItemConfig | undefined {
-    switch (pageKey) {
-      case NavigationPageKey.EVENTS:
-        return this.items[0];
-      case NavigationPageKey.FIGURES:
-      case NavigationPageKey.ENTITIES:
-        return this.items[1];
-      case NavigationPageKey.PERIODS:
-        return this.items[2];
-      case NavigationPageKey.LOCATIONS:
-        return this.items[3];
-      default:
-        return this.items[0];
-    }
+    return this.items.find((item) => item.page === pageKey) ?? this.items[0];
   }
 }
 
@@ -268,7 +248,6 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
     return [
       NavigationPageKey.USERS,
       NavigationPageKey.SETTINGS,
-      NavigationPageKey.TAXONOMIES,
       NavigationPageKey.REVIEW,
     ].includes(pageKey as NavigationPageKey);
   }
@@ -278,7 +257,6 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
       case NavigationPageKey.USERS:
         return this.items[0];
       case NavigationPageKey.SETTINGS:
-      case NavigationPageKey.TAXONOMIES:
         return this.items[1];
       case NavigationPageKey.REVIEW:
         return this.items[2];
@@ -342,20 +320,17 @@ export class NavigationFacade {
         return NavigationPageKey.QUIZZES;
       case NavigationPageKey.MEDIA:
         return NavigationPageKey.MEDIA;
-      case NavigationPageKey.EVENTS:
-        return NavigationPageKey.EVENTS;
-      case NavigationPageKey.FIGURES:
-        return NavigationPageKey.FIGURES;
-      case NavigationPageKey.ENTITIES:
-        return NavigationPageKey.FIGURES;
-      case NavigationPageKey.PERIODS:
-        return NavigationPageKey.PERIODS;
-      case NavigationPageKey.LOCATIONS:
-        return NavigationPageKey.LOCATIONS;
+      case NavigationPageKey.ARTICLES:
+        return NavigationPageKey.ARTICLES;
+      case NavigationPageKey.TIMELINES:
+        return NavigationPageKey.TIMELINES;
+      case NavigationPageKey.CATEGORIES:
+        return NavigationPageKey.CATEGORIES;
+      case NavigationPageKey.TAGS:
+        return NavigationPageKey.TAGS;
       case NavigationPageKey.USERS:
         return NavigationPageKey.USERS;
       case NavigationPageKey.SETTINGS:
-      case NavigationPageKey.TAXONOMIES:
         return NavigationPageKey.SETTINGS;
       case NavigationPageKey.REVIEW:
         return NavigationPageKey.REVIEW;

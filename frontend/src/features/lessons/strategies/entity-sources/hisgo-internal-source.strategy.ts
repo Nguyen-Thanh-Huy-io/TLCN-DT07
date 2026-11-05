@@ -4,62 +4,46 @@ import {
   IEntityDetailPreview,
   IEntitySearchResult,
 } from '../../types/entity-source.types';
-import { HistoricalEntityApiService } from '@/services/entities/historical-entity.service';
+import { ArticleApiService } from '@/services/entities/article.service';
 
 /**
- * Strategy tra cứu thực thể từ Cơ sở dữ liệu nội bộ HISGO (PostgreSQL)
- * Dữ liệu đã thẩm định, có ID thực thể đầy đủ để liên kết Đồ thị tri thức (Knowledge Graph).
+ * Tra cứu trong kho BÀI VIẾT nội bộ HISGO (nhân vật, sự kiện, di tích... đều là bài viết).
+ * `entityId` trả về là id bài viết — khối Nhân vật/Sự kiện ghi id này vào HTML (data-entity-id)
+ * để trang đọc bài học tìm ra bài viết liên quan.
  */
 export class HisgoInternalSourceStrategy implements IEntityDataSourceStrategy {
   public readonly sourceType = EntitySourceType.HISGO;
 
-  /**
-   * Tìm kiếm trong kho tri thức nội bộ HISGO
-   */
   public async search(keyword: string, limit: number = 20): Promise<IEntitySearchResult[]> {
     try {
-      const trimmed = keyword.trim();
-      const res = await HistoricalEntityApiService.getEntities({
-        search: trimmed || undefined,
-        limit,
-      });
-
-      return (res.items || []).map((entity) => ({
-        id: entity.id,
-        title: entity.name,
-        description: entity.tagline || entity.description || '',
-        thumbnailUrl: entity.imageUrl || '',
+      const res = await ArticleApiService.list({ search: keyword.trim() || undefined, limit, sort: 'title' });
+      return res.items.map((article) => ({
+        id: article.id,
+        title: article.title,
+        description: [article.category?.name, article.summary].filter(Boolean).join(' · '),
+        thumbnailUrl: article.coverImageUrl || '',
         sourceType: EntitySourceType.HISGO,
       }));
     } catch (error) {
-      console.error('Error fetching internal HISGO entities:', error);
+      console.error('Error searching HISGO articles:', error);
       return [];
     }
   }
 
-  /**
-   * Lấy chi tiết thực thể nội bộ HISGO
-   */
   public async getDetail(id: string): Promise<IEntityDetailPreview | null> {
     try {
-      const entity = await HistoricalEntityApiService.getEntityById(id);
-      if (!entity) return null;
-
-      const formattedYears = entity.birthYear
-        ? `${entity.birthYear} – ${entity.deathYear ?? 'Nay'}`
-        : entity.birthDateLabel || '';
-
+      const article = await ArticleApiService.get(id);
       return {
-        name: entity.name,
-        years: formattedYears,
-        summary: entity.tagline || entity.description || '',
-        avatarUrl: entity.imageUrl || '',
-        tagline: entity.tagline || '',
+        name: article.title,
+        years: article.dateText || (article.startYear ? `${article.startYear}${article.endYear ? ` – ${article.endYear}` : ''}` : ''),
+        summary: article.summary || '',
+        avatarUrl: article.coverImageUrl || '',
+        tagline: article.category?.name || '',
         sourceType: EntitySourceType.HISGO,
-        entityId: entity.id,
+        entityId: article.id,
       };
     } catch (error) {
-      console.error('Error fetching internal HISGO entity detail:', error);
+      console.error('Error fetching HISGO article detail:', error);
       return null;
     }
   }

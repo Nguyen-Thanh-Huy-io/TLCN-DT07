@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 import { EventPickerModal, EventSelectionPayload, normalizePickedEvent } from './EventPickerModal';
-import { HistoricalEventItem } from '@/services/entities/historical-event.service';
+import type { ArticleItem } from '@/services/entities/article.service';
 
 export interface TimelineNodeMedia {
   id?: string;
@@ -100,7 +100,7 @@ export const HistoricalTimelineBlock: React.FC<HistoricalTimelineBlockProps> = (
   };
 
   // Thêm mốc chọn từ kho tri thức HISGO hoặc Wikipedia
-  const handleSelectEventFromStore = (event: HistoricalEventItem | EventSelectionPayload) => {
+  const handleSelectEventFromStore = (event: ArticleItem | EventSelectionPayload) => {
     const norm = normalizePickedEvent(event);
     const newNode: TimelineNode = {
       id: `node_${Date.now()}`,

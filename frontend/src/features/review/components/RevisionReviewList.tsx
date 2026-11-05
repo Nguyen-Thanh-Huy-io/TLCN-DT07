@@ -14,9 +14,7 @@ import { RevisionDetailModal } from '@/features/revisions/RevisionPanels';
 
 const EDIT_ROUTE: Record<RevisionContentType, (id: string) => string> = {
   LESSON: APP_ROUTES.LESSONS.DETAIL,
-  EVENT: APP_ROUTES.EVENTS.DETAIL,
-  ENTITY: APP_ROUTES.ENTITIES.DETAIL,
-  PERIOD: APP_ROUTES.PERIODS.DETAIL,
+  ARTICLE: APP_ROUTES.ARTICLES.DETAIL,
   TOPIC: APP_ROUTES.TOPICS.DETAIL,
   LEARNING_PATH: (id) => `${APP_ROUTES.CURRICULUM}?pathId=${id}`,
   // Chương không có trang riêng — mở Studio chương trình học.

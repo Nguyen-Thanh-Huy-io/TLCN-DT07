@@ -1,5 +1,5 @@
 import api from '@/services/api';
-import type { TaxonomyGroupItem, TaxonomyTermItem } from '@/services/entities/taxonomy.service';
+import { buildTaxonomyGroup, type CategoryLike, type TaxonomyGroupItem, type TaxonomyTermItem } from '@/services/public/public-taxonomy';
 
 /** Trường thông tin riêng khai báo trong meta.fields của một nút (đồng bộ với backend event-category.util). */
 export interface TaxonomyFieldDef {
@@ -98,12 +98,10 @@ const publicCache = new Map<string, Promise<TaxonomyGroupItem | undefined>>();
 export function loadPublicTaxonomy(groupCode: string): Promise<TaxonomyGroupItem | undefined> {
   let pending = publicCache.get(groupCode);
   if (!pending) {
+    // Taxonomy đã bỏ: nhóm danh mục sinh từ bảng Category (xem services/public/public-taxonomy.ts).
     pending = api
-      .get('/public/taxonomies', { params: { groups: groupCode } })
-      .then((res) => {
-        const data = (res.data?.data ?? res.data) as TaxonomyGroupItem[];
-        return data.find((g) => g.code === groupCode);
-      })
+      .get('/public/categories')
+      .then((res) => buildTaxonomyGroup(groupCode, (res.data?.data ?? res.data) as CategoryLike[]))
       .catch((err) => {
         publicCache.delete(groupCode);
         throw err;

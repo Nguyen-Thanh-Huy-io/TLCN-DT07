@@ -1,5 +1,5 @@
 import { EVENT_CATEGORY_LABELS, EVENT_ENTITY_ROLE_LABELS } from '@/constants/enums';
-import type { TaxonomyTermItem } from '@/services/entities/taxonomy.service';
+import type { TaxonomyTermItem } from '@/services/public/public-taxonomy';
 import { TimelineRelationDirection } from '@/components/timeline/sk-types';
 
 /**

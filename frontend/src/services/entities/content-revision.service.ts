@@ -18,18 +18,14 @@ export enum RevisionStatus {
 
 export type RevisionContentType =
   | 'LESSON'
-  | 'EVENT'
-  | 'ENTITY'
-  | 'PERIOD'
+  | 'ARTICLE'
   | 'TOPIC'
   | 'LEARNING_PATH'
   | 'CHAPTER';
 
 export const REVISION_TYPE_LABELS: Record<RevisionContentType, string> = {
   LESSON: 'Bài học',
-  EVENT: 'Sự kiện',
-  ENTITY: 'Nhân vật / thực thể',
-  PERIOD: 'Giai đoạn',
+  ARTICLE: 'Bài viết',
   TOPIC: 'Chủ đề',
   LEARNING_PATH: 'Lộ trình học',
   CHAPTER: 'Chương',
@@ -92,7 +88,7 @@ export const isRevisionPending = (res: unknown): res is RevisionPendingResponse 
 const unwrap = <T>(res: { data?: { data?: T } & T }) => (res.data?.data ?? res.data) as T;
 const typePath = (type: RevisionContentType) => type.toLowerCase();
 
-/** Phiên bản hóa nội dung đã xuất bản (bài học, sự kiện, thực thể). */
+/** Phiên bản hóa nội dung đã xuất bản (bài học, bài viết, chủ đề, lộ trình, chương). */
 export const ContentRevisionApiService = {
   pending: async () => unwrap<ContentRevisionItem[]>(await api.get('/content-revisions/pending')),
 

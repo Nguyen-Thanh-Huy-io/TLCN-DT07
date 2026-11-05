@@ -2,7 +2,6 @@ import { ContentStatus, LearningPathType } from '@/constants/enums';
 
 export interface TopicItem {
   id: string;
-  periodId?: string | null;
   parentId?: string | null;
   name: string;
   description?: string;
@@ -11,11 +10,6 @@ export interface TopicItem {
   isSequential?: boolean;
   displayOrder?: number;
   status?: ContentStatus;
-  period?: {
-    id: string;
-    name: string;
-    region?: string;
-  } | null;
   parent?: {
     id: string;
     name: string;

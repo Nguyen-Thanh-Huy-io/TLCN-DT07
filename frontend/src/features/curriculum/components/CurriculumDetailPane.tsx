@@ -9,7 +9,6 @@ import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 
 const BREADCRUMB_ICON_MAP: Record<CurriculumNodeType, IconName> = {
-  [CurriculumNodeType.PERIOD]: IconName.CLOCK,
   [CurriculumNodeType.TOPIC]: IconName.FOLDER,
   [CurriculumNodeType.LESSON]: IconName.BOOK,
 };

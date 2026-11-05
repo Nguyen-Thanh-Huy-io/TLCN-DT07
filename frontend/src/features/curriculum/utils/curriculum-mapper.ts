@@ -41,12 +41,10 @@ export function mapBackendTopicTreeToCurriculum(topics: any[]): CurriculumTopicN
       displayOrder: t.displayOrder ?? idx + 1,
       pathType: t.pathType || LearningPathType.CHRONOLOGICAL,
       parentId: t.parentId,
-      periodId: t.periodId,
       subTopics,
       children: subTopics,
       lessons,
       updatedAt: t.updatedAt,
-      period: t.period,
       _count: t._count,
     };
   });

@@ -34,15 +34,15 @@ const ACTIVITY_TYPE_REGISTRY: Record<string, ActivityTypeConfig> = {
     icon: IconName.FOLDER,
     label: 'Chủ đề',
   },
-  [DashboardActivityType.PERIOD]: {
-    icon: IconName.CLOCK,
-    label: 'Giai đoạn',
+  [DashboardActivityType.ARTICLE]: {
+    icon: IconName.FILE,
+    label: 'Bài viết',
   },
 };
 
 const DEFAULT_ACTIVITY_CONFIG: ActivityTypeConfig = {
-  icon: IconName.CLOCK,
-  label: 'Giai đoạn',
+  icon: IconName.FILE,
+  label: 'Nội dung',
 };
 
 export function DashboardView() {
@@ -77,11 +77,11 @@ export function DashboardView() {
   }, [loadOverview]);
 
   const counts = data?.counts ?? {
-    periodsCount: 0,
+    articlesCount: 0,
     topicsCount: 0,
     lessonsCount: 0,
     pendingLessonsCount: 0,
-    historicalEventsCount: 0,
+    timelinesCount: 0,
     totalKnowledgeCount: 0,
   };
 
@@ -153,16 +153,16 @@ export function DashboardView() {
       {/* KPI Stats Grid */}
       <section className="stats-grid">
         <StatCard
-          icon={IconName.CLOCK}
-          value={loading ? '...' : String(counts.periodsCount)}
-          label="Thời kỳ & giai đoạn"
-          detail="Khung thời gian của nội dung"
+          icon={IconName.FILE}
+          value={loading ? '...' : String(counts.articlesCount)}
+          label="Bài viết"
+          detail="Nhân vật, sự kiện, di tích…"
           tone="blue"
         />
         <StatCard
-          icon={IconName.FOLDER}
-          value={loading ? '...' : String(counts.historicalEventsCount)}
-          label="Sự kiện lịch sử"
+          icon={IconName.CLOCK}
+          value={loading ? '...' : String(counts.timelinesCount)}
+          label="Dòng thời gian"
           detail={`${counts.topicsCount} chủ đề kiến thức`}
           tone="gold"
         />
@@ -233,7 +233,7 @@ export function DashboardView() {
           <div className="panel-head">
             <div>
               <h2>Nội dung gần đây</h2>
-              <p>Dữ liệu bài học, chủ đề và giai đoạn vừa cập nhật</p>
+              <p>Bài học, chủ đề và bài viết vừa cập nhật</p>
             </div>
             <button
               type="button"

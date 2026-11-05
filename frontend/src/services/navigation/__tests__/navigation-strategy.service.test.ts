@@ -32,10 +32,10 @@ describe('Navigation Strategy & Facade Pattern Suite (Section 7.1 Admin Areas)',
     const expected12Pages = [
       NavigationPageKey.DASHBOARD, // 1. Dashboard tổng quan
       NavigationPageKey.CURRICULUM, // 2. Quản lý bài học
-      NavigationPageKey.EVENTS, // 3. Quản lý sự kiện lịch sử
-      NavigationPageKey.ENTITIES, // 4. Quản lý nhân vật
-      NavigationPageKey.PERIODS, // 5. Quản lý thời kỳ lịch sử
-      NavigationPageKey.LOCATIONS, // 6. Quản lý địa danh và liên kết
+      NavigationPageKey.ARTICLES, // 3. Bài viết
+      NavigationPageKey.TIMELINES, // 4. Dòng thời gian
+      NavigationPageKey.CATEGORIES, // 5. Chuyên mục
+      NavigationPageKey.TAGS, // 6. Tag
       NavigationPageKey.MEDIA, // 7. Quản lý nguồn tư liệu và media
       NavigationPageKey.QUESTIONS, // 8. Ngân hàng câu hỏi
       NavigationPageKey.QUIZZES, // 9. Quản lý bộ Quiz
@@ -86,32 +86,20 @@ describe('Navigation Strategy & Facade Pattern Suite (Section 7.1 Admin Areas)',
       navigationFacade.resolveActiveSidebarPage(NavigationPageKey.MEDIA),
       NavigationPageKey.MEDIA,
     );
-    assert.strictEqual(
-      navigationFacade.resolveActiveSidebarPage(NavigationPageKey.EVENTS),
-      NavigationPageKey.EVENTS,
-    );
-    assert.strictEqual(
-      navigationFacade.resolveActiveSidebarPage(NavigationPageKey.ENTITIES),
-      NavigationPageKey.ENTITIES,
-    );
-    assert.strictEqual(
-      navigationFacade.resolveActiveSidebarPage(NavigationPageKey.PERIODS),
-      NavigationPageKey.PERIODS,
-    );
-    assert.strictEqual(
-      navigationFacade.resolveActiveSidebarPage(NavigationPageKey.LOCATIONS),
-      NavigationPageKey.LOCATIONS,
-    );
+    for (const key of [
+      NavigationPageKey.ARTICLES,
+      NavigationPageKey.TIMELINES,
+      NavigationPageKey.CATEGORIES,
+      NavigationPageKey.TAGS,
+    ]) {
+      assert.strictEqual(navigationFacade.resolveActiveSidebarPage(key), key);
+    }
     assert.strictEqual(
       navigationFacade.resolveActiveSidebarPage(NavigationPageKey.USERS),
       NavigationPageKey.USERS,
     );
     assert.strictEqual(
       navigationFacade.resolveActiveSidebarPage(NavigationPageKey.SETTINGS),
-      NavigationPageKey.SETTINGS,
-    );
-    assert.strictEqual(
-      navigationFacade.resolveActiveSidebarPage(NavigationPageKey.TAXONOMIES),
       NavigationPageKey.SETTINGS,
     );
   });
@@ -123,7 +111,7 @@ describe('Navigation Strategy & Facade Pattern Suite (Section 7.1 Admin Areas)',
     const crumbLessons = navigationFacade.resolveBreadcrumb(NavigationPageKey.CURRICULUM);
     assert.strictEqual(crumbLessons.groupTitle, 'QUẢN TRỊ BÀI HỌC & QUIZ');
 
-    const crumbHistory = navigationFacade.resolveBreadcrumb(NavigationPageKey.EVENTS);
+    const crumbHistory = navigationFacade.resolveBreadcrumb(NavigationPageKey.ARTICLES);
     assert.strictEqual(crumbHistory.groupTitle, 'KHO DỮ LIỆU LỊCH SỬ');
 
     const crumbSystem = navigationFacade.resolveBreadcrumb(NavigationPageKey.SETTINGS);

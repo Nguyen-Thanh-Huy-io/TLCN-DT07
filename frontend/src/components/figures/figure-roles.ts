@@ -12,7 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { CANONICAL_ROLE_LABELS, FIGURE_ROLE_LABELS, FigureRole } from "@/constants/enums";
-import type { TaxonomyTermItem } from "@/services/entities/taxonomy.service";
+import type { TaxonomyTermItem } from "@/services/public/public-taxonomy";
 
 /** Biểu tượng theo mã vai trò; hỗ trợ cả vai trò nhân vật và vai trò quân sự/chiến lược. */
 export const ROLE_ICONS: Record<string, LucideIcon> = {

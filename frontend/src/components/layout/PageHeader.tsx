@@ -30,35 +30,7 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
     case APP_ROUTES.CURRICULUM:
       return {
         title: 'Chương trình học',
-        subtitle: 'Cấu trúc phân cấp trục kiến thức: Giai đoạn ➔ Chủ đề ➔ Bài học & Quiz',
-      };
-
-    case APP_ROUTES.KNOWLEDGE:
-      return {
-        title: 'Từ điển tri thức',
-        subtitle: 'Kho dữ liệu liên kết: Địa danh, Nhân vật, Sự kiện & Thẻ phân loại',
-      };
-
-    case APP_ROUTES.PERIODS.LIST:
-      return {
-        title: 'Thời kỳ lịch sử',
-        subtitle: 'Quản lý danh sách các thời kỳ và niên đại lịch sử',
-        eyebrow: {
-          parentLabel: 'Chương trình học',
-          parentRoute: APP_ROUTES.CURRICULUM,
-          currentText: 'Thời kỳ lịch sử',
-        },
-      };
-
-    case APP_ROUTES.PERIODS.CREATE:
-      return {
-        title: 'Thêm thời kỳ mới',
-        subtitle: 'Thêm thời kỳ lịch sử vào trục thời gian học tập',
-        eyebrow: {
-          parentLabel: 'Thời kỳ lịch sử',
-          parentRoute: APP_ROUTES.PERIODS.LIST,
-          currentText: 'Tạo mới',
-        },
+        subtitle: 'Cấu trúc phân cấp: Chủ đề ➔ Bài học & Quiz, và Lộ trình ➔ Chương ➔ Bài học',
       };
 
     case APP_ROUTES.TOPICS.CREATE:
@@ -83,49 +55,28 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
         },
       };
 
-    case APP_ROUTES.LOCATIONS.LIST:
+    case APP_ROUTES.ARTICLES.LIST:
       return {
-        title: 'Địa danh lịch sử',
-        subtitle: 'Quản lý các địa danh, di tích và kinh đô lịch sử',
-        eyebrow: {
-          parentLabel: 'Từ điển tri thức',
-          parentRoute: `${APP_ROUTES.KNOWLEDGE}?tab=LOCATIONS`,
-          currentText: 'Địa danh',
-        },
+        title: 'Bài viết',
+        subtitle: 'Nhân vật, sự kiện, di tích, triều đại… — mỗi bài thuộc 1 chuyên mục, gắn nhiều tag',
       };
 
-    case APP_ROUTES.FIGURES.LIST:
-    case APP_ROUTES.ENTITIES.LIST:
+    case APP_ROUTES.TIMELINES.LIST:
       return {
-        title: 'Nhân vật lịch sử',
-        subtitle: 'Quản lý các nhân vật, danh nhân và anh hùng lịch sử',
-        eyebrow: {
-          parentLabel: 'Từ điển tri thức',
-          parentRoute: `${APP_ROUTES.KNOWLEDGE}?tab=ENTITIES`,
-          currentText: 'Nhân vật',
-        },
+        title: 'Dòng thời gian',
+        subtitle: 'Dựng trình tự các mốc lịch sử; mốc có thể trỏ tới bài viết',
       };
 
-    case APP_ROUTES.EVENTS.LIST:
+    case APP_ROUTES.CATEGORIES:
       return {
-        title: 'Sự kiện lịch sử',
-        subtitle: 'Quản lý các mốc thời gian và diễn biến lịch sử trọng đại',
-        eyebrow: {
-          parentLabel: 'Từ điển tri thức',
-          parentRoute: `${APP_ROUTES.KNOWLEDGE}?tab=EVENTS`,
-          currentText: 'Sự kiện',
-        },
+        title: 'Chuyên mục',
+        subtitle: 'Bài viết thuộc loại gì — quyết định trang công khai hiển thị bài (/chuyen-muc/…)',
       };
 
     case APP_ROUTES.TAGS.LIST:
       return {
-        title: 'Thẻ phân loại',
-        subtitle: 'Quản lý nhãn phân loại từ khóa nội dung học tập',
-        eyebrow: {
-          parentLabel: 'Từ điển tri thức',
-          parentRoute: `${APP_ROUTES.KNOWLEDGE}?tab=TAGS`,
-          currentText: 'Thẻ',
-        },
+        title: 'Tag',
+        subtitle: 'Nhãn gom bài viết và bài học theo chủ đề (Nhà Trần, Kháng chiến…)',
       };
 
     case APP_ROUTES.REVIEW:
@@ -138,12 +89,6 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
       return {
         title: 'Người dùng & Quyền',
         subtitle: 'Quản lý tài khoản biên tập viên và phân quyền hệ thống',
-      };
-
-    case APP_ROUTES.TAXONOMIES:
-      return {
-        title: 'Danh mục dùng chung',
-        subtitle: 'Loại di tích, vùng, loại sự kiện, vai trò, quan hệ... dùng cho bộ lọc và hiển thị toàn hệ thống',
       };
 
     case APP_ROUTES.MEDIA:
@@ -186,12 +131,10 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
   }
 }
 
-/** Trang tạo mới / chi tiết của tri thức (/events/:id...) — tiêu đề theo loại nội dung thay vì tiêu đề chung. */
+/** Trang tạo mới / chi tiết — tiêu đề theo loại nội dung. */
 const DETAIL_HEADERS = [
-  { list: APP_ROUTES.EVENTS.LIST, create: APP_ROUTES.EVENTS.CREATE, noun: 'sự kiện lịch sử', crumb: 'Sự kiện', tab: 'EVENTS' },
-  { list: APP_ROUTES.FIGURES.LIST, create: APP_ROUTES.FIGURES.CREATE, noun: 'nhân vật lịch sử', crumb: 'Nhân vật', tab: 'ENTITIES' },
-  { list: APP_ROUTES.ENTITIES.LIST, create: APP_ROUTES.ENTITIES.CREATE, noun: 'nhân vật / thực thể', crumb: 'Nhân vật', tab: 'ENTITIES' },
-  { list: APP_ROUTES.LOCATIONS.LIST, create: APP_ROUTES.LOCATIONS.CREATE, noun: 'địa danh / di tích', crumb: 'Địa danh', tab: 'LOCATIONS' },
+  { list: APP_ROUTES.ARTICLES.LIST, create: APP_ROUTES.ARTICLES.CREATE, noun: 'bài viết', crumb: 'Bài viết' },
+  { list: APP_ROUTES.TIMELINES.LIST, create: APP_ROUTES.TIMELINES.CREATE, noun: 'dòng thời gian', crumb: 'Dòng thời gian' },
 ] as const;
 
 function resolveDetailHeader(cleanPath: string): PageHeaderInfo | null {
@@ -199,15 +142,9 @@ function resolveDetailHeader(cleanPath: string): PageHeaderInfo | null {
   if (!match) return null;
   const isCreate = cleanPath === match.create;
   return {
-    title: isCreate ? `Thêm ${match.noun}` : `Chi tiết & chỉnh sửa ${match.noun}`,
-    subtitle: isCreate
-      ? 'Điền thông tin theo từng mục; lưu nháp được bất cứ lúc nào'
-      : 'Sửa nội dung, liên kết tri thức và trạng thái xuất bản',
-    eyebrow: {
-      parentLabel: 'Từ điển tri thức',
-      parentRoute: `${APP_ROUTES.KNOWLEDGE}?tab=${match.tab}`,
-      currentText: match.crumb,
-    },
+    title: isCreate ? `Thêm ${match.noun}` : `Chỉnh sửa ${match.noun}`,
+    subtitle: isCreate ? 'Lưu nháp được bất cứ lúc nào' : 'Sửa nội dung và trạng thái xuất bản',
+    eyebrow: { parentLabel: match.crumb, parentRoute: match.list, currentText: isCreate ? 'Tạo mới' : 'Chỉnh sửa' },
   };
 }
 
@@ -216,23 +153,15 @@ export function PageHeader({ pathname }: { pathname: string }) {
   const cleanPath = pathname.replace(/\/$/, '') || '/';
 
   // In Curriculum Workspace, Lesson Editor & Topic Editor, omit the large header to maximize vertical editor space
-  // Also omit for entity/event/location editors because EntityDetailLayout already renders its own comprehensive header and breadcrumbs.
+  // Also omit for the article editor (full-screen block editor with its own toolbar).
   if (
     cleanPath === APP_ROUTES.CURRICULUM ||
     cleanPath === APP_ROUTES.LESSONS.CREATE ||
     cleanPath.startsWith('/lessons/') ||
     cleanPath === APP_ROUTES.TOPICS.CREATE ||
     cleanPath.startsWith('/topics/') ||
-    cleanPath === APP_ROUTES.ENTITIES.CREATE ||
-    cleanPath.startsWith('/entities/') ||
-    cleanPath === APP_ROUTES.FIGURES.CREATE ||
-    cleanPath.startsWith('/figures/') ||
-    cleanPath === APP_ROUTES.EVENTS.CREATE ||
-    cleanPath.startsWith('/events/') ||
-    cleanPath === APP_ROUTES.LOCATIONS.CREATE ||
-    cleanPath.startsWith('/locations/') ||
-    cleanPath === APP_ROUTES.PERIODS.CREATE ||
-    cleanPath.startsWith('/periods/')
+    cleanPath === APP_ROUTES.ARTICLES.CREATE ||
+    cleanPath.startsWith('/articles/')
   ) {
     return null;
   }

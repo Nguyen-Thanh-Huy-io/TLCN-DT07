@@ -11,7 +11,7 @@ export const relatedEventsBlockPlugin: BlockPlugin<RelatedEventsBlockData> = {
     width: defaultWidth,
     title: 'Sự kiện liên quan',
     description: 'Các mốc chiến dịch và hội nghị lịch sử tiêu biểu',
-    sourceMode: 'AUTO',
+    sourceMode: 'MANUAL',
     events: [
       { id: 'e1', title: 'Hội nghị Diên Hồng', year: 1284 },
       { id: 'e2', title: 'Đại thắng Bạch Đằng', year: 1288 },

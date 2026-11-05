@@ -7,7 +7,8 @@ import { EntityPickerModal, EntitySelectionPayload } from './EntityPickerModal';
 import { AddBlockBelowMenu } from './AddBlockBelowMenu';
 import { LessonBlockType } from '../../types/block-palette.types';
 import { lessonBlockInsertStrategy } from '../../strategies/lesson-block-insert.strategy';
-import { HistoricalEntityItem } from '@/types/models/historical-entity.type';
+import type { ArticleItem } from '@/services/entities/article.service';
+import { dateLabelOf } from '@/utils/year-label';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 
@@ -18,9 +19,9 @@ export function CharacterBlockView(props: NodeViewProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   // Chọn nhân vật từ kho tri thức HISGO hoặc Wikipedia
-  const handleSelectEntity = (entity: EntitySelectionPayload | HistoricalEntityItem) => {
+  const handleSelectEntity = (entity: EntitySelectionPayload | ArticleItem) => {
     let formattedYears = '';
-    const entityName = entity.name;
+    const entityName = 'sourceType' in entity ? entity.name : entity.title;
     let entitySummary = '';
     let entityAvatar = '';
     let targetEntityId: string | undefined = undefined;
@@ -31,11 +32,9 @@ export function CharacterBlockView(props: NodeViewProps) {
       entityAvatar = entity.avatarUrl;
       targetEntityId = entity.entityId;
     } else {
-      formattedYears = entity.birthYear
-        ? `${entity.birthYear} – ${entity.deathYear ?? 'Nay'}`
-        : entity.birthDateLabel || '';
-      entitySummary = entity.tagline || entity.description || '';
-      entityAvatar = entity.imageUrl || '';
+      formattedYears = dateLabelOf(entity);
+      entitySummary = entity.summary || '';
+      entityAvatar = entity.coverImageUrl || '';
       targetEntityId = entity.id;
     }
 

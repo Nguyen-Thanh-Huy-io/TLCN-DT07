@@ -1,13 +1,11 @@
-import type {
-  PublicEventSummaryDto,
-  PublicFigureProfileDto,
-  PublicLocationSummaryDto,
-  PublicPeriodDto,
-} from '@/services/entities/landing.service';
-import type { LibraryLesson } from '@/services/entities/learner.service';
-import { regionLabel } from '@/utils/region.utils';
+import {
+  PUBLIC_ROUTES,
+  type PublicArticleSummary,
+  type PublicLibraryLesson,
+  type PublicTimeline,
+} from '@/services/public/public-content.service';
 
-export type SearchEntryType = 'EVENT' | 'FIGURE' | 'LOCATION' | 'LESSON' | 'PERIOD';
+export type SearchEntryType = 'ARTICLE' | 'TIMELINE' | 'LESSON';
 
 export interface SearchEntry {
   id: string;
@@ -20,35 +18,14 @@ export interface SearchEntry {
   haystack: string;
 }
 
+/** Dữ liệu công khai tải 1 lần mỗi phiên (ô tìm kiếm + khối "liên quan" của bài học). */
 export interface SearchSource {
-  periods: PublicPeriodDto[];
-  events: PublicEventSummaryDto[];
-  figures: PublicFigureProfileDto[];
-  locations: PublicLocationSummaryDto[];
-  lessons: LibraryLesson[];
+  articles: PublicArticleSummary[];
+  timelines: PublicTimeline[];
+  lessons: PublicLibraryLesson[];
 }
 
-export const SEARCH_ROUTES = {
-  EVENT: (slug: string) => `/su-kien/${slug}`,
-  FIGURE: (slug: string) => `/nhan-vat/${slug}`,
-  PERIOD: (slug: string) => `/giai-doan/${slug}`,
-  LESSON: (slug: string) => `/bai-hoc/${slug}`,
-  LOCATIONS: '/di-tich',
-  LOCATION: (slug: string) => `/di-tich/${slug}`,
-} as const;
-
-export function normalizeSearch(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toLowerCase();
-}
-
-export function formatYear(year: number): string {
-  return year < 0 ? `${Math.abs(year)} TCN` : String(year);
-}
+export { formatYear } from '@/utils/year-label';
 
 /** "Lịch sử Thế giới: Thời kỳ Trung đại (476 - 1492)" → "Thế giới Trung đại". */
 export function shortPeriodName(name: string): string {
@@ -60,88 +37,63 @@ export function shortPeriodName(name: string): string {
     .trim();
 }
 
+export function normalizeSearch(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase();
+}
+
 function truncate(text: string | null | undefined, max: number): string {
   if (!text) return '';
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }
 
-function figureYears(f: PublicFigureProfileDto): string | undefined {
-  const birth = f.birthDateLabel ?? (f.birthYear != null ? formatYear(f.birthYear) : null);
-  const death = f.deathDateLabel ?? (f.deathYear != null ? formatYear(f.deathYear) : null);
-  return birth || death ? `${birth ?? '?'} — ${death ?? '?'}` : undefined;
-}
-
-/** `keywords`: chữ dùng để tìm nhưng không hiển thị (tên gọi khác, nhân vật liên quan...). */
+/** `keywords`: chữ dùng để tìm nhưng không hiển thị (tag, mốc trong dòng thời gian...). */
 function entry(e: Omit<SearchEntry, 'haystack'>, keywords: string[] = []): SearchEntry {
   return { ...e, haystack: normalizeSearch(`${e.title} ${e.subtitle} ${e.year ?? ''} ${keywords.join(' ')}`) };
 }
 
-/** Chỉ mục tìm kiếm toàn cục: sự kiện, nhân vật, thời kỳ, địa danh, bài học. */
 export function buildSearchIndex(source: SearchSource): SearchEntry[] {
-  const regionBySlug = new Map(source.periods.map((p) => [p.slug, p]));
-  const byId = new Map(source.periods.map((p) => [p.id, p]));
-  const regionOfPeriod = (slug: string | null) => {
-    let p = slug ? regionBySlug.get(slug) : undefined;
-    while (p?.parentId && byId.has(p.parentId)) p = byId.get(p.parentId);
-    return p ? regionLabel(p.region) : null;
-  };
-
   return [
-    ...source.events
-      .filter((e) => e.slug)
-      .map((e) =>
-        entry(
-          {
-            id: `e-${e.id}`,
-            type: 'EVENT',
-            title: e.title,
-            subtitle: [regionOfPeriod(e.periodSlug), e.figures[0]?.name].filter(Boolean).join(' · '),
-            year: formatYear(e.startYear),
-            href: SEARCH_ROUTES.EVENT(e.slug as string),
-          },
-          [...e.figures.map((f) => f.name), e.location ?? ''],
-        ),
-      ),
-    ...source.figures.map((f) =>
+    ...source.articles.map((a) =>
       entry(
         {
-          id: `f-${f.id}`,
-          type: 'FIGURE',
-          title: f.name,
-          subtitle: truncate(f.tagline || f.occupation || '', 90),
-          year: figureYears(f),
-          href: SEARCH_ROUTES.FIGURE(f.slug),
+          id: a.id,
+          type: 'ARTICLE',
+          title: a.title,
+          subtitle: [a.category?.name, truncate(a.summary, 90)].filter(Boolean).join(' · '),
+          year: a.dateLabel ?? undefined,
+          href: PUBLIC_ROUTES.ARTICLE(a.slug),
         },
-        [...(f.aliases ?? []), ...f.titles],
+        a.tags.map((t) => t.name),
       ),
     ),
-    ...source.periods.map((p) =>
-      entry({
-        id: `p-${p.id}`,
-        type: 'PERIOD',
-        title: shortPeriodName(p.name),
-        subtitle: regionLabel(p.region),
-        year: p.timeLabel,
-        href: SEARCH_ROUTES.PERIOD(p.slug),
-      }),
-    ),
-    ...source.locations.map((l) =>
-      entry({
-        id: `l-${l.id}`,
-        type: 'LOCATION',
-        title: l.name,
-        subtitle: l.address ?? 'Di tích & địa danh',
-        href: SEARCH_ROUTES.LOCATION(l.slug),
-      }),
+    ...source.timelines.map((t) =>
+      entry(
+        {
+          id: t.id,
+          type: 'TIMELINE',
+          title: t.title,
+          subtitle: `${t.nodes.length} mốc${t.description ? ` · ${truncate(t.description, 80)}` : ''}`,
+          href: PUBLIC_ROUTES.TIMELINE(t.slug),
+        },
+        t.nodes.map((n) => n.title),
+      ),
     ),
     ...source.lessons.map((l) =>
-      entry({
-        id: `b-${l.id}`,
-        type: 'LESSON',
-        title: l.title,
-        subtitle: `Bài học • ${l.estimatedReadMinutes} phút đọc`,
-        href: SEARCH_ROUTES.LESSON(l.slug),
-      }),
+      entry(
+        {
+          id: l.id,
+          type: 'LESSON',
+          title: l.title,
+          subtitle: truncate(l.description, 100) || `${l.estimatedReadMinutes} phút đọc`,
+          href: PUBLIC_ROUTES.LESSON(l.slug),
+        },
+        l.tags.map((t) => t.name),
+      ),
     ),
   ];
 }

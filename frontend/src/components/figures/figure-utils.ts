@@ -1,6 +1,6 @@
 import type { PublicFigureProfileDto, PublicFigureRelationDto, PublicPeriodDto } from "@/services/entities/landing.service";
 import { ENTITY_RELATION_TYPE_LABELS } from "@/constants/enums";
-import type { TaxonomyTermItem } from "@/services/entities/taxonomy.service";
+import type { TaxonomyTermItem } from "@/services/public/public-taxonomy";
 import { relationLabel } from "@/features/taxonomy/taxonomy-labels";
 
 export type RelationCategory = "FAMILY" | "ALLY" | "RIVAL" | "CONTEMPORARY";

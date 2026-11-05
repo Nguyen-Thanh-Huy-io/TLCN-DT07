@@ -4,22 +4,22 @@ import { ContentStatus } from '@/constants/enums';
 export enum DashboardActivityType {
   LESSON = 'LESSON',
   TOPIC = 'TOPIC',
-  PERIOD = 'PERIOD',
+  ARTICLE = 'ARTICLE',
 }
 
 export interface DashboardCounts {
-  periodsCount: number;
+  articlesCount: number;
   topicsCount: number;
   lessonsCount: number;
   pendingLessonsCount: number;
-  historicalEventsCount: number;
+  timelinesCount: number;
   totalKnowledgeCount: number;
 }
 
 export interface RecentActivityItem {
   id: string;
   title: string;
-  type: DashboardActivityType | 'LESSON' | 'TOPIC' | 'PERIOD';
+  type: DashboardActivityType | 'LESSON' | 'TOPIC' | 'ARTICLE';
   status: ContentStatus;
   authorName: string;
   updatedAt: string;
@@ -60,11 +60,11 @@ export class DashboardApiService {
     if (!data?.counts) throw new Error('Dữ liệu thống kê không hợp lệ.');
     return {
       counts: {
-        periodsCount: data.counts.periodsCount ?? 0,
+        articlesCount: data.counts.articlesCount ?? 0,
         topicsCount: data.counts.topicsCount ?? 0,
         lessonsCount: data.counts.lessonsCount ?? 0,
         pendingLessonsCount: data.counts.pendingLessonsCount ?? 0,
-        historicalEventsCount: data.counts.historicalEventsCount ?? 0,
+        timelinesCount: data.counts.timelinesCount ?? 0,
         totalKnowledgeCount: data.counts.totalKnowledgeCount ?? 0,
       },
       recentActivities: Array.isArray(data.recentActivities) ? data.recentActivities : [],

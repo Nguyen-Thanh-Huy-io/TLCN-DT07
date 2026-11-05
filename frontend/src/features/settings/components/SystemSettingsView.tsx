@@ -3,11 +3,10 @@
 import React, { useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
-import { TaxonomyManager } from '@/features/taxonomy/TaxonomyManager';
 import { Badge } from '@/components/common/Badge';
 
 export function SystemSettingsView() {
-  const [activeTab, setActiveTab] = useState<'taxonomies' | 'general' | 'health'>('taxonomies');
+  const [activeTab, setActiveTab] = useState<'general' | 'health'>('general');
   const [savedNotice, setSavedNotice] = useState(false);
 
   // General Settings State
@@ -26,19 +25,6 @@ export function SystemSettingsView() {
     <div className="space-y-6">
       {/* Tab Switcher */}
       <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
-        <button
-          type="button"
-          onClick={() => setActiveTab('taxonomies')}
-          className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
-            activeTab === 'taxonomies'
-              ? 'bg-slate-900 text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          <Icon name={IconName.TAG} size={14} />
-          <span>Danh mục dùng chung (Taxonomies)</span>
-        </button>
-
         <button
           type="button"
           onClick={() => setActiveTab('general')}
@@ -69,13 +55,6 @@ export function SystemSettingsView() {
       {savedNotice && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800 font-medium">
           Đã lưu thay đổi cấu hình hệ thống thành công!
-        </div>
-      )}
-
-      {/* Tab 1: Danh mục dùng chung (TaxonomyManager) */}
-      {activeTab === 'taxonomies' && (
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
-          <TaxonomyManager />
         </div>
       )}
 

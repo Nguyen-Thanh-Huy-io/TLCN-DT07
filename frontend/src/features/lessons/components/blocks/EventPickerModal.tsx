@@ -15,7 +15,8 @@ import {
   ScrollText,
   ExternalLink,
 } from 'lucide-react';
-import { HistoricalEventApiService, HistoricalEventItem } from '@/services/entities/historical-event.service';
+import { ArticleApiService, type ArticleItem } from '@/services/entities/article.service';
+import { dateLabelOf } from '@/utils/year-label';
 import { EntitySourceType, IEntityDetailPreview, IEntitySearchResult } from '../../types/entity-source.types';
 import { EntitySourceStrategyFactory } from '../../factories/entity-source-strategy.factory';
 
@@ -39,7 +40,8 @@ export interface NormalizedEventPayload {
   thumbnailUrl?: string;
 }
 
-export function normalizePickedEvent(event: HistoricalEventItem | EventSelectionPayload): NormalizedEventPayload {
+/** Sự kiện chọn từ kho nội bộ = 1 bài viết (thường thuộc chuyên mục Sự kiện). */
+export function normalizePickedEvent(event: ArticleItem | EventSelectionPayload): NormalizedEventPayload {
   if ('sourceType' in event) {
     return {
       eventId: event.eventId,
@@ -50,27 +52,21 @@ export function normalizePickedEvent(event: HistoricalEventItem | EventSelection
       thumbnailUrl: event.thumbnailUrl,
     };
   }
-  const timeLoc = [
-    event.startYear ? `Năm ${event.startYear}` : '',
-    event.historicalLocation?.name || '',
-  ]
-    .filter(Boolean)
-    .join(' • ');
-
+  const dateLabel = dateLabelOf(event);
   return {
     eventId: event.id,
     title: event.title,
-    year: event.startYear ? String(event.startYear) : undefined,
-    timeLocation: timeLoc || `${event.startYear || ''}`,
-    summary: event.summary || event.description || '',
-    thumbnailUrl: event.thumbnailUrl || undefined,
+    year: dateLabel || undefined,
+    timeLocation: dateLabel,
+    summary: event.summary || '',
+    thumbnailUrl: event.coverImageUrl || undefined,
   };
 }
 
 interface EventPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectEvent: (event: EventSelectionPayload | HistoricalEventItem) => void;
+  onSelectEvent: (event: EventSelectionPayload | ArticleItem) => void;
 }
 
 export const EventPickerModal: React.FC<EventPickerModalProps> = ({
@@ -83,7 +79,7 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
   const [mounted, setMounted] = useState(false);
 
   // State nguồn nội bộ HISGO
-  const [hisgoEvents, setHisgoEvents] = useState<HistoricalEventItem[]>([]);
+  const [hisgoEvents, setHisgoEvents] = useState<ArticleItem[]>([]);
   const [loadingHisgo, setLoadingHisgo] = useState(false);
 
   // State nguồn Wikipedia & Wikidata
@@ -106,9 +102,10 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
   const loadHisgoEvents = useCallback(async (query: string) => {
     try {
       setLoadingHisgo(true);
-      const res = await HistoricalEventApiService.getEvents({
+      const res = await ArticleApiService.list({
         search: query.trim() || undefined,
         limit: 25,
+        sort: 'year',
       });
       setHisgoEvents(res.items || []);
     } catch (err) {
@@ -344,14 +341,14 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2.5 mb-1 flex-wrap">
                         <span className="font-mono text-sm font-bold px-2.5 py-0.5 rounded bg-stone-900 text-white shrink-0">
-                          Năm {evt.startYear}
+                          {dateLabelOf(evt) || 'Chưa rõ năm'}
                         </span>
                         <strong className="text-base font-bold text-stone-900 truncate">
                           {evt.title}
                         </strong>
                       </div>
                       <p className="text-base text-stone-600 line-clamp-2 leading-relaxed max-w-[65ch]">
-                        {evt.summary || evt.description || 'Chưa có mô tả chi tiết cho sự kiện này.'}
+                        {evt.summary || 'Chưa có tóm tắt cho bài viết này.'}
                       </p>
                     </div>
 

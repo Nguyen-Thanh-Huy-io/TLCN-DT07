@@ -21,7 +21,7 @@ import type {
   LandingTimelineNode,
   ParallelBand,
 } from './landing.types';
-import type { TaxonomyTermItem } from '@/services/entities/taxonomy.service';
+import type { TaxonomyTermItem } from '@/services/public/public-taxonomy';
 
 export interface LandingSource {
   periods: PublicPeriodDto[];

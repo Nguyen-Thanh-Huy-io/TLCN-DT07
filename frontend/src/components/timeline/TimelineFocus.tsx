@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { TaxonomyTermItem } from "@/services/entities/taxonomy.service";
+import type { TaxonomyTermItem } from "@/services/public/public-taxonomy";
 import { relationLabel } from "@/features/taxonomy/taxonomy-labels";
 import { EVENT_RELATION_TYPE_LABELS } from "@/constants/enums";
 import {

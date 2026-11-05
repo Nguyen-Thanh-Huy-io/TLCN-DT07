@@ -25,7 +25,8 @@ export interface BaseBlockData {
   type: LessonBlockType;
   width?: BlockWidthType;
   showOnMobile?: boolean; // Bật/tắt hiển thị trên thiết bị di động
-  sourceMode?: 'AUTO' | 'MANUAL' | 'HYBRID'; // Nguồn nội dung: Thủ công, Đồ thị tri thức hoặc Kết hợp
+  /** Chỉ còn MANUAL (chế độ AUTO dựng từ đồ thị tri thức đã bỏ cùng Knowledge Graph 2026-11-05). Dữ liệu cũ có thể còn 'AUTO'/'HYBRID' — coi như MANUAL. */
+  sourceMode?: 'MANUAL' | 'AUTO' | 'HYBRID';
   /** Vùng cột hiển thị khi khối nằm trong một StoryChapterUnit (Container) */
   zone?: ChapterBlockZone;
 }
@@ -35,18 +36,11 @@ export interface TextBlockData extends BaseBlockData {
   content: string;
 }
 
-export type TimelineSourceMode = 'AUTO' | 'MANUAL' | 'HYBRID';
+export type TimelineSourceMode = 'MANUAL' | 'AUTO' | 'HYBRID';
 export type TimelineDateFormat = 'YEAR_ONLY' | 'FULL_DATE';
 export type TimelineSortOrder = 'CHRONOLOGICAL' | 'REVERSE_CHRONOLOGICAL';
 export type TimelineSceneStyle = 'MUSEUM_SPLIT' | 'CINEMATIC_BACKDROP';
 
-export interface TimelineFilterConfig {
-  relationTypes?: string[]; // Vd: 'PARTICIPATED', 'TOOK_PLACE_AT', 'FOUNDED', 'LED'
-  startYear?: number;
-  endYear?: number;
-  statusPublishedOnly?: boolean;
-  eventTypes?: string[];
-}
 
 export interface TimelineDisplayConfig {
   sceneStyle?: TimelineSceneStyle;
@@ -66,8 +60,6 @@ export interface TimelineBlockData extends BaseBlockData {
   subtitle: string;
   orientation?: TimelineOrientation;
   sourceMode?: TimelineSourceMode;
-  maxEvents?: number;
-  filterConfig?: TimelineFilterConfig;
   displayConfig?: TimelineDisplayConfig;
   nodes: TimelineNode[];
 }

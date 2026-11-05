@@ -5,12 +5,6 @@
 export const APP_ROUTES = {
   DASHBOARD: '/',
   CURRICULUM: '/curriculum',
-  KNOWLEDGE: '/knowledge',
-  PERIODS: {
-    LIST: '/periods',
-    CREATE: '/periods/create',
-    DETAIL: (id: string) => `/periods/${id}`,
-  },
   TOPICS: {
     // Không có LIST riêng: trang bảng "danh sách chủ đề" độc lập (/topics) đã bị bỏ —
     // trùng với tab "Cây phân cấp Chủ đề" trong /curriculum (cùng hiển thị 1 cây
@@ -26,25 +20,16 @@ export const APP_ROUTES = {
     CREATE: '/lessons/create',
     DETAIL: (id: string) => `/lessons/${id}`,
   },
-  EVENTS: {
-    LIST: '/events',
-    CREATE: '/events/create',
-    DETAIL: (id: string) => `/events/${id}`,
+  ARTICLES: {
+    LIST: '/articles',
+    CREATE: '/articles/create',
+    DETAIL: (id: string) => `/articles/${id}`,
   },
-  FIGURES: {
-    LIST: '/figures',
-    CREATE: '/figures/create',
-    DETAIL: (id: string) => `/figures/${id}`,
-  },
-  LOCATIONS: {
-    LIST: '/locations',
-    CREATE: '/locations/create',
-    DETAIL: (id: string) => `/locations/${id}`,
-  },
-  ENTITIES: {
-    LIST: '/entities',
-    CREATE: '/entities/create',
-    DETAIL: (id: string) => `/entities/${id}`,
+  CATEGORIES: '/categories',
+  TIMELINES: {
+    LIST: '/timelines',
+    CREATE: '/timelines/create',
+    DETAIL: (id: string) => `/timelines/${id}`,
   },
   TAGS: {
     LIST: '/tags',
@@ -57,7 +42,6 @@ export const APP_ROUTES = {
   SETTINGS: '/settings',
   REVIEW: '/review',
   USERS: '/users',
-  TAXONOMIES: '/taxonomies',
 } as const;
 
 export const SAMPLE_REMOTE_LINKS = {
@@ -71,14 +55,11 @@ export enum NavigationPageKey {
   CMS = 'cms',
   DASHBOARD = 'dashboard',
   CURRICULUM = 'curriculum',
-  KNOWLEDGE = 'knowledge',
-  PERIODS = 'periods',
   TOPICS = 'topics',
   LESSONS = 'lessons',
-  EVENTS = 'events',
-  FIGURES = 'figures',
-  LOCATIONS = 'locations',
-  ENTITIES = 'entities',
+  ARTICLES = 'articles',
+  CATEGORIES = 'categories',
+  TIMELINES = 'timelines',
   TAGS = 'tags',
   MEDIA = 'media',
   QUESTIONS = 'questions',
@@ -87,6 +68,5 @@ export enum NavigationPageKey {
   SETTINGS = 'settings',
   REVIEW = 'review',
   USERS = 'users',
-  TAXONOMIES = 'taxonomies',
 }
 

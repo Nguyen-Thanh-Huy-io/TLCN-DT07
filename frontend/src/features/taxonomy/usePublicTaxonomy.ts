@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { TaxonomyTermItem } from '@/services/entities/taxonomy.service';
+import type { TaxonomyTermItem } from '@/services/public/public-taxonomy';
 import { loadPublicTaxonomy } from './taxonomy-tree';
 import { regionOrderFromTerms } from '@/utils/region.utils';
 

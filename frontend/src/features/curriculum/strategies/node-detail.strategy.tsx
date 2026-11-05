@@ -2,7 +2,6 @@ import React from 'react';
 import {
   AnyCurriculumNode,
   CurriculumNodeType,
-  CurriculumPeriodNode,
   CurriculumTopicNode,
   CurriculumLessonNode,
 } from '@/types/models/curriculum-tree.type';
@@ -15,11 +14,10 @@ import {
   DIFFICULTY_LABEL_MAP,
   DIFFICULTY_TONE_MAP,
 } from '@/constants/ui-theme';
-import { formatHistoricalTimeSpan } from '@/utils/history-year.utils';
 
 export interface DetailStrategyCallbacks {
-  onAddChildTopic?: (periodId: string) => void;
-  onAddChildLesson?: (periodId: string, topicId: string) => void;
+  onAddChildTopic?: (parentId: string) => void;
+  onAddChildLesson?: (parentId: string, topicId: string) => void;
   onSelectNode: (node: AnyCurriculumNode) => void;
   onEditNode: (node: AnyCurriculumNode) => void;
   onDeleteNode: (node: AnyCurriculumNode) => void;
@@ -36,166 +34,7 @@ export interface INodeDetailStrategy {
 }
 
 /**
- * Strategy 1: Period Node Detail
- */
-export class PeriodNodeDetailStrategy implements INodeDetailStrategy {
-  constructor(private readonly period: CurriculumPeriodNode) {}
-
-  renderHeader(): React.ReactNode {
-    return (
-      <div className="detail-header-card pb-3 border-b border-slate-100">
-        <div className="flex items-start sm:items-center gap-3">
-          <div className="w-8 h-8 rounded bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-            <Icon name={IconName.CLOCK} size={16} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded uppercase tracking-wider">
-                Giai đoạn
-              </span>
-              <Badge tone={STATUS_TONE_MAP[this.period.status]}>
-                {STATUS_LABEL_MAP[this.period.status]}
-              </Badge>
-            </div>
-            <h2 className="text-sm sm:text-base font-semibold text-slate-900 mt-1">
-              {this.period.name}
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
-              {this.period.description || 'Chưa có mô tả chi tiết'}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  renderOverview(): React.ReactNode {
-    const totalLessons = this.period.topics.reduce(
-      (acc, t) => acc + t.lessons.length,
-      0,
-    );
-    const timeSpan = formatHistoricalTimeSpan(this.period.startYear, this.period.endYear);
-
-    return (
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 my-3">
-        <div className="p-2.5 bg-slate-50 rounded-md border border-slate-200/70">
-          <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider block">
-            Niên đại
-          </span>
-          <strong className="text-xs text-slate-900 font-semibold block mt-0.5">
-            {timeSpan}
-          </strong>
-        </div>
-        <div className="p-2.5 bg-slate-50 rounded-md border border-slate-200/70">
-          <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider block">
-            Khu vực
-          </span>
-          <strong className="text-xs text-slate-900 font-semibold block mt-0.5">
-            {this.period.region || 'Toàn cầu'}
-          </strong>
-        </div>
-        <div className="p-2.5 bg-slate-50 rounded-md border border-slate-200/70">
-          <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider block">
-            Chủ đề con
-          </span>
-          <strong className="text-xs text-slate-900 font-semibold block mt-0.5">
-            {this.period.topics.length} chủ đề
-          </strong>
-        </div>
-        <div className="p-2.5 bg-slate-50 rounded-md border border-slate-200/70">
-          <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider block">
-            Tổng bài học
-          </span>
-          <strong className="text-xs text-slate-900 font-semibold block mt-0.5">
-            {totalLessons} bài
-          </strong>
-        </div>
-      </div>
-    );
-  }
-
-  renderChildList(callbacks: DetailStrategyCallbacks): React.ReactNode {
-    return (
-      <div className="child-list-section mt-3">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-semibold text-slate-900">
-            Danh sách Chủ đề ({this.period.topics.length})
-          </h3>
-          <button
-            type="button"
-            className="secondary-button !h-6 !py-0 !px-2 !text-[11px]"
-            onClick={() => callbacks.onAddChildTopic?.(this.period.id)}
-          >
-            <Icon name={IconName.PLUS} size={11} />
-            <span>Thêm chủ đề</span>
-          </button>
-        </div>
-
-        {this.period.topics.length === 0 ? (
-          <div className="p-4 text-center text-xs text-slate-500 bg-slate-50 rounded border border-dashed border-slate-200">
-            Chưa có chủ đề nào trong giai đoạn này.
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            {this.period.topics.map((topic, idx) => (
-              <div
-                key={topic.id}
-                className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between cursor-pointer transition-colors"
-                onClick={() => callbacks.onSelectNode(topic)}
-              >
-                <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                  <span className="w-5 h-5 rounded bg-slate-100 text-slate-600 text-[11px] font-mono flex items-center justify-center shrink-0">
-                    {idx + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-xs font-medium text-slate-900 truncate">
-                      {topic.name}
-                    </h4>
-                    <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                      {topic.description || 'Chưa có mô tả'} • {topic.lessons.length} bài học
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Badge tone={STATUS_TONE_MAP[topic.status]}>
-                    {STATUS_LABEL_MAP[topic.status]}
-                  </Badge>
-                  <Icon name={IconName.CHEVRON} size={12} className="text-slate-400" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  renderActionButtons(callbacks: DetailStrategyCallbacks): React.ReactNode {
-    return (
-      <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-slate-100">
-        <button
-          type="button"
-          className="primary-button !h-7 !text-xs !px-2.5"
-          onClick={() => callbacks.onEditNode(this.period)}
-        >
-          <Icon name={IconName.EDIT} size={12} />
-          <span>Sửa giai đoạn</span>
-        </button>
-        <button
-          type="button"
-          className="secondary-button !h-7 !text-xs !px-2.5 text-red-600 hover:bg-red-50 hover:text-red-700"
-          onClick={() => callbacks.onDeleteNode(this.period)}
-        >
-          <Icon name={IconName.TRASH} size={12} />
-          <span>Xóa</span>
-        </button>
-      </div>
-    );
-  }
-}
-
-/**
- * Strategy 2: Topic Node Detail
+ * Strategy 1: Topic Node Detail
  */
 export class TopicNodeDetailStrategy implements INodeDetailStrategy {
   constructor(private readonly topic: CurriculumTopicNode) {}
@@ -323,7 +162,7 @@ export class TopicNodeDetailStrategy implements INodeDetailStrategy {
               type="button"
               className="secondary-button !h-6 !py-0 !px-2 !text-[11px]"
               onClick={() =>
-                callbacks.onAddChildLesson?.(this.topic.periodId || '', this.topic.id)
+                callbacks.onAddChildLesson?.(this.topic.parentId || '', this.topic.id)
               }
             >
               <Icon name={IconName.PLUS} size={11} />
@@ -412,7 +251,7 @@ export class TopicNodeDetailStrategy implements INodeDetailStrategy {
 }
 
 /**
- * Strategy 3: Lesson Node Detail
+ * Strategy 2: Lesson Node Detail
  */
 export class LessonNodeDetailStrategy implements INodeDetailStrategy {
   constructor(private readonly lesson: CurriculumLessonNode) {}
@@ -596,8 +435,6 @@ export class LessonNodeDetailStrategy implements INodeDetailStrategy {
 export class NodeDetailStrategyFactory {
   public static create(node: AnyCurriculumNode): INodeDetailStrategy {
     switch (node.type) {
-      case CurriculumNodeType.PERIOD:
-        return new PeriodNodeDetailStrategy(node);
       case CurriculumNodeType.TOPIC:
         return new TopicNodeDetailStrategy(node);
       case CurriculumNodeType.LESSON:

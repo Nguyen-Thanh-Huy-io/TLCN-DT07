@@ -22,7 +22,7 @@ import { EVENT_CATEGORY_LABELS, TaxonomyGroupCode } from '@/constants/enums';
 import { formatYear, normalizeSearch, shortPeriodName } from '@/features/search/search-index';
 import type { PublicEventSummaryDto, PublicPeriodDto } from '@/services/entities/landing.service';
 import { regionLabel, sortedRegions } from '@/utils/region.utils';
-import type { TaxonomyTermItem } from '@/services/entities/taxonomy.service';
+import type { TaxonomyTermItem } from '@/services/public/public-taxonomy';
 import { ancestorChain, flattenTree, loadPublicTaxonomy } from '@/features/taxonomy/taxonomy-tree';
 import { useRegionOrder } from '@/features/taxonomy/usePublicTaxonomy';
 import './events-library.css';

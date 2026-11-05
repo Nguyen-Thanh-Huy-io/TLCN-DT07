@@ -5,12 +5,35 @@ import { Topbar } from "@/components/layout/Topbar";
 import { usePathname, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CmsAccessGate } from "@/components/layout/CmsAccessGate";
-import { FigureProfileProvider } from "@/components/figures/FigureProfileProvider";
 import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
+import { FigureProfileProvider } from "@/components/figures/FigureProfileProvider";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'hisgo_sidebar_collapsed';
 const STORAGE_VALUE_TRUE = 'true';
 const DASHBOARD_PAGE_KEY = 'dashboard';
+
+/** Trang công khai (không khung CMS). Thêm route công khai mới thì thêm tiền tố vào đây. */
+const PUBLIC_ROUTE_PREFIXES = [
+  '/login',
+  '/dang-ky',
+  '/tai-khoan',
+  '/styleguide',
+  '/chuong-trinh-hoc',
+  '/bai-hoc',
+  '/bai-viet',
+  '/chuyen-muc',
+  '/tag/',
+  '/dong-thoi-gian',
+  '/giai-doan',
+  '/thuc-the',
+  '/heritage',
+  '/nhan-vat',
+  '/su-kien',
+  '/di-tich',
+  '/trieu-dai',
+  '/chuong-su',
+  '/kien-thuc',
+];
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -44,24 +67,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   // If public HISGO route (Home, Styleguide, Login, or public user-facing pages), render standalone without CMS Admin Sidebar/Topbar
   const isHisgoPublicRoute =
-    pathname === "/" ||
-    pathname === "/login" ||
-    pathname.startsWith("/login") ||
-    pathname === "/styleguide" ||
-    pathname.startsWith("/chuong-trinh-hoc") ||
-    pathname.startsWith("/bai-hoc") ||
-    pathname.startsWith("/dong-thoi-gian") ||
-    pathname.startsWith("/nhan-vat") ||
-    pathname.startsWith("/di-tich") ||
-    pathname.startsWith("/giai-doan") ||
-    pathname.startsWith("/su-kien") ||
-    pathname.startsWith("/heritage") ||
-    pathname.startsWith("/chuong-su") ||
-    pathname.startsWith("/kien-thuc") ||
-    pathname.startsWith("/dang-ky") ||
-    pathname.startsWith("/tai-khoan") ||
-    pathname.startsWith("/thuc-the") ||
-    pathname.startsWith("/trieu-dai");
+    pathname === "/" || PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
   if (isHisgoPublicRoute) {
     return (
       <FigureProfileProvider>

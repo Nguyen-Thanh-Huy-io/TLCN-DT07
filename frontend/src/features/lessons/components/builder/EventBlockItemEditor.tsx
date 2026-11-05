@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { EventBlockData } from '../../types/block-builder.types';
 import { EventPickerModal, EventSelectionPayload } from '../blocks/EventPickerModal';
-import { HistoricalEventItem } from '@/services/entities/historical-event.service';
+import type { ArticleItem } from '@/services/entities/article.service';
+import { dateLabelOf } from '@/utils/year-label';
 import { EVENT_BLOCK_CONSTANTS } from '../../constants/block-node.constants';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
@@ -17,7 +18,7 @@ export function EventBlockItemEditor({ data, onChange }: EventBlockItemEditorPro
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isDetailExpanded, setIsDetailExpanded] = useState(false);
 
-  const handleSelectEvent = (event: EventSelectionPayload | HistoricalEventItem) => {
+  const handleSelectEvent = (event: EventSelectionPayload | ArticleItem) => {
     if ('sourceType' in event) {
       onChange({
         eventId: event.eventId,
@@ -29,19 +30,12 @@ export function EventBlockItemEditor({ data, onChange }: EventBlockItemEditorPro
         sourceUrl: event.sourceUrl,
       });
     } else {
-      const timeLoc = [
-        event.startYear ? `Năm ${event.startYear}` : '',
-        event.historicalLocation?.name || '',
-      ]
-        .filter(Boolean)
-        .join(' • ');
-
       onChange({
         eventId: event.id,
         title: event.title,
-        timeLocation: timeLoc || `${event.startYear || ''}`,
-        summary: event.summary || event.description || '',
-        thumbnailUrl: event.thumbnailUrl || '',
+        timeLocation: dateLabelOf(event),
+        summary: event.summary || '',
+        thumbnailUrl: event.coverImageUrl || '',
       });
     }
   };

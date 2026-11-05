@@ -12,11 +12,7 @@ export const timelineBlockPlugin: BlockPlugin<TimelineBlockData> = {
     title: 'Dòng thời gian lịch sử',
     subtitle: 'Các mốc lịch sử tiêu biểu',
     orientation: TimelineOrientation.VERTICAL,
-    sourceMode: 'HYBRID',
-    maxEvents: 10,
-    filterConfig: {
-      statusPublishedOnly: true,
-    },
+    sourceMode: 'MANUAL',
     displayConfig: {
       sceneStyle: 'MUSEUM_SPLIT',
       dateFormat: 'YEAR_ONLY',

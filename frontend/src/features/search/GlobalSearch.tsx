@@ -4,7 +4,7 @@ import { KeyboardKey, CommonFilterOption } from '@/constants/enums';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, BookOpen, History, Landmark, Loader2, MapPin, Search, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, FileText, GitCommitVertical, Loader2, Search } from 'lucide-react';
 import { normalizeSearch, type SearchEntry, type SearchEntryType } from './search-index';
 import { loadSearchIndex } from './search.service';
 import './global-search.css';
@@ -17,22 +17,18 @@ export function openGlobalSearch() {
 }
 
 const TYPE_LABELS: Record<SearchEntryType, string> = {
-  EVENT: 'Sự kiện',
-  FIGURE: 'Nhân vật',
-  LOCATION: 'Địa danh',
+  ARTICLE: 'Bài viết',
+  TIMELINE: 'Dòng thời gian',
   LESSON: 'Bài học',
-  PERIOD: 'Thời kỳ',
 };
 
-const TYPE_ICONS: Record<SearchEntryType, typeof History> = {
-  EVENT: History,
-  FIGURE: Users,
-  LOCATION: MapPin,
+const TYPE_ICONS: Record<SearchEntryType, typeof FileText> = {
+  ARTICLE: FileText,
+  TIMELINE: GitCommitVertical,
   LESSON: BookOpen,
-  PERIOD: Landmark,
 };
 
-const GROUP_ORDER: SearchEntryType[] = ['EVENT', 'FIGURE', 'PERIOD', 'LESSON', 'LOCATION'];
+const GROUP_ORDER: SearchEntryType[] = ['ARTICLE', 'TIMELINE', 'LESSON'];
 const TYPE_FILTERS: Array<SearchEntryType | 'ALL'> = ['ALL', ...GROUP_ORDER];
 const MAX_RESULTS = 40;
 /** Số mục mỗi nhóm ở tab "Tất cả": khi đang gõ / khi chưa gõ (gợi ý). */
@@ -125,7 +121,7 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
             setCursor(0);
           }}
           onKeyDown={onKeyDown}
-          placeholder="Tìm sự kiện, nhân vật, thời kỳ, bài học, năm..."
+          placeholder="Tìm bài viết, dòng thời gian, bài học, năm..."
           aria-label="Từ khóa tìm kiếm"
         />
         <kbd>ESC</kbd>

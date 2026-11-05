@@ -10,7 +10,6 @@ import {
   LessonTocEntry,
 } from '@/features/lessons/utils/lesson-toc.util';
 import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
-import { resolveTimelineBlocks } from '@/features/lessons/utils/timeline-resolver.util';
 
 export interface FastFactItem {
   id: string;
@@ -208,8 +207,7 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
 
   // Chuẩn hóa, tự động dựng mốc cho khối Dòng thời gian (AUTO/HYBRID) rồi biên dịch toàn bộ khối contentBlocks
   const normalized = normalizeContentToBlocks(entity.contentBlocks);
-  const resolvedBlocks = resolveTimelineBlocks(normalized.blocks, { statements: entity.statements ?? [] });
-  const { tocItems, html } = buildLessonTocAndHtml(resolvedBlocks);
+  const { tocItems, html } = buildLessonTocAndHtml(normalized.blocks);
   const cleanHtml = html ? html.normalize('NFC') : '';
   const cleanToc = (tocItems || []).map((item) => ({
     ...item,

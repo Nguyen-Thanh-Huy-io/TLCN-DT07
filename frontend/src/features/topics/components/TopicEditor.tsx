@@ -326,7 +326,6 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
         name: name.trim(),
         description: description.trim() || undefined,
         coverImageUrl: coverImageUrl.trim() || undefined,
-        periodId: null,
         parentId: parentId ? parentId : null,
         pathType,
         displayOrder: Number(displayOrder || 0),
@@ -347,7 +346,6 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
       } else {
         await TopicApiService.createTopic({
           ...payload,
-          periodId: undefined,
           parentId: payload.parentId || undefined,
         });
       }

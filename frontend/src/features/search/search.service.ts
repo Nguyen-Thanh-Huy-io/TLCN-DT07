@@ -1,18 +1,14 @@
 import api from '@/services/api';
 import type {
-  PublicEventSummaryDto,
-  PublicFigureProfileDto,
-  PublicLocationSummaryDto,
-  PublicPeriodDto,
-} from '@/services/entities/landing.service';
-import type { LibraryLesson } from '@/services/entities/learner.service';
+  PublicArticleSummary,
+  PublicLibraryLesson,
+  PublicTimeline,
+} from '@/services/public/public-content.service';
 import { buildSearchIndex, type SearchEntry, type SearchSource } from './search-index';
 
 const ENDPOINTS = {
-  PERIODS: '/public/periods',
-  EVENTS: '/public/events',
-  FIGURES: '/public/figures/directory',
-  LOCATIONS: '/public/locations',
+  ARTICLES: '/public/articles',
+  TIMELINES: '/public/timelines',
   LESSONS: '/public/lessons',
 } as const;
 
@@ -29,22 +25,17 @@ async function list<T>(endpoint: string): Promise<T[]> {
 
 let catalog: Promise<SearchSource> | null = null;
 
-/**
- * Dữ liệu công khai (thời kỳ, sự kiện, nhân vật, địa danh, bài học) tải một lần cho cả phiên,
- * dùng chung cho ô tìm kiếm toàn cục và phần "liên quan" của bài học.
- */
+/** Dữ liệu công khai tải 1 lần cho cả phiên (client), dùng chung cho tìm kiếm & "liên quan". */
 export function loadPublicCatalog(): Promise<SearchSource> {
   if (!catalog) {
     catalog = Promise.all([
-      list<PublicPeriodDto>(ENDPOINTS.PERIODS),
-      list<PublicEventSummaryDto>(ENDPOINTS.EVENTS),
-      list<PublicFigureProfileDto>(ENDPOINTS.FIGURES),
-      list<PublicLocationSummaryDto>(ENDPOINTS.LOCATIONS),
-      list<LibraryLesson>(ENDPOINTS.LESSONS),
-    ]).then(([periods, events, figures, locations, lessons]) => ({ periods, events, figures, locations, lessons }));
+      list<PublicArticleSummary>(ENDPOINTS.ARTICLES),
+      list<PublicTimeline>(ENDPOINTS.TIMELINES),
+      list<PublicLibraryLesson>(ENDPOINTS.LESSONS),
+    ]).then(([articles, timelines, lessons]) => ({ articles, timelines, lessons }));
     catalog.then((c) => {
       // Lỗi mạng toàn bộ → lần sau thử lại.
-      if (!c.periods.length && !c.events.length && !c.figures.length) catalog = null;
+      if (!c.articles.length && !c.timelines.length && !c.lessons.length) catalog = null;
     });
   }
   return catalog;
@@ -52,7 +43,6 @@ export function loadPublicCatalog(): Promise<SearchSource> {
 
 let index: Promise<SearchEntry[]> | null = null;
 
-/** Chỉ mục tìm kiếm, dựng một lần từ dữ liệu công khai. */
 export function loadSearchIndex(): Promise<SearchEntry[]> {
   if (!index) {
     index = loadPublicCatalog().then(buildSearchIndex);

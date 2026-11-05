@@ -11,7 +11,6 @@ import { LessonItem } from '@/types/models/lesson.type';
 import { QuizItem, QuizQuestionType } from '@/features/lessons/types/quiz.types';
 import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
 import { buildLessonTocAndHtml, LessonTocEntry, normalizeContentToBlocks } from '@/features/lessons/utils/lesson-toc.util';
-import { resolveTimelineBlocks } from '@/features/lessons/utils/timeline-resolver.util';
 import {
   prepareQuizSessionForLearner,
   QuizGradingStrategyRegistry,
@@ -134,11 +133,7 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
     const { blocks, resourceLinks: links } = normalizeContentToBlocks(
       lesson.content ?? lesson.contentRichText,
     );
-    // Lesson chưa có liên kết đồ thị tri thức (statements) để tự động dựng dữ liệu — truyền mảng
-    // rỗng (không phải undefined) để khối AUTO/HYBRID hiện rỗng trung thực, thay vì giữ nguyên
-    // dữ liệu mẫu giả mặc định như trước khi có resolver.
-    const resolvedBlocks = resolveTimelineBlocks(blocks, { statements: [] });
-    const { tocItems: toc, html } = buildLessonTocAndHtml(resolvedBlocks);
+    const { tocItems: toc, html } = buildLessonTocAndHtml(blocks);
     return { tocItems: toc, compiledHtml: html, resourceLinks: links };
   }, [lesson]);
 

@@ -20,7 +20,7 @@ import { TimelineNode } from '../blocks/HistoricalTimelineBlock';
 import { EventPickerModal, EventSelectionPayload, normalizePickedEvent } from '../blocks/EventPickerModal';
 import { TimelineLayoutStrategy } from '../../strategies/timeline-layout.strategy';
 import { TimelineSceneStrategy } from '../../strategies/timeline-scene.strategy';
-import { HistoricalEventItem } from '@/services/entities/historical-event.service';
+import type { ArticleItem } from '@/services/entities/article.service';
 import { MoveDirection } from '../quiz/QuizQuestionEditors';
 import { TipTapContent } from '../TipTapContent';
 
@@ -54,7 +54,6 @@ export function TimelineBlockItemEditor({ data, onChange }: TimelineBlockItemEdi
   const showImage = displayConfig.showImage !== false;
   const showLocation = Boolean(displayConfig.showLocation);
   const isReverseSort = displayConfig.sortOrder === 'REVERSE_CHRONOLOGICAL';
-  const maxEvents = data.maxEvents ?? 10;
 
   const handleUpdateNodes = (newNodes: TimelineNode[]) => {
     onChange({ nodes: newNodes });
@@ -75,7 +74,7 @@ export function TimelineBlockItemEditor({ data, onChange }: TimelineBlockItemEdi
     handleUpdateNodes(next);
   };
 
-  const handleSelectEvent = (event: HistoricalEventItem | EventSelectionPayload) => {
+  const handleSelectEvent = (event: ArticleItem | EventSelectionPayload) => {
     const norm = normalizePickedEvent(event);
 
     // Chống trùng sự kiện
@@ -165,15 +164,8 @@ export function TimelineBlockItemEditor({ data, onChange }: TimelineBlockItemEdi
     if (isReverseSort) {
       list.reverse();
     }
-    return list.slice(0, maxEvents);
-  }, [nodes, isReverseSort, maxEvents]);
-
-  const sourceBadge = useMemo(() => {
-    if (data.sourceMode === 'MANUAL') {
-      return { label: 'THỦ CÔNG', className: 'bg-stone-900 text-white' };
-    }
-    return { label: 'DỮ LIỆU ĐỘNG', className: 'bg-blue-50 text-blue-900' };
-  }, [data.sourceMode]);
+    return list;
+  }, [nodes, isReverseSort]);
 
   const cleanTitle =
     data.title && data.title !== 'Timeline — Dòng thời gian'
@@ -189,11 +181,6 @@ export function TimelineBlockItemEditor({ data, onChange }: TimelineBlockItemEdi
             <h3 className="text-[22px] font-serif font-bold text-stone-900 tracking-tight leading-snug">
               {cleanTitle}
             </h3>
-            <span
-              className={`text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-md ${sourceBadge.className}`}
-            >
-              {sourceBadge.label}
-            </span>
             <span className="text-xs font-semibold text-stone-700 bg-stone-100 px-2.5 py-0.5 rounded-md">
               {sceneStyle === 'CINEMATIC_BACKDROP' ? 'Phong cách Điện ảnh' : 'Phong cách Triển lãm'}
             </span>
@@ -488,12 +475,6 @@ export function TimelineBlockItemEditor({ data, onChange }: TimelineBlockItemEdi
           );
         })}
       </div>
-
-      {nodes.length > maxEvents && (
-        <div className="text-sm text-stone-600 italic text-center">
-          Đang hiển thị {maxEvents}/{nodes.length} sự kiện theo giới hạn cấu hình ở cột thuộc tính.
-        </div>
-      )}
 
       <EventPickerModal
         isOpen={isEventPickerOpen}

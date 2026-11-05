@@ -6,11 +6,11 @@ import {
   LessonBlockItem,
   TimelineBlockData,
   TimelineDisplayConfig,
-  TimelineFilterConfig,
   TimelineOrientation,
 } from '../../../types/block-builder.types';
-import { TaxonomyApiService, TaxonomyTermItem } from '@/services/entities/taxonomy.service';
-import { TaxonomyGroupCode } from '@/constants/enums';
+import { TimelineApiService, type TimelineItem } from '@/services/entities/timeline.service';
+import { formatYear } from '@/utils/year-label';
+import { createBlockUUID } from '../../../strategies/story-chapter-layout.strategy';
 import { TypographyInspectorPanel } from './TypographyInspectorPanel';
 
 interface TimelineBlockInspectorProps {
@@ -23,19 +23,43 @@ export function TimelineBlockInspector({
   onUpdateBlock,
 }: TimelineBlockInspectorProps) {
   const [activeTab, setActiveTab] = useState<'AXIS' | 'TYPOGRAPHY'>('AXIS');
-  const [eventTypeTerms, setEventTypeTerms] = useState<TaxonomyTermItem[]>([]);
-  const [predicateTerms, setPredicateTerms] = useState<TaxonomyTermItem[]>([]);
+  const [timelines, setTimelines] = useState<TimelineItem[]>([]);
+  const [importId, setImportId] = useState('');
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
-    TaxonomyApiService.getGroups([TaxonomyGroupCode.EVENT_TYPE, TaxonomyGroupCode.PREDICATE])
-      .then((groups) => {
-        setEventTypeTerms(groups.find((g) => g.code === TaxonomyGroupCode.EVENT_TYPE)?.terms ?? []);
-        setPredicateTerms(groups.find((g) => g.code === TaxonomyGroupCode.PREDICATE)?.terms ?? []);
-      })
-      .catch((err) => console.warn('Failed to fetch timeline filter taxonomies:', err));
+    TimelineApiService.list({ limit: 100 })
+      .then((res) => setTimelines(res.items))
+      .catch(() => setTimelines([]));
   }, []);
 
-  const sourceMode = tl.sourceMode || 'HYBRID';
+  /** Chép các mốc của 1 Dòng thời gian vào khối (thành mốc thủ công, sửa tiếp được). */
+  const importFromTimeline = async () => {
+    if (!importId) return;
+    setImporting(true);
+    try {
+      const source = await TimelineApiService.get(importId);
+      const imported = (source.nodes ?? []).map((n) => ({
+        id: createBlockUUID(),
+        year: formatYear(n.year),
+        dateLabel: n.dateText ?? undefined,
+        title: n.title,
+        description: n.description ?? '',
+        thumbnailUrl: n.imageUrl ?? undefined,
+        eventId: n.articleId ?? undefined,
+        isManual: true,
+      }));
+      onUpdateBlock(tl.id, {
+        title: tl.title || source.title,
+        sourceMode: 'MANUAL',
+        nodes: [...(tl.nodes ?? []), ...imported],
+      });
+      setImportId('');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const orientation = tl.orientation || TimelineOrientation.VERTICAL;
   const displayConfig: TimelineDisplayConfig = tl.displayConfig || {
     sceneStyle: 'MUSEUM_SPLIT',
@@ -46,10 +70,6 @@ export function TimelineBlockInspector({
     showLocation: false,
     showRole: true,
   };
-  const filterConfig: TimelineFilterConfig = tl.filterConfig || {
-    statusPublishedOnly: true,
-  };
-  const maxEvents = tl.maxEvents ?? 10;
 
   const updateDisplay = <K extends keyof TimelineDisplayConfig>(
     key: K,
@@ -58,21 +78,6 @@ export function TimelineBlockInspector({
     onUpdateBlock(tl.id, {
       displayConfig: { ...displayConfig, [key]: value },
     });
-  };
-
-  const updateFilter = <K extends keyof TimelineFilterConfig>(
-    key: K,
-    value: TimelineFilterConfig[K]
-  ) => {
-    onUpdateBlock(tl.id, {
-      filterConfig: { ...filterConfig, [key]: value },
-    });
-  };
-
-  const toggleFilterListValue = (key: 'eventTypes' | 'relationTypes', code: string) => {
-    const current = filterConfig[key] ?? [];
-    const next = current.includes(code) ? current.filter((c) => c !== code) : [...current, code];
-    updateFilter(key, next);
   };
 
   return (
@@ -198,128 +203,34 @@ export function TimelineBlockInspector({
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-              Nguồn dữ liệu
-            </label>
-            <select
-              value={sourceMode}
-              onChange={(e) =>
-                onUpdateBlock(tl.id, {
-                  sourceMode: e.target.value as TimelineBlockData['sourceMode'],
-                })
-              }
-              className="w-full text-sm font-medium px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 cursor-pointer"
-            >
-              <option value="HYBRID">Kết hợp tự động và thủ công</option>
-              <option value="AUTO">Tự động lấy sự kiện liên quan</option>
-              <option value="MANUAL">Chọn thủ công</option>
-            </select>
-          </div>
-
-          {(sourceMode === 'AUTO' || sourceMode === 'HYBRID') && (
-            <div className="pt-3 border-t border-stone-200 space-y-3">
-              <div className="text-xs font-bold uppercase tracking-wider text-stone-700">
-                Bộ lọc sự kiện tự động
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    Từ năm
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="VD: 1200"
-                    value={filterConfig.startYear ?? ''}
-                    onChange={(e) =>
-                      updateFilter(
-                        'startYear',
-                        e.target.value ? Number(e.target.value) : undefined
-                      )
-                    }
-                    className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    Đến năm
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="VD: 1300"
-                    value={filterConfig.endYear ?? ''}
-                    onChange={(e) =>
-                      updateFilter(
-                        'endYear',
-                        e.target.value ? Number(e.target.value) : undefined
-                      )
-                    }
-                    className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {eventTypeTerms.length > 0 && (
-                <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1.5">
-                    Loại sự kiện (trang Thời kỳ)
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {eventTypeTerms.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => toggleFilterListValue('eventTypes', t.id)}
-                        className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors cursor-pointer ${
-                          filterConfig.eventTypes?.includes(t.id)
-                            ? 'bg-stone-900 text-white border-stone-900'
-                            : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {predicateTerms.length > 0 && (
-                <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1.5">
-                    Quan hệ liên quan (trang Thực thể)
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {predicateTerms.map((t) => (
-                      <button
-                        key={t.code}
-                        type="button"
-                        onClick={() => toggleFilterListValue('relationTypes', t.code)}
-                        className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors cursor-pointer ${
-                          filterConfig.relationTypes?.includes(t.code)
-                            ? 'bg-stone-900 text-white border-stone-900'
-                            : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-stone-800">
-                <input
-                  type="checkbox"
-                  checked={filterConfig.statusPublishedOnly !== false}
-                  onChange={(e) =>
-                    updateFilter('statusPublishedOnly', e.target.checked)
-                  }
-                  className="rounded text-stone-900 focus:ring-0 w-4 h-4"
-                />
-                <span>Chỉ lấy sự kiện đã xuất bản</span>
-              </label>
+          <div className="pt-3 border-t border-stone-200 space-y-2">
+            <label className="block text-sm font-semibold text-stone-800">Nhập mốc từ dòng thời gian</label>
+            <p className="text-xs text-stone-600">
+              Chép các mốc của một Dòng thời gian đã có vào khối này (thêm vào cuối, sửa tiếp được).
+            </p>
+            <div className="flex gap-2">
+              <select
+                value={importId}
+                onChange={(e) => setImportId(e.target.value)}
+                className="min-w-0 flex-1 text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none"
+              >
+                <option value="">— Chọn dòng thời gian —</option>
+                {timelines.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title} ({t._count?.nodes ?? 0} mốc)
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={!importId || importing}
+                onClick={importFromTimeline}
+                className="shrink-0 px-3 py-2 text-sm font-semibold rounded-lg bg-stone-900 text-white disabled:opacity-40"
+              >
+                {importing ? 'Đang nhập…' : 'Nhập'}
+              </button>
             </div>
-          )}
+          </div>
 
           <div className="text-xs font-bold uppercase tracking-wider text-stone-700 border-t border-stone-200 pt-3">
             Hiển thị
@@ -389,23 +300,6 @@ export function TimelineBlockInspector({
             </label>
           </div>
 
-          <div className="pt-3 border-t border-stone-200">
-            <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-              Số sự kiện tối đa
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={maxEvents}
-              onChange={(e) =>
-                onUpdateBlock(tl.id, {
-                  maxEvents: Number(e.target.value) || 10,
-                })
-              }
-              className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
-            />
-          </div>
         </div>
       )}
     </div>

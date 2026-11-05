@@ -19,22 +19,33 @@
   position: relative;
   background: linear-gradient(180deg, #FAF6EE 0%, #F5EFE0 100%);
   border-bottom: 1px solid #E8DECA;
-  padding: 2.25rem 0 2rem;
+  padding: 2.5rem 0 2.25rem;
   overflow: hidden;
+}
+
+/* HỌA TIẾT NỀN HOA VĂN BẢO TÀNG SỐ */
+.ue-hero-pattern-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image: radial-gradient(#8C2D19 1px, transparent 1px), radial-gradient(#B8860B 1px, #FAF6EE 1px);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+  pointer-events: none;
 }
 
 /* HERO GRID 2 CỘT CÂN ĐỐI */
 .ue-hero-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 2rem;
+  gap: 2.25rem;
   align-items: start;
 }
 
 @media (min-width: 992px) {
   .ue-hero-grid {
     grid-template-columns: 1.25fr 1fr;
-    gap: 3rem;
+    gap: 3.25rem;
   }
 }
 
@@ -43,43 +54,79 @@
   flex-direction: column;
 }
 
+.ue-hero-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
 .ue-hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   padding: 0.35rem 0.85rem;
   border-radius: 9999px;
-  font-size: 0.8rem;
+  font-size: 0.775rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin-bottom: 0.85rem;
   border: 1px solid currentColor;
-  align-self: flex-start;
+  box-shadow: 0 1px 3px rgba(45, 26, 16, 0.05);
+}
+
+.ue-hero-hanzi-badge {
+  font-family: var(--font-noto-serif), serif;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #7A5514;
+  background: #FFF9EB;
+  border: 1px solid #EADBBA;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  letter-spacing: 0.08em;
 }
 
 .ue-hero-eyebrow {
-  font-size: 0.825rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
   color: #8C6239;
   text-transform: uppercase;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.ue-hero-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
 }
 
 .ue-hero-title {
-  font-family: var(--font-playfair), var(--font-merriweather), var(--font-noto-serif), serif;
-  font-size: 2.35rem;
-  line-height: 1.18;
+  font-family: var(--font-merriweather), var(--font-noto-serif), var(--font-playfair), serif;
+  font-size: 2.5rem;
+  line-height: 1.15;
   font-weight: 800;
   color: #2D1A10;
-  margin-bottom: 0.85rem;
+  letter-spacing: -0.01em;
 }
 
 @media (min-width: 768px) {
   .ue-hero-title {
-    font-size: 3rem;
+    font-size: 3.25rem;
   }
+}
+
+.ue-hero-title-hanzi {
+  font-family: var(--font-noto-serif), serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #9C7D64;
+  opacity: 0.75;
+  user-select: none;
 }
 
 .ue-hero-meta {
@@ -87,23 +134,45 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 1.25rem;
-  margin-bottom: 1.15rem;
+  margin-bottom: 1.25rem;
   font-size: 0.925rem;
   color: #5C4A3A;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px dashed #E5D9C4;
 }
 
 .ue-meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  font-weight: 600;
+  gap: 0.45rem;
 }
 
-.ue-hero-lead {
-  font-size: 1.075rem;
+/* ĐOẠN DẪN NHẬP / TRÍCH LƯỢC */
+.ue-hero-lead-card {
+  position: relative;
+  background: #FFFDF9;
+  border: 1px solid #EAE0CE;
+  border-left: 3px solid #8C2D19;
+  border-radius: 0 0.75rem 0.75rem 0;
+  padding: 1rem 1.25rem 1rem 2.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 10px rgba(45, 26, 16, 0.03);
+}
+
+.ue-hero-lead-quote-icon {
+  position: absolute;
+  top: 0.85rem;
+  left: 0.75rem;
+  color: #C8A97E;
+  opacity: 0.6;
+}
+
+.ue-hero-lead-text {
+  font-size: 1.025rem;
   line-height: 1.65;
   color: #3F3025;
-  margin-bottom: 1.5rem;
+  font-style: italic;
+  font-family: var(--font-merriweather), serif;
 }
 
 /* QUICK STATS CARDS */
@@ -112,7 +181,6 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 0.85rem;
   margin-top: auto;
-  padding-top: 0.5rem;
 }
 
 @media (min-width: 640px) and (max-width: 991px) {
@@ -121,15 +189,34 @@
   }
 }
 
+/* Trường hợp có đúng 3 thẻ: tự động cân bằng trên desktop/tablet và mobile */
+.ue-stats-grid.ue-stats-grid-3,
+.ue-stats-grid:has(> .ue-stat-card:last-child:nth-child(3)) {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 639px) {
+  .ue-stats-grid.ue-stats-grid-3,
+  .ue-stats-grid:has(> .ue-stat-card:last-child:nth-child(3)) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ue-stats-grid.ue-stats-grid-3 > .ue-stat-card:last-child,
+  .ue-stats-grid > .ue-stat-card:last-child:nth-child(odd) {
+    grid-column: span 2;
+  }
+}
+
 .ue-stat-card {
   background: #FFFDF9;
   border: 1px solid #EAE0CE;
   border-radius: 0.75rem;
-  padding: 0.85rem 1rem;
+  padding: 0.95rem 1.15rem;
   box-shadow: 0 2px 8px rgba(45, 26, 16, 0.03);
   display: flex;
   flex-direction: column;
+  justify-content: center;
   transition: all 0.2s ease;
+  min-height: 84px;
 }
 
 .ue-stat-card:hover {
@@ -139,27 +226,34 @@
 }
 
 .ue-stat-value {
-  font-family: var(--font-playfair), var(--font-merriweather), var(--font-noto-serif), serif;
-  font-size: 1.45rem;
+  font-family: var(--font-merriweather), var(--font-noto-serif), var(--font-playfair), serif;
+  font-size: 1.55rem;
   font-weight: 800;
   line-height: 1.2;
   color: #8C2D19;
   margin-bottom: 0.25rem;
+  word-break: break-word;
+}
+
+.ue-stat-value.ue-stat-value-long {
+  font-size: 1.125rem;
+  line-height: 1.3;
+  font-weight: 700;
 }
 
 .ue-stat-label {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.725rem;
+  font-weight: 700;
   color: #705946;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
-/* CỘT PHẢI: FIGURE + GỘP HỒ SƠ TÓM LƯỢC */
+/* CỘT PHẢI: FIGURE + KHUNG CHÂN DUNG HOÀNG GIA & HỒ SƠ TÓM LƯỢC */
 .ue-hero-right-pane {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .ue-hero-figure {
@@ -173,7 +267,7 @@
 
 .ue-hero-image {
   width: 100%;
-  height: 250px;
+  height: 260px;
   object-fit: cover;
   display: block;
 }
@@ -187,63 +281,193 @@
   border-top: 1px solid #EDE4D1;
 }
 
-/* HỒ SƠ TÓM LƯỢC GỘP LÊN PHẦN HERO */
+/* KHUNG CHÂN DUNG BIỂU TRƯNG BẢO TÀNG SỐ KHI CHƯA CÓ ẢNH */
+.ue-hero-portrait-fallback {
+  background: linear-gradient(135deg, #2D1A10 0%, #442416 100%);
+  border: 2px solid #C8A97E;
+  border-radius: 0.875rem;
+  padding: 0.6rem;
+  box-shadow: 0 10px 28px -6px rgba(45, 26, 16, 0.22);
+  color: #F7EFE1;
+  position: relative;
+}
+
+.ue-portrait-inner {
+  border: 1px solid rgba(200, 169, 126, 0.45);
+  border-radius: 0.5rem;
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  background: radial-gradient(circle at center, rgba(140, 45, 25, 0.15) 0%, transparent 70%);
+}
+
+.ue-portrait-ornament-corner {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: #D4AF37;
+  border-style: solid;
+}
+
+.ue-portrait-ornament-corner.top-left {
+  top: 4px;
+  left: 4px;
+  border-width: 2px 0 0 2px;
+}
+
+.ue-portrait-ornament-corner.top-right {
+  top: 4px;
+  right: 4px;
+  border-width: 2px 2px 0 0;
+}
+
+.ue-portrait-ornament-corner.bottom-left {
+  bottom: 4px;
+  left: 4px;
+  border-width: 0 0 2px 2px;
+}
+
+.ue-portrait-ornament-corner.bottom-right {
+  bottom: 4px;
+  right: 4px;
+  border-width: 0 2px 2px 0;
+}
+
+.ue-portrait-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.685rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #D4AF37;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.ue-portrait-emblem {
+  margin-bottom: 0.85rem;
+}
+
+.ue-portrait-seal {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #8C2D19;
+  border: 2px solid #E6D29D;
+  box-shadow: 0 0 0 3px rgba(140, 45, 25, 0.4), inset 0 0 8px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ue-portrait-seal-text {
+  font-family: var(--font-noto-serif), serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #FBF4E4;
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.ue-portrait-name {
+  font-family: var(--font-merriweather), serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #FFFDF9;
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.02em;
+}
+
+.ue-portrait-period {
+  font-size: 0.825rem;
+  color: #CDB397;
+  margin-bottom: 0.85rem;
+}
+
+.ue-portrait-timeline-pill {
+  display: inline-flex;
+  padding: 0.25rem 0.85rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(200, 169, 126, 0.35);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #EEDCC1;
+  letter-spacing: 0.04em;
+}
+
+/* HỒ SƠ TÓM LƯỢC */
 .ue-hero-infobox {
   background: #FFFDF8;
   border: 1px solid #EADDC7;
   border-radius: 0.875rem;
-  padding: 1.15rem 1.25rem;
+  padding: 1.25rem 1.35rem;
   box-shadow: 0 4px 14px rgba(45, 26, 16, 0.04);
 }
 
 .ue-hero-infobox-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
+  justify-content: space-between;
+  font-size: 0.775rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   color: #8C6239;
   text-transform: uppercase;
-  padding-bottom: 0.65rem;
-  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.85rem;
   border-bottom: 1px solid #F0E8D9;
+}
+
+.ue-infobox-archive-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #8C2D19;
+  background: #FAF0E4;
+  border: 1px solid #EDDCB4;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
 }
 
 .ue-hero-facts-list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.5rem;
+  gap: 0.65rem;
 }
 
 @media (min-width: 500px) {
   .ue-hero-facts-list {
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.65rem 1rem;
+    gap: 0.75rem 1.25rem;
   }
 }
 
 .ue-hero-fact-row {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  padding-bottom: 0.35rem;
+  gap: 0.2rem;
+  padding-bottom: 0.45rem;
   border-bottom: 1px dashed #EDE3D1;
 }
 
 .ue-hero-fact-label {
-  font-size: 0.7rem;
+  font-size: 0.685rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: #8C7563;
 }
 
 .ue-hero-fact-value {
-  font-size: 0.875rem;
+  font-size: 0.885rem;
   font-weight: 600;
   color: #2D1A10;
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .ue-hero-fact-value a {
@@ -263,14 +487,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.6rem 0.85rem;
+  padding: 0.55rem 0.95rem;
   margin-top: 1.25rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
   background: #FAF5EA;
   border: 1px solid #EBE0CE;
   border-radius: 0.75rem;
   gap: 1rem;
   flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(45, 26, 16, 0.02);
 }
 
 .ue-toolbar-group {
@@ -282,17 +507,17 @@
 .ue-toolbar-label {
   font-size: 0.675rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   color: #8C6239;
   text-transform: uppercase;
-  margin-right: 0.25rem;
+  margin-right: 0.35rem;
 }
 
 .ue-toolbar-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.7rem;
+  gap: 0.45rem;
+  padding: 0.38rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 700;
   color: #6B5544;
@@ -329,6 +554,59 @@
 
 .ue-toolbar-dot.off {
   background: #A0988E;
+}
+
+/* TIẾN ĐỘ ĐỌC TRÊN TOOLBAR */
+.ue-progress-track {
+  width: 120px;
+  height: 6px;
+  background: #EAE0CE;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.ue-progress-fill {
+  height: 100%;
+  background: #8C2D19;
+  transition: width 0.15s ease-out;
+}
+
+.ue-progress-text {
+  font-size: 0.725rem;
+  font-weight: 700;
+  color: #705946;
+}
+
+/* BỘ CHỈNH CỠ CHỮ */
+.ue-font-size-ctrl {
+  display: inline-flex;
+  align-items: center;
+  background: #FFFDF8;
+  border: 1px solid #E2D6C3;
+  border-radius: 0.5rem;
+  padding: 0.15rem 0.35rem;
+}
+
+.ue-size-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #7A624E;
+  padding: 0.2rem 0.45rem;
+  cursor: pointer;
+  border-radius: 0.3rem;
+  transition: all 0.15s ease;
+}
+
+.ue-size-btn:hover {
+  color: #8C2D19;
+  background: #FAF0E4;
+}
+
+.ue-size-btn.active {
+  background: #8C2D19;
+  color: #FFFDF8;
 }
 
 .focus-mode-btn {
@@ -368,7 +646,7 @@
   color: #8C2D19;
 }
 
-/* MINI DOCK TAB (KHI THU GỌN SIDEBAR) */
+/* MINI DOCK TAB */
 .ue-dock-col {
   min-width: 0;
   display: flex;
@@ -423,17 +701,17 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Chế độ 1: Cả 2 Sidebar đều mở (Default 3 cột) */
+/* Chế độ 1: Cả 2 Sidebar đều mở */
 @media (min-width: 1024px) {
   .ue-layout.ue-layout-with-both {
-    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-columns: 260px minmax(0, 1fr);
     gap: 2.25rem;
   }
 }
 
 @media (min-width: 1280px) {
   .ue-layout.ue-layout-with-both {
-    grid-template-columns: 240px minmax(0, 1fr) 260px;
+    grid-template-columns: 260px minmax(0, 1fr) 260px;
     gap: 2.5rem;
   }
   .ue-layout.ue-layout-with-both .ue-article-col {
@@ -441,17 +719,17 @@
   }
 }
 
-/* Chế độ 2: Chỉ mở Mục lục, Thu gọn Tiến trình */
+/* Chế độ 2: Chỉ mở Mục lục */
 @media (min-width: 1024px) {
   .ue-layout.ue-layout-toc-only {
-    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-columns: 260px minmax(0, 1fr);
     gap: 2.25rem;
   }
 }
 
 @media (min-width: 1280px) {
   .ue-layout.ue-layout-toc-only {
-    grid-template-columns: 240px minmax(0, 1fr) 44px;
+    grid-template-columns: 260px minmax(0, 1fr) 44px;
     gap: 2.5rem;
   }
   .ue-layout.ue-layout-toc-only .ue-article-col {
@@ -459,7 +737,7 @@
   }
 }
 
-/* Chế độ 3: Thu gọn Mục lục, Chỉ mở Tiến trình */
+/* Chế độ 3: Chỉ mở Tiến trình */
 @media (min-width: 1024px) {
   .ue-layout.ue-layout-timeline-only {
     grid-template-columns: 44px minmax(0, 1fr);
@@ -477,7 +755,7 @@
   }
 }
 
-/* Chế độ 4: Đọc toàn cảnh / Focus Mode (Thu gọn cả 2 Sidebar, bài đọc bung hết cỡ) */
+/* Chế độ 4: Đọc toàn cảnh */
 @media (min-width: 1024px) {
   .ue-layout.ue-layout-focus-mode {
     grid-template-columns: 1fr;
@@ -489,18 +767,9 @@
     width: 100%;
     margin: 0 auto;
   }
-  .ue-layout.ue-layout-focus-mode .ue-bio-blocks p {
-    font-size: 1.125rem;
-    line-height: 1.85;
-  }
-  .ue-layout.ue-layout-focus-mode .ue-bio-blocks blockquote {
-    font-size: 1.25rem;
-    padding: 1.5rem 2.25rem;
-    margin: 2rem 0;
-  }
 }
 
-/* FIXED EDGE DOCK TABS KHI Ở FOCUS MODE (GHIM SÁT MÉP MÀN HÌNH) */
+/* FIXED EDGE DOCK TABS KHI Ở FOCUS MODE */
 .ue-edge-dock-tab {
   position: fixed;
   top: 50%;
@@ -550,12 +819,6 @@
   letter-spacing: 0.12em;
 }
 
-.ue-article-col {
-  margin: 0 auto;
-  width: 100%;
-  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 /* CỘT TRÁI: STICKY TOC */
 .ue-toc-col {
   min-width: 0;
@@ -576,12 +839,18 @@
   justify-content: space-between;
   align-items: center;
   font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   color: #7A624E;
   margin-bottom: 1rem;
   padding-bottom: 0.65rem;
   border-bottom: 1px solid #F0E8D9;
+}
+
+.ue-toc-percent {
+  font-family: var(--font-merriweather), serif;
+  color: #8C2D19;
+  font-size: 0.875rem;
 }
 
 .ue-toc-list {
@@ -634,21 +903,52 @@
   color: #7A624E;
 }
 
-/* CỘT PHẢI: BÀI ĐỌC CHÍNH RỘNG RÃI */
+/* CỘT GIỮA: BÀI ĐỌC CHÍNH */
 .ue-article-col {
   min-width: 0;
   max-width: 880px;
+  margin: 0 auto;
+  width: 100%;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* TÙY BIẾN KÍCH THƯỚC CHỮ */
+.ue-text-size-sm .ue-bio-blocks {
+  font-size: 0.975rem;
+  line-height: 1.75;
+}
+
+.ue-text-size-md .ue-bio-blocks {
+  font-size: 1.08rem;
+  line-height: 1.85;
+}
+
+.ue-text-size-lg .ue-bio-blocks {
+  font-size: 1.2rem;
+  line-height: 1.95;
 }
 
 .ue-bio-blocks {
-  font-size: 1.08rem;
-  line-height: 1.82;
   color: #2D231A;
   font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
 }
 
+/* DROP-CAP CHO ĐOẠN VĂN ĐẦU TIÊN CỦA BÀI KHẢO CỨU */
+.ue-article-content > p:first-of-type::first-letter,
+.ue-bio-blocks > p:first-of-type::first-letter {
+  float: left;
+  font-size: 3.5rem;
+  line-height: 0.82;
+  padding-top: 4px;
+  padding-right: 12px;
+  padding-bottom: 2px;
+  font-family: var(--font-merriweather), var(--font-noto-serif), serif;
+  font-weight: 800;
+  color: #8C2D19;
+}
+
 .ue-bio-blocks h2 {
-  font-family: var(--font-playfair), var(--font-merriweather), var(--font-noto-serif), serif;
+  font-family: var(--font-merriweather), var(--font-noto-serif), var(--font-playfair), serif;
   font-size: 1.9rem;
   font-weight: 700;
   color: #2D1A10;
@@ -769,7 +1069,7 @@
 }
 
 .ue-kg-title {
-  font-family: var(--font-playfair), var(--font-merriweather), var(--font-noto-serif), serif;
+  font-family: var(--font-merriweather), var(--font-noto-serif), var(--font-playfair), serif;
   font-size: 1.6rem;
   font-weight: 700;
   color: #2D1A10;
@@ -837,17 +1137,6 @@
   font-size: 0.85rem;
   color: #6A5645;
   line-height: 1.45;
-}
-
-/* CINEMATIC TIMELINE STORYTELLING */
-.hisgo-cinematic-card {
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-}
-
-.hisgo-cinematic-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 20px 36px -6px rgba(15, 23, 42, 0.48);
-  border-color: rgba(197, 160, 89, 0.5) !important;
 }
 
 /* ==========================================================================
@@ -990,7 +1279,7 @@
 }
 
 /* ==========================================================================
-   4b. SỬ LIỆU & LIÊN KẾT THAM KHẢO (RESOURCE LINKS)
+   5. SỬ LIỆU & LIÊN KẾT THAM KHẢO (RESOURCE LINKS)
    ========================================================================== */
 .ue-resource-links {
   margin-top: 2.5rem;
@@ -1048,7 +1337,7 @@
 }
 
 /* ==========================================================================
-   5. ĐIỀU HƯỚNG LIÊN HOÀN CUỐI BÀI (BOTTOM NAV)
+   6. ĐIỀU HƯỚNG LIÊN HOÀN CUỐI BÀI (BOTTOM NAV)
    ========================================================================== */
 .ue-bottom-nav {
   display: grid;

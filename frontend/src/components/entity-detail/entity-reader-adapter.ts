@@ -37,6 +37,7 @@ export interface EntityReaderModel {
   id: string;
   slug: string;
   name: string;
+  hanziName: string | null;
   type: string;
   strategy: EntityTypeConfig;
   tagline: string | null;
@@ -64,6 +65,11 @@ function formatYear(year: number): string {
   return year < 0 ? `${Math.abs(year)} TCN` : `${year}`;
 }
 
+export function cleanPeriodName(name: string | null | undefined): string {
+  if (!name) return '';
+  return name.replace(/^dòng thời gian\s+/i, '').trim();
+}
+
 export function buildEntityDateLabel(entity: PublicEntityDetailDto): string {
   if (entity.dateText) return entity.dateText;
   if (entity.startYear != null && entity.endYear != null) {
@@ -82,6 +88,20 @@ function wordCount(...texts: Array<string | null | undefined>): number {
   return texts.reduce((n, t) => n + (t ? t.trim().split(/\s+/).length : 0), 0);
 }
 
+function extractHanziName(text: string | null | undefined): string | null {
+  if (!text) return null;
+  // Bắt mẫu chữ Hán: 黎太祖 hoặc 黎利
+  const hanziRegex = /(?:chữ Hán:\s*([\u4e00-\u9fa5]+)|huý là[^(]*\(([\u4e00-\u9fa5]+)\))/i;
+  const match = text.match(hanziRegex);
+  if (match) {
+    return match[1] || match[2] || null;
+  }
+  // Mẫu chữ Hán bất kỳ trong ngoặc
+  const generalHanzi = /\(([\u4e00-\u9fa5]{1,6})\)/;
+  const generalMatch = text.match(generalHanzi);
+  return generalMatch ? generalMatch[1] : null;
+}
+
 function extractQuickStats(
   entity: PublicEntityDetailDto,
   strategy: EntityTypeConfig,
@@ -92,14 +112,75 @@ function extractQuickStats(
   const meta = (entity.metadata || {}) as Record<string, any>;
   const desc = (entity.description || '') + ' ' + (entity.tagline || '');
 
-  if (entity.type === 'DYNASTY') {
+  if (entity.type === 'PERSON') {
+    // 1. Tuổi hưởng thọ (nếu là nhân vật lịch sử)
+    if (entity.startYear != null && entity.endYear != null) {
+      const diff = Math.abs(entity.endYear - entity.startYear);
+      stats.push({
+        id: 'stat-lifespan',
+        value: `${diff} ${strategy.lifespanUnit}`,
+        label: strategy.lifespanLabel,
+      });
+    }
+
+    // 2. Thời gian tại vị / tước hiệu chính nếu có
+    if (entity.titles && entity.titles.length > 0) {
+      const matchReign = entity.titles[0].match(/(\d+\s*năm(?:\s*,\s*\d+\s*ngày)?)/i);
+      if (matchReign) {
+        stats.push({
+          id: 'stat-reign-time',
+          value: matchReign[1],
+          label: 'Thời gian tại vị',
+        });
+      }
+    }
+
+    // 3. Số đề mục tư liệu khảo cứu
+    if (blocks.length > 0) {
+      stats.push({
+        id: 'stat-topics',
+        value: `${blocks.length} đề mục`,
+        label: 'Tư liệu khảo cứu',
+      });
+    }
+
+    // 4. Triều đại / Thời đại
+    if (entity.period?.name) {
+      stats.push({
+        id: 'stat-period',
+        value: cleanPeriodName(entity.period.name),
+        label: 'Vương triều / Thời đại',
+      });
+    }
+
+    // 5. Vai trò / Vị thế lịch sử (hoặc Lãnh thổ) để đảm bảo thẻ chỉ số luôn tròn 4 ô cân đối
+    if (entity.roles && entity.roles.length > 0) {
+      stats.push({
+        id: 'stat-role',
+        value: entity.roles[0],
+        label: 'Vị thế lịch sử',
+      });
+    } else if (entity.occupation) {
+      stats.push({
+        id: 'stat-occupation',
+        value: entity.occupation,
+        label: 'Chức vụ / Sự nghiệp',
+      });
+    } else if (entity.period?.region) {
+      stats.push({
+        id: 'stat-region',
+        value: entity.period.region,
+        label: 'Không gian / Lãnh thổ',
+      });
+    }
+  } else if (entity.type === 'DYNASTY') {
     // 1. Số năm trị vì
     if (entity.startYear != null && entity.endYear != null) {
       const years = Math.abs(entity.endYear - entity.startYear);
       stats.push({
         id: 'stat-reign-years',
         value: `${years} năm`,
-        label: 'Trị vì độc lập',
+        label: strategy.lifespanLabel || 'Trị vì độc lập',
       });
     }
 
@@ -147,7 +228,7 @@ function extractQuickStats(
     // 4. Quốc hiệu
     const nationalName =
       meta.nationalName ||
-      entity.aliases.find((a) =>
+      entity.aliases?.find((a) =>
         /đại việt|đại cồ việt|đại ngu|văn lang|âu lạc/i.test(a),
       ) ||
       'Đại Việt';
@@ -157,13 +238,13 @@ function extractQuickStats(
       label: 'Quốc hiệu rạng danh',
     });
   } else {
-    // Tự động xây dựng cho các thực thể khác
+    // Tự động xây dựng cho các thực thể khác (LOCATION, EVENT, ARTIFACT, ...)
     if (entity.startYear != null && entity.endYear != null) {
       const diff = Math.abs(entity.endYear - entity.startYear);
       stats.push({
         id: 'stat-duration',
-        value: `${diff} năm`,
-        label: 'Thời gian tồn tại',
+        value: `${diff} ${strategy.lifespanUnit}`,
+        label: strategy.lifespanLabel,
       });
     } else if (dateLabel && dateLabel !== 'Chưa rõ niên đại') {
       stats.push({
@@ -176,7 +257,7 @@ function extractQuickStats(
     if (entity.period?.name) {
       stats.push({
         id: 'stat-period',
-        value: entity.period.name,
+        value: cleanPeriodName(entity.period.name),
         label: 'Thời kỳ lịch sử',
       });
     }
@@ -235,7 +316,7 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
     facts.push({
       id: 'entity-period',
       label: 'Thời kỳ lịch sử',
-      value: entity.period.name,
+      value: cleanPeriodName(entity.period.name),
       href: `/giai-doan/${entity.period.slug}`,
     });
   }
@@ -264,7 +345,10 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
       facts.push({ id: 'entity-occupation', label: 'Nghề nghiệp / Chức vụ', value: entity.occupation });
     }
     if (entity.titles && entity.titles.length > 0) {
-      facts.push({ id: 'entity-titles', label: 'Tước hiệu', value: entity.titles.join(', ') });
+      const formattedTitles = entity.titles.map((t) =>
+        t.replace(/\((\d+)/g, ' ($1').replace(/\s*–\s*/g, ' – ')
+      );
+      facts.push({ id: 'entity-titles', label: 'Tước hiệu', value: formattedTitles.join(', ') });
     }
   }
 
@@ -341,16 +425,22 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
       }
     : null;
 
+  const hanziName =
+    extractHanziName(entity.name) ||
+    extractHanziName(entity.description) ||
+    extractHanziName(entity.tagline);
+
   return {
     id: entity.id,
     slug: entity.slug,
     name: entity.name,
+    hanziName,
     type: entity.type,
     strategy,
     tagline: entity.tagline,
     description: entity.description,
     dateLabel,
-    periodName: entity.period?.name ?? null,
+    periodName: entity.period?.name ? cleanPeriodName(entity.period.name) : null,
     periodHref: entity.period ? `/giai-doan/${entity.period.slug}` : null,
     periodRegion: entity.period?.region ?? null,
     imageUrl: entity.imageUrl,

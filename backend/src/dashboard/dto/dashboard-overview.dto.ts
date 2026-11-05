@@ -2,8 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ContentStatus } from '@prisma/client';
 
 export class DashboardCountsDto {
-  @ApiProperty({ description: 'Tổng số giai đoạn lịch sử', example: 12 })
-  periodsCount: number;
+  @ApiProperty({ description: 'Tổng số bài viết', example: 120 })
+  articlesCount: number;
 
   @ApiProperty({ description: 'Tổng số chủ đề', example: 48 })
   topicsCount: number;
@@ -14,8 +14,8 @@ export class DashboardCountsDto {
   @ApiProperty({ description: 'Số bài học đang chờ duyệt', example: 8 })
   pendingLessonsCount: number;
 
-  @ApiProperty({ description: 'Tổng số sự kiện lịch sử', example: 64 })
-  historicalEventsCount: number;
+  @ApiProperty({ description: 'Tổng số dòng thời gian', example: 8 })
+  timelinesCount: number;
 
   @ApiProperty({ description: 'Tổng số đơn vị tri thức', example: 250 })
   totalKnowledgeCount: number;
@@ -28,8 +28,8 @@ export class RecentActivityItemDto {
   @ApiProperty({ description: 'Tiêu đề nội dung' })
   title: string;
 
-  @ApiProperty({ description: 'Phân loại nội dung', enum: ['LESSON', 'TOPIC', 'PERIOD'] })
-  type: 'LESSON' | 'TOPIC' | 'PERIOD';
+  @ApiProperty({ description: 'Phân loại nội dung', enum: ['LESSON', 'TOPIC', 'ARTICLE'] })
+  type: 'LESSON' | 'TOPIC' | 'ARTICLE';
 
   @ApiProperty({ description: 'Trạng thái nội dung' })
   status: ContentStatus | string;

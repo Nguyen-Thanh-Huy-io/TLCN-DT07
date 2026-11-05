@@ -11,7 +11,6 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 describe('Topic E2E Integration Tests', () => {
   let app: INestApplication;
-  let testPeriodId: string;
   let createdTopicId: string;
 
   const mockEmailQueueService = {
@@ -55,36 +54,20 @@ describe('Topic E2E Integration Tests', () => {
     );
 
     await app.init();
-
-    // 1. Tạo 1 Period mẫu để làm khóa ngoại cho Topic
-    const periodRes = await request(app.getHttpServer())
-      .post('/periods')
-      .send({
-        name: `Period Cho Topic Test ${Date.now()}`,
-        region: 'Việt Nam',
-        startYear: 40,
-        endYear: 43,
-        status: 'PUBLISHED',
-      });
-
-    testPeriodId = periodRes.body.data.id;
   });
 
   afterAll(async () => {
     if (createdTopicId) {
       await request(app.getHttpServer()).delete(`/topics/${createdTopicId}`);
     }
-    if (testPeriodId) {
-      await request(app.getHttpServer()).delete(`/periods/${testPeriodId}`);
-    }
     await app.close();
   });
 
   describe('1. POST /topics - Tạo mới Topic', () => {
-    it('thất bại với 404 nếu periodId không tồn tại', async () => {
+    it('thất bại với 404 nếu parentId không tồn tại', async () => {
       const res = await request(app.getHttpServer()).post('/topics').send({
-        periodId: 'a0000000-0000-4000-8000-000000000000',
-        name: 'Chủ đề không có giai đoạn',
+        parentId: 'a0000000-0000-4000-8000-000000000000',
+        name: 'Chủ đề có cha không tồn tại',
       });
 
       expect(res.status).toBe(404);
@@ -94,7 +77,6 @@ describe('Topic E2E Integration Tests', () => {
       const res = await request(app.getHttpServer())
         .post('/topics')
         .send({
-          periodId: testPeriodId,
           name: `Khởi nghĩa Trưng Nữ Vương ${Date.now()}`,
           description: 'Cuộc khởi nghĩa đánh đuổi Thái thú Tô Định',
           isSequential: true,
@@ -105,12 +87,11 @@ describe('Topic E2E Integration Tests', () => {
       expect(res.status).toBe(201);
       expect(res.body.statusCode).toBe(201);
       expect(res.body.data.id).toBeDefined();
-      expect(res.body.data.periodId).toBe(testPeriodId);
       createdTopicId = res.body.data.id;
     });
   });
 
-  describe('2. Phân cấp Chủ đề Cha - Con & Giai đoạn tùy chọn (Composite Pattern)', () => {
+  describe('2. Phân cấp Chủ đề Cha - Con (Composite Pattern)', () => {
     let parentTopicId: string;
     let childTopicId: string;
 
@@ -123,7 +104,7 @@ describe('Topic E2E Integration Tests', () => {
       }
     });
 
-    it('tạo thành công chủ đề gốc KHÔNG CẦN periodId (Optional Period)', async () => {
+    it('tạo thành công chủ đề gốc (không có parentId)', async () => {
       const res = await request(app.getHttpServer())
         .post('/topics')
         .send({
@@ -133,7 +114,6 @@ describe('Topic E2E Integration Tests', () => {
 
       expect(res.status).toBe(201);
       expect(res.body.data.id).toBeDefined();
-      expect(res.body.data.periodId).toBeNull();
       expect(res.body.data.parentId).toBeNull();
       parentTopicId = res.body.data.id;
     });
@@ -180,9 +160,9 @@ describe('Topic E2E Integration Tests', () => {
   });
 
   describe('3. GET /topics - Danh sách Topics', () => {
-    it('lấy danh sách chủ đề theo periodId', async () => {
+    it('lấy danh sách chủ đề', async () => {
       const res = await request(app.getHttpServer())
-        .get(`/topics?periodId=${testPeriodId}`)
+        .get(`/topics`)
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);

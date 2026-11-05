@@ -11,8 +11,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 describe('Tag E2E Integration Tests', () => {
   let app: INestApplication;
-  let createdPeriodId: string;
-  let createdTopicId: string;
+  let createdTopicId: string | undefined;
   let createdLessonId: string;
   let createdTagId: string;
 
@@ -77,9 +76,6 @@ describe('Tag E2E Integration Tests', () => {
     }
     if (createdTopicId) {
       await request(app.getHttpServer()).delete(`/topics/${createdTopicId}`);
-    }
-    if (createdPeriodId) {
-      await request(app.getHttpServer()).delete(`/periods/${createdPeriodId}`);
     }
     await app.close();
   });

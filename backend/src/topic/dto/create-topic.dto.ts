@@ -41,13 +41,6 @@ export class CreateTopicDto {
   @IsOptional()
   isFeatured?: boolean;
 
-  @ApiPropertyOptional({
-    example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-    description: 'ID của Giai đoạn lịch sử (để trống nếu là chủ đề chuyên đề phi giai đoạn)',
-  })
-  @IsUUID('4', { message: 'periodId phải là UUID hợp lệ' })
-  @IsOptional()
-  periodId?: string;
 
   @ApiPropertyOptional({
     example: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',

@@ -71,7 +71,7 @@ describe('Dashboard E2E Integration Tests', () => {
       // Kiểm tra cấu trúc counts
       const counts = res.body.data.counts;
       expect(counts).toBeDefined();
-      expect(typeof counts.periodsCount).toBe('number');
+      expect(typeof counts.articlesCount).toBe('number');
       expect(typeof counts.topicsCount).toBe('number');
       expect(typeof counts.lessonsCount).toBe('number');
       expect(typeof counts.pendingLessonsCount).toBe('number');

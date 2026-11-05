@@ -6,7 +6,8 @@ import {
   Patch,
   Param,
   Delete,
-  Query,  HttpStatus,
+  Query,
+  HttpStatus,
   HttpCode,
 } from '@nestjs/common';
 import {
@@ -59,7 +60,7 @@ export class TopicController {
   @ApiOperation({
     summary: 'Lấy danh sách các chủ đề lịch sử',
     description:
-      'Hỗ trợ phân trang, lọc theo periodId, status và tìm kiếm từ khóa.',
+      'Hỗ trợ phân trang, lọc theo status và tìm kiếm từ khóa.',
   })
   @ApiResponse({
     status: HttpStatus.OK,

@@ -12,13 +12,6 @@ import { Type } from 'class-transformer';
 import { ContentStatus, LearningPathType } from '@prisma/client';
 
 export class QueryTopicDto {
-  @ApiPropertyOptional({
-    example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-    description: 'Lọc chủ đề theo ID của Giai đoạn lịch sử (UUID)',
-  })
-  @IsUUID('4')
-  @IsOptional()
-  periodId?: string;
 
   @ApiPropertyOptional({
     example: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',

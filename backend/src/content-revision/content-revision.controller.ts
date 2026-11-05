@@ -24,7 +24,7 @@ export class ContentRevisionController {
 
   @Get(REVISION_ROUTES.CONTENT)
   @RequireRoles(...ROLE_GROUPS.STAFF)
-  @ApiOperation({ summary: 'Lịch sử phiên bản của một nội dung (LESSON | EVENT | ENTITY)' })
+  @ApiOperation({ summary: 'Lịch sử phiên bản của một nội dung (LESSON | ARTICLE | TOPIC | LEARNING_PATH | CHAPTER)' })
   history(@Param('type') type: string, @Param('id') id: string) {
     return this.revisions.history(type.toUpperCase(), id);
   }

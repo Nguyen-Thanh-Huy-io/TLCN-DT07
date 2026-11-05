@@ -1,199 +1,81 @@
-import { Controller, Get, HttpStatus, Param, Query } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { LandingContentFacade } from './landing-content.facade';
-import {
-  LandingResponseDto,
-  PublicEntityDetailDto,
-  PublicEventDetailDto,
-  PublicEventSummaryDto,
-  PublicLibraryLessonDto,
-  PublicFigureDetailDto,
-  PublicFigureDto,
-  PublicFigureProfileDto,
-  PublicLocationDetailDto,
-  PublicLocationSummaryDto,
-  PublicPeriodDetailDto,
-  PublicPeriodDto,
-  PublicTopicDetailDto,
-  PublicTopicDto,
-  QueryPublicTopicsDto,
-} from './dto/public-content.dto';
-import { PUBLIC_CONTENT_ROUTES } from './public-content.constant';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { PublicContentService } from './public-content.service';
 
-@ApiTags('Public Content - Nội dung Công khai (Landing Page & Detail Reader)')
-@Controller(PUBLIC_CONTENT_ROUTES.ROOT)
+/** API công khai (không cần đăng nhập) — chỉ trả nội dung đã xuất bản. */
+@ApiTags('Public Content (Trang công khai)')
+@Controller('public')
 export class PublicContentController {
-  constructor(private readonly facade: LandingContentFacade) {}
+  constructor(private readonly service: PublicContentService) {}
 
-  @Get(PUBLIC_CONTENT_ROUTES.LANDING)
-  @ApiOperation({
-    summary: 'Lấy toàn bộ dữ liệu hiển thị cho Landing Page',
-    description:
-      'Endpoint công khai không cần đăng nhập, chỉ trả về nội dung đã xuất bản (PUBLISHED).',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: LandingResponseDto,
-  })
-  getLanding(): Promise<LandingResponseDto> {
-    return this.facade.getLanding();
+  @Get('categories')
+  @ApiOperation({ summary: 'Chuyên mục kèm số bài đã xuất bản' })
+  getCategories() {
+    return this.service.getCategories();
   }
 
-  @Get(PUBLIC_CONTENT_ROUTES.PERIODS)
-  @ApiOperation({
-    summary: 'Lấy danh sách giai đoạn lịch sử công khai',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: [PublicPeriodDto],
-  })
-  getPeriods(): Promise<PublicPeriodDto[]> {
-    return this.facade.getPeriods();
+  @Get('categories/:slug')
+  @ApiOperation({ summary: 'Chuyên mục + bài viết (gồm cả chuyên mục con trực tiếp)' })
+  getCategory(@Param('slug') slug: string) {
+    return this.service.getCategoryBySlug(slug);
   }
 
-  @Get(PUBLIC_CONTENT_ROUTES.PERIOD_DETAIL)
-  @ApiOperation({
-    summary:
-      'Lấy chi tiết giai đoạn lịch sử theo slug kèm chuyên đề, sự kiện & nhân vật',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: PublicPeriodDetailDto,
-  })
-  getPeriodBySlug(@Param('slug') slug: string): Promise<PublicPeriodDetailDto> {
-    return this.facade.getPeriodBySlug(slug);
+  @Get('articles')
+  @ApiOperation({ summary: 'Danh sách bài viết (lọc chuyên mục / tag / từ khoá / nổi bật)' })
+  @ApiQuery({ name: 'category', required: false, description: 'slug chuyên mục' })
+  @ApiQuery({ name: 'tag', required: false, description: 'id tag' })
+  @ApiQuery({ name: 'q', required: false })
+  @ApiQuery({ name: 'featured', required: false, type: Boolean })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  getArticles(
+    @Query('category') category?: string,
+    @Query('tag') tag?: string,
+    @Query('q') q?: string,
+    @Query('featured') featured?: string,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+  ) {
+    return this.service.getArticles({
+      category,
+      tag,
+      q,
+      featured: featured === 'true',
+      limit: limit ? Math.min(limit, 200) : undefined,
+    });
   }
 
-  @Get(PUBLIC_CONTENT_ROUTES.FIGURES)
-  @ApiOperation({
-    summary: 'Lấy danh sách nhân vật lịch sử tiêu biểu công khai',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: [PublicFigureDto],
-  })
-  getFigures(): Promise<PublicFigureDto[]> {
-    return this.facade.getFigures();
+  @Get('articles/:slug')
+  @ApiOperation({ summary: 'Chi tiết bài viết + bài liên quan + bài trước/sau + dòng thời gian chứa bài' })
+  getArticle(@Param('slug') slug: string) {
+    return this.service.getArticleBySlug(slug);
   }
 
-  @Get(PUBLIC_CONTENT_ROUTES.FIGURE_DIRECTORY)
-  @ApiOperation({
-    summary:
-      'Danh bạ nhân vật: toàn bộ nhân vật kèm sự kiện tham gia & quan hệ',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: [PublicFigureProfileDto],
-  })
-  getFigureDirectory(): Promise<PublicFigureProfileDto[]> {
-    return this.facade.getFigureDirectory();
+  @Get('timelines')
+  @ApiOperation({ summary: 'Mọi dòng thời gian đã xuất bản kèm mốc' })
+  getTimelines() {
+    return this.service.getTimelines();
   }
 
-  @Get(PUBLIC_CONTENT_ROUTES.FIGURE_DETAIL)
-  @ApiOperation({
-    summary:
-      'Lấy chi tiết nhân vật / thực thể lịch sử theo slug kèm sự kiện & bài học liên quan',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: PublicFigureDetailDto,
-  })
-  getFigureBySlug(@Param('slug') slug: string): Promise<PublicFigureDetailDto> {
-    return this.facade.getFigureBySlug(slug);
+  @Get('timelines/:slug')
+  @ApiOperation({ summary: 'Một dòng thời gian kèm mốc' })
+  getTimeline(@Param('slug') slug: string) {
+    return this.service.getTimelineBySlug(slug);
   }
 
-  @Get(PUBLIC_CONTENT_ROUTES.TOPICS)
-  @ApiOperation({
-    summary: 'Lấy danh sách chủ đề công khai theo từng section landing',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: [PublicTopicDto],
-  })
-  getTopics(@Query() query: QueryPublicTopicsDto): Promise<PublicTopicDto[]> {
-    return this.facade.getSection(query.section);
+  @Get('tags')
+  @ApiOperation({ summary: 'Tag có bài viết đã xuất bản' })
+  getTags() {
+    return this.service.getTags();
   }
 
-  @Get(PUBLIC_CONTENT_ROUTES.TOPIC_DETAIL)
-  @ApiOperation({
-    summary:
-      'Lấy chi tiết chương sử / chủ đề kiến thức theo slug kèm bài học & sự kiện',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: PublicTopicDetailDto,
-  })
-  getTopicBySlug(@Param('slug') slug: string): Promise<PublicTopicDetailDto> {
-    return this.facade.getTopicBySlug(slug);
+  @Get('lessons')
+  @ApiOperation({ summary: 'Thư viện bài học đã xuất bản' })
+  getLessons() {
+    return this.service.getLibraryLessons();
   }
 
-  @Get(PUBLIC_CONTENT_ROUTES.LOCATIONS)
-  @ApiOperation({
-    summary: 'Lấy danh sách di tích / địa danh lịch sử công khai',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: [PublicLocationSummaryDto],
-  })
-  getLocations(): Promise<PublicLocationSummaryDto[]> {
-    return this.facade.getLocations();
-  }
-
-  @Get(PUBLIC_CONTENT_ROUTES.LOCATION_DETAIL)
-  @ApiOperation({
-    summary: 'Chi tiết di tích: sự kiện, nhân vật, ảnh và di tích lân cận',
-  })
-  @ApiResponse({ status: HttpStatus.OK, type: PublicLocationDetailDto })
-  getLocationBySlug(
-    @Param('slug') slug: string,
-  ): Promise<PublicLocationDetailDto> {
-    return this.facade.getLocationBySlug(slug);
-  }
-
-  @Get(PUBLIC_CONTENT_ROUTES.EVENTS)
-  @ApiOperation({
-    summary: 'Lấy danh sách sự kiện lịch sử công khai theo mốc thời gian',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: [PublicEventSummaryDto],
-  })
-  getEvents(): Promise<PublicEventSummaryDto[]> {
-    return this.facade.getEvents();
-  }
-
-  @Get(PUBLIC_CONTENT_ROUTES.LESSONS)
-  @ApiOperation({
-    summary: 'Thư viện bài học đã xuất bản (không kèm nội dung bài)',
-  })
-  @ApiResponse({ status: HttpStatus.OK, type: [PublicLibraryLessonDto] })
-  getLibraryLessons(): Promise<PublicLibraryLessonDto[]> {
-    return this.facade.getLibraryLessons();
-  }
-
-  @Get(PUBLIC_CONTENT_ROUTES.EVENT_DETAIL)
-  @ApiOperation({
-    summary:
-      'Lấy chi tiết sự kiện lịch sử theo slug kèm sự kiện cha/con & sự kiện liên quan',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: PublicEventDetailDto,
-  })
-  getEventBySlug(@Param('slug') slug: string): Promise<PublicEventDetailDto> {
-    return this.facade.getEventBySlug(slug);
-  }
-
-  @Get(PUBLIC_CONTENT_ROUTES.ENTITY_DETAIL)
-  @ApiOperation({
-    summary:
-      'Lấy chi tiết thực thể lịch sử (Triều đại, Hiện vật, Tổ chức...) theo slug kèm contentBlocks JSONB & statements',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: PublicEntityDetailDto,
-  })
-  getEntityBySlug(@Param('slug') slug: string): Promise<PublicEntityDetailDto> {
-    return this.facade.getEntityBySlug(slug);
+  @Get('topics/:slug')
+  @ApiOperation({ summary: 'Chủ đề + chủ đề con đã xuất bản' })
+  getTopic(@Param('slug') slug: string) {
+    return this.service.getTopicBySlug(slug);
   }
 }

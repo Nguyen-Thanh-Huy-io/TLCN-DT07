@@ -8,7 +8,7 @@ import {
   PendingLessonItemDto,
 } from './dto/dashboard-overview.dto';
 
-/** Chủ đề / giai đoạn chưa lưu người tạo; bài học tạo trước khi có cột created_by. */
+/** Chủ đề chưa lưu người tạo; bài học tạo trước khi có cột created_by. */
 const UNKNOWN_AUTHOR = '—';
 const NOT_IN_PATH = 'Chưa gắn vào lộ trình nào';
 
@@ -26,26 +26,26 @@ export class DashboardService {
     this.logger.log('Fetching CMS dashboard overview statistics', 'DashboardService');
 
     const [
-      periodsCount,
+      articlesCount,
       topicsCount,
       lessonsCount,
       pendingLessonsCount,
-      historicalEventsCount,
+      timelinesCount,
       publishedLessons,
       draftLessons,
       archivedLessons,
       recentLessons,
       recentTopics,
-      recentPeriods,
+      recentArticles,
       pendingLessonsRaw,
     ] = await Promise.all([
-      this.prisma.period.count(),
+      this.prisma.article.count(),
       this.prisma.topic.count(),
       this.prisma.lesson.count(),
       this.prisma.lesson.count({
         where: { status: LessonStatus.REVIEW },
       }),
-      this.prisma.historicalEvent.count(),
+      this.prisma.timeline.count(),
       this.prisma.lesson.count({
         where: { status: LessonStatus.PUBLISHED },
       }),
@@ -63,9 +63,10 @@ export class DashboardService {
         take: 3,
         orderBy: { updatedAt: 'desc' },
       }),
-      this.prisma.period.findMany({
-        take: 3,
+      this.prisma.article.findMany({
+        take: 5,
         orderBy: { updatedAt: 'desc' },
+        select: { id: true, title: true, status: true, createdBy: true, updatedAt: true },
       }),
       this.prisma.lesson.findMany({
         where: { status: LessonStatus.REVIEW },
@@ -83,7 +84,7 @@ export class DashboardService {
     ]);
 
     // Tên người soạn thật (lesson.createdBy là id tài khoản) — chỉ bài học có cột này.
-    const authorIds = [...new Set([...recentLessons, ...pendingLessonsRaw].map((l) => l.createdBy).filter((id): id is string => Boolean(id)))];
+    const authorIds = [...new Set([...recentLessons, ...pendingLessonsRaw, ...recentArticles].map((l) => l.createdBy).filter((id): id is string => Boolean(id)))];
     const authors = await this.prisma.authUser.findMany({
       where: { id: { in: authorIds } },
       select: { id: true, username: true, userProfile: { select: { firstName: true, lastName: true } } },
@@ -115,14 +116,14 @@ export class DashboardService {
         updatedAt: t.updatedAt,
         route: `/topics?highlight=${t.id}`,
       })),
-      ...recentPeriods.map((p) => ({
-        id: p.id,
-        title: p.name,
-        type: 'PERIOD' as const,
-        status: p.status,
-        authorName: UNKNOWN_AUTHOR,
-        updatedAt: p.updatedAt,
-        route: `/periods?highlight=${p.id}`,
+      ...recentArticles.map((a) => ({
+        id: a.id,
+        title: a.title,
+        type: 'ARTICLE' as const,
+        status: a.status,
+        authorName: authorName(a.createdBy),
+        updatedAt: a.updatedAt,
+        route: `/articles/${a.id}`,
       })),
     ];
 
@@ -147,13 +148,12 @@ export class DashboardService {
 
     return {
       counts: {
-        periodsCount,
+        articlesCount,
         topicsCount,
         lessonsCount,
         pendingLessonsCount,
-        historicalEventsCount,
-        totalKnowledgeCount:
-          periodsCount + topicsCount + lessonsCount + historicalEventsCount,
+        timelinesCount,
+        totalKnowledgeCount: articlesCount + topicsCount + lessonsCount + timelinesCount,
       },
       recentActivities,
       pendingLessons,

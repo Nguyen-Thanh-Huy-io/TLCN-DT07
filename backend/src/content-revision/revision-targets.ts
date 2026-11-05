@@ -1,10 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { HistoricalEntityService } from '../historical-entity/historical-entity.service';
-import { HistoricalEventService } from '../historical-event/historical-event.service';
+import { ArticleService } from '../article/article.service';
 import { LessonService } from '../lesson/lesson.service';
 import { LearningPathService } from '../learning-path/learning-path.service';
-import { PeriodService } from '../period/period.service';
 import { TopicService } from '../topic/topic.service';
 import { PrismaService } from '../common/services/prisma.service';
 import {
@@ -72,59 +70,10 @@ export class RevisionTargets {
         };
       },
     },
-    EVENT: {
-      load: (id) => this.svc(HistoricalEventService).findOne(id) as Promise<Detail>,
+    ARTICLE: this.simple('ARTICLE', {
+      load: (id) => this.svc(ArticleService).findOne(id) as Promise<Detail>,
       title: (d) => d.title,
-      status: (d) => d.status,
-      toPayload: (d) =>
-        pickFields('EVENT', {
-          ...d,
-          locationId: d.locationId ?? null,
-          entityRelations: (d.entities ?? []).map((e: Detail, i: number) => ({
-            entityId: e.entityId,
-            role: e.role,
-            roleLabel: e.roleLabel ?? null,
-            isPrimary: Boolean(e.isPrimary),
-            displayOrder: e.displayOrder ?? i,
-            notes: e.notes ?? null,
-          })),
-          media: (d.media ?? []).map((m: Detail, i: number) => ({
-            type: m.type,
-            url: m.url,
-            caption: m.caption ?? null,
-            displayOrder: m.displayOrder ?? i + 1,
-          })),
-        }),
-      apply: (id, p) => this.svc(HistoricalEventService).update(id, p as any),
-      overlay: (d, p) => {
-        const known = new Map((d.entities ?? []).map((e: Detail) => [e.entityId, e]));
-        const relations = (p.entityRelations as Detail[] | undefined) ?? undefined;
-        return {
-          ...d,
-          ...p,
-          ...(relations
-            ? {
-                entities: relations.map((r) => ({
-                  ...(known.get(r.entityId) ?? {}),
-                  ...r,
-                })),
-              }
-            : {}),
-        };
-      },
-    },
-    ENTITY: {
-      load: (id) => this.svc(HistoricalEntityService).findOne(id) as Promise<Detail>,
-      title: (d) => d.name,
-      status: (d) => d.status,
-      toPayload: (d) => pickFields('ENTITY', d),
-      apply: (id, p) => this.svc(HistoricalEntityService).update(id, p as any),
-      overlay: (d, p) => ({ ...d, ...p }),
-    },
-    PERIOD: this.simple('PERIOD', {
-      load: (id) => this.svc(PeriodService).findOne(id) as Promise<Detail>,
-      title: (d) => d.name,
-      apply: (id, p) => this.svc(PeriodService).update(id, p as any),
+      apply: (id, p) => this.svc(ArticleService).update(id, p as any),
     }),
     TOPIC: this.simple('TOPIC', {
       load: (id) => this.svc(TopicService).findOne(id) as Promise<Detail>,

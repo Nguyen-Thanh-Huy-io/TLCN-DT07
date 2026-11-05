@@ -52,7 +52,7 @@ describe('ContentRevisionService', () => {
   });
 
   it('biên tập viên sửa nội dung đang xuất bản: lưu bản sửa, bản công khai giữ nguyên', async () => {
-    const res = await service.propose('EVENT', 'ev-1', { summary: 'Bản sửa', status: 'DRAFT' }, 'editor');
+    const res = await service.propose('ARTICLE', 'ev-1', { summary: 'Bản sửa', status: 'DRAFT' }, 'editor');
 
     expect(res.revisionPending).toBe(true);
     expect(res.revision).toMatchObject({ kind: 'PROPOSAL', status: 'PENDING', version: 2 });
@@ -63,8 +63,8 @@ describe('ContentRevisionService', () => {
   });
 
   it('sửa tiếp khi đã có bản chờ thì ghi đè đúng bản đó (tối đa một bản mở)', async () => {
-    const first = await service.propose('EVENT', 'ev-1', { summary: 'Lần 1' }, 'editor');
-    const second = await service.propose('EVENT', 'ev-1', { summary: 'Lần 2' }, 'editor-2');
+    const first = await service.propose('ARTICLE', 'ev-1', { summary: 'Lần 1' }, 'editor');
+    const second = await service.propose('ARTICLE', 'ev-1', { summary: 'Lần 2' }, 'editor-2');
 
     expect(second.revision.id).toBe(first.revision.id);
     expect(prisma.rows.filter((r) => r.kind === 'PROPOSAL')).toHaveLength(1);
@@ -72,7 +72,7 @@ describe('ContentRevisionService', () => {
   });
 
   it('duyệt: chụp bản cũ vào lịch sử rồi áp dụng bản sửa', async () => {
-    const { revision } = await service.propose('EVENT', 'ev-1', { summary: 'Bản sửa' }, 'editor');
+    const { revision } = await service.propose('ARTICLE', 'ev-1', { summary: 'Bản sửa' }, 'editor');
 
     const approved = await service.approve(revision.id, 'reviewer');
 
@@ -84,7 +84,7 @@ describe('ContentRevisionService', () => {
   });
 
   it('duyệt chỉ áp dụng trường biên tập viên đã đổi, không ghi đè sửa trực tiếp của người duyệt', async () => {
-    const { revision } = await service.propose('EVENT', 'ev-1', { summary: 'Bản sửa' }, 'editor');
+    const { revision } = await service.propose('ARTICLE', 'ev-1', { summary: 'Bản sửa' }, 'editor');
     // Người duyệt sửa thẳng tiêu đề trong lúc bản sửa đang chờ.
     live.title = 'Trận Bạch Đằng năm 938';
 
@@ -97,12 +97,12 @@ describe('ContentRevisionService', () => {
   });
 
   it('không được tự duyệt bản sửa của chính mình', async () => {
-    const { revision } = await service.propose('EVENT', 'ev-1', { summary: 'x' }, 'same-user');
+    const { revision } = await service.propose('ARTICLE', 'ev-1', { summary: 'x' }, 'same-user');
     await expect(service.approve(revision.id, 'same-user')).rejects.toThrow(ForbiddenException);
   });
 
   it('từ chối bắt buộc có lý do và không đụng nội dung', async () => {
-    const { revision } = await service.propose('EVENT', 'ev-1', { summary: 'x' }, 'editor');
+    const { revision } = await service.propose('ARTICLE', 'ev-1', { summary: 'x' }, 'editor');
     await expect(service.reject(revision.id, 'reviewer', '  ')).rejects.toThrow(BadRequestException);
 
     const rejected = await service.reject(revision.id, 'reviewer', 'Thiếu nguồn');
@@ -111,7 +111,7 @@ describe('ContentRevisionService', () => {
   });
 
   it('khôi phục phiên bản cũ: bản hiện tại cũng được chụp lại trước', async () => {
-    const { revision } = await service.propose('EVENT', 'ev-1', { summary: 'Bản sửa' }, 'editor');
+    const { revision } = await service.propose('ARTICLE', 'ev-1', { summary: 'Bản sửa' }, 'editor');
     await service.approve(revision.id, 'reviewer');
     const v1 = prisma.rows.find((r) => r.kind === 'SNAPSHOT' && r.version === 1);
 
@@ -124,11 +124,11 @@ describe('ContentRevisionService', () => {
 
   it('khác biệt chỉ gồm trường đổi (thứ tự khóa trong object không tính là đổi)', () => {
     const changes = diffPayloads(
-      'EVENT',
-      { title: 'A', metadata: { a: 1, b: 2 }, categoryIds: ['x'] },
-      { title: 'A', metadata: { b: 2, a: 1 }, categoryIds: ['x', 'y'] },
+      'ARTICLE',
+      { title: 'A', contentBlocks: [{ id: '1', type: 'TEXT' }], tagIds: ['x'] },
+      { title: 'A', contentBlocks: [{ type: 'TEXT', id: '1' }], tagIds: ['x', 'y'] },
     );
-    expect(changes.map((c) => c.key)).toEqual(['categoryIds']);
-    expect(changes[0]).toMatchObject({ label: 'Loại sự kiện', before: ['x'], after: ['x', 'y'] });
+    expect(changes.map((c) => c.key)).toEqual(['tagIds']);
+    expect(changes[0]).toMatchObject({ label: 'Tag', before: ['x'], after: ['x', 'y'] });
   });
 });

@@ -7,7 +7,6 @@ import {
 import { ContentRevision, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import {
-  ENTITY_TYPE_LABELS,
   REVISION_CONTENT_TYPES,
   REVISION_FIELDS,
   REVISION_KIND,
@@ -236,63 +235,28 @@ export class ContentRevisionService {
    * giá trị danh mục (loại sự kiện, vai trò...), loại thực thể, nhãn trường thông tin riêng.
    */
   private async resolveLabels(changes: RevisionChange[]): Promise<Record<string, string>> {
-    const ids: Record<string, Set<string>> = {
-      period: new Set(), topic: new Set(), entity: new Set(), event: new Set(), term: new Set(),
+    const ids: Record<'topic' | 'category' | 'tag', Set<string>> = {
+      topic: new Set(),
+      category: new Set(),
+      tag: new Set(),
     };
-    const add = (bucket: string, value: unknown) => {
-      for (const v of Array.isArray(value) ? value : [value]) {
-        if (typeof v === 'string' && v) ids[bucket]?.add(v);
-      }
-    };
-    const labels: Record<string, string> = {};
     for (const c of changes) {
+      if ((c.kind !== 'ref' && c.kind !== 'refs') || !c.ref) continue;
       for (const side of [c.before, c.after]) {
-        if ((c.kind === 'ref' || c.kind === 'refs') && c.ref) {
-          if (c.ref === 'entityType') {
-            for (const v of [side].flat()) if (typeof v === 'string') labels[v] = ENTITY_TYPE_LABELS[v] ?? v;
-          } else add(c.ref, side);
-        }
-        if (c.kind === 'relations' && Array.isArray(side)) {
-          for (const r of side as Payload[]) {
-            add('entity', r.entityId);
-            add('term', r.role);
-          }
+        for (const v of Array.isArray(side) ? side : [side]) {
+          if (typeof v === 'string' && v) ids[c.ref].add(v);
         }
       }
     }
-    const [periods, topics, entities, events, terms, fieldTerms] = await Promise.all([
-      ids.period.size ? this.prisma.period.findMany({ where: { id: { in: [...ids.period] } }, select: { id: true, name: true } }) : [],
-      ids.topic.size ? this.prisma.topic.findMany({ where: { id: { in: [...ids.topic] } }, select: { id: true, name: true } }) : [],
-      ids.entity.size
-        ? this.prisma.historicalEntity.findMany({ where: { id: { in: [...ids.entity] } }, select: { id: true, name: true } })
-        : [],
-      // Event giờ là 1 HistoricalEntity (type=EVENT), tên lấy từ "name" chung.
-      ids.event.size
-        ? this.prisma.historicalEntity.findMany({ where: { id: { in: [...ids.event] } }, select: { id: true, name: true } })
-        : [],
-      ids.term.size
-        ? this.prisma.taxonomyTerm.findMany({
-            where: { OR: [{ id: { in: [...ids.term] } }, { code: { in: [...ids.term] } }] },
-            select: { id: true, code: true, label: true },
-          })
-        : [],
-      // Nhãn trường thông tin riêng (metadata) khai báo trong danh mục loại sự kiện.
-      changes.some((c) => c.kind === 'object')
-        ? this.prisma.taxonomyTerm.findMany({ where: { groupCode: 'EVENT_CATEGORY' }, select: { meta: true } })
-        : [],
+    const find = (set: Set<string>, query: (where: { id: { in: string[] } }) => Promise<{ id: string; name: string }[]>) =>
+      set.size ? query({ id: { in: [...set] } }) : Promise.resolve([]);
+    const rows = await Promise.all([
+      find(ids.topic, (where) => this.prisma.topic.findMany({ where, select: { id: true, name: true } })),
+      find(ids.category, (where) => this.prisma.category.findMany({ where, select: { id: true, name: true } })),
+      find(ids.tag, (where) => this.prisma.tag.findMany({ where, select: { id: true, name: true } })),
     ]);
-    for (const p of periods) labels[p.id] = p.name;
-    for (const t of topics) labels[t.id] = t.name;
-    for (const e of entities) labels[e.id] = e.name;
-    for (const e of events) labels[e.id] = e.name;
-    for (const t of terms) {
-      labels[t.id] = t.label;
-      labels[t.code] ??= t.label;
-    }
-    for (const t of fieldTerms) {
-      const fields = (t.meta as { fields?: Array<{ key: string; label: string }> } | null)?.fields ?? [];
-      for (const fd of fields) labels[`field:${fd.key}`] ??= fd.label;
-    }
+    const labels: Record<string, string> = {};
+    for (const row of rows.flat()) labels[row.id] = row.name;
     return labels;
   }
 

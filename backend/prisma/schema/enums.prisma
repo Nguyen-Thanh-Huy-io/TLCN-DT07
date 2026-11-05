@@ -139,3 +139,13 @@ enum DatePrecision {
   RANGE
   UNKNOWN
 }
+
+// Loại bài viết — gắn trên Category (bài lấy loại theo chuyên mục của nó). Quyết định nhánh hồ sơ
+// (metadata.person/site/event) và cách giao diện công khai hiển thị bài (nhân vật, sự kiện, di tích...).
+enum ArticleKind {
+  PERSON
+  EVENT
+  LOCATION
+  DYNASTY
+  OTHER
+}

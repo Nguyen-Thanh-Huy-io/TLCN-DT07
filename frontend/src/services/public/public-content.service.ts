@@ -5,6 +5,8 @@
  * Mọi nhãn niên đại (`dateLabel`) do backend tính sẵn (năm âm → "TCN"), frontend chỉ hiển thị.
  */
 
+import type { ArticleKind } from './article-kind';
+
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001').replace(
   '://localhost',
   '://127.0.0.1',
@@ -31,6 +33,64 @@ export interface PublicCategoryRef {
   name: string;
   slug: string;
   icon: string | null;
+  /** Loại bài; null = kế thừa chuyên mục cha (xem services/public/article-kind.ts). */
+  kind?: ArticleKind | null;
+  parentId?: string | null;
+}
+
+/**
+ * Hồ sơ mô tả TÙY CHỌN (Article.metadata) — cấu trúc + mã hợp lệ: backend/src/article/article-metadata.ts.
+ * Mọi trường có thể thiếu. Liên kết bài ↔ bài nằm ở `links` (bảng article_links), không ở đây.
+ */
+export interface PersonProfileMeta {
+  titles?: string[];
+  occupation?: string;
+  roles?: string[];
+  birthDateLabel?: string;
+  deathDateLabel?: string;
+  hometown?: string;
+  backgroundAndYouth?: string;
+  notableWorks?: string[];
+  legacyAndHonors?: string;
+  anecdotes?: string[];
+  famousQuote?: string;
+}
+
+export interface SiteProfileMeta {
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  siteType?: string;
+  rank?: string;
+  recognizedYear?: string;
+  preservation?: string;
+  statusNote?: string;
+  managingAgency?: string;
+  architecturalStyle?: string;
+  openingHours?: string;
+}
+
+export interface EventProfileMeta {
+  dateNote?: string;
+  cause?: string;
+  outcome?: string;
+  belligerents?: string[];
+}
+
+export interface ArticleMetadata {
+  aliases?: string[];
+  region?: string;
+  sources?: string[];
+  person?: PersonProfileMeta;
+  site?: SiteProfileMeta;
+  event?: EventProfileMeta;
+}
+
+/** Liên kết do bài khai báo (chỉ tới bài đã xuất bản). Nhãn chữ tự do, có thể null. */
+export interface PublicArticleLink {
+  targetId: string;
+  label: string | null;
+  note: string | null;
 }
 
 export interface PublicArticleSummary {
@@ -44,6 +104,8 @@ export interface PublicArticleSummary {
   endYear: number | null;
   dateLabel: string | null;
   isFeatured: boolean;
+  metadata: ArticleMetadata | null;
+  links: PublicArticleLink[];
   category: PublicCategoryRef | null;
   tags: PublicTag[];
 }

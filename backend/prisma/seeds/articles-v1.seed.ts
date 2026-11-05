@@ -9,7 +9,7 @@
  */
 import 'dotenv/config';
 import { randomUUID } from 'crypto';
-import { ContentStatus, DatePrecision, PrismaClient } from '@prisma/client';
+import { ArticleKind, ContentStatus, DatePrecision, Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const prisma = new PrismaClient({
@@ -44,10 +44,10 @@ const callout = (title: string, content: string, variant = 'HISTORICAL_NOTE') =>
 
 // ---------- Dữ liệu ----------
 const CATEGORIES = [
-  { slug: 'nhan-vat', name: 'Nhân vật', icon: 'User', description: 'Tiểu sử các nhân vật lịch sử.' },
-  { slug: 'su-kien', name: 'Sự kiện', icon: 'Swords', description: 'Trận đánh, hội nghị, cuộc cách mạng và các biến cố lịch sử.' },
-  { slug: 'di-tich', name: 'Di tích', icon: 'Landmark', description: 'Di tích, địa danh gắn với lịch sử dân tộc.' },
-  { slug: 'trieu-dai', name: 'Triều đại', icon: 'Crown', description: 'Các triều đại và nhà nước trong lịch sử Việt Nam.' },
+  { slug: 'nhan-vat', kind: ArticleKind.PERSON, name: 'Nhân vật', icon: 'User', description: 'Tiểu sử các nhân vật lịch sử.' },
+  { slug: 'su-kien', kind: ArticleKind.EVENT, name: 'Sự kiện', icon: 'Swords', description: 'Trận đánh, hội nghị, cuộc cách mạng và các biến cố lịch sử.' },
+  { slug: 'di-tich', kind: ArticleKind.LOCATION, name: 'Di tích', icon: 'Landmark', description: 'Di tích, địa danh gắn với lịch sử dân tộc.' },
+  { slug: 'trieu-dai', kind: ArticleKind.DYNASTY, name: 'Triều đại', icon: 'Crown', description: 'Các triều đại và nhà nước trong lịch sử Việt Nam.' },
 ];
 
 const TAGS = [
@@ -69,6 +69,10 @@ interface ArticleSeed {
   datePrecision?: DatePrecision;
   isFeatured?: boolean;
   blocks: Record<string, unknown>[];
+  /** Hồ sơ mô tả (Article.metadata) — cấu trúc ở src/article/article-metadata.ts. */
+  meta?: Record<string, unknown>;
+  /** Liên kết tới bài khác (bảng article_links), ghi theo SLUG — đổi sang id khi seed. */
+  links?: { slug: string; label?: string; note?: string }[];
 }
 
 const ARTICLES: ArticleSeed[] = [
@@ -108,6 +112,13 @@ const ARTICLES: ArticleSeed[] = [
     startYear: 1194,
     endYear: 1264,
     datePrecision: DatePrecision.YEAR,
+    meta: {
+      person: {
+        titles: ['Thái sư'],
+        roles: ['POLITICIAN'],
+        famousQuote: 'Đầu thần chưa rơi xuống đất, xin bệ hạ đừng lo.',
+      },
+    },
     blocks: [
       quote('Đầu thần chưa rơi xuống đất, xin bệ hạ đừng lo.', 'Trần Thủ Độ', 'Kháng chiến chống Mông Cổ (1258)'),
       text(
@@ -127,6 +138,21 @@ const ARTICLES: ArticleSeed[] = [
     endYear: 1300,
     datePrecision: DatePrecision.APPROXIMATE,
     isFeatured: true,
+    meta: {
+      aliases: ['Trần Quốc Tuấn', 'Hưng Đạo Đại Vương'],
+      region: 'Việt Nam',
+      person: {
+        titles: ['Quốc công Tiết chế'],
+        roles: ['COMMANDER_IN_CHIEF', 'GENERAL'],
+        birthDateLabel: 'Chưa rõ (khoảng 1228)',
+        notableWorks: ['Hịch tướng sĩ', 'Binh thư yếu lược'],
+        famousQuote: 'Bệ hạ chém đầu thần trước rồi hãy hàng.',
+      },
+    },
+    links: [
+      { slug: 'tran-nhan-tong', label: 'Phụng sự' },
+      { slug: 'tran-bach-dang-1288', label: 'Chỉ huy' },
+    ],
     blocks: [
       heading('Thân thế'),
       text(
@@ -149,6 +175,15 @@ const ARTICLES: ArticleSeed[] = [
     startYear: 1258,
     endYear: 1308,
     datePrecision: DatePrecision.YEAR,
+    meta: {
+      aliases: ['Trần Khâm', 'Điều Ngự Giác Hoàng'],
+      region: 'Việt Nam',
+      person: {
+        roles: ['MONARCH', 'RELIGIOUS_FIGURE'],
+        legacyAndHonors: 'Khai sáng Thiền phái Trúc Lâm Yên Tử.',
+      },
+    },
+    links: [{ slug: 'tran-bach-dang-1288', label: 'Lãnh đạo' }],
     blocks: [
       text(
         '<p>Trần Nhân Tông lên ngôi năm 1278. Dưới thời ông, Đại Việt đánh thắng quân Nguyên trong các năm 1285 và 1287–1288. Sau khi nhường ngôi, ông xuất gia và lập ra Thiền phái Trúc Lâm Yên Tử.</p>',
@@ -173,6 +208,14 @@ const ARTICLES: ArticleSeed[] = [
   },
   {
     slug: 'tran-bach-dang-1288',
+    meta: {
+      region: 'Việt Nam',
+      event: {
+        belligerents: ['Đại Việt (nhà Trần)', 'Quân Nguyên'],
+        outcome: 'Đoàn thuyền quân Nguyên bị tiêu diệt; cuộc kháng chiến lần thứ ba kết thúc thắng lợi.',
+      },
+    },
+    links: [{ slug: 'khu-di-tich-bach-dang', label: 'Diễn ra tại' }],
     title: 'Trận Bạch Đằng năm 1288',
     category: 'su-kien',
     tags: ['Nhà Trần', 'Kháng chiến chống Nguyên Mông'],
@@ -200,6 +243,15 @@ const ARTICLES: ArticleSeed[] = [
     endYear: 944,
     datePrecision: DatePrecision.YEAR,
     isFeatured: true,
+    meta: {
+      aliases: ['Ngô Vương', 'Tiền Ngô Vương'],
+      region: 'Việt Nam',
+      person: {
+        roles: ['MONARCH', 'GENERAL'],
+        hometown: 'Đường Lâm (nay thuộc Sơn Tây, Hà Nội)',
+      },
+    },
+    links: [{ slug: 'tran-bach-dang-938', label: 'Chỉ huy' }],
     blocks: [
       text(
         '<p>Sau chiến thắng Bạch Đằng năm 938, năm 939 Ngô Quyền xưng vương, đóng đô ở Cổ Loa.</p>',
@@ -208,6 +260,14 @@ const ARTICLES: ArticleSeed[] = [
   },
   {
     slug: 'tran-bach-dang-938',
+    meta: {
+      region: 'Việt Nam',
+      event: {
+        belligerents: ['Quân Ngô Quyền', 'Quân Nam Hán'],
+        outcome: 'Quân Nam Hán thất bại; thời kỳ Bắc thuộc kết thúc.',
+      },
+    },
+    links: [{ slug: 'khu-di-tich-bach-dang', label: 'Diễn ra tại' }],
     title: 'Trận Bạch Đằng năm 938',
     category: 'su-kien',
     tags: ['Thời Ngô'],
@@ -223,6 +283,15 @@ const ARTICLES: ArticleSeed[] = [
   },
   {
     slug: 'khu-di-tich-bach-dang',
+    meta: {
+      region: 'Việt Nam',
+      site: {
+        siteType: 'BATTLEFIELD',
+        address: 'Sông Bạch Đằng, Quảng Ninh – Hải Phòng',
+        preservation: 'ARCHAEOLOGICAL_RUIN',
+        statusNote: 'Nhiều bãi cọc gỗ cổ đã được khai quật trong khu vực.',
+      },
+    },
     title: 'Khu di tích Bạch Đằng',
     category: 'di-tich',
     tags: ['Nhà Trần', 'Thời Ngô'],
@@ -235,6 +304,10 @@ const ARTICLES: ArticleSeed[] = [
   },
   {
     slug: 'cach-mang-thang-tam',
+    meta: {
+      region: 'Việt Nam',
+      event: { outcome: 'Nước Việt Nam Dân chủ Cộng hoà ra đời ngày 2/9/1945.' },
+    },
     title: 'Cách mạng tháng Tám năm 1945',
     category: 'su-kien',
     tags: ['Cách mạng tháng Tám'],
@@ -312,7 +385,7 @@ async function main() {
   for (const [i, c] of CATEGORIES.entries()) {
     const row = await prisma.category.upsert({
       where: { slug: c.slug },
-      update: { name: c.name, icon: c.icon, description: c.description, displayOrder: i },
+      update: { name: c.name, icon: c.icon, kind: c.kind, description: c.description, displayOrder: i },
       create: { ...c, displayOrder: i },
     });
     categoryIds.set(c.slug, row.id);
@@ -357,6 +430,24 @@ async function main() {
     });
   }
 
+  // Lượt 2: hồ sơ mô tả + liên kết (cần id của mọi bài nên chạy sau khi tạo xong).
+  for (const a of ARTICLES) {
+    const sourceId = articleIds.get(a.slug)!;
+    await prisma.article.update({
+      where: { id: sourceId },
+      data: { metadata: a.meta ? (a.meta as object) : Prisma.DbNull },
+    });
+    await prisma.articleLink.deleteMany({ where: { sourceId } });
+    if (!a.links?.length) continue;
+    await prisma.articleLink.createMany({
+      data: a.links.map((l, displayOrder) => {
+        const targetId = articleIds.get(l.slug);
+        if (!targetId) throw new Error(`Seed: ${a.slug} liên kết tới bài không tồn tại "${l.slug}"`);
+        return { sourceId, targetId, label: l.label ?? null, note: l.note ?? null, displayOrder };
+      }),
+    });
+  }
+
   for (const [i, t] of TIMELINES.entries()) {
     const timeline = await prisma.timeline.upsert({
       where: { slug: t.slug },
@@ -379,8 +470,9 @@ async function main() {
     });
   }
 
+  const linkCount = ARTICLES.reduce((n, a) => n + (a.links?.length ?? 0), 0);
   console.log(
-    `Seed xong: ${CATEGORIES.length} chuyên mục, ${TAGS.length} tag, ${ARTICLES.length} bài viết, ${TIMELINES.length} dòng thời gian.`,
+    `Seed xong: ${CATEGORIES.length} chuyên mục, ${TAGS.length} tag, ${ARTICLES.length} bài viết, ${linkCount} liên kết, ${TIMELINES.length} dòng thời gian.`,
   );
 }
 

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ExternalLink, FileText, LayoutList, Save, Send, Upload } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FileText, IdCard, LayoutList, Save, Send, Upload } from 'lucide-react';
 import { APP_ROUTES } from '@/constants/routes';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/useAuthSession';
@@ -13,6 +13,8 @@ import type { TagItem } from '@/types/models/tag.type';
 import {
   ArticleApiService,
   CategoryApiService,
+  type ArticleLinkView,
+  type ArticleMetadata,
   type ArticlePayload,
   type CategoryItem,
   type ContentStatusValue,
@@ -28,6 +30,7 @@ import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { ContentBlockEditor } from './ContentBlockEditor';
 import { StatusPill } from './StatusPill';
 import { YearInput } from './YearInput';
+import { ArticleProfilePanel, articleKindOf, type LinkDraft } from './ArticleProfilePanel';
 
 const PRECISION_OPTIONS: Array<{ value: DatePrecisionValue; label: string }> = [
   { value: 'YEAR', label: 'Chính xác tới năm' },
@@ -39,7 +42,7 @@ const PRECISION_OPTIONS: Array<{ value: DatePrecisionValue; label: string }> = [
   { value: 'UNKNOWN', label: 'Chưa rõ' },
 ];
 
-type Tab = 'INFO' | 'CONTENT';
+type Tab = 'INFO' | 'PROFILE' | 'CONTENT';
 
 const EMPTY: ArticlePayload = {
   title: '',
@@ -79,6 +82,10 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  // Hồ sơ mô tả (metadata) + liên kết bài ↔ bài — tab "Hồ sơ & liên kết".
+  const [metadata, setMetadata] = useState<ArticleMetadata>({});
+  const [links, setLinks] = useState<LinkDraft[]>([]);
+  const [linksIn, setLinksIn] = useState<ArticleLinkView[]>([]);
   // Block editor chỉ nhận giá trị ban đầu — đổi key để nạp lại khi tải bài / khôi phục phiên bản.
   const [contentKey, setContentKey] = useState(0);
 
@@ -114,6 +121,16 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
         isFeatured: detail.isFeatured,
         displayOrder: detail.displayOrder,
       });
+      setMetadata(detail.metadata ?? {});
+      // Bản sửa chờ duyệt chỉ có {targetId,label,note} → lấy tiêu đề / loại bài từ linksOut của bản đang lưu.
+      const known = new Map((fetched.linksOut ?? []).map((l) => [l.article.id, l.article]));
+      setLinks(
+        (detail.links ?? []).map((l) => {
+          const ref = known.get(l.targetId);
+          return { ...l, targetTitle: ref?.title, targetCategoryId: ref?.category?.id };
+        }),
+      );
+      setLinksIn(fetched.linksIn ?? []);
       setContentKey((k) => k + 1);
     } catch (err) {
       setError(extractErrorMessage(err, 'Không tải được bài viết.'));
@@ -134,6 +151,10 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
     coverImageUrl: blankToNull(form.coverImageUrl),
     coverCaption: blankToNull(form.coverCaption),
     dateText: blankToNull(form.dateText),
+    metadata,
+    links: links
+      .filter((l) => l.targetId)
+      .map((l) => ({ targetId: l.targetId, label: blankToNull(l.label), note: blankToNull(l.note) })),
     ...(nextStatus ? { status: nextStatus } : {}),
   });
 
@@ -258,6 +279,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
         {(
           [
             ['INFO', 'Thông tin', LayoutList],
+            ['PROFILE', 'Hồ sơ & liên kết', IdCard],
             ['CONTENT', 'Nội dung', FileText],
           ] as const
         ).map(([key, text, IconCmp]) => (
@@ -396,6 +418,18 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
             </div>
           </div>
         </div>
+      )}
+
+      {tab === 'PROFILE' && (
+        <ArticleProfilePanel
+          kind={articleKindOf(categories, form.categoryId)}
+          metadata={metadata}
+          onMetadataChange={setMetadata}
+          links={links}
+          onLinksChange={setLinks}
+          linksIn={linksIn}
+          kindOfArticle={(categoryId) => articleKindOf(categories, categoryId)}
+        />
       )}
 
       {tab === 'CONTENT' && (

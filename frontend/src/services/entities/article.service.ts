@@ -1,5 +1,9 @@
 import api, { parsePaginatedResponse, type PaginatedResult } from '../api';
 import type { RevisionPendingResponse } from './content-revision.service';
+import type { ArticleMetadata } from '../public/public-content.service';
+
+export type { ArticleMetadata };
+import type { ArticleKind } from '../public/article-kind';
 
 /** Trạng thái nội dung (ContentStatus) — bài viết / dòng thời gian. */
 export type ContentStatusValue = 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED' | 'ARCHIVED';
@@ -22,6 +26,8 @@ export interface CategoryItem {
   slug: string;
   description: string | null;
   icon: string | null;
+  /** null = kế thừa chuyên mục cha. */
+  kind: ArticleKind | null;
   displayOrder: number;
   _count?: { articles: number };
 }
@@ -30,6 +36,29 @@ export interface ArticleTagRef {
   id: string;
   name: string;
   colorHex: string | null;
+}
+
+/** Liên kết bài này → bài khác, đúng dạng payload ghi (thay toàn bộ khi lưu). */
+export interface ArticleLinkInput {
+  targetId: string;
+  label?: string | null;
+  note?: string | null;
+}
+
+/** Bài ở đầu kia liên kết (CMS hiển thị). */
+export interface LinkedArticleRef {
+  id: string;
+  title: string;
+  slug: string;
+  status: ContentStatusValue;
+  category: { id: string; name: string; slug: string; kind?: ArticleKind | null; parentId?: string | null } | null;
+}
+
+export interface ArticleLinkView {
+  id: string;
+  label: string | null;
+  note: string | null;
+  article: LinkedArticleRef;
 }
 
 export interface ArticleItem {
@@ -41,6 +70,11 @@ export interface ArticleItem {
   coverImageUrl: string | null;
   coverCaption: string | null;
   contentBlocks?: unknown;
+  metadata?: ArticleMetadata | null;
+  /** Chỉ có ở chi tiết (GET /articles/:id). */
+  links?: ArticleLinkInput[];
+  linksOut?: ArticleLinkView[];
+  linksIn?: ArticleLinkView[];
   dateText: string | null;
   startYear: number | null;
   endYear: number | null;
@@ -68,6 +102,8 @@ export interface ArticlePayload {
   coverImageUrl?: string | null;
   coverCaption?: string | null;
   contentBlocks?: unknown;
+  metadata?: ArticleMetadata | null;
+  links?: ArticleLinkInput[];
   dateText?: string | null;
   startYear?: number | null;
   endYear?: number | null;

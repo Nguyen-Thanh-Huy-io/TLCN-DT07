@@ -68,7 +68,7 @@ export function buildSearchIndex(source: SearchSource): SearchEntry[] {
           year: a.dateLabel ?? undefined,
           href: PUBLIC_ROUTES.ARTICLE(a.slug),
         },
-        a.tags.map((t) => t.name),
+        [...a.tags.map((t) => t.name), ...(a.metadata?.aliases ?? [])],
       ),
     ),
     ...source.timelines.map((t) =>

@@ -1,20 +1,27 @@
 /**
  * Dữ liệu cho GIAO DIỆN CÔNG KHAI CŨ (trang chủ, /dong-thoi-gian, /nhan-vat, /di-tich, /su-kien,
- * /giai-doan, trang đọc chi tiết) — giữ nguyên các DTO cũ để component không phải sửa, nhưng nguồn
- * dữ liệu giờ là mô hình Article + Category + Tag + Timeline (Knowledge Graph đã bỏ 2026-11-05).
+ * /giai-doan, trang đọc chi tiết) — giữ nguyên các DTO cũ để component không phải sửa, nguồn dữ liệu
+ * là Article + Category + Tag + ArticleLink + Timeline (Knowledge Graph đã bỏ 2026-11-05).
  *
  * QUY TẮC ÁNH XẠ (đọc trước khi sửa):
- *  • "Loại thực thể" của 1 bài viết = chuyên mục GỐC của nó:
- *      nhan-vat → PERSON · su-kien → EVENT · di-tich → LOCATION · trieu-dai → DYNASTY · khác → OTHER
- *  • Thời kỳ (PublicPeriodDto)   = 1 Timeline (slug timeline = slug thời kỳ; năm = min/max năm các mốc).
- *  • Sự kiện (PublicEventSummaryDto) = 1 MỐC của Timeline (slug = slug bài viết mốc trỏ tới, null nếu
- *      mốc không có bài) + bài viết chuyên mục Sự kiện chưa nằm trong mốc nào (không thuộc thời kỳ).
- *  • Loại sự kiện = chuyên mục CON của "su-kien" (xem services/public/public-taxonomy.ts).
- *  • Thời kỳ của 1 bài viết = timeline có mốc trỏ tới bài; nếu không có thì timeline có nhiều bài
- *      chung tag nhất với nó.
- *  • "Mạng lưới tri thức" / sự kiện trong đời nhân vật = các bài viết CHUNG TAG (không còn statement).
- *  • Không còn dữ liệu: vai trò nhân vật, quan hệ nhân vật–nhân vật, xếp hạng/hiện trạng/toạ độ di
- *      tích, khu vực → trả rỗng/null, component tự ẩn phần tương ứng.
+ *  • Loại bài = `Category.kind` của chuyên mục (trống → kế thừa cha, gốc trống → OTHER) —
+ *      services/public/article-kind.ts. Không gán cứng theo slug.
+ *  • Thời kỳ (PublicPeriodDto) = 1 Timeline (năm = min/max năm các mốc; khu vực = metadata.region
+ *      xuất hiện nhiều nhất trong các bài của mốc, không có → null). KHÔNG gán khu vực mặc định.
+ *  • Sự kiện (PublicEventSummaryDto) = 1 MỐC của Timeline (slug = bài mốc trỏ tới) + bài chuyên mục
+ *      Sự kiện chưa nằm trong mốc nào (không thuộc thời kỳ → không hiện ở /dong-thoi-gian).
+ *  • Loại sự kiện = chuyên mục CON có loại EVENT (services/public/public-taxonomy.ts).
+ *  • Liên kết bài ↔ bài = bảng ArticleLink (`summary.links`, chỉ chiều bài khai báo → bài đích; chiều
+ *      ngược tự suy ở đây). Ý nghĩa theo loại 2 đầu, nhãn = `label` (chữ tự do):
+ *        PERSON–PERSON  → tab "Mối quan hệ" (cả 2 hồ sơ)
+ *        PERSON–EVENT   → sự kiện trong dòng đời nhân vật (vai trò = label) + người tham gia sự kiện
+ *        EVENT–LOCATION → nơi diễn ra sự kiện + sự kiện của di tích
+ *        EVENT–EVENT    → quan hệ sự kiện (chế độ "Liên kết" của dòng thời gian)
+ *        mọi cặp        → "Mạng lưới tri thức" ở trang đọc (trước các bài chung tag)
+ *  • Hồ sơ mô tả = Article.metadata (aliases, region, sources, person, site, event) — tùy chọn.
+ *  • Thời kỳ của bài = timeline có mốc trỏ tới bài; không có thì timeline có nhiều bài chung tag nhất.
+ *  • Sự kiện trong đời nhân vật CHỈ lấy từ liên kết khai báo (+ mốc trỏ thẳng tới bài nhân vật).
+ *      KHÔNG suy theo tag — chung tag "Nhà Trần" không có nghĩa là đã tham gia sự kiện.
  *
  * Chỉ dùng trong Server Component (fetch thuần, cache theo request bằng React `cache`).
  */
@@ -29,7 +36,10 @@ import {
   type PublicTimeline,
 } from '@/services/public/public-content.service';
 import { buildTaxonomyGroup, type TaxonomyTermItem } from '@/services/public/public-taxonomy';
+import { resolveCategoryKind, type ArticleKind } from '@/services/public/article-kind';
 import { formatYear } from '@/utils/year-label';
+import { RANK_LABELS, type HeritageRank } from '@/features/heritage/heritage.types';
+import { CANONICAL_ROLE_LABELS, LOCATION_TYPE_LABELS, LocationType } from '@/constants/enums';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001').replace('://localhost', '://127.0.0.1');
 
@@ -397,27 +407,24 @@ export interface PublicEntityDetailDto {
 }
 
 // ======================================================================
-// Adapter Article/Timeline → DTO cũ
+// Adapter Article / ArticleLink / Timeline → DTO cũ
 // ======================================================================
 
-type EntityKind = 'PERSON' | 'EVENT' | 'LOCATION' | 'DYNASTY' | 'OTHER';
+type EntityKind = ArticleKind;
 
-const ROOT_KIND: Record<string, EntityKind> = {
-  'nhan-vat': 'PERSON',
-  'su-kien': 'EVENT',
-  'di-tich': 'LOCATION',
-  'trieu-dai': 'DYNASTY',
-};
+const DEFAULT_LINK_LABEL = 'Liên quan';
+const DEFAULT_EVENT_ROLE = 'Tham gia';
+/** Vai trò coi là "chính" (hiện nổi bật trên dòng đời nhân vật). */
+const PRIMARY_ROLE_PATTERN = /chỉ huy|lãnh đạo|khởi xướng|thống lĩnh/i;
 
-const DEFAULT_REGION = 'Việt Nam';
-const EMPTY_LEGACY: PublicFigureLegacyDto = {
-  hometown: null,
-  backgroundAndYouth: null,
-  notableWorks: [],
-  legacyAndHonors: null,
-  anecdotes: [],
-  famousQuote: null,
-};
+/** Một liên kết nhìn từ 1 bài: bài ở đầu kia + nhãn + chiều. */
+interface LinkView {
+  other: PublicArticleSummary;
+  label: string | null;
+  note: string | null;
+  /** OUTGOING: bài này khai báo · INCOMING: bài kia khai báo trỏ tới bài này. */
+  direction: 'OUTGOING' | 'INCOMING';
+}
 
 interface PublicGraph {
   categories: PublicCategory[];
@@ -425,13 +432,26 @@ interface PublicGraph {
   timelines: PublicTimeline[];
   periods: PublicPeriodDto[];
   bySlug: Map<string, PublicArticleSummary>;
+  byId: Map<string, PublicArticleSummary>;
   kindOf: (article: { category: { id: string } | null } | null | undefined) => EntityKind;
   /** Chuyên mục con của "su-kien" mà bài viết thuộc về (= loại sự kiện), nếu có. */
   eventTypeOf: (article: PublicArticleSummary | undefined) => PublicCategory | undefined;
   periodSlugOf: (article: PublicArticleSummary) => string | null;
+  /** Mọi liên kết của 1 bài (2 chiều), chỉ giữa các bài đã xuất bản. */
+  linksOf: (articleId: string) => LinkView[];
 }
 
-function periodFromTimeline(t: PublicTimeline): PublicPeriodDto {
+/** Khu vực phổ biến nhất trong các bài được mốc trỏ tới (null nếu không bài nào khai báo). */
+function regionOfTimeline(t: PublicTimeline, bySlug: Map<string, PublicArticleSummary>): string | null {
+  const counts = new Map<string, number>();
+  for (const n of t.nodes) {
+    const region = n.article ? bySlug.get(n.article.slug)?.metadata?.region : undefined;
+    if (region) counts.set(region, (counts.get(region) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}
+
+function periodFromTimeline(t: PublicTimeline, bySlug: Map<string, PublicArticleSummary>): PublicPeriodDto {
   const years = t.nodes.flatMap((n) => [n.year, n.endYear]).filter((y): y is number => typeof y === 'number');
   const start = years.length ? Math.min(...years) : 0;
   const end = years.length ? Math.max(...years) : null;
@@ -446,11 +466,11 @@ function periodFromTimeline(t: PublicTimeline): PublicPeriodDto {
     endYear: end,
     description: t.description,
     coverImageUrl: t.coverImageUrl,
-    region: DEFAULT_REGION,
+    region: regionOfTimeline(t, bySlug),
   };
 }
 
-/** Tải 1 lần mỗi request: chuyên mục + mọi bài viết + mọi dòng thời gian đã xuất bản. */
+/** Tải 1 lần mỗi request: chuyên mục + mọi bài viết (kèm liên kết, hồ sơ) + mọi dòng thời gian. */
 const loadGraph = cache(async (): Promise<PublicGraph> => {
   const [categories, articles, timelines] = await Promise.all([
     fetchCategories(),
@@ -458,23 +478,28 @@ const loadGraph = cache(async (): Promise<PublicGraph> => {
     fetchTimelines(),
   ]);
   const catById = new Map(categories.map((c) => [c.id, c]));
-  const rootOf = (id: string): PublicCategory | undefined => {
-    let cur = catById.get(id);
-    const seen = new Set<string>();
-    while (cur?.parentId && catById.has(cur.parentId) && !seen.has(cur.id)) {
-      seen.add(cur.id);
-      cur = catById.get(cur.parentId);
-    }
-    return cur;
-  };
-  const kindOf: PublicGraph['kindOf'] = (a) =>
-    a?.category ? (ROOT_KIND[rootOf(a.category.id)?.slug ?? ''] ?? 'OTHER') : 'OTHER';
+  const kindOf: PublicGraph['kindOf'] = (a) => resolveCategoryKind(categories, a?.category?.id);
+  // Loại sự kiện = chuyên mục con (có cha) thuộc loại EVENT.
   const eventTypeOf: PublicGraph['eventTypeOf'] = (a) => {
     const cat = a?.category ? catById.get(a.category.id) : undefined;
-    return cat?.parentId && rootOf(cat.id)?.slug === 'su-kien' ? cat : undefined;
+    return cat?.parentId && resolveCategoryKind(categories, cat.id) === 'EVENT' ? cat : undefined;
   };
 
   const bySlug = new Map(articles.map((a) => [a.slug, a]));
+  const byId = new Map(articles.map((a) => [a.id, a]));
+
+  // Liên kết 2 chiều: chiều OUTGOING có sẵn trong summary.links, chiều INCOMING suy ngược ở đây.
+  const links = new Map<string, LinkView[]>();
+  const pushLink = (id: string, view: LinkView) => links.set(id, [...(links.get(id) ?? []), view]);
+  for (const a of articles) {
+    for (const l of a.links ?? []) {
+      const target = byId.get(l.targetId);
+      if (!target) continue;
+      pushLink(a.id, { other: target, label: l.label, note: l.note, direction: 'OUTGOING' });
+      pushLink(target.id, { other: a, label: l.label, note: l.note, direction: 'INCOMING' });
+    }
+  }
+
   // Thời kỳ của bài: timeline có mốc trỏ tới bài, nếu không thì timeline có nhiều bài chung tag nhất.
   const nodeTimeline = new Map<string, string>();
   const timelineTags = new Map<string, Map<string, number>>();
@@ -490,6 +515,11 @@ const loadGraph = cache(async (): Promise<PublicGraph> => {
   const periodSlugOf = (a: PublicArticleSummary) => {
     const direct = nodeTimeline.get(a.slug);
     if (direct) return direct;
+    // Bài không nằm trong mốc nào: theo bài liên kết với nó trước, rồi theo tag.
+    for (const l of links.get(a.id) ?? []) {
+      const viaLink = nodeTimeline.get(l.other.slug);
+      if (viaLink) return viaLink;
+    }
     let best: string | null = null;
     let bestScore = 0;
     for (const [slug, counts] of timelineTags) {
@@ -506,16 +536,21 @@ const loadGraph = cache(async (): Promise<PublicGraph> => {
     categories,
     articles,
     timelines,
-    periods: timelines.map(periodFromTimeline),
+    periods: timelines.map((t) => periodFromTimeline(t, bySlug)),
     bySlug,
+    byId,
     kindOf,
     eventTypeOf,
     periodSlugOf,
+    linksOf: (id) => links.get(id) ?? [],
   };
 });
 
 const sharesTag = (a: PublicArticleSummary, b: PublicArticleSummary) =>
   a.id !== b.id && a.tags.some((t) => b.tags.some((u) => u.id === t.id));
+
+const linksOfKind = (g: PublicGraph, a: PublicArticleSummary, kind: EntityKind) =>
+  g.linksOf(a.id).filter((l) => g.kindOf(l.other) === kind);
 
 function toFigure(a: PublicArticleSummary): PublicFigureDto {
   return {
@@ -531,17 +566,29 @@ function toFigure(a: PublicArticleSummary): PublicFigureDto {
 }
 
 function toLocation(g: PublicGraph, a: PublicArticleSummary): PublicLocationSummaryDto {
+  const site = a.metadata?.site ?? {};
+  const rank = site.rank as HeritageRank | undefined;
   return {
     id: a.id,
     slug: a.slug,
     name: a.title,
-    address: null,
-    latitude: null,
-    longitude: null,
+    address: site.address ?? null,
+    latitude: site.latitude ?? null,
+    longitude: site.longitude ?? null,
     historicalSignificance: a.summary,
     imageUrl: a.coverImageUrl,
+    siteType: site.siteType,
+    siteTypeLabel: site.siteType ? LOCATION_TYPE_LABELS[site.siteType as LocationType] : undefined,
+    rankCode: rank ?? null,
+    rankLabel: rank ? RANK_LABELS[rank] : null,
+    recognitionLevel: rank ? RANK_LABELS[rank] : null,
     constructionLabel: a.dateLabel,
     periodSlug: g.periodSlugOf(a),
+    ancientNames: a.metadata?.aliases ?? [],
+    preservationStatus: site.statusNote ?? null,
+    preservationCategory: site.preservation ?? null,
+    statusNote: site.statusNote ?? null,
+    managingUnit: site.managingAgency ?? null,
   };
 }
 
@@ -549,12 +596,25 @@ function toLocation(g: PublicGraph, a: PublicArticleSummary): PublicLocationSumm
 function buildEvents(g: PublicGraph): PublicEventSummaryDto[] {
   const events: PublicEventSummaryDto[] = [];
   const covered = new Set<string>();
+
+  /** Phần dữ liệu lấy từ bài viết (nếu mốc có bài): người tham gia, nơi diễn ra. */
+  const fromArticle = (article: PublicArticleSummary | undefined) => {
+    if (!article) return { figures: [], locations: [], location: null };
+    const kind = g.kindOf(article);
+    const places = linksOfKind(g, article, 'LOCATION').map((l) => l.other);
+    const people = linksOfKind(g, article, 'PERSON').map((l) => l.other);
+    return {
+      figures: [...(kind === 'PERSON' ? [article] : []), ...people].map(toFigure),
+      locations: [...(kind === 'LOCATION' ? [article] : []), ...places].map((p) => toLocation(g, p)),
+      location: places[0]?.title ?? null,
+    };
+  };
+
   for (const t of g.timelines) {
     const period = g.periods.find((p) => p.id === t.id);
     for (const node of t.nodes) {
       const article = node.article ? g.bySlug.get(node.article.slug) : undefined;
       if (article) covered.add(article.slug);
-      const kind = g.kindOf(article);
       const type = g.eventTypeOf(article);
       events.push({
         id: node.id,
@@ -562,17 +622,15 @@ function buildEvents(g: PublicGraph): PublicEventSummaryDto[] {
         title: node.title,
         startYear: node.year ?? period?.startYear ?? 0,
         endYear: node.endYear,
-        eventDateNote: node.dateText ?? (node.month ? node.dateLabel : null),
-        location: null,
+        eventDateNote: node.dateText ?? (node.month ? node.dateLabel : null) ?? article?.metadata?.event?.dateNote ?? null,
         description: node.description ?? article?.summary ?? null,
         imageUrl: node.imageUrl ?? article?.coverImageUrl ?? null,
         category: type?.slug ?? 'OTHER',
         categoryIds: type ? [type.id] : [],
         periodSlug: t.slug,
-        figures: article && kind === 'PERSON' ? [toFigure(article)] : [],
-        locations: article && kind === 'LOCATION' ? [toLocation(g, article)] : [],
         actors: [],
         relations: [],
+        ...fromArticle(article),
       });
     }
   }
@@ -585,18 +643,30 @@ function buildEvents(g: PublicGraph): PublicEventSummaryDto[] {
       title: a.title,
       startYear: a.startYear,
       endYear: a.endYear,
-      eventDateNote: a.dateText,
-      location: null,
+      eventDateNote: a.metadata?.event?.dateNote ?? a.dateText,
       description: a.summary,
       imageUrl: a.coverImageUrl,
       category: type?.slug ?? 'OTHER',
       categoryIds: type ? [type.id] : [],
       periodSlug: null,
-      figures: [],
-      locations: [],
       actors: [],
       relations: [],
+      ...fromArticle(a),
     });
+  }
+
+  // Quan hệ sự kiện–sự kiện (chế độ "Liên kết" của dòng thời gian): id phải là id của MỤC sự kiện.
+  const entryIdBySlug = new Map(events.filter((e) => e.slug).map((e) => [e.slug!, e.id]));
+  for (const e of events) {
+    const article = e.slug ? g.bySlug.get(e.slug) : undefined;
+    if (!article) continue;
+    e.relations = linksOfKind(g, article, 'EVENT')
+      .map((l) => ({
+        eventId: entryIdBySlug.get(l.other.slug) ?? '',
+        relationType: l.label ?? DEFAULT_LINK_LABEL,
+        direction: l.direction,
+      }))
+      .filter((r) => r.eventId);
   }
   return events.sort((x, y) => x.startYear - y.startYear);
 }
@@ -606,41 +676,60 @@ function toFigureProfile(
   a: PublicArticleSummary,
   events: PublicEventSummaryDto[],
 ): PublicFigureProfileDto {
-  const born = a.startYear ?? -Infinity;
-  const died = a.endYear ?? Infinity;
-  const mine = events.filter((e) => {
-    if (!e.slug) return false;
-    if (e.slug === a.slug) return true;
-    const other = g.bySlug.get(e.slug);
-    return Boolean(other && sharesTag(a, other) && e.startYear >= born && e.startYear <= died);
-  });
+  const person = a.metadata?.person ?? {};
+  // Vai trò khai báo bằng liên kết nhân vật ↔ sự kiện (cả 2 chiều), tra theo slug bài sự kiện.
+  const declaredRole = new Map(
+    linksOfKind(g, a, 'EVENT').map((l) => [l.other.slug, l.label ?? DEFAULT_EVENT_ROLE]),
+  );
+  const mine = events.filter((e) => Boolean(e.slug && (e.slug === a.slug || declaredRole.has(e.slug))));
+
   return {
     ...toFigure(a),
-    roles: [],
-    legacy: EMPTY_LEGACY,
-    aliases: [],
-    birthDateLabel: null,
-    deathDateLabel: null,
+    roles: person.roles ?? [],
+    legacy: {
+      hometown: person.hometown ?? null,
+      backgroundAndYouth: person.backgroundAndYouth ?? null,
+      notableWorks: person.notableWorks ?? [],
+      legacyAndHonors: person.legacyAndHonors ?? null,
+      anecdotes: person.anecdotes ?? [],
+      famousQuote: person.famousQuote ?? null,
+    },
+    aliases: a.metadata?.aliases ?? [],
+    birthDateLabel: person.birthDateLabel ?? null,
+    deathDateLabel: person.deathDateLabel ?? null,
     biography: a.summary,
-    occupation: null,
-    titles: [],
-    sources: [],
+    occupation: person.occupation ?? null,
+    titles: person.titles ?? [],
+    sources: a.metadata?.sources ?? [],
     periodSlug: g.periodSlugOf(a),
-    events: mine.map((e) => ({
-      id: e.id,
-      slug: e.slug,
-      title: e.title,
-      startYear: e.startYear,
-      eventDateNote: e.eventDateNote,
-      description: e.description,
-      category: e.category,
-      categoryIds: e.categoryIds,
-      periodSlug: e.periodSlug,
-      role: 'PARTICIPANT',
-      roleLabel: null,
-      isPrimary: e.slug === a.slug,
+    events: mine.map((e) => {
+      const roleLabel = (e.slug && declaredRole.get(e.slug)) || DEFAULT_EVENT_ROLE;
+      return {
+        id: e.id,
+        slug: e.slug,
+        title: e.title,
+        startYear: e.startYear,
+        eventDateNote: e.eventDateNote,
+        description: e.description,
+        category: e.category,
+        categoryIds: e.categoryIds,
+        periodSlug: e.periodSlug,
+        role: 'PARTICIPANT',
+        roleLabel,
+        isPrimary: e.slug === a.slug || PRIMARY_ROLE_PATTERN.test(roleLabel),
+      };
+    }),
+    // Tab "Mối quan hệ": liên kết tới / từ bài nhân vật khác; nhãn hiện nguyên chữ.
+    relationships: linksOfKind(g, a, 'PERSON').map((l) => ({
+      figureId: l.other.id,
+      slug: l.other.slug,
+      name: l.other.title,
+      relationType: l.label ?? DEFAULT_LINK_LABEL,
+      direction: l.direction,
+      note: l.note,
+      startYear: null,
+      endYear: null,
     })),
-    relationships: [],
     statements: [],
   };
 }
@@ -671,7 +760,7 @@ export async function fetchTaxonomyTerms(groupCode: string): Promise<TaxonomyTer
   return buildTaxonomyGroup(groupCode, (await loadGraph()).categories).terms;
 }
 
-/** Trang /giai-doan/[slug]: 1 timeline + bài viết trong mốc + bài chung tag với các bài đó. */
+/** Trang /giai-doan/[slug]: 1 timeline + bài trong mốc + bài liên kết / chung tag với các bài đó. */
 export async function fetchPeriodBySlug(slug: string): Promise<PublicPeriodDetailDto | null> {
   const g = await loadGraph();
   const timeline = g.timelines.find((t) => t.slug === slug);
@@ -681,7 +770,11 @@ export async function fetchPeriodBySlug(slug: string): Promise<PublicPeriodDetai
   const inNodes = timeline.nodes
     .map((n) => (n.article ? g.bySlug.get(n.article.slug) : undefined))
     .filter((a): a is PublicArticleSummary => Boolean(a));
-  const related = g.articles.filter((a) => inNodes.some((b) => b.id === a.id || sharesTag(a, b)));
+  const linked = inNodes.flatMap((a) => g.linksOf(a.id).map((l) => l.other));
+  const relatedIds = new Set([...inNodes, ...linked].map((a) => a.id));
+  const related = g.articles.filter(
+    (a) => relatedIds.has(a.id) || inNodes.some((b) => sharesTag(a, b)),
+  );
   const end = period.endYear ?? period.startYear;
 
   return {
@@ -705,45 +798,67 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
   if (!article) return null;
   const summary = g.bySlug.get(slug) ?? article;
   const periodSlug = article.timelines[0]?.slug ?? g.periodSlugOf(summary);
+  const kind = g.kindOf(article);
+  const meta = article.metadata ?? {};
+  const site = meta.site ?? {};
 
+  // "Mạng lưới tri thức": liên kết khai báo (2 chiều) trước, sau đó bài chung tag.
+  const statements: PublicEntityStatementDto[] = [];
+  const seen = new Set<string>();
+  const push = (r: PublicArticleSummary, label: string, direction: 'OUTGOING' | 'INCOMING', note: string | null) => {
+    if (seen.has(r.id)) return;
+    seen.add(r.id);
+    statements.push({
+      id: `${r.id}-${statements.length}`,
+      predicateCode: 'RELATED',
+      predicateLabel: label,
+      direction,
+      relatedEntityId: r.id,
+      relatedEntitySlug: r.slug,
+      relatedEntityName: r.title,
+      relatedEntityType: g.kindOf(r),
+      roleLabel: label,
+      note: note ?? r.summary,
+      validFromYear: r.startYear,
+      validToYear: r.endYear,
+    });
+  };
+  for (const l of g.linksOf(article.id)) push(l.other, l.label ?? DEFAULT_LINK_LABEL, l.direction, l.note);
+  for (const r of article.related) push(r, r.category?.name ?? DEFAULT_LINK_LABEL, 'OUTGOING', null);
+
+  const rank = site.rank as HeritageRank | undefined;
+  const period = g.periods.find((p) => p.slug === periodSlug) ?? null;
   return {
     id: article.id,
     slug: article.slug,
     name: article.title,
-    type: g.kindOf(article),
+    type: kind,
     tagline: article.summary,
     description: article.summary,
     imageUrl: article.coverImageUrl,
     imageCaption: article.coverCaption,
-    aliases: [],
+    aliases: meta.aliases ?? [],
     dateText: article.dateText,
     startYear: article.startYear,
     endYear: article.endYear,
     contentBlocks: article.contentBlocks,
     metadata: null,
-    period: g.periods.find((p) => p.slug === periodSlug) ?? null,
+    // Ô "Không gian / Lãnh thổ" của trình đọc đọc period.region → ưu tiên khu vực khai báo của bài.
+    period: period ? { ...period, region: meta.region ?? period.region } : null,
     media: [],
-    // "Mạng lưới tri thức" = bài viết chung tag (backend đã chọn sẵn trong `related`).
-    statements: article.related.map((r) => ({
-      id: r.id,
-      predicateCode: 'RELATED',
-      predicateLabel: 'Liên quan',
-      direction: 'OUTGOING' as const,
-      relatedEntityId: r.id,
-      relatedEntitySlug: r.slug,
-      relatedEntityName: r.title,
-      relatedEntityType: g.kindOf(r),
-      roleLabel: r.category?.name ?? null,
-      note: r.summary,
-      validFromYear: r.startYear,
-      validToYear: r.endYear,
-    })),
+    statements,
     previous: article.previous
       ? { id: article.previous.slug, slug: article.previous.slug, name: article.previous.title, dateLabel: article.previous.dateLabel }
       : null,
     next: article.next
       ? { id: article.next.slug, slug: article.next.slug, name: article.next.title, dateLabel: article.next.dateLabel }
       : null,
+    roles: meta.person?.roles?.map((code) => CANONICAL_ROLE_LABELS[code] ?? code),
+    occupation: meta.person?.occupation ?? null,
+    titles: meta.person?.titles,
+    address: site.address ?? null,
+    managingAgency: site.managingAgency ?? null,
+    recognitionLevel: rank ? RANK_LABELS[rank] : null,
   };
 }
 

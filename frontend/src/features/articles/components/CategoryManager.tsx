@@ -5,22 +5,27 @@ import { Pencil, Plus, Trash2, X, Check } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import { CategoryApiService, type CategoryItem } from '@/services/entities/article.service';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
+import { ARTICLE_KIND_LABELS, resolveCategoryKind, type ArticleKind } from '@/services/public/article-kind';
 
 interface Draft {
   id?: string;
   name: string;
   slug: string;
   parentId: string;
+  /** '' = kế thừa chuyên mục cha. */
+  kind: ArticleKind | '';
   icon: string;
   description: string;
   displayOrder: number;
 }
 
-const EMPTY: Draft = { name: '', slug: '', parentId: '', icon: '', description: '', displayOrder: 0 };
+const EMPTY: Draft = { name: '', slug: '', parentId: '', kind: '', icon: '', description: '', displayOrder: 0 };
 
 /**
  * Chuyên mục bài viết — số lượng nhỏ nên quản lý trên 1 trang: bảng + form sửa ngay dòng.
- * Lưu ý: slug "nhan-vat", "su-kien", "di-tich", "trieu-dai" được các trang lối tắt công khai dùng.
+ * "Loại bài" của chuyên mục quyết định hồ sơ bài viết (nhân vật / sự kiện / di tích...) và cách giao
+ * diện công khai hiển thị; chuyên mục con để trống thì kế thừa chuyên mục cha.
+ * Lưu ý: slug "nhan-vat", "su-kien", "di-tich", "trieu-dai" là đường dẫn của các trang lối tắt công khai.
  */
 export function CategoryManager() {
   const [items, setItems] = useState<CategoryItem[]>([]);
@@ -50,6 +55,7 @@ export function CategoryManager() {
       name: draft.name.trim(),
       slug: draft.slug.trim() || undefined,
       parentId: draft.parentId || null,
+      kind: draft.kind || null,
       icon: draft.icon.trim() || null,
       description: draft.description.trim() || null,
       displayOrder: Number(draft.displayOrder) || 0,
@@ -102,6 +108,16 @@ export function CategoryManager() {
           </select>
         </td>
         <td>
+          <select className={input} value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value as Draft['kind'] })}>
+            <option value="">{draft.parentId ? '— Kế thừa cha —' : '— Khác —'}</option>
+            {(Object.keys(ARTICLE_KIND_LABELS) as ArticleKind[]).map((k) => (
+              <option key={k} value={k}>
+                {ARTICLE_KIND_LABELS[k]}
+              </option>
+            ))}
+          </select>
+        </td>
+        <td>
           <input className={input} placeholder="User, Swords…" value={draft.icon} onChange={(e) => setDraft({ ...draft, icon: e.target.value })} />
         </td>
         <td>
@@ -137,6 +153,7 @@ export function CategoryManager() {
               <th>TÊN</th>
               <th>ĐƯỜNG DẪN</th>
               <th>CHA</th>
+              <th>LOẠI BÀI</th>
               <th>ICON</th>
               <th>THỨ TỰ</th>
               <th>SỐ BÀI</th>
@@ -147,7 +164,7 @@ export function CategoryManager() {
             {draft && !draft.id && renderForm()}
             {loading ? (
               <tr>
-                <td colSpan={7} className="p-6 text-center text-slate-500">
+                <td colSpan={8} className="p-6 text-center text-slate-500">
                   Đang tải…
                 </td>
               </tr>
@@ -170,6 +187,10 @@ export function CategoryManager() {
                       </a>
                     </td>
                     <td className="text-xs text-slate-600">{items.find((p) => p.id === c.parentId)?.name ?? '—'}</td>
+                    <td className="text-xs text-slate-600">
+                      {ARTICLE_KIND_LABELS[resolveCategoryKind(items, c.id)]}
+                      {!c.kind && c.parentId && <span className="text-slate-400"> (kế thừa)</span>}
+                    </td>
                     <td className="text-xs text-slate-600">{c.icon ?? '—'}</td>
                     <td className="text-xs text-slate-600">{c.displayOrder}</td>
                     <td className="text-xs font-medium text-slate-700">{c._count?.articles ?? 0}</td>
@@ -185,6 +206,7 @@ export function CategoryManager() {
                               name: c.name,
                               slug: c.slug,
                               parentId: c.parentId ?? '',
+                              kind: c.kind ?? '',
                               icon: c.icon ?? '',
                               description: c.description ?? '',
                               displayOrder: c.displayOrder,

@@ -37,7 +37,7 @@ export type RevisionRef = 'topic' | 'category' | 'tag';
 /**
  * Cách hiển thị một trường khi so sánh:
  *  text / longtext / bool / image: giá trị đơn · list: danh sách chữ · ref / refs: id → tên ·
- *  blocks: khối nội dung (bài học / bài viết).
+ *  blocks: khối nội dung (bài học / bài viết) · object: hồ sơ mở rộng (so theo từng khoá).
  */
 export interface RevisionField {
   key: string;
@@ -50,7 +50,8 @@ export interface RevisionField {
     | 'list'
     | 'ref'
     | 'refs'
-    | 'blocks';
+    | 'blocks'
+    | 'object';
   ref?: RevisionRef;
 }
 
@@ -82,6 +83,8 @@ export const REVISION_FIELDS: Record<RevisionContentType, RevisionField[]> = {
     { key: 'startYear', label: 'Năm bắt đầu', kind: 'text' },
     { key: 'endYear', label: 'Năm kết thúc', kind: 'text' },
     { key: 'datePrecision', label: 'Độ chính xác niên đại', kind: 'text' },
+    { key: 'metadata', label: 'Hồ sơ mở rộng', kind: 'object' },
+    { key: 'links', label: 'Liên kết bài viết', kind: 'object' },
     { key: 'isFeatured', label: 'Nổi bật', kind: 'bool' },
     ORDER,
   ],

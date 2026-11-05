@@ -21,6 +21,9 @@ model Category {
   description  String?  @db.Text
   /// Tên icon lucide (vd. "User", "Swords", "Landmark") — chỉ để hiển thị.
   icon         String?  @db.VarChar(50)
+  /// Loại bài của chuyên mục. NULL = kế thừa chuyên mục cha (gốc NULL → OTHER).
+  /// Vd. "Trận đánh" (con của "Sự kiện", kind NULL) → EVENT.
+  kind         ArticleKind?
   displayOrder Int      @default(0) @map("display_order")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -45,6 +48,10 @@ model Article {
   coverCaption  String? @map("cover_caption") @db.VarChar(255)
   /// Nội dung dạng mảng khối — cùng định dạng Lesson.content (Block Builder).
   contentBlocks Json    @default("[]") @map("content_blocks") @db.JsonB
+  /// Hồ sơ mô tả TÙY CHỌN, nhập ở CMS: phần chung (aliases, region, sources) + nhánh theo loại bài
+  /// (`person` / `site` / `event`). Chỉ để hiển thị & lọc (index GIN) — liên kết bài ↔ bài KHÔNG nằm
+  /// ở đây mà ở bảng ArticleLink. Cấu trúc + chuẩn hoá: backend/src/article/article-metadata.ts.
+  metadata      Json?          @db.JsonB
 
   /// Niên đại để hiển thị & sắp xếp. Năm âm = TCN, không có năm 0.
   /// Nhân vật: năm sinh – mất · Sự kiện: năm diễn ra · Di tích: năm xây dựng · Triều đại: tồn tại.
@@ -64,12 +71,15 @@ model Article {
   category      Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   articleTags   ArticleTag[]
   timelineNodes TimelineNode[]
+  linksOut      ArticleLink[]  @relation("ArticleLinkSource")
+  linksIn       ArticleLink[]  @relation("ArticleLinkTarget")
 
   @@index([categoryId])
   @@index([status])
   @@index([isFeatured])
   @@index([startYear, endYear])
   @@index([updatedAt])
+  @@index([metadata], type: Gin)
   @@map("articles")
 }
 
@@ -84,4 +94,24 @@ model ArticleTag {
   @@id([articleId, tagId])
   @@index([tagId])
   @@map("article_tags")
+}
+
+/// Liên kết bài ↔ bài (nhân vật–nhân vật, nhân vật–sự kiện, sự kiện–di tích, ...). KHÔNG có mã loại:
+/// ý nghĩa suy ra từ chuyên mục 2 bài; `label` là nhãn chữ tự do tuỳ chọn ("Chỉ huy", "Phụng sự",
+/// "Diễn ra tại"...). Ghi từ bài nguồn, hiển thị ở CẢ 2 bài. Xoá bài nào thì liên kết tự xoá.
+model ArticleLink {
+  id           String   @id @default(uuid())
+  sourceId     String   @map("source_id")
+  targetId     String   @map("target_id")
+  label        String?  @db.VarChar(100)
+  note         String?  @db.Text
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  source Article @relation("ArticleLinkSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target Article @relation("ArticleLinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, targetId])
+  @@index([targetId])
+  @@map("article_links")
 }

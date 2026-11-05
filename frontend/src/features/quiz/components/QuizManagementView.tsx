@@ -18,14 +18,17 @@ import {
   AlertCircle,
   FileText,
   ExternalLink,
+  BarChart3,
 } from 'lucide-react';
 import { Badge } from '@/components/common/Badge';
 import { useQuizManagementFacade } from '../facades/useQuizManagementFacade';
 import { QuizPreviewModal } from './QuizPreviewModal';
 import { LessonQuickPreviewModal } from './LessonQuickPreviewModal';
 import { StandaloneQuizEditorModal } from './StandaloneQuizEditorModal';
+import { QuizStatisticsModal } from './QuizStatisticsModal';
 
 export function QuizManagementView() {
+  const [statsQuiz, setStatsQuiz] = React.useState<{ id: string; title: string } | null>(null);
   const {
     quizzes,
     lessons,
@@ -290,6 +293,16 @@ export function QuizManagementView() {
                       {/* Cột 7: Tác vụ */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Nút Xem thống kê thí sinh nộp bài */}
+                          <button
+                            type="button"
+                            onClick={() => setStatsQuiz({ id: quiz.id, title: quiz.title })}
+                            className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                            title="Xem thống kê lượt thi & thí sinh nộp bài"
+                          >
+                            <BarChart3 size={15} />
+                          </button>
+
                           {/* Nút Xem trước đề */}
                           <button
                             type="button"
@@ -354,6 +367,14 @@ export function QuizManagementView() {
         editingQuiz={editingQuiz}
         lessons={lessons}
         loading={actionLoading}
+      />
+
+      {/* Modal Thống kê Thí sinh nộp bài cho Editor */}
+      <QuizStatisticsModal
+        quizId={statsQuiz?.id || null}
+        quizTitle={statsQuiz?.title}
+        isOpen={Boolean(statsQuiz)}
+        onClose={() => setStatsQuiz(null)}
       />
     </div>
   );

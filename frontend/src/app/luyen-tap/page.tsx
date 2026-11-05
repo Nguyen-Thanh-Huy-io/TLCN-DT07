@@ -111,12 +111,21 @@ function isOptionCorrectAnswer(opt: QuizOptionItem, q: RawQuizQuestion): boolean
 }
 
 export default function LuyenTapPage() {
+  const sessionUser = useAuthSession();
+  const isStaff = isStaffRole(sessionUser?.role);
+
   const [lessons, setLessons] = useState<PublicLessonWithQuiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
 
   // Thông tin thí sinh
   const [learnerName, setLearnerName] = useState('Thí sinh tự do');
+
+  useEffect(() => {
+    if (sessionUser?.displayName || sessionUser?.username) {
+      setLearnerName(sessionUser.displayName || sessionUser.username);
+    }
+  }, [sessionUser]);
 
   // Trạng thái bài thi & Tính giờ
   const [examStarted, setExamStarted] = useState(false);
@@ -300,17 +309,19 @@ export default function LuyenTapPage() {
     handleSubmitExam();
   };
 
-  // Mở modal xem thống kê lượt nộp bài
+  // Mở modal xem thống kê lượt nộp bài (chỉ dành cho Ban biên tập / Quản trị viên)
   const handleOpenStatistics = async () => {
     if (!activeQuiz) return;
     setShowStatsModal(true);
     setStatsLoading(true);
     try {
       const res = await fetch(`/api/public/quizzes/${activeQuiz.id}/statistics`);
-      const data = await res.json();
-      setStatsData(data);
+      const json = await res.json();
+      const actualStats = (json.data?.summary ? json.data : json.summary ? json : null) as QuizStatisticsData | null;
+      setStatsData(actualStats);
     } catch (err) {
       console.error('Lỗi khi tải thống kê:', err);
+      setStatsData(null);
     } finally {
       setStatsLoading(false);
     }
@@ -693,13 +704,16 @@ export default function LuyenTapPage() {
                       <RotateCcw size={14} /> Làm lại đề này
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={handleOpenStatistics}
-                      className="w-full py-2 rounded-xl border border-stone-200 bg-white text-stone-700 font-bold text-xs hover:bg-stone-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <BarChart3 size={14} className="text-[#8B261E]" /> Xem Phổ Điểm & Thống Kê
-                    </button>
+                    {isStaff && (
+                      <button
+                        type="button"
+                        onClick={handleOpenStatistics}
+                        className="w-full py-2 rounded-xl border border-stone-200 bg-white text-stone-700 font-bold text-xs hover:bg-stone-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                        title="Chỉ hiển thị cho Ban biên tập & Quản trị viên"
+                      >
+                        <BarChart3 size={14} className="text-[#8B261E]" /> Xem Phổ Điểm & Thống Kê (Editor)
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <button
@@ -755,19 +769,19 @@ export default function LuyenTapPage() {
                     <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
                       <div className="text-[11px] text-stone-500 font-medium">Lượt tham gia</div>
                       <div className="text-lg font-bold text-stone-900 mt-0.5">
-                        {statsData.summary.totalAttempts}
+                        {statsData?.summary?.totalAttempts ?? 0}
                       </div>
                     </div>
                     <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950">
                       <div className="text-[11px] text-emerald-700 font-medium">Tỉ lệ đạt chuẩn</div>
                       <div className="text-lg font-bold text-emerald-800 mt-0.5">
-                        {statsData.summary.passRatePercent}%
+                        {statsData?.summary?.passRatePercent ?? 0}%
                       </div>
                     </div>
                     <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-950">
                       <div className="text-[11px] text-amber-700 font-medium">Điểm trung bình</div>
                       <div className="text-lg font-bold text-amber-800 mt-0.5">
-                        {statsData.summary.averageScore}%
+                        {statsData?.summary?.averageScore ?? 0}%
                       </div>
                     </div>
                   </div>
@@ -778,13 +792,13 @@ export default function LuyenTapPage() {
                       Danh sách lượt nộp bài gần đây
                     </h4>
 
-                    {statsData.recentAttempts.length === 0 ? (
+                    {(statsData?.recentAttempts || []).length === 0 ? (
                       <div className="p-8 text-center text-xs text-stone-500 bg-stone-50 rounded-xl border border-stone-200">
                         Chưa có lượt nộp bài nào được ghi nhận cho đề này.
                       </div>
                     ) : (
                       <div className="border border-stone-200 rounded-xl overflow-hidden divide-y divide-stone-100">
-                        {statsData.recentAttempts.map((attempt) => (
+                        {(statsData?.recentAttempts || []).map((attempt) => (
                           <div
                             key={attempt.id}
                             className="p-3.5 flex items-center justify-between text-xs hover:bg-stone-50 transition-colors"

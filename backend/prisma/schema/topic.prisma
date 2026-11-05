@@ -26,9 +26,12 @@ model Topic {
   updatedAt     DateTime         @updatedAt @map("updated_at")
 
   // Relations
-  parent   Topic?  @relation("TopicHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children Topic[] @relation("TopicHierarchy")
+  parent    Topic?     @relation("TopicHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Topic[]    @relation("TopicHierarchy")
   questions Question[]
+  timelines Timeline[]
+  lessons   Lesson[]
+  articles  Article[]
 
   @@index([parentId])
   @@index([pathType])

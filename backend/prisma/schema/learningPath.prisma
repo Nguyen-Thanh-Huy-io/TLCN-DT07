@@ -35,8 +35,9 @@ model LearningPath {
   updatedAt     DateTime         @updatedAt @map("updated_at")
 
   // Relations
-  chapters    Chapter[]
-  enrollments LearningPathEnrollment[]
+  chapters          Chapter[]
+  enrollments       LearningPathEnrollment[]
+  discussionThreads DiscussionThread[]
 
   @@index([pathType])
   @@index([status])

@@ -10,6 +10,7 @@
 
 model Timeline {
   id            String        @id @default(uuid())
+  topicId       String?       @map("topic_id")
   title         String        @db.VarChar(255)
   slug          String        @unique @db.VarChar(255)
   description   String?       @db.Text
@@ -19,8 +20,10 @@ model Timeline {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
+  topic Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
   nodes TimelineNode[]
 
+  @@index([topicId])
   @@index([status])
   @@index([displayOrder])
   @@map("timelines")

@@ -40,6 +40,7 @@ model Category {
 model Article {
   id            String  @id @default(uuid())
   categoryId    String? @map("category_id")
+  topicId       String? @map("topic_id")
   title         String  @db.VarChar(255)
   slug          String  @unique @db.VarChar(255)
   /// Tóm tắt 1-3 câu — hiện ở thẻ danh sách, kết quả tìm kiếm, mô tả SEO.
@@ -64,17 +65,21 @@ model Article {
   displayOrder Int           @default(0) @map("display_order")
   status       ContentStatus @default(DRAFT)
   createdBy    String?       @map("created_by")
+  approvedBy   String?       @map("approved_by")
+  rejectionReason String?    @map("rejection_reason") @db.Text
   publishedAt  DateTime?     @map("published_at")
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
 
   category      Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  topic         Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
   articleTags   ArticleTag[]
   timelineNodes TimelineNode[]
   linksOut      ArticleLink[]  @relation("ArticleLinkSource")
   linksIn       ArticleLink[]  @relation("ArticleLinkTarget")
 
   @@index([categoryId])
+  @@index([topicId])
   @@index([status])
   @@index([isFeatured])
   @@index([startYear, endYear])

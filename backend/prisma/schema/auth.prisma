@@ -25,6 +25,11 @@ model authUser {
   subscriptions     Subscription[]
   pathEnrollments   LearningPathEnrollment[]
   lessonProgress    LessonProgress[]
+  discussionThreads DiscussionThread[]
+  discussionReplies DiscussionReply[]
+  notifications     Notification[]
+  quizAttempts      QuizAttempt[]
+  notes             Note[]
 
   @@index([email, id, providerId])
   @@index([username])

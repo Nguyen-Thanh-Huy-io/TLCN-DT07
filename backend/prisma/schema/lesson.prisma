@@ -12,6 +12,7 @@ enum LessonStatus {
 
 model Lesson {
   id          String  @id @default(uuid())
+  topicId     String? @map("topic_id")
   title       String  @db.VarChar(255)
   slug        String  @unique @db.VarChar(255)
   description String? @db.Text
@@ -36,6 +37,8 @@ model Lesson {
   quiz Quiz?
   questions Question[]
 
+  topic Topic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
   displayOrder Int @default(0) @map("display_order")
 
   createdBy       String?   @map("created_by")
@@ -46,6 +49,7 @@ model Lesson {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([topicId])
   @@index([status])
   @@index([displayOrder])
   @@index([updatedAt])

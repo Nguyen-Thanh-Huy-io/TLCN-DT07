@@ -1,0 +1,39 @@
+// ================================
+// Note (Ghi chú bài viết & bài học) Model
+// ================================
+
+enum NoteTargetType {
+  ARTICLE
+  LESSON
+}
+
+enum NoteColor {
+  YELLOW
+  GREEN
+  BLUE
+  PINK
+  PURPLE
+}
+
+model Note {
+  id            String         @id @default(uuid())
+  targetType    NoteTargetType @map("target_type")
+  targetId      String         @map("target_id")
+  userId        String?        @map("user_id")
+  guestId       String?        @map("guest_id") @db.VarChar(100)
+
+  title         String?        @db.VarChar(255)
+  content       String         @db.Text
+  highlightText String?        @map("highlight_text") @db.Text
+  color         NoteColor      @default(YELLOW)
+
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  user          authUser?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
+  @@index([userId])
+  @@index([guestId])
+  @@map("notes")
+}

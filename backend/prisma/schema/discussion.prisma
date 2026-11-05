@@ -1,0 +1,51 @@
+// ================================
+// Discussion (Hỏi đáp & Thảo luận học tập) Model
+// ================================
+
+enum DiscussionTargetType {
+  LESSON
+  ARTICLE
+}
+
+model DiscussionThread {
+  id             String               @id @default(uuid())
+  targetType     DiscussionTargetType @map("target_type")
+  targetId       String               @map("target_id")
+  learningPathId String?              @map("learning_path_id")
+  userId         String               @map("user_id")
+
+  title          String               @db.VarChar(255)
+  content        String               @db.Text
+  isAnswered     Boolean              @default(false) @map("is_answered")
+  upvotesCount   Int                  @default(0) @map("upvotes_count")
+
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+
+  user           authUser             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  learningPath   LearningPath?        @relation(fields: [learningPathId], references: [id], onDelete: SetNull)
+  replies        DiscussionReply[]
+
+  @@index([targetType, targetId])
+  @@index([learningPathId])
+  @@index([userId])
+  @@map("discussion_threads")
+}
+
+model DiscussionReply {
+  id         String           @id @default(uuid())
+  threadId   String           @map("thread_id")
+  userId     String           @map("user_id")
+  content    String           @db.Text
+  isOfficial Boolean          @default(false) @map("is_official")
+
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  thread     DiscussionThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user       authUser         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+  @@index([userId])
+  @@map("discussion_replies")
+}

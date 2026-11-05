@@ -11,7 +11,8 @@ model Tag {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  lessonTags LessonTag[]
+  lessonTags  LessonTag[]
+  articleTags ArticleTag[]
 
   @@index([name])
   @@map("tags")

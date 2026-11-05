@@ -1,0 +1,87 @@
+// ================================
+// Bài viết tri thức (Article) + Chuyên mục (Category)
+// ================================
+//
+// Thay cho mô hình Knowledge Graph cũ (HistoricalEntity/Statement/Taxonomy/Period, đã xoá
+// 2026-11-05). Mọi nội dung tri thức lịch sử — nhân vật, sự kiện, di tích, triều đại... — đều
+// là 1 bài viết:
+//   • Category  = bài này LÀ LOẠI GÌ (mỗi bài đúng 1 chuyên mục) → quyết định trang hiển thị.
+//   • Tag       = bài này LIÊN QUAN CHỦ ĐỀ NÀO (nhiều-nhiều, dùng chung bảng Tag với Lesson).
+//   • Timeline  = trình tự thời gian do biên tập viên tự dựng, mốc có thể trỏ tới bài viết
+//                 (xem timeline.prisma).
+// Không có quan hệ bài ↔ bài kiểu đồ thị: liên kết giữa các bài nằm trong nội dung (khối
+// Nhân vật / Sự kiện / Bài liên quan trong contentBlocks) hoặc qua Tag chung.
+
+model Category {
+  id           String   @id @default(uuid())
+  parentId     String?  @map("parent_id")
+  name         String   @db.VarChar(150)
+  /// Dùng làm đường dẫn công khai: /chuyen-muc/{slug}
+  slug         String   @unique @db.VarChar(150)
+  description  String?  @db.Text
+  /// Tên icon lucide (vd. "User", "Swords", "Landmark") — chỉ để hiển thị.
+  icon         String?  @db.VarChar(50)
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryHierarchy")
+  articles Article[]
+
+  @@index([parentId])
+  @@index([displayOrder])
+  @@map("categories")
+}
+
+model Article {
+  id            String  @id @default(uuid())
+  categoryId    String? @map("category_id")
+  title         String  @db.VarChar(255)
+  slug          String  @unique @db.VarChar(255)
+  /// Tóm tắt 1-3 câu — hiện ở thẻ danh sách, kết quả tìm kiếm, mô tả SEO.
+  summary       String? @db.Text
+  coverImageUrl String? @map("cover_image_url") @db.VarChar(500)
+  coverCaption  String? @map("cover_caption") @db.VarChar(255)
+  /// Nội dung dạng mảng khối — cùng định dạng Lesson.content (Block Builder).
+  contentBlocks Json    @default("[]") @map("content_blocks") @db.JsonB
+
+  /// Niên đại để hiển thị & sắp xếp. Năm âm = TCN, không có năm 0.
+  /// Nhân vật: năm sinh – mất · Sự kiện: năm diễn ra · Di tích: năm xây dựng · Triều đại: tồn tại.
+  dateText      String?        @map("date_text") @db.VarChar(150)
+  startYear     Int?           @map("start_year")
+  endYear       Int?           @map("end_year")
+  datePrecision DatePrecision? @map("date_precision")
+
+  isFeatured   Boolean       @default(false) @map("is_featured")
+  displayOrder Int           @default(0) @map("display_order")
+  status       ContentStatus @default(DRAFT)
+  createdBy    String?       @map("created_by")
+  publishedAt  DateTime?     @map("published_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  category      Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  articleTags   ArticleTag[]
+  timelineNodes TimelineNode[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([startYear, endYear])
+  @@index([updatedAt])
+  @@map("articles")
+}
+
+model ArticleTag {
+  articleId String   @map("article_id")
+  tagId     String   @map("tag_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@index([tagId])
+  @@map("article_tags")
+}

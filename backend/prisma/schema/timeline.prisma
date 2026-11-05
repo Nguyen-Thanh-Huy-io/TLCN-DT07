@@ -1,0 +1,56 @@
+// ================================
+// Dòng thời gian (Timeline) + Mốc (TimelineNode)
+// ================================
+//
+// Biên tập viên tự dựng từng dòng thời gian (vd. "Nhà Trần 1226-1400", "Kháng chiến chống
+// Pháp"). Trang /dong-thoi-gian hiển thị các Timeline đã xuất bản theo displayOrder — mỗi
+// Timeline đóng vai trò 1 "giai đoạn" (thay cho Period cũ).
+// Mốc sắp theo displayOrder (biên tập viên kéo thả); year/month/day chỉ để hiển thị nhãn
+// niên đại khi không có dateText.
+
+model Timeline {
+  id            String        @id @default(uuid())
+  title         String        @db.VarChar(255)
+  slug          String        @unique @db.VarChar(255)
+  description   String?       @db.Text
+  coverImageUrl String?       @map("cover_image_url") @db.VarChar(500)
+  displayOrder  Int           @default(0) @map("display_order")
+  status        ContentStatus @default(DRAFT)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  nodes TimelineNode[]
+
+  @@index([status])
+  @@index([displayOrder])
+  @@map("timelines")
+}
+
+model TimelineNode {
+  id          String  @id @default(uuid())
+  timelineId  String  @map("timeline_id")
+  /// Bài viết chi tiết của mốc (tùy chọn) — mốc không có bài chỉ hiện tiêu đề + mô tả.
+  articleId   String? @map("article_id")
+  title       String  @db.VarChar(255)
+  description String? @db.Text
+  imageUrl    String? @map("image_url") @db.VarChar(500)
+
+  /// Nhãn niên đại tự do (vd. "Đông 1287 – Xuân 1288"); trống thì ghép từ year/month/day.
+  dateText String? @map("date_text") @db.VarChar(150)
+  /// Năm âm = TCN, không có năm 0.
+  year     Int?
+  month    Int?
+  day      Int?
+  endYear  Int?    @map("end_year")
+
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  timeline Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  article  Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+
+  @@index([timelineId, displayOrder])
+  @@index([articleId])
+  @@map("timeline_nodes")
+}

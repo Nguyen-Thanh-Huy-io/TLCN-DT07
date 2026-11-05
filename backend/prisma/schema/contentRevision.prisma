@@ -10,7 +10,7 @@
 
 model ContentRevision {
   id          String    @id @default(uuid())
-  /// LESSON | EVENT | ENTITY
+  /// LESSON | ARTICLE | TIMELINE | TOPIC | LEARNING_PATH | CHAPTER
   contentType String    @map("content_type") @db.VarChar(20)
   contentId   String    @map("content_id")
   /// PROPOSAL | SNAPSHOT

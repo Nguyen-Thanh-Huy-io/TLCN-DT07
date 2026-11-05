@@ -118,12 +118,6 @@ enum LearningPathType {
   MYTHOLOGICAL
 }
 
-enum MediaType {
-  IMAGE
-  VIDEO
-  DOCUMENT
-}
-
 // Biểu tượng hiển thị cho chủ đề kiến thức trên landing page
 enum TopicIcon {
   Landmark
@@ -132,26 +126,6 @@ enum TopicIcon {
   Scale
   BookOpen
   MapPin
-}
-
-// Phân loại thực thể lịch sử (Master Data dùng chung)
-enum HistoricalEntityType {
-  PERSON
-  ORGANIZATION
-  DYNASTY
-  MILITARY_FORCE
-  ARTIFACT
-  LOCATION
-  EVENT
-  OTHER
-}
-
-// Trạng thái xác minh học thuật của mối liên hệ sự kiện
-enum VerificationStatus {
-  VERIFIED // Đã xác minh (Đồng thuận chính sử)
-  HYPOTHESIS // Giả thuyết lịch sử
-  DISPUTED // Còn tranh cãi học thuật
-  DRAFT // Bản nháp đang nghiên cứu
 }
 
 // Độ chính xác niên đại dùng chung cho toàn bộ dữ liệu lịch sử
@@ -164,19 +138,4 @@ enum DatePrecision {
   APPROXIMATE
   RANGE
   UNKNOWN
-}
-
-// Kiểu giá trị literal của phát biểu tri thức (Statement Literal Object)
-enum StatementValueType {
-  STRING
-  NUMBER
-  DATE
-  JSON
-}
-
-// Mức độ ưu tiên / thẩm quyền của phát biểu tri thức (Statement Rank theo chuẩn Wikidata)
-enum StatementRank {
-  PREFERRED
-  NORMAL
-  DEPRECATED
 }

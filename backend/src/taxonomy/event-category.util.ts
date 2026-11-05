@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { EventCategory, TaxonomyTerm } from '@prisma/client';
+import { TaxonomyTerm } from '@prisma/client';
 
 /** Một trường thông tin riêng khai báo trong meta.fields của nút loại sự kiện. */
 export interface EventFieldDef {
@@ -14,7 +14,6 @@ const FIELD_TYPES = new Set<EventFieldDef['type']>([
   'list',
   'number',
 ]);
-const LEGACY_CATEGORIES = new Set<string>(Object.values(EventCategory));
 
 type TermLike = Pick<TaxonomyTerm, 'id' | 'code' | 'parentId' | 'meta'>;
 
@@ -107,23 +106,16 @@ export function normalizeEventMetadata(
 }
 
 /**
- * Giá trị ghi vào cột enum category cũ khi loại này là loại chính: meta.legacyCategory gần nhất
- * trên chuỗi tổ tiên, hoặc chính mã nếu mã nằm trong enum; không có thì OTHER.
+ * Mã loại sự kiện công khai khi loại này là loại chính: lấy thẳng mã của chính nút
+ * (nhóm EVENT_TYPE) — không còn giới hạn vào 9 giá trị enum cũ, mọi mã trong danh mục
+ * đều hợp lệ. Không có nút khớp thì trả "OTHER".
  */
-export function legacyEventCategory(
+export function eventCategoryCode(
   terms: TermLike[],
   id: string | undefined,
-): EventCategory {
-  if (!id) return EventCategory.OTHER;
-  const chain = ancestorChain(terms, id).reverse();
-  for (const node of chain) {
-    if (LEGACY_CATEGORIES.has(node.code)) return node.code as EventCategory;
-    const legacy = metaOf(node).legacyCategory;
-    if (typeof legacy === 'string' && LEGACY_CATEGORIES.has(legacy)) {
-      return legacy as EventCategory;
-    }
-  }
-  return EventCategory.OTHER;
+): string {
+  if (!id) return 'OTHER';
+  return terms.find((t) => t.id === id)?.code ?? 'OTHER';
 }
 
 /** Id của các nút và toàn bộ nút con cháu — lọc theo nút cha ra cả sự kiện thuộc nút con. */

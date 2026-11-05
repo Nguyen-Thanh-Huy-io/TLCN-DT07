@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { DataTable } from '@/components/table/DataTable';
 import { ContentCell } from '@/components/common/ContentCell';
@@ -14,6 +14,7 @@ import { PeriodItem } from '@/types/models/period.type';
 import { PeriodApiService } from '@/services/entities/period.service';
 import { extractErrorMessage } from '@/services/api';
 import { formatHistoricalTimeSpan } from '@/utils/history-year.utils';
+import { usePublicTaxonomyTerms } from '@/features/taxonomy/usePublicTaxonomy';
 
 export function PeriodList() {
   const router = useRouter();
@@ -21,6 +22,10 @@ export function PeriodList() {
   const [loading, setLoading] = useState(true);
   const [deletingPeriod, setDeletingPeriod] = useState<PeriodItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Trạng thái bộ lọc (Đa chọn Khu vực)
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
 
   const fetchPeriods = useCallback(async () => {
     try {
@@ -54,6 +59,64 @@ export function PeriodList() {
       setIsDeleting(false);
     }
   };
+
+  // Danh mục Khu vực tải động 100% từ Taxonomy, tuyệt đối không hardcode
+  const regionTerms = usePublicTaxonomyTerms('REGION');
+
+  const regionOptions = useMemo(() => {
+    return [
+      { label: 'Tất cả khu vực', value: 'ALL' },
+      ...regionTerms.map((term) => ({
+        label: term.label,
+        value: term.label,
+      })),
+    ];
+  }, [regionTerms]);
+
+  // Tùy chọn cho bộ lọc Trạng thái từ từ điển chuẩn hóa tập trung
+  const statusOptions = useMemo(
+    () => [
+      { label: 'Tất cả trạng thái', value: 'ALL' },
+      ...[
+        ContentStatus.PUBLISHED,
+        ContentStatus.DRAFT,
+        ContentStatus.PENDING_REVIEW,
+        ContentStatus.ARCHIVED,
+      ].map((st) => ({
+        label: STATUS_LABEL_MAP[st] || st,
+        value: st,
+      })),
+    ],
+    []
+  );
+
+  // Danh sách dữ liệu sau khi áp dụng bộ lọc (Multi-Select cho Khu vực)
+  const displayedPeriods = useMemo(() => {
+    return periods.filter((item) => {
+      // Lọc theo Khu vực đối soát qua nhãn hoặc aliases của taxonomy term
+      if (selectedRegions.length > 0) {
+        const itemRegion = (item.region || '').trim().toLowerCase();
+        const matchesAny = selectedRegions.some((reg) => {
+          const selectedTerm = regionTerms.find((t) => t.label === reg);
+          return (
+            itemRegion === reg.toLowerCase() ||
+            Boolean(selectedTerm?.aliases?.some((a) => a.toLowerCase() === itemRegion))
+          );
+        });
+        if (!matchesAny) {
+          return false;
+        }
+      }
+      // Lọc theo Trạng thái
+      if (selectedStatus !== 'ALL') {
+        const itemStatus = item.status || ContentStatus.PUBLISHED;
+        if (itemStatus !== selectedStatus) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [periods, selectedRegions, selectedStatus, regionTerms]);
 
   const columns: ColumnDef<PeriodItem>[] = [
     {
@@ -137,14 +200,28 @@ export function PeriodList() {
     <>
       <DataTable<PeriodItem>
         columns={columns}
-        data={periods}
+        data={displayedPeriods}
         searchPlaceholder="Tìm kiếm thời kỳ, giai đoạn lịch sử..."
         primaryButtonLabel="Tạo thời kỳ"
         onPrimaryButtonClick={() => router.push(APP_ROUTES.PERIODS.CREATE)}
         onView={(item) => router.push(APP_ROUTES.PERIODS.DETAIL(item.id))}
         onEdit={(item) => router.push(APP_ROUTES.PERIODS.DETAIL(item.id))}
         onDelete={(item) => setDeletingPeriod(item)}
-        filters={[{ label: 'Khu vực' }, { label: 'Trạng thái' }]}
+        filters={[
+          {
+            label: 'Khu vực',
+            options: regionOptions,
+            selectedValues: selectedRegions,
+            isMultiSelect: true,
+            onSelectMultiple: setSelectedRegions,
+          },
+          {
+            label: 'Trạng thái',
+            options: statusOptions,
+            selectedValue: selectedStatus,
+            onSelect: setSelectedStatus,
+          },
+        ]}
       />
 
       <ConfirmDeleteModal

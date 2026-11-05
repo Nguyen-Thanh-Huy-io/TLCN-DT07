@@ -4,6 +4,7 @@ import { Icon } from '@/components/icons/Icon';
 import { ActionMenu } from '@/components/common/ActionMenu';
 import { IconName } from '@/constants/icons';
 import { DataTableProps } from '@/types/table.types';
+import { DataTableFilterModal } from './DataTableFilterModal';
 
 export function DataTable<T extends object>({
   columns,
@@ -26,6 +27,7 @@ export function DataTable<T extends object>({
 }: DataTableProps<T>) {
   const [internalQuery, setInternalQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
   const query = searchValue !== undefined ? searchValue : internalQuery;
   const handleQueryChange = (val: string) => {
@@ -43,6 +45,19 @@ export function DataTable<T extends object>({
       JSON.stringify(item).toLowerCase().includes(lower),
     );
   }, [data, query, searchValue]);
+
+  // Đếm số lượng bộ lọc đang được kích hoạt (hỗ trợ cả Single-Select và Multi-Select)
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    for (const f of filters) {
+      if (f.isMultiSelect || f.selectedValues) {
+        count += (f.selectedValues || []).length;
+      } else if (f.selectedValue && f.selectedValue !== 'ALL' && f.selectedValue !== '') {
+        count += 1;
+      }
+    }
+    return count;
+  }, [filters]);
 
   const allSelected =
     filteredData.length > 0 && selectedIds.length === filteredData.length;
@@ -87,14 +102,48 @@ export function DataTable<T extends object>({
           ) : null}
         </label>
         {filters.length > 0 && (
-          <div className="filters">
-            {filters.map((f, idx) => (
-              <button key={idx} type="button" onClick={f.onClick} className="text-slate-700 hover:text-slate-900 font-semibold text-xs sm:text-sm">
-                <Icon name={IconName.FILTER} size={14} className="text-slate-600" />
-                <span>{f.label}</span>
-                <span className="text-slate-600 text-xs font-bold">⌄</span>
-              </button>
-            ))}
+          <div className="filters flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsFilterModalOpen(true)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border transition-all cursor-pointer select-none ${
+                activeFiltersCount > 0
+                  ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-2xs font-bold'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+              }`}
+            >
+              <Icon
+                name={IconName.FILTER}
+                size={14}
+                className={activeFiltersCount > 0 ? 'text-amber-800' : 'text-slate-500'}
+              />
+              <span>Bộ lọc</span>
+              {activeFiltersCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-amber-800 text-white text-[10px] font-bold flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
+              {activeFiltersCount > 0 && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    filters.forEach((f) => {
+                      if (f.isMultiSelect || f.selectedValues) {
+                        f.onSelectMultiple?.([]);
+                      } else {
+                        f.onSelect?.('ALL');
+                      }
+                    });
+                  }}
+                  className="ml-1 text-amber-800 hover:text-amber-950 font-bold hover:bg-amber-200/70 rounded-full w-3.5 h-3.5 flex items-center justify-center text-[9px]"
+                  title="Xóa tất cả bộ lọc"
+                >
+                  ✕
+                </span>
+              )}
+            </button>
           </div>
         )}
         {customPrimaryAction ? (
@@ -276,6 +325,15 @@ export function DataTable<T extends object>({
           </button>
         </div>
       </div>
+
+      {filters.length > 0 && (
+        <DataTableFilterModal
+          isOpen={isFilterModalOpen}
+          onClose={() => setIsFilterModalOpen(false)}
+          filters={filters}
+          totalCount={displayTotal}
+        />
+      )}
     </div>
   );
 }

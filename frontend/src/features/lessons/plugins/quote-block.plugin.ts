@@ -15,9 +15,11 @@ export const quoteBlockPlugin: BlockPlugin<QuoteBlockData> = {
   }),
 
   toHtml: (block: QuoteBlockData): string => {
-    const safeQuote = escapeHtml(block.quoteText);
+    const rawQuote = block.quoteText || (block as any).quote || '';
+    const safeQuote = escapeHtml(rawQuote);
     const safeAuthor = escapeHtml(block.author || 'Khuyết danh');
-    const safeSource = block.sourceContext ? escapeHtml(block.sourceContext) : '';
+    const rawSource = block.sourceContext || (block as any).source || '';
+    const safeSource = rawSource ? escapeHtml(rawSource) : '';
 
     return `
       <blockquote style="margin: 24px 0; padding: 18px 24px; background: #fdfaf3; border-left: 4px solid #c2410c; border-radius: 0 14px 14px 0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">

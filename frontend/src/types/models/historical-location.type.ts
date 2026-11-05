@@ -26,6 +26,7 @@ export interface HistoricalLocationItem {
   imageCaption?: string;
   // Các trường đặc thù của HistoricalSite (hỗ trợ cả dạng phẳng và lồng)
   siteType?: LocationType | string;
+  siteTypeCode?: string;
   address?: string;
   latitude?: number;
   longitude?: number;

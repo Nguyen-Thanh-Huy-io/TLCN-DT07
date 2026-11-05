@@ -20,14 +20,18 @@ export function normalizeContentToBlocks(rawContent: unknown): {
   blocks: LessonBlockItem[];
   resourceLinks: ResourceLinkBlockData[];
 } {
-  let items: LessonBlockItem[] = [];
+  let items: any[] = [];
   if (Array.isArray(rawContent)) {
     items = rawContent;
+  } else if (rawContent && typeof rawContent === 'object' && Array.isArray((rawContent as any).blocks)) {
+    items = (rawContent as any).blocks;
   } else if (typeof rawContent === 'string' && rawContent.trim().length > 0) {
     try {
       const parsed = JSON.parse(rawContent);
       if (Array.isArray(parsed)) {
         items = parsed;
+      } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.blocks)) {
+        items = parsed.blocks;
       } else {
         items = [{ id: 'text_fallback', type: LessonBlockType.TEXT, content: rawContent }];
       }
@@ -39,10 +43,20 @@ export function normalizeContentToBlocks(rawContent: unknown): {
   const blocks: LessonBlockItem[] = [];
   const resourceLinks: ResourceLinkBlockData[] = [];
   for (const item of items) {
-    if (item.type === LessonBlockType.RESOURCE_LINK) {
-      resourceLinks.push(item as ResourceLinkBlockData);
+    if (!item || typeof item !== 'object') continue;
+    const rawType = String(item.type || '').toUpperCase();
+    let normalizedType = rawType as LessonBlockType;
+    if (rawType === 'TABLE') normalizedType = LessonBlockType.COMPARISON_TABLE;
+
+    const normalizedItem = {
+      ...item,
+      type: normalizedType,
+    };
+
+    if (normalizedType === LessonBlockType.RESOURCE_LINK) {
+      resourceLinks.push(normalizedItem as ResourceLinkBlockData);
     } else {
-      blocks.push(item);
+      blocks.push(normalizedItem);
     }
   }
   return { blocks, resourceLinks };
@@ -107,8 +121,24 @@ export function buildLessonTocAndHtml(
 
   // Mọi khối khác: bọc id neo quanh HTML đã biên dịch của khối đó, gắn kèm mục lục tương ứng
   const renderBlockWithAnchor = (block: LessonBlockItem, level: number): string => {
+    // Khối Tiêu đề (HEADING): tự sinh thẻ h và đưa vào Mục lục
+    if (block.type === LessonBlockType.HEADING) {
+      headingCount++;
+      const id = `heading-${headingCount}`;
+      const headingData = block as any;
+      const lvl =
+        headingData.level && headingData.level >= 1 && headingData.level <= 6
+          ? headingData.level
+          : 2;
+      const cleanText = (headingData.text || '').replace(/<[^>]*>/g, '').trim();
+      if (cleanText) tocItems.push({ id, text: cleanText, level: lvl });
+      return `<h${lvl} id="${id}">${cleanText}</h${lvl}>`;
+    }
+
     if (block.type === LessonBlockType.TEXT) {
-      return renderTextBlock(block.content);
+      const textContent =
+        (block as any).content || (block as any).text || '';
+      return renderTextBlock(textContent);
     }
 
     // Khối Câu chuyện lịch sử (STORY_CHAPTER): Đưa cả Tiêu đề câu chuyện và từng Chương vào Mục lục

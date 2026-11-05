@@ -10,6 +10,7 @@ import {
   type TimelineFocusState,
 } from "./TimelineFocus";
 import { eventRoleLabel } from "@/features/taxonomy/taxonomy-labels";
+import { TaxonomyGroupCode } from "@/constants/enums";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import { ArrowDownUp, ArrowRight, BookOpen, Landmark, Network, Search, SlidersHorizontal, X } from "lucide-react";
@@ -112,10 +113,10 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   // Chế độ "Liên kết" (đồ thị tri thức trên dòng thời gian).
   const [focus, setFocus] = useState<TimelineEvent | null>(null);
   const [lens, setLens] = useState<TimelineActor | null>(null);
-  const roleTerms = usePublicTaxonomyTerms("EVENT_ROLE");
+  const roleTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.ROLE_TYPE);
   const [onlyRelated, setOnlyRelated] = useState(false);
   const [flashId, setFlashId] = useState<string | null>(null);
-  const relationTerms = usePublicTaxonomyTerms("EVENT_RELATION");
+  const relationTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.PREDICATE);
   const canvas = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: canvas, offset: ["start end", "end start"] });
   const progress = useSpring(scrollYProgress, { stiffness: 70, damping: 25 });

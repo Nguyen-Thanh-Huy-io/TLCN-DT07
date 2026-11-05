@@ -7,6 +7,7 @@ import {
   HeadingBlockData,
   LessonBlockItem,
   QuoteBlockData,
+  RelatedEventsBlockData,
   RelatedPeopleBlockData,
   RowSectionBlockData,
   StoryChapterBlockData,
@@ -22,6 +23,7 @@ import {
   CalloutBlockInspector,
   HeadingBlockInspector,
   QuoteBlockInspector,
+  RelatedEventsBlockInspector,
   RelatedPeopleBlockInspector,
 } from './inspectors/SimpleBlockInspectors';
 
@@ -114,6 +116,12 @@ const BLOCK_INSPECTOR_STRATEGIES: BlockInspectorStrategyMap = {
   [LessonBlockType.RELATED_PEOPLE]: ({ block, onUpdateBlock }) => (
     <RelatedPeopleBlockInspector
       block={block as RelatedPeopleBlockData}
+      onUpdateBlock={onUpdateBlock}
+    />
+  ),
+  [LessonBlockType.RELATED_EVENTS]: ({ block, onUpdateBlock }) => (
+    <RelatedEventsBlockInspector
+      block={block as RelatedEventsBlockData}
       onUpdateBlock={onUpdateBlock}
     />
   ),

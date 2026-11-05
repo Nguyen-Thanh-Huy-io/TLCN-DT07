@@ -129,6 +129,16 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
             />
           </div>
 
+          <input
+            type="text"
+            value={data.role || ''}
+            maxLength={120}
+            onChange={(e) => onChange({ role: e.target.value })}
+            placeholder="Vai trò / chức danh (vd: Chủ tướng đại thắng Bạch Đằng)"
+            data-testid="input-character-role"
+            className="w-full text-sm font-medium text-stone-700 bg-transparent border-b border-transparent hover:border-stone-300 focus:border-stone-900 focus:outline-none py-0.5"
+          />
+
           <textarea
             rows={2}
             value={data.summary}

@@ -1,0 +1,1113 @@
+/* Universal Entity Reader Stylesheet - HisGo Digital Museum */
+
+.ue-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ue-container.ue-container-focus {
+  max-width: 1600px;
+  padding: 0 2.5rem;
+}
+
+/* ==========================================================================
+   1. HERO SECTION & QUICK STATS
+   ========================================================================== */
+.ue-hero {
+  position: relative;
+  background: linear-gradient(180deg, #FAF6EE 0%, #F5EFE0 100%);
+  border-bottom: 1px solid #E8DECA;
+  padding: 2.25rem 0 2rem;
+  overflow: hidden;
+}
+
+/* HERO GRID 2 CỘT CÂN ĐỐI */
+.ue-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (min-width: 992px) {
+  .ue-hero-grid {
+    grid-template-columns: 1.25fr 1fr;
+    gap: 3rem;
+  }
+}
+
+.ue-hero-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.ue-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.85rem;
+  border: 1px solid currentColor;
+  align-self: flex-start;
+}
+
+.ue-hero-eyebrow {
+  font-size: 0.825rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #8C6239;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.ue-hero-title {
+  font-family: var(--font-playfair), var(--font-merriweather), var(--font-noto-serif), serif;
+  font-size: 2.35rem;
+  line-height: 1.18;
+  font-weight: 800;
+  color: #2D1A10;
+  margin-bottom: 0.85rem;
+}
+
+@media (min-width: 768px) {
+  .ue-hero-title {
+    font-size: 3rem;
+  }
+}
+
+.ue-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.15rem;
+  font-size: 0.925rem;
+  color: #5C4A3A;
+}
+
+.ue-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.ue-hero-lead {
+  font-size: 1.075rem;
+  line-height: 1.65;
+  color: #3F3025;
+  margin-bottom: 1.5rem;
+}
+
+/* QUICK STATS CARDS */
+.ue-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.85rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+@media (min-width: 640px) and (max-width: 991px) {
+  .ue-stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.ue-stat-card {
+  background: #FFFDF9;
+  border: 1px solid #EAE0CE;
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  box-shadow: 0 2px 8px rgba(45, 26, 16, 0.03);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+}
+
+.ue-stat-card:hover {
+  border-color: #C8A97E;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(45, 26, 16, 0.06);
+}
+
+.ue-stat-value {
+  font-family: var(--font-playfair), var(--font-merriweather), var(--font-noto-serif), serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #8C2D19;
+  margin-bottom: 0.25rem;
+}
+
+.ue-stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #705946;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* CỘT PHẢI: FIGURE + GỘP HỒ SƠ TÓM LƯỢC */
+.ue-hero-right-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ue-hero-figure {
+  position: relative;
+  border-radius: 0.875rem;
+  overflow: hidden;
+  box-shadow: 0 10px 28px -6px rgba(45, 26, 16, 0.15);
+  border: 3px solid #FFFDF7;
+  background: #EFE8DA;
+}
+
+.ue-hero-image {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  display: block;
+}
+
+.ue-hero-caption {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.8rem;
+  color: #6A5645;
+  background: #FFFDF7;
+  font-style: italic;
+  border-top: 1px solid #EDE4D1;
+}
+
+/* HỒ SƠ TÓM LƯỢC GỘP LÊN PHẦN HERO */
+.ue-hero-infobox {
+  background: #FFFDF8;
+  border: 1px solid #EADDC7;
+  border-radius: 0.875rem;
+  padding: 1.15rem 1.25rem;
+  box-shadow: 0 4px 14px rgba(45, 26, 16, 0.04);
+}
+
+.ue-hero-infobox-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #8C6239;
+  text-transform: uppercase;
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #F0E8D9;
+}
+
+.ue-hero-facts-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+@media (min-width: 500px) {
+  .ue-hero-facts-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem 1rem;
+  }
+}
+
+.ue-hero-fact-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px dashed #EDE3D1;
+}
+
+.ue-hero-fact-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8C7563;
+}
+
+.ue-hero-fact-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2D1A10;
+  line-height: 1.35;
+}
+
+.ue-hero-fact-value a {
+  color: #8C2D19;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ue-hero-fact-value a:hover {
+  color: #5B1B0E;
+}
+
+/* ==========================================================================
+   2. THANH ĐIỀU KHIỂN KHÔNG GIAN ĐỌC (READING WORKSPACE TOOLBAR)
+   ========================================================================== */
+.ue-reading-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.85rem;
+  margin-top: 1.25rem;
+  margin-bottom: 0.25rem;
+  background: #FAF5EA;
+  border: 1px solid #EBE0CE;
+  border-radius: 0.75rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ue-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ue-toolbar-label {
+  font-size: 0.675rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #8C6239;
+  text-transform: uppercase;
+  margin-right: 0.25rem;
+}
+
+.ue-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6B5544;
+  background: #FFFDF8;
+  border: 1px solid #E2D6C3;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ue-toolbar-btn:hover {
+  border-color: #8C2D19;
+  color: #8C2D19;
+  background: #FFF;
+}
+
+.ue-toolbar-btn.active {
+  border-color: #8C2D19;
+  color: #8C2D19;
+  background: #FFF8EE;
+}
+
+.ue-toolbar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.ue-toolbar-dot.on {
+  background: #2E7D32;
+  box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+}
+
+.ue-toolbar-dot.off {
+  background: #A0988E;
+}
+
+.focus-mode-btn {
+  border-color: #D4AF37;
+  color: #7A5514;
+}
+
+.focus-mode-btn:hover {
+  background: #FFF6DD;
+  border-color: #8C2D19;
+  color: #8C2D19;
+}
+
+.focus-mode-btn.focus-active {
+  background: #8C2D19;
+  color: #FFFDF8;
+  border-color: #6D2111;
+  box-shadow: 0 2px 8px rgba(140, 45, 25, 0.25);
+}
+
+.ue-sidebar-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: #8C7563;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ue-sidebar-collapse-btn:hover {
+  background: #EFE4D0;
+  color: #8C2D19;
+}
+
+/* MINI DOCK TAB (KHI THU GỌN SIDEBAR) */
+.ue-dock-col {
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.ue-dock-tab {
+  position: sticky;
+  top: 5.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 0.85rem 0.5rem;
+  background: #FFFDF8;
+  border: 1px solid #EAE0CE;
+  border-radius: 0.75rem;
+  color: #8C6239;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(45, 26, 16, 0.04);
+  width: 44px;
+  max-height: 160px;
+}
+
+.ue-dock-tab:hover {
+  background: #FAF3E7;
+  border-color: #8C2D19;
+  color: #8C2D19;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(140, 45, 25, 0.1);
+}
+
+.ue-dock-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+/* ==========================================================================
+   3. MAIN LAYOUT: HỆ THỐNG GRID ĐỘNG THEO TÙY BIẾN ĐỌC
+   ========================================================================== */
+.ue-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  padding: 1.5rem 0 4.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Chế độ 1: Cả 2 Sidebar đều mở (Default 3 cột) */
+@media (min-width: 1024px) {
+  .ue-layout.ue-layout-with-both {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 2.25rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .ue-layout.ue-layout-with-both {
+    grid-template-columns: 240px minmax(0, 1fr) 260px;
+    gap: 2.5rem;
+  }
+  .ue-layout.ue-layout-with-both .ue-article-col {
+    max-width: 820px;
+  }
+}
+
+/* Chế độ 2: Chỉ mở Mục lục, Thu gọn Tiến trình */
+@media (min-width: 1024px) {
+  .ue-layout.ue-layout-toc-only {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 2.25rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .ue-layout.ue-layout-toc-only {
+    grid-template-columns: 240px minmax(0, 1fr) 44px;
+    gap: 2.5rem;
+  }
+  .ue-layout.ue-layout-toc-only .ue-article-col {
+    max-width: 980px;
+  }
+}
+
+/* Chế độ 3: Thu gọn Mục lục, Chỉ mở Tiến trình */
+@media (min-width: 1024px) {
+  .ue-layout.ue-layout-timeline-only {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 2.25rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .ue-layout.ue-layout-timeline-only {
+    grid-template-columns: 44px minmax(0, 1fr) 260px;
+    gap: 2.5rem;
+  }
+  .ue-layout.ue-layout-timeline-only .ue-article-col {
+    max-width: 980px;
+  }
+}
+
+/* Chế độ 4: Đọc toàn cảnh / Focus Mode (Thu gọn cả 2 Sidebar, bài đọc bung hết cỡ) */
+@media (min-width: 1024px) {
+  .ue-layout.ue-layout-focus-mode {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 1rem 0 4rem;
+  }
+  .ue-layout.ue-layout-focus-mode .ue-article-col {
+    max-width: 1240px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .ue-layout.ue-layout-focus-mode .ue-bio-blocks p {
+    font-size: 1.125rem;
+    line-height: 1.85;
+  }
+  .ue-layout.ue-layout-focus-mode .ue-bio-blocks blockquote {
+    font-size: 1.25rem;
+    padding: 1.5rem 2.25rem;
+    margin: 2rem 0;
+  }
+}
+
+/* FIXED EDGE DOCK TABS KHI Ở FOCUS MODE (GHIM SÁT MÉP MÀN HÌNH) */
+.ue-edge-dock-tab {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 0.4rem;
+  background: rgba(255, 253, 248, 0.96);
+  border: 1px solid #E2D5BE;
+  color: #8C6239;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 20px rgba(45, 26, 16, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.ue-edge-dock-tab.left {
+  left: 0;
+  border-left: none;
+  border-radius: 0 0.75rem 0.75rem 0;
+}
+
+.ue-edge-dock-tab.right {
+  right: 0;
+  border-right: none;
+  border-radius: 0.75rem 0 0 0.75rem;
+}
+
+.ue-edge-dock-tab:hover {
+  background: #8C2D19;
+  border-color: #8C2D19;
+  color: #FFFDF8;
+  transform: translateY(-50%) scale(1.04);
+  box-shadow: 0 8px 24px rgba(140, 45, 25, 0.28);
+}
+
+.ue-edge-dock-tab span {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.ue-article-col {
+  margin: 0 auto;
+  width: 100%;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* CỘT TRÁI: STICKY TOC */
+.ue-toc-col {
+  min-width: 0;
+}
+
+.ue-toc-card {
+  position: sticky;
+  top: 5.5rem;
+  background: #FFFDF8;
+  border: 1px solid #EAE0CE;
+  border-radius: 0.875rem;
+  padding: 1.35rem 1.15rem;
+  box-shadow: 0 4px 16px rgba(45, 26, 16, 0.04);
+}
+
+.ue-toc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #7A624E;
+  margin-bottom: 1rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid #F0E8D9;
+}
+
+.ue-toc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: calc(100vh - 14rem);
+  overflow-y: auto;
+}
+
+.ue-toc-link {
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.4rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #554435;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ue-toc-link:hover {
+  background: #F5EFE0;
+  color: #8C2D19;
+}
+
+.ue-toc-link.active {
+  background: #FAF0E4;
+  color: #8C2D19;
+  font-weight: 700;
+  border-left: 3px solid #8C2D19;
+}
+
+.ue-toc-link.level-3 {
+  padding-left: 1.25rem;
+  font-size: 0.825rem;
+  opacity: 0.88;
+}
+
+.ue-toc-footer {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #EDE4D1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #7A624E;
+}
+
+/* CỘT PHẢI: BÀI ĐỌC CHÍNH RỘNG RÃI */
+.ue-article-col {
+  min-width: 0;
+  max-width: 880px;
+}
+
+.ue-bio-blocks {
+  font-size: 1.08rem;
+  line-height: 1.82;
+  color: #2D231A;
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+}
+
+.ue-bio-blocks h2 {
+  font-family: var(--font-playfair), var(--font-merriweather), var(--font-noto-serif), serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #2D1A10;
+  margin: 2.75rem 0 1.25rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 2px solid #EFE4D0;
+  position: relative;
+}
+
+.ue-bio-blocks h2::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 50px;
+  height: 2px;
+  background: #8C2D19;
+}
+
+.ue-bio-blocks h3 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #402416;
+  margin: 2rem 0 1rem;
+}
+
+.ue-bio-blocks p {
+  margin-bottom: 1.4rem;
+  text-align: justify;
+}
+
+/* CÁC KHỐI CHUYÊN BIỆT TRONG HTML */
+.ue-bio-blocks blockquote,
+.ue-bio-blocks .lesson-block-quote {
+  margin: 2rem 0;
+  padding: 1.5rem 2rem;
+  background: #FAF5EB;
+  border-left: 4px solid #8C2D19;
+  border-radius: 0 0.75rem 0.75rem 0;
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.7;
+  color: #3C2A1E;
+}
+
+.ue-bio-blocks .lesson-block-callout {
+  margin: 2rem 0;
+  padding: 1.5rem 1.75rem;
+  background: #FFFDF5;
+  border: 1px solid #EAD8A4;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(184, 134, 11, 0.06);
+}
+
+.ue-bio-blocks .lesson-block-comparison {
+  margin: 2.5rem 0;
+  overflow-x: auto;
+}
+
+.ue-bio-blocks table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #FFFDF9;
+  border: 1px solid #E6D8C2;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.ue-bio-blocks th {
+  background: #F2E8D5;
+  color: #2E1B10;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 2px solid #DECBB1;
+}
+
+.ue-bio-blocks td {
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid #ECE1D1;
+  color: #3A2C21;
+}
+
+.ue-bio-blocks tr:hover td {
+  background: #FAF5EA;
+}
+
+.ue-bio-blocks .lesson-block-timeline {
+  margin: 2.5rem 0;
+  padding-left: 1rem;
+  border-left: 2px solid #D6C3A7;
+}
+
+.ue-bio-blocks .lesson-block-timeline-node {
+  position: relative;
+  margin-bottom: 1.75rem;
+  padding-left: 1.5rem;
+}
+
+.ue-bio-blocks .lesson-block-timeline-node::before {
+  content: "";
+  position: absolute;
+  left: -1.45rem;
+  top: 0.35rem;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #8C2D19;
+  border: 3px solid #FFFDF8;
+  box-shadow: 0 0 0 2px #8C2D19;
+}
+
+/* KNOWLEDGE GRAPH STATEMENTS */
+.ue-kg-section {
+  margin-top: 3.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid #E8DECA;
+}
+
+.ue-kg-title {
+  font-family: var(--font-playfair), var(--font-merriweather), var(--font-noto-serif), serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #2D1A10;
+  margin-bottom: 0.75rem;
+}
+
+.ue-kg-desc {
+  font-size: 0.95rem;
+  color: #635041;
+  margin-bottom: 1.75rem;
+}
+
+.ue-kg-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .ue-kg-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.ue-kg-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #FFFDF8;
+  border: 1px solid #EADECA;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.ue-kg-card:hover {
+  border-color: #8C2D19;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(140, 45, 25, 0.09);
+}
+
+.ue-kg-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8C2D19;
+  background: #FAF0E4;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.25rem;
+  margin-bottom: 0.6rem;
+}
+
+.ue-kg-target {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #2D1A10;
+  margin-bottom: 0.4rem;
+}
+
+.ue-kg-note {
+  font-size: 0.85rem;
+  color: #6A5645;
+  line-height: 1.45;
+}
+
+/* CINEMATIC TIMELINE STORYTELLING */
+.hisgo-cinematic-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.hisgo-cinematic-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 36px -6px rgba(15, 23, 42, 0.48);
+  border-color: rgba(197, 160, 89, 0.5) !important;
+}
+
+/* ==========================================================================
+   4. CỘT PHẢI: TIẾN TRÌNH DÒNG THỜI GIAN (STICKY RIGHT SIDEBAR)
+   ========================================================================== */
+.ue-timeline-col {
+  min-width: 0;
+}
+
+.ue-timeline-nav-card {
+  position: sticky;
+  top: 5.5rem;
+  background: #FFFDF8;
+  border: 1px solid #EAE0CE;
+  border-radius: 0.875rem;
+  padding: 1.25rem 1rem;
+  box-shadow: 0 4px 16px rgba(45, 26, 16, 0.04);
+}
+
+.ue-timeline-nav-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.725rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #8C6239;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid #F0E8D9;
+}
+
+.ue-timeline-track {
+  display: flex;
+  flex-direction: column;
+}
+
+.ue-track-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.65rem 0.6rem;
+  border-radius: 0.65rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.ue-track-step.prev:hover,
+.ue-track-step.next:hover {
+  background: #F6EDE0;
+}
+
+.ue-track-step.active {
+  background: #F9F2E4;
+  border: 1px solid #E3D2B8;
+  box-shadow: 0 2px 8px rgba(140, 45, 25, 0.05);
+}
+
+.ue-track-node {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  transition: all 0.2s ease;
+}
+
+.ue-track-node.prev,
+.ue-track-node.next {
+  background: #EDE2CE;
+  color: #735D4B;
+}
+
+.ue-track-step.prev:hover .ue-track-node.prev,
+.ue-track-step.next:hover .ue-track-node.next {
+  background: #8C2D19;
+  color: #FFFDF8;
+}
+
+.ue-track-node.active {
+  background: #8C2D19;
+  color: #FFFDF8;
+}
+
+.ue-track-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #FFFDF8;
+  box-shadow: 0 0 0 3px rgba(140, 45, 25, 0.35);
+}
+
+.ue-track-line {
+  width: 2px;
+  height: 18px;
+  background: #E0D2BC;
+  margin-left: 17px;
+}
+
+.ue-track-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ue-track-tag {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8C7563;
+}
+
+.ue-track-tag.active {
+  color: #8C2D19;
+}
+
+.ue-track-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #2D1A10;
+  line-height: 1.3;
+  margin-top: 0.1rem;
+}
+
+.ue-track-name.active {
+  color: #8C2D19;
+  font-weight: 800;
+}
+
+.ue-track-date {
+  font-size: 0.725rem;
+  color: #735D4B;
+  margin-top: 0.1rem;
+}
+
+/* ==========================================================================
+   4b. SỬ LIỆU & LIÊN KẾT THAM KHẢO (RESOURCE LINKS)
+   ========================================================================== */
+.ue-resource-links {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed #E2D5BD;
+}
+
+.ue-resource-links h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #2D1A10;
+  margin: 0 0 0.75rem 0;
+}
+
+.ue-resource-links-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .ue-resource-links-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.ue-resource-link-card {
+  display: block;
+  padding: 1rem;
+  border: 1px solid #E8DEC9;
+  border-radius: 0.75rem;
+  background: #FAF7F2;
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.ue-resource-link-card:hover {
+  border-color: #B8860B;
+}
+
+.ue-resource-link-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #8C2D19;
+}
+
+.ue-resource-link-card p {
+  margin: 0.35rem 0 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: #6A5645;
+}
+
+/* ==========================================================================
+   5. ĐIỀU HƯỚNG LIÊN HOÀN CUỐI BÀI (BOTTOM NAV)
+   ========================================================================== */
+.ue-bottom-nav {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 3.5rem;
+  padding-top: 2rem;
+  border-top: 1px dashed #E2D5BD;
+}
+
+@media (min-width: 640px) {
+  .ue-bottom-nav {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.ue-bottom-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.25rem;
+  background: #FFFDF8;
+  border: 1px solid #E6DBC6;
+  border-radius: 0.875rem;
+  text-decoration: none;
+  color: #2D1A10;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(45, 26, 16, 0.03);
+}
+
+.ue-bottom-btn:hover {
+  border-color: #8C2D19;
+  background: #FBF4E8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(140, 45, 25, 0.08);
+}
+
+.ue-bottom-btn.next {
+  justify-content: flex-end;
+}
+
+.ue-bottom-sub {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8C7563;
+}
+
+.ue-bottom-title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #2D1A10;
+}
+
+.ue-bottom-date {
+  display: block;
+  font-size: 0.75rem;
+  color: #705946;
+}

@@ -77,6 +77,8 @@ export interface CharacterBlockData extends BaseBlockData {
   entityId?: string;
   name: string;
   years: string;
+  /** Vai trò / chức danh ngắn hiện dưới tên (vd: "Chủ tướng đại thắng Bạch Đằng"). */
+  role?: string;
   summary: string;
   avatarUrl?: string;
   wikidataId?: string;

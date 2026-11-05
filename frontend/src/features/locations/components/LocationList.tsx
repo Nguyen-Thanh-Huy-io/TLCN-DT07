@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { DataTable } from '@/components/table/DataTable';
 import { ContentCell } from '@/components/common/ContentCell';
@@ -7,22 +7,25 @@ import { Badge } from '@/components/common/Badge';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { IconName } from '@/constants/icons';
 import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
-import { ContentStatus, LOCATION_TYPE_LABELS, LocationType } from '@/constants/enums';
+import { ContentStatus } from '@/constants/enums';
+import { usePublicTaxonomyTerms } from '@/features/taxonomy/usePublicTaxonomy';
 import { APP_ROUTES } from '@/constants/routes';
 import { ColumnDef } from '@/types/table.types';
 import { HistoricalLocationItem } from '@/types/models/historical-location.type';
 import api, { parsePaginatedResponse, extractErrorMessage } from '@/services/api';
 
-const LOCATION_TYPE_LABEL_MAP: Record<LocationType, string> = LOCATION_TYPE_LABELS;
-
-
 export function LocationList() {
   const router = useRouter();
   const [locations, setLocations] = useState<HistoricalLocationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [deletingLocation, setDeletingLocation] =
     useState<HistoricalLocationItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Danh mục Loại địa điểm / Di tích tải động từ Taxonomy (SITE_TYPE)
+  const siteTypeTerms = usePublicTaxonomyTerms('SITE_TYPE');
 
   useEffect(() => {
     api
@@ -54,6 +57,55 @@ export function LocationList() {
     }
   };
 
+  const siteTypeOptions = useMemo(
+    () => [
+      { label: 'Tất cả phân loại', value: 'ALL' },
+      ...siteTypeTerms.map((t) => ({ label: t.label, value: t.code })),
+    ],
+    [siteTypeTerms]
+  );
+
+  const statusOptions = useMemo(
+    () => [
+      { label: 'Tất cả trạng thái', value: 'ALL' },
+      ...[
+        ContentStatus.PUBLISHED,
+        ContentStatus.DRAFT,
+        ContentStatus.PENDING_REVIEW,
+        ContentStatus.ARCHIVED,
+      ].map((st) => ({
+        label: STATUS_LABEL_MAP[st] || st,
+        value: st,
+      })),
+    ],
+    []
+  );
+
+  const displayedLocations = useMemo(() => {
+    return locations.filter((item) => {
+      // Lọc theo loại di tích đối soát theo Taxonomy TERM (Multi-Select)
+      if (selectedTypes.length > 0) {
+        const itemType = item.siteTypeCode || item.siteType || item.historicalSite?.siteType;
+        const matchesAny = selectedTypes.some((typeCode) => {
+          const selectedTerm = siteTypeTerms.find((t) => t.code === typeCode);
+          return (
+            itemType === typeCode ||
+            (selectedTerm &&
+              (itemType === selectedTerm.label ||
+                selectedTerm.aliases?.includes(itemType || '')))
+          );
+        });
+        if (!matchesAny) return false;
+      }
+      // Lọc theo trạng thái
+      if (selectedStatus !== 'ALL') {
+        const itemStatus = item.status || ContentStatus.PUBLISHED;
+        if (itemStatus !== selectedStatus) return false;
+      }
+      return true;
+    });
+  }, [locations, selectedTypes, selectedStatus, siteTypeTerms]);
+
   const columns: ColumnDef<HistoricalLocationItem>[] = [
     {
       header: 'ĐỊA DANH / DI TÍCH',
@@ -68,12 +120,14 @@ export function LocationList() {
     {
       header: 'PHÂN LOẠI',
       cell: (item) => {
-        const typeKey = (item.siteType || item.historicalSite?.siteType || item.type) as LocationType;
-        return (
-          <Badge tone="blue">
-            {LOCATION_TYPE_LABEL_MAP[typeKey] || typeKey || 'Di tích'}
-          </Badge>
+        const term = siteTypeTerms.find(
+          (t) =>
+            t.code === item.siteTypeCode ||
+            t.code === item.siteType ||
+            t.label === item.siteType
         );
+        const label = term?.label || item.siteType || 'Di tích';
+        return <Badge tone="blue">{label}</Badge>;
       },
     },
     {
@@ -136,14 +190,28 @@ export function LocationList() {
     <>
       <DataTable<HistoricalLocationItem>
         columns={columns}
-        data={locations}
+        data={displayedLocations}
         searchPlaceholder="Tìm kiếm địa danh, di tích lịch sử..."
         primaryButtonLabel="Thêm địa danh"
         onPrimaryButtonClick={() => router.push(APP_ROUTES.LOCATIONS.CREATE)}
         onView={(item) => router.push(APP_ROUTES.LOCATIONS.DETAIL(item.id))}
         onEdit={(item) => router.push(APP_ROUTES.LOCATIONS.DETAIL(item.id))}
         onDelete={(item) => setDeletingLocation(item)}
-        filters={[{ label: 'Phân loại' }, { label: 'Trạng thái' }]}
+        filters={[
+          {
+            label: 'Phân loại',
+            options: siteTypeOptions,
+            selectedValues: selectedTypes,
+            isMultiSelect: true,
+            onSelectMultiple: setSelectedTypes,
+          },
+          {
+            label: 'Trạng thái',
+            options: statusOptions,
+            selectedValue: selectedStatus,
+            onSelect: setSelectedStatus,
+          },
+        ]}
       />
 
       <ConfirmDeleteModal

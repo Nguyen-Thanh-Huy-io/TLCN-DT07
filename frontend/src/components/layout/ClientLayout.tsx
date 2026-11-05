@@ -59,7 +59,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/chuong-su") ||
     pathname.startsWith("/kien-thuc") ||
     pathname.startsWith("/dang-ky") ||
-    pathname.startsWith("/tai-khoan");
+    pathname.startsWith("/tai-khoan") ||
+    pathname.startsWith("/thuc-the") ||
+    pathname.startsWith("/trieu-dai");
   if (isHisgoPublicRoute) {
     return (
       <FigureProfileProvider>

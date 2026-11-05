@@ -7,7 +7,7 @@ import {
 import type { TaxonomyTermItem } from "@/services/entities/taxonomy.service";
 import { eventCategoryLabel, eventCategoryRootCode } from "@/features/taxonomy/taxonomy-labels";
 import { isDomesticRegion, regionLabel } from "@/utils/region.utils";
-import { EventCategory, EventRelationType } from "@/constants/enums";
+import { EVENT_CATEGORY_CODES, EventRelationType } from "@/constants/enums";
 import {
   EventDomainGroup,
   EventScopeGroup,
@@ -67,7 +67,7 @@ const CULTURE_ROOTS = new Set(["SOCIETY_CULTURE", "SCIENCE_DISCOVERY"]);
 
 function domainGroupOf(terms: TaxonomyTermItem[], event: PublicEventSummaryDto): EventDomainGroup {
   const root = eventCategoryRootCode(terms, event);
-  const isCulture = root ? CULTURE_ROOTS.has(root) : event.category === EventCategory.CULTURE_SCIENCE;
+  const isCulture = root ? CULTURE_ROOTS.has(root) : event.category === EVENT_CATEGORY_CODES.CULTURE_SCIENCE;
   return isCulture ? EventDomainGroup.ECONOMY_CULTURE : EventDomainGroup.POLITICS_MILITARY;
 }
 

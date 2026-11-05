@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { EventCategory } from '@prisma/client';
 import { HistoricalEventService } from './historical-event.service';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
@@ -62,7 +61,7 @@ describe('HistoricalEventService (loại sự kiện theo danh mục dùng chung
     slug: 'tran-bach-dang-nam-938',
     startYear: 938,
     endYear: 938,
-    category: EventCategory.BATTLE,
+    category: 'BATTLE',
     metadata: {
       belligerents: ['Đại Cồ Việt', 'Nam Hán'],
       commanders: ['Ngô Quyền', 'Lưu Hoằng Thao'],
@@ -145,7 +144,7 @@ describe('HistoricalEventService (loại sự kiện theo danh mục dùng chung
       const dto = {
         title: 'Trận Bạch Đằng năm 938',
         startYear: 938,
-        category: EventCategory.BATTLE,
+        category: 'BATTLE',
         metadata: {
           belligerents: ['Đại Cồ Việt', 'Nam Hán'],
           commanders: ['Ngô Quyền', 'Lưu Hoằng Thao'],
@@ -163,7 +162,7 @@ describe('HistoricalEventService (loại sự kiện theo danh mục dùng chung
       );
       expect(mockRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          category: EventCategory.BATTLE,
+          category: 'BATTLE',
           categoryIds: ['t-battle'],
           startYear: 938,
           metadata: {
@@ -213,7 +212,7 @@ describe('HistoricalEventService (loại sự kiện theo danh mục dùng chung
       const dto = {
         title: 'Hiệp định Paris năm 1973',
         startYear: 1973,
-        category: EventCategory.TREATY,
+        category: 'TREATY',
         metadata: {
           signatories: ['Việt Nam Dân chủ Cộng hòa', 'Mỹ', 'Việt Nam Cộng hòa', 'Chính phủ CMLT'],
           ratifiedDate: '1973-01-27',
@@ -224,7 +223,7 @@ describe('HistoricalEventService (loại sự kiện theo danh mục dùng chung
       await service.create(dto);
       expect(mockRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          category: EventCategory.TREATY,
+          category: 'TREATY',
           startYear: 1973,
           metadata: expect.objectContaining({
             signatories: expect.arrayContaining(['Việt Nam Dân chủ Cộng hòa', 'Mỹ']),
@@ -250,7 +249,7 @@ describe('HistoricalEventService (loại sự kiện theo danh mục dùng chung
       });
       expect(mockRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          category: EventCategory.TREATY,
+          category: 'TREATY',
           categoryIds: ['t-treaty', 't-battle'],
           metadata: {
             signatories: ['Đại Việt', 'Nhà Tống'],
@@ -264,7 +263,7 @@ describe('HistoricalEventService (loại sự kiện theo danh mục dùng chung
     it('loại mới ngoài enum cũ (Truyền thuyết) ghi enum theo legacyCategory của nút cha', async () => {
       await service.create({ title: 'Sơn Tinh – Thủy Tinh', startYear: -258, categoryIds: ['t-legend'] });
       expect(mockRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ category: EventCategory.CULTURE_SCIENCE, categoryIds: ['t-legend'] }),
+        expect.objectContaining({ category: 'CULTURE_SCIENCE', categoryIds: ['t-legend'] }),
       );
     });
 

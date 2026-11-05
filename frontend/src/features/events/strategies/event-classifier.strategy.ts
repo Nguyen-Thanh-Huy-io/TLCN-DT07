@@ -1,4 +1,4 @@
-import { EventCategory, EVENT_CATEGORY_LABELS } from '../../../constants/enums';
+import { EVENT_CATEGORY_CODES, EVENT_CATEGORY_LABELS } from '../../../constants/enums';
 import type { TaxonomyTermItem } from '../../../services/entities/taxonomy.service';
 import {
   Swords,
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export interface EventClassificationResult {
-  code: EventCategory | string;
+  code: string;
   label: string;
   icon: LucideIcon;
   tone: 'danger' | 'warn' | 'purple' | 'emerald' | 'blue' | 'neutral' | 'ok';
@@ -34,11 +34,11 @@ export class SmartEventClassifier {
    * Bộ quy tắc suy luận thông minh (Heuristic Pattern Rules) dựa trên từ khóa Lịch sử
    */
   private static readonly HEURISTIC_PATTERNS: Array<{
-    category: EventCategory;
+    category: string;
     keywords: string[];
   }> = [
     {
-      category: EventCategory.WAR,
+      category: EVENT_CATEGORY_CODES.WAR,
       keywords: [
         'chiến tranh',
         'kháng chiến',
@@ -51,7 +51,7 @@ export class SmartEventClassifier {
       ],
     },
     {
-      category: EventCategory.BATTLE,
+      category: EVENT_CATEGORY_CODES.BATTLE,
       keywords: [
         'trận',
         'trận đánh',
@@ -65,7 +65,7 @@ export class SmartEventClassifier {
       ],
     },
     {
-      category: EventCategory.REVOLUTION,
+      category: EVENT_CATEGORY_CODES.REVOLUTION,
       keywords: [
         'khởi nghĩa',
         'cách mạng',
@@ -77,7 +77,7 @@ export class SmartEventClassifier {
       ],
     },
     {
-      category: EventCategory.TREATY,
+      category: EVENT_CATEGORY_CODES.TREATY,
       keywords: [
         'hiệp định',
         'hiệp ước',
@@ -91,7 +91,7 @@ export class SmartEventClassifier {
       ],
     },
     {
-      category: EventCategory.SUMMIT_CONFERENCE,
+      category: EVENT_CATEGORY_CODES.SUMMIT_CONFERENCE,
       keywords: [
         'hội nghị',
         'đại hội',
@@ -102,7 +102,7 @@ export class SmartEventClassifier {
       ],
     },
     {
-      category: EventCategory.POLITICAL_EVENT,
+      category: EVENT_CATEGORY_CODES.POLITICAL_EVENT,
       keywords: [
         'cải cách',
         'đảo chính',
@@ -116,7 +116,7 @@ export class SmartEventClassifier {
       ],
     },
     {
-      category: EventCategory.CULTURE_SCIENCE,
+      category: EVENT_CATEGORY_CODES.CULTURE_SCIENCE,
       keywords: [
         'văn hóa',
         'khoa học',
@@ -130,7 +130,7 @@ export class SmartEventClassifier {
       ],
     },
     {
-      category: EventCategory.NATURAL_DISASTER,
+      category: EVENT_CATEGORY_CODES.NATURAL_DISASTER,
       keywords: [
         'nạn đói',
         'đại dịch',
@@ -144,54 +144,54 @@ export class SmartEventClassifier {
   ];
 
   private static readonly CATEGORY_META: Record<
-    EventCategory,
+    string,
     {
       label: string;
       icon: LucideIcon;
       tone: 'danger' | 'warn' | 'purple' | 'emerald' | 'blue' | 'neutral' | 'ok';
     }
   > = {
-    [EventCategory.WAR]: {
+    [EVENT_CATEGORY_CODES.WAR]: {
       label: 'Chiến tranh / Kháng chiến',
       icon: ShieldAlert,
       tone: 'danger',
     },
-    [EventCategory.BATTLE]: {
+    [EVENT_CATEGORY_CODES.BATTLE]: {
       label: 'Trận đánh / Chiến dịch',
       icon: Swords,
       tone: 'warn',
     },
-    [EventCategory.REVOLUTION]: {
+    [EVENT_CATEGORY_CODES.REVOLUTION]: {
       label: 'Cách mạng / Khởi nghĩa',
       icon: Flag,
       tone: 'purple',
     },
-    [EventCategory.TREATY]: {
+    [EVENT_CATEGORY_CODES.TREATY]: {
       label: 'Hiệp ước / Văn kiện',
       icon: Scroll,
       tone: 'emerald',
     },
-    [EventCategory.POLITICAL_EVENT]: {
+    [EVENT_CATEGORY_CODES.POLITICAL_EVENT]: {
       label: 'Chính trị / Thể chế',
       icon: Landmark,
       tone: 'blue',
     },
-    [EventCategory.SUMMIT_CONFERENCE]: {
+    [EVENT_CATEGORY_CODES.SUMMIT_CONFERENCE]: {
       label: 'Hội nghị / Đại hội',
       icon: Users,
       tone: 'blue',
     },
-    [EventCategory.CULTURE_SCIENCE]: {
+    [EVENT_CATEGORY_CODES.CULTURE_SCIENCE]: {
       label: 'Văn hóa / Tư tưởng',
       icon: BookOpen,
       tone: 'neutral',
     },
-    [EventCategory.NATURAL_DISASTER]: {
+    [EVENT_CATEGORY_CODES.NATURAL_DISASTER]: {
       label: 'Thiên tai / Nạn đói',
       icon: AlertTriangle,
       tone: 'warn',
     },
-    [EventCategory.OTHER]: {
+    [EVENT_CATEGORY_CODES.OTHER]: {
       label: 'Sự kiện lịch sử',
       icon: HelpCircle,
       tone: 'neutral',
@@ -210,9 +210,9 @@ export class SmartEventClassifier {
     // 1. Kiểm tra nếu có taxonomy term hợp lệ
     const termId = event.categoryIds?.[0];
     const directTerm = termId ? terms.find((t) => t.id === termId) : undefined;
-    if (directTerm && directTerm.code !== EventCategory.OTHER) {
-      const code = (directTerm.code as EventCategory) || EventCategory.OTHER;
-      const meta = this.CATEGORY_META[code] || this.CATEGORY_META[EventCategory.OTHER];
+    if (directTerm && directTerm.code !== EVENT_CATEGORY_CODES.OTHER) {
+      const code = directTerm.code || EVENT_CATEGORY_CODES.OTHER;
+      const meta = this.CATEGORY_META[code] || this.CATEGORY_META[EVENT_CATEGORY_CODES.OTHER];
       return {
         code: directTerm.code,
         label: directTerm.label || meta.label,
@@ -223,8 +223,8 @@ export class SmartEventClassifier {
     }
 
     // 2. Kiểm tra nếu có mã category enum cũ hợp lệ
-    const rawCategory = (event.category as EventCategory) || EventCategory.OTHER;
-    if (rawCategory !== EventCategory.OTHER && this.CATEGORY_META[rawCategory]) {
+    const rawCategory = event.category || EVENT_CATEGORY_CODES.OTHER;
+    if (rawCategory !== EVENT_CATEGORY_CODES.OTHER && this.CATEGORY_META[rawCategory]) {
       const meta = this.CATEGORY_META[rawCategory];
       return {
         code: rawCategory,
@@ -259,9 +259,9 @@ export class SmartEventClassifier {
     }
 
     // Fallback mặc định
-    const defaultMeta = this.CATEGORY_META[EventCategory.OTHER];
+    const defaultMeta = this.CATEGORY_META[EVENT_CATEGORY_CODES.OTHER];
     return {
-      code: EventCategory.OTHER,
+      code: EVENT_CATEGORY_CODES.OTHER,
       label: 'Sự kiện lịch sử',
       icon: defaultMeta.icon,
       tone: defaultMeta.tone,

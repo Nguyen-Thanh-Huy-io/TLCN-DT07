@@ -7,7 +7,6 @@ import {
   ContentAction,
   DatePrecision,
   EntityType,
-  EventCategory,
   EventRelationType,
   VerificationStatus,
   TaxonomyGroupCode,
@@ -204,14 +203,14 @@ export function useEventEditor(eventId?: string) {
 
   useEffect(() => {
     TaxonomyApiService.getGroups([
-      TaxonomyGroupCode.EVENT_CATEGORY,
-      TaxonomyGroupCode.EVENT_ROLE,
-      TaxonomyGroupCode.EVENT_RELATION,
+      TaxonomyGroupCode.EVENT_TYPE,
+      TaxonomyGroupCode.ROLE_TYPE,
+      TaxonomyGroupCode.PREDICATE,
     ])
       .then((groups) => {
-        setCategoryGroup(groups.find((g) => g.code === TaxonomyGroupCode.EVENT_CATEGORY));
-        setRoleGroup(groups.find((g) => g.code === TaxonomyGroupCode.EVENT_ROLE));
-        setRelationGroup(groups.find((g) => g.code === TaxonomyGroupCode.EVENT_RELATION));
+        setCategoryGroup(groups.find((g) => g.code === TaxonomyGroupCode.EVENT_TYPE));
+        setRoleGroup(groups.find((g) => g.code === TaxonomyGroupCode.ROLE_TYPE));
+        setRelationGroup(groups.find((g) => g.code === TaxonomyGroupCode.PREDICATE));
       })
       .catch((err) => console.warn('Failed to fetch event taxonomies:', err));
   }, []);
@@ -665,7 +664,7 @@ export function useEventEditor(eventId?: string) {
   const handleFillSampleData = () => {
     const sampleTitle = 'Mở tuyến đường vận tải chiến lược Trường Sơn - Đường Hồ Chí Minh';
     setTitle(sampleTitle);
-    const battle = categoryGroup?.terms.find((t) => t.code === EventCategory.BATTLE);
+    const battle = categoryGroup?.terms.find((t) => t.code === 'BATTLE');
     if (battle) setCategoryIds([battle.id]);
     setMetadata({
       belligerents: ['Quân đội Nhân dân Việt Nam', 'Quân đội Hoa Kỳ và Việt Nam Cộng hòa'],

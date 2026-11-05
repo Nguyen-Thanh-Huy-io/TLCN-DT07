@@ -2,7 +2,7 @@
 
 import { Users } from "lucide-react";
 import { Button } from "@/components/timeline/sk-ui";
-import { useFigureRoles } from "./figure-roles";
+import { useFigureRoles } from "./useFigureRoles";
 
 /** Lối tắt lọc theo vai trò — đồng bộ với nhóm "Vai trò" trong hộp thoại bộ lọc, chọn được nhiều. */
 export function FiguresSidebar({

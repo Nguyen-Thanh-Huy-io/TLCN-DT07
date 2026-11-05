@@ -2,7 +2,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ContentStatus,
   DatePrecision,
-  EventCategory,
   MediaType,
 } from '@prisma/client';
 import { Type } from 'class-transformer';
@@ -218,18 +217,18 @@ export class CreateHistoricalEventDto {
   status?: ContentStatus;
 
   @ApiPropertyOptional({
-    enum: EventCategory,
-    default: EventCategory.OTHER,
-    description: 'Phân loại sự kiện (BATTLE, WAR, TREATY, REVOLUTION, POLITICAL_EVENT, SUMMIT_CONFERENCE, CULTURE_SCIENCE, NATURAL_DISASTER, OTHER)',
+    example: 'BATTLE',
+    description:
+      'Mã loại sự kiện cũ/tự do (dữ liệu nhập tay hoặc client cũ) — hệ thống tự khớp sang danh mục EVENT_TYPE. Có categoryIds thì ưu tiên categoryIds hơn.',
   })
   @IsOptional()
-  @IsEnum(EventCategory)
-  category?: EventCategory;
+  @IsString()
+  category?: string;
 
   @ApiPropertyOptional({
     type: [String],
     description:
-      'Id các loại sự kiện trong danh mục dùng chung (nhóm EVENT_CATEGORY); phần tử đầu là loại chính. Có giá trị thì ưu tiên hơn category.',
+      'Id các loại sự kiện trong danh mục dùng chung (nhóm EVENT_TYPE); phần tử đầu là loại chính. Có giá trị thì ưu tiên hơn category.',
   })
   @IsOptional()
   @IsArray()

@@ -67,6 +67,8 @@ export interface HistoricalHeritage {
   eventCount?: number;
   /** false = mới có thông tin tóm tắt, chi tiết (sự kiện, hạng mục...) chưa tải. */
   detailLoaded?: boolean;
+  /** Nội dung tường thuật dạng khối (Block Builder); null/undefined = chưa có bài viết chi tiết. */
+  contentBlocks?: unknown;
   /** Đơn vị quản lý (bảo tàng, cơ quan...) và ghi chú hiện trạng — hiển thị, không dùng để lọc. */
   managingUnit?: string | null;
   statusNote?: string | null;

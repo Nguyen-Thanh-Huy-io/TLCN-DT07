@@ -1,4 +1,4 @@
-import { EVENT_CATEGORY_LABELS, EVENT_ENTITY_ROLE_LABELS, EventCategory } from '@/constants/enums';
+import { EVENT_CATEGORY_LABELS, EVENT_ENTITY_ROLE_LABELS } from '@/constants/enums';
 import type { TaxonomyTermItem } from '@/services/entities/taxonomy.service';
 import { TimelineRelationDirection } from '@/components/timeline/sk-types';
 
@@ -22,7 +22,7 @@ export function eventCategoryLabel(terms: TaxonomyTermItem[], event: EventCatego
   const term = primaryCategoryTerm(terms, event);
   if (term) return term.label;
   const code = event.category ?? '';
-  return terms.find((t) => t.code === code)?.label ?? EVENT_CATEGORY_LABELS[code as EventCategory] ?? code;
+  return terms.find((t) => t.code === code)?.label ?? EVENT_CATEGORY_LABELS[code] ?? code;
 }
 
 /** Khóa để gom / lọc theo loại chính: id trong danh mục, không có thì mã enum cũ. */
@@ -30,7 +30,7 @@ export const eventCategoryKey = (event: EventCategoryRef) => event.categoryIds?.
 
 /** Nhãn của khóa do eventCategoryKey trả về. */
 export const categoryKeyLabel = (terms: TaxonomyTermItem[], key: string) =>
-  terms.find((t) => t.id === key || t.code === key)?.label ?? EVENT_CATEGORY_LABELS[key as EventCategory] ?? key;
+  terms.find((t) => t.id === key || t.code === key)?.label ?? EVENT_CATEGORY_LABELS[key] ?? key;
 
 /** Mã nút gốc của loại chính (vd. SOCIETY_CULTURE) — dùng để chia nhóm lớn như chính trị / văn hóa. */
 export function eventCategoryRootCode(terms: TaxonomyTermItem[], event: EventCategoryRef): string | undefined {

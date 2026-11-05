@@ -9,6 +9,7 @@ import type { LibraryLesson } from '@/services/entities/learner.service';
 import { regionLabel, regionOrderFromTerms, sortedRegions } from '@/utils/region.utils';
 import { formatYear, shortPeriodName } from '@/features/search/search-index';
 import { FIGURE_ROLE_LABELS, FigureRole, HistoricalRegion, ContentStatus } from '@/constants/enums';
+import { resolveFigureRoleLabel } from '@/components/figures/figure-roles';
 import type {
   LandingCourse,
   LandingData,
@@ -237,8 +238,7 @@ function figureYears(f: PublicFigureProfileDto): string | null {
 }
 
 function buildFigures(figures: PublicFigureProfileDto[], roleTerms: TaxonomyTermItem[]): LandingFigure[] {
-  const roleLabel = (code: string) =>
-    roleTerms.find((t) => t.code === code)?.label ?? FIGURE_ROLE_LABELS[code as FigureRole] ?? code;
+  const roleLabel = (code: string) => resolveFigureRoleLabel(code, roleTerms);
   return [...figures]
     .sort((a, b) => Number(Boolean(b.imageUrl)) - Number(Boolean(a.imageUrl)) || b.events.length - a.events.length)
     .slice(0, 8)

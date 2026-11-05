@@ -66,6 +66,43 @@
 .ce-toc nav button > span { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--ce-line); background: var(--ce-paper); position: absolute; left: -3.5px; top: 15px; }
 .ce-toc nav button.ce-active { color: var(--ce-accent); font-weight: 600; }
 .ce-toc nav button.ce-active > span { background: var(--ce-accent); border-color: var(--ce-accent); box-shadow: 0 0 0 3px var(--ce-accent-soft); }
+
+.ce-toc-sublist {
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 6px;
+}
+
+.ce-toc nav button.ce-toc-subitem {
+  padding: 4px 0 4px 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #718073;
+  position: relative;
+  font-weight: normal;
+}
+
+.ce-toc nav button.ce-toc-subitem > i {
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ce-line);
+}
+
+.ce-toc nav button.ce-toc-subitem.ce-active {
+  color: var(--ce-accent);
+  font-weight: 600;
+}
+
+.ce-toc nav button.ce-toc-subitem.ce-active > i {
+  background: var(--ce-accent);
+  box-shadow: 0 0 0 2px var(--ce-accent-soft);
+}
 .ce-toc-note { border-top: 1px solid var(--ce-line); margin-top: 22px; padding-top: 16px; display: flex; align-items: center; gap: 10px; color: var(--ce-muted); }
 .ce-toc-note svg { width: 18px; }
 .ce-toc-note span { font-size: 12px; }

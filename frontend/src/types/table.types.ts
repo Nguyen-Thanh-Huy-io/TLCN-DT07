@@ -7,8 +7,23 @@ export interface ColumnDef<T> {
   cell?: (item: T, index: number) => React.ReactNode;
 }
 
+export interface DataTableFilterOption {
+  label: string;
+  value: string;
+  subLabel?: string;
+}
+
 export interface DataTableFilter {
   label: string;
+  options?: DataTableFilterOption[];
+  selectedValue?: string;
+  /** Danh sách các giá trị đang được chọn (dành cho chế độ lọc chọn nhiều Multi-Select) */
+  selectedValues?: string[];
+  /** Bật tính năng chọn nhiều thẻ tag/badges thay vì chỉ chọn 1 */
+  isMultiSelect?: boolean;
+  onSelect?: (value: string) => void;
+  /** Callback xử lý khi thay đổi mảng giá trị đã chọn trong chế độ Multi-Select */
+  onSelectMultiple?: (values: string[]) => void;
   onClick?: () => void;
 }
 

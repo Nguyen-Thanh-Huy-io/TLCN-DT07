@@ -1,7 +1,6 @@
 import {
   ContentStatus,
   DatePrecision,
-  EventCategory,
   MediaType,
 } from '@/constants/enums';
 import { PaginatedResult, parsePaginatedResponse } from '../api';
@@ -54,7 +53,7 @@ export interface HistoricalEventItem {
   thumbnailUrl?: string | null;
   displayOrder: number;
   status: ContentStatus;
-  category?: EventCategory;
+  category?: string;
   /** Id loại sự kiện (danh mục EVENT_CATEGORY), phần tử đầu là loại chính. */
   categoryIds?: string[];
   metadata?: Record<string, any> | null;
@@ -129,7 +128,7 @@ export interface SaveHistoricalEventPayload {
   eventDateNote?: string;
   summary?: string;
   description?: string;
-  category?: EventCategory;
+  category?: string;
   categoryIds?: string[];
   metadata?: Record<string, any> | null;
   thumbnailUrl?: string;

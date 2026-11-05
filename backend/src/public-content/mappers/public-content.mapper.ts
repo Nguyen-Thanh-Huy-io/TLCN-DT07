@@ -14,6 +14,9 @@ import {
   FIGURE_PROFILE_METADATA_KEY,
 } from '../public-content.constant';
 import {
+  PublicEntityDetailDto,
+  PublicEntityMediaDto,
+  PublicEntityStatementDto,
   PublicEventSummaryDto,
   PublicFigureDto,
   PublicFigureProfileDto,
@@ -139,6 +142,7 @@ export class PublicContentMapper {
         }
       >;
     },
+    categoryTermsById?: Map<string, { code: string }>,
   ): PublicFigureProfileDto {
     const metadata = (entity.metadata ?? {}) as Record<string, unknown>;
     const profile = (metadata[FIGURE_PROFILE_METADATA_KEY] ?? {}) as Record<
@@ -173,6 +177,10 @@ export class PublicContentMapper {
         entity.person?.deathDateText ?? entity.person?.deathDateLabel ?? null,
       biography: entity.person?.biography ?? null,
       contentBlocks: (entity as { contentBlocks?: unknown }).contentBlocks ?? null,
+      statements: PublicContentMapper.buildStatementList(
+        entity.subjectStatements,
+        entity.objectStatements,
+      ),
       occupation: entity.person?.occupation ?? null,
       titles: entity.person?.titles ?? [],
       sources: textList(metadata.sources),
@@ -187,7 +195,10 @@ export class PublicContentMapper {
             startYear: ev.startYear ?? null,
             eventDateNote: ev.dateText ?? ev.event?.eventDateNote ?? null,
             description: ev.description,
-            category: (ev.metadata as any)?.category ?? 'OTHER',
+            category:
+              categoryTermsById?.get(ev.event?.categoryIds?.[0] ?? '')?.code ??
+              (ev.metadata as any)?.category ??
+              'OTHER',
             categoryIds: ev.event?.categoryIds ?? [],
             periodSlug: ev.period?.slug ?? null,
             role: (rel.qualifiers as any)?.role ?? rel.predicate.code ?? 'PARTICIPANT',
@@ -252,6 +263,9 @@ export class PublicContentMapper {
           | null;
       }>;
     },
+    /** Tra mã loại sự kiện (nhóm EVENT_TYPE) theo id sống — ưu tiên hơn `metadata.category` đã
+     * đóng băng từ lúc tạo. Không truyền thì rơi về `metadata.category` (dữ liệu cũ/chưa tra được). */
+    categoryTermsById?: Map<string, { code: string }>,
   ): PublicEventSummaryDto {
     const subjectStmts = event.subjectStatements ?? [];
     const objectStmts = event.objectStatements ?? [];
@@ -280,7 +294,10 @@ export class PublicContentMapper {
       location: locName,
       description: event.description,
       imageUrl: event.imageUrl,
-      category: (event.metadata as any)?.category ?? 'OTHER',
+      category:
+        categoryTermsById?.get(event.event?.categoryIds?.[0] ?? '')?.code ??
+        (event.metadata as any)?.category ??
+        'OTHER',
       categoryIds: event.event?.categoryIds ?? [],
       endYear: event.endYear ?? null,
       parentId: event.event?.parentId ?? null,
@@ -430,6 +447,141 @@ export class PublicContentMapper {
         .map((le: any) => PublicContentMapper.toFigure(le.entity)),
       locations:
         locationEntities.length > 0 ? locationEntities : legacyLocations,
+    };
+  }
+
+  /**
+   * Gộp subjectStatements/objectStatements của 1 entity thành 1 mảng statement chung
+   * (OUTGOING + INCOMING) — dùng chung cho Entity, Figure và Event, vì cả 3 đều chiếu
+   * từ cùng 1 bảng historical_statements. Đây là dữ liệu mà resolveTimelineBlocks() ở
+   * frontend cần để tự dựng khối TIMELINE/RELATED_PEOPLE/RELATED_EVENTS (sourceMode AUTO/HYBRID).
+   */
+  static buildStatementList(
+    subjectStatements: Array<
+      HistoricalStatement & { predicate: TaxonomyTerm; object: HistoricalEntity | null }
+    >,
+    objectStatements: Array<
+      HistoricalStatement & { predicate: TaxonomyTerm; subject: HistoricalEntity | null }
+    >,
+  ): PublicEntityStatementDto[] {
+    const outgoing: PublicEntityStatementDto[] = subjectStatements.map((stmt) => ({
+      id: stmt.id,
+      predicateCode: stmt.predicate.code,
+      predicateLabel: stmt.predicate.label || stmt.predicate.code,
+      direction: 'OUTGOING',
+      relatedEntityId: stmt.object?.id ?? null,
+      relatedEntitySlug: stmt.object?.slug ?? null,
+      relatedEntityName: stmt.object?.name ?? null,
+      relatedEntityType: stmt.object?.type ?? null,
+      roleLabel: (stmt.qualifiers as any)?.roleLabel ?? null,
+      note: (stmt.qualifiers as any)?.description ?? null,
+      validFromYear: stmt.validFromYear,
+      validToYear: stmt.validToYear,
+      relatedStartYear: stmt.object?.startYear ?? null,
+      relatedEndYear: stmt.object?.endYear ?? null,
+      relatedDescription: stmt.object?.description ?? null,
+      relatedImageUrl: stmt.object?.imageUrl ?? null,
+    }));
+
+    const incoming: PublicEntityStatementDto[] = objectStatements.map((stmt) => ({
+      id: stmt.id,
+      predicateCode: stmt.predicate.code,
+      predicateLabel: stmt.predicate.label || stmt.predicate.code,
+      direction: 'INCOMING',
+      relatedEntityId: stmt.subject?.id ?? null,
+      relatedEntitySlug: stmt.subject?.slug ?? null,
+      relatedEntityName: stmt.subject?.name ?? null,
+      relatedEntityType: stmt.subject?.type ?? null,
+      roleLabel: (stmt.qualifiers as any)?.roleLabel ?? null,
+      note: (stmt.qualifiers as any)?.description ?? null,
+      validFromYear: stmt.validFromYear,
+      validToYear: stmt.validToYear,
+      relatedStartYear: stmt.subject?.startYear ?? null,
+      relatedEndYear: stmt.subject?.endYear ?? null,
+      relatedDescription: stmt.subject?.description ?? null,
+      relatedImageUrl: stmt.subject?.imageUrl ?? null,
+    }));
+
+    return [...outgoing, ...incoming];
+  }
+
+  static toEntityDetail(
+    entity: HistoricalEntity & {
+      period?: (Period & { regionTerm?: TaxonomyTerm | null }) | null;
+      media: Array<{ id: string; type: any; url: string; caption: string | null }>;
+      person?: Person | null;
+      historicalSite?: HistoricalSite | null;
+      subjectStatements: Array<
+        HistoricalStatement & {
+          predicate: TaxonomyTerm;
+          object: HistoricalEntity | null;
+        }
+      >;
+      objectStatements: Array<
+        HistoricalStatement & {
+          predicate: TaxonomyTerm;
+          subject: HistoricalEntity | null;
+        }
+      >;
+    },
+    adjacent?: {
+      previous: { id: string; slug: string; name: string; dateText?: string | null; startYear?: number | null; endYear?: number | null } | null;
+      next: { id: string; slug: string; name: string; dateText?: string | null; startYear?: number | null; endYear?: number | null } | null;
+    },
+  ): PublicEntityDetailDto {
+    const statements = PublicContentMapper.buildStatementList(
+      entity.subjectStatements,
+      entity.objectStatements,
+    );
+
+    return {
+      id: entity.id,
+      slug: entity.slug,
+      name: entity.name,
+      type: entity.type,
+      tagline: entity.tagline,
+      description: entity.description,
+      imageUrl: entity.imageUrl,
+      imageCaption: entity.imageCaption,
+      aliases: entity.aliases ?? [],
+      // PERSON không có startYear/endYear riêng trên HistoricalEntity — niên đại thật nằm ở
+      // bảng Person (birthYear/deathYear); LOCATION thì ở HistoricalSite (constructionYear) —
+      // rơi về đó khi cột gốc trống (buildEntityDateLabel ở frontend tự ghép từ 2 giá trị này).
+      dateText: entity.dateText ?? entity.historicalSite?.constructionLabel ?? entity.historicalSite?.constructionDateText ?? null,
+      startYear: entity.startYear ?? entity.person?.birthYear ?? entity.historicalSite?.constructionYear ?? null,
+      endYear: entity.endYear ?? entity.person?.deathYear ?? entity.historicalSite?.constructionEndYear ?? null,
+      contentBlocks: entity.contentBlocks ?? null,
+      metadata: entity.metadata ?? null,
+      roles: entity.person?.roles ?? [],
+      occupation: entity.person?.occupation ?? null,
+      titles: entity.person?.titles ?? [],
+      address: entity.historicalSite?.address ?? null,
+      managingAgency: entity.historicalSite?.managingAgency ?? null,
+      recognitionLevel: entity.historicalSite?.recognitionLevel ?? null,
+      period: entity.period ? PublicContentMapper.toPeriod(entity.period) : null,
+      media: (entity.media || []).map((m) => ({
+        id: m.id,
+        type: m.type,
+        url: m.url,
+        caption: m.caption,
+      })),
+      statements,
+      previous: adjacent?.previous
+        ? {
+            id: adjacent.previous.id,
+            slug: adjacent.previous.slug,
+            name: adjacent.previous.name,
+            dateLabel: adjacent.previous.dateText || buildTimeLabel(adjacent.previous.startYear ?? null, adjacent.previous.endYear ?? null),
+          }
+        : null,
+      next: adjacent?.next
+        ? {
+            id: adjacent.next.id,
+            slug: adjacent.next.slug,
+            name: adjacent.next.name,
+            dateLabel: adjacent.next.dateText || buildTimeLabel(adjacent.next.startYear ?? null, adjacent.next.endYear ?? null),
+          }
+        : null,
     };
   }
 }

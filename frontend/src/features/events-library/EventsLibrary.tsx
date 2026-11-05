@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from '@/components/filters/ChipFilter';
 import { Pagination } from '@/components/common/Pagination';
-import { EVENT_CATEGORY_LABELS, EventCategory } from '@/constants/enums';
+import { EVENT_CATEGORY_LABELS, TaxonomyGroupCode } from '@/constants/enums';
 import { formatYear, normalizeSearch, shortPeriodName } from '@/features/search/search-index';
 import type { PublicEventSummaryDto, PublicPeriodDto } from '@/services/entities/landing.service';
 import { regionLabel, sortedRegions } from '@/utils/region.utils';
@@ -70,7 +70,7 @@ interface EventRow {
   categoryPath: Set<string>;
 }
 
-const categoryLabel = (c: string) => EVENT_CATEGORY_LABELS[c as EventCategory] ?? c;
+const categoryLabel = (c: string) => EVENT_CATEGORY_LABELS[c] ?? c;
 
 function buildRows(events: PublicEventSummaryDto[], periods: PublicPeriodDto[], terms: TaxonomyTermItem[]): EventRow[] {
   const bySlug = new Map(periods.map((p) => [p.slug, p]));
@@ -118,7 +118,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
   // Loại sự kiện theo cây "Danh mục dùng chung"; chưa tải xong thì thẻ dùng nhãn enum cũ.
   const [categoryTerms, setCategoryTerms] = useState<TaxonomyTermItem[]>([]);
   useEffect(() => {
-    loadPublicTaxonomy('EVENT_CATEGORY')
+    loadPublicTaxonomy(TaxonomyGroupCode.EVENT_TYPE)
       .then((group) => setCategoryTerms(group?.terms ?? []))
       .catch(() => setCategoryTerms([]));
   }, []);

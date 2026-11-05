@@ -9,10 +9,15 @@ import {
 } from '@/services/entities/taxonomy.service';
 import { PeriodApiService } from '@/services/entities/period.service';
 import type { PeriodItem } from '@/types/models/period.type';
-import { SmartEventClassifier } from '../strategies/event-classifier.strategy';
+import { TaxonomyGroupCode } from '@/constants/enums';
+import {
+  CompositeEventSpecification,
+  type EventFilterCriteria,
+} from '../strategies/event-filter.specification';
 import { extractErrorMessage } from '@/services/api';
 
-export type EventLevelFilter = 'all' | 'root_only' | 'sub_only';
+export type { EventFilterCriteria };
+
 export type EventViewMode = 'flat' | 'period_grouped';
 
 export interface EventListStats {
@@ -35,12 +40,16 @@ export function useEventListFacade() {
   const [categoryTerms, setCategoryTerms] = useState<TaxonomyTermItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Filters state
+  // Filters state (Đa chọn Multi-Select)
   const [search, setSearch] = useState<string>('');
-  const [selectedPeriodId, setSelectedPeriodId] = useState<string>('all');
-  const [levelFilter, setLevelFilter] = useState<EventLevelFilter>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedPeriodIds, setSelectedPeriodIds] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [viewMode, setViewMode] = useState<EventViewMode>('flat');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
   // Delete modal state
   const [deletingEvent, setDeletingEvent] = useState<HistoricalEventItem | null>(null);
@@ -50,13 +59,33 @@ export function useEventListFacade() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [eventsRes, periodsRes, termsRes] = await Promise.all([
-        HistoricalEventApiService.getEvents({ limit: 300 }),
+      const [firstPageEvents, periodsRes, termsRes] = await Promise.all([
+        HistoricalEventApiService.getEvents({ page: 1, limit: 100 }),
         PeriodApiService.getPeriods({ limit: 100 }).catch(() => ({ items: [] })),
-        TaxonomyApiService.getGroups(['EVENT_CATEGORY']).catch(() => []),
+        TaxonomyApiService.getGroups([TaxonomyGroupCode.EVENT_TYPE]).catch(() => []),
       ]);
 
-      setEvents(eventsRes.items || []);
+      let allEvents = firstPageEvents.items || [];
+
+      // Nếu có nhiều hơn 1 trang (hơn 100 sự kiện), tải thêm các trang tiếp theo (tối đa 5 trang)
+      if (firstPageEvents.totalPages && firstPageEvents.totalPages > 1) {
+        const pagesToFetch = Array.from(
+          { length: Math.min(firstPageEvents.totalPages - 1, 4) },
+          (_, i) => i + 2,
+        );
+        const additionalPages = await Promise.all(
+          pagesToFetch.map((page) =>
+            HistoricalEventApiService.getEvents({ page, limit: 100 }).catch(() => ({ items: [] })),
+          ),
+        );
+        for (const pageRes of additionalPages) {
+          if (pageRes.items) {
+            allEvents = allEvents.concat(pageRes.items);
+          }
+        }
+      }
+
+      setEvents(allEvents);
       setPeriods(periodsRes.items || []);
       setCategoryTerms(termsRes[0]?.terms ?? []);
     } catch (err) {
@@ -71,48 +100,80 @@ export function useEventListFacade() {
     loadData();
   }, [loadData]);
 
-  // Bộ lọc danh sách sự kiện
+  // Bản đồ các ID con của từng Period (dùng để lọc bao quát khi chọn Period cha)
+  const periodChildrenMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const p of periods) {
+      if (p.parentId) {
+        const set = map.get(p.parentId) || new Set<string>();
+        set.add(p.id);
+        map.set(p.parentId, set);
+      }
+    }
+    return map;
+  }, [periods]);
+
+  const currentCriteria = useMemo<EventFilterCriteria>(
+    () => ({
+      selectedPeriodIds,
+      selectedCategories,
+      selectedStatus,
+    }),
+    [selectedPeriodIds, selectedCategories, selectedStatus]
+  );
+
+  // Bộ lọc danh sách sự kiện áp dụng Specification Pattern
   const filteredEvents = useMemo(() => {
-    return events.filter((item) => {
-      // 1. Lọc theo từ khóa tìm kiếm
-      const query = search.trim().toLowerCase();
-      if (query) {
-        const titleMatch = item.title.toLowerCase().includes(query);
-        const summaryMatch = Boolean(item.summary?.toLowerCase().includes(query));
-        const parentMatch = Boolean(item.parent?.title?.toLowerCase().includes(query));
-        const locationMatch = Boolean(
-          item.historicalLocation?.name?.toLowerCase().includes(query),
-        );
-        if (!titleMatch && !summaryMatch && !parentMatch && !locationMatch) {
-          return false;
-        }
-      }
+    const spec = new CompositeEventSpecification(
+      search,
+      currentCriteria,
+      categoryTerms,
+      periodChildrenMap
+    );
+    return events.filter((item) => spec.isSatisfiedBy(item));
+  }, [events, search, currentCriteria, categoryTerms, periodChildrenMap]);
 
-      // 2. Lọc theo Thời kỳ lịch sử
-      if (selectedPeriodId !== 'all') {
-        if (item.periodId !== selectedPeriodId) {
-          return false;
-        }
-      }
+  // Hàm tính toán số lượng sự kiện khớp với draft criteria (dành cho Modal Phễu lọc đếm trước kết quả)
+  const countForDraft = useCallback(
+    (draft: EventFilterCriteria) => {
+      const spec = new CompositeEventSpecification(
+        search,
+        draft,
+        categoryTerms,
+        periodChildrenMap
+      );
+      return events.filter((item) => spec.isSatisfiedBy(item)).length;
+    },
+    [events, search, categoryTerms, periodChildrenMap]
+  );
 
-      // 3. Lọc theo Cấp độ sự kiện (Chiến dịch cha vs Trận đánh con)
-      if (levelFilter === 'root_only') {
-        if (item.parentId) return false;
-      } else if (levelFilter === 'sub_only') {
-        if (!item.parentId) return false;
-      }
+  // Áp dụng trọn vẹn bộ lọc từ Modal Phễu lọc
+  const applyFilters = useCallback((criteria: EventFilterCriteria) => {
+    setSelectedPeriodIds(criteria.selectedPeriodIds || []);
+    setSelectedCategories(criteria.selectedCategories || []);
+    setSelectedStatus(criteria.selectedStatus || 'all');
+    setCurrentPage(1);
+  }, []);
 
-      // 4. Lọc theo Phân loại sự kiện (sử dụng Smart Classifier)
-      if (selectedCategory !== 'all') {
-        const classified = SmartEventClassifier.classify(categoryTerms, item);
-        if (classified.code !== selectedCategory) {
-          return false;
-        }
-      }
+  // Số lượng tiêu chí lọc đang được kích hoạt (ngoài ô tìm kiếm)
+  const activeFilterCount = useMemo(() => {
+    let count = selectedPeriodIds.length + selectedCategories.length;
+    if (selectedStatus !== 'all') count++;
+    return count;
+  }, [selectedPeriodIds, selectedCategories, selectedStatus]);
 
-      return true;
-    });
-  }, [events, search, selectedPeriodId, levelFilter, selectedCategory, categoryTerms]);
+  // Reset về trang 1 khi thay đổi điều kiện lọc
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedPeriodIds, selectedCategories, selectedStatus, pageSize]);
+
+  // Phân trang dữ liệu hiển thị cho chế độ bảng phẳng
+  const totalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
+
+  const paginatedEvents = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredEvents.slice(startIndex, startIndex + pageSize);
+  }, [filteredEvents, currentPage, pageSize]);
 
   // Nhóm sự kiện theo Thời kỳ lịch sử (dành cho chế độ xem period_grouped)
   const groupedByPeriod = useMemo<PeriodGroupedEvents[]>(() => {
@@ -203,22 +264,52 @@ export function useEventListFacade() {
     }
   };
 
+  // Kiểm tra xem có bộ lọc nào đang được kích hoạt không (bao gồm cả từ khóa và tiêu chí)
+  const hasActiveFilters =
+    search.trim() !== '' ||
+    selectedPeriodIds.length > 0 ||
+    selectedCategories.length > 0 ||
+    selectedStatus !== 'all';
+
+  // Đặt lại toàn bộ bộ lọc về trạng thái ban đầu
+  const handleResetFilters = useCallback(() => {
+    setSearch('');
+    setSelectedPeriodIds([]);
+    setSelectedCategories([]);
+    setSelectedStatus('all');
+    setCurrentPage(1);
+  }, []);
+
   return {
-    events: filteredEvents,
+    events: paginatedEvents,
+    allFilteredEvents: filteredEvents,
     allEventsCount: events.length,
     periods,
     categoryTerms,
     loading,
     search,
     setSearch,
-    selectedPeriodId,
-    setSelectedPeriodId,
-    levelFilter,
-    setLevelFilter,
-    selectedCategory,
-    setSelectedCategory,
+    selectedPeriodIds,
+    setSelectedPeriodIds,
+    selectedCategories,
+    setSelectedCategories,
+    selectedStatus,
+    setSelectedStatus,
+    currentCriteria,
+    activeFilterCount,
+    countForDraft,
+    applyFilters,
+    hasActiveFilters,
+    handleResetFilters,
     viewMode,
     setViewMode,
+    // Pagination
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+    totalPages,
+    totalFilteredCount: filteredEvents.length,
     groupedByPeriod,
     stats,
     deletingEvent,

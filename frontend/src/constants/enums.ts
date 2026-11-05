@@ -64,14 +64,14 @@ export enum LocationType {
 }
 
 export const LOCATION_TYPE_LABELS: Record<LocationType, string> = {
-  [LocationType.ANCIENT_CAPITAL]: 'Cố đô / Kinh thành',
+  [LocationType.ANCIENT_CAPITAL]: 'Cố đô',
   [LocationType.CITADEL]: 'Thành lũy',
-  [LocationType.PALACE]: 'Cung điện / Dinh thự',
+  [LocationType.PALACE]: 'Cung điện',
   [LocationType.BATTLEFIELD]: 'Chiến trường',
   [LocationType.RESISTANCE_BASE]: 'Căn cứ kháng chiến',
-  [LocationType.TEMPLE]: 'Đền / Chùa',
+  [LocationType.TEMPLE]: 'Đền miếu',
   [LocationType.ARCHAEOLOGICAL_SITE]: 'Di chỉ khảo cổ',
-  [LocationType.MONUMENT]: 'Di tích / Địa danh lịch sử',
+  [LocationType.MONUMENT]: 'Di tích lịch sử',
   [LocationType.OTHER]: 'Khác',
 };
 
@@ -97,28 +97,31 @@ export enum MediaType {
   DOCUMENT = 'DOCUMENT',
 }
 
-export enum EventCategory {
-  BATTLE = 'BATTLE',
-  WAR = 'WAR',
-  TREATY = 'TREATY',
-  REVOLUTION = 'REVOLUTION',
-  POLITICAL_EVENT = 'POLITICAL_EVENT',
-  SUMMIT_CONFERENCE = 'SUMMIT_CONFERENCE',
-  CULTURE_SCIENCE = 'CULTURE_SCIENCE',
-  NATURAL_DISASTER = 'NATURAL_DISASTER',
-  OTHER = 'OTHER',
-}
+/** Mã loại sự kiện "thường gặp" — chỉ còn là gợi ý mặc định/nhãn dự phòng, KHÔNG còn giới
+ * hạn giá trị hợp lệ (danh mục thật là EVENT_TYPE, có 15+ mã, xem /public/taxonomies). Dùng
+ * làm hằng chuỗi (không phải enum) để không ràng buộc kiểu `category` về đúng 9 mã này. */
+export const EVENT_CATEGORY_CODES = {
+  BATTLE: 'BATTLE',
+  WAR: 'WAR',
+  TREATY: 'TREATY',
+  REVOLUTION: 'REVOLUTION',
+  POLITICAL_EVENT: 'POLITICAL_EVENT',
+  SUMMIT_CONFERENCE: 'SUMMIT_CONFERENCE',
+  CULTURE_SCIENCE: 'CULTURE_SCIENCE',
+  NATURAL_DISASTER: 'NATURAL_DISASTER',
+  OTHER: 'OTHER',
+} as const;
 
-export const EVENT_CATEGORY_LABELS: Record<EventCategory, string> = {
-  [EventCategory.BATTLE]: 'Trận đánh / Chiến dịch',
-  [EventCategory.WAR]: 'Chiến tranh / Xung đột',
-  [EventCategory.TREATY]: 'Hiệp ước / Hòa ước',
-  [EventCategory.REVOLUTION]: 'Cách mạng / Khởi nghĩa',
-  [EventCategory.POLITICAL_EVENT]: 'Đảo chính / Biến cố chính trị',
-  [EventCategory.SUMMIT_CONFERENCE]: 'Hội nghị / Thượng đỉnh',
-  [EventCategory.CULTURE_SCIENCE]: 'Văn hóa / Khoa học',
-  [EventCategory.NATURAL_DISASTER]: 'Thiên tai / Đại dịch',
-  [EventCategory.OTHER]: 'Khác',
+export const EVENT_CATEGORY_LABELS: Record<string, string> = {
+  BATTLE: 'Trận đánh',
+  WAR: 'Chiến tranh',
+  TREATY: 'Hiệp ước',
+  REVOLUTION: 'Cách mạng',
+  POLITICAL_EVENT: 'Biến cố chính trị',
+  SUMMIT_CONFERENCE: 'Hội nghị',
+  CULTURE_SCIENCE: 'Văn hóa và khoa học',
+  NATURAL_DISASTER: 'Thiên tai dịch bệnh',
+  OTHER: 'Khác',
 };
 
 /** Vai trò lịch sử của nhân vật — một người có thể có nhiều vai trò. */
@@ -131,11 +134,48 @@ export enum FigureRole {
 }
 
 export const FIGURE_ROLE_LABELS: Record<FigureRole, string> = {
-  [FigureRole.MONARCH]: 'Vua / Hoàng đế',
-  [FigureRole.GENERAL]: 'Danh tướng',
-  [FigureRole.SCHOLAR]: 'Danh nhân văn hóa',
-  [FigureRole.REVOLUTIONARY]: 'Nhà cách mạng / Lãnh tụ khởi nghĩa',
-  [FigureRole.POLITICIAN]: 'Chính trị gia / Quan lại',
+  [FigureRole.MONARCH]: 'Quân chủ / Hoàng tộc',
+  [FigureRole.GENERAL]: 'Tướng lĩnh / Chỉ huy quân sự',
+  [FigureRole.SCHOLAR]: 'Học giả / Danh sĩ',
+  [FigureRole.REVOLUTIONARY]: 'Lãnh tụ khởi nghĩa / Phong trào',
+  [FigureRole.POLITICIAN]: 'Chính khách / Đại thần',
+};
+
+/**
+ * Từ điển ánh xạ ngữ nghĩa chuẩn hóa (Canonical Role Dictionary)
+ * Dành riêng cho nhân vật lịch sử (danh nhân), mang tính khái quát, học thuật, phi định kiến.
+ */
+export const CANONICAL_ROLE_LABELS: Record<string, string> = {
+  // 1. Quân sự & Chiến lược
+  GENERAL: 'Tướng lĩnh / Chỉ huy quân sự',
+  COMMANDER: 'Tướng lĩnh / Chỉ huy quân sự',
+  COMMANDER_IN_CHIEF: 'Tổng chỉ huy / Thống soái',
+  STRATEGIST: 'Quân sư / Chiến lược gia',
+  MILITARY_ADVISER: 'Quân sư / Cố vấn quân sự',
+  WARRIOR: 'Võ tướng / Chiến binh',
+
+  // 2. Thể chế & Quyền lực
+  MONARCH: 'Quân chủ / Hoàng tộc',
+  POLITICIAN: 'Chính khách / Đại thần',
+  STATESMAN: 'Chính khách',
+  DIPLOMAT: 'Nhà ngoại giao / Sứ thần',
+  REFORMER: 'Nhà cải cách',
+
+  // 3. Tư tưởng, Văn hóa & Giáo dục
+  SCHOLAR: 'Học giả / Danh sĩ',
+  CULTURAL_FIGURE: 'Danh nhân văn hóa / Tác gia',
+  POET: 'Nhà thơ / Thi nhân',
+  WRITER: 'Nhà văn / Tác gia',
+  PHILOSOPHER: 'Nhà tư tưởng',
+  SCIENTIST: 'Nhà khoa học',
+
+  // 4. Tôn giáo & Tinh thần
+  RELIGIOUS_FIGURE: 'Nhân vật tôn giáo / Thiền sư',
+
+  // 5. Phong trào & Khởi nghĩa
+  REVOLUTIONARY: 'Lãnh tụ khởi nghĩa / Phong trào',
+  PATRIOT: 'Nhà yêu nước',
+  HERO: 'Anh hùng dân tộc',
 };
 
 export enum EntityRelationType {
@@ -161,24 +201,24 @@ export enum EntityRelationType {
 }
 
 export const ENTITY_RELATION_TYPE_LABELS: Record<EntityRelationType, string> = {
-  [EntityRelationType.LEADER_OF]: 'Lãnh đạo / Chỉ huy',
-  [EntityRelationType.MEMBER_OF]: 'Thành viên / Trực thuộc',
-  [EntityRelationType.FOUNDER_OF]: 'Sáng lập / Khởi lập',
-  [EntityRelationType.SUCCESSOR_TO]: 'Kế vị / Tiếp nối',
-  [EntityRelationType.SERVED_UNDER]: 'Phụng sự / Bề tôi của',
+  [EntityRelationType.LEADER_OF]: 'Lãnh đạo',
+  [EntityRelationType.MEMBER_OF]: 'Thành viên',
+  [EntityRelationType.FOUNDER_OF]: 'Sáng lập',
+  [EntityRelationType.SUCCESSOR_TO]: 'Kế vị',
+  [EntityRelationType.SERVED_UNDER]: 'Phụng sự',
   [EntityRelationType.CONTEMPORARY_OF]: 'Cùng thời với',
   [EntityRelationType.CHILD_OF]: 'Con cái của',
   [EntityRelationType.PARENT_OF]: 'Cha mẹ của',
-  [EntityRelationType.SPOUSE_OF]: 'Phối ngẫu / Vợ chồng',
+  [EntityRelationType.SPOUSE_OF]: 'Vợ chồng với',
   [EntityRelationType.SIBLING_OF]: 'Anh chị em ruột',
-  [EntityRelationType.ALLIED_WITH]: 'Liên minh / Đồng minh',
-  [EntityRelationType.OPPOSED_TO]: 'Đối địch / Kình địch',
-  [EntityRelationType.VASSAL_OF]: 'Thần phục / Chư hầu',
-  [EntityRelationType.AUTHOR_OF]: 'Tác giả / Khởi xướng',
-  [EntityRelationType.HOUSED_AT]: 'Lưu giữ / Trưng bày tại',
-  [EntityRelationType.COMMEMORATES]: 'Tưởng niệm / Vinh danh',
-  [EntityRelationType.LOCATED_IN]: 'Đặt tại / Thuộc địa phận',
-  [EntityRelationType.CAPITAL_OF]: 'Kinh đô / Thủ phủ của',
+  [EntityRelationType.ALLIED_WITH]: 'Đồng minh với',
+  [EntityRelationType.OPPOSED_TO]: 'Đối địch với',
+  [EntityRelationType.VASSAL_OF]: 'Thần phục',
+  [EntityRelationType.AUTHOR_OF]: 'Tác giả của',
+  [EntityRelationType.HOUSED_AT]: 'Lưu giữ tại',
+  [EntityRelationType.COMMEMORATES]: 'Tưởng niệm',
+  [EntityRelationType.LOCATED_IN]: 'Tọa lạc tại',
+  [EntityRelationType.CAPITAL_OF]: 'Kinh đô của',
   [EntityRelationType.OTHER]: 'Quan hệ khác',
 };
 
@@ -207,12 +247,12 @@ export enum EventRelationType {
 }
 
 export const EVENT_RELATION_TYPE_LABELS: Record<EventRelationType, string> = {
-  [EventRelationType.CAUSES]: 'Nguyên nhân trực tiếp / Gây ra',
-  [EventRelationType.PRECEDES]: 'Tiền đề / Diễn ra trước',
-  [EventRelationType.FOLLOWS]: 'Tiếp nối / Hệ quả',
-  [EventRelationType.INFLUENCES]: 'Tác động / Ảnh hưởng',
-  [EventRelationType.PARALLEL_TO]: 'Diễn ra đồng thời / Song song',
-  [EventRelationType.OPPOSES]: 'Đối kháng / Phản ứng lại',
+  [EventRelationType.CAUSES]: 'Nguyên nhân dẫn tới',
+  [EventRelationType.PRECEDES]: 'Tiền đề diễn ra trước',
+  [EventRelationType.FOLLOWS]: 'Hệ quả diễn ra sau',
+  [EventRelationType.INFLUENCES]: 'Tác động ảnh hưởng',
+  [EventRelationType.PARALLEL_TO]: 'Diễn ra đồng thời',
+  [EventRelationType.OPPOSES]: 'Đối kháng phản ứng lại',
   [EventRelationType.DERIVED_FROM]: 'Bắt nguồn từ',
   [EventRelationType.ENDED_BY]: 'Kết thúc bằng',
   [EventRelationType.OTHER]: 'Mối liên hệ khác',
@@ -361,22 +401,12 @@ export enum SubStructureType {
 }
 
 /**
- * Tab chi tiết di tích lịch sử
- */
-export enum HeritageTab {
-  OVERVIEW = 'overview',
-  STRUCTURES = 'structures',
-  TIMELINE = 'timeline',
-  LINKS = 'links',
-}
-
-/**
  * Mã nhóm phân loại Taxonomy
  */
 export enum TaxonomyGroupCode {
-  EVENT_CATEGORY = 'EVENT_CATEGORY',
-  EVENT_ROLE = 'EVENT_ROLE',
-  EVENT_RELATION = 'EVENT_RELATION',
+  EVENT_TYPE = 'EVENT_TYPE',
+  ROLE_TYPE = 'ROLE_TYPE',
+  PREDICATE = 'PREDICATE',
 }
 
 /**

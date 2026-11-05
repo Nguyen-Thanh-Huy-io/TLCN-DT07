@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeftRight, ArrowUpDown } from 'lucide-react';
 import {
   LessonBlockItem,
@@ -9,6 +9,8 @@ import {
   TimelineFilterConfig,
   TimelineOrientation,
 } from '../../../types/block-builder.types';
+import { TaxonomyApiService, TaxonomyTermItem } from '@/services/entities/taxonomy.service';
+import { TaxonomyGroupCode } from '@/constants/enums';
 import { TypographyInspectorPanel } from './TypographyInspectorPanel';
 
 interface TimelineBlockInspectorProps {
@@ -21,6 +23,17 @@ export function TimelineBlockInspector({
   onUpdateBlock,
 }: TimelineBlockInspectorProps) {
   const [activeTab, setActiveTab] = useState<'AXIS' | 'TYPOGRAPHY'>('AXIS');
+  const [eventTypeTerms, setEventTypeTerms] = useState<TaxonomyTermItem[]>([]);
+  const [predicateTerms, setPredicateTerms] = useState<TaxonomyTermItem[]>([]);
+
+  useEffect(() => {
+    TaxonomyApiService.getGroups([TaxonomyGroupCode.EVENT_TYPE, TaxonomyGroupCode.PREDICATE])
+      .then((groups) => {
+        setEventTypeTerms(groups.find((g) => g.code === TaxonomyGroupCode.EVENT_TYPE)?.terms ?? []);
+        setPredicateTerms(groups.find((g) => g.code === TaxonomyGroupCode.PREDICATE)?.terms ?? []);
+      })
+      .catch((err) => console.warn('Failed to fetch timeline filter taxonomies:', err));
+  }, []);
 
   const sourceMode = tl.sourceMode || 'HYBRID';
   const orientation = tl.orientation || TimelineOrientation.VERTICAL;
@@ -54,6 +67,12 @@ export function TimelineBlockInspector({
     onUpdateBlock(tl.id, {
       filterConfig: { ...filterConfig, [key]: value },
     });
+  };
+
+  const toggleFilterListValue = (key: 'eventTypes' | 'relationTypes', code: string) => {
+    const current = filterConfig[key] ?? [];
+    const next = current.includes(code) ? current.filter((c) => c !== code) : [...current, code];
+    updateFilter(key, next);
   };
 
   return (
@@ -239,6 +258,55 @@ export function TimelineBlockInspector({
                   />
                 </div>
               </div>
+
+              {eventTypeTerms.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-stone-700 mb-1.5">
+                    Loại sự kiện (trang Thời kỳ)
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {eventTypeTerms.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => toggleFilterListValue('eventTypes', t.id)}
+                        className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors cursor-pointer ${
+                          filterConfig.eventTypes?.includes(t.id)
+                            ? 'bg-stone-900 text-white border-stone-900'
+                            : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {predicateTerms.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-stone-700 mb-1.5">
+                    Quan hệ liên quan (trang Thực thể)
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {predicateTerms.map((t) => (
+                      <button
+                        key={t.code}
+                        type="button"
+                        onClick={() => toggleFilterListValue('relationTypes', t.code)}
+                        className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors cursor-pointer ${
+                          filterConfig.relationTypes?.includes(t.code)
+                            ? 'bg-stone-900 text-white border-stone-900'
+                            : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <label className="flex items-center gap-2 cursor-pointer text-sm text-stone-800">
                 <input
                   type="checkbox"

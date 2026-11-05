@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { ContentStatus, EventCategory } from '@prisma/client';
+import { ContentStatus } from '@prisma/client';
 import {
   IsEnum,
   IsInt,

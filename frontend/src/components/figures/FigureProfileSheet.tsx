@@ -10,7 +10,8 @@ import { LifeTimeline } from "./LifeTimeline";
 import { RelationshipGraph } from "./RelationshipGraph";
 import { FigureBiography } from "./FigureBiography";
 import type { FigureView } from "./figure-utils";
-import { figureRoles, useFigureRoles } from "./figure-roles";
+import { figureRoles } from "./figure-roles";
+import { useFigureRoles } from "./useFigureRoles";
 
 export enum FigureProfileTab {
   TIMELINE = "timeline",

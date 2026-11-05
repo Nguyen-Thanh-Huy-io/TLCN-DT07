@@ -26,9 +26,12 @@
     "migrate:deploy": "prisma migrate deploy",
     "docker:dev": "docker compose -f docker-compose.yaml up -d",
     "seed:taxonomy": "ts-node prisma/seeds/taxonomy-v1.seed.ts",
+    "seed:periods": "ts-node prisma/seeds/periods-v1.seed.ts",
     "seed:pilot": "ts-node prisma/seeds/pilot-v1.seed.ts",
     "seed:story": "ts-node prisma/seeds/story-bach-dang-938.seed.ts",
-    "seed:all": "npm run seed:taxonomy && npm run seed:pilot"
+    "seed:tran": "ts-node prisma/seeds/tran-dynasty-v1.seed.ts",
+    "seed:all": "npm run seed:taxonomy && npm run seed:pilot",
+    "db:clean": "ts-node prisma/reset-clean-database.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seeds/taxonomy-v1.seed.ts"

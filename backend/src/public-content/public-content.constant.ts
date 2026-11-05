@@ -29,6 +29,8 @@ export const PUBLIC_CONTENT_ROUTES = {
   LOCATION_DETAIL: 'locations/:slug',
   EVENTS: 'events',
   EVENT_DETAIL: 'events/:slug',
+  ENTITIES: 'entities',
+  ENTITY_DETAIL: 'entities/:slug',
   LESSONS: 'lessons',
 } as const;
 
@@ -43,6 +45,8 @@ export const PUBLIC_CONTENT_MESSAGES = {
     `Không tìm thấy sự kiện lịch sử với đường dẫn "${slug}"`,
   LOCATION_NOT_FOUND: (slug: string) =>
     `Không tìm thấy di tích / địa danh với đường dẫn "${slug}"`,
+  ENTITY_NOT_FOUND: (slug: string) =>
+    `Không tìm thấy thực thể lịch sử với đường dẫn "${slug}"`,
 } as const;
 
 /** Hậu tố niên đại khi tự sinh timeLabel. */

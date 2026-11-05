@@ -20,6 +20,7 @@ export const PUBLIC_ROUTE_PREFIX = {
   KNOWLEDGE: '/kien-thuc',
   FIGURE: '/nhan-vat',
   EVENT: '/su-kien',
+  ENTITY: '/thuc-the',
 } as const;
 
 const DEFAULT_GRADIENTS = [
@@ -289,6 +290,8 @@ export interface PublicLocationDetailDto extends PublicLocationSummaryDto {
   figures: PublicFigureDto[];
   nearby: Array<PublicLocationSummaryDto & { distanceKm: number }>;
   heritage: PublicHeritageProfileDto;
+  /** Nội dung tường thuật dạng Block Builder (giống Lesson.content); null = chưa có. */
+  contentBlocks?: unknown;
 }
 
 export function fetchLocationBySlug(slug: string): Promise<PublicLocationDetailDto | null> {
@@ -350,6 +353,8 @@ export interface PublicEventDetailDto extends PublicEventSummaryDto {
   children: PublicEventSummaryDto[];
   outgoingRelations: PublicEventRelationDto[];
   incomingRelations: PublicEventRelationDto[];
+  /** Danh sách statement chung (Đồ thị tri thức) — dùng để resolveTimelineBlocks() tự dựng khối AUTO/HYBRID. */
+  statements: PublicEntityStatementDto[];
 }
 
 export interface PublicLessonSummaryDto {
@@ -538,6 +543,8 @@ export interface PublicFigureProfileDto extends PublicFigureDto {
   periodSlug: string | null;
   events: PublicFigureEventDto[];
   relationships: PublicFigureRelationDto[];
+  /** Danh sách statement chung (Đồ thị tri thức) — dùng để resolveTimelineBlocks() tự dựng khối AUTO/HYBRID. */
+  statements: PublicEntityStatementDto[];
 }
 
 export async function fetchFigureDirectory(): Promise<PublicFigureProfileDto[]> {
@@ -623,3 +630,71 @@ export async function fetchEvents(): Promise<PublicEventSummaryDto[]> {
   }
 }
 
+
+export interface PublicEntityMediaDto {
+  id: string;
+  type: string;
+  url: string;
+  caption: string | null;
+}
+
+export interface PublicEntityStatementDto {
+  id: string;
+  predicateCode: string;
+  predicateLabel: string;
+  direction: 'OUTGOING' | 'INCOMING';
+  relatedEntityId: string | null;
+  relatedEntitySlug: string | null;
+  relatedEntityName: string | null;
+  relatedEntityType: string | null;
+  roleLabel: string | null;
+  note: string | null;
+  validFromYear: number | null;
+  validToYear: number | null;
+  /** Chỉ có khi relatedEntityType === 'EVENT' — phục vụ khối Dòng thời gian tự động (AUTO/HYBRID). */
+  relatedStartYear?: number | null;
+  relatedEndYear?: number | null;
+  relatedDescription?: string | null;
+  relatedImageUrl?: string | null;
+}
+
+export interface PublicEntityAdjacentDto {
+  id: string;
+  slug: string;
+  name: string;
+  dateLabel: string | null;
+}
+
+export interface PublicEntityDetailDto {
+  id: string;
+  slug: string;
+  name: string;
+  type: 'PERSON' | 'ORGANIZATION' | 'DYNASTY' | 'MILITARY_FORCE' | 'ARTIFACT' | 'LOCATION' | 'EVENT' | string;
+  tagline: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  imageCaption: string | null;
+  aliases: string[];
+  dateText: string | null;
+  startYear: number | null;
+  endYear: number | null;
+  contentBlocks?: unknown;
+  metadata?: unknown;
+  period: PublicPeriodDto | null;
+  media: PublicEntityMediaDto[];
+  statements: PublicEntityStatementDto[];
+  previous?: PublicEntityAdjacentDto | null;
+  next?: PublicEntityAdjacentDto | null;
+  /** Chỉ có giá trị khi type === 'PERSON' (từ bảng Person). */
+  roles?: string[];
+  occupation?: string | null;
+  titles?: string[];
+  /** Chỉ có giá trị khi type === 'LOCATION' (từ bảng HistoricalSite). */
+  address?: string | null;
+  managingAgency?: string | null;
+  recognitionLevel?: string | null;
+}
+
+export function fetchEntityBySlug(slug: string): Promise<PublicEntityDetailDto | null> {
+  return fetchPublicDetail<PublicEntityDetailDto>(`/public/entities/${encodeURIComponent(slug)}`);
+}

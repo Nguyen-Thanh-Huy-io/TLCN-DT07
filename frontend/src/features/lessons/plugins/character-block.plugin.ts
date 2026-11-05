@@ -32,6 +32,7 @@ export const characterBlockPlugin: BlockPlugin<CharacterBlockData> = {
         <div style="flex: 1; min-width: 0;">
           <div style="font-size: 11px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Nhân vật lịch sử</div>
           <h4 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0; font-family: var(--font-merriweather), 'Noto Serif', serif;">${safeName}</h4>
+          ${block.role ? `<div style="font-size: 12.5px; font-weight: 600; color: #475569; margin-bottom: 4px;">${escapeHtml(block.role)}</div>` : ''}
           ${safeYears ? `<span style="font-size: 12px; font-weight: 600; color: #1d4ed8; background: #eff6ff; padding: 2px 8px; border-radius: 4px;">${safeYears}</span>` : ''}
           <p style="font-size: 13px; color: #475569; margin: 8px 0 0 0; line-height: 1.6;">${safeSummary}</p>
           ${renderCollapsibleDetail(block.detailContent)}

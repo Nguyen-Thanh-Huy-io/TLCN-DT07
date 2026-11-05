@@ -1,5 +1,5 @@
 import { SmartEventClassifier } from '../../../frontend/src/features/events/strategies/event-classifier.strategy';
-import { EventCategory } from '../../../frontend/src/constants/enums';
+import { EVENT_CATEGORY_CODES } from '../../../frontend/src/constants/enums';
 import {
   EventLocationScopeStrategy,
   EventLocationKind,
@@ -13,7 +13,7 @@ describe('SmartEventClassifier & LocationScope Automated Tests', () => {
       const result = SmartEventClassifier.classify(emptyTerms, {
         title: 'Kháng chiến chống Nguyên - Mông lần thứ hai',
       });
-      expect(result.code).toBe(EventCategory.WAR);
+      expect(result.code).toBe(EVENT_CATEGORY_CODES.WAR);
       expect(result.label).toBe('Chiến tranh / Kháng chiến');
       expect(result.isHeuristic).toBe(true);
     });
@@ -22,59 +22,59 @@ describe('SmartEventClassifier & LocationScope Automated Tests', () => {
       const res1 = SmartEventClassifier.classify(emptyTerms, {
         title: 'Trận Tây Kết',
       });
-      expect(res1.code).toBe(EventCategory.BATTLE);
+      expect(res1.code).toBe(EVENT_CATEGORY_CODES.BATTLE);
 
       const res2 = SmartEventClassifier.classify(emptyTerms, {
         title: 'Trận Vạn Kiếp',
       });
-      expect(res2.code).toBe(EventCategory.BATTLE);
+      expect(res2.code).toBe(EVENT_CATEGORY_CODES.BATTLE);
 
       const res3 = SmartEventClassifier.classify(emptyTerms, {
         title: 'Hải chiến Hoàng Sa 1974',
       });
-      expect(res3.code).toBe(EventCategory.BATTLE);
+      expect(res3.code).toBe(EVENT_CATEGORY_CODES.BATTLE);
     });
 
     it('nhận diện chính xác Cách mạng / Khởi nghĩa', () => {
       const res1 = SmartEventClassifier.classify(emptyTerms, {
         title: 'Cách mạng Pháp năm 1789',
       });
-      expect(res1.code).toBe(EventCategory.REVOLUTION);
+      expect(res1.code).toBe(EVENT_CATEGORY_CODES.REVOLUTION);
 
       const res2 = SmartEventClassifier.classify(emptyTerms, {
         title: 'Khởi nghĩa Lam Sơn',
       });
-      expect(res2.code).toBe(EventCategory.REVOLUTION);
+      expect(res2.code).toBe(EVENT_CATEGORY_CODES.REVOLUTION);
     });
 
     it('nhận diện chính xác Hiệp ước / Văn kiện', () => {
       const res1 = SmartEventClassifier.classify(emptyTerms, {
         title: 'Hiệp định Genève năm 1954',
       });
-      expect(res1.code).toBe(EventCategory.TREATY);
+      expect(res1.code).toBe(EVENT_CATEGORY_CODES.TREATY);
 
       const res2 = SmartEventClassifier.classify(emptyTerms, {
         title: 'Chiếu dời đô của Lý Công Uẩn',
       });
-      expect(res2.code).toBe(EventCategory.TREATY);
+      expect(res2.code).toBe(EVENT_CATEGORY_CODES.TREATY);
     });
 
     it('nhận diện chính xác Hội nghị', () => {
       const res = SmartEventClassifier.classify(emptyTerms, {
         title: 'Hội nghị Diên Hồng',
       });
-      expect(res.code).toBe(EventCategory.SUMMIT_CONFERENCE);
+      expect(res.code).toBe(EVENT_CATEGORY_CODES.SUMMIT_CONFERENCE);
     });
 
     it('ưu tiên taxonomy term hợp lệ nếu đã được gắn từ trước', () => {
       const mockTerms: any[] = [
-        { id: 'term-culture', code: EventCategory.CULTURE_SCIENCE, label: 'Văn hóa đặc biệt' },
+        { id: 'term-culture', code: EVENT_CATEGORY_CODES.CULTURE_SCIENCE, label: 'Văn hóa đặc biệt' },
       ];
       const res = SmartEventClassifier.classify(mockTerms, {
         title: 'Kháng chiến nhưng được phân loại Văn hóa',
         categoryIds: ['term-culture'],
       });
-      expect(res.code).toBe(EventCategory.CULTURE_SCIENCE);
+      expect(res.code).toBe(EVENT_CATEGORY_CODES.CULTURE_SCIENCE);
       expect(res.label).toBe('Văn hóa đặc biệt');
       expect(res.isHeuristic).toBe(false);
     });

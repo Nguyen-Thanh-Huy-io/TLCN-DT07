@@ -1,23 +1,21 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Landmark, Moon, SearchX, Sun } from 'lucide-react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
-import api from '@/services/api';
 import type {
   PublicEventSummaryDto,
-  PublicLocationDetailDto,
   PublicLocationSummaryDto,
   PublicPeriodDto,
 } from '@/services/entities/landing.service';
-import { toHeritageSummaries, withHeritageDetail } from '../heritage.adapter';
-import type { HistoricalHeritage, HeritageRank as HeritageRankType } from '../heritage.types';
+import { toHeritageSummaries } from '../heritage.adapter';
+import type { HeritageRank as HeritageRankType } from '../heritage.types';
 import { HeritageRank } from '@/constants/enums';
 import { EMPTY_HERITAGE_FILTERS, HeritageFilterBar, matchesHeritage, type HeritageFilters } from './HeritageFilterBar';
 import { FeaturedHeritageHero, HeritageCard } from './HeritageCards';
-import { HeritageDetailSheet } from './HeritageDetailSheet';
 import { Button, Select, cn } from '../ui';
 import '@/components/timeline/sk-timeline.css';
 import '../heritage.css';
@@ -40,20 +38,20 @@ const RANK_ORDER: HeritageRankType[] = [
 ];
 
 /**
- * Trang Di tích (/di-tich, /di-tich/[slug]): tâm điểm + bộ lọc + lưới di tích + khung chi tiết 4 tab.
- * Chưa dùng bản đồ. Chi tiết (sự kiện, nhân vật, hồ sơ di sản) tải khi mở một di tích.
+ * Trang danh mục Di tích (/di-tich): tâm điểm + bộ lọc + lưới di tích. Mở 1 di tích điều hướng
+ * sang trang đọc đầy đủ dùng chung (/di-tich/[slug] → EntityHero + EntityReader, như
+ * /thuc-the, /su-kien, /nhan-vat) thay vì mở khung chi tiết tại chỗ.
  */
 export function HeritageExplorer({
   sites,
   events,
   periods,
-  initialSlug,
 }: {
   sites: PublicLocationSummaryDto[];
   events: PublicEventSummaryDto[];
   periods: PublicPeriodDto[];
-  initialSlug?: string;
 }) {
+  const router = useRouter();
   const summaries = useMemo(
     () =>
       toHeritageSummaries(sites, events, periods).sort(
@@ -61,9 +59,7 @@ export function HeritageExplorer({
       ),
     [sites, events, periods],
   );
-  const [details, setDetails] = useState<Record<string, PublicLocationDetailDto>>({});
   const [filters, setFilters] = useState<HeritageFilters>(EMPTY_HERITAGE_FILTERS);
-  const [selectedSlug, setSelectedSlug] = useState<string | null>(initialSlug ?? null);
   const [dark, setDark] = useState(false);
 
   // Nhớ chế độ sáng / tối trên trình duyệt này (đọc sau khi mount để SSR khớp).
@@ -84,30 +80,7 @@ export function HeritageExplorer({
       return !d;
     });
 
-  // Tải chi tiết di tích đang mở (một lần cho mỗi di tích).
-  useEffect(() => {
-    if (!selectedSlug || details[selectedSlug]) return;
-    let alive = true;
-    api
-      .get(`/public/locations/${encodeURIComponent(selectedSlug)}`)
-      .then((res) => {
-        const detail = (res.data?.data ?? res.data) as PublicLocationDetailDto;
-        if (alive && detail?.id) setDetails((d) => ({ ...d, [selectedSlug]: detail }));
-      })
-      .catch(() => {
-        // Không tải được: khung vẫn hiện phần tóm tắt, các tab chi tiết hiện trạng thái trống.
-        if (alive) setDetails((d) => d);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [selectedSlug, details]);
-
-  // Giữ di tích đang mở trên URL (/di-tich/[slug]) để chia sẻ được; đóng thì về /di-tich.
-  const select = useCallback((slug: string | null) => {
-    setSelectedSlug(slug);
-    window.history.replaceState(null, '', slug ? `${LIST_PATH}/${slug}` : LIST_PATH);
-  }, []);
+  const openDetail = (slug: string) => router.push(`${LIST_PATH}/${slug}`);
 
   const visible = useMemo(() => summaries.filter((h) => matchesHeritage(h, filters)), [summaries, filters]);
   const featured =
@@ -116,9 +89,6 @@ export function HeritageExplorer({
         h.coverImageUrl &&
         (h.rank === HeritageRank.UNESCO || h.rank === HeritageRank.SPECIAL_NATIONAL),
     ) ?? summaries[0];
-  const selectedBase = summaries.find((h) => h.slug === selectedSlug) ?? null;
-  const selected: HistoricalHeritage | null =
-    selectedBase && details[selectedBase.slug] ? withHeritageDetail(selectedBase, details[selectedBase.slug]) : selectedBase;
 
   return (
     <div className={cn('hx-app', dark && 'hx-dark')}>
@@ -138,7 +108,7 @@ export function HeritageExplorer({
             <Select
               label="Chuyển nhanh tới di tích"
               value=""
-              onChange={(slug) => slug && select(slug)}
+              onChange={(slug) => slug && openDetail(slug)}
               options={[{ value: '', label: 'Chuyển nhanh tới di tích…' }, ...summaries.map((h) => ({ value: h.slug, label: h.name }))]}
               className="min-w-[230px]"
             />
@@ -148,7 +118,7 @@ export function HeritageExplorer({
           </div>
         </div>
 
-        {featured && <FeaturedHeritageHero heritage={featured} onExplore={() => select(featured.slug)} />}
+        {featured && <FeaturedHeritageHero heritage={featured} onExplore={() => openDetail(featured.slug)} />}
 
         <HeritageFilterBar filters={filters} onChange={setFilters} heritages={summaries} periods={periods} resultCount={visible.length} />
 
@@ -156,7 +126,7 @@ export function HeritageExplorer({
           <motion.div layout className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence mode="popLayout">
               {visible.map((h) => (
-                <HeritageCard key={h.id} heritage={h} onOpen={() => select(h.slug)} />
+                <HeritageCard key={h.id} heritage={h} onOpen={() => openDetail(h.slug)} />
               ))}
             </AnimatePresence>
           </motion.div>
@@ -173,7 +143,6 @@ export function HeritageExplorer({
         )}
       </main>
       <Footer />
-      <HeritageDetailSheet heritage={selected} onClose={() => select(null)} />
     </div>
   );
 }

@@ -10,7 +10,7 @@ import {
   type TaxonomyTermItem,
 } from '@/services/entities/taxonomy.service';
 import { FIELD_TYPE_LABELS, fieldsOf, flattenTree, type TaxonomyFieldDef } from './taxonomy-tree';
-import { NoticeTone } from '@/constants/enums';
+import { NoticeTone, TaxonomyGroupCode } from '@/constants/enums';
 
 interface Draft {
   id: string | null;
@@ -42,7 +42,7 @@ const EMPTY_DRAFT: Draft = {
 };
 
 /** Nhóm có trường thông tin riêng khai báo theo từng giá trị (kế thừa theo cây). */
-const GROUPS_WITH_FIELDS = new Set(['EVENT_CATEGORY']);
+const GROUPS_WITH_FIELDS = new Set<string>([TaxonomyGroupCode.EVENT_TYPE]);
 
 const toDraft = (t: TaxonomyTermItem): Draft => ({
   id: t.id,

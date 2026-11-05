@@ -3,6 +3,7 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { LandingContentFacade } from './landing-content.facade';
 import {
   LandingResponseDto,
+  PublicEntityDetailDto,
   PublicEventDetailDto,
   PublicEventSummaryDto,
   PublicLibraryLessonDto,
@@ -181,5 +182,18 @@ export class PublicContentController {
   })
   getEventBySlug(@Param('slug') slug: string): Promise<PublicEventDetailDto> {
     return this.facade.getEventBySlug(slug);
+  }
+
+  @Get(PUBLIC_CONTENT_ROUTES.ENTITY_DETAIL)
+  @ApiOperation({
+    summary:
+      'Lấy chi tiết thực thể lịch sử (Triều đại, Hiện vật, Tổ chức...) theo slug kèm contentBlocks JSONB & statements',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: PublicEntityDetailDto,
+  })
+  getEntityBySlug(@Param('slug') slug: string): Promise<PublicEntityDetailDto> {
+    return this.facade.getEntityBySlug(slug);
   }
 }

@@ -17,22 +17,39 @@ import {
   Filter,
   LayoutList,
   FolderTree,
+  RotateCcw,
 } from 'lucide-react';
 import { Badge } from '@/components/common/Badge';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
-import { ContentStatus, EventCategory } from '@/constants/enums';
+import { ContentStatus } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import { formatHistoricalYear } from '@/utils/history-year.utils';
 import { useEventListFacade } from '../facades/useEventListFacade';
 import { SmartEventClassifier } from '../strategies/event-classifier.strategy';
 import { EventHierarchyBadge } from './EventHierarchyBadge';
 import { EventLocationCell } from './EventLocationCell';
+import { EventFilterModal } from './EventFilterModal';
 
 export function EventList() {
   const router = useRouter();
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Phím tắt Ctrl+K hoặc Cmd+K để focus vào Global Search
+  React.useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+  const [isFilterModalOpen, setIsFilterModalOpen] = React.useState(false);
+
   const {
     events,
     periods,
@@ -40,14 +57,21 @@ export function EventList() {
     loading,
     search,
     setSearch,
-    selectedPeriodId,
-    setSelectedPeriodId,
-    levelFilter,
-    setLevelFilter,
-    selectedCategory,
-    setSelectedCategory,
+    currentCriteria,
+    activeFilterCount,
+    countForDraft,
+    applyFilters,
+    hasActiveFilters,
+    handleResetFilters,
     viewMode,
     setViewMode,
+    // Pagination
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+    totalPages,
+    totalFilteredCount,
     groupedByPeriod,
     stats,
     deletingEvent,
@@ -110,118 +134,121 @@ export function EventList() {
         </div>
       </div>
 
-      {/* 2. Toolbar & Advanced Filters */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3.5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Search Input */}
-          <div className="relative flex-1 min-w-[280px] max-w-md">
+      {/* 2. Unified Single-Row Toolbar (Gọn gàng 1 hàng duy nhất, gom bộ lọc vào Phễu lọc) */}
+      <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between gap-3">
+        {/* Nhóm trái: Ô tìm kiếm tổng + Nút [ 🌪️ Bộ lọc ] */}
+        <div className="flex items-center gap-2.5 flex-1 max-w-xl">
+          {/* Ô tìm kiếm từ khóa tổng (Global Search) */}
+          <div className="relative flex-1">
             <input
+              ref={searchInputRef}
               type="text"
-              placeholder="Tìm kiếm sự kiện, niên đại, địa danh, chiến dịch..."
+              placeholder="Tìm sự kiện, nhân vật, năm (1945)... (Ctrl+K)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-amber-800 focus:outline-none"
+              className="w-full pl-9 pr-14 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-amber-800 focus:outline-none placeholder:text-slate-400"
             />
             <span className="absolute left-3 top-2.5 text-slate-400">
               <Search size={16} />
             </span>
-          </div>
-
-          {/* View mode toggle & Action button */}
-          <div className="flex items-center gap-2.5">
-            {/* View Mode Switcher */}
-            <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/80">
-              <button
-                type="button"
-                onClick={() => setViewMode('flat')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  viewMode === 'flat'
-                    ? 'bg-white text-slate-800 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title="Xem dạng bảng phân cấp chuẩn"
-              >
-                <LayoutList size={13} />
-                <span>Bảng phân cấp</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('period_grouped')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  viewMode === 'period_grouped'
-                    ? 'bg-white text-slate-800 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title="Gom nhóm sự kiện theo Thời kỳ lịch sử"
-              >
-                <FolderTree size={13} />
-                <span>Gom theo Thời kỳ</span>
-              </button>
+            <div className="absolute right-2.5 top-2 flex items-center gap-1">
+              {search ? (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded text-xs"
+                  title="Xóa tìm kiếm"
+                >
+                  ✕
+                </button>
+              ) : (
+                <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded">
+                  Ctrl K
+                </kbd>
+              )}
             </div>
-
-            {/* Create Button */}
-            <button
-              type="button"
-              onClick={() => router.push(APP_ROUTES.EVENTS.CREATE)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors"
-            >
-              <Plus size={15} />
-              <span>Thêm sự kiện lịch sử</span>
-            </button>
           </div>
+
+          {/* Nút Phễu lọc gom chung */}
+          <button
+            type="button"
+            onClick={() => setIsFilterModalOpen(true)}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl border transition-all cursor-pointer select-none shrink-0 ${
+              activeFilterCount > 0
+                ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-2xs font-bold'
+                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
+            }`}
+            title="Mở phễu lọc theo thời kỳ, danh mục và cấp độ"
+          >
+            <Filter
+              size={15}
+              className={activeFilterCount > 0 ? 'text-amber-800' : 'text-slate-500'}
+            />
+            <span>Bộ lọc</span>
+            {activeFilterCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-amber-800 text-white text-[11px] font-bold flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+            {activeFilterCount > 0 && (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleResetFilters();
+                }}
+                className="ml-1 text-amber-800 hover:text-amber-950 font-bold hover:bg-amber-200/70 rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
+                title="Xóa nhanh tất cả bộ lọc"
+              >
+                ✕
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* Filter Dropdowns row */}
-        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3 text-xs">
-          <div className="flex items-center gap-1 text-slate-500 font-semibold mr-1">
-            <Filter size={13} />
-            <span>Bộ lọc:</span>
+        {/* Nhóm phải: Chuyển chế độ xem + Nút Thêm mới */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Switcher Bảng phân cấp / Gom theo Thời kỳ */}
+          <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/80">
+            <button
+              type="button"
+              onClick={() => setViewMode('flat')}
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'flat'
+                  ? 'bg-white text-slate-800 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Xem dạng Bảng phân cấp chuẩn"
+            >
+              <LayoutList size={14} />
+              <span className="hidden md:inline">Bảng phân cấp</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('period_grouped')}
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'period_grouped'
+                  ? 'bg-white text-slate-800 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Gom nhóm sự kiện theo Thời kỳ lịch sử"
+            >
+              <FolderTree size={14} />
+              <span className="hidden md:inline">Gom theo Thời kỳ</span>
+            </button>
           </div>
 
-          {/* 1. Lọc theo Thời kỳ lịch sử (Giải quyết Vấn đề 04) */}
-          <select
-            value={selectedPeriodId}
-            onChange={(e) => setSelectedPeriodId(e.target.value)}
-            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-800"
+          {/* Create Button */}
+          <button
+            type="button"
+            onClick={() => router.push(APP_ROUTES.EVENTS.CREATE)}
+            className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors shrink-0 cursor-pointer"
           >
-            <option value="all">Tất cả thời kỳ lịch sử</option>
-            {periods.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-
-          {/* 2. Lọc theo Cấp độ sự kiện (Giải quyết Vấn đề 02) */}
-          <select
-            value={levelFilter}
-            onChange={(e) => setLevelFilter(e.target.value as any)}
-            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-800"
-          >
-            <option value="all">Tất cả cấp độ sự kiện</option>
-            <option value="root_only">Chỉ sự kiện cha / Chiến dịch lớn</option>
-            <option value="sub_only">Chỉ sự kiện trực thuộc / Trận đánh con</option>
-          </select>
-
-          {/* 3. Lọc theo Phân loại sự kiện (Giải quyết Vấn đề 01) */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-800"
-          >
-            <option value="all">Tất cả phân loại</option>
-            <option value={EventCategory.WAR}>Chiến tranh / Kháng chiến</option>
-            <option value={EventCategory.BATTLE}>Trận đánh / Chiến dịch</option>
-            <option value={EventCategory.REVOLUTION}>Cách mạng / Khởi nghĩa</option>
-            <option value={EventCategory.TREATY}>Hiệp ước / Văn kiện</option>
-            <option value={EventCategory.POLITICAL_EVENT}>Chính trị / Thể chế</option>
-            <option value={EventCategory.SUMMIT_CONFERENCE}>Hội nghị / Đại hội</option>
-            <option value={EventCategory.CULTURE_SCIENCE}>Văn hóa / Tư tưởng</option>
-          </select>
-
-          <div className="ml-auto text-xs text-slate-500 font-medium">
-            Hiển thị <strong>{events.length}</strong> sự kiện
-          </div>
+            <Plus size={15} />
+            <span className="hidden sm:inline">Thêm sự kiện lịch sử</span>
+            <span className="sm:hidden">Thêm</span>
+          </button>
         </div>
       </div>
 
@@ -269,8 +296,21 @@ export function EventList() {
         /* CHẾ ĐỘ 2: Bảng phân cấp chuẩn */
         <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
           {renderEventTable(events)}
+          {renderPagination()}
         </div>
       )}
+
+      {/* Modal Phễu lọc gom chung */}
+      <EventFilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        criteria={currentCriteria}
+        periods={periods}
+        categoryTerms={categoryTerms}
+        countForDraft={countForDraft}
+        onApply={applyFilters}
+        onReset={handleResetFilters}
+      />
 
       {/* Modal xác nhận xóa */}
       <ConfirmDeleteModal
@@ -283,6 +323,99 @@ export function EventList() {
       />
     </div>
   );
+
+  /**
+   * Render thanh điều khiển phân trang (Pagination bar)
+   */
+  function renderPagination() {
+    if (totalFilteredCount === 0) return null;
+
+    const startItem = (currentPage - 1) * pageSize + 1;
+    const endItem = Math.min(currentPage * pageSize, totalFilteredCount);
+
+    const pageNumbers: number[] = [];
+    const maxPagesToShow = 5;
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+    if (endPage - startPage < maxPagesToShow - 1) {
+      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    }
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+
+    return (
+      <div className="pagination bg-slate-50/60 border-t border-slate-200">
+        <div className="flex items-center gap-3">
+          <span className="text-xs sm:text-sm text-slate-700 font-medium">
+            Hiển thị <strong>{startItem}–{endItem}</strong> trong <strong>{totalFilteredCount}</strong> sự kiện
+          </span>
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none"
+            title="Số sự kiện trên mỗi trang"
+          >
+            <option value={10}>10 / trang</option>
+            <option value={20}>20 / trang</option>
+            <option value={50}>50 / trang</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            disabled={currentPage <= 1}
+            aria-label="Trang trước"
+            onClick={() => setCurrentPage(currentPage - 1)}
+          >
+            ‹
+          </button>
+          {startPage > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setCurrentPage(1)}
+              >
+                1
+              </button>
+              {startPage > 2 && <span className="px-1 text-slate-400 self-center">...</span>}
+            </>
+          )}
+          {pageNumbers.map((pg) => (
+            <button
+              key={pg}
+              type="button"
+              className={pg === currentPage ? 'selected' : ''}
+              aria-label={`Trang ${pg}`}
+              onClick={() => setCurrentPage(pg)}
+            >
+              {pg}
+            </button>
+          ))}
+          {endPage < totalPages && (
+            <>
+              {endPage < totalPages - 1 && <span className="px-1 text-slate-400 self-center">...</span>}
+              <button
+                type="button"
+                onClick={() => setCurrentPage(totalPages)}
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            disabled={currentPage >= totalPages}
+            aria-label="Trang sau"
+            onClick={() => setCurrentPage(currentPage + 1)}
+          >
+            ›
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   /**
    * Render bảng danh sách sự kiện tối ưu 5 cột ngữ nghĩa (Giải quyết Vấn đề 05)

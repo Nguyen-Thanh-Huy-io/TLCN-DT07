@@ -17,7 +17,7 @@ export enum EventStreamViewMode {
 /** Dòng sự kiện của thời kỳ, chia theo giai đoạn, lọc nhiều danh mục cùng lúc. */
 export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
   // Loại chính theo "Danh mục dùng chung" (Truyền thuyết, Tôn giáo...), chưa tải xong thì nhãn enum cũ.
-  const categoryTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.EVENT_CATEGORY);
+  const categoryTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.EVENT_TYPE);
   const categoryLabel = (key: string) => categoryKeyLabel(categoryTerms, key);
   const categories = useMemo(() => {
     const counts = new Map<string, number>();

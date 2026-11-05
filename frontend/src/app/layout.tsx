@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro, Merriweather, Noto_Serif } from "next/font/google";
+import { Be_Vietnam_Pro, Merriweather, Noto_Serif, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { ClientLayout } from "@/components/layout/ClientLayout";
 
@@ -22,6 +22,14 @@ const notoSerif = Noto_Serif({
   weight: ["600", "700"],
   subsets: ["latin", "vietnamese"],
   variable: "--font-noto-serif",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  weight: ["600", "700", "800"],
+  style: ["normal", "italic"],
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-playfair",
   display: "swap",
 });
 
@@ -59,7 +67,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${beVietnamPro.variable} ${merriweather.variable} ${notoSerif.variable} font-sans h-full antialiased`}
+      className={`${beVietnamPro.variable} ${merriweather.variable} ${notoSerif.variable} ${playfair.variable} font-sans h-full antialiased`}
     >
       <body className="min-h-full">
         <ClientLayout>{children}</ClientLayout>

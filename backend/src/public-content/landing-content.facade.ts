@@ -9,6 +9,7 @@ import {
 } from '../common/constants/cache-keys.constant';
 import {
   LandingResponseDto,
+  PublicEntityDetailDto,
   PublicEventDetailDto,
   PublicEventSummaryDto,
   PublicLibraryLessonDto,
@@ -28,6 +29,7 @@ import {
   textOrNull,
 } from './mappers/public-content.mapper';
 import { toHeritageProfile } from './mappers/heritage-profile.mapper';
+import { TAXONOMY_GROUPS } from '../taxonomy/taxonomy.constant';
 import { LandingSectionRegistry } from './strategies/landing-section.registry';
 import {
   LandingSection,
@@ -98,6 +100,16 @@ export class LandingContentFacade {
     private readonly registry: LandingSectionRegistry,
   ) {}
 
+  /** Tra mã loại sự kiện (nhóm EVENT_TYPE) theo id — dùng để tính `category` công khai từ dữ liệu
+   * sống (categoryIds) thay vì `metadata.category` đã đóng băng từ lúc sự kiện được tạo. */
+  private async getEventCategoryTermsById(): Promise<Map<string, { code: string }>> {
+    const terms = await this.prisma.taxonomyTerm.findMany({
+      where: { groupCode: TAXONOMY_GROUPS.EVENT_TYPE },
+      select: { id: true, code: true },
+    });
+    return new Map(terms.map((t) => [t.id, t]));
+  }
+
   async getLanding(): Promise<LandingResponseDto> {
     const cached = await this.redis.get<LandingResponseDto>(
       PUBLIC_LANDING_CACHE_KEY,
@@ -150,6 +162,7 @@ export class LandingContentFacade {
 
   /** Danh bạ nhân vật: toàn bộ nhân vật đã xuất bản kèm sự kiện tham gia & quan hệ với nhân vật khác. */
   async getFigureDirectory(): Promise<PublicFigureProfileDto[]> {
+    const categoryTermsById = await this.getEventCategoryTermsById();
     const publishedPerson = {
       type: HistoricalEntityType.PERSON,
       status: PUBLIC_CONTENT_STATUS,
@@ -176,7 +189,7 @@ export class LandingContentFacade {
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
     });
     return entities.map((entity) =>
-      PublicContentMapper.toFigureProfile(entity),
+      PublicContentMapper.toFigureProfile(entity, categoryTermsById),
     );
   }
 
@@ -226,7 +239,7 @@ export class LandingContentFacade {
       );
     }
 
-    const [events, others] = await Promise.all([
+    const [events, categoryTermsById, others] = await Promise.all([
       this.prisma.historicalEntity.findMany({
         where: {
           type: HistoricalEntityType.EVENT,
@@ -239,6 +252,7 @@ export class LandingContentFacade {
         include: EVENT_STATEMENT_INCLUDE,
         orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
       }),
+      this.getEventCategoryTermsById(),
       this.prisma.historicalEntity.findMany({
         where: {
           type: HistoricalEntityType.LOCATION,
@@ -307,21 +321,27 @@ export class LandingContentFacade {
         url: m.url,
         caption: m.caption,
       })),
-      events: events.map((e) => PublicContentMapper.toEventSummary(e)),
+      events: events.map((e) => PublicContentMapper.toEventSummary(e, categoryTermsById)),
       figures: [...figures.values()],
       nearby,
       heritage: toHeritageProfile(entity.metadata),
+      contentBlocks: (entity as { contentBlocks?: unknown }).contentBlocks ?? null,
     };
   }
 
   /** Danh sách Sự kiện lịch sử công khai, sắp xếp theo mốc thời gian. */
   async getEvents(): Promise<PublicEventSummaryDto[]> {
-    const events = await this.prisma.historicalEntity.findMany({
-      where: { type: HistoricalEntityType.EVENT, status: PUBLIC_CONTENT_STATUS },
-      include: EVENT_STATEMENT_INCLUDE,
-      orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
-    });
-    return events.map((event) => PublicContentMapper.toEventSummary(event));
+    const [events, categoryTermsById] = await Promise.all([
+      this.prisma.historicalEntity.findMany({
+        where: { type: HistoricalEntityType.EVENT, status: PUBLIC_CONTENT_STATUS },
+        include: EVENT_STATEMENT_INCLUDE,
+        orderBy: [{ startYear: 'asc' }, { displayOrder: 'asc' }],
+      }),
+      this.getEventCategoryTermsById(),
+    ]);
+    return events.map((event) =>
+      PublicContentMapper.toEventSummary(event, categoryTermsById),
+    );
   }
 
   /** Thư viện bài học công khai: chỉ bài đã xuất bản, không kèm nội dung (đọc bài cần đăng nhập). */
@@ -356,21 +376,24 @@ export class LandingContentFacade {
 
   /** Chi tiết 1 Sự kiện lịch sử: giai đoạn, sự kiện cha/con, sự kiện liên quan (đồ thị nhân-quả). */
   async getEventBySlug(slug: string): Promise<PublicEventDetailDto> {
-    const event = await this.prisma.historicalEntity.findFirst({
-      where: { slug, type: HistoricalEntityType.EVENT, status: PUBLIC_CONTENT_STATUS },
-      include: {
-        ...EVENT_STATEMENT_INCLUDE,
-        period: true,
-        event: {
-          include: {
-            parent: { include: { entity: true } },
-            children: {
-              include: { entity: true },
+    const [event, categoryTermsById] = await Promise.all([
+      this.prisma.historicalEntity.findFirst({
+        where: { slug, type: HistoricalEntityType.EVENT, status: PUBLIC_CONTENT_STATUS },
+        include: {
+          ...EVENT_STATEMENT_INCLUDE,
+          period: true,
+          event: {
+            include: {
+              parent: { include: { entity: true } },
+              children: {
+                include: { entity: true },
+              },
             },
           },
         },
-      },
-    });
+      }),
+      this.getEventCategoryTermsById(),
+    ]);
 
     if (!event) {
       throw new NotFoundException(
@@ -383,7 +406,7 @@ export class LandingContentFacade {
       .map((rel) => ({
         relationType: rel.predicate?.code ?? null,
         description: (rel.qualifiers as any)?.description ?? null,
-        event: PublicContentMapper.toEventSummary(rel.object as any),
+        event: PublicContentMapper.toEventSummary(rel.object as any, categoryTermsById),
       }));
 
     const incomingRelations = event.objectStatements
@@ -391,7 +414,7 @@ export class LandingContentFacade {
       .map((rel) => ({
         relationType: rel.predicate?.code ?? null,
         description: (rel.qualifiers as any)?.description ?? null,
-        event: PublicContentMapper.toEventSummary(rel.subject as any),
+        event: PublicContentMapper.toEventSummary(rel.subject as any, categoryTermsById),
       }));
 
     const participantStmts = event.objectStatements.filter(
@@ -403,7 +426,7 @@ export class LandingContentFacade {
     const childEntities = event.event?.children.map((c) => c.entity) ?? [];
 
     return {
-      ...PublicContentMapper.toEventSummary(event),
+      ...PublicContentMapper.toEventSummary(event, categoryTermsById),
       summary: event.tagline,
       contentBlocks: (event as { contentBlocks?: unknown }).contentBlocks ?? null,
       startMonth: event.startMonth,
@@ -423,13 +446,17 @@ export class LandingContentFacade {
       period: event.period ? PublicContentMapper.toPeriod(event.period) : null,
       parent:
         parentEntity && parentEntity.status === PUBLIC_CONTENT_STATUS
-          ? PublicContentMapper.toEventSummary(parentEntity)
+          ? PublicContentMapper.toEventSummary(parentEntity, categoryTermsById)
           : null,
       children: childEntities
         .filter((c) => c.status === PUBLIC_CONTENT_STATUS)
-        .map((child) => PublicContentMapper.toEventSummary(child)),
+        .map((child) => PublicContentMapper.toEventSummary(child, categoryTermsById)),
       outgoingRelations,
       incomingRelations,
+      statements: PublicContentMapper.buildStatementList(
+        event.subjectStatements as any,
+        event.objectStatements as any,
+      ),
     };
   }
 
@@ -450,6 +477,7 @@ export class LandingContentFacade {
       );
     }
 
+    const categoryTermsById = await this.getEventCategoryTermsById();
     const byId = new Map(periods.map((p) => [p.id, p]));
     const rootOf = (id: string | null) => {
       let current = id ? byId.get(id) : undefined;
@@ -569,7 +597,7 @@ export class LandingContentFacade {
           normalizeRegion(rootOf(e.periodId)?.region ?? null) !== ownRegion,
       )
       .slice(0, CONCURRENT_EVENTS_LIMIT)
-      .map((e) => PublicContentMapper.toEventSummary(e));
+      .map((e) => PublicContentMapper.toEventSummary(e, categoryTermsById));
 
     const parent = period.parentId ? byId.get(period.parentId) : undefined;
 
@@ -577,7 +605,7 @@ export class LandingContentFacade {
       ...PublicContentMapper.toPeriod(period),
       topics: [],
       figures: [...figures.values()],
-      events: events.map((ev) => PublicContentMapper.toEventSummary(ev)),
+      events: events.map((ev) => PublicContentMapper.toEventSummary(ev, categoryTermsById)),
       parent: parent ? PublicContentMapper.toPeriod(parent) : null,
       children,
       locations: [...locations.values()],
@@ -617,16 +645,19 @@ export class LandingContentFacade {
   }
 
   async getFigureBySlug(slug: string): Promise<PublicFigureDetailDto> {
-    const entity = await this.prisma.historicalEntity.findFirst({
-      where: { slug, status: PUBLIC_CONTENT_STATUS },
-      include: {
-        period: true,
-        subjectStatements: {
-          where: { object: { type: HistoricalEntityType.EVENT } },
-          include: { object: { include: EVENT_STATEMENT_INCLUDE } },
+    const [entity, categoryTermsById] = await Promise.all([
+      this.prisma.historicalEntity.findFirst({
+        where: { slug, status: PUBLIC_CONTENT_STATUS },
+        include: {
+          period: true,
+          subjectStatements: {
+            where: { object: { type: HistoricalEntityType.EVENT } },
+            include: { object: { include: EVENT_STATEMENT_INCLUDE } },
+          },
         },
-      },
-    });
+      }),
+      this.getEventCategoryTermsById(),
+    ]);
 
     if (!entity) {
       throw new NotFoundException(
@@ -644,8 +675,113 @@ export class LandingContentFacade {
       period: entity.period
         ? PublicContentMapper.toPeriod(entity.period)
         : null,
-      events: relatedEvents.map((e) => PublicContentMapper.toEventSummary(e)),
+      events: relatedEvents.map((e) =>
+        PublicContentMapper.toEventSummary(e, categoryTermsById),
+      ),
       lessons: [],
     };
+  }
+
+  /**
+   * Chi tiết 1 thực thể lịch sử tổng quát (Triều đại, Hiện vật, Tổ chức, Nhân vật, Sự kiện...):
+   * Bao gồm contentBlocks JSONB (để render đa khối bảo tàng số), giai đoạn, media và toàn bộ statements.
+   */
+  async getEntityBySlug(slug: string): Promise<PublicEntityDetailDto> {
+    const entity = await this.prisma.historicalEntity.findFirst({
+      where: {
+        slug,
+        status: PUBLIC_CONTENT_STATUS,
+      },
+      include: {
+        period: {
+          include: { regionTerm: true },
+        },
+        media: {
+          orderBy: { displayOrder: 'asc' },
+        },
+        person: true,
+        historicalSite: true,
+        subjectStatements: {
+          where: {
+            OR: [
+              { objectId: null },
+              { object: { status: PUBLIC_CONTENT_STATUS } },
+            ],
+          },
+          include: {
+            predicate: true,
+            object: true,
+          },
+          orderBy: [{ displayOrder: 'asc' }, { validFromYear: 'asc' }],
+        },
+        objectStatements: {
+          where: {
+            subject: { status: PUBLIC_CONTENT_STATUS },
+          },
+          include: {
+            predicate: true,
+            subject: true,
+          },
+          orderBy: [{ displayOrder: 'asc' }, { validFromYear: 'asc' }],
+        },
+      },
+    });
+
+    if (!entity) {
+      throw new NotFoundException(
+        PUBLIC_CONTENT_MESSAGES.ENTITY_NOT_FOUND(slug),
+      );
+    }
+
+    type AdjacentItem = {
+      id: string;
+      slug: string;
+      name: string;
+      dateText: string | null;
+      startYear: number | null;
+      endYear: number | null;
+    } | null;
+
+    let previous: AdjacentItem = null;
+    let next: AdjacentItem = null;
+
+    if (entity.startYear !== null && entity.startYear !== undefined) {
+      [previous, next] = await Promise.all([
+        this.prisma.historicalEntity.findFirst({
+          where: {
+            type: entity.type,
+            status: PUBLIC_CONTENT_STATUS,
+            startYear: { lt: entity.startYear },
+          },
+          orderBy: [{ startYear: 'desc' }, { id: 'desc' }],
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            dateText: true,
+            startYear: true,
+            endYear: true,
+          },
+        }),
+        this.prisma.historicalEntity.findFirst({
+          where: {
+            type: entity.type,
+            status: PUBLIC_CONTENT_STATUS,
+            startYear: { gt: entity.startYear },
+          },
+          orderBy: [{ startYear: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            dateText: true,
+            startYear: true,
+            endYear: true,
+          },
+        }),
+      ]);
+    }
+
+    return PublicContentMapper.toEntityDetail(entity as any, { previous, next });
   }
 }

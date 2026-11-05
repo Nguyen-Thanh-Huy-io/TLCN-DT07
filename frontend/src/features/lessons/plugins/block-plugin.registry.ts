@@ -95,7 +95,11 @@ export class LessonBlockRegistry {
    * Biên dịch dữ liệu khối thành chuỗi HTML an toàn, chuẩn Typography
    */
   public static blockToHtml(block: LessonBlockItem): string {
-    const plugin = this.plugins.get(block.type);
+    const rawType = String(block.type || '').toUpperCase();
+    let plugin = this.plugins.get(rawType as LessonBlockType);
+    if (!plugin && (rawType === 'TABLE' || rawType === 'COMPARISON_TABLE')) {
+      plugin = this.plugins.get(LessonBlockType.COMPARISON_TABLE);
+    }
     if (!plugin) {
       return '';
     }

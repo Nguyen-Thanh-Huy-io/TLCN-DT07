@@ -76,10 +76,18 @@ export const TAXONOMY_GROUPS_V1 = [
   },
   {
     code: 'REGION',
-    label: 'Quốc gia / khu vực',
+    label: 'Quốc gia và khu vực',
     description: 'Phạm vi địa lý của giai đoạn lịch sử — dùng cho bộ lọc Dòng thời gian, Giai đoạn, Nhân vật, Trang chủ.',
     hierarchical: true,
     displayOrder: 8,
+  },
+  {
+    code: 'FIGURE_ROLE',
+    label: 'Vai trò nhân vật',
+    description: 'Vai trò khái quát của nhân vật lịch sử (danh nhân). Một nhân vật có thể có nhiều vai trò.',
+    hierarchical: false,
+    multiValued: true,
+    displayOrder: 9,
   },
 ];
 
@@ -204,8 +212,8 @@ export const PREDICATE_SPECS: PredicateTermSpec[] = [
   },
   {
     code: 'SPOUSE_OF',
-    label: 'Vợ/chồng của',
-    inverseLabel: 'Vợ/chồng của',
+    label: 'Vợ chồng với',
+    inverseLabel: 'Vợ chồng với',
     description: 'Hôn nhân lịch sử',
     rule: {
       allowedSubjectTypes: ['PERSON'],
@@ -288,8 +296,8 @@ export const PREDICATE_SPECS: PredicateTermSpec[] = [
   },
   {
     code: 'LOCATED_AT',
-    label: 'Diễn ra / Tọa lạc tại',
-    inverseLabel: 'Nơi diễn ra',
+    label: 'Tọa lạc tại',
+    inverseLabel: 'Vị trí của',
     description: 'Gắn sự kiện hoặc di tích với vị trí địa lý',
     rule: {
       allowedSubjectTypes: ['HISTORICAL_EVENT', 'LOCATION'],
@@ -449,16 +457,16 @@ export const PREDICATE_SPECS: PredicateTermSpec[] = [
 export const ROLE_TYPES = [
   { code: 'COMMANDER', label: 'Chỉ huy', aliases: ['GENERAL', 'LEADER', 'COMMANDER_IN_CHIEF'] },
   { code: 'PARTICIPANT', label: 'Tham gia', aliases: ['FIGHTER', 'SOLDIER'] },
-  { code: 'OPPONENT', label: 'Đối đầu / Bên đối kháng', aliases: ['ENEMY', 'RIVAL'] },
-  { code: 'MEDIATOR', label: 'Trung gian / Hòa giải', aliases: ['INTERMEDIARY'] },
+  { code: 'OPPONENT', label: 'Phe đối đầu', aliases: ['ENEMY', 'RIVAL', 'Bên đối kháng'] },
+  { code: 'MEDIATOR', label: 'Trung gian hòa giải', aliases: ['INTERMEDIARY', 'Hòa giải'] },
   { code: 'WITNESS', label: 'Nhân chứng', aliases: ['OBSERVER'] },
   { code: 'ALLY', label: 'Đồng minh', aliases: ['COALITION'] },
-  { code: 'DIPLOMAT', label: 'Đại diện ngoại giao / Sứ thần', aliases: ['ENVOY', 'AMBASSADOR'] },
+  { code: 'DIPLOMAT', label: 'Sứ thần', aliases: ['ENVOY', 'AMBASSADOR', 'Đại diện ngoại giao'] },
   { code: 'VICTIM', label: 'Nạn nhân', aliases: [] },
-  { code: 'CASUALTY', label: 'Tử trận / Hy sinh', aliases: ['FALLEN'] },
-  { code: 'INSPIRER', label: 'Cổ vũ / Truyền cảm hứng', aliases: ['IDEOLOGUE'] },
-  { code: 'COURIER', label: 'Liên lạc / Giao liên', aliases: ['MESSENGER'] },
-  { code: 'MILITARY_ADVISER', label: 'Quân sư / Cố vấn quân sự', aliases: ['STRATEGIST', 'ADVISER'] },
+  { code: 'CASUALTY', label: 'Tử trận', aliases: ['FALLEN', 'Hy sinh'] },
+  { code: 'INSPIRER', label: 'Truyền cảm hứng', aliases: ['IDEOLOGUE', 'Cổ vũ'] },
+  { code: 'COURIER', label: 'Giao liên', aliases: ['MESSENGER', 'Liên lạc'] },
+  { code: 'MILITARY_ADVISER', label: 'Quân sư', aliases: ['STRATEGIST', 'ADVISER', 'Cố vấn quân sự'] },
   { code: 'OTHER_ROLE', label: 'Vai trò khác', aliases: [] },
   // --- Gộp từ nhóm EVENT_ROLE cũ (2026-11-03) — EVENT_ROLE và ROLE_TYPE từng là 2 nhóm
   // taxonomy riêng cho cùng khái niệm "vai trò trong sự kiện"; COMMANDER/PARTICIPANT đã
@@ -473,8 +481,8 @@ export const ROLE_TYPES = [
 
 export const SOURCE_FORMATS = [
   { code: 'BOOK', label: 'Sách xuất bản' },
-  { code: 'JOURNAL_ARTICLE', label: 'Bài báo khoa học / Tạp chí chuyên ngành' },
-  { code: 'RESEARCH_PAPER', label: 'Công trình / Kỷ yếu hội thảo' },
+  { code: 'JOURNAL_ARTICLE', label: 'Tạp chí chuyên ngành' },
+  { code: 'RESEARCH_PAPER', label: 'Kỷ yếu hội thảo' },
   { code: 'DECREE', label: 'Chiếu chỉ, sắc lệnh, văn kiện chính thức' },
   { code: 'MEMOIR', label: 'Hồi ký, tự truyện' },
   { code: 'MAP', label: 'Bản đồ lịch sử' },
@@ -485,12 +493,69 @@ export const SOURCE_FORMATS = [
 ];
 
 export const SOURCE_NATURES = [
-  { code: 'PRIMARY_SOURCE', label: 'Sử liệu gốc / Sơ cấp' },
-  { code: 'SECONDARY_SOURCE', label: 'Tư liệu thứ cấp / Nghiên cứu khảo cứu' },
-  { code: 'TERTIARY_SOURCE', label: 'Tư liệu tam cấp / Bách khoa, tổng hợp' },
-  { code: 'ORAL_HISTORY', label: 'Lời kể nhân chứng / Lịch sử truyền khẩu' },
+  { code: 'PRIMARY_SOURCE', label: 'Sử liệu sơ cấp' },
+  { code: 'SECONDARY_SOURCE', label: 'Tư liệu thứ cấp' },
+  { code: 'TERTIARY_SOURCE', label: 'Tư liệu tổng hợp' },
+  { code: 'ORAL_HISTORY', label: 'Lịch sử truyền khẩu' },
   { code: 'CONTEMPORARY_RECORD', label: 'Ghi chép đương thời' },
-  { code: 'ARCHAEOLOGICAL_EVIDENCE', label: 'Hiện vật / Di chỉ khảo cổ học' },
+  { code: 'ARCHAEOLOGICAL_EVIDENCE', label: 'Hiện vật khảo cổ' },
+];
+
+export const FIGURE_ROLES = [
+  {
+    code: 'MONARCH',
+    label: 'Quân chủ / Hoàng tộc',
+    description: 'Vua, Hoàng đế, Hoàng thái hậu, Vương tôn quý tộc, Quân vương',
+    aliases: ['vua', 'hoàng đế', 'quân chủ', 'nữ vương', 'hoàng tộc', 'vương triều'],
+  },
+  {
+    code: 'GENERAL',
+    label: 'Tướng lĩnh / Chỉ huy quân sự',
+    description: 'Danh tướng, thống soái, chỉ huy quân sự, võ tướng',
+    aliases: ['COMMANDER', 'tướng lĩnh', 'danh tướng', 'chỉ huy', 'võ tướng', 'đô đốc'],
+  },
+  {
+    code: 'STRATEGIST',
+    label: 'Quân sư / Chiến lược gia',
+    description: 'Người hoạch định kế sách, cố vấn quân sự, mưu sĩ chiến lược',
+    aliases: ['MILITARY_ADVISER', 'quân sư', 'chiến lược gia', 'mưu sĩ', 'cố vấn quân sự'],
+  },
+  {
+    code: 'POLITICIAN',
+    label: 'Chính khách / Đại thần',
+    description: 'Quan lại triều đình, tể tướng, đại thần, nhà hoạt động chính trị',
+    aliases: ['STATESMAN', 'quan lại', 'đại thần', 'thừa tướng', 'triều thần', 'chính trị gia'],
+  },
+  {
+    code: 'SCHOLAR',
+    label: 'Học giả / Danh sĩ',
+    description: 'Học giả, nhà giáo, danh sĩ, trí thức, nhà sử học',
+    aliases: ['học giả', 'danh sĩ', 'nhà nho', 'nhà giáo', 'trí thức', 'sử gia'],
+  },
+  {
+    code: 'DIPLOMAT',
+    label: 'Nhà ngoại giao / Sứ thần',
+    description: 'Sứ thần, nhà ngoại giao phụ trách bang giao',
+    aliases: ['sứ thần', 'ngoại giao', 'đại diện ngoại giao', 'bang giao'],
+  },
+  {
+    code: 'REVOLUTIONARY',
+    label: 'Lãnh tụ khởi nghĩa / Phong trào',
+    description: 'Thủ lĩnh phong trào khởi nghĩa, nhà cách mạng giải phóng dân tộc',
+    aliases: ['lãnh tụ khởi nghĩa', 'thủ lĩnh', 'nhà cách mạng', 'thủ lĩnh phong trào'],
+  },
+  {
+    code: 'CULTURAL_FIGURE',
+    label: 'Danh nhân văn hóa / Tác gia',
+    description: 'Nhà văn, thi hào, tác giả trước tác, danh nhân văn hóa',
+    aliases: ['nhà văn hóa', 'tác gia', 'thi hào', 'văn sĩ', 'danh nhân văn hóa'],
+  },
+  {
+    code: 'RELIGIOUS_FIGURE',
+    label: 'Nhân vật tôn giáo / Thiền sư',
+    description: 'Thiền sư, tu sĩ, nhà tư tưởng tôn giáo, cao tăng',
+    aliases: ['thiền sư', 'tu sĩ', 'tăng thống', 'nhân vật tôn giáo'],
+  },
 ];
 
 export async function seedTaxonomyV1() {
@@ -747,6 +812,31 @@ export async function seedTaxonomyV1() {
     });
   }
   console.log(`✅ Đã nạp ${REGION_TYPES.length} Region/Khu vực (có phân cấp).`);
+
+  // 9. Seed FIGURE_ROLE (Vai trò nhân vật danh nhân)
+  for (let i = 0; i < FIGURE_ROLES.length; i++) {
+    const fr = FIGURE_ROLES[i];
+    await prisma.taxonomyTerm.upsert({
+      where: { groupCode_code: { groupCode: 'FIGURE_ROLE', code: fr.code } },
+      create: {
+        groupCode: 'FIGURE_ROLE',
+        code: fr.code,
+        label: fr.label,
+        description: fr.description,
+        aliases: fr.aliases,
+        displayOrder: i + 1,
+        isActive: true,
+      },
+      update: {
+        label: fr.label,
+        description: fr.description,
+        aliases: fr.aliases,
+        displayOrder: i + 1,
+        isActive: true,
+      },
+    });
+  }
+  console.log(`✅ Đã nạp ${FIGURE_ROLES.length} Figure Roles (Vai trò nhân vật).`);
 
   console.log('🎉 Hoàn thành xuất sắc Seeding Taxonomy Specification v1.0!');
 }

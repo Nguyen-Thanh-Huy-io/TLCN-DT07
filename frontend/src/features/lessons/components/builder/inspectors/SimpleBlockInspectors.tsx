@@ -6,6 +6,7 @@ import {
   HeadingBlockData,
   LessonBlockItem,
   QuoteBlockData,
+  RelatedEventsBlockData,
   RelatedPeopleBlockData,
 } from '../../../types/block-builder.types';
 
@@ -184,6 +185,55 @@ export function RelatedPeopleBlockInspector({
           onChange={(e) =>
             onUpdateBlock(rel.id, {
               sourceMode: e.target.value as RelatedPeopleBlockData['sourceMode'],
+            })
+          }
+          className="w-full text-sm font-medium px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 cursor-pointer"
+        >
+          <option value="AUTO">Tự động lấy từ Đồ thị tri thức</option>
+          <option value="MANUAL">Nội dung nhập thủ công</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+export function RelatedEventsBlockInspector({
+  block: rel,
+  onUpdateBlock,
+}: SimpleInspectorProps<RelatedEventsBlockData>) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
+          Tiêu đề khối
+        </label>
+        <input
+          type="text"
+          value={rel.title || ''}
+          onChange={(e) => onUpdateBlock(rel.id, { title: e.target.value })}
+          className="w-full text-sm font-semibold px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
+          Mô tả ngắn (tùy chọn)
+        </label>
+        <input
+          type="text"
+          value={rel.description || ''}
+          onChange={(e) => onUpdateBlock(rel.id, { description: e.target.value })}
+          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
+          Nguồn nội dung
+        </label>
+        <select
+          value={rel.sourceMode || 'AUTO'}
+          onChange={(e) =>
+            onUpdateBlock(rel.id, {
+              sourceMode: e.target.value as RelatedEventsBlockData['sourceMode'],
             })
           }
           className="w-full text-sm font-medium px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 cursor-pointer"

@@ -9,31 +9,25 @@ import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import { ContentStatus, EntityType } from '@/constants/enums';
+import { ENTITY_TYPE_LABELS } from '@/features/entities/components/entity-editor.constants';
+import { useFigureRoles } from '@/components/figures/useFigureRoles';
 import { APP_ROUTES } from '@/constants/routes';
 import { ColumnDef } from '@/types/table.types';
 import { HistoricalEntityItem } from '@/types/models/historical-entity.type';
 import { HistoricalEntityApiService } from '@/services/entities/historical-entity.service';
+import { PeriodApiService } from '@/services/entities/period.service';
+import type { PeriodItem } from '@/types/models/period.type';
 import { extractErrorMessage } from '@/services/api';
 
-const ENTITY_TYPE_LABEL_MAP: Record<EntityType, string> = {
-  [EntityType.PERSON]: 'Nhân vật',
-  [EntityType.ORGANIZATION]: 'Tổ chức',
-  [EntityType.DYNASTY]: 'Triều đại & Đế chế',
-  [EntityType.MILITARY_FORCE]: 'Lực lượng quân sự',
-  [EntityType.ARTIFACT]: 'Hiện vật & Bảo vật',
-  [EntityType.LOCATION]: 'Địa danh & Di tích',
-  [EntityType.OTHER]: 'Khác',
-};
-
 const CREATABLE_ENTITY_TYPES: Array<{ type: EntityType; label: string; desc: string }> = [
-  { type: EntityType.PERSON, label: 'Nhân vật lịch sử', desc: 'Vua chúa, tướng lĩnh, anh hùng, danh nhân...' },
-  { type: EntityType.DYNASTY, label: 'Triều đại / Quốc gia', desc: 'Các triều đại, nhà nước, thể chế...' },
-  { type: EntityType.ORGANIZATION, label: 'Tổ chức / Liên minh', desc: 'Đảng phái, hội đồng, liên minh...' },
-  { type: EntityType.MILITARY_FORCE, label: 'Lực lượng quân sự', desc: 'Binh đoàn, cánh quân, nghĩa quân...' },
-  { type: EntityType.ARTIFACT, label: 'Hiện vật / Bảo vật', desc: 'Bảo vật quốc gia, cổ vật, vũ khí...' },
+  { type: EntityType.PERSON, label: ENTITY_TYPE_LABELS[EntityType.PERSON], desc: 'Vua chúa, tướng lĩnh, anh hùng, danh nhân...' },
+  { type: EntityType.DYNASTY, label: ENTITY_TYPE_LABELS[EntityType.DYNASTY], desc: 'Các triều đại, nhà nước, thể chế...' },
+  { type: EntityType.ORGANIZATION, label: ENTITY_TYPE_LABELS[EntityType.ORGANIZATION], desc: 'Đảng phái, hội đồng, liên minh...' },
+  { type: EntityType.MILITARY_FORCE, label: ENTITY_TYPE_LABELS[EntityType.MILITARY_FORCE], desc: 'Binh đoàn, cánh quân, nghĩa quân...' },
+  { type: EntityType.ARTIFACT, label: ENTITY_TYPE_LABELS[EntityType.ARTIFACT], desc: 'Bảo vật quốc gia, cổ vật, vũ khí...' },
   {
     type: EntityType.OTHER,
-    label: 'Thực thể tùy chỉnh / Khác',
+    label: ENTITY_TYPE_LABELS[EntityType.OTHER],
     desc: 'Hiệp ước, văn kiện, phong trào, học thuyết, khái niệm lịch sử...',
   },
 ];
@@ -53,13 +47,20 @@ export function EntityList({
 }: EntityListProps = {}) {
   const router = useRouter();
   const [entities, setEntities] = useState<HistoricalEntityItem[]>([]);
+  const [periods, setPeriods] = useState<PeriodItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<EntityType | 'ALL'>('ALL');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedPeriodIds, setSelectedPeriodIds] = useState<string[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [deletingEntity, setDeletingEntity] =
     useState<HistoricalEntityItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const createMenuRef = useRef<HTMLDivElement>(null);
+
+  // Danh mục vai trò nhân vật tải động từ Taxonomy (FIGURE_ROLE)
+  const { options: figureRoleOptions } = useFigureRoles();
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -76,13 +77,16 @@ export function EntityList({
   }, [isCreateMenuOpen]);
 
   useEffect(() => {
-    HistoricalEntityApiService.getEntities({
-      type: filterType,
-      limit: 50,
-    })
-      .then((res) => {
-        // Danh sách rỗng là trạng thái hợp lệ — không thay bằng dữ liệu mẫu giả.
-        setEntities(res.items || []);
+    Promise.all([
+      HistoricalEntityApiService.getEntities({
+        type: filterType,
+        limit: 100,
+      }),
+      PeriodApiService.getPeriods({ limit: 100 }).catch(() => ({ items: [] })),
+    ])
+      .then(([entitiesRes, periodsRes]) => {
+        setEntities(entitiesRes.items || []);
+        setPeriods(periodsRes.items || []);
       })
       .catch((err) => {
         console.error('Failed to fetch historical entities:', err);
@@ -109,9 +113,39 @@ export function EntityList({
   const isFiguresMode = filterType === EntityType.PERSON;
 
   const displayedEntities = useMemo(() => {
-    if (selectedCategory === 'ALL') return entities;
-    return entities.filter((e) => e.type === selectedCategory);
-  }, [entities, selectedCategory]);
+    return entities.filter((e) => {
+      // 1. Lọc theo Thời kỳ lịch sử (Multi-Select)
+      if (selectedPeriodIds.length > 0) {
+        const matchesPrimary = e.periodId && selectedPeriodIds.includes(e.periodId);
+        const matchesMultiple = Boolean(e.periodIds?.some((id) => selectedPeriodIds.includes(id)));
+        if (!matchesPrimary && !matchesMultiple) {
+          return false;
+        }
+      }
+      // 2. Lọc theo vai trò nhân vật (Multi-Select từ Taxonomy FIGURE_ROLE)
+      if (isFiguresMode && selectedRoles.length > 0) {
+        const itemRoles = e.roles || [];
+        const hasMatchingRole = itemRoles.some((r) => selectedRoles.includes(r));
+        if (!hasMatchingRole) {
+          return false;
+        }
+      }
+      // 3. Lọc theo phân loại thực thể (Multi-Select)
+      if (!isFiguresMode && selectedCategories.length > 0) {
+        if (!selectedCategories.includes(e.type)) {
+          return false;
+        }
+      }
+      // 4. Lọc theo trạng thái xuất bản
+      if (selectedStatus !== 'ALL') {
+        const itemStatus = e.status || ContentStatus.PUBLISHED;
+        if (itemStatus !== selectedStatus) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [entities, isFiguresMode, selectedPeriodIds, selectedRoles, selectedCategories, selectedStatus]);
 
   const columns = useMemo<ColumnDef<HistoricalEntityItem>[]>(
     () => [
@@ -129,7 +163,7 @@ export function EntityList({
         header: 'PHÂN LOẠI',
         cell: (item) => (
           <Badge tone="blue">
-            {ENTITY_TYPE_LABEL_MAP[item.type] || item.type}
+            {ENTITY_TYPE_LABELS[item.type] || item.type}
           </Badge>
         ),
       },
@@ -252,6 +286,66 @@ export function EntityList({
     );
   };
 
+  // Tùy chọn vai trò nhân vật tải động từ Taxonomy (FIGURE_ROLE)
+  const roleFilterOptions = useMemo(
+    () => [
+      { label: 'Tất cả vai trò', value: 'ALL' },
+      ...figureRoleOptions.map((opt) => ({
+        label: opt.label,
+        value: opt.code,
+      })),
+    ],
+    [figureRoleOptions]
+  );
+
+  // Tùy chọn phân loại thực thể từ từ điển chuẩn hóa tập trung
+  const categoryOptions = useMemo(
+    () => [
+      { label: 'Tất cả phân loại', value: 'ALL' },
+      ...[
+        EntityType.DYNASTY,
+        EntityType.ORGANIZATION,
+        EntityType.MILITARY_FORCE,
+        EntityType.ARTIFACT,
+        EntityType.OTHER,
+      ].map((type) => ({
+        label: ENTITY_TYPE_LABELS[type] || type,
+        value: type,
+      })),
+    ],
+    []
+  );
+
+  // Tùy chọn thời kỳ lịch sử (Tải động từ CSDL)
+  const periodFilterOptions = useMemo(
+    () =>
+      periods.map((p) => ({
+        label: p.name,
+        value: p.id,
+        subLabel: p.startYear
+          ? `${p.startYear}${p.endYear ? ` – ${p.endYear}` : ''}`
+          : undefined,
+      })),
+    [periods]
+  );
+
+  // Tùy chọn trạng thái xuất bản
+  const statusOptions = useMemo(
+    () => [
+      { label: 'Tất cả trạng thái', value: 'ALL' },
+      ...[
+        ContentStatus.PUBLISHED,
+        ContentStatus.DRAFT,
+        ContentStatus.PENDING_REVIEW,
+        ContentStatus.ARCHIVED,
+      ].map((st) => ({
+        label: STATUS_LABEL_MAP[st] || st,
+        value: st,
+      })),
+    ],
+    []
+  );
+
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center text-sm text-slate-500">
@@ -267,22 +361,33 @@ export function EntityList({
         <div className="flex items-center gap-1.5 overflow-x-auto pb-2.5 mb-3 border-b border-slate-200/80 text-xs font-semibold">
           {[
             { key: 'ALL', label: 'Tất cả thực thể' },
-            { key: EntityType.DYNASTY, label: 'Triều đại & Đế chế' },
-            { key: EntityType.ORGANIZATION, label: 'Tổ chức & Liên minh' },
-            { key: EntityType.MILITARY_FORCE, label: 'Lực lượng quân sự' },
-            { key: EntityType.ARTIFACT, label: 'Hiện vật & Bảo vật' },
-            { key: EntityType.OTHER, label: 'Thực thể tùy chỉnh / Khác' },
+            ...[
+              EntityType.DYNASTY,
+              EntityType.ORGANIZATION,
+              EntityType.MILITARY_FORCE,
+              EntityType.ARTIFACT,
+              EntityType.OTHER,
+            ].map((k) => ({ key: k, label: ENTITY_TYPE_LABELS[k] || k })),
           ].map((tab) => {
             const count =
               tab.key === 'ALL'
                 ? entities.length
                 : entities.filter((e) => e.type === tab.key).length;
-            const isActive = selectedCategory === tab.key;
+            const isActive =
+              tab.key === 'ALL'
+                ? selectedCategories.length === 0
+                : selectedCategories.length === 1 && selectedCategories[0] === tab.key;
             return (
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => setSelectedCategory(tab.key as any)}
+                onClick={() => {
+                  if (tab.key === 'ALL') {
+                    setSelectedCategories([]);
+                  } else {
+                    setSelectedCategories([tab.key]);
+                  }
+                }}
                 className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
                   isActive
                     ? 'bg-amber-600 text-white shadow-2xs font-bold'
@@ -319,7 +424,40 @@ export function EntityList({
           router.push(resolveDetailUrl(item.id));
         }}
         onDelete={(item) => setDeletingEntity(item)}
-        filters={[{ label: 'Phân loại' }, { label: 'Trạng thái' }]}
+        filters={[
+          {
+            label: 'Thời kỳ lịch sử',
+            options: periodFilterOptions,
+            selectedValues: selectedPeriodIds,
+            isMultiSelect: true,
+            onSelectMultiple: setSelectedPeriodIds,
+          },
+          ...(isFiguresMode
+            ? [
+                {
+                  label: 'Vai trò',
+                  options: roleFilterOptions,
+                  selectedValues: selectedRoles,
+                  isMultiSelect: true,
+                  onSelectMultiple: setSelectedRoles,
+                },
+              ]
+            : [
+                {
+                  label: 'Phân loại',
+                  options: categoryOptions,
+                  selectedValues: selectedCategories,
+                  isMultiSelect: true,
+                  onSelectMultiple: setSelectedCategories,
+                },
+              ]),
+          {
+            label: 'Trạng thái',
+            options: statusOptions,
+            selectedValue: selectedStatus,
+            onSelect: setSelectedStatus,
+          },
+        ]}
       />
 
       <ConfirmDeleteModal

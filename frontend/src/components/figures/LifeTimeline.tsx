@@ -7,6 +7,7 @@ import { Badge, Heading } from "@/components/timeline/sk-ui";
 import { eventCategoryLabel, eventRoleLabel } from "@/features/taxonomy/taxonomy-labels";
 import { usePublicTaxonomyTerms } from "@/features/taxonomy/usePublicTaxonomy";
 import { PUBLIC_ROUTE_PREFIX, type PublicPeriodDto } from "@/services/entities/landing.service";
+import { TaxonomyGroupCode } from "@/constants/enums";
 import { periodTitle, type FigureView } from "./figure-utils";
 
 function dateLabel(startYear: number, note: string | null) {
@@ -15,8 +16,8 @@ function dateLabel(startYear: number, note: string | null) {
 }
 
 export function LifeTimeline({ figure, periods }: { figure: FigureView; periods: PublicPeriodDto[] }) {
-  const categoryTerms = usePublicTaxonomyTerms("EVENT_CATEGORY");
-  const roleTerms = usePublicTaxonomyTerms("EVENT_ROLE");
+  const categoryTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.EVENT_TYPE);
+  const roleTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.ROLE_TYPE);
   return (
     <div className="sk-life-timeline">
       <div className="sk-profile-section-heading">

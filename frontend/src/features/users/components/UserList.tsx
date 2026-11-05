@@ -26,6 +26,8 @@ export function UserList() {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>('ALL');
+  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const currentUserId = useAuthSession()?.id ?? null;
 
   // Đổi vai trò: backend thu hồi phiên cũ của tài khoản đó, người dùng phải đăng nhập lại.
@@ -122,6 +124,39 @@ export function UserList() {
     },
   ];
 
+  const roleOptions = React.useMemo(
+    () => [
+      { label: 'Tất cả vai trò', value: 'ALL' },
+      ...ROLE_OPTIONS.map((r) => ({
+        label: USER_ROLE_LABELS[r] || r,
+        value: r,
+      })),
+    ],
+    []
+  );
+
+  const statusOptions = React.useMemo(
+    () => [
+      { label: 'Tất cả trạng thái', value: 'ALL' },
+      { label: 'Đang hoạt động', value: UserStatus.ACTIVE },
+      { label: 'Tạm khóa', value: UserStatus.INACTIVE },
+      { label: 'Bị đình chỉ', value: UserStatus.SUSPENDED },
+    ],
+    []
+  );
+
+  const displayedUsers = React.useMemo(() => {
+    return users.filter((u) => {
+      if (selectedRole !== 'ALL' && u.role !== selectedRole) {
+        return false;
+      }
+      if (selectedStatus !== 'ALL' && u.status !== selectedStatus) {
+        return false;
+      }
+      return true;
+    });
+  }, [users, selectedRole, selectedStatus]);
+
   if (loading) {
     return <div style={{ padding: 20 }}>Đang tải danh sách người dùng...</div>;
   }
@@ -144,13 +179,26 @@ export function UserList() {
     )}
     <DataTable<UserItem>
       columns={columns}
-      data={users}
+      data={displayedUsers}
       searchPlaceholder="Tìm kiếm tài khoản người dùng..."
       primaryButtonLabel="Thêm người dùng"
       onPrimaryButtonClick={() =>
         setNotice({ tone: 'ok', text: 'Người dùng tự tạo tài khoản ở trang Đăng ký; sau đó đổi vai trò tại đây.' })
       }
-      filters={[{ label: 'Vai trò' }, { label: 'Trạng thái' }]}
+      filters={[
+        {
+          label: 'Vai trò',
+          options: roleOptions,
+          selectedValue: selectedRole,
+          onSelect: setSelectedRole,
+        },
+        {
+          label: 'Trạng thái',
+          options: statusOptions,
+          selectedValue: selectedStatus,
+          onSelect: setSelectedStatus,
+        },
+      ]}
     />
     </>
   );

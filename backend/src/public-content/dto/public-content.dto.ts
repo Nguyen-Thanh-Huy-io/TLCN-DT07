@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
-import { EventCategory, TopicIcon } from '@prisma/client';
+import { HistoricalEntityType, MediaType, TopicIcon } from '@prisma/client';
 import { LandingSection } from '../public-content.constant';
 import type { HeritageProfile } from '../mappers/heritage-profile.mapper';
 
@@ -51,8 +51,9 @@ export class PublicFigureEventDto {
   @ApiPropertyOptional({ nullable: true }) startYear: number | null;
   @ApiPropertyOptional({ nullable: true }) eventDateNote: string | null;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
-  @ApiProperty({ enum: EventCategory }) category: EventCategory;
-  /** Id loại trong danh mục EVENT_CATEGORY (phần tử đầu là loại chính) — nhãn / cây lấy từ /public/taxonomies. */
+  /** Mã loại sự kiện (danh mục EVENT_TYPE) — không còn giới hạn 9 giá trị enum cũ. */
+  @ApiProperty({ example: 'BATTLE' }) category: string;
+  /** Id loại trong danh mục EVENT_TYPE (phần tử đầu là loại chính) — nhãn / cây lấy từ /public/taxonomies. */
   @ApiProperty({ type: [String] }) categoryIds: string[];
   @ApiPropertyOptional({ nullable: true }) periodSlug: string | null;
   @ApiProperty({ example: 'COMMANDER' }) role: string;
@@ -99,6 +100,9 @@ export class PublicFigureProfileDto extends PublicFigureDto {
   @ApiProperty({ type: [PublicFigureEventDto] }) events: PublicFigureEventDto[];
   @ApiProperty({ type: [PublicFigureRelationDto] })
   relationships: PublicFigureRelationDto[];
+  /** Danh sách statement chung (Đồ thị tri thức) — dùng để tự dựng khối TIMELINE/RELATED_* (sourceMode AUTO/HYBRID) trong contentBlocks. */
+  @ApiProperty({ type: () => [PublicEntityStatementDto] })
+  statements: PublicEntityStatementDto[];
 }
 
 export class PublicLocationSummaryDto {
@@ -179,8 +183,9 @@ export class PublicEventSummaryDto {
   @ApiPropertyOptional({ nullable: true }) location: string | null;
   @ApiPropertyOptional({ nullable: true }) description: string | null;
   @ApiPropertyOptional({ nullable: true }) imageUrl: string | null;
-  @ApiProperty({ enum: EventCategory }) category: EventCategory;
-  /** Id loại trong danh mục EVENT_CATEGORY (phần tử đầu là loại chính) — nhãn / cây lấy từ /public/taxonomies. */
+  /** Mã loại sự kiện (danh mục EVENT_TYPE) — không còn giới hạn 9 giá trị enum cũ. */
+  @ApiProperty({ example: 'BATTLE' }) category: string;
+  /** Id loại trong danh mục EVENT_TYPE (phần tử đầu là loại chính) — nhãn / cây lấy từ /public/taxonomies. */
   @ApiProperty({ type: [String] }) categoryIds: string[];
   @ApiPropertyOptional({ nullable: true }) periodSlug: string | null;
   @ApiProperty({ type: [PublicFigureDto] }) figures: PublicFigureDto[];
@@ -256,6 +261,9 @@ export class PublicEventDetailDto extends PublicEventSummaryDto {
   outgoingRelations: PublicEventRelationDto[];
   @ApiProperty({ type: [PublicEventRelationDto] })
   incomingRelations: PublicEventRelationDto[];
+  /** Danh sách statement chung (Đồ thị tri thức) — dùng để tự dựng khối TIMELINE/RELATED_* (sourceMode AUTO/HYBRID) trong contentBlocks. */
+  @ApiProperty({ type: () => [PublicEntityStatementDto] })
+  statements: PublicEntityStatementDto[];
 }
 
 export class PublicChildTopicDto extends PublicTopicDto {
@@ -296,6 +304,8 @@ export class PublicLocationDetailDto extends PublicLocationSummaryDto {
   nearby: PublicNearbyLocationDto[];
   /** Hồ sơ di sản mở rộng (metadata.heritage) — xem heritage-profile.mapper. */
   @ApiProperty() heritage: HeritageProfile;
+  /** Nội dung tường thuật dạng khối (Block Builder); null = chưa có. */
+  @ApiPropertyOptional({ nullable: true }) contentBlocks?: unknown | null;
 }
 
 export class PublicSubPeriodDto extends PublicPeriodDto {
@@ -354,3 +364,71 @@ export class QueryPublicTopicsDto {
   @IsEnum(LandingSection)
   section: LandingSection;
 }
+
+export class PublicEntityMediaDto {
+  @ApiProperty() id: string;
+  @ApiProperty({ enum: MediaType }) type: MediaType;
+  @ApiProperty() url: string;
+  @ApiPropertyOptional({ nullable: true }) caption: string | null;
+}
+
+export class PublicEntityStatementDto {
+  @ApiProperty() id: string;
+  @ApiProperty() predicateCode: string;
+  @ApiProperty() predicateLabel: string;
+  @ApiProperty({ enum: ['OUTGOING', 'INCOMING'] }) direction: 'OUTGOING' | 'INCOMING';
+  @ApiPropertyOptional({ nullable: true }) relatedEntityId: string | null;
+  @ApiPropertyOptional({ nullable: true }) relatedEntitySlug: string | null;
+  @ApiPropertyOptional({ nullable: true }) relatedEntityName: string | null;
+  @ApiPropertyOptional({ enum: HistoricalEntityType, nullable: true }) relatedEntityType: HistoricalEntityType | null;
+  @ApiPropertyOptional({ nullable: true }) roleLabel: string | null;
+  @ApiPropertyOptional({ nullable: true }) note: string | null;
+  @ApiPropertyOptional({ nullable: true }) validFromYear: number | null;
+  @ApiPropertyOptional({ nullable: true }) validToYear: number | null;
+  /** Chỉ có khi relatedEntityType === EVENT — phục vụ khối Dòng thời gian tự động (AUTO/HYBRID). */
+  @ApiPropertyOptional({ nullable: true }) relatedStartYear: number | null;
+  @ApiPropertyOptional({ nullable: true }) relatedEndYear: number | null;
+  @ApiPropertyOptional({ nullable: true }) relatedDescription: string | null;
+  @ApiPropertyOptional({ nullable: true }) relatedImageUrl: string | null;
+}
+
+export class PublicEntityAdjacentDto {
+  @ApiProperty() id: string;
+  @ApiProperty() slug: string;
+  @ApiProperty() name: string;
+  @ApiPropertyOptional({ nullable: true }) dateLabel: string | null;
+}
+
+export class PublicEntityDetailDto {
+  @ApiProperty() id: string;
+  @ApiProperty() slug: string;
+  @ApiProperty() name: string;
+  @ApiProperty({ enum: HistoricalEntityType }) type: HistoricalEntityType;
+  @ApiPropertyOptional({ nullable: true }) tagline: string | null;
+  @ApiPropertyOptional({ nullable: true }) description: string | null;
+  @ApiPropertyOptional({ nullable: true }) imageUrl: string | null;
+  @ApiPropertyOptional({ nullable: true }) imageCaption: string | null;
+  @ApiProperty({ type: [String] }) aliases: string[];
+  @ApiPropertyOptional({ nullable: true }) dateText: string | null;
+  @ApiPropertyOptional({ nullable: true }) startYear: number | null;
+  @ApiPropertyOptional({ nullable: true }) endYear: number | null;
+  @ApiPropertyOptional({ nullable: true }) contentBlocks: unknown | null;
+  @ApiPropertyOptional({ nullable: true }) metadata: unknown | null;
+  @ApiPropertyOptional({ type: () => PublicPeriodDto, nullable: true })
+  period: PublicPeriodDto | null;
+  @ApiProperty({ type: [PublicEntityMediaDto] }) media: PublicEntityMediaDto[];
+  @ApiProperty({ type: [PublicEntityStatementDto] }) statements: PublicEntityStatementDto[];
+  @ApiPropertyOptional({ type: () => PublicEntityAdjacentDto, nullable: true })
+  previous: PublicEntityAdjacentDto | null;
+  @ApiPropertyOptional({ type: () => PublicEntityAdjacentDto, nullable: true })
+  next: PublicEntityAdjacentDto | null;
+  /** Chỉ có giá trị khi type === PERSON (từ bảng Person). */
+  @ApiProperty({ type: [String] }) roles: string[];
+  @ApiPropertyOptional({ nullable: true }) occupation: string | null;
+  @ApiProperty({ type: [String] }) titles: string[];
+  /** Chỉ có giá trị khi type === LOCATION (từ bảng HistoricalSite). */
+  @ApiPropertyOptional({ nullable: true }) address: string | null;
+  @ApiPropertyOptional({ nullable: true }) managingAgency: string | null;
+  @ApiPropertyOptional({ nullable: true }) recognitionLevel: string | null;
+}
+

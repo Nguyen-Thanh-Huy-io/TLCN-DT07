@@ -7,6 +7,7 @@ import { ArrowUpRight, Sparkles } from "lucide-react";
 import { eventCategoryLabel, eventRoleLabel } from "@/features/taxonomy/taxonomy-labels";
 import { usePublicTaxonomyTerms } from "@/features/taxonomy/usePublicTaxonomy";
 import { PUBLIC_ROUTE_PREFIX, type PublicFigureEventDto } from "@/services/entities/landing.service";
+import { TaxonomyGroupCode } from "@/constants/enums";
 
 function dateLabel(startYear: number, note: string | null) {
   if (note) return note;
@@ -29,8 +30,8 @@ const BACKDROPS = [
  * gian hẹp hơn.
  */
 export function LifeTimelineHero({ events }: { events: PublicFigureEventDto[] }) {
-  const categoryTerms = usePublicTaxonomyTerms("EVENT_CATEGORY");
-  const roleTerms = usePublicTaxonomyTerms("EVENT_ROLE");
+  const categoryTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.EVENT_TYPE);
+  const roleTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.ROLE_TYPE);
   const primaryIndex = Math.max(
     0,
     events.findIndex((e) => e.isPrimary),

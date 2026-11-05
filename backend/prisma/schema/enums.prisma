@@ -146,19 +146,6 @@ enum HistoricalEntityType {
   OTHER
 }
 
-// Phân loại sự kiện lịch sử (Dựa trên đối chiếu mẫu dữ liệu thực tế)
-enum EventCategory {
-  BATTLE // Trận đánh / Chiến dịch / Hải chiến
-  WAR // Chiến tranh / Xung đột vũ trang / Nội chiến
-  TREATY // Hiệp ước / Hòa ước / Tuyên bố hòa bình
-  REVOLUTION // Cách mạng / Khởi nghĩa / Phong trào
-  POLITICAL_EVENT // Đảo chính / Biến cố chính trị
-  SUMMIT_CONFERENCE // Hội nghị / Thượng đỉnh quốc tế
-  CULTURE_SCIENCE // Văn hóa / Khám phá khoa học / Du hành vũ trụ
-  NATURAL_DISASTER // Thiên tai / Động đất / Đại dịch
-  OTHER // Khác
-}
-
 // Trạng thái xác minh học thuật của mối liên hệ sự kiện
 enum VerificationStatus {
   VERIFIED // Đã xác minh (Đồng thuận chính sử)

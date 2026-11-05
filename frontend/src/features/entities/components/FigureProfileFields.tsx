@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFigureRoles } from '@/components/figures/figure-roles';
+import { useFigureRoles } from '@/components/figures/useFigureRoles';
 import { HistoricalEntityItem } from '@/types/models/historical-entity.type';
 
 /** Key inside HistoricalEntity.metadata that holds the "Tiểu sử & di sản" content (read by the public API). */

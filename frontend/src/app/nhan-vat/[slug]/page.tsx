@@ -1,65 +1,57 @@
 import React from 'react';
 import Link from 'next/link';
-import {
-  fetchFigureBySlug,
-  fetchFigureDirectory,
-  fetchPeriods,
-} from '@/services/entities/landing.service';
-import { PublicDetailLayout } from '@/components/hisgo/PublicDetailView';
-import { FigureDetailView } from '@/components/figure-detail/FigureDetailView';
-import { buildFigureViews } from '@/components/figures/figure-utils';
+import { Header } from '@/components/hisgo/Header';
+import { Footer } from '@/components/hisgo/Footer';
+import { fetchEntityBySlug } from '@/services/entities/landing.service';
+import { buildEntityReaderModel } from '@/components/entity-detail/entity-reader-adapter';
+import { EntityHero } from '@/components/entity-detail/EntityHero';
+import { EntityReader } from '@/components/entity-detail/EntityReader';
+import '@/components/entity-detail/entity-reader.css';
 
-export default async function FigureDetailPage({
-  params,
-}: {
+interface FigureDetailPageProps {
   params: Promise<{ slug: string }>;
-}) {
+}
+
+export default async function FigureDetailPage({ params }: FigureDetailPageProps) {
   const { slug } = await params;
-  const [detail, directoryRaw, periods] = await Promise.all([
-    fetchFigureBySlug(slug),
-    fetchFigureDirectory(),
-    fetchPeriods(),
-  ]);
+  const entity = await fetchEntityBySlug(slug);
 
-  if (!detail) {
+  if (!entity) {
     return (
-      <PublicDetailLayout
-        eyebrow="NHÂN VẬT & THỰC THỂ LỊCH SỬ"
-        title="Không tìm thấy hồ sơ nhân vật"
-        subtitle={`Đường dẫn "${slug}" chưa có dữ liệu xuất bản.`}
-      >
-        <div className="rounded-xl border border-[#D8C7A6] bg-[#FAF6EA] p-6">
-          <Link href="/" className="text-[#7A1E1E] font-semibold underline">
-            Quay về trang chủ HisGo
-          </Link>
-        </div>
-      </PublicDetailLayout>
-    );
-  }
-
-  const directory = buildFigureViews(directoryRaw, periods);
-  const figure = directory.find((f) => f.slug === slug);
-
-  // Nhân vật có trong getFigureBySlug nhưng chưa xuất hiện trong directory công khai (vd.
-  // khác trạng thái xuất bản) — hiếm, dùng tạm layout cơ bản thay vì trắng trang.
-  if (!figure) {
-    return (
-      <PublicDetailLayout
-        eyebrow="HỒ SƠ NHÂN VẬT LỊCH SỬ"
-        title={detail.name}
-        subtitle={detail.tagline}
-      >
-        <section className="rounded-xl border border-[#D8C7A6] bg-[#FAF6EA] p-6 space-y-3">
-          <h2 className="text-xl font-bold text-[#7A1E1E]">Tiểu sử & Dấu ấn lịch sử</h2>
-          <p className="text-base leading-relaxed text-[#2D241C]">
-            {detail.description || detail.tagline}
+      <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
+        <Header activeSectionId="timeline" />
+        <main className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <small className="text-xs font-bold tracking-widest text-[#8C6239] uppercase mb-2">
+            NHÂN VẬT LỊCH SỬ
+          </small>
+          <h1 className="text-3xl font-serif font-bold text-[#2D1A10] mb-3">
+            Không tìm thấy nhân vật lịch sử
+          </h1>
+          <p className="text-stone-600 mb-6 max-w-md">
+            Đường dẫn &ldquo;{slug}&rdquo; chưa có dữ liệu xuất bản.
           </p>
-        </section>
-      </PublicDetailLayout>
+          <Link
+            href="/nhan-vat"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#8C2D19] text-white font-semibold hover:bg-[#6D2111] transition-colors"
+          >
+            ← Quay về Danh mục nhân vật
+          </Link>
+        </main>
+        <Footer />
+      </div>
     );
   }
+
+  const model = buildEntityReaderModel(entity);
 
   return (
-    <FigureDetailView figure={figure} directory={directory} periods={periods} lessons={detail.lessons} />
+    <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
+      <Header activeSectionId="timeline" />
+      <main className="flex-1">
+        <EntityHero model={model} />
+        <EntityReader model={model} />
+      </main>
+      <Footer />
+    </div>
   );
 }

@@ -117,6 +117,7 @@ export class LessonService {
 
     const lesson = await this.prisma.lesson.create({
       data: {
+        topicId: createLessonDto.topicId || null,
         title: createLessonDto.title.trim(),
         slug,
         description: description?.trim() || null,
@@ -155,6 +156,10 @@ export class LessonService {
 
     if (query.status) {
       where.status = query.status;
+    }
+
+    if (query.topicId) {
+      where.topicId = query.topicId;
     }
 
     if (query.tagId) {

@@ -75,6 +75,11 @@ export class TimelineNodeInputDto {
 }
 
 export class CreateTimelineDto {
+  @ApiPropertyOptional({ nullable: true, description: 'Chủ đề / Thời kỳ lịch sử' })
+  @IsOptional()
+  @IsUUID('4')
+  topicId?: string | null;
+
   @ApiProperty({ example: 'Nhà Trần và ba lần kháng chiến chống Nguyên Mông' })
   @IsString()
   @IsNotEmpty()
@@ -149,4 +154,9 @@ export class QueryTimelineDto {
   @IsOptional()
   @IsEnum(ContentStatus)
   status?: ContentStatus;
+
+  @ApiPropertyOptional({ description: 'Lọc theo chủ đề / thời kỳ' })
+  @IsOptional()
+  @IsUUID('4')
+  topicId?: string;
 }

@@ -5,7 +5,7 @@ import { ContentWrite, RequireRoles } from '../common/access/access.decorator';
 import { ROLE_GROUPS } from '../common/access/access.constant';
 import { currentUser } from '../common/access/roles.guard';
 import { ArticleService } from './article.service';
-import { CreateArticleDto, QueryArticleDto, UpdateArticleDto } from './dto/article.dto';
+import { CreateArticleDto, QueryArticleDto, ReviewArticleDto, UpdateArticleDto } from './dto/article.dto';
 
 /** API CMS cho bài viết (mọi trạng thái). Trang công khai dùng /public/articles. */
 @ApiTags('Articles (Bài viết)')
@@ -42,6 +42,21 @@ export class ArticleController {
   })
   update(@Param('id') id: string, @Body() dto: UpdateArticleDto) {
     return this.articleService.update(id, dto);
+  }
+
+  @Patch(':id/review')
+  @RequireRoles(...ROLE_GROUPS.REVIEWERS)
+  @ApiOperation({
+    summary: 'Duyệt hoặc Từ chối bài viết mới (Admin / Reviewer)',
+    description: 'Chuyển trạng thái sang PUBLISHED hoặc REJECTED (kèm lý do). Áp dụng quy tắc 2 người: người duyệt khác người tạo.',
+  })
+  review(
+    @Param('id') id: string,
+    @Body() dto: ReviewArticleDto,
+    @Req() req: Request,
+  ) {
+    const reviewerUserId = currentUser(req)?.userId;
+    return this.articleService.review(id, dto, reviewerUserId);
   }
 
   @Delete(':id')

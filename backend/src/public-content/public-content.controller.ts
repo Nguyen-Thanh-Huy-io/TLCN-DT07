@@ -1,6 +1,7 @@
-import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { PublicContentService } from './public-content.service';
+import { SubmitQuizAttemptDto } from './dto/submit-quiz-attempt.dto';
 
 /** API công khai (không cần đăng nhập) — chỉ trả nội dung đã xuất bản. */
 @ApiTags('Public Content (Trang công khai)')
@@ -77,5 +78,17 @@ export class PublicContentController {
   @ApiOperation({ summary: 'Chủ đề + chủ đề con đã xuất bản' })
   getTopic(@Param('slug') slug: string) {
     return this.service.getTopicBySlug(slug);
+  }
+
+  @Post('quizzes/:id/submit')
+  @ApiOperation({ summary: 'Nộp bài khảo thí / luyện tập' })
+  submitQuiz(@Param('id') quizId: string, @Body() dto: SubmitQuizAttemptDto) {
+    return this.service.submitQuizAttempt(quizId, dto);
+  }
+
+  @Get('quizzes/:id/statistics')
+  @ApiOperation({ summary: 'Thống kê kết quả & danh sách thí sinh nộp bài của đề thi' })
+  getQuizStatistics(@Param('id') quizId: string) {
+    return this.service.getQuizStatistics(quizId);
   }
 }

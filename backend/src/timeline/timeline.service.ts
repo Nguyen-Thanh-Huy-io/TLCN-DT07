@@ -31,7 +31,35 @@ export const TIMELINE_NODE_INCLUDE = {
       summary: true,
       coverImageUrl: true,
       status: true,
-      category: { select: { id: true, name: true, slug: true } },
+      category: { select: { id: true, name: true, slug: true, kind: true, parentId: true } },
+      /** Bài khác liên kết tới bài của mốc (vd. nhân vật → sự kiện) — CMS hiện "Gắn với ...". */
+      linksIn: {
+        orderBy: { displayOrder: 'asc' },
+        select: {
+          label: true,
+          source: {
+            select: {
+              id: true,
+              title: true,
+              category: { select: { id: true, name: true, kind: true, parentId: true } },
+            },
+          },
+        },
+      },
+      /** Bài của mốc liên kết tới (vd. sự kiện → nhân vật / di tích). */
+      linksOut: {
+        orderBy: { displayOrder: 'asc' },
+        select: {
+          label: true,
+          target: {
+            select: {
+              id: true,
+              title: true,
+              category: { select: { id: true, name: true, kind: true, parentId: true } },
+            },
+          },
+        },
+      },
     },
   },
 } satisfies Prisma.TimelineNodeInclude;
@@ -44,9 +72,10 @@ export class TimelineService {
   ) {}
 
   async findAll(query: QueryTimelineDto) {
-    const { page = 1, limit = 20, search, status } = query;
+    const { page = 1, limit = 20, search, status, topicId } = query;
     const where: Prisma.TimelineWhereInput = {
       ...(status ? { status } : {}),
+      ...(topicId ? { topicId } : {}),
       ...(search ? { title: { contains: search, mode: 'insensitive' } } : {}),
     };
     const [items, total] = await Promise.all([
@@ -55,7 +84,10 @@ export class TimelineService {
         orderBy: [{ displayOrder: 'asc' }, { updatedAt: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
-        include: { _count: { select: { nodes: true } } },
+        include: {
+          topic: { select: { id: true, name: true, slug: true } },
+          _count: { select: { nodes: true } },
+        },
       }),
       this.prisma.timeline.count({ where }),
     ]);
@@ -65,7 +97,10 @@ export class TimelineService {
   async findOne(id: string) {
     const timeline = await this.prisma.timeline.findUnique({
       where: { id },
-      include: { nodes: { orderBy: { displayOrder: 'asc' }, include: TIMELINE_NODE_INCLUDE } },
+      include: {
+        topic: { select: { id: true, name: true, slug: true } },
+        nodes: { orderBy: { displayOrder: 'asc' }, include: TIMELINE_NODE_INCLUDE },
+      },
     });
     if (!timeline) throw new NotFoundException(TIMELINE_MESSAGES.NOT_FOUND(id));
     return timeline;

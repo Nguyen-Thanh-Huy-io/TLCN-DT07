@@ -1,0 +1,100 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { DiscussionService } from './discussion.service';
+import { PrismaService } from '../common/services/prisma.service';
+import { NotificationService } from '../notification/notification.service';
+import { DiscussionTargetType, userRole } from '@prisma/client';
+
+describe('DiscussionService', () => {
+  let service: DiscussionService;
+  let prisma: PrismaService;
+
+  const mockNotificationService = {
+    notify: jest.fn().mockResolvedValue({ id: 'notif-1' }),
+  };
+
+  const mockPrisma = {
+    discussionThread: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      count: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    discussionReply: {
+      create: jest.fn(),
+    },
+    $transaction: jest.fn((cb) => cb(mockPrisma)),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        DiscussionService,
+        { provide: PrismaService, useValue: mockPrisma },
+        { provide: NotificationService, useValue: mockNotificationService },
+      ],
+    }).compile();
+
+    service = module.get<DiscussionService>(DiscussionService);
+    prisma = module.get<PrismaService>(PrismaService);
+    jest.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('create', () => {
+    it('tạo câu hỏi thắc mắc mới thành công', async () => {
+      const dto = {
+        targetType: DiscussionTargetType.LESSON,
+        targetId: 'lesson-uuid',
+        title: 'Hỏi về chiến thắng Bạch Đằng',
+        content: 'Cho em hỏi thời gian cụ thể',
+      };
+      mockPrisma.discussionThread.create.mockResolvedValue({ id: 'thread-1', ...dto });
+
+      const result = await service.create('user-1', dto);
+      expect(result.id).toBe('thread-1');
+      expect(mockPrisma.discussionThread.create).toHaveBeenCalled();
+    });
+  });
+
+  describe('createReply', () => {
+    it('BTV/Admin trả lời sẽ được gắn isOfficial = true và isAnswered = true', async () => {
+      mockPrisma.discussionThread.findUnique.mockResolvedValue({ id: 'thread-1', title: 'Hỏi' });
+      mockPrisma.discussionReply.create.mockResolvedValue({
+        id: 'reply-1',
+        content: 'Trả lời từ Admin',
+        isOfficial: true,
+      });
+
+      const result = await service.createReply('admin-1', userRole.ADMIN, 'thread-1', {
+        content: 'Trả lời từ Admin',
+      });
+
+      expect(result.isOfficial).toBe(true);
+      expect(mockPrisma.discussionThread.update).toHaveBeenCalledWith({
+        where: { id: 'thread-1' },
+        data: { isAnswered: true },
+      });
+    });
+
+    it('Học viên bình thường trả lời thì isOfficial = false', async () => {
+      mockPrisma.discussionThread.findUnique.mockResolvedValue({ id: 'thread-1', title: 'Hỏi' });
+      mockPrisma.discussionReply.create.mockResolvedValue({
+        id: 'reply-2',
+        content: 'Ý kiến bạn học',
+        isOfficial: false,
+      });
+
+      const result = await service.createReply('user-2', userRole.USER, 'thread-1', {
+        content: 'Ý kiến bạn học',
+      });
+
+      expect(result.isOfficial).toBe(false);
+      expect(mockPrisma.discussionThread.update).not.toHaveBeenCalled();
+    });
+  });
+});

@@ -26,6 +26,30 @@ describe('normalizeArticleMetadata', () => {
     });
   });
 
+  it('mốc đời riêng: sắp theo thời gian, bắt buộc năm khác 0 và tiêu đề', () => {
+    expect(
+      normalizeArticleMetadata({
+        person: {
+          milestones: [
+            { year: 1300, title: ' Mất ', month: 13 },
+            { year: '1285', title: 'Đánh tan quân Nguyên', note: '' },
+          ],
+        },
+      }),
+    ).toEqual({
+      person: {
+        milestones: [
+          { year: 1285, title: 'Đánh tan quân Nguyên' },
+          { year: 1300, title: 'Mất' },
+        ],
+      },
+    });
+    expect(() => normalizeArticleMetadata({ person: { milestones: [{ year: 0, title: 'x' }] } })).toThrow(
+      BadRequestException,
+    );
+    expect(() => normalizeArticleMetadata({ person: { milestones: [{ year: 938 }] } })).toThrow(BadRequestException);
+  });
+
   it('từ chối mã không hợp lệ và toạ độ ngoài khoảng', () => {
     expect(() => normalizeArticleMetadata({ person: { roles: ['KING'] } })).toThrow(BadRequestException);
     expect(() => normalizeArticleMetadata({ site: { rank: 'TOP' } })).toThrow(BadRequestException);

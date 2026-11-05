@@ -36,6 +36,15 @@ export const SITE_PRESERVATION_CODES = [
   'INTACT', 'MUSEUM_MEMORIAL', 'ARCHAEOLOGICAL_RUIN', 'RESTORED', 'ACTIVE_SITE',
 ] as const;
 
+/** Mốc đời RIÊNG của nhân vật (việc nhỏ không đáng thành bài sự kiện). Hiện trong dòng đời. */
+export interface PersonMilestone {
+  year: number;
+  month?: number;
+  day?: number;
+  title: string;
+  note?: string;
+}
+
 export interface PersonProfile {
   titles?: string[];
   occupation?: string;
@@ -48,6 +57,7 @@ export interface PersonProfile {
   legacyAndHonors?: string;
   anecdotes?: string[];
   famousQuote?: string;
+  milestones?: PersonMilestone[];
 }
 
 export interface SiteProfile {
@@ -91,6 +101,32 @@ const textList = (v: unknown): string[] | undefined => {
   const list = [...new Set(v.map(text).filter((s): s is string => Boolean(s)))];
   return list.length ? list : undefined;
 };
+
+const intIn = (v: unknown, min: number, max: number): number | undefined => {
+  const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() ? Number(v) : NaN;
+  return Number.isInteger(n) && n >= min && n <= max ? n : undefined;
+};
+
+/** Mốc đời riêng: bắt buộc năm (≠ 0, âm = TCN) + tiêu đề; sắp theo thời gian. */
+function milestones(v: unknown): PersonMilestone[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const list = v.filter(isObject).map((m, i) => {
+    const title = text(m.title);
+    const year = typeof m.year === 'number' ? m.year : Number(m.year);
+    if (!title || !Number.isInteger(year) || year === 0) {
+      throw new BadRequestException(`metadata.person.milestones[${i}]: cần năm (khác 0) và tiêu đề`);
+    }
+    return compact<PersonMilestone>({
+      year,
+      month: intIn(m.month, 1, 12),
+      day: intIn(m.day, 1, 31),
+      title,
+      note: text(m.note),
+    })!;
+  });
+  list.sort((a, b) => a.year - b.year || (a.month ?? 0) - (b.month ?? 0) || (a.day ?? 0) - (b.day ?? 0));
+  return list.length ? list : undefined;
+}
 
 const coordinate = (v: unknown, max: number, field: string): number | undefined => {
   if (v === null || v === undefined || v === '') return undefined;
@@ -148,6 +184,7 @@ export function normalizeArticleMetadata(raw: unknown): ArticleMetadata | null {
           legacyAndHonors: text(p.legacyAndHonors),
           anecdotes: textList(p.anecdotes),
           famousQuote: text(p.famousQuote),
+          milestones: milestones(p.milestones),
         })
       : undefined,
     site: s

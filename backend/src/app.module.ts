@@ -25,6 +25,9 @@ import { ArticleModule } from './article/article.module';
 import { TimelineModule } from './timeline/timeline.module';
 import { QuizModule } from './quiz/quiz.module';
 import { LearnerModule } from './learner/learner.module';
+import { DiscussionModule } from './discussion/discussion.module';
+import { NotificationModule } from './notification/notification.module';
+import { NoteModule } from './note/note.module';
 
 @Module({
   imports: [
@@ -58,6 +61,9 @@ import { LearnerModule } from './learner/learner.module';
     PublicContentModule,
     QuizModule,
     LearnerModule,
+    DiscussionModule,
+    NotificationModule,
+    NoteModule,
   ],
   controllers: [AppController],
   providers: [AppService],

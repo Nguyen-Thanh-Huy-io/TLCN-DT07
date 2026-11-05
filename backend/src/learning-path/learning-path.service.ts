@@ -42,6 +42,15 @@ export class LearningPathService {
                     difficulty: true,
                     thumbnailUrl: true,
                     description: true,
+                    topicId: true,
+                    topic: {
+                      select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        parentId: true,
+                      },
+                    },
                     lessonTags: {
                       include: {
                         tag: true,
@@ -76,6 +85,15 @@ export class LearningPathService {
                     difficulty: true,
                     thumbnailUrl: true,
                     description: true,
+                    topicId: true,
+                    topic: {
+                      select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        parentId: true,
+                      },
+                    },
                     lessonTags: {
                       include: {
                         tag: true,

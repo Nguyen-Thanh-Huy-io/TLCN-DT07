@@ -228,7 +228,11 @@ export class PublicContentService {
   async getLibraryLessons() {
     const lessons = await this.prisma.lesson.findMany({
       where: { status: LessonStatus.PUBLISHED },
-      include: { lessonTags: { include: { tag: true } } },
+      include: {
+        topic: { select: { id: true, name: true, slug: true, parentId: true } },
+        lessonTags: { include: { tag: true } },
+        quiz: true,
+      },
       orderBy: [{ displayOrder: 'asc' }, { publishedAt: 'desc' }],
     });
     return lessons.map((lesson) => {
@@ -243,6 +247,16 @@ export class PublicContentService {
         thumbnailUrl: lesson.thumbnailUrl,
         difficulty: lesson.difficulty,
         estimatedReadMinutes: Math.max(1, Math.ceil(words / 200)),
+        topicId: lesson.topicId,
+        topic: lesson.topic ? { id: lesson.topic.id, name: lesson.topic.name, slug: lesson.topic.slug, parentId: lesson.topic.parentId } : null,
+        quiz: lesson.quiz ? {
+          id: lesson.quiz.id,
+          title: lesson.quiz.title,
+          description: lesson.quiz.description,
+          passingScorePercent: lesson.quiz.passingScorePercent,
+          timeLimitMinutes: lesson.quiz.timeLimitMinutes,
+          questions: lesson.quiz.questions,
+        } : null,
         tags: lesson.lessonTags.map((lt) => ({ id: lt.tag.id, name: lt.tag.name, colorHex: lt.tag.colorHex })),
       };
     });
@@ -269,5 +283,93 @@ export class PublicContentService {
       coverImageUrl: t.coverImageUrl,
     });
     return { ...pick(topic), children: topic.children.map(pick) };
+  }
+
+  // ---------- Khảo thí & Nộp bài Luyện tập (Quiz Attempt) ----------
+  async submitQuizAttempt(quizId: string, dto: {
+    learnerName?: string;
+    userId?: string;
+    scorePercent: number;
+    correctCount: number;
+    totalQuestions: number;
+    timeSpentSeconds: number;
+    isPassed?: boolean;
+    answers?: any;
+  }) {
+    const quiz = await this.prisma.quiz.findUnique({ where: { id: quizId } });
+    if (!quiz) throw new NotFoundException('Không tìm thấy đề thi này');
+
+    const isPassed = dto.isPassed ?? (dto.scorePercent >= (quiz.passingScorePercent || 80));
+
+    const attempt = await this.prisma.quizAttempt.create({
+      data: {
+        quizId,
+        userId: dto.userId || null,
+        learnerName: dto.learnerName || 'Thí sinh tự do',
+        scorePercent: dto.scorePercent,
+        correctCount: dto.correctCount,
+        totalQuestions: dto.totalQuestions,
+        timeSpentSeconds: dto.timeSpentSeconds,
+        isPassed,
+        answers: dto.answers || [],
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Nộp bài khảo thí thành công',
+      data: attempt,
+    };
+  }
+
+  async getQuizStatistics(quizId: string) {
+    const quiz = await this.prisma.quiz.findUnique({
+      where: { id: quizId },
+      include: {
+        lesson: { select: { id: true, title: true } },
+      },
+    });
+    if (!quiz) throw new NotFoundException('Không tìm thấy đề thi');
+
+    const attempts = await this.prisma.quizAttempt.findMany({
+      where: { quizId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      include: {
+        user: { select: { id: true, username: true, email: true } },
+      },
+    });
+
+    const totalAttempts = attempts.length;
+    const passedAttempts = attempts.filter((a) => a.isPassed).length;
+    const avgScore = totalAttempts > 0
+      ? Math.round(attempts.reduce((sum, a) => sum + a.scorePercent, 0) / totalAttempts)
+      : 0;
+    const avgTimeSeconds = totalAttempts > 0
+      ? Math.round(attempts.reduce((sum, a) => sum + a.timeSpentSeconds, 0) / totalAttempts)
+      : 0;
+
+    return {
+      quizId: quiz.id,
+      quizTitle: quiz.title,
+      lessonTitle: quiz.lesson?.title,
+      summary: {
+        totalAttempts,
+        passedAttempts,
+        passRatePercent: totalAttempts > 0 ? Math.round((passedAttempts / totalAttempts) * 100) : 0,
+        averageScore: avgScore,
+        averageTimeMinutes: (avgTimeSeconds / 60).toFixed(1),
+      },
+      recentAttempts: attempts.map((a) => ({
+        id: a.id,
+        learnerName: a.user?.username || a.learnerName || 'Thí sinh tự do',
+        scorePercent: a.scorePercent,
+        correctCount: a.correctCount,
+        totalQuestions: a.totalQuestions,
+        timeSpentSeconds: a.timeSpentSeconds,
+        isPassed: a.isPassed,
+        submittedAt: a.createdAt,
+      })),
+    };
   }
 }

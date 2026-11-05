@@ -85,6 +85,11 @@ export class CreateLessonDto {
   @IsOptional()
   sourceReferenceNote?: string;
 
+  @ApiPropertyOptional({ description: 'Chủ đề / Thời kỳ lịch sử' })
+  @IsOptional()
+  @IsString()
+  topicId?: string;
+
   @ApiPropertyOptional({ description: 'Thẻ bài học (tùy chọn)' })
   @IsOptional()
   tags?: any;

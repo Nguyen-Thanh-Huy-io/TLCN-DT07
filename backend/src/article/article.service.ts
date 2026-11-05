@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,10 +9,12 @@ import { ContentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { SlugService } from '../common/services/slug.service';
 import { validateHistoricalYearRange } from '../common/utils/historical-date.parser';
+import { ACCESS_MESSAGES } from '../common/access/access.constant';
 import {
   ArticleLinkInputDto,
   CreateArticleDto,
   QueryArticleDto,
+  ReviewArticleDto,
   UpdateArticleDto,
 } from './dto/article.dto';
 import { normalizeArticleMetadata } from './article-metadata';
@@ -26,18 +29,37 @@ export const ARTICLE_MESSAGES = {
   LINK_DUPLICATE: 'Mỗi bài viết chỉ liên kết tới cùng 1 bài khác một lần',
 } as const;
 
-/** Thông tin rút gọn của bài ở đầu bên kia liên kết (đủ để CMS hiển thị). */
+/** Mốc timeline (đủ để biết năm + thuộc dòng thời gian nào). */
+const NODE_REF_SELECT = {
+  id: true,
+  title: true,
+  description: true,
+  dateText: true,
+  year: true,
+  month: true,
+  day: true,
+  endYear: true,
+  timeline: { select: { id: true, title: true, slug: true } },
+} satisfies Prisma.TimelineNodeSelect;
+
+/** Bài ở đầu bên kia liên kết — kèm năm + mốc timeline để CMS xem trước dòng đời nhân vật. */
 const LINKED_ARTICLE_SELECT = {
   id: true,
   title: true,
   slug: true,
   status: true,
+  summary: true,
+  dateText: true,
+  startYear: true,
+  endYear: true,
+  timelineNodes: { select: NODE_REF_SELECT, orderBy: { displayOrder: 'asc' } },
   category: { select: { id: true, name: true, slug: true, kind: true, parentId: true } },
 } satisfies Prisma.ArticleSelect;
 
-/** Include dùng chung cho danh sách & chi tiết (category + tag). */
+/** Include dùng chung cho danh sách & chi tiết (category + topic + tag). */
 const ARTICLE_INCLUDE = {
   category: { select: { id: true, name: true, slug: true, icon: true, kind: true, parentId: true } },
+  topic: { select: { id: true, name: true, slug: true } },
   articleTags: { include: { tag: { select: { id: true, name: true, colorHex: true } } } },
 } satisfies Prisma.ArticleInclude;
 
@@ -58,9 +80,10 @@ export class ArticleService {
   ) {}
 
   async findAll(query: QueryArticleDto) {
-    const { page = 1, limit = 20, search, categoryId, tagId, status, featured, sort } = query;
+    const { page = 1, limit = 20, search, categoryId, topicId, tagId, status, featured, sort } = query;
     const where: Prisma.ArticleWhereInput = {
       ...(categoryId ? { categoryId } : {}),
+      ...(topicId ? { topicId } : {}),
       ...(tagId ? { articleTags: { some: { tagId } } } : {}),
       ...(status ? { status } : {}),
       ...(featured ? { isFeatured: true } : {}),
@@ -110,9 +133,7 @@ export class ArticleService {
       where: { id },
       include: {
         ...ARTICLE_INCLUDE,
-        timelineNodes: {
-          select: { id: true, title: true, timeline: { select: { id: true, title: true, slug: true } } },
-        },
+        timelineNodes: { select: NODE_REF_SELECT, orderBy: { displayOrder: 'asc' } },
         linksOut: { orderBy: { displayOrder: 'asc' }, include: { target: { select: LINKED_ARTICLE_SELECT } } },
         linksIn: { orderBy: { displayOrder: 'asc' }, include: { source: { select: LINKED_ARTICLE_SELECT } } },
       },
@@ -205,6 +226,43 @@ export class ArticleService {
     // Mốc timeline trỏ tới bài → null (SetNull); tag nối, liên kết 2 chiều tự xoá (Cascade).
     await this.prisma.article.delete({ where: { id } });
     return { success: true };
+  }
+
+  /**
+   * Phê duyệt / Từ chối bài viết mới (Quy trình 2 người: người duyệt khác người tạo).
+   */
+  async review(
+    id: string,
+    dto: ReviewArticleDto,
+    reviewerUserId?: string,
+  ) {
+    const current = await this.prisma.article.findUnique({
+      where: { id },
+      select: { id: true, status: true, createdBy: true },
+    });
+    if (!current) throw new NotFoundException(ARTICLE_MESSAGES.NOT_FOUND(id));
+
+    if (current.status !== ContentStatus.PENDING_REVIEW) {
+      throw new ForbiddenException('Chỉ duyệt được bài viết đang ở trạng thái chờ duyệt (PENDING_REVIEW).');
+    }
+    if (reviewerUserId && current.createdBy === reviewerUserId) {
+      throw new ForbiddenException('Bạn không thể tự duyệt bài viết do chính mình biên soạn.');
+    }
+    if (dto.status === ContentStatus.REJECTED && !dto.rejectionReason?.trim()) {
+      throw new BadRequestException('Vui lòng nhập lý do từ chối bài viết.');
+    }
+
+    const updated = await this.prisma.article.update({
+      where: { id },
+      data: {
+        status: dto.status,
+        approvedBy: reviewerUserId || null,
+        publishedAt: dto.status === ContentStatus.PUBLISHED ? new Date() : null,
+        rejectionReason: dto.status === ContentStatus.REJECTED ? dto.rejectionReason?.trim() : null,
+      },
+    });
+
+    return this.findOne(updated.id);
   }
 
   private toLinkData(l: ArticleLinkInputDto, index: number) {

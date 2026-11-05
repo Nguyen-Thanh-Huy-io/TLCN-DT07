@@ -55,6 +55,11 @@ export class CreateArticleDto {
   @IsUUID('4')
   categoryId?: string | null;
 
+  @ApiPropertyOptional({ nullable: true, description: 'Chủ đề / Thời kỳ lịch sử' })
+  @IsOptional()
+  @IsUUID('4')
+  topicId?: string | null;
+
   @ApiPropertyOptional({ type: [String], description: 'Thay toàn bộ tag của bài viết' })
   @IsOptional()
   @IsArray()
@@ -144,6 +149,25 @@ export class CreateArticleDto {
 
 export class UpdateArticleDto extends PartialType(CreateArticleDto) {}
 
+export class ReviewArticleDto {
+  @ApiProperty({
+    enum: [ContentStatus.PUBLISHED, ContentStatus.REJECTED, ContentStatus.DRAFT],
+    example: ContentStatus.PUBLISHED,
+    description: 'Quyết định kiểm duyệt (PUBLISHED: Cho phép xuất bản, REJECTED: Từ chối)',
+  })
+  @IsEnum(ContentStatus)
+  @IsNotEmpty({ message: 'Trạng thái duyệt không được để trống' })
+  status: ContentStatus;
+
+  @ApiPropertyOptional({
+    example: 'Nội dung thiếu nguồn trích dẫn hoặc thông tin chưa chính xác',
+    description: 'Lý do từ chối khi duyệt bài viết',
+  })
+  @IsString()
+  @IsOptional()
+  rejectionReason?: string;
+}
+
 export class QueryArticleDto {
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()
@@ -169,6 +193,11 @@ export class QueryArticleDto {
   @IsOptional()
   @IsUUID('4')
   categoryId?: string;
+
+  @ApiPropertyOptional({ description: 'Lọc theo chủ đề / thời kỳ' })
+  @IsOptional()
+  @IsUUID('4')
+  topicId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

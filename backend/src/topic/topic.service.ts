@@ -269,6 +269,39 @@ export class TopicService {
             },
           },
         },
+        timelines: {
+          where: { status: 'PUBLISHED' },
+          orderBy: { displayOrder: 'asc' },
+          include: {
+            nodes: {
+              orderBy: { displayOrder: 'asc' },
+            },
+          },
+        },
+        lessons: {
+          where: { status: 'PUBLISHED' },
+          orderBy: { displayOrder: 'asc' },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            description: true,
+            thumbnailUrl: true,
+            difficulty: true,
+          },
+        },
+        articles: {
+          where: { status: 'PUBLISHED' },
+          orderBy: { displayOrder: 'asc' },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            summary: true,
+            coverImageUrl: true,
+            category: { select: { id: true, name: true, slug: true, kind: true } },
+          },
+        },
       },
     });
 

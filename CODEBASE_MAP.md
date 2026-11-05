@@ -17,7 +17,7 @@
 Cổng dev: backend `5001` (`backend/.env PORT`), frontend `3000`, Postgres `5433` (container `postgres_db`, DB `tlcn_db`, user `admin`).
 
 **Mô hình nội dung có 2 trục độc lập:**
-1. **Tri thức lịch sử** = `Article` (bài viết) thuộc 1 `Category`, gắn N `Tag`; `Timeline` gồm các `TimelineNode` (mốc) có thể trỏ tới `Article`.
+1. **Tri thức lịch sử** = `Article` (bài viết) thuộc 1 `Category` (chuyên mục quyết định **loại bài** qua `Category.kind`), gắn N `Tag`, nối với bài khác qua `ArticleLink` (nhãn chữ tự do), hồ sơ mô tả tùy chọn trong `Article.metadata` (JSONB); `Timeline` gồm các `TimelineNode` (mốc) có thể trỏ tới `Article`.
 2. **Học tập** = `Lesson` (bài học dạng khối) ← `Chapter` ← `LearningPath`; `Quiz`/`Question`; `Topic` (cây chủ đề); tiến độ `LearningPathEnrollment`/`LessonProgress`.
 
 `Tag` là cầu nối duy nhất giữa 2 trục (dùng chung cho Article và Lesson).
@@ -32,6 +32,8 @@ Cổng dev: backend `5001` (`backend/.env PORT`), frontend `3000`, Postgres `543
 erDiagram
   Category ||--o{ Category : "parentId (cây nông)"
   Category ||--o{ Article : "categoryId (0..1)"
+  Article ||--o{ ArticleLink : "linksOut (sourceId)"
+  Article ||--o{ ArticleLink : "linksIn (targetId)"
   Article ||--o{ ArticleTag : ""
   Tag ||--o{ ArticleTag : ""
   Timeline ||--o{ TimelineNode : "nodes (displayOrder)"
@@ -61,7 +63,7 @@ erDiagram
 
 | File | Model | Ghi chú quan trọng |
 |---|---|---|
-| `article.prisma` | `Category`, `Article`, `ArticleTag` | Comment đầu file giải thích Category vs Tag vs Timeline. `Article.contentBlocks` = mảng khối **cùng định dạng `Lesson.content`**. Năm âm = TCN, không có năm 0. |
+| `article.prisma` | `Category`, `Article`, `ArticleTag`, `ArticleLink` | Comment đầu file giải thích Category vs Tag vs Timeline. `Category.kind` (enum `ArticleKind`, NULL = kế thừa cha). `Article.contentBlocks` = mảng khối **cùng định dạng `Lesson.content`**. `Article.metadata` = hồ sơ mô tả tùy chọn (index GIN). `ArticleLink(sourceId, targetId, label?, note?, displayOrder)` unique (source,target), CHECK không tự liên kết, cascade 2 đầu. Năm âm = TCN, không có năm 0. |
 | `timeline.prisma` | `Timeline`, `TimelineNode` | Mốc sắp theo `displayOrder`; `dateText` ưu tiên hơn `year/month/day` khi hiển thị. |
 | `tag.prisma` | `Tag`, `LessonTag` | `Tag.name` unique; `articleTags` + `lessonTags`. |
 | `lesson.prisma` | `Lesson` + enum `LessonStatus` | `content` JSONB (mảng khối). **Không có `topicId`** — Lesson không thuộc Topic (comment trong `topic.prisma`/`learningPath.prisma` nói "mỗi Lesson thuộc đúng 1 Topic" là **lỗi thời**). |
@@ -79,14 +81,18 @@ erDiagram
 | Dùng | Khi nào | Ví dụ hiện có |
 |---|---|---|
 | **Prisma enum** | Giá trị **điều khiển logic code** (phân quyền, workflow, validate), không phải người dùng tự thêm | `ContentStatus` (Article/Timeline/Topic/LearningPath/Chapter), `LessonStatus` (Lesson — có `REVIEW` thay cho `PENDING_REVIEW`), `userRole`, `DatePrecision`, `DifficultyLevel`, `LearningPathType`, `TopicIcon` |
-| **Category** (bảng) | "Bài này **là loại gì**" — mỗi bài đúng 1, quyết định trang hiển thị; biên tập viên thêm trong CMS | Nhân vật, Sự kiện, Di tích, Triều đại; chuyên mục con của "Sự kiện" = loại sự kiện |
+| **Category** (bảng) | "Bài này **là loại gì**" — mỗi bài đúng 1, quyết định trang hiển thị; biên tập viên thêm trong CMS | Nhân vật, Sự kiện, Di tích, Triều đại; chuyên mục con có loại EVENT = "loại sự kiện" |
 | **Tag** (bảng) | "Bài này **liên quan chủ đề nào**" — nhiều-nhiều, gom ngang qua chuyên mục, dùng chung với Lesson | Nhà Trần, Kháng chiến chống Nguyên Mông |
+| **ArticleLink** (bảng) | "Bài này **nối với bài kia**" — có FK, tra 2 chiều; KHÔNG có mã loại, nhãn chữ tự do; ý nghĩa suy từ loại 2 đầu | Trần Hưng Đạo –[Chỉ huy]→ Trận Bạch Đằng 1288 |
+| **Article.metadata** (JSONB) | Thuộc tính MÔ TẢ tùy chọn của riêng bài, chỉ hiển thị / lọc, không nối | quê quán, tác phẩm, xếp hạng di tích, kết quả sự kiện |
 
-**4 slug chuyên mục có ý nghĩa trong code** (đổi slug là vỡ trang công khai): `nhan-vat` → PERSON, `su-kien` → EVENT, `di-tich` → LOCATION, `trieu-dai` → DYNASTY (xem `ROOT_KIND` trong `frontend/src/services/entities/landing.service.ts`).
+**Loại bài = `Category.kind`** (enum `ArticleKind`: PERSON/EVENT/LOCATION/DYNASTY/OTHER; chuyên mục con để trống thì kế thừa cha). Frontend suy loại ở DUY NHẤT `frontend/src/services/public/article-kind.ts → resolveCategoryKind`. Slug `nhan-vat`/`su-kien`/`di-tich`/`trieu-dai` chỉ còn là đường dẫn của trang lối tắt công khai.
+
+**`Article.metadata`** (chuẩn hoá ở `backend/src/article/article-metadata.ts`, mọi trường tùy chọn): `aliases[]` (đưa vào tìm kiếm), `region`, `sources[]`, `person{titles, occupation, roles[], birthDateLabel, deathDateLabel, hometown, backgroundAndYouth, notableWorks[], legacyAndHonors, anecdotes[], famousQuote}`, `site{address, latitude, longitude, siteType, rank, recognizedYear, preservation, statusNote, managingAgency, architecturalStyle, openingHours}`, `event{dateNote, cause, outcome, belligerents[]}`. Mã cố định (validate ở backend, nhãn ở frontend): `person.roles` ↔ `CANONICAL_ROLE_LABELS`, `site.siteType` ↔ `LocationType`, `site.rank` ↔ `HeritageRank`, `site.preservation` ↔ `PreservationCategory`.
 
 `ContentStatus` ↔ `LessonStatus`: biên tập viên chỉ được đặt `DRAFT`/`PENDING_REVIEW`/`REVIEW` (`backend/src/common/access/access.constant.ts → EDITOR_ALLOWED_STATUSES`).
 
-Enum **đã xoá** cùng Knowledge Graph: `HistoricalEntityType`, `VerificationStatus`, `StatementValueType`, `StatementRank`, `MediaType`, `EventCategory`, `FigureRole`. Bảng **đã xoá**: `HistoricalEntity`, `Person`, `HistoricalSite`, `HistoricalEvent`, `HistoricalEntityMedia`, `HistoricalStatement`, `HistoricalReference`, `HistoricalStatementReference`, `TaxonomyGroup`, `TaxonomyTerm`, `TaxonomyPredicateRule`, `Period` (migration `20261105120000_article_timeline_replace_knowledge_graph`).
+Enum mới: `ArticleKind` (trên `Category.kind`). Enum **đã xoá** cùng Knowledge Graph: `HistoricalEntityType`, `VerificationStatus`, `StatementValueType`, `StatementRank`, `MediaType`, `EventCategory`, `FigureRole`. Bảng **đã xoá**: `HistoricalEntity`, `Person`, `HistoricalSite`, `HistoricalEvent`, `HistoricalEntityMedia`, `HistoricalStatement`, `HistoricalReference`, `HistoricalStatementReference`, `TaxonomyGroup`, `TaxonomyTerm`, `TaxonomyPredicateRule`, `Period` (migration `20261105120000_article_timeline_replace_knowledge_graph`).
 
 ### 1.4 Migration & seed
 
@@ -104,7 +110,7 @@ Pattern mỗi module: `*.controller.ts` → `*.service.ts` → `*.module.ts`, `d
 
 | Module | Route | Quyền |
 |---|---|---|
-| `article/` | `GET /articles` (lọc `categoryId,tagId,status,search,sort`, phân trang), `GET /articles/:id`, `POST`, `PATCH :id` (**versioned**), `DELETE :id` | GET: STAFF; ghi: `@ContentWrite({model:'article'})` |
+| `article/` | `GET /articles` (lọc `categoryId,tagId,status,search,sort`, phân trang), `GET /articles/:id` (+`links` dạng payload, `linksOut`/`linksIn` kèm bài), `POST`, `PATCH :id` (**versioned**; gửi `metadata` / `links` = thay toàn bộ), `DELETE :id` | GET: STAFF; ghi: `@ContentWrite({model:'article'})` |
 | `category/` | `GET /categories`, `GET :id`, `POST`, `PATCH :id`, `DELETE :id` (chặn nếu còn bài) | GET công khai; ghi: ContentWrite |
 | `timeline/` | `GET /timelines`, `GET :id` (kèm nodes+article), `POST`, `PATCH :id` (gửi `nodes` = **thay toàn bộ**, thứ tự = vị trí mảng), `DELETE` | GET: STAFF; ghi: ContentWrite (không versioned) |
 | `public-content/` | `GET /public/categories`, `/public/categories/:slug`, `/public/articles?category&tag&q&featured&limit`, `/public/articles/:slug` (+`related` chung tag, `previous/next` cùng chuyên mục theo năm, `timelines` chứa bài), `/public/timelines`, `/public/timelines/:slug`, `/public/tags`, `/public/lessons`, `/public/topics/:slug` | Công khai, **chỉ PUBLISHED** |
@@ -152,7 +158,7 @@ Server Component page
     period-detail.adapter, entity-reader-adapter)  → component
 ```
 
-Ánh xạ chính: Timeline → "thời kỳ" (`PublicPeriodDto`); mốc Timeline → "sự kiện"; bài viết chuyên mục `nhan-vat`/`di-tich` → nhân vật/di tích; "mạng lưới tri thức", sự kiện trong đời nhân vật = **bài chung tag**; chuyên mục con của `su-kien` → "loại sự kiện" (`services/public/public-taxonomy.ts` sinh `TaxonomyTermItem` từ Category). Dữ liệu không còn (vai trò nhân vật, quan hệ nhân vật, xếp hạng/toạ độ di tích, khu vực) → rỗng, component tự ẩn.
+Ánh xạ chính (chi tiết ở comment đầu `landing.service.ts`): Timeline → "thời kỳ" (`PublicPeriodDto`, khu vực = `metadata.region` phổ biến nhất); mốc Timeline → "sự kiện"; loại bài theo `Category.kind` → nhân vật/sự kiện/di tích/triều đại; `ArticleLink` theo loại 2 đầu → PERSON–PERSON: tab "Mối quan hệ", PERSON–EVENT: dòng đời nhân vật (vai trò = nhãn) + người tham gia, EVENT–LOCATION: nơi diễn ra + sự kiện của di tích, EVENT–EVENT: chế độ "Liên kết" của dòng thời gian; `Article.metadata` → tên khác, tab Tiểu sử & di sản, thẻ/bộ lọc di tích; "mạng lưới tri thức" ở trang đọc = liên kết (2 chiều) rồi tới bài chung tag; chuyên mục con loại EVENT → "loại sự kiện" (`services/public/public-taxonomy.ts`). **Không suy dữ liệu**: không đoán tham gia sự kiện theo tag, không gán khu vực mặc định — thiếu thì component tự ẩn.
 
 | Route | Page → component chính |
 |---|---|
@@ -179,8 +185,8 @@ Route công khai phải có tiền tố trong `PUBLIC_ROUTE_PREFIXES` (`componen
 | Route | Component | Service |
 |---|---|---|
 | `/cms` | `features/dashboard/DashboardView` | `dashboard.service` |
-| `/articles`, `/articles/create`, `/articles/[id]` | `features/articles/components/ArticleList`, `ArticleEditor` (tab Thông tin / Nội dung = `ContentBlockEditor`, `YearInput` TCN, banner bản sửa) | `services/entities/article.service.ts` (`ArticleApiService`, `CategoryApiService`) |
-| `/categories` | `features/articles/components/CategoryManager` | |
+| `/articles`, `/articles/create`, `/articles/[id]` | `features/articles/components/ArticleList`, `ArticleEditor` (tab Thông tin · **Hồ sơ & liên kết** = `ArticleProfilePanel` (nhánh form theo loại bài, liên kết + gợi ý nhãn) · Nội dung = `ContentBlockEditor`; `YearInput` TCN, banner bản sửa) | `services/entities/article.service.ts` (`ArticleApiService`, `CategoryApiService`) |
+| `/categories` | `features/articles/components/CategoryManager` (chọn **loại bài** cho chuyên mục) | |
 | `/timelines`, `/timelines/create`, `/timelines/[id]` | `features/timelines/components/TimelineList`, `TimelineEditor` (mốc ▲▼, `ArticlePicker`) | `timeline.service.ts` |
 | `/tags` | `features/tags/TagList` | `tag.service.ts` |
 | `/curriculum` | `HisgoStudioView` (Lộ trình → Chương → Bài, Thư viện Lesson) / `CurriculumExplorer` (cây Topic) | `learning-path`, `topic`, `lesson` |
@@ -212,5 +218,6 @@ Menu sidebar: `services/navigation/navigation-strategy.service.ts` (Strategy the
 - Comment schema `topic.prisma`/`learningPath.prisma` nói Lesson thuộc 1 Topic — sai (không có `topicId`).
 - `Subscription/Payment/Invoice`: có bảng, chưa có module.
 - `app/api/subscribe/route.ts`: newsletter lưu trong `Set` RAM.
-- Nếu cần lại vai trò nhân vật / toạ độ di tích / khu vực trên giao diện cũ: thêm cột (vd. `Article.metadata Json`) rồi map trong `landing.service.ts` — component đã sẵn sàng hiển thị.
+- Nội dung seed (`articles-v1.seed.ts`) do AI soạn theo mốc sách giáo khoa, chưa có trích dẫn nguồn — cần người duyệt rà trước khi dùng thật.
+- Tìm kiếm theo `aliases` hiện chỉ ở ô tìm kiếm frontend (tải toàn bộ bài). Khi dữ liệu lớn: cột `search_vector` (tsvector + unaccent) ở backend.
 - `docs/` và `backend/docs/block-schema-reference.md` còn mô tả mô hình cũ.

@@ -33,6 +33,7 @@ const PUBLIC_ROUTE_PREFIXES = [
   '/trieu-dai',
   '/chuong-su',
   '/kien-thuc',
+  '/luyen-tap',
 ];
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {

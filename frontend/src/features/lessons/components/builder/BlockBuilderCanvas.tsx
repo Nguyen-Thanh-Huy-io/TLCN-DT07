@@ -27,6 +27,8 @@ import { ComparisonTableBlockItemEditor } from './ComparisonTableBlockItemEditor
 import { CalloutBlockItemEditor } from './CalloutBlockItemEditor';
 import { QuoteBlockItemEditor } from './QuoteBlockItemEditor';
 import { StoryChapterBlockEditor } from './StoryChapterBlockEditor';
+import { ImageBlockItemEditor } from './ImageBlockItemEditor';
+import type { ImageBlockData } from '../../types/block-builder.types';
 
 interface BlockBuilderCanvasProps {
   blocks: LessonBlockItem[];
@@ -181,30 +183,10 @@ export function BlockBuilderCanvas({
 
       case LessonBlockType.IMAGE:
         return (
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={block.src}
-              onChange={(e) => onUpdateBlock(block.id, { src: e.target.value })}
-              placeholder="Nhập đường dẫn URL hình ảnh tư liệu..."
-              className="w-full text-sm px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
-            />
-            {block.src && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={block.src}
-                alt={block.alt || 'Ảnh bài học'}
-                className="max-h-60 rounded-lg object-contain mx-auto"
-              />
-            )}
-            <input
-              type="text"
-              value={block.caption || ''}
-              onChange={(e) => onUpdateBlock(block.id, { caption: e.target.value })}
-              placeholder="Nhập chú thích cho hình ảnh (tùy chọn)..."
-              className="w-full text-sm italic text-center text-stone-600 bg-transparent border-b border-stone-200 focus:outline-none py-1.5"
-            />
-          </div>
+          <ImageBlockItemEditor
+            data={block as ImageBlockData}
+            onChange={(updates) => onUpdateBlock(block.id, updates)}
+          />
         );
 
       case LessonBlockType.VIDEO:

@@ -77,6 +77,7 @@ export function TimelineList() {
           <thead>
             <tr>
               <th>TIÊU ĐỀ</th>
+              <th>CHỦ ĐỀ (TOPIC)</th>
               <th>SỐ MỐC</th>
               <th>THỨ TỰ</th>
               <th>TRẠNG THÁI</th>
@@ -87,13 +88,13 @@ export function TimelineList() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="p-6 text-center text-slate-500">
+                <td colSpan={7} className="p-6 text-center text-slate-500">
                   Đang tải…
                 </td>
               </tr>
             ) : visible.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-6 text-center text-slate-500">
+                <td colSpan={7} className="p-6 text-center text-slate-500">
                   Chưa có dòng thời gian nào.
                 </td>
               </tr>
@@ -103,6 +104,15 @@ export function TimelineList() {
                   <td>
                     <strong className="text-sm font-semibold text-slate-900">{t.title}</strong>
                     {t.description && <div className="line-clamp-1 text-xs text-slate-500">{t.description}</div>}
+                  </td>
+                  <td className="text-sm text-slate-700">
+                    {t.topic ? (
+                      <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                        {t.topic.name}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
                   </td>
                   <td className="text-sm text-slate-700">{t._count?.nodes ?? 0}</td>
                   <td className="text-sm text-slate-700">{t.displayOrder}</td>

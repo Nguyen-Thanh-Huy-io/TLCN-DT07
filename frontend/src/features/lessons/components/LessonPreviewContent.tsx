@@ -73,7 +73,7 @@ export function LessonPreviewContent({
           <div className="space-y-1.5 mt-2">
             {q.options.map((opt, i) => (
               <div
-                key={opt.id}
+                key={opt.id || `opt-${i}-${opt.text || ''}`}
                 className={`text-xs px-2.5 py-1.5 rounded-lg border flex items-center gap-2 ${
                   opt.isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-white border-slate-200 text-slate-700'
                 }`}
@@ -96,8 +96,8 @@ export function LessonPreviewContent({
         const byId = new Map(q.items.map((it) => [it.id, it.label]));
         return (
           <ol className="list-decimal list-inside space-y-1 mt-2 text-xs text-slate-700">
-            {q.correctOrder.map((id) => (
-              <li key={id}>{byId.get(id) || id}</li>
+            {q.correctOrder.map((id, i) => (
+              <li key={id || `order-${i}`}>{byId.get(id) || id}</li>
             ))}
           </ol>
         );
@@ -108,7 +108,7 @@ export function LessonPreviewContent({
         return (
           <div className="space-y-1 mt-2 text-xs text-slate-700">
             {q.correctPairs.map((pair, i) => (
-              <div key={i} className="flex items-center gap-2">
+              <div key={pair.leftId ? `${pair.leftId}-${pair.rightId}` : `pair-${i}`} className="flex items-center gap-2">
                 <span>{leftById.get(pair.leftId) || pair.leftId}</span>
                 <span className="text-slate-400">→</span>
                 <span className="font-medium">{rightById.get(pair.rightId) || pair.rightId}</span>
@@ -322,7 +322,7 @@ export function LessonPreviewContent({
               </div>
               <div className="space-y-3">
                 {quizQuestions.map((q, idx) => (
-                  <div key={q.id} className="p-3 bg-amber-50/40 border border-amber-200 rounded-xl">
+                  <div key={q.id || `preview-q-${idx}`} className="p-3 bg-amber-50/40 border border-amber-200 rounded-xl">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-bold text-slate-500">Câu {idx + 1}.</span>
                       <span

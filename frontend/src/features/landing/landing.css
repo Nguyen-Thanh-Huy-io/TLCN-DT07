@@ -1,4 +1,4 @@
-/* Trang chủ HISGO — chuyển từ bản thiết kế "Vietnam History Landing Page".
+﻿/* Trang chủ HISGO — chuyển từ bản thiết kế "Vietnam History Landing Page".
    CSS import theo route là global trong App Router nên mọi class đều có tiền tố hl-. */
 
 .hl-app {
@@ -75,7 +75,7 @@
 .hl-region-chips > span { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--hl-line); background: var(--hl-surface); color: var(--hl-text); font-size: 12px; font-weight: 600; }
 .hl-spotlight-shell { background: var(--hl-surface); border: 1px solid var(--hl-line); border-radius: 18px; padding: 14px; box-shadow: 0 10px 30px rgba(24, 35, 31, 0.07); }
 .hl-spotlight-top { height: 42px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px; }
-.hl-spotlight-heading { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--hl-text); margin: 0; }
+.hl-spotlight-heading { display: flex; align-items: center; gap: 8px; font-size: 13px !important; line-height: 1.2 !important; font-weight: 700 !important; text-transform: uppercase; letter-spacing: 0.08em; color: var(--hl-text) !important; margin: 0 !important; font-family: var(--hl-sans) !important; }
 .hl-spotlight-heading svg { width: 15px; color: var(--hl-primary-2); }
 .hl-live-dot { font-size: 12px; font-weight: 600; color: var(--hl-primary-2); display: inline-flex; align-items: center; gap: 6px; }
 .hl-live-dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--hl-primary-2); box-shadow: 0 0 0 4px color-mix(in srgb, var(--hl-primary) 15%, transparent); }
@@ -169,36 +169,160 @@
 .hl-tabs svg { width: 16px; }
 
 /* Interactive Preview */
-.hl-preview-shell { min-height: 420px; border: 1px solid var(--hl-line); border-radius: 16px; overflow: hidden; background: var(--hl-surface); box-shadow: 0 8px 24px rgba(24, 35, 31, 0.06); }
+.hl-preview-shell {
+  min-height: 420px;
+  border: 1px solid #dfd8cd;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
 .hl-preview-empty { padding: 60px; text-align: center; color: var(--hl-muted); }
 .hl-preview-note { margin-top: 14px; font-size: 13px; color: var(--hl-muted); }
 .hl-preview-note a { color: var(--hl-primary-2); font-weight: 700; }
-.hl-timeline-preview { padding: 32px 40px 34px; }
+.hl-timeline-preview { padding: 32px 40px 34px; background: #ffffff; }
 .hl-region-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .hl-region-filter button { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--hl-line); background: var(--hl-surface-2); color: var(--hl-muted); font-size: 13px; font-weight: 600; cursor: pointer; min-height: 34px; }
 .hl-region-filter button.active { border-color: var(--hl-primary); background: color-mix(in srgb, var(--hl-primary) 8%, transparent); color: var(--hl-primary-2); }
-.hl-timeline-track { height: 170px; display: flex; position: relative; justify-content: space-between; overflow-x: auto; padding: 25px 5px 0; }
-.hl-timeline-line { position: absolute; top: 68px; left: 5%; right: 5%; height: 1px; background: var(--hl-line); }
-.hl-timeline-track button { position: relative; z-index: 2; width: 120px; flex: 0 0 120px; border: 0; background: transparent; cursor: pointer; color: var(--hl-muted); }
-.hl-timeline-track button span { display: block; font-family: var(--hl-serif); font-size: 16px; font-weight: 700; transition: 0.2s; white-space: nowrap; }
-.hl-timeline-track button i { width: 13px; height: 13px; display: block; border: 3px solid var(--hl-surface); border-radius: 50%; background: var(--hl-line); margin: 20px auto 14px; box-shadow: 0 0 0 1px var(--hl-line); }
-.hl-timeline-track button small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 12px; line-height: 1.35; padding: 0 4px; }
-.hl-timeline-track button.active span { color: var(--hl-primary-2); transform: scale(1.25); }
-.hl-timeline-track button.active i { background: var(--hl-primary); box-shadow: 0 0 0 5px color-mix(in srgb, var(--hl-primary) 15%, transparent); }
-.hl-timeline-track button.active small { color: var(--hl-text); font-weight: 700; }
-.hl-timeline-detail { min-height: 170px; padding: 26px 28px; display: grid; grid-template-columns: 150px 1fr auto; gap: 27px; align-items: center; border-radius: 12px; background: var(--hl-surface-2); border: 1px solid var(--hl-line); }
-.hl-big-year { color: var(--hl-primary-2); font-size: 44px; font-weight: 700; text-align: center; border-right: 1px solid var(--hl-line); line-height: 1.1; }
-.hl-timeline-detail h3 { font-family: var(--hl-serif); font-size: 22px; margin: 8px 0 7px; }
-.hl-timeline-detail p { color: var(--hl-muted); font-size: 14px; line-height: 1.65; max-width: 65ch; }
+
+.hl-timeline-track {
+  height: 170px;
+  display: flex;
+  position: relative;
+  justify-content: space-between;
+  overflow-x: auto;
+  padding: 25px 10px 0;
+}
+.hl-timeline-line {
+  position: absolute;
+  top: 68px;
+  left: 45px;
+  right: 45px;
+  height: 2px;
+  background: #d8cec2;
+  z-index: 1;
+}
+.hl-timeline-track button {
+  position: relative;
+  z-index: 2;
+  width: 120px;
+  flex: 0 0 120px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--hl-muted);
+  text-align: center;
+  transition: all 0.2s ease;
+}
+.hl-timeline-track button span {
+  display: block;
+  font-family: var(--hl-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: #4b5550;
+  transition: 0.2s;
+  white-space: nowrap;
+}
+.hl-timeline-track button i {
+  width: 14px;
+  height: 14px;
+  display: block;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  background: #b5a494;
+  margin: 18px auto 14px;
+  box-shadow: 0 0 0 1.5px #b5a494;
+  transition: all 0.2s ease;
+}
+.hl-timeline-track button small {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 0 4px;
+  color: #64706a;
+}
+.hl-timeline-track button:hover span {
+  color: var(--hl-primary-2);
+}
+.hl-timeline-track button:hover i {
+  background: var(--hl-primary-2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--hl-primary) 20%, transparent);
+}
+.hl-timeline-track button.active span {
+  color: var(--hl-primary);
+  font-size: 18px;
+  font-weight: 800;
+  transform: translateY(-2px);
+}
+.hl-timeline-track button.active i {
+  background: var(--hl-primary);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--hl-primary) 25%, transparent);
+  transform: scale(1.15);
+}
+.hl-timeline-track button.active small {
+  color: var(--hl-text);
+  font-weight: 700;
+}
+
+.hl-timeline-detail {
+  min-height: 170px;
+  padding: 26px 28px;
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  gap: 27px;
+  align-items: center;
+  border-radius: 12px;
+  background: #fbf9f5;
+  border: 1px solid #ebe4d8;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+.hl-big-year {
+  color: var(--hl-primary);
+  font-size: 46px;
+  font-weight: 700;
+  text-align: center;
+  border-right: 1px solid #ebe4d8;
+  line-height: 1.1;
+  padding-right: 15px;
+}
+.hl-timeline-detail h3 {
+  font-family: var(--hl-serif);
+  font-size: 22px;
+  margin: 8px 0 7px;
+  color: #1a221e;
+}
+.hl-timeline-detail p {
+  color: #4f5b55;
+  font-size: 14px;
+  line-height: 1.65;
+  max-width: 65ch;
+}
 .hl-detail-meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; }
 .hl-detail-meta span { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--hl-muted); }
 .hl-detail-meta svg { width: 14px; color: var(--hl-gold); }
-.hl-parallel { padding: 32px 40px 34px; }
+
+/* Đọc sự kiện button */
+.hl-timeline-detail .hl-button {
+  background: #8d2f2c !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(141, 47, 44, 0.2);
+}
+.hl-timeline-detail .hl-button:hover {
+  background: #aa3935 !important;
+  transform: translateY(-2px);
+}
+
+.hl-parallel { padding: 32px 40px 34px; background: #ffffff; }
 .hl-parallel-scroll { overflow-x: auto; }
 .hl-parallel-chart { min-width: 680px; padding-top: 26px; position: relative; }
 .hl-parallel-axis { position: absolute; top: 0; left: 150px; right: 0; height: 100%; pointer-events: none; }
 .hl-parallel-axis span { position: absolute; top: 0; transform: translateX(-50%); font-size: 12px; color: var(--hl-muted); white-space: nowrap; }
-.hl-parallel-axis span::after { content: ""; position: absolute; left: 50%; top: 18px; height: 1000px; border-left: 1px dashed color-mix(in srgb, var(--hl-line) 80%, transparent); }
+.hl-parallel-axis span::after { content: ''; position: absolute; left: 50%; top: 18px; height: 1000px; border-left: 1px dashed color-mix(in srgb, var(--hl-line) 80%, transparent); }
 .hl-parallel-chart { overflow: hidden; }
 .hl-parallel-row { display: grid; grid-template-columns: 150px 1fr; align-items: center; min-height: 58px; border-top: 1px solid var(--hl-line); position: relative; }
 .hl-parallel-row > strong { font-size: 13px; padding-right: 12px; }
@@ -206,7 +330,7 @@
 .hl-parallel-band { position: absolute; top: 0; height: 100%; border: 1px solid color-mix(in srgb, var(--hl-primary) 35%, transparent); border-radius: 7px; background: color-mix(in srgb, var(--hl-primary) 10%, var(--hl-surface)); color: var(--hl-text); cursor: pointer; overflow: hidden; padding: 0 8px; text-align: left; transition: background 0.2s, border 0.2s; }
 .hl-parallel-band span { display: block; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hl-parallel-band.active, .hl-parallel-band:hover { background: var(--hl-primary); border-color: var(--hl-primary); color: #fff; z-index: 2; }
-.hl-parallel-detail { margin-top: 22px; padding: 22px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; border-radius: 12px; background: var(--hl-surface-2); border: 1px solid var(--hl-line); }
+.hl-parallel-detail { margin-top: 22px; padding: 22px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; border-radius: 12px; background: #fbf9f5; border: 1px solid #ebe4d8; }
 .hl-parallel-detail h3 { font-family: var(--hl-serif); font-size: 22px; margin: 8px 0 4px; }
 .hl-parallel-detail p { color: var(--hl-muted); font-size: 14px; max-width: 65ch; }
 .hl-parallel-actions { display: flex; flex-wrap: wrap; gap: 8px; }

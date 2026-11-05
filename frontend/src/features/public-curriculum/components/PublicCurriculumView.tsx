@@ -209,6 +209,9 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
     activePath,
     filteredLibraryLessons,
     availableTags,
+    topics,
+    selectedTopicId,
+    setSelectedTopicId,
     loading,
     error,
     stats,
@@ -246,7 +249,7 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
     <div className="lh-app">
       <Header activeTab="curriculum" />
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-9 lg:px-8">
-        <CurriculumStatsHeader stats={stats} completedCount={completedIds.length} cta={cta} />
+        <CurriculumStatsHeader stats={stats} completedCount={completedIds?.length || 0} cta={cta} />
 
         <section id="lo-trinh" className="scroll-mt-24 py-10">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -264,15 +267,22 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
               />
             </div>
           </div>
-          <div className="mt-6 flex flex-wrap gap-2 border-y border-lh-line py-4">
-            {FILTER_TAB_OPTIONS.map((tab) => (
+          <div className="mt-6 flex flex-wrap items-center gap-2 border-y border-lh-line py-4">
+            <HubButton
+              variant={selectedTopicId === null ? 'secondary' : 'ghost'}
+              onClick={() => setSelectedTopicId(null)}
+              className="px-3 py-2 font-medium"
+            >
+              Tất cả chủ đề
+            </HubButton>
+            {topics.map((t) => (
               <HubButton
-                key={tab.id}
-                variant={filterType === tab.id ? 'secondary' : 'ghost'}
-                onClick={() => setFilterType(tab.id)}
+                key={t.id}
+                variant={selectedTopicId === t.id ? 'secondary' : 'ghost'}
+                onClick={() => setSelectedTopicId(selectedTopicId === t.id ? null : t.id)}
                 className="px-3 py-2"
               >
-                {tab.label}
+                {t.name}
               </HubButton>
             ))}
           </div>

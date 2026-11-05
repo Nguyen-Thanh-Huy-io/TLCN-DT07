@@ -14,9 +14,46 @@ import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { StatusPill } from '@/features/articles/components/StatusPill';
 import { YearInput } from '@/features/articles/components/YearInput';
 import { ArticlePicker } from '@/features/articles/components/ArticlePicker';
+import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicPicker';
 
 /** Mốc trong form — `key` cục bộ để React giữ đúng ô khi đổi thứ tự. */
 type NodeDraft = TimelineNodeItem & { key: string; articleTitle?: string | null };
+
+/**
+ * "Gắn với ..." dưới mốc: bài của mốc đang liên kết với những bài nào (vd. Trần Hưng Đạo · Chỉ huy,
+ * Khu di tích Bạch Đằng · Diễn ra tại) — để biết mốc này sẽ hiện trong dòng đời của nhân vật nào.
+ * Đọc từ dữ liệu ĐÃ LƯU; vừa đổi bài của mốc thì cần lưu để cập nhật.
+ */
+function NodeConnections({ node }: { node: NodeDraft }) {
+  const article = node.article;
+  if (!node.articleId) return null;
+  if (!article || article.id !== node.articleId) {
+    return <p className="mt-1 text-xs text-slate-400">Lưu dòng thời gian để xem bài này đang gắn với ai.</p>;
+  }
+  const connections = [
+    ...(article.linksIn ?? []).map((l) => ({ label: l.label, other: l.source })),
+    ...(article.linksOut ?? []).map((l) => ({ label: l.label, other: l.target })),
+  ];
+  if (connections.length === 0) {
+    return <p className="mt-1 text-xs text-slate-400">Bài này chưa gắn với nhân vật / di tích nào.</p>;
+  }
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+      <span className="font-semibold text-slate-500">Gắn với:</span>
+      {connections.map((c, i) => (
+        <Link
+          key={`${c.other.id}-${i}`}
+          href={APP_ROUTES.ARTICLES.DETAIL(c.other.id)}
+          className="rounded-full bg-sky-50 px-2 py-0.5 text-sky-800 hover:underline"
+          title={c.other.category?.name ?? undefined}
+        >
+          {c.other.title}
+          {c.label && <span className="text-sky-600"> · {c.label}</span>}
+        </Link>
+      ))}
+    </div>
+  );
+}
 
 let keySeq = 0;
 const newKey = () => `n${++keySeq}`;
@@ -42,6 +79,7 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
   const isReviewer = Boolean(user && isReviewerRole(user.role));
 
   const [title, setTitle] = useState('');
+  const [topic, setTopic] = useState<PickedTopic | null>(null);
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState('');
@@ -59,6 +97,7 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
     try {
       const t = await TimelineApiService.get(id);
       setTitle(t.title);
+      setTopic(t.topic ? { id: t.topic.id, name: t.topic.name, slug: t.topic.slug } : null);
       setSlug(t.slug);
       setSavedSlug(t.slug);
       setDescription(t.description ?? '');
@@ -105,6 +144,7 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
     setNotice(null);
     const payload = {
       title: title.trim(),
+      topicId: topic?.id ?? null,
       slug: blankToNull(slug) ?? undefined,
       description: blankToNull(description),
       coverImageUrl: blankToNull(coverImageUrl),
@@ -196,13 +236,9 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
             <label className={label}>Tiêu đề *</label>
             <input className={input} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nhà Trần và ba lần kháng chiến chống Nguyên Mông" />
           </div>
-          <div>
-            <label className={label}>Đường dẫn (slug)</label>
-            <input className={input} value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="Bỏ trống để tự sinh" />
-          </div>
-          <div>
-            <label className={label}>Thứ tự trên trang /dong-thoi-gian</label>
-            <input className={input} type="number" min={0} value={displayOrder} onChange={(e) => setDisplayOrder(Number(e.target.value))} />
+          <div className="sm:col-span-2">
+            <label className={label}>Chủ đề / Thời kỳ lịch sử (Topic)</label>
+            <TopicPicker value={topic} onChange={setTopic} placeholder="Gắn dòng thời gian vào Chủ đề / Thời kỳ (vd. Thời Nhà Trần)..." />
           </div>
           <div className="sm:col-span-2">
             <label className={label}>Mô tả</label>
@@ -310,6 +346,7 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
                         })
                       }
                     />
+                    <NodeConnections node={n} />
                   </div>
                   <div className="sm:col-span-2">
                     <label className={label}>Ảnh (URL)</label>

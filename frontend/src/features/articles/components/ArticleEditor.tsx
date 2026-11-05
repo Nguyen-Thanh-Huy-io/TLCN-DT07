@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ExternalLink, FileText, IdCard, LayoutList, Save, Send, Upload } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FileText, IdCard, LayoutList, RotateCcw, Save, Send, Upload } from 'lucide-react';
 import { APP_ROUTES } from '@/constants/routes';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/useAuthSession';
@@ -13,6 +13,7 @@ import type { TagItem } from '@/types/models/tag.type';
 import {
   ArticleApiService,
   CategoryApiService,
+  type ArticleItem,
   type ArticleLinkView,
   type ArticleMetadata,
   type ArticlePayload,
@@ -86,6 +87,8 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   const [metadata, setMetadata] = useState<ArticleMetadata>({});
   const [links, setLinks] = useState<LinkDraft[]>([]);
   const [linksIn, setLinksIn] = useState<ArticleLinkView[]>([]);
+  /** Bản đã lưu — cho các khung xem trước dòng đời / nhân vật gắn bài / dòng thời gian chứa bài. */
+  const [savedArticle, setSavedArticle] = useState<ArticleItem | null>(null);
   // Block editor chỉ nhận giá trị ban đầu — đổi key để nạp lại khi tải bài / khôi phục phiên bản.
   const [contentKey, setContentKey] = useState(0);
 
@@ -131,6 +134,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
         }),
       );
       setLinksIn(fetched.linksIn ?? []);
+      setSavedArticle(fetched);
       setContentKey((k) => k + 1);
     } catch (err) {
       setError(extractErrorMessage(err, 'Không tải được bài viết.'));
@@ -182,6 +186,9 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
       } else {
         setStatus(saved.status);
         setSavedSlug(saved.slug);
+        // Cập nhật bản đã lưu → khung xem trước dòng đời / nhân vật gắn bài phản ánh ngay.
+        setSavedArticle(saved);
+        setLinksIn(saved.linksIn ?? []);
         setNotice('Đã lưu bài viết.');
       }
     } catch (err) {
@@ -303,15 +310,17 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
               <label className={label}>Tiêu đề *</label>
               <input className={input} value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Trần Hưng Đạo" />
             </div>
-            <div>
-              <label className={label}>Đường dẫn (slug)</label>
-              <input
-                className={input}
-                value={form.slug ?? ''}
-                onChange={(e) => set('slug', e.target.value)}
-                placeholder="Bỏ trống để tự sinh từ tiêu đề"
-              />
-            </div>
+            {isEdit && (
+              <div>
+                <label className={label}>Đường dẫn (slug)</label>
+                <input
+                  className={input}
+                  value={form.slug ?? ''}
+                  onChange={(e) => set('slug', e.target.value)}
+                  placeholder="Bỏ trống để tự sinh từ tiêu đề"
+                />
+              </div>
+            )}
             <div>
               <label className={label}>Tóm tắt</label>
               <textarea
@@ -429,6 +438,12 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
           onLinksChange={setLinks}
           linksIn={linksIn}
           kindOfArticle={(categoryId) => articleKindOf(categories, categoryId)}
+          savedArticle={savedArticle}
+          categories={categories}
+          linksDirty={
+            JSON.stringify(links.filter((l) => l.targetId).map((l) => [l.targetId, l.label ?? null])) !==
+            JSON.stringify((savedArticle?.links ?? []).map((l) => [l.targetId, l.label ?? null]))
+          }
         />
       )}
 

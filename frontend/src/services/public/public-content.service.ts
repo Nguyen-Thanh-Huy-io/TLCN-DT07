@@ -54,6 +54,11 @@ export interface PersonProfileMeta {
   legacyAndHonors?: string;
   anecdotes?: string[];
   famousQuote?: string;
+  /**
+   * Mốc đời riêng (việc nhỏ không đáng thành bài sự kiện) — hiện trong dòng đời.
+   * `year` luôn có ở dữ liệu đã lưu (backend bắt buộc); chỉ trống khi đang soạn trong CMS.
+   */
+  milestones?: Array<{ year?: number; month?: number; day?: number; title: string; note?: string }>;
 }
 
 export interface SiteProfileMeta {

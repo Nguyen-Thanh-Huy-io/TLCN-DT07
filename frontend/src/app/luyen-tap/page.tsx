@@ -3,6 +3,8 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
+import { useAuthSession } from '@/services/auth/useAuthSession';
+import { isStaffRole } from '@/services/auth/public-auth.service';
 import {
   ALL_TOPICS_ID,
   extractAvailableTopics,

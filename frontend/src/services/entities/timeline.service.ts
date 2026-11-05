@@ -13,12 +13,29 @@ export interface TimelineNodeItem {
   day: number | null;
   endYear: number | null;
   displayOrder?: number;
-  /** Chỉ có khi đọc từ API (để hiển thị tên bài viết đã gắn). */
-  article?: { id: string; title: string; slug: string; status: ContentStatusValue } | null;
+  /** Chỉ có khi đọc từ API (để hiển thị tên bài viết đã gắn + bài nào đang gắn với bài đó). */
+  article?: {
+    id: string;
+    title: string;
+    slug: string;
+    status: ContentStatusValue;
+    /** Bài khác liên kết tới bài của mốc (vd. nhân vật "Chỉ huy" → sự kiện). */
+    linksIn?: Array<{ label: string | null; source: TimelineLinkedArticle }>;
+    /** Bài của mốc liên kết tới (vd. sự kiện "Diễn ra tại" → di tích). */
+    linksOut?: Array<{ label: string | null; target: TimelineLinkedArticle }>;
+  } | null;
+}
+
+export interface TimelineLinkedArticle {
+  id: string;
+  title: string;
+  category: { id: string; name: string } | null;
 }
 
 export interface TimelineItem {
   id: string;
+  topicId?: string | null;
+  topic?: { id: string; name: string; slug: string } | null;
   title: string;
   slug: string;
   description: string | null;
@@ -32,6 +49,7 @@ export interface TimelineItem {
 }
 
 export interface TimelinePayload {
+  topicId?: string | null;
   title: string;
   slug?: string;
   description?: string | null;

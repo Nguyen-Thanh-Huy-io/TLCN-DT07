@@ -7,6 +7,7 @@ import { Badge } from '@/components/common/Badge';
 import { IconName } from '@/constants/icons';
 import { APP_ROUTES } from '@/constants/routes';
 import { ContentStatus } from '@/constants/enums';
+import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import { AutoSaveIndicator } from './AutoSaveIndicator';
 import { AutoSaveState } from '../types/editor.types';
 
@@ -89,7 +90,9 @@ export function LessonEditorHeader({
           </h1>
         </div>
 
-        <Badge tone="gray">{status}</Badge>
+        <Badge tone={STATUS_TONE_MAP[status as ContentStatus] || 'gray'}>
+          {STATUS_LABEL_MAP[status as ContentStatus] || (status === 'PUBLISHED' ? 'Đã xuất bản' : status)}
+        </Badge>
       </div>
 
       {/* Khối bên phải: Trạng thái lưu, Thuộc tính, Gửi duyệt & Menu chức năng phụ */}

@@ -69,7 +69,7 @@ export function StudioHeader({ activeTab, onTabChange, currentPath, libraryCount
             }`}
           >
             <Icon name={IconName.FILE} size={14} />
-            <span>Thư viện Lesson</span>
+            <span>Thư viện bài học</span>
             <span className="bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full text-xs font-bold">
               {libraryCount}
             </span>

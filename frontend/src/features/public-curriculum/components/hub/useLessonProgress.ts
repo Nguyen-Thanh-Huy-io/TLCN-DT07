@@ -54,10 +54,15 @@ export function useLessonProgress() {
     if (state.userId !== userId || !state.loaded) void load(userId);
   }, [userId]);
 
-  const current = snapshot.userId === userId ? snapshot.overview : EMPTY;
+  const current = snapshot.userId === userId && snapshot.overview
+    ? snapshot.overview
+    : EMPTY;
 
-  const isCompleted = useCallback((lessonId: string) => current.completedLessonIds.includes(lessonId), [current]);
-  const isEnrolled = useCallback((pathId: string) => current.enrolledPathIds.includes(pathId), [current]);
+  const completedLessonIds = Array.isArray(current?.completedLessonIds) ? current.completedLessonIds : [];
+  const enrolledPathIds = Array.isArray(current?.enrolledPathIds) ? current.enrolledPathIds : [];
+
+  const isCompleted = useCallback((lessonId: string) => completedLessonIds.includes(lessonId), [completedLessonIds]);
+  const isEnrolled = useCallback((pathId: string) => enrolledPathIds.includes(pathId), [enrolledPathIds]);
 
   const markCompleted = useCallback(
     async (lessonId: string) => {
@@ -91,8 +96,8 @@ export function useLessonProgress() {
     user,
     loggedIn: Boolean(user),
     ready: user === null || (Boolean(userId) && snapshot.userId === userId && snapshot.loaded),
-    completedIds: current.completedLessonIds,
-    enrolledPathIds: current.enrolledPathIds,
+    completedIds: completedLessonIds,
+    enrolledPathIds: enrolledPathIds,
     isCompleted,
     isEnrolled,
     markCompleted,

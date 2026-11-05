@@ -106,7 +106,9 @@ function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingI
                   String.fromCharCode(65 + idx)
                 )}
               </span>
-              <span className="flex-1 text-left">{opt.text}</span>
+              <span className="flex-1 text-left">
+                {opt.text || (opt as any).content || (opt as any).label || ''}
+              </span>
             </button>
           );
         })}
@@ -227,7 +229,12 @@ function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingI
                     idx + 1
                   )}
                 </span>
-                <span>{q.items.find((i) => i.id === itemId)?.label || itemId}</span>
+                <span>
+                  {(() => {
+                    const item = q.items.find((i) => i.id === itemId);
+                    return item?.label || (item as any)?.text || (item as any)?.content || itemId;
+                  })()}
+                </span>
               </span>
               {!submitted && (
                 <span className="flex gap-1 shrink-0">
@@ -305,7 +312,7 @@ function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingI
                     idx + 1
                   )}
                 </span>
-                <span>{left.label}</span>
+                <span>{left.label || (left as any).text || (left as any).content || left.id}</span>
               </span>
               <span className="hidden text-lh-muted sm:inline">↔</span>
               <select
@@ -317,7 +324,7 @@ function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingI
                 <option value="">— Chọn vế ghép —</option>
                 {q.rightItems.map((right) => (
                   <option key={right.id} value={right.id}>
-                    {right.label}
+                    {right.label || (right as any).text || (right as any).content || right.id}
                   </option>
                 ))}
               </select>

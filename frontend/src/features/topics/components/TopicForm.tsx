@@ -94,7 +94,7 @@ export function TopicForm() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <SelectField
-              label="Chủ đề cha (Phân cấp Cha - Con)"
+              label="Chủ đề cấp trên (Phân cấp trực thuộc)"
               value={
                 parentDropdownOptions[
                   parentDropdownValues.indexOf(form.selectedParentId)
@@ -217,7 +217,7 @@ export function TopicForm() {
           {form.selectedParentId && (
             <>
               <div className="tree-item muted">
-                <Icon name={IconName.FOLDER} size={16} /> Chủ đề cha
+                <Icon name={IconName.FOLDER} size={16} /> Chủ đề cấp trên
               </div>
               <i />
             </>

@@ -31,8 +31,12 @@ import { HubLessonQuiz } from './hub/HubLessonQuiz';
 import { HubLessonGate } from './hub/HubLessonGate';
 import { useLessonProgress } from './hub/useLessonProgress';
 import { LessonToc } from './hub/LessonToc';
-import { LessonRelated } from './hub/LessonRelated';
+import { LessonRelated, useLessonRelated } from './hub/LessonRelated';
 import { useLessonMedia } from './hub/useLessonMedia';
+import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
+import { NoteDrawer } from '@/features/notes/components/NoteDrawer';
+import { NoteFloatingButton } from '@/features/notes/components/NoteFloatingButton';
+import { NOTE_TARGET_TYPE } from '@/features/notes/types/note.types';
 import './hub/lesson-reader.css';
 
 const SYLLABUS_STORAGE_KEY = 'hisgo:lesson-reader:syllabus';
@@ -103,6 +107,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
     handleSubmitQuiz,
     handleRetryQuiz,
   } = usePublicLessonReaderFacade(slug, pathId);
+  const noteFacade = useNoteFacade(NOTE_TARGET_TYPE.LESSON, lesson?.id || '');
   const { isCompleted, markCompleted, enroll } = useLessonProgress();
   const [mobileSyllabus, setMobileSyllabus] = useState(false);
   const [syllabusOpen, setSyllabusOpen] = useState(true);
@@ -127,12 +132,22 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
       }
       return !open;
     });
-  // Cột: [đề cương] [bài đọc] [mục lục + liên quan — chỉ màn rộng].
+  const hasToc = Boolean(tocItems && tocItems.length >= 2);
+  const { related, hasContent: hasRelated } = useLessonRelated(compiledHtml || '');
+  const hasRightSidebar = hasToc || hasRelated;
+
+  // Cột: [đề cương] [bài đọc] [mục lục + liên quan — tự co giãn nếu cột phải không có nội dung].
   const readerColumns = learningPath
     ? syllabusOpen
-      ? 'lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_17rem]'
-      : 'lg:grid-cols-[3rem_minmax(0,1fr)] xl:grid-cols-[3rem_minmax(0,1fr)_17rem]'
-    : 'xl:grid-cols-[minmax(0,1fr)_17rem]';
+      ? hasRightSidebar
+        ? 'lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_17rem]'
+        : 'lg:grid-cols-[17rem_minmax(0,1fr)]'
+      : hasRightSidebar
+        ? 'lg:grid-cols-[3rem_minmax(0,1fr)] xl:grid-cols-[3rem_minmax(0,1fr)_17rem]'
+        : 'lg:grid-cols-[3rem_minmax(0,1fr)]'
+    : hasRightSidebar
+      ? 'xl:grid-cols-[minmax(0,1fr)_17rem]'
+      : 'grid-cols-1';
 
   // Passing the end-of-lesson quiz counts as finishing the lesson.
   useEffect(() => {
@@ -223,7 +238,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.25 }}
-                className="min-w-0"
+                className={`min-w-0 ${!hasRightSidebar ? 'mx-auto w-full max-w-4xl' : ''}`}
               >
                 <div className="mb-5">
                   <div className="flex flex-wrap items-center gap-2">
@@ -359,13 +374,15 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
               </motion.section>
             </AnimatePresence>
 
-            {/* Cột phải (màn rộng): mục lục + thông tin liên quan, dính theo khi cuộn. */}
-            <aside className="hidden xl:block">
-              <div className="sticky top-24 grid max-h-[calc(100vh-7rem)] gap-6 overflow-y-auto pb-4 pr-1">
-                <LessonToc items={tocItems} compact />
-                <LessonRelated html={compiledHtml} compact />
-              </div>
-            </aside>
+            {/* Cột phải (màn rộng): mục lục + thông tin liên quan, chỉ hiển thị khi có dữ liệu thực tế */}
+            {hasRightSidebar && (
+              <aside className="hidden xl:block">
+                <div className="sticky top-24 grid max-h-[calc(100vh-7rem)] gap-6 overflow-y-auto pb-4 pr-1">
+                  {hasToc && <LessonToc items={tocItems} compact />}
+                  {hasRelated && <LessonRelated html={compiledHtml} compact precomputed={related} />}
+                </div>
+              </aside>
+            )}
           </div>
         )}
 
@@ -403,6 +420,14 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
             </>
           )}
         </AnimatePresence>
+
+        {/* Sổ ghi chú cá nhân */}
+        <NoteFloatingButton facade={noteFacade} />
+        <NoteDrawer
+          facade={noteFacade}
+          targetTitle={lesson?.title}
+          targetType={NOTE_TARGET_TYPE.LESSON}
+        />
       </main>
       <Footer />
     </div>

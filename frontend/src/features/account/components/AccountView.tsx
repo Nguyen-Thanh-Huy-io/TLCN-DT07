@@ -40,7 +40,14 @@ export function AccountView() {
   useEffect(() => {
     if (!userId) return;
     AccountApiService.getProfile()
-      .then(setProfile)
+      .then((p) => {
+        setProfile(p);
+        const fullName = [p.userProfile?.lastName, p.userProfile?.firstName].filter(Boolean).join(' ');
+        PublicAuthService.updateCurrentUser({
+          avatarUrl: p.userProfile?.avatarUrl,
+          displayName: fullName || p.username,
+        });
+      })
       .catch((err) => setError(extractErrorMessage(err, 'Không tải được thông tin tài khoản.')));
   }, [userId]);
 

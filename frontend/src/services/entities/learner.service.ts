@@ -20,6 +20,13 @@ export interface LibraryLesson {
   thumbnailUrl: string | null;
   difficulty: string;
   estimatedReadMinutes: number;
+  topicId?: string | null;
+  topic?: {
+    id: string;
+    name: string;
+    slug: string;
+    parentId?: string | null;
+  } | null;
   tags: Array<{ id: string; name: string; colorHex: string | null }>;
 }
 

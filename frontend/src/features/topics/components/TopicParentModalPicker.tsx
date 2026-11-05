@@ -36,7 +36,7 @@ export function TopicParentModalPicker({
   selectedParentId,
   currentTopicId,
   title = 'Chọn vị trí phân cấp cho Chủ đề',
-  subtitle = 'Chọn chủ đề cha trực thuộc để định vị chính xác vị trí trong cây tri thức',
+  subtitle = 'Chọn chủ đề cấp trên để định vị chính xác vị trí trong cây tri thức',
   allowRootSelect = true,
   rootLabel = 'Đặt làm Chủ đề gốc',
   rootDescription = 'Chủ đề độc lập ở cấp cao nhất, không trực thuộc bất kỳ chủ đề nào khác',
@@ -102,7 +102,7 @@ export function TopicParentModalPicker({
 
       if (isDescendant) {
         isSelectable = false;
-        disabledReason = 'Không thể chọn chính nó hoặc chủ đề con của nó';
+        disabledReason = 'Không thể chọn chính nó hoặc các chủ đề trực thuộc của nó';
       } else if (isDepthExceeded) {
         isSelectable = false;
         disabledReason = 'Đã đạt giới hạn độ sâu phân cấp tối đa';
@@ -114,7 +114,7 @@ export function TopicParentModalPicker({
       return {
         topic,
         depth,
-        levelName: depth === 0 ? 'Chủ đề gốc' : 'Chủ đề con',
+        levelName: depth === 0 ? 'Chủ đề gốc' : 'Chủ đề trực thuộc',
         isSelectable,
         disabledReason,
         children: childrenNodes,
@@ -133,7 +133,7 @@ export function TopicParentModalPicker({
   const selectedBreadcrumb = useMemo(() => {
     if (!tempSelectedId) {
       return {
-        pathText: 'Chủ đề gốc - Không có chủ đề cha',
+        pathText: 'Chủ đề gốc (Cấp cao nhất)',
         targetLevel: 'Chủ đề gốc (Cấp cao nhất)',
       };
     }
@@ -154,7 +154,7 @@ export function TopicParentModalPicker({
 
     return {
       pathText: path.join(' > '),
-      targetLevel: 'Chủ đề con trực thuộc',
+      targetLevel: 'Chủ đề trực thuộc',
     };
   }, [tempSelectedId, topics]);
 

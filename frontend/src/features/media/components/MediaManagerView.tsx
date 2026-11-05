@@ -46,6 +46,8 @@ export function MediaManagerView() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [previewMedia, setPreviewMedia] = useState<MediaFileItem | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<MediaFileItem | null>(null);
+  const [editNameInput, setEditNameInput] = useState('');
 
   const filteredMedia = useMemo(() => {
     return mediaList.filter((item) => {
@@ -104,6 +106,33 @@ export function MediaManagerView() {
     navigator.clipboard.writeText(item.url);
     setCopiedId(item.id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const openRenameModal = (item: MediaFileItem) => {
+    setEditingItem(item);
+    setEditNameInput(item.name);
+  };
+
+  const handleSaveRename = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!editingItem) return;
+    const trimmed = editNameInput.trim();
+    if (!trimmed) return;
+
+    setMediaList((prev) => {
+      const next = prev.map((item) =>
+        item.id === editingItem.id ? { ...item, name: trimmed } : item
+      );
+      try {
+        localStorage.setItem(MEDIA_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    if (previewMedia?.id === editingItem.id) {
+      setPreviewMedia((prev) => (prev ? { ...prev, name: trimmed } : null));
+    }
+    setEditingItem(null);
   };
 
   const handleDelete = (id: string) => {
@@ -257,6 +286,14 @@ export function MediaManagerView() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => openRenameModal(item)}
+                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                    title="Đổi tên lưu trữ"
+                  >
+                    <Icon name={IconName.EDIT} size={14} />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleDelete(item.id)}
                     className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                     title="Xóa tệp"
@@ -281,9 +318,19 @@ export function MediaManagerView() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h3 className="text-base font-bold text-slate-900 truncate max-w-md">
-                {previewMedia.name}
-              </h3>
+              <div className="flex items-center gap-2 truncate max-w-md">
+                <h3 className="text-base font-bold text-slate-900 truncate">
+                  {previewMedia.name}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => openRenameModal(previewMedia)}
+                  className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                  title="Đổi tên tư liệu"
+                >
+                  <Icon name={IconName.EDIT} size={15} />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => setPreviewMedia(null)}
@@ -322,6 +369,68 @@ export function MediaManagerView() {
                 {copiedId === previewMedia.id ? 'Đã sao chép link!' : 'Sao chép đường dẫn'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal đổi tên tệp lưu trữ */}
+      {editingItem && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onClick={() => setEditingItem(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <h3 className="text-base font-bold text-slate-900">
+                Đổi tên tư liệu lưu trữ
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="text-slate-400 hover:text-slate-600 text-xl font-bold px-1"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRename} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Tên hiển thị / Gợi nhớ
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={editNameInput}
+                  onChange={(e) => setEditNameInput(e.target.value)}
+                  placeholder="Nhập tên tệp tư liệu..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-700 focus:outline-none"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Tên này sẽ hiển thị trong thư viện media và giúp bạn dễ tìm kiếm khi soạn bài giảng.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={!editNameInput.trim()}
+                  className="px-4 py-2 bg-red-800 hover:bg-red-900 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-colors"
+                >
+                  Lưu thay đổi
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

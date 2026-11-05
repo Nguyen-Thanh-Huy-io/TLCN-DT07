@@ -3,6 +3,7 @@
 import React from 'react';
 import { Badge } from '@/components/common/Badge';
 import { ContentStatus } from '@/constants/enums';
+import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import { ResourceLinkBlockData } from '../../types/block-builder.types';
 
 interface LessonPublishingTabProps {
@@ -40,7 +41,9 @@ export function LessonPublishingTab({
     <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-3.5 animate-in fade-in-50 duration-150">
       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
         <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Trạng thái bài học</span>
-        <Badge tone="gray">{status}</Badge>
+        <Badge tone={STATUS_TONE_MAP[status as ContentStatus] || 'gray'}>
+          {STATUS_LABEL_MAP[status as ContentStatus] || (status === 'PUBLISHED' ? 'Đã xuất bản' : status)}
+        </Badge>
       </div>
 
       <div className="border-t border-slate-100 pt-2.5">

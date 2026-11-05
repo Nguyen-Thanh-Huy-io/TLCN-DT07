@@ -253,14 +253,14 @@ export function TopicModal({
               </span>
               {parentId && (
                 <span className="text-[11px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-                  Thuộc cấp con
+                  Thuộc cấp trực thuộc
                 </span>
               )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <label className="field">
-                <span className="text-xs font-medium text-slate-700">Chủ đề cha</span>
+                <span className="text-xs font-medium text-slate-700">Chủ đề cấp trên</span>
                 <select
                   value={parentId}
                   onChange={(e) => setParentId(e.target.value)}
@@ -356,7 +356,7 @@ export function TopicModal({
                 <div className="text-[11px] text-slate-600">
                   {parentId ? (
                     <span>
-                      Phạm vi: Xếp thứ tự trong Chủ đề cha <b>"{allTopics.find((t) => t.id === parentId)?.name || 'Chủ đề cha'}"</b>
+                      Phạm vi: Xếp thứ tự trong Chủ đề cấp trên <b>"{allTopics.find((t) => t.id === parentId)?.name || 'Chủ đề cấp trên'}"</b>
                     </span>
                   ) : (
                     <span>
@@ -445,16 +445,16 @@ export function TopicModal({
             </label>
           </div>
 
-          {/* Section 3: Quản lý Chủ đề con trực thuộc (Outbound Hierarchy) */}
+          {/* Section 3: Quản lý Chủ đề trực thuộc (Outbound Hierarchy) */}
           {initialData && (
             <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3.5 mb-2">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                    3. Chủ đề con trực thuộc
+                    3. Chủ đề trực thuộc
                   </span>
                   <span className="text-[11px] font-medium text-slate-600 bg-slate-200 px-2 py-0.5 rounded-full">
-                    {childrenTopics.length} chủ đề con
+                    {childrenTopics.length} chủ đề trực thuộc
                   </span>
                 </div>
                 {onOpenCreateChild && (
@@ -466,12 +466,12 @@ export function TopicModal({
                     }}
                     className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
                   >
-                    <span>+ Tạo chủ đề con mới</span>
+                    <span>+ Tạo chủ đề trực thuộc mới</span>
                   </button>
                 )}
               </div>
 
-              {/* Danh sách các chủ đề con hiện tại */}
+              {/* Danh sách các chủ đề trực thuộc hiện tại */}
               {childrenTopics.length > 0 ? (
                 <div className="space-y-1.5 mb-3">
                   {childrenTopics.map((child) => (
@@ -502,11 +502,11 @@ export function TopicModal({
                 </div>
               ) : (
                 <div className="text-xs text-slate-500 bg-white border border-dashed border-slate-200 rounded-md p-3 text-center mb-3">
-                  Chưa có chủ đề con nào trực thuộc chủ đề này.
+                  Chưa có phân mục trực thuộc nào cho chủ đề này.
                 </div>
               )}
 
-              {/* Gắn thêm chủ đề con hiện có */}
+              {/* Gắn thêm chủ đề hiện có */}
               <div className="pt-2 border-t border-slate-200/70">
                 <span className="text-[11px] font-medium text-slate-600 block mb-1.5">
                   Gắn thêm chủ đề hiện có vào chủ đề này:
@@ -520,12 +520,12 @@ export function TopicModal({
                   >
                     <option value="">
                       {availableCandidatesToAttach.length > 0
-                        ? '-- Chọn chủ đề cần gán làm con --'
+                        ? '-- Chọn chủ đề cần gắn trực thuộc --'
                         : '-- Không có chủ đề khả dụng để gán --'}
                     </option>
                     {availableCandidatesToAttach.map((cand) => (
                       <option key={cand.id} value={cand.id}>
-                        {cand.name} {cand.parent ? `(Đang là con của: ${cand.parent.name})` : '(Chủ đề gốc)'}
+                        {cand.name} {cand.parent ? `(Đang thuộc: ${cand.parent.name})` : '(Chủ đề gốc)'}
                       </option>
                     ))}
                   </select>

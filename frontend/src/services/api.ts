@@ -1,8 +1,12 @@
 import axios from 'axios';
 import { PublicAuthService } from './auth/public-auth.service';
 
-// Lấy base URL từ biến môi trường (mặc định là localhost:5001 cho backend hiện tại)
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+// Lấy base URL:
+// - Khi chạy trên browser qua ngrok/máy khác: dùng proxy relative '/api-proxy' để Next.js server proxy về backend 5001.
+// - Khi chạy server-side (SSR) hoặc được chỉ định cụ thể qua biến môi trường: dùng API_URL.
+const isClient = typeof window !== 'undefined';
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '') : 'http://127.0.0.1:5001';
+const API_URL = isClient ? '/api-proxy' : rawApiUrl;
 
 const api = axios.create({
   baseURL: API_URL,

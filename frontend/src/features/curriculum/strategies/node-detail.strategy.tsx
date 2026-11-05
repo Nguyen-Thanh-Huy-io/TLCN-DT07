@@ -114,7 +114,7 @@ export class TopicNodeDetailStrategy implements INodeDetailStrategy {
         <div>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-semibold text-slate-900">
-              Chủ đề con ({subTopics.length})
+              Chủ đề trực thuộc ({subTopics.length})
             </h3>
             <button
               type="button"
@@ -122,7 +122,7 @@ export class TopicNodeDetailStrategy implements INodeDetailStrategy {
               onClick={() => callbacks.onAddChildTopic?.(this.topic.id)}
             >
               <Icon name={IconName.PLUS} size={11} />
-              <span>Thêm chủ đề con</span>
+              <span>Thêm chủ đề trực thuộc</span>
             </button>
           </div>
           {subTopics.length > 0 ? (
@@ -147,7 +147,7 @@ export class TopicNodeDetailStrategy implements INodeDetailStrategy {
             </div>
           ) : (
             <div className="p-3 text-center text-xs text-slate-400 bg-slate-50/50 rounded border border-dashed border-slate-200 mb-3">
-              Chưa có chủ đề con.
+              Chưa có chủ đề trực thuộc.
             </div>
           )}
         </div>
@@ -235,7 +235,7 @@ export class TopicNodeDetailStrategy implements INodeDetailStrategy {
           onClick={() => callbacks.onAddChildTopic?.(this.topic.id)}
         >
           <Icon name={IconName.PLUS} size={12} />
-          <span>Thêm chủ đề con</span>
+          <span>Thêm chủ đề trực thuộc</span>
         </button>
         <button
           type="button"

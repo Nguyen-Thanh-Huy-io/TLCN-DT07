@@ -80,7 +80,13 @@ export function ProfileSection({ profile, onChange }: { profile: MyProfile; onCh
     event.preventDefault();
     setSaving(true);
     try {
-      onChange(await AccountApiService.updateProfile(form));
+      const updated = await AccountApiService.updateProfile(form);
+      onChange(updated);
+      const fullName = [updated.userProfile?.lastName, updated.userProfile?.firstName].filter(Boolean).join(' ');
+      PublicAuthService.updateCurrentUser({
+        avatarUrl: updated.userProfile?.avatarUrl,
+        displayName: fullName || updated.username,
+      });
       setNotice({ tone: 'ok', text: 'Đã lưu hồ sơ.' });
     } catch (err) {
       setNotice({ tone: 'error', text: extractErrorMessage(err, 'Không lưu được hồ sơ.') });

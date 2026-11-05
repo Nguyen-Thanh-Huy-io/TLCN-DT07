@@ -49,7 +49,7 @@ function findRelated(html: string, catalog: SearchSource) {
   };
 }
 
-export function LessonRelated({ html, compact = false }: { html: string; compact?: boolean }) {
+export function useLessonRelated(html: string) {
   const [catalog, setCatalog] = useState<SearchSource | null>(null);
 
   useEffect(() => {
@@ -61,6 +61,23 @@ export function LessonRelated({ html, compact = false }: { html: string; compact
   }, []);
 
   const related = useMemo(() => (catalog && html ? findRelated(html, catalog) : null), [catalog, html]);
+  const hasContent = Boolean(related && (related.groups.length > 0 || related.timelines.length > 0));
+
+  return { related, hasContent };
+}
+
+export function LessonRelated({
+  html,
+  compact = false,
+  precomputed,
+}: {
+  html: string;
+  compact?: boolean;
+  precomputed?: ReturnType<typeof findRelated> | null;
+}) {
+  const hookResult = useLessonRelated(html);
+  const related = precomputed !== undefined ? precomputed : hookResult.related;
+
   if (!related || related.groups.length + related.timelines.length === 0) return null;
 
   const heading = 'text-xs font-bold uppercase tracking-[0.14em] text-lh-brand';

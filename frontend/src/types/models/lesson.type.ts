@@ -18,6 +18,13 @@ export interface LessonItem {
   createdBy?: string;
   approvedBy?: string;
   estimatedReadMinutes?: number;
+  topicId?: string | null;
+  topic?: {
+    id: string;
+    name: string;
+    slug: string;
+    parentId?: string | null;
+  } | null;
   tags?: TagItem[];
   lessonTags?: Array<{ tagId: string; tag?: TagItem }>;
   createdAt?: string;

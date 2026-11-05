@@ -21,12 +21,14 @@ import { LearningPathType } from '@/constants/enums';
 export interface FilterableLesson {
   title: string;
   description?: string | null;
+  topicId?: string | null;
+  topic?: { id: string; parentId?: string | null } | null;
   tags?: Array<{ id: string }>;
   lessonTags?: Array<{ tagId: string }>;
 }
 
 export interface IPathFilterStrategy {
-  matches(path: LearningPathItem, keyword: string): boolean;
+  matches(path: LearningPathItem, keyword: string, selectedTopicId?: string | null, topicIdsInSubtree?: Set<string>): boolean;
 }
 
 function matchesKeywordInPath(path: LearningPathItem, normalizedKeyword: string): boolean {
@@ -51,49 +53,91 @@ function matchesKeywordInPath(path: LearningPathItem, normalizedKeyword: string)
   });
 }
 
+function matchesTopicInPath(path: LearningPathItem, selectedTopicId?: string | null, topicIdsInSubtree?: Set<string>): boolean {
+  if (!selectedTopicId) return true;
+  return (path.chapters || []).some((ch) =>
+    (ch.chapterLessons || []).some((cl) => {
+      const lessonTopicId = cl.lesson?.topicId || cl.lesson?.topic?.id;
+      if (!lessonTopicId) return false;
+      if (topicIdsInSubtree && topicIdsInSubtree.size > 0) {
+        return topicIdsInSubtree.has(lessonTopicId);
+      }
+      return lessonTopicId === selectedTopicId;
+    }),
+  );
+}
+
+class TopicAwarePathFilterStrategy implements IPathFilterStrategy {
+  matches(path: LearningPathItem, keyword: string, selectedTopicId?: string | null, topicIdsInSubtree?: Set<string>): boolean {
+    return matchesKeywordInPath(path, keyword) && matchesTopicInPath(path, selectedTopicId, topicIdsInSubtree);
+  }
+}
+
 class AllPathsFilterStrategy implements IPathFilterStrategy {
-  matches(path: LearningPathItem, keyword: string): boolean {
-    return matchesKeywordInPath(path, keyword);
+  matches(path: LearningPathItem, keyword: string, selectedTopicId?: string | null, topicIdsInSubtree?: Set<string>): boolean {
+    return matchesKeywordInPath(path, keyword) && matchesTopicInPath(path, selectedTopicId, topicIdsInSubtree);
   }
 }
 
 class ChronologicalPathsFilterStrategy implements IPathFilterStrategy {
-  matches(path: LearningPathItem, keyword: string): boolean {
-    return path.pathType === LearningPathType.CHRONOLOGICAL && matchesKeywordInPath(path, keyword);
+  matches(path: LearningPathItem, keyword: string, selectedTopicId?: string | null, topicIdsInSubtree?: Set<string>): boolean {
+    return (
+      path.pathType === LearningPathType.CHRONOLOGICAL &&
+      matchesKeywordInPath(path, keyword) &&
+      matchesTopicInPath(path, selectedTopicId, topicIdsInSubtree)
+    );
   }
 }
 
 class ThematicPathsFilterStrategy implements IPathFilterStrategy {
-  matches(path: LearningPathItem, keyword: string): boolean {
-    return path.pathType === LearningPathType.THEMATIC && matchesKeywordInPath(path, keyword);
+  matches(path: LearningPathItem, keyword: string, selectedTopicId?: string | null, topicIdsInSubtree?: Set<string>): boolean {
+    return (
+      path.pathType === LearningPathType.THEMATIC &&
+      matchesKeywordInPath(path, keyword) &&
+      matchesTopicInPath(path, selectedTopicId, topicIdsInSubtree)
+    );
   }
 }
 
 export class PathFilterStrategyRegistry {
-  private static readonly strategies: Record<LearningPathFilterType, IPathFilterStrategy> = {
+  private static readonly strategies: Record<string, IPathFilterStrategy> = {
     [LearningPathFilterType.ALL]: new AllPathsFilterStrategy(),
     [LearningPathFilterType.CHRONOLOGICAL]: new ChronologicalPathsFilterStrategy(),
     [LearningPathFilterType.THEMATIC]: new ThematicPathsFilterStrategy(),
+    TOPIC: new TopicAwarePathFilterStrategy(),
   };
 
   static filter(
     paths: LearningPathItem[],
-    filterType: LearningPathFilterType,
+    filterType: LearningPathFilterType | string,
     rawKeyword: string,
+    selectedTopicId?: string | null,
+    topicIdsInSubtree?: Set<string>,
   ): LearningPathItem[] {
     const strategy =
-      this.strategies[filterType] || this.strategies[LearningPathFilterType.ALL];
+      this.strategies[filterType] || this.strategies.TOPIC || this.strategies[LearningPathFilterType.ALL];
     const normalizedKeyword = rawKeyword.trim().toLowerCase();
-    return paths.filter((path) => strategy.matches(path, normalizedKeyword));
+    return paths.filter((path) => strategy.matches(path, normalizedKeyword, selectedTopicId, topicIdsInSubtree));
   }
 
   static filterLessons<T extends FilterableLesson>(
     lessons: T[],
     rawKeyword: string,
     selectedTagId: string | null,
+    selectedTopicId?: string | null,
+    topicIdsInSubtree?: Set<string>,
   ): T[] {
     const normalizedKeyword = rawKeyword.trim().toLowerCase();
     return lessons.filter((lesson) => {
+      if (selectedTopicId) {
+        const lessonTopicId = lesson.topicId || lesson.topic?.id;
+        if (!lessonTopicId) return false;
+        if (topicIdsInSubtree && topicIdsInSubtree.size > 0) {
+          if (!topicIdsInSubtree.has(lessonTopicId)) return false;
+        } else if (lessonTopicId !== selectedTopicId) {
+          return false;
+        }
+      }
       if (selectedTagId) {
         const hasTag =
           (lesson.tags || []).some((t) => t.id === selectedTagId) ||
@@ -133,7 +177,7 @@ abstract class BaseChoiceGrader<
       : typeof answer === 'string' && answer
         ? [answer]
         : [];
-    const correctIds = question.options.filter((o) => o.isCorrect).map((o) => o.id);
+    const correctIds = (question.options || []).filter((o: any) => o.isCorrect).map((o: any) => o.id);
     if (correctIds.length === 0 || selectedIds.length !== correctIds.length) {
       return false;
     }
@@ -142,9 +186,9 @@ abstract class BaseChoiceGrader<
   }
 
   getCorrectSummary(question: T): string {
-    return question.options
-      .filter((o) => o.isCorrect)
-      .map((o) => o.text)
+    return (question.options || [])
+      .filter((o: any) => o.isCorrect)
+      .map((o: any) => o.text || o.content || o.label || '')
       .join(' • ');
   }
 }
@@ -167,28 +211,32 @@ class FillInBlankGrader implements IQuizQuestionGrader<FillInBlankQuestion> {
   isCorrect(question: FillInBlankQuestion, answer: UserQuizAnswer | undefined): boolean {
     if (typeof answer !== 'string' || !answer.trim()) return false;
     const candidate = question.caseSensitive ? answer.trim() : answer.trim().toLowerCase();
-    return question.acceptedAnswers.some((acc) => {
+    const acceptedList = Array.isArray(question.acceptedAnswers) ? question.acceptedAnswers : [];
+    return acceptedList.some((acc) => {
       const normalized = question.caseSensitive ? acc.trim() : acc.trim().toLowerCase();
       return normalized === candidate;
     });
   }
 
   getCorrectSummary(question: FillInBlankQuestion): string {
-    return question.acceptedAnswers.join(' / ');
+    return (question.acceptedAnswers || []).join(' / ');
   }
 }
 
 class OrderingGrader implements IQuizQuestionGrader<OrderingQuestion> {
   isCorrect(question: OrderingQuestion, answer: UserQuizAnswer | undefined): boolean {
-    if (!Array.isArray(answer) || answer.length !== question.correctOrder.length) {
+    const correctOrder = Array.isArray(question.correctOrder) ? question.correctOrder : [];
+    if (!Array.isArray(answer) || answer.length !== correctOrder.length) {
       return false;
     }
-    return question.correctOrder.every((id, idx) => answer[idx] === id);
+    return correctOrder.every((id, idx) => answer[idx] === id);
   }
 
   getCorrectSummary(question: OrderingQuestion): string {
-    const byId = new Map(question.items.map((it) => [it.id, it.label]));
-    return question.correctOrder.map((id, idx) => `${idx + 1}. ${byId.get(id) || id}`).join(' → ');
+    const items = Array.isArray(question.items) ? question.items : [];
+    const byId = new Map(items.map((it: any) => [it.id, it.label || it.text || it.content || '']));
+    const correctOrder = Array.isArray(question.correctOrder) ? question.correctOrder : [];
+    return correctOrder.map((id, idx) => `${idx + 1}. ${byId.get(id) || id}`).join(' → ');
   }
 }
 
@@ -196,13 +244,17 @@ class MatchingGrader implements IQuizQuestionGrader<MatchingQuestion> {
   isCorrect(question: MatchingQuestion, answer: UserQuizAnswer | undefined): boolean {
     if (!answer || typeof answer !== 'object' || Array.isArray(answer)) return false;
     const map = answer as Record<string, string>;
-    return question.correctPairs.every((pair) => map[pair.leftId] === pair.rightId);
+    const pairs = Array.isArray(question.correctPairs) ? question.correctPairs : [];
+    return pairs.every((pair) => map[pair.leftId] === pair.rightId);
   }
 
   getCorrectSummary(question: MatchingQuestion): string {
-    const leftMap = new Map(question.leftItems.map((i) => [i.id, i.label]));
-    const rightMap = new Map(question.rightItems.map((i) => [i.id, i.label]));
-    return question.correctPairs
+    const leftItems = Array.isArray(question.leftItems) ? question.leftItems : [];
+    const rightItems = Array.isArray(question.rightItems) ? question.rightItems : [];
+    const pairs = Array.isArray(question.correctPairs) ? question.correctPairs : [];
+    const leftMap = new Map(leftItems.map((i: any) => [i.id, i.label || i.text || i.content || '']));
+    const rightMap = new Map(rightItems.map((i: any) => [i.id, i.label || i.text || i.content || '']));
+    return pairs
       .map((p) => `${leftMap.get(p.leftId) || p.leftId} ↔ ${rightMap.get(p.rightId) || p.rightId}`)
       .join(' | ');
   }
@@ -267,6 +319,147 @@ export function shuffleOrderingIds(itemIds: readonly string[], correctOrder: rea
 }
 
 /**
+ * Chuẩn hóa một câu hỏi thô (tương thích nhiều format: options chuỗi hoặc object, items chuỗi hoặc object, matching pairs kiểu left/right hoặc leftId/rightId).
+ */
+export function normalizeQuizQuestionForDisplay(rawQ: any): QuizQuestion {
+  const qType = rawQ.type as QuizQuestionType;
+
+  // Single choice / Multiple choice
+  if (qType === QuizQuestionType.SINGLE_CHOICE || qType === QuizQuestionType.MULTIPLE_CHOICE) {
+    const rawOptions = Array.isArray(rawQ.options) ? rawQ.options : [];
+    const normalizedOptions = rawOptions.map((opt: any, idx: number) => {
+      if (typeof opt === 'string') {
+        const isCorrect =
+          rawQ.correctAnswer === opt ||
+          (Array.isArray(rawQ.correctAnswer) && rawQ.correctAnswer.includes(opt)) ||
+          (Array.isArray(rawQ.correctAnswers) && rawQ.correctAnswers.includes(opt));
+        return {
+          id: `opt_${idx}`,
+          text: opt,
+          isCorrect,
+          explanation: '',
+        };
+      }
+      return {
+        id: opt.id || `opt_${idx}`,
+        text: opt.text || opt.content || opt.label || '',
+        isCorrect: Boolean(opt.isCorrect),
+        explanation: opt.explanation || '',
+      };
+    });
+
+    return {
+      ...rawQ,
+      type: qType,
+      options: normalizedOptions,
+    } as SingleChoiceQuestion | MultipleChoiceQuestion;
+  }
+
+  // True / False
+  if (qType === QuizQuestionType.TRUE_FALSE) {
+    let correctAnswer = Boolean(rawQ.correctAnswer);
+    if (typeof rawQ.correctAnswer === 'string') {
+      correctAnswer = rawQ.correctAnswer.toLowerCase() === 'đúng' || rawQ.correctAnswer.toLowerCase() === 'true';
+    }
+    return {
+      ...rawQ,
+      type: QuizQuestionType.TRUE_FALSE,
+      correctAnswer,
+    } as TrueFalseQuestion;
+  }
+
+  // Ordering
+  if (qType === QuizQuestionType.ORDERING) {
+    const rawItems = Array.isArray(rawQ.items) ? rawQ.items : [];
+    const normalizedItems = rawItems.map((item: any, idx: number) => {
+      if (typeof item === 'string') {
+        return {
+          id: `ord_${idx}`,
+          label: item,
+        };
+      }
+      return {
+        id: item.id || `ord_${idx}`,
+        label: item.label || item.text || item.content || '',
+      };
+    });
+
+    let correctOrder: string[] = [];
+    if (Array.isArray(rawQ.correctOrder)) {
+      correctOrder = rawQ.correctOrder.map((it: any) => {
+        if (typeof it === 'number' && normalizedItems[it]) {
+          return normalizedItems[it].id;
+        }
+        return String(it);
+      });
+    } else {
+      correctOrder = normalizedItems.map((i: { id: string }) => i.id);
+    }
+
+    return {
+      ...rawQ,
+      type: QuizQuestionType.ORDERING,
+      items: normalizedItems,
+      correctOrder,
+    } as OrderingQuestion;
+  }
+
+  // Matching
+  if (qType === QuizQuestionType.MATCHING) {
+    const rawLeft = Array.isArray(rawQ.leftItems) ? rawQ.leftItems : [];
+    const rawRight = Array.isArray(rawQ.rightItems) ? rawQ.rightItems : [];
+
+    const normLeft = rawLeft.map((it: any, idx: number) => {
+      if (typeof it === 'string') return { id: `left_${idx}`, label: it };
+      return { id: it.id || `left_${idx}`, label: it.label || it.text || it.content || '' };
+    });
+
+    const normRight = rawRight.map((it: any, idx: number) => {
+      if (typeof it === 'string') return { id: `right_${idx}`, label: it };
+      return { id: it.id || `right_${idx}`, label: it.label || it.text || it.content || '' };
+    });
+
+    const rawPairs = Array.isArray(rawQ.correctPairs) ? rawQ.correctPairs : [];
+    const normPairs = rawPairs.map((p: any) => {
+      if ('left' in p && 'right' in p) {
+        const leftId = normLeft[p.left]?.id || `left_${p.left}`;
+        const rightId = normRight[p.right]?.id || `right_${p.right}`;
+        return { leftId, rightId };
+      }
+      return {
+        leftId: p.leftId || p.left,
+        rightId: p.rightId || p.right,
+      };
+    });
+
+    return {
+      ...rawQ,
+      type: QuizQuestionType.MATCHING,
+      leftItems: normLeft,
+      rightItems: normRight,
+      correctPairs: normPairs,
+    } as MatchingQuestion;
+  }
+
+  // Fill in blank
+  if (qType === QuizQuestionType.FILL_IN_BLANK) {
+    const acceptedAnswers = Array.isArray(rawQ.acceptedAnswers)
+      ? rawQ.acceptedAnswers
+      : typeof rawQ.correctAnswer === 'string'
+        ? [rawQ.correctAnswer]
+        : [];
+    return {
+      ...rawQ,
+      type: QuizQuestionType.FILL_IN_BLANK,
+      acceptedAnswers,
+      caseSensitive: Boolean(rawQ.caseSensitive),
+    } as FillInBlankQuestion;
+  }
+
+  return rawQ as QuizQuestion;
+}
+
+/**
  * Chuẩn bị phiên làm bài mới cho Học sinh:
  * - Dạng 1 (SINGLE_CHOICE) & Dạng 2 (MULTIPLE_CHOICE): Đảo ngẫu nhiên vị trí các đáp án A, B, C, D.
  * - Dạng 3 (TRUE_FALSE): Giữ cố định 2 nút Đúng / Sai trực quan.
@@ -279,7 +472,9 @@ export function prepareQuizSessionForLearner(rawQuiz: QuizItem): {
 } {
   const initialAnswers: Record<string, UserQuizAnswer> = {};
 
-  const shuffledQuestions: QuizQuestion[] = (rawQuiz.questions || []).map((q) => {
+  const shuffledQuestions: QuizQuestion[] = (rawQuiz.questions || []).map((rawQ) => {
+    const q = normalizeQuizQuestionForDisplay(rawQ);
+
     if (
       q.type === QuizQuestionType.SINGLE_CHOICE ||
       q.type === QuizQuestionType.MULTIPLE_CHOICE

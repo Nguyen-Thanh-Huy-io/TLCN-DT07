@@ -1,4 +1,7 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+// Lấy API URL: trên trình duyệt qua proxy '/api-proxy' để tránh lỗi CORS và ngrok chặn, SSR thì dùng URL đầy đủ
+const isClient = typeof window !== 'undefined';
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '') : 'http://127.0.0.1:5001';
+const API_URL = isClient ? '/api-proxy' : rawApiUrl;
 
 /**
  * Phiên đăng nhập duy nhất của ứng dụng — dùng chung cho trang công khai (người học)
@@ -18,6 +21,8 @@ export interface PublicAuthUser {
   username: string;
   role: string;
   verified: boolean;
+  avatarUrl?: string | null;
+  displayName?: string | null;
 }
 
 export interface PublicAuthResult {

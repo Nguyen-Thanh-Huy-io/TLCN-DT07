@@ -11,11 +11,14 @@ import {
 import { PRESERVATION_LABELS, RANK_LABELS } from '@/features/heritage/heritage.types';
 import { APP_ROUTES } from '@/constants/routes';
 import type {
+  ArticleItem,
   ArticleLinkInput,
   ArticleLinkView,
   ArticleMetadata,
   CategoryItem,
 } from '@/services/entities/article.service';
+import { YearInput } from './YearInput';
+import { EventPeoplePanel, InTimelinesPanel, PersonLifePreview } from './ArticleConnections';
 import { ArticlePicker } from './ArticlePicker';
 import { resolveCategoryKind, type ArticleKind } from '@/services/public/article-kind';
 
@@ -133,6 +136,9 @@ export function ArticleProfilePanel({
   onLinksChange,
   linksIn,
   kindOfArticle,
+  savedArticle,
+  categories,
+  linksDirty,
 }: {
   kind: ArticleKind;
   metadata: ArticleMetadata;
@@ -142,6 +148,11 @@ export function ArticleProfilePanel({
   /** Liên kết bài KHÁC trỏ tới bài này (chỉ xem; sửa ở bài kia). */
   linksIn: ArticleLinkView[];
   kindOfArticle: (categoryId: string | null | undefined) => ArticleKind;
+  /** Bản đã lưu (null khi tạo mới) — dùng cho các khung xem trước / nhận biết liên kết. */
+  savedArticle: ArticleItem | null;
+  categories: CategoryItem[];
+  /** Liên kết trong form khác bản đã lưu (xem trước chưa phản ánh). */
+  linksDirty: boolean;
 }) {
   const m = metadata;
   const setTop = <K extends keyof ArticleMetadata>(key: K, value: ArticleMetadata[K]) => onMetadataChange({ ...m, [key]: value });
@@ -241,6 +252,59 @@ export function ArticleProfilePanel({
           </Section>
         )}
 
+        {kind === 'PERSON' && (
+          <Section
+            title={`Mốc đời riêng (${p.milestones?.length ?? 0})`}
+            hint="Việc nhỏ chỉ thuộc về nhân vật này (đi sứ, bị bãi chức...). Sự kiện lớn nhiều người tham gia → tạo bài sự kiện rồi liên kết."
+          >
+            <ol className="space-y-3">
+              {(p.milestones ?? []).map((ms, i) => {
+                const update = (patch: Partial<typeof ms>) =>
+                  setPerson({ milestones: p.milestones!.map((x, idx) => (idx === i ? { ...x, ...patch } : x)) });
+                return (
+                  <li key={i} className="space-y-2 rounded-lg border border-slate-200 p-3">
+                    <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
+                      <YearInput label="Năm" value={ms.year ?? null} onChange={(v) => update({ year: v ?? undefined })} />
+                      <div>
+                        <label className={labelCls}>Tháng</label>
+                        <input className={`${input} w-20`} type="number" min={1} max={12} value={ms.month ?? ''} onChange={(ev) => update({ month: ev.target.value ? Number(ev.target.value) : undefined })} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Ngày</label>
+                        <input className={`${input} w-20`} type="number" min={1} max={31} value={ms.day ?? ''} onChange={(ev) => update({ day: ev.target.value ? Number(ev.target.value) : undefined })} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPerson({ milestones: p.milestones!.filter((_, idx) => idx !== i) })}
+                        className="self-end rounded border border-slate-200 p-2 text-red-600 hover:bg-red-50"
+                        title="Xoá mốc"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <input className={input} value={ms.title} onChange={(ev) => update({ title: ev.target.value })} placeholder="Tiêu đề mốc *" />
+                    <input className={input} value={ms.note ?? ''} onChange={(ev) => update({ note: ev.target.value })} placeholder="Ghi chú (tuỳ chọn)" />
+                  </li>
+                );
+              })}
+            </ol>
+            <button
+              type="button"
+              onClick={() => setPerson({ milestones: [...(p.milestones ?? []), { title: '' }] })}
+              className="secondary-button !h-8 !text-xs"
+            >
+              <Plus size={14} /> Thêm mốc đời riêng
+            </button>
+          </Section>
+        )}
+
+        {kind === 'OTHER' && (
+          <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
+            Bài chưa có loại (Nhân vật / Sự kiện / Di tích...) nên chưa có hồ sơ riêng. Chọn chuyên mục ở tab{' '}
+            <strong>Thông tin</strong> — loại bài lấy theo chuyên mục (cài ở trang Chuyên mục).
+          </p>
+        )}
+
         {kind === 'LOCATION' && (
           <Section title="Hồ sơ di tích" hint="Hiện ở thẻ và bộ lọc /di-tich, ô hồ sơ ở trang đọc.">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -335,6 +399,21 @@ export function ArticleProfilePanel({
       </div>
 
       <div className="space-y-6">
+        {savedArticle && kind === 'PERSON' && (
+          <PersonLifePreview
+            article={savedArticle}
+            categories={categories}
+            milestones={(p.milestones ?? []).filter((ms): ms is typeof ms & { year: number } => Boolean(ms.year && ms.title?.trim()))}
+            linksDirty={linksDirty}
+          />
+        )}
+        {savedArticle && kind === 'EVENT' && <EventPeoplePanel article={savedArticle} categories={categories} />}
+        {!savedArticle && (
+          <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
+            Lưu bài lần đầu để xem trước dòng đời / nhân vật gắn với bài / dòng thời gian chứa bài.
+          </p>
+        )}
+
         <Section
           title={`Liên kết tới bài khác (${links.length})`}
           hint="Nhân vật → nhân vật: tab Mối quan hệ · Nhân vật → sự kiện: dòng đời & người tham gia · Sự kiện → di tích: nơi diễn ra. Hiện ở cả 2 bài."
@@ -388,6 +467,8 @@ export function ArticleProfilePanel({
             <Plus size={14} /> Thêm liên kết
           </button>
         </Section>
+
+        {savedArticle && <InTimelinesPanel article={savedArticle} />}
 
         {linksIn.length > 0 && (
           <Section title={`Bài khác liên kết tới bài này (${linksIn.length})`} hint="Chỉ xem — sửa ở bài nguồn.">

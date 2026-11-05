@@ -20,12 +20,14 @@
  *        mọi cặp        → "Mạng lưới tri thức" ở trang đọc (trước các bài chung tag)
  *  • Hồ sơ mô tả = Article.metadata (aliases, region, sources, person, site, event) — tùy chọn.
  *  • Thời kỳ của bài = timeline có mốc trỏ tới bài; không có thì timeline có nhiều bài chung tag nhất.
- *  • Sự kiện trong đời nhân vật CHỈ lấy từ liên kết khai báo (+ mốc trỏ thẳng tới bài nhân vật).
- *      KHÔNG suy theo tag — chung tag "Nhà Trần" không có nghĩa là đã tham gia sự kiện.
+ *  • Dòng đời nhân vật = features/articles/person-life.ts (dùng CHUNG với khung xem trước ở CMS):
+ *      liên kết tới bài sự kiện + mốc trỏ thẳng tới bài nhân vật + mốc đời riêng. KHÔNG suy theo tag.
  *
  * Chỉ dùng trong Server Component (fetch thuần, cache theo request bằng React `cache`).
  */
 import { cache } from 'react';
+import { buildPersonLife, type LifeNodeRef } from '@/features/articles/person-life';
+import type { ArticleMetadata } from '@/services/public/public-content.service';
 import {
   fetchArticle,
   fetchArticles,
@@ -413,9 +415,81 @@ export interface PublicEntityDetailDto {
 type EntityKind = ArticleKind;
 
 const DEFAULT_LINK_LABEL = 'Liên quan';
-const DEFAULT_EVENT_ROLE = 'Tham gia';
-/** Vai trò coi là "chính" (hiện nổi bật trên dòng đời nhân vật). */
-const PRIMARY_ROLE_PATTERN = /chỉ huy|lãnh đạo|khởi xướng|thống lĩnh/i;
+
+/**
+ * Làm sạch Article.metadata khi ĐỌC. JSONB không có schema ở DB: dữ liệu ghi thẳng (script nhập,
+ * SQL tay) có thể sai kiểu (vd. `titles` là chuỗi thay vì mảng) — không được làm sập trang công khai.
+ * Đường ghi chuẩn (API) đã chuẩn hoá ở backend/src/article/article-metadata.ts.
+ */
+const asText = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
+const asList = (v: unknown): string[] | undefined => {
+  if (Array.isArray(v)) {
+    const list = v.map(asText).filter((s): s is string => Boolean(s));
+    return list.length ? list : undefined;
+  }
+  const one = asText(v);
+  return one ? [one] : undefined;
+};
+const asNumber = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+const asObject = (v: unknown): Record<string, unknown> | undefined =>
+  v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : undefined;
+
+function sanitizeMetadata(raw: unknown): ArticleMetadata | null {
+  const m = asObject(raw);
+  if (!m) return null;
+  const p = asObject(m.person);
+  const s = asObject(m.site);
+  const e = asObject(m.event);
+  return {
+    aliases: asList(m.aliases),
+    region: asText(m.region),
+    sources: asList(m.sources),
+    person: p && {
+      titles: asList(p.titles),
+      occupation: asText(p.occupation),
+      roles: asList(p.roles),
+      birthDateLabel: asText(p.birthDateLabel),
+      deathDateLabel: asText(p.deathDateLabel),
+      hometown: asText(p.hometown),
+      backgroundAndYouth: asText(p.backgroundAndYouth),
+      notableWorks: asList(p.notableWorks),
+      legacyAndHonors: asText(p.legacyAndHonors),
+      anecdotes: asList(p.anecdotes),
+      famousQuote: asText(p.famousQuote),
+      milestones: Array.isArray(p.milestones)
+        ? p.milestones
+            .map(asObject)
+            .filter((x): x is Record<string, unknown> => Boolean(x && asNumber(x.year) && asText(x.title)))
+            .map((x) => ({
+              year: x.year as number,
+              month: asNumber(x.month),
+              day: asNumber(x.day),
+              title: asText(x.title)!,
+              note: asText(x.note),
+            }))
+        : undefined,
+    },
+    site: s && {
+      address: asText(s.address),
+      latitude: asNumber(s.latitude),
+      longitude: asNumber(s.longitude),
+      siteType: asText(s.siteType),
+      rank: asText(s.rank),
+      recognizedYear: asText(s.recognizedYear),
+      preservation: asText(s.preservation),
+      statusNote: asText(s.statusNote),
+      managingAgency: asText(s.managingAgency),
+      architecturalStyle: asText(s.architecturalStyle),
+      openingHours: asText(s.openingHours),
+    },
+    event: e && {
+      dateNote: asText(e.dateNote),
+      cause: asText(e.cause),
+      outcome: asText(e.outcome),
+      belligerents: asList(e.belligerents),
+    },
+  };
+}
 
 /** Một liên kết nhìn từ 1 bài: bài ở đầu kia + nhãn + chiều. */
 interface LinkView {
@@ -437,6 +511,8 @@ interface PublicGraph {
   /** Chuyên mục con của "su-kien" mà bài viết thuộc về (= loại sự kiện), nếu có. */
   eventTypeOf: (article: PublicArticleSummary | undefined) => PublicCategory | undefined;
   periodSlugOf: (article: PublicArticleSummary) => string | null;
+  /** Mốc timeline trỏ tới 1 bài (kèm dòng thời gian chứa mốc). */
+  nodesOf: (articleSlug: string) => LifeNodeRef[];
   /** Mọi liên kết của 1 bài (2 chiều), chỉ giữa các bài đã xuất bản. */
   linksOf: (articleId: string) => LinkView[];
 }
@@ -472,11 +548,12 @@ function periodFromTimeline(t: PublicTimeline, bySlug: Map<string, PublicArticle
 
 /** Tải 1 lần mỗi request: chuyên mục + mọi bài viết (kèm liên kết, hồ sơ) + mọi dòng thời gian. */
 const loadGraph = cache(async (): Promise<PublicGraph> => {
-  const [categories, articles, timelines] = await Promise.all([
+  const [categories, rawArticles, timelines] = await Promise.all([
     fetchCategories(),
     fetchArticles({ limit: 200 }),
     fetchTimelines(),
   ]);
+  const articles = rawArticles.map((a) => ({ ...a, metadata: sanitizeMetadata(a.metadata) }));
   const catById = new Map(categories.map((c) => [c.id, c]));
   const kindOf: PublicGraph['kindOf'] = (a) => resolveCategoryKind(categories, a?.category?.id);
   // Loại sự kiện = chuyên mục con (có cha) thuộc loại EVENT.
@@ -497,6 +574,15 @@ const loadGraph = cache(async (): Promise<PublicGraph> => {
       if (!target) continue;
       pushLink(a.id, { other: target, label: l.label, note: l.note, direction: 'OUTGOING' });
       pushLink(target.id, { other: a, label: l.label, note: l.note, direction: 'INCOMING' });
+    }
+  }
+
+  const nodesByArticle = new Map<string, LifeNodeRef[]>();
+  for (const t of timelines) {
+    for (const n of t.nodes) {
+      if (!n.article) continue;
+      const ref: LifeNodeRef = { ...n, timeline: { id: t.id, slug: t.slug, title: t.title } };
+      nodesByArticle.set(n.article.slug, [...(nodesByArticle.get(n.article.slug) ?? []), ref]);
     }
   }
 
@@ -543,6 +629,7 @@ const loadGraph = cache(async (): Promise<PublicGraph> => {
     eventTypeOf,
     periodSlugOf,
     linksOf: (id) => links.get(id) ?? [],
+    nodesOf: (articleSlug) => nodesByArticle.get(articleSlug) ?? [],
   };
 });
 
@@ -677,11 +764,18 @@ function toFigureProfile(
   events: PublicEventSummaryDto[],
 ): PublicFigureProfileDto {
   const person = a.metadata?.person ?? {};
-  // Vai trò khai báo bằng liên kết nhân vật ↔ sự kiện (cả 2 chiều), tra theo slug bài sự kiện.
-  const declaredRole = new Map(
-    linksOfKind(g, a, 'EVENT').map((l) => [l.other.slug, l.label ?? DEFAULT_EVENT_ROLE]),
-  );
-  const mine = events.filter((e) => Boolean(e.slug && (e.slug === a.slug || declaredRole.has(e.slug))));
+  // Dòng đời: QUY TẮC CHUNG với CMS (features/articles/person-life.ts) — liên kết sự kiện, mốc trỏ
+  // thẳng tới bài nhân vật, mốc đời riêng. Không suy theo tag.
+  const life = buildPersonLife({
+    ownNodes: g.nodesOf(a.slug),
+    eventLinks: linksOfKind(g, a, 'EVENT').map((l) => ({
+      article: { ...l.other, nodes: g.nodesOf(l.other.slug) },
+      label: l.label,
+      direction: l.direction,
+    })),
+    milestones: (person.milestones ?? []).filter((m): m is typeof m & { year: number } => typeof m.year === 'number'),
+  }).filter((it) => it.year !== null);
+  const entryById = new Map(events.map((e) => [e.id, e]));
 
   return {
     ...toFigure(a),
@@ -702,21 +796,22 @@ function toFigureProfile(
     titles: person.titles ?? [],
     sources: a.metadata?.sources ?? [],
     periodSlug: g.periodSlugOf(a),
-    events: mine.map((e) => {
-      const roleLabel = (e.slug && declaredRole.get(e.slug)) || DEFAULT_EVENT_ROLE;
+    events: life.map((it) => {
+      const id = it.node?.id ?? it.article?.id ?? `${a.id}-${it.key}`;
+      const entry = entryById.get(id);
       return {
-        id: e.id,
-        slug: e.slug,
-        title: e.title,
-        startYear: e.startYear,
-        eventDateNote: e.eventDateNote,
-        description: e.description,
-        category: e.category,
-        categoryIds: e.categoryIds,
-        periodSlug: e.periodSlug,
+        id,
+        slug: it.article?.slug ?? null,
+        title: it.title,
+        startYear: it.year!,
+        eventDateNote: it.dateLabel,
+        description: it.description,
+        category: entry?.category ?? 'OTHER',
+        categoryIds: entry?.categoryIds ?? [],
+        periodSlug: it.timeline?.slug ?? g.periodSlugOf(a),
         role: 'PARTICIPANT',
-        roleLabel,
-        isPrimary: e.slug === a.slug || PRIMARY_ROLE_PATTERN.test(roleLabel),
+        roleLabel: it.role,
+        isPrimary: it.isPrimary,
       };
     }),
     // Tab "Mối quan hệ": liên kết tới / từ bài nhân vật khác; nhãn hiện nguyên chữ.
@@ -799,7 +894,7 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
   const summary = g.bySlug.get(slug) ?? article;
   const periodSlug = article.timelines[0]?.slug ?? g.periodSlugOf(summary);
   const kind = g.kindOf(article);
-  const meta = article.metadata ?? {};
+  const meta = sanitizeMetadata(article.metadata) ?? {};
   const site = meta.site ?? {};
 
   // "Mạng lưới tri thức": liên kết khai báo (2 chiều) trước, sau đó bài chung tag.

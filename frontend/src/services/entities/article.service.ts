@@ -45,12 +45,30 @@ export interface ArticleLinkInput {
   note?: string | null;
 }
 
-/** Bài ở đầu kia liên kết (CMS hiển thị). */
+/** Mốc timeline trỏ tới 1 bài (năm + dòng thời gian chứa mốc) — cùng dạng LifeNodeRef. */
+export interface ArticleNodeRef {
+  id: string;
+  title: string;
+  description: string | null;
+  dateText: string | null;
+  year: number | null;
+  month: number | null;
+  day: number | null;
+  endYear: number | null;
+  timeline: { id: string; title: string; slug: string };
+}
+
+/** Bài ở đầu kia liên kết (CMS hiển thị + xem trước dòng đời). */
 export interface LinkedArticleRef {
   id: string;
   title: string;
   slug: string;
   status: ContentStatusValue;
+  summary: string | null;
+  dateText: string | null;
+  startYear: number | null;
+  endYear: number | null;
+  timelineNodes: ArticleNodeRef[];
   category: { id: string; name: string; slug: string; kind?: ArticleKind | null; parentId?: string | null } | null;
 }
 
@@ -89,7 +107,8 @@ export interface ArticleItem {
   category: { id: string; name: string; slug: string; icon: string | null } | null;
   tags: ArticleTagRef[];
   tagIds: string[];
-  timelineNodes?: Array<{ id: string; title: string; timeline: { id: string; title: string; slug: string } }>;
+  /** Mốc timeline trỏ tới bài này (chỉ có ở chi tiết). */
+  timelineNodes?: ArticleNodeRef[];
 }
 
 /** Payload ghi — cùng tên trường với CreateArticleDto backend. */
@@ -142,6 +161,9 @@ export const ArticleApiService = {
   },
   async remove(id: string): Promise<void> {
     await api.delete(`/articles/${id}`);
+  },
+  async review(id: string, payload: { status: 'PUBLISHED' | 'REJECTED' | 'DRAFT'; rejectionReason?: string }): Promise<ArticleItem> {
+    return unwrap(await api.patch(`/articles/${id}/review`, payload));
   },
 };
 

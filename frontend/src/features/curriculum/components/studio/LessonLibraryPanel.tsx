@@ -108,7 +108,7 @@ export function LessonLibraryPanel({
         <div>
           <h2 className="text-sm font-bold text-slate-900 tracking-tight">Thư viện Lesson độc lập</h2>
           <p className="text-xs text-slate-600 mt-0.5 font-medium">
-            Các bài học được soạn thảo và lưu độc lập. Có thể tái sử dụng vào nhiều lộ trình / chương khác nhau.
+            Các bài học được soạn thảo và lưu độc lập.
           </p>
         </div>
 

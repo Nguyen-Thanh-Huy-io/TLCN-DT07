@@ -234,7 +234,7 @@ export function CurriculumTree({
               Sơ đồ cây học tập
             </span>
             <span className="text-[10px] text-slate-500 font-mono">
-              {totalRootTopics} chủ đề chính • {totalSubTopics} chủ đề con • {totalLessons}{LESSON_COUNT_LABEL}
+              {totalRootTopics} chủ đề chính • {totalSubTopics} chủ đề trực thuộc • {totalLessons}{LESSON_COUNT_LABEL}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -400,7 +400,7 @@ export function CurriculumTree({
                     </span>
                     <button
                       type="button"
-                      title="Thêm chủ đề con thuộc chủ đề này"
+                      title="Thêm chủ đề trực thuộc chủ đề này"
                       className={ACTION_BTN_CLASS}
                       onClick={(e) => {
                         e.stopPropagation();

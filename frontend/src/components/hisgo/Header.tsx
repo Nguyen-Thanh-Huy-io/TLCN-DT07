@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { KeyboardKey } from '@/constants/enums';
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -6,6 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { PublicAuthService, USER_ROLE_LABELS, isStaffRole } from "@/services/auth/public-auth.service";
 import { useAuthSession } from "@/services/auth/useAuthSession";
 import { GlobalSearch } from "@/features/search/GlobalSearch";
+import { NotificationBell } from "@/components/hisgo/NotificationBell";
+import { ChevronDown, Swords, User, Landmark, HelpCircle } from "lucide-react";
 
 interface HeaderProps {
   activeSectionId?: string;
@@ -21,6 +23,8 @@ export function Header({
   // undefined lúc SSR/hydrate → hiển thị như chưa đăng nhập.
   const user = useAuthSession() ?? null;
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
+  const exploreRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -32,6 +36,7 @@ export function Header({
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
+      if (exploreRef.current && !exploreRef.current.contains(e.target as Node)) { setExploreOpen(false); }
       }
     };
     window.addEventListener("mousedown", handleClickOutside);
@@ -51,9 +56,13 @@ export function Header({
     { id: "explore", label: "Trang chủ", href: "/" },
     { id: "curriculum", label: "Chương trình học", href: "/chuong-trinh-hoc" },
     { id: "timeline", label: "Dòng thời gian", href: "/dong-thoi-gian" },
-    { id: "su-kien", label: "Sự kiện", href: "/su-kien" },
-    { id: "nhan-vat", label: "Nhân vật", href: "/nhan-vat" },
-    { id: "di-tich", label: "Di tích", href: "/di-tich" },
+    { id: "quiz", label: "Luyện tập", href: "/luyen-tap" },
+  ];
+
+  const exploreItems = [
+    { label: "Sự kiện lịch sử", href: "/su-kien", icon: Swords, desc: "Các trận đánh, biến cố và hiệp định" },
+    { label: "Nhân vật lịch sử", href: "/nhan-vat", icon: User, desc: "Vua chúa, tướng lĩnh, anh hùng dân tộc" },
+    { label: "Di tích & Địa danh", href: "/di-tich", icon: Landmark, desc: "Chiến trường xưa, đền thờ, di sản" },
   ];
 
   // Theo dõi vị trí cuộn bằng IntersectionObserver để active tab tương ứng
@@ -209,15 +218,15 @@ export function Header({
         </Link>
 
         {/* Center: Desktop Navigation Bar */}
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8">
-          {navLinks.map((link) => {
+        <nav className="hidden md:flex items-center gap-7 lg:gap-9">
+          {navLinks.slice(0, 3).map((link) => {
             const isActive = activeTab === link.id;
             return (
               <a
                 key={link.id}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.href, link.id)}
-                className={`relative py-2 text-sm lg:text-base font-medium font-[family-name:var(--font-body)] transition-colors ${
+                className={`relative py-2 text-sm lg:text-[15px] font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-colors ${
                   isActive
                     ? "text-[var(--primary)] font-semibold"
                     : "text-[var(--text-body)] hover:text-[var(--primary)]"
@@ -233,11 +242,59 @@ export function Header({
               </a>
             );
           })}
+
+          {/* Dropdown Khám phá */}
+          <div ref={exploreRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setExploreOpen((v) => !v)}
+              className="flex items-center gap-1 py-2 text-sm lg:text-[15px] font-medium font-[family-name:var(--font-body)] whitespace-nowrap text-[var(--text-body)] hover:text-[var(--primary)] transition-colors"
+            >
+              <span>Khám phá</span>
+              <ChevronDown size={14} className={`transition-transform duration-200 ${exploreOpen ? "rotate-180" : ""}`} />
+            </button>
+            {exploreOpen && (
+              <div className="absolute left-0 mt-2 w-64 rounded-2xl border border-stone-200 bg-white p-2 shadow-xl z-50 text-sm animate-in fade-in zoom-in-95 duration-150">
+                {exploreItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setExploreOpen(false)}
+                      className="flex items-start gap-3 rounded-xl p-2.5 transition hover:bg-stone-50"
+                    >
+                      <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-800">
+                        <Icon size={15} />
+                      </div>
+                      <div>
+                        <strong className="block text-xs font-bold text-stone-900">{item.label}</strong>
+                        <span className="block text-[11px] text-stone-500 leading-tight">{item.desc}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Link Luyện tập */}
+          <Link
+            href="/luyen-tap"
+            className={`relative py-2 text-sm lg:text-[15px] font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-colors ${
+              pathname?.startsWith("/luyen-tap")
+                ? "text-[var(--primary)] font-semibold"
+                : "text-[var(--text-body)] hover:text-[var(--primary)]"
+            }`}
+          >
+            Luyện tập
+          </Link>
         </nav>
 
         {/* Right: Search, User Login & Mobile Hamburger */}
         <div className="flex items-center gap-3">
           <GlobalSearch />
+          {user && <NotificationBell />}
           {user ? (
             <div ref={userMenuRef} className="relative hidden md:block">
               <button
@@ -246,10 +303,18 @@ export function Header({
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] text-[var(--ink)] hover:bg-[var(--bg-page)] transition-colors"
                 aria-expanded={userMenuOpen}
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)] text-xs font-bold text-white">
-                  {user.username?.slice(0, 2).toUpperCase() || user.email.slice(0, 2).toUpperCase()}
-                </span>
-                <span className="max-w-[140px] truncate">{user.username || user.email}</span>
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt=""
+                    className="h-8 w-8 rounded-full object-cover border border-[var(--border)]"
+                  />
+                ) : (
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)] text-xs font-bold text-white">
+                    {user.username?.slice(0, 2).toUpperCase() || user.email.slice(0, 2).toUpperCase()}
+                  </span>
+                )}
+                <span className="max-w-[140px] truncate">{user.displayName || user.username || user.email}</span>
               </button>
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] py-1.5 shadow-xl z-50">

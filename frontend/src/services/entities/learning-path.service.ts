@@ -14,6 +14,13 @@ export interface ChapterLessonItem {
     difficulty?: string | null;
     status: string;
     duration?: number;
+    topicId?: string | null;
+    topic?: {
+      id: string;
+      name: string;
+      slug: string;
+      parentId?: string | null;
+    } | null;
     lessonTags?: Array<{
       id: string;
       tagId: string;

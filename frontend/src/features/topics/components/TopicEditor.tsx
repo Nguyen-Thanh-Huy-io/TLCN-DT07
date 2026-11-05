@@ -58,7 +58,7 @@ const CHECK_BADGE_FAIL_CLS = 'bg-slate-200 text-slate-500';
 const CHECK_TEXT_PASS_CLS = 'text-slate-700 font-medium';
 const CHECK_TEXT_FAIL_CLS = 'text-slate-500';
 const LABEL_ROOT_TOPIC = 'Chủ đề gốc';
-const LABEL_CHILD_TOPIC = 'Chủ đề con';
+const LABEL_CHILD_TOPIC = 'Chủ đề trực thuộc';
 
 export function TopicEditor({ topicId }: TopicEditorProps) {
   const router = useRouter();
@@ -183,8 +183,8 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
       return {
         levelName: LABEL_ROOT_TOPIC,
         levelBadgeBg: 'bg-amber-50 text-amber-800 border-amber-200',
-        title: 'Chủ đề gốc độc lập',
-        pathText: 'Chủ đề gốc (Không có chủ đề cha)',
+        title: 'Chủ đề gốc',
+        pathText: 'Chủ đề gốc (Cấp cao nhất)',
         targetTierText: 'Chủ đề gốc (Cấp cao nhất)',
         depth: 0,
       };
@@ -212,7 +212,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
       levelBadgeBg,
       title: path[path.length - 1],
       pathText: path.join(' > '),
-      targetTierText: `Chủ đề con trực thuộc`,
+      targetTierText: 'Chủ đề trực thuộc',
       depth: depthCount,
     };
   }, [parentId, allTopics]);
@@ -358,7 +358,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
     }
   };
 
-  // Hành động gắn một chủ đề con vào chủ đề này
+  // Hành động gắn một chủ đề trực thuộc vào chủ đề này
   const handleAttachChild = async () => {
     if (!topicId || !selectedCandidateId) return;
     try {
@@ -369,13 +369,13 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
       setAllTopics(updatedTopics.items || []);
       setSelectedCandidateId('');
     } catch (err) {
-      alert(extractErrorMessage(err, 'Không thể gắn chủ đề con'));
+      alert(extractErrorMessage(err, 'Không thể gắn chủ đề trực thuộc'));
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Hành động tách chủ đề con
+  // Hành động tách chủ đề trực thuộc
   const handleDetachChild = async (childId: string, childName: string) => {
     if (!topicId) return;
     const confirmed = window.confirm(
@@ -390,17 +390,17 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
       const updatedTopics = await TopicApiService.getTopics({ limit: 100 });
       setAllTopics(updatedTopics.items || []);
     } catch (err) {
-      alert(extractErrorMessage(err, 'Không thể tách chủ đề con'));
+      alert(extractErrorMessage(err, 'Không thể tách chủ đề trực thuộc'));
     } finally {
       setActionLoading(false);
     }
   };
 
 
-  // Tạo nhanh Chủ đề con trực thuộc tại chỗ (In-line Quick Create)
+  // Tạo nhanh Chủ đề trực thuộc tại chỗ (In-line Quick Create)
   const handleQuickCreateChild = async () => {
     if (!topicId || !quickChildName.trim()) {
-      alert('Vui lòng nhập tên chủ đề con');
+      alert('Vui lòng nhập tên chủ đề trực thuộc');
       return;
     }
 
@@ -422,7 +422,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
       setAllTopics(updatedTopics.items || []);
     } catch (err) {
       console.error('Failed to quick create child topic:', err);
-      alert(extractErrorMessage(err, 'Không thể tạo chủ đề con'));
+      alert(extractErrorMessage(err, 'Không thể tạo chủ đề trực thuộc'));
     } finally {
       setQuickCreating(false);
     }
@@ -599,11 +599,11 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
                   <span>02. Phân cấp & Thứ tự học tập</span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Xác định chủ đề cha trực thuộc và vị trí xuất hiện trên lộ trình học
+                  Xác định chủ đề cấp trên và vị trí xuất hiện trên lộ trình học
                 </p>
               </div>
 
-              {/* Hàng 1: Trực thuộc (Chủ đề cha) */}
+              {/* Hàng 1: Trực thuộc */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-1">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="text-slate-500 text-xs font-medium shrink-0">Trực thuộc:</span>
@@ -623,7 +623,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
                   className="shrink-0 text-xs font-medium text-blue-600 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shadow-2xs"
                 >
                   <Icon name={IconName.FOLDER} size={14} />
-                  <span>{parentId ? 'Đổi vị trí phân cấp' : 'Chọn chủ đề cha'}</span>
+                  <span>{parentId ? 'Đổi vị trí phân cấp' : 'Chọn chủ đề cấp trên'}</span>
                 </button>
               </div>
 
@@ -665,19 +665,19 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
 
             </div>
 
-            {/* Block 3: Quản lý Chủ đề con trực thuộc (Chỉ trong Edit Mode) */}
+            {/* Block 3: Quản lý Chủ đề trực thuộc (Chỉ trong Edit Mode) */}
             {isEditMode && topicId && (
               <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                      <span>03. Chủ đề con trực thuộc</span>
+                      <span>03. Chủ đề trực thuộc</span>
                       <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        {childrenTopics.length} chủ đề con
+                        {childrenTopics.length} chủ đề trực thuộc
                       </span>
                     </h2>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Các phân mục con trực thuộc chủ đề này trong cấu trúc cây tri thức
+                      Các phân mục trực thuộc chủ đề này trong cấu trúc cây tri thức
                     </p>
                   </div>
 
@@ -691,7 +691,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
                           : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200'
                       }`}
                     >
-                      <span>{isQuickChildOpen ? '✕ Đóng' : '+ Tạo nhanh chủ đề con'}</span>
+                      <span>{isQuickChildOpen ? '✕ Đóng' : '+ Tạo nhanh chủ đề trực thuộc'}</span>
                     </button>
                     <button
                       type="button"
@@ -704,11 +704,11 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
                   </div>
                 </div>
 
-                {/* Thanh Tạo Nhanh Chủ Đề Con Tại Chỗ (In-line Quick Creator) */}
+                {/* Thanh Tạo Nhanh Chủ Đề Trực Thuộc Tại Chỗ (In-line Quick Creator) */}
                 {isQuickChildOpen && (
                   <div className="mb-4 p-3 bg-emerald-50/60 border border-emerald-200 rounded-lg animate-in fade-in duration-150">
                     <div className="text-[11px] font-bold text-emerald-900 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                      <span>⚡ Tạo nhanh chủ đề con trực thuộc:</span>
+                      <span>⚡ Tạo nhanh chủ đề trực thuộc:</span>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <input
@@ -716,7 +716,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
                         value={quickChildName}
                         onChange={(e) => setQuickChildName(e.target.value)}
                         onKeyDown={(e) => e.key === KeyboardKey.ENTER && handleQuickCreateChild()}
-                        placeholder="Nhập tên chủ đề con (Ví dụ: Chiến dịch Bình Giã 1964)..."
+                        placeholder="Nhập tên chủ đề trực thuộc (Ví dụ: Chiến dịch Bình Giã 1964)..."
                         autoFocus
                         disabled={quickCreating}
                         className="flex-1 text-xs px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 shadow-2xs"
@@ -746,7 +746,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
                   </div>
                 )}
 
-                {/* Danh sách chủ đề con hiện tại */}
+                {/* Danh sách chủ đề trực thuộc hiện tại */}
                 {childrenTopics.length > 0 ? (
                   <div className="space-y-2 mb-4">
                     {childrenTopics.map((child) => (
@@ -786,11 +786,11 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
                   </div>
                 ) : (
                   <div className="text-xs text-slate-500 bg-slate-50/50 border border-dashed border-slate-200 rounded-lg p-5 text-center mb-4">
-                    Chủ đề này chưa có chủ đề con nào trực thuộc.
+                    Chủ đề này chưa có phân mục trực thuộc nào.
                   </div>
                 )}
 
-                {/* Gắn thêm chủ đề con hiện có */}
+                {/* Gắn thêm chủ đề hiện có */}
                 <div className="pt-3 border-t border-slate-100">
                   <span className="text-xs font-medium text-slate-700 block mb-2">
                     Gắn thêm một chủ đề hiện có vào chủ đề này:
@@ -804,12 +804,12 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
                     >
                       <option value="">
                         {availableCandidatesToAttach.length > 0
-                          ? '-- Chọn chủ đề cần gán làm con --'
+                          ? '-- Chọn chủ đề cần gắn trực thuộc --'
                           : '-- Không có chủ đề khả dụng để gán --'}
                       </option>
                       {availableCandidatesToAttach.map((cand) => (
                         <option key={cand.id} value={cand.id}>
-                          {cand.name} {cand.parent ? `(Đang là con của: ${cand.parent.name})` : '(Chủ đề gốc)'}
+                          {cand.name} {cand.parent ? `(Đang thuộc: ${cand.parent.name})` : '(Chủ đề gốc)'}
                         </option>
                       ))}
                     </select>
@@ -819,7 +819,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
                       disabled={!selectedCandidateId || actionLoading}
                       className="btn-secondary text-xs px-3.5 py-2 whitespace-nowrap"
                     >
-                      {actionLoading ? 'Đang gắn...' : 'Gắn vào làm con'}
+                      {actionLoading ? 'Đang gắn...' : 'Gắn vào chủ đề này'}
                     </button>
                   </div>
                 </div>

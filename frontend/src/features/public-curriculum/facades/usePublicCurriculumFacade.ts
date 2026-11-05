@@ -7,6 +7,8 @@ import {
   ChapterItem,
 } from '@/services/entities/learning-path.service';
 import { LearnerApiService, type LibraryLesson } from '@/services/entities/learner.service';
+import { TopicApiService } from '@/services/entities/topic.service';
+import type { TopicItem } from '@/types/models/topic.type';
 import { LearningPathFilterType } from '../constants/public-curriculum.constants';
 import { PathFilterStrategyRegistry } from '../strategies/public-curriculum.strategies';
 
@@ -16,12 +18,23 @@ export function publishedChapterLessons(chapter: ChapterItem) {
   return (chapter.chapterLessons || []).filter((cl) => cl.lesson?.status === PUBLISHED_STATUS);
 }
 
+function collectSubtreeTopicIds(topic: TopicItem, set: Set<string>) {
+  set.add(topic.id);
+  if (topic.children && topic.children.length > 0) {
+    for (const child of topic.children) {
+      collectSubtreeTopicIds(child, set);
+    }
+  }
+}
+
 export function usePublicCurriculumFacade(initialPathId?: string | null) {
   const [paths, setPaths] = useState<LearningPathItem[]>([]);
   const [libraryLessons, setLibraryLessons] = useState<LibraryLesson[]>([]);
+  const [topics, setTopics] = useState<TopicItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<LearningPathFilterType>(
     LearningPathFilterType.ALL,
   );
@@ -36,15 +49,17 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
     setLoading(true);
     setError(null);
     try {
-      const [pathsRes, lessonsRes] = await Promise.all([
+      const [pathsRes, lessonsRes, topicsRes] = await Promise.all([
         LearningPathApiService.getLearningPaths(),
         LearnerApiService.getLibrary(),
+        TopicApiService.getTopicTree().catch(() => [] as TopicItem[]),
       ]);
 
       // /learning-paths trả cả bản nháp cho CMS; trang công khai chỉ hiện lộ trình đã xuất bản.
       const safePaths = (Array.isArray(pathsRes) ? pathsRes : []).filter((p) => p.status === PUBLISHED_STATUS);
       setPaths(safePaths);
       setLibraryLessons(lessonsRes);
+      setTopics(Array.isArray(topicsRes) ? topicsRes : []);
 
       if (safePaths.length > 0) {
         const defaultPath =
@@ -69,9 +84,28 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
     loadCurriculum();
   }, [loadCurriculum]);
 
+  const selectedTopicSubtreeIds = useMemo(() => {
+    if (!selectedTopicId) return new Set<string>();
+    const target = topics.find((t) => t.id === selectedTopicId);
+    const set = new Set<string>();
+    if (target) {
+      collectSubtreeTopicIds(target, set);
+    } else {
+      set.add(selectedTopicId);
+    }
+    return set;
+  }, [selectedTopicId, topics]);
+
   const filteredPaths = useMemo(
-    () => PathFilterStrategyRegistry.filter(paths, filterType, searchKeyword),
-    [paths, filterType, searchKeyword],
+    () =>
+      PathFilterStrategyRegistry.filter(
+        paths,
+        selectedTopicId ? 'TOPIC' : filterType,
+        searchKeyword,
+        selectedTopicId,
+        selectedTopicSubtreeIds,
+      ),
+    [paths, filterType, searchKeyword, selectedTopicId, selectedTopicSubtreeIds],
   );
 
   const activePath = useMemo(() => {
@@ -122,8 +156,10 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
         libraryLessons,
         searchKeyword,
         selectedTagId,
+        selectedTopicId,
+        selectedTopicSubtreeIds,
       ),
-    [libraryLessons, searchKeyword, selectedTagId],
+    [libraryLessons, searchKeyword, selectedTagId, selectedTopicId, selectedTopicSubtreeIds],
   );
 
   // Thống kê tổng quan toàn bộ chương trình
@@ -158,6 +194,9 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
     loading,
     error,
     stats,
+    topics,
+    selectedTopicId,
+    setSelectedTopicId,
     filterType,
     setFilterType,
     searchKeyword,

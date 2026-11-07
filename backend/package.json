@@ -26,7 +26,8 @@
     "migrate:deploy": "prisma migrate deploy",
     "docker:dev": "docker compose -f docker-compose.yaml up -d",
     "seed:articles": "ts-node prisma/seeds/articles-v1.seed.ts",
-    "seed:all": "npm run seed:articles",
+    "seed:admin": "ts-node prisma/seeds/admin.seed.ts",
+    "seed:all": "npm run seed:articles && npm run seed:admin",
     "db:clean": "ts-node prisma/reset-clean-database.ts"
   },
   "prisma": {

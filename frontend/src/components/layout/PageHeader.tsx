@@ -85,6 +85,12 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
         subtitle: 'Kiểm duyệt chất lượng và phê duyệt xuất bản bài học',
       };
 
+    case APP_ROUTES.BLOG_REVIEW:
+      return {
+        title: 'Duyệt Blog',
+        subtitle: 'Kiểm duyệt và chỉnh sửa nội dung blog trước khi xuất bản',
+      };
+
     case APP_ROUTES.USERS:
       return {
         title: 'Người dùng & Quyền',

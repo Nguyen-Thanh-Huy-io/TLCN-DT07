@@ -2,11 +2,8 @@
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
-  ArrowLeft,
   Undo2,
   Redo2,
-  Maximize2,
-  Minimize2,
   Eye,
   PanelLeft,
   PanelRight,
@@ -23,8 +20,6 @@ export interface ContentSkeleton {
   html: string;
 }
 
-export type ViewportMode = 'DESKTOP' | 'TABLET' | 'MOBILE';
-
 export function ContentBlockEditor({
   value,
   onChange,
@@ -33,6 +28,9 @@ export function ContentBlockEditor({
   documentSubtitle = 'Bản ghi tri thức lịch sử',
   entityCategory = 'THỰC THỂ LỊCH SỬ',
   onPublish,
+  allowedBlockTypes,
+  compactInspector = false,
+  accentColor = '#7c4b2e',
 }: {
   value: unknown;
   onChange: (blocks: unknown) => void;
@@ -41,14 +39,16 @@ export function ContentBlockEditor({
   documentSubtitle?: string;
   entityCategory?: string;
   onPublish?: () => void;
+  allowedBlockTypes?: LessonBlockType[];
+  compactInspector?: boolean;
+  accentColor?: string;
 }) {
   const manager = useLessonBlockManager(value ?? null);
   const lastEmitted = useRef<string>('');
   const [showLeftPalette, setShowLeftPalette] = useState(true);
   const [showRightInspector, setShowRightInspector] = useState(true);
-  const [viewport, setViewport] = useState<ViewportMode>('DESKTOP');
+  const [previewMode, setPreviewMode] = useState(false);
   const [savedTime, setSavedTime] = useState<string>('');
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const json = manager.compileToJson();
@@ -62,16 +62,6 @@ export function ContentBlockEditor({
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manager.blocks]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen]);
 
   const insertSkeleton = (html: string) => {
     const id = manager.addBlock(LessonBlockType.TEXT);
@@ -89,222 +79,143 @@ export function ContentBlockEditor({
     return manager.blocks.find((b) => b.id === manager.activeBlockId) || null;
   }, [manager.blocks, manager.activeBlockId]);
 
-  const canvasWidthClass = useMemo(() => {
-    switch (viewport) {
-      case 'MOBILE':
-        return 'max-w-sm';
-      case 'TABLET':
-        return 'max-w-2xl';
-      case 'DESKTOP':
-      default:
-        return 'max-w-3xl';
-    }
-  }, [viewport]);
+  const canvasWidthClass = useMemo(() => 'max-w-3xl', []);
 
   return (
     <ActiveEditorProvider>
       <div
-        className={`flex flex-col border-t border-b border-stone-200 bg-white overflow-hidden transition-colors ${
-          isFullscreen
-            ? 'fixed inset-0 z-[120] w-screen h-screen'
-            : 'w-full'
+        className={`flex flex-col overflow-hidden transition-colors ${
+          previewMode ? 'bg-[#f7f3ee] text-[#1b1b1b]' : 'border-t border-b border-[#e7dcca] bg-[#f9f4ed] text-[#1e2423]'
         }`}
       >
-        {/* 1. THANH ĐIỀU KHIỂN TRÊN CÙNG */}
-        <div className="bg-white px-4 py-3 border-b border-stone-200 flex items-center justify-between gap-3 shrink-0">
-          {/* Nhóm Bên Trái */}
+        <div className="flex items-center justify-between gap-3 border-b border-[#e3d6c6] bg-[#f6f0e9] px-4 py-3 shrink-0 md:px-5">
           <div className="flex items-center gap-3">
-            {isFullscreen && (
-              <button
-                type="button"
-                onClick={() => setIsFullscreen(false)}
-                className="px-3 py-1.5 hover:bg-stone-100 rounded-lg text-stone-800 text-sm font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
-                title="Thoát toàn màn hình"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Thu nhỏ</span>
-              </button>
-            )}
-
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-stone-900 leading-tight">
-                Trình dựng trang
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#7a4d30]">
+                Trình dựng bài
               </span>
-              <span className="text-xs text-stone-600 leading-tight mt-0.5">
-                {documentTitle} · Chi tiết thực thể
+              <span className="text-sm text-[#4f5f5b]">
+                {documentTitle}
               </span>
             </div>
 
-            <div className="h-4 w-px bg-stone-200 mx-1 hidden sm:block" />
+            <div className="hidden h-4 w-px bg-[#d9c9b5] sm:block" />
 
-            {/* Hoàn tác / Làm lại */}
-            <div className="hidden sm:flex items-center gap-1 text-stone-700">
+            <div className="hidden items-center gap-1 sm:flex">
               <button
                 type="button"
                 title="Hoàn tác"
-                className="p-2 hover:text-stone-950 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                className="rounded-lg border border-[#d9c9b5] bg-white p-2 text-[#3d4a47] transition hover:border-[#8a4d2d] hover:text-[#8a4d2d]"
               >
-                <Undo2 className="w-4 h-4" strokeWidth={1.75} />
+                <Undo2 className="h-4 w-4" strokeWidth={1.75} />
               </button>
               <button
                 type="button"
                 title="Làm lại"
-                className="p-2 hover:text-stone-950 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                className="rounded-lg border border-[#d9c9b5] bg-white p-2 text-[#3d4a47] transition hover:border-[#8a4d2d] hover:text-[#8a4d2d]"
               >
-                <Redo2 className="w-4 h-4" strokeWidth={1.75} />
+                <Redo2 className="h-4 w-4" strokeWidth={1.75} />
               </button>
             </div>
-
-            {/* Trạng thái lưu */}
-            <span className="text-xs text-stone-600 hidden md:inline-block">
-              {savedTime ? `Đã lưu lúc ${savedTime}` : 'Đã đồng bộ'}
-            </span>
           </div>
 
-          {/* Nhóm Bên Phải */}
           <div className="flex items-center gap-2">
-            {/* Chọn khung nhìn (Máy tính / Máy tính bảng / Điện thoại) */}
-            <div className="flex items-center gap-1.5 text-sm">
-              <button
-                type="button"
-                onClick={() => setViewport('DESKTOP')}
-                className={`px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-                  viewport === 'DESKTOP'
-                    ? 'bg-stone-900 text-white border-stone-900 font-semibold'
-                    : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50 font-medium'
-                }`}
-              >
-                Máy tính
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewport('TABLET')}
-                className={`px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-                  viewport === 'TABLET'
-                    ? 'bg-stone-900 text-white border-stone-900 font-semibold'
-                    : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50 font-medium'
-                }`}
-              >
-                Máy tính bảng
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewport('MOBILE')}
-                className={`px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-                  viewport === 'MOBILE'
-                    ? 'bg-stone-900 text-white border-stone-900 font-semibold'
-                    : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50 font-medium'
-                }`}
-              >
-                Điện thoại
-              </button>
-            </div>
-
-            {/* Nút Toàn màn hình */}
             <button
               type="button"
-              onClick={() => setIsFullscreen((prev) => !prev)}
-              className={`px-3 py-1.5 rounded-lg border text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                isFullscreen
-                  ? 'bg-stone-900 text-white border-stone-900'
-                  : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
+              onClick={() => setPreviewMode((p) => !p)}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] transition ${
+                previewMode
+                  ? 'border-[#1f2a2b] bg-[#1f2a2b] text-[#f7f1e7]'
+                  : 'border-[#d9c9b5] bg-white text-[#2d3938] hover:border-[#8a4d2d] hover:text-[#8a4d2d]'
               }`}
-              title={isFullscreen ? 'Thu nhỏ cửa sổ' : 'Phóng to toàn màn hình'}
             >
-              {isFullscreen ? (
-                <Minimize2 className="w-4 h-4" />
-              ) : (
-                <Maximize2 className="w-4 h-4" />
-              )}
-              <span className="hidden lg:inline">
-                {isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
-              </span>
+              <Eye className="h-3.5 w-3.5" />
+              {previewMode ? 'Đang xem trước' : 'Xem trước'}
             </button>
 
-            {isFullscreen && (
-              <>
-                <button
-                  type="button"
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-stone-800 bg-white border border-stone-300 hover:bg-stone-50 rounded-lg transition-colors cursor-pointer"
-                >
-                  <Eye className="w-4 h-4" />
-                  <span>Xem trước</span>
-                </button>
+            <button
+              type="button"
+              onClick={() => setShowLeftPalette((p) => !p)}
+              className="inline-flex items-center gap-2 rounded-full border border-[#d9c9b5] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#2d3938] transition hover:border-[#8a4d2d] hover:text-[#8a4d2d]"
+            >
+              <PanelLeft className="h-3.5 w-3.5" />
+              Khối
+            </button>
 
-                {onPublish && (
-                  <button
-                    type="button"
-                    onClick={onPublish}
-                    className="px-4 py-1.5 text-sm font-semibold bg-stone-900 text-white hover:bg-black rounded-lg transition-colors cursor-pointer"
-                  >
-                    Xuất bản
-                  </button>
-                )}
-              </>
+            <button
+              type="button"
+              onClick={() => setShowRightInspector((p) => !p)}
+              className="inline-flex items-center gap-2 rounded-full border border-[#d9c9b5] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#2d3938] transition hover:border-[#8a4d2d] hover:text-[#8a4d2d]"
+            >
+              <PanelRight className="h-3.5 w-3.5" />
+              Thuộc tính
+            </button>
+
+            {onPublish && (
+              <button
+                type="button"
+                onClick={onPublish}
+                className="rounded-full bg-[#1f2a2b] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#f7f1e7] transition hover:bg-[#8a4d2d]"
+              >
+                Xuất bản
+              </button>
             )}
-
-            {/* Bật / tắt bảng hai bên */}
-            <div className="flex items-center gap-1 border-l border-stone-200 pl-2">
-              <button
-                type="button"
-                title={showLeftPalette ? 'Ẩn thư viện khối' : 'Hiện thư viện khối'}
-                onClick={() => setShowLeftPalette((p) => !p)}
-                className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                  showLeftPalette
-                    ? 'bg-stone-900 text-white'
-                    : 'text-stone-700 hover:text-stone-950 hover:bg-stone-100'
-                }`}
-              >
-                <PanelLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                title={showRightInspector ? 'Ẩn bảng thuộc tính' : 'Hiện bảng thuộc tính'}
-                onClick={() => setShowRightInspector((p) => !p)}
-                className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                  showRightInspector
-                    ? 'bg-stone-900 text-white'
-                    : 'text-stone-700 hover:text-stone-950 hover:bg-stone-100'
-                }`}
-              >
-                <PanelRight className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </div>
 
-        {/* 2. BỐ CỤC BA CỘT TRÌNH DỰNG TRANG */}
-        <div
-          className={`flex overflow-hidden ${
-            isFullscreen ? 'flex-1 h-[calc(100vh-57px)]' : 'h-[calc(100vh-190px)] min-h-[720px]'
-          }`}
-        >
+        <div className={`flex overflow-hidden ${previewMode ? 'min-h-[760px]' : 'min-h-[720px]'}`}>
           {/* CỘT 1: THƯ VIỆN KHỐI (BÊN TRÁI) */}
           {showLeftPalette && (
-            <BlockLibraryPalette
-              className="w-64"
-              onAddBlock={(type) => {
-                const newId = manager.addBlock(type);
-                manager.setActiveBlockId(newId);
-              }}
-            />
+            <div className="flex w-[340px] shrink-0 flex-col border-r border-[#e8dccb] bg-[#fffdfb]">
+              <BlockLibraryPalette
+                className="w-full border-r-0"
+                allowedBlockTypes={allowedBlockTypes}
+                accentColor={accentColor}
+                onAddBlock={(type) => {
+                  const newId = manager.addBlock(type);
+                  manager.setActiveBlockId(newId);
+                }}
+              />
+
+              {showRightInspector && (
+                <div className="border-t border-[#e8dccb] bg-white">
+                  <BlockPropertyInspector
+                    block={activeBlock}
+                    blockIndex={activeIndex}
+                    onUpdateBlock={manager.updateBlock}
+                    onRemoveBlock={manager.removeBlock}
+                    onChangeRowColumnCount={manager.setRowColumnCount}
+                    onUpdateRowRatio={manager.setRowRatio}
+                    onClose={() => setShowRightInspector(false)}
+                    className="w-full border-l-0 border-t-0 bg-white"
+                    compact={compactInspector}
+                    accentColor={accentColor}
+                  />
+                </div>
+              )}
+            </div>
           )}
 
           {/* CỘT 2: TRANG SOẠN THẢO (Ở GIỮA) */}
-          <main className="flex-1 min-w-0 overflow-y-auto px-6 sm:px-12 py-8 bg-white flex flex-col items-center">
-            <div className={`w-full ${canvasWidthClass} min-h-full`}>
-              {/* Header tài liệu */}
-              <div className="border-b border-stone-200 pb-6 mb-6">
-                <div className="text-xs font-bold tracking-widest uppercase text-stone-700 mb-2">
-                  {entityCategory}
+          <main className="flex-1 min-w-0 overflow-y-auto bg-[#fdfaf7] px-5 py-6 sm:px-8 lg:px-10">
+            <div className={`mx-auto w-full ${canvasWidthClass} min-h-full`}>
+              {(entityCategory || documentTitle) && (
+                <div className="mb-6 border-b border-[#e6d8c5] pb-5">
+                  {entityCategory && (
+                    <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#7a4d30]">
+                      {entityCategory}
+                    </div>
+                  )}
+                  <h1 className="mb-2 font-[family-name:var(--font-heading)] text-4xl leading-[1.02] text-[#1d2726] md:text-5xl">
+                    {documentTitle}
+                  </h1>
+                  {documentSubtitle && (
+                    <p className="max-w-[65ch] text-base leading-7 text-[#4d5d5a]">
+                      {documentSubtitle}
+                    </p>
+                  )}
                 </div>
-                <h1 className="text-4xl font-serif font-bold text-stone-900 tracking-tight mb-2 leading-tight">
-                  {documentTitle}
-                </h1>
-                <p className="text-base text-stone-600 font-medium max-w-[65ch]">
-                  {documentSubtitle}
-                </p>
-              </div>
+              )}
 
               {/* Khối Sườn bài mẫu nếu danh sách khối còn trống */}
               {skeletons && skeletons.length > 0 && manager.blocks.length === 0 && (
@@ -346,18 +257,6 @@ export function ContentBlockEditor({
             </div>
           </main>
 
-          {/* CỘT 3: THUỘC TÍNH KHỐI (BÊN PHẢI) */}
-          {showRightInspector && (
-            <BlockPropertyInspector
-              block={activeBlock}
-              blockIndex={activeIndex}
-              onUpdateBlock={manager.updateBlock}
-              onRemoveBlock={manager.removeBlock}
-              onChangeRowColumnCount={manager.setRowColumnCount}
-              onUpdateRowRatio={manager.setRowRatio}
-              onClose={() => setShowRightInspector(false)}
-            />
-          )}
         </div>
       </div>
     </ActiveEditorProvider>

@@ -9,6 +9,7 @@ import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/useAuthSession';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
 import { TagApiService } from '@/services/entities/tag.service';
+import { UploadApiService } from '@/services/entities/upload.service';
 import type { TagItem } from '@/types/models/tag.type';
 import {
   ArticleApiService,
@@ -79,6 +80,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   const [tags, setTags] = useState<TagItem[]>([]);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
@@ -147,6 +149,18 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
     if (articleId) loadArticle(articleId);
   }, [articleId, loadArticle, reloadKey]);
 
+  const isBlogCategorySelected = useMemo(() => {
+    const selected = categories.find((category) => category.id === form.categoryId);
+    if (!selected) return false;
+
+    const haystack = `${selected.name ?? ''} ${selected.slug ?? ''}`
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    return ['blog', 'bai-viet', 'bài viết', 'bai viet'].some((token) => haystack.includes(token));
+  }, [categories, form.categoryId]);
+
   const toPayload = (nextStatus?: ContentStatusValue): ArticlePayload => ({
     ...form,
     title: form.title.trim(),
@@ -168,17 +182,19 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
       setTab('INFO');
       return;
     }
+    const effectiveStatus =
+      nextStatus === 'DRAFT' && isBlogCategorySelected ? 'PENDING_REVIEW' : nextStatus ?? (isBlogCategorySelected ? 'PENDING_REVIEW' : 'DRAFT');
     setSaving(true);
     setError(null);
     setNotice(null);
     try {
       if (!articleId) {
-        const created = await ArticleApiService.create(toPayload(nextStatus ?? 'DRAFT'));
+        const created = await ArticleApiService.create(toPayload(effectiveStatus));
         router.replace(APP_ROUTES.ARTICLES.DETAIL(created.id));
         return;
       }
       // Bài đang xuất bản: không gửi status (biên tập viên → bản sửa chờ duyệt; người duyệt → sửa thẳng).
-      const payload = status === 'PUBLISHED' && !nextStatus ? toPayload() : toPayload(nextStatus);
+      const payload = status === 'PUBLISHED' && !nextStatus ? toPayload() : toPayload(effectiveStatus);
       const saved = await ArticleApiService.update(articleId, payload);
       if (isRevisionPending(saved)) {
         setPendingRevision(saved.revision);
@@ -200,6 +216,25 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
 
   const toggleTag = (id: string) =>
     set('tagIds', form.tagIds?.includes(id) ? form.tagIds.filter((t) => t !== id) : [...(form.tagIds ?? []), id]);
+
+  const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setCoverUploading(true);
+      setError(null);
+      const result = await UploadApiService.uploadImage(file);
+      if (result?.url) {
+        set('coverImageUrl', result.url);
+      }
+    } catch (err) {
+      setError(extractErrorMessage(err, 'Không thể tải ảnh lên.'));
+    } finally {
+      setCoverUploading(false);
+      event.target.value = '';
+    }
+  };
 
   const categoryName = useMemo(
     () => categories.find((c) => c.id === form.categoryId)?.name,
@@ -408,14 +443,27 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
             </div>
 
             <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5">
+              <div className="flex items-center justify-between gap-3">
+                <label className={label}>Ảnh bìa</label>
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300">
+                  <Upload size={14} />
+                  {coverUploading ? 'Đang tải...' : 'Tải ảnh'}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleCoverImageUpload} disabled={coverUploading} />
+                </label>
+              </div>
+
               <div>
-                <label className={label}>Ảnh bìa (URL)</label>
+                <label className={`${label} mt-0`}>URL ảnh bìa</label>
                 <input className={input} value={form.coverImageUrl ?? ''} onChange={(e) => set('coverImageUrl', e.target.value)} />
               </div>
+
               {form.coverImageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={form.coverImageUrl} alt="" className="max-h-40 w-full rounded-lg object-cover" />
+                <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={form.coverImageUrl} alt="Preview ảnh bìa" className="max-h-52 w-full object-cover" />
+                </div>
               )}
+
               <div>
                 <label className={label}>Chú thích ảnh</label>
                 <input className={input} value={form.coverCaption ?? ''} onChange={(e) => set('coverCaption', e.target.value)} />

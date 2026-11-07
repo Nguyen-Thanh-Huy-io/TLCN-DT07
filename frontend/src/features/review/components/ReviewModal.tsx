@@ -8,6 +8,7 @@ export interface ReviewModalProps {
   lessonSummary?: string;
   onApprove: () => void;
   onReject: (reason: string) => void;
+  onEdit?: () => void;
 }
 
 export function ReviewModal({
@@ -17,6 +18,7 @@ export function ReviewModal({
   lessonSummary,
   onApprove,
   onReject,
+  onEdit,
 }: ReviewModalProps) {
   const [rejectReason, setRejectReason] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
@@ -60,7 +62,19 @@ export function ReviewModal({
                 </p>
               </div>
 
-              <div className="modal-footer" style={{ gap: 12 }}>
+              <div className="modal-footer" style={{ gap: 12, flexWrap: 'wrap' }}>
+                {onEdit && (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => {
+                      onEdit();
+                      onClose();
+                    }}
+                  >
+                    ✎ Chỉnh sửa trước khi duyệt
+                  </button>
+                )}
                 <button
                   type="button"
                   className="secondary-button"

@@ -20,11 +20,11 @@ export const ALLOWED_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'
 
 /**
  * Chuẩn hóa URL ảnh bìa:
- * Tự động đồng bộ sang port của NEXT_PUBLIC_API_URL (5001) nếu URL được tạo từ cấu hình cũ (5000)
+ * Tự động đồng bộ sang port của NEXT_PUBLIC_API_URL (5000) nếu URL được tạo từ cấu hình cũ (5000)
  */
 export function resolveCoverImageUrl(url: string): string {
   if (!url) return '';
-  const currentApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const currentApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   if (url.startsWith('http://localhost:5000/uploads/')) {
     return url.replace('http://localhost:5000', currentApiUrl);
   }

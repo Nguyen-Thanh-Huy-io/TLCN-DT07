@@ -147,7 +147,7 @@ export function SystemSettingsView() {
             {[
               {
                 service: 'NestJS Backend API',
-                endpoint: 'http://localhost:5001/api/v1',
+                endpoint: 'http://localhost:5000/api/v1',
                 status: 'Sẵn sàng',
                 tone: 'ok' as const,
               },

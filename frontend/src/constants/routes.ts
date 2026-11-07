@@ -41,6 +41,7 @@ export const APP_ROUTES = {
   ANALYTICS: '/analytics',
   SETTINGS: '/settings',
   REVIEW: '/review',
+  BLOG_REVIEW: '/blog-review',
   USERS: '/users',
 } as const;
 
@@ -67,6 +68,7 @@ export enum NavigationPageKey {
   ANALYTICS = 'analytics',
   SETTINGS = 'settings',
   REVIEW = 'review',
+  BLOG_REVIEW = 'blog-review',
   USERS = 'users',
 }
 

@@ -90,6 +90,10 @@ export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
     title: 'Duyệt bài học',
     subtitle: 'Kiểm tra chất lượng trước khi xuất bản',
   },
+  'blog-review': {
+    title: 'Duyệt Blog',
+    subtitle: 'Chỉnh sửa, kiểm duyệt và xuất bản blog theo quy trình riêng',
+  },
   users: {
     title: 'Người dùng',
     subtitle: 'Quản lý tài khoản và phân quyền hệ thống',

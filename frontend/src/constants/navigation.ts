@@ -35,6 +35,7 @@ export const NAV_ITEM_LABELS = {
   USERS: 'Quản lý người dùng và phân quyền',
   SETTINGS: 'Cài đặt hệ thống',
   REVIEW: 'Duyệt bài học',
+  BLOG_REVIEW: 'Duyệt Blog',
 } as const;
 
 /**

@@ -28,6 +28,8 @@ import { LessonBlockGroup, LessonBlockType } from '../../types/block-palette.typ
 interface BlockLibraryPaletteProps {
   onAddBlock: (type: LessonBlockType) => void;
   className?: string;
+  allowedBlockTypes?: LessonBlockType[];
+  accentColor?: string;
 }
 
 export const BLOCK_TYPE_ICONS: Record<string, LucideIcon> = {
@@ -49,10 +51,17 @@ export const BLOCK_TYPE_ICONS: Record<string, LucideIcon> = {
   [LessonBlockType.SECTION_ROW]: Columns3,
 };
 
-export function BlockLibraryPalette({ onAddBlock, className = '' }: BlockLibraryPaletteProps) {
+export function BlockLibraryPalette({
+  onAddBlock,
+  className = '',
+  allowedBlockTypes,
+  accentColor = '#7c4b2e',
+}: BlockLibraryPaletteProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredItems = LESSON_BLOCK_ITEMS.filter((item) => {
+    const isAllowed = !allowedBlockTypes || allowedBlockTypes.includes(item.type);
+    if (!isAllowed) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -83,7 +92,14 @@ export function BlockLibraryPalette({ onAddBlock, className = '' }: BlockLibrary
                 onClick={() => onAddBlock(item.type)}
                 className="p-2.5 hover:bg-stone-50 rounded-lg text-left transition-colors duration-150 cursor-pointer flex flex-col gap-1.5 group"
               >
-                <span className="w-7 h-7 rounded-md bg-white border border-stone-200 group-hover:bg-stone-900 group-hover:border-stone-900 flex items-center justify-center text-stone-800 group-hover:text-white transition-colors duration-150">
+                <span
+                  className="w-7 h-7 rounded-md border flex items-center justify-center transition-colors duration-150"
+                  style={{
+                    backgroundColor: 'white',
+                    borderColor: '#e7ddd4',
+                    color: accentColor,
+                  }}
+                >
                   <BlockIcon className="w-4 h-4" strokeWidth={1.75} />
                 </span>
                 <span className="text-sm font-medium text-stone-800 group-hover:text-stone-950 truncate leading-snug">
@@ -99,13 +115,13 @@ export function BlockLibraryPalette({ onAddBlock, className = '' }: BlockLibrary
 
   return (
     <aside
-      className={`w-64 bg-white border-r border-stone-200 p-4 flex flex-col shrink-0 h-full overflow-y-auto select-none ${className}`}
+      className={`w-full bg-white border-r border-stone-200 p-4 flex flex-col shrink-0 h-full overflow-y-auto select-none ${className}`}
     >
       {/* Header Palette */}
       <div className="flex items-center justify-between pb-3 border-b border-stone-200 mb-3">
         <span className="text-sm font-bold text-stone-900 tracking-tight">Thư viện khối</span>
         <span className="text-xs font-medium text-stone-600">
-          {LESSON_BLOCK_ITEMS.length} khối
+          {filteredItems.length} khối
         </span>
       </div>
 

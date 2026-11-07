@@ -36,6 +36,8 @@ export interface BlockPropertyInspectorProps {
   onUpdateRowRatio?: (rowId: string, widths: number[]) => void;
   onClose?: () => void;
   className?: string;
+  compact?: boolean;
+  accentColor?: string;
 }
 
 const BLOCK_TYPE_VI_LABELS: Record<string, string> = {
@@ -69,7 +71,9 @@ type BlockInspectorStrategyMap = Partial<
  * Khi thêm loại khối mới, chỉ cần đăng ký Inspector tương ứng mà không phình to Component vỏ.
  */
 const BLOCK_INSPECTOR_STRATEGIES: BlockInspectorStrategyMap = {
-  [LessonBlockType.TEXT]: () => <TypographyInspectorPanel />,
+  [LessonBlockType.TEXT]: ({ compact, accentColor }) => (
+    <TypographyInspectorPanel compact={compact} accentColor={accentColor} />
+  ),
   [LessonBlockType.TIMELINE]: ({ block, onUpdateBlock }) => (
     <TimelineBlockInspector
       block={block as TimelineBlockData}
@@ -95,12 +99,12 @@ const BLOCK_INSPECTOR_STRATEGIES: BlockInspectorStrategyMap = {
       onUpdateRowRatio={onUpdateRowRatio}
     />
   ),
-  [LessonBlockType.HEADING]: ({ block, onUpdateBlock }) => (
-    <HeadingBlockInspector
-      block={block as HeadingBlockData}
-      onUpdateBlock={onUpdateBlock}
-    />
-  ),
+  [LessonBlockType.HEADING]: ({ block, onUpdateBlock, compact, accentColor }) =>
+    compact ? (
+      <TypographyInspectorPanel compact={compact} accentColor={accentColor} />
+    ) : (
+      <HeadingBlockInspector block={block as HeadingBlockData} onUpdateBlock={onUpdateBlock} />
+    ),
   [LessonBlockType.CALLOUT]: ({ block, onUpdateBlock }) => (
     <CalloutBlockInspector
       block={block as CalloutBlockData}
@@ -128,11 +132,20 @@ const BLOCK_INSPECTOR_STRATEGIES: BlockInspectorStrategyMap = {
 };
 
 export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
-  const { block, blockIndex, onUpdateBlock, onRemoveBlock, onClose, className } = props;
+  const {
+    block,
+    blockIndex,
+    onUpdateBlock,
+    onRemoveBlock,
+    onClose,
+    className,
+    compact,
+    accentColor,
+  } = props;
 
   if (!block) {
     return (
-      <aside className={className || "w-72 bg-white border-l border-stone-200 p-6 flex flex-col items-center justify-center text-center text-stone-700 shrink-0 select-none"}>
+      <aside className={className || "w-full bg-white border-l border-stone-200 p-6 flex flex-col items-center justify-center text-center text-stone-700 shrink-0 select-none"}>
         <span className="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center mb-3 text-white">
           <Settings2 className="w-5 h-5" strokeWidth={1.75} />
         </span>
@@ -151,7 +164,7 @@ export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
   const renderStrategy = BLOCK_INSPECTOR_STRATEGIES[block.type];
 
   return (
-    <aside className={className || "w-72 bg-white border-l border-stone-200 flex flex-col justify-between shrink-0 h-full overflow-y-auto select-none"}>
+    <aside className={className || "w-full bg-white border-l border-stone-200 flex flex-col justify-between shrink-0 h-full overflow-y-auto select-none"}>
       <div className="p-4 space-y-4">
         {/* Header Inspector */}
         <div className="flex items-center justify-between border-b border-stone-200 pb-3">
@@ -203,27 +216,28 @@ export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
           )}
         </div>
 
-        {/* Công tắc: Hiển thị trên di động */}
-        <div className="flex items-center justify-between py-3 border-t border-b border-stone-200">
-          <span className="text-sm font-medium text-stone-800">
-            Hiển thị trên di động
-          </span>
-          <button
-            type="button"
-            onClick={() =>
-              onUpdateBlock(block.id, { showOnMobile: !isShowOnMobile })
-            }
-            className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
-              isShowOnMobile ? 'bg-stone-900' : 'bg-stone-300'
-            }`}
-          >
-            <span
-              className={`bg-white w-4 h-4 rounded-full transform transition-transform ${
-                isShowOnMobile ? 'translate-x-4' : 'translate-x-0'
+        {!compact && (
+          <div className="flex items-center justify-between py-3 border-t border-b border-stone-200">
+            <span className="text-sm font-medium text-stone-800">
+              Hiển thị trên di động
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                onUpdateBlock(block.id, { showOnMobile: !isShowOnMobile })
+              }
+              className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                isShowOnMobile ? 'bg-stone-900' : 'bg-stone-300'
               }`}
-            />
-          </button>
-        </div>
+            >
+              <span
+                className={`bg-white w-4 h-4 rounded-full transform transition-transform ${
+                  isShowOnMobile ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Footer Inspector: Nút Xóa khối */}

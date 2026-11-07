@@ -62,6 +62,72 @@ export class PublicContentController {
     return this.service.getTimelineBySlug(slug);
   }
 
+  @Get('periods')
+  @ApiOperation({ summary: 'Danh sách giai đoạn / timeline được công khai' })
+  getPeriods() {
+    return this.service.getPeriods();
+  }
+
+  @Get('periods/:slug')
+  @ApiOperation({ summary: 'Chi tiết giai đoạn / timeline công khai' })
+  getPeriodBySlug(@Param('slug') slug: string) {
+    return this.service.getPeriodBySlug(slug);
+  }
+
+  @Get('events')
+  @ApiOperation({ summary: 'Danh sách sự kiện lịch sử đã xuất bản' })
+  getEvents() {
+    return this.service.getEvents();
+  }
+
+  @Get('events/:slug')
+  @ApiOperation({ summary: 'Chi tiết sự kiện lịch sử đã xuất bản' })
+  getEventBySlug(@Param('slug') slug: string) {
+    return this.service.getEventBySlug(slug);
+  }
+
+  @Get('figures')
+  @ApiOperation({ summary: 'Danh sách nhân vật lịch sử đã xuất bản' })
+  getFigures() {
+    return this.service.getFigureDirectory();
+  }
+
+  @Get('figures/directory')
+  @ApiOperation({ summary: 'Danh mục nhân vật lịch sử công khai' })
+  getFigureDirectory() {
+    return this.service.getFigureDirectory();
+  }
+
+  @Get('figures/:slug')
+  @ApiOperation({ summary: 'Chi tiết nhân vật lịch sử đã xuất bản' })
+  getFigureBySlug(@Param('slug') slug: string) {
+    return this.service.getFigureBySlug(slug);
+  }
+
+  @Get('locations')
+  @ApiOperation({ summary: 'Danh sách di tích / địa danh lịch sử đã xuất bản' })
+  getLocations() {
+    return this.service.getLocations();
+  }
+
+  @Get('locations/:slug')
+  @ApiOperation({ summary: 'Chi tiết di tích / địa danh lịch sử đã xuất bản' })
+  getLocationBySlug(@Param('slug') slug: string) {
+    return this.service.getLocationBySlug(slug);
+  }
+
+  @Get('taxonomies')
+  @ApiOperation({ summary: 'Danh mục taxonomy legacy phục vụ giao diện công khai cũ' })
+  @ApiQuery({ name: 'groups', required: false, description: 'Ví dụ: REGION,FIGURE_ROLE hoặc REGION' })
+  getTaxonomies(@Query('groups') groups?: string | string[]) {
+    const values = Array.isArray(groups)
+      ? groups
+      : groups
+        ? groups.split(',').map((g) => g.trim()).filter(Boolean)
+        : [];
+    return this.service.getTaxonomies(values);
+  }
+
   @Get('tags')
   @ApiOperation({ summary: 'Tag có bài viết đã xuất bản' })
   getTags() {

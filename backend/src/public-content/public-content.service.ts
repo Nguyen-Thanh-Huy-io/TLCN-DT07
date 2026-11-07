@@ -208,6 +208,232 @@ export class PublicContentService {
 
   // ---------- Tag ----------
   /** Tag có ít nhất 1 bài viết đã xuất bản (dùng cho bộ lọc / mây tag). */
+  private resolveCategoryKind(
+    category: { id: string; kind?: string | null; parentId?: string | null; parent?: { id: string; kind?: string | null; parentId?: string | null } | null } | null,
+    byId: Map<string, { id: string; kind?: string | null; parentId?: string | null }>,
+  ): 'PERSON' | 'EVENT' | 'LOCATION' | 'DYNASTY' | 'OTHER' {
+    let current = category;
+    const seen = new Set<string>();
+    while (current && !seen.has(current.id)) {
+      if (current.kind) return current.kind as 'PERSON' | 'EVENT' | 'LOCATION' | 'DYNASTY' | 'OTHER';
+      seen.add(current.id);
+      current = current.parentId ? byId.get(current.parentId) ?? null : null;
+    }
+    return 'OTHER';
+  }
+
+  private async getPublishedArticleListByKind(kind: 'PERSON' | 'EVENT' | 'LOCATION' | 'DYNASTY' | 'OTHER') {
+    const [categories, articles] = await Promise.all([
+      this.prisma.category.findMany({ include: { parent: true } }),
+      this.prisma.article.findMany({
+        where: { status: PUBLISHED },
+        orderBy: BY_YEAR,
+        include: {
+          category: { include: { parent: true } },
+          timelineNodes: { where: { timeline: { status: PUBLISHED } }, orderBy: { displayOrder: 'asc' }, include: { timeline: true } },
+        },
+      }),
+    ]);
+
+    const byId = new Map(categories.map((category) => [category.id, category]));
+    return articles
+      .filter((article) => this.resolveCategoryKind(article.category, byId) === kind)
+      .map((article) => {
+        const timeline = article.timelineNodes[0]?.timeline ?? null;
+        const category = article.category ?? null;
+        const categoryName = category?.name ?? 'Khác';
+        const metadata = typeof article.metadata === 'object' && article.metadata ? (article.metadata as Record<string, any>) : {};
+        const region = typeof metadata.region === 'string' ? metadata.region : null;
+        const person = typeof metadata.person === 'object' && metadata.person ? metadata.person as Record<string, any> : {};
+        const site = typeof metadata.site === 'object' && metadata.site ? metadata.site as Record<string, any> : {};
+        return {
+          id: article.id,
+          slug: article.slug,
+          title: article.title,
+          name: article.title,
+          startYear: article.startYear,
+          endYear: article.endYear,
+          dateText: article.dateText,
+          description: article.summary,
+          summary: article.summary,
+          imageUrl: article.coverImageUrl,
+          coverImageUrl: article.coverImageUrl,
+          location: region,
+          region,
+          category: categoryName,
+          categoryId: article.categoryId,
+          periodSlug: timeline?.slug ?? null,
+          eventDateNote: article.dateText,
+          figures: [],
+          locations: [],
+          role: person?.occupation ?? null,
+          siteType: site?.siteType ?? null,
+          siteTypeLabel: site?.siteType ?? null,
+          rankCode: site?.rank ?? null,
+          rankLabel: site?.rank ?? null,
+          address: site?.address ?? null,
+          geo: site?.latitude && site?.longitude ? { latitude: site.latitude, longitude: site.longitude } : null,
+          metadata,
+        };
+      });
+  }
+
+  async getPeriods() {
+    const timelines = await this.prisma.timeline.findMany({
+      where: { status: PUBLISHED },
+      orderBy: [{ displayOrder: 'asc' }, { title: 'asc' }],
+      include: { nodes: { orderBy: { displayOrder: 'asc' } } },
+    });
+
+    return timelines.map((timeline) => {
+      const years = timeline.nodes
+        .map((node) => node.year)
+        .filter((year): year is number => typeof year === 'number');
+      const startYear = years.length ? Math.min(...years) : 0;
+      const endYear = years.length ? Math.max(...years) : null;
+      return {
+        id: timeline.id,
+        parentId: null,
+        slug: timeline.slug,
+        name: timeline.title,
+        timeLabel: timeline.title,
+        startYear,
+        endYear,
+        description: timeline.description,
+        coverImageUrl: timeline.coverImageUrl,
+        region: null,
+      };
+    });
+  }
+
+  async getPeriodBySlug(slug: string) {
+    const timeline = await this.prisma.timeline.findFirst({
+      where: { slug, status: PUBLISHED },
+      include: { nodes: { orderBy: { displayOrder: 'asc' } } },
+    });
+    if (!timeline) throw new NotFoundException(PUBLIC_MESSAGES.TIMELINE_NOT_FOUND(slug));
+
+    const years = timeline.nodes
+      .map((node) => node.year)
+      .filter((year): year is number => typeof year === 'number');
+    return {
+      id: timeline.id,
+      parentId: null,
+      slug: timeline.slug,
+      name: timeline.title,
+      timeLabel: timeline.title,
+      startYear: years.length ? Math.min(...years) : 0,
+      endYear: years.length ? Math.max(...years) : null,
+      description: timeline.description,
+      coverImageUrl: timeline.coverImageUrl,
+      region: null,
+      topics: [],
+      figures: [],
+      events: [],
+      parent: null,
+      children: [],
+      locations: [],
+      concurrentPeriods: [],
+      concurrentEvents: [],
+    };
+  }
+
+  async getEvents() {
+    return this.getPublishedArticleListByKind('EVENT');
+  }
+
+  async getEventBySlug(slug: string) {
+    const article = await this.prisma.article.findFirst({
+      where: { slug, status: PUBLISHED },
+      include: {
+        category: { include: { parent: true } },
+        timelineNodes: { where: { timeline: { status: PUBLISHED } }, orderBy: { displayOrder: 'asc' }, include: { timeline: true } },
+      },
+    });
+    if (!article) throw new NotFoundException(PUBLIC_MESSAGES.ARTICLE_NOT_FOUND(slug));
+    const categories = await this.prisma.category.findMany({ include: { parent: true } });
+    const byId = new Map(categories.map((category) => [category.id, category]));
+    if (this.resolveCategoryKind(article.category, byId) !== 'EVENT') {
+      throw new NotFoundException(PUBLIC_MESSAGES.ARTICLE_NOT_FOUND(slug));
+    }
+    return this.getPublishedArticleListByKind('EVENT').then((items) => items.find((item) => item.slug === slug) ?? article);
+  }
+
+  async getFigureDirectory() {
+    return this.getPublishedArticleListByKind('PERSON');
+  }
+
+  async getFigureBySlug(slug: string) {
+    const article = await this.prisma.article.findFirst({
+      where: { slug, status: PUBLISHED },
+      include: { category: { include: { parent: true } }, timelineNodes: { where: { timeline: { status: PUBLISHED } }, orderBy: { displayOrder: 'asc' }, include: { timeline: true } } },
+    });
+    if (!article) throw new NotFoundException(PUBLIC_MESSAGES.ARTICLE_NOT_FOUND(slug));
+    const categories = await this.prisma.category.findMany({ include: { parent: true } });
+    const byId = new Map(categories.map((category) => [category.id, category]));
+    if (this.resolveCategoryKind(article.category, byId) !== 'PERSON') {
+      throw new NotFoundException(PUBLIC_MESSAGES.ARTICLE_NOT_FOUND(slug));
+    }
+    return this.getPublishedArticleListByKind('PERSON').then((items) => items.find((item) => item.slug === slug) ?? article);
+  }
+
+  async getLocations() {
+    return this.getPublishedArticleListByKind('LOCATION');
+  }
+
+  async getLocationBySlug(slug: string) {
+    const article = await this.prisma.article.findFirst({
+      where: { slug, status: PUBLISHED },
+      include: { category: { include: { parent: true } }, timelineNodes: { where: { timeline: { status: PUBLISHED } }, orderBy: { displayOrder: 'asc' }, include: { timeline: true } } },
+    });
+    if (!article) throw new NotFoundException(PUBLIC_MESSAGES.ARTICLE_NOT_FOUND(slug));
+    const categories = await this.prisma.category.findMany({ include: { parent: true } });
+    const byId = new Map(categories.map((category) => [category.id, category]));
+    if (this.resolveCategoryKind(article.category, byId) !== 'LOCATION') {
+      throw new NotFoundException(PUBLIC_MESSAGES.ARTICLE_NOT_FOUND(slug));
+    }
+    return this.getPublishedArticleListByKind('LOCATION').then((items) => items.find((item) => item.slug === slug) ?? article);
+  }
+
+  async getTaxonomies(groups: string[] = []) {
+    const requested = groups.length ? groups : ['REGION', 'FIGURE_ROLE', 'EVENT_TYPE'];
+    const categories = await this.prisma.category.findMany({
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+      include: { parent: true },
+    });
+
+    const mapped = requested.map((groupCode) => {
+      const group = groupCode.toUpperCase();
+      const terms = categories
+        .filter((category) => {
+          const kind = this.resolveCategoryKind(category, new Map(categories.map((item) => [item.id, item])));
+          if (group === 'EVENT_TYPE') return category.parentId !== null && kind === 'EVENT';
+          if (group === 'REGION') return kind === 'LOCATION' || category.name.toLowerCase().includes('khu vực');
+          if (group === 'FIGURE_ROLE') return kind === 'PERSON' || category.name.toLowerCase().includes('vai trò');
+          return false;
+        })
+        .map((category) => ({
+          id: category.id,
+          groupCode: group,
+          code: category.slug,
+          label: category.name,
+          inverseLabel: null,
+          description: category.description,
+          icon: category.icon,
+          displayOrder: category.displayOrder,
+          aliases: [],
+          parentId: category.parentId,
+          meta: null,
+          isActive: true,
+        }));
+
+      return { groupCode: group, terms };
+    });
+
+    if (requested.length === 1) return mapped[0]?.terms ?? [];
+    return mapped;
+  }
+
   async getTags() {
     const tags = await this.prisma.tag.findMany({
       orderBy: { name: 'asc' },

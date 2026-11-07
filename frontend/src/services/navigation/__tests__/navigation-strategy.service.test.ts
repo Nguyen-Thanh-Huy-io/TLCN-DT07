@@ -12,39 +12,36 @@ describe('Navigation Strategy & Facade Pattern Suite (Section 7.1 Admin Areas)',
     assert.ok(instance1);
   });
 
-  it('should return 4 navigation groups matching NavGroupId', () => {
+  it('should return 3 navigation groups matching NavGroupId', () => {
     const groups = navigationFacade.getNavGroups();
-    assert.strictEqual(groups.length, 4);
+    assert.strictEqual(groups.length, 3);
 
     const groupIds = groups.map((g) => g.id);
     assert.deepStrictEqual(groupIds, [
-      NavGroupId.DASHBOARD,
       NavGroupId.LEARNING,
       NavGroupId.KNOWLEDGE,
       NavGroupId.SYSTEM,
     ]);
   });
 
-  it('should cover all 12 admin areas in Section 7.1', () => {
+  it('should cover the active admin areas in the simplified CMS menu', () => {
     const groups = navigationFacade.getNavGroups();
     const allItems = groups.flatMap((g) => g.items);
 
-    const expected12Pages = [
-      NavigationPageKey.DASHBOARD, // 1. Dashboard tổng quan
-      NavigationPageKey.CURRICULUM, // 2. Quản lý bài học
-      NavigationPageKey.ARTICLES, // 3. Bài viết
-      NavigationPageKey.TIMELINES, // 4. Dòng thời gian
-      NavigationPageKey.CATEGORIES, // 5. Chuyên mục
-      NavigationPageKey.TAGS, // 6. Tag
-      NavigationPageKey.MEDIA, // 7. Quản lý nguồn tư liệu và media
-      NavigationPageKey.QUESTIONS, // 8. Ngân hàng câu hỏi
-      NavigationPageKey.QUIZZES, // 9. Quản lý bộ Quiz
-      NavigationPageKey.USERS, // 10. Quản lý người dùng và phân quyền
-      NavigationPageKey.ANALYTICS, // 11. Thống kê học tập và hoạt động
-      NavigationPageKey.SETTINGS, // 12. Cài đặt hệ thống
+    const expectedPages = [
+      NavigationPageKey.CURRICULUM, // 1. Quản lý bài học
+      NavigationPageKey.ARTICLES, // 2. Bài viết
+      NavigationPageKey.TIMELINES, // 3. Dòng thời gian
+      NavigationPageKey.CATEGORIES, // 4. Chuyên mục
+      NavigationPageKey.TAGS, // 5. Tag
+      NavigationPageKey.MEDIA, // 6. Quản lý nguồn tư liệu và media
+      NavigationPageKey.QUESTIONS, // 7. Ngân hàng câu hỏi
+      NavigationPageKey.QUIZZES, // 8. Quản lý bộ Quiz
+      NavigationPageKey.USERS, // 9. Quản lý người dùng và phân quyền
+      NavigationPageKey.SETTINGS, // 10. Cài đặt hệ thống
     ];
 
-    for (const expectedPage of expected12Pages) {
+    for (const expectedPage of expectedPages) {
       const found = allItems.find((item) => item.page === expectedPage);
       assert.ok(found, `Missing admin area item for page key: ${expectedPage}`);
       assert.ok(found.label.length > 0, `Item ${expectedPage} should have a non-empty label`);
@@ -56,15 +53,15 @@ describe('Navigation Strategy & Facade Pattern Suite (Section 7.1 Admin Areas)',
   it('should resolve active page accurately for sidebar navigation', () => {
     assert.strictEqual(
       navigationFacade.resolveActiveSidebarPage('cms'),
-      NavigationPageKey.DASHBOARD,
+      NavigationPageKey.CURRICULUM,
     );
     assert.strictEqual(
       navigationFacade.resolveActiveSidebarPage(NavigationPageKey.DASHBOARD),
-      NavigationPageKey.DASHBOARD,
+      NavigationPageKey.CURRICULUM,
     );
     assert.strictEqual(
       navigationFacade.resolveActiveSidebarPage(NavigationPageKey.ANALYTICS),
-      NavigationPageKey.ANALYTICS,
+      NavigationPageKey.CURRICULUM,
     );
     assert.strictEqual(
       navigationFacade.resolveActiveSidebarPage(NavigationPageKey.CURRICULUM),
@@ -105,9 +102,6 @@ describe('Navigation Strategy & Facade Pattern Suite (Section 7.1 Admin Areas)',
   });
 
   it('should correctly resolve breadcrumbs across strategies', () => {
-    const crumbDashboard = navigationFacade.resolveBreadcrumb(NavigationPageKey.DASHBOARD);
-    assert.strictEqual(crumbDashboard.groupTitle, 'TỔNG QUAN & BÁO CÁO');
-
     const crumbLessons = navigationFacade.resolveBreadcrumb(NavigationPageKey.CURRICULUM);
     assert.strictEqual(crumbLessons.groupTitle, 'QUẢN TRỊ BÀI HỌC & QUIZ');
 

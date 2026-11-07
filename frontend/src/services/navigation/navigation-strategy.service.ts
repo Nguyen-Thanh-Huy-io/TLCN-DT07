@@ -238,6 +238,15 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
       groupId: this.groupId,
       subtitle: 'Kiểm duyệt chất lượng nội dung',
     },
+    {
+      id: 'nav-blog-review',
+      label: NAV_ITEM_LABELS.BLOG_REVIEW,
+      icon: IconName.FILE,
+      page: NavigationPageKey.BLOG_REVIEW,
+      route: APP_ROUTES.BLOG_REVIEW,
+      groupId: this.groupId,
+      subtitle: 'Duyệt riêng blog và chỉnh sửa trước khi xuất bản',
+    },
   ];
 
   getItems(): NavItemConfig[] {
@@ -249,6 +258,7 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
       NavigationPageKey.USERS,
       NavigationPageKey.SETTINGS,
       NavigationPageKey.REVIEW,
+      NavigationPageKey.BLOG_REVIEW,
     ].includes(pageKey as NavigationPageKey);
   }
 
@@ -260,6 +270,8 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
         return this.items[1];
       case NavigationPageKey.REVIEW:
         return this.items[2];
+      case NavigationPageKey.BLOG_REVIEW:
+        return this.items[3];
       default:
         return this.items[0];
     }
@@ -275,7 +287,6 @@ export class NavigationFacade {
 
   private constructor() {
     this.strategies = [
-      new DashboardNavStrategy(),
       new LearningNavStrategy(),
       new KnowledgeNavStrategy(),
       new SystemNavStrategy(),
@@ -307,9 +318,8 @@ export class NavigationFacade {
     switch (pageKey) {
       case NavigationPageKey.CMS:
       case NavigationPageKey.DASHBOARD:
-        return NavigationPageKey.DASHBOARD;
       case NavigationPageKey.ANALYTICS:
-        return NavigationPageKey.ANALYTICS;
+        return NavigationPageKey.CURRICULUM;
       case NavigationPageKey.CURRICULUM:
       case NavigationPageKey.TOPICS:
       case NavigationPageKey.LESSONS:
@@ -334,8 +344,10 @@ export class NavigationFacade {
         return NavigationPageKey.SETTINGS;
       case NavigationPageKey.REVIEW:
         return NavigationPageKey.REVIEW;
+      case NavigationPageKey.BLOG_REVIEW:
+        return NavigationPageKey.BLOG_REVIEW;
       default:
-        return NavigationPageKey.DASHBOARD;
+        return NavigationPageKey.CURRICULUM;
     }
   }
 

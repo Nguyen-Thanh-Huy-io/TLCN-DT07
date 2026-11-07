@@ -43,7 +43,7 @@ import { formatYear } from '@/utils/year-label';
 import { RANK_LABELS, type HeritageRank } from '@/features/heritage/heritage.types';
 import { CANONICAL_ROLE_LABELS, LOCATION_TYPE_LABELS, LocationType } from '@/constants/enums';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001').replace('://localhost', '://127.0.0.1');
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000').replace('://localhost', '://127.0.0.1');
 
 export const PUBLIC_ROUTE_PREFIX = {
   PERIOD: '/giai-doan',

@@ -21,6 +21,7 @@ const PUBLIC_ROUTE_PREFIXES = [
   '/chuong-trinh-hoc',
   '/bai-hoc',
   '/bai-viet',
+  '/blog',
   '/chuyen-muc',
   '/tag/',
   '/dong-thoi-gian',
@@ -67,8 +68,14 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   };
 
   // If public HISGO route (Home, Styleguide, Login, or public user-facing pages), render standalone without CMS Admin Sidebar/Topbar
+  const isPublicBlogRoute = pathname === "/blog" || pathname.startsWith("/blog/");
   const isHisgoPublicRoute =
-    pathname === "/" || PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+    pathname === "/" ||
+    (!pathname.startsWith("/blog-review") &&
+      !pathname.startsWith("/review/blog") &&
+      PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) ||
+    isPublicBlogRoute;
+
   if (isHisgoPublicRoute) {
     return (
       <FigureProfileProvider>

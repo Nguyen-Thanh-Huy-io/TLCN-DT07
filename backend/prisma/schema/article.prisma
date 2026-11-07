@@ -75,6 +75,7 @@ model Article {
   topic         Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
   articleTags   ArticleTag[]
   timelineNodes TimelineNode[]
+  comments      ArticleComment[] @relation("ArticleCommentArticle")
   linksOut      ArticleLink[]  @relation("ArticleLinkSource")
   linksIn       ArticleLink[]  @relation("ArticleLinkTarget")
 
@@ -119,4 +120,31 @@ model ArticleLink {
   @@unique([sourceId, targetId])
   @@index([targetId])
   @@map("article_links")
+}
+
+enum ArticleCommentStatus {
+  VISIBLE
+  REMOVED
+}
+
+model ArticleComment {
+  id        String               @id @default(uuid())
+  articleId  String               @map("article_id")
+  authorId  String               @map("author_id")
+  parentId  String?              @map("parent_id")
+  content   String               @db.Text
+  status    ArticleCommentStatus @default(VISIBLE)
+  likeCount Int                  @default(0) @map("like_count")
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
+  deletedAt DateTime?            @map("deleted_at")
+
+  article Article @relation("ArticleCommentArticle", fields: [articleId], references: [id], onDelete: Cascade)
+  author  authUser @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent  ArticleComment? @relation("ArticleCommentChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  replies ArticleComment[] @relation("ArticleCommentChildren")
+
+  @@index([articleId, deletedAt])
+  @@index([parentId])
+  @@map("article_comments")
 }

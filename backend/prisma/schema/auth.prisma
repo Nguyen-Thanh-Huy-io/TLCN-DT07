@@ -30,6 +30,7 @@ model authUser {
   notifications     Notification[]
   quizAttempts      QuizAttempt[]
   notes             Note[]
+  articleComments   ArticleComment[]
 
   @@index([email, id, providerId])
   @@index([username])

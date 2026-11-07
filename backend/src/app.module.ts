@@ -21,6 +21,7 @@ import { UploadModule } from './upload/upload.module';
 import { LearningPathModule } from './learning-path/learning-path.module';
 import { PublicContentModule } from './public-content/public-content.module';
 import { CategoryModule } from './category/category.module';
+import { BlogModule } from './blog/blog.module';
 import { ArticleModule } from './article/article.module';
 import { TimelineModule } from './timeline/timeline.module';
 import { QuizModule } from './quiz/quiz.module';
@@ -56,6 +57,7 @@ import { NoteModule } from './note/note.module';
     UploadModule,
     LearningPathModule,
     CategoryModule,
+    BlogModule,
     ArticleModule,
     TimelineModule,
     PublicContentModule,

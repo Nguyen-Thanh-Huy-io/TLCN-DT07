@@ -148,14 +148,45 @@ export class ArticleService {
     };
   }
 
+  private async resolveEffectiveArticleStatus(
+    categoryId: string | null | undefined,
+    requestedStatus: ContentStatus | undefined,
+  ): Promise<ContentStatus | undefined> {
+    if (!categoryId) return requestedStatus;
+
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { name: true, slug: true },
+    });
+
+    if (!category) return requestedStatus;
+
+    const normalizedName = `${category.name ?? ''} ${category.slug ?? ''}`
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    const isBlogCategory = ['blog', 'bai-viet', 'bai viet', 'bài viết'].some((token) =>
+      normalizedName.includes(token),
+    );
+
+    if (isBlogCategory && (!requestedStatus || requestedStatus === ContentStatus.DRAFT)) {
+      return ContentStatus.PENDING_REVIEW;
+    }
+
+    return requestedStatus;
+  }
+
   async create(dto: CreateArticleDto, authorId?: string) {
-    const { tagIds, metadata, links, ...data } = dto;
-    await this.validate(dto);
+    const effectiveStatus = await this.resolveEffectiveArticleStatus(dto.categoryId, dto.status);
+    const normalizedDto = { ...dto, status: effectiveStatus };
+    const { tagIds, metadata, links, ...data } = normalizedDto;
+    await this.validate(normalizedDto);
     await this.validateLinks(links);
     const meta = normalizeArticleMetadata(metadata);
-    const slug = dto.slug
-      ? await this.assertSlugFree(dto.slug)
-      : await this.slugService.generateUnique(dto.title, (s) => this.slugExists(s));
+    const slug = normalizedDto.slug
+      ? await this.assertSlugFree(normalizedDto.slug)
+      : await this.slugService.generateUnique(normalizedDto.title, (s) => this.slugExists(s));
 
     const created = await this.prisma.article.create({
       data: {
@@ -175,15 +206,20 @@ export class ArticleService {
   async update(id: string, dto: UpdateArticleDto) {
     const current = await this.prisma.article.findUnique({ where: { id } });
     if (!current) throw new NotFoundException(ARTICLE_MESSAGES.NOT_FOUND(id));
+    const effectiveStatus = await this.resolveEffectiveArticleStatus(
+      dto.categoryId ?? current.categoryId,
+      dto.status ?? current.status,
+    );
+    const normalizedDto = { ...dto, status: effectiveStatus };
     await this.validate({
-      ...dto,
-      startYear: dto.startYear !== undefined ? dto.startYear : current.startYear,
-      endYear: dto.endYear !== undefined ? dto.endYear : current.endYear,
+      ...normalizedDto,
+      startYear: normalizedDto.startYear !== undefined ? normalizedDto.startYear : current.startYear,
+      endYear: normalizedDto.endYear !== undefined ? normalizedDto.endYear : current.endYear,
     });
-    await this.validateLinks(dto.links, id);
-    if (dto.slug && dto.slug !== current.slug) await this.assertSlugFree(dto.slug, id);
+    await this.validateLinks(normalizedDto.links, id);
+    if (normalizedDto.slug && normalizedDto.slug !== current.slug) await this.assertSlugFree(normalizedDto.slug, id);
 
-    const { tagIds, contentBlocks, metadata, links, ...data } = dto;
+    const { tagIds, contentBlocks, metadata, links, ...data } = normalizedDto;
     const meta = metadata !== undefined ? normalizeArticleMetadata(metadata) : undefined;
     const becomesPublished =
       data.status === ContentStatus.PUBLISHED && current.status !== ContentStatus.PUBLISHED;

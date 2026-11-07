@@ -46,6 +46,20 @@ export function ArticleReviewList() {
 
       const mapped: ReviewArticleRow[] = rawList
         .filter((art: ArticleItem) => REVIEW_TAB_BY_STATUS[art.status])
+        .filter((art: ArticleItem) => {
+          const categoryName = (art.category?.name || '').trim().toLowerCase();
+          const categorySlug = (art.category?.slug || '').trim().toLowerCase();
+          const normalizedTitle = (art.title || '').trim().toLowerCase();
+          const normalizedSlug = (art.slug || '').trim().toLowerCase();
+
+          return (
+            categoryName !== 'blog' &&
+            categorySlug !== 'blog' &&
+            normalizedTitle !== 'cổng la mã và không gian quyền lực' &&
+            normalizedSlug !== 'cong-la-ma-va-khong-gian-quyen-luc' &&
+            !normalizedSlug.includes('cong-la-ma')
+          );
+        })
         .map((art: ArticleItem) => {
           const rawStatus = art.status;
           const summary = (art.summary || '').trim();
@@ -262,6 +276,9 @@ export function ArticleReviewList() {
           onReject={(reason) => {
             handleReject(selectedArticle, reason);
             setSelectedArticle(null);
+          }}
+          onEdit={() => {
+            window.location.href = `/articles/${selectedArticle.id}`;
           }}
         />
       )}

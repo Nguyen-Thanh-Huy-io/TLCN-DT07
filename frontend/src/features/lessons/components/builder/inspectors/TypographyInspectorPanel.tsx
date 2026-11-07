@@ -36,7 +36,13 @@ const TEXT_COLUMN_OPTIONS = [1, 2, 3] as const;
  * Bảng điều khiển Định dạng Chữ & Dàn trang Tạp chí (Rich Text Typography Inspector).
  * Tách độc lập theo nguyên tắc Single Responsibility Principle (SRP).
  */
-export function TypographyInspectorPanel() {
+export function TypographyInspectorPanel({
+  compact = false,
+  accentColor = '#7c4b2e',
+}: {
+  compact?: boolean;
+  accentColor?: string;
+}) {
   const { activeEditor: ed } = useActiveEditor();
   const [isLinkPanelOpen, setIsLinkPanelOpen] = useState(false);
 
@@ -114,42 +120,46 @@ export function TypographyInspectorPanel() {
           Kiểu chữ & Phông chữ
         </div>
 
-        <select
-          value={
-            activeBlockType === 'paragraph' && isLeadParagraphActive
-              ? 'lead'
-              : activeBlockType
-          }
-          onChange={(e) => handleStyleChange(e.target.value)}
-          disabled={!ed}
-          className="w-full text-sm font-medium px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 cursor-pointer text-stone-900"
-        >
-          <option value="paragraph">Đoạn văn thường</option>
-          <option value="lead">Đoạn dẫn nhập (Tạp chí)</option>
-          <option value="h1">Tiêu đề chính</option>
-          <option value="h2">Tiêu đề mục lớn</option>
-          <option value="h3">Tiêu đề tiểu mục</option>
-          <option value="blockquote">Khối trích dẫn</option>
-          <option value="codeBlock">Khối tư liệu gốc</option>
-        </select>
+        {!compact && (
+          <select
+            value={
+              activeBlockType === 'paragraph' && isLeadParagraphActive
+                ? 'lead'
+                : activeBlockType
+            }
+            onChange={(e) => handleStyleChange(e.target.value)}
+            disabled={!ed}
+            className="w-full text-sm font-medium px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 cursor-pointer text-stone-900"
+          >
+            <option value="paragraph">Đoạn văn thường</option>
+            <option value="lead">Đoạn dẫn nhập (Tạp chí)</option>
+            <option value="h1">Tiêu đề chính</option>
+            <option value="h2">Tiêu đề mục lớn</option>
+            <option value="h3">Tiêu đề tiểu mục</option>
+            <option value="blockquote">Khối trích dẫn</option>
+            <option value="codeBlock">Khối tư liệu gốc</option>
+          </select>
+        )}
 
-        <select
-          value={currentFont}
-          onChange={(e) => applyInlineAttr({ fontFamily: e.target.value })}
-          disabled={!ed}
-          className="w-full text-sm font-medium px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 cursor-pointer text-stone-900"
-        >
-          <option value="var(--font-be-vietnam-pro), sans-serif">
-            Chữ hiện đại (Không chân)
-          </option>
-          <option value="var(--font-merriweather), serif">
-            Chữ cổ điển (Có chân)
-          </option>
-          <option value="var(--font-noto-serif), serif">
-            Chữ biên niên sử (Nét thanh đậm)
-          </option>
-          <option value="monospace">Chữ hành chính (Đơn cách)</option>
-        </select>
+        {!compact && (
+          <select
+            value={currentFont}
+            onChange={(e) => applyInlineAttr({ fontFamily: e.target.value })}
+            disabled={!ed}
+            className="w-full text-sm font-medium px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 cursor-pointer text-stone-900"
+          >
+            <option value="var(--font-be-vietnam-pro), sans-serif">
+              Chữ hiện đại (Không chân)
+            </option>
+            <option value="var(--font-merriweather), serif">
+              Chữ cổ điển (Có chân)
+            </option>
+            <option value="var(--font-noto-serif), serif">
+              Chữ biên niên sử (Nét thanh đậm)
+            </option>
+            <option value="monospace">Chữ hành chính (Đơn cách)</option>
+          </select>
+        )}
 
         {/* Hàng 1: [ Đậm | Nghiêng | Gạch chân | Gạch ngang ] + [ Cỡ chữ ] */}
         <div className="flex items-center gap-2">
@@ -167,18 +177,22 @@ export function TypographyInspectorPanel() {
                 Icon: Italic,
                 run: () => ed?.chain().focus().toggleItalic().run(),
               },
-              {
-                key: 'underline',
-                title: 'Gạch chân',
-                Icon: Underline,
-                run: () => ed?.chain().focus().toggleUnderline().run(),
-              },
-              {
-                key: 'strike',
-                title: 'Gạch ngang',
-                Icon: Strikethrough,
-                run: () => ed?.chain().focus().toggleStrike().run(),
-              },
+              ...(compact
+                ? []
+                : [
+                    {
+                      key: 'underline',
+                      title: 'Gạch chân',
+                      Icon: Underline,
+                      run: () => ed?.chain().focus().toggleUnderline().run(),
+                    },
+                    {
+                      key: 'strike',
+                      title: 'Gạch ngang',
+                      Icon: Strikethrough,
+                      run: () => ed?.chain().focus().toggleStrike().run(),
+                    },
+                  ]),
             ].map(({ key, title, Icon, run }) => (
               <button
                 key={key}
@@ -187,9 +201,16 @@ export function TypographyInspectorPanel() {
                 onClick={run}
                 className={`flex-1 py-2 rounded-lg border transition-colors cursor-pointer flex items-center justify-center ${
                   ed?.isActive(key)
-                    ? 'bg-stone-900 text-white border-stone-900'
+                    ? 'text-white border-stone-900'
                     : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
                 }`}
+                style={
+                  ed?.isActive(key)
+                    ? {
+                        backgroundColor: accentColor,
+                      }
+                    : undefined
+                }
                 title={title}
               >
                 <Icon className="w-4 h-4" strokeWidth={2} />
@@ -326,108 +347,112 @@ export function TypographyInspectorPanel() {
         </div>
       </div>
 
-      {/* Giãn dòng & Dàn trang tạp chí (Drop Cap + Chia cột văn bản) */}
-      <div className="space-y-3 pt-3 border-t border-stone-200">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-stone-800">Giãn dòng</span>
-          <select
-            value={currentLineHeight}
-            onChange={(e) => applyNodeAttr({ lineHeight: e.target.value })}
-            className="text-sm font-semibold px-3 py-1.5 bg-white border border-stone-300 rounded-lg focus:outline-none cursor-pointer text-stone-900"
-          >
-            {LINE_HEIGHT_OPTIONS.map((lh) => (
-              <option key={lh} value={lh}>
-                {lh}
-              </option>
-            ))}
-          </select>
-        </div>
+      {!compact && (
+        <>
+          {/* Giãn dòng & Dàn trang tạp chí (Drop Cap + Chia cột văn bản) */}
+          <div className="space-y-3 pt-3 border-t border-stone-200">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-stone-800">Giãn dòng</span>
+              <select
+                value={currentLineHeight}
+                onChange={(e) => applyNodeAttr({ lineHeight: e.target.value })}
+                className="text-sm font-semibold px-3 py-1.5 bg-white border border-stone-300 rounded-lg focus:outline-none cursor-pointer text-stone-900"
+              >
+                {LINE_HEIGHT_OPTIONS.map((lh) => (
+                  <option key={lh} value={lh}>
+                    {lh}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <label className="flex items-center justify-between text-sm font-medium text-stone-800 cursor-pointer">
-          <span>Chữ cái đầu đoạn lớn (Drop Cap)</span>
-          <input
-            type="checkbox"
-            checked={isDropCapActive}
-            disabled={!ed || nodeType !== 'paragraph'}
-            onChange={(e) => applyNodeAttr({ dropCap: e.target.checked })}
-            className="rounded text-stone-900 focus:ring-0 w-4 h-4"
-          />
-        </label>
+            <label className="flex items-center justify-between text-sm font-medium text-stone-800 cursor-pointer">
+              <span>Chữ cái đầu đoạn lớn (Drop Cap)</span>
+              <input
+                type="checkbox"
+                checked={isDropCapActive}
+                disabled={!ed || nodeType !== 'paragraph'}
+                onChange={(e) => applyNodeAttr({ dropCap: e.target.checked })}
+                className="rounded text-stone-900 focus:ring-0 w-4 h-4"
+              />
+            </label>
 
-        <div className="space-y-1.5">
-          <span className="block text-sm font-medium text-stone-800">
-            Chia cột đoạn văn (Tạp chí)
-          </span>
-          <div className="grid grid-cols-3 gap-1.5">
-            {TEXT_COLUMN_OPTIONS.map((cols) => (
+            <div className="space-y-1.5">
+              <span className="block text-sm font-medium text-stone-800">
+                Chia cột đoạn văn (Tạp chí)
+              </span>
+              <div className="grid grid-cols-3 gap-1.5">
+                {TEXT_COLUMN_OPTIONS.map((cols) => (
+                  <button
+                    key={cols}
+                    type="button"
+                    onMouseDown={preventFocusLoss}
+                    disabled={!ed || nodeType !== 'paragraph'}
+                    onClick={() => applyNodeAttr({ textColumns: cols })}
+                    className={`py-1.5 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
+                      currentTextColumns === cols
+                        ? 'bg-stone-900 text-white border-stone-900'
+                        : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
+                    }`}
+                  >
+                    {cols} cột
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Chèn vào văn bản */}
+          <div className="pt-3 border-t border-stone-200 space-y-2">
+            <div className="text-xs font-bold uppercase tracking-wider text-stone-700">
+              Chèn vào văn bản
+            </div>
+            <div className="grid grid-cols-3 gap-2">
               <button
-                key={cols}
+                type="button"
+                data-testid="btn-toggle-wiki-link-panel"
+                onMouseDown={preventFocusLoss}
+                onClick={() => setIsLinkPanelOpen((prev) => !prev)}
+                className={`py-2 px-2 border rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                  isLinkPanelOpen || ed?.isActive('link')
+                    ? 'bg-stone-900 text-white border-stone-900'
+                    : 'bg-white hover:bg-stone-50 border-stone-300 text-stone-800'
+                }`}
+                title="Gắn liên kết văn bản (Ctrl+K)"
+              >
+                <Link2 className="w-4 h-4" />
+                <span>Liên kết</span>
+              </button>
+              <button
                 type="button"
                 onMouseDown={preventFocusLoss}
-                disabled={!ed || nodeType !== 'paragraph'}
-                onClick={() => applyNodeAttr({ textColumns: cols })}
-                className={`py-1.5 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
-                  currentTextColumns === cols
-                    ? 'bg-stone-900 text-white border-stone-900'
-                    : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
-                }`}
+                onClick={handleInsertImage}
+                className="py-2 px-2 bg-white hover:bg-stone-50 border border-stone-300 rounded-lg text-sm font-medium text-stone-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                title="Chèn hình ảnh"
               >
-                {cols} cột
+                <ImageIcon className="w-4 h-4 text-stone-700" />
+                <span>Ảnh</span>
               </button>
-            ))}
+              <button
+                type="button"
+                onMouseDown={preventFocusLoss}
+                onClick={() => ed?.chain().focus().setHorizontalRule().run()}
+                className="py-2 px-2 bg-white hover:bg-stone-50 border border-stone-300 rounded-lg text-sm font-medium text-stone-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                title="Chèn đường kẻ ngang"
+              >
+                <Minus className="w-4 h-4 text-stone-700" />
+                <span>Kẻ ngang</span>
+              </button>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Chèn vào văn bản */}
-      <div className="pt-3 border-t border-stone-200 space-y-2">
-        <div className="text-xs font-bold uppercase tracking-wider text-stone-700">
-          Chèn vào văn bản
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            data-testid="btn-toggle-wiki-link-panel"
-            onMouseDown={preventFocusLoss}
-            onClick={() => setIsLinkPanelOpen((prev) => !prev)}
-            className={`py-2 px-2 border rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-              isLinkPanelOpen || ed?.isActive('link')
-                ? 'bg-stone-900 text-white border-stone-900'
-                : 'bg-white hover:bg-stone-50 border-stone-300 text-stone-800'
-            }`}
-            title="Gắn liên kết văn bản (Ctrl+K)"
-          >
-            <Link2 className="w-4 h-4" />
-            <span>Liên kết</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={preventFocusLoss}
-            onClick={handleInsertImage}
-            className="py-2 px-2 bg-white hover:bg-stone-50 border border-stone-300 rounded-lg text-sm font-medium text-stone-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-            title="Chèn hình ảnh"
-          >
-            <ImageIcon className="w-4 h-4 text-stone-700" />
-            <span>Ảnh</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={preventFocusLoss}
-            onClick={() => ed?.chain().focus().setHorizontalRule().run()}
-            className="py-2 px-2 bg-white hover:bg-stone-50 border border-stone-300 rounded-lg text-sm font-medium text-stone-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-            title="Chèn đường kẻ ngang"
-          >
-            <Minus className="w-4 h-4 text-stone-700" />
-            <span>Kẻ ngang</span>
-          </button>
-        </div>
-      </div>
-
-      <WikiLinkInspectorSection
-        editor={ed}
-        isOpen={isLinkPanelOpen}
-        onOpenChange={setIsLinkPanelOpen}
-      />
+          <WikiLinkInspectorSection
+            editor={ed}
+            isOpen={isLinkPanelOpen}
+            onOpenChange={setIsLinkPanelOpen}
+          />
+        </>
+      )}
     </div>
   );
 }

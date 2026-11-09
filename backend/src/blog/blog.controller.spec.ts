@@ -17,6 +17,7 @@ describe('BlogController', () => {
             updateComment: jest.fn(),
             deleteComment: jest.fn(),
             likeComment: jest.fn(),
+            reviewPost: jest.fn(),
           },
         },
       ],
@@ -27,5 +28,19 @@ describe('BlogController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('should delegate review to blog service', async () => {
+    const reviewPost = jest.fn().mockResolvedValue({ id: 'post-1', status: 'PUBLISHED' });
+    const service = (controller as any).blogService ?? { reviewPost };
+
+    Object.defineProperty(controller, 'blogService', {
+      value: service,
+      configurable: true,
+    });
+
+    await controller.review('post-1', { status: 'PUBLISHED' });
+
+    expect(service.reviewPost).toHaveBeenCalledWith('post-1', { status: 'PUBLISHED' });
   });
 });

@@ -8,11 +8,42 @@ import {
   Post,
 } from '@nestjs/common';
 import { CreateCommentDto, DeleteCommentDto, LikeCommentDto, UpdateCommentDto } from './dto/comment.dto';
+import { CreateBlogPostDto, ReviewBlogPostDto, UpdateBlogPostDto } from './dto/blog-post.dto';
 import { BlogService } from './blog.service';
 
 @Controller('posts')
 export class BlogController {
   constructor(private readonly blogService: BlogService) {}
+
+  @Get()
+  listPosts() {
+    return this.blogService.listPosts();
+  }
+
+  @Get(':slug')
+  getPostBySlug(@Param('slug') slug: string) {
+    return this.blogService.getPostBySlug(slug);
+  }
+
+  @Post()
+  createPost(@Body() dto: CreateBlogPostDto) {
+    return this.blogService.createPost(dto);
+  }
+
+  @Patch(':id/review')
+  review(@Param('id') id: string, @Body() dto: ReviewBlogPostDto) {
+    return this.blogService.reviewPost(id, dto);
+  }
+
+  @Patch(':id')
+  updatePost(@Param('id') id: string, @Body() dto: UpdateBlogPostDto) {
+    return this.blogService.updatePost(id, dto);
+  }
+
+  @Delete(':id')
+  deletePost(@Param('id') id: string) {
+    return this.blogService.deletePost(id);
+  }
 
   @Get(':id/comments')
   getComments(@Param('id') postId: string) {

@@ -154,6 +154,55 @@ export class PublicContentService {
     };
   }
 
+  async getBlogPosts() {
+    const rows = await this.prisma.blogPost.findMany({
+      where: { status: PUBLISHED },
+      orderBy: [{ isFeatured: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }],
+      include: { author: { select: { id: true, username: true } } },
+    });
+
+    return rows.map((post) => ({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      coverImageUrl: post.coverImageUrl,
+      contentBlocks: post.contentBlocks ?? [],
+      status: post.status,
+      isFeatured: post.isFeatured,
+      publishedAt: post.publishedAt,
+      updatedAt: post.updatedAt,
+      createdAt: post.createdAt,
+      author: post.author ? { id: post.author.id, username: post.author.username } : null,
+    }));
+  }
+
+  async getBlogPostBySlug(slug: string) {
+    const post = await this.prisma.blogPost.findFirst({
+      where: { slug, status: PUBLISHED },
+      include: { author: { select: { id: true, username: true } } },
+    });
+
+    if (!post) {
+      throw new NotFoundException(`Không tìm thấy blog "${slug}"`);
+    }
+
+    return {
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      coverImageUrl: post.coverImageUrl,
+      contentBlocks: post.contentBlocks ?? [],
+      status: post.status,
+      isFeatured: post.isFeatured,
+      publishedAt: post.publishedAt,
+      updatedAt: post.updatedAt,
+      createdAt: post.createdAt,
+      author: post.author ? { id: post.author.id, username: post.author.username } : null,
+    };
+  }
+
   // ---------- Dòng thời gian ----------
   private readonly timelineInclude = {
     nodes: {

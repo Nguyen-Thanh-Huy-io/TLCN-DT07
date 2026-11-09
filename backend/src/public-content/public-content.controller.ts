@@ -50,6 +50,18 @@ export class PublicContentController {
     return this.service.getArticleBySlug(slug);
   }
 
+  @Get('blog')
+  @ApiOperation({ summary: 'Danh sách blog đã xuất bản' })
+  getBlogPosts() {
+    return this.service.getBlogPosts();
+  }
+
+  @Get('blog/:slug')
+  @ApiOperation({ summary: 'Chi tiết blog đã xuất bản' })
+  getBlogPostBySlug(@Param('slug') slug: string) {
+    return this.service.getBlogPostBySlug(slug);
+  }
+
   @Get('timelines')
   @ApiOperation({ summary: 'Mọi dòng thời gian đã xuất bản kèm mốc' })
   getTimelines() {

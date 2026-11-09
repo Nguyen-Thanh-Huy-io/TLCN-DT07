@@ -1,0 +1,28 @@
+// ================================
+// Blog Post Entity
+// ================================
+// Blog là một thực thể riêng, không còn bị suy ra từ Category của Article.
+// Dùng cho nội dung truyền thông / cập nhật / tin tức / blog của HISGO.
+
+model BlogPost {
+  id            String       @id @default(uuid())
+  authorId      String       @map("author_id")
+  title         String       @db.VarChar(255)
+  slug          String       @unique @db.VarChar(255)
+  excerpt       String?      @db.Text
+  coverImageUrl String?      @map("cover_image_url") @db.VarChar(500)
+  contentBlocks Json         @default("[]") @map("content_blocks") @db.JsonB
+  status        ContentStatus @default(DRAFT)
+  isFeatured    Boolean      @default(false) @map("is_featured")
+  publishedAt   DateTime?    @map("published_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  author authUser @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([publishedAt])
+  @@map("blog_posts")
+}

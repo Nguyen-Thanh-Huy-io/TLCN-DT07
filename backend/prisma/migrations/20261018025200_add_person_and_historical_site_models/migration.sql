@@ -30,10 +30,14 @@ CREATE TABLE IF NOT EXISTS "historical_sites" (
     CONSTRAINT "historical_sites_entity_id_fkey" FOREIGN KEY ("entity_id") REFERENCES "historical_entities"("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- 3. Create Index on site_type
+-- 3. Backfill legacy date-label columns if they were introduced later in the historical schema
+ALTER TABLE "historical_entities" ADD COLUMN IF NOT EXISTS "birth_date_label" VARCHAR(100);
+ALTER TABLE "historical_entities" ADD COLUMN IF NOT EXISTS "death_date_label" VARCHAR(100);
+
+-- 4. Create Index on site_type
 CREATE INDEX IF NOT EXISTS "historical_sites_site_type_idx" ON "historical_sites"("site_type");
 
--- 4. Migrate existing data from historical_entities into persons for PERSON entities
+-- 5. Migrate existing data from historical_entities into persons for PERSON entities
 INSERT INTO "persons" ("entity_id", "birth_year", "death_year", "birth_date_label", "death_date_label")
 SELECT "id", "birth_year", "death_year", "birth_date_label", "death_date_label"
 FROM "historical_entities"

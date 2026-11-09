@@ -149,31 +149,9 @@ export class ArticleService {
   }
 
   private async resolveEffectiveArticleStatus(
-    categoryId: string | null | undefined,
+    _categoryId: string | null | undefined,
     requestedStatus: ContentStatus | undefined,
   ): Promise<ContentStatus | undefined> {
-    if (!categoryId) return requestedStatus;
-
-    const category = await this.prisma.category.findUnique({
-      where: { id: categoryId },
-      select: { name: true, slug: true },
-    });
-
-    if (!category) return requestedStatus;
-
-    const normalizedName = `${category.name ?? ''} ${category.slug ?? ''}`
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-
-    const isBlogCategory = ['blog', 'bai-viet', 'bai viet', 'bài viết'].some((token) =>
-      normalizedName.includes(token),
-    );
-
-    if (isBlogCategory && (!requestedStatus || requestedStatus === ContentStatus.DRAFT)) {
-      return ContentStatus.PENDING_REVIEW;
-    }
-
     return requestedStatus;
   }
 
@@ -274,15 +252,22 @@ export class ArticleService {
   ) {
     const current = await this.prisma.article.findUnique({
       where: { id },
-      select: { id: true, status: true, createdBy: true },
+      select: {
+        id: true,
+        status: true,
+        createdBy: true,
+        category: { select: { name: true, slug: true } },
+      },
     });
     if (!current) throw new NotFoundException(ARTICLE_MESSAGES.NOT_FOUND(id));
+
+    const isBlogArticle = this.isBlogCategory(current.category);
 
     if (current.status !== ContentStatus.PENDING_REVIEW) {
       throw new ForbiddenException('Chỉ duyệt được bài viết đang ở trạng thái chờ duyệt (PENDING_REVIEW).');
     }
-    if (reviewerUserId && current.createdBy === reviewerUserId) {
-      throw new ForbiddenException('Bạn không thể tự duyệt bài viết do chính mình biên soạn.');
+    if (reviewerUserId && current.createdBy === reviewerUserId && !isBlogArticle) {
+      throw new ForbiddenException('Người tạo không được tự duyệt bài viết của chính mình.');
     }
     if (dto.status === ContentStatus.REJECTED && !dto.rejectionReason?.trim()) {
       throw new BadRequestException('Vui lòng nhập lý do từ chối bài viết.');
@@ -308,6 +293,19 @@ export class ArticleService {
       note: l.note?.trim() || null,
       displayOrder: index,
     };
+  }
+
+  private isBlogCategory(category: { name?: string | null; slug?: string | null } | null) {
+    if (!category) return false;
+
+    const normalizedName = `${category.name ?? ''} ${category.slug ?? ''}`
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    return ['blog', 'bai-viet', 'bai viet', 'bài viết'].some((token) =>
+      normalizedName.includes(token),
+    );
   }
 
   private async validateLinks(links: ArticleLinkInputDto[] | undefined, selfId?: string) {

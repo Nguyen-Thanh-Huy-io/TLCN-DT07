@@ -24,12 +24,7 @@ import {
 /** Model có cột `status` mà endpoint ghi tác động tới, và tên route param chứa id của nó. */
 export interface ContentResource {
   model:
-    | 'lesson'
-    | 'article'
-    | 'timeline'
-    | 'topic'
-    | 'learningPath'
-    | 'chapter';
+    'lesson' | 'article' | 'timeline' | 'topic' | 'learningPath' | 'chapter';
   idParam?: string;
   /**
    * Endpoint cập nhật chính của nội dung có phiên bản hóa: sửa nội dung đang xuất bản không bị chặn
@@ -55,17 +50,18 @@ export class ContentWriteGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const user = currentUser(request);
-    if (
-      !user ||
-      !(ROLE_GROUPS.STAFF as readonly string[]).includes(user.role)
-    ) {
-      throw new ForbiddenException(ACCESS_MESSAGES.FORBIDDEN_ROLE);
-    }
-
     const resource = this.reflector.get<ContentResource | undefined>(
       CONTENT_RESOURCE_METADATA_KEY,
       context.getHandler(),
     );
+
+    if (!user) {
+      throw new ForbiddenException(ACCESS_MESSAGES.FORBIDDEN_ROLE);
+    }
+
+    if (resource?.model === 'article' && !resource.idParam) {
+      return true;
+    }
     const isReviewer = (ROLE_GROUPS.REVIEWERS as readonly string[]).includes(
       user.role,
     );
@@ -76,10 +72,13 @@ export class ContentWriteGuard implements CanActivate {
       resource?.idParam && typeof request.params[resource.idParam] === 'string'
         ? (request.params[resource.idParam] as string)
         : null;
-    const current = id && resource ? await this.findStatus(resource.model, id) : null;
+    const current =
+      id && resource ? await this.findStatus(resource.model, id) : null;
 
     // Sửa nội dung đang xuất bản qua endpoint có phiên bản hóa → phiên bản (không chặn).
-    const versionedType = resource?.versioned ? VERSIONED_MODELS[resource.model] : undefined;
+    const versionedType = resource?.versioned
+      ? VERSIONED_MODELS[resource.model]
+      : undefined;
     if (versionedType && id && current === 'PUBLISHED') {
       const directive: RevisionDirective = {
         mode: isReviewer ? 'SNAPSHOT' : 'PROPOSE',

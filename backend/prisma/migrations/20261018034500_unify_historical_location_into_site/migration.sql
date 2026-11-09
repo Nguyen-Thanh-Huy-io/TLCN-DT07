@@ -12,6 +12,10 @@
 -- Step 1: Add LOCATION to HistoricalEntityType enum if not already present
 ALTER TYPE "HistoricalEntityType" ADD VALUE IF NOT EXISTS 'LOCATION';
 
+-- Step 2: Backfill columns expected by the historical entity migration
+ALTER TABLE "historical_entities" ADD COLUMN IF NOT EXISTS "description" TEXT;
+ALTER TABLE "historical_entities" ADD COLUMN IF NOT EXISTS "aliases" TEXT[] DEFAULT ARRAY[]::TEXT[];
+
 -- Step 2: Migrate data from historical_locations to historical_entities and historical_sites
 INSERT INTO "historical_entities" (
     "id",

@@ -6,6 +6,9 @@ enum NotificationType {
   NEW_QUESTION    // Có độc giả/người học đặt câu hỏi mới
   NEW_REPLY       // Có phản hồi vào câu hỏi
   OFFICIAL_REPLY  // Ban biên soạn trả lời chính thức
+  BLOG_COMMENT    // Có bình luận mới trên bài viết blog
+  CONTENT_APPROVED // Bài viết/bài học đã được duyệt
+  CONTENT_REJECTED // Bài viết/bài học bị từ chối duyệt
 }
 
 model Notification {

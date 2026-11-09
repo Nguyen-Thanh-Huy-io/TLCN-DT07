@@ -8,6 +8,7 @@ import { navigationFacade } from '@/services/navigation/navigation-strategy.serv
 import { useAuthSession } from '@/services/auth/useAuthSession';
 import { USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
 import { NavigationPageKey } from '@/constants/routes';
+import { NotificationBell } from '@/components/hisgo/NotificationBell';
 
 export interface TopbarProps {
   page: string;
@@ -68,14 +69,7 @@ export function Topbar({ page, openNav, collapsed, toggleCollapse }: TopbarProps
           <input placeholder="Tìm nhanh (⌘K)..." />
           <kbd>⌘K</kbd>
         </label>
-        <button
-          type="button"
-          className="icon-btn notification"
-          aria-label="Thông báo"
-        >
-          <Icon name={IconName.BELL} size={15} />
-          <i />
-        </button>
+        <NotificationBell variant="topbar" />
         <span className="top-divider" />
         <Avatar text={(user?.username || user?.email || '').slice(0, 2).toUpperCase()} small />
         <div className="top-user">

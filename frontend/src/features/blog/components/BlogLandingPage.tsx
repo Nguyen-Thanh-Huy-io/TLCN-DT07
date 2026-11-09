@@ -1,19 +1,232 @@
 import Link from 'next/link';
-import { ArrowRight, CalendarDays, Clock3, Sparkles } from 'lucide-react';
+import { CalendarDays, Sparkles, TrendingUp } from 'lucide-react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import { BlogComposerBar } from '@/features/blog/components/BlogComposerBar';
-import { blogCategories, blogPosts, featuredBlogPost } from '@/features/blog/blog-data';
+import { BlogFeaturedSlider } from '@/features/blog/components/BlogFeaturedSlider';
+import { BlogBrowser } from '@/features/blog/components/BlogBrowser';
+import { fetchBlogPosts, type PublicBlogPostSummary } from '@/services/public/public-content.service';
 
-export function BlogLandingPage() {
-  const mainPosts = blogPosts.slice(0, 4);
-  const sidebarPosts = blogPosts.slice(4, 6);
+const accentPalette = [
+  'from-[#7b3f2b] via-[#b27342] to-[#d9c09b]',
+  'from-[#3a4d43] via-[#6a7d5f] to-[#d2c5a3]',
+  'from-[#513b31] via-[#9b724f] to-[#e0c8a8]',
+  'from-[#2e3a3d] via-[#58716a] to-[#d7d0bf]',
+  'from-[#5a3929] via-[#ad7659] to-[#f0dabc]',
+  'from-[#3d4a55] via-[#72828a] to-[#eee1bf]',
+];
+
+const extractMetadataFromBlocks = (contentBlocks: unknown) => {
+  if (!Array.isArray(contentBlocks)) {
+    return { tags: [] as string[], references: [] as Array<{ title?: string; source?: string; url?: string }> };
+  }
+
+  const metadataCandidate = contentBlocks.find((block) => {
+    if (!block || typeof block !== 'object') return false;
+    const candidate = block as Record<string, unknown>;
+    return (
+      (candidate.type === 'meta' && candidate.kind === 'metadata') ||
+      candidate.type === 'metadata' ||
+      candidate.kind === 'metadata' ||
+      Array.isArray(candidate.tags) ||
+      Array.isArray(candidate.references) ||
+      (candidate.metadata && typeof candidate.metadata === 'object')
+    );
+  });
+
+  const payload =
+    metadataCandidate && typeof metadataCandidate === 'object'
+      ? ((metadataCandidate as Record<string, unknown>).metadata && typeof (metadataCandidate as Record<string, unknown>).metadata === 'object'
+          ? ((metadataCandidate as Record<string, unknown>).metadata as Record<string, unknown>)
+          : (metadataCandidate as Record<string, unknown>))
+      : {};
+
+  const fallbackPayload = contentBlocks.reduce<Record<string, unknown>>((acc, block) => {
+    if (!block || typeof block !== 'object') return acc;
+    const candidate = block as Record<string, unknown>;
+    if ((candidate.type === 'meta' && candidate.kind === 'metadata') || candidate.type === 'metadata' || candidate.kind === 'metadata') {
+      return { ...acc, ...(candidate.metadata && typeof candidate.metadata === 'object' ? (candidate.metadata as Record<string, unknown>) : candidate) };
+    }
+    return acc;
+  }, {});
+
+  const finalPayload = { ...fallbackPayload, ...payload };
+  const rawTags = Array.isArray(finalPayload.tags) ? finalPayload.tags : [];
+  const rawReferences = Array.isArray(finalPayload.references) ? finalPayload.references : [];
+
+  return {
+    tags: rawTags
+      .map((tag) => {
+        if (typeof tag === 'string') return tag;
+        if (tag && typeof tag === 'object') {
+          if ('name' in tag && typeof tag.name === 'string') return tag.name;
+          if ('value' in tag && typeof tag.value === 'string') return tag.value;
+        }
+        return '';
+      })
+      .filter((tag): tag is string => tag.trim().length > 0)
+      .map((tag) => tag.replace(/^#/, '')),
+    references: rawReferences
+      .filter((reference): reference is Record<string, unknown> => !!reference && typeof reference === 'object')
+      .map((reference) => ({
+        title: typeof reference.title === 'string' ? reference.title : typeof reference.name === 'string' ? reference.name : '',
+        source: typeof reference.source === 'string' ? reference.source : '',
+        url: typeof reference.url === 'string' ? reference.url : typeof reference.link === 'string' ? reference.link : '',
+      })),
+  };
+};
+
+const mapPostToCard = (post: PublicBlogPostSummary, index: number) => {
+  const metadata = extractMetadataFromBlocks(post.contentBlocks);
+
+  return {
+    slug: post.slug,
+    title: post.title,
+    excerpt: post.excerpt || 'Bài viết lịch sử được HISGO biên tập và cập nhật.',
+    category: 'Blog',
+    author: post.author?.username || 'HISGO Editorial',
+    date: post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('vi-VN') : 'Mới cập nhật',
+    image: post.coverImageUrl || '',
+    accent: accentPalette[index % accentPalette.length],
+    featured: Boolean(post.isFeatured),
+    tags: metadata.tags,
+  };
+};
+
+export async function BlogLandingPage({ author }: { author?: string } = {}) {
+  const postsFromApi = await fetchBlogPosts();
+  const posts = postsFromApi.map(mapPostToCard);
+
+  if (author) {
+    const authorTrimmed = author.trim();
+    const authorPosts = posts.filter(
+      (p) => p.author.toLowerCase() === authorTrimmed.toLowerCase(),
+    );
+
+    return (
+      <div className="hisgo-theme min-h-screen bg-[#f7f1e7] text-[#1f2a2b]">
+        <Header activeTab="blog" />
+
+        <main className="mx-auto max-w-[1280px] px-4 py-8 md:px-6 lg:px-8 lg:py-10 font-[family-name:var(--font-body)]">
+          <div className="mb-8 flex flex-col gap-4 border-b border-[#d7c7b2] pb-6 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <Link
+                  href="/blog"
+                  className="text-xs font-bold uppercase tracking-[0.22em] text-[#8a4d2d] transition hover:text-[#1f2a2b]"
+                >
+                  ← Tất cả bài viết
+                </Link>
+                <span className="text-[#8a4d2d]">•</span>
+                <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#7d5d3d]">
+                  Tác giả
+                </span>
+              </div>
+              <h1 className="font-[family-name:var(--font-heading)] text-3xl leading-none text-[#1f2a2b] md:text-5xl">
+                Bài viết của {authorTrimmed}
+              </h1>
+            </div>
+            <p className="max-w-xl text-sm leading-7 text-[#4f5d59] md:text-base">
+              Tìm thấy <strong className="text-[#1f2a2b]">{authorPosts.length}</strong> bài viết được đăng bởi tác giả này.
+            </p>
+          </div>
+
+          <BlogComposerBar />
+
+          {authorPosts.length === 0 ? (
+            <div className="rounded-[28px] border border-[#d7c7b2] bg-[#fffdf9] p-10 text-center shadow-[0_20px_40px_rgba(31,42,43,0.06)]">
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.24em] text-[#8a4d2d]">HISGO Blog</p>
+              <h2 className="mb-4 font-[family-name:var(--font-heading)] text-3xl">
+                Chưa có bài viết nào của tác giả &ldquo;{authorTrimmed}&rdquo;
+              </h2>
+              <p className="mb-6 text-[#536560]">
+                Tác giả này hiện chưa có bài viết nào được xuất bản hoặc tên tác giả không khớp.
+              </p>
+              <Link
+                href="/blog"
+                className="inline-flex items-center justify-center rounded-full bg-[#1f2a2b] px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[#f7f1e7] transition hover:bg-[#8a4d2d]"
+              >
+                Quay lại danh sách blog
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {authorPosts.map((post) => (
+                <article
+                  key={post.slug}
+                  className="overflow-hidden rounded-[24px] border border-[#d7c7b2] bg-[#fffdf9] shadow-[0_16px_30px_rgba(31,42,43,0.05)] transition hover:-translate-y-1 hover:shadow-[0_22px_40px_rgba(31,42,43,0.08)]"
+                >
+                  <Link href={`/blog/${post.slug}`} className="relative block h-56 overflow-hidden">
+                    {post.image ? (
+                      <img src={post.image} alt={post.title} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className={`h-full w-full bg-gradient-to-br ${post.accent}`} />
+                    )}
+                    {post.tags.length > 0 ? (
+                      <span className="absolute bottom-3 left-3 rounded-full border border-white/30 bg-black/40 px-2.5 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white backdrop-blur-sm">
+                        #{post.tags[0]}
+                      </span>
+                    ) : null}
+                  </Link>
+                  <div className="p-5">
+                    <div className="mb-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.14em] text-[#7d5d3d]">
+                      <span>{post.category}</span>
+                      <span>{post.date}</span>
+                    </div>
+                    <h3 className="mb-3 text-2xl font-[family-name:var(--font-heading)] leading-tight text-[#1f2a2b] transition hover:text-[#8a4d2d]">
+                      <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+                    </h3>
+                    <p className="mb-4 text-sm leading-7 text-[#536560] line-clamp-3">{post.excerpt}</p>
+                    <div className="flex items-center justify-between border-t border-[#efe3d8] pt-3">
+                      <span className="text-xs uppercase tracking-[0.12em] text-[#536560]">{post.author}</span>
+                      <Link href={`/blog/${post.slug}`} className="text-xs font-semibold text-[#8a4d2d] hover:underline">
+                        Đọc bài →
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const featuredPosts = [...posts]
+    .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
+    .slice(0, 5);
+  const featuredPost = featuredPosts[0] ?? null;
+  const sidebarPosts = posts.slice(0, 4);
+
+  if (!featuredPost) {
+    return (
+      <div className="hisgo-theme min-h-screen bg-[#f7f1e7] text-[#1f2a2b]">
+        <Header activeTab="blog" />
+        <main className="mx-auto max-w-[1280px] px-4 py-20 md:px-6 lg:px-8 font-[family-name:var(--font-body)]">
+          <div className="rounded-[28px] border border-[#d7c7b2] bg-[#fffdf9] p-10 text-center shadow-[0_20px_40px_rgba(31,42,43,0.06)]">
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.24em] text-[#8a4d2d]">HISGO</p>
+            <h1 className="mb-4 font-[family-name:var(--font-heading)] text-4xl">Chưa có bài viết nào</h1>
+            <p className="mb-6 text-[#536560]">Chưa có nội dung nào để hiển thị. Hãy tạo bài viết đầu tiên cho cộng đồng HISGO.</p>
+            <Link
+              href="/blog/create"
+              className="inline-flex items-center justify-center rounded-full bg-[#1f2a2b] px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[#f7f1e7] transition hover:bg-[#8a4d2d]"
+            >
+              Tạo bài viết đầu tiên
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#f7f1e7] text-[#1f2a2b]">
+    <div className="hisgo-theme min-h-screen bg-[#f7f1e7] text-[#1f2a2b]">
       <Header activeTab="blog" />
 
-      <main className="mx-auto max-w-[1280px] px-4 py-8 md:px-6 lg:px-8 lg:py-10">
+      <main className="mx-auto max-w-[1280px] px-4 py-8 md:px-6 lg:px-8 lg:py-10 font-[family-name:var(--font-body)]">
         <div className="mb-8 flex flex-col gap-4 border-b border-[#d7c7b2] pb-6 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-[#8a4d2d]">HISGO</p>
@@ -28,121 +241,73 @@ export function BlogLandingPage() {
 
         <BlogComposerBar />
 
-        <section className="mb-8 flex flex-wrap gap-3">
-          {blogCategories.map((category) => (
-            <button
-              key={category.name}
-              type="button"
-              className="rounded-full border border-[#d7c7b2] bg-[#fffdf9] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#2b3a38] transition hover:border-[#8a4d2d] hover:text-[#8a4d2d]"
-            >
-              {category.name} <span className="ml-1 text-[#7d5d3d]">({category.count})</span>
-            </button>
-          ))}
-        </section>
+        <section className="mb-12 mt-8 grid gap-6 lg:grid-cols-[1.55fr_0.7fr]">
+          <BlogFeaturedSlider posts={featuredPosts} autoPlayInterval={10000} />
 
-        <section className="mb-12 grid gap-6 lg:grid-cols-[1.55fr_0.7fr]">
-          <article className="overflow-hidden rounded-[28px] border border-[#d7c7b2] bg-[#fffdf9] shadow-[0_24px_50px_rgba(31,42,43,0.08)]">
-            <div className={`h-72 bg-gradient-to-br ${featuredBlogPost.accent} p-6 md:h-96`}>
-              <div className="flex h-full items-end justify-between gap-3">
-                <div className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-white backdrop-blur-sm">
-                  {featuredBlogPost.category}
+          <aside className="h-full">
+            <div className="flex h-full flex-col justify-between rounded-[28px] border border-[#d7c7b2] bg-[#fffdf9] p-6 shadow-[0_24px_50px_rgba(31,42,43,0.06)]">
+              <div>
+                <div className="mb-5 flex items-center justify-between border-b border-[#efe3d8] pb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#8a4d2d]/10 text-[#8a4d2d]">
+                      <TrendingUp size={15} />
+                    </span>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#8a4d2d]">
+                        Đọc nhiều
+                      </p>
+                      <h3 className="font-[family-name:var(--font-heading)] text-xl text-[#1f2a2b]">
+                        Xu hướng tuần
+                      </h3>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-medium text-[#7d5d3d]">
+                    Top nổi bật
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white backdrop-blur-sm">
-                  <Sparkles size={12} /> Bài nổi bật
-                </div>
+
+                <ul className="space-y-4">
+                  {sidebarPosts.map((post, index) => (
+                    <li
+                      key={post.slug}
+                      className="border-b border-[#efe3d8] pb-4 last:border-b-0 last:pb-0"
+                    >
+                      <Link href={`/blog/${post.slug}`} className="group flex items-start gap-3.5">
+                        <span className="font-[family-name:var(--font-heading)] text-2xl font-bold leading-none text-[#d7c7b2] transition group-hover:text-[#8a4d2d]">
+                          {String(index + 1).padStart(2, '0')}
+                        </span>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#7d5d3d]">
+                            <span>{post.category}</span>
+                            <span>•</span>
+                            <span>{post.date}</span>
+                          </div>
+                          <h4 className="line-clamp-2 text-sm font-semibold leading-snug text-[#1f2a2b] transition group-hover:text-[#8a4d2d]">
+                            {post.title}
+                          </h4>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
-            <div className="p-6 md:p-8">
-              <div className="mb-4 flex flex-wrap items-center gap-4 text-xs uppercase tracking-[0.12em] text-[#6d7a75]">
-                <span className="inline-flex items-center gap-2"><CalendarDays size={14} /> {featuredBlogPost.date}</span>
-                <span className="inline-flex items-center gap-2"><Clock3 size={14} /> {featuredBlogPost.readTime}</span>
-              </div>
-              <h2 className="mb-4 max-w-3xl font-[family-name:var(--font-heading)] text-3xl leading-tight text-[#1d2b2a] md:text-5xl">
-                {featuredBlogPost.title}
-              </h2>
-              <p className="mb-6 max-w-2xl text-base leading-8 text-[#465c59]">{featuredBlogPost.excerpt}</p>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-sm text-[#536560]">
-                  Viết bởi <span className="font-semibold text-[#1f2a2b]">{featuredBlogPost.author}</span>
-                </div>
+
+              <div className="mt-5 rounded-2xl border border-[#efe3d8] bg-[#fbf7f0] p-4 text-center">
+                <p className="text-xs text-[#536560]">
+                  Góp phần gìn giữ và lan tỏa tri thức cùng cộng đồng HISGO
+                </p>
                 <Link
-                  href={`/blog/${featuredBlogPost.slug}`}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#1f2a2b] px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[#f7f1e7] transition hover:bg-[#8a4d2d]"
+                  href="/blog/create"
+                  className="mt-2 inline-flex items-center justify-center text-xs font-bold text-[#8a4d2d] hover:underline"
                 >
-                  Đọc bài <ArrowRight size={16} />
+                  Viết bài chia sẻ →
                 </Link>
               </div>
-            </div>
-          </article>
-
-          <aside className="space-y-5">
-            <div className="rounded-[24px] border border-[#d7c7b2] bg-[#fffdf9] p-5 shadow-[0_22px_44px_rgba(31,42,43,0.06)]">
-              <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.22em] text-[#8a4d2d]">Xu hướng</p>
-              <ul className="space-y-4">
-                {sidebarPosts.map((post) => (
-                  <li key={post.slug} className="border-b border-[#efe3d8] pb-4 last:border-b-0 last:pb-0">
-                    <Link href={`/blog/${post.slug}`} className="group block space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#7d5d3d]">{post.category}</p>
-                      <h3 className="text-lg font-semibold leading-6 text-[#23312f] transition group-hover:text-[#8a4d2d]">
-                        {post.title}
-                      </h3>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="rounded-[24px] border border-[#d7c7b2] bg-[#1f2a2b] p-5 text-[#f7f1e7] shadow-[0_22px_40px_rgba(31,42,43,0.14)]">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#d8c09d]">Newsletter</p>
-              <h3 className="mb-3 text-2xl font-[family-name:var(--font-heading)]">Nhận bài mới mỗi tuần</h3>
-              <p className="mb-5 text-sm leading-7 text-[#e9dfd1]">
-                Lời kể lịch sử, văn hóa và hình ảnh ký ức được gửi trực tiếp cho bạn.
-              </p>
-              <button
-                type="button"
-                className="rounded-full bg-[#f7f1e7] px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#1f2a2b] transition hover:bg-[#d8c09d]"
-              >
-                Đăng ký ngay
-              </button>
             </div>
           </aside>
         </section>
 
-        <section>
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8a4d2d]">Bài mới nhất</p>
-              <h2 className="mt-2 font-[family-name:var(--font-heading)] text-3xl text-[#1f2a2b]">Câu chuyện đang được đọc</h2>
-            </div>
-            <Link href="/" className="text-sm font-semibold text-[#8a4d2d] transition hover:text-[#1f2a2b]">
-              Xem chi tiết →
-            </Link>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {mainPosts.map((post) => (
-              <article key={post.slug} className="overflow-hidden rounded-[24px] border border-[#d7c7b2] bg-[#fffdf9] shadow-[0_16px_30px_rgba(31,42,43,0.05)] transition hover:-translate-y-1 hover:shadow-[0_22px_40px_rgba(31,42,43,0.08)]">
-                <div className={`h-56 bg-gradient-to-br ${post.accent}`} />
-                <div className="p-5">
-                  <div className="mb-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.14em] text-[#7d5d3d]">
-                    <span>{post.category}</span>
-                    <span>{post.date}</span>
-                  </div>
-                  <Link href={`/blog/${post.slug}`} className="block">
-                    <h3 className="mb-3 text-2xl font-[family-name:var(--font-heading)] leading-tight text-[#1f2a2b] transition hover:text-[#8a4d2d]">
-                      {post.title}
-                    </h3>
-                  </Link>
-                  <p className="mb-4 text-sm leading-7 text-[#536560]">{post.excerpt}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-[0.12em] text-[#536560]">{post.author}</span>
-                    <span className="text-xs uppercase tracking-[0.12em] text-[#7d5d3d]">{post.readTime}</span>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+        <BlogBrowser posts={posts} />
       </main>
       <Footer />
     </div>

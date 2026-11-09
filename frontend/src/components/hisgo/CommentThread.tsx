@@ -180,7 +180,7 @@ const appendReplyToComment = (items: CommentItem[], parentId: string, reply: Rep
 export function CommentThread({ postId }: { postId?: string }) {
   const currentUser = getCurrentCommentUser();
   const [comments, setComments] = useState<CommentItem[]>([]);
-  const [name] = useState(currentUser.username);
+  const [name, setName] = useState(DEFAULT_COMMENT_USERNAME);
   const [content, setContent] = useState('');
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -192,6 +192,10 @@ export function CommentThread({ postId }: { postId?: string }) {
   const [isLoading, setIsLoading] = useState(false);
   const [feedbackNotice, setFeedbackNotice] = useState('');
   const socketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    setName(currentUser.username || DEFAULT_COMMENT_USERNAME);
+  }, [currentUser.username]);
 
   useEffect(() => {
     if (!postId) {

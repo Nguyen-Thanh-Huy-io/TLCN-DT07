@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ContentStatus } from '@/constants/enums';
-import { ArticleApiService, type ArticleItem } from '@/services/entities/article.service';
+import { BlogApiService, type BlogPostItem } from '@/services/entities/blog.service';
 import { extractErrorMessage } from '@/services/api';
 
 type ReviewTab = 'Chờ duyệt' | 'Đã duyệt' | 'Bị từ chối';
@@ -31,26 +31,10 @@ const stripHtml = (value?: string | null) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-const isBlogArticle = (item: ArticleItem) => {
-  const categoryName = (item.category?.name ?? '').trim().toLowerCase();
-  const categorySlug = (item.category?.slug ?? '').trim().toLowerCase();
-  return (
-    categorySlug === 'blog' ||
-    categoryName === 'blog' ||
-    categorySlug === 'bai-viet' ||
-    categoryName === 'bài viết' ||
-    categoryName === 'bai viet'
-  );
-};
-
-const normalizePost = (item: ArticleItem): ReviewPost => {
-  const summarySource = item.summary || (item as any)?.content || '';
+const normalizePost = (item: BlogPostItem): ReviewPost => {
+  const summarySource = item.excerpt || '';
   const summary = stripHtml(summarySource) || 'Bài viết chưa có mô tả.';
-  const author =
-    (item as any)?.creator?.fullName ||
-    (item as any)?.creator?.username ||
-    (item as any)?.creator?.email ||
-    'Biên tập viên';
+  const author = item.author?.username || 'Biên tập viên';
 
   return {
     id: item.id,
@@ -64,6 +48,81 @@ const normalizePost = (item: ArticleItem): ReviewPost => {
   };
 };
 
+const normalizeImageUrl = (value?: string | null) => {
+  if (!value) return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed) || /^data:/i.test(trimmed) || /^\/\//.test(trimmed)) return trimmed;
+  return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${trimmed.startsWith('/') ? trimmed : `/${trimmed}`}`;
+};
+
+const renderParagraphs = (value: string) =>
+  (value || '')
+    .split(/\n{2,}|\r\n\r\n/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => part.replace(/\r\n/g, '\n'));
+
+const extractMetadataFromBlocks = (contentBlocks: unknown) => {
+  if (!Array.isArray(contentBlocks)) {
+    return { tags: [] as string[], references: [] as Array<{ title?: string; source?: string; url?: string }> };
+  }
+
+  const metadataCandidate = contentBlocks.find((block) => {
+    if (!block || typeof block !== 'object') return false;
+    const candidate = block as Record<string, unknown>;
+    return (
+      (candidate.type === 'meta' && candidate.kind === 'metadata') ||
+      candidate.type === 'metadata' ||
+      candidate.kind === 'metadata' ||
+      Array.isArray(candidate.tags) ||
+      Array.isArray(candidate.references) ||
+      (candidate.metadata && typeof candidate.metadata === 'object')
+    );
+  });
+
+  const payload =
+    metadataCandidate && typeof metadataCandidate === 'object'
+      ? ((metadataCandidate as Record<string, unknown>).metadata && typeof (metadataCandidate as Record<string, unknown>).metadata === 'object'
+          ? ((metadataCandidate as Record<string, unknown>).metadata as Record<string, unknown>)
+          : (metadataCandidate as Record<string, unknown>))
+      : {};
+
+  const fallbackPayload = contentBlocks.reduce<Record<string, unknown>>((acc, block) => {
+    if (!block || typeof block !== 'object') return acc;
+    const candidate = block as Record<string, unknown>;
+    if ((candidate.type === 'meta' && candidate.kind === 'metadata') || candidate.type === 'metadata' || candidate.kind === 'metadata') {
+      return { ...acc, ...(candidate.metadata && typeof candidate.metadata === 'object' ? (candidate.metadata as Record<string, unknown>) : candidate) };
+    }
+    return acc;
+  }, {});
+
+  const finalPayload = { ...fallbackPayload, ...payload };
+  const rawTags = Array.isArray(finalPayload.tags) ? finalPayload.tags : [];
+  const rawReferences = Array.isArray(finalPayload.references) ? finalPayload.references : [];
+
+  return {
+    tags: rawTags
+      .map((tag) => {
+        if (typeof tag === 'string') return tag;
+        if (tag && typeof tag === 'object') {
+          if ('name' in tag && typeof tag.name === 'string') return tag.name;
+          if ('value' in tag && typeof tag.value === 'string') return tag.value;
+        }
+        return '';
+      })
+      .filter((tag): tag is string => tag.trim().length > 0)
+      .map((tag) => tag.replace(/^#/, '')),
+    references: rawReferences
+      .filter((reference): reference is Record<string, unknown> => !!reference && typeof reference === 'object')
+      .map((reference) => ({
+        title: typeof reference.title === 'string' ? reference.title : typeof reference.name === 'string' ? reference.name : '',
+        source: typeof reference.source === 'string' ? reference.source : '',
+        url: typeof reference.url === 'string' ? reference.url : typeof reference.link === 'string' ? reference.link : '',
+      })),
+  };
+};
+
 export function BlogReviewList() {
   const [tab, setTab] = useState<ReviewTab>('Chờ duyệt');
   const [items, setItems] = useState<ReviewPost[]>([]);
@@ -71,16 +130,16 @@ export function BlogReviewList() {
   const [search, setSearch] = useState('');
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const [selectedItem, setSelectedItem] = useState<ReviewPost | null>(null);
-T  const [previewArticle, setPreviewArticle] = useState<ArticleItem | null>(null);
+  const [previewArticle, setPreviewArticle] = useState<any | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ type: 'PUBLISHED' | 'REJECTED'; item: ReviewPost } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const response = await ArticleApiService.list({ page: 1, limit: 100 });
-      const blogOnly = (response.items || []).filter(isBlogArticle);
-      setItems(blogOnly.map(normalizePost));
+      const response = await BlogApiService.list();
+      setItems(response.map(normalizePost));
     } catch (error) {
       setItems([]);
       setNotice({
@@ -118,8 +177,9 @@ T  const [previewArticle, setPreviewArticle] = useState<ArticleItem | null>(null
   const handleOpenPreview = async (item: ReviewPost) => {
     try {
       setPreviewLoading(true);
-      const detail = await ArticleApiService.get(item.id);
-      setPreviewArticle(detail);
+      setSelectedItem(item);
+      const detail = (await BlogApiService.list()).find((post) => post.id === item.id) ?? null;
+      setPreviewArticle(detail as any);
     } catch (error) {
       setNotice({ tone: 'error', text: extractErrorMessage(error, 'Không thể mở bản xem trước.') });
     } finally {
@@ -129,7 +189,7 @@ T  const [previewArticle, setPreviewArticle] = useState<ArticleItem | null>(null
 
   const handleReview = async (item: ReviewPost, status: 'PUBLISHED' | 'REJECTED', reason?: string) => {
     try {
-      await ArticleApiService.review(item.id, {
+      await BlogApiService.review(item.id, {
         status,
         rejectionReason: status === 'REJECTED' ? reason?.trim() || undefined : undefined,
       });
@@ -157,6 +217,7 @@ T  const [previewArticle, setPreviewArticle] = useState<ArticleItem | null>(null
 
       setSelectedItem(null);
       setRejectReason('');
+      setConfirmAction(null);
     } catch (error) {
       setNotice({ tone: 'error', text: extractErrorMessage(error, 'Không thể cập nhật trạng thái bài.') });
     }
@@ -260,7 +321,15 @@ T  const [previewArticle, setPreviewArticle] = useState<ArticleItem | null>(null
                   </tr>
                 ) : (
                   filtered.map((item) => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                    <tr
+                      key={item.id}
+                      onClick={() => handleOpenPreview(item)}
+                      style={{
+                        borderBottom: '1px solid #e5e7eb',
+                        cursor: 'pointer',
+                        background: selectedItem?.id === item.id ? '#f9f7f3' : 'transparent',
+                      }}
+                    >
                       <td style={{ padding: '18px 16px', borderBottom: '1px solid #e5e7eb', verticalAlign: 'top' }}>
                         <div style={{ fontWeight: 700, fontSize: 18, color: '#1f2a37', marginBottom: 6 }}>{item.title}</div>
                         <div style={{ color: '#4d5561', fontSize: 14, lineHeight: 1.6 }}>{item.summary}</div>
@@ -286,66 +355,8 @@ T  const [previewArticle, setPreviewArticle] = useState<ArticleItem | null>(null
                           {item.status}
                         </span>
                       </td>
-                      <td style={{ padding: '18px 16px', borderBottom: '1px solid #e5e7eb' }}>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenPreview(item)}
-                            disabled={previewLoading}
-                            style={{
-                              border: '1px solid #cfc4b4',
-                              borderRadius: 999,
-                              background: '#f3efe7',
-                              color: '#1d2c32',
-                              fontWeight: 600,
-                              padding: '8px 12px',
-                              cursor: previewLoading ? 'wait' : 'pointer',
-                              fontSize: 13,
-                              opacity: previewLoading ? 0.7 : 1,
-                            }}
-                          >
-                            {previewLoading ? 'Đang mở...' : 'Xem'}
-                          </button>
-                          {item.status === 'Chờ duyệt' && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleReview(item, 'PUBLISHED')}
-                                style={{
-                                  border: 'none',
-                                  borderRadius: 999,
-                                  background: '#2d3a3f',
-                                  color: '#fff',
-                                  fontWeight: 700,
-                                  padding: '8px 12px',
-                                  cursor: 'pointer',
-                                  fontSize: 13,
-                                }}
-                              >
-                                Duyệt
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedItem(item);
-                                  setRejectReason('');
-                                }}
-                                style={{
-                                  border: '1px solid #e3b9b2',
-                                  borderRadius: 999,
-                                  background: '#f8e3e0',
-                                  color: '#8d3d34',
-                                  fontWeight: 600,
-                                  padding: '8px 12px',
-                                  cursor: 'pointer',
-                                  fontSize: 13,
-                                }}
-                              >
-                                Từ chối
-                              </button>
-                            </>
-                          )}
-                        </div>
+                      <td style={{ padding: '18px 16px', borderBottom: '1px solid #e5e7eb', color: '#5c5f64', fontSize: 13 }}>
+                        {previewLoading && selectedItem?.id === item.id ? 'Đang mở...' : 'Nhấp để xem'}
                       </td>
                     </tr>
                   ))
@@ -356,7 +367,7 @@ T  const [previewArticle, setPreviewArticle] = useState<ArticleItem | null>(null
         </div>
       </div>
 
-      {previewArticle && (
+      {selectedItem && previewArticle && (
         <div
           style={{
             position: 'fixed',
@@ -365,114 +376,234 @@ T  const [previewArticle, setPreviewArticle] = useState<ArticleItem | null>(null
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: 28,
-            zIndex: 60,
+            padding: 24,
+            zIndex: 40,
           }}
         >
           <div
             style={{
               width: '100%',
-              maxWidth: 1100,
-              maxHeight: '92vh',
+              maxWidth: 1120,
+              maxHeight: '88vh',
               overflowY: 'auto',
               background: '#fffdf9',
-              borderRadius: 28,
               border: '1px solid #e5e7eb',
-              boxShadow: '0 30px 90px rgba(15, 23, 42, 0.18)',
+              borderRadius: 24,
+              boxShadow: '0 18px 45px rgba(15, 23, 42, 0.18)',
+              position: 'relative',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px 0' }}>
-              <div style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7d5d3d', fontWeight: 700 }}>
-                Xem trước bài viết
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '18px 22px', borderBottom: '1px solid #e5e7eb', background: '#f7f3ee', position: 'sticky', top: 0, zIndex: 2 }}>
+              <div>
+                <div style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7d5d3d', fontWeight: 700 }}>
+                  Xem trước bài viết
+                </div>
+                <h3 style={{ margin: '8px 0 0', fontSize: 24, lineHeight: 1.2, color: '#1f2a37', fontWeight: 800 }}>{selectedItem.title}</h3>
               </div>
-              <button
-                type="button"
-                onClick={() => setPreviewArticle(null)}
-                style={{
-                  border: '1px solid #d7dce2',
-                  borderRadius: 999,
-                  background: '#f5f6f7',
-                  color: '#4a4d52',
-                  padding: '8px 12px',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-              >
-                Đóng
-              </button>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction({ type: 'PUBLISHED', item: selectedItem })}
+                  style={{
+                    border: 'none',
+                    borderRadius: 999,
+                    background: '#2d3a3f',
+                    color: '#fff',
+                    fontWeight: 700,
+                    padding: '10px 16px',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                  }}
+                >
+                  Duyệt
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRejectReason('');
+                    setConfirmAction({ type: 'REJECTED', item: selectedItem });
+                  }}
+                  style={{
+                    border: '1px solid #e3b9b2',
+                    borderRadius: 999,
+                    background: '#f8e3e0',
+                    color: '#8d3d34',
+                    fontWeight: 600,
+                    padding: '10px 16px',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                  }}
+                >
+                  Từ chối
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedItem(null);
+                    setPreviewArticle(null);
+                  }}
+                  style={{
+                    border: '1px solid #d7dce2',
+                    borderRadius: 999,
+                    background: '#f5f6f7',
+                    color: '#4a4d52',
+                    padding: '10px 12px',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                  }}
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
 
-            <div style={{ padding: '18px 26px 40px' }}>
-              <div style={{ marginBottom: 18 }}>
-                <p style={{ margin: 0, fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8a4d2d', fontWeight: 700 }}>
-                  {previewArticle.category?.name || 'Blog'}
-                </p>
-                <h2 style={{ margin: '12px 0 0', fontSize: 42, lineHeight: 1.08, color: '#1f2a37', fontWeight: 800 }}>
-                  {previewArticle.title}
-                </h2>
-              </div>
+            <div style={{ padding: '24px 22px 32px' }}>
+              <article style={{ display: 'grid', gap: 24 }}>
+                {(previewArticle.coverImageUrl || previewArticle.coverImage) && (
+                  <div style={{ overflow: 'hidden', borderRadius: 20, border: '1px solid #e5e7eb', background: '#f4f2ee' }}>
+                    <img
+                      src={normalizeImageUrl(previewArticle.coverImageUrl || previewArticle.coverImage)}
+                      alt={previewArticle.title}
+                      style={{ display: 'block', width: '100%', height: 320, objectFit: 'cover' }}
+                    />
+                  </div>
+                )}
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24, color: '#58646d', fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                <span>{previewArticle.createdAt ? new Date(previewArticle.createdAt).toLocaleDateString('vi-VN') : 'Mới'}</span>
-                <span>•</span>
-                <span>{previewArticle.createdBy ? 'Biên tập viên' : 'Biên tập viên'}</span>
-              </div>
+                {(() => {
+                  const metadata = extractMetadataFromBlocks(previewArticle?.contentBlocks);
+                  const tags = metadata.tags.length > 0
+                    ? metadata.tags
+                    : Array.isArray(previewArticle?.tags)
+                      ? previewArticle.tags
+                      : typeof previewArticle?.tags === 'string'
+                        ? previewArticle.tags.split(/[\n,]+/)
+                        : [];
 
-              {previewArticle.coverImageUrl && (
-                <div style={{ height: 320, overflow: 'hidden', borderRadius: 24, marginBottom: 28, border: '1px solid #e5e7eb', background: '#f3f5f6' }}>
-                  <img
-                    src={previewArticle.coverImageUrl}
-                    alt={previewArticle.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
-                </div>
-              )}
+                  return tags.filter(Boolean).length > 0 ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {tags
+                        .filter(Boolean)
+                        .map((tag: string, index: number) => (
+                          <span
+                            key={`${tag}-${index}`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              borderRadius: 999,
+                              border: '1px solid #e5e7eb',
+                              background: '#f7f5f2',
+                              padding: '7px 10px',
+                              fontSize: 11,
+                              letterSpacing: '0.16em',
+                              textTransform: 'uppercase',
+                              color: '#6d5635',
+                              fontWeight: 700,
+                            }}
+                          >
+                            #{tag.replace(/^#/, '')}
+                          </span>
+                        ))}
+                    </div>
+                  ) : null;
+                })()}
 
-              {previewArticle.summary && (
-                <div style={{ marginBottom: 28, padding: '18px 20px', borderRadius: 18, background: '#f7f1e7', border: '1px solid #e6d7bf', color: '#39454d', fontSize: 18, lineHeight: 1.8 }}>
-                  {previewArticle.summary}
-                </div>
-              )}
+                {previewArticle.excerpt || previewArticle.summary ? (
+                  <div style={{ display: 'grid', gap: 12 }}>
+                    {renderParagraphs(stripHtml(previewArticle.excerpt || previewArticle.summary || '') || 'Tóm tắt ngắn sẽ hiển thị ở đây.').map((paragraph, index) => (
+                      <p key={`excerpt-${index}`} style={{ margin: 0, fontSize: 18, lineHeight: 1.9, color: '#34414d' }}>
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
 
-              {Array.isArray(previewArticle.contentBlocks) && previewArticle.contentBlocks.length > 0 ? (
-                <div style={{ display: 'grid', gap: 20 }}>
-                  {previewArticle.contentBlocks.map((block: any, index: number) => {
-                    const type = block?.type || block?.kind || 'paragraph';
-                    const text = typeof block?.text === 'string' ? block.text : '';
-                    const caption = typeof block?.caption === 'string' ? block.caption : '';
-                    const imageUrl = typeof block?.imageUrl === 'string' ? block.imageUrl : '';
+                <div style={{ display: 'grid', gap: 24 }}>
+                  {Array.isArray(previewArticle.contentBlocks) && previewArticle.contentBlocks.length > 0 ? (
+                    previewArticle.contentBlocks.map((block: any, blockIndex: number) => {
+                      const type = block?.type || block?.kind || 'paragraph';
+                      const heading = typeof block?.heading === 'string' ? block.heading : '';
+                      const text = typeof block?.text === 'string' ? block.text : '';
+                      const caption = typeof block?.caption === 'string' ? block.caption : '';
+                      const imageUrl = typeof block?.imageUrl === 'string' ? block.imageUrl : '';
 
-                    if (type === 'image' && imageUrl) {
+                      if (type === 'image' && imageUrl) {
+                        return (
+                          <figure key={`${imageUrl}-${blockIndex}`} style={{ margin: 0, display: 'grid', gap: 10 }}>
+                            <img
+                              src={normalizeImageUrl(imageUrl)}
+                              alt={caption || previewArticle.title}
+                              style={{ display: 'block', width: '100%', maxHeight: 500, objectFit: 'cover', borderRadius: 20, border: '1px solid #e5e7eb' }}
+                            />
+                            {caption ? <figcaption style={{ textAlign: 'center', color: '#58646d', fontSize: 14, fontStyle: 'italic' }}>{caption}</figcaption> : null}
+                          </figure>
+                        );
+                      }
+
+                      const paragraphs = renderParagraphs(text || 'Đoạn văn sẽ xuất hiện ở đây.');
+
                       return (
-                        <figure key={`${imageUrl}-${index}`} style={{ margin: 0 }}>
-                          <img src={imageUrl} alt={caption || previewArticle.title} style={{ display: 'block', width: '100%', maxHeight: 520, objectFit: 'cover', borderRadius: 20, border: '1px solid #e5e7eb' }} />
-                          {caption && <figcaption style={{ marginTop: 10, color: '#58646d', fontSize: 14 }}>{caption}</figcaption>}
-                        </figure>
+                        <div key={`${type}-${blockIndex}`} style={{ display: 'grid', gap: 12 }}>
+                          {heading ? (
+                            <h3 style={{ margin: 0, fontSize: 26, lineHeight: 1.1, color: '#1f2a37', fontWeight: 800, letterSpacing: '-0.03em' }}>
+                              {heading}
+                            </h3>
+                          ) : null}
+                          {paragraphs.map((paragraph, paragraphIndex) => (
+                            <p key={`${block?.id || blockIndex}-paragraph-${paragraphIndex}`} style={{ margin: 0, fontSize: 18, lineHeight: 1.9, color: '#2f3c3d' }}>
+                              {paragraph}
+                            </p>
+                          ))}
+                        </div>
                       );
-                    }
-
-                    if (text.trim()) {
-                      return (
-                        <p key={`text-${index}`} style={{ margin: 0, fontSize: 18, lineHeight: 1.9, color: '#2f3c3d' }}>
-                          {text}
-                        </p>
-                      );
-                    }
-
-                    return null;
-                  })}
+                    })
+                  ) : (
+                    <div style={{ color: '#58646d', lineHeight: 1.8, fontSize: 18 }}>
+                      {previewArticle.summary || 'Bài viết này chưa có nội dung chi tiết để hiển thị ở chế độ xem trước.'}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div style={{ color: '#58646d', lineHeight: 1.8, fontSize: 18 }}>
-                  {previewArticle.summary || 'Bài viết này chưa có nội dung chi tiết để hiển thị ở chế độ xem trước.'}
-                </div>
-              )}
+
+                {(() => {
+                  const metadata = extractMetadataFromBlocks(previewArticle?.contentBlocks);
+                  const references = metadata.references.length > 0
+                    ? metadata.references
+                    : Array.isArray(previewArticle?.references)
+                      ? previewArticle.references
+                      : [];
+                  const hasReference = references.some((reference: any) => reference?.title || reference?.source || reference?.url);
+                  if (!hasReference) return null;
+
+                  return (
+                    <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 18, display: 'grid', gap: 12 }}>
+                      <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7d5d3d', fontWeight: 700 }}>
+                        Tài liệu tham khảo
+                      </p>
+                      <ul style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 8, color: '#2f3c3d', fontSize: 15, lineHeight: 1.7 }}>
+                        {references
+                          .filter((reference: any) => reference?.title || reference?.source || reference?.url)
+                          .map((reference: any, index: number) => (
+                            <li key={`${reference?.id || reference?.title || reference?.source || index}`}>
+                              {reference?.url ? (
+                                <a href={reference.url} target="_blank" rel="noreferrer" style={{ color: '#1f2a37', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                                  {reference.title || 'Nguồn tham khảo'}
+                                </a>
+                              ) : (
+                                <span>{reference.title || 'Nguồn tham khảo'}</span>
+                              )}
+                              {reference?.source ? <span style={{ color: '#58646d' }}> — {reference.source}</span> : null}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
+              </article>
             </div>
           </div>
         </div>
       )}
 
-      {selectedItem && (
+      {confirmAction && (
         <div
           style={{
             position: 'fixed',
@@ -482,13 +613,13 @@ T  const [previewArticle, setPreviewArticle] = useState<ArticleItem | null>(null
             alignItems: 'center',
             justifyContent: 'center',
             padding: 24,
-            zIndex: 50,
+            zIndex: 60,
           }}
         >
           <div
             style={{
               width: '100%',
-              maxWidth: 620,
+              maxWidth: 520,
               background: '#ffffff',
               borderRadius: 24,
               border: '1px solid #e5e7eb',
@@ -496,72 +627,49 @@ T  const [previewArticle, setPreviewArticle] = useState<ArticleItem | null>(null
               boxShadow: '0 28px 70px rgba(15, 23, 42, 0.14)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', marginBottom: 18 }}>
-              <div>
-                <div style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#5c5f64' }}>Review bài viết</div>
-                <h2 style={{ margin: '8px 0 0', fontSize: 30, fontWeight: 700, color: '#1f2a37' }}>
-                  {selectedItem.title}
-                </h2>
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#5c5f64', fontWeight: 700 }}>
+                {confirmAction.type === 'PUBLISHED' ? 'Xác nhận duyệt' : 'Từ chối bài viết'}
               </div>
+              <h3 style={{ margin: '10px 0 0', fontSize: 24, lineHeight: 1.3, color: '#1f2a37', fontWeight: 800 }}>
+                {confirmAction.type === 'PUBLISHED' ? 'Bạn có muốn duyệt bài này không?' : 'Bạn có muốn từ chối bài này không?'}
+              </h3>
+            </div>
+
+            <div style={{ color: '#3d4853', fontSize: 15, lineHeight: 1.8, marginBottom: 18 }}>
+              <div><strong>Bài:</strong> {confirmAction.item.title}</div>
+              <div><strong>Tác giả:</strong> {confirmAction.item.author}</div>
+            </div>
+
+            {confirmAction.type === 'REJECTED' && (
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ display: 'block', fontWeight: 700, color: '#1f2a37', marginBottom: 8 }}>Lý do từ chối</label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(event) => setRejectReason(event.target.value)}
+                  rows={4}
+                  placeholder="Ví dụ: thiếu nguồn, nội dung chưa đạt yêu cầu..."
+                  style={{
+                    width: '100%',
+                    resize: 'vertical',
+                    borderRadius: 16,
+                    border: '1px solid #dfe3e8',
+                    background: '#f8fafc',
+                    padding: '12px 14px',
+                    fontSize: 14,
+                    outline: 'none',
+                    color: '#1f2a37',
+                  }}
+                />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedItem(null);
+                  setConfirmAction(null);
                   setRejectReason('');
-                }}
-                style={{
-                  border: '1px solid #d7dce2',
-                  borderRadius: 999,
-                  background: '#f5f6f7',
-                  color: '#4a4d52',
-                  padding: '8px 12px',
-                  cursor: 'pointer',
-                }}
-              >
-                Đóng
-              </button>
-            </div>
-
-            <div style={{ marginBottom: 18, fontSize: 15, color: '#37404b', lineHeight: 1.8 }}>
-              <div><strong>Tác giả:</strong> {selectedItem.author}</div>
-              <div><strong>Ngày gửi:</strong> {selectedItem.createdAt}</div>
-            </div>
-
-            <div style={{ marginTop: 12, marginBottom: 20 }}>
-              <div style={{ fontSize: 15, lineHeight: 1.8, color: '#40484f' }}>{selectedItem.summary}</div>
-            </div>
-
-            <div style={{ marginTop: 14 }}>
-              <label style={{ display: 'block', fontWeight: 700, color: '#1f2a37', marginBottom: 8 }}>Lý do từ chối (nếu có)</label>
-              <textarea
-                value={rejectReason}
-                onChange={(event) => setRejectReason(event.target.value)}
-                rows={4}
-                placeholder="Ví dụ: thiếu nguồn, thiếu bằng chứng, nội dung chưa phù hợp..."
-                style={{
-                  width: '100%',
-                  resize: 'vertical',
-                  borderRadius: 16,
-                  border: '1px solid #dfe3e8',
-                  background: '#f8fafc',
-                  padding: '12px 14px',
-                  fontSize: 14,
-                  outline: 'none',
-                  color: '#1f2a37',
-                }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 22 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!rejectReason.trim()) {
-                    setNotice({ tone: 'error', text: 'Vui lòng nhập lý do từ chối trước khi gửi.' });
-                    return;
-                  }
-                  if (!selectedItem) return;
-                  handleReview(selectedItem, 'REJECTED', rejectReason);
                 }}
                 style={{
                   border: '1px solid #dfe3e8',
@@ -573,25 +681,34 @@ T  const [previewArticle, setPreviewArticle] = useState<ArticleItem | null>(null
                   cursor: 'pointer',
                 }}
               >
-                Từ chối
+                Hủy
               </button>
+
               <button
                 type="button"
                 onClick={() => {
-                  if (!selectedItem) return;
-                  handleReview(selectedItem, 'PUBLISHED');
+                  if (confirmAction.type === 'REJECTED') {
+                    if (!rejectReason.trim()) {
+                      setNotice({ tone: 'error', text: 'Vui lòng nhập lý do từ chối trước khi gửi.' });
+                      return;
+                    }
+                    handleReview(confirmAction.item, 'REJECTED', rejectReason);
+                    return;
+                  }
+
+                  handleReview(confirmAction.item, 'PUBLISHED');
                 }}
                 style={{
                   border: 'none',
                   borderRadius: 999,
-                  background: '#1f2937',
+                  background: confirmAction.type === 'PUBLISHED' ? '#1f2937' : '#8d3d34',
                   color: '#fff',
                   fontWeight: 700,
                   padding: '10px 16px',
                   cursor: 'pointer',
                 }}
               >
-                Duyệt bài
+                {confirmAction.type === 'PUBLISHED' ? 'Xác nhận duyệt' : 'Xác nhận từ chối'}
               </button>
             </div>
           </div>

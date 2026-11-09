@@ -147,6 +147,21 @@ export interface PublicCategoryDetail extends PublicCategoryRef {
   articles: PublicArticleSummary[];
 }
 
+export interface PublicBlogPostSummary {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  coverImageUrl: string | null;
+  contentBlocks: unknown;
+  status: string;
+  isFeatured: boolean;
+  publishedAt: string | null;
+  updatedAt: string;
+  createdAt: string;
+  author: { id: string; username: string } | null;
+}
+
 export interface PublicTimelineNode {
   id: string;
   title: string;
@@ -232,6 +247,8 @@ export function fetchArticles(params: { category?: string; tag?: string; q?: str
 }
 
 export const fetchArticle = (slug: string) => getJson<PublicArticleDetail>(`/public/articles/${enc(slug)}`);
+export const fetchBlogPosts = () => list<PublicBlogPostSummary>('/public/blog');
+export const fetchBlogPost = (slug: string) => getJson<PublicBlogPostSummary>(`/public/blog/${enc(slug)}`);
 export const fetchTimelines = () => list<PublicTimeline>('/public/timelines');
 export const fetchTimeline = (slug: string) => getJson<PublicTimeline>(`/public/timelines/${enc(slug)}`);
 export const fetchPublicTags = () => list<PublicTagWithCount>('/public/tags');

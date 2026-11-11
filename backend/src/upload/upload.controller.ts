@@ -11,13 +11,66 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import { v2 as cloudinary } from 'cloudinary';
 import { ContentWrite } from '../common/access/access.decorator';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads');
 if (!existsSync(UPLOAD_DIR)) {
   mkdirSync(UPLOAD_DIR, { recursive: true });
 }
+
+const hasCloudinaryConfig = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET,
+);
+
+if (hasCloudinaryConfig) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+  });
+}
+
+const buildLocalUploadUrl = (req: Request | undefined, filename: string) => {
+  const requestHost = req?.get ? req.get('host') : undefined;
+  const protocol = req?.protocol || 'http';
+  const host =
+    process.env.APP_URL ||
+    (requestHost ? `${protocol}://${requestHost}` : `http://localhost:${process.env.PORT || 5000}`);
+
+  return `${host}/uploads/${filename}`;
+};
+
+const uploadToCloudinary = async (file: Express.Multer.File) => {
+  if (!hasCloudinaryConfig) {
+    return null;
+  }
+
+  const result = await cloudinary.uploader.upload(file.path, {
+    folder: 'hisgo/uploads',
+    resource_type: 'auto',
+  });
+
+  if (file.path) {
+    try {
+      unlinkSync(file.path);
+    } catch {
+      // ignore cleanup failure
+    }
+  }
+
+  return {
+    success: true,
+    filename: file.filename,
+    originalName: file.originalname,
+    size: file.size,
+    url: result.secure_url || result.url,
+  };
+};
 
 @ApiTags('Upload')
 @Controller('upload')
@@ -68,7 +121,7 @@ export class UploadController {
       },
     }),
   )
-  uploadImage(
+  async uploadImage(
     @UploadedFile() file?: Express.Multer.File,
     @Req() req?: Request,
   ) {
@@ -76,19 +129,17 @@ export class UploadController {
       throw new BadRequestException('Vui lòng chọn file hình ảnh để tải lên');
     }
 
-    const requestHost = req?.get ? req.get('host') : undefined;
-    const protocol = req?.protocol || 'http';
-    const host =
-      process.env.APP_URL ||
-      (requestHost ? `${protocol}://${requestHost}` : `http://localhost:${process.env.PORT || 5001}`);
-    const fileUrl = `${host}/uploads/${file.filename}`;
+    const cloudinaryUpload = await uploadToCloudinary(file);
+    if (cloudinaryUpload) {
+      return cloudinaryUpload;
+    }
 
     return {
       success: true,
       filename: file.filename,
       originalName: file.originalname,
       size: file.size,
-      url: fileUrl,
+      url: buildLocalUploadUrl(req, file.filename),
     };
   }
 
@@ -138,7 +189,7 @@ export class UploadController {
       },
     }),
   )
-  uploadDocument(
+  async uploadDocument(
     @UploadedFile() file?: Express.Multer.File,
     @Req() req?: Request,
   ) {
@@ -146,19 +197,17 @@ export class UploadController {
       throw new BadRequestException('Vui lòng chọn file tài liệu để tải lên');
     }
 
-    const requestHost = req?.get ? req.get('host') : undefined;
-    const protocol = req?.protocol || 'http';
-    const host =
-      process.env.APP_URL ||
-      (requestHost ? `${protocol}://${requestHost}` : `http://localhost:${process.env.PORT || 5001}`);
-    const fileUrl = `${host}/uploads/${file.filename}`;
+    const cloudinaryUpload = await uploadToCloudinary(file);
+    if (cloudinaryUpload) {
+      return cloudinaryUpload;
+    }
 
     return {
       success: true,
       filename: file.filename,
       originalName: file.originalname,
       size: file.size,
-      url: fileUrl,
+      url: buildLocalUploadUrl(req, file.filename),
     };
   }
 }

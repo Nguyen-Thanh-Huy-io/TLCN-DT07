@@ -2,27 +2,120 @@
 // Blog Post Entity
 // ================================
 // Blog là một thực thể riêng, không còn bị suy ra từ Category của Article.
-// Dùng cho nội dung truyền thông / cập nhật / tin tức / blog của HISGO.
+// Dùng cho nội dung cộng đồng: bài chia sẻ nhanh (QUICK_POST) và bài nghiên cứu dài (LONG_FORM).
 
 model BlogPost {
-  id            String       @id @default(uuid())
-  authorId      String       @map("author_id")
-  title         String       @db.VarChar(255)
-  slug          String       @unique @db.VarChar(255)
-  excerpt       String?      @db.Text
-  coverImageUrl String?      @map("cover_image_url") @db.VarChar(500)
-  contentBlocks Json         @default("[]") @map("content_blocks") @db.JsonB
+  id            String        @id @default(uuid())
+  authorId      String        @map("author_id")
+  postType      PostType      @default(QUICK_POST) @map("post_type")
+  title         String        @db.VarChar(255)
+  slug          String        @unique @db.VarChar(255)
+  excerpt       String?       @db.Text
+  coverImageUrl String?       @map("cover_image_url") @db.VarChar(500)
+  contentBlocks Json          @default("[]") @map("content_blocks") @db.JsonB
   status        ContentStatus @default(DRAFT)
-  isFeatured    Boolean      @default(false) @map("is_featured")
-  publishedAt   DateTime?    @map("published_at")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  isFeatured    Boolean       @default(false) @map("is_featured")
+  likeCount     Int           @default(0) @map("like_count")
+  commentCount  Int           @default(0) @map("comment_count")
+  viewCount     Int           @default(0) @map("view_count")
+  publishedAt   DateTime?     @map("published_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
 
-  author authUser @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author    authUser       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes     PostLike[]
+  bookmarks PostBookmark[]
 
   @@index([authorId])
   @@index([status])
+  @@index([postType])
   @@index([isFeatured])
   @@index([publishedAt])
   @@map("blog_posts")
+}
+
+// ================================
+// Post Like (Toggle Like trên BlogPost)
+// ================================
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user authUser @relation("PostLikeUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+  @@map("post_likes")
+}
+
+// ================================
+// Post Bookmark (Lưu bài viết)
+// ================================
+
+model PostBookmark {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user authUser @relation("PostBookmarkUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+  @@map("post_bookmarks")
+}
+
+// ================================
+// Content Report (Nhật ký kiểm duyệt — User báo cáo & AI quét)
+// ================================
+// targetType: "POST" | "COMMENT"
+// source: USER_REPORT (người dùng bấm báo cáo) | AI_SCAN (Gemini Flash quét tự động)
+// actionTaken: NONE → AUTO_HIDDEN → CONFIRMED_REMOVED | DISMISSED
+
+model ContentReport {
+  id           String            @id @default(uuid())
+  targetType   String            @map("target_type") @db.VarChar(20)
+  targetId     String            @map("target_id")
+  reporterId   String?           @map("reporter_id") // NULL khi do AI quét
+  source       ReportSource      @default(USER_REPORT)
+  riskLevel    ReportRiskLevel   @default(SAFE) @map("risk_level")
+  aiConfidence Float?            @map("ai_confidence")
+  aiReasons    Json?             @map("ai_reasons") @db.JsonB
+  actionTaken  ReportActionTaken @default(NONE) @map("action_taken")
+  reviewerId   String?           @map("reviewer_id")
+  reviewedAt   DateTime?         @map("reviewed_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  reporter authUser? @relation("ContentReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  reviewer authUser? @relation("ContentReportReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId])
+  @@index([actionTaken])
+  @@index([source])
+  @@index([createdAt])
+  @@map("content_reports")
+}
+
+// ================================
+// User Follow (Theo dõi tài khoản trên Cộng đồng)
+// ================================
+
+model UserFollow {
+  id          String   @id @default(uuid())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower  authUser @relation("UserFollowFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following authUser @relation("UserFollowFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("user_follows")
 }

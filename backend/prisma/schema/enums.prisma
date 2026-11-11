@@ -149,3 +149,32 @@ enum ArticleKind {
   DYNASTY
   OTHER
 }
+
+// ================================
+// Community & Moderation Enums
+// ================================
+
+enum PostType {
+  QUICK_POST
+  LONG_FORM
+}
+
+enum ReportRiskLevel {
+  SAFE
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReportActionTaken {
+  NONE
+  AUTO_HIDDEN
+  CONFIRMED_REMOVED
+  DISMISSED
+}
+
+enum ReportSource {
+  USER_REPORT
+  AI_SCAN
+}

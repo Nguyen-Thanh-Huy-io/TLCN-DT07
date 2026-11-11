@@ -9,6 +9,9 @@ enum NotificationType {
   BLOG_COMMENT    // Có bình luận mới trên bài viết blog
   CONTENT_APPROVED // Bài viết/bài học đã được duyệt
   CONTENT_REJECTED // Bài viết/bài học bị từ chối duyệt
+  POST_LIKED      // Có người thích bài viết
+  NEW_FOLLOWER    // Có người theo dõi mới
+  CONTENT_VIOLATION // Bài viết hoặc bình luận bị ẩn do vi phạm tiêu chuẩn
 }
 
 model Notification {

@@ -29,6 +29,8 @@ import { LearnerModule } from './learner/learner.module';
 import { DiscussionModule } from './discussion/discussion.module';
 import { NotificationModule } from './notification/notification.module';
 import { NoteModule } from './note/note.module';
+import { QueueModule } from './common/modules/queue.module';
+import { ModerationModule } from './moderation/moderation.module';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { NoteModule } from './note/note.module';
     LoggerModule,
     // Redis module (global - can be injected anywhere)
     RedisModule,
+    // BullMQ Queue module
+    QueueModule,
     // Rate limiting module (global - throttles requests using Redis)
     RateLimitModule,
     // Metrics module (global - Prometheus metrics)
@@ -58,6 +62,7 @@ import { NoteModule } from './note/note.module';
     LearningPathModule,
     CategoryModule,
     BlogModule,
+    ModerationModule,
     ArticleModule,
     TimelineModule,
     PublicContentModule,

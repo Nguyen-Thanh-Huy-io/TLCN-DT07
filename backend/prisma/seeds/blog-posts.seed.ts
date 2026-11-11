@@ -215,7 +215,132 @@ async function main() {
     createdPosts.push({ title: saved.title, slug: saved.slug, status: saved.status });
   }
 
-  console.log('=== Blog posts seed created/updated ===');
+  // Bổ sung bài viết cộng đồng & dữ liệu mẫu kiểm duyệt AI Sentinel (Giai đoạn 5)
+  const communityAuthor = authors[0];
+  const reporterAuthor = authors[1] ?? authors[0];
+
+  const flaggedPost = await prisma.blogPost.upsert({
+    where: { slug: 'nghi-van-su-lieu-ve-bau-vat-thoi-tran' },
+    update: {
+      authorId: communityAuthor.id,
+      postType: 'QUICK_POST',
+      title: 'Tranh luận về giả thuyết chưa kiểm chứng quanh di vật gốm Thiên Trường',
+      excerpt:
+        'Một số ý kiến cho rằng giả thuyết chưa kiểm chứng về niên đại mảnh gốm tại phủ Thiên Trường cần được đối chiếu thêm với biên niên sử.',
+      status: ContentStatus.PUBLISHED,
+      likeCount: 7,
+      commentCount: 3,
+      viewCount: 84,
+      publishedAt: new Date('2026-11-10T06:00:00.000Z'),
+    },
+    create: {
+      authorId: communityAuthor.id,
+      postType: 'QUICK_POST',
+      title: 'Tranh luận về giả thuyết chưa kiểm chứng quanh di vật gốm Thiên Trường',
+      slug: 'nghi-van-su-lieu-ve-bau-vat-thoi-tran',
+      excerpt:
+        'Một số ý kiến cho rằng giả thuyết chưa kiểm chứng về niên đại mảnh gốm tại phủ Thiên Trường cần được đối chiếu thêm với biên niên sử.',
+      contentBlocks: [
+        paragraph(
+          'p-flag-1',
+          'Bài thảo luận nêu giả thuyết chưa kiểm chứng về niên đại di vật gốm men ngọc thời Trần tại Nam Định.',
+        ),
+      ],
+      status: ContentStatus.PUBLISHED,
+      likeCount: 7,
+      commentCount: 3,
+      viewCount: 84,
+      publishedAt: new Date('2026-11-10T06:00:00.000Z'),
+    },
+  });
+
+  const autoHiddenPost = await prisma.blogPost.upsert({
+    where: { slug: 'bai-dang-vi-pham-tieu-chuan-cong-dong-demo' },
+    update: {
+      authorId: communityAuthor.id,
+      postType: 'QUICK_POST',
+      title: 'Bài đăng chứa quảng cáo spam và thông tin sai lệch lịch sử (Mẫu kiểm thử AI)',
+      excerpt:
+        'Nội dung mẫu phục vụ kiểm thử hệ thống AI Sentinel tự động ẩn bài vi phạm trên dòng thời gian.',
+      status: ContentStatus.REJECTED,
+      publishedAt: null,
+    },
+    create: {
+      authorId: communityAuthor.id,
+      postType: 'QUICK_POST',
+      title: 'Bài đăng chứa quảng cáo spam và thông tin sai lệch lịch sử (Mẫu kiểm thử AI)',
+      slug: 'bai-dang-vi-pham-tieu-chuan-cong-dong-demo',
+      excerpt:
+        'Nội dung mẫu phục vụ kiểm thử hệ thống AI Sentinel tự động ẩn bài vi phạm trên dòng thời gian.',
+      contentBlocks: [
+        paragraph(
+          'p-viol-1',
+          'Nội dung vi phạm quy chuẩn: quảng cáo nhà cái uy tín cá độ bóng đá kèm ngôn từ xúc phạm thành viên.',
+        ),
+      ],
+      status: ContentStatus.REJECTED,
+      publishedAt: null,
+    },
+  });
+
+  const existingReports = await prisma.contentReport.count({
+    where: { targetId: { in: [flaggedPost.id, autoHiddenPost.id] } },
+  });
+
+  if (existingReports === 0) {
+    await prisma.contentReport.createMany({
+      data: [
+        {
+          targetType: 'POST',
+          targetId: autoHiddenPost.id,
+          reporterId: null,
+          source: 'AI_SCAN',
+          riskLevel: 'HIGH',
+          aiConfidence: 0.96,
+          actionTaken: 'AUTO_HIDDEN',
+          aiReasons: {
+            categories: ['SPAM', 'PROFANITY'],
+            violationReasonVi:
+              'Nội dung quảng cáo cờ bạc trực tuyến và chứa ngôn từ vi phạm quy tắc cộng đồng HISGO.',
+            matchedExcerpt:
+              'quảng cáo nhà cái uy tín cá độ bóng đá kèm ngôn từ xúc phạm thành viên.',
+            engine: 'HYBRID_SENTINEL',
+          },
+        },
+        {
+          targetType: 'POST',
+          targetId: flaggedPost.id,
+          reporterId: null,
+          source: 'AI_SCAN',
+          riskLevel: 'MEDIUM',
+          aiConfidence: 0.74,
+          actionTaken: 'NONE',
+          aiReasons: {
+            categories: ['HISTORICAL_REVISIONISM'],
+            violationReasonVi:
+              'Nội dung có nhận định lịch sử nhạy cảm hoặc thiếu dẫn chứng sử liệu chuẩn xác, cần Ban biên tập đối chiếu.',
+            matchedExcerpt:
+              'giả thuyết chưa kiểm chứng về niên đại mảnh gốm tại phủ Thiên Trường',
+            engine: 'HYBRID_SENTINEL',
+          },
+        },
+        {
+          targetType: 'POST',
+          targetId: flaggedPost.id,
+          reporterId: reporterAuthor.id,
+          source: 'USER_REPORT',
+          riskLevel: 'LOW',
+          aiConfidence: null,
+          actionTaken: 'NONE',
+          aiReasons: {
+            userReason: 'Bài viết trích dẫn niên đại khảo cổ chưa có nguồn từ Viện Khảo cổ học.',
+          },
+        },
+      ],
+    });
+  }
+
+  console.log('=== Blog posts & AI Moderation seed created/updated ===');
   console.log(JSON.stringify(createdPosts, null, 2));
 }
 

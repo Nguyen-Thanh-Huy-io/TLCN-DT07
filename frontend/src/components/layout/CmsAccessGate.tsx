@@ -14,6 +14,7 @@ import {
 /** Trang CMS chỉ một số vai trò được vào (mặc định: mọi nhân sự). */
 const PAGE_ACCESS: Record<string, (role: string) => boolean> = {
   review: isReviewerRole,
+  moderation: isReviewerRole,
   users: isSuperadminRole,
 };
 

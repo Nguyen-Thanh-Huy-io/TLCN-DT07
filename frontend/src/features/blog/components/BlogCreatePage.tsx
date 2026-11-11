@@ -78,6 +78,7 @@ const uploadImageToServer = async (file: File) => {
 export function BlogCreatePage() {
   const router = useRouter();
   const currentUser = useAuthSession();
+  const [postType, setPostType] = useState<'LONG_FORM' | 'QUICK_POST'>('LONG_FORM');
   const [title, setTitle] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [category, setCategory] = useState('Blog');
@@ -281,6 +282,7 @@ export function BlogCreatePage() {
 
       const payload: Partial<BlogPostItem> & { authorId?: string } = {
         authorId: currentUser.id,
+        postType,
         title: normalizedTitle,
         slug: `${slugify(normalizedTitle)}-${Date.now().toString(36)}`,
         excerpt: normalizedExcerpt,
@@ -321,12 +323,20 @@ export function BlogCreatePage() {
             </h1>
           </div>
 
-          <Link
-            href="/blog"
-            className="inline-flex items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm font-medium text-[var(--ink)] transition-colors hover:border-[var(--gold)]"
-          >
-            Quay lại blog
-          </Link>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Link
+              href="/cong-dong"
+              className="inline-flex items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm font-medium text-[var(--ink)] transition-colors hover:border-[var(--gold)]"
+            >
+              Diễn đàn Cộng đồng
+            </Link>
+            <Link
+              href="/blog"
+              className="inline-flex items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm font-medium text-[var(--ink)] transition-colors hover:border-[var(--gold)]"
+            >
+              Quay lại blog
+            </Link>
+          </div>
         </div>
 
         <div className="mb-8 grid gap-4 md:grid-cols-[1.4fr_0.6fr]">
@@ -338,12 +348,30 @@ export function BlogCreatePage() {
           </div>
 
           <div className="rounded-[28px] border border-[var(--border)] bg-[var(--bg-page)] p-4">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--text-muted)]">Cấu trúc</p>
-            <div className="mt-3 flex flex-wrap gap-2 text-[9px] uppercase tracking-[0.18em] text-[var(--ink)]">
-              <span className="rounded-full border border-[var(--border)] bg-[var(--bg-surface)] px-2.5 py-1.5">Mở bài</span>
-              <span className="rounded-full border border-[var(--border)] bg-[var(--bg-surface)] px-2.5 py-1.5">Bối cảnh</span>
-              <span className="rounded-full border border-[var(--border)] bg-[var(--bg-surface)] px-2.5 py-1.5">Lập luận</span>
-              <span className="rounded-full border border-[var(--border)] bg-[var(--bg-surface)] px-2.5 py-1.5">Nguồn</span>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--text-muted)]">Hình thức xuất bản</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPostType('LONG_FORM')}
+                className={`rounded-[12px] border px-3 py-2 text-xs font-medium transition-colors ${
+                  postType === 'LONG_FORM'
+                    ? 'border-[var(--ink)] bg-[var(--ink)] text-white'
+                    : 'border-[var(--border)] bg-[var(--bg-surface)] text-[var(--ink)] hover:border-[var(--gold)]'
+                }`}
+              >
+                Chuyên khảo dài (LONG_FORM)
+              </button>
+              <button
+                type="button"
+                onClick={() => setPostType('QUICK_POST')}
+                className={`rounded-[12px] border px-3 py-2 text-xs font-medium transition-colors ${
+                  postType === 'QUICK_POST'
+                    ? 'border-[var(--ink)] bg-[var(--ink)] text-white'
+                    : 'border-[var(--border)] bg-[var(--bg-surface)] text-[var(--ink)] hover:border-[var(--gold)]'
+                }`}
+              >
+                Thảo luận nhanh (QUICK_POST)
+              </button>
             </div>
           </div>
         </div>

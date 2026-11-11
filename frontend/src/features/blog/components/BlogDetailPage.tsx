@@ -1,8 +1,7 @@
 import Link from 'next/link';
-import { ArrowLeft, CalendarDays } from 'lucide-react';
+import { ArrowLeft, CalendarDays, MessageSquare, Share2, Users } from 'lucide-react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
-import { CommentThread } from '@/components/hisgo/CommentThread';
 import { fetchBlogPost, fetchBlogPosts, type PublicBlogPostSummary } from '@/services/public/public-content.service';
 
 const accentPalette = [
@@ -251,6 +250,14 @@ export async function BlogDetailPage({ slug }: { slug: string }) {
                 'HISGO Editorial'
               )}
             </span>
+
+            <Link
+              href={`/cong-dong?shareBlog=${encodeURIComponent(post.slug)}`}
+              className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-surface)] px-3.5 py-1.5 text-[11px] font-bold tracking-[0.1em] text-[#7A1F24] transition-colors hover:border-[#7A1F24] hover:bg-[#FAF5E6]"
+            >
+              <Share2 size={13} />
+              <span>Chia sẻ lên Cộng đồng</span>
+            </Link>
           </div>
         </div>
 
@@ -319,9 +326,39 @@ export async function BlogDetailPage({ slug }: { slug: string }) {
             </div>
           ) : null}
 
-          <div className="mt-10">
-            <CommentThread postId={post.id} />
-          </div>
+          <section className="mt-10 rounded-[22px] border border-[#DFD1B8] bg-[#FAF5E6] p-6 md:p-8">
+            <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+              <div className="max-w-2xl space-y-2">
+                <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-[#7A1F24]">
+                  <MessageSquare size={14} />
+                  <span>Không gian thảo luận tập trung</span>
+                </p>
+                <h2 className="font-[family-name:var(--font-heading)] text-2xl font-bold leading-snug text-[#14233F] md:text-3xl">
+                  Thảo luận & phản biện bài viết trên Cộng đồng Sử học
+                </h2>
+                <p className="text-sm leading-relaxed text-[#5C4E3C] md:text-[15px]">
+                  Để mọi góc nhìn, tư liệu bổ sung và ý kiến phản biện được kết nối tập trung, tính năng bình luận cho các bài chuyên khảo được tích hợp trực tiếp tại Diễn đàn Cộng đồng HISGO.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <Link
+                  href={`/cong-dong?shareBlog=${encodeURIComponent(post.slug)}`}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#7A1F24] px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-[#FAF5E6] transition-colors hover:bg-[#651A1E]"
+                >
+                  <Share2 size={14} />
+                  <span>Chia sẻ & Thảo luận ngay</span>
+                </Link>
+                <Link
+                  href="/cong-dong"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#D8C8AA] bg-[#FDF9F0] px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-[#14233F] transition-colors hover:border-[#8A5A19] hover:bg-[#F1E6D0]"
+                >
+                  <Users size={14} />
+                  <span>Vào Diễn đàn Cộng đồng</span>
+                </Link>
+              </div>
+            </div>
+          </section>
 
           {relatedPosts.length > 0 ? (
             <section className="mt-12 border-t border-[var(--border)] pt-8">

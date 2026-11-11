@@ -57,6 +57,7 @@ export function Header({
     { id: "curriculum", label: "Chương trình học", href: "/chuong-trinh-hoc" },
     { id: "timeline", label: "Dòng thời gian", href: "/dong-thoi-gian" },
     { id: "blog", label: "Blog", href: "/blog" },
+    { id: "community", label: "Cộng đồng", href: "/cong-dong" },
     { id: "quiz", label: "Luyện tập", href: "/luyen-tap" },
   ];
 
@@ -220,8 +221,13 @@ export function Header({
 
         {/* Center: Desktop Navigation Bar */}
         <nav className="hidden md:flex items-center gap-7 lg:gap-9">
-          {navLinks.slice(0, 4).map((link) => {
-            const isActive = link.id === "blog" ? pathname?.startsWith("/blog") : activeTab === link.id;
+          {navLinks.slice(0, 5).map((link) => {
+            const isActive =
+              link.id === "blog"
+                ? pathname?.startsWith("/blog")
+                : link.id === "community"
+                  ? pathname?.startsWith("/cong-dong")
+                  : activeTab === link.id;
             return (
               <a
                 key={link.id}

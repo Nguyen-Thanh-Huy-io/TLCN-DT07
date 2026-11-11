@@ -35,6 +35,7 @@ const PUBLIC_ROUTE_PREFIXES = [
   '/chuong-su',
   '/kien-thuc',
   '/luyen-tap',
+  '/cong-dong',
 ];
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
@@ -85,9 +86,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Derive the 'page' identifier from the first path segment only
+  // Derive the 'page' identifier from the first path segment only (or /cms/<subpage>)
   let page = DASHBOARD_PAGE_KEY;
-  if (pathname !== "/") {
+  if (pathname.startsWith("/cms/moderation")) {
+    page = "moderation";
+  } else if (pathname !== "/") {
     page = pathname.replace(/^\//, "").split("/")[0];
   }
 
@@ -95,6 +98,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const setPage = (newPage: string) => {
     if (newPage === DASHBOARD_PAGE_KEY) {
       router.push("/cms");
+    } else if (newPage === "moderation") {
+      router.push("/cms/moderation");
     } else {
       router.push(`/${newPage}`);
     }

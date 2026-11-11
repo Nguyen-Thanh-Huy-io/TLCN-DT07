@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Bell, Check, ExternalLink, X, MessageSquare, CheckCircle, AlertCircle } from 'lucide-react';
+import { Bell, Check, ExternalLink, X, MessageSquare, CheckCircle, AlertCircle, Heart, ShieldAlert, UserPlus } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import api from '@/services/api';
 import { PublicAuthService } from '@/services/auth/public-auth.service';
@@ -28,8 +28,14 @@ const getNotificationIcon = (type: string) => {
     case 'BLOG_COMMENT':
     case 'NEW_REPLY':
       return <MessageSquare size={14} className="text-blue-600" />;
+    case 'POST_LIKED':
+      return <Heart size={14} className="text-rose-600 fill-rose-500" />;
+    case 'NEW_FOLLOWER':
+      return <UserPlus size={14} className="text-amber-700" />;
     case 'CONTENT_APPROVED':
       return <CheckCircle size={14} className="text-emerald-600" />;
+    case 'CONTENT_VIOLATION':
+      return <ShieldAlert size={14} className="text-red-700" />;
     case 'CONTENT_REJECTED':
       return <AlertCircle size={14} className="text-rose-600" />;
     default:

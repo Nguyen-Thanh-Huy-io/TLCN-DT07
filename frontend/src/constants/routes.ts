@@ -42,6 +42,7 @@ export const APP_ROUTES = {
   SETTINGS: '/settings',
   REVIEW: '/review',
   BLOG_REVIEW: '/blog-review',
+  MODERATION: '/cms/moderation',
   USERS: '/users',
 } as const;
 
@@ -69,6 +70,7 @@ export enum NavigationPageKey {
   SETTINGS = 'settings',
   REVIEW = 'review',
   BLOG_REVIEW = 'blog-review',
+  MODERATION = 'moderation',
   USERS = 'users',
 }
 

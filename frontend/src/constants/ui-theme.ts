@@ -94,6 +94,10 @@ export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
     title: 'Duyệt Blog',
     subtitle: 'Chỉnh sửa, kiểm duyệt và xuất bản blog theo quy trình riêng',
   },
+  moderation: {
+    title: 'Kiểm duyệt AI & Báo cáo Cộng đồng',
+    subtitle: 'Giám sát AI Sentinel tự động ẩn vi phạm, rà soát báo cáo và xử lý tài khoản tái phạm',
+  },
   users: {
     title: 'Người dùng',
     subtitle: 'Quản lý tài khoản và phân quyền hệ thống',

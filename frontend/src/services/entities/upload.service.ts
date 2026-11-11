@@ -10,7 +10,8 @@ export interface UploadImageResult {
 
 export class UploadApiService {
   /**
-   * Upload file ảnh lên server
+   * Upload file ảnh lên backend. Backend sẽ ưu tiên Cloudinary nếu đã cấu hình,
+   * ngược lại fallback về lưu local /uploads.
    */
   static async uploadImage(file: File): Promise<UploadImageResult> {
     const formData = new FormData();

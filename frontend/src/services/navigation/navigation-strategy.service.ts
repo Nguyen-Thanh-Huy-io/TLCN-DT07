@@ -247,6 +247,15 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
       groupId: this.groupId,
       subtitle: 'Duyệt riêng blog và chỉnh sửa trước khi xuất bản',
     },
+    {
+      id: 'nav-moderation',
+      label: NAV_ITEM_LABELS.MODERATION,
+      icon: IconName.SHIELD,
+      page: NavigationPageKey.MODERATION,
+      route: APP_ROUTES.MODERATION,
+      groupId: this.groupId,
+      subtitle: 'Giám sát AI Sentinel & xử lý báo cáo vi phạm cộng đồng',
+    },
   ];
 
   getItems(): NavItemConfig[] {
@@ -259,6 +268,7 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
       NavigationPageKey.SETTINGS,
       NavigationPageKey.REVIEW,
       NavigationPageKey.BLOG_REVIEW,
+      NavigationPageKey.MODERATION,
     ].includes(pageKey as NavigationPageKey);
   }
 
@@ -272,6 +282,8 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
         return this.items[2];
       case NavigationPageKey.BLOG_REVIEW:
         return this.items[3];
+      case NavigationPageKey.MODERATION:
+        return this.items[4];
       default:
         return this.items[0];
     }
@@ -346,6 +358,8 @@ export class NavigationFacade {
         return NavigationPageKey.REVIEW;
       case NavigationPageKey.BLOG_REVIEW:
         return NavigationPageKey.BLOG_REVIEW;
+      case NavigationPageKey.MODERATION:
+        return NavigationPageKey.MODERATION;
       default:
         return NavigationPageKey.CURRICULUM;
     }

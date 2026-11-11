@@ -1,9 +1,11 @@
 import api from '../api';
 
 export type BlogStatusValue = 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED' | 'ARCHIVED';
+export type BlogPostTypeValue = 'QUICK_POST' | 'LONG_FORM';
 
 export interface BlogPostItem {
   id: string;
+  postType?: BlogPostTypeValue;
   title: string;
   slug: string;
   excerpt: string | null;

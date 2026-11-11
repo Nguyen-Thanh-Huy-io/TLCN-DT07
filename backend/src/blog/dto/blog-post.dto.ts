@@ -14,7 +14,47 @@ import {
 const BLOG_POST_STATUSES = ['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'REJECTED', 'ARCHIVED'] as const;
 type BlogPostStatus = (typeof BLOG_POST_STATUSES)[number];
 
+const POST_TYPES = ['QUICK_POST', 'LONG_FORM'] as const;
+export type PostTypeValue = (typeof POST_TYPES)[number];
+
+export class ListBlogPostsQueryDto {
+  @ApiPropertyOptional({ enum: POST_TYPES, description: 'Lọc theo loại bài (QUICK_POST | LONG_FORM)' })
+  @IsOptional()
+  @IsEnum(POST_TYPES as any)
+  type?: PostTypeValue;
+
+  @ApiPropertyOptional({ enum: ['latest', 'trending'], default: 'latest', description: 'Sắp xếp mới nhất hoặc sôi nổi (trending)' })
+  @IsOptional()
+  @IsString()
+  sort?: 'latest' | 'trending';
+
+  @ApiPropertyOptional({ description: 'ID bài viết cuối của trang trước (dùng cho cuộn vô hạn)' })
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+
+  @ApiPropertyOptional({ description: 'Số lượng bài mỗi trang' })
+  @IsOptional()
+  @Type(() => Number)
+  limit?: number;
+
+  @ApiPropertyOptional({ description: 'Lọc theo username hoặc ID tác giả' })
+  @IsOptional()
+  @IsString()
+  author?: string;
+
+  @ApiPropertyOptional({ description: 'Chỉ lấy bài từ những tài khoản đang theo dõi (true/false)' })
+  @IsOptional()
+  @IsString()
+  followingOnly?: string;
+}
+
 export class CreateBlogPostDto {
+  @ApiPropertyOptional({ enum: POST_TYPES, default: 'QUICK_POST' })
+  @IsOptional()
+  @IsEnum(POST_TYPES as any)
+  postType?: PostTypeValue;
+
   @ApiProperty({ example: 'Cổng La Mã và không gian quyền lực' })
   @IsString()
   @IsNotEmpty()
@@ -77,6 +117,11 @@ export class ReviewBlogPostDto {
 }
 
 export class UpdateBlogPostDto {
+  @ApiPropertyOptional({ enum: POST_TYPES })
+  @IsOptional()
+  @IsEnum(POST_TYPES as any)
+  postType?: PostTypeValue;
+
   @ApiPropertyOptional({ example: 'Tiêu đề mới' })
   @IsOptional()
   @IsString()

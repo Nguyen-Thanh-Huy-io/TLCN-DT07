@@ -3,6 +3,7 @@
 import React, { useRef, useState } from 'react';
 import { Upload, Link2, Image as ImageIcon, Loader2, X } from 'lucide-react';
 import { UploadApiService } from '@/services/entities/upload.service';
+import { extractErrorMessage } from '@/services/api';
 import type { ImageBlockData } from '../../types/block-builder.types';
 
 interface ImageBlockItemEditorProps {
@@ -43,8 +44,8 @@ export function ImageBlockItemEditor({ data, onChange }: ImageBlockItemEditorPro
       } else {
         setUploadError('Tải ảnh lên thất bại, vui lòng thử lại.');
       }
-    } catch (err: any) {
-      setUploadError(err?.response?.data?.message || 'Lỗi kết nối khi tải ảnh lên.');
+    } catch (err) {
+      setUploadError(extractErrorMessage(err, 'Lỗi kết nối khi tải ảnh lên.'));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {

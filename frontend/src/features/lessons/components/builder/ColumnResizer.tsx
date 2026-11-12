@@ -23,7 +23,9 @@ export function ColumnResizer({
   const startLeftPercentRef = useRef<number>(leftWidthPercent);
 
   useEffect(() => {
-    setPreviewRatio([leftWidthPercent, 100 - leftWidthPercent]);
+    void Promise.resolve().then(() => {
+      setPreviewRatio([leftWidthPercent, 100 - leftWidthPercent]);
+    });
   }, [leftWidthPercent]);
 
   useEffect(() => {

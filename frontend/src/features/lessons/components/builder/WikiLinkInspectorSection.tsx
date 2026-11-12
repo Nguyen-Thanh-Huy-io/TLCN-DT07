@@ -15,6 +15,7 @@ import {
   WikiLinkTargetStrategyFactory,
   IWikiLinkCandidate,
 } from '../../strategies/wiki-link-target.strategy';
+import { KeyboardKey } from '@/constants/enums';
 
 interface WikiLinkInspectorSectionProps {
   editor: Editor | null;
@@ -43,20 +44,22 @@ export function WikiLinkInspectorSection({
 
   // Khi con trỏ đặt vào chữ đã có link hoặc mở bảng liên kết, đồng bộ dữ liệu
   useEffect(() => {
-    if (!editor) return;
-    if (activeHref) {
-      const detected = WikiLinkTargetStrategyFactory.detectTargetTypeFromHref(activeHref);
-      setTargetType(detected);
-      if (detected === WikiLinkTargetType.EXTERNAL_URL) {
-        setExternalUrl(activeHref);
+    void Promise.resolve().then(() => {
+      if (!editor) return;
+      if (activeHref) {
+        const detected = WikiLinkTargetStrategyFactory.detectTargetTypeFromHref(activeHref);
+        setTargetType(detected);
+        if (detected === WikiLinkTargetType.EXTERNAL_URL) {
+          setExternalUrl(activeHref);
+        }
+      } else if (isOpen) {
+        const { from, to } = editor.state.selection;
+        const selectedText = editor.state.doc.textBetween(from, to, ' ').trim();
+        if (selectedText && selectedText.length <= 60) {
+          setSearchQuery(selectedText);
+        }
       }
-    } else if (isOpen) {
-      const { from, to } = editor.state.selection;
-      const selectedText = editor.state.doc.textBetween(from, to, ' ').trim();
-      if (selectedText && selectedText.length <= 60) {
-        setSearchQuery(selectedText);
-      }
-    }
+    });
   }, [editor, activeHref, isOpen]);
 
   // Hỗ trợ phím tắt Ctrl + K / Cmd + K để mở nhanh khung gắn liên kết
@@ -296,7 +299,7 @@ export function WikiLinkInspectorSection({
             value={externalUrl}
             onChange={(e) => setExternalUrl(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === KeyboardKey.ENTER) {
                 e.preventDefault();
                 handleApplyExternalUrl();
               }

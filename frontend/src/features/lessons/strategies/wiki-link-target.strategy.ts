@@ -2,6 +2,7 @@ import { ArticleApiService } from '@/services/entities/article.service';
 import { TimelineApiService } from '@/services/entities/timeline.service';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { dateLabelOf } from '@/utils/year-label';
+import { URL_PROTOCOLS } from '@/constants/routes';
 
 /**
  * Đích của liên kết wiki trong nội dung khối. Mã giữ tên cũ (INTERNAL_ENTITY / INTERNAL_EVENT)
@@ -16,8 +17,8 @@ export enum WikiLinkTargetType {
 export const WIKI_LINK_ROUTES = {
   ARTICLE_PREFIX: '/bai-viet/',
   TIMELINE_PREFIX: '/giai-doan/',
-  HTTPS_PREFIX: 'https://',
-  HTTP_PREFIX: 'http://',
+  HTTPS_PREFIX: URL_PROTOCOLS.HTTPS,
+  HTTP_PREFIX: URL_PROTOCOLS.HTTP,
 } as const;
 
 export interface IWikiLinkCandidate {

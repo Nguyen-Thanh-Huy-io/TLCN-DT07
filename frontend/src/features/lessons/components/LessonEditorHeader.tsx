@@ -13,7 +13,7 @@ import { AutoSaveState } from '../types/editor.types';
 
 interface LessonEditorHeaderProps {
   lessonId: string | null;
-  status: ContentStatus | any;
+  status: ContentStatus;
   saving: boolean;
   autoSaveState: AutoSaveState;
   lastSavedAt: Date | null;
@@ -21,7 +21,7 @@ interface LessonEditorHeaderProps {
   lastSavedTime: string | null;
   showSidebar: boolean;
   onToggleSidebar: () => void;
-  onSaveLesson: (nextStatus: ContentStatus | any) => void;
+  onSaveLesson: (nextStatus: ContentStatus) => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
   onOpenSidePanel: () => void;
@@ -90,8 +90,8 @@ export function LessonEditorHeader({
           </h1>
         </div>
 
-        <Badge tone={STATUS_TONE_MAP[status as ContentStatus] || 'gray'}>
-          {STATUS_LABEL_MAP[status as ContentStatus] || (status === 'PUBLISHED' ? 'Đã xuất bản' : status)}
+        <Badge tone={STATUS_TONE_MAP[status] || 'gray'}>
+          {STATUS_LABEL_MAP[status] || (status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : status)}
         </Badge>
       </div>
 

@@ -142,7 +142,6 @@ export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
     onClose,
     className,
     compact,
-    accentColor,
   } = props;
 
   if (!block) {

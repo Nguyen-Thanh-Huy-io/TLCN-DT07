@@ -62,7 +62,7 @@ export function LessonTagPicker({
   hideLabel = false,
 }: LessonTagPickerProps) {
   const [allTags, setAllTags] = useState<TagItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -72,7 +72,6 @@ export function LessonTagPicker({
   // Tải danh sách nhãn khi mount
   useEffect(() => {
     let active = true;
-    setLoading(true);
     TagApiService.getTags()
       .then((items) => {
         if (active) setAllTags(items || []);

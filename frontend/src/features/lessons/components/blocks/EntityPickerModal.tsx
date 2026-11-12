@@ -98,9 +98,11 @@ export const EntityPickerModal: React.FC<EntityPickerModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setSearch('');
-      resetPreview();
-      executeSearch('', activeSource);
+      void Promise.resolve().then(() => {
+        setSearch('');
+        resetPreview();
+        executeSearch('', activeSource);
+      });
     }
   }, [isOpen, activeSource, executeSearch, resetPreview]);
 

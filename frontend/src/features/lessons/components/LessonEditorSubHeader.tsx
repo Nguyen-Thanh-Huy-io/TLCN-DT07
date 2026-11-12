@@ -5,6 +5,9 @@ import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 import { EditorViewMode } from '../types/editor.types';
 
+const ACTIVE_TAB_CLASS = 'bg-white text-slate-900 font-bold shadow-2xs';
+const INACTIVE_TAB_CLASS = 'text-slate-600 hover:text-slate-900';
+
 interface LessonEditorSubHeaderProps {
   activeTab: EditorViewMode;
   onChangeTab: (tab: EditorViewMode) => void;
@@ -30,9 +33,7 @@ export function LessonEditorSubHeader({
         <button
           type="button"
           className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 cursor-pointer ${
-            activeTab === EditorViewMode.EDIT
-              ? 'bg-white text-slate-900 font-bold shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900'
+            activeTab === EditorViewMode.EDIT ? ACTIVE_TAB_CLASS : INACTIVE_TAB_CLASS
           }`}
           onClick={() => onChangeTab(EditorViewMode.EDIT)}
           title="Chế độ soạn thảo tập trung"
@@ -43,9 +44,7 @@ export function LessonEditorSubHeader({
         <button
           type="button"
           className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 cursor-pointer ${
-            activeTab === EditorViewMode.SPLIT
-              ? 'bg-white text-slate-900 font-bold shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900'
+            activeTab === EditorViewMode.SPLIT ? ACTIVE_TAB_CLASS : INACTIVE_TAB_CLASS
           }`}
           onClick={() => onChangeTab(EditorViewMode.SPLIT)}
           title="Soạn thảo bên trái, xem kết quả bên phải"
@@ -56,9 +55,7 @@ export function LessonEditorSubHeader({
         <button
           type="button"
           className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 cursor-pointer ${
-            activeTab === EditorViewMode.PREVIEW
-              ? 'bg-white text-slate-900 font-bold shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900'
+            activeTab === EditorViewMode.PREVIEW ? ACTIVE_TAB_CLASS : INACTIVE_TAB_CLASS
           }`}
           onClick={() => onChangeTab(EditorViewMode.PREVIEW)}
           title="Xem trước toàn bộ giao diện bài học"

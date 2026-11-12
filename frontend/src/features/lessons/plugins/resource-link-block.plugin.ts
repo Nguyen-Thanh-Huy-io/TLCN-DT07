@@ -1,6 +1,7 @@
 import { LessonBlockType } from '../types/block-palette.types';
 import { ResourceLinkBlockData } from '../types/block-builder.types';
 import { BlockPlugin, BlockWidth, safeUrl, escapeHtml } from './block-plugin.types';
+import { SAMPLE_REMOTE_LINKS } from '@/constants/routes';
 
 export const resourceLinkBlockPlugin: BlockPlugin<ResourceLinkBlockData> = {
   type: LessonBlockType.RESOURCE_LINK,
@@ -10,7 +11,7 @@ export const resourceLinkBlockPlugin: BlockPlugin<ResourceLinkBlockData> = {
     type: LessonBlockType.RESOURCE_LINK,
     width: defaultWidth,
     title: 'Đại Việt Sử Ký Toàn Thư / Lịch sử Quân sự Việt Nam',
-    url: 'https://vi.wikipedia.org/wiki/Chi%E1%BA%BFn_d%E1%BB%8Bch_%C4%90i%E1%BB%87n_Bi%C3%AAn_Ph%E1%BB%A7',
+    url: SAMPLE_REMOTE_LINKS.DIEN_BIEN_PHU_WIKI,
     note: 'Tài liệu sử liệu tham khảo chuẩn (NXB Quân đội Nhân dân).',
   }),
 

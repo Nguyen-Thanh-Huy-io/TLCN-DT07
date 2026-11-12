@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { QuizApiService } from '@/services/entities/quiz.service';
+import { extractErrorMessage } from '@/services/api';
 import { QuizQuestion, QuizQuestionType } from '../types/quiz.types';
 import { createDefaultQuestion } from '../factories/quiz-question.factory';
 import { MoveDirection } from '../components/quiz/QuizQuestionEditors';
@@ -47,11 +48,11 @@ export function useQuizEditor(lessonId: string | null | undefined): UseQuizEdito
 
   useEffect(() => {
     if (!lessonId) {
-      setLoading(false);
+      void Promise.resolve().then(() => setLoading(false));
       return;
     }
     let isMounted = true;
-    setLoading(true);
+    void Promise.resolve().then(() => isMounted && setLoading(true));
     QuizApiService.getQuiz(lessonId)
       .then((quiz) => {
         if (!isMounted) return;
@@ -127,9 +128,9 @@ export function useQuizEditor(lessonId: string | null | undefined): UseQuizEdito
       });
       setHasQuiz(true);
       setSaving(QuizSaveState.SAVED);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Lỗi lưu đề ôn tập:', err);
-      alert(err?.response?.data?.message || 'Không thể lưu đề ôn tập. Vui lòng kiểm tra lại các câu hỏi.');
+      alert(extractErrorMessage(err, 'Không thể lưu đề ôn tập. Vui lòng kiểm tra lại các câu hỏi.'));
       setSaving(QuizSaveState.ERROR);
     }
   }, [lessonId, title, passingScorePercent, questions]);

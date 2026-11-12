@@ -3,18 +3,21 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { Editor } from '@tiptap/react';
 
-export type EditorialSubElementType =
-  | 'INTRO_TEXT'
-  | 'MAIN_HEADING'
-  | 'ARTICLE_TEXT'
-  | 'MAIN_IMAGE'
-  | 'PULL_QUOTE'
-  | 'SUB_CHAPTER'
-  | 'NESTED_BLOCK';
+export enum EditorialSubElementType {
+  INTRO_TEXT = 'INTRO_TEXT',
+  MAIN_HEADING = 'MAIN_HEADING',
+  ARTICLE_TEXT = 'ARTICLE_TEXT',
+  MAIN_IMAGE = 'MAIN_IMAGE',
+  PULL_QUOTE = 'PULL_QUOTE',
+  SUB_CHAPTER = 'SUB_CHAPTER',
+  NESTED_BLOCK = 'NESTED_BLOCK',
+}
+
+export type EditorialSubElementTypeUnion = `${EditorialSubElementType}`;
 
 export interface ActiveSubElementSelection {
   parentBlockId: string;
-  subType: EditorialSubElementType;
+  subType: EditorialSubElementType | EditorialSubElementTypeUnion;
   subId?: string;
   label: string;
 }

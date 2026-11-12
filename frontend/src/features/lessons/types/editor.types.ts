@@ -43,7 +43,7 @@ export interface UseLessonEditorFacadeReturn {
   setThumbnailUrl: (val: string) => void;
   displayOrder: number;
   setDisplayOrder: (val: number) => void;
-  status: ContentStatus | any;
+  status: ContentStatus;
 
   // Media Album
   mediaList: LessonMediaItem[];
@@ -51,7 +51,7 @@ export interface UseLessonEditorFacadeReturn {
   removeMediaItem: (index: number) => void;
 
   // Nội dung khối thật của bài học (chỉ có giá trị sau khi API trả dữ liệu ở chế độ sửa bài)
-  initialBlockContent: any;
+  initialBlockContent: unknown;
 
   // Metadata & Status
   topics: TopicItem[];
@@ -76,7 +76,7 @@ export interface UseLessonEditorFacadeReturn {
   setSelectedTags: (tags: TagItem[]) => void;
 
   // Actions
-  submitLesson: (nextStatus: ContentStatus | any, overrideContent?: any) => Promise<void>;
+  submitLesson: (nextStatus: ContentStatus, overrideContent?: unknown) => Promise<void>;
   /** Bản sửa chờ duyệt đang mở của bài đang xuất bản (form đang hiện bản sửa này). */
   pendingRevision: ContentRevisionItem | null;
   revisionNotice: string | null;

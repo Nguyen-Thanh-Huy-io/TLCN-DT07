@@ -1,3 +1,5 @@
+import { WIKIPEDIA_VI_API } from '@/constants/routes';
+
 /**
  * Quản lý toàn bộ hằng số cho tính năng Tra cứu nguồn dữ liệu Thực thể lịch sử
  * Tuyệt đối không dùng magic string.
@@ -10,9 +12,14 @@ export const ENTITY_SOURCE_CONSTANTS = {
     WIKIPEDIA_TITLE: 'Wikipedia tiếng Việt',
     WIKIPEDIA_SUBTITLE: 'Tra cứu bách khoa mở rộng toàn cầu (vi.wikipedia.org)',
   },
+  /** Wikimedia yêu cầu định danh ứng dụng qua Api-User-Agent khi gọi API từ trình duyệt. */
+  WIKIMEDIA_REQUEST_HEADERS: {
+    Accept: 'application/json',
+    'Api-User-Agent': 'HisgoHistoryApp/1.0 (contact@hisgo.edu.vn)',
+  },
   WIKIPEDIA_API: {
-    BASE_SEARCH_URL: 'https://vi.wikipedia.org/w/rest.php/v1/search/title',
-    BASE_SUMMARY_URL: 'https://vi.wikipedia.org/api/rest_v1/page/summary',
+    BASE_SEARCH_URL: WIKIPEDIA_VI_API.SEARCH_TITLE,
+    BASE_SUMMARY_URL: WIKIPEDIA_VI_API.PAGE_SUMMARY,
     DEFAULT_LIMIT: 10,
     MAX_SUMMARY_LENGTH: 500,
   },

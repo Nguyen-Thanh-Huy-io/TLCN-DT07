@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { Columns3, Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 import { RowSectionBlockData, LessonBlockItem } from '../../types/block-builder.types';
 import { LessonBlockType, LessonBlockGroup } from '../../types/block-palette.types';
 import { LESSON_BLOCK_ITEMS } from '../../constants/block-palette.constants';
-import { ROW_RATIO_PRESETS } from '../../constants/row-layout.constants';
 import { RowLayoutStrategy } from '../../strategies/row-layout.strategy';
 import { ColumnResizer } from './ColumnResizer';
 import { BlockPlacementRuleEngine } from '../../rules/block-placement.rule';

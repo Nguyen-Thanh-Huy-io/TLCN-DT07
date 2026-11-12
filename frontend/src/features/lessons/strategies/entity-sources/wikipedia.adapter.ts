@@ -47,9 +47,9 @@ export class WikipediaEntityAdapter {
   ): IEntityDetailPreview {
     const rawExtract = summary.extract || summary.description || '';
     // Ưu tiên 1: Bóc tách năm từ description (vì Wikipedia luôn đặt năm sinh - năm mất của nhân vật trong description)
-    let years = this.extractYearsFromText(summary.description || '', summary.title);
+    let years = this.extractYearsFromText(summary.description || '');
     if (!years) {
-      years = this.extractYearsFromText(rawExtract, summary.title);
+      years = this.extractYearsFromText(rawExtract);
     }
 
     const trimmedSummary = this.trimToMaxCharacters(
@@ -77,7 +77,7 @@ export class WikipediaEntityAdapter {
    * Bóc tách năm sinh - năm mất hoặc mốc thời gian từ văn bản tóm tắt
    * Hỗ trợ các mẫu tiếng Việt: (1911 – 2013), (sinh 1911), (1890 – 1969)...
    */
-  public static extractYearsFromText(text: string, title?: string): string {
+  public static extractYearsFromText(text: string): string {
     if (!text) return '';
 
     // Mẫu 1: Dạng nằm trong ngoặc tròn (1911 – 2013) hoặc (1911-2013) hoặc (1911—2013)

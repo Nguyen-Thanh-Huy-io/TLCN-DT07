@@ -18,57 +18,186 @@ import {
   type ContentRevisionItem,
 } from '@/services/entities/content-revision.service';
 
-/** Độ trễ debounce cho auto-save (ms) */
 const AUTO_SAVE_DEBOUNCE_MS = 1500;
+
+interface LessonDraftPayload {
+  title?: string;
+  thumbnailUrl?: string;
+  difficulty?: DifficultyLevel;
+  sourceReferenceNote?: string;
+  displayOrder?: number;
+  selectedTopicId?: string;
+  selectedTags?: TagItem[];
+  savedAt?: string;
+  contentRichText?: string;
+}
+
+interface ExtendedLessonDetail extends Omit<LessonItem, 'topic' | 'status' | 'lessonTags'> {
+  topic?: { id?: string; name?: string; slug?: string; parentId?: string | null } | null;
+  status?: ContentStatus | string;
+  sourceReferenceNote?: string;
+  tags?: TagItem[];
+  lessonTags?: Array<{ tagId?: string; tag?: TagItem }>;
+  media?: Array<{
+    id?: string;
+    type?: MediaType;
+    url?: string;
+    caption?: string;
+    displayOrder?: number;
+  }>;
+}
+
+function applyDraftData(
+  draft: LessonDraftPayload,
+  setTitle: (val: string) => void,
+  setThumbnailUrl: (val: string) => void,
+  setDifficulty: (val: DifficultyLevel) => void,
+  setSourceReferenceNote: (val: string) => void,
+  setDisplayOrder: (val: number) => void,
+  setSelectedTopicId: (val: string) => void,
+  setSelectedTags: (val: TagItem[]) => void,
+) {
+  if (draft.title !== undefined) setTitle(draft.title);
+  if (draft.thumbnailUrl !== undefined) setThumbnailUrl(draft.thumbnailUrl);
+  if (draft.difficulty !== undefined) setDifficulty(draft.difficulty);
+  if (draft.sourceReferenceNote !== undefined) setSourceReferenceNote(draft.sourceReferenceNote);
+  if (draft.displayOrder !== undefined) setDisplayOrder(draft.displayOrder);
+  if (draft.selectedTopicId) setSelectedTopicId(draft.selectedTopicId);
+  if (Array.isArray(draft.selectedTags)) setSelectedTags(draft.selectedTags);
+}
+
+function extractTagsFromLesson(lesson: ExtendedLessonDetail): TagItem[] {
+  if (Array.isArray(lesson.tags) && lesson.tags.length > 0) {
+    return lesson.tags;
+  }
+  if (Array.isArray(lesson.lessonTags)) {
+    return lesson.lessonTags
+      .map((lt) => lt.tag)
+      .filter((t): t is TagItem => Boolean(t));
+  }
+  return [];
+}
+
+function extractMediaFromLesson(lesson: ExtendedLessonDetail): LessonMediaItem[] {
+  if (Array.isArray(lesson.media) && lesson.media.length > 0) {
+    return lesson.media.map((m, idx) => ({
+      id: m.id || `media-${idx}`,
+      type: m.type || MediaType.IMAGE,
+      url: m.url || '',
+      caption: m.caption,
+      displayOrder: m.displayOrder ?? idx + 1,
+    }));
+  }
+  return [];
+}
+
+const DEFAULT_NEW_LESSON_TITLE = 'Chiến dịch Điện Biên Phủ năm 1954';
+const DEFAULT_NEW_LESSON_CONTENT = `
+  <h2>1. Bối cảnh lịch sử</h2>
+  <p>Cuối năm 1953, cuộc kháng chiến chống thực dân Pháp của nhân dân Việt Nam bước sang năm thứ tám.</p>
+`;
+const DEFAULT_NEW_LESSON_NOTE = 'Viện Sử học (2017), Lịch sử Việt Nam, tập 10, NXB Khoa học Xã hội.';
+
+function buildLessonPayload(params: {
+  title: string;
+  slug: string;
+  description: string;
+  contentRichText: string;
+  overrideContent?: unknown;
+  thumbnailUrl?: string;
+  difficulty: DifficultyLevel;
+  status: ContentStatus;
+  displayOrder: number;
+}) {
+  const resolvedContent =
+    params.overrideContent !== undefined ? params.overrideContent : params.contentRichText.trim() || undefined;
+  return {
+    title: params.title.trim(),
+    slug: params.slug.trim() || undefined,
+    description: params.description.trim() || undefined,
+    summary: params.description.trim() || undefined,
+    content: resolvedContent,
+    contentRichText: typeof resolvedContent === 'string' ? resolvedContent : JSON.stringify(resolvedContent),
+    thumbnailUrl: params.thumbnailUrl?.trim() || undefined,
+    difficulty: params.difficulty,
+    status: params.status,
+    displayOrder: Number(params.displayOrder) || 0,
+  };
+}
+
+async function attachLessonRelations(savedId: string, tags: TagItem[], targetChapterId: string | null, isNew: boolean) {
+  if (tags.length > 0) {
+    try {
+      await TagApiService.attachTagsToLesson(
+        savedId,
+        tags.map((t) => t.id),
+      );
+    } catch (tagErr) {
+      console.warn('Could not attach tags to lesson:', tagErr);
+    }
+  }
+
+  if (isNew && targetChapterId) {
+    try {
+      await LearningPathApiService.addLessonsToChapter(targetChapterId, [savedId]);
+    } catch (chapterErr) {
+      alert(
+        extractErrorMessage(
+          chapterErr,
+          'Đã lưu bài học nhưng chưa gắn được vào chương — hãy thêm từ thư viện trong Studio.',
+        ),
+      );
+    }
+  }
+}
+
+function clearDraftSafely(storageKey: string) {
+  try {
+    localStorage.removeItem(storageKey);
+  } catch {
+    // Ignore
+  }
+}
 
 export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEditorFacadeReturn {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lessonId = explicitLessonId || searchParams.get('id');
   const queryTopicId = searchParams.get('topicId') || '';
-  // Mở từ nút "Soạn bài mới" trong một chương của Studio: lưu lần đầu thì gắn luôn vào chương đó.
   const targetChapterId = searchParams.get('chapterId');
 
   const [topics, setTopics] = useState<TopicItem[]>([]);
-  const [topicLessons, setTopicLessons] = useState<LessonItem[]>([]);
-  const [loadingTopicLessons, setLoadingTopicLessons] = useState(false);
+  const [topicLessons] = useState<LessonItem[]>([]);
+  const [loadingTopicLessons] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingLesson, setLoadingLesson] = useState(false);
 
   const [selectedTopicId, setSelectedTopicId] = useState(queryTopicId);
   const [status, setStatus] = useState<ContentStatus>(ContentStatus.DRAFT);
-  // Phiên bản hóa: bản sửa chờ duyệt đang mở, thông báo sau khi lưu, khóa tải lại sau duyệt / khôi phục.
   const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
   const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(() => (!lessonId ? DEFAULT_NEW_LESSON_TITLE : ''));
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
-  const [contentRichText, setContentRichText] = useState('');
+  const [contentRichText, setContentRichText] = useState(() => (!lessonId ? DEFAULT_NEW_LESSON_CONTENT : ''));
   const [difficulty, setDifficulty] = useState<DifficultyLevel>(DifficultyLevel.MEDIUM);
-  const [sourceReferenceNote, setSourceReferenceNote] = useState('');
+  const [sourceReferenceNote, setSourceReferenceNote] = useState(() => (!lessonId ? DEFAULT_NEW_LESSON_NOTE : ''));
   const [thumbnailUrl, setThumbnailUrl] = useState('');
-  const [displayOrder, setDisplayOrder] = useState<number>(0);
+  const [displayOrder, setDisplayOrder] = useState<number>(() => (!lessonId ? 1 : 0));
   const [selectedTags, setSelectedTags] = useState<TagItem[]>([]);
 
-  // Local Draft Storage
   const draftStorageKey = useMemo(
     () => (lessonId ? `hisgo_draft_lesson_${lessonId}` : 'hisgo_draft_lesson_create'),
-    [lessonId]
+    [lessonId],
   );
   const [hasLocalDraft, setHasLocalDraft] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>(AutoSaveState.IDLE);
 
-  // Media attachments list
   const [mediaList, setMediaList] = useState<LessonMediaItem[]>([]);
-
-  // Nội dung khối (block JSON) thật của bài học, chỉ có giá trị SAU khi API trả dữ liệu
-  // (ở chế độ sửa bài). Dùng để nạp vào Block Builder đúng 1 lần — không dùng trực tiếp
-  // `contentRichText` làm giá trị khởi tạo Block Builder vì nó rỗng ở lần render đầu tiên
-  // (trước khi fetch xong), nên không thể dùng `useMemo([])` một lần như trước đây.
-  const [initialBlockContent, setInitialBlockContent] = useState<any>(undefined);
+  const [initialBlockContent, setInitialBlockContent] = useState<unknown>(undefined);
 
   const addMediaItem = useCallback((item: LessonMediaItem) => {
     setMediaList((prev) => [...prev, item]);
@@ -78,64 +207,66 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
     setMediaList((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  // 1. Tải danh sách Chủ đề (Topics) - Khởi tạo 1 lần duy nhất khi mount
   const loadTopics = useCallback(async () => {
     try {
       const res = await TopicApiService.getTopics({ limit: 100 });
       const items = res?.items || [];
       setTopics(items);
       setSelectedTopicId((prev) => (!prev && items.length > 0 ? items[0].id : prev));
-    } catch (err) {
-      console.error('Failed to load topics for lesson editor:', err);
+    } catch {
       setTopics([]);
     }
   }, []);
 
   useEffect(() => {
-    loadTopics();
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (active) void loadTopics();
+    });
+    return () => {
+      active = false;
+    };
   }, [loadTopics]);
 
-  // Kiểm tra Local Draft tồn tại khi mount
   useEffect(() => {
     try {
       const savedRaw = localStorage.getItem(draftStorageKey);
       if (savedRaw) {
-        const parsed = JSON.parse(savedRaw);
+        const parsed: LessonDraftPayload = JSON.parse(savedRaw);
         if (parsed.title || parsed.contentRichText) {
-          setHasLocalDraft(true);
-          setLastSavedTime(parsed.savedAt || null);
+          void Promise.resolve().then(() => {
+            setHasLocalDraft(true);
+            setLastSavedTime(parsed.savedAt || null);
+          });
         }
       }
     } catch {
-      // Ignore localStorage errors
+      // Ignore
     }
   }, [draftStorageKey]);
 
-  // Khôi phục bản nháp
   const restoreDraft = useCallback(() => {
     try {
       const savedRaw = localStorage.getItem(draftStorageKey);
       if (savedRaw) {
-        const draft = JSON.parse(savedRaw);
-        if (draft.title !== undefined) setTitle(draft.title);
-        // KHÔNG khôi phục `contentRichText` từ draft: đây là giá trị DẪN XUẤT từ danh sách
-        // Khối (Block Builder) qua `compileToHtml()`, không phải dữ liệu độc lập — nháp cũ
-        // (nhất là lưu từ thời điểm có lỗi JSON.stringify trước khi fix) có thể chứa chuỗi
-        // JSON thô không khớp với Khối thật, khiến tab Xem trước hiển thị sai hẳn vĩnh viễn.
-        if (draft.thumbnailUrl !== undefined) setThumbnailUrl(draft.thumbnailUrl);
-        if (draft.difficulty !== undefined) setDifficulty(draft.difficulty);
-        if (draft.sourceReferenceNote !== undefined) setSourceReferenceNote(draft.sourceReferenceNote);
-        if (draft.displayOrder !== undefined) setDisplayOrder(draft.displayOrder);
-        if (draft.selectedTopicId) setSelectedTopicId(draft.selectedTopicId);
-        if (Array.isArray(draft.selectedTags)) setSelectedTags(draft.selectedTags);
+        const draft: LessonDraftPayload = JSON.parse(savedRaw);
+        applyDraftData(
+          draft,
+          setTitle,
+          setThumbnailUrl,
+          setDifficulty,
+          setSourceReferenceNote,
+          setDisplayOrder,
+          setSelectedTopicId,
+          setSelectedTags,
+        );
         setHasLocalDraft(false);
       }
-    } catch (err) {
-      console.error('Failed to restore draft:', err);
+    } catch {
+      // Ignore
     }
   }, [draftStorageKey]);
 
-  // Bỏ qua bản nháp
   const dismissDraft = useCallback(() => {
     try {
       localStorage.removeItem(draftStorageKey);
@@ -145,18 +276,15 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
     setHasLocalDraft(false);
   }, [draftStorageKey]);
 
-  // Tự động lưu nháp (Auto-save debounce)
-  // Không ghi đè khi người dùng chưa quyết định khôi phục / bỏ qua bản nháp cũ
   useEffect(() => {
     if (hasLocalDraft) return;
     if (!title && !contentRichText) return;
 
-    setAutoSaveState(AutoSaveState.PENDING);
     const timer = setTimeout(() => {
       try {
         const now = new Date();
         const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-        const draftData = {
+        const draftData: LessonDraftPayload = {
           title,
           contentRichText,
           thumbnailUrl,
@@ -179,79 +307,55 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
     return () => clearTimeout(timer);
   }, [title, contentRichText, thumbnailUrl, difficulty, sourceReferenceNote, displayOrder, selectedTopicId, selectedTags, draftStorageKey, hasLocalDraft]);
 
-  // 2. Tải dữ liệu bài học khi đang ở chế độ chỉnh sửa (có ID)
+  const handleLessonDetailLoaded = useCallback(
+    (lesson: ExtendedLessonDetail | null, pending: ContentRevisionItem | null) => {
+      setPendingRevision(pending);
+      if (!lesson) return;
+
+      setTitle(lesson.title || '');
+      setSlug(lesson.slug || '');
+      setDescription(lesson.description || lesson.summary || '');
+      setSelectedTopicId(lesson.topic?.id || '');
+      setContentRichText(
+        lesson.contentRichText || (typeof lesson.content === 'string' ? lesson.content : '') || '',
+      );
+      setInitialBlockContent(lesson.content ?? lesson.contentRichText ?? null);
+      setDifficulty(lesson.difficulty || DifficultyLevel.MEDIUM);
+      setSourceReferenceNote(lesson.sourceReferenceNote || '');
+      setThumbnailUrl(lesson.thumbnailUrl || '');
+      setDisplayOrder(lesson.displayOrder ?? 0);
+      setStatus(((lesson.status as unknown) as ContentStatus) || ContentStatus.DRAFT);
+      setSelectedTags(extractTagsFromLesson(lesson));
+      setMediaList(extractMediaFromLesson(lesson));
+    },
+    [],
+  );
+
   useEffect(() => {
     if (lessonId) {
-      setLoadingLesson(true);
+      let active = true;
+      void Promise.resolve().then(() => {
+        if (active) setLoadingLesson(true);
+      });
       LessonApiService.getLessonById(lessonId)
-        // Đang xuất bản mà có bản sửa chờ duyệt → mở bản sửa đó để sửa tiếp không mất phần trước.
-        .then((fetched: any) => withPendingDraft('LESSON', lessonId, fetched))
-        .then(({ detail: lesson, pending }: { detail: any; pending: ContentRevisionItem | null }) => {
-          setPendingRevision(pending);
-          if (lesson) {
-            setTitle(lesson.title || '');
-            setSlug(lesson.slug || '');
-            setDescription(lesson.description || lesson.summary || '');
-            setSelectedTopicId((lesson as any)?.topic?.id || '');
-            // CHỈ gán `contentRichText` khi nội dung là HTML thuần (bài học cũ/chưa có Block
-            // Builder) — khi `content` là mảng JSON khối, KHÔNG được `JSON.stringify` nó vào
-            // đây, nếu không tab Xem trước sẽ hiển thị thẳng chuỗi JSON thô (lỗi đã gặp).
-            // Để trống và để effect đồng bộ Khối -> HTML trong LessonEditor tự biên dịch lại
-            // HTML thật ngay khi `initialBlockContent` được nạp vào Block Builder.
-            setContentRichText(
-              lesson.contentRichText || (typeof lesson.content === 'string' ? lesson.content : '') || ''
-            );
-            // Ưu tiên `content` (JSON mảng khối) nếu có — giữ đúng cấu trúc Block Builder;
-            // nếu không có thì dùng `contentRichText` (HTML thuần, sẽ nạp thành 1 khối văn bản).
-            setInitialBlockContent(lesson.content ?? lesson.contentRichText ?? null);
-            setDifficulty(lesson.difficulty || DifficultyLevel.MEDIUM);
-            setSourceReferenceNote(lesson.sourceReferenceNote || '');
-            setThumbnailUrl(lesson.thumbnailUrl || '');
-            setDisplayOrder(lesson.displayOrder ?? 0);
-            setStatus(lesson.status || (ContentStatus.DRAFT as any));
-            if (Array.isArray(lesson.tags) && lesson.tags.length > 0) {
-              setSelectedTags(lesson.tags);
-            } else if (Array.isArray(lesson.lessonTags)) {
-              setSelectedTags(
-                lesson.lessonTags
-                  .map((lt: { tag?: TagItem }) => lt.tag)
-                  .filter((t: TagItem | undefined): t is TagItem => Boolean(t)),
-              );
-            }
-            if (Array.isArray(lesson.media) && lesson.media.length > 0) {
-              setMediaList(
-                lesson.media.map((m: any, idx: number) => ({
-                  id: m.id,
-                  type: m.type || MediaType.IMAGE,
-                  url: m.url,
-                  caption: m.caption,
-                  displayOrder: m.displayOrder ?? idx + 1,
-                })),
-              );
-            }
+        .then((fetched) => withPendingDraft('LESSON', lessonId, fetched))
+        .then(({ detail: lesson, pending }) => {
+          if (active) {
+            handleLessonDetailLoaded(lesson as ExtendedLessonDetail, pending);
           }
         })
-        .catch((err) => {
-          console.error('Failed to load lesson detail:', err);
+        .catch(() => {
           alert('Không thể tải bài học cần sửa.');
         })
-        .finally(() => setLoadingLesson(false));
-    } else {
-      // Dữ liệu mẫu khởi tạo chuẩn cho bài học lịch sử
-      setTitle('Chiến dịch Điện Biên Phủ năm 1954');
-      setContentRichText(`
-        <h2>1. Bối cảnh lịch sử</h2>
-        <p>Cuối năm 1953, cuộc kháng chiến chống thực dân Pháp của nhân dân Việt Nam bước sang năm thứ tám. Dưới sự chỉ huy của tướng Henri Navarre, thực dân Pháp cùng đế quốc Mỹ xây dựng Điện Biên Phủ thành một tập đoàn cứ điểm quân sự mạnh nhất Đông Dương.</p>
-        <blockquote>"Điện Biên Phủ là một pháo đài bất khả xâm phạm, chiếc cối xay thịt đối với Việt Minh." - Tướng Navarre</blockquote>
-        <h2>2. Diễn biến ba đợt tiến công</h2>
-        <p>Chiến dịch diễn ra trong 56 ngày đêm với 3 đợt tiến công ác liệt dưới sự chỉ huy trực tiếp của Đại tướng Võ Nguyên Giáp, bắt đầu từ ngày 13/03/1954 đến ngày 07/05/1954 toàn thắng.</p>
-      `);
-      setSourceReferenceNote('Viện Sử học (2017), Lịch sử Việt Nam, tập 10, NXB Khoa học Xã hội.');
-      setDisplayOrder(1);
+        .finally(() => {
+          if (active) setLoadingLesson(false);
+        });
+      return () => {
+        active = false;
+      };
     }
-  }, [lessonId, reloadKey]);
+  }, [handleLessonDetailLoaded, lessonId, reloadKey]);
 
-  // 3. Tính số lượng từ vựng (Word count) & thời gian đọc ước tính (~200 từ / phút)
   const wordCount = useMemo(() => {
     if (!contentRichText) return 0;
     return contentRichText
@@ -261,13 +365,10 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
       .filter(Boolean).length;
   }, [contentRichText]);
 
-  const estimatedReadMinutes = useMemo(() => {
-    return Math.max(1, Math.ceil(wordCount / 200));
-  }, [wordCount]);
+  const estimatedReadMinutes = useMemo(() => Math.max(1, Math.ceil(wordCount / 200)), [wordCount]);
 
-  // 4. Lưu nháp hoặc Gửi duyệt bài học
   const submitLesson = useCallback(
-    async (nextStatus: ContentStatus | any, overrideContent?: any) => {
+    async (nextStatus: ContentStatus, overrideContent?: unknown) => {
       if (!title.trim()) {
         alert('Vui lòng nhập tên bài học.');
         return;
@@ -275,19 +376,17 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
 
       try {
         setSaving(true);
-        const resolvedContent = overrideContent !== undefined ? overrideContent : (contentRichText.trim() || undefined);
-        const payload = {
-          title: title.trim(),
-          slug: slug.trim() || undefined,
-          description: description.trim() || undefined,
-          summary: description.trim() || undefined,
-          content: resolvedContent,
-          contentRichText: typeof resolvedContent === 'string' ? resolvedContent : JSON.stringify(resolvedContent),
-          thumbnailUrl: thumbnailUrl?.trim() || undefined,
+        const payload = buildLessonPayload({
+          title,
+          slug,
+          description,
+          contentRichText,
+          overrideContent,
+          thumbnailUrl,
           difficulty,
           status: nextStatus,
-          displayOrder: Number(displayOrder) || 0,
-        };
+          displayOrder,
+        });
 
         setAutoSaveState(AutoSaveState.SYNCING);
         const saved = lessonId
@@ -295,72 +394,46 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
           : await LessonApiService.createLesson(payload);
 
         if (isRevisionPending(saved)) {
-          // Bài đang xuất bản: thay đổi thành bản sửa chờ duyệt, bản công khai giữ nguyên.
           setPendingRevision(saved.revision);
           setRevisionNotice(saved.message);
           setAutoSaveState(AutoSaveState.SAVED);
-          try {
-            localStorage.removeItem(draftStorageKey);
-          } catch {
-            // Ignore
-          }
+          clearDraftSafely(draftStorageKey);
           return;
         }
 
-        // Gắn nhãn phân loại (Tags) cho bài học nếu có chọn thẻ
         const savedId = lessonId || saved?.id;
-        if (savedId && selectedTags.length > 0) {
-          try {
-            await TagApiService.attachTagsToLesson(
-              savedId,
-              selectedTags.map((t) => t.id),
-            );
-          } catch (tagErr) {
-            console.warn('Could not attach tags to lesson:', tagErr);
-          }
+        if (savedId) {
+          await attachLessonRelations(savedId, selectedTags, targetChapterId, !lessonId);
         }
 
-        // Xóa bản nháp lưu trữ cục bộ khi lưu thành công
-        try {
-          localStorage.removeItem(draftStorageKey);
-        } catch {
-          // Ignore
-        }
-
+        clearDraftSafely(draftStorageKey);
         setStatus(nextStatus);
         setAutoSaveState(AutoSaveState.SAVED);
 
-        if (!lessonId && savedId && targetChapterId) {
-          try {
-            await LearningPathApiService.addLessonsToChapter(targetChapterId, [savedId]);
-          } catch (chapterErr) {
-            alert(extractErrorMessage(chapterErr, 'Đã lưu bài học nhưng chưa gắn được vào chương — hãy thêm từ thư viện trong Studio.'));
-          }
-        }
-
         if (!lessonId && savedId) {
-          // Bài học MỚI vừa được tạo: chuyển URL sang trang sửa của chính bài học này
-          // (router.replace — không đẩy thêm lịch sử) để KHÔNG rời khỏi Editor, cho phép
-          // tiếp tục thao tác ngay (ví dụ sang tab "Đề ôn tập" — tab này cần lessonId thật
-          // mới gọi API được). Trước đây luôn `router.push` về danh sách, buộc phải lưu →
-          // bị đẩy ra → mở lại bài mới dùng được Đề ôn tập, rất bất tiện.
           router.replace(APP_ROUTES.LESSONS.DETAIL(savedId));
         }
-        // Bài học đã có sẵn (đang sửa): không điều hướng đi đâu cả, ở lại Editor.
       } catch (err: unknown) {
-        console.error('Failed to save lesson:', err);
         setAutoSaveState(AutoSaveState.ERROR);
-        alert(
-          extractErrorMessage(
-            err,
-            'Không thể lưu bài học. Vui lòng kiểm tra lại dữ liệu.'
-          )
-        );
+        alert(extractErrorMessage(err, 'Không thể lưu bài học. Vui lòng kiểm tra lại dữ liệu.'));
       } finally {
         setSaving(false);
       }
     },
-    [slug, description, title, contentRichText, thumbnailUrl, difficulty, displayOrder, selectedTags, lessonId, draftStorageKey, router, targetChapterId]
+    [
+      slug,
+      description,
+      title,
+      contentRichText,
+      thumbnailUrl,
+      difficulty,
+      displayOrder,
+      selectedTags,
+      lessonId,
+      draftStorageKey,
+      router,
+      targetChapterId,
+    ],
   );
 
   return {
@@ -406,7 +479,6 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
     submitLesson,
     pendingRevision,
     revisionNotice,
-    /** Sau khi duyệt / khôi phục từ hộp lịch sử phiên bản: báo và tải lại bài. */
     onRevisionChanged: (message: string) => {
       setRevisionNotice(message);
       setReloadKey((k) => k + 1);

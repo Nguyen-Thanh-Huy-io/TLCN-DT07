@@ -67,6 +67,67 @@ interface EventPickerModalProps {
   onSelectEvent: (event: EventSelectionPayload | ArticleItem) => void;
 }
 
+/** Kết quả tra cứu trong kho sự kiện nội bộ: đang tải / rỗng / danh sách. */
+function HisgoEventResults({
+  loading,
+  events,
+  onPick,
+}: {
+  loading: boolean;
+  events: ArticleItem[];
+  onPick: (event: ArticleItem) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="py-12 text-center text-base text-stone-600 flex items-center justify-center gap-2">
+        <span>Đang tra cứu kho sự kiện...</span>
+      </div>
+    );
+  }
+  if (events.length === 0) {
+    return (
+      <div className="py-12 text-center text-base text-stone-600">
+        Không tìm thấy sự kiện phù hợp trong kho dữ liệu nội bộ. Hãy thử chuyển sang nguồn Wikipedia mở rộng.
+      </div>
+    );
+  }
+  return (
+    <>
+      {events.map((evt) => (
+        <div
+          key={evt.id}
+          data-testid={`hisgo-event-item-${evt.id}`}
+          onClick={() => {
+            onPick(evt);
+          }}
+          className="py-3.5 hover:bg-stone-50 transition-colors cursor-pointer flex items-start justify-between gap-4 group"
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+              <span className="font-mono text-sm font-bold px-2.5 py-0.5 rounded bg-stone-900 text-white shrink-0">
+                {dateLabelOf(evt) || 'Chưa rõ năm'}
+              </span>
+              <strong className="text-base font-bold text-stone-900 truncate">
+                {evt.title}
+              </strong>
+            </div>
+            <p className="text-base text-stone-600 line-clamp-2 leading-relaxed max-w-[65ch]">
+              {evt.summary || 'Chưa có tóm tắt cho bài viết này.'}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="shrink-0 text-sm font-semibold px-3.5 py-2 rounded-lg bg-white border border-stone-300 text-stone-800 group-hover:bg-stone-900 group-hover:text-white group-hover:border-stone-900 transition-colors cursor-pointer"
+          >
+            Chọn
+          </button>
+        </div>
+      ))}
+    </>
+  );
+}
+
 export const EventPickerModal: React.FC<EventPickerModalProps> = ({
   isOpen,
   onClose,
@@ -100,7 +161,9 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
   } = useWikipediaDetailPicker();
 
   useEffect(() => {
-    setMounted(true);
+    void Promise.resolve().then(() => {
+      setMounted(true);
+    });
   }, []);
 
   const loadHisgoEvents = useCallback(async (query: string) => {
@@ -160,13 +223,15 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
   }, [isOpen, search, activeSource, loadHisgoEvents, loadWikiEvents]);
 
   useEffect(() => {
-    if (isOpen) {
-      setSearch('');
-      resetPreview();
-      if (activeSource === EntitySourceType.HISGO) {
-        loadHisgoEvents('');
+    void Promise.resolve().then(() => {
+      if (isOpen) {
+        setSearch('');
+        resetPreview();
+        if (activeSource === EntitySourceType.HISGO) {
+          loadHisgoEvents('');
+        }
       }
-    }
+    });
   }, [isOpen, activeSource, loadHisgoEvents, resetPreview]);
 
   if (!isOpen || !mounted) return null;
@@ -294,48 +359,14 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row min-h-[380px] max-h-[460px]">
           {activeSource === EntitySourceType.HISGO ? (
             <div className="w-full overflow-y-auto divide-y divide-stone-200 px-6">
-              {loadingHisgo ? (
-                <div className="py-12 text-center text-base text-stone-600 flex items-center justify-center gap-2">
-                  <span>Đang tra cứu kho sự kiện...</span>
-                </div>
-              ) : hisgoEvents.length === 0 ? (
-                <div className="py-12 text-center text-base text-stone-600">
-                  Không tìm thấy sự kiện phù hợp trong kho dữ liệu nội bộ. Hãy thử chuyển sang nguồn Wikipedia mở rộng.
-                </div>
-              ) : (
-                hisgoEvents.map((evt) => (
-                  <div
-                    key={evt.id}
-                    data-testid={`hisgo-event-item-${evt.id}`}
-                    onClick={() => {
-                      onSelectEvent(evt);
-                      onClose();
-                    }}
-                    className="py-3.5 hover:bg-stone-50 transition-colors cursor-pointer flex items-start justify-between gap-4 group"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2.5 mb-1 flex-wrap">
-                        <span className="font-mono text-sm font-bold px-2.5 py-0.5 rounded bg-stone-900 text-white shrink-0">
-                          {dateLabelOf(evt) || 'Chưa rõ năm'}
-                        </span>
-                        <strong className="text-base font-bold text-stone-900 truncate">
-                          {evt.title}
-                        </strong>
-                      </div>
-                      <p className="text-base text-stone-600 line-clamp-2 leading-relaxed max-w-[65ch]">
-                        {evt.summary || 'Chưa có tóm tắt cho bài viết này.'}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="shrink-0 text-sm font-semibold px-3.5 py-2 rounded-lg bg-white border border-stone-300 text-stone-800 group-hover:bg-stone-900 group-hover:text-white group-hover:border-stone-900 transition-colors cursor-pointer"
-                    >
-                      Chọn
-                    </button>
-                  </div>
-                ))
-              )}
+              <HisgoEventResults
+                loading={loadingHisgo}
+                events={hisgoEvents}
+                onPick={(evt) => {
+                  onSelectEvent(evt);
+                  onClose();
+                }}
+              />
             </div>
           ) : (
             <>

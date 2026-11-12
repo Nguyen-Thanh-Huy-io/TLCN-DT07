@@ -47,7 +47,6 @@ export interface HistoricalTimelineBlockProps {
 }
 
 export const HistoricalTimelineBlock: React.FC<HistoricalTimelineBlockProps> = ({
-  id,
   title = 'Timeline — Dòng thời gian',
   subtitle = 'Các mốc lịch sử tiêu biểu',
   nodes = [

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { LessonBlockType } from '../types/block-palette.types';
 import {
   LessonBlockItem,
@@ -26,7 +26,7 @@ export interface UseLessonBlockManagerReturn {
   moveBlockByDirection: (id: string, direction: MoveDirection | 'UP' | 'DOWN') => void;
   compileToHtml: () => string;
   compileToJson: () => LessonBlockItem[];
-  loadFromContent: (content: any) => void;
+  loadFromContent: (content: unknown) => void;
   blockCount: number;
 
   // Tài nguyên/Liên kết tham khảo (quản lý riêng ở Panel Thuộc tính, luôn xuất ở cuối bài)
@@ -80,7 +80,7 @@ function ensureUniqueBlockIds(items: LessonBlockItem[], seen: Set<string> = new 
   });
 }
 
-function parseContentToBlocks(content: any): LessonBlockItem[] | null {
+function parseContentToBlocks(content: unknown): LessonBlockItem[] | null {
   if (Array.isArray(content) && content.length > 0) {
     return ensureUniqueBlockIds(content);
   }
@@ -125,9 +125,10 @@ function splitResourceLinks(
   return { blocks, resourceLinks };
 }
 
-export function useLessonBlockManager(initialContent?: any): UseLessonBlockManagerReturn {
-  // Phân tích dữ liệu khởi tạo (hỗ trợ cả JSON Array lẫn HTML String)
-  const initialSplit = useMemo<{ blocks: LessonBlockItem[]; resourceLinks: ResourceLinkBlockData[] }>(() => {
+export function useLessonBlockManager(initialContent?: unknown): UseLessonBlockManagerReturn {
+  // Phân tích dữ liệu khởi tạo (hỗ trợ cả JSON Array lẫn HTML String) — chỉ một lần khi mount;
+  // nạp lại nội dung về sau đi qua loadFromContent.
+  const [initialSplit] = useState<{ blocks: LessonBlockItem[]; resourceLinks: ResourceLinkBlockData[] }>(() => {
     const parsed = parseContentToBlocks(initialContent);
     if (parsed) return splitResourceLinks(parsed);
 
@@ -174,14 +175,14 @@ export function useLessonBlockManager(initialContent?: any): UseLessonBlockManag
       ],
       resourceLinks: [],
     };
-  }, []);
+  });
 
   const [blocks, setBlocks] = useState<LessonBlockItem[]>(initialSplit.blocks);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(initialSplit.blocks[0]?.id || null);
   const [resourceLinks, setResourceLinks] = useState<ResourceLinkBlockData[]>(initialSplit.resourceLinks);
 
   // Nạp lại blocks từ nội dung truyền vào (ví dụ nạp từ Template hoặc API)
-  const loadFromContent = useCallback((content: any) => {
+  const loadFromContent = useCallback((content: unknown) => {
     const parsed = parseContentToBlocks(content);
     if (parsed && parsed.length > 0) {
       const split = splitResourceLinks(parsed);

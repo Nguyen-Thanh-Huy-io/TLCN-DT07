@@ -17,7 +17,7 @@ import {
   getChapterLabel,
   StoryChapterLayoutStrategy,
 } from '../../../strategies/story-chapter-layout.strategy';
-import { ActiveSubElementSelection } from '../../../context/ActiveEditorContext';
+import { ActiveSubElementSelection, EditorialSubElementType } from '../../../context/ActiveEditorContext';
 import { TypographyInspectorPanel } from './TypographyInspectorPanel';
 import { LessonBlockType } from '../../../types/block-palette.types';
 
@@ -137,7 +137,7 @@ export function StorySubElementInspector({
       </div>
 
       {/* 1. Ô DẪN NHẬP & DROP CAP (INTRO_TEXT) */}
-      {subSelection.subType === 'INTRO_TEXT' && (
+      {subSelection.subType === EditorialSubElementType.INTRO_TEXT && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-900">
@@ -268,7 +268,7 @@ export function StorySubElementInspector({
       )}
 
       {/* 2. Ô TIÊU ĐỀ CHƯƠNG (MAIN_HEADING) */}
-      {subSelection.subType === 'MAIN_HEADING' && (
+      {subSelection.subType === EditorialSubElementType.MAIN_HEADING && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-900">
@@ -382,7 +382,7 @@ export function StorySubElementInspector({
       )}
 
       {/* 3. Ô VĂN BẢN CHÍNH (ARTICLE_TEXT) */}
-      {subSelection.subType === 'ARTICLE_TEXT' && (
+      {subSelection.subType === EditorialSubElementType.ARTICLE_TEXT && (
         <div className="space-y-4">
           <div className="space-y-3 pb-3 border-b border-stone-200">
             <div className="flex items-center justify-between">
@@ -451,7 +451,7 @@ export function StorySubElementInspector({
       )}
 
       {/* 4. Ô HÌNH ẢNH CHÍNH (MAIN_IMAGE) */}
-      {subSelection.subType === 'MAIN_IMAGE' && (
+      {subSelection.subType === EditorialSubElementType.MAIN_IMAGE && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-900">
@@ -482,7 +482,7 @@ export function StorySubElementInspector({
                     src: e.target.value,
                   })
                 }
-                placeholder="https://..."
+                placeholder="Dán đường dẫn ảnh tư liệu..."
                 className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg"
               />
             </div>
@@ -576,7 +576,7 @@ export function StorySubElementInspector({
       )}
 
       {/* 5. Ô TRÍCH DẪN NỔI BẬT (PULL_QUOTE) */}
-      {subSelection.subType === 'PULL_QUOTE' && (
+      {subSelection.subType === EditorialSubElementType.PULL_QUOTE && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-900">
@@ -689,7 +689,7 @@ export function StorySubElementInspector({
       )}
 
       {/* 6. MỤC DIỄN BIẾN PHỤ (SUB_CHAPTER) */}
-      {subSelection.subType === 'SUB_CHAPTER' && (
+      {subSelection.subType === EditorialSubElementType.SUB_CHAPTER && (
         <div className="space-y-4">
           {(() => {
             const subIdx = (sc.subChapters || []).findIndex(
@@ -745,7 +745,7 @@ export function StorySubElementInspector({
                     type="text"
                     value={targetSub.imageUrl || ''}
                     onChange={(e) => updateSub({ imageUrl: e.target.value })}
-                    placeholder="https://..."
+                    placeholder="Dán đường dẫn ảnh tư liệu..."
                     className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg"
                   />
                 </div>

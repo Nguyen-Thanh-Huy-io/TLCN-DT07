@@ -39,10 +39,7 @@ export class WikipediaSourceStrategy implements IEntityDataSourceStrategy {
       )}&limit=${limit}`;
 
       const res = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'Api-User-Agent': 'HisgoHistoryApp/1.0 (contact@hisgo.edu.vn)',
-        },
+        headers: ENTITY_SOURCE_CONSTANTS.WIKIMEDIA_REQUEST_HEADERS,
       });
 
       if (!res.ok) {
@@ -74,10 +71,7 @@ export class WikipediaSourceStrategy implements IEntityDataSourceStrategy {
       const summaryUrl = `${ENTITY_SOURCE_CONSTANTS.WIKIPEDIA_API.BASE_SUMMARY_URL}/${safeTitle}`;
 
       const res = await fetch(summaryUrl, {
-        headers: {
-          'Accept': 'application/json',
-          'Api-User-Agent': 'HisgoHistoryApp/1.0 (contact@hisgo.edu.vn)',
-        },
+        headers: ENTITY_SOURCE_CONSTANTS.WIKIMEDIA_REQUEST_HEADERS,
       });
 
       if (!res.ok) {
@@ -97,10 +91,7 @@ export class WikipediaSourceStrategy implements IEntityDataSourceStrategy {
         try {
           const wikidataUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wikidataId}&props=claims&format=json&origin=*`;
           const wdRes = await fetch(wikidataUrl, {
-            headers: {
-              'Accept': 'application/json',
-              'Api-User-Agent': 'HisgoHistoryApp/1.0 (contact@hisgo.edu.vn)',
-            },
+            headers: ENTITY_SOURCE_CONSTANTS.WIKIMEDIA_REQUEST_HEADERS,
           });
 
           if (wdRes.ok) {

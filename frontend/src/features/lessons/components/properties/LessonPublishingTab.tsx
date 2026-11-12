@@ -7,7 +7,7 @@ import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import { ResourceLinkBlockData } from '../../types/block-builder.types';
 
 interface LessonPublishingTabProps {
-  status: ContentStatus | any;
+  status: ContentStatus | string;
   wordCount: number;
   estimatedReadMinutes: number;
   sourceReferenceNote: string;
@@ -18,7 +18,7 @@ interface LessonPublishingTabProps {
   onRemoveResourceLink: (id: string) => void;
   saving: boolean;
   lessonId: string | null;
-  onSaveLesson: (nextStatus: ContentStatus | any) => void;
+  onSaveLesson: (nextStatus: ContentStatus) => void;
 }
 
 /** Tab "Xuất bản" trong Panel Thuộc tính: trạng thái bài học, số liệu, nguồn tư liệu
@@ -41,9 +41,14 @@ export function LessonPublishingTab({
     <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-3.5 animate-in fade-in-50 duration-150">
       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
         <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Trạng thái bài học</span>
-        <Badge tone={STATUS_TONE_MAP[status as ContentStatus] || 'gray'}>
-          {STATUS_LABEL_MAP[status as ContentStatus] || (status === 'PUBLISHED' ? 'Đã xuất bản' : status)}
+        <Badge tone={STATUS_TONE_MAP[status as ContentStatus] || 'slate'}>
+          {STATUS_LABEL_MAP[status as ContentStatus] || (status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : String(status))}
         </Badge>
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-slate-600">
+        <span>{wordCount.toLocaleString('vi-VN')} từ</span>
+        <span>~{estimatedReadMinutes} phút đọc</span>
       </div>
 
       <div className="border-t border-slate-100 pt-2.5">
@@ -105,7 +110,7 @@ export function LessonPublishingTab({
                   type="text"
                   value={link.url}
                   onChange={(e) => onUpdateResourceLink(link.id, { url: e.target.value })}
-                  placeholder="https://..."
+                  placeholder="Nhập đường dẫn web..."
                   className="w-full text-xs p-1.5 border border-slate-200 rounded-md focus:outline-none focus:border-blue-600 bg-white"
                 />
                 <input

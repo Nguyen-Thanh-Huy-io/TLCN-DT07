@@ -1,5 +1,10 @@
 import { Extension, Mark, mergeAttributes } from '@tiptap/core';
 
+/** Căn lề mặc định của đoạn văn — không ghi ra style khi trùng giá trị này. */
+const DEFAULT_TEXT_ALIGN = 'left';
+/** Giá trị bật của các thuộc tính data-* dạng cờ (data-drop-cap, data-lead-paragraph). */
+const DATA_FLAG_ON = 'true';
+
 /**
  * Extension cấp độ đoạn văn (Paragraph & Heading):
  * Quản lý:
@@ -18,10 +23,10 @@ export const BlockTypographyExtension = Extension.create({
         types: ['paragraph', 'heading'],
         attributes: {
           textAlign: {
-            default: 'left',
-            parseHTML: (element) => element.style.textAlign || 'left',
+            default: DEFAULT_TEXT_ALIGN,
+            parseHTML: (element) => element.style.textAlign || DEFAULT_TEXT_ALIGN,
             renderHTML: (attributes) => {
-              if (!attributes.textAlign || attributes.textAlign === 'left') {
+              if (!attributes.textAlign || attributes.textAlign === DEFAULT_TEXT_ALIGN) {
                 return {};
               }
               return {
@@ -44,14 +49,14 @@ export const BlockTypographyExtension = Extension.create({
           dropCap: {
             default: false,
             parseHTML: (element) =>
-              element.getAttribute('data-drop-cap') === 'true' ||
+              element.getAttribute('data-drop-cap') === DATA_FLAG_ON ||
               element.classList.contains('editorial-drop-cap'),
             renderHTML: (attributes) => {
               if (!attributes.dropCap) {
                 return {};
               }
               return {
-                'data-drop-cap': 'true',
+                'data-drop-cap': DATA_FLAG_ON,
                 class: 'editorial-drop-cap',
               };
             },
@@ -59,14 +64,14 @@ export const BlockTypographyExtension = Extension.create({
           leadParagraph: {
             default: false,
             parseHTML: (element) =>
-              element.getAttribute('data-lead-paragraph') === 'true' ||
+              element.getAttribute('data-lead-paragraph') === DATA_FLAG_ON ||
               element.classList.contains('editorial-lead-paragraph'),
             renderHTML: (attributes) => {
               if (!attributes.leadParagraph) {
                 return {};
               }
               return {
-                'data-lead-paragraph': 'true',
+                'data-lead-paragraph': DATA_FLAG_ON,
                 class: 'editorial-lead-paragraph',
               };
             },

@@ -90,7 +90,7 @@ export interface IWikidataClaimsResponse {
     string,
     {
       id: string;
-      claims?: Record<string, any[]>;
+      claims?: Record<string, unknown[]>;
       labels?: Record<string, { value: string }>;
       descriptions?: Record<string, { value: string }>;
     }

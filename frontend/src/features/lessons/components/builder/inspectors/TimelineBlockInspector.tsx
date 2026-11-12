@@ -13,6 +13,11 @@ import { formatYear } from '@/utils/year-label';
 import { createBlockUUID } from '../../../strategies/story-chapter-layout.strategy';
 import { TypographyInspectorPanel } from './TypographyInspectorPanel';
 
+enum TimelineInspectorTab {
+  AXIS = 'AXIS',
+  TYPOGRAPHY = 'TYPOGRAPHY',
+}
+
 interface TimelineBlockInspectorProps {
   block: TimelineBlockData;
   onUpdateBlock: (id: string, updates: Partial<LessonBlockItem>) => void;
@@ -22,7 +27,7 @@ export function TimelineBlockInspector({
   block: tl,
   onUpdateBlock,
 }: TimelineBlockInspectorProps) {
-  const [activeTab, setActiveTab] = useState<'AXIS' | 'TYPOGRAPHY'>('AXIS');
+  const [activeTab, setActiveTab] = useState<TimelineInspectorTab>(TimelineInspectorTab.AXIS);
   const [timelines, setTimelines] = useState<TimelineItem[]>([]);
   const [importId, setImportId] = useState('');
   const [importing, setImporting] = useState(false);
@@ -85,9 +90,9 @@ export function TimelineBlockInspector({
       <div className="grid grid-cols-2 gap-1.5 p-1 bg-stone-100 rounded-xl">
         <button
           type="button"
-          onClick={() => setActiveTab('AXIS')}
+          onClick={() => setActiveTab(TimelineInspectorTab.AXIS)}
           className={`py-1.5 text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
-            activeTab === 'AXIS'
+            activeTab === TimelineInspectorTab.AXIS
               ? 'bg-stone-900 text-white'
               : 'text-stone-800 hover:bg-white'
           }`}
@@ -97,9 +102,9 @@ export function TimelineBlockInspector({
         <button
           type="button"
           data-testid="btn-timeline-typography-tab"
-          onClick={() => setActiveTab('TYPOGRAPHY')}
+          onClick={() => setActiveTab(TimelineInspectorTab.TYPOGRAPHY)}
           className={`py-1.5 text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
-            activeTab === 'TYPOGRAPHY'
+            activeTab === TimelineInspectorTab.TYPOGRAPHY
               ? 'bg-stone-900 text-white'
               : 'text-stone-800 hover:bg-white'
           }`}
@@ -108,7 +113,7 @@ export function TimelineBlockInspector({
         </button>
       </div>
 
-      {activeTab === 'TYPOGRAPHY' ? (
+      {activeTab === TimelineInspectorTab.TYPOGRAPHY ? (
         <TypographyInspectorPanel />
       ) : (
         <div className="space-y-4">

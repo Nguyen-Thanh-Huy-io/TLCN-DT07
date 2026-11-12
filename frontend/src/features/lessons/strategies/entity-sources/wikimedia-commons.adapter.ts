@@ -1,3 +1,5 @@
+import { ENTITY_SOURCE_CONSTANTS } from '../../constants/entity-source.constants';
+
 /**
  * Adapter Pattern: Phân giải thông tin bản quyền và nguồn gốc tư liệu ảnh từ Wikimedia Commons
  * Đảm bảo tính minh bạch học thuật và tuân thủ bản quyền đa phương tiện (Creative Commons / Public Domain)
@@ -26,10 +28,7 @@ export class WikimediaCommonsAdapter {
       )}&prop=imageinfo&iiprop=extmetadata&format=json&origin=*`;
 
       const res = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'Api-User-Agent': 'HisgoHistoryApp/1.0 (contact@hisgo.edu.vn)',
-        },
+        headers: ENTITY_SOURCE_CONSTANTS.WIKIMEDIA_REQUEST_HEADERS,
       });
 
       if (!res.ok) return {};

@@ -22,6 +22,11 @@ import {
   QuoteBlockInspector,
 } from './SimpleBlockInspectors';
 
+enum RowInspectorTab {
+  COLUMNS = 'COLUMNS',
+  TYPOGRAPHY = 'TYPOGRAPHY',
+}
+
 interface RowSectionBlockInspectorProps {
   block: RowSectionBlockData;
   onUpdateBlock: (id: string, updates: Partial<LessonBlockItem>) => void;
@@ -36,8 +41,8 @@ export function RowSectionBlockInspector({
   onUpdateRowRatio,
 }: RowSectionBlockInspectorProps) {
   const { activeSubElement, setActiveSubElement } = useActiveEditor();
-  const [activeTab, setActiveTab] = useState<'COLUMNS' | 'TYPOGRAPHY'>(
-    'COLUMNS'
+  const [activeTab, setActiveTab] = useState<RowInspectorTab>(
+    RowInspectorTab.COLUMNS
   );
 
   // NẾU NGƯỜI DÙNG ĐANG BẤM VÀO 1 KHỐI CON BÊN TRONG CỘT CỦA SECTION_ROW -> HIỂN THỊ THUỘC TÍNH KHỐI CON ĐÓ
@@ -231,9 +236,9 @@ export function RowSectionBlockInspector({
       <div className="grid grid-cols-2 gap-1.5 p-1 bg-stone-100 rounded-xl">
         <button
           type="button"
-          onClick={() => setActiveTab('COLUMNS')}
+          onClick={() => setActiveTab(RowInspectorTab.COLUMNS)}
           className={`py-1.5 text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
-            activeTab === 'COLUMNS'
+            activeTab === RowInspectorTab.COLUMNS
               ? 'bg-stone-900 text-white'
               : 'text-stone-800 hover:bg-white'
           }`}
@@ -242,9 +247,9 @@ export function RowSectionBlockInspector({
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('TYPOGRAPHY')}
+          onClick={() => setActiveTab(RowInspectorTab.TYPOGRAPHY)}
           className={`py-1.5 text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
-            activeTab === 'TYPOGRAPHY'
+            activeTab === RowInspectorTab.TYPOGRAPHY
               ? 'bg-stone-900 text-white'
               : 'text-stone-800 hover:bg-white'
           }`}
@@ -253,7 +258,7 @@ export function RowSectionBlockInspector({
         </button>
       </div>
 
-      {activeTab === 'TYPOGRAPHY' ? (
+      {activeTab === RowInspectorTab.TYPOGRAPHY ? (
         <TypographyInspectorPanel />
       ) : (
         <div className="space-y-4">

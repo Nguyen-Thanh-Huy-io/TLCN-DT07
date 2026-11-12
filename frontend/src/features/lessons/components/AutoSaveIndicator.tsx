@@ -73,10 +73,6 @@ export function AutoSaveIndicator({ state, lastSavedAt }: AutoSaveIndicatorProps
     return () => clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    setNow(Date.now());
-  }, [lastSavedAt]);
-
   const visual = AUTO_SAVE_VISUAL_MAP[state];
   const showTime = state === AutoSaveState.SAVED && lastSavedAt;
 

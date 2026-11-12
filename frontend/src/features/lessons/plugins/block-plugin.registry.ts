@@ -23,35 +23,38 @@ import { sectionRowBlockPlugin, setRowSectionCompiler } from './section-row-bloc
 import { storyChapterBlockPlugin, setStoryChapterChildCompiler } from './story-chapter-block.plugin';
 import { resourceLinkBlockPlugin } from './resource-link-block.plugin';
 
+const LEGACY_TABLE_TYPE = 'TABLE';
+const LEGACY_COMPARISON_TABLE_TYPE = 'COMPARISON_TABLE';
+
 /**
  * Registry trung tâm quản lý các Block Plugin theo nguyên tắc Mở/Đóng (OCP) và Đơn nhiệm (SRP).
  * Khi thêm bất kỳ loại khối mới nào trong tương lai (ví dụ: AUDIO, FLASHCARD),
  * chỉ cần tạo 1 file plugin tương ứng và đăng ký vào Registry này.
  */
 export class LessonBlockRegistry {
-  private static plugins = new Map<LessonBlockType, BlockPlugin<any>>();
+  private static plugins = new Map<LessonBlockType, BlockPlugin<LessonBlockItem>>();
 
   static {
     // Đăng ký toàn bộ 18 Block Plugins theo Registry Pattern (OCP)
-    const allPlugins: BlockPlugin<any>[] = [
-      textBlockPlugin,
-      headingBlockPlugin,
-      imageBlockPlugin,
-      videoBlockPlugin,
-      quoteBlockPlugin,
-      calloutBlockPlugin,
-      timelineBlockPlugin,
-      characterBlockPlugin,
-      eventBlockPlugin,
-      mapBlockPlugin,
-      comparisonTableBlockPlugin,
-      quizBlockPlugin,
-      dividerBlockPlugin,
-      relatedPeopleBlockPlugin,
-      relatedEventsBlockPlugin,
-      sectionRowBlockPlugin,
-      storyChapterBlockPlugin,
-      resourceLinkBlockPlugin,
+    const allPlugins: BlockPlugin<LessonBlockItem>[] = [
+      textBlockPlugin as BlockPlugin<LessonBlockItem>,
+      headingBlockPlugin as BlockPlugin<LessonBlockItem>,
+      imageBlockPlugin as BlockPlugin<LessonBlockItem>,
+      videoBlockPlugin as BlockPlugin<LessonBlockItem>,
+      quoteBlockPlugin as BlockPlugin<LessonBlockItem>,
+      calloutBlockPlugin as BlockPlugin<LessonBlockItem>,
+      timelineBlockPlugin as BlockPlugin<LessonBlockItem>,
+      characterBlockPlugin as BlockPlugin<LessonBlockItem>,
+      eventBlockPlugin as BlockPlugin<LessonBlockItem>,
+      mapBlockPlugin as BlockPlugin<LessonBlockItem>,
+      comparisonTableBlockPlugin as BlockPlugin<LessonBlockItem>,
+      quizBlockPlugin as BlockPlugin<LessonBlockItem>,
+      dividerBlockPlugin as BlockPlugin<LessonBlockItem>,
+      relatedPeopleBlockPlugin as BlockPlugin<LessonBlockItem>,
+      relatedEventsBlockPlugin as BlockPlugin<LessonBlockItem>,
+      sectionRowBlockPlugin as BlockPlugin<LessonBlockItem>,
+      storyChapterBlockPlugin as BlockPlugin<LessonBlockItem>,
+      resourceLinkBlockPlugin as BlockPlugin<LessonBlockItem>,
     ];
 
     for (const plugin of allPlugins) {
@@ -66,14 +69,14 @@ export class LessonBlockRegistry {
   /**
    * Đăng ký một Block Plugin mới hoặc ghi đè plugin hiện có
    */
-  public static registerPlugin(plugin: BlockPlugin<any>): void {
+  public static registerPlugin(plugin: BlockPlugin<LessonBlockItem>): void {
     this.plugins.set(plugin.type, plugin);
   }
 
   /**
    * Lấy Block Plugin theo loại
    */
-  public static getPlugin(type: LessonBlockType): BlockPlugin<any> | undefined {
+  public static getPlugin(type: LessonBlockType): BlockPlugin<LessonBlockItem> | undefined {
     return this.plugins.get(type);
   }
 
@@ -97,7 +100,7 @@ export class LessonBlockRegistry {
   public static blockToHtml(block: LessonBlockItem): string {
     const rawType = String(block.type || '').toUpperCase();
     let plugin = this.plugins.get(rawType as LessonBlockType);
-    if (!plugin && (rawType === 'TABLE' || rawType === 'COMPARISON_TABLE')) {
+    if (!plugin && (rawType === LEGACY_TABLE_TYPE || rawType === LEGACY_COMPARISON_TABLE_TYPE)) {
       plugin = this.plugins.get(LessonBlockType.COMPARISON_TABLE);
     }
     if (!plugin) {

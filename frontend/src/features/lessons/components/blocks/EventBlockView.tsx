@@ -13,7 +13,7 @@ import { IconName } from '@/constants/icons';
 
 export function EventBlockView(props: NodeViewProps) {
   const { node, updateAttributes, deleteNode, editor, getPos } = props;
-  const { eventId, title, timeLocation, summary, thumbnailUrl } = node.attrs;
+  const { eventId, title, timeLocation, summary } = node.attrs;
 
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 

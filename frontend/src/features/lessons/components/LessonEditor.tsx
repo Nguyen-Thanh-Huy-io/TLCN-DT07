@@ -121,25 +121,27 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
   // (lessonId tồn tại và loadingLesson chuyển từ true -> false). Nếu không có effect này,
   // canvas sẽ mãi hiển thị khối mẫu rỗng khởi tạo ban đầu thay vì nội dung bài học thật.
   const hasLoadedRealContentRef = useRef(false);
+  const { loadFromContent } = blockManager;
   useEffect(() => {
     if (!lessonId || loadingLesson || hasLoadedRealContentRef.current) return;
     if (initialBlockContent === undefined || initialBlockContent === null) return;
-    blockManager.loadFromContent(initialBlockContent);
+    loadFromContent(initialBlockContent);
     hasLoadedRealContentRef.current = true;
-  }, [lessonId, loadingLesson, initialBlockContent]);
+  }, [lessonId, loadingLesson, initialBlockContent, loadFromContent]);
 
   // Đồng bộ HTML từ danh sách khối sang contentRichText để tự động cập nhật Mục lục TOC, số từ và xem trước
+  const { blocks, resourceLinks, compileToHtml } = blockManager;
   useEffect(() => {
-    const html = blockManager.compileToHtml();
+    const html = compileToHtml();
     setContentRichText(html);
-  }, [blockManager.blocks, blockManager.resourceLinks, blockManager.compileToHtml, setContentRichText]);
+  }, [blocks, resourceLinks, compileToHtml, setContentRichText]);
 
   // Xử lý chèn khối nội dung từ Block Palette bên trái
   const handleInsertBlock = (blockType: LessonBlockType) => {
     blockManager.addBlock(blockType);
   };
 
-  const handleSaveLesson = (nextStatus: ContentStatus | any) => {
+  const handleSaveLesson = (nextStatus: ContentStatus) => {
     submitLesson(nextStatus, blockManager.compileToJson());
   };
 
@@ -162,17 +164,19 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
 
   // Đồng bộ hai chiều từ Facade vào HeaderMeta
   useEffect(() => {
-    setHeaderMeta((prev) => ({
-      ...prev,
-      title: title ?? prev.title,
-      slug: slug ?? prev.slug,
-      description: description ?? prev.description,
-      shortDescription: description ?? prev.shortDescription,
-      thumbnailUrl: thumbnailUrl ?? prev.thumbnailUrl,
-      difficulty: difficulty ?? prev.difficulty,
-      topicId: selectedTopicId ?? prev.topicId,
-      tags: selectedTags.length > 0 ? selectedTags.map((t) => t.name) : prev.tags,
-    }));
+    void Promise.resolve().then(() => {
+      setHeaderMeta((prev) => ({
+        ...prev,
+        title: title ?? prev.title,
+        slug: slug ?? prev.slug,
+        description: description ?? prev.description,
+        shortDescription: description ?? prev.shortDescription,
+        thumbnailUrl: thumbnailUrl ?? prev.thumbnailUrl,
+        difficulty: difficulty ?? prev.difficulty,
+        topicId: selectedTopicId ?? prev.topicId,
+        tags: selectedTags.length > 0 ? selectedTags.map((t) => t.name) : prev.tags,
+      }));
+    });
   }, [title, slug, description, thumbnailUrl, difficulty, selectedTopicId, selectedTags]);
 
   // Lấy khối đang được chọn trên canvas để chỉnh thuộc tính (tái sử dụng Block Inspector)
@@ -190,8 +194,10 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
   // Khi click chọn một khối trên canvas, tự động mở sidebar và chuyển sang tab Thuộc tính khối
   useEffect(() => {
     if (blockManager.activeBlockId) {
-      setSidebarTab(SidebarTab.BLOCK);
-      setShowSidebar(true);
+      void Promise.resolve().then(() => {
+        setSidebarTab(SidebarTab.BLOCK);
+        setShowSidebar(true);
+      });
     }
   }, [blockManager.activeBlockId]);
 

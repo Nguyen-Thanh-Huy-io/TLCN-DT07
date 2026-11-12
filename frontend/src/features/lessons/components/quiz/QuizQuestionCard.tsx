@@ -90,17 +90,17 @@ export function QuizQuestionCard({ index, total, question, onChange, onRemove, o
 function renderEditor(question: QuizQuestion, onChange: (updates: Partial<QuizQuestion>) => void) {
   switch (question.type) {
     case QuizQuestionType.SINGLE_CHOICE:
-      return <SingleChoiceEditor data={question} onChange={onChange as any} />;
+      return <SingleChoiceEditor data={question} onChange={onChange} />;
     case QuizQuestionType.MULTIPLE_CHOICE:
-      return <MultipleChoiceEditor data={question} onChange={onChange as any} />;
+      return <MultipleChoiceEditor data={question} onChange={onChange} />;
     case QuizQuestionType.TRUE_FALSE:
-      return <TrueFalseEditor data={question} onChange={onChange as any} />;
+      return <TrueFalseEditor data={question} onChange={onChange} />;
     case QuizQuestionType.ORDERING:
-      return <OrderingEditor data={question} onChange={onChange as any} />;
+      return <OrderingEditor data={question} onChange={onChange} />;
     case QuizQuestionType.MATCHING:
-      return <MatchingEditor data={question} onChange={onChange as any} />;
+      return <MatchingEditor data={question} onChange={onChange} />;
     case QuizQuestionType.FILL_IN_BLANK:
-      return <FillInBlankEditor data={question} onChange={onChange as any} />;
+      return <FillInBlankEditor data={question} onChange={onChange} />;
     default:
       return null;
   }

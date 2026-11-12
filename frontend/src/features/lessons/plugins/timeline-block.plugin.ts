@@ -2,6 +2,12 @@ import { LessonBlockType } from '../types/block-palette.types';
 import { TimelineBlockData, TimelineOrientation } from '../types/block-builder.types';
 import { BlockPlugin, BlockWidth, safeUrl, escapeHtml, renderCollapsibleDetail } from './block-plugin.types';
 
+export enum TimelineSceneStyle {
+  CINEMATIC_BACKDROP = 'CINEMATIC_BACKDROP',
+  MUSEUM_SPLIT = 'MUSEUM_SPLIT',
+  CHRONO_MINIMAL = 'CHRONO_MINIMAL',
+}
+
 export const timelineBlockPlugin: BlockPlugin<TimelineBlockData> = {
   type: LessonBlockType.TIMELINE,
 
@@ -14,7 +20,7 @@ export const timelineBlockPlugin: BlockPlugin<TimelineBlockData> = {
     orientation: TimelineOrientation.VERTICAL,
     sourceMode: 'MANUAL',
     displayConfig: {
-      sceneStyle: 'MUSEUM_SPLIT',
+      sceneStyle: TimelineSceneStyle.MUSEUM_SPLIT,
       dateFormat: 'YEAR_ONLY',
       sortOrder: 'CHRONOLOGICAL',
       showDescription: true,
@@ -53,7 +59,7 @@ export const timelineBlockPlugin: BlockPlugin<TimelineBlockData> = {
 
     let nodesHtml = '';
 
-    if (sceneStyle === 'CINEMATIC_BACKDROP') {
+    if (sceneStyle === TimelineSceneStyle.CINEMATIC_BACKDROP) {
       // BỐ CỤC ĐIỆN ẢNH TOÀN CẢNH (CINEMATIC BACKDROP)
       nodesHtml = nodes
         .map((n) => {
@@ -88,7 +94,7 @@ export const timelineBlockPlugin: BlockPlugin<TimelineBlockData> = {
           </div>`;
         })
         .join('');
-    } else if (sceneStyle === 'MUSEUM_SPLIT') {
+    } else if (sceneStyle === TimelineSceneStyle.MUSEUM_SPLIT) {
       // BỐ CỤC TRIỂN LÃM SONG SONG (MUSEUM SPLIT)
       nodesHtml = nodes
         .map((n) => {

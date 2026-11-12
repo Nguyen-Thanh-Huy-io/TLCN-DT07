@@ -55,7 +55,7 @@ interface LessonPropertiesPanelProps {
   quiz: UseQuizEditorReturn;
 
   // Publishing
-  status: ContentStatus | any;
+  status: ContentStatus | string;
   wordCount: number;
   estimatedReadMinutes: number;
   sourceReferenceNote: string;
@@ -64,7 +64,7 @@ interface LessonPropertiesPanelProps {
   onAddResourceLink: () => void;
   onUpdateResourceLink: (id: string, updates: Partial<ResourceLinkBlockData>) => void;
   onRemoveResourceLink: (id: string) => void;
-  onSaveLesson: (nextStatus: ContentStatus | any) => void;
+  onSaveLesson: (nextStatus: ContentStatus) => void;
 
   saving: boolean;
 }

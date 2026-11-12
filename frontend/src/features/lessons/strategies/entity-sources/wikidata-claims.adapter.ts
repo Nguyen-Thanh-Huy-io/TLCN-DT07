@@ -14,19 +14,58 @@ export interface IParsedWikidataCoords {
   longitude: number;
 }
 
+interface WikidataTimePayload {
+  time: string;
+  precision: number;
+}
+
+interface WikidataCoordinatePayload {
+  latitude: number;
+  longitude: number;
+}
+
+interface WikidataSnakItem {
+  mainsnak?: {
+    datavalue?: {
+      value?: unknown;
+    };
+  };
+}
+
 const WIKIDATA_ZERO_PAD = '00';
+
+function getClaimTime(claims: Record<string, unknown[]>, propertyId: string): WikidataTimePayload | undefined {
+  const item = claims[propertyId]?.[0] as WikidataSnakItem | undefined;
+  const val = item?.mainsnak?.datavalue?.value;
+  if (val && typeof val === 'object' && 'time' in val && 'precision' in val) {
+    return val as WikidataTimePayload;
+  }
+  return undefined;
+}
+
+function getClaimCoordinate(
+  claims: Record<string, unknown[]>,
+  propertyId: string,
+): WikidataCoordinatePayload | undefined {
+  const item = claims[propertyId]?.[0] as WikidataSnakItem | undefined;
+  const val = item?.mainsnak?.datavalue?.value;
+  if (val && typeof val === 'object' && 'latitude' in val && 'longitude' in val) {
+    return val as WikidataCoordinatePayload;
+  }
+  return undefined;
+}
 
 export class WikidataClaimsAdapter {
   /**
    * Bóc tách ngày tháng năm sinh (P569) và mất (P570) chuẩn xác từ Wikidata claims
    */
-  public static parseDates(claims?: Record<string, any[]>): IParsedWikidataDates {
+  public static parseDates(claims?: Record<string, unknown[]>): IParsedWikidataDates {
     if (!claims) {
       return { formattedYears: '' };
     }
 
-    const birthClaim = claims.P569?.[0]?.mainsnak?.datavalue?.value;
-    const deathClaim = claims.P570?.[0]?.mainsnak?.datavalue?.value;
+    const birthClaim = getClaimTime(claims, 'P569');
+    const deathClaim = getClaimTime(claims, 'P570');
 
     const birthDate = this.formatWikidataTime(birthClaim);
     const deathDate = this.formatWikidataTime(deathClaim);
@@ -42,9 +81,9 @@ export class WikidataClaimsAdapter {
 
     // Nếu không có ngày sinh/mất (thực thể là Sự kiện lịch sử): kiểm tra P580 (bắt đầu), P582 (kết thúc), P585 (thời điểm)
     if (!formattedYears) {
-      const startTimeClaim = claims.P580?.[0]?.mainsnak?.datavalue?.value;
-      const endTimeClaim = claims.P582?.[0]?.mainsnak?.datavalue?.value;
-      const pointTimeClaim = claims.P585?.[0]?.mainsnak?.datavalue?.value;
+      const startTimeClaim = getClaimTime(claims, 'P580');
+      const endTimeClaim = getClaimTime(claims, 'P582');
+      const pointTimeClaim = getClaimTime(claims, 'P585');
 
       const startDate = this.formatWikidataTime(startTimeClaim);
       const endDate = this.formatWikidataTime(endTimeClaim);
@@ -71,14 +110,14 @@ export class WikidataClaimsAdapter {
   /**
    * Bóc tách tọa độ địa lý (P625) cho di tích / địa danh lịch sử
    */
-  public static parseCoordinates(claims?: Record<string, any[]>): IParsedWikidataCoords | undefined {
+  public static parseCoordinates(claims?: Record<string, unknown[]>): IParsedWikidataCoords | undefined {
     if (!claims) return undefined;
 
-    const coordClaim = claims.P625?.[0]?.mainsnak?.datavalue?.value;
-    if (coordClaim && typeof coordClaim.latitude === 'number' && typeof coordClaim.longitude === 'number') {
+    const coord = getClaimCoordinate(claims, 'P625');
+    if (coord && typeof coord.latitude === 'number' && typeof coord.longitude === 'number') {
       return {
-        latitude: coordClaim.latitude,
-        longitude: coordClaim.longitude,
+        latitude: coord.latitude,
+        longitude: coord.longitude,
       };
     }
     return undefined;
@@ -88,30 +127,27 @@ export class WikidataClaimsAdapter {
    * Chuyển đổi định dạng time của Wikidata (+1911-08-25T00:00:00Z) thành chuỗi hiển thị chuẩn
    */
   public static formatWikidataTime(timeValue?: { time: string; precision: number }): string | undefined {
-    if (!timeValue?.time) return undefined;
+    if (!timeValue || !timeValue.time) return undefined;
 
-    const rawTime = timeValue.time; // Vd: "+1911-08-25T00:00:00Z"
-    const precision = timeValue.precision ?? 11;
+    const rawTime = timeValue.time.replace(/^\+/, '');
+    const parts = rawTime.split('T')[0]?.split('-');
+    if (!parts || parts.length < 1) return undefined;
 
-    // Bóc tách năm, tháng, ngày qua regex
-    const match = rawTime.match(/^[+-]?(\d{1,4})-(\d{2})-(\d{2})/);
-    if (!match) return undefined;
+    const year = parts[0]?.replace(/^0+/, '') || '0';
+    const month = parts[1];
+    const day = parts[2];
 
-    const year = parseInt(match[1], 10);
-    const month = match[2];
-    const day = match[3];
-
-    // Precision 11: Đến ngày (Day) -> DD/MM/YYYY
-    if (precision >= 11 && day !== WIKIDATA_ZERO_PAD && month !== WIKIDATA_ZERO_PAD) {
-      return `${day}/${month}/${year}`;
+    // Precision 9: Năm
+    if (timeValue.precision <= 9 || !month || month === WIKIDATA_ZERO_PAD) {
+      return year;
     }
 
-    // Precision 10: Đến tháng (Month) -> MM/YYYY
-    if (precision === 10 && month !== WIKIDATA_ZERO_PAD) {
-      return `${month}/${year}`;
+    // Precision 10: Tháng / Năm
+    if (timeValue.precision === 10 || !day || day === WIKIDATA_ZERO_PAD) {
+      return `${parseInt(month, 10)}/${year}`;
     }
 
-    // Precision 9: Chỉ đến năm (Year) -> YYYY
-    return `${year}`;
+    // Precision 11: Ngày / Tháng / Năm
+    return `${parseInt(day, 10)}/${parseInt(month, 10)}/${year}`;
   }
 }

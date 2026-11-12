@@ -3,6 +3,7 @@ import { PrismaService } from '../common/services/prisma.service';
 import { UpsertQuizDto } from './dto/upsert-quiz.dto';
 import { CreateStandaloneQuizDto, UpdateStandaloneQuizDto } from './dto/create-standalone-quiz.dto';
 import { QueryQuizDto } from './dto/query-quiz.dto';
+import { DEFAULT_QUIZ_PASSING_SCORE_PERCENT } from './quiz.constant';
 import { validateAndNormalizeQuestions } from './validators/quiz-question.validator';
 
 @Injectable()
@@ -94,7 +95,7 @@ export class QuizService {
               }
             : null,
           timeLimitMinutes: quiz.timeLimitMinutes ?? 15,
-          passingScorePercent: quiz.passingScorePercent ?? 80,
+          passingScorePercent: quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
           questionCount,
           questions: quiz.questions,
           status: isDraft ? 'DRAFT' : 'ACTIVE',
@@ -167,6 +168,7 @@ export class QuizService {
       topicTitle,
       questionCount: questionsArray.length,
       status: questionsArray.length > 0 ? 'ACTIVE' : 'DRAFT',
+      passingScorePercent: quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
     };
   }
 
@@ -194,7 +196,7 @@ export class QuizService {
         description: dto.description,
         lessonId: dto.lessonId || null,
         timeLimitMinutes: dto.timeLimitMinutes ?? 15,
-        passingScorePercent: dto.passingScorePercent ?? 80,
+        passingScorePercent: dto.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
         questions: normalizedQuestions as any,
       },
       include: {

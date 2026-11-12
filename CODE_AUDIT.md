@@ -1,0 +1,254 @@
+> **Cập nhật:** Pha 0 (4 mục khẩn cấp ở Mục 7 🔴) đã được SỬA trong session này — xem ghi chú "[ĐÃ SỬA]" cạnh mỗi mục. `npm run build` frontend giờ exit code 0, không còn lỗi `Module not found`.
+
+# 🔎 CODE AUDIT — Vi phạm quy tắc code (đối chiếu `CLAUDE.md`)
+> Dự án: `D:\Fullit\TLCN\TLCN-DT07` · Nhánh: `refactor/blog`
+> Mục đích: liệt kê các điểm code **chưa tuân** quy tắc trong `CLAUDE.md` (magic string/number, `any`/`as`, component quá dài, try/catch nuốt lỗi, code chết, N+1, thiếu phân trang DB...), tìm bằng cách đọc toàn bộ nội dung file + chạy `npm run lint`/`npm run build` thật.
+> File này KHÔNG mô tả chức năng/kiến trúc — xem [MAP_PROJECT.md](MAP_PROJECT.md) cho phần đó.
+> Đây chỉ là báo cáo — chưa có code nào được tự sửa, trừ khi ghi "Đã sửa" rõ ràng.
+
+---
+
+## 0. Xác nhận bằng công cụ thật (build/lint)
+
+* **`npm run build` (frontend):** **FAIL** — `Module not found` cho `../api` / `@/features/community/api` (file không tồn tại trong repo) ở: `QuickComposer.tsx`, `ReportDialog.tsx`, `PostCard.tsx`, `PostCommentModal.tsx`, `CommunityFeed.tsx`, `CommunityProfileView.tsx`, và 3 route `app/cong-dong/page.tsx`, `app/cong-dong/ca-nhan/page.tsx`, `app/cong-dong/thanh-vien/[username]/page.tsx`. → Toàn phân hệ Cộng đồng không build được.
+* **`npm run lint` (frontend):** 1052 vấn đề (7 error, 1045 warning). Phổ biến: `@typescript-eslint/no-explicit-any`, `no-restricted-syntax` (gọi `fetch` tự do ngoài `services/api.ts`; magic string so sánh enum), `sonarjs/no-duplicate-string`, `sonarjs/cognitive-complexity` (2 hàm trong `landing.service.ts` dòng 550 & 683 vượt ngưỡng 15, lên tới 24-25).
+* **`npm run lint` (backend):** 718 error, 201 warning. Phần lớn là lỗi format Prettier (CRLF line-ending) và `@typescript-eslint/no-unsafe-argument` (`any` trong file test/mock `App`). Không phải lỗi logic nghiệp vụ nhưng số lượng lớn, nên `--fix` + chuẩn hoá line-ending.
+
+---
+
+## 1. Vi phạm theo file (đã đọc toàn bộ nội dung)
+
+### `frontend/src/components/hisgo/CommentThread.tsx` (908 dòng)
+* **Không được import/dùng ở bất kỳ page/route nào trong codebase hiện tại** (Grep toàn repo chỉ ra chính file này) — tàn tích luồng comment blog cũ, tách biệt hoàn toàn với luồng Cộng đồng mới.
+* Gọi `fetch` trực tiếp 6 lần (dòng 208, 336, 409, 487, 549, 584) thay vì qua `services/api.ts`.
+* Tự khai `API_BASE_URL` fallback riêng (dòng 10), trùng với fallback đã có ở `public-auth.service.ts`.
+* Dùng `any`: `normalizeReply`/`normalizeComment` (dòng 80, 89), socket handler `payload: any` (dòng 242, 270), nhiều biến `responseData` ngầm định `any`.
+* Dùng `as any` để truy cập field: dòng 280, 284 (`(existing as any)?.authorId/.author`).
+* Magic string API path lặp lại không tách hằng số: `/posts/${postId}/comments` (208, 336, 409), `/comments/${commentId}` (487, 549), `/comments/${commentId}/like` (584).
+* Magic number `2200` (ms hiện thông báo) lặp lại 8 lần (267, 368, 388, 442, 468, 526, 541, 568, 576).
+* Component quá dài (908 dòng, ngưỡng 200-300) — nên tách hook `useComments(postId)` + sub-component `CommentCard`/`ReplyCard`/`CommentForm`/`DeleteConfirmDialog`.
+* try/catch nuốt lỗi gốc không log ở 6 hàm (`loadComments`, `handleSubmit`, `handleReplySubmit`, `handleEditSubmit`, `handleDeleteComment`, `handleToggleLike`) — fallback âm thầm sang localStorage, mất lý do lỗi thật.
+* **Code chết:** `appendReplyToComment` (dòng 159-178) không được gọi ở đâu, và nhánh `if/else` (dòng 174-176) trả về giống nhau (vô dụng).
+* **Khuyến nghị:** xác nhận với team có cần giữ file này không — nếu không, xoá hẳn; nếu cần, viết lại qua service layer + tách nhỏ.
+
+### `frontend/src/features/lessons/components/hub/HubLessonQuiz.tsx` (497 dòng)
+* Vượt ngưỡng 200-300 dòng (gồm `QuestionBody` lồng trong cùng file — nên tách riêng).
+* `as any` nhiều lần để fallback field `text`/`label`/`content` thiếu nhất quán (dòng 110, 235, 315, 327) — nên mở rộng type gốc `QuizQuestion`/option/item thay vì ép kiểu tại nơi dùng.
+* Magic number `70` (điểm đạt mặc định `quiz.passingScorePercent || 70`, dòng 374) chưa tách hằng số (ví dụ `DEFAULT_PASSING_SCORE_PERCENT`).
+* `String.fromCharCode(65 + idx)` lặp lại 3 nơi (~101, 106, 445) để sinh nhãn A/B/C — mức nhẹ, có thể gom hàm `toOptionLetter(idx)`.
+
+### `frontend/src/app/api/notes/route.ts` và `[id]/route.ts`
+* Lặp định nghĩa fallback `BACKEND_URL` riêng ở cả 2 file, cùng pattern lặp ở ≥3 route `app/api/public/...` khác (tổng 5 nơi) — nên gom 1 hằng số/util chung cho route handler.
+* Tên header `'authorization'`/`'x-guest-id'` gõ lại dạng chuỗi ở cả 4 handler — nên tách hằng số `AUTH_HEADER`/`GUEST_ID_HEADER`.
+* Không vi phạm try/catch (có lý do rõ: map lỗi mạng → response lỗi rõ nghĩa); không `any`/code chết.
+
+### `frontend/src/features/articles/components/ArticleProfilePanel.tsx` (491 dòng)
+* Vượt xa ngưỡng 200-300 dòng — nên tách `ListField`, `Section`, và từng nhánh hồ sơ (Person/Site/Event) + phần Liên kết ra component con riêng.
+* `LABEL_SUGGESTIONS` dùng key ghép chuỗi `'PERSON>EVENT'` (dòng 33-44) — tạm chấp nhận (dùng 1 chỗ), nên build từ enum `ArticleKind` nếu mở rộng loại.
+
+### `frontend/src/features/articles/components/ContentBlockEditor.tsx` (264 dòng)
+* Nút "Hoàn tác"/"Làm lại" (Undo2/Redo2, dòng 104-119) hiển thị nhưng **không có `onClick`** — UI chết, cần gắn handler thật hoặc ẩn/disable kèm lý do.
+* `// eslint-disable-next-line react-hooks/exhaustive-deps` (dòng 63) không kèm comment giải thích lý do.
+* `useMemo(() => 'max-w-3xl', [])` (dòng 82) bọc hằng số không đổi — over-engineering nhẹ, nên khai `const` thẳng.
+
+### `frontend/src/features/articles/components/ArticlePicker.tsx` (109 dòng)
+* `catch { setResults([]); }` (dòng 38-39) nuốt lỗi gọi API hoàn toàn im lặng, không log, không phân biệt lỗi mạng với "không có kết quả".
+
+### `frontend/src/features/heritage/components/HeritageExplorer.tsx` (148 dòng)
+* `const LIST_PATH = '/di-tich'` (dòng 29) trùng với hằng số đã có sẵn `PERIOD_ROUTES.LOCATIONS` (`period-detail.adapter.ts`) — nên dùng lại hằng số chung thay vì magic string route cục bộ.
+
+### `frontend/src/features/period-detail/components/PeriodDetailView.tsx` (373 dòng)
+* Vượt ngưỡng 200-300 dòng — nên tách các section lớn (mục lục, Giai đoạn con, Nhân vật, Địa danh, Cùng thời kỳ) thành component con riêng. Không phát hiện vi phạm khác.
+
+### Các file đã đọc toàn bộ nhưng KHÔNG phát hiện vi phạm đáng kể
+`frontend/src/features/lessons/components/hub/{useLessonMedia.ts, LessonToc.tsx, HubLessonGate.tsx, HubUi.tsx, HubSyllabus.tsx, useLessonProgress.ts, LessonRelated.tsx, lesson-reader.css}` — hằng số nghiệp vụ đã tách rõ, dưới ngưỡng dòng, không `any`/`as`/console.log/code chết.
+
+### Vi phạm cấp dự án (phát hiện từ vòng khảo sát chức năng, cần audit sâu hơn để xác nhận mức độ)
+* `BlogService.listPosts` (`backend/src/blog/blog.service.ts` dòng ~69-111) — `findMany` không `take/skip`, phân trang + sort trending làm ở Node sau khi fetch hết → lệch quy ước "API danh sách phải phân trang ở DB".
+* `ModerationAiService` (`backend/src/moderation/moderation-ai.service.ts` dòng 144) đọc `process.env.GEMINI_API_KEY` trực tiếp, không qua `ConfigService`/`app.config.ts`.
+* `frontend/src/components/hisgo/NotificationBell.tsx` và `frontend/src/features/users/components/UserList.tsx` gọi axios instance chung trực tiếp tại chỗ dùng, chưa tách file `services/entities/*ApiService` riêng (khác convention các feature khác).
+
+---
+
+## 2. Category / Tag / Topic / Timeline / Landing / Search
+
+### Backend
+* `backend/src/tag/tag.service.ts:58` — `const where: any = {}` — dùng `any`; nên khai `Prisma.TagWhereInput` (giống `topic.service.ts`/`timeline.service.ts` đã làm đúng).
+* `backend/src/topic/topic.service.ts:37,281` — `lessons?: any[]` trong `ITopicTreeNode` — dùng `any`.
+* `backend/src/topic/topic.service.ts:273,282,294` — `where: { status: 'PUBLISHED' }` dùng chuỗi literal thay vì enum `ContentStatus.PUBLISHED` đã import sẵn trong cùng file (dùng đúng ở dòng 142) — magic string không nhất quán.
+* `backend/src/topic/topic.service.ts:196,233,250,317,553` — nhiều `catch (err)` dùng `err.message` không khai báo kiểu rõ (`unknown`/`instanceof Error`).
+* `category.service.ts/controller.ts`, `tag.controller.ts/constant.ts`, `timeline.service.ts/controller.ts` — không phát hiện vi phạm đáng kể.
+
+### Frontend
+* `frontend/src/features/topics/components/TopicEditor.tsx` — **~1089 dòng**, vượt rất nặng ngưỡng 200-300 dòng — cần tách gấp.
+* `frontend/src/features/topics/components/TopicModal.tsx` — ~570 dòng, vượt ngưỡng, logic trùng với TopicEditor.
+* `frontend/src/features/topics/components/TopicParentModalPicker.tsx` — ~500 dòng, vượt ngưỡng.
+* `frontend/src/features/topics/components/TopicCoverImagePicker.tsx:27` — tự khai `process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'` thay vì import base URL từ `services/api.ts`.
+* `frontend/src/features/tags/components/TagForm.tsx:23` và `TagList.tsx:24,43,48,72` — gọi `api.post/get/patch/delete('/tags'...)` **trực tiếp trong component** thay vì qua `TagApiService` đã có sẵn.
+* `frontend/src/features/tags/components/TagList.tsx:54-66,74-77` — catch lỗi nhưng cập nhật UI như thành công bằng dữ liệu giả (`id: tag-${Date.now()}`) — che giấu lỗi thật với người dùng. Phân trang cũng chỉ là UI tĩnh (luôn hiện nút "1"), không truyền `limit/page` thật.
+* `frontend/src/features/timelines/components/TimelineEditor.tsx` — dùng chuỗi literal `'DRAFT'/'PUBLISHED'/'PENDING_REVIEW'` nhiều lần thay vì enum `ContentStatus` chung.
+* `frontend/src/features/taxonomy/*`, `services/public/public-taxonomy.ts` — mã nhóm `'REGION'`, `'FIGURE_ROLE'`, `'EVENT_TYPE'` lặp rải rác không có enum/const chung.
+* Không vi phạm đáng kể: `TagModal.tsx`, `TopicForm.tsx`, `TopicPicker.tsx`, `TimelineList.tsx`, toàn bộ `features/landing/**`, `features/search/*` (catch rỗng trong `search.service.ts` có comment lý do rõ — hợp lệ).
+
+---
+
+## 3. Curriculum / Lesson / Learner / Note / Content-Revision
+
+### Backend
+* `backend/src/learning-path/learning-path.service.ts` — `addLessonsToChapter` dùng `any[]` và loop upsert **phụ thuộc thứ tự không nằm trong `$transaction`** — vi phạm "nhiều thao tác ghi phụ thuộc nhau phải trong transaction".
+* `backend/src/lesson/lesson.service.ts` + `strategies/content-normalizer.strategy.ts` — dùng `any` có hệ thống (`Promise<any>`, `formatLessonResponse`, `calculateReadTime`, mọi method strategy).
+* `backend/src/lesson/lesson.controller.ts` + `dto/create-lesson.dto.ts` — `@Req() req: any`, nhiều field DTO kiểu `any`.
+* `backend/src/note/note.service.ts` — **tự bọc response `{statusCode, message, data}`** dù `TransformInterceptor` đã bọc toàn cục ở tầng global — vi phạm rõ nhất quy ước "không tự bọc response" trong `CLAUDE.md`.
+* `backend/src/content-revision/revision-targets.ts` — `Record<string, any>`, `as any` khi gọi `apply` (registry generic, khó tránh hoàn toàn nhưng nên thu hẹp kiểu).
+* `backend/src/learner/**` — không vi phạm, được đánh giá là mẫu tốt (constants, DTO rõ kiểu).
+
+### Frontend
+* `frontend/src/features/lessons/components/builder/StoryChapterBlockEditor.tsx` — **1459 dòng**, vi phạm độ dài nặng nhất toàn bộ audit.
+* `StoryChapterBlockInspector.tsx` — 893 dòng; `StorySubElementInspector.tsx` — 783 dòng; `EventPickerModal`/`EntityPickerModal` ~500-600 dòng và gần như bản sao nhau — nên gộp logic chung.
+* `frontend/src/features/lessons/types/editor.types.ts` — `ContentStatus | any` trong interface public của facade — làm `any` lan ra toàn hệ thống dùng type này.
+* `quiz/QuizQuestionCard.tsx` — `onChange as any` lặp 6 lần; nhiều facade/plugin khác (quote-block, comparison-table-block, wikidata-claims adapter) cũng dùng `any`/`as any` ở biên dữ liệu block.
+* Dữ liệu mẫu nghiệp vụ (quiz, sự kiện Điện Biên Phủ) hard-code trùng lặp độc lập giữa hệ TipTap cũ và hệ Plugin mới — rủi ro bảo trì khi 1 bên đổi mà quên bên kia.
+* `frontend/src/features/notes/services/note.service.ts` — tự viết `fetch` wrapper thay vì dùng axios instance `services/api.ts`; hardcode key localStorage `'access_token'` lặp 4 lần — vi phạm rõ quy tắc "một HTTP client".
+* `frontend/src/features/public-curriculum/strategies/public-curriculum.strategies.ts` (526 dòng) — `any` tràn lan trong logic chấm điểm quiz.
+* Nhiều component curriculum quá dài: `HisgoStudioView.tsx` 808 dòng, `CurriculumTree.tsx` 705 dòng, `RevisionDiff.tsx` 467 dòng.
+* `CurriculumSidePanel.tsx` và `CurriculumTreePreviewModal.tsx` gần như bản sao nhau — nên gộp hook/component chung.
+
+---
+
+## 4. Quiz CMS (Question Bank, Standalone Quiz Editor, backend validators — ngoài `HubLessonQuiz.tsx` đã audit ở Mục 1)
+
+### Backend
+* `backend/src/quiz/quiz.service.ts` — `where: any = {}`, `quiz.questions as any[]`, `normalizedQuestions as any` nhiều chỗ; magic number `limit=20`, `timeLimitMinutes??15`, `passingScorePercent??80` lặp lại không tách hằng; magic string `'DRAFT'/'ACTIVE'` lặp 3 lần.
+* `backend/src/quiz/question.service.ts` — magic string/number `'MEDIUM'`/`10` lặp 3 lần; **model `Question.difficulty`/`Question.type` là `String` tự do trong Prisma schema dù đã có enum `DifficultyLevel`** (và `Lesson.difficulty` đã dùng enum này) — lệch convention enum Prisma rõ ràng; `backfillFromQuizzes()` **N+1 write trong vòng lặp** (tạo từng record riêng lẻ, không `createMany`/transaction); `catch (err) { console.warn(...) }` dùng `console.warn` thay vì NestJS `Logger`.
+* `backend/src/quiz/validators/quiz-question.validator.ts` — rất nhiều `any` không cần thiết (`opt: any`, `it: any`, `list: any[]`, `correctPairs as any[]`...).
+* `backend/src/quiz/dto/create-question.dto.ts` — `data: any`; `difficulty?: string` dùng `@IsString()` thay vì `@IsEnum(DifficultyLevel)`.
+* Không vi phạm đáng kể: `quiz.controller.ts`, `question.controller.ts`, `standalone-quiz.controller.ts`, `quiz.module.ts`, các DTO còn lại, `types/quiz-question.types.ts`.
+
+### Frontend
+* `frontend/src/app/luyen-tap/page.tsx` (848 dòng) — **BUG THẬT**: `passingScorePercent` dùng 2 fallback khác nhau — `|| 80` khi chấm điểm (dòng 274) vs `|| 70` khi hiển thị UI (dòng 447, 471) → có thể hiện sai kết quả đạt/không đạt cho người học. Ngoài ra: quá dài (gộp timer+scoring+UI), magic string loại câu hỏi lặp lại thay vì dùng enum `QuizQuestionType` có sẵn, tự định nghĩa lại type `RawQuizQuestion`/`PublicQuiz` trùng với type đã có ở service, thiếu trạng thái "lỗi" khi tải `/api/public/lessons` (chỉ console.error, UI hiện như "rỗng"), `handleSubmitExam` set `submitted=true` trước khi gọi API nên nếu submit lỗi, người dùng vẫn thấy "nộp thành công" dù chưa lưu được.
+* `frontend/src/features/quiz/components/QuestionBankModal.tsx` — **931 dòng**, nhiều `any` khi xử lý dữ liệu đa hình theo loại câu hỏi.
+* `frontend/src/features/quiz/components/QuestionBankView.tsx` — **712 dòng**, nhiều `any` khi render đáp án theo loại; catch chỉ log, không có state lỗi UI riêng.
+* `frontend/src/features/quiz/components/QuizManagementView.tsx` (381 dòng) — vượt nhẹ ngưỡng; `setFilterStatus(e.target.value as any)`.
+* `frontend/src/services/entities/question.service.ts` — `data: any` ở 2 type; `frontend/src/features/quiz/strategies/quiz-filter.strategy.ts` — `questions: any[]`; `useQuizManagementFacade.ts` — `catch (err: any)` x2.
+* Không vi phạm đáng kể: `CategoryTreePicker.tsx`, `LessonQuickPreviewModal.tsx`, `QuizBriefingCard.tsx`, `QuizFilterBar.tsx`, `QuizPreviewModal.tsx`, `QuizSelectorGrid.tsx`, `QuizStatisticsModal.tsx`, `quiz.service.ts`, `app/quizzes/page.tsx`, `app/questions/page.tsx`.
+* **Gap chức năng (không phải lỗi rule):** `calculateScore` chỉ xử lý `MULTIPLE_CHOICE/TRUE_FALSE/FILL_IN_BLANK`; nhánh `else` coi mọi loại câu hỏi khác là "luôn đúng" nếu có `userAns` — hiện an toàn vì UI chưa tạo `userAns` cho các loại đó, nhưng là logic ngầm nguy hiểm nếu sau này thêm UI mà quên cập nhật hàm chấm.
+
+---
+
+## 5. Blog / Cộng đồng / Kiểm duyệt / Thảo luận / Thông báo
+
+### Backend
+* `backend/src/blog/blog.service.ts` (1297 dòng, file lớn nhất dự án):
+  - `listPosts` không phân trang ở DB — `findMany` lấy hết rồi `sort/slice` trong JS (xác nhận lại, dòng 40-136).
+  - `any` tràn lan: `where: Record<string, any>`, `computeTrendingScore = (post: any) =>`, `mapPost(post: any)`, `mapComment(comment: any)`.
+  - `as any` ép enum ở 4 vị trí (dòng 183, 187, 229, 238) — nguyên nhân gốc: `blog-post.dto.ts` tự định nghĩa lại `BLOG_POST_STATUSES`/`POST_TYPES` trùng enum Prisma `ContentStatus`/`PostType` thay vì import enum thật, rồi `@IsEnum(... as any)` lặp 6 lần.
+  - Magic string trạng thái (`'PENDING_REVIEW'`, `'PUBLISHED'`, `'REJECTED'`, `'VISIBLE'`, `'REMOVED'`) rải khắp thay vì dùng enum đã import.
+  - 5 catch nuốt lỗi có comment lý do nhưng không gọi `Logger` để ghi lại.
+  - Magic number `50`/`2`/`6`/`20` chưa tách hằng.
+  - `review`/`updatePost`/`deletePost` trong controller **không có `@UseGuards(AuthGuard)`** — lỗ hổng phân quyền cần xem lại.
+* `backend/src/discussion/discussion.service.ts` — tốt nhất trong nhóm: có phân trang DB thật; chỉ có `.includes(userRoleVal as any)` lặp 2 lần nên sửa kiểu tham số từ đầu.
+* `backend/src/moderation/moderation.service.ts` — **`resolveReport` re-validate `dto.action` bằng tay dù DTO đã `@IsIn([...])`** — vi phạm "validate ở boundary, service tin dữ liệu đã qua DTO"; magic string action/source không nhất quán dù đã có enum `ReportActionTaken`; `listReports` (~210 dòng) làm quá nhiều việc trong 1 hàm; catch im lặng không log ở 4 vị trí.
+* `backend/src/moderation/moderation-ai.service.ts` — đọc `process.env.GEMINI_API_KEY` VÀ `process.env.GEMINI_MODEL` trực tiếp (2 vị trí, không chỉ 1); `const data: any = await response.json()`.
+* **Circular dependency xác nhận:** `BlogModule` ⇄ `ModerationModule` dùng `forwardRef` 2 chiều thật — nên tách `BlogGateway` ra module riêng hoặc dùng event emitter để decouple.
+* `backend/src/notification/*` — `emitNewNotification(userId, notification: any)`; `getUserNotifications` không giới hạn trần cho `limit` query (thiếu `Math.min`); catch rỗng không log khi emit socket lỗi.
+
+### Frontend
+* **Base URL API hardcode lặp lại ở 6 file với 3 giá trị KHÁC NHAU** — rủi ro thật, không chỉ vi phạm quy ước:
+  - `NotificationBell.tsx:10`, `CommunityFeed.tsx:37`, `PostCommentModal.tsx:28`, `CommunityProfileView.tsx:37` → `'http://127.0.0.1:5000'`
+  - `BlogCreatePage.tsx:12,34` → `'http://localhost:5001'` (port khác hẳn!)
+  - `BlogReviewList.tsx:56` → `'http://localhost:5000'`
+* `frontend/src/features/community/components/PostCommentModal.tsx` (**1269 dòng**) — vi phạm nặng nhất trong frontend: **gọi `fetch()` trực tiếp 5 lần**, tự set header `Authorization` lặp 4 lần; `any` ở vài chỗ; ~200 dòng mock data lịch sử nhúng cứng trong component UI; trộn localStorage+API+preset data phức tạp dễ lệch dữ liệu; hàm `getAuthorTint`/`getInitials` trùng lặp y hệt ở `PostCard.tsx`, `CommunityProfileView.tsx`.
+* `frontend/src/features/community/components/CommunityProfileView.tsx` (**1135 dòng**) — vượt ngưỡng nặng, gộp quá nhiều UI trong 1 file.
+* `frontend/src/features/community/components/CommunityFeed.tsx` (876 dòng) — quá dài nhưng là điểm sáng duy nhất có xử lý đủ loading/lỗi/rỗng.
+* `frontend/src/features/community/components/QuickComposer.tsx` (604 dòng) — quá dài, không `any`.
+* `frontend/src/components/hisgo/NotificationBell.tsx` (433 dòng) — gọi axios trực tiếp 3 lần trong component; thiếu trạng thái lỗi (chỉ loading+rỗng); quá dài.
+* `frontend/src/features/review/components/BlogReviewList.tsx` (**719 dòng**) — nhiều `any`/`as any`; hàm `extractMetadataFromBlocks` **trùng lặp gần như y hệt ở ≥3 file** (`BlogDetailPage.tsx`, `BlogLandingPage.tsx`, `BlogReviewList.tsx`, ~60-77 dòng mỗi bản) — nợ DRY mà `jscpd` sẽ bắt được; có điểm tốt: dùng đúng `ContentStatus` enum chung (nhưng các file khác không theo).
+* `frontend/src/features/blog/components/BlogCreatePage.tsx` (**931 dòng**) — hardcode base URL 2 lần; hardcode string trạng thái thay vì enum chung.
+* `frontend/src/features/blog/components/BlogDetailPage.tsx` (457 dòng), `BlogLandingPage.tsx` (316 dòng) — có bản sao hàm `extractMetadata` như trên.
+* `frontend/src/services/entities/blog.service.ts` — tự định nghĩa `BlogStatusValue`/`BlogPostTypeValue` trùng `ContentStatus` enum đã có.
+* **Chưa đọc hết:** 4/5 file trong `features/review/components/` (`ReviewList.tsx`, `RevisionReviewList.tsx`, `ArticleReviewList.tsx`, `ReviewModal.tsx`) — khả năng cao lặp cùng pattern `extractMetadataFromBlocks`/base URL hardcode.
+* Không vi phạm đáng kể: `PostCard.tsx` (486 dòng, border-line nhưng catch rollback có lý do rõ), `PostActionBar.tsx`, `ReportDialog.tsx`, `features/moderation/api.ts`, `DiscussionSection.tsx` (317 dòng, hơi vượt nhẹ), `BlogBrowser.tsx`, `BlogComposerBar.tsx`, `BlogFeaturedSlider.tsx`, `discussion.service.ts`.
+
+---
+
+## 6. Auth / User / Dashboard / Settings / Upload / Metrics / `common/`
+
+### Backend
+* `backend/src/auth/interfaces/auth.interface.ts` — **enum `UserRole` (CUSTOMER/MODERATOR/ADMIN/SUPER_ADMIN) lệch hoàn toàn với Prisma `userRole` (USER/ADMIN/MODERATOR/SUPERADMIN) và với enum frontend** — rủi ro cao vì đây là service bảo mật (JWT payload dùng enum này). `AuthUtilsService.canModifyRole()` dùng enum sai này và **không được gọi ở đâu trong codebase** — dead code chứa logic sai, nên xoá hoặc viết lại đúng enum Prisma.
+* `backend/src/common/services/prisma.service.ts` — **24 dòng code chết bị comment lại nguyên 1 class cũ** (vi phạm trực tiếp "không để code chết/bị comment trong commit"); import `PrismaClient` từ `@prisma/client` thay vì `generated/prisma/client`; đọc `process.env.DATABASE_URL` trực tiếp.
+* **Import `@prisma/client` thay vì `generated/prisma/client` lan rộng** ở: `auth.service.ts`, `user/dto/create-user.dto.ts`, `user/dto/user-response.dto.ts`, `dashboard.service.ts`, `dashboard-overview.dto.ts`, `public-content.service.ts`, `public-content.mapper.ts`, `common/access/access.constant.ts`, `common/services/prisma.service.ts` — vi phạm quy ước Prisma ở quy mô lớn.
+* **Salt rounds bcrypt không nhất quán**: `auth.service.ts` dùng 12, `user.service.ts` và `account.service.ts` dùng 10 — nên thống nhất 1 hằng số.
+* `backend/src/auth/auth.service.ts:1072-1075` — lỗi log: nhúng object literal vào template string thành text vô nghĩa thay vì truyền metadata thật cho `customLogger.log`. Ngoài ra còn 9 vị trí `console.error` sót song song với `CustomLoggerService` đã inject.
+* `backend/src/upload/upload.controller.ts` — **toàn bộ logic nghiệp vụ nằm trong controller, không có `upload.service.ts`**; đọc `process.env.CLOUDINARY_*`/`APP_URL`/`PORT` trực tiếp; magic number giới hạn dung lượng `5MB`/`20MB` hardcode, hoàn toàn tách biệt với UI "Giới hạn dung lượng tải tệp" giả ở `SystemSettingsView.tsx`.
+* `backend/src/metrics/metrics.service.ts` — `console.log('Metrics service initialized')` còn sót; `getMetricsJSON(): Promise<any>`.
+* `backend/src/public-content/public-content.service.ts` — `resolveCategoryKind` trả về union string tự định nghĩa thay vì enum `ArticleKind` đã có trong Prisma; nhiều `as Record<string, any>` khi parse `metadata`; `submitQuizAttempt` định nghĩa lại type inline trùng `SubmitQuizAttemptDto` và vẫn dùng `any`; `quiz.passingScorePercent || 80` hardcode — tách biệt hoàn toàn với UI "Ngưỡng đạt Quiz mặc định" giả ở Settings; magic number `take: 50`.
+* `backend/src/common/services/email.service.ts` — 2 `console.error` sót song song `customLogger.error`. `redis.service.ts` — đọc `process.env.NODE_ENV` trực tiếp; vài method `@deprecated` nên xem lại có cần giữ không.
+* `backend/src/common/guards/auth.guard.ts` — `extractTokenFromCookies` là private method không được gọi ở đâu (dead code); magic string `'ACTIVE'` nên dùng enum `userStatus`.
+* `backend/src/user/user.service.ts:126` — `const dataToUpdate: any = {...authData}`.
+* Không vi phạm đáng kể: `user.controller.ts`, `dashboard.controller.ts`, hầu hết `common/access/*`, `common/guards/optional-auth.guard.ts`, `custom-throttler.guard.ts`, `filters/`, `interceptors/`, `errors/`, `config/`, `queues/email/*`.
+
+### Frontend
+* `frontend/src/features/users/components/UserList.tsx` — xác nhận gọi `api.get/patch` trực tiếp; lỗi fetch bị nuốt thành "rỗng" (thiếu trạng thái "lỗi" riêng).
+* `frontend/src/features/settings/components/SystemSettingsView.tsx` — xác nhận hoàn toàn UI giả: không gọi API nào, "Lưu" chỉ set state tạm; tab "Trạng thái hạ tầng" hardcode cứng; đây là nơi set `defaultQuizPassingScore=80`/`maxUploadSizeMb=10` trên UI nhưng **hoàn toàn tách biệt khỏi giá trị thật** dùng ở backend.
+* `frontend/src/features/media/components/MediaManagerView.tsx` — xác nhận lưu `localStorage`; **thêm vi phạm mới**: gọi `api.post('/upload/image', ...)` trực tiếp trong component; dài 440 dòng, vượt ngưỡng.
+* `frontend/src/features/analytics/components/AnalyticsDashboardView.tsx` — thiếu trạng thái "lỗi" (chỉ console.error); hàm `formatTimeAgo` trùng lặp y nguyên với `MediaManagerView.tsx`.
+* `frontend/src/components/layout/ClientLayout.tsx`/`CmsAccessGate.tsx` — magic string `"moderation"`/`'review'`/`'users'` lặp giữa 2 file cho `PAGE_ACCESS`, nên gom hằng số chung (mức nhẹ).
+* Không vi phạm đáng kể: `DashboardView.tsx` (mẫu tốt — có banner lỗi + nút thử lại + xử lý rỗng, nên dùng làm chuẩn đối chiếu), toàn bộ `features/account/components/*`, `components/layout/Sidebar/Topbar/PageHeader`, `services/api.ts`, `services/auth/*`, `services/entities/dashboard.service.ts`, `constants/*.ts`.
+
+---
+
+## 7. TÓM TẮT ƯU TIÊN XỬ LÝ (toàn dự án)
+
+Xếp theo mức độ rủi ro thật (bug/an toàn > kiến trúc > vi phạm style), không theo thứ tự tìm thấy.
+
+### 🔴 Bug / rủi ro vận hành thật — nên sửa trước
+> Đã verify ĐỘC LẬP bằng Read/Grep thật (agent thứ 2, không liên quan agent tìm ra claim) — xem kết quả xác minh kèm trích dẫn dòng ở mỗi mục.
+
+1. **[ĐÃ SỬA ✅]** `frontend/src/app/luyen-tap/page.tsx` — ngưỡng điểm đạt lệch nhau (80 lúc chấm vs 70 lúc hiển thị). **Sửa gốc ở backend**: thêm hằng số duy nhất `DEFAULT_QUIZ_PASSING_SCORE_PERCENT = 80` tại `backend/src/quiz/quiz.constant.ts`, áp dụng nhất quán ở `quiz.service.ts` (findAll/findById/createStandalone) và `public-content.service.ts` (nơi nuôi dữ liệu thật cho `/luyen-tap`, cả chỗ server tính `isPassed` khi nộp bài). Frontend đổi `||`→`??` (tránh bug ngưỡng 0%) và dùng 1 hằng số khớp backend thay 2 số 80/70. Theo góp ý người dùng: không chỉ vá số hiển thị mà đảm bảo API luôn trả giá trị nhất quán.
+2. **[CHƯA SỬA — ngoài Pha 0]** `backend/src/auth/interfaces/auth.interface.ts:5-10` khai `enum UserRole { CUSTOMER, MODERATOR, ADMIN, SUPER_ADMIN }` trong khi `backend/prisma/schema/enums.prisma:5-10` định nghĩa thật là `enum userRole { USER, ADMIN, MODERATOR, SUPERADMIN }` — lệch cả tên giá trị lẫn thứ tự. `AuthUtilsService.canModifyRole()` (dùng enum sai này) xác nhận là dead code 100% (không ai gọi) — nguy hiểm nếu được gọi lại sau này. Để trong Pha 1.
+3. **[ĐÃ SỬA ✅]** `backend/src/blog/blog.controller.ts` — 3 route `review`/`updatePost`/`deletePost` hoàn toàn không có guard nào (không cả `OptionalAuthGuard`). Đã thêm: `review` → `@RequireRoles(...ROLE_GROUPS.REVIEWERS)` (khớp convention duyệt bài ở Article/Lesson); `updatePost`/`deletePost` → `@UseGuards(AuthGuard)` + kiểm tra ownership thật trong service (`assertCanModifyPost`: chỉ tác giả bài viết hoặc STAFF mới được sửa/xoá, throw `ForbiddenException` nếu không).
+4. **[CHƯA SỬA — ngoài Pha 0, quy mô lớn hơn ước tính]** Base URL API hardcode ở 16+ file với 3 giá trị khác nhau (`127.0.0.1:5000`/`localhost:5000`/`localhost:5001`) — để Pha 1 (cần 1 lần tìm-thay toàn repo).
+5. **[ĐÃ SỬA ✅]** `frontend/src/features/community/api.ts` đã được viết lại hoàn chỉnh (đọc toàn bộ 10 file tiêu thụ + backend `blog.controller.ts`/`blog.service.ts` để khớp đúng endpoint/response shape, không dùng `any`). `npm run build` frontend xác nhận **exit code 0**, toàn bộ route build sạch kể cả `/cong-dong/**`.
+6. **[ĐÃ SỬA ✅]** `frontend/src/app/luyen-tap/page.tsx` — `handleSubmitExam` giờ chỉ `setSubmitted(true)` SAU KHI `fetch` trả `res.ok`; thêm state `submitError` hiển thị thông báo lỗi + đổi nút thành "Thử nộp lại" nếu API lỗi, thay vì âm thầm coi như đã nộp thành công.
+
+### 🟠 Vi phạm kiến trúc / convention lan rộng — nên dọn theo lô
+7. **Import `@prisma/client` thay vì `generated/prisma/client`** ở ≥9 file (auth, user, dashboard, public-content, common/prisma.service.ts...) — vi phạm quy ước Prisma quy mô lớn, nên tìm-thay toàn repo.
+8. **`backend/src/common/services/prisma.service.ts`** còn 24 dòng code chết bị comment lại — file lõi nhất cho rule Prisma lại là nơi vi phạm rõ nhất.
+9. **Salt rounds bcrypt không nhất quán** (12 ở `auth.service.ts` vs 10 ở `user.service.ts`/`account.service.ts`).
+10. **`backend/src/note/note.service.ts`** tự bọc response `{statusCode, message, data}` dù `TransformInterceptor` đã bọc toàn cục.
+11. **`backend/src/moderation/moderation.service.ts`** re-validate `dto.action` bằng tay dù DTO đã `@IsIn(...)`.
+12. **Circular dependency `BlogModule` ⇄ `ModerationModule`** qua `forwardRef` 2 chiều — nên tách `BlogGateway` ra module riêng hoặc dùng event emitter.
+13. **`Question.difficulty`/`Question.type` là `String` tự do trong Prisma schema** dù đã có enum `DifficultyLevel` và `Lesson.difficulty` đã dùng đúng enum đó — lệch convention ngay trong cùng domain Quiz.
+14. **`backend/src/quiz/question.service.ts` `backfillFromQuizzes()`** — N+1 write trong vòng lặp, không transaction, lỗi chỉ `console.warn`.
+15. Giá trị mặc định nghiệp vụ (ngưỡng đạt quiz 80%, giới hạn upload 5MB/20MB) **hardcode rải ở backend**, hoàn toàn tách biệt khỏi UI "Cài đặt hệ thống" (vốn cũng đang giả) — khi làm Settings thật cần 1 nguồn config duy nhất.
+
+### 🟡 Component quá dài cần tách (ngưỡng CLAUDE.md: 200-300 dòng)
+Xếp theo độ dài giảm dần — các file này nên tách trước tiên vì vi phạm nặng nhất:
+- `StoryChapterBlockEditor.tsx` — **1459 dòng**
+- `PostCommentModal.tsx` — **1269 dòng**
+- `CommunityProfileView.tsx` — **1135 dòng**
+- `TopicEditor.tsx` — **~1089 dòng**
+- `BlogCreatePage.tsx` — **931 dòng**
+- `QuestionBankModal.tsx` — **931 dòng**
+- `StoryChapterBlockInspector.tsx` — 893 dòng
+- `CommunityFeed.tsx` — 876 dòng
+- `luyen-tap/page.tsx` — 848 dòng
+- `HisgoStudioView.tsx` — 808 dòng
+- `StorySubElementInspector.tsx` — 783 dòng
+- `CommentThread.tsx` — 908 dòng (nhưng **không dùng ở đâu** — ưu tiên xoá hơn là tách, xem Mục 1)
+- `QuestionBankView.tsx` — 712 dòng; `CurriculumTree.tsx` — 705 dòng; `BlogReviewList.tsx` — 719 dòng; `QuickComposer.tsx` — 604 dòng
+- Nhóm 400-570 dòng: `TopicModal.tsx`, `TopicParentModalPicker.tsx`, `ArticleProfilePanel.tsx` (491), `RevisionDiff.tsx` (467), `BlogDetailPage.tsx` (457), `MediaManagerView.tsx` (440), `NotificationBell.tsx` (433)
+
+### 🟢 Trùng lặp code nên gộp (DRY — sẽ bị `jscpd`/`npm run audit` bắt)
+- `extractMetadataFromBlocks`/`extractMetadata` lặp ở ≥3 file: `BlogDetailPage.tsx`, `BlogLandingPage.tsx`, `BlogReviewList.tsx`.
+- `getAuthorTint`/`getInitials` lặp ở ≥3 file: `PostCard.tsx`, `PostCommentModal.tsx`, `CommunityProfileView.tsx`.
+- `formatTimeAgo` lặp giữa `MediaManagerView.tsx` và `AnalyticsDashboardView.tsx`.
+- `EventPickerModal`/`EntityPickerModal` gần như bản sao nhau; `CurriculumSidePanel.tsx`/`CurriculumTreePreviewModal.tsx` gần như bản sao nhau.
+- Dữ liệu mẫu quiz/sự kiện Điện Biên Phủ hard-code trùng lặp độc lập giữa hệ TipTap cũ và hệ Plugin mới.
+
+### ⚪ Còn thiếu để audit 100% (chưa kịp đọc hết trong lượt này)
+- 4/5 file trong `frontend/src/features/review/components/` (`ReviewList.tsx`, `RevisionReviewList.tsx`, `ArticleReviewList.tsx`, `ReviewModal.tsx`) — chỉ `BlogReviewList.tsx` đã được audit.
+- Chi tiết dòng-theo-dòng của 1 số plugin/facade phụ trong `features/lessons/plugins/*.plugin.ts` (18 file) — đã audit ở mức tổng quan, có thể còn `any`/magic string lẻ tẻ chưa liệt kê hết.
+
+### Về 718 lỗi lint backend / 1052 vấn đề lint frontend (Mục 0)
+Phần lớn là lỗi **format Prettier (CRLF line-ending)** và `@typescript-eslint/no-unsafe-argument`/`no-explicit-any` ở quy mô nhỏ lặp lại — không phải lỗi logic. Khuyến nghị: chạy `npm run lint -- --fix` ở cả 2 phía trước, sau đó review lại danh sách lỗi còn sót (sẽ ngắn hơn nhiều) để không bị "chìm" giữa hàng trăm lỗi format.

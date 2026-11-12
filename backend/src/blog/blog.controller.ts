@@ -14,6 +14,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
+import { RequireRoles } from '../common/access/access.decorator';
+import { ROLE_GROUPS } from '../common/access/access.constant';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { OptionalAuthGuard } from '../common/guards/optional-auth.guard';
 import { CreateCommentDto, DeleteCommentDto, LikeCommentDto, UpdateCommentDto } from './dto/comment.dto';
@@ -122,22 +124,27 @@ export class BlogController {
     });
   }
 
-  @ApiOperation({ summary: 'Duyệt / từ chối bài viết (Admin/Moderator)' })
+  @ApiOperation({ summary: 'Duyệt / từ chối bài viết (Admin/Superadmin)' })
   @Patch(':id/review')
+  @RequireRoles(...ROLE_GROUPS.REVIEWERS)
   review(@Param('id') id: string, @Body() dto: ReviewBlogPostDto) {
     return this.blogService.reviewPost(id, dto);
   }
 
-  @ApiOperation({ summary: 'Cập nhật bài viết' })
+  @ApiOperation({ summary: 'Cập nhật bài viết (tác giả hoặc biên tập viên)' })
+  @ApiBearerAuth('JWT-auth')
   @Patch(':id')
-  updatePost(@Param('id') id: string, @Body() dto: UpdateBlogPostDto) {
-    return this.blogService.updatePost(id, dto);
+  @UseGuards(AuthGuard)
+  updatePost(@Param('id') id: string, @Body() dto: UpdateBlogPostDto, @Req() req: AuthedRequest) {
+    return this.blogService.updatePost(id, dto, req.user.userId, req.user.role);
   }
 
-  @ApiOperation({ summary: 'Xóa bài viết' })
+  @ApiOperation({ summary: 'Xóa bài viết (tác giả hoặc biên tập viên)' })
+  @ApiBearerAuth('JWT-auth')
   @Delete(':id')
-  deletePost(@Param('id') id: string) {
-    return this.blogService.deletePost(id);
+  @UseGuards(AuthGuard)
+  deletePost(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.blogService.deletePost(id, req.user.userId, req.user.role);
   }
 
   // ============================================================

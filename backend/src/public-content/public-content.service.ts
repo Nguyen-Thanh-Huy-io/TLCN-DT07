@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ContentStatus, LessonStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { LessonContentStrategyContext } from '../lesson/strategies/content-normalizer.strategy';
+import { DEFAULT_QUIZ_PASSING_SCORE_PERCENT } from '../quiz/quiz.constant';
 import {
   buildDateLabel,
   buildNodeDateLabel,
@@ -528,7 +529,7 @@ export class PublicContentService {
           id: lesson.quiz.id,
           title: lesson.quiz.title,
           description: lesson.quiz.description,
-          passingScorePercent: lesson.quiz.passingScorePercent,
+          passingScorePercent: lesson.quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
           timeLimitMinutes: lesson.quiz.timeLimitMinutes,
           questions: lesson.quiz.questions,
         } : null,
@@ -574,7 +575,7 @@ export class PublicContentService {
     const quiz = await this.prisma.quiz.findUnique({ where: { id: quizId } });
     if (!quiz) throw new NotFoundException('Không tìm thấy đề thi này');
 
-    const isPassed = dto.isPassed ?? (dto.scorePercent >= (quiz.passingScorePercent || 80));
+    const isPassed = dto.isPassed ?? (dto.scorePercent >= (quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT));
 
     const attempt = await this.prisma.quizAttempt.create({
       data: {

@@ -57,6 +57,10 @@ interface PublicQuiz {
   questions: RawQuizQuestion[];
 }
 
+/** Khớp với DEFAULT_QUIZ_PASSING_SCORE_PERCENT ở backend/src/quiz/quiz.constant.ts — chỉ dùng khi dữ liệu cũ thiếu trường này. */
+const DEFAULT_PASSING_SCORE_PERCENT = 80;
+const DEFAULT_TIME_LIMIT_MINUTES = 15;
+
 interface PublicLessonWithQuiz {
   id: string;
   title: string;
@@ -136,6 +140,7 @@ export default function LuyenTapPage() {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [viewExplanation, setViewExplanation] = useState<Record<number, boolean>>({});
 
   // Modal Thống kê
@@ -188,7 +193,7 @@ export default function LuyenTapPage() {
   };
 
   const handleStartExam = () => {
-    const totalSeconds = (activeQuiz?.timeLimitMinutes || 15) * 60;
+    const totalSeconds = (activeQuiz?.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES) * 60;
     setTimeLeft(totalSeconds);
     setExamStarted(true);
     setSubmitted(false);
@@ -199,9 +204,10 @@ export default function LuyenTapPage() {
   const handleReset = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     setExamStarted(false);
-    setTimeLeft((activeQuiz?.timeLimitMinutes || 15) * 60);
+    setTimeLeft((activeQuiz?.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES) * 60);
     setSelectedAnswers({});
     setSubmitted(false);
+    setSubmitError(null);
     setViewExplanation({});
   };
 
@@ -271,20 +277,20 @@ export default function LuyenTapPage() {
   const totalQuestions = questions.length;
   const correctCount = calculateScore();
   const scorePercent = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
-  const isPassed = scorePercent >= (activeQuiz?.passingScorePercent || 80);
+  const isPassed = scorePercent >= (activeQuiz?.passingScorePercent ?? DEFAULT_PASSING_SCORE_PERCENT);
 
   // Nộp bài & Lưu vào DB
   const handleSubmitExam = async () => {
     if (!activeQuiz) return;
     setSubmitting(true);
-    setSubmitted(true);
+    setSubmitError(null);
     if (timerRef.current) clearInterval(timerRef.current);
 
-    const totalSeconds = (activeQuiz.timeLimitMinutes || 15) * 60;
+    const totalSeconds = (activeQuiz.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES) * 60;
     const timeSpent = Math.max(1, totalSeconds - timeLeft);
 
     try {
-      await fetch(`/api/public/quizzes/${activeQuiz.id}/submit`, {
+      const res = await fetch(`/api/public/quizzes/${activeQuiz.id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -297,8 +303,13 @@ export default function LuyenTapPage() {
           answers: selectedAnswers,
         }),
       });
+      if (!res.ok) {
+        throw new Error(`Nộp bài thất bại (HTTP ${res.status})`);
+      }
+      setSubmitted(true);
     } catch (err) {
       console.error('Lỗi khi nộp bài:', err);
+      setSubmitError('Nộp bài không thành công do lỗi kết nối. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }
@@ -443,8 +454,8 @@ export default function LuyenTapPage() {
             topicName={activeLesson?.topic?.name}
             description={activeLesson?.description || activeQuiz.description}
             questionCount={questions.length}
-            timeLimitMinutes={activeQuiz.timeLimitMinutes || 15}
-            passingScorePercent={activeQuiz.passingScorePercent || 70}
+            timeLimitMinutes={activeQuiz.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES}
+            passingScorePercent={activeQuiz.passingScorePercent ?? DEFAULT_PASSING_SCORE_PERCENT}
             learnerName={learnerName}
             onLearnerNameChange={setLearnerName}
             onStartExam={handleStartExam}
@@ -466,9 +477,9 @@ export default function LuyenTapPage() {
 
                 <div className="flex items-center gap-2 text-xs font-semibold text-stone-500 bg-white px-3 py-1.5 rounded-lg border border-stone-200">
                   <Clock size={14} className="text-[#8B261E]" />
-                  <span>{activeQuiz.timeLimitMinutes || 15} phút</span>
+                  <span>{activeQuiz.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES} phút</span>
                   <span>•</span>
-                  <span>Đạt: {activeQuiz.passingScorePercent || 70}%</span>
+                  <span>Đạt: {activeQuiz.passingScorePercent ?? DEFAULT_PASSING_SCORE_PERCENT}%</span>
                 </div>
               </div>
 
@@ -625,7 +636,7 @@ export default function LuyenTapPage() {
                       : 'text-stone-900'
                   }`}
                 >
-                  {formatTime(examStarted ? timeLeft : (activeQuiz.timeLimitMinutes || 15) * 60)}
+                  {formatTime(examStarted ? timeLeft : (activeQuiz.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES) * 60)}
                 </div>
 
                 {!examStarted && !submitted && (
@@ -716,14 +727,19 @@ export default function LuyenTapPage() {
                     )}
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={handleSubmitExam}
-                    disabled={submitting}
-                    className="w-full py-3 rounded-xl bg-[#8B261E] text-white font-bold text-sm hover:bg-[#721F18] transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
-                  >
-                    <ShieldCheck size={16} /> Nộp bài & Xem điểm
-                  </button>
+                  <div>
+                    {submitError && (
+                      <p className="mb-2 text-xs font-semibold text-red-600 text-center">{submitError}</p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleSubmitExam}
+                      disabled={submitting}
+                      className="w-full py-3 rounded-xl bg-[#8B261E] text-white font-bold text-sm hover:bg-[#721F18] transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                    >
+                      <ShieldCheck size={16} /> {submitting ? 'Đang nộp bài…' : submitError ? 'Thử nộp lại' : 'Nộp bài & Xem điểm'}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

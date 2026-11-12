@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -8,6 +9,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import { NotificationType } from '@prisma/client';
+import { ROLE_GROUPS } from '../common/access/access.constant';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { ModerationService } from '../moderation/moderation.service';
@@ -209,11 +211,12 @@ export class BlogService {
     return this.mapPost(post);
   }
 
-  async updatePost(postId: string, dto: UpdateBlogPostDto) {
+  async updatePost(postId: string, dto: UpdateBlogPostDto, requesterId: string, requesterRole: string) {
     const existing = await this.prisma.blogPost.findUnique({ where: { id: postId } });
     if (!existing) {
       throw new NotFoundException(`Blog ${postId} không tồn tại`);
     }
+    this.assertCanModifyPost(existing.authorId, requesterId, requesterRole);
 
     const nextSlug = dto.slug ? dto.slug.trim() : existing.slug;
     if (dto.slug && dto.slug.trim() !== existing.slug) {
@@ -307,14 +310,24 @@ export class BlogService {
     return this.mapPost(updated);
   }
 
-  async deletePost(postId: string) {
+  async deletePost(postId: string, requesterId: string, requesterRole: string) {
     const existing = await this.prisma.blogPost.findUnique({ where: { id: postId } });
     if (!existing) {
       throw new NotFoundException(`Blog ${postId} không tồn tại`);
     }
+    this.assertCanModifyPost(existing.authorId, requesterId, requesterRole);
 
     await this.prisma.blogPost.delete({ where: { id: postId } });
     return { success: true, id: postId };
+  }
+
+  /** Chỉ tác giả bài viết hoặc biên tập viên (STAFF) mới được sửa/xóa. */
+  private assertCanModifyPost(authorId: string, requesterId: string, requesterRole: string): void {
+    const isOwner = authorId === requesterId;
+    const isStaff = (ROLE_GROUPS.STAFF as readonly string[]).includes(requesterRole);
+    if (!isOwner && !isStaff) {
+      throw new ForbiddenException('Bạn không có quyền sửa hoặc xóa bài viết này.');
+    }
   }
 
   async getComments(postId: string) {

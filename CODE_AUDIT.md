@@ -96,8 +96,8 @@
 
 ### Backend
 * `backend/src/learning-path/learning-path.service.ts` — `addLessonsToChapter` dùng `any[]` và loop upsert **phụ thuộc thứ tự không nằm trong `$transaction`** — vi phạm "nhiều thao tác ghi phụ thuộc nhau phải trong transaction".
-* `backend/src/lesson/lesson.service.ts` + `strategies/content-normalizer.strategy.ts` — dùng `any` có hệ thống (`Promise<any>`, `formatLessonResponse`, `calculateReadTime`, mọi method strategy).
-* `backend/src/lesson/lesson.controller.ts` + `dto/create-lesson.dto.ts` — `@Req() req: any`, nhiều field DTO kiểu `any`.
+* `backend/src/lesson/lesson.service.ts` + `strategies/content-normalizer.strategy.ts` — **[ĐÃ SỬA ✅ — Pha 2]** dùng `any` có hệ thống (`Promise<any>`, `formatLessonResponse`, `calculateReadTime`, mọi method strategy); phát hiện thêm bug `_creatorUserId` bị bỏ qua trong `LessonService.create()` khiến `createdBy` luôn `null` (vô hiệu hoá quy tắc 2 người duyệt `CANNOT_REVIEW_OWN`) — đã sửa lưu `createdBy: creatorUserId || null`.
+* `backend/src/lesson/lesson.controller.ts` + `dto/create-lesson.dto.ts` — **[ĐÃ SỬA ✅ — Pha 2]** `@Req() req: any`, nhiều field DTO kiểu `any`.
 * `backend/src/note/note.service.ts` — **tự bọc response `{statusCode, message, data}`** dù `TransformInterceptor` đã bọc toàn cục ở tầng global — vi phạm rõ nhất quy ước "không tự bọc response" trong `CLAUDE.md`.
 * `backend/src/content-revision/revision-targets.ts` — `Record<string, any>`, `as any` khi gọi `apply` (registry generic, khó tránh hoàn toàn nhưng nên thu hẹp kiểu).
 * `backend/src/learner/**` — không vi phạm, được đánh giá là mẫu tốt (constants, DTO rõ kiểu).
@@ -241,13 +241,13 @@ Xếp theo mức độ rủi ro thật (bug/an toàn > kiến trúc > vi phạm 
 9. **[ĐÃ SỬA ✅ — Pha 1]** Salt rounds bcrypt đã thống nhất qua `AUTH_CONFIG.BCRYPT_SALT_ROUNDS = 12` ở cả `auth.service.ts`, `user.service.ts`, `account.service.ts`.
 10. **[ĐÃ SỬA ✅ — Pha 1]** `backend/src/note/note.service.ts` đã bỏ tự bọc response `{statusCode, message, data}`.
 11. **[ĐÃ SỬA ✅ — Pha 1]** `backend/src/moderation/moderation.service.ts` đã bỏ re-validate `dto.action` bằng tay trong `resolveReport`.
-12. **Circular dependency `BlogModule` ⇄ `ModerationModule`** qua `forwardRef` 2 chiều — nên tách `BlogGateway` ra module riêng hoặc dùng event emitter.
-13. **`Question.difficulty`/`Question.type` là `String` tự do trong Prisma schema** dù đã có enum `DifficultyLevel` và `Lesson.difficulty` đã dùng đúng enum đó — lệch convention ngay trong cùng domain Quiz.
-14. **`backend/src/quiz/question.service.ts` `backfillFromQuizzes()`** — N+1 write trong vòng lặp, không transaction, lỗi chỉ `console.warn`.
+12. **[ĐÃ SỬA ✅ — Pha 2] Circular dependency `BlogModule` ⇄ `ModerationModule`** đã được gỡ bỏ bằng cách tách `BlogGatewayModule` riêng (`backend/src/blog/blog-gateway.module.ts`).
+13. **[ĐÃ SỬA ✅ — Pha 2] `Question.difficulty` trong Prisma schema (`quiz.prisma`)** đã đổi sang enum `DifficultyLevel` kèm migration SQL và validate `@IsEnum(DifficultyLevel)` ở DTO.
+14. **[ĐÃ SỬA ✅ — Pha 2] `backend/src/quiz/question.service.ts` `backfillFromQuizzes()`** đã gộp các thao tác tạo câu hỏi vào `$transaction` và dùng NestJS `Logger`.
 15. Giá trị mặc định nghiệp vụ (ngưỡng đạt quiz 80%, giới hạn upload 5MB/20MB) **hardcode rải ở backend**, hoàn toàn tách biệt khỏi UI "Cài đặt hệ thống" (vốn cũng đang giả) — khi làm Settings thật cần 1 nguồn config duy nhất.
-16. **[MỚI — ĐÃ KIỂM CHỨNG] XSS:** (a) 🔴 **[ĐÃ SỬA ✅]** `BlogDetailPage.tsx:219` đã bọc `escapeHtml(post.excerpt)` trước khi đưa vào `dangerouslySetInnerHTML` và thêm `@MaxLength(1000)` ở DTO; (b) 🟠 khối TEXT của bài học/bài viết không sanitize (chỉ STAFF viết) và dự án chưa có thư viện sanitize — xem mục 3.x.
-17. **[MỚI]** `BlockBuilderCanvas.renderGenericChildBlock` `return null` ở `default` — khối con loại lạ trong `STORY_CHAPTER` bị ẩn im lặng (mục 3.x).
-18. **[MỚI]** `lesson/dto/create-lesson.dto.ts` `difficulty?: any` dù có enum Prisma `DifficultyLevel` (mục 3.x).
+16. **[MỚI — ĐÃ KIỂM CHỨNG & SỬA ✅ — Pha 2] XSS:** (a) 🔴 **[ĐÃ SỬA ✅]** `BlogDetailPage.tsx:219` đã bọc `escapeHtml(post.excerpt)` trước khi đưa vào `dangerouslySetInnerHTML` và thêm `@MaxLength(1000)` ở DTO; (b) 🟠 **[ĐÃ SỬA ✅]** khối TEXT của bài học/bài viết và `q.prompt` đã được lọc qua `sanitizeRichHtml` (`frontend/src/utils/sanitize-html.ts`).
+17. **[MỚI — ĐÃ SỬA ✅ — Pha 2]** `BlockBuilderCanvas.renderGenericChildBlock` đã hiển thị placeholder thay vì `return null` ở `default`.
+18. **[MỚI — ĐÃ SỬA ✅ — Pha 2]** `lesson/dto/create-lesson.dto.ts` đã dùng `@IsEnum(DifficultyLevel)`, gõ rõ kiểu ở `lesson.service.ts`, `lesson.controller.ts` và `content-normalizer.strategy.ts`.
 19. **[MỚI]** Code chết ở Block Builder: `TimelineNodeCanvasDrawer.tsx`, `features/lessons/templates/` (mục 3.x).
 
 ### 🟡 Component quá dài cần tách (ngưỡng CLAUDE.md: 200-300 dòng)

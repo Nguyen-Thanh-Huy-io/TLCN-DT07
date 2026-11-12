@@ -35,18 +35,29 @@
 
 ## Pha 2 — Domain-logic nhỏ nhưng có ý nghĩa
 
-- [ ] **`Question.difficulty`/`Question.type`** (Prisma schema `quiz.prisma`) — đổi từ `String` tự do sang enum `DifficultyLevel` đã có (giống `Lesson.difficulty`). Cần viết migration theo đúng quy trình Prisma trong CLAUDE.md (không `migrate dev`).
-- [ ] **`backend/src/quiz/question.service.ts` `backfillFromQuizzes()`** — chuyển từ tạo từng record trong loop sang `createMany`/`$transaction`; đổi `console.warn` → NestJS `Logger`.
-- [ ] **Circular dependency `BlogModule` ⇄ `ModerationModule`** (`forwardRef` 2 chiều) — tách `BlogGateway` ra module riêng, hoặc dùng `@nestjs/event-emitter` để decouple.
-- [ ] **Lỗ hổng ghi chú thêm phát hiện khi vá Pha 0 & Pha 1**:
-  - Route comment (`createComment`/`updateComment`/`deleteComment`/`likeComment` trong `blog.controller.ts`) nhận `authorId`/`userId` từ **body** chứ không từ token đăng nhập — có thể giả danh người khác. Cần soát lại và chuyển sang lấy từ `req.user` (`@UseGuards(AuthGuard)`) như các route khác; đồng thời đổi `BadRequestException` → `ForbiddenException` khi kiểm tra quyền sở hữu ở `updateComment`/`deleteComment` (`blog.service.ts:534, 580`).
-  - Bug DTO `publishedAt` trong `CreateBlogPostDto` & `UpdateBlogPostDto` (`backend/src/blog/dto/blog-post.dto.ts:98-101, 165-168`): đang gắn đồng thời `@Type(() => Date)` và `@IsString()` khiến mọi request gửi `publishedAt` đều fail validate khi `transform: true` — cần đổi sang `@IsDateString()` (hoặc `@Type(() => Date)` + `@IsDate()`).
+> **🔎 Phát hiện mới khi rà soát và triển khai Pha 2 (`PostCommentModal.tsx` ⇄ `BlogController` / `BlogGateway`):**
+> 1. **Bug mất kết nối API bình luận ở `PostCommentModal.tsx`**:
+>    - `handleSubmitComment` (`PostCommentModal.tsx:709`) gửi `POST /posts/:id/comments` kèm header `Authorization` nhưng **không gửi `authorId` trong body**, trong khi `CreateCommentDto` cũ bắt buộc `@IsUUID() authorId` và route thiếu `@UseGuards(AuthGuard)` → mọi bình luận thực tế bị từ chối `400 Bad Request` (chỉ hiện giả ở `localStorage`).
+>    - `handleToggleLikeComment` (`645`), `handleSaveEdit` (`765`), `handleDeleteComment` (`794`) gọi nhầm URL `/comments/:commentId` (thiếu prefix `/posts/:postId`) và dùng `PUT` thay vì `PATCH` → 100% trả về `404 Not Found`.
+> 2. **Bug mất kết nối Socket room bình luận (`PostCommentModal.tsx:535-538` ⇄ `BlogGateway`)**:
+>    - `PostCommentModal.tsx` gọi `socket.emit('join-post-room', post.id)` (truyền chuỗi), nhưng `BlogGateway.joinPostRoom` chỉ đọc `payload?.postId` → không bao giờ join được room `post:<id>`.
+>    - `BlogGateway.emitCommentAdded` phát `{ comment }`, nhưng `PostCommentModal.tsx` kiểm tra trực tiếp `newComment?.id` thay vì `payload?.comment ?? payload`.
+> 3. **Bug quy tắc duyệt 2 người ở `LessonService.create` (`backend/src/lesson/lesson.service.ts:103-140`)**:
+>    - Tham số `_creatorUserId` được `LessonController.create` truyền vào nhưng không được ghi vào cột `createdBy` khi `prisma.lesson.create(...)`, làm cột `createdBy` luôn `null` và vô hiệu hoá kiểm tra `current.createdBy === approverUserId` (`CANNOT_REVIEW_OWN`) ở `LessonService.review()`. Đã sửa lưu `createdBy: creatorUserId || null`.
+
+- [x] **[ĐÃ SỬA ✅] `Question.difficulty`/`Question.type`** (Prisma schema `quiz.prisma`) — đã đổi `Question.difficulty` từ `String` tự do sang enum `DifficultyLevel` đã có (giống `Lesson.difficulty`), tạo migration SQL `20261112120000_question_difficulty_enum/migration.sql` theo chuẩn Prisma, cập nhật `CreateQuestionDto`/`QueryQuestionDto` dùng `@IsEnum(DifficultyLevel)`.
+- [x] **[ĐÃ SỬA ✅] `backend/src/quiz/question.service.ts` `backfillFromQuizzes()`** — đã chuyển từ tạo từng record tuần tự trong vòng lặp sang gom mảng operation chạy trong 1 `this.prisma.$transaction(...)`; đổi `console.warn` → NestJS `Logger`; thêm unit test `question.service.spec.ts`.
+- [x] **[ĐÃ SỬA ✅] Circular dependency `BlogModule` ⇄ `ModerationModule`** (`forwardRef` 2 chiều) — đã tách `BlogGatewayModule` (`backend/src/blog/blog-gateway.module.ts`) độc lập để cả `BlogModule` và `ModerationModule` cùng import một chiều, xoá toàn bộ `forwardRef` giữa 2 module.
+- [x] **[ĐÃ SỬA ✅] Lỗ hổng & bug luồng bình luận (`blog.controller.ts`, `blog.service.ts`, `blog-post.dto.ts`, `PostCommentModal.tsx`)**:
+  - Route comment (`createComment`/`updateComment`/`deleteComment`/`likeComment` trong `blog.controller.ts`) đã gắn `@UseGuards(AuthGuard)` và lấy danh tính từ `req.user.userId` thay vì body; đổi `BadRequestException` → `ForbiddenException` (403) khi kiểm tra quyền sở hữu ở `updateComment`/`deleteComment`.
+  - Đã sửa `PostCommentModal.tsx` gọi đúng `/posts/${post.id}/comments/${commentId}` (`PATCH`/`DELETE`/`POST .../like`) và đồng bộ payload socket `join-post-room` / `post:comment-added` với `BlogGateway`.
+  - Đã sửa bug validate `publishedAt` trong `CreateBlogPostDto` & `UpdateBlogPostDto` (`@IsDateString()`) và dùng enum `PostType`/`ContentStatus` từ `@prisma/client` thay vì mảng chuỗi `as any`.
 - [ ] Rà soát rộng hơn các điểm `any`/`as any` còn lại liệt kê trong CODE_AUDIT.md Mục 2-6 (quy mô lớn, có thể làm theo từng domain/PR riêng).
 - [x] **[MỚI — 🔴 ĐÃ SỬA ✅] Vá XSS `excerpt` Blog:** `frontend/src/features/blog/components/BlogDetailPage.tsx:219` — đã bọc `escapeHtml(post.excerpt || '...')` trước khi đưa vào `dangerouslySetInnerHTML`, đồng thời bổ sung `@MaxLength(1000)` cho `excerpt` trong `CreateBlogPostDto` & `UpdateBlogPostDto` (`backend/src/blog/dto/blog-post.dto.ts`). Đã xác nhận: luồng khối Blog còn lại đã escape đúng.
-- [ ] **[MỚI — 🟠 phòng thủ chiều sâu] Sanitize HTML cho nội dung STAFF** (CODE_AUDIT 3.x / Mục 7 #16b): thêm allow-list sanitizer dùng chung (FE util hoặc BE khi lưu) cho `PublicLessonReaderView.tsx`, `EntityReader.tsx`, `LessonPreviewContent.tsx`, `HubLessonQuiz.tsx` (`q.prompt`); test với `<img onerror>`/`<script>`. Hạ từ mức cao vì chỉ STAFF viết được các nội dung này.
-- [ ] **[MỚI] `lesson/dto/create-lesson.dto.ts`** — đổi `difficulty?: any` sang enum Prisma `DifficultyLevel` (`@IsEnum`), gõ lại `content`/`tags`/`displayOrder`; sau đó thay `Promise<any>` trong `lesson.service.ts` và `@Req() req: any` ở `lesson.controller.ts` bằng kiểu rõ (dùng chung interface request đã có ở module khác).
-- [ ] **[MỚI] `BlockBuilderCanvas.renderGenericChildBlock`** — đổi `default: return null` sang placeholder (hoặc tra `LessonBlockRegistry`) để khối con loại lạ trong `STORY_CHAPTER` không bị ẩn im lặng.
-- [ ] **[MỚI] Thu hẹp `any` ở `plugins/`**: `section-row-block.plugin.ts` (`compilerFn`), `comparison-table-block.plugin.ts`, `quote-block.plugin.ts` (field legacy) — tách hàm chuẩn hoá dữ liệu legacy có kiểu rõ.
+- [x] **[MỚI — 🟠 ĐÃ SỬA ✅] Sanitize HTML cho nội dung STAFF** (CODE_AUDIT 3.x / Mục 7 #16b): đã tạo allow-list sanitizer dùng chung `frontend/src/utils/sanitize-html.ts` (`sanitizeRichHtml`) và áp dụng tại `text-block.plugin.ts`, `PublicLessonReaderView.tsx`, `EntityReader.tsx`, `LessonPreviewContent.tsx`, `HubLessonQuiz.tsx` (`q.prompt`).
+- [x] **[MỚI — ĐÃ SỬA ✅] `lesson/dto/create-lesson.dto.ts`** — đã đổi `difficulty` sang `@IsEnum(DifficultyLevel)` (cả ở `QueryLessonDto`), gõ lại `content`/`tags`/`displayOrder` (`@IsInt()`), chuẩn hoá kiểu trong `content-normalizer.strategy.ts`, thay `Promise<any>` trong `lesson.service.ts` bằng `Promise<LessonResponseDto>` và `@Req() req: any` ở `lesson.controller.ts` bằng `AuthenticatedRequest`.
+- [x] **[MỚI — ĐÃ SỬA ✅] `BlockBuilderCanvas.renderGenericChildBlock`** — đã đổi `default: return null` sang hiển thị placeholder rõ ràng để khối con loại lạ trong `STORY_CHAPTER` không bị ẩn im lặng.
+- [x] **[MỚI — ĐÃ SỬA ✅] Thu hẹp `any` ở `plugins/`**: đã gõ `LessonBlockItem` cho `compilerFn` trong `section-row-block.plugin.ts`, tách hàm chuẩn hoá dữ liệu legacy có kiểu rõ `extractLegacyGenericTable` (`comparison-table-block.plugin.ts`) và `normalizeQuoteFields` (`quote-block.plugin.ts`).
 
 ## Pha 3 — Tách component quá dài (ngưỡng CLAUDE.md: 200-300 dòng)
 

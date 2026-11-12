@@ -47,7 +47,7 @@ ALTER TABLE "post_likes"
   ADD CONSTRAINT "post_likes_post_id_fkey"
     FOREIGN KEY ("post_id") REFERENCES "blog_posts"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT "post_likes_user_id_fkey"
-    FOREIGN KEY ("user_id") REFERENCES "auth_user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    FOREIGN KEY ("user_id") REFERENCES "authUser"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- CreateTable: post_bookmarks
 CREATE TABLE "post_bookmarks" (
@@ -65,7 +65,7 @@ ALTER TABLE "post_bookmarks"
   ADD CONSTRAINT "post_bookmarks_post_id_fkey"
     FOREIGN KEY ("post_id") REFERENCES "blog_posts"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT "post_bookmarks_user_id_fkey"
-    FOREIGN KEY ("user_id") REFERENCES "auth_user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    FOREIGN KEY ("user_id") REFERENCES "authUser"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- CreateTable: content_reports
 CREATE TABLE "content_reports" (
@@ -91,6 +91,6 @@ CREATE INDEX "content_reports_created_at_idx"             ON "content_reports"("
 
 ALTER TABLE "content_reports"
   ADD CONSTRAINT "content_reports_reporter_id_fkey"
-    FOREIGN KEY ("reporter_id") REFERENCES "auth_user"("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    FOREIGN KEY ("reporter_id") REFERENCES "authUser"("id") ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT "content_reports_reviewer_id_fkey"
-    FOREIGN KEY ("reviewer_id") REFERENCES "auth_user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    FOREIGN KEY ("reviewer_id") REFERENCES "authUser"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -34,7 +34,7 @@ ALTER TABLE "blog_post_comments"
   ADD CONSTRAINT "blog_post_comments_post_id_fkey"
     FOREIGN KEY ("post_id") REFERENCES "blog_posts"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT "blog_post_comments_author_id_fkey"
-    FOREIGN KEY ("author_id") REFERENCES "auth_user"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY ("author_id") REFERENCES "authUser"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT "blog_post_comments_parent_id_fkey"
     FOREIGN KEY ("parent_id") REFERENCES "blog_post_comments"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -57,4 +57,4 @@ ALTER TABLE "post_comment_likes"
   ADD CONSTRAINT "post_comment_likes_comment_id_fkey"
     FOREIGN KEY ("comment_id") REFERENCES "blog_post_comments"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT "post_comment_likes_user_id_fkey"
-    FOREIGN KEY ("user_id") REFERENCES "auth_user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    FOREIGN KEY ("user_id") REFERENCES "authUser"("id") ON DELETE CASCADE ON UPDATE CASCADE;

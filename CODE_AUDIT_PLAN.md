@@ -29,7 +29,7 @@
 - [x] **[ĐÃ SỬA ✅] `backend/src/common/guards/auth.guard.ts`** — đã xoá dead method `extractTokenFromCookies`; đổi magic string `'ACTIVE'` sang enum `userStatus.ACTIVE` của Prisma.
 - [x] **[ĐÃ SỬA ✅] Salt rounds bcrypt không nhất quán** (12 ở `auth.service.ts` vs 10 ở `user.service.ts`/`account.service.ts`) — đã khai báo `BCRYPT_SALT_ROUNDS: 12` trong `AUTH_CONFIG` (`auth.config.ts`), dùng chung ở cả 3 service và cập nhật `user.service.spec.ts`.
 - [x] **[ĐÃ SỬA ✅] `backend/src/note/note.service.ts`** — đã bỏ tự bọc response `{statusCode, message, data}` (để `TransformInterceptor` toàn cục bọc 1 tầng); cập nhật `note.service.spec.ts`.
-- [x] **[ĐÃ SỬA ✅] `backend/src/moderation/moderation.service.ts` `resolveReport`** — đã bỏ re-validate `dto.action` bằng tay (DTO đã `@IsIn([...])`).
+- [x] **[ĐÃ SỬA ✅] `backend/src/moderation/moderation.service.ts` `resolveReport`** — đã bỏ re-validate `dto.action` bằng tay (DTO đã validate — từ 2026-11-12 là `@IsEnum(ModerationResolveAction)`).
 - [x] **[ĐÃ SỬA ✅] `backend/src/auth/auth.service.ts:1072-1075`** — đã sửa lỗi log (object literal lọt vào template string) và đổi toàn bộ 9 chỗ `console.error` còn sót trong `auth.service.ts` sang `customLogger.error`.
 - [x] **[ĐÃ SỬA ✅] `backend/src/upload/upload.controller.ts`** — đã tách logic nghiệp vụ ra `upload.service.ts` + `upload.constant.ts`; đọc `CLOUDINARY_*`/`APP_URL`/`PORT` qua `app.config.ts`; cập nhật `upload.module.ts`, `backend/.env.example` và thêm unit test `upload.service.spec.ts`.
 
@@ -72,10 +72,17 @@ Thứ tự ưu tiên theo CODE_AUDIT.md Mục 7 (xếp theo độ dài giảm d�
   - Tái cấu trúc chuẩn mô hình khảo thí sư phạm: Chuyển quan hệ `Quiz` gắn trực tiếp vào nhiều `Topic` (`Quiz.topics Topic[] @relation("TopicQuizzes")`), khử phụ thuộc cứng vào `Lesson`. Cập nhật backend DTOs, service, unit tests (24/24 suites pass 100%).
   - Tối ưu `StandaloneQuizEditorModal.tsx`, `QuizStatisticsModal.tsx`, `QuestionBankPickerModal.tsx`, `QuizManagementView.tsx`, `QuestionBankView.tsx`.
   - Cả feature `features/quiz/` đạt **0 errors, 0 warnings (100% sạch)**.
+- [x] **[ĐÃ PHÂN RÃ & TỐI ƯU HOÀN HẢO ✅] `luyen-tap/page.tsx` (848 dòng → 360 dòng, -58%)**: Tách thành cụm components và helpers chuẩn OCP/SRP: `QuizBriefingCard.tsx`, `QuizQuestionCard.tsx`, `QuizExamSidebar.tsx`, `QuizStatisticsModal.tsx`, `quiz-score.helper.ts`. Tích hợp trực tiếp với API database `QuizApiService.submitQuizAttempt` & `getPublicLessons`, không mock data. Đạt **0 errors, 0 warnings (100% sạch)**.
+- [x] **[ĐÃ PHÂN RÃ & TỐI ƯU HOÀN HẢO ✅] `entity-reader-adapter.ts` & Cụm Universal Entity Detail (`frontend/src/components/entity-detail`)**: Tách `EntityReadingToolbar.tsx`, `EntityReadingToc.tsx`, `EntityReadingTimeline.tsx`, `entity-strategy.ts`. Khử 100% kiểu `any`, khử magic strings bằng enum `EntityType`, hạ cognitive complexity từ 56 và 29 xuống $< 8$. Toàn bộ thư mục `entity-detail` đạt **0 errors, 0 warnings (100% sạch)**.
+- [x] **[ĐÃ PHÂN RÃ & TỐI ƯU HOÀN HẢO ✅] `HubLessonQuiz.tsx`, `public-curriculum.strategies.ts` & Cụm Public Curriculum (`frontend/src/features/public-curriculum`)**: Tách nhỏ `LessonGateSection.tsx`, `LessonReaderMainLayout.tsx`, `LessonReaderArticle.tsx`, `LessonReaderDesktopSidebar.tsx`, `LessonReaderLoadingSkeleton.tsx`, `LessonReaderNotFound.tsx`, `LessonReaderHeader.tsx`, `LessonReaderNavigationFooter.tsx`, `LessonMobileSyllabusDrawer.tsx`. Khử 100% `any`, hạ cognitive complexity từ 55, 25, 22 xuống $\le 8$, giải quyết triệt để cascading render `setState-in-effect`. Toàn bộ phân hệ `public-curriculum` đạt **0 errors, 0 warnings (100% sạch)**.
+- [x] **[ĐÃ DỌN DẸP TRIỆT ĐỂ TAXONOMY, OBSOLETE ENUMS & CỤM LANDING ✅]**:
+  - Backend: Loại bỏ hoàn toàn endpoint và logic `GET /taxonomies` (`public-content.controller.ts`, `public-content.service.ts`). Toàn bộ 24/24 unit test suites pass (191/191 tests passed).
+  - Frontend: Xóa bỏ hoàn toàn các Enum lỗi thời/thừa thãi: `FigureRole`, `LocationType`, `EntityType`, `VerificationStatus`, `EntityRelationType`, `EventRelationType`, `EVENT_CATEGORY_CODES`, `TaxonomyGroupCode`, `CategoryFieldType`.
+  - Khử toàn bộ danh sách role cứng (`PRIMARY_ROLE_CODES`, `CANONICAL_ROLE_LABELS`): vai trò nhân vật được quản lý dạng danh sách tag chuỗi tự do (`roles: string[]`) qua `ListField` trong `ArticleProfilePanel.tsx`.
+  - Cụm Landing Page: Loại bỏ hoàn toàn phần "Đối sánh khu vực" (`ParallelBand`, `buildBands`, tab đối sánh) và các bộ lọc khu vực cứng trên trang chủ (`landing.adapter.ts`, `InteractivePreview.tsx`, `LandingHero.tsx`, `LandingView.tsx`, `ExploreSections.tsx`). Toàn bộ cụm Landing đạt **0 errors, 0 warnings (100% sạch)**.
 - [ ] `TopicEditor.tsx` (~1089 dòng)
 - [ ] `StoryChapterBlockInspector.tsx` (893 dòng)
 - [ ] `CommunityFeed.tsx` (876 dòng)
-- [ ] `luyen-tap/page.tsx` (848 dòng — đã sửa 2 bug trong Pha 0, vẫn cần tách sau)
 - [ ] `HisgoStudioView.tsx` (808 dòng)
 - [ ] `StorySubElementInspector.tsx` (783 dòng)
 - [ ] `QuestionBankView.tsx` (712 dòng); `CurriculumTree.tsx` (705 dòng); `BlogReviewList.tsx` (719 dòng); `QuickComposer.tsx` (604 dòng)
@@ -97,8 +104,22 @@ Thứ tự ưu tiên theo CODE_AUDIT.md Mục 7 (xếp theo độ dài giảm d�
 
 ---
 
+## Pha 5 — Dọn enum, migration, khu vực & toàn bộ warning ESLint (2026-11-12)
+
+- [x] **[ĐÃ SỬA ✅] Lịch sử migration hỏng** — thêm `20261109000000_create_blog_posts` + `20261112210000_sync_comment_quiz_schema` (bù các đối tượng từng tạo bằng db push, đều `IF NOT EXISTS`); sửa `"auth_user"` → `"authUser"` trong `community_phase1` và `add_blog_post_comments`; chuyển `quizzes.topic_id` sang `_TopicQuizzes` trước khi bỏ cột. Đã deploy: `migrate status` sạch, `migrate diff` rỗng.
+- [x] **[ĐÃ SỬA ✅] Enum backend thừa / lệch** (migration `20261112200000_cleanup_unused_enums`) — bỏ 4 enum + 4 bảng thuê bao (rỗng, không code dùng); `stmp` → `smtp` bằng `RENAME VALUE`; enum `ReportTargetType` cho `content_reports.target_type` (đổi kiểu tại chỗ, giữ dữ liệu); chuỗi cứng thay bằng enum Prisma ở blog/moderation/auth/email; DTO moderation chuyển `@IsIn` → `@IsEnum` (`moderation.constant.ts`).
+- [x] **[ĐÃ SỬA ✅] `LearningPathType`** — bỏ `MYTHOLOGICAL` và `Topic.pathType` (migration `20261112220000_drop_topic_path_type`).
+- [x] **[ĐÃ SỬA ✅] Bỏ hẳn khu vực & xếp hạng di tích** — `metadata.region`, `site.rank`, `HistoricalRegion`, `HeritageRank`, `region.utils.ts`, `HeritageFilterBar`, nhóm "Trong nước / Thế giới" (dữ liệu nằm trong JSON metadata — không cần migration).
+- [x] **[ĐÃ SỬA ✅] ESLint 0 errors / 0 warnings cả 2 phía** — xem [ESLINT_REPORT.md](ESLINT_REPORT.md); kèm sửa bug khoá token ở `note.service.ts`, xoá proxy `app/api/notes`, gỡ mock ảnh Unsplash trong `ImageBlockView`.
+- [ ] Thống nhất kiểu chữ tên enum Prisma (`userRole`, `email_type`… → PascalCase; có thể giữ tên type trong DB bằng `@@map`) — sửa import diện rộng.
+- [ ] Hợp nhất `ContentStatus.PENDING_REVIEW` và `LessonStatus.REVIEW` — cần data migration + sửa frontend.
+- [ ] `ArticleList.tsx` đang ẩn cứng 1 bài (`HIDDEN_ARTICLE`) — chuyển bài đó sang `ARCHIVED` rồi bỏ đoạn lọc.
+- [ ] Mã nhóm danh mục `'ROLE_TYPE'`, `'PREDICATE'`, `'ENTITY_RELATION'` còn truyền dạng chuỗi vào `usePublicTaxonomyTerms`.
+
+---
+
 ## Ghi chú vận hành
 
 - Mỗi pha/mục nên là 1 commit hoặc 1 PR riêng theo conventional commits (`fix(scope):`, `refactor(scope):`, `chore(scope):`).
 - Trước khi coi 1 mục là xong: chạy `npm run lint` + test liên quan ở phía vừa sửa (theo quy ước dự án), không thêm warning ESLint mới.
-- Đổi schema Prisma (Pha 2, mục `DifficultyLevel`) phải theo đúng quy trình migration trong `CLAUDE.md` — không dùng `prisma migrate dev` hay sửa DB tay.
+- Đổi schema Prisma phải theo đúng quy trình migration trong `CLAUDE.md` — không dùng `prisma migrate dev` hay sửa DB tay. Luôn đọc lại SQL do `migrate diff` sinh: với đổi kiểu cột / bỏ giá trị enum, Prisma có thể sinh DROP+ADD cột (mất dữ liệu) hoặc sai thứ tự lệnh — sửa tay thành `ALTER COLUMN ... USING` / `RENAME VALUE` trước khi deploy.

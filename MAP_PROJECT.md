@@ -99,28 +99,30 @@ flowchart TD
 * **UI Component chính:**
   * Heritage: [HeritageExplorer.tsx](frontend/src/features/heritage/components/HeritageExplorer.tsx) (`/di-tich`).
   * Period-detail: [PeriodDetailView.tsx](frontend/src/features/period-detail/components/PeriodDetailView.tsx) (`/giai-doan/[slug]`).
-* **Component/Modal phụ trợ:** `HeritageCards.tsx`, `HeritageFilterBar.tsx`, `heritage.adapter.ts` (`toHeritageSummaries`), `period-detail.adapter.ts` (`groupEventsByStage`, `siblingPeriods`), `EventStream.tsx`, `TimeRuler.tsx`.
+* **Component/Modal phụ trợ:** `HeritageCards.tsx`, `heritage.adapter.ts` (`toHeritageSummaries`), `period-detail.adapter.ts` (`groupEventsByStage`, `siblingPeriods`), `EventStream.tsx`, `TimeRuler.tsx`.
 * **Route trang:**
   * `app/di-tich/page.tsx`, `app/di-tich/[slug]/page.tsx`, `app/nhan-vat/[slug]/page.tsx`, `app/su-kien/[slug]/page.tsx`, `app/thuc-the/[slug]/page.tsx` — dùng chung `fetchEntityBySlug` + `EntityHero`/`EntityReader`.
   * `app/nhan-vat/page.tsx` (FiguresDirectory), `app/su-kien/page.tsx` (EventsLibrary), `app/trieu-dai/page.tsx` (CategoryPage), `app/trieu-dai/[slug]/page.tsx` (re-export EntityDetailPage), `app/kien-thuc/[slug]/page.tsx` (re-export ChapterDetailPage), `app/giai-doan/[slug]/page.tsx` (PeriodDetailView).
 * **Service/API Client:** `frontend/src/services/entities/landing.service.ts` — thực chất là adapter công khai chính (`fetchPeriods`, `fetchEvents`, `fetchFigureDirectory`, `fetchLocations`, `fetchEntityBySlug`, `fetchPeriodBySlug`, `fetchTaxonomyTerms`, `fetchPublicList`).
 * **Backend:** không có module riêng — toàn bộ do `PublicContentService` (xem mục 3.9) tổng hợp.
+* **Đã bỏ (2026-11-12):** khái niệm **khu vực** (`region`, `HistoricalRegion`, `utils/region.utils.ts`, nhóm "Trong nước / Thế giới") và **xếp hạng di tích** (`HeritageRank`, `site.rank`) ở cả `Article.metadata` lẫn UI; `/di-tich` không còn thanh lọc (`HeritageFilterBar` đã xoá), sắp theo số sự kiện. Mục "Cùng thời" ở `/giai-doan/[slug]` chỉ so khoảng năm.
 
 ### 3.5. Trang chủ (Landing)
-* **Mục đích:** Spotlight sự kiện, các "kỷ nguyên" theo thời kỳ gốc, dòng thời gian rút gọn, dải đối sánh khu vực, nhân vật/di tích nổi bật, lộ trình học, câu hỏi mỗi ngày.
-* **UI Component chính:** [LandingView.tsx](frontend/src/features/landing/components/LandingView.tsx) (+ `LandingHero`, `ResumeBar`, `ExploreSections`, `InteractivePreview`, `EntitiesSection`, `LearningQuiz`, `JoinBanner`).
-* **Service/API Client:** `features/landing/landing.server.ts` (`fetchLandingData` — gọi song song periods/events/figures/locations/lessons/learning-paths/taxonomy), `features/landing/landing.adapter.ts` (`buildLandingData`).
+* **Mục đích:** Spotlight sự kiện, các "kỷ nguyên" theo thời kỳ gốc, dòng thời gian rút gọn (Mini Timeline), nhân vật/di tích nổi bật, lộ trình học, câu hỏi mỗi ngày. Đã loại bỏ hoàn toàn phần "Đối sánh khu vực" (`ParallelBand`, `buildBands`), chip/bộ lọc khu vực và chỉ số "Vùng lịch sử".
+* **UI Component chính:** [LandingView.tsx](frontend/src/features/landing/components/LandingView.tsx) (+ `LandingHero`, `ResumeBar`, `ExploreSections`, `InteractivePreview`, `EntitiesSection`, `LearningQuiz`, `JoinBanner`). Đạt 0 errors, 0 warnings.
+* **Service/API Client:** `features/landing/landing.server.ts` (`fetchLandingData` — gọi song song periods/events/figures/locations/lessons/learning-paths), `features/landing/landing.adapter.ts` (`buildLandingData`).
 * **Backend:** dùng chung `/public/*` + `/learning-paths`.
 
-### 3.6. Tìm kiếm toàn cục (Search) & Taxonomy
+### 3.6. Tìm kiếm toàn cục (Search) & Phân loại linh hoạt
 * **Search — Mục đích:** Ô tìm kiếm toàn cục (Ctrl/⌘+K) trên trang công khai — tìm Article + Timeline + Lesson, bỏ dấu tiếng Việt, cache 1 lần/phiên.
   * UI: [GlobalSearch.tsx](frontend/src/features/search/GlobalSearch.tsx); Service: `search.service.ts` (`loadPublicCatalog/loadSearchIndex`), `search-index.ts` (`buildSearchIndex`, `normalizeSearch`).
-* **Taxonomy — Mục đích:** Lớp tương thích cho UI công khai cũ cần `TaxonomyTermItem[]` (bảng Taxonomy đã xoá 2026-11-05) — nhóm `EVENT_TYPE` sinh từ chuyên mục con `kind=EVENT`, nhóm khác trả rỗng.
-  * File: `taxonomy-labels.ts`, `taxonomy-tree.ts` (`loadPublicTaxonomy`), `usePublicTaxonomy.ts`; `services/public/public-taxonomy.ts`, `services/public/article-kind.ts` (`resolveCategoryKind` — nguồn DUY NHẤT suy loại bài từ `Category.kind`).
-* **Backend:** không có module riêng — dùng lại `/public/articles`, `/public/timelines`, `/public/lessons`, `/public/categories`, `/public/taxonomies`.
+* **Khử bỏ Taxonomy & Enum cũ:** Toàn bộ hệ thống bảng và enum cũ (`FigureRole`, `LocationType`, `EntityType`, `VerificationStatus`, `EntityRelationType`, `EventRelationType`, `EVENT_CATEGORY_CODES`, `TaxonomyGroupCode`, `CategoryFieldType`) đã bị loại bỏ triệt để.
+* **Quản lý vai trò nhân vật:** Không dùng danh sách role cứng nào (`PRIMARY_ROLE_CODES`, `CANONICAL_ROLE_LABELS` đã xoá); vai trò được nhập dạng tag chuỗi tự do (`roles: string[]`) qua `ListField` trong `ArticleProfilePanel.tsx`.
+* **Backend:** Controller `public-content.controller.ts` đã xoá bỏ hoàn toàn endpoint `/public/taxonomies`. Dữ liệu phân loại dựa vào `Category` (`Category.kind: ArticleKind`) và `Tag`.
 
 ### 3.7. Chương trình học / Lộ trình học (Curriculum & Learning Path)
 * **Mục đích:** CMS quản lý Lộ trình học (LearningPath) gồm các Chương (Chapter), mỗi chương gom Bài học có sẵn qua bảng nối `ChapterLesson` (có `displayOrder` kéo-thả). 2 chế độ xem: "HISGO Studio" (biên soạn) và "Cây phân cấp Chủ đề".
+* **Hai trục độc lập (đọc trước khi sửa):** `Topic` = cây phân loại (Giai đoạn → Chủ đề → Chuyên đề) — `Article`, `Lesson`, `Timeline` gắn 1 `topicId`; `Quiz`, `Question` gắn nhiều Topic. `LearningPath` = khoá học, chia theo **Chương**, mỗi chương chọn & sắp lại Lesson có sẵn — một Lesson vừa thuộc 1 Topic vừa có thể nằm trong nhiều Chương/Lộ trình. `pathType` (`LearningPathType`: `CHRONOLOGICAL` | `THEMATIC`) **chỉ có ở LearningPath** (đã bỏ `Topic.pathType` và giá trị `MYTHOLOGICAL` — migration `20261112220000_drop_topic_path_type`).
 * **UI Component chính:** [HisgoStudioView.tsx](frontend/src/features/curriculum/components/HisgoStudioView.tsx), [CurriculumExplorer.tsx](frontend/src/features/curriculum/components/CurriculumExplorer.tsx).
 * **Component/Modal phụ trợ:** `studio/StudioHeader.tsx`, `studio/LearningPathToolbar.tsx`, `studio/ChapterList.tsx`, `studio/LessonLibraryPanel.tsx`, `studio/modals/LearningPathFormModal.tsx`, `studio/modals/CreateChapterModal.tsx`, `studio/modals/AddLessonsToChapterModal.tsx`, `CurriculumTreePreviewModal.tsx`.
 * **Strategy:** `strategies/node-detail.strategy.tsx` — `TopicNodeDetailStrategy` / `LessonNodeDetailStrategy`, chọn bằng `NodeDetailStrategyFactory`.
@@ -196,8 +198,12 @@ flowchart TD
 
 ### 3.9. Người học (Learner) & Nội dung công khai (Public Content)
 * **Learner — Mục đích:** Đăng ký/hủy đăng ký Lộ trình học (miễn phí), đọc bài học (chỉ khi bài thuộc lộ trình đã đăng ký, hoặc bài ngoài mọi lộ trình thì chỉ cần đăng nhập), đánh dấu hoàn thành.
-  * UI dùng: `features/public-curriculum/components/PublicCurriculumView.tsx`, `PublicLessonReaderView.tsx` (xử lý `LessonAccessState`: GRANTED/LOGIN_REQUIRED/NOT_ENROLLED).
+  * UI dùng: `features/public-curriculum/components/PublicCurriculumView.tsx` (phân tách `CourseCardActions`), `PublicLessonReaderView.tsx` (xử lý `LessonAccessState`: GRANTED/LOGIN_REQUIRED/NOT_ENROLLED).
+  * Cụm Reader Modules (`features/public-curriculum/components/reader/`): `LessonReaderMainLayout.tsx`, `LessonGateSection.tsx`, `LessonReaderArticle.tsx`, `LessonReaderDesktopSidebar.tsx`, `LessonReaderHeader.tsx`, `LessonReaderNavigationFooter.tsx`, `LessonMobileSyllabusDrawer.tsx`, `LessonReaderLoadingSkeleton.tsx`, `LessonReaderNotFound.tsx`.
+  * Bộ đề tương tác cuối bài: `HubLessonQuiz.tsx` (tách các sub-components `ChoiceQuestionBody`, `TrueFalseQuestionBody`, `FillBlankQuestionBody`, `OrderingQuestionBody`, `MatchingQuestionBody`, 100% sạch ESLint).
   * Facade: `facades/usePublicCurriculumFacade.ts`, `facades/usePublicLessonReaderFacade.ts`.
+  * Khảo thí & Luyện tập Lịch sử (`app/luyen-tap/page.tsx`): Kết nối Pure Database qua `QuizApiService`, gồm `QuizBriefingCard.tsx`, `QuizQuestionCard.tsx`, `QuizExamSidebar.tsx`, `QuizStatisticsModal.tsx`, `quiz-score.helper.ts` (100% sạch ESLint).
+  * Hồ sơ Thực thể Lịch sử Toàn cảnh (`components/entity-detail/`): `EntityReader.tsx`, `EntityReadingToolbar.tsx`, `EntityReadingToc.tsx`, `EntityReadingTimeline.tsx`, `EntityHero.tsx`, `EntityKnowledgeGraph.tsx`, `entity-reader-adapter.ts` (100% sạch ESLint).
   * Service: `services/entities/learner.service.ts` (`LearnerApiService`).
   * Backend: `backend/src/learner/` — Controller `learner.controller.ts` (route `me/learning`, toàn bộ `AuthGuard`), Service `learner.service.ts` (`ForbiddenException code: NOT_ENROLLED` nếu chưa đăng ký lộ trình chứa bài; `upsert` idempotent cho enroll/complete).
 * **Public Content — Mục đích:** Toàn bộ API phục vụ trang công khai (chỉ trả nội dung `PUBLISHED`): chuyên mục, bài viết, blog, timeline/giai đoạn, sự kiện/nhân vật/di tích (suy từ `category.kind`), tag, taxonomy legacy, thư viện bài học, nộp & thống kê quiz.
@@ -207,7 +213,7 @@ flowchart TD
 * **Mục đích:** Người dùng (đăng nhập hoặc khách qua `guestId`) tạo ghi chú cá nhân gắn vào Lesson/Article, kèm đoạn bôi đen (`highlightText`) và màu (`NoteColor`).
 * **UI Component chính:** [NoteDrawer.tsx](frontend/src/features/notes/components/NoteDrawer.tsx), `NoteFloatingButton.tsx`.
 * **Facade:** `facades/useNoteFacade.ts` (bắt `mouseup` lấy đoạn bôi đen, lọc theo màu).
-* **Service/API Client:** `features/notes/services/note.service.ts` — gọi trực tiếp `fetch` tới `/api/notes` (route handler Next.js, thuộc ngoại lệ CLAUDE.md), guest id lưu `localStorage` khoá `hisgo:guest-id`.
+* **Service/API Client:** `features/notes/services/note.service.ts` — axios `@/services/api` gọi thẳng backend `/notes` (token do interceptor gắn), khách nhận diện qua header `x-guest-id` (`GUEST_ID_HEADER_NAME`) + `guestId`, lưu `localStorage` khoá `hisgo:guest-id`. Route proxy `app/api/notes` cũ đã xoá.
 * **Backend Module:** `backend/src/note/`
   * Controller: `note.controller.ts` (tự decode JWT từ header, không ép `AuthGuard` để hỗ trợ khách)
   * Service: `note.service.ts` (`assertOwnership` theo `userId` hoặc `guestId`)
@@ -277,6 +283,7 @@ flowchart TD
 * **Backend Module:** `backend/src/moderation/`
   * Controller: `moderation.controller.ts` (`/moderation`, `@RequireRoles(MODERATOR, ADMIN, SUPERADMIN)`)
   * Service: `moderation.service.ts` (tạo `ContentReport`, `resolveReport` kèm đếm vi phạm tái phạm)
+  * Enum: Prisma `ReportTargetType` (POST/COMMENT — cột `content_reports.target_type`), `ReportSource`, `ReportRiskLevel`, `ReportActionTaken`; `moderation.constant.ts` (`ModerationTab` cho query `tab`, `ModerationResolveAction` cho thao tác duyệt). DTO dùng `@IsEnum`, không dùng `@IsIn([...chuỗi])`.
   * AI Service: `moderation-ai.service.ts` (`SENTINEL_RULES` theo 4 category: PROFANITY/HISTORICAL_REVISIONISM/SPAM/REGIONAL_DISCRIMINATION + Gemini Flash REST API)
   * Queue Worker: `moderation.processor.ts` (`@Processor('moderation-queue')`, BullMQ)
   * Gateway: dùng lại `BlogGateway` (emit `moderation:updated`, `post:hidden`, `post:restored`)
@@ -296,7 +303,7 @@ flowchart TD
 * **Service/API Client:**
   * `services/auth/public-auth.service.ts` — session dùng chung Public + CMS, lưu localStorage (3 key), tự refresh khi 401, phát event `hisgo:session-changed`; dùng `fetch` thuần cho login/register/refresh/logout (ngoại lệ hợp lý, có comment rõ).
   * `services/auth/account.service.ts` (`AccountApiService` — qua axios chung).
-  * `services/auth/useAuthSession.ts` (hook `useSyncExternalStore`).
+  * `services/auth/use-auth-session.ts` (hook `useAuthSession`, `useSyncExternalStore`).
 * **Backend Module:** `backend/src/auth/`
   * Controller: `auth.controller.ts` (`/auth` — register, verify-email, Google OAuth, login, refresh-token, logout, logout-all), `account.controller.ts` (`/me`)
   * Service: `auth.service.ts` (rate limit email+IP, bcrypt 12 rounds, lockout 5 lần sai/30 phút, distributed lock khi login, tối đa 5 thiết bị/user), `account.service.ts`, `services/auth-utils.service.ts`, `services/google-oauth.service.ts`
@@ -349,7 +356,7 @@ flowchart TD
 ### 4.2. Frontend dùng chung
 * **Axios instance:** [api.ts](frontend/src/services/api.ts) — client dùng proxy `/api-proxy`, SSR dùng `NEXT_PUBLIC_API_URL`; auto gắn `Authorization`; 401 → tự refresh 1 lần rồi retry, thất bại → redirect login; Network Error → trả `{data: []}` (offline mock); export `extractErrorMessage()`, `parsePaginatedResponse<T>()`.
 * **Layout chung:** [ClientLayout.tsx](frontend/src/components/layout/ClientLayout.tsx) (phân luồng Public/CMS theo `PUBLIC_ROUTE_PREFIXES`), [CmsAccessGate.tsx](frontend/src/components/layout/CmsAccessGate.tsx), [Topbar.tsx](frontend/src/components/layout/Topbar.tsx) (breadcrumb, avatar, NotificationBell), [Header.tsx](frontend/src/components/hisgo/Header.tsx) (nav công khai).
-* **Hằng số & Tiện ích dùng chung:** `constants/api-url.ts` (`API_BASE_URL`, `INTERNAL_API_BASE_URL`, `resolveBackendAssetUrl`), `constants/routes.ts` (`APP_ROUTES`, `NavigationPageKey`), `constants/navigation.ts` (`NavGroupId`, nav Sidebar), `constants/ui-theme.ts` (`STATUS_TONE_MAP`/`LABEL_MAP`, `DIFFICULTY_TONE_MAP`, `PAGE_META`), `utils/sanitize-html.ts` (`sanitizeRichHtml` — bộ lọc allow-list HTML chống XSS dùng chung cho Lesson, Article, Quiz).
+* **Hằng số & Tiện ích dùng chung:** `constants/api-url.ts` (`API_BASE_URL`, `INTERNAL_API_BASE_URL`, `resolveBackendAssetUrl`), `constants/routes.ts` (`APP_ROUTES`, `NavigationPageKey`), `constants/navigation.ts` (`NavGroupId`, nav Sidebar), `constants/ui-theme.ts` (`STATUS_TONE_MAP`/`LABEL_MAP`, `DIFFICULTY_TONE_MAP`, `PAGE_META`), vùng URL ngoài trong `constants/routes.ts` (`SOCIAL_LINKS`, `SAMPLE_REMOTE_LINKS`, `WIKIPEDIA_VI_API`, `TIMELINE_HERO_IMAGE_URL` — nơi duy nhất ghi thẳng `https://…`; `APP_ROUTES.LOGIN`), `components/common/RemoteImage.tsx` (ảnh CMS/nguồn ngoài — chỗ duy nhất được dùng `<img>`), `utils/sanitize-html.ts` (`sanitizeRichHtml` — bộ lọc allow-list HTML chống XSS dùng chung cho Lesson, Article, Quiz).
 
 ### 4.3. `app.module.ts` — toàn bộ module nghiệp vụ được import
 `AuthModule, UserModule, TopicModule, LessonModule, TagModule, ContentRevisionModule, DashboardModule, UploadModule, LearningPathModule, CategoryModule, BlogModule, ModerationModule, ArticleModule, TimelineModule, PublicContentModule, QuizModule, LearnerModule, DiscussionModule, NotificationModule, NoteModule` (+ global: `ConfigModule, WinstonModule, LoggerModule, RedisModule, QueueModule, RateLimitModule, MetricsModule`).

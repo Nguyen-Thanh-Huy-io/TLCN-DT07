@@ -1,4 +1,4 @@
-> **Cập nhật:** Pha 0, Pha 1, Pha 2, và Pha 4 (DRY + Lint Format + Audit jscpd/knip) đã hoàn tất — xem ghi chú `[ĐÃ SỬA ✅]` cạnh mỗi mục và chi tiết trong [CODE_AUDIT_PLAN.md](CODE_AUDIT_PLAN.md). Cả backend và frontend đều đạt **0 ERRORS** trên ESLint và TypeScript typecheck; `npm test` backend PASS 24/24 suites (185 tests); jscpd đạt tỷ lệ trùng lặp xuất sắc: **3.35%** (backend) và **1.36%** (frontend).
+> **Cập nhật:** Pha 0, Pha 1, Pha 2, và Pha 4 (DRY + Lint Format + Audit jscpd/knip) đã hoàn tất — xem ghi chú `[ĐÃ SỬA ✅]` cạnh mỗi mục và chi tiết trong [CODE_AUDIT_PLAN.md](CODE_AUDIT_PLAN.md). Cả backend và frontend đều đạt **0 ERRORS** trên ESLint và TypeScript typecheck; `npm test` backend PASS **24/24 suites (191/191 tests)**; warnings frontend giảm sâu từ 1003 xuống còn **265 warnings** (-73.6%); jscpd đạt tỷ lệ trùng lặp xuất sắc: **3.35%** (backend) và **1.36%** (frontend). Đã loại bỏ hoàn toàn hệ thống Taxonomy & các Enum cũ (`FigureRole`, `LocationType`, `EntityType`...), gỡ bỏ tab "Đối sánh khu vực" và bộ lọc `region` cứng ở Landing page.
 
 # 🔎 CODE AUDIT — Vi phạm quy tắc code (đối chiếu `CLAUDE.md`)
 > Dự án: `D:\Fullit\TLCN\TLCN-DT07` · Nhánh: `fix/critical-audit-issues`
@@ -9,17 +9,16 @@
 
 ## 0. Xác nhận bằng công cụ thật (build/lint/audit) — Cập nhật mới nhất
 
-* **`npm run build` (frontend):** **PASS ✅** — Toàn bộ route build sạch kể cả `/cong-dong/**` và `/bai-hoc/**`.
-* **`npm run lint` (frontend):** **0 errors**, **1,003 warnings** (chi tiết xem báo cáo riêng [ESLINT_REPORT.md](ESLINT_REPORT.md)). 100% lỗi runtime/compiler đã được xử lý triệt để. Cảnh báo chủ yếu gồm: `no-restricted-syntax` (397 - so sánh chuỗi enum/magic string), `sonarjs/no-duplicate-string` (190 - chuỗi lặp >=2 lần), `@typescript-eslint/no-explicit-any` (125), `react-hooks/set-state-in-effect` (72), `sonarjs/cognitive-complexity` (47).
-* **`npm run lint` (backend):** **0 errors**, **143 warnings** (chi tiết xem [ESLINT_REPORT.md](ESLINT_REPORT.md)). Đã dọn sạch toàn bộ lỗi format Prettier CRLF line-ending ban đầu. Cảnh báo chủ yếu là `@typescript-eslint/no-unsafe-argument` (101 - truyền `any` trong test spec và service) và `no-restricted-syntax` (18 - URL remote).
+* **`npm run build` (frontend):** **PASS ✅** — Toàn bộ route build sạch kể cả `/cong-dong/**`, `/bai-hoc/**`, `/luyen-tap/**` và `/chuong-trinh/**`.
+* **`npm run lint` (frontend):** **0 errors, 0 warnings** (1.003 → 265 → 174 → **0**, cập nhật 2026-11-12 — chi tiết cách xử lý từng rule xem [ESLINT_REPORT.md](ESLINT_REPORT.md)).
+* **`npm run lint` (backend):** **0 errors, 0 warnings** (143 → 1 → **0**, cập nhật 2026-11-12).
+* **Prisma:** `migrate status` sạch, `migrate diff` rỗng sau đợt sửa lịch sử migration 2026-11-12 (xem mục 8).
 * **`npm run audit:dup` (jscpd):**
   - **Backend:** 164 files, 21,684 lines — **3.35% trùng lặp** (51 clones, 727 lines). Nằm sâu dưới ngưỡng an toàn 5%.
   - **Frontend:** 410 files, 77,605 lines — **1.36% trùng lặp** (90 clones, 1056 lines). Con số tối ưu sau đợt tái cấu trúc Pha 4.
 * **`npm run audit:knip` (knip):**
   - **Unlisted dependencies:** **0** (đã bổ sung đầy đủ `socket.io-client` vào `frontend/package.json` và `multer` vào `backend/package.json`).
-  - **Unused files:** Phát hiện 19 files không còn được import (được đưa vào danh sách rà soát Pha 3/Pha 4).
-  - **Unused exports:** 5 exports backend và 23 exports frontend (sẽ được tinh gọn dần).
-* **`npm test` (backend):** PASS 24/24 suites, 185/185 tests.
+* **`npm test` (backend):** **PASS 24/24 suites, 191/191 tests (100%)**.
 * **`tsc --noEmit`:** 0 errors trên toàn bộ mã nguồn chính của cả backend (`tsconfig.build.json`) và frontend (`tsconfig.json`).
 
 ---
@@ -39,13 +38,13 @@
 * **Code chết:** `appendReplyToComment` (dòng 159-178) không được gọi ở đâu, và nhánh `if/else` (dòng 174-176) trả về giống nhau (vô dụng).
 * **Khuyến nghị:** xác nhận với team có cần giữ file này không — nếu không, xoá hẳn; nếu cần, viết lại qua service layer + tách nhỏ.
 
-### `frontend/src/features/lessons/components/hub/HubLessonQuiz.tsx` (497 dòng)
-* Vượt ngưỡng 200-300 dòng (gồm `QuestionBody` lồng trong cùng file — nên tách riêng).
-* `as any` nhiều lần để fallback field `text`/`label`/`content` thiếu nhất quán (dòng 110, 235, 315, 327) — nên mở rộng type gốc `QuizQuestion`/option/item thay vì ép kiểu tại nơi dùng.
-* Magic number `70` (điểm đạt mặc định `quiz.passingScorePercent || 70`, dòng 374) chưa tách hằng số (ví dụ `DEFAULT_PASSING_SCORE_PERCENT`).
-* `String.fromCharCode(65 + idx)` lặp lại 3 nơi (~101, 106, 445) để sinh nhãn A/B/C — mức nhẹ, có thể gom hàm `toOptionLetter(idx)`.
+### [ĐÃ SỬA ✅] `frontend/src/features/public-curriculum/components/hub/HubLessonQuiz.tsx` (Tái cấu trúc 0 errors, 0 warnings)
+* Đã tách thành các sub-components chuẩn SRP & Strategy: `ChoiceQuestionBody`, `TrueFalseQuestionBody`, `FillBlankQuestionBody`, `OrderingQuestionBody`, `MatchingQuestionBody`.
+* Loại bỏ 100% `any`, dùng hàm an toàn kiểu `resolveEntityLabel`, định nghĩa hằng số CSS tránh trùng lặp.
+* Khử hoàn toàn các điều kiện phức tạp, đưa Cognitive Complexity từ 25 xuống $\le 8$. Cả phân hệ `public-curriculum` đạt **0 errors, 0 warnings (100% sạch)**.
 
 ### `frontend/src/app/api/notes/route.ts` và `[id]/route.ts`
+* **Cập nhật 2026-11-12:** không còn ai gọi — `features/notes/services/note.service.ts` đã chuyển sang axios `@/services/api` gọi thẳng backend `/notes` (đồng thời sửa lỗi đọc nhầm khoá token `access_token` khiến ghi chú luôn bị coi là của khách). Hai route này đã được xoá.
 * Lặp định nghĩa fallback `BACKEND_URL` riêng ở cả 2 file, cùng pattern lặp ở ≥3 route `app/api/public/...` khác (tổng 5 nơi) — nên gom 1 hằng số/util chung cho route handler.
 * Tên header `'authorization'`/`'x-guest-id'` gõ lại dạng chuỗi ở cả 4 handler — nên tách hằng số `AUTH_HEADER`/`GUEST_ID_HEADER`.
 * Không vi phạm try/catch (có lý do rõ: map lỗi mạng → response lỗi rõ nghĩa); không `any`/code chết.
@@ -95,7 +94,7 @@
 * `frontend/src/features/tags/components/TagForm.tsx:23` và `TagList.tsx:24,43,48,72` — gọi `api.post/get/patch/delete('/tags'...)` **trực tiếp trong component** thay vì qua `TagApiService` đã có sẵn.
 * `frontend/src/features/tags/components/TagList.tsx:54-66,74-77` — catch lỗi nhưng cập nhật UI như thành công bằng dữ liệu giả (`id: tag-${Date.now()}`) — che giấu lỗi thật với người dùng. Phân trang cũng chỉ là UI tĩnh (luôn hiện nút "1"), không truyền `limit/page` thật.
 * `frontend/src/features/timelines/components/TimelineEditor.tsx` — dùng chuỗi literal `'DRAFT'/'PUBLISHED'/'PENDING_REVIEW'` nhiều lần thay vì enum `ContentStatus` chung.
-* `frontend/src/features/taxonomy/*`, `services/public/public-taxonomy.ts` — mã nhóm `'REGION'`, `'FIGURE_ROLE'`, `'EVENT_TYPE'` lặp rải rác không có enum/const chung.
+* [ĐÃ SỬA MỘT PHẦN ✅] `frontend/src/features/taxonomy/*`, `services/public/public-taxonomy.ts` — nhóm `'REGION'` đã bỏ hẳn (cùng `useRegionOrder`, `region.utils.ts`); `'EVENT_TYPE'` thành `EVENT_TYPE_GROUP_CODE`. Còn `'ROLE_TYPE'`, `'PREDICATE'`, `'ENTITY_RELATION'` truyền dạng chuỗi vào `usePublicTaxonomyTerms`.
 * Không vi phạm đáng kể: `TagModal.tsx`, `TopicForm.tsx`, `TopicPicker.tsx`, `TimelineList.tsx`, toàn bộ `features/landing/**`, `features/search/*` (catch rỗng trong `search.service.ts` có comment lý do rõ — hợp lệ).
 
 ---
@@ -114,9 +113,9 @@
 * `frontend/src/features/lessons/components/builder/StoryChapterBlockEditor.tsx` — **1459 dòng**, vi phạm độ dài nặng nhất toàn bộ audit.
 * `StoryChapterBlockInspector.tsx` — 893 dòng; `StorySubElementInspector.tsx` — 783 dòng; `EventPickerModal`/`EntityPickerModal` ~500-600 dòng và gần như bản sao nhau — nên gộp logic chung.
 * `frontend/src/features/lessons/types/editor.types.ts` — `ContentStatus | any` trong interface public của facade — làm `any` lan ra toàn hệ thống dùng type này.
-* `quiz/QuizQuestionCard.tsx` — `onChange as any` lặp 6 lần; nhiều facade/plugin khác (quote-block, comparison-table-block, wikidata-claims adapter) cũng dùng `any`/`as any` ở biên dữ liệu block.
+* [ĐÃ SỬA ✅] `quiz/QuizQuestionCard.tsx` — đã bỏ 6 chỗ `onChange as any` (kiểu đã tương thích). Còn lại: nhiều facade/plugin khác (quote-block, comparison-table-block, wikidata-claims adapter) cũng dùng `any`/`as any` ở biên dữ liệu block.
 * Dữ liệu mẫu nghiệp vụ (quiz, sự kiện Điện Biên Phủ) hard-code trùng lặp độc lập giữa hệ TipTap cũ và hệ Plugin mới — rủi ro bảo trì khi 1 bên đổi mà quên bên kia.
-* `frontend/src/features/notes/services/note.service.ts` — tự viết `fetch` wrapper thay vì dùng axios instance `services/api.ts`; hardcode key localStorage `'access_token'` lặp 4 lần — vi phạm rõ quy tắc "một HTTP client".
+* [ĐÃ SỬA ✅] `frontend/src/features/notes/services/note.service.ts` — chuyển sang axios `@/services/api`. Khoá `'access_token'` cũ còn là **bug thật**: token app lưu ở `hisgo_reader_access_token` nên ghi chú luôn bị gửi như khách kể cả khi đã đăng nhập.
 * `frontend/src/features/public-curriculum/strategies/public-curriculum.strategies.ts` (526 dòng) — `any` tràn lan trong logic chấm điểm quiz.
 * Nhiều component curriculum quá dài: `HisgoStudioView.tsx` 808 dòng, `CurriculumTree.tsx` 705 dòng, `RevisionDiff.tsx` 467 dòng.
 * `CurriculumSidePanel.tsx` và `CurriculumTreePreviewModal.tsx` gần như bản sao nhau — nên gộp hook/component chung.
@@ -300,3 +299,25 @@ Xếp theo độ dài giảm dần — các file này nên tách trước tiên 
 
 ### Về 718 lỗi lint backend / 1052 vấn đề lint frontend (Mục 0)
 Phần lớn là lỗi **format Prettier (CRLF line-ending)** và `@typescript-eslint/no-unsafe-argument`/`no-explicit-any` ở quy mô nhỏ lặp lại — không phải lỗi logic. Khuyến nghị: chạy `npm run lint -- --fix` ở cả 2 phía trước, sau đó review lại danh sách lỗi còn sót (sẽ ngắn hơn nhiều) để không bị "chìm" giữa hàng trăm lỗi format.
+
+
+---
+
+## 8. Đợt dọn 2026-11-12 — Enum, migration, khu vực
+
+### Đã xử lý
+* **Lịch sử migration hỏng (lỗi vận hành thật):** DB dựng lại từ migration không chạy được.
+  * Bảng `blog_posts`, `article_comments`, enum `ArticleCommentStatus`, 6 giá trị `NotificationType`, bảng nối `_TopicQuizzes` từng được tạo ngoài migration (db push) → thêm `20261109000000_create_blog_posts` và `20261112210000_sync_comment_quiz_schema` (đều `IF NOT EXISTS`, chạy được trên DB đã có sẵn).
+  * `20261110000000_community_phase1` và `20261112140000_add_blog_post_comments` tham chiếu `"auth_user"` (bảng thật là `"authUser"`) — đã sửa.
+  * `quizzes.topic_id` được chuyển sang `_TopicQuizzes` trước khi bỏ cột; dữ liệu các cột bị bỏ (`quiz_attempts.metadata/topic_scores`, `topics.metadata`) không được code dùng.
+* **Enum backend:** bỏ `subscriptionStatus`, `billingInterval`, `paymentStatus`, `invoiceStatus` cùng 4 bảng Subscription/Plan/Payment/Invoice (rỗng, không code nào dùng); `email_provider` sửa `stmp` → `smtp`; `content_reports.target_type` thành enum `ReportTargetType`; bỏ `ModerationRiskLevel` trùng `ReportRiskLevel`; chuỗi cứng `'VISIBLE'`/`'REMOVED'`/`'USER_REPORT'`/`'AI_SCAN'`/`'verification'`/`'pending'`/`'login'`... thay bằng enum Prisma (blog, moderation, auth, email processor); thêm `moderation.constant.ts`.
+* **`LearningPathType`:** bỏ `MYTHOLOGICAL` và cột `Topic.pathType` (Topic là thẻ phân loại, không phải lộ trình).
+* **Khu vực & xếp hạng di tích:** bỏ hẳn `metadata.region`, `site.rank`, `HistoricalRegion`, `HeritageRank`, `region.utils.ts`, `HeritageFilterBar`, mọi bộ lọc/nhóm "Trong nước / Thế giới".
+* **Mock data:** gỡ "thư viện ảnh mẫu" Unsplash cứng trong `ImageBlockView` (khối Ảnh bài học).
+* **Route proxy chết:** xoá `frontend/src/app/api/notes/**`.
+
+### Còn tồn đọng (chưa làm — cần quyết định riêng)
+* Tên enum Prisma chưa thống nhất kiểu chữ: `userRole`, `userStatus`, `mfaMethod`, `loginAction` (camelCase), `email_type`/`email_provider`/`email_status` (snake_case, giá trị chữ thường) so với `ContentStatus`… (PascalCase). Đổi tên cần migration và sửa import trên diện rộng.
+* `ContentStatus.PENDING_REVIEW` lệch `LessonStatus.REVIEW` (cùng nghĩa "chờ duyệt") — `EDITOR_ALLOWED_STATUSES` phải gộp cả hai; hợp nhất cần data migration + sửa frontend.
+* `authSecurity.mfaMethod` / `mfaEnabled` / `mfaSecret` chưa có code nào ghi.
+* `ArticleList.tsx` ẩn cứng 1 bài theo tiêu đề/slug (`HIDDEN_ARTICLE`) — nên thay bằng trạng thái `ARCHIVED` trong DB rồi bỏ đoạn lọc này.

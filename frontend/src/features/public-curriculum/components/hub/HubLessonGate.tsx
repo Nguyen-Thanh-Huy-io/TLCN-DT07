@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { BookmarkPlus, LockKeyhole, LogIn, UserPlus } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import type { LearningPathItem } from '@/services/entities/learning-path.service';
-import { type LessonAccess, LessonAccessState } from '../../facades/usePublicLessonReaderFacade';
+import { LessonAccessState } from '../../facades/usePublicLessonReaderFacade';
 import { DEFAULT_COVER_IMAGES } from '../../constants/public-curriculum.constants';
 import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubButton } from './HubUi';
 
@@ -22,7 +22,7 @@ export function HubLessonGate({
   learningPath,
   onEnroll,
 }: {
-  access: Exclude<LessonAccess, 'GRANTED'>;
+  access: Exclude<LessonAccessState, LessonAccessState.GRANTED>;
   preview: LessonPreview | null;
   learningPath: LearningPathItem | null;
   onEnroll: (pathId: string) => Promise<void>;
@@ -46,6 +46,7 @@ export function HubLessonGate({
   return (
     <section className="overflow-hidden rounded-2xl border border-lh-line bg-lh-surface shadow-lh-card">
       <div className="relative aspect-[2.6/1]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={preview?.thumbnailUrl || DEFAULT_COVER_IMAGES[0]} alt="" className="h-full w-full object-cover opacity-70" />
         <div className="absolute inset-0 bg-gradient-to-t from-lh-surface via-lh-surface/40 to-transparent" />
         <span className="absolute left-1/2 top-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-lh-surface text-lh-brand shadow-xl">

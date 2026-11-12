@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { LearnerApiService, type LearnerOverview } from '@/services/entities/learner.service';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 
 /**
  * Tiến độ học của tài khoản đang đăng nhập, lấy từ backend (/me/learning).
@@ -58,8 +58,14 @@ export function useLessonProgress() {
     ? snapshot.overview
     : EMPTY;
 
-  const completedLessonIds = Array.isArray(current?.completedLessonIds) ? current.completedLessonIds : [];
-  const enrolledPathIds = Array.isArray(current?.enrolledPathIds) ? current.enrolledPathIds : [];
+  const completedLessonIds = useMemo(
+    () => (Array.isArray(current?.completedLessonIds) ? current.completedLessonIds : []),
+    [current],
+  );
+  const enrolledPathIds = useMemo(
+    () => (Array.isArray(current?.enrolledPathIds) ? current.enrolledPathIds : []),
+    [current],
+  );
 
   const isCompleted = useCallback((lessonId: string) => completedLessonIds.includes(lessonId), [completedLessonIds]);
   const isEnrolled = useCallback((pathId: string) => enrolledPathIds.includes(pathId), [enrolledPathIds]);

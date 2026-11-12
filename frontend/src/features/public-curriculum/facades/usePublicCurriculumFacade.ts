@@ -70,9 +70,10 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
           (defaultPath.chapters || []).map((ch) => ch.id),
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(
-        err?.response?.data?.message ||
+        axiosErr?.response?.data?.message ||
           'Không thể tải dữ liệu chương trình học lịch sử. Vui lòng thử lại.',
       );
     } finally {
@@ -81,7 +82,9 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
   }, [initialPathId]);
 
   useEffect(() => {
-    loadCurriculum();
+    void Promise.resolve().then(() => {
+      void loadCurriculum();
+    });
   }, [loadCurriculum]);
 
   const selectedTopicSubtreeIds = useMemo(() => {

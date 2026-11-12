@@ -1,79 +1,109 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
-  ArrowRight,
-  BookOpen,
-  CheckCircle2,
   ChevronLeft,
-  Clock3,
-  ExternalLink,
+  ChevronRight,
   Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
-  X,
 } from 'lucide-react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
+import { PUBLIC_CURRICULUM_ROUTES } from '../constants/public-curriculum.constants';
 import {
-  DEFAULT_COVER_IMAGES,
-  PUBLIC_CURRICULUM_ROUTES,
-  PUBLIC_DIFFICULTY_META,
-} from '../constants/public-curriculum.constants';
-import { usePublicLessonReaderFacade, LessonAccessState } from '../facades/usePublicLessonReaderFacade';
-import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubBadge, HubButton } from './hub/HubUi';
-import { HubSyllabus, chapterLabel } from './hub/HubSyllabus';
-import { HubLessonQuiz } from './hub/HubLessonQuiz';
-import { sanitizeRichHtml } from '@/utils/sanitize-html';
-import { HubLessonGate } from './hub/HubLessonGate';
+  LessonAccessState,
+  usePublicLessonReaderFacade,
+} from '../facades/usePublicLessonReaderFacade';
+import {
+  HUB_BUTTON_BASE,
+  HUB_BUTTON_VARIANTS,
+  HubButton,
+} from './hub/HubUi';
 import { useLessonProgress } from './hub/useLessonProgress';
-import { LessonToc } from './hub/LessonToc';
-import { LessonRelated, useLessonRelated } from './hub/LessonRelated';
+import { useLessonRelated } from './hub/LessonRelated';
 import { useLessonMedia } from './hub/useLessonMedia';
 import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
 import { NoteDrawer } from '@/features/notes/components/NoteDrawer';
 import { NoteFloatingButton } from '@/features/notes/components/NoteFloatingButton';
 import { NOTE_TARGET_TYPE } from '@/features/notes/types/note.types';
-import './hub/lesson-reader.css';
+import { LessonMobileSyllabusDrawer } from './reader/LessonMobileSyllabusDrawer';
+import { LessonReaderLoadingSkeleton } from './reader/LessonReaderLoadingSkeleton';
+import { LessonReaderNotFound } from './reader/LessonReaderNotFound';
+import { LessonGateSection } from './reader/LessonGateSection';
+import { LessonReaderMainLayout } from './reader/LessonReaderMainLayout';
 
-const SYLLABUS_STORAGE_KEY = 'hisgo:lesson-reader:syllabus';
+const SYLLABUS_STORAGE_KEY = 'hisgo.hub.syllabus.open';
 const SYLLABUS_STORAGE_CLOSED = 'closed';
 
-/** Cột đề cương bên trái, dính theo khi cuộn; thu gọn thành một thanh hẹp. */
-function SyllabusColumn({ open, onToggle, children }: { open: boolean; onToggle: () => void; children: React.ReactNode }) {
+function resolveReaderLayoutColumns(
+  hasLearningPath: boolean,
+  syllabusOpen: boolean,
+  hasRightSidebar: boolean,
+): string {
+  if (!hasLearningPath) {
+    return hasRightSidebar ? 'xl:grid-cols-[minmax(0,1fr)_17rem]' : 'grid-cols-1';
+  }
+  if (syllabusOpen) {
+    return hasRightSidebar
+      ? 'lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_17rem]'
+      : 'lg:grid-cols-[17rem_minmax(0,1fr)]';
+  }
+  return hasRightSidebar
+    ? 'lg:grid-cols-[3rem_minmax(0,1fr)] xl:grid-cols-[3rem_minmax(0,1fr)_17rem]'
+    : 'lg:grid-cols-[3rem_minmax(0,1fr)]';
+}
+
+function SyllabusColumn({
+  open,
+  onToggle,
+  children,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <aside className="hidden lg:block">
       <div className="sticky top-24">
+        <div className="mb-2 flex items-center justify-between">
+          {open && (
+            <span className="text-xs font-bold uppercase tracking-wider text-lh-gold">
+              Đề cương lộ trình
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onToggle}
+            className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-lh-muted hover:bg-lh-surface-2 hover:text-lh-ink ${
+              !open ? 'mx-auto' : ''
+            }`}
+            title={open ? 'Thu gọn đề cương để bài đọc rộng hơn' : 'Mở rộng đề cương'}
+            aria-label={open ? 'Thu gọn đề cương' : 'Mở rộng đề cương'}
+          >
+            {open ? (
+              <>
+                <ChevronLeft className="size-3.5" /> Thu gọn
+              </>
+            ) : (
+              <ChevronRight className="size-4" />
+            )}
+          </button>
+        </div>
         {open ? (
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-[0.14em] text-lh-brand">Nội dung lộ trình</span>
-              <button
-                type="button"
-                onClick={onToggle}
-                className="grid size-8 place-items-center rounded-lg text-lh-muted transition hover:bg-lh-surface-2 hover:text-lh-ink"
-                aria-label="Ẩn nội dung lộ trình"
-                title="Ẩn nội dung lộ trình"
-              >
-                <PanelLeftClose className="size-4" />
-              </button>
-            </div>
-            <div className="max-h-[calc(100vh-9rem)] overflow-y-auto pr-1">{children}</div>
+          <div className="max-h-[calc(100vh-8.5rem)] overflow-y-auto pr-1">
+            {children}
           </div>
         ) : (
           <button
             type="button"
             onClick={onToggle}
-            className="flex w-12 flex-col items-center gap-3 rounded-xl border border-lh-line bg-lh-surface py-4 text-lh-muted transition hover:border-lh-brand/40 hover:text-lh-brand"
-            aria-label="Hiện nội dung lộ trình"
-            title="Hiện nội dung lộ trình"
+            className="flex h-72 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-lh-line bg-lh-surface text-xs font-bold text-lh-muted transition hover:border-lh-brand/40 hover:text-lh-brand"
+            title="Mở đề cương"
           >
-            <PanelLeftOpen className="size-4" />
-            <span className="text-xs font-semibold [writing-mode:vertical-rl]">Nội dung lộ trình</span>
+            <ChevronRight className="size-4" />
+            <span className="[writing-mode:vertical-rl] tracking-wider">ĐỀ CƯƠNG</span>
           </button>
         )}
       </div>
@@ -108,22 +138,23 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
     handleSubmitQuiz,
     handleRetryQuiz,
   } = usePublicLessonReaderFacade(slug, pathId);
+
   const noteFacade = useNoteFacade(NOTE_TARGET_TYPE.LESSON, lesson?.id || '');
   const { isCompleted, markCompleted, enroll } = useLessonProgress();
   const [mobileSyllabus, setMobileSyllabus] = useState(false);
-  const [syllabusOpen, setSyllabusOpen] = useState(true);
+  const [syllabusOpen, setSyllabusOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      return localStorage.getItem(SYLLABUS_STORAGE_KEY) !== SYLLABUS_STORAGE_CLOSED;
+    } catch {
+      return true;
+    }
+  });
+
   const contentRef = useRef<HTMLDivElement>(null);
   useLessonMedia(contentRef, compiledHtml);
   const router = useRouter();
 
-  // Nhớ lựa chọn ẩn/hiện đề cương trên trình duyệt này (đọc sau khi mount để SSR khớp).
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(SYLLABUS_STORAGE_KEY) === SYLLABUS_STORAGE_CLOSED) setSyllabusOpen(false);
-    } catch {
-      // Không dùng được storage (chế độ riêng tư) → giữ mặc định mở.
-    }
-  }, []);
   const toggleSyllabus = () =>
     setSyllabusOpen((open) => {
       try {
@@ -133,26 +164,17 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
       }
       return !open;
     });
+
   const hasToc = Boolean(tocItems && tocItems.length >= 2);
   const { related, hasContent: hasRelated } = useLessonRelated(compiledHtml || '');
   const hasRightSidebar = hasToc || hasRelated;
+  const readerColumns = resolveReaderLayoutColumns(Boolean(learningPath), syllabusOpen, hasRightSidebar);
 
-  // Cột: [đề cương] [bài đọc] [mục lục + liên quan — tự co giãn nếu cột phải không có nội dung].
-  const readerColumns = learningPath
-    ? syllabusOpen
-      ? hasRightSidebar
-        ? 'lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_17rem]'
-        : 'lg:grid-cols-[17rem_minmax(0,1fr)]'
-      : hasRightSidebar
-        ? 'lg:grid-cols-[3rem_minmax(0,1fr)] xl:grid-cols-[3rem_minmax(0,1fr)_17rem]'
-        : 'lg:grid-cols-[3rem_minmax(0,1fr)]'
-    : hasRightSidebar
-      ? 'xl:grid-cols-[minmax(0,1fr)_17rem]'
-      : 'grid-cols-1';
-
-  // Passing the end-of-lesson quiz counts as finishing the lesson.
+  // Vượt qua quiz tính là hoàn thành bài học
   useEffect(() => {
-    if (lesson && submittedQuiz && quizEvaluation?.passed) void markCompleted(lesson.id);
+    if (lesson && submittedQuiz && quizEvaluation?.passed) {
+      void markCompleted(lesson.id);
+    }
   }, [lesson, submittedQuiz, quizEvaluation, markCompleted]);
 
   const { prevLesson, nextLesson, flatLessons, currentIndex, currentChapter } = navigationContext;
@@ -167,8 +189,66 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
     if (nextLesson) router.push(lessonHref(nextLesson.slug));
   };
 
-  const difficulty = lesson?.difficulty ? PUBLIC_DIFFICULTY_META[lesson.difficulty] : null;
   const done = lesson ? isCompleted(lesson.id) : false;
+
+  const renderMainContent = () => {
+    if (loading) {
+      return <LessonReaderLoadingSkeleton />;
+    }
+    if (access !== LessonAccessState.GRANTED) {
+      return (
+        <LessonGateSection
+          access={access as Exclude<LessonAccessState, LessonAccessState.GRANTED>}
+          learningPath={learningPath}
+          syllabusOpen={syllabusOpen}
+          onToggleSyllabus={toggleSyllabus}
+          isCompleted={isCompleted}
+          lockedPreview={lockedPreview}
+          onEnroll={enroll}
+          onReload={reload}
+          SyllabusColumnComponent={SyllabusColumn}
+        />
+      );
+    }
+    if (error || !lesson) {
+      return <LessonReaderNotFound error={error} />;
+    }
+    return (
+      <LessonReaderMainLayout
+        readerColumns={readerColumns}
+        learningPath={learningPath}
+        syllabusOpen={syllabusOpen}
+        onToggleSyllabus={toggleSyllabus}
+        lesson={lesson}
+        isCompleted={isCompleted}
+        currentIndex={currentIndex}
+        flatLessonsCount={flatLessons.length}
+        currentChapter={currentChapter}
+        done={done}
+        tocItems={tocItems}
+        contentRef={contentRef}
+        compiledHtml={compiledHtml}
+        resourceLinks={resourceLinks}
+        quiz={quiz}
+        quizEvaluation={quizEvaluation}
+        userAnswers={userAnswers}
+        submittedQuiz={submittedQuiz}
+        setAnswer={setAnswer}
+        moveOrderingItem={moveOrderingItem}
+        onSubmitQuiz={handleSubmitQuiz}
+        onRetryQuiz={handleRetryQuiz}
+        prevLessonHref={prevLesson ? lessonHref(prevLesson.slug) : null}
+        nextLesson={Boolean(nextLesson)}
+        onCompleteAndContinue={completeAndContinue}
+        onMarkCompleted={() => lesson && void markCompleted(lesson.id)}
+        hasRightSidebar={hasRightSidebar}
+        hasToc={hasToc}
+        hasRelated={hasRelated}
+        related={related}
+        SyllabusColumnComponent={SyllabusColumn}
+      />
+    );
+  };
 
   return (
     <div className="lh-app">
@@ -191,239 +271,15 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
           )}
         </div>
 
-        {loading ? (
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <div className="space-y-4">
-              <div className="h-10 w-2/3 animate-pulse rounded-xl bg-lh-surface-2" />
-              <div className="aspect-[2.2/1] animate-pulse rounded-2xl bg-lh-surface-2" />
-              <div className="h-40 animate-pulse rounded-2xl bg-lh-surface-2" />
-            </div>
-            <div className="hidden h-96 animate-pulse rounded-2xl bg-lh-surface-2 lg:block" />
-          </div>
-        ) : access !== LessonAccessState.GRANTED ? (
-          <div className={`grid gap-8 ${learningPath ? (syllabusOpen ? 'lg:grid-cols-[17rem_minmax(0,1fr)]' : 'lg:grid-cols-[3rem_minmax(0,1fr)]') : ''}`}>
-            {learningPath && (
-              <SyllabusColumn open={syllabusOpen} onToggle={toggleSyllabus}>
-                <HubSyllabus path={learningPath} isCompleted={isCompleted} />
-              </SyllabusColumn>
-            )}
-            <HubLessonGate
-              access={access}
-              preview={lockedPreview}
-              learningPath={learningPath}
-              onEnroll={async (pathId) => {
-                await enroll(pathId);
-                await reload();
-              }}
-            />
-          </div>
-        ) : error || !lesson ? (
-          <div className="mx-auto max-w-xl rounded-2xl border border-lh-red/30 bg-lh-red-soft p-10 text-center">
-            <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-lh-red">Không tìm thấy bài học</h1>
-            <p className="mt-2 text-sm text-lh-muted">{error || 'Bài học bạn yêu cầu không tồn tại hoặc đã bị gỡ.'}</p>
-            <Link href={PUBLIC_CURRICULUM_ROUTES.CURRICULUM} className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.primary} mt-5`}>
-              <ArrowLeft className="size-4" /> Về Chương trình học
-            </Link>
-          </div>
-        ) : (
-          <div className={`grid gap-8 ${readerColumns}`}>
-            {learningPath && (
-              <SyllabusColumn open={syllabusOpen} onToggle={toggleSyllabus}>
-                <HubSyllabus path={learningPath} activeLessonId={lesson.id} isCompleted={isCompleted} />
-              </SyllabusColumn>
-            )}
-            <AnimatePresence mode="wait">
-              <motion.section
-                key={lesson.id}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.25 }}
-                className={`min-w-0 ${!hasRightSidebar ? 'mx-auto w-full max-w-4xl' : ''}`}
-              >
-                <div className="mb-5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <HubBadge tone="brand">
-                      <BookOpen className="size-3.5" /> Bài đọc
-                    </HubBadge>
-                    {currentIndex >= 0 && (
-                      <span className="text-xs text-lh-muted">
-                        Bài {currentIndex + 1}/{flatLessons.length}
-                      </span>
-                    )}
-                    {currentChapter && (
-                      <>
-                        <span className="text-lh-muted/40">•</span>
-                        <span className="text-xs text-lh-muted">
-                          Chương {currentChapter.index}: {chapterLabel(currentChapter.title)}
-                        </span>
-                      </>
-                    )}
-                    <span className="text-lh-muted/40">•</span>
-                    <span className="flex items-center gap-1 text-xs text-lh-muted">
-                      <Clock3 className="size-3.5" /> ~{lesson.estimatedReadMinutes || 3} phút
-                    </span>
-                    {difficulty && <HubBadge tone="gold">{difficulty.label}</HubBadge>}
-                    {done && (
-                      <HubBadge tone="brand">
-                        <CheckCircle2 className="size-3.5" /> Đã hoàn thành
-                      </HubBadge>
-                    )}
-                  </div>
-                  <h1 className="mt-3 font-[family-name:var(--font-heading)] text-3xl font-bold leading-tight text-lh-ink sm:text-4xl">
-                    {lesson.title}
-                  </h1>
-                  {lesson.description && <p className="mt-2 text-base leading-7 text-lh-muted">{lesson.description}</p>}
-                  {(lesson.tags || []).length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {(lesson.tags || []).map((tag) => (
-                        <span key={tag.id} className="rounded-full bg-lh-surface-2 px-2.5 py-1 text-xs font-semibold text-lh-muted">
-                          #{tag.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+        {renderMainContent()}
 
-                <div className="mb-7 overflow-hidden rounded-2xl">
-                  <img
-                    src={lesson.thumbnailUrl || DEFAULT_COVER_IMAGES[0]}
-                    alt={lesson.title}
-                    className="aspect-[2.2/1] w-full object-cover"
-                    onError={(e) => {
-                      // Ảnh bìa nguồn ngoài đã mất → dùng ảnh mặc định thay vì khung vỡ.
-                      const img = e.currentTarget;
-                      if (!img.src.endsWith(DEFAULT_COVER_IMAGES[0])) img.src = DEFAULT_COVER_IMAGES[0];
-                    }}
-                  />
-                </div>
-
-                {/* Màn hẹp: mục lục nằm trên bài; màn rộng: chuyển sang cột phải. */}
-                <div className="xl:hidden">
-                  <LessonToc items={tocItems} />
-                </div>
-
-                <article className="rounded-2xl border border-lh-line bg-lh-surface p-6 md:p-9">
-                  <div
-                    ref={contentRef}
-                    className="tiptap-content-box !p-0 leading-relaxed text-lh-ink"
-                    dangerouslySetInnerHTML={{
-                      __html: sanitizeRichHtml(
-                        compiledHtml ||
-                          '<p class="italic">Nội dung bài học đang được biên tập viên cập nhật.</p>',
-                      ),
-                    }}
-                  />
-                  {resourceLinks.length > 0 && (
-                    <div className="mt-8 border-t border-lh-line pt-6">
-                      <h2 className="font-[family-name:var(--font-heading)] text-lg font-bold text-lh-ink">Sử liệu & liên kết tham khảo</h2>
-                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                        {resourceLinks.map((link) => (
-                          <a
-                            key={link.id}
-                            href={link.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-xl border border-lh-line bg-lh-surface-2 p-4 transition hover:border-lh-brand/40"
-                          >
-                            <span className="flex items-center gap-1.5 text-sm font-semibold text-lh-brand">
-                              {link.title} <ExternalLink className="size-3.5" />
-                            </span>
-                            {link.note && <p className="mt-1 text-xs leading-5 text-lh-muted">{link.note}</p>}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </article>
-
-                <div className="xl:hidden">
-                  <LessonRelated html={compiledHtml} />
-                </div>
-
-                {quiz && quiz.questions?.length > 0 && (
-                  <div className="mt-8">
-                    <HubLessonQuiz
-                      quiz={quiz}
-                      evaluation={quizEvaluation}
-                      answers={userAnswers}
-                      submitted={submittedQuiz}
-                      setAnswer={setAnswer}
-                      moveOrderingItem={moveOrderingItem}
-                      onSubmit={handleSubmitQuiz}
-                      onRetry={handleRetryQuiz}
-                    />
-                  </div>
-                )}
-
-                <div className="mt-8 flex flex-col-reverse justify-between gap-3 border-t border-lh-line pt-5 sm:flex-row">
-                  {prevLesson ? (
-                    <Link href={lessonHref(prevLesson.slug)} className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.outline}`}>
-                      <ChevronLeft className="size-4" /> Bài trước
-                    </Link>
-                  ) : (
-                    <span />
-                  )}
-                  {nextLesson ? (
-                    <HubButton onClick={completeAndContinue}>
-                      {done ? 'Sang bài tiếp theo' : 'Đánh dấu hoàn thành & tiếp tục'}
-                      {done ? <ArrowRight className="size-4" /> : <CheckCircle2 className="size-4" />}
-                    </HubButton>
-                  ) : (
-                    <HubButton onClick={() => lesson && void markCompleted(lesson.id)} disabled={done}>
-                      {done ? 'Đã hoàn thành bài học' : 'Đánh dấu hoàn thành'} <CheckCircle2 className="size-4" />
-                    </HubButton>
-                  )}
-                </div>
-              </motion.section>
-            </AnimatePresence>
-
-            {/* Cột phải (màn rộng): mục lục + thông tin liên quan, chỉ hiển thị khi có dữ liệu thực tế */}
-            {hasRightSidebar && (
-              <aside className="hidden xl:block">
-                <div className="sticky top-24 grid max-h-[calc(100vh-7rem)] gap-6 overflow-y-auto pb-4 pr-1">
-                  {hasToc && <LessonToc items={tocItems} compact />}
-                  {hasRelated && <LessonRelated html={compiledHtml} compact precomputed={related} />}
-                </div>
-              </aside>
-            )}
-          </div>
-        )}
-
-        <AnimatePresence>
-          {mobileSyllabus && learningPath && (
-            <>
-              <motion.button
-                aria-label="Đóng nội dung"
-                onClick={() => setMobileSyllabus(false)}
-                className="fixed inset-0 z-[60] bg-black/45 backdrop-blur-sm lg:hidden"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              />
-              <motion.aside
-                initial={{ x: '-100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '-100%' }}
-                transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-                className="fixed bottom-0 left-0 top-0 z-[70] w-[min(92vw,24rem)] overflow-y-auto bg-lh-canvas p-4 shadow-2xl lg:hidden"
-              >
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="font-[family-name:var(--font-heading)] text-xl font-bold text-lh-ink">Chương trình học</div>
-                  <HubButton variant="ghost" className="size-10 p-0" onClick={() => setMobileSyllabus(false)} aria-label="Đóng">
-                    <X className="size-5" />
-                  </HubButton>
-                </div>
-                <HubSyllabus
-                  path={learningPath}
-                  activeLessonId={lesson?.id}
-                  isCompleted={isCompleted}
-                  onNavigate={() => setMobileSyllabus(false)}
-                />
-              </motion.aside>
-            </>
-          )}
-        </AnimatePresence>
+        <LessonMobileSyllabusDrawer
+          isOpen={mobileSyllabus}
+          learningPath={learningPath}
+          activeLessonId={lesson?.id}
+          isCompleted={isCompleted}
+          onClose={() => setMobileSyllabus(false)}
+        />
 
         {/* Sổ ghi chú cá nhân */}
         <NoteFloatingButton facade={noteFacade} />

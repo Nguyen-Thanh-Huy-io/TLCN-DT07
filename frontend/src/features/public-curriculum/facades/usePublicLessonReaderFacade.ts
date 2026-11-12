@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { LearnerApiService, NOT_ENROLLED_CODE } from '@/services/entities/learner.service';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import {
   LearningPathApiService,
   LearningPathItem,
 } from '@/services/entities/learning-path.service';
 import { LessonItem } from '@/types/models/lesson.type';
-import { QuizItem, QuizQuestionType } from '@/features/lessons/types/quiz.types';
+import { QuizItem } from '@/features/lessons/types/quiz.types';
 import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
 import { buildLessonTocAndHtml, LessonTocEntry, normalizeContentToBlocks } from '@/features/lessons/utils/lesson-toc.util';
 import {
@@ -76,14 +76,14 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
     );
 
     if (!userId) {
-      setAccess('LOGIN_REQUIRED');
+      setAccess(LessonAccessState.LOGIN_REQUIRED);
       setLoading(false);
       return;
     }
 
     try {
       const { lesson: lessonData, quiz: quizRes } = await LearnerApiService.getLesson(slug);
-      setAccess('GRANTED');
+      setAccess(LessonAccessState.GRANTED);
       setLesson(lessonData);
 
       // Xáo trộn vị trí đáp án (Single/Multiple Choice), mốc thời gian (Ordering) và cột ghép (Matching) cho học sinh
@@ -94,12 +94,18 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
       } else {
         setQuiz(quizRes);
       }
-    } catch (err: any) {
-      if (err?.response?.status === 403 && err?.response?.data?.code === NOT_ENROLLED_CODE) {
-        setAccess('NOT_ENROLLED');
+    } catch (err: unknown) {
+      const axiosErr = err as {
+        response?: { status?: number; data?: { code?: string; message?: string } };
+      };
+      if (
+        axiosErr?.response?.status === 403 &&
+        axiosErr?.response?.data?.code === NOT_ENROLLED_CODE
+      ) {
+        setAccess(LessonAccessState.NOT_ENROLLED);
       } else {
         setError(
-          err?.response?.data?.message ||
+          axiosErr?.response?.data?.message ||
             'Không tìm thấy bài học hoặc bài học chưa được xuất bản.',
         );
       }
@@ -118,7 +124,9 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
   }, [learningPath, slug]);
 
   useEffect(() => {
-    loadData();
+    void Promise.resolve().then(() => {
+      void loadData();
+    });
   }, [loadData]);
 
   // Biên dịch JSONB Blocks -> Mục lục (TOC) & HTML hiển thị

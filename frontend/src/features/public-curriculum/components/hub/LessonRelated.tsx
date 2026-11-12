@@ -49,6 +49,8 @@ function findRelated(html: string, catalog: SearchSource) {
   };
 }
 
+export type RelatedEntities = ReturnType<typeof findRelated> | null;
+
 export function useLessonRelated(html: string) {
   const [catalog, setCatalog] = useState<SearchSource | null>(null);
 

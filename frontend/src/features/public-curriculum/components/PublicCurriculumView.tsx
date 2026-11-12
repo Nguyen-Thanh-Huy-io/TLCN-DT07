@@ -23,7 +23,6 @@ import type { LearningPathItem } from '@/services/entities/learning-path.service
 import { LearningPathType } from '@/constants/enums';
 import {
   DEFAULT_COVER_IMAGES,
-  FILTER_TAB_OPTIONS,
   PATH_TYPE_META,
   PUBLIC_CURRICULUM_ROUTES,
   PUBLIC_DIFFICULTY_META,
@@ -91,6 +90,59 @@ function CurriculumStatsHeader({
   );
 }
 
+interface CourseCardActionsProps {
+  path: LearningPathItem;
+  next: { slug: string } | null;
+  loggedIn: boolean;
+  enrolled: boolean;
+  complete: boolean;
+  enrolling: boolean;
+  onEnroll: () => void;
+}
+
+function CourseCardActions({
+  path,
+  next,
+  loggedIn,
+  enrolled,
+  complete,
+  enrolling,
+  onEnroll,
+}: CourseCardActionsProps) {
+  if (!next) {
+    return (
+      <span className="rounded-xl bg-lh-surface-2 px-4 py-2.5 text-center text-sm text-lh-muted">
+        Lộ trình chưa có bài học được xuất bản
+      </span>
+    );
+  }
+  if (!loggedIn) {
+    return (
+      <Link
+        href={`/login?redirect=${encodeURIComponent(`${PUBLIC_CURRICULUM_ROUTES.CURRICULUM}?pathId=${path.id}`)}`}
+        className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.outline}`}
+      >
+        <LogIn className="size-4" /> Đăng nhập để đăng ký học
+      </Link>
+    );
+  }
+  if (!enrolled) {
+    return (
+      <HubButton onClick={onEnroll} disabled={enrolling}>
+        <BookmarkPlus className="size-4" /> {enrolling ? 'Đang đăng ký...' : 'Đăng ký học (miễn phí)'}
+      </HubButton>
+    );
+  }
+  return (
+    <Link
+      href={PUBLIC_CURRICULUM_ROUTES.LESSON_DETAIL(next.slug, path.id)}
+      className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.primary}`}
+    >
+      {complete ? 'Tiếp tục học' : 'Vào bài đầu tiên'} <ChevronRight className="size-4" />
+    </Link>
+  );
+}
+
 function CourseCard({
   path,
   index,
@@ -139,6 +191,7 @@ function CourseCard({
       }`}
     >
       <div className="relative aspect-[16/9] overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={path.coverImageUrl || DEFAULT_COVER_IMAGES[index % DEFAULT_COVER_IMAGES.length]}
           alt=""
@@ -170,29 +223,15 @@ function CourseCard({
           <HubProgress value={percent} />
         </div>
         <div className="mt-5 grid gap-2 sm:grid-cols-[1fr_auto]">
-          {!next ? (
-            <span className="rounded-xl bg-lh-surface-2 px-4 py-2.5 text-center text-sm text-lh-muted">
-              Lộ trình chưa có bài học được xuất bản
-            </span>
-          ) : !loggedIn ? (
-            <Link
-              href={`/login?redirect=${encodeURIComponent(`${PUBLIC_CURRICULUM_ROUTES.CURRICULUM}?pathId=${path.id}`)}`}
-              className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.outline}`}
-            >
-              <LogIn className="size-4" /> Đăng nhập để đăng ký học
-            </Link>
-          ) : !enrolled ? (
-            <HubButton onClick={handleEnroll} disabled={enrolling}>
-              <BookmarkPlus className="size-4" /> {enrolling ? 'Đang đăng ký...' : 'Đăng ký học (miễn phí)'}
-            </HubButton>
-          ) : (
-            <Link
-              href={PUBLIC_CURRICULUM_ROUTES.LESSON_DETAIL(next.slug, path.id)}
-              className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.primary}`}
-            >
-              {complete ? 'Tiếp tục học' : 'Vào bài đầu tiên'} <ChevronRight className="size-4" />
-            </Link>
-          )}
+          <CourseCardActions
+            path={path}
+            next={next}
+            loggedIn={loggedIn}
+            enrolled={enrolled}
+            complete={complete > 0}
+            enrolling={enrolling}
+            onEnroll={handleEnroll}
+          />
           <HubButton variant={selected ? 'secondary' : 'ghost'} onClick={onShowSyllabus}>
             <ListTree className="size-4" /> Đề cương
           </HubButton>
@@ -215,8 +254,6 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
     loading,
     error,
     stats,
-    filterType,
-    setFilterType,
     searchKeyword,
     setSearchKeyword,
     selectedTagId,
@@ -413,6 +450,7 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
                     className="group flex flex-col overflow-hidden rounded-2xl border border-lh-line bg-lh-surface shadow-lh-card transition hover:-translate-y-1 hover:shadow-lh-card-hover"
                   >
                     <div className="relative aspect-[16/9] overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={lesson.thumbnailUrl || DEFAULT_COVER_IMAGES[idx % DEFAULT_COVER_IMAGES.length]}
                         alt=""

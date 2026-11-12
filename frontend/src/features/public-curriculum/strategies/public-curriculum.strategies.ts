@@ -9,6 +9,10 @@ import {
   FillInBlankQuestion,
   OrderingQuestion,
   MatchingQuestion,
+  MultipleChoiceOption,
+  OrderingItem,
+  MatchingItem,
+  MatchingPair,
 } from '@/features/lessons/types/quiz.types';
 import { LearningPathFilterType } from '../constants/public-curriculum.constants';
 import { LearningPathType } from '@/constants/enums';
@@ -177,7 +181,9 @@ abstract class BaseChoiceGrader<
       : typeof answer === 'string' && answer
         ? [answer]
         : [];
-    const correctIds = (question.options || []).filter((o: any) => o.isCorrect).map((o: any) => o.id);
+    const correctIds = (question.options || [])
+      .filter((o: MultipleChoiceOption) => o.isCorrect)
+      .map((o: MultipleChoiceOption) => o.id);
     if (correctIds.length === 0 || selectedIds.length !== correctIds.length) {
       return false;
     }
@@ -187,8 +193,8 @@ abstract class BaseChoiceGrader<
 
   getCorrectSummary(question: T): string {
     return (question.options || [])
-      .filter((o: any) => o.isCorrect)
-      .map((o: any) => o.text || o.content || o.label || '')
+      .filter((o: MultipleChoiceOption) => o.isCorrect)
+      .map((o: MultipleChoiceOption) => o.text || '')
       .join(' • ');
   }
 }
@@ -234,7 +240,7 @@ class OrderingGrader implements IQuizQuestionGrader<OrderingQuestion> {
 
   getCorrectSummary(question: OrderingQuestion): string {
     const items = Array.isArray(question.items) ? question.items : [];
-    const byId = new Map(items.map((it: any) => [it.id, it.label || it.text || it.content || '']));
+    const byId = new Map(items.map((it: OrderingItem) => [it.id, it.label || '']));
     const correctOrder = Array.isArray(question.correctOrder) ? question.correctOrder : [];
     return correctOrder.map((id, idx) => `${idx + 1}. ${byId.get(id) || id}`).join(' → ');
   }
@@ -252,8 +258,8 @@ class MatchingGrader implements IQuizQuestionGrader<MatchingQuestion> {
     const leftItems = Array.isArray(question.leftItems) ? question.leftItems : [];
     const rightItems = Array.isArray(question.rightItems) ? question.rightItems : [];
     const pairs = Array.isArray(question.correctPairs) ? question.correctPairs : [];
-    const leftMap = new Map(leftItems.map((i: any) => [i.id, i.label || i.text || i.content || '']));
-    const rightMap = new Map(rightItems.map((i: any) => [i.id, i.label || i.text || i.content || '']));
+    const leftMap = new Map(leftItems.map((i: MatchingItem) => [i.id, i.label || '']));
+    const rightMap = new Map(rightItems.map((i: MatchingItem) => [i.id, i.label || '']));
     return pairs
       .map((p) => `${leftMap.get(p.leftId) || p.leftId} ↔ ${rightMap.get(p.rightId) || p.rightId}`)
       .join(' | ');
@@ -261,13 +267,13 @@ class MatchingGrader implements IQuizQuestionGrader<MatchingQuestion> {
 }
 
 export class QuizGradingStrategyRegistry {
-  private static readonly graders: Record<QuizQuestionType, IQuizQuestionGrader<any>> = {
-    [QuizQuestionType.SINGLE_CHOICE]: new SingleChoiceGrader(),
-    [QuizQuestionType.MULTIPLE_CHOICE]: new MultipleChoiceGrader(),
-    [QuizQuestionType.TRUE_FALSE]: new TrueFalseGrader(),
-    [QuizQuestionType.FILL_IN_BLANK]: new FillInBlankGrader(),
-    [QuizQuestionType.ORDERING]: new OrderingGrader(),
-    [QuizQuestionType.MATCHING]: new MatchingGrader(),
+  private static readonly graders: Record<QuizQuestionType, IQuizQuestionGrader<QuizQuestion>> = {
+    [QuizQuestionType.SINGLE_CHOICE]: new SingleChoiceGrader() as unknown as IQuizQuestionGrader<QuizQuestion>,
+    [QuizQuestionType.MULTIPLE_CHOICE]: new MultipleChoiceGrader() as unknown as IQuizQuestionGrader<QuizQuestion>,
+    [QuizQuestionType.TRUE_FALSE]: new TrueFalseGrader() as unknown as IQuizQuestionGrader<QuizQuestion>,
+    [QuizQuestionType.FILL_IN_BLANK]: new FillInBlankGrader() as unknown as IQuizQuestionGrader<QuizQuestion>,
+    [QuizQuestionType.ORDERING]: new OrderingGrader() as unknown as IQuizQuestionGrader<QuizQuestion>,
+    [QuizQuestionType.MATCHING]: new MatchingGrader() as unknown as IQuizQuestionGrader<QuizQuestion>,
   };
 
   static evaluateQuestion(
@@ -289,9 +295,6 @@ export class QuizGradingStrategyRegistry {
 // 3. STRATEGY XÁO TRỘN NGẪU NHIÊN ĐỀ ÔN TẬP CHO HỌC SINH (FISHER-YATES SHUFFLE)
 // ==========================================
 
-/**
- * Thuật toán Fisher-Yates Shuffle thuần túy (không làm biến đổi mảng gốc)
- */
 export function shuffleArray<T>(items: readonly T[]): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -301,10 +304,6 @@ export function shuffleArray<T>(items: readonly T[]): T[] {
   return copy;
 }
 
-/**
- * Xáo trộn ngẫu nhiên mảng ID của câu hỏi ORDERING và đảm bảo kết quả sau khi xáo
- * KHÔNG vô tình trùng khít 100% với đáp án đúng `correctOrder` (khi có >= 2 mốc).
- */
 export function shuffleOrderingIds(itemIds: readonly string[], correctOrder: readonly string[]): string[] {
   if (itemIds.length < 2) return [...itemIds];
   const shuffled = shuffleArray(itemIds);
@@ -318,154 +317,213 @@ export function shuffleOrderingIds(itemIds: readonly string[], correctOrder: rea
   return shuffled;
 }
 
-/**
- * Chuẩn hóa một câu hỏi thô (tương thích nhiều format: options chuỗi hoặc object, items chuỗi hoặc object, matching pairs kiểu left/right hoặc leftId/rightId).
- */
-export function normalizeQuizQuestionForDisplay(rawQ: any): QuizQuestion {
+export interface RawQuizOptionInput {
+  id?: string;
+  text?: string;
+  content?: string;
+  label?: string;
+  isCorrect?: boolean;
+  explanation?: string;
+}
+
+export interface RawOrderingItemInput {
+  id?: string;
+  label?: string;
+  text?: string;
+  content?: string;
+}
+
+export interface RawMatchingPairInput {
+  leftId?: string;
+  left?: number | string;
+  rightId?: string;
+  right?: number | string;
+}
+
+export interface RawQuizQuestionInput {
+  id?: string;
+  type?: QuizQuestionType | string;
+  prompt?: string;
+  explanation?: string;
+  options?: Array<string | RawQuizOptionInput>;
+  correctAnswer?: boolean | string | string[];
+  correctAnswers?: string[];
+  items?: Array<string | RawOrderingItemInput>;
+  correctOrder?: Array<string | number>;
+  leftItems?: Array<string | RawOrderingItemInput>;
+  rightItems?: Array<string | RawOrderingItemInput>;
+  correctPairs?: RawMatchingPairInput[];
+  acceptedAnswers?: string[];
+  caseSensitive?: boolean;
+  [key: string]: unknown;
+}
+
+const AFFIRMATIVE_BOOLEAN_TEXTS = ['đúng', 'true', '1', 'yes'];
+
+function normalizeChoiceQuestion(
+  rawQ: RawQuizQuestionInput,
+  qType: QuizQuestionType.SINGLE_CHOICE | QuizQuestionType.MULTIPLE_CHOICE,
+): SingleChoiceQuestion | MultipleChoiceQuestion {
+  const rawOptions = Array.isArray(rawQ.options) ? rawQ.options : [];
+  const normalizedOptions: MultipleChoiceOption[] = rawOptions.map((opt, idx) => {
+    if (typeof opt === 'string') {
+      const isCorrect =
+        rawQ.correctAnswer === opt ||
+        (Array.isArray(rawQ.correctAnswer) && rawQ.correctAnswer.includes(opt)) ||
+        (Array.isArray(rawQ.correctAnswers) && rawQ.correctAnswers.includes(opt));
+      return {
+        id: `opt_${idx}`,
+        text: opt,
+        isCorrect: Boolean(isCorrect),
+        explanation: '',
+      };
+    }
+    return {
+      id: opt.id || `opt_${idx}`,
+      text: opt.text || opt.content || opt.label || '',
+      isCorrect: Boolean(opt.isCorrect),
+      explanation: opt.explanation || '',
+    };
+  });
+
+  return {
+    ...rawQ,
+    id: rawQ.id || '',
+    prompt: rawQ.prompt || '',
+    type: qType,
+    options: normalizedOptions,
+  } as SingleChoiceQuestion | MultipleChoiceQuestion;
+}
+
+function normalizeTrueFalseQuestion(rawQ: RawQuizQuestionInput): TrueFalseQuestion {
+  let correctAnswer = Boolean(rawQ.correctAnswer);
+  if (typeof rawQ.correctAnswer === 'string') {
+    correctAnswer = AFFIRMATIVE_BOOLEAN_TEXTS.includes(rawQ.correctAnswer.trim().toLowerCase());
+  }
+  return {
+    ...rawQ,
+    id: rawQ.id || '',
+    prompt: rawQ.prompt || '',
+    type: QuizQuestionType.TRUE_FALSE,
+    correctAnswer,
+  };
+}
+
+function normalizeOrderingQuestion(rawQ: RawQuizQuestionInput): OrderingQuestion {
+  const rawItems = Array.isArray(rawQ.items) ? rawQ.items : [];
+  const normalizedItems: OrderingItem[] = rawItems.map((item, idx) => {
+    if (typeof item === 'string') {
+      return {
+        id: `ord_${idx}`,
+        label: item,
+      };
+    }
+    return {
+      id: item.id || `ord_${idx}`,
+      label: item.label || item.text || item.content || '',
+    };
+  });
+
+  let correctOrder: string[] = [];
+  if (Array.isArray(rawQ.correctOrder)) {
+    correctOrder = rawQ.correctOrder.map((it) => {
+      if (typeof it === 'number' && normalizedItems[it]) {
+        return normalizedItems[it].id;
+      }
+      return String(it);
+    });
+  } else {
+    correctOrder = normalizedItems.map((i) => i.id);
+  }
+
+  return {
+    ...rawQ,
+    id: rawQ.id || '',
+    prompt: rawQ.prompt || '',
+    type: QuizQuestionType.ORDERING,
+    items: normalizedItems,
+    correctOrder,
+  };
+}
+
+function normalizeMatchingQuestion(rawQ: RawQuizQuestionInput): MatchingQuestion {
+  const rawLeft = Array.isArray(rawQ.leftItems) ? rawQ.leftItems : [];
+  const rawRight = Array.isArray(rawQ.rightItems) ? rawQ.rightItems : [];
+
+  const normLeft: MatchingItem[] = rawLeft.map((it, idx) => {
+    if (typeof it === 'string') return { id: `left_${idx}`, label: it };
+    return { id: it.id || `left_${idx}`, label: it.label || it.text || it.content || '' };
+  });
+
+  const normRight: MatchingItem[] = rawRight.map((it, idx) => {
+    if (typeof it === 'string') return { id: `right_${idx}`, label: it };
+    return { id: it.id || `right_${idx}`, label: it.label || it.text || it.content || '' };
+  });
+
+  const rawPairs = Array.isArray(rawQ.correctPairs) ? rawQ.correctPairs : [];
+  const normPairs: MatchingPair[] = rawPairs.map((p) => {
+    if (p.left !== undefined && p.right !== undefined) {
+      const leftIdx = Number(p.left);
+      const rightIdx = Number(p.right);
+      const leftId = normLeft[leftIdx]?.id || `left_${p.left}`;
+      const rightId = normRight[rightIdx]?.id || `right_${p.right}`;
+      return { leftId, rightId };
+    }
+    return {
+      leftId: String(p.leftId ?? p.left ?? ''),
+      rightId: String(p.rightId ?? p.right ?? ''),
+    };
+  });
+
+  return {
+    ...rawQ,
+    id: rawQ.id || '',
+    prompt: rawQ.prompt || '',
+    type: QuizQuestionType.MATCHING,
+    leftItems: normLeft,
+    rightItems: normRight,
+    correctPairs: normPairs,
+  };
+}
+
+function normalizeFillBlankQuestion(rawQ: RawQuizQuestionInput): FillInBlankQuestion {
+  const acceptedAnswers = Array.isArray(rawQ.acceptedAnswers)
+    ? rawQ.acceptedAnswers
+    : typeof rawQ.correctAnswer === 'string'
+      ? [rawQ.correctAnswer]
+      : [];
+  return {
+    ...rawQ,
+    id: rawQ.id || '',
+    prompt: rawQ.prompt || '',
+    type: QuizQuestionType.FILL_IN_BLANK,
+    acceptedAnswers,
+    caseSensitive: Boolean(rawQ.caseSensitive),
+  };
+}
+
+export function normalizeQuizQuestionForDisplay(rawQ: RawQuizQuestionInput): QuizQuestion {
   const qType = rawQ.type as QuizQuestionType;
 
-  // Single choice / Multiple choice
   if (qType === QuizQuestionType.SINGLE_CHOICE || qType === QuizQuestionType.MULTIPLE_CHOICE) {
-    const rawOptions = Array.isArray(rawQ.options) ? rawQ.options : [];
-    const normalizedOptions = rawOptions.map((opt: any, idx: number) => {
-      if (typeof opt === 'string') {
-        const isCorrect =
-          rawQ.correctAnswer === opt ||
-          (Array.isArray(rawQ.correctAnswer) && rawQ.correctAnswer.includes(opt)) ||
-          (Array.isArray(rawQ.correctAnswers) && rawQ.correctAnswers.includes(opt));
-        return {
-          id: `opt_${idx}`,
-          text: opt,
-          isCorrect,
-          explanation: '',
-        };
-      }
-      return {
-        id: opt.id || `opt_${idx}`,
-        text: opt.text || opt.content || opt.label || '',
-        isCorrect: Boolean(opt.isCorrect),
-        explanation: opt.explanation || '',
-      };
-    });
-
-    return {
-      ...rawQ,
-      type: qType,
-      options: normalizedOptions,
-    } as SingleChoiceQuestion | MultipleChoiceQuestion;
+    return normalizeChoiceQuestion(rawQ, qType);
   }
-
-  // True / False
   if (qType === QuizQuestionType.TRUE_FALSE) {
-    let correctAnswer = Boolean(rawQ.correctAnswer);
-    if (typeof rawQ.correctAnswer === 'string') {
-      correctAnswer = rawQ.correctAnswer.toLowerCase() === 'đúng' || rawQ.correctAnswer.toLowerCase() === 'true';
-    }
-    return {
-      ...rawQ,
-      type: QuizQuestionType.TRUE_FALSE,
-      correctAnswer,
-    } as TrueFalseQuestion;
+    return normalizeTrueFalseQuestion(rawQ);
   }
-
-  // Ordering
   if (qType === QuizQuestionType.ORDERING) {
-    const rawItems = Array.isArray(rawQ.items) ? rawQ.items : [];
-    const normalizedItems = rawItems.map((item: any, idx: number) => {
-      if (typeof item === 'string') {
-        return {
-          id: `ord_${idx}`,
-          label: item,
-        };
-      }
-      return {
-        id: item.id || `ord_${idx}`,
-        label: item.label || item.text || item.content || '',
-      };
-    });
-
-    let correctOrder: string[] = [];
-    if (Array.isArray(rawQ.correctOrder)) {
-      correctOrder = rawQ.correctOrder.map((it: any) => {
-        if (typeof it === 'number' && normalizedItems[it]) {
-          return normalizedItems[it].id;
-        }
-        return String(it);
-      });
-    } else {
-      correctOrder = normalizedItems.map((i: { id: string }) => i.id);
-    }
-
-    return {
-      ...rawQ,
-      type: QuizQuestionType.ORDERING,
-      items: normalizedItems,
-      correctOrder,
-    } as OrderingQuestion;
+    return normalizeOrderingQuestion(rawQ);
   }
-
-  // Matching
   if (qType === QuizQuestionType.MATCHING) {
-    const rawLeft = Array.isArray(rawQ.leftItems) ? rawQ.leftItems : [];
-    const rawRight = Array.isArray(rawQ.rightItems) ? rawQ.rightItems : [];
-
-    const normLeft = rawLeft.map((it: any, idx: number) => {
-      if (typeof it === 'string') return { id: `left_${idx}`, label: it };
-      return { id: it.id || `left_${idx}`, label: it.label || it.text || it.content || '' };
-    });
-
-    const normRight = rawRight.map((it: any, idx: number) => {
-      if (typeof it === 'string') return { id: `right_${idx}`, label: it };
-      return { id: it.id || `right_${idx}`, label: it.label || it.text || it.content || '' };
-    });
-
-    const rawPairs = Array.isArray(rawQ.correctPairs) ? rawQ.correctPairs : [];
-    const normPairs = rawPairs.map((p: any) => {
-      if ('left' in p && 'right' in p) {
-        const leftId = normLeft[p.left]?.id || `left_${p.left}`;
-        const rightId = normRight[p.right]?.id || `right_${p.right}`;
-        return { leftId, rightId };
-      }
-      return {
-        leftId: p.leftId || p.left,
-        rightId: p.rightId || p.right,
-      };
-    });
-
-    return {
-      ...rawQ,
-      type: QuizQuestionType.MATCHING,
-      leftItems: normLeft,
-      rightItems: normRight,
-      correctPairs: normPairs,
-    } as MatchingQuestion;
+    return normalizeMatchingQuestion(rawQ);
   }
-
-  // Fill in blank
   if (qType === QuizQuestionType.FILL_IN_BLANK) {
-    const acceptedAnswers = Array.isArray(rawQ.acceptedAnswers)
-      ? rawQ.acceptedAnswers
-      : typeof rawQ.correctAnswer === 'string'
-        ? [rawQ.correctAnswer]
-        : [];
-    return {
-      ...rawQ,
-      type: QuizQuestionType.FILL_IN_BLANK,
-      acceptedAnswers,
-      caseSensitive: Boolean(rawQ.caseSensitive),
-    } as FillInBlankQuestion;
+    return normalizeFillBlankQuestion(rawQ);
   }
 
   return rawQ as QuizQuestion;
 }
 
-/**
- * Chuẩn bị phiên làm bài mới cho Học sinh:
- * - Dạng 1 (SINGLE_CHOICE) & Dạng 2 (MULTIPLE_CHOICE): Đảo ngẫu nhiên vị trí các đáp án A, B, C, D.
- * - Dạng 3 (TRUE_FALSE): Giữ cố định 2 nút Đúng / Sai trực quan.
- * - Dạng 4 (ORDERING): Đảo ngẫu nhiên thứ tự các mốc sự kiện khởi tạo (đảm bảo khác `correctOrder`).
- * - Dạng 5 (MATCHING): Đảo ngẫu nhiên cột vế phải (`rightItems`).
- */
 export function prepareQuizSessionForLearner(rawQuiz: QuizItem): {
   preparedQuiz: QuizItem;
   initialAnswers: Record<string, UserQuizAnswer>;
@@ -473,7 +531,7 @@ export function prepareQuizSessionForLearner(rawQuiz: QuizItem): {
   const initialAnswers: Record<string, UserQuizAnswer> = {};
 
   const shuffledQuestions: QuizQuestion[] = (rawQuiz.questions || []).map((rawQ) => {
-    const q = normalizeQuizQuestionForDisplay(rawQ);
+    const q = normalizeQuizQuestionForDisplay(rawQ as unknown as RawQuizQuestionInput);
 
     if (
       q.type === QuizQuestionType.SINGLE_CHOICE ||

@@ -121,6 +121,7 @@ export const EntityHero: React.FC<EntityHeroProps> = ({ model }) => {
           <div className="ue-hero-right-pane">
             {model.imageUrl ? (
               <figure className="ue-hero-figure">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={model.imageUrl}
                   alt={model.name}

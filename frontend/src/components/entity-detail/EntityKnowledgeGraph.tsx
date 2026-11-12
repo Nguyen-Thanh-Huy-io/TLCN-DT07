@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, Share2 } from 'lucide-react';
 import { PublicEntityStatementDto } from '@/services/entities/landing.service';
-import { getEntityTypeStrategy } from './entity-strategy';
 
 interface EntityKnowledgeGraphProps {
   statements: PublicEntityStatementDto[];

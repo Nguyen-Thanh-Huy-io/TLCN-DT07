@@ -23,24 +23,44 @@ export interface ReadingLayoutState {
 }
 
 export function useReadingLayout(hasTimeline: boolean = true): ReadingLayoutState {
-  const [isTocOpen, setIsTocOpen] = useState<boolean>(true);
-  const [isTimelineOpen, setIsTimelineOpen] = useState<boolean>(hasTimeline);
-
-  // Khôi phục tùy chọn đọc từ localStorage nếu có
-  useEffect(() => {
+  const [isTocOpen, setIsTocOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
     try {
       const saved = localStorage.getItem(READING_LAYOUT_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (typeof parsed.isTocOpen === 'boolean') {
-          setIsTocOpen(parsed.isTocOpen);
-        }
-        if (typeof parsed.isTimelineOpen === 'boolean') {
-          setIsTimelineOpen(hasTimeline && parsed.isTimelineOpen);
+          return parsed.isTocOpen;
         }
       }
     } catch {
       // Bỏ qua lỗi truy cập storage
+    }
+    return true;
+  });
+
+  const [isTimelineOpen, setIsTimelineOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return hasTimeline;
+    try {
+      const saved = localStorage.getItem(READING_LAYOUT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.isTimelineOpen === 'boolean') {
+          return hasTimeline && parsed.isTimelineOpen;
+        }
+      }
+    } catch {
+      // Bỏ qua lỗi truy cập storage
+    }
+    return hasTimeline;
+  });
+
+  // Đồng bộ lại khi `hasTimeline` thay đổi
+  useEffect(() => {
+    if (!hasTimeline) {
+      void Promise.resolve().then(() => {
+        setIsTimelineOpen(false);
+      });
     }
   }, [hasTimeline]);
 

@@ -3,7 +3,11 @@
 import React from 'react';
 import { MessageSquare, X } from 'lucide-react';
 import { getAuthorTint } from '../utils/author-avatar.util';
-import { PostCommentModalProps, SortOrder } from './comment-modal/comment-modal.types';
+import {
+  CommentSortOrder,
+  PostCommentModalProps,
+  SortOrder,
+} from './comment-modal/comment-modal.types';
 import { usePostComments } from './comment-modal/usePostComments';
 import { PostSummaryPane } from './comment-modal/PostSummaryPane';
 import { CommentItemRow } from './comment-modal/CommentItemRow';
@@ -13,9 +17,9 @@ export { countAllCommentsInTree } from './comment-modal/comment-tree.util';
 export * from './comment-modal/comment-modal.types';
 
 const SORT_OPTIONS: Array<{ key: SortOrder; label: string }> = [
-  { key: 'oldest', label: 'Từ trước đến nay' },
-  { key: 'popular', label: 'Phù hợp nhất' },
-  { key: 'newest', label: 'Mới nhất' },
+  { key: CommentSortOrder.OLDEST, label: 'Từ trước đến nay' },
+  { key: CommentSortOrder.POPULAR, label: 'Phù hợp nhất' },
+  { key: CommentSortOrder.NEWEST, label: 'Mới nhất' },
 ];
 
 export function PostCommentModal({

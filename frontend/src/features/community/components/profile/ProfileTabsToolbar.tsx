@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Search, X } from 'lucide-react';
-import type { ProfileTabItem, ProfileTabKey } from './profile.types';
+import { type ProfileTabItem, ProfileTabKey } from './profile.types';
 
 export interface ProfileTabsToolbarProps {
   tabs: ProfileTabItem[];
@@ -25,7 +25,7 @@ export function ProfileTabsToolbar({
   onClearTopic,
   totalFilteredCount,
 }: ProfileTabsToolbarProps) {
-  const isMemberTab = activeTab === 'followers' || activeTab === 'following';
+  const isMemberTab = activeTab === ProfileTabKey.FOLLOWERS || activeTab === ProfileTabKey.FOLLOWING;
 
   return (
     <div className="rounded-[8px] border border-[#E3D6BE] bg-[#FAF5E6] p-6 pb-5">

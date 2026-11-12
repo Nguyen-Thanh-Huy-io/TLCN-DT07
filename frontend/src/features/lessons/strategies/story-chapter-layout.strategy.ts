@@ -16,6 +16,14 @@ import {
   TextBlockData,
 } from '../types/block-builder.types';
 import { LessonBlockType } from '../types/block-palette.types';
+import {
+  EditorialLayoutType,
+  EditorialColumnRatioEnum,
+  GapSizeEnum,
+  PaddingSizeEnum,
+  AlignmentTypeEnum,
+  FontFamilyEnum,
+} from '@/constants/lesson-builder.constant';
 
 /**
  * Sinh ID duy nhất chuẩn UUID v4 (crypto.randomUUID), tuyệt đối không dùng Date.now()
@@ -262,6 +270,12 @@ export const EDITORIAL_LAYOUT_TEMPLATES: EditorialTemplateDefinition[] = [
   },
 ];
 
+const COL_SPAN_4 = 'col-span-12 md:col-span-4';
+const COL_SPAN_5 = 'col-span-12 md:col-span-5';
+const COL_SPAN_6 = 'col-span-12 md:col-span-6';
+const COL_SPAN_7 = 'col-span-12 md:col-span-7';
+const COL_SPAN_8 = 'col-span-12 md:col-span-8';
+
 export const EDITORIAL_COLUMN_RATIO_OPTIONS: Array<{
   id: EditorialColumnRatio;
   label: string;
@@ -269,34 +283,34 @@ export const EDITORIAL_COLUMN_RATIO_OPTIONS: Array<{
   rightClass: string;
 }> = [
   {
-    id: '4_8',
+    id: EditorialColumnRatioEnum.RATIO_4_8,
     label: '4 : 8',
-    leftClass: 'col-span-12 md:col-span-4',
-    rightClass: 'col-span-12 md:col-span-8',
+    leftClass: COL_SPAN_4,
+    rightClass: COL_SPAN_8,
   },
   {
-    id: '5_7',
+    id: EditorialColumnRatioEnum.RATIO_5_7,
     label: '5 : 7',
-    leftClass: 'col-span-12 md:col-span-5',
-    rightClass: 'col-span-12 md:col-span-7',
+    leftClass: COL_SPAN_5,
+    rightClass: COL_SPAN_7,
   },
   {
-    id: '6_6',
+    id: EditorialColumnRatioEnum.RATIO_6_6,
     label: '6 : 6',
-    leftClass: 'col-span-12 md:col-span-6',
-    rightClass: 'col-span-12 md:col-span-6',
+    leftClass: COL_SPAN_6,
+    rightClass: COL_SPAN_6,
   },
   {
-    id: '7_5',
+    id: EditorialColumnRatioEnum.RATIO_7_5,
     label: '7 : 5',
-    leftClass: 'col-span-12 md:col-span-7',
-    rightClass: 'col-span-12 md:col-span-5',
+    leftClass: COL_SPAN_7,
+    rightClass: COL_SPAN_5,
   },
   {
-    id: '8_4',
+    id: EditorialColumnRatioEnum.RATIO_8_4,
     label: '8 : 4',
-    leftClass: 'col-span-12 md:col-span-8',
-    rightClass: 'col-span-12 md:col-span-4',
+    leftClass: COL_SPAN_8,
+    rightClass: COL_SPAN_4,
   },
 ];
 
@@ -321,11 +335,11 @@ const SLOT_SPAN_CLASS_MAP: Record<EditorialSlotSpan, string> = {
   1: 'col-span-12 md:col-span-1',
   2: 'col-span-12 md:col-span-2',
   3: 'col-span-12 md:col-span-3',
-  4: 'col-span-12 md:col-span-4',
-  5: 'col-span-12 md:col-span-5',
-  6: 'col-span-12 md:col-span-6',
-  7: 'col-span-12 md:col-span-7',
-  8: 'col-span-12 md:col-span-8',
+  4: COL_SPAN_4,
+  5: COL_SPAN_5,
+  6: COL_SPAN_6,
+  7: COL_SPAN_7,
+  8: COL_SPAN_8,
   9: 'col-span-12 md:col-span-9',
   10: 'col-span-12 md:col-span-10',
   11: 'col-span-12 md:col-span-11',
@@ -445,8 +459,8 @@ export class StoryChapterLayoutStrategy {
     return found
       ? { leftClass: found.leftClass, rightClass: found.rightClass }
       : {
-          leftClass: 'col-span-12 md:col-span-4',
-          rightClass: 'col-span-12 md:col-span-8',
+          leftClass: COL_SPAN_4,
+          rightClass: COL_SPAN_8,
         };
   }
 
@@ -487,18 +501,18 @@ export class StoryChapterLayoutStrategy {
   }
 
   public static getSlotSpanClass(span: EditorialSlotSpan = 6): string {
-    return SLOT_SPAN_CLASS_MAP[span] || 'col-span-12 md:col-span-6';
+    return SLOT_SPAN_CLASS_MAP[span] || COL_SPAN_6;
   }
 
   public static getGapClass(
     gap: EditorialSpreadConfig['layout']['gap'] = 'MD'
   ): string {
     switch (gap) {
-      case 'SM':
+      case GapSizeEnum.SM:
         return 'gap-4';
-      case 'LG':
+      case GapSizeEnum.LG:
         return 'gap-10';
-      case 'MD':
+      case GapSizeEnum.MD:
       default:
         return 'gap-7';
     }
@@ -508,11 +522,11 @@ export class StoryChapterLayoutStrategy {
     padding: EditorialSpreadConfig['layout']['padding'] = 'SPACIOUS'
   ): string {
     switch (padding) {
-      case 'NONE':
+      case PaddingSizeEnum.NONE:
         return 'p-3';
-      case 'COMPACT':
+      case PaddingSizeEnum.COMPACT:
         return 'p-5 bg-[#faf7f2] rounded-xl border border-stone-200/80';
-      case 'SPACIOUS':
+      case PaddingSizeEnum.SPACIOUS:
       default:
         return 'p-7 sm:p-9 bg-[#faf7f2] rounded-2xl border border-stone-200/90';
     }
@@ -522,11 +536,11 @@ export class StoryChapterLayoutStrategy {
     alignment: EditorialSpreadConfig['layout']['alignment'] = 'TOP'
   ): string {
     switch (alignment) {
-      case 'CENTER':
+      case AlignmentTypeEnum.CENTER:
         return 'items-center';
-      case 'BOTTOM':
+      case AlignmentTypeEnum.BOTTOM:
         return 'items-end';
-      case 'TOP':
+      case AlignmentTypeEnum.TOP:
       default:
         return 'items-start';
     }
@@ -535,7 +549,7 @@ export class StoryChapterLayoutStrategy {
   public static getHeadingTypographyClass(
     typo?: EditorialSpreadConfig['typography']
   ): string {
-    const fontClass = typo?.headingFont === 'SANS' ? 'font-sans' : 'font-serif';
+    const fontClass = typo?.headingFont === FontFamilyEnum.SANS ? 'font-sans' : 'font-serif';
     const sizeMap: Record<string, string> = {
       SM: 'text-2xl',
       MD: 'text-3xl',
@@ -549,7 +563,7 @@ export class StoryChapterLayoutStrategy {
   public static getBodyTypographyClass(
     typo?: EditorialSpreadConfig['typography']
   ): string {
-    const fontClass = typo?.bodyFont === 'SERIF' ? 'font-serif' : 'font-sans';
+    const fontClass = typo?.bodyFont === FontFamilyEnum.SERIF ? 'font-serif' : 'font-sans';
     return fontClass;
   }
 
@@ -584,7 +598,7 @@ export class StoryChapterLayoutStrategy {
    */
   public static createChapterContainer(
     order: number,
-    layoutType: EditorialLayout = 'MAGAZINE_GRID',
+    layoutType: EditorialLayout = EditorialLayoutType.MAGAZINE_GRID,
     options?: {
       id?: string;
       title?: string;
@@ -597,10 +611,10 @@ export class StoryChapterLayoutStrategy {
       StoryChapterLayoutStrategy.createDefaultEditorialConfig(layoutType);
     if (options?.columnRatio) {
       cfg.layout.columnRatio = options.columnRatio;
-    } else if (layoutType === 'ASYMMETRIC') {
-      cfg.layout.columnRatio = '4_8';
-    } else if (layoutType === 'SPLIT') {
-      cfg.layout.columnRatio = '6_6';
+    } else if (layoutType === EditorialLayoutType.ASYMMETRIC) {
+      cfg.layout.columnRatio = EditorialColumnRatioEnum.RATIO_4_8;
+    } else if (layoutType === EditorialLayoutType.SPLIT) {
+      cfg.layout.columnRatio = EditorialColumnRatioEnum.RATIO_6_6;
     }
 
     const defaultBlocks: LessonBlockItem[] = options?.blocks ?? [

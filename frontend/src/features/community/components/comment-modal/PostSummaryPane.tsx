@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   BookOpen,
   Clock,
@@ -144,10 +145,12 @@ export function PostSummaryPane({
         >
           {sharedCoverImage ? (
             <div className="relative aspect-[16/8] max-h-[260px] w-full overflow-hidden bg-[#EADBC0]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={sharedCoverImage}
                 alt={sharedBlog.title}
+                width={800}
+                height={260}
+                unoptimized
                 onError={() => setSharedImgError(true)}
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               />
@@ -183,10 +186,12 @@ export function PostSummaryPane({
       {/* Ảnh đính kèm bài ngắn nếu có */}
       {primaryImage ? (
         <figure className="mt-3.5 overflow-hidden rounded-[8px] border border-[#E5DAC4] bg-[#F2E8D5]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={primaryImage}
             alt={primaryCaption || post.title}
+            width={800}
+            height={360}
+            unoptimized
             onError={() => setImgError(true)}
             className="max-h-[360px] w-full object-cover"
           />

@@ -274,13 +274,18 @@ export class ContentRevisionService {
     };
   }
 
-  /**
-   * Tên hiển thị cho id / mã xuất hiện trong phần so sánh: giai đoạn, chủ đề, thực thể, sự kiện,
-   * giá trị danh mục (loại sự kiện, vai trò...), loại thực thể, nhãn trường thông tin riêng.
-   */
-  private async resolveLabels(
+  private addSideValuesToSet(set: Set<string>, side: unknown) {
+    const values = Array.isArray(side) ? side : [side];
+    for (const v of values) {
+      if (typeof v === 'string' && v) {
+        set.add(v);
+      }
+    }
+  }
+
+  private collectChangeRefIds(
     changes: RevisionChange[],
-  ): Promise<Record<string, string>> {
+  ): Record<'topic' | 'category' | 'tag', Set<string>> {
     const ids: Record<'topic' | 'category' | 'tag', Set<string>> = {
       topic: new Set(),
       category: new Set(),
@@ -288,12 +293,24 @@ export class ContentRevisionService {
     };
     for (const c of changes) {
       if ((c.kind !== 'ref' && c.kind !== 'refs') || !c.ref) continue;
-      for (const side of [c.before, c.after]) {
-        for (const v of Array.isArray(side) ? side : [side]) {
-          if (typeof v === 'string' && v) ids[c.ref].add(v);
-        }
+      const refKey = c.ref;
+      if (refKey === 'topic' || refKey === 'category' || refKey === 'tag') {
+        const refSet = ids[refKey];
+        this.addSideValuesToSet(refSet, c.before);
+        this.addSideValuesToSet(refSet, c.after);
       }
     }
+    return ids;
+  }
+
+  /**
+   * Tên hiển thị cho id / mã xuất hiện trong phần so sánh: giai đoạn, chủ đề, thực thể, sự kiện,
+   * giá trị danh mục (loại sự kiện, vai trò...), loại thực thể, nhãn trường thông tin riêng.
+   */
+  private async resolveLabels(
+    changes: RevisionChange[],
+  ): Promise<Record<string, string>> {
+    const ids = this.collectChangeRefIds(changes);
     const find = (
       set: Set<string>,
       query: (where: {

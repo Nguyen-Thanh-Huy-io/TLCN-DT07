@@ -1,34 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useId } from 'react';
-import {
-  GripVertical,
-  Check,
-  CircleDot,
-  CheckSquare,
-  HelpCircle,
-  Clock,
-  ArrowLeftRight,
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
-  Highlighter,
-  List,
-  ListOrdered,
-  Subscript,
-  Superscript,
-  Link2,
-  ImageIcon,
-  X,
-  Plus,
-  Lightbulb,
-  Maximize2,
-  Minimize2,
-  Folder,
-  BookOpen,
-  ChevronRight,
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { TipTapContent } from '@/features/lessons/components/TipTapContent';
 import {
   QUIZ_QUESTION_TYPE_META,
@@ -49,43 +21,25 @@ import {
   TopicCategoryModalPicker,
   LessonCategoryModalPicker,
 } from './CategoryTreePicker';
-import { TreeSelectTrigger } from '@/components/common/TreeSelectModal';
+import { CollapsibleExplanationField } from '@/components/common/CollapsibleExplanationField';
+import { MatchingPairsValue } from '@/components/common/MatchingPairsEditor';
 import {
-  CollapsibleExplanationField,
-  OptionExplanationBox,
-} from '@/components/common/CollapsibleExplanationField';
-import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
-import { TimelineOrderingItemsEditor } from '@/components/common/TimelineOrderingItemsEditor';
+  OptionItemState,
+  QuestionDifficulty,
+  createDefaultMatchingPairs,
+  createDefaultOptions,
+  createDefaultOrderingItems,
+  validateQuestionForm,
+  buildQuestionData,
+  parseInitialQuestionState,
+} from './question-modal.helper';
+import { QuestionTypeCardSelector } from './QuestionTypeCardSelector';
+import { QuestionCategorySection } from './QuestionCategorySection';
+import { QuestionAnswersSection } from './QuestionAnswersSection';
 import {
-  MatchingPairsEditor,
-  MatchingPairsValue,
-} from '@/components/common/MatchingPairsEditor';
-
-function createDefaultMatchingPairs(): MatchingPairsValue {
-  const l1 = generateQuizId('l');
-  const r1 = generateQuizId('r');
-  const l2 = generateQuizId('l');
-  const r2 = generateQuizId('r');
-  const l3 = generateQuizId('l');
-  const r3 = generateQuizId('r');
-  return {
-    leftItems: [
-      { id: l1, label: '' },
-      { id: l2, label: '' },
-      { id: l3, label: '' },
-    ],
-    rightItems: [
-      { id: r1, label: '' },
-      { id: r2, label: '' },
-      { id: r3, label: '' },
-    ],
-    correctPairs: [
-      { leftId: l1, rightId: r1 },
-      { leftId: l2, rightId: r2 },
-      { leftId: l3, rightId: r3 },
-    ],
-  };
-}
+  QuestionModalHeader,
+  QuestionModalFooter,
+} from './QuestionModalHeaderFooter';
 
 interface QuestionBankModalProps {
   isOpen: boolean;
@@ -93,53 +47,6 @@ interface QuestionBankModalProps {
   onSuccess: () => void;
   initialQuestion?: QuestionBankItem | null;
 }
-
-interface QuestionTypeCardConfig {
-  type: QuizQuestionType;
-  title: string;
-  subtitle: string;
-  icon: React.ComponentType<{ className?: string; size?: number }>;
-  isReady: boolean;
-}
-
-// 5 Loại câu hỏi theo lộ trình Giai đoạn 1 của dự án
-const QUESTION_TYPE_CARDS: QuestionTypeCardConfig[] = [
-  {
-    type: QuizQuestionType.SINGLE_CHOICE,
-    title: 'Radio Button',
-    subtitle: '(Single Choice)',
-    icon: CircleDot,
-    isReady: true,
-  },
-  {
-    type: QuizQuestionType.MULTIPLE_CHOICE,
-    title: 'Check Box',
-    subtitle: '(Multiple Choice)',
-    icon: CheckSquare,
-    isReady: true,
-  },
-  {
-    type: QuizQuestionType.TRUE_FALSE,
-    title: 'Đúng / Sai',
-    subtitle: '(True / False)',
-    icon: HelpCircle,
-    isReady: true,
-  },
-  {
-    type: QuizQuestionType.ORDERING,
-    title: 'Dòng thời gian',
-    subtitle: '(Timeline Order)',
-    icon: Clock,
-    isReady: true,
-  },
-  {
-    type: QuizQuestionType.MATCHING,
-    title: 'Ghép nối',
-    subtitle: '(Matching Pairs)',
-    icon: ArrowLeftRight,
-    isReady: true,
-  },
-];
 
 export function QuestionBankModal({
   isOpen,
@@ -150,7 +57,7 @@ export function QuestionBankModal({
   const [type, setType] = useState<QuizQuestionType>(QuizQuestionType.SINGLE_CHOICE);
   const [prompt, setPrompt] = useState('');
   const [explanation, setExplanation] = useState('');
-  const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>('MEDIUM');
+  const [difficulty, setDifficulty] = useState<QuestionDifficulty>('MEDIUM');
   const [points, setPoints] = useState<number>(1);
   const [topicIds, setTopicIds] = useState<string[]>([]);
   const [topicsList, setTopicsList] = useState<TopicItem[]>([]);
@@ -158,31 +65,18 @@ export function QuestionBankModal({
   const [lessonsList, setLessonsList] = useState<LessonItem[]>([]);
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
-  const [options, setOptions] = useState<
-    Array<{ id: string; text: string; isCorrect: boolean; explanation?: string }>
-  >([
-    { id: generateQuizId('opt'), text: '', isCorrect: true },
-    { id: generateQuizId('opt'), text: '', isCorrect: false },
-    { id: generateQuizId('opt'), text: '', isCorrect: false },
-    { id: generateQuizId('opt'), text: '', isCorrect: false },
-  ]);
+  const [options, setOptions] = useState<OptionItemState[]>(createDefaultOptions);
   const [correctAnswer, setCorrectAnswer] = useState<boolean>(true);
-  const [orderingItems, setOrderingItems] = useState<OrderingItem[]>([
-    { id: generateQuizId('item'), label: '' },
-    { id: generateQuizId('item'), label: '' },
-    { id: generateQuizId('item'), label: '' },
-  ]);
+  const [orderingItems, setOrderingItems] = useState<OrderingItem[]>(createDefaultOrderingItems);
   const [matchingPairsValue, setMatchingPairsValue] = useState<MatchingPairsValue>(
     createDefaultMatchingPairs
   );
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
-  const [isGeneralNoteOpen, setIsGeneralNoteOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [noticeMsg, setNoticeMsg] = useState('');
   const [isMaximized, setIsMaximized] = useState(false);
 
-  // Tải danh sách Chủ đề và Bài học để gán phân loại
   useEffect(() => {
     if (!isOpen) return;
     let isMounted = true;
@@ -208,91 +102,30 @@ export function QuestionBankModal({
     };
   }, [isOpen]);
 
-  // Khởi tạo state từ initialQuestion hoặc mặc định
   useEffect(() => {
-    if (initialQuestion) {
-      setType(initialQuestion.type);
-      setPrompt(initialQuestion.prompt || '');
-      setExplanation(initialQuestion.explanation || '');
-      setIsGeneralNoteOpen(Boolean(initialQuestion.explanation && initialQuestion.explanation.trim()));
-      setDifficulty(initialQuestion.difficulty || 'MEDIUM');
-      setPoints(initialQuestion.points ?? 1);
-      setTopicIds(initialQuestion.topics?.map((t) => t.id) || []);
-      setLessonIds(initialQuestion.lessons?.map((l) => l.id) || []);
-      if (typeof initialQuestion.data?.correctAnswer === 'boolean') {
-        setCorrectAnswer(initialQuestion.data.correctAnswer);
-      } else {
-        setCorrectAnswer(true);
-      }
-      if (Array.isArray(initialQuestion.data?.items) && initialQuestion.data.items.length >= 2) {
-        const rawItems: OrderingItem[] = initialQuestion.data.items;
-        const rawOrder: string[] = Array.isArray(initialQuestion.data.correctOrder)
-          ? initialQuestion.data.correctOrder
-          : [];
-        if (rawOrder.length === rawItems.length) {
-          const itemMap = new Map(rawItems.map((it) => [it.id, it]));
-          const sorted = rawOrder.map((id) => itemMap.get(id)).filter(Boolean) as OrderingItem[];
-          setOrderingItems(sorted.length === rawItems.length ? sorted : rawItems);
-        } else {
-          setOrderingItems(rawItems);
-        }
-      } else {
-        setOrderingItems([
-          { id: generateQuizId('item'), label: '' },
-          { id: generateQuizId('item'), label: '' },
-          { id: generateQuizId('item'), label: '' },
-        ]);
-      }
-      if (
-        Array.isArray(initialQuestion.data?.leftItems) &&
-        Array.isArray(initialQuestion.data?.rightItems) &&
-        Array.isArray(initialQuestion.data?.correctPairs) &&
-        initialQuestion.data.leftItems.length >= 2
-      ) {
-        setMatchingPairsValue({
-          leftItems: initialQuestion.data.leftItems,
-          rightItems: initialQuestion.data.rightItems,
-          correctPairs: initialQuestion.data.correctPairs,
-        });
-      } else {
-        setMatchingPairsValue(createDefaultMatchingPairs());
-      }
-      if (initialQuestion.data?.options && Array.isArray(initialQuestion.data.options)) {
-        setOptions(initialQuestion.data.options);
-        const notesMap: Record<string, boolean> = {};
-        initialQuestion.data.options.forEach((opt: any) => {
-          if (opt.explanation && opt.explanation.trim()) {
-            notesMap[opt.id] = true;
-          }
-        });
-        setExpandedNotes(notesMap);
-      }
-    } else {
-      setType(QuizQuestionType.SINGLE_CHOICE);
-      setPrompt('');
-      setExplanation('');
-      setIsGeneralNoteOpen(false);
-      setDifficulty('MEDIUM');
-      setPoints(1);
-      setTopicIds([]);
-      setLessonIds([]);
-      setExpandedNotes({});
-      setCorrectAnswer(true);
-      setOrderingItems([
-        { id: generateQuizId('item'), label: '' },
-        { id: generateQuizId('item'), label: '' },
-        { id: generateQuizId('item'), label: '' },
-      ]);
-      setMatchingPairsValue(createDefaultMatchingPairs());
-      setOptions([
-        { id: generateQuizId('opt'), text: '', isCorrect: true },
-        { id: generateQuizId('opt'), text: '', isCorrect: false },
-        { id: generateQuizId('opt'), text: '', isCorrect: false },
-        { id: generateQuizId('opt'), text: '', isCorrect: false },
-      ]);
-    }
-    setErrorMsg('');
-    setNoticeMsg('');
+    if (!isOpen) return;
+
+    const timer = Promise.resolve().then(() => {
+      const parsed = parseInitialQuestionState(initialQuestion);
+      setType(parsed.type);
+      setPrompt(parsed.prompt);
+      setExplanation(parsed.explanation);
+      setDifficulty(parsed.difficulty);
+      setPoints(parsed.points);
+      setTopicIds(parsed.topicIds);
+      setLessonIds(parsed.lessonIds);
+      setCorrectAnswer(parsed.correctAnswer);
+      setOrderingItems(parsed.orderingItems);
+      setMatchingPairsValue(parsed.matchingPairsValue);
+      setOptions(parsed.options);
+      setExpandedNotes(parsed.expandedNotes);
+      setErrorMsg('');
+      setNoticeMsg('');
+    });
+
+    return () => {
+      void timer;
+    };
   }, [initialQuestion, isOpen]);
 
   if (!isOpen) return null;
@@ -307,7 +140,6 @@ export function QuestionBankModal({
     setNoticeMsg('');
     setType(targetType);
 
-    // Nếu chuyển về SINGLE_CHOICE mà đang có nhiều hơn 1 đáp án đúng thì giữ lại đáp án đúng đầu tiên
     if (targetType === QuizQuestionType.SINGLE_CHOICE) {
       setOptions((prev) => {
         const firstCorrectIdx = prev.findIndex((o) => o.isCorrect);
@@ -327,25 +159,6 @@ export function QuestionBankModal({
     }
   };
 
-  const handleUpdateOptionText = (optId: string, text: string) => {
-    setOptions((prev) => prev.map((o) => (o.id === optId ? { ...o, text } : o)));
-  };
-
-  const handleUpdateOptionExplanation = (optId: string, explanation: string) => {
-    setOptions((prev) => prev.map((o) => (o.id === optId ? { ...o, explanation } : o)));
-  };
-
-  const toggleOptionNote = (optId: string) => {
-    setExpandedNotes((prev) => ({ ...prev, [optId]: !prev[optId] }));
-  };
-
-  const handleAddOption = () => {
-    setOptions((prev) => [
-      ...prev,
-      { id: generateQuizId('opt'), text: '', isCorrect: false },
-    ]);
-  };
-
   const handleRemoveOption = (optId: string) => {
     if (options.length <= 2) {
       setErrorMsg('Câu hỏi trắc nghiệm cần tối thiểu 2 lựa chọn.');
@@ -360,86 +173,27 @@ export function QuestionBankModal({
     if (e) e.preventDefault();
     setErrorMsg('');
 
-    const cleanPromptText = prompt.replace(/<[^>]+>/g, '').trim();
-    if (!cleanPromptText && !prompt.includes('<img')) {
-      setErrorMsg('Vui lòng nhập nội dung câu hỏi.');
+    const validationError = validateQuestionForm(
+      type,
+      prompt,
+      options,
+      orderingItems,
+      matchingPairsValue
+    );
+    if (validationError) {
+      setErrorMsg(validationError);
       return;
-    }
-
-    if (
-      type === QuizQuestionType.SINGLE_CHOICE ||
-      type === QuizQuestionType.MULTIPLE_CHOICE
-    ) {
-      if (options.length < 2) {
-        setErrorMsg('Cần ít nhất 2 phương án lựa chọn.');
-        return;
-      }
-      if (options.some((o) => !o.text.trim())) {
-        setErrorMsg('Vui lòng nhập nội dung cho tất cả các phương án đáp án.');
-        return;
-      }
-      const correctCount = options.filter((o) => o.isCorrect).length;
-      if (type === QuizQuestionType.SINGLE_CHOICE && correctCount !== 1) {
-        setErrorMsg('Vui lòng đánh dấu chọn chính xác 1 đáp án đúng (Correct).');
-        return;
-      }
-      if (type === QuizQuestionType.MULTIPLE_CHOICE && correctCount < 1) {
-        setErrorMsg('Vui lòng đánh dấu chọn ít nhất 1 đáp án đúng (Correct) cho câu hỏi nhiều lựa chọn.');
-        return;
-      }
-    }
-
-    if (type === QuizQuestionType.ORDERING) {
-      if (orderingItems.length < 2) {
-        setErrorMsg('Cần ít nhất 2 mốc sự kiện để sắp xếp dòng thời gian.');
-        return;
-      }
-      if (orderingItems.some((it) => !it.label.trim())) {
-        setErrorMsg('Vui lòng nhập đầy đủ nội dung cho tất cả các mốc sự kiện.');
-        return;
-      }
-    }
-
-    if (type === QuizQuestionType.MATCHING) {
-      if (matchingPairsValue.leftItems.length < 2) {
-        setErrorMsg('Cần ít nhất 2 cặp thông tin để tạo câu hỏi ghép nối.');
-        return;
-      }
-      if (
-        matchingPairsValue.leftItems.some((it) => !it.label.trim()) ||
-        matchingPairsValue.rightItems.some((it) => !it.label.trim())
-      ) {
-        setErrorMsg('Vui lòng nhập đầy đủ nội dung Vế A và Vế B cho tất cả các cặp ghép nối.');
-        return;
-      }
     }
 
     try {
       setSubmitting(true);
-      const questionData =
-        type === QuizQuestionType.TRUE_FALSE
-          ? { correctAnswer }
-          : type === QuizQuestionType.ORDERING
-            ? {
-                items: orderingItems.map((it) => ({
-                  id: it.id,
-                  label: it.label.trim(),
-                })),
-                correctOrder: orderingItems.map((it) => it.id),
-              }
-            : type === QuizQuestionType.MATCHING
-              ? {
-                  leftItems: matchingPairsValue.leftItems.map((it) => ({
-                    id: it.id,
-                    label: it.label.trim(),
-                  })),
-                  rightItems: matchingPairsValue.rightItems.map((it) => ({
-                    id: it.id,
-                    label: it.label.trim(),
-                  })),
-                  correctPairs: matchingPairsValue.correctPairs,
-                }
-              : { options };
+      const questionData = buildQuestionData(
+        type,
+        options,
+        correctAnswer,
+        orderingItems,
+        matchingPairsValue
+      );
 
       const payload: CreateQuestionPayload = {
         type,
@@ -460,12 +214,12 @@ export function QuestionBankModal({
 
       onSuccess();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Lỗi lưu câu hỏi:', err);
-      setErrorMsg(
-        err?.response?.data?.message ||
-          'Không thể lưu câu hỏi. Vui lòng kiểm tra lại dữ liệu và thử lại.'
-      );
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (err instanceof Error ? err.message : 'Không thể lưu câu hỏi. Vui lòng kiểm tra lại dữ liệu và thử lại.');
+      setErrorMsg(message);
     } finally {
       setSubmitting(false);
     }
@@ -480,42 +234,14 @@ export function QuestionBankModal({
             : 'w-full max-w-5xl lg:max-w-6xl max-h-[94vh] rounded-2xl'
         }`}
       >
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <span>{initialQuestion ? 'Cập nhật câu hỏi' : 'Tạo câu hỏi mới'}</span>
-              <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
-                CMS Rich Text Editor
-              </span>
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Soạn thảo câu hỏi trắc nghiệm chuẩn sư phạm, hỗ trợ định dạng văn bản chuyên sâu và tải ảnh tư liệu
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setIsMaximized(!isMaximized)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-              title={isMaximized ? 'Thu nhỏ cửa sổ' : 'Phóng to toàn màn hình'}
-            >
-              {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-              title="Đóng cửa sổ"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
+        <QuestionModalHeader
+          isEdit={Boolean(initialQuestion)}
+          isMaximized={isMaximized}
+          onToggleMaximize={() => setIsMaximized(!isMaximized)}
+          onClose={onClose}
+        />
 
-        {/* Modal Scrollable Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {/* Thông báo lỗi / chú ý */}
           {errorMsg && (
             <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
@@ -530,127 +256,31 @@ export function QuestionBankModal({
             </div>
           )}
 
-          {/* Section 1: Question Type + Question Mark & Assign Category */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-            {/* Left: Question Type Selector */}
             <div className="lg:col-span-8">
               <label className="block text-xs font-bold text-slate-800 mb-2">
                 Loại câu hỏi <span className="text-blue-600 font-normal">(Question Type)</span>
               </label>
-
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                {QUESTION_TYPE_CARDS.map((card) => {
-                  const isSelected = type === card.type;
-                  const IconComp = card.icon;
-
-                  return (
-                    <button
-                      key={card.type}
-                      type="button"
-                      onClick={() => handleSelectType(card.type, card.isReady)}
-                      className={`relative flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer min-h-[92px] ${
-                        isSelected
-                          ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/20 shadow-xs'
-                          : card.isReady
-                          ? 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
-                          : 'border-slate-200 bg-slate-50/50 opacity-60 hover:opacity-90'
-                      }`}
-                    >
-                      {/* Top-Right Radio indicator badge */}
-                      <span className="absolute top-2 right-2 flex items-center justify-center">
-                        {isSelected ? (
-                          <span className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                            <Check size={10} strokeWidth={3} />
-                          </span>
-                        ) : (
-                          <span className="w-4 h-4 rounded-full border border-slate-300 bg-white" />
-                        )}
-                      </span>
-
-                      {/* Card Center Icon */}
-                      <div
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center mb-1.5 ${
-                          isSelected
-                            ? 'text-blue-600 bg-blue-100/60'
-                            : 'text-slate-500 bg-slate-100/80'
-                        }`}
-                      >
-                        <IconComp size={16} />
-                      </div>
-
-                      {/* Card Labels */}
-                      <span
-                        className={`text-[11px] font-bold leading-tight ${
-                          isSelected ? 'text-blue-900' : 'text-slate-800'
-                        }`}
-                      >
-                        {card.title}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium leading-tight mt-0.5">
-                        {card.subtitle}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              <QuestionTypeCardSelector
+                currentType={type}
+                onSelectType={handleSelectType}
+              />
             </div>
 
-            {/* Right: Question Mark, Topic & Lesson Assignment */}
-            <div className="lg:col-span-4 space-y-2.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Điểm số <span className="text-slate-400 font-normal">(Question Mark)</span>
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={points}
-                  onChange={(e) => setPoints(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="1"
-                />
-              </div>
-
-              {/* Ô 1: Phân loại / Chủ đề (Topic Multi-Select Modal Trigger) */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Phân loại / Chủ đề <span className="text-slate-400 font-normal">(Topics)</span>
-                </label>
-                <TreeSelectTrigger
-                  onClick={() => setIsTopicModalOpen(true)}
-                  placeholder="Chung (Bấm để chọn chủ đề...)"
-                  icon={<Folder size={13} className="text-slate-400 group-hover:text-emerald-600" />}
-                  badgeColor="emerald"
-                  selectedItems={topicIds.map((id) => ({
-                    id,
-                    label: topicsList.find((t) => t.id === id)?.name || 'Chủ đề đã chọn',
-                  }))}
-                  onRemoveItem={(id) => setTopicIds((prev) => prev.filter((item) => item !== id))}
-                />
-              </div>
-
-              {/* Ô 2: Liên kết bài học (Lesson Multi-Select Modal Trigger) */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Liên kết bài học <span className="text-slate-400 font-normal">(Lessons)</span>
-                </label>
-                <TreeSelectTrigger
-                  onClick={() => setIsLessonModalOpen(true)}
-                  placeholder="Chung (Bấm để chọn bài học...)"
-                  icon={<BookOpen size={13} className="text-slate-400 group-hover:text-emerald-600" />}
-                  badgeColor="blue"
-                  selectedItems={lessonIds.map((id) => ({
-                    id,
-                    label: lessonsList.find((l) => l.id === id)?.title || 'Bài học đã chọn',
-                  }))}
-                  onRemoveItem={(id) => setLessonIds((prev) => prev.filter((item) => item !== id))}
-                />
-              </div>
-            </div>
+            <QuestionCategorySection
+              points={points}
+              onChangePoints={setPoints}
+              topicIds={topicIds}
+              topicsList={topicsList}
+              onOpenTopicModal={() => setIsTopicModalOpen(true)}
+              onRemoveTopic={(id) => setTopicIds((prev) => prev.filter((item) => item !== id))}
+              lessonIds={lessonIds}
+              lessonsList={lessonsList}
+              onOpenLessonModal={() => setIsLessonModalOpen(true)}
+              onRemoveLesson={(id) => setLessonIds((prev) => prev.filter((item) => item !== id))}
+            />
           </div>
 
-          {/* Section 2: Question Prompt with Rich Formatting Toolbar */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-bold text-slate-800">
@@ -660,7 +290,7 @@ export function QuestionBankModal({
                 <span className="text-[11px] font-semibold text-slate-500">Độ khó:</span>
                 <select
                   value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value as any)}
+                  onChange={(e) => setDifficulty(e.target.value as QuestionDifficulty)}
                   className="text-[11px] font-semibold py-0.5 px-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-700 focus:outline-none"
                 >
                   <option value="EASY">Dễ (Nhận biết)</option>
@@ -670,7 +300,6 @@ export function QuestionBankModal({
               </div>
             </div>
 
-            {/* Rich Editor Box using CMS TipTapContent */}
             <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
               <TipTapContent
                 value={prompt}
@@ -682,191 +311,36 @@ export function QuestionBankModal({
             </div>
           </div>
 
-          {/* Section 3: Options List (Single/Multiple Choice), True/False Selector, Timeline Ordering, OR Matching Pairs */}
-          {type === QuizQuestionType.TRUE_FALSE ? (
-            <div className="pt-1">
-              <TrueFalseAnswerSelector value={correctAnswer} onChange={setCorrectAnswer} />
-            </div>
-          ) : type === QuizQuestionType.ORDERING ? (
-            <div className="pt-1">
-              <TimelineOrderingItemsEditor
-                items={orderingItems}
-                onChange={setOrderingItems}
-                onError={setErrorMsg}
-              />
-            </div>
-          ) : type === QuizQuestionType.MATCHING ? (
-            <div className="pt-1">
-              <MatchingPairsEditor
-                leftItems={matchingPairsValue.leftItems}
-                rightItems={matchingPairsValue.rightItems}
-                correctPairs={matchingPairsValue.correctPairs}
-                onChange={setMatchingPairsValue}
-                onError={setErrorMsg}
-              />
-            </div>
-          ) : (
-            <div className="space-y-2.5 pt-1">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <label className="block text-xs font-bold text-slate-800">
-                    Các phương án lựa chọn <span className="text-blue-600 font-normal">(Options)</span>
-                  </label>
-                  {type === QuizQuestionType.MULTIPLE_CHOICE ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                      <CheckSquare size={12} />
-                      <span>
-                        Chế độ Check Box: Đang chọn {options.filter((o) => o.isCorrect).length}/{options.length} đáp án đúng
-                      </span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <CircleDot size={12} />
-                      <span>Chế độ Radio: 1 đáp án đúng duy nhất</span>
-                    </span>
-                  )}
-                </div>
-                <span className="text-[11px] text-slate-400">
-                  {type === QuizQuestionType.MULTIPLE_CHOICE ? (
-                    <>
-                      Tích chọn ô <strong>Correct</strong> tại <strong>một hoặc nhiều</strong> phương án đúng
-                    </>
-                  ) : (
-                    <>
-                      Tích chọn ô <strong>Correct</strong> tại phương án đúng duy nhất
-                    </>
-                  )}
-                </span>
-              </div>
+          <QuestionAnswersSection
+            type={type}
+            options={options}
+            correctAnswer={correctAnswer}
+            orderingItems={orderingItems}
+            matchingPairsValue={matchingPairsValue}
+            expandedNotes={expandedNotes}
+            onChangeCorrectAnswer={setCorrectAnswer}
+            onChangeOrderingItems={setOrderingItems}
+            onChangeMatchingPairs={setMatchingPairsValue}
+            onToggleOptionCorrect={handleToggleOptionCorrect}
+            onUpdateOptionText={(optId, text) =>
+              setOptions((prev) => prev.map((o) => (o.id === optId ? { ...o, text } : o)))
+            }
+            onUpdateOptionExplanation={(optId, exp) =>
+              setOptions((prev) => prev.map((o) => (o.id === optId ? { ...o, explanation: exp } : o)))
+            }
+            onToggleOptionNote={(optId) =>
+              setExpandedNotes((prev) => ({ ...prev, [optId]: !prev[optId] }))
+            }
+            onAddOption={() =>
+              setOptions((prev) => [
+                ...prev,
+                { id: generateQuizId('opt'), text: '', isCorrect: false },
+              ])
+            }
+            onRemoveOption={handleRemoveOption}
+            onError={setErrorMsg}
+          />
 
-              <div className="space-y-2">
-                {options.map((opt, idx) => {
-                  const labelLetter = String.fromCharCode(65 + idx);
-                  const isNoteOpen = expandedNotes[opt.id];
-
-                  return (
-                    <div
-                      key={opt.id}
-                      className={`p-2.5 rounded-xl border transition-all ${
-                        opt.isCorrect
-                          ? 'border-blue-400 bg-blue-50/20'
-                          : 'border-slate-200 bg-white hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        {/* Drag Grip Handle */}
-                        <span className="text-slate-400 cursor-grab hover:text-slate-600 shrink-0">
-                          <GripVertical size={15} />
-                        </span>
-
-                        {/* Radio / Checkbox indicator icon */}
-                        <span
-                          onClick={() => handleToggleOptionCorrect(opt.id)}
-                          className="cursor-pointer shrink-0"
-                        >
-                          {type === QuizQuestionType.MULTIPLE_CHOICE ? (
-                            opt.isCorrect ? (
-                              <CheckSquare size={16} className="text-blue-600" />
-                            ) : (
-                              <span className="w-4 h-4 rounded border border-slate-300 block hover:border-blue-500" />
-                            )
-                          ) : opt.isCorrect ? (
-                            <CircleDot size={16} className="text-blue-600" />
-                          ) : (
-                            <span className="w-4 h-4 rounded-full border border-slate-300 block hover:border-blue-500" />
-                          )}
-                        </span>
-
-                        {/* Letter tag */}
-                        <span className="text-xs font-bold text-slate-500 w-4 shrink-0">
-                          {labelLetter}.
-                        </span>
-
-                        {/* Option Text Input */}
-                        <input
-                          type="text"
-                          value={opt.text}
-                          onChange={(e) => handleUpdateOptionText(opt.id, e.target.value)}
-                          placeholder={`Nội dung lựa chọn ${labelLetter}...`}
-                          className="flex-1 text-xs sm:text-sm p-1 bg-transparent border-0 focus:outline-none text-slate-900 placeholder:text-slate-400"
-                        />
-
-                        {/* Option Explanation Note Button */}
-                        <button
-                          type="button"
-                          onClick={() => toggleOptionNote(opt.id)}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer shrink-0 ${
-                            opt.explanation
-                              ? 'border-amber-300 bg-amber-50 text-amber-800 font-semibold'
-                              : isNoteOpen
-                              ? 'border-blue-300 bg-blue-50 text-blue-700'
-                              : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                          }`}
-                          title="Ghi chú giải thích vì sao đáp án này đúng hoặc sai"
-                        >
-                          <Lightbulb
-                            size={12}
-                            className={opt.explanation ? 'text-amber-600' : 'text-slate-400'}
-                          />
-                          <span>{opt.explanation ? 'Có giải thích' : '+ Giải thích'}</span>
-                        </button>
-
-                        {/* Correct Checkbox Toggle */}
-                        <button
-                          type="button"
-                          onClick={() => handleToggleOptionCorrect(opt.id)}
-                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shrink-0 ${
-                            opt.isCorrect
-                              ? 'border-blue-600 bg-blue-600 text-white shadow-xs'
-                              : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:border-slate-300'
-                          }`}
-                        >
-                          {opt.isCorrect ? (
-                            <Check size={12} strokeWidth={3} />
-                          ) : (
-                            <span className="w-3 h-3 rounded-xs border border-slate-300" />
-                          )}
-                          <span>Correct</span>
-                        </button>
-
-                        {/* Delete Option Icon */}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveOption(opt.id)}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0"
-                          title="Xóa lựa chọn này"
-                        >
-                          <X size={15} />
-                        </button>
-                      </div>
-
-                      {/* Collapsible Per-Option Explanation Sub-Input (Reusable Component) */}
-                      {isNoteOpen && (
-                        <OptionExplanationBox
-                          labelLetter={labelLetter}
-                          isCorrect={opt.isCorrect}
-                          value={opt.explanation}
-                          onChange={(val) => handleUpdateOptionExplanation(opt.id, val)}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Add Option Button */}
-              <button
-                type="button"
-                onClick={handleAddOption}
-                className="w-full py-2.5 border border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/40 rounded-xl text-xs font-semibold text-blue-600 transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
-              >
-                <Plus size={14} />
-                <span>Thêm phương án lựa chọn (Add Option)</span>
-              </button>
-            </div>
-          )}
-
-          {/* Section 4: Collapsible & Auto-fit General Explanation Card (Reusable Component) */}
           <div className="pt-1">
             <CollapsibleExplanationField
               value={explanation}
@@ -875,41 +349,15 @@ export function QuestionBankModal({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
-          <span className="text-[11px] text-slate-500 hidden sm:inline">
-            {type === QuizQuestionType.MATCHING
-              ? 'Loại 5: Ghép nối cặp thông tin (Matching Pairs) • Lưu vào Ngân hàng trung tâm'
-              : type === QuizQuestionType.ORDERING
-                ? 'Loại 4: Sắp xếp dòng thời gian (Timeline Order) • Lưu vào Ngân hàng trung tâm'
-                : type === QuizQuestionType.TRUE_FALSE
-                  ? 'Loại 3: Câu hỏi Đúng / Sai (True / False) • Lưu vào Ngân hàng trung tâm'
-                  : type === QuizQuestionType.MULTIPLE_CHOICE
-                    ? 'Loại 2: Trắc nghiệm nhiều đáp án đúng (Multiple Choice / Check Box) • Lưu vào Ngân hàng trung tâm'
-                    : 'Loại 1: Trắc nghiệm 1 đáp án (Single Choice / Radio Button) • Lưu vào Ngân hàng trung tâm'}
-          </span>
-
-          <div className="flex items-center gap-2.5 ml-auto">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-slate-300 hover:bg-slate-100 rounded-xl text-xs font-semibold text-slate-700 transition"
-            >
-              Hủy bỏ
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSubmit()}
-              disabled={submitting}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs transition shadow-sm disabled:opacity-50 flex items-center gap-1.5"
-            >
-              {submitting ? 'Đang lưu...' : initialQuestion ? 'Cập nhật câu hỏi' : 'Lưu câu hỏi'}
-            </button>
-          </div>
-        </div>
+        <QuestionModalFooter
+          type={type}
+          isEdit={Boolean(initialQuestion)}
+          submitting={submitting}
+          onClose={onClose}
+          onSubmit={() => handleSubmit()}
+        />
       </div>
 
-      {/* Modal chọn nhiều Chủ đề (Select a category - Topics only) */}
       <TopicCategoryModalPicker
         isOpen={isTopicModalOpen}
         onClose={() => setIsTopicModalOpen(false)}
@@ -918,7 +366,6 @@ export function QuestionBankModal({
         onChangeSelected={setTopicIds}
       />
 
-      {/* Modal chọn nhiều Bài học liên kết (Select lessons - Lessons only) */}
       <LessonCategoryModalPicker
         isOpen={isLessonModalOpen}
         onClose={() => setIsLessonModalOpen(false)}

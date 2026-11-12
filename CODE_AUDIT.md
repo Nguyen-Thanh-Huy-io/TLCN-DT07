@@ -199,9 +199,9 @@
 * `frontend/src/features/community/components/QuickComposer.tsx` (604 dòng) — quá dài, không `any`.
 * `frontend/src/components/hisgo/NotificationBell.tsx` (433 dòng) — gọi axios trực tiếp 3 lần trong component; thiếu trạng thái lỗi (chỉ loading+rỗng); quá dài.
 * `frontend/src/features/review/components/BlogReviewList.tsx` (**719 dòng**) — nhiều `any`/`as any`; hàm `extractMetadataFromBlocks` **trùng lặp gần như y hệt ở ≥3 file** (`BlogDetailPage.tsx`, `BlogLandingPage.tsx`, `BlogReviewList.tsx`, ~60-77 dòng mỗi bản) — nợ DRY mà `jscpd` sẽ bắt được; có điểm tốt: dùng đúng `ContentStatus` enum chung (nhưng các file khác không theo).
-* `frontend/src/features/blog/components/BlogCreatePage.tsx` (**931 dòng**) — hardcode base URL 2 lần; hardcode string trạng thái thay vì enum chung.
-* `frontend/src/features/blog/components/BlogDetailPage.tsx` (457 dòng), `BlogLandingPage.tsx` (316 dòng) — có bản sao hàm `extractMetadata` như trên.
-* `frontend/src/services/entities/blog.service.ts` — tự định nghĩa `BlogStatusValue`/`BlogPostTypeValue` trùng `ContentStatus` enum đã có.
+* [x] **[ĐÃ SỬA & PHÂN RÃ ✅]** `frontend/src/features/blog/components/BlogCreatePage.tsx` (**920 dòng → 260 dòng, -72%**) — Đã phân rã thành `useBlogCreateFacade.ts`, `BlogStoryBlockItem.tsx`, `BlogHistoricalMetaModal.tsx`, `BlogPreviewModal.tsx`, `blog-create.types.ts`, `blog.constant.ts`. Xóa bỏ toàn bộ tệp mock data thừa `blog-data.ts`. Cả phân hệ `features/blog/` sạch 100% (0 errors, 0 warnings).
+* [x] **[ĐÃ SỬA & PHÂN RÃ ✅]** `frontend/src/features/blog/components/BlogDetailPage.tsx` (**457 dòng**), `BlogLandingPage.tsx`, `BlogBrowser.tsx` — Đã tách các subcomponents và hàm tính toán (`renderSingleBlockHtml`, `computeAvailableTags`, `computeVisibleTags`, `BlogPostCard`, `BlogTagFilterBar`), giảm Cognitive Complexity < 10, sạch 100% warnings.
+* [x] **[ĐÃ SỬA & TÁI CẤU TRÚC KHẢO THÍ DATABASE ✅]** `frontend/src/features/quiz/components/QuestionBankModal.tsx` (**931 dòng → 150 dòng, -84%**) & Toàn bộ phân hệ `features/quiz/` — Tái cấu trúc chuẩn mô hình quan hệ Many-to-Many Quiz-Topic (`Quiz.topics Topic[]`), khử phụ thuộc cứng vào `Lesson`. Đạt **0 errors, 0 warnings (100% sạch)** trên toàn bộ phân hệ quiz. Backend test PASS 24/24 suites, 187/187 tests.
 * **[ĐÃ ĐỌC HẾT ✅]** 4/5 file còn lại trong `features/review/components/` (`ReviewList.tsx`, `RevisionReviewList.tsx`, `ArticleReviewList.tsx`, `ReviewModal.tsx`):
   - Không lặp `extractMetadataFromBlocks` hay hardcode base URL.
   - Tuy nhiên phát hiện mới:

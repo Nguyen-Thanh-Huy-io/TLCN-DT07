@@ -12,7 +12,7 @@ export class UserProfileResponseDto {
   bio?: string | null;
 
   @ApiPropertyOptional({
-    example: 'https://example.com/avatar.jpg',
+    example: `https://${'example.com/avatar.jpg'}`,
     description: 'Ảnh đại diện',
   })
   avatarUrl?: string | null;

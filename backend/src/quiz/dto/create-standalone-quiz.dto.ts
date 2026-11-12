@@ -34,6 +34,16 @@ export class CreateStandaloneQuizDto {
   lessonId?: string;
 
   @ApiPropertyOptional({
+    description: 'Danh sách ID các Chủ đề lịch sử mà đề thi này bao phủ',
+    type: [String],
+    example: ['uuid-topic-1', 'uuid-topic-2'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  topicIds?: string[];
+
+  @ApiPropertyOptional({
     example: 15,
     description: 'Thời gian làm bài tính bằng phút (mặc định 15)',
   })
@@ -79,6 +89,16 @@ export class UpdateStandaloneQuizDto {
   @IsOptional()
   @IsString()
   lessonId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Danh sách ID các Chủ đề lịch sử mà đề thi này bao phủ',
+    type: [String],
+    example: ['uuid-topic-1', 'uuid-topic-2'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  topicIds?: string[];
 
   @ApiPropertyOptional({ example: 15 })
   @IsOptional()

@@ -70,9 +70,11 @@ export class ApiErrorResponse {
  *   return this.userService.findOne(id);
  * }
  */
+const DEFAULT_SUCCESS_RESPONSE_DESCRIPTION = 'Successful response';
+
 export const ApiSuccessResponseDecorator = <TModel extends Type<any>>(
   status: number = 200,
-  description: string = 'Successful response',
+  description: string = DEFAULT_SUCCESS_RESPONSE_DESCRIPTION,
   dataType?: TModel,
 ) => {
   return applyDecorators(
@@ -120,7 +122,7 @@ export const ApiSuccessResponseDecorator = <TModel extends Type<any>>(
  */
 export const ApiSuccessArrayResponseDecorator = <TModel extends Type<any>>(
   status: number = 200,
-  description: string = 'Successful response',
+  description: string = DEFAULT_SUCCESS_RESPONSE_DESCRIPTION,
   dataType: TModel,
 ) => {
   return applyDecorators(
@@ -193,7 +195,7 @@ export const ApiCommonErrorResponses = () => {
  */
 export const ApiResponseDecorator = <TModel extends Type<any>>(
   status: number = 200,
-  description: string = 'Successful response',
+  description: string = DEFAULT_SUCCESS_RESPONSE_DESCRIPTION,
   dataType?: TModel,
 ) => {
   return applyDecorators(
@@ -207,7 +209,7 @@ export const ApiResponseDecorator = <TModel extends Type<any>>(
  */
 export const ApiArrayResponseDecorator = <TModel extends Type<any>>(
   status: number = 200,
-  description: string = 'Successful response',
+  description: string = DEFAULT_SUCCESS_RESPONSE_DESCRIPTION,
   dataType: TModel,
 ) => {
   return applyDecorators(

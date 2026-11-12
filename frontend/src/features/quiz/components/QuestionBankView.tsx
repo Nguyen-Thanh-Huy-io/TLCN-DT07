@@ -11,12 +11,10 @@ import {
   HelpCircle,
   Clock,
   ArrowLeftRight,
-  Filter,
   BookOpen,
   Layers,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react';
 import { Badge } from '@/components/common/Badge';
 import {
@@ -29,16 +27,48 @@ import {
 } from '@/services/entities/question.service';
 import { LessonApiService } from '@/services/entities/lesson.service';
 import { LessonItem } from '@/types/models/lesson.type';
+import { ALL_FILTER_VALUE, DIFFICULTY_CONFIG } from '@/constants/quiz.constant';
 import { QuestionBankModal } from './QuestionBankModal';
 
-const DIFFICULTY_CONFIG: Record<
-  string,
-  { label: string; tone: 'ok' | 'warn' | 'neutral' }
-> = {
-  EASY: { label: 'Dễ', tone: 'ok' },
-  MEDIUM: { label: 'Trung bình', tone: 'warn' },
-  HARD: { label: 'Khó', tone: 'neutral' },
-};
+interface OptionPreview {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+interface QuestionItemPreview {
+  id: string;
+  label: string;
+}
+
+interface MatchingPairPreview {
+  leftId: string;
+  rightId: string;
+}
+
+function formatOrderingPreview(data?: Record<string, unknown>): string {
+  const items = (Array.isArray(data?.items) ? data.items : []) as QuestionItemPreview[];
+  const correctOrder = (Array.isArray(data?.correctOrder) ? data.correctOrder : []) as string[];
+  if (items.length === 0) return '';
+  const labels =
+    correctOrder.length === items.length
+      ? correctOrder.map((id) => items.find((it) => it.id === id)?.label || id)
+      : items.map((it) => it.label);
+  return labels.map((lbl, i) => `${i + 1}. ${lbl}`).join(' → ');
+}
+
+function formatMatchingPreview(data?: Record<string, unknown>): string {
+  const leftItems = (Array.isArray(data?.leftItems) ? data.leftItems : []) as QuestionItemPreview[];
+  const rightItems = (Array.isArray(data?.rightItems) ? data.rightItems : []) as QuestionItemPreview[];
+  const correctPairs = (Array.isArray(data?.correctPairs) ? data.correctPairs : []) as MatchingPairPreview[];
+  return correctPairs
+    .map((p) => {
+      const l = leftItems.find((i) => i.id === p.leftId)?.label || p.leftId;
+      const r = rightItems.find((i) => i.id === p.rightId)?.label || p.rightId;
+      return `${l} ↔ ${r}`;
+    })
+    .join(' | ');
+}
 
 const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string; size?: number }>> = {
   [QuizQuestionType.SINGLE_CHOICE]: CircleDot,
@@ -52,9 +82,9 @@ export function QuestionBankView() {
   const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
   const [lessons, setLessons] = useState<LessonItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedType, setSelectedType] = useState<string>('all');
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
-  const [selectedLessonId, setSelectedLessonId] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>(ALL_FILTER_VALUE);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>(ALL_FILTER_VALUE);
+  const [selectedLessonId, setSelectedLessonId] = useState<string>(ALL_FILTER_VALUE);
   const [search, setSearch] = useState('');
 
   // Bulk selection state
@@ -91,8 +121,18 @@ export function QuestionBankView() {
   }, []);
 
   useEffect(() => {
-    fetchQuestions();
-    fetchLessons();
+    let isMounted = true;
+    const timer = Promise.resolve().then(() => {
+      if (isMounted) {
+        void fetchQuestions();
+        void fetchLessons();
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      void timer;
+    };
   }, [fetchQuestions, fetchLessons]);
 
   const handleOpenCreateModal = () => {
@@ -141,11 +181,11 @@ export function QuestionBankView() {
   // Filtered list
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
-      const matchType = selectedType === 'all' || q.type === selectedType;
+      const matchType = selectedType === ALL_FILTER_VALUE || q.type === selectedType;
       const matchDiff =
-        selectedDifficulty === 'all' || q.difficulty === selectedDifficulty;
+        selectedDifficulty === ALL_FILTER_VALUE || q.difficulty === selectedDifficulty;
       const matchLesson =
-        selectedLessonId === 'all' ||
+        selectedLessonId === ALL_FILTER_VALUE ||
         (q.lessons && q.lessons.some((l) => l.id === selectedLessonId));
       const cleanPrompt = (q.prompt || '').replace(/<[^>]+>/g, ' ').toLowerCase();
       const matchSearch =
@@ -424,11 +464,21 @@ export function QuestionBankView() {
                   };
 
                   // Tìm danh sách các đáp án đúng nếu có (Single/Multiple Choice hoặc True/False)
-                  const optionsList = Array.isArray(q.data?.options) ? q.data.options : [];
-                  const correctOptions = optionsList.filter((opt: any) => opt.isCorrect);
+                  const optionsList = Array.isArray(q.data?.options)
+                    ? (q.data.options as OptionPreview[])
+                    : [];
+                  const correctOptions = optionsList.filter((opt) => opt.isCorrect);
                   const hasTrueFalseAnswer =
                     q.type === QuizQuestionType.TRUE_FALSE &&
                     typeof q.data?.correctAnswer === 'boolean';
+                  const orderingPreview =
+                    q.type === QuizQuestionType.ORDERING
+                      ? formatOrderingPreview(q.data as Record<string, unknown>)
+                      : '';
+                  const matchingPreview =
+                    q.type === QuizQuestionType.MATCHING
+                      ? formatMatchingPreview(q.data as Record<string, unknown>)
+                      : '';
 
                   return (
                     <tr
@@ -470,7 +520,7 @@ export function QuestionBankView() {
                                 Đáp án đúng{correctOptions.length > 1 ? ` (${correctOptions.length})` : ''}:
                               </span>
                               <strong className="text-emerald-700 truncate max-w-md">
-                                {correctOptions.map((o: any) => o.text).join(' • ')}
+                                {correctOptions.map((o) => o.text).join(' • ')}
                               </strong>
                             </div>
                           )}
@@ -493,54 +543,25 @@ export function QuestionBankView() {
                             </div>
                           )}
 
-                          {q.type === QuizQuestionType.ORDERING &&
-                            Array.isArray(q.data?.items) &&
-                            q.data.items.length > 0 && (
-                              <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                                <span className="shrink-0">
-                                  Thứ tự đúng ({q.data.items.length} mốc):
-                                </span>
-                                <strong className="text-amber-800 truncate max-w-md">
-                                  {(Array.isArray(q.data.correctOrder) &&
-                                  q.data.correctOrder.length === q.data.items.length
-                                    ? q.data.correctOrder.map(
-                                        (id: string) =>
-                                          q.data.items.find((it: any) => it.id === id)?.label || id
-                                      )
-                                    : q.data.items.map((it: any) => it.label)
-                                  )
-                                    .map((lbl: string, i: number) => `${i + 1}. ${lbl}`)
-                                    .join(' → ')}
-                                </strong>
-                              </div>
-                            )}
+                          {orderingPreview && (
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                              <span className="shrink-0">Thứ tự đúng:</span>
+                              <strong className="text-amber-800 truncate max-w-md">
+                                {orderingPreview}
+                              </strong>
+                            </div>
+                          )}
 
-                          {q.type === QuizQuestionType.MATCHING &&
-                            Array.isArray(q.data?.leftItems) &&
-                            Array.isArray(q.data?.rightItems) &&
-                            Array.isArray(q.data?.correctPairs) &&
-                            q.data.correctPairs.length > 0 && (
-                              <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                                <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
-                                <span className="shrink-0">
-                                  Cặp nối đúng ({q.data.correctPairs.length} cặp):
-                                </span>
-                                <strong className="text-violet-800 truncate max-w-md">
-                                  {q.data.correctPairs
-                                    .map((p: any) => {
-                                      const l =
-                                        q.data.leftItems.find((i: any) => i.id === p.leftId)
-                                          ?.label || p.leftId;
-                                      const r =
-                                        q.data.rightItems.find((i: any) => i.id === p.rightId)
-                                          ?.label || p.rightId;
-                                      return `${l} ↔ ${r}`;
-                                    })
-                                    .join(' | ')}
-                                </strong>
-                              </div>
-                            )}
+                          {matchingPreview && (
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                              <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
+                              <span className="shrink-0">Cặp nối đúng:</span>
+                              <strong className="text-violet-800 truncate max-w-md">
+                                {matchingPreview}
+                              </strong>
+                            </div>
+                          )}
 
                           {q.explanation && (
                             <p className="text-[10px] text-slate-400 italic line-clamp-1">

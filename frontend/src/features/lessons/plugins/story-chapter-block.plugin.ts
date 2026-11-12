@@ -3,6 +3,9 @@ import {
   StoryChapterBlockData,
   StoryChapterLayout,
   LessonBlockItem,
+  EditorialColumnRatio,
+  StoryChapterUnit,
+  StoryChapterDisplayConfig,
 } from '../types/block-builder.types';
 import { BlockPlugin, BlockWidth, escapeHtml } from './block-plugin.types';
 import {
@@ -10,6 +13,11 @@ import {
   getChapterLabel,
   StoryChapterLayoutStrategy,
 } from '../strategies/story-chapter-layout.strategy';
+import {
+  EditorialLayoutType,
+  EditorialColumnRatioEnum,
+  ChapterBlockZoneEnum,
+} from '@/constants/lesson-builder.constant';
 
 let childBlockCompiler: (block: LessonBlockItem) => string = () => '';
 export function setStoryChapterChildCompiler(fn: (block: LessonBlockItem) => string) {
@@ -19,30 +27,30 @@ export function setStoryChapterChildCompiler(fn: (block: LessonBlockItem) => str
 function createSampleStoryChapters() {
   const chap1 = StoryChapterLayoutStrategy.createChapterContainer(
     0,
-    'MAGAZINE_GRID',
+    EditorialLayoutType.MAGAZINE_GRID,
     {
       title: 'Trước trận Bạch Đằng',
       subtitle: 'Bối cảnh lịch sử',
-      columnRatio: '4_8',
+      columnRatio: EditorialColumnRatioEnum.RATIO_4_8,
       blocks: [
         {
           id: createBlockUUID('text'),
           type: LessonBlockType.TEXT,
-          zone: 'LEFT',
+          zone: ChapterBlockZoneEnum.LEFT,
           content:
             '<p>Ngày 9 tháng 4 năm 1288, trên dòng sông Bạch Đằng, quân dân Đại Việt dưới sự chỉ huy của Hưng Đạo Vương Trần Quốc Tuấn đã làm nên một chiến thắng lẫy lừng trong lịch sử dân tộc.</p><p>Chiến thắng Bạch Đằng không chỉ là một trận đánh quân sự vĩ đại, mà còn là biểu tượng của trí tuệ, bản lĩnh và ý chí quật cường của dân tộc Việt Nam qua nhiều thế kỷ.</p>',
         },
         {
           id: createBlockUUID('text'),
           type: LessonBlockType.TEXT,
-          zone: 'RIGHT',
+          zone: ChapterBlockZoneEnum.RIGHT,
           content:
             '<p>Thế kỷ XIII, quân Nguyên – Mông với tham vọng xâm lược Đại Việt lần thứ ba, đã huy động lực lượng hùng hậu, quyết tâm tiêu diệt nhà Trần. Trước tình thế nguy cấp, triều đình nhà Trần đã chủ động chuẩn bị kế sách, trong đó nổi bật là tài năng quân sự của Hưng Đạo Vương Trần Quốc Tuấn.</p>',
         },
         {
           id: createBlockUUID('image'),
           type: LessonBlockType.IMAGE,
-          zone: 'RIGHT',
+          zone: ChapterBlockZoneEnum.RIGHT,
           src: '',
           alt: 'Trước trận Bạch Đằng',
           caption: 'Chiến địa sông Bạch Đằng trong trang sử kháng chiến chống Nguyên – Mông',
@@ -53,30 +61,30 @@ function createSampleStoryChapters() {
 
   const chap2 = StoryChapterLayoutStrategy.createChapterContainer(
     1,
-    'ASYMMETRIC',
+    EditorialLayoutType.ASYMMETRIC,
     {
       title: 'Trận chiến lịch sử',
       subtitle: 'Diễn biến chính',
-      columnRatio: '4_8',
+      columnRatio: EditorialColumnRatioEnum.RATIO_4_8,
       blocks: [
         {
           id: createBlockUUID('quote'),
           type: LessonBlockType.QUOTE,
-          zone: 'LEFT',
+          zone: ChapterBlockZoneEnum.LEFT,
           quoteText: 'Bạch Đằng giang, ngàn đời vang danh...',
           author: 'Trần Quốc Tuấn',
         },
         {
           id: createBlockUUID('text'),
           type: LessonBlockType.TEXT,
-          zone: 'RIGHT',
+          zone: ChapterBlockZoneEnum.RIGHT,
           content:
             '<p>Ngày 9 tháng 4 năm 1288, quân ta đã lợi dụng thủy triều lên xuống, bố trí trận địa mai phục, tạo nên thế trận hiểm hóc, tiêu diệt hàng vạn quân địch, buộc quân Nguyên phải rút lui trong thảm bại.</p>',
         },
         {
           id: createBlockUUID('image'),
           type: LessonBlockType.IMAGE,
-          zone: 'RIGHT',
+          zone: ChapterBlockZoneEnum.RIGHT,
           src: '',
           alt: 'Trận chiến lịch sử',
           caption: 'Minh họa đoàn chiến thuyền giao chiến trên sông Bạch Đằng',
@@ -86,6 +94,70 @@ function createSampleStoryChapters() {
   );
 
   return [chap1, chap2];
+}
+
+function getRatioGridClass(ratioKey?: EditorialColumnRatio) {
+  switch (ratioKey) {
+    case EditorialColumnRatioEnum.RATIO_4_8:
+      return { left: 'md:col-span-5 lg:col-span-4', right: 'md:col-span-7 lg:col-span-8' };
+    case EditorialColumnRatioEnum.RATIO_5_7:
+      return { left: 'md:col-span-5', right: 'md:col-span-7' };
+    case EditorialColumnRatioEnum.RATIO_7_5:
+      return { left: 'md:col-span-7', right: 'md:col-span-5' };
+    case EditorialColumnRatioEnum.RATIO_8_4:
+      return { left: 'md:col-span-8', right: 'md:col-span-4' };
+    case EditorialColumnRatioEnum.RATIO_6_6:
+    default:
+      return { left: 'md:col-span-6', right: 'md:col-span-6' };
+  }
+}
+
+function compileSingleChapterHtml(
+  ch: StoryChapterUnit,
+  idx: number,
+  cfg: StoryChapterDisplayConfig
+): string {
+  const chapterNumberLabel = getChapterLabel(idx);
+
+  const leftBlocks = (ch.blocks || []).filter((b) => b.zone === ChapterBlockZoneEnum.LEFT);
+  const rightBlocks = (ch.blocks || []).filter((b) => b.zone === ChapterBlockZoneEnum.RIGHT);
+  const fullBlocks = (ch.blocks || []).filter(
+    (b) => !b.zone || b.zone === ChapterBlockZoneEnum.FULL
+  );
+
+  const hasTwoColumns = leftBlocks.length > 0 && rightBlocks.length > 0;
+  const ratioKey = ch.config?.layout?.columnRatio || EditorialColumnRatioEnum.RATIO_6_6;
+  const ratioGridClass = getRatioGridClass(ratioKey);
+
+  const renderZoneBlocks = (bList: LessonBlockItem[]) =>
+    bList.map((child) => childBlockCompiler(child)).join('\n');
+
+  let bodyHtml = '';
+  if (hasTwoColumns) {
+    bodyHtml = `
+      ${fullBlocks.length > 0 ? `<div class="story-full-zone space-y-4 mb-6">${renderZoneBlocks(fullBlocks)}</div>` : ''}
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start my-4">
+        <div class="col-span-12 ${ratioGridClass.left} space-y-4">
+          ${renderZoneBlocks(leftBlocks)}
+        </div>
+        <div class="col-span-12 ${ratioGridClass.right} space-y-4">
+          ${renderZoneBlocks(rightBlocks)}
+        </div>
+      </div>
+    `;
+  } else {
+    bodyHtml = `<div class="space-y-4">${renderZoneBlocks(ch.blocks || [])}</div>`;
+  }
+
+  const safeTitle = escapeHtml(ch.title);
+  const safeSubtitle = ch.subtitle ? escapeHtml(ch.subtitle) : '';
+
+  return `
+    <article id="story-chap-${ch.id}" class="story-chapter-spread" style="${idx > 0 ? 'margin-top: 40px; padding-top: 36px; border-top: 1px solid #e7e5e4;' : ''}">
+      ${cfg.showChapterNumber ? `<div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a16207; margin-bottom: 6px; font-family: var(--font-merriweather), 'Noto Serif', serif;">${chapterNumberLabel}${safeSubtitle ? ` • ${safeSubtitle}` : ''}</div>` : ''}
+      <h2 style="font-size: 26px; sm:font-size: 28px; font-weight: 700; font-family: var(--font-merriweather), 'Noto Serif', serif; color: #1c1917; margin: 0 0 16px 0; line-height: 1.35;">${safeTitle}</h2>
+      <div class="story-chapter-body">${bodyHtml}</div>
+    </article>`;
 }
 
 export const storyChapterBlockPlugin: BlockPlugin<StoryChapterBlockData> = {
@@ -139,7 +211,6 @@ export const storyChapterBlockPlugin: BlockPlugin<StoryChapterBlockData> = {
       .slice()
       .sort((a, b) => a.order - b.order);
 
-    // Thanh điều hướng chương (Quick Chapter Navigator) dạng Pills tinh tế
     const tocHtml =
       sc.showToc !== false && chapters.length > 1
         ? `<nav class="story-quick-nav mb-8 p-3.5 bg-stone-100/70 border border-stone-200/80 rounded-xl">
@@ -158,57 +229,7 @@ export const storyChapterBlockPlugin: BlockPlugin<StoryChapterBlockData> = {
         : '';
 
     const chaptersHtml = chapters
-      .map((ch, idx) => {
-        const chapterNumberLabel = getChapterLabel(idx);
-
-        // Bóc tách khối theo Zone (LEFT / RIGHT / FULL) để dàn trang báo chí nghệ thuật
-        const leftBlocks = (ch.blocks || []).filter((b) => b.zone === 'LEFT');
-        const rightBlocks = (ch.blocks || []).filter((b) => b.zone === 'RIGHT');
-        const fullBlocks = (ch.blocks || []).filter((b) => !b.zone || b.zone === 'FULL');
-
-        const hasTwoColumns = leftBlocks.length > 0 && rightBlocks.length > 0;
-        const ratioKey = ch.config?.layout?.columnRatio || '6_6';
-        const ratioGridClass =
-          ratioKey === '4_8'
-            ? { left: 'md:col-span-5 lg:col-span-4', right: 'md:col-span-7 lg:col-span-8' }
-            : ratioKey === '5_7'
-            ? { left: 'md:col-span-5', right: 'md:col-span-7' }
-            : ratioKey === '7_5'
-            ? { left: 'md:col-span-7', right: 'md:col-span-5' }
-            : ratioKey === '8_4'
-            ? { left: 'md:col-span-8', right: 'md:col-span-4' }
-            : { left: 'md:col-span-6', right: 'md:col-span-6' };
-
-        const renderZoneBlocks = (bList: LessonBlockItem[]) =>
-          bList.map((child) => childBlockCompiler(child)).join('\n');
-
-        let bodyHtml = '';
-        if (hasTwoColumns) {
-          bodyHtml = `
-            ${fullBlocks.length > 0 ? `<div class="story-full-zone space-y-4 mb-6">${renderZoneBlocks(fullBlocks)}</div>` : ''}
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start my-4">
-              <div class="col-span-12 ${ratioGridClass.left} space-y-4">
-                ${renderZoneBlocks(leftBlocks)}
-              </div>
-              <div class="col-span-12 ${ratioGridClass.right} space-y-4">
-                ${renderZoneBlocks(rightBlocks)}
-              </div>
-            </div>
-          `;
-        } else {
-          bodyHtml = `<div class="space-y-4">${renderZoneBlocks(ch.blocks || [])}</div>`;
-        }
-
-        const safeTitle = escapeHtml(ch.title);
-        const safeSubtitle = ch.subtitle ? escapeHtml(ch.subtitle) : '';
-
-        return `
-          <article id="story-chap-${ch.id}" class="story-chapter-spread" style="${idx > 0 ? 'margin-top: 40px; padding-top: 36px; border-top: 1px solid #e7e5e4;' : ''}">
-            ${cfg.showChapterNumber ? `<div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a16207; margin-bottom: 6px; font-family: var(--font-merriweather), 'Noto Serif', serif;">${chapterNumberLabel}${safeSubtitle ? ` • ${safeSubtitle}` : ''}</div>` : ''}
-            <h2 style="font-size: 26px; sm:font-size: 28px; font-weight: 700; font-family: var(--font-merriweather), 'Noto Serif', serif; color: #1c1917; margin: 0 0 16px 0; line-height: 1.35;">${safeTitle}</h2>
-            <div class="story-chapter-body">${bodyHtml}</div>
-          </article>`;
-      })
+      .map((ch, idx) => compileSingleChapterHtml(ch, idx, cfg))
       .join('');
 
     const safeRef = sc.referenceSource ? escapeHtml(sc.referenceSource) : '';

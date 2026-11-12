@@ -3,6 +3,7 @@
 import React from 'react';
 import { StoryChapterUnit } from '../../../types/block-builder.types';
 import { EditorialSubElementType } from '../../../context/ActiveEditorContext';
+import { EditorialTransformEnum } from '@/constants/lesson-builder.constant';
 
 interface StoryChapterHeadingProps {
   chapter: StoryChapterUnit;
@@ -91,7 +92,7 @@ export function StoryChapterHeading({
             : `input-story-chapter-title-${chapterIndex}`
         }
         className={`w-full ${headingTypoClass} font-bold tracking-tight leading-tight bg-transparent border-b border-transparent focus:border-stone-900 focus:outline-none py-0.5 ${
-          headingTransform === 'UPPERCASE' ? 'uppercase' : ''
+          headingTransform === EditorialTransformEnum.UPPERCASE ? 'uppercase' : ''
         }`}
         style={{
           fontFamily: headingFontStyle || undefined,

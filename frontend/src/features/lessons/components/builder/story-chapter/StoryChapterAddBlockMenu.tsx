@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { ChapterBlockZone } from '../../../types/block-builder.types';
 import { LessonBlockType } from '../../../types/block-palette.types';
 import { STORY_CHAPTER_ALLOWED_NESTED_BLOCKS } from '../../../strategies/story-chapter-layout.strategy';
+import { ChapterBlockZoneEnum } from '@/constants/lesson-builder.constant';
 
 interface StoryChapterAddBlockMenuProps {
   chapterNumber: string;
@@ -32,9 +33,9 @@ export function StoryChapterAddBlockMenu({
           <div className="inline-flex rounded-lg bg-stone-100 p-0.5 border border-stone-200 text-[11px] font-semibold">
             <button
               type="button"
-              onClick={() => onSetOpenAddZone('LEFT')}
+              onClick={() => onSetOpenAddZone(ChapterBlockZoneEnum.LEFT)}
               className={`px-2 py-0.5 rounded-md cursor-pointer ${
-                openAddZone === 'LEFT'
+                openAddZone === ChapterBlockZoneEnum.LEFT
                   ? 'bg-white text-blue-600 shadow-2xs'
                   : 'text-stone-600'
               }`}
@@ -43,9 +44,9 @@ export function StoryChapterAddBlockMenu({
             </button>
             <button
               type="button"
-              onClick={() => onSetOpenAddZone('RIGHT')}
+              onClick={() => onSetOpenAddZone(ChapterBlockZoneEnum.RIGHT)}
               className={`px-2 py-0.5 rounded-md cursor-pointer ${
-                openAddZone === 'RIGHT'
+                openAddZone === ChapterBlockZoneEnum.RIGHT
                   ? 'bg-white text-blue-600 shadow-2xs'
                   : 'text-stone-600'
               }`}

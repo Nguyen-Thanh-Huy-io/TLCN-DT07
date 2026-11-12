@@ -29,20 +29,26 @@ import {
   type CommunityPost,
 } from '../api';
 import { API_BASE_URL } from '@/constants/api-url';
+import {
+  CommunityTabKey,
+  ComposerMode,
+  CommunitySortMode,
+  COMMUNITY_TAB_LABELS,
+} from '@/constants/community.constant';
 import { PostCard } from './PostCard';
-import { QuickComposer, type ComposerMode } from './QuickComposer';
+import { QuickComposer } from './QuickComposer';
 
-export type CommunityTabKey = 'all' | 'following' | 'trending' | 'shared_blog' | 'saved';
+export type { CommunityTabKey };
 
 const PAGE_SIZE = 8;
 const SOCKET_URL = API_BASE_URL;
 
 const TABS: Array<{ key: CommunityTabKey; label: string }> = [
-  { key: 'all', label: 'Tất cả thảo luận' },
-  { key: 'following', label: 'Đang theo dõi' },
-  { key: 'trending', label: 'Sôi nổi' },
-  { key: 'shared_blog', label: 'Bài Blog chia sẻ' },
-  { key: 'saved', label: 'Đã lưu' },
+  { key: CommunityTabKey.ALL, label: COMMUNITY_TAB_LABELS[CommunityTabKey.ALL] },
+  { key: CommunityTabKey.FOLLOWING, label: COMMUNITY_TAB_LABELS[CommunityTabKey.FOLLOWING] },
+  { key: CommunityTabKey.TRENDING, label: COMMUNITY_TAB_LABELS[CommunityTabKey.TRENDING] },
+  { key: CommunityTabKey.SHARED_BLOG, label: COMMUNITY_TAB_LABELS[CommunityTabKey.SHARED_BLOG] },
+  { key: CommunityTabKey.SAVED, label: COMMUNITY_TAB_LABELS[CommunityTabKey.SAVED] },
 ];
 
 interface CommunityFeedProps {
@@ -54,7 +60,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
   const router = useRouter();
   const user = useAuthSession();
 
-  const [activeTab, setActiveTab] = useState<CommunityTabKey>('all');
+  const [activeTab, setActiveTab] = useState<CommunityTabKey>(CommunityTabKey.ALL);
   const [posts, setPosts] = useState<CommunityPost[]>(initialPosts);
   const [suggestedMembers, setSuggestedMembers] = useState<CommunityMemberSummary[]>(() =>
     getFallbackSuggestedMembers().slice(0, 4),
@@ -66,14 +72,26 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
   const [errorMsg, setErrorMsg] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [composerMode, setComposerMode] = useState<ComposerMode>('question');
+  const [composerOpen, setComposerOpen] = useState(Boolean(initialShareBlogSlug));
+  const [composerMode, setComposerMode] = useState<ComposerMode>(
+    initialShareBlogSlug ? ComposerMode.SHARE_BLOG : ComposerMode.QUESTION,
+  );
   const [preselectedBlogSlug, setPreselectedBlogSlug] = useState<string | null>(
     initialShareBlogSlug,
   );
+  const [prevShareSlug, setPrevShareSlug] = useState(initialShareBlogSlug);
   const [realtimeNotice, setRealtimeNotice] = useState<string | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  if (initialShareBlogSlug !== prevShareSlug) {
+    setPrevShareSlug(initialShareBlogSlug);
+    if (initialShareBlogSlug) {
+      setPreselectedBlogSlug(initialShareBlogSlug);
+      setComposerMode(ComposerMode.SHARE_BLOG);
+      setComposerOpen(true);
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -94,22 +112,13 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
     };
   }, [user?.id]);
 
-  // Tự động mở khung Chia sẻ bài Blog nếu đi từ trang /blog/[slug] sang (?shareBlog=...)
-  useEffect(() => {
-    if (initialShareBlogSlug) {
-      setPreselectedBlogSlug(initialShareBlogSlug);
-      setComposerMode('share_blog');
-      setComposerOpen(true);
-    }
-  }, [initialShareBlogSlug]);
-
   const loadTabFeed = useCallback(
     async (tab: CommunityTabKey) => {
       setIsLoading(true);
       setErrorMsg('');
 
       try {
-        if (tab === 'saved') {
+        if (tab === CommunityTabKey.SAVED) {
           if (!user?.id) {
             setPosts([]);
             setHasMore(false);
@@ -121,7 +130,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
           return;
         }
 
-        if (tab === 'following') {
+        if (tab === CommunityTabKey.FOLLOWING) {
           if (user?.id) {
             const followedFeed = await CommunityApi.listPosts({
               followingOnly: true,
@@ -142,12 +151,12 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
         }
 
         const fetched = await CommunityApi.listPosts({
-          sort: tab === 'trending' ? 'trending' : 'latest',
-          limit: tab === 'shared_blog' ? 24 : PAGE_SIZE,
+          sort: tab === CommunityTabKey.TRENDING ? CommunitySortMode.TRENDING : CommunitySortMode.LATEST,
+          limit: tab === CommunityTabKey.SHARED_BLOG ? 24 : PAGE_SIZE,
         });
 
         if (fetched.length > 0) {
-          if (tab === 'shared_blog') {
+          if (tab === CommunityTabKey.SHARED_BLOG) {
             const sharedOnly = fetched.filter((p) => Boolean(extractCommunityContent(p).sharedBlog));
             setPosts(sharedOnly);
             setHasMore(false);
@@ -155,16 +164,16 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
             setPosts(fetched);
             setHasMore(fetched.length >= PAGE_SIZE);
           }
-        } else if (tab === 'all') {
+        } else if (tab === CommunityTabKey.ALL) {
           setPosts(initialPosts);
           setHasMore(false);
         } else {
           const fallbackFiltered = initialPosts
             .filter((p) =>
-              tab === 'shared_blog' ? Boolean(extractCommunityContent(p).sharedBlog) : true,
+              tab === CommunityTabKey.SHARED_BLOG ? Boolean(extractCommunityContent(p).sharedBlog) : true,
             )
             .sort((a, b) => {
-              if (tab !== 'trending') return 0;
+              if (tab !== CommunityTabKey.TRENDING) return 0;
               const scoreA = a.likeCount * 2 + a.commentCount * 3 + a.viewCount * 0.1;
               const scoreB = b.likeCount * 2 + b.commentCount * 3 + b.viewCount * 0.1;
               return scoreB - scoreA;
@@ -173,7 +182,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
           setHasMore(false);
         }
       } catch {
-        if (tab !== 'saved' && initialPosts.length > 0) {
+        if (tab !== CommunityTabKey.SAVED && initialPosts.length > 0) {
           setPosts(initialPosts);
           setHasMore(false);
         } else {
@@ -195,8 +204,8 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
       isLoading ||
       isLoadingMore ||
       !hasMore ||
-      activeTab === 'saved' ||
-      activeTab === 'shared_blog' ||
+      activeTab === CommunityTabKey.SAVED ||
+      activeTab === CommunityTabKey.SHARED_BLOG ||
       posts.length === 0
     ) {
       return;
@@ -211,7 +220,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
     setIsLoadingMore(true);
     try {
       const nextBatch = await CommunityApi.listPosts({
-        sort: activeTab === 'trending' ? 'trending' : 'latest',
+        sort: activeTab === CommunityTabKey.TRENDING ? CommunitySortMode.TRENDING : CommunitySortMode.LATEST,
         cursor: lastPost.id,
         limit: PAGE_SIZE,
       });
@@ -235,7 +244,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
 
   useEffect(() => {
     const node = sentinelRef.current;
-    if (!node || !hasMore || activeTab === 'saved' || activeTab === 'shared_blog') return;
+    if (!node || !hasMore || activeTab === CommunityTabKey.SAVED || activeTab === CommunityTabKey.SHARED_BLOG) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -318,11 +327,11 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
       const parsed = extractCommunityContent(post);
-      if (activeTab === 'shared_blog' && !parsed.sharedBlog) {
+      if (activeTab === CommunityTabKey.SHARED_BLOG && !parsed.sharedBlog) {
         return false;
       }
 
-      if (activeTab === 'following' && !isAuthorFollowed(post.author)) {
+      if (activeTab === CommunityTabKey.FOLLOWING && !isAuthorFollowed(post.author)) {
         return false;
       }
 
@@ -343,7 +352,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
 
       return true;
     });
-  }, [activeTab, posts, searchQuery, selectedTag]);
+  }, [activeTab, isAuthorFollowed, posts, searchQuery, selectedTag]);
 
   const popularTags = useMemo(() => {
     const counts = new Map<string, number>();
@@ -364,7 +373,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
     ] as Array<[string, number]>;
   }, [posts]);
 
-  const handleOpenComposer = (mode: ComposerMode = 'question') => {
+  const handleOpenComposer = (mode: ComposerMode = ComposerMode.QUESTION) => {
     if (!user?.id) {
       router.push('/login?redirect=/cong-dong');
       return;
@@ -376,8 +385,8 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
 
   const handleCreatedPost = (created: CommunityPost) => {
     setPosts((current) => [created, ...current.filter((p) => p.id !== created.id)]);
-    if (activeTab === 'saved') {
-      setActiveTab('all');
+    if (activeTab === CommunityTabKey.SAVED) {
+      setActiveTab(CommunityTabKey.ALL);
     }
   };
 
@@ -389,7 +398,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
 
   const handleBookmarkUpdate = (postId: string, bookmarked: boolean) => {
     setPosts((current) => {
-      if (activeTab === 'saved' && !bookmarked) {
+      if (activeTab === CommunityTabKey.SAVED && !bookmarked) {
         return current.filter((p) => p.id !== postId);
       }
       return current.map((p) => (p.id === postId ? { ...p, bookmarkedByMe: bookmarked } : p));
@@ -503,13 +512,13 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
                 {TABS.map((tab) => {
                   const isActive = activeTab === tab.key;
                   const IconComponent =
-                    tab.key === 'trending'
+                    tab.key === CommunityTabKey.TRENDING
                       ? Flame
-                      : tab.key === 'following'
+                      : tab.key === CommunityTabKey.FOLLOWING
                         ? UserCheck
-                        : tab.key === 'shared_blog'
+                        : tab.key === CommunityTabKey.SHARED_BLOG
                           ? Share2
-                          : tab.key === 'saved'
+                          : tab.key === CommunityTabKey.SAVED
                             ? Bookmark
                             : Layers;
                   return (
@@ -702,7 +711,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
           <div className="flex items-center justify-between gap-3 rounded-[8px] border border-[#E3D6BE] bg-[#FAF5E6] px-5 py-3.5">
             <button
               type="button"
-              onClick={() => handleOpenComposer('question')}
+              onClick={() => handleOpenComposer(ComposerMode.QUESTION)}
               className="flex min-w-0 flex-1 items-center gap-3 rounded-[6px] border border-[#E2D5BC] bg-[#FDF9F0] px-4 py-2.5 text-left text-[14px] text-[#6E5D4B] transition-colors hover:border-[#8A5A19] hover:text-[#14233F]"
             >
               <MessageSquarePlus size={17} className="shrink-0 text-[#7A1F24]" />
@@ -715,7 +724,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
           </div>
 
           {/* Thanh trạng thái nhỏ gọn khi người dùng đang bật bộ lọc tìm kiếm hoặc chủ đề từ cột trái */}
-          {(selectedTag || searchQuery.trim() || activeTab !== 'all') && (
+          {(selectedTag || searchQuery.trim() || activeTab !== CommunityTabKey.ALL) && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-[6px] bg-[#F1E6D0] px-4 py-2.5 text-[13px] text-[#5C4E3C]">
               <div className="flex flex-wrap items-center gap-2">
                 <span>Đang hiển thị:</span>
@@ -742,7 +751,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
                 onClick={() => {
                   setSelectedTag(null);
                   setSearchQuery('');
-                  setActiveTab('all');
+                  setActiveTab(CommunityTabKey.ALL);
                 }}
                 className="font-semibold text-[#7A1F24] hover:underline"
               >
@@ -778,7 +787,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
                 </div>
               ))}
             </div>
-          ) : activeTab === 'saved' && !user?.id ? (
+          ) : activeTab === CommunityTabKey.SAVED && !user?.id ? (
             <div className="rounded-[8px] border border-dashed border-[#D8C8AA] bg-[#FDF9F0] p-8 text-center">
               <Bookmark size={22} className="mx-auto text-[#8A5A19]" />
               <h2 className="mt-2.5 text-[17px] font-semibold text-[#14233F]">
@@ -797,30 +806,30 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
           ) : filteredPosts.length === 0 ? (
             <div className="rounded-[8px] border border-dashed border-[#D8C8AA] bg-[#FDF9F0] p-8 text-center">
               <h2 className="text-[17px] font-semibold text-[#14233F]">
-                {activeTab === 'saved'
+                {activeTab === CommunityTabKey.SAVED
                   ? 'Bạn chưa lưu bài thảo luận nào trong danh mục này'
-                  : activeTab === 'following'
+                  : activeTab === CommunityTabKey.FOLLOWING
                     ? 'Bạn chưa theo dõi tác giả nào có bài viết hiển thị'
                     : 'Không tìm thấy bài thảo luận phù hợp'}
               </h2>
               <p className="mt-1.5 text-[14px] text-[#6E5D4B]">
-                {activeTab === 'following'
+                {activeTab === CommunityTabKey.FOLLOWING
                   ? 'Hãy bấm nút "Theo dõi" tại danh sách Thành viên tiêu biểu ở cột bên trái hoặc trên từng bài viết để nhận thảo luận mới.'
                   : selectedTag || searchQuery
                     ? 'Hãy thử xóa bộ lọc từ khóa hoặc chọn một thẻ chủ đề khác ở cột bên trái.'
                     : 'Hãy là người đầu tiên đặt câu hỏi hoặc chia sẻ bài viết từ Blog.'}
               </p>
-              {(selectedTag || searchQuery || activeTab === 'following') && (
+              {(selectedTag || searchQuery || activeTab === CommunityTabKey.FOLLOWING) && (
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedTag(null);
                     setSearchQuery('');
-                    if (activeTab === 'following') setActiveTab('all');
+                    if (activeTab === CommunityTabKey.FOLLOWING) setActiveTab(CommunityTabKey.ALL);
                   }}
                   className="mt-3.5 h-9 rounded-[6px] border border-[#D8C8AA] bg-[#F2E8D5] px-4 text-[13px] font-medium text-[#14233F]"
                 >
-                  {activeTab === 'following' ? 'Xem tất cả thảo luận' : 'Xóa bộ lọc đang chọn'}
+                  {activeTab === CommunityTabKey.FOLLOWING ? 'Xem tất cả thảo luận' : 'Xóa bộ lọc đang chọn'}
                 </button>
               )}
             </div>
@@ -844,7 +853,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
                 />
               ))}
 
-              {(isLoadingMore || (hasMore && activeTab !== 'saved' && activeTab !== 'shared_blog')) && (
+              {(isLoadingMore || (hasMore && activeTab !== CommunityTabKey.SAVED && activeTab !== CommunityTabKey.SHARED_BLOG)) && (
                 <div ref={sentinelRef} className="pt-2 text-center">
                   {isLoadingMore ? (
                     <span className="text-[14px] text-[#6E5D4B]">Đang tải thêm bài thảo luận...</span>

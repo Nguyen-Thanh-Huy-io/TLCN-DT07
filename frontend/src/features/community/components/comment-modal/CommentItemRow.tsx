@@ -6,6 +6,8 @@ import { CommunityCommentItem } from './comment-modal.types';
 import { getAuthorTint, getInitials } from '../../utils/author-avatar.util';
 import { formatVietnameseRelativeTime } from './comment-tree.util';
 
+const GUEST_USER_ID = 'guest-user';
+
 interface CommentItemRowProps {
   item: CommunityCommentItem;
   isReply?: boolean;
@@ -39,7 +41,7 @@ export function CommentItemRow({
   const isEditing = editingId === item.id;
   const isMine =
     (item.authorId && item.authorId === currentUserId) ||
-    item.authorId === 'guest-user' ||
+    item.authorId === GUEST_USER_ID ||
     item.id.startsWith('local-');
 
   return (

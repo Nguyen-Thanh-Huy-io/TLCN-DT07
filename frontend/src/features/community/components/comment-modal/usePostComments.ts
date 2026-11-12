@@ -3,10 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuthSession } from '@/services/auth/useAuthSession';
-import { PublicAuthService } from '@/services/auth/public-auth.service';
 import { API_BASE_URL } from '@/constants/api-url';
-import { CommunityPost } from '../../api';
-import { CommunityCommentItem, SortOrder } from './comment-modal.types';
+import { CommunityApi, CommunityPost } from '../../api';
+import {
+  CommentSortOrder,
+  CommentSocketAction,
+  CommunityCommentItem,
+  SortOrder,
+} from './comment-modal.types';
 import {
   countAllCommentsInTree,
   mapBackendCommentsToTree,
@@ -22,6 +26,21 @@ interface UsePostCommentsProps {
   ) => void;
 }
 
+interface SocketCommentPayload {
+  id?: string;
+  authorId?: string;
+  author?: { id?: string; username?: string };
+  authorName?: string;
+  content: string;
+  createdAt?: string;
+  likeCount?: number;
+  likesCount?: number;
+  parentId?: string | null;
+  comment?: { id?: string; content?: string };
+  commentId?: string;
+  type?: string;
+}
+
 export function usePostComments({
   isOpen,
   post,
@@ -33,7 +52,7 @@ export function usePostComments({
 
   const [comments, setComments] = useState<CommunityCommentItem[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
-  const [sortOrder, setSortOrder] = useState<SortOrder>('oldest');
+  const [sortOrder, setSortOrder] = useState<SortOrder>(CommentSortOrder.OLDEST);
 
   const [composerText, setComposerText] = useState('');
   const [replyingTo, setReplyingTo] = useState<{
@@ -56,17 +75,9 @@ export function usePostComments({
     const loadComments = async () => {
       setIsLoadingComments(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/posts/${post.id}/comments`, {
-          credentials: 'include',
-        });
-        if (res.ok) {
-          const json = await res.json();
-          const rawData = json?.data ?? json;
-          if (!cancelled && Array.isArray(rawData)) {
-            setComments(mapBackendCommentsToTree(rawData));
-          }
-        } else if (!cancelled) {
-          setComments([]);
+        const rawData = await CommunityApi.getComments(post.id);
+        if (!cancelled && Array.isArray(rawData)) {
+          setComments(mapBackendCommentsToTree(rawData));
         }
       } catch {
         if (!cancelled) {
@@ -87,8 +98,7 @@ export function usePostComments({
     });
     socket.emit('join-post-room', { postId: post.id });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    socket.on('post:comment-added', (payload: any) => {
+    socket.on('post:comment-added', (payload: SocketCommentPayload) => {
       const newComment = payload?.comment ?? payload;
       if (!newComment?.id) return;
       setComments((prev) => {
@@ -117,10 +127,9 @@ export function usePostComments({
       });
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    socket.on('post:comment-updated', (payload: any) => {
+    socket.on('post:comment-updated', (payload: SocketCommentPayload) => {
       if (!payload?.commentId) return;
-      if (payload.type === 'deleted') {
+      if (payload.type === CommentSocketAction.DELETED) {
         setComments((prev) =>
           prev
             .filter((c) => c.id !== payload.commentId)
@@ -129,30 +138,30 @@ export function usePostComments({
               replies: c.replies.filter((r) => r.id !== payload.commentId),
             })),
         );
-      } else if (payload.type === 'liked') {
+      } else if (payload.type === CommentSocketAction.LIKED) {
         setComments((prev) =>
           prev.map((c) => {
             if (c.id === payload.commentId) {
-              return { ...c, likes: payload.likeCount };
+              return { ...c, likes: payload.likeCount || 0 };
             }
             return {
               ...c,
               replies: c.replies.map((r) =>
-                r.id === payload.commentId ? { ...r, likes: payload.likeCount } : r,
+                r.id === payload.commentId ? { ...r, likes: payload.likeCount || 0 } : r,
               ),
             };
           }),
         );
-      } else if (payload.type === 'updated' && payload.comment) {
+      } else if (payload.type === CommentSocketAction.UPDATED && payload.comment) {
         setComments((prev) =>
           prev.map((c) => {
             if (c.id === payload.commentId) {
-              return { ...c, content: payload.comment.content };
+              return { ...c, content: payload.comment?.content || c.content };
             }
             return {
               ...c,
               replies: c.replies.map((r) =>
-                r.id === payload.commentId ? { ...r, content: payload.comment.content } : r,
+                r.id === payload.commentId ? { ...r, content: payload.comment?.content || r.content } : r,
               ),
             };
           }),
@@ -169,12 +178,12 @@ export function usePostComments({
 
   const sortedComments = useMemo(() => {
     const list = [...comments];
-    if (sortOrder === 'newest') {
+    if (sortOrder === CommentSortOrder.NEWEST) {
       return list.sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
     }
-    if (sortOrder === 'popular') {
+    if (sortOrder === CommentSortOrder.POPULAR) {
       return list.sort(
         (a, b) => b.likes + b.replies.length * 2 - (a.likes + a.replies.length * 2),
       );
@@ -223,14 +232,7 @@ export function usePostComments({
     );
 
     try {
-      const token = PublicAuthService.getAccessToken();
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      await fetch(`${API_BASE_URL}/posts/${post.id}/comments/${commentId}/like`, {
-        method: 'POST',
-        headers,
-        credentials: 'include',
-      });
+      await CommunityApi.likeComment(post.id, commentId);
     } catch {
       // Giữ optimistic update hoặc rollback nếu cần
     }
@@ -245,65 +247,51 @@ export function usePostComments({
     setReplyingTo(null);
 
     try {
-      const token = PublicAuthService.getAccessToken();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (token) headers.Authorization = `Bearer ${token}`;
+      const saved = await CommunityApi.addComment(
+        post.id,
+        trimmed,
+        parentCommentId || undefined,
+      );
 
-      const res = await fetch(`${API_BASE_URL}/posts/${post.id}/comments`, {
-        method: 'POST',
-        headers,
-        credentials: 'include',
-        body: JSON.stringify({
-          content: trimmed,
-          parentId: parentCommentId || undefined,
-        }),
-      });
+      if (saved?.id) {
+        const mapped: CommunityCommentItem = {
+          id: saved.id,
+          authorId: saved.author?.id || currentUserId,
+          authorName: saved.author?.username || currentUserName,
+          authorBadge: currentUserId === post.author?.id ? 'Tác giả' : undefined,
+          content: saved.content || trimmed,
+          createdAt: saved.createdAt || new Date().toISOString(),
+          likes: saved.likeCount || 0,
+          likedByMe: false,
+          replies: [],
+        };
 
-      if (res.ok) {
-        const json = await res.json();
-        const saved = json?.data ?? json;
-        if (saved?.id) {
-          const mapped: CommunityCommentItem = {
-            id: saved.id,
-            authorId: saved.author?.id || currentUserId,
-            authorName: saved.author?.username || currentUserName,
-            authorBadge: currentUserId === post.author?.id ? 'Tác giả' : undefined,
-            content: saved.content || trimmed,
-            createdAt: saved.createdAt || new Date().toISOString(),
-            likes: saved.likeCount || 0,
-            likedByMe: false,
-            replies: [],
-          };
-
-          setComments((prev) => {
-            if (parentCommentId) {
-              return prev.map((c) =>
-                c.id === parentCommentId
-                  ? { ...c, replies: [...c.replies.filter((r) => r.id !== mapped.id), mapped] }
-                  : c,
-              );
-            }
-            if (prev.some((c) => c.id === mapped.id)) return prev;
-            return [...prev, mapped];
-          });
-
-          onCommentAdded?.(post.id, totalCommentCount + 1, {
-            id: mapped.id,
-            authorName: mapped.authorName,
-            content: mapped.content,
-            createdAt: mapped.createdAt,
-          });
-
-          if (!parentCommentId) {
-            setTimeout(() => {
-              commentsEndRef.current?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
-              });
-            }, 60);
+        setComments((prev) => {
+          if (parentCommentId) {
+            return prev.map((c) =>
+              c.id === parentCommentId
+                ? { ...c, replies: [...c.replies.filter((r) => r.id !== mapped.id), mapped] }
+                : c,
+            );
           }
+          if (prev.some((c) => c.id === mapped.id)) return prev;
+          return [...prev, mapped];
+        });
+
+        onCommentAdded?.(post.id, totalCommentCount + 1, {
+          id: mapped.id,
+          authorName: mapped.authorName,
+          content: mapped.content,
+          createdAt: mapped.createdAt,
+        });
+
+        if (!parentCommentId) {
+          setTimeout(() => {
+            commentsEndRef.current?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'nearest',
+            });
+          }, 60);
         }
       }
     } catch {
@@ -332,17 +320,7 @@ export function usePostComments({
     );
 
     try {
-      const token = PublicAuthService.getAccessToken();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (token) headers.Authorization = `Bearer ${token}`;
-      await fetch(`${API_BASE_URL}/posts/${post.id}/comments/${commentId}`, {
-        method: 'PATCH',
-        headers,
-        credentials: 'include',
-        body: JSON.stringify({ content: trimmed }),
-      });
+      await CommunityApi.updateComment(post.id, commentId, trimmed);
     } catch {
       // Giữ trên giao diện
     }
@@ -360,14 +338,7 @@ export function usePostComments({
     );
 
     try {
-      const token = PublicAuthService.getAccessToken();
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      await fetch(`${API_BASE_URL}/posts/${post.id}/comments/${commentId}`, {
-        method: 'DELETE',
-        headers,
-        credentials: 'include',
-      });
+      await CommunityApi.deleteComment(post.id, commentId);
     } catch {
       // Đã cập nhật trên giao diện
     }

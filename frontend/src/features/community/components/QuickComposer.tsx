@@ -1,12 +1,15 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { BookOpen, ExternalLink, ImagePlus, Link2, MessageSquarePlus, ShieldCheck, Share2, Tag, X } from 'lucide-react';
 import { useAuthSession } from '@/services/auth/useAuthSession';
 import { UploadApiService } from '@/services/entities/upload.service';
+import { ComposerMode } from '@/constants/community.constant';
+import { KEYBOARD_KEYS } from '@/constants/keyboard.constant';
 import { CommunityApi, type CommunityPost, type SharedBlogEmbed } from '../api';
 
-export type ComposerMode = 'question' | 'share_blog';
+export { ComposerMode };
 
 interface QuickComposerProps {
   isOpen: boolean;
@@ -18,13 +21,14 @@ interface QuickComposerProps {
 
 export function QuickComposer({
   isOpen,
-  initialMode = 'question',
+  initialMode = ComposerMode.QUESTION,
   initialSharedBlogSlug = null,
   onClose,
   onCreated,
 }: QuickComposerProps) {
   const user = useAuthSession();
   const [mode, setMode] = useState<ComposerMode>(initialMode);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [period, setPeriod] = useState('');
@@ -43,17 +47,20 @@ export function QuickComposer({
   const [customCardCaption, setCustomCardCaption] = useState('');
   const [blogSearchOrUrl, setBlogSearchOrUrl] = useState('');
 
-  useEffect(() => {
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       setMode(initialMode);
       setErrorMsg('');
     }
-  }, [isOpen, initialMode]);
+  }
 
   useEffect(() => {
     if (!isOpen) return;
     let mounted = true;
-    setLoadingBlogs(true);
+    void Promise.resolve().then(() => {
+      if (mounted) setLoadingBlogs(true);
+    });
     CommunityApi.listShareableBlogs()
       .then((blogs) => {
         if (!mounted) return;
@@ -61,7 +68,7 @@ export function QuickComposer({
         if (initialSharedBlogSlug) {
           const found = blogs.find((b) => b.slug === initialSharedBlogSlug);
           if (found) {
-            setMode('share_blog');
+            setMode(ComposerMode.SHARE_BLOG);
             setSelectedBlog(found);
             setCustomCardCaption(found.excerpt || '');
             if (!title.trim()) {
@@ -76,7 +83,7 @@ export function QuickComposer({
     return () => {
       mounted = false;
     };
-  }, [isOpen, initialSharedBlogSlug]);
+  }, [isOpen, initialSharedBlogSlug, title]);
 
   // Ưu tiên bài Blog của chính người dùng lên đầu danh sách gợi ý
   const filteredBlogs = useMemo(() => {
@@ -159,7 +166,7 @@ export function QuickComposer({
       return;
     }
 
-    if (mode === 'share_blog' && !selectedBlog) {
+    if (mode === ComposerMode.SHARE_BLOG && !selectedBlog) {
       setErrorMsg('Vui lòng chọn một bài Blog chuyên khảo bạn muốn chia sẻ lên Cộng đồng.');
       return;
     }
@@ -187,7 +194,7 @@ export function QuickComposer({
         : tags;
 
       const sharedBlogPayload: SharedBlogEmbed | null =
-        mode === 'share_blog' && selectedBlog
+        mode === ComposerMode.SHARE_BLOG && selectedBlog
           ? {
               ...selectedBlog,
               excerpt: customCardCaption.trim() || selectedBlog.excerpt || null,
@@ -200,8 +207,8 @@ export function QuickComposer({
         content: cleanContent,
         period,
         tags: finalTags,
-        imageUrl: mode === 'question' ? imageUrl : null,
-        imageCaption: mode === 'question' ? imageCaption : undefined,
+        imageUrl: mode === ComposerMode.QUESTION ? imageUrl : null,
+        imageCaption: mode === ComposerMode.QUESTION ? imageCaption : undefined,
         sharedBlog: sharedBlogPayload,
       });
 
@@ -235,12 +242,12 @@ export function QuickComposer({
         <div className="flex items-start justify-between gap-4 border-b border-[#E5DAC4] pb-4">
           <div>
             <h2 id="quick-composer-title" className="text-[18px] font-bold text-[#14233F]">
-              {mode === 'share_blog'
+              {mode === ComposerMode.SHARE_BLOG
                 ? 'Chia sẻ bài Blog lên Cộng đồng'
                 : 'Đặt câu hỏi & Đăng bài ngắn'}
             </h2>
             <p className="mt-1 text-[13px] text-[#7A6B57]">
-              {mode === 'share_blog'
+              {mode === ComposerMode.SHARE_BLOG
                 ? 'Đính kèm thẻ bài viết chuyên khảo từ Blog (gồm ảnh bìa, tiêu đề & lời chú thích nhỏ) để mời cộng đồng đọc và bàn luận.'
                 : 'Đặt câu hỏi sử học ngắn gọn, chia sẻ tư liệu ảnh cổ hoặc mở chủ đề thảo luận nhanh.'}
             </p>
@@ -259,9 +266,9 @@ export function QuickComposer({
         <div className="mt-4 grid grid-cols-2 gap-2 rounded-[8px] border border-[#E2D5B8] bg-[#F2E8D5] p-1">
           <button
             type="button"
-            onClick={() => setMode('question')}
+            onClick={() => setMode(ComposerMode.QUESTION)}
             className={`inline-flex h-9 items-center justify-center gap-2 rounded-[6px] text-[13px] font-semibold transition-colors ${
-              mode === 'question'
+              mode === ComposerMode.QUESTION
                 ? 'bg-[#7A1F24] text-[#FAF5E6]'
                 : 'text-[#5C4E3C] hover:text-[#14233F]'
             }`}
@@ -271,9 +278,9 @@ export function QuickComposer({
           </button>
           <button
             type="button"
-            onClick={() => setMode('share_blog')}
+            onClick={() => setMode(ComposerMode.SHARE_BLOG)}
             className={`inline-flex h-9 items-center justify-center gap-2 rounded-[6px] text-[13px] font-semibold transition-colors ${
-              mode === 'share_blog'
+              mode === ComposerMode.SHARE_BLOG
                 ? 'bg-[#7A1F24] text-[#FAF5E6]'
                 : 'text-[#5C4E3C] hover:text-[#14233F]'
             }`}
@@ -285,7 +292,7 @@ export function QuickComposer({
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           {/* Nếu ở chế độ Chia sẻ bài Blog: Chọn bài Blog & Xem trước thẻ Facebook */}
-          {mode === 'share_blog' && (
+          {mode === ComposerMode.SHARE_BLOG && (
             <div className="space-y-3 rounded-[8px] border border-[#D8C8AA] bg-[#F2E8D5] p-4">
               <div className="flex items-center justify-between">
                 <label className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#14233F]">
@@ -331,9 +338,12 @@ export function QuickComposer({
                           className="flex w-full items-center gap-3 rounded-[6px] border border-[#E2D5B8] bg-[#FDF9F0] p-2.5 text-left transition-colors hover:border-[#7A1F24]"
                         >
                           {blog.coverImageUrl ? (
-                            <img
+                            <Image
                               src={blog.coverImageUrl}
                               alt={blog.title}
+                              width={64}
+                              height={48}
+                              unoptimized
                               className="h-12 w-16 shrink-0 rounded-[4px] object-cover"
                             />
                           ) : (
@@ -362,9 +372,12 @@ export function QuickComposer({
                 <div className="space-y-3">
                   <div className="overflow-hidden rounded-[8px] border border-[#D4C5A6] bg-[#FAF5E6]">
                     {selectedBlog.coverImageUrl ? (
-                      <img
+                      <Image
                         src={selectedBlog.coverImageUrl}
                         alt={selectedBlog.title}
+                        width={600}
+                        height={160}
+                        unoptimized
                         className="h-40 w-full object-cover"
                       />
                     ) : (
@@ -408,7 +421,7 @@ export function QuickComposer({
 
           <div>
             <label htmlFor="qc-title" className="mb-2 block text-[14px] font-medium text-[#14233F]">
-              {mode === 'share_blog'
+              {mode === ComposerMode.SHARE_BLOG
                 ? 'Tiêu đề bài đăng chia sẻ trên Cộng đồng'
                 : 'Câu hỏi hoặc chủ đề thảo luận ngắn'}
             </label>
@@ -419,7 +432,7 @@ export function QuickComposer({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={
-                mode === 'share_blog'
+                mode === ComposerMode.SHARE_BLOG
                   ? 'Ví dụ: Mời mọi người cùng đọc bài chuyên khảo mới của mình và cho ý kiến!'
                   : 'Ví dụ: Tư liệu về hệ thống dịch trạm thời Nguyễn dưới triều Minh Mạng?'
               }
@@ -429,17 +442,17 @@ export function QuickComposer({
 
           <div>
             <label htmlFor="qc-content" className="mb-2 block text-[14px] font-medium text-[#14233F]">
-              {mode === 'share_blog'
+              {mode === ComposerMode.SHARE_BLOG
                 ? 'Lời dẫn / Cảm nghĩ của bạn khi chia sẻ'
                 : 'Nội dung câu hỏi & chi tiết cần trao đổi'}
             </label>
             <textarea
               id="qc-content"
-              rows={mode === 'share_blog' ? 3 : 4}
+              rows={mode === ComposerMode.SHARE_BLOG ? 3 : 4}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={
-                mode === 'share_blog'
+                mode === ComposerMode.SHARE_BLOG
                   ? 'Viết vài dòng giới thiệu điểm tâm đắc hoặc câu hỏi gợi mở trước khi độc giả bấm vào thẻ bài Blog...'
                   : 'Trình bày ngắn gọn bối cảnh hoặc thắc mắc lịch sử bạn muốn cộng đồng cùng giải đáp...'
               }
@@ -473,7 +486,7 @@ export function QuickComposer({
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === KEYBOARD_KEYS.ENTER) {
                       e.preventDefault();
                       addTagsFromInput();
                     }
@@ -515,7 +528,7 @@ export function QuickComposer({
           ) : null}
 
           {/* Đính kèm ảnh tư liệu (chỉ hiện khi đăng câu hỏi ngắn trực tiếp) */}
-          {mode === 'question' && (
+          {mode === ComposerMode.QUESTION && (
             <div className="rounded-[8px] border border-[#E2D5B8] bg-[#F2E8D5] p-3.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#14233F]">
@@ -539,9 +552,12 @@ export function QuickComposer({
               {imageUrl ? (
                 <div className="mt-3 space-y-2">
                   <div className="relative overflow-hidden rounded-[6px] border border-[#E2D5B8] bg-[#FDF9F0]">
-                    <img
+                    <Image
                       src={imageUrl}
                       alt="Ảnh tư liệu đính kèm"
+                      width={600}
+                      height={200}
+                      unoptimized
                       className="max-h-48 w-full object-cover"
                     />
                     <button
@@ -592,7 +608,7 @@ export function QuickComposer({
             >
               {isSubmitting
                 ? 'Đang đăng...'
-                : mode === 'share_blog'
+                : mode === ComposerMode.SHARE_BLOG
                   ? 'Chia sẻ lên Cộng đồng'
                   : 'Đăng câu hỏi'}
             </button>

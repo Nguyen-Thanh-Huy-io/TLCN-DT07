@@ -22,6 +22,24 @@ import {
 import { useActiveEditor } from '../../../context/ActiveEditorContext';
 import { WikiLinkInspectorSection } from '../WikiLinkInspectorSection';
 
+export enum TipTapBlockStyle {
+  H1 = 'h1',
+  H2 = 'h2',
+  H3 = 'h3',
+  BLOCKQUOTE = 'blockquote',
+  CODE_BLOCK = 'codeBlock',
+  LEAD = 'lead',
+  PARAGRAPH = 'paragraph',
+}
+
+const NODE_TYPE_PARAGRAPH = 'paragraph';
+const NODE_TYPE_HEADING = 'heading';
+const TOOL_CLEAR = 'clear';
+
+const BTN_INACTIVE_CLASS =
+  'bg-white text-stone-800 border-stone-300 hover:bg-stone-50';
+const BTN_ACTIVE_CLASS = 'bg-stone-900 text-white border-stone-900';
+
 const ALIGN_BUTTONS = [
   { id: 'left', label: 'Căn trái', IconComp: AlignLeft },
   { id: 'center', label: 'Căn giữa', IconComp: AlignCenter },
@@ -31,6 +49,182 @@ const ALIGN_BUTTONS = [
 
 const LINE_HEIGHT_OPTIONS = ['120%', '140%', '160%', '180%', '200%'] as const;
 const TEXT_COLUMN_OPTIONS = [1, 2, 3] as const;
+
+function getActiveBlockStyle(
+  ed: ReturnType<typeof useActiveEditor>['activeEditor']
+): TipTapBlockStyle {
+  if (!ed) return TipTapBlockStyle.PARAGRAPH;
+  if (ed.isActive('heading', { level: 1 })) return TipTapBlockStyle.H1;
+  if (ed.isActive('heading', { level: 2 })) return TipTapBlockStyle.H2;
+  if (ed.isActive('heading', { level: 3 })) return TipTapBlockStyle.H3;
+  if (ed.isActive('blockquote')) return TipTapBlockStyle.BLOCKQUOTE;
+  if (ed.isActive('codeBlock')) return TipTapBlockStyle.CODE_BLOCK;
+  return TipTapBlockStyle.PARAGRAPH;
+}
+
+function applyTipTapBlockStyle(
+  ed: ReturnType<typeof useActiveEditor>['activeEditor'],
+  val: string
+) {
+  if (!ed) return;
+  const chain = ed.chain().focus();
+  switch (val) {
+    case TipTapBlockStyle.H1:
+      chain.toggleHeading({ level: 1 }).run();
+      break;
+    case TipTapBlockStyle.H2:
+      chain.toggleHeading({ level: 2 }).run();
+      break;
+    case TipTapBlockStyle.H3:
+      chain.toggleHeading({ level: 3 }).run();
+      break;
+    case TipTapBlockStyle.BLOCKQUOTE:
+      chain.toggleBlockquote().run();
+      break;
+    case TipTapBlockStyle.CODE_BLOCK:
+      chain.toggleCodeBlock().run();
+      break;
+    case TipTapBlockStyle.LEAD:
+      chain
+        .setParagraph()
+        .updateAttributes(NODE_TYPE_PARAGRAPH, { leadParagraph: true })
+        .run();
+      break;
+    default:
+      chain
+        .setParagraph()
+        .updateAttributes(NODE_TYPE_PARAGRAPH, { leadParagraph: false })
+        .run();
+      break;
+  }
+}
+
+function TypographyEditorialSection({
+  ed,
+  nodeType,
+  currentLineHeight,
+  isDropCapActive,
+  currentTextColumns,
+  isLinkPanelOpen,
+  setIsLinkPanelOpen,
+  applyNodeAttr,
+  handleInsertImage,
+  preventFocusLoss,
+}: {
+  ed: ReturnType<typeof useActiveEditor>['activeEditor'];
+  nodeType: string;
+  currentLineHeight: string;
+  isDropCapActive: boolean;
+  currentTextColumns: 1 | 2 | 3;
+  isLinkPanelOpen: boolean;
+  setIsLinkPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  applyNodeAttr: (updates: Record<string, unknown>) => void;
+  handleInsertImage: () => void;
+  preventFocusLoss: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <>
+      <div className="space-y-3 pt-3 border-t border-stone-200">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-stone-800">Giãn dòng</span>
+          <select
+            value={currentLineHeight}
+            onChange={(e) => applyNodeAttr({ lineHeight: e.target.value })}
+            className="text-sm font-semibold px-3 py-1.5 bg-white border border-stone-300 rounded-lg focus:outline-none cursor-pointer text-stone-900"
+          >
+            {LINE_HEIGHT_OPTIONS.map((lh) => (
+              <option key={lh} value={lh}>
+                {lh}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <label className="flex items-center justify-between text-sm font-medium text-stone-800 cursor-pointer">
+          <span>Chữ cái đầu đoạn lớn (Drop Cap)</span>
+          <input
+            type="checkbox"
+            checked={isDropCapActive}
+            disabled={!ed || nodeType !== NODE_TYPE_PARAGRAPH}
+            onChange={(e) => applyNodeAttr({ dropCap: e.target.checked })}
+            className="rounded text-stone-900 focus:ring-0 w-4 h-4"
+          />
+        </label>
+
+        <div className="space-y-1.5">
+          <span className="block text-sm font-medium text-stone-800">
+            Chia cột đoạn văn (Tạp chí)
+          </span>
+          <div className="grid grid-cols-3 gap-1.5">
+            {TEXT_COLUMN_OPTIONS.map((cols) => (
+              <button
+                key={cols}
+                type="button"
+                onMouseDown={preventFocusLoss}
+                disabled={!ed || nodeType !== NODE_TYPE_PARAGRAPH}
+                onClick={() => applyNodeAttr({ textColumns: cols })}
+                className={`py-1.5 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
+                  currentTextColumns === cols ? BTN_ACTIVE_CLASS : BTN_INACTIVE_CLASS
+                }`}
+              >
+                {cols} cột
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-3 border-t border-stone-200 space-y-2">
+        <div className="text-xs font-bold uppercase tracking-wider text-stone-700">
+          Chèn vào văn bản
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            data-testid="btn-toggle-wiki-link-panel"
+            onMouseDown={preventFocusLoss}
+            onClick={() => setIsLinkPanelOpen((prev) => !prev)}
+            className={`py-2 px-2 border rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+              isLinkPanelOpen || ed?.isActive('link')
+                ? BTN_ACTIVE_CLASS
+                : BTN_INACTIVE_CLASS
+            }`}
+            title="Gắn liên kết văn bản (Ctrl+K)"
+          >
+            <Link2 className="w-4 h-4" />
+            <span>Liên kết</span>
+          </button>
+          <button
+            type="button"
+            onMouseDown={preventFocusLoss}
+            onClick={handleInsertImage}
+            className={`py-2 px-2 border rounded-lg text-sm font-medium text-stone-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${BTN_INACTIVE_CLASS}`}
+            title="Chèn hình ảnh"
+          >
+            <ImageIcon className="w-4 h-4 text-stone-700" />
+            <span>Ảnh</span>
+          </button>
+          <button
+            type="button"
+            onMouseDown={preventFocusLoss}
+            onClick={() => ed?.chain().focus().setHorizontalRule().run()}
+            className={`py-2 px-2 border rounded-lg text-sm font-medium text-stone-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${BTN_INACTIVE_CLASS}`}
+            title="Chèn đường kẻ ngang"
+          >
+            <Minus className="w-4 h-4 text-stone-700" />
+            <span>Kẻ ngang</span>
+          </button>
+        </div>
+      </div>
+
+      <WikiLinkInspectorSection
+        editor={ed}
+        isOpen={isLinkPanelOpen}
+        onOpenChange={setIsLinkPanelOpen}
+      />
+    </>
+  );
+}
 
 /**
  * Bảng điều khiển Định dạng Chữ & Dàn trang Tạp chí (Rich Text Typography Inspector).
@@ -46,19 +240,8 @@ export function TypographyInspectorPanel({
   const { activeEditor: ed } = useActiveEditor();
   const [isLinkPanelOpen, setIsLinkPanelOpen] = useState(false);
 
-  const activeBlockType = ed?.isActive('heading', { level: 1 })
-    ? 'h1'
-    : ed?.isActive('heading', { level: 2 })
-    ? 'h2'
-    : ed?.isActive('heading', { level: 3 })
-    ? 'h3'
-    : ed?.isActive('blockquote')
-    ? 'blockquote'
-    : ed?.isActive('codeBlock')
-    ? 'codeBlock'
-    : 'paragraph';
-
-  const nodeType = ed?.isActive('heading') ? 'heading' : 'paragraph';
+  const activeBlockType = getActiveBlockStyle(ed);
+  const nodeType = ed?.isActive('heading') ? NODE_TYPE_HEADING : NODE_TYPE_PARAGRAPH;
   const nodeAttrs = ed?.getAttributes(nodeType) || {};
   const markAttrs = ed?.getAttributes('inlineTypography') || {};
 
@@ -72,21 +255,6 @@ export function TypographyInspectorPanel({
     parseInt(String(markAttrs.fontSize || '16').replace('px', ''), 10) || 16;
   const currentColor = markAttrs.color || '#1c1917';
   const currentBgColor = markAttrs.backgroundColor || '';
-
-  const handleStyleChange = (val: string) => {
-    if (!ed) return;
-    const chain = ed.chain().focus();
-    if (val === 'h1') chain.toggleHeading({ level: 1 }).run();
-    else if (val === 'h2') chain.toggleHeading({ level: 2 }).run();
-    else if (val === 'h3') chain.toggleHeading({ level: 3 }).run();
-    else if (val === 'blockquote') chain.toggleBlockquote().run();
-    else if (val === 'codeBlock') chain.toggleCodeBlock().run();
-    else if (val === 'lead') {
-      chain.setParagraph().updateAttributes('paragraph', { leadParagraph: true }).run();
-    } else {
-      chain.setParagraph().updateAttributes('paragraph', { leadParagraph: false }).run();
-    }
-  };
 
   const applyInlineAttr = (updates: Record<string, string | null>) => {
     if (!ed) return;
@@ -123,21 +291,21 @@ export function TypographyInspectorPanel({
         {!compact && (
           <select
             value={
-              activeBlockType === 'paragraph' && isLeadParagraphActive
-                ? 'lead'
+              activeBlockType === TipTapBlockStyle.PARAGRAPH && isLeadParagraphActive
+                ? TipTapBlockStyle.LEAD
                 : activeBlockType
             }
-            onChange={(e) => handleStyleChange(e.target.value)}
+            onChange={(e) => applyTipTapBlockStyle(ed, e.target.value)}
             disabled={!ed}
             className="w-full text-sm font-medium px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 cursor-pointer text-stone-900"
           >
-            <option value="paragraph">Đoạn văn thường</option>
-            <option value="lead">Đoạn dẫn nhập (Tạp chí)</option>
-            <option value="h1">Tiêu đề chính</option>
-            <option value="h2">Tiêu đề mục lớn</option>
-            <option value="h3">Tiêu đề tiểu mục</option>
-            <option value="blockquote">Khối trích dẫn</option>
-            <option value="codeBlock">Khối tư liệu gốc</option>
+            <option value={TipTapBlockStyle.PARAGRAPH}>Đoạn văn thường</option>
+            <option value={TipTapBlockStyle.LEAD}>Đoạn dẫn nhập (Tạp chí)</option>
+            <option value={TipTapBlockStyle.H1}>Tiêu đề chính</option>
+            <option value={TipTapBlockStyle.H2}>Tiêu đề mục lớn</option>
+            <option value={TipTapBlockStyle.H3}>Tiêu đề tiểu mục</option>
+            <option value={TipTapBlockStyle.BLOCKQUOTE}>Khối trích dẫn</option>
+            <option value={TipTapBlockStyle.CODE_BLOCK}>Khối tư liệu gốc</option>
           </select>
         )}
 
@@ -202,7 +370,7 @@ export function TypographyInspectorPanel({
                 className={`flex-1 py-2 rounded-lg border transition-colors cursor-pointer flex items-center justify-center ${
                   ed?.isActive(key)
                     ? 'text-white border-stone-900'
-                    : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
+                    : BTN_INACTIVE_CLASS
                 }`}
                 style={
                   ed?.isActive(key)
@@ -240,9 +408,7 @@ export function TypographyInspectorPanel({
               onMouseDown={preventFocusLoss}
               onClick={() => applyNodeAttr({ textAlign: id })}
               className={`py-2 rounded-lg border transition-colors cursor-pointer flex items-center justify-center ${
-                currentAlign === id
-                  ? 'bg-stone-900 text-white border-stone-900'
-                  : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
+                currentAlign === id ? BTN_ACTIVE_CLASS : BTN_INACTIVE_CLASS
               }`}
               title={label}
             >
@@ -273,7 +439,7 @@ export function TypographyInspectorPanel({
               run: () => ed?.chain().focus().toggleBlockquote().run(),
             },
             {
-              key: 'clear',
+              key: TOOL_CLEAR,
               title: 'Xóa mọi định dạng',
               Icon: Eraser,
               run: () => ed?.chain().focus().unsetAllMarks().clearNodes().run(),
@@ -291,9 +457,9 @@ export function TypographyInspectorPanel({
               onMouseDown={preventFocusLoss}
               onClick={run}
               className={`py-2 rounded-lg border transition-colors cursor-pointer flex items-center justify-center ${
-                key !== 'clear' && ed?.isActive(key)
-                  ? 'bg-stone-900 text-white border-stone-900'
-                  : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
+                key !== TOOL_CLEAR && ed?.isActive(key)
+                  ? BTN_ACTIVE_CLASS
+                  : BTN_INACTIVE_CLASS
               }`}
               title={title}
             >
@@ -348,110 +514,18 @@ export function TypographyInspectorPanel({
       </div>
 
       {!compact && (
-        <>
-          {/* Giãn dòng & Dàn trang tạp chí (Drop Cap + Chia cột văn bản) */}
-          <div className="space-y-3 pt-3 border-t border-stone-200">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-stone-800">Giãn dòng</span>
-              <select
-                value={currentLineHeight}
-                onChange={(e) => applyNodeAttr({ lineHeight: e.target.value })}
-                className="text-sm font-semibold px-3 py-1.5 bg-white border border-stone-300 rounded-lg focus:outline-none cursor-pointer text-stone-900"
-              >
-                {LINE_HEIGHT_OPTIONS.map((lh) => (
-                  <option key={lh} value={lh}>
-                    {lh}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <label className="flex items-center justify-between text-sm font-medium text-stone-800 cursor-pointer">
-              <span>Chữ cái đầu đoạn lớn (Drop Cap)</span>
-              <input
-                type="checkbox"
-                checked={isDropCapActive}
-                disabled={!ed || nodeType !== 'paragraph'}
-                onChange={(e) => applyNodeAttr({ dropCap: e.target.checked })}
-                className="rounded text-stone-900 focus:ring-0 w-4 h-4"
-              />
-            </label>
-
-            <div className="space-y-1.5">
-              <span className="block text-sm font-medium text-stone-800">
-                Chia cột đoạn văn (Tạp chí)
-              </span>
-              <div className="grid grid-cols-3 gap-1.5">
-                {TEXT_COLUMN_OPTIONS.map((cols) => (
-                  <button
-                    key={cols}
-                    type="button"
-                    onMouseDown={preventFocusLoss}
-                    disabled={!ed || nodeType !== 'paragraph'}
-                    onClick={() => applyNodeAttr({ textColumns: cols })}
-                    className={`py-1.5 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
-                      currentTextColumns === cols
-                        ? 'bg-stone-900 text-white border-stone-900'
-                        : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
-                    }`}
-                  >
-                    {cols} cột
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Chèn vào văn bản */}
-          <div className="pt-3 border-t border-stone-200 space-y-2">
-            <div className="text-xs font-bold uppercase tracking-wider text-stone-700">
-              Chèn vào văn bản
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                data-testid="btn-toggle-wiki-link-panel"
-                onMouseDown={preventFocusLoss}
-                onClick={() => setIsLinkPanelOpen((prev) => !prev)}
-                className={`py-2 px-2 border rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                  isLinkPanelOpen || ed?.isActive('link')
-                    ? 'bg-stone-900 text-white border-stone-900'
-                    : 'bg-white hover:bg-stone-50 border-stone-300 text-stone-800'
-                }`}
-                title="Gắn liên kết văn bản (Ctrl+K)"
-              >
-                <Link2 className="w-4 h-4" />
-                <span>Liên kết</span>
-              </button>
-              <button
-                type="button"
-                onMouseDown={preventFocusLoss}
-                onClick={handleInsertImage}
-                className="py-2 px-2 bg-white hover:bg-stone-50 border border-stone-300 rounded-lg text-sm font-medium text-stone-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                title="Chèn hình ảnh"
-              >
-                <ImageIcon className="w-4 h-4 text-stone-700" />
-                <span>Ảnh</span>
-              </button>
-              <button
-                type="button"
-                onMouseDown={preventFocusLoss}
-                onClick={() => ed?.chain().focus().setHorizontalRule().run()}
-                className="py-2 px-2 bg-white hover:bg-stone-50 border border-stone-300 rounded-lg text-sm font-medium text-stone-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                title="Chèn đường kẻ ngang"
-              >
-                <Minus className="w-4 h-4 text-stone-700" />
-                <span>Kẻ ngang</span>
-              </button>
-            </div>
-          </div>
-
-          <WikiLinkInspectorSection
-            editor={ed}
-            isOpen={isLinkPanelOpen}
-            onOpenChange={setIsLinkPanelOpen}
-          />
-        </>
+        <TypographyEditorialSection
+          ed={ed}
+          nodeType={nodeType}
+          currentLineHeight={currentLineHeight}
+          isDropCapActive={isDropCapActive}
+          currentTextColumns={currentTextColumns}
+          isLinkPanelOpen={isLinkPanelOpen}
+          setIsLinkPanelOpen={setIsLinkPanelOpen}
+          applyNodeAttr={applyNodeAttr}
+          handleInsertImage={handleInsertImage}
+          preventFocusLoss={preventFocusLoss}
+        />
       )}
     </div>
   );

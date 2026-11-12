@@ -94,12 +94,19 @@ export class BlogService {
     let ordered = posts;
     if (query?.sort === 'trending') {
       const now = Date.now();
-      const computeTrendingScore = (post: any) => {
+      const computeTrendingScore = (post: {
+        likeCount?: number | null;
+        commentCount?: number | null;
+        viewCount?: number | null;
+        publishedAt?: Date | string | null;
+        createdAt: Date | string;
+      }) => {
         const engagement =
           (post.likeCount ?? 0) * 2 +
           (post.commentCount ?? 0) * 3 +
           (post.viewCount ?? 0) * 0.1;
-        const ts = new Date(post.publishedAt ?? post.createdAt).getTime();
+        const rawDate = post.publishedAt ?? post.createdAt;
+        const ts = new Date(rawDate).getTime();
         const ageDays = Math.max(0, (now - ts) / 86_400_000);
         // Giảm dần theo thời gian (time decay): bài sôi nổi gần đây ưu tiên hơn bài quá cũ
         return engagement / Math.pow(ageDays + 1, 0.5) - ageDays * 0.05;
@@ -146,7 +153,7 @@ export class BlogService {
         author: mapped.author
           ? {
               ...mapped.author,
-              followedByMe: followedAuthorSet.has(mapped.author.id),
+              followedByMe: followedAuthorSet.has(String(mapped.author.id)),
             }
           : null,
         previewComment: previewMap.get(post.id) ?? null,
@@ -662,14 +669,14 @@ export class BlogService {
     this.blogGateway.emitCommentUpdated(postId, {
       type: 'liked',
       commentId,
-      likeCount: Math.max(0, updatedComment.likeCount),
+      likeCount: Math.max(0, Number(updatedComment.likeCount) || 0),
       liked: !existingLike,
     });
 
     return {
       success: true,
       commentId,
-      likeCount: Math.max(0, updatedComment.likeCount),
+      likeCount: Math.max(0, Number(updatedComment.likeCount) || 0),
       liked: !existingLike,
     };
   }
@@ -1242,64 +1249,32 @@ export class BlogService {
         author: base.author
           ? {
               ...base.author,
-              followedByMe: followedUserSet.has(base.author.id),
+              followedByMe: followedUserSet.has(String(base.author.id)),
             }
           : null,
         previewComment: previewMap.get(post.id) ?? null,
       };
     });
 
-    // Tính toán thống kê đóng góp từ chính danh sách bài viết để đảm bảo khớp 100%
-    const postCount = mappedPosts.length;
-    let sharedBlogCount = 0;
-    let totalLikesReceived = 0;
-    let totalCommentsReceived = 0;
-    let totalViewsReceived = 0;
-    const topicCounts = new Map<string, number>();
+    const {
+      postCount,
+      sharedBlogCount,
+      totalLikesReceived,
+      totalCommentsReceived,
+      totalViewsReceived,
+      topTopics,
+    } = this.computeCommunityContributionStats(mappedPosts);
 
-    for (const p of mappedPosts) {
-      totalLikesReceived += p.likeCount ?? 0;
-      totalCommentsReceived += p.commentCount ?? 0;
-      totalViewsReceived += p.viewCount ?? 0;
-
-      if (Array.isArray(p.contentBlocks)) {
-        for (const raw of p.contentBlocks) {
-          if (!raw || typeof raw !== 'object') continue;
-          const block = raw as Record<string, any>;
-          if (block.type === 'meta' || block.kind === 'metadata') {
-            const meta = (
-              block.metadata && typeof block.metadata === 'object'
-                ? block.metadata
-                : block
-            ) as Record<string, any>;
-            if (
-              meta.sharedBlog &&
-              typeof meta.sharedBlog === 'object' &&
-              meta.sharedBlog.slug
-            ) {
-              sharedBlogCount += 1;
-            }
-            if (Array.isArray(meta.tags)) {
-              for (const t of meta.tags) {
-                const tagStr = (typeof t === 'string' ? t : t?.name || '')
-                  .trim()
-                  .replace(/^#/, '');
-                if (tagStr) {
-                  topicCounts.set(tagStr, (topicCounts.get(tagStr) || 0) + 1);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    const topTopics = Array.from(topicCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([tag, count]) => ({ tag, count }));
-
-    const mapMemberCard = (member: any, followedAt: Date) => ({
+    const mapMemberCard = (
+      member: {
+        id: string;
+        username: string;
+        userProfile?: any;
+        role?: any;
+        _count?: any;
+      },
+      followedAt: Date,
+    ) => ({
       id: member.id,
       username: member.username,
       displayName:
@@ -1313,7 +1288,7 @@ export class BlogService {
       postCount: member._count?.blogPosts ?? 0,
       followerCount: member._count?.followers ?? 0,
       followingCount: member._count?.following ?? 0,
-      followedByMe: followedUserSet.has(member.id),
+      followedByMe: followedUserSet.has(String(member.id)),
       isMe: viewerId === member.id,
       followedAt,
     });
@@ -1497,6 +1472,97 @@ export class BlogService {
             likeCount: reply.likeCount ?? 0,
           }))
         : [],
+    };
+  }
+
+  private parseTagsList(rawTags: unknown): string[] {
+    if (!Array.isArray(rawTags)) return [];
+    const tags: string[] = [];
+    for (const t of rawTags) {
+      const rawTag: unknown =
+        typeof t === 'string'
+          ? t
+          : typeof t === 'object' && t !== null && 'name' in t
+            ? (t as Record<string, unknown>).name
+            : '';
+      const tagStr =
+        typeof rawTag === 'string' ? rawTag.trim().replace(/^#/, '') : '';
+      if (tagStr) {
+        tags.push(tagStr);
+      }
+    }
+    return tags;
+  }
+
+  private extractTagsAndSharedBlogsFromBlocks(contentBlocks: unknown) {
+    let sharedBlogCount = 0;
+    const tags: string[] = [];
+
+    if (!Array.isArray(contentBlocks)) {
+      return { sharedBlogCount, tags };
+    }
+
+    for (const raw of contentBlocks) {
+      if (!raw || typeof raw !== 'object') continue;
+      const block = raw as Record<string, any>;
+      if (block.type !== 'meta' && block.kind !== 'metadata') continue;
+
+      const meta = (
+        block.metadata && typeof block.metadata === 'object'
+          ? block.metadata
+          : block
+      ) as Record<string, any>;
+
+      if (meta.sharedBlog?.slug) {
+        sharedBlogCount += 1;
+      }
+
+      tags.push(...this.parseTagsList(meta.tags));
+    }
+
+    return { sharedBlogCount, tags };
+  }
+
+  private computeCommunityContributionStats(
+    mappedPosts: Array<{
+      likeCount?: number | null;
+      commentCount?: number | null;
+      viewCount?: number | null;
+      contentBlocks?: unknown;
+    }>,
+  ) {
+    let sharedBlogCount = 0;
+    let totalLikesReceived = 0;
+    let totalCommentsReceived = 0;
+    let totalViewsReceived = 0;
+    const topicCounts = new Map<string, number>();
+
+    for (const p of mappedPosts) {
+      totalLikesReceived += p.likeCount ?? 0;
+      totalCommentsReceived += p.commentCount ?? 0;
+      totalViewsReceived += p.viewCount ?? 0;
+
+      const metaInfo = this.extractTagsAndSharedBlogsFromBlocks(
+        p.contentBlocks,
+      );
+      sharedBlogCount += metaInfo.sharedBlogCount;
+      for (const tag of metaInfo.tags) {
+        topicCounts.set(tag, (topicCounts.get(tag) || 0) + 1);
+      }
+    }
+
+    const topTopics = Array.from(topicCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([tag, count]) => ({ tag, count }));
+
+    return {
+      postCount: mappedPosts.length,
+      sharedBlogCount,
+      totalLikesReceived,
+      totalCommentsReceived,
+      totalViewsReceived,
+      topTopics,
     };
   }
 }

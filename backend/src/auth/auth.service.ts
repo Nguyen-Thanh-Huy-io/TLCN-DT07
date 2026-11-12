@@ -467,46 +467,13 @@ export class AuthService {
       );
     }
 
-    // Check account status
-    if (user.status === 'BLOCKED' || user.status === 'SUSPENDED') {
-      void this.logLoginAttempt({
-        authId: user.id,
-        ip,
-        userAgent,
-        device,
-        success: false,
-        failureReason: `account_${user.status.toLowerCase()}`,
-      });
-      throw AppError.forbidden(
-        `Your account has been ${user.status.toLowerCase()}. Please contact support.`,
-      );
-    }
-
-    if (user.status === 'DELETED' || user.status === 'INACTIVE') {
-      // Run bcrypt to maintain consistent timing
-      await bcrypt.compare(password, user.password);
-      throw invalidCredentialsError;
-    }
-
-    // Check account lockout
-    const security = user.authSecurity;
-    if (security?.lockExpiresAt && new Date() < security.lockExpiresAt) {
-      const remainingTime = Math.ceil(
-        (security.lockExpiresAt.getTime() - Date.now()) / 1000 / 60,
-      );
-      void this.logLoginAttempt({
-        authId: user.id,
-        ip,
-        userAgent,
-        device,
-        success: false,
-        failureReason: 'account_locked',
-        attemptNumber: security.failedAttempts + 1,
-      });
-      throw AppError.forbidden(
-        `Account is temporarily locked. Please try again in ${remainingTime} minutes.`,
-      );
-    }
+    // Check account status & lockout
+    await this.validateAccountStatusAndLockout(
+      user,
+      meta,
+      password,
+      invalidCredentialsError,
+    );
 
     // Verify password (bcrypt uses constant-time comparison internally)
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -520,22 +487,6 @@ export class AuthService {
         { ip, userAgent, device },
       );
       throw invalidCredentialsError;
-    }
-
-    // Check email verification — người học (USER) được đăng nhập và học ngay, chỉ nhắc xác minh;
-    // tài khoản nhân sự CMS vẫn bắt buộc đã xác minh email.
-    if (!user.verified && user.role !== userRole.USER) {
-      void this.logLoginAttempt({
-        authId: user.id,
-        ip,
-        userAgent,
-        device,
-        success: false,
-        failureReason: 'email_not_verified',
-      });
-      throw AppError.forbidden(
-        'Please verify your email address before logging in',
-      );
     }
 
     // Distributed lock to prevent concurrent login race conditions
@@ -1084,5 +1035,68 @@ export class AuthService {
       `Token version incremented for user ${userId}`,
       'AuthService.incrementTokenVersion',
     );
+  }
+
+  private async validateAccountStatusAndLockout(
+    user: any,
+    meta: { ip: string; userAgent: string; device?: string },
+    password: string,
+    invalidCredentialsError: Error,
+  ): Promise<void> {
+    const { ip, userAgent, device } = meta;
+
+    if (user.status === 'BLOCKED' || user.status === 'SUSPENDED') {
+      void this.logLoginAttempt({
+        authId: user.id,
+        ip,
+        userAgent,
+        device,
+        success: false,
+        failureReason: `account_${user.status.toLowerCase()}`,
+      });
+      throw AppError.forbidden(
+        `Your account has been ${user.status.toLowerCase()}. Please contact support.`,
+      );
+    }
+
+    if (user.status === 'DELETED' || user.status === 'INACTIVE') {
+      await bcrypt.compare(password, user.password);
+      throw invalidCredentialsError;
+    }
+
+    const security = user.authSecurity;
+    if (security?.lockExpiresAt && new Date() < security.lockExpiresAt) {
+      const remainingTime = Math.ceil(
+        (security.lockExpiresAt.getTime() - Date.now()) / 1000 / 60,
+      );
+      void this.logLoginAttempt({
+        authId: user.id,
+        ip,
+        userAgent,
+        device,
+        success: false,
+        failureReason: 'account_locked',
+        attemptNumber: security.failedAttempts + 1,
+      });
+      throw AppError.forbidden(
+        `Account is temporarily locked. Please try again in ${remainingTime} minutes.`,
+      );
+    }
+
+    // Check email verification — người học (USER) được đăng nhập và học ngay, chỉ nhắc xác minh;
+    // tài khoản nhân sự CMS vẫn bắt buộc đã xác minh email.
+    if (!user.verified && user.role !== userRole.USER) {
+      void this.logLoginAttempt({
+        authId: user.id,
+        ip,
+        userAgent,
+        device,
+        success: false,
+        failureReason: 'email_not_verified',
+      });
+      throw AppError.forbidden(
+        'Please verify your email address before logging in',
+      );
+    }
   }
 }

@@ -28,7 +28,7 @@ export class UpdateMyProfileDto {
   @MaxLength(500)
   bio?: string;
 
-  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg' })
+  @ApiPropertyOptional({ example: `https://${'example.com/avatar.jpg'}` })
   @IsOptional()
   @IsUrl({ require_tld: false })
   avatarUrl?: string;

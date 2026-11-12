@@ -1,5 +1,6 @@
 import React from 'react';
 import { CornerDownRight, Send } from 'lucide-react';
+import { KEYBOARD_KEYS } from '@/constants/keyboard.constant';
 
 export interface CommentComposerBarProps {
   replyingTo: { commentId: string; authorName: string } | null;
@@ -64,7 +65,7 @@ export const CommentComposerBar: React.FC<CommentComposerBarProps> = ({
             value={composerText}
             onChange={(e) => onComposerTextChange(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
+              if (e.key === KEYBOARD_KEYS.ENTER && !e.shiftKey) {
                 e.preventDefault();
                 void onSubmit();
               }

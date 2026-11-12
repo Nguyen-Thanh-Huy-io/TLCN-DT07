@@ -1,9 +1,16 @@
 'use client';
 
 import type React from 'react';
+import { UserRole } from '@/constants/enums';
 import type { CommunityMemberProfile } from '../../api';
 
-export type ProfileTabKey = 'posts' | 'shared_blog' | 'followers' | 'following' | 'saved';
+export enum ProfileTabKey {
+  POSTS = 'posts',
+  SHARED_BLOG = 'shared_blog',
+  FOLLOWERS = 'followers',
+  FOLLOWING = 'following',
+  SAVED = 'saved',
+}
 
 export interface ProfileComputedStats {
   postCount: number;
@@ -32,8 +39,8 @@ export function formatJoinDate(iso?: string | null): string {
 }
 
 export function getRoleLabel(role?: string): string {
-  if (role === 'ADMIN' || role === 'SUPERADMIN') return 'Hội đồng Thẩm định';
-  if (role === 'MODERATOR') return 'Biên tập viên Sử học';
+  if (role === UserRole.ADMIN || role === UserRole.SUPERADMIN) return 'Hội đồng Thẩm định';
+  if (role === UserRole.MODERATOR) return 'Biên tập viên Sử học';
   return 'Thành viên Cộng đồng';
 }
 

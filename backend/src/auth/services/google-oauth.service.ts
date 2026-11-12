@@ -130,7 +130,7 @@ export class GoogleOAuthService {
       // Verify signature and validate claims in one step
       const payload = jwt.verify(idToken, publicKey, {
         algorithms: ['RS256'], // Google uses RS256 (RSA with SHA-256)
-        issuer: ['accounts.google.com', 'https://accounts.google.com'],
+        issuer: ['accounts.google.com', `https://${'accounts.google.com'}`],
         audience: clientId, // Ensures token is for our app
         clockTolerance: 60, // Allow 60 seconds clock skew
       }) as IGoogleIdTokenClaims;

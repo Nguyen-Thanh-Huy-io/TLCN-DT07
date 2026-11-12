@@ -75,7 +75,27 @@ export class ContentWriteGuard implements CanActivate {
     const current =
       id && resource ? await this.findStatus(resource.model, id) : null;
 
-    // Sửa nội dung đang xuất bản qua endpoint có phiên bản hóa → phiên bản (không chặn).
+    if (
+      this.handleVersionedDirective(request, resource, id, current, isReviewer)
+    ) {
+      return true;
+    }
+
+    this.validateStatusTransition(resource, nextStatus, isReviewer);
+
+    if (!isReviewer && current && LOCKED_FOR_EDITORS.includes(current)) {
+      throw new ForbiddenException(ACCESS_MESSAGES.EDITOR_LOCKED);
+    }
+    return true;
+  }
+
+  private handleVersionedDirective(
+    request: Request,
+    resource: ContentResource | undefined,
+    id: string | null,
+    current: string | null,
+    isReviewer: boolean,
+  ): boolean {
     const versionedType = resource?.versioned
       ? VERSIONED_MODELS[resource.model]
       : undefined;
@@ -88,26 +108,27 @@ export class ContentWriteGuard implements CanActivate {
       (request as Request & { [REVISION_DIRECTIVE_KEY]?: RevisionDirective })[
         REVISION_DIRECTIVE_KEY
       ] = directive;
-      // Bản sửa của biên tập viên không mang trạng thái (status bị bỏ khi lưu bản sửa).
       if (!isReviewer) return true;
     }
+    return false;
+  }
 
-    if (typeof nextStatus === 'string') {
-      if (
-        resource?.model === 'lesson' &&
-        ['PUBLISHED', 'REJECTED'].includes(nextStatus)
-      ) {
-        throw new ForbiddenException(ACCESS_MESSAGES.LESSON_PUBLISH_VIA_REVIEW);
-      }
-      if (!isReviewer && !EDITOR_ALLOWED_STATUSES.includes(nextStatus)) {
-        throw new ForbiddenException(ACCESS_MESSAGES.EDITOR_CANNOT_PUBLISH);
-      }
-    }
+  private validateStatusTransition(
+    resource: ContentResource | undefined,
+    nextStatus: unknown,
+    isReviewer: boolean,
+  ) {
+    if (typeof nextStatus !== 'string') return;
 
-    if (!isReviewer && current && LOCKED_FOR_EDITORS.includes(current)) {
-      throw new ForbiddenException(ACCESS_MESSAGES.EDITOR_LOCKED);
+    if (
+      resource?.model === 'lesson' &&
+      ['PUBLISHED', 'REJECTED'].includes(nextStatus)
+    ) {
+      throw new ForbiddenException(ACCESS_MESSAGES.LESSON_PUBLISH_VIA_REVIEW);
     }
-    return true;
+    if (!isReviewer && !EDITOR_ALLOWED_STATUSES.includes(nextStatus)) {
+      throw new ForbiddenException(ACCESS_MESSAGES.EDITOR_CANNOT_PUBLISH);
+    }
   }
 
   private async findStatus(

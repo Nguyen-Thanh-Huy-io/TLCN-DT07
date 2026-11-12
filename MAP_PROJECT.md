@@ -65,6 +65,7 @@ flowchart TD
   * `ArticlePicker.tsx`, `StatusPill.tsx`, `YearInput.tsx` (hỗ trợ năm TCN), `CategoryManager.tsx`.
   * `person-life.ts` — ghép dòng đời nhân vật dùng chung CMS ⇄ trang công khai (hợp LINK + OWN_NODE + MILESTONE).
 * **Route trang (Next.js):**
+  * CMS: `frontend/src/app/articles/page.tsx` (danh sách), `articles/create/page.tsx` và `articles/[id]/page.tsx` (→ `ArticleEditor`).
   * `frontend/src/app/bai-viet/[slug]/page.tsx` → trang đọc chung mọi loại bài viết (dùng chung với `/nhan-vat`, `/su-kien`, `/di-tich`, `/thuc-the`).
   * `frontend/src/app/categories/page.tsx` → `CategoryManager`.
 * **Service/API Client:** `frontend/src/services/entities/article.service.ts` (`ArticleApiService`, `CategoryApiService`), `frontend/src/services/public/public-content.service.ts` (fetch công khai).
@@ -181,10 +182,12 @@ flowchart TD
   * **Khối đặc thù — 2 nhóm khối trùng tên cần phân biệt:** khối **TIMELINE trong bài học** (nội dung nhúng, `timeline-block.plugin.ts`, mốc thủ công hoặc chép từ Timeline CMS) khác với **Timeline CMS** (mục 3.3) và `lesson-timeline.strategy.ts` (vị trí bài trong chủ đề).
 * **Kiến trúc Facade/Plugin/Strategy/Factory:**
   * **Facade:** `facades/useLessonEditorFacade.ts` (load topics, auto-save nháp localStorage debounce 1500ms, hợp bản sửa chờ duyệt qua `withPendingDraft`, `submitLesson`); `facades/useLessonBlockManager.ts` (add/update/remove/move block, quản lý cột `SECTION_ROW`, `compileToHtml/compileToJson`); `facades/useQuizEditor.ts`.
-  * **Plugin Pattern (đây là nơi thật xử lý từng loại khối — KHÔNG phải `strategies/`):** `plugins/block-plugin.registry.ts` (`LessonBlockRegistry`) đăng ký 18 `BlockPlugin` (1 file/loại trong `plugins/*.plugin.ts`, ví dụ `map-block.plugin.ts`, `timeline-block.plugin.ts`, `event-block.plugin.ts`, `character-block.plugin.ts`); mỗi plugin có `createDefault()` + `toHtml()` (có `escapeHtml`/`safeUrl` chống XSS). `factories/lesson-block.factory.ts` ủy quyền sang Registry để giữ tương thích ngược.
-  * **Strategies khác (`strategies/`):** `lesson-timeline.strategy.ts` (tính vị trí bài trong chủ đề — KHÔNG liên quan khối Timeline nội dung), `row-layout.strategy.ts`, `block-width.strategy.ts`, `timeline-layout.strategy.ts`/`timeline-scene.strategy.ts`, `story-chapter-layout.strategy.ts`, `block-placement.rule.ts`, `entity-sources/` (nguồn tra cứu thực thể: `wikipedia-source.strategy.ts` vs `hisgo-internal-source.strategy.ts`, chọn qua `factories/entity-source-strategy.factory.ts`).
+  * **Plugin Pattern (đây là nơi thật xử lý từng loại khối — KHÔNG phải `strategies/`):** `plugins/block-plugin.registry.ts` (`LessonBlockRegistry`) đăng ký 18 `BlockPlugin` (1 file/loại trong `plugins/*.plugin.ts`, ví dụ `map-block.plugin.ts`, `timeline-block.plugin.ts`, `event-block.plugin.ts`, `character-block.plugin.ts`); mỗi plugin có `createDefault()` + `toHtml()` (có `escapeHtml`/`safeUrl` chống XSS); kiểu chung `BlockPlugin` và `renderCollapsibleDetail` nằm ở `plugins/block-plugin.types.ts`. `factories/lesson-block.factory.ts` ủy quyền sang Registry để giữ tương thích ngược.
+  * **Strategies khác (`strategies/`):** `lesson-timeline.strategy.ts` (tính vị trí bài trong chủ đề — KHÔNG liên quan khối Timeline nội dung), `row-layout.strategy.ts`, `block-width.strategy.ts`, `timeline-layout.strategy.ts`/`timeline-scene.strategy.ts`, `story-chapter-layout.strategy.ts`, `entity-sources/` (nguồn tra cứu thực thể: `wikipedia-source.strategy.ts` vs `hisgo-internal-source.strategy.ts`, chọn qua `factories/entity-source-strategy.factory.ts`).
   * **Backend content-normalizer (khác mục đích với FE):** `backend/src/lesson/strategies/content-normalizer.strategy.ts` — chuẩn hoá **định dạng input** của `content` JSONB (`ArrayBlockContentStrategy`/`TipTapDocumentContentStrategy`/`StringContentStrategy`/`FallbackContentStrategy`), dùng tính `estimatedReadMinutes`.
-* **Route trang:** `frontend/src/app/bai-hoc/[slug]/page.tsx` → `PublicLessonReaderView` (đọc công khai); soạn bài CMS dùng chung `LessonEditor` qua Studio.
+* **Route trang:**
+  * CMS soạn bài: `frontend/src/app/lessons/create/page.tsx` (tạo mới — nạp `LessonEditor` bằng `dynamic`, `ssr: false`), `frontend/src/app/lessons/[id]/page.tsx` (sửa — `<LessonEditor lessonId={id} />`). Mục 3.7 chỉ điều hướng sang đây: `HisgoStudioView` mở bài bằng `/lessons/create?id=<lessonId>` (và `?chapterId=` khi soạn bài mới trong chương), `CurriculumExplorer` dùng `APP_ROUTES.LESSONS.DETAIL(id)` và `?topicId=`.
+  * Công khai: `frontend/src/app/bai-hoc/[slug]/page.tsx` → `PublicLessonReaderView`.
 * **Service/API Client:** `services/entities/lesson.service.ts` (`LessonApiService`).
 * **Backend Module:** `backend/src/lesson/`
   * Controller: `lesson.controller.ts` (`POST/GET/PATCH /lessons`, `PATCH /lessons/:id/review` REVIEWERS, `DELETE`)
@@ -222,15 +225,17 @@ flowchart TD
   * Constant: `content-revision.constant.ts` (`REVISION_FIELDS` định nghĩa trường biên tập được của mỗi loại).
 * **Service/API Client:** `services/entities/content-revision.service.ts` (`withPendingDraft()` dùng trong các facade CMS để nạp đúng bản sửa chờ duyệt).
 
-### 3.12. Quiz / Ngân hàng câu hỏi
-* **Ngân hàng câu hỏi (CMS):** Quản lý tập trung câu hỏi dùng chung, gắn nhiều bài học/chuyên đề, tái dùng khi soạn đề.
-  * UI: `features/quiz/components/QuestionBankView.tsx`, `QuestionBankModal.tsx`, `QuestionBankPickerModal.tsx`, `CategoryTreePicker.tsx`.
+### 3.12. Quiz / Ngân hàng câu hỏi (Tái cấu trúc gắn Many-to-Many với Topic)
+* **Mô hình Khảo thí & Chuẩn Sư phạm:** Đề thi/Bộ đề khảo thí Quiz được liên kết trực tiếp với nhiều Chủ đề lịch sử (`Quiz.topics Topic[] @relation("TopicQuizzes")`) thay vì gắn cứng phụ thuộc vào `Lesson` (vì Lesson đã có các khối tương tác bài học tại chỗ). Cho phép tạo đề thi tổng hợp nhiều chủ đề và đề thi độc lập theo chuyên đề.
+* **Ngân hàng câu hỏi (CMS):** Quản lý tập trung câu hỏi dùng chung, gắn nhiều bài học/chủ đề, tái dùng khi soạn đề.
+  * UI: `features/quiz/components/QuestionBankView.tsx`, `QuestionBankModal.tsx` (đã phân rã thành `QuestionCategorySection.tsx`, `QuestionOptionsEditor.tsx`, `QuestionTypeCardSelector.tsx`, `QuestionAnswersSection.tsx`, `QuestionModalHeaderFooter.tsx`, `question-modal.helper.ts`), `QuestionBankPickerModal.tsx`, `CategoryTreePicker.tsx`.
   * Route: `frontend/src/app/questions/page.tsx`. Service: `services/entities/question.service.ts`.
   * Backend: `question.controller.ts` + `question.service.ts` (dùng enum `DifficultyLevel`, có `onModuleInit` tự backfill câu hỏi từ Quiz cũ bằng `$transaction` nếu ngân hàng trống).
-* **Quản lý bộ đề Quiz độc lập (CMS):** Tạo/sửa/xoá đề Quiz độc lập, tổng hợp câu hỏi từ Ngân hàng hoặc soạn mới, xem thống kê lượt làm bài.
+* **Quản lý bộ đề Quiz độc lập (CMS):** Tạo/sửa/xoá đề Quiz độc lập chọn nhiều Topic, tổng hợp câu hỏi từ Ngân hàng hoặc soạn mới, xem thống kê lượt làm bài.
   * UI: [QuizManagementView.tsx](frontend/src/features/quiz/components/QuizManagementView.tsx), `StandaloneQuizEditorModal.tsx`, `QuizPreviewModal.tsx`, `QuizStatisticsModal.tsx`.
   * Facade: `facades/useQuizManagementFacade.ts`. Route: `frontend/src/app/quizzes/page.tsx`. Service: `services/entities/quiz.service.ts` (`QuizApiService`).
-  * Backend: `backend/src/quiz/quiz.module.ts` — Controller `standalone-quiz.controller.ts` (`/quizzes`) + `quiz.controller.ts` (nested `/lessons/:lessonId/quiz`, tương thích Lesson Editor cũ); DTO `create-standalone-quiz.dto.ts` (`questions: unknown[]` chỉ `@IsArray()`, validate chi tiết nằm ở validator vì đa hình theo `type`).
+  * Backend: `backend/src/quiz/quiz.module.ts` — Controller `standalone-quiz.controller.ts` (`/quizzes`) + `quiz.controller.ts` (nested `/lessons/:lessonId/quiz`, tương thích Lesson Editor cũ); DTO `create-standalone-quiz.dto.ts` (`topicIds?: string[]`). Toàn bộ 24/24 Jest test suites pass 100%.
+  * **Trạng thái Code Quality:** Toàn bộ thư mục `frontend/src/features/quiz/` đạt **0 ERRORS, 0 WARNINGS (100% sạch)**.
 * **Làm bài luyện tập (trang public `/luyen-tap`):** Người học chọn bài có đề ôn tập, làm trắc nghiệm có tính giờ, nộp bài, xem điểm; role STAFF xem thêm phổ điểm.
   * UI: `frontend/src/app/luyen-tap/page.tsx` (**file trang duy nhất** — các route con `bai-thi/chu-de/kham-pha/lich-su` đã bị revert, không còn trong code hiện tại), tái dùng `QuizFilterBar.tsx`, `QuizSelectorGrid.tsx`, `QuizBriefingCard.tsx`.
   * Strategy lọc: `strategies/quiz-filter.strategy.ts` (`extractAvailableTopics`, `filterQuizLessons` — chuẩn hoá tiếng Việt không dấu).
@@ -240,7 +245,8 @@ flowchart TD
 
 ### 3.13. Blog cá nhân / Bài viết chuyên khảo (Blog)
 * **Mục đích:** Không gian viết/đọc bài chuyên khảo dài (LONG_FORM), quy trình duyệt (DRAFT → PENDING_REVIEW → PUBLISHED/REJECTED), thống kê like/comment/view, chia sẻ sang Cộng đồng.
-* **UI Component chính:** [BlogLandingPage.tsx](frontend/src/features/blog/components/BlogLandingPage.tsx), `BlogDetailPage.tsx`, `BlogCreatePage.tsx`, `BlogBrowser.tsx`, `BlogComposerBar.tsx`, `BlogFeaturedSlider.tsx`; tiện ích dùng chung: `features/blog/utils/blog-metadata.util.ts` (`extractMetadataFromBlocks`, `BLOG_ACCENT_PALETTE`).
+* **UI Component chính:** [BlogLandingPage.tsx](frontend/src/features/blog/components/BlogLandingPage.tsx), `BlogDetailPage.tsx`, `BlogCreatePage.tsx` (đã phân rã về 260 dòng, uỷ quyền cho `useBlogCreateFacade.ts`, `BlogStoryBlockItem.tsx`, `BlogHistoricalMetaModal.tsx`, `BlogPreviewModal.tsx`, `blog-create.types.ts`, `blog.constant.ts`), `BlogBrowser.tsx` (đã tách `BlogPostCard`, `BlogTagFilterBar`), `BlogComposerBar.tsx`, `BlogFeaturedSlider.tsx`; tiện ích dùng chung: `features/blog/utils/blog-metadata.util.ts` (`extractMetadataFromBlocks`, `BLOG_ACCENT_PALETTE`).
+* **Trạng thái Code Quality & Dữ liệu:** Đã xóa bỏ hoàn toàn tệp mock data thừa `blog-data.ts`. Toàn bộ thư mục `frontend/src/features/blog/` đạt **0 ERRORS, 0 WARNINGS (100% sạch)**.
 * **Route trang:** `app/blog/page.tsx` (danh sách, filter `?author=`), `app/blog/[slug]/page.tsx` (chi tiết, build HTML từ `contentBlocks`), `app/blog/create/page.tsx` (soạn mới).
 * **Service/API Client:** `services/entities/blog.service.ts` (`BlogApiService`), `services/public/public-content.service.ts` (`fetchBlogPost(s)`).
 * **Backend Module:** `backend/src/blog/`

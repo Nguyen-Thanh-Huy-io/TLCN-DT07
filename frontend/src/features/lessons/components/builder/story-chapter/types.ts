@@ -6,7 +6,10 @@ import {
   StoryChapterUnit,
   LessonBlockItem,
   ChapterBlockZone,
+  EditorialSpreadConfig,
+  EditorialElementOverrides,
 } from '../../../types/block-builder.types';
+import { EditorialSubElementType } from '../../../context/ActiveEditorContext';
 
 export interface StoryChapterBlockEditorProps {
   data: StoryChapterBlockData;
@@ -67,25 +70,25 @@ export interface StoryChapterContentBlockProps {
   onRemoveChildBlock: (blockId: string) => void;
   onSelectSub: (
     e: React.MouseEvent,
-    subType: import('../../../context/ActiveEditorContext').EditorialSubElementType,
+    subType: EditorialSubElementType,
     label: string,
     subId?: string
   ) => void;
   isSubSelected: (
-    subType: import('../../../context/ActiveEditorContext').EditorialSubElementType,
+    subType: EditorialSubElementType,
     subId?: string
   ) => boolean;
   getSubRingClass: (
-    subType: import('../../../context/ActiveEditorContext').EditorialSubElementType,
+    subType: EditorialSubElementType,
     subId?: string
   ) => string;
-  onUpdateChapterConfig: <K extends keyof Omit<import('../../../types/block-builder.types').EditorialSpreadConfig, 'version'>>(
+  onUpdateChapterConfig: <K extends keyof Omit<EditorialSpreadConfig, 'version'>>(
     section: K,
-    updates: Partial<NonNullable<import('../../../types/block-builder.types').EditorialSpreadConfig[K]>>
+    updates: Partial<NonNullable<EditorialSpreadConfig[K]>>
   ) => void;
-  onUpdateChapterOverride: <K extends keyof import('../../../types/block-builder.types').EditorialElementOverrides>(
+  onUpdateChapterOverride: <K extends keyof EditorialElementOverrides>(
     key: K,
-    updates: Partial<NonNullable<import('../../../types/block-builder.types').EditorialElementOverrides[K]>>
+    updates: Partial<NonNullable<EditorialElementOverrides[K]>>
   ) => void;
   renderNestedBlock?: (
     childBlock: LessonBlockItem,

@@ -2,11 +2,12 @@
 
 import React from 'react';
 import { Bookmark, Layers, Share2, UserCheck, Users } from 'lucide-react';
+import { ComposerMode } from '@/constants/community.constant';
 import { QuickComposer } from './QuickComposer';
 import {
   type CommunityProfileViewProps,
   type ProfileTabItem,
-  type ProfileTabKey,
+  ProfileTabKey,
 } from './profile/profile.types';
 import { useCommunityProfile } from './profile/useCommunityProfile';
 import { ProfileSidebar } from './profile/ProfileSidebar';
@@ -15,7 +16,7 @@ import { ProfileTabsToolbar } from './profile/ProfileTabsToolbar';
 import { ProfileMembersList } from './profile/ProfileMembersList';
 import { ProfilePostsList } from './profile/ProfilePostsList';
 
-export type { ProfileTabKey };
+export { ProfileTabKey };
 
 export function CommunityProfileView({
   initialProfile,
@@ -65,25 +66,25 @@ export function CommunityProfileView({
 
   const tabs: ProfileTabItem[] = [
     {
-      key: 'posts',
+      key: ProfileTabKey.POSTS,
       label: 'Bài đã đăng',
       count: computedStats.postCount,
       icon: Layers,
     },
     {
-      key: 'shared_blog',
+      key: ProfileTabKey.SHARED_BLOG,
       label: 'Bài Blog chia sẻ',
       count: computedStats.sharedBlogCount,
       icon: Share2,
     },
     {
-      key: 'followers',
+      key: ProfileTabKey.FOLLOWERS,
       label: 'Người theo dõi',
       count: computedStats.followerCount,
       icon: Users,
     },
     {
-      key: 'following',
+      key: ProfileTabKey.FOLLOWING,
       label: 'Đang theo dõi',
       count: computedStats.followingCount,
       icon: UserCheck,
@@ -91,7 +92,7 @@ export function CommunityProfileView({
     ...(isMe
       ? [
           {
-            key: 'saved' as const,
+            key: ProfileTabKey.SAVED,
             label: 'Đã lưu',
             count: profile.bookmarkedPosts.length,
             icon: Bookmark,
@@ -101,7 +102,7 @@ export function CommunityProfileView({
   ];
 
   const totalFilteredCount =
-    activeTab === 'followers' || activeTab === 'following'
+    activeTab === ProfileTabKey.FOLLOWERS || activeTab === ProfileTabKey.FOLLOWING
       ? filteredMembers.length
       : filteredPosts.length;
 
@@ -118,7 +119,7 @@ export function CommunityProfileView({
           selectedTopic={selectedTopic}
           setSelectedTopic={setSelectedTopic}
           onOpenQuestionComposer={() => {
-            setComposerMode('question');
+            setComposerMode(ComposerMode.QUESTION);
             setComposerOpen(true);
           }}
           onToggleFollowProfile={handleToggleFollowProfile}
@@ -136,8 +137,8 @@ export function CommunityProfileView({
           setBioSavedNotice={setBioSavedNotice}
           onSaveBio={handleSaveBio}
           onTopicClick={() => {
-            if (activeTab === 'followers' || activeTab === 'following') {
-              setActiveTab('posts');
+            if (activeTab === ProfileTabKey.FOLLOWERS || activeTab === ProfileTabKey.FOLLOWING) {
+              setActiveTab(ProfileTabKey.POSTS);
             }
           }}
         />
@@ -150,7 +151,7 @@ export function CommunityProfileView({
             isMe={isMe}
             followLoading={followLoading}
             onOpenBlogShareComposer={() => {
-              setComposerMode('share_blog');
+              setComposerMode(ComposerMode.SHARE_BLOG);
               setComposerOpen(true);
             }}
             onToggleFollowProfile={handleToggleFollowProfile}
@@ -169,7 +170,7 @@ export function CommunityProfileView({
           />
 
           {/* Nội dung theo Tab */}
-          {activeTab === 'followers' || activeTab === 'following' ? (
+          {activeTab === ProfileTabKey.FOLLOWERS || activeTab === ProfileTabKey.FOLLOWING ? (
             <ProfileMembersList
               activeTab={activeTab}
               displayName={profile.user.displayName}

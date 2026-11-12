@@ -27,7 +27,7 @@ export interface QuizFilterableItem {
   quiz: {
     id: string;
     title: string;
-    questions: any[];
+    questions: unknown[];
     timeLimitMinutes: number;
   } | null;
 }

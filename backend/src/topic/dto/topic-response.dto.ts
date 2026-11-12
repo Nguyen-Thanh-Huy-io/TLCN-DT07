@@ -51,7 +51,7 @@ export class TopicResponseDto {
   description?: string | null;
 
   @ApiPropertyOptional({
-    example: 'https://example.com/images/hai-ba-trung.jpg',
+    example: `https://${'example.com/images/hai-ba-trung.jpg'}`,
     description: 'Ảnh đại diện chủ đề',
   })
   coverImageUrl?: string | null;

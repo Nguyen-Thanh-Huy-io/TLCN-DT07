@@ -863,29 +863,14 @@ export class HistoricalDateParser {
         ? input.endDay
         : (parsedFromText?.endDay ?? null);
 
-    let datePrecision: DatePrecision;
-    if (input.datePrecision) {
-      datePrecision = input.datePrecision;
-    } else if (
-      parsedFromText &&
-      parsedFromText.datePrecision !== DatePrecision.UNKNOWN
-    ) {
-      datePrecision = parsedFromText.datePrecision;
-    } else if (startYear !== null && startMonth !== null && startDay !== null) {
-      datePrecision = DatePrecision.DAY;
-    } else if (startYear !== null && startMonth !== null) {
-      datePrecision = DatePrecision.MONTH;
-    } else if (
-      startYear !== null &&
-      endYear !== null &&
-      endYear !== startYear
-    ) {
-      datePrecision = DatePrecision.RANGE;
-    } else if (startYear !== null) {
-      datePrecision = DatePrecision.YEAR;
-    } else {
-      datePrecision = DatePrecision.UNKNOWN;
-    }
+    const datePrecision = this.determinePrecision(
+      input.datePrecision,
+      parsedFromText?.datePrecision,
+      startYear,
+      startMonth,
+      startDay,
+      endYear,
+    );
 
     return {
       dateText: effectiveText,
@@ -897,6 +882,35 @@ export class HistoricalDateParser {
       endDay,
       datePrecision,
     };
+  }
+
+  private static determinePrecision(
+    inputPrecision: DatePrecision | null | undefined,
+    parsedPrecision: DatePrecision | undefined,
+    startYear: number | null,
+    startMonth: number | null,
+    startDay: number | null,
+    endYear: number | null,
+  ): DatePrecision {
+    if (inputPrecision) {
+      return inputPrecision;
+    }
+    if (parsedPrecision && parsedPrecision !== DatePrecision.UNKNOWN) {
+      return parsedPrecision;
+    }
+    if (startYear !== null && startMonth !== null && startDay !== null) {
+      return DatePrecision.DAY;
+    }
+    if (startYear !== null && startMonth !== null) {
+      return DatePrecision.MONTH;
+    }
+    if (startYear !== null && endYear !== null && endYear !== startYear) {
+      return DatePrecision.RANGE;
+    }
+    if (startYear !== null) {
+      return DatePrecision.YEAR;
+    }
+    return DatePrecision.UNKNOWN;
   }
 
   /**

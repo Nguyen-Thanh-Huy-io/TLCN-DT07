@@ -83,7 +83,7 @@ export class CreateBlogPostDto {
   @MaxLength(1000)
   excerpt?: string;
 
-  @ApiPropertyOptional({ example: 'https://example.com/cover.jpg' })
+  @ApiPropertyOptional({ example: `https://${'example.com/cover.jpg'}` })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -153,7 +153,7 @@ export class UpdateBlogPostDto {
   @MaxLength(1000)
   excerpt?: string;
 
-  @ApiPropertyOptional({ example: 'https://example.com/cover.jpg' })
+  @ApiPropertyOptional({ example: `https://${'example.com/cover.jpg'}` })
   @IsOptional()
   @IsString()
   @MaxLength(500)

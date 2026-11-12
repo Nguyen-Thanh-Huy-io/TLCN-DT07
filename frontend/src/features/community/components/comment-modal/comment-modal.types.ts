@@ -20,7 +20,19 @@ export interface ModalCommentItem {
   content?: string;
 }
 
-export type SortOrder = 'oldest' | 'newest' | 'popular';
+export enum CommentSortOrder {
+  OLDEST = 'oldest',
+  NEWEST = 'newest',
+  POPULAR = 'popular',
+}
+
+export type SortOrder = CommentSortOrder;
+
+export enum CommentSocketAction {
+  DELETED = 'deleted',
+  LIKED = 'liked',
+  UPDATED = 'updated',
+}
 
 export interface PostCommentModalProps {
   isOpen: boolean;

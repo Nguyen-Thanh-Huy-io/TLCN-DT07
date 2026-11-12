@@ -7,7 +7,7 @@ import {
   Trash2,
   Clock,
   Award,
-  BookOpen,
+  Folder,
   FileQuestion,
   HelpCircle,
   CheckCircle2,
@@ -15,20 +15,23 @@ import {
   ArrowLeftRight,
 } from 'lucide-react';
 import { StandaloneQuizItem, CreateStandaloneQuizDto } from '@/services/entities/quiz.service';
-import { LessonItem } from '@/types/models/lesson.type';
+import { TopicItem } from '@/types/models/topic.type';
+import { TopicApiService } from '@/services/entities/topic.service';
 import {
   QuizQuestion,
   QuizQuestionType,
   QUIZ_QUESTION_TYPE_META,
 } from '@/features/lessons/types/quiz.types';
 import { QuestionBankPickerModal } from './QuestionBankPickerModal';
+import { TopicCategoryModalPicker } from './CategoryTreePicker';
+import { TreeSelectTrigger } from '@/components/common/TreeSelectModal';
 
 export interface StandaloneQuizEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (dto: CreateStandaloneQuizDto) => Promise<void>;
   editingQuiz: StandaloneQuizItem | null;
-  lessons: LessonItem[];
+  topics?: TopicItem[];
   loading?: boolean;
 }
 
@@ -45,33 +48,63 @@ export function StandaloneQuizEditorModal({
   onClose,
   onSave,
   editingQuiz,
-  lessons,
+  topics: initialTopics = [],
   loading = false,
 }: StandaloneQuizEditorModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [lessonId, setLessonId] = useState<string>('');
+  const [topicIds, setTopicIds] = useState<string[]>([]);
+  const [fetchedTopics, setFetchedTopics] = useState<TopicItem[]>([]);
+  const topicsList = initialTopics.length > 0 ? initialTopics : fetchedTopics;
+  const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
   const [timeLimitMinutes, setTimeLimitMinutes] = useState<number>(15);
   const [passingScorePercent, setPassingScorePercent] = useState<number>(80);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
+  // Load danh sách chủ đề nếu chưa có
   useEffect(() => {
-    if (editingQuiz) {
-      setTitle(editingQuiz.title || '');
-      setDescription(editingQuiz.description || '');
-      setLessonId(editingQuiz.lessonId || '');
-      setTimeLimitMinutes(editingQuiz.timeLimitMinutes || 15);
-      setPassingScorePercent(editingQuiz.passingScorePercent || 80);
-      setQuestions(Array.isArray(editingQuiz.questions) ? editingQuiz.questions : []);
-    } else {
-      setTitle('');
-      setDescription('');
-      setLessonId('');
-      setTimeLimitMinutes(15);
-      setPassingScorePercent(80);
-      setQuestions([]);
-    }
+    if (!isOpen || initialTopics.length > 0) return;
+    let isMounted = true;
+    TopicApiService.getTopics({ limit: 100 })
+      .then((res) => {
+        if (isMounted && res?.items) setFetchedTopics(res.items);
+      })
+      .catch((err) => {
+        console.warn('Không thể tải danh sách chủ đề:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, initialTopics.length]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const timer = Promise.resolve().then(() => {
+      if (editingQuiz) {
+        setTitle(editingQuiz.title || '');
+        setDescription(editingQuiz.description || '');
+        setTopicIds(
+          editingQuiz.topics?.map((t) => t.id) || editingQuiz.topicIds || []
+        );
+        setTimeLimitMinutes(editingQuiz.timeLimitMinutes || 15);
+        setPassingScorePercent(editingQuiz.passingScorePercent || 80);
+        setQuestions(Array.isArray(editingQuiz.questions) ? editingQuiz.questions : []);
+      } else {
+        setTitle('');
+        setDescription('');
+        setTopicIds([]);
+        setTimeLimitMinutes(15);
+        setPassingScorePercent(80);
+        setQuestions([]);
+      }
+    });
+
+    return () => {
+      void timer;
+    };
   }, [editingQuiz, isOpen]);
 
   if (!isOpen) return null;
@@ -94,7 +127,7 @@ export function StandaloneQuizEditorModal({
     await onSave({
       title: title.trim(),
       description: description.trim() || undefined,
-      lessonId: lessonId || undefined,
+      topicIds,
       timeLimitMinutes: Number(timeLimitMinutes) || 15,
       passingScorePercent: Number(passingScorePercent) || 80,
       questions,
@@ -139,7 +172,7 @@ export function StandaloneQuizEditorModal({
                 <input
                   type="text"
                   required
-                  placeholder="Ví dụ: Đề kiểm tra 15 phút: Ngô Quyền và Chiến thắng Bạch Đằng 938"
+                  placeholder="Ví dụ: Đề khảo thí giai đoạn Nhà Lý - Trần hoặc Đề kiểm tra 15 phút: Bạch Đằng 938"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-700 focus:outline-none"
@@ -152,7 +185,7 @@ export function StandaloneQuizEditorModal({
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Mô tả phạm vi kiến thức, mức độ đánh giá (Nhận biết, Thông hiểu, Vận dụng)..."
+                  placeholder="Mô tả phạm vi kiến thức, mức độ đánh giá (Nhận biết, Thông hiểu, Vận dụng cao)..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-700 focus:outline-none"
@@ -160,25 +193,25 @@ export function StandaloneQuizEditorModal({
               </div>
             </div>
 
-            {/* Config: Lesson reference, Time, Passing score */}
+            {/* Config: Topics assignment, Time, Passing score */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+              {/* Cột 1: Chọn một hoặc nhiều Chủ đề lịch sử */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1.5">
-                  <BookOpen size={13} className="text-slate-400" />
-                  Bài học liên kết (Để xem qua)
+                  <Folder size={13} className="text-slate-400" />
+                  Chủ đề liên kết (Topics)
                 </label>
-                <select
-                  value={lessonId}
-                  onChange={(e) => setLessonId(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-700 focus:ring-2 focus:ring-red-700 focus:outline-none"
-                >
-                  <option value="">-- Đề tự do (Không liên kết) --</option>
-                  {lessons.map((lesson) => (
-                    <option key={lesson.id} value={lesson.id}>
-                      {lesson.title}
-                    </option>
-                  ))}
-                </select>
+                <TreeSelectTrigger
+                  onClick={() => setIsTopicModalOpen(true)}
+                  placeholder="Chọn chủ đề bao phủ..."
+                  icon={<Folder size={13} className="text-slate-400 group-hover:text-emerald-600" />}
+                  badgeColor="emerald"
+                  selectedItems={topicIds.map((id) => ({
+                    id,
+                    label: topicsList.find((t) => t.id === id)?.name || 'Chủ đề đã chọn',
+                  }))}
+                  onRemoveItem={(id) => setTopicIds((prev) => prev.filter((item) => item !== id))}
+                />
               </div>
 
               <div>
@@ -243,35 +276,46 @@ export function StandaloneQuizEditorModal({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
                   {questions.map((q, idx) => {
+                    const TypeIcon = TYPE_ICONS[q.type] || CircleDot;
                     const meta = QUIZ_QUESTION_TYPE_META[q.type];
-                    const IconComp = TYPE_ICONS[q.type] || CircleDot;
+
                     return (
                       <div
-                        key={q.id || `q-${idx}`}
-                        className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs hover:border-slate-300 transition-colors"
+                        key={q.id || idx}
+                        className="p-3.5 flex items-start gap-3 hover:bg-slate-50/60 transition-colors"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-[10px] font-bold shrink-0">
-                            {idx + 1}
-                          </span>
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 shrink-0">
-                            <IconComp size={10} />
-                            {meta?.label || q.type}
-                          </span>
-                          <span className="text-xs font-medium text-slate-800 truncate">
-                            {q.prompt}
-                          </span>
+                        <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                          {idx + 1}
+                        </span>
+
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${meta?.color || 'text-slate-600 bg-slate-100'}`}
+                            >
+                              <TypeIcon size={11} />
+                              <span>{meta?.label || q.type}</span>
+                            </span>
+                            <span className="text-xs text-slate-400 font-mono">
+                              Mã: {q.id ? q.id.slice(0, 8) : 'Tự tạo'}
+                            </span>
+                          </div>
+
+                          <div
+                            className="text-xs font-medium text-slate-800 line-clamp-2"
+                            dangerouslySetInnerHTML={{ __html: q.prompt }}
+                          />
                         </div>
 
                         <button
                           type="button"
                           onClick={() => handleRemoveQuestion(q.id)}
-                          className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors shrink-0"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0"
                           title="Xóa câu hỏi khỏi đề"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     );
@@ -286,23 +330,32 @@ export function StandaloneQuizEditorModal({
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition"
               >
-                Hủy
+                Hủy bỏ
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-5 py-2 bg-red-700 hover:bg-red-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors disabled:opacity-50"
+                className="px-5 py-2 bg-red-700 hover:bg-red-800 text-white rounded-xl text-xs font-semibold shadow-xs transition disabled:opacity-50"
               >
-                {loading ? 'Đang lưu...' : editingQuiz ? 'Lưu thay đổi' : 'Tạo đề Quiz'}
+                {loading ? 'Đang lưu đề thi...' : editingQuiz ? 'Cập nhật đề thi' : 'Lưu & Phát hành đề thi'}
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      {/* Question Bank Picker Modal */}
+      {/* Modal chọn nhiều Chủ đề */}
+      <TopicCategoryModalPicker
+        isOpen={isTopicModalOpen}
+        onClose={() => setIsTopicModalOpen(false)}
+        topics={topicsList}
+        selectedTopicIds={topicIds}
+        onChangeSelected={setTopicIds}
+      />
+
+      {/* Picker Modal nhặt câu hỏi */}
       <QuestionBankPickerModal
         isOpen={isPickerOpen}
         onClose={() => setIsPickerOpen(false)}

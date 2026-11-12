@@ -23,7 +23,8 @@ model Quiz {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  lesson Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson   Lesson?       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  topics   Topic[]       @relation("TopicQuizzes")
   attempts QuizAttempt[]
 
   @@map("quizzes")

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bookmark, Eye, Flag, Heart, MessageSquare } from 'lucide-react';
 import { useAuthSession } from '@/services/auth/useAuthSession';
@@ -44,17 +44,26 @@ export function PostActionBar({
   const [reportOpen, setReportOpen] = useState(false);
   const [reported, setReported] = useState(false);
 
-  useEffect(() => {
+  const [prevProps, setPrevProps] = useState({
+    likeCount: initialLikeCount,
+    likedByMe,
+    bookmarkedByMe,
+  });
+
+  if (
+    initialLikeCount !== prevProps.likeCount ||
+    likedByMe !== prevProps.likedByMe ||
+    bookmarkedByMe !== prevProps.bookmarkedByMe
+  ) {
+    setPrevProps({
+      likeCount: initialLikeCount,
+      likedByMe,
+      bookmarkedByMe,
+    });
     setLikes(Math.max(0, initialLikeCount));
-  }, [initialLikeCount]);
-
-  useEffect(() => {
     setLiked(Boolean(likedByMe));
-  }, [likedByMe]);
-
-  useEffect(() => {
     setBookmarked(Boolean(bookmarkedByMe));
-  }, [bookmarkedByMe]);
+  }
 
   const requireAuth = () => {
     if (!user?.id) {

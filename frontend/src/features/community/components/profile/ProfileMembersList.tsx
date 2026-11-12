@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Check, UserPlus } from 'lucide-react';
 import type { CommunityMemberSummary } from '../../api';
 import { getAuthorTint, getInitials } from '../../utils/author-avatar.util';
-import { getRoleLabel, type ProfileTabKey } from './profile.types';
+import { getRoleLabel, ProfileTabKey } from './profile.types';
 
 export interface ProfileMembersListProps {
   activeTab: ProfileTabKey;
@@ -20,7 +20,7 @@ export function ProfileMembersList({
   filteredMembers,
   onToggleFollowMember,
 }: ProfileMembersListProps) {
-  const isFollowers = activeTab === 'followers';
+  const isFollowers = activeTab === ProfileTabKey.FOLLOWERS;
 
   return (
     <div className="rounded-[8px] border border-[#E3D6BE] bg-[#FDF9F0] p-6">

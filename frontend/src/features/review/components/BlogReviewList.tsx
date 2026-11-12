@@ -1,13 +1,25 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { resolveBackendAssetUrl } from '@/constants/api-url';
 import { ContentStatus } from '@/constants/enums';
 import { BlogApiService, type BlogPostItem } from '@/services/entities/blog.service';
 import { extractErrorMessage } from '@/services/api';
 import { extractMetadataFromBlocks } from '@/features/blog/utils/blog-metadata.util';
 
-type ReviewTab = 'Chờ duyệt' | 'Đã duyệt' | 'Bị từ chối';
+export enum ReviewTabState {
+  PENDING = 'Chờ duyệt',
+  APPROVED = 'Đã duyệt',
+  REJECTED = 'Bị từ chối',
+}
+
+export enum NoticeTone {
+  OK = 'ok',
+  ERROR = 'error',
+}
+
+type ReviewTab = ReviewTabState;
 
 type ReviewPost = {
   id: string;
@@ -21,10 +33,31 @@ type ReviewPost = {
 };
 
 const STATUS_LABELS: Record<string, ReviewTab> = {
-  [ContentStatus.PENDING_REVIEW]: 'Chờ duyệt',
-  [ContentStatus.PUBLISHED]: 'Đã duyệt',
-  [ContentStatus.REJECTED]: 'Bị từ chối',
+  [ContentStatus.PENDING_REVIEW]: ReviewTabState.PENDING,
+  [ContentStatus.PUBLISHED]: ReviewTabState.APPROVED,
+  [ContentStatus.REJECTED]: ReviewTabState.REJECTED,
 };
+
+const BLOCK_TYPE_IMAGE = 'image';
+const BORDER_COLOR_LIGHT = '#e5e7eb';
+const BORDER_LIGHT = `1px solid ${BORDER_COLOR_LIGHT}`;
+
+interface ContentBlockData {
+  id?: string;
+  type?: string;
+  kind?: string;
+  heading?: string;
+  text?: string;
+  caption?: string;
+  imageUrl?: string;
+}
+
+interface ArticleReferenceData {
+  id?: string;
+  title?: string;
+  source?: string;
+  url?: string;
+}
 
 const stripHtml = (value?: string | null) =>
   (value ?? '')
@@ -44,9 +77,9 @@ const normalizePost = (item: BlogPostItem): ReviewPost => {
     summary: summary.length > 170 ? `${summary.slice(0, 167)}...` : summary,
     author,
     createdAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : 'Mới',
-    status: STATUS_LABELS[item.status] || 'Chờ duyệt',
+    status: STATUS_LABELS[item.status] || ReviewTabState.PENDING,
     rawStatus: item.status,
-    rejectionReason: (item as any)?.rejectionReason || null,
+    rejectionReason: (item as BlogPostItem & { rejectionReason?: string | null })?.rejectionReason || null,
   };
 };
 
@@ -60,35 +93,48 @@ const renderParagraphs = (value: string) =>
     .map((part) => part.replace(/\r\n/g, '\n'));
 
 export function BlogReviewList() {
-  const [tab, setTab] = useState<ReviewTab>('Chờ duyệt');
+  const [tab, setTab] = useState<ReviewTab>(ReviewTabState.PENDING);
   const [items, setItems] = useState<ReviewPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ tone: NoticeTone; text: string } | null>(null);
   const [selectedItem, setSelectedItem] = useState<ReviewPost | null>(null);
-  const [previewArticle, setPreviewArticle] = useState<any | null>(null);
+  const [previewArticle, setPreviewArticle] = useState<BlogPostItem | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<{ type: 'PUBLISHED' | 'REJECTED'; item: ReviewPost } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: ContentStatus.PUBLISHED | ContentStatus.REJECTED;
+    item: ReviewPost;
+  } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      const response = await BlogApiService.list();
-      setItems(response.map(normalizePost));
-    } catch (error) {
-      setItems([]);
-      setNotice({
-        tone: 'error',
-        text: extractErrorMessage(error, 'Không thể tải danh sách bài viết chờ duyệt.'),
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchPosts();
+    let active = true;
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const response = await BlogApiService.list();
+        if (active) {
+          setItems(response.map(normalizePost));
+        }
+      } catch (error) {
+        if (active) {
+          setItems([]);
+          setNotice({
+            tone: NoticeTone.ERROR,
+            text: extractErrorMessage(error, 'Không thể tải danh sách bài viết chờ duyệt.'),
+          });
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void Promise.resolve().then(loadData);
+    return () => {
+      active = false;
+    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -104,30 +150,28 @@ export function BlogReviewList() {
     });
   }, [items, search, tab]);
 
-  const stats = {
-    pending: items.filter((item) => item.status === 'Chờ duyệt').length,
-    published: items.filter((item) => item.status === 'Đã duyệt').length,
-    rejected: items.filter((item) => item.status === 'Bị từ chối').length,
-  };
-
   const handleOpenPreview = async (item: ReviewPost) => {
     try {
       setPreviewLoading(true);
       setSelectedItem(item);
       const detail = (await BlogApiService.list()).find((post) => post.id === item.id) ?? null;
-      setPreviewArticle(detail as any);
+      setPreviewArticle(detail);
     } catch (error) {
-      setNotice({ tone: 'error', text: extractErrorMessage(error, 'Không thể mở bản xem trước.') });
+      setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(error, 'Không thể mở bản xem trước.') });
     } finally {
       setPreviewLoading(false);
     }
   };
 
-  const handleReview = async (item: ReviewPost, status: 'PUBLISHED' | 'REJECTED', reason?: string) => {
+  const handleReview = async (
+    item: ReviewPost,
+    status: ContentStatus.PUBLISHED | ContentStatus.REJECTED,
+    reason?: string,
+  ) => {
     try {
       await BlogApiService.review(item.id, {
         status,
-        rejectionReason: status === 'REJECTED' ? reason?.trim() || undefined : undefined,
+        rejectionReason: status === ContentStatus.REJECTED ? reason?.trim() || undefined : undefined,
       });
 
       setItems((current) =>
@@ -135,18 +179,18 @@ export function BlogReviewList() {
           currentItem.id === item.id
             ? {
                 ...currentItem,
-                status: status === 'PUBLISHED' ? 'Đã duyệt' : 'Bị từ chối',
+                status: status === ContentStatus.PUBLISHED ? ReviewTabState.APPROVED : ReviewTabState.REJECTED,
                 rawStatus: status,
-                rejectionReason: status === 'REJECTED' ? reason || null : null,
+                rejectionReason: status === ContentStatus.REJECTED ? reason || null : null,
               }
-            : currentItem
-        )
+            : currentItem,
+        ),
       );
 
       setNotice({
-        tone: 'ok',
+        tone: NoticeTone.OK,
         text:
-          status === 'PUBLISHED'
+          status === ContentStatus.PUBLISHED
             ? `Đã duyệt bài "${item.title}".`
             : `Đã từ chối bài "${item.title}".`,
       });
@@ -155,17 +199,17 @@ export function BlogReviewList() {
       setRejectReason('');
       setConfirmAction(null);
     } catch (error) {
-      setNotice({ tone: 'error', text: extractErrorMessage(error, 'Không thể cập nhật trạng thái bài.') });
+      setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(error, 'Không thể cập nhật trạng thái bài.') });
     }
   };
 
   return (
     <div style={{ background: '#f5f5f4', minHeight: '100%', color: '#1f2a37' }}>
       <div style={{ maxWidth: 1480, margin: '0 auto', padding: '24px 24px 40px' }}>
-        <div style={{ border: '1px solid #e5e7eb', background: '#ffffff', borderRadius: 18, padding: 20 }}>
+        <div style={{ border: BORDER_LIGHT, background: '#ffffff', borderRadius: 18, padding: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 18, marginBottom: 18 }}>
-            <div style={{ display: 'flex', gap: 8, background: '#f3f4f6', borderRadius: 999, padding: 5, border: '1px solid #e5e7eb' }}>
-              {(['Chờ duyệt', 'Đã duyệt', 'Bị từ chối'] as ReviewTab[]).map((value) => (
+            <div style={{ display: 'flex', gap: 8, background: '#f3f4f6', borderRadius: 999, padding: 5, border: BORDER_LIGHT }}>
+              {[ReviewTabState.PENDING, ReviewTabState.APPROVED, ReviewTabState.REJECTED].map((value) => (
                 <button
                   key={value}
                   type="button"
@@ -191,7 +235,7 @@ export function BlogReviewList() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                border: '1px solid #e5e7eb',
+                border: BORDER_LIGHT,
                 background: '#f9fafb',
                 borderRadius: 999,
                 padding: '8px 14px',
@@ -223,8 +267,8 @@ export function BlogReviewList() {
                 borderRadius: 12,
                 padding: '10px 12px',
                 fontSize: 14,
-                background: notice.tone === 'ok' ? '#ecfdf5' : '#fef2f2',
-                color: notice.tone === 'ok' ? '#065f46' : '#991b1b',
+                background: notice.tone === NoticeTone.OK ? '#ecfdf5' : '#fef2f2',
+                color: notice.tone === NoticeTone.OK ? '#065f46' : '#991b1b',
               }}
             >
               {notice.text}
@@ -235,11 +279,11 @@ export function BlogReviewList() {
             <table style={{ width: '100%', minWidth: 1120, borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr style={{ background: '#f3f4f6', color: '#5a5d62', fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 700 }}>
-                  <th style={{ textAlign: 'left', padding: '14px 16px', borderBottom: '1px solid #e5e7eb', width: '42%' }}>Bài viết</th>
-                  <th style={{ textAlign: 'left', padding: '14px 16px', borderBottom: '1px solid #e5e7eb', width: '18%' }}>Tác giả</th>
-                  <th style={{ textAlign: 'left', padding: '14px 16px', borderBottom: '1px solid #e5e7eb', width: '12%' }}>Ngày</th>
-                  <th style={{ textAlign: 'left', padding: '14px 16px', borderBottom: '1px solid #e5e7eb', width: '14%' }}>Trạng thái</th>
-                  <th style={{ textAlign: 'left', padding: '14px 16px', borderBottom: '1px solid #e5e7eb', width: '14%' }}>Thao tác</th>
+                  <th style={{ textAlign: 'left', padding: '14px 16px', borderBottom: BORDER_LIGHT, width: '42%' }}>Bài viết</th>
+                  <th style={{ textAlign: 'left', padding: '14px 16px', borderBottom: BORDER_LIGHT, width: '18%' }}>Tác giả</th>
+                  <th style={{ textAlign: 'left', padding: '14px 16px', borderBottom: BORDER_LIGHT, width: '12%' }}>Ngày</th>
+                  <th style={{ textAlign: 'left', padding: '14px 16px', borderBottom: BORDER_LIGHT, width: '14%' }}>Trạng thái</th>
+                  <th style={{ textAlign: 'left', padding: '14px 16px', borderBottom: BORDER_LIGHT, width: '14%' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -261,27 +305,27 @@ export function BlogReviewList() {
                       key={item.id}
                       onClick={() => handleOpenPreview(item)}
                       style={{
-                        borderBottom: '1px solid #e5e7eb',
+                        borderBottom: BORDER_LIGHT,
                         cursor: 'pointer',
                         background: selectedItem?.id === item.id ? '#f9f7f3' : 'transparent',
                       }}
                     >
-                      <td style={{ padding: '18px 16px', borderBottom: '1px solid #e5e7eb', verticalAlign: 'top' }}>
+                      <td style={{ padding: '18px 16px', borderBottom: BORDER_LIGHT, verticalAlign: 'top' }}>
                         <div style={{ fontWeight: 700, fontSize: 18, color: '#1f2a37', marginBottom: 6 }}>{item.title}</div>
                         <div style={{ color: '#4d5561', fontSize: 14, lineHeight: 1.6 }}>{item.summary}</div>
                       </td>
-                      <td style={{ padding: '18px 16px', borderBottom: '1px solid #e5e7eb', color: '#323a41', fontSize: 14 }}>
+                      <td style={{ padding: '18px 16px', borderBottom: BORDER_LIGHT, color: '#323a41', fontSize: 14 }}>
                         {item.author}
                       </td>
-                      <td style={{ padding: '18px 16px', borderBottom: '1px solid #e5e7eb', color: '#323a41', fontSize: 14 }}>
+                      <td style={{ padding: '18px 16px', borderBottom: BORDER_LIGHT, color: '#323a41', fontSize: 14 }}>
                         {item.createdAt}
                       </td>
-                      <td style={{ padding: '18px 16px', borderBottom: '1px solid #e5e7eb' }}>
+                      <td style={{ padding: '18px 16px', borderBottom: BORDER_LIGHT }}>
                         <span
                           style={{
                             display: 'inline-block',
-                            background: item.status === 'Chờ duyệt' ? '#f3e2a7' : item.status === 'Đã duyệt' ? '#dfeee3' : '#f7d9d5',
-                            color: item.status === 'Chờ duyệt' ? '#7a5a00' : item.status === 'Đã duyệt' ? '#1d5a3a' : '#8d3d34',
+                            background: item.status === ReviewTabState.PENDING ? '#f3e2a7' : item.status === ReviewTabState.APPROVED ? '#dfeee3' : '#f7d9d5',
+                            color: item.status === ReviewTabState.PENDING ? '#7a5a00' : item.status === ReviewTabState.APPROVED ? '#1d5a3a' : '#8d3d34',
                             borderRadius: 999,
                             padding: '6px 10px',
                             fontSize: 12,
@@ -291,7 +335,7 @@ export function BlogReviewList() {
                           {item.status}
                         </span>
                       </td>
-                      <td style={{ padding: '18px 16px', borderBottom: '1px solid #e5e7eb', color: '#5c5f64', fontSize: 13 }}>
+                      <td style={{ padding: '18px 16px', borderBottom: BORDER_LIGHT, color: '#5c5f64', fontSize: 13 }}>
                         {previewLoading && selectedItem?.id === item.id ? 'Đang mở...' : 'Nhấp để xem'}
                       </td>
                     </tr>
@@ -323,13 +367,13 @@ export function BlogReviewList() {
               maxHeight: '88vh',
               overflowY: 'auto',
               background: '#fffdf9',
-              border: '1px solid #e5e7eb',
+              border: BORDER_LIGHT,
               borderRadius: 24,
               boxShadow: '0 18px 45px rgba(15, 23, 42, 0.18)',
               position: 'relative',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '18px 22px', borderBottom: '1px solid #e5e7eb', background: '#f7f3ee', position: 'sticky', top: 0, zIndex: 2 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '18px 22px', borderBottom: BORDER_LIGHT, background: '#f7f3ee', position: 'sticky', top: 0, zIndex: 2 }}>
               <div>
                 <div style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7d5d3d', fontWeight: 700 }}>
                   Xem trước bài viết
@@ -339,7 +383,7 @@ export function BlogReviewList() {
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button
                   type="button"
-                  onClick={() => setConfirmAction({ type: 'PUBLISHED', item: selectedItem })}
+                  onClick={() => setConfirmAction({ type: ContentStatus.PUBLISHED, item: selectedItem })}
                   style={{
                     border: 'none',
                     borderRadius: 999,
@@ -357,7 +401,7 @@ export function BlogReviewList() {
                   type="button"
                   onClick={() => {
                     setRejectReason('');
-                    setConfirmAction({ type: 'REJECTED', item: selectedItem });
+                    setConfirmAction({ type: ContentStatus.REJECTED, item: selectedItem });
                   }}
                   style={{
                     border: '1px solid #e3b9b2',
@@ -396,11 +440,13 @@ export function BlogReviewList() {
             <div style={{ padding: '24px 22px 32px' }}>
               <article style={{ display: 'grid', gap: 24 }}>
                 {(previewArticle.coverImageUrl || previewArticle.coverImage) && (
-                  <div style={{ overflow: 'hidden', borderRadius: 20, border: '1px solid #e5e7eb', background: '#f4f2ee' }}>
-                    <img
+                  <div style={{ position: 'relative', width: '100%', height: 320, overflow: 'hidden', borderRadius: 20, border: BORDER_LIGHT, background: '#f4f2ee' }}>
+                    <Image
                       src={normalizeImageUrl(previewArticle.coverImageUrl || previewArticle.coverImage)}
                       alt={previewArticle.title}
-                      style={{ display: 'block', width: '100%', height: 320, objectFit: 'cover' }}
+                      fill
+                      unoptimized
+                      style={{ objectFit: 'cover' }}
                     />
                   </div>
                 )}
@@ -426,7 +472,7 @@ export function BlogReviewList() {
                               display: 'inline-flex',
                               alignItems: 'center',
                               borderRadius: 999,
-                              border: '1px solid #e5e7eb',
+                              border: BORDER_LIGHT,
                               background: '#f7f5f2',
                               padding: '7px 10px',
                               fontSize: 11,
@@ -455,21 +501,25 @@ export function BlogReviewList() {
 
                 <div style={{ display: 'grid', gap: 24 }}>
                   {Array.isArray(previewArticle.contentBlocks) && previewArticle.contentBlocks.length > 0 ? (
-                    previewArticle.contentBlocks.map((block: any, blockIndex: number) => {
+                    (previewArticle.contentBlocks as ContentBlockData[]).map((block: ContentBlockData, blockIndex: number) => {
                       const type = block?.type || block?.kind || 'paragraph';
                       const heading = typeof block?.heading === 'string' ? block.heading : '';
                       const text = typeof block?.text === 'string' ? block.text : '';
                       const caption = typeof block?.caption === 'string' ? block.caption : '';
                       const imageUrl = typeof block?.imageUrl === 'string' ? block.imageUrl : '';
 
-                      if (type === 'image' && imageUrl) {
+                      if (type === BLOCK_TYPE_IMAGE && imageUrl) {
                         return (
                           <figure key={`${imageUrl}-${blockIndex}`} style={{ margin: 0, display: 'grid', gap: 10 }}>
-                            <img
-                              src={normalizeImageUrl(imageUrl)}
-                              alt={caption || previewArticle.title}
-                              style={{ display: 'block', width: '100%', maxHeight: 500, objectFit: 'cover', borderRadius: 20, border: '1px solid #e5e7eb' }}
-                            />
+                            <div style={{ position: 'relative', width: '100%', height: 400, borderRadius: 20, overflow: 'hidden', border: BORDER_LIGHT }}>
+                              <Image
+                                src={normalizeImageUrl(imageUrl)}
+                                alt={caption || previewArticle.title}
+                                fill
+                                unoptimized
+                                style={{ objectFit: 'cover' }}
+                              />
+                            </div>
                             {caption ? <figcaption style={{ textAlign: 'center', color: '#58646d', fontSize: 14, fontStyle: 'italic' }}>{caption}</figcaption> : null}
                           </figure>
                         );
@@ -501,23 +551,24 @@ export function BlogReviewList() {
 
                 {(() => {
                   const metadata = extractMetadataFromBlocks(previewArticle?.contentBlocks);
-                  const references = metadata.references.length > 0
+                  const rawReferences = metadata.references.length > 0
                     ? metadata.references
                     : Array.isArray(previewArticle?.references)
                       ? previewArticle.references
                       : [];
-                  const hasReference = references.some((reference: any) => reference?.title || reference?.source || reference?.url);
+                  const references = rawReferences as ArticleReferenceData[];
+                  const hasReference = references.some((reference: ArticleReferenceData) => reference?.title || reference?.source || reference?.url);
                   if (!hasReference) return null;
 
                   return (
-                    <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 18, display: 'grid', gap: 12 }}>
+                    <div style={{ borderTop: BORDER_LIGHT, paddingTop: 18, display: 'grid', gap: 12 }}>
                       <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7d5d3d', fontWeight: 700 }}>
                         Tài liệu tham khảo
                       </p>
                       <ul style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 8, color: '#2f3c3d', fontSize: 15, lineHeight: 1.7 }}>
                         {references
-                          .filter((reference: any) => reference?.title || reference?.source || reference?.url)
-                          .map((reference: any, index: number) => (
+                          .filter((reference: ArticleReferenceData) => reference?.title || reference?.source || reference?.url)
+                          .map((reference: ArticleReferenceData, index: number) => (
                             <li key={`${reference?.id || reference?.title || reference?.source || index}`}>
                               {reference?.url ? (
                                 <a href={reference.url} target="_blank" rel="noreferrer" style={{ color: '#1f2a37', textDecoration: 'underline', textUnderlineOffset: 2 }}>
@@ -558,17 +609,17 @@ export function BlogReviewList() {
               maxWidth: 520,
               background: '#ffffff',
               borderRadius: 24,
-              border: '1px solid #e5e7eb',
+              border: BORDER_LIGHT,
               padding: 26,
               boxShadow: '0 28px 70px rgba(15, 23, 42, 0.14)',
             }}
           >
             <div style={{ marginBottom: 18 }}>
               <div style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#5c5f64', fontWeight: 700 }}>
-                {confirmAction.type === 'PUBLISHED' ? 'Xác nhận duyệt' : 'Từ chối bài viết'}
+                {confirmAction.type === ContentStatus.PUBLISHED ? 'Xác nhận duyệt' : 'Từ chối bài viết'}
               </div>
               <h3 style={{ margin: '10px 0 0', fontSize: 24, lineHeight: 1.3, color: '#1f2a37', fontWeight: 800 }}>
-                {confirmAction.type === 'PUBLISHED' ? 'Bạn có muốn duyệt bài này không?' : 'Bạn có muốn từ chối bài này không?'}
+                {confirmAction.type === ContentStatus.PUBLISHED ? 'Bạn có muốn duyệt bài này không?' : 'Bạn có muốn từ chối bài này không?'}
               </h3>
             </div>
 
@@ -577,7 +628,7 @@ export function BlogReviewList() {
               <div><strong>Tác giả:</strong> {confirmAction.item.author}</div>
             </div>
 
-            {confirmAction.type === 'REJECTED' && (
+            {confirmAction.type === ContentStatus.REJECTED && (
               <div style={{ marginBottom: 18 }}>
                 <label style={{ display: 'block', fontWeight: 700, color: '#1f2a37', marginBottom: 8 }}>Lý do từ chối</label>
                 <textarea
@@ -623,28 +674,28 @@ export function BlogReviewList() {
               <button
                 type="button"
                 onClick={() => {
-                  if (confirmAction.type === 'REJECTED') {
+                  if (confirmAction.type === ContentStatus.REJECTED) {
                     if (!rejectReason.trim()) {
-                      setNotice({ tone: 'error', text: 'Vui lòng nhập lý do từ chối trước khi gửi.' });
+                      setNotice({ tone: NoticeTone.ERROR, text: 'Vui lòng nhập lý do từ chối trước khi gửi.' });
                       return;
                     }
-                    handleReview(confirmAction.item, 'REJECTED', rejectReason);
+                    handleReview(confirmAction.item, ContentStatus.REJECTED, rejectReason);
                     return;
                   }
 
-                  handleReview(confirmAction.item, 'PUBLISHED');
+                  handleReview(confirmAction.item, ContentStatus.PUBLISHED);
                 }}
                 style={{
                   border: 'none',
                   borderRadius: 999,
-                  background: confirmAction.type === 'PUBLISHED' ? '#1f2937' : '#8d3d34',
+                  background: confirmAction.type === ContentStatus.PUBLISHED ? '#1f2937' : '#8d3d34',
                   color: '#fff',
                   fontWeight: 700,
                   padding: '10px 16px',
                   cursor: 'pointer',
                 }}
               >
-                {confirmAction.type === 'PUBLISHED' ? 'Xác nhận duyệt' : 'Xác nhận từ chối'}
+                {confirmAction.type === ContentStatus.PUBLISHED ? 'Xác nhận duyệt' : 'Xác nhận từ chối'}
               </button>
             </div>
           </div>

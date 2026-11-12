@@ -120,6 +120,7 @@ export function BlogFeaturedSlider({
       <div className="relative h-72 w-full overflow-hidden md:h-96">
         <Link href={`/blog/${currentPost.slug}`} className="block h-full w-full">
           {currentPost.image ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={currentPost.image}
               alt={currentPost.title}

@@ -29,6 +29,7 @@ model Topic {
   parent    Topic?     @relation("TopicHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children  Topic[]    @relation("TopicHierarchy")
   questions Question[]
+  quizzes   Quiz[]     @relation("TopicQuizzes")
   timelines Timeline[]
   lessons   Lesson[]
   articles  Article[]

@@ -17,6 +17,8 @@ import config from '../common/config/app.config';
 import { CreateNoteDto, QueryNoteDto, UpdateNoteDto } from './dto/note.dto';
 import { NoteService } from './note.service';
 
+const X_GUEST_ID_HEADER = 'x-guest-id';
+
 @ApiTags('Notes (Ghi chú bài học & bài viết)')
 @Controller('notes')
 export class NoteController {
@@ -41,7 +43,7 @@ export class NoteController {
   findAll(
     @Req() req: Request,
     @Query() query: QueryNoteDto,
-    @Headers('x-guest-id') guestHeader?: string,
+    @Headers(X_GUEST_ID_HEADER) guestHeader?: string,
   ) {
     const userId = this.extractUserId(req);
     const guestId = query.guestId || guestHeader;
@@ -54,7 +56,7 @@ export class NoteController {
     @Param('id') id: string,
     @Req() req: Request,
     @Query('guestId') guestQuery?: string,
-    @Headers('x-guest-id') guestHeader?: string,
+    @Headers(X_GUEST_ID_HEADER) guestHeader?: string,
   ) {
     const userId = this.extractUserId(req);
     const guestId = guestQuery || guestHeader;
@@ -68,7 +70,7 @@ export class NoteController {
   create(
     @Body() dto: CreateNoteDto,
     @Req() req: Request,
-    @Headers('x-guest-id') guestHeader?: string,
+    @Headers(X_GUEST_ID_HEADER) guestHeader?: string,
   ) {
     const userId = this.extractUserId(req);
     const guestId = dto.guestId || guestHeader;
@@ -82,7 +84,7 @@ export class NoteController {
     @Body() dto: UpdateNoteDto,
     @Req() req: Request,
     @Query('guestId') guestQuery?: string,
-    @Headers('x-guest-id') guestHeader?: string,
+    @Headers(X_GUEST_ID_HEADER) guestHeader?: string,
   ) {
     const userId = this.extractUserId(req);
     const guestId = guestQuery || guestHeader;
@@ -95,7 +97,7 @@ export class NoteController {
     @Param('id') id: string,
     @Req() req: Request,
     @Query('guestId') guestQuery?: string,
-    @Headers('x-guest-id') guestHeader?: string,
+    @Headers(X_GUEST_ID_HEADER) guestHeader?: string,
   ) {
     const userId = this.extractUserId(req);
     const guestId = guestQuery || guestHeader;

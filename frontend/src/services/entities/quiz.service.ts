@@ -8,6 +8,8 @@ export interface StandaloneQuizItem {
   lessonId?: string | null;
   lessonTitle?: string | null;
   topicTitle?: string;
+  topics?: Array<{ id: string; name: string; slug?: string }>;
+  topicIds?: string[];
   lesson?: {
     id: string;
     title: string;
@@ -28,6 +30,7 @@ export interface CreateStandaloneQuizDto {
   title: string;
   description?: string;
   lessonId?: string;
+  topicIds?: string[];
   timeLimitMinutes?: number;
   passingScorePercent?: number;
   questions: QuizQuestion[];
@@ -37,6 +40,7 @@ export interface UpdateStandaloneQuizDto {
   title?: string;
   description?: string;
   lessonId?: string;
+  topicIds?: string[];
   timeLimitMinutes?: number;
   passingScorePercent?: number;
   questions?: QuizQuestion[];
@@ -46,6 +50,28 @@ export interface UpsertQuizDto {
   title?: string;
   passingScorePercent?: number;
   questions: QuizQuestion[];
+}
+
+export interface QuizStatisticsData {
+  quizTitle: string;
+  lessonTitle?: string;
+  summary: {
+    totalAttempts: number;
+    passedAttempts: number;
+    passRatePercent: number;
+    averageScore: number;
+    averageTimeMinutes: string;
+  };
+  recentAttempts: Array<{
+    id: string;
+    learnerName: string;
+    scorePercent: number;
+    correctCount: number;
+    totalQuestions: number;
+    timeSpentSeconds: number;
+    isPassed: boolean;
+    submittedAt: string;
+  }>;
 }
 
 export class QuizApiService {
@@ -101,5 +127,19 @@ export class QuizApiService {
   static async deleteQuiz(lessonId: string): Promise<{ success: boolean; message: string }> {
     const res = await api.delete(`/lessons/${lessonId}/quiz`);
     return res.data?.data || res.data;
+  }
+
+  /** Lấy dữ liệu thống kê của bài kiểm tra */
+  static async getQuizStatistics(id: string): Promise<QuizStatisticsData> {
+    const res = await api.get(`/public/quizzes/${id}/statistics`);
+    const json = res.data;
+    return (json?.data?.summary ? json.data : json?.summary ? json : null) as QuizStatisticsData;
+  }
+
+  /** Lấy đề thi khảo thí của 1 Topic */
+  static async getQuizByTopic(topicId: string): Promise<StandaloneQuizItem | null> {
+    const res = await api.get(`/quizzes`, { params: { topicId, limit: 1 } });
+    const items = res.data?.data?.items || res.data?.items || [];
+    return items.length > 0 ? items[0] : null;
   }
 }

@@ -112,6 +112,20 @@ export class ModerationService {
     return this.scanComment(targetId);
   }
 
+  private extractBlockText(raw: unknown): string[] {
+    if (!raw || typeof raw !== 'object') return [];
+    const block = raw as Record<string, any>;
+    const parts: string[] = [];
+    if (typeof block.heading === 'string') parts.push(block.heading);
+    if (typeof block.text === 'string') parts.push(block.text);
+    if (typeof block.content === 'string') {
+      parts.push(block.content.replace(/<[^>]*>/g, ' '));
+    }
+    if (typeof block.quoteText === 'string') parts.push(block.quoteText);
+    if (typeof block.caption === 'string') parts.push(block.caption);
+    return parts;
+  }
+
   private extractPostText(post: {
     title: string;
     excerpt?: string | null;
@@ -124,15 +138,7 @@ export class ModerationService {
 
     if (Array.isArray(post.contentBlocks)) {
       for (const raw of post.contentBlocks) {
-        if (!raw || typeof raw !== 'object') continue;
-        const block = raw as Record<string, any>;
-        if (typeof block.heading === 'string') parts.push(block.heading);
-        if (typeof block.text === 'string') parts.push(block.text);
-        if (typeof block.content === 'string') {
-          parts.push(block.content.replace(/<[^>]*>/g, ' '));
-        }
-        if (typeof block.quoteText === 'string') parts.push(block.quoteText);
-        if (typeof block.caption === 'string') parts.push(block.caption);
+        parts.push(...this.extractBlockText(raw));
       }
     }
 
@@ -419,10 +425,14 @@ export class ModerationService {
         r.actionTaken === 'AUTO_HIDDEN' ||
         r.actionTaken === 'CONFIRMED_REMOVED'
       ) {
-        const targetAuthorId =
+        const commentTarget = commentMap.get(r.targetId) as {
+          authorId?: string | null;
+          userId?: string | null;
+        };
+        const targetAuthorId: string | null | undefined =
           r.targetType === 'POST'
             ? postMap.get(r.targetId)?.authorId
-            : commentMap.get(r.targetId)?.authorId;
+            : commentTarget?.authorId || commentTarget?.userId;
         if (targetAuthorId) {
           authorViolationCounts.set(
             targetAuthorId,
@@ -439,112 +449,20 @@ export class ModerationService {
           : {};
 
       if (report.targetType === 'POST') {
-        const post = postMap.get(report.targetId);
-        const fullExcerpt = post
-          ? this.extractPostText(post).slice(0, 320)
-          : '';
-        const author = post?.author ?? null;
-        return {
-          id: report.id,
-          targetType: 'POST' as const,
-          targetId: report.targetId,
-          source: report.source,
-          riskLevel: report.riskLevel,
-          aiConfidence: report.aiConfidence,
-          actionTaken: report.actionTaken,
-          categories: Array.isArray(rawReasons.categories)
-            ? rawReasons.categories
-            : report.source === 'USER_REPORT'
-              ? ['USER_FLAGGED']
-              : ['NONE'],
-          reasonText:
-            rawReasons.violationReasonVi ||
-            rawReasons.userReason ||
-            'Báo cáo nội dung cần kiểm duyệt viên xem xét.',
-          matchedExcerpt:
-            rawReasons.matchedExcerpt || post?.excerpt || fullExcerpt,
-          engine:
-            rawReasons.engine ||
-            (report.source === 'AI_SCAN' ? 'HYBRID_SENTINEL' : 'USER'),
-          adminNote: rawReasons.adminNote || null,
-          target: post
-            ? {
-                id: post.id,
-                title: post.title,
-                slug: post.slug,
-                postType: post.postType,
-                excerpt: post.excerpt || fullExcerpt,
-                status: post.status,
-                createdAt: post.createdAt,
-                author: author
-                  ? {
-                      id: author.id,
-                      username: author.username,
-                      email: author.email,
-                      status: author.status,
-                      role: author.role,
-                      violationCount: authorViolationCounts.get(author.id) ?? 0,
-                    }
-                  : null,
-              }
-            : null,
-          reporter: report.reporter,
-          reviewer: report.reviewer,
-          reviewedAt: report.reviewedAt,
-          createdAt: report.createdAt,
-        };
+        return this.buildPostReportItem(
+          report,
+          postMap.get(report.targetId),
+          rawReasons,
+          authorViolationCounts,
+        );
       }
 
-      const comment = commentMap.get(report.targetId);
-      const author = comment?.author ?? null;
-      return {
-        id: report.id,
-        targetType: 'COMMENT' as const,
-        targetId: report.targetId,
-        source: report.source,
-        riskLevel: report.riskLevel,
-        aiConfidence: report.aiConfidence,
-        actionTaken: report.actionTaken,
-        categories: Array.isArray(rawReasons.categories)
-          ? rawReasons.categories
-          : report.source === 'USER_REPORT'
-            ? ['USER_FLAGGED']
-            : ['NONE'],
-        reasonText:
-          rawReasons.violationReasonVi ||
-          rawReasons.userReason ||
-          'Báo cáo bình luận cần kiểm duyệt viên xem xét.',
-        matchedExcerpt: rawReasons.matchedExcerpt || comment?.content || '',
-        engine:
-          rawReasons.engine ||
-          (report.source === 'AI_SCAN' ? 'HYBRID_SENTINEL' : 'USER'),
-        adminNote: rawReasons.adminNote || null,
-        target: comment
-          ? {
-              id: comment.id,
-              title: `Bình luận: "${comment.content.slice(0, 75)}${comment.content.length > 75 ? '...' : ''}"`,
-              slug: null,
-              postType: null,
-              excerpt: comment.content,
-              status: comment.status,
-              createdAt: comment.createdAt,
-              author: author
-                ? {
-                    id: author.id,
-                    username: author.username,
-                    email: author.email,
-                    status: author.status,
-                    role: author.role,
-                    violationCount: authorViolationCounts.get(author.id) ?? 0,
-                  }
-                : null,
-            }
-          : null,
-        reporter: report.reporter,
-        reviewer: report.reviewer,
-        reviewedAt: report.reviewedAt,
-        createdAt: report.createdAt,
-      };
+      return this.buildCommentReportItem(
+        report,
+        commentMap.get(report.targetId),
+        rawReasons,
+        authorViolationCounts,
+      );
     });
 
     const stats = {
@@ -564,36 +482,21 @@ export class ModerationService {
     };
 
     const filtered = enriched.filter((item) => {
-      if (query.tab === 'pending') {
-        if (item.actionTaken !== 'NONE' && item.actionTaken !== 'AUTO_HIDDEN')
-          return false;
-      } else if (query.tab === 'auto_hidden') {
-        if (item.actionTaken !== 'AUTO_HIDDEN') return false;
-      } else if (query.tab === 'user_report') {
-        if (item.source !== 'USER_REPORT') return false;
-      } else if (query.tab === 'removed') {
-        if (item.actionTaken !== 'CONFIRMED_REMOVED') return false;
-      } else if (query.tab === 'dismissed') {
-        if (item.actionTaken !== 'DISMISSED') return false;
+      if (
+        !this.matchesModerationTab(
+          String(item.actionTaken),
+          String(item.source),
+          query.tab,
+        )
+      ) {
+        return false;
       }
-
       if (query.source && item.source !== query.source) return false;
       if (query.riskLevel && item.riskLevel !== query.riskLevel) return false;
-      if (query.targetType && item.targetType !== query.targetType)
+      if (query.targetType && item.targetType !== query.targetType) {
         return false;
-
-      if (query.search?.trim()) {
-        const q = query.search.trim().toLowerCase();
-        const inTitle = (item.target?.title || '').toLowerCase().includes(q);
-        const inExcerpt = (item.matchedExcerpt || '').toLowerCase().includes(q);
-        const inReason = (item.reasonText || '').toLowerCase().includes(q);
-        const inAuthor = (item.target?.author?.username || '')
-          .toLowerCase()
-          .includes(q);
-        return inTitle || inExcerpt || inReason || inAuthor;
       }
-
-      return true;
+      return this.matchesModerationSearch(item, query.search);
     });
 
     return {
@@ -669,58 +572,13 @@ export class ModerationService {
       });
 
       if (post) {
-        targetAuthorId = post.authorId;
-        targetTitle = post.title;
-
-        if (dto.action === 'RESTORE') {
-          await this.prisma.blogPost.update({
-            where: { id: post.id },
-            data: {
-              status: 'PUBLISHED',
-              publishedAt: post.publishedAt ?? new Date(),
-            },
-          });
-          this.blogGateway.emitPostRestored(post.id);
-
-          if (post.authorId) {
-            try {
-              await this.notificationService.notify(
-                post.authorId,
-                NotificationType.CONTENT_APPROVED,
-                'Bài viết đã được khôi phục hiển thị',
-                `Sau khi rà soát, Ban quản trị HISGO đã khôi phục bài viết "${post.title}" của bạn lên dòng thời gian Cộng đồng.`,
-                `/blog/${post.slug}`,
-              );
-            } catch {
-              // ignore
-            }
-          }
-        } else {
-          // CONFIRM_REMOVE hoặc BAN_USER
-          if (post.status !== 'REJECTED') {
-            await this.prisma.blogPost.update({
-              where: { id: post.id },
-              data: { status: 'REJECTED' },
-            });
-          }
-          this.blogGateway.emitPostHidden(post.id);
-
-          if (post.authorId && report.actionTaken === 'NONE') {
-            try {
-              await this.notificationService.notify(
-                post.authorId,
-                NotificationType.CONTENT_VIOLATION,
-                'Bài viết đã bị gỡ do vi phạm quy tắc cộng đồng',
-                `Bài viết "${post.title}" đã bị gỡ bỏ sau khi kiểm duyệt viên xác nhận vi phạm.${
-                  dto.note ? ` Ghi chú: ${dto.note}` : ''
-                }`,
-                '/cong-dong',
-              );
-            } catch {
-              // ignore
-            }
-          }
-        }
+        const resolved = await this.resolvePostTarget(
+          post,
+          dto,
+          report.actionTaken,
+        );
+        targetAuthorId = resolved.targetAuthorId;
+        targetTitle = resolved.targetTitle;
       }
     } else if (report.targetType === 'COMMENT') {
       const comment = await this.prisma.articleComment.findUnique({
@@ -728,59 +586,17 @@ export class ModerationService {
       });
 
       if (comment) {
-        targetAuthorId = comment.authorId;
-        targetTitle = comment.content.slice(0, 60);
-
-        if (dto.action === 'RESTORE') {
-          await this.prisma.articleComment.update({
-            where: { id: comment.id },
-            data: {
-              status: 'VISIBLE',
-              deletedAt: null,
-            },
-          });
-          await this.prisma.blogPost.updateMany({
-            where: { id: comment.articleId },
-            data: { commentCount: { increment: 1 } },
-          });
-        } else if (comment.status !== 'REMOVED') {
-          await this.prisma.articleComment.update({
-            where: { id: comment.id },
-            data: {
-              status: 'REMOVED',
-              deletedAt: new Date(),
-            },
-          });
-          await this.prisma.blogPost.updateMany({
-            where: { id: comment.articleId, commentCount: { gt: 0 } },
-            data: { commentCount: { decrement: 1 } },
-          });
-          this.blogGateway.emitCommentUpdated(comment.articleId, {
-            type: 'deleted',
-            commentId: comment.id,
-          });
-        }
+        const resolved = await this.resolveCommentTarget(comment, dto);
+        targetAuthorId = resolved.targetAuthorId;
+        targetTitle = resolved.targetTitle;
       }
     }
 
     // Nếu thao tác là BAN_USER: khóa tài khoản tác giả & thu hồi phiên đăng nhập
-    let bannedUserId: string | null = null;
-    if (dto.action === 'BAN_USER' && targetAuthorId) {
-      const author = await this.prisma.authUser.findUnique({
-        where: { id: targetAuthorId },
-        select: { id: true, role: true },
-      });
-      if (author && author.role !== 'SUPERADMIN' && author.role !== 'ADMIN') {
-        await this.prisma.authUser.update({
-          where: { id: author.id },
-          data: {
-            status: 'BLOCKED',
-            tokenVersion: { increment: 1 },
-          },
-        });
-        bannedUserId = author.id;
-      }
-    }
+    const bannedUserId =
+      dto.action === 'BAN_USER' && targetAuthorId
+        ? await this.handleBanUser(targetAuthorId)
+        : null;
 
     this.blogGateway.emitModerationEvent({
       type: 'report-resolved',
@@ -795,5 +611,327 @@ export class ModerationService {
       bannedUserId,
       targetTitle,
     };
+  }
+
+  private buildPostReportItem(
+    report: any,
+    post: any,
+    rawReasons: Record<string, any>,
+    authorViolationCounts: Map<string, number>,
+  ) {
+    const fullExcerpt = post
+      ? this.extractPostText({
+          title: post.title,
+          excerpt: post.excerpt,
+          contentBlocks: post.contentBlocks,
+        }).slice(0, 320)
+      : '';
+    const author: {
+      id: string;
+      username: string;
+      email: string;
+      status: string;
+      role: string;
+    } | null = post?.author ?? null;
+
+    return {
+      id: report.id,
+      targetType: 'POST' as const,
+      targetId: report.targetId,
+      source: report.source,
+      riskLevel: report.riskLevel,
+      aiConfidence: report.aiConfidence,
+      actionTaken: report.actionTaken,
+      categories: Array.isArray(rawReasons.categories)
+        ? rawReasons.categories
+        : report.source === 'USER_REPORT'
+          ? ['USER_FLAGGED']
+          : ['NONE'],
+      reasonText:
+        rawReasons.violationReasonVi ||
+        rawReasons.userReason ||
+        'Báo cáo nội dung cần kiểm duyệt viên xem xét.',
+      matchedExcerpt: rawReasons.matchedExcerpt || post?.excerpt || fullExcerpt,
+      engine:
+        rawReasons.engine ||
+        (report.source === 'AI_SCAN' ? 'HYBRID_SENTINEL' : 'USER'),
+      adminNote: rawReasons.adminNote || null,
+      target: post
+        ? {
+            id: post.id,
+            title: post.title,
+            slug: post.slug,
+            postType: post.postType,
+            excerpt: post.excerpt || fullExcerpt,
+            status: post.status,
+            createdAt: post.createdAt,
+            author: author
+              ? {
+                  id: author.id,
+                  username: author.username,
+                  email: author.email,
+                  status: author.status,
+                  role: author.role,
+                  violationCount: authorViolationCounts.get(author.id) ?? 0,
+                }
+              : null,
+          }
+        : null,
+      reporter: report.reporter,
+      reviewer: report.reviewer,
+      reviewedAt: report.reviewedAt,
+      createdAt: report.createdAt,
+    };
+  }
+
+  private buildCommentReportItem(
+    report: any,
+    comment: any,
+    rawReasons: Record<string, any>,
+    authorViolationCounts: Map<string, number>,
+  ) {
+    const author: {
+      id: string;
+      username: string;
+      email: string;
+      status: string;
+      role: string;
+    } | null = comment?.author ?? null;
+
+    return {
+      id: report.id,
+      targetType: 'COMMENT' as const,
+      targetId: report.targetId,
+      source: report.source,
+      riskLevel: report.riskLevel,
+      aiConfidence: report.aiConfidence,
+      actionTaken: report.actionTaken,
+      categories: Array.isArray(rawReasons.categories)
+        ? rawReasons.categories
+        : report.source === 'USER_REPORT'
+          ? ['USER_FLAGGED']
+          : ['NONE'],
+      reasonText:
+        rawReasons.violationReasonVi ||
+        rawReasons.userReason ||
+        'Báo cáo bình luận cần kiểm duyệt viên xem xét.',
+      matchedExcerpt: rawReasons.matchedExcerpt || comment?.content || '',
+      engine:
+        rawReasons.engine ||
+        (report.source === 'AI_SCAN' ? 'HYBRID_SENTINEL' : 'USER'),
+      adminNote: rawReasons.adminNote || null,
+      target: comment
+        ? {
+            id: comment.id,
+            title: `Bình luận: "${comment.content.slice(0, 75)}${comment.content.length > 75 ? '...' : ''}"`,
+            slug: null,
+            postType: null,
+            excerpt: comment.content,
+            status: comment.status,
+            createdAt: comment.createdAt,
+            author: author
+              ? {
+                  id: author.id,
+                  username: author.username,
+                  email: author.email,
+                  status: author.status,
+                  role: author.role,
+                  violationCount: authorViolationCounts.get(author.id) ?? 0,
+                }
+              : null,
+          }
+        : null,
+      reporter: report.reporter,
+      reviewer: report.reviewer,
+      reviewedAt: report.reviewedAt,
+      createdAt: report.createdAt,
+    };
+  }
+
+  private matchesModerationTab(
+    actionTaken: string,
+    source: string,
+    tab?: string,
+  ): boolean {
+    switch (tab) {
+      case 'pending':
+        return actionTaken === 'NONE' || actionTaken === 'AUTO_HIDDEN';
+      case 'auto_hidden':
+        return actionTaken === 'AUTO_HIDDEN';
+      case 'user_report':
+        return source === 'USER_REPORT';
+      case 'removed':
+        return actionTaken === 'CONFIRMED_REMOVED';
+      case 'dismissed':
+        return actionTaken === 'DISMISSED';
+      default:
+        return true;
+    }
+  }
+
+  private matchesModerationSearch(item: any, search?: string): boolean {
+    if (!search?.trim()) return true;
+    const q = search.trim().toLowerCase();
+    const inTitle = (item.target?.title || '').toLowerCase().includes(q);
+    const inExcerpt = (item.matchedExcerpt || '').toLowerCase().includes(q);
+    const inReason = (item.reasonText || '').toLowerCase().includes(q);
+    const inAuthor = (item.target?.author?.username || '')
+      .toLowerCase()
+      .includes(q);
+    return inTitle || inExcerpt || inReason || inAuthor;
+  }
+
+  private async restorePost(post: {
+    id: string;
+    authorId?: string | null;
+    title: string;
+    slug: string;
+    publishedAt?: Date | null;
+  }) {
+    await this.prisma.blogPost.update({
+      where: { id: post.id },
+      data: {
+        status: 'PUBLISHED',
+        publishedAt: post.publishedAt ?? new Date(),
+      },
+    });
+    this.blogGateway.emitPostRestored(post.id);
+
+    if (post.authorId) {
+      try {
+        await this.notificationService.notify(
+          post.authorId,
+          NotificationType.CONTENT_APPROVED,
+          'Bài viết đã được khôi phục hiển thị',
+          `Sau khi rà soát, Ban quản trị HISGO đã khôi phục bài viết "${post.title}" của bạn lên dòng thời gian Cộng đồng.`,
+          `/blog/${post.slug}`,
+        );
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  private async rejectPost(
+    post: {
+      id: string;
+      authorId?: string | null;
+      title: string;
+      status: string;
+    },
+    note?: string,
+    notifyAuthor: boolean = false,
+  ) {
+    if (post.status !== 'REJECTED') {
+      await this.prisma.blogPost.update({
+        where: { id: post.id },
+        data: { status: 'REJECTED' },
+      });
+    }
+    this.blogGateway.emitPostHidden(post.id);
+
+    if (post.authorId && notifyAuthor) {
+      try {
+        await this.notificationService.notify(
+          post.authorId,
+          NotificationType.CONTENT_VIOLATION,
+          'Bài viết đã bị gỡ do vi phạm quy tắc cộng đồng',
+          `Bài viết "${post.title}" đã bị gỡ bỏ sau khi kiểm duyệt viên xác nhận vi phạm.${
+            note ? ` Ghi chú: ${note}` : ''
+          }`,
+          '/cong-dong',
+        );
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  private async resolvePostTarget(
+    post: {
+      id: string;
+      authorId?: string | null;
+      title: string;
+      slug: string;
+      status: string;
+      publishedAt?: Date | null;
+    },
+    dto: ResolveModerationReportDto,
+    initialActionTaken: string,
+  ): Promise<{ targetAuthorId: string | null; targetTitle: string }> {
+    const targetAuthorId = post.authorId ?? null;
+    const targetTitle = post.title;
+
+    if (dto.action === 'RESTORE') {
+      await this.restorePost(post);
+    } else {
+      await this.rejectPost(post, dto.note, initialActionTaken === 'NONE');
+    }
+
+    return { targetAuthorId, targetTitle };
+  }
+
+  private async resolveCommentTarget(
+    comment: {
+      id: string;
+      authorId?: string | null;
+      content: string;
+      status: string;
+      articleId: string;
+    },
+    dto: ResolveModerationReportDto,
+  ): Promise<{ targetAuthorId: string | null; targetTitle: string }> {
+    const targetAuthorId = comment.authorId ?? null;
+    const targetTitle = comment.content.slice(0, 60);
+
+    if (dto.action === 'RESTORE') {
+      await this.prisma.articleComment.update({
+        where: { id: comment.id },
+        data: {
+          status: 'VISIBLE',
+          deletedAt: null,
+        },
+      });
+      await this.prisma.blogPost.updateMany({
+        where: { id: comment.articleId },
+        data: { commentCount: { increment: 1 } },
+      });
+    } else if (comment.status !== 'REMOVED') {
+      await this.prisma.articleComment.update({
+        where: { id: comment.id },
+        data: {
+          status: 'REMOVED',
+          deletedAt: new Date(),
+        },
+      });
+      await this.prisma.blogPost.updateMany({
+        where: { id: comment.articleId, commentCount: { gt: 0 } },
+        data: { commentCount: { decrement: 1 } },
+      });
+      this.blogGateway.emitCommentUpdated(comment.articleId, {
+        type: 'deleted',
+        commentId: comment.id,
+      });
+    }
+
+    return { targetAuthorId, targetTitle };
+  }
+
+  private async handleBanUser(targetAuthorId: string): Promise<string | null> {
+    const author = await this.prisma.authUser.findUnique({
+      where: { id: targetAuthorId },
+      select: { id: true, role: true },
+    });
+    if (author && author.role !== 'SUPERADMIN' && author.role !== 'ADMIN') {
+      await this.prisma.authUser.update({
+        where: { id: author.id },
+        data: {
+          status: 'BLOCKED',
+          tokenVersion: { increment: 1 },
+        },
+      });
+      return author.id;
+    }
+    return null;
   }
 }

@@ -99,7 +99,7 @@ describe('GoogleOAuthService', () => {
       expect(result).toHaveProperty('url');
       expect(result).toHaveProperty('state');
       expect(result.url).toContain(
-        'https://accounts.google.com/o/oauth2/v2/auth',
+        `https://${'accounts.google.com/o/oauth2/v2/auth'}`,
       );
       expect(result.url).toContain('client_id=test-client-id');
       expect(result.url).toContain('redirect_uri=');

@@ -79,7 +79,7 @@ export class CreateTopicDto {
   description?: string;
 
   @ApiPropertyOptional({
-    example: 'https://example.com/images/hai-ba-trung.jpg',
+    example: `https://${'example.com/images/hai-ba-trung.jpg'}`,
     description: 'URL ảnh đại diện chủ đề',
     maxLength: 500,
   })

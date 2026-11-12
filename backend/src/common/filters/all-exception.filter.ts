@@ -17,30 +17,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
     private readonly logger: Logger,
   ) {}
 
-  catch(exception: unknown, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+  private isIgnoredProbe(url: string): boolean {
+    return (
+      url === '/favicon.ico' ||
+      url.startsWith('/json/version') ||
+      url.startsWith('/json')
+    );
+  }
 
-    // Ignore favicon and browser/DevTools inspection probes
-    if (
-      request.url === '/favicon.ico' ||
-      request.url.startsWith('/json/version') ||
-      request.url.startsWith('/json')
-    ) {
-      response.status(HttpStatus.NOT_FOUND).json({
-        statusCode: HttpStatus.NOT_FOUND,
-        message: `Cannot ${request.method} ${request.url}`,
-        error: 'Not Found',
-      });
-      return;
-    }
-
+  private parseExceptionDetails(exception: unknown) {
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal Server Error';
     let error = 'Error';
 
-    // Check if exception has a status property
     if (
       typeof exception === 'object' &&
       exception !== null &&
@@ -50,26 +39,32 @@ export class AllExceptionsFilter implements ExceptionFilter {
       statusCode = exception.status;
     }
 
-    // Handle NestJS HttpException
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
       const res = exception.getResponse();
-      if (typeof res === 'string') message = res;
-      else if (typeof res === 'object' && res['message']) {
-        const resMessage = res['message'] as string | string[];
+      if (typeof res === 'string') {
+        message = res;
+      } else if (typeof res === 'object' && res && 'message' in res) {
+        const resMessage = (res as Record<string, unknown>).message;
         message = Array.isArray(resMessage)
           ? resMessage.join(', ')
           : String(resMessage);
       }
       error = exception.name;
-    }
-    // Generic JS Error
-    else if (exception instanceof Error) {
+    } else if (exception instanceof Error) {
       message = exception.message;
       error = exception.name;
     }
 
-    // Phân loại log: 4xx chỉ log warn/debug, 5xx mới log error
+    return { statusCode, message, error };
+  }
+
+  private logException(
+    request: Request,
+    statusCode: number,
+    message: string,
+    exception: unknown,
+  ) {
     if (statusCode >= 500) {
       this.logger.error('Unhandled exception caught', {
         context: 'AllExceptionsFilter',
@@ -92,6 +87,26 @@ export class AllExceptionsFilter implements ExceptionFilter {
         },
       );
     }
+  }
+
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    // Ignore favicon and browser/DevTools inspection probes
+    if (this.isIgnoredProbe(request.url)) {
+      response.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        message: `Cannot ${request.method} ${request.url}`,
+        error: 'Not Found',
+      });
+      return;
+    }
+
+    const { statusCode, message, error } =
+      this.parseExceptionDetails(exception);
+    this.logException(request, statusCode, message, exception);
 
     response.status(statusCode).json({
       success: false,

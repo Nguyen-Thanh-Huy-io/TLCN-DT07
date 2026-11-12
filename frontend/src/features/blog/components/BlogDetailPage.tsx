@@ -28,51 +28,72 @@ const buildParagraphHtml = (value: string) =>
     .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br />')}</p>`)
     .join('');
 
+const META_TYPE = 'meta';
+const METADATA_KIND = 'metadata';
+
+const isMetadataBlock = (candidate: Record<string, unknown>): boolean => {
+  return (
+    (candidate.type === META_TYPE && candidate.kind === METADATA_KIND) ||
+    candidate.type === METADATA_KIND ||
+    candidate.kind === METADATA_KIND
+  );
+};
+
+const renderImageBlockHtml = (imageUrl: string, caption: string): string => {
+  const figureCaption = caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : '';
+  return `<figure><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(caption || 'Hình ảnh trong bài viết')}" />${figureCaption}</figure>`;
+};
+
+const renderTextBlockHtml = (heading: string, text: string): string => {
+  if (heading && text) {
+    return `<h3>${escapeHtml(heading)}</h3>${buildParagraphHtml(text)}`;
+  }
+  if (heading) {
+    return `<h3>${escapeHtml(heading)}</h3>`;
+  }
+  if (text) {
+    return buildParagraphHtml(text);
+  }
+  return '';
+};
+
+const renderSingleBlockHtml = (candidate: Record<string, unknown>): string => {
+  if (isMetadataBlock(candidate)) {
+    return '';
+  }
+
+  if (typeof candidate.content === 'string' && candidate.content.trim()) {
+    return buildParagraphHtml(candidate.content);
+  }
+
+  const heading = typeof candidate.heading === 'string' ? candidate.heading.trim() : '';
+  const text = typeof candidate.text === 'string' ? candidate.text.trim() : '';
+  const textHtml = renderTextBlockHtml(heading, text);
+  if (textHtml) {
+    return textHtml;
+  }
+
+  const quoteText = typeof candidate.quoteText === 'string' ? candidate.quoteText.trim() : '';
+  if (quoteText) {
+    return `<blockquote>${escapeHtml(quoteText).replace(/\n/g, '<br />')}</blockquote>`;
+  }
+
+  const imageUrl = typeof candidate.imageUrl === 'string' ? candidate.imageUrl.trim() : '';
+  if (imageUrl) {
+    const caption = typeof candidate.caption === 'string' ? candidate.caption.trim() : '';
+    return renderImageBlockHtml(imageUrl, caption);
+  }
+
+  return '';
+};
+
 const extractBlocksHtml = (contentBlocks: unknown): string => {
   if (!Array.isArray(contentBlocks)) return '';
 
   return contentBlocks
     .map((block) => {
       if (!block || typeof block !== 'object') return '';
-
-      const candidate = block as Record<string, unknown>;
-
-      if ((candidate.type === 'meta' && candidate.kind === 'metadata') || candidate.type === 'metadata' || candidate.kind === 'metadata') {
-        return '';
-      }
-
-      if (typeof candidate.content === 'string' && candidate.content.trim()) {
-        return buildParagraphHtml(candidate.content as string);
-      }
-
-      const heading = typeof candidate.heading === 'string' ? candidate.heading.trim() : '';
-      const text = typeof candidate.text === 'string' ? candidate.text.trim() : '';
-      const quoteText = typeof candidate.quoteText === 'string' ? candidate.quoteText.trim() : '';
-      const imageUrl = typeof candidate.imageUrl === 'string' ? candidate.imageUrl.trim() : '';
-      const caption = typeof candidate.caption === 'string' ? candidate.caption.trim() : '';
-
-      if (heading && text) {
-        return `<h3>${escapeHtml(heading)}</h3>${buildParagraphHtml(text)}`;
-      }
-
-      if (heading) {
-        return `<h3>${escapeHtml(heading)}</h3>`;
-      }
-
-      if (text) {
-        return buildParagraphHtml(text);
-      }
-
-      if (quoteText) {
-        return `<blockquote>${escapeHtml(quoteText).replace(/\n/g, '<br />')}</blockquote>`;
-      }
-
-      if (imageUrl) {
-        const figureCaption = caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : '';
-        return `<figure><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(caption || 'Hình ảnh trong bài viết')}" />${figureCaption}</figure>`;
-      }
-
-      return '';
+      return renderSingleBlockHtml(block as Record<string, unknown>);
     })
     .filter(Boolean)
     .join('');
@@ -197,6 +218,7 @@ export async function BlogDetailPage({ slug }: { slug: string }) {
         <div className="rounded-[28px] border border-[var(--border)] bg-[var(--bg-surface)] p-4 shadow-[0_10px_22px_rgba(20,35,63,0.03)] md:p-6">
           {post.coverImageUrl ? (
             <div className="mb-6 overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--bg-page)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={post.coverImageUrl}
                 alt={post.title}
@@ -318,6 +340,7 @@ export async function BlogDetailPage({ slug }: { slug: string }) {
                   >
                     <Link href={`/blog/${item.slug}`} className="relative aspect-[16/10] overflow-hidden bg-[var(--bg-surface)]">
                       {item.coverImageUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img
                           src={item.coverImageUrl}
                           alt={item.title}

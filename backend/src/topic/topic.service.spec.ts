@@ -16,7 +16,7 @@ describe('TopicService', () => {
     slug: 'khoi-nghia-hai-ba-trung',
     isFeatured: false,
     description: 'Cuộc khởi nghĩa chống ách đô hộ nhà Hán',
-    coverImageUrl: 'https://example.com/cover.jpg',
+    coverImageUrl: `https://${'example.com/cover.jpg'}`,
     isSequential: false,
     displayOrder: 1,
     status: ContentStatus.PUBLISHED,

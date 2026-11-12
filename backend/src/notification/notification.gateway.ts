@@ -18,25 +18,25 @@ export class NotificationGateway {
   server!: Server;
 
   @SubscribeMessage('join-user-room')
-  handleJoinUserRoom(
+  async handleJoinUserRoom(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { userId?: string },
   ) {
     if (!payload?.userId) {
       return;
     }
-    client.join(`user:${payload.userId}`);
+    await client.join(`user:${payload.userId}`);
   }
 
   @SubscribeMessage('leave-user-room')
-  handleLeaveUserRoom(
+  async handleLeaveUserRoom(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { userId?: string },
   ) {
     if (!payload?.userId) {
       return;
     }
-    client.leave(`user:${payload.userId}`);
+    await client.leave(`user:${payload.userId}`);
   }
 
   emitNewNotification(userId: string, notification: any) {

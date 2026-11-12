@@ -270,34 +270,36 @@ export class ModerationAiService {
         .replace(/^```json\s*/i, '')
         .replace(/```$/i, '')
         .trim();
-      const parsed = JSON.parse(cleanedJson);
+      interface GeminiModerationResponse {
+        isSafe?: boolean;
+        riskLevel?: string;
+        action?: string;
+        confidence?: number;
+        detectedCategories?: string[];
+        violationReasonVi?: string;
+      }
+      const parsed: GeminiModerationResponse = JSON.parse(cleanedJson);
 
-      const riskLevel: ModerationRiskLevel = [
-        'SAFE',
-        'LOW',
-        'MEDIUM',
-        'HIGH',
-        'CRITICAL',
-      ].includes(parsed.riskLevel)
-        ? parsed.riskLevel
-        : 'SAFE';
+      const riskLevel: ModerationRiskLevel =
+        parsed.riskLevel &&
+        ['SAFE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(parsed.riskLevel)
+          ? (parsed.riskLevel as ModerationRiskLevel)
+          : 'SAFE';
 
-      const action: ModerationAction = [
-        'ALLOW',
-        'FLAG_FOR_REVIEW',
-        'AUTO_HIDE',
-      ].includes(parsed.action)
-        ? parsed.action
-        : riskLevel === 'HIGH' || riskLevel === 'CRITICAL'
-          ? 'AUTO_HIDE'
-          : riskLevel === 'MEDIUM' || riskLevel === 'LOW'
-            ? 'FLAG_FOR_REVIEW'
-            : 'ALLOW';
+      const action: ModerationAction =
+        parsed.action &&
+        ['ALLOW', 'FLAG_FOR_REVIEW', 'AUTO_HIDE'].includes(parsed.action)
+          ? (parsed.action as ModerationAction)
+          : riskLevel === 'HIGH' || riskLevel === 'CRITICAL'
+            ? 'AUTO_HIDE'
+            : riskLevel === 'MEDIUM' || riskLevel === 'LOW'
+              ? 'FLAG_FOR_REVIEW'
+              : 'ALLOW';
 
       const validCats: ModerationCategory[] = Array.isArray(
         parsed.detectedCategories,
       )
-        ? parsed.detectedCategories.filter((c: string) =>
+        ? (parsed.detectedCategories.filter((c: string) =>
             [
               'PROFANITY',
               'HISTORICAL_REVISIONISM',
@@ -305,7 +307,7 @@ export class ModerationAiService {
               'REGIONAL_DISCRIMINATION',
               'NONE',
             ].includes(c),
-          )
+          ) as ModerationCategory[])
         : ['NONE'];
 
       return {

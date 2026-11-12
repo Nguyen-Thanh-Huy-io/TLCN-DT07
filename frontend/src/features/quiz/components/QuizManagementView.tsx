@@ -10,8 +10,6 @@ import {
   Trash2,
   BookOpen,
   HelpCircle,
-  Clock,
-  Award,
   Layers,
   Database,
   CheckCircle2,
@@ -19,8 +17,13 @@ import {
   FileText,
   ExternalLink,
   BarChart3,
+  Tag,
 } from 'lucide-react';
 import { Badge } from '@/components/common/Badge';
+import {
+  ALL_FILTER_VALUE,
+  QuizStatusEnum,
+} from '@/constants/quiz.constant';
 import { useQuizManagementFacade } from '../facades/useQuizManagementFacade';
 import { QuizPreviewModal } from './QuizPreviewModal';
 import { LessonQuickPreviewModal } from './LessonQuickPreviewModal';
@@ -31,7 +34,9 @@ export function QuizManagementView() {
   const [statsQuiz, setStatsQuiz] = React.useState<{ id: string; title: string } | null>(null);
   const {
     quizzes,
-    lessons,
+    topics,
+    selectedTopicId,
+    setSelectedTopicId,
     loading,
     actionLoading,
     search,
@@ -108,7 +113,7 @@ export function QuizManagementView() {
           <div className="relative flex-1 max-w-md">
             <input
               type="text"
-              placeholder="Tìm theo tên đề thi, mã đề hoặc bài học..."
+              placeholder="Tìm theo tên đề thi, mã đề hoặc chủ đề..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-red-700 focus:outline-none"
@@ -118,15 +123,29 @@ export function QuizManagementView() {
             </span>
           </div>
 
+          {/* Topic filter */}
+          <select
+            value={selectedTopicId}
+            onChange={(e) => setSelectedTopicId(e.target.value)}
+            className="px-3 py-2 border border-slate-300 rounded-xl text-xs font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-red-700 max-w-[200px]"
+          >
+            <option value={ALL_FILTER_VALUE}>Tất cả chủ đề</option>
+            {topics.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.title}
+              </option>
+            ))}
+          </select>
+
           {/* Status filter */}
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as any)}
+            onChange={(e) => setFilterStatus(e.target.value as QuizStatusEnum | typeof ALL_FILTER_VALUE)}
             className="px-3 py-2 border border-slate-300 rounded-xl text-xs font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-red-700"
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="ACTIVE">Đang hoạt động</option>
-            <option value="DRAFT">Bản nháp</option>
+            <option value={ALL_FILTER_VALUE}>Tất cả trạng thái</option>
+            <option value={QuizStatusEnum.ACTIVE}>Đang hoạt động</option>
+            <option value={QuizStatusEnum.DRAFT}>Bản nháp</option>
           </select>
         </div>
 
@@ -184,8 +203,7 @@ export function QuizManagementView() {
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase tracking-wider">
                   <th className="py-3.5 px-4 min-w-[240px]">Tên đề Quiz & Mã đề</th>
-                  <th className="py-3.5 px-4 min-w-[190px]">Bài học tham chiếu (Xem qua)</th>
-                  <th className="py-3.5 px-4 min-w-[140px]">Chuyên đề</th>
+                  <th className="py-3.5 px-4 min-w-[220px]">Chủ đề bao phủ</th>
                   <th className="py-3.5 px-4 text-center min-w-[130px]">Câu hỏi & Nguồn</th>
                   <th className="py-3.5 px-4 text-center min-w-[120px]">Điều kiện đạt</th>
                   <th className="py-3.5 px-4 text-center min-w-[120px]">Trạng thái</th>
@@ -193,7 +211,7 @@ export function QuizManagementView() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
-                {quizzes.map((quiz, index) => {
+                {quizzes.map((quiz) => {
                   const hasQuestions = quiz.questionCount > 0;
                   const quizCode = `QZ-${quiz.id.slice(0, 4).toUpperCase()}`;
 
@@ -223,41 +241,51 @@ export function QuizManagementView() {
                         </div>
                       </td>
 
-                      {/* Cột 2: Bài học tham chiếu (Xem qua) */}
+                      {/* Cột 2: Chủ đề bao phủ */}
                       <td className="py-3.5 px-4">
-                        {quiz.lesson ? (
-                          <div className="inline-flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-lg px-2.5 py-1 transition-colors max-w-[220px]">
-                            <BookOpen size={13} className="text-slate-500 shrink-0" />
-                            <span
-                              className="text-xs font-medium text-slate-700 truncate cursor-pointer"
-                              title={quiz.lesson.title}
-                              onClick={() => handleOpenLessonPreview(quiz.lesson!)}
-                            >
-                              {quiz.lesson.title}
+                        <div className="flex flex-wrap items-center gap-1.5 max-w-[260px]">
+                          {quiz.topics && quiz.topics.length > 0 ? (
+                            quiz.topics.map((topic) => (
+                              <span
+                                key={topic.id}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-red-50 text-red-700 border border-red-100"
+                                title={topic.title}
+                              >
+                                <Tag size={10} className="shrink-0" />
+                                <span className="truncate max-w-[120px]">{topic.title}</span>
+                              </span>
+                            ))
+                          ) : quiz.topicTitle ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                              <Layers size={11} className="shrink-0 text-slate-500" />
+                              <span className="truncate max-w-[140px]">{quiz.topicTitle}</span>
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenLessonPreview(quiz.lesson!)}
-                              className="text-slate-400 hover:text-red-700 p-0.5 rounded transition-colors shrink-0"
-                              title="Xem qua bài học"
-                            >
-                              <ExternalLink size={12} />
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400 italic">Đề thi độc lập</span>
-                        )}
+                          ) : quiz.lesson ? (
+                            <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 rounded-lg px-2.5 py-1 max-w-[220px]">
+                              <BookOpen size={13} className="text-slate-500 shrink-0" />
+                              <span
+                                className="text-xs font-medium text-slate-700 truncate cursor-pointer hover:text-red-700"
+                                title={quiz.lesson.title}
+                                onClick={() => handleOpenLessonPreview(quiz.lesson!)}
+                              >
+                                {quiz.lesson.title}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenLessonPreview(quiz.lesson!)}
+                                className="text-slate-400 hover:text-red-700 p-0.5 rounded transition-colors shrink-0"
+                                title="Xem qua bài học"
+                              >
+                                <ExternalLink size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400 italic">Đề tổng hợp tự do</span>
+                          )}
+                        </div>
                       </td>
 
-                      {/* Cột 3: Chuyên đề */}
-                      <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-600 font-medium">
-                          <Layers size={13} className="text-slate-400" />
-                          {quiz.topicTitle || 'Chuyên đề lịch sử'}
-                        </span>
-                      </td>
-
-                      {/* Cột 4: Câu hỏi & Nguồn */}
+                      {/* Cột 3: Câu hỏi & Nguồn */}
                       <td className="py-3.5 px-4 text-center">
                         {hasQuestions ? (
                           <div className="inline-flex flex-col items-center">
@@ -273,7 +301,7 @@ export function QuizManagementView() {
                         )}
                       </td>
 
-                      {/* Cột 5: Điều kiện đạt */}
+                      {/* Cột 4: Điều kiện đạt */}
                       <td className="py-3.5 px-4 text-center">
                         <div className="text-xs font-medium text-slate-700">
                           <div>{quiz.passingScorePercent}% điểm</div>
@@ -281,16 +309,16 @@ export function QuizManagementView() {
                         </div>
                       </td>
 
-                      {/* Cột 6: Trạng thái */}
+                      {/* Cột 5: Trạng thái */}
                       <td className="py-3.5 px-4 text-center">
-                        {quiz.status === 'ACTIVE' ? (
+                        {quiz.status === QuizStatusEnum.ACTIVE ? (
                           <Badge tone="ok">Đang hoạt động</Badge>
                         ) : (
                           <Badge tone="warn">Bản nháp</Badge>
                         )}
                       </td>
 
-                      {/* Cột 7: Tác vụ */}
+                      {/* Cột 6: Tác vụ */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {/* Nút Xem thống kê thí sinh nộp bài */}
@@ -365,7 +393,7 @@ export function QuizManagementView() {
         onClose={handleCloseEditor}
         onSave={handleSaveQuiz}
         editingQuiz={editingQuiz}
-        lessons={lessons}
+        topics={topics}
         loading={actionLoading}
       />
 

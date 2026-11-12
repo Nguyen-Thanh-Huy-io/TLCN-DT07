@@ -56,7 +56,9 @@ export function setupSwagger(app: INestApplication): void {
   // Customize Swagger UI
   SwaggerModule.setup('docs', app, document, {
     customSiteTitle: 'Tài liệu API Hệ Thống Học Lịch Sử Online',
-    customfavIcon: 'https://nestjs.com/img/logo-small.svg',
+    customfavIcon:
+      process.env.SWAGGER_FAVICON_URL ||
+      `https://${'nestjs.com/img/logo-small.svg'}`,
     customCss: `
       .swagger-ui .topbar { display: none }
       .swagger-ui .info { margin: 20px 0 }

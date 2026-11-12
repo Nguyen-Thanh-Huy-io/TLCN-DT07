@@ -1,29 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { BarChart3, Clock, Trophy, User, X } from 'lucide-react';
-
-export interface QuizStatisticsData {
-  quizTitle: string;
-  lessonTitle?: string;
-  summary: {
-    totalAttempts: number;
-    passedAttempts: number;
-    passRatePercent: number;
-    averageScore: number;
-    averageTimeMinutes: string;
-  };
-  recentAttempts: Array<{
-    id: string;
-    learnerName: string;
-    scorePercent: number;
-    correctCount: number;
-    totalQuestions: number;
-    timeSpentSeconds: number;
-    isPassed: boolean;
-    submittedAt: string;
-  }>;
-}
+import { BarChart3, X } from 'lucide-react';
+import { QuizApiService, QuizStatisticsData } from '@/services/entities/quiz.service';
 
 interface QuizStatisticsModalProps {
   quizId: string | null;
@@ -45,28 +24,26 @@ export function QuizStatisticsModal({
     if (!isOpen || !quizId) return;
 
     let isMounted = true;
-    setLoading(true);
-
-    fetch(`/api/public/quizzes/${quizId}/statistics`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-        return res.json();
-      })
-      .then((json) => {
-        if (!isMounted) return;
-        const actualStats = (json.data?.summary ? json.data : json.summary ? json : null) as QuizStatisticsData | null;
-        setStatsData(actualStats);
-      })
-      .catch((err) => {
+    const fetchStats = async () => {
+      setLoading(true);
+      try {
+        const data = await QuizApiService.getQuizStatistics(quizId);
+        if (isMounted) {
+          setStatsData(data);
+        }
+      } catch (err: unknown) {
         console.error('Lỗi khi tải thống kê bài thi:', err);
         if (isMounted) setStatsData(null);
-      })
-      .finally(() => {
+      } finally {
         if (isMounted) setLoading(false);
-      });
+      }
+    };
+
+    const timer = Promise.resolve().then(fetchStats);
 
     return () => {
       isMounted = false;
+      void timer;
     };
   }, [isOpen, quizId]);
 

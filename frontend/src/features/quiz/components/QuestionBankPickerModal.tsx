@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
-import { Badge } from '@/components/common/Badge';
 import {
   QUIZ_QUESTION_TYPE_META,
   QuizQuestion,
@@ -13,6 +12,16 @@ import {
   QuestionApiService,
   QuestionBankItem,
 } from '@/services/entities/question.service';
+import {
+  ALL_FILTER_VALUE,
+  QuestionDifficultyEnum,
+} from '@/constants/quiz.constant';
+
+interface QuestionOptionPreview {
+  id?: string;
+  text?: string;
+  isCorrect?: boolean;
+}
 
 interface QuestionBankPickerModalProps {
   isOpen: boolean;
@@ -31,26 +40,39 @@ export function QuestionBankPickerModal({
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
-  const [selectedType, setSelectedType] = useState<string>('all');
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
-
-  const loadQuestions = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await QuestionApiService.getQuestions({ limit: 100 });
-      setQuestions(res.items || []);
-    } catch (err) {
-      console.error('Lỗi tải câu hỏi từ ngân hàng:', err);
-      setQuestions([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [selectedType, setSelectedType] = useState<string>(ALL_FILTER_VALUE);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>(ALL_FILTER_VALUE);
 
   useEffect(() => {
     if (!isOpen) return;
-    void loadQuestions();
-  }, [isOpen, loadQuestions]);
+    let isCancelled = false;
+
+    const timer = setTimeout(() => {
+      setLoading(true);
+      QuestionApiService.getQuestions({ limit: 100 })
+        .then((res) => {
+          if (!isCancelled) {
+            setQuestions(res?.items || []);
+          }
+        })
+        .catch((err) => {
+          if (!isCancelled) {
+            console.error('Lỗi tải câu hỏi từ ngân hàng:', err);
+            setQuestions([]);
+          }
+        })
+        .finally(() => {
+          if (!isCancelled) {
+            setLoading(false);
+          }
+        });
+    }, 0);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isOpen]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -66,12 +88,12 @@ export function QuestionBankPickerModal({
 
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
-      const matchType = selectedType === 'all' || q.type === selectedType;
-      const matchDiff = selectedDifficulty === 'all' || q.difficulty === selectedDifficulty;
+      const matchType = selectedType === ALL_FILTER_VALUE || q.type === selectedType;
+      const matchDiff = selectedDifficulty === ALL_FILTER_VALUE || q.difficulty === selectedDifficulty;
       const matchSearch =
         search === '' ||
         q.prompt.toLowerCase().includes(search.toLowerCase()) ||
-        (q.explanation && q.explanation.toLowerCase().includes(search.toLowerCase()));
+        Boolean(q.explanation && q.explanation.toLowerCase().includes(search.toLowerCase()));
       return matchType && matchDiff && matchSearch;
     });
   }, [questions, selectedType, selectedDifficulty, search]);
@@ -92,101 +114,128 @@ export function QuestionBankPickerModal({
     onClose();
   };
 
+  const handleSelectAllVisible = () => {
+    const next = new Set(selectedIds);
+    filteredQuestions.forEach((q) => next.add(q.id));
+    setSelectedIds(next);
+  };
+
+  const handleDeselectAllVisible = () => {
+    const next = new Set(selectedIds);
+    filteredQuestions.forEach((q) => next.delete(q.id));
+    setSelectedIds(next);
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-scaleUp border border-slate-100">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="p-2.5 rounded-xl bg-blue-50 text-blue-700">
-              <Icon name={IconName.BOOK} size={20} />
-            </span>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Chọn câu hỏi từ Ngân hàng câu hỏi
-              </h3>
-              <p className="text-xs text-slate-500">
-                Chọn các câu hỏi đã có sẵn trong ngân hàng để đưa vào đề ôn tập bài học này.
-              </p>
-            </div>
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div>
+            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <Icon name={IconName.DATABASE} size={18} className="text-red-700" />
+              Chọn câu hỏi từ Ngân hàng đề
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Tích chọn các câu hỏi đã được tạo sẵn để bổ sung vào bộ đề trắc nghiệm này
+            </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
           >
-            ✕
+            <Icon name={IconName.X} size={18} />
           </button>
         </div>
 
-        {/* Toolbar filter */}
-        <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="relative">
+        {/* Toolbar & Filters */}
+        <div className="p-4 bg-slate-50 border-b border-slate-200/80 space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Icon
+                name={IconName.SEARCH}
+                size={14}
+                className="absolute left-3 top-2.5 text-slate-400"
+              />
               <input
                 type="text"
-                placeholder="Tìm câu hỏi theo nội dung..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs w-64 focus:ring-1 focus:ring-blue-600 bg-white"
+                placeholder="Tìm nội dung câu hỏi..."
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-600"
               />
-              <span className="absolute left-2.5 top-2 text-slate-400">
-                <Icon name={IconName.SEARCH} size={13} />
-              </span>
             </div>
 
+            {/* Type Filter */}
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 bg-white"
+              className="text-xs py-1.5 px-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-600"
             >
-              <option value="all">Tất cả loại câu hỏi</option>
-              {Object.values(QuizQuestionType).map((t) => (
-                <option key={t} value={t}>
-                  {QUIZ_QUESTION_TYPE_META[t].label}
-                </option>
-              ))}
+              <option value={ALL_FILTER_VALUE}>Tất cả loại câu hỏi</option>
+              <option value={QuizQuestionType.SINGLE_CHOICE}>Trắc nghiệm đơn</option>
+              <option value={QuizQuestionType.MULTIPLE_CHOICE}>Nhiều đáp án</option>
+              <option value={QuizQuestionType.TRUE_FALSE}>Đúng / Sai</option>
+              <option value={QuizQuestionType.ORDERING}>Sắp xếp thứ tự</option>
+              <option value={QuizQuestionType.MATCHING}>Nối cặp tương ứng</option>
             </select>
 
+            {/* Difficulty Filter */}
             <select
               value={selectedDifficulty}
               onChange={(e) => setSelectedDifficulty(e.target.value)}
-              className="px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 bg-white"
+              className="text-xs py-1.5 px-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-600"
             >
-              <option value="all">Tất cả mức độ</option>
-              <option value="EASY">Dễ</option>
-              <option value="MEDIUM">Trung bình</option>
-              <option value="HARD">Khó</option>
+              <option value={ALL_FILTER_VALUE}>Tất cả độ khó</option>
+              <option value={QuestionDifficultyEnum.EASY}>Dễ</option>
+              <option value={QuestionDifficultyEnum.MEDIUM}>Trung bình</option>
+              <option value={QuestionDifficultyEnum.HARD}>Khó</option>
             </select>
           </div>
 
-          <div className="text-xs text-slate-500 font-medium">
-            Đã chọn: <strong className="text-blue-600 font-bold">{selectedIds.size}</strong> câu hỏi
+          <div className="flex items-center justify-between text-xs pt-1">
+            <span className="text-slate-500 font-medium">
+              Đã chọn: <strong className="text-red-700">{selectedIds.size}</strong> câu hỏi
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSelectAllVisible}
+                className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold"
+              >
+                Chọn tất cả đang hiển thị ({filteredQuestions.length})
+              </button>
+              <span className="text-slate-300">|</span>
+              <button
+                type="button"
+                onClick={handleDeselectAllVisible}
+                className="text-[11px] text-slate-500 hover:text-slate-700 font-semibold"
+              >
+                Bỏ chọn tất cả
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Question List */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-2.5 max-h-[500px]">
           {loading ? (
-            <div className="py-12 text-center text-xs text-slate-400">
-              Đang tải danh sách câu hỏi trong ngân hàng...
+            <div className="py-12 text-center text-xs text-slate-500">
+              <Icon name={IconName.ROTATE_CW} size={24} className="animate-spin mx-auto mb-2 text-red-700" />
+              Đang tải danh sách câu hỏi từ ngân hàng...
             </div>
           ) : filteredQuestions.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 space-y-2">
-              <p className="text-sm font-semibold text-slate-700">
-                Không tìm thấy câu hỏi phù hợp
-              </p>
-              <p className="text-xs text-slate-400">
-                Hãy tạo thêm câu hỏi tại mục Ngân hàng câu hỏi trên thanh điều hướng trái.
-              </p>
+            <div className="py-12 text-center text-xs text-slate-500 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+              Không tìm thấy câu hỏi nào phù hợp với bộ lọc
             </div>
           ) : (
             filteredQuestions.map((q) => {
-              const meta = QUIZ_QUESTION_TYPE_META[q.type] || {
+              const meta = QUIZ_QUESTION_TYPE_META[q.type as QuizQuestionType] || {
                 label: q.type,
-                shortLabel: q.type,
                 color: 'text-slate-600 bg-slate-50 border-slate-200',
               };
               const isChecked = selectedIds.has(q.id);
@@ -217,9 +266,9 @@ export function QuestionBankPickerModal({
                         {meta.label}
                       </span>
                       <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                        {q.difficulty === 'EASY'
+                        {q.difficulty === QuestionDifficultyEnum.EASY
                           ? 'Dễ'
-                          : q.difficulty === 'HARD'
+                          : q.difficulty === QuestionDifficultyEnum.HARD
                             ? 'Khó'
                             : 'Trung bình'}
                       </span>
@@ -240,7 +289,7 @@ export function QuestionBankPickerModal({
                     {/* Options preview for single choice */}
                     {q.data?.options && Array.isArray(q.data.options) && (
                       <div className="grid grid-cols-2 gap-1.5 pt-1">
-                        {q.data.options.map((opt: any, idx: number) => (
+                        {q.data.options.map((opt: QuestionOptionPreview, idx: number) => (
                           <div
                             key={opt.id || idx}
                             className={`text-[11px] px-2 py-1 rounded border flex items-center justify-between ${

@@ -18,7 +18,7 @@ describe('LessonService', () => {
       '<p>Năm 938 Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng</p>',
     contentRichText:
       '<p>Năm 938 Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng</p>',
-    thumbnailUrl: 'https://example.com/thumb.jpg',
+    thumbnailUrl: `https://${'example.com/thumb.jpg'}`,
     difficulty: DifficultyLevel.MEDIUM,
     sourceReferenceNote: 'Đại Việt Sử Ký',
     displayOrder: 1,

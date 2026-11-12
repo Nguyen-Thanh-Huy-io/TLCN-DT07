@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { BookOpen, Check, Clock, ExternalLink, MapPin, MessageSquare, Share2, UserPlus } from 'lucide-react';
+import { BlogPostType } from '@/constants/community.constant';
 import { CommunityApi, extractCommunityContent, type CommunityPost } from '../api';
 import { PostActionBar } from './PostActionBar';
 import { PostCommentModal } from './PostCommentModal';
@@ -63,7 +65,7 @@ export function PostCard({
   const tint = getAuthorTint(authorName);
   const parsed = extractCommunityContent(post);
   const sharedBlog = parsed.sharedBlog ?? null;
-  const isDirectLongForm = post.postType === 'LONG_FORM';
+  const isDirectLongForm = post.postType === BlogPostType.LONG_FORM;
 
   const rawPrimaryImage = !sharedBlog
     ? post.coverImageUrl || parsed.images[0]?.url || null
@@ -263,9 +265,12 @@ export function PostCard({
           {/* Khung ảnh bìa kiểu Facebook Link Share */}
           {sharedCoverImage ? (
             <div className="relative aspect-[16/8.5] max-h-[340px] w-full overflow-hidden bg-[#EADBC0]">
-              <img
+              <Image
                 src={sharedCoverImage}
                 alt={sharedBlog.title}
+                width={800}
+                height={340}
+                unoptimized
                 onError={() => setSharedImgError(true)}
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               />
@@ -317,9 +322,12 @@ export function PostCard({
       {/* Ảnh tư liệu đính kèm trực tiếp cho bài đặt câu hỏi ngắn */}
       {primaryImage ? (
         <figure className="mt-4 overflow-hidden rounded-[8px] border border-[#E5DAC4] bg-[#F2E8D5]">
-          <img
+          <Image
             src={primaryImage}
             alt={primaryCaption || post.title}
+            width={800}
+            height={480}
+            unoptimized
             onError={() => setImgError(true)}
             className="max-h-[480px] w-full object-cover"
           />

@@ -134,7 +134,7 @@ export class DiscussionService {
       userRole.ADMIN,
       userRole.SUPERADMIN,
       userRole.MODERATOR,
-    ].includes(userRoleVal as any);
+    ].includes(userRoleVal as userRole);
 
     return this.prisma.$transaction(async (tx) => {
       const reply = await tx.discussionReply.create({
@@ -183,7 +183,7 @@ export class DiscussionService {
       userRole.ADMIN,
       userRole.SUPERADMIN,
       userRole.MODERATOR,
-    ].includes(userRoleVal as any);
+    ].includes(userRoleVal as userRole);
 
     if (thread.userId !== userId && !isManager) {
       throw new ForbiddenException(

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CalendarDays, Sparkles, TrendingUp } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import { BlogComposerBar } from '@/features/blog/components/BlogComposerBar';
@@ -93,6 +93,7 @@ export async function BlogLandingPage({ author }: { author?: string } = {}) {
                 >
                   <Link href={`/blog/${post.slug}`} className="relative block h-56 overflow-hidden">
                     {post.image ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img src={post.image} alt={post.title} className="h-full w-full object-cover" />
                     ) : (
                       <div className={`h-full w-full bg-gradient-to-br ${post.accent}`} />

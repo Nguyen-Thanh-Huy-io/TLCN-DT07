@@ -64,6 +64,10 @@ sẽ vô tình quét vào `node_modules/`, `.next/`, `dist/`, `.git/` (hàng ch�
     3. **Sub-components chuyên biệt** (Single Responsibility Principle): mỗi khối giao diện (header/KPI, toolbar/filter, list item, composer) là 1 file component riêng biệt, có interface props rõ ràng.
     4. **Component điều phối (Orchestrator)**: chỉ kết nối hook facade với các sub-components, duy trì độ dài dưới 150–250 dòng.
     5. **Bảo toàn khả năng tương thích ngược (Backward Compatibility)**: Re-export các types, helpers mà các file khác đang import từ component gốc.
+- **Mô hình Khảo thí Sư phạm & Quan hệ Quiz — Topic**:
+  - Đề thi / Bộ đề khảo thí `Quiz` liên kết trực tiếp với Chủ đề lịch sử (`Topic`) theo quan hệ Many-to-Many (`Quiz.topics Topic[]`), cho phép một đề thi kiểm tra kiến thức tổng hợp của nhiều chủ đề hoặc một chuyên đề độc lập. Tuyệt đối không gắn cứng phụ thuộc `Quiz` vào `Lesson` (vì Lesson đã có các khối Practice Question / Interactive Blocks tương tác trực tiếp tại chỗ).
+- **Kiểm soát Độ phức tạp Nhận thức (Cognitive Complexity $\le$ 15)**:
+  - Khi một hàm hoặc component có nhiều nhánh rẽ (if/else, switch, map, filter), bắt buộc phải phân rã thành các hàm pure helper chuyên biệt bên ngoài component hoặc tách các sub-components con để giữ Cognitive Complexity luôn $\le 15$ theo chuẩn SonarJS.
 
 ## Quy ước riêng của dự án
 

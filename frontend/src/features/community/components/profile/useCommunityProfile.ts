@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuthSession } from '@/services/auth/useAuthSession';
 import { API_BASE_URL } from '@/constants/api-url';
+import { UserRole } from '@/constants/enums';
+import { ComposerMode } from '@/constants/community.constant';
 import {
   CommunityApi,
   extractCommunityContent,
@@ -12,10 +14,9 @@ import {
   type CommunityMemberSummary,
   type CommunityPost,
 } from '../../api';
-import type { ComposerMode } from '../QuickComposer';
-import type {
-  CommunityProfileViewProps,
-  ProfileComputedStats,
+import {
+  type CommunityProfileViewProps,
+  type ProfileComputedStats,
   ProfileTabKey,
 } from './profile.types';
 
@@ -32,7 +33,7 @@ export function useCommunityProfile({
   const [suggestedMembers, setSuggestedMembers] = useState<CommunityMemberSummary[]>(() =>
     getFallbackSuggestedMembers().slice(0, 5),
   );
-  const [activeTab, setActiveTab] = useState<ProfileTabKey>('posts');
+  const [activeTab, setActiveTab] = useState<ProfileTabKey>(ProfileTabKey.POSTS);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [followLoading, setFollowLoading] = useState(false);
@@ -47,7 +48,7 @@ export function useCommunityProfile({
 
   // Khung đăng bài nhanh / chia sẻ bài Blog
   const [composerOpen, setComposerOpen] = useState(false);
-  const [composerMode, setComposerMode] = useState<ComposerMode>('question');
+  const [composerMode, setComposerMode] = useState<ComposerMode>(ComposerMode.QUESTION);
 
   // Tải dữ liệu hồ sơ thực tế theo phiên đăng nhập trên client
   const refreshProfile = useCallback(async () => {
@@ -80,10 +81,17 @@ export function useCommunityProfile({
   }, [identifier, isPersonalRoute, sessionUser]);
 
   useEffect(() => {
-    void refreshProfile();
+    let active = true;
+    void refreshProfile().then(() => {
+      if (!active) return;
+    });
     void CommunityApi.getSuggestedMembers(5).then((list) => {
+      if (!active) return;
       setSuggestedMembers(list);
     });
+    return () => {
+      active = false;
+    };
   }, [refreshProfile]);
 
   // Đồng bộ thời gian thực qua Socket.io khi có lượt thích hoặc theo dõi mới
@@ -198,7 +206,7 @@ export function useCommunityProfile({
               id: viewerId,
               username: viewerUsername,
               displayName: viewerUsername,
-              role: 'USER',
+              role: UserRole.USER,
               bio: 'Thành viên đang theo dõi các thảo luận lịch sử trên HISGO.',
               avatarUrl: null,
               postCount: 1,
@@ -290,7 +298,7 @@ export function useCommunityProfile({
       ...prev,
       posts: [created, ...prev.posts.filter((p) => p.id !== created.id)],
     }));
-    setActiveTab('posts');
+    setActiveTab(ProfileTabKey.POSTS);
   };
 
   const handleLikeUpdate = (postId: string, liked: boolean, likeCount: number) => {
@@ -314,10 +322,10 @@ export function useCommunityProfile({
   };
 
   const filteredPosts = useMemo(() => {
-    const source = activeTab === 'saved' ? profile.bookmarkedPosts : profile.posts;
+    const source = activeTab === ProfileTabKey.SAVED ? profile.bookmarkedPosts : profile.posts;
     return source.filter((post) => {
       const parsed = extractCommunityContent(post);
-      if (activeTab === 'shared_blog' && !parsed.sharedBlog) {
+      if (activeTab === ProfileTabKey.SHARED_BLOG && !parsed.sharedBlog) {
         return false;
       }
       if (selectedTopic) {
@@ -338,7 +346,7 @@ export function useCommunityProfile({
   }, [activeTab, profile.bookmarkedPosts, profile.posts, searchQuery, selectedTopic]);
 
   const filteredMembers = useMemo(() => {
-    const source = activeTab === 'followers' ? profile.followers : profile.following;
+    const source = activeTab === ProfileTabKey.FOLLOWERS ? profile.followers : profile.following;
     if (!searchQuery.trim()) return source;
     const q = searchQuery.trim().toLowerCase();
     return source.filter(

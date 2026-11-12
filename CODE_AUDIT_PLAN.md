@@ -66,9 +66,13 @@ Thứ tự ưu tiên theo CODE_AUDIT.md Mục 7 (xếp theo độ dài giảm d�
 - [x] **[ĐÃ PHÂN RÃ ✅] `StoryChapterBlockEditor.tsx` (1459 dòng → 224 dòng, -85%)**: Tách thành cụm `features/lessons/components/builder/story-chapter/` gồm `StoryChapterRenderer.tsx`, `StoryChapterContentBlock.tsx`, `StoryChapterHeading.tsx`, `StoryChapterToolbar.tsx`, `StoryChapterTocBar.tsx`, `StoryChapterAddBlockMenu.tsx`, `useStoryChapterColumnResize.ts`, `types.ts`.
 - [x] **[ĐÃ PHÂN RÃ ✅] `PostCommentModal.tsx` (1269 dòng → 190 dòng, -85%)**: Tách thành cụm `features/community/components/comment-modal/` gồm `usePostComments.ts` (custom hook/facade quản lý socket, local storage, API CRUD), `PostSummaryPane.tsx`, `CommentItemRow.tsx`, `CommentComposerBar.tsx`, `historical-comments.data.ts`, `comment-tree.util.ts`, `comment-modal.types.ts`.
 - [x] **[ĐÃ PHÂN RÃ ✅] `CommunityProfileView.tsx` (1135 dòng → 214 dòng, -81%)**: Tách thành cụm `features/community/components/profile/` gồm `useCommunityProfile.ts` (custom hook/facade quản lý state, socket follow/like, stats calculation, tabs, filters), `ProfileSidebar.tsx`, `ProfileHeaderKpi.tsx`, `ProfileTabsToolbar.tsx`, `ProfileMembersList.tsx`, `ProfilePostsList.tsx`, `profile.types.ts`.
+- [x] **[ĐÃ PHÂN RÃ ✅] `BlogCreatePage.tsx` (920 dòng → 260 dòng, -72%)**: Tách thành cụm `features/blog/components/` và `facades/` gồm `useBlogCreateFacade.ts`, `BlogStoryBlockItem.tsx`, `BlogHistoricalMetaModal.tsx`, `BlogPreviewModal.tsx`, `blog-create.types.ts`, `blog.constant.ts`. Xóa bỏ hoàn toàn tệp mock data thừa `blog-data.ts`. Cả feature `features/blog/` đạt **0 errors, 0 warnings (100% sạch)**.
+- [x] **[ĐÃ PHÂN RÃ & TÁI CẤU TRÚC KHẢO THÍ DATABASE ✅] `QuestionBankModal.tsx` (931 dòng → 150 dòng, -84%) & Phân hệ Quiz**:
+  - Tách thành 6 sub-components: `QuestionCategorySection.tsx`, `QuestionOptionsEditor.tsx`, `QuestionTypeCardSelector.tsx`, `QuestionAnswersSection.tsx`, `QuestionModalHeaderFooter.tsx`, `question-modal.helper.ts`.
+  - Tái cấu trúc chuẩn mô hình khảo thí sư phạm: Chuyển quan hệ `Quiz` gắn trực tiếp vào nhiều `Topic` (`Quiz.topics Topic[] @relation("TopicQuizzes")`), khử phụ thuộc cứng vào `Lesson`. Cập nhật backend DTOs, service, unit tests (24/24 suites pass 100%).
+  - Tối ưu `StandaloneQuizEditorModal.tsx`, `QuizStatisticsModal.tsx`, `QuestionBankPickerModal.tsx`, `QuizManagementView.tsx`, `QuestionBankView.tsx`.
+  - Cả feature `features/quiz/` đạt **0 errors, 0 warnings (100% sạch)**.
 - [ ] `TopicEditor.tsx` (~1089 dòng)
-- [ ] `BlogCreatePage.tsx` (931 dòng)
-- [ ] `QuestionBankModal.tsx` (931 dòng)
 - [ ] `StoryChapterBlockInspector.tsx` (893 dòng)
 - [ ] `CommunityFeed.tsx` (876 dòng)
 - [ ] `luyen-tap/page.tsx` (848 dòng — đã sửa 2 bug trong Pha 0, vẫn cần tách sau)

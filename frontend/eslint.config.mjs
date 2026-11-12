@@ -42,7 +42,8 @@ const eslintConfig = defineConfig([
       "check-file/folder-naming-convention": [
         "warn",
         {
-          "src/**/": "KEBAB_CASE",
+          "src/{components,features,services,types,constants,utils,hooks,contexts}/**/":
+            "KEBAB_CASE",
         },
       ],
 
@@ -72,12 +73,13 @@ const eslintConfig = defineConfig([
         },
       ],
 
-      // 3. SonarJS: Eliminate Magic Strings (Threshold nâng cấp lên 2 theo yêu cầu)
+      // 3. SonarJS: Eliminate Magic Strings (Threshold nâng lên 3 phù hợp React/Tailwind theo ESLINT_REPORT)
       "sonarjs/no-duplicate-string": [
         "warn",
         {
-          threshold: 2,
-          ignoreStrings: "^(use client|use server|button|submit|text|/| |)$",
+          threshold: 3,
+          ignoreStrings:
+            "^(use client|use server|button|submit|text|/| |px-4 py-2|font-medium|destructive|outline|ghost|secondary|default|sm|md|lg|xl)$",
         },
       ],
 
@@ -90,6 +92,38 @@ const eslintConfig = defineConfig([
     files: ["src/data/**"],
     rules: {
       "sonarjs/no-duplicate-string": "off",
+    },
+  },
+  {
+    // Next.js Server-side Route Handlers (BFF) được phép dùng fetch() gọi sang backend
+    files: ["src/app/api/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "Literal[value=/^https?:\\/\\/(?!localhost)(?!127\\.0\\.0\\.1)/]",
+          message:
+            "Không được hardcode trực tiếp URL remote (http/https). Bắt buộc đưa vào biến môi trường hoặc '@/constants/routes'.",
+        },
+        {
+          selector:
+            "BinaryExpression[operator=/^(===|!==)$/]:not(:has(UnaryExpression[operator='typeof'])) > Literal[value=/^[a-zA-Z0-9_-]{2,}$/]",
+          message:
+            "Phát hiện Magic String trong phép so sánh logic (===, !==). Bắt buộc định nghĩa Enum hoặc hằng số tập trung tại '@/constants/...' để đảm bảo nguyên tắc SOLID (OCP).",
+        },
+        {
+          selector: "SwitchCase > Literal[value=/^[a-zA-Z0-9_-]{2,}$/]",
+          message:
+            "Phát hiện Magic String trong switch-case. Bắt buộc sử dụng Enum hoặc hằng số tập trung tại '@/constants/...'.",
+        },
+      ],
+    },
+  },
+  {
+    // Bỏ qua kiểm tra tên thư mục đặc biệt __tests__
+    files: ["**/__tests__/**"],
+    rules: {
+      "check-file/folder-naming-convention": "off",
     },
   },
 ]);

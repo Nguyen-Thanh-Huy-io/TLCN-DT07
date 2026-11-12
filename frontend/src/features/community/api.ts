@@ -637,6 +637,40 @@ export const CommunityApi = {
     const res = await api.post(userFollowPath(identifier));
     return unwrapData(res);
   },
+
+  async getComments(postId: string): Promise<unknown[]> {
+    const res = await api.get(`${postPath(postId)}/comments`);
+    const data = unwrapData<unknown[]>(res);
+    return Array.isArray(data) ? data : [];
+  },
+
+  async addComment(
+    postId: string,
+    content: string,
+    parentId?: string,
+  ): Promise<Record<string, unknown>> {
+    const res = await api.post(`${postPath(postId)}/comments`, {
+      content,
+      parentId: parentId || undefined,
+    });
+    return unwrapData(res);
+  },
+
+  async likeComment(postId: string, commentId: string): Promise<void> {
+    await api.post(`${postPath(postId)}/comments/${commentId}/like`);
+  },
+
+  async updateComment(
+    postId: string,
+    commentId: string,
+    content: string,
+  ): Promise<void> {
+    await api.patch(`${postPath(postId)}/comments/${commentId}`, { content });
+  },
+
+  async deleteComment(postId: string, commentId: string): Promise<void> {
+    await api.delete(`${postPath(postId)}/comments/${commentId}`);
+  },
 };
 
 // ============================================================
@@ -647,15 +681,10 @@ export async function fetchCommunityFeedSSR(
   params: ListCommunityPostsParams = {},
 ): Promise<CommunityPost[]> {
   const query = buildListPostsQuery(params);
-  const qs = new URLSearchParams(
-    Object.fromEntries(Object.entries(query).map(([key, value]) => [key, String(value)])),
-  ).toString();
 
   try {
-    const res = await fetch(`${API_URL}${POSTS_BASE_PATH}${qs ? `?${qs}` : ''}`, { cache: 'no-store' });
-    if (!res.ok) return [];
-    const body = await res.json();
-    const data = (body?.data ?? body) as RawCommunityPost[];
+    const res = await api.get(POSTS_BASE_PATH, { params: query });
+    const data = unwrapData<RawCommunityPost[]>(res);
     return Array.isArray(data) ? data.map(normalizePost) : [];
   } catch {
     return [];
@@ -670,10 +699,8 @@ export async function fetchCommunityProfileSSR(identifier: string): Promise<Comm
   }
 
   try {
-    const res = await fetch(`${API_URL}${userProfilePath(identifier)}`, { cache: 'no-store' });
-    if (!res.ok) return buildFallbackProfile(identifier);
-    const body = await res.json();
-    const data = (body?.data ?? body) as RawCommunityMemberProfile;
+    const res = await api.get(userProfilePath(identifier));
+    const data = unwrapData<RawCommunityMemberProfile>(res);
     return normalizeProfile(data);
   } catch {
     return buildFallbackProfile(identifier);

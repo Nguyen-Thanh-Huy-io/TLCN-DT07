@@ -60,7 +60,11 @@ export class RevisionTargets {
       status: (d) => d.status,
       toPayload: (d) =>
         pickFields('LESSON', { ...d, content: d.content ?? [] }),
-      apply: (id, p) => this.svc(LessonService).update(id, p as any),
+      apply: (id, p) =>
+        this.svc(LessonService).update(
+          id,
+          p as unknown as Parameters<LessonService['update']>[1],
+        ),
       overlay: (d, p) => {
         const merged = { ...d, ...p };
         const content = merged.content ?? [];
@@ -76,18 +80,30 @@ export class RevisionTargets {
     ARTICLE: this.simple('ARTICLE', {
       load: (id) => this.svc(ArticleService).findOne(id) as Promise<Detail>,
       title: (d) => d.title,
-      apply: (id, p) => this.svc(ArticleService).update(id, p as any),
+      apply: (id, p) =>
+        this.svc(ArticleService).update(
+          id,
+          p as unknown as Parameters<ArticleService['update']>[1],
+        ),
     }),
     TOPIC: this.simple('TOPIC', {
       load: (id) => this.svc(TopicService).findOne(id) as Promise<Detail>,
       title: (d) => d.name,
-      apply: (id, p) => this.svc(TopicService).update(id, p as any),
+      apply: (id, p) =>
+        this.svc(TopicService).update(
+          id,
+          p as unknown as Parameters<TopicService['update']>[1],
+        ),
     }),
     LEARNING_PATH: this.simple('LEARNING_PATH', {
       load: (id) =>
         this.svc(LearningPathService).findPathById(id) as Promise<Detail>,
       title: (d) => d.title,
-      apply: (id, p) => this.svc(LearningPathService).updatePath(id, p as any),
+      apply: (id, p) =>
+        this.svc(LearningPathService).updatePath(
+          id,
+          p as unknown as Parameters<LearningPathService['updatePath']>[1],
+        ),
     }),
     CHAPTER: this.simple('CHAPTER', {
       load: async (id) => {
@@ -99,7 +115,10 @@ export class RevisionTargets {
       },
       title: (d) => d.title,
       apply: (id, p) =>
-        this.svc(LearningPathService).updateChapter(id, p as any),
+        this.svc(LearningPathService).updateChapter(
+          id,
+          p as unknown as Parameters<LearningPathService['updateChapter']>[1],
+        ),
     }),
   };
 

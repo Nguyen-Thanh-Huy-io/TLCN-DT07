@@ -95,4 +95,12 @@ export default tseslint.config(
             'sonarjs/cognitive-complexity': ['warn', 15],
         },
     },
+    {
+        // Override dành riêng cho Unit tests và E2E tests: cho phép mock dynamic & assertions linh hoạt
+        files: ['test/**/*.ts', '**/*.spec.ts'],
+        rules: {
+            '@typescript-eslint/no-unsafe-argument': 'off',
+            'sonarjs/no-duplicate-string': 'off',
+        },
+    },
 );

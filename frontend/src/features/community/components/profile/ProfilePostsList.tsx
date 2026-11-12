@@ -3,7 +3,7 @@
 import React from 'react';
 import type { CommunityPost } from '../../api';
 import { PostCard } from '../PostCard';
-import type { ProfileTabKey } from './profile.types';
+import { ProfileTabKey } from './profile.types';
 
 export interface ProfilePostsListProps {
   activeTab: ProfileTabKey;
@@ -30,7 +30,7 @@ export function ProfilePostsList({
     return (
       <div className="rounded-[8px] border border-dashed border-[#D8C8AA] bg-[#FDF9F0] p-8 text-center">
         <h2 className="text-[16px] font-semibold text-[#14233F]">
-          {activeTab === 'saved'
+          {activeTab === ProfileTabKey.SAVED
             ? 'Chưa có bài viết nào trong danh sách đã lưu'
             : 'Không có bài thảo luận nào khớp với bộ lọc hiện tại'}
         </h2>

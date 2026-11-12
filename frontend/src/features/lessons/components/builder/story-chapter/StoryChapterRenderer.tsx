@@ -20,6 +20,12 @@ import { StoryChapterToolbar } from './StoryChapterToolbar';
 import { StoryChapterAddBlockMenu } from './StoryChapterAddBlockMenu';
 import { StoryChapterHeading } from './StoryChapterHeading';
 import { StoryChapterContentBlock } from './StoryChapterContentBlock';
+import {
+  ChapterBlockZoneEnum,
+  EditorialLayoutType,
+} from '@/constants/lesson-builder.constant';
+
+const IMAGE_FIT_CONTAIN = 'CONTAIN';
 
 export function StoryChapterRenderer({
   parentBlockId,
@@ -137,7 +143,7 @@ export function StoryChapterRenderer({
   const effectiveImageFit =
     chapOverrides.mainImage?.imageFit || chapConfig.media.imageFit || 'COVER';
   const imageFitClass =
-    effectiveImageFit === 'CONTAIN' ? 'object-contain' : 'object-cover';
+    effectiveImageFit === IMAGE_FIT_CONTAIN ? 'object-contain' : 'object-cover';
   const effectiveCaptionPos =
     chapOverrides.mainImage?.captionPosition ||
     chapConfig.media.captionPosition ||
@@ -222,7 +228,7 @@ export function StoryChapterRenderer({
 
   const leftBlocks = blocks.filter((b, i) =>
     b.zone
-      ? b.zone === 'LEFT'
+      ? b.zone === ChapterBlockZoneEnum.LEFT
       : i === 0 &&
         (b.type === LessonBlockType.TEXT || b.type === LessonBlockType.QUOTE)
   );
@@ -330,11 +336,11 @@ export function StoryChapterRenderer({
         />
       )}
 
-      {chapConfig.layout.type === 'FULL_WIDTH' ? (
+      {chapConfig.layout.type === EditorialLayoutType.FULL_WIDTH ? (
         <div className="space-y-5">
           {headingNode}
           <div className="space-y-4">
-            {blocks.map((b, i) => renderContentBlock(b, 'FULL', i))}
+            {blocks.map((b, i) => renderContentBlock(b, ChapterBlockZoneEnum.FULL, i))}
           </div>
         </div>
       ) : (

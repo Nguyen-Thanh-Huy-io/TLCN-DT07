@@ -19,7 +19,7 @@ export class QuizService {
 
   /** Lấy danh sách đề Quiz độc lập (hỗ trợ tìm kiếm, phân trang) */
   async findAll(query: QueryQuizDto) {
-    const { search, lessonId, status, page = 1, limit = 20 } = query;
+    const { search, lessonId, topicId, status, page = 1, limit = 20 } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -28,12 +28,17 @@ export class QuizService {
       where.lessonId = lessonId;
     }
 
+    if (topicId) {
+      where.topics = { some: { id: topicId } };
+    }
+
     if (search && search.trim()) {
       const keyword = search.trim();
       where.OR = [
         { title: { contains: keyword, mode: 'insensitive' } },
         { description: { contains: keyword, mode: 'insensitive' } },
         { lesson: { title: { contains: keyword, mode: 'insensitive' } } },
+        { topics: { some: { name: { contains: keyword, mode: 'insensitive' } } } },
       ];
     }
 
@@ -44,27 +49,19 @@ export class QuizService {
         take: limit,
         orderBy: { updatedAt: 'desc' },
         include: {
+          topics: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
           lesson: {
             select: {
               id: true,
               title: true,
               slug: true,
               description: true,
-              chapterLessons: {
-                select: {
-                  chapter: {
-                    select: {
-                      title: true,
-                      learningPath: {
-                        select: {
-                          title: true,
-                        },
-                      },
-                    },
-                  },
-                },
-                take: 1,
-              },
             },
           },
         },
@@ -82,22 +79,28 @@ export class QuizService {
         const isDraft = questionCount === 0;
 
         const lesson = quiz.lesson;
+        const topics = quiz.topics || [];
         const topicTitle =
-          lesson?.chapterLessons?.[0]?.chapter?.learningPath?.title ||
-          lesson?.chapterLessons?.[0]?.chapter?.title ||
-          'Chuyên đề lịch sử';
+          topics.length > 0
+            ? topics.map((t) => t.name).join(', ')
+            : lesson?.title
+              ? `Bài học: ${lesson.title}`
+              : 'Đề thi độc lập';
 
         return {
           id: quiz.id,
           title:
             quiz.title ||
-            (lesson?.title
-              ? `Đề ôn tập: ${lesson.title}`
-              : 'Đề kiểm tra trắc nghiệm'),
+            (topics.length > 0
+              ? `Đề khảo thí: ${topics[0].name}`
+              : lesson?.title
+                ? `Đề ôn tập: ${lesson.title}`
+                : 'Đề kiểm tra trắc nghiệm'),
           description: quiz.description,
           lessonId: quiz.lessonId,
           lessonTitle: lesson?.title || null,
           topicTitle,
+          topics,
           lesson: lesson
             ? {
                 id: lesson.id,
@@ -138,27 +141,19 @@ export class QuizService {
     const quiz = await this.prisma.quiz.findUnique({
       where: { id },
       include: {
+        topics: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         lesson: {
           select: {
             id: true,
             title: true,
             slug: true,
             description: true,
-            chapterLessons: {
-              select: {
-                chapter: {
-                  select: {
-                    title: true,
-                    learningPath: {
-                      select: {
-                        title: true,
-                      },
-                    },
-                  },
-                },
-              },
-              take: 1,
-            },
           },
         },
       },
@@ -172,20 +167,26 @@ export class QuizService {
       ? (quiz.questions as any[])
       : [];
     const lesson = quiz.lesson;
+    const topics = quiz.topics || [];
     const topicTitle =
-      lesson?.chapterLessons?.[0]?.chapter?.learningPath?.title ||
-      lesson?.chapterLessons?.[0]?.chapter?.title ||
-      'Chuyên đề lịch sử';
+      topics.length > 0
+        ? topics.map((t) => t.name).join(', ')
+        : lesson?.title
+          ? `Bài học: ${lesson.title}`
+          : 'Đề thi độc lập';
 
     return {
       ...quiz,
       title:
         quiz.title ||
-        (lesson?.title
-          ? `Đề ôn tập: ${lesson.title}`
-          : 'Đề kiểm tra trắc nghiệm'),
+        (topics.length > 0
+          ? `Đề khảo thí: ${topics[0].name}`
+          : lesson?.title
+            ? `Đề ôn tập: ${lesson.title}`
+            : 'Đề kiểm tra trắc nghiệm'),
       lessonTitle: lesson?.title || null,
       topicTitle,
+      topics,
       questionCount: questionsArray.length,
       status: questionsArray.length > 0 ? 'ACTIVE' : 'DRAFT',
       passingScorePercent:
@@ -193,7 +194,7 @@ export class QuizService {
     };
   }
 
-  /** Tạo mới một đề Quiz độc lập (hỗ trợ tổng hợp từ Ngân hàng câu hỏi hoặc tạo mới) */
+  /** Tạo mới một đề Quiz độc lập (hỗ trợ gắn nhiều Topic hoặc tổng hợp từ Ngân hàng câu hỏi) */
   async createStandalone(dto: CreateStandaloneQuizDto) {
     let normalizedQuestions: unknown[] = [];
     if (dto.questions && dto.questions.length > 0) {
@@ -219,6 +220,8 @@ export class QuizService {
       }
     }
 
+    const topicIds = Array.from(new Set((dto.topicIds || []).filter(Boolean)));
+
     return this.prisma.quiz.create({
       data: {
         title: dto.title,
@@ -228,8 +231,18 @@ export class QuizService {
         passingScorePercent:
           dto.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
         questions: normalizedQuestions as any,
+        ...(topicIds.length > 0
+          ? { topics: { connect: topicIds.map((id) => ({ id })) } }
+          : {}),
       },
       include: {
+        topics: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         lesson: {
           select: {
             id: true,
@@ -268,6 +281,11 @@ export class QuizService {
       }
     }
 
+    const topicIds =
+      dto.topicIds !== undefined
+        ? Array.from(new Set(dto.topicIds.filter(Boolean)))
+        : undefined;
+
     return this.prisma.quiz.update({
       where: { id },
       data: {
@@ -285,8 +303,18 @@ export class QuizService {
           ? { passingScorePercent: dto.passingScorePercent }
           : {}),
         questions: normalizedQuestions as any,
+        ...(topicIds !== undefined
+          ? { topics: { set: topicIds.map((tid) => ({ id: tid })) } }
+          : {}),
       },
       include: {
+        topics: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         lesson: {
           select: {
             id: true,
@@ -295,6 +323,19 @@ export class QuizService {
           },
         },
       },
+    });
+  }
+
+  /** Lấy đề thi thuộc 1 Topic (ưu tiên đề mới nhất) */
+  async getQuizByTopic(topicId: string) {
+    return this.prisma.quiz.findFirst({
+      where: {
+        topics: { some: { id: topicId } },
+      },
+      include: {
+        topics: { select: { id: true, name: true, slug: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
     });
   }
 

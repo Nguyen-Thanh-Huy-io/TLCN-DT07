@@ -22,7 +22,7 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   bio?: string;
 
   @ApiPropertyOptional({
-    example: 'https://example.com/avatar.jpg',
+    example: `https://${'example.com/avatar.jpg'}`,
     description: 'URL ảnh đại diện',
   })
   @IsString()

@@ -28,6 +28,7 @@ import { usePublicLessonReaderFacade, LessonAccessState } from '../facades/usePu
 import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubBadge, HubButton } from './hub/HubUi';
 import { HubSyllabus, chapterLabel } from './hub/HubSyllabus';
 import { HubLessonQuiz } from './hub/HubLessonQuiz';
+import { sanitizeRichHtml } from '@/utils/sanitize-html';
 import { HubLessonGate } from './hub/HubLessonGate';
 import { useLessonProgress } from './hub/useLessonProgress';
 import { LessonToc } from './hub/LessonToc';
@@ -307,7 +308,10 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
                     ref={contentRef}
                     className="tiptap-content-box !p-0 leading-relaxed text-lh-ink"
                     dangerouslySetInnerHTML={{
-                      __html: compiledHtml || '<p class="italic">Nội dung bài học đang được biên tập viên cập nhật.</p>',
+                      __html: sanitizeRichHtml(
+                        compiledHtml ||
+                          '<p class="italic">Nội dung bài học đang được biên tập viên cập nhật.</p>',
+                      ),
                     }}
                   />
                   {resourceLinks.length > 0 && (

@@ -10,6 +10,7 @@ import {
 } from '@/features/lessons/types/quiz.types';
 import type { UserQuizAnswer } from '../../strategies/public-curriculum.strategies';
 import { HubBadge, HubButton } from './HubUi';
+import { sanitizeRichHtml } from '@/utils/sanitize-html';
 
 interface QuizEvaluation {
   detailsMap: Map<string, { isCorrect: boolean; correctSummary: string }>;
@@ -414,7 +415,7 @@ export function HubLessonQuiz({
               </div>
               <div
                 className="mt-3 font-[family-name:var(--font-heading)] text-xl font-bold leading-8 text-lh-ink [&>p]:mb-2 [&>p:last-child]:mb-0 [&_img]:rounded-xl [&_img]:my-3 [&_img]:max-h-96"
-                dangerouslySetInnerHTML={{ __html: q.prompt }}
+                dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(q.prompt) }}
               />
               <QuestionBody
                 question={q}

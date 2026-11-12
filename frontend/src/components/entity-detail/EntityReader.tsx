@@ -28,6 +28,7 @@ import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
 import { NoteDrawer } from '@/features/notes/components/NoteDrawer';
 import { NoteFloatingButton } from '@/features/notes/components/NoteFloatingButton';
 import { NOTE_TARGET_TYPE } from '@/features/notes/types/note.types';
+import { sanitizeRichHtml } from '@/utils/sanitize-html';
 
 interface EntityReaderProps {
   model: EntityReaderModel;
@@ -262,7 +263,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
           {model.html ? (
             <div
               className="ue-bio-blocks ue-article-content"
-              dangerouslySetInnerHTML={{ __html: model.html }}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(model.html) }}
             />
           ) : (
             <div className="ue-bio-blocks ue-article-content">

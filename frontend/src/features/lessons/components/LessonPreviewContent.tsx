@@ -9,6 +9,7 @@ import { DIFFICULTY_LABEL_MAP } from '@/constants/ui-theme';
 import { TagItem } from '@/types/models/tag.type';
 import { LessonMediaItem } from '../types/editor.types';
 import { QuizQuestion, QuizQuestionType, QUIZ_QUESTION_TYPE_META } from '../types/quiz.types';
+import { sanitizeRichHtml } from '@/utils/sanitize-html';
 
 export interface TocItem {
   id: string;
@@ -234,9 +235,10 @@ export function LessonPreviewContent({
           <div
             className="tiptap-content-box !p-0 flex-1 leading-relaxed text-slate-800"
             dangerouslySetInnerHTML={{
-              __html:
+              __html: sanitizeRichHtml(
                 enrichedPreviewHtml ||
-                '<p class="text-slate-400 italic">Chưa có nội dung văn bản. Hãy soạn thảo ở cột bên cạnh.</p>',
+                  '<p class="text-slate-400 italic">Chưa có nội dung văn bản. Hãy soạn thảo ở cột bên cạnh.</p>',
+              ),
             }}
           />
 
@@ -333,7 +335,7 @@ export function LessonPreviewContent({
                     </div>
                     <div
                       className="text-sm font-medium text-slate-900 prose prose-slate max-w-none"
-                      dangerouslySetInnerHTML={{ __html: q.prompt }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(q.prompt) }}
                     />
                     {renderQuizQuestionBody(q)}
                     {q.explanation && (

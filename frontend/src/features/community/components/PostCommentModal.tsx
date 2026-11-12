@@ -532,9 +532,10 @@ export function PostCommentModal({
     const socket = io(API_BASE_URL, {
       transports: ['websocket', 'polling'],
     });
-    socket.emit('join-post-room', post.id);
+    socket.emit('join-post-room', { postId: post.id });
 
-    socket.on('post:comment-added', (newComment: any) => {
+    socket.on('post:comment-added', (payload: any) => {
+      const newComment = payload?.comment ?? payload;
       if (!newComment?.id) return;
       setComments((prev) => {
         const mapped: CommunityCommentItem = {
@@ -563,7 +564,7 @@ export function PostCommentModal({
 
     return () => {
       cancelled = true;
-      socket.emit('leave-post-room', post.id);
+      socket.emit('leave-post-room', { postId: post.id });
       socket.disconnect();
     };
   }, [isOpen, post, storageKey]);
@@ -642,7 +643,7 @@ export function PostCommentModal({
         const token = PublicAuthService.getAccessToken();
         const headers: Record<string, string> = {};
         if (token) headers.Authorization = `Bearer ${token}`;
-        await fetch(`${API_BASE_URL}/comments/${commentId}/like`, {
+        await fetch(`${API_BASE_URL}/posts/${post.id}/comments/${commentId}/like`, {
           method: 'POST',
           headers,
           credentials: 'include',
@@ -762,8 +763,8 @@ export function PostCommentModal({
         const token = PublicAuthService.getAccessToken();
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (token) headers.Authorization = `Bearer ${token}`;
-        await fetch(`${API_BASE_URL}/comments/${commentId}`, {
-          method: 'PUT',
+        await fetch(`${API_BASE_URL}/posts/${post.id}/comments/${commentId}`, {
+          method: 'PATCH',
           headers,
           credentials: 'include',
           body: JSON.stringify({ content: trimmed }),
@@ -791,7 +792,7 @@ export function PostCommentModal({
         const token = PublicAuthService.getAccessToken();
         const headers: Record<string, string> = {};
         if (token) headers.Authorization = `Bearer ${token}`;
-        await fetch(`${API_BASE_URL}/comments/${commentId}`, {
+        await fetch(`${API_BASE_URL}/posts/${post.id}/comments/${commentId}`, {
           method: 'DELETE',
           headers,
           credentials: 'include',

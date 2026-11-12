@@ -341,7 +341,11 @@ export function BlockBuilderCanvas({
           />
         );
       default:
-        return null;
+        return (
+          <div className="p-3 border border-dashed border-stone-300 rounded-lg text-xs text-stone-500 italic bg-stone-50">
+            Khối nội dung con ({childBlock.type})
+          </div>
+        );
     }
   };
 

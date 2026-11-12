@@ -1,12 +1,15 @@
 import { LessonBlockType } from '../types/block-palette.types';
-import { RowSectionBlockData } from '../types/block-builder.types';
+import {
+  LessonBlockItem,
+  RowSectionBlockData,
+} from '../types/block-builder.types';
 import { BlockPlugin, BlockWidth } from './block-plugin.types';
 import { RowLayoutStrategy } from '../strategies/row-layout.strategy';
 import { createBlockUUID } from '../strategies/story-chapter-layout.strategy';
 
 // Lazy-resolve compiler để tránh circular dependency giữa Registry và Composite Plugin
-let compilerFn: (block: any) => string = () => '';
-export function setRowSectionCompiler(fn: (block: any) => string) {
+let compilerFn: (block: LessonBlockItem) => string = () => '';
+export function setRowSectionCompiler(fn: (block: LessonBlockItem) => string) {
   compilerFn = fn;
 }
 

@@ -2,6 +2,30 @@ import { LessonBlockType } from '../types/block-palette.types';
 import { ComparisonTableBlockData } from '../types/block-builder.types';
 import { BlockPlugin, BlockWidth, escapeHtml } from './block-plugin.types';
 
+interface LegacyGenericTablePayload {
+  title?: string;
+  headers: unknown[];
+  rows: unknown[][];
+}
+
+function extractLegacyGenericTable(
+  block: ComparisonTableBlockData,
+): LegacyGenericTablePayload | null {
+  const candidate = (block as ComparisonTableBlockData & { data?: unknown }).data;
+  if (!candidate || typeof candidate !== 'object') {
+    return null;
+  }
+  const record = candidate as Record<string, unknown>;
+  if (!Array.isArray(record.headers) || !Array.isArray(record.rows)) {
+    return null;
+  }
+  return {
+    title: typeof record.title === 'string' ? record.title : undefined,
+    headers: record.headers,
+    rows: record.rows.filter((r): r is unknown[] => Array.isArray(r)),
+  };
+}
+
 export const comparisonTableBlockPlugin: BlockPlugin<ComparisonTableBlockData> = {
   type: LessonBlockType.COMPARISON_TABLE,
 
@@ -28,15 +52,11 @@ export const comparisonTableBlockPlugin: BlockPlugin<ComparisonTableBlockData> =
 
   toHtml: (block: ComparisonTableBlockData): string => {
     // Hỗ trợ bảng đa năng tổng quát (Generic Table với headers và rows)
-    const genericData = (block as any).data;
-    if (
-      genericData &&
-      Array.isArray(genericData.headers) &&
-      Array.isArray(genericData.rows)
-    ) {
+    const genericData = extractLegacyGenericTable(block);
+    if (genericData) {
       const headersHtml = genericData.headers
         .map(
-          (h: string) =>
+          (h) =>
             `<th style="padding: 12px 14px; background: #F2E8D5; color: #2E1B10; font-weight: 700; border-bottom: 2px solid #DECBB1; text-align: left;">${escapeHtml(
               String(h),
             )}</th>`,
@@ -45,10 +65,10 @@ export const comparisonTableBlockPlugin: BlockPlugin<ComparisonTableBlockData> =
 
       const rowsHtml = genericData.rows
         .map(
-          (row: any[]) =>
+          (row) =>
             `<tr>${row
               .map(
-                (cell: any) =>
+                (cell) =>
                   `<td style="padding: 10px 14px; border-bottom: 1px solid #ECE1D1; color: #3A2C21;">${escapeHtml(
                     String(cell),
                   )}</td>`,
@@ -58,7 +78,7 @@ export const comparisonTableBlockPlugin: BlockPlugin<ComparisonTableBlockData> =
         .join('');
 
       const safeTitle = escapeHtml(
-        block.title || (block as any).data?.title || 'Bảng niên biểu tư liệu',
+        block.title || genericData.title || 'Bảng niên biểu tư liệu',
       );
 
       return `

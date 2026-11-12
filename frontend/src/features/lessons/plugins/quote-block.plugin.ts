@@ -2,6 +2,19 @@ import { LessonBlockType } from '../types/block-palette.types';
 import { QuoteBlockData } from '../types/block-builder.types';
 import { BlockPlugin, BlockWidth, escapeHtml } from './block-plugin.types';
 
+interface LegacyQuoteBlockFields {
+  quote?: string;
+  source?: string;
+}
+
+function normalizeQuoteFields(block: QuoteBlockData & LegacyQuoteBlockFields) {
+  return {
+    quoteText: block.quoteText || block.quote || '',
+    author: block.author || 'Khuyết danh',
+    sourceContext: block.sourceContext || block.source || '',
+  };
+}
+
 export const quoteBlockPlugin: BlockPlugin<QuoteBlockData> = {
   type: LessonBlockType.QUOTE,
 
@@ -15,11 +28,12 @@ export const quoteBlockPlugin: BlockPlugin<QuoteBlockData> = {
   }),
 
   toHtml: (block: QuoteBlockData): string => {
-    const rawQuote = block.quoteText || (block as any).quote || '';
-    const safeQuote = escapeHtml(rawQuote);
-    const safeAuthor = escapeHtml(block.author || 'Khuyết danh');
-    const rawSource = block.sourceContext || (block as any).source || '';
-    const safeSource = rawSource ? escapeHtml(rawSource) : '';
+    const normalized = normalizeQuoteFields(block);
+    const safeQuote = escapeHtml(normalized.quoteText);
+    const safeAuthor = escapeHtml(normalized.author);
+    const safeSource = normalized.sourceContext
+      ? escapeHtml(normalized.sourceContext)
+      : '';
 
     return `
       <blockquote style="margin: 24px 0; padding: 18px 24px; background: #fdfaf3; border-left: 4px solid #c2410c; border-radius: 0 14px 14px 0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">

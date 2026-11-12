@@ -1,6 +1,7 @@
 import { LessonBlockType } from '../types/block-palette.types';
 import { TextBlockData } from '../types/block-builder.types';
 import { BlockPlugin, BlockWidth } from './block-plugin.types';
+import { sanitizeRichHtml } from '@/utils/sanitize-html';
 
 export const textBlockPlugin: BlockPlugin<TextBlockData> = {
   type: LessonBlockType.TEXT,
@@ -14,6 +15,6 @@ export const textBlockPlugin: BlockPlugin<TextBlockData> = {
   }),
 
   toHtml: (block: TextBlockData): string => {
-    return block.content || '';
+    return sanitizeRichHtml(block.content);
   },
 };

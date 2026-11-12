@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { BlogApiService, type BlogPostItem } from '@/services/entities/blog.service';
 import { UploadApiService } from '@/services/entities/upload.service';
 import { resolveBackendAssetUrl } from '@/constants/api-url';

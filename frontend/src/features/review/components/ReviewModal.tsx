@@ -33,7 +33,7 @@ export function ReviewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>Kiểm duyệt bài học: "{lessonTitle}"</h2>
+          <h2>Kiểm duyệt bài học: &ldquo;{lessonTitle}&rdquo;</h2>
           <button type="button" className="modal-close" onClick={onClose}>
             ×
           </button>

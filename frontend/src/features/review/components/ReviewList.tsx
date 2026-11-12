@@ -1,13 +1,18 @@
 'use client';
+
 import React, { useEffect, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { UserCell } from '@/components/common/UserCell';
 import { ReviewModal } from './ReviewModal';
 import { IconName } from '@/constants/icons';
 import { ContentStatus, NoticeTone } from '@/constants/enums';
-import { LessonItem } from '@/types/models/lesson.type';
+import type { LessonItem } from '@/types/models/lesson.type';
 import api, { extractErrorMessage, parsePaginatedResponse } from '@/services/api';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
+import {
+  REVIEW_TABS,
+  ReviewTabState,
+} from '../constants/review.constant';
 
 export interface ReviewLessonRow {
   id: string;
@@ -16,31 +21,68 @@ export interface ReviewLessonRow {
   author: string;
   date: string;
   summary: string;
-  status: 'Chờ duyệt' | 'Đã duyệt' | 'Bị từ chối';
+  status: ReviewTabState;
   rawStatus?: string;
   rejectionReason?: string | null;
-  /** Bài do chính người đang đăng nhập soạn — không được tự duyệt. */
   isOwn: boolean;
 }
 
-// Bài học dùng LessonStatus (DRAFT | REVIEW | PUBLISHED | REJECTED | ARCHIVED). Bản nháp chưa gửi
-// duyệt nên không xuất hiện ở đây.
-const REVIEW_TAB_BY_STATUS: Record<string, ReviewLessonRow['status']> = {
-  REVIEW: 'Chờ duyệt',
-  PUBLISHED: 'Đã duyệt',
-  REJECTED: 'Bị từ chối',
+interface ExtendedLessonItem extends LessonItem {
+  creator?: {
+    fullName?: string;
+    username?: string;
+    email?: string;
+  };
+}
+
+const REVIEW_TAB_BY_STATUS: Record<string, ReviewTabState> = {
+  REVIEW: ReviewTabState.PENDING,
+  PUBLISHED: ReviewTabState.APPROVED,
+  REJECTED: ReviewTabState.REJECTED,
 };
 
+function mapLessonToRow(lesson: LessonItem, currentUserId: string | null): ReviewLessonRow {
+  const extended = lesson as ExtendedLessonItem;
+  const rawStatus = lesson.status;
+
+  const summary = (lesson.contentRichText || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const authorName =
+    extended.creator?.fullName ||
+    extended.creator?.username ||
+    extended.creator?.email ||
+    'Biên tập viên';
+
+  return {
+    id: lesson.id,
+    title: lesson.title || 'Không có tiêu đề',
+    topic: lesson.summary || 'Bài đọc độc lập',
+    author: authorName,
+    date: lesson.createdAt
+      ? new Date(lesson.createdAt).toLocaleDateString('vi-VN')
+      : '-',
+    summary: summary.length > 220 ? `${summary.slice(0, 220)}...` : summary,
+    status: REVIEW_TAB_BY_STATUS[rawStatus] || ReviewTabState.PENDING,
+    rawStatus,
+    rejectionReason: lesson.rejectionReason || null,
+    isOwn: Boolean(currentUserId && lesson.createdBy === currentUserId),
+  };
+}
+
 export function ReviewList() {
-  const [tab, setTab] = useState<'Chờ duyệt' | 'Đã duyệt' | 'Bị từ chối'>('Chờ duyệt');
+  const [tab, setTab] = useState<ReviewTabState>(ReviewTabState.PENDING);
   const [selectedLesson, setSelectedLesson] = useState<ReviewLessonRow | null>(null);
   const [lessonsList, setLessonsList] = useState<ReviewLessonRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ tone: NoticeTone; text: string } | null>(null);
   const currentUserId = useAuthSession()?.id ?? null;
 
   useEffect(() => {
+    let active = true;
     const fetchLessonsForReview = async () => {
       try {
         setLoading(true);
@@ -53,45 +95,30 @@ export function ReviewList() {
 
         const mapped: ReviewLessonRow[] = rawList
           .filter((lesson: LessonItem) => REVIEW_TAB_BY_STATUS[lesson.status])
-          .map((lesson: LessonItem) => {
-          const rawStatus = lesson.status;
+          .map((lesson: LessonItem) => mapLessonToRow(lesson, currentUserId));
 
-          const summary = (lesson.contentRichText || '')
-            .replace(/<[^>]*>/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-
-          return {
-            id: lesson.id,
-            title: lesson.title || 'Không có tiêu đề',
-            topic: lesson.summary || 'Bài đọc độc lập',
-            author:
-              (lesson as any)?.creator?.fullName ||
-              (lesson as any)?.creator?.username ||
-              (lesson as any)?.creator?.email ||
-              'Biên tập viên',
-            date: lesson.createdAt
-              ? new Date(lesson.createdAt).toLocaleDateString('vi-VN')
-              : '-',
-            summary: summary.length > 220 ? `${summary.slice(0, 220)}...` : summary,
-            status: REVIEW_TAB_BY_STATUS[rawStatus],
-            rawStatus,
-            rejectionReason: lesson.rejectionReason || null,
-            isOwn: Boolean(currentUserId && lesson.createdBy === currentUserId),
-          };
-        });
-
-        setLessonsList(mapped);
+        if (active) {
+          setLessonsList(mapped);
+        }
       } catch (error) {
-        console.error('Failed to fetch review lessons:', error);
-        setLessonsList([]);
-        setNotice({ tone: 'error', text: extractErrorMessage(error, 'Không tải được danh sách bài học.') });
+        if (active) {
+          setLessonsList([]);
+          setNotice({
+            tone: NoticeTone.ERROR,
+            text: extractErrorMessage(error, 'Không tải được danh sách bài học.'),
+          });
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchLessonsForReview();
+    void fetchLessonsForReview();
+    return () => {
+      active = false;
+    };
   }, [currentUserId]);
 
   const handleApprove = async (lesson: ReviewLessonRow) => {
@@ -103,14 +130,14 @@ export function ReviewList() {
       setLessonsList((prev) =>
         prev.map((item) =>
           item.id === lesson.id
-            ? { ...item, status: 'Đã duyệt', rawStatus: ContentStatus.PUBLISHED }
-            : item
-        )
+            ? { ...item, status: ReviewTabState.APPROVED, rawStatus: ContentStatus.PUBLISHED }
+            : item,
+        ),
       );
 
-      setNotice({ tone: 'ok', text: `Đã phê duyệt bài học "${lesson.title}".` });
+      setNotice({ tone: NoticeTone.OK, text: `Đã phê duyệt bài học "${lesson.title}".` });
     } catch (error) {
-      setNotice({ tone: 'error', text: extractErrorMessage(error, 'Không thể duyệt bài học.') });
+      setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(error, 'Không thể duyệt bài học.') });
     }
   };
 
@@ -126,17 +153,17 @@ export function ReviewList() {
           item.id === lesson.id
             ? {
                 ...item,
-                status: 'Bị từ chối',
+                status: ReviewTabState.REJECTED,
                 rawStatus: ContentStatus.REJECTED,
                 rejectionReason: reason,
               }
-            : item
-        )
+            : item,
+        ),
       );
 
-      setNotice({ tone: 'ok', text: `Đã từ chối bài học "${lesson.title}". Lý do: ${reason}` });
+      setNotice({ tone: NoticeTone.OK, text: `Đã từ chối bài học "${lesson.title}". Lý do: ${reason}` });
     } catch (error) {
-      setNotice({ tone: 'error', text: extractErrorMessage(error, 'Không thể từ chối bài học.') });
+      setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(error, 'Không thể từ chối bài học.') });
     }
   };
 
@@ -154,7 +181,7 @@ export function ReviewList() {
   return (
     <div className="panel management-panel">
       <div className="mb-3 flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1">
-        {(['Chờ duyệt', 'Đã duyệt', 'Bị từ chối'] as const).map((x) => (
+        {REVIEW_TABS.map((x) => (
           <button
             key={x}
             type="button"
@@ -186,6 +213,7 @@ export function ReviewList() {
           <Icon name={IconName.SEARCH} size={17} />
           <input
             placeholder="Tìm bài học..."
+            aria-label="Tìm bài học"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -222,7 +250,7 @@ export function ReviewList() {
             ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ textAlign: 'center', padding: 24 }}>
-                  Không có bài học nào trong danh sách "{tab}".
+                  Không có bài học nào trong danh sách &ldquo;{tab}&rdquo;.
                 </td>
               </tr>
             ) : (
@@ -240,7 +268,7 @@ export function ReviewList() {
                     <span className="source-ok">✓ Đã cung cấp</span>
                   </td>
                   <td>
-                    {r.isOwn && r.status === 'Chờ duyệt' ? (
+                    {r.isOwn && r.status === ReviewTabState.PENDING ? (
                       <span title="Quy trình 2 người: bài cần một người duyệt khác">Bài của bạn — chờ người khác duyệt</span>
                     ) : (
                       <button
@@ -248,7 +276,7 @@ export function ReviewList() {
                         className="review-button"
                         onClick={() => setSelectedLesson(r)}
                       >
-                        <Icon name={IconName.EYE} size={16} /> {r.status === 'Chờ duyệt' ? 'Xem & duyệt' : 'Xem'}
+                        <Icon name={IconName.EYE} size={16} /> {r.status === ReviewTabState.PENDING ? 'Xem & duyệt' : 'Xem'}
                       </button>
                     )}
                   </td>
@@ -266,14 +294,20 @@ export function ReviewList() {
       </div>
 
       <ReviewModal
-        isOpen={!!selectedLesson}
+        isOpen={Boolean(selectedLesson)}
         onClose={() => setSelectedLesson(null)}
         lessonTitle={selectedLesson?.title || ''}
         lessonSummary={selectedLesson?.summary || ''}
-        onApprove={() => selectedLesson && handleApprove(selectedLesson)}
-        onReject={(reason) =>
-          selectedLesson && handleReject(selectedLesson, reason)
-        }
+        onApprove={() => {
+          if (selectedLesson) {
+            void handleApprove(selectedLesson);
+          }
+        }}
+        onReject={(reason) => {
+          if (selectedLesson) {
+            void handleReject(selectedLesson, reason);
+          }
+        }}
       />
     </div>
   );

@@ -1,13 +1,16 @@
 'use client';
+
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
 import { UserCell } from '@/components/common/UserCell';
 import { ReviewModal } from './ReviewModal';
 import { IconName } from '@/constants/icons';
 import { ContentStatus, NoticeTone } from '@/constants/enums';
-import { ArticleApiService, ArticleItem, CONTENT_STATUS_LABELS } from '@/services/entities/article.service';
+import { ArticleApiService, type ArticleItem, CONTENT_STATUS_LABELS } from '@/services/entities/article.service';
 import { extractErrorMessage } from '@/services/api';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
+import { ReviewTabState, STATUS_LABELS } from '../constants/review.constant';
 
 export interface ReviewArticleRow {
   id: string;
@@ -16,82 +19,107 @@ export interface ReviewArticleRow {
   author: string;
   date: string;
   summary: string;
-  status: 'Chờ duyệt' | 'Đã duyệt' | 'Bị từ chối';
+  status: ReviewTabState;
   rawStatus: string;
   rejectionReason?: string | null;
   isOwn: boolean;
   slug: string;
 }
 
-const REVIEW_TAB_BY_STATUS: Record<string, ReviewArticleRow['status']> = {
-  PENDING_REVIEW: 'Chờ duyệt',
-  PUBLISHED: 'Đã duyệt',
-  REJECTED: 'Bị từ chối',
+const REVIEW_TAB_BY_STATUS: Record<string, ReviewTabState> = {
+  [ContentStatus.PENDING_REVIEW]: ReviewTabState.PENDING,
+  [ContentStatus.PUBLISHED]: ReviewTabState.APPROVED,
+  [ContentStatus.REJECTED]: ReviewTabState.REJECTED,
 };
 
+const EXCLUDED_CATEGORY_SLUG = 'blog';
+const EXCLUDED_ARTICLE_SLUG = 'cong-la-ma-va-khong-gian-quyen-luc';
+
+interface ExtendedArticleItem extends ArticleItem {
+  creator?: {
+    fullName?: string;
+    username?: string;
+  };
+  rejectionReason?: string | null;
+}
+
+function isEligibleArticle(art: ArticleItem): boolean {
+  const categoryName = (art.category?.name || '').trim().toLowerCase();
+  const categorySlug = (art.category?.slug || '').trim().toLowerCase();
+  const normalizedSlug = (art.slug || '').trim().toLowerCase();
+
+  return (
+    categoryName !== EXCLUDED_CATEGORY_SLUG &&
+    categorySlug !== EXCLUDED_CATEGORY_SLUG &&
+    normalizedSlug !== EXCLUDED_ARTICLE_SLUG &&
+    !normalizedSlug.includes('cong-la-ma')
+  );
+}
+
+function mapArticleToRow(art: ArticleItem, currentUserId: string | null): ReviewArticleRow {
+  const extended = art as ExtendedArticleItem;
+  const rawStatus = art.status;
+  const summary = (art.summary || '').trim();
+  const authorName = extended.creator?.fullName || extended.creator?.username || 'Biên tập viên';
+
+  return {
+    id: art.id,
+    title: art.title || 'Không có tiêu đề',
+    category: art.category?.name || 'Chưa phân loại',
+    author: authorName,
+    date: art.createdAt ? new Date(art.createdAt).toLocaleDateString('vi-VN') : '-',
+    summary: summary.length > 220 ? `${summary.slice(0, 220)}...` : summary,
+    status: REVIEW_TAB_BY_STATUS[rawStatus] || STATUS_LABELS[rawStatus] || ReviewTabState.PENDING,
+    rawStatus,
+    rejectionReason: extended.rejectionReason || null,
+    isOwn: Boolean(currentUserId && art.createdBy === currentUserId),
+    slug: art.slug,
+  };
+}
+
 export function ArticleReviewList() {
-  const [tab, setTab] = useState<'Chờ duyệt' | 'Đã duyệt' | 'Bị từ chối'>('Chờ duyệt');
+  const router = useRouter();
+  const [tab, setTab] = useState<ReviewTabState>(ReviewTabState.PENDING);
   const [selectedArticle, setSelectedArticle] = useState<ReviewArticleRow | null>(null);
   const [articlesList, setArticlesList] = useState<ReviewArticleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ tone: NoticeTone; text: string } | null>(null);
   const currentUserId = useAuthSession()?.id ?? null;
 
-  const fetchArticlesForReview = async () => {
-    try {
-      setLoading(true);
-      const res = await ArticleApiService.list({ limit: 100 });
-      const rawList = res.items || [];
-
-      const mapped: ReviewArticleRow[] = rawList
-        .filter((art: ArticleItem) => REVIEW_TAB_BY_STATUS[art.status])
-        .filter((art: ArticleItem) => {
-          const categoryName = (art.category?.name || '').trim().toLowerCase();
-          const categorySlug = (art.category?.slug || '').trim().toLowerCase();
-          const normalizedTitle = (art.title || '').trim().toLowerCase();
-          const normalizedSlug = (art.slug || '').trim().toLowerCase();
-
-          return (
-            categoryName !== 'blog' &&
-            categorySlug !== 'blog' &&
-            normalizedTitle !== 'cổng la mã và không gian quyền lực' &&
-            normalizedSlug !== 'cong-la-ma-va-khong-gian-quyen-luc' &&
-            !normalizedSlug.includes('cong-la-ma')
-          );
-        })
-        .map((art: ArticleItem) => {
-          const rawStatus = art.status;
-          const summary = (art.summary || '').trim();
-
-          return {
-            id: art.id,
-            title: art.title || 'Không có tiêu đề',
-            category: art.category?.name || 'Chưa phân loại',
-            author: (art as any)?.creator?.fullName || (art as any)?.creator?.username || 'Biên tập viên',
-            date: art.createdAt ? new Date(art.createdAt).toLocaleDateString('vi-VN') : '-',
-            summary: summary.length > 220 ? `${summary.slice(0, 220)}...` : summary,
-            status: REVIEW_TAB_BY_STATUS[rawStatus],
-            rawStatus,
-            rejectionReason: (art as any)?.rejectionReason || null,
-            isOwn: Boolean(currentUserId && art.createdBy === currentUserId),
-            slug: art.slug,
-          };
-        });
-
-      setArticlesList(mapped);
-    } catch (error) {
-      setNotice({
-        tone: 'error',
-        text: extractErrorMessage(error, 'Không thể tải danh sách bài viết cần duyệt.'),
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchArticlesForReview();
+    let active = true;
+    void Promise.resolve().then(async () => {
+      try {
+        setLoading(true);
+        const res = await ArticleApiService.list({ limit: 100 });
+        const rawList = res.items || [];
+
+        const mapped: ReviewArticleRow[] = rawList
+          .filter((art: ArticleItem) => REVIEW_TAB_BY_STATUS[art.status])
+          .filter(isEligibleArticle)
+          .map((art: ArticleItem) => mapArticleToRow(art, currentUserId));
+
+        if (active) {
+          setArticlesList(mapped);
+        }
+      } catch (error) {
+        if (active) {
+          setNotice({
+            tone: NoticeTone.ERROR,
+            text: extractErrorMessage(error, 'Không thể tải danh sách bài viết cần duyệt.'),
+          });
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      active = false;
+    };
   }, [currentUserId]);
 
   const handleApprove = async (article: ReviewArticleRow) => {
@@ -103,14 +131,14 @@ export function ArticleReviewList() {
       setArticlesList((prev) =>
         prev.map((item) =>
           item.id === article.id
-            ? { ...item, status: 'Đã duyệt', rawStatus: ContentStatus.PUBLISHED }
-            : item
-        )
+            ? { ...item, status: ReviewTabState.APPROVED, rawStatus: ContentStatus.PUBLISHED }
+            : item,
+        ),
       );
 
-      setNotice({ tone: 'ok', text: `Đã phê duyệt bài viết "${article.title}".` });
+      setNotice({ tone: NoticeTone.OK, text: `Đã phê duyệt bài viết "${article.title}".` });
     } catch (error) {
-      setNotice({ tone: 'error', text: extractErrorMessage(error, 'Không thể duyệt bài viết.') });
+      setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(error, 'Không thể duyệt bài viết.') });
     }
   };
 
@@ -126,17 +154,17 @@ export function ArticleReviewList() {
           item.id === article.id
             ? {
                 ...item,
-                status: 'Bị từ chối',
+                status: ReviewTabState.REJECTED,
                 rawStatus: ContentStatus.REJECTED,
                 rejectionReason: reason,
               }
-            : item
-        )
+            : item,
+        ),
       );
 
-      setNotice({ tone: 'ok', text: `Đã từ chối bài viết "${article.title}". Lý do: ${reason}` });
+      setNotice({ tone: NoticeTone.OK, text: `Đã từ chối bài viết "${article.title}". Lý do: ${reason}` });
     } catch (error) {
-      setNotice({ tone: 'error', text: extractErrorMessage(error, 'Không thể từ chối bài viết.') });
+      setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(error, 'Không thể từ chối bài viết.') });
     }
   };
 
@@ -159,7 +187,7 @@ export function ArticleReviewList() {
           <p className="text-xs text-slate-500">Duyệt các bài viết, nhân vật, sự kiện mới được gửi duyệt lần đầu</p>
         </div>
         <div className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1">
-          {(['Chờ duyệt', 'Đã duyệt', 'Bị từ chối'] as const).map((x) => (
+          {[ReviewTabState.PENDING, ReviewTabState.APPROVED, ReviewTabState.REJECTED].map((x) => (
             <button
               key={x}
               type="button"
@@ -194,6 +222,7 @@ export function ArticleReviewList() {
           <Icon name={IconName.SEARCH} size={17} />
           <input
             placeholder="Tìm bài viết..."
+            aria-label="Tìm bài viết"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -222,7 +251,7 @@ export function ArticleReviewList() {
             ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ textAlign: 'center', padding: 24 }}>
-                  Không có bài viết nào trong danh sách "{tab}".
+                  Không có bài viết nào trong danh sách &ldquo;{tab}&rdquo;.
                 </td>
               </tr>
             ) : (
@@ -242,7 +271,7 @@ export function ArticleReviewList() {
                     </span>
                   </td>
                   <td>
-                    {r.isOwn && r.status === 'Chờ duyệt' ? (
+                    {r.isOwn && r.status === ReviewTabState.PENDING ? (
                       <span className="text-xs text-amber-600" title="Quy tắc 2 người: bài cần người khác duyệt">
                         Bài của bạn (chờ người khác duyệt)
                       </span>
@@ -252,7 +281,7 @@ export function ArticleReviewList() {
                         className="review-button"
                         onClick={() => setSelectedArticle(r)}
                       >
-                        {r.status === 'Chờ duyệt' ? 'Kiểm duyệt' : 'Xem lại'}
+                        {r.status === ReviewTabState.PENDING ? 'Kiểm duyệt' : 'Xem lại'}
                       </button>
                     )}
                   </td>
@@ -270,15 +299,15 @@ export function ArticleReviewList() {
           lessonTitle={selectedArticle.title}
           lessonSummary={selectedArticle.summary}
           onApprove={() => {
-            handleApprove(selectedArticle);
+            void handleApprove(selectedArticle);
             setSelectedArticle(null);
           }}
           onReject={(reason) => {
-            handleReject(selectedArticle, reason);
+            void handleReject(selectedArticle, reason);
             setSelectedArticle(null);
           }}
           onEdit={() => {
-            window.location.href = `/articles/${selectedArticle.id}`;
+            router.push(`/articles/${selectedArticle.id}`);
           }}
         />
       )}

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 
 export function BlogComposerBar() {
   const currentUser = useAuthSession();

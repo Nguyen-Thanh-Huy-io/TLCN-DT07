@@ -4,6 +4,12 @@
 > Nhóm đã xử lý: **Mục 7 🔴 Bug / rủi ro vận hành thật** (4/6 mục đã sửa, 2 mục còn lại chuyển vào Pha 1 dưới đây — enum `UserRole` lệch Prisma, base URL hardcode).
 > Mỗi pha nên tách 1 (hoặc vài) PR riêng để dễ review/rollback, không gộp chung với pha khác.
 
+### ✅ Đã làm kèm Pha 0 (không phải pha riêng, nhưng cần ghi lại)
+- Phát hiện `blog.controller.spec.ts` **fail thật** sau khi thêm `@UseGuards(AuthGuard)` (NestJS không resolve được `RedisService`/`PrismaService`) — đã sửa bằng `overrideGuard(AuthGuard)` theo đúng pattern có sẵn ở `user.controller.spec.ts`, thêm 2 test xác nhận `updatePost`/`deletePost` truyền đúng `userId`/`role`.
+- Thêm `blog.service.spec.ts` (file test mới — module này trước đây chưa có) test trực tiếp `assertCanModifyPost`: tác giả/STAFF được sửa-xóa, người khác bị chặn `ForbiddenException`, bài không tồn tại báo `NotFoundException`. 3 test suite / 16 test đều pass.
+- Chạy `eslint --fix` (chỉ Prettier, không đổi logic — đã verify lại bằng test+tsc) trên 4 file đã sửa ở Pha 0 để không để lại lỗi format mới; 6 lỗi `no-unused-vars` có sẵn từ trước trong các file đó giữ nguyên, gộp vào việc dọn lint ở Pha 4.
+- **Chưa làm** (nằm trong Pha 1-4, không phải Pha 0): fix các claim còn lại ở Mục 7 (enum `UserRole`, base URL), và toàn bộ 718+1052 lỗi lint có sẵn trên phần code chưa đụng tới.
+
 ---
 
 ## Pha 1 — Dọn kiến trúc lan rộng (chủ yếu tìm-thay, rủi ro thấp)

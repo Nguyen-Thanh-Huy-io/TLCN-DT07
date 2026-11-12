@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
+import { userStatus } from '@prisma/client';
 import config from '../config/app.config';
 import { RedisService } from '../services/redis.service';
 import { PrismaService } from '../services/prisma.service';
@@ -88,7 +89,7 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('User not found');
     }
 
-    if (user.status !== 'ACTIVE') {
+    if (user.status !== userStatus.ACTIVE) {
       throw new UnauthorizedException('User account is not active');
     }
 
@@ -110,13 +111,5 @@ export class AuthGuard implements CanActivate {
 
     const [type, token] = authHeader.split(' ');
     return type === 'Bearer' ? token : undefined;
-  }
-
-  /**
-   * Extract token from cookies (alternative method)
-   */
-  private extractTokenFromCookies(request: Request): string | undefined {
-    const cookies = request.cookies as Record<string, string> | undefined;
-    return cookies?.accessToken;
   }
 }

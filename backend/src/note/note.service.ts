@@ -48,11 +48,7 @@ export class NoteService {
       },
     });
 
-    return {
-      statusCode: 200,
-      message: 'Lấy danh sách ghi chú thành công',
-      data: items,
-    };
+    return items;
   }
 
   async findOne(id: string, userId?: string, guestId?: string) {
@@ -74,11 +70,7 @@ export class NoteService {
 
     this.assertOwnership(note, userId, guestId);
 
-    return {
-      statusCode: 200,
-      message: 'Lấy chi tiết ghi chú thành công',
-      data: note,
-    };
+    return note;
   }
 
   async create(dto: CreateNoteDto, userId?: string) {
@@ -114,14 +106,15 @@ export class NoteService {
       },
     });
 
-    return {
-      statusCode: 201,
-      message: 'Tạo ghi chú thành công',
-      data: note,
-    };
+    return note;
   }
 
-  async update(id: string, dto: UpdateNoteDto, userId?: string, guestId?: string) {
+  async update(
+    id: string,
+    dto: UpdateNoteDto,
+    userId?: string,
+    guestId?: string,
+  ) {
     const note = await this.prisma.note.findUnique({ where: { id } });
     if (!note) {
       throw new NotFoundException(`Không tìm thấy ghi chú có ID: ${id}`);
@@ -149,11 +142,7 @@ export class NoteService {
       },
     });
 
-    return {
-      statusCode: 200,
-      message: 'Cập nhật ghi chú thành công',
-      data: updated,
-    };
+    return updated;
   }
 
   async remove(id: string, userId?: string, guestId?: string) {
@@ -166,11 +155,7 @@ export class NoteService {
 
     await this.prisma.note.delete({ where: { id } });
 
-    return {
-      statusCode: 200,
-      message: 'Xoá ghi chú thành công',
-      data: { id },
-    };
+    return { id };
   }
 
   private assertOwnership(
@@ -186,10 +171,14 @@ export class NoteService {
     }
     // Nếu note không có owner hoặc người gọi không khớp
     if (note.userId && note.userId !== userId) {
-      throw new ForbiddenException('Bạn không có quyền thao tác trên ghi chú này');
+      throw new ForbiddenException(
+        'Bạn không có quyền thao tác trên ghi chú này',
+      );
     }
     if (!note.userId && note.guestId && note.guestId !== guestId) {
-      throw new ForbiddenException('Bạn không có quyền thao tác trên ghi chú này');
+      throw new ForbiddenException(
+        'Bạn không có quyền thao tác trên ghi chú này',
+      );
     }
   }
 }

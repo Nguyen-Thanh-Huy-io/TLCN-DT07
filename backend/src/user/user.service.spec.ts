@@ -7,6 +7,7 @@ import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { userRole, userStatus } from '@prisma/client';
+import { AUTH_CONFIG } from '../auth/config/auth.config';
 import * as bcrypt from 'bcryptjs';
 
 jest.mock('bcryptjs', () => ({
@@ -100,7 +101,10 @@ describe('UserService', () => {
           ],
         },
       });
-      expect(bcrypt.hash).toHaveBeenCalledWith(createUserDto.password, 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        createUserDto.password,
+        AUTH_CONFIG.BCRYPT_SALT_ROUNDS,
+      );
       expect(mockPrismaService.authUser.create).toHaveBeenCalled();
       expect(result).toEqual(createdUser);
     });
@@ -196,7 +200,10 @@ describe('UserService', () => {
 
       await service.update(userId, updateUserDto);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('newpassword123', 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        'newpassword123',
+        AUTH_CONFIG.BCRYPT_SALT_ROUNDS,
+      );
       expect(mockPrismaService.authUser.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ password: 'hashedPassword' }),

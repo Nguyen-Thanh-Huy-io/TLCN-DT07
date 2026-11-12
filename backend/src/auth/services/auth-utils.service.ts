@@ -7,7 +7,6 @@ import {
   IAccessTokenPayload,
   IRefreshTokenPayload,
   ITokenPayload,
-  UserRole,
 } from '../interfaces/auth.interface';
 import { AUTH_CONFIG } from '../config/auth.config';
 import { RedisService } from '../../common/services/redis.service';
@@ -257,49 +256,5 @@ export class AuthUtilsService {
     }
 
     return true;
-  }
-
-  /**
-   * Checks if a user can modify another user's role based on role hierarchy
-   */
-  canModifyRole(
-    currentUserRole: UserRole,
-    targetUserRole: UserRole,
-    newRole: UserRole,
-  ): boolean {
-    const { ROLE_HIERARCHY } = AUTH_CONFIG;
-
-    // Super admin can modify any role except other super admins
-    if (currentUserRole === UserRole.SUPER_ADMIN) {
-      return (
-        targetUserRole !== UserRole.SUPER_ADMIN &&
-        newRole !== UserRole.SUPER_ADMIN
-      );
-    }
-
-    // Admin can only modify moderator and customer roles
-    if (currentUserRole === UserRole.ADMIN) {
-      const targetRoleLevel =
-        ROLE_HIERARCHY[targetUserRole as keyof typeof ROLE_HIERARCHY] || 0;
-      const newRoleLevel =
-        ROLE_HIERARCHY[newRole as keyof typeof ROLE_HIERARCHY] || 0;
-      const adminLevel = ROLE_HIERARCHY[UserRole.ADMIN];
-
-      return targetRoleLevel < adminLevel && newRoleLevel < adminLevel;
-    }
-
-    // Moderator can only modify customer roles
-    if (currentUserRole === UserRole.MODERATOR) {
-      return (
-        targetUserRole === UserRole.CUSTOMER && newRole === UserRole.CUSTOMER
-      );
-    }
-
-    // Customer cannot modify any roles
-    if (currentUserRole === UserRole.CUSTOMER) {
-      return false;
-    }
-
-    return false;
   }
 }

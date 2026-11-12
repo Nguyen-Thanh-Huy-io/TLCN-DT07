@@ -1,12 +1,22 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
-import { NotificationType, ReportActionTaken, ReportRiskLevel } from '@prisma/client';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import {
+  NotificationType,
+  ReportActionTaken,
+  ReportRiskLevel,
+} from '@prisma/client';
 import { Queue } from 'bullmq';
 import { BlogGateway } from '../blog/blog.gateway';
 import { PrismaService } from '../common/services/prisma.service';
 import { NotificationService } from '../notification/notification.service';
-import { ListModerationReportsQueryDto, ResolveModerationReportDto } from './dto/moderation.dto';
-import { ModerationAiService, ModerationAssessment } from './moderation-ai.service';
+import {
+  ListModerationReportsQueryDto,
+  ResolveModerationReportDto,
+} from './dto/moderation.dto';
+import {
+  ModerationAiService,
+  ModerationAssessment,
+} from './moderation-ai.service';
 
 export interface ModerationScanJobData {
   targetType: 'POST' | 'COMMENT';
@@ -22,7 +32,9 @@ export class ModerationService {
     private readonly aiService: ModerationAiService,
     private readonly notificationService: NotificationService,
     private readonly blogGateway: BlogGateway,
-    @Optional() @InjectQueue('moderation-queue') private readonly moderationQueue?: Queue,
+    @Optional()
+    @InjectQueue('moderation-queue')
+    private readonly moderationQueue?: Queue,
   ) {}
 
   /**
@@ -206,7 +218,8 @@ export class ModerationService {
             NotificationType.CONTENT_VIOLATION,
             'Bài viết bị tạm ẩn do vi phạm tiêu chuẩn cộng đồng',
             `Bài viết "${post.title}" đã bị hệ thống AI Sentinel tạm ẩn. Lý do: ${
-              assessment.violationReasonVi || 'Vi phạm quy tắc thảo luận lịch sử văn minh.'
+              assessment.violationReasonVi ||
+              'Vi phạm quy tắc thảo luận lịch sử văn minh.'
             }`,
             '/cong-dong',
           );
@@ -288,7 +301,8 @@ export class ModerationService {
             NotificationType.CONTENT_VIOLATION,
             'Bình luận bị ẩn do vi phạm tiêu chuẩn cộng đồng',
             `Bình luận của bạn đã bị hệ thống AI Sentinel ẩn tự động. Lý do: ${
-              assessment.violationReasonVi || 'Ngôn từ không phù hợp tiêu chuẩn cộng đồng.'
+              assessment.violationReasonVi ||
+              'Ngôn từ không phù hợp tiêu chuẩn cộng đồng.'
             }`,
             '/cong-dong',
           );
@@ -312,7 +326,8 @@ export class ModerationService {
           violationReasonVi:
             assessment.violationReasonVi ||
             'Bình luận có dấu hiệu vi phạm tiêu chuẩn cộng đồng HISGO.',
-          matchedExcerpt: assessment.matchedExcerpt || comment.content.slice(0, 220),
+          matchedExcerpt:
+            assessment.matchedExcerpt || comment.content.slice(0, 220),
           engine: assessment.engine,
         },
       },
@@ -345,10 +360,18 @@ export class ModerationService {
     });
 
     const postIds = Array.from(
-      new Set(allReports.filter((r) => r.targetType === 'POST').map((r) => r.targetId)),
+      new Set(
+        allReports
+          .filter((r) => r.targetType === 'POST')
+          .map((r) => r.targetId),
+      ),
     );
     const commentIds = Array.from(
-      new Set(allReports.filter((r) => r.targetType === 'COMMENT').map((r) => r.targetId)),
+      new Set(
+        allReports
+          .filter((r) => r.targetType === 'COMMENT')
+          .map((r) => r.targetId),
+      ),
     );
 
     const [posts, comments] = await Promise.all([
@@ -356,7 +379,15 @@ export class ModerationService {
         ? this.prisma.blogPost.findMany({
             where: { id: { in: postIds } },
             include: {
-              author: { select: { id: true, username: true, email: true, status: true, role: true } },
+              author: {
+                select: {
+                  id: true,
+                  username: true,
+                  email: true,
+                  status: true,
+                  role: true,
+                },
+              },
             },
           })
         : Promise.resolve([]),
@@ -364,7 +395,15 @@ export class ModerationService {
         ? this.prisma.articleComment.findMany({
             where: { id: { in: commentIds } },
             include: {
-              author: { select: { id: true, username: true, email: true, status: true, role: true } },
+              author: {
+                select: {
+                  id: true,
+                  username: true,
+                  email: true,
+                  status: true,
+                  role: true,
+                },
+              },
             },
           })
         : Promise.resolve([]),
@@ -376,7 +415,10 @@ export class ModerationService {
     // Đếm số lần vi phạm của từng tác giả để hỗ trợ Admin quyết định Ban user
     const authorViolationCounts = new Map<string, number>();
     for (const r of allReports) {
-      if (r.actionTaken === 'AUTO_HIDDEN' || r.actionTaken === 'CONFIRMED_REMOVED') {
+      if (
+        r.actionTaken === 'AUTO_HIDDEN' ||
+        r.actionTaken === 'CONFIRMED_REMOVED'
+      ) {
         const targetAuthorId =
           r.targetType === 'POST'
             ? postMap.get(r.targetId)?.authorId
@@ -398,7 +440,9 @@ export class ModerationService {
 
       if (report.targetType === 'POST') {
         const post = postMap.get(report.targetId);
-        const fullExcerpt = post ? this.extractPostText(post).slice(0, 320) : '';
+        const fullExcerpt = post
+          ? this.extractPostText(post).slice(0, 320)
+          : '';
         const author = post?.author ?? null;
         return {
           id: report.id,
@@ -417,8 +461,11 @@ export class ModerationService {
             rawReasons.violationReasonVi ||
             rawReasons.userReason ||
             'Báo cáo nội dung cần kiểm duyệt viên xem xét.',
-          matchedExcerpt: rawReasons.matchedExcerpt || post?.excerpt || fullExcerpt,
-          engine: rawReasons.engine || (report.source === 'AI_SCAN' ? 'HYBRID_SENTINEL' : 'USER'),
+          matchedExcerpt:
+            rawReasons.matchedExcerpt || post?.excerpt || fullExcerpt,
+          engine:
+            rawReasons.engine ||
+            (report.source === 'AI_SCAN' ? 'HYBRID_SENTINEL' : 'USER'),
           adminNote: rawReasons.adminNote || null,
           target: post
             ? {
@@ -468,7 +515,9 @@ export class ModerationService {
           rawReasons.userReason ||
           'Báo cáo bình luận cần kiểm duyệt viên xem xét.',
         matchedExcerpt: rawReasons.matchedExcerpt || comment?.content || '',
-        engine: rawReasons.engine || (report.source === 'AI_SCAN' ? 'HYBRID_SENTINEL' : 'USER'),
+        engine:
+          rawReasons.engine ||
+          (report.source === 'AI_SCAN' ? 'HYBRID_SENTINEL' : 'USER'),
         adminNote: rawReasons.adminNote || null,
         target: comment
           ? {
@@ -500,19 +549,24 @@ export class ModerationService {
 
     const stats = {
       total: enriched.length,
-      pending: enriched.filter((r) => r.actionTaken === 'NONE' || r.actionTaken === 'AUTO_HIDDEN')
+      pending: enriched.filter(
+        (r) => r.actionTaken === 'NONE' || r.actionTaken === 'AUTO_HIDDEN',
+      ).length,
+      autoHidden: enriched.filter((r) => r.actionTaken === 'AUTO_HIDDEN')
         .length,
-      autoHidden: enriched.filter((r) => r.actionTaken === 'AUTO_HIDDEN').length,
       userReports: enriched.filter(
         (r) => r.source === 'USER_REPORT' && r.actionTaken === 'NONE',
       ).length,
-      confirmedRemoved: enriched.filter((r) => r.actionTaken === 'CONFIRMED_REMOVED').length,
+      confirmedRemoved: enriched.filter(
+        (r) => r.actionTaken === 'CONFIRMED_REMOVED',
+      ).length,
       dismissed: enriched.filter((r) => r.actionTaken === 'DISMISSED').length,
     };
 
     const filtered = enriched.filter((item) => {
       if (query.tab === 'pending') {
-        if (item.actionTaken !== 'NONE' && item.actionTaken !== 'AUTO_HIDDEN') return false;
+        if (item.actionTaken !== 'NONE' && item.actionTaken !== 'AUTO_HIDDEN')
+          return false;
       } else if (query.tab === 'auto_hidden') {
         if (item.actionTaken !== 'AUTO_HIDDEN') return false;
       } else if (query.tab === 'user_report') {
@@ -525,14 +579,17 @@ export class ModerationService {
 
       if (query.source && item.source !== query.source) return false;
       if (query.riskLevel && item.riskLevel !== query.riskLevel) return false;
-      if (query.targetType && item.targetType !== query.targetType) return false;
+      if (query.targetType && item.targetType !== query.targetType)
+        return false;
 
       if (query.search?.trim()) {
         const q = query.search.trim().toLowerCase();
         const inTitle = (item.target?.title || '').toLowerCase().includes(q);
         const inExcerpt = (item.matchedExcerpt || '').toLowerCase().includes(q);
         const inReason = (item.reasonText || '').toLowerCase().includes(q);
-        const inAuthor = (item.target?.author?.username || '').toLowerCase().includes(q);
+        const inAuthor = (item.target?.author?.username || '')
+          .toLowerCase()
+          .includes(q);
         return inTitle || inExcerpt || inReason || inAuthor;
       }
 
@@ -562,10 +619,6 @@ export class ModerationService {
 
     if (!report) {
       throw new NotFoundException(`Báo cáo ${reportId} không tồn tại`);
-    }
-
-    if (!['CONFIRM_REMOVE', 'RESTORE', 'BAN_USER'].includes(dto.action)) {
-      throw new BadRequestException('Hành động xử lý không hợp lệ');
     }
 
     const nextActionTaken: ReportActionTaken =

@@ -10,6 +10,7 @@ import AppError from '../common/errors/app.error';
 // Mock the AUTH_CONFIG to use numeric values for VERIFICATION
 jest.mock('./config/auth.config', () => ({
   AUTH_CONFIG: {
+    BCRYPT_SALT_ROUNDS: 12,
     PASSWORD_MIN_LENGTH: 8,
     PASSWORD_REQUIREMENTS: {
       UPPERCASE: true,
@@ -35,12 +36,6 @@ jest.mock('./config/auth.config', () => ({
     },
     SESSION: {
       MAX_DEVICES_PER_USER: 5,
-    },
-    ROLE_HIERARCHY: {
-      CUSTOMER: 1,
-      MODERATOR: 2,
-      ADMIN: 3,
-      SUPER_ADMIN: 4,
     },
     CACHE_PREFIXES: {
       VERIFICATION_TOKEN: 'verification',

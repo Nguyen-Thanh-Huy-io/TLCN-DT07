@@ -70,6 +70,7 @@ export class CreateBlogPostDto {
   @ApiPropertyOptional({ example: 'Từ cổng chiến thắng đến...' })
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   excerpt?: string;
 
   @ApiPropertyOptional({ example: 'https://example.com/cover.jpg' })
@@ -137,6 +138,7 @@ export class UpdateBlogPostDto {
   @ApiPropertyOptional({ example: 'Mô tả mới' })
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   excerpt?: string;
 
   @ApiPropertyOptional({ example: 'https://example.com/cover.jpg' })

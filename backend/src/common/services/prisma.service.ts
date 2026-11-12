@@ -1,32 +1,7 @@
-// import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-// import { PrismaClient } from 'generated/prisma/client';
-// // import { PrismaClient } from '@prisma/client';
-
-// @Injectable()
-// export class PrismaService
-//   extends PrismaClient
-//   implements OnModuleInit, OnModuleDestroy {
-//   constructor() {
-//     super({});
-//   }
-
-//   public client = this;
-
-//   async onModuleInit() {
-//     await this.client.$connect();
-//   }
-
-//   async onModuleDestroy() {
-//     await this.client.$disconnect();
-//   }
-// }
-
-// // export const prismaService = new PrismaService().client;
-
-import 'dotenv/config';
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import config from '../config/app.config';
 import { CustomLoggerService } from './custom-logger.service';
 
 @Injectable()
@@ -36,7 +11,7 @@ export class PrismaService
 {
   constructor(private readonly customLogger: CustomLoggerService) {
     const adapter = new PrismaPg({
-      connectionString: process.env.DATABASE_URL as string,
+      connectionString: config.database_url,
     });
 
     super({ adapter });

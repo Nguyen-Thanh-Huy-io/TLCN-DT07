@@ -4,6 +4,7 @@ import { PrismaService } from '../common/services/prisma.service';
 import AppError from '../common/errors/app.error';
 import { AuthService } from './auth.service';
 import { AuthUtilsService } from './services/auth-utils.service';
+import { AUTH_CONFIG } from './config/auth.config';
 import { ChangeMyPasswordDto, UpdateMyProfileDto } from './dto/account.dto';
 
 const PROFILE_SELECT = {
@@ -74,7 +75,12 @@ export class AccountService {
     }
     await this.prisma.authUser.update({
       where: { id: userId },
-      data: { password: await bcrypt.hash(dto.newPassword, 10) },
+      data: {
+        password: await bcrypt.hash(
+          dto.newPassword,
+          AUTH_CONFIG.BCRYPT_SALT_ROUNDS,
+        ),
+      },
     });
     await this.authService.logoutAllDevices(userId);
     return {

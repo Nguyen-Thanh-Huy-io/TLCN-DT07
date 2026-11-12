@@ -531,7 +531,7 @@ export class GoogleOAuthService {
       id: string;
       email: string;
       username: string;
-      role: string;
+      role: UserRole;
       tokenVersion: number;
       verified: boolean;
       provider: string;
@@ -559,7 +559,7 @@ export class GoogleOAuthService {
       // Create access token
       const accessToken = this.authUtilsService.createAccessToken({
         userId: user.id,
-        role: user.role as unknown as UserRole,
+        role: user.role,
         tokenVersion: user.tokenVersion, // Include tokenVersion for hybrid JWT validation
       });
 

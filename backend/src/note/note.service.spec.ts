@@ -1,7 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { NoteColor, NoteTargetType } from '@prisma/client';
 import { NoteService } from './note.service';
-import { NoteStrategyRegistry } from './strategies/note-target.strategy';
 
 describe('NoteService', () => {
   let service: NoteService;
@@ -22,7 +21,10 @@ describe('NoteService', () => {
 
     mockStrategy = {
       validateTarget: jest.fn().mockResolvedValue(true),
-      getTargetMeta: jest.fn().mockResolvedValue({ title: 'Chiến dịch Điện Biên Phủ', type: NoteTargetType.ARTICLE }),
+      getTargetMeta: jest.fn().mockResolvedValue({
+        title: 'Chiến dịch Điện Biên Phủ',
+        type: NoteTargetType.ARTICLE,
+      }),
     };
 
     mockRegistry = {
@@ -53,11 +55,12 @@ describe('NoteService', () => {
 
       const res = await service.create(dto, 'user-123');
 
-      expect(mockRegistry.getStrategy).toHaveBeenCalledWith(NoteTargetType.ARTICLE);
+      expect(mockRegistry.getStrategy).toHaveBeenCalledWith(
+        NoteTargetType.ARTICLE,
+      );
       expect(mockStrategy.validateTarget).toHaveBeenCalledWith('art-123');
       expect(mockPrisma.note.create).toHaveBeenCalled();
-      expect(res.statusCode).toBe(201);
-      expect(res.data.id).toBe('note-001');
+      expect(res.id).toBe('note-001');
     });
 
     it('báo lỗi NotFoundException nếu targetId không tồn tại', async () => {
@@ -92,8 +95,7 @@ describe('NoteService', () => {
       });
 
       expect(mockPrisma.note.findMany).toHaveBeenCalled();
-      expect(res.statusCode).toBe(200);
-      expect(res.data).toHaveLength(1);
+      expect(res).toHaveLength(1);
     });
   });
 
@@ -107,8 +109,10 @@ describe('NoteService', () => {
       mockPrisma.note.delete.mockResolvedValue({ id: 'note-1' });
 
       const res = await service.remove('note-1', 'user-1');
-      expect(res.statusCode).toBe(200);
-      expect(mockPrisma.note.delete).toHaveBeenCalledWith({ where: { id: 'note-1' } });
+      expect(res).toEqual({ id: 'note-1' });
+      expect(mockPrisma.note.delete).toHaveBeenCalledWith({
+        where: { id: 'note-1' },
+      });
     });
   });
 });

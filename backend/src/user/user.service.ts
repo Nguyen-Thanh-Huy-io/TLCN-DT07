@@ -9,6 +9,7 @@ import { PrismaService } from '../common/services/prisma.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { RedisService } from '../common/services/redis.service';
 import config from '../common/config/app.config';
+import { AUTH_CONFIG } from '../auth/config/auth.config';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -38,7 +39,10 @@ export class UserService {
       throw new ConflictException('Email hoặc Username đã tồn tại');
     }
 
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const hashedPassword = await bcrypt.hash(
+      createUserDto.password,
+      AUTH_CONFIG.BCRYPT_SALT_ROUNDS,
+    );
 
     const user = await this.prisma.authUser.create({
       data: {
@@ -128,7 +132,10 @@ export class UserService {
       dataToUpdate.tokenVersion = { increment: 1 };
     }
     if (password) {
-      dataToUpdate.password = await bcrypt.hash(password, 10);
+      dataToUpdate.password = await bcrypt.hash(
+        password,
+        AUTH_CONFIG.BCRYPT_SALT_ROUNDS,
+      );
     }
 
     if (

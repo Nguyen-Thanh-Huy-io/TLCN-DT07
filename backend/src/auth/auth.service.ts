@@ -13,7 +13,6 @@ import { userRole } from '@prisma/client';
 import {
   ILoginResponse,
   IStoredRefreshToken,
-  UserRole,
 } from './interfaces/auth.interface';
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
@@ -33,7 +32,7 @@ export class AuthService {
     meta: { ip: string; userAgent: string; device?: string },
   ): Promise<void> {
     const { email, password, username } = payload;
-    const { ip, userAgent, device } = meta;
+    const { ip, userAgent } = meta;
 
     this.customLogger.log(
       `Registration attempt for email: ${email}, username: ${username}`,
@@ -94,8 +93,10 @@ export class AuthService {
     );
 
     // Hash password
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(
+      password,
+      AUTH_CONFIG.BCRYPT_SALT_ROUNDS,
+    );
 
     // Create user with auth security in a transaction
     const newUser = await this.prismaService.$transaction(
@@ -174,7 +175,6 @@ export class AuthService {
         error instanceof Error ? error.stack : undefined,
         'AuthService',
       );
-      console.error('Failed to queue verification email:', error);
       // Update email history status to 'failed'
       await this.prismaService.emailHistory.updateMany({
         where: {
@@ -200,10 +200,8 @@ export class AuthService {
     code: string,
     meta: { ip: string; userAgent: string },
   ): Promise<{ message: string }> {
-    const { ip, userAgent } = meta;
-
     this.customLogger.log(
-      `Email verification attempt for: ${email}`,
+      `Email verification attempt for: ${email} (ip: ${meta.ip})`,
       'AuthService',
     );
     const verificationKey = `${config.redis_cache_key_prefix}:${AUTH_CONFIG.CACHE_PREFIXES.VERIFICATION_TOKEN}:${email}`;
@@ -276,7 +274,6 @@ export class AuthService {
         error instanceof Error ? error.stack : undefined,
         'AuthService',
       );
-      console.error('Failed to queue welcome email:', error);
       // Don't throw, verification is successful
     }
 
@@ -362,7 +359,11 @@ export class AuthService {
         user.id,
       );
     } catch (error) {
-      console.error('Failed to queue verification email:', error);
+      this.customLogger.error(
+        `Failed to queue verification email for ${email}`,
+        error instanceof Error ? error.stack : undefined,
+        'AuthService',
+      );
       // Update email history status to 'failed'
       await this.prismaService.emailHistory.updateMany({
         where: {
@@ -554,7 +555,7 @@ export class AuthService {
       // Create access token (stateless, minimal payload - no email)
       const accessToken: string = this.authUtilsService.createAccessToken({
         userId: user.id,
-        role: user.role as unknown as UserRole,
+        role: user.role,
         tokenVersion: user.tokenVersion, // Include tokenVersion for hybrid JWT validation
       });
 
@@ -595,11 +596,11 @@ export class AuthService {
           refreshTokenTTL,
         );
       } catch (error) {
-        console.error('Failed to store refresh token in Redis:', {
-          userId: user.id,
-          jti,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        this.customLogger.error(
+          `Failed to store refresh token in Redis for user ${user.id}`,
+          error instanceof Error ? error.stack : String(error),
+          'AuthService',
+        );
         throw AppError.serviceUnavailable(
           'Authentication service temporarily unavailable. Please try again.',
         );
@@ -609,22 +610,21 @@ export class AuthService {
         // CRITICAL: Track session in user's session list
         await this.addUserSession(user.id, jti, refreshTokenTTL);
       } catch (error) {
-        console.error('Failed to add user session to Redis:', {
-          userId: user.id,
-          jti,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        this.customLogger.error(
+          `Failed to add user session to Redis for user ${user.id}`,
+          error instanceof Error ? error.stack : String(error),
+          'AuthService',
+        );
 
         // Rollback: Remove the refresh token we just stored
         await this.redisService.del(refreshTokenKey).catch((rollbackError) => {
-          console.error('CRITICAL: Failed to rollback refresh token:', {
-            userId: user.id,
-            jti,
-            error:
-              rollbackError instanceof Error
-                ? rollbackError.message
-                : String(rollbackError),
-          });
+          this.customLogger.error(
+            `CRITICAL: Failed to rollback refresh token for user ${user.id}`,
+            rollbackError instanceof Error
+              ? rollbackError.stack
+              : String(rollbackError),
+            'AuthService',
+          );
         });
 
         throw AppError.serviceUnavailable(
@@ -639,10 +639,11 @@ export class AuthService {
           AUTH_CONFIG.SESSION.MAX_DEVICES_PER_USER,
         );
       } catch (error) {
-        console.error('Failed to enforce max devices (non-critical):', {
-          userId: user.id,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        this.customLogger.error(
+          `Failed to enforce max devices (non-critical) for user ${user.id}`,
+          error instanceof Error ? error.stack : String(error),
+          'AuthService',
+        );
         // Continue - login still succeeds
       }
 
@@ -668,7 +669,13 @@ export class AuthService {
       ]).then((results) => {
         results.forEach((result) => {
           if (result.status === 'rejected') {
-            console.error('Non-critical login post-process failed:', result);
+            this.customLogger.error(
+              'Non-critical login post-process failed',
+              result.reason instanceof Error
+                ? result.reason.stack
+                : String(result.reason),
+              'AuthService',
+            );
           }
         });
       });
@@ -763,7 +770,7 @@ export class AuthService {
     // Create new tokens
     const newAccessToken: string = this.authUtilsService.createAccessToken({
       userId: user.id,
-      role: user.role as unknown as UserRole,
+      role: user.role,
       tokenVersion: user.tokenVersion, // Include tokenVersion for hybrid JWT validation
     });
 
@@ -1021,7 +1028,11 @@ export class AuthService {
       })
       .then(() => undefined)
       .catch((error) => {
-        console.error('Failed to log login attempt:', error);
+        this.customLogger.error(
+          'Failed to log login attempt',
+          error instanceof Error ? error.stack : String(error),
+          'AuthService',
+        );
       });
   }
 
@@ -1069,9 +1080,9 @@ export class AuthService {
     const cacheKey = `${config.redis_cache_key_prefix}:token_version:${userId}`;
     await this.redisService.del(cacheKey);
 
-    this.customLogger.log(`Token version incremented for user ${userId}, {
-      context: 'AuthService.incrementTokenVersion',
-      userId,
-    }`);
+    this.customLogger.log(
+      `Token version incremented for user ${userId}`,
+      'AuthService.incrementTokenVersion',
+    );
   }
 }

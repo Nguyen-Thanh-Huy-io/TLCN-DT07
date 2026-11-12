@@ -1,6 +1,8 @@
 import 'dotenv/config';
 
 interface AppConfig {
+  database_url: string;
+  app_url: string;
   jwt_access_secret: string;
   jwt_refresh_secret: string;
   redis_cache_key_prefix: string;
@@ -15,9 +17,15 @@ interface AppConfig {
   google_client_id: string;
   google_client_secret: string;
   google_redirect_uri: string;
+  // Cloudinary
+  cloudinary_cloud_name: string;
+  cloudinary_api_key: string;
+  cloudinary_api_secret: string;
 }
 
 const config: AppConfig = {
+  database_url: process.env.DATABASE_URL || '',
+  app_url: process.env.APP_URL || '',
   jwt_access_secret:
     process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || '',
   jwt_refresh_secret:
@@ -34,6 +42,10 @@ const config: AppConfig = {
   google_client_id: process.env.GOOGLE_CLIENT_ID || '',
   google_client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
   google_redirect_uri: process.env.GOOGLE_REDIRECT_URI || '',
+  // Cloudinary
+  cloudinary_cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
+  cloudinary_api_key: process.env.CLOUDINARY_API_KEY || '',
+  cloudinary_api_secret: process.env.CLOUDINARY_API_SECRET || '',
 };
 
 export default config;

@@ -70,13 +70,24 @@ export class BlogService {
 
     const posts = await this.prisma.blogPost.findMany({
       where,
-      orderBy: [{ isFeatured: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [
+        { isFeatured: 'desc' },
+        { publishedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
       include: {
         author: {
           select: {
             id: true,
             username: true,
-            userProfile: { select: { bio: true, avatarUrl: true, firstName: true, lastName: true } },
+            userProfile: {
+              select: {
+                bio: true,
+                avatarUrl: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
             _count: { select: { followers: true } },
           },
         },
@@ -97,13 +108,18 @@ export class BlogService {
         return engagement / Math.pow(ageDays + 1, 0.5) - ageDays * 0.05;
       };
 
-      ordered = [...posts].sort((a, b) => computeTrendingScore(b) - computeTrendingScore(a));
+      ordered = [...posts].sort(
+        (a, b) => computeTrendingScore(b) - computeTrendingScore(a),
+      );
     }
 
     let sliced = ordered;
     const hasPagination = Boolean(query?.cursor || query?.limit);
     if (hasPagination) {
-      const limit = Math.min(Math.max(Number(query?.limit) || DEFAULT_PAGE_LIMIT, 1), 50);
+      const limit = Math.min(
+        Math.max(Number(query?.limit) || DEFAULT_PAGE_LIMIT, 1),
+        50,
+      );
       let startIndex = 0;
       if (query?.cursor) {
         const cursorIdx = ordered.findIndex((p) => p.id === query.cursor);
@@ -114,7 +130,11 @@ export class BlogService {
 
     const postIds = sliced.map((p) => p.id);
     const authorIds = Array.from(
-      new Set(sliced.map((p) => p.author?.id).filter((id): id is string => Boolean(id))),
+      new Set(
+        sliced
+          .map((p) => p.author?.id)
+          .filter((id): id is string => Boolean(id)),
+      ),
     );
     const [flags, previewMap, followedAuthorSet] = await Promise.all([
       this.getViewerFlags(postIds, viewerId),
@@ -177,7 +197,9 @@ export class BlogService {
     await this.ensureUserExists(authorId);
 
     const normalizedSlug = (dto.slug ?? this.slugify(dto.title)).trim();
-    const existing = await this.prisma.blogPost.findUnique({ where: { slug: normalizedSlug } });
+    const existing = await this.prisma.blogPost.findUnique({
+      where: { slug: normalizedSlug },
+    });
     if (existing) {
       throw new BadRequestException(`Slug blog "${normalizedSlug}" đã tồn tại`);
     }
@@ -211,8 +233,15 @@ export class BlogService {
     return this.mapPost(post);
   }
 
-  async updatePost(postId: string, dto: UpdateBlogPostDto, requesterId: string, requesterRole: string) {
-    const existing = await this.prisma.blogPost.findUnique({ where: { id: postId } });
+  async updatePost(
+    postId: string,
+    dto: UpdateBlogPostDto,
+    requesterId: string,
+    requesterRole: string,
+  ) {
+    const existing = await this.prisma.blogPost.findUnique({
+      where: { id: postId },
+    });
     if (!existing) {
       throw new NotFoundException(`Blog ${postId} không tồn tại`);
     }
@@ -220,7 +249,9 @@ export class BlogService {
 
     const nextSlug = dto.slug ? dto.slug.trim() : existing.slug;
     if (dto.slug && dto.slug.trim() !== existing.slug) {
-      const duplicate = await this.prisma.blogPost.findUnique({ where: { slug: nextSlug } });
+      const duplicate = await this.prisma.blogPost.findUnique({
+        where: { slug: nextSlug },
+      });
       if (duplicate && duplicate.id !== postId) {
         throw new BadRequestException(`Slug blog "${nextSlug}" đã tồn tại`);
       }
@@ -232,7 +263,10 @@ export class BlogService {
         postType: dto.postType ? (dto.postType as any) : existing.postType,
         title: dto.title?.trim() ?? existing.title,
         slug: nextSlug,
-        excerpt: dto.excerpt !== undefined ? (dto.excerpt?.trim() ?? null) : existing.excerpt,
+        excerpt:
+          dto.excerpt !== undefined
+            ? (dto.excerpt?.trim() ?? null)
+            : existing.excerpt,
         coverImageUrl: dto.coverImageUrl ?? existing.coverImageUrl,
         contentBlocks:
           dto.contentBlocks !== undefined
@@ -240,7 +274,12 @@ export class BlogService {
             : existing.contentBlocks,
         status: dto.status ? (dto.status as any) : existing.status,
         isFeatured: dto.isFeatured ?? existing.isFeatured,
-        publishedAt: dto.publishedAt !== undefined ? (dto.publishedAt ? new Date(dto.publishedAt) : null) : existing.publishedAt,
+        publishedAt:
+          dto.publishedAt !== undefined
+            ? dto.publishedAt
+              ? new Date(dto.publishedAt)
+              : null
+            : existing.publishedAt,
       },
       include: {
         author: { select: { id: true, username: true } },
@@ -264,7 +303,9 @@ export class BlogService {
     }
 
     if (current.status !== 'PENDING_REVIEW') {
-      throw new BadRequestException('Chỉ duyệt được bài viết đang ở trạng thái chờ duyệt (PENDING_REVIEW).');
+      throw new BadRequestException(
+        'Chỉ duyệt được bài viết đang ở trạng thái chờ duyệt (PENDING_REVIEW).',
+      );
     }
 
     if (dto.status === 'REJECTED' && !dto.rejectionReason?.trim()) {
@@ -311,7 +352,9 @@ export class BlogService {
   }
 
   async deletePost(postId: string, requesterId: string, requesterRole: string) {
-    const existing = await this.prisma.blogPost.findUnique({ where: { id: postId } });
+    const existing = await this.prisma.blogPost.findUnique({
+      where: { id: postId },
+    });
     if (!existing) {
       throw new NotFoundException(`Blog ${postId} không tồn tại`);
     }
@@ -322,11 +365,19 @@ export class BlogService {
   }
 
   /** Chỉ tác giả bài viết hoặc biên tập viên (STAFF) mới được sửa/xóa. */
-  private assertCanModifyPost(authorId: string, requesterId: string, requesterRole: string): void {
+  private assertCanModifyPost(
+    authorId: string,
+    requesterId: string,
+    requesterRole: string,
+  ): void {
     const isOwner = authorId === requesterId;
-    const isStaff = (ROLE_GROUPS.STAFF as readonly string[]).includes(requesterRole);
+    const isStaff = (ROLE_GROUPS.STAFF as readonly string[]).includes(
+      requesterRole,
+    );
     if (!isOwner && !isStaff) {
-      throw new ForbiddenException('Bạn không có quyền sửa hoặc xóa bài viết này.');
+      throw new ForbiddenException(
+        'Bạn không có quyền sửa hoặc xóa bài viết này.',
+      );
     }
   }
 
@@ -451,7 +502,12 @@ export class BlogService {
     return this.mapComment(comment);
   }
 
-  async updateComment(postId: string, commentId: string, authorId: string, dto: UpdateCommentDto) {
+  async updateComment(
+    postId: string,
+    commentId: string,
+    authorId: string,
+    dto: UpdateCommentDto,
+  ) {
     await this.ensurePostExists(postId);
     await this.ensureUserExists(authorId);
 
@@ -613,7 +669,10 @@ export class BlogService {
 
     const liked = new Set(likes.map((l) => l.postId));
     const saved = new Set(bookmarks.map((b) => b.postId));
-    return (id: string) => ({ likedByMe: liked.has(id), bookmarkedByMe: saved.has(id) });
+    return (id: string) => ({
+      likedByMe: liked.has(id),
+      bookmarkedByMe: saved.has(id),
+    });
   }
 
   /**
@@ -670,7 +729,10 @@ export class BlogService {
       },
     });
 
-    const flags = await this.getViewerFlags(rows.map((r) => r.postId), userId);
+    const flags = await this.getViewerFlags(
+      rows.map((r) => r.postId),
+      userId,
+    );
     return rows.map((r) => ({ ...this.mapPost(r.post), ...flags(r.postId) }));
   }
 
@@ -679,12 +741,17 @@ export class BlogService {
    * - Nếu chưa like → tạo PostLike + tăng likeCount
    * - Nếu đã like → xóa PostLike + giảm likeCount
    */
-  async toggleLike(postId: string, userId: string): Promise<{ liked: boolean; likeCount: number }> {
+  async toggleLike(
+    postId: string,
+    userId: string,
+  ): Promise<{ liked: boolean; likeCount: number }> {
     await this.ensurePostExists(postId);
 
     // Transaction: tạo/xóa PostLike + cập nhật counter nguyên tử
     const result = await this.prisma.$transaction(async (tx) => {
-      const removed = await tx.postLike.deleteMany({ where: { postId, userId } });
+      const removed = await tx.postLike.deleteMany({
+        where: { postId, userId },
+      });
 
       if (removed.count > 0) {
         const post = await tx.blogPost.update({
@@ -744,10 +811,15 @@ export class BlogService {
    * - Nếu chưa bookmark → tạo PostBookmark
    * - Nếu đã bookmark → xóa PostBookmark
    */
-  async toggleBookmark(postId: string, userId: string): Promise<{ bookmarked: boolean }> {
+  async toggleBookmark(
+    postId: string,
+    userId: string,
+  ): Promise<{ bookmarked: boolean }> {
     await this.ensurePostExists(postId);
 
-    const removed = await this.prisma.postBookmark.deleteMany({ where: { postId, userId } });
+    const removed = await this.prisma.postBookmark.deleteMany({
+      where: { postId, userId },
+    });
     if (removed.count > 0) {
       return { bookmarked: false };
     }
@@ -769,7 +841,12 @@ export class BlogService {
 
     // Mỗi user chỉ báo cáo 1 bài 1 lần
     const duplicate = await this.prisma.contentReport.findFirst({
-      where: { targetType: 'POST', targetId: postId, reporterId, source: 'USER_REPORT' },
+      where: {
+        targetType: 'POST',
+        targetId: postId,
+        reporterId,
+        source: 'USER_REPORT',
+      },
       select: { id: true },
     });
     if (duplicate) {
@@ -803,7 +880,11 @@ export class BlogService {
   async incrementViewCount(postId: string, viewerKey: string): Promise<void> {
     try {
       // Chống trùng: mỗi viewer chỉ được tính 1 view / bài / giờ
-      const isNew = await this.redis.setNX(`view:${postId}:${viewerKey}`, 1, VIEW_DEDUPE_TTL_SECONDS);
+      const isNew = await this.redis.setNX(
+        `view:${postId}:${viewerKey}`,
+        1,
+        VIEW_DEDUPE_TTL_SECONDS,
+      );
       if (!isNew) {
         return;
       }
@@ -821,7 +902,10 @@ export class BlogService {
   // Community Follow & Member Profile Methods
   // ============================================================
 
-  private async getFollowedAuthorSet(authorIds: string[], viewerId?: string): Promise<Set<string>> {
+  private async getFollowedAuthorSet(
+    authorIds: string[],
+    viewerId?: string,
+  ): Promise<Set<string>> {
     if (!viewerId || authorIds.length === 0) {
       return new Set<string>();
     }
@@ -843,7 +927,10 @@ export class BlogService {
 
     const user = await this.prisma.authUser.findFirst({
       where: {
-        OR: [{ id: clean }, { username: { equals: clean, mode: 'insensitive' } }],
+        OR: [
+          { id: clean },
+          { username: { equals: clean, mode: 'insensitive' } },
+        ],
       },
       include: {
         userProfile: true,
@@ -873,7 +960,9 @@ export class BlogService {
     }
 
     if (follower.id === targetUser.id) {
-      throw new BadRequestException('Bạn không thể tự theo dõi tài khoản của chính mình');
+      throw new BadRequestException(
+        'Bạn không thể tự theo dõi tài khoản của chính mình',
+      );
     }
 
     const removed = await this.prisma.userFollow.deleteMany({
@@ -937,7 +1026,12 @@ export class BlogService {
         userProfile: true,
         blogPosts: {
           where: { status: 'PUBLISHED' },
-          select: { id: true, likeCount: true, commentCount: true, viewCount: true },
+          select: {
+            id: true,
+            likeCount: true,
+            commentCount: true,
+            viewCount: true,
+          },
         },
         _count: {
           select: {
@@ -957,7 +1051,10 @@ export class BlogService {
     const mapped = users
       .map((u) => {
         const postCount = u.blogPosts.length;
-        const totalLikesReceived = u.blogPosts.reduce((sum, p) => sum + (p.likeCount ?? 0), 0);
+        const totalLikesReceived = u.blogPosts.reduce(
+          (sum, p) => sum + (p.likeCount ?? 0),
+          0,
+        );
         const totalCommentsReceived = u.blogPosts.reduce(
           (sum, p) => sum + (p.commentCount ?? 0),
           0,
@@ -965,8 +1062,10 @@ export class BlogService {
         const followerCount = u._count.followers;
         const followingCount = u._count.following;
         const displayName =
-          [u.userProfile?.firstName, u.userProfile?.lastName].filter(Boolean).join(' ').trim() ||
-          u.username;
+          [u.userProfile?.firstName, u.userProfile?.lastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim() || u.username;
 
         const score = postCount * 5 + followerCount * 3 + totalLikesReceived;
         return {
@@ -1005,13 +1104,24 @@ export class BlogService {
           authorId: user.id,
           status: 'PUBLISHED',
         },
-        orderBy: [{ isFeatured: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [
+          { isFeatured: 'desc' },
+          { publishedAt: 'desc' },
+          { createdAt: 'desc' },
+        ],
         include: {
           author: {
             select: {
               id: true,
               username: true,
-              userProfile: { select: { bio: true, avatarUrl: true, firstName: true, lastName: true } },
+              userProfile: {
+                select: {
+                  bio: true,
+                  avatarUrl: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
               _count: { select: { followers: true } },
             },
           },
@@ -1026,7 +1136,14 @@ export class BlogService {
               id: true,
               username: true,
               role: true,
-              userProfile: { select: { bio: true, avatarUrl: true, firstName: true, lastName: true } },
+              userProfile: {
+                select: {
+                  bio: true,
+                  avatarUrl: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
               _count: {
                 select: {
                   blogPosts: { where: { status: 'PUBLISHED' } },
@@ -1047,7 +1164,14 @@ export class BlogService {
               id: true,
               username: true,
               role: true,
-              userProfile: { select: { bio: true, avatarUrl: true, firstName: true, lastName: true } },
+              userProfile: {
+                select: {
+                  bio: true,
+                  avatarUrl: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
               _count: {
                 select: {
                   blogPosts: { where: { status: 'PUBLISHED' } },
@@ -1109,15 +1233,23 @@ export class BlogService {
           if (!raw || typeof raw !== 'object') continue;
           const block = raw as Record<string, any>;
           if (block.type === 'meta' || block.kind === 'metadata') {
-            const meta = (block.metadata && typeof block.metadata === 'object'
-              ? block.metadata
-              : block) as Record<string, any>;
-            if (meta.sharedBlog && typeof meta.sharedBlog === 'object' && meta.sharedBlog.slug) {
+            const meta = (
+              block.metadata && typeof block.metadata === 'object'
+                ? block.metadata
+                : block
+            ) as Record<string, any>;
+            if (
+              meta.sharedBlog &&
+              typeof meta.sharedBlog === 'object' &&
+              meta.sharedBlog.slug
+            ) {
               sharedBlogCount += 1;
             }
             if (Array.isArray(meta.tags)) {
               for (const t of meta.tags) {
-                const tagStr = (typeof t === 'string' ? t : t?.name || '').trim().replace(/^#/, '');
+                const tagStr = (typeof t === 'string' ? t : t?.name || '')
+                  .trim()
+                  .replace(/^#/, '');
                 if (tagStr) {
                   topicCounts.set(tagStr, (topicCounts.get(tagStr) || 0) + 1);
                 }
@@ -1152,15 +1284,21 @@ export class BlogService {
       followedAt,
     });
 
-    const followers = followerRows.map((r) => mapMemberCard(r.follower, r.createdAt));
-    const following = followingRows.map((r) => mapMemberCard(r.following, r.createdAt));
+    const followers = followerRows.map((r) =>
+      mapMemberCard(r.follower, r.createdAt),
+    );
+    const following = followingRows.map((r) =>
+      mapMemberCard(r.following, r.createdAt),
+    );
 
     const isMe = Boolean(viewerId && viewerId === user.id);
     const bookmarkedPosts = isMe ? await this.listMyBookmarks(user.id) : [];
 
     const displayName =
-      [user.userProfile?.firstName, user.userProfile?.lastName].filter(Boolean).join(' ').trim() ||
-      user.username;
+      [user.userProfile?.firstName, user.userProfile?.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim() || user.username;
 
     return {
       user: {
@@ -1197,7 +1335,10 @@ export class BlogService {
   /**
    * Cập nhật thông tin hồ sơ cá nhân trên Cộng đồng của người dùng đang đăng nhập.
    */
-  async updateMyCommunityProfile(userId: string, dto: UpdateCommunityProfileDto) {
+  async updateMyCommunityProfile(
+    userId: string,
+    dto: UpdateCommunityProfileDto,
+  ) {
     await this.ensureUserExists(userId);
 
     await this.prisma.userProfile.upsert({
@@ -1210,10 +1351,16 @@ export class BlogService {
         avatarUrl: dto.avatarUrl?.trim() ?? null,
       },
       update: {
-        ...(dto.firstName !== undefined ? { firstName: dto.firstName.trim() || null } : {}),
-        ...(dto.lastName !== undefined ? { lastName: dto.lastName.trim() || null } : {}),
+        ...(dto.firstName !== undefined
+          ? { firstName: dto.firstName.trim() || null }
+          : {}),
+        ...(dto.lastName !== undefined
+          ? { lastName: dto.lastName.trim() || null }
+          : {}),
         ...(dto.bio !== undefined ? { bio: dto.bio.trim() || null } : {}),
-        ...(dto.avatarUrl !== undefined ? { avatarUrl: dto.avatarUrl.trim() || null } : {}),
+        ...(dto.avatarUrl !== undefined
+          ? { avatarUrl: dto.avatarUrl.trim() || null }
+          : {}),
       },
     });
 
@@ -1221,14 +1368,18 @@ export class BlogService {
   }
 
   private async ensurePostExists(postId: string) {
-    const post = await this.prisma.blogPost.findUnique({ where: { id: postId } });
+    const post = await this.prisma.blogPost.findUnique({
+      where: { id: postId },
+    });
     if (!post) {
       throw new NotFoundException(`Bài viết ${postId} không tồn tại`);
     }
   }
 
   private async ensureUserExists(userId: string) {
-    const user = await this.prisma.authUser.findUnique({ where: { id: userId } });
+    const user = await this.prisma.authUser.findUnique({
+      where: { id: userId },
+    });
     if (!user) {
       throw new NotFoundException(`Người dùng ${userId} không tồn tại`);
     }
@@ -1281,7 +1432,9 @@ export class BlogService {
       articleId: comment.articleId ?? null,
       authorId: comment.authorId,
       parentId: comment.parentId ?? null,
-      content: comment.deletedAt ? '[Bình luận đã bị xóa]' : (comment.content ?? ''),
+      content: comment.deletedAt
+        ? '[Bình luận đã bị xóa]'
+        : (comment.content ?? ''),
       status: comment.status ?? 'VISIBLE',
       likeCount: comment.likeCount ?? 0,
       createdAt: comment.createdAt,
@@ -1298,8 +1451,12 @@ export class BlogService {
             id: reply.id,
             authorId: reply.authorId,
             parentId: reply.parentId,
-            author: reply.author ? { id: reply.author.id, username: reply.author.username } : null,
-            content: reply.deletedAt ? '[Bình luận đã bị xóa]' : (reply.content ?? ''),
+            author: reply.author
+              ? { id: reply.author.id, username: reply.author.username }
+              : null,
+            content: reply.deletedAt
+              ? '[Bình luận đã bị xóa]'
+              : (reply.content ?? ''),
             createdAt: reply.createdAt,
             updatedAt: reply.updatedAt,
             likeCount: reply.likeCount ?? 0,

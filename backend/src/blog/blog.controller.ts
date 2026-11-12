@@ -18,7 +18,12 @@ import { RequireRoles } from '../common/access/access.decorator';
 import { ROLE_GROUPS } from '../common/access/access.constant';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { OptionalAuthGuard } from '../common/guards/optional-auth.guard';
-import { CreateCommentDto, DeleteCommentDto, LikeCommentDto, UpdateCommentDto } from './dto/comment.dto';
+import {
+  CreateCommentDto,
+  DeleteCommentDto,
+  LikeCommentDto,
+  UpdateCommentDto,
+} from './dto/comment.dto';
 import {
   CreateBlogPostDto,
   ListBlogPostsQueryDto,
@@ -40,10 +45,16 @@ export class BlogController {
   // Post CRUD
   // ============================================================
 
-  @ApiOperation({ summary: 'Danh sách bài viết cộng đồng (lọc theo type, sort=trending, cursor; kèm likedByMe/bookmarkedByMe)' })
+  @ApiOperation({
+    summary:
+      'Danh sách bài viết cộng đồng (lọc theo type, sort=trending, cursor; kèm likedByMe/bookmarkedByMe)',
+  })
   @Get()
   @UseGuards(OptionalAuthGuard)
-  listPosts(@Query() query: ListBlogPostsQueryDto, @Req() req: MaybeAuthedRequest) {
+  listPosts(
+    @Query() query: ListBlogPostsQueryDto,
+    @Req() req: MaybeAuthedRequest,
+  ) {
     return this.blogService.listPosts(req.user?.userId, query);
   }
 
@@ -59,11 +70,19 @@ export class BlogController {
   // Community Member Profile & Follow Endpoints
   // ============================================================
 
-  @ApiOperation({ summary: 'Danh sách thành viên tiêu biểu / gợi ý theo dõi trên Cộng đồng' })
+  @ApiOperation({
+    summary: 'Danh sách thành viên tiêu biểu / gợi ý theo dõi trên Cộng đồng',
+  })
   @Get('users/suggested')
   @UseGuards(OptionalAuthGuard)
-  getSuggestedMembers(@Query('limit') limit: string | undefined, @Req() req: MaybeAuthedRequest) {
-    return this.blogService.getSuggestedMembers(req.user?.userId, limit ? Number(limit) : 6);
+  getSuggestedMembers(
+    @Query('limit') limit: string | undefined,
+    @Req() req: MaybeAuthedRequest,
+  ) {
+    return this.blogService.getSuggestedMembers(
+      req.user?.userId,
+      limit ? Number(limit) : 6,
+    );
   }
 
   @ApiOperation({ summary: 'Hồ sơ tài khoản Cộng đồng của chính tôi' })
@@ -71,10 +90,15 @@ export class BlogController {
   @Get('users/me/profile')
   @UseGuards(AuthGuard)
   getMyCommunityProfile(@Req() req: AuthedRequest) {
-    return this.blogService.getCommunityProfile(req.user.userId, req.user.userId);
+    return this.blogService.getCommunityProfile(
+      req.user.userId,
+      req.user.userId,
+    );
   }
 
-  @ApiOperation({ summary: 'Cập nhật hồ sơ Cộng đồng cá nhân (bio, họ tên, avatar)' })
+  @ApiOperation({
+    summary: 'Cập nhật hồ sơ Cộng đồng cá nhân (bio, họ tên, avatar)',
+  })
   @ApiBearerAuth('JWT-auth')
   @Patch('users/me/profile')
   @UseGuards(AuthGuard)
@@ -85,7 +109,10 @@ export class BlogController {
     return this.blogService.updateMyCommunityProfile(req.user.userId, dto);
   }
 
-  @ApiOperation({ summary: 'Hồ sơ tài khoản Cộng đồng của một thành viên (theo username hoặc ID)' })
+  @ApiOperation({
+    summary:
+      'Hồ sơ tài khoản Cộng đồng của một thành viên (theo username hoặc ID)',
+  })
   @Get('users/:identifier/profile')
   @UseGuards(OptionalAuthGuard)
   getCommunityProfile(
@@ -95,7 +122,9 @@ export class BlogController {
     return this.blogService.getCommunityProfile(identifier, req.user?.userId);
   }
 
-  @ApiOperation({ summary: 'Toggle theo dõi / bỏ theo dõi thành viên trên Cộng đồng' })
+  @ApiOperation({
+    summary: 'Toggle theo dõi / bỏ theo dõi thành viên trên Cộng đồng',
+  })
   @ApiBearerAuth('JWT-auth')
   @Post('users/:identifier/follow')
   @UseGuards(AuthGuard)
@@ -135,7 +164,11 @@ export class BlogController {
   @ApiBearerAuth('JWT-auth')
   @Patch(':id')
   @UseGuards(AuthGuard)
-  updatePost(@Param('id') id: string, @Body() dto: UpdateBlogPostDto, @Req() req: AuthedRequest) {
+  updatePost(
+    @Param('id') id: string,
+    @Body() dto: UpdateBlogPostDto,
+    @Req() req: AuthedRequest,
+  ) {
     return this.blogService.updatePost(id, dto, req.user.userId, req.user.role);
   }
 
@@ -174,7 +207,11 @@ export class BlogController {
   @Post(':id/report')
   @UseGuards(AuthGuard)
   @HttpCode(HttpStatus.OK)
-  reportPost(@Param('id') postId: string, @Req() req: AuthedRequest, @Body() dto: ReportPostDto) {
+  reportPost(
+    @Param('id') postId: string,
+    @Req() req: AuthedRequest,
+    @Body() dto: ReportPostDto,
+  ) {
     return this.blogService.reportPost(postId, req.user.userId, dto);
   }
 
@@ -182,8 +219,13 @@ export class BlogController {
   @Patch(':id/view')
   @UseGuards(OptionalAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async incrementView(@Param('id') postId: string, @Req() req: MaybeAuthedRequest) {
-    const viewerKey = req.user?.userId ? `u:${req.user.userId}` : `ip:${req.ip ?? 'unknown'}`;
+  async incrementView(
+    @Param('id') postId: string,
+    @Req() req: MaybeAuthedRequest,
+  ) {
+    const viewerKey = req.user?.userId
+      ? `u:${req.user.userId}`
+      : `ip:${req.ip ?? 'unknown'}`;
     await this.blogService.incrementViewCount(postId, viewerKey);
   }
 
@@ -233,4 +275,3 @@ export class BlogController {
     return this.blogService.likeComment(postId, commentId, dto.userId);
   }
 }
-

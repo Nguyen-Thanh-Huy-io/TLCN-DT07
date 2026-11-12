@@ -1,7 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { UpsertQuizDto } from './dto/upsert-quiz.dto';
-import { CreateStandaloneQuizDto, UpdateStandaloneQuizDto } from './dto/create-standalone-quiz.dto';
+import {
+  CreateStandaloneQuizDto,
+  UpdateStandaloneQuizDto,
+} from './dto/create-standalone-quiz.dto';
 import { QueryQuizDto } from './dto/query-quiz.dto';
 import { DEFAULT_QUIZ_PASSING_SCORE_PERCENT } from './quiz.constant';
 import { validateAndNormalizeQuestions } from './validators/quiz-question.validator';
@@ -68,7 +75,9 @@ export class QuizService {
     // Format kết quả chuẩn cho UI DataTable
     const items = rawItems
       .map((quiz) => {
-        const questionsArray = Array.isArray(quiz.questions) ? (quiz.questions as any[]) : [];
+        const questionsArray = Array.isArray(quiz.questions)
+          ? (quiz.questions as any[])
+          : [];
         const questionCount = questionsArray.length;
         const isDraft = questionCount === 0;
 
@@ -80,7 +89,11 @@ export class QuizService {
 
         return {
           id: quiz.id,
-          title: quiz.title || (lesson?.title ? `Đề ôn tập: ${lesson.title}` : 'Đề kiểm tra trắc nghiệm'),
+          title:
+            quiz.title ||
+            (lesson?.title
+              ? `Đề ôn tập: ${lesson.title}`
+              : 'Đề kiểm tra trắc nghiệm'),
           description: quiz.description,
           lessonId: quiz.lessonId,
           lessonTitle: lesson?.title || null,
@@ -95,7 +108,8 @@ export class QuizService {
               }
             : null,
           timeLimitMinutes: quiz.timeLimitMinutes ?? 15,
-          passingScorePercent: quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
+          passingScorePercent:
+            quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
           questionCount,
           questions: quiz.questions,
           status: isDraft ? 'DRAFT' : 'ACTIVE',
@@ -154,7 +168,9 @@ export class QuizService {
       throw new NotFoundException(`Không tìm thấy đề Quiz với ID "${id}"`);
     }
 
-    const questionsArray = Array.isArray(quiz.questions) ? (quiz.questions as any[]) : [];
+    const questionsArray = Array.isArray(quiz.questions)
+      ? (quiz.questions as any[])
+      : [];
     const lesson = quiz.lesson;
     const topicTitle =
       lesson?.chapterLessons?.[0]?.chapter?.learningPath?.title ||
@@ -163,12 +179,17 @@ export class QuizService {
 
     return {
       ...quiz,
-      title: quiz.title || (lesson?.title ? `Đề ôn tập: ${lesson.title}` : 'Đề kiểm tra trắc nghiệm'),
+      title:
+        quiz.title ||
+        (lesson?.title
+          ? `Đề ôn tập: ${lesson.title}`
+          : 'Đề kiểm tra trắc nghiệm'),
       lessonTitle: lesson?.title || null,
       topicTitle,
       questionCount: questionsArray.length,
       status: questionsArray.length > 0 ? 'ACTIVE' : 'DRAFT',
-      passingScorePercent: quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
+      passingScorePercent:
+        quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
     };
   }
 
@@ -180,13 +201,21 @@ export class QuizService {
     }
 
     if (dto.lessonId) {
-      const lesson = await this.prisma.lesson.findUnique({ where: { id: dto.lessonId } });
+      const lesson = await this.prisma.lesson.findUnique({
+        where: { id: dto.lessonId },
+      });
       if (!lesson) {
-        throw new NotFoundException(`Không tìm thấy bài học với ID "${dto.lessonId}"`);
+        throw new NotFoundException(
+          `Không tìm thấy bài học với ID "${dto.lessonId}"`,
+        );
       }
-      const existing = await this.prisma.quiz.findUnique({ where: { lessonId: dto.lessonId } });
+      const existing = await this.prisma.quiz.findUnique({
+        where: { lessonId: dto.lessonId },
+      });
       if (existing) {
-        throw new BadRequestException(`Bài học "${lesson.title}" đã có một đề Quiz. Vui lòng cập nhật đề hiện có.`);
+        throw new BadRequestException(
+          `Bài học "${lesson.title}" đã có một đề Quiz. Vui lòng cập nhật đề hiện có.`,
+        );
       }
     }
 
@@ -196,7 +225,8 @@ export class QuizService {
         description: dto.description,
         lessonId: dto.lessonId || null,
         timeLimitMinutes: dto.timeLimitMinutes ?? 15,
-        passingScorePercent: dto.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
+        passingScorePercent:
+          dto.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
         questions: normalizedQuestions as any,
       },
       include: {
@@ -220,15 +250,21 @@ export class QuizService {
 
     let normalizedQuestions = existing.questions;
     if (dto.questions !== undefined) {
-      normalizedQuestions = (dto.questions.length > 0
-        ? validateAndNormalizeQuestions(dto.questions)
-        : []) as any;
+      normalizedQuestions = (
+        dto.questions.length > 0
+          ? validateAndNormalizeQuestions(dto.questions)
+          : []
+      ) as any;
     }
 
     if (dto.lessonId && dto.lessonId !== existing.lessonId) {
-      const lesson = await this.prisma.lesson.findUnique({ where: { id: dto.lessonId } });
+      const lesson = await this.prisma.lesson.findUnique({
+        where: { id: dto.lessonId },
+      });
       if (!lesson) {
-        throw new NotFoundException(`Không tìm thấy bài học với ID "${dto.lessonId}"`);
+        throw new NotFoundException(
+          `Không tìm thấy bài học với ID "${dto.lessonId}"`,
+        );
       }
     }
 
@@ -236,10 +272,18 @@ export class QuizService {
       where: { id },
       data: {
         ...(dto.title !== undefined ? { title: dto.title } : {}),
-        ...(dto.description !== undefined ? { description: dto.description } : {}),
-        ...(dto.lessonId !== undefined ? { lessonId: dto.lessonId || null } : {}),
-        ...(dto.timeLimitMinutes !== undefined ? { timeLimitMinutes: dto.timeLimitMinutes } : {}),
-        ...(dto.passingScorePercent !== undefined ? { passingScorePercent: dto.passingScorePercent } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description }
+          : {}),
+        ...(dto.lessonId !== undefined
+          ? { lessonId: dto.lessonId || null }
+          : {}),
+        ...(dto.timeLimitMinutes !== undefined
+          ? { timeLimitMinutes: dto.timeLimitMinutes }
+          : {}),
+        ...(dto.passingScorePercent !== undefined
+          ? { passingScorePercent: dto.passingScorePercent }
+          : {}),
         questions: normalizedQuestions as any,
       },
       include: {
@@ -271,9 +315,13 @@ export class QuizService {
 
   /** Tạo mới hoặc cập nhật nguyên đề theo Lesson (tương thích ngược với LessonEditor) */
   async upsert(lessonId: string, dto: UpsertQuizDto) {
-    const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+    });
     if (!lesson) {
-      throw new NotFoundException(`Không tìm thấy bài học với ID "${lessonId}"`);
+      throw new NotFoundException(
+        `Không tìm thấy bài học với ID "${lessonId}"`,
+      );
     }
 
     const questions = validateAndNormalizeQuestions(dto.questions);

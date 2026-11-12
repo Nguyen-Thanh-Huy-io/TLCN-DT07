@@ -14,6 +14,7 @@ import {
   NoteTargetTypeValue,
   UpdateNotePayload,
 } from '../types/note.types';
+import { CommonFilterOption } from '@/constants/enums';
 
 export function useNoteFacade(
   targetType: NoteTargetTypeValue,
@@ -23,7 +24,7 @@ export function useNoteFacade(
   const [loading, setLoading] = useState<boolean>(true);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selectedHighlight, setSelectedHighlight] = useState<string>('');
-  const [colorFilter, setColorFilter] = useState<NoteColorValue | 'ALL'>('ALL');
+  const [colorFilter, setColorFilter] = useState<NoteColorValue | CommonFilterOption.ALL>(CommonFilterOption.ALL);
 
   const loadNotes = useCallback(async () => {
     if (!targetId) return;
@@ -39,7 +40,9 @@ export function useNoteFacade(
   }, [targetType, targetId]);
 
   useEffect(() => {
-    loadNotes();
+    void Promise.resolve().then(() => {
+      loadNotes();
+    });
   }, [loadNotes]);
 
   // Bắt sự kiện chọn (bôi đen) văn bản trên bài đọc
@@ -124,7 +127,7 @@ export function useNoteFacade(
   };
 
   const filteredNotes = notes.filter((n) => {
-    if (colorFilter === 'ALL') return true;
+    if (colorFilter === CommonFilterOption.ALL) return true;
     return n.color === colorFilter;
   });
 

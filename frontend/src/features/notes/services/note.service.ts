@@ -1,3 +1,5 @@
+import api from '@/services/api';
+import { GUEST_ID_HEADER_NAME } from '@/constants/api-url';
 import {
   CreateNotePayload,
   NoteItem,
@@ -6,6 +8,11 @@ import {
 } from '../types/note.types';
 
 const GUEST_ID_KEY = 'hisgo:guest-id';
+
+/** Backend bọc mọi response qua TransformInterceptor: { statusCode, message, data }. */
+interface ApiEnvelope<T> {
+  data: T;
+}
 
 export function getOrCreateGuestId(): string {
   if (typeof window === 'undefined') return 'guest-default';
@@ -17,114 +24,38 @@ export function getOrCreateGuestId(): string {
   return id;
 }
 
+/** Token đăng nhập do axios interceptor tự gắn; khách vãng lai được nhận diện qua guest id. */
+function guestHeaders(): Record<string, string> {
+  return { [GUEST_ID_HEADER_NAME]: getOrCreateGuestId() };
+}
+
 export async function fetchNotes(
   targetType: NoteTargetTypeValue,
   targetId: string
 ): Promise<NoteItem[]> {
-  const guestId = getOrCreateGuestId();
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-
-  const headers: Record<string, string> = {
-    'x-guest-id': guestId,
-  };
-  if (token) {
-    headers['authorization'] = `Bearer ${token}`;
-  }
-
-  const query = new URLSearchParams({
-    targetType,
-    targetId,
-    guestId,
+  const res = await api.get<ApiEnvelope<NoteItem[]>>('/notes', {
+    params: { targetType, targetId, guestId: getOrCreateGuestId() },
+    headers: guestHeaders(),
   });
-
-  const res = await fetch(`/api/notes?${query.toString()}`, {
-    method: 'GET',
-    headers,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Lỗi tải ghi chú: ${res.status}`);
-  }
-
-  const result = await res.json();
-  const data = result.data?.data || result.data || [];
-  return Array.isArray(data) ? data : [];
+  return Array.isArray(res.data.data) ? res.data.data : [];
 }
 
-export async function createNoteApi(
-  payload: CreateNotePayload
-): Promise<NoteItem> {
-  const guestId = getOrCreateGuestId();
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-guest-id': guestId,
-  };
-  if (token) {
-    headers['authorization'] = `Bearer ${token}`;
-  }
-
-  const res = await fetch('/api/notes', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ ...payload, guestId }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Lỗi tạo ghi chú: ${res.status}`);
-  }
-
-  const result = await res.json();
-  return result.data?.data || result.data;
+export async function createNoteApi(payload: CreateNotePayload): Promise<NoteItem> {
+  const res = await api.post<ApiEnvelope<NoteItem>>(
+    '/notes',
+    { ...payload, guestId: getOrCreateGuestId() },
+    { headers: guestHeaders() }
+  );
+  return res.data.data;
 }
 
-export async function updateNoteApi(
-  id: string,
-  payload: UpdateNotePayload
-): Promise<NoteItem> {
-  const guestId = getOrCreateGuestId();
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-guest-id': guestId,
-  };
-  if (token) {
-    headers['authorization'] = `Bearer ${token}`;
-  }
-
-  const res = await fetch(`/api/notes/${id}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify(payload),
+export async function updateNoteApi(id: string, payload: UpdateNotePayload): Promise<NoteItem> {
+  const res = await api.patch<ApiEnvelope<NoteItem>>(`/notes/${id}`, payload, {
+    headers: guestHeaders(),
   });
-
-  if (!res.ok) {
-    throw new Error(`Lỗi cập nhật ghi chú: ${res.status}`);
-  }
-
-  const result = await res.json();
-  return result.data?.data || result.data;
+  return res.data.data;
 }
 
 export async function deleteNoteApi(id: string): Promise<void> {
-  const guestId = getOrCreateGuestId();
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-
-  const headers: Record<string, string> = {
-    'x-guest-id': guestId,
-  };
-  if (token) {
-    headers['authorization'] = `Bearer ${token}`;
-  }
-
-  const res = await fetch(`/api/notes/${id}`, {
-    method: 'DELETE',
-    headers,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Lỗi xoá ghi chú: ${res.status}`);
-  }
+  await api.delete(`/notes/${id}`, { headers: guestHeaders() });
 }

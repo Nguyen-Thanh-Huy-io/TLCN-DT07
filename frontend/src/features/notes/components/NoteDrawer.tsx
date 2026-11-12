@@ -15,12 +15,14 @@ import {
 } from 'lucide-react';
 import {
   NOTE_COLOR,
+  NOTE_TARGET_TYPE,
   NOTE_COLOR_STYLES,
   NoteColorValue,
   NoteItem,
   NoteTargetTypeValue,
 } from '../types/note.types';
 import { useNoteFacade } from '../facades/useNoteFacade';
+import { CommonFilterOption } from '@/constants/enums';
 
 interface NoteDrawerProps {
   facade: ReturnType<typeof useNoteFacade>;
@@ -111,7 +113,7 @@ export function NoteDrawer({ facade, targetTitle, targetType }: NoteDrawerProps)
                   </span>
                 </h3>
                 <p className="text-[11px] text-stone-500 line-clamp-1 max-w-[240px]">
-                  {targetTitle || (targetType === 'ARTICLE' ? 'Bài viết lịch sử' : 'Bài học')}
+                  {targetTitle || (targetType === NOTE_TARGET_TYPE.ARTICLE ? 'Bài viết lịch sử' : 'Bài học')}
                 </p>
               </div>
             </div>
@@ -204,9 +206,9 @@ export function NoteDrawer({ facade, targetTitle, targetType }: NoteDrawerProps)
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setColorFilter('ALL')}
+                    onClick={() => setColorFilter(CommonFilterOption.ALL)}
                     className={`px-2 py-0.5 rounded text-[11px] font-semibold cursor-pointer ${
-                      colorFilter === 'ALL'
+                      colorFilter === CommonFilterOption.ALL
                         ? 'bg-stone-800 text-white'
                         : 'bg-stone-200 text-stone-600 hover:bg-stone-300'
                     }`}

@@ -6,7 +6,15 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
-import { NotificationType } from '@prisma/client';
+import {
+  ArticleCommentStatus,
+  NotificationType,
+  PostCommentStatus,
+  ReportActionTaken,
+  ReportRiskLevel,
+  ReportSource,
+  ReportTargetType,
+} from '@prisma/client';
 import { ROLE_GROUPS } from '../common/access/access.constant';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
@@ -232,7 +240,7 @@ export class BlogService {
     });
 
     // Đẩy job kiểm duyệt tự động bằng AI Sentinel (xử lý ngầm không chặn phản hồi)
-    this.moderationService?.enqueueScan('POST', post.id);
+    this.moderationService?.enqueueScan(ReportTargetType.POST, post.id);
 
     return this.mapPost(post);
   }
@@ -291,7 +299,7 @@ export class BlogService {
     });
 
     // Quét lại bằng AI Sentinel khi bài viết được chỉnh sửa
-    this.moderationService?.enqueueScan('POST', updated.id);
+    this.moderationService?.enqueueScan(ReportTargetType.POST, updated.id);
 
     return this.mapPost(updated);
   }
@@ -447,7 +455,7 @@ export class BlogService {
         authorId,
         parentId: dto.parentId ?? null,
         content: dto.content.trim(),
-        status: 'VISIBLE',
+        status: PostCommentStatus.VISIBLE,
       },
       include: {
         author: { select: { id: true, username: true } },
@@ -466,7 +474,7 @@ export class BlogService {
     this.blogGateway.emitCommentAdded(postId, this.mapComment(comment));
 
     // Đẩy job kiểm duyệt tự động bình luận bằng AI Sentinel
-    this.moderationService?.enqueueScan('COMMENT', comment.id);
+    this.moderationService?.enqueueScan(ReportTargetType.COMMENT, comment.id);
 
     // Gửi thông báo đến tác giả bài viết và người được phản hồi
     try {
@@ -551,7 +559,7 @@ export class BlogService {
       where: { id: commentId },
       data: {
         content: dto.content.trim(),
-        status: 'VISIBLE',
+        status: PostCommentStatus.VISIBLE,
       },
       include: {
         author: { select: { id: true, username: true } },
@@ -568,7 +576,7 @@ export class BlogService {
       comment: this.mapComment(updated),
     });
 
-    this.moderationService?.enqueueScan('COMMENT', updated.id);
+    this.moderationService?.enqueueScan(ReportTargetType.COMMENT, updated.id);
 
     return this.mapComment(updated);
   }
@@ -597,7 +605,7 @@ export class BlogService {
       where: { id: commentId },
       data: {
         deletedAt: new Date(),
-        status: 'REMOVED',
+        status: PostCommentStatus.REMOVED,
       },
     });
 
@@ -728,7 +736,7 @@ export class BlogService {
       where: {
         articleId: { in: postIds },
         deletedAt: null,
-        status: 'VISIBLE',
+        status: ArticleCommentStatus.VISIBLE,
         parentId: null,
       },
       orderBy: { createdAt: 'desc' },
@@ -879,10 +887,10 @@ export class BlogService {
     // Mỗi user chỉ báo cáo 1 bài 1 lần
     const duplicate = await this.prisma.contentReport.findFirst({
       where: {
-        targetType: 'POST',
+        targetType: ReportTargetType.POST,
         targetId: postId,
         reporterId,
-        source: 'USER_REPORT',
+        source: ReportSource.USER_REPORT,
       },
       select: { id: true },
     });
@@ -892,12 +900,12 @@ export class BlogService {
 
     const report = await this.prisma.contentReport.create({
       data: {
-        targetType: 'POST',
+        targetType: ReportTargetType.POST,
         targetId: postId,
         reporterId,
-        source: 'USER_REPORT',
-        riskLevel: 'LOW',
-        actionTaken: 'NONE',
+        source: ReportSource.USER_REPORT,
+        riskLevel: ReportRiskLevel.LOW,
+        actionTaken: ReportActionTaken.NONE,
         aiReasons: dto.reason ? { userReason: dto.reason } : undefined,
       },
     });
@@ -1445,7 +1453,7 @@ export class BlogService {
       content: comment.deletedAt
         ? '[Bình luận đã bị xóa]'
         : (comment.content ?? ''),
-      status: comment.status ?? 'VISIBLE',
+      status: comment.status ?? PostCommentStatus.VISIBLE,
       likeCount: comment.likeCount ?? 0,
       createdAt: comment.createdAt,
       updatedAt: comment.updatedAt,

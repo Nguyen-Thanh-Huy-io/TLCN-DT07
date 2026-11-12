@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { loginAction } from '@prisma/client';
 import crypto from 'crypto';
 import * as jwt from 'jsonwebtoken';
 import { JwksClient } from 'jwks-rsa';
@@ -726,7 +727,7 @@ export class GoogleOAuthService {
           ipAddress: data.ip,
           userAgent: data.userAgent,
           device_id: data.device,
-          action: 'login',
+          action: loginAction.login,
           success: data.success,
           failureReason: data.failureReason,
         },

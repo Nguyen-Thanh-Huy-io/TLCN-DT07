@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ReportRiskLevel } from '@prisma/client';
 
 export type ModerationCategory =
   | 'PROFANITY'
@@ -7,13 +8,16 @@ export type ModerationCategory =
   | 'REGIONAL_DISCRIMINATION'
   | 'NONE';
 
-export type ModerationRiskLevel =
-  'SAFE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+const RISK_LEVELS: readonly string[] = Object.values(ReportRiskLevel);
+
+function isRiskLevel(value: unknown): value is ReportRiskLevel {
+  return typeof value === 'string' && RISK_LEVELS.includes(value);
+}
 export type ModerationAction = 'ALLOW' | 'FLAG_FOR_REVIEW' | 'AUTO_HIDE';
 
 export interface ModerationAssessment {
   isSafe: boolean;
-  riskLevel: ModerationRiskLevel;
+  riskLevel: ReportRiskLevel;
   action: ModerationAction;
   confidence: number;
   detectedCategories: ModerationCategory[];
@@ -44,7 +48,7 @@ TIÊU CHÍ PHÂN TÍCH:
 interface RulePattern {
   category: Exclude<ModerationCategory, 'NONE'>;
   tier: 'AUTO_HIDE' | 'FLAG_FOR_REVIEW';
-  riskLevel: ModerationRiskLevel;
+  riskLevel: ReportRiskLevel;
   confidence: number;
   reasonVi: string;
   regex: RegExp;
@@ -55,7 +59,7 @@ const SENTINEL_RULES: RulePattern[] = [
   {
     category: 'HISTORICAL_REVISIONISM',
     tier: 'AUTO_HIDE',
-    riskLevel: 'CRITICAL',
+    riskLevel: ReportRiskLevel.CRITICAL,
     confidence: 0.97,
     reasonVi:
       'Nội dung xuyên tạc chủ quyền biển đảo Việt Nam (Hoàng Sa, Trường Sa) hoặc phủ nhận lịch sử dân tộc.',
@@ -66,7 +70,7 @@ const SENTINEL_RULES: RulePattern[] = [
   {
     category: 'PROFANITY',
     tier: 'AUTO_HIDE',
-    riskLevel: 'HIGH',
+    riskLevel: ReportRiskLevel.HIGH,
     confidence: 0.94,
     reasonVi:
       'Sử dụng ngôn từ thô tục, chửi bới hoặc xúc phạm nghiêm trọng danh dự thành viên trong cộng đồng.',
@@ -77,7 +81,7 @@ const SENTINEL_RULES: RulePattern[] = [
   {
     category: 'REGIONAL_DISCRIMINATION',
     tier: 'AUTO_HIDE',
-    riskLevel: 'HIGH',
+    riskLevel: ReportRiskLevel.HIGH,
     confidence: 0.93,
     reasonVi:
       'Nội dung mang tính kỳ thị, phân biệt vùng miền gây chia rẽ khối đại đoàn kết dân tộc.',
@@ -88,7 +92,7 @@ const SENTINEL_RULES: RulePattern[] = [
   {
     category: 'SPAM',
     tier: 'AUTO_HIDE',
-    riskLevel: 'HIGH',
+    riskLevel: ReportRiskLevel.HIGH,
     confidence: 0.96,
     reasonVi:
       'Nội dung quảng cáo cờ bạc, cá độ trực tuyến, tín dụng đen hoặc phát tán liên kết lừa đảo.',
@@ -99,7 +103,7 @@ const SENTINEL_RULES: RulePattern[] = [
   {
     category: 'HISTORICAL_REVISIONISM',
     tier: 'FLAG_FOR_REVIEW',
-    riskLevel: 'MEDIUM',
+    riskLevel: ReportRiskLevel.MEDIUM,
     confidence: 0.72,
     reasonVi:
       'Nội dung có nhận định lịch sử nhạy cảm hoặc thiếu dẫn chứng sử liệu chuẩn xác, cần Ban biên tập đối chiếu.',
@@ -109,7 +113,7 @@ const SENTINEL_RULES: RulePattern[] = [
   {
     category: 'PROFANITY',
     tier: 'FLAG_FOR_REVIEW',
-    riskLevel: 'LOW',
+    riskLevel: ReportRiskLevel.LOW,
     confidence: 0.65,
     reasonVi:
       'Ngôn từ tranh luận có dấu hiệu căng thẳng hoặc công kích cá nhân nhẹ, cần kiểm duyệt viên theo dõi.',
@@ -129,7 +133,7 @@ export class ModerationAiService {
     if (!cleanText) {
       return {
         isSafe: true,
-        riskLevel: 'SAFE',
+        riskLevel: ReportRiskLevel.SAFE,
         action: 'ALLOW',
         confidence: 0.99,
         detectedCategories: ['NONE'],
@@ -187,7 +191,7 @@ export class ModerationAiService {
     if (matchedRules.length === 0) {
       return {
         isSafe: true,
-        riskLevel: 'SAFE',
+        riskLevel: ReportRiskLevel.SAFE,
         action: 'ALLOW',
         confidence: 0.98,
         detectedCategories: ['NONE'],
@@ -198,7 +202,7 @@ export class ModerationAiService {
 
     const hasAutoHide = matchedRules.some((m) => m.rule.tier === 'AUTO_HIDE');
     const primary =
-      matchedRules.find((m) => m.rule.riskLevel === 'CRITICAL') ??
+      matchedRules.find((m) => m.rule.riskLevel === ReportRiskLevel.CRITICAL) ??
       matchedRules.find((m) => m.rule.tier === 'AUTO_HIDE') ??
       matchedRules[0];
 
@@ -280,19 +284,19 @@ export class ModerationAiService {
       }
       const parsed: GeminiModerationResponse = JSON.parse(cleanedJson);
 
-      const riskLevel: ModerationRiskLevel =
-        parsed.riskLevel &&
-        ['SAFE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(parsed.riskLevel)
-          ? (parsed.riskLevel as ModerationRiskLevel)
-          : 'SAFE';
+      const riskLevel = isRiskLevel(parsed.riskLevel)
+        ? parsed.riskLevel
+        : ReportRiskLevel.SAFE;
 
       const action: ModerationAction =
         parsed.action &&
         ['ALLOW', 'FLAG_FOR_REVIEW', 'AUTO_HIDE'].includes(parsed.action)
           ? (parsed.action as ModerationAction)
-          : riskLevel === 'HIGH' || riskLevel === 'CRITICAL'
+          : riskLevel === ReportRiskLevel.HIGH ||
+              riskLevel === ReportRiskLevel.CRITICAL
             ? 'AUTO_HIDE'
-            : riskLevel === 'MEDIUM' || riskLevel === 'LOW'
+            : riskLevel === ReportRiskLevel.MEDIUM ||
+                riskLevel === ReportRiskLevel.LOW
               ? 'FLAG_FOR_REVIEW'
               : 'ALLOW';
 

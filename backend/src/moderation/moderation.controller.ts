@@ -11,7 +11,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { userRole } from '@prisma/client';
+import { ReportTargetType, userRole } from '@prisma/client';
 import type { Request } from 'express';
 import { RequireRoles } from '../common/access/access.decorator';
 import {
@@ -58,11 +58,13 @@ export class ModerationController {
   @Post('scan/:targetType/:targetId')
   @HttpCode(HttpStatus.OK)
   scanTarget(
-    @Param('targetType') targetType: 'POST' | 'COMMENT',
+    @Param('targetType') targetType: string,
     @Param('targetId') targetId: string,
   ) {
     const normalizedType =
-      targetType.toUpperCase() === 'COMMENT' ? 'COMMENT' : 'POST';
+      targetType.toUpperCase() === ReportTargetType.COMMENT
+        ? ReportTargetType.COMMENT
+        : ReportTargetType.POST;
     return this.moderationService.scanTarget(normalizedType, targetId, {
       forceExecution: true,
     });

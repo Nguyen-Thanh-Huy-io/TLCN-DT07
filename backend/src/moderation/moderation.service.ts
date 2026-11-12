@@ -1,9 +1,12 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import {
+  ArticleCommentStatus,
   NotificationType,
   ReportActionTaken,
   ReportRiskLevel,
+  ReportSource,
+  ReportTargetType,
 } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { BlogGateway } from '../blog/blog.gateway';
@@ -17,9 +20,10 @@ import {
   ModerationAiService,
   ModerationAssessment,
 } from './moderation-ai.service';
+import { ModerationResolveAction, ModerationTab } from './moderation.constant';
 
 export interface ModerationScanJobData {
-  targetType: 'POST' | 'COMMENT';
+  targetType: ReportTargetType;
   targetId: string;
 }
 
@@ -41,7 +45,7 @@ export class ModerationService {
    * Đẩy tác vụ kiểm duyệt ngầm vào BullMQ (kèm cơ chế fallback bất đồng bộ nếu Redis Queue bận)
    * để API tạo bài/bình luận phản hồi tức thì cho người dùng.
    */
-  enqueueScan(targetType: 'POST' | 'COMMENT', targetId: string): void {
+  enqueueScan(targetType: ReportTargetType, targetId: string): void {
     const runFallback = () => {
       setTimeout(() => {
         void this.scanTarget(targetType, targetId).catch(() => {
@@ -76,7 +80,7 @@ export class ModerationService {
    * Thực thi quét AI 3 cấp độ (Tier 1: ALLOW, Tier 2: FLAG_FOR_REVIEW, Tier 3: AUTO_HIDE)
    */
   async scanTarget(
-    targetType: 'POST' | 'COMMENT',
+    targetType: ReportTargetType,
     targetId: string,
     options?: { forceExecution?: boolean },
   ): Promise<{
@@ -92,7 +96,7 @@ export class ModerationService {
         return {
           assessment: {
             isSafe: true,
-            riskLevel: 'SAFE',
+            riskLevel: ReportRiskLevel.SAFE,
             action: 'ALLOW',
             confidence: 1,
             detectedCategories: ['NONE'],
@@ -100,13 +104,13 @@ export class ModerationService {
             engine: 'HYBRID_SENTINEL',
           },
           reportId: null,
-          actionTaken: 'NONE',
+          actionTaken: ReportActionTaken.NONE,
         };
       }
     }
     this.recentScans.set(dedupeKey, now);
 
-    if (targetType === 'POST') {
+    if (targetType === ReportTargetType.POST) {
       return this.scanBlogPost(targetId);
     }
     return this.scanComment(targetId);
@@ -191,10 +195,10 @@ export class ModerationService {
     // Tạo bản ghi ContentReport trong hệ thống
     const report = await this.prisma.contentReport.create({
       data: {
-        targetType: 'POST',
+        targetType: ReportTargetType.POST,
         targetId: post.id,
         reporterId: null,
-        source: 'AI_SCAN',
+        source: ReportSource.AI_SCAN,
         riskLevel: assessment.riskLevel as ReportRiskLevel,
         aiConfidence: assessment.confidence,
         actionTaken,
@@ -280,11 +284,11 @@ export class ModerationService {
       ? ReportActionTaken.AUTO_HIDDEN
       : ReportActionTaken.NONE;
 
-    if (isAutoHide && comment.status !== 'REMOVED') {
+    if (isAutoHide && comment.status !== ArticleCommentStatus.REMOVED) {
       await this.prisma.articleComment.update({
         where: { id: comment.id },
         data: {
-          status: 'REMOVED',
+          status: ArticleCommentStatus.REMOVED,
           deletedAt: new Date(),
         },
       });
@@ -320,10 +324,10 @@ export class ModerationService {
 
     const report = await this.prisma.contentReport.create({
       data: {
-        targetType: 'COMMENT',
+        targetType: ReportTargetType.COMMENT,
         targetId: comment.id,
         reporterId: null,
-        source: 'AI_SCAN',
+        source: ReportSource.AI_SCAN,
         riskLevel: assessment.riskLevel as ReportRiskLevel,
         aiConfidence: assessment.confidence,
         actionTaken,
@@ -368,14 +372,14 @@ export class ModerationService {
     const postIds = Array.from(
       new Set(
         allReports
-          .filter((r) => r.targetType === 'POST')
+          .filter((r) => r.targetType === ReportTargetType.POST)
           .map((r) => r.targetId),
       ),
     );
     const commentIds = Array.from(
       new Set(
         allReports
-          .filter((r) => r.targetType === 'COMMENT')
+          .filter((r) => r.targetType === ReportTargetType.COMMENT)
           .map((r) => r.targetId),
       ),
     );
@@ -422,15 +426,15 @@ export class ModerationService {
     const authorViolationCounts = new Map<string, number>();
     for (const r of allReports) {
       if (
-        r.actionTaken === 'AUTO_HIDDEN' ||
-        r.actionTaken === 'CONFIRMED_REMOVED'
+        r.actionTaken === ReportActionTaken.AUTO_HIDDEN ||
+        r.actionTaken === ReportActionTaken.CONFIRMED_REMOVED
       ) {
         const commentTarget = commentMap.get(r.targetId) as {
           authorId?: string | null;
           userId?: string | null;
         };
         const targetAuthorId: string | null | undefined =
-          r.targetType === 'POST'
+          r.targetType === ReportTargetType.POST
             ? postMap.get(r.targetId)?.authorId
             : commentTarget?.authorId || commentTarget?.userId;
         if (targetAuthorId) {
@@ -448,7 +452,7 @@ export class ModerationService {
           ? (report.aiReasons as Record<string, any>)
           : {};
 
-      if (report.targetType === 'POST') {
+      if (report.targetType === ReportTargetType.POST) {
         return this.buildPostReportItem(
           report,
           postMap.get(report.targetId),
@@ -468,17 +472,24 @@ export class ModerationService {
     const stats = {
       total: enriched.length,
       pending: enriched.filter(
-        (r) => r.actionTaken === 'NONE' || r.actionTaken === 'AUTO_HIDDEN',
+        (r) =>
+          r.actionTaken === ReportActionTaken.NONE ||
+          r.actionTaken === ReportActionTaken.AUTO_HIDDEN,
       ).length,
-      autoHidden: enriched.filter((r) => r.actionTaken === 'AUTO_HIDDEN')
-        .length,
+      autoHidden: enriched.filter(
+        (r) => r.actionTaken === ReportActionTaken.AUTO_HIDDEN,
+      ).length,
       userReports: enriched.filter(
-        (r) => r.source === 'USER_REPORT' && r.actionTaken === 'NONE',
+        (r) =>
+          r.source === ReportSource.USER_REPORT &&
+          r.actionTaken === ReportActionTaken.NONE,
       ).length,
       confirmedRemoved: enriched.filter(
-        (r) => r.actionTaken === 'CONFIRMED_REMOVED',
+        (r) => r.actionTaken === ReportActionTaken.CONFIRMED_REMOVED,
       ).length,
-      dismissed: enriched.filter((r) => r.actionTaken === 'DISMISSED').length,
+      dismissed: enriched.filter(
+        (r) => r.actionTaken === ReportActionTaken.DISMISSED,
+      ).length,
     };
 
     const filtered = enriched.filter((item) => {
@@ -525,7 +536,7 @@ export class ModerationService {
     }
 
     const nextActionTaken: ReportActionTaken =
-      dto.action === 'RESTORE'
+      dto.action === ModerationResolveAction.RESTORE
         ? ReportActionTaken.DISMISSED
         : ReportActionTaken.CONFIRMED_REMOVED;
 
@@ -554,7 +565,9 @@ export class ModerationService {
         targetType: report.targetType,
         targetId: report.targetId,
         id: { not: reportId },
-        actionTaken: { in: ['NONE', 'AUTO_HIDDEN'] },
+        actionTaken: {
+          in: [ReportActionTaken.NONE, ReportActionTaken.AUTO_HIDDEN],
+        },
       },
       data: {
         actionTaken: nextActionTaken,
@@ -566,7 +579,7 @@ export class ModerationService {
     let targetAuthorId: string | null = null;
     let targetTitle = '';
 
-    if (report.targetType === 'POST') {
+    if (report.targetType === ReportTargetType.POST) {
       const post = await this.prisma.blogPost.findUnique({
         where: { id: report.targetId },
       });
@@ -580,7 +593,7 @@ export class ModerationService {
         targetAuthorId = resolved.targetAuthorId;
         targetTitle = resolved.targetTitle;
       }
-    } else if (report.targetType === 'COMMENT') {
+    } else if (report.targetType === ReportTargetType.COMMENT) {
       const comment = await this.prisma.articleComment.findUnique({
         where: { id: report.targetId },
       });
@@ -594,7 +607,7 @@ export class ModerationService {
 
     // Nếu thao tác là BAN_USER: khóa tài khoản tác giả & thu hồi phiên đăng nhập
     const bannedUserId =
-      dto.action === 'BAN_USER' && targetAuthorId
+      dto.action === ModerationResolveAction.BAN_USER && targetAuthorId
         ? await this.handleBanUser(targetAuthorId)
         : null;
 
@@ -636,7 +649,7 @@ export class ModerationService {
 
     return {
       id: report.id,
-      targetType: 'POST' as const,
+      targetType: ReportTargetType.POST,
       targetId: report.targetId,
       source: report.source,
       riskLevel: report.riskLevel,
@@ -644,7 +657,7 @@ export class ModerationService {
       actionTaken: report.actionTaken,
       categories: Array.isArray(rawReasons.categories)
         ? rawReasons.categories
-        : report.source === 'USER_REPORT'
+        : report.source === ReportSource.USER_REPORT
           ? ['USER_FLAGGED']
           : ['NONE'],
       reasonText:
@@ -654,7 +667,7 @@ export class ModerationService {
       matchedExcerpt: rawReasons.matchedExcerpt || post?.excerpt || fullExcerpt,
       engine:
         rawReasons.engine ||
-        (report.source === 'AI_SCAN' ? 'HYBRID_SENTINEL' : 'USER'),
+        (report.source === ReportSource.AI_SCAN ? 'HYBRID_SENTINEL' : 'USER'),
       adminNote: rawReasons.adminNote || null,
       target: post
         ? {
@@ -700,7 +713,7 @@ export class ModerationService {
 
     return {
       id: report.id,
-      targetType: 'COMMENT' as const,
+      targetType: ReportTargetType.COMMENT,
       targetId: report.targetId,
       source: report.source,
       riskLevel: report.riskLevel,
@@ -708,7 +721,7 @@ export class ModerationService {
       actionTaken: report.actionTaken,
       categories: Array.isArray(rawReasons.categories)
         ? rawReasons.categories
-        : report.source === 'USER_REPORT'
+        : report.source === ReportSource.USER_REPORT
           ? ['USER_FLAGGED']
           : ['NONE'],
       reasonText:
@@ -718,7 +731,7 @@ export class ModerationService {
       matchedExcerpt: rawReasons.matchedExcerpt || comment?.content || '',
       engine:
         rawReasons.engine ||
-        (report.source === 'AI_SCAN' ? 'HYBRID_SENTINEL' : 'USER'),
+        (report.source === ReportSource.AI_SCAN ? 'HYBRID_SENTINEL' : 'USER'),
       adminNote: rawReasons.adminNote || null,
       target: comment
         ? {
@@ -754,16 +767,19 @@ export class ModerationService {
     tab?: string,
   ): boolean {
     switch (tab) {
-      case 'pending':
-        return actionTaken === 'NONE' || actionTaken === 'AUTO_HIDDEN';
-      case 'auto_hidden':
-        return actionTaken === 'AUTO_HIDDEN';
-      case 'user_report':
-        return source === 'USER_REPORT';
-      case 'removed':
-        return actionTaken === 'CONFIRMED_REMOVED';
-      case 'dismissed':
-        return actionTaken === 'DISMISSED';
+      case ModerationTab.PENDING:
+        return (
+          actionTaken === ReportActionTaken.NONE ||
+          actionTaken === ReportActionTaken.AUTO_HIDDEN
+        );
+      case ModerationTab.AUTO_HIDDEN:
+        return actionTaken === ReportActionTaken.AUTO_HIDDEN;
+      case ModerationTab.USER_REPORT:
+        return source === ReportSource.USER_REPORT;
+      case ModerationTab.REMOVED:
+        return actionTaken === ReportActionTaken.CONFIRMED_REMOVED;
+      case ModerationTab.DISMISSED:
+        return actionTaken === ReportActionTaken.DISMISSED;
       default:
         return true;
     }
@@ -862,10 +878,14 @@ export class ModerationService {
     const targetAuthorId = post.authorId ?? null;
     const targetTitle = post.title;
 
-    if (dto.action === 'RESTORE') {
+    if (dto.action === ModerationResolveAction.RESTORE) {
       await this.restorePost(post);
     } else {
-      await this.rejectPost(post, dto.note, initialActionTaken === 'NONE');
+      await this.rejectPost(
+        post,
+        dto.note,
+        initialActionTaken === ReportActionTaken.NONE,
+      );
     }
 
     return { targetAuthorId, targetTitle };
@@ -884,11 +904,11 @@ export class ModerationService {
     const targetAuthorId = comment.authorId ?? null;
     const targetTitle = comment.content.slice(0, 60);
 
-    if (dto.action === 'RESTORE') {
+    if (dto.action === ModerationResolveAction.RESTORE) {
       await this.prisma.articleComment.update({
         where: { id: comment.id },
         data: {
-          status: 'VISIBLE',
+          status: ArticleCommentStatus.VISIBLE,
           deletedAt: null,
         },
       });
@@ -896,11 +916,11 @@ export class ModerationService {
         where: { id: comment.articleId },
         data: { commentCount: { increment: 1 } },
       });
-    } else if (comment.status !== 'REMOVED') {
+    } else if (comment.status !== ArticleCommentStatus.REMOVED) {
       await this.prisma.articleComment.update({
         where: { id: comment.id },
         data: {
-          status: 'REMOVED',
+          status: ArticleCommentStatus.REMOVED,
           deletedAt: new Date(),
         },
       });

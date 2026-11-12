@@ -43,7 +43,7 @@ enum email_provider {
   sendgrid
   mailgun
   ses
-  stmp
+  smtp
 }
 
 enum email_status {
@@ -54,44 +54,6 @@ enum email_status {
   delivered
   opened
   clicked
-}
-
-// ================================
-// Subscription Related Enums
-// ================================
-
-enum subscriptionStatus {
-  ACTIVE
-  PAST_DUE
-  CANCELED
-  TRIALING
-  INCOMPLETE
-  INCOMPLETE_EXPIRED
-  UNPAID
-}
-
-enum billingInterval {
-  DAY
-  WEEK
-  MONTH
-  YEAR
-}
-
-enum paymentStatus {
-  PENDING
-  PROCESSING
-  SUCCEEDED
-  FAILED
-  CANCELED
-  REFUNDED
-}
-
-enum invoiceStatus {
-  DRAFT
-  OPEN
-  PAID
-  VOID
-  UNCOLLECTIBLE
 }
 
 // ================================
@@ -115,7 +77,6 @@ enum DifficultyLevel {
 enum LearningPathType {
   CHRONOLOGICAL
   THEMATIC
-  MYTHOLOGICAL
 }
 
 // Biểu tượng hiển thị cho chủ đề kiến thức trên landing page
@@ -177,6 +138,11 @@ enum ReportActionTaken {
 enum ReportSource {
   USER_REPORT
   AI_SCAN
+}
+
+enum ReportTargetType {
+  POST
+  COMMENT
 }
 
 enum PostCommentStatus {

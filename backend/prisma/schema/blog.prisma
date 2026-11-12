@@ -74,13 +74,13 @@ model PostBookmark {
 // ================================
 // Content Report (Nhật ký kiểm duyệt — User báo cáo & AI quét)
 // ================================
-// targetType: "POST" | "COMMENT"
+// targetType: POST | COMMENT
 // source: USER_REPORT (người dùng bấm báo cáo) | AI_SCAN (Gemini Flash quét tự động)
 // actionTaken: NONE → AUTO_HIDDEN → CONFIRMED_REMOVED | DISMISSED
 
 model ContentReport {
   id           String            @id @default(uuid())
-  targetType   String            @map("target_type") @db.VarChar(20)
+  targetType   ReportTargetType  @map("target_type")
   targetId     String            @map("target_id")
   reporterId   String?           @map("reporter_id") // NULL khi do AI quét
   source       ReportSource      @default(USER_REPORT)

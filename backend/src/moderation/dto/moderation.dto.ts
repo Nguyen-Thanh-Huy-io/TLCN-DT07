@@ -1,44 +1,35 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  ReportRiskLevel,
+  ReportSource,
+  ReportTargetType,
+} from '@prisma/client';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { ModerationResolveAction, ModerationTab } from '../moderation.constant';
 
 export class ListModerationReportsQueryDto {
   @ApiPropertyOptional({
-    enum: [
-      'pending',
-      'auto_hidden',
-      'user_report',
-      'removed',
-      'dismissed',
-      'all',
-    ],
+    enum: ModerationTab,
     description: 'Bộ lọc tab trạng thái kiểm duyệt',
   })
   @IsOptional()
-  @IsIn([
-    'pending',
-    'auto_hidden',
-    'user_report',
-    'removed',
-    'dismissed',
-    'all',
-  ])
-  tab?:
-    'pending' | 'auto_hidden' | 'user_report' | 'removed' | 'dismissed' | 'all';
+  @IsEnum(ModerationTab)
+  tab?: ModerationTab;
 
-  @ApiPropertyOptional({ enum: ['AI_SCAN', 'USER_REPORT'] })
+  @ApiPropertyOptional({ enum: ReportSource })
   @IsOptional()
-  @IsIn(['AI_SCAN', 'USER_REPORT'])
-  source?: 'AI_SCAN' | 'USER_REPORT';
+  @IsEnum(ReportSource)
+  source?: ReportSource;
 
-  @ApiPropertyOptional({ enum: ['SAFE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] })
+  @ApiPropertyOptional({ enum: ReportRiskLevel })
   @IsOptional()
-  @IsIn(['SAFE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'])
-  riskLevel?: 'SAFE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  @IsEnum(ReportRiskLevel)
+  riskLevel?: ReportRiskLevel;
 
-  @ApiPropertyOptional({ enum: ['POST', 'COMMENT'] })
+  @ApiPropertyOptional({ enum: ReportTargetType })
   @IsOptional()
-  @IsIn(['POST', 'COMMENT'])
-  targetType?: 'POST' | 'COMMENT';
+  @IsEnum(ReportTargetType)
+  targetType?: ReportTargetType;
 
   @ApiPropertyOptional({
     description: 'Từ khóa tìm theo tiêu đề, nội dung hoặc tác giả',
@@ -50,12 +41,12 @@ export class ListModerationReportsQueryDto {
 
 export class ResolveModerationReportDto {
   @ApiProperty({
-    enum: ['CONFIRM_REMOVE', 'RESTORE', 'BAN_USER'],
+    enum: ModerationResolveAction,
     description:
       'CONFIRM_REMOVE: Xác nhận xóa vi phạm | RESTORE: Khôi phục bài (AI bắt nhầm / Bác bỏ báo cáo) | BAN_USER: Khóa tài khoản tái phạm & xóa bài',
   })
-  @IsIn(['CONFIRM_REMOVE', 'RESTORE', 'BAN_USER'])
-  action!: 'CONFIRM_REMOVE' | 'RESTORE' | 'BAN_USER';
+  @IsEnum(ModerationResolveAction)
+  action!: ModerationResolveAction;
 
   @ApiPropertyOptional({ description: 'Ghi chú của Admin/Moderator khi xử lý' })
   @IsOptional()

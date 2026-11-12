@@ -18,12 +18,7 @@ import { RequireRoles } from '../common/access/access.decorator';
 import { ROLE_GROUPS } from '../common/access/access.constant';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { OptionalAuthGuard } from '../common/guards/optional-auth.guard';
-import {
-  CreateCommentDto,
-  DeleteCommentDto,
-  LikeCommentDto,
-  UpdateCommentDto,
-} from './dto/comment.dto';
+import { CreateCommentDto, UpdateCommentDto } from './dto/comment.dto';
 import {
   CreateBlogPostDto,
   ListBlogPostsQueryDto,
@@ -240,38 +235,57 @@ export class BlogController {
   }
 
   @ApiOperation({ summary: 'Tạo bình luận mới' })
+  @ApiBearerAuth('JWT-auth')
   @Post(':id/comments')
-  createComment(@Param('id') postId: string, @Body() dto: CreateCommentDto) {
-    return this.blogService.createComment(postId, dto);
+  @UseGuards(AuthGuard)
+  createComment(
+    @Param('id') postId: string,
+    @Body() dto: CreateCommentDto,
+    @Req() req: AuthedRequest,
+  ) {
+    return this.blogService.createComment(postId, dto, req.user.userId);
   }
 
   @ApiOperation({ summary: 'Cập nhật bình luận' })
+  @ApiBearerAuth('JWT-auth')
   @Patch(':id/comments/:commentId')
+  @UseGuards(AuthGuard)
   updateComment(
     @Param('id') postId: string,
     @Param('commentId') commentId: string,
     @Body() dto: UpdateCommentDto,
+    @Req() req: AuthedRequest,
   ) {
-    return this.blogService.updateComment(postId, commentId, dto.authorId, dto);
+    return this.blogService.updateComment(
+      postId,
+      commentId,
+      req.user.userId,
+      dto,
+    );
   }
 
   @ApiOperation({ summary: 'Xóa bình luận (soft delete)' })
+  @ApiBearerAuth('JWT-auth')
   @Delete(':id/comments/:commentId')
+  @UseGuards(AuthGuard)
   deleteComment(
     @Param('id') postId: string,
     @Param('commentId') commentId: string,
-    @Body() dto: DeleteCommentDto,
+    @Req() req: AuthedRequest,
   ) {
-    return this.blogService.deleteComment(postId, commentId, dto.authorId);
+    return this.blogService.deleteComment(postId, commentId, req.user.userId);
   }
 
   @ApiOperation({ summary: 'Like bình luận' })
+  @ApiBearerAuth('JWT-auth')
   @Post(':id/comments/:commentId/like')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
   likeComment(
     @Param('id') postId: string,
     @Param('commentId') commentId: string,
-    @Body() dto: LikeCommentDto,
+    @Req() req: AuthedRequest,
   ) {
-    return this.blogService.likeComment(postId, commentId, dto.userId);
+    return this.blogService.likeComment(postId, commentId, req.user.userId);
   }
 }

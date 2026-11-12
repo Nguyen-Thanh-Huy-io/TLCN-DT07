@@ -1,8 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ContentStatus, PostType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -11,24 +13,30 @@ import {
   MaxLength,
 } from 'class-validator';
 
-const BLOG_POST_STATUSES = ['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'REJECTED', 'ARCHIVED'] as const;
-type BlogPostStatus = (typeof BLOG_POST_STATUSES)[number];
-
-const POST_TYPES = ['QUICK_POST', 'LONG_FORM'] as const;
-export type PostTypeValue = (typeof POST_TYPES)[number];
+export type BlogPostStatus = ContentStatus;
+export type PostTypeValue = PostType;
 
 export class ListBlogPostsQueryDto {
-  @ApiPropertyOptional({ enum: POST_TYPES, description: 'Lọc theo loại bài (QUICK_POST | LONG_FORM)' })
+  @ApiPropertyOptional({
+    enum: PostType,
+    description: 'Lọc theo loại bài (QUICK_POST | LONG_FORM)',
+  })
   @IsOptional()
-  @IsEnum(POST_TYPES as any)
+  @IsEnum(PostType)
   type?: PostTypeValue;
 
-  @ApiPropertyOptional({ enum: ['latest', 'trending'], default: 'latest', description: 'Sắp xếp mới nhất hoặc sôi nổi (trending)' })
+  @ApiPropertyOptional({
+    enum: ['latest', 'trending'],
+    default: 'latest',
+    description: 'Sắp xếp mới nhất hoặc sôi nổi (trending)',
+  })
   @IsOptional()
   @IsString()
   sort?: 'latest' | 'trending';
 
-  @ApiPropertyOptional({ description: 'ID bài viết cuối của trang trước (dùng cho cuộn vô hạn)' })
+  @ApiPropertyOptional({
+    description: 'ID bài viết cuối của trang trước (dùng cho cuộn vô hạn)',
+  })
   @IsOptional()
   @IsString()
   cursor?: string;
@@ -43,16 +51,18 @@ export class ListBlogPostsQueryDto {
   @IsString()
   author?: string;
 
-  @ApiPropertyOptional({ description: 'Chỉ lấy bài từ những tài khoản đang theo dõi (true/false)' })
+  @ApiPropertyOptional({
+    description: 'Chỉ lấy bài từ những tài khoản đang theo dõi (true/false)',
+  })
   @IsOptional()
   @IsString()
   followingOnly?: string;
 }
 
 export class CreateBlogPostDto {
-  @ApiPropertyOptional({ enum: POST_TYPES, default: 'QUICK_POST' })
+  @ApiPropertyOptional({ enum: PostType, default: PostType.QUICK_POST })
   @IsOptional()
-  @IsEnum(POST_TYPES as any)
+  @IsEnum(PostType)
   postType?: PostTypeValue;
 
   @ApiProperty({ example: 'Cổng La Mã và không gian quyền lực' })
@@ -79,14 +89,17 @@ export class CreateBlogPostDto {
   @MaxLength(500)
   coverImageUrl?: string;
 
-  @ApiPropertyOptional({ type: 'array', description: 'Khối nội dung blog dạng JSON / block content' })
+  @ApiPropertyOptional({
+    type: 'array',
+    description: 'Khối nội dung blog dạng JSON / block content',
+  })
   @IsOptional()
   @IsArray()
-  contentBlocks?: Record<string, any>[] | Record<string, any> | null;
+  contentBlocks?: Record<string, unknown>[] | Record<string, unknown> | null;
 
-  @ApiPropertyOptional({ enum: BLOG_POST_STATUSES, default: 'DRAFT' })
+  @ApiPropertyOptional({ enum: ContentStatus, default: ContentStatus.DRAFT })
   @IsOptional()
-  @IsEnum(BLOG_POST_STATUSES as any)
+  @IsEnum(ContentStatus)
   status?: BlogPostStatus;
 
   @ApiPropertyOptional({ default: false })
@@ -96,8 +109,7 @@ export class CreateBlogPostDto {
 
   @ApiPropertyOptional({ nullable: true })
   @IsOptional()
-  @Type(() => Date)
-  @IsString()
+  @IsDateString()
   publishedAt?: string | Date | null;
 
   @ApiPropertyOptional({ description: 'ID người tạo bài' })
@@ -107,8 +119,8 @@ export class CreateBlogPostDto {
 }
 
 export class ReviewBlogPostDto {
-  @ApiProperty({ enum: BLOG_POST_STATUSES })
-  @IsEnum(BLOG_POST_STATUSES as any)
+  @ApiProperty({ enum: ContentStatus })
+  @IsEnum(ContentStatus)
   status: BlogPostStatus;
 
   @ApiPropertyOptional({ example: 'Nội dung chưa đủ bằng chứng' })
@@ -118,9 +130,9 @@ export class ReviewBlogPostDto {
 }
 
 export class UpdateBlogPostDto {
-  @ApiPropertyOptional({ enum: POST_TYPES })
+  @ApiPropertyOptional({ enum: PostType })
   @IsOptional()
-  @IsEnum(POST_TYPES as any)
+  @IsEnum(PostType)
   postType?: PostTypeValue;
 
   @ApiPropertyOptional({ example: 'Tiêu đề mới' })
@@ -150,11 +162,11 @@ export class UpdateBlogPostDto {
   @ApiPropertyOptional({ type: 'array' })
   @IsOptional()
   @IsArray()
-  contentBlocks?: Record<string, any>[] | Record<string, any> | null;
+  contentBlocks?: Record<string, unknown>[] | Record<string, unknown> | null;
 
-  @ApiPropertyOptional({ enum: BLOG_POST_STATUSES })
+  @ApiPropertyOptional({ enum: ContentStatus })
   @IsOptional()
-  @IsEnum(BLOG_POST_STATUSES as any)
+  @IsEnum(ContentStatus)
   status?: BlogPostStatus;
 
   @ApiPropertyOptional({ default: false })
@@ -164,7 +176,6 @@ export class UpdateBlogPostDto {
 
   @ApiPropertyOptional({ nullable: true })
   @IsOptional()
-  @Type(() => Date)
-  @IsString()
+  @IsDateString()
   publishedAt?: string | Date | null;
 }

@@ -1,5 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
+import { DifficultyLevel } from '@prisma/client';
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+import { DEFAULT_QUESTION_POINTS } from '../quiz.constant';
 import { QuizQuestionType } from '../types/quiz-question.types';
 
 export class CreateQuestionDto {
@@ -18,29 +29,45 @@ export class CreateQuestionDto {
   @IsOptional()
   explanation?: string;
 
-  @ApiPropertyOptional({ description: 'Mức độ khó', default: 'MEDIUM' })
-  @IsString()
+  @ApiPropertyOptional({
+    enum: DifficultyLevel,
+    description: 'Mức độ khó',
+    default: DifficultyLevel.MEDIUM,
+  })
+  @IsEnum(DifficultyLevel)
   @IsOptional()
-  difficulty?: string;
+  difficulty?: DifficultyLevel;
 
-  @ApiPropertyOptional({ description: 'Điểm số', default: 10 })
+  @ApiPropertyOptional({
+    description: 'Điểm số',
+    default: DEFAULT_QUESTION_POINTS,
+  })
   @IsInt()
   @Min(1)
   @Max(100)
   @IsOptional()
   points?: number;
 
-  @ApiProperty({ description: 'Dữ liệu chuyên biệt theo từng loại (options, items, pairs, etc.)' })
+  @ApiProperty({
+    description:
+      'Dữ liệu chuyên biệt theo từng loại (options, items, pairs, etc.)',
+  })
   @IsNotEmpty()
-  data: any;
+  data: Record<string, unknown>;
 
-  @ApiPropertyOptional({ description: 'Danh sách UUID các bài học liên kết', type: [String] })
+  @ApiPropertyOptional({
+    description: 'Danh sách UUID các bài học liên kết',
+    type: [String],
+  })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
   lessonIds?: string[];
 
-  @ApiPropertyOptional({ description: 'Danh sách UUID các chuyên đề liên kết', type: [String] })
+  @ApiPropertyOptional({
+    description: 'Danh sách UUID các chuyên đề liên kết',
+    type: [String],
+  })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()

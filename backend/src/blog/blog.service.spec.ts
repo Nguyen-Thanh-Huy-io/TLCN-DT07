@@ -8,7 +8,9 @@ import { NotificationService } from '../notification/notification.service';
 
 describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)', () => {
   let service: BlogService;
-  let prisma: { blogPost: { findUnique: jest.Mock; update: jest.Mock; delete: jest.Mock } };
+  let prisma: {
+    blogPost: { findUnique: jest.Mock; update: jest.Mock; delete: jest.Mock };
+  };
 
   const existingPost = {
     id: 'post-1',
@@ -23,16 +25,49 @@ describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)',
     prisma = {
       blogPost: {
         findUnique: jest.fn().mockResolvedValue(existingPost),
-        update: jest.fn().mockResolvedValue({ ...existingPost, author: { id: 'author-1', username: 'author' } }),
+        update: jest.fn().mockResolvedValue({
+          ...existingPost,
+          author: { id: 'author-1', username: 'author' },
+        }),
         delete: jest.fn().mockResolvedValue(existingPost),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
-    };
+      authUser: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ id: 'author-1', username: 'author' }),
+      },
+      articleComment: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'comment-1',
+          articleId: 'post-1',
+          authorId: 'author-1',
+          content: 'Bình luận cũ',
+          author: { id: 'author-1', username: 'author' },
+          replies: [],
+        }),
+        update: jest.fn().mockResolvedValue({
+          id: 'comment-1',
+          articleId: 'post-1',
+          authorId: 'author-1',
+          content: 'Bình luận mới',
+          author: { id: 'author-1', username: 'author' },
+          replies: [],
+        }),
+      },
+    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BlogService,
         { provide: PrismaService, useValue: prisma },
-        { provide: BlogGateway, useValue: { emitCommentAdded: jest.fn(), emitCommentUpdated: jest.fn() } },
+        {
+          provide: BlogGateway,
+          useValue: {
+            emitCommentAdded: jest.fn(),
+            emitCommentUpdated: jest.fn(),
+          },
+        },
         { provide: NotificationService, useValue: { notify: jest.fn() } },
         { provide: RedisService, useValue: { get: jest.fn(), set: jest.fn() } },
       ],
@@ -49,14 +84,24 @@ describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)',
 
   it('chặn người không phải tác giả và không phải STAFF cập nhật bài viết', async () => {
     await expect(
-      service.updatePost('post-1', { title: 'Sửa lại' }, 'another-user', 'USER'),
+      service.updatePost(
+        'post-1',
+        { title: 'Sửa lại' },
+        'another-user',
+        'USER',
+      ),
     ).rejects.toThrow(ForbiddenException);
     expect(prisma.blogPost.update).not.toHaveBeenCalled();
   });
 
   it('cho phép MODERATOR (STAFF) cập nhật bài viết của người khác', async () => {
     await expect(
-      service.updatePost('post-1', { title: 'Biên tập lại' }, 'moderator-1', 'MODERATOR'),
+      service.updatePost(
+        'post-1',
+        { title: 'Biên tập lại' },
+        'moderator-1',
+        'MODERATOR',
+      ),
     ).resolves.toBeDefined();
   });
 
@@ -68,7 +113,9 @@ describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)',
   });
 
   it('cho phép chính tác giả xóa bài viết của mình', async () => {
-    await expect(service.deletePost('post-1', 'author-1', 'USER')).resolves.toEqual({
+    await expect(
+      service.deletePost('post-1', 'author-1', 'USER'),
+    ).resolves.toEqual({
       success: true,
       id: 'post-1',
     });
@@ -79,5 +126,17 @@ describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)',
     await expect(
       service.deletePost('post-khong-ton-tai', 'author-1', 'USER'),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  it('ném ForbiddenException (403) khi người khác cố sửa hoặc xóa bình luận không phải của mình', async () => {
+    await expect(
+      service.updateComment('post-1', 'comment-1', 'intruder-user', {
+        content: 'Sửa trái phép',
+      }),
+    ).rejects.toThrow(ForbiddenException);
+
+    await expect(
+      service.deleteComment('post-1', 'comment-1', 'intruder-user'),
+    ).rejects.toThrow(ForbiddenException);
   });
 });

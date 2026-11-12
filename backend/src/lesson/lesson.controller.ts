@@ -6,7 +6,8 @@ import {
   Patch,
   Param,
   Delete,
-  Query,  HttpStatus,
+  Query,
+  HttpStatus,
   HttpCode,
   Req,
 } from '@nestjs/common';
@@ -25,6 +26,7 @@ import { ReviewLessonDto } from './dto/review-lesson.dto';
 import { LessonResponseDto } from './dto/lesson-response.dto';
 import { ContentWrite, RequireRoles } from '../common/access/access.decorator';
 import { ROLE_GROUPS } from '../common/access/access.constant';
+import type { AuthenticatedRequest } from '../common/access/roles.guard';
 
 @ApiTags('Lessons - Bài học Lịch sử')
 @Controller('lessons')
@@ -52,7 +54,10 @@ export class LessonController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Chưa xác thực token',
   })
-  async create(@Body() createLessonDto: CreateLessonDto, @Req() req: any) {
+  async create(
+    @Body() createLessonDto: CreateLessonDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     const userId = req.user?.userId || req.user?.id;
     return this.lessonService.create(createLessonDto, userId);
   }
@@ -166,7 +171,7 @@ export class LessonController {
   async review(
     @Param('id') id: string,
     @Body() reviewLessonDto: ReviewLessonDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     const adminUserId = req.user?.userId || req.user?.id;
     return this.lessonService.review(id, reviewLessonDto, adminUserId);

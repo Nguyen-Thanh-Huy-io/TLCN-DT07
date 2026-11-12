@@ -1,12 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
 } from 'class-validator';
-import { LessonStatus } from '@prisma/client';
+import { DifficultyLevel, LessonStatus } from '@prisma/client';
 
 export class CreateLessonDto {
   @ApiProperty({
@@ -21,7 +25,8 @@ export class CreateLessonDto {
 
   @ApiPropertyOptional({
     example: 'chien-thang-bach-dang-nam-938',
-    description: 'URL Slug định danh duy nhất (tự động tạo từ tiêu đề nếu để trống)',
+    description:
+      'URL Slug định danh duy nhất (tự động tạo từ tiêu đề nếu để trống)',
     maxLength: 255,
   })
   @IsString()
@@ -30,7 +35,8 @@ export class CreateLessonDto {
   slug?: string;
 
   @ApiPropertyOptional({
-    example: 'Tổng quan về chiến thắng Bạch Đằng năm 938 chấm dứt hơn 1000 năm Bắc thuộc.',
+    example:
+      'Tổng quan về chiến thắng Bạch Đằng năm 938 chấm dứt hơn 1000 năm Bắc thuộc.',
     description: 'Mô tả tóm tắt nội dung bài học',
   })
   @IsString()
@@ -46,18 +52,23 @@ export class CreateLessonDto {
   summary?: string;
 
   @ApiPropertyOptional({
-    example: [{ type: 'paragraph', text: 'Năm 938, Ngô Quyền đã dùng trận địa cọc gỗ...' }],
+    example: [
+      {
+        type: 'paragraph',
+        text: 'Năm 938, Ngô Quyền đã dùng trận địa cọc gỗ...',
+      },
+    ],
     description: 'Cấu trúc nội dung bài học dạng JSON / JSONB',
   })
   @IsOptional()
-  content?: any;
+  content?: unknown;
 
   @ApiPropertyOptional({
     example: '<p>Nội dung HTML cũ</p>',
     description: 'Bí danh (alias) tương thích ngược cho content',
   })
   @IsOptional()
-  contentRichText?: any;
+  contentRichText?: unknown;
 
   @ApiPropertyOptional({
     enum: LessonStatus,
@@ -70,18 +81,27 @@ export class CreateLessonDto {
   status?: LessonStatus = LessonStatus.DRAFT;
 
   @ApiPropertyOptional({ description: 'Ảnh bìa bài học (tùy chọn)' })
+  @IsString()
   @IsOptional()
   thumbnailUrl?: string;
 
-  @ApiPropertyOptional({ description: 'Độ khó bài học (tùy chọn)' })
+  @ApiPropertyOptional({
+    enum: DifficultyLevel,
+    description: 'Độ khó bài học (tùy chọn)',
+  })
+  @IsEnum(DifficultyLevel)
   @IsOptional()
-  difficulty?: any;
+  difficulty?: DifficultyLevel;
 
   @ApiPropertyOptional({ description: 'Thứ tự hiển thị (tùy chọn)' })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   @IsOptional()
-  displayOrder?: any;
+  displayOrder?: number;
 
   @ApiPropertyOptional({ description: 'Nguồn tham khảo (tùy chọn)' })
+  @IsString()
   @IsOptional()
   sourceReferenceNote?: string;
 
@@ -91,6 +111,7 @@ export class CreateLessonDto {
   topicId?: string;
 
   @ApiPropertyOptional({ description: 'Thẻ bài học (tùy chọn)' })
+  @IsArray()
   @IsOptional()
-  tags?: any;
+  tags?: Array<string | { id?: string; name?: string }>;
 }

@@ -2,8 +2,6 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
-  forwardRef,
-  Inject,
   Injectable,
   NotFoundException,
   Optional,
@@ -35,7 +33,6 @@ export class BlogService {
     private readonly notificationService: NotificationService,
     private readonly redis: RedisService,
     @Optional()
-    @Inject(forwardRef(() => ModerationService))
     private readonly moderationService?: ModerationService,
   ) {}
 
@@ -410,9 +407,18 @@ export class BlogService {
     return comments.map((comment) => this.mapComment(comment));
   }
 
-  async createComment(postId: string, dto: CreateCommentDto) {
+  async createComment(
+    postId: string,
+    dto: CreateCommentDto,
+    requesterId?: string,
+  ) {
+    const authorId = requesterId ?? dto.authorId;
+    if (!authorId) {
+      throw new BadRequestException('Thiếu thông tin người bình luận');
+    }
+
     await this.ensurePostExists(postId);
-    await this.ensureUserExists(dto.authorId);
+    await this.ensureUserExists(authorId);
 
     if (dto.parentId) {
       const parent = await this.prisma.articleComment.findFirst({
@@ -431,7 +437,7 @@ export class BlogService {
     const comment = await this.prisma.articleComment.create({
       data: {
         articleId: postId,
-        authorId: dto.authorId,
+        authorId,
         parentId: dto.parentId ?? null,
         content: dto.content.trim(),
         status: 'VISIBLE',
@@ -463,7 +469,7 @@ export class BlogService {
       });
 
       // 1. Thông báo cho tác giả bài viết nếu người bình luận không phải là tác giả
-      if (post && post.authorId && post.authorId !== dto.authorId) {
+      if (post && post.authorId && post.authorId !== authorId) {
         await this.notificationService.notify(
           post.authorId,
           NotificationType.BLOG_COMMENT,
@@ -483,7 +489,7 @@ export class BlogService {
         if (
           parentComment &&
           parentComment.authorId &&
-          parentComment.authorId !== dto.authorId &&
+          parentComment.authorId !== authorId &&
           parentComment.authorId !== post?.authorId
         ) {
           await this.notificationService.notify(
@@ -531,7 +537,7 @@ export class BlogService {
     }
 
     if (comment.authorId !== authorId) {
-      throw new BadRequestException('Bạn không có quyền sửa bình luận này');
+      throw new ForbiddenException('Bạn không có quyền sửa bình luận này');
     }
 
     const updated = await this.prisma.articleComment.update({
@@ -577,7 +583,7 @@ export class BlogService {
     }
 
     if (comment.authorId !== authorId) {
-      throw new BadRequestException('Bạn không có quyền xóa bình luận này');
+      throw new ForbiddenException('Bạn không có quyền xóa bình luận này');
     }
 
     const deleted = await this.prisma.articleComment.update({

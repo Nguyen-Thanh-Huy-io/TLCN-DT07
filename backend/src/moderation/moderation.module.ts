@@ -1,6 +1,6 @@
 import { BullModule } from '@nestjs/bullmq';
-import { forwardRef, Module } from '@nestjs/common';
-import { BlogModule } from '../blog/blog.module';
+import { Module } from '@nestjs/common';
+import { BlogGatewayModule } from '../blog/blog-gateway.module';
 import { RolesGuard } from '../common/access/roles.guard';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { PrismaService } from '../common/services/prisma.service';
@@ -14,7 +14,7 @@ import { ModerationService } from './moderation.service';
 @Module({
   imports: [
     NotificationModule,
-    forwardRef(() => BlogModule),
+    BlogGatewayModule,
     BullModule.registerQueue({
       name: 'moderation-queue',
     }),

@@ -1,19 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  Max,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { LessonStatus } from '@prisma/client';
+import { DifficultyLevel, LessonStatus } from '@prisma/client';
 
 export class QueryLessonDto {
   @ApiPropertyOptional({
     enum: LessonStatus,
-    description: 'Lọc theo trạng thái bài học (DRAFT, REVIEW, PUBLISHED, ARCHIVED)',
+    description:
+      'Lọc theo trạng thái bài học (DRAFT, REVIEW, PUBLISHED, ARCHIVED)',
   })
   @IsEnum(LessonStatus)
   @IsOptional()
@@ -65,9 +59,10 @@ export class QueryLessonDto {
   tagId?: string;
 
   @ApiPropertyOptional({
+    enum: DifficultyLevel,
     description: 'Độ khó bài học (tùy chọn / tương thích ngược)',
   })
-  @IsString()
+  @IsEnum(DifficultyLevel)
   @IsOptional()
-  difficulty?: string;
+  difficulty?: DifficultyLevel;
 }

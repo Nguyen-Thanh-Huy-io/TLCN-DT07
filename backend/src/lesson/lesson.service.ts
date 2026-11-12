@@ -12,9 +12,14 @@ import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 import { QueryLessonDto } from './dto/query-lesson.dto';
 import { ReviewLessonDto } from './dto/review-lesson.dto';
-import { LessonStatus, Prisma } from '@prisma/client';
+import { LessonResponseDto } from './dto/lesson-response.dto';
+import { Lesson, LessonStatus, Prisma, Tag } from '@prisma/client';
 import { SlugHelper } from './helpers/slug.helper';
 import { LessonContentStrategyContext } from './strategies/content-normalizer.strategy';
+
+type LessonWithTags = Lesson & {
+  lessonTags?: Array<{ tag?: Tag | null }>;
+};
 
 export interface IPaginatedResult<T> {
   items: T[];
@@ -64,7 +69,7 @@ export class LessonService {
   /**
    * Tính toán thời gian đọc ước tính dựa trên số từ (200 từ/phút)
    */
-  private calculateReadTime(content: any): number {
+  private calculateReadTime(content: unknown): number {
     const plainText = LessonContentStrategyContext.extractPlainText(content);
     if (!plainText) return 1;
     const wordCount = plainText.split(/\s+/).length;
@@ -74,11 +79,13 @@ export class LessonService {
   /**
    * Chuẩn hóa Lesson entity trả về, kèm danh sách tags phân loại
    */
-  private formatLessonResponse(lesson: any) {
+  private formatLessonResponse(lesson: LessonWithTags): LessonResponseDto {
     if (!lesson) return lesson;
     const content = lesson.content ?? [];
     const tags = Array.isArray(lesson.lessonTags)
-      ? lesson.lessonTags.map((lt: any) => lt.tag).filter(Boolean)
+      ? lesson.lessonTags
+          .map((lt) => lt.tag)
+          .filter((tag): tag is Tag => Boolean(tag))
       : [];
     return {
       ...lesson,
@@ -95,8 +102,8 @@ export class LessonService {
    */
   async create(
     createLessonDto: CreateLessonDto,
-    _creatorUserId?: string,
-  ): Promise<any> {
+    creatorUserId?: string,
+  ): Promise<LessonResponseDto> {
     this.logger.log(
       `Creating lesson: ${createLessonDto.title}`,
       'LessonService',
@@ -130,6 +137,7 @@ export class LessonService {
             ? Number(createLessonDto.displayOrder)
             : 0,
         thumbnailUrl: createLessonDto.thumbnailUrl || null,
+        createdBy: creatorUserId || null,
       },
       include: {
         lessonTags: {
@@ -147,7 +155,9 @@ export class LessonService {
   /**
    * Lấy danh sách bài học (lọc theo status, tagId, search & phân trang)
    */
-  async findAll(query: QueryLessonDto): Promise<IPaginatedResult<any>> {
+  async findAll(
+    query: QueryLessonDto,
+  ): Promise<IPaginatedResult<LessonResponseDto>> {
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.max(1, Math.min(100, Number(query.limit) || 10));
     const skip = (page - 1) * limit;
@@ -180,13 +190,15 @@ export class LessonService {
 
     const cacheKey = `${this.CACHE_PREFIX}:${JSON.stringify({ where, page, limit })}`;
     try {
-      const cached = await this.redis.get<string | IPaginatedResult<any>>(
-        cacheKey,
-      );
+      const cached = await this.redis.get<
+        string | IPaginatedResult<LessonResponseDto>
+      >(cacheKey);
       if (cached) {
-        return typeof cached === 'string' ? JSON.parse(cached) : cached;
+        return typeof cached === 'string'
+          ? (JSON.parse(cached) as IPaginatedResult<LessonResponseDto>)
+          : cached;
       }
-    } catch (error) {
+    } catch {
       this.logger.warn(
         `Redis get/parse failed for ${cacheKey}`,
         'LessonService',
@@ -210,7 +222,7 @@ export class LessonService {
       this.prisma.lesson.count({ where }),
     ]);
 
-    const result: IPaginatedResult<any> = {
+    const result: IPaginatedResult<LessonResponseDto> = {
       items: items.map((l) => this.formatLessonResponse(l)),
       total,
       page,
@@ -220,7 +232,7 @@ export class LessonService {
 
     try {
       await this.redis.set(cacheKey, result, this.CACHE_TTL);
-    } catch (error) {
+    } catch {
       this.logger.warn(`Redis set failed for ${cacheKey}`, 'LessonService');
     }
 
@@ -230,7 +242,7 @@ export class LessonService {
   /**
    * Lấy chi tiết bài học theo ID
    */
-  async findOne(id: string): Promise<any> {
+  async findOne(id: string): Promise<LessonResponseDto> {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id },
       include: {
@@ -252,7 +264,7 @@ export class LessonService {
   /**
    * Lấy chi tiết bài học theo Slug (dành cho SEO URL)
    */
-  async findBySlug(slug: string): Promise<any> {
+  async findBySlug(slug: string): Promise<LessonResponseDto> {
     const lesson = await this.prisma.lesson.findUnique({
       where: { slug },
       include: {
@@ -276,7 +288,10 @@ export class LessonService {
   /**
    * Cập nhật bài học
    */
-  async update(id: string, updateLessonDto: UpdateLessonDto): Promise<any> {
+  async update(
+    id: string,
+    updateLessonDto: UpdateLessonDto,
+  ): Promise<LessonResponseDto> {
     await this.findOne(id);
 
     const data: Prisma.LessonUpdateInput = {};
@@ -349,7 +364,7 @@ export class LessonService {
     id: string,
     reviewDto: ReviewLessonDto,
     approverUserId?: string,
-  ): Promise<any> {
+  ): Promise<LessonResponseDto> {
     await this.findOne(id);
 
     // Quy trình 2 người: chỉ duyệt bài đang chờ duyệt, và người duyệt khác người soạn.
@@ -423,7 +438,7 @@ export class LessonService {
   private async invalidateCache(): Promise<void> {
     try {
       await this.redis.deleteByPattern(`${this.CACHE_PREFIX}:*`);
-    } catch (error) {
+    } catch {
       this.logger.warn('Failed to invalidate lesson cache', 'LessonService');
     }
   }

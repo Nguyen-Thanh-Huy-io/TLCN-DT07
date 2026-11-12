@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { DifficultyLevel } from '@prisma/client';
 import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { QuizQuestionType } from '../types/quiz-question.types';
@@ -14,10 +15,10 @@ export class QueryQuestionDto {
   @IsOptional()
   type?: QuizQuestionType;
 
-  @ApiPropertyOptional({ description: 'Mức độ khó' })
-  @IsString()
+  @ApiPropertyOptional({ enum: DifficultyLevel, description: 'Mức độ khó' })
+  @IsEnum(DifficultyLevel)
   @IsOptional()
-  difficulty?: string;
+  difficulty?: DifficultyLevel;
 
   @ApiPropertyOptional({ description: 'UUID bài học' })
   @IsString()

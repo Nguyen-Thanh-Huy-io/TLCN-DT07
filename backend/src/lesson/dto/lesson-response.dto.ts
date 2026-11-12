@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { LessonStatus } from '@prisma/client';
+import { DifficultyLevel, LessonStatus, Prisma, Tag } from '@prisma/client';
 
 export class LessonResponseDto {
   @ApiProperty({
@@ -36,7 +36,7 @@ export class LessonResponseDto {
     example: [{ type: 'paragraph', text: 'Năm 938, Ngô Quyền...' }],
     description: 'Cấu trúc nội dung bài học dạng JSON / JSONB',
   })
-  content: any;
+  content: Prisma.JsonValue;
 
   @ApiPropertyOptional({
     example: '[{"type":"paragraph","text":"..."}]',
@@ -50,6 +50,12 @@ export class LessonResponseDto {
     description: 'Trạng thái bài học',
   })
   status: LessonStatus;
+
+  @ApiPropertyOptional({
+    enum: DifficultyLevel,
+    description: 'Độ khó bài học',
+  })
+  difficulty?: DifficultyLevel;
 
   @ApiProperty({
     example: 5,
@@ -72,7 +78,12 @@ export class LessonResponseDto {
   @ApiPropertyOptional({
     description: 'Thông tin chi tiết Chương học (Chapter)',
   })
-  chapter?: any;
+  chapter?: Record<string, unknown> | null;
+
+  @ApiPropertyOptional({
+    description: 'Danh sách thẻ phân loại bài học',
+  })
+  tags?: Tag[];
 
   @ApiPropertyOptional({
     example: 1,

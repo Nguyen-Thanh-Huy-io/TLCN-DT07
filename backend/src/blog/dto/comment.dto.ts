@@ -1,8 +1,15 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateCommentDto {
+  @IsOptional()
   @IsUUID()
-  authorId: string;
+  authorId?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -15,8 +22,9 @@ export class CreateCommentDto {
 }
 
 export class UpdateCommentDto {
+  @IsOptional()
   @IsUUID()
-  authorId: string;
+  authorId?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -25,11 +33,13 @@ export class UpdateCommentDto {
 }
 
 export class DeleteCommentDto {
+  @IsOptional()
   @IsUUID()
-  authorId: string;
+  authorId?: string;
 }
 
 export class LikeCommentDto {
+  @IsOptional()
   @IsUUID()
-  userId: string;
+  userId?: string;
 }

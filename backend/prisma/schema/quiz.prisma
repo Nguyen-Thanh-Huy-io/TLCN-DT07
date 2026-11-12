@@ -60,13 +60,13 @@ model QuizAttempt {
 // ================================
 
 model Question {
-  id          String   @id @default(uuid())
-  type        String   @db.VarChar(50) // SINGLE_CHOICE, TRUE_FALSE, MULTIPLE_CHOICE, ORDERING, MATCHING, FILL_IN_BLANK
-  prompt      String   @db.Text
-  explanation String?  @db.Text
-  difficulty  String   @default("MEDIUM") @db.VarChar(20) // EASY, MEDIUM, HARD
-  points      Int      @default(10)
-  data        Json     @default("{}") @db.JsonB
+  id          String          @id @default(uuid())
+  type        String          @db.VarChar(50) // SINGLE_CHOICE, TRUE_FALSE, MULTIPLE_CHOICE, ORDERING, MATCHING, FILL_IN_BLANK
+  prompt      String          @db.Text
+  explanation String?         @db.Text
+  difficulty  DifficultyLevel @default(MEDIUM)
+  points      Int             @default(10)
+  data        Json            @default("{}") @db.JsonB
 
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

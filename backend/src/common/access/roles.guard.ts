@@ -11,10 +11,13 @@ import { ACCESS_MESSAGES, ROLES_METADATA_KEY } from './access.constant';
 export interface AuthenticatedUser {
   userId: string;
   role: string;
+  id?: string;
 }
 
+export type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
+
 export function currentUser(request: Request): AuthenticatedUser | undefined {
-  return (request as Request & { user?: AuthenticatedUser }).user;
+  return (request as AuthenticatedRequest).user;
 }
 
 /** Chạy sau AuthGuard: so vai trò trong access token với danh sách cho phép của endpoint. */

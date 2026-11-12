@@ -1,11 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { DifficultyLevel, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
-import { CreateQuestionDto, UpdateQuestionDto } from './dto/create-question.dto';
+import {
+  CreateQuestionDto,
+  UpdateQuestionDto,
+} from './dto/create-question.dto';
 import { QueryQuestionDto } from './dto/query-question.dto';
+import { DEFAULT_QUESTION_POINTS } from './quiz.constant';
 import { validateAndNormalizeQuestions } from './validators/quiz-question.validator';
 
 @Injectable()
 export class QuestionService {
+  private readonly logger = new Logger(QuestionService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit() {
@@ -14,12 +21,20 @@ export class QuestionService {
   }
 
   async findAll(query: QueryQuestionDto) {
-    const { search, type, difficulty, lessonId, topicId, page = 1, limit = 50 } = query;
+    const {
+      search,
+      type,
+      difficulty,
+      lessonId,
+      topicId,
+      page = 1,
+      limit = 50,
+    } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.QuestionWhereInput = {};
     if (type) where.type = type;
-    if (difficulty && difficulty !== 'all') where.difficulty = difficulty;
+    if (difficulty) where.difficulty = difficulty;
     if (lessonId) where.lessons = { some: { id: lessonId } };
     if (topicId) where.topics = { some: { id: topicId } };
     if (search && search.trim()) {
@@ -85,7 +100,9 @@ export class QuestionService {
     };
     validateAndNormalizeQuestions([rawToValidate]);
 
-    const lessonIds = Array.from(new Set((dto.lessonIds || []).filter(Boolean)));
+    const lessonIds = Array.from(
+      new Set((dto.lessonIds || []).filter(Boolean)),
+    );
     const topicIds = Array.from(new Set((dto.topicIds || []).filter(Boolean)));
 
     return this.prisma.question.create({
@@ -93,9 +110,9 @@ export class QuestionService {
         type: dto.type,
         prompt: dto.prompt,
         explanation: dto.explanation,
-        difficulty: dto.difficulty || 'MEDIUM',
-        points: dto.points || 10,
-        data: dto.data || {},
+        difficulty: dto.difficulty || DifficultyLevel.MEDIUM,
+        points: dto.points || DEFAULT_QUESTION_POINTS,
+        data: (dto.data || {}) as Prisma.InputJsonValue,
         ...(lessonIds.length > 0
           ? { lessons: { connect: lessonIds.map((id) => ({ id })) } }
           : {}),
@@ -126,7 +143,9 @@ export class QuestionService {
     };
     validateAndNormalizeQuestions([rawToValidate]);
 
-    const lessonIds = Array.from(new Set((dto.lessonIds || []).filter(Boolean)));
+    const lessonIds = Array.from(
+      new Set((dto.lessonIds || []).filter(Boolean)),
+    );
     const topicIds = Array.from(new Set((dto.topicIds || []).filter(Boolean)));
 
     return this.prisma.question.update({
@@ -135,9 +154,9 @@ export class QuestionService {
         type: dto.type,
         prompt: dto.prompt,
         explanation: dto.explanation,
-        difficulty: dto.difficulty || 'MEDIUM',
-        points: dto.points || 10,
-        data: dto.data || {},
+        difficulty: dto.difficulty || DifficultyLevel.MEDIUM,
+        points: dto.points || DEFAULT_QUESTION_POINTS,
+        data: (dto.data || {}) as Prisma.InputJsonValue,
         lessons: { set: lessonIds.map((itemId) => ({ id: itemId })) },
         topics: { set: topicIds.map((itemId) => ({ id: itemId })) },
       },
@@ -167,26 +186,60 @@ export class QuestionService {
       if (count > 0) return;
 
       const quizzes = await this.prisma.quiz.findMany();
-      for (const quiz of quizzes) {
-        if (!Array.isArray(quiz.questions)) continue;
-        for (const raw of quiz.questions as any[]) {
-          if (!raw?.id || !raw?.type || !raw?.prompt) continue;
-          const { id, type, prompt, explanation, ...restData } = raw;
-          await this.prisma.question.create({
-            data: {
-              type,
-              prompt,
-              explanation: explanation || null,
-              difficulty: 'MEDIUM',
-              points: 10,
-              data: restData,
-              ...(quiz.lessonId ? { lessons: { connect: [{ id: quiz.lessonId }] } } : {}),
-            },
-          });
-        }
+      const createOperations = quizzes.flatMap((quiz) =>
+        this.buildCreateOpsForQuiz(quiz.lessonId, quiz.questions),
+      );
+
+      if (createOperations.length > 0) {
+        await this.prisma.$transaction(createOperations);
       }
     } catch (err) {
-      console.warn('Lỗi khi backfill câu hỏi từ Quiz vào Question Bank:', err);
+      this.logger.warn(
+        `Lỗi khi backfill câu hỏi từ Quiz vào Question Bank: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
+  }
+
+  private buildCreateOpsForQuiz(
+    lessonId: string | null,
+    questions: unknown,
+  ): Prisma.PrismaPromise<unknown>[] {
+    if (!Array.isArray(questions)) {
+      return [];
+    }
+
+    const ops: Prisma.PrismaPromise<unknown>[] = [];
+    for (const raw of questions as Array<Record<string, unknown>>) {
+      if (
+        typeof raw?.id !== 'string' ||
+        typeof raw?.type !== 'string' ||
+        typeof raw?.prompt !== 'string'
+      ) {
+        continue;
+      }
+
+      const restData: Record<string, unknown> = { ...raw };
+      delete restData.id;
+      delete restData.type;
+      delete restData.prompt;
+      delete restData.explanation;
+
+      ops.push(
+        this.prisma.question.create({
+          data: {
+            type: raw.type,
+            prompt: raw.prompt,
+            explanation:
+              typeof raw.explanation === 'string' ? raw.explanation : null,
+            difficulty: DifficultyLevel.MEDIUM,
+            points: DEFAULT_QUESTION_POINTS,
+            data: restData as Prisma.InputJsonValue,
+            ...(lessonId ? { lessons: { connect: [{ id: lessonId }] } } : {}),
+          },
+        }),
+      );
+    }
+
+    return ops;
   }
 }

@@ -20,25 +20,27 @@ export class BlogGateway {
   @SubscribeMessage('join-post-room')
   joinPostRoom(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { postId?: string; userId?: string },
+    @MessageBody() payload: { postId?: string; userId?: string } | string,
   ) {
-    if (!payload?.postId) {
+    const postId = typeof payload === 'string' ? payload : payload?.postId;
+    if (!postId) {
       return;
     }
 
-    client.join(`post:${payload.postId}`);
+    void client.join(`post:${postId}`);
   }
 
   @SubscribeMessage('leave-post-room')
   leavePostRoom(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { postId?: string },
+    @MessageBody() payload: { postId?: string } | string,
   ) {
-    if (!payload?.postId) {
+    const postId = typeof payload === 'string' ? payload : payload?.postId;
+    if (!postId) {
       return;
     }
 
-    client.leave(`post:${payload.postId}`);
+    void client.leave(`post:${postId}`);
   }
 
   emitCommentAdded(postId: string, comment: any) {
@@ -50,11 +52,18 @@ export class BlogGateway {
   }
 
   emitLikeUpdated(postId: string, likeCount: number) {
-    this.server.to(`post:${postId}`).emit('post:like-updated', { postId, likeCount: Math.max(0, likeCount) });
+    this.server
+      .to(`post:${postId}`)
+      .emit('post:like-updated', { postId, likeCount: Math.max(0, likeCount) });
   }
 
-  emitPostModerated(postId: string, payload: { status: string; reason?: string | null }) {
-    this.server.to(`post:${postId}`).emit('post:moderated', { postId, ...payload });
+  emitPostModerated(
+    postId: string,
+    payload: { status: string; reason?: string | null },
+  ) {
+    this.server
+      .to(`post:${postId}`)
+      .emit('post:moderated', { postId, ...payload });
   }
 
   /** Broadcast toàn cục: mọi client gỡ bài khỏi Feed */
@@ -68,7 +77,11 @@ export class BlogGateway {
   }
 
   /** Broadcast tới màn hình CMS Moderation khi có báo cáo mới từ AI hoặc người dùng */
-  emitModerationEvent(payload: { type: 'report-created' | 'report-resolved'; reportId?: string; targetId?: string }) {
+  emitModerationEvent(payload: {
+    type: 'report-created' | 'report-resolved';
+    reportId?: string;
+    targetId?: string;
+  }) {
     this.server.emit('moderation:updated', payload);
   }
 

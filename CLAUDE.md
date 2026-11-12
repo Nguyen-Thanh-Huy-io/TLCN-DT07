@@ -56,6 +56,13 @@ sẽ vô tình quét vào `node_modules/`, `.next/`, `dist/`, `.git/` (hàng ch�
 - Mọi màn hình gọi API phải xử lý đủ 3 trạng thái: loading, lỗi, rỗng.
 - Type của response API khai báo một chỗ và dùng chung, không định nghĩa lại ở từng component.
 - Một component quá khoảng 200–300 dòng thì tách nhỏ.
+- **Mô hình phân rã Component lớn theo chuẩn SOLID (SRP / Facade)**:
+  - Khi phân rã các component phức tạp (>500–1000 dòng), phân chia thành 4 thành phần chuyên trách:
+    1. **Custom Hook / Facade** (ví dụ `usePostComments.ts`, `useCommunityProfile.ts`): quản lý toàn bộ state, socket realtime, API handlers, tính toán chỉ số thống kê & bộ lọc.
+    2. **Types, Helpers & Static Data** (ví dụ `*.types.ts`, `*.util.ts`, `*.data.ts`): tách dữ liệu mẫu/mock và helper biến đổi dữ liệu ra khỏi file UI.
+    3. **Sub-components chuyên biệt** (Single Responsibility Principle): mỗi khối giao diện (header/KPI, toolbar/filter, list item, composer) là 1 file component riêng biệt, có interface props rõ ràng.
+    4. **Component điều phối (Orchestrator)**: chỉ kết nối hook facade với các sub-components, duy trì độ dài dưới 150–250 dòng.
+    5. **Bảo toàn khả năng tương thích ngược (Backward Compatibility)**: Re-export các types, helpers mà các file khác đang import từ component gốc.
 
 ## Quy ước riêng của dự án
 

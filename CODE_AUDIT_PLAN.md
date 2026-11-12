@@ -62,9 +62,9 @@
 ## Pha 3 — Tách component quá dài (ngưỡng CLAUDE.md: 200-300 dòng)
 
 Thứ tự ưu tiên theo CODE_AUDIT.md Mục 7 (xếp theo độ dài giảm dần):
-- [ ] `StoryChapterBlockEditor.tsx` (1459 dòng)
-- [ ] `PostCommentModal.tsx` (1269 dòng)
-- [ ] `CommunityProfileView.tsx` (1135 dòng)
+- [x] **[ĐÃ PHÂN RÃ ✅] `StoryChapterBlockEditor.tsx` (1459 dòng → 224 dòng, -85%)**: Tách thành cụm `features/lessons/components/builder/story-chapter/` gồm `StoryChapterRenderer.tsx`, `StoryChapterContentBlock.tsx`, `StoryChapterHeading.tsx`, `StoryChapterToolbar.tsx`, `StoryChapterTocBar.tsx`, `StoryChapterAddBlockMenu.tsx`, `useStoryChapterColumnResize.ts`, `types.ts`.
+- [x] **[ĐÃ PHÂN RÃ ✅] `PostCommentModal.tsx` (1269 dòng → 190 dòng, -85%)**: Tách thành cụm `features/community/components/comment-modal/` gồm `usePostComments.ts` (custom hook/facade quản lý socket, local storage, API CRUD), `PostSummaryPane.tsx`, `CommentItemRow.tsx`, `CommentComposerBar.tsx`, `historical-comments.data.ts`, `comment-tree.util.ts`, `comment-modal.types.ts`.
+- [x] **[ĐÃ PHÂN RÃ ✅] `CommunityProfileView.tsx` (1135 dòng → 214 dòng, -81%)**: Tách thành cụm `features/community/components/profile/` gồm `useCommunityProfile.ts` (custom hook/facade quản lý state, socket follow/like, stats calculation, tabs, filters), `ProfileSidebar.tsx`, `ProfileHeaderKpi.tsx`, `ProfileTabsToolbar.tsx`, `ProfileMembersList.tsx`, `ProfilePostsList.tsx`, `profile.types.ts`.
 - [ ] `TopicEditor.tsx` (~1089 dòng)
 - [ ] `BlogCreatePage.tsx` (931 dòng)
 - [ ] `QuestionBankModal.tsx` (931 dòng)

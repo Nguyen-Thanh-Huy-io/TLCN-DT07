@@ -10,8 +10,8 @@
 ## 0. Xác nhận bằng công cụ thật (build/lint/audit) — Cập nhật mới nhất
 
 * **`npm run build` (frontend):** **PASS ✅** — Toàn bộ route build sạch kể cả `/cong-dong/**` và `/bai-hoc/**`.
-* **`npm run lint` (frontend):** **0 errors**, 981 warnings (giảm từ 1052 vấn đề với 7 error ban đầu). 100% lỗi runtime/compiler ("Cannot access variable before it is declared", "Cannot access refs during render", React compiler memoization mismatch) đã được xử lý triệt để. Các warning còn lại thuộc nhóm check-file dynamic route `[slug]`, sonarjs cognitive-complexity, duplicate string literals.
-* **`npm run lint` (backend):** **0 errors**, 143 warnings (giảm từ 718 errors / 201 warnings ban đầu). Đã dọn sạch toàn bộ lỗi format Prettier, CRLF line-ending, unused vars, và regex useless escapes.
+* **`npm run lint` (frontend):** **0 errors**, **1,003 warnings** (chi tiết xem báo cáo riêng [ESLINT_REPORT.md](ESLINT_REPORT.md)). 100% lỗi runtime/compiler đã được xử lý triệt để. Cảnh báo chủ yếu gồm: `no-restricted-syntax` (397 - so sánh chuỗi enum/magic string), `sonarjs/no-duplicate-string` (190 - chuỗi lặp >=2 lần), `@typescript-eslint/no-explicit-any` (125), `react-hooks/set-state-in-effect` (72), `sonarjs/cognitive-complexity` (47).
+* **`npm run lint` (backend):** **0 errors**, **143 warnings** (chi tiết xem [ESLINT_REPORT.md](ESLINT_REPORT.md)). Đã dọn sạch toàn bộ lỗi format Prettier CRLF line-ending ban đầu. Cảnh báo chủ yếu là `@typescript-eslint/no-unsafe-argument` (101 - truyền `any` trong test spec và service) và `no-restricted-syntax` (18 - URL remote).
 * **`npm run audit:dup` (jscpd):**
   - **Backend:** 164 files, 21,684 lines — **3.35% trùng lặp** (51 clones, 727 lines). Nằm sâu dưới ngưỡng an toàn 5%.
   - **Frontend:** 410 files, 77,605 lines — **1.36% trùng lặp** (90 clones, 1056 lines). Con số tối ưu sau đợt tái cấu trúc Pha 4.
@@ -267,9 +267,9 @@ Xếp theo mức độ rủi ro thật (bug/an toàn > kiến trúc > vi phạm 
 
 ### 🟡 Component quá dài cần tách (ngưỡng CLAUDE.md: 200-300 dòng)
 Xếp theo độ dài giảm dần — các file này nên tách trước tiên vì vi phạm nặng nhất:
-- `StoryChapterBlockEditor.tsx` — **1459 dòng**
-- `PostCommentModal.tsx` — **1269 dòng**
-- `CommunityProfileView.tsx` — **1135 dòng**
+- **[ĐÃ PHÂN RÃ ✅ — Pha 3]** `StoryChapterBlockEditor.tsx` — **1459 dòng → 224 dòng** (tách thành cụm `builder/story-chapter/` gồm 7 sub-modules & hooks).
+- **[ĐÃ PHÂN RÃ ✅ — Pha 3]** `PostCommentModal.tsx` — **1269 dòng → 190 dòng** (tách thành cụm `comment-modal/` gồm 6 sub-modules & hooks & presets).
+- **[ĐÃ PHÂN RÃ ✅ — Pha 3]** `CommunityProfileView.tsx` — **1135 dòng → 214 dòng** (tách thành cụm `profile/` gồm 6 sub-modules & hooks & types).
 - `TopicEditor.tsx` — **~1089 dòng**
 - `BlogCreatePage.tsx` — **931 dòng**
 - `QuestionBankModal.tsx` — **931 dòng**

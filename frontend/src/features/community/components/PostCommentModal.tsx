@@ -23,9 +23,8 @@ import {
   extractCommunityContent,
   type CommunityPost,
 } from '../api';
+import { API_BASE_URL } from '@/constants/api-url';
 import { PostActionBar } from './PostActionBar';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
 
 const AUTHOR_TINTS = [
   { bg: '#E5EFE6', ink: '#1E4620' },

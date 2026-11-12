@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { SectionTitle } from '@/components/hisgo/SectionTitle';
+import { API_BASE_URL } from '@/constants/api-url';
 import { PublicAuthService } from '@/services/auth/public-auth.service';
 
 const DEFAULT_COMMENT_AUTHOR_ID = process.env.NEXT_PUBLIC_BLOG_AUTHOR_ID || 'd2168a5d-05d7-4110-a304-94b17fe5bae5';
 const DEFAULT_COMMENT_USERNAME = process.env.NEXT_PUBLIC_COMMENT_USERNAME || 'Khách';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
 const COMMENT_STORAGE_PREFIX = 'hisgo-blog-comments';
 
 const getLocalStorageCommentsKey = (postId: string) => `${COMMENT_STORAGE_PREFIX}:${postId}`;

@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
+import { resolveBackendAssetUrl } from '@/constants/api-url';
 import { useAuthSession } from '@/services/auth/useAuthSession';
 import { BlogApiService, type BlogPostItem } from '@/services/entities/blog.service';
 import { UploadApiService } from '@/services/entities/upload.service';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 type StoryBlock = {
   id: string;
@@ -27,16 +26,7 @@ type ReferenceItem = {
   url: string;
 };
 
-const normalizeImageUrl = (url?: string | null) => {
-  if (!url) return '';
-
-  const trimmed = url.trim();
-  const currentApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-
-  return trimmed
-    .replace(/^http:\/\/localhost:5000(?=\/)/, currentApiUrl)
-    .replace(/^http:\/\/127\.0\.0\.1:5000(?=\/)/, currentApiUrl);
-};
+const normalizeImageUrl = (url?: string | null) => resolveBackendAssetUrl(url);
 
 const categoryOptions = ['Blog'];
 

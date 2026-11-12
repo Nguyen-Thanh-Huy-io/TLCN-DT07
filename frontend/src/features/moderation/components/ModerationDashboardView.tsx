@@ -19,6 +19,7 @@ import {
   Trash2,
   UserX,
 } from 'lucide-react';
+import { API_BASE_URL } from '@/constants/api-url';
 import {
   ModerationApi,
   type ModerationReportItem,
@@ -28,7 +29,7 @@ import {
   type ModerationTabKey,
 } from '../api';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
+const SOCKET_URL = API_BASE_URL;
 
 const TABS: Array<{ key: ModerationTabKey; label: string }> = [
   { key: 'pending', label: 'Chờ rà soát' },

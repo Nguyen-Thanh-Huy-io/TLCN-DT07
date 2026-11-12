@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { resolveBackendAssetUrl } from '@/constants/api-url';
 import { ContentStatus } from '@/constants/enums';
 import { BlogApiService, type BlogPostItem } from '@/services/entities/blog.service';
 import { extractErrorMessage } from '@/services/api';
@@ -48,13 +49,7 @@ const normalizePost = (item: BlogPostItem): ReviewPost => {
   };
 };
 
-const normalizeImageUrl = (value?: string | null) => {
-  if (!value) return '';
-  const trimmed = value.trim();
-  if (!trimmed) return '';
-  if (/^https?:\/\//i.test(trimmed) || /^data:/i.test(trimmed) || /^\/\//.test(trimmed)) return trimmed;
-  return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${trimmed.startsWith('/') ? trimmed : `/${trimmed}`}`;
-};
+const normalizeImageUrl = (value?: string | null) => resolveBackendAssetUrl(value);
 
 const renderParagraphs = (value: string) =>
   (value || '')

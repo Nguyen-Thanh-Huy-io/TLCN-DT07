@@ -216,7 +216,8 @@ export async function BlogDetailPage({ slug }: { slug: string }) {
   }
 
   const blocksHtml = extractBlocksHtml(post.contentBlocks);
-  const articleBody = blocksHtml || `<p>${post.excerpt || 'Nội dung bài viết đang được cập nhật.'}</p>`;
+  const articleBody =
+    blocksHtml || `<p>${escapeHtml(post.excerpt || 'Nội dung bài viết đang được cập nhật.')}</p>`;
   const metadata = extractMetadata(post.contentBlocks);
   const hasReferences = metadata.references.some((reference) => reference.title || reference.source || reference.url);
   const relatedPosts = getRelatedBlogPosts(post, allPosts, metadata.tags, 3);

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  AUTH_HEADER_NAME,
+  GUEST_ID_HEADER_NAME,
+  INTERNAL_API_BASE_URL,
+} from '@/constants/api-url';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5000';
+const BACKEND_URL = INTERNAL_API_BASE_URL;
 
 export async function PATCH(
   req: NextRequest,
@@ -16,10 +21,10 @@ export async function PATCH(
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    const authHeader = req.headers.get('authorization');
-    if (authHeader) headers['authorization'] = authHeader;
-    const guestHeader = req.headers.get('x-guest-id');
-    if (guestHeader) headers['x-guest-id'] = guestHeader;
+    const authHeader = req.headers.get(AUTH_HEADER_NAME);
+    if (authHeader) headers[AUTH_HEADER_NAME] = authHeader;
+    const guestHeader = req.headers.get(GUEST_ID_HEADER_NAME);
+    if (guestHeader) headers[GUEST_ID_HEADER_NAME] = guestHeader;
 
     const res = await fetch(targetUrl, {
       method: 'PATCH',
@@ -49,10 +54,10 @@ export async function DELETE(
     const targetUrl = `${BACKEND_URL}/notes/${id}${queryString ? `?${queryString}` : ''}`;
 
     const headers: Record<string, string> = {};
-    const authHeader = req.headers.get('authorization');
-    if (authHeader) headers['authorization'] = authHeader;
-    const guestHeader = req.headers.get('x-guest-id');
-    if (guestHeader) headers['x-guest-id'] = guestHeader;
+    const authHeader = req.headers.get(AUTH_HEADER_NAME);
+    if (authHeader) headers[AUTH_HEADER_NAME] = authHeader;
+    const guestHeader = req.headers.get(GUEST_ID_HEADER_NAME);
+    if (guestHeader) headers[GUEST_ID_HEADER_NAME] = guestHeader;
 
     const res = await fetch(targetUrl, {
       method: 'DELETE',

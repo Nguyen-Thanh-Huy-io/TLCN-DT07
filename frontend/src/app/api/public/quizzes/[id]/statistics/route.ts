@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
+import { INTERNAL_API_BASE_URL } from '@/constants/api-url';
 
-const BACKEND_URL = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000').replace(
-  '://localhost',
-  '://127.0.0.1'
-);
+const BACKEND_URL = INTERNAL_API_BASE_URL;
 
 export async function GET(
   request: Request,

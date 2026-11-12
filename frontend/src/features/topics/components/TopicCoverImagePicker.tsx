@@ -3,6 +3,7 @@ import { KeyboardKey } from '@/constants/enums';
 import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
+import { resolveBackendAssetUrl } from '@/constants/api-url';
 import { UploadApiService } from '@/services/entities/upload.service';
 import { extractErrorMessage } from '@/services/api';
 
@@ -23,12 +24,7 @@ export const ALLOWED_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'
  * Tự động đồng bộ sang port của NEXT_PUBLIC_API_URL (5000) nếu URL được tạo từ cấu hình cũ (5000)
  */
 export function resolveCoverImageUrl(url: string): string {
-  if (!url) return '';
-  const currentApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-  if (url.startsWith('http://localhost:5000/uploads/')) {
-    return url.replace('http://localhost:5000', currentApiUrl);
-  }
-  return url;
+  return resolveBackendAssetUrl(url);
 }
 
 export interface TopicCoverImagePickerProps {

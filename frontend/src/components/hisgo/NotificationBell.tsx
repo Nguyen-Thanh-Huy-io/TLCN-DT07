@@ -4,10 +4,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Bell, Check, ExternalLink, X, MessageSquare, CheckCircle, AlertCircle, Heart, ShieldAlert, UserPlus } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import { API_BASE_URL } from '@/constants/api-url';
 import api from '@/services/api';
 import { PublicAuthService } from '@/services/auth/public-auth.service';
-
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000').replace(/\/+$/, '');
 
 export interface NotificationItem {
   id: string;

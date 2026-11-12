@@ -5,13 +5,11 @@
  * Route backend: backend/src/blog/blog.controller.ts (prefix /posts).
  */
 
+import { INTERNAL_API_BASE_URL } from '@/constants/api-url';
 import api, { extractErrorMessage } from '@/services/api';
 import type { BlogPostTypeValue, BlogStatusValue } from '@/services/entities/blog.service';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000').replace(
-  '://localhost',
-  '://127.0.0.1',
-);
+const API_URL = INTERNAL_API_BASE_URL;
 
 const POSTS_BASE_PATH = '/posts';
 const SSR_ME_IDENTIFIER = 'me';

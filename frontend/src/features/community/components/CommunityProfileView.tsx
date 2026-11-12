@@ -29,12 +29,13 @@ import {
   type CommunityMemberSummary,
   type CommunityPost,
 } from '../api';
+import { API_BASE_URL } from '@/constants/api-url';
 import { PostCard } from './PostCard';
 import { QuickComposer, type ComposerMode } from './QuickComposer';
 
 export type ProfileTabKey = 'posts' | 'shared_blog' | 'followers' | 'following' | 'saved';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
+const SOCKET_URL = API_BASE_URL;
 
 const AUTHOR_TINTS = [
   { bg: '#E5EFE6', ink: '#1E4620' },

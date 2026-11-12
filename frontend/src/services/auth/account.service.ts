@@ -1,6 +1,7 @@
+import { API_BASE_URL } from '@/constants/api-url';
 import api from '../api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
+const API_URL = API_BASE_URL;
 
 export interface MyProfile {
   id: string;

@@ -42,8 +42,9 @@ import { resolveCategoryKind, type ArticleKind } from '@/services/public/article
 import { formatYear } from '@/utils/year-label';
 import { RANK_LABELS, type HeritageRank } from '@/features/heritage/heritage.types';
 import { CANONICAL_ROLE_LABELS, LOCATION_TYPE_LABELS, LocationType } from '@/constants/enums';
+import { INTERNAL_API_BASE_URL } from '@/constants/api-url';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000').replace('://localhost', '://127.0.0.1');
+const API_URL = INTERNAL_API_BASE_URL;
 
 export const PUBLIC_ROUTE_PREFIX = {
   PERIOD: '/giai-doan',

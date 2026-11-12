@@ -5,12 +5,10 @@
  * Mọi nhãn niên đại (`dateLabel`) do backend tính sẵn (năm âm → "TCN"), frontend chỉ hiển thị.
  */
 
+import { INTERNAL_API_BASE_URL } from '@/constants/api-url';
 import type { ArticleKind } from './article-kind';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000').replace(
-  '://localhost',
-  '://127.0.0.1',
-);
+const API_URL = INTERNAL_API_BASE_URL;
 
 export const PUBLIC_ROUTES = {
   ARTICLE: (slug: string) => `/bai-viet/${slug}`,

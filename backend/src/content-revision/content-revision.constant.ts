@@ -99,7 +99,6 @@ export const REVISION_FIELDS: Record<RevisionContentType, RevisionField[]> = {
     { key: 'parentId', label: 'Chủ đề cha', kind: 'ref', ref: 'topic' },
     { key: 'icon', label: 'Biểu tượng', kind: 'text' },
     { key: 'coverImageUrl', label: 'Ảnh bìa', kind: 'image' },
-    { key: 'pathType', label: 'Kiểu lộ trình', kind: 'text' },
     { key: 'isSequential', label: 'Học tuần tự', kind: 'bool' },
     { key: 'isFeatured', label: 'Nổi bật', kind: 'bool' },
     ORDER,

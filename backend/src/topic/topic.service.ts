@@ -12,7 +12,7 @@ import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { QueryTopicDto } from './dto/query-topic.dto';
 import { ReorderTopicItemDto } from './dto/reorder-topics.dto';
-import { Topic, ContentStatus, LearningPathType, Prisma } from '@prisma/client';
+import { Topic, ContentStatus, Prisma } from '@prisma/client';
 import {
   TOPIC_HIERARCHY_CONFIG,
   TOPIC_ERROR_MESSAGES,
@@ -121,7 +121,6 @@ export class TopicService {
         icon: createTopicDto.icon,
         isFeatured: createTopicDto.isFeatured ?? false,
         parentId: createTopicDto.parentId || null,
-        pathType: createTopicDto.pathType ?? LearningPathType.CHRONOLOGICAL,
         name: createTopicDto.name.trim(),
         description: createTopicDto.description?.trim(),
         coverImageUrl: createTopicDto.coverImageUrl,
@@ -144,7 +143,7 @@ export class TopicService {
   }
 
   /**
-   * Lấy danh sách chủ đề (hỗ trợ lọc theo parentId, isRootOnly, pathType, status, search).
+   * Lấy danh sách chủ đề (hỗ trợ lọc theo parentId, isRootOnly, status, search).
    */
   async findAll(query: QueryTopicDto): Promise<IPaginatedResult<Topic>> {
     const page = Math.max(1, Number(query.page) || 1);
@@ -157,10 +156,6 @@ export class TopicService {
       where.parentId = query.parentId;
     } else if (query.isRootOnly) {
       where.parentId = null;
-    }
-
-    if (query.pathType) {
-      where.pathType = query.pathType;
     }
 
     if (query.status) {

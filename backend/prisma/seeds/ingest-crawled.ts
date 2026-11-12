@@ -9,7 +9,7 @@
 import 'dotenv/config';
 import * as fs from 'fs';
 import * as path from 'path';
-import { PrismaClient, ContentStatus, LearningPathType, TopicIcon } from '@prisma/client';
+import { PrismaClient, ContentStatus, TopicIcon } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const prisma = new PrismaClient({
@@ -38,7 +38,6 @@ async function main() {
       slug: 'lich-su-co-trung-dai',
       name: 'Lịch sử Việt Nam Cổ - Trung đại',
       icon: TopicIcon.Castle,
-      pathType: LearningPathType.CHRONOLOGICAL,
       status: ContentStatus.PUBLISHED,
     },
   });
@@ -52,7 +51,6 @@ async function main() {
       name: 'Khởi nghĩa Lam Sơn & Triều Lê sơ',
       eyebrow: '1418 - 1427',
       icon: TopicIcon.Swords,
-      pathType: LearningPathType.CHRONOLOGICAL,
       status: ContentStatus.PUBLISHED,
       description: 'Cuộc khởi nghĩa trường kỳ 10 năm do Lê Lợi lãnh đạo giành lại độc lập hoàn toàn trước ách đô hộ của nhà Minh.',
     },
@@ -66,7 +64,6 @@ async function main() {
       slug: 'lich-su-can-hien-dai',
       name: 'Lịch sử Việt Nam Cận - Hiện đại',
       icon: TopicIcon.Swords,
-      pathType: LearningPathType.CHRONOLOGICAL,
       status: ContentStatus.PUBLISHED,
     },
   });
@@ -80,7 +77,6 @@ async function main() {
       name: 'Kháng chiến chống thực dân Pháp (1945 - 1954)',
       eyebrow: '1945 - 1954',
       icon: TopicIcon.Landmark,
-      pathType: LearningPathType.CHRONOLOGICAL,
       status: ContentStatus.PUBLISHED,
       description: 'Chín năm kháng chiến trường kỳ gian khổ kết thúc bằng chiến thắng Điện Biên Phủ lừng lẫy năm châu.',
     },

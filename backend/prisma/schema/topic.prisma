@@ -11,7 +11,6 @@
 model Topic {
   id            String           @id @default(uuid())
   parentId      String?          @map("parent_id")
-  pathType      LearningPathType @default(CHRONOLOGICAL) @map("path_type")
   name          String           @db.VarChar(255)
   slug          String           @unique @db.VarChar(255)
   eyebrow       String?          @db.VarChar(100)
@@ -35,7 +34,6 @@ model Topic {
   articles  Article[]
 
   @@index([parentId])
-  @@index([pathType])
   @@index([status])
   @@index([isFeatured])
   @@index([displayOrder])

@@ -62,12 +62,16 @@ export function TopicCoverImagePicker({
 
   // Reset trạng thái lỗi khi đường dẫn ảnh thay đổi
   useEffect(() => {
-    setImgError(false);
+    void Promise.resolve().then(() => {
+      setImgError(false);
+    });
   }, [resolvedValue]);
 
   // Đồng bộ inputUrl khi prop value thay đổi từ ngoài
   useEffect(() => {
-    setInputUrl(resolvedValue);
+    void Promise.resolve().then(() => {
+      setInputUrl(resolvedValue);
+    });
   }, [resolvedValue]);
 
   // Xử lý xác thực và upload file
@@ -327,7 +331,7 @@ export function TopicCoverImagePicker({
                   value={inputUrl}
                   onChange={(e) => setInputUrl(e.target.value)}
                   onKeyDown={(e) => e.key === KeyboardKey.ENTER && handleApplyUrl()}
-                  placeholder="https://example.com/cover-image.jpg"
+                  placeholder="https://..."
                   disabled={disabled}
                   className="flex-1 text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:border-blue-400 transition"
                 />

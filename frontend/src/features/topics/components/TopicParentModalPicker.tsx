@@ -48,16 +48,18 @@ export function TopicParentModalPicker({
 
   // Đồng bộ lựa chọn tạm thời khi mở modal
   useEffect(() => {
-    if (isOpen) {
-      setTempSelectedId(selectedParentId);
-      // Mở rộng tất cả các node mặc định
-      const exp: Record<string, boolean> = {};
-      topics.forEach((t) => {
-        exp[t.id] = true;
-      });
-      setExpandedMap(exp);
-      setSearchTerm('');
-    }
+    void Promise.resolve().then(() => {
+      if (isOpen) {
+        setTempSelectedId(selectedParentId);
+        // Mở rộng tất cả các node mặc định
+        const exp: Record<string, boolean> = {};
+        topics.forEach((t) => {
+          exp[t.id] = true;
+        });
+        setExpandedMap(exp);
+        setSearchTerm('');
+      }
+    });
   }, [isOpen, selectedParentId, topics]);
 
   // Tìm tất cả ID con/cháu của currentTopicId để ngăn ngừa chu trình lặp (Anti-Cycle Guard)
@@ -122,7 +124,7 @@ export function TopicParentModalPicker({
     };
 
     return rootTopics.map((r) => buildNode(r, 0));
-  }, [topics, descendantIds]);
+  }, [topics, descendantIds, maxDepth]);
 
   const toggleExpand = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -140,13 +142,11 @@ export function TopicParentModalPicker({
 
     const path: string[] = [];
     let curr: TopicItem | undefined = topics.find((t) => t.id === tempSelectedId);
-    let depthCount = 1;
 
     while (curr) {
       path.unshift(curr.name);
       if (curr.parentId) {
         curr = topics.find((t) => t.id === curr?.parentId);
-        depthCount++;
       } else {
         break;
       }
@@ -348,6 +348,37 @@ interface TreeNodeItemProps {
   filterNode: (node: TreePickerNode, term: string) => boolean;
 }
 
+/** Màu theo cấp: 0 = chủ đề gốc, 1 = chủ đề con, sâu hơn = xám. */
+function depthTone<T>(depth: number, tones: { root: T; child: T; deeper: T }): T {
+  if (depth === 0) return tones.root;
+  return depth === 1 ? tones.child : tones.deeper;
+}
+
+function rowClass(node: TreePickerNode, isSelected: boolean): string {
+  if (!node.isSelectable) return 'opacity-60 cursor-not-allowed bg-slate-50/50 text-slate-500';
+  return isSelected
+    ? 'bg-blue-50/90 border border-blue-300 text-blue-950 font-medium shadow-xs'
+    : 'hover:bg-slate-100 text-slate-800 cursor-pointer';
+}
+
+function radioClass(node: TreePickerNode, isSelected: boolean): string {
+  if (!node.isSelectable) return 'border-slate-300 bg-slate-100';
+  return isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300';
+}
+
+function folderIconClass(node: TreePickerNode): string {
+  if (!node.isSelectable) return 'text-slate-300';
+  return depthTone(node.depth, { root: 'text-amber-500', child: 'text-blue-500', deeper: 'text-slate-400' });
+}
+
+function levelBadgeClass(node: TreePickerNode): string {
+  return depthTone(node.depth, {
+    root: 'bg-amber-50 text-amber-800 border-amber-200',
+    child: 'bg-blue-50 text-blue-700 border-blue-200',
+    deeper: 'bg-slate-100 text-slate-600 border-slate-200',
+  });
+}
+
 function TreeNodeItem({
   node,
   tempSelectedId,
@@ -379,13 +410,7 @@ function TreeNodeItem({
             onSelectId(node.topic.id);
           }
         }}
-        className={`group flex items-center justify-between p-2 rounded-lg text-xs transition select-none ${
-          !node.isSelectable
-            ? 'opacity-60 cursor-not-allowed bg-slate-50/50 text-slate-500'
-            : isSelected
-            ? 'bg-blue-50/90 border border-blue-300 text-blue-950 font-medium shadow-xs'
-            : 'hover:bg-slate-100 text-slate-800 cursor-pointer'
-        }`}
+        className={`group flex items-center justify-between p-2 rounded-lg text-xs transition select-none ${rowClass(node, isSelected)}`}
         title={rowTooltip}
       >
         <div className="flex items-center gap-2 min-w-0 flex-1 pr-2">
@@ -404,13 +429,7 @@ function TreeNodeItem({
 
           {/* Radio indicator */}
           <div
-            className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${
-              !node.isSelectable
-                ? 'border-slate-300 bg-slate-100'
-                : isSelected
-                ? 'border-blue-600 bg-blue-600'
-                : 'border-slate-300'
-            }`}
+            className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${radioClass(node, isSelected)}`}
           >
             {isSelected && <span className="w-1 h-1 rounded-full bg-white" />}
           </div>
@@ -418,15 +437,7 @@ function TreeNodeItem({
           <Icon
             name={IconName.FOLDER}
             size={14}
-            className={`shrink-0 ${
-              !node.isSelectable
-                ? 'text-slate-300'
-                : node.depth === 0
-                ? 'text-amber-500'
-                : node.depth === 1
-                ? 'text-blue-500'
-                : 'text-slate-400'
-            }`}
+            className={`shrink-0 ${folderIconClass(node)}`}
           />
 
           {/* Tiêu đề chủ đề với tooltip đầy đủ */}
@@ -440,13 +451,7 @@ function TreeNodeItem({
           <span
             className={`text-[10px] px-1.5 py-0.2 rounded border font-mono transition-opacity duration-150 ${
               isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-            } ${
-              node.depth === 0
-                ? 'bg-amber-50 text-amber-800 border-amber-200'
-                : node.depth === 1
-                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                : 'bg-slate-100 text-slate-600 border-slate-200'
-            }`}
+            } ${levelBadgeClass(node)}`}
           >
             {node.levelName}
           </span>

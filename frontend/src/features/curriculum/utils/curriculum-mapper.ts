@@ -3,17 +3,18 @@ import {
   CurriculumLessonNode,
   CurriculumNodeType,
 } from '@/types/models/curriculum-tree.type';
-import { LearningPathType } from '@/constants/enums';
+import type { TopicItem } from '@/types/models/topic.type';
+import { ContentStatus } from '@/constants/enums';
 
 /**
  * Chuyển đổi dữ liệu cây phân cấp từ Backend API sang CurriculumTopicNode
  * Dùng chung cho CurriculumExplorer, CurriculumTreePreviewModal,...
  */
-export function mapBackendTopicTreeToCurriculum(topics: any[]): CurriculumTopicNode[] {
+export function mapBackendTopicTreeToCurriculum(topics: TopicItem[]): CurriculumTopicNode[] {
   if (!Array.isArray(topics)) return [];
 
   return topics.map((t, idx) => {
-    const lessons: CurriculumLessonNode[] = (t.lessons || []).map((l: any, lIdx: number) => ({
+    const lessons: CurriculumLessonNode[] = (t.lessons || []).map((l, lIdx) => ({
       id: l.id,
       type: CurriculumNodeType.LESSON,
       name: l.title || l.name || '',
@@ -36,10 +37,9 @@ export function mapBackendTopicTreeToCurriculum(topics: any[]): CurriculumTopicN
       name: t.name,
       description: t.description,
       isSequential: t.isSequential ?? false,
-      status: t.status,
+      status: t.status ?? ContentStatus.DRAFT,
       orderIndex: t.displayOrder ?? idx + 1,
       displayOrder: t.displayOrder ?? idx + 1,
-      pathType: t.pathType || LearningPathType.CHRONOLOGICAL,
       parentId: t.parentId,
       subTopics,
       children: subTopics,

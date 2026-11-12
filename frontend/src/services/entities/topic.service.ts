@@ -1,11 +1,10 @@
 import api, { parsePaginatedResponse } from '../api';
 import { TopicItem } from '@/types/models/topic.type';
-import { ContentStatus, LearningPathType } from '@/constants/enums';
+import { ContentStatus } from '@/constants/enums';
 import { PaginatedResult } from '../api';
 
 export interface CreateTopicDto {
   parentId?: string;
-  pathType?: LearningPathType;
   name: string;
   description?: string;
   coverImageUrl?: string;
@@ -16,7 +15,6 @@ export interface CreateTopicDto {
 
 export interface UpdateTopicDto {
   parentId?: string | null;
-  pathType?: LearningPathType;
   name?: string;
   description?: string;
   coverImageUrl?: string;

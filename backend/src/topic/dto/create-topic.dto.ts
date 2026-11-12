@@ -11,7 +11,7 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContentStatus, LearningPathType, TopicIcon } from '@prisma/client';
+import { ContentStatus, TopicIcon } from '@prisma/client';
 
 export class CreateTopicDto {
   @ApiPropertyOptional({
@@ -48,17 +48,6 @@ export class CreateTopicDto {
   @IsUUID('4', { message: 'parentId phải là UUID hợp lệ' })
   @IsOptional()
   parentId?: string;
-
-  @ApiPropertyOptional({
-    enum: LearningPathType,
-    example: LearningPathType.CHRONOLOGICAL,
-    description:
-      'Loại tiến trình học: CHRONOLOGICAL (Niên đại), THEMATIC (Chuyên đề xuyên suốt), MYTHOLOGICAL (Huyền sử/Dân gian)',
-    default: LearningPathType.CHRONOLOGICAL,
-  })
-  @IsEnum(LearningPathType)
-  @IsOptional()
-  pathType?: LearningPathType = LearningPathType.CHRONOLOGICAL;
 
   @ApiProperty({
     example: 'Khởi nghĩa Hai Bà Trưng',

@@ -9,7 +9,7 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContentStatus, LearningPathType } from '@prisma/client';
+import { ContentStatus } from '@prisma/client';
 
 export class QueryTopicDto {
   @ApiPropertyOptional({
@@ -26,15 +26,6 @@ export class QueryTopicDto {
   })
   @IsOptional()
   isRootOnly?: boolean;
-
-  @ApiPropertyOptional({
-    enum: LearningPathType,
-    description:
-      'Lọc theo loại tiến trình học (CHRONOLOGICAL, THEMATIC, MYTHOLOGICAL)',
-  })
-  @IsEnum(LearningPathType)
-  @IsOptional()
-  pathType?: LearningPathType;
 
   @ApiPropertyOptional({
     enum: ContentStatus,

@@ -1,4 +1,16 @@
-import { ContentStatus, LearningPathType } from '@/constants/enums';
+import { ContentStatus, DifficultyLevel } from '@/constants/enums';
+
+/** Bài học rút gọn đi kèm từng chủ đề trong GET /topics/tree. */
+export interface TopicLessonSummary {
+  id: string;
+  title?: string;
+  name?: string;
+  difficulty: DifficultyLevel;
+  status: ContentStatus;
+  displayOrder?: number;
+  updatedAt?: string;
+  thumbnailUrl?: string;
+}
 
 export interface TopicItem {
   id: string;
@@ -6,7 +18,6 @@ export interface TopicItem {
   name: string;
   description?: string;
   coverImageUrl?: string;
-  pathType?: LearningPathType;
   isSequential?: boolean;
   displayOrder?: number;
   status?: ContentStatus;
@@ -15,7 +26,7 @@ export interface TopicItem {
     name: string;
   } | null;
   children?: TopicItem[];
-  lessons?: any[];
+  lessons?: TopicLessonSummary[];
   lessonCount?: number;
   _count?: {
     lessons: number;

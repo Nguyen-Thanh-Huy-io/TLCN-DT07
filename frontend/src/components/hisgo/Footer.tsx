@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { Link as LinkIcon } from "lucide-react";
+import { SOCIAL_LINKS } from "@/constants/routes";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -20,7 +21,6 @@ export function Footer() {
                   height="28"
                   viewBox="0 0 100 100"
                   fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
                   aria-hidden="true"
                 >
                   <path
@@ -121,7 +121,7 @@ export function Footer() {
             <div className="flex items-center gap-3 pt-1">
               {/* Facebook - SVG Inline chuẩn */}
               <a
-                href="https://facebook.com"
+                href={SOCIAL_LINKS.FACEBOOK}
                 target="_blank"
                 rel="noreferrer"
                 className="w-8 h-8 rounded-full bg-[var(--ink)] text-white flex items-center justify-center hover:bg-[var(--gold)] hover:text-[var(--ink)] transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
@@ -140,7 +140,7 @@ export function Footer() {
 
               {/* YouTube - SVG Inline chuẩn */}
               <a
-                href="https://youtube.com"
+                href={SOCIAL_LINKS.YOUTUBE}
                 target="_blank"
                 rel="noreferrer"
                 className="w-8 h-8 rounded-full bg-[var(--ink)] text-white flex items-center justify-center hover:bg-[var(--gold)] hover:text-[var(--ink)] transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
@@ -159,7 +159,7 @@ export function Footer() {
 
               {/* Liên kết - Lucide Link Icon */}
               <a
-                href="https://hisgo.vn"
+                href={SOCIAL_LINKS.HOMEPAGE}
                 target="_blank"
                 rel="noreferrer"
                 className="w-8 h-8 rounded-full bg-[var(--ink)] text-white flex items-center justify-center hover:bg-[var(--gold)] hover:text-[var(--ink)] transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"

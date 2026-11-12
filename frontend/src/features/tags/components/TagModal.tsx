@@ -24,10 +24,12 @@ export function TagModal({
   const [description, setDescription] = useState(initialData?.description || '');
 
   useEffect(() => {
-    if (isOpen) {
-      setName(initialData?.name || '');
-      setDescription(initialData?.description || '');
-    }
+    void Promise.resolve().then(() => {
+      if (isOpen) {
+        setName(initialData?.name || '');
+        setDescription(initialData?.description || '');
+      }
+    });
   }, [isOpen, initialData]);
 
   if (!isOpen) return null;

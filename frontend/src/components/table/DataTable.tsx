@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { ActionMenu } from '@/components/common/ActionMenu';
 import { IconName } from '@/constants/icons';
+import { CommonFilterOption } from '@/constants/enums';
 import { DataTableProps } from '@/types/table.types';
 import { DataTableFilterModal } from './DataTableFilterModal';
 
@@ -52,7 +53,7 @@ export function DataTable<T extends object>({
     for (const f of filters) {
       if (f.isMultiSelect || f.selectedValues) {
         count += (f.selectedValues || []).length;
-      } else if (f.selectedValue && f.selectedValue !== 'ALL' && f.selectedValue !== '') {
+      } else if (f.selectedValue && f.selectedValue !== CommonFilterOption.ALL) {
         count += 1;
       }
     }

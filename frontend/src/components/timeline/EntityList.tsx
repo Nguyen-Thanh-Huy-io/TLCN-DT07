@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { ArrowUpRight, MapPin, Users } from "lucide-react";
-import { Heading, Badge } from "./sk-ui";
+import { Heading, Badge } from "./SkUi";
 import { type TimelineFigure, type TimelineLocation, NodeContentTab } from "./sk-types";
 import { useFigureProfile } from "@/components/figures/FigureProfileProvider";
+import { RemoteImage } from "@/components/common/RemoteImage";
 
 /** Mở hồ sơ nhân vật tại chỗ (modal) nếu có Provider bao ngoài; không thì mới điều hướng sang /nhan-vat?nv=. */
 function FigureLink({ slug, name }: { slug: string; name: string }) {
@@ -56,7 +57,7 @@ export function EntityList({
         {figures.map((f) => (
           <div className="sk-entity-card" key={f.id}>
             <div className="sk-entity-icon">
-              {f.avatarUrl ? <img src={f.avatarUrl} alt={f.name} /> : <Users size={21} />}
+              {f.avatarUrl ? <RemoteImage src={f.avatarUrl} alt={f.name} /> : <Users size={21} />}
             </div>
             <div>
               <Heading level={3}>

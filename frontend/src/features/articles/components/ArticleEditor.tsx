@@ -3,10 +3,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ExternalLink, FileText, IdCard, LayoutList, RotateCcw, Save, Send, Upload } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FileText, IdCard, LayoutList, Save, Send, Upload } from 'lucide-react';
 import { APP_ROUTES } from '@/constants/routes';
+import { ContentStatus } from '@/constants/enums';
 import { extractErrorMessage } from '@/services/api';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
 import { TagApiService } from '@/services/entities/tag.service';
 import { UploadApiService } from '@/services/entities/upload.service';
@@ -44,7 +45,17 @@ const PRECISION_OPTIONS: Array<{ value: DatePrecisionValue; label: string }> = [
   { value: 'UNKNOWN', label: 'Chưa rõ' },
 ];
 
-type Tab = 'INFO' | 'PROFILE' | 'CONTENT';
+export enum ArticleEditorTab {
+  INFO = 'INFO',
+  PROFILE = 'PROFILE',
+  CONTENT = 'CONTENT',
+}
+
+const TABS_CONFIG = [
+  [ArticleEditorTab.INFO, 'Thông tin', LayoutList],
+  [ArticleEditorTab.PROFILE, 'Hồ sơ & liên kết', IdCard],
+  [ArticleEditorTab.CONTENT, 'Nội dung', FileText],
+] as const;
 
 const EMPTY: ArticlePayload = {
   title: '',
@@ -73,9 +84,9 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   const isEdit = Boolean(articleId);
 
   const [form, setForm] = useState<ArticlePayload>(EMPTY);
-  const [status, setStatus] = useState<ContentStatusValue>('DRAFT');
+  const [status, setStatus] = useState<ContentStatusValue>(ContentStatus.DRAFT);
   const [savedSlug, setSavedSlug] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>('INFO');
+  const [tab, setTab] = useState<ArticleEditorTab>(ArticleEditorTab.INFO);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [tags, setTags] = useState<TagItem[]>([]);
   const [loading, setLoading] = useState(isEdit);
@@ -103,7 +114,6 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   }, []);
 
   const loadArticle = useCallback(async (id: string) => {
-    setLoading(true);
     try {
       const fetched = await ArticleApiService.get(id);
       const { detail, pending } = await withPendingDraft('ARTICLE', id, fetched);
@@ -146,7 +156,17 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   }, []);
 
   useEffect(() => {
-    if (articleId) loadArticle(articleId);
+    let active = true;
+    if (articleId) {
+      void Promise.resolve().then(() => {
+        if (active) {
+          void loadArticle(articleId);
+        }
+      });
+    }
+    return () => {
+      active = false;
+    };
   }, [articleId, loadArticle, reloadKey]);
 
   const isBlogCategorySelected = useMemo(() => {
@@ -179,11 +199,13 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   const save = async (nextStatus?: ContentStatusValue) => {
     if (!form.title.trim()) {
       setError('Bài viết cần có tiêu đề.');
-      setTab('INFO');
+      setTab(ArticleEditorTab.INFO);
       return;
     }
     const effectiveStatus =
-      nextStatus === 'DRAFT' && isBlogCategorySelected ? 'PENDING_REVIEW' : nextStatus ?? (isBlogCategorySelected ? 'PENDING_REVIEW' : 'DRAFT');
+      nextStatus === ContentStatus.DRAFT && isBlogCategorySelected
+        ? ContentStatus.PENDING_REVIEW
+        : nextStatus ?? (isBlogCategorySelected ? ContentStatus.PENDING_REVIEW : ContentStatus.DRAFT);
     setSaving(true);
     setError(null);
     setNotice(null);
@@ -194,7 +216,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
         return;
       }
       // Bài đang xuất bản: không gửi status (biên tập viên → bản sửa chờ duyệt; người duyệt → sửa thẳng).
-      const payload = status === 'PUBLISHED' && !nextStatus ? toPayload() : toPayload(effectiveStatus);
+      const payload = status === ContentStatus.PUBLISHED && !nextStatus ? toPayload() : toPayload(effectiveStatus);
       const saved = await ArticleApiService.update(articleId, payload);
       if (isRevisionPending(saved)) {
         setPendingRevision(saved.revision);
@@ -257,7 +279,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
           {form.title || (isEdit ? 'Bài viết' : 'Bài viết mới')}
         </h1>
         {isEdit && <StatusPill status={status} />}
-        {savedSlug && status === 'PUBLISHED' && (
+        {savedSlug && status === ContentStatus.PUBLISHED && (
           <a
             href={PUBLIC_ROUTES.ARTICLE(savedSlug)}
             target="_blank"
@@ -267,30 +289,30 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
             <ExternalLink size={14} /> Xem công khai
           </a>
         )}
-        {status !== 'PUBLISHED' && (
+        {status !== ContentStatus.PUBLISHED && (
           <>
-            <button type="button" disabled={saving} onClick={() => save('DRAFT')} className="secondary-button !h-9 !text-sm">
+            <button type="button" disabled={saving} onClick={() => save(ContentStatus.DRAFT)} className="secondary-button !h-9 !text-sm">
               <Save size={15} /> Lưu nháp
             </button>
             {!isReviewer && (
-              <button type="button" disabled={saving} onClick={() => save('PENDING_REVIEW')} className="primary-button !h-9 !text-sm">
+              <button type="button" disabled={saving} onClick={() => save(ContentStatus.PENDING_REVIEW)} className="primary-button !h-9 !text-sm">
                 <Send size={15} /> Gửi duyệt
               </button>
             )}
             {isReviewer && (
-              <button type="button" disabled={saving} onClick={() => save('PUBLISHED')} className="primary-button !h-9 !text-sm">
+              <button type="button" disabled={saving} onClick={() => save(ContentStatus.PUBLISHED)} className="primary-button !h-9 !text-sm">
                 <Upload size={15} /> Xuất bản
               </button>
             )}
           </>
         )}
-        {status === 'PUBLISHED' && (
+        {status === ContentStatus.PUBLISHED && (
           <>
             <button type="button" disabled={saving} onClick={() => save()} className="primary-button !h-9 !text-sm">
               <Save size={15} /> {isReviewer ? 'Lưu thay đổi' : 'Gửi bản sửa'}
             </button>
             {isReviewer && (
-              <button type="button" disabled={saving} onClick={() => save('DRAFT')} className="secondary-button !h-9 !text-sm">
+              <button type="button" disabled={saving} onClick={() => save(ContentStatus.DRAFT)} className="secondary-button !h-9 !text-sm">
                 Chuyển về nháp
               </button>
             )}
@@ -312,19 +334,13 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
         />
       )}
       {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-      {notice && status !== 'PUBLISHED' && (
+      {notice && status !== ContentStatus.PUBLISHED && (
         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</div>
       )}
 
       {/* TAB */}
       <div className="mb-4 flex gap-2">
-        {(
-          [
-            ['INFO', 'Thông tin', LayoutList],
-            ['PROFILE', 'Hồ sơ & liên kết', IdCard],
-            ['CONTENT', 'Nội dung', FileText],
-          ] as const
-        ).map(([key, text, IconCmp]) => (
+        {TABS_CONFIG.map(([key, text, IconCmp]) => (
           <button
             key={key}
             type="button"
@@ -338,7 +354,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
         ))}
       </div>
 
-      {tab === 'INFO' && (
+      {tab === ArticleEditorTab.INFO && (
         <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
           <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
             <div>
@@ -477,7 +493,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
         </div>
       )}
 
-      {tab === 'PROFILE' && (
+      {tab === ArticleEditorTab.PROFILE && (
         <ArticleProfilePanel
           kind={articleKindOf(categories, form.categoryId)}
           metadata={metadata}
@@ -495,7 +511,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
         />
       )}
 
-      {tab === 'CONTENT' && (
+      {tab === ArticleEditorTab.CONTENT && (
         <ContentBlockEditor
           key={contentKey}
           value={form.contentBlocks}
@@ -508,3 +524,4 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
     </div>
   );
 }
+

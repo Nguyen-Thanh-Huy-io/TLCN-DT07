@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Badge, Button, Heading } from "./sk-ui";
+import { Badge, Button, Heading } from "./SkUi";
 import { NodeContent } from "./NodeContent";
 import { shortTitle } from "./Minimap";
 import type { SubEra, TimeNode, TimelineEvent } from "./sk-types";

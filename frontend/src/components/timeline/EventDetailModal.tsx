@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
-import { Badge, Button, Heading, Modal } from "./sk-ui";
+import { Badge, Button, Heading, Modal } from "./SkUi";
 import { EntityList } from "./EntityList";
 import type { TimeNode, TimelineEvent } from "./sk-types";
+import { RemoteImage } from "@/components/common/RemoteImage";
 
 export function EventDetailModal({
   detail,
@@ -22,7 +23,7 @@ export function EventDetailModal({
       {detail && (
         <>
           {detail.event.imageUrl && (
-            <img className="sk-detail-image" src={detail.event.imageUrl} alt={detail.event.title} />
+            <RemoteImage className="sk-detail-image" src={detail.event.imageUrl} alt={detail.event.title} />
           )}
           <div className="sk-detail-body">
             <Badge>{detail.event.category}</Badge>

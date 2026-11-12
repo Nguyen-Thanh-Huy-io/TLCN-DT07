@@ -5,7 +5,7 @@ import { Icon } from '@/components/icons/Icon';
 import { Avatar } from '@/components/common/Avatar';
 import { IconName } from '@/constants/icons';
 import { navigationFacade } from '@/services/navigation/navigation-strategy.service';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
 import { NavigationPageKey } from '@/constants/routes';
 import { NotificationBell } from '@/components/hisgo/NotificationBell';
@@ -13,11 +13,9 @@ import { NotificationBell } from '@/components/hisgo/NotificationBell';
 export interface TopbarProps {
   page: string;
   openNav: () => void;
-  collapsed?: boolean;
-  toggleCollapse?: () => void;
 }
 
-export function Topbar({ page, openNav, collapsed, toggleCollapse }: TopbarProps) {
+export function Topbar({ page, openNav }: TopbarProps) {
   const { groupTitle, parentLabel, parentRoute, pageTitle } =
     navigationFacade.resolveBreadcrumb(page);
 

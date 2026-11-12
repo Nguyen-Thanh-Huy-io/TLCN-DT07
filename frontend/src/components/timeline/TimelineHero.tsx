@@ -1,10 +1,11 @@
 import { BookOpen, Compass, Flag, MapPin } from "lucide-react";
 import { heroLandscape } from "./sk-shared";
+import { RemoteImage } from "@/components/common/RemoteImage";
 
 export function TimelineHero({ periodCount, eventCount }: { periodCount: number; eventCount: number }) {
   return (
     <section className="sk-hero">
-      <img src={heroLandscape} alt="Núi non và dòng sông Ninh Bình" />
+      <RemoteImage src={heroLandscape} alt="Núi non và dòng sông Ninh Bình" />
       <div className="sk-hero-shade" />
       <div className="sk-hero-content">
         <div className="sk-eyebrow">

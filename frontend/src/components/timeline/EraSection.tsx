@@ -4,7 +4,7 @@ import { ReactNode, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowUpRight, ChevronDown, Landmark } from "lucide-react";
-import { Button, Heading } from "./sk-ui";
+import { Button, Heading } from "./SkUi";
 
 export function EraSection({
   title,

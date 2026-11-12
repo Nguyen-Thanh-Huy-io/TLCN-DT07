@@ -48,7 +48,6 @@ export function ContentBlockEditor({
   const [showLeftPalette, setShowLeftPalette] = useState(true);
   const [showRightInspector, setShowRightInspector] = useState(true);
   const [previewMode, setPreviewMode] = useState(false);
-  const [savedTime, setSavedTime] = useState<string>('');
 
   useEffect(() => {
     const json = manager.compileToJson();
@@ -56,10 +55,6 @@ export function ContentBlockEditor({
     if (serialized === lastEmitted.current) return;
     lastEmitted.current = serialized;
     onChange(json);
-    const now = new Date();
-    setSavedTime(
-      `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
-    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manager.blocks]);
 

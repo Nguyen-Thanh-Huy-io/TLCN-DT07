@@ -4,10 +4,13 @@
  * Bảng Taxonomy đã bỏ (2026-11-05). Các component cũ vẫn nhận `TaxonomyTermItem[]` để lấy nhãn
  * loại sự kiện / khu vực / vai trò — nay sinh từ bảng Category:
  *   • EVENT_TYPE  = các chuyên mục CON có loại EVENT (vd. Trận đánh, Hội nghị dưới "Sự kiện").
- *   • Nhóm khác (REGION, FIGURE_ROLE, PREDICATE...) = rỗng → component tự dùng nhãn mặc định.
+ *   • Nhóm khác (FIGURE_ROLE, PREDICATE...) = rỗng → component tự dùng nhãn mặc định.
  */
 
 import { subCategoriesOfKind, type ArticleKind } from './article-kind';
+
+/** Nhóm danh mục "Loại sự kiện" — dựng từ các chuyên mục con có loại EVENT. */
+export const EVENT_TYPE_GROUP_CODE = 'EVENT_TYPE';
 
 export interface TaxonomyTermItem {
   id: string;
@@ -63,7 +66,7 @@ export function categoryToTerm(groupCode: string, c: CategoryLike): TaxonomyTerm
 
 export function buildTaxonomyGroup(groupCode: string, categories: CategoryLike[]): TaxonomyGroupItem {
   const terms =
-    groupCode === 'EVENT_TYPE'
+    groupCode === EVENT_TYPE_GROUP_CODE
       ? subCategoriesOfKind(categories, 'EVENT').map((c) => categoryToTerm(groupCode, c))
       : [];
   return { code: groupCode, label: groupCode, description: null, multiValued: false, hierarchical: false, terms };

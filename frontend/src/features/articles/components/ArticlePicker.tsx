@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
+import { ContentStatus } from '@/constants/enums';
 import { ArticleApiService, type ArticleItem } from '@/services/entities/article.service';
 
 export interface PickedArticle {
@@ -95,7 +96,7 @@ export function ArticlePicker({
               >
                 <span className="text-sm font-medium text-slate-800">{a.title}</span>
                 <span className="text-xs text-slate-500">
-                  {[a.category?.name, a.dateText || a.startYear, a.status !== 'PUBLISHED' ? 'chưa xuất bản' : null]
+                  {[a.category?.name, a.dateText || a.startYear, a.status !== ContentStatus.PUBLISHED ? 'chưa xuất bản' : null]
                     .filter(Boolean)
                     .join(' · ')}
                 </span>

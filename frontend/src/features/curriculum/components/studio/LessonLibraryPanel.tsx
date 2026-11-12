@@ -53,7 +53,9 @@ export function LessonLibraryPanel({
 
   // Quay về trang 1 mỗi khi bộ lọc/tìm kiếm thay đổi kết quả, tránh đứng ở trang rỗng
   useEffect(() => {
-    setPage(1);
+    void Promise.resolve().then(() => {
+      setPage(1);
+    });
   }, [searchTerm, statusFilter, lessons.length]);
 
   const pagedLessons = useMemo(() => {

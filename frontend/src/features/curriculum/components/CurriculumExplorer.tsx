@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   CurriculumTopicNode,
-  CurriculumLessonNode,
   AnyCurriculumNode,
   CurriculumNodeType,
 } from '@/types/models/curriculum-tree.type';
@@ -15,6 +14,24 @@ import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 import { TopicApiService } from '@/services/entities/topic.service';
 import { mapBackendTopicTreeToCurriculum } from '../utils/curriculum-mapper';
+
+/** Breadcrumb của bài học: chủ đề gốc → (chủ đề con) → bài học. */
+function lessonAncestors(lesson: AnyCurriculumNode & { topicId: string }, tree: CurriculumTopicNode[]): AnyCurriculumNode[] {
+  for (const root of tree) {
+    if (root.id === lesson.topicId) return [root, lesson];
+    const sub = (root.subTopics || root.children || []).find((s) => s.id === lesson.topicId);
+    if (sub) return [root, sub, lesson];
+  }
+  return [lesson];
+}
+
+/** Chuỗi tổ tiên của nút đang chọn, dùng cho breadcrumb ở khung chi tiết. */
+function ancestorPath(node: AnyCurriculumNode, tree: CurriculumTopicNode[]): AnyCurriculumNode[] {
+  if (node.type === CurriculumNodeType.LESSON) return lessonAncestors(node, tree);
+  if (!node.parentId) return [node];
+  const parent = tree.find((t) => t.id === node.parentId);
+  return parent ? [parent, node] : [node];
+}
 
 export function CurriculumExplorer() {
   const router = useRouter();
@@ -58,17 +75,21 @@ export function CurriculumExplorer() {
   }, []);
 
   useEffect(() => {
-    loadTree();
+    void Promise.resolve().then(() => {
+      loadTree();
+    });
   }, [loadTree]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('hisgo_curriculum_tree_width');
-    if (saved) {
-      const parsed = parseInt(saved, 10);
-      if (parsed >= 280 && parsed <= 720) {
-        setTreeWidth(parsed);
+    void Promise.resolve().then(() => {
+      const saved = localStorage.getItem('hisgo_curriculum_tree_width');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (parsed >= 280 && parsed <= 720) {
+          setTreeWidth(parsed);
+        }
       }
-    }
+    });
   }, []);
 
   useEffect(() => {
@@ -110,37 +131,10 @@ export function CurriculumExplorer() {
   };
 
   // Tính toán chuỗi đường dẫn (Breadcrumb / Ancestors)
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  const ancestors = useMemo(() => {
-    if (!selectedNode) return [];
-
-    if (selectedNode.type === CurriculumNodeType.TOPIC) {
-      // Nếu là chủ đề con, tìm chủ đề cha trong danh sách
-      if (selectedNode.parentId) {
-        const parent = treeData.find((t) => t.id === selectedNode.parentId);
-        return parent ? [parent, selectedNode] : [selectedNode];
-      }
-      return [selectedNode];
-    }
-
-    if (selectedNode.type === CurriculumNodeType.LESSON) {
-      // Tìm chủ đề cha trực tiếp và chủ đề gốc chứa lesson này
-      for (const root of treeData) {
-        if (root.id === selectedNode.topicId) {
-          return [root, selectedNode];
-        }
-        const subs = root.subTopics || root.children || [];
-        for (const sub of subs) {
-          if (sub.id === selectedNode.topicId) {
-            return [root, sub, selectedNode];
-          }
-        }
-      }
-      return [selectedNode];
-    }
-
-    return [selectedNode];
-  }, [selectedNode, treeData]);
+  const ancestors = useMemo(
+    () => (selectedNode ? ancestorPath(selectedNode, treeData) : []),
+    [selectedNode, treeData],
+  );
 
   const handleSelectNode = (node: AnyCurriculumNode) => {
     setSelectedNode(node);
@@ -255,13 +249,19 @@ export function CurriculumExplorer() {
             width: `${treeWidth}px`,
           }}
         >
-          <CurriculumTree
-            data={treeData}
-            selectedNode={selectedNode}
-            onSelectNode={handleSelectNode}
-            onAddTopic={handleAddTopic}
-            onAddLesson={(topicId) => handleAddChildLesson('', topicId)}
-          />
+          {loading && treeData.length === 0 ? (
+            <div className="flex h-full items-center justify-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">
+              Đang tải cây chủ đề...
+            </div>
+          ) : (
+            <CurriculumTree
+              data={treeData}
+              selectedNode={selectedNode}
+              onSelectNode={handleSelectNode}
+              onAddTopic={handleAddTopic}
+              onAddLesson={(topicId) => handleAddChildLesson('', topicId)}
+            />
+          )}
         </div>
 
         {/* Resizer Divider Bar */}

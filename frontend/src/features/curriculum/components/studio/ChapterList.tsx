@@ -50,32 +50,30 @@ interface ChapterListProps {
 
 /** Danh sách Chương dạng accordion + danh sách Lesson trong từng chương (kéo thả / ▲▼
  * để đổi thứ tự). Phần "Cấu trúc chương" của card Lộ trình học. */
-export function ChapterList({
-  loading,
-  chapters,
-  expandedChapters,
-  onToggleExpand,
-  onOpenCreateChapter,
-  onOpenAddLessons,
-  onCreateLessonInChapter,
-  onOpenLesson,
-  onDeleteChapter,
-  onRemoveLesson,
-  onMoveLessonOrder,
-  draggingLessonId,
-  dragOverLessonId,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  readOnly = false,
-  onEditChapter,
-}: ChapterListProps) {
+export function ChapterList(props: ChapterListProps) {
+  const {
+    loading,
+    chapters,
+    expandedChapters,
+    onToggleExpand,
+    onOpenCreateChapter,
+    onOpenAddLessons,
+    onCreateLessonInChapter,
+    onOpenLesson,
+    onDeleteChapter,
+    onRemoveLesson,
+    readOnly = false,
+    onEditChapter,
+  } = props;
+
   // Phân trang danh sách Chương — lộ trình nhiều chương trước đây dồn hết 1 lần, cuộn
   // rất dài, khó quét. Về trang 1 mỗi khi đổi sang Lộ trình khác (mảng `chapters` đổi
   // tham chiếu) để không đứng ở trang rỗng của lộ trình mới.
   const [page, setPage] = useState(1);
   useEffect(() => {
-    setPage(1);
+    queueMicrotask(() => {
+      setPage(1);
+    });
   }, [chapters]);
 
   // Chuyển đổi Accordion (mặc định, xổ Lesson trong từng Chương) / Danh sách (bảng gọn,

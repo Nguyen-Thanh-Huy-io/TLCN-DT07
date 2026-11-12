@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Undo2 } from "lucide-react";
-import { Button } from "./sk-ui";
+import { Button } from "./SkUi";
 import { NodeContent } from "./NodeContent";
 import { useTimelineFocus } from "./TimelineFocus";
 import type { TimeNode, TimelineEvent } from "./sk-types";
@@ -38,6 +38,26 @@ function EndingList({ node }: { node: TimeNode }) {
 }
 
 
+type FocusState = ReturnType<typeof useTimelineFocus>;
+
+/** Mốc có chứa sự kiện liên quan tới sự kiện/chủ thể đang xem (hoặc chưa chọn gì) thì không bị làm mờ. */
+function isNodeTouched(node: TimeNode, { focus, lens, related }: FocusState): boolean {
+  if (!focus && !lens) return true;
+  return (
+    node.events.some((e) => e.id === focus?.id || related.has(e.id)) ||
+    node.endings.some((e) => e.eventId === focus?.id || related.has(e.eventId))
+  );
+}
+
+/** Khoảng thời gian: của sự kiện kéo dài đang chọn, hoặc thời gian tồn tại của chủ thể đang xem. */
+function highlightRange({ focus, lens }: FocusState): [number, number] | null {
+  if (focus?.endYear !== undefined) return [focus.year, focus.endYear];
+  if (lens && (lens.startYear !== null || lens.endYear !== null)) {
+    return [lens.startYear ?? -Infinity, lens.endYear ?? Infinity];
+  }
+  return null;
+}
+
 export function TimelineNodeItem({
   node,
   right,
@@ -54,21 +74,12 @@ export function TimelineNodeItem({
   saved: string[];
 }) {
   const [expanded, setExpanded] = useState(false);
-  const { focus, lens, related } = useTimelineFocus();
+  const focusState = useTimelineFocus();
   const isOpen = !compact || expanded;
   // Chế độ Liên kết: mốc không chứa sự kiện liên quan thì mờ; mốc nằm trong khoảng thời gian của
   // sự kiện đang chọn (sự kiện kéo dài) có thanh đánh dấu dọc trục.
-  const touched =
-    (!focus && !lens) ||
-    node.events.some((e) => e.id === focus?.id || related.has(e.id)) ||
-    node.endings.some((e) => e.eventId === focus?.id || related.has(e.eventId));
-  // Khoảng thời gian: của sự kiện kéo dài đang chọn, hoặc thời gian tồn tại của chủ thể đang xem.
-  const range: [number, number] | null =
-    focus?.endYear !== undefined
-      ? [focus.year, focus.endYear]
-      : lens && (lens.startYear !== null || lens.endYear !== null)
-        ? [lens.startYear ?? -Infinity, lens.endYear ?? Infinity]
-        : null;
+  const touched = isNodeTouched(node, focusState);
+  const range = highlightRange(focusState);
   const inSpan = Boolean(range && node.sortYear > range[0] && node.sortYear < range[1]);
   const endOnly = node.events.length === 0;
 

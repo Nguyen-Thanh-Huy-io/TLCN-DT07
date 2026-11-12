@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { CmsAccessGate } from "@/components/layout/CmsAccessGate";
 import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { FigureProfileProvider } from "@/components/figures/FigureProfileProvider";
+import { APP_ROUTES, NavigationPageKey } from "@/constants/routes";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'hisgo_sidebar_collapsed';
 const STORAGE_VALUE_TRUE = 'true';
@@ -46,14 +47,16 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   // Restore collapsed state from localStorage on client-side mount
   useEffect(() => {
-    try {
-      const savedState = localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY);
-      if (savedState !== null) {
-        setCollapsed(savedState === STORAGE_VALUE_TRUE);
+    void Promise.resolve().then(() => {
+      try {
+        const savedState = localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY);
+        if (savedState !== null) {
+          setCollapsed(savedState === STORAGE_VALUE_TRUE);
+        }
+      } catch {
+        // Ignore localStorage errors in SSR or restricted environments
       }
-    } catch {
-      // Ignore localStorage errors in SSR or restricted environments
-    }
+    });
   }, []);
 
   const toggleCollapse = () => {
@@ -98,8 +101,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const setPage = (newPage: string) => {
     if (newPage === DASHBOARD_PAGE_KEY) {
       router.push("/cms");
-    } else if (newPage === "moderation") {
-      router.push("/cms/moderation");
+    } else if (newPage === NavigationPageKey.MODERATION) {
+      router.push(APP_ROUTES.MODERATION);
     } else {
       router.push(`/${newPage}`);
     }
@@ -121,8 +124,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         <Topbar
           page={page}
           openNav={() => setMobileNav(true)}
-          collapsed={collapsed}
-          toggleCollapse={toggleCollapse}
         />
         <main className="page">
           <PageHeader pathname={pathname} />

@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowDown, ArrowLeft, ArrowUp, ExternalLink, Plus, Save, Send, Trash2, Upload } from 'lucide-react';
 import { APP_ROUTES } from '@/constants/routes';
+import { ContentStatus } from '@/constants/enums';
 import { extractErrorMessage } from '@/services/api';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
 import type { ContentStatusValue } from '@/services/entities/article.service';
 import { TimelineApiService, type TimelineNodeItem } from '@/services/entities/timeline.service';
@@ -113,7 +114,11 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
   }, []);
 
   useEffect(() => {
-    if (timelineId) load(timelineId);
+    if (timelineId) {
+      queueMicrotask(() => {
+        void load(timelineId);
+      });
+    }
   }, [timelineId, load]);
 
   const updateNode = (key: string, patch: Partial<NodeDraft>) =>
@@ -164,7 +169,7 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
     };
     try {
       if (!timelineId) {
-        const created = await TimelineApiService.create({ ...payload, status: nextStatus ?? 'DRAFT' });
+        const created = await TimelineApiService.create({ ...payload, status: nextStatus ?? ContentStatus.DRAFT });
         router.replace(APP_ROUTES.TIMELINES.DETAIL(created.id));
         return;
       }
@@ -183,7 +188,7 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
 
   const input = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400';
   const label = 'mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600';
-  const lockedForEditor = status === 'PUBLISHED' && !isReviewer;
+  const lockedForEditor = status === ContentStatus.PUBLISHED && !isReviewer;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-4">
@@ -193,28 +198,28 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
         </Link>
         <h1 className="min-w-0 flex-1 truncate text-lg font-bold text-slate-900">{title || 'Dòng thời gian mới'}</h1>
         {timelineId && <StatusPill status={status} />}
-        {savedSlug && status === 'PUBLISHED' && (
+        {savedSlug && status === ContentStatus.PUBLISHED && (
           <a href={PUBLIC_ROUTES.TIMELINE(savedSlug)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-slate-600">
             <ExternalLink size={14} /> Xem công khai
           </a>
         )}
         {!lockedForEditor && (
           <>
-            <button type="button" disabled={saving} onClick={() => save(status === 'PUBLISHED' ? undefined : 'DRAFT')} className="secondary-button !h-9 !text-sm">
-              <Save size={15} /> {status === 'PUBLISHED' ? 'Lưu thay đổi' : 'Lưu nháp'}
+            <button type="button" disabled={saving} onClick={() => save(status === ContentStatus.PUBLISHED ? undefined : ContentStatus.DRAFT)} className="secondary-button !h-9 !text-sm">
+              <Save size={15} /> {status === ContentStatus.PUBLISHED ? 'Lưu thay đổi' : 'Lưu nháp'}
             </button>
-            {!isReviewer && status !== 'PENDING_REVIEW' && (
-              <button type="button" disabled={saving} onClick={() => save('PENDING_REVIEW')} className="primary-button !h-9 !text-sm">
+            {!isReviewer && status !== ContentStatus.PENDING_REVIEW && (
+              <button type="button" disabled={saving} onClick={() => save(ContentStatus.PENDING_REVIEW)} className="primary-button !h-9 !text-sm">
                 <Send size={15} /> Gửi duyệt
               </button>
             )}
-            {isReviewer && status !== 'PUBLISHED' && (
-              <button type="button" disabled={saving} onClick={() => save('PUBLISHED')} className="primary-button !h-9 !text-sm">
+            {isReviewer && status !== ContentStatus.PUBLISHED && (
+              <button type="button" disabled={saving} onClick={() => save(ContentStatus.PUBLISHED)} className="primary-button !h-9 !text-sm">
                 <Upload size={15} /> Xuất bản
               </button>
             )}
-            {isReviewer && status === 'PUBLISHED' && (
-              <button type="button" disabled={saving} onClick={() => save('DRAFT')} className="secondary-button !h-9 !text-sm">
+            {isReviewer && status === ContentStatus.PUBLISHED && (
+              <button type="button" disabled={saving} onClick={() => save(ContentStatus.DRAFT)} className="secondary-button !h-9 !text-sm">
                 Chuyển về nháp
               </button>
             )}

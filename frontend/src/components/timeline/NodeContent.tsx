@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, MapPin, Plus, Users } from "lucide-react";
-import { Button } from "./sk-ui";
+import { Button } from "./SkUi";
 import { EventCard } from "./EventCard";
 import { EntityList } from "./EntityList";
 import { type TimeNode, type TimelineEvent, NodeContentTab } from "./sk-types";

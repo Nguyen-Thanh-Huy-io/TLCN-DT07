@@ -4,9 +4,9 @@ import { DataTable } from '@/components/table/DataTable';
 import { UserCell } from '@/components/common/UserCell';
 import { Badge } from '@/components/common/Badge';
 import { ColumnDef } from '@/types/table.types';
-import { UserRole, UserStatus, NoticeTone } from '@/constants/enums';
+import { CommonFilterOption, UserRole, UserStatus, NoticeTone } from '@/constants/enums';
 import api, { extractErrorMessage } from '@/services/api';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
 
 const ROLE_OPTIONS: UserRole[] = [UserRole.USER, UserRole.MODERATOR, UserRole.ADMIN, UserRole.SUPERADMIN];
@@ -26,8 +26,8 @@ export function UserList() {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
-  const [selectedRole, setSelectedRole] = useState<string>('ALL');
-  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [selectedRole, setSelectedRole] = useState<string>(CommonFilterOption.ALL);
+  const [selectedStatus, setSelectedStatus] = useState<string>(CommonFilterOption.ALL);
   const currentUserId = useAuthSession()?.id ?? null;
 
   // Đổi vai trò: backend thu hồi phiên cũ của tài khoản đó, người dùng phải đăng nhập lại.
@@ -126,7 +126,7 @@ export function UserList() {
 
   const roleOptions = React.useMemo(
     () => [
-      { label: 'Tất cả vai trò', value: 'ALL' },
+      { label: 'Tất cả vai trò', value: CommonFilterOption.ALL },
       ...ROLE_OPTIONS.map((r) => ({
         label: USER_ROLE_LABELS[r] || r,
         value: r,
@@ -137,7 +137,7 @@ export function UserList() {
 
   const statusOptions = React.useMemo(
     () => [
-      { label: 'Tất cả trạng thái', value: 'ALL' },
+      { label: 'Tất cả trạng thái', value: CommonFilterOption.ALL },
       { label: 'Đang hoạt động', value: UserStatus.ACTIVE },
       { label: 'Tạm khóa', value: UserStatus.INACTIVE },
       { label: 'Bị đình chỉ', value: UserStatus.SUSPENDED },
@@ -147,10 +147,10 @@ export function UserList() {
 
   const displayedUsers = React.useMemo(() => {
     return users.filter((u) => {
-      if (selectedRole !== 'ALL' && u.role !== selectedRole) {
+      if (selectedRole !== CommonFilterOption.ALL && u.role !== selectedRole) {
         return false;
       }
-      if (selectedStatus !== 'ALL' && u.status !== selectedStatus) {
+      if (selectedStatus !== CommonFilterOption.ALL && u.status !== selectedStatus) {
         return false;
       }
       return true;

@@ -20,7 +20,7 @@ import { LearningPathFormModal } from './studio/modals/LearningPathFormModal';
 import { CreateChapterModal } from './studio/modals/CreateChapterModal';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { extractErrorMessage } from '@/services/api';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
 import {
   ContentRevisionApiService,
@@ -155,8 +155,10 @@ export function HisgoStudioView() {
   }, [showError]);
 
   useEffect(() => {
-    loadLearningPaths();
-    loadLibraryLessons();
+    void Promise.resolve().then(() => {
+      loadLearningPaths();
+      loadLibraryLessons();
+    });
   }, [loadLearningPaths, loadLibraryLessons]);
 
   // Lộ trình đang được chọn — `null` khi chưa chọn gì (hiện danh sách), KHÔNG fallback
@@ -189,19 +191,23 @@ export function HisgoStudioView() {
   }, [currentPath]);
 
   useEffect(() => {
-    setRevisionNotice(null);
-    void refreshPathPending();
+    void Promise.resolve().then(() => {
+      setRevisionNotice(null);
+      void refreshPathPending();
+    });
   }, [refreshPathPending]);
 
   // Tự động mở rộng tất cả các chương khi tải xong
   useEffect(() => {
-    if (currentPath?.chapters) {
-      const defaultState: Record<string, boolean> = {};
-      currentPath.chapters.forEach((ch) => {
-        defaultState[ch.id] = true;
-      });
-      setExpandedChapters((prev) => ({ ...defaultState, ...prev }));
-    }
+    void Promise.resolve().then(() => {
+      if (currentPath?.chapters) {
+        const defaultState: Record<string, boolean> = {};
+        currentPath.chapters.forEach((ch) => {
+          defaultState[ch.id] = true;
+        });
+        setExpandedChapters((prev) => ({ ...defaultState, ...prev }));
+      }
+    });
   }, [currentPath]);
 
   // Đổi trạng thái mở/thu gọn một chương

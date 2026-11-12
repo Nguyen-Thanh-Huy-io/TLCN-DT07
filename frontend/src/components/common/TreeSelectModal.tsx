@@ -97,22 +97,24 @@ export function TreeSelectModal({
 
   // Mặc định bung mở toàn bộ các nhánh khi mở modal
   useEffect(() => {
-    if (isOpen) {
-      setSearchTerm('');
-      if (nodes.length > 0) {
-        const exp: Record<string, boolean> = {};
-        const traverse = (list: TreeSelectNode[]) => {
-          list.forEach((n) => {
-            if (n.children && n.children.length > 0) {
-              exp[n.id] = true;
-              traverse(n.children);
-            }
-          });
-        };
-        traverse(nodes);
-        setExpandedNodes(exp);
+    void Promise.resolve().then(() => {
+      if (isOpen) {
+        setSearchTerm('');
+        if (nodes.length > 0) {
+          const exp: Record<string, boolean> = {};
+          const traverse = (list: TreeSelectNode[]) => {
+            list.forEach((n) => {
+              if (n.children && n.children.length > 0) {
+                exp[n.id] = true;
+                traverse(n.children);
+              }
+            });
+          };
+          traverse(nodes);
+          setExpandedNodes(exp);
+        }
       }
-    }
+    });
   }, [isOpen, nodes]);
 
   if (!isOpen) return null;
@@ -341,6 +343,19 @@ export interface TreeSelectTriggerProps {
   badgeColor?: 'emerald' | 'blue';
 }
 
+const TRIGGER_BADGE_STYLES = {
+  emerald: {
+    chip: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+    removeBtn: 'text-emerald-600 hover:text-rose-600',
+    addMore: 'text-emerald-700',
+  },
+  blue: {
+    chip: 'bg-blue-50 border-blue-200 text-blue-900',
+    removeBtn: 'text-blue-600 hover:text-rose-600',
+    addMore: 'text-blue-700',
+  },
+} as const;
+
 export function TreeSelectTrigger({
   onClick,
   selectedItems,
@@ -349,18 +364,11 @@ export function TreeSelectTrigger({
   icon,
   badgeColor = 'emerald',
 }: TreeSelectTriggerProps) {
-  const chipStyle =
-    badgeColor === 'blue'
-      ? 'bg-blue-50 border-blue-200 text-blue-900'
-      : 'bg-emerald-50 border-emerald-200 text-emerald-900';
-
-  const removeBtnStyle =
-    badgeColor === 'blue'
-      ? 'text-blue-600 hover:text-rose-600'
-      : 'text-emerald-600 hover:text-rose-600';
-
-  const addMoreStyle =
-    badgeColor === 'blue' ? 'text-blue-700' : 'text-emerald-700';
+  const {
+    chip: chipStyle,
+    removeBtn: removeBtnStyle,
+    addMore: addMoreStyle,
+  } = TRIGGER_BADGE_STYLES[badgeColor];
 
   return (
     <div

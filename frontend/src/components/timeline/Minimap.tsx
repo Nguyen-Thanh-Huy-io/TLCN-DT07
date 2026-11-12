@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown, Layers } from "lucide-react";
-import { Button } from "./sk-ui";
+import { Button } from "./SkUi";
 import type { Era } from "./sk-types";
 
 /** "Giai đoạn Trưng Nữ Vương (40 - 43)" → "Giai đoạn Trưng Nữ Vương": năm đã có ở chip riêng. */

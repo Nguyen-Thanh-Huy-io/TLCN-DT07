@@ -10,6 +10,9 @@ import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 
 const SELECTED_NODE_STYLE = 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300';
+const IDLE_NODE_STYLE = 'hover:bg-slate-50 text-slate-600';
+const SELECTED_ICON_CLASS = 'text-slate-900';
+const MUTED_ICON_CLASS = 'text-slate-400';
 const FILTER_BTN_ACTIVE = 'bg-slate-900 text-white';
 const FILTER_BTN_INACTIVE = 'bg-slate-100 text-slate-600 hover:bg-slate-200';
 const CHEVRON_BTN_BASE = 'p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform';
@@ -388,7 +391,7 @@ export function CurriculumTree({
                     <Icon
                       name={IconName.FOLDER}
                       size={14}
-                      className={isSelected ? 'text-slate-900' : 'text-slate-600'}
+                      className={isSelected ? SELECTED_ICON_CLASS : 'text-slate-600'}
                     />
                     <span className="text-xs truncate font-medium" title={rootTopic.name}>
                       {rootTopic.name}
@@ -452,7 +455,7 @@ export function CurriculumTree({
                               <Icon
                                 name={IconName.FOLDER}
                                 size={12}
-                                className={isSubSelected ? 'text-slate-900' : 'text-slate-400'}
+                                className={isSubSelected ? SELECTED_ICON_CLASS : MUTED_ICON_CLASS}
                               />
                               <span className="text-[11.5px] truncate font-medium" title={subTopic.name}>
                                 {subTopic.name}
@@ -495,7 +498,7 @@ export function CurriculumTree({
                                       className={`tree-node group level-3 flex items-center justify-between p-1 px-2 rounded-md cursor-pointer transition-colors ${
                                         isGrandSelected
                                           ? SELECTED_NODE_STYLE
-                                          : 'hover:bg-slate-50 text-slate-600'
+                                          : IDLE_NODE_STYLE
                                       }`}
                                       onClick={() => onSelectNode(grand)}
                                     >
@@ -517,7 +520,7 @@ export function CurriculumTree({
                                           name={IconName.FOLDER}
                                           size={11}
                                           className={
-                                            isGrandSelected ? 'text-slate-900' : 'text-slate-400'
+                                            isGrandSelected ? SELECTED_ICON_CLASS : MUTED_ICON_CLASS
                                           }
                                         />
                                         <span
@@ -559,7 +562,7 @@ export function CurriculumTree({
                                               className={`tree-node group level-4 flex items-center justify-between p-1 px-1.5 rounded-md cursor-pointer transition-colors ${
                                                 isLessonSelected
                                                   ? SELECTED_NODE_STYLE
-                                                  : 'hover:bg-slate-50 text-slate-600'
+                                                  : IDLE_NODE_STYLE
                                               }`}
                                               onClick={() => onSelectNode(lesson)}
                                             >
@@ -569,8 +572,8 @@ export function CurriculumTree({
                                                   size={11}
                                                   className={
                                                     isLessonSelected
-                                                      ? 'text-slate-900'
-                                                      : 'text-slate-400'
+                                                      ? SELECTED_ICON_CLASS
+                                                      : MUTED_ICON_CLASS
                                                   }
                                                 />
                                                 <span
@@ -608,7 +611,7 @@ export function CurriculumTree({
                                     className={`tree-node group level-3 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
                                       isLessonSelected
                                         ? SELECTED_NODE_STYLE
-                                        : 'hover:bg-slate-50 text-slate-600'
+                                        : IDLE_NODE_STYLE
                                     }`}
                                     onClick={() => onSelectNode(lesson)}
                                   >
@@ -617,7 +620,7 @@ export function CurriculumTree({
                                         name={IconName.BOOK}
                                         size={12}
                                         className={
-                                          isLessonSelected ? 'text-slate-900' : 'text-slate-400'
+                                          isLessonSelected ? SELECTED_ICON_CLASS : MUTED_ICON_CLASS
                                         }
                                       />
                                       <span
@@ -655,7 +658,7 @@ export function CurriculumTree({
                           className={`tree-node group level-3 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
                             isLessonSelected
                               ? SELECTED_NODE_STYLE
-                              : 'hover:bg-slate-50 text-slate-600'
+                              : IDLE_NODE_STYLE
                           }`}
                           onClick={() => onSelectNode(lesson)}
                         >
@@ -663,7 +666,7 @@ export function CurriculumTree({
                             <Icon
                               name={IconName.BOOK}
                               size={12}
-                              className={isLessonSelected ? 'text-slate-900' : 'text-slate-400'}
+                              className={isLessonSelected ? SELECTED_ICON_CLASS : MUTED_ICON_CLASS}
                             />
                             <span
                               className="text-[11.5px] truncate"

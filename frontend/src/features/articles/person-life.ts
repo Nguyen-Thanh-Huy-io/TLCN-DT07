@@ -49,7 +49,17 @@ export interface LifeInput {
   milestones?: LifeMilestoneInput[];
 }
 
-export type LifeSource = 'LINK' | 'OWN_NODE' | 'MILESTONE';
+export enum LifeSource {
+  LINK = 'LINK',
+  OWN_NODE = 'OWN_NODE',
+  MILESTONE = 'MILESTONE',
+}
+
+/** Chiều của liên kết bài ↔ bài so với bài đang xem. */
+export enum LinkDirection {
+  OUTGOING = 'OUTGOING',
+  INCOMING = 'INCOMING',
+}
 
 export const LIFE_SOURCE_LABELS: Record<LifeSource, string> = {
   LINK: 'Liên kết tới bài sự kiện',
@@ -99,7 +109,7 @@ export function buildPersonLife(input: LifeInput): LifeItem[] {
     const year = node?.year ?? a.startYear;
     items.push({
       key: `link-${a.id}`,
-      source: 'LINK',
+      source: LifeSource.LINK,
       year,
       dateLabel: node ? nodeDateLabel(node) : a.dateText || formatYear(a.startYear) || null,
       title: node?.title ?? a.title,
@@ -115,7 +125,7 @@ export function buildPersonLife(input: LifeInput): LifeItem[] {
   for (const node of input.ownNodes) {
     items.push({
       key: `node-${node.id}`,
-      source: 'OWN_NODE',
+      source: LifeSource.OWN_NODE,
       year: node.year,
       dateLabel: nodeDateLabel(node),
       title: node.title,
@@ -131,7 +141,7 @@ export function buildPersonLife(input: LifeInput): LifeItem[] {
   (input.milestones ?? []).forEach((m, i) => {
     items.push({
       key: `ms-${i}`,
-      source: 'MILESTONE',
+      source: LifeSource.MILESTONE,
       year: m.year,
       dateLabel: nodeDateLabel({ dateText: null, year: m.year, month: m.month ?? null, day: m.day ?? null, endYear: null }),
       title: m.title,

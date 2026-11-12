@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '@/constants/api-url';
+import { APP_ROUTES } from '@/constants/routes';
 import { PublicAuthService } from './auth/public-auth.service';
 
 // Lấy base URL:
@@ -26,10 +27,11 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+/** Ngoài cây React (interceptor axios) nên không dùng được router: chuyển hẳn trang, thay mục lịch sử hiện tại để nút Back không quay lại trang vừa hết phiên. */
 function redirectToLogin(): void {
-  if (typeof window === 'undefined' || window.location.pathname.startsWith('/login')) return;
+  if (typeof window === 'undefined' || window.location.pathname.startsWith(APP_ROUTES.LOGIN)) return;
   const back = window.location.pathname + window.location.search;
-  window.location.assign(`/login?redirect=${encodeURIComponent(back)}`);
+  window.location.replace(`${APP_ROUTES.LOGIN}?redirect=${encodeURIComponent(back)}`);
 }
 
 export const API_ERROR_NETWORK_CODE = 'ERR_NETWORK';

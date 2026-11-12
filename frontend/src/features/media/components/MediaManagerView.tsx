@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
+import { CommonFilterOption, MediaItemType } from '@/constants/enums';
 import api, { extractErrorMessage } from '@/services/api';
 import { formatTimeAgo } from '@/utils/time-ago.util';
 
@@ -10,7 +11,7 @@ export interface MediaFileItem {
   id: string;
   name: string;
   url: string;
-  type: 'image' | 'video' | 'document';
+  type: MediaItemType;
   sizeBytes: number;
   uploadedAt: string;
   dimensions?: string;
@@ -18,6 +19,15 @@ export interface MediaFileItem {
 }
 
 const MEDIA_STORAGE_KEY = 'hisgo_uploaded_media_library';
+
+type MediaFilterValue = MediaItemType | CommonFilterOption.ALL;
+
+const MEDIA_FILTER_OPTIONS: ReadonlyArray<{ type: MediaFilterValue; label: string }> = [
+  { type: CommonFilterOption.ALL, label: 'Tất cả' },
+  { type: MediaItemType.IMAGE, label: 'Hình ảnh' },
+  { type: MediaItemType.VIDEO, label: 'Video' },
+  { type: MediaItemType.DOCUMENT, label: 'Tài liệu' },
+];
 
 export function MediaManagerView() {
   const [mediaList, setMediaList] = useState<MediaFileItem[]>(() => {
@@ -29,7 +39,7 @@ export function MediaManagerView() {
     }
     return [];
   });
-  const [filterType, setFilterType] = useState<'all' | 'image' | 'video' | 'document'>('all');
+  const [filterType, setFilterType] = useState<MediaFilterValue>(CommonFilterOption.ALL);
   const [searchQuery, setSearchQuery] = useState('');
   const [uploading, setUploading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -40,11 +50,12 @@ export function MediaManagerView() {
 
   const filteredMedia = useMemo(() => {
     return mediaList.filter((item) => {
-      const matchType = filterType === 'all' || item.type === filterType;
+      const matchType = filterType === CommonFilterOption.ALL || item.type === filterType;
+      const trimmedQuery = searchQuery.trim().toLowerCase();
       const matchSearch =
-        searchQuery === '' ||
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.tags?.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+        trimmedQuery.length === 0 ||
+        item.name.toLowerCase().includes(trimmedQuery) ||
+        item.tags?.some((t) => t.toLowerCase().includes(trimmedQuery));
       return matchType && matchSearch;
     });
   }, [mediaList, filterType, searchQuery]);
@@ -66,11 +77,17 @@ export function MediaManagerView() {
 
       const uploadedUrl = response.data?.url || response.data?.filePath || URL.createObjectURL(file);
 
+      const detectedType = file.type.startsWith('video/')
+        ? MediaItemType.VIDEO
+        : file.type.includes('pdf')
+          ? MediaItemType.DOCUMENT
+          : MediaItemType.IMAGE;
+
       const newItem: MediaFileItem = {
         id: `media-${Date.now()}`,
         name: file.name,
         url: uploadedUrl,
-        type: file.type.startsWith('video/') ? 'video' : file.type.includes('pdf') ? 'document' : 'image',
+        type: detectedType,
         sizeBytes: file.size,
         uploadedAt: new Date().toISOString(),
         tags: ['Mới tải lên'],
@@ -161,21 +178,18 @@ export function MediaManagerView() {
           </div>
 
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-            {(['all', 'image', 'video', 'document'] as const).map((type) => (
+            {MEDIA_FILTER_OPTIONS.map((opt) => (
               <button
-                key={type}
+                key={opt.type}
                 type="button"
-                onClick={() => setFilterType(type)}
+                onClick={() => setFilterType(opt.type)}
                 className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  filterType === type
+                  filterType === opt.type
                     ? 'bg-white text-slate-900 shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                {type === 'all' && 'Tất cả'}
-                {type === 'image' && 'Hình ảnh'}
-                {type === 'video' && 'Video'}
-                {type === 'document' && 'Tài liệu'}
+                {opt.label}
               </button>
             ))}
           </div>
@@ -226,13 +240,14 @@ export function MediaManagerView() {
                 className="relative h-44 bg-slate-100 flex items-center justify-center cursor-pointer overflow-hidden"
                 onClick={() => setPreviewMedia(item)}
               >
-                {item.type === 'image' ? (
+                {item.type === MediaItemType.IMAGE ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={item.url}
                     alt={item.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                ) : item.type === 'video' ? (
+                ) : item.type === MediaItemType.VIDEO ? (
                   <div className="flex flex-col items-center text-slate-500">
                     <Icon name={IconName.VIDEO} size={36} />
                     <span className="text-xs mt-1 font-medium">Video tư liệu</span>
@@ -330,7 +345,8 @@ export function MediaManagerView() {
             </div>
 
             <div className="py-4 flex justify-center bg-slate-50 rounded-xl my-4 max-h-[60vh] overflow-hidden">
-              {previewMedia.type === 'image' ? (
+              {previewMedia.type === MediaItemType.IMAGE ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={previewMedia.url}
                   alt={previewMedia.name}

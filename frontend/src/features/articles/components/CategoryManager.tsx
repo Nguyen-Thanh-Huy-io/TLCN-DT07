@@ -45,7 +45,9 @@ export function CategoryManager() {
   }, []);
 
   useEffect(() => {
-    load();
+    void Promise.resolve().then(() => {
+      load();
+    });
   }, [load]);
 
   const save = async () => {

@@ -11,6 +11,7 @@ import { pathLessons } from '@/features/public-curriculum/components/hub/HubSyll
 import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonProgress';
 import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubButton, HubProgress } from '@/features/public-curriculum/components/hub/HubUi';
 import { AccountCard, Notice, type NoticeState } from './AccountUi';
+import { RemoteImage } from '@/components/common/RemoteImage';
 
 export function LearningSection() {
   const { enrolledPathIds, isCompleted, unenroll, completedIds, ready } = useLessonProgress();
@@ -66,7 +67,7 @@ export function LearningSection() {
             const next = lessons.find((l) => !isCompleted(l.id)) ?? lessons[0];
             return (
               <article key={path.id} className="grid gap-4 rounded-xl border border-lh-line p-4 sm:grid-cols-[9rem_minmax(0,1fr)]">
-                <img
+                <RemoteImage
                   src={path.coverImageUrl || DEFAULT_COVER_IMAGES[index % DEFAULT_COVER_IMAGES.length]}
                   alt=""
                   className="aspect-video w-full rounded-lg object-cover sm:aspect-square"

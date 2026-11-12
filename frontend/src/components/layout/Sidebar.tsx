@@ -1,12 +1,14 @@
 'use client';
 import React, { useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { APP_ROUTES } from '@/constants/routes';
 import { Icon } from '@/components/icons/Icon';
 import { Logo } from '@/components/common/Logo';
 import { Avatar } from '@/components/common/Avatar';
 import { IconName } from '@/constants/icons';
 import { navigationFacade } from '@/services/navigation/navigation-strategy.service';
 import { NavGroupConfig, NavItemConfig } from '@/constants/navigation';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { PublicAuthService, USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
 import { canAccessCmsPage } from '@/components/layout/CmsAccessGate';
 
@@ -27,6 +29,7 @@ export function Sidebar({
   collapsed = false,
   toggleCollapse,
 }: SidebarProps) {
+  const router = useRouter();
   const user = useAuthSession();
   // Ẩn mục menu mà vai trò hiện tại không vào được (vd. biên tập viên không thấy Duyệt bài).
   const navGroups: NavGroupConfig[] = useMemo(
@@ -50,12 +53,10 @@ export function Sidebar({
     const activeGroup = navGroups.find((g) =>
       g.items.some((item) => item.page === activeKey),
     );
-    if (activeGroup && collapsedGroups[activeGroup.id]) {
-      setCollapsedGroups((prev) => ({
-        ...prev,
-        [activeGroup.id]: false,
-      }));
-    }
+    if (!activeGroup) return;
+    void Promise.resolve().then(() =>
+      setCollapsedGroups((prev) => (prev[activeGroup.id] ? { ...prev, [activeGroup.id]: false } : prev)),
+    );
   }, [page, navGroups]);
 
   const toggleGroup = (groupId: string) => {
@@ -190,7 +191,7 @@ export function Sidebar({
             title="Đăng xuất"
             onClick={async () => {
               await PublicAuthService.logout();
-              window.location.assign('/login');
+              router.replace(APP_ROUTES.LOGIN);
             }}
           >
             <Icon name={IconName.LOGOUT} size={15} />

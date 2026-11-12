@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { BadgeCheck, BookOpen, KeyRound, LayoutDashboard, LogOut, UserRound } from 'lucide-react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { PublicAuthService, USER_ROLE_LABELS, isStaffRole } from '@/services/auth/public-auth.service';
 import { AccountApiService, type MyProfile } from '@/services/auth/account.service';
 import { extractErrorMessage } from '@/services/api';
@@ -14,6 +14,7 @@ import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubBadge, HubButton } from '@/fea
 import { ProfileSection } from './ProfileSection';
 import { LearningSection } from './LearningSection';
 import { SecuritySection } from './SecuritySection';
+import { RemoteImage } from '@/components/common/RemoteImage';
 
 const SECTIONS = [
   { id: 'ho-so', label: 'Hồ sơ', icon: UserRound },
@@ -72,7 +73,7 @@ export function AccountView() {
             <aside className="rounded-2xl border border-lh-line bg-lh-surface p-5 shadow-lh-card lg:sticky lg:top-24">
               <div className="flex flex-col items-center text-center">
                 {profile.userProfile?.avatarUrl ? (
-                  <img src={profile.userProfile.avatarUrl} alt="" className="size-20 rounded-full object-cover" />
+                  <RemoteImage src={profile.userProfile.avatarUrl} alt="" className="size-20 rounded-full object-cover" />
                 ) : (
                   <span className="grid size-20 place-items-center rounded-full bg-lh-brand text-2xl font-bold text-white">
                     {displayName(profile).slice(0, 2).toUpperCase()}

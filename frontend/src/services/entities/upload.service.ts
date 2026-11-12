@@ -8,6 +8,11 @@ export interface UploadImageResult {
   url: string;
 }
 
+/** Backend bọc mọi response qua TransformInterceptor: { statusCode, message, data }. */
+interface UploadResponse {
+  data: UploadImageResult;
+}
+
 export class UploadApiService {
   /**
    * Upload file ảnh lên backend. Backend sẽ ưu tiên Cloudinary nếu đã cấu hình,
@@ -17,14 +22,13 @@ export class UploadApiService {
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await api.post<UploadImageResult>('/upload/image', formData, {
+    const res = await api.post<UploadResponse>('/upload/image', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
 
-    const data = (res.data as any)?.data || res.data;
-    return data;
+    return res.data.data;
   }
 
   /**
@@ -34,13 +38,12 @@ export class UploadApiService {
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await api.post<UploadImageResult>('/upload/document', formData, {
+    const res = await api.post<UploadResponse>('/upload/document', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
 
-    const data = (res.data as any)?.data || res.data;
-    return data;
+    return res.data.data;
   }
 }

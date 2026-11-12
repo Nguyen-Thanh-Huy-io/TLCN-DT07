@@ -7,6 +7,11 @@ import { io, Socket } from 'socket.io-client';
 import { API_BASE_URL } from '@/constants/api-url';
 import api from '@/services/api';
 import { PublicAuthService } from '@/services/auth/public-auth.service';
+import {
+  NotificationType,
+  NotificationFilterTab,
+  NotificationBellVariant,
+} from '@/constants/enums';
 
 export interface NotificationItem {
   id: string;
@@ -19,23 +24,25 @@ export interface NotificationItem {
 }
 
 export interface NotificationBellProps {
-  variant?: 'header' | 'topbar';
+  variant?: NotificationBellVariant | 'header' | 'topbar';
 }
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
-    case 'BLOG_COMMENT':
-    case 'NEW_REPLY':
+    case NotificationType.BLOG_COMMENT:
+    case NotificationType.NEW_REPLY:
+    case NotificationType.NEW_QUESTION:
+    case NotificationType.OFFICIAL_REPLY:
       return <MessageSquare size={14} className="text-blue-600" />;
-    case 'POST_LIKED':
+    case NotificationType.POST_LIKED:
       return <Heart size={14} className="text-rose-600 fill-rose-500" />;
-    case 'NEW_FOLLOWER':
+    case NotificationType.NEW_FOLLOWER:
       return <UserPlus size={14} className="text-amber-700" />;
-    case 'CONTENT_APPROVED':
+    case NotificationType.CONTENT_APPROVED:
       return <CheckCircle size={14} className="text-emerald-600" />;
-    case 'CONTENT_VIOLATION':
+    case NotificationType.CONTENT_VIOLATION:
       return <ShieldAlert size={14} className="text-red-700" />;
-    case 'CONTENT_REJECTED':
+    case NotificationType.CONTENT_REJECTED:
       return <AlertCircle size={14} className="text-rose-600" />;
     default:
       return <Bell size={14} className="text-amber-600" />;
@@ -86,7 +93,7 @@ function NotificationBadge({ count, isBumping }: { count: number; isBumping: boo
   );
 }
 
-export function NotificationBell({ variant = 'header' }: NotificationBellProps) {
+export function NotificationBell({ variant = NotificationBellVariant.HEADER }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -94,7 +101,7 @@ export function NotificationBell({ variant = 'header' }: NotificationBellProps) 
   const [currentUser, setCurrentUser] = useState(() => PublicAuthService.getCurrentUser());
   const [toastNotification, setToastNotification] = useState<NotificationItem | null>(null);
   const [isBumping, setIsBumping] = useState(false);
-  const [filterTab, setFilterTab] = useState<'all' | 'unread'>('all');
+  const [filterTab, setFilterTab] = useState<NotificationFilterTab>(NotificationFilterTab.ALL);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -145,7 +152,7 @@ export function NotificationBell({ variant = 'header' }: NotificationBellProps) 
       return;
     }
 
-    fetchNotifications();
+    void Promise.resolve().then(() => void fetchNotifications());
 
     const socket = io(API_BASE_URL, {
       transports: ['websocket', 'polling'],
@@ -228,14 +235,14 @@ export function NotificationBell({ variant = 'header' }: NotificationBellProps) 
 
   // Lọc theo tab Tất cả / Chưa đọc
   const displayedNotifications = notifications.filter((n) => {
-    if (filterTab === 'unread') return !n.isRead;
+    if (filterTab === NotificationFilterTab.UNREAD) return !n.isRead;
     return true;
   });
 
   return (
     <>
       <div ref={dropdownRef} className="relative inline-flex items-center">
-        {variant === 'topbar' ? (
+        {variant === NotificationBellVariant.TOPBAR ? (
           <button
             type="button"
             onClick={() => {
@@ -293,9 +300,9 @@ export function NotificationBell({ variant = 'header' }: NotificationBellProps) 
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setFilterTab('all')}
+                  onClick={() => setFilterTab(NotificationFilterTab.ALL)}
                   className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-                    filterTab === 'all'
+                    filterTab === NotificationFilterTab.ALL
                       ? 'bg-stone-900 text-white shadow-sm'
                       : 'bg-stone-200/70 text-stone-600 hover:bg-stone-200'
                   }`}
@@ -304,9 +311,9 @@ export function NotificationBell({ variant = 'header' }: NotificationBellProps) 
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFilterTab('unread')}
+                  onClick={() => setFilterTab(NotificationFilterTab.UNREAD)}
                   className={`rounded-full px-3 py-1 text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                    filterTab === 'unread'
+                    filterTab === NotificationFilterTab.UNREAD
                       ? 'bg-red-600 text-white shadow-sm'
                       : 'bg-stone-200/70 text-stone-600 hover:bg-stone-200'
                   }`}
@@ -315,7 +322,7 @@ export function NotificationBell({ variant = 'header' }: NotificationBellProps) 
                   {unreadCount > 0 && (
                     <span
                       className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                        filterTab === 'unread' ? 'bg-white/25 text-white' : 'bg-red-600 text-white'
+                        filterTab === NotificationFilterTab.UNREAD ? 'bg-white/25 text-white' : 'bg-red-600 text-white'
                       }`}
                     >
                       {unreadCount > 99 ? '99+' : unreadCount}
@@ -331,7 +338,7 @@ export function NotificationBell({ variant = 'header' }: NotificationBellProps) 
                 <div className="p-8 text-center text-xs text-stone-400">Đang tải thông báo…</div>
               ) : displayedNotifications.length === 0 ? (
                 <div className="p-8 text-center text-xs text-stone-400">
-                  {filterTab === 'unread' ? 'Không có thông báo chưa đọc nào.' : 'Bạn chưa có thông báo nào.'}
+                  {filterTab === NotificationFilterTab.UNREAD ? 'Không có thông báo chưa đọc nào.' : 'Bạn chưa có thông báo nào.'}
                 </div>
               ) : (
                 displayedNotifications.map((n) => (

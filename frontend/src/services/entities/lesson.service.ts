@@ -7,8 +7,8 @@ export interface CreateLessonDto {
   slug?: string;
   description?: string;
   summary?: string;
-  content?: any;
-  contentRichText?: any;
+  content?: unknown;
+  contentRichText?: string;
   thumbnailUrl?: string;
   difficulty?: DifficultyLevel;
   displayOrder?: number;
@@ -20,8 +20,8 @@ export interface UpdateLessonDto {
   slug?: string;
   description?: string;
   summary?: string;
-  content?: any;
-  contentRichText?: any;
+  content?: unknown;
+  contentRichText?: string;
   thumbnailUrl?: string;
   difficulty?: DifficultyLevel;
   displayOrder?: number;

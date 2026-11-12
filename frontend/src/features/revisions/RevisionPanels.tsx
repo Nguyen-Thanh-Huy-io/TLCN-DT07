@@ -3,7 +3,7 @@ import { ContentStatus } from '@/constants/enums';
 
 import { useCallback, useEffect, useState } from 'react';
 import { extractErrorMessage } from '@/services/api';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
 import {
   ContentRevisionApiService,

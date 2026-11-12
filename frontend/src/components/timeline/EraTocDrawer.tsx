@@ -159,7 +159,7 @@ export function EraTocDrawer({
             <div className="sk-toc-body">
               {filteredEras.length === 0 ? (
                 <div className="sk-toc-empty">
-                  <p>Không tìm thấy thời kỳ nào phù hợp với "{searchQuery}"</p>
+                  <p>Không tìm thấy thời kỳ nào phù hợp với &ldquo;{searchQuery}&rdquo;</p>
                 </div>
               ) : (
                 filteredEras.map((e, i) => {

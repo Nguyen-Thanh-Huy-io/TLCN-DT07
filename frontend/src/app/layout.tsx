@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Merriweather, Noto_Serif, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { ClientLayout } from "@/components/layout/ClientLayout";
+import { SOCIAL_LINKS } from "@/constants/routes";
 
 const beVietnamPro = Be_Vietnam_Pro({
   weight: ["400", "500", "600", "700"],
@@ -49,7 +50,7 @@ export const metadata: Metadata = {
     title: "HISGO — Nền tảng Khám phá Lịch sử Việt Nam",
     description:
       "Khám phá lịch sử Việt Nam qua những dòng thời gian sống động, những câu chuyện ý nghĩa và những nhân vật kiệt xuất.",
-    url: "https://hisgo.vn",
+    url: SOCIAL_LINKS.HOMEPAGE,
     siteName: "HISGO",
     locale: "vi_VN",
     type: "website",

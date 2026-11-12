@@ -34,7 +34,9 @@ export function TagList() {
   };
 
   useEffect(() => {
-    fetchTags();
+    void Promise.resolve().then(() => {
+      fetchTags();
+    });
   }, []);
 
   const handleSaveTag = async (data: TagFormData) => {

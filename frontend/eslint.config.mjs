@@ -56,7 +56,8 @@ const eslintConfig = defineConfig([
             "Không được gọi fetch() tự do trong component. Bắt buộc dùng service API tập trung từ '@/services/api'.",
         },
         {
-          selector: "Literal[value=/^https?:\\/\\/(?!localhost)(?!127\\.0\\.0\\.1)/]",
+          // Chỉ bắt URL có tên miền; chuỗi chỉ có giao thức ("https://..." ở placeholder, startsWith) không tính.
+          selector: "Literal[value=/^https?:\\/\\/(?!localhost)(?!127\\.0\\.0\\.1)[a-z0-9]/i]",
           message:
             "Không được hardcode trực tiếp URL remote (http/https). Bắt buộc đưa vào biến môi trường hoặc '@/constants/routes'.",
         },
@@ -95,13 +96,20 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    // Next.js Server-side Route Handlers (BFF) được phép dùng fetch() gọi sang backend
-    files: ["src/app/api/**"],
+    // Next.js Server-side Route Handlers (BFF) & Auth/Public services được phép dùng fetch() gọi sang backend;
+    // entity-sources gọi API bên ngoài (Wikipedia/Wikimedia/Wikidata) — ngoại lệ đã ghi trong CLAUDE.md.
+    files: [
+      "src/app/api/**",
+      "src/services/auth/**",
+      "src/services/public/**",
+      "src/features/lessons/strategies/entity-sources/**",
+    ],
     rules: {
       "no-restricted-syntax": [
         "warn",
         {
-          selector: "Literal[value=/^https?:\\/\\/(?!localhost)(?!127\\.0\\.0\\.1)/]",
+          // Chỉ bắt URL có tên miền; chuỗi chỉ có giao thức ("https://..." ở placeholder, startsWith) không tính.
+          selector: "Literal[value=/^https?:\\/\\/(?!localhost)(?!127\\.0\\.0\\.1)[a-z0-9]/i]",
           message:
             "Không được hardcode trực tiếp URL remote (http/https). Bắt buộc đưa vào biến môi trường hoặc '@/constants/routes'.",
         },

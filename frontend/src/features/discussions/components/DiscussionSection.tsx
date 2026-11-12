@@ -11,12 +11,12 @@ import {
 } from 'lucide-react';
 import {
   DiscussionApiService,
-  type DiscussionReplyItem,
   type DiscussionTargetType,
   type DiscussionThreadItem,
 } from '@/services/entities/discussion.service';
 import { extractErrorMessage } from '@/services/api';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
+import { KeyboardKey, UserRole } from '@/constants/enums';
 
 interface DiscussionSectionProps {
   targetType: DiscussionTargetType;
@@ -58,7 +58,9 @@ export function DiscussionSection({
   }, [targetType, targetId]);
 
   useEffect(() => {
-    loadThreads();
+    void Promise.resolve().then(() => {
+      loadThreads();
+    });
   }, [loadThreads]);
 
   // Đăng bình luận mới (tự lấy 50 ký tự đầu làm title)
@@ -223,7 +225,7 @@ export function DiscussionSection({
                       Phản hồi
                     </button>
 
-                    {(user?.id === t.userId || user?.role === 'ADMIN') && (
+                    {(user?.id === t.userId || user?.role === UserRole.ADMIN) && (
                       <button
                         type="button"
                         onClick={() => handleDelete(t.id)}
@@ -279,7 +281,7 @@ export function DiscussionSection({
                         type="text"
                         className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-amber-500"
                         placeholder={
-                          user?.role === 'ADMIN' || user?.role === 'MODERATOR'
+                          user?.role === UserRole.ADMIN || user?.role === UserRole.MODERATOR
                             ? 'Trả lời chính thức với tư cách Ban biên soạn...'
                             : 'Viết câu trả lời của bạn...'
                         }
@@ -288,7 +290,7 @@ export function DiscussionSection({
                           setReplyInputs((prev) => ({ ...prev, [t.id]: e.target.value }))
                         }
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
+                          if (e.key === KeyboardKey.ENTER && !e.shiftKey) {
                             e.preventDefault();
                             handleSendReply(t.id);
                           }

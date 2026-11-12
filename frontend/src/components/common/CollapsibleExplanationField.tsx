@@ -32,9 +32,11 @@ export function CollapsibleExplanationField({
   const [isOpen, setIsOpen] = useState<boolean>(Boolean(value && value.trim()));
 
   useEffect(() => {
-    if (value && value.trim()) {
-      setIsOpen(true);
-    }
+    void Promise.resolve().then(() => {
+      if (value && value.trim()) {
+        setIsOpen(true);
+      }
+    });
   }, [value]);
 
   const computedRows = Math.max(minRows, Math.ceil((value?.length || 0) / 85));

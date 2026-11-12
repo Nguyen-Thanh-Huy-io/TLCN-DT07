@@ -18,7 +18,6 @@ export function SectionTitle({ title, subtitle, className = "" }: SectionTitlePr
             height="15"
             viewBox="0 0 54 18"
             fill="none"
-            xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
             className="h-[15px] w-auto"
           >
@@ -44,7 +43,6 @@ export function SectionTitle({ title, subtitle, className = "" }: SectionTitlePr
             height="15"
             viewBox="0 0 54 18"
             fill="none"
-            xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
             className="h-[15px] w-auto"
           >

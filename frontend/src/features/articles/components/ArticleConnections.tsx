@@ -12,7 +12,7 @@ import {
   type LifeItem,
   type LifeMilestoneInput,
 } from '@/features/articles/person-life';
-import { nodeDateLabel } from '@/features/articles/person-life';
+import { LifeSource, LinkDirection, nodeDateLabel } from '@/features/articles/person-life';
 
 /**
  * Các khung "nhận biết liên kết" trong tab Hồ sơ & liên kết — để biết rõ bài đang gắn với gì
@@ -102,11 +102,11 @@ export function PersonLifePreview({
                     Dòng thời gian: {it.timeline.title}
                   </Link>
                 ) : (
-                  it.source === 'LINK' && (
+                  it.source === LifeSource.LINK && (
                     <span className="text-slate-500">Chưa nằm trong dòng thời gian nào (dùng năm của bài sự kiện)</span>
                   )
                 )}
-                {it.source === 'MILESTONE' && <span className="text-slate-500">Sửa ở mục &ldquo;Mốc đời riêng&rdquo;</span>}
+                {it.source === LifeSource.MILESTONE && <span className="text-slate-500">Sửa ở mục &ldquo;Mốc đời riêng&rdquo;</span>}
               </div>
               {it.year === null && (
                 <p className="mt-1.5 flex items-center gap-1 text-xs text-red-600">
@@ -144,7 +144,7 @@ export function EventPeoplePanel({ article, categories }: { article: ArticleItem
               </Link>
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{l.label ?? 'Tham gia'}</span>
               <span className="text-xs text-slate-400">
-                {l.direction === 'INCOMING' ? '(khai báo ở bài nhân vật)' : '(khai báo ở bài này)'}
+                {l.direction === LinkDirection.INCOMING ? '(khai báo ở bài nhân vật)' : '(khai báo ở bài này)'}
               </span>
             </li>
           ))}

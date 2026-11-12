@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuthSession } from "@/services/auth/useAuthSession";
+import { useAuthSession } from "@/services/auth/use-auth-session";
 import {
   isReviewerRole,
   isStaffRole,

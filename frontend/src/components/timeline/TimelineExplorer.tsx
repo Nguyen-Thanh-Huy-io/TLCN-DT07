@@ -1,6 +1,6 @@
 "use client";
 
-import { usePublicTaxonomyTerms, useRegionOrder } from "@/features/taxonomy/usePublicTaxonomy";
+import { usePublicTaxonomyTerms } from "@/features/taxonomy/usePublicTaxonomy";
 import {
   TimelineFocusContext,
   computeLens,
@@ -10,12 +10,11 @@ import {
   type TimelineFocusState,
 } from "./TimelineFocus";
 import { eventRoleLabel } from "@/features/taxonomy/taxonomy-labels";
-import { TaxonomyGroupCode } from "@/constants/enums";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import { ArrowDownUp, ArrowRight, BookOpen, Landmark, Network, Search, SlidersHorizontal, X } from "lucide-react";
-import { Button, Heading } from "./sk-ui";
-import { EMPTY_FILTERS, FilterBar, matchesRegion, regionOptions, type TimelineFilters } from "./FilterBar";
+import { Button, Heading } from "./SkUi";
+import { EMPTY_FILTERS, FilterBar, type TimelineFilters } from "./FilterBar";
 import { FilterSheet } from "./FilterSheet";
 import { Minimap } from "./Minimap";
 import { EraTocDrawer } from "./EraTocDrawer";
@@ -25,11 +24,11 @@ import { HorizontalExplorer } from "./HorizontalExplorer";
 import { EventDetailModal } from "./EventDetailModal";
 import { SK_SELECTED_CLASS } from "./sk-shared";
 import type { Era, TimeNode, TimelineActor, TimelineEvent } from "./sk-types";
+import type { TaxonomyTermItem } from "@/services/public/public-taxonomy";
 
 const SAVED_STORAGE_KEY = "hisgo:timeline:saved-events";
 const SPLIT_LABELS: Record<SplitMode, string> = {
   alternating: "So le hai bên",
-  scope: "Việt Nam / Thế giới",
   domain: "Chính trị / Văn hóa",
 };
 
@@ -48,7 +47,6 @@ function matchesEvent(event: TimelineEvent, node: TimeNode, f: TimelineFilters, 
   const q = scope.query.toLocaleLowerCase("vi");
   return (
     (f.categories.length === 0 || f.categories.includes(event.category)) &&
-    matchesRegion(event, f.regions) &&
     (!scope.bookmarksOnly || scope.saved.includes(event.id)) &&
     (!scope.onlyIds || scope.onlyIds.has(event.id)) &&
     (!q ||
@@ -89,6 +87,103 @@ function countEvents(eras: Era[]): number {
   );
 }
 
+/** Sự kiện liên quan tới sự kiện đang chọn, hoặc tới chủ thể đang xem qua lăng kính. */
+function relatedEvents(
+  focus: TimelineEvent | null,
+  lens: TimelineActor | null,
+  allEvents: TimelineEvent[],
+  relationTerms: TaxonomyTermItem[],
+  roleTerms: TaxonomyTermItem[],
+): Map<string, RelatedReason[]> {
+  if (focus) return computeRelated(focus, allEvents, relationTerms);
+  if (lens) return computeLens(lens, allEvents, (code) => eventRoleLabel(roleTerms, code));
+  return new Map();
+}
+
+/** Khi bật "chỉ hiện sự kiện liên quan": tập id được giữ lại; null = không lọc. */
+function onlyRelatedIds(
+  focus: TimelineEvent | null,
+  lens: TimelineActor | null,
+  onlyRelated: boolean,
+  related: Map<string, RelatedReason[]>,
+): Set<string> | null {
+  if (!(focus || lens) || !onlyRelated) return null;
+  return new Set([...(focus ? [focus.id] : []), ...related.keys()]);
+}
+
+function collectCategories(nodes: TimeNode[]): string[] {
+  const seen = new Set<string>();
+  for (const n of nodes) for (const ev of n.events) seen.add(ev.category);
+  return Array.from(seen);
+}
+
+/** Bật/tắt dấu mốc đã lưu và ghi lại vào trình duyệt (lỗi storage thì chỉ giữ trong phiên này). */
+function toggleSavedId(saved: string[], id: string): string[] {
+  const next = saved.includes(id) ? saved.filter((x) => x !== id) : [...saved, id];
+  try {
+    localStorage.setItem(SAVED_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Storage can be unavailable (private mode); bookmarks then last for this visit only.
+  }
+  return next;
+}
+
+/** Sự kiện liền trước/liền sau (vòng tròn) trên toàn trục, dùng cho nút chuyển trong hộp chi tiết. */
+function neighborEvent(nodes: TimeNode[], eventId: string, direction: 1 | -1) {
+  const entries = nodes.flatMap((n) => n.events.map((event) => ({ event, node: n })));
+  const i = entries.findIndex((x) => x.event.id === eventId);
+  return i === -1 ? null : entries[(i + direction + entries.length) % entries.length];
+}
+
+/** Mốc đang chọn ở trục ngang; mốc chỉ có điểm kết thúc (không có sự kiện) thì lấy mốc có sự kiện đầu tiên. */
+function pickSelectedNode(nodes: TimeNode[], selectedId: string): TimeNode | undefined {
+  const chosen = nodes.find((n) => n.id === selectedId) ?? nodes[0];
+  return chosen?.events.length ? chosen : nodes.find((n) => n.events.length > 0);
+}
+
+/** Thanh trạng thái khi đang xem liên kết của 1 sự kiện hoặc lăng kính 1 chủ thể. */
+function FocusBar({
+  title,
+  summary,
+  onlyLabel,
+  onlyRelated,
+  onOnlyRelatedChange,
+  children,
+}: {
+  title: string;
+  summary: string;
+  onlyLabel: string;
+  onlyRelated: boolean;
+  onOnlyRelatedChange: (value: boolean) => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="sk-focus-bar" role="status">
+      <Network size={16} />
+      <div>
+        <strong>{title}</strong>
+        <small>{summary}</small>
+      </div>
+      <label className="sk-focus-only">
+        <input type="checkbox" checked={onlyRelated} onChange={(e) => onOnlyRelatedChange(e.target.checked)} />
+        {onlyLabel}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function lensSummary(lens: TimelineActor, count: number): string {
+  const lifespan = lifespanLabel(lens);
+  const base = `${count} sự kiện có chủ thể này`;
+  return lifespan ? `${base} · tồn tại ${lifespan} (thanh đánh dấu dọc trục)` : base;
+}
+
+function focusSummary(focus: TimelineEvent, count: number, strongCount: number): string {
+  const base = `${count} sự kiện liên quan (${strongCount} liên kết trực tiếp)`;
+  return focus.spanLabel ? `${base} · kéo dài ${focus.spanLabel}` : base;
+}
+
 export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?: ReactNode }) {
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<TimelineFilters>(EMPTY_FILTERS);
@@ -107,29 +202,25 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
 
   // Bookmarks are a per-browser convenience; read after mount so server and client render the same.
   useEffect(() => {
-    setSaved(readSaved());
+    void Promise.resolve().then(() => {
+      setSaved(readSaved());
+    });
   }, []);
   const [bookmarksOnly, setBookmarksOnly] = useState(false);
   // Chế độ "Liên kết" (đồ thị tri thức trên dòng thời gian).
   const [focus, setFocus] = useState<TimelineEvent | null>(null);
   const [lens, setLens] = useState<TimelineActor | null>(null);
-  const roleTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.ROLE_TYPE);
+  const roleTerms = usePublicTaxonomyTerms('ROLE_TYPE');
   const [onlyRelated, setOnlyRelated] = useState(false);
   const [flashId, setFlashId] = useState<string | null>(null);
-  const relationTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.PREDICATE);
+  const relationTerms = usePublicTaxonomyTerms('PREDICATE');
   const canvas = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: canvas, offset: ["start end", "end start"] });
   const progress = useSpring(scrollYProgress, { stiffness: 70, damping: 25 });
 
   const allSubs = useMemo(() => baseEras.flatMap((e) => e.subEras), [baseEras]);
   const allNodes = useMemo(() => allSubs.flatMap((s) => s.timeNodes), [allSubs]);
-  const regionOrder = useRegionOrder();
-  const allRegions = useMemo(() => regionOptions(allNodes.flatMap((n) => n.events), regionOrder), [allNodes, regionOrder]);
-  const allCategories = useMemo(() => {
-    const seen = new Set<string>();
-    for (const n of allNodes) for (const ev of n.events) seen.add(ev.category);
-    return Array.from(seen);
-  }, [allNodes]);
+  const allCategories = useMemo(() => collectCategories(allNodes), [allNodes]);
 
   const reset = () => {
     setQuery("");
@@ -138,17 +229,12 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   };
 
   const allEvents = useMemo(() => allNodes.flatMap((n) => n.events), [allNodes]);
-  const related = useMemo<Map<string, RelatedReason[]>>(
-    () =>
-      focus
-        ? computeRelated(focus, allEvents, relationTerms)
-        : lens
-          ? computeLens(lens, allEvents, (code) => eventRoleLabel(roleTerms, code))
-          : new Map(),
+  const related = useMemo(
+    () => relatedEvents(focus, lens, allEvents, relationTerms, roleTerms),
     [focus, lens, allEvents, relationTerms, roleTerms],
   );
   const onlyIds = useMemo(
-    () => ((focus || lens) && onlyRelated ? new Set([...(focus ? [focus.id] : []), ...related.keys()]) : null),
+    () => onlyRelatedIds(focus, lens, onlyRelated, related),
     [focus, lens, onlyRelated, related],
   );
   const reveal = (domId: string) => {
@@ -167,13 +253,13 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     setLens: (actor) => {
       setLens(actor);
       setFocus(null);
-      if (!actor) setOnlyRelated(false);
+      setOnlyRelated((v) => v && actor !== null);
     },
     related,
     setFocus: (ev) => {
       setFocus(ev);
       setLens(null);
-      if (!ev) setOnlyRelated(false);
+      setOnlyRelated((v) => v && ev !== null);
     },
     reveal,
     flashId,
@@ -188,28 +274,17 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   const filterKey = JSON.stringify(filters);
 
   const visibleNodes = useMemo(() => eras.flatMap((e) => e.subEras.flatMap((s) => s.timeNodes)), [eras]);
-  const selectedNode = visibleNodes.find((n) => n.id === selected) || visibleNodes[0];
+  const selectedNode = pickSelectedNode(visibleNodes, selected);
 
   const jump = (id: string) => {
     setActive(id);
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-  const toggleSaved = (id: string) =>
-    setSaved((v) => {
-      const next = v.includes(id) ? v.filter((x) => x !== id) : [...v, id];
-      try {
-        localStorage.setItem(SAVED_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // Storage can be unavailable (private mode); bookmarks then last for this visit only.
-      }
-      return next;
-    });
+  const toggleSaved = (id: string) => setSaved((v) => toggleSavedId(v, id));
   const moveEvent = (direction: 1 | -1) => {
     if (!detail) return;
-    const entries = allNodes.flatMap((n) => n.events.map((event) => ({ event, node: n })));
-    const i = entries.findIndex((x) => x.event.id === detail.event.id);
-    if (i === -1) return;
-    setDetail(entries[(i + direction + entries.length) % entries.length]);
+    const next = neighborEvent(allNodes, detail.event.id, direction);
+    if (next) setDetail(next);
   };
 
   const strongCount = [...related.values()].filter((r) => r.some((x) => x.strong)).length;
@@ -261,47 +336,34 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
           countFor={countFor}
           eras={baseEras}
           categories={allCategories}
-          regions={allRegions}
         />
 
         {lens && (
-          <div className="sk-focus-bar" role="status">
-            <Network size={16} />
-            <div>
-              <strong>Lăng kính: {lens.name}</strong>
-              <small>
-                {related.size} sự kiện có chủ thể này
-                {lifespanLabel(lens) && <> · tồn tại {lifespanLabel(lens)} (thanh đánh dấu dọc trục)</>}
-              </small>
-            </div>
-            <label className="sk-focus-only">
-              <input type="checkbox" checked={onlyRelated} onChange={(e) => setOnlyRelated(e.target.checked)} />
-              Chỉ hiện các sự kiện này
-            </label>
+          <FocusBar
+            title={`Lăng kính: ${lens.name}`}
+            summary={lensSummary(lens, related.size)}
+            onlyLabel="Chỉ hiện các sự kiện này"
+            onlyRelated={onlyRelated}
+            onOnlyRelatedChange={setOnlyRelated}
+          >
             <Button aria-label="Tắt lăng kính chủ thể" onClick={() => focusState.setLens(null)}>
               <X size={15} />
             </Button>
-          </div>
+          </FocusBar>
         )}
         {focus && (
-          <div className="sk-focus-bar" role="status">
-            <Network size={16} />
-            <div>
-              <strong>Đang xem liên kết của: {focus.title}</strong>
-              <small>
-                {related.size} sự kiện liên quan ({strongCount} liên kết trực tiếp)
-                {focus.spanLabel && <> · kéo dài {focus.spanLabel}</>}
-              </small>
-            </div>
-            <label className="sk-focus-only">
-              <input type="checkbox" checked={onlyRelated} onChange={(e) => setOnlyRelated(e.target.checked)} />
-              Chỉ hiện sự kiện liên quan
-            </label>
+          <FocusBar
+            title={`Đang xem liên kết của: ${focus.title}`}
+            summary={focusSummary(focus, related.size, strongCount)}
+            onlyLabel="Chỉ hiện sự kiện liên quan"
+            onlyRelated={onlyRelated}
+            onOnlyRelatedChange={setOnlyRelated}
+          >
             <Button onClick={() => reveal(`ev-${focus.id}`)}>Tới sự kiện</Button>
             <Button aria-label="Tắt chế độ liên kết" onClick={() => focusState.setFocus(null)}>
               <X size={15} />
             </Button>
-          </div>
+          </FocusBar>
         )}
 
         <div className={`sk-workspace ${!dockSidebar ? "sk-workspace-full" : ""}`}>
@@ -375,7 +437,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                   {horizontal ? (
                     <HorizontalExplorer
                       visibleNodes={visibleNodes.filter((n) => n.events.length)}
-                      selectedNode={selectedNode?.events.length ? selectedNode : visibleNodes.find((n) => n.events.length)!}
+                      selectedNode={selectedNode!}
                       onSelectNode={setSelected}
                       subs={allSubs}
                       onDetail={setDetail}

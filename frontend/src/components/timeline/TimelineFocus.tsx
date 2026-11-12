@@ -3,7 +3,6 @@
 import { createContext, useContext } from "react";
 import type { TaxonomyTermItem } from "@/services/public/public-taxonomy";
 import { relationLabel } from "@/features/taxonomy/taxonomy-labels";
-import { EVENT_RELATION_TYPE_LABELS } from "@/constants/enums";
 import {
   type TimelineActor,
   type TimelineEvent,
@@ -49,20 +48,21 @@ export const useTimelineFocus = () => useContext(TimelineFocusContext);
  * Liên kết gián tiếp chỉ đi một bước qua nhân vật / địa danh — không lan tiếp để tránh "cái gì
  * cũng liên quan".
  */
-export function computeRelated(
-  focus: TimelineEvent,
-  all: TimelineEvent[],
-  relationTerms: TaxonomyTermItem[],
-): Map<string, RelatedReason[]> {
-  const byId = new Map(all.map((e) => [e.id, e]));
-  const out = new Map<string, RelatedReason[]>();
-  const add = (id: string, reason: RelatedReason) => {
-    if (id === focus.id || !byId.has(id)) return;
-    const list = out.get(id) ?? [];
-    if (!list.some((r) => r.text === reason.text)) list.push(reason);
-    out.set(id, list);
-  };
+const DEFAULT_EVENT_RELATION_LABELS: Record<string, string> = {
+  CAUSES: 'Nguyên nhân dẫn tới',
+  PRECEDES: 'Tiền đề diễn ra trước',
+  FOLLOWS: 'Hệ quả diễn ra sau',
+  INFLUENCES: 'Tác động ảnh hưởng',
+  PARALLEL_TO: 'Diễn ra đồng thời',
+  OPPOSES: 'Đối kháng phản ứng lại',
+  DERIVED_FROM: 'Bắt nguồn từ',
+  ENDED_BY: 'Kết thúc bằng',
+  OTHER: 'Mối liên hệ khác',
+};
 
+type AddRelated = (id: string, reason: RelatedReason) => void;
+
+function addDirectRelations(focus: TimelineEvent, relationTerms: TaxonomyTermItem[], add: AddRelated) {
   for (const r of focus.relations) {
     // Nhãn đọc từ phía sự kiện kia: "là nguyên nhân của" ↔ "bắt nguồn trực tiếp từ".
     const label = relationLabel(
@@ -71,27 +71,57 @@ export function computeRelated(
       r.direction === TimelineRelationDirection.OUTGOING
         ? TimelineRelationDirection.INCOMING
         : TimelineRelationDirection.OUTGOING,
-      EVENT_RELATION_TYPE_LABELS,
+      DEFAULT_EVENT_RELATION_LABELS,
     );
     add(r.eventId, { text: `${label} “${focus.title}”`, strong: true });
   }
+}
+
+function addHierarchy(focus: TimelineEvent, all: TimelineEvent[], byId: Map<string, TimelineEvent>, add: AddRelated) {
   if (focus.parentId) {
+    const parentTitle = byId.get(focus.parentId)?.title ?? "sự kiện lớn";
     add(focus.parentId, { text: "Sự kiện lớn chứa sự kiện này", strong: true });
-    for (const e of all) if (e.parentId === focus.parentId) add(e.id, { text: `Cùng thuộc “${byId.get(focus.parentId)?.title ?? "sự kiện lớn"}”`, strong: false });
+    for (const e of all) if (e.parentId === focus.parentId) add(e.id, { text: `Cùng thuộc “${parentTitle}”`, strong: false });
   }
   for (const e of all) if (e.parentId === focus.id) add(e.id, { text: "Diễn ra trong sự kiện này", strong: true });
+}
 
+function addSharedBy(
+  all: TimelineEvent[],
+  ids: Set<string>,
+  pick: (e: TimelineEvent) => Array<{ id: string; name: string }>,
+  label: string,
+  add: AddRelated,
+) {
+  for (const e of all) for (const x of pick(e)) if (ids.has(x.id)) add(e.id, { text: `${label} ${x.name}`, strong: false });
+}
+
+function addSharedEntities(focus: TimelineEvent, all: TimelineEvent[], add: AddRelated) {
   // Chủ thể nhỏ (tổ chức, lực lượng, hiện vật) là liên kết gián tiếp. Triều đại / quốc gia nối tới
   // quá nhiều sự kiện nên không lan qua — xem bằng lăng kính chủ thể thay vào đó.
-  const actorIds = new Map(focus.actors.filter((a) => a.type !== TimelineActorType.DYNASTY).map((a) => [a.id, a.name]));
-  for (const e of all) for (const a of e.actors) if (actorIds.has(a.id)) add(e.id, { text: `Cùng chủ thể ${a.name}`, strong: false });
+  const actorIds = new Set(focus.actors.filter((a) => a.type !== TimelineActorType.DYNASTY).map((a) => a.id));
+  addSharedBy(all, actorIds, (e) => e.actors, 'Cùng chủ thể', add);
+  addSharedBy(all, new Set(focus.figures.map((f) => f.id)), (e) => e.figures, 'Cùng nhân vật', add);
+  addSharedBy(all, new Set(focus.locations.map((l) => l.id)), (e) => e.locations, 'Cùng địa danh', add);
+}
 
-  const figureIds = new Map(focus.figures.map((f) => [f.id, f.name]));
-  const locationIds = new Map(focus.locations.map((l) => [l.id, l.name]));
-  for (const e of all) {
-    for (const f of e.figures) if (figureIds.has(f.id)) add(e.id, { text: `Cùng nhân vật ${f.name}`, strong: false });
-    for (const l of e.locations) if (locationIds.has(l.id)) add(e.id, { text: `Cùng địa danh ${l.name}`, strong: false });
-  }
+export function computeRelated(
+  focus: TimelineEvent,
+  all: TimelineEvent[],
+  relationTerms: TaxonomyTermItem[],
+): Map<string, RelatedReason[]> {
+  const byId = new Map(all.map((e) => [e.id, e]));
+  const out = new Map<string, RelatedReason[]>();
+  const add: AddRelated = (id, reason) => {
+    if (id === focus.id || !byId.has(id)) return;
+    const list = out.get(id) ?? [];
+    if (!list.some((r) => r.text === reason.text)) list.push(reason);
+    out.set(id, list);
+  };
+
+  addDirectRelations(focus, relationTerms, add);
+  addHierarchy(focus, all, byId, add);
+  addSharedEntities(focus, all, add);
   return out;
 }
 

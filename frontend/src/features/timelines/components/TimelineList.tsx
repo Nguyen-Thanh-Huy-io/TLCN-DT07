@@ -33,7 +33,9 @@ export function TimelineList() {
   }, []);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   const handleDelete = async () => {

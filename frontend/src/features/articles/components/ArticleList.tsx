@@ -22,6 +22,13 @@ import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { StatusPill } from './StatusPill';
 
 const PAGE_SIZE = 20;
+/** Chuyên mục Blog thuộc trang Cộng đồng, không hiện trong danh sách bài viết CMS. */
+const BLOG_CATEGORY_KEY = 'blog';
+/** Bài đang được ẩn khỏi danh sách CMS (khớp theo tiêu đề hoặc một phần slug). */
+const HIDDEN_ARTICLE = {
+  TITLE: 'cổng la mã và không gian quyền lực',
+  SLUG_FRAGMENT: 'cong-la-ma',
+} as const;
 
 /** Danh sách bài viết trong CMS: lọc chuyên mục / tag / trạng thái, tìm theo tiêu đề, phân trang server. */
 export function ArticleList() {
@@ -73,7 +80,9 @@ export function ArticleList() {
   }, [load]);
 
   // Đổi bộ lọc → quay về trang 1.
-  useEffect(() => setPage(1), [search, categoryId, tagId, status]);
+  useEffect(() => {
+    void Promise.resolve().then(() => setPage(1));
+  }, [search, categoryId, tagId, status]);
 
   const handleDelete = async () => {
     if (!deleting) return;
@@ -92,15 +101,13 @@ export function ArticleList() {
   const isBlogCategory = (categoryName?: string | null, categorySlug?: string | null) => {
     const normalizedName = (categoryName || '').trim().toLowerCase();
     const normalizedSlug = (categorySlug || '').trim().toLowerCase();
-    return normalizedName === 'blog' || normalizedSlug === 'blog';
+    return normalizedName === BLOG_CATEGORY_KEY || normalizedSlug === BLOG_CATEGORY_KEY;
   };
   const isHiddenArticle = (article: ArticleItem) => {
     const normalizedTitle = (article.title || '').trim().toLowerCase();
     const normalizedSlug = (article.slug || '').trim().toLowerCase();
     return (
-      normalizedTitle === 'cổng la mã và không gian quyền lực' ||
-      normalizedSlug === 'cong-la-ma-va-khong-gian-quyen-luc' ||
-      normalizedSlug.includes('cong-la-ma')
+      normalizedTitle === HIDDEN_ARTICLE.TITLE || normalizedSlug.includes(HIDDEN_ARTICLE.SLUG_FRAGMENT)
     );
   };
 

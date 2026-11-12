@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { APP_ROUTES } from '@/constants/routes';
 import { KeyRound, LogOut } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import { AccountApiService, type MyProfile } from '@/services/auth/account.service';
@@ -13,6 +15,7 @@ import { AuthProviderType } from '@/constants/enums';
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
 export function SecuritySection({ profile }: { profile: MyProfile }) {
+  const router = useRouter();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -57,7 +60,7 @@ export function SecuritySection({ profile }: { profile: MyProfile }) {
       await AccountApiService.logoutAllDevices();
     } finally {
       await PublicAuthService.logout();
-      window.location.assign('/login');
+      router.replace(APP_ROUTES.LOGIN);
     }
   };
 

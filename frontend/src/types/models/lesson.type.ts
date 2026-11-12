@@ -7,7 +7,7 @@ export interface LessonItem {
   slug: string;
   description?: string | null;
   summary?: string | null; // Alias tương thích ngược
-  content: any; // Cấu trúc JSON / JSONB
+  content: unknown; // Cấu trúc JSON / JSONB
   contentRichText?: string; // Alias tương thích ngược cho TipTap
   thumbnailUrl?: string;
   difficulty?: DifficultyLevel;

@@ -1,5 +1,4 @@
-export const heroLandscape =
-  "https://images.unsplash.com/photo-1686766219304-5e2fb0df9d2d?auto=format&fit=crop&w=1400&q=85";
+export { TIMELINE_HERO_IMAGE_URL as heroLandscape } from "@/constants/routes";
 
 export const SK_SELECTED_CLASS = "sk-selected";
 

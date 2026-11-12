@@ -6,11 +6,8 @@ import {
 } from "@/services/entities/landing.service";
 import type { TaxonomyTermItem } from "@/services/public/public-taxonomy";
 import { eventCategoryLabel, eventCategoryRootCode } from "@/features/taxonomy/taxonomy-labels";
-import { isDomesticRegion, regionLabel } from "@/utils/region.utils";
-import { EVENT_CATEGORY_CODES, EventRelationType } from "@/constants/enums";
 import {
   EventDomainGroup,
-  EventScopeGroup,
   TimelineRelationDirection,
   type Attributed,
   type Era,
@@ -64,15 +61,15 @@ const THEME_COLORS = ["green", "amber"];
 
 /** Nhánh gốc của cây loại sự kiện thuộc nhóm "Kinh tế – Văn hóa" trên dòng thời gian. */
 const CULTURE_ROOTS = new Set(["SOCIETY_CULTURE", "SCIENCE_DISCOVERY"]);
+/** Mã loại sự kiện cũ (chưa gắn cây loại) thuộc nhóm "Kinh tế – Văn hóa". */
+const LEGACY_CULTURE_CATEGORY = "CULTURE_SCIENCE";
+/** Nhãn liên kết sự kiện → sự kiện kết thúc nó (dùng để vẽ đoạn kéo dài trên trục). */
+const ENDED_BY_RELATION = "ENDED_BY";
 
 function domainGroupOf(terms: TaxonomyTermItem[], event: PublicEventSummaryDto): EventDomainGroup {
   const root = eventCategoryRootCode(terms, event);
-  const isCulture = root ? CULTURE_ROOTS.has(root) : event.category === EVENT_CATEGORY_CODES.CULTURE_SCIENCE;
+  const isCulture = root ? CULTURE_ROOTS.has(root) : event.category === LEGACY_CULTURE_CATEGORY;
   return isCulture ? EventDomainGroup.ECONOMY_CULTURE : EventDomainGroup.POLITICS_MILITARY;
-}
-
-function scopeGroupOf(region: string | null): EventScopeGroup {
-  return isDomesticRegion(region) ? EventScopeGroup.DOMESTIC : EventScopeGroup.WORLD;
 }
 
 /** Nhãn ngắn hiển thị trên trục/thẻ. Ghi chú niên đại dài (vd. "Theo truyền thuyết...") chỉ hiện ở chi tiết. */
@@ -91,7 +88,6 @@ function toTimelineEvent(
   event: PublicEventSummaryDto,
   eraTitle: string,
   subEraTitle: string,
-  region: string | null,
   categoryTerms: TaxonomyTermItem[],
 ): TimelineEvent {
   const label = eventCategoryLabel(categoryTerms, event);
@@ -104,8 +100,6 @@ function toTimelineEvent(
     subEra: subEraTitle,
     category: label,
     categoryCode: event.category,
-    scopeGroup: scopeGroupOf(region),
-    region: regionLabel(region),
     domainGroup: domainGroupOf(categoryTerms, event),
     title: event.title,
     slug: event.slug,
@@ -120,7 +114,7 @@ function toTimelineEvent(
     relations: event.relations ?? [],
     endedByEventId: event.relations?.find(
       (r) =>
-        r.relationType === EventRelationType.ENDED_BY &&
+        r.relationType === ENDED_BY_RELATION &&
         r.direction === TimelineRelationDirection.OUTGOING,
     )?.eventId,
     actors: event.actors ?? [],
@@ -142,17 +136,59 @@ const eraYear = (year: number) => (year < 0 ? `${Math.abs(year)} TCN` : String(y
  * Đặt mốc kết thúc của các sự kiện kéo dài: ở sự kiện "Kết thúc bằng" nếu có, không thì ở năm kết
  * thúc — trong giai đoạn chứa năm đó (ưu tiên cùng thời kỳ), thêm mốc riêng nếu năm đó chưa có mốc.
  */
-function placeEndings(eras: Era[], leafRanges: Map<string, { start: number; end: number }>) {
-  const subs = eras.flatMap((era) => era.subEras.map((sub) => ({ era, sub })));
-  const nodeOfEvent = new Map<string, { node: TimeNode; eraId: string; sub: SubEra }>();
-  for (const { era, sub } of subs)
-    for (const node of sub.timeNodes) for (const ev of node.events) nodeOfEvent.set(ev.id, { node, eraId: era.id, sub });
+type LeafRanges = Map<string, { start: number; end: number }>;
+type EraSub = { era: Era; sub: SubEra };
+type EventHome = { node: TimeNode; eraId: string; sub: SubEra };
+type Ending = TimeNode['endings'][number];
 
-  for (const [eventId, home] of nodeOfEvent) {
+function indexEventHomes(subs: EraSub[]): Map<string, EventHome> {
+  const homes = new Map<string, EventHome>();
+  for (const { era, sub } of subs)
+    for (const node of sub.timeNodes) for (const ev of node.events) homes.set(ev.id, { node, eraId: era.id, sub });
+  return homes;
+}
+
+/** Giai đoạn chứa năm kết thúc: ưu tiên cùng thời kỳ, rồi bất kỳ thời kỳ nào, cuối cùng là giai đoạn gốc của sự kiện. */
+function subEraForYear(subs: EraSub[], leafRanges: LeafRanges, year: number, home: EventHome): SubEra {
+  const contains = (s: SubEra) => {
+    const r = leafRanges.get(s.id);
+    return r ? r.start <= year && year <= r.end : false;
+  };
+  return (
+    subs.find(({ era, sub }) => era.id === home.eraId && contains(sub))?.sub ??
+    subs.find(({ sub }) => contains(sub))?.sub ??
+    home.sub
+  );
+}
+
+/** Gắn mốc kết thúc vào mốc cùng năm nếu có, không thì thêm mốc riêng cho năm đó. */
+function attachEndingAtYear(target: SubEra, year: number, ending: Ending) {
+  const existing = target.timeNodes.find((n) => n.sortYear === year);
+  if (existing) {
+    existing.endings.push(ending);
+    return;
+  }
+  target.timeNodes.push({
+    id: `end-node-${ending.eventId}`,
+    subEraId: target.id,
+    dateLabel: yearLabel(year),
+    sortYear: year,
+    events: [],
+    figures: [],
+    locations: [],
+    endings: [ending],
+  });
+  target.timeNodes.sort((a, b) => a.sortYear - b.sortYear);
+}
+
+function placeEndings(eras: Era[], leafRanges: LeafRanges) {
+  const subs = eras.flatMap((era) => era.subEras.map((sub) => ({ era, sub })));
+  const homes = indexEventHomes(subs);
+
+  for (const [eventId, home] of homes) {
     const ev = home.node.events.find((e) => e.id === eventId)!;
-    if (ev.endYear === undefined && !ev.endedByEventId) continue;
     const startLabel = eraYear(ev.year);
-    const via = ev.endedByEventId ? nodeOfEvent.get(ev.endedByEventId) : undefined;
+    const via = ev.endedByEventId ? homes.get(ev.endedByEventId) : undefined;
     if (via) {
       const viaEvent = via.node.events.find((e) => e.id === ev.endedByEventId)!;
       via.node.endings.push({
@@ -166,32 +202,8 @@ function placeEndings(eras: Era[], leafRanges: Map<string, { start: number; end:
       continue;
     }
     if (ev.endYear === undefined) continue;
-    const endYear = ev.endYear;
-    const contains = (s: SubEra) => {
-      const r = leafRanges.get(s.id);
-      return r ? r.start <= endYear && endYear <= r.end : false;
-    };
-    const target =
-      subs.find(({ era, sub }) => era.id === home.eraId && contains(sub))?.sub ??
-      subs.find(({ sub }) => contains(sub))?.sub ??
-      home.sub;
-    const ending = { eventId, title: ev.title, startLabel, endLabel: eraYear(endYear) };
-    const existing = target.timeNodes.find((n) => n.sortYear === endYear);
-    if (existing) {
-      existing.endings.push(ending);
-    } else {
-      target.timeNodes.push({
-        id: `end-node-${eventId}`,
-        subEraId: target.id,
-        dateLabel: yearLabel(endYear),
-        sortYear: endYear,
-        events: [],
-        figures: [],
-        locations: [],
-        endings: [ending],
-      });
-      target.timeNodes.sort((a, b) => a.sortYear - b.sortYear);
-    }
+    const target = subEraForYear(subs, leafRanges, ev.endYear, home);
+    attachEndingAtYear(target, ev.endYear, { eventId, title: ev.title, startLabel, endLabel: eraYear(ev.endYear) });
   }
 }
 
@@ -229,7 +241,6 @@ export function buildEraDataset(
     const leafPeriods = children.length > 0 ? children : [top];
 
     const subEras: SubEra[] = leafPeriods.map((leaf, leafIndex): SubEra => {
-      const region = leaf.region ?? top.region ?? null;
       const leafEvents = (eventsByPeriodSlug.get(leaf.slug) || []).sort((a, b) => a.startYear - b.startYear);
       const nodesByYear = new Map<number, PublicEventSummaryDto[]>();
       for (const event of leafEvents) {
@@ -241,7 +252,7 @@ export function buildEraDataset(
       const timeNodes: TimeNode[] = Array.from(nodesByYear.entries())
         .sort(([a], [b]) => a - b)
         .map(([year, yearEvents]): TimeNode => {
-          const events = yearEvents.map((e) => toTimelineEvent(e, top.name, leaf.name, region, categoryTerms));
+          const events = yearEvents.map((e) => toTimelineEvent(e, top.name, leaf.name, categoryTerms));
           return {
             id: `node-${yearEvents[0].id}`,
             subEraId: leaf.id,

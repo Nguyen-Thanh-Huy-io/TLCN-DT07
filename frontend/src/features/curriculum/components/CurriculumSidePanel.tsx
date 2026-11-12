@@ -90,9 +90,11 @@ export function CurriculumSidePanel({
   }, [highlightTopicId]);
 
   useEffect(() => {
-    if (isOpen) {
-      loadTree();
-    }
+    void Promise.resolve().then(() => {
+      if (isOpen) {
+        loadTree();
+      }
+    });
   }, [isOpen, loadTree]);
 
   const toggleExpand = (id: string, e: React.MouseEvent) => {

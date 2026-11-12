@@ -21,6 +21,14 @@ import {
 } from 'lucide-react';
 import { API_BASE_URL } from '@/constants/api-url';
 import {
+  UserRole,
+  UserStatus,
+  ModerationActionTakenEnum,
+  ModerationResolveActionEnum,
+  ModerationSourceEnum,
+  ModerationTargetTypeEnum,
+} from '@/constants/enums';
+import {
   ModerationApi,
   type ModerationReportItem,
   type ModerationResolveAction,
@@ -30,6 +38,11 @@ import {
 } from '../api';
 
 const SOCKET_URL = API_BASE_URL;
+
+const NOTICE_TONE = {
+  OK: 'ok',
+  ERROR: 'error',
+} as const;
 
 const TABS: Array<{ key: ModerationTabKey; label: string }> = [
   { key: 'pending', label: 'Chờ rà soát' },
@@ -188,7 +201,7 @@ export function ModerationDashboardView() {
   }, [activeTab, riskFilter, searchQuery, sourceFilter, targetTypeFilter]);
 
   useEffect(() => {
-    void fetchModerationData();
+    void Promise.resolve().then(() => void fetchModerationData());
   }, [fetchModerationData]);
 
   // Đồng bộ Socket thời gian thực khi có cảnh báo AI mới hoặc người dùng báo cáo
@@ -199,7 +212,7 @@ export function ModerationDashboardView() {
     });
 
     socket.on('moderation:updated', () => {
-      void fetchModerationData();
+      void Promise.resolve().then(() => void fetchModerationData());
     });
 
     return () => {
@@ -217,19 +230,19 @@ export function ModerationDashboardView() {
     try {
       const res = await ModerationApi.resolveReport(report.id, { action, note });
       const title = report.target?.title || res.targetTitle || 'nội dung';
-      if (action === 'RESTORE') {
+      if (action === ModerationResolveActionEnum.RESTORE) {
         setNotice({
-          tone: 'ok',
+          tone: NOTICE_TONE.OK,
           text: `Đã khôi phục hiển thị cho "${title}" (xác nhận AI bắt nhầm / bác bỏ báo cáo).`,
         });
-      } else if (action === 'BAN_USER') {
+      } else if (action === ModerationResolveActionEnum.BAN_USER) {
         setNotice({
-          tone: 'ok',
+          tone: NOTICE_TONE.OK,
           text: `Đã gỡ bỏ "${title}" và khóa tài khoản vi phạm của "${report.target?.author?.username || 'người dùng'}".`,
         });
       } else {
         setNotice({
-          tone: 'ok',
+          tone: NOTICE_TONE.OK,
           text: `Đã xác nhận xóa vi phạm đối với "${title}".`,
         });
       }
@@ -376,7 +389,7 @@ export function ModerationDashboardView() {
           <div className="flex flex-wrap items-center gap-2.5">
             <select
               value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value as any)}
+              onChange={(e) => setSourceFilter(e.target.value as 'AI_SCAN' | 'USER_REPORT' | '')}
               aria-label="Lọc theo nguồn phát hiện"
               className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none"
             >
@@ -387,7 +400,7 @@ export function ModerationDashboardView() {
 
             <select
               value={riskFilter}
-              onChange={(e) => setRiskFilter(e.target.value as any)}
+              onChange={(e) => setRiskFilter(e.target.value as ModerationRiskLevel | '')}
               aria-label="Lọc theo mức độ rủi ro"
               className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none"
             >
@@ -400,7 +413,7 @@ export function ModerationDashboardView() {
 
             <select
               value={targetTypeFilter}
-              onChange={(e) => setTargetTypeFilter(e.target.value as any)}
+              onChange={(e) => setTargetTypeFilter(e.target.value as 'POST' | 'COMMENT' | '')}
               aria-label="Lọc theo loại nội dung"
               className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none"
             >
@@ -416,7 +429,7 @@ export function ModerationDashboardView() {
           <div
             role="status"
             className={`mx-5 mt-4 flex items-center justify-between rounded-xl border px-4 py-3 text-sm ${
-              notice.tone === 'ok'
+              notice.tone === NOTICE_TONE.OK
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
                 : 'border-red-200 bg-red-50 text-red-900'
             }`}
@@ -468,7 +481,7 @@ export function ModerationDashboardView() {
                       : null;
                   const isBusy = busyId === report.id;
                   const author = report.target?.author;
-                  const isAuthorBlocked = author?.status === 'BLOCKED';
+                  const isAuthorBlocked = author?.status === UserStatus.BLOCKED;
 
                   return (
                     <tr key={report.id} className="align-top transition-colors hover:bg-slate-50/70">
@@ -477,12 +490,12 @@ export function ModerationDashboardView() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span
                             className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold ${
-                              report.targetType === 'POST'
+                              report.targetType === ModerationTargetTypeEnum.POST
                                 ? 'bg-amber-100 text-amber-900'
                                 : 'bg-purple-100 text-purple-900'
                             }`}
                           >
-                            {report.targetType === 'POST' ? 'Bài đăng' : 'Bình luận'}
+                            {report.targetType === ModerationTargetTypeEnum.POST ? 'Bài đăng' : 'Bình luận'}
                           </span>
                           <span className="text-xs text-slate-400">
                             {new Date(report.createdAt).toLocaleString('vi-VN')}
@@ -521,7 +534,7 @@ export function ModerationDashboardView() {
                       {/* Cột 2: Điểm tin cậy AI & Danh mục vi phạm */}
                       <td className="px-3 py-4">
                         <div className="flex items-center gap-2">
-                          {report.source === 'AI_SCAN' ? (
+                          {report.source === ModerationSourceEnum.AI_SCAN ? (
                             <span className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2 py-0.5 text-[11px] font-semibold text-white">
                               <Sparkles size={11} />
                               <span>AI Sentinel</span>
@@ -636,11 +649,11 @@ export function ModerationDashboardView() {
                       {/* Cột 5: Thao tác 1-Click */}
                       <td className="py-4 pl-3 pr-5 text-right">
                         <div className="flex flex-col items-end gap-1.5">
-                          {report.actionTaken !== 'CONFIRMED_REMOVED' && (
+                          {report.actionTaken !== ModerationActionTakenEnum.CONFIRMED_REMOVED && (
                             <button
                               type="button"
                               disabled={isBusy}
-                              onClick={() => void handleResolve(report, 'CONFIRM_REMOVE')}
+                              onClick={() => void handleResolve(report, ModerationResolveActionEnum.CONFIRM_REMOVE)}
                               className="inline-flex h-8 w-full max-w-[165px] items-center justify-center gap-1.5 rounded-lg bg-red-700 px-3 text-xs font-semibold text-white transition-colors hover:bg-red-800 disabled:opacity-50"
                             >
                               <Trash2 size={13} />
@@ -648,11 +661,11 @@ export function ModerationDashboardView() {
                             </button>
                           )}
 
-                          {report.actionTaken !== 'DISMISSED' && (
+                          {report.actionTaken !== ModerationActionTakenEnum.DISMISSED && (
                             <button
                               type="button"
                               disabled={isBusy}
-                              onClick={() => void handleResolve(report, 'RESTORE')}
+                              onClick={() => void handleResolve(report, ModerationResolveActionEnum.RESTORE)}
                               className="inline-flex h-8 w-full max-w-[165px] items-center justify-center gap-1.5 rounded-lg border border-emerald-600 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100 disabled:opacity-50"
                             >
                               <RotateCcw size={13} />
@@ -662,8 +675,8 @@ export function ModerationDashboardView() {
 
                           {author &&
                             !isAuthorBlocked &&
-                            author.role !== 'SUPERADMIN' &&
-                            author.role !== 'ADMIN' && (
+                            author.role !== UserRole.SUPERADMIN &&
+                            author.role !== UserRole.ADMIN && (
                               <button
                                 type="button"
                                 disabled={isBusy}

@@ -4,10 +4,19 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { PublicAuthService, USER_ROLE_LABELS, isStaffRole } from "@/services/auth/public-auth.service";
-import { useAuthSession } from "@/services/auth/useAuthSession";
+import { useAuthSession } from "@/services/auth/use-auth-session";
 import { GlobalSearch } from "@/features/search/GlobalSearch";
 import { NotificationBell } from "@/components/hisgo/NotificationBell";
-import { ChevronDown, Swords, User, Landmark, HelpCircle } from "lucide-react";
+import { ChevronDown, Swords, User, Landmark } from "lucide-react";
+
+enum NavLinkId {
+  EXPLORE = 'explore',
+  CURRICULUM = 'curriculum',
+  TIMELINE = 'timeline',
+  BLOG = 'blog',
+  COMMUNITY = 'community',
+  QUIZ = 'quiz',
+}
 
 interface HeaderProps {
   activeSectionId?: string;
@@ -53,12 +62,12 @@ export function Header({
   const loginHref = `/login?redirect=${encodeURIComponent(pathname || "/")}`;
 
   const navLinks = [
-    { id: "explore", label: "Trang chủ", href: "/" },
-    { id: "curriculum", label: "Chương trình học", href: "/chuong-trinh-hoc" },
-    { id: "timeline", label: "Dòng thời gian", href: "/dong-thoi-gian" },
-    { id: "blog", label: "Blog", href: "/blog" },
-    { id: "community", label: "Cộng đồng", href: "/cong-dong" },
-    { id: "quiz", label: "Luyện tập", href: "/luyen-tap" },
+    { id: NavLinkId.EXPLORE, label: "Trang chủ", href: "/" },
+    { id: NavLinkId.CURRICULUM, label: "Chương trình học", href: "/chuong-trinh-hoc" },
+    { id: NavLinkId.TIMELINE, label: "Dòng thời gian", href: "/dong-thoi-gian" },
+    { id: NavLinkId.BLOG, label: "Blog", href: "/blog" },
+    { id: NavLinkId.COMMUNITY, label: "Cộng đồng", href: "/cong-dong" },
+    { id: NavLinkId.QUIZ, label: "Luyện tập", href: "/luyen-tap" },
   ];
 
   const exploreItems = [
@@ -176,7 +185,6 @@ export function Header({
               height="36"
               viewBox="0 0 100 100"
               fill="none"
-              xmlns="http://www.w3.org/2000/svg"
               className="drop-shadow-sm"
               aria-hidden="true"
             >
@@ -223,9 +231,9 @@ export function Header({
         <nav className="hidden md:flex items-center gap-7 lg:gap-9">
           {navLinks.slice(0, 5).map((link) => {
             const isActive =
-              link.id === "blog"
+              link.id === NavLinkId.BLOG
                 ? pathname?.startsWith("/blog")
-                : link.id === "community"
+                : link.id === NavLinkId.COMMUNITY
                   ? pathname?.startsWith("/cong-dong")
                   : activeTab === link.id;
             return (
@@ -311,6 +319,7 @@ export function Header({
                 aria-expanded={userMenuOpen}
               >
                 {user.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={user.avatarUrl}
                     alt=""

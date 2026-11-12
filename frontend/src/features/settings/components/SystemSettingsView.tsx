@@ -5,8 +5,13 @@ import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 import { Badge } from '@/components/common/Badge';
 
+enum SettingsTab {
+  GENERAL = 'general',
+  HEALTH = 'health',
+}
+
 export function SystemSettingsView() {
-  const [activeTab, setActiveTab] = useState<'general' | 'health'>('general');
+  const [activeTab, setActiveTab] = useState<SettingsTab>(SettingsTab.GENERAL);
   const [savedNotice, setSavedNotice] = useState(false);
 
   // General Settings State
@@ -27,9 +32,9 @@ export function SystemSettingsView() {
       <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
         <button
           type="button"
-          onClick={() => setActiveTab('general')}
+          onClick={() => setActiveTab(SettingsTab.GENERAL)}
           className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
-            activeTab === 'general'
+            activeTab === SettingsTab.GENERAL
               ? 'bg-slate-900 text-white shadow-2xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
@@ -40,9 +45,9 @@ export function SystemSettingsView() {
 
         <button
           type="button"
-          onClick={() => setActiveTab('health')}
+          onClick={() => setActiveTab(SettingsTab.HEALTH)}
           className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
-            activeTab === 'health'
+            activeTab === SettingsTab.HEALTH
               ? 'bg-slate-900 text-white shadow-2xs'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
@@ -59,7 +64,7 @@ export function SystemSettingsView() {
       )}
 
       {/* Tab 2: Cấu hình chung */}
-      {activeTab === 'general' && (
+      {activeTab === SettingsTab.GENERAL && (
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-2xs max-w-3xl">
           <form onSubmit={handleSaveGeneral} className="space-y-5">
             <div>
@@ -139,7 +144,7 @@ export function SystemSettingsView() {
       )}
 
       {/* Tab 3: Trạng thái hạ tầng */}
-      {activeTab === 'health' && (
+      {activeTab === SettingsTab.HEALTH && (
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-2xs max-w-3xl space-y-4">
           <h3 className="text-sm font-bold text-slate-900 mb-2">Trạng thái Kết nối Hệ thống</h3>
 

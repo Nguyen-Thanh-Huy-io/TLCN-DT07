@@ -12,6 +12,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { DataTableFilter, DataTableFilterOption } from '@/types/table.types';
+import { KeyboardKey } from '@/constants/enums';
+
+export const FILTER_ALL_VALUE = 'ALL';
 
 export interface DataTableFilterModalProps {
   isOpen: boolean;
@@ -37,15 +40,16 @@ function FilterInputSuggest({ filter }: FilterItemProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isMulti = Boolean(filter.isMultiSelect || filter.selectedValues);
-  const options = filter.options || [];
+  const options = useMemo(() => filter.options ?? [], [filter.options]);
 
   // Mảng các giá trị đang chọn
   const activeValues = useMemo<string[]>(() => {
     if (isMulti) {
       return filter.selectedValues || [];
     }
-    return filter.selectedValue && filter.selectedValue !== 'ALL' && filter.selectedValue !== ''
-      ? [filter.selectedValue]
+    const val = filter.selectedValue;
+    return val && val !== FILTER_ALL_VALUE && val.length > 0
+      ? [val]
       : [];
   }, [isMulti, filter.selectedValues, filter.selectedValue]);
 
@@ -59,7 +63,7 @@ function FilterInputSuggest({ filter }: FilterItemProps) {
   const quickSuggestions = useMemo<DataTableFilterOption[]>(() => {
     const activeSet = new Set(activeValues);
     return options
-      .filter((opt) => opt.value !== 'ALL' && !activeSet.has(opt.value))
+      .filter((opt) => opt.value !== FILTER_ALL_VALUE && !activeSet.has(opt.value))
       .slice(0, 4);
   }, [options, activeValues]);
 
@@ -77,7 +81,7 @@ function FilterInputSuggest({ filter }: FilterItemProps) {
   // Danh sách gợi ý: Khi gõ thì lọc, khi chưa gõ thì hiển thị top 10 mục đầu tiên
   const suggestedOptions = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const valid = options.filter((opt) => opt.value !== 'ALL');
+    const valid = options.filter((opt) => opt.value !== FILTER_ALL_VALUE);
     if (!q) {
       return valid.slice(0, 10);
     }
@@ -108,7 +112,7 @@ function FilterInputSuggest({ filter }: FilterItemProps) {
     if (isMulti) {
       filter.onSelectMultiple?.(activeValues.filter((v) => v !== value));
     } else {
-      filter.onSelect?.('ALL');
+      filter.onSelect?.(FILTER_ALL_VALUE);
     }
   };
 
@@ -116,7 +120,7 @@ function FilterInputSuggest({ filter }: FilterItemProps) {
     if (isMulti) {
       filter.onSelectMultiple?.([]);
     } else {
-      filter.onSelect?.('ALL');
+      filter.onSelect?.(FILTER_ALL_VALUE);
     }
   };
 
@@ -286,19 +290,19 @@ function FilterInputSuggest({ filter }: FilterItemProps) {
  * Hiển thị dạng các Chip / Pill Tag bấm chọn nhanh
  */
 function FilterChipGroup({ filter }: FilterItemProps) {
-  const options = filter.options || [];
+  const options = useMemo(() => filter.options ?? [], [filter.options]);
   const isMulti = Boolean(filter.isMultiSelect || filter.selectedValues);
 
   const activeValues = useMemo<string[]>(() => {
     if (isMulti) {
       return filter.selectedValues || [];
     }
-    return [filter.selectedValue || 'ALL'];
+    return [filter.selectedValue || FILTER_ALL_VALUE];
   }, [isMulti, filter.selectedValues, filter.selectedValue]);
 
   const handleToggle = (value: string) => {
     if (isMulti) {
-      if (value === 'ALL') {
+      if (value === FILTER_ALL_VALUE) {
         filter.onSelectMultiple?.([]);
         return;
       }
@@ -324,10 +328,10 @@ function FilterChipGroup({ filter }: FilterItemProps) {
       <div className="flex flex-wrap gap-1.5">
         {options.map((opt) => {
           const isSelected = isMulti
-            ? opt.value === 'ALL'
+            ? opt.value === FILTER_ALL_VALUE
               ? activeValues.length === 0
               : activeValues.includes(opt.value)
-            : (filter.selectedValue || 'ALL') === opt.value;
+            : (filter.selectedValue || FILTER_ALL_VALUE) === opt.value;
 
           return (
             <button
@@ -364,7 +368,7 @@ export function DataTableFilterModal({
       const prevOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') onClose();
+        if (e.key === KeyboardKey.ESCAPE) onClose();
       };
       window.addEventListener('keydown', handleKeyDown);
       return () => {
@@ -379,7 +383,8 @@ export function DataTableFilterModal({
       if (f.isMultiSelect || f.selectedValues) {
         return (f.selectedValues || []).length > 0;
       }
-      return f.selectedValue && f.selectedValue !== 'ALL' && f.selectedValue !== '';
+      const val = f.selectedValue;
+      return val && val !== FILTER_ALL_VALUE && val.length > 0;
     });
   }, [filters]);
 
@@ -388,7 +393,7 @@ export function DataTableFilterModal({
       if (f.isMultiSelect || f.selectedValues) {
         f.onSelectMultiple?.([]);
       } else {
-        f.onSelect?.('ALL');
+        f.onSelect?.(FILTER_ALL_VALUE);
       }
     });
   };

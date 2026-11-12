@@ -49,6 +49,8 @@ function writeStorage(key: string, value: string): void {
   }
 }
 
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
 function clearStorage(): void {
   if (typeof window === 'undefined') return;
   try {
@@ -61,8 +63,8 @@ function clearStorage(): void {
 }
 
 /** Gỡ 1-2 lớp bọc `{ message, data }` của TransformInterceptor phía backend. */
-function unwrap(body: unknown): any {
-  let current: any = body;
+function unwrap<T = Record<string, unknown>>(body: unknown): T | null {
+  let current: unknown = body;
   for (let i = 0; i < 3; i += 1) {
     if (current && typeof current === 'object' && 'data' in current) {
       current = (current as { data: unknown }).data;
@@ -70,7 +72,7 @@ function unwrap(body: unknown): any {
       break;
     }
   }
-  return current;
+  return current as T | null;
 }
 
 /** Vai trò (enum userRole phía backend) và nhãn hiển thị. */
@@ -127,10 +129,10 @@ export const PublicAuthService = {
       try {
         const response = await fetch(`${API_URL}/auth/refresh-token`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: JSON_HEADERS,
           body: JSON.stringify({ refreshToken }),
         });
-        const data = unwrap(await response.json().catch(() => null));
+        const data = unwrap<{ accessToken?: string; refreshToken?: string }>(await response.json().catch(() => null));
         if (!response.ok || !data?.accessToken) {
           clearStorage();
           notifySessionChanged();
@@ -152,7 +154,7 @@ export const PublicAuthService = {
     try {
       const response = await fetch(`${API_URL}/auth`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: JSON_HEADERS,
         body: JSON.stringify(payload),
       });
       const body = await response.json().catch(() => null);
@@ -194,7 +196,7 @@ export const PublicAuthService = {
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: JSON_HEADERS,
         body: JSON.stringify({ email, password }),
       });
       const body = await response.json().catch(() => null);
@@ -206,7 +208,7 @@ export const PublicAuthService = {
         return { success: false, message };
       }
 
-      const data = unwrap(body);
+      const data = unwrap<{ accessToken?: string; refreshToken?: string; user?: unknown }>(body);
       if (!data?.accessToken || !data?.user) {
         return { success: false, message: 'Phản hồi không hợp lệ từ máy chủ.' };
       }
@@ -237,7 +239,7 @@ export const PublicAuthService = {
     try {
       await fetch(`${API_URL}/auth/logout`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: JSON_HEADERS,
         body: JSON.stringify({ refreshToken, userId: user.id }),
       });
     } catch {

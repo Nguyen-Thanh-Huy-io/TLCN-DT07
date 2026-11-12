@@ -46,9 +46,30 @@ jest.mock('./config/auth.config', () => ({
   },
 }));
 
+function createPrismaMock(transaction: jest.Mock) {
+  return {
+    authUser: {
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    authSecurity: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    emailHistory: {
+      create: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    $transaction: transaction,
+  };
+}
+
 describe('AuthService', () => {
   let service: AuthService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let prismaService: ReturnType<typeof createPrismaMock>;
   let authUtilsService: jest.Mocked<AuthUtilsService>;
   let redisService: jest.Mocked<RedisService>;
   let emailQueueService: jest.Mocked<EmailQueueService>;
@@ -56,24 +77,7 @@ describe('AuthService', () => {
   const mockTransaction = jest.fn();
 
   beforeEach(async () => {
-    const mockPrismaService = {
-      authUser: {
-        findFirst: jest.fn(),
-        findUnique: jest.fn(),
-        create: jest.fn(),
-        update: jest.fn(),
-      },
-      authSecurity: {
-        create: jest.fn(),
-        findUnique: jest.fn(),
-        update: jest.fn(),
-      },
-      emailHistory: {
-        create: jest.fn(),
-        updateMany: jest.fn(),
-      },
-      $transaction: mockTransaction,
-    };
+    const mockPrismaService = createPrismaMock(mockTransaction);
 
     const mockAuthUtilsService = {
       checkRateLimit: jest.fn(),
@@ -160,7 +164,7 @@ describe('AuthService', () => {
 
     it('should create a new user successfully', async () => {
       // Mock dependencies
-      authUtilsService.checkRateLimit.mockResolvedValue(undefined);
+      authUtilsService.checkRateLimit.mockResolvedValue(true);
       authUtilsService.validatePassword.mockReturnValue(true);
       authUtilsService.generateVerificationCode.mockReturnValue('123456');
       prismaService.authUser.findFirst.mockResolvedValue(null);
@@ -185,7 +189,7 @@ describe('AuthService', () => {
         });
       });
 
-      redisService.set.mockResolvedValue(undefined);
+      redisService.set.mockResolvedValue(true);
       emailQueueService.sendVerificationEmail.mockResolvedValue(undefined);
 
       // Execute
@@ -215,7 +219,7 @@ describe('AuthService', () => {
     });
 
     it('should throw error if password is weak', async () => {
-      authUtilsService.checkRateLimit.mockResolvedValue(undefined);
+      authUtilsService.checkRateLimit.mockResolvedValue(true);
       authUtilsService.validatePassword.mockReturnValue(false);
 
       await expect(service.create(createAuthDto, meta)).rejects.toThrow(
@@ -228,7 +232,7 @@ describe('AuthService', () => {
     });
 
     it('should throw error if email already exists', async () => {
-      authUtilsService.checkRateLimit.mockResolvedValue(undefined);
+      authUtilsService.checkRateLimit.mockResolvedValue(true);
       authUtilsService.validatePassword.mockReturnValue(true);
       prismaService.authUser.findFirst.mockResolvedValue({
         id: 'existing-user',
@@ -242,7 +246,7 @@ describe('AuthService', () => {
     });
 
     it('should throw error if username already exists', async () => {
-      authUtilsService.checkRateLimit.mockResolvedValue(undefined);
+      authUtilsService.checkRateLimit.mockResolvedValue(true);
       authUtilsService.validatePassword.mockReturnValue(true);
       prismaService.authUser.findFirst.mockResolvedValue({
         id: 'existing-user',
@@ -398,10 +402,10 @@ describe('AuthService', () => {
         verified: false,
       };
 
-      authUtilsService.checkRateLimit.mockResolvedValue(undefined);
+      authUtilsService.checkRateLimit.mockResolvedValue(true);
       prismaService.authUser.findUnique.mockResolvedValue(mockUser as any);
       authUtilsService.generateVerificationCode.mockReturnValue('654321');
-      redisService.set.mockResolvedValue(undefined);
+      redisService.set.mockResolvedValue(true);
       prismaService.emailHistory.create.mockResolvedValue({} as any);
       emailQueueService.sendVerificationEmail.mockResolvedValue(undefined);
 
@@ -419,7 +423,7 @@ describe('AuthService', () => {
     });
 
     it('should throw error if user not found', async () => {
-      authUtilsService.checkRateLimit.mockResolvedValue(undefined);
+      authUtilsService.checkRateLimit.mockResolvedValue(true);
       prismaService.authUser.findUnique.mockResolvedValue(null);
 
       await expect(
@@ -435,7 +439,7 @@ describe('AuthService', () => {
         verified: true, // Already verified
       };
 
-      authUtilsService.checkRateLimit.mockResolvedValue(undefined);
+      authUtilsService.checkRateLimit.mockResolvedValue(true);
       prismaService.authUser.findUnique.mockResolvedValue(mockUser as any);
 
       await expect(
@@ -461,10 +465,10 @@ describe('AuthService', () => {
         verified: false,
       };
 
-      authUtilsService.checkRateLimit.mockResolvedValue(undefined);
+      authUtilsService.checkRateLimit.mockResolvedValue(true);
       prismaService.authUser.findUnique.mockResolvedValue(mockUser as any);
       authUtilsService.generateVerificationCode.mockReturnValue('654321');
-      redisService.set.mockResolvedValue(undefined);
+      redisService.set.mockResolvedValue(true);
       prismaService.emailHistory.create.mockResolvedValue({} as any);
       prismaService.emailHistory.updateMany.mockResolvedValue({
         count: 1,

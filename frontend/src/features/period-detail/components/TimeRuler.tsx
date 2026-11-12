@@ -21,7 +21,8 @@ function niceStep(span: number): number {
   const raw = span / TARGET_TICKS;
   const pow = 10 ** Math.floor(Math.log10(raw));
   const unit = raw / pow;
-  return (unit < 1.5 ? 1 : unit < 3.5 ? 2 : unit < 7.5 ? 5 : 10) * pow;
+  // Năm là số nguyên: thời kỳ ngắn (vd. 938–939) không được chia vạch lẻ kiểu 938.2.
+  return Math.max(1, (unit < 1.5 ? 1 : unit < 3.5 ? 2 : unit < 7.5 ? 5 : 10) * pow);
 }
 
 function yearRange(events: PublicEventSummaryDto[]): string {

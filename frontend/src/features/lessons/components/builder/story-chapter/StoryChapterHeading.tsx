@@ -47,13 +47,13 @@ export function StoryChapterHeading({
       onClick={(e) =>
         onSelectSub(
           e,
-          'MAIN_HEADING',
+          EditorialSubElementType.MAIN_HEADING,
           `${chapterNumber} • Tiêu đề chương`,
           chapter.id
         )
       }
       className={`space-y-2 cursor-pointer ${getSubRingClass(
-        'MAIN_HEADING',
+        EditorialSubElementType.MAIN_HEADING,
         chapter.id
       )}`}
     >

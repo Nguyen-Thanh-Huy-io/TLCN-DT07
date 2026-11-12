@@ -1,10 +1,5 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
-import {
-  ThrottlerGuard,
-  ThrottlerModuleOptions,
-  ThrottlerStorage,
-} from '@nestjs/throttler';
-import { Reflector } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 /**
  * Custom Throttler Guard that skips rate limiting for:
@@ -14,14 +9,6 @@ import { Reflector } from '@nestjs/core';
  */
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
-  constructor(
-    options: ThrottlerModuleOptions,
-    storageService: ThrottlerStorage,
-    reflector: Reflector,
-  ) {
-    super(options, storageService, reflector);
-  }
-
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
     if (process.env.NODE_ENV === 'test') {
       return true;

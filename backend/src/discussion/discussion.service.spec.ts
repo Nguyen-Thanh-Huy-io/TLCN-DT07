@@ -36,7 +36,6 @@ describe('DiscussionService', () => {
     }).compile();
 
     service = module.get<DiscussionService>(DiscussionService);
-    prisma = module.get<PrismaService>(PrismaService);
     jest.clearAllMocks();
   });
 

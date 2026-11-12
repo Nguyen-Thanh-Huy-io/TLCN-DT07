@@ -9,7 +9,12 @@ import { CustomLoggerService } from '../common/services/custom-logger.service';
 import AppError from '../common/errors/app.error';
 import * as bcrypt from 'bcryptjs';
 import config from '../common/config/app.config';
-import { userRole } from '@prisma/client';
+import {
+  email_status,
+  email_type,
+  loginAction,
+  userRole,
+} from '@prisma/client';
 import {
   ILoginResponse,
   IStoredRefreshToken,
@@ -129,10 +134,10 @@ export class AuthService {
           data: {
             authId: user.id,
             emailTo: email,
-            emailType: 'verification',
+            emailType: email_type.verification,
             subject: 'Verify your email address',
             messageId: `verify-${user.id}-${Date.now()}`,
-            emailStatus: 'pending',
+            emailStatus: email_status.pending,
             ipAddress: ip,
             userAgent: userAgent,
           },
@@ -179,11 +184,11 @@ export class AuthService {
       await this.prismaService.emailHistory.updateMany({
         where: {
           authId: newUser.id,
-          emailType: 'verification',
-          emailStatus: 'pending',
+          emailType: email_type.verification,
+          emailStatus: email_status.pending,
         },
         data: {
-          emailStatus: 'failed',
+          emailStatus: email_status.failed,
           errorMessage:
             error instanceof Error ? error.message : 'Failed to queue email',
         },
@@ -341,10 +346,10 @@ export class AuthService {
       data: {
         authId: user.id,
         emailTo: email,
-        emailType: 'verification',
+        emailType: email_type.verification,
         subject: 'Verify your email address',
         messageId: `verify-resend-${user.id}-${Date.now()}`,
-        emailStatus: 'pending',
+        emailStatus: email_status.pending,
         ipAddress: ip,
         userAgent: userAgent,
       },
@@ -368,11 +373,11 @@ export class AuthService {
       await this.prismaService.emailHistory.updateMany({
         where: {
           authId: user.id,
-          emailType: 'verification',
-          emailStatus: 'pending',
+          emailType: email_type.verification,
+          emailStatus: email_status.pending,
         },
         data: {
-          emailStatus: 'failed',
+          emailStatus: email_status.failed,
           errorMessage:
             error instanceof Error ? error.message : 'Failed to queue email',
         },
@@ -474,6 +479,7 @@ export class AuthService {
       password,
       invalidCredentialsError,
     );
+    const security = user.authSecurity;
 
     // Verify password (bcrypt uses constant-time comparison internally)
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -970,7 +976,7 @@ export class AuthService {
           ipAddress: data.ip,
           userAgent: data.userAgent,
           device_id: data.device,
-          action: 'login',
+          action: loginAction.login,
           success: data.success,
           failureReason: data.failureReason,
           attemptNumber: data.attemptNumber || 1,

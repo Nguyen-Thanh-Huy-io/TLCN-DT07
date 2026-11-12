@@ -11,6 +11,19 @@ import { UpdateTagDto } from './dto/update-tag.dto';
 import { QueryTagDto } from './dto/query-tag.dto';
 import { AttachLessonTagsDto } from './dto/attach-lesson-tags.dto';
 import { TAG_CONFIG, TAG_MESSAGES } from './tag.constant';
+import { Prisma } from '@prisma/client';
+
+type TagWithUsage = Prisma.TagGetPayload<{
+  include: { _count: { select: { lessonTags: true } } };
+}>;
+
+export interface TagListResult {
+  items: TagWithUsage[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 @Injectable()
 export class TagService {
@@ -44,18 +57,18 @@ export class TagService {
     return tag;
   }
 
-  async findAll(query: QueryTagDto) {
+  async findAll(query: QueryTagDto): Promise<TagListResult> {
     const { page = 1, limit = 10, search } = query;
     const cacheKey = this.getCacheKey(
       `list:${page}:${limit}:${search || 'all'}`,
     );
 
-    const cachedData = await this.redis.get(cacheKey);
+    const cachedData = await this.redis.get<TagListResult>(cacheKey);
     if (cachedData) {
       return cachedData;
     }
 
-    const where: any = {};
+    const where: Prisma.TagWhereInput = {};
     if (search) {
       where.name = { contains: search, mode: 'insensitive' };
     }

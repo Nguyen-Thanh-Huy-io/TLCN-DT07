@@ -11,6 +11,7 @@ import {
 import { LessonBlockType } from '../../../types/block-palette.types';
 import { TipTapContent } from '../../TipTapContent';
 import { StoryChapterContentBlockProps } from './types';
+import { EditorialSubElementType } from '../../../context/ActiveEditorContext';
 import {
   ChapterBlockZoneEnum,
   EditorialMediaRatioEnum,
@@ -75,13 +76,13 @@ function IntroBlockRenderer(props: StoryChapterContentBlockProps) {
       onClick={(e) =>
         onSelectSub(
           e,
-          'INTRO_TEXT',
+          EditorialSubElementType.INTRO_TEXT,
           `${chapterNumber} • Khối Mở đầu (Drop Cap)`,
           chapter.id
         )
       }
       className={`relative group/cblock space-y-3 text-stone-800 cursor-pointer ${getSubRingClass(
-        'INTRO_TEXT',
+        EditorialSubElementType.INTRO_TEXT,
         chapter.id
       )}`}
       style={{
@@ -90,7 +91,7 @@ function IntroBlockRenderer(props: StoryChapterContentBlockProps) {
         color: chapter.overrides?.intro?.textColor || undefined,
       }}
     >
-      {isSubSelected('INTRO_TEXT', chapter.id) && (
+      {isSubSelected(EditorialSubElementType.INTRO_TEXT, chapter.id) && (
         <div
           onClick={(e) => e.stopPropagation()}
           className="flex flex-wrap items-center gap-1 p-1 rounded-lg bg-stone-900 text-white text-[11px] font-sans shadow-md mb-1"
@@ -188,20 +189,20 @@ function ArticleBlockRenderer(props: StoryChapterContentBlockProps) {
       onClick={(e) =>
         onSelectSub(
           e,
-          'ARTICLE_TEXT',
+          EditorialSubElementType.ARTICLE_TEXT,
           `${chapterNumber} • Khối Văn bản chính (Rich Text)`,
           chapter.id
         )
       }
       className={`relative group/cblock cursor-pointer ${articleColWrapperClass} ${
         chapter.overrides?.article?.dropCap ? 'editorial-slot-dropcap' : ''
-      } ${getSubRingClass('ARTICLE_TEXT', chapter.id)}`}
+      } ${getSubRingClass(EditorialSubElementType.ARTICLE_TEXT, chapter.id)}`}
       style={{
         fontSize: `${articleFontSizePx}px`,
         lineHeight: lineHeightVal,
       }}
     >
-      {isSubSelected('ARTICLE_TEXT', chapter.id) && (
+      {isSubSelected(EditorialSubElementType.ARTICLE_TEXT, chapter.id) && (
         <div
           onClick={(e) => e.stopPropagation()}
           className="flex flex-wrap items-center gap-1 p-1 rounded-lg bg-stone-900 text-white text-[11px] font-sans shadow-md mb-2"
@@ -324,17 +325,17 @@ function QuoteBlockRenderer(props: StoryChapterContentBlockProps) {
       onClick={(e) =>
         onSelectSub(
           e,
-          'PULL_QUOTE',
+          EditorialSubElementType.PULL_QUOTE,
           `${chapterNumber} • Khối Trích dẫn (Quote Block)`,
           chapter.id
         )
       }
       className={`relative group/cblock space-y-2 cursor-pointer ${
         isBorderLeft ? 'border-l-4 pl-4' : ''
-      } ${getSubRingClass('PULL_QUOTE', chapter.id)}`}
+      } ${getSubRingClass(EditorialSubElementType.PULL_QUOTE, chapter.id)}`}
       style={isBorderLeft ? { borderColor: quoteAccentColor } : undefined}
     >
-      {isSubSelected('PULL_QUOTE', chapter.id) && (
+      {isSubSelected(EditorialSubElementType.PULL_QUOTE, chapter.id) && (
         <div
           onClick={(e) => e.stopPropagation()}
           className="flex flex-wrap items-center gap-1 p-1 rounded-lg bg-stone-900 text-white text-[11px] font-sans shadow-md mb-1"
@@ -445,17 +446,17 @@ function ImageBlockRenderer(props: StoryChapterContentBlockProps) {
       onClick={(e) =>
         onSelectSub(
           e,
-          'MAIN_IMAGE',
+          EditorialSubElementType.MAIN_IMAGE,
           `${chapterNumber} • Khối Hình ảnh (Image Block)`,
           chapter.id
         )
       }
       className={`relative group/cblock space-y-2 pt-1 cursor-pointer ${getSubRingClass(
-        'MAIN_IMAGE',
+        EditorialSubElementType.MAIN_IMAGE,
         chapter.id
       )}`}
     >
-      {isSubSelected('MAIN_IMAGE', chapter.id) && (
+      {isSubSelected(EditorialSubElementType.MAIN_IMAGE, chapter.id) && (
         <div
           onClick={(e) => e.stopPropagation()}
           className="flex flex-wrap items-center gap-1 p-1 rounded-lg bg-stone-900 text-white text-[11px] font-sans shadow-md mb-1"
@@ -662,7 +663,7 @@ export function StoryChapterContentBlock(props: StoryChapterContentBlockProps) {
         onClick={(e) =>
           onSelectSub(
             e,
-            'NESTED_BLOCK',
+            EditorialSubElementType.NESTED_BLOCK,
             `${chapterNumber} • Khối nội dung con`,
             block.id
           )

@@ -3,8 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, userRole } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
+import { ROLE_GROUPS } from '../common/access/access.constant';
 import { NotificationService } from '../notification/notification.service';
 import { NotificationType } from '@prisma/client';
 import {
@@ -12,6 +13,9 @@ import {
   CreateDiscussionThreadDto,
   QueryDiscussionDto,
 } from './dto/discussion.dto';
+
+/** Ban biên soạn / kiểm duyệt / quản trị: trả lời chính thức và xoá chủ đề của người khác. */
+const STAFF_ROLES: readonly string[] = ROLE_GROUPS.STAFF;
 
 const USER_SELECT = {
   select: {
@@ -130,11 +134,7 @@ export class DiscussionService {
     const thread = await this.findOne(threadId);
 
     // Quyền của ban biên soạn/quản trị viên/kiểm duyệt
-    const isOfficial = [
-      userRole.ADMIN,
-      userRole.SUPERADMIN,
-      userRole.MODERATOR,
-    ].includes(userRoleVal as userRole);
+    const isOfficial = STAFF_ROLES.includes(userRoleVal);
 
     return this.prisma.$transaction(async (tx) => {
       const reply = await tx.discussionReply.create({
@@ -179,11 +179,7 @@ export class DiscussionService {
 
   async remove(userId: string, userRoleVal: string, threadId: string) {
     const thread = await this.findOne(threadId);
-    const isManager = [
-      userRole.ADMIN,
-      userRole.SUPERADMIN,
-      userRole.MODERATOR,
-    ].includes(userRoleVal as userRole);
+    const isManager = STAFF_ROLES.includes(userRoleVal);
 
     if (thread.userId !== userId && !isManager) {
       throw new ForbiddenException(

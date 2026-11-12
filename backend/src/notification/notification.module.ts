@@ -7,7 +7,12 @@ import { NotificationService } from './notification.service';
 
 @Module({
   controllers: [NotificationController],
-  providers: [NotificationService, NotificationGateway, PrismaService, RedisService],
+  providers: [
+    NotificationService,
+    NotificationGateway,
+    PrismaService,
+    RedisService,
+  ],
   exports: [NotificationService, NotificationGateway],
 })
 export class NotificationModule {}

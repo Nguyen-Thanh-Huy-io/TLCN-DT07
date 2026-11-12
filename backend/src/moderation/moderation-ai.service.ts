@@ -7,7 +7,8 @@ export type ModerationCategory =
   | 'REGIONAL_DISCRIMINATION'
   | 'NONE';
 
-export type ModerationRiskLevel = 'SAFE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type ModerationRiskLevel =
+  'SAFE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type ModerationAction = 'ALLOW' | 'FLAG_FOR_REVIEW' | 'AUTO_HIDE';
 
 export interface ModerationAssessment {
@@ -147,12 +148,18 @@ export class ModerationAiService {
         const geminiResult = await this.callGeminiFlash(cleanText, apiKey);
         if (geminiResult) {
           // Nếu Heuristic đã phát hiện vi phạm nghiêm trọng (AUTO_HIDE), ưu tiên mức an toàn cao nhất
-          if (heuristicResult.action === 'AUTO_HIDE' && geminiResult.action !== 'AUTO_HIDE') {
+          if (
+            heuristicResult.action === 'AUTO_HIDE' &&
+            geminiResult.action !== 'AUTO_HIDE'
+          ) {
             return heuristicResult;
           }
           return {
             ...geminiResult,
-            matchedExcerpt: geminiResult.matchedExcerpt || heuristicResult.matchedExcerpt || cleanText.slice(0, 220),
+            matchedExcerpt:
+              geminiResult.matchedExcerpt ||
+              heuristicResult.matchedExcerpt ||
+              cleanText.slice(0, 220),
           };
         }
       } catch {
@@ -195,7 +202,9 @@ export class ModerationAiService {
       matchedRules.find((m) => m.rule.tier === 'AUTO_HIDE') ??
       matchedRules[0];
 
-    const categories = Array.from(new Set(matchedRules.map((m) => m.rule.category)));
+    const categories = Array.from(
+      new Set(matchedRules.map((m) => m.rule.category)),
+    );
 
     return {
       isSafe: false,
@@ -263,15 +272,21 @@ export class ModerationAiService {
         .trim();
       const parsed = JSON.parse(cleanedJson);
 
-      const riskLevel: ModerationRiskLevel = ['SAFE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(
-        parsed.riskLevel,
-      )
+      const riskLevel: ModerationRiskLevel = [
+        'SAFE',
+        'LOW',
+        'MEDIUM',
+        'HIGH',
+        'CRITICAL',
+      ].includes(parsed.riskLevel)
         ? parsed.riskLevel
         : 'SAFE';
 
-      const action: ModerationAction = ['ALLOW', 'FLAG_FOR_REVIEW', 'AUTO_HIDE'].includes(
-        parsed.action,
-      )
+      const action: ModerationAction = [
+        'ALLOW',
+        'FLAG_FOR_REVIEW',
+        'AUTO_HIDE',
+      ].includes(parsed.action)
         ? parsed.action
         : riskLevel === 'HIGH' || riskLevel === 'CRITICAL'
           ? 'AUTO_HIDE'
@@ -279,9 +294,17 @@ export class ModerationAiService {
             ? 'FLAG_FOR_REVIEW'
             : 'ALLOW';
 
-      const validCats: ModerationCategory[] = Array.isArray(parsed.detectedCategories)
+      const validCats: ModerationCategory[] = Array.isArray(
+        parsed.detectedCategories,
+      )
         ? parsed.detectedCategories.filter((c: string) =>
-            ['PROFANITY', 'HISTORICAL_REVISIONISM', 'SPAM', 'REGIONAL_DISCRIMINATION', 'NONE'].includes(c),
+            [
+              'PROFANITY',
+              'HISTORICAL_REVISIONISM',
+              'SPAM',
+              'REGIONAL_DISCRIMINATION',
+              'NONE',
+            ].includes(c),
           )
         : ['NONE'];
 
@@ -295,7 +318,9 @@ export class ModerationAiService {
             : 0.9,
         detectedCategories: validCats.length > 0 ? validCats : ['NONE'],
         violationReasonVi:
-          typeof parsed.violationReasonVi === 'string' ? parsed.violationReasonVi.trim() : '',
+          typeof parsed.violationReasonVi === 'string'
+            ? parsed.violationReasonVi.trim()
+            : '',
         matchedExcerpt: text.slice(0, 220),
         engine: 'GEMINI_FLASH',
       };

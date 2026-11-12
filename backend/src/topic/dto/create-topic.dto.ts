@@ -41,7 +41,6 @@ export class CreateTopicDto {
   @IsOptional()
   isFeatured?: boolean;
 
-
   @ApiPropertyOptional({
     example: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',
     description: 'ID của Chủ đề cha (để trống nếu là chủ đề gốc)',
@@ -53,7 +52,8 @@ export class CreateTopicDto {
   @ApiPropertyOptional({
     enum: LearningPathType,
     example: LearningPathType.CHRONOLOGICAL,
-    description: 'Loại tiến trình học: CHRONOLOGICAL (Niên đại), THEMATIC (Chuyên đề xuyên suốt), MYTHOLOGICAL (Huyền sử/Dân gian)',
+    description:
+      'Loại tiến trình học: CHRONOLOGICAL (Niên đại), THEMATIC (Chuyên đề xuyên suốt), MYTHOLOGICAL (Huyền sử/Dân gian)',
     default: LearningPathType.CHRONOLOGICAL,
   })
   @IsEnum(LearningPathType)

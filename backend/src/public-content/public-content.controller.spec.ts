@@ -57,6 +57,9 @@ describe('PublicContentController', () => {
     expect(service.getFigureBySlug).toHaveBeenCalledWith('ho-chi-minh');
     expect(service.getLocations).toHaveBeenCalledTimes(1);
     expect(service.getLocationBySlug).toHaveBeenCalledWith('dien-bien-phu');
-    expect(service.getTaxonomies).toHaveBeenCalledWith(['REGION', 'FIGURE_ROLE']);
+    expect(service.getTaxonomies).toHaveBeenCalledWith([
+      'REGION',
+      'FIGURE_ROLE',
+    ]);
   });
 });

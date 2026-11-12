@@ -135,6 +135,7 @@ export default function LuyenTapPage() {
   const [examStarted, setExamStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0); // giây
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSubmitRef = useRef<() => void>(() => {});
 
   // Bài làm & Nộp
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
@@ -218,7 +219,7 @@ export default function LuyenTapPage() {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timerRef.current!);
-            handleAutoSubmit();
+            autoSubmitRef.current();
             return 0;
           }
           return prev - 1;
@@ -319,6 +320,9 @@ export default function LuyenTapPage() {
     alert('Hết giờ làm bài! Hệ thống tự động thu bài và chấm điểm.');
     handleSubmitExam();
   };
+  useEffect(() => {
+    autoSubmitRef.current = handleAutoSubmit;
+  });
 
   // Mở modal xem thống kê lượt nộp bài (chỉ dành cho Ban biên tập / Quản trị viên)
   const handleOpenStatistics = async () => {

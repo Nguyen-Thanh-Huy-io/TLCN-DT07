@@ -12,12 +12,7 @@ import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { QueryTopicDto } from './dto/query-topic.dto';
 import { ReorderTopicItemDto } from './dto/reorder-topics.dto';
-import {
-  Topic,
-  ContentStatus,
-  LearningPathType,
-  Prisma,
-} from '@prisma/client';
+import { Topic, ContentStatus, LearningPathType, Prisma } from '@prisma/client';
 import {
   TOPIC_HIERARCHY_CONFIG,
   TOPIC_ERROR_MESSAGES,
@@ -83,15 +78,11 @@ export class TopicService {
     while (currentAncestorId) {
       depth++;
       if (depth > this.MAX_HIERARCHY_DEPTH) {
-        throw new BadRequestException(
-          TOPIC_ERROR_MESSAGES.MAX_DEPTH_EXCEEDED,
-        );
+        throw new BadRequestException(TOPIC_ERROR_MESSAGES.MAX_DEPTH_EXCEEDED);
       }
 
       if (currentTopicId && currentAncestorId === currentTopicId) {
-        throw new BadRequestException(
-          TOPIC_ERROR_MESSAGES.CYCLE_DETECTED,
-        );
+        throw new BadRequestException(TOPIC_ERROR_MESSAGES.CYCLE_DETECTED);
       }
 
       const ancestor = await this.prisma.topic.findUnique({
@@ -114,9 +105,7 @@ export class TopicService {
 
     // 1. Kiểm tra chủ đề cha nếu có
     if (createTopicDto.parentId) {
-      await this.validateParentHierarchy(
-        createTopicDto.parentId,
-      );
+      await this.validateParentHierarchy(createTopicDto.parentId);
     }
 
     const slug = await this.slugService.generateUnique(
@@ -132,8 +121,7 @@ export class TopicService {
         icon: createTopicDto.icon,
         isFeatured: createTopicDto.isFeatured ?? false,
         parentId: createTopicDto.parentId || null,
-        pathType:
-          createTopicDto.pathType ?? LearningPathType.CHRONOLOGICAL,
+        pathType: createTopicDto.pathType ?? LearningPathType.CHRONOLOGICAL,
         name: createTopicDto.name.trim(),
         description: createTopicDto.description?.trim(),
         coverImageUrl: createTopicDto.coverImageUrl,
@@ -299,7 +287,9 @@ export class TopicService {
             slug: true,
             summary: true,
             coverImageUrl: true,
-            category: { select: { id: true, name: true, slug: true, kind: true } },
+            category: {
+              select: { id: true, name: true, slug: true, kind: true },
+            },
           },
         },
       },

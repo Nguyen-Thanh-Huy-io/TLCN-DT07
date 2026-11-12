@@ -3,7 +3,9 @@ import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class QueryQuizDto {
-  @ApiPropertyOptional({ description: 'Từ khóa tìm kiếm theo tiêu đề đề thi hoặc mô tả' })
+  @ApiPropertyOptional({
+    description: 'Từ khóa tìm kiếm theo tiêu đề đề thi hoặc mô tả',
+  })
   @IsOptional()
   @IsString()
   search?: string;
@@ -18,7 +20,9 @@ export class QueryQuizDto {
   @IsString()
   lessonId?: string;
 
-  @ApiPropertyOptional({ description: 'Lọc theo trạng thái đề (ACTIVE, DRAFT, all)' })
+  @ApiPropertyOptional({
+    description: 'Lọc theo trạng thái đề (ACTIVE, DRAFT, all)',
+  })
   @IsOptional()
   @IsString()
   status?: string;
@@ -30,7 +34,10 @@ export class QueryQuizDto {
   @Min(1)
   page?: number = 1;
 
-  @ApiPropertyOptional({ description: 'Số bản ghi trên mỗi trang', default: 20 })
+  @ApiPropertyOptional({
+    description: 'Số bản ghi trên mỗi trang',
+    default: 20,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

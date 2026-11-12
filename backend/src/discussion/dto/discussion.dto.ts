@@ -15,7 +15,10 @@ import {
 } from 'class-validator';
 
 export class CreateDiscussionThreadDto {
-  @ApiProperty({ enum: DiscussionTargetType, example: DiscussionTargetType.LESSON })
+  @ApiProperty({
+    enum: DiscussionTargetType,
+    example: DiscussionTargetType.LESSON,
+  })
   @IsEnum(DiscussionTargetType)
   targetType: DiscussionTargetType;
 
@@ -34,14 +37,18 @@ export class CreateDiscussionThreadDto {
   @MaxLength(255)
   title: string;
 
-  @ApiProperty({ example: 'Em muốn hỏi về quy luật thuỷ triều thời điểm đó...' })
+  @ApiProperty({
+    example: 'Em muốn hỏi về quy luật thuỷ triều thời điểm đó...',
+  })
   @IsString()
   @IsNotEmpty()
   content: string;
 }
 
 export class CreateDiscussionReplyDto {
-  @ApiProperty({ example: 'Sông Bạch Đằng có biên độ triều lớn, địa hình hiểm trở...' })
+  @ApiProperty({
+    example: 'Sông Bạch Đằng có biên độ triều lớn, địa hình hiểm trở...',
+  })
   @IsString()
   @IsNotEmpty()
   content: string;
@@ -73,18 +80,24 @@ export class QueryDiscussionDto {
   @IsUUID('4')
   targetId?: string;
 
-  @ApiPropertyOptional({ description: 'Gom nhóm toàn bộ thảo luận của Khóa học' })
+  @ApiPropertyOptional({
+    description: 'Gom nhóm toàn bộ thảo luận của Khóa học',
+  })
   @IsOptional()
   @IsUUID('4')
   learningPathId?: string;
 
-  @ApiPropertyOptional({ description: 'Chỉ lấy các câu đã hoặc chưa được BTV giải đáp' })
+  @ApiPropertyOptional({
+    description: 'Chỉ lấy các câu đã hoặc chưa được BTV giải đáp',
+  })
   @IsOptional()
   @Type(() => Boolean)
   @IsBoolean()
   isAnswered?: boolean;
 
-  @ApiPropertyOptional({ description: 'Tìm theo tiêu đề hoặc nội dung thắc mắc' })
+  @ApiPropertyOptional({
+    description: 'Tìm theo tiêu đề hoặc nội dung thắc mắc',
+  })
   @IsOptional()
   @IsString()
   search?: string;

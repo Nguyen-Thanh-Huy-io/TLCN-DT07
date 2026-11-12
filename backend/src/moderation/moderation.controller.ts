@@ -14,7 +14,10 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { userRole } from '@prisma/client';
 import type { Request } from 'express';
 import { RequireRoles } from '../common/access/access.decorator';
-import { ListModerationReportsQueryDto, ResolveModerationReportDto } from './dto/moderation.dto';
+import {
+  ListModerationReportsQueryDto,
+  ResolveModerationReportDto,
+} from './dto/moderation.dto';
 import { ModerationService } from './moderation.service';
 
 type AuthedRequest = Request & { user: { userId: string; role: string } };
@@ -26,7 +29,8 @@ export class ModerationController {
   constructor(private readonly moderationService: ModerationService) {}
 
   @ApiOperation({
-    summary: 'Danh sách báo cáo vi phạm (do AI Sentinel quét hoặc người dùng báo cáo) kèm thống kê',
+    summary:
+      'Danh sách báo cáo vi phạm (do AI Sentinel quét hoặc người dùng báo cáo) kèm thống kê',
   })
   @Get('reports')
   listReports(@Query() query: ListModerationReportsQueryDto) {
@@ -48,7 +52,8 @@ export class ModerationController {
   }
 
   @ApiOperation({
-    summary: 'Quét kiểm duyệt lại thủ công một bài viết hoặc bình luận bằng AI Sentinel',
+    summary:
+      'Quét kiểm duyệt lại thủ công một bài viết hoặc bình luận bằng AI Sentinel',
   })
   @Post('scan/:targetType/:targetId')
   @HttpCode(HttpStatus.OK)
@@ -56,7 +61,10 @@ export class ModerationController {
     @Param('targetType') targetType: 'POST' | 'COMMENT',
     @Param('targetId') targetId: string,
   ) {
-    const normalizedType = targetType.toUpperCase() === 'COMMENT' ? 'COMMENT' : 'POST';
-    return this.moderationService.scanTarget(normalizedType, targetId, { forceExecution: true });
+    const normalizedType =
+      targetType.toUpperCase() === 'COMMENT' ? 'COMMENT' : 'POST';
+    return this.moderationService.scanTarget(normalizedType, targetId, {
+      forceExecution: true,
+    });
   }
 }

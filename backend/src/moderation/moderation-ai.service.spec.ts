@@ -37,7 +37,9 @@ describe('ModerationAiService (3-Tier Safety Guardrails)', () => {
 
     expect(result.isSafe).toBe(false);
     expect(result.action).toBe('AUTO_HIDE');
-    expect(result.detectedCategories).toEqual(expect.arrayContaining(['PROFANITY', 'SPAM']));
+    expect(result.detectedCategories).toEqual(
+      expect.arrayContaining(['PROFANITY', 'SPAM']),
+    );
   });
 
   it('Tier 2 (MEDIUM / FLAG_FOR_REVIEW): gắn cờ nghi vấn cần Admin rà soát với nội dung nhạy cảm', async () => {

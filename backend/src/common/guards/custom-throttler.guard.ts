@@ -56,7 +56,12 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
       return await super.canActivate(context);
     } catch (error) {
       // Nếu lỗi 429 Too Many Requests hợp lệ thì vẫn chặn
-      if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'status' in error &&
+        error.status === 429
+      ) {
         throw error;
       }
       // Nếu Redis tạm thời chưa kết nối kịp (ECONNREFUSED / MaxRetriesPerRequestError), không làm sập API 500
@@ -64,4 +69,3 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     }
   }
 }
-

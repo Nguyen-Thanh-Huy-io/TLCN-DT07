@@ -98,7 +98,9 @@ describe('QuizService (Automated Unit Tests)', () => {
     it('ném NotFoundException nếu không tìm thấy đề quiz', async () => {
       (prisma.quiz.findUnique as jest.Mock).mockResolvedValue(null);
 
-      await expect(service.findById('non-existent-id')).rejects.toThrow(NotFoundException);
+      await expect(service.findById('non-existent-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('trả về chi tiết đề quiz nếu tồn tại', async () => {
@@ -141,8 +143,13 @@ describe('QuizService (Automated Unit Tests)', () => {
     });
 
     it('ném BadRequestException nếu bài học liên kết đã có đề quiz khác', async () => {
-      (prisma.lesson.findUnique as jest.Mock).mockResolvedValue({ id: 'l1', title: 'Bài học 1' });
-      (prisma.quiz.findUnique as jest.Mock).mockResolvedValue({ id: 'existing-quiz' });
+      (prisma.lesson.findUnique as jest.Mock).mockResolvedValue({
+        id: 'l1',
+        title: 'Bài học 1',
+      });
+      (prisma.quiz.findUnique as jest.Mock).mockResolvedValue({
+        id: 'existing-quiz',
+      });
 
       await expect(
         service.createStandalone({
@@ -161,7 +168,9 @@ describe('QuizService (Automated Unit Tests)', () => {
 
       const result = await service.removeById('quiz-1');
       expect(result.success).toBe(true);
-      expect(prisma.quiz.delete).toHaveBeenCalledWith({ where: { id: 'quiz-1' } });
+      expect(prisma.quiz.delete).toHaveBeenCalledWith({
+        where: { id: 'quiz-1' },
+      });
     });
   });
 });

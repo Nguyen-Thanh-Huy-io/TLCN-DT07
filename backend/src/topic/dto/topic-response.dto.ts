@@ -8,7 +8,6 @@ export class TopicResponseDto {
   })
   id: string;
 
-
   @ApiPropertyOptional({
     example: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',
     description: 'ID của chủ đề cha (nếu có)',

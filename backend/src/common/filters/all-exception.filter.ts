@@ -81,13 +81,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
         stack: exception instanceof Error ? exception.stack : undefined,
       });
     } else {
-      this.logger.warn(`Handled client exception: ${statusCode} ${request.method} ${request.url}`, {
-        context: 'AllExceptionsFilter',
-        statusCode,
-        path: request.url,
-        method: request.method,
-        message,
-      });
+      this.logger.warn(
+        `Handled client exception: ${statusCode} ${request.method} ${request.url}`,
+        {
+          context: 'AllExceptionsFilter',
+          statusCode,
+          path: request.url,
+          method: request.method,
+          message,
+        },
+      );
     }
 
     response.status(statusCode).json({

@@ -51,14 +51,21 @@ export function diffPayloads(
   return REVISION_FIELDS[type]
     .filter((f) => f.key in after || f.key in before)
     .filter((f) => stable(before[f.key]) !== stable(after[f.key]))
-    .map((f) => ({ ...f, before: before[f.key] ?? null, after: after[f.key] ?? null }));
+    .map((f) => ({
+      ...f,
+      before: before[f.key] ?? null,
+      after: after[f.key] ?? null,
+    }));
 }
 
 /**
  * Trường biên tập viên thật sự đổi trong bản sửa (so với nội dung lúc bắt đầu sửa); null nếu bản sửa
  * cũ chưa lưu bản gốc — khi đó coi mọi trường là của bản sửa.
  */
-function editedKeys(type: RevisionContentType, revision: ContentRevision): string[] | null {
+function editedKeys(
+  type: RevisionContentType,
+  revision: ContentRevision,
+): string[] | null {
   const base = revision.basePayload as Payload | null;
   if (!base) return null;
   const payload = revision.payload as Payload;
@@ -75,7 +82,11 @@ export class ContentRevisionService {
   ) {}
 
   assertType(type: string): RevisionContentType {
-    if (!Object.values(REVISION_CONTENT_TYPES).includes(type as RevisionContentType)) {
+    if (
+      !Object.values(REVISION_CONTENT_TYPES).includes(
+        type as RevisionContentType,
+      )
+    ) {
       throw new NotFoundException(REVISION_MESSAGES.UNKNOWN_TYPE(type));
     }
     return type as RevisionContentType;
@@ -104,7 +115,12 @@ export class ContentRevisionService {
    * Biên tập viên lưu nội dung đang xuất bản: thay đổi thành bản sửa chờ duyệt (bản công khai giữ
    * nguyên). Đã có bản chờ thì ghi đè — mỗi nội dung tối đa một bản sửa đang mở.
    */
-  async propose(type: RevisionContentType, contentId: string, body: Payload, authorId: string) {
+  async propose(
+    type: RevisionContentType,
+    contentId: string,
+    body: Payload,
+    authorId: string,
+  ) {
     const target = this.targets.get(type);
     const detail = await target.load(contentId);
     // Bản sửa = nội dung hiện tại + phần gửi lên, để so sánh / áp dụng luôn trên đủ trường.
@@ -112,12 +128,17 @@ export class ContentRevisionService {
     const payload = { ...live, ...pickFields(type, body) };
     const existing = await this.findPending(type, contentId);
     const data = {
-      title: String(payload.title ?? payload.name ?? target.title(detail) ?? '').slice(0, 255),
+      title: String(
+        payload.title ?? payload.name ?? target.title(detail) ?? '',
+      ).slice(0, 255),
       payload: payload as Prisma.InputJsonValue,
       authorId,
     };
     const revision = existing
-      ? await this.prisma.contentRevision.update({ where: { id: existing.id }, data })
+      ? await this.prisma.contentRevision.update({
+          where: { id: existing.id },
+          data,
+        })
       : await this.prisma.contentRevision.create({
           data: {
             ...data,
@@ -130,11 +151,19 @@ export class ContentRevisionService {
             basePayload: live as Prisma.InputJsonValue,
           },
         });
-    return { revisionPending: true, message: REVISION_MESSAGES.PROPOSED, revision };
+    return {
+      revisionPending: true,
+      message: REVISION_MESSAGES.PROPOSED,
+      revision,
+    };
   }
 
   /** Chụp nội dung hiện tại vào lịch sử trước khi một thay đổi được áp dụng. */
-  async snapshot(type: RevisionContentType, contentId: string, actorId: string | null) {
+  async snapshot(
+    type: RevisionContentType,
+    contentId: string,
+    actorId: string | null,
+  ) {
     const target = this.targets.get(type);
     const detail = await target.load(contentId);
     return this.prisma.contentRevision.create({
@@ -152,14 +181,19 @@ export class ContentRevisionService {
   }
 
   private async findRevision(id: string) {
-    const revision = await this.prisma.contentRevision.findUnique({ where: { id } });
+    const revision = await this.prisma.contentRevision.findUnique({
+      where: { id },
+    });
     if (!revision) throw new NotFoundException(REVISION_MESSAGES.NOT_FOUND);
     return revision;
   }
 
   async approve(id: string, reviewerId: string, note?: string) {
     const revision = await this.findRevision(id);
-    if (revision.kind !== REVISION_KIND.PROPOSAL || revision.status !== REVISION_STATUS.PENDING) {
+    if (
+      revision.kind !== REVISION_KIND.PROPOSAL ||
+      revision.status !== REVISION_STATUS.PENDING
+    ) {
       throw new BadRequestException(REVISION_MESSAGES.NOT_PENDING);
     }
     if (revision.authorId === reviewerId) {
@@ -169,7 +203,9 @@ export class ContentRevisionService {
     // Chỉ áp dụng trường biên tập viên đã đổi — không ghi đè thay đổi người duyệt làm trong lúc chờ.
     const keys = editedKeys(type, revision);
     const payload = revision.payload as Payload;
-    const toApply = keys ? Object.fromEntries(keys.map((k) => [k, payload[k]])) : payload;
+    const toApply = keys
+      ? Object.fromEntries(keys.map((k) => [k, payload[k]]))
+      : payload;
     await this.snapshot(type, revision.contentId, reviewerId);
     await this.targets.get(type).apply(revision.contentId, toApply);
     return this.prisma.contentRevision.update({
@@ -186,10 +222,14 @@ export class ContentRevisionService {
 
   async reject(id: string, reviewerId: string, note: string) {
     const revision = await this.findRevision(id);
-    if (revision.kind !== REVISION_KIND.PROPOSAL || revision.status !== REVISION_STATUS.PENDING) {
+    if (
+      revision.kind !== REVISION_KIND.PROPOSAL ||
+      revision.status !== REVISION_STATUS.PENDING
+    ) {
       throw new BadRequestException(REVISION_MESSAGES.NOT_PENDING);
     }
-    if (!note?.trim()) throw new BadRequestException(REVISION_MESSAGES.REJECT_NOTE_REQUIRED);
+    if (!note?.trim())
+      throw new BadRequestException(REVISION_MESSAGES.REJECT_NOTE_REQUIRED);
     return this.prisma.contentRevision.update({
       where: { id },
       data: {
@@ -209,7 +249,9 @@ export class ContentRevisionService {
     }
     const type = this.assertType(revision.contentType);
     await this.snapshot(type, revision.contentId, reviewerId);
-    await this.targets.get(type).apply(revision.contentId, revision.payload as Payload);
+    await this.targets
+      .get(type)
+      .apply(revision.contentId, revision.payload as Payload);
     return { restoredVersion: revision.version };
   }
 
@@ -222,7 +264,9 @@ export class ContentRevisionService {
     const payload = revision.payload as Payload;
     // before = nội dung đang hiện, after = bản sửa (hoặc phiên bản cũ: thấy khôi phục sẽ đổi gì).
     // Bản sửa có bản gốc: chỉ hiện trường biên tập viên đã đổi (đúng phần sẽ được áp dụng).
-    const changes = this.proposalChanges(type, revision, current) ?? diffPayloads(type, current, payload);
+    const changes =
+      this.proposalChanges(type, revision, current) ??
+      diffPayloads(type, current, payload);
     return {
       revision: await this.withPeople(revision),
       changes,
@@ -234,7 +278,9 @@ export class ContentRevisionService {
    * Tên hiển thị cho id / mã xuất hiện trong phần so sánh: giai đoạn, chủ đề, thực thể, sự kiện,
    * giá trị danh mục (loại sự kiện, vai trò...), loại thực thể, nhãn trường thông tin riêng.
    */
-  private async resolveLabels(changes: RevisionChange[]): Promise<Record<string, string>> {
+  private async resolveLabels(
+    changes: RevisionChange[],
+  ): Promise<Record<string, string>> {
     const ids: Record<'topic' | 'category' | 'tag', Set<string>> = {
       topic: new Set(),
       category: new Set(),
@@ -248,12 +294,25 @@ export class ContentRevisionService {
         }
       }
     }
-    const find = (set: Set<string>, query: (where: { id: { in: string[] } }) => Promise<{ id: string; name: string }[]>) =>
-      set.size ? query({ id: { in: [...set] } }) : Promise.resolve([]);
+    const find = (
+      set: Set<string>,
+      query: (where: {
+        id: { in: string[] };
+      }) => Promise<{ id: string; name: string }[]>,
+    ) => (set.size ? query({ id: { in: [...set] } }) : Promise.resolve([]));
     const rows = await Promise.all([
-      find(ids.topic, (where) => this.prisma.topic.findMany({ where, select: { id: true, name: true } })),
-      find(ids.category, (where) => this.prisma.category.findMany({ where, select: { id: true, name: true } })),
-      find(ids.tag, (where) => this.prisma.tag.findMany({ where, select: { id: true, name: true } })),
+      find(ids.topic, (where) =>
+        this.prisma.topic.findMany({ where, select: { id: true, name: true } }),
+      ),
+      find(ids.category, (where) =>
+        this.prisma.category.findMany({
+          where,
+          select: { id: true, name: true },
+        }),
+      ),
+      find(ids.tag, (where) =>
+        this.prisma.tag.findMany({ where, select: { id: true, name: true } }),
+      ),
     ]);
     const labels: Record<string, string> = {};
     for (const row of rows.flat()) labels[row.id] = row.name;
@@ -271,7 +330,11 @@ export class ContentRevisionService {
     const payload = revision.payload as Payload;
     return REVISION_FIELDS[type]
       .filter((f) => keys.includes(f.key))
-      .map((f) => ({ ...f, before: current[f.key] ?? null, after: payload[f.key] ?? null }));
+      .map((f) => ({
+        ...f,
+        before: current[f.key] ?? null,
+        after: payload[f.key] ?? null,
+      }));
   }
 
   /** Danh sách bản sửa chờ duyệt (trang Duyệt bài). */
@@ -298,7 +361,10 @@ export class ContentRevisionService {
       .filter((r) => r.kind === REVISION_KIND.SNAPSHOT)
       .sort((a, b) => a.version - b.version);
     const nextOf = new Map(
-      snapshots.map((snap, i) => [snap.id, (snapshots[i + 1]?.payload as Payload | undefined) ?? live]),
+      snapshots.map((snap, i) => [
+        snap.id,
+        (snapshots[i + 1]?.payload as Payload | undefined) ?? live,
+      ]),
     );
     const summarize = (r: ContentRevision) => {
       const changes =
@@ -311,7 +377,10 @@ export class ContentRevisionService {
     return {
       liveVersion: await this.liveVersion(type, contentId),
       items: await Promise.all(
-        rows.map(async (r) => ({ ...(await this.withPeople(r)), changedFields: summarize(r) })),
+        rows.map(async (r) => ({
+          ...(await this.withPeople(r)),
+          changedFields: summarize(r),
+        })),
       ),
     };
   }
@@ -324,12 +393,17 @@ export class ContentRevisionService {
     const target = this.targets.get(type);
     return {
       revision: await this.withPeople(pending),
-      draft: target.overlay(await target.load(contentId), pending.payload as Payload),
+      draft: target.overlay(
+        await target.load(contentId),
+        pending.payload as Payload,
+      ),
     };
   }
 
   private async withPeople(revision: ContentRevision) {
-    const ids = [revision.authorId, revision.reviewerId].filter((v): v is string => Boolean(v));
+    const ids = [revision.authorId, revision.reviewerId].filter(
+      (v): v is string => Boolean(v),
+    );
     const users = ids.length
       ? await this.prisma.authUser.findMany({
           where: { id: { in: ids } },
@@ -340,7 +414,9 @@ export class ContentRevisionService {
     return {
       ...revision,
       author: revision.authorId ? (byId.get(revision.authorId) ?? null) : null,
-      reviewer: revision.reviewerId ? (byId.get(revision.reviewerId) ?? null) : null,
+      reviewer: revision.reviewerId
+        ? (byId.get(revision.reviewerId) ?? null)
+        : null,
     };
   }
 }

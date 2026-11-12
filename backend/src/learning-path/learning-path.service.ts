@@ -119,7 +119,8 @@ export class LearningPathService {
     const slug = await this.slugService.generateUnique(
       dto.title,
       async (candidate) =>
-        (await this.prisma.learningPath.count({ where: { slug: candidate } })) > 0,
+        (await this.prisma.learningPath.count({ where: { slug: candidate } })) >
+        0,
     );
 
     return this.prisma.learningPath.create({
@@ -146,7 +147,8 @@ export class LearningPathService {
       where: { id },
       data: {
         title: dto.title ? dto.title.trim() : undefined,
-        description: dto.description !== undefined ? dto.description?.trim() : undefined,
+        description:
+          dto.description !== undefined ? dto.description?.trim() : undefined,
         coverImageUrl: dto.coverImageUrl,
         pathType: dto.pathType,
         isSequential: dto.isSequential,
@@ -174,7 +176,9 @@ export class LearningPathService {
       where: { id: dto.learningPathId },
     });
     if (!path) {
-      throw new NotFoundException(`Lộ trình học ID "${dto.learningPathId}" không tồn tại`);
+      throw new NotFoundException(
+        `Lộ trình học ID "${dto.learningPathId}" không tồn tại`,
+      );
     }
 
     const slug = await this.slugService.generateUnique(
@@ -220,7 +224,8 @@ export class LearningPathService {
       where: { id },
       data: {
         title: dto.title ? dto.title.trim() : undefined,
-        description: dto.description !== undefined ? dto.description?.trim() : undefined,
+        description:
+          dto.description !== undefined ? dto.description?.trim() : undefined,
         displayOrder: dto.displayOrder,
         status: dto.status,
       },
@@ -245,7 +250,9 @@ export class LearningPathService {
   // ==========================================
 
   async addLessonsToChapter(chapterId: string, lessonIds: string[]) {
-    const chapter = await this.prisma.chapter.findUnique({ where: { id: chapterId } });
+    const chapter = await this.prisma.chapter.findUnique({
+      where: { id: chapterId },
+    });
     if (!chapter) {
       throw new NotFoundException(`Chương học ID "${chapterId}" không tồn tại`);
     }
@@ -309,12 +316,18 @@ export class LearningPathService {
 
     return {
       success: true,
-      message: 'Đã gỡ bài học khỏi chương (bài học vẫn được bảo toàn trong Thư viện Lesson)',
+      message:
+        'Đã gỡ bài học khỏi chương (bài học vẫn được bảo toàn trong Thư viện Lesson)',
     };
   }
 
-  async reorderChapterLessons(chapterId: string, dto: ReorderChapterLessonsDto) {
-    const chapter = await this.prisma.chapter.findUnique({ where: { id: chapterId } });
+  async reorderChapterLessons(
+    chapterId: string,
+    dto: ReorderChapterLessonsDto,
+  ) {
+    const chapter = await this.prisma.chapter.findUnique({
+      where: { id: chapterId },
+    });
     if (!chapter) {
       throw new NotFoundException(`Chương học ID "${chapterId}" không tồn tại`);
     }

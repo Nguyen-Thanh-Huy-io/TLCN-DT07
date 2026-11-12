@@ -6,7 +6,8 @@ import {
   Patch,
   Param,
   Delete,
-  Query,} from '@nestjs/common';
+  Query,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,

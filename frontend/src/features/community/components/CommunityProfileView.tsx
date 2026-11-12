@@ -113,7 +113,7 @@ export function CommunityProfileView({
     } catch {
       // Giữ nguyên dữ liệu SSR fallback nếu mạng gián đoạn
     }
-  }, [identifier, isPersonalRoute, sessionUser?.id, sessionUser?.username]);
+  }, [identifier, isPersonalRoute, sessionUser]);
 
   useEffect(() => {
     void refreshProfile();

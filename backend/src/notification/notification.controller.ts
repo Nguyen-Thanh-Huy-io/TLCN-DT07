@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Patch, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { NotificationService } from './notification.service';
@@ -18,8 +26,14 @@ export class NotificationController {
 
   @Get()
   @ApiOperation({ summary: 'Lấy danh sách thông báo và số lượng chưa đọc' })
-  getMyNotifications(@Req() req: AuthedRequest, @Query('limit') limit?: number) {
-    return this.notificationService.getUserNotifications(req.user.userId, limit ? Number(limit) : 20);
+  getMyNotifications(
+    @Req() req: AuthedRequest,
+    @Query('limit') limit?: number,
+  ) {
+    return this.notificationService.getUserNotifications(
+      req.user.userId,
+      limit ? Number(limit) : 20,
+    );
   }
 
   @Patch('read-all')

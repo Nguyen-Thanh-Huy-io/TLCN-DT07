@@ -17,7 +17,10 @@ import {
 } from 'class-validator';
 
 export class TimelineNodeInputDto {
-  @ApiPropertyOptional({ nullable: true, description: 'Bài viết chi tiết của mốc' })
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Bài viết chi tiết của mốc',
+  })
   @IsOptional()
   @IsUUID('4')
   articleId?: string | null;
@@ -45,7 +48,11 @@ export class TimelineNodeInputDto {
   @MaxLength(150)
   dateText?: string | null;
 
-  @ApiPropertyOptional({ example: 1288, nullable: true, description: 'Năm âm = TCN, không có năm 0' })
+  @ApiPropertyOptional({
+    example: 1288,
+    nullable: true,
+    description: 'Năm âm = TCN, không có năm 0',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -75,7 +82,10 @@ export class TimelineNodeInputDto {
 }
 
 export class CreateTimelineDto {
-  @ApiPropertyOptional({ nullable: true, description: 'Chủ đề / Thời kỳ lịch sử' })
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Chủ đề / Thời kỳ lịch sử',
+  })
   @IsOptional()
   @IsUUID('4')
   topicId?: string | null;
@@ -90,7 +100,9 @@ export class CreateTimelineDto {
   @IsOptional()
   @IsString()
   @MaxLength(255)
-  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: 'slug chỉ gồm chữ thường, số và dấu gạch ngang' })
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'slug chỉ gồm chữ thường, số và dấu gạch ngang',
+  })
   slug?: string;
 
   @ApiPropertyOptional({ nullable: true })

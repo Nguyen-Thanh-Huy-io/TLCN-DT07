@@ -22,18 +22,52 @@ import { BadRequestException } from '@nestjs/common';
  */
 
 export const PERSON_ROLE_CODES = [
-  'GENERAL', 'COMMANDER', 'COMMANDER_IN_CHIEF', 'STRATEGIST', 'MILITARY_ADVISER', 'WARRIOR',
-  'MONARCH', 'POLITICIAN', 'STATESMAN', 'DIPLOMAT', 'REFORMER',
-  'SCHOLAR', 'CULTURAL_FIGURE', 'POET', 'WRITER', 'PHILOSOPHER', 'SCIENTIST',
-  'RELIGIOUS_FIGURE', 'REVOLUTIONARY', 'PATRIOT', 'HERO',
+  'GENERAL',
+  'COMMANDER',
+  'COMMANDER_IN_CHIEF',
+  'STRATEGIST',
+  'MILITARY_ADVISER',
+  'WARRIOR',
+  'MONARCH',
+  'POLITICIAN',
+  'STATESMAN',
+  'DIPLOMAT',
+  'REFORMER',
+  'SCHOLAR',
+  'CULTURAL_FIGURE',
+  'POET',
+  'WRITER',
+  'PHILOSOPHER',
+  'SCIENTIST',
+  'RELIGIOUS_FIGURE',
+  'REVOLUTIONARY',
+  'PATRIOT',
+  'HERO',
 ] as const;
 export const SITE_TYPE_CODES = [
-  'ANCIENT_CAPITAL', 'CITADEL', 'PALACE', 'BATTLEFIELD', 'RESISTANCE_BASE', 'TEMPLE',
-  'ARCHAEOLOGICAL_SITE', 'MONUMENT', 'OTHER',
+  'ANCIENT_CAPITAL',
+  'CITADEL',
+  'PALACE',
+  'BATTLEFIELD',
+  'RESISTANCE_BASE',
+  'TEMPLE',
+  'ARCHAEOLOGICAL_SITE',
+  'MONUMENT',
+  'OTHER',
 ] as const;
-export const SITE_RANK_CODES = ['UNESCO', 'INTERNATIONAL', 'SPECIAL_NATIONAL', 'NATIONAL', 'PROVINCIAL'] as const;
+export const SITE_RANK_CODES = [
+  'UNESCO',
+  'INTERNATIONAL',
+  'SPECIAL_NATIONAL',
+  'NATIONAL',
+  'PROVINCIAL',
+] as const;
 export const SITE_PRESERVATION_CODES = [
-  'INTACT', 'MUSEUM_MEMORIAL', 'ARCHAEOLOGICAL_RUIN', 'RESTORED', 'ACTIVE_SITE',
+  'INTACT',
+  'MUSEUM_MEMORIAL',
+  'ARCHAEOLOGICAL_RUIN',
+  'RESTORED',
+  'ACTIVE_SITE',
 ] as const;
 
 /** Mốc đời RIÊNG của nhân vật (việc nhỏ không đáng thành bài sự kiện). Hiện trong dòng đời. */
@@ -103,7 +137,12 @@ const textList = (v: unknown): string[] | undefined => {
 };
 
 const intIn = (v: unknown, min: number, max: number): number | undefined => {
-  const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() ? Number(v) : NaN;
+  const n =
+    typeof v === 'number'
+      ? v
+      : typeof v === 'string' && v.trim()
+        ? Number(v)
+        : NaN;
   return Number.isInteger(n) && n >= min && n <= max ? n : undefined;
 };
 
@@ -114,7 +153,9 @@ function milestones(v: unknown): PersonMilestone[] | undefined {
     const title = text(m.title);
     const year = typeof m.year === 'number' ? m.year : Number(m.year);
     if (!title || !Number.isInteger(year) || year === 0) {
-      throw new BadRequestException(`metadata.person.milestones[${i}]: cần năm (khác 0) và tiêu đề`);
+      throw new BadRequestException(
+        `metadata.person.milestones[${i}]: cần năm (khác 0) và tiêu đề`,
+      );
     }
     return compact<PersonMilestone>({
       year,
@@ -124,24 +165,41 @@ function milestones(v: unknown): PersonMilestone[] | undefined {
       note: text(m.note),
     })!;
   });
-  list.sort((a, b) => a.year - b.year || (a.month ?? 0) - (b.month ?? 0) || (a.day ?? 0) - (b.day ?? 0));
+  list.sort(
+    (a, b) =>
+      a.year - b.year ||
+      (a.month ?? 0) - (b.month ?? 0) ||
+      (a.day ?? 0) - (b.day ?? 0),
+  );
   return list.length ? list : undefined;
 }
 
-const coordinate = (v: unknown, max: number, field: string): number | undefined => {
+const coordinate = (
+  v: unknown,
+  max: number,
+  field: string,
+): number | undefined => {
   if (v === null || v === undefined || v === '') return undefined;
   const n = typeof v === 'number' ? v : Number(v);
   if (!Number.isFinite(n) || Math.abs(n) > max) {
-    throw new BadRequestException(`metadata.site.${field} phải là số trong khoảng ±${max}`);
+    throw new BadRequestException(
+      `metadata.site.${field} phải là số trong khoảng ±${max}`,
+    );
   }
   return n;
 };
 
-function code<T extends readonly string[]>(list: T, v: unknown, field: string): T[number] | undefined {
+function code<T extends readonly string[]>(
+  list: T,
+  v: unknown,
+  field: string,
+): T[number] | undefined {
   const value = text(v);
   if (value === undefined) return undefined;
   if ((list as readonly string[]).includes(value)) return value as T[number];
-  throw new BadRequestException(`metadata.${field}: mã "${value}" không hợp lệ`);
+  throw new BadRequestException(
+    `metadata.${field}: mã "${value}" không hợp lệ`,
+  );
 }
 
 /** Bỏ khoá undefined; object rỗng → undefined (không lưu "" hay {}). */
@@ -150,9 +208,13 @@ function compact<T extends object>(obj: T): T | undefined {
   return entries.length ? (Object.fromEntries(entries) as T) : undefined;
 }
 
-const branch = (v: unknown, name: string): Record<string, unknown> | undefined => {
+const branch = (
+  v: unknown,
+  name: string,
+): Record<string, unknown> | undefined => {
   if (v === undefined || v === null) return undefined;
-  if (!isObject(v)) throw new BadRequestException(`metadata.${name} phải là object`);
+  if (!isObject(v))
+    throw new BadRequestException(`metadata.${name} phải là object`);
   return v;
 };
 
@@ -165,7 +227,9 @@ export function normalizeArticleMetadata(raw: unknown): ArticleMetadata | null {
   const s = branch(raw.site, 'site');
   const e = branch(raw.event, 'event');
 
-  const roles = textList(p?.roles)?.map((r) => code(PERSON_ROLE_CODES, r, 'person.roles')!);
+  const roles = textList(p?.roles)?.map((r) =>
+    code(PERSON_ROLE_CODES, r, 'person.roles')!,
+  );
 
   const meta = compact<ArticleMetadata>({
     aliases: textList(raw.aliases),
@@ -195,7 +259,11 @@ export function normalizeArticleMetadata(raw: unknown): ArticleMetadata | null {
           siteType: code(SITE_TYPE_CODES, s.siteType, 'site.siteType'),
           rank: code(SITE_RANK_CODES, s.rank, 'site.rank'),
           recognizedYear: text(s.recognizedYear),
-          preservation: code(SITE_PRESERVATION_CODES, s.preservation, 'site.preservation'),
+          preservation: code(
+            SITE_PRESERVATION_CODES,
+            s.preservation,
+            'site.preservation',
+          ),
           statusNote: text(s.statusNote),
           managingAgency: text(s.managingAgency),
           architecturalStyle: text(s.architecturalStyle),

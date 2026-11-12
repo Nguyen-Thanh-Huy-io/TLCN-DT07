@@ -183,7 +183,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
         setIsLoading(false);
       }
     },
-    [initialPosts, user?.id],
+    [initialPosts, user],
   );
 
   useEffect(() => {

@@ -6,7 +6,6 @@ import { DiscussionTargetType, userRole } from '@prisma/client';
 
 describe('DiscussionService', () => {
   let service: DiscussionService;
-  let prisma: PrismaService;
 
   const mockNotificationService = {
     notify: jest.fn().mockResolvedValue({ id: 'notif-1' }),
@@ -53,7 +52,10 @@ describe('DiscussionService', () => {
         title: 'Hỏi về chiến thắng Bạch Đằng',
         content: 'Cho em hỏi thời gian cụ thể',
       };
-      mockPrisma.discussionThread.create.mockResolvedValue({ id: 'thread-1', ...dto });
+      mockPrisma.discussionThread.create.mockResolvedValue({
+        id: 'thread-1',
+        ...dto,
+      });
 
       const result = await service.create('user-1', dto);
       expect(result.id).toBe('thread-1');
@@ -63,16 +65,24 @@ describe('DiscussionService', () => {
 
   describe('createReply', () => {
     it('BTV/Admin trả lời sẽ được gắn isOfficial = true và isAnswered = true', async () => {
-      mockPrisma.discussionThread.findUnique.mockResolvedValue({ id: 'thread-1', title: 'Hỏi' });
+      mockPrisma.discussionThread.findUnique.mockResolvedValue({
+        id: 'thread-1',
+        title: 'Hỏi',
+      });
       mockPrisma.discussionReply.create.mockResolvedValue({
         id: 'reply-1',
         content: 'Trả lời từ Admin',
         isOfficial: true,
       });
 
-      const result = await service.createReply('admin-1', userRole.ADMIN, 'thread-1', {
-        content: 'Trả lời từ Admin',
-      });
+      const result = await service.createReply(
+        'admin-1',
+        userRole.ADMIN,
+        'thread-1',
+        {
+          content: 'Trả lời từ Admin',
+        },
+      );
 
       expect(result.isOfficial).toBe(true);
       expect(mockPrisma.discussionThread.update).toHaveBeenCalledWith({
@@ -82,16 +92,24 @@ describe('DiscussionService', () => {
     });
 
     it('Học viên bình thường trả lời thì isOfficial = false', async () => {
-      mockPrisma.discussionThread.findUnique.mockResolvedValue({ id: 'thread-1', title: 'Hỏi' });
+      mockPrisma.discussionThread.findUnique.mockResolvedValue({
+        id: 'thread-1',
+        title: 'Hỏi',
+      });
       mockPrisma.discussionReply.create.mockResolvedValue({
         id: 'reply-2',
         content: 'Ý kiến bạn học',
         isOfficial: false,
       });
 
-      const result = await service.createReply('user-2', userRole.USER, 'thread-1', {
-        content: 'Ý kiến bạn học',
-      });
+      const result = await service.createReply(
+        'user-2',
+        userRole.USER,
+        'thread-1',
+        {
+          content: 'Ý kiến bạn học',
+        },
+      );
 
       expect(result.isOfficial).toBe(false);
       expect(mockPrisma.discussionThread.update).not.toHaveBeenCalled();

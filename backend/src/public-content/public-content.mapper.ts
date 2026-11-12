@@ -16,7 +16,8 @@ export function buildDateLabel(input: {
   if (input.dateText?.trim()) return input.dateText.trim();
   const start = formatHistoricalYear(input.startYear);
   const end = formatHistoricalYear(input.endYear);
-  if (start && end && input.endYear !== input.startYear) return `${start} – ${end}`;
+  if (start && end && input.endYear !== input.startYear)
+    return `${start} – ${end}`;
   return start || end || null;
 }
 
@@ -31,9 +32,16 @@ export function buildNodeDateLabel(node: {
   if (node.dateText?.trim()) return node.dateText.trim();
   const year = formatHistoricalYear(node.year);
   if (!year) return null;
-  const head = node.day && node.month ? `${node.day}/${node.month}/` : node.month ? `${node.month}/` : '';
+  const head =
+    node.day && node.month
+      ? `${node.day}/${node.month}/`
+      : node.month
+        ? `${node.month}/`
+        : '';
   const end = formatHistoricalYear(node.endYear);
-  return end && node.endYear !== node.year ? `${head}${year} – ${end}` : `${head}${year}`;
+  return end && node.endYear !== node.year
+    ? `${head}${year} – ${end}`
+    : `${head}${year}`;
 }
 
 export const PUBLIC_ARTICLE_SUMMARY_SELECT = {
@@ -53,11 +61,24 @@ export const PUBLIC_ARTICLE_SUMMARY_SELECT = {
     orderBy: { displayOrder: 'asc' },
     select: { targetId: true, label: true, note: true },
   },
-  category: { select: { id: true, name: true, slug: true, icon: true, kind: true, parentId: true } },
-  articleTags: { select: { tag: { select: { id: true, name: true, colorHex: true } } } },
+  category: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      icon: true,
+      kind: true,
+      parentId: true,
+    },
+  },
+  articleTags: {
+    select: { tag: { select: { id: true, name: true, colorHex: true } } },
+  },
 } satisfies Prisma.ArticleSelect;
 
-type ArticleSummaryRow = Prisma.ArticleGetPayload<{ select: typeof PUBLIC_ARTICLE_SUMMARY_SELECT }>;
+type ArticleSummaryRow = Prisma.ArticleGetPayload<{
+  select: typeof PUBLIC_ARTICLE_SUMMARY_SELECT;
+}>;
 
 export function toArticleSummary(row: ArticleSummaryRow) {
   const { articleTags, linksOut, ...rest } = row;

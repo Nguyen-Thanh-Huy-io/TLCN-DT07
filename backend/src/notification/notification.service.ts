@@ -39,7 +39,13 @@ export class NotificationService {
     return { success: true };
   }
 
-  async notify(userId: string, type: NotificationType, title: string, message: string, linkUrl?: string) {
+  async notify(
+    userId: string,
+    type: NotificationType,
+    title: string,
+    message: string,
+    linkUrl?: string,
+  ) {
     const notification = await this.prisma.notification.create({
       data: {
         userId,

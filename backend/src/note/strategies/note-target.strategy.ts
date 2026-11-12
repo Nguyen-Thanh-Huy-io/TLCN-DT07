@@ -5,7 +5,9 @@ import { PrismaService } from '../../common/services/prisma.service';
 export interface NoteTargetStrategy {
   readonly targetType: NoteTargetType;
   validateTarget(targetId: string): Promise<boolean>;
-  getTargetMeta(targetId: string): Promise<{ title: string; type: NoteTargetType } | null>;
+  getTargetMeta(
+    targetId: string,
+  ): Promise<{ title: string; type: NoteTargetType } | null>;
 }
 
 @Injectable()
@@ -22,7 +24,9 @@ export class ArticleNoteStrategy implements NoteTargetStrategy {
     return Boolean(article);
   }
 
-  async getTargetMeta(targetId: string): Promise<{ title: string; type: NoteTargetType } | null> {
+  async getTargetMeta(
+    targetId: string,
+  ): Promise<{ title: string; type: NoteTargetType } | null> {
     const article = await this.prisma.article.findUnique({
       where: { id: targetId },
       select: { title: true },
@@ -46,7 +50,9 @@ export class LessonNoteStrategy implements NoteTargetStrategy {
     return Boolean(lesson);
   }
 
-  async getTargetMeta(targetId: string): Promise<{ title: string; type: NoteTargetType } | null> {
+  async getTargetMeta(
+    targetId: string,
+  ): Promise<{ title: string; type: NoteTargetType } | null> {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: targetId },
       select: { title: true },
@@ -58,7 +64,8 @@ export class LessonNoteStrategy implements NoteTargetStrategy {
 
 @Injectable()
 export class NoteStrategyRegistry {
-  private readonly strategies: Map<NoteTargetType, NoteTargetStrategy> = new Map();
+  private readonly strategies: Map<NoteTargetType, NoteTargetStrategy> =
+    new Map();
 
   constructor(
     articleStrategy: ArticleNoteStrategy,
@@ -71,7 +78,9 @@ export class NoteStrategyRegistry {
   getStrategy(targetType: NoteTargetType): NoteTargetStrategy {
     const strategy = this.strategies.get(targetType);
     if (!strategy) {
-      throw new NotFoundException(`Không hỗ trợ ghi chú cho loại mục tiêu: ${targetType}`);
+      throw new NotFoundException(
+        `Không hỗ trợ ghi chú cho loại mục tiêu: ${targetType}`,
+      );
     }
     return strategy;
   }

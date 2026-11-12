@@ -9,12 +9,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { LearningPathService } from './learning-path.service';
 import {
   CreateLearningPathDto,
@@ -43,7 +38,9 @@ export class LearningPathController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Lấy chi tiết một lộ trình học kèm các chương và bài học' })
+  @ApiOperation({
+    summary: 'Lấy chi tiết một lộ trình học kèm các chương và bài học',
+  })
   findPathById(@Param('id') id: string) {
     return this.service.findPathById(id);
   }
@@ -118,7 +115,9 @@ export class LearningPathController {
   @Delete('chapters/:chapterId/lessons/:lessonId')
   @ContentWrite({ model: 'chapter', idParam: 'chapterId' })
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Gỡ bài học khỏi chương (giữ nguyên bài trong thư viện)' })
+  @ApiOperation({
+    summary: 'Gỡ bài học khỏi chương (giữ nguyên bài trong thư viện)',
+  })
   removeLessonFromChapter(
     @Param('chapterId') chapterId: string,
     @Param('lessonId') lessonId: string,

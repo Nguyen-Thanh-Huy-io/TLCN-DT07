@@ -20,14 +20,22 @@ export class CreateCategoryDto {
   @MaxLength(150)
   name: string;
 
-  @ApiPropertyOptional({ example: 'nhan-vat', description: 'Bỏ trống để tự sinh từ tên' })
+  @ApiPropertyOptional({
+    example: 'nhan-vat',
+    description: 'Bỏ trống để tự sinh từ tên',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(150)
-  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: 'slug chỉ gồm chữ thường, số và dấu gạch ngang' })
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'slug chỉ gồm chữ thường, số và dấu gạch ngang',
+  })
   slug?: string;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Chuyên mục cha (nếu là chuyên mục con)' })
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Chuyên mục cha (nếu là chuyên mục con)',
+  })
   @IsOptional()
   @IsUUID('4')
   parentId?: string | null;
@@ -37,7 +45,11 @@ export class CreateCategoryDto {
   @IsString()
   description?: string | null;
 
-  @ApiPropertyOptional({ example: 'User', nullable: true, description: 'Tên icon lucide' })
+  @ApiPropertyOptional({
+    example: 'User',
+    nullable: true,
+    description: 'Tên icon lucide',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(50)

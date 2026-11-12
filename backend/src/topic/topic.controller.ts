@@ -59,8 +59,7 @@ export class TopicController {
   @Get()
   @ApiOperation({
     summary: 'Lấy danh sách các chủ đề lịch sử',
-    description:
-      'Hỗ trợ phân trang, lọc theo status và tìm kiếm từ khóa.',
+    description: 'Hỗ trợ phân trang, lọc theo status và tìm kiếm từ khóa.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -72,7 +71,8 @@ export class TopicController {
 
   @Get('tree')
   @ApiOperation({
-    summary: 'Lấy cấu trúc Cây Tri thức phân cấp (Composite Tree) của các chủ đề',
+    summary:
+      'Lấy cấu trúc Cây Tri thức phân cấp (Composite Tree) của các chủ đề',
     description: 'Trả về cây đa cấp (Root topics kèm children và lessons)',
   })
   @ApiResponse({
@@ -109,7 +109,8 @@ export class TopicController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Sắp xếp lại thứ tự hiển thị danh sách chủ đề (Batch Reordering)',
-    description: 'Yêu cầu quyền quản trị. Cập nhật displayOrder cho nhiều chủ đề trong 1 transaction.',
+    description:
+      'Yêu cầu quyền quản trị. Cập nhật displayOrder cho nhiều chủ đề trong 1 transaction.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -198,7 +199,8 @@ export class TopicController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Tách / Hủy gắn một chủ đề con khỏi chủ đề cha',
-    description: 'Yêu cầu quyền quản trị. Chuyển chủ đề con thành chủ đề gốc độc lập.',
+    description:
+      'Yêu cầu quyền quản trị. Chuyển chủ đề con thành chủ đề gốc độc lập.',
   })
   @ApiParam({ name: 'id', description: 'UUID của chủ đề cha', type: String })
   @ApiParam({

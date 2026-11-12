@@ -174,7 +174,7 @@ export class PublicContentService {
         : null;
     };
 
-    const { timelineNodes, categoryId: _categoryId, ...rest } = article;
+    const { timelineNodes, ...rest } = article;
     return {
       ...toArticleSummary(rest),
       coverCaption: article.coverCaption,
@@ -272,25 +272,23 @@ export class PublicContentService {
       include: PublicContentService['timelineInclude'];
     }>,
   ) {
-    const { nodes, status: _status, ...rest } = timeline;
+    const { nodes, ...rest } = timeline;
     return {
       ...rest,
-      nodes: nodes.map(
-        ({ article, timelineId: _t, articleId: _a, ...node }) => ({
-          ...node,
-          dateLabel: buildNodeDateLabel(node),
-          // Chỉ lộ bài viết đã xuất bản.
-          article:
-            article && article.status === PUBLISHED
-              ? {
-                  slug: article.slug,
-                  title: article.title,
-                  coverImageUrl: article.coverImageUrl,
-                  category: article.category,
-                }
-              : null,
-        }),
-      ),
+      nodes: nodes.map(({ article, ...node }) => ({
+        ...node,
+        dateLabel: buildNodeDateLabel(node),
+        // Chỉ lộ bài viết đã xuất bản.
+        article:
+          article && article.status === PUBLISHED
+            ? {
+                slug: article.slug,
+                title: article.title,
+                coverImageUrl: article.coverImageUrl,
+                category: article.category,
+              }
+            : null,
+      })),
     };
   }
 

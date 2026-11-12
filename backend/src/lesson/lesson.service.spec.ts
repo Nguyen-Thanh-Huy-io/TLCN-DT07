@@ -3,11 +3,7 @@ import { LessonService } from './lesson.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { LessonStatus, DifficultyLevel } from '@prisma/client';
 
 describe('LessonService', () => {

@@ -12,7 +12,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { LearningPathType, ContentStatus } from '@prisma/client';
 
 export class CreateLearningPathDto {
-  @ApiProperty({ description: 'Tên lộ trình học', example: 'Lịch sử Việt Nam 1945 - 1975' })
+  @ApiProperty({
+    description: 'Tên lộ trình học',
+    example: 'Lịch sử Việt Nam 1945 - 1975',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
@@ -28,12 +31,18 @@ export class CreateLearningPathDto {
   @IsString()
   coverImageUrl?: string;
 
-  @ApiPropertyOptional({ enum: LearningPathType, default: LearningPathType.CHRONOLOGICAL })
+  @ApiPropertyOptional({
+    enum: LearningPathType,
+    default: LearningPathType.CHRONOLOGICAL,
+  })
   @IsOptional()
   @IsEnum(LearningPathType)
   pathType?: LearningPathType;
 
-  @ApiPropertyOptional({ description: 'Bắt buộc học tuần tự hay tự do', default: false })
+  @ApiPropertyOptional({
+    description: 'Bắt buộc học tuần tự hay tự do',
+    default: false,
+  })
   @IsOptional()
   @IsBoolean()
   isSequential?: boolean;

@@ -32,7 +32,10 @@ export class DiscussionController {
   constructor(private readonly discussionService: DiscussionService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lấy danh sách thảo luận (hỗ trợ lọc theo targetType, targetId, learningPathId)' })
+  @ApiOperation({
+    summary:
+      'Lấy danh sách thảo luận (hỗ trợ lọc theo targetType, targetId, learningPathId)',
+  })
   findAll(@Query() query: QueryDiscussionDto) {
     return this.discussionService.findAll(query);
   }
@@ -47,23 +50,28 @@ export class DiscussionController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Đặt câu hỏi / tạo chủ đề thảo luận mới' })
-  create(
-    @Req() req: AuthedRequest,
-    @Body() dto: CreateDiscussionThreadDto,
-  ) {
+  create(@Req() req: AuthedRequest, @Body() dto: CreateDiscussionThreadDto) {
     return this.discussionService.create(req.user.userId, dto);
   }
 
   @Post(':id/replies')
   @UseGuards(AuthGuard)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Trả lời câu hỏi (nếu BTV/Admin trả lời sẽ tự động gắn isOfficial)' })
+  @ApiOperation({
+    summary:
+      'Trả lời câu hỏi (nếu BTV/Admin trả lời sẽ tự động gắn isOfficial)',
+  })
   createReply(
     @Req() req: AuthedRequest,
     @Param('id', new ParseUUIDPipe()) threadId: string,
     @Body() dto: CreateDiscussionReplyDto,
   ) {
-    return this.discussionService.createReply(req.user.userId, req.user.role, threadId, dto);
+    return this.discussionService.createReply(
+      req.user.userId,
+      req.user.role,
+      threadId,
+      dto,
+    );
   }
 
   @Delete(':id')

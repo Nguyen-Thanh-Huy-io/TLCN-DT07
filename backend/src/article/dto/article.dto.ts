@@ -24,7 +24,10 @@ export class ArticleLinkInputDto {
   @IsUUID('4')
   targetId: string;
 
-  @ApiPropertyOptional({ example: 'Chỉ huy', description: 'Nhãn chữ tự do, tuỳ chọn' })
+  @ApiPropertyOptional({
+    example: 'Chỉ huy',
+    description: 'Nhãn chữ tự do, tuỳ chọn',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -43,11 +46,16 @@ export class CreateArticleDto {
   @MaxLength(255)
   title: string;
 
-  @ApiPropertyOptional({ example: 'tran-hung-dao', description: 'Bỏ trống để tự sinh từ tiêu đề' })
+  @ApiPropertyOptional({
+    example: 'tran-hung-dao',
+    description: 'Bỏ trống để tự sinh từ tiêu đề',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(255)
-  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: 'slug chỉ gồm chữ thường, số và dấu gạch ngang' })
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'slug chỉ gồm chữ thường, số và dấu gạch ngang',
+  })
   slug?: string;
 
   @ApiPropertyOptional({ nullable: true })
@@ -55,12 +63,18 @@ export class CreateArticleDto {
   @IsUUID('4')
   categoryId?: string | null;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Chủ đề / Thời kỳ lịch sử' })
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Chủ đề / Thời kỳ lịch sử',
+  })
   @IsOptional()
   @IsUUID('4')
   topicId?: string | null;
 
-  @ApiPropertyOptional({ type: [String], description: 'Thay toàn bộ tag của bài viết' })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Thay toàn bộ tag của bài viết',
+  })
   @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })
@@ -83,14 +97,18 @@ export class CreateArticleDto {
   @MaxLength(255)
   coverCaption?: string | null;
 
-  @ApiPropertyOptional({ type: 'array', description: 'Mảng khối nội dung (Block Builder)' })
+  @ApiPropertyOptional({
+    type: 'array',
+    description: 'Mảng khối nội dung (Block Builder)',
+  })
   @IsOptional()
   @IsArray()
   contentBlocks?: Record<string, unknown>[];
 
   @ApiPropertyOptional({
     nullable: true,
-    description: 'Hồ sơ mô tả tùy chọn: { aliases, region, sources, person, site, event } — xem article/article-metadata.ts',
+    description:
+      'Hồ sơ mô tả tùy chọn: { aliases, region, sources, person, site, event } — xem article/article-metadata.ts',
   })
   @IsOptional()
   @IsObject()
@@ -98,7 +116,8 @@ export class CreateArticleDto {
 
   @ApiPropertyOptional({
     type: [ArticleLinkInputDto],
-    description: 'Thay TOÀN BỘ liên kết do bài này khai báo; thứ tự = vị trí trong mảng',
+    description:
+      'Thay TOÀN BỘ liên kết do bài này khai báo; thứ tự = vị trí trong mảng',
   })
   @IsOptional()
   @IsArray()
@@ -112,7 +131,11 @@ export class CreateArticleDto {
   @MaxLength(150)
   dateText?: string | null;
 
-  @ApiPropertyOptional({ example: 1228, nullable: true, description: 'Năm âm = TCN, không có năm 0' })
+  @ApiPropertyOptional({
+    example: 1228,
+    nullable: true,
+    description: 'Năm âm = TCN, không có năm 0',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -151,9 +174,14 @@ export class UpdateArticleDto extends PartialType(CreateArticleDto) {}
 
 export class ReviewArticleDto {
   @ApiProperty({
-    enum: [ContentStatus.PUBLISHED, ContentStatus.REJECTED, ContentStatus.DRAFT],
+    enum: [
+      ContentStatus.PUBLISHED,
+      ContentStatus.REJECTED,
+      ContentStatus.DRAFT,
+    ],
     example: ContentStatus.PUBLISHED,
-    description: 'Quyết định kiểm duyệt (PUBLISHED: Cho phép xuất bản, REJECTED: Từ chối)',
+    description:
+      'Quyết định kiểm duyệt (PUBLISHED: Cho phép xuất bản, REJECTED: Từ chối)',
   })
   @IsEnum(ContentStatus)
   @IsNotEmpty({ message: 'Trạng thái duyệt không được để trống' })
@@ -215,7 +243,10 @@ export class QueryArticleDto {
   @IsBoolean()
   featured?: boolean;
 
-  @ApiPropertyOptional({ enum: ['updated', 'year', 'title'], default: 'updated' })
+  @ApiPropertyOptional({
+    enum: ['updated', 'year', 'title'],
+    default: 'updated',
+  })
   @IsOptional()
   @IsString()
   sort?: 'updated' | 'year' | 'title';

@@ -6,7 +6,10 @@ import { IsOptional, IsString, MaxLength } from 'class-validator';
  * KHÔNG nhận từ body để tránh giả mạo.
  */
 export class ReportPostDto {
-  @ApiPropertyOptional({ description: 'Lý do báo cáo ngắn gọn', example: 'Nội dung xúc phạm danh dự cá nhân' })
+  @ApiPropertyOptional({
+    description: 'Lý do báo cáo ngắn gọn',
+    example: 'Nội dung xúc phạm danh dự cá nhân',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -28,7 +31,8 @@ export class UpdateCommunityProfileDto {
 
   @ApiPropertyOptional({
     description: 'Tiểu sử & hướng nghiên cứu lịch sử',
-    example: 'Nghiên cứu lịch sử kiến trúc thành lũy cổ đại và khảo cổ học Đông Dương.',
+    example:
+      'Nghiên cứu lịch sử kiến trúc thành lũy cổ đại và khảo cổ học Đông Dương.',
   })
   @IsOptional()
   @IsString()

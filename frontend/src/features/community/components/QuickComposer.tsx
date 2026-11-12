@@ -100,7 +100,7 @@ export function QuickComposer({
         b.slug.toLowerCase().includes(q) ||
         (b.authorName || '').toLowerCase().includes(q),
     );
-  }, [availableBlogs, blogSearchOrUrl, user?.username]);
+  }, [availableBlogs, blogSearchOrUrl, user]);
 
   if (!isOpen) return null;
 

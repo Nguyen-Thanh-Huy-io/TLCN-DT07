@@ -20,10 +20,12 @@ export interface RevisionDirective {
 
 export const REVISION_DIRECTIVE_KEY = 'contentRevision';
 
-export function revisionDirectiveOf(request: Request): RevisionDirective | undefined {
-  return (request as Request & { [REVISION_DIRECTIVE_KEY]?: RevisionDirective })[
-    REVISION_DIRECTIVE_KEY
-  ];
+export function revisionDirectiveOf(
+  request: Request,
+): RevisionDirective | undefined {
+  return (
+    request as Request & { [REVISION_DIRECTIVE_KEY]?: RevisionDirective }
+  )[REVISION_DIRECTIVE_KEY];
 }
 
 @Injectable()

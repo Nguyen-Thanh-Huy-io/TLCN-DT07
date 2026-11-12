@@ -8,7 +8,13 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { QuizService } from './quiz.service';
 import { UpsertQuizDto } from './dto/upsert-quiz.dto';
 import { QuizResponseDto } from './dto/quiz-response.dto';
@@ -28,7 +34,8 @@ export class QuizController {
   @RequireRoles(...ROLE_GROUPS.STAFF)
   @ApiOperation({
     summary: 'Lấy đề ôn tập của 1 bài học',
-    description: 'Trả về `null` nếu bài học này chưa có đề ôn tập (không phải lỗi).',
+    description:
+      'Trả về `null` nếu bài học này chưa có đề ôn tập (không phải lỗi).',
   })
   @ApiParam({ name: 'lessonId', description: 'UUID bài học', type: String })
   @ApiResponse({ status: HttpStatus.OK, type: QuizResponseDto })
@@ -45,10 +52,23 @@ export class QuizController {
       'Gửi lên toàn bộ danh sách câu hỏi mỗi lần lưu (giống cách Block Builder lưu nguyên mảng khối nội dung). Tạo mới nếu bài học chưa có đề, cập nhật nếu đã có.',
   })
   @ApiParam({ name: 'lessonId', description: 'UUID bài học', type: String })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Lưu đề ôn tập thành công', type: QuizResponseDto })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Câu hỏi không hợp lệ (xem message chi tiết)' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy bài học' })
-  async upsert(@Param('lessonId') lessonId: string, @Body() dto: UpsertQuizDto) {
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Lưu đề ôn tập thành công',
+    type: QuizResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Câu hỏi không hợp lệ (xem message chi tiết)',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Không tìm thấy bài học',
+  })
+  async upsert(
+    @Param('lessonId') lessonId: string,
+    @Body() dto: UpsertQuizDto,
+  ) {
     return this.quizService.upsert(lessonId, dto);
   }
 
@@ -59,7 +79,10 @@ export class QuizController {
   @ApiOperation({ summary: 'Xóa đề ôn tập của 1 bài học' })
   @ApiParam({ name: 'lessonId', description: 'UUID bài học', type: String })
   @ApiResponse({ status: HttpStatus.OK, description: 'Xóa thành công' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Bài học chưa có đề ôn tập' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Bài học chưa có đề ôn tập',
+  })
   async remove(@Param('lessonId') lessonId: string) {
     return this.quizService.remove(lessonId);
   }

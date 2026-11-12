@@ -12,7 +12,6 @@ import { Type } from 'class-transformer';
 import { ContentStatus, LearningPathType } from '@prisma/client';
 
 export class QueryTopicDto {
-
   @ApiPropertyOptional({
     example: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',
     description: 'Lọc chủ đề con theo ID của Chủ đề cha (UUID)',
@@ -30,7 +29,8 @@ export class QueryTopicDto {
 
   @ApiPropertyOptional({
     enum: LearningPathType,
-    description: 'Lọc theo loại tiến trình học (CHRONOLOGICAL, THEMATIC, MYTHOLOGICAL)',
+    description:
+      'Lọc theo loại tiến trình học (CHRONOLOGICAL, THEMATIC, MYTHOLOGICAL)',
   })
   @IsEnum(LearningPathType)
   @IsOptional()

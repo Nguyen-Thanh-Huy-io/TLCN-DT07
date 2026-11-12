@@ -24,36 +24,53 @@ export class ContentRevisionController {
 
   @Get(REVISION_ROUTES.CONTENT)
   @RequireRoles(...ROLE_GROUPS.STAFF)
-  @ApiOperation({ summary: 'Lịch sử phiên bản của một nội dung (LESSON | ARTICLE | TOPIC | LEARNING_PATH | CHAPTER)' })
+  @ApiOperation({
+    summary:
+      'Lịch sử phiên bản của một nội dung (LESSON | ARTICLE | TOPIC | LEARNING_PATH | CHAPTER)',
+  })
   history(@Param('type') type: string, @Param('id') id: string) {
     return this.revisions.history(type.toUpperCase(), id);
   }
 
   @Get(REVISION_ROUTES.OPEN_DRAFT)
   @RequireRoles(...ROLE_GROUPS.STAFF)
-  @ApiOperation({ summary: 'Bản sửa đang chờ, phủ lên chi tiết để form CMS mở tiếp' })
+  @ApiOperation({
+    summary: 'Bản sửa đang chờ, phủ lên chi tiết để form CMS mở tiếp',
+  })
   openDraft(@Param('type') type: string, @Param('id') id: string) {
     return this.revisions.openDraft(type.toUpperCase(), id);
   }
 
   @Get(REVISION_ROUTES.ONE)
   @RequireRoles(...ROLE_GROUPS.STAFF)
-  @ApiOperation({ summary: 'Chi tiết phiên bản + các trường khác với nội dung hiện tại' })
+  @ApiOperation({
+    summary: 'Chi tiết phiên bản + các trường khác với nội dung hiện tại',
+  })
   detail(@Param('revisionId') id: string) {
     return this.revisions.detail(id);
   }
 
   @Post(REVISION_ROUTES.APPROVE)
   @RequireRoles(...ROLE_GROUPS.REVIEWERS)
-  @ApiOperation({ summary: 'Duyệt bản sửa: áp dụng lên nội dung, bản cũ vào lịch sử' })
-  approve(@Param('revisionId') id: string, @Body() dto: ReviewRevisionDto, @Req() req: Request) {
+  @ApiOperation({
+    summary: 'Duyệt bản sửa: áp dụng lên nội dung, bản cũ vào lịch sử',
+  })
+  approve(
+    @Param('revisionId') id: string,
+    @Body() dto: ReviewRevisionDto,
+    @Req() req: Request,
+  ) {
     return this.revisions.approve(id, userIdOf(req), dto.note);
   }
 
   @Post(REVISION_ROUTES.REJECT)
   @RequireRoles(...ROLE_GROUPS.REVIEWERS)
   @ApiOperation({ summary: 'Từ chối bản sửa (bắt buộc ghi lý do)' })
-  reject(@Param('revisionId') id: string, @Body() dto: ReviewRevisionDto, @Req() req: Request) {
+  reject(
+    @Param('revisionId') id: string,
+    @Body() dto: ReviewRevisionDto,
+    @Req() req: Request,
+  ) {
     return this.revisions.reject(id, userIdOf(req), dto.note ?? '');
   }
 

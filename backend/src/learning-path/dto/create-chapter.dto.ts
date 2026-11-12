@@ -16,7 +16,10 @@ export class CreateChapterDto {
   @IsNotEmpty()
   learningPathId: string;
 
-  @ApiProperty({ description: 'Tên chương học', example: 'Chương 1. Việt Nam sau năm 1945' })
+  @ApiProperty({
+    description: 'Tên chương học',
+    example: 'Chương 1. Việt Nam sau năm 1945',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
@@ -27,7 +30,10 @@ export class CreateChapterDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ description: 'Thứ tự chương trong lộ trình', default: 0 })
+  @ApiPropertyOptional({
+    description: 'Thứ tự chương trong lộ trình',
+    default: 0,
+  })
   @IsOptional()
   @IsInt()
   @Min(0)

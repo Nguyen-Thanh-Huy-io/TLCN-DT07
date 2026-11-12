@@ -1,8 +1,11 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsBoolean, Min } from 'class-validator';
+import { IsString, IsOptional, IsInt, IsBoolean, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SubmitQuizAttemptDto {
-  @ApiPropertyOptional({ description: 'Tên người làm bài (nếu chưa đăng nhập)', example: 'Nguyễn Văn A' })
+  @ApiPropertyOptional({
+    description: 'Tên người làm bài (nếu chưa đăng nhập)',
+    example: 'Nguyễn Văn A',
+  })
   @IsOptional()
   @IsString()
   learnerName?: string;
@@ -22,7 +25,10 @@ export class SubmitQuizAttemptDto {
   @Min(1)
   totalQuestions: number;
 
-  @ApiProperty({ description: 'Thời gian hoàn thành (tính bằng giây)', example: 245 })
+  @ApiProperty({
+    description: 'Thời gian hoàn thành (tính bằng giây)',
+    example: 245,
+  })
   @IsInt()
   @Min(0)
   timeSpentSeconds: number;
@@ -32,7 +38,10 @@ export class SubmitQuizAttemptDto {
   @IsBoolean()
   isPassed?: boolean;
 
-  @ApiPropertyOptional({ description: 'Chi tiết câu trả lời', example: [{ qIndex: 0, answer: 'A', isCorrect: true }] })
+  @ApiPropertyOptional({
+    description: 'Chi tiết câu trả lời',
+    example: [{ qIndex: 0, answer: 'A', isCorrect: true }],
+  })
   @IsOptional()
   answers?: any;
 }

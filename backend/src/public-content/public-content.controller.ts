@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { PublicContentService } from './public-content.service';
 import { SubmitQuizAttemptDto } from './dto/submit-quiz-attempt.dto';
@@ -16,14 +24,22 @@ export class PublicContentController {
   }
 
   @Get('categories/:slug')
-  @ApiOperation({ summary: 'Chuyên mục + bài viết (gồm cả chuyên mục con trực tiếp)' })
+  @ApiOperation({
+    summary: 'Chuyên mục + bài viết (gồm cả chuyên mục con trực tiếp)',
+  })
   getCategory(@Param('slug') slug: string) {
     return this.service.getCategoryBySlug(slug);
   }
 
   @Get('articles')
-  @ApiOperation({ summary: 'Danh sách bài viết (lọc chuyên mục / tag / từ khoá / nổi bật)' })
-  @ApiQuery({ name: 'category', required: false, description: 'slug chuyên mục' })
+  @ApiOperation({
+    summary: 'Danh sách bài viết (lọc chuyên mục / tag / từ khoá / nổi bật)',
+  })
+  @ApiQuery({
+    name: 'category',
+    required: false,
+    description: 'slug chuyên mục',
+  })
   @ApiQuery({ name: 'tag', required: false, description: 'id tag' })
   @ApiQuery({ name: 'q', required: false })
   @ApiQuery({ name: 'featured', required: false, type: Boolean })
@@ -45,7 +61,10 @@ export class PublicContentController {
   }
 
   @Get('articles/:slug')
-  @ApiOperation({ summary: 'Chi tiết bài viết + bài liên quan + bài trước/sau + dòng thời gian chứa bài' })
+  @ApiOperation({
+    summary:
+      'Chi tiết bài viết + bài liên quan + bài trước/sau + dòng thời gian chứa bài',
+  })
   getArticle(@Param('slug') slug: string) {
     return this.service.getArticleBySlug(slug);
   }
@@ -129,13 +148,22 @@ export class PublicContentController {
   }
 
   @Get('taxonomies')
-  @ApiOperation({ summary: 'Danh mục taxonomy legacy phục vụ giao diện công khai cũ' })
-  @ApiQuery({ name: 'groups', required: false, description: 'Ví dụ: REGION,FIGURE_ROLE hoặc REGION' })
+  @ApiOperation({
+    summary: 'Danh mục taxonomy legacy phục vụ giao diện công khai cũ',
+  })
+  @ApiQuery({
+    name: 'groups',
+    required: false,
+    description: 'Ví dụ: REGION,FIGURE_ROLE hoặc REGION',
+  })
   getTaxonomies(@Query('groups') groups?: string | string[]) {
     const values = Array.isArray(groups)
       ? groups
       : groups
-        ? groups.split(',').map((g) => g.trim()).filter(Boolean)
+        ? groups
+            .split(',')
+            .map((g) => g.trim())
+            .filter(Boolean)
         : [];
     return this.service.getTaxonomies(values);
   }
@@ -165,7 +193,9 @@ export class PublicContentController {
   }
 
   @Get('quizzes/:id/statistics')
-  @ApiOperation({ summary: 'Thống kê kết quả & danh sách thí sinh nộp bài của đề thi' })
+  @ApiOperation({
+    summary: 'Thống kê kết quả & danh sách thí sinh nộp bài của đề thi',
+  })
   getQuizStatistics(@Param('id') quizId: string) {
     return this.service.getQuizStatistics(quizId);
   }

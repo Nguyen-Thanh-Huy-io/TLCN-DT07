@@ -10,9 +10,18 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { QuizService } from './quiz.service';
-import { CreateStandaloneQuizDto, UpdateStandaloneQuizDto } from './dto/create-standalone-quiz.dto';
+import {
+  CreateStandaloneQuizDto,
+  UpdateStandaloneQuizDto,
+} from './dto/create-standalone-quiz.dto';
 import { QueryQuizDto } from './dto/query-quiz.dto';
 import { RequireRoles } from '../common/access/access.decorator';
 import { ROLE_GROUPS } from '../common/access/access.constant';
@@ -27,7 +36,8 @@ export class StandaloneQuizController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Lấy danh sách tất cả các đề Quiz trong hệ thống',
-    description: 'Hỗ trợ tìm kiếm theo tiêu đề, lọc theo chuyên đề, bài học và phân trang.',
+    description:
+      'Hỗ trợ tìm kiếm theo tiêu đề, lọc theo chuyên đề, bài học và phân trang.',
   })
   async findAll(@Query() query: QueryQuizDto) {
     return this.quizService.findAll(query);
@@ -47,9 +57,13 @@ export class StandaloneQuizController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Tạo mới một đề Quiz độc lập',
-    description: 'Có thể tổng hợp câu hỏi từ Ngân hàng câu hỏi hoặc tạo mới trực tiếp trong đề.',
+    description:
+      'Có thể tổng hợp câu hỏi từ Ngân hàng câu hỏi hoặc tạo mới trực tiếp trong đề.',
   })
-  @ApiResponse({ status: HttpStatus.CREATED, description: 'Tạo đề Quiz thành công' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Tạo đề Quiz thành công',
+  })
   async create(@Body() dto: CreateStandaloneQuizDto) {
     return this.quizService.createStandalone(dto);
   }

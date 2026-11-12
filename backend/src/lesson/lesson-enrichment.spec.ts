@@ -101,7 +101,9 @@ describe('Lesson Enrichment & Quick Quiz Validation (Trận Điện Biên Phủ 
     });
 
     it('phải có đầy đủ 5 dạng câu hỏi đa dạng (MULTIPLE_CHOICE, TRUE_FALSE, ORDERING, MATCHING, FILL_IN_BLANK)', () => {
-      const questionTypes = DIEN_BIEN_PHU_QUIZ_DATA.questions.map((q) => q.type);
+      const questionTypes = DIEN_BIEN_PHU_QUIZ_DATA.questions.map(
+        (q) => q.type,
+      );
       expect(questionTypes).toContain(QuizQuestionType.MULTIPLE_CHOICE);
       expect(questionTypes).toContain(QuizQuestionType.TRUE_FALSE);
       expect(questionTypes).toContain(QuizQuestionType.ORDERING);

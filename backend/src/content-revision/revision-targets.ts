@@ -48,7 +48,8 @@ export class RevisionTargets {
 
   get(type: RevisionContentType): RevisionTarget {
     const target = this.targets[type];
-    if (!target) throw new NotFoundException(REVISION_MESSAGES.UNKNOWN_TYPE(type));
+    if (!target)
+      throw new NotFoundException(REVISION_MESSAGES.UNKNOWN_TYPE(type));
     return target;
   }
 
@@ -57,7 +58,8 @@ export class RevisionTargets {
       load: (id) => this.svc(LessonService).findOne(id),
       title: (d) => d.title,
       status: (d) => d.status,
-      toPayload: (d) => pickFields('LESSON', { ...d, content: d.content ?? [] }),
+      toPayload: (d) =>
+        pickFields('LESSON', { ...d, content: d.content ?? [] }),
       apply: (id, p) => this.svc(LessonService).update(id, p as any),
       overlay: (d, p) => {
         const merged = { ...d, ...p };
@@ -66,7 +68,8 @@ export class RevisionTargets {
           ...merged,
           // Các alias form bài học đang đọc.
           summary: merged.description || '',
-          contentRichText: typeof content === 'string' ? content : JSON.stringify(content),
+          contentRichText:
+            typeof content === 'string' ? content : JSON.stringify(content),
         };
       },
     },
@@ -81,18 +84,22 @@ export class RevisionTargets {
       apply: (id, p) => this.svc(TopicService).update(id, p as any),
     }),
     LEARNING_PATH: this.simple('LEARNING_PATH', {
-      load: (id) => this.svc(LearningPathService).findPathById(id) as Promise<Detail>,
+      load: (id) =>
+        this.svc(LearningPathService).findPathById(id) as Promise<Detail>,
       title: (d) => d.title,
       apply: (id, p) => this.svc(LearningPathService).updatePath(id, p as any),
     }),
     CHAPTER: this.simple('CHAPTER', {
       load: async (id) => {
-        const chapter = await this.svc(PrismaService).chapter.findUnique({ where: { id } });
+        const chapter = await this.svc(PrismaService).chapter.findUnique({
+          where: { id },
+        });
         if (!chapter) throw new NotFoundException(REVISION_MESSAGES.NOT_FOUND);
         return chapter as Detail;
       },
       title: (d) => d.title,
-      apply: (id, p) => this.svc(LearningPathService).updateChapter(id, p as any),
+      apply: (id, p) =>
+        this.svc(LearningPathService).updateChapter(id, p as any),
     }),
   };
 

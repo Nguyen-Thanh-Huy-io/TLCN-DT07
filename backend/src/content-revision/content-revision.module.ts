@@ -13,7 +13,13 @@ import { RevisionTargets } from './revision-targets';
 @Global()
 @Module({
   controllers: [ContentRevisionController],
-  providers: [ContentRevisionService, ContentRevisionInterceptor, RevisionTargets, PrismaService, RedisService],
+  providers: [
+    ContentRevisionService,
+    ContentRevisionInterceptor,
+    RevisionTargets,
+    PrismaService,
+    RedisService,
+  ],
   exports: [ContentRevisionService, ContentRevisionInterceptor],
 })
 export class ContentRevisionModule {}

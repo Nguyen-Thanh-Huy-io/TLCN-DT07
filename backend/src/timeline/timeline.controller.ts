@@ -1,8 +1,21 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ContentWrite, RequireRoles } from '../common/access/access.decorator';
 import { ROLE_GROUPS } from '../common/access/access.constant';
-import { CreateTimelineDto, QueryTimelineDto, UpdateTimelineDto } from './dto/timeline.dto';
+import {
+  CreateTimelineDto,
+  QueryTimelineDto,
+  UpdateTimelineDto,
+} from './dto/timeline.dto';
 import { TimelineService } from './timeline.service';
 
 /** API CMS cho dòng thời gian. Trang công khai dùng /public/timelines. */
@@ -34,7 +47,9 @@ export class TimelineController {
 
   @Patch(':id')
   @ContentWrite({ model: 'timeline', idParam: 'id' })
-  @ApiOperation({ summary: 'Cập nhật dòng thời gian; gửi `nodes` để thay toàn bộ mốc' })
+  @ApiOperation({
+    summary: 'Cập nhật dòng thời gian; gửi `nodes` để thay toàn bộ mốc',
+  })
   update(@Param('id') id: string, @Body() dto: UpdateTimelineDto) {
     return this.timelineService.update(id, dto);
   }

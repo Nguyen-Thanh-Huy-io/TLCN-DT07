@@ -52,6 +52,22 @@ export class LessonResponseDto {
   status: LessonStatus;
 
   @ApiPropertyOptional({
+    description: 'Lý do từ chối duyệt bài nếu bị REJECTED',
+    example: 'Thiếu nguồn sử liệu',
+  })
+  rejectionReason?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'ID người đã duyệt hoặc từ chối bài học',
+  })
+  reviewedBy?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Thời điểm duyệt hoặc từ chối bài học',
+  })
+  reviewedAt?: Date | null;
+
+  @ApiPropertyOptional({
     enum: DifficultyLevel,
     description: 'Độ khó bài học',
   })

@@ -22,7 +22,10 @@ export interface ParsedSingleHistoricalDate {
 
 export interface IHistoricalDateParseStrategy {
   readonly name: string;
-  tryParse(normalizedInput: string, rawText: string): ParsedHistoricalDateRange | null;
+  tryParse(
+    normalizedInput: string,
+    rawText: string,
+  ): ParsedHistoricalDateRange | null;
 }
 
 export const HISTORICAL_DATE_CONSTANTS = {
@@ -75,7 +78,9 @@ export function toSignedHistoricalYear(
   fallbackIsBce = false,
 ): number | null {
   const numericYear =
-    typeof rawYear === 'number' ? rawYear : Number.parseInt(String(rawYear).trim(), 10);
+    typeof rawYear === 'number'
+      ? rawYear
+      : Number.parseInt(String(rawYear).trim(), 10);
 
   if (!Number.isFinite(numericYear) || numericYear === 0) {
     return null;
@@ -124,9 +129,7 @@ export function getCenturyYearBounds(
 /**
  * Kiểm tra năm hợp lệ theo quy ước TCN/SCN (Không tồn tại năm 0).
  */
-export function validateHistoricalYear(
-  year: number | null | undefined,
-): void {
+export function validateHistoricalYear(year: number | null | undefined): void {
   if (year === 0) {
     throw new BadRequestException(HISTORICAL_DATE_CONSTANTS.YEAR_ZERO_ERROR);
   }
@@ -236,10 +239,13 @@ function isValidDayAndMonth(day: number, month: number): boolean {
 class ExactDayRangeParseStrategy implements IHistoricalDateParseStrategy {
   readonly name = 'ExactDayRangeParseStrategy';
 
-  tryParse(normalizedInput: string, rawText: string): ParsedHistoricalDateRange | null {
+  tryParse(
+    normalizedInput: string,
+    rawText: string,
+  ): ParsedHistoricalDateRange | null {
     // Dạng đầy đủ cả 2 đầu: dd/mm/yyyy - dd/mm/yyyy
     const fullRangeRegex =
-      /(?:từ\s+|đêm\s+|ngày\s+)?(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{1,4})\s*(?:–|—|-|đến|tới)\s*(?:đêm\s+|ngày\s+)?(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{1,4})(?:\s*(TCN|SCN|BC|BCE|AD|CE))?/i;
+      /(?:từ\s+|đêm\s+|ngày\s+)?(\d{1,2})[/.-](\d{1,2})[/.-](\d{1,4})\s*(?:–|—|-|đến|tới)\s*(?:đêm\s+|ngày\s+)?(\d{1,2})[/.-](\d{1,2})[/.-](\d{1,4})(?:\s*(TCN|SCN|BC|BCE|AD|CE))?/i;
     const fullMatch = normalizedInput.match(fullRangeRegex);
     if (fullMatch) {
       const startDay = Number.parseInt(fullMatch[1], 10);
@@ -274,14 +280,17 @@ class ExactDayRangeParseStrategy implements IHistoricalDateParseStrategy {
 
     // Dạng cùng năm: dd/mm - dd/mm/yyyy (VD: "18/12 – 29/12/1972")
     const sameYearRangeRegex =
-      /(?:từ\s+|đêm\s+|ngày\s+)?(\d{1,2})[\/.-](\d{1,2})\s*(?:–|—|-|đến|tới)\s*(?:đêm\s+|ngày\s+)?(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{1,4})(?:\s*(TCN|SCN|BC|BCE|AD|CE))?/i;
+      /(?:từ\s+|đêm\s+|ngày\s+)?(\d{1,2})[/.-](\d{1,2})\s*(?:–|—|-|đến|tới)\s*(?:đêm\s+|ngày\s+)?(\d{1,2})[/.-](\d{1,2})[/.-](\d{1,4})(?:\s*(TCN|SCN|BC|BCE|AD|CE))?/i;
     const sameYearMatch = normalizedInput.match(sameYearRangeRegex);
     if (sameYearMatch) {
       const startDay = Number.parseInt(sameYearMatch[1], 10);
       const startMonth = Number.parseInt(sameYearMatch[2], 10);
       const endDay = Number.parseInt(sameYearMatch[3], 10);
       const endMonth = Number.parseInt(sameYearMatch[4], 10);
-      const sharedYear = toSignedHistoricalYear(sameYearMatch[5], sameYearMatch[6]);
+      const sharedYear = toSignedHistoricalYear(
+        sameYearMatch[5],
+        sameYearMatch[6],
+      );
 
       if (
         sharedYear !== null &&
@@ -311,7 +320,10 @@ class ExactDayRangeParseStrategy implements IHistoricalDateParseStrategy {
 class ExactSingleDayParseStrategy implements IHistoricalDateParseStrategy {
   readonly name = 'ExactSingleDayParseStrategy';
 
-  tryParse(normalizedInput: string, rawText: string): ParsedHistoricalDateRange | null {
+  tryParse(
+    normalizedInput: string,
+    rawText: string,
+  ): ParsedHistoricalDateRange | null {
     // Dạng chữ tiếng Việt: "Ngày 2 tháng 9 năm 1945"
     const vnTextDayRegex =
       /ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})\s+năm\s+(\d{1,4})(?:\s*(TCN|SCN|BC|BCE|AD|CE))?/i;
@@ -336,7 +348,7 @@ class ExactSingleDayParseStrategy implements IHistoricalDateParseStrategy {
 
     // Dạng dd/mm/yyyy (VD: "Đêm 18/12/1972", "Ngày 2/9/1969", "02/09/1945")
     const slashDayRegex =
-      /(?:^|\s|ngày\s+|đêm\s+|sáng\s+|chiều\s+|rạng\s+sáng\s+)(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{1,4})(?:\s*(TCN|SCN|BC|BCE|AD|CE))?(?:\s|$)/i;
+      /(?:^|\s|ngày\s+|đêm\s+|sáng\s+|chiều\s+|rạng\s+sáng\s+)(\d{1,2})[/.-](\d{1,2})[/.-](\d{1,4})(?:\s*(TCN|SCN|BC|BCE|AD|CE))?(?:\s|$)/i;
     const slashMatch = normalizedInput.match(slashDayRegex);
     if (slashMatch) {
       const day = Number.parseInt(slashMatch[1], 10);
@@ -367,7 +379,10 @@ class ExactSingleDayParseStrategy implements IHistoricalDateParseStrategy {
 class MonthYearParseStrategy implements IHistoricalDateParseStrategy {
   readonly name = 'MonthYearParseStrategy';
 
-  tryParse(normalizedInput: string, rawText: string): ParsedHistoricalDateRange | null {
+  tryParse(
+    normalizedInput: string,
+    rawText: string,
+  ): ParsedHistoricalDateRange | null {
     // Khoảng tháng-năm: "Tháng 5/1954 - Tháng 7/1954" hoặc "05/1954 - 07/1954"
     const monthRangeRegex =
       /^(?:tháng\s*)?(\d{1,2})\s*(?:\/|-|\s+năm\s+)\s*(\d{1,4})\s*(?:–|—|-|đến|tới)\s*(?:tháng\s*)?(\d{1,2})\s*(?:\/|-|\s+năm\s+)\s*(\d{1,4})(?:\s*(TCN|SCN|BC|BCE|AD|CE))?$/i;
@@ -425,7 +440,8 @@ class MonthYearParseStrategy implements IHistoricalDateParseStrategy {
     }
 
     // Dạng ngắn gọn MM/YYYY (VD: "08/1945")
-    const shortMonthRegex = /^(\d{1,2})\/(\d{3,4})(?:\s*(TCN|SCN|BC|BCE|AD|CE))?$/i;
+    const shortMonthRegex =
+      /^(\d{1,2})\/(\d{3,4})(?:\s*(TCN|SCN|BC|BCE|AD|CE))?$/i;
     const shortMatch = normalizedInput.match(shortMonthRegex);
     if (shortMatch) {
       const month = Number.parseInt(shortMatch[1], 10);
@@ -456,7 +472,10 @@ class MonthYearParseStrategy implements IHistoricalDateParseStrategy {
 class CenturyParseStrategy implements IHistoricalDateParseStrategy {
   readonly name = 'CenturyParseStrategy';
 
-  private parseCenturyToken(token: string, fallbackBce = false): {
+  private parseCenturyToken(
+    token: string,
+    fallbackBce = false,
+  ): {
     century: number;
     isBce: boolean;
   } | null {
@@ -487,7 +506,10 @@ class CenturyParseStrategy implements IHistoricalDateParseStrategy {
     return { century, isBce };
   }
 
-  tryParse(normalizedInput: string, rawText: string): ParsedHistoricalDateRange | null {
+  tryParse(
+    normalizedInput: string,
+    rawText: string,
+  ): ParsedHistoricalDateRange | null {
     const stripped = normalizedInput.replace(/^[(\s]+|[)\s]+$/g, '');
 
     // Khoảng giữa 2 thế kỷ: "Thế kỷ VII TCN - Thế kỷ II TCN" hoặc "Thế kỷ X – Thế kỷ XV"
@@ -553,7 +575,10 @@ class CenturyParseStrategy implements IHistoricalDateParseStrategy {
 class DecadeParseStrategy implements IHistoricalDateParseStrategy {
   readonly name = 'DecadeParseStrategy';
 
-  tryParse(normalizedInput: string, rawText: string): ParsedHistoricalDateRange | null {
+  tryParse(
+    normalizedInput: string,
+    rawText: string,
+  ): ParsedHistoricalDateRange | null {
     const decadeRegex =
       /^(?:thập\s*niên|những\s*năm)\s+(\d{3,4})s?(?:\s*(TCN|SCN|BC|BCE|AD|CE))?$/i;
     const match = normalizedInput.match(decadeRegex);
@@ -584,9 +609,14 @@ class DecadeParseStrategy implements IHistoricalDateParseStrategy {
 class YearRangeParseStrategy implements IHistoricalDateParseStrategy {
   readonly name = 'YearRangeParseStrategy';
 
-  tryParse(normalizedInput: string, rawText: string): ParsedHistoricalDateRange | null {
+  tryParse(
+    normalizedInput: string,
+    rawText: string,
+  ): ParsedHistoricalDateRange | null {
     const stripped = normalizedInput.replace(/^[(\s]+|[)\s]+$/g, '');
-    const isApproximate = /^(?:khoảng|ước\s*khoảng|xấp\s*xỉ)\s+/i.test(stripped);
+    const isApproximate = /^(?:khoảng|ước\s*khoảng|xấp\s*xỉ)\s+/i.test(
+      stripped,
+    );
     const body = stripped.replace(
       /^(?:khoảng|ước\s*khoảng|xấp\s*xỉ)?\s*(?:từ\s*)?(?:năm\s*)?/i,
       '',
@@ -615,7 +645,9 @@ class YearRangeParseStrategy implements IHistoricalDateParseStrategy {
       endYear,
       endMonth: null,
       endDay: null,
-      datePrecision: isApproximate ? DatePrecision.APPROXIMATE : DatePrecision.RANGE,
+      datePrecision: isApproximate
+        ? DatePrecision.APPROXIMATE
+        : DatePrecision.RANGE,
     };
   }
 }
@@ -626,7 +658,10 @@ class YearRangeParseStrategy implements IHistoricalDateParseStrategy {
 class ApproximateYearParseStrategy implements IHistoricalDateParseStrategy {
   readonly name = 'ApproximateYearParseStrategy';
 
-  tryParse(normalizedInput: string, rawText: string): ParsedHistoricalDateRange | null {
+  tryParse(
+    normalizedInput: string,
+    rawText: string,
+  ): ParsedHistoricalDateRange | null {
     const approxRegex =
       /^(?:khoảng|ước\s*khoảng|xấp\s*xỉ|~|c\.)\s*(?:năm\s*)?(-?\d{1,4})(?:\s*(TCN|SCN|BC|BCE|AD|CE))?$/i;
     const match = normalizedInput.match(approxRegex);
@@ -654,7 +689,10 @@ class ApproximateYearParseStrategy implements IHistoricalDateParseStrategy {
 class SingleYearParseStrategy implements IHistoricalDateParseStrategy {
   readonly name = 'SingleYearParseStrategy';
 
-  tryParse(normalizedInput: string, rawText: string): ParsedHistoricalDateRange | null {
+  tryParse(
+    normalizedInput: string,
+    rawText: string,
+  ): ParsedHistoricalDateRange | null {
     // Khớp trực tiếp "Năm 1890", "1890", "179 TCN", "40 SCN"
     const directYearRegex =
       /^(?:năm\s+|mùa\s+\S+\s+năm\s+)?(-?\d{1,4})(?:\s*(TCN|SCN|BC|BCE|AD|CE))?$/i;
@@ -705,16 +743,17 @@ class SingleYearParseStrategy implements IHistoricalDateParseStrategy {
  * Áp dụng Strategy Pattern (Chain of Responsibility) đảm bảo nguyên tắc SOLID (OCP & SRP).
  */
 export class HistoricalDateParser {
-  private static readonly strategies: readonly IHistoricalDateParseStrategy[] = [
-    new ExactDayRangeParseStrategy(),
-    new ExactSingleDayParseStrategy(),
-    new MonthYearParseStrategy(),
-    new CenturyParseStrategy(),
-    new DecadeParseStrategy(),
-    new YearRangeParseStrategy(),
-    new ApproximateYearParseStrategy(),
-    new SingleYearParseStrategy(),
-  ];
+  private static readonly strategies: readonly IHistoricalDateParseStrategy[] =
+    [
+      new ExactDayRangeParseStrategy(),
+      new ExactSingleDayParseStrategy(),
+      new MonthYearParseStrategy(),
+      new CenturyParseStrategy(),
+      new DecadeParseStrategy(),
+      new YearRangeParseStrategy(),
+      new ApproximateYearParseStrategy(),
+      new SingleYearParseStrategy(),
+    ];
 
   /**
    * Phân tích chuỗi thời gian tổng quát (dùng cho HistoricalEvent, Period, HistoricalEntity, HistoricalSite).

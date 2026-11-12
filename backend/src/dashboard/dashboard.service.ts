@@ -23,7 +23,10 @@ export class DashboardService {
    * Facade method tập hợp toàn bộ số liệu thống kê và hoạt động gần đây của CMS
    */
   async getOverview(): Promise<DashboardOverviewResponseDto> {
-    this.logger.log('Fetching CMS dashboard overview statistics', 'DashboardService');
+    this.logger.log(
+      'Fetching CMS dashboard overview statistics',
+      'DashboardService',
+    );
 
     const [
       articlesCount,
@@ -66,7 +69,13 @@ export class DashboardService {
       this.prisma.article.findMany({
         take: 5,
         orderBy: { updatedAt: 'desc' },
-        select: { id: true, title: true, status: true, createdBy: true, updatedAt: true },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          createdBy: true,
+          updatedAt: true,
+        },
       }),
       this.prisma.lesson.findMany({
         where: { status: LessonStatus.REVIEW },
@@ -76,7 +85,12 @@ export class DashboardService {
           chapterLessons: {
             take: 1,
             include: {
-              chapter: { select: { title: true, learningPath: { select: { title: true } } } },
+              chapter: {
+                select: {
+                  title: true,
+                  learningPath: { select: { title: true } },
+                },
+              },
             },
           },
         },
@@ -84,15 +98,27 @@ export class DashboardService {
     ]);
 
     // Tên người soạn thật (lesson.createdBy là id tài khoản) — chỉ bài học có cột này.
-    const authorIds = [...new Set([...recentLessons, ...pendingLessonsRaw, ...recentArticles].map((l) => l.createdBy).filter((id): id is string => Boolean(id)))];
+    const authorIds = [
+      ...new Set(
+        [...recentLessons, ...pendingLessonsRaw, ...recentArticles]
+          .map((l) => l.createdBy)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
     const authors = await this.prisma.authUser.findMany({
       where: { id: { in: authorIds } },
-      select: { id: true, username: true, userProfile: { select: { firstName: true, lastName: true } } },
+      select: {
+        id: true,
+        username: true,
+        userProfile: { select: { firstName: true, lastName: true } },
+      },
     });
     const authorName = (id: string | null) => {
       const user = authors.find((a) => a.id === id);
       if (!user) return UNKNOWN_AUTHOR;
-      const full = [user.userProfile?.lastName, user.userProfile?.firstName].filter(Boolean).join(' ');
+      const full = [user.userProfile?.lastName, user.userProfile?.firstName]
+        .filter(Boolean)
+        .join(' ');
       return full || user.username;
     };
 
@@ -134,17 +160,19 @@ export class DashboardService {
     );
     const recentActivities = activities.slice(0, 6);
 
-    const pendingLessons: PendingLessonItemDto[] = pendingLessonsRaw.map((pl) => ({
-      id: pl.id,
-      title: pl.title,
-      topicName: pl.chapterLessons[0]
-        ? `${pl.chapterLessons[0].chapter.learningPath.title} › ${pl.chapterLessons[0].chapter.title}`
-        : NOT_IN_PATH,
-      creatorName: authorName(pl.createdBy),
-      createdAt: pl.createdAt,
-      submittedAt: pl.updatedAt,
-      route: `/review?lessonId=${pl.id}`,
-    }));
+    const pendingLessons: PendingLessonItemDto[] = pendingLessonsRaw.map(
+      (pl) => ({
+        id: pl.id,
+        title: pl.title,
+        topicName: pl.chapterLessons[0]
+          ? `${pl.chapterLessons[0].chapter.learningPath.title} › ${pl.chapterLessons[0].chapter.title}`
+          : NOT_IN_PATH,
+        creatorName: authorName(pl.createdBy),
+        createdAt: pl.createdAt,
+        submittedAt: pl.updatedAt,
+        route: `/review?lessonId=${pl.id}`,
+      }),
+    );
 
     return {
       counts: {
@@ -153,7 +181,8 @@ export class DashboardService {
         lessonsCount,
         pendingLessonsCount,
         timelinesCount,
-        totalKnowledgeCount: articlesCount + topicsCount + lessonsCount + timelinesCount,
+        totalKnowledgeCount:
+          articlesCount + topicsCount + lessonsCount + timelinesCount,
       },
       recentActivities,
       pendingLessons,

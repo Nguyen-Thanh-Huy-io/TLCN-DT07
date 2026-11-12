@@ -17,7 +17,8 @@ import {
 
 export const TIMELINE_MESSAGES = {
   NOT_FOUND: (id: string) => `Không tìm thấy dòng thời gian ${id}`,
-  SLUG_CONFLICT: (slug: string) => `Đường dẫn "${slug}" đã được dùng cho dòng thời gian khác`,
+  SLUG_CONFLICT: (slug: string) =>
+    `Đường dẫn "${slug}" đã được dùng cho dòng thời gian khác`,
   ARTICLE_NOT_FOUND: 'Có mốc trỏ tới bài viết không tồn tại',
 } as const;
 
@@ -31,7 +32,15 @@ export const TIMELINE_NODE_INCLUDE = {
       summary: true,
       coverImageUrl: true,
       status: true,
-      category: { select: { id: true, name: true, slug: true, kind: true, parentId: true } },
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          kind: true,
+          parentId: true,
+        },
+      },
       /** Bài khác liên kết tới bài của mốc (vd. nhân vật → sự kiện) — CMS hiện "Gắn với ...". */
       linksIn: {
         orderBy: { displayOrder: 'asc' },
@@ -41,7 +50,9 @@ export const TIMELINE_NODE_INCLUDE = {
             select: {
               id: true,
               title: true,
-              category: { select: { id: true, name: true, kind: true, parentId: true } },
+              category: {
+                select: { id: true, name: true, kind: true, parentId: true },
+              },
             },
           },
         },
@@ -55,7 +66,9 @@ export const TIMELINE_NODE_INCLUDE = {
             select: {
               id: true,
               title: true,
-              category: { select: { id: true, name: true, kind: true, parentId: true } },
+              category: {
+                select: { id: true, name: true, kind: true, parentId: true },
+              },
             },
           },
         },
@@ -99,7 +112,10 @@ export class TimelineService {
       where: { id },
       include: {
         topic: { select: { id: true, name: true, slug: true } },
-        nodes: { orderBy: { displayOrder: 'asc' }, include: TIMELINE_NODE_INCLUDE },
+        nodes: {
+          orderBy: { displayOrder: 'asc' },
+          include: TIMELINE_NODE_INCLUDE,
+        },
       },
     });
     if (!timeline) throw new NotFoundException(TIMELINE_MESSAGES.NOT_FOUND(id));
@@ -111,21 +127,29 @@ export class TimelineService {
     await this.validateNodes(nodes);
     const slug = dto.slug
       ? await this.assertSlugFree(dto.slug)
-      : await this.slugService.generateUnique(dto.title, (s) => this.slugExists(s));
+      : await this.slugService.generateUnique(dto.title, (s) =>
+          this.slugExists(s),
+        );
     const created = await this.prisma.timeline.create({
       data: {
         ...data,
         slug,
-        nodes: nodes?.length ? { create: nodes.map((n, i) => this.toNodeData(n, i)) } : undefined,
+        nodes: nodes?.length
+          ? { create: nodes.map((n, i) => this.toNodeData(n, i)) }
+          : undefined,
       },
     });
     return this.findOne(created.id);
   }
 
   async update(id: string, dto: UpdateTimelineDto) {
-    const current = await this.prisma.timeline.findUnique({ where: { id }, select: { slug: true } });
+    const current = await this.prisma.timeline.findUnique({
+      where: { id },
+      select: { slug: true },
+    });
     if (!current) throw new NotFoundException(TIMELINE_MESSAGES.NOT_FOUND(id));
-    if (dto.slug && dto.slug !== current.slug) await this.assertSlugFree(dto.slug, id);
+    if (dto.slug && dto.slug !== current.slug)
+      await this.assertSlugFree(dto.slug, id);
     const { nodes, ...data } = dto;
     await this.validateNodes(nodes);
 
@@ -135,7 +159,10 @@ export class TimelineService {
         await tx.timelineNode.deleteMany({ where: { timelineId: id } });
         if (nodes.length) {
           await tx.timelineNode.createMany({
-            data: nodes.map((n, i) => ({ ...this.toNodeData(n, i), timelineId: id })),
+            data: nodes.map((n, i) => ({
+              ...this.toNodeData(n, i),
+              timelineId: id,
+            })),
           });
         }
       }
@@ -167,15 +194,23 @@ export class TimelineService {
   private async validateNodes(nodes?: TimelineNodeInputDto[]) {
     if (!nodes?.length) return;
     for (const n of nodes) validateHistoricalYearRange(n.year, n.endYear);
-    const articleIds = [...new Set(nodes.map((n) => n.articleId).filter((v): v is string => !!v))];
+    const articleIds = [
+      ...new Set(nodes.map((n) => n.articleId).filter((v): v is string => !!v)),
+    ];
     if (articleIds.length) {
-      const found = await this.prisma.article.count({ where: { id: { in: articleIds } } });
-      if (found !== articleIds.length) throw new BadRequestException(TIMELINE_MESSAGES.ARTICLE_NOT_FOUND);
+      const found = await this.prisma.article.count({
+        where: { id: { in: articleIds } },
+      });
+      if (found !== articleIds.length)
+        throw new BadRequestException(TIMELINE_MESSAGES.ARTICLE_NOT_FOUND);
     }
   }
 
   private async slugExists(slug: string, exceptId?: string) {
-    const found = await this.prisma.timeline.findUnique({ where: { slug }, select: { id: true } });
+    const found = await this.prisma.timeline.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
     return Boolean(found && found.id !== exceptId);
   }
 

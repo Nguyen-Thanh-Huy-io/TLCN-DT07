@@ -27,7 +27,9 @@ export class NoteController {
     if (!authHeader || !authHeader.startsWith('Bearer ')) return undefined;
     const token = authHeader.split(' ')[1];
     try {
-      const payload = jwt.verify(token, config.jwt_access_secret) as { userId?: string };
+      const payload = jwt.verify(token, config.jwt_access_secret) as {
+        userId?: string;
+      };
       return payload?.userId;
     } catch {
       return undefined;
@@ -60,7 +62,9 @@ export class NoteController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Tạo ghi chú mới (hỗ trợ cả người dùng đăng nhập & khách)' })
+  @ApiOperation({
+    summary: 'Tạo ghi chú mới (hỗ trợ cả người dùng đăng nhập & khách)',
+  })
   create(
     @Body() dto: CreateNoteDto,
     @Req() req: Request,

@@ -659,7 +659,7 @@ export class BlogService {
    */
   private async getViewerFlags(postIds: string[], viewerId?: string) {
     if (!viewerId || postIds.length === 0) {
-      return (_id: string) => ({ likedByMe: false, bookmarkedByMe: false });
+      return () => ({ likedByMe: false, bookmarkedByMe: false });
     }
 
     const [likes, bookmarks] = await Promise.all([
@@ -1093,7 +1093,11 @@ export class BlogService {
       })
       .sort((a, b) => b._score - a._score)
       .slice(0, Math.min(Math.max(Number(limit) || 6, 1), 20))
-      .map(({ _score, ...rest }) => rest);
+      .map((item) => {
+        const result = { ...item };
+        delete (result as { _score?: number })._score;
+        return result;
+      });
 
     return mapped;
   }

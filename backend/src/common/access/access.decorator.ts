@@ -30,7 +30,9 @@ export function ContentWrite(resource?: ContentResource) {
     SetMetadata(CONTENT_RESOURCE_METADATA_KEY, resource),
     UseGuards(AuthGuard, ContentWriteGuard),
     // Chỉ endpoint cập nhật có phiên bản hóa mới cần interceptor (lưu bản sửa / chụp lịch sử).
-    ...(resource?.versioned ? [UseInterceptors(ContentRevisionInterceptor)] : []),
+    ...(resource?.versioned
+      ? [UseInterceptors(ContentRevisionInterceptor)]
+      : []),
     ApiBearerAuth('JWT-auth'),
     ApiForbiddenResponse({ description: 'Không đủ quyền biên tập/xuất bản' }),
   );

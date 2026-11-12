@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 import { Badge } from '@/components/common/Badge';
@@ -34,12 +34,7 @@ export function QuestionBankPickerModal({
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
 
-  useEffect(() => {
-    if (!isOpen) return;
-    loadQuestions();
-  }, [isOpen]);
-
-  const loadQuestions = async () => {
+  const loadQuestions = useCallback(async () => {
     try {
       setLoading(true);
       const res = await QuestionApiService.getQuestions({ limit: 100 });
@@ -50,7 +45,12 @@ export function QuestionBankPickerModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    void loadQuestions();
+  }, [isOpen, loadQuestions]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {

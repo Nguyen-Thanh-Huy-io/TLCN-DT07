@@ -10,9 +10,18 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { QuestionService } from './question.service';
-import { CreateQuestionDto, UpdateQuestionDto } from './dto/create-question.dto';
+import {
+  CreateQuestionDto,
+  UpdateQuestionDto,
+} from './dto/create-question.dto';
 import { QueryQuestionDto } from './dto/query-question.dto';
 import { RequireRoles } from '../common/access/access.decorator';
 import { ROLE_GROUPS } from '../common/access/access.constant';
@@ -27,7 +36,8 @@ export class QuestionController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Lấy danh sách câu hỏi trong Ngân hàng câu hỏi',
-    description: 'Hỗ trợ lọc theo loại câu hỏi (type), độ khó (difficulty), từ khóa (search) và phân trang.',
+    description:
+      'Hỗ trợ lọc theo loại câu hỏi (type), độ khó (difficulty), từ khóa (search) và phân trang.',
   })
   async findAll(@Query() query: QueryQuestionDto) {
     return this.questionService.findAll(query);
@@ -47,10 +57,17 @@ export class QuestionController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Thêm mới câu hỏi vào Ngân hàng câu hỏi',
-    description: 'Xác thực chặt chẽ cấu trúc đáp án theo loại câu hỏi (Single Choice, True/False, Multiple Choice, Ordering, Matching).',
+    description:
+      'Xác thực chặt chẽ cấu trúc đáp án theo loại câu hỏi (Single Choice, True/False, Multiple Choice, Ordering, Matching).',
   })
-  @ApiResponse({ status: HttpStatus.CREATED, description: 'Tạo câu hỏi thành công' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Dữ liệu câu hỏi không hợp lệ' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Tạo câu hỏi thành công',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Dữ liệu câu hỏi không hợp lệ',
+  })
   async create(@Body() dto: CreateQuestionDto) {
     return this.questionService.create(dto);
   }

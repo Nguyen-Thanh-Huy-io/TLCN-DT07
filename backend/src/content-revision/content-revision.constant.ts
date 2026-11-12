@@ -55,7 +55,11 @@ export interface RevisionField {
   ref?: RevisionRef;
 }
 
-const ORDER: RevisionField = { key: 'displayOrder', label: 'Thứ tự hiển thị', kind: 'text' };
+const ORDER: RevisionField = {
+  key: 'displayOrder',
+  label: 'Thứ tự hiển thị',
+  kind: 'text',
+};
 
 /**
  * Các trường biên tập được của từng loại — payload bản sửa / ảnh chụp chỉ gồm các trường này
@@ -128,7 +132,8 @@ export const REVISION_ROUTES = {
 
 export const REVISION_MESSAGES = {
   NOT_FOUND: 'Không tìm thấy phiên bản.',
-  UNKNOWN_TYPE: (type: string) => `Loại nội dung "${type}" chưa có phiên bản hóa.`,
+  UNKNOWN_TYPE: (type: string) =>
+    `Loại nội dung "${type}" chưa có phiên bản hóa.`,
   NOT_PENDING: 'Bản sửa này không còn ở trạng thái chờ duyệt.',
   NOT_SNAPSHOT: 'Chỉ khôi phục được từ một phiên bản trong lịch sử.',
   CANNOT_REVIEW_OWN: 'Bạn không thể tự duyệt bản sửa do chính mình đề xuất.',

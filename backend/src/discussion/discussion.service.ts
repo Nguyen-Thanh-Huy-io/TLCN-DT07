@@ -36,7 +36,15 @@ export class DiscussionService {
   ) {}
 
   async findAll(query: QueryDiscussionDto) {
-    const { page = 1, limit = 20, targetType, targetId, learningPathId, isAnswered, search } = query;
+    const {
+      page = 1,
+      limit = 20,
+      targetType,
+      targetId,
+      learningPathId,
+      isAnswered,
+      search,
+    } = query;
 
     const where: Prisma.DiscussionThreadWhereInput = {
       ...(targetType ? { targetType } : {}),
@@ -113,11 +121,20 @@ export class DiscussionService {
     });
   }
 
-  async createReply(userId: string, userRoleVal: string, threadId: string, dto: CreateDiscussionReplyDto) {
+  async createReply(
+    userId: string,
+    userRoleVal: string,
+    threadId: string,
+    dto: CreateDiscussionReplyDto,
+  ) {
     const thread = await this.findOne(threadId);
 
     // Quyền của ban biên soạn/quản trị viên/kiểm duyệt
-    const isOfficial = [userRole.ADMIN, userRole.SUPERADMIN, userRole.MODERATOR].includes(userRoleVal as any);
+    const isOfficial = [
+      userRole.ADMIN,
+      userRole.SUPERADMIN,
+      userRole.MODERATOR,
+    ].includes(userRoleVal as any);
 
     return this.prisma.$transaction(async (tx) => {
       const reply = await tx.discussionReply.create({
@@ -143,10 +160,16 @@ export class DiscussionService {
       if (thread.userId !== userId) {
         await this.notificationService.notify(
           thread.userId,
-          isOfficial ? NotificationType.OFFICIAL_REPLY : NotificationType.NEW_REPLY,
-          isOfficial ? 'Ban Biên Soạn đã trả lời câu hỏi của bạn' : 'Có phản hồi mới về câu hỏi của bạn',
+          isOfficial
+            ? NotificationType.OFFICIAL_REPLY
+            : NotificationType.NEW_REPLY,
+          isOfficial
+            ? 'Ban Biên Soạn đã trả lời câu hỏi của bạn'
+            : 'Có phản hồi mới về câu hỏi của bạn',
           dto.content.slice(0, 100),
-          thread.targetType === 'ARTICLE' ? `/su-kien/${thread.targetId}` : `/bai-hoc/${thread.targetId}`,
+          thread.targetType === 'ARTICLE'
+            ? `/su-kien/${thread.targetId}`
+            : `/bai-hoc/${thread.targetId}`,
         );
       }
 
@@ -156,10 +179,16 @@ export class DiscussionService {
 
   async remove(userId: string, userRoleVal: string, threadId: string) {
     const thread = await this.findOne(threadId);
-    const isManager = [userRole.ADMIN, userRole.SUPERADMIN, userRole.MODERATOR].includes(userRoleVal as any);
+    const isManager = [
+      userRole.ADMIN,
+      userRole.SUPERADMIN,
+      userRole.MODERATOR,
+    ].includes(userRoleVal as any);
 
     if (thread.userId !== userId && !isManager) {
-      throw new ForbiddenException('Bạn không có quyền xoá chủ đề thảo luận này');
+      throw new ForbiddenException(
+        'Bạn không có quyền xoá chủ đề thảo luận này',
+      );
     }
 
     await this.prisma.discussionThread.delete({ where: { id: threadId } });

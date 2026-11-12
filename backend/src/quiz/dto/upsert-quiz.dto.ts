@@ -1,13 +1,26 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class UpsertQuizDto {
-  @ApiPropertyOptional({ example: 'Câu hỏi ôn tập', description: 'Tiêu đề đề ôn tập (tùy chọn)' })
+  @ApiPropertyOptional({
+    example: 'Câu hỏi ôn tập',
+    description: 'Tiêu đề đề ôn tập (tùy chọn)',
+  })
   @IsOptional()
   @IsString()
   title?: string;
 
-  @ApiPropertyOptional({ example: 70, description: '% câu đúng tối thiểu để coi là "đạt" (tùy chọn)' })
+  @ApiPropertyOptional({
+    example: 70,
+    description: '% câu đúng tối thiểu để coi là "đạt" (tùy chọn)',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)

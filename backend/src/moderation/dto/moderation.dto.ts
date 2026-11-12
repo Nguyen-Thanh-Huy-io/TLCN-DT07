@@ -3,12 +3,27 @@ import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class ListModerationReportsQueryDto {
   @ApiPropertyOptional({
-    enum: ['pending', 'auto_hidden', 'user_report', 'removed', 'dismissed', 'all'],
+    enum: [
+      'pending',
+      'auto_hidden',
+      'user_report',
+      'removed',
+      'dismissed',
+      'all',
+    ],
     description: 'Bộ lọc tab trạng thái kiểm duyệt',
   })
   @IsOptional()
-  @IsIn(['pending', 'auto_hidden', 'user_report', 'removed', 'dismissed', 'all'])
-  tab?: 'pending' | 'auto_hidden' | 'user_report' | 'removed' | 'dismissed' | 'all';
+  @IsIn([
+    'pending',
+    'auto_hidden',
+    'user_report',
+    'removed',
+    'dismissed',
+    'all',
+  ])
+  tab?:
+    'pending' | 'auto_hidden' | 'user_report' | 'removed' | 'dismissed' | 'all';
 
   @ApiPropertyOptional({ enum: ['AI_SCAN', 'USER_REPORT'] })
   @IsOptional()
@@ -25,7 +40,9 @@ export class ListModerationReportsQueryDto {
   @IsIn(['POST', 'COMMENT'])
   targetType?: 'POST' | 'COMMENT';
 
-  @ApiPropertyOptional({ description: 'Từ khóa tìm theo tiêu đề, nội dung hoặc tác giả' })
+  @ApiPropertyOptional({
+    description: 'Từ khóa tìm theo tiêu đề, nội dung hoặc tác giả',
+  })
   @IsOptional()
   @IsString()
   search?: string;

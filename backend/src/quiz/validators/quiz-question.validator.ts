@@ -38,10 +38,12 @@ interface IQuestionValidationStrategy {
  */
 abstract class BaseChoiceValidationStrategy implements IQuestionValidationStrategy {
   protected abstract readonly questionType:
-    | QuizQuestionType.SINGLE_CHOICE
-    | QuizQuestionType.MULTIPLE_CHOICE;
+    QuizQuestionType.SINGLE_CHOICE | QuizQuestionType.MULTIPLE_CHOICE;
 
-  protected abstract validateCorrectCount(correctCount: number, index: number): void;
+  protected abstract validateCorrectCount(
+    correctCount: number,
+    index: number,
+  ): void;
 
   validateAndNormalize(
     q: Record<string, unknown>,
@@ -50,15 +52,24 @@ abstract class BaseChoiceValidationStrategy implements IQuestionValidationStrate
   ): QuizQuestion {
     const options = q.options;
     if (!Array.isArray(options) || options.length < 2) {
-      fail(index, `${this.questionType} cần \`options\` là mảng ít nhất 2 lựa chọn.`);
+      fail(
+        index,
+        `${this.questionType} cần \`options\` là mảng ít nhất 2 lựa chọn.`,
+      );
     }
 
     const normalized = options.map((opt: any, optIdx: number) => {
       if (typeof opt?.id !== 'string' || typeof opt?.text !== 'string') {
         fail(index, `lựa chọn #${optIdx + 1} thiếu \`id\`/\`text\`.`);
       }
-      if (opt.explanation !== undefined && typeof opt.explanation !== 'string') {
-        fail(index, `lựa chọn #${optIdx + 1} có \`explanation\` không phải là chuỗi.`);
+      if (
+        opt.explanation !== undefined &&
+        typeof opt.explanation !== 'string'
+      ) {
+        fail(
+          index,
+          `lựa chọn #${optIdx + 1} có \`explanation\` không phải là chuỗi.`,
+        );
       }
       return {
         id: opt.id,
@@ -86,7 +97,10 @@ class SingleChoiceValidationStrategy extends BaseChoiceValidationStrategy {
 
   protected validateCorrectCount(correctCount: number, index: number): void {
     if (correctCount !== 1) {
-      fail(index, 'SINGLE_CHOICE cần chính xác 1 lựa chọn đúng (`isCorrect: true`).');
+      fail(
+        index,
+        'SINGLE_CHOICE cần chính xác 1 lựa chọn đúng (`isCorrect: true`).',
+      );
     }
   }
 }
@@ -96,7 +110,10 @@ class MultipleChoiceValidationStrategy extends BaseChoiceValidationStrategy {
 
   protected validateCorrectCount(correctCount: number, index: number): void {
     if (correctCount < 1) {
-      fail(index, 'MULTIPLE_CHOICE cần ít nhất 1 lựa chọn đúng (`isCorrect: true`).');
+      fail(
+        index,
+        'MULTIPLE_CHOICE cần ít nhất 1 lựa chọn đúng (`isCorrect: true`).',
+      );
     }
   }
 }
@@ -135,11 +152,18 @@ class OrderingValidationStrategy implements IQuestionValidationStrategy {
       }
       return { id: it.id, label: it.label };
     });
-    if (!Array.isArray(correctOrder) || correctOrder.length !== normalizedItems.length) {
+    if (
+      !Array.isArray(correctOrder) ||
+      correctOrder.length !== normalizedItems.length
+    ) {
       fail(index, '`correctOrder` phải là mảng id, đủ số lượng bằng `items`.');
     }
     const itemIds = new Set(normalizedItems.map((it) => it.id));
-    if (!(correctOrder as unknown[]).every((id) => typeof id === 'string' && itemIds.has(id))) {
+    if (
+      !(correctOrder as unknown[]).every(
+        (id) => typeof id === 'string' && itemIds.has(id),
+      )
+    ) {
       fail(index, '`correctOrder` chứa id không khớp với `items`.');
     }
     return {
@@ -166,7 +190,10 @@ class MatchingValidationStrategy implements IQuestionValidationStrategy {
       leftItems.length === 0 ||
       rightItems.length === 0
     ) {
-      fail(index, 'MATCHING cần `leftItems` và `rightItems` là mảng không rỗng.');
+      fail(
+        index,
+        'MATCHING cần `leftItems` và `rightItems` là mảng không rỗng.',
+      );
     }
     const normalize = (list: any[], label: string) =>
       list.map((it: any, i: number) => {
@@ -208,8 +235,15 @@ class FillInBlankValidationStrategy implements IQuestionValidationStrategy {
     if (!Array.isArray(acceptedAnswers) || acceptedAnswers.length === 0) {
       fail(index, 'FILL_IN_BLANK cần `acceptedAnswers` là mảng không rỗng.');
     }
-    if (!(acceptedAnswers as unknown[]).every((a) => typeof a === 'string' && a.trim())) {
-      fail(index, 'Mỗi phần tử trong `acceptedAnswers` phải là chuỗi không rỗng.');
+    if (
+      !(acceptedAnswers as unknown[]).every(
+        (a) => typeof a === 'string' && a.trim(),
+      )
+    ) {
+      fail(
+        index,
+        'Mỗi phần tử trong `acceptedAnswers` phải là chuỗi không rỗng.',
+      );
     }
     return {
       ...base,

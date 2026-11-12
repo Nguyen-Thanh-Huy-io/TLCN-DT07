@@ -28,7 +28,10 @@ export class RecentActivityItemDto {
   @ApiProperty({ description: 'Tiêu đề nội dung' })
   title: string;
 
-  @ApiProperty({ description: 'Phân loại nội dung', enum: ['LESSON', 'TOPIC', 'ARTICLE'] })
+  @ApiProperty({
+    description: 'Phân loại nội dung',
+    enum: ['LESSON', 'TOPIC', 'ARTICLE'],
+  })
   type: 'LESSON' | 'TOPIC' | 'ARTICLE';
 
   @ApiProperty({ description: 'Trạng thái nội dung' })

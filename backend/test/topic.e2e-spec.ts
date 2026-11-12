@@ -141,7 +141,9 @@ describe('Topic E2E Integration Tests', () => {
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toContain('không thể làm chủ đề cha của chính nó');
+      expect(res.body.message).toContain(
+        'không thể làm chủ đề cha của chính nó',
+      );
     });
 
     it('lấy thành công cây chủ đề phân cấp qua GET /topics/tree', async () => {
@@ -152,18 +154,20 @@ describe('Topic E2E Integration Tests', () => {
       expect(res.body.statusCode).toBe(200);
       expect(Array.isArray(res.body.data)).toBe(true);
 
-      const foundParent = res.body.data.find((n: any) => n.id === parentTopicId);
+      const foundParent = res.body.data.find(
+        (n: any) => n.id === parentTopicId,
+      );
       expect(foundParent).toBeDefined();
       expect(Array.isArray(foundParent.children)).toBe(true);
-      expect(foundParent.children.some((c: any) => c.id === childTopicId)).toBe(true);
+      expect(foundParent.children.some((c: any) => c.id === childTopicId)).toBe(
+        true,
+      );
     });
   });
 
   describe('3. GET /topics - Danh sách Topics', () => {
     it('lấy danh sách chủ đề', async () => {
-      const res = await request(app.getHttpServer())
-        .get(`/topics`)
-        .expect(200);
+      const res = await request(app.getHttpServer()).get(`/topics`).expect(200);
 
       expect(res.body.statusCode).toBe(200);
       expect(Array.isArray(res.body.data.items)).toBe(true);

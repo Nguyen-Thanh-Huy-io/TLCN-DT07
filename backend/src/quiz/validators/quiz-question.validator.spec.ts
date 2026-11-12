@@ -4,8 +4,12 @@ import { validateAndNormalizeQuestions } from './quiz-question.validator';
 
 describe('QuizQuestionValidator (Automated Unit Tests)', () => {
   it('ném lỗi nếu input không phải là một mảng', () => {
-    expect(() => validateAndNormalizeQuestions('not-array')).toThrow(BadRequestException);
-    expect(() => validateAndNormalizeQuestions(null)).toThrow(BadRequestException);
+    expect(() => validateAndNormalizeQuestions('not-array')).toThrow(
+      BadRequestException,
+    );
+    expect(() => validateAndNormalizeQuestions(null)).toThrow(
+      BadRequestException,
+    );
   });
 
   describe('1. Trắc nghiệm 1 đáp án (SINGLE_CHOICE)', () => {
@@ -25,7 +29,9 @@ describe('QuizQuestionValidator (Automated Unit Tests)', () => {
       const result = validateAndNormalizeQuestions(raw);
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe(QuizQuestionType.SINGLE_CHOICE);
-      expect(result[0].prompt).toBe('Chiến thắng Điện Biên Phủ trên không diễn ra vào năm nào?');
+      expect(result[0].prompt).toBe(
+        'Chiến thắng Điện Biên Phủ trên không diễn ra vào năm nào?',
+      );
     });
 
     it('chuẩn hóa thành công câu hỏi trắc nghiệm 1 đáp án hợp lệ kèm giải thích riêng cho từng phương án', () => {
@@ -36,16 +42,31 @@ describe('QuizQuestionValidator (Automated Unit Tests)', () => {
           prompt: 'Chiến thắng Điện Biên Phủ trên không diễn ra vào năm nào?',
           explanation: 'Diễn ra vào tháng 12 năm 1972.',
           options: [
-            { id: 'opt_1', text: 'Năm 1972', isCorrect: true, explanation: 'Chính xác! Tháng 12/1972 tại Hà Nội và Hải Phòng.' },
-            { id: 'opt_2', text: 'Năm 1975', isCorrect: false, explanation: 'Sai. Năm 1975 là Chiến dịch Hồ Chí Minh giải phóng miền Nam.' },
+            {
+              id: 'opt_1',
+              text: 'Năm 1972',
+              isCorrect: true,
+              explanation: 'Chính xác! Tháng 12/1972 tại Hà Nội và Hải Phòng.',
+            },
+            {
+              id: 'opt_2',
+              text: 'Năm 1975',
+              isCorrect: false,
+              explanation:
+                'Sai. Năm 1975 là Chiến dịch Hồ Chí Minh giải phóng miền Nam.',
+            },
           ],
         },
       ];
       const result = validateAndNormalizeQuestions(raw);
       expect(result).toHaveLength(1);
       const scQuestion = result[0] as any;
-      expect(scQuestion.options[0].explanation).toBe('Chính xác! Tháng 12/1972 tại Hà Nội và Hải Phòng.');
-      expect(scQuestion.options[1].explanation).toBe('Sai. Năm 1975 là Chiến dịch Hồ Chí Minh giải phóng miền Nam.');
+      expect(scQuestion.options[0].explanation).toBe(
+        'Chính xác! Tháng 12/1972 tại Hà Nội và Hải Phòng.',
+      );
+      expect(scQuestion.options[1].explanation).toBe(
+        'Sai. Năm 1975 là Chiến dịch Hồ Chí Minh giải phóng miền Nam.',
+      );
     });
 
     it('ném lỗi nếu SINGLE_CHOICE có nhiều hơn 1 đáp án đúng', () => {
@@ -121,7 +142,8 @@ describe('QuizQuestionValidator (Automated Unit Tests)', () => {
           id: 'q_mc_1',
           type: QuizQuestionType.MULTIPLE_CHOICE,
           prompt: 'Những phi công nào sau đây đã bắn rơi B-52?',
-          explanation: 'Cả Phạm Tuân và Vũ Xuân Thiều đều lập công bắn rơi B-52 trong tháng 12/1972.',
+          explanation:
+            'Cả Phạm Tuân và Vũ Xuân Thiều đều lập công bắn rơi B-52 trong tháng 12/1972.',
           options: [
             {
               id: 'o1',
@@ -133,7 +155,8 @@ describe('QuizQuestionValidator (Automated Unit Tests)', () => {
               id: 'o2',
               text: 'Vũ Xuân Thiều',
               isCorrect: true,
-              explanation: 'Đúng: Anh dũng cảm tử tiêu diệt B-52 đêm 28/12/1972.',
+              explanation:
+                'Đúng: Anh dũng cảm tử tiêu diệt B-52 đêm 28/12/1972.',
             },
             {
               id: 'o3',
@@ -148,9 +171,15 @@ describe('QuizQuestionValidator (Automated Unit Tests)', () => {
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe(QuizQuestionType.MULTIPLE_CHOICE);
       const mcQuestion = result[0] as any;
-      expect(mcQuestion.options.filter((o: any) => o.isCorrect)).toHaveLength(2);
-      expect(mcQuestion.options[0].explanation).toBe('Đúng: Bắn rơi B-52 đêm 27/12/1972.');
-      expect(mcQuestion.options[1].explanation).toBe('Đúng: Anh dũng cảm tử tiêu diệt B-52 đêm 28/12/1972.');
+      expect(mcQuestion.options.filter((o: any) => o.isCorrect)).toHaveLength(
+        2,
+      );
+      expect(mcQuestion.options[0].explanation).toBe(
+        'Đúng: Bắn rơi B-52 đêm 27/12/1972.',
+      );
+      expect(mcQuestion.options[1].explanation).toBe(
+        'Đúng: Anh dũng cảm tử tiêu diệt B-52 đêm 28/12/1972.',
+      );
     });
 
     it('ném lỗi nếu không có lựa chọn nào đúng', () => {

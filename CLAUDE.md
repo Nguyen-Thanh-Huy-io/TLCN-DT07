@@ -55,6 +55,7 @@ sẽ vô tình quét vào `node_modules/`, `.next/`, `dist/`, `.git/` (hàng ch�
 - Component không gọi `fetch`/axios trực tiếp mà đi qua `services/` và facade hook như hiện có.
 - Mọi màn hình gọi API phải xử lý đủ 3 trạng thái: loading, lỗi, rỗng.
 - Type của response API khai báo một chỗ và dùng chung, không định nghĩa lại ở từng component.
+- **Dữ liệu thực tế 100% từ Database (Tuyệt đối không dùng mô hình Hybrid: Mock Preset + LocalStorage + DB)**: Không nhúng mảng mock data tĩnh hoặc nạp fallback từ `localStorage` cho các thực thể tương tác động (như bình luận, bài viết, lượt thích). Mọi dữ liệu phải bắt nguồn từ Database thông qua API backend chuẩn chỉ và hiển thị đúng 3 trạng thái (loading / empty / error).
 - Một component quá khoảng 200–300 dòng thì tách nhỏ.
 - **Mô hình phân rã Component lớn theo chuẩn SOLID (SRP / Facade)**:
   - Khi phân rã các component phức tạp (>500–1000 dòng), phân chia thành 4 thành phần chuyên trách:

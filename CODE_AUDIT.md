@@ -268,7 +268,7 @@ Xếp theo mức độ rủi ro thật (bug/an toàn > kiến trúc > vi phạm 
 17. **[MỚI — ĐÃ SỬA ✅ — Pha 2]** `BlockBuilderCanvas.renderGenericChildBlock` đã hiển thị placeholder thay vì `return null` ở `default`.
 18. **[MỚI — ĐÃ SỬA ✅ — Pha 2]** `lesson/dto/create-lesson.dto.ts` đã dùng `@IsEnum(DifficultyLevel)`, gõ rõ kiểu ở `lesson.service.ts`, `lesson.controller.ts` và `content-normalizer.strategy.ts`.
 19. **[MỚI]** Code chết ở Block Builder: `TimelineNodeCanvasDrawer.tsx`, `features/lessons/templates/` (mục 3.x).
-20. **[MỚI — 🟠 Kiến trúc Schema] Bảng bình luận `BlogPostComment` chưa có trong Prisma Schema:** `blog.prisma` thiếu model bình luận riêng, `blog.service.ts` đang ghi đè vào bảng `article_comments` (`articleId = postId`), và frontend `historical-comments.data.ts` fallback hiển thị mock preset khi DB chưa có comment. Cần tạo model `BlogPostComment` riêng cho domain Blog/Community trong lần nâng cấp schema tới.
+20. **[ĐÃ SỬA ✅ — Pha 2/3] Bảng bình luận `BlogPostComment` đã được tạo độc lập trong Prisma Schema:** Đã bổ sung `model BlogPostComment` và `model PostCommentLike` vào `blog.prisma` kèm migration `20261112140000_add_blog_post_comments`. `blog.service.ts` đã chuyển 100% sang thao tác trên `this.prisma.blogPostComment` thay vì `article_comments`. Frontend đã xoá bỏ hoàn toàn file mock `historical-comments.data.ts` và cơ chế hybrid `localStorage` trong `usePostComments.ts` và `PostCard.tsx`, đảm bảo dữ liệu bình luận 100% được truy vấn và lưu bền vững vào CSDL.
 
 ### 🟡 Component quá dài cần tách (ngưỡng CLAUDE.md: 200-300 dòng)
 Xếp theo độ dài giảm dần — các file này nên tách trước tiên vì vi phạm nặng nhất:

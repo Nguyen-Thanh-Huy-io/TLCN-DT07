@@ -10,7 +10,6 @@ import { CommentItemRow } from './comment-modal/CommentItemRow';
 import { CommentComposerBar } from './comment-modal/CommentComposerBar';
 
 export { countAllCommentsInTree } from './comment-modal/comment-tree.util';
-export { getPresetCommentsForPost } from './comment-modal/historical-comments.data';
 export * from './comment-modal/comment-modal.types';
 
 const SORT_OPTIONS: Array<{ key: SortOrder; label: string }> = [

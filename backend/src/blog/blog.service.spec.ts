@@ -37,6 +37,24 @@ describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)',
           .fn()
           .mockResolvedValue({ id: 'author-1', username: 'author' }),
       },
+      blogPostComment: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'comment-1',
+          postId: 'post-1',
+          authorId: 'author-1',
+          content: 'Bình luận cũ',
+          author: { id: 'author-1', username: 'author' },
+          replies: [],
+        }),
+        update: jest.fn().mockResolvedValue({
+          id: 'comment-1',
+          postId: 'post-1',
+          authorId: 'author-1',
+          content: 'Bình luận mới',
+          author: { id: 'author-1', username: 'author' },
+          replies: [],
+        }),
+      },
       articleComment: {
         findFirst: jest.fn().mockResolvedValue({
           id: 'comment-1',

@@ -381,9 +381,9 @@ export class BlogService {
   async getComments(postId: string) {
     await this.ensurePostExists(postId);
 
-    const comments = await this.prisma.articleComment.findMany({
+    const comments = await this.prisma.blogPostComment.findMany({
       where: {
-        articleId: postId,
+        postId,
         deletedAt: null,
         parentId: null,
       },
@@ -421,10 +421,10 @@ export class BlogService {
     await this.ensureUserExists(authorId);
 
     if (dto.parentId) {
-      const parent = await this.prisma.articleComment.findFirst({
+      const parent = await this.prisma.blogPostComment.findFirst({
         where: {
           id: dto.parentId,
-          articleId: postId,
+          postId,
           deletedAt: null,
         },
       });
@@ -434,9 +434,9 @@ export class BlogService {
       }
     }
 
-    const comment = await this.prisma.articleComment.create({
+    const comment = await this.prisma.blogPostComment.create({
       data: {
-        articleId: postId,
+        postId,
         authorId,
         parentId: dto.parentId ?? null,
         content: dto.content.trim(),
@@ -481,7 +481,7 @@ export class BlogService {
 
       // 2. Nếu là phản hồi (reply), thông báo cho người viết bình luận cha
       if (dto.parentId) {
-        const parentComment = await this.prisma.articleComment.findUnique({
+        const parentComment = await this.prisma.blogPostComment.findUnique({
           where: { id: dto.parentId },
           select: { authorId: true },
         });
@@ -517,10 +517,10 @@ export class BlogService {
     await this.ensurePostExists(postId);
     await this.ensureUserExists(authorId);
 
-    const comment = await this.prisma.articleComment.findFirst({
+    const comment = await this.prisma.blogPostComment.findFirst({
       where: {
         id: commentId,
-        articleId: postId,
+        postId,
         deletedAt: null,
       },
       include: {
@@ -540,7 +540,7 @@ export class BlogService {
       throw new ForbiddenException('Bạn không có quyền sửa bình luận này');
     }
 
-    const updated = await this.prisma.articleComment.update({
+    const updated = await this.prisma.blogPostComment.update({
       where: { id: commentId },
       data: {
         content: dto.content.trim(),
@@ -570,10 +570,10 @@ export class BlogService {
     await this.ensurePostExists(postId);
     await this.ensureUserExists(authorId);
 
-    const comment = await this.prisma.articleComment.findFirst({
+    const comment = await this.prisma.blogPostComment.findFirst({
       where: {
         id: commentId,
-        articleId: postId,
+        postId,
         deletedAt: null,
       },
     });
@@ -586,7 +586,7 @@ export class BlogService {
       throw new ForbiddenException('Bạn không có quyền xóa bình luận này');
     }
 
-    const deleted = await this.prisma.articleComment.update({
+    const deleted = await this.prisma.blogPostComment.update({
       where: { id: commentId },
       data: {
         deletedAt: new Date(),
@@ -616,10 +616,10 @@ export class BlogService {
     await this.ensurePostExists(postId);
     await this.ensureUserExists(userId);
 
-    const comment = await this.prisma.articleComment.findFirst({
+    const comment = await this.prisma.blogPostComment.findFirst({
       where: {
         id: commentId,
-        articleId: postId,
+        postId,
         deletedAt: null,
       },
     });
@@ -628,25 +628,49 @@ export class BlogService {
       throw new NotFoundException('Bình luận không tồn tại');
     }
 
-    const updated = await this.prisma.articleComment.update({
-      where: { id: commentId },
-      data: {
-        likeCount: {
-          increment: 1,
+    const existingLike = await this.prisma.postCommentLike.findUnique({
+      where: {
+        commentId_userId: {
+          commentId,
+          userId,
         },
       },
     });
 
+    let updatedComment;
+    if (existingLike) {
+      await this.prisma.postCommentLike.delete({
+        where: { id: existingLike.id },
+      });
+      updatedComment = await this.prisma.blogPostComment.update({
+        where: { id: commentId },
+        data: { likeCount: { decrement: 1 } },
+      });
+    } else {
+      await this.prisma.postCommentLike.create({
+        data: {
+          commentId,
+          userId,
+        },
+      });
+      updatedComment = await this.prisma.blogPostComment.update({
+        where: { id: commentId },
+        data: { likeCount: { increment: 1 } },
+      });
+    }
+
     this.blogGateway.emitCommentUpdated(postId, {
       type: 'liked',
       commentId,
-      likeCount: updated.likeCount,
+      likeCount: Math.max(0, updatedComment.likeCount),
+      liked: !existingLike,
     });
 
     return {
       success: true,
       commentId,
-      likeCount: updated.likeCount,
+      likeCount: Math.max(0, updatedComment.likeCount),
+      liked: !existingLike,
     };
   }
 
@@ -1439,7 +1463,8 @@ export class BlogService {
   private mapComment(comment: any) {
     return {
       id: comment.id,
-      articleId: comment.articleId ?? null,
+      postId: comment.postId ?? comment.articleId ?? null,
+      articleId: comment.postId ?? comment.articleId ?? null,
       authorId: comment.authorId,
       parentId: comment.parentId ?? null,
       content: comment.deletedAt

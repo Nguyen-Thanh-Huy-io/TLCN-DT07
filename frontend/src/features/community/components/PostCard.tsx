@@ -1,15 +1,11 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { BookOpen, Check, Clock, ExternalLink, MapPin, MessageSquare, Share2, UserPlus } from 'lucide-react';
 import { CommunityApi, extractCommunityContent, type CommunityPost } from '../api';
 import { PostActionBar } from './PostActionBar';
-import {
-  countAllCommentsInTree,
-  getPresetCommentsForPost,
-  PostCommentModal,
-} from './PostCommentModal';
+import { PostCommentModal } from './PostCommentModal';
 import { getAuthorTint, getInitials } from '../utils/author-avatar.util';
 
 function formatVietnameseDate(iso?: string | null) {
@@ -55,29 +51,13 @@ export function PostCard({
   const [sharedImgError, setSharedImgError] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
-  const presetComments = useMemo(() => getPresetCommentsForPost(post), [post]);
-  const initialTotalComments = useMemo(
-    () => Math.max(post.commentCount, countAllCommentsInTree(presetComments)),
-    [post.commentCount, presetComments],
-  );
-
-  const [localCommentCount, setLocalCommentCount] = useState(initialTotalComments);
+  const [localCommentCount, setLocalCommentCount] = useState(post.commentCount);
   const [localPreviewComment, setLocalPreviewComment] = useState<{
     id: string;
     authorName: string;
     content: string;
     createdAt: string;
-  } | null>(() => {
-    if (post.previewComment) return post.previewComment;
-    const firstPreset = presetComments[0];
-    if (!firstPreset) return null;
-    return {
-      id: firstPreset.id,
-      authorName: firstPreset.authorName,
-      content: firstPreset.content,
-      createdAt: firstPreset.createdAt,
-    };
-  });
+  } | null>(() => post.previewComment || null);
 
   const authorName = post.author?.username || 'Thành viên HISGO';
   const tint = getAuthorTint(authorName);

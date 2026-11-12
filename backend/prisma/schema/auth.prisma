@@ -32,8 +32,10 @@ model authUser {
   notes             Note[]
   articleComments   ArticleComment[]
   blogPosts         BlogPost[]
+  blogPostComments  BlogPostComment[] @relation("BlogPostCommentAuthor")
   postLikes         PostLike[]        @relation("PostLikeUser")
   postBookmarks     PostBookmark[]    @relation("PostBookmarkUser")
+  postCommentLikes  PostCommentLike[] @relation("PostCommentLikeUser")
   reportsMade       ContentReport[]   @relation("ContentReportReporter")
   reportReviews     ContentReport[]   @relation("ContentReportReviewer")
   following         UserFollow[]      @relation("UserFollowFollower")

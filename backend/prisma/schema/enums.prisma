@@ -178,3 +178,8 @@ enum ReportSource {
   USER_REPORT
   AI_SCAN
 }
+
+enum PostCommentStatus {
+  VISIBLE
+  REMOVED
+}

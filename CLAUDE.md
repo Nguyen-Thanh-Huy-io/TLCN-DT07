@@ -11,6 +11,7 @@ Get-ChildItem -Recurse | Select-String ...
 sẽ vô tình quét vào `node_modules/`, `.next/`, `dist/`, `.git/` (hàng chục nghìn file), khiến CPU/disk nghẽn và mỗi lệnh chạy 2–5 phút.
 
 **Quy tắc:**
+- **Luôn dùng `git grep` / `git ls-files` khi cần chạy lệnh tìm kiếm qua terminal**: chạy dưới 100ms và tự động tôn trọng `.gitignore`.
 - Luôn dùng tool `Grep` (built-in, dựa trên ripgrep, tự động bỏ qua `.git`, và tôn trọng `.gitignore`) hoặc `Glob` để tìm file/nội dung — KHÔNG dùng `Get-ChildItem -Recurse`, `dir /s`, `Select-String` đệ quy, hoặc `grep -r` qua Bash hoặc PowerShell.
 - Nếu bắt buộc phải chạy lệnh shell quét file (ví dụ cần xử lý đặc biệt ngoài khả năng của Grep/Glob), PHẢI loại trừ rõ các thư mục nặng: `node_modules`, `.git`, `.next`, `dist`, `build`, `.pytest_cache`.
 - Không chạy lệnh quét toàn bộ repo mà không giới hạn `path`/`glob` khi chỉ cần tìm trong `backend/src` hoặc `frontend/src` — luôn khoanh vùng `path` cụ thể trước khi tìm rộng hơn.
@@ -58,10 +59,22 @@ sẽ vô tình quét vào `node_modules/`, `.next/`, `dist/`, `.git/` (hàng ch�
 
 ## Quy ước riêng của dự án
 
-- **Kiểm tra trước khi coi là xong**: chạy `npm run lint` và test liên quan (`npm run test` ở backend) trong phía vừa sửa. Thay đổi lớn thì chạy thêm `npm run audit` (lint + jscpd + knip). Không thêm warning ESLint mới.
-- **Một HTTP client ở frontend**: code mới gọi API qua axios instance trong `frontend/src/services/api.ts`, không viết wrapper `fetch` riêng. Base URL của API chỉ khai báo một chỗ rồi import, không lặp lại fallback `'http://localhost:5000'` trong từng file. Ngoại lệ: route handler trong `src/app/api/` và lời gọi tới API bên ngoài (Wikipedia, Wikimedia).
+- **Kiểm tra trước khi coi là xong**: chạy `npm run lint` và test liên quan (`npm run test` ở backend) trong phía vừa sửa. Thay đổi lớn thì chạy thêm `npm run audit` (lint + jscpd + knip). Không thêm warning ESLint mới. Khi đứng ở thư mục gốc của monorepo, có thể chạy nhanh ESLint/TypeScript trên đúng danh sách file vừa sửa bằng `node backend/node_modules/eslint/bin/eslint.js -c backend/eslint.config.mjs <files...>` và `node backend/node_modules/typescript/bin/tsc -p backend/tsconfig.build.json --noEmit` (tương tự cho `frontend`).
+- **Một HTTP client ở frontend**: code mới gọi API qua axios instance trong `frontend/src/services/api.ts`, không viết wrapper `fetch` riêng. Base URL của API chỉ khai báo một chỗ tại `frontend/src/constants/api-url.ts` (`API_BASE_URL`, `INTERNAL_API_BASE_URL`, `resolveBackendAssetUrl`) rồi import, không lặp lại fallback `'http://localhost:5000'` hay `'http://127.0.0.1:5000'` trong từng file. Ngoại lệ: route handler trong `src/app/api/` và lời gọi tới API bên ngoài (Wikipedia, Wikimedia).
 - **Biến môi trường backend**: đọc qua `backend/src/common/config/app.config.ts` hoặc `ConfigService`, không gọi `process.env` trực tiếp trong controller/service. Thêm biến mới thì cập nhật luôn `backend/.env.example`.
-- **Response và DTO**: không tự bọc response (`{ data, message }`...) vì `TransformInterceptor` đã bọc, lỗi do `AllExceptionsFilter` xử lý. Mọi field của DTO phải có decorator class-validator, vì `ValidationPipe` bật `whitelist` + `forbidNonWhitelisted` nên field thiếu decorator sẽ bị từ chối.
+- **Response và DTO**:
+  - Không tự bọc response (`{ data, message }`...) vì `TransformInterceptor` đã bọc, lỗi do `AllExceptionsFilter` xử lý.
+  - Mọi field của DTO phải có decorator `class-validator`, vì `ValidationPipe` bật `whitelist` + `forbidNonWhitelisted` + `transform: true` nên field thiếu decorator sẽ bị từ chối.
+  - **Không gắn đồng thời `@Type(() => Date)` và `@IsString()` trên cùng một trường DTO**: vì `class-transformer` chạy trước `class-validator`, chuỗi ngày sẽ bị ép thành đối tượng `Date` khiến `@IsString()` luôn báo lỗi `400 Bad Request`. Hãy dùng `@IsDateString()` (hoặc `@Type(() => Date)` đi kèm `@IsDate()`).
+- **Xác thực danh tính, phân quyền và quy tắc duyệt 2 người**:
+  - **Không bao giờ tin `authorId` / `userId` / `creatorId` gửi từ Request Body hoặc Query**: mọi endpoint thay đổi dữ liệu gắn với người dùng phải dùng `@UseGuards(AuthGuard)` (hoặc `@RequireRoles` / `@ContentWrite`) và lấy danh tính từ `req.user.userId` (`AuthenticatedRequest` trong `common/access/roles.guard.ts`).
+  - Khi kiểm tra quyền sở hữu tài nguyên trong service (ví dụ chỉ tác giả hoặc STAFF được sửa/xoá bài viết, bình luận), nếu không đủ quyền phải ném `ForbiddenException` (HTTP 403), **không** dùng `BadRequestException` (HTTP 400).
+  - Với các thực thể áp dụng quy tắc 2 người duyệt (`Lesson`, `Article` — người duyệt phải khác người tạo `CANNOT_REVIEW_OWN`), hàm `create()` bắt buộc phải lưu `createdBy: creatorUserId || null` vào DB.
+- **Tránh phụ thuộc vòng (`forwardRef` 2 chiều) giữa các Module NestJS**:
+  - Khi hai module nghiệp vụ cùng cần phát sự kiện qua một WebSocket Gateway hoặc gọi service hạ tầng chung (ví dụ `BlogModule` và `ModerationModule` cùng dùng `BlogGateway`), phải tách Gateway/hạ tầng đó ra module riêng (`BlogGatewayModule`) để import một chiều, không dùng `forwardRef` hai chiều.
+- **Chống XSS khi render HTML ở Frontend (`dangerouslySetInnerHTML`)**:
+  - Dữ liệu văn bản thuần (như `post.excerpt`, tiêu đề, tên tác giả, chú thích) nếu ghép vào chuỗi HTML bắt buộc phải bọc qua `escapeHtml()`.
+  - Nội dung Rich HTML (TipTap / Block Builder / câu dẫn Quiz `q.prompt`) trước khi đưa vào `dangerouslySetInnerHTML` bắt buộc phải lọc qua `sanitizeRichHtml()` tại `frontend/src/utils/sanitize-html.ts`.
 - **Prisma**:
   - Import client và type từ `@prisma/client` (do `backend/prisma/schema/base.prisma` dùng `provider = "prisma-client-js"` không cấu hình custom `output`, toàn bộ 45 file backend đều dùng `@prisma/client`; không import từ `generated/prisma/client`).
   - Đổi schema theo quy trình: sửa `prisma/schema/*.prisma` → tạo thư mục `prisma/migrations/<timestamp>_<tên>/` → `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema --script -o <thư mục>/migration.sql` → đọc lại SQL → `npx prisma migrate deploy`.

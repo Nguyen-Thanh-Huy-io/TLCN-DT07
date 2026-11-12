@@ -187,7 +187,7 @@ flowchart TD
 * **Service/API Client:** `services/entities/lesson.service.ts` (`LessonApiService`).
 * **Backend Module:** `backend/src/lesson/`
   * Controller: `lesson.controller.ts` (`POST/GET/PATCH /lessons`, `PATCH /lessons/:id/review` REVIEWERS, `DELETE`)
-  * Service: `lesson.service.ts` (slug qua `SlugHelper`, cache Redis TTL 3600s, `review()` ép người duyệt ≠ người tạo + bắt buộc `rejectionReason` khi REJECTED)
+  * Service: `lesson.service.ts` (slug qua `SlugHelper`, cache Redis TTL 3600s, lưu `createdBy` khi tạo bài và `review()` ép người duyệt ≠ người tạo + bắt buộc `rejectionReason` khi REJECTED)
   * Helper: `helpers/slug.helper.ts`
 
 ### 3.9. Người học (Learner) & Nội dung công khai (Public Content)
@@ -225,7 +225,7 @@ flowchart TD
 * **Ngân hàng câu hỏi (CMS):** Quản lý tập trung câu hỏi dùng chung, gắn nhiều bài học/chuyên đề, tái dùng khi soạn đề.
   * UI: `features/quiz/components/QuestionBankView.tsx`, `QuestionBankModal.tsx`, `QuestionBankPickerModal.tsx`, `CategoryTreePicker.tsx`.
   * Route: `frontend/src/app/questions/page.tsx`. Service: `services/entities/question.service.ts`.
-  * Backend: `question.controller.ts` + `question.service.ts` (có `onModuleInit` tự backfill câu hỏi từ Quiz cũ nếu ngân hàng trống).
+  * Backend: `question.controller.ts` + `question.service.ts` (dùng enum `DifficultyLevel`, có `onModuleInit` tự backfill câu hỏi từ Quiz cũ bằng `$transaction` nếu ngân hàng trống).
 * **Quản lý bộ đề Quiz độc lập (CMS):** Tạo/sửa/xoá đề Quiz độc lập, tổng hợp câu hỏi từ Ngân hàng hoặc soạn mới, xem thống kê lượt làm bài.
   * UI: [QuizManagementView.tsx](frontend/src/features/quiz/components/QuizManagementView.tsx), `StandaloneQuizEditorModal.tsx`, `QuizPreviewModal.tsx`, `QuizStatisticsModal.tsx`.
   * Facade: `facades/useQuizManagementFacade.ts`. Route: `frontend/src/app/quizzes/page.tsx`. Service: `services/entities/quiz.service.ts` (`QuizApiService`).
@@ -245,7 +245,7 @@ flowchart TD
 * **Backend Module:** `backend/src/blog/`
   * Controller: `blog.controller.ts` (prefix `/posts`)
   * Service: `blog.service.ts` (~1297 dòng — CRUD post/comment, like/bookmark/report, follow, hồ sơ cộng đồng, trending score)
-  * Gateway: `blog.gateway.ts` (WebSocket event `post:*`)
+  * Gateway: `blog.gateway.ts` (đóng gói trong `blog-gateway.module.ts` độc lập để cả `BlogModule` và `ModerationModule` cùng import 1 chiều, phát WebSocket event `post:*`, `moderation:updated`, `user:follow-updated`)
 
 ### 3.14. Cộng đồng (Feed, Profile, Follow, Post, Comment, Report)
 * **Mục đích:** Mạng xã hội nội bộ cho câu hỏi ngắn (QUICK_POST) và chia sẻ lại bài Blog (LONG_FORM); có follow, bookmark, comment lồng nhánh, báo cáo vi phạm.
@@ -341,7 +341,7 @@ flowchart TD
 ### 4.2. Frontend dùng chung
 * **Axios instance:** [api.ts](frontend/src/services/api.ts) — client dùng proxy `/api-proxy`, SSR dùng `NEXT_PUBLIC_API_URL`; auto gắn `Authorization`; 401 → tự refresh 1 lần rồi retry, thất bại → redirect login; Network Error → trả `{data: []}` (offline mock); export `extractErrorMessage()`, `parsePaginatedResponse<T>()`.
 * **Layout chung:** [ClientLayout.tsx](frontend/src/components/layout/ClientLayout.tsx) (phân luồng Public/CMS theo `PUBLIC_ROUTE_PREFIXES`), [CmsAccessGate.tsx](frontend/src/components/layout/CmsAccessGate.tsx), [Topbar.tsx](frontend/src/components/layout/Topbar.tsx) (breadcrumb, avatar, NotificationBell), [Header.tsx](frontend/src/components/hisgo/Header.tsx) (nav công khai).
-* **Hằng số dùng chung:** `constants/api-url.ts` (`API_BASE_URL`, `INTERNAL_API_BASE_URL`, `resolveBackendAssetUrl`), `constants/routes.ts` (`APP_ROUTES`, `NavigationPageKey`), `constants/navigation.ts` (`NavGroupId`, nav Sidebar), `constants/ui-theme.ts` (`STATUS_TONE_MAP`/`LABEL_MAP`, `DIFFICULTY_TONE_MAP`, `PAGE_META`).
+* **Hằng số & Tiện ích dùng chung:** `constants/api-url.ts` (`API_BASE_URL`, `INTERNAL_API_BASE_URL`, `resolveBackendAssetUrl`), `constants/routes.ts` (`APP_ROUTES`, `NavigationPageKey`), `constants/navigation.ts` (`NavGroupId`, nav Sidebar), `constants/ui-theme.ts` (`STATUS_TONE_MAP`/`LABEL_MAP`, `DIFFICULTY_TONE_MAP`, `PAGE_META`), `utils/sanitize-html.ts` (`sanitizeRichHtml` — bộ lọc allow-list HTML chống XSS dùng chung cho Lesson, Article, Quiz).
 
 ### 4.3. `app.module.ts` — toàn bộ module nghiệp vụ được import
 `AuthModule, UserModule, TopicModule, LessonModule, TagModule, ContentRevisionModule, DashboardModule, UploadModule, LearningPathModule, CategoryModule, BlogModule, ModerationModule, ArticleModule, TimelineModule, PublicContentModule, QuizModule, LearnerModule, DiscussionModule, NotificationModule, NoteModule` (+ global: `ConfigModule, WinstonModule, LoggerModule, RedisModule, QueueModule, RateLimitModule, MetricsModule`).

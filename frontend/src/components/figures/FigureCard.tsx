@@ -2,15 +2,12 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, ArrowUpRight, Clock3, History, Landmark, Quote } from "lucide-react";
-import { Badge, Button, Heading } from "@/components/timeline/sk-ui";
+import { Badge, Button, Heading } from "@/components/timeline/SkUi";
 import { FigurePortrait } from "./FigurePortrait";
-import { figureRoles } from "./figure-roles";
-import { useFigureRoles } from "./useFigureRoles";
 import type { FigureView } from "./figure-utils";
 
 export function FigureCard({ figure: f, onOpen }: { figure: FigureView; onOpen: () => void }) {
-  const roles = figureRoles(f.roles);
-  const { label: roleLabel, icon: roleIcon } = useFigureRoles();
+  const roles = f.roles ?? [];
   return (
     <article className="sk-directory-figure-card">
       <Button className="sk-figure-artwork" onClick={onOpen} aria-label={`Mở hồ sơ ${f.name}`}>
@@ -33,15 +30,9 @@ export function FigureCard({ figure: f, onOpen }: { figure: FigureView; onOpen: 
         <div className="sk-figure-alias">{f.aliases[0]}</div>
         {roles.length > 0 && (
           <div className="sk-figure-role-badges">
-            {roles.map((r) => {
-              const Icon = roleIcon(r);
-              return (
-                <Badge className={`sk-role-${r}`} key={r}>
-                  <Icon size={10} />
-                  {roleLabel(r)}
-                </Badge>
-              );
-            })}
+            {roles.map((r) => (
+              <Badge key={r}>{r}</Badge>
+            ))}
           </div>
         )}
         <p className="sk-figure-short-bio">{f.tagline || f.description}</p>

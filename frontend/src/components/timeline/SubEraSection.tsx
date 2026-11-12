@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { Badge, Heading } from "./sk-ui";
+import { Badge, Heading } from "./SkUi";
 import { TimelineNodeItem } from "./TimelineNodeItem";
 import {
   EventDomainGroup,
-  EventScopeGroup,
   type SubEra,
   type TimeNode,
   type TimelineEvent,
@@ -15,11 +14,10 @@ import {
 
 export enum SplitMode {
   ALTERNATING = "alternating",
-  SCOPE = "scope",
   DOMAIN = "domain",
 }
 
-export type SplitModeType = SplitMode | "alternating" | "scope" | "domain";
+export type SplitModeType = SplitMode | "alternating" | "domain";
 
 export function SubEraSection({
   subEra: s,
@@ -61,11 +59,9 @@ export function SubEraSection({
         {s.timeNodes.map((node, index) => {
           const first = node.events[0];
           const right =
-            split === SplitMode.SCOPE && first
-              ? first.scopeGroup === EventScopeGroup.WORLD
-              : split === SplitMode.DOMAIN && first
-                ? first.domainGroup === EventDomainGroup.ECONOMY_CULTURE
-                : index % 2 === 1;
+            split === SplitMode.DOMAIN && first
+              ? first.domainGroup === EventDomainGroup.ECONOMY_CULTURE
+              : index % 2 === 1;
           return (
             <TimelineNodeItem
               key={node.id}

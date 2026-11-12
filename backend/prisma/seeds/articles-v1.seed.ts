@@ -140,7 +140,6 @@ const ARTICLES: ArticleSeed[] = [
     isFeatured: true,
     meta: {
       aliases: ['Trần Quốc Tuấn', 'Hưng Đạo Đại Vương'],
-      region: 'Việt Nam',
       person: {
         titles: ['Quốc công Tiết chế'],
         roles: ['COMMANDER_IN_CHIEF', 'GENERAL'],
@@ -177,7 +176,6 @@ const ARTICLES: ArticleSeed[] = [
     datePrecision: DatePrecision.YEAR,
     meta: {
       aliases: ['Trần Khâm', 'Điều Ngự Giác Hoàng'],
-      region: 'Việt Nam',
       person: {
         roles: ['MONARCH', 'RELIGIOUS_FIGURE'],
         legacyAndHonors: 'Khai sáng Thiền phái Trúc Lâm Yên Tử.',
@@ -209,7 +207,6 @@ const ARTICLES: ArticleSeed[] = [
   {
     slug: 'tran-bach-dang-1288',
     meta: {
-      region: 'Việt Nam',
       event: {
         belligerents: ['Đại Việt (nhà Trần)', 'Quân Nguyên'],
         outcome: 'Đoàn thuyền quân Nguyên bị tiêu diệt; cuộc kháng chiến lần thứ ba kết thúc thắng lợi.',
@@ -245,7 +242,6 @@ const ARTICLES: ArticleSeed[] = [
     isFeatured: true,
     meta: {
       aliases: ['Ngô Vương', 'Tiền Ngô Vương'],
-      region: 'Việt Nam',
       person: {
         roles: ['MONARCH', 'GENERAL'],
         hometown: 'Đường Lâm (nay thuộc Sơn Tây, Hà Nội)',
@@ -261,7 +257,6 @@ const ARTICLES: ArticleSeed[] = [
   {
     slug: 'tran-bach-dang-938',
     meta: {
-      region: 'Việt Nam',
       event: {
         belligerents: ['Quân Ngô Quyền', 'Quân Nam Hán'],
         outcome: 'Quân Nam Hán thất bại; thời kỳ Bắc thuộc kết thúc.',
@@ -284,7 +279,6 @@ const ARTICLES: ArticleSeed[] = [
   {
     slug: 'khu-di-tich-bach-dang',
     meta: {
-      region: 'Việt Nam',
       site: {
         siteType: 'BATTLEFIELD',
         address: 'Sông Bạch Đằng, Quảng Ninh – Hải Phòng',
@@ -305,7 +299,6 @@ const ARTICLES: ArticleSeed[] = [
   {
     slug: 'cach-mang-thang-tam',
     meta: {
-      region: 'Việt Nam',
       event: { outcome: 'Nước Việt Nam Dân chủ Cộng hoà ra đời ngày 2/9/1945.' },
     },
     title: 'Cách mạng tháng Tám năm 1945',

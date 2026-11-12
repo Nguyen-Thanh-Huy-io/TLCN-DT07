@@ -6,10 +6,8 @@ import type {
 } from '@/services/entities/landing.service';
 import type { LearningPathItem } from '@/services/entities/learning-path.service';
 import type { LibraryLesson } from '@/services/entities/learner.service';
-import { regionLabel, regionOrderFromTerms, sortedRegions } from '@/utils/region.utils';
 import { formatYear, shortPeriodName } from '@/features/search/search-index';
-import { FIGURE_ROLE_LABELS, FigureRole, HistoricalRegion, ContentStatus } from '@/constants/enums';
-import { resolveFigureRoleLabel } from '@/components/figures/figure-roles';
+import { ContentStatus } from '@/constants/enums';
 import type {
   LandingCourse,
   LandingData,
@@ -19,9 +17,7 @@ import type {
   LandingQuiz,
   LandingSpotlight,
   LandingTimelineNode,
-  ParallelBand,
 } from './landing.types';
-import type { TaxonomyTermItem } from '@/services/public/public-taxonomy';
 
 export interface LandingSource {
   periods: PublicPeriodDto[];
@@ -30,8 +26,6 @@ export interface LandingSource {
   locations: PublicLocationSummaryDto[];
   lessons: LibraryLesson[];
   paths: LearningPathItem[];
-  /** Danh mục dùng chung: thứ tự khu vực, nhãn vai trò nhân vật (thiếu thì dùng mặc định trong code). */
-  taxonomy?: { regions?: TaxonomyTermItem[]; figureRoles?: TaxonomyTermItem[] };
 }
 
 export const LANDING_ROUTES = {
@@ -53,7 +47,7 @@ const PATH_KIND_LABELS: Record<LearningPathItem['pathType'], string> = {
   THEMATIC: 'Theo chủ đề',
 };
 
-export { regionLabel, formatYear, shortPeriodName };
+export { formatYear, shortPeriodName };
 
 function truncate(text: string | null | undefined, max: number): string {
   if (!text) return '';
@@ -86,27 +80,6 @@ export function spreadEvenly<T>(items: T[], n: number): T[] {
   return Array.from({ length: n }, (_, i) => items[Math.round((i * (items.length - 1)) / (n - 1))]);
 }
 
-/**
- * Khu vực cụ thể nhất của một thời kỳ: đi từ giai đoạn lên thời kỳ cha, lấy khu vực đầu tiên
- * không chung chung ("Thế giới") — để "Châu Á", "Liên Xô"... không bị gộp thành "Thế giới".
- */
-function specificRegionResolver(periods: PublicPeriodDto[]) {
-  const byId = new Map(periods.map((p) => [p.id, p]));
-  const bySlug = new Map(periods.map((p) => [p.slug, p]));
-  return (slug: string | null | undefined): string => {
-    let current = slug ? bySlug.get(slug) : undefined;
-    let fallback: string | null = null;
-    while (current) {
-      if (current.region && current.region !== HistoricalRegion.WORLD) return regionLabel(current.region);
-      fallback ??= current.region;
-      current = current.parentId ? byId.get(current.parentId) : undefined;
-    }
-    return regionLabel(fallback);
-  };
-}
-
-type RegionOf = ReturnType<typeof specificRegionResolver>;
-
 /** Ảnh có sẵn trong /public cho các thời kỳ Việt Nam chưa có ảnh bìa (khớp theo tên). */
 const VN_ERA_COVERS: Array<[RegExp, string]> = [
   [/dựng nước|hồng bàng|văn lang/i, '/assets/eras/dung-nuoc.jpg'],
@@ -116,14 +89,18 @@ const VN_ERA_COVERS: Array<[RegExp, string]> = [
   [/hiện đại/i, '/assets/eras/hien-dai.jpg'],
 ];
 
-/** Ảnh bìa thời kỳ: ảnh của chính nó → ảnh giai đoạn con → ảnh sự kiện trong thời kỳ → ảnh có sẵn (chỉ Việt Nam). */
-function eraCover(root: PublicPeriodDto, periods: PublicPeriodDto[], events: PublicEventSummaryDto[], rootOf: ReturnType<typeof rootResolver>) {
+/** Ảnh bìa thời kỳ: ảnh của chính nó → ảnh giai đoạn con → ảnh sự kiện trong thời kỳ → ảnh có sẵn. */
+function eraCover(
+  root: PublicPeriodDto,
+  periods: PublicPeriodDto[],
+  events: PublicEventSummaryDto[],
+  rootOf: ReturnType<typeof rootResolver>,
+) {
   if (root.coverImageUrl) return root.coverImageUrl;
   const childCover = periods.find((p) => p.parentId === root.id && p.coverImageUrl)?.coverImageUrl;
   if (childCover) return childCover;
   const eventImage = events.find((e) => e.imageUrl && rootOf(e.periodSlug)?.id === root.id)?.imageUrl;
   if (eventImage) return eventImage;
-  if (regionLabel(root.region) !== HistoricalRegion.VIETNAM) return null;
   return VN_ERA_COVERS.find(([re]) => re.test(root.name))?.[1] ?? null;
 }
 
@@ -131,31 +108,23 @@ function buildSpotlights(
   events: PublicEventSummaryDto[],
   periods: PublicPeriodDto[],
   rootOf: ReturnType<typeof rootResolver>,
-  regionOf: RegionOf,
 ): LandingSpotlight[] {
   const withSlug = events.filter((e) => e.slug);
-  // Ưu tiên sự kiện có ảnh, rồi rải theo khu vực để tâm điểm không chỉ một vùng.
+  // Ưu tiên sự kiện có ảnh
   const ranked = [...withSlug].sort((a, b) => Number(Boolean(b.imageUrl)) - Number(Boolean(a.imageUrl)));
-  const picked: PublicEventSummaryDto[] = [];
-  const seenRegions = new Set<string>();
+  const picked = ranked.slice(0, 4);
+
   const coverOf = (e: PublicEventSummaryDto) => {
     const root = rootOf(e.periodSlug);
     return e.imageUrl ?? (root ? eraCover(root, periods, events, rootOf) : null);
   };
-  for (const e of ranked) {
-    const region = regionOf(e.periodSlug);
-    if (picked.length < 4 && (!seenRegions.has(region) || e.imageUrl)) {
-      picked.push(e);
-      seenRegions.add(region);
-    }
-  }
+
   return picked.map((e) => {
     const root = rootOf(e.periodSlug);
     return {
       id: e.id,
       yearLabel: formatYear(e.startYear),
       era: root ? shortPeriodName(root.name) : '',
-      region: regionOf(e.periodSlug),
       title: e.title,
       summary: truncate(e.description, 190),
       imageUrl: coverOf(e),
@@ -178,7 +147,6 @@ function buildEras(
     id: root.id,
     name: shortPeriodName(root.name),
     years: root.timeLabel,
-    region: regionLabel(root.region),
     subEras: periods
       .filter((p) => p.parentId === root.id)
       .sort((a, b) => a.startYear - b.startYear)
@@ -192,7 +160,7 @@ function buildEras(
   }));
 }
 
-function buildTimeline(events: PublicEventSummaryDto[], regionOf: RegionOf): LandingTimelineNode[] {
+function buildTimeline(events: PublicEventSummaryDto[]): LandingTimelineNode[] {
   return [...events]
     .filter((e) => e.slug)
     .sort((a, b) => a.startYear - b.startYear)
@@ -204,30 +172,8 @@ function buildTimeline(events: PublicEventSummaryDto[], regionOf: RegionOf): Lan
       summary: truncate(e.description, 220),
       figure: e.figures[0]?.name ?? null,
       location: e.locations[0]?.name ?? e.location,
-      region: regionOf(e.periodSlug),
       href: LANDING_ROUTES.EVENT(e.slug as string),
     }));
-}
-
-/**
- * Dải cho phần "Đối sánh khu vực": dùng giai đoạn con (khu vực cụ thể như Châu Á, Liên Xô...),
- * thời kỳ không có giai đoạn con thì dùng chính nó.
- */
-function buildBands(periods: PublicPeriodDto[], regionOf: RegionOf): ParallelBand[] {
-  const currentYear = new Date().getFullYear();
-  const hasChildren = new Set(periods.map((p) => p.parentId).filter(Boolean));
-  return periods
-    .filter((p) => p.startYear != null && (p.parentId || !hasChildren.has(p.id)))
-    .map((p) => ({
-      id: p.id,
-      name: shortPeriodName(p.name),
-      years: p.timeLabel,
-      region: regionOf(p.slug),
-      start: p.startYear,
-      end: p.endYear ?? currentYear,
-      href: LANDING_ROUTES.PERIOD(p.slug),
-    }))
-    .sort((a, b) => a.start - b.start);
 }
 
 function figureYears(f: PublicFigureProfileDto): string | null {
@@ -237,8 +183,7 @@ function figureYears(f: PublicFigureProfileDto): string | null {
   return `${birth ?? '?'} – ${death ?? '?'}`;
 }
 
-function buildFigures(figures: PublicFigureProfileDto[], roleTerms: TaxonomyTermItem[]): LandingFigure[] {
-  const roleLabel = (code: string) => resolveFigureRoleLabel(code, roleTerms);
+function buildFigures(figures: PublicFigureProfileDto[]): LandingFigure[] {
   return [...figures]
     .sort((a, b) => Number(Boolean(b.imageUrl)) - Number(Boolean(a.imageUrl)) || b.events.length - a.events.length)
     .slice(0, 8)
@@ -246,8 +191,7 @@ function buildFigures(figures: PublicFigureProfileDto[], roleTerms: TaxonomyTerm
       id: f.id,
       name: f.name,
       years: figureYears(f),
-      // roles là mã enum (GENERAL...) → nhãn tiếng Việt; titles đã là chữ hiển thị.
-      roles: (f.roles.length ? f.roles.map(roleLabel) : f.titles).slice(0, 2),
+      roles: (f.roles.length ? f.roles : f.titles).slice(0, 2),
       quote: f.legacy?.famousQuote || f.tagline,
       eventCount: f.events.length,
       imageUrl: f.imageUrl,
@@ -318,20 +262,12 @@ export function buildDailyQuiz(events: PublicEventSummaryDto[], day: Date): Land
 
 export function buildLandingData(source: LandingSource, today: Date = new Date()): LandingData {
   const rootOf = rootResolver(source.periods);
-  const regionOf = specificRegionResolver(source.periods);
-  const bands = buildBands(source.periods, regionOf);
-  const regions = sortedRegions(
-    bands.map((b) => b.region),
-    regionOrderFromTerms(source.taxonomy?.regions ?? []),
-  );
   const courses = buildCourses(source.paths);
   return {
-    regions,
-    spotlights: buildSpotlights(source.events, source.periods, rootOf, regionOf),
+    spotlights: buildSpotlights(source.events, source.periods, rootOf),
     eras: buildEras(source.periods, source.events, source.figures, rootOf),
-    timeline: buildTimeline(source.events, regionOf),
-    bands,
-    figures: buildFigures(source.figures, source.taxonomy?.figureRoles ?? []),
+    timeline: buildTimeline(source.events),
+    figures: buildFigures(source.figures),
     locations: buildLocations(source.locations, source.events),
     courses,
     quiz: buildDailyQuiz(source.events, today),
@@ -340,7 +276,6 @@ export function buildLandingData(source: LandingSource, today: Date = new Date()
       figures: source.figures.length,
       locations: source.locations.length,
       paths: source.paths.filter((p) => p.status === ContentStatus.PUBLISHED).length,
-      regions: regions.length,
     },
   };
 }

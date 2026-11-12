@@ -108,7 +108,7 @@ export class CreateArticleDto {
   @ApiPropertyOptional({
     nullable: true,
     description:
-      'Hồ sơ mô tả tùy chọn: { aliases, region, sources, person, site, event } — xem article/article-metadata.ts',
+      'Hồ sơ mô tả tùy chọn: { aliases, sources, person, site, event } — xem article/article-metadata.ts',
   })
   @IsOptional()
   @IsObject()

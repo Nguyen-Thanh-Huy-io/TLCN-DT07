@@ -6,8 +6,7 @@
  * QUY TẮC ÁNH XẠ (đọc trước khi sửa):
  *  • Loại bài = `Category.kind` của chuyên mục (trống → kế thừa cha, gốc trống → OTHER) —
  *      services/public/article-kind.ts. Không gán cứng theo slug.
- *  • Thời kỳ (PublicPeriodDto) = 1 Timeline (năm = min/max năm các mốc; khu vực = metadata.region
- *      xuất hiện nhiều nhất trong các bài của mốc, không có → null). KHÔNG gán khu vực mặc định.
+ *  • Thời kỳ (PublicPeriodDto) = 1 Timeline (năm = min/max năm các mốc).
  *  • Sự kiện (PublicEventSummaryDto) = 1 MỐC của Timeline (slug = bài mốc trỏ tới) + bài chuyên mục
  *      Sự kiện chưa nằm trong mốc nào (không thuộc thời kỳ → không hiện ở /dong-thoi-gian).
  *  • Loại sự kiện = chuyên mục CON có loại EVENT (services/public/public-taxonomy.ts).
@@ -18,7 +17,7 @@
  *        EVENT–LOCATION → nơi diễn ra sự kiện + sự kiện của di tích
  *        EVENT–EVENT    → quan hệ sự kiện (chế độ "Liên kết" của dòng thời gian)
  *        mọi cặp        → "Mạng lưới tri thức" ở trang đọc (trước các bài chung tag)
- *  • Hồ sơ mô tả = Article.metadata (aliases, region, sources, person, site, event) — tùy chọn.
+ *  • Hồ sơ mô tả = Article.metadata (aliases, sources, person, site, event) — tùy chọn.
  *  • Thời kỳ của bài = timeline có mốc trỏ tới bài; không có thì timeline có nhiều bài chung tag nhất.
  *  • Dòng đời nhân vật = features/articles/person-life.ts (dùng CHUNG với khung xem trước ở CMS):
  *      liên kết tới bài sự kiện + mốc trỏ thẳng tới bài nhân vật + mốc đời riêng. KHÔNG suy theo tag.
@@ -37,12 +36,22 @@ import {
   type PublicCategory,
   type PublicTimeline,
 } from '@/services/public/public-content.service';
-import { buildTaxonomyGroup, type TaxonomyTermItem } from '@/services/public/public-taxonomy';
 import { resolveCategoryKind, type ArticleKind } from '@/services/public/article-kind';
 import { formatYear } from '@/utils/year-label';
-import { RANK_LABELS, type HeritageRank } from '@/features/heritage/heritage.types';
-import { CANONICAL_ROLE_LABELS, LOCATION_TYPE_LABELS, LocationType } from '@/constants/enums';
+import { ArticleKindEnum } from '@/constants/enums';
 import { INTERNAL_API_BASE_URL } from '@/constants/api-url';
+
+const DEFAULT_LOCATION_TYPE_LABELS: Record<string, string> = {
+  ANCIENT_CAPITAL: 'Cố đô',
+  CITADEL: 'Thành lũy',
+  PALACE: 'Cung điện',
+  BATTLEFIELD: 'Chiến trường',
+  RESISTANCE_BASE: 'Căn cứ kháng chiến',
+  TEMPLE: 'Đền miếu',
+  ARCHAEOLOGICAL_SITE: 'Di chỉ khảo cổ',
+  MONUMENT: 'Di tích lịch sử',
+  OTHER: 'Khác',
+};
 
 const API_URL = INTERNAL_API_BASE_URL;
 
@@ -65,7 +74,6 @@ export interface PublicPeriodDto {
   endYear: number | null;
   description: string | null;
   coverImageUrl: string | null;
-  region: string | null;
 }
 
 export interface PublicTopicDto {
@@ -101,10 +109,6 @@ export interface PublicLocationSummaryDto {
   /** Mã loại di tích chuẩn hóa (LocationType). */
   siteType?: string;
   siteTypeLabel?: string;
-  /** Mã cấp xếp hạng (danh mục HERITAGE_RANK); null = chưa xếp hạng. */
-  rankCode?: string | null;
-  rankLabel?: string | null;
-  recognitionLevel?: string | null;
   constructionLabel?: string | null;
   periodSlug?: string | null;
   /** Các tên gọi trong lịch sử. */
@@ -406,7 +410,6 @@ export interface PublicEntityDetailDto {
   /** Chỉ có giá trị khi type === 'LOCATION' (từ bảng HistoricalSite). */
   address?: string | null;
   managingAgency?: string | null;
-  recognitionLevel?: string | null;
 }
 
 // ======================================================================
@@ -443,7 +446,6 @@ function sanitizeMetadata(raw: unknown): ArticleMetadata | null {
   const e = asObject(m.event);
   return {
     aliases: asList(m.aliases),
-    region: asText(m.region),
     sources: asList(m.sources),
     person: p && {
       titles: asList(p.titles),
@@ -475,7 +477,6 @@ function sanitizeMetadata(raw: unknown): ArticleMetadata | null {
       latitude: asNumber(s.latitude),
       longitude: asNumber(s.longitude),
       siteType: asText(s.siteType),
-      rank: asText(s.rank),
       recognizedYear: asText(s.recognizedYear),
       preservation: asText(s.preservation),
       statusNote: asText(s.statusNote),
@@ -518,17 +519,7 @@ interface PublicGraph {
   linksOf: (articleId: string) => LinkView[];
 }
 
-/** Khu vực phổ biến nhất trong các bài được mốc trỏ tới (null nếu không bài nào khai báo). */
-function regionOfTimeline(t: PublicTimeline, bySlug: Map<string, PublicArticleSummary>): string | null {
-  const counts = new Map<string, number>();
-  for (const n of t.nodes) {
-    const region = n.article ? bySlug.get(n.article.slug)?.metadata?.region : undefined;
-    if (region) counts.set(region, (counts.get(region) ?? 0) + 1);
-  }
-  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-}
-
-function periodFromTimeline(t: PublicTimeline, bySlug: Map<string, PublicArticleSummary>): PublicPeriodDto {
+function periodFromTimeline(t: PublicTimeline): PublicPeriodDto {
   const years = t.nodes.flatMap((n) => [n.year, n.endYear]).filter((y): y is number => typeof y === 'number');
   const start = years.length ? Math.min(...years) : 0;
   const end = years.length ? Math.max(...years) : null;
@@ -543,7 +534,72 @@ function periodFromTimeline(t: PublicTimeline, bySlug: Map<string, PublicArticle
     endYear: end,
     description: t.description,
     coverImageUrl: t.coverImageUrl,
-    region: regionOfTimeline(t, bySlug),
+  };
+}
+
+function buildBidirectionalLinks(
+  articles: PublicArticleSummary[],
+  byId: Map<string, PublicArticleSummary>,
+): Map<string, LinkView[]> {
+  const links = new Map<string, LinkView[]>();
+  const pushLink = (id: string, view: LinkView) => links.set(id, [...(links.get(id) ?? []), view]);
+  for (const a of articles) {
+    for (const l of a.links ?? []) {
+      const target = byId.get(l.targetId);
+      if (!target) continue;
+      pushLink(a.id, { other: target, label: l.label, note: l.note, direction: 'OUTGOING' });
+      pushLink(target.id, { other: a, label: l.label, note: l.note, direction: 'INCOMING' });
+    }
+  }
+  return links;
+}
+
+function buildNodesByArticle(timelines: PublicTimeline[]): Map<string, LifeNodeRef[]> {
+  const nodesByArticle = new Map<string, LifeNodeRef[]>();
+  for (const t of timelines) {
+    for (const n of t.nodes) {
+      if (!n.article) continue;
+      const ref: LifeNodeRef = { ...n, timeline: { id: t.id, slug: t.slug, title: t.title } };
+      nodesByArticle.set(n.article.slug, [...(nodesByArticle.get(n.article.slug) ?? []), ref]);
+    }
+  }
+  return nodesByArticle;
+}
+
+function createPeriodSlugResolver(
+  timelines: PublicTimeline[],
+  bySlug: Map<string, PublicArticleSummary>,
+  links: Map<string, LinkView[]>,
+): (a: PublicArticleSummary) => string | null {
+  const nodeTimeline = new Map<string, string>();
+  const timelineTags = new Map<string, Map<string, number>>();
+  for (const t of timelines) {
+    const tagCount = new Map<string, number>();
+    for (const n of t.nodes) {
+      if (!n.article) continue;
+      if (!nodeTimeline.has(n.article.slug)) nodeTimeline.set(n.article.slug, t.slug);
+      for (const tag of bySlug.get(n.article.slug)?.tags ?? []) tagCount.set(tag.id, (tagCount.get(tag.id) ?? 0) + 1);
+    }
+    timelineTags.set(t.slug, tagCount);
+  }
+
+  return (a: PublicArticleSummary) => {
+    const direct = nodeTimeline.get(a.slug);
+    if (direct) return direct;
+    for (const l of links.get(a.id) ?? []) {
+      const viaLink = nodeTimeline.get(l.other.slug);
+      if (viaLink) return viaLink;
+    }
+    let best: string | null = null;
+    let bestScore = 0;
+    for (const [slug, counts] of timelineTags) {
+      const score = a.tags.reduce((sum, tag) => sum + (counts.get(tag.id) ?? 0), 0);
+      if (score > bestScore) {
+        best = slug;
+        bestScore = score;
+      }
+    }
+    return best;
   };
 }
 
@@ -560,70 +616,21 @@ const loadGraph = cache(async (): Promise<PublicGraph> => {
   // Loại sự kiện = chuyên mục con (có cha) thuộc loại EVENT.
   const eventTypeOf: PublicGraph['eventTypeOf'] = (a) => {
     const cat = a?.category ? catById.get(a.category.id) : undefined;
-    return cat?.parentId && resolveCategoryKind(categories, cat.id) === 'EVENT' ? cat : undefined;
+    return cat?.parentId && resolveCategoryKind(categories, cat.id) === ArticleKindEnum.EVENT ? cat : undefined;
   };
 
   const bySlug = new Map(articles.map((a) => [a.slug, a]));
   const byId = new Map(articles.map((a) => [a.id, a]));
 
-  // Liên kết 2 chiều: chiều OUTGOING có sẵn trong summary.links, chiều INCOMING suy ngược ở đây.
-  const links = new Map<string, LinkView[]>();
-  const pushLink = (id: string, view: LinkView) => links.set(id, [...(links.get(id) ?? []), view]);
-  for (const a of articles) {
-    for (const l of a.links ?? []) {
-      const target = byId.get(l.targetId);
-      if (!target) continue;
-      pushLink(a.id, { other: target, label: l.label, note: l.note, direction: 'OUTGOING' });
-      pushLink(target.id, { other: a, label: l.label, note: l.note, direction: 'INCOMING' });
-    }
-  }
-
-  const nodesByArticle = new Map<string, LifeNodeRef[]>();
-  for (const t of timelines) {
-    for (const n of t.nodes) {
-      if (!n.article) continue;
-      const ref: LifeNodeRef = { ...n, timeline: { id: t.id, slug: t.slug, title: t.title } };
-      nodesByArticle.set(n.article.slug, [...(nodesByArticle.get(n.article.slug) ?? []), ref]);
-    }
-  }
-
-  // Thời kỳ của bài: timeline có mốc trỏ tới bài, nếu không thì timeline có nhiều bài chung tag nhất.
-  const nodeTimeline = new Map<string, string>();
-  const timelineTags = new Map<string, Map<string, number>>();
-  for (const t of timelines) {
-    const tagCount = new Map<string, number>();
-    for (const n of t.nodes) {
-      if (!n.article) continue;
-      if (!nodeTimeline.has(n.article.slug)) nodeTimeline.set(n.article.slug, t.slug);
-      for (const tag of bySlug.get(n.article.slug)?.tags ?? []) tagCount.set(tag.id, (tagCount.get(tag.id) ?? 0) + 1);
-    }
-    timelineTags.set(t.slug, tagCount);
-  }
-  const periodSlugOf = (a: PublicArticleSummary) => {
-    const direct = nodeTimeline.get(a.slug);
-    if (direct) return direct;
-    // Bài không nằm trong mốc nào: theo bài liên kết với nó trước, rồi theo tag.
-    for (const l of links.get(a.id) ?? []) {
-      const viaLink = nodeTimeline.get(l.other.slug);
-      if (viaLink) return viaLink;
-    }
-    let best: string | null = null;
-    let bestScore = 0;
-    for (const [slug, counts] of timelineTags) {
-      const score = a.tags.reduce((sum, tag) => sum + (counts.get(tag.id) ?? 0), 0);
-      if (score > bestScore) {
-        best = slug;
-        bestScore = score;
-      }
-    }
-    return best;
-  };
+  const links = buildBidirectionalLinks(articles, byId);
+  const nodesByArticle = buildNodesByArticle(timelines);
+  const periodSlugOf = createPeriodSlugResolver(timelines, bySlug, links);
 
   return {
     categories,
     articles,
     timelines,
-    periods: timelines.map((t) => periodFromTimeline(t, bySlug)),
+    periods: timelines.map(periodFromTimeline),
     bySlug,
     byId,
     kindOf,
@@ -655,7 +662,6 @@ function toFigure(a: PublicArticleSummary): PublicFigureDto {
 
 function toLocation(g: PublicGraph, a: PublicArticleSummary): PublicLocationSummaryDto {
   const site = a.metadata?.site ?? {};
-  const rank = site.rank as HeritageRank | undefined;
   return {
     id: a.id,
     slug: a.slug,
@@ -666,10 +672,7 @@ function toLocation(g: PublicGraph, a: PublicArticleSummary): PublicLocationSumm
     historicalSignificance: a.summary,
     imageUrl: a.coverImageUrl,
     siteType: site.siteType,
-    siteTypeLabel: site.siteType ? LOCATION_TYPE_LABELS[site.siteType as LocationType] : undefined,
-    rankCode: rank ?? null,
-    rankLabel: rank ? RANK_LABELS[rank] : null,
-    recognitionLevel: rank ? RANK_LABELS[rank] : null,
+    siteTypeLabel: site.siteType ? DEFAULT_LOCATION_TYPE_LABELS[site.siteType] ?? site.siteType : undefined,
     constructionLabel: a.dateLabel,
     periodSlug: g.periodSlugOf(a),
     ancientNames: a.metadata?.aliases ?? [],
@@ -680,24 +683,27 @@ function toLocation(g: PublicGraph, a: PublicArticleSummary): PublicLocationSumm
   };
 }
 
-/** Mọi "sự kiện": mốc của các timeline + bài Sự kiện chưa nằm trong mốc nào. */
-function buildEvents(g: PublicGraph): PublicEventSummaryDto[] {
-  const events: PublicEventSummaryDto[] = [];
-  const covered = new Set<string>();
-
-  /** Phần dữ liệu lấy từ bài viết (nếu mốc có bài): người tham gia, nơi diễn ra. */
-  const fromArticle = (article: PublicArticleSummary | undefined) => {
+/** Trích xuất dữ liệu người tham gia và nơi diễn ra từ bài viết. */
+function buildArticleEventExtractors(g: PublicGraph) {
+  return (article: PublicArticleSummary | undefined) => {
     if (!article) return { figures: [], locations: [], location: null };
     const kind = g.kindOf(article);
-    const places = linksOfKind(g, article, 'LOCATION').map((l) => l.other);
-    const people = linksOfKind(g, article, 'PERSON').map((l) => l.other);
+    const places = linksOfKind(g, article, ArticleKindEnum.LOCATION).map((l) => l.other);
+    const people = linksOfKind(g, article, ArticleKindEnum.PERSON).map((l) => l.other);
     return {
-      figures: [...(kind === 'PERSON' ? [article] : []), ...people].map(toFigure),
-      locations: [...(kind === 'LOCATION' ? [article] : []), ...places].map((p) => toLocation(g, p)),
+      figures: [...(kind === ArticleKindEnum.PERSON ? [article] : []), ...people].map(toFigure),
+      locations: [...(kind === ArticleKindEnum.LOCATION ? [article] : []), ...places].map((p) => toLocation(g, p)),
       location: places[0]?.title ?? null,
     };
   };
+}
 
+function buildEventsFromTimelines(
+  g: PublicGraph,
+  covered: Set<string>,
+  fromArticle: ReturnType<typeof buildArticleEventExtractors>,
+): PublicEventSummaryDto[] {
+  const events: PublicEventSummaryDto[] = [];
   for (const t of g.timelines) {
     const period = g.periods.find((p) => p.id === t.id);
     for (const node of t.nodes) {
@@ -722,8 +728,17 @@ function buildEvents(g: PublicGraph): PublicEventSummaryDto[] {
       });
     }
   }
+  return events;
+}
+
+function buildEventsFromUncoveredArticles(
+  g: PublicGraph,
+  covered: Set<string>,
+  fromArticle: ReturnType<typeof buildArticleEventExtractors>,
+): PublicEventSummaryDto[] {
+  const events: PublicEventSummaryDto[] = [];
   for (const a of g.articles) {
-    if (covered.has(a.slug) || g.kindOf(a) !== 'EVENT' || a.startYear === null) continue;
+    if (covered.has(a.slug) || g.kindOf(a) !== ArticleKindEnum.EVENT || a.startYear === null) continue;
     const type = g.eventTypeOf(a);
     events.push({
       id: a.id,
@@ -742,13 +757,15 @@ function buildEvents(g: PublicGraph): PublicEventSummaryDto[] {
       ...fromArticle(a),
     });
   }
+  return events;
+}
 
-  // Quan hệ sự kiện–sự kiện (chế độ "Liên kết" của dòng thời gian): id phải là id của MỤC sự kiện.
+function attachEventRelations(events: PublicEventSummaryDto[], g: PublicGraph): void {
   const entryIdBySlug = new Map(events.filter((e) => e.slug).map((e) => [e.slug!, e.id]));
   for (const e of events) {
     const article = e.slug ? g.bySlug.get(e.slug) : undefined;
     if (!article) continue;
-    e.relations = linksOfKind(g, article, 'EVENT')
+    e.relations = linksOfKind(g, article, ArticleKindEnum.EVENT)
       .map((l) => ({
         eventId: entryIdBySlug.get(l.other.slug) ?? '',
         relationType: l.label ?? DEFAULT_LINK_LABEL,
@@ -756,6 +773,17 @@ function buildEvents(g: PublicGraph): PublicEventSummaryDto[] {
       }))
       .filter((r) => r.eventId);
   }
+}
+
+/** Mọi "sự kiện": mốc của các timeline + bài Sự kiện chưa nằm trong mốc nào. */
+function buildEvents(g: PublicGraph): PublicEventSummaryDto[] {
+  const covered = new Set<string>();
+  const fromArticle = buildArticleEventExtractors(g);
+  const events: PublicEventSummaryDto[] = [
+    ...buildEventsFromTimelines(g, covered, fromArticle),
+    ...buildEventsFromUncoveredArticles(g, covered, fromArticle),
+  ];
+  attachEventRelations(events, g);
   return events.sort((x, y) => x.startYear - y.startYear);
 }
 
@@ -843,17 +871,12 @@ export async function fetchEvents(): Promise<PublicEventSummaryDto[]> {
 export async function fetchFigureDirectory(): Promise<PublicFigureProfileDto[]> {
   const g = await loadGraph();
   const events = buildEvents(g);
-  return g.articles.filter((a) => g.kindOf(a) === 'PERSON').map((a) => toFigureProfile(g, a, events));
+  return g.articles.filter((a) => g.kindOf(a) === ArticleKindEnum.PERSON).map((a) => toFigureProfile(g, a, events));
 }
 
 export async function fetchLocations(): Promise<PublicLocationSummaryDto[]> {
   const g = await loadGraph();
-  return g.articles.filter((a) => g.kindOf(a) === 'LOCATION').map((a) => toLocation(g, a));
-}
-
-/** "Danh mục" cho component cũ — sinh từ chuyên mục (xem public-taxonomy.ts). */
-export async function fetchTaxonomyTerms(groupCode: string): Promise<TaxonomyTermItem[]> {
-  return buildTaxonomyGroup(groupCode, (await loadGraph()).categories).terms;
+  return g.articles.filter((a) => g.kindOf(a) === ArticleKindEnum.LOCATION).map((a) => toLocation(g, a));
 }
 
 /** Trang /giai-doan/[slug]: 1 timeline + bài trong mốc + bài liên kết / chung tag với các bài đó. */
@@ -876,11 +899,11 @@ export async function fetchPeriodBySlug(slug: string): Promise<PublicPeriodDetai
   return {
     ...period,
     topics: [],
-    figures: related.filter((a) => g.kindOf(a) === 'PERSON').map(toFigure),
+    figures: related.filter((a) => g.kindOf(a) === ArticleKindEnum.PERSON).map(toFigure),
     events: buildEvents(g).filter((e) => e.periodSlug === slug),
     parent: null,
     children: [],
-    locations: related.filter((a) => g.kindOf(a) === 'LOCATION').map((a) => toLocation(g, a)),
+    locations: related.filter((a) => g.kindOf(a) === ArticleKindEnum.LOCATION).map((a) => toLocation(g, a)),
     concurrentPeriods: g.periods.filter(
       (p) => p.slug !== slug && p.startYear <= end && (p.endYear ?? p.startYear) >= period.startYear,
     ),
@@ -922,7 +945,6 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
   for (const l of g.linksOf(article.id)) push(l.other, l.label ?? DEFAULT_LINK_LABEL, l.direction, l.note);
   for (const r of article.related) push(r, r.category?.name ?? DEFAULT_LINK_LABEL, 'OUTGOING', null);
 
-  const rank = site.rank as HeritageRank | undefined;
   const period = g.periods.find((p) => p.slug === periodSlug) ?? null;
   return {
     id: article.id,
@@ -939,8 +961,7 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
     endYear: article.endYear,
     contentBlocks: article.contentBlocks,
     metadata: null,
-    // Ô "Không gian / Lãnh thổ" của trình đọc đọc period.region → ưu tiên khu vực khai báo của bài.
-    period: period ? { ...period, region: meta.region ?? period.region } : null,
+    period,
     media: [],
     statements,
     previous: article.previous
@@ -949,18 +970,18 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
     next: article.next
       ? { id: article.next.slug, slug: article.next.slug, name: article.next.title, dateLabel: article.next.dateLabel }
       : null,
-    roles: meta.person?.roles?.map((code) => CANONICAL_ROLE_LABELS[code] ?? code),
+    roles: meta.person?.roles ?? [],
     occupation: meta.person?.occupation ?? null,
     titles: meta.person?.titles,
     address: site.address ?? null,
     managingAgency: site.managingAgency ?? null,
-    recognitionLevel: rank ? RANK_LABELS[rank] : null,
   };
 }
 
 /** Danh sách từ endpoint công khai bất kỳ (bài học /public/lessons, lộ trình /learning-paths). */
 export async function fetchPublicList<T>(endpoint: string): Promise<T[]> {
   try {
+    /* eslint-disable-next-line no-restricted-syntax -- Server Component data fetching */
     const response = await fetch(`${API_URL}${endpoint}`, { cache: 'no-store' });
     if (!response.ok) return [];
     const body = await response.json();

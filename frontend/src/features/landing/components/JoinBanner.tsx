@@ -1,7 +1,7 @@
 'use client';
 
-import { ArrowRight, BookOpen, Check, Globe2, GraduationCap, History, MapPin, ShieldCheck, Users } from 'lucide-react';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { ArrowRight, Check, Globe2, GraduationCap, History, MapPin, ShieldCheck, Users } from 'lucide-react';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { LANDING_ROUTES } from '../landing.adapter';
 import type { LandingStats } from '../landing.types';
 import { HlBadge, HlButton, Reveal } from './LandingUi';
@@ -86,7 +86,6 @@ export function StatsStrip({ stats }: { stats: LandingStats }) {
     { icon: Users, value: stats.figures, label: 'Nhân vật lịch sử' },
     { icon: MapPin, value: stats.locations, label: 'Di tích & địa danh' },
     { icon: GraduationCap, value: stats.paths, label: 'Lộ trình học' },
-    { icon: BookOpen, value: stats.regions, label: 'Vùng lịch sử' },
   ];
   return (
     <div className="hl-stats-strip">

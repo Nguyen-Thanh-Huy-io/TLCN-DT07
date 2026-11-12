@@ -1,22 +1,20 @@
 "use client";
 
 import { BookOpen, Bookmark, LayoutList, Search, SlidersHorizontal, X } from "lucide-react";
-import { Button, Input } from "./sk-ui";
-import { type Era, type TimelineEvent, TimelineFacetKey } from "./sk-types";
-import { sortedRegions } from "@/utils/region.utils";
+import { Button, Input } from "./SkUi";
+import { type Era, TimelineFacetKey } from "./sk-types";
 
 /** Mỗi nhóm cho chọn nhiều giá trị; mảng rỗng = không lọc theo nhóm đó. */
 export interface TimelineFilters {
   eras: string[];
   subs: string[];
   categories: string[];
-  regions: string[];
 }
 
-export const EMPTY_FILTERS: TimelineFilters = { eras: [], subs: [], categories: [], regions: [] };
+export const EMPTY_FILTERS: TimelineFilters = { eras: [], subs: [], categories: [] };
 
 export function activeFilterCount(filters: TimelineFilters): number {
-  return filters.eras.length + filters.subs.length + filters.categories.length + filters.regions.length;
+  return filters.eras.length + filters.subs.length + filters.categories.length;
 }
 
 /** Bỏ một giá trị khỏi nhóm; bỏ thời kỳ thì bỏ luôn các giai đoạn thuộc thời kỳ đó. */
@@ -27,19 +25,6 @@ export function withoutValue(filters: TimelineFilters, key: keyof TimelineFilter
     next.subs = next.subs.filter((s) => !dropped.has(s));
   }
   return next;
-}
-
-/** Quốc gia / khu vực thực sự có dấu mốc (theo Period.region), theo thứ tự chuẩn dùng chung. */
-export function regionOptions(events: TimelineEvent[], order?: readonly string[]): string[] {
-  return sortedRegions(
-    events.map((ev) => ev.region),
-    order,
-  );
-}
-
-/** [] = tất cả quốc gia / khu vực. */
-export function matchesRegion(event: TimelineEvent, regions: string[]): boolean {
-  return regions.length === 0 || regions.includes(event.region);
 }
 
 export function FilterBar({
@@ -76,7 +61,6 @@ export function FilterBar({
   const count = activeFilterCount(filters);
   // Bộ lọc đang bật hiển thị thành chip có nút xóa, để không phải mở lại hộp thoại.
   const chips: Array<{ key: keyof TimelineFilters; value: string; label: string }> = [
-    ...filters.regions.map((v) => ({ key: "regions" as const, value: v, label: v })),
     ...filters.eras.map((v) => ({ key: "eras" as const, value: v, label: eras.find((e) => e.id === v)?.title ?? "Thời kỳ" })),
     ...filters.subs.map((v) => ({ key: "subs" as const, value: v, label: subs.find((s) => s.id === v)?.title ?? "Giai đoạn" })),
     ...filters.categories.map((v) => ({ key: "categories" as const, value: v, label: v })),

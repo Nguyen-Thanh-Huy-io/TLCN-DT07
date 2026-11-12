@@ -13,7 +13,7 @@ export function CorePillars({ stats }: { stats: LandingStats }) {
       icon: Compass,
       no: '01',
       title: 'Dòng thời gian Đa tầng',
-      text: 'Duyệt ngang & dọc, lọc theo quốc gia / khu vực và đặt Việt Nam cạnh thế giới trong cùng lát cắt.',
+      text: 'Duyệt ngang & dọc, khám phá các mốc lịch sử trong cùng lát cắt thời gian.',
       href: LANDING_ROUTES.TIMELINE,
       meta: `${stats.events} mốc sự kiện`,
       color: 'red',
@@ -97,7 +97,7 @@ export function EraBento({ eras }: { eras: LandingEra[] }) {
             <Reveal className={`hl-bento-item ${era.size}`} key={era.id}>
               <motion.div whileHover={{ y: -4 }} className="hl-bento-hover">
                 <Link className="hl-era-card" href={era.href}>
-                  <HlCover src={era.imageUrl} alt="" fallbackText={era.region} />
+                  <HlCover src={era.imageUrl} alt="" fallbackText={era.name} />
                   <div className="hl-era-shade" />
                   <div className="hl-era-top">
                     <HlBadge>{era.years}</HlBadge>
@@ -107,7 +107,7 @@ export function EraBento({ eras }: { eras: LandingEra[] }) {
                   </div>
                   <div className="hl-era-content">
                     <p>
-                      {era.region} • {era.eventCount} sự kiện • {era.figureCount} nhân vật
+                      {era.eventCount} sự kiện • {era.figureCount} nhân vật
                     </p>
                     <h3>{era.name}</h3>
                     {era.subEras.length > 0 && (

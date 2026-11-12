@@ -14,7 +14,6 @@ import * as path from 'path';
 import {
   PrismaClient,
   ContentStatus,
-  LearningPathType,
   TopicIcon,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -40,7 +39,6 @@ async function main() {
     update: {
       name: 'Lịch sử Thế giới',
       icon: TopicIcon.Castle,
-      pathType: LearningPathType.CHRONOLOGICAL,
       isFeatured: true,
       status: ContentStatus.PUBLISHED,
       description: 'Khám phá các nền văn minh cổ đại, các cuộc cách mạng và những biến cố định hình nhân loại.',
@@ -49,7 +47,6 @@ async function main() {
       slug: 'lich-su-the-gioi',
       name: 'Lịch sử Thế giới',
       icon: TopicIcon.Castle,
-      pathType: LearningPathType.CHRONOLOGICAL,
       isFeatured: true,
       status: ContentStatus.PUBLISHED,
       description: 'Khám phá các nền văn minh cổ đại, các cuộc cách mạng và những biến cố định hình nhân loại.',
@@ -67,7 +64,6 @@ async function main() {
         name: t.childName,
         eyebrow: t.eyebrow,
         icon: TopicIcon.Swords,
-        pathType: LearningPathType.CHRONOLOGICAL,
         isFeatured: true,
         status: ContentStatus.PUBLISHED,
         description: t.description,
@@ -78,7 +74,6 @@ async function main() {
         name: t.childName,
         eyebrow: t.eyebrow,
         icon: TopicIcon.Swords,
-        pathType: LearningPathType.CHRONOLOGICAL,
         isFeatured: true,
         status: ContentStatus.PUBLISHED,
         description: t.description,
@@ -142,7 +137,7 @@ async function main() {
       });
     }
 
-    console.log(`✅ Đã nạp Article: ${upserted.title} (Region: ${a.region})`);
+    console.log(`✅ Đã nạp Article: ${upserted.title}`);
   }
 
   // 3. TIMELINES

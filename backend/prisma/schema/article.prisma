@@ -49,7 +49,7 @@ model Article {
   coverCaption  String? @map("cover_caption") @db.VarChar(255)
   /// Nội dung dạng mảng khối — cùng định dạng Lesson.content (Block Builder).
   contentBlocks Json    @default("[]") @map("content_blocks") @db.JsonB
-  /// Hồ sơ mô tả TÙY CHỌN, nhập ở CMS: phần chung (aliases, region, sources) + nhánh theo loại bài
+  /// Hồ sơ mô tả TÙY CHỌN, nhập ở CMS: phần chung (aliases, sources) + nhánh theo loại bài
   /// (`person` / `site` / `event`). Chỉ để hiển thị & lọc (index GIN) — liên kết bài ↔ bài KHÔNG nằm
   /// ở đây mà ở bảng ArticleLink. Cấu trúc + chuẩn hoá: backend/src/article/article-metadata.ts.
   metadata      Json?          @db.JsonB

@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDownUp, Search, SlidersHorizontal, X } from "lucide-react";
-import { Button, Input } from "@/components/timeline/sk-ui";
+import { Button, Input } from "@/components/timeline/SkUi";
 
 export enum FigureSort {
   TIME = "time",
@@ -15,16 +15,14 @@ export interface FilterOption {
 
 /** Mỗi nhóm chọn nhiều; mảng rỗng = không lọc theo nhóm đó. */
 export interface FigureFilters {
-  regions: string[];
   eras: string[];
   subs: string[];
-  roles: string[];
 }
 
-export const EMPTY_FIGURE_FILTERS: FigureFilters = { regions: [], eras: [], subs: [], roles: [] };
+export const EMPTY_FIGURE_FILTERS: FigureFilters = { eras: [], subs: [] };
 
 export function figureFilterCount(f: FigureFilters): number {
-  return f.regions.length + f.eras.length + f.subs.length + f.roles.length;
+  return f.eras.length + f.subs.length;
 }
 
 const SORT_LABELS: Record<FigureSort, string> = {

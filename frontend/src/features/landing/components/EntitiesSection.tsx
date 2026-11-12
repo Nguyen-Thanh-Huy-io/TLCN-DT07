@@ -7,6 +7,7 @@ import { ArrowRight, Layers3, MapPin, Users } from 'lucide-react';
 import { LANDING_ROUTES } from '../landing.adapter';
 import type { LandingFigure, LandingLocation } from '../landing.types';
 import { HlBadge, HlButton, SectionHead } from './LandingUi';
+import { RemoteImage } from '@/components/common/RemoteImage';
 
 export enum EntitySectionTab {
   FIGURES = 'figures',
@@ -62,7 +63,7 @@ export function EntitiesSection({ figures, locations }: { figures: LandingFigure
                 <article className="hl-figure-card" key={f.id}>
                   <div className="hl-figure-top">
                     {f.imageUrl ? (
-                      <img src={f.imageUrl} alt={f.name} />
+                      <RemoteImage src={f.imageUrl} alt={f.name} />
                     ) : (
                       <span className="hl-figure-initials">{initials(f.name)}</span>
                     )}

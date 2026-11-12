@@ -4,11 +4,10 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-react';
 import {
-  CANONICAL_ROLE_LABELS,
-  HISTORICAL_REGION_OPTIONS,
-  LOCATION_TYPE_LABELS,
+  ArticleKindEnum,
+  KeyboardKey,
 } from '@/constants/enums';
-import { PRESERVATION_LABELS, RANK_LABELS } from '@/features/heritage/heritage.types';
+import { PRESERVATION_LABELS } from '@/features/heritage/heritage.types';
 import { APP_ROUTES } from '@/constants/routes';
 import type {
   ArticleItem,
@@ -28,6 +27,18 @@ export type { ArticleKind };
 export function articleKindOf(categories: CategoryItem[], categoryId: string | null | undefined): ArticleKind {
   return resolveCategoryKind(categories, categoryId);
 }
+
+const DEFAULT_LOCATION_TYPE_LABELS: Record<string, string> = {
+  ANCIENT_CAPITAL: 'Cố đô',
+  CITADEL: 'Thành lũy',
+  PALACE: 'Cung điện',
+  BATTLEFIELD: 'Chiến trường',
+  RESISTANCE_BASE: 'Căn cứ kháng chiến',
+  TEMPLE: 'Đền miếu',
+  ARCHAEOLOGICAL_SITE: 'Di chỉ khảo cổ',
+  MONUMENT: 'Di tích lịch sử',
+  OTHER: 'Khác',
+};
 
 /** Gợi ý nhãn liên kết theo loại bài nguồn → loại bài đích (chỉ là gợi ý, gõ tự do được). */
 const LABEL_SUGGESTIONS: Record<string, string[]> = {
@@ -92,7 +103,7 @@ function ListField({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === KeyboardKey.ENTER) {
                 e.preventDefault();
                 add();
               }
@@ -178,44 +189,17 @@ export function ArticleProfilePanel({
       <div className="space-y-6">
         <Section title="Thông tin chung" hint="Áp dụng cho mọi loại bài. Tên gọi khác được dùng khi tìm kiếm.">
           <ListField label="Tên gọi khác / tên cổ" values={m.aliases} onChange={(v) => setTop('aliases', v)} placeholder="vd. Trần Quốc Tuấn" />
-          <div>
-            <label className={labelCls}>Khu vực</label>
-            <select className={input} value={m.region ?? ''} onChange={(ev) => setTop('region', ev.target.value || undefined)}>
-              <option value="">—</option>
-              {HISTORICAL_REGION_OPTIONS.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </div>
           <ListField label="Tư liệu tham khảo" values={m.sources} onChange={(v) => setTop('sources', v)} placeholder="vd. Đại Việt sử ký toàn thư" />
         </Section>
 
-        {kind === 'PERSON' && (
+        {kind === ArticleKindEnum.PERSON && (
           <Section title="Hồ sơ nhân vật" hint="Hiện ở thẻ nhân vật và tab Tiểu sử & di sản (/nhan-vat).">
-            <div>
-              <label className={labelCls}>Vai trò</label>
-              <div className="flex flex-wrap gap-1.5">
-                {Object.entries(CANONICAL_ROLE_LABELS)
-                  .filter(([code], i, arr) => arr.findIndex(([, l]) => l === CANONICAL_ROLE_LABELS[code]) === i)
-                  .map(([code, label]) => {
-                    const on = p.roles?.includes(code);
-                    return (
-                      <button
-                        key={code}
-                        type="button"
-                        onClick={() => setPerson({ roles: on ? p.roles!.filter((r) => r !== code) : [...(p.roles ?? []), code] })}
-                        className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                          on ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
+            <ListField
+              label="Vai trò"
+              values={p.roles}
+              onChange={(v) => setPerson({ roles: v })}
+              placeholder="vd. Quân chủ, Tướng lĩnh, Học giả"
+            />
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>Nghề nghiệp / chức vụ</label>
@@ -252,7 +236,7 @@ export function ArticleProfilePanel({
           </Section>
         )}
 
-        {kind === 'PERSON' && (
+        {kind === ArticleKindEnum.PERSON && (
           <Section
             title={`Mốc đời riêng (${p.milestones?.length ?? 0})`}
             hint="Việc nhỏ chỉ thuộc về nhân vật này (đi sứ, bị bãi chức...). Sự kiện lớn nhiều người tham gia → tạo bài sự kiện rồi liên kết."
@@ -298,38 +282,25 @@ export function ArticleProfilePanel({
           </Section>
         )}
 
-        {kind === 'OTHER' && (
+        {kind === ArticleKindEnum.OTHER && (
           <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
             Bài chưa có loại (Nhân vật / Sự kiện / Di tích...) nên chưa có hồ sơ riêng. Chọn chuyên mục ở tab{' '}
             <strong>Thông tin</strong> — loại bài lấy theo chuyên mục (cài ở trang Chuyên mục).
           </p>
         )}
 
-        {kind === 'LOCATION' && (
-          <Section title="Hồ sơ di tích" hint="Hiện ở thẻ và bộ lọc /di-tich, ô hồ sơ ở trang đọc.">
+        {kind === ArticleKindEnum.LOCATION && (
+          <Section title="Hồ sơ di tích" hint="Hiện ở thẻ /di-tich và ô hồ sơ ở trang đọc.">
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>Loại di tích</label>
                 <select className={input} value={s.siteType ?? ''} onChange={(ev) => setSite({ siteType: ev.target.value || undefined })}>
                   <option value="">—</option>
-                  {Object.entries(LOCATION_TYPE_LABELS).map(([code, label]) => (
+                  {Object.entries(DEFAULT_LOCATION_TYPE_LABELS).map(([code, label]) => (
                     <option key={code} value={code}>
                       {label}
                     </option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>Xếp hạng</label>
-                <select className={input} value={s.rank ?? ''} onChange={(ev) => setSite({ rank: ev.target.value || undefined })}>
-                  <option value="">Chưa xếp hạng</option>
-                  {Object.entries(RANK_LABELS)
-                    .filter(([code]) => code !== 'UNRANKED')
-                    .map(([code, label]) => (
-                      <option key={code} value={code}>
-                        {label}
-                      </option>
-                    ))}
                 </select>
               </div>
               <div>
@@ -379,7 +350,7 @@ export function ArticleProfilePanel({
           </Section>
         )}
 
-        {kind === 'EVENT' && (
+        {kind === ArticleKindEnum.EVENT && (
           <Section title="Hồ sơ sự kiện" hint="Hiện ở trang đọc sự kiện. Nơi diễn ra, người tham gia: thêm bằng Liên kết bên phải.">
             <div>
               <label className={labelCls}>Ghi chú niên đại</label>
@@ -399,7 +370,7 @@ export function ArticleProfilePanel({
       </div>
 
       <div className="space-y-6">
-        {savedArticle && kind === 'PERSON' && (
+        {savedArticle && kind === ArticleKindEnum.PERSON && (
           <PersonLifePreview
             article={savedArticle}
             categories={categories}
@@ -407,7 +378,7 @@ export function ArticleProfilePanel({
             linksDirty={linksDirty}
           />
         )}
-        {savedArticle && kind === 'EVENT' && <EventPeoplePanel article={savedArticle} categories={categories} />}
+        {savedArticle && kind === ArticleKindEnum.EVENT && <EventPeoplePanel article={savedArticle} categories={categories} />}
         {!savedArticle && (
           <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
             Lưu bài lần đầu để xem trước dòng đời / nhân vật gắn với bài / dòng thời gian chứa bài.

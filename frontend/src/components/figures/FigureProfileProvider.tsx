@@ -57,10 +57,12 @@ export function FigureProfileProvider({ children }: { children: React.ReactNode 
   );
 
   useEffect(() => {
-    if (data && pendingSlug) {
-      setSelectedSlug(pendingSlug);
-      setPendingSlug(null);
-    }
+    void Promise.resolve().then(() => {
+      if (data && pendingSlug) {
+        setSelectedSlug(pendingSlug);
+        setPendingSlug(null);
+      }
+    });
   }, [data, pendingSlug]);
 
   const selected = data?.figures.find((f) => f.slug === selectedSlug) ?? null;

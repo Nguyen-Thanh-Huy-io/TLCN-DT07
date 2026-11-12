@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Bookmark, Flag, Globe2, Landmark, Network, Swords, TimerReset, type LucideIcon } from "lucide-react";
+import { ArrowRight, BookOpen, Bookmark, Flag, Landmark, Network, Swords, TimerReset, type LucideIcon } from "lucide-react";
 import { useTimelineFocus } from "./TimelineFocus";
-import { Heading, Badge, Button } from "./sk-ui";
-import { type TimelineEvent, EventScopeGroup } from "./sk-types";
+import { Heading, Badge, Button } from "./SkUi";
+import { type TimelineEvent } from "./sk-types";
 import { SK_SELECTED_CLASS } from "./sk-shared";
+import { RemoteImage } from "@/components/common/RemoteImage";
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   BATTLE: Swords,
@@ -58,7 +59,7 @@ export function EventCard({
     >
       {event.imageUrl && (
         <div className="sk-card-image" onClick={onOpen}>
-          <img src={event.imageUrl} alt={event.title} loading="lazy" />
+          <RemoteImage src={event.imageUrl} alt={event.title} loading="lazy" />
           <div className="sk-image-overlay" />
           {category}
           {saveButton}
@@ -72,10 +73,6 @@ export function EventCard({
           </div>
         )}
         <div className="sk-card-meta">
-          <span>
-            <Globe2 size={11} />
-            {event.scopeGroup === EventScopeGroup.DOMESTIC ? "Trong nước" : "Thế giới"}
-          </span>
           <span>{event.spanLabel ?? event.dateLabel}</span>
         </div>
         {event.actors.length > 0 && (

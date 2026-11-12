@@ -3,18 +3,16 @@ import { Footer } from "@/components/hisgo/Footer";
 import { TimelineHero } from "@/components/timeline/TimelineHero";
 import { TimelineExplorer } from "@/components/timeline/TimelineExplorer";
 import { buildEraDataset } from "@/components/timeline/sk-adapter";
-import { fetchEvents, fetchPeriods, fetchTaxonomyTerms } from "@/services/entities/landing.service";
-import { TaxonomyGroupCode } from "@/constants/enums";
+import { fetchEvents, fetchPeriods } from "@/services/entities/landing.service";
 import "@/components/timeline/sk-timeline.css";
 
 export default async function DongThoiGianPage() {
-  const [events, periods, categoryTerms] = await Promise.all([
+  const [events, periods] = await Promise.all([
     fetchEvents(),
     fetchPeriods(),
-    fetchTaxonomyTerms(TaxonomyGroupCode.EVENT_TYPE),
   ]);
 
-  const eras = buildEraDataset(periods, events, categoryTerms);
+  const eras = buildEraDataset(periods, events);
   const eventCount = eras.flatMap((e) => e.subEras.flatMap((s) => s.timeNodes.flatMap((n) => n.events))).length;
 
   return (

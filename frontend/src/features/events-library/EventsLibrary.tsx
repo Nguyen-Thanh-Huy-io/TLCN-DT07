@@ -18,14 +18,17 @@ import {
 } from 'lucide-react';
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from '@/components/filters/ChipFilter';
 import { Pagination } from '@/components/common/Pagination';
-import { EVENT_CATEGORY_LABELS, TaxonomyGroupCode } from '@/constants/enums';
 import { formatYear, normalizeSearch, shortPeriodName } from '@/features/search/search-index';
 import type { PublicEventSummaryDto, PublicPeriodDto } from '@/services/entities/landing.service';
-import { regionLabel, sortedRegions } from '@/utils/region.utils';
 import type { TaxonomyTermItem } from '@/services/public/public-taxonomy';
 import { ancestorChain, flattenTree, loadPublicTaxonomy } from '@/features/taxonomy/taxonomy-tree';
-import { useRegionOrder } from '@/features/taxonomy/usePublicTaxonomy';
 import './events-library.css';
+import { RemoteImage } from '@/components/common/RemoteImage';
+
+enum LibraryViewMode {
+  GRID = 'grid',
+  LIST = 'list',
+}
 
 /** Giá trị "chưa gắn" dùng chung cho nhóm thời kỳ. */
 const NO_PERIOD = '__none__';
@@ -51,26 +54,36 @@ const SORT_LABELS: Record<EventSortOption, string> = {
 };
 
 interface EventFilters {
-  regions: string[];
   eras: string[];
   categories: string[];
   links: string[];
 }
-const EMPTY: EventFilters = { regions: [], eras: [], categories: [], links: [] };
-const filterCount = (f: EventFilters) => f.regions.length + f.eras.length + f.categories.length + f.links.length;
+const EMPTY: EventFilters = { eras: [], categories: [], links: [] };
+const filterCount = (f: EventFilters) => f.eras.length + f.categories.length + f.links.length;
 
 interface EventRow {
   event: PublicEventSummaryDto;
   eraId: string;
   eraName: string | null;
-  region: string;
   haystack: string;
   linkFlags: Set<LinkKey>;
   /** Loại đã gắn và mọi loại cha của chúng — lọc theo nút cha ra cả nút con. */
   categoryPath: Set<string>;
 }
 
-const categoryLabel = (c: string) => EVENT_CATEGORY_LABELS[c] ?? c;
+const DEFAULT_EVENT_CATEGORY_LABELS: Record<string, string> = {
+  BATTLE: 'Trận đánh',
+  WAR: 'Chiến tranh',
+  TREATY: 'Hiệp ước',
+  REVOLUTION: 'Cách mạng',
+  POLITICAL_EVENT: 'Biến cố chính trị',
+  SUMMIT_CONFERENCE: 'Hội nghị',
+  CULTURE_SCIENCE: 'Văn hóa và khoa học',
+  NATURAL_DISASTER: 'Thiên tai dịch bệnh',
+  OTHER: 'Khác',
+};
+
+const categoryLabel = (c: string) => DEFAULT_EVENT_CATEGORY_LABELS[c] ?? c;
 
 function buildRows(events: PublicEventSummaryDto[], periods: PublicPeriodDto[], terms: TaxonomyTermItem[]): EventRow[] {
   const bySlug = new Map(periods.map((p) => [p.slug, p]));
@@ -86,7 +99,6 @@ function buildRows(events: PublicEventSummaryDto[], periods: PublicPeriodDto[], 
       event,
       eraId: root?.id ?? NO_PERIOD,
       eraName: root ? shortPeriodName(root.name) : null,
-      region: regionLabel(root?.region),
       haystack: normalizeSearch(
         [
           event.title,
@@ -103,7 +115,6 @@ function buildRows(events: PublicEventSummaryDto[], periods: PublicPeriodDto[], 
 }
 
 function matches(row: EventRow, f: EventFilters, needle: string): boolean {
-  if (f.regions.length && !f.regions.includes(row.region)) return false;
   if (f.eras.length && !f.eras.includes(row.eraId)) return false;
   if (f.categories.length && !f.categories.some((c) => row.categoryPath.has(c))) return false;
   if (f.links.length && !f.links.some((l) => row.linkFlags.has(l as LinkKey))) return false;
@@ -118,7 +129,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
   // Loại sự kiện theo cây "Danh mục dùng chung"; chưa tải xong thì thẻ dùng nhãn enum cũ.
   const [categoryTerms, setCategoryTerms] = useState<TaxonomyTermItem[]>([]);
   useEffect(() => {
-    loadPublicTaxonomy(TaxonomyGroupCode.EVENT_TYPE)
+    loadPublicTaxonomy('EVENT_TYPE')
       .then((group) => setCategoryTerms(group?.terms ?? []))
       .catch(() => setCategoryTerms([]));
   }, []);
@@ -132,24 +143,24 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
   const [filters, setFilters] = useState<EventFilters>(EMPTY);
   const [sort, setSort] = useState<Sort>(EventSortOption.YEAR_ASC);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<LibraryViewMode>(LibraryViewMode.GRID);
   const [currentPage, setCurrentPage] = useState(1);
 
   const needle = normalizeSearch(query.trim());
 
   // Reset trang về 1 khi đổi bộ lọc hoặc tìm kiếm
   useEffect(() => {
-    setCurrentPage(1);
+    void Promise.resolve().then(() => {
+      setCurrentPage(1);
+    });
   }, [query, filters, sort]);
 
-  const regionOrder = useRegionOrder();
-  const regions = useMemo(() => sortedRegions(rows.map((r) => r.region), regionOrder), [rows, regionOrder]);
   const eras = useMemo(() => {
-    const seen = new Map<string, { label: string; region: string; start: number }>();
+    const seen = new Map<string, { label: string; start: number }>();
     for (const r of rows) {
       if (!seen.has(r.eraId)) {
         const p = periods.find((x) => x.id === r.eraId);
-        seen.set(r.eraId, { label: r.eraName ?? LINK_OPTIONS.NO_PERIOD, region: r.region, start: p?.startYear ?? Infinity });
+        seen.set(r.eraId, { label: r.eraName ?? LINK_OPTIONS.NO_PERIOD, start: p?.startYear ?? Infinity });
       }
     }
     return [...seen.entries()].sort((a, b) => a[1].start - b[1].start);
@@ -180,7 +191,6 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
   };
 
   const chips = [
-    ...filters.regions.map((v) => ({ key: 'regions' as const, value: v, label: v })),
     ...filters.eras.map((v) => ({ key: 'eras' as const, value: v, label: eras.find(([id]) => id === v)?.[1].label ?? v })),
     ...filters.categories.map((v) => ({ key: 'categories' as const, value: v, label: termLabel(v) })),
     ...filters.links.map((v) => ({ key: 'links' as const, value: v, label: LINK_OPTIONS[v as LinkKey] })),
@@ -246,8 +256,8 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
           <div className="el-view-mode-toggle" role="group" aria-label="Chế độ hiển thị">
             <button
               type="button"
-              className={`el-view-btn ${viewMode === 'grid' ? 'sk-active' : ''}`}
-              onClick={() => setViewMode('grid')}
+              className={`el-view-btn ${viewMode === LibraryViewMode.GRID ? 'sk-active' : ''}`}
+              onClick={() => setViewMode(LibraryViewMode.GRID)}
               title="Xem dạng lưới thẻ tạp chí"
               aria-label="Xem dạng lưới"
             >
@@ -255,8 +265,8 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
             </button>
             <button
               type="button"
-              className={`el-view-btn ${viewMode === 'list' ? 'sk-active' : ''}`}
-              onClick={() => setViewMode('list')}
+              className={`el-view-btn ${viewMode === LibraryViewMode.LIST ? 'sk-active' : ''}`}
+              onClick={() => setViewMode(LibraryViewMode.LIST)}
               title="Xem dạng danh sách"
               aria-label="Xem dạng danh sách"
             >
@@ -300,25 +310,13 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
         >
           {(draft, setDraft) => {
             const toggle = (key: keyof EventFilters, v: string) => setDraft((d) => ({ ...d, [key]: toggleValue(d[key], v) }));
-            const eraOptions = eras
-              .filter(([id, e]) => !draft.regions.length || draft.eras.includes(id) || draft.regions.includes(e.region))
-              .map(([id, e]) => ({ value: id, label: e.label, hint: `${count((r) => r.eraId === id)} sự kiện` }));
+            const eraOptions = eras.map(([id, e]) => ({ value: id, label: e.label, hint: `${count((r) => r.eraId === id)} sự kiện` }));
             const categories = flattenTree(categoryTerms)
               .map(({ term, depth }) => ({ term, depth, n: count((r) => r.categoryPath.has(term.id)) }))
               .filter((c) => c.n > 0);
             const links = (Object.keys(LINK_OPTIONS) as LinkKey[]).filter((k) => count((r) => r.linkFlags.has(k)) > 0);
             return (
               <>
-                {regions.length > 1 && (
-                  <FilterSection title="Quốc gia / khu vực" aside={<PickedCount count={draft.regions.length} />}>
-                    <ChipGroup
-                      options={regions.map((r) => ({ value: r, label: r }))}
-                      selected={draft.regions}
-                      onToggle={(v) => toggle('regions', v)}
-                      searchLabel="Tìm quốc gia / khu vực..."
-                    />
-                  </FilterSection>
-                )}
                 <FilterSection card title="Thời kỳ" aside={<PickedCount count={draft.eras.length} />}>
                   <ChipGroup options={eraOptions} selected={draft.eras} onToggle={(v) => toggle('eras', v)} searchLabel="Tìm thời kỳ..." />
                 </FilterSection>
@@ -371,10 +369,10 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
         {/* Nội dung danh sách sự kiện */}
         {visible.length > 0 ? (
           <>
-            {viewMode === 'grid' ? (
+            {viewMode === LibraryViewMode.GRID ? (
               /* DẠNG 1: LƯỚI THẺ SỰ KIỆN TẠP CHÍ (CARD GRID) */
               <div className="el-grid">
-                {paginatedRows.map(({ event, eraName, region }) => {
+                {paginatedRows.map(({ event, eraName }) => {
                   const place = event.locations[0]?.name ?? event.location;
                   const href = event.slug ? `/su-kien/${event.slug}` : null;
                   const yearLabel = event.endYear && event.endYear !== event.startYear
@@ -386,7 +384,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
                       {/* Ảnh bìa sự kiện */}
                       <div className="el-card-media">
                         {event.imageUrl ? (
-                          <img src={event.imageUrl} alt={event.title} loading="lazy" />
+                          <RemoteImage src={event.imageUrl} alt={event.title} loading="lazy" />
                         ) : (
                           <div className="el-card-fallback-media">
                             <ImageIcon size={32} className="opacity-30" />
@@ -449,7 +447,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
             ) : (
               /* DẠNG 2: DANH SÁCH CHI TIẾT (LIST VIEW) */
               <ol className="el-list">
-                {paginatedRows.map(({ event, eraName, region }) => {
+                {paginatedRows.map(({ event, eraName }) => {
                   const place = event.locations[0]?.name ?? event.location;
                   const placeSlug = event.locations[0]?.slug;
                   const href = event.slug ? `/su-kien/${event.slug}` : null;
@@ -467,7 +465,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
                         {href ? <Link href={href}>{event.title}</Link> : <strong>{event.title}</strong>}
                         {event.description && <p className="el-list-desc">{event.description}</p>}
                         <div className="el-meta">
-                          <span>{eraName ? `${eraName} · ${region}` : 'Chưa gắn thời kỳ'}</span>
+                          <span>{eraName ?? 'Chưa gắn thời kỳ'}</span>
                           {event.figures.length > 0 && (
                             <span>
                               <Users size={12} />

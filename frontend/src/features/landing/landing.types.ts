@@ -2,7 +2,6 @@ export interface LandingSpotlight {
   id: string;
   yearLabel: string;
   era: string;
-  region: string;
   title: string;
   summary: string;
   imageUrl: string | null;
@@ -14,7 +13,6 @@ export interface LandingEra {
   id: string;
   name: string;
   years: string;
-  region: string;
   subEras: string[];
   eventCount: number;
   figureCount: number;
@@ -31,17 +29,6 @@ export interface LandingTimelineNode {
   summary: string;
   figure: string | null;
   location: string | null;
-  region: string;
-  href: string;
-}
-
-export interface ParallelBand {
-  id: string;
-  name: string;
-  years: string;
-  region: string;
-  start: number;
-  end: number;
   href: string;
 }
 
@@ -87,15 +74,12 @@ export interface LandingStats {
   figures: number;
   locations: number;
   paths: number;
-  regions: number;
 }
 
 export interface LandingData {
-  regions: string[];
   spotlights: LandingSpotlight[];
   eras: LandingEra[];
   timeline: LandingTimelineNode[];
-  bands: ParallelBand[];
   figures: LandingFigure[];
   locations: LandingLocation[];
   courses: LandingCourse[];

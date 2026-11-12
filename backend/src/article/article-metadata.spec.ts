@@ -27,14 +27,13 @@ describe('normalizeArticleMetadata', () => {
         site: {
           latitude: '20.94',
           longitude: 106.8,
-          rank: '',
+          rank: 'UNESCO',
           siteType: 'BATTLEFIELD',
         },
         event: { cause: ' ', belligerents: ['Đại Việt', 'Nguyên'] },
       }),
     ).toEqual({
       aliases: ['Trần Quốc Tuấn'],
-      region: 'Việt Nam',
       person: {
         roles: ['GENERAL'],
         famousQuote: 'Bệ hạ chém đầu thần trước rồi hãy hàng',
@@ -76,9 +75,9 @@ describe('normalizeArticleMetadata', () => {
     expect(() =>
       normalizeArticleMetadata({ person: { roles: ['KING'] } }),
     ).toThrow(BadRequestException);
-    expect(() => normalizeArticleMetadata({ site: { rank: 'TOP' } })).toThrow(
-      BadRequestException,
-    );
+    expect(() =>
+      normalizeArticleMetadata({ site: { siteType: 'CASTLE' } }),
+    ).toThrow(BadRequestException);
     expect(() => normalizeArticleMetadata({ site: { latitude: 120 } })).toThrow(
       BadRequestException,
     );

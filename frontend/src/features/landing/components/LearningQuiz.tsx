@@ -8,6 +8,7 @@ import { useLessonProgress } from '@/features/public-curriculum/components/hub/u
 import { LANDING_ROUTES } from '../landing.adapter';
 import type { LandingCourse, LandingQuiz } from '../landing.types';
 import { HlBadge, HlButton, HlProgress, SectionHead, cn } from './LandingUi';
+import { RemoteImage } from '@/components/common/RemoteImage';
 
 export enum QuizOptionState {
   CORRECT = 'correct',
@@ -22,7 +23,7 @@ function CourseCard({ course }: { course: LandingCourse }) {
   const percent = course.lessons.length ? Math.round((done / course.lessons.length) * 100) : 0;
   return (
     <article className="hl-course-card">
-      <img src={course.imageUrl} alt="" />
+      <RemoteImage src={course.imageUrl} alt="" />
       <div className="hl-course-body">
         <HlBadge>{course.kind}</HlBadge>
         <h3>{course.title}</h3>

@@ -1,12 +1,11 @@
 import { formatYear, shortPeriodName } from '@/features/landing/landing.adapter';
-import { regionLabel } from '@/utils/region.utils';
 import type {
   PublicEventSummaryDto,
   PublicPeriodDetailDto,
   PublicPeriodDto,
 } from '@/services/entities/landing.service';
 
-export { formatYear, regionLabel, shortPeriodName };
+export { formatYear, shortPeriodName };
 
 export const PERIOD_ROUTES = {
   PERIOD: (slug: string) => `/giai-doan/${slug}`,
@@ -54,14 +53,10 @@ export function groupEventsByStage(period: PublicPeriodDetailDto, events: Public
   return groups.filter((g) => g.events.length);
 }
 
-/** Thời kỳ liền trước / liền sau cùng cấp (cùng thời kỳ cha, hoặc cùng khu vực nếu là thời kỳ gốc). */
+/** Thời kỳ liền trước / liền sau cùng cấp (cùng thời kỳ cha, hoặc cùng là thời kỳ gốc). */
 export function siblingPeriods(period: PublicPeriodDto, all: PublicPeriodDto[]) {
   const siblings = all
-    .filter((p) =>
-      period.parentId
-        ? p.parentId === period.parentId
-        : !p.parentId && regionLabel(p.region) === regionLabel(period.region),
-    )
+    .filter((p) => (period.parentId ? p.parentId === period.parentId : !p.parentId))
     .sort((a, b) => (a.startYear ?? 0) - (b.startYear ?? 0));
   const i = siblings.findIndex((p) => p.id === period.id);
   return { prev: i > 0 ? siblings[i - 1] : null, next: i >= 0 && i < siblings.length - 1 ? siblings[i + 1] : null };

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { BookOpen, Feather, Landmark, Link2, MapPin, Sparkles, Users } from "lucide-react";
-import { Heading } from "@/components/timeline/sk-ui";
+import { Heading } from "@/components/timeline/SkUi";
 import { PUBLIC_ROUTE_PREFIX } from "@/services/entities/landing.service";
 import type { FigureView } from "./figure-utils";
 

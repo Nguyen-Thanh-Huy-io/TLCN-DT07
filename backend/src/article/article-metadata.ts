@@ -4,7 +4,7 @@ import { BadRequestException } from '@nestjs/common';
  * Hồ sơ mô tả TÙY CHỌN của bài viết (`Article.metadata`, JSONB + index GIN).
  *
  *   {
- *     aliases?, region?, sources?,          ← CHUNG mọi loại bài (aliases đưa vào tìm kiếm)
+ *     aliases?, sources?,                   ← CHUNG mọi loại bài (aliases đưa vào tìm kiếm)
  *     person?: {...},                         ← bài chuyên mục Nhân vật
  *     site?:   {...},                         ← bài chuyên mục Di tích
  *     event?:  {...},                         ← bài chuyên mục Sự kiện
@@ -15,10 +15,8 @@ import { BadRequestException } from '@nestjs/common';
  * xem bảng ArticleLink.
  *
  * Vài trường là MÃ CỐ ĐỊNH vì giao diện lọc / đổi nhãn theo mã — danh sách khớp frontend:
- *   roles          ↔ frontend constants/enums.ts CANONICAL_ROLE_LABELS
- *   site.siteType  ↔ constants/enums.ts LocationType
- *   site.rank      ↔ features/heritage/heritage.types.ts HeritageRank
- *   site.preservation ↔ heritage.types.ts PreservationCategory
+ *   site.siteType  ↔ nhãn loại di tích trong features/articles/components/ArticleProfilePanel.tsx
+ *   site.preservation ↔ features/heritage/heritage.types.ts PreservationCategory
  */
 
 export const PERSON_ROLE_CODES = [
@@ -54,13 +52,6 @@ export const SITE_TYPE_CODES = [
   'ARCHAEOLOGICAL_SITE',
   'MONUMENT',
   'OTHER',
-] as const;
-export const SITE_RANK_CODES = [
-  'UNESCO',
-  'INTERNATIONAL',
-  'SPECIAL_NATIONAL',
-  'NATIONAL',
-  'PROVINCIAL',
 ] as const;
 export const SITE_PRESERVATION_CODES = [
   'INTACT',
@@ -99,7 +90,6 @@ export interface SiteProfile {
   latitude?: number;
   longitude?: number;
   siteType?: string;
-  rank?: string;
   recognizedYear?: string;
   preservation?: string;
   statusNote?: string;
@@ -117,7 +107,6 @@ export interface EventProfile {
 
 export interface ArticleMetadata {
   aliases?: string[];
-  region?: string;
   sources?: string[];
   person?: PersonProfile;
   site?: SiteProfile;
@@ -233,7 +222,6 @@ export function normalizeArticleMetadata(raw: unknown): ArticleMetadata | null {
 
   const meta = compact<ArticleMetadata>({
     aliases: textList(raw.aliases),
-    region: text(raw.region),
     sources: textList(raw.sources),
     person: p
       ? compact<PersonProfile>({
@@ -257,7 +245,6 @@ export function normalizeArticleMetadata(raw: unknown): ArticleMetadata | null {
           latitude: coordinate(s.latitude, 90, 'latitude'),
           longitude: coordinate(s.longitude, 180, 'longitude'),
           siteType: code(SITE_TYPE_CODES, s.siteType, 'site.siteType'),
-          rank: code(SITE_RANK_CODES, s.rank, 'site.rank'),
           recognizedYear: text(s.recognizedYear),
           preservation: code(
             SITE_PRESERVATION_CODES,

@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Check, History, Shield, Sparkles } from "lucide-react";
-import { Badge, Heading } from "@/components/timeline/sk-ui";
+import { Badge, Heading } from "@/components/timeline/SkUi";
 import { eventCategoryLabel, eventRoleLabel } from "@/features/taxonomy/taxonomy-labels";
 import { usePublicTaxonomyTerms } from "@/features/taxonomy/usePublicTaxonomy";
 import { PUBLIC_ROUTE_PREFIX, type PublicPeriodDto } from "@/services/entities/landing.service";
-import { TaxonomyGroupCode } from "@/constants/enums";
 import { periodTitle, type FigureView } from "./figure-utils";
 
 function dateLabel(startYear: number, note: string | null) {
@@ -16,8 +15,8 @@ function dateLabel(startYear: number, note: string | null) {
 }
 
 export function LifeTimeline({ figure, periods }: { figure: FigureView; periods: PublicPeriodDto[] }) {
-  const categoryTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.EVENT_TYPE);
-  const roleTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.ROLE_TYPE);
+  const categoryTerms = usePublicTaxonomyTerms('EVENT_TYPE');
+  const roleTerms = usePublicTaxonomyTerms('ROLE_TYPE');
   return (
     <div className="sk-life-timeline">
       <div className="sk-profile-section-heading">

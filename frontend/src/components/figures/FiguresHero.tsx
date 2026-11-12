@@ -1,5 +1,5 @@
 import { Landmark, Network, Users } from "lucide-react";
-import { Heading } from "@/components/timeline/sk-ui";
+import { Heading } from "@/components/timeline/SkUi";
 import { FigurePortrait } from "./FigurePortrait";
 import type { FigureView } from "./figure-utils";
 

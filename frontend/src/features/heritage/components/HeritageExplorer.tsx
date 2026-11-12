@@ -12,9 +12,6 @@ import type {
   PublicPeriodDto,
 } from '@/services/entities/landing.service';
 import { toHeritageSummaries } from '../heritage.adapter';
-import type { HeritageRank as HeritageRankType } from '../heritage.types';
-import { HeritageRank } from '@/constants/enums';
-import { EMPTY_HERITAGE_FILTERS, HeritageFilterBar, matchesHeritage, type HeritageFilters } from './HeritageFilterBar';
 import { FeaturedHeritageHero, HeritageCard } from './HeritageCards';
 import { Button, Select, cn } from '../ui';
 import '@/components/timeline/sk-timeline.css';
@@ -28,17 +25,8 @@ export enum AppThemeMode {
 const THEME_KEY = 'hisgo:heritage:theme';
 const LIST_PATH = '/di-tich';
 
-const RANK_ORDER: HeritageRankType[] = [
-  HeritageRank.UNESCO,
-  HeritageRank.INTERNATIONAL,
-  HeritageRank.SPECIAL_NATIONAL,
-  HeritageRank.NATIONAL,
-  HeritageRank.PROVINCIAL,
-  HeritageRank.UNRANKED,
-];
-
 /**
- * Trang danh mục Di tích (/di-tich): tâm điểm + bộ lọc + lưới di tích. Mở 1 di tích điều hướng
+ * Trang danh mục Di tích (/di-tich): tâm điểm + lưới di tích. Mở 1 di tích điều hướng
  * sang trang đọc đầy đủ dùng chung (/di-tich/[slug] → EntityHero + EntityReader, như
  * /thuc-the, /su-kien, /nhan-vat) thay vì mở khung chi tiết tại chỗ.
  */
@@ -53,19 +41,15 @@ export function HeritageExplorer({
 }) {
   const router = useRouter();
   const summaries = useMemo(
-    () =>
-      toHeritageSummaries(sites, events, periods).sort(
-        (a, b) => RANK_ORDER.indexOf(a.rank) - RANK_ORDER.indexOf(b.rank) || (b.eventCount ?? 0) - (a.eventCount ?? 0),
-      ),
+    () => toHeritageSummaries(sites, events, periods).sort((a, b) => (b.eventCount ?? 0) - (a.eventCount ?? 0)),
     [sites, events, periods],
   );
-  const [filters, setFilters] = useState<HeritageFilters>(EMPTY_HERITAGE_FILTERS);
   const [dark, setDark] = useState(false);
 
   // Nhớ chế độ sáng / tối trên trình duyệt này (đọc sau khi mount để SSR khớp).
   useEffect(() => {
     try {
-      if (localStorage.getItem(THEME_KEY) === AppThemeMode.DARK) setDark(true);
+      if (localStorage.getItem(THEME_KEY) === AppThemeMode.DARK) void Promise.resolve().then(() => setDark(true));
     } catch {
       // Không dùng được storage → giữ chế độ sáng.
     }
@@ -82,13 +66,7 @@ export function HeritageExplorer({
 
   const openDetail = (slug: string) => router.push(`${LIST_PATH}/${slug}`);
 
-  const visible = useMemo(() => summaries.filter((h) => matchesHeritage(h, filters)), [summaries, filters]);
-  const featured =
-    summaries.find(
-      (h) =>
-        h.coverImageUrl &&
-        (h.rank === HeritageRank.UNESCO || h.rank === HeritageRank.SPECIAL_NATIONAL),
-    ) ?? summaries[0];
+  const featured = summaries.find((h) => h.coverImageUrl) ?? summaries[0];
 
   return (
     <div className={cn('hx-app', dark && 'hx-dark')}>
@@ -120,12 +98,10 @@ export function HeritageExplorer({
 
         {featured && <FeaturedHeritageHero heritage={featured} onExplore={() => openDetail(featured.slug)} />}
 
-        <HeritageFilterBar filters={filters} onChange={setFilters} heritages={summaries} periods={periods} resultCount={visible.length} />
-
-        {visible.length ? (
+        {summaries.length ? (
           <motion.div layout className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence mode="popLayout">
-              {visible.map((h) => (
+              {summaries.map((h) => (
                 <HeritageCard key={h.id} heritage={h} onOpen={() => openDetail(h.slug)} />
               ))}
             </AnimatePresence>
@@ -133,12 +109,7 @@ export function HeritageExplorer({
         ) : (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[var(--hx-line)] py-16 text-center text-[var(--hx-muted)]">
             <SearchX className="size-8" />
-            <p>{summaries.length ? 'Không có di tích nào khớp bộ lọc.' : 'Chưa có di tích nào được xuất bản.'}</p>
-            {summaries.length > 0 && (
-              <Button variant="outline" onClick={() => setFilters(EMPTY_HERITAGE_FILTERS)}>
-                Đặt lại bộ lọc
-              </Button>
-            )}
+            <p>Chưa có di tích nào được xuất bản.</p>
           </div>
         )}
       </main>

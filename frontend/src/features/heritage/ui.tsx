@@ -12,6 +12,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Castle, Landmark, Mountain, Tent, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { RemoteImage } from '@/components/common/RemoteImage';
 
 export const cn = (...inputs: Parameters<typeof clsx>) => twMerge(clsx(inputs));
 
@@ -257,5 +258,5 @@ export function HeritageImage({
       </div>
     );
   }
-  return <img src={src} alt={alt} className={cn('object-cover', className)} onError={() => setBroken(true)} />;
+  return <RemoteImage src={src} alt={alt} className={cn('object-cover', className)} onError={() => setBroken(true)} />;
 }

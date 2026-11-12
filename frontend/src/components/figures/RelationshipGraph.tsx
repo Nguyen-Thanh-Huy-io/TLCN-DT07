@@ -5,7 +5,7 @@ import { usePublicTaxonomyTerms } from "@/features/taxonomy/usePublicTaxonomy";
 import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Compass, Network } from "lucide-react";
-import { Button, Heading } from "@/components/timeline/sk-ui";
+import { Button, Heading } from "@/components/timeline/SkUi";
 import { FigurePortrait } from "./FigurePortrait";
 import {
   RELATION_CATEGORY_LABELS,

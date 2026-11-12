@@ -1,41 +1,24 @@
-import { LocationType, MediaType } from '@/constants/enums';
 import { formatYear, shortPeriodName } from '@/features/search/search-index';
 import type {
   PublicEventSummaryDto,
-  PublicLocationDetailDto,
   PublicLocationSummaryDto,
   PublicPeriodDto,
 } from '@/services/entities/landing.service';
 import {
   PRESERVATION_LABELS,
-  type DigitalFeature,
   type HeritageCategory,
-  type HeritageRank,
   type HistoricalHeritage,
   type PreservationCategory,
 } from './heritage.types';
-import { regionLabel } from '@/utils/region.utils';
 
 /** Loại di tích chi tiết của hệ thống → nhóm loại hình hiển thị. */
 const CATEGORY_BY_SITE_TYPE: Record<string, HeritageCategory> = {
-  [LocationType.ANCIENT_CAPITAL]: 'CITADEL_PALACE',
-  [LocationType.CITADEL]: 'CITADEL_PALACE',
-  [LocationType.PALACE]: 'CITADEL_PALACE',
-  [LocationType.TEMPLE]: 'TEMPLE_SHRINE',
-  [LocationType.RESISTANCE_BASE]: 'REVOLUTIONARY_BASE',
+  ANCIENT_CAPITAL: 'CITADEL_PALACE',
+  CITADEL: 'CITADEL_PALACE',
+  PALACE: 'CITADEL_PALACE',
+  TEMPLE: 'TEMPLE_SHRINE',
+  RESISTANCE_BASE: 'REVOLUTIONARY_BASE',
 };
-
-/** Xếp hạng lưu dạng chữ tự do ("Di tích Quốc gia đặc biệt", "UNESCO"...) → mã. */
-function rankOf(level: string | null | undefined): HeritageRank {
-  const t = (level ?? '').toLocaleLowerCase('vi');
-  if (!t) return 'UNRANKED';
-  if (t.includes('unesco') || t.includes('thế giới')) return 'UNESCO';
-  if (t.includes('quốc tế')) return 'INTERNATIONAL';
-  if (t.includes('đặc biệt')) return 'SPECIAL_NATIONAL';
-  if (t.includes('quốc gia')) return 'NATIONAL';
-  if (t.includes('tỉnh') || t.includes('thành phố')) return 'PROVINCIAL';
-  return 'UNRANKED';
-}
 
 /** Địa phương = phần cuối của địa chỉ (tỉnh / thành / vùng), bỏ tiền tố hành chính kiểu Việt Nam nếu có. */
 function provinceOf(address: string | null): string {
@@ -56,7 +39,7 @@ function periodHelpers(periods: PublicPeriodDto[]) {
   return { bySlug, rootOf };
 }
 
-/** Thông tin tóm tắt cho thẻ / bộ lọc (chưa có sự kiện, hạng mục, biên niên). */
+/** Thông tin tóm tắt cho thẻ di tích (chưa có sự kiện, hạng mục, biên niên). */
 export function toHeritageSummaries(
   sites: PublicLocationSummaryDto[],
   events: PublicEventSummaryDto[],
@@ -68,32 +51,12 @@ export function toHeritageSummaries(
     const ownPeriod = site.periodSlug ? bySlug.get(site.periodSlug) : undefined;
     const eras = [...new Set(siteEvents.map((e) => rootOf(e.periodSlug)).filter(Boolean).map((p) => shortPeriodName(p!.name)))];
     const firstEvent = [...siteEvents].sort((a, b) => a.startYear - b.startYear)[0];
-    // Thời kỳ gốc + giai đoạn con của di tích và của các sự kiện tại đó (dùng cho bộ lọc Thời kỳ → Triều đại).
-    const periodSlugs = [site.periodSlug, ...siteEvents.map((e) => e.periodSlug)].filter((s): s is string => Boolean(s));
-    const eraIds = [...new Set(periodSlugs.map((s) => rootOf(s)?.id).filter((v): v is string => Boolean(v)))];
-    const subEraIds = [
-      ...new Set(periodSlugs.map((s) => bySlug.get(s)).filter((p) => p?.parentId).map((p) => p!.id)),
-    ];
-    const figures = new Map<string, string>();
-    for (const e of siteEvents) for (const f of e.figures) figures.set(f.id, f.name);
-    const d = site.digital;
-    const digital: DigitalFeature[] = [
-      ...(d?.hasImage || site.imageUrl ? (['HAS_IMAGE'] as const) : []),
-      ...(d && d.galleryCount > 0 ? (['HAS_GALLERY'] as const) : []),
-      ...(d?.hasThenAndNow ? (['HAS_THEN_NOW'] as const) : []),
-      ...(d?.hasChronicle ? (['HAS_CHRONICLE'] as const) : []),
-      ...(d?.hasStructures ? (['HAS_STRUCTURES'] as const) : []),
-    ];
     return {
       id: site.id,
       slug: site.slug,
       name: site.name,
       ancientNames: site.ancientNames ?? [],
       province: provinceOf(site.address),
-      // Khu vực: theo thời kỳ gắn với di tích, không có thì theo thời kỳ của các sự kiện diễn ra tại đó.
-      region: regionLabel((ownPeriod ? rootOf(ownPeriod.slug) : undefined)?.region ?? siteEvents.map((e) => rootOf(e.periodSlug)).find(Boolean)?.region ?? null),
-      // Mã xếp hạng từ danh mục dùng chung; dữ liệu cũ chưa quy đổi thì đoán từ chữ.
-      rank: ((site.rankCode as HeritageRank | null | undefined) ?? rankOf(site.recognitionLevel)) || 'UNRANKED',
       category: CATEGORY_BY_SITE_TYPE[site.siteType ?? ''] ?? 'MEMORIAL_STELE',
       recognizedYear: '',
       // Thời kỳ khởi dựng: niên đại xây dựng nếu có, rồi thời kỳ gắn với di tích, rồi sự kiện sớm nhất.
@@ -111,14 +74,6 @@ export function toHeritageSummaries(
       linkedFigures: [],
       siteTypeLabel: site.siteTypeLabel,
       siteType: site.siteType,
-      facets: {
-        eraIds,
-        subEraIds,
-        figures: [...figures].map(([id, name]) => ({ id, name })),
-        events: siteEvents.map((e) => ({ id: e.id, title: e.title })),
-        preservation: (site.preservationCategory as PreservationCategory | null) ?? null,
-        digital,
-      },
       eventCount: siteEvents.length,
       detailLoaded: false,
       managingUnit: site.managingUnit ?? null,

@@ -4,10 +4,10 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, LayoutGrid, List, MapPin, Users, X } from 'lucide-react';
 import type { PublicPeriodDetailDto } from '@/services/entities/landing.service';
-import { TaxonomyGroupCode } from '@/constants/enums';
 import { PERIOD_ROUTES, eventYearLabel, groupEventsByStage } from '../period-detail.adapter';
 import { categoryKeyLabel, eventCategoryKey, eventCategoryLabel } from '@/features/taxonomy/taxonomy-labels';
 import { usePublicTaxonomyTerms } from '@/features/taxonomy/usePublicTaxonomy';
+import { RemoteImage } from '@/components/common/RemoteImage';
 
 export enum EventStreamViewMode {
   LIST = 'list',
@@ -17,7 +17,7 @@ export enum EventStreamViewMode {
 /** Dòng sự kiện của thời kỳ, chia theo giai đoạn, lọc nhiều danh mục cùng lúc. */
 export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
   // Loại chính theo "Danh mục dùng chung" (Truyền thuyết, Tôn giáo...), chưa tải xong thì nhãn enum cũ.
-  const categoryTerms = usePublicTaxonomyTerms(TaxonomyGroupCode.EVENT_TYPE);
+  const categoryTerms = usePublicTaxonomyTerms('EVENT_TYPE');
   const categoryLabel = (key: string) => categoryKeyLabel(categoryTerms, key);
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
@@ -120,7 +120,7 @@ export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
                 <li key={e.id} id={`ev-${e.id}`} className="pd-event">
                   <div className="pd-event-year">{eventYearLabel(e)}</div>
                   <article>
-                    {e.imageUrl && <img src={e.imageUrl} alt="" />}
+                    {e.imageUrl && <RemoteImage src={e.imageUrl} alt="" />}
                     <div>
                       <span className="pd-tag">{eventCategoryLabel(categoryTerms, e)}</span>
                       <h4>{e.slug ? <Link href={PERIOD_ROUTES.EVENT(e.slug)}>{e.title}</Link> : e.title}</h4>

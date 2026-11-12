@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Compass, RotateCcw, Search, Users, X } from "lucide-react";
-import { Badge, Button, Heading } from "@/components/timeline/sk-ui";
+import { Badge, Button, Heading } from "@/components/timeline/SkUi";
 import { Pagination } from "@/components/common/Pagination";
 import type { PublicFigureProfileDto, PublicPeriodDto } from "@/services/entities/landing.service";
 import { FiguresHero } from "./FiguresHero";
@@ -14,15 +14,10 @@ import {
   FigureSort,
   type FilterOption,
 } from "./FiguresFilterBar";
-import { FiguresSidebar } from "./FiguresSidebar";
 import { FiguresGrid } from "./FigureCard";
 import { FigureProfileSheet, FigureProfileTab, type ProfileTab } from "./FigureProfileSheet";
 import { buildFigureViews, normalize, type FigureView } from "./figure-utils";
-import { figureRoles } from "./figure-roles";
-import { useFigureRoles } from "./useFigureRoles";
-import { useRegionOrder } from "@/features/taxonomy/usePublicTaxonomy";
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from "@/components/filters/ChipFilter";
-import { regionLabel, sortedRegions } from "@/utils/region.utils";
 import { TimelineRelationDirection } from "@/components/timeline/sk-types";
 
 const PROFILE_QUERY_KEY = "nv";
@@ -50,7 +45,7 @@ export function FiguresDirectory({
 
   // Reset về trang 1 khi lọc hoặc tìm kiếm
   useEffect(() => {
-    setCurrentPage(1);
+    queueMicrotask(() => setCurrentPage(1));
   }, [query, filters, sort]);
 
   // Keep the open profile in the URL so it can be shared. Done from event handlers only:
@@ -75,17 +70,6 @@ export function FiguresDirectory({
     return Array.from(seen, ([id, v]) => ({ id, ...v }));
   }, [figures]);
 
-  // Khu vực của nhân vật = khu vực của thời kỳ gốc chứa nhân vật.
-  const regionOfEra = useMemo(() => {
-    const byId = new Map(periods.map((p) => [p.id, regionLabel(p.region)]));
-    return (eraId: string | null) => (eraId ? byId.get(eraId) ?? null : null);
-  }, [periods]);
-  const regionOrder = useRegionOrder();
-  const regions = useMemo(
-    () => sortedRegions(figures.map((f) => regionOfEra(f.eraId)).filter((r): r is string => Boolean(r)), regionOrder),
-    [figures, regionOfEra, regionOrder],
-  );
-
   // Bỏ thời kỳ thì bỏ luôn các giai đoạn thuộc thời kỳ đó.
   const cleanSubs = useCallback(
     (f: FigureFilters): FigureFilters =>
@@ -96,26 +80,16 @@ export function FiguresDirectory({
 
   const matches = useCallback(
     (f: FigureView, fl: FigureFilters, needle: string) => {
-      if (fl.regions.length && !fl.regions.includes(regionOfEra(f.eraId) ?? "")) return false;
       if (fl.eras.length && !fl.eras.includes(f.eraId ?? "")) return false;
       // Giai đoạn chỉ thu hẹp thời kỳ chứa nó.
       const subsOfEra = fl.subs.filter((s) => subEras.find((x) => x.id === s)?.eraId === f.eraId);
       if (subsOfEra.length && !subsOfEra.includes(f.subEraSlug ?? "")) return false;
-      if (fl.roles.length && !fl.roles.some((r) => f.roles.includes(r))) return false;
       if (!needle) return true;
       const haystack = [f.name, ...f.aliases, f.occupation ?? "", ...f.titles, ...f.events.map((e) => e.title)].join(" ");
       return normalize(haystack).includes(needle);
     },
-    [regionOfEra, subEras],
+    [subEras],
   );
-
-  // Vai trò theo "Danh mục dùng chung" (thứ tự, nhãn do CMS quản lý).
-  const figureRoleTaxonomy = useFigureRoles();
-  const countByRole = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const f of figures) for (const r of figureRoles(f.roles)) counts.set(r, (counts.get(r) ?? 0) + 1);
-    return counts;
-  }, [figures]);
 
   const relationCount = useMemo(
     () => figures.reduce((n, f) => n + f.relationships.filter((r) => r.direction === TimelineRelationDirection.OUTGOING).length, 0),
@@ -151,10 +125,8 @@ export function FiguresDirectory({
 
   const eraTitle = (id: string) => eras.find((e) => e.id === id)?.title ?? "Thời kỳ";
   const chips = [
-    ...filters.regions.map((v) => ({ key: "regions" as const, value: v, label: v })),
     ...filters.eras.map((v) => ({ key: "eras" as const, value: v, label: eraTitle(v) })),
     ...filters.subs.map((v) => ({ key: "subs" as const, value: v, label: subEras.find((s) => s.id === v)?.title ?? "Giai đoạn" })),
-    ...filters.roles.map((v) => ({ key: "roles" as const, value: v, label: figureRoleTaxonomy.label(v) })),
   ];
   const open = useCallback(
     (figure: FigureView) => {
@@ -205,22 +177,9 @@ export function FiguresDirectory({
           {(draft, setDraft) => {
             const toggle = (key: keyof FigureFilters, v: string) =>
               setDraft((d) => cleanSubs({ ...d, [key]: toggleValue(d[key], v) }));
-            // Đã chọn khu vực thì chỉ gợi ý thời kỳ thuộc khu vực đó (thời kỳ đã chọn vẫn giữ).
-            const eraOptions = eras
-              .filter((e) => !draft.regions.length || draft.eras.includes(e.id) || draft.regions.includes(regionOfEra(e.id) ?? ""))
-              .map((e) => ({ value: e.id, label: e.title }));
+            const eraOptions = eras.map((e) => ({ value: e.id, label: e.title }));
             return (
               <>
-                {regions.length > 1 && (
-                  <FilterSection title="Quốc gia / khu vực" aside={<PickedCount count={draft.regions.length} />}>
-                    <ChipGroup
-                      options={regions.map((r) => ({ value: r, label: r }))}
-                      selected={draft.regions}
-                      onToggle={(v) => toggle("regions", v)}
-                      searchLabel="Tìm quốc gia / khu vực..."
-                    />
-                  </FilterSection>
-                )}
                 <FilterSection card title="Thời kỳ" aside={<PickedCount count={draft.eras.length + draft.subs.length} />}>
                   <ChipGroup options={eraOptions} selected={draft.eras} onToggle={(v) => toggle("eras", v)} searchLabel="Tìm thời kỳ..." />
                   {draft.eras.map((eraId) => {
@@ -239,31 +198,12 @@ export function FiguresDirectory({
                     );
                   })}
                 </FilterSection>
-                <FilterSection title="Vai trò" aside={<PickedCount count={draft.roles.length} />}>
-                  <ChipGroup
-                    options={figureRoleTaxonomy.options.filter((r) => countByRole.get(r.code)).map((r) => ({
-                      value: r.code,
-                      label: r.label,
-                      hint: `${countByRole.get(r.code)} nhân vật`,
-                    }))}
-                    selected={draft.roles}
-                    onToggle={(v) => toggle("roles", v)}
-                    searchLabel="Tìm vai trò..."
-                  />
-                </FilterSection>
               </>
             );
           }}
         </FilterDialog>
         <div className="sk-directory-body">
-          <FiguresSidebar
-            roles={filters.roles}
-            onToggleRole={(r) => setFilters({ ...filters, roles: toggleValue(filters.roles, r) })}
-            onClearRoles={() => setFilters({ ...filters, roles: [] })}
-            total={figures.length}
-            countByRole={countByRole}
-          />
-          <div className="sk-directory-results" id="sk-directory-anchor">
+          <div className="sk-directory-results w-full" id="sk-directory-anchor">
             <div className="sk-results-toolbar">
               <span>
                 Hiển thị <strong>{filtered.length}</strong> nhân vật

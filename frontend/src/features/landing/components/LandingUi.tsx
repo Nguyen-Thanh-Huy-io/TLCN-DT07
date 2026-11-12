@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { RemoteImage } from '@/components/common/RemoteImage';
 
 export const cn = (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' ');
 
@@ -96,7 +97,7 @@ export function Reveal({ children, className = '' }: { children: ReactNode; clas
 
 /** Ảnh có fallback: thiếu ảnh thì hiện nền chuyển sắc + chữ trang trí thay vì ảnh không liên quan. */
 export function HlCover({ src, alt, fallbackText }: { src: string | null; alt: string; fallbackText: string }) {
-  if (src) return <img src={src} alt={alt} />;
+  if (src) return <RemoteImage src={src} alt={alt} />;
   return (
     <div className="hl-cover-fallback" aria-hidden="true">
       <span>{fallbackText}</span>

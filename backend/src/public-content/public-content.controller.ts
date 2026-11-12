@@ -147,27 +147,6 @@ export class PublicContentController {
     return this.service.getLocationBySlug(slug);
   }
 
-  @Get('taxonomies')
-  @ApiOperation({
-    summary: 'Danh mục taxonomy legacy phục vụ giao diện công khai cũ',
-  })
-  @ApiQuery({
-    name: 'groups',
-    required: false,
-    description: 'Ví dụ: REGION,FIGURE_ROLE hoặc REGION',
-  })
-  getTaxonomies(@Query('groups') groups?: string | string[]) {
-    const values = Array.isArray(groups)
-      ? groups
-      : groups
-        ? groups
-            .split(',')
-            .map((g) => g.trim())
-            .filter(Boolean)
-        : [];
-    return this.service.getTaxonomies(values);
-  }
-
   @Get('tags')
   @ApiOperation({ summary: 'Tag có bài viết đã xuất bản' })
   getTags() {

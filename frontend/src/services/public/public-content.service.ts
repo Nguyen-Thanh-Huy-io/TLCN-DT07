@@ -64,7 +64,6 @@ export interface SiteProfileMeta {
   latitude?: number;
   longitude?: number;
   siteType?: string;
-  rank?: string;
   recognizedYear?: string;
   preservation?: string;
   statusNote?: string;
@@ -82,7 +81,6 @@ export interface EventProfileMeta {
 
 export interface ArticleMetadata {
   aliases?: string[];
-  region?: string;
   sources?: string[];
   person?: PersonProfileMeta;
   site?: SiteProfileMeta;

@@ -373,8 +373,6 @@ export class PublicContentService {
           typeof article.metadata === 'object' && article.metadata
             ? (article.metadata as Record<string, any>)
             : {};
-        const region =
-          typeof metadata.region === 'string' ? metadata.region : null;
         const person =
           typeof metadata.person === 'object' && metadata.person
             ? (metadata.person as Record<string, any>)
@@ -395,8 +393,7 @@ export class PublicContentService {
           summary: article.summary,
           imageUrl: article.coverImageUrl,
           coverImageUrl: article.coverImageUrl,
-          location: region,
-          region,
+          location: null,
           category: categoryName,
           categoryId: article.categoryId,
           periodSlug: timeline?.slug ?? null,
@@ -406,8 +403,6 @@ export class PublicContentService {
           role: person?.occupation ?? null,
           siteType: site?.siteType ?? null,
           siteTypeLabel: site?.siteType ?? null,
-          rankCode: site?.rank ?? null,
-          rankLabel: site?.rank ?? null,
           address: site?.address ?? null,
           geo:
             site?.latitude && site?.longitude
@@ -441,7 +436,6 @@ export class PublicContentService {
         endYear,
         description: timeline.description,
         coverImageUrl: timeline.coverImageUrl,
-        region: null,
       };
     });
   }
@@ -467,7 +461,6 @@ export class PublicContentService {
       endYear: years.length ? Math.max(...years) : null,
       description: timeline.description,
       coverImageUrl: timeline.coverImageUrl,
-      region: null,
       topics: [],
       figures: [],
       events: [],
@@ -567,59 +560,6 @@ export class PublicContentService {
     return this.getPublishedArticleListByKind('LOCATION').then(
       (items) => items.find((item) => item.slug === slug) ?? article,
     );
-  }
-
-  async getTaxonomies(groups: string[] = []) {
-    const requested = groups.length
-      ? groups
-      : ['REGION', 'FIGURE_ROLE', 'EVENT_TYPE'];
-    const categories = await this.prisma.category.findMany({
-      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
-      include: { parent: true },
-    });
-
-    const mapped = requested.map((groupCode) => {
-      const group = groupCode.toUpperCase();
-      const terms = categories
-        .filter((category) => {
-          const kind = this.resolveCategoryKind(
-            category,
-            new Map(categories.map((item) => [item.id, item])),
-          );
-          if (group === 'EVENT_TYPE')
-            return category.parentId !== null && kind === 'EVENT';
-          if (group === 'REGION')
-            return (
-              kind === 'LOCATION' ||
-              category.name.toLowerCase().includes('khu vực')
-            );
-          if (group === 'FIGURE_ROLE')
-            return (
-              kind === 'PERSON' ||
-              category.name.toLowerCase().includes('vai trò')
-            );
-          return false;
-        })
-        .map((category) => ({
-          id: category.id,
-          groupCode: group,
-          code: category.slug,
-          label: category.name,
-          inverseLabel: null,
-          description: category.description,
-          icon: category.icon,
-          displayOrder: category.displayOrder,
-          aliases: [],
-          parentId: category.parentId,
-          meta: null,
-          isActive: true,
-        }));
-
-      return { groupCode: group, terms };
-    });
-
-    if (requested.length === 1) return mapped[0]?.terms ?? [];
-    return mapped;
   }
 
   async getTags() {

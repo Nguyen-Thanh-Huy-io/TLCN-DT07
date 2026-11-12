@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { TaxonomyTermItem } from '@/services/public/public-taxonomy';
 import { loadPublicTaxonomy } from './taxonomy-tree';
-import { regionOrderFromTerms } from '@/utils/region.utils';
 
 /** Giá trị đang dùng của một nhóm danh mục công khai; rỗng trong lúc tải hoặc khi lỗi. */
 export function usePublicTaxonomyTerms(groupCode: string): TaxonomyTermItem[] {
@@ -20,8 +19,3 @@ export function usePublicTaxonomyTerms(groupCode: string): TaxonomyTermItem[] {
   return terms;
 }
 
-/** Thứ tự khu vực theo danh mục REGION (dùng cho sortedRegions); chưa tải xong thì thứ tự mặc định. */
-export function useRegionOrder(): readonly string[] {
-  const terms = usePublicTaxonomyTerms('REGION');
-  return useMemo(() => regionOrderFromTerms(terms), [terms]);
-}

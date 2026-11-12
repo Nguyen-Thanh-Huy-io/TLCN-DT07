@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, CalendarRange, ChevronDown, Compass, Globe2, Landmark, Layers, MapPin, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarRange, ChevronDown, Compass, Landmark, Layers, MapPin, Users } from 'lucide-react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import type { PublicPeriodDetailDto, PublicPeriodDto } from '@/services/entities/landing.service';
-import { PERIOD_ROUTES, formatYear, regionLabel, shortPeriodName } from '../period-detail.adapter';
+import { PERIOD_ROUTES, formatYear, shortPeriodName } from '../period-detail.adapter';
 import { TimeRuler } from './TimeRuler';
 import { EventStream } from './EventStream';
 import '../period-detail.css';
+import { RemoteImage } from '@/components/common/RemoteImage';
 
 export enum PeriodSectionId {
   OVERVIEW = 'tong-quan',
@@ -70,7 +71,6 @@ export function PeriodDetailView({
   period: PublicPeriodDetailDto;
   siblings: { prev: PublicPeriodDto | null; next: PublicPeriodDto | null };
 }) {
-  const region = regionLabel(period.region ?? period.parent?.region ?? null);
   const sections = [
     { id: PeriodSectionId.OVERVIEW, label: 'Tổng quan', show: true },
     { id: PeriodSectionId.STAGES, label: `Giai đoạn (${period.children.length})`, show: period.children.length > 0 },
@@ -79,7 +79,7 @@ export function PeriodDetailView({
     { id: PeriodSectionId.LOCATIONS, label: `Địa danh (${period.locations.length})`, show: period.locations.length > 0 },
     {
       id: PeriodSectionId.CONCURRENT,
-      label: 'Cùng thời ở nơi khác',
+      label: 'Cùng thời',
       show: period.concurrentPeriods.length + period.concurrentEvents.length > 0,
     },
   ].filter((s) => s.show);
@@ -101,7 +101,7 @@ export function PeriodDetailView({
       <Header activeTab="timeline" />
       <main>
         <section className="pd-hero">
-          {period.coverImageUrl && <img src={period.coverImageUrl} alt="" className="pd-hero-img" />}
+          {period.coverImageUrl && <RemoteImage src={period.coverImageUrl} alt="" className="pd-hero-img" />}
           <div className="pd-hero-shade" />
           <div className="pd-container pd-hero-inner">
             <nav className="pd-crumbs" aria-label="Đường dẫn">
@@ -116,9 +116,6 @@ export function PeriodDetailView({
               )}
             </nav>
             <div className="pd-hero-badges">
-              <span>
-                <Globe2 size={14} /> {region}
-              </span>
               <span>{period.parent ? 'Giai đoạn' : 'Thời kỳ'}</span>
             </div>
             <h1>{shortPeriodName(period.name)}</h1>
@@ -227,7 +224,6 @@ export function PeriodDetailView({
                       <h3>{shortPeriodName(c.name)}</h3>
                       <span className="pd-stage-years">
                         {c.timeLabel}
-                        {regionLabel(c.region) !== region && ` · ${regionLabel(c.region)}`}
                       </span>
                       {c.description && <p>{c.description}</p>}
                       <div className="pd-stage-foot">
@@ -264,7 +260,7 @@ export function PeriodDetailView({
               <div className="pd-figures">
                 {period.figures.map((f) => (
                   <Link key={f.id} href={PERIOD_ROUTES.FIGURE(f.slug)} className="pd-figure">
-                    {f.imageUrl ? <img src={f.imageUrl} alt="" /> : <span className="pd-initials">{initials(f.name)}</span>}
+                    {f.imageUrl ? <RemoteImage src={f.imageUrl} alt="" /> : <span className="pd-initials">{initials(f.name)}</span>}
                     <div>
                       <strong>{f.name}</strong>
                       {lifeSpan(f.birthYear, f.deathYear) && <small>{lifeSpan(f.birthYear, f.deathYear)}</small>}
@@ -307,8 +303,8 @@ export function PeriodDetailView({
             <section id={PeriodSectionId.CONCURRENT} className="pd-section">
               <SectionHead
                 id={PeriodSectionId.CONCURRENT}
-                title={`Bối cảnh thế giới cùng thời kỳ (${period.timeLabel})`}
-                subtitle="Đối sánh các diễn biến lịch sử diễn ra đồng thời ở các khu vực khác"
+                title={`Cùng thời kỳ (${period.timeLabel})`}
+                subtitle="Các thời kỳ và diễn biến khác nằm trong cùng khoảng thời gian"
               />
               <div className="pd-concurrent">
                 {period.concurrentPeriods.length > 0 && (
@@ -316,7 +312,6 @@ export function PeriodDetailView({
                     <h3>Thời kỳ song song</h3>
                     {period.concurrentPeriods.map((p) => (
                       <Link key={p.id} href={PERIOD_ROUTES.PERIOD(p.slug)} className="pd-concurrent-period">
-                        <span>{regionLabel(p.region)}</span>
                         <strong>{shortPeriodName(p.name)}</strong>
                         <small>{p.timeLabel}</small>
                       </Link>

@@ -1,6 +1,28 @@
-import { EVENT_CATEGORY_LABELS, EVENT_ENTITY_ROLE_LABELS } from '@/constants/enums';
 import type { TaxonomyTermItem } from '@/services/public/public-taxonomy';
 import { TimelineRelationDirection } from '@/components/timeline/sk-types';
+
+const DEFAULT_EVENT_CATEGORY_LABELS: Record<string, string> = {
+  BATTLE: 'Trận đánh',
+  WAR: 'Chiến tranh',
+  TREATY: 'Hiệp ước',
+  REVOLUTION: 'Cách mạng',
+  POLITICAL_EVENT: 'Biến cố chính trị',
+  SUMMIT_CONFERENCE: 'Hội nghị',
+  CULTURE_SCIENCE: 'Văn hóa và khoa học',
+  NATURAL_DISASTER: 'Thiên tai dịch bệnh',
+  OTHER: 'Khác',
+};
+
+const DEFAULT_EVENT_ENTITY_ROLE_LABELS: Record<string, string> = {
+  COMMANDER: 'Chỉ huy',
+  PARTICIPANT: 'Tham gia',
+  BELLIGERENT: 'Bên tham chiến',
+  SIGNATORY: 'Đại diện ký kết',
+  LOCATION: 'Địa điểm diễn ra',
+  LEADER: 'Lãnh đạo',
+  INITIATOR: 'Khởi xướng',
+  ARTIFACT_USED: 'Hiện vật liên quan',
+};
 
 /**
  * Nhãn hiển thị lấy từ "Danh mục dùng chung"; chưa có danh mục (tải lỗi / dữ liệu cũ) thì rơi về
@@ -22,7 +44,7 @@ export function eventCategoryLabel(terms: TaxonomyTermItem[], event: EventCatego
   const term = primaryCategoryTerm(terms, event);
   if (term) return term.label;
   const code = event.category ?? '';
-  return terms.find((t) => t.code === code)?.label ?? EVENT_CATEGORY_LABELS[code] ?? code;
+  return terms.find((t) => t.code === code)?.label ?? DEFAULT_EVENT_CATEGORY_LABELS[code] ?? code;
 }
 
 /** Khóa để gom / lọc theo loại chính: id trong danh mục, không có thì mã enum cũ. */
@@ -30,7 +52,7 @@ export const eventCategoryKey = (event: EventCategoryRef) => event.categoryIds?.
 
 /** Nhãn của khóa do eventCategoryKey trả về. */
 export const categoryKeyLabel = (terms: TaxonomyTermItem[], key: string) =>
-  terms.find((t) => t.id === key || t.code === key)?.label ?? EVENT_CATEGORY_LABELS[key] ?? key;
+  terms.find((t) => t.id === key || t.code === key)?.label ?? DEFAULT_EVENT_CATEGORY_LABELS[key] ?? key;
 
 /** Mã nút gốc của loại chính (vd. SOCIETY_CULTURE) — dùng để chia nhóm lớn như chính trị / văn hóa. */
 export function eventCategoryRootCode(terms: TaxonomyTermItem[], event: EventCategoryRef): string | undefined {
@@ -75,5 +97,5 @@ export function relationOptions(
 
 export function eventRoleLabel(terms: TaxonomyTermItem[], code: string | null | undefined): string {
   if (!code) return '';
-  return terms.find((t) => t.code === code)?.label ?? EVENT_ENTITY_ROLE_LABELS[code] ?? code;
+  return terms.find((t) => t.code === code)?.label ?? DEFAULT_EVENT_ENTITY_ROLE_LABELS[code] ?? code;
 }

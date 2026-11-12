@@ -14,7 +14,6 @@ describe('PublicContentController', () => {
     getFigureBySlug: jest.fn(),
     getLocations: jest.fn(),
     getLocationBySlug: jest.fn(),
-    getTaxonomies: jest.fn(),
     getCategories: jest.fn(),
     getCategoryBySlug: jest.fn(),
     getArticles: jest.fn(),
@@ -47,7 +46,6 @@ describe('PublicContentController', () => {
     await controller.getFigureBySlug('ho-chi-minh');
     await controller.getLocations();
     await controller.getLocationBySlug('dien-bien-phu');
-    await controller.getTaxonomies(['REGION', 'FIGURE_ROLE']);
 
     expect(service.getPeriods).toHaveBeenCalledTimes(1);
     expect(service.getPeriodBySlug).toHaveBeenCalledWith('nam-qua');
@@ -57,9 +55,5 @@ describe('PublicContentController', () => {
     expect(service.getFigureBySlug).toHaveBeenCalledWith('ho-chi-minh');
     expect(service.getLocations).toHaveBeenCalledTimes(1);
     expect(service.getLocationBySlug).toHaveBeenCalledWith('dien-bien-phu');
-    expect(service.getTaxonomies).toHaveBeenCalledWith([
-      'REGION',
-      'FIGURE_ROLE',
-    ]);
   });
 });

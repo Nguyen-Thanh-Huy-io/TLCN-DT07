@@ -1,15 +1,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Award, CalendarDays, Compass, Landmark, MapPin } from 'lucide-react';
-import { HeritageRank, SubStructureType } from '@/constants/enums';
-import { CATEGORY_LABELS, RANK_LABELS, RANK_SHORT_LABELS, type HistoricalHeritage } from '../heritage.types';
+import { CalendarDays, Compass, Landmark, MapPin } from 'lucide-react';
+import { SubStructureType } from '@/constants/enums';
+import { CATEGORY_LABELS, type HistoricalHeritage } from '../heritage.types';
 import { Badge, Button, HeritageImage } from '../ui';
 
-const isGoldRank = (h: HistoricalHeritage) =>
-  h.rank === HeritageRank.UNESCO || h.rank === HeritageRank.SPECIAL_NATIONAL;
-
-/** Khung tâm điểm: 1 di sản UNESCO / Quốc gia Đặc biệt ở đầu trang. */
+/** Khung tâm điểm: 1 di tích nổi bật ở đầu trang. */
 export function FeaturedHeritageHero({ heritage, onExplore }: { heritage: HistoricalHeritage; onExplore: () => void }) {
   return (
     <section className="relative overflow-hidden rounded-3xl">
@@ -25,10 +22,6 @@ export function FeaturedHeritageHero({ heritage, onExplore }: { heritage: Histor
       <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/10" />
       <div className="relative flex min-h-[420px] max-w-2xl flex-col justify-end gap-4 p-6 text-white sm:p-10">
         <div className="flex flex-wrap gap-2">
-          <Badge tone="gold">
-            <Award className="size-3.5" /> {RANK_LABELS[heritage.rank]}
-            {heritage.recognizedYear && ` · ${heritage.recognizedYear}`}
-          </Badge>
           <Badge tone="dark">
             <MapPin className="size-3.5" /> {heritage.province}
           </Badge>
@@ -74,9 +67,6 @@ export function HeritageCard({ heritage, onOpen }: { heritage: HistoricalHeritag
           className="h-full w-full transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-        <Badge tone={isGoldRank(heritage) ? 'gold' : 'dark'} className="absolute left-3 top-3">
-          <Award className="size-3" /> {RANK_SHORT_LABELS[heritage.rank]}
-        </Badge>
         <Badge tone="dark" className="absolute right-3 top-3">
           <MapPin className="size-3" /> {heritage.province}
         </Badge>

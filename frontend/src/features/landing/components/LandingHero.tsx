@@ -3,20 +3,18 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, ChevronLeft, ChevronRight, Compass, Globe2, Play, Search, Sparkles } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Compass, Play, Search, Sparkles } from 'lucide-react';
 import { LANDING_ROUTES } from '../landing.adapter';
 import type { LandingSpotlight, LandingStats } from '../landing.types';
 import { HlBadge, HlButton, HlCover } from './LandingUi';
 
 export function LandingHero({
   spotlights,
-  regions,
   stats,
   suggestions,
   openSearch,
 }: {
   spotlights: LandingSpotlight[];
-  regions: string[];
   stats: LandingStats;
   suggestions: Array<{ label: string; href: string }>;
   openSearch: () => void;
@@ -42,7 +40,7 @@ export function LandingHero({
           </h1>
           <p>
             Khám phá dòng chảy lịch sử Việt Nam và thế giới qua niên biểu đa tầng, những nhân vật làm nên thời
-            đại và các lộ trình học có cấu trúc, đặt mỗi sự kiện trong bối cảnh khu vực của nó.
+            đại và các lộ trình học có cấu trúc.
           </p>
           <button className="hl-hero-search" onClick={openSearch} type="button">
             <Search />
@@ -71,19 +69,12 @@ export function LandingHero({
             </HlButton>
           </div>
           <div className="hl-trust-row">
-            <span className="hl-region-chips">
-              <Globe2 />
-              {regions.slice(0, 4).map((r) => (
-                <span key={r}>{r}</span>
-              ))}
-              {regions.length > 4 && <span>+{regions.length - 4}</span>}
-            </span>
             <span>
               <strong>
-                {stats.events} sự kiện · {stats.figures} nhân vật
+                {stats.events} sự kiện · {stats.figures} nhân vật · {stats.locations} địa danh
               </strong>
               <br />
-              trải trên {stats.regions} vùng lịch sử
+              được hệ thống hóa và liên kết trực quan
             </span>
           </div>
         </motion.div>
@@ -100,7 +91,6 @@ export function LandingHero({
                 <Sparkles size={14} />
                 Tâm điểm lịch sử
               </h2>
-              <span className="hl-live-dot">{item.region}</span>
             </div>
             <AnimatePresence mode="wait">
               <motion.article
@@ -118,7 +108,6 @@ export function LandingHero({
                   <span>{item.era}</span>
                 </div>
                 <div className="hl-spotlight-content">
-                  <HlBadge>{item.region}</HlBadge>
                   <h3>{item.title}</h3>
                   <p>{item.summary}</p>
                   {item.figures.length > 0 && (

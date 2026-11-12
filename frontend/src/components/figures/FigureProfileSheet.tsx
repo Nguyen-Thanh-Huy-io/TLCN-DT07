@@ -3,15 +3,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { BookOpen, Clock3, ExternalLink, History, Network } from "lucide-react";
-import { Badge, Button, Heading, Modal } from "@/components/timeline/sk-ui";
+import { Badge, Button, Heading, Modal } from "@/components/timeline/SkUi";
 import type { PublicPeriodDto } from "@/services/entities/landing.service";
 import { FigurePortrait } from "./FigurePortrait";
 import { LifeTimeline } from "./LifeTimeline";
 import { RelationshipGraph } from "./RelationshipGraph";
 import { FigureBiography } from "./FigureBiography";
 import type { FigureView } from "./figure-utils";
-import { figureRoles } from "./figure-roles";
-import { useFigureRoles } from "./useFigureRoles";
 
 export enum FigureProfileTab {
   TIMELINE = "timeline",
@@ -44,8 +42,7 @@ export function FigureProfileSheet({
   onClose: () => void;
   onNavigate: (f: FigureView) => void;
 }) {
-  const { label: roleLabel } = useFigureRoles();
-  const roles = f ? figureRoles(f.roles).map(roleLabel) : [];
+  const roles = f?.roles ?? [];
   return (
     <Modal open={!!f} onClose={onClose} title="Hồ sơ nhân vật" className="sk-figure-profile">
       {f && (

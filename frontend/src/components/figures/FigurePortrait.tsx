@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import { paletteFor, type FigureView } from "./figure-utils";
+import { RemoteImage } from "@/components/common/RemoteImage";
 
 function traitsOf(figure: FigureView) {
   const text = [figure.occupation, figure.tagline, ...figure.titles].filter(Boolean).join(" ").toLowerCase();
@@ -17,7 +18,7 @@ export function FigurePortrait({ figure, compact = false }: { figure: FigureView
 
   if (figure.imageUrl) {
     return (
-      <img
+      <RemoteImage
         src={figure.imageUrl}
         alt={`Chân dung ${figure.name}`}
         className={`sk-figure-portrait sk-figure-photo ${compact ? "sk-portrait-compact" : ""}`}

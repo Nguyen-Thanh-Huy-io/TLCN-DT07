@@ -75,6 +75,12 @@ sẽ vô tình quét vào `node_modules/`, `.next/`, `dist/`, `.git/` (hàng ch�
 - **Chống XSS khi render HTML ở Frontend (`dangerouslySetInnerHTML`)**:
   - Dữ liệu văn bản thuần (như `post.excerpt`, tiêu đề, tên tác giả, chú thích) nếu ghép vào chuỗi HTML bắt buộc phải bọc qua `escapeHtml()`.
   - Nội dung Rich HTML (TipTap / Block Builder / câu dẫn Quiz `q.prompt`) trước khi đưa vào `dangerouslySetInnerHTML` bắt buộc phải lọc qua `sanitizeRichHtml()` tại `frontend/src/utils/sanitize-html.ts`.
+- **Quy tắc React 19 / React Compiler & Hooks**:
+  - **Tránh Temporal Dead Zone trong Component ("Cannot access variable before it is declared")**: mọi hàm trợ giúp hoặc callback được gọi bên trong `useEffect` phải được khai báo trước `useEffect` (hoặc bọc `useCallback` / dùng function declaration có hoisting).
+  - **Không đọc hoặc ghi Ref trực tiếp trong Render Phase ("Cannot access refs during render")**: việc gán `ref.current = ...` hoặc đọc `ref.current` chỉ được thực hiện trong `useEffect` hoặc trong event handler, tuyệt đối không gán trần trong thân hàm component.
+  - **Khớp Dependency với React Compiler**: khi callback/memo truy cập thuộc tính con lồng nhau của object (như `sessionUser.username`), dependency array cần liệt kê object tham chiếu (`sessionUser`), tránh chỉ liệt kê `sessionUser?.id` dẫn tới cảnh báo `Compilation Skipped: Existing memoization could not be preserved`.
+- **Biểu thức chính quy (Regex) & Cú pháp sạch**:
+  - Trong biểu thức chính quy (Regex), ký tự gạch chéo `/` khi nằm bên trong lớp ký tự `[...]` không cần thoát ký tự `\/` (dùng `[/.-]` thay vì `[\/.-]`) để tránh vi phạm ESLint rule `no-useless-escape`.
 - **Prisma**:
   - Import client và type từ `@prisma/client` (do `backend/prisma/schema/base.prisma` dùng `provider = "prisma-client-js"` không cấu hình custom `output`, toàn bộ 45 file backend đều dùng `@prisma/client`; không import từ `generated/prisma/client`).
   - Đổi schema theo quy trình: sửa `prisma/schema/*.prisma` → tạo thư mục `prisma/migrations/<timestamp>_<tên>/` → `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema --script -o <thư mục>/migration.sql` → đọc lại SQL → `npx prisma migrate deploy`.

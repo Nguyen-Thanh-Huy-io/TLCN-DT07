@@ -84,8 +84,10 @@ Thứ tự ưu tiên theo CODE_AUDIT.md Mục 7 (xếp theo độ dài giảm d�
 - [x] Gộp `getAuthorTint`/`getInitials` (lặp ở `PostCard.tsx`, `PostCommentModal.tsx`, `CommunityProfileView.tsx`) thành `frontend/src/features/community/utils/author-avatar.util.ts`.
 - [x] Gộp `formatTimeAgo` (lặp ở `MediaManagerView.tsx`, `AnalyticsDashboardView.tsx`) thành `frontend/src/utils/time-ago.util.ts`.
 - [x] Gộp `EventPickerModal`/`EntityPickerModal` (tách `useWikipediaDetailPicker.ts` & `WikiDetailPreviewPane.tsx` dùng chung); gộp `CurriculumSidePanel.tsx`/`CurriculumTreePreviewModal.tsx` (`CurriculumTreePreviewModal` uỷ quyền cho `CurriculumSidePanel` với `variant="modal"`).
-- [ ] Chạy `npm run lint -- --fix` cả 2 phía (`backend`, `frontend`) + chuẩn hoá line-ending (LF) để giảm phần lớn trong 718 lỗi backend / 1052 vấn đề frontend hiện tại. Review lại danh sách lỗi còn sót sau `--fix` (sẽ ngắn hơn nhiều) trước khi coi là "sạch".
-- [ ] Chạy `npm run audit` (lint + jscpd + knip) ở backend để xác nhận các trùng lặp trên đã được jscpd công nhận là hết.
+- [x] Chạy `npm run lint -- --fix` cả 2 phía (`backend`, `frontend`) + chuẩn hoá line-ending (CRLF/LF) và sửa toàn bộ lỗi còn lại: Cả Backend và Frontend hiện đạt **0 ERRORS** (Backend: 0 errors / 143 warnings; Frontend: 0 errors / 981 warnings). Toàn bộ 718 lỗi format backend ban đầu và 7 lỗi compilation/runtime frontend ban đầu đã được giải quyết triệt để.
+- [x] Chạy `npm run audit` (lint + jscpd + knip) ở cả backend và frontend:
+  - Báo cáo trùng lặp `jscpd`: Backend đạt **3.35%** (51 clones, 727 lines), Frontend đạt **1.36%** (90 clones, 1056 lines) — cả hai đều tối ưu sâu dưới ngưỡng 5%.
+  - Báo cáo `knip`: Bổ sung thành công các dependency thiếu (`socket.io-client` ở frontend, `multer` ở backend) đưa unlisted dependencies về **0**; ghi nhận danh sách 19 files chưa dùng và các export thừa để rà soát tinh gọn ở Pha 3/Pha 4 tiếp theo.
 - [x] **[MỚI] Dọn Block Builder**: đã xoá `components/builder/TimelineNodeCanvasDrawer.tsx` (không ai import); đã gộp 2 palette `LessonBlockPalette` & `BlockLibraryPalette` về 1 nguồn danh sách/icon (`BLOCK_TYPE_ICONS` + ghi rõ lý do vắng `QUIZ`/`RESOURCE_LINK` trong `block-palette.constants.ts`); đã gộp `TocItem` trùng giữa `types/left-sidebar.types.ts` và `LessonPreviewContent.tsx`; đã thay dữ liệu mẫu Điện Biên Phủ trong `createDefault()` của `quiz-block.plugin.ts`/`section-row-block.plugin.ts` bằng placeholder trung tính. (Còn lại tuỳ chọn tính năng: nối/xoá `features/lessons/templates/` và thêm `VIDEO` upload editor).
 
 ---

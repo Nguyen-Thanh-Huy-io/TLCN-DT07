@@ -1,18 +1,26 @@
-> **Cập nhật:** Pha 0 (Mục 7 🔴) và **toàn bộ Pha 1** đã được SỬA hoàn tất — xem ghi chú `[ĐÃ SỬA ✅]` cạnh mỗi mục và chi tiết trong [CODE_AUDIT_PLAN.md](CODE_AUDIT_PLAN.md). `npm run build` frontend và toàn bộ unit test backend đều PASS.
+> **Cập nhật:** Pha 0, Pha 1, Pha 2, và Pha 4 (DRY + Lint Format + Audit jscpd/knip) đã hoàn tất — xem ghi chú `[ĐÃ SỬA ✅]` cạnh mỗi mục và chi tiết trong [CODE_AUDIT_PLAN.md](CODE_AUDIT_PLAN.md). Cả backend và frontend đều đạt **0 ERRORS** trên ESLint và TypeScript typecheck; `npm test` backend PASS 24/24 suites (185 tests); jscpd đạt tỷ lệ trùng lặp xuất sắc: **3.35%** (backend) và **1.36%** (frontend).
 
 # 🔎 CODE AUDIT — Vi phạm quy tắc code (đối chiếu `CLAUDE.md`)
-> Dự án: `D:\Fullit\TLCN\TLCN-DT07` · Nhánh: `refactor/blog`
-> Mục đích: liệt kê các điểm code **chưa tuân** quy tắc trong `CLAUDE.md` (magic string/number, `any`/`as`, component quá dài, try/catch nuốt lỗi, code chết, N+1, thiếu phân trang DB...), tìm bằng cách đọc toàn bộ nội dung file + chạy `npm run lint`/`npm run build` thật.
+> Dự án: `D:\Fullit\TLCN\TLCN-DT07` · Nhánh: `fix/critical-audit-issues`
+> Mục đích: liệt kê các điểm code **chưa tuân** quy tắc trong `CLAUDE.md` (magic string/number, `any`/`as`, component quá dài, try/catch nuốt lỗi, code chết, N+1, thiếu phân trang DB...), tìm bằng cách đọc toàn bộ nội dung file + chạy `npm run lint`/`npm run build`/`npm run audit` thật.
 > File này KHÔNG mô tả chức năng/kiến trúc — xem [MAP_PROJECT.md](MAP_PROJECT.md) cho phần đó.
-> Đây chỉ là báo cáo — chưa có code nào được tự sửa, trừ khi ghi "Đã sửa" rõ ràng.
 
 ---
 
-## 0. Xác nhận bằng công cụ thật (build/lint)
+## 0. Xác nhận bằng công cụ thật (build/lint/audit) — Cập nhật mới nhất
 
-* **`npm run build` (frontend):** **FAIL** — `Module not found` cho `../api` / `@/features/community/api` (file không tồn tại trong repo) ở: `QuickComposer.tsx`, `ReportDialog.tsx`, `PostCard.tsx`, `PostCommentModal.tsx`, `CommunityFeed.tsx`, `CommunityProfileView.tsx`, và 3 route `app/cong-dong/page.tsx`, `app/cong-dong/ca-nhan/page.tsx`, `app/cong-dong/thanh-vien/[username]/page.tsx`. → Toàn phân hệ Cộng đồng không build được.
-* **`npm run lint` (frontend):** 1052 vấn đề (7 error, 1045 warning). Phổ biến: `@typescript-eslint/no-explicit-any`, `no-restricted-syntax` (gọi `fetch` tự do ngoài `services/api.ts`; magic string so sánh enum), `sonarjs/no-duplicate-string`, `sonarjs/cognitive-complexity` (2 hàm trong `landing.service.ts` dòng 550 & 683 vượt ngưỡng 15, lên tới 24-25).
-* **`npm run lint` (backend):** 718 error, 201 warning. Phần lớn là lỗi format Prettier (CRLF line-ending) và `@typescript-eslint/no-unsafe-argument` (`any` trong file test/mock `App`). Không phải lỗi logic nghiệp vụ nhưng số lượng lớn, nên `--fix` + chuẩn hoá line-ending.
+* **`npm run build` (frontend):** **PASS ✅** — Toàn bộ route build sạch kể cả `/cong-dong/**` và `/bai-hoc/**`.
+* **`npm run lint` (frontend):** **0 errors**, 981 warnings (giảm từ 1052 vấn đề với 7 error ban đầu). 100% lỗi runtime/compiler ("Cannot access variable before it is declared", "Cannot access refs during render", React compiler memoization mismatch) đã được xử lý triệt để. Các warning còn lại thuộc nhóm check-file dynamic route `[slug]`, sonarjs cognitive-complexity, duplicate string literals.
+* **`npm run lint` (backend):** **0 errors**, 143 warnings (giảm từ 718 errors / 201 warnings ban đầu). Đã dọn sạch toàn bộ lỗi format Prettier, CRLF line-ending, unused vars, và regex useless escapes.
+* **`npm run audit:dup` (jscpd):**
+  - **Backend:** 164 files, 21,684 lines — **3.35% trùng lặp** (51 clones, 727 lines). Nằm sâu dưới ngưỡng an toàn 5%.
+  - **Frontend:** 410 files, 77,605 lines — **1.36% trùng lặp** (90 clones, 1056 lines). Con số tối ưu sau đợt tái cấu trúc Pha 4.
+* **`npm run audit:knip` (knip):**
+  - **Unlisted dependencies:** **0** (đã bổ sung đầy đủ `socket.io-client` vào `frontend/package.json` và `multer` vào `backend/package.json`).
+  - **Unused files:** Phát hiện 19 files không còn được import (được đưa vào danh sách rà soát Pha 3/Pha 4).
+  - **Unused exports:** 5 exports backend và 23 exports frontend (sẽ được tinh gọn dần).
+* **`npm test` (backend):** PASS 24/24 suites, 185/185 tests.
+* **`tsc --noEmit`:** 0 errors trên toàn bộ mã nguồn chính của cả backend (`tsconfig.build.json`) và frontend (`tsconfig.json`).
 
 ---
 

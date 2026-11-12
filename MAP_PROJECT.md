@@ -255,6 +255,7 @@ flowchart TD
 * **Route trang:** `app/cong-dong/page.tsx` (feed chính, SSR), `app/cong-dong/ca-nhan/page.tsx` (hồ sơ của tôi), `app/cong-dong/tai-khoan/page.tsx` (re-export), `app/cong-dong/thanh-vien/[username]/page.tsx`.
 * **Backend:** dùng chung `backend/src/blog/` (không có module Community riêng) — endpoint `/posts/users/*`, `/posts/:id/follow`, `/posts/:id/report`, `/posts/:id/bookmark`.
 * **Service/API Client:** `frontend/src/features/community/api.ts` (export `CommunityApi`, `fetchCommunityFeedSSR`, `fetchCommunityProfileSSR`... dùng `API_BASE_URL` / `INTERNAL_API_BASE_URL` từ `constants/api-url.ts` — đã khôi phục ở Pha 0 & chuẩn hoá Base URL ở Pha 1).
+* **Lưu ý kiến trúc bình luận & dữ liệu:** Hiện tại `backend/prisma/schema/blog.prisma` chưa có model `BlogPostComment` riêng, backend `blog.service.ts` đang lưu bình luận bài đăng vào bảng `article_comments` (`articleId = postId`). Ở frontend, `PostCommentModal` áp dụng cơ chế hybrid (nếu DB rỗng sẽ fallback sang `HISTORICAL_PRESET_COMMENTS` từ `historical-comments.data.ts` để phục vụ demo giao diện; khi có bình luận mới sẽ gửi API thật xuống DB và phát socket realtime qua `BlogGateway`).
 
 ### 3.15. Thảo luận (Discussion — Q&A gắn vào Article/Lesson)
 * **Mục đích:** Q&A gắn trực tiếp vào 1 `ARTICLE` hoặc `LESSON`; câu trả lời của ADMIN/SUPERADMIN/MODERATOR tự đánh dấu `isOfficial` + `isAnswered=true`.

@@ -88,6 +88,8 @@ sẽ vô tình quét vào `node_modules/`, `.next/`, `dist/`, `.git/` (hàng ch�
   - **Khớp Dependency với React Compiler**: khi callback/memo truy cập thuộc tính con lồng nhau của object (như `sessionUser.username`), dependency array cần liệt kê object tham chiếu (`sessionUser`), tránh chỉ liệt kê `sessionUser?.id` dẫn tới cảnh báo `Compilation Skipped: Existing memoization could not be preserved`.
 - **Biểu thức chính quy (Regex) & Cú pháp sạch**:
   - Trong biểu thức chính quy (Regex), ký tự gạch chéo `/` khi nằm bên trong lớp ký tự `[...]` không cần thoát ký tự `\/` (dùng `[/.-]` thay vì `[\/.-]`) để tránh vi phạm ESLint rule `no-useless-escape`.
+- **Phân định ranh giới Domain Model trong Prisma Schema (DDD & Bounded Context)**:
+  - Mỗi domain nghiệp vụ (Article, Blog/Community, Discussion, Note) phải sở hữu schema model và bảng riêng trong database. Tuyệt đối không tái sử dụng bảng của domain này (ví dụ `article_comments`) để chứa dữ liệu cho domain khác (`blog_posts`) bằng cách gán chéo ID, gây nợ kỹ thuật, phá vỡ ràng buộc khóa ngoại (Foreign Key) và buộc frontend phải duy trì mock data dự phòng.
 - **Prisma**:
   - Import client và type từ `@prisma/client` (do `backend/prisma/schema/base.prisma` dùng `provider = "prisma-client-js"` không cấu hình custom `output`, toàn bộ 45 file backend đều dùng `@prisma/client`; không import từ `generated/prisma/client`).
   - Đổi schema theo quy trình: sửa `prisma/schema/*.prisma` → tạo thư mục `prisma/migrations/<timestamp>_<tên>/` → `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema --script -o <thư mục>/migration.sql` → đọc lại SQL → `npx prisma migrate deploy`.

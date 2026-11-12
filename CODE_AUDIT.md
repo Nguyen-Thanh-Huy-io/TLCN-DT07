@@ -169,6 +169,10 @@
 
 ### Backend
 * `backend/src/blog/blog.service.ts` (1297 dòng, file lớn nhất dự án):
+  - **[MỚI PHÁT HIỆN ⚠️ — Kiến trúc Domain & Database] Bảng bình luận `BlogPostComment` chưa tồn tại trong Prisma Schema:**
+    - `backend/prisma/schema/blog.prisma`: model `BlogPost` chỉ có cột `commentCount Int @default(0)`, hoàn toàn không có bảng hay quan hệ comment riêng.
+    - `backend/src/blog/blog.service.ts` (dòng 437-452, 520, 573) đang lưu bình luận bài đăng Blog/Cộng đồng vào bảng `article_comments` (`this.prisma.articleComment.create({ data: { articleId: postId, ... } })`) — tái sử dụng chéo trái domain giữa `Article` (bài viết bách khoa toàn thư) và `BlogPost` (bài đăng diễn đàn).
+    - `frontend/src/features/community/components/comment-modal/historical-comments.data.ts`: Dữ liệu `HISTORICAL_PRESET_COMMENTS` (~260 dòng) và fallback `getPresetCommentsForPost` chạy theo cơ chế Hybrid: nếu DB chưa có bình luận hoặc fetch rỗng, Frontend tự động chèn 2-3 bình luận giả lập mẫu ("Nguyễn Minh Triết", "Trần Lan Hương") vào mọi bài viết kể cả bài viết mới tạo.
   - `listPosts` không phân trang ở DB — `findMany` lấy hết rồi `sort/slice` trong JS (xác nhận lại, dòng 40-136).
   - `any` tràn lan: `where: Record<string, any>`, `computeTrendingScore = (post: any) =>`, `mapPost(post: any)`, `mapComment(comment: any)`.
   - `as any` ép enum ở 4 vị trí (dòng 183, 187, 229, 238) — nguyên nhân gốc: `blog-post.dto.ts` tự định nghĩa lại `BLOG_POST_STATUSES`/`POST_TYPES` trùng enum Prisma `ContentStatus`/`PostType` thay vì import enum thật, rồi `@IsEnum(... as any)` lặp 6 lần.
@@ -264,6 +268,7 @@ Xếp theo mức độ rủi ro thật (bug/an toàn > kiến trúc > vi phạm 
 17. **[MỚI — ĐÃ SỬA ✅ — Pha 2]** `BlockBuilderCanvas.renderGenericChildBlock` đã hiển thị placeholder thay vì `return null` ở `default`.
 18. **[MỚI — ĐÃ SỬA ✅ — Pha 2]** `lesson/dto/create-lesson.dto.ts` đã dùng `@IsEnum(DifficultyLevel)`, gõ rõ kiểu ở `lesson.service.ts`, `lesson.controller.ts` và `content-normalizer.strategy.ts`.
 19. **[MỚI]** Code chết ở Block Builder: `TimelineNodeCanvasDrawer.tsx`, `features/lessons/templates/` (mục 3.x).
+20. **[MỚI — 🟠 Kiến trúc Schema] Bảng bình luận `BlogPostComment` chưa có trong Prisma Schema:** `blog.prisma` thiếu model bình luận riêng, `blog.service.ts` đang ghi đè vào bảng `article_comments` (`articleId = postId`), và frontend `historical-comments.data.ts` fallback hiển thị mock preset khi DB chưa có comment. Cần tạo model `BlogPostComment` riêng cho domain Blog/Community trong lần nâng cấp schema tới.
 
 ### 🟡 Component quá dài cần tách (ngưỡng CLAUDE.md: 200-300 dòng)
 Xếp theo độ dài giảm dần — các file này nên tách trước tiên vì vi phạm nặng nhất:

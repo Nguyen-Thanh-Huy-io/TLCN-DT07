@@ -58,6 +58,7 @@
 - [x] **[MỚI — ĐÃ SỬA ✅] `lesson/dto/create-lesson.dto.ts`** — đã đổi `difficulty` sang `@IsEnum(DifficultyLevel)` (cả ở `QueryLessonDto`), gõ lại `content`/`tags`/`displayOrder` (`@IsInt()`), chuẩn hoá kiểu trong `content-normalizer.strategy.ts`, thay `Promise<any>` trong `lesson.service.ts` bằng `Promise<LessonResponseDto>` và `@Req() req: any` ở `lesson.controller.ts` bằng `AuthenticatedRequest`.
 - [x] **[MỚI — ĐÃ SỬA ✅] `BlockBuilderCanvas.renderGenericChildBlock`** — đã đổi `default: return null` sang hiển thị placeholder rõ ràng để khối con loại lạ trong `STORY_CHAPTER` không bị ẩn im lặng.
 - [x] **[MỚI — ĐÃ SỬA ✅] Thu hẹp `any` ở `plugins/`**: đã gõ `LessonBlockItem` cho `compilerFn` trong `section-row-block.plugin.ts`, tách hàm chuẩn hoá dữ liệu legacy có kiểu rõ `extractLegacyGenericTable` (`comparison-table-block.plugin.ts`) và `normalizeQuoteFields` (`quote-block.plugin.ts`).
+- [ ] **[MỚI PHÁT HIỆN ⚠️ — Schema Database] Tách model `BlogPostComment` độc lập**: Hiện tại `backend/prisma/schema/blog.prisma` thiếu bảng comment cho bài đăng blog/cộng đồng, `blog.service.ts` đang lưu vào bảng `article_comments` của bài viết bách khoa (`articleId = postId`), và frontend fallback hiển thị mock preset `HISTORICAL_PRESET_COMMENTS`. Cần lập kế hoạch bổ sung model `BlogPostComment` riêng cho domain Blog/Community trong lần nâng cấp database schema tiếp theo.
 
 ## Pha 3 — Tách component quá dài (ngưỡng CLAUDE.md: 200-300 dòng)
 

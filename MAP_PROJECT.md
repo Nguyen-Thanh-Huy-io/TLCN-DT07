@@ -134,10 +134,50 @@ flowchart TD
 * **UI Component chính:** [LessonEditor.tsx](frontend/src/features/lessons/components/LessonEditor.tsx) (header meta, block canvas, properties panel, quiz panel).
 * **Component/Modal phụ trợ (nhóm chính):**
   * Toolbar/sidebar: `LessonLeftToolSidebar.tsx`, `LessonBlockPalette.tsx`, `TipTapToolbar.tsx`, `AutoSaveIndicator.tsx`.
-  * Builder (`components/builder/`): `TextBlockEditor.tsx`, `MapBlockItemEditor.tsx`, `ComparisonTableBlockItemEditor.tsx`, `CalloutBlockItemEditor.tsx`, `RowSectionBlockEditor.tsx`, `StoryChapterBlockEditor.tsx`, `TimelineNodeCanvasDrawer.tsx`.
-  * Hiển thị (`components/blocks/`): `ImageBlockView.tsx`, `VideoBlockView.tsx`, `EventBlockView.tsx`, `EventPickerModal.tsx`, `HistoricalTimelineBlock.tsx`.
-  * Quiz: `LessonQuizPanel.tsx`, `quiz/AddQuestionMenu.tsx`, `quiz/QuizQuestionEditors.tsx` (6 loại câu hỏi).
-  * Properties: `properties/LessonPropertiesPanel.tsx`, `LessonClassificationTab.tsx`, `LessonMediaTab.tsx`, `LessonDifficultySelector.tsx`, `LessonOrderField.tsx`, `LessonTagPicker.tsx`, `LessonTopicModalPicker.tsx`.
+  * Khung soạn thảo & header (`components/`): `LessonEditorHeader.tsx` (tầng 1: thoát, tiêu đề, trạng thái auto-save, Gửi duyệt/Cập nhật, menu "•••"), `LessonEditorSubHeader.tsx` (tầng 2: chuyển chế độ Soạn thảo/Chia đôi/Xem trước, ẩn-hiện cột trái), `LessonHeaderMetaForm.tsx` (form meta tiêu đề/chủ đề), `LessonPreviewContent.tsx` (xem trước giao diện Wiki + Mục lục + đề ôn tập kèm đáp án), `TipTapContent.tsx` (nhúng TipTap cho khối TEXT), `LessonMediaManager.tsx` (upload ảnh/tài liệu/URL, dùng trong `LessonMediaTab`).
+  * **Builder — khung canvas (`components/builder/`):** `BlockBuilderCanvas.tsx` (render theo `LessonBlockType`, gọi đúng editor từng loại), `BlockCardWrapper.tsx` (vỏ thẻ khối: chọn độ rộng, xoá, di chuyển), `BlockLibraryPalette.tsx` (palette thả khối + `BLOCK_TYPE_ICONS`; dùng bởi `ContentBlockEditor`, `AddBlockDivider`, `BlockPropertyInspector`), `AddBlockDivider.tsx` (nút "+" giữa 2 khối), `ColumnResizer.tsx` (kéo đổi tỷ lệ cột `SECTION_ROW`).
+  * **Builder — editor từng loại khối (`components/builder/*ItemEditor.tsx`, gọi từ `BlockBuilderCanvas`):**
+
+    | Khối | Editor | Ghi chú |
+    |---|---|---|
+    | TEXT | `TextBlockEditor.tsx` | Rich text TipTap, toolbar ẩn, điều khiển ở Inspector phải |
+    | HEADING | *(vẽ trực tiếp trong canvas)* | Chỉnh qua `HeadingBlockInspector` |
+    | IMAGE | `ImageBlockItemEditor.tsx` | Upload (giới hạn 10MB) / URL |
+    | VIDEO | *(vẽ trực tiếp trong canvas)* | Không có Inspector riêng; node TipTap dùng `VideoBlockView.tsx` |
+    | QUOTE | `QuoteBlockItemEditor.tsx` | Inspector: `QuoteBlockInspector` |
+    | CALLOUT | `CalloutBlockItemEditor.tsx` | 4 variant INFO/WARNING/HISTORICAL_NOTE/SUCCESS; Inspector: `CalloutBlockInspector` |
+    | DIVIDER | *(vẽ trực tiếp trong canvas)* | Không có thuộc tính |
+    | CHARACTER | `CharacterBlockItemEditor.tsx` | Chọn qua `EntityPickerModal` (HISGO / Wikipedia) |
+    | EVENT | `EventBlockItemEditor.tsx` | Chọn qua `EventPickerModal` |
+    | TIMELINE | `TimelineBlockItemEditor.tsx` | Dùng `TimelineSceneStrategy` + `HistoricalTimelineBlock`; Inspector: `TimelineBlockInspector` (chép mốc từ Timeline CMS) |
+    | MAP | `MapBlockItemEditor.tsx` | Chỉ lưu tên địa danh + mô tả (chưa có bản đồ tương tác) |
+    | COMPARISON_TABLE | `ComparisonTableBlockItemEditor.tsx` | 2 cột so sánh, thêm/xoá dòng tiêu chí |
+    | RELATED_PEOPLE / RELATED_EVENTS | *(vẽ trực tiếp trong canvas)* | Inspector: `RelatedPeopleBlockInspector` / `RelatedEventsBlockInspector` |
+    | SECTION_ROW | `RowSectionBlockEditor.tsx` | Kiểm tra lồng khối bằng `BlockPlacementRuleEngine`; Inspector: `RowSectionBlockInspector` |
+    | STORY_CHAPTER | `StoryChapterBlockEditor.tsx` | Container nhiều chương; Inspector: `StoryChapterBlockInspector` + `StorySubElementInspector` |
+    | QUIZ | *(không có editor trên canvas)* | Soạn ở `LessonQuizPanel` (đề cuối bài); plugin `quiz-block.plugin.ts` chỉ phục vụ biên dịch/hiển thị |
+    | RESOURCE_LINK | *(không có editor trên canvas)* | Soạn ở tab Xuất bản (`LessonPublishingTab`); luôn xuất ở cuối bài |
+  * **Builder — Inspector (cột phải):** `BlockPropertyInspector.tsx` (bảng `BLOCK_INSPECTOR_STRATEGIES` ánh xạ loại khối → Inspector, OCP; TEXT dùng `TypographyInspectorPanel`), thư mục `inspectors/` gồm `TypographyInspectorPanel.tsx` (chữ, căn lề, drop-cap, lead paragraph), `SimpleBlockInspectors.tsx` (Heading/Callout/Quote/RelatedPeople/RelatedEvents), `TimelineBlockInspector.tsx`, `RowSectionBlockInspector.tsx` (hiện thuộc tính khối con khi chọn khối trong cột), `StoryChapterBlockInspector.tsx` (cấp 1: chương), `StorySubElementInspector.tsx` (cấp 2: ghi đè từng ô/khối con). `WikiLinkInspectorSection.tsx` — gắn liên kết wiki (Ctrl/⌘+K) vào chữ, dùng `WikiLinkTargetStrategyFactory`.
+  * **Hiển thị / NodeView TipTap (`components/blocks/`):** `ImageBlockView.tsx`, `VideoBlockView.tsx` (upload/URL/embed, tự đổi link YouTube sang embed), `CharacterBlockView.tsx`, `EventBlockView.tsx`, `TimelineBlockView.tsx` (thêm/sửa/xoá/đổi thứ tự mốc), `HistoricalTimelineBlock.tsx` (UI mốc + định nghĩa `TimelineNode`), `EntityPickerModal.tsx` (tìm nhân vật nội bộ/Wikipedia, xem trước & sửa trước khi nhập), `EventPickerModal.tsx` (`normalizePickedEvent`), `AddBlockBelowMenu.tsx` (menu thêm khối ngay bên dưới).
+  * **TipTap Extension (`extensions/`):** `image-`, `video-`, `character-`, `event-`, `timeline-block.extension.ts` (node tuỳ chỉnh gắn NodeView ở trên), `typography.extension.ts` (`BlockTypographyExtension` — căn lề/giãn dòng/drop-cap/lead; `InlineTypographyMark`).
+  * ⚠️ **File chưa được dùng:** `TimelineNodeCanvasDrawer.tsx` (không có nơi nào import) và `templates/` (`LessonTemplateFactory`, 5 template Standard/MilitaryCampaign/HistoricalFigure/TreatyConference/Blank — chỉ tham chiếu nội bộ, chưa nối vào UI tạo bài).
+  * **✅ Đã kiểm chứng (lượt rà soát sau):**
+    * `BlockBuilderCanvas.tsx` có 3 `switch` (khối cấp ngoài / khối trong cột `SECTION_ROW` / khối con `STORY_CHAPTER` qua `renderGenericChildBlock`). Loại khối chưa hỗ trợ (VD `QUIZ`, `RESOURCE_LINK`) hiện placeholder ở 2 nhánh đầu, nhưng **bị ẩn hẳn (`return null`) ở nhánh `STORY_CHAPTER`**.
+    * **Đường biên dịch HTML:** `LessonBlockFactory` → `LessonBlockRegistry.blockToHtml` → `plugin.toHtml()`; các plugin có dữ liệu người dùng đều `escapeHtml`/`safeUrl`, **ngoại lệ là `text-block.plugin.ts` trả nguyên HTML TipTap** (divider/section-row không có dữ liệu cần escape). HTML này render bằng `dangerouslySetInnerHTML` tại `PublicLessonReaderView`, `EntityReader`, `LessonPreviewContent`, `HubLessonQuiz` (nội dung do STAFF soạn) và **dự án chưa có thư viện sanitize**. **Blog (người dùng thường viết, qua duyệt) dùng đường riêng:** `BlogDetailPage.extractBlocksHtml` tự escape toàn bộ khối — chỉ riêng fallback `post.excerpt` (dòng 219) chưa escape; xem CODE_AUDIT mục 3.x.
+    * **Phạm vi dùng lại:** `ContentBlockEditor` chỉ được `ArticleEditor` dùng; `BlogCreatePage` không dùng hạ tầng block của `features/lessons`. Hạ tầng block hiện chỉ phục vụ `LessonEditor`, `ArticleEditor`, `lesson-toc.util`.
+    * **Backend `lesson/`:** `lesson.service.ts` trả `Promise<any>`, `CreateLessonDto` có 5 field `any` (trong đó `difficulty` chưa dùng enum `DifficultyLevel`) — chi tiết ở CODE_AUDIT.
+  * **Hai palette khác nhau:** `LessonBlockPalette.tsx` (cột trái "Thêm khối", đọc `constants/block-palette.constants.ts` — chỉ liệt kê 16 loại, **không có QUIZ và RESOURCE_LINK** vì hai loại này soạn ở chỗ riêng) và `builder/BlockLibraryPalette.tsx` (palette trong canvas/ContentBlockEditor).
+  * Quiz: `LessonQuizPanel.tsx`, `quiz/AddQuestionMenu.tsx`, `quiz/QuizQuestionCard.tsx` (thẻ thu gọn/mở rộng, ▲▼, xoá), `quiz/QuizQuestionEditors.tsx` (6 loại câu hỏi); `factories/quiz-question.factory.ts` (`createDefaultQuestion`), `types/quiz.types.ts`.
+  * Properties: `properties/LessonPropertiesPanel.tsx`, `properties/LessonClassificationTab.tsx`, `properties/LessonMediaTab.tsx`, `properties/LessonPublishingTab.tsx` (trạng thái, nguồn tham khảo, Liên kết tài nguyên, 2 nút lưu), `LessonDifficultySelector.tsx`, `LessonOrderField.tsx`, `LessonTagPicker.tsx`, `LessonTopicModalPicker.tsx`.
+  * **Hạ tầng hỗ trợ Block Builder (ngoài `components/`):**
+    * `types/`: `block-builder.types.ts` (toàn bộ `*BlockData`, `LessonBlockItem`, `StoryChapterUnit`, `EditorialSpreadConfig`), `block-palette.types.ts` (`LessonBlockType`, `LessonBlockGroup`), `editor.types.ts` (`AutoSaveState`, `EditorViewMode`, `LeftSidebarMode`), `entity-source.types.ts`, `header-meta.types.ts`, `left-sidebar.types.ts`.
+    * `constants/`: `block-palette.constants.ts`, `block-node.constants.ts`, `entity-source.constants.ts`, `left-sidebar.constants.ts`, `row-layout.constants.ts`.
+    * `context/ActiveEditorContext.tsx` (`ActiveEditorProvider`/`useActiveEditor` — đồng bộ selection TipTap ⇄ Inspector, ô con/chương đang chọn).
+    * `rules/block-placement.rule.ts` (`BlockPlacementRuleEngine` — SECTION_ROW chỉ ở Root, QUIZ chỉ Root, TIMELINE ≥50% cột, COMPARISON_TABLE ≥40% cột).
+    * `strategies/`: `block-width.strategy.ts` (độ rộng cho phép theo loại khối), `lesson-block-insert.strategy.ts` (sinh HTML chèn khối, dùng bởi NodeView/TipTap toolbar), `wiki-link-target.strategy.ts` (đích liên kết: bài viết vs dòng thời gian), `timeline-layout.strategy.ts`, `timeline-scene.strategy.ts` (đồng bộ `contentHtml` ⇄ title/description/role của mốc), `entity-sources/` (+ adapter `wikipedia.adapter.ts`, `wikidata-claims.adapter.ts`, `wikimedia-commons.adapter.ts`).
+    * `utils/lesson-toc.util.ts` (dựng Mục lục — dùng cả ở `LessonEditor`, `usePublicLessonReaderFacade`, `entity-reader-adapter`).
+    * `factories/`: `lesson-block.factory.ts`, `entity-source-strategy.factory.ts`, `quiz-question.factory.ts`.
+  * **Khối đặc thù — 2 nhóm khối trùng tên cần phân biệt:** khối **TIMELINE trong bài học** (nội dung nhúng, `timeline-block.plugin.ts`, mốc thủ công hoặc chép từ Timeline CMS) khác với **Timeline CMS** (mục 3.3) và `lesson-timeline.strategy.ts` (vị trí bài trong chủ đề).
 * **Kiến trúc Facade/Plugin/Strategy/Factory:**
   * **Facade:** `facades/useLessonEditorFacade.ts` (load topics, auto-save nháp localStorage debounce 1500ms, hợp bản sửa chờ duyệt qua `withPendingDraft`, `submitLesson`); `facades/useLessonBlockManager.ts` (add/update/remove/move block, quản lý cột `SECTION_ROW`, `compileToHtml/compileToJson`); `facades/useQuizEditor.ts`.
   * **Plugin Pattern (đây là nơi thật xử lý từng loại khối — KHÔNG phải `strategies/`):** `plugins/block-plugin.registry.ts` (`LessonBlockRegistry`) đăng ký 18 `BlockPlugin` (1 file/loại trong `plugins/*.plugin.ts`, ví dụ `map-block.plugin.ts`, `timeline-block.plugin.ts`, `event-block.plugin.ts`, `character-block.plugin.ts`); mỗi plugin có `createDefault()` + `toHtml()` (có `escapeHtml`/`safeUrl` chống XSS). `factories/lesson-block.factory.ts` ủy quyền sang Registry để giữ tương thích ngược.
@@ -213,7 +253,7 @@ flowchart TD
 * **Component/Modal phụ trợ:** `PostCard.tsx`, `PostActionBar.tsx`, `PostCommentModal.tsx` (bình luận lồng nhánh), `QuickComposer.tsx`, `ReportDialog.tsx`.
 * **Route trang:** `app/cong-dong/page.tsx` (feed chính, SSR), `app/cong-dong/ca-nhan/page.tsx` (hồ sơ của tôi), `app/cong-dong/tai-khoan/page.tsx` (re-export), `app/cong-dong/thanh-vien/[username]/page.tsx`.
 * **Backend:** dùng chung `backend/src/blog/` (không có module Community riêng) — endpoint `/posts/users/*`, `/posts/:id/follow`, `/posts/:id/report`, `/posts/:id/bookmark`.
-* **⚠️ Gap phát hiện:** `frontend/src/features/community/api.ts` (export `CommunityApi`, `fetchCommunityFeedSSR`, `fetchCommunityProfileSSR`...) được import bởi toàn bộ component/route Cộng đồng ở trên nhưng **không tồn tại trong repo** (xác nhận bằng `git ls-files`) — phân hệ Cộng đồng FE hiện **không build được**, cần tạo lại file này hoặc đây là file bị sót khi commit trên nhánh `refactor/blog`.
+* **Service/API Client:** `frontend/src/features/community/api.ts` (export `CommunityApi`, `fetchCommunityFeedSSR`, `fetchCommunityProfileSSR`... dùng `API_BASE_URL` / `INTERNAL_API_BASE_URL` từ `constants/api-url.ts` — đã khôi phục ở Pha 0 & chuẩn hoá Base URL ở Pha 1).
 
 ### 3.15. Thảo luận (Discussion — Q&A gắn vào Article/Lesson)
 * **Mục đích:** Q&A gắn trực tiếp vào 1 `ARTICLE` hoặc `LESSON`; câu trả lời của ADMIN/SUPERADMIN/MODERATOR tự đánh dấu `isOfficial` + `isAnswered=true`.
@@ -274,7 +314,7 @@ flowchart TD
 
 ### 3.21. Upload file & Metrics
 * **Upload — Mục đích:** Tải ảnh (≤5MB) / tài liệu (≤20MB); ưu tiên Cloudinary nếu có env `CLOUDINARY_*`, fallback lưu local `backend/uploads/`.
-  * Backend: `backend/src/upload/upload.controller.ts` (`POST /upload/image`, `POST /upload/document`, cả hai `@ContentWrite()`); `upload.module.ts` không có service riêng (logic nằm trong controller).
+  * Backend: `backend/src/upload/` — Controller `upload.controller.ts` (`POST /upload/image`, `POST /upload/document`, cả hai `@ContentWrite()`), Service `upload.service.ts` (xử lý Cloudinary hoặc local URL qua `app.config.ts`), Constant `upload.constant.ts`.
 * **Metrics — Mục đích:** Expose Prometheus metrics (`/metrics`, `/metrics/json`) — tổng request, lỗi, thời gian xử lý theo route, active users, metrics Node.js mặc định.
   * Backend: `backend/src/metrics/` — Controller `metrics.controller.ts` (`@SkipThrottle`, ẩn Swagger), Service `metrics.service.ts` (`prom-client`: Histogram/Counter/Gauge), Interceptor `metrics.interceptor.ts` (gắn global).
 
@@ -301,7 +341,7 @@ flowchart TD
 ### 4.2. Frontend dùng chung
 * **Axios instance:** [api.ts](frontend/src/services/api.ts) — client dùng proxy `/api-proxy`, SSR dùng `NEXT_PUBLIC_API_URL`; auto gắn `Authorization`; 401 → tự refresh 1 lần rồi retry, thất bại → redirect login; Network Error → trả `{data: []}` (offline mock); export `extractErrorMessage()`, `parsePaginatedResponse<T>()`.
 * **Layout chung:** [ClientLayout.tsx](frontend/src/components/layout/ClientLayout.tsx) (phân luồng Public/CMS theo `PUBLIC_ROUTE_PREFIXES`), [CmsAccessGate.tsx](frontend/src/components/layout/CmsAccessGate.tsx), [Topbar.tsx](frontend/src/components/layout/Topbar.tsx) (breadcrumb, avatar, NotificationBell), [Header.tsx](frontend/src/components/hisgo/Header.tsx) (nav công khai).
-* **Hằng số dùng chung:** `constants/routes.ts` (`APP_ROUTES`, `NavigationPageKey`), `constants/navigation.ts` (`NavGroupId`, nav Sidebar), `constants/ui-theme.ts` (`STATUS_TONE_MAP`/`LABEL_MAP`, `DIFFICULTY_TONE_MAP`, `PAGE_META`).
+* **Hằng số dùng chung:** `constants/api-url.ts` (`API_BASE_URL`, `INTERNAL_API_BASE_URL`, `resolveBackendAssetUrl`), `constants/routes.ts` (`APP_ROUTES`, `NavigationPageKey`), `constants/navigation.ts` (`NavGroupId`, nav Sidebar), `constants/ui-theme.ts` (`STATUS_TONE_MAP`/`LABEL_MAP`, `DIFFICULTY_TONE_MAP`, `PAGE_META`).
 
 ### 4.3. `app.module.ts` — toàn bộ module nghiệp vụ được import
 `AuthModule, UserModule, TopicModule, LessonModule, TagModule, ContentRevisionModule, DashboardModule, UploadModule, LearningPathModule, CategoryModule, BlogModule, ModerationModule, ArticleModule, TimelineModule, PublicContentModule, QuizModule, LearnerModule, DiscussionModule, NotificationModule, NoteModule` (+ global: `ConfigModule, WinstonModule, LoggerModule, RedisModule, QueueModule, RateLimitModule, MetricsModule`).
@@ -403,7 +443,7 @@ flowchart TD
 
 Các điểm dưới đây được phát hiện khi đọc trực tiếp code (không suy đoán), nên lưu ý trước khi dùng tài liệu này để prompt sửa code:
 
-1. **`frontend/src/features/community/api.ts` bị thiếu trong repo** — toàn bộ phân hệ Cộng đồng (`CommunityFeed`, `CommunityProfileView`, `PostCard`, `PostActionBar`, `QuickComposer`, `ReportDialog`, `PostCommentModal` và 3 route `app/cong-dong/**`) import file này nhưng nó không tồn tại (`git ls-files` xác nhận) → **không build được** cho tới khi tạo lại file hoặc khôi phục từ lịch sử.
+1. **[ĐÃ KHẮC PHỤC Ở PHA 0 ✅]** `frontend/src/features/community/api.ts` trước đây bị thiếu trong repo khiến phân hệ Cộng đồng không build được — đã được viết lại đầy đủ theo đúng contract backend (`blog.controller.ts`/`blog.service.ts`) và `npm run build` đã pass hoàn toàn.
 2. **`SystemSettingsView`** (trang Settings) và tab "Trạng thái hạ tầng" là UI tĩnh/giả — chưa có API backend lưu cấu hình hay health-check thật.
 3. **`MediaManagerView`** lưu metadata thư viện media (tên, tag) chỉ ở `localStorage` — không đồng bộ đa máy/người dùng, lệch với file thật trên server/Cloudinary.
 4. **`NotificationBell`** và **`UserList`** gọi axios instance chung trực tiếp tại chỗ dùng, chưa tách file `services/entities/` riêng (khác convention các feature khác đã tách `*ApiService`).

@@ -23,9 +23,10 @@ model Quiz {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  lesson   Lesson?       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  topics   Topic[]       @relation("TopicQuizzes")
-  attempts QuizAttempt[]
+  lesson        Lesson?        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  topics        Topic[]        @relation("TopicQuizzes")
+  attempts      QuizAttempt[]
+  quizQuestions QuizQuestion[]
 
   @@map("quizzes")
 }
@@ -72,10 +73,31 @@ model Question {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  lessons     Lesson[]
-  topics      Topic[]
+  lessons       Lesson[]
+  topics        Topic[]
+  quizQuestions QuizQuestion[]
 
   @@index([type])
   @@index([difficulty])
   @@map("questions")
 }
+
+// ================================
+// QuizQuestion (Liên kết nhiều-nhiều giữa Quiz và Ngân hàng câu hỏi)
+// ================================
+
+model QuizQuestion {
+  quizId       String   @map("quiz_id")
+  questionId   String   @map("question_id")
+  displayOrder Int      @default(0) @map("display_order")
+  points       Float    @default(10)
+
+  quiz         Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([quizId, questionId])
+  @@index([quizId, displayOrder])
+  @@index([questionId])
+  @@map("quiz_questions")
+}
+

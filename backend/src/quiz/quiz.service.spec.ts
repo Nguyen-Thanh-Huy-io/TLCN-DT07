@@ -18,9 +18,19 @@ describe('QuizService (Automated Unit Tests)', () => {
         delete: jest.fn(),
         upsert: jest.fn(),
       },
+      quizQuestion: {
+        deleteMany: jest.fn(),
+        createMany: jest.fn(),
+        findMany: jest.fn(),
+      },
       lesson: {
         findUnique: jest.fn(),
       },
+      $transaction: jest.fn((callback) =>
+        typeof callback === 'function'
+          ? callback(prisma)
+          : Promise.all(callback),
+      ),
     };
 
     service = new QuizService(prisma as unknown as PrismaService);
@@ -47,7 +57,11 @@ describe('QuizService (Automated Unit Tests)', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
           topics: [
-            { id: 'topic-1', name: 'Lịch sử Trung Đại', slug: 'lich-su-trung-dai' },
+            {
+              id: 'topic-1',
+              name: 'Lịch sử Trung Đại',
+              slug: 'lich-su-trung-dai',
+            },
           ],
           lesson: {
             id: 'lesson-1',
@@ -117,6 +131,43 @@ describe('QuizService (Automated Unit Tests)', () => {
       expect(result.questionCount).toBe(1);
       expect(result.status).toBe('ACTIVE');
     });
+
+    it('ánh xạ câu hỏi từ quizQuestions khi questions JSON rỗng', async () => {
+      const mockQuiz = {
+        id: 'quiz-from-bank',
+        title: 'Đề tổng hợp ngân hàng',
+        questions: [],
+        quizQuestions: [
+          {
+            displayOrder: 0,
+            points: 10,
+            question: {
+              id: 'q-1',
+              type: 'SINGLE_CHOICE',
+              prompt: 'Chiến dịch Điện Biên Phủ diễn ra năm nào?',
+              explanation: 'Năm 1954',
+              data: {
+                options: [
+                  { id: 'opt1', text: '1954', isCorrect: true },
+                  { id: 'opt2', text: '1975', isCorrect: false },
+                ],
+              },
+            },
+          },
+        ],
+      };
+      (prisma.quiz.findUnique as jest.Mock).mockResolvedValue(mockQuiz);
+
+      const result = await service.findById('quiz-from-bank');
+      expect(result.id).toBe('quiz-from-bank');
+      expect(result.questions).toHaveLength(1);
+      expect(result.questions[0].id).toBe('q-1');
+      expect((result.questions[0] as any).prompt).toBe(
+        'Chiến dịch Điện Biên Phủ diễn ra năm nào?',
+      );
+      expect(result.questionCount).toBe(1);
+      expect(result.status).toBe('ACTIVE');
+    });
   });
 
   describe('createStandalone', () => {
@@ -163,6 +214,49 @@ describe('QuizService (Automated Unit Tests)', () => {
       expect(prisma.quiz.create).toHaveBeenCalled();
     });
 
+    it('tạo đề quiz độc lập kèm câu hỏi từ Ngân hàng câu hỏi thành công', async () => {
+      const dto = {
+        title: 'Đề khảo thí chọn lọc',
+        topicIds: ['topic-1'],
+        questionIds: ['q-bank-1', 'q-bank-2'],
+      };
+
+      (prisma.quiz.create as jest.Mock).mockResolvedValue({
+        id: 'quiz-with-bank-questions',
+        title: dto.title,
+        questions: [],
+        quizQuestions: [
+          {
+            quizId: 'quiz-with-bank-questions',
+            questionId: 'q-bank-1',
+            displayOrder: 0,
+            points: 10,
+          },
+          {
+            quizId: 'quiz-with-bank-questions',
+            questionId: 'q-bank-2',
+            displayOrder: 1,
+            points: 10,
+          },
+        ],
+      });
+
+      const result = await service.createStandalone(dto as any);
+      expect(result.id).toBe('quiz-with-bank-questions');
+      expect(prisma.quiz.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            quizQuestions: {
+              create: [
+                { questionId: 'q-bank-1', displayOrder: 0, points: 10 },
+                { questionId: 'q-bank-2', displayOrder: 1, points: 10 },
+              ],
+            },
+          }),
+        }),
+      );
+    });
+
     it('ném BadRequestException nếu bài học liên kết đã có đề quiz khác', async () => {
       (prisma.lesson.findUnique as jest.Mock).mockResolvedValue({
         id: 'l1',
@@ -179,6 +273,66 @@ describe('QuizService (Automated Unit Tests)', () => {
           questions: [],
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('updateStandalone', () => {
+    it('cập nhật đề quiz và đồng bộ câu hỏi từ ngân hàng qua transaction', async () => {
+      const mockExisting = { id: 'quiz-1', title: 'Cũ', questions: [] };
+      (prisma.quiz.findUnique as jest.Mock).mockResolvedValue(mockExisting);
+      (prisma.quiz.update as jest.Mock).mockResolvedValue({
+        id: 'quiz-1',
+        title: 'Mới',
+        questions: [],
+      });
+
+      const result = await service.updateStandalone('quiz-1', {
+        title: 'Mới',
+        questionIds: ['q-new-1', 'q-new-2'],
+      });
+
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(prisma.quizQuestion.deleteMany).toHaveBeenCalledWith({
+        where: { quizId: 'quiz-1' },
+      });
+      expect(prisma.quizQuestion.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            quizId: 'quiz-1',
+            questionId: 'q-new-1',
+            displayOrder: 0,
+            points: 10,
+          },
+          {
+            quizId: 'quiz-1',
+            questionId: 'q-new-2',
+            displayOrder: 1,
+            points: 10,
+          },
+        ],
+      });
+      expect(result.id).toBe('quiz-1');
+    });
+
+    it('cập nhật thông tin thông thường khi không truyền questionIds', async () => {
+      const mockExisting = { id: 'quiz-1', title: 'Cũ', questions: [] };
+      (prisma.quiz.findUnique as jest.Mock).mockResolvedValue(mockExisting);
+      (prisma.quiz.update as jest.Mock).mockResolvedValue({
+        id: 'quiz-1',
+        title: 'Cập nhật tiêu đề',
+      });
+
+      const result = await service.updateStandalone('quiz-1', {
+        title: 'Cập nhật tiêu đề',
+      });
+
+      expect(prisma.quiz.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'quiz-1' },
+          data: expect.objectContaining({ title: 'Cập nhật tiêu đề' }),
+        }),
+      );
+      expect(result.id).toBe('quiz-1');
     });
   });
 

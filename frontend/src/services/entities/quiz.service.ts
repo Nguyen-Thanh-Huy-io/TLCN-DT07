@@ -1,6 +1,14 @@
 import api from '../api';
 import { QuizItem, QuizQuestion } from '@/features/lessons/types/quiz.types';
 
+export interface StandaloneQuizQuestionLink {
+  quizId: string;
+  questionId: string;
+  displayOrder: number;
+  points: number;
+  question?: unknown;
+}
+
 export interface StandaloneQuizItem {
   id: string;
   title: string;
@@ -21,9 +29,16 @@ export interface StandaloneQuizItem {
   passingScorePercent: number;
   questionCount: number;
   questions: QuizQuestion[];
+  quizQuestions?: StandaloneQuizQuestionLink[];
   status: 'ACTIVE' | 'DRAFT';
   createdAt: string;
   updatedAt: string;
+}
+
+export interface QuizQuestionItemInput {
+  questionId: string;
+  displayOrder?: number;
+  points?: number;
 }
 
 export interface CreateStandaloneQuizDto {
@@ -31,9 +46,11 @@ export interface CreateStandaloneQuizDto {
   description?: string;
   lessonId?: string;
   topicIds?: string[];
+  questionIds?: string[];
+  questionItems?: QuizQuestionItemInput[];
   timeLimitMinutes?: number;
   passingScorePercent?: number;
-  questions: QuizQuestion[];
+  questions?: QuizQuestion[];
 }
 
 export interface UpdateStandaloneQuizDto {
@@ -41,6 +58,8 @@ export interface UpdateStandaloneQuizDto {
   description?: string;
   lessonId?: string;
   topicIds?: string[];
+  questionIds?: string[];
+  questionItems?: QuizQuestionItemInput[];
   timeLimitMinutes?: number;
   passingScorePercent?: number;
   questions?: QuizQuestion[];
@@ -134,6 +153,29 @@ export class QuizApiService {
     const res = await api.get(`/public/quizzes/${id}/statistics`);
     const json = res.data;
     return (json?.data?.summary ? json.data : json?.summary ? json : null) as QuizStatisticsData;
+  }
+
+  /** Nộp bài thi làm trắc nghiệm công khai */
+  static async submitQuizAttempt(
+    quizId: string,
+    payload: {
+      learnerName: string;
+      scorePercent: number;
+      correctCount: number;
+      totalQuestions: number;
+      timeSpentSeconds: number;
+      isPassed: boolean;
+      answers: Record<number, string>;
+    },
+  ): Promise<unknown> {
+    const res = await api.post(`/public/quizzes/${quizId}/submit`, payload);
+    return res.data?.data || res.data;
+  }
+
+  /** Lấy danh sách bài học công khai có đề thi kèm theo */
+  static async getPublicLessons(): Promise<unknown[]> {
+    const res = await api.get('/public/lessons');
+    return res.data?.data || res.data || [];
   }
 
   /** Lấy đề thi khảo thí của 1 Topic */

@@ -7,6 +7,7 @@ import { PrismaService } from '../common/services/prisma.service';
 import { UpsertQuizDto } from './dto/upsert-quiz.dto';
 import {
   CreateStandaloneQuizDto,
+  QuizQuestionItemDto,
   UpdateStandaloneQuizDto,
 } from './dto/create-standalone-quiz.dto';
 import { QueryQuizDto } from './dto/query-quiz.dto';
@@ -16,6 +17,28 @@ import { validateAndNormalizeQuestions } from './validators/quiz-question.valida
 @Injectable()
 export class QuizService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Chuẩn hóa danh sách câu hỏi gán từ Ngân hàng câu hỏi */
+  private buildQuizQuestionsData(
+    questionIds?: string[],
+    questionItems?: QuizQuestionItemDto[],
+  ): Array<{ questionId: string; displayOrder: number; points: number }> {
+    if (questionItems && questionItems.length > 0) {
+      return questionItems.map((item, idx) => ({
+        questionId: item.questionId,
+        displayOrder: item.displayOrder ?? idx,
+        points: item.points ?? 10,
+      }));
+    }
+    if (questionIds && questionIds.length > 0) {
+      return questionIds.map((qid, idx) => ({
+        questionId: qid,
+        displayOrder: idx,
+        points: 10,
+      }));
+    }
+    return [];
+  }
 
   /** Lấy danh sách đề Quiz độc lập (hỗ trợ tìm kiếm, phân trang) */
   async findAll(query: QueryQuizDto) {
@@ -38,7 +61,11 @@ export class QuizService {
         { title: { contains: keyword, mode: 'insensitive' } },
         { description: { contains: keyword, mode: 'insensitive' } },
         { lesson: { title: { contains: keyword, mode: 'insensitive' } } },
-        { topics: { some: { name: { contains: keyword, mode: 'insensitive' } } } },
+        {
+          topics: {
+            some: { name: { contains: keyword, mode: 'insensitive' } },
+          },
+        },
       ];
     }
 
@@ -64,6 +91,11 @@ export class QuizService {
               description: true,
             },
           },
+          _count: {
+            select: {
+              quizQuestions: true,
+            },
+          },
         },
       }),
       this.prisma.quiz.count({ where }),
@@ -75,7 +107,8 @@ export class QuizService {
         const questionsArray = Array.isArray(quiz.questions)
           ? (quiz.questions as any[])
           : [];
-        const questionCount = questionsArray.length;
+        const questionCount =
+          questionsArray.length + (quiz._count?.quizQuestions ?? 0);
         const isDraft = questionCount === 0;
 
         const lesson = quiz.lesson;
@@ -156,6 +189,14 @@ export class QuizService {
             description: true,
           },
         },
+        quizQuestions: {
+          include: {
+            question: true,
+          },
+          orderBy: {
+            displayOrder: 'asc',
+          },
+        },
       },
     });
 
@@ -163,9 +204,34 @@ export class QuizService {
       throw new NotFoundException(`Không tìm thấy đề Quiz với ID "${id}"`);
     }
 
-    const questionsArray = Array.isArray(quiz.questions)
+    const rawQuestions = Array.isArray(quiz.questions)
       ? (quiz.questions as any[])
       : [];
+
+    let finalQuestions = [...rawQuestions];
+    if (
+      finalQuestions.length === 0 &&
+      quiz.quizQuestions &&
+      quiz.quizQuestions.length > 0
+    ) {
+      finalQuestions = quiz.quizQuestions.map((qq) => {
+        const q = qq.question;
+        const dataObj =
+          typeof q.data === 'object' && q.data !== null
+            ? (q.data as Record<string, any>)
+            : {};
+        return {
+          id: q.id,
+          type: q.type,
+          prompt: q.prompt,
+          explanation: q.explanation,
+          points: qq.points,
+          displayOrder: qq.displayOrder,
+          ...dataObj,
+        };
+      });
+    }
+
     const lesson = quiz.lesson;
     const topics = quiz.topics || [];
     const topicTitle =
@@ -187,8 +253,9 @@ export class QuizService {
       lessonTitle: lesson?.title || null,
       topicTitle,
       topics,
-      questionCount: questionsArray.length,
-      status: questionsArray.length > 0 ? 'ACTIVE' : 'DRAFT',
+      questions: finalQuestions,
+      questionCount: finalQuestions.length,
+      status: finalQuestions.length > 0 ? 'ACTIVE' : 'DRAFT',
       passingScorePercent:
         quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
     };
@@ -202,14 +269,7 @@ export class QuizService {
     }
 
     if (dto.lessonId) {
-      const lesson = await this.prisma.lesson.findUnique({
-        where: { id: dto.lessonId },
-      });
-      if (!lesson) {
-        throw new NotFoundException(
-          `Không tìm thấy bài học với ID "${dto.lessonId}"`,
-        );
-      }
+      const lesson = await this.findLessonOrThrow(dto.lessonId);
       const existing = await this.prisma.quiz.findUnique({
         where: { lessonId: dto.lessonId },
       });
@@ -221,6 +281,10 @@ export class QuizService {
     }
 
     const topicIds = Array.from(new Set((dto.topicIds || []).filter(Boolean)));
+    const quizQuestionCreates = this.buildQuizQuestionsData(
+      dto.questionIds,
+      dto.questionItems,
+    );
 
     return this.prisma.quiz.create({
       data: {
@@ -233,6 +297,13 @@ export class QuizService {
         questions: normalizedQuestions as any,
         ...(topicIds.length > 0
           ? { topics: { connect: topicIds.map((id) => ({ id })) } }
+          : {}),
+        ...(quizQuestionCreates.length > 0
+          ? {
+              quizQuestions: {
+                create: quizQuestionCreates,
+              },
+            }
           : {}),
       },
       include: {
@@ -250,8 +321,31 @@ export class QuizService {
             slug: true,
           },
         },
+        quizQuestions: {
+          include: {
+            question: true,
+          },
+          orderBy: {
+            displayOrder: 'asc',
+          },
+        },
       },
     });
+  }
+
+  private async findLessonOrThrow(
+    lessonId: string,
+  ): Promise<{ id: string; title: string }> {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { id: true, title: true },
+    });
+    if (!lesson) {
+      throw new NotFoundException(
+        `Không tìm thấy bài học với ID "${lessonId}"`,
+      );
+    }
+    return lesson;
   }
 
   /** Cập nhật một đề Quiz độc lập theo ID */
@@ -271,20 +365,83 @@ export class QuizService {
     }
 
     if (dto.lessonId && dto.lessonId !== existing.lessonId) {
-      const lesson = await this.prisma.lesson.findUnique({
-        where: { id: dto.lessonId },
-      });
-      if (!lesson) {
-        throw new NotFoundException(
-          `Không tìm thấy bài học với ID "${dto.lessonId}"`,
-        );
-      }
+      await this.findLessonOrThrow(dto.lessonId);
     }
 
     const topicIds =
       dto.topicIds !== undefined
         ? Array.from(new Set(dto.topicIds.filter(Boolean)))
         : undefined;
+
+    const hasQuizQuestionsUpdate =
+      dto.questionIds !== undefined || dto.questionItems !== undefined;
+    const quizQuestionCreates = this.buildQuizQuestionsData(
+      dto.questionIds,
+      dto.questionItems,
+    );
+
+    if (hasQuizQuestionsUpdate) {
+      return this.prisma.$transaction(async (tx) => {
+        await tx.quizQuestion.deleteMany({ where: { quizId: id } });
+        if (quizQuestionCreates.length > 0) {
+          await tx.quizQuestion.createMany({
+            data: quizQuestionCreates.map((qq) => ({
+              quizId: id,
+              questionId: qq.questionId,
+              displayOrder: qq.displayOrder,
+              points: qq.points,
+            })),
+          });
+        }
+
+        return tx.quiz.update({
+          where: { id },
+          data: {
+            ...(dto.title !== undefined ? { title: dto.title } : {}),
+            ...(dto.description !== undefined
+              ? { description: dto.description }
+              : {}),
+            ...(dto.lessonId !== undefined
+              ? { lessonId: dto.lessonId || null }
+              : {}),
+            ...(dto.timeLimitMinutes !== undefined
+              ? { timeLimitMinutes: dto.timeLimitMinutes }
+              : {}),
+            ...(dto.passingScorePercent !== undefined
+              ? { passingScorePercent: dto.passingScorePercent }
+              : {}),
+            questions: normalizedQuestions as any,
+            ...(topicIds !== undefined
+              ? { topics: { set: topicIds.map((tid) => ({ id: tid })) } }
+              : {}),
+          },
+          include: {
+            topics: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+            lesson: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+              },
+            },
+            quizQuestions: {
+              include: {
+                question: true,
+              },
+              orderBy: {
+                displayOrder: 'asc',
+              },
+            },
+          },
+        });
+      });
+    }
 
     return this.prisma.quiz.update({
       where: { id },
@@ -322,21 +479,71 @@ export class QuizService {
             slug: true,
           },
         },
+        quizQuestions: {
+          include: {
+            question: true,
+          },
+          orderBy: {
+            displayOrder: 'asc',
+          },
+        },
       },
     });
   }
 
   /** Lấy đề thi thuộc 1 Topic (ưu tiên đề mới nhất) */
   async getQuizByTopic(topicId: string) {
-    return this.prisma.quiz.findFirst({
+    const quiz = await this.prisma.quiz.findFirst({
       where: {
         topics: { some: { id: topicId } },
       },
       include: {
         topics: { select: { id: true, name: true, slug: true } },
+        lesson: { select: { id: true, title: true, slug: true } },
+        quizQuestions: {
+          include: { question: true },
+          orderBy: { displayOrder: 'asc' },
+        },
       },
       orderBy: { updatedAt: 'desc' },
     });
+
+    if (!quiz) return null;
+
+    const rawQuestions = Array.isArray(quiz.questions)
+      ? (quiz.questions as any[])
+      : [];
+
+    let finalQuestions = [...rawQuestions];
+    if (
+      finalQuestions.length === 0 &&
+      quiz.quizQuestions &&
+      quiz.quizQuestions.length > 0
+    ) {
+      finalQuestions = quiz.quizQuestions.map((qq) => {
+        const q = qq.question;
+        const dataObj =
+          typeof q.data === 'object' && q.data !== null
+            ? (q.data as Record<string, any>)
+            : {};
+        return {
+          id: q.id,
+          type: q.type,
+          prompt: q.prompt,
+          explanation: q.explanation,
+          points: qq.points,
+          displayOrder: qq.displayOrder,
+          ...dataObj,
+        };
+      });
+    }
+
+    return {
+      ...quiz,
+      questions: finalQuestions,
+      questionCount: finalQuestions.length,
+      status: finalQuestions.length > 0 ? 'ACTIVE' : 'DRAFT',
+    };
   }
 
   /** Xóa đề Quiz độc lập theo ID */
@@ -356,14 +563,7 @@ export class QuizService {
 
   /** Tạo mới hoặc cập nhật nguyên đề theo Lesson (tương thích ngược với LessonEditor) */
   async upsert(lessonId: string, dto: UpsertQuizDto) {
-    const lesson = await this.prisma.lesson.findUnique({
-      where: { id: lessonId },
-    });
-    if (!lesson) {
-      throw new NotFoundException(
-        `Không tìm thấy bài học với ID "${lessonId}"`,
-      );
-    }
+    await this.findLessonOrThrow(lessonId);
 
     const questions = validateAndNormalizeQuestions(dto.questions);
 

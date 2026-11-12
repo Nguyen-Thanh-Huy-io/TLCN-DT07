@@ -1,6 +1,19 @@
 import api from '../api';
 import { QuizQuestionType } from '@/features/lessons/types/quiz.types';
 
+/** Phương án của câu trắc nghiệm trong `questions.data`. */
+export interface QuestionBankOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+/** Dữ liệu riêng theo dạng câu hỏi (JSONB `questions.data`); chỉ khai các trường dùng chung để xem trước. */
+export type QuestionBankData = Record<string, unknown> & {
+  options?: QuestionBankOption[];
+  correctAnswer?: boolean;
+};
+
 export interface QuestionBankItem {
   id: string;
   type: QuizQuestionType;
@@ -8,7 +21,7 @@ export interface QuestionBankItem {
   explanation?: string | null;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   points: number;
-  data: any;
+  data: QuestionBankData;
   lessons?: Array<{ id: string; title: string }>;
   topics?: Array<{ id: string; name: string }>;
   createdAt: string;
@@ -29,7 +42,7 @@ export interface CreateQuestionPayload {
   explanation?: string;
   difficulty?: 'EASY' | 'MEDIUM' | 'HARD';
   points?: number;
-  data: any;
+  data: Record<string, unknown>;
   lessonIds?: string[];
   topicIds?: string[];
 }

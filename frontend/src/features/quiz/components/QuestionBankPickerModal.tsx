@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { Database, X, RotateCw, Search } from 'lucide-react';
 import {
   QUIZ_QUESTION_TYPE_META,
   QuizQuestion,
@@ -135,7 +134,7 @@ export function QuestionBankPickerModal({
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
             <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-              <Icon name={IconName.DATABASE} size={18} className="text-red-700" />
+              <Database size={18} className="text-red-700" />
               Chọn câu hỏi từ Ngân hàng đề
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -147,7 +146,7 @@ export function QuestionBankPickerModal({
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
           >
-            <Icon name={IconName.X} size={18} />
+            <X size={18} />
           </button>
         </div>
 
@@ -156,8 +155,7 @@ export function QuestionBankPickerModal({
           <div className="flex flex-wrap items-center gap-3">
             {/* Search Input */}
             <div className="relative flex-1 min-w-[200px]">
-              <Icon
-                name={IconName.SEARCH}
+              <Search
                 size={14}
                 className="absolute left-3 top-2.5 text-slate-400"
               />
@@ -225,7 +223,7 @@ export function QuestionBankPickerModal({
         <div className="flex-1 overflow-y-auto p-4 space-y-2.5 max-h-[500px]">
           {loading ? (
             <div className="py-12 text-center text-xs text-slate-500">
-              <Icon name={IconName.ROTATE_CW} size={24} className="animate-spin mx-auto mb-2 text-red-700" />
+              <RotateCw size={24} className="animate-spin mx-auto mb-2 text-red-700" />
               Đang tải danh sách câu hỏi từ ngân hàng...
             </div>
           ) : filteredQuestions.length === 0 ? (

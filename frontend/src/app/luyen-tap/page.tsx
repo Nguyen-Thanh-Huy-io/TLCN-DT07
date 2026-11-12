@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isStaffRole } from '@/services/auth/public-auth.service';
 import {
   ALL_TOPICS_ID,
@@ -13,40 +13,20 @@ import {
 import { QuizFilterBar } from '@/features/quiz/components/QuizFilterBar';
 import { QuizSelectorGrid } from '@/features/quiz/components/QuizSelectorGrid';
 import { QuizBriefingCard } from '@/features/quiz/components/QuizBriefingCard';
+import { QuizQuestionCard } from '@/features/quiz/components/QuizQuestionCard';
+import { QuizExamSidebar } from '@/features/quiz/components/QuizExamSidebar';
+import { QuizStatisticsModal } from '@/features/quiz/components/QuizStatisticsModal';
 import {
-  BookOpen,
-  CheckCircle2,
+  RawQuizQuestion,
+  calculateExamScore,
+} from '@/features/quiz/utils/quiz-score.helper';
+import { QuizApiService, type QuizStatisticsData } from '@/services/entities/quiz.service';
+import {
   Clock,
-  HelpCircle,
-  RotateCcw,
-  Trophy,
-  XCircle,
   Sparkles,
-  ShieldCheck,
-  BarChart3,
   User,
-  AlertTriangle,
-  Play,
-  X,
+  HelpCircle,
 } from 'lucide-react';
-
-interface QuizOptionObject {
-  id?: string;
-  text?: string;
-  isCorrect?: boolean;
-}
-
-type QuizOptionItem = string | QuizOptionObject;
-
-interface RawQuizQuestion {
-  id: string;
-  type: string;
-  prompt: string;
-  options?: QuizOptionItem[];
-  correctAnswer?: string | boolean;
-  acceptedAnswers?: string[];
-  explanation?: string;
-}
 
 interface PublicQuiz {
   id: string;
@@ -73,47 +53,6 @@ interface PublicLessonWithQuiz {
   quiz: PublicQuiz | null;
 }
 
-interface QuizStatisticsData {
-  quizTitle: string;
-  lessonTitle?: string;
-  summary: {
-    totalAttempts: number;
-    passedAttempts: number;
-    passRatePercent: number;
-    averageScore: number;
-    averageTimeMinutes: string;
-  };
-  recentAttempts: Array<{
-    id: string;
-    learnerName: string;
-    scorePercent: number;
-    correctCount: number;
-    totalQuestions: number;
-    timeSpentSeconds: number;
-    isPassed: boolean;
-    submittedAt: string;
-  }>;
-}
-
-function getOptionLabel(opt: QuizOptionItem): string {
-  if (typeof opt === 'string') return opt;
-  if (typeof opt === 'object' && opt !== null) {
-    return opt.text || opt.id || '';
-  }
-  return String(opt);
-}
-
-function isOptionCorrectAnswer(opt: QuizOptionItem, q: RawQuizQuestion): boolean {
-  if (typeof opt === 'object' && opt !== null && typeof opt.isCorrect === 'boolean') {
-    return opt.isCorrect;
-  }
-  const label = getOptionLabel(opt);
-  if (typeof q.correctAnswer === 'string') {
-    return label.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase();
-  }
-  return false;
-}
-
 export default function LuyenTapPage() {
   const sessionUser = useAuthSession();
   const isStaff = isStaffRole(sessionUser?.role);
@@ -127,7 +66,9 @@ export default function LuyenTapPage() {
 
   useEffect(() => {
     if (sessionUser?.displayName || sessionUser?.username) {
-      setLearnerName(sessionUser.displayName || sessionUser.username);
+      void Promise.resolve().then(() => {
+        setLearnerName(sessionUser.displayName || sessionUser.username);
+      });
     }
   }, [sessionUser]);
 
@@ -161,13 +102,9 @@ export default function LuyenTapPage() {
   );
 
   useEffect(() => {
-    fetch('/api/public/lessons')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        const list: PublicLessonWithQuiz[] = data.data || [];
+    QuizApiService.getPublicLessons()
+      .then((data: unknown) => {
+        const list = (Array.isArray(data) ? data : (data as { data?: unknown[] })?.data || []) as PublicLessonWithQuiz[];
         const quizzesOnly = list.filter((l) => l.quiz && l.quiz.questions?.length > 0);
         setLessons(quizzesOnly);
         if (quizzesOnly.length > 0) {
@@ -181,6 +118,16 @@ export default function LuyenTapPage() {
   const activeLesson = lessons.find((l) => l.id === activeLessonId) || lessons[0];
   const activeQuiz = activeLesson?.quiz;
   const questions = activeQuiz?.questions || [];
+
+  const handleReset = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setExamStarted(false);
+    setTimeLeft((activeQuiz?.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES) * 60);
+    setSelectedAnswers({});
+    setSubmitted(false);
+    setSubmitError(null);
+    setViewExplanation({});
+  }, [activeQuiz]);
 
   // Reset khi đổi đề
   const handleSelectLesson = (lessonId: string) => {
@@ -202,19 +149,9 @@ export default function LuyenTapPage() {
     setViewExplanation({});
   };
 
-  const handleReset = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setExamStarted(false);
-    setTimeLeft((activeQuiz?.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES) * 60);
-    setSelectedAnswers({});
-    setSubmitted(false);
-    setSubmitError(null);
-    setViewExplanation({});
-  };
-
   // Đồng hồ đếm ngược
   useEffect(() => {
-    if (examStarted && !submitted && timeLeft > 0) {
+    if (examStarted && !submitted) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -231,13 +168,6 @@ export default function LuyenTapPage() {
     };
   }, [examStarted, submitted]);
 
-  // Format thời gian hiển thị MM:SS
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
   const handleSelectAnswer = (qIndex: number, optionVal: string) => {
     if (submitted) return;
     if (!examStarted) {
@@ -246,37 +176,8 @@ export default function LuyenTapPage() {
     setSelectedAnswers((prev) => ({ ...prev, [qIndex]: optionVal }));
   };
 
-  // Tính điểm
-  const calculateScore = () => {
-    let correct = 0;
-    questions.forEach((q, idx) => {
-      const userAns = selectedAnswers[idx];
-      if (!userAns) return;
-
-      if (q.type === 'MULTIPLE_CHOICE') {
-        const matchedOpt = (q.options || []).find((opt) => getOptionLabel(opt) === userAns);
-        if (matchedOpt && isOptionCorrectAnswer(matchedOpt, q)) correct++;
-      } else if (q.type === 'TRUE_FALSE') {
-        const boolUser = userAns === 'Đúng';
-        if (typeof q.correctAnswer === 'boolean') {
-          if (boolUser === q.correctAnswer) correct++;
-        } else if (typeof q.correctAnswer === 'string') {
-          if (userAns.toLowerCase() === q.correctAnswer.toLowerCase()) correct++;
-        }
-      } else if (q.type === 'FILL_IN_BLANK') {
-        const matches = (q.acceptedAnswers || []).some(
-          (ans) => ans.trim().toLowerCase() === userAns.trim().toLowerCase()
-        );
-        if (matches) correct++;
-      } else {
-        correct++;
-      }
-    });
-    return correct;
-  };
-
   const totalQuestions = questions.length;
-  const correctCount = calculateScore();
+  const correctCount = calculateExamScore(questions, selectedAnswers);
   const scorePercent = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
   const isPassed = scorePercent >= (activeQuiz?.passingScorePercent ?? DEFAULT_PASSING_SCORE_PERCENT);
 
@@ -291,22 +192,15 @@ export default function LuyenTapPage() {
     const timeSpent = Math.max(1, totalSeconds - timeLeft);
 
     try {
-      const res = await fetch(`/api/public/quizzes/${activeQuiz.id}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          learnerName: learnerName.trim() || 'Thí sinh tự do',
-          scorePercent,
-          correctCount,
-          totalQuestions,
-          timeSpentSeconds: timeSpent,
-          isPassed,
-          answers: selectedAnswers,
-        }),
+      await QuizApiService.submitQuizAttempt(activeQuiz.id, {
+        learnerName: learnerName.trim() || 'Thí sinh tự do',
+        scorePercent,
+        correctCount,
+        totalQuestions,
+        timeSpentSeconds: timeSpent,
+        isPassed,
+        answers: selectedAnswers,
       });
-      if (!res.ok) {
-        throw new Error(`Nộp bài thất bại (HTTP ${res.status})`);
-      }
       setSubmitted(true);
     } catch (err) {
       console.error('Lỗi khi nộp bài:', err);
@@ -330,9 +224,7 @@ export default function LuyenTapPage() {
     setShowStatsModal(true);
     setStatsLoading(true);
     try {
-      const res = await fetch(`/api/public/quizzes/${activeQuiz.id}/statistics`);
-      const json = await res.json();
-      const actualStats = (json.data?.summary ? json.data : json.summary ? json : null) as QuizStatisticsData | null;
+      const actualStats = await QuizApiService.getQuizStatistics(activeQuiz.id);
       setStatsData(actualStats);
     } catch (err) {
       console.error('Lỗi khi tải thống kê:', err);
@@ -489,378 +381,52 @@ export default function LuyenTapPage() {
 
               {/* Các câu hỏi */}
               <div className="p-5 md:p-6 space-y-6">
-                {questions.map((q, idx) => {
-                  const isSelected = selectedAnswers[idx];
-
-                  let optionList: string[] = [];
-                  if (q.type === 'TRUE_FALSE') {
-                    optionList = ['Đúng', 'Sai'];
-                  } else if (q.options && q.options.length > 0) {
-                    optionList = q.options.map(getOptionLabel);
-                  }
-
-                  const checkAnswerCorrect = (val: string) => {
-                    if (q.type === 'TRUE_FALSE') {
-                      const isTrue = val === 'Đúng';
-                      if (typeof q.correctAnswer === 'boolean') return isTrue === q.correctAnswer;
-                      if (typeof q.correctAnswer === 'string') return val.toLowerCase() === q.correctAnswer.toLowerCase();
-                    } else if (q.type === 'MULTIPLE_CHOICE') {
-                      const matched = (q.options || []).find((opt) => getOptionLabel(opt) === val);
-                      return matched ? isOptionCorrectAnswer(matched, q) : false;
+                {questions.map((q, idx) => (
+                  <QuizQuestionCard
+                    key={q.id || idx}
+                    question={q}
+                    index={idx}
+                    isSelected={selectedAnswers[idx]}
+                    submitted={submitted}
+                    onSelectAnswer={handleSelectAnswer}
+                    showExplanation={Boolean(viewExplanation[idx])}
+                    onToggleExplanation={(qIndex) =>
+                      setViewExplanation((prev) => ({ ...prev, [qIndex]: !prev[qIndex] }))
                     }
-                    return false;
-                  };
-
-                  const isCurrentCorrect = isSelected ? checkAnswerCorrect(isSelected) : false;
-                  const showExpl = submitted || viewExplanation[idx];
-
-                  return (
-                    <div
-                      key={q.id || idx}
-                      id={`question-box-${idx}`}
-                      className="p-5 rounded-xl border border-stone-200/80 bg-stone-50/40 hover:border-stone-300 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="w-7 h-7 rounded-lg bg-[#8B261E] text-white flex items-center justify-center text-xs font-bold">
-                            {idx + 1}
-                          </span>
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">
-                            {q.type === 'MULTIPLE_CHOICE'
-                              ? 'Trắc nghiệm'
-                              : q.type === 'TRUE_FALSE'
-                              ? 'Đúng / Sai'
-                              : 'Điền khuyết'}
-                          </span>
-                        </div>
-
-                        {submitted && (
-                          <div>
-                            {isCurrentCorrect ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800">
-                                <CheckCircle2 size={13} /> Chính xác
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800">
-                                <XCircle size={13} /> Chưa đúng
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <h4 className="text-sm md:text-base font-medium text-stone-900 mb-3.5 leading-snug">
-                        {q.prompt}
-                      </h4>
-
-                      {/* Lựa chọn */}
-                      {optionList.length > 0 && (
-                        <div className="grid sm:grid-cols-2 gap-2 mb-2">
-                          {optionList.map((optText, optIdx) => {
-                            const isOptionSelected = isSelected === optText;
-                            const isOptionCorrect = checkAnswerCorrect(optText);
-
-                            let btnStyle = 'bg-white border-stone-200 hover:bg-stone-50 text-stone-800';
-
-                            if (submitted) {
-                              if (isOptionCorrect) {
-                                btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-semibold ring-1 ring-emerald-500';
-                              } else if (isOptionSelected && !isOptionCorrect) {
-                                btnStyle = 'bg-rose-50 border-rose-400 text-rose-900 ring-1 ring-rose-400';
-                              }
-                            } else if (isOptionSelected) {
-                              btnStyle = 'bg-[#8B261E]/5 border-[#8B261E] text-[#8B261E] font-semibold ring-2 ring-[#8B261E]/20';
-                            }
-
-                            return (
-                              <button
-                                key={optIdx}
-                                type="button"
-                                disabled={submitted}
-                                onClick={() => handleSelectAnswer(idx, optText)}
-                                className={`p-3 rounded-lg border text-left text-xs sm:text-sm transition-all duration-150 flex items-center justify-between cursor-pointer ${btnStyle}`}
-                              >
-                                <span className="leading-relaxed">{optText}</span>
-                                {submitted && isOptionCorrect && (
-                                  <CheckCircle2 size={15} className="text-emerald-600 shrink-0 ml-2" />
-                                )}
-                                {submitted && isOptionSelected && !isOptionCorrect && (
-                                  <XCircle size={15} className="text-rose-500 shrink-0 ml-2" />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Giải thích */}
-                      {q.explanation && (
-                        <div className="mt-2.5">
-                          {!submitted && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setViewExplanation((prev) => ({ ...prev, [idx]: !prev[idx] }))
-                              }
-                              className="text-xs font-semibold text-stone-500 hover:text-[#8B261E] inline-flex items-center gap-1 transition-colors cursor-pointer"
-                            >
-                              <HelpCircle size={12} />
-                              {showExpl ? 'Ẩn lời giải' : 'Xem gợi ý / giải thích'}
-                            </button>
-                          )}
-
-                          {showExpl && (
-                            <div className="mt-2 p-3 rounded-lg bg-amber-50/80 border border-amber-200/70 text-xs text-amber-950 leading-relaxed">
-                              <span className="font-bold text-amber-900 block mb-0.5">
-                                💡 Lời giải thích:
-                              </span>
-                              {q.explanation}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                  />
+                ))}
               </div>
             </div>
 
             {/* Cột bên phải: Bảng điều khiển nộp bài & Đồng hồ bấm giờ (4 cột) */}
-            <div className="lg:col-span-4 sticky top-24 space-y-4">
-              {/* Box Đồng hồ đếm ngược */}
-              <div className="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-sm text-center">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center justify-center gap-1.5">
-                  <Clock size={14} className="text-[#8B261E]" /> Thời gian làm bài
-                </div>
-
-                <div
-                  className={`text-4xl font-mono font-bold my-2 tracking-tight ${
-                    timeLeft <= 60 && examStarted && !submitted
-                      ? 'text-rose-600 animate-pulse'
-                      : 'text-stone-900'
-                  }`}
-                >
-                  {formatTime(examStarted ? timeLeft : (activeQuiz.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES) * 60)}
-                </div>
-
-                {!examStarted && !submitted && (
-                  <button
-                    type="button"
-                    onClick={handleStartExam}
-                    className="w-full py-2.5 px-4 rounded-xl bg-emerald-700 text-white font-bold text-sm hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-                  >
-                    <Play size={16} /> Bắt đầu tính giờ làm bài
-                  </button>
-                )}
-
-                {examStarted && !submitted && (
-                  <div className="text-xs text-emerald-700 font-medium flex items-center justify-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping" />
-                    Đang tính giờ thi trực tiếp
-                  </div>
-                )}
-
-                {submitted && (
-                  <div className="text-xs text-stone-500 font-medium">
-                    Bài thi đã nộp thành công
-                  </div>
-                )}
-              </div>
-
-              {/* Bảng điều hướng câu hỏi (Question Grid) */}
-              <div className="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-sm">
-                <div className="flex items-center justify-between mb-3 text-xs font-bold text-stone-700">
-                  <span>Mục lục câu hỏi</span>
-                  <span>
-                    {Object.keys(selectedAnswers).length}/{totalQuestions} đã làm
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-5 gap-2 mb-4">
-                  {questions.map((_, idx) => {
-                    const isAnswered = selectedAnswers[idx] !== undefined;
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          const el = document.getElementById(`question-box-${idx}`);
-                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }}
-                        className={`h-9 rounded-lg font-bold text-xs flex items-center justify-center transition-all cursor-pointer border ${
-                          isAnswered
-                            ? 'bg-[#8B261E] text-white border-[#8B261E]'
-                            : 'bg-stone-50 text-stone-600 border-stone-200 hover:border-stone-300'
-                        }`}
-                      >
-                        {idx + 1}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Kết quả sau khi nộp */}
-                {submitted ? (
-                  <div className="pt-3 border-t border-stone-100">
-                    <div className="flex items-center justify-between text-xs text-stone-600 mb-1">
-                      <span>Điểm số đạt được:</span>
-                      <strong className="text-base text-stone-900">{scorePercent}%</strong>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-stone-600 mb-3">
-                      <span>Số câu đúng:</span>
-                      <strong className="text-emerald-700 font-bold">{correctCount}/{totalQuestions} câu</strong>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleReset}
-                      className="w-full py-2.5 rounded-xl bg-stone-100 text-stone-800 font-bold text-xs hover:bg-stone-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer mb-2"
-                    >
-                      <RotateCcw size={14} /> Làm lại đề này
-                    </button>
-
-                    {isStaff && (
-                      <button
-                        type="button"
-                        onClick={handleOpenStatistics}
-                        className="w-full py-2 rounded-xl border border-stone-200 bg-white text-stone-700 font-bold text-xs hover:bg-stone-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                        title="Chỉ hiển thị cho Ban biên tập & Quản trị viên"
-                      >
-                        <BarChart3 size={14} className="text-[#8B261E]" /> Xem Phổ Điểm & Thống Kê (Editor)
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    {submitError && (
-                      <p className="mb-2 text-xs font-semibold text-red-600 text-center">{submitError}</p>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleSubmitExam}
-                      disabled={submitting}
-                      className="w-full py-3 rounded-xl bg-[#8B261E] text-white font-bold text-sm hover:bg-[#721F18] transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
-                    >
-                      <ShieldCheck size={16} /> {submitting ? 'Đang nộp bài…' : submitError ? 'Thử nộp lại' : 'Nộp bài & Xem điểm'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <QuizExamSidebar
+              timeLeft={timeLeft}
+              totalTimeMinutes={activeQuiz.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES}
+              examStarted={examStarted}
+              submitted={submitted}
+              submitting={submitting}
+              submitError={submitError}
+              onStartExam={handleStartExam}
+              onSubmitExam={handleSubmitExam}
+              onResetExam={handleReset}
+              totalQuestions={totalQuestions}
+              selectedAnswers={selectedAnswers}
+              scorePercent={scorePercent}
+              correctCount={correctCount}
+              isStaff={isStaff}
+              onOpenStatistics={handleOpenStatistics}
+            />
           </div>
         )}
       </main>
 
-      {/* Modal Thống kê Lượt Nộp Bài (Theo dõi ai nộp & điểm số) */}
-      {showStatsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white w-full max-w-2xl max-h-[85vh] rounded-2xl shadow-xl border border-stone-200 flex flex-col overflow-hidden">
-            <div className="p-4 md:p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-[#8B261E]/10 text-[#8B261E] flex items-center justify-center">
-                  <BarChart3 size={18} />
-                </div>
-                <div>
-                  <h3 className="text-sm md:text-base font-bold text-stone-900">
-                    Thống Kê Khảo Thí & Danh Sách Nộp Bài
-                  </h3>
-                  <p className="text-[11px] text-stone-500 line-clamp-1">{activeQuiz?.title}</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowStatsModal(false)}
-                className="p-1.5 text-stone-400 hover:text-stone-600 rounded-lg cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-5 flex-1 overflow-y-auto space-y-5">
-              {statsLoading ? (
-                <div className="py-12 text-center text-stone-500 flex flex-col items-center gap-2">
-                  <div className="w-6 h-6 border-2 border-[#8B261E] border-t-transparent rounded-full animate-spin" />
-                  <p className="text-xs">Đang tải dữ liệu thống kê...</p>
-                </div>
-              ) : statsData ? (
-                <>
-                  {/* Bảng 3 chỉ số tổng quan */}
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
-                      <div className="text-[11px] text-stone-500 font-medium">Lượt tham gia</div>
-                      <div className="text-lg font-bold text-stone-900 mt-0.5">
-                        {statsData?.summary?.totalAttempts ?? 0}
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950">
-                      <div className="text-[11px] text-emerald-700 font-medium">Tỉ lệ đạt chuẩn</div>
-                      <div className="text-lg font-bold text-emerald-800 mt-0.5">
-                        {statsData?.summary?.passRatePercent ?? 0}%
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-950">
-                      <div className="text-[11px] text-amber-700 font-medium">Điểm trung bình</div>
-                      <div className="text-lg font-bold text-amber-800 mt-0.5">
-                        {statsData?.summary?.averageScore ?? 0}%
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Danh sách người nộp bài gần đây */}
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-stone-600 mb-2.5">
-                      Danh sách lượt nộp bài gần đây
-                    </h4>
-
-                    {(statsData?.recentAttempts || []).length === 0 ? (
-                      <div className="p-8 text-center text-xs text-stone-500 bg-stone-50 rounded-xl border border-stone-200">
-                        Chưa có lượt nộp bài nào được ghi nhận cho đề này.
-                      </div>
-                    ) : (
-                      <div className="border border-stone-200 rounded-xl overflow-hidden divide-y divide-stone-100">
-                        {(statsData?.recentAttempts || []).map((attempt) => (
-                          <div
-                            key={attempt.id}
-                            className="p-3.5 flex items-center justify-between text-xs hover:bg-stone-50 transition-colors"
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-[11px]">
-                                {attempt.learnerName.charAt(0).toUpperCase()}
-                              </div>
-                              <div>
-                                <div className="font-bold text-stone-900">{attempt.learnerName}</div>
-                                <div className="text-[10px] text-stone-400">
-                                  {new Date(attempt.submittedAt).toLocaleTimeString('vi-VN')} &bull;{' '}
-                                  {new Date(attempt.submittedAt).toLocaleDateString('vi-VN')}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-4 text-right">
-                              <div className="text-[11px] text-stone-500">
-                                Làm trong: <strong>{attempt.timeSpentSeconds}s</strong>
-                              </div>
-                              <div
-                                className={`px-2.5 py-1 rounded-md font-bold text-xs ${
-                                  attempt.isPassed
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : 'bg-rose-100 text-rose-800'
-                                }`}
-                              >
-                                {attempt.scorePercent}% ({attempt.correctCount}/{attempt.totalQuestions})
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      )}
+      <QuizStatisticsModal
+        isOpen={showStatsModal}
+        onClose={() => setShowStatsModal(false)}
+        quizTitle={activeQuiz?.title}
+        loading={statsLoading}
+        data={statsData}
+      />
 
       <Footer />
     </div>

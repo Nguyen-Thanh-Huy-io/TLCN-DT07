@@ -2,11 +2,38 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   Max,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class QuizQuestionItemDto {
+  @ApiProperty({ description: 'ID câu hỏi từ Ngân hàng câu hỏi' })
+  @IsString()
+  questionId: string;
+
+  @ApiPropertyOptional({
+    description: 'Thứ tự hiển thị trong đề thi',
+    default: 0,
+    example: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  displayOrder?: number;
+
+  @ApiPropertyOptional({
+    description: 'Điểm số của câu hỏi trong đề thi này',
+    default: 10,
+    example: 10,
+  })
+  @IsOptional()
+  @IsNumber()
+  points?: number;
+}
 
 export class CreateStandaloneQuizDto {
   @ApiProperty({
@@ -44,6 +71,27 @@ export class CreateStandaloneQuizDto {
   topicIds?: string[];
 
   @ApiPropertyOptional({
+    description: 'Danh sách ID các câu hỏi chọn từ Ngân hàng câu hỏi',
+    type: [String],
+    example: ['uuid-q1', 'uuid-q2'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  questionIds?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Danh sách chi tiết câu hỏi từ Ngân hàng câu hỏi kèm thứ tự và điểm số',
+    type: [QuizQuestionItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => QuizQuestionItemDto)
+  questionItems?: QuizQuestionItemDto[];
+
+  @ApiPropertyOptional({
     example: 15,
     description: 'Thời gian làm bài tính bằng phút (mặc định 15)',
   })
@@ -63,13 +111,14 @@ export class CreateStandaloneQuizDto {
   @Max(100)
   passingScorePercent?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description:
-      'Danh sách các câu hỏi trong đề (được tổng hợp từ Ngân hàng câu hỏi hoặc tạo mới)',
+      'Danh sách các câu hỏi nhúng trực tiếp trong đề (hỗ trợ tương thích ngược và tạo nhanh)',
     type: [Object],
   })
+  @IsOptional()
   @IsArray()
-  questions: unknown[];
+  questions?: unknown[];
 }
 
 export class UpdateStandaloneQuizDto {
@@ -99,6 +148,27 @@ export class UpdateStandaloneQuizDto {
   @IsArray()
   @IsString({ each: true })
   topicIds?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Danh sách ID các câu hỏi chọn từ Ngân hàng câu hỏi',
+    type: [String],
+    example: ['uuid-q1', 'uuid-q2'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  questionIds?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Danh sách chi tiết câu hỏi từ Ngân hàng câu hỏi kèm thứ tự và điểm số',
+    type: [QuizQuestionItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => QuizQuestionItemDto)
+  questionItems?: QuizQuestionItemDto[];
 
   @ApiPropertyOptional({ example: 15 })
   @IsOptional()

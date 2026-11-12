@@ -132,7 +132,7 @@ export function QuizManagementView() {
             <option value={ALL_FILTER_VALUE}>Tất cả chủ đề</option>
             {topics.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.title}
+                {t.name}
               </option>
             ))}
           </select>
@@ -249,10 +249,10 @@ export function QuizManagementView() {
                               <span
                                 key={topic.id}
                                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-red-50 text-red-700 border border-red-100"
-                                title={topic.title}
+                                title={topic.name}
                               >
                                 <Tag size={10} className="shrink-0" />
-                                <span className="truncate max-w-[120px]">{topic.title}</span>
+                                <span className="truncate max-w-[120px]">{topic.name}</span>
                               </span>
                             ))
                           ) : quiz.topicTitle ? (

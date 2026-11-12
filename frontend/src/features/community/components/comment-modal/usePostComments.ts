@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { API_BASE_URL } from '@/constants/api-url';
 import { CommunityApi, CommunityPost } from '../../api';
 import {
@@ -26,17 +26,20 @@ interface UsePostCommentsProps {
   ) => void;
 }
 
-interface SocketCommentPayload {
+interface CommentPayloadData {
   id?: string;
   authorId?: string;
   author?: { id?: string; username?: string };
   authorName?: string;
-  content: string;
+  content?: string;
   createdAt?: string;
   likeCount?: number;
   likesCount?: number;
   parentId?: string | null;
-  comment?: { id?: string; content?: string };
+}
+
+interface SocketCommentPayload extends CommentPayloadData {
+  comment?: CommentPayloadData;
   commentId?: string;
   type?: string;
 }
@@ -100,14 +103,16 @@ export function usePostComments({
 
     socket.on('post:comment-added', (payload: SocketCommentPayload) => {
       const newComment = payload?.comment ?? payload;
-      if (!newComment?.id) return;
+      const commentId = newComment?.id;
+      const commentContent = newComment?.content;
+      if (!commentId || !commentContent) return;
       setComments((prev) => {
         const mapped: CommunityCommentItem = {
-          id: newComment.id,
-          authorId: newComment.author?.id || newComment.authorId,
+          id: commentId,
+          authorId: newComment.author?.id || newComment.authorId || 'anonymous',
           authorName:
             newComment.author?.username || newComment.authorName || 'Thành viên HISGO',
-          content: newComment.content,
+          content: commentContent,
           createdAt: newComment.createdAt || new Date().toISOString(),
           likes: newComment.likeCount || newComment.likesCount || 0,
           likedByMe: false,
@@ -256,12 +261,12 @@ export function usePostComments({
       if (saved?.id) {
         const mapped: CommunityCommentItem = {
           id: saved.id,
-          authorId: saved.author?.id || currentUserId,
-          authorName: saved.author?.username || currentUserName,
+          authorId: saved.author?.id || saved.authorId || currentUserId,
+          authorName: saved.author?.username || saved.authorName || currentUserName,
           authorBadge: currentUserId === post.author?.id ? 'Tác giả' : undefined,
           content: saved.content || trimmed,
           createdAt: saved.createdAt || new Date().toISOString(),
-          likes: saved.likeCount || 0,
+          likes: saved.likeCount || saved.likesCount || saved.likes || 0,
           likedByMe: false,
           replies: [],
         };

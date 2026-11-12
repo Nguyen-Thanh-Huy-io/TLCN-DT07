@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { API_BASE_URL } from '@/constants/api-url';
 import { UserRole } from '@/constants/enums';
 import { ComposerMode } from '@/constants/community.constant';
@@ -82,15 +82,19 @@ export function useCommunityProfile({
 
   useEffect(() => {
     let active = true;
-    void refreshProfile().then(() => {
-      if (!active) return;
-    });
-    void CommunityApi.getSuggestedMembers(5).then((list) => {
-      if (!active) return;
-      setSuggestedMembers(list);
-    });
+    const timer = setTimeout(() => {
+      void refreshProfile().then(() => {
+        if (!active) return;
+      });
+      void CommunityApi.getSuggestedMembers(5).then((list) => {
+        if (!active) return;
+        setSuggestedMembers(list);
+      });
+    }, 0);
+
     return () => {
       active = false;
+      clearTimeout(timer);
     };
   }, [refreshProfile]);
 

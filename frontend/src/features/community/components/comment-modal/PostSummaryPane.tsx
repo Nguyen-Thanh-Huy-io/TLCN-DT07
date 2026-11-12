@@ -15,6 +15,99 @@ import { PostActionBar } from '../PostActionBar';
 import { getAuthorTint, getInitials } from '../../utils/author-avatar.util';
 import { formatVietnameseRelativeTime } from './comment-tree.util';
 
+interface SharedBlogPreviewCardProps {
+  sharedBlog: NonNullable<ReturnType<typeof extractCommunityContent>['sharedBlog']>;
+  onClose: () => void;
+}
+
+function SharedBlogPreviewCard({ sharedBlog, onClose }: SharedBlogPreviewCardProps) {
+  const [sharedImgError, setSharedImgError] = useState(false);
+  const sharedCoverImage =
+    !sharedImgError &&
+    sharedBlog?.coverImageUrl &&
+    !sharedBlog.coverImageUrl.includes('cld-sample-6.jpg')
+      ? sharedBlog.coverImageUrl
+      : null;
+
+  return (
+    <Link
+      href={`/blog/${sharedBlog.slug}`}
+      onClick={onClose}
+      className="group mt-3.5 block overflow-hidden rounded-[8px] border border-[#D8C8AA] bg-[#F4ECDA] transition-colors hover:border-[#8A5A19]"
+    >
+      {sharedCoverImage ? (
+        <div className="relative aspect-[16/8] max-h-[260px] w-full overflow-hidden bg-[#EADBC0]">
+          <Image
+            src={sharedCoverImage}
+            alt={sharedBlog.title}
+            width={800}
+            height={260}
+            unoptimized
+            onError={() => setSharedImgError(true)}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+          />
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-[4px] bg-[#14233F]/85 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#FAF5E6]">
+            <BookOpen size={11} />
+            <span>HISGO BLOG</span>
+          </span>
+        </div>
+      ) : null}
+      <div className="p-3.5 md:p-4">
+        <div className="flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#8A5A19]">
+          <span>
+            HISGO.VN/BLOG ·{' '}
+            {sharedBlog.authorName ? `TÁC GIẢ: ${sharedBlog.authorName}` : 'CHUYÊN KHẢO'}
+          </span>
+          <span className="inline-flex items-center gap-1 text-[#7A1F24] group-hover:underline">
+            <span>Đọc trên Blog</span>
+            <ExternalLink size={11} />
+          </span>
+        </div>
+        <h4 className="mt-1 text-[16px] font-bold text-[#14233F] group-hover:text-[#7A1F24]">
+          {sharedBlog.title}
+        </h4>
+        {sharedBlog.excerpt ? (
+          <p className="mt-1 line-clamp-2 text-[13px] text-[#5C4E3C]">
+            {sharedBlog.excerpt}
+          </p>
+        ) : null}
+      </div>
+    </Link>
+  );
+}
+
+function PrimaryImageFigure({
+  primaryImage,
+  primaryCaption,
+  postTitle,
+}: {
+  primaryImage: string;
+  primaryCaption?: string | null;
+  postTitle: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+  if (imgError) return null;
+
+  return (
+    <figure className="mt-3.5 overflow-hidden rounded-[8px] border border-[#E5DAC4] bg-[#F2E8D5]">
+      <Image
+        src={primaryImage}
+        alt={primaryCaption || postTitle}
+        width={800}
+        height={360}
+        unoptimized
+        onError={() => setImgError(true)}
+        className="max-h-[360px] w-full object-cover"
+      />
+      {primaryCaption ? (
+        <figcaption className="bg-[#EFE4CF] px-3.5 py-2 text-[12px] text-[#6E5D4B]">
+          Nguồn / Chú thích: {primaryCaption}
+        </figcaption>
+      ) : null}
+    </figure>
+  );
+}
+
 interface PostSummaryPaneProps {
   post: CommunityPost;
   totalCommentCount: number;
@@ -32,9 +125,6 @@ export function PostSummaryPane({
   onLikeUpdate,
   onBookmarkUpdate,
 }: PostSummaryPaneProps) {
-  const [imgError, setImgError] = useState(false);
-  const [sharedImgError, setSharedImgError] = useState(false);
-
   const authorName = post.author?.username || 'Thành viên HISGO';
   const authorTint = getAuthorTint(authorName);
   const parsed = extractCommunityContent(post);
@@ -44,17 +134,10 @@ export function PostSummaryPane({
     ? post.coverImageUrl || parsed.images[0]?.url || null
     : null;
   const primaryImage =
-    !imgError && rawPrimaryImage && !rawPrimaryImage.includes('cld-sample-6.jpg')
+    rawPrimaryImage && !rawPrimaryImage.includes('cld-sample-6.jpg')
       ? rawPrimaryImage
       : null;
   const primaryCaption = parsed.images[0]?.caption;
-
-  const sharedCoverImage =
-    !sharedImgError &&
-    sharedBlog?.coverImageUrl &&
-    !sharedBlog.coverImageUrl.includes('cld-sample-6.jpg')
-      ? sharedBlog.coverImageUrl
-      : null;
 
   return (
     <div className="rounded-[8px] border border-[#E5DAC4] bg-[#FDF9F0] p-4 md:p-5">
@@ -138,69 +221,16 @@ export function PostSummaryPane({
 
       {/* Thẻ chia sẻ bài Blog kiểu Facebook bên trong Popup */}
       {sharedBlog ? (
-        <Link
-          href={`/blog/${sharedBlog.slug}`}
-          onClick={onClose}
-          className="group mt-3.5 block overflow-hidden rounded-[8px] border border-[#D8C8AA] bg-[#F4ECDA] transition-colors hover:border-[#8A5A19]"
-        >
-          {sharedCoverImage ? (
-            <div className="relative aspect-[16/8] max-h-[260px] w-full overflow-hidden bg-[#EADBC0]">
-              <Image
-                src={sharedCoverImage}
-                alt={sharedBlog.title}
-                width={800}
-                height={260}
-                unoptimized
-                onError={() => setSharedImgError(true)}
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-              />
-              <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-[4px] bg-[#14233F]/85 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#FAF5E6]">
-                <BookOpen size={11} />
-                <span>HISGO BLOG</span>
-              </span>
-            </div>
-          ) : null}
-          <div className="p-3.5 md:p-4">
-            <div className="flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#8A5A19]">
-              <span>
-                HISGO.VN/BLOG ·{' '}
-                {sharedBlog.authorName ? `TÁC GIẢ: ${sharedBlog.authorName}` : 'CHUYÊN KHẢO'}
-              </span>
-              <span className="inline-flex items-center gap-1 text-[#7A1F24] group-hover:underline">
-                <span>Đọc trên Blog</span>
-                <ExternalLink size={11} />
-              </span>
-            </div>
-            <h4 className="mt-1 text-[16px] font-bold text-[#14233F] group-hover:text-[#7A1F24]">
-              {sharedBlog.title}
-            </h4>
-            {sharedBlog.excerpt ? (
-              <p className="mt-1 line-clamp-2 text-[13px] text-[#5C4E3C]">
-                {sharedBlog.excerpt}
-              </p>
-            ) : null}
-          </div>
-        </Link>
+        <SharedBlogPreviewCard sharedBlog={sharedBlog} onClose={onClose} />
       ) : null}
 
       {/* Ảnh đính kèm bài ngắn nếu có */}
       {primaryImage ? (
-        <figure className="mt-3.5 overflow-hidden rounded-[8px] border border-[#E5DAC4] bg-[#F2E8D5]">
-          <Image
-            src={primaryImage}
-            alt={primaryCaption || post.title}
-            width={800}
-            height={360}
-            unoptimized
-            onError={() => setImgError(true)}
-            className="max-h-[360px] w-full object-cover"
-          />
-          {primaryCaption ? (
-            <figcaption className="bg-[#EFE4CF] px-3.5 py-2 text-[12px] text-[#6E5D4B]">
-              Nguồn / Chú thích: {primaryCaption}
-            </figcaption>
-          ) : null}
-        </figure>
+        <PrimaryImageFigure
+          primaryImage={primaryImage}
+          primaryCaption={primaryCaption}
+          postTitle={post.title}
+        />
       ) : null}
 
       <PostActionBar

@@ -5,11 +5,8 @@
  * Route backend: backend/src/blog/blog.controller.ts (prefix /posts).
  */
 
-import { INTERNAL_API_BASE_URL } from '@/constants/api-url';
 import api, { extractErrorMessage } from '@/services/api';
 import type { BlogPostTypeValue, BlogStatusValue } from '@/services/entities/blog.service';
-
-const API_URL = INTERNAL_API_BASE_URL;
 
 const POSTS_BASE_PATH = '/posts';
 const SSR_ME_IDENTIFIER = 'me';
@@ -177,13 +174,18 @@ export interface ReportPostResult {
   reportId: string;
 }
 
+export interface CommunityReferenceItem {
+  title: string;
+  source?: string | null;
+}
+
 export interface CommunityContentParsed {
   tags: string[];
   period: string | null;
   locations: string | null;
   paragraphs: string[];
   images: Array<{ url: string; caption?: string | null }>;
-  references: Array<{ title: string; source?: string | null }>;
+  references: CommunityReferenceItem[];
   sharedBlog: SharedBlogEmbed | null;
 }
 
@@ -530,6 +532,27 @@ function unwrapData<T>(res: { data: { data?: T } & T }): T {
   return (res.data?.data ?? res.data) as T;
 }
 
+export interface RawCommentAuthor {
+  id: string;
+  username: string;
+  avatarUrl?: string | null;
+}
+
+export interface RawCommunityComment {
+  id: string;
+  parentId?: string | null;
+  authorId?: string;
+  author?: RawCommentAuthor;
+  authorName?: string;
+  content: string;
+  createdAt?: string;
+  updatedAt?: string;
+  likesCount?: number;
+  likes?: number;
+  likeCount?: number;
+  likedByMe?: boolean;
+}
+
 // ============================================================
 // CommunityApi — gọi API /posts qua axios instance chung (client-side)
 // ============================================================
@@ -638,9 +661,9 @@ export const CommunityApi = {
     return unwrapData(res);
   },
 
-  async getComments(postId: string): Promise<unknown[]> {
+  async getComments(postId: string): Promise<RawCommunityComment[]> {
     const res = await api.get(`${postPath(postId)}/comments`);
-    const data = unwrapData<unknown[]>(res);
+    const data = unwrapData<RawCommunityComment[]>(res);
     return Array.isArray(data) ? data : [];
   },
 
@@ -648,7 +671,7 @@ export const CommunityApi = {
     postId: string,
     content: string,
     parentId?: string,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<RawCommunityComment> {
     const res = await api.post(`${postPath(postId)}/comments`, {
       content,
       parentId: parentId || undefined,

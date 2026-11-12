@@ -3,7 +3,7 @@
 import React from 'react';
 import { Check, Share2, UserPlus } from 'lucide-react';
 import type { CommunityMemberProfile } from '../../api';
-import type { ProfileComputedStats, ProfileTabKey } from './profile.types';
+import { ProfileTabKey, type ProfileComputedStats } from './profile.types';
 
 export interface ProfileHeaderKpiProps {
   profile: CommunityMemberProfile;
@@ -85,7 +85,7 @@ export function ProfileHeaderKpi({
       <div className="mt-5 grid grid-cols-2 divide-y divide-[#E3D6BE] rounded-[6px] border border-[#E3D6BE] bg-[#FDF9F0] md:grid-cols-4 md:divide-x md:divide-y-0">
         <button
           type="button"
-          onClick={() => onSelectTab('posts')}
+          onClick={() => onSelectTab(ProfileTabKey.POSTS)}
           className="p-4 text-left transition-colors hover:bg-[#F3EAD8]"
         >
           <p className="text-[13px] text-[#5C4E3C]">Tổng đóng góp</p>
@@ -111,7 +111,7 @@ export function ProfileHeaderKpi({
 
         <button
           type="button"
-          onClick={() => onSelectTab('followers')}
+          onClick={() => onSelectTab(ProfileTabKey.FOLLOWERS)}
           className="p-4 text-left transition-colors hover:bg-[#F3EAD8]"
         >
           <p className="text-[13px] text-[#5C4E3C]">Người theo dõi</p>
@@ -124,7 +124,7 @@ export function ProfileHeaderKpi({
 
         <button
           type="button"
-          onClick={() => onSelectTab('following')}
+          onClick={() => onSelectTab(ProfileTabKey.FOLLOWING)}
           className="p-4 text-left transition-colors hover:bg-[#F3EAD8]"
         >
           <p className="text-[13px] text-[#5C4E3C]">Đang theo dõi</p>

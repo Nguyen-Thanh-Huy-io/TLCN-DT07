@@ -3,9 +3,12 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bookmark, Eye, Flag, Heart, MessageSquare } from 'lucide-react';
-import { useAuthSession } from '@/services/auth/useAuthSession';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { CommunityApi } from '../api';
 import { ReportDialog } from './ReportDialog';
+
+const DEFAULT_ACTION_BUTTON_STYLE =
+  'border-[#E2D5BC] bg-[#FAF5E6] text-[#4A3F33] hover:border-[#8A5A19] hover:text-[#14233F]';
 
 interface PostActionBarProps {
   postId: string;
@@ -142,7 +145,7 @@ export function PostActionBar({
             className={`inline-flex h-9 items-center gap-2 rounded-[6px] border px-3.5 text-[14px] font-medium transition-colors ${
               liked
                 ? 'border-[#7A1F24] bg-[#F9E8E6] text-[#7A1F24]'
-                : 'border-[#E2D5BC] bg-[#FAF5E6] text-[#4A3F33] hover:border-[#8A5A19] hover:text-[#14233F]'
+                : DEFAULT_ACTION_BUTTON_STYLE
             }`}
           >
             <Heart size={15} className={liked ? 'fill-[#7A1F24] text-[#7A1F24]' : ''} />
@@ -157,7 +160,7 @@ export function PostActionBar({
             className={`inline-flex h-9 items-center gap-2 rounded-[6px] border px-3.5 text-[14px] font-medium transition-colors ${
               commentsOpen
                 ? 'border-[#14233F] bg-[#14233F] text-[#FAF5E6]'
-                : 'border-[#E2D5BC] bg-[#FAF5E6] text-[#4A3F33] hover:border-[#8A5A19] hover:text-[#14233F]'
+                : DEFAULT_ACTION_BUTTON_STYLE
             }`}
           >
             <MessageSquare size={15} />
@@ -172,7 +175,7 @@ export function PostActionBar({
             className={`inline-flex h-9 items-center gap-2 rounded-[6px] border px-3.5 text-[14px] font-medium transition-colors ${
               bookmarked
                 ? 'border-[#8A5A19] bg-[#F2E5C9] text-[#6B4E16]'
-                : 'border-[#E2D5BC] bg-[#FAF5E6] text-[#4A3F33] hover:border-[#8A5A19] hover:text-[#14233F]'
+                : DEFAULT_ACTION_BUTTON_STYLE
             }`}
           >
             <Bookmark size={15} className={bookmarked ? 'fill-[#6B4E16] text-[#6B4E16]' : ''} />

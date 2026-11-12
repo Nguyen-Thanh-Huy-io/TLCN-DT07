@@ -5,6 +5,7 @@ import { resolveBackendAssetUrl } from '@/constants/api-url';
 import { ContentStatus } from '@/constants/enums';
 import { BlogApiService, type BlogPostItem } from '@/services/entities/blog.service';
 import { extractErrorMessage } from '@/services/api';
+import { extractMetadataFromBlocks } from '@/features/blog/utils/blog-metadata.util';
 
 type ReviewTab = 'Chờ duyệt' | 'Đã duyệt' | 'Bị từ chối';
 
@@ -57,66 +58,6 @@ const renderParagraphs = (value: string) =>
     .map((part) => part.trim())
     .filter(Boolean)
     .map((part) => part.replace(/\r\n/g, '\n'));
-
-const extractMetadataFromBlocks = (contentBlocks: unknown) => {
-  if (!Array.isArray(contentBlocks)) {
-    return { tags: [] as string[], references: [] as Array<{ title?: string; source?: string; url?: string }> };
-  }
-
-  const metadataCandidate = contentBlocks.find((block) => {
-    if (!block || typeof block !== 'object') return false;
-    const candidate = block as Record<string, unknown>;
-    return (
-      (candidate.type === 'meta' && candidate.kind === 'metadata') ||
-      candidate.type === 'metadata' ||
-      candidate.kind === 'metadata' ||
-      Array.isArray(candidate.tags) ||
-      Array.isArray(candidate.references) ||
-      (candidate.metadata && typeof candidate.metadata === 'object')
-    );
-  });
-
-  const payload =
-    metadataCandidate && typeof metadataCandidate === 'object'
-      ? ((metadataCandidate as Record<string, unknown>).metadata && typeof (metadataCandidate as Record<string, unknown>).metadata === 'object'
-          ? ((metadataCandidate as Record<string, unknown>).metadata as Record<string, unknown>)
-          : (metadataCandidate as Record<string, unknown>))
-      : {};
-
-  const fallbackPayload = contentBlocks.reduce<Record<string, unknown>>((acc, block) => {
-    if (!block || typeof block !== 'object') return acc;
-    const candidate = block as Record<string, unknown>;
-    if ((candidate.type === 'meta' && candidate.kind === 'metadata') || candidate.type === 'metadata' || candidate.kind === 'metadata') {
-      return { ...acc, ...(candidate.metadata && typeof candidate.metadata === 'object' ? (candidate.metadata as Record<string, unknown>) : candidate) };
-    }
-    return acc;
-  }, {});
-
-  const finalPayload = { ...fallbackPayload, ...payload };
-  const rawTags = Array.isArray(finalPayload.tags) ? finalPayload.tags : [];
-  const rawReferences = Array.isArray(finalPayload.references) ? finalPayload.references : [];
-
-  return {
-    tags: rawTags
-      .map((tag) => {
-        if (typeof tag === 'string') return tag;
-        if (tag && typeof tag === 'object') {
-          if ('name' in tag && typeof tag.name === 'string') return tag.name;
-          if ('value' in tag && typeof tag.value === 'string') return tag.value;
-        }
-        return '';
-      })
-      .filter((tag): tag is string => tag.trim().length > 0)
-      .map((tag) => tag.replace(/^#/, '')),
-    references: rawReferences
-      .filter((reference): reference is Record<string, unknown> => !!reference && typeof reference === 'object')
-      .map((reference) => ({
-        title: typeof reference.title === 'string' ? reference.title : typeof reference.name === 'string' ? reference.name : '',
-        source: typeof reference.source === 'string' ? reference.source : '',
-        url: typeof reference.url === 'string' ? reference.url : typeof reference.link === 'string' ? reference.link : '',
-      })),
-  };
-};
 
 export function BlogReviewList() {
   const [tab, setTab] = useState<ReviewTab>('Chờ duyệt');

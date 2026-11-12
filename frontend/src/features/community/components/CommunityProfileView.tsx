@@ -32,32 +32,11 @@ import {
 import { API_BASE_URL } from '@/constants/api-url';
 import { PostCard } from './PostCard';
 import { QuickComposer, type ComposerMode } from './QuickComposer';
+import { getAuthorTint, getInitials } from '../utils/author-avatar.util';
 
 export type ProfileTabKey = 'posts' | 'shared_blog' | 'followers' | 'following' | 'saved';
 
 const SOCKET_URL = API_BASE_URL;
-
-const AUTHOR_TINTS = [
-  { bg: '#E5EFE6', ink: '#1E4620' },
-  { bg: '#F2E5C9', ink: '#6B4E16' },
-  { bg: '#E3EEF5', ink: '#144E75' },
-  { bg: '#F4E1DF', ink: '#7A1F24' },
-];
-
-function getAuthorTint(name: string) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i += 1) {
-    hash = (hash * 31 + name.charCodeAt(i)) % 997;
-  }
-  return AUTHOR_TINTS[hash % AUTHOR_TINTS.length];
-}
-
-function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return 'HG';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
 
 function formatJoinDate(iso?: string | null) {
   if (!iso) return 'Tháng 8, 2026';

@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { TopicApiService } from '@/services/entities/topic.service';
 import {
   CurriculumTopicNode,
@@ -9,9 +9,14 @@ import { mapBackendTopicTreeToCurriculum } from '../utils/curriculum-mapper';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/icons';
 
+const PANEL_VARIANT_MODAL = 'modal';
+
 export interface CurriculumSidePanelProps {
   isOpen: boolean;
   onClose: () => void;
+  variant?: 'panel' | 'modal';
+  title?: string;
+  subtitle?: string;
   // Dữ liệu Real-time đang nhập từ form
   currentTopicTitle?: string;
   currentDisplayOrder?: number;
@@ -21,17 +26,19 @@ export interface CurriculumSidePanelProps {
 }
 
 /**
- * Side Panel Trợ lý Cây tri thức (Ask Gemini / Copilot Style)
- * Mở cố định ở mép phải, không che chắn form, Real-time sync theo từng phím gõ
+ * Side Panel / Slide-over Drawer Trợ lý Cây tri thức
+ * Dùng chung cho cả chế độ Side Panel đồng bộ thời gian thực và Modal xem vị trí trong Cây tri thức.
  */
 export function CurriculumSidePanel({
   isOpen,
   onClose,
+  variant = 'panel',
+  title = 'Sơ đồ Cây tri thức',
+  subtitle,
   currentTopicTitle,
   currentDisplayOrder,
   highlightTopicId,
   highlightLessonId,
-  onSelectDisplayOrder,
 }: CurriculumSidePanelProps) {
   const [treeData, setTreeData] = useState<CurriculumTopicNode[]>([]);
   const [loading, setLoading] = useState(false);
@@ -196,9 +203,18 @@ export function CurriculumSidePanel({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-y-0 right-0 z-40 w-full sm:w-[420px] bg-white shadow-2xl border-l border-slate-200 flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
-      {/* Header Panel (Ask Gemini Style) */}
+  const isModal = variant === PANEL_VARIANT_MODAL;
+  const panelContent = (
+    <div
+      className={
+        isModal
+          ? 'bg-white shadow-2xl border-l border-slate-200 w-full max-w-[420px] h-full flex flex-col overflow-hidden animate-in slide-in-from-right duration-200'
+          : 'fixed inset-y-0 right-0 z-40 w-full sm:w-[420px] bg-white shadow-2xl border-l border-slate-200 flex flex-col overflow-hidden animate-in slide-in-from-right duration-200'
+      }
+      role={isModal ? 'dialog' : undefined}
+      aria-modal={isModal ? 'true' : undefined}
+    >
+      {/* Header Panel */}
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-slate-50/90 shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
@@ -206,11 +222,11 @@ export function CurriculumSidePanel({
           </div>
           <div className="min-w-0">
             <h3 className="text-xs font-bold text-slate-900 truncate">
-              Sơ đồ Cây tri thức
+              {title}
             </h3>
             <p className="text-[11px] text-slate-500 truncate flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Đồng bộ thời gian thực theo form</span>
+              {!isModal && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+              <span>{subtitle || 'Đồng bộ thời gian thực theo form'}</span>
             </p>
           </div>
         </div>
@@ -266,4 +282,14 @@ export function CurriculumSidePanel({
       </div>
     </div>
   );
+
+  if (isModal) {
+    return (
+      <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-2xs animate-in fade-in duration-150">
+        {panelContent}
+      </div>
+    );
+  }
+
+  return panelContent;
 }

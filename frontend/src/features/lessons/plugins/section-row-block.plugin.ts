@@ -44,9 +44,9 @@ export const sectionRowBlockPlugin: BlockPlugin<RowSectionBlockData> = {
             {
               id: createBlockUUID('character'),
               type: LessonBlockType.CHARACTER,
-              name: 'Đại tướng Võ Nguyên Giáp',
-              years: '1911 – 2013',
-              summary: 'Tổng Tư lệnh chiến dịch Điện Biên Phủ.',
+              name: 'Tên nhân vật lịch sử',
+              years: 'Niên đại hoạt động',
+              summary: 'Tóm tắt vai trò và đóng góp lịch sử của nhân vật.',
               avatarUrl: '',
             },
           ],

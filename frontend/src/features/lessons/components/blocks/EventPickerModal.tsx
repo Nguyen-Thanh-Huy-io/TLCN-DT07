@@ -8,17 +8,15 @@ import {
   Globe,
   Search,
   X,
-  Eye,
-  Database,
-  Image as ImageIcon,
   Download,
   ScrollText,
-  ExternalLink,
 } from 'lucide-react';
 import { ArticleApiService, type ArticleItem } from '@/services/entities/article.service';
 import { dateLabelOf } from '@/utils/year-label';
-import { EntitySourceType, IEntityDetailPreview, IEntitySearchResult } from '../../types/entity-source.types';
+import { EntitySourceType, IEntitySearchResult } from '../../types/entity-source.types';
 import { EntitySourceStrategyFactory } from '../../factories/entity-source-strategy.factory';
+import { useWikipediaDetailPicker } from './shared/useWikipediaDetailPicker';
+import { WikiDetailPreviewPane } from './shared/WikiDetailPreviewPane';
 
 export interface EventSelectionPayload {
   title: string;
@@ -78,22 +76,28 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
   const [search, setSearch] = useState('');
   const [mounted, setMounted] = useState(false);
 
-  // State nguồn nội bộ HISGO
   const [hisgoEvents, setHisgoEvents] = useState<ArticleItem[]>([]);
   const [loadingHisgo, setLoadingHisgo] = useState(false);
 
-  // State nguồn Wikipedia & Wikidata
   const [wikiResults, setWikiResults] = useState<IEntitySearchResult[]>([]);
   const [loadingWikiList, setLoadingWikiList] = useState(false);
-  const [selectedWikiKey, setSelectedWikiKey] = useState<string | null>(null);
-  const [previewDetail, setPreviewDetail] = useState<IEntityDetailPreview | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // Biểu mẫu chỉnh sửa trên bảng xem trước
-  const [editTitle, setEditTitle] = useState('');
-  const [editTimeLoc, setEditTimeLoc] = useState('');
-  const [editSummary, setEditSummary] = useState('');
-  const [editThumb, setEditThumb] = useState('');
+  const {
+    selectedItemKey: selectedWikiKey,
+    setSelectedItemKey: setSelectedWikiKey,
+    previewDetail,
+    loadingDetail,
+    editPrimary: editTitle,
+    setEditPrimary: setEditTitle,
+    editSecondary: editTimeLoc,
+    setEditSecondary: setEditTimeLoc,
+    editSummary,
+    setEditSummary,
+    editImage: editThumb,
+    resetPreview,
+    loadDetail: loadWikiDetail,
+    selectFirstWikiItemIfAny,
+  } = useWikipediaDetailPicker();
 
   useEffect(() => {
     setMounted(true);
@@ -116,32 +120,12 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
     }
   }, []);
 
-  const loadWikiDetail = useCallback(async (title: string) => {
-    try {
-      setLoadingDetail(true);
-      const strategy = EntitySourceStrategyFactory.getStrategy(EntitySourceType.WIKIPEDIA);
-      const detail = await strategy.getDetail(title);
-      if (detail) {
-        setPreviewDetail(detail);
-        setEditTitle(detail.name);
-        setEditTimeLoc(detail.years);
-        setEditSummary(detail.summary);
-        setEditThumb(detail.avatarUrl);
-      }
-    } catch (err) {
-      console.error('Lỗi khi tải chi tiết sự kiện Wikipedia:', err);
-    } finally {
-      setLoadingDetail(false);
-    }
-  }, []);
-
   const loadWikiEvents = useCallback(
     async (query: string) => {
       const trimmed = query.trim();
       if (!trimmed) {
         setWikiResults([]);
-        setPreviewDetail(null);
-        setSelectedWikiKey(null);
+        resetPreview();
         return;
       }
 
@@ -150,15 +134,7 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
         const strategy = EntitySourceStrategyFactory.getStrategy(EntitySourceType.WIKIPEDIA);
         const items = await strategy.search(trimmed);
         setWikiResults(items);
-
-        if (items.length > 0) {
-          const first = items[0];
-          setSelectedWikiKey(first.title);
-          loadWikiDetail(first.title);
-        } else {
-          setPreviewDetail(null);
-          setSelectedWikiKey(null);
-        }
+        selectFirstWikiItemIfAny(items, EntitySourceType.WIKIPEDIA);
       } catch (err) {
         console.error('Lỗi khi tra cứu sự kiện Wikipedia:', err);
         setWikiResults([]);
@@ -166,7 +142,7 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
         setLoadingWikiList(false);
       }
     },
-    [loadWikiDetail]
+    [resetPreview, selectFirstWikiItemIfAny],
   );
 
   useEffect(() => {
@@ -186,13 +162,12 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setSearch('');
-      setPreviewDetail(null);
-      setSelectedWikiKey(null);
+      resetPreview();
       if (activeSource === EntitySourceType.HISGO) {
         loadHisgoEvents('');
       }
     }
-  }, [isOpen, activeSource, loadHisgoEvents]);
+  }, [isOpen, activeSource, loadHisgoEvents, resetPreview]);
 
   if (!isOpen || !mounted) return null;
 
@@ -242,7 +217,7 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
           </button>
         </div>
 
-        {/* 2. Thanh chuyển Nguồn dữ liệu (Phẳng, không lồng card) */}
+        {/* 2. Thanh chuyển Nguồn dữ liệu */}
         <div className="px-6 py-3 bg-white border-b border-stone-200 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <button
@@ -297,8 +272,8 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
               onChange={(e) => setSearch(e.target.value)}
               placeholder={
                 activeSource === EntitySourceType.HISGO
-                  ? 'Tìm kiếm sự kiện theo tên hoặc năm (Ví dụ: Điện Biên Phủ, 1945, Bạch Đằng)...'
-                  : 'Tìm kiếm sự kiện trên Wikipedia (Ví dụ: Chiến dịch Điện Biên Phủ, Hiệp định Genève 1954)...'
+                  ? 'Tìm kiếm sự kiện theo tên hoặc năm (Ví dụ: 1945, Bạch Đằng)...'
+                  : 'Tìm kiếm sự kiện trên Wikipedia (Ví dụ: Chiến thắng Bạch Đằng, Hiệp định Genève 1954)...'
               }
               data-testid="input-search-event"
               className="w-full text-sm pl-10 pr-9 py-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 font-medium text-stone-900 placeholder:text-stone-600 transition-colors"
@@ -315,7 +290,7 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
           </div>
         </div>
 
-        {/* 4. Danh sách kết quả (Phẳng, dùng đường kẻ chia dòng thay vì lồng thẻ card) */}
+        {/* 4. Danh sách kết quả */}
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row min-h-[380px] max-h-[460px]">
           {activeSource === EntitySourceType.HISGO ? (
             <div className="w-full overflow-y-auto divide-y divide-stone-200 px-6">
@@ -363,7 +338,6 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
               )}
             </div>
           ) : (
-            /* NGUỒN 2: WIKIPEDIA & WIKIDATA */
             <>
               <div className="w-full md:w-[360px] border-r border-stone-200 overflow-y-auto divide-y divide-stone-200 px-4 bg-white">
                 {loadingWikiList ? (
@@ -380,7 +354,7 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
                         data-testid={`event-picker-item-${item.id}`}
                         onClick={() => {
                           setSelectedWikiKey(item.title);
-                          loadWikiDetail(item.title);
+                          loadWikiDetail(item.title, EntitySourceType.WIKIPEDIA);
                         }}
                         className={`py-3 px-2 transition-colors cursor-pointer flex items-start gap-3 ${
                           isSelected ? 'bg-stone-100' : 'hover:bg-stone-50'
@@ -417,147 +391,50 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
                       Nhập từ khóa để tra cứu sự kiện
                     </p>
                     <p className="text-sm text-stone-600 max-w-[65ch]">
-                      Ví dụ: &ldquo;Chiến dịch Điện Biên Phủ&rdquo;, &ldquo;Chiến thắng Bạch Đằng&rdquo;...
+                      Ví dụ: &ldquo;Chiến thắng Bạch Đằng&rdquo;, &ldquo;Cách mạng tháng Tám&rdquo;...
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Cột phải: Xem trước dữ liệu sự kiện */}
-              <div className="flex-1 overflow-y-auto p-5 bg-white flex flex-col justify-between">
-                {loadingDetail ? (
-                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-base text-stone-600">
-                    Đang trích xuất dữ liệu từ Wikidata...
-                  </div>
-                ) : previewDetail ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between pb-2.5 border-b border-stone-200 flex-wrap gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-1.5">
-                        <Eye className="w-4 h-4" />
-                        <span>Dữ liệu sự kiện trích xuất từ Wikipedia</span>
-                      </span>
-                      {previewDetail.sourceUrl && (
-                        <a
-                          href={previewDetail.sourceUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm font-semibold text-blue-700 hover:underline inline-flex items-center gap-1"
-                        >
-                          <span>Mở bài gốc</span>
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {previewDetail.wikidataId && (
-                        <a
-                          href={`https://www.wikidata.org/wiki/${previewDetail.wikidataId}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          data-testid="badge-event-wikidata-id"
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-50 text-emerald-900 px-2.5 py-1 rounded-md"
-                        >
-                          <Database className="w-3.5 h-3.5" />
-                          <span>Mã Wikidata: {previewDetail.wikidataId}</span>
-                        </a>
-                      )}
-                      {previewDetail.years && (
-                        <span
-                          data-testid="badge-event-dates"
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-50 text-blue-900 px-2.5 py-1 rounded-md"
-                        >
-                          <Calendar className="w-3.5 h-3.5" />
-                          <span>Mốc thời gian: {previewDetail.years}</span>
-                        </span>
-                      )}
-                      {previewDetail.imageLicense && (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-amber-50 text-amber-900 px-2.5 py-1 rounded-md">
-                          <ImageIcon className="w-3.5 h-3.5" />
-                          <span className="truncate max-w-[160px]">{previewDetail.imageLicense}</span>
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-start gap-4">
-                      {editThumb ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={editThumb}
-                          alt={editTitle}
-                          className="w-16 h-16 rounded-lg object-cover shrink-0"
-                        />
-                      ) : (
-                        <span className="w-16 h-16 rounded-lg bg-stone-900 text-white flex items-center justify-center shrink-0">
-                          <Calendar className="w-7 h-7" />
-                        </span>
-                      )}
-
-                      <div className="flex-1 space-y-3">
-                        <div>
-                          <label className="block text-xs font-bold text-stone-700 uppercase mb-1">
-                            Tên sự kiện
-                          </label>
-                          <input
-                            type="text"
-                            value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                            data-testid="input-preview-event-title"
-                            className="w-full text-sm font-bold text-stone-900 bg-white border border-stone-300 rounded-lg px-3 py-2 focus:outline-none focus:border-stone-900"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-stone-700 uppercase mb-1">
-                            Thời gian &amp; Địa điểm
-                          </label>
-                          <input
-                            type="text"
-                            value={editTimeLoc}
-                            onChange={(e) => setEditTimeLoc(e.target.value)}
-                            placeholder="VD: 13/03/1954 – 07/05/1954 • Điện Biên"
-                            data-testid="input-preview-event-timeloc"
-                            className="w-full text-sm font-semibold text-stone-900 bg-white border border-stone-300 rounded-lg px-3 py-2 focus:outline-none focus:border-stone-900"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-xs font-bold text-stone-700 uppercase">
-                          Tóm tắt diễn biến (Tối đa 500 ký tự)
-                        </label>
-                        <span className="text-xs font-mono font-semibold text-stone-600">
-                          {editSummary.length}/500 ký tự
-                        </span>
-                      </div>
-                      <textarea
-                        rows={4}
-                        value={editSummary}
-                        maxLength={500}
-                        onChange={(e) => setEditSummary(e.target.value)}
-                        data-testid="textarea-preview-event-summary"
-                        className="w-full text-sm text-stone-800 bg-white border border-stone-300 rounded-lg p-3 focus:outline-none focus:border-stone-900 leading-relaxed resize-y"
-                      />
-                    </div>
-
-                    <div className="pt-3 flex items-center justify-between border-t border-stone-200">
-                      <span className="text-sm text-stone-600">
-                        Dữ liệu sẽ được điền vào dòng thời gian
-                      </span>
-                      <button
-                        type="button"
-                        data-testid="btn-apply-wiki-event"
-                        onClick={handleApplyWikiEvent}
-                        className="px-4 py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-sm font-bold transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span>Nhập nhanh vào sự kiện</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
+              <WikiDetailPreviewPane
+                loadingDetail={loadingDetail}
+                loadingLabel="Đang trích xuất dữ liệu từ Wikidata..."
+                previewDetail={previewDetail}
+                headerTitle="Dữ liệu sự kiện trích xuất từ Wikipedia"
+                sourceLinkLabel="Mở bài gốc ↗"
+                primaryLabel="Tên sự kiện"
+                primaryValue={editTitle}
+                onChangePrimary={setEditTitle}
+                primaryTestId="input-preview-event-title"
+                secondaryLabel="Thời gian & Địa điểm"
+                secondaryPlaceholder="VD: Năm 938 • Sông Bạch Đằng"
+                secondaryValue={editTimeLoc}
+                onChangeSecondary={setEditTimeLoc}
+                secondaryTestId="input-preview-event-timeloc"
+                summaryLabel="Tóm tắt diễn biến (Tối đa 500 ký tự)"
+                summaryValue={editSummary}
+                onChangeSummary={setEditSummary}
+                summaryTestId="textarea-preview-event-summary"
+                imageUrl={editThumb}
+                fallbackIcon={
+                  <span className="w-16 h-16 rounded-lg bg-stone-900 text-white flex items-center justify-center shrink-0">
+                    <Calendar className="w-7 h-7" />
+                  </span>
+                }
+                wikidataBadgeTestId="badge-event-wikidata-id"
+                datesBadgeTestId="badge-event-dates"
+                datesBadgePrefix="Mốc thời gian"
+                footerHint="Dữ liệu sẽ được điền vào dòng thời gian"
+                applyBtnLabel={
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span>Nhập nhanh vào sự kiện</span>
+                  </>
+                }
+                applyBtnTestId="btn-apply-wiki-event"
+                onApply={handleApplyWikiEvent}
+                emptyState={
                   <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                     <ScrollText className="w-8 h-8 text-stone-600 mb-3" />
                     <p className="text-base font-semibold text-stone-800 max-w-[65ch]">
@@ -567,8 +444,8 @@ export const EventPickerModal: React.FC<EventPickerModalProps> = ({
                       Hệ thống sẽ tự động trích xuất ngày bắt đầu, ngày kết thúc và diễn biến chính từ Wikidata.
                     </p>
                   </div>
-                )}
-              </div>
+                }
+              />
             </>
           )}
         </div>

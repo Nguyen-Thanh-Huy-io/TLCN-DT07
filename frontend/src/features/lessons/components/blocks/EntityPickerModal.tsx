@@ -6,11 +6,12 @@ import { IconName } from '@/constants/icons';
 import type { ArticleItem } from '@/services/entities/article.service';
 import {
   EntitySourceType,
-  IEntityDetailPreview,
   IEntitySearchResult,
 } from '../../types/entity-source.types';
 import { ENTITY_SOURCE_CONSTANTS } from '../../constants/entity-source.constants';
 import { EntitySourceStrategyFactory } from '../../factories/entity-source-strategy.factory';
+import { useWikipediaDetailPicker } from './shared/useWikipediaDetailPicker';
+import { WikiDetailPreviewPane } from './shared/WikiDetailPreviewPane';
 
 export interface EntitySelectionPayload {
   name: string;
@@ -39,70 +40,52 @@ export const EntityPickerModal: React.FC<EntityPickerModalProps> = ({
   onClose,
   onSelectEntity,
 }) => {
-  // Tab hiện tại (Mặc định là Kho nội bộ HISGO, có thể chuyển sang Wikipedia)
   const [activeSource, setActiveSource] = useState<EntitySourceType>(EntitySourceType.HISGO);
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<IEntitySearchResult[]>([]);
   const [loadingList, setLoadingList] = useState(false);
 
-  // Dữ liệu chi tiết đang được chọn để xem trước (đặc biệt hữu ích cho Wikipedia)
-  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
-  const [previewDetail, setPreviewDetail] = useState<IEntityDetailPreview | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const {
+    selectedItemKey,
+    setSelectedItemKey,
+    previewDetail,
+    loadingDetail,
+    editPrimary: editName,
+    setEditPrimary: setEditName,
+    editSecondary: editYears,
+    setEditSecondary: setEditYears,
+    editSummary,
+    setEditSummary,
+    editImage: editAvatar,
+    resetPreview,
+    loadDetail,
+    selectFirstWikiItemIfAny,
+  } = useWikipediaDetailPicker();
 
-  // Form chỉnh sửa trực tiếp trên panel Preview trước khi nhập vào bài học
-  const [editName, setEditName] = useState('');
-  const [editYears, setEditYears] = useState('');
-  const [editSummary, setEditSummary] = useState('');
-  const [editAvatar, setEditAvatar] = useState('');
+  const executeSearch = useCallback(
+    async (keyword: string, sourceType: EntitySourceType) => {
+      try {
+        setLoadingList(true);
+        const strategy = EntitySourceStrategyFactory.getStrategy(sourceType);
+        const items = await strategy.search(keyword);
+        setResults(items);
 
-  // Hàm thực hiện tìm kiếm qua Strategy Pattern
-  const executeSearch = useCallback(async (keyword: string, sourceType: EntitySourceType) => {
-    try {
-      setLoadingList(true);
-      const strategy = EntitySourceStrategyFactory.getStrategy(sourceType);
-      const items = await strategy.search(keyword);
-      setResults(items);
-
-      // Nếu là Wikipedia và có kết quả, tự động chọn phần tử đầu tiên để xem trước
-      if (sourceType === EntitySourceType.WIKIPEDIA && items.length > 0) {
-        const first = items[0];
-        setSelectedItemKey(first.title);
-        loadDetail(first.title, sourceType);
-      } else if (items.length === 0) {
-        setPreviewDetail(null);
-        setSelectedItemKey(null);
+        if (sourceType === EntitySourceType.WIKIPEDIA && items.length > 0) {
+          selectFirstWikiItemIfAny(items, sourceType);
+        } else if (items.length === 0) {
+          resetPreview();
+        }
+      } catch (err) {
+        console.error('Lỗi khi tìm kiếm thực thể:', err);
+        setResults([]);
+        resetPreview();
+      } finally {
+        setLoadingList(false);
       }
-    } catch (err) {
-      console.error('Lỗi khi tìm kiếm thực thể:', err);
-      setResults([]);
-      setPreviewDetail(null);
-    } finally {
-      setLoadingList(false);
-    }
-  }, []);
+    },
+    [resetPreview, selectFirstWikiItemIfAny],
+  );
 
-  // Hàm tải chi tiết thực thể
-  const loadDetail = async (identifier: string, sourceType: EntitySourceType) => {
-    try {
-      setLoadingDetail(true);
-      const strategy = EntitySourceStrategyFactory.getStrategy(sourceType);
-      const detail = await strategy.getDetail(identifier);
-      if (detail) {
-        setPreviewDetail(detail);
-        setEditName(detail.name);
-        setEditYears(detail.years);
-        setEditSummary(detail.summary);
-        setEditAvatar(detail.avatarUrl);
-      }
-    } catch (err) {
-      console.error('Lỗi khi tải chi tiết thực thể:', err);
-    } finally {
-      setLoadingDetail(false);
-    }
-  };
-
-  // Debounced search khi gõ từ khóa
   useEffect(() => {
     if (!isOpen) return;
 
@@ -113,19 +96,16 @@ export const EntityPickerModal: React.FC<EntityPickerModalProps> = ({
     return () => clearTimeout(timer);
   }, [isOpen, search, activeSource, executeSearch]);
 
-  // Reset state khi mở modal
   useEffect(() => {
     if (isOpen) {
       setSearch('');
-      setPreviewDetail(null);
-      setSelectedItemKey(null);
+      resetPreview();
       executeSearch('', activeSource);
     }
-  }, [isOpen, activeSource, executeSearch]);
+  }, [isOpen, activeSource, executeSearch, resetPreview]);
 
   if (!isOpen) return null;
 
-  // Xử lý áp dụng dữ liệu từ panel preview vào bài học
   const handleApplyPreview = () => {
     if (!editName.trim()) return;
 
@@ -144,7 +124,6 @@ export const EntityPickerModal: React.FC<EntityPickerModalProps> = ({
     onClose();
   };
 
-  // Xử lý chọn nhanh từ danh sách nội bộ HISGO
   const handleSelectHisgoItem = (item: IEntitySearchResult) => {
     loadDetail(item.id, EntitySourceType.HISGO).then(() => {
       onSelectEntity({
@@ -190,7 +169,7 @@ export const EntityPickerModal: React.FC<EntityPickerModalProps> = ({
           </button>
         </div>
 
-        {/* Thanh chọn Nguồn Dữ liệu (Tabs Segmented Control) */}
+        {/* Thanh chọn Nguồn Dữ liệu */}
         <div className="px-5 pt-3 pb-2 bg-white border-b border-slate-100 flex items-center justify-between gap-4 flex-wrap">
           <div className="inline-flex p-1 bg-slate-100 rounded-xl gap-1 text-xs font-semibold">
             <button
@@ -265,9 +244,8 @@ export const EntityPickerModal: React.FC<EntityPickerModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Body: Phân nhánh theo Tab */}
+        {/* Modal Body */}
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row min-h-[380px] max-h-[460px]">
-          {/* CỘT TRÁI (Master List): Danh sách kết quả */}
           <div
             className={`border-r border-slate-100 overflow-y-auto p-3 space-y-2 bg-slate-50/40 ${
               activeSource === EntitySourceType.WIKIPEDIA ? 'w-full md:w-[360px]' : 'w-full'
@@ -346,168 +324,44 @@ export const EntityPickerModal: React.FC<EntityPickerModalProps> = ({
                   {ENTITY_SOURCE_CONSTANTS.PREVIEW_LABELS.NO_RESULTS}
                 </p>
                 <p className="text-[11px]">
-                  Thử tìm kiếm với từ khóa khác (ví dụ: &ldquo;Võ Nguyên Giáp&rdquo;, &ldquo;Chiến dịch Điện Biên Phủ&rdquo;).
+                  Thử tìm kiếm với từ khóa khác (ví dụ: &ldquo;Trần Hưng Đạo&rdquo;, &ldquo;Chiến thắng Bạch Đằng&rdquo;).
                 </p>
               </div>
             )}
           </div>
 
-          {/* CỘT PHẢI (Detail Preview): Bảng xem trước & bóc tách dữ liệu (Chỉ áp dụng khi xem Wikipedia) */}
           {activeSource === EntitySourceType.WIKIPEDIA && (
-            <div className="flex-1 overflow-y-auto p-4 bg-white flex flex-col justify-between">
-              {loadingDetail ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-xs text-slate-400 gap-2">
-                  <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                  <span>{ENTITY_SOURCE_CONSTANTS.PREVIEW_LABELS.LOADING_DETAIL}</span>
-                </div>
-              ) : previewDetail ? (
-                <div className="space-y-3.5">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 flex-wrap gap-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-                      <span>👁️</span>
-                      <span>Xem trước dữ liệu bóc tách từ Wikipedia &amp; Wikidata</span>
-                    </span>
-                    {previewDetail.sourceUrl && (
-                      <a
-                        href={previewDetail.sourceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[11px] font-semibold text-blue-600 hover:underline flex items-center gap-1"
-                      >
-                        <span>Mở bài gốc Wikipedia ↗</span>
-                      </a>
-                    )}
-                  </div>
-
-                  {/* Badges hiển thị dữ liệu có cấu trúc Wikidata & Commons */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {previewDetail.wikidataId && (
-                      <a
-                        href={`https://www.wikidata.org/wiki/${previewDetail.wikidataId}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        data-testid="badge-wikidata-id"
-                        className="inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md hover:bg-emerald-100 transition"
-                        title="Định danh thực thể Wikidata có cấu trúc"
-                      >
-                        <span>📊 Wikidata:</span>
-                        <span className="font-mono font-bold">{previewDetail.wikidataId}</span>
-                      </a>
-                    )}
-                    {previewDetail.birthDate && (
-                      <span
-                        data-testid="badge-wikidata-dates"
-                        className="inline-flex items-center gap-1 text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-md"
-                        title="Dữ liệu ngày sinh/mất chuẩn xác từ Wikidata P569/P570"
-                      >
-                        <span>📅 Chuẩn Wikidata:</span>
-                        <span className="font-bold">{previewDetail.years}</span>
-                      </span>
-                    )}
-                    {previewDetail.imageLicense && (
-                      <span
-                        data-testid="badge-commons-license"
-                        className="inline-flex items-center gap-1 text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md"
-                        title={`Bản quyền ảnh: ${previewDetail.imageLicense} - Tác giả: ${previewDetail.imageArtist || 'Wikimedia'}`}
-                      >
-                        <span>🖼️ Bản quyền ảnh:</span>
-                        <span className="font-medium truncate max-w-[140px]">{previewDetail.imageLicense}</span>
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Ảnh chân dung + Tên + Năm */}
-                  <div className="flex items-start gap-3.5">
-                    <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 shadow-2xs">
-                      {editAvatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={editAvatar}
-                          alt={editName}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-300">
-                          <Icon name={IconName.USERS} size={28} />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 space-y-2">
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">
-                          {ENTITY_SOURCE_CONSTANTS.PREVIEW_LABELS.NAME_LABEL}
-                        </label>
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          data-testid="input-preview-name"
-                          className="w-full text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:bg-white focus:outline-none focus:border-blue-600"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">
-                          {ENTITY_SOURCE_CONSTANTS.PREVIEW_LABELS.YEARS_LABEL}
-                        </label>
-                        <input
-                          type="text"
-                          value={editYears}
-                          onChange={(e) => setEditYears(e.target.value)}
-                          placeholder="Vd: 1911 – 2013"
-                          data-testid="input-preview-years"
-                          className="w-full text-xs font-semibold text-indigo-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:bg-white focus:outline-none focus:border-blue-600"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tóm tắt tiểu sử trích xuất */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase">
-                        {ENTITY_SOURCE_CONSTANTS.PREVIEW_LABELS.SUMMARY_LABEL}
-                      </label>
-                      <span
-                        data-testid="preview-summary-counter"
-                        className={`text-[10px] font-mono font-semibold ${
-                          editSummary.length >= 500
-                            ? 'text-rose-600 font-bold'
-                            : editSummary.length > 450
-                            ? 'text-amber-600'
-                            : 'text-slate-400'
-                        }`}
-                      >
-                        {editSummary.length}/500 ký tự
-                      </span>
-                    </div>
-                    <textarea
-                      rows={4}
-                      value={editSummary}
-                      maxLength={500}
-                      onChange={(e) => setEditSummary(e.target.value)}
-                      data-testid="textarea-preview-summary"
-                      className="w-full text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:bg-white focus:outline-none focus:border-blue-600 leading-relaxed resize-y"
-                    />
-                  </div>
-
-                  {/* Nút hành động áp dụng */}
-                  <div className="pt-2 flex items-center justify-between border-t border-slate-100">
-                    <span className="text-[10px] text-slate-400 italic">
-                      Dữ liệu sẽ được tự động điền vào thẻ bài học
-                    </span>
-                    <button
-                      type="button"
-                      data-testid="btn-apply-wiki-entity"
-                      onClick={handleApplyPreview}
-                      className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span>{ENTITY_SOURCE_CONSTANTS.PREVIEW_LABELS.BTN_APPLY}</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
+            <WikiDetailPreviewPane
+              loadingDetail={loadingDetail}
+              loadingLabel={ENTITY_SOURCE_CONSTANTS.PREVIEW_LABELS.LOADING_DETAIL}
+              previewDetail={previewDetail}
+              headerTitle="Xem trước dữ liệu bóc tách từ Wikipedia & Wikidata"
+              primaryLabel={ENTITY_SOURCE_CONSTANTS.PREVIEW_LABELS.NAME_LABEL}
+              primaryValue={editName}
+              onChangePrimary={setEditName}
+              primaryTestId="input-preview-name"
+              secondaryLabel={ENTITY_SOURCE_CONSTANTS.PREVIEW_LABELS.YEARS_LABEL}
+              secondaryPlaceholder="Vd: 1228 – 1300"
+              secondaryValue={editYears}
+              onChangeSecondary={setEditYears}
+              secondaryTestId="input-preview-years"
+              summaryLabel={ENTITY_SOURCE_CONSTANTS.PREVIEW_LABELS.SUMMARY_LABEL}
+              summaryValue={editSummary}
+              onChangeSummary={setEditSummary}
+              summaryTestId="textarea-preview-summary"
+              summaryCounterTestId="preview-summary-counter"
+              imageUrl={editAvatar}
+              fallbackIcon={<Icon name={IconName.USERS} size={28} className="text-slate-300" />}
+              wikidataBadgeTestId="badge-wikidata-id"
+              datesBadgeTestId="badge-wikidata-dates"
+              datesBadgeCondition={Boolean(previewDetail?.birthDate)}
+              datesBadgePrefix="Chuẩn Wikidata"
+              licenseBadgeTestId="badge-commons-license"
+              footerHint="Dữ liệu sẽ được tự động điền vào thẻ bài học"
+              applyBtnLabel={<span>{ENTITY_SOURCE_CONSTANTS.PREVIEW_LABELS.BTN_APPLY}</span>}
+              applyBtnTestId="btn-apply-wiki-entity"
+              onApply={handleApplyPreview}
+              emptyState={
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-xs text-slate-400">
                   <span className="text-3xl mb-2">📖</span>
                   <p className="font-semibold text-slate-600">
@@ -517,8 +371,8 @@ export const EntityPickerModal: React.FC<EntityPickerModalProps> = ({
                     Hệ thống sẽ tự động bóc tách tên, năm sinh/mất và tóm tắt tiểu sử vừa vặn dưới 500 ký tự.
                   </p>
                 </div>
-              )}
-            </div>
+              }
+            />
           )}
         </div>
 

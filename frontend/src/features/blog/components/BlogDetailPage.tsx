@@ -3,78 +3,10 @@ import { ArrowLeft, CalendarDays, MessageSquare, Share2, Users } from 'lucide-re
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import { fetchBlogPost, fetchBlogPosts, type PublicBlogPostSummary } from '@/services/public/public-content.service';
-
-const accentPalette = [
-  'from-[#7b3f2b] via-[#b27342] to-[#d9c09b]',
-  'from-[#3a4d43] via-[#6a7d5f] to-[#d2c5a3]',
-  'from-[#513b31] via-[#9b724f] to-[#e0c8a8]',
-  'from-[#2e3a3d] via-[#58716a] to-[#d7d0bf]',
-  'from-[#5a3929] via-[#ad7659] to-[#f0dabc]',
-  'from-[#3d4a55] via-[#72828a] to-[#eee1bf]',
-];
-
-const extractMetadata = (contentBlocks: unknown) => {
-  if (!Array.isArray(contentBlocks)) {
-    return { tags: [] as string[], references: [] as Array<{ title?: string; source?: string; url?: string }> };
-  }
-
-  const metadataCandidate = contentBlocks.find((block) => {
-    if (!block || typeof block !== 'object') return false;
-    const candidate = block as Record<string, unknown>;
-    return (
-      (candidate.type === 'meta' && candidate.kind === 'metadata') ||
-      candidate.type === 'metadata' ||
-      candidate.kind === 'metadata' ||
-      Array.isArray(candidate.tags) ||
-      Array.isArray(candidate.references) ||
-      (candidate.metadata && typeof candidate.metadata === 'object')
-    );
-  });
-
-  const payload =
-    metadataCandidate && typeof metadataCandidate === 'object'
-      ? ((metadataCandidate as Record<string, unknown>).metadata && typeof (metadataCandidate as Record<string, unknown>).metadata === 'object'
-          ? ((metadataCandidate as Record<string, unknown>).metadata as Record<string, unknown>)
-          : (metadataCandidate as Record<string, unknown>))
-      : {};
-
-  const fallbackPayload =
-    Array.isArray(contentBlocks)
-      ? contentBlocks.reduce<Record<string, unknown>>((acc, block) => {
-          if (!block || typeof block !== 'object') return acc;
-          const candidate = block as Record<string, unknown>;
-          if ((candidate.type === 'meta' && candidate.kind === 'metadata') || candidate.type === 'metadata' || candidate.kind === 'metadata') {
-            return { ...acc, ...(candidate.metadata && typeof candidate.metadata === 'object' ? (candidate.metadata as Record<string, unknown>) : candidate) };
-          }
-          return acc;
-        }, {})
-      : {};
-
-  const finalPayload = { ...fallbackPayload, ...payload };
-  const rawTags = Array.isArray(finalPayload.tags) ? finalPayload.tags : [];
-  const rawReferences = Array.isArray(finalPayload.references) ? finalPayload.references : [];
-
-  return {
-    tags: rawTags
-      .map((tag) => {
-        if (typeof tag === 'string') return tag;
-        if (tag && typeof tag === 'object') {
-          if ('name' in tag && typeof tag.name === 'string') return tag.name;
-          if ('value' in tag && typeof tag.value === 'string') return tag.value;
-        }
-        return '';
-      })
-      .filter((tag): tag is string => tag.trim().length > 0)
-      .map((tag) => tag.replace(/^#/, '')),
-    references: rawReferences
-      .filter((reference): reference is Record<string, unknown> => !!reference && typeof reference === 'object')
-      .map((reference) => ({
-        title: typeof reference.title === 'string' ? reference.title : typeof reference.name === 'string' ? reference.name : '',
-        source: typeof reference.source === 'string' ? reference.source : '',
-        url: typeof reference.url === 'string' ? reference.url : typeof reference.link === 'string' ? reference.link : '',
-      })),
-  };
-};
+import {
+  BLOG_ACCENT_PALETTE as accentPalette,
+  extractMetadataFromBlocks as extractMetadata,
+} from '@/features/blog/utils/blog-metadata.util';
 
 const renderParagraphs = (value: string) =>
   (value || '')

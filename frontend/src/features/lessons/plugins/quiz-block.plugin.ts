@@ -9,14 +9,13 @@ export const quizBlockPlugin: BlockPlugin<QuizBlockData> = {
     id,
     type: LessonBlockType.QUIZ,
     width: defaultWidth,
-    question:
-      'Quyết định mang tính bước ngoặt chiến lược của Đại tướng Võ Nguyên Giáp trong Chiến dịch Điện Biên Phủ (1954) là gì?',
+    question: 'Nhập nội dung câu hỏi ôn tập tại đây...',
     options: [
-      { id: 'opt_1', text: 'Tiến hành "Đánh nhanh, thắng nhanh" ngay khi tập kết quân', isCorrect: false },
-      { id: 'opt_2', text: 'Chuyển phương châm từ "Đánh nhanh, thắng nhanh" sang "Đánh chắc, tiến chắc"', isCorrect: true },
-      { id: 'opt_3', text: 'Bao vây cô lập lòng chảo Mường Thanh chờ viện binh', isCorrect: false },
+      { id: 'opt_1', text: 'Phương án A', isCorrect: true },
+      { id: 'opt_2', text: 'Phương án B', isCorrect: false },
+      { id: 'opt_3', text: 'Phương án C', isCorrect: false },
     ],
-    explanation: 'Quyết định đổi phương châm đã chuẩn bị công sự vững chắc, bảo đảm chắc thắng mới đánh.',
+    explanation: 'Nhập giải thích đáp án tại đây...',
   }),
 
   toHtml: (block: QuizBlockData): string => {

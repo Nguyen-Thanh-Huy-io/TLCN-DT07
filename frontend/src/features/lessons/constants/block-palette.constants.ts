@@ -1,5 +1,11 @@
 import { BlockPaletteItem, LessonBlockGroup, LessonBlockType } from '../types/block-palette.types';
 
+/**
+ * Danh sách khối hiển thị trong bảng chọn (Palette) của trình soạn thảo bài học.
+ * Lưu ý: `LessonBlockType.QUIZ` và `LessonBlockType.RESOURCE_LINK` được quản lý ở tab riêng
+ * (Ngân hàng câu hỏi & Tư liệu đính kèm) nên không hiển thị trong Palette chèn khối trực tiếp,
+ * nhưng vẫn giữ plugin đăng ký để tương thích ngược với dữ liệu bài học cũ.
+ */
 export const LESSON_BLOCK_ITEMS: BlockPaletteItem[] = [
   // 1. Nhóm 1: Nội dung cơ bản
   {

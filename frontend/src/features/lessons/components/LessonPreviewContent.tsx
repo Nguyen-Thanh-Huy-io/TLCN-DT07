@@ -9,13 +9,10 @@ import { DIFFICULTY_LABEL_MAP } from '@/constants/ui-theme';
 import { TagItem } from '@/types/models/tag.type';
 import { LessonMediaItem } from '../types/editor.types';
 import { QuizQuestion, QuizQuestionType, QUIZ_QUESTION_TYPE_META } from '../types/quiz.types';
+import { TocItem } from '../types/left-sidebar.types';
 import { sanitizeRichHtml } from '@/utils/sanitize-html';
 
-export interface TocItem {
-  id: string;
-  text: string;
-  level: number;
-}
+export type { TocItem };
 
 interface LessonPreviewContentProps {
   /** Dùng khi nhúng vào pane hẹp của Chế độ Chia đôi — ẩn cột Mục lục riêng (vì cột soạn

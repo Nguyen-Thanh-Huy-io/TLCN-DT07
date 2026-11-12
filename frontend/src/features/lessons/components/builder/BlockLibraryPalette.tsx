@@ -18,6 +18,8 @@ import {
   Table2,
   Columns3,
   BookOpen,
+  HelpCircle,
+  Link2,
   Search,
   X,
   LucideIcon,
@@ -37,6 +39,7 @@ export const BLOCK_TYPE_ICONS: Record<string, LucideIcon> = {
   [LessonBlockType.HEADING]: Heading,
   [LessonBlockType.IMAGE]: ImageIcon,
   [LessonBlockType.VIDEO]: Video,
+  [LessonBlockType.RESOURCE_LINK]: Link2,
   [LessonBlockType.QUOTE]: Quote,
   [LessonBlockType.DIVIDER]: Minus,
   [LessonBlockType.CALLOUT]: AlertCircle,
@@ -48,6 +51,7 @@ export const BLOCK_TYPE_ICONS: Record<string, LucideIcon> = {
   [LessonBlockType.EVENT]: Sparkles,
   [LessonBlockType.MAP]: MapPin,
   [LessonBlockType.COMPARISON_TABLE]: Table2,
+  [LessonBlockType.QUIZ]: HelpCircle,
   [LessonBlockType.SECTION_ROW]: Columns3,
 };
 

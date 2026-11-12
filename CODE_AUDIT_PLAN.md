@@ -75,18 +75,18 @@ Thứ tự ưu tiên theo CODE_AUDIT.md Mục 7 (xếp theo độ dài giảm d�
 - [ ] `StorySubElementInspector.tsx` (783 dòng)
 - [ ] `QuestionBankView.tsx` (712 dòng); `CurriculumTree.tsx` (705 dòng); `BlogReviewList.tsx` (719 dòng); `QuickComposer.tsx` (604 dòng)
 - [ ] Nhóm 400-570 dòng: `TopicModal.tsx`, `TopicParentModalPicker.tsx`, `ArticleProfilePanel.tsx` (491), `RevisionDiff.tsx` (467), `BlogDetailPage.tsx` (457), `MediaManagerView.tsx` (440), `NotificationBell.tsx` (433)
-- [ ] **`CommentThread.tsx` (908 dòng)** — xác nhận lại với team rồi **xoá hẳn** (không dùng ở đâu trong code) thay vì tách.
+- [x] **`CommentThread.tsx` (908 dòng)** — đã xác nhận không được import ở bất kỳ đâu trong codebase và **đã xoá hẳn**.
 - [ ] **[MỚI] Block Builder — file >300 dòng chưa có trong danh sách trên**: `story-chapter-layout.strategy.ts` (791), `LessonEditor.tsx` (525), `BlockBuilderCanvas.tsx` (523, nên gom 3 `switch` lặp thành 1 hàm render), `useLessonBlockManager.ts` (493), `TimelineBlockItemEditor.tsx` (486), `TipTapToolbar.tsx` (477), `TypographyInspectorPanel.tsx` (458), `useLessonEditorFacade.ts` (415), `QuizQuestionEditors.tsx` (394). Làm sau `StoryChapterBlockEditor.tsx`.
 
 ## Pha 4 — Dọn trùng lặp (DRY) + lint/format
 
-- [ ] Gộp `extractMetadataFromBlocks`/`extractMetadata` (lặp ở `BlogDetailPage.tsx`, `BlogLandingPage.tsx`, `BlogReviewList.tsx`) thành 1 util dùng chung.
-- [ ] Gộp `getAuthorTint`/`getInitials` (lặp ở `PostCard.tsx`, `PostCommentModal.tsx`, `CommunityProfileView.tsx`).
-- [ ] Gộp `formatTimeAgo` (lặp ở `MediaManagerView.tsx`, `AnalyticsDashboardView.tsx`).
-- [ ] Gộp `EventPickerModal`/`EntityPickerModal`; gộp `CurriculumSidePanel.tsx`/`CurriculumTreePreviewModal.tsx`.
+- [x] Gộp `extractMetadataFromBlocks`/`extractMetadata` (lặp ở `BlogDetailPage.tsx`, `BlogLandingPage.tsx`, `BlogReviewList.tsx`) thành 1 util dùng chung (`frontend/src/features/blog/utils/blog-metadata.util.ts`).
+- [x] Gộp `getAuthorTint`/`getInitials` (lặp ở `PostCard.tsx`, `PostCommentModal.tsx`, `CommunityProfileView.tsx`) thành `frontend/src/features/community/utils/author-avatar.util.ts`.
+- [x] Gộp `formatTimeAgo` (lặp ở `MediaManagerView.tsx`, `AnalyticsDashboardView.tsx`) thành `frontend/src/utils/time-ago.util.ts`.
+- [x] Gộp `EventPickerModal`/`EntityPickerModal` (tách `useWikipediaDetailPicker.ts` & `WikiDetailPreviewPane.tsx` dùng chung); gộp `CurriculumSidePanel.tsx`/`CurriculumTreePreviewModal.tsx` (`CurriculumTreePreviewModal` uỷ quyền cho `CurriculumSidePanel` với `variant="modal"`).
 - [ ] Chạy `npm run lint -- --fix` cả 2 phía (`backend`, `frontend`) + chuẩn hoá line-ending (LF) để giảm phần lớn trong 718 lỗi backend / 1052 vấn đề frontend hiện tại. Review lại danh sách lỗi còn sót sau `--fix` (sẽ ngắn hơn nhiều) trước khi coi là "sạch".
 - [ ] Chạy `npm run audit` (lint + jscpd + knip) ở backend để xác nhận các trùng lặp trên đã được jscpd công nhận là hết.
-- [ ] **[MỚI] Dọn Block Builder**: xoá `components/builder/TimelineNodeCanvasDrawer.tsx` (không ai import); quyết định nối hoặc xoá `features/lessons/templates/` (`LessonTemplateFactory` + 5 mẫu); gộp 2 palette `LessonBlockPalette` & `BlockLibraryPalette` về 1 nguồn danh sách/icon (bổ sung hoặc ghi rõ lý do vắng `QUIZ`/`RESOURCE_LINK`); gộp `TocItem` trùng giữa `types/left-sidebar.types.ts` và `LessonPreviewContent.tsx`; thay dữ liệu mẫu Điện Biên Phủ trong `createDefault()` của `quiz-block.plugin.ts`/`section-row-block.plugin.ts` bằng placeholder trung tính; cân nhắc thêm `VIDEO` editor ngang `IMAGE` (upload/chọn media).
+- [x] **[MỚI] Dọn Block Builder**: đã xoá `components/builder/TimelineNodeCanvasDrawer.tsx` (không ai import); đã gộp 2 palette `LessonBlockPalette` & `BlockLibraryPalette` về 1 nguồn danh sách/icon (`BLOCK_TYPE_ICONS` + ghi rõ lý do vắng `QUIZ`/`RESOURCE_LINK` trong `block-palette.constants.ts`); đã gộp `TocItem` trùng giữa `types/left-sidebar.types.ts` và `LessonPreviewContent.tsx`; đã thay dữ liệu mẫu Điện Biên Phủ trong `createDefault()` của `quiz-block.plugin.ts`/`section-row-block.plugin.ts` bằng placeholder trung tính. (Còn lại tuỳ chọn tính năng: nối/xoá `features/lessons/templates/` và thêm `VIDEO` upload editor).
 
 ---
 

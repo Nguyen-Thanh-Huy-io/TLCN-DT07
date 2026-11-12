@@ -190,7 +190,14 @@
 * `frontend/src/features/blog/components/BlogCreatePage.tsx` (**931 dòng**) — hardcode base URL 2 lần; hardcode string trạng thái thay vì enum chung.
 * `frontend/src/features/blog/components/BlogDetailPage.tsx` (457 dòng), `BlogLandingPage.tsx` (316 dòng) — có bản sao hàm `extractMetadata` như trên.
 * `frontend/src/services/entities/blog.service.ts` — tự định nghĩa `BlogStatusValue`/`BlogPostTypeValue` trùng `ContentStatus` enum đã có.
-* **Chưa đọc hết:** 4/5 file trong `features/review/components/` (`ReviewList.tsx`, `RevisionReviewList.tsx`, `ArticleReviewList.tsx`, `ReviewModal.tsx`) — khả năng cao lặp cùng pattern `extractMetadataFromBlocks`/base URL hardcode.
+* **[ĐÃ ĐỌC HẾT ✅]** 4/5 file còn lại trong `features/review/components/` (`ReviewList.tsx`, `RevisionReviewList.tsx`, `ArticleReviewList.tsx`, `ReviewModal.tsx`):
+  - Không lặp `extractMetadataFromBlocks` hay hardcode base URL.
+  - Tuy nhiên phát hiện mới:
+    1. `ReviewList.tsx:47,99,119` gọi `api.get('/lessons')` và `api.patch('/lessons/:id/review')` trực tiếp trong component thay vì qua `LessonApiService`; ép `(lesson as any)?.creator`.
+    2. `ArticleReviewList.tsx:58-60` lọc cứng tiêu đề/slug bài viết mẫu trong code production (`normalizedTitle !== 'cổng la mã và không gian quyền lực'`, `!normalizedSlug.includes('cong-la-ma')`).
+    3. `ReviewList.tsx` (280 dòng) và `ArticleReviewList.tsx` (287 dòng) trùng cấu trúc ~80% (tab, search, notice, bảng duyệt, `ReviewModal`).
+    4. `ReviewModal.tsx:127` dùng `alert('Vui lòng nhập lý do từ chối!')` thay vì hiển thị lỗi inline trên form.
+    5. `RevisionReviewList.tsx` (119 dòng) viết sạch, đúng quy ước.
 * Không vi phạm đáng kể: `PostCard.tsx` (486 dòng, border-line nhưng catch rollback có lý do rõ), `PostActionBar.tsx`, `ReportDialog.tsx`, `features/moderation/api.ts`, `DiscussionSection.tsx` (317 dòng, hơi vượt nhẹ), `BlogBrowser.tsx`, `BlogComposerBar.tsx`, `BlogFeaturedSlider.tsx`, `discussion.service.ts`.
 
 ---
@@ -263,19 +270,19 @@ Xếp theo độ dài giảm dần — các file này nên tách trước tiên 
 - `luyen-tap/page.tsx` — 848 dòng
 - `HisgoStudioView.tsx` — 808 dòng
 - `StorySubElementInspector.tsx` — 783 dòng
-- `CommentThread.tsx` — 908 dòng (nhưng **không dùng ở đâu** — ưu tiên xoá hơn là tách, xem Mục 1)
+- **[ĐÃ XOÁ ✅ — Pha 4]** `CommentThread.tsx` — 908 dòng (đã xoá hẳn vì không được import ở đâu trong codebase)
 - `QuestionBankView.tsx` — 712 dòng; `CurriculumTree.tsx` — 705 dòng; `BlogReviewList.tsx` — 719 dòng; `QuickComposer.tsx` — 604 dòng
 - Nhóm 400-570 dòng: `TopicModal.tsx`, `TopicParentModalPicker.tsx`, `ArticleProfilePanel.tsx` (491), `RevisionDiff.tsx` (467), `BlogDetailPage.tsx` (457), `MediaManagerView.tsx` (440), `NotificationBell.tsx` (433)
 
 ### 🟢 Trùng lặp code nên gộp (DRY — sẽ bị `jscpd`/`npm run audit` bắt)
-- `extractMetadataFromBlocks`/`extractMetadata` lặp ở ≥3 file: `BlogDetailPage.tsx`, `BlogLandingPage.tsx`, `BlogReviewList.tsx`.
-- `getAuthorTint`/`getInitials` lặp ở ≥3 file: `PostCard.tsx`, `PostCommentModal.tsx`, `CommunityProfileView.tsx`.
-- `formatTimeAgo` lặp giữa `MediaManagerView.tsx` và `AnalyticsDashboardView.tsx`.
-- `EventPickerModal`/`EntityPickerModal` gần như bản sao nhau; `CurriculumSidePanel.tsx`/`CurriculumTreePreviewModal.tsx` gần như bản sao nhau.
-- Dữ liệu mẫu quiz/sự kiện Điện Biên Phủ hard-code trùng lặp độc lập giữa hệ TipTap cũ và hệ Plugin mới.
+- **[ĐÃ SỬA ✅ — Pha 4]** `extractMetadataFromBlocks`/`extractMetadata` đã gộp về `frontend/src/features/blog/utils/blog-metadata.util.ts`.
+- **[ĐÃ SỬA ✅ — Pha 4]** `getAuthorTint`/`getInitials` đã gộp về `frontend/src/features/community/utils/author-avatar.util.ts`.
+- **[ĐÃ SỬA ✅ — Pha 4]** `formatTimeAgo` đã gộp về `frontend/src/utils/time-ago.util.ts`.
+- **[ĐÃ SỬA ✅ — Pha 4]** `EventPickerModal`/`EntityPickerModal` đã tách logic & UI dùng chung vào `useWikipediaDetailPicker.ts` và `WikiDetailPreviewPane.tsx`; `CurriculumTreePreviewModal.tsx` đã uỷ quyền cho `CurriculumSidePanel.tsx` (`variant="modal"`).
+- **[ĐÃ SỬA ✅ — Pha 4]** Dữ liệu mẫu Điện Biên Phủ / Võ Nguyên Giáp trong `createDefault()` của `quiz-block.plugin.ts` và `section-row-block.plugin.ts` đã được thay bằng placeholder trung tính; đã xoá file chết `TimelineNodeCanvasDrawer.tsx`.
 
-### ⚪ Còn thiếu để audit 100% (chưa kịp đọc hết trong lượt này)
-- 4/5 file trong `frontend/src/features/review/components/` (`ReviewList.tsx`, `RevisionReviewList.tsx`, `ArticleReviewList.tsx`, `ReviewModal.tsx`) — chỉ `BlogReviewList.tsx` đã được audit.
+### ⚪ Còn thiếu để audit 100%
+- **[ĐÃ BỔ SUNG ✅]** 4/5 file trong `frontend/src/features/review/components/` (`ReviewList.tsx`, `RevisionReviewList.tsx`, `ArticleReviewList.tsx`, `ReviewModal.tsx`) đã được đọc và ghi nhận chi tiết ở Mục 5.
 - Chi tiết dòng-theo-dòng của 1 số plugin/facade phụ trong `features/lessons/plugins/*.plugin.ts` (18 file) — đã audit ở mức tổng quan, có thể còn `any`/magic string lẻ tẻ chưa liệt kê hết.
 
 ### Về 718 lỗi lint backend / 1052 vấn đề lint frontend (Mục 0)

@@ -7,6 +7,8 @@ import {
   ReportRiskLevel,
   ReportSource,
   ReportTargetType,
+  userRole,
+  userStatus,
 } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { BlogGateway } from '../blog/blog.gateway';
@@ -21,6 +23,11 @@ import {
   ModerationAssessment,
 } from './moderation-ai.service';
 import { ModerationResolveAction, ModerationTab } from './moderation.constant';
+
+const PROTECTED_FROM_BAN = new Set<userRole>([
+  userRole.SUPERADMIN,
+  userRole.ADMIN,
+]);
 
 export interface ModerationScanJobData {
   targetType: ReportTargetType;
@@ -942,11 +949,11 @@ export class ModerationService {
       where: { id: targetAuthorId },
       select: { id: true, role: true },
     });
-    if (author && author.role !== 'SUPERADMIN' && author.role !== 'ADMIN') {
+    if (author && !PROTECTED_FROM_BAN.has(author.role)) {
       await this.prisma.authUser.update({
         where: { id: author.id },
         data: {
-          status: 'BLOCKED',
+          status: userStatus.BLOCKED,
           tokenVersion: { increment: 1 },
         },
       });

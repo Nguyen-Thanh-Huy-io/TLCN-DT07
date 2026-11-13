@@ -258,7 +258,8 @@ flowchart TD
 * **Route trang:** `app/blog/page.tsx` (danh sách, filter `?author=`), `app/blog/[slug]/page.tsx` (chi tiết, build HTML từ `contentBlocks`), `app/blog/create/page.tsx` (soạn mới).
 * **Service/API Client:** `services/entities/blog.service.ts` (`BlogApiService`), `services/public/public-content.service.ts` (`fetchBlogPost(s)`).
 * **Backend Module:** `backend/src/blog/`
-  * Controller: `blog.controller.ts` (prefix `/posts`)
+  * Controller: `blog.controller.ts` (prefix `/posts`; tạo bài bắt buộc đăng nhập, tác giả lấy từ token — DTO không nhận `authorId`/`userId`)
+  * Quyền xuất bản: chỉ người duyệt (ADMIN/SUPERADMIN) xuất bản thẳng bài LONG_FORM hoặc đặt `isFeatured`; người khác gửi `DRAFT`/`PENDING_REVIEW` (QUICK_POST đăng thẳng) — `assertCanSetPublication` trong `blog.service.ts`. Slug sinh bằng `toSlug` chung.
   * Service: `blog.service.ts` (~1297 dòng — CRUD post/comment, like/bookmark/report, follow, hồ sơ cộng đồng, trending score)
   * Gateway: `blog.gateway.ts` (đóng gói trong `blog-gateway.module.ts` độc lập để cả `BlogModule` và `ModerationModule` cùng import 1 chiều, phát WebSocket event `post:*`, `moderation:updated`, `user:follow-updated`)
 

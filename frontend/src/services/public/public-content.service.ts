@@ -105,6 +105,7 @@ export interface PublicArticleSummary {
   dateLabel: string | null;
   isFeatured: boolean;
   metadata: ArticleMetadata | null;
+  topicId: string | null;
   links: PublicArticleLink[];
   category: PublicCategoryRef | null;
   tags: PublicTag[];
@@ -179,6 +180,7 @@ export interface PublicTimeline {
   description: string | null;
   coverImageUrl: string | null;
   displayOrder: number;
+  topicId: string | null;
   nodes: PublicTimelineNode[];
 }
 

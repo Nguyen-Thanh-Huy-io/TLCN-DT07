@@ -33,6 +33,7 @@ import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { ContentBlockEditor } from './ContentBlockEditor';
 import { StatusPill } from './StatusPill';
 import { YearInput } from './YearInput';
+import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicPicker';
 import { ArticleProfilePanel, articleKindOf, type LinkDraft } from './ArticleProfilePanel';
 
 const PRECISION_OPTIONS: Array<{ value: DatePrecisionValue; label: string }> = [
@@ -57,10 +58,20 @@ const TABS_CONFIG = [
   [ArticleEditorTab.CONTENT, 'Nội dung', FileText],
 ] as const;
 
+/** Tên chủ đề để hiện trong ô chọn; bản sửa chờ duyệt có thể đổi topicId mà chưa kèm tên. */
+function pickedTopicOf(
+  topicId: string | null | undefined,
+  candidates: Array<{ id: string; name: string; slug: string } | null | undefined>,
+): PickedTopic | null {
+  if (!topicId) return null;
+  return candidates.find((t) => t?.id === topicId) ?? { id: topicId, name: 'Chủ đề trong bản sửa chờ duyệt' };
+}
+
 const EMPTY: ArticlePayload = {
   title: '',
   slug: '',
   categoryId: null,
+  topicId: null,
   tagIds: [],
   summary: '',
   coverImageUrl: '',
@@ -84,6 +95,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   const isEdit = Boolean(articleId);
 
   const [form, setForm] = useState<ArticlePayload>(EMPTY);
+  const [topic, setTopic] = useState<PickedTopic | null>(null);
   const [status, setStatus] = useState<ContentStatusValue>(ContentStatus.DRAFT);
   const [savedSlug, setSavedSlug] = useState<string | null>(null);
   const [tab, setTab] = useState<ArticleEditorTab>(ArticleEditorTab.INFO);
@@ -120,10 +132,12 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
       setPendingRevision(pending);
       setStatus(detail.status);
       setSavedSlug(fetched.slug);
+      setTopic(pickedTopicOf(detail.topicId, [detail.topic, fetched.topic]));
       setForm({
         title: detail.title,
         slug: detail.slug,
         categoryId: detail.categoryId,
+        topicId: detail.topicId ?? null,
         tagIds: detail.tagIds ?? detail.tags.map((t) => t.id),
         summary: detail.summary ?? '',
         coverImageUrl: detail.coverImageUrl ?? '',
@@ -433,6 +447,16 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
               <Link href={APP_ROUTES.CATEGORIES} className="mt-1 inline-block text-xs text-slate-500 hover:underline">
                 Quản lý chuyên mục
               </Link>
+
+              <label className={`${label} mt-4`}>Chủ đề</label>
+              <TopicPicker
+                value={topic}
+                onChange={(next) => {
+                  setTopic(next);
+                  set('topicId', next?.id ?? null);
+                }}
+                placeholder="Bài thuộc phần nào của môn sử (vd. Triều đại nhà Trần)..."
+              />
 
               <label className={`${label} mt-4`}>Tag</label>
               <div className="flex flex-wrap gap-1.5">

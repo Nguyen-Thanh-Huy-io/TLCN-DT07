@@ -164,19 +164,15 @@ export function buildNodesByArticle(timelines: PublicTimeline[]): Map<string, Li
 
 export function createPeriodSlugResolver(
   timelines: PublicTimeline[],
-  bySlug: Map<string, PublicArticleSummary>,
   links: Map<string, LinkView[]>,
 ): (a: PublicArticleSummary) => string | null {
   const nodeTimeline = new Map<string, string>();
-  const timelineTags = new Map<string, Map<string, number>>();
+  const topicTimeline = new Map<string, string>();
   for (const t of timelines) {
-    const tagCount = new Map<string, number>();
+    if (t.topicId && !topicTimeline.has(t.topicId)) topicTimeline.set(t.topicId, t.slug);
     for (const n of t.nodes) {
-      if (!n.article) continue;
-      if (!nodeTimeline.has(n.article.slug)) nodeTimeline.set(n.article.slug, t.slug);
-      for (const tag of bySlug.get(n.article.slug)?.tags ?? []) tagCount.set(tag.id, (tagCount.get(tag.id) ?? 0) + 1);
+      if (n.article && !nodeTimeline.has(n.article.slug)) nodeTimeline.set(n.article.slug, t.slug);
     }
-    timelineTags.set(t.slug, tagCount);
   }
 
   return (a: PublicArticleSummary) => {
@@ -186,16 +182,7 @@ export function createPeriodSlugResolver(
       const viaLink = nodeTimeline.get(l.other.slug);
       if (viaLink) return viaLink;
     }
-    let best: string | null = null;
-    let bestScore = 0;
-    for (const [slug, counts] of timelineTags) {
-      const score = a.tags.reduce((sum, tag) => sum + (counts.get(tag.id) ?? 0), 0);
-      if (score > bestScore) {
-        best = slug;
-        bestScore = score;
-      }
-    }
-    return best;
+    return a.topicId ? topicTimeline.get(a.topicId) ?? null : null;
   };
 }
 
@@ -220,7 +207,7 @@ export const loadGraph = cache(async (): Promise<PublicGraph> => {
 
   const links = buildBidirectionalLinks(articles, byId);
   const nodesByArticle = buildNodesByArticle(timelines);
-  const periodSlugOf = createPeriodSlugResolver(timelines, bySlug, links);
+  const periodSlugOf = createPeriodSlugResolver(timelines, links);
 
   return {
     categories,

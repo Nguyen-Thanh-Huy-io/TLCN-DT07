@@ -82,6 +82,7 @@ export interface ArticleLinkView {
 export interface ArticleItem {
   id: string;
   categoryId: string | null;
+  topicId: string | null;
   title: string;
   slug: string;
   summary: string | null;
@@ -105,6 +106,7 @@ export interface ArticleItem {
   createdAt: string;
   updatedAt: string;
   category: { id: string; name: string; slug: string; icon: string | null } | null;
+  topic: { id: string; name: string; slug: string } | null;
   tags: ArticleTagRef[];
   tagIds: string[];
   /** Mốc timeline trỏ tới bài này (chỉ có ở chi tiết). */
@@ -116,6 +118,7 @@ export interface ArticlePayload {
   title: string;
   slug?: string;
   categoryId?: string | null;
+  topicId?: string | null;
   tagIds?: string[];
   summary?: string | null;
   coverImageUrl?: string | null;

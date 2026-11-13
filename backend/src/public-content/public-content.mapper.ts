@@ -55,6 +55,7 @@ export const PUBLIC_ARTICLE_SUMMARY_SELECT = {
   endYear: true,
   isFeatured: true,
   metadata: true,
+  topicId: true,
   /** Liên kết do bài khai báo — chiều ngược (bài khác trỏ tới) frontend tự suy từ danh sách. */
   linksOut: {
     where: { target: { status: ContentStatus.PUBLISHED } },

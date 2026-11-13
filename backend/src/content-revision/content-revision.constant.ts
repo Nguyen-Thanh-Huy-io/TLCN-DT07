@@ -78,6 +78,7 @@ export const REVISION_FIELDS: Record<RevisionContentType, RevisionField[]> = {
   ARTICLE: [
     { key: 'title', label: 'Tiêu đề', kind: 'text' },
     { key: 'categoryId', label: 'Chuyên mục', kind: 'ref', ref: 'category' },
+    { key: 'topicId', label: 'Chủ đề', kind: 'ref', ref: 'topic' },
     { key: 'tagIds', label: 'Tag', kind: 'refs', ref: 'tag' },
     { key: 'summary', label: 'Tóm tắt', kind: 'longtext' },
     { key: 'contentBlocks', label: 'Nội dung', kind: 'blocks' },

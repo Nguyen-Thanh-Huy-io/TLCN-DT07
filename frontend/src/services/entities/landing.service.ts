@@ -18,7 +18,7 @@
  *        EVENT–EVENT    → quan hệ sự kiện (chế độ "Liên kết" của dòng thời gian)
  *        mọi cặp        → "Mạng lưới tri thức" ở trang đọc (trước các bài chung tag)
  *  • Hồ sơ mô tả = Article.metadata (aliases, sources, person, site, event) — tùy chọn.
- *  • Thời kỳ của bài = timeline có mốc trỏ tới bài; không có thì timeline có nhiều bài chung tag nhất.
+ *  • Thời kỳ của bài = timeline trỏ tới bài → trỏ tới bài liên kết → cùng Topic với bài.
  *  • Dòng đời nhân vật = features/articles/person-life.ts (dùng CHUNG với khung xem trước ở CMS):
  *      liên kết tới bài sự kiện + mốc trỏ thẳng tới bài nhân vật + mốc đời riêng. KHÔNG suy theo tag.
  *
@@ -55,9 +55,6 @@ export const PUBLIC_ROUTE_PREFIX = {
 } as const;
 
 const DEFAULT_LINK_LABEL = 'Liên quan';
-
-const sharesTag = (a: PublicArticleSummary, b: PublicArticleSummary) =>
-  a.id !== b.id && a.tags.some((t) => b.tags.some((u) => u.id === t.id));
 
 const linksOfKind = (g: PublicGraph, a: PublicArticleSummary, kind: EntityKind) =>
   g.linksOf(a.id).filter((l) => g.kindOf(l.other) === kind);
@@ -294,7 +291,6 @@ export async function fetchLocations(): Promise<PublicLocationSummaryDto[]> {
   return g.articles.filter((a) => g.kindOf(a) === ArticleKindEnum.LOCATION).map((a) => toLocation(g, a));
 }
 
-/** Trang /giai-doan/[slug]: 1 timeline + bài trong mốc + bài liên kết / chung tag với các bài đó. */
 export async function fetchPeriodBySlug(slug: string): Promise<PublicPeriodDetailDto | null> {
   const g = await loadGraph();
   const timeline = g.timelines.find((t) => t.slug === slug);
@@ -307,7 +303,7 @@ export async function fetchPeriodBySlug(slug: string): Promise<PublicPeriodDetai
   const linked = inNodes.flatMap((a) => g.linksOf(a.id).map((l) => l.other));
   const relatedIds = new Set([...inNodes, ...linked].map((a) => a.id));
   const related = g.articles.filter(
-    (a) => relatedIds.has(a.id) || inNodes.some((b) => sharesTag(a, b)),
+    (a) => relatedIds.has(a.id) || (Boolean(timeline.topicId) && a.topicId === timeline.topicId),
   );
   const end = period.endYear ?? period.startYear;
 

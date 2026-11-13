@@ -5,29 +5,33 @@ import { TagModal, TagFormData } from './TagModal';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { ActionMenu } from '@/components/common/ActionMenu';
 import { IconName } from '@/constants/enums';
-import api from '@/services/api';
+import { TagApiService } from '@/services/entities/tag.service';
 import { TagItem } from '@/types/models';
 
 export type TagRow = TagItem;
 
+const errorMessageOf = (err: unknown, fallback: string): string => {
+  const message = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+  return typeof message === 'string' ? message : fallback;
+};
+
 export function TagList() {
   const [tagsList, setTagsList] = useState<TagRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<TagRow | null>(null);
   const [deletingTag, setDeletingTag] = useState<TagRow | null>(null);
 
   const fetchTags = async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
-      setLoading(true);
-      const res = await api.get('/tags');
-      const payload = res.data?.items || res.data?.data || res.data || [];
-      // Danh sách rỗng là trạng thái hợp lệ — không thay bằng dữ liệu mẫu giả.
-      setTagsList(Array.isArray(payload) ? payload : []);
+      setTagsList(await TagApiService.getTags());
     } catch (err) {
-      console.error('Failed to load tags:', err);
-      setTagsList([]);
+      setLoadError(errorMessageOf(err, 'Không tải được danh sách thẻ.'));
     } finally {
       setLoading(false);
     }
@@ -40,42 +44,26 @@ export function TagList() {
   }, []);
 
   const handleSaveTag = async (data: TagFormData) => {
+    setActionError(null);
     try {
-      if (editingTag) {
-        await api.patch(`/tags/${editingTag.id}`, data);
-        setTagsList((prev) =>
-          prev.map((t) => (t.id === editingTag.id ? { ...t, ...data } : t))
-        );
-      } else {
-        const res = await api.post('/tags', data);
-        const newTag = res.data?.data || res.data || { id: `tag-${Date.now()}`, ...data };
-        setTagsList((prev) => [newTag, ...prev]);
-      }
+      if (editingTag) await TagApiService.updateTag(editingTag.id, data);
+      else await TagApiService.createTag(data);
       setIsModalOpen(false);
       setEditingTag(null);
+      await fetchTags();
     } catch (err) {
-      console.error('Save tag failed:', err);
-      // Fallback local update
-      if (editingTag) {
-        setTagsList((prev) =>
-          prev.map((t) => (t.id === editingTag.id ? { ...t, ...data } : t))
-        );
-      } else {
-        setTagsList((prev) => [{ id: `tag-${Date.now()}`, ...data, lessonCount: 0 }, ...prev]);
-      }
-      setIsModalOpen(false);
-      setEditingTag(null);
+      setActionError(errorMessageOf(err, 'Lưu thẻ thất bại.'));
     }
   };
 
   const handleDeleteTag = async () => {
     if (!deletingTag) return;
+    setActionError(null);
     try {
-      await api.delete(`/tags/${deletingTag.id}`);
+      await TagApiService.deleteTag(deletingTag.id);
       setTagsList((prev) => prev.filter((t) => t.id !== deletingTag.id));
     } catch (err) {
-      console.error('Delete tag failed:', err);
-      setTagsList((prev) => prev.filter((t) => t.id !== deletingTag.id));
+      setActionError(errorMessageOf(err, 'Xoá thẻ thất bại.'));
     } finally {
       setDeletingTag(null);
     }
@@ -110,6 +98,10 @@ export function TagList() {
         </button>
       </div>
 
+      {actionError ? (
+        <div className="mx-4 my-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</div>
+      ) : null}
+
       <div className="table-scroll">
         <table className="management-table">
           <thead>
@@ -119,7 +111,7 @@ export function TagList() {
               </th>
               <th>TÊN THẺ</th>
               <th>MÔ TẢ</th>
-              <th>SỐ BÀI HỌC</th>
+              <th>ĐANG DÙNG</th>
               <th>THAO TÁC</th>
             </tr>
           </thead>
@@ -128,6 +120,15 @@ export function TagList() {
               <tr>
                 <td colSpan={5} style={{ textAlign: 'center', padding: 24 }}>
                   Đang tải danh sách thẻ...
+                </td>
+              </tr>
+            ) : loadError ? (
+              <tr>
+                <td colSpan={5} style={{ textAlign: 'center', padding: 24 }} className="text-red-700">
+                  {loadError}{' '}
+                  <button type="button" className="underline font-semibold" onClick={() => fetchTags()}>
+                    Thử lại
+                  </button>
                 </td>
               </tr>
             ) : filteredTags.length === 0 ? (
@@ -157,7 +158,9 @@ export function TagList() {
                     </div>
                   </td>
                   <td className="text-slate-700 text-xs sm:text-sm">{tag.description || 'Chưa có mô tả'}</td>
-                  <td className="text-slate-700 text-xs sm:text-sm font-medium">{tag.lessonCount ?? 0} bài học</td>
+                  <td className="text-slate-700 text-xs sm:text-sm font-medium">
+                    {tag._count?.lessonTags ?? 0} bài học · {tag._count?.articleTags ?? 0} bài viết
+                  </td>
                   <td>
                     <ActionMenu
                       onEdit={() => {
@@ -165,7 +168,6 @@ export function TagList() {
                         setIsModalOpen(true);
                       }}
                       onDelete={() => setDeletingTag(tag)}
-                      onView={() => alert(`Xem thẻ: ${tag.name}`)}
                     />
                   </td>
                 </tr>

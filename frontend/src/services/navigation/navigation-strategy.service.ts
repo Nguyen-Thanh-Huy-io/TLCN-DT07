@@ -137,7 +137,7 @@ export class KnowledgeNavStrategy implements INavigationGroupStrategy {
       page: NavigationPageKey.TAGS,
       route: APP_ROUTES.TAGS.LIST,
       groupId: this.groupId,
-      subtitle: 'Gom bài viết & bài học theo chủ đề',
+      subtitle: 'Từ khoá tìm kiếm cho bài viết & bài học',
     },
   ];
 

@@ -25,6 +25,15 @@ export class TagApiService {
     return res.data?.data || res.data;
   }
 
+  static async updateTag(id: string, dto: CreateTagDto): Promise<TagItem> {
+    const res = await api.patch(`/tags/${id}`, dto);
+    return res.data?.data || res.data;
+  }
+
+  static async deleteTag(id: string): Promise<void> {
+    await api.delete(`/tags/${id}`);
+  }
+
   /** Lấy danh sách nhãn đang gắn với bài học */
   static async getLessonTags(lessonId: string): Promise<TagItem[]> {
     const res = await api.get(`/lessons/${lessonId}/tags`);

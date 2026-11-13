@@ -13,8 +13,12 @@ import { AttachLessonTagsDto } from './dto/attach-lesson-tags.dto';
 import { TAG_CONFIG, TAG_MESSAGES } from './tag.constant';
 import { Prisma } from '@prisma/client';
 
+const TAG_USAGE_INCLUDE = {
+  _count: { select: { lessonTags: true, articleTags: true } },
+} satisfies Prisma.TagInclude;
+
 type TagWithUsage = Prisma.TagGetPayload<{
-  include: { _count: { select: { lessonTags: true } } };
+  include: typeof TAG_USAGE_INCLUDE;
 }>;
 
 export interface TagListResult {
@@ -79,13 +83,7 @@ export class TagService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { name: 'asc' },
-        include: {
-          _count: {
-            select: {
-              lessonTags: true,
-            },
-          },
-        },
+        include: TAG_USAGE_INCLUDE,
       }),
       this.prisma.tag.count({ where }),
     ]);
@@ -111,13 +109,7 @@ export class TagService {
 
     const tag = await this.prisma.tag.findUnique({
       where: { id },
-      include: {
-        _count: {
-          select: {
-            lessonTags: true,
-          },
-        },
-      },
+      include: TAG_USAGE_INCLUDE,
     });
 
     if (!tag) {

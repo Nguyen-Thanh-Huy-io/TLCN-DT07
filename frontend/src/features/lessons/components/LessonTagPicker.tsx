@@ -308,8 +308,8 @@ export function LessonTagPicker({
                           />
                           <span className="text-slate-800 font-medium truncate text-xs">{tag.name}</span>
                         </div>
-                        {tag.lessonCount !== undefined && (
-                          <span className="text-[10px] text-slate-400">{tag.lessonCount} bài</span>
+                        {tag._count && (
+                          <span className="text-[10px] text-slate-400">{tag._count.lessonTags} bài</span>
                         )}
                       </button>
                     ))}

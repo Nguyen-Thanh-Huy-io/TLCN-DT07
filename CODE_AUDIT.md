@@ -15,7 +15,7 @@
 * **Prisma:** `migrate status` sạch, `migrate diff` rỗng sau đợt sửa lịch sử migration 2026-11-12 (xem mục 8).
 * **`npm run audit:dup` (jscpd):**
   - **Backend:** 164 files, 21,684 lines — **3.35% trùng lặp** (51 clones, 727 lines). Nằm sâu dưới ngưỡng an toàn 5%.
-  - **Frontend:** 410 files, 77,605 lines — **1.36% trùng lặp** (90 clones, 1056 lines). Con số tối ưu sau đợt tái cấu trúc Pha 4.
+  - **Frontend:** 310 files (đã thu gọn từ 513 files sau toàn bộ 5 đợt gom module, giữ 0 errors `tsc --noEmit`, 0 errors / 0 warnings `eslint`).
 * **`npm run audit:knip` (knip):**
   - **Unlisted dependencies:** **0** (đã bổ sung đầy đủ `socket.io-client` vào `frontend/package.json` và `multer` vào `backend/package.json`).
 * **`npm test` (backend):** **PASS 24/24 suites, 191/191 tests (100%)**.
@@ -94,7 +94,7 @@
 * `frontend/src/features/tags/components/TagForm.tsx:23` và `TagList.tsx:24,43,48,72` — gọi `api.post/get/patch/delete('/tags'...)` **trực tiếp trong component** thay vì qua `TagApiService` đã có sẵn.
 * `frontend/src/features/tags/components/TagList.tsx:54-66,74-77` — catch lỗi nhưng cập nhật UI như thành công bằng dữ liệu giả (`id: tag-${Date.now()}`) — che giấu lỗi thật với người dùng. Phân trang cũng chỉ là UI tĩnh (luôn hiện nút "1"), không truyền `limit/page` thật.
 * `frontend/src/features/timelines/components/TimelineEditor.tsx` — dùng chuỗi literal `'DRAFT'/'PUBLISHED'/'PENDING_REVIEW'` nhiều lần thay vì enum `ContentStatus` chung.
-* [ĐÃ SỬA MỘT PHẦN ✅] `frontend/src/features/taxonomy/*`, `services/public/public-taxonomy.ts` — nhóm `'REGION'` đã bỏ hẳn (cùng `useRegionOrder`, `region.utils.ts`); `'EVENT_TYPE'` thành `EVENT_TYPE_GROUP_CODE`. Còn `'ROLE_TYPE'`, `'PREDICATE'`, `'ENTITY_RELATION'` truyền dạng chuỗi vào `usePublicTaxonomyTerms`.
+* [ĐÃ SỬA ✅] Đã xoá bỏ hoàn toàn `frontend/src/features/taxonomy/*` và `services/public/public-taxonomy.ts`, thay bằng `hooks/useEventCategories.ts` và các hàm nhãn trong `services/public/article-kind.ts`.
 * Không vi phạm đáng kể: `TagModal.tsx`, `TopicForm.tsx`, `TopicPicker.tsx`, `TimelineList.tsx`, toàn bộ `features/landing/**`, `features/search/*` (catch rỗng trong `search.service.ts` có comment lý do rõ — hợp lệ).
 
 ---

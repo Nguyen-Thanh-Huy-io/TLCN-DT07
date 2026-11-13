@@ -114,7 +114,18 @@ Thứ tự ưu tiên theo CODE_AUDIT.md Mục 7 (xếp theo độ dài giảm d�
 - [ ] Thống nhất kiểu chữ tên enum Prisma (`userRole`, `email_type`… → PascalCase; có thể giữ tên type trong DB bằng `@@map`) — sửa import diện rộng.
 - [ ] Hợp nhất `ContentStatus.PENDING_REVIEW` và `LessonStatus.REVIEW` — cần data migration + sửa frontend.
 - [ ] `ArticleList.tsx` đang ẩn cứng 1 bài (`HIDDEN_ARTICLE`) — chuyển bài đó sang `ARCHIVED` rồi bỏ đoạn lọc.
-- [ ] Mã nhóm danh mục `'ROLE_TYPE'`, `'PREDICATE'`, `'ENTITY_RELATION'` còn truyền dạng chuỗi vào `usePublicTaxonomyTerms`.
+- [x] **[ĐÃ SỬA ✅]** Đã xoá bỏ hoàn toàn `features/taxonomy/*` và `public-taxonomy.ts`, thay bằng `hooks/useEventCategories.ts` + `services/public/article-kind.ts`.
+
+---
+
+## Pha 6 — Hợp nhất & Thu gọn kiến trúc Frontend (2026-11-13)
+
+- [x] **Dọn trước đó (513 → 493 file):** Gỡ hệ TipTap Block cũ song song (`extensions/*-block.extension.ts`, `components/blocks/*BlockView.tsx`, `LessonBlockPalette.tsx`, `lesson-block.factory.ts`, `lesson-block-insert.strategy.ts`), hợp nhất route trùng (`/cms/moderation` → `/moderation`, `/review/blog` → `/blog-review`), thay thế lớp `taxonomy/` bằng `useEventCategories`.
+- [x] **Đợt 1 (493 → 469 file):** Xoá 5 route thừa (`/styleguide`, `/topics` redirect, `/trieu-dai/[slug]`, `/kien-thuc/[slug]`, `/cong-dong/tai-khoan`), xoá 2 component chết (`OrnamentFrame`, `SectionTitle`); gộp `constants/` nhỏ vào `enums.ts`, `types/models/*` → `types/models.ts`, `utils/*` → `utils/common.ts`, 7 UI nhỏ → `components/common/CommonUi.tsx`.
+- [x] **Đợt 2 — `features/lessons/` (469 → 419 file):** Gộp 16 plugin ngắn → `simple-block.plugins.ts`, gộp `types/` và `constants/` nhỏ → `editor.types.ts` & `lesson.constants.ts`, gộp `strategies/` + `rules/` + `factories/` nhỏ, gộp Header/TipTap/Properties/Quiz subcomponents, gom `story-chapter/` (8 → 2 file) và `*BlockItemEditor` → `BasicBlockItemEditors.tsx` & `RichBlockItemEditors.tsx`.
+- [x] **Đợt 3 — `features/community/` + `public-curriculum/` + `curriculum/` (419 → 374 file):** Gom `features/community/` từ 39 → 12 file, `public-curriculum/components/reader/` (9 → 1) & `hub/` (9 → 4), `curriculum/components/studio/` (modals + panels + `CurriculumExplorer`).
+- [x] **Đợt 4 (Đã xong — 374 → 359 files):** Gom `features/quiz/` (`QuestionBankModal.tsx`, `PracticeQuizParts.tsx`, `utils/practice-quiz.helper.ts`) + `features/review/` (`BlogReviewParts.tsx`, `types/review.types.ts`).
+- [x] **Đợt 5 (Đã xong — 359 → 310 files):** Gom `components/timeline/` (`TimelineChrome`, `TimelineNodes`, `TimelineSections`, `sk-types`), `components/figures/` (`FiguresDirectoryParts`, `FigureProfileParts`), `components/entity-detail/` (`EntityReaderParts`, `EntityReader`), và các feature vừa/nhỏ (`landing`, `account`, `tags`, `topics`, `heritage`, `blog`, `period-detail`, `notes`, `search`).
 
 ---
 

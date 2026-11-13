@@ -27,9 +27,24 @@ export interface IPaginatedResult<T> {
   totalPages: number;
 }
 
+const TOPIC_TREE_LESSON_SELECT = {
+  id: true,
+  title: true,
+  slug: true,
+  status: true,
+  difficulty: true,
+  displayOrder: true,
+  thumbnailUrl: true,
+  updatedAt: true,
+} satisfies Prisma.LessonSelect;
+
+export type TopicTreeLesson = Prisma.LessonGetPayload<{
+  select: typeof TOPIC_TREE_LESSON_SELECT;
+}>;
+
 export interface ITopicTreeNode extends Topic {
   children: ITopicTreeNode[];
-  lessons?: any[];
+  lessons?: TopicTreeLesson[];
   _count?: {
     lessons?: number;
     children?: number;
@@ -497,9 +512,14 @@ export class TopicService {
     const allTopics = await this.prisma.topic.findMany({
       orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
       include: {
+        lessons: {
+          select: TOPIC_TREE_LESSON_SELECT,
+          orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
+        },
         _count: {
           select: {
             children: true,
+            lessons: true,
           },
         },
       },

@@ -5,15 +5,11 @@ import { TagModal, TagFormData } from './TagModal';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { ActionMenu } from '@/components/common/ActionMenu';
 import { IconName } from '@/constants/enums';
+import { extractErrorMessage } from '@/services/api';
 import { TagApiService } from '@/services/entities/tag.service';
 import { TagItem } from '@/types/models';
 
 export type TagRow = TagItem;
-
-const errorMessageOf = (err: unknown, fallback: string): string => {
-  const message = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
-  return typeof message === 'string' ? message : fallback;
-};
 
 export function TagList() {
   const [tagsList, setTagsList] = useState<TagRow[]>([]);
@@ -32,7 +28,7 @@ export function TagList() {
     try {
       setTagsList(await TagApiService.getTags());
     } catch (err) {
-      setLoadError(errorMessageOf(err, 'Không tải được danh sách thẻ.'));
+      setLoadError(extractErrorMessage(err, 'Không tải được danh sách thẻ.'));
     } finally {
       setLoading(false);
     }
@@ -53,7 +49,7 @@ export function TagList() {
       setEditingTag(null);
       await fetchTags();
     } catch (err) {
-      setSaveError(errorMessageOf(err, 'Lưu thẻ thất bại.'));
+      setSaveError(extractErrorMessage(err, 'Lưu thẻ thất bại.'));
     }
   };
 
@@ -64,7 +60,7 @@ export function TagList() {
       await TagApiService.deleteTag(deletingTag.id);
       setTagsList((prev) => prev.filter((t) => t.id !== deletingTag.id));
     } catch (err) {
-      setActionError(errorMessageOf(err, 'Xoá thẻ thất bại.'));
+      setActionError(extractErrorMessage(err, 'Xoá thẻ thất bại.'));
     } finally {
       setDeletingTag(null);
     }

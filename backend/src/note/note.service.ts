@@ -16,6 +16,8 @@ export class NoteService {
   ) {}
 
   async findAll(userId?: string, query?: QueryNoteDto) {
+    if (!userId && !query?.guestId) return [];
+
     const where: Prisma.NoteWhereInput = {};
 
     if (query?.targetType) {

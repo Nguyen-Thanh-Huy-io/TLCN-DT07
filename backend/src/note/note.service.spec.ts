@@ -97,6 +97,16 @@ describe('NoteService', () => {
       expect(mockPrisma.note.findMany).toHaveBeenCalled();
       expect(res).toHaveLength(1);
     });
+
+    it('không có userId lẫn guestId thì trả rỗng, không lộ ghi chú người khác', async () => {
+      const res = await service.findAll(undefined, {
+        targetType: NoteTargetType.ARTICLE,
+        targetId: 'art-1',
+      });
+
+      expect(res).toEqual([]);
+      expect(mockPrisma.note.findMany).not.toHaveBeenCalled();
+    });
   });
 
   describe('remove', () => {

@@ -22,12 +22,23 @@ const nextConfig: NextConfig = {
     "*.ngrok-free.app",
     "*.ngrok.io",
   ],
+  async redirects() {
+    return [
+      // Trang cá nhân cộng đồng đã gộp vào trang thành viên (định danh "me").
+      { source: "/cong-dong/ca-nhan", destination: "/cong-dong/thanh-vien/me", permanent: true },
+    ];
+  },
   async rewrites() {
     return [
       {
         source: "/api-proxy/:path*",
         destination: `${BACKEND_INTERNAL_URL}/:path*`,
       },
+      // Trang đọc chung: giữ URL theo lối vào, dồn về 1 trang /bai-viet/[slug] (?nguon= đổi chữ & link quay lại)
+      ...["nhan-vat", "su-kien", "di-tich", "thuc-the"].map((source) => ({
+        source: `/${source}/:slug`,
+        destination: `/bai-viet/:slug?nguon=${source}`,
+      })),
     ];
   },
 };

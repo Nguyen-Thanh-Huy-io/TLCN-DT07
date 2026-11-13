@@ -1,3 +1,14 @@
+/** Trang đọc chung /bai-viet/[slug]: lối vào cũ (/nhan-vat/[slug]…) được rewrite về đây kèm ?nguon=… */
+export const READER_SOURCE_PARAM = 'nguon';
+
+export enum ReaderSource {
+  ARTICLE = 'bai-viet',
+  FIGURE = 'nhan-vat',
+  EVENT = 'su-kien',
+  SITE = 'di-tich',
+  ENTITY = 'thuc-the',
+}
+
 /**
  * Application Routes (Next.js App Router)
  * Eliminates all magic string paths and route keys
@@ -33,7 +44,6 @@ export const APP_ROUTES = {
   },
   TAGS: {
     LIST: '/tags',
-    CREATE: '/tags/create',
   },
   MEDIA: '/media',
   QUESTIONS: '/questions',

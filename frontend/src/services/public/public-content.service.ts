@@ -17,7 +17,6 @@ export const PUBLIC_ROUTES = {
   /** Mỗi dòng thời gian hiển thị như 1 "thời kỳ" ở /giai-doan/[slug] (giao diện cũ). */
   TIMELINE: (slug: string) => `/giai-doan/${slug}`,
   LESSON: (slug: string) => `/bai-hoc/${slug}`,
-  TAG: (id: string) => `/tag/${id}`,
 } as const;
 
 export interface PublicTag {
@@ -183,11 +182,6 @@ export interface PublicTimeline {
   nodes: PublicTimelineNode[];
 }
 
-export interface PublicTagWithCount extends PublicTag {
-  description: string | null;
-  articleCount: number;
-}
-
 export interface PublicLibraryLesson {
   id: string;
   title: string;
@@ -197,17 +191,6 @@ export interface PublicLibraryLesson {
   difficulty: string;
   estimatedReadMinutes: number;
   tags: PublicTag[];
-}
-
-export interface PublicTopicDetail {
-  id: string;
-  slug: string;
-  name: string;
-  eyebrow: string | null;
-  icon: string | null;
-  description: string | null;
-  coverImageUrl: string | null;
-  children: Omit<PublicTopicDetail, 'children'>[];
 }
 
 async function getJson<T>(path: string): Promise<T | null> {
@@ -246,7 +229,3 @@ export const fetchArticle = (slug: string) => getJson<PublicArticleDetail>(`/pub
 export const fetchBlogPosts = () => list<PublicBlogPostSummary>('/public/blog');
 export const fetchBlogPost = (slug: string) => getJson<PublicBlogPostSummary>(`/public/blog/${enc(slug)}`);
 export const fetchTimelines = () => list<PublicTimeline>('/public/timelines');
-export const fetchTimeline = (slug: string) => getJson<PublicTimeline>(`/public/timelines/${enc(slug)}`);
-export const fetchPublicTags = () => list<PublicTagWithCount>('/public/tags');
-export const fetchLibraryLessons = () => list<PublicLibraryLesson>('/public/lessons');
-export const fetchTopic = (slug: string) => getJson<PublicTopicDetail>(`/public/topics/${enc(slug)}`);

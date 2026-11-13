@@ -6,7 +6,7 @@ import { ArticleBrowser } from './ArticleBrowser';
 
 /**
  * Trang một chuyên mục (Server Component). Dùng cho /chuyen-muc/[slug] và các lối tắt
- * /nhan-vat, /su-kien, /di-tich, /trieu-dai (slug chuyên mục cố định).
+ * /nhan-vat, /su-kien, /di-tich (slug chuyên mục cố định).
  */
 export async function CategoryPage({ slug }: { slug: string }) {
   const category = await fetchCategory(slug);

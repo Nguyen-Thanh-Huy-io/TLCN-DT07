@@ -25,7 +25,7 @@ const EMPTY: Draft = { name: '', slug: '', parentId: '', kind: '', icon: '', des
  * Chuyên mục bài viết — số lượng nhỏ nên quản lý trên 1 trang: bảng + form sửa ngay dòng.
  * "Loại bài" của chuyên mục quyết định hồ sơ bài viết (nhân vật / sự kiện / di tích...) và cách giao
  * diện công khai hiển thị; chuyên mục con để trống thì kế thừa chuyên mục cha.
- * Lưu ý: slug "nhan-vat", "su-kien", "di-tich", "trieu-dai" là đường dẫn của các trang lối tắt công khai.
+ * Lưu ý: slug "nhan-vat", "su-kien", "di-tich" là đường dẫn của các trang lối tắt công khai.
  */
 export function CategoryManager() {
   const [items, setItems] = useState<CategoryItem[]>([]);

@@ -1,33 +1,18 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, MessageSquarePlus, Bookmark } from 'lucide-react';
 import { useAuthSession } from '@/services/auth/use-auth-session';
-import {
-  CommunityApi,
-  getFallbackSuggestedMembers,
-  type CommunityMemberSummary,
-  type CommunityPost,
-} from '../api';
-import {
-  CommunityTabKey,
-  ComposerMode,
-} from '@/constants/enums';
+import { CommunityApi, getFallbackSuggestedMembers, type CommunityMemberSummary, type CommunityPost } from '../api';
+import { CommunityTabKey, ComposerMode, COMMUNITY_TAB_LABELS } from '@/constants/enums';
 import { QuickComposer } from './QuickComposer';
 import { CommunitySidebar } from './CommunitySidebar';
-import { CommunityFeedFilterBar } from './CommunityFeedFilterBar';
-import { CommunityFeedAskBanner } from './CommunityFeedAskBanner';
-import { CommunityFeedListSection } from './CommunityFeedListSection';
-import { useCommunityRealtimeSocket } from '../hooks/useCommunityRealtimeSocket';
-import { useCommunityPaging } from '../hooks/useCommunityPaging';
-import {
-  computePopularTags,
-  fetchTabFeedPosts,
-  matchesPostFilter,
-  updateFollowedAuthorsMap,
-  updateSuggestedMembersList,
-} from '../utils/community-feed.helper';
+import { useCommunityRealtimeSocket } from '../hooks/useCommunityFeedHooks';
+import { useCommunityPaging } from '../hooks/useCommunityFeedHooks';
+import { computePopularTags, fetchTabFeedPosts, matchesPostFilter, updateFollowedAuthorsMap, updateSuggestedMembersList } from '../utils/community-feed.helper';
+import { PostCard } from './PostCard';
 
 export type { CommunityTabKey };
 
@@ -333,6 +318,289 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
         onClose={() => setComposerOpen(false)}
         onCreated={handleCreatedPost}
       />
+    </div>
+  );
+}
+
+// --- CommunityFeedAskBanner.tsx ---
+interface CommunityFeedAskBannerProps {
+  username?: string;
+  onOpenComposer: () => void;
+}
+
+export function CommunityFeedAskBanner({ username, onOpenComposer }: CommunityFeedAskBannerProps) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[8px] border border-[#E3D6BE] bg-[#FAF5E6] px-5 py-3.5">
+      <button
+        type="button"
+        onClick={onOpenComposer}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-[6px] border border-[#E2D5BC] bg-[#FDF9F0] px-4 py-2.5 text-left text-[14px] text-[#6E5D4B] transition-colors hover:border-[#8A5A19] hover:text-[#14233F]"
+      >
+        <MessageSquarePlus size={17} className="shrink-0 text-[#7A1F24]" />
+        <span className="truncate">
+          {username
+            ? `${username}, bạn muốn đặt câu hỏi sử học hay chia sẻ bài chuyên khảo nào hôm nay?`
+            : 'Bạn đang tìm hiểu hay thắc mắc điều gì về lịch sử? Bấm vào đây để đặt câu hỏi...'}
+        </span>
+      </button>
+    </div>
+  );
+}
+
+// --- CommunityFeedEmptyState.tsx ---
+interface CommunityFeedEmptyStateProps {
+  activeTab: CommunityTabKey;
+  isLoggedIn: boolean;
+  selectedTag: string | null;
+  searchQuery: string;
+  onResetFilter: () => void;
+}
+
+export function CommunityFeedEmptyState({
+  activeTab,
+  isLoggedIn,
+  selectedTag,
+  searchQuery,
+  onResetFilter,
+}: CommunityFeedEmptyStateProps) {
+  if (activeTab === CommunityTabKey.SAVED && !isLoggedIn) {
+    return (
+      <div className="rounded-[8px] border border-dashed border-[#D8C8AA] bg-[#FDF9F0] p-8 text-center">
+        <Bookmark size={22} className="mx-auto text-[#8A5A19]" />
+        <h2 className="mt-2.5 text-[17px] font-semibold text-[#14233F]">
+          Đăng nhập để xem kho thảo luận đã lưu
+        </h2>
+        <p className="mt-1.5 text-[14px] text-[#6E5D4B]">
+          Lưu lại các cuộc thảo luận sử học và bài Blog chia sẻ tâm đắc để tra cứu bất cứ lúc nào.
+        </p>
+        <Link
+          href="/login?redirect=/cong-dong"
+          className="mt-4 inline-flex h-10 items-center rounded-[6px] bg-[#7A1F24] px-5 text-[14px] font-medium text-[#FAF5E6]"
+        >
+          Đăng nhập tài khoản
+        </Link>
+      </div>
+    );
+  }
+
+  const getEmptyTitle = () => {
+    if (activeTab === CommunityTabKey.SAVED) {
+      return 'Bạn chưa lưu bài thảo luận nào trong danh mục này';
+    }
+    if (activeTab === CommunityTabKey.FOLLOWING) {
+      return 'Bạn chưa theo dõi tác giả nào có bài viết hiển thị';
+    }
+    return 'Không tìm thấy bài thảo luận phù hợp';
+  };
+
+  const getEmptyDescription = () => {
+    if (activeTab === CommunityTabKey.FOLLOWING) {
+      return 'Hãy bấm nút "Theo dõi" tại danh sách Thành viên tiêu biểu ở cột bên trái hoặc trên từng bài viết để nhận thảo luận mới.';
+    }
+    if (selectedTag || searchQuery) {
+      return 'Hãy thử xóa bộ lọc từ khóa hoặc chọn một thẻ chủ đề khác ở cột bên trái.';
+    }
+    return 'Hãy là người đầu tiên đặt câu hỏi hoặc chia sẻ bài viết từ Blog.';
+  };
+
+  const hasFilter = Boolean(selectedTag || searchQuery || activeTab === CommunityTabKey.FOLLOWING);
+
+  return (
+    <div className="rounded-[8px] border border-dashed border-[#D8C8AA] bg-[#FDF9F0] p-8 text-center">
+      <h2 className="text-[17px] font-semibold text-[#14233F]">{getEmptyTitle()}</h2>
+      <p className="mt-1.5 text-[14px] text-[#6E5D4B]">{getEmptyDescription()}</p>
+      {hasFilter ? (
+        <button
+          type="button"
+          onClick={onResetFilter}
+          className="mt-3.5 h-9 rounded-[6px] border border-[#D8C8AA] bg-[#F2E8D5] px-4 text-[13px] font-medium text-[#14233F]"
+        >
+          {activeTab === CommunityTabKey.FOLLOWING ? 'Xem tất cả thảo luận' : 'Xóa bộ lọc đang chọn'}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+// --- CommunityFeedFilterBar.tsx ---
+interface CommunityFeedFilterBarProps {
+  activeTab: CommunityTabKey;
+  selectedTag: string | null;
+  searchQuery: string;
+  totalPosts: number;
+  onResetFilters: () => void;
+}
+
+export function CommunityFeedFilterBar({
+  activeTab,
+  selectedTag,
+  searchQuery,
+  totalPosts,
+  onResetFilters,
+}: CommunityFeedFilterBarProps) {
+  const hasFilter = Boolean(selectedTag || searchQuery.trim() || activeTab !== CommunityTabKey.ALL);
+  if (!hasFilter) return null;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-[6px] bg-[#F1E6D0] px-4 py-2.5 text-[13px] text-[#5C4E3C]">
+      <div className="flex flex-wrap items-center gap-2">
+        <span>Đang hiển thị:</span>
+        <strong className="text-[#14233F]">
+          {COMMUNITY_TAB_LABELS[activeTab]}
+        </strong>
+        {selectedTag ? (
+          <span className="rounded-[4px] bg-[#7A1F24] px-2 py-0.5 text-[12px] font-semibold text-[#FAF5E6]">
+            #{selectedTag}
+          </span>
+        ) : null}
+        {searchQuery.trim() ? (
+          <span className="rounded-[4px] bg-[#FAF5E6] px-2 py-0.5 text-[12px] font-semibold text-[#14233F]">
+            Từ khóa: &ldquo;{searchQuery.trim()}&rdquo;
+          </span>
+        ) : null}
+        <span className="text-[#7A6B57] tabular-nums">
+          ({totalPosts} bài viết)
+        </span>
+      </div>
+
+      <button
+        type="button"
+        onClick={onResetFilters}
+        className="font-semibold text-[#7A1F24] hover:underline"
+      >
+        Đặt lại mặc định
+      </button>
+    </div>
+  );
+}
+
+// --- CommunityFeedListSection.tsx ---
+interface CommunityFeedListSectionProps {
+  errorMsg: string;
+  isLoading: boolean;
+  filteredPosts: CommunityPost[];
+  activeTab: CommunityTabKey;
+  isLoggedIn: boolean;
+  selectedTag: string | null;
+  searchQuery: string;
+  onResetFilters: () => void;
+  onRetryLoadTab: () => void;
+  onSelectTag: (tag: string) => void;
+  onLikeUpdate: (postId: string, liked: boolean, likeCount: number) => void;
+  onBookmarkUpdate: (postId: string, bookmarked: boolean) => void;
+  isAuthorFollowed: (author?: { id: string; username: string; followedByMe?: boolean } | null) => boolean;
+  currentUserId?: string;
+  onFollowUpdate: (identifier: string, following: boolean, followerCount?: number) => void;
+  isLoadingMore: boolean;
+  hasMore: boolean;
+  onLoadMorePosts: () => void;
+  sentinelRef: React.RefObject<HTMLDivElement | null>;
+}
+
+export function CommunityFeedListSection({
+  errorMsg,
+  isLoading,
+  filteredPosts,
+  activeTab,
+  isLoggedIn,
+  selectedTag,
+  searchQuery,
+  onResetFilters,
+  onRetryLoadTab,
+  onSelectTag,
+  onLikeUpdate,
+  onBookmarkUpdate,
+  isAuthorFollowed,
+  currentUserId,
+  onFollowUpdate,
+  isLoadingMore,
+  hasMore,
+  onLoadMorePosts,
+  sentinelRef,
+}: CommunityFeedListSectionProps) {
+  if (errorMsg) {
+    return (
+      <div className="rounded-[8px] border border-[#E5DAC4] bg-[#FDF9F0] p-6 text-[14px] text-[#7A1F24]">
+        <p>{errorMsg}</p>
+        <button
+          type="button"
+          onClick={onRetryLoadTab}
+          className="mt-2 font-semibold text-[#14233F] underline"
+        >
+          Thử tải lại
+        </button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        {[1, 2, 3].map((idx) => (
+          <div
+            key={idx}
+            className="rounded-[8px] border border-[#E5DAC4] bg-[#FDF9F0] p-6 md:p-8"
+            aria-hidden="true"
+          >
+            <div className="h-5 w-44 rounded-[4px] bg-[#EFE5D2]" />
+            <div className="mt-4 h-7 w-3/4 rounded-[4px] bg-[#EFE5D2]" />
+            <div className="mt-3 h-4 w-full rounded-[4px] bg-[#F5EDE0]" />
+            <div className="mt-2 h-4 w-2/3 rounded-[4px] bg-[#F5EDE0]" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (filteredPosts.length === 0) {
+    return (
+      <CommunityFeedEmptyState
+        activeTab={activeTab}
+        isLoggedIn={isLoggedIn}
+        selectedTag={selectedTag}
+        searchQuery={searchQuery}
+        onResetFilter={onResetFilters}
+      />
+    );
+  }
+
+  const showPagination =
+    isLoadingMore ||
+    (hasMore &&
+      activeTab !== CommunityTabKey.SAVED &&
+      activeTab !== CommunityTabKey.SHARED_BLOG);
+
+  return (
+    <div className="space-y-6">
+      {filteredPosts.map((post) => (
+        <PostCard
+          key={post.id}
+          post={post}
+          activeTag={selectedTag}
+          onSelectTag={onSelectTag}
+          onLikeUpdate={onLikeUpdate}
+          onBookmarkUpdate={onBookmarkUpdate}
+          isFollowedAuthor={isAuthorFollowed(post.author)}
+          isOwnPost={Boolean(currentUserId && post.author?.id === currentUserId)}
+          onFollowUpdate={onFollowUpdate}
+        />
+      ))}
+
+      {showPagination ? (
+        <div ref={sentinelRef} className="pt-2 text-center">
+          {isLoadingMore ? (
+            <span className="text-[14px] text-[#6E5D4B]">Đang tải thêm bài thảo luận...</span>
+          ) : (
+            <button
+              type="button"
+              onClick={onLoadMorePosts}
+              className="h-10 rounded-[6px] border border-[#D8C8AA] bg-[#FDF9F0] px-5 text-[14px] font-medium text-[#14233F] hover:border-[#8A5A19]"
+            >
+              Tải thêm thảo luận
+            </button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

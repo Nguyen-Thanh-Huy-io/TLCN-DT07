@@ -10,7 +10,7 @@ import { useAuthSession } from '@/services/auth/use-auth-session';
 import { PublicAuthService, USER_ROLE_LABELS, isStaffRole } from '@/services/auth/public-auth.service';
 import { AccountApiService, type MyProfile } from '@/services/auth/account.service';
 import { extractErrorMessage } from '@/services/api';
-import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubBadge, HubButton } from '@/features/public-curriculum/components/hub/HubUi';
+import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubBadge, HubButton } from '@/features/public-curriculum/components/hub/HubReaderParts';
 import { ProfileSection } from './ProfileSection';
 import { LearningSection } from './LearningSection';
 import { SecuritySection } from './SecuritySection';

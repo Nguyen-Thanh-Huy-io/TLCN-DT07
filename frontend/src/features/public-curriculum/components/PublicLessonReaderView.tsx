@@ -20,18 +20,18 @@ import {
   HUB_BUTTON_BASE,
   HUB_BUTTON_VARIANTS,
   HubButton,
-} from './hub/HubUi';
-import { useLessonProgress } from './hub/useLessonProgress';
-import { useLessonRelated } from './hub/LessonRelated';
-import { useLessonMedia } from './hub/useLessonMedia';
+} from './hub/HubReaderParts';
+import { useLessonProgress } from './hub/useLessonReaderHooks';
+import { useLessonRelated } from './hub/HubReaderParts';
+import { useLessonMedia } from './hub/useLessonReaderHooks';
 import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
 import { NoteDrawer } from '@/features/notes/components/NoteDrawer';
 import { NoteFloatingButton } from '@/features/notes/components/NoteFloatingButton';
 import { NOTE_TARGET_TYPE } from '@/features/notes/types/note.types';
-import { LessonMobileSyllabusDrawer } from './reader/LessonMobileSyllabusDrawer';
-import { LessonReaderLoadingSkeleton } from './reader/LessonReaderLoadingSkeleton';
-import { LessonReaderNotFound } from './reader/LessonReaderNotFound';
-import { LessonGateSection } from './reader/LessonGateSection';
+import { LessonMobileSyllabusDrawer } from './reader/LessonReaderMainLayout';
+import { LessonReaderLoadingSkeleton } from './reader/LessonReaderMainLayout';
+import { LessonReaderNotFound } from './reader/LessonReaderMainLayout';
+import { LessonGateSection } from './reader/LessonReaderMainLayout';
 import { LessonReaderMainLayout } from './reader/LessonReaderMainLayout';
 
 const SYLLABUS_STORAGE_KEY = 'hisgo.hub.syllabus.open';

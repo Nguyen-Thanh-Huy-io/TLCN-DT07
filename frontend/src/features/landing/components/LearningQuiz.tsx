@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, BookOpen, Check, Layers, Lightbulb, X } from 'lucide-react';
-import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonProgress';
+import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonReaderHooks';
 import { LANDING_ROUTES } from '../landing.adapter';
 import type { LandingCourse, LandingQuiz } from '../landing.types';
 import { HlBadge, HlButton, HlProgress, SectionHead, cn } from './LandingUi';

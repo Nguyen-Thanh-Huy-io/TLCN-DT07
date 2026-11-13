@@ -7,9 +7,9 @@ import { BookOpen, ChevronRight, Compass, X } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import { LearningPathApiService, type LearningPathItem } from '@/services/entities/learning-path.service';
 import { PUBLIC_CURRICULUM_ROUTES, DEFAULT_COVER_IMAGES } from '@/features/public-curriculum/constants/public-curriculum.constants';
-import { pathLessons } from '@/features/public-curriculum/components/hub/HubSyllabus';
-import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonProgress';
-import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubButton, HubProgress } from '@/features/public-curriculum/components/hub/HubUi';
+import { pathLessons } from '@/features/public-curriculum/components/hub/HubReaderParts';
+import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonReaderHooks';
+import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubButton, HubProgress } from '@/features/public-curriculum/components/hub/HubReaderParts';
 import { AccountCard, Notice, type NoticeState } from './AccountUi';
 import { RemoteImage } from '@/components/common/RemoteImage';
 

@@ -28,9 +28,9 @@ import {
   PUBLIC_DIFFICULTY_META,
 } from '../constants/public-curriculum.constants';
 import { usePublicCurriculumFacade } from '../facades/usePublicCurriculumFacade';
-import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubBadge, HubButton, HubProgress } from './hub/HubUi';
-import { HubSyllabus, chapterLabel, pathLessons } from './hub/HubSyllabus';
-import { useLessonProgress } from './hub/useLessonProgress';
+import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubBadge, HubButton, HubProgress } from './hub/HubReaderParts';
+import { HubSyllabus, chapterLabel, pathLessons } from './hub/HubReaderParts';
+import { useLessonProgress } from './hub/useLessonReaderHooks';
 
 interface PublicCurriculumViewProps {
   initialPathId?: string | null;

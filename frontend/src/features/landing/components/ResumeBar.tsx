@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowRight, BookOpen, CheckCircle2, Clock3, UserRound, Zap } from 'lucide-react';
-import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonProgress';
+import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonReaderHooks';
 import { PUBLIC_CURRICULUM_ROUTES } from '@/features/public-curriculum/constants/public-curriculum.constants';
 import { LANDING_ROUTES } from '../landing.adapter';
 import type { LandingCourse } from '../landing.types';

@@ -13,12 +13,12 @@ import {
   type CommunityMemberProfile,
   type CommunityMemberSummary,
   type CommunityPost,
-} from '../../api';
+} from '../api';
 import {
   type CommunityProfileViewProps,
   type ProfileComputedStats,
   ProfileTabKey,
-} from './profile.types';
+} from '../components/CommunityProfileView';
 
 const SOCKET_URL = API_BASE_URL;
 

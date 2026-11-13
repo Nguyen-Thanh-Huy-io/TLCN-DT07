@@ -5,7 +5,7 @@ import { BadgeCheck, MailWarning, Save } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import { AccountApiService, type MyProfile } from '@/services/auth/account.service';
 import { PublicAuthService } from '@/services/auth/public-auth.service';
-import { HubButton } from '@/features/public-curriculum/components/hub/HubUi';
+import { HubButton } from '@/features/public-curriculum/components/hub/HubReaderParts';
 import { AccountCard, Notice, type NoticeState, FIELD_CLASS, FieldLabel } from './AccountUi';
 
 function EmailVerification({ profile, onVerified }: { profile: MyProfile; onVerified: () => void }) {

@@ -16,7 +16,7 @@ import {
   FillInBlankQuestion,
 } from '@/features/lessons/types/quiz.types';
 import type { UserQuizAnswer } from '../../strategies/public-curriculum.strategies';
-import { HubBadge, HubButton } from './HubUi';
+import { HubBadge, HubButton } from './HubReaderParts';
 import { sanitizeRichHtml } from '@/utils/common';
 
 interface QuizEvaluation {

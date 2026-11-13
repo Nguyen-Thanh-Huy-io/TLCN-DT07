@@ -7,7 +7,7 @@ import { KeyRound, LogOut } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import { AccountApiService, type MyProfile } from '@/services/auth/account.service';
 import { PublicAuthService } from '@/services/auth/public-auth.service';
-import { HubButton } from '@/features/public-curriculum/components/hub/HubUi';
+import { HubButton } from '@/features/public-curriculum/components/hub/HubReaderParts';
 import { AccountCard, FIELD_CLASS, FieldLabel, Notice, type NoticeState } from './AccountUi';
 import { AuthProviderType } from '@/constants/enums';
 

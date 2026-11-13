@@ -4,17 +4,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { API_BASE_URL } from '@/constants/api-url';
-import { CommunityApi, CommunityPost } from '../../api';
+import { CommunityApi, CommunityPost } from '../api';
 import {
   CommentSortOrder,
   CommentSocketAction,
   CommunityCommentItem,
   SortOrder,
-} from './comment-modal.types';
-import {
   countAllCommentsInTree,
   mapBackendCommentsToTree,
-} from './comment-tree.util';
+} from '../components/PostCommentModal';
 
 interface UsePostCommentsProps {
   isOpen: boolean;

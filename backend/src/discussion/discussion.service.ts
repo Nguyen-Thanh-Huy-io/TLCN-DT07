@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { DiscussionTargetType, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { ROLE_GROUPS } from '../common/access/access.constant';
 import { NotificationService } from '../notification/notification.service';
@@ -16,6 +16,8 @@ import {
 
 /** Ban biên soạn / kiểm duyệt / quản trị: trả lời chính thức và xoá chủ đề của người khác. */
 const STAFF_ROLES: readonly string[] = ROLE_GROUPS.STAFF;
+const PUBLIC_ARTICLE_PATH = '/bai-viet';
+const PUBLIC_LESSON_PATH = '/bai-hoc';
 
 const USER_SELECT = {
   select: {
@@ -167,14 +169,35 @@ export class DiscussionService {
             ? 'Ban Biên Soạn đã trả lời câu hỏi của bạn'
             : 'Có phản hồi mới về câu hỏi của bạn',
           dto.content.slice(0, 100),
-          thread.targetType === 'ARTICLE'
-            ? `/su-kien/${thread.targetId}`
-            : `/bai-hoc/${thread.targetId}`,
+          await this.discussionTargetLink(
+            tx,
+            thread.targetType,
+            thread.targetId,
+          ),
         );
       }
 
       return reply;
     });
+  }
+
+  private async discussionTargetLink(
+    tx: Prisma.TransactionClient,
+    targetType: DiscussionTargetType,
+    targetId: string,
+  ): Promise<string | undefined> {
+    if (targetType === DiscussionTargetType.ARTICLE) {
+      const article = await tx.article.findUnique({
+        where: { id: targetId },
+        select: { slug: true },
+      });
+      return article ? `${PUBLIC_ARTICLE_PATH}/${article.slug}` : undefined;
+    }
+    const lesson = await tx.lesson.findUnique({
+      where: { id: targetId },
+      select: { slug: true },
+    });
+    return lesson ? `${PUBLIC_LESSON_PATH}/${lesson.slug}` : undefined;
   }
 
   async remove(userId: string, userRoleVal: string, threadId: string) {

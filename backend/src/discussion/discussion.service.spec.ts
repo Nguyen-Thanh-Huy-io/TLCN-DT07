@@ -23,6 +23,12 @@ describe('DiscussionService', () => {
     discussionReply: {
       create: jest.fn(),
     },
+    lesson: {
+      findUnique: jest.fn().mockResolvedValue({ slug: 'bai-hoc-mau' }),
+    },
+    article: {
+      findUnique: jest.fn().mockResolvedValue({ slug: 'bai-viet-mau' }),
+    },
     $transaction: jest.fn((cb) => cb(mockPrisma)),
   };
 
@@ -67,6 +73,9 @@ describe('DiscussionService', () => {
       mockPrisma.discussionThread.findUnique.mockResolvedValue({
         id: 'thread-1',
         title: 'Hỏi',
+        userId: 'learner-1',
+        targetType: DiscussionTargetType.LESSON,
+        targetId: 'lesson-1',
       });
       mockPrisma.discussionReply.create.mockResolvedValue({
         id: 'reply-1',
@@ -88,6 +97,13 @@ describe('DiscussionService', () => {
         where: { id: 'thread-1' },
         data: { isAnswered: true },
       });
+      expect(mockNotificationService.notify).toHaveBeenCalledWith(
+        'learner-1',
+        expect.anything(),
+        expect.any(String),
+        'Trả lời từ Admin',
+        '/bai-hoc/bai-hoc-mau',
+      );
     });
 
     it('Học viên bình thường trả lời thì isOfficial = false', async () => {

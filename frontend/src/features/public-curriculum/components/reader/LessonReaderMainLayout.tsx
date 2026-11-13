@@ -7,6 +7,7 @@ import { DEFAULT_COVER_IMAGES, PUBLIC_DIFFICULTY_META, PUBLIC_CURRICULUM_ROUTES 
 import { LessonToc } from '../hub/HubReaderParts';
 import { LessonRelated, type RelatedEntities } from '../hub/HubReaderParts';
 import { HubLessonQuiz } from '../hub/HubLessonQuiz';
+import { DiscussionSection } from '@/features/discussions/components/DiscussionSection';
 import { HubSyllabus, chapterLabel } from '../hub/HubReaderParts';
 import { LessonItem } from '@/types/models';
 import { LearningPathItem } from '@/services/entities/learning-path.service';
@@ -171,6 +172,8 @@ export function LessonReaderMainLayout({
             onCompleteAndContinue={onCompleteAndContinue}
             onMarkCompleted={onMarkCompleted}
           />
+
+          <DiscussionSection targetType="LESSON" targetId={lesson.id} />
         </motion.section>
       </AnimatePresence>
 

@@ -55,13 +55,13 @@ export class ContentWriteGuard implements CanActivate {
       context.getHandler(),
     );
 
-    if (!user) {
+    if (
+      !user ||
+      !(ROLE_GROUPS.STAFF as readonly string[]).includes(user.role)
+    ) {
       throw new ForbiddenException(ACCESS_MESSAGES.FORBIDDEN_ROLE);
     }
 
-    if (resource?.model === 'article' && !resource.idParam) {
-      return true;
-    }
     const isReviewer = (ROLE_GROUPS.REVIEWERS as readonly string[]).includes(
       user.role,
     );

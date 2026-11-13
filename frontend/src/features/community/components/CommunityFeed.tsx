@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, MessageSquarePlus, Bookmark } from 'lucide-react';
 import { useAuthSession } from '@/services/auth/use-auth-session';
-import { CommunityApi, getFallbackSuggestedMembers, type CommunityMemberSummary, type CommunityPost } from '../api';
+import { CommunityApi, SSR_ME_IDENTIFIER, type CommunityMemberSummary, type CommunityPost } from '../api';
 import { CommunityTabKey, ComposerMode, COMMUNITY_TAB_LABELS } from '@/constants/enums';
 import { QuickComposer } from './QuickComposer';
 import { CommunitySidebar } from './CommunitySidebar';
@@ -29,9 +29,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
 
   const [activeTab, setActiveTab] = useState<CommunityTabKey>(CommunityTabKey.ALL);
   const [posts, setPosts] = useState<CommunityPost[]>(initialPosts);
-  const [suggestedMembers, setSuggestedMembers] = useState<CommunityMemberSummary[]>(() =>
-    getFallbackSuggestedMembers().slice(0, 4),
-  );
+  const [suggestedMembers, setSuggestedMembers] = useState<CommunityMemberSummary[]>([]);
   const [followedAuthors, setFollowedAuthors] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialPosts.length >= PAGE_SIZE);
@@ -224,7 +222,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
 
   const myProfileHref = user?.username
     ? `/cong-dong/thanh-vien/${encodeURIComponent(user.username)}`
-    : '/cong-dong/ca-nhan';
+    : `/cong-dong/thanh-vien/${SSR_ME_IDENTIFIER}`;
 
   const resetFilters = () => {
     setSelectedTag(null);

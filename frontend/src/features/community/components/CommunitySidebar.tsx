@@ -175,8 +175,11 @@ export function CommunitySidebar({
             ) : null}
           </div>
 
+          {popularTags.length === 0 ? (
+            <p className="px-1 text-[12.5px] text-[#8A7963]">Chưa có thẻ nào trong các bài thảo luận.</p>
+          ) : null}
           <div className="flex flex-wrap gap-2">
-            {popularTags.slice(0, 8).map(([tag, count]) => {
+            {popularTags.map(([tag, count]) => {
               const active = selectedTag?.toLowerCase() === tag.toLowerCase();
               return (
                 <button

@@ -47,15 +47,9 @@ export function computePopularTags(posts: CommunityPost[]): Array<[string, numbe
       counts.set(tag, (counts.get(tag) || 0) + 1);
     }
   }
-  const list = Array.from(counts.entries())
+  return Array.from(counts.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8);
-  if (list.length > 0) return list;
-  return [
-    ['Hoàng thành Thăng Long', 1],
-    ['Lịch sử Việt Nam', 1],
-    ['Khảo cổ học', 1],
-  ];
 }
 
 async function fetchSavedTab(userId?: string): Promise<{ posts: CommunityPost[]; hasMore: boolean }> {

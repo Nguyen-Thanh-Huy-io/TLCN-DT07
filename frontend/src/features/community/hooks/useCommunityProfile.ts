@@ -9,7 +9,6 @@ import { ComposerMode } from '@/constants/enums';
 import {
   CommunityApi,
   extractCommunityContent,
-  getFallbackSuggestedMembers,
   type CommunityMemberProfile,
   type CommunityMemberSummary,
   type CommunityPost,
@@ -30,9 +29,7 @@ export function useCommunityProfile({
   const sessionUser = useAuthSession();
 
   const [profile, setProfile] = useState<CommunityMemberProfile>(initialProfile);
-  const [suggestedMembers, setSuggestedMembers] = useState<CommunityMemberSummary[]>(() =>
-    getFallbackSuggestedMembers().slice(0, 5),
-  );
+  const [suggestedMembers, setSuggestedMembers] = useState<CommunityMemberSummary[]>([]);
   const [activeTab, setActiveTab] = useState<ProfileTabKey>(ProfileTabKey.POSTS);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);

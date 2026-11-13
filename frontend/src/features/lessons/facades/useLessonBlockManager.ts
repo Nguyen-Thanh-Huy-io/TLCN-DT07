@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { LessonBlockType } from '../types/block-palette.types';
+import { LessonBlockType } from '../types/editor.types';
 import {
   LessonBlockItem,
   ResourceLinkBlockData,
@@ -11,7 +11,7 @@ import {
   SplitSide,
 } from '../types/block-builder.types';
 import { MoveDirection } from '../components/quiz/QuizQuestionEditors';
-import { LessonBlockFactory, generateBlockId } from '../factories/lesson-block.factory';
+import { LessonBlockRegistry, generateBlockId } from '../plugins/block-plugin.registry';
 import { RowLayoutStrategy } from '../strategies/row-layout.strategy';
 
 export interface UseLessonBlockManagerReturn {
@@ -194,7 +194,7 @@ export function useLessonBlockManager(initialContent?: unknown): UseLessonBlockM
 
   // Thêm một liên kết tài nguyên tham khảo mới (luôn hiển thị ở cuối bài học)
   const addResourceLink = useCallback((): string => {
-    const newLink = LessonBlockFactory.createDefaultBlock(LessonBlockType.RESOURCE_LINK) as ResourceLinkBlockData;
+    const newLink = LessonBlockRegistry.createDefaultBlock(LessonBlockType.RESOURCE_LINK) as ResourceLinkBlockData;
     setResourceLinks((prev) => [...prev, newLink]);
     return newLink.id;
   }, []);
@@ -211,7 +211,7 @@ export function useLessonBlockManager(initialContent?: unknown): UseLessonBlockM
 
   // Thêm khối mới (vào vị trí targetIndex hoặc cuối danh sách)
   const addBlock = useCallback((type: LessonBlockType, targetIndex?: number): string => {
-    const newBlock = LessonBlockFactory.createDefaultBlock(type);
+    const newBlock = LessonBlockRegistry.createDefaultBlock(type);
 
     setBlocks((prev) => {
       if (typeof targetIndex === 'number' && targetIndex >= 0 && targetIndex <= prev.length) {
@@ -277,7 +277,7 @@ export function useLessonBlockManager(initialContent?: unknown): UseLessonBlockM
   // Xuất HTML toàn bài học cho Chế độ Xem trước và học sinh
   // (Liên kết tài nguyên tham khảo luôn được nối vào cuối cùng, sau toàn bộ nội dung)
   const compileToHtml = useCallback((): string => {
-    return [...blocks, ...resourceLinks].map((b) => LessonBlockFactory.blockToHtml(b)).join('\n');
+    return [...blocks, ...resourceLinks].map((b) => LessonBlockRegistry.blockToHtml(b)).join('\n');
   }, [blocks, resourceLinks]);
 
   // Xuất cấu trúc JSON (gộp lại resourceLinks ở cuối để lưu đồng bộ cùng content)
@@ -363,7 +363,7 @@ export function useLessonBlockManager(initialContent?: unknown): UseLessonBlockM
   // Thêm khối con vào một cột cụ thể
   const addBlockToColumn = useCallback(
     (rowId: string, columnId: string, type: LessonBlockType, targetIndex?: number): string => {
-      const newChild = LessonBlockFactory.createDefaultBlock(type);
+      const newChild = LessonBlockRegistry.createDefaultBlock(type);
       setBlocks((prev) =>
         prev.map((block) => {
           if (block.id !== rowId || block.type !== LessonBlockType.SECTION_ROW) return block;
@@ -432,7 +432,7 @@ export function useLessonBlockManager(initialContent?: unknown): UseLessonBlockM
         if (targetIdx === -1) return prev;
 
         const targetBlock = prev[targetIdx];
-        const newBlock = LessonBlockFactory.createDefaultBlock(droppedType);
+        const newBlock = LessonBlockRegistry.createDefaultBlock(droppedType);
 
         const col1Id = generateBlockId('col');
         const col2Id = generateBlockId('col');

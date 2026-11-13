@@ -2,7 +2,7 @@
 import { KeyboardKey } from '@/constants/enums';
 import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { resolveBackendAssetUrl } from '@/constants/api-url';
 import { UploadApiService } from '@/services/entities/upload.service';
 import { extractErrorMessage } from '@/services/api';

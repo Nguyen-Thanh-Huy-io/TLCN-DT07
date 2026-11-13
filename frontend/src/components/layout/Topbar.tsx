@@ -2,8 +2,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { Icon } from '@/components/icons/Icon';
-import { Avatar } from '@/components/common/Avatar';
-import { IconName } from '@/constants/icons';
+import { Avatar } from '@/components/common/CommonUi';
+import { IconName } from '@/constants/enums';
 import { navigationFacade } from '@/services/navigation/navigation-strategy.service';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { USER_ROLE_LABELS } from '@/services/auth/public-auth.service';

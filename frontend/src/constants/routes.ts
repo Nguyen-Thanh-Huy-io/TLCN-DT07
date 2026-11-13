@@ -42,7 +42,7 @@ export const APP_ROUTES = {
   SETTINGS: '/settings',
   REVIEW: '/review',
   BLOG_REVIEW: '/blog-review',
-  MODERATION: '/cms/moderation',
+  MODERATION: '/moderation',
   USERS: '/users',
   LOGIN: '/login',
 } as const;

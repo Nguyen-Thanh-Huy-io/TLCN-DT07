@@ -1,19 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Bookmark, Flag, Landmark, Network, Swords, TimerReset, type LucideIcon } from "lucide-react";
+import { ArrowRight, BookOpen, Bookmark, Flag, Landmark, Network, Swords, TimerReset } from "lucide-react";
 import { useTimelineFocus } from "./TimelineFocus";
 import { Heading, Badge, Button } from "./SkUi";
-import { type TimelineEvent } from "./sk-types";
+import { EventDomainGroup, type TimelineEvent } from "./sk-types";
 import { SK_SELECTED_CLASS } from "./sk-shared";
 import { RemoteImage } from "@/components/common/RemoteImage";
 
-const CATEGORY_ICONS: Record<string, LucideIcon> = {
-  BATTLE: Swords,
-  WAR: Swords,
-  REVOLUTION: Flag,
-  CULTURE_SCIENCE: BookOpen,
-};
+function renderCategoryIcon(event: TimelineEvent) {
+  const slug = event.categoryCode.toLowerCase();
+  if (/tran-danh|chien-tranh|quan-su|khang-chien/.test(slug)) return <Swords size={12} />;
+  if (/cach-mang|khoi-nghia|chinh-tri/.test(slug)) return <Flag size={12} />;
+  if (event.domainGroup === EventDomainGroup.ECONOMY_CULTURE) return <BookOpen size={12} />;
+  return <Landmark size={12} />;
+}
 
 export function EventCard({
   event,
@@ -31,10 +32,9 @@ export function EventCard({
   const isFocus = focus?.id === event.id;
   // Chế độ Liên kết / lăng kính chủ thể: sự kiện liên quan sáng lên, phần còn lại mờ đi.
   const focusClass = !focus && !lens ? "" : isFocus ? "sk-focus-self" : reasons ? "sk-focus-related" : "sk-focus-dim";
-  const CategoryIcon = CATEGORY_ICONS[event.categoryCode] ?? Landmark;
   const category = (
     <Badge className="sk-category">
-      <CategoryIcon size={12} />
+      {renderCategoryIcon(event)}
       {event.category}
     </Badge>
   );

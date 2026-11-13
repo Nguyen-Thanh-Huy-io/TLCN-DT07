@@ -19,7 +19,7 @@ import {
 import {
   CommunityTabKey,
   COMMUNITY_TAB_LABELS,
-} from '@/constants/community.constant';
+} from '@/constants/enums';
 import type { CommunityMemberSummary } from '../api';
 
 const TABS: Array<{ key: CommunityTabKey; label: string }> = [

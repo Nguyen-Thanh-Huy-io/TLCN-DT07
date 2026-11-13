@@ -1,11 +1,11 @@
-import { LessonBlockType } from '../types/block-palette.types';
+import { LessonBlockType } from '../types/editor.types';
 import {
   LessonBlockItem,
   ResourceLinkBlockData,
   RowSectionBlockData,
   StoryChapterBlockData,
 } from '../types/block-builder.types';
-import { LessonBlockFactory } from '../factories/lesson-block.factory';
+import { LessonBlockRegistry } from '../plugins/block-plugin.registry';
 import {
   StoryChapterLayoutStrategy,
   getChapterLabel,
@@ -187,7 +187,7 @@ function renderStoryChapterBlock(
     });
   });
 
-  const html = LessonBlockFactory.blockToHtml(block);
+  const html = LessonBlockRegistry.blockToHtml(block);
   return `<div id="${storyRootId}">${html}</div>`;
 }
 
@@ -208,7 +208,7 @@ function renderBlockWithAnchor(
     return renderStoryChapterBlock(block, level, ctx);
   }
 
-  const html = LessonBlockFactory.blockToHtml(block);
+  const html = LessonBlockRegistry.blockToHtml(block);
   const label = getBlockTocLabel(block);
   if (!label) return html;
 

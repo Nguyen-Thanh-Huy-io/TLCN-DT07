@@ -13,7 +13,7 @@ import {
 import {
   CommunityTabKey,
   ComposerMode,
-} from '@/constants/community.constant';
+} from '@/constants/enums';
 import { QuickComposer } from './QuickComposer';
 import { CommunitySidebar } from './CommunitySidebar';
 import { CommunityFeedFilterBar } from './CommunityFeedFilterBar';

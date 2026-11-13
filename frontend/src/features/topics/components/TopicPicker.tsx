@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { TopicApiService } from '@/services/entities/topic.service';
-import type { TopicItem } from '@/types/models/topic.type';
+import type { TopicItem } from '@/types/models';
 
 export interface PickedTopic {
   id: string;

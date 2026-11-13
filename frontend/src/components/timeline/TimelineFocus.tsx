@@ -1,13 +1,10 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { TaxonomyTermItem } from "@/services/public/public-taxonomy";
-import { relationLabel } from "@/features/taxonomy/taxonomy-labels";
 import {
   type TimelineActor,
   type TimelineEvent,
   TimelineActorType,
-  TimelineRelationDirection,
 } from "./sk-types";
 
 /** Lý do một sự kiện liên quan tới sự kiện đang chọn. strong = liên kết trực tiếp. */
@@ -48,32 +45,11 @@ export const useTimelineFocus = () => useContext(TimelineFocusContext);
  * Liên kết gián tiếp chỉ đi một bước qua nhân vật / địa danh — không lan tiếp để tránh "cái gì
  * cũng liên quan".
  */
-const DEFAULT_EVENT_RELATION_LABELS: Record<string, string> = {
-  CAUSES: 'Nguyên nhân dẫn tới',
-  PRECEDES: 'Tiền đề diễn ra trước',
-  FOLLOWS: 'Hệ quả diễn ra sau',
-  INFLUENCES: 'Tác động ảnh hưởng',
-  PARALLEL_TO: 'Diễn ra đồng thời',
-  OPPOSES: 'Đối kháng phản ứng lại',
-  DERIVED_FROM: 'Bắt nguồn từ',
-  ENDED_BY: 'Kết thúc bằng',
-  OTHER: 'Mối liên hệ khác',
-};
-
 type AddRelated = (id: string, reason: RelatedReason) => void;
 
-function addDirectRelations(focus: TimelineEvent, relationTerms: TaxonomyTermItem[], add: AddRelated) {
+function addDirectRelations(focus: TimelineEvent, add: AddRelated) {
   for (const r of focus.relations) {
-    // Nhãn đọc từ phía sự kiện kia: "là nguyên nhân của" ↔ "bắt nguồn trực tiếp từ".
-    const label = relationLabel(
-      relationTerms,
-      r.relationType,
-      r.direction === TimelineRelationDirection.OUTGOING
-        ? TimelineRelationDirection.INCOMING
-        : TimelineRelationDirection.OUTGOING,
-      DEFAULT_EVENT_RELATION_LABELS,
-    );
-    add(r.eventId, { text: `${label} “${focus.title}”`, strong: true });
+    add(r.eventId, { text: `${r.relationType} “${focus.title}”`, strong: true });
   }
 }
 
@@ -108,7 +84,6 @@ function addSharedEntities(focus: TimelineEvent, all: TimelineEvent[], add: AddR
 export function computeRelated(
   focus: TimelineEvent,
   all: TimelineEvent[],
-  relationTerms: TaxonomyTermItem[],
 ): Map<string, RelatedReason[]> {
   const byId = new Map(all.map((e) => [e.id, e]));
   const out = new Map<string, RelatedReason[]>();
@@ -119,18 +94,18 @@ export function computeRelated(
     out.set(id, list);
   };
 
-  addDirectRelations(focus, relationTerms, add);
+  addDirectRelations(focus, add);
   addHierarchy(focus, all, byId, add);
   addSharedEntities(focus, all, add);
   return out;
 }
 
 /** Lăng kính chủ thể: sự kiện có chủ thể này, lý do là vai trò của chủ thể trong sự kiện. */
-export function computeLens(actor: TimelineActor, all: TimelineEvent[], roleName: (code: string) => string) {
+export function computeLens(actor: TimelineActor, all: TimelineEvent[]) {
   const out = new Map<string, RelatedReason[]>();
   for (const e of all) {
     const hit = e.actors.find((a) => a.id === actor.id);
-    if (hit) out.set(e.id, [{ text: hit.roleLabel || roleName(hit.role), strong: true }]);
+    if (hit) out.set(e.id, [{ text: hit.roleLabel || hit.role, strong: true }]);
   }
   return out;
 }

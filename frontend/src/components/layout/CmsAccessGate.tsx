@@ -10,17 +10,19 @@ import {
   isSuperadminRole,
   USER_ROLE_LABELS,
 } from "@/services/auth/public-auth.service";
+import { NavigationPageKey } from "@/constants/routes";
 
 /** Trang CMS chỉ một số vai trò được vào (mặc định: mọi nhân sự). */
-const PAGE_ACCESS: Record<string, (role: string) => boolean> = {
-  review: isReviewerRole,
-  moderation: isReviewerRole,
-  users: isSuperadminRole,
+const PAGE_ACCESS: Partial<Record<NavigationPageKey, (role: string) => boolean>> = {
+  [NavigationPageKey.REVIEW]: isReviewerRole,
+  [NavigationPageKey.BLOG_REVIEW]: isReviewerRole,
+  [NavigationPageKey.MODERATION]: isReviewerRole,
+  [NavigationPageKey.USERS]: isSuperadminRole,
 };
 
 export function canAccessCmsPage(page: string, role?: string | null): boolean {
   if (!isStaffRole(role)) return false;
-  const rule = PAGE_ACCESS[page];
+  const rule = PAGE_ACCESS[page as NavigationPageKey];
   return rule ? rule(role as string) : true;
 }
 

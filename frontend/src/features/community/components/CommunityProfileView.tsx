@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Bookmark, Layers, Share2, UserCheck, Users } from 'lucide-react';
-import { ComposerMode } from '@/constants/community.constant';
+import { ComposerMode } from '@/constants/enums';
 import { QuickComposer } from './QuickComposer';
 import {
   type CommunityProfileViewProps,

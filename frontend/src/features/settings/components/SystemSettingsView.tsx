@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
-import { Badge } from '@/components/common/Badge';
+import { IconName } from '@/constants/enums';
+import { Badge } from '@/components/common/CommonUi';
 
 enum SettingsTab {
   GENERAL = 'general',

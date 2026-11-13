@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Badge } from '@/components/common/Badge';
+import { Badge } from '@/components/common/CommonUi';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { QuizSaveState, UseQuizEditorReturn } from '../facades/useQuizEditor';
-import { QuizQuestionCard } from './quiz/QuizQuestionCard';
-import { AddQuestionMenu } from './quiz/AddQuestionMenu';
+import { QuizQuestionCard } from './quiz/QuizQuestionEditors';
+import { AddQuestionMenu } from './quiz/QuizQuestionEditors';
 import { QuestionBankPickerModal } from '@/features/quiz/components/QuestionBankPickerModal';
 
 interface LessonQuizPanelProps {

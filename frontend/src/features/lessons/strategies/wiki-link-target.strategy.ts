@@ -1,7 +1,7 @@
 import { ArticleApiService } from '@/services/entities/article.service';
 import { TimelineApiService } from '@/services/entities/timeline.service';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
-import { dateLabelOf } from '@/utils/year-label';
+import { dateLabelOf } from '@/utils/common';
 import { URL_PROTOCOLS } from '@/constants/routes';
 
 /**

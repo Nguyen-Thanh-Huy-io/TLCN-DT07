@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { ContentStatus } from '@/constants/enums';
 
 export enum PublishActionType {
@@ -75,7 +75,7 @@ export function TopicEditorHeader({
     <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-200">
       <div>
         <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
-          <Link href="/topics" className="hover:text-blue-600 transition">
+          <Link href="/curriculum" className="hover:text-blue-600 transition">
             Chủ đề học tập
           </Link>
           <span>/</span>

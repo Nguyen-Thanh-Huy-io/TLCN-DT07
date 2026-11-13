@@ -17,7 +17,7 @@ import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
 import { NoteDrawer } from '@/features/notes/components/NoteDrawer';
 import { NoteFloatingButton } from '@/features/notes/components/NoteFloatingButton';
 import { NOTE_TARGET_TYPE } from '@/features/notes/types/note.types';
-import { sanitizeRichHtml } from '@/utils/sanitize-html';
+import { sanitizeRichHtml } from '@/utils/common';
 import { EntityReadingToolbar, TextSizeLevel } from './EntityReadingToolbar';
 import { EntityReadingToc } from './EntityReadingToc';
 import { EntityReadingTimeline } from './EntityReadingTimeline';

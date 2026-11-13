@@ -1,8 +1,8 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { DataTable } from '@/components/table/DataTable';
-import { UserCell } from '@/components/common/UserCell';
-import { Badge } from '@/components/common/Badge';
+import { UserCell } from '@/components/common/CommonUi';
+import { Badge } from '@/components/common/CommonUi';
 import { ColumnDef } from '@/types/table.types';
 import { CommonFilterOption, UserRole, UserStatus, NoticeTone } from '@/constants/enums';
 import api, { extractErrorMessage } from '@/services/api';

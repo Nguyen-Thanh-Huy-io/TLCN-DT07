@@ -15,7 +15,7 @@ import {
   ArrowLeftRight,
 } from 'lucide-react';
 import { StandaloneQuizItem, CreateStandaloneQuizDto } from '@/services/entities/quiz.service';
-import { TopicItem } from '@/types/models/topic.type';
+import { TopicItem } from '@/types/models';
 import { TopicApiService } from '@/services/entities/topic.service';
 import {
   QuizQuestion,

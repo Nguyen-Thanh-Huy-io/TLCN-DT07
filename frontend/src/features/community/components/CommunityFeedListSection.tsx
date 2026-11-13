@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CommunityTabKey } from '@/constants/community.constant';
+import { CommunityTabKey } from '@/constants/enums';
 import type { CommunityPost } from '../api';
 import { PostCard } from './PostCard';
 import { CommunityFeedEmptyState } from './CommunityFeedEmptyState';

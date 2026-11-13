@@ -19,9 +19,8 @@ import {
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from '@/components/filters/ChipFilter';
 import { Pagination } from '@/components/common/Pagination';
 import { formatYear, normalizeSearch, shortPeriodName } from '@/features/search/search-index';
+import { categoryKeyLabel, eventCategoryLabel, useEventCategories } from '@/hooks/useEventCategories';
 import type { PublicEventSummaryDto, PublicPeriodDto } from '@/services/entities/landing.service';
-import type { TaxonomyTermItem } from '@/services/public/public-taxonomy';
-import { ancestorChain, flattenTree, loadPublicTaxonomy } from '@/features/taxonomy/taxonomy-tree';
 import './events-library.css';
 import { RemoteImage } from '@/components/common/RemoteImage';
 
@@ -67,25 +66,9 @@ interface EventRow {
   eraName: string | null;
   haystack: string;
   linkFlags: Set<LinkKey>;
-  /** Loại đã gắn và mọi loại cha của chúng — lọc theo nút cha ra cả nút con. */
-  categoryPath: Set<string>;
 }
 
-const DEFAULT_EVENT_CATEGORY_LABELS: Record<string, string> = {
-  BATTLE: 'Trận đánh',
-  WAR: 'Chiến tranh',
-  TREATY: 'Hiệp ước',
-  REVOLUTION: 'Cách mạng',
-  POLITICAL_EVENT: 'Biến cố chính trị',
-  SUMMIT_CONFERENCE: 'Hội nghị',
-  CULTURE_SCIENCE: 'Văn hóa và khoa học',
-  NATURAL_DISASTER: 'Thiên tai dịch bệnh',
-  OTHER: 'Khác',
-};
-
-const categoryLabel = (c: string) => DEFAULT_EVENT_CATEGORY_LABELS[c] ?? c;
-
-function buildRows(events: PublicEventSummaryDto[], periods: PublicPeriodDto[], terms: TaxonomyTermItem[]): EventRow[] {
+function buildRows(events: PublicEventSummaryDto[], periods: PublicPeriodDto[]): EventRow[] {
   const bySlug = new Map(periods.map((p) => [p.slug, p]));
   const byId = new Map(periods.map((p) => [p.id, p]));
   return events.map((event) => {
@@ -109,14 +92,13 @@ function buildRows(events: PublicEventSummaryDto[], periods: PublicPeriodDto[], 
         ].join(' '),
       ),
       linkFlags: flags,
-      categoryPath: new Set((event.categoryIds ?? []).flatMap((id) => ancestorChain(terms, id).map((t) => t.id))),
     };
   });
 }
 
 function matches(row: EventRow, f: EventFilters, needle: string): boolean {
   if (f.eras.length && !f.eras.includes(row.eraId)) return false;
-  if (f.categories.length && !f.categories.some((c) => row.categoryPath.has(c))) return false;
+  if (f.categories.length && !f.categories.some((c) => row.event.categoryIds?.includes(c))) return false;
   if (f.links.length && !f.links.some((l) => row.linkFlags.has(l as LinkKey))) return false;
   return !needle || row.haystack.includes(needle);
 }
@@ -126,18 +108,9 @@ function matches(row: EventRow, f: EventFilters, needle: string): boolean {
  * Hỗ trợ chuyển đổi Grid / List, phân trang Pagination rõ ràng.
  */
 export function EventsLibrary({ events, periods }: { events: PublicEventSummaryDto[]; periods: PublicPeriodDto[] }) {
-  // Loại sự kiện theo cây "Danh mục dùng chung"; chưa tải xong thì thẻ dùng nhãn enum cũ.
-  const [categoryTerms, setCategoryTerms] = useState<TaxonomyTermItem[]>([]);
-  useEffect(() => {
-    loadPublicTaxonomy('EVENT_TYPE')
-      .then((group) => setCategoryTerms(group?.terms ?? []))
-      .catch(() => setCategoryTerms([]));
-  }, []);
-
-  const rows = useMemo(() => buildRows(events, periods, categoryTerms), [events, periods, categoryTerms]);
-  const termLabel = (id: string) => categoryTerms.find((t) => t.id === id)?.label ?? id;
-  const primaryLabel = (event: PublicEventSummaryDto) =>
-    event.categoryIds?.[0] && categoryTerms.length ? termLabel(event.categoryIds[0]) : categoryLabel(event.category);
+  const eventCategories = useEventCategories();
+  const rows = useMemo(() => buildRows(events, periods), [events, periods]);
+  const primaryLabel = (event: PublicEventSummaryDto) => eventCategoryLabel(eventCategories, event);
 
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<EventFilters>(EMPTY);
@@ -192,7 +165,7 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
 
   const chips = [
     ...filters.eras.map((v) => ({ key: 'eras' as const, value: v, label: eras.find(([id]) => id === v)?.[1].label ?? v })),
-    ...filters.categories.map((v) => ({ key: 'categories' as const, value: v, label: termLabel(v) })),
+    ...filters.categories.map((v) => ({ key: 'categories' as const, value: v, label: categoryKeyLabel(eventCategories, v) })),
     ...filters.links.map((v) => ({ key: 'links' as const, value: v, label: LINK_OPTIONS[v as LinkKey] })),
   ];
   const active = filterCount(filters);
@@ -311,8 +284,8 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
           {(draft, setDraft) => {
             const toggle = (key: keyof EventFilters, v: string) => setDraft((d) => ({ ...d, [key]: toggleValue(d[key], v) }));
             const eraOptions = eras.map(([id, e]) => ({ value: id, label: e.label, hint: `${count((r) => r.eraId === id)} sự kiện` }));
-            const categories = flattenTree(categoryTerms)
-              .map(({ term, depth }) => ({ term, depth, n: count((r) => r.categoryPath.has(term.id)) }))
+            const categories = eventCategories
+              .map((cat) => ({ cat, n: count((r) => Boolean(r.event.categoryIds?.includes(cat.id))) }))
               .filter((c) => c.n > 0);
             const links = (Object.keys(LINK_OPTIONS) as LinkKey[]).filter((k) => count((r) => r.linkFlags.has(k)) > 0);
             return (
@@ -322,9 +295,9 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
                 </FilterSection>
                 <FilterSection title="Danh mục sự kiện" aside={<PickedCount count={draft.categories.length} />}>
                   <ChipGroup
-                    options={categories.map(({ term, depth, n }) => ({
-                      value: term.id,
-                      label: depth > 0 ? `› ${term.label}` : term.label,
+                    options={categories.map(({ cat, n }) => ({
+                      value: cat.id,
+                      label: cat.name,
                       hint: `${n} sự kiện`,
                     }))}
                     selected={draft.categories}

@@ -3,8 +3,8 @@ import {
   EntitySourceType,
   IEntityDetailPreview,
   IEntitySearchResult,
-} from '../../../types/entity-source.types';
-import { EntitySourceStrategyFactory } from '../../../factories/entity-source-strategy.factory';
+} from '../../../types/editor.types';
+import { EntitySourceStrategyFactory } from '../../../strategies/entity-sources/hisgo-internal-source.strategy';
 
 export function useWikipediaDetailPicker() {
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);

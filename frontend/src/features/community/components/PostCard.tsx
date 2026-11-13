@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { BlogPostType } from '@/constants/community.constant';
+import { BlogPostType } from '@/constants/enums';
 import { CommunityApi, extractCommunityContent, type CommunityPost } from '../api';
 import { PostActionBar } from './PostActionBar';
 import { PostCommentModal } from './PostCommentModal';

@@ -1,4 +1,4 @@
-import { LessonBlockType } from '../types/block-palette.types';
+import { LessonBlockType } from '../types/editor.types';
 import { TimelineBlockData, TimelineOrientation } from '../types/block-builder.types';
 import { BlockPlugin, BlockWidth, safeUrl, escapeHtml, renderCollapsibleDetail } from './block-plugin.types';
 

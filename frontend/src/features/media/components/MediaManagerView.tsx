@@ -2,10 +2,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { CommonFilterOption, MediaItemType } from '@/constants/enums';
 import api, { extractErrorMessage } from '@/services/api';
-import { formatTimeAgo } from '@/utils/time-ago.util';
+import { formatTimeAgo } from '@/utils/common';
 
 export interface MediaFileItem {
   id: string;

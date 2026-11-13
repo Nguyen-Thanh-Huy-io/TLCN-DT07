@@ -2,8 +2,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus } from 'lucide-react';
-import { LessonBlockType, LessonBlockGroup } from '../../types/block-palette.types';
-import { LESSON_BLOCK_ITEMS } from '../../constants/block-palette.constants';
+import { LessonBlockType, LessonBlockGroup } from '../../types/editor.types';
+import { LESSON_BLOCK_ITEMS } from '../../constants/lesson.constants';
 import { BLOCK_TYPE_ICONS } from './BlockLibraryPalette';
 
 interface AddBlockDividerProps {

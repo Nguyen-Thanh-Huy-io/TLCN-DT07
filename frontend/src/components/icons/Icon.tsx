@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconName, IconNameType } from '@/constants/icons';
+import { IconName, IconNameType } from '@/constants/enums';
 
 export const iconPaths: Record<IconName, React.ReactNode> = {
   [IconName.GRID]: (

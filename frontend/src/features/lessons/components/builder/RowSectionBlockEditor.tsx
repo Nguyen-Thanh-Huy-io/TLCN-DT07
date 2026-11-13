@@ -3,11 +3,11 @@
 import React, { useRef, useState } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
 import { RowSectionBlockData, LessonBlockItem } from '../../types/block-builder.types';
-import { LessonBlockType, LessonBlockGroup } from '../../types/block-palette.types';
-import { LESSON_BLOCK_ITEMS } from '../../constants/block-palette.constants';
+import { LessonBlockType, LessonBlockGroup } from '../../types/editor.types';
+import { LESSON_BLOCK_ITEMS } from '../../constants/lesson.constants';
 import { RowLayoutStrategy } from '../../strategies/row-layout.strategy';
 import { ColumnResizer } from './ColumnResizer';
-import { BlockPlacementRuleEngine } from '../../rules/block-placement.rule';
+import { BlockPlacementRuleEngine } from '../../strategies/row-layout.strategy';
 import { useActiveEditor } from '../../context/ActiveEditorContext';
 
 interface RowSectionBlockEditorProps {

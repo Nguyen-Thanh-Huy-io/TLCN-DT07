@@ -25,7 +25,7 @@ export interface SearchSource {
   lessons: PublicLibraryLesson[];
 }
 
-export { formatYear } from '@/utils/year-label';
+export { formatYear } from '@/utils/common';
 
 /** "Lịch sử Thế giới: Thời kỳ Trung đại (476 - 1492)" → "Thế giới Trung đại". */
 export function shortPeriodName(name: string): string {

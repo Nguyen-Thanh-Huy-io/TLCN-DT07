@@ -1,4 +1,4 @@
-import { CommunityTabKey, CommunitySortMode } from '@/constants/community.constant';
+import { CommunityTabKey, CommunitySortMode } from '@/constants/enums';
 import {
   CommunityApi,
   extractCommunityContent,

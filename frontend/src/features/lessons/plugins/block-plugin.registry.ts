@@ -1,27 +1,34 @@
-import { LessonBlockType } from '../types/block-palette.types';
+import { LessonBlockType } from '../types/editor.types';
 import { LessonBlockItem } from '../types/block-builder.types';
 import { BlockPlugin, renderCollapsibleDetail } from './block-plugin.types';
-import { BlockWidthStrategy } from '../strategies/block-width.strategy';
+import { BlockWidthStrategy } from '../strategies/row-layout.strategy';
 import { createBlockUUID } from '../strategies/story-chapter-layout.strategy';
 
-import { textBlockPlugin } from './text-block.plugin';
-import { headingBlockPlugin } from './heading-block.plugin';
-import { imageBlockPlugin } from './image-block.plugin';
-import { videoBlockPlugin } from './video-block.plugin';
-import { quoteBlockPlugin } from './quote-block.plugin';
-import { calloutBlockPlugin } from './callout-block.plugin';
+export const generateBlockId = (prefix: string = 'block'): string => {
+  return createBlockUUID(prefix);
+};
+
+import {
+  textBlockPlugin,
+  headingBlockPlugin,
+  imageBlockPlugin,
+  videoBlockPlugin,
+  quoteBlockPlugin,
+  calloutBlockPlugin,
+  characterBlockPlugin,
+  eventBlockPlugin,
+  mapBlockPlugin,
+  comparisonTableBlockPlugin,
+  quizBlockPlugin,
+  dividerBlockPlugin,
+  relatedPeopleBlockPlugin,
+  relatedEventsBlockPlugin,
+  sectionRowBlockPlugin,
+  setRowSectionCompiler,
+  resourceLinkBlockPlugin,
+} from './simple-block.plugins';
 import { timelineBlockPlugin } from './timeline-block.plugin';
-import { characterBlockPlugin } from './character-block.plugin';
-import { eventBlockPlugin } from './event-block.plugin';
-import { mapBlockPlugin } from './map-block.plugin';
-import { comparisonTableBlockPlugin } from './comparison-table-block.plugin';
-import { quizBlockPlugin } from './quiz-block.plugin';
-import { dividerBlockPlugin } from './divider-block.plugin';
-import { relatedPeopleBlockPlugin } from './related-people-block.plugin';
-import { relatedEventsBlockPlugin } from './related-events-block.plugin';
-import { sectionRowBlockPlugin, setRowSectionCompiler } from './section-row-block.plugin';
 import { storyChapterBlockPlugin, setStoryChapterChildCompiler } from './story-chapter-block.plugin';
-import { resourceLinkBlockPlugin } from './resource-link-block.plugin';
 
 const LEGACY_TABLE_TYPE = 'TABLE';
 const LEGACY_COMPARISON_TABLE_TYPE = 'COMPARISON_TABLE';

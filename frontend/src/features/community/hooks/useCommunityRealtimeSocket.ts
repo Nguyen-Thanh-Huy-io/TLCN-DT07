@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { API_BASE_URL } from '@/constants/api-url';
-import type { CommunityTabKey } from '@/constants/community.constant';
+import type { CommunityTabKey } from '@/constants/enums';
 import type { CommunityMemberSummary, CommunityPost } from '../api';
 
 const SOCKET_URL = API_BASE_URL;

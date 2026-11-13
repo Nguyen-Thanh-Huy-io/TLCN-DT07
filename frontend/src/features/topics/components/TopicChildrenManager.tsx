@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { KeyboardKey } from '@/constants/enums';
-import { TopicItem } from '@/types/models/topic.type';
+import { TopicItem } from '@/types/models';
 
 export interface TopicChildrenManagerProps {
   topicId: string;

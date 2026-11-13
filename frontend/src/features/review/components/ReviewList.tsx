@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { UserCell } from '@/components/common/UserCell';
+import { UserCell } from '@/components/common/CommonUi';
 import { ReviewModal } from './ReviewModal';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { ContentStatus, NoticeTone } from '@/constants/enums';
-import type { LessonItem } from '@/types/models/lesson.type';
+import type { LessonItem } from '@/types/models';
 import api, { extractErrorMessage, parsePaginatedResponse } from '@/services/api';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import {

@@ -4,8 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Check, History, Shield, Sparkles } from "lucide-react";
 import { Badge, Heading } from "@/components/timeline/SkUi";
-import { eventCategoryLabel, eventRoleLabel } from "@/features/taxonomy/taxonomy-labels";
-import { usePublicTaxonomyTerms } from "@/features/taxonomy/usePublicTaxonomy";
+import { eventCategoryLabel, useEventCategories } from "@/hooks/useEventCategories";
 import { PUBLIC_ROUTE_PREFIX, type PublicPeriodDto } from "@/services/entities/landing.service";
 import { periodTitle, type FigureView } from "./figure-utils";
 
@@ -15,8 +14,7 @@ function dateLabel(startYear: number, note: string | null) {
 }
 
 export function LifeTimeline({ figure, periods }: { figure: FigureView; periods: PublicPeriodDto[] }) {
-  const categoryTerms = usePublicTaxonomyTerms('EVENT_TYPE');
-  const roleTerms = usePublicTaxonomyTerms('ROLE_TYPE');
+  const eventCategories = useEventCategories();
   return (
     <div className="sk-life-timeline">
       <div className="sk-profile-section-heading">
@@ -31,7 +29,7 @@ export function LifeTimeline({ figure, periods }: { figure: FigureView; periods:
       {figure.events.length ? (
         figure.events.map((e) => {
           const subEra = periodTitle(periods, e.periodSlug);
-          const role = e.roleLabel || eventRoleLabel(roleTerms, e.role);
+          const role = e.roleLabel || e.role;
           return (
             <motion.article
               key={e.id}
@@ -54,7 +52,7 @@ export function LifeTimeline({ figure, periods }: { figure: FigureView; periods:
               <div className="sk-life-events">
                 <div className="sk-life-event">
                   <div>
-                    <Badge>{eventCategoryLabel(categoryTerms, e)}</Badge>
+                    <Badge>{eventCategoryLabel(eventCategories, e)}</Badge>
                     {e.isPrimary && (
                       <span>
                         <Sparkles size={11} /> VAI TRÒ CHÍNH

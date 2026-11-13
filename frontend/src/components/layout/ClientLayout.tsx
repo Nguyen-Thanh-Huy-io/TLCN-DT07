@@ -7,7 +7,6 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { CmsAccessGate } from "@/components/layout/CmsAccessGate";
 import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { FigureProfileProvider } from "@/components/figures/FigureProfileProvider";
-import { APP_ROUTES, NavigationPageKey } from "@/constants/routes";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'hisgo_sidebar_collapsed';
 const STORAGE_VALUE_TRUE = 'true';
@@ -18,7 +17,6 @@ const PUBLIC_ROUTE_PREFIXES = [
   '/login',
   '/dang-ky',
   '/tai-khoan',
-  '/styleguide',
   '/chuong-trinh-hoc',
   '/bai-hoc',
   '/bai-viet',
@@ -32,9 +30,7 @@ const PUBLIC_ROUTE_PREFIXES = [
   '/nhan-vat',
   '/su-kien',
   '/di-tich',
-  '/trieu-dai',
   '/chuong-su',
-  '/kien-thuc',
   '/luyen-tap',
   '/cong-dong',
 ];
@@ -76,7 +72,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const isHisgoPublicRoute =
     pathname === "/" ||
     (!pathname.startsWith("/blog-review") &&
-      !pathname.startsWith("/review/blog") &&
       PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) ||
     isPublicBlogRoute;
 
@@ -89,11 +84,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Derive the 'page' identifier from the first path segment only (or /cms/<subpage>)
+  // Derive the 'page' identifier from the first path segment only
   let page = DASHBOARD_PAGE_KEY;
-  if (pathname.startsWith("/cms/moderation")) {
-    page = "moderation";
-  } else if (pathname !== "/") {
+  if (pathname !== "/") {
     page = pathname.replace(/^\//, "").split("/")[0];
   }
 
@@ -101,8 +94,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const setPage = (newPage: string) => {
     if (newPage === DASHBOARD_PAGE_KEY) {
       router.push("/cms");
-    } else if (newPage === NavigationPageKey.MODERATION) {
-      router.push(APP_ROUTES.MODERATION);
     } else {
       router.push(`/${newPage}`);
     }

@@ -3,8 +3,8 @@
 import React from 'react';
 import { GripVertical, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 import { LessonBlockItem, BlockWidthType } from '../../types/block-builder.types';
-import { LessonBlockType } from '../../types/block-palette.types';
-import { BlockWidthStrategy } from '../../strategies/block-width.strategy';
+import { LessonBlockType } from '../../types/editor.types';
+import { BlockWidthStrategy } from '../../strategies/row-layout.strategy';
 
 interface BlockCardWrapperProps {
   block: LessonBlockItem;

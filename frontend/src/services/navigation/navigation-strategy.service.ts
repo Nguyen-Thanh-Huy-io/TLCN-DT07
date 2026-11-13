@@ -4,11 +4,10 @@ import {
   NAV_ITEM_LABELS,
   NavItemConfig,
   NavGroupConfig,
-  IconName,
-  APP_ROUTES,
-  PAGE_META,
-  NavigationPageKey,
-} from '../../constants';
+} from '@/constants/navigation';
+import { IconName } from '@/constants/enums';
+import { APP_ROUTES, NavigationPageKey } from '@/constants/routes';
+import { PAGE_META } from '@/constants/ui-theme';
 
 /**
  * Strategy Interface for Navigation Groups (Open-Closed Principle)
@@ -22,55 +21,7 @@ export interface INavigationGroupStrategy {
 }
 
 /**
- * Strategy 1: Dashboard & Analytics (Tổng quan & Báo cáo)
- */
-export class DashboardNavStrategy implements INavigationGroupStrategy {
-  readonly groupId = NavGroupId.DASHBOARD;
-  readonly title = NAV_GROUP_TITLES[NavGroupId.DASHBOARD];
-
-  private readonly items: NavItemConfig[] = [
-    {
-      id: 'nav-dashboard',
-      label: NAV_ITEM_LABELS.DASHBOARD,
-      icon: IconName.GRID,
-      page: NavigationPageKey.DASHBOARD,
-      route: APP_ROUTES.DASHBOARD,
-      groupId: this.groupId,
-      subtitle: 'KPI & tổng quan hoạt động CMS',
-    },
-    {
-      id: 'nav-analytics',
-      label: NAV_ITEM_LABELS.ANALYTICS,
-      icon: IconName.CHART,
-      page: NavigationPageKey.ANALYTICS,
-      route: APP_ROUTES.ANALYTICS,
-      groupId: this.groupId,
-      subtitle: 'Tiến độ học tập & nhật ký tương tác',
-    },
-  ];
-
-  getItems(): NavItemConfig[] {
-    return this.items;
-  }
-
-  matchesPage(pageKey: string): boolean {
-    return [
-      NavigationPageKey.DASHBOARD,
-      NavigationPageKey.ANALYTICS,
-      NavigationPageKey.CMS,
-    ].includes(pageKey as NavigationPageKey);
-  }
-
-  getItemByPage(pageKey: string): NavItemConfig | undefined {
-    if (pageKey === NavigationPageKey.ANALYTICS) {
-      return this.items[1];
-    }
-    return this.items[0];
-  }
-}
-
-/**
- * Strategy 2: Learning & Assessments (Quản trị Bài học & Quiz)
+ * Strategy 1: Learning & Assessments (Quản trị Bài học & Quiz)
  */
 export class LearningNavStrategy implements INavigationGroupStrategy {
   readonly groupId = NavGroupId.LEARNING;

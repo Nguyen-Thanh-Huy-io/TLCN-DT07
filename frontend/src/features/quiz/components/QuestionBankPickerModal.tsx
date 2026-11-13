@@ -14,7 +14,7 @@ import {
 import {
   ALL_FILTER_VALUE,
   QuestionDifficultyEnum,
-} from '@/constants/quiz.constant';
+} from '@/constants/enums';
 
 interface QuestionOptionPreview {
   id?: string;

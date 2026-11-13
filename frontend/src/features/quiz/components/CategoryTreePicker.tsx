@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { TopicItem } from '@/types/models/topic.type';
-import { LessonItem } from '@/types/models/lesson.type';
+import { TopicItem } from '@/types/models';
+import { LessonItem } from '@/types/models';
 import {
   TreeSelectModal,
   buildTopicTreeNodes,

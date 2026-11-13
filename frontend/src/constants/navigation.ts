@@ -1,4 +1,4 @@
-import { IconName } from './icons';
+import { IconName } from './enums';
 import { NavigationPageKey } from './routes';
 
 /**

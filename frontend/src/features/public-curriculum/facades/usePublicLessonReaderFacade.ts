@@ -7,7 +7,7 @@ import {
   LearningPathApiService,
   LearningPathItem,
 } from '@/services/entities/learning-path.service';
-import { LessonItem } from '@/types/models/lesson.type';
+import { LessonItem } from '@/types/models';
 import { QuizItem } from '@/features/lessons/types/quiz.types';
 import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
 import { buildLessonTocAndHtml, LessonTocEntry, normalizeContentToBlocks } from '@/features/lessons/utils/lesson-toc.util';

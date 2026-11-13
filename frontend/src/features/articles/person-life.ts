@@ -9,7 +9,7 @@
  *   OWN_NODE  — mốc timeline trỏ THẲNG tới bài nhân vật (vd. "Ngô Quyền xưng vương").
  *   MILESTONE — mốc đời riêng nhập trong hồ sơ nhân vật (metadata.person.milestones).
  */
-import { formatYear } from '@/utils/year-label';
+import { formatYear } from '@/utils/common';
 
 export interface LifeNodeRef {
   id: string;

@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronDown, ChevronRight, X, Check, Search } from 'lucide-react';
-import { TopicItem } from '@/types/models/topic.type';
-import { LessonItem } from '@/types/models/lesson.type';
+import { TopicItem } from '@/types/models';
+import { LessonItem } from '@/types/models';
 
 /**
  * Cấu trúc Node tổng quát theo Composite Pattern cho mọi cây phân cấp

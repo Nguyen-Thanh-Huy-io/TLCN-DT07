@@ -12,8 +12,8 @@ import {
   QuoteBlockData,
   RowSectionBlockData,
 } from '../../../types/block-builder.types';
-import { LessonBlockType } from '../../../types/block-palette.types';
-import { ROW_RATIO_PRESETS } from '../../../constants/row-layout.constants';
+import { LessonBlockType } from '../../../types/editor.types';
+import { ROW_RATIO_PRESETS } from '../../../constants/lesson.constants';
 import { useActiveEditor } from '../../../context/ActiveEditorContext';
 import { TypographyInspectorPanel } from './TypographyInspectorPanel';
 import {

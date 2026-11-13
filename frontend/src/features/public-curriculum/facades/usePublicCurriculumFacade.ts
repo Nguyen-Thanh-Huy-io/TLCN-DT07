@@ -8,7 +8,7 @@ import {
 } from '@/services/entities/learning-path.service';
 import { LearnerApiService, type LibraryLesson } from '@/services/entities/learner.service';
 import { TopicApiService } from '@/services/entities/topic.service';
-import type { TopicItem } from '@/types/models/topic.type';
+import type { TopicItem } from '@/types/models';
 import { LearningPathFilterType } from '../constants/public-curriculum.constants';
 import { PathFilterStrategyRegistry } from '../strategies/public-curriculum.strategies';
 

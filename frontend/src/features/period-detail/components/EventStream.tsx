@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, LayoutGrid, List, MapPin, Users, X } from 'lucide-react';
 import type { PublicPeriodDetailDto } from '@/services/entities/landing.service';
 import { PERIOD_ROUTES, eventYearLabel, groupEventsByStage } from '../period-detail.adapter';
-import { categoryKeyLabel, eventCategoryKey, eventCategoryLabel } from '@/features/taxonomy/taxonomy-labels';
-import { usePublicTaxonomyTerms } from '@/features/taxonomy/usePublicTaxonomy';
+import { categoryKeyLabel, eventCategoryKey, eventCategoryLabel, useEventCategories } from '@/hooks/useEventCategories';
 import { RemoteImage } from '@/components/common/RemoteImage';
 
 export enum EventStreamViewMode {
@@ -16,9 +15,8 @@ export enum EventStreamViewMode {
 
 /** Dòng sự kiện của thời kỳ, chia theo giai đoạn, lọc nhiều danh mục cùng lúc. */
 export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
-  // Loại chính theo "Danh mục dùng chung" (Truyền thuyết, Tôn giáo...), chưa tải xong thì nhãn enum cũ.
-  const categoryTerms = usePublicTaxonomyTerms('EVENT_TYPE');
-  const categoryLabel = (key: string) => categoryKeyLabel(categoryTerms, key);
+  const eventCategories = useEventCategories();
+  const categoryLabel = (key: string) => categoryKeyLabel(eventCategories, key);
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
     for (const e of period.events) counts.set(eventCategoryKey(e), (counts.get(eventCategoryKey(e)) ?? 0) + 1);
@@ -101,7 +99,7 @@ export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
                     <div>
                       {e.slug ? <Link href={PERIOD_ROUTES.EVENT(e.slug)}>{e.title}</Link> : <strong>{e.title}</strong>}
                       <small>
-                        {eventCategoryLabel(categoryTerms, e)}
+                        {eventCategoryLabel(eventCategories, e)}
                         {e.figures.length > 0 && ` · ${e.figures.slice(0, 2).map((f) => f.name).join(', ')}`}
                         {(e.locations[0]?.name || e.location) && ` · ${e.locations[0]?.name ?? e.location}`}
                       </small>
@@ -122,7 +120,7 @@ export function EventStream({ period }: { period: PublicPeriodDetailDto }) {
                   <article>
                     {e.imageUrl && <RemoteImage src={e.imageUrl} alt="" />}
                     <div>
-                      <span className="pd-tag">{eventCategoryLabel(categoryTerms, e)}</span>
+                      <span className="pd-tag">{eventCategoryLabel(eventCategories, e)}</span>
                       <h4>{e.slug ? <Link href={PERIOD_ROUTES.EVENT(e.slug)}>{e.title}</Link> : e.title}</h4>
                       {e.description && <p>{e.description}</p>}
                       <div className="pd-event-meta">

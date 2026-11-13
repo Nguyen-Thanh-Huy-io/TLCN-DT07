@@ -1,4 +1,4 @@
-import { ENTITY_SOURCE_CONSTANTS } from '../../constants/entity-source.constants';
+import { ENTITY_SOURCE_CONSTANTS } from '../../constants/lesson.constants';
 
 /**
  * Adapter Pattern: Phân giải thông tin bản quyền và nguồn gốc tư liệu ảnh từ Wikimedia Commons

@@ -1,13 +1,15 @@
 'use client';
-import { KeyboardKey } from '@/constants/enums';
 
-import React from 'react';
+import { IconName, KeyboardKey } from '@/constants/enums';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   FillInBlankQuestion,
   MatchingQuestion,
   MultipleChoiceQuestion,
   OrderingQuestion,
+  QUIZ_QUESTION_TYPE_META,
   QuizQuestion,
+  QuizQuestionType,
   SingleChoiceQuestion,
   TrueFalseQuestion,
 } from '../../types/quiz.types';
@@ -19,6 +21,7 @@ import {
 import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
 import { TimelineOrderingItemsEditor } from '@/components/common/TimelineOrderingItemsEditor';
 import { MatchingPairsEditor } from '@/components/common/MatchingPairsEditor';
+import { Icon } from '@/components/icons/Icon';
 
 export enum MoveDirection {
   UP = 'UP',
@@ -391,4 +394,152 @@ export function FillInBlankEditor({
       />
     </div>
   );
+}
+
+// --- Merged from AddQuestionMenu.tsx ---
+interface AddQuestionMenuProps {
+  onPick: (type: QuizQuestionType) => void;
+}
+
+/** Popover chọn 1 trong 5 dạng câu hỏi để thêm mới — cùng kiểu tương tác với Block Palette. */
+export function AddQuestionMenu({ onPick }: AddQuestionMenuProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleDocClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleDocClick);
+    return () => document.removeEventListener('mousedown', handleDocClick);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="primary-button !h-8 !text-xs !px-3 w-full justify-center"
+      >
+        <Icon name={IconName.PLUS} size={13} />
+        <span>Thêm câu hỏi</span>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 bottom-full mb-1.5 w-56 bg-white border border-slate-200 rounded-lg shadow-lg z-20 py-1">
+          {Object.values(QuizQuestionType).map((type) => {
+            const meta = QUIZ_QUESTION_TYPE_META[type];
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => {
+                  onPick(type);
+                  setOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+              >
+                <span className={`w-2 h-2 rounded-full shrink-0 ${meta.color.split(' ')[1]}`} />
+                <span>{meta.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Merged from QuizQuestionCard.tsx ---
+interface QuizQuestionCardProps {
+  index: number;
+  total: number;
+  question: QuizQuestion;
+  onChange: (updates: Partial<QuizQuestion>) => void;
+  onRemove: () => void;
+  onMove: (direction: 'UP' | 'DOWN') => void;
+}
+
+/** Card thu gọn/mở rộng cho 1 câu hỏi — cùng kiểu tương tác với mốc Timeline đã có:
+ * badge màu theo dạng câu hỏi, ▲▼ đổi thứ tự, ✕ xóa, bấm header để thu gọn/mở rộng. */
+export function QuizQuestionCard({ index, total, question, onChange, onRemove, onMove }: QuizQuestionCardProps) {
+  const [collapsed, setCollapsed] = useState(false);
+  const meta = QUIZ_QUESTION_TYPE_META[question.type];
+
+  return (
+    <div className="border border-slate-200 rounded-xl bg-white overflow-hidden" data-testid={`quiz-question-${index}`}>
+      <div
+        onClick={() => setCollapsed((c) => !c)}
+        className="flex items-center justify-between gap-2 p-2.5 cursor-pointer select-none hover:bg-slate-50/80 transition"
+      >
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Icon
+            name={IconName.CHEVRON}
+            size={11}
+            className={`text-slate-400 shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
+          />
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${meta.color}`}>
+            {meta.shortLabel}
+          </span>
+          <span className="text-xs font-semibold text-slate-800 truncate">
+            {question.prompt || 'Câu hỏi chưa có nội dung'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => onMove('UP')}
+            disabled={index === 0}
+            title="Chuyển lên"
+            className="p-1 text-slate-400 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-xs"
+          >
+            ▲
+          </button>
+          <button
+            type="button"
+            onClick={() => onMove('DOWN')}
+            disabled={index === total - 1}
+            title="Chuyển xuống"
+            className="p-1 text-slate-400 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-xs"
+          >
+            ▼
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            title="Xóa câu hỏi"
+            className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer text-xs"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {!collapsed && (
+        <div className="p-2.5 pt-0 border-t border-slate-100">
+          <div className="pt-2.5">{renderEditor(question, onChange)}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function renderEditor(question: QuizQuestion, onChange: (updates: Partial<QuizQuestion>) => void) {
+  switch (question.type) {
+    case QuizQuestionType.SINGLE_CHOICE:
+      return <SingleChoiceEditor data={question} onChange={onChange} />;
+    case QuizQuestionType.MULTIPLE_CHOICE:
+      return <MultipleChoiceEditor data={question} onChange={onChange} />;
+    case QuizQuestionType.TRUE_FALSE:
+      return <TrueFalseEditor data={question} onChange={onChange} />;
+    case QuizQuestionType.ORDERING:
+      return <OrderingEditor data={question} onChange={onChange} />;
+    case QuizQuestionType.MATCHING:
+      return <MatchingEditor data={question} onChange={onChange} />;
+    case QuizQuestionType.FILL_IN_BLANK:
+      return <FillInBlankEditor data={question} onChange={onChange} />;
+    default:
+      return null;
+  }
 }

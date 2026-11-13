@@ -2,10 +2,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { Plus, Database } from 'lucide-react';
-import { TimelineBlockData, TimelineOrientation } from '../../types/block-builder.types';
-import { TimelineNode } from '../blocks/HistoricalTimelineBlock';
+import { TimelineBlockData, TimelineOrientation, TimelineNode } from '../../types/block-builder.types';
 import { EventPickerModal, EventSelectionPayload, normalizePickedEvent } from '../blocks/EventPickerModal';
-import { TimelineLayoutStrategy } from '../../strategies/timeline-layout.strategy';
+import { TimelineLayoutStrategy } from '../../strategies/timeline-scene.strategy';
 import type { ArticleItem } from '@/services/entities/article.service';
 import { MoveDirection } from '../quiz/QuizQuestionEditors';
 import { TimelineNodeItemCard } from './TimelineNodeItemCard';

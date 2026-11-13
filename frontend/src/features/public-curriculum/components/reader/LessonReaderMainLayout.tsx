@@ -11,7 +11,7 @@ import { LessonReaderHeader } from './LessonReaderHeader';
 import { LessonReaderNavigationFooter } from './LessonReaderNavigationFooter';
 import { LessonReaderArticle } from './LessonReaderArticle';
 import { LessonReaderDesktopSidebar } from './LessonReaderDesktopSidebar';
-import { LessonItem } from '@/types/models/lesson.type';
+import { LessonItem } from '@/types/models';
 import { LearningPathItem } from '@/services/entities/learning-path.service';
 import { QuizItem } from '@/features/lessons/types/quiz.types';
 import { LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';

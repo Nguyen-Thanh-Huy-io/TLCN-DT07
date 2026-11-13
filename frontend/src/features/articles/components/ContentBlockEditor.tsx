@@ -13,7 +13,7 @@ import { BlockBuilderCanvas } from '@/features/lessons/components/builder/BlockB
 import { BlockLibraryPalette } from '@/features/lessons/components/builder/BlockLibraryPalette';
 import { BlockPropertyInspector } from '@/features/lessons/components/builder/BlockPropertyInspector';
 import { ActiveEditorProvider } from '@/features/lessons/context/ActiveEditorContext';
-import { LessonBlockType } from '@/features/lessons/types/block-palette.types';
+import { LessonBlockType } from '@/features/lessons/types/editor.types';
 
 export interface ContentSkeleton {
   label: string;

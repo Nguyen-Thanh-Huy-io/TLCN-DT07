@@ -1,4 +1,4 @@
-import { StoryBlockTypeEnum } from '@/constants/blog.constant';
+import { StoryBlockTypeEnum } from '@/constants/enums';
 
 export interface StoryBlock {
   id: string;

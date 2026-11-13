@@ -1,5 +1,5 @@
 import api, { parsePaginatedResponse } from '../api';
-import { TopicItem } from '@/types/models/topic.type';
+import { TopicItem } from '@/types/models';
 import { ContentStatus } from '@/constants/enums';
 import { PaginatedResult } from '../api';
 

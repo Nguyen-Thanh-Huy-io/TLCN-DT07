@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
-import { StatCard } from '@/components/common/StatCard';
+import { IconName } from '@/constants/enums';
+import { StatCard } from '@/components/common/CommonUi';
 import { DashboardApiService, DashboardOverviewData } from '@/services/entities/dashboard.service';
-import { formatTimeAgo } from '@/utils/time-ago.util';
+import { formatTimeAgo } from '@/utils/common';
 
 export function AnalyticsDashboardView() {
   const [data, setData] = useState<DashboardOverviewData | null>(null);

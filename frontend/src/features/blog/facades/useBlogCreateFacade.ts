@@ -9,7 +9,7 @@ import {
   BlogPostTypeEnum,
   StoryBlockTypeEnum,
   BlogStatusEnum,
-} from '@/constants/blog.constant';
+} from '@/constants/enums';
 import { StoryBlock, ReferenceItem } from '../types/blog-create.types';
 
 const normalizeImageUrl = (url?: string | null) => resolveBackendAssetUrl(url);

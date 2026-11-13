@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ExternalLink } from 'lucide-react';
-import { sanitizeRichHtml } from '@/utils/sanitize-html';
+import { sanitizeRichHtml } from '@/utils/common';
 import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
 
 interface LessonReaderArticleProps {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { CornerDownRight, Send } from 'lucide-react';
-import { KEYBOARD_KEYS } from '@/constants/keyboard.constant';
+import { KEYBOARD_KEYS } from '@/constants/enums';
 
 export interface CommentComposerBarProps {
   replyingTo: { commentId: string; authorName: string } | null;

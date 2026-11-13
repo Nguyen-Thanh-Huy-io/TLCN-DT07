@@ -19,7 +19,7 @@ import {
 } from '../../../strategies/story-chapter-layout.strategy';
 import { ActiveSubElementSelection, EditorialSubElementType } from '../../../context/ActiveEditorContext';
 import { TypographyInspectorPanel } from './TypographyInspectorPanel';
-import { LessonBlockType } from '../../../types/block-palette.types';
+import { LessonBlockType } from '../../../types/editor.types';
 
 interface StorySubElementInspectorProps {
   block: StoryChapterBlockData;

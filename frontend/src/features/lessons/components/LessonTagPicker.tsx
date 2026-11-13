@@ -1,10 +1,10 @@
 'use client';
 import { KeyboardKey } from '@/constants/enums';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { TagItem } from '@/types/models/tag.type';
+import { TagItem } from '@/types/models';
 import { TagApiService } from '@/services/entities/tag.service';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { extractErrorMessage } from '@/services/api';
 
 export interface LessonTagPickerProps {

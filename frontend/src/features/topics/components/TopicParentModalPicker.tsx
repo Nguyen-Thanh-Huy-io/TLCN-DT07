@@ -1,8 +1,8 @@
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
-import { TopicItem } from '@/types/models/topic.type';
+import { TopicItem } from '@/types/models';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 
 export interface TopicParentModalPickerProps {
   isOpen: boolean;

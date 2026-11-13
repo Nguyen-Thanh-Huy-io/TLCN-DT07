@@ -3,7 +3,7 @@ import { ContentStatus } from '@/constants/enums';
 
 import React from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { LearningPathItem } from '@/services/entities/learning-path.service';
 import { StudioTab } from '../HisgoStudioView';
 

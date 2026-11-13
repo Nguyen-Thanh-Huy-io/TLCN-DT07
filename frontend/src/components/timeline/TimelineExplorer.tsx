@@ -1,6 +1,5 @@
 "use client";
 
-import { usePublicTaxonomyTerms } from "@/features/taxonomy/usePublicTaxonomy";
 import {
   TimelineFocusContext,
   computeLens,
@@ -9,7 +8,6 @@ import {
   type RelatedReason,
   type TimelineFocusState,
 } from "./TimelineFocus";
-import { eventRoleLabel } from "@/features/taxonomy/taxonomy-labels";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import { ArrowDownUp, ArrowRight, BookOpen, Landmark, Network, Search, SlidersHorizontal, X } from "lucide-react";
@@ -24,7 +22,6 @@ import { HorizontalExplorer } from "./HorizontalExplorer";
 import { EventDetailModal } from "./EventDetailModal";
 import { SK_SELECTED_CLASS } from "./sk-shared";
 import type { Era, TimeNode, TimelineActor, TimelineEvent } from "./sk-types";
-import type { TaxonomyTermItem } from "@/services/public/public-taxonomy";
 
 const SAVED_STORAGE_KEY = "hisgo:timeline:saved-events";
 const SPLIT_LABELS: Record<SplitMode, string> = {
@@ -92,11 +89,9 @@ function relatedEvents(
   focus: TimelineEvent | null,
   lens: TimelineActor | null,
   allEvents: TimelineEvent[],
-  relationTerms: TaxonomyTermItem[],
-  roleTerms: TaxonomyTermItem[],
 ): Map<string, RelatedReason[]> {
-  if (focus) return computeRelated(focus, allEvents, relationTerms);
-  if (lens) return computeLens(lens, allEvents, (code) => eventRoleLabel(roleTerms, code));
+  if (focus) return computeRelated(focus, allEvents);
+  if (lens) return computeLens(lens, allEvents);
   return new Map();
 }
 
@@ -210,10 +205,8 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   // Chế độ "Liên kết" (đồ thị tri thức trên dòng thời gian).
   const [focus, setFocus] = useState<TimelineEvent | null>(null);
   const [lens, setLens] = useState<TimelineActor | null>(null);
-  const roleTerms = usePublicTaxonomyTerms('ROLE_TYPE');
   const [onlyRelated, setOnlyRelated] = useState(false);
   const [flashId, setFlashId] = useState<string | null>(null);
-  const relationTerms = usePublicTaxonomyTerms('PREDICATE');
   const canvas = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: canvas, offset: ["start end", "end start"] });
   const progress = useSpring(scrollYProgress, { stiffness: 70, damping: 25 });
@@ -230,8 +223,8 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
 
   const allEvents = useMemo(() => allNodes.flatMap((n) => n.events), [allNodes]);
   const related = useMemo(
-    () => relatedEvents(focus, lens, allEvents, relationTerms, roleTerms),
-    [focus, lens, allEvents, relationTerms, roleTerms],
+    () => relatedEvents(focus, lens, allEvents),
+    [focus, lens, allEvents],
   );
   const onlyIds = useMemo(
     () => onlyRelatedIds(focus, lens, onlyRelated, related),

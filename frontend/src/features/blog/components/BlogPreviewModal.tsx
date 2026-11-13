@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { StoryBlock, ReferenceItem } from '../types/blog-create.types';
-import { StoryBlockTypeEnum } from '@/constants/blog.constant';
+import { StoryBlockTypeEnum } from '@/constants/enums';
 import { resolveBackendAssetUrl } from '@/constants/api-url';
 
 interface BlogPreviewModalProps {

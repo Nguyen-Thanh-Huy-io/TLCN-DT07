@@ -2,15 +2,15 @@
 
 import React from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { Badge } from '@/components/common/Badge';
-import { IconName } from '@/constants/icons';
+import { Badge } from '@/components/common/CommonUi';
+import { IconName } from '@/constants/enums';
 import { DifficultyLevel, MediaType } from '@/constants/enums';
 import { DIFFICULTY_LABEL_MAP } from '@/constants/ui-theme';
-import { TagItem } from '@/types/models/tag.type';
+import { TagItem } from '@/types/models';
 import { LessonMediaItem } from '../types/editor.types';
 import { QuizQuestion, QuizQuestionType, QUIZ_QUESTION_TYPE_META } from '../types/quiz.types';
-import { TocItem } from '../types/left-sidebar.types';
-import { sanitizeRichHtml } from '@/utils/sanitize-html';
+import { TocItem } from '../types/editor.types';
+import { sanitizeRichHtml } from '@/utils/common';
 
 export type { TocItem };
 

@@ -8,7 +8,7 @@ import {
   ChapterItem,
 } from '@/services/entities/learning-path.service';
 import { LessonApiService } from '@/services/entities/lesson.service';
-import { LessonItem } from '@/types/models/lesson.type';
+import { LessonItem } from '@/types/models';
 import { APP_ROUTES } from '@/constants/routes';
 import { StudioHeader } from './studio/StudioHeader';
 import { LearningPathToolbar } from './studio/LearningPathToolbar';

@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
-import { UserCell } from '@/components/common/UserCell';
+import { UserCell } from '@/components/common/CommonUi';
 import { ReviewModal } from './ReviewModal';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { ContentStatus, NoticeTone } from '@/constants/enums';
 import { ArticleApiService, type ArticleItem, CONTENT_STATUS_LABELS } from '@/services/entities/article.service';
 import { extractErrorMessage } from '@/services/api';

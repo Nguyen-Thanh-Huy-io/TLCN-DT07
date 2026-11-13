@@ -15,7 +15,7 @@ import {
   StorySubjectType,
   TextBlockData,
 } from '../types/block-builder.types';
-import { LessonBlockType } from '../types/block-palette.types';
+import { LessonBlockType } from '../types/editor.types';
 import {
   EditorialLayoutType,
   EditorialColumnRatioEnum,

@@ -4,8 +4,8 @@ import {
   IEntitySearchResult,
   IWikipediaSearchResponse,
   IWikipediaSummaryResponse,
-} from '../../types/entity-source.types';
-import { ENTITY_SOURCE_CONSTANTS } from '../../constants/entity-source.constants';
+} from '../../types/editor.types';
+import { ENTITY_SOURCE_CONSTANTS } from '../../constants/lesson.constants';
 
 /**
  * Adapter Pattern: Chuyển đổi và chuẩn hóa cấu trúc dữ liệu thô từ Wikipedia REST API

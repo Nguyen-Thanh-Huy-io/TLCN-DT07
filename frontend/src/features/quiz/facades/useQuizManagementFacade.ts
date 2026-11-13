@@ -6,10 +6,10 @@ import {
   UpdateStandaloneQuizDto,
 } from '@/services/entities/quiz.service';
 import { LessonApiService } from '@/services/entities/lesson.service';
-import { LessonItem } from '@/types/models/lesson.type';
+import { LessonItem } from '@/types/models';
 import { TopicApiService } from '@/services/entities/topic.service';
-import { TopicItem } from '@/types/models/topic.type';
-import { ALL_FILTER_VALUE, QuizStatusEnum } from '@/constants/quiz.constant';
+import { TopicItem } from '@/types/models';
+import { ALL_FILTER_VALUE, QuizStatusEnum } from '@/constants/enums';
 
 export interface QuizManagementStats {
   totalQuizzes: number;

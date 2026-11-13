@@ -5,7 +5,7 @@ import { MediaType } from '@/constants/enums';
 import { UploadApiService } from '@/services/entities/upload.service';
 import { extractErrorMessage } from '@/services/api';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 
 export interface LessonMediaManagerProps {
   mediaList: LessonMediaItem[];

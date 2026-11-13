@@ -13,21 +13,21 @@ import {
   RelatedEventsBlockData,
   StoryChapterBlockData,
 } from '../../types/block-builder.types';
-import { LessonBlockType } from '../../types/block-palette.types';
-import { BlockWidthStrategy } from '../../strategies/block-width.strategy';
+import { LessonBlockType } from '../../types/editor.types';
+import { BlockWidthStrategy } from '../../strategies/row-layout.strategy';
 import { AddBlockDivider } from './AddBlockDivider';
 import { BlockCardWrapper } from './BlockCardWrapper';
-import { TextBlockEditor } from './TextBlockEditor';
+import { TextBlockEditor } from './BasicBlockItemEditors';
 import { TimelineBlockItemEditor } from './TimelineBlockItemEditor';
-import { CharacterBlockItemEditor } from './CharacterBlockItemEditor';
-import { EventBlockItemEditor } from './EventBlockItemEditor';
+import { CharacterBlockItemEditor } from './RichBlockItemEditors';
+import { EventBlockItemEditor } from './RichBlockItemEditors';
 import { RowSectionBlockEditor } from './RowSectionBlockEditor';
-import { MapBlockItemEditor } from './MapBlockItemEditor';
-import { ComparisonTableBlockItemEditor } from './ComparisonTableBlockItemEditor';
-import { CalloutBlockItemEditor } from './CalloutBlockItemEditor';
-import { QuoteBlockItemEditor } from './QuoteBlockItemEditor';
+import { MapBlockItemEditor } from './BasicBlockItemEditors';
+import { ComparisonTableBlockItemEditor } from './BasicBlockItemEditors';
+import { CalloutBlockItemEditor } from './BasicBlockItemEditors';
+import { QuoteBlockItemEditor } from './BasicBlockItemEditors';
 import { StoryChapterBlockEditor } from './StoryChapterBlockEditor';
-import { ImageBlockItemEditor } from './ImageBlockItemEditor';
+import { ImageBlockItemEditor } from './RichBlockItemEditors';
 import type { ImageBlockData } from '../../types/block-builder.types';
 
 interface BlockBuilderCanvasProps {

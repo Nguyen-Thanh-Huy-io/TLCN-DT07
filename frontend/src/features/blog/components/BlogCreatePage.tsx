@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import { resolveBackendAssetUrl } from '@/constants/api-url';
-import { KEYBOARD_KEYS } from '@/constants/keyboard.constant';
+import { KEYBOARD_KEYS } from '@/constants/enums';
 import {
   BlogPostTypeEnum,
   BLOG_URL_PLACEHOLDER,
-} from '@/constants/blog.constant';
+} from '@/constants/enums';
 import { useBlogCreateFacade } from '../facades/useBlogCreateFacade';
 import { BlogStoryBlockItem } from './BlogStoryBlockItem';
 import { BlogHistoricalMetaModal } from './BlogHistoricalMetaModal';

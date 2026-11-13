@@ -91,6 +91,12 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
         subtitle: 'Kiểm duyệt và chỉnh sửa nội dung blog trước khi xuất bản',
       };
 
+    case APP_ROUTES.MODERATION:
+      return {
+        title: 'Kiểm duyệt AI & Báo cáo Cộng đồng',
+        subtitle: 'Giám sát AI Sentinel tự động ẩn vi phạm, rà soát báo cáo và xử lý tài khoản tái phạm',
+      };
+
     case APP_ROUTES.USERS:
       return {
         title: 'Người dùng & Quyền',

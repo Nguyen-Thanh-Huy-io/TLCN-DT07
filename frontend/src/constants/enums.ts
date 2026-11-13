@@ -245,3 +245,138 @@ export enum MediaItemType {
   VIDEO = 'video',
   DOCUMENT = 'document',
 }
+
+/**
+ * Icon Name Enum
+ */
+export enum IconName {
+  GRID = 'grid',
+  CLOCK = 'clock',
+  FOLDER = 'folder',
+  BOOK = 'book',
+  CALENDAR = 'calendar',
+  TAG = 'tag',
+  CHECK = 'check',
+  USERS = 'users',
+  SEARCH = 'search',
+  BELL = 'bell',
+  CHEVRON = 'chevron',
+  CHEVRON_LEFT = 'chevron-left',
+  MORE = 'more',
+  PLUS = 'plus',
+  ARROW = 'arrow',
+  LOGOUT = 'logout',
+  MENU = 'menu',
+  EDIT = 'edit',
+  EYE = 'eye',
+  TRASH = 'trash',
+  FILTER = 'filter',
+  SPARK = 'spark',
+  IMAGE = 'image',
+  FILE = 'file',
+  VIDEO = 'video',
+  SETTINGS = 'settings',
+  CHART = 'chart',
+  HELP_CIRCLE = 'help-circle',
+  MAP_PIN = 'map-pin',
+  SHIELD = 'shield',
+}
+
+export type IconNameType = `${IconName}`;
+
+/** Alias tương thích cho KeyboardKey */
+export const KEYBOARD_KEYS = KeyboardKey;
+
+/**
+ * Blog Enums & Constants
+ */
+export enum BlogPostTypeEnum {
+  LONG_FORM = 'LONG_FORM',
+  QUICK_POST = 'QUICK_POST',
+}
+
+export enum StoryBlockTypeEnum {
+  PARAGRAPH = 'paragraph',
+  IMAGE = 'image',
+}
+
+export enum BlogStatusEnum {
+  PENDING_REVIEW = 'PENDING_REVIEW',
+  PUBLISHED = 'PUBLISHED',
+  DRAFT = 'DRAFT',
+  REJECTED = 'REJECTED',
+}
+
+export const BLOG_URL_PLACEHOLDER = 'https://...';
+
+/**
+ * Quiz Enums & Constants
+ */
+export const ALL_FILTER_VALUE = 'all';
+
+export enum QuizStatusEnum {
+  ALL = 'all',
+  ACTIVE = 'ACTIVE',
+  DRAFT = 'DRAFT',
+}
+
+export enum QuestionDifficultyEnum {
+  ALL = 'all',
+  EASY = 'EASY',
+  MEDIUM = 'MEDIUM',
+  HARD = 'HARD',
+}
+
+export const DIFFICULTY_CONFIG: Record<
+  string,
+  { label: string; tone: 'ok' | 'warn' | 'neutral' }
+> = {
+  EASY: { label: 'Dễ', tone: 'ok' },
+  MEDIUM: { label: 'Trung bình', tone: 'warn' },
+  HARD: { label: 'Khó', tone: 'neutral' },
+};
+
+export const QUIZ_STATUS_BADGE_MAP: Record<
+  string,
+  { label: string; tone: 'ok' | 'neutral' }
+> = {
+  ACTIVE: { label: 'Đang hoạt động', tone: 'ok' },
+  DRAFT: { label: 'Bản nháp', tone: 'neutral' },
+};
+
+export const DEFAULT_QUIZ_TIME_LIMIT = 15;
+export const DEFAULT_QUIZ_PASSING_SCORE = 80;
+
+/**
+ * Community Domain Enums and Constants
+ */
+export enum CommunityTabKey {
+  ALL = 'all',
+  FOLLOWING = 'following',
+  TRENDING = 'trending',
+  SHARED_BLOG = 'shared_blog',
+  SAVED = 'saved',
+}
+
+export enum BlogPostType {
+  LONG_FORM = 'LONG_FORM',
+  QUICK_POST = 'QUICK_POST',
+}
+
+export enum ComposerMode {
+  QUESTION = 'question',
+  SHARE_BLOG = 'share_blog',
+}
+
+export enum CommunitySortMode {
+  LATEST = 'latest',
+  TRENDING = 'trending',
+}
+
+export const COMMUNITY_TAB_LABELS: Record<CommunityTabKey, string> = {
+  [CommunityTabKey.ALL]: 'Tất cả thảo luận',
+  [CommunityTabKey.FOLLOWING]: 'Đang theo dõi',
+  [CommunityTabKey.TRENDING]: 'Sôi nổi',
+  [CommunityTabKey.SHARED_BLOG]: 'Bài Blog chia sẻ',
+  [CommunityTabKey.SAVED]: 'Đã lưu',
+};

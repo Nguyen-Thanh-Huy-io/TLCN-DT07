@@ -5,7 +5,7 @@ import { io } from 'socket.io-client';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { API_BASE_URL } from '@/constants/api-url';
 import { UserRole } from '@/constants/enums';
-import { ComposerMode } from '@/constants/community.constant';
+import { ComposerMode } from '@/constants/enums';
 import {
   CommunityApi,
   extractCommunityContent,

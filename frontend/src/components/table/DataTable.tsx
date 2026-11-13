@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { ActionMenu } from '@/components/common/ActionMenu';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { CommonFilterOption } from '@/constants/enums';
 import { DataTableProps } from '@/types/table.types';
 import { DataTableFilterModal } from './DataTableFilterModal';

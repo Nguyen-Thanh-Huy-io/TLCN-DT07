@@ -4,9 +4,9 @@ import { Icon } from '@/components/icons/Icon';
 import { TagModal, TagFormData } from './TagModal';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { ActionMenu } from '@/components/common/ActionMenu';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import api from '@/services/api';
-import { TagItem } from '@/types/models/tag.type';
+import { TagItem } from '@/types/models';
 
 export type TagRow = TagItem;
 

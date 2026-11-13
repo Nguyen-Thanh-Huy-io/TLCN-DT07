@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CommunityTabKey, COMMUNITY_TAB_LABELS } from '@/constants/community.constant';
+import { CommunityTabKey, COMMUNITY_TAB_LABELS } from '@/constants/enums';
 
 interface CommunityFeedFilterBarProps {
   activeTab: CommunityTabKey;

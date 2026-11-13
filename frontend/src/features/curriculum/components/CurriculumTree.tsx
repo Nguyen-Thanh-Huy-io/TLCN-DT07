@@ -5,9 +5,9 @@ import {
   CurriculumTopicNode,
   AnyCurriculumNode,
   CurriculumNodeType,
-} from '@/types/models/curriculum-tree.type';
+} from '@/types/models';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 
 const SELECTED_NODE_STYLE = 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300';
 const IDLE_NODE_STYLE = 'hover:bg-slate-50 text-slate-600';

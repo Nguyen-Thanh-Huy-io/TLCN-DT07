@@ -13,7 +13,7 @@ import {
   X,
   Sparkles,
 } from 'lucide-react';
-import { TimelineNode } from '../blocks/HistoricalTimelineBlock';
+import { TimelineNode } from '../../types/block-builder.types';
 import { TimelineSceneStrategy } from '../../strategies/timeline-scene.strategy';
 import { MoveDirection } from '../quiz/QuizQuestionEditors';
 import { TipTapContent } from '../TipTapContent';

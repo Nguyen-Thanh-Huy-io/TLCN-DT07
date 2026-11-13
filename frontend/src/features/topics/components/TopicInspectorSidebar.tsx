@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { ContentStatus } from '@/constants/enums';
 import { TopicCoverImagePicker } from './TopicCoverImagePicker';
 

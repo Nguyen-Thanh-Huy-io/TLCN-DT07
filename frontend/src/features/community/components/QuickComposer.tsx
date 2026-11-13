@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ShieldCheck, X } from 'lucide-react';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { UploadApiService } from '@/services/entities/upload.service';
-import { ComposerMode } from '@/constants/community.constant';
+import { ComposerMode } from '@/constants/enums';
 import { CommunityApi, type CommunityPost, type SharedBlogEmbed } from '../api';
 import { SharedBlogSelectorPane } from './SharedBlogSelectorPane';
 import { ComposerImageUploadSection } from './ComposerImageUploadSection';

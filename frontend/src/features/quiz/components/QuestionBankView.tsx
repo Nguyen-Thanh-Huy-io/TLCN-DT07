@@ -16,7 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { Badge } from '@/components/common/Badge';
+import { Badge } from '@/components/common/CommonUi';
 import {
   QUIZ_QUESTION_TYPE_META,
   QuizQuestionType,
@@ -26,8 +26,8 @@ import {
   QuestionBankItem,
 } from '@/services/entities/question.service';
 import { LessonApiService } from '@/services/entities/lesson.service';
-import { LessonItem } from '@/types/models/lesson.type';
-import { ALL_FILTER_VALUE, DIFFICULTY_CONFIG } from '@/constants/quiz.constant';
+import { LessonItem } from '@/types/models';
+import { ALL_FILTER_VALUE, DIFFICULTY_CONFIG } from '@/constants/enums';
 import { QuestionBankModal } from './QuestionBankModal';
 
 interface OptionPreview {

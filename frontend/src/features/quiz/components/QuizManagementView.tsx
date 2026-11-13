@@ -19,11 +19,11 @@ import {
   BarChart3,
   Tag,
 } from 'lucide-react';
-import { Badge } from '@/components/common/Badge';
+import { Badge } from '@/components/common/CommonUi';
 import {
   ALL_FILTER_VALUE,
   QuizStatusEnum,
-} from '@/constants/quiz.constant';
+} from '@/constants/enums';
 import { useQuizManagementFacade } from '../facades/useQuizManagementFacade';
 import { QuizPreviewModal } from './QuizPreviewModal';
 import { LessonQuickPreviewModal } from './LessonQuickPreviewModal';

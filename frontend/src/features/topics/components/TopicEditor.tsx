@@ -3,9 +3,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
-import { ContentStatus } from '@/constants/enums';
-import { TopicItem } from '@/types/models/topic.type';
+import { IconName, ContentStatus } from '@/constants/enums';
+import { APP_ROUTES } from '@/constants/routes';
+import { TopicItem } from '@/types/models';
 import { TopicApiService } from '@/services/entities/topic.service';
 import { extractErrorMessage } from '@/services/api';
 import {
@@ -94,7 +94,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
     } catch (err) {
       console.error('Failed to load topic detail:', err);
       alert(extractErrorMessage(err, 'Không thể tải thông tin chi tiết chủ đề.'));
-      router.push('/topics');
+      router.push(APP_ROUTES.CURRICULUM);
     }
   }, [router]);
 
@@ -294,7 +294,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
           parentId: payload.parentId || undefined,
         });
       }
-      router.push('/topics');
+      router.push(APP_ROUTES.CURRICULUM);
     } catch (err) {
       console.error('Failed to save topic:', err);
       alert(extractErrorMessage(err, 'Không thể lưu chủ đề lịch sử.'));
@@ -389,7 +389,7 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
         savingAction={savingAction}
         isCurriculumPreviewOpen={isCurriculumPreviewOpen}
         onToggleCurriculumPreview={() => setIsCurriculumPreviewOpen((prev) => !prev)}
-        onCancel={() => router.push('/topics')}
+        onCancel={() => router.push(APP_ROUTES.CURRICULUM)}
         onAction={handleAction}
       />
 

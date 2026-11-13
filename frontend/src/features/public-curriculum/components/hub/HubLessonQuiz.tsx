@@ -17,7 +17,7 @@ import {
 } from '@/features/lessons/types/quiz.types';
 import type { UserQuizAnswer } from '../../strategies/public-curriculum.strategies';
 import { HubBadge, HubButton } from './HubUi';
-import { sanitizeRichHtml } from '@/utils/sanitize-html';
+import { sanitizeRichHtml } from '@/utils/common';
 
 interface QuizEvaluation {
   detailsMap: Map<string, { isCorrect: boolean; correctSummary: string }>;

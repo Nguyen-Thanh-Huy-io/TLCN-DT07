@@ -1,4 +1,4 @@
-import { IEntityDataSourceStrategy } from './entity-source.interface';
+import { IEntityDataSourceStrategy } from './hisgo-internal-source.strategy';
 import {
   EntitySourceType,
   IEntityDetailPreview,
@@ -6,8 +6,8 @@ import {
   IWikidataClaimsResponse,
   IWikipediaSearchResponse,
   IWikipediaSummaryResponse,
-} from '../../types/entity-source.types';
-import { ENTITY_SOURCE_CONSTANTS } from '../../constants/entity-source.constants';
+} from '../../types/editor.types';
+import { ENTITY_SOURCE_CONSTANTS } from '../../constants/lesson.constants';
 import { WikipediaEntityAdapter } from './wikipedia.adapter';
 import { WikidataClaimsAdapter, IParsedWikidataDates } from './wikidata-claims.adapter';
 import { WikimediaCommonsAdapter } from './wikimedia-commons.adapter';

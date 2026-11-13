@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { IEntityDetailPreview } from '../../../types/entity-source.types';
+import { IEntityDetailPreview } from '../../../types/editor.types';
 
 export interface WikiDetailPreviewPaneProps {
   loadingDetail: boolean;

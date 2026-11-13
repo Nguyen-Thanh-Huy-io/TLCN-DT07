@@ -9,7 +9,7 @@ import {
   TimelineOrientation,
 } from '../../../types/block-builder.types';
 import { TimelineApiService, type TimelineItem } from '@/services/entities/timeline.service';
-import { formatYear } from '@/utils/year-label';
+import { formatYear } from '@/utils/common';
 import { createBlockUUID } from '../../../strategies/story-chapter-layout.strategy';
 import { TypographyInspectorPanel } from './TypographyInspectorPanel';
 

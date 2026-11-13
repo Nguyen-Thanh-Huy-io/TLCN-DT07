@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import type { ArticleItem } from '@/services/entities/article.service';
 import {
   EntitySourceType,
   IEntitySearchResult,
-} from '../../types/entity-source.types';
-import { ENTITY_SOURCE_CONSTANTS } from '../../constants/entity-source.constants';
-import { EntitySourceStrategyFactory } from '../../factories/entity-source-strategy.factory';
+} from '../../types/editor.types';
+import { ENTITY_SOURCE_CONSTANTS } from '../../constants/lesson.constants';
+import { EntitySourceStrategyFactory } from '../../strategies/entity-sources/hisgo-internal-source.strategy';
 import { useWikipediaDetailPicker } from './shared/useWikipediaDetailPicker';
 import { WikiDetailPreviewPane } from './shared/WikiDetailPreviewPane';
 

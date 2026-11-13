@@ -9,11 +9,11 @@ import { EditorViewMode, LeftSidebarMode, SidebarTab } from '../types/editor.typ
 import { TopicParentModalPicker } from '@/features/topics/components/TopicParentModalPicker';
 import { CurriculumSidePanel } from '@/features/curriculum/components/CurriculumSidePanel';
 import { CurriculumTreePreviewModal } from '@/features/curriculum/components/CurriculumTreePreviewModal';
-import { LessonBlockType } from '../types/block-palette.types';
-import { LessonHeaderMetaForm } from './LessonHeaderMetaForm';
-import { LessonHeaderMetaData } from '../types/header-meta.types';
+import { LessonBlockType } from '../types/editor.types';
+import { LessonHeaderMetaForm } from './LessonEditorHeader';
+import { LessonHeaderMetaData } from '../types/editor.types';
 import { LessonEditorHeader } from './LessonEditorHeader';
-import { LessonEditorSubHeader } from './LessonEditorSubHeader';
+import { LessonEditorSubHeader } from './LessonEditorHeader';
 import { LessonLeftToolSidebar } from './LessonLeftToolSidebar';
 import { LessonPreviewContent } from './LessonPreviewContent';
 import { LessonPropertiesPanel } from './properties/LessonPropertiesPanel';

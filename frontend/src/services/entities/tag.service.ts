@@ -1,5 +1,5 @@
 import api, { parsePaginatedResponse } from '../api';
-import { TagItem } from '@/types/models/tag.type';
+import { TagItem } from '@/types/models';
 
 /** Giới hạn tối đa backend cho phép mỗi lần truy vấn (QueryTagDto @Max(100)) */
 export const TAG_QUERY_MAX_LIMIT = 100;

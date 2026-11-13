@@ -9,9 +9,9 @@ import { TagApiService } from '@/services/entities/tag.service';
 import { LearningPathApiService } from '@/services/entities/learning-path.service';
 import { extractErrorMessage } from '@/services/api';
 import { UseLessonEditorFacadeReturn, LessonMediaItem, AutoSaveState } from '../types/editor.types';
-import { LessonItem } from '@/types/models/lesson.type';
-import { TagItem } from '@/types/models/tag.type';
-import { TopicItem } from '@/types/models/topic.type';
+import { LessonItem } from '@/types/models';
+import { TagItem } from '@/types/models';
+import { TopicItem } from '@/types/models';
 import {
   isRevisionPending,
   withPendingDraft,

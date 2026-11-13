@@ -3,9 +3,9 @@ import { KeyboardKey, LessonStatus } from '@/constants/enums';
 
 import React from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { ChapterItem } from '@/services/entities/learning-path.service';
-import { LessonItem } from '@/types/models/lesson.type';
+import { LessonItem } from '@/types/models';
 
 interface AddLessonsToChapterModalProps {
   isOpen: boolean;

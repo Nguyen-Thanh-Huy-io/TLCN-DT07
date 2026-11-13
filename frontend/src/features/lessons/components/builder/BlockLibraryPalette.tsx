@@ -24,8 +24,8 @@ import {
   X,
   LucideIcon,
 } from 'lucide-react';
-import { LESSON_BLOCK_ITEMS } from '../../constants/block-palette.constants';
-import { LessonBlockGroup, LessonBlockType } from '../../types/block-palette.types';
+import { LESSON_BLOCK_ITEMS } from '../../constants/lesson.constants';
+import { LessonBlockGroup, LessonBlockType } from '../../types/editor.types';
 
 interface BlockLibraryPaletteProps {
   onAddBlock: (type: LessonBlockType) => void;

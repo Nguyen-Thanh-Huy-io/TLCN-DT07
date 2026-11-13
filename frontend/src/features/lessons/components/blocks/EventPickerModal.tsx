@@ -12,9 +12,9 @@ import {
   ScrollText,
 } from 'lucide-react';
 import { ArticleApiService, type ArticleItem } from '@/services/entities/article.service';
-import { dateLabelOf } from '@/utils/year-label';
-import { EntitySourceType, IEntitySearchResult } from '../../types/entity-source.types';
-import { EntitySourceStrategyFactory } from '../../factories/entity-source-strategy.factory';
+import { dateLabelOf } from '@/utils/common';
+import { EntitySourceType, IEntitySearchResult } from '../../types/editor.types';
+import { EntitySourceStrategyFactory } from '../../strategies/entity-sources/hisgo-internal-source.strategy';
 import { useWikipediaDetailPicker } from './shared/useWikipediaDetailPicker';
 import { WikiDetailPreviewPane } from './shared/WikiDetailPreviewPane';
 

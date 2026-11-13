@@ -1,7 +1,7 @@
 import { ContentStatus, DifficultyLevel, MediaType } from '@/constants/enums';
-import { LessonItem } from '@/types/models/lesson.type';
-import { TagItem } from '@/types/models/tag.type';
-import { TopicItem } from '@/types/models/topic.type';
+import { LessonItem } from '@/types/models';
+import { TagItem } from '@/types/models';
+import { TopicItem } from '@/types/models';
 import type { ContentRevisionItem } from '@/services/entities/content-revision.service';
 
 export interface LessonMediaItem {
@@ -10,17 +10,6 @@ export interface LessonMediaItem {
   url: string;
   caption?: string;
   displayOrder?: number;
-}
-
-export interface LessonFormData {
-  title: string;
-  topicId: string;
-  contentRichText: string;
-  difficulty: DifficultyLevel;
-  sourceReferenceNote: string;
-  thumbnailUrl?: string;
-  status: ContentStatus;
-  media?: LessonMediaItem[];
 }
 
 export interface UseLessonEditorFacadeReturn {
@@ -113,5 +102,163 @@ export enum SidebarTab {
   MEDIA = 'MEDIA',
   QUIZ = 'QUIZ',
   PUBLISHING = 'PUBLISHING',
+}
+
+export interface TocItem {
+  id: string;
+  text: string;
+  level: number;
+  sectionNumber?: string;
+  children?: TocItem[];
+}
+
+export interface TopicOption {
+  id: string;
+  name: string;
+  periodName?: string;
+}
+
+export interface LessonHeaderMetaData {
+  title: string;
+  slug?: string;
+  description?: string;
+  summary?: string;
+  shortDescription?: string;
+  topicId?: string;
+  thumbnailUrl: string;
+  difficulty?: DifficultyLevel;
+  tags: string[];
+}
+
+export interface LessonHeaderMetaFormProps {
+  data: LessonHeaderMetaData;
+  onChange: <K extends keyof LessonHeaderMetaData>(field: K, value: LessonHeaderMetaData[K]) => void;
+  topics?: TopicOption[];
+  onOpenTopicPicker?: () => void;
+  disabled?: boolean;
+  className?: string;
+}
+
+export enum LessonBlockType {
+  TEXT = 'TEXT',
+  HEADING = 'HEADING',
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO',
+  RESOURCE_LINK = 'RESOURCE_LINK',
+  TIMELINE = 'TIMELINE',
+  MAP = 'MAP',
+  CHARACTER = 'CHARACTER',
+  EVENT = 'EVENT',
+  COMPARISON_TABLE = 'COMPARISON_TABLE',
+  QUIZ = 'QUIZ',
+  SECTION_ROW = 'SECTION_ROW',
+  CALLOUT = 'CALLOUT',
+  QUOTE = 'QUOTE',
+  DIVIDER = 'DIVIDER',
+  RELATED_PEOPLE = 'RELATED_PEOPLE',
+  RELATED_EVENTS = 'RELATED_EVENTS',
+  STORY_CHAPTER = 'STORY_CHAPTER',
+}
+
+export enum LessonBlockGroup {
+  BASIC = 'BASIC',
+  SPECIALIZED = 'SPECIALIZED',
+  ADVANCED = 'ADVANCED',
+}
+
+export interface BlockPaletteItem {
+  type: LessonBlockType;
+  label: string;
+  description: string;
+  group: LessonBlockGroup;
+}
+
+export enum EntitySourceType {
+  HISGO = 'HISGO',
+  WIKIPEDIA = 'WIKIPEDIA',
+}
+
+export interface IEntitySearchResult {
+  id: string;
+  title: string;
+  description?: string;
+  thumbnailUrl?: string;
+  sourceType: EntitySourceType;
+  rawKey?: string;
+  wikidataId?: string;
+}
+
+export interface IEntityDetailPreview {
+  name: string;
+  years: string;
+  summary: string;
+  avatarUrl: string;
+  tagline?: string;
+  sourceUrl?: string;
+  sourceType: EntitySourceType;
+  entityId?: string;
+  wikidataId?: string;
+  birthDate?: string;
+  deathDate?: string;
+  occupation?: string;
+  nationality?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  imageLicense?: string;
+  imageArtist?: string;
+}
+
+export interface IWikipediaSearchResponse {
+  pages?: Array<{
+    id: number;
+    key: string;
+    title: string;
+    excerpt?: string;
+    description?: string;
+    thumbnail?: {
+      url: string;
+      width: number;
+      height: number;
+    };
+  }>;
+}
+
+export interface IWikipediaSummaryResponse {
+  type?: string;
+  title: string;
+  displaytitle?: string;
+  description?: string;
+  extract?: string;
+  extract_html?: string;
+  wikibase_item?: string;
+  thumbnail?: {
+    source: string;
+    width: number;
+    height: number;
+  };
+  originalimage?: {
+    source: string;
+    width: number;
+    height: number;
+  };
+  content_urls?: {
+    desktop?: {
+      page: string;
+    };
+  };
+}
+
+export interface IWikidataClaimsResponse {
+  entities?: Record<
+    string,
+    {
+      id: string;
+      claims?: Record<string, unknown[]>;
+      labels?: Record<string, { value: string }>;
+      descriptions?: Record<string, { value: string }>;
+    }
+  >;
 }
 

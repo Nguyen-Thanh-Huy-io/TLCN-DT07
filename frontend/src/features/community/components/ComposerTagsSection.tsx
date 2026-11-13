@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Tag } from 'lucide-react';
-import { KEYBOARD_KEYS } from '@/constants/keyboard.constant';
+import { KEYBOARD_KEYS } from '@/constants/enums';
 
 interface ComposerTagsSectionProps {
   tagInput: string;

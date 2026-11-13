@@ -4,10 +4,10 @@ import { TopicApiService } from '@/services/entities/topic.service';
 import {
   CurriculumTopicNode,
   CurriculumLessonNode,
-} from '@/types/models/curriculum-tree.type';
+} from '@/types/models';
 import { mapBackendTopicTreeToCurriculum } from '../utils/curriculum-mapper';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 
 const PANEL_VARIANT_MODAL = 'modal';
 

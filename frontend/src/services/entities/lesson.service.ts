@@ -1,5 +1,5 @@
 import api, { parsePaginatedResponse, PaginatedResult } from '../api';
-import { LessonItem } from '@/types/models/lesson.type';
+import { LessonItem } from '@/types/models';
 import { LessonStatus, ContentStatus, DifficultyLevel } from '@/constants/enums';
 
 export interface CreateLessonDto {

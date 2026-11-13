@@ -14,9 +14,9 @@ import {
   QuestionBankItem,
 } from '@/services/entities/question.service';
 import { LessonApiService } from '@/services/entities/lesson.service';
-import { LessonItem } from '@/types/models/lesson.type';
+import { LessonItem } from '@/types/models';
 import { TopicApiService } from '@/services/entities/topic.service';
-import { TopicItem } from '@/types/models/topic.type';
+import { TopicItem } from '@/types/models';
 import {
   TopicCategoryModalPicker,
   LessonCategoryModalPicker,

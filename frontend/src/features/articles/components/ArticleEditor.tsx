@@ -11,7 +11,7 @@ import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
 import { TagApiService } from '@/services/entities/tag.service';
 import { UploadApiService } from '@/services/entities/upload.service';
-import type { TagItem } from '@/types/models/tag.type';
+import type { TagItem } from '@/types/models';
 import {
   ArticleApiService,
   CategoryApiService,

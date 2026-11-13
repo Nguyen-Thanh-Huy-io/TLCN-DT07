@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
-import { LessonBlockPalette } from './LessonBlockPalette';
-import { LessonBlockType } from '../types/block-palette.types';
+import { IconName } from '@/constants/enums';
+import { BlockLibraryPalette } from './builder/BlockLibraryPalette';
+import { LessonBlockType } from '../types/editor.types';
 import { LeftSidebarMode } from '../types/editor.types';
 import { TocItem } from './LessonPreviewContent';
 
@@ -140,7 +140,7 @@ export function LessonLeftToolSidebar({
       </div>
 
       {mode === LeftSidebarMode.BLOCKS ? (
-        <LessonBlockPalette onSelectBlock={onInsertBlock} className="!w-full border-slate-200 !p-2.5 !shadow-2xs" />
+        <BlockLibraryPalette onAddBlock={onInsertBlock} className="!w-full border-slate-200 !p-2.5 !shadow-2xs" />
       ) : (
         <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex flex-col gap-2">
           <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 px-0.5">

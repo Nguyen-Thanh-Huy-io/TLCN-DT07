@@ -1,12 +1,12 @@
 'use client';
 import React from 'react';
-import { AnyCurriculumNode, CurriculumNodeType } from '@/types/models/curriculum-tree.type';
+import { AnyCurriculumNode, CurriculumNodeType } from '@/types/models';
 import {
   NodeDetailStrategyFactory,
   DetailStrategyCallbacks,
 } from '../strategies/node-detail.strategy';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 
 const BREADCRUMB_ICON_MAP: Record<CurriculumNodeType, IconName> = {
   [CurriculumNodeType.TOPIC]: IconName.FOLDER,

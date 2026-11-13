@@ -1,5 +1,5 @@
 import api from '../api';
-import type { LessonItem } from '@/types/models/lesson.type';
+import type { LessonItem } from '@/types/models';
 import type { QuizItem } from '@/features/lessons/types/quiz.types';
 
 export interface LearnerOverview {

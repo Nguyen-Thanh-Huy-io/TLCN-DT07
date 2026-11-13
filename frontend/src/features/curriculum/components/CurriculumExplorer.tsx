@@ -5,13 +5,13 @@ import {
   CurriculumTopicNode,
   AnyCurriculumNode,
   CurriculumNodeType,
-} from '@/types/models/curriculum-tree.type';
+} from '@/types/models';
 import { CurriculumTree } from './CurriculumTree';
 import { CurriculumDetailPane } from './CurriculumDetailPane';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { APP_ROUTES } from '@/constants/routes';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { TopicApiService } from '@/services/entities/topic.service';
 import { mapBackendTopicTreeToCurriculum } from '../utils/curriculum-mapper';
 

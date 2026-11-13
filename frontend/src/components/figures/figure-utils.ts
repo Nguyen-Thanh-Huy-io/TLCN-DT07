@@ -1,6 +1,4 @@
 import type { PublicFigureProfileDto, PublicFigureRelationDto, PublicPeriodDto } from "@/services/entities/landing.service";
-import type { TaxonomyTermItem } from "@/services/public/public-taxonomy";
-import { relationLabel } from "@/features/taxonomy/taxonomy-labels";
 
 export type RelationCategory = "FAMILY" | "ALLY" | "RIVAL" | "CONTEMPORARY";
 
@@ -49,32 +47,10 @@ export function relationCategory(relation: PublicFigureRelationDto): RelationCat
   return CATEGORY_BY_RELATION[relation.relationType] || "CONTEMPORARY";
 }
 
-const DEFAULT_ENTITY_RELATION_LABELS: Record<string, string> = {
-  LEADER_OF: 'Lãnh đạo',
-  MEMBER_OF: 'Thành viên',
-  FOUNDER_OF: 'Sáng lập',
-  SUCCESSOR_TO: 'Kế vị',
-  SERVED_UNDER: 'Phụng sự',
-  CONTEMPORARY_OF: 'Cùng thời với',
-  CHILD_OF: 'Con cái của',
-  PARENT_OF: 'Cha mẹ của',
-  SPOUSE_OF: 'Vợ chồng với',
-  SIBLING_OF: 'Anh chị em ruột',
-  ALLIED_WITH: 'Đồng minh với',
-  OPPOSED_TO: 'Đối địch với',
-  VASSAL_OF: 'Thần phục',
-  AUTHOR_OF: 'Tác giả của',
-  HOUSED_AT: 'Lưu giữ tại',
-  COMMEMORATES: 'Tưởng niệm',
-  LOCATED_IN: 'Tọa lạc tại',
-  CAPITAL_OF: 'Kinh đô của',
-  OTHER: 'Quan hệ khác',
-};
-
-export function relationTargetLabel(relation: PublicFigureRelationDto, relationTerms: TaxonomyTermItem[] = []): string {
+export function relationTargetLabel(relation: PublicFigureRelationDto): string {
   const mapped = TARGET_LABELS[relation.relationType];
   if (mapped) return mapped[relation.direction];
-  return relationLabel(relationTerms, relation.relationType, relation.direction, DEFAULT_ENTITY_RELATION_LABELS);
+  return relation.relationType;
 }
 
 export interface FigureView extends PublicFigureProfileDto {

@@ -1,20 +1,14 @@
 'use client';
+
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Youtube from '@tiptap/extension-youtube';
 import { TipTapToolbar } from './TipTapToolbar';
-import { TipTapBubbleMenu } from './TipTapBubbleMenu';
-import { LessonBlockType } from '../types/block-palette.types';
-import { lessonBlockInsertStrategy } from '../strategies/lesson-block-insert.strategy';
-import { ImageBlockExtension } from '../extensions/image-block.extension';
-import { VideoBlockExtension } from '../extensions/video-block.extension';
-import { TimelineBlockExtension } from '../extensions/timeline-block.extension';
-import { CharacterBlockExtension } from '../extensions/character-block.extension';
-import { EventBlockExtension } from '../extensions/event-block.extension';
 import { BlockTypographyExtension, InlineTypographyMark } from '../extensions/typography.extension';
 import { useActiveEditor } from '../context/ActiveEditorContext';
 
@@ -44,11 +38,6 @@ function createTipTapExtensions(placeholder: string) {
     }),
     BlockTypographyExtension,
     InlineTypographyMark,
-    ImageBlockExtension,
-    VideoBlockExtension,
-    TimelineBlockExtension,
-    CharacterBlockExtension,
-    EventBlockExtension,
     Image.configure({
       inline: true,
       allowBase64: true,
@@ -99,7 +88,6 @@ export function TipTapContent({
   remoteToolbarOnly = false,
 }: TipTapContentProps) {
   const editorRef = useRef<Editor | null>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
   const [isToolbarExpanded, setIsToolbarExpanded] = useState(false);
   const { setActiveEditor } = useActiveEditor();
 
@@ -107,28 +95,6 @@ export function TipTapContent({
 
   const editor = useEditor({
     extensions,
-    editorProps: {
-      handleDrop: (view, event, _slice, moved) => {
-        setIsDragOver(false);
-        if (moved || !event.dataTransfer) return false;
-
-        const blockType = event.dataTransfer.getData('application/x-lesson-block');
-        if (!blockType) return false;
-
-        event.preventDefault();
-        const coordinates = view.posAtCoords({
-          left: event.clientX,
-          top: event.clientY,
-        });
-
-        if (coordinates && coordinates.pos !== null && editorRef.current) {
-          const snippet = lessonBlockInsertStrategy.generateSnippet(blockType as LessonBlockType);
-          editorRef.current.chain().focus().insertContentAt(coordinates.pos, snippet).run();
-          return true;
-        }
-        return false;
-      },
-    },
     content: value,
     immediatelyRender: false,
     onFocus: ({ editor: currentEditor }) => {
@@ -206,30 +172,94 @@ export function TipTapContent({
         ))}
 
       <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (!isDragOver) setIsDragOver(true);
-        }}
-        onDragLeave={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-            setIsDragOver(false);
-          }
-        }}
-        onDrop={() => setIsDragOver(false)}
         className={`tiptap-content-box flex-1 ${
           compact || minHeightClass ? 'tiptap-content-box--compact' : ''
-        } ${boxHeightClass} transition-colors relative ${
-          isDragOver ? 'ring-2 ring-blue-500 bg-blue-50/10' : ''
-        }`}
+        } ${boxHeightClass} transition-colors relative`}
       >
-        {isDragOver && (
-          <div className="absolute top-3 right-4 z-40 bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 pointer-events-none animate-pulse">
-            <span>▼</span>
-            <span>Đang kéo khối: Rê đến vị trí muốn đặt rồi thả chuột</span>
-          </div>
-        )}
         <EditorContent editor={editor} className="h-full" />
       </div>
     </div>
+  );
+}
+
+// --- Merged from TipTapBubbleMenu.tsx ---
+interface TipTapBubbleMenuProps {
+  editor: Editor;
+  onSetLink: () => void;
+}
+
+export function TipTapBubbleMenu({ editor, onSetLink }: TipTapBubbleMenuProps) {
+  return (
+    <BubbleMenu
+      editor={editor}
+      className="tiptap-bubble-menu flex items-center flex-row flex-nowrap bg-slate-900 text-white rounded-lg px-1.5 py-1 shadow-xl border border-slate-700/80 z-50 gap-1"
+      data-testid="tiptap-bubble-menu"
+    >
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        className={`tiptap-bubble-btn ${editor.isActive('bold') ? 'is-active' : ''}`}
+        title="In đậm (Bold)"
+        data-testid="bubble-btn-bold"
+      >
+        <b>B</b>
+      </button>
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        className={`tiptap-bubble-btn ${editor.isActive('italic') ? 'is-active' : ''}`}
+        title="In nghiêng (Italic)"
+        data-testid="bubble-btn-italic"
+      >
+        <i>I</i>
+      </button>
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().toggleStrike().run()}
+        className={`tiptap-bubble-btn ${editor.isActive('strike') ? 'is-active' : ''}`}
+        title="Gạch ngang"
+        data-testid="bubble-btn-strike"
+      >
+        <s>S</s>
+      </button>
+      <div className="tiptap-bubble-divider w-px h-4 bg-slate-700 mx-1" />
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        className={`tiptap-bubble-btn ${editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}`}
+        title="Mục sự kiện (H2)"
+        data-testid="bubble-btn-h2"
+      >
+        H2
+      </button>
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        className={`tiptap-bubble-btn ${editor.isActive('heading', { level: 3 }) ? 'is-active' : ''}`}
+        title="Tiểu mục (H3)"
+        data-testid="bubble-btn-h3"
+      >
+        H3
+      </button>
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        className={`tiptap-bubble-btn ${editor.isActive('blockquote') ? 'is-active' : ''}`}
+        title="Trích dẫn"
+        data-testid="bubble-btn-quote"
+      >
+        &ldquo;
+      </button>
+      <div className="tiptap-bubble-divider w-px h-4 bg-slate-700 mx-1" />
+      <button
+        type="button"
+        onClick={onSetLink}
+        className={`tiptap-bubble-btn ${editor.isActive('link') ? 'is-active' : ''}`}
+        title="Gắn link"
+        data-testid="bubble-btn-link"
+      >
+        Link
+      </button>
+    </BubbleMenu>
   );
 }

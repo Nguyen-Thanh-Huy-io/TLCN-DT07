@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { MessageSquarePlus, Share2 } from 'lucide-react';
-import { ComposerMode } from '@/constants/community.constant';
+import { ComposerMode } from '@/constants/enums';
 
 interface ComposerModeSwitcherProps {
   mode: ComposerMode;

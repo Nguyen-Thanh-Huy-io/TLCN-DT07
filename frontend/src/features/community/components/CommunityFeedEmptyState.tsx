@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Bookmark } from 'lucide-react';
-import { CommunityTabKey } from '@/constants/community.constant';
+import { CommunityTabKey } from '@/constants/enums';
 
 interface CommunityFeedEmptyStateProps {
   activeTab: CommunityTabKey;

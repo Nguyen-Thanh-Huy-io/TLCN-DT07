@@ -2,20 +2,13 @@
 
 import React from 'react';
 import { X, ImagePlus, Trash2, Upload } from 'lucide-react';
-import {
-  TextBlockData,
-  ImageBlockData,
-  QuoteBlockData,
-  EditorialMediaRatio,
-} from '../../../types/block-builder.types';
-import { LessonBlockType } from '../../../types/block-palette.types';
+import { TextBlockData, ImageBlockData, QuoteBlockData, EditorialMediaRatio, EditorialColumnRatio, ChapterBlockZone } from '../../../types/block-builder.types';
+import { LessonBlockType } from '../../../types/editor.types';
 import { TipTapContent } from '../../TipTapContent';
-import { StoryChapterContentBlockProps } from './types';
 import { EditorialSubElementType } from '../../../context/ActiveEditorContext';
-import {
-  ChapterBlockZoneEnum,
-  EditorialMediaRatioEnum,
-} from '@/constants/lesson-builder.constant';
+import { ChapterBlockZoneEnum, EditorialMediaRatioEnum } from '@/constants/lesson-builder.constant';
+import { STORY_CHAPTER_ALLOWED_NESTED_BLOCKS } from '../../../strategies/story-chapter-layout.strategy';
+import type { StoryChapterContentBlockProps } from './StoryChapterRenderer';
 
 const QUOTE_STYLE_BORDER_LEFT = 'BORDER_LEFT';
 const QUOTE_STYLE_CLASSIC = 'CLASSIC_QUOTES';
@@ -689,4 +682,122 @@ export function StoryChapterContentBlock(props: StoryChapterContentBlockProps) {
   }
 
   return null;
+}
+
+// --- useStoryChapterColumnResize.ts ---
+interface UseStoryChapterColumnResizeProps {
+  currentRatio?: EditorialColumnRatio;
+  onUpdateColumnRatio: (nextRatio: EditorialColumnRatio) => void;
+}
+
+export function useStoryChapterColumnResize({
+  currentRatio = '6_6',
+  onUpdateColumnRatio,
+}: UseStoryChapterColumnResizeProps) {
+  const handleStartColumnResize = (
+    e: React.MouseEvent<HTMLDivElement>,
+    gridEl: HTMLElement | null
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!gridEl) return;
+    const rect = gridEl.getBoundingClientRect();
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const relX = (moveEvent.clientX - rect.left) / Math.max(1, rect.width);
+      let nextRatio: EditorialColumnRatio = '6_6';
+      if (relX < 0.38) nextRatio = '4_8';
+      else if (relX < 0.46) nextRatio = '5_7';
+      else if (relX < 0.54) nextRatio = '6_6';
+      else if (relX < 0.62) nextRatio = '7_5';
+      else nextRatio = '8_4';
+
+      if (nextRatio !== currentRatio) {
+        onUpdateColumnRatio(nextRatio);
+      }
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  return { handleStartColumnResize };
+}
+
+// --- StoryChapterAddBlockMenu.tsx ---
+interface StoryChapterAddBlockMenuProps {
+  chapterNumber: string;
+  openAddZone: ChapterBlockZone;
+  onSetOpenAddZone: (zone: ChapterBlockZone | null) => void;
+  onAddChildBlock: (type: LessonBlockType, zone: ChapterBlockZone) => void;
+}
+
+export function StoryChapterAddBlockMenu({
+  chapterNumber,
+  openAddZone,
+  onSetOpenAddZone,
+  onAddChildBlock,
+}: StoryChapterAddBlockMenuProps) {
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className="mb-4 p-3 bg-white border border-stone-300 rounded-xl shadow-sm font-sans space-y-2.5"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-stone-800">
+            Chèn Content Block vào {chapterNumber}:
+          </span>
+          <div className="inline-flex rounded-lg bg-stone-100 p-0.5 border border-stone-200 text-[11px] font-semibold">
+            <button
+              type="button"
+              onClick={() => onSetOpenAddZone(ChapterBlockZoneEnum.LEFT)}
+              className={`px-2 py-0.5 rounded-md cursor-pointer ${
+                openAddZone === ChapterBlockZoneEnum.LEFT
+                  ? 'bg-white text-blue-600 shadow-2xs'
+                  : 'text-stone-600'
+              }`}
+            >
+              Cột trái
+            </button>
+            <button
+              type="button"
+              onClick={() => onSetOpenAddZone(ChapterBlockZoneEnum.RIGHT)}
+              className={`px-2 py-0.5 rounded-md cursor-pointer ${
+                openAddZone === ChapterBlockZoneEnum.RIGHT
+                  ? 'bg-white text-blue-600 shadow-2xs'
+                  : 'text-stone-600'
+              }`}
+            >
+              Cột phải
+            </button>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onSetOpenAddZone(null)}
+          className="text-stone-500 hover:text-stone-900 cursor-pointer"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {STORY_CHAPTER_ALLOWED_NESTED_BLOCKS.map((item) => (
+          <button
+            key={item.type}
+            type="button"
+            onClick={() => onAddChildBlock(item.type, openAddZone)}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-stone-50 hover:bg-blue-50 hover:text-blue-700 border border-stone-200 hover:border-blue-300 text-stone-800 transition-colors cursor-pointer"
+          >
+            + {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }

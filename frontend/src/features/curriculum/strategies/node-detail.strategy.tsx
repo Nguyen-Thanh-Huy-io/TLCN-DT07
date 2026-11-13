@@ -4,10 +4,10 @@ import {
   CurriculumNodeType,
   CurriculumTopicNode,
   CurriculumLessonNode,
-} from '@/types/models/curriculum-tree.type';
-import { Badge } from '@/components/common/Badge';
+} from '@/types/models';
+import { Badge } from '@/components/common/CommonUi';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import {
   STATUS_LABEL_MAP,
   STATUS_TONE_MAP,

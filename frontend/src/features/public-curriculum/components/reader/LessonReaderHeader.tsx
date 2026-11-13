@@ -4,7 +4,7 @@ import React from 'react';
 import { BookOpen, CheckCircle2, Clock3 } from 'lucide-react';
 import { HubBadge } from '../hub/HubUi';
 import { chapterLabel } from '../hub/HubSyllabus';
-import { LessonItem } from '@/types/models/lesson.type';
+import { LessonItem } from '@/types/models';
 import { PUBLIC_DIFFICULTY_META } from '../../constants/public-curriculum.constants';
 
 interface LessonReaderHeaderProps {

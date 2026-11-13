@@ -12,8 +12,8 @@ import {
   STORY_SUBJECT_TYPE_OPTIONS,
 } from '../../strategies/story-chapter-layout.strategy';
 import { useActiveEditor } from '../../context/ActiveEditorContext';
-import { StoryChapterBlockEditorProps } from './story-chapter/types';
-import { StoryChapterTocBar } from './story-chapter/StoryChapterTocBar';
+import { StoryChapterBlockEditorProps } from './story-chapter/StoryChapterRenderer';
+import { StoryChapterTocBar } from './story-chapter/StoryChapterRenderer';
 import { StoryChapterRenderer } from './story-chapter/StoryChapterRenderer';
 
 export type { StoryChapterBlockEditorProps };

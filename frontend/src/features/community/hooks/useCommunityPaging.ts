@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { CommunityTabKey, CommunitySortMode } from '@/constants/community.constant';
+import { CommunityTabKey, CommunitySortMode } from '@/constants/enums';
 import { CommunityApi, type CommunityPost } from '../api';
 
 const PAGE_SIZE = 8;

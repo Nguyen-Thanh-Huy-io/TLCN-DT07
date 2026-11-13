@@ -13,7 +13,7 @@ import {
   StoryChapterBlockData,
   TimelineBlockData,
 } from '../../types/block-builder.types';
-import { LessonBlockType } from '../../types/block-palette.types';
+import { LessonBlockType } from '../../types/editor.types';
 import { BLOCK_TYPE_ICONS } from './BlockLibraryPalette';
 import { TypographyInspectorPanel } from './inspectors/TypographyInspectorPanel';
 import { TimelineBlockInspector } from './inspectors/TimelineBlockInspector';

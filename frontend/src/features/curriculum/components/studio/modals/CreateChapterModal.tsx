@@ -3,8 +3,8 @@ import { LessonStatus } from '@/constants/enums';
 
 import React from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
-import { LessonItem } from '@/types/models/lesson.type';
+import { IconName } from '@/constants/enums';
+import { LessonItem } from '@/types/models';
 
 interface CreateChapterModalProps {
   isOpen: boolean;

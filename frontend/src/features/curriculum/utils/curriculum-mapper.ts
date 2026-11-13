@@ -2,8 +2,8 @@ import {
   CurriculumTopicNode,
   CurriculumLessonNode,
   CurriculumNodeType,
-} from '@/types/models/curriculum-tree.type';
-import type { TopicItem } from '@/types/models/topic.type';
+} from '@/types/models';
+import type { TopicItem } from '@/types/models';
 import { ContentStatus } from '@/constants/enums';
 
 /**

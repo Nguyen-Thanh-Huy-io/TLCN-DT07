@@ -3,13 +3,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
-import { IconName } from '@/constants/icons';
+import { IconName } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import { ActionMenu } from '@/components/common/ActionMenu';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { extractErrorMessage } from '@/services/api';
 import { TagApiService } from '@/services/entities/tag.service';
-import type { TagItem } from '@/types/models/tag.type';
+import type { TagItem } from '@/types/models';
 import {
   ArticleApiService,
   CategoryApiService,

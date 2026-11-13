@@ -2,12 +2,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
-import { Badge } from '@/components/common/Badge';
-import { StatCard } from '@/components/common/StatCard';
-import { ContentCell } from '@/components/common/ContentCell';
-import { UserCell } from '@/components/common/UserCell';
-import { QuickAction } from '@/components/common/QuickAction';
-import { IconName } from '@/constants/icons';
+import { Badge } from '@/components/common/CommonUi';
+import { StatCard } from '@/components/common/CommonUi';
+import { ContentCell } from '@/components/common/CommonUi';
+import { UserCell } from '@/components/common/CommonUi';
+import { QuickAction } from '@/components/common/CommonUi';
+import { IconName } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import {

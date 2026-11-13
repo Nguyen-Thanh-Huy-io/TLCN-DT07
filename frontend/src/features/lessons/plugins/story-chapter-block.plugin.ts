@@ -1,4 +1,4 @@
-import { LessonBlockType } from '../types/block-palette.types';
+import { LessonBlockType } from '../types/editor.types';
 import {
   StoryChapterBlockData,
   StoryChapterLayout,

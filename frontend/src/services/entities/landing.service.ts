@@ -9,7 +9,7 @@
  *  • Thời kỳ (PublicPeriodDto) = 1 Timeline (năm = min/max năm các mốc).
  *  • Sự kiện (PublicEventSummaryDto) = 1 MỐC của Timeline (slug = bài mốc trỏ tới) + bài chuyên mục
  *      Sự kiện chưa nằm trong mốc nào (không thuộc thời kỳ → không hiện ở /dong-thoi-gian).
- *  • Loại sự kiện = chuyên mục CON có loại EVENT (services/public/public-taxonomy.ts).
+ *  • Loại sự kiện = chuyên mục CON có loại EVENT (services/public/article-kind.ts).
  *  • Liên kết bài ↔ bài = bảng ArticleLink (`summary.links`, chỉ chiều bài khai báo → bài đích; chiều
  *      ngược tự suy ở đây). Ý nghĩa theo loại 2 đầu, nhãn = `label` (chữ tự do):
  *        PERSON–PERSON  → tab "Mối quan hệ" (cả 2 hồ sơ)
@@ -37,7 +37,7 @@ import {
   type PublicTimeline,
 } from '@/services/public/public-content.service';
 import { resolveCategoryKind, type ArticleKind } from '@/services/public/article-kind';
-import { formatYear } from '@/utils/year-label';
+import { formatYear } from '@/utils/common';
 import { ArticleKindEnum } from '@/constants/enums';
 import { INTERNAL_API_BASE_URL } from '@/constants/api-url';
 
@@ -58,7 +58,6 @@ const API_URL = INTERNAL_API_BASE_URL;
 export const PUBLIC_ROUTE_PREFIX = {
   PERIOD: '/giai-doan',
   CHAPTER: '/chuong-su',
-  KNOWLEDGE: '/kien-thuc',
   FIGURE: '/nhan-vat',
   EVENT: '/su-kien',
   ENTITY: '/thuc-the',

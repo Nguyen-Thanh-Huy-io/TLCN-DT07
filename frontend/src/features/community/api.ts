@@ -7,70 +7,27 @@
 
 import api, { extractErrorMessage } from '@/services/api';
 import type { BlogPostTypeValue, BlogStatusValue } from '@/services/entities/blog.service';
+import { CONTENT_BLOCK_META_TYPE } from './community-content.util';
+import type { CommunityPost, CommunityPreviewComment, SharedBlogEmbed } from './community-content.util';
 
 const POSTS_BASE_PATH = '/posts';
-const SSR_ME_IDENTIFIER = 'me';
+
+/** Định danh hồ sơ của chính người đang đăng nhập (/cong-dong/thanh-vien/me). */
+export const SSR_ME_IDENTIFIER = 'me';
 
 const POST_TYPE_QUICK_POST: BlogPostTypeValue = 'QUICK_POST';
+
 const POST_TYPE_LONG_FORM: BlogPostTypeValue = 'LONG_FORM';
+
 const BLOG_STATUS_PUBLISHED: BlogStatusValue = 'PUBLISHED';
-const CONTENT_BLOCK_META_TYPE = 'meta';
-const CONTENT_BLOCK_METADATA_KIND = 'metadata';
 
 const enc = encodeURIComponent;
+
 const postPath = (postId: string) => `${POSTS_BASE_PATH}/${postId}`;
+
 const userProfilePath = (identifier: string) => `${POSTS_BASE_PATH}/users/${enc(identifier)}/profile`;
+
 const userFollowPath = (identifier: string) => `${POSTS_BASE_PATH}/users/${enc(identifier)}/follow`;
-
-// ============================================================
-// Types
-// ============================================================
-
-export interface CommunityAuthor {
-  id: string;
-  username: string;
-  bio: string | null;
-  avatarUrl: string | null;
-  followerCount: number;
-  followedByMe: boolean;
-}
-
-export interface CommunityPreviewComment {
-  id: string;
-  authorName: string;
-  content: string;
-  createdAt: string;
-}
-
-export interface SharedBlogEmbed {
-  slug: string;
-  title: string;
-  excerpt: string | null;
-  coverImageUrl: string | null;
-  authorName: string | null;
-}
-
-export interface CommunityPost {
-  id: string;
-  postType: BlogPostTypeValue;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  coverImageUrl: string | null;
-  contentBlocks: unknown[];
-  status: BlogStatusValue;
-  isFeatured: boolean;
-  likeCount: number;
-  commentCount: number;
-  viewCount: number;
-  likedByMe: boolean;
-  bookmarkedByMe: boolean;
-  publishedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  author: CommunityAuthor | null;
-  previewComment: CommunityPreviewComment | null;
-}
 
 export interface CommunityMemberSummary {
   id: string;
@@ -172,21 +129,6 @@ export interface ToggleFollowResult {
 export interface ReportPostResult {
   success: boolean;
   reportId: string;
-}
-
-export interface CommunityReferenceItem {
-  title: string;
-  source?: string | null;
-}
-
-export interface CommunityContentParsed {
-  tags: string[];
-  period: string | null;
-  locations: string | null;
-  paragraphs: string[];
-  images: Array<{ url: string; caption?: string | null }>;
-  references: CommunityReferenceItem[];
-  sharedBlog: SharedBlogEmbed | null;
 }
 
 // Hình dạng thô mà backend trả về (field có thể thiếu tùy endpoint, xem blog.service.ts mapPost/mapMemberCard)
@@ -353,169 +295,6 @@ function buildFallbackProfile(identifier: string): CommunityMemberProfile {
     followers: [],
     following: [],
   };
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null;
-}
-
-function isMetaBlock(block: unknown): block is Record<string, unknown> {
-  const record = asRecord(block);
-  if (!record) return false;
-  return record.type === CONTENT_BLOCK_META_TYPE || record.kind === CONTENT_BLOCK_METADATA_KIND;
-}
-
-function extractTags(meta: Record<string, unknown>): string[] {
-  const rawTags = meta.tags;
-  if (!Array.isArray(rawTags)) return [];
-  return rawTags
-    .map((tag) => {
-      if (typeof tag === 'string') return tag;
-      const record = asRecord(tag);
-      return typeof record?.name === 'string' ? record.name : '';
-    })
-    .map((tag) => tag.trim().replace(/^#/, ''))
-    .filter(Boolean);
-}
-
-function extractImages(meta: Record<string, unknown>): CommunityContentParsed['images'] {
-  const rawImages = meta.images;
-  if (!Array.isArray(rawImages)) return [];
-  return rawImages
-    .map((item) => asRecord(item))
-    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item?.url === 'string')
-    .map((item) => ({
-      url: item.url as string,
-      caption: typeof item.caption === 'string' ? item.caption : null,
-    }));
-}
-
-function extractReferences(meta: Record<string, unknown>): CommunityContentParsed['references'] {
-  const rawReferences = meta.references;
-  if (!Array.isArray(rawReferences)) return [];
-  return rawReferences
-    .map((item) => asRecord(item))
-    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item?.title === 'string')
-    .map((item) => ({
-      title: item.title as string,
-      source: typeof item.source === 'string' ? item.source : null,
-    }));
-}
-
-function extractSharedBlog(meta: Record<string, unknown>): SharedBlogEmbed | null {
-  const record = asRecord(meta.sharedBlog);
-  if (!record || typeof record.slug !== 'string' || typeof record.title !== 'string') return null;
-  return {
-    slug: record.slug,
-    title: record.title,
-    excerpt: typeof record.excerpt === 'string' ? record.excerpt : null,
-    coverImageUrl: typeof record.coverImageUrl === 'string' ? record.coverImageUrl : null,
-    authorName: typeof record.authorName === 'string' ? record.authorName : null,
-  };
-}
-
-/** Đọc khối "meta" lưu trong contentBlocks của bài viết (xem QuickComposer.handleSubmit và blog.service.ts getCommunityProfile). */
-export function extractCommunityContent(post: CommunityPost): CommunityContentParsed {
-  const metaBlock = post.contentBlocks.find(isMetaBlock);
-  const metadataField = metaBlock ? asRecord(metaBlock.metadata) : null;
-  const meta = metadataField ?? metaBlock ?? {};
-
-  const paragraphs = Array.isArray(meta.paragraphs) && meta.paragraphs.length > 0
-    ? (meta.paragraphs.filter((p): p is string => typeof p === 'string'))
-    : post.excerpt
-      ? [post.excerpt]
-      : [];
-
-  return {
-    tags: extractTags(meta),
-    period: typeof meta.period === 'string' ? meta.period : null,
-    locations: typeof meta.locations === 'string' ? meta.locations : null,
-    paragraphs,
-    images: extractImages(meta),
-    references: extractReferences(meta),
-    sharedBlog: extractSharedBlog(meta),
-  };
-}
-
-/** Danh sách gợi ý theo dõi dự phòng, hiển thị trước khi gọi API thành công hoặc khi API lỗi. */
-export function getFallbackSuggestedMembers(): CommunityMemberSummary[] {
-  return [
-    {
-      id: 'fallback-member-1',
-      username: 'dang.quochuy',
-      displayName: 'Đặng Quốc Huy',
-      role: 'USER',
-      bio: 'Nghiên cứu viên Kiến trúc cổ, quan tâm kiến trúc cung đình Á Đông.',
-      avatarUrl: null,
-      postCount: 12,
-      followerCount: 48,
-      followingCount: 20,
-      totalLikesReceived: 96,
-      totalCommentsReceived: 54,
-      followedByMe: false,
-      isMe: false,
-    },
-    {
-      id: 'fallback-member-2',
-      username: 'vu.thanhmai',
-      displayName: 'Vũ Thanh Mai',
-      role: 'USER',
-      bio: 'Thành viên Sử quán, chuyên khảo cổ học Đông Dương.',
-      avatarUrl: null,
-      postCount: 9,
-      followerCount: 35,
-      followingCount: 18,
-      totalLikesReceived: 70,
-      totalCommentsReceived: 40,
-      followedByMe: false,
-      isMe: false,
-    },
-    {
-      id: 'fallback-member-3',
-      username: 'nguyen.vanthinh',
-      displayName: 'TS. Nguyễn Văn Thịnh',
-      role: 'MODERATOR',
-      bio: 'Chuyên gia Hán Nôm, nghiên cứu văn bia và thư tịch cổ.',
-      avatarUrl: null,
-      postCount: 21,
-      followerCount: 102,
-      followingCount: 12,
-      totalLikesReceived: 210,
-      totalCommentsReceived: 130,
-      followedByMe: false,
-      isMe: false,
-    },
-    {
-      id: 'fallback-member-4',
-      username: 'luong.giakhanh',
-      displayName: 'Lương Gia Khánh',
-      role: 'USER',
-      bio: 'Thành viên Sử quán, quan tâm lịch sử đô thị và làng nghề.',
-      avatarUrl: null,
-      postCount: 7,
-      followerCount: 26,
-      followingCount: 15,
-      totalLikesReceived: 52,
-      totalCommentsReceived: 31,
-      followedByMe: false,
-      isMe: false,
-    },
-    {
-      id: 'fallback-member-5',
-      username: 'bui.trongnghia',
-      displayName: 'KTS. Bùi Trọng Nghĩa',
-      role: 'USER',
-      bio: 'Nghiên cứu Bảo tồn Di sản, kỹ thuật xây dựng cổ.',
-      avatarUrl: null,
-      postCount: 15,
-      followerCount: 61,
-      followingCount: 9,
-      totalLikesReceived: 118,
-      totalCommentsReceived: 67,
-      followedByMe: false,
-      isMe: false,
-    },
-  ];
 }
 
 function buildListPostsQuery(params: ListCommunityPostsParams): Record<string, string | number> {
@@ -732,3 +511,6 @@ export async function fetchCommunityProfileSSR(identifier: string): Promise<Comm
 
 // Giữ extractErrorMessage sẵn re-export cho các component muốn hiển thị lỗi backend thống nhất.
 export { extractErrorMessage };
+
+export { extractCommunityContent } from './community-content.util';
+export type { CommunityPost, SharedBlogEmbed, CommunityReferenceItem } from './community-content.util';

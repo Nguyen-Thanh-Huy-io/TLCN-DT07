@@ -7,7 +7,6 @@ import {
   Optional,
 } from '@nestjs/common';
 import {
-  ArticleCommentStatus,
   NotificationType,
   PostCommentStatus,
   ReportActionTaken,
@@ -732,17 +731,17 @@ export class BlogService {
       return map;
     }
 
-    const comments = await this.prisma.articleComment.findMany({
+    const comments = await this.prisma.blogPostComment.findMany({
       where: {
-        articleId: { in: postIds },
+        postId: { in: postIds },
         deletedAt: null,
-        status: ArticleCommentStatus.VISIBLE,
+        status: PostCommentStatus.VISIBLE,
         parentId: null,
       },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
-        articleId: true,
+        postId: true,
         content: true,
         createdAt: true,
         author: { select: { username: true } },
@@ -751,8 +750,8 @@ export class BlogService {
     });
 
     for (const c of comments) {
-      if (!map.has(c.articleId)) {
-        map.set(c.articleId, {
+      if (!map.has(c.postId)) {
+        map.set(c.postId, {
           id: c.id,
           content: c.content,
           authorName: c.author?.username || 'Thành viên HISGO',

@@ -1,7 +1,7 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import {
-  ArticleCommentStatus,
+  PostCommentStatus,
   NotificationType,
   ReportActionTaken,
   ReportRiskLevel,
@@ -253,11 +253,11 @@ export class ModerationService {
   }
 
   private async scanComment(commentId: string) {
-    const comment = await this.prisma.articleComment.findUnique({
+    const comment = await this.prisma.blogPostComment.findUnique({
       where: { id: commentId },
       select: {
         id: true,
-        articleId: true,
+        postId: true,
         authorId: true,
         content: true,
         status: true,
@@ -284,21 +284,21 @@ export class ModerationService {
       ? ReportActionTaken.AUTO_HIDDEN
       : ReportActionTaken.NONE;
 
-    if (isAutoHide && comment.status !== ArticleCommentStatus.REMOVED) {
-      await this.prisma.articleComment.update({
+    if (isAutoHide && comment.status !== PostCommentStatus.REMOVED) {
+      await this.prisma.blogPostComment.update({
         where: { id: comment.id },
         data: {
-          status: ArticleCommentStatus.REMOVED,
+          status: PostCommentStatus.REMOVED,
           deletedAt: new Date(),
         },
       });
 
       await this.prisma.blogPost.updateMany({
-        where: { id: comment.articleId, commentCount: { gt: 0 } },
+        where: { id: comment.postId, commentCount: { gt: 0 } },
         data: { commentCount: { decrement: 1 } },
       });
 
-      this.blogGateway.emitCommentUpdated(comment.articleId, {
+      this.blogGateway.emitCommentUpdated(comment.postId, {
         type: 'deleted',
         commentId: comment.id,
         reason: assessment.violationReasonVi,
@@ -402,7 +402,7 @@ export class ModerationService {
           })
         : Promise.resolve([]),
       commentIds.length > 0
-        ? this.prisma.articleComment.findMany({
+        ? this.prisma.blogPostComment.findMany({
             where: { id: { in: commentIds } },
             include: {
               author: {
@@ -594,7 +594,7 @@ export class ModerationService {
         targetTitle = resolved.targetTitle;
       }
     } else if (report.targetType === ReportTargetType.COMMENT) {
-      const comment = await this.prisma.articleComment.findUnique({
+      const comment = await this.prisma.blogPostComment.findUnique({
         where: { id: report.targetId },
       });
 
@@ -897,7 +897,7 @@ export class ModerationService {
       authorId?: string | null;
       content: string;
       status: string;
-      articleId: string;
+      postId: string;
     },
     dto: ResolveModerationReportDto,
   ): Promise<{ targetAuthorId: string | null; targetTitle: string }> {
@@ -905,30 +905,30 @@ export class ModerationService {
     const targetTitle = comment.content.slice(0, 60);
 
     if (dto.action === ModerationResolveAction.RESTORE) {
-      await this.prisma.articleComment.update({
+      await this.prisma.blogPostComment.update({
         where: { id: comment.id },
         data: {
-          status: ArticleCommentStatus.VISIBLE,
+          status: PostCommentStatus.VISIBLE,
           deletedAt: null,
         },
       });
       await this.prisma.blogPost.updateMany({
-        where: { id: comment.articleId },
+        where: { id: comment.postId },
         data: { commentCount: { increment: 1 } },
       });
-    } else if (comment.status !== ArticleCommentStatus.REMOVED) {
-      await this.prisma.articleComment.update({
+    } else if (comment.status !== PostCommentStatus.REMOVED) {
+      await this.prisma.blogPostComment.update({
         where: { id: comment.id },
         data: {
-          status: ArticleCommentStatus.REMOVED,
+          status: PostCommentStatus.REMOVED,
           deletedAt: new Date(),
         },
       });
       await this.prisma.blogPost.updateMany({
-        where: { id: comment.articleId, commentCount: { gt: 0 } },
+        where: { id: comment.postId, commentCount: { gt: 0 } },
         data: { commentCount: { decrement: 1 } },
       });
-      this.blogGateway.emitCommentUpdated(comment.articleId, {
+      this.blogGateway.emitCommentUpdated(comment.postId, {
         type: 'deleted',
         commentId: comment.id,
       });

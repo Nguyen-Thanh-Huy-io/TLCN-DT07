@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
@@ -492,6 +493,19 @@ export class TopicService {
    */
   async remove(id: string): Promise<{ success: boolean; message: string }> {
     await this.findOne(id);
+
+    // Schema để Cascade cây con và SetNull bài học → xoá thẳng sẽ âm thầm mất cả nhánh.
+    const usage = await this.prisma.topic.findUnique({
+      where: { id },
+      select: { _count: { select: { children: true, lessons: true } } },
+    });
+    const children = usage?._count?.children ?? 0;
+    const lessons = usage?._count?.lessons ?? 0;
+    if (children > 0 || lessons > 0) {
+      throw new ConflictException(
+        TOPIC_ERROR_MESSAGES.HAS_DEPENDENTS(children, lessons),
+      );
+    }
 
     await this.prisma.topic.delete({
       where: { id },

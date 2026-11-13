@@ -4,7 +4,7 @@ import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { SlugService } from '../common/services/slug.service';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { ContentStatus } from '@prisma/client';
 
 describe('TopicService', () => {
@@ -158,6 +158,18 @@ describe('TopicService', () => {
       const result = await service.remove('topic-uuid-1');
       expect(result.success).toBe(true);
       expect(mockPrismaService.topic.delete).toHaveBeenCalled();
+    });
+
+    it('không xoá chủ đề còn chủ đề con hoặc bài học', async () => {
+      mockRedisService.get.mockResolvedValueOnce(null);
+      mockPrismaService.topic.findUnique
+        .mockResolvedValueOnce(mockTopic)
+        .mockResolvedValueOnce({ _count: { children: 2, lessons: 1 } });
+
+      await expect(service.remove('topic-uuid-1')).rejects.toThrow(
+        ConflictException,
+      );
+      expect(mockPrismaService.topic.delete).not.toHaveBeenCalled();
     });
   });
 });

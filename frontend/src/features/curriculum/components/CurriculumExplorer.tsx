@@ -9,6 +9,8 @@ import { APP_ROUTES } from '@/constants/routes';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
 import { TopicApiService } from '@/services/entities/topic.service';
+import { LessonApiService } from '@/services/entities/lesson.service';
+import { extractErrorMessage } from '@/services/api';
 import { mapBackendTopicTreeToCurriculum } from '../utils/curriculum-mapper';
 import { NodeDetailStrategyFactory, DetailStrategyCallbacks } from '../strategies/node-detail.strategy';
 
@@ -40,6 +42,7 @@ export function CurriculumExplorer() {
 
   const [deleteTarget, setDeleteTarget] =
     useState<AnyCurriculumNode | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Resizable Split Pane Logic
   const [treeWidth, setTreeWidth] = useState<number>(360);
@@ -168,33 +171,20 @@ export function CurriculumExplorer() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-
-    if (deleteTarget.type === CurriculumNodeType.TOPIC) {
-      try {
+    setDeleteError(null);
+    try {
+      if (deleteTarget.type === CurriculumNodeType.TOPIC) {
         await TopicApiService.deleteTopic(deleteTarget.id);
-        await loadTree();
-        setSelectedNode(null);
-      } catch (err) {
-        console.error('Failed to delete topic:', err);
-        // Fallback xóa local
-        setTreeData((prev) => prev.filter((t) => t.id !== deleteTarget.id));
-        setSelectedNode(null);
+      } else {
+        await LessonApiService.deleteLesson(deleteTarget.id);
       }
-    } else if (deleteTarget.type === CurriculumNodeType.LESSON) {
-      setTreeData((prev) =>
-        prev.map((t) => ({
-          ...t,
-          lessons: t.lessons.filter((l) => l.id !== deleteTarget.id),
-          subTopics: (t.subTopics || []).map((s) => ({
-            ...s,
-            lessons: s.lessons.filter((l) => l.id !== deleteTarget.id),
-          })),
-        })),
-      );
       setSelectedNode(null);
+      await loadTree();
+    } catch (err) {
+      setDeleteError(extractErrorMessage(err, 'Xoá thất bại.'));
+    } finally {
+      setDeleteTarget(null);
     }
-
-    setDeleteTarget(null);
   };
 
   return (
@@ -225,6 +215,12 @@ export function CurriculumExplorer() {
           </button>
         </div>
       </div>
+
+      {deleteError ? (
+        <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {deleteError}
+        </div>
+      ) : null}
 
       {/* Master-Detail 2-Column Resizable Grid */}
       <div

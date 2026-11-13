@@ -32,6 +32,8 @@ export const TOPIC_ERROR_MESSAGES = {
   CHILD_NOT_BELONG_TO_PARENT: 'Chủ đề con không thuộc về chủ đề cha này',
   CHILD_IDS_REQUIRED: 'Danh sách mã chủ đề con (childIds) không được để trống',
   REORDER_EMPTY: 'Danh sách sắp xếp lại thứ tự (items) không được để trống',
+  HAS_DEPENDENTS: (children: number, lessons: number) =>
+    `Không xoá được: chủ đề còn ${children} chủ đề con và ${lessons} bài học. Hãy chuyển hoặc xoá chúng trước.`,
 } as const;
 
 export const TOPIC_SUCCESS_MESSAGES = {

@@ -57,7 +57,7 @@ flowchart TD
 
 ### 3.1. Bài viết lịch sử (Article)
 * **Mục đích:** Thực thể trung tâm của hệ thống (thay cho Entity/Statement cũ đã xoá 2026-11-05). Một bài viết có thể đóng vai trò Nhân vật / Sự kiện / Di tích / Triều đại / Khác tuỳ `Category.kind` của chuyên mục nó thuộc. Có hồ sơ mô tả JSONB tuỳ loại (`metadata`), liên kết 2 chiều bài↔bài (`ArticleLink`), quy trình duyệt 2 người (DRAFT → PENDING_REVIEW → PUBLISHED/REJECTED), tự tạo bản sửa chờ duyệt khi sửa bài đã publish.
-* **UI Component chính:** [ArticleList.tsx](frontend/src/features/articles/components/ArticleList.tsx) (danh sách CMS), [ArticleEditor.tsx](frontend/src/features/articles/components/ArticleEditor.tsx) (3 tab: Thông tin / Hồ sơ & liên kết / Nội dung).
+* **UI Component chính:** [ArticleList.tsx](frontend/src/features/articles/components/ArticleList.tsx) (danh sách CMS), [ArticleEditor.tsx](frontend/src/features/articles/components/ArticleEditor.tsx) (3 tab: Thông tin / Hồ sơ & liên kết / Nội dung). Tab Thông tin có ô chọn **Chuyên mục** (Category, bắt buộc) và **Chủ đề** (`TopicPicker`, tuỳ chọn — `topicId` đi qua bản sửa chờ duyệt như mọi trường khác, khai báo trong `REVISION_FIELDS.ARTICLE`).
 * **Component/Modal phụ trợ:**
   * `ArticleProfilePanel.tsx` — nhập `metadata` theo nhánh person/site/event + `links` liên kết bài khác.
   * `ArticleConnections.tsx` — preview chỉ đọc: dòng đời nhân vật, người liên quan sự kiện, dòng thời gian chứa bài.
@@ -75,18 +75,19 @@ flowchart TD
   * `article-metadata.ts` — validate `metadata` theo mã cố định (PERSON_ROLE_CODES, SITE_TYPE_CODES...)
 
 ### 3.2. Phân loại — Category / Tag / Topic
-* **Mục đích:**
-  * **Category** — chuyên mục bài viết (cây nông), quyết định `kind` (PERSON/EVENT/LOCATION/DYNASTY/OTHER); slug cố định (`nhan-vat`, `su-kien`, `di-tich`, `trieu-dai`) ánh xạ route công khai.
-  * **Tag** — nhãn dùng chung cho Article (`ArticleTag`) và Lesson (`LessonTag`); cache Redis.
-  * **Topic** — "Chủ đề/Thời kỳ" phân cấp N cấp (chống cycle, giới hạn độ sâu 20), gắn Timeline/Lesson/Article, reorder, cache Redis.
-* **UI Component chính:** [TagList.tsx](frontend/src/features/tags/components/TagList.tsx), [TopicEditor.tsx](frontend/src/features/topics/components/TopicEditor.tsx).
+* **Mục đích — 3 vai trò tách bạch, không dùng lẫn:**
+  * **Category = bài viết LÀ LOẠI GÌ** — chỉ dành cho Article (mỗi bài đúng 1), quyết định `kind` (PERSON/EVENT/LOCATION/DYNASTY/OTHER) và trang hiển thị; slug cố định (`nhan-vat`, `su-kien`, `di-tich`, `trieu-dai`) ánh xạ route công khai.
+  * **Topic = nội dung thuộc PHẦN NÀO của môn sử** — cây phân cấp (chống cycle, giới hạn độ sâu 20). Lesson gắn đúng 1 (bắt buộc), Article / Timeline gắn tối đa 1, Quiz / Question gắn nhiều. Thời kỳ của bài viết trên trang công khai suy theo Topic (xem 3.4).
+  * **Tag = từ khoá tự do** — chỉ Lesson (`LessonTag`) và Article (`ArticleTag`), chỉ dùng để tìm kiếm và gợi ý bài liên quan ("Mạng lưới tri thức"); **không** dùng để phân loại hay suy thời kỳ. Cache Redis.
+  * **Blog** không dùng cả ba: có `postType` riêng và hashtag trong `metadata`, chỉ trích dẫn một chiều tới Article/Lesson.
+* **UI Component chính:** [TagList.tsx](frontend/src/features/tags/components/TagList.tsx) (gọi qua `TagApiService`, cột "Đang dùng" = số bài học · số bài viết, có trạng thái lỗi + thử lại), [TopicEditor.tsx](frontend/src/features/topics/components/TopicEditor.tsx).
 * **Component/Modal phụ trợ:** `TagModal.tsx` (gộp `TagForm`), `TopicEditorPanels.tsx`, `TopicParentModalPicker.tsx`, `TopicPicker.tsx`, `TopicCoverImagePicker.tsx`.
-* **Route trang:** `frontend/src/app/tags/page.tsx`, `frontend/src/app/tags/create/page.tsx`, `frontend/src/app/tag/[id]/page.tsx` (công khai), `frontend/src/app/categories/page.tsx`.
+* **Route trang:** `frontend/src/app/tags/page.tsx`, `frontend/src/app/categories/page.tsx`.
 * **Service/API Client:** `services/entities/tag.service.ts` (`TagApiService`), `services/entities/topic.service.ts` (`TopicApiService`).
 * **Backend Module:**
   * Category: `backend/src/category/` (`/categories`, chặn xoá khi còn bài viết, chống cycle).
-  * Tag: `backend/src/tag/` (`/tags`, `/lessons/:id/tags`, cache Redis TTL 3600s).
-  * Topic: `backend/src/topic/` (`/topics`, cache Redis TTL 300s, MAX_DEPTH 20, bulk reorder qua `$transaction`).
+  * Tag: `backend/src/tag/` (`/tags` trả phân trang `{ items, total, ... }` kèm `_count.lessonTags` + `_count.articleTags`, `/lessons/:id/tags`, cache Redis TTL 3600s — sửa tag trong bài viết không xoá cache này nên số đếm có thể trễ tới 1 giờ).
+  * Topic: `backend/src/topic/` (`/topics`, cache Redis TTL 300s, MAX_DEPTH 20, bulk reorder qua `$transaction`; `/topics/tree` trả cây N cấp, mỗi nút kèm `lessons` rút gọn + `_count.lessons`).
 
 ### 3.3. Dòng thời gian (Timeline)
 * **Mục đích:** CMS dòng thời gian — danh sách mốc lịch sử theo `displayOrder`, mỗi mốc tuỳ chọn gắn 1 bài viết (`articleId`). Mỗi lần cập nhật "nodes" = thay toàn bộ danh sách mốc (xoá hết + tạo lại trong transaction). Là nguồn dữ liệu để trang công khai cũ suy ra "Thời kỳ"/"Sự kiện"/dòng đời nhân vật.
@@ -95,14 +96,14 @@ flowchart TD
 * **Backend Module:** `backend/src/timeline/` — Controller `timeline.controller.ts` (`/timelines`, STAFF), Service `timeline.service.ts` (validate mốc, include `linksIn/linksOut` để CMS xem trước "Gắn với...").
 
 ### 3.4. Heritage / Period-detail (Di tích, Giai đoạn, Triều đại, Nhân vật, Sự kiện — công khai)
-* **Mục đích:** Lớp tương thích cho giao diện công khai CŨ, dựng lại hoàn toàn từ Article + Category + ArticleLink + Timeline qua `landing.service.ts` (tên dễ nhầm — thực chất là **adapter/mapper chính** của toàn hệ thống công khai). Quy tắc: Loại bài = `Category.kind`; Thời kỳ = 1 Timeline; Sự kiện = mốc Timeline hoặc bài chuyên mục Sự kiện chưa gắn mốc nào.
+* **Mục đích:** Lớp tương thích cho giao diện công khai CŨ, dựng lại hoàn toàn từ Article + Category + ArticleLink + Timeline qua `landing.service.ts` (tên dễ nhầm — thực chất là **adapter/mapper chính** của toàn hệ thống công khai). Quy tắc: Loại bài = `Category.kind`; Thời kỳ = 1 Timeline; Sự kiện = mốc Timeline hoặc bài chuyên mục Sự kiện chưa gắn mốc nào. Thời kỳ của 1 bài (`createPeriodSlugResolver` trong `landing-graph.ts`): timeline có mốc trỏ tới bài → timeline có mốc trỏ tới bài liên kết → timeline cùng `topicId` với bài. Trang `/giai-doan/[slug]` gom bài trong mốc + bài liên kết + bài cùng Topic với timeline. Tag không tham gia.
 * **UI Component chính:**
   * Heritage: [HeritageExplorer.tsx](frontend/src/features/heritage/components/HeritageExplorer.tsx) (`/di-tich`).
   * Period-detail: [PeriodDetailView.tsx](frontend/src/features/period-detail/components/PeriodDetailView.tsx) (`/giai-doan/[slug]`).
 * **Component/Modal phụ trợ:** `HeritageCards.tsx`, `heritage.adapter.ts` (`toHeritageSummaries`), `period-detail.adapter.ts` (`groupEventsByStage`, `siblingPeriods`), `EventStream.tsx`, `TimeRuler.tsx`.
 * **Route trang:**
   * `app/di-tich/page.tsx`, `app/di-tich/[slug]/page.tsx`, `app/nhan-vat/[slug]/page.tsx`, `app/su-kien/[slug]/page.tsx`, `app/thuc-the/[slug]/page.tsx` — dùng chung `fetchEntityBySlug` + `EntityHero`/`EntityReader`.
-  * `app/nhan-vat/page.tsx` (FiguresDirectory), `app/su-kien/page.tsx` (EventsLibrary), `app/trieu-dai/page.tsx` (CategoryPage), `app/giai-doan/[slug]/page.tsx` (PeriodDetailView).
+  * `app/nhan-vat/page.tsx` (FiguresDirectory), `app/su-kien/page.tsx` (EventsLibrary), `app/chuyen-muc/[slug]/page.tsx` (CategoryPage — triều đại vào qua `/chuyen-muc/trieu-dai`), `app/giai-doan/[slug]/page.tsx` (PeriodDetailView).
 * **Service/API Client:** `frontend/src/services/entities/landing.service.ts` — thực chất là adapter công khai chính (`fetchPeriods`, `fetchEvents`, `fetchFigureDirectory`, `fetchLocations`, `fetchEntityBySlug`, `fetchPeriodBySlug`, `fetchPublicList`). Phân loại sự kiện dùng `hooks/useEventCategories.ts` + `services/public/article-kind.ts`.
 * **Backend:** không có module riêng — toàn bộ do `PublicContentService` (xem mục 3.9) tổng hợp.
 * **Đã bỏ (2026-11-12):** khái niệm **khu vực** (`region`, `HistoricalRegion`, `utils/region.utils.ts`, nhóm "Trong nước / Thế giới") và **xếp hạng di tích** (`HeritageRank`, `site.rank`) ở cả `Article.metadata` lẫn UI; `/di-tich` không còn thanh lọc (`HeritageFilterBar` đã xoá), sắp theo số sự kiện. Mục "Cùng thời" ở `/giai-doan/[slug]` chỉ so khoảng năm.
@@ -123,7 +124,7 @@ flowchart TD
 ### 3.7. Chương trình học / Lộ trình học (Curriculum & Learning Path)
 * **Mục đích:** CMS quản lý Lộ trình học (LearningPath) gồm các Chương (Chapter), mỗi chương gom Bài học có sẵn qua bảng nối `ChapterLesson` (có `displayOrder` kéo-thả). 2 chế độ xem: "HISGO Studio" (biên soạn) và "Cây phân cấp Chủ đề".
 * **Hai trục độc lập (đọc trước khi sửa):** `Topic` = cây phân loại (Giai đoạn → Chủ đề → Chuyên đề) — `Article`, `Lesson`, `Timeline` gắn 1 `topicId`; `Quiz`, `Question` gắn nhiều Topic. `LearningPath` = khoá học, chia theo **Chương**, mỗi chương chọn & sắp lại Lesson có sẵn — một Lesson vừa thuộc 1 Topic vừa có thể nằm trong nhiều Chương/Lộ trình. `pathType` (`LearningPathType`: `CHRONOLOGICAL` | `THEMATIC`) **chỉ có ở LearningPath** (đã bỏ `Topic.pathType` và giá trị `MYTHOLOGICAL` — migration `20261112220000_drop_topic_path_type`).
-* **UI Component chính:** [HisgoStudioView.tsx](frontend/src/features/curriculum/components/HisgoStudioView.tsx), [CurriculumExplorer.tsx](frontend/src/features/curriculum/components/CurriculumExplorer.tsx).
+* **UI Component chính:** [HisgoStudioView.tsx](frontend/src/features/curriculum/components/HisgoStudioView.tsx), [CurriculumExplorer.tsx](frontend/src/features/curriculum/components/CurriculumExplorer.tsx) — chế độ "Cây phân cấp Chủ đề" dùng `CurriculumTree` + `CurriculumTreeParts.tsx` (`TopicTreeBranch` đệ quy, vẽ được mọi độ sâu) và hook `useCurriculumTree.ts` (lọc/tìm kiếm bằng `pruneTree`, đếm đệ quy). Từ cấp 3 trở xuống nút "+" thêm bài học thay vì thêm chủ đề con.
 * **Component/Modal phụ trợ:** `studio/StudioPanels.tsx` (Header, Toolbar, LearningPathListPanel), `studio/ChapterList.tsx`, `studio/LessonLibraryPanel.tsx`, `studio/StudioModals.tsx` (LearningPathFormModal, CreateChapterModal, AddLessonsToChapterModal), `CurriculumTreePreviewModal.tsx`.
 * **Strategy:** `strategies/node-detail.strategy.tsx` — `TopicNodeDetailStrategy` / `LessonNodeDetailStrategy`, chọn bằng `NodeDetailStrategyFactory`.
 * **Route trang:** `frontend/src/app/curriculum/page.tsx` (chuyển đổi Studio ⇄ Explorer).
@@ -217,7 +218,7 @@ flowchart TD
 * **Service/API Client:** `features/notes/services/note.service.ts` — axios `@/services/api` gọi thẳng backend `/notes` (token do interceptor gắn), khách nhận diện qua header `x-guest-id` (`GUEST_ID_HEADER_NAME`) + `guestId`, lưu `localStorage` khoá `hisgo:guest-id`. Route proxy `app/api/notes` cũ đã xoá.
 * **Backend Module:** `backend/src/note/`
   * Controller: `note.controller.ts` (tự decode JWT từ header, không ép `AuthGuard` để hỗ trợ khách)
-  * Service: `note.service.ts` (`assertOwnership` theo `userId` hoặc `guestId`)
+  * Service: `note.service.ts` (`assertOwnership` theo `userId` hoặc `guestId`; `findAll` không có cả `userId` lẫn `guestId` thì trả `[]` — trước 2026-11-13 trả ghi chú của mọi người)
   * Strategy: `strategies/note-target.strategy.ts` — `ArticleNoteStrategy` / `LessonNoteStrategy`, chọn qua `NoteStrategyRegistry`.
 
 ### 3.11. Lịch sử chỉnh sửa nội dung (Content Revision)
@@ -272,9 +273,9 @@ flowchart TD
 
 ### 3.15. Thảo luận (Discussion — Q&A gắn vào Article/Lesson)
 * **Mục đích:** Q&A gắn trực tiếp vào 1 `ARTICLE` hoặc `LESSON`; câu trả lời của ADMIN/SUPERADMIN/MODERATOR tự đánh dấu `isOfficial` + `isAnswered=true`.
-* **UI Component chính:** [DiscussionSection.tsx](frontend/src/features/discussions/components/DiscussionSection.tsx) (nhúng vào trang chi tiết bài học/sự kiện, không có route riêng).
+* **UI Component chính:** [DiscussionSection.tsx](frontend/src/features/discussions/components/DiscussionSection.tsx) — nhúng cuối trang đọc bài viết (`EntityReader.tsx`, `ARTICLE`) và trang đọc bài học (`LessonReaderMainLayout.tsx`, `LESSON`); không có route riêng.
 * **Service/API Client:** `services/entities/discussion.service.ts` (`DiscussionApiService`).
-* **Backend Module:** `backend/src/discussion/` — Controller `discussion.controller.ts` (`/discussions`), Service `discussion.service.ts` (gửi `NotificationService.notify` khi có reply, không có Gateway riêng).
+* **Backend Module:** `backend/src/discussion/` — Controller `discussion.controller.ts` (`/discussions`), Service `discussion.service.ts` (gửi `NotificationService.notify` khi có reply, link thông báo dựng theo slug: `/bai-viet/<slug>` hoặc `/bai-hoc/<slug>`, nội dung đã xoá thì không kèm link; không có Gateway riêng).
 
 ### 3.16. Kiểm duyệt nội dung (Moderation — AI Sentinel + CMS thủ công)
 * **Mục đích:** Quét tự động bài viết/bình luận bằng heuristic regex tiếng Việt (`SENTINEL_RULES`) + Gemini Flash LLM, phân 3 tier (ALLOW / FLAG_FOR_REVIEW / AUTO_HIDE), đẩy job qua BullMQ; CMS xử lý 1-click (CONFIRM_REMOVE/RESTORE/BAN_USER).
@@ -283,7 +284,7 @@ flowchart TD
 * **Service/API Client:** `features/moderation/api.ts` (`ModerationApi`, dùng đúng axios instance chung).
 * **Backend Module:** `backend/src/moderation/`
   * Controller: `moderation.controller.ts` (`/moderation`, `@RequireRoles(MODERATOR, ADMIN, SUPERADMIN)`)
-  * Service: `moderation.service.ts` (tạo `ContentReport`, `resolveReport` kèm đếm vi phạm tái phạm)
+  * Service: `moderation.service.ts` (tạo `ContentReport`, `resolveReport` kèm đếm vi phạm tái phạm; bình luận đọc/ghi bảng `blog_post_comments` (`BlogPostComment`), không dùng `article_comments`; không khoá tài khoản ADMIN/SUPERADMIN). Test: `moderation.service.spec.ts`.
   * Enum: Prisma `ReportTargetType` (POST/COMMENT — cột `content_reports.target_type`), `ReportSource`, `ReportRiskLevel`, `ReportActionTaken`; `moderation.constant.ts` (`ModerationTab` cho query `tab`, `ModerationResolveAction` cho thao tác duyệt). DTO dùng `@IsEnum`, không dùng `@IsIn([...chuỗi])`.
   * AI Service: `moderation-ai.service.ts` (`SENTINEL_RULES` theo 4 category: PROFANITY/HISTORICAL_REVISIONISM/SPAM/REGIONAL_DISCRIMINATION + Gemini Flash REST API)
   * Queue Worker: `moderation.processor.ts` (`@Processor('moderation-queue')`, BullMQ)
@@ -465,9 +466,12 @@ Các điểm dưới đây được phát hiện khi đọc trực tiếp code (
 4. **`NotificationBell`** và **`UserList`** gọi axios instance chung trực tiếp tại chỗ dùng, chưa tách file `services/entities/` riêng (khác convention các feature khác đã tách `*ApiService`).
 5. **`BlogService.listPosts`** lấy toàn bộ `findMany` không phân trang ở DB, phân trang/sort trending làm ở tầng Node sau khi fetch hết — lệch quy ước "API trả danh sách phải có phân trang ở DB" khi dữ liệu lớn.
 6. **`ModerationAiService`** đọc `process.env.GEMINI_API_KEY` trực tiếp, không qua `ConfigService`/`app.config.ts` — lệch quy ước đọc biến môi trường của CLAUDE.md.
-7. Route **`/moderation/page.tsx`** và **`/cms/moderation/page.tsx`** cùng trỏ 1 component; **`/blog-review/page.tsx`** và **`/review/blog/page.tsx`** cũng cùng trỏ 1 component — route trùng chức năng, cân nhắc gộp khi refactor routing.
+7. **[ĐÃ GỘP ✅]** `/cms/moderation` → `/moderation`, `/review/blog` → `/blog-review` (2026-11-13).
 8. Trang luyện tập public **`/luyen-tap`** hiện chỉ có 1 file `page.tsx`; các route con `bai-thi/`, `chu-de/`, `kham-pha/`, `lich-su/` đã bị revert trong quá trình dọn working tree trước khi khảo sát — không còn tồn tại trong code hiện tại.
-9. `frontend/src/services/entities/landing.service.ts` có tên dễ gây nhầm — đây không chỉ phục vụ trang chủ mà là **adapter chính** tái tạo toàn bộ DTO công khai cũ (Period/Figure/Event/Location/Entity) cho hầu hết route công khai (`/giai-doan`, `/nhan-vat`, `/su-kien`, `/di-tich`, `/thuc-the`, `/bai-viet`, `/trieu-dai`, `/kien-thuc`).
+9. `frontend/src/services/entities/landing.service.ts` có tên dễ gây nhầm — đây không chỉ phục vụ trang chủ mà là **adapter chính** tái tạo toàn bộ DTO công khai cũ (Period/Figure/Event/Location/Entity) cho hầu hết route công khai (`/giai-doan`, `/nhan-vat`, `/su-kien`, `/di-tich`, `/thuc-the`, `/bai-viet`, `/chuyen-muc`).
 10. **Phát hiện từ Knip Audit:** Có 19 files frontend hiện không được import ở bất kỳ đâu (dead files tiềm năng cần dọn dẹp ở Pha 3/Pha 4: `FormField.tsx`, `TabbedRichTextEditor.tsx`, `EntityInfobox.tsx`, `LifeTimelineHero.tsx`, `ScrollRevealProvider.tsx`, `VideoModal.tsx`, `ScrollToTopButton.tsx`, `config.ts`, `blog-data.ts`, `LessonOrderField.tsx`, `LessonTopicModalPicker.tsx`, `TopicForm.tsx`, `TopicModal.tsx`...).
+11. Bảng **`article_comments`** (model `ArticleComment`) không còn code nào đọc/ghi từ 2026-11-13 (Blog dùng `blog_post_comments`, Article/Lesson dùng `Discussion`) — có thể xoá bằng migration sau khi kiểm tra dữ liệu còn trong bảng.
+12. **Frontend chưa có bộ chạy test** (không jest/vitest): các helper thuần như `createPeriodSlugResolver` (`landing-graph.ts`) hay `pruneTree` (`useCurriculumTree.ts`) mới chỉ được kiểm tra bằng tsc/ESLint + chạy thật trên trình duyệt.
+13. Xoá bài học trong cây chủ đề (`CurriculumExplorer.handleConfirmDelete`) chỉ xoá trên state giao diện, không gọi API, và chỉ duyệt 2 cấp đầu.
 
 > Danh sách lỗi/vi phạm coding-rule chi tiết (không thuộc phạm vi "bản đồ") được tách riêng sang [CODE_AUDIT.md](CODE_AUDIT.md) để file này giữ vai trò thuần tra cứu kiến trúc.

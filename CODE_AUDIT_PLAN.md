@@ -129,6 +129,24 @@ Thứ tự ưu tiên theo CODE_AUDIT.md Mục 7 (xếp theo độ dài giảm d�
 
 ---
 
+## Pha 7 — 3 vai trò Category / Topic / Tag & test toàn hệ thống (2026-11-13)
+
+Chi tiết từng lỗi ở [CODE_AUDIT.md](CODE_AUDIT.md) Mục 9.
+
+- [x] **Topic cho bài viết:** ô chọn Topic trong `ArticleEditor`, `topicId` vào `REVISION_FIELDS.ARTICLE` và API công khai; thời kỳ của bài suy theo Topic thay vì Tag (`landing-graph.ts`, `landing.service.ts`).
+- [x] **Cây chủ đề CMS:** backend `getTopicTree` kèm bài học; frontend vẽ/lọc/đếm đệ quy mọi độ sâu.
+- [x] **Kiểm duyệt bình luận Blog** đọc đúng bảng `blog_post_comments` (moderation + preview bình luận ở feed).
+- [x] **Hỏi đáp ở trang bài học** + link thông báo trả lời dùng slug.
+- [x] **Chữ & chú thích** theo đúng 3 vai trò (CMS, menu, schema Prisma).
+- [x] **Lỗi tìm ra khi test toàn hệ thống:** lộ ghi chú của người khác (`GET /notes`), trang Tag luôn 0 thẻ (đọc sai response, nuốt lỗi lưu/xoá).
+- [x] **Test bổ sung (backend):** `moderation.service.spec.ts` (mới, 6 test), `topic.service.spec.ts` (cây 4 cấp), `discussion.service.spec.ts` (link bài học/bài viết/nội dung đã xoá), `note.service.spec.ts` (không định danh → rỗng), `tag.service.spec.ts` (đếm bài học + bài viết).
+- [ ] Thêm bộ chạy test cho frontend (vitest) rồi viết test cho `createPeriodSlugResolver`, `pruneTree`/`countLessons`.
+- [ ] Xoá bảng `article_comments` (model `ArticleComment`) bằng migration — đã không còn code dùng.
+- [ ] Xoá cache danh sách Tag khi sửa tag trong bài viết (hiện trễ tới 1 giờ).
+- [ ] Xoá bài học trong cây chủ đề phải gọi API và duyệt mọi cấp (`CurriculumExplorer.handleConfirmDelete`).
+
+---
+
 ## Ghi chú vận hành
 
 - Mỗi pha/mục nên là 1 commit hoặc 1 PR riêng theo conventional commits (`fix(scope):`, `refactor(scope):`, `chore(scope):`).

@@ -321,3 +321,26 @@ Phần lớn là lỗi **format Prettier (CRLF line-ending)** và `@typescript-e
 * `ContentStatus.PENDING_REVIEW` lệch `LessonStatus.REVIEW` (cùng nghĩa "chờ duyệt") — `EDITOR_ALLOWED_STATUSES` phải gộp cả hai; hợp nhất cần data migration + sửa frontend.
 * `authSecurity.mfaMethod` / `mfaEnabled` / `mfaSecret` chưa có code nào ghi.
 * `ArticleList.tsx` ẩn cứng 1 bài theo tiêu đề/slug (`HIDDEN_ARTICLE`) — nên thay bằng trạng thái `ARCHIVED` trong DB rồi bỏ đoạn lọc này.
+
+---
+
+## 9. Đợt test toàn hệ thống & 3 vai trò Category / Topic / Tag (2026-11-13)
+
+Cách kiểm tra: gọi thật 64 endpoint GET (phủ 25 controller, đăng nhập ADMIN test), tải 47 đường dẫn trang và mở 38 trang trong trình duyệt để bắt lỗi runtime. Kết quả: không có lỗi JS; các lỗi dưới đây đều tìm ra bằng cách so dữ liệu API với giao diện.
+
+### Đã xử lý
+* 🔴 **[ĐÃ SỬA ✅] Lộ ghi chú của người khác** — `GET /notes` không token, không `guestId` thì `NoteService.findAll` dựng `where = {}` và trả toàn bộ ghi chú (kèm `username`). Giờ trả `[]`; test `note.service.spec.ts`.
+* 🔴 **[ĐÃ SỬA ✅] Kiểm duyệt bình luận Blog đọc nhầm bảng** — `moderation.service.ts` và preview bình luận ở `blog.service.ts` còn dùng `articleComment` (`article_comments`) trong khi bình luận Blog nằm ở `blog_post_comments` → báo cáo bình luận không xử lý được. Đã chuyển sang `blogPostComment` / `PostCommentStatus`; thêm `moderation.service.spec.ts` (6 test: gỡ, gỡ lặp, khôi phục, khoá tác giả, không khoá ADMIN, báo cáo không tồn tại). Tiện tay thay chuỗi `'SUPERADMIN'`/`'ADMIN'`/`'BLOCKED'` bằng enum `userRole` / `userStatus`.
+* 🔴 **[ĐÃ SỬA ✅] Cây chủ đề CMS** — backend `getTopicTree` không kèm bài học (cây hiện "0 bài" ở mọi nút); frontend `CurriculumTreeParts.tsx` / `useCurriculumTree.ts` viết cứng 3 cấp nên mất cấp 4 và đếm sai (1 thay vì 4 bài). Backend thêm `lessons` + `_count.lessons`; frontend viết lại đệ quy (`TopicTreeBranch`, `pruneTree`). Test `topic.service.spec.ts` (cây 4 cấp, bài ở nút lá).
+* 🔴 **[ĐÃ SỬA ✅] Trang Tag CMS luôn "0 thẻ"** — `TagList.tsx` đọc `res.data.items` trong khi dữ liệu ở `res.data.data.items`; lưu/xoá lỗi vẫn cập nhật giao diện như thành công; gọi `api` trực tiếp trong component; cột số bài đọc `lessonCount` không tồn tại. Đã chuyển qua `TagApiService` (thêm `updateTag`/`deleteTag`), có trạng thái lỗi + thử lại; backend đếm cả `articleTags`. Test `tag.service.spec.ts`.
+* 🟠 **[ĐÃ SỬA ✅] Link thông báo trả lời thảo luận sai** — dựng `/su-kien/<id>` / `/bai-hoc/<id>` trong khi trang đọc dùng slug. Giờ tra slug: `/bai-viet/<slug>`, `/bai-hoc/<slug>`, nội dung đã xoá thì không kèm link. Test `discussion.service.spec.ts` (bài học, bài viết, nội dung đã xoá).
+* 🟠 **[ĐÃ SỬA ✅] Thời kỳ của bài viết suy theo Tag** — `landing-graph.ts` / `landing.service.ts` xếp bài vào thời kỳ theo số Tag chung, trái vai trò của Tag. Giờ: mốc timeline trỏ tới bài → bài liên kết → cùng `topicId`. Thêm ô chọn Topic vào `ArticleEditor` (trước đây Article có cột `topicId` nhưng CMS không cho chọn); `topicId` có trong `REVISION_FIELDS.ARTICLE` và API công khai.
+* 🟡 **[ĐÃ SỬA ✅] Thiếu hỏi đáp ở trang bài học** — `DiscussionSection` mới chỉ có ở trang bài viết; đã gắn vào `LessonReaderMainLayout.tsx`.
+* 🟡 **[ĐÃ SỬA ✅] Chữ/chú thích gọi Tag là "chủ đề"** — `PageHeader.tsx`, menu CMS (`navigation-strategy.service.ts`), chú thích `article.prisma` / `tag.prisma` / `topic.prisma`.
+
+### Còn tồn đọng
+* **Frontend chưa có bộ chạy test** (không jest/vitest) — logic thuần mới (`createPeriodSlugResolver`, `pruneTree`, `countLessons`) chỉ được kiểm bằng tsc/ESLint và chạy thật. Thêm vitest là 1 việc riêng (thêm dependency).
+* Bảng `article_comments` không còn code nào dùng — xoá bằng migration sau khi kiểm tra dữ liệu.
+* Cache Redis của danh sách Tag (TTL 1 giờ) không bị xoá khi sửa tag trong bài viết → cột "bài viết" có thể trễ tới 1 giờ.
+* Xoá bài học trong cây chủ đề (`CurriculumExplorer`) chỉ xoá trên giao diện, không gọi API, chỉ duyệt 2 cấp đầu.
+* `getPreviewComments` (`blog.service.ts`) là hàm private, chưa có test riêng — mới kiểm bằng gọi thật `/posts`.

@@ -8,11 +8,11 @@ import {
   NoticeTone,
   ReviewTabState,
   STATUS_LABELS,
-} from '../constants/review.constant';
+} from '../types/review.types';
 import type { ReviewConfirmAction, ReviewPost } from '../types/review.types';
-import { BlogReviewTable } from './BlogReviewTable';
-import { BlogReviewPreviewModal } from './BlogReviewPreviewModal';
-import { BlogReviewConfirmModal } from './BlogReviewConfirmModal';
+import { BlogReviewTable } from './BlogReviewParts';
+import { BlogReviewPreviewModal } from './BlogReviewParts';
+import { BlogReviewConfirmModal } from './BlogReviewParts';
 
 const stripHtml = (value?: string | null) =>
   (value ?? '')

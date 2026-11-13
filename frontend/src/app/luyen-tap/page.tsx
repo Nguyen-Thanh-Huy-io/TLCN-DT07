@@ -9,17 +9,17 @@ import {
   ALL_TOPICS_ID,
   extractAvailableTopics,
   filterQuizLessons,
-} from '@/features/quiz/strategies/quiz-filter.strategy';
-import { QuizFilterBar } from '@/features/quiz/components/QuizFilterBar';
-import { QuizSelectorGrid } from '@/features/quiz/components/QuizSelectorGrid';
-import { QuizBriefingCard } from '@/features/quiz/components/QuizBriefingCard';
-import { QuizQuestionCard } from '@/features/quiz/components/QuizQuestionCard';
-import { QuizExamSidebar } from '@/features/quiz/components/QuizExamSidebar';
+} from '@/features/quiz/utils/practice-quiz.helper';
+import { QuizFilterBar } from '@/features/quiz/components/PracticeQuizParts';
+import { QuizSelectorGrid } from '@/features/quiz/components/PracticeQuizParts';
+import { QuizBriefingCard } from '@/features/quiz/components/PracticeQuizParts';
+import { QuizQuestionCard } from '@/features/quiz/components/PracticeQuizParts';
+import { QuizExamSidebar } from '@/features/quiz/components/PracticeQuizParts';
 import { QuizStatisticsModal } from '@/features/quiz/components/QuizStatisticsModal';
 import {
   RawQuizQuestion,
   calculateExamScore,
-} from '@/features/quiz/utils/quiz-score.helper';
+} from '@/features/quiz/utils/practice-quiz.helper';
 import { QuizApiService, type QuizStatisticsData } from '@/services/entities/quiz.service';
 import {
   Clock,

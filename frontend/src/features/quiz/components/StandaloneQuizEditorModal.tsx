@@ -23,7 +23,7 @@ import {
   QUIZ_QUESTION_TYPE_META,
 } from '@/features/lessons/types/quiz.types';
 import { QuestionBankPickerModal } from './QuestionBankPickerModal';
-import { TopicCategoryModalPicker } from './CategoryTreePicker';
+import { TopicCategoryModalPicker } from './QuestionBankModal';
 import { TreeSelectTrigger } from '@/components/common/TreeSelectModal';
 
 export interface StandaloneQuizEditorModalProps {

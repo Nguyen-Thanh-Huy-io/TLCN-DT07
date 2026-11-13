@@ -12,7 +12,7 @@ import { useAuthSession } from '@/services/auth/use-auth-session';
 import {
   REVIEW_TABS,
   ReviewTabState,
-} from '../constants/review.constant';
+} from '../types/review.types';
 
 export interface ReviewLessonRow {
   id: string;

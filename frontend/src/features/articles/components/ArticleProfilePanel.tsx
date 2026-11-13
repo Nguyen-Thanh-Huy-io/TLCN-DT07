@@ -7,7 +7,7 @@ import {
   ArticleKindEnum,
   KeyboardKey,
 } from '@/constants/enums';
-import { PRESERVATION_LABELS } from '@/features/heritage/heritage.types';
+import { PRESERVATION_LABELS } from '@/features/heritage/heritage.adapter';
 import { APP_ROUTES } from '@/constants/routes';
 import type {
   ArticleItem,

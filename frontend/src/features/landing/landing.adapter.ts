@@ -1,24 +1,100 @@
-import type {
-  PublicEventSummaryDto,
-  PublicFigureProfileDto,
-  PublicLocationSummaryDto,
-  PublicPeriodDto,
-} from '@/services/entities/landing.service';
-import type { LearningPathItem } from '@/services/entities/learning-path.service';
-import type { LibraryLesson } from '@/services/entities/learner.service';
+import { fetchEvents, fetchFigureDirectory, fetchLocations, fetchPeriods, fetchPublicList, type PublicEventSummaryDto, type PublicFigureProfileDto, type PublicLocationSummaryDto, type PublicPeriodDto } from '@/services/entities/landing.service';
+import { type LearningPathItem } from '@/services/entities/learning-path.service';
+import { type LibraryLesson } from '@/services/entities/learner.service';
 import { formatYear, shortPeriodName } from '@/features/search/search-index';
 import { ContentStatus } from '@/constants/enums';
-import type {
-  LandingCourse,
-  LandingData,
-  LandingEra,
-  LandingFigure,
-  LandingLocation,
-  LandingQuiz,
-  LandingSpotlight,
-  LandingTimelineNode,
-} from './landing.types';
 
+// === landing.types.ts ===
+export interface LandingSpotlight {
+  id: string;
+  yearLabel: string;
+  era: string;
+  title: string;
+  summary: string;
+  imageUrl: string | null;
+  figures: string[];
+  href: string;
+}
+
+export interface LandingEra {
+  id: string;
+  name: string;
+  years: string;
+  subEras: string[];
+  eventCount: number;
+  figureCount: number;
+  imageUrl: string | null;
+  size: 'wide' | 'tall' | 'normal';
+  href: string;
+}
+
+export interface LandingTimelineNode {
+  id: string;
+  year: number;
+  yearLabel: string;
+  title: string;
+  summary: string;
+  figure: string | null;
+  location: string | null;
+  href: string;
+}
+
+export interface LandingFigure {
+  id: string;
+  name: string;
+  years: string | null;
+  roles: string[];
+  quote: string | null;
+  eventCount: number;
+  imageUrl: string | null;
+  href: string;
+}
+
+export interface LandingLocation {
+  id: string;
+  name: string;
+  address: string | null;
+  significance: string | null;
+  eventCount: number;
+  href: string;
+}
+
+export interface LandingCourse {
+  id: string;
+  title: string;
+  kind: string;
+  chapters: number;
+  lessons: Array<{ id: string; slug: string }>;
+  imageUrl: string;
+}
+
+export interface LandingQuiz {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+  href: string;
+}
+
+export interface LandingStats {
+  events: number;
+  figures: number;
+  locations: number;
+  paths: number;
+}
+
+export interface LandingData {
+  spotlights: LandingSpotlight[];
+  eras: LandingEra[];
+  timeline: LandingTimelineNode[];
+  figures: LandingFigure[];
+  locations: LandingLocation[];
+  courses: LandingCourse[];
+  quiz: LandingQuiz | null;
+  stats: LandingStats;
+}
+
+// === landing.adapter.ts ===
 export interface LandingSource {
   periods: PublicPeriodDto[];
   events: PublicEventSummaryDto[];
@@ -278,4 +354,17 @@ export function buildLandingData(source: LandingSource, today: Date = new Date()
       paths: source.paths.filter((p) => p.status === ContentStatus.PUBLISHED).length,
     },
   };
+}
+
+// === landing.server.ts ===
+export async function fetchLandingData(): Promise<LandingData> {
+  const [periods, events, figures, locations, lessons, paths] = await Promise.all([
+    fetchPeriods(),
+    fetchEvents(),
+    fetchFigureDirectory(),
+    fetchLocations(),
+    fetchPublicList<LibraryLesson>('/public/lessons'),
+    fetchPublicList<LearningPathItem>('/learning-paths'),
+  ]);
+  return buildLandingData({ periods, events, figures, locations, lessons, paths });
 }

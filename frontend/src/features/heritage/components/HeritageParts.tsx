@@ -1,18 +1,21 @@
 'use client';
-import { KeyboardKey } from '@/constants/enums';
 
+import { KeyboardKey, SubStructureType } from '@/constants/enums';
+import { ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Castle, Landmark, Mountain, Tent, X, CalendarDays, Compass, MapPin } from 'lucide-react';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import { RemoteImage } from '@/components/common/RemoteImage';
+import { CATEGORY_LABELS, type HistoricalHeritage } from '../heritage.adapter';
+
+// === ui.tsx ===
 /*
  * Thành phần giao diện theo quy chuẩn shadcn/ui (Button, Badge, Card, Input, Select, Tabs,
  * Sheet, Separator, ScrollArea) viết gọn tại chỗ — dự án chưa cài shadcn/ui nên không thêm
  * phụ thuộc. Màu lấy từ biến --hx-* (heritage.css) để hỗ trợ sáng / tối.
  */
 
-import { ReactNode, useEffect, useId, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Castle, Landmark, Mountain, Tent, X } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-import { RemoteImage } from '@/components/common/RemoteImage';
 
 export const cn = (...inputs: Parameters<typeof clsx>) => twMerge(clsx(inputs));
 
@@ -259,4 +262,101 @@ export function HeritageImage({
     );
   }
   return <RemoteImage src={src} alt={alt} className={cn('object-cover', className)} onError={() => setBroken(true)} />;
+}
+
+// === HeritageCards.tsx ===
+/** Khung tâm điểm: 1 di tích nổi bật ở đầu trang. */
+export function FeaturedHeritageHero({ heritage, onExplore }: { heritage: HistoricalHeritage; onExplore: () => void }) {
+  return (
+    <section className="relative overflow-hidden rounded-3xl">
+      <motion.div
+        key={heritage.id}
+        initial={{ scale: 1.06, opacity: 0.6 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        className="absolute inset-0"
+      >
+        <HeritageImage src={heritage.coverImageUrl} alt={heritage.name} category={heritage.category} className="h-full w-full" />
+      </motion.div>
+      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/10" />
+      <div className="relative flex min-h-[420px] max-w-2xl flex-col justify-end gap-4 p-6 text-white sm:p-10">
+        <div className="flex flex-wrap gap-2">
+          <Badge tone="dark">
+            <MapPin className="size-3.5" /> {heritage.province}
+          </Badge>
+        </div>
+        <h2 className="hx-serif text-3xl font-bold leading-tight sm:text-5xl">{heritage.name}</h2>
+        {heritage.ancientNames.length > 0 && (
+          <p className="text-sm text-white/80">
+            <span className="font-semibold text-[#f3d27a]">Tên gọi qua các thời kỳ: </span>
+            {heritage.ancientNames.join(' · ')}
+          </p>
+        )}
+        <p className="text-sm leading-7 text-white/85 sm:text-base">{heritage.shortSummary}</p>
+        <div>
+          <Button variant="gold" onClick={onExplore}>
+            <Compass className="size-4" /> Khám phá không gian di tích
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function HeritageCard({ heritage, onOpen }: { heritage: HistoricalHeritage; onOpen: () => void }) {
+  const architecture = heritage.subStructures.filter(
+    (s) => s.type === SubStructureType.ARCHITECTURE,
+  ).length;
+  return (
+    <motion.button
+      type="button"
+      layout
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      whileHover={{ y: -4 }}
+      onClick={onOpen}
+      className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--hx-line)] bg-[var(--hx-surface)] text-left shadow-sm transition-shadow hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hx-primary)]"
+    >
+      <div className="relative aspect-[16/10] overflow-hidden">
+        <HeritageImage
+          src={heritage.coverImageUrl}
+          alt={heritage.name}
+          category={heritage.category}
+          className="h-full w-full transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+        <Badge tone="dark" className="absolute right-3 top-3">
+          <MapPin className="size-3" /> {heritage.province}
+        </Badge>
+        <span className="absolute bottom-3 left-3 text-xs font-semibold text-white/90">
+          {heritage.siteTypeLabel ?? CATEGORY_LABELS[heritage.category]}
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <h3 className="hx-serif text-lg font-bold leading-snug">{heritage.name}</h3>
+        {heritage.ancientNames.length > 0 && (
+          <p className="line-clamp-1 text-xs italic text-[var(--hx-muted)]">Xưa: {heritage.ancientNames.join(', ')}</p>
+        )}
+        <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--hx-primary)]">
+          <Landmark className="size-3.5" /> Khởi dựng: {heritage.foundedEra}
+        </p>
+        <p className="line-clamp-3 text-sm leading-6 text-[var(--hx-muted)]">{heritage.shortSummary}</p>
+        {(heritage.visitorInfo.preservationStatus || heritage.managingUnit) && (
+          <p className="text-xs leading-5 text-[var(--hx-muted)]">
+            {heritage.visitorInfo.preservationStatus && (
+              <span className="font-semibold text-[var(--hx-ink)]">{heritage.visitorInfo.preservationStatus}</span>
+            )}
+            {heritage.visitorInfo.preservationStatus && heritage.managingUnit && ' · '}
+            {heritage.managingUnit}
+          </p>
+        )}
+        <p className="mt-auto flex items-center gap-1.5 border-t border-[var(--hx-line)] pt-3 text-xs text-[var(--hx-muted)]">
+          <CalendarDays className="size-3.5" />
+          {architecture > 0 && `${architecture} hạng mục kiến trúc • `}
+          {heritage.eventCount ?? heritage.linkedEvents.length} sự kiện lịch sử gắn liền
+        </p>
+      </div>
+    </motion.button>
+  );
 }

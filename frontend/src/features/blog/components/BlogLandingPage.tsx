@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { TrendingUp } from 'lucide-react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
-import { BlogComposerBar } from '@/features/blog/components/BlogComposerBar';
-import { BlogFeaturedSlider } from '@/features/blog/components/BlogFeaturedSlider';
+import { BlogComposerBar } from '@/features/blog/components/BlogLandingParts';
+import { BlogFeaturedSlider } from '@/features/blog/components/BlogLandingParts';
 import { BlogBrowser } from '@/features/blog/components/BlogBrowser';
 import { fetchBlogPosts, type PublicBlogPostSummary } from '@/services/public/public-content.service';
 import {

@@ -4,14 +4,14 @@ import { useMemo } from 'react';
 import { openGlobalSearch } from '@/features/search/GlobalSearch';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
-import type { LandingData } from '../landing.types';
-import { LandingHero } from './LandingHero';
-import { ResumeBar } from './ResumeBar';
-import { CorePillars, EraBento } from './ExploreSections';
-import { InteractivePreview } from './InteractivePreview';
-import { EntitiesSection } from './EntitiesSection';
-import { LearningQuiz } from './LearningQuiz';
-import { JoinBanner, StatsStrip } from './JoinBanner';
+import type { LandingData } from '../landing.adapter';
+import { LandingHero } from './LandingTopSections';
+import { ResumeBar } from './LandingTopSections';
+import { CorePillars, EraBento } from './LandingBottomSections';
+import { InteractivePreview } from './LandingTopSections';
+import { EntitiesSection } from './LandingBottomSections';
+import { LearningQuiz } from './LandingBottomSections';
+import { JoinBanner, StatsStrip } from './LandingBottomSections';
 import '../landing.css';
 
 export function LandingView({ data }: { data: LandingData }) {

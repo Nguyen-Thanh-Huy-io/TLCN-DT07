@@ -4,7 +4,7 @@ import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import { fetchEntityBySlug } from '@/services/entities/landing.service';
 import { buildEntityReaderModel } from '@/components/entity-detail/entity-reader-adapter';
-import { EntityHero } from '@/components/entity-detail/EntityHero';
+import { EntityHero } from '@/components/entity-detail/EntityReaderParts';
 import { EntityReader } from '@/components/entity-detail/EntityReader';
 import '@/components/entity-detail/entity-reader.css';
 

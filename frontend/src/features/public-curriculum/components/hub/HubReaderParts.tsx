@@ -9,7 +9,7 @@ import { LessonAccessState } from '../../facades/usePublicLessonReaderFacade';
 import { DEFAULT_COVER_IMAGES, PUBLIC_CURRICULUM_ROUTES, PUBLIC_DIFFICULTY_META } from '../../constants/public-curriculum.constants';
 import { AnimatePresence, motion } from 'framer-motion';
 import { publishedChapterLessons } from '../../facades/usePublicCurriculumFacade';
-import { loadPublicCatalog } from '@/features/search/search.service';
+import { loadPublicCatalog } from '@/features/search/search-index';
 import { type SearchSource } from '@/features/search/search-index';
 import { PUBLIC_ROUTES, type PublicArticleSummary } from '@/services/public/public-content.service';
 

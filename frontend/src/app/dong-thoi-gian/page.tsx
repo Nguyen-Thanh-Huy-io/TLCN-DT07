@@ -1,6 +1,6 @@
 import { Header } from "@/components/hisgo/Header";
 import { Footer } from "@/components/hisgo/Footer";
-import { TimelineHero } from "@/components/timeline/TimelineHero";
+import { TimelineHero } from "@/components/timeline/TimelineChrome";
 import { TimelineExplorer } from "@/components/timeline/TimelineExplorer";
 import { buildEraDataset } from "@/components/timeline/sk-adapter";
 import { fetchEvents, fetchPeriods } from "@/services/entities/landing.service";

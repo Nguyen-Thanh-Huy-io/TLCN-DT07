@@ -12,8 +12,8 @@ import type {
   PublicPeriodDto,
 } from '@/services/entities/landing.service';
 import { toHeritageSummaries } from '../heritage.adapter';
-import { FeaturedHeritageHero, HeritageCard } from './HeritageCards';
-import { Button, Select, cn } from '../ui';
+import { FeaturedHeritageHero, HeritageCard } from './HeritageParts';
+import { Button, Select, cn } from './HeritageParts';
 import '@/components/timeline/sk-timeline.css';
 import '../heritage.css';
 

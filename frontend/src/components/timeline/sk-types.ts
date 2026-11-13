@@ -1,3 +1,11 @@
+
+
+// === sk-shared.ts ===
+export { TIMELINE_HERO_IMAGE_URL as heroLandscape } from "@/constants/routes";
+
+export const SK_SELECTED_CLASS = "sk-selected";
+
+// === sk-types.ts ===
 export enum EventDomainGroup {
   POLITICS_MILITARY = "POLITICS_MILITARY",
   ECONOMY_CULTURE = "ECONOMY_CULTURE",

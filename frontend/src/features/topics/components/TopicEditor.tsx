@@ -19,12 +19,12 @@ import { CurriculumSidePanel } from '@/features/curriculum/components/Curriculum
 import {
   TopicEditorHeader,
   PublishActionType,
-} from './TopicEditorHeader';
-import { TopicChildrenManager } from './TopicChildrenManager';
+} from './TopicEditorPanels';
+import { TopicChildrenManager } from './TopicEditorPanels';
 import {
   TopicInspectorSidebar,
   TimelinePreviewItem,
-} from './TopicInspectorSidebar';
+} from './TopicEditorPanels';
 
 export interface TopicEditorProps {
   topicId?: string;

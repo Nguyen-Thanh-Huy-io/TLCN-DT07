@@ -7,20 +7,20 @@ import {
   lifespanLabel,
   type RelatedReason,
   type TimelineFocusState,
-} from "./TimelineFocus";
+} from "./TimelineNodes";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import { ArrowDownUp, ArrowRight, BookOpen, Landmark, Network, Search, SlidersHorizontal, X } from "lucide-react";
-import { Button, Heading } from "./SkUi";
-import { EMPTY_FILTERS, FilterBar, type TimelineFilters } from "./FilterBar";
-import { FilterSheet } from "./FilterSheet";
-import { Minimap } from "./Minimap";
-import { EraTocDrawer } from "./EraTocDrawer";
-import { EraSection } from "./EraSection";
-import { SubEraSection, SplitMode } from "./SubEraSection";
-import { HorizontalExplorer } from "./HorizontalExplorer";
-import { EventDetailModal } from "./EventDetailModal";
-import { SK_SELECTED_CLASS } from "./sk-shared";
+import { Button, Heading } from "./TimelineChrome";
+import { EMPTY_FILTERS, FilterBar, type TimelineFilters } from "./TimelineChrome";
+import { FilterSheet } from "./TimelineChrome";
+import { Minimap } from "./TimelineChrome";
+import { EraTocDrawer } from "./TimelineSections";
+import { EraSection } from "./TimelineSections";
+import { SubEraSection, SplitMode } from "./TimelineSections";
+import { HorizontalExplorer } from "./TimelineSections";
+import { EventDetailModal } from "./TimelineChrome";
+import { SK_SELECTED_CLASS } from "./sk-types";
 import type { Era, TimeNode, TimelineActor, TimelineEvent } from "./sk-types";
 
 const SAVED_STORAGE_KEY = "hisgo:timeline:saved-events";

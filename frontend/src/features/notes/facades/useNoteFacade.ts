@@ -13,7 +13,7 @@ import {
   NoteItem,
   NoteTargetTypeValue,
   UpdateNotePayload,
-} from '../types/note.types';
+} from '../services/note.service';
 import { CommonFilterOption } from '@/constants/enums';
 
 export function useNoteFacade(

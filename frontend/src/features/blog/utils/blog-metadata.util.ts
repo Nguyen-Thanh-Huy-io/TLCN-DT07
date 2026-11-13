@@ -1,3 +1,23 @@
+import { StoryBlockTypeEnum } from '@/constants/enums';
+
+// === blog-create.types.ts ===
+export interface StoryBlock {
+  id: string;
+  type: StoryBlockTypeEnum;
+  heading?: string;
+  text?: string;
+  caption?: string;
+  imageUrl?: string;
+}
+
+export interface ReferenceItem {
+  id: string;
+  title: string;
+  source: string;
+  url: string;
+}
+
+// === blog-metadata.util.ts ===
 export interface BlogMetadataReference {
   title: string;
   source: string;

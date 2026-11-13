@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, BookOpen, FileText, GitCommitVertical, Loader2, Search } from 'lucide-react';
 import { normalizeSearch, type SearchEntry, type SearchEntryType } from './search-index';
-import { loadSearchIndex } from './search.service';
+import { loadSearchIndex } from './search-index';
 import './global-search.css';
 
 /** Phát sự kiện này (vd. từ ô tìm kiếm ở hero trang chủ) để mở ô tìm kiếm toàn cục. */

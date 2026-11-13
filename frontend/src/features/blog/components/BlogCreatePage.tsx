@@ -11,9 +11,9 @@ import {
   BLOG_URL_PLACEHOLDER,
 } from '@/constants/enums';
 import { useBlogCreateFacade } from '../facades/useBlogCreateFacade';
-import { BlogStoryBlockItem } from './BlogStoryBlockItem';
-import { BlogHistoricalMetaModal } from './BlogHistoricalMetaModal';
-import { BlogPreviewModal } from './BlogPreviewModal';
+import { BlogStoryBlockItem } from './BlogCreateParts';
+import { BlogHistoricalMetaModal } from './BlogCreateParts';
+import { BlogPreviewModal } from './BlogCreateParts';
 
 const normalizeImageUrl = (url?: string | null) => resolveBackendAssetUrl(url);
 

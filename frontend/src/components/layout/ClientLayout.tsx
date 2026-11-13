@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CmsAccessGate } from "@/components/layout/CmsAccessGate";
 import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
-import { FigureProfileProvider } from "@/components/figures/FigureProfileProvider";
+import { FigureProfileProvider } from "@/components/figures/FigureProfileParts";
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'hisgo_sidebar_collapsed';
 const STORAGE_VALUE_TRUE = 'true';

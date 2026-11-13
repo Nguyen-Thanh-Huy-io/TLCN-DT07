@@ -7,8 +7,8 @@ import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import type { PublicPeriodDetailDto, PublicPeriodDto } from '@/services/entities/landing.service';
 import { PERIOD_ROUTES, formatYear, shortPeriodName } from '../period-detail.adapter';
-import { TimeRuler } from './TimeRuler';
-import { EventStream } from './EventStream';
+import { TimeRuler } from './PeriodDetailParts';
+import { EventStream } from './PeriodDetailParts';
 import '../period-detail.css';
 import { RemoteImage } from '@/components/common/RemoteImage';
 

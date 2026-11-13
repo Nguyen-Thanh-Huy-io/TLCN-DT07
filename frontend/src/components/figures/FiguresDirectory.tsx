@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Compass, RotateCcw, Search, Users, X } from "lucide-react";
-import { Badge, Button, Heading } from "@/components/timeline/SkUi";
+import { Badge, Button, Heading } from "@/components/timeline/TimelineChrome";
 import { Pagination } from "@/components/common/Pagination";
 import type { PublicFigureProfileDto, PublicPeriodDto } from "@/services/entities/landing.service";
-import { FiguresHero } from "./FiguresHero";
+import { FiguresHero } from "./FiguresDirectoryParts";
 import {
   EMPTY_FIGURE_FILTERS,
   FiguresFilterBar,
@@ -13,9 +13,9 @@ import {
   type FigureFilters,
   FigureSort,
   type FilterOption,
-} from "./FiguresFilterBar";
-import { FiguresGrid } from "./FigureCard";
-import { FigureProfileSheet, FigureProfileTab, type ProfileTab } from "./FigureProfileSheet";
+} from "./FiguresDirectoryParts";
+import { FiguresGrid } from "./FiguresDirectoryParts";
+import { FigureProfileSheet, FigureProfileTab, type ProfileTab } from "./FigureProfileParts";
 import { buildFigureViews, normalize, type FigureView } from "./figure-utils";
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from "@/components/filters/ChipFilter";
 import { TimelineRelationDirection } from "@/components/timeline/sk-types";

@@ -10,7 +10,7 @@ import {
   StoryBlockTypeEnum,
   BlogStatusEnum,
 } from '@/constants/enums';
-import { StoryBlock, ReferenceItem } from '../types/blog-create.types';
+import { StoryBlock, ReferenceItem } from '../utils/blog-metadata.util';
 
 const normalizeImageUrl = (url?: string | null) => resolveBackendAssetUrl(url);
 

@@ -6,9 +6,31 @@ import {
   HttpStatus,
   Inject,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { Response, Request } from 'express';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
+
+const INTERNAL_ERROR_MESSAGE = 'Internal Server Error';
+
+/** Lỗi Prisma do dữ liệu đầu vào (không phải lỗi máy chủ) → mã HTTP và câu báo cho client. */
+const PRISMA_CLIENT_ERRORS: Record<
+  string,
+  { statusCode: HttpStatus; message: string }
+> = {
+  P2002: {
+    statusCode: HttpStatus.CONFLICT,
+    message: 'Dữ liệu bị trùng với bản ghi đã có.',
+  },
+  P2003: {
+    statusCode: HttpStatus.BAD_REQUEST,
+    message: 'Dữ liệu tham chiếu (ID liên kết) không tồn tại.',
+  },
+  P2025: {
+    statusCode: HttpStatus.NOT_FOUND,
+    message: 'Không tìm thấy bản ghi cần thao tác.',
+  },
+};
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -26,8 +48,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   private parseExceptionDetails(exception: unknown) {
+    if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      const known = PRISMA_CLIENT_ERRORS[exception.code];
+      if (known) return { ...known, error: exception.code };
+    }
+
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal Server Error';
+    let message = INTERNAL_ERROR_MESSAGE;
     let error = 'Error';
 
     if (
@@ -108,17 +135,23 @@ export class AllExceptionsFilter implements ExceptionFilter {
       this.parseExceptionDetails(exception);
     this.logException(request, statusCode, message, exception);
 
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const isUnhandledServerError =
+      statusCode >= 500 && !(exception instanceof HttpException);
+
     response.status(statusCode).json({
       success: false,
       statusCode,
-      message,
+      // Lỗi chưa xử lý (Prisma, TypeError...) có thể chứa đường dẫn file, câu SQL — chỉ ghi log.
+      message:
+        isUnhandledServerError && !isDevelopment
+          ? INTERNAL_ERROR_MESSAGE
+          : message,
       error,
       timestamp: new Date().toISOString(),
       path: request.url,
       stack:
-        process.env.NODE_ENV === 'development' && exception instanceof Error
-          ? exception.stack
-          : null,
+        isDevelopment && exception instanceof Error ? exception.stack : null,
     });
   }
 }

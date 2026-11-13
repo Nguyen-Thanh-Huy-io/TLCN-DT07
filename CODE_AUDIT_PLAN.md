@@ -141,7 +141,9 @@ Chi tiết từng lỗi ở [CODE_AUDIT.md](CODE_AUDIT.md) Mục 9.
 - [x] **Lỗi tìm ra khi test toàn hệ thống:** lộ ghi chú của người khác (`GET /notes`), trang Tag luôn 0 thẻ (đọc sai response, nuốt lỗi lưu/xoá).
 - [x] **Test bổ sung (backend):** `moderation.service.spec.ts` (mới, 6 test), `topic.service.spec.ts` (cây 4 cấp), `discussion.service.spec.ts` (link bài học/bài viết/nội dung đã xoá), `note.service.spec.ts` (không định danh → rỗng), `tag.service.spec.ts` (đếm bài học + bài viết).
 - [x] **Thử thao tác ghi trên server thật** — tìm và sửa: đăng blog giả danh người khác (`POST /posts` tin `authorId` trong body), người dùng thường tự xuất bản bài chuyên khảo / đặt nổi bật, slug blog mất chữ "đ", lỗi lưu thẻ bị lớp phủ che. Test `blog.service.spec.ts` (6 test mới).
-- [ ] Thử với tài khoản người học (USER) — cần tạo tài khoản test USER trong `seed-staff.ts`.
+- [x] **Thử nốt 88 API ghi với 4 vai trò** (thêm `learner@hisgo.test` vào `seed-staff.ts`) — tìm và sửa: CMS không kiểm tra vai trò (người học ghi được mọi nội dung), biên tập viên tự xuất bản bài viết, lỗi Prisma lộ chi tiết nội bộ + 500 cho ID liên kết sai, xoá chủ đề xoá cả cây con, quét AI nhận loại tuỳ ý. Test mới: `content-write.guard.spec.ts`, `all-exception.filter.spec.ts`, `topic.service.spec.ts`.
+- [ ] Chấm điểm quiz ở server thay vì tin `scorePercent`/`isPassed` client gửi.
+- [ ] Bắt buộc `topicId` khi tạo bài học (DTO + dữ liệu cũ).
 - [ ] Thêm bộ chạy test cho frontend (vitest) rồi viết test cho `createPeriodSlugResolver`, `pruneTree`/`countLessons`.
 - [ ] Xoá bảng `article_comments` (model `ArticleComment`) bằng migration — đã không còn code dùng.
 - [ ] Xoá cache danh sách Tag khi sửa tag trong bài viết (hiện trễ tới 1 giờ).

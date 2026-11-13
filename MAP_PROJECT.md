@@ -87,7 +87,7 @@ flowchart TD
 * **Backend Module:**
   * Category: `backend/src/category/` (`/categories`, chặn xoá khi còn bài viết, chống cycle).
   * Tag: `backend/src/tag/` (`/tags` trả phân trang `{ items, total, ... }` kèm `_count.lessonTags` + `_count.articleTags`, `/lessons/:id/tags`, cache Redis TTL 3600s — sửa tag trong bài viết không xoá cache này nên số đếm có thể trễ tới 1 giờ).
-  * Topic: `backend/src/topic/` (`/topics`, cache Redis TTL 300s, MAX_DEPTH 20, bulk reorder qua `$transaction`; `/topics/tree` trả cây N cấp, mỗi nút kèm `lessons` rút gọn + `_count.lessons`).
+  * Topic: `backend/src/topic/` (`/topics`, cache Redis TTL 300s, MAX_DEPTH 20, bulk reorder qua `$transaction`; xoá bị chặn (409) khi còn chủ đề con hoặc bài học; `/topics/tree` trả cây N cấp, mỗi nút kèm `lessons` rút gọn + `_count.lessons`).
 
 ### 3.3. Dòng thời gian (Timeline)
 * **Mục đích:** CMS dòng thời gian — danh sách mốc lịch sử theo `displayOrder`, mỗi mốc tuỳ chọn gắn 1 bài viết (`articleId`). Mỗi lần cập nhật "nodes" = thay toàn bộ danh sách mốc (xoá hết + tạo lại trong transaction). Là nguồn dữ liệu để trang công khai cũ suy ra "Thời kỳ"/"Sự kiện"/dòng đời nhân vật.
@@ -322,6 +322,7 @@ flowchart TD
 ### 3.20. Khu vực quản trị CMS (Dashboard, Analytics, Settings, phân quyền)
 * **Mục đích:** Tổng quan vận hành CMS (đếm nội dung, hoạt động gần đây, hàng chờ duyệt) + trang thống kê biểu đồ. `CmsAccessGate` chặn toàn bộ route CMS ở tầng UI.
 * **UI Component chính:** [DashboardView.tsx](frontend/src/features/dashboard/components/DashboardView.tsx), [AnalyticsDashboardView.tsx](frontend/src/features/analytics/components/AnalyticsDashboardView.tsx) (tái dùng cùng API dashboard), [SystemSettingsView.tsx](frontend/src/features/settings/components/SystemSettingsView.tsx).
+* **Quyền ghi CMS (backend):** `@ContentWrite` = `AuthGuard` + `ContentWriteGuard` — chỉ nhân sự (`ROLE_GROUPS.STAFF`) được ghi; biên tập viên chỉ đặt `DRAFT`/`PENDING_REVIEW`/`REVIEW` và bị khoá với nội dung đã xuất bản (trừ endpoint có phiên bản hoá → bản sửa chờ duyệt). Lỗi Prisma được `AllExceptionsFilter` đổi sang 400/404/409, lỗi 500 không trả chi tiết nội bộ.
 * **Gate:** [CmsAccessGate.tsx](frontend/src/components/layout/CmsAccessGate.tsx) — chưa đăng nhập → `/login?redirect=`; không phải staff role → chặn; bảng `PAGE_ACCESS` riêng cho `review`/`moderation` (REVIEWERS), `users` (SUPERADMIN).
 * **Route trang:** `app/cms/page.tsx` (Dashboard), `app/analytics/page.tsx`, `app/settings/page.tsx`, `app/media/page.tsx`.
 * **Service/API Client:** `services/entities/dashboard.service.ts` (`DashboardApiService.getOverview()` — dùng chung cho cả Dashboard và Analytics).

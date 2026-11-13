@@ -7,7 +7,7 @@ import { LessonItem } from '@/types/models';
 
 /**
  * Cấu trúc Node tổng quát theo Composite Pattern cho mọi cây phân cấp
- * (Dùng chung cho Topic, Lesson, Period, Taxonomy, HistoricalEvent...)
+ * (Dùng chung cho Topic, Lesson...)
  */
 export interface TreeSelectNode {
   id: string;

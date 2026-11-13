@@ -178,7 +178,7 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
       page: NavigationPageKey.SETTINGS,
       route: APP_ROUTES.SETTINGS,
       groupId: this.groupId,
-      subtitle: 'Danh mục taxonomy & tham số hệ thống',
+      subtitle: 'Tham số cấu hình chung của hệ thống',
     },
     {
       id: 'nav-review',

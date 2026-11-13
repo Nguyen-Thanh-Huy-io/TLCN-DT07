@@ -14,6 +14,7 @@ export interface TagModalProps {
   onClose: () => void;
   onSave: (data: TagFormData) => void;
   initialData?: ({ id: string } & TagFormData) | null;
+  errorMessage?: string | null;
 }
 
 export function TagModal({
@@ -21,6 +22,7 @@ export function TagModal({
   onClose,
   onSave,
   initialData,
+  errorMessage,
 }: TagModalProps) {
   const [name, setName] = useState(initialData?.name || '');
   const [description, setDescription] = useState(initialData?.description || '');
@@ -77,6 +79,12 @@ export function TagModal({
               placeholder="Nhập mô tả ngắn về thẻ..."
             />
           </label>
+
+          {errorMessage ? (
+            <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {errorMessage}
+            </p>
+          ) : null}
 
           <div className="modal-footer">
             <button

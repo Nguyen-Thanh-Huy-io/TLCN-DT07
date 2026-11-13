@@ -20,6 +20,7 @@ export function TagList() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<TagRow | null>(null);
@@ -44,7 +45,7 @@ export function TagList() {
   }, []);
 
   const handleSaveTag = async (data: TagFormData) => {
-    setActionError(null);
+    setSaveError(null);
     try {
       if (editingTag) await TagApiService.updateTag(editingTag.id, data);
       else await TagApiService.createTag(data);
@@ -52,7 +53,7 @@ export function TagList() {
       setEditingTag(null);
       await fetchTags();
     } catch (err) {
-      setActionError(errorMessageOf(err, 'Lưu thẻ thất bại.'));
+      setSaveError(errorMessageOf(err, 'Lưu thẻ thất bại.'));
     }
   };
 
@@ -189,9 +190,11 @@ export function TagList() {
         onClose={() => {
           setIsModalOpen(false);
           setEditingTag(null);
+          setSaveError(null);
         }}
         onSave={handleSaveTag}
         initialData={editingTag}
+        errorMessage={saveError}
       />
 
       <ConfirmDeleteModal

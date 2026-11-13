@@ -1,11 +1,11 @@
 'use client';
 
 import { CurriculumTreeFilter } from '@/constants/enums';
-import { CurriculumNodeType } from '@/types/models';
+import { CurriculumNodeType, type AnyCurriculumNode, type CurriculumLessonNode, type CurriculumTopicNode } from '@/types/models';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
 import type { CurriculumTreeProps } from './useCurriculumTree';
-import type { CurriculumTreeFacade } from './useCurriculumTree';
+import { childTopicsOf, type CurriculumTreeFacade } from './useCurriculumTree';
 
 export const SELECTED_NODE_STYLE = 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300';
 
@@ -22,8 +22,6 @@ export const FILTER_BTN_INACTIVE = 'bg-slate-100 text-slate-600 hover:bg-slate-2
 export const CHEVRON_BTN_BASE = 'p-0.5 rounded hover:bg-slate-200 text-slate-500 transition-transform';
 
 export const ACTION_BTN_CLASS = 'tree-node-action p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900';
-
-export const ACTION_SUB_BTN_CLASS = 'tree-node-action p-0.5 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900';
 
 export const LESSON_COUNT_LABEL = ' bài';
 
@@ -149,349 +147,101 @@ export function CurriculumTreeHeader({ facade }: { facade: CurriculumTreeFacade 
   );
 }
 
-export function CurriculumTreeContent({ facade, selectedNode, onSelectNode, onAddTopic, onAddLesson }: { facade: CurriculumTreeFacade } & Pick<CurriculumTreeProps, 'selectedNode' | 'onSelectNode' | 'onAddTopic' | 'onAddLesson'>) {
-  const { expandedTopics, expandedSubTopics, toggleTopic, toggleSubTopic, filteredData } = facade;
+type TreeSelectionProps = Pick<CurriculumTreeProps, 'selectedNode' | 'onSelectNode' | 'onAddTopic' | 'onAddLesson'>;
+
+/** Từ cấp 3 (chuyên đề) trở xuống, nút "+" thêm bài học thay vì thêm chủ đề con. */
+const ADD_LESSON_FROM_DEPTH = 2;
+
+const isNodeSelected = (selectedNode: AnyCurriculumNode | null, type: CurriculumNodeType, id: string) =>
+  selectedNode?.type === type && selectedNode.id === id;
+
+function LessonTreeRow({ lesson, selectedNode, onSelectNode }: { lesson: CurriculumLessonNode } & Pick<TreeSelectionProps, 'selectedNode' | 'onSelectNode'>) {
+  const selected = isNodeSelected(selectedNode, CurriculumNodeType.LESSON, lesson.id);
+  const label = lesson.name || lesson.title;
+  return (
+    <div
+      className={`tree-node group flex items-center justify-between p-1 px-1.5 rounded-md cursor-pointer transition-colors ${selected ? SELECTED_NODE_STYLE : IDLE_NODE_STYLE}`}
+      onClick={() => onSelectNode(lesson)}
+    >
+      <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-1">
+        <Icon name={IconName.BOOK} size={11} className={selected ? SELECTED_ICON_CLASS : MUTED_ICON_CLASS} />
+        <span className="text-[11px] truncate" title={label}>{label}</span>
+      </div>
+      {lesson.hasQuiz ? <span className="text-[9px] text-slate-400 font-mono ml-1">Quiz</span> : null}
+    </div>
+  );
+}
+
+function TopicTreeBranch({ topic, depth, facade, ...selection }: { topic: CurriculumTopicNode; depth: number; facade: CurriculumTreeFacade } & TreeSelectionProps) {
+  const { selectedNode, onSelectNode, onAddTopic, onAddLesson } = selection;
+  const children = childTopicsOf(topic);
+  const lessons = topic.lessons || [];
+  const hasChildren = children.length > 0 || lessons.length > 0;
+  const isExpanded = !!facade.expanded[topic.id];
+  const selected = isNodeSelected(selectedNode, CurriculumNodeType.TOPIC, topic.id);
+  const isRoot = depth === 0;
+  const addsLesson = depth >= ADD_LESSON_FROM_DEPTH;
+  const countLabel = children.length > 0
+    ? `${children.length} ${isRoot ? 'con' : 'chuyên đề'}`
+    : `${lessons.length}${LESSON_COUNT_LABEL}`;
+
+  return (
+    <div className="topic-branch">
+      <div
+        className={`tree-node group flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${selected ? SELECTED_NODE_STYLE : IDLE_NODE_STYLE}`}
+        onClick={() => onSelectNode(topic)}
+      >
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          {hasChildren ? (
+            <button type="button" className={`${CHEVRON_BTN_BASE} ${isExpanded ? 'rotate-90' : ''}`} onClick={(e) => facade.toggleNode(topic.id, e)}>
+              <Icon name={IconName.CHEVRON} size={11} />
+            </button>
+          ) : (
+            <span className="w-3.5 inline-block" />
+          )}
+          <Icon name={IconName.FOLDER} size={isRoot ? 14 : 12} className={selected ? SELECTED_ICON_CLASS : MUTED_ICON_CLASS} />
+          <span className={`${isRoot ? 'text-xs' : 'text-[11.5px]'} truncate font-medium`} title={topic.name}>{topic.name}</span>
+        </div>
+        <div className="flex items-center gap-1.5 ml-2">
+          <span className="text-[10px] text-slate-400 font-mono">{countLabel}</span>
+          <button
+            type="button"
+            title={addsLesson ? 'Thêm bài học vào chủ đề này' : 'Thêm chủ đề trực thuộc chủ đề này'}
+            className={ACTION_BTN_CLASS}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (addsLesson) onAddLesson(topic.id);
+              else onAddTopic(topic.id);
+            }}
+          >
+            <Icon name={IconName.PLUS} size={11} />
+          </button>
+        </div>
+      </div>
+
+      {isExpanded && hasChildren ? (
+        <div className="ml-3 pl-2.5 border-l border-slate-200 my-0.5 space-y-0.5">
+          {children.map((child) => (
+            <TopicTreeBranch key={child.id} topic={child} depth={depth + 1} facade={facade} {...selection} />
+          ))}
+          {lessons.map((lesson) => (
+            <LessonTreeRow key={lesson.id} lesson={lesson} selectedNode={selectedNode} onSelectNode={onSelectNode} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function CurriculumTreeContent({ facade, ...selection }: { facade: CurriculumTreeFacade } & TreeSelectionProps) {
   return (
     <div className="tree-content flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-      {filteredData.length === 0 ? (
-        <div className="p-4 text-center text-xs text-slate-500">
-          Không tìm thấy chủ đề nào phù hợp.
-        </div>
+      {facade.filteredData.length === 0 ? (
+        <div className="p-4 text-center text-xs text-slate-500">Không tìm thấy chủ đề nào phù hợp.</div>
       ) : (
-        filteredData.map((rootTopic) => {
-          const subs = rootTopic.subTopics || rootTopic.children || [];
-          const directLessons = rootTopic.lessons || [];
-          const hasChildren = subs.length > 0 || directLessons.length > 0;
-          const isExpanded = !!expandedTopics[rootTopic.id];
-          const isSelected =
-            selectedNode?.type === CurriculumNodeType.TOPIC &&
-            selectedNode.id === rootTopic.id;
-
-          return (
-            <div key={rootTopic.id} className="topic-root-branch">
-              {/* Level 1: Root Topic Node */}
-              <div
-                className={`tree-node group level-1 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
-                  isSelected
-                    ? SELECTED_NODE_STYLE
-                    : 'hover:bg-slate-50 text-slate-800'
-                }`}
-                onClick={() => onSelectNode(rootTopic)}
-              >
-                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  {hasChildren ? (
-                    <button
-                      type="button"
-                      className={`${CHEVRON_BTN_BASE} ${
-                        isExpanded ? 'rotate-90' : ''
-                      }`}
-                      onClick={(e) => toggleTopic(rootTopic.id, e)}
-                    >
-                      <Icon name={IconName.CHEVRON} size={11} />
-                    </button>
-                  ) : (
-                    <span className="w-3.5 inline-block" />
-                  )}
-                  <Icon
-                    name={IconName.FOLDER}
-                    size={14}
-                    className={isSelected ? SELECTED_ICON_CLASS : 'text-slate-600'}
-                  />
-                  <span className="text-xs truncate font-medium" title={rootTopic.name}>
-                    {rootTopic.name}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 ml-2">
-                  <span className="text-[10px] text-slate-400 font-mono">
-                    {subs.length > 0 ? `${subs.length} con` : `${directLessons.length}${LESSON_COUNT_LABEL}`}
-                  </span>
-                  <button
-                    type="button"
-                    title="Thêm chủ đề trực thuộc chủ đề này"
-                    className={ACTION_BTN_CLASS}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddTopic(rootTopic.id);
-                    }}
-                  >
-                    <Icon name={IconName.PLUS} size={12} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Level 2: Sub-topics & Direct Lessons */}
-              {isExpanded && hasChildren ? (
-                <div className="subtopics-container ml-3 pl-2.5 border-l border-slate-200 my-0.5 space-y-0.5">
-                  {/* Render Sub-topics (Cấp 2: Giai đoạn) */}
-                  {subs.map((subTopic) => {
-                    const isSubExpanded = !!expandedSubTopics[subTopic.id];
-                    const isSubSelected =
-                      selectedNode?.type === CurriculumNodeType.TOPIC &&
-                      selectedNode.id === subTopic.id;
-                    const grandChildren = subTopic.subTopics || subTopic.children || [];
-                    const subLessons = subTopic.lessons || [];
-                    const hasSubChildren = grandChildren.length > 0 || subLessons.length > 0;
-
-                    return (
-                      <div key={subTopic.id} className="subtopic-branch">
-                        <div
-                          className={`tree-node group level-2 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
-                            isSubSelected
-                              ? SELECTED_NODE_STYLE
-                              : 'hover:bg-slate-50 text-slate-700'
-                          }`}
-                          onClick={() => onSelectNode(subTopic)}
-                        >
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            {hasSubChildren ? (
-                              <button
-                                type="button"
-                                className={`${CHEVRON_BTN_BASE} ${
-                                  isSubExpanded ? 'rotate-90' : ''
-                                }`}
-                                onClick={(e) => toggleSubTopic(subTopic.id, e)}
-                              >
-                                <Icon name={IconName.CHEVRON} size={11} />
-                              </button>
-                            ) : (
-                              <span className="w-3.5 inline-block" />
-                            )}
-                            <Icon
-                              name={IconName.FOLDER}
-                              size={12}
-                              className={isSubSelected ? SELECTED_ICON_CLASS : MUTED_ICON_CLASS}
-                            />
-                            <span className="text-[11.5px] truncate font-medium" title={subTopic.name}>
-                              {subTopic.name}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 ml-2">
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              {grandChildren.length > 0
-                                ? `${grandChildren.length} chuyên đề`
-                                : `${subLessons.length}${LESSON_COUNT_LABEL}`}
-                            </span>
-                            <button
-                              type="button"
-                              title="Thêm chuyên đề hoặc bài học vào giai đoạn này"
-                              className={ACTION_BTN_CLASS}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onAddTopic(subTopic.id);
-                              }}
-                            >
-                              <Icon name={IconName.PLUS} size={11} />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Level 3: Chuyên đề (Grandchildren) & Direct Lessons */}
-                        {isSubExpanded && hasSubChildren ? (
-                          <div className="grand-container ml-3 pl-2.5 border-l border-slate-200 my-0.5 space-y-0.5">
-                            {/* 1. Các chủ đề con Cấp 3 (Chuyên đề) */}
-                            {grandChildren.map((grand) => {
-                              const isGrandExpanded = !!expandedSubTopics[grand.id];
-                              const isGrandSelected =
-                                selectedNode?.type === CurriculumNodeType.TOPIC &&
-                                selectedNode.id === grand.id;
-                              const grandLessons = grand.lessons || [];
-
-                              return (
-                                <div key={grand.id} className="grandchild-branch">
-                                  <div
-                                    className={`tree-node group level-3 flex items-center justify-between p-1 px-2 rounded-md cursor-pointer transition-colors ${
-                                      isGrandSelected
-                                        ? SELECTED_NODE_STYLE
-                                        : IDLE_NODE_STYLE
-                                    }`}
-                                    onClick={() => onSelectNode(grand)}
-                                  >
-                                    <div className="flex items-center gap-1 min-w-0 flex-1">
-                                      {grandLessons.length > 0 ? (
-                                        <button
-                                          type="button"
-                                          className={`${CHEVRON_BTN_BASE} ${
-                                            isGrandExpanded ? 'rotate-90' : ''
-                                          }`}
-                                          onClick={(e) => toggleSubTopic(grand.id, e)}
-                                        >
-                                          <Icon name={IconName.CHEVRON} size={10} />
-                                        </button>
-                                      ) : (
-                                        <span className="w-3 inline-block" />
-                                      )}
-                                      <Icon
-                                        name={IconName.FOLDER}
-                                        size={11}
-                                        className={
-                                          isGrandSelected ? SELECTED_ICON_CLASS : MUTED_ICON_CLASS
-                                        }
-                                      />
-                                      <span
-                                        className="text-[11px] truncate"
-                                        title={grand.name}
-                                      >
-                                        {grand.name}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-1 ml-1.5">
-                                      <span className="text-[9.5px] text-slate-400 font-mono">
-                                        {grandLessons.length}{LESSON_COUNT_LABEL}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        title="Thêm bài học vào chuyên đề này"
-                                        className={ACTION_SUB_BTN_CLASS}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          onAddLesson(grand.id);
-                                        }}
-                                      >
-                                        <Icon name={IconName.PLUS} size={10} />
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  {/* Bài học thuộc Chuyên đề Cấp 3 */}
-                                  {isGrandExpanded && grandLessons.length > 0 ? (
-                                    <div className="lessons-container ml-3 pl-2 border-l border-slate-200 my-0.5 space-y-0.5">
-                                      {grandLessons.map((lesson) => {
-                                        const isLessonSelected =
-                                          selectedNode?.type === CurriculumNodeType.LESSON &&
-                                          selectedNode.id === lesson.id;
-
-                                        return (
-                                          <div
-                                            key={lesson.id}
-                                            className={`tree-node group level-4 flex items-center justify-between p-1 px-1.5 rounded-md cursor-pointer transition-colors ${
-                                              isLessonSelected
-                                                ? SELECTED_NODE_STYLE
-                                                : IDLE_NODE_STYLE
-                                            }`}
-                                            onClick={() => onSelectNode(lesson)}
-                                          >
-                                            <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-1">
-                                              <Icon
-                                                name={IconName.BOOK}
-                                                size={11}
-                                                className={
-                                                  isLessonSelected
-                                                    ? SELECTED_ICON_CLASS
-                                                    : MUTED_ICON_CLASS
-                                                }
-                                              />
-                                              <span
-                                                className="text-[10.5px] truncate"
-                                                title={lesson.name || lesson.title}
-                                              >
-                                                {lesson.name || lesson.title}
-                                              </span>
-                                            </div>
-                                            <div className="flex items-center gap-1 ml-1">
-                                              {lesson.hasQuiz ? (
-                                                <span className="text-[9px] text-slate-400 font-mono">
-                                                  Quiz
-                                                </span>
-                                              ) : null}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  ) : null}
-                                </div>
-                              );
-                            })}
-
-                            {/* 2. Các bài học trực tiếp thuộc Giai đoạn (nếu có) */}
-                            {subLessons.map((lesson) => {
-                              const isLessonSelected =
-                                selectedNode?.type === CurriculumNodeType.LESSON &&
-                                selectedNode.id === lesson.id;
-
-                              return (
-                                <div
-                                  key={lesson.id}
-                                  className={`tree-node group level-3 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
-                                    isLessonSelected
-                                      ? SELECTED_NODE_STYLE
-                                      : IDLE_NODE_STYLE
-                                  }`}
-                                  onClick={() => onSelectNode(lesson)}
-                                >
-                                  <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-2">
-                                    <Icon
-                                      name={IconName.BOOK}
-                                      size={12}
-                                      className={
-                                        isLessonSelected ? SELECTED_ICON_CLASS : MUTED_ICON_CLASS
-                                      }
-                                    />
-                                    <span
-                                      className="text-[11.5px] truncate"
-                                      title={lesson.name || lesson.title}
-                                    >
-                                      {lesson.name || lesson.title}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-1 ml-2">
-                                    {lesson.hasQuiz ? (
-                                      <span className="text-[10px] text-slate-400 font-mono">
-                                        Quiz
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-
-                  {/* Render Direct Lessons under Root Topic (if any) */}
-                  {directLessons.map((lesson) => {
-                    const isLessonSelected =
-                      selectedNode?.type === CurriculumNodeType.LESSON &&
-                      selectedNode.id === lesson.id;
-
-                    return (
-                      <div
-                        key={lesson.id}
-                        className={`tree-node group level-3 flex items-center justify-between p-1.5 px-2 rounded-md cursor-pointer transition-colors ${
-                          isLessonSelected
-                            ? SELECTED_NODE_STYLE
-                            : IDLE_NODE_STYLE
-                        }`}
-                        onClick={() => onSelectNode(lesson)}
-                      >
-                        <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-3">
-                          <Icon
-                            name={IconName.BOOK}
-                            size={12}
-                            className={isLessonSelected ? SELECTED_ICON_CLASS : MUTED_ICON_CLASS}
-                          />
-                          <span
-                            className="text-[11.5px] truncate"
-                            title={lesson.name || lesson.title}
-                          >
-                            {lesson.name || lesson.title}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 ml-2">
-                          {lesson.hasQuiz ? (
-                            <span className="text-[10px] text-slate-400 font-mono">Quiz</span>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-          );
-        })
+        facade.filteredData.map((rootTopic) => (
+          <TopicTreeBranch key={rootTopic.id} topic={rootTopic} depth={0} facade={facade} {...selection} />
+        ))
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseEnumPipe,
   Patch,
   Post,
   Query,
@@ -58,14 +59,11 @@ export class ModerationController {
   @Post('scan/:targetType/:targetId')
   @HttpCode(HttpStatus.OK)
   scanTarget(
-    @Param('targetType') targetType: string,
+    @Param('targetType', new ParseEnumPipe(ReportTargetType))
+    targetType: ReportTargetType,
     @Param('targetId') targetId: string,
   ) {
-    const normalizedType =
-      targetType.toUpperCase() === ReportTargetType.COMMENT
-        ? ReportTargetType.COMMENT
-        : ReportTargetType.POST;
-    return this.moderationService.scanTarget(normalizedType, targetId, {
+    return this.moderationService.scanTarget(targetType, targetId, {
       forceExecution: true,
     });
   }

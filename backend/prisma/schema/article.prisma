@@ -6,11 +6,12 @@
 // 2026-11-05). Mọi nội dung tri thức lịch sử — nhân vật, sự kiện, di tích, triều đại... — đều
 // là 1 bài viết:
 //   • Category  = bài này LÀ LOẠI GÌ (mỗi bài đúng 1 chuyên mục) → quyết định trang hiển thị.
-//   • Tag       = bài này LIÊN QUAN CHỦ ĐỀ NÀO (nhiều-nhiều, dùng chung bảng Tag với Lesson).
+//   • Topic     = bài này thuộc PHẦN NÀO của môn sử (tối đa 1).
+//   • Tag       = từ khoá tìm kiếm / gợi ý bài liên quan, không dùng để phân loại.
 //   • Timeline  = trình tự thời gian do biên tập viên tự dựng, mốc có thể trỏ tới bài viết
 //                 (xem timeline.prisma).
-// Không có quan hệ bài ↔ bài kiểu đồ thị: liên kết giữa các bài nằm trong nội dung (khối
-// Nhân vật / Sự kiện / Bài liên quan trong contentBlocks) hoặc qua Tag chung.
+// Liên kết bài ↔ bài do biên tập viên chọn tay nằm ở ArticleLink; ngoài ra còn các khối
+// Nhân vật / Sự kiện / Bài liên quan trong contentBlocks.
 
 model Category {
   id           String   @id @default(uuid())

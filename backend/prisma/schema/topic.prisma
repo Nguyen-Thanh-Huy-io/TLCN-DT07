@@ -3,7 +3,8 @@
 // ================================
 //
 // GHI CHÚ: Topic (Chủ đề) là thẻ PHÂN LOẠI độc lập theo môn học (Giai đoạn → Chủ đề →
-// Chuyên đề) — mỗi Lesson luôn thuộc đúng 1 Topic cố định. KHÔNG nhầm với `LearningPath`
+// Chuyên đề) — mỗi Lesson luôn thuộc đúng 1 Topic cố định; Article và Timeline gắn tối đa 1
+// Topic; Quiz và Question gắn nhiều Topic. KHÔNG nhầm với `LearningPath`
 // (Lộ trình = khóa học cụ thể) và `Chapter` (Chương = cấu trúc bên trong 1 Lộ trình) —
 // xem ghi chú đầy đủ ở đầu learningPath.prisma. Một Lesson có thể vừa thuộc 1 Topic, vừa
 // xuất hiện trong nhiều Chapter của nhiều LearningPath khác nhau — 2 trục độc lập nhau.

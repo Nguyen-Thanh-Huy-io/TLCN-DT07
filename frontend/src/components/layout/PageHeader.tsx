@@ -76,7 +76,7 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
     case APP_ROUTES.TAGS.LIST:
       return {
         title: 'Tag',
-        subtitle: 'Nhãn gom bài viết và bài học theo chủ đề (Nhà Trần, Kháng chiến…)',
+        subtitle: 'Từ khoá gắn bài viết và bài học để tìm kiếm, gợi ý bài liên quan',
       };
 
     case APP_ROUTES.REVIEW:
@@ -130,7 +130,7 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
     case APP_ROUTES.SETTINGS:
       return {
         title: 'Cài đặt hệ thống',
-        subtitle: 'Quản lý danh mục taxonomy và các tham số cấu hình chung',
+        subtitle: 'Quản lý các tham số cấu hình chung của hệ thống',
       };
 
     default:

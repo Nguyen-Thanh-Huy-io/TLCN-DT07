@@ -107,6 +107,22 @@ describe('TagService', () => {
       expect(result.items).toHaveLength(1);
       expect(mockRedisService.set).toHaveBeenCalled();
     });
+
+    it('đếm số lần dùng ở cả bài học và bài viết', async () => {
+      mockRedisService.get.mockResolvedValue(null);
+      mockPrismaService.tag.findMany.mockResolvedValue([mockTag]);
+      mockPrismaService.tag.count.mockResolvedValue(1);
+
+      await service.findAll({ page: 1, limit: 10 });
+
+      expect(mockPrismaService.tag.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: {
+            _count: { select: { lessonTags: true, articleTags: true } },
+          },
+        }),
+      );
+    });
   });
 
   describe('findOne', () => {

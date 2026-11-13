@@ -106,6 +106,64 @@ describe('DiscussionService', () => {
       );
     });
 
+    it('thông báo cho câu hỏi ở bài viết trỏ tới /bai-viet/<slug>', async () => {
+      mockPrisma.discussionThread.findUnique.mockResolvedValue({
+        id: 'thread-2',
+        title: 'Hỏi',
+        userId: 'learner-1',
+        targetType: DiscussionTargetType.ARTICLE,
+        targetId: 'article-1',
+      });
+      mockPrisma.discussionReply.create.mockResolvedValue({
+        id: 'reply-3',
+        content: 'Trả lời',
+        isOfficial: true,
+      });
+
+      await service.createReply('admin-1', userRole.ADMIN, 'thread-2', {
+        content: 'Trả lời',
+      });
+
+      expect(mockPrisma.article.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'article-1' } }),
+      );
+      expect(mockNotificationService.notify).toHaveBeenCalledWith(
+        'learner-1',
+        expect.anything(),
+        expect.any(String),
+        'Trả lời',
+        '/bai-viet/bai-viet-mau',
+      );
+    });
+
+    it('nội dung gốc đã bị xoá thì thông báo không kèm link', async () => {
+      mockPrisma.discussionThread.findUnique.mockResolvedValue({
+        id: 'thread-3',
+        title: 'Hỏi',
+        userId: 'learner-1',
+        targetType: DiscussionTargetType.LESSON,
+        targetId: 'lesson-da-xoa',
+      });
+      mockPrisma.lesson.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.discussionReply.create.mockResolvedValue({
+        id: 'reply-4',
+        content: 'Trả lời',
+        isOfficial: true,
+      });
+
+      await service.createReply('admin-1', userRole.ADMIN, 'thread-3', {
+        content: 'Trả lời',
+      });
+
+      expect(mockNotificationService.notify).toHaveBeenCalledWith(
+        'learner-1',
+        expect.anything(),
+        expect.any(String),
+        'Trả lời',
+        undefined,
+      );
+    });
+
     it('Học viên bình thường trả lời thì isOfficial = false', async () => {
       mockPrisma.discussionThread.findUnique.mockResolvedValue({
         id: 'thread-1',

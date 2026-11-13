@@ -121,6 +121,34 @@ describe('TopicService', () => {
     });
   });
 
+  describe('getTopicTree', () => {
+    it('dựng cây nhiều cấp và mỗi nút mang theo bài học của chính nó', async () => {
+      const lesson = {
+        id: 'lesson-1',
+        title: 'Bạch Đằng 1288',
+        slug: 'bach-dang-1288',
+      };
+      mockPrismaService.topic.findMany.mockResolvedValueOnce([
+        { ...mockTopic, id: 'root', parentId: null, lessons: [] },
+        { ...mockTopic, id: 'child', parentId: 'root', lessons: [] },
+        { ...mockTopic, id: 'grandchild', parentId: 'child', lessons: [] },
+        { ...mockTopic, id: 'leaf', parentId: 'grandchild', lessons: [lesson] },
+      ]);
+
+      const tree = await service.getTopicTree();
+
+      expect(mockPrismaService.topic.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({ lessons: expect.any(Object) }),
+        }),
+      );
+      expect(tree).toHaveLength(1);
+      const leaf = tree[0].children[0].children[0].children[0];
+      expect(leaf.id).toBe('leaf');
+      expect(leaf.lessons).toEqual([lesson]);
+    });
+  });
+
   describe('remove', () => {
     it('should delete a topic successfully', async () => {
       mockRedisService.get.mockResolvedValueOnce(null);

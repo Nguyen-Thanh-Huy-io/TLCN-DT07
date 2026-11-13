@@ -140,12 +140,9 @@ export class BlogController {
 
   @ApiOperation({ summary: 'Tạo bài viết mới (QUICK_POST hoặc LONG_FORM)' })
   @Post()
-  @UseGuards(OptionalAuthGuard)
-  createPost(@Body() dto: CreateBlogPostDto, @Req() req: MaybeAuthedRequest) {
-    return this.blogService.createPost({
-      ...dto,
-      authorId: req.user?.userId ?? dto.authorId,
-    });
+  @UseGuards(AuthGuard)
+  createPost(@Body() dto: CreateBlogPostDto, @Req() req: AuthedRequest) {
+    return this.blogService.createPost(req.user.userId, req.user.role, dto);
   }
 
   @ApiOperation({ summary: 'Duyệt / từ chối bài viết (Admin/Superadmin)' })

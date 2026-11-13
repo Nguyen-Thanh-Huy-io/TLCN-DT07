@@ -26,7 +26,7 @@ export const BlogApiService = {
     const res = await api.get('/posts');
     return unwrap<BlogPostItem[]>(res);
   },
-  async create(payload: Partial<BlogPostItem> & { authorId?: string }): Promise<BlogPostItem> {
+  async create(payload: Partial<BlogPostItem>): Promise<BlogPostItem> {
     return unwrap(await api.post('/posts', payload));
   },
   async review(

@@ -190,7 +190,6 @@ export function QuickComposer({
           : null;
 
       const created = await CommunityApi.createQuickPost({
-        authorId: user.id,
         title: cleanTitle,
         content: cleanContent,
         period,

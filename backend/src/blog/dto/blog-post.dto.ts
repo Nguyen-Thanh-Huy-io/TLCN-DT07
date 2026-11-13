@@ -9,7 +9,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
 } from 'class-validator';
 
@@ -111,11 +110,6 @@ export class CreateBlogPostDto {
   @IsOptional()
   @IsDateString()
   publishedAt?: string | Date | null;
-
-  @ApiPropertyOptional({ description: 'ID người tạo bài' })
-  @IsOptional()
-  @IsUUID('4')
-  authorId?: string;
 }
 
 export class ReviewBlogPostDto {

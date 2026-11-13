@@ -100,7 +100,6 @@ export interface UpdateCommunityProfilePayload {
 }
 
 export interface CreateQuickPostPayload {
-  authorId: string;
   title: string;
   content: string;
   period?: string;
@@ -373,7 +372,6 @@ export const CommunityApi = {
       excerpt: payload.content,
       coverImageUrl: payload.imageUrl ?? null,
       status: BLOG_STATUS_PUBLISHED,
-      authorId: payload.authorId,
       contentBlocks: [
         {
           type: CONTENT_BLOCK_META_TYPE,

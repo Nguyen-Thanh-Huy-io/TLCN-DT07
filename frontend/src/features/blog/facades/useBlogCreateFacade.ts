@@ -228,8 +228,7 @@ export function useBlogCreateFacade() {
         },
       ];
 
-      const payload: Partial<BlogPostItem> & { authorId?: string } = {
-        authorId: currentUser.id,
+      const payload: Partial<BlogPostItem> = {
         postType,
         title: normalizedTitle,
         slug: `${slugify(normalizedTitle)}-${Date.now().toString(36)}`,

@@ -7,8 +7,10 @@ import {
   Optional,
 } from '@nestjs/common';
 import {
+  ContentStatus,
   NotificationType,
   PostCommentStatus,
+  PostType,
   ReportActionTaken,
   ReportRiskLevel,
   ReportSource,
@@ -16,6 +18,7 @@ import {
 } from '@prisma/client';
 import { ROLE_GROUPS } from '../common/access/access.constant';
 import { PrismaService } from '../common/services/prisma.service';
+import { toSlug } from '../common/utils/slug.util';
 import { RedisService } from '../common/services/redis.service';
 import { ModerationService } from '../moderation/moderation.service';
 import { NotificationService } from '../notification/notification.service';
@@ -31,6 +34,11 @@ import { ReportPostDto, UpdateCommunityProfileDto } from './dto/interact.dto';
 
 const VIEW_DEDUPE_TTL_SECONDS = 3600;
 const DEFAULT_PAGE_LIMIT = 12;
+
+const AUTHOR_LONG_FORM_STATUSES = new Set<ContentStatus>([
+  ContentStatus.DRAFT,
+  ContentStatus.PENDING_REVIEW,
+]);
 
 @Injectable()
 export class BlogService {
@@ -199,15 +207,19 @@ export class BlogService {
     return { ...this.mapPost(post), ...flags(post.id) };
   }
 
-  async createPost(dto: CreateBlogPostDto) {
-    const authorId = dto.authorId;
-    if (!authorId) {
-      throw new BadRequestException('Thiếu authorId để tạo blog');
-    }
-
+  async createPost(
+    authorId: string,
+    requesterRole: string,
+    dto: CreateBlogPostDto,
+  ) {
+    this.assertCanSetPublication(
+      dto.postType ?? PostType.QUICK_POST,
+      dto,
+      requesterRole,
+    );
     await this.ensureUserExists(authorId);
 
-    const normalizedSlug = (dto.slug ?? this.slugify(dto.title)).trim();
+    const normalizedSlug = (dto.slug ?? toSlug(dto.title)).trim();
     const existing = await this.prisma.blogPost.findUnique({
       where: { slug: normalizedSlug },
     });
@@ -257,6 +269,11 @@ export class BlogService {
       throw new NotFoundException(`Blog ${postId} không tồn tại`);
     }
     this.assertCanModifyPost(existing.authorId, requesterId, requesterRole);
+    this.assertCanSetPublication(
+      dto.postType ?? existing.postType,
+      dto,
+      requesterRole,
+    );
 
     const nextSlug = dto.slug ? dto.slug.trim() : existing.slug;
     if (dto.slug && dto.slug.trim() !== existing.slug) {
@@ -392,6 +409,29 @@ export class BlogService {
     }
   }
 
+  /** Bài dài phải qua người duyệt (`PATCH /posts/:id/review`); bài nhanh của cộng đồng đăng thẳng. */
+  private assertCanSetPublication(
+    postType: PostType,
+    dto: { status?: ContentStatus; isFeatured?: boolean },
+    requesterRole: string,
+  ): void {
+    if ((ROLE_GROUPS.REVIEWERS as readonly string[]).includes(requesterRole)) {
+      return;
+    }
+    if (dto.isFeatured) {
+      throw new ForbiddenException('Chỉ người duyệt mới được đặt bài nổi bật.');
+    }
+    if (
+      postType === PostType.LONG_FORM &&
+      dto.status &&
+      !AUTHOR_LONG_FORM_STATUSES.has(dto.status)
+    ) {
+      throw new ForbiddenException(
+        'Bài viết chuyên khảo phải được người duyệt xuất bản.',
+      );
+    }
+  }
+
   async getComments(postId: string) {
     await this.ensurePostExists(postId);
 
@@ -421,16 +461,7 @@ export class BlogService {
     return comments.map((comment) => this.mapComment(comment));
   }
 
-  async createComment(
-    postId: string,
-    dto: CreateCommentDto,
-    requesterId?: string,
-  ) {
-    const authorId = requesterId ?? dto.authorId;
-    if (!authorId) {
-      throw new BadRequestException('Thiếu thông tin người bình luận');
-    }
-
+  async createComment(postId: string, dto: CreateCommentDto, authorId: string) {
     await this.ensurePostExists(postId);
     await this.ensureUserExists(authorId);
 
@@ -1428,18 +1459,6 @@ export class BlogService {
           }
         : null,
     };
-  }
-
-  private slugify(value: string) {
-    return value
-      .toLowerCase()
-      .trim()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
   }
 
   private mapComment(comment: any) {

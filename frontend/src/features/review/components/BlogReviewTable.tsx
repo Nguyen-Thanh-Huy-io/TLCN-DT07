@@ -12,7 +12,6 @@ export interface BlogReviewTableProps {
   loading: boolean;
   items: ReviewPost[];
   selectedItemId?: string;
-  previewLoading: boolean;
   onSelectPost: (post: ReviewPost) => void;
 }
 
@@ -34,7 +33,6 @@ export function BlogReviewTable({
   loading,
   items,
   selectedItemId,
-  previewLoading,
   onSelectPost,
 }: BlogReviewTableProps) {
   return (
@@ -286,7 +284,7 @@ export function BlogReviewTable({
                         fontSize: 13,
                       }}
                     >
-                      {previewLoading && isSelected ? 'Đang mở...' : 'Nhấp để xem'}
+                      Nhấp để xem
                     </td>
                   </tr>
                 );

@@ -27,9 +27,9 @@ export interface BlogPostItem {
 const unwrap = <T,>(res: { data: { data?: T } & T }): T => (res.data?.data ?? res.data) as T;
 
 export const BlogApiService = {
-  /** Hàng đợi duyệt (mọi trạng thái) — chỉ Admin/Superadmin; bảng tin công khai chỉ có bài đã xuất bản. */
-  async list(): Promise<BlogPostItem[]> {
-    const res = await api.get(REVIEW_QUEUE_PATH, { params: { limit: REVIEW_QUEUE_LIMIT } });
+  /** Hàng đợi duyệt theo trạng thái — chỉ Admin/Superadmin; bảng tin công khai chỉ có bài đã xuất bản. */
+  async listForReview(status: BlogStatusValue): Promise<BlogPostItem[]> {
+    const res = await api.get(REVIEW_QUEUE_PATH, { params: { status, limit: REVIEW_QUEUE_LIMIT } });
     return unwrap<BlogPostItem[]>(res);
   },
   async create(payload: Partial<BlogPostItem>): Promise<BlogPostItem> {

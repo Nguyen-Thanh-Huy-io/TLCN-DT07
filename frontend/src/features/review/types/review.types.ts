@@ -51,6 +51,13 @@ export const STATUS_LABELS: Record<string, ReviewTabState> = {
   [ContentStatus.REJECTED]: ReviewTabState.REJECTED,
 };
 
+/** Trạng thái backend mà mỗi tab tải về (`GET /posts/review?status=`). */
+export const REVIEW_TAB_STATUS: Record<ReviewTabState, ContentStatus> = {
+  [ReviewTabState.PENDING]: ContentStatus.PENDING_REVIEW,
+  [ReviewTabState.APPROVED]: ContentStatus.PUBLISHED,
+  [ReviewTabState.REJECTED]: ContentStatus.REJECTED,
+};
+
 export const REVIEW_TABS = [
   ReviewTabState.PENDING,
   ReviewTabState.APPROVED,

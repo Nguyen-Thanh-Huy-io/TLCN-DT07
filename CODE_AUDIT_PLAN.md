@@ -152,7 +152,7 @@ Chi tiết từng lỗi ở [CODE_AUDIT.md](CODE_AUDIT.md) Mục 9.
 - [x] Sửa `Update*Dto` kế thừa giá trị mặc định (PATCH gỡ xuất bản / hạ quyền) và `LessonService.update` bỏ qua `topicId`.
 - [x] **Unit test nhóm ưu tiên 1** (2026-11-14): `timeline` (11), `category` (10), `learner` (9), `account` (7), `learning-path` (9), `article` (21) — 240 → 303 test, độ phủ backend 39% → 44,5%. Tìm ra: tag trùng ghi 2 lần ở bài viết, `addLessonsToChapter` không dùng transaction.
 - [x] **Unit test nhóm ưu tiên 2** (2026-11-14): `blog` (bảng tin, duyệt, bình luận, thích/lưu/báo cáo/lượt xem, theo dõi), `public-content` (chỉ nội dung đã xuất bản, danh bạ theo loại chuyên mục, thống kê đề), `moderation` (quét AI 3 mức, danh sách báo cáo, xử lý báo cáo bài), `auth` (đăng nhập, khoá tài khoản, xoay vòng refresh token, đăng xuất — dùng Redis giả trong bộ nhớ), `google-oauth` (PKCE, kiểm chữ ký ID token bằng khoá RSA sinh trong test), `redis` — 303 → 422 test, độ phủ backend 44,5% → 59,3%. Sửa 5 lỗi tìm ra (xem `CODE_AUDIT.md` Mục 9).
-- [x] Bảng tin Blog chỉ trả bài đã xuất bản; màn duyệt CMS chuyển sang `GET /posts/review` (2026-11-14).
+- [x] Bảng tin Blog chỉ trả bài đã xuất bản; màn duyệt CMS chuyển sang `GET /posts/review` (2026-11-14), mỗi tab gọi `?status=` riêng thay vì tải chung 100 bài rồi tự chia.
 - [ ] DB test riêng để chạy 47 test e2e có sẵn (`backend/test/`) + đưa script test API ghi vào thành e2e.
 - [ ] Quyết lỗ tự duyệt bài viết ở chuyên mục "blog/bài viết" (`isBlogCategory`).
 - [ ] Thêm bộ chạy test cho frontend (vitest) rồi viết test cho `createPeriodSlugResolver`, `pruneTree`/`countLessons`.

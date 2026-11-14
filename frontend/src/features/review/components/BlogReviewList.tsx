@@ -6,6 +6,7 @@ import { BlogApiService, type BlogPostItem } from '@/services/entities/blog.serv
 import { extractErrorMessage } from '@/services/api';
 import {
   NoticeTone,
+  REVIEW_TAB_STATUS,
   ReviewTabState,
   STATUS_LABELS,
 } from '../types/review.types';
@@ -40,13 +41,12 @@ const normalizePost = (item: BlogPostItem): ReviewPost => {
 
 export function BlogReviewList() {
   const [tab, setTab] = useState<ReviewTabState>(ReviewTabState.PENDING);
-  const [items, setItems] = useState<ReviewPost[]>([]);
+  const [posts, setPosts] = useState<BlogPostItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [notice, setNotice] = useState<{ tone: NoticeTone; text: string } | null>(null);
   const [selectedItem, setSelectedItem] = useState<ReviewPost | null>(null);
   const [previewArticle, setPreviewArticle] = useState<BlogPostItem | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ReviewConfirmAction | null>(null);
 
   useEffect(() => {
@@ -54,16 +54,16 @@ export function BlogReviewList() {
     const loadData = async () => {
       try {
         setLoading(true);
-        const response = await BlogApiService.list();
+        const response = await BlogApiService.listForReview(REVIEW_TAB_STATUS[tab]);
         if (active) {
-          setItems(response.map(normalizePost));
+          setPosts(response);
         }
       } catch (error) {
         if (active) {
-          setItems([]);
+          setPosts([]);
           setNotice({
             tone: NoticeTone.ERROR,
-            text: extractErrorMessage(error, 'Không thể tải danh sách bài viết chờ duyệt.'),
+            text: extractErrorMessage(error, 'Không thể tải danh sách bài viết.'),
           });
         }
       } finally {
@@ -77,35 +77,22 @@ export function BlogReviewList() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [tab]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return items.filter((item) => {
-      const matchesTab = item.status === tab;
-      const matchesSearch =
+    return posts.map(normalizePost).filter(
+      (item) =>
         !query ||
         item.title.toLowerCase().includes(query) ||
         item.author.toLowerCase().includes(query) ||
-        item.summary.toLowerCase().includes(query);
-      return matchesTab && matchesSearch;
-    });
-  }, [items, search, tab]);
+        item.summary.toLowerCase().includes(query),
+    );
+  }, [posts, search]);
 
-  const handleOpenPreview = async (item: ReviewPost) => {
-    try {
-      setPreviewLoading(true);
-      setSelectedItem(item);
-      const detail = (await BlogApiService.list()).find((post) => post.id === item.id) ?? null;
-      setPreviewArticle(detail);
-    } catch (error) {
-      setNotice({
-        tone: NoticeTone.ERROR,
-        text: extractErrorMessage(error, 'Không thể mở bản xem trước.'),
-      });
-    } finally {
-      setPreviewLoading(false);
-    }
+  const handleOpenPreview = (item: ReviewPost) => {
+    setSelectedItem(item);
+    setPreviewArticle(posts.find((post) => post.id === item.id) ?? null);
   };
 
   const handleReview = async (
@@ -119,21 +106,8 @@ export function BlogReviewList() {
         rejectionReason: status === ContentStatus.REJECTED ? reason?.trim() || undefined : undefined,
       });
 
-      setItems((current) =>
-        current.map((currentItem) =>
-          currentItem.id === item.id
-            ? {
-                ...currentItem,
-                status:
-                  status === ContentStatus.PUBLISHED
-                    ? ReviewTabState.APPROVED
-                    : ReviewTabState.REJECTED,
-                rawStatus: status,
-                rejectionReason: status === ContentStatus.REJECTED ? reason || null : null,
-              }
-            : currentItem,
-        ),
-      );
+      // Bài đã chuyển trạng thái nên rời tab đang xem; tab đích tự tải lại khi được mở.
+      setPosts((current) => current.filter((post) => post.id !== item.id));
 
       setNotice({
         tone: NoticeTone.OK,
@@ -181,8 +155,7 @@ export function BlogReviewList() {
           loading={loading}
           items={filtered}
           selectedItemId={selectedItem?.id}
-          previewLoading={previewLoading}
-          onSelectPost={(item) => void handleOpenPreview(item)}
+          onSelectPost={handleOpenPreview}
         />
       </div>
 

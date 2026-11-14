@@ -266,29 +266,28 @@ export class LearningPathService {
       where: { chapterId },
       orderBy: { displayOrder: 'desc' },
     });
-    let currentOrder = maxItem?.displayOrder ?? 0;
+    const startOrder = maxItem?.displayOrder ?? 0;
 
-    const createdRecords: any[] = [];
-    for (const lessonId of lessonIds) {
-      currentOrder += 1;
-      const record = await this.prisma.chapterLesson.upsert({
-        where: {
-          chapterId_lessonId: { chapterId, lessonId },
-        },
-        create: {
-          chapterId,
-          lessonId,
-          displayOrder: currentOrder,
-        },
-        update: {},
-        include: {
-          lesson: {
-            select: { id: true, title: true, slug: true, status: true },
+    const createdRecords = await this.prisma.$transaction(
+      lessonIds.map((lessonId, idx) =>
+        this.prisma.chapterLesson.upsert({
+          where: {
+            chapterId_lessonId: { chapterId, lessonId },
           },
-        },
-      });
-      createdRecords.push(record);
-    }
+          create: {
+            chapterId,
+            lessonId,
+            displayOrder: startOrder + idx + 1,
+          },
+          update: {},
+          include: {
+            lesson: {
+              select: { id: true, title: true, slug: true, status: true },
+            },
+          },
+        }),
+      ),
+    );
 
     return {
       success: true,

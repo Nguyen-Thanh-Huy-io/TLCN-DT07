@@ -227,7 +227,7 @@ export class ArticleService {
         publishedAt:
           data.status === ContentStatus.PUBLISHED ? new Date() : null,
         articleTags: tagIds?.length
-          ? { create: tagIds.map((tagId) => ({ tagId })) }
+          ? { create: [...new Set(tagIds)].map((tagId) => ({ tagId })) }
           : undefined,
         linksOut: links?.length
           ? { create: links.map((l, i) => this.toLinkData(l, i)) }
@@ -289,7 +289,10 @@ export class ArticleService {
         await tx.articleTag.deleteMany({ where: { articleId: id } });
         if (tagIds.length) {
           await tx.articleTag.createMany({
-            data: tagIds.map((tagId) => ({ articleId: id, tagId })),
+            data: [...new Set(tagIds)].map((tagId) => ({
+              articleId: id,
+              tagId,
+            })),
           });
         }
       }
@@ -425,7 +428,6 @@ export class ArticleService {
       });
       if (found !== unique.length)
         throw new BadRequestException(ARTICLE_MESSAGES.TAG_NOT_FOUND);
-      dto.tagIds = unique;
     }
   }
 

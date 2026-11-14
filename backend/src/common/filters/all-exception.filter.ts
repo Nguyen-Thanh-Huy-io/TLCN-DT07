@@ -32,6 +32,34 @@ const PRISMA_CLIENT_ERRORS: Record<
   },
 };
 
+interface ExceptionDetails {
+  statusCode: number;
+  message: string;
+  error: string;
+  /** Mã lỗi nghiệp vụ (vd. NOT_ENROLLED) để frontend rẽ nhánh — không dựa vào câu chữ của message. */
+  code?: string;
+}
+
+function httpExceptionDetails(exception: HttpException): ExceptionDetails {
+  const statusCode = exception.getStatus();
+  const error = exception.name;
+  const res: unknown = exception.getResponse();
+  if (typeof res === 'string') return { statusCode, message: res, error };
+  if (typeof res !== 'object' || res === null) {
+    return { statusCode, message: INTERNAL_ERROR_MESSAGE, error };
+  }
+
+  const body: Record<string, unknown> = { ...res };
+  const rawMessage = body.message;
+  const message = Array.isArray(rawMessage)
+    ? rawMessage.join(', ')
+    : 'message' in body
+      ? String(rawMessage)
+      : INTERNAL_ERROR_MESSAGE;
+  const code = typeof body.code === 'string' ? body.code : undefined;
+  return { statusCode, message, error, ...(code ? { code } : {}) };
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   constructor(
@@ -47,16 +75,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
     );
   }
 
-  private parseExceptionDetails(exception: unknown) {
+  private parseExceptionDetails(exception: unknown): ExceptionDetails {
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       const known = PRISMA_CLIENT_ERRORS[exception.code];
       if (known) return { ...known, error: exception.code };
     }
 
-    let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = INTERNAL_ERROR_MESSAGE;
-    let error = 'Error';
+    if (exception instanceof HttpException) {
+      return httpExceptionDetails(exception);
+    }
 
+    let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     if (
       typeof exception === 'object' &&
       exception !== null &&
@@ -65,25 +94,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     ) {
       statusCode = exception.status;
     }
-
-    if (exception instanceof HttpException) {
-      statusCode = exception.getStatus();
-      const res = exception.getResponse();
-      if (typeof res === 'string') {
-        message = res;
-      } else if (typeof res === 'object' && res && 'message' in res) {
-        const resMessage = (res as Record<string, unknown>).message;
-        message = Array.isArray(resMessage)
-          ? resMessage.join(', ')
-          : String(resMessage);
-      }
-      error = exception.name;
-    } else if (exception instanceof Error) {
-      message = exception.message;
-      error = exception.name;
-    }
-
-    return { statusCode, message, error };
+    return exception instanceof Error
+      ? { statusCode, message: exception.message, error: exception.name }
+      : { statusCode, message: INTERNAL_ERROR_MESSAGE, error: 'Error' };
   }
 
   private logException(
@@ -131,7 +144,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return;
     }
 
-    const { statusCode, message, error } =
+    const { statusCode, message, error, code } =
       this.parseExceptionDetails(exception);
     this.logException(request, statusCode, message, exception);
 
@@ -148,6 +161,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
           ? INTERNAL_ERROR_MESSAGE
           : message,
       error,
+      ...(code ? { code } : {}),
       timestamp: new Date().toISOString(),
       path: request.url,
       stack:

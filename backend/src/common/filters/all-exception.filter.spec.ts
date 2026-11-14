@@ -1,4 +1,10 @@
-import { ArgumentsHost, HttpStatus, NotFoundException } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  ForbiddenException,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
+import { LEARNER_ERROR_CODES } from '../../learner/learner.constant';
 import { Prisma } from '@prisma/client';
 import { Logger } from 'winston';
 import { AllExceptionsFilter } from './all-exception.filter';
@@ -64,5 +70,26 @@ describe('AllExceptionsFilter', () => {
 
     expect(statusCode).toBe(HttpStatus.NOT_FOUND);
     expect(body.message).toBe('Bài học không tồn tại');
+  });
+
+  it('giữ mã lỗi nghiệp vụ (code) để frontend rẽ nhánh', () => {
+    const { statusCode, body } = runFilter(
+      new ForbiddenException({
+        code: LEARNER_ERROR_CODES.NOT_ENROLLED,
+        message: 'Cần đăng ký lộ trình',
+      }),
+    );
+
+    expect(statusCode).toBe(HttpStatus.FORBIDDEN);
+    expect(body).toMatchObject({
+      code: LEARNER_ERROR_CODES.NOT_ENROLLED,
+      message: 'Cần đăng ký lộ trình',
+    });
+  });
+
+  it('lỗi không có mã thì không thêm trường code', () => {
+    expect(runFilter(new NotFoundException('x')).body).not.toHaveProperty(
+      'code',
+    );
   });
 });

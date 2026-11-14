@@ -25,8 +25,10 @@ import { NotificationService } from '../notification/notification.service';
 import { BlogGateway } from './blog.gateway';
 import { CreateCommentDto, UpdateCommentDto } from './dto/comment.dto';
 import {
+  BLOG_REVIEW_DEFAULT_LIMIT,
   CreateBlogPostDto,
   ListBlogPostsQueryDto,
+  ListBlogReviewQueryDto,
   ReviewBlogPostDto,
   UpdateBlogPostDto,
 } from './dto/blog-post.dto';
@@ -52,7 +54,7 @@ export class BlogService {
   ) {}
 
   async listPosts(viewerId?: string, query?: ListBlogPostsQueryDto) {
-    const where: Record<string, any> = {};
+    const where: Record<string, any> = { status: ContentStatus.PUBLISHED };
     if (query?.type === 'QUICK_POST' || query?.type === 'LONG_FORM') {
       where.postType = query.type;
     }
@@ -199,7 +201,10 @@ export class BlogService {
       },
     });
 
-    if (!post) {
+    const visibleToViewer =
+      post?.status === ContentStatus.PUBLISHED ||
+      (Boolean(viewerId) && post?.authorId === viewerId);
+    if (!post || !visibleToViewer) {
       throw new NotFoundException(`Blog "${slug}" không tồn tại`);
     }
 
@@ -318,6 +323,17 @@ export class BlogService {
     this.moderationService?.enqueueScan(ReportTargetType.POST, updated.id);
 
     return this.mapPost(updated);
+  }
+
+  /** Hàng đợi duyệt cho CMS: mọi trạng thái, mới cập nhật trước. */
+  async listPostsForReview(query: ListBlogReviewQueryDto) {
+    const posts = await this.prisma.blogPost.findMany({
+      where: query.status ? { status: query.status } : {},
+      orderBy: { updatedAt: 'desc' },
+      take: query.limit ?? BLOG_REVIEW_DEFAULT_LIMIT,
+      include: { author: { select: { id: true, username: true } } },
+    });
+    return posts.map((post) => this.mapPost(post));
   }
 
   async reviewPost(postId: string, dto: ReviewBlogPostDto) {

@@ -1,6 +1,7 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import {
+  ContentStatus,
   PostCommentStatus,
   NotificationType,
   ReportActionTaken,
@@ -192,10 +193,10 @@ export class ModerationService {
       : ReportActionTaken.NONE;
 
     // Nếu Tier 3 (AUTO_HIDE): Tự động ẩn bài ngay lập tức
-    if (isAutoHide && post.status !== 'REJECTED') {
+    if (isAutoHide && post.status !== ContentStatus.REJECTED) {
       await this.prisma.blogPost.update({
         where: { id: post.id },
-        data: { status: 'REJECTED' },
+        data: { status: ContentStatus.REJECTED },
       });
     }
 
@@ -814,7 +815,7 @@ export class ModerationService {
     await this.prisma.blogPost.update({
       where: { id: post.id },
       data: {
-        status: 'PUBLISHED',
+        status: ContentStatus.PUBLISHED,
         publishedAt: post.publishedAt ?? new Date(),
       },
     });
@@ -845,10 +846,10 @@ export class ModerationService {
     note?: string,
     notifyAuthor: boolean = false,
   ) {
-    if (post.status !== 'REJECTED') {
+    if (post.status !== ContentStatus.REJECTED) {
       await this.prisma.blogPost.update({
         where: { id: post.id },
-        data: { status: 'REJECTED' },
+        data: { status: ContentStatus.REJECTED },
       });
     }
     this.blogGateway.emitPostHidden(post.id);
@@ -886,7 +887,10 @@ export class ModerationService {
     const targetTitle = post.title;
 
     if (dto.action === ModerationResolveAction.RESTORE) {
-      await this.restorePost(post);
+      // Bác báo cáo trên bài nháp / chờ duyệt không được xuất bản nó, chỉ hiện lại bài đã bị gỡ.
+      if (post.status === ContentStatus.REJECTED) {
+        await this.restorePost(post);
+      }
     } else {
       await this.rejectPost(
         post,
@@ -911,7 +915,8 @@ export class ModerationService {
     const targetAuthorId = comment.authorId ?? null;
     const targetTitle = comment.content.slice(0, 60);
 
-    if (dto.action === ModerationResolveAction.RESTORE) {
+    const isRemoved = comment.status === PostCommentStatus.REMOVED;
+    if (dto.action === ModerationResolveAction.RESTORE && isRemoved) {
       await this.prisma.blogPostComment.update({
         where: { id: comment.id },
         data: {
@@ -923,7 +928,7 @@ export class ModerationService {
         where: { id: comment.postId },
         data: { commentCount: { increment: 1 } },
       });
-    } else if (comment.status !== PostCommentStatus.REMOVED) {
+    } else if (dto.action !== ModerationResolveAction.RESTORE && !isRemoved) {
       await this.prisma.blogPostComment.update({
         where: { id: comment.id },
         data: {

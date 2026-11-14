@@ -60,7 +60,8 @@ describe('AccountService', () => {
       expect(saved).not.toBe(NEW_PASSWORD);
       expect(await bcrypt.compare(NEW_PASSWORD, saved)).toBe(true);
       expect(authService.logoutAllDevices).toHaveBeenCalledWith('u-1');
-    });
+      // Băm bcryptjs với cost thật (12) chạy JS thuần, chậm hơn 5s mặc định khi cả bộ test chạy song song.
+    }, 20_000);
 
     it('sai mật khẩu hiện tại → 400, không đổi gì', async () => {
       const status = await statusOf(

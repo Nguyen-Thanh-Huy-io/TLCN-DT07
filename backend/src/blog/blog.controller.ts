@@ -22,6 +22,7 @@ import { CreateCommentDto, UpdateCommentDto } from './dto/comment.dto';
 import {
   CreateBlogPostDto,
   ListBlogPostsQueryDto,
+  ListBlogReviewQueryDto,
   ReviewBlogPostDto,
   UpdateBlogPostDto,
 } from './dto/blog-post.dto';
@@ -51,6 +52,16 @@ export class BlogController {
     @Req() req: MaybeAuthedRequest,
   ) {
     return this.blogService.listPosts(req.user?.userId, query);
+  }
+
+  @ApiOperation({
+    summary: 'Hàng đợi duyệt bài: mọi trạng thái (Admin/Superadmin)',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @Get('review')
+  @RequireRoles(...ROLE_GROUPS.REVIEWERS)
+  listPostsForReview(@Query() query: ListBlogReviewQueryDto) {
+    return this.blogService.listPostsForReview(query);
   }
 
   @ApiOperation({ summary: 'Bài viết tôi đã lưu' })

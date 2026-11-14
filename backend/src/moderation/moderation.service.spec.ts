@@ -114,7 +114,21 @@ describe('ModerationService — xử lý báo cáo bình luận Blog', () => {
     expect(prisma.blogPost.updateMany).not.toHaveBeenCalled();
   });
 
+  it('bác báo cáo trên bình luận vẫn đang hiện: không tăng đếm bình luận', async () => {
+    await service.resolveReport(COMMENT_REPORT.id, 'reviewer-1', {
+      action: ModerationResolveAction.RESTORE,
+    });
+
+    expect(prisma.blogPostComment.update).not.toHaveBeenCalled();
+    expect(prisma.blogPost.updateMany).not.toHaveBeenCalled();
+  });
+
   it('khôi phục (AI bắt nhầm): hiện lại bình luận, tăng đếm và đánh dấu báo cáo DISMISSED', async () => {
+    prisma.blogPostComment.findUnique.mockResolvedValue({
+      ...VISIBLE_COMMENT,
+      status: PostCommentStatus.REMOVED,
+    });
+
     await service.resolveReport(COMMENT_REPORT.id, 'reviewer-1', {
       action: ModerationResolveAction.RESTORE,
     });

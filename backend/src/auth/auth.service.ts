@@ -14,6 +14,7 @@ import {
   email_type,
   loginAction,
   userRole,
+  userStatus,
 } from '@prisma/client';
 import {
   ILoginResponse,
@@ -544,18 +545,16 @@ export class AuthService {
         createdAt: new Date().toISOString(),
       };
 
-      // Execute critical Redis operations with detailed error handling and rollback
-      try {
-        // CRITICAL: Store refresh token hash in Redis
-        await this.redisService.set(
-          refreshTokenKey,
-          storedTokenData,
-          refreshTokenTTL,
-        );
-      } catch (error) {
+      // RedisService.set nuốt lỗi và trả false, nên phải kiểm giá trị trả về.
+      const tokenStored = await this.redisService.set(
+        refreshTokenKey,
+        storedTokenData,
+        refreshTokenTTL,
+      );
+      if (!tokenStored) {
         this.customLogger.error(
           `Failed to store refresh token in Redis for user ${user.id}`,
-          error instanceof Error ? error.stack : String(error),
+          undefined,
           'AuthService',
         );
         throw AppError.serviceUnavailable(
@@ -716,7 +715,7 @@ export class AuthService {
       select: { id: true, role: true, status: true, tokenVersion: true },
     });
 
-    if (!user || user.status !== 'ACTIVE') {
+    if (!user || user.status !== userStatus.ACTIVE) {
       await this.revokeAllUserTokens(userId);
       throw AppError.unauthorized('User account is not active');
     }
@@ -755,17 +754,15 @@ export class AuthService {
       rotatedFrom: jti, // Track rotation chain
     };
 
-    // Atomic rotation: delete old token and create new one
-    await Promise.all([
-      // Delete old refresh token
-      this.redisService.del(refreshTokenKey),
-      // Remove old JTI from session list
-      this.removeUserSession(userId, jti),
-      // Store new refresh token
-      this.redisService.set(newRefreshTokenKey, newStoredData, refreshTokenTTL),
-      // Add new JTI to session list
-      this.addUserSession(userId, newJti, refreshTokenTTL),
-    ]);
+    // removeUserSession và addUserSession cùng đọc-ghi danh sách phiên: chạy song song thì ghi đè nhau.
+    await this.redisService.del(refreshTokenKey);
+    await this.removeUserSession(userId, jti);
+    await this.redisService.set(
+      newRefreshTokenKey,
+      newStoredData,
+      refreshTokenTTL,
+    );
+    await this.addUserSession(userId, newJti, refreshTokenTTL);
 
     return {
       accessToken: newAccessToken,
@@ -874,10 +871,8 @@ export class AuthService {
     }
 
     // Remove oldest sessions (first in list)
-    const sessionsToRemove = sessions.slice(
-      0,
-      sessions.length - maxDevices + 1,
-    );
+    const excess = sessions.length - maxDevices;
+    const sessionsToRemove = sessions.slice(0, excess);
 
     await Promise.all(
       sessionsToRemove.map(async (jti) => {
@@ -887,7 +882,7 @@ export class AuthService {
     );
 
     // Keep only the most recent sessions
-    const updatedSessions = sessions.slice(sessions.length - maxDevices + 1);
+    const updatedSessions = sessions.slice(excess);
     const ttl = this.parseExpiryToSeconds(AUTH_CONFIG.TOKEN_EXPIRY.REFRESH);
     await this.redisService.set(userSessionsKey, updatedSessions, ttl);
   }

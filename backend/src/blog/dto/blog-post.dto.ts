@@ -6,10 +6,13 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export type BlogPostStatus = ContentStatus;
@@ -56,6 +59,30 @@ export class ListBlogPostsQueryDto {
   @IsOptional()
   @IsString()
   followingOnly?: string;
+}
+
+export const BLOG_REVIEW_DEFAULT_LIMIT = 50;
+export const BLOG_REVIEW_MAX_LIMIT = 100;
+
+export class ListBlogReviewQueryDto {
+  @ApiPropertyOptional({
+    enum: ContentStatus,
+    description: 'Lọc theo trạng thái; bỏ trống để lấy mọi trạng thái',
+  })
+  @IsOptional()
+  @IsEnum(ContentStatus)
+  status?: BlogPostStatus;
+
+  @ApiPropertyOptional({
+    default: BLOG_REVIEW_DEFAULT_LIMIT,
+    maximum: BLOG_REVIEW_MAX_LIMIT,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(BLOG_REVIEW_MAX_LIMIT)
+  limit?: number;
 }
 
 export class CreateBlogPostDto {

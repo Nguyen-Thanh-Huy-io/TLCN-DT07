@@ -5,26 +5,31 @@ import { UserCell } from '@/components/common/CommonUi';
 import { Badge } from '@/components/common/CommonUi';
 import { ColumnDef } from '@/types/table.types';
 import { CommonFilterOption, UserRole, UserStatus, NoticeTone } from '@/constants/enums';
-import api, { extractErrorMessage } from '@/services/api';
+import { extractErrorMessage } from '@/services/api';
+import { UserApiService, type UserItem } from '@/services/entities/user.service';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
 
 const ROLE_OPTIONS: UserRole[] = [UserRole.USER, UserRole.MODERATOR, UserRole.ADMIN, UserRole.SUPERADMIN];
 
-export interface UserItem {
-  id: string;
-  username: string;
-  fullName?: string;
-  email: string;
-  role: UserRole;
-  status: UserStatus;
-  createdAt?: string;
-}
+export type { UserItem };
 
+const USERS_PER_PAGE = 20;
+const SEARCH_DEBOUNCE_MS = 300;
+
+const isUserRole = (value: string): value is UserRole =>
+  Object.values<string>(UserRole).includes(value);
+const isUserStatus = (value: string): value is UserStatus =>
+  Object.values<string>(UserStatus).includes(value);
 
 export function UserList() {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [search, setSearch] = useState('');
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>(CommonFilterOption.ALL);
   const [selectedStatus, setSelectedStatus] = useState<string>(CommonFilterOption.ALL);
@@ -33,7 +38,7 @@ export function UserList() {
   // Đổi vai trò: backend thu hồi phiên cũ của tài khoản đó, người dùng phải đăng nhập lại.
   const changeRole = async (user: UserItem, role: UserRole) => {
     try {
-      await api.patch(`/users/${user.id}`, { role });
+      await UserApiService.changeRole(user.id, role);
       setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role } : u)));
       setNotice({ tone: 'ok', text: `Đã đổi vai trò của ${user.username} thành ${USER_ROLE_LABELS[role]}.` });
     } catch (err) {
@@ -42,19 +47,40 @@ export function UserList() {
   };
 
   useEffect(() => {
-    api
-      .get('/users')
-      .then((res) => {
-        const data = res.data?.items || res.data?.data || res.data || [];
-        // Danh sách rỗng là trạng thái hợp lệ — không thay bằng dữ liệu mẫu giả.
-        setUsers(Array.isArray(data) ? data : []);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setLoading(true);
+      setLoadError(null);
+      UserApiService.getUsers({
+        page,
+        limit: USERS_PER_PAGE,
+        search: search.trim() || undefined,
+        role: isUserRole(selectedRole) ? selectedRole : undefined,
+        status: isUserStatus(selectedStatus) ? selectedStatus : undefined,
       })
-      .catch((err) => {
-        console.error('Failed to fetch users:', err);
-        setUsers([]);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+        .then((result) => {
+          if (cancelled) return;
+          setUsers(result.items);
+          setTotalCount(result.total);
+          setTotalPages(result.totalPages);
+        })
+        .catch((err) => {
+          if (!cancelled) setLoadError(extractErrorMessage(err, 'Không tải được danh sách người dùng.'));
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [page, search, selectedRole, selectedStatus]);
+
+  const resetToFirstPage = <T,>(setter: (value: T) => void) => (value: T) => {
+    setter(value);
+    setPage(1);
+  };
 
   const columns: ColumnDef<UserItem>[] = [
     {
@@ -145,20 +171,8 @@ export function UserList() {
     []
   );
 
-  const displayedUsers = React.useMemo(() => {
-    return users.filter((u) => {
-      if (selectedRole !== CommonFilterOption.ALL && u.role !== selectedRole) {
-        return false;
-      }
-      if (selectedStatus !== CommonFilterOption.ALL && u.status !== selectedStatus) {
-        return false;
-      }
-      return true;
-    });
-  }, [users, selectedRole, selectedStatus]);
-
-  if (loading) {
-    return <div style={{ padding: 20 }}>Đang tải danh sách người dùng...</div>;
+  if (loadError) {
+    return <div role="alert" style={{ padding: 20, color: '#991b1b' }}>{loadError}</div>;
   }
 
   return (
@@ -179,8 +193,15 @@ export function UserList() {
     )}
     <DataTable<UserItem>
       columns={columns}
-      data={displayedUsers}
-      searchPlaceholder="Tìm kiếm tài khoản người dùng..."
+      data={users}
+      emptyMessage={loading ? 'Đang tải danh sách người dùng...' : 'Không có tài khoản nào phù hợp.'}
+      searchPlaceholder="Tìm theo email hoặc username..."
+      searchValue={search}
+      onSearchChange={resetToFirstPage(setSearch)}
+      totalCount={totalCount}
+      currentPage={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
       primaryButtonLabel="Thêm người dùng"
       onPrimaryButtonClick={() =>
         setNotice({ tone: 'ok', text: 'Người dùng tự tạo tài khoản ở trang Đăng ký; sau đó đổi vai trò tại đây.' })
@@ -190,13 +211,13 @@ export function UserList() {
           label: 'Vai trò',
           options: roleOptions,
           selectedValue: selectedRole,
-          onSelect: setSelectedRole,
+          onSelect: resetToFirstPage(setSelectedRole),
         },
         {
           label: 'Trạng thái',
           options: statusOptions,
           selectedValue: selectedStatus,
-          onSelect: setSelectedStatus,
+          onSelect: resetToFirstPage(setSelectedStatus),
         },
       ]}
     />

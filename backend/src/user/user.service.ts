@@ -2,7 +2,10 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
+import { Prisma, userRole, userStatus } from '@prisma/client';
+import { QueryUserDto } from './dto/query-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../common/services/prisma.service';
@@ -72,22 +75,50 @@ export class UserService {
     return user;
   }
 
-  async findAll() {
-    this.customLogger.log('Fetching all users', 'UserService');
-    return this.prisma.authUser.findMany({
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        role: true,
-        verified: true,
-        status: true,
-        userProfile: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(query: QueryUserDto) {
+    const { page = 1, limit = 20, search, role, status } = query;
+    const keyword = search?.trim();
+    const where: Prisma.authUserWhereInput = {
+      ...(role ? { role } : {}),
+      ...(status ? { status } : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { email: { contains: keyword, mode: 'insensitive' } },
+              { username: { contains: keyword, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.authUser.findMany({
+        where,
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          role: true,
+          verified: true,
+          status: true,
+          userProfile: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.authUser.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
   }
 
   async findOne(id: string) {
@@ -120,6 +151,15 @@ export class UserService {
 
     const { firstName, lastName, bio, avatarUrl, password, ...authData } =
       updateUserDto;
+
+    const losesSuperadmin =
+      before.role === userRole.SUPERADMIN &&
+      ((authData.role !== undefined && authData.role !== userRole.SUPERADMIN) ||
+        (authData.status !== undefined &&
+          authData.status !== userStatus.ACTIVE));
+    if (losesSuperadmin) {
+      await this.assertAnotherActiveSuperadmin(id);
+    }
 
     // Đổi vai trò / trạng thái / mật khẩu phải có hiệu lực ngay: thu hồi mọi token đang dùng.
     const revokeSessions =
@@ -177,9 +217,17 @@ export class UserService {
     return updated;
   }
 
-  async remove(id: string) {
+  async remove(id: string, requesterId?: string) {
     this.customLogger.warn(`Removing user with id: ${id}`, 'UserService');
-    await this.findOne(id);
+    if (id === requesterId) {
+      throw new ForbiddenException(
+        'Không thể tự xoá tài khoản đang đăng nhập.',
+      );
+    }
+    const target = await this.findOne(id);
+    if (target.role === userRole.SUPERADMIN) {
+      await this.assertAnotherActiveSuperadmin(id);
+    }
 
     await this.prisma.authUser.delete({
       where: { id },
@@ -189,5 +237,23 @@ export class UserService {
       success: true,
       message: `Người dùng với ID ${id} đã được xóa thành công`,
     };
+  }
+
+  /** Hệ thống luôn phải còn ít nhất 1 SUPERADMIN đang hoạt động — nếu không sẽ không ai quản trị được tài khoản. */
+  private async assertAnotherActiveSuperadmin(
+    excludeId: string,
+  ): Promise<void> {
+    const others = await this.prisma.authUser.count({
+      where: {
+        role: userRole.SUPERADMIN,
+        status: userStatus.ACTIVE,
+        id: { not: excludeId },
+      },
+    });
+    if (others === 0) {
+      throw new ConflictException(
+        'Phải còn ít nhất một SUPERADMIN đang hoạt động.',
+      );
+    }
   }
 }

@@ -5,7 +5,11 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { userRole, userStatus } from '@prisma/client';
 import { AUTH_CONFIG } from '../auth/config/auth.config';
 import * as bcrypt from 'bcryptjs';
@@ -27,7 +31,11 @@ describe('UserService', () => {
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
+    $transaction: jest.fn((queries: Promise<unknown>[]) =>
+      Promise.all(queries),
+    ),
   };
 
   const mockCustomLoggerService = {
@@ -130,14 +138,38 @@ describe('UserService', () => {
   });
 
   describe('findAll', () => {
-    it('should return an array of users', async () => {
+    it('trả trang người dùng kèm tổng số, lọc theo vai trò và từ khoá', async () => {
       const users = [{ id: 'uuid-1' }, { id: 'uuid-2' }];
       mockPrismaService.authUser.findMany.mockResolvedValue(users);
+      mockPrismaService.authUser.count.mockResolvedValue(45);
 
-      const result = await service.findAll();
+      const result = await service.findAll({
+        page: 2,
+        limit: 20,
+        role: userRole.MODERATOR,
+        search: ' bien ',
+      });
 
-      expect(mockPrismaService.authUser.findMany).toHaveBeenCalled();
-      expect(result).toEqual(users);
+      expect(mockPrismaService.authUser.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 20,
+          take: 20,
+          where: {
+            role: userRole.MODERATOR,
+            OR: [
+              { email: { contains: 'bien', mode: 'insensitive' } },
+              { username: { contains: 'bien', mode: 'insensitive' } },
+            ],
+          },
+        }),
+      );
+      expect(result).toEqual({
+        items: users,
+        total: 45,
+        page: 2,
+        limit: 20,
+        totalPages: 3,
+      });
     });
   });
 
@@ -231,7 +263,7 @@ describe('UserService', () => {
       mockPrismaService.authUser.findUnique.mockResolvedValue({ id: userId });
       mockPrismaService.authUser.delete.mockResolvedValue({ id: userId });
 
-      const result = await service.remove(userId);
+      const result = await service.remove(userId, 'admin-1');
 
       expect(mockPrismaService.authUser.findUnique).toHaveBeenCalledWith({
         where: { id: userId },
@@ -251,8 +283,60 @@ describe('UserService', () => {
 
       mockPrismaService.authUser.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove(userId)).rejects.toThrow(NotFoundException);
+      await expect(service.remove(userId, 'admin-1')).rejects.toThrow(
+        NotFoundException,
+      );
       expect(mockPrismaService.authUser.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('bảo vệ quyền SUPERADMIN', () => {
+    const superadmin = {
+      id: 'sa-1',
+      role: userRole.SUPERADMIN,
+      status: userStatus.ACTIVE,
+    };
+
+    it('không tự xoá tài khoản đang đăng nhập', async () => {
+      await expect(service.remove('sa-1', 'sa-1')).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(mockPrismaService.authUser.delete).not.toHaveBeenCalled();
+    });
+
+    it('không hạ quyền SUPERADMIN cuối cùng', async () => {
+      mockPrismaService.authUser.findUnique.mockResolvedValue(superadmin);
+      mockPrismaService.authUser.count.mockResolvedValue(0);
+
+      await expect(
+        service.update('sa-1', { role: userRole.USER }),
+      ).rejects.toThrow(ConflictException);
+      expect(mockPrismaService.authUser.update).not.toHaveBeenCalled();
+    });
+
+    it('không khoá hay xoá SUPERADMIN cuối cùng', async () => {
+      mockPrismaService.authUser.findUnique.mockResolvedValue(superadmin);
+      mockPrismaService.authUser.count.mockResolvedValue(0);
+
+      await expect(
+        service.update('sa-1', { status: userStatus.BLOCKED }),
+      ).rejects.toThrow(ConflictException);
+      await expect(service.remove('sa-1', 'admin-2')).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('còn SUPERADMIN khác thì hạ quyền được', async () => {
+      mockPrismaService.authUser.findUnique.mockResolvedValue(superadmin);
+      mockPrismaService.authUser.count.mockResolvedValue(1);
+      mockPrismaService.authUser.update.mockResolvedValue({
+        ...superadmin,
+        role: userRole.ADMIN,
+      });
+
+      await expect(
+        service.update('sa-1', { role: userRole.ADMIN }),
+      ).resolves.toBeDefined();
     });
   });
 });

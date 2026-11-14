@@ -7,6 +7,8 @@ import {
   Param,
   Delete,
   HttpStatus,
+  Query,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,9 +20,14 @@ import {
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { QueryUserDto } from './dto/query-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { RequireRoles } from '../common/access/access.decorator';
 import { ROLE_GROUPS } from '../common/access/access.constant';
+import {
+  currentUser,
+  type AuthenticatedRequest,
+} from '../common/access/roles.guard';
 
 @ApiTags('Users - Quản lý Người dùng')
 @Controller('users')
@@ -61,8 +68,8 @@ export class UserController {
     description: 'Lấy danh sách người dùng thành công',
     type: [UserResponseDto],
   })
-  async findAll() {
-    return this.userService.findAll();
+  async findAll(@Query() query: QueryUserDto) {
+    return this.userService.findAll(query);
   }
 
   @Get(':id')
@@ -131,7 +138,7 @@ export class UserController {
     status: HttpStatus.NOT_FOUND,
     description: 'Không tìm thấy người dùng',
   })
-  async remove(@Param('id') id: string) {
-    return this.userService.remove(id);
+  async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.userService.remove(id, currentUser(req)?.userId);
   }
 }

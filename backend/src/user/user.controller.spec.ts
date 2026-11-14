@@ -5,6 +5,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { AuthGuard } from '../common/guards/auth.guard';
+import { userRole } from '@prisma/client';
+import type { AuthenticatedRequest } from '../common/access/roles.guard';
 
 // Mock AuthGuard để tránh inject RedisService + PrismaService trong unit test
 const mockAuthGuard = { canActivate: jest.fn(() => true) };
@@ -102,7 +104,7 @@ describe('UserController', () => {
 
       mockUserService.findAll.mockResolvedValue(expectedResult);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll({});
 
       expect(result).toBe(expectedResult);
       expect(mockUserService.findAll).toHaveBeenCalled();
@@ -112,9 +114,9 @@ describe('UserController', () => {
     it('should call service without any parameters', async () => {
       mockUserService.findAll.mockResolvedValue([]);
 
-      await controller.findAll();
+      await controller.findAll({});
 
-      expect(mockUserService.findAll).toHaveBeenCalledWith();
+      expect(mockUserService.findAll).toHaveBeenCalledWith({});
     });
 
     it('should return whatever the service returns', async () => {
@@ -122,7 +124,7 @@ describe('UserController', () => {
 
       mockUserService.findAll.mockResolvedValue(serviceResponse);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll({});
 
       expect(result).toBe(serviceResponse);
     });
@@ -239,16 +241,20 @@ describe('UserController', () => {
   });
 
   describe('remove', () => {
+    const adminRequest = {
+      user: { userId: 'admin-1', role: userRole.SUPERADMIN },
+    } as AuthenticatedRequest;
+
     it('should remove a user', async () => {
       const userId = 'uuid-remove-1';
       const expectedResult = { success: true };
 
       mockUserService.remove.mockResolvedValue(expectedResult);
 
-      const result = await controller.remove(userId);
+      const result = await controller.remove(userId, adminRequest);
 
       expect(result).toBe(expectedResult);
-      expect(mockUserService.remove).toHaveBeenCalledWith(userId);
+      expect(mockUserService.remove).toHaveBeenCalledWith(userId, 'admin-1');
       expect(mockUserService.remove).toHaveBeenCalledTimes(1);
     });
 
@@ -257,9 +263,9 @@ describe('UserController', () => {
 
       mockUserService.remove.mockResolvedValue({ success: true });
 
-      await controller.remove(userId);
+      await controller.remove(userId, adminRequest);
 
-      expect(mockUserService.remove).toHaveBeenCalledWith(userId);
+      expect(mockUserService.remove).toHaveBeenCalledWith(userId, 'admin-1');
     });
 
     it('should work with different ids', async () => {
@@ -267,9 +273,9 @@ describe('UserController', () => {
 
       mockUserService.remove.mockResolvedValue({ success: true });
 
-      await controller.remove(userId);
+      await controller.remove(userId, adminRequest);
 
-      expect(mockUserService.remove).toHaveBeenCalledWith(userId);
+      expect(mockUserService.remove).toHaveBeenCalledWith(userId, 'admin-1');
     });
 
     it('should return whatever the service returns', async () => {
@@ -281,7 +287,7 @@ describe('UserController', () => {
 
       mockUserService.remove.mockResolvedValue(serviceResponse);
 
-      const result = await controller.remove(userId);
+      const result = await controller.remove(userId, adminRequest);
 
       expect(result).toBe(serviceResponse);
     });

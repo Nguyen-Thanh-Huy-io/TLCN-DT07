@@ -1,96 +1,61 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { userRole } from '@prisma/client';
 import request from 'supertest';
-import { AppModule } from './../src/app.module';
-import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor';
-import { AllExceptionsFilter } from '../src/common/filters/all-exception.filter';
-import { EmailQueueService } from '../src/common/queues/email/email.queue';
-import { CustomThrottlerGuard } from '../src/common/guards/custom-throttler.guard';
-import { AuthGuard } from '../src/common/guards/auth.guard';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import {
+  E2eUser,
+  createE2eApp,
+  createE2eUser,
+  removeE2eUsers,
+} from './e2e-app';
 
-describe('Dashboard E2E Integration Tests', () => {
+describe('Dashboard E2E — tổng quan CMS', () => {
   let app: INestApplication;
-
-  const mockEmailQueueService = {
-    sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
-    sendWelcomeEmail: jest.fn().mockResolvedValue(undefined),
-  };
-
-  const mockAuthGuard = {
-    canActivate: (context: any) => {
-      const req = context.switchToHttp().getRequest();
-      req.user = { userId: 'admin-test-id', role: 'ADMIN', tokenVersion: 1 };
-      return true;
-    },
-  };
+  let editor: E2eUser;
+  let learner: E2eUser;
 
   jest.setTimeout(60000);
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(EmailQueueService)
-      .useValue(mockEmailQueueService)
-      .overrideGuard(CustomThrottlerGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AuthGuard)
-      .useValue(mockAuthGuard)
-      .compile();
-
-    app = moduleFixture.createNestApplication();
-
-    const winstonLogger = app.get(WINSTON_MODULE_PROVIDER);
-    app.useGlobalFilters(new AllExceptionsFilter(winstonLogger));
-    app.useGlobalInterceptors(new TransformInterceptor(winstonLogger));
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
-
-    await app.init();
+    app = await createE2eApp();
+    editor = await createE2eUser(app, userRole.MODERATOR);
+    learner = await createE2eUser(app, userRole.USER);
   });
 
   afterAll(async () => {
+    await removeE2eUsers(app);
     await app.close();
   });
 
-  describe('1. GET /dashboard/overview - Lấy tổng quan thống kê CMS', () => {
-    it('trả về 200 kèm đầy đủ các chỉ số thống kê, hoạt động và phân bổ nội dung', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/dashboard/overview')
-        .expect(200);
+  it('chỉ nhân sự CMS xem được: khách 401, người học 403', async () => {
+    await request(app.getHttpServer()).get('/dashboard/overview').expect(401);
+    await request(app.getHttpServer())
+      .get('/dashboard/overview')
+      .set('Authorization', learner.auth)
+      .expect(403);
+  });
 
-      expect(res.body.statusCode).toBe(200);
-      expect(res.body.data).toBeDefined();
+  it('trả đủ số liệu, hoạt động gần đây, bài chờ duyệt và phân bổ nội dung', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/dashboard/overview')
+      .set('Authorization', editor.auth)
+      .expect(200);
 
-      // Kiểm tra cấu trúc counts
-      const counts = res.body.data.counts;
-      expect(counts).toBeDefined();
-      expect(typeof counts.articlesCount).toBe('number');
-      expect(typeof counts.topicsCount).toBe('number');
-      expect(typeof counts.lessonsCount).toBe('number');
-      expect(typeof counts.pendingLessonsCount).toBe('number');
-      expect(typeof counts.historicalEventsCount).toBe('number');
-
-      // Kiểm tra danh sách hoạt động gần đây
-      const activities = res.body.data.recentActivities;
-      expect(Array.isArray(activities)).toBe(true);
-
-      // Kiểm tra danh sách bài chờ duyệt
-      const pendingLessons = res.body.data.pendingLessons;
-      expect(Array.isArray(pendingLessons)).toBe(true);
-
-      // Kiểm tra phân bổ nội dung
-      const distribution = res.body.data.distribution;
-      expect(distribution).toBeDefined();
-      expect(typeof distribution.published).toBe('number');
-      expect(typeof distribution.draft).toBe('number');
-      expect(typeof distribution.pendingReview).toBe('number');
-    });
+    const { counts, recentActivities, pendingLessons, distribution } =
+      res.body.data;
+    for (const key of [
+      'articlesCount',
+      'topicsCount',
+      'lessonsCount',
+      'pendingLessonsCount',
+      'timelinesCount',
+      'totalKnowledgeCount',
+    ]) {
+      expect(typeof counts[key]).toBe('number');
+    }
+    expect(Array.isArray(recentActivities)).toBe(true);
+    expect(Array.isArray(pendingLessons)).toBe(true);
+    for (const key of ['published', 'draft', 'pendingReview']) {
+      expect(typeof distribution[key]).toBe('number');
+    }
   });
 });

@@ -83,8 +83,8 @@ docker compose up -d
 # 4. Install dependencies
 npm install
 
-# 5. Run database migrations
-npx prisma migrate dev
+# 5. Run database migrations (DB có dữ liệu từ trước 2026-11-14: `npm run db:baseline` một lần)
+npx prisma migrate deploy
 
 # 6. Start the development server
 npm run start:dev
@@ -745,8 +745,12 @@ nestjs-prisma-postgres-starter/
 
 6. **Run database migrations**
    ```bash
-   npx prisma migrate dev
+   npx prisma migrate deploy
    ```
+
+   > **Lịch sử migration đã gộp thành 1 baseline (2026-11-14).** 67 migration cũ không dựng được DB trống nên đã thay bằng `prisma/migrations/20261114000000_baseline` (sinh từ `prisma/schema`).
+   > * Máy mới / DB trống: `npx prisma migrate deploy`.
+   > * DB đã có dữ liệu từ trước ngày đó: chạy **một lần** `npm run db:baseline` (kiểm DB khớp schema, dọn sổ `_prisma_migrations`, đánh dấu baseline đã áp dụng — không đụng dữ liệu). Đừng chạy `migrate deploy` trước bước này: nó sẽ báo `type ... already exists` (không hỏng dữ liệu, chạy `npm run db:baseline` là gỡ được).
 
 7. **Generate Prisma client**
    ```bash
@@ -773,7 +777,8 @@ nestjs-prisma-postgres-starter/
 | `npm run test` | Run unit tests |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:cov` | Run tests with coverage report |
-| `npm run test:e2e` | Run end-to-end tests |
+| `npm run test:e2e:prepare` | Dựng lại DB e2e riêng (`<DB dev>_e2e`) từ `prisma/schema` |
+| `npm run test:e2e` | Run end-to-end tests (DB e2e + Redis DB 1, không đụng dữ liệu dev) |
 | `npm run lint` | Run ESLint and fix issues |
 | `npm run format` | Format code with Prettier |
 | `npm run docker:dev` | Start Docker services |
@@ -784,6 +789,7 @@ nestjs-prisma-postgres-starter/
 |---------|-------------|
 | `npx prisma generate` | Generate Prisma Client |
 | `npx prisma migrate dev` | Create and apply new migration |
+| `npm run db:baseline` | Chuyển DB cũ sang lịch sử baseline 2026-11-14 (chạy 1 lần) |
 | `npx prisma migrate deploy` | Apply pending migrations (production) |
 | `npx prisma migrate reset` | Reset database and apply all migrations |
 | `npx prisma studio` | Open Prisma Studio GUI |
@@ -2485,7 +2491,8 @@ npm run test:watch
 # Coverage report
 npm run test:cov
 
-# E2E tests
+# E2E tests — chạy trên DB riêng `<DB dev>_e2e` và Redis DB 1 (xem test/e2e-env.ts)
+npm run test:e2e:prepare   # xoá + dựng lại DB e2e từ prisma/schema
 npm run test:e2e
 ```
 
@@ -2502,7 +2509,10 @@ src/
 └── app.controller.spec.ts
 
 test/
-├── app.e2e-spec.ts                # End-to-end tests
+├── e2e-env.ts                     # Chọn DB / Redis riêng cho e2e, từ chối trùng DB dev
+├── e2e-app.ts                     # Dựng app giống main.ts + tạo tài khoản thật theo vai trò
+├── prepare-e2e-db.ts              # npm run test:e2e:prepare
+├── *.e2e-spec.ts                  # auth, lesson, tag, topic, dashboard, app
 └── jest-e2e.json                  # E2E Jest config
 ```
 

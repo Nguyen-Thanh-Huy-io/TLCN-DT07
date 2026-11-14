@@ -1,148 +1,111 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { userRole } from '@prisma/client';
 import request from 'supertest';
-import { AppModule } from './../src/app.module';
-import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor';
-import { AllExceptionsFilter } from '../src/common/filters/all-exception.filter';
-import { EmailQueueService } from '../src/common/queues/email/email.queue';
-import { CustomThrottlerGuard } from '../src/common/guards/custom-throttler.guard';
-import { AuthGuard } from '../src/common/guards/auth.guard';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import {
+  E2E_MARK,
+  E2eUser,
+  createE2eApp,
+  createE2eUser,
+  removeE2eUsers,
+} from './e2e-app';
 
-describe('Tag E2E Integration Tests', () => {
+describe('Tag E2E — tạo, gắn vào bài học, xoá', () => {
   let app: INestApplication;
-  let createdTopicId: string | undefined;
-  let createdLessonId: string;
-  let createdTagId: string;
-
-  const mockEmailQueueService = {
-    sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
-    sendWelcomeEmail: jest.fn().mockResolvedValue(undefined),
-  };
-
-  const mockAuthGuard = {
-    canActivate: (context: any) => {
-      const req = context.switchToHttp().getRequest();
-      req.user = { userId: 'admin-test-id', role: 'ADMIN', tokenVersion: 1 };
-      return true;
-    },
-  };
+  let editor: E2eUser;
+  let learner: E2eUser;
+  let topicId = '';
+  let lessonId = '';
+  let tagId = '';
 
   jest.setTimeout(60000);
 
+  const http = () => request(app.getHttpServer());
+
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(EmailQueueService)
-      .useValue(mockEmailQueueService)
-      .overrideGuard(CustomThrottlerGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AuthGuard)
-      .useValue(mockAuthGuard)
-      .compile();
+    app = await createE2eApp();
+    editor = await createE2eUser(app, userRole.MODERATOR);
+    learner = await createE2eUser(app, userRole.USER);
 
-    app = moduleFixture.createNestApplication();
+    const topic = await http()
+      .post('/topics')
+      .set('Authorization', editor.auth)
+      .send({ name: `${E2E_MARK}chu_de_tag_${Date.now()}` });
+    topicId = topic.body.data.id;
 
-    const winstonLogger = app.get(WINSTON_MODULE_PROVIDER);
-    app.useGlobalFilters(new AllExceptionsFilter(winstonLogger));
-    app.useGlobalInterceptors(new TransformInterceptor(winstonLogger));
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
-
-    await app.init();
-
-    // Tạo Lesson độc lập (không phụ thuộc Topic)
-    const lessonRes = await request(app.getHttpServer())
+    const lesson = await http()
       .post('/lessons')
+      .set('Authorization', editor.auth)
       .send({
-        title: `Bài học Tag E2E ${Date.now()}`,
-        contentRichText: 'Nội dung bài học test tag',
+        title: `${E2E_MARK}Bài học gắn tag ${Date.now()}`,
+        contentRichText: 'Nội dung bài học thử tag',
+        topicId,
       });
-    createdLessonId = lessonRes.body.data.id;
+    lessonId = lesson.body.data.id;
   });
 
   afterAll(async () => {
-    if (createdTagId) {
-      await request(app.getHttpServer()).delete(`/tags/${createdTagId}`);
-    }
-    if (createdLessonId) {
-      await request(app.getHttpServer()).delete(`/lessons/${createdLessonId}`);
-    }
-    if (createdTopicId) {
-      await request(app.getHttpServer()).delete(`/topics/${createdTopicId}`);
-    }
+    const remove = (path: string) =>
+      http().delete(path).set('Authorization', editor.auth);
+    if (tagId) await remove(`/tags/${tagId}`);
+    if (lessonId) await remove(`/lessons/${lessonId}`);
+    if (topicId) await remove(`/topics/${topicId}`);
+    await removeE2eUsers(app);
     await app.close();
   });
 
-  describe('1. POST /tags - Tạo mới Tag', () => {
-    it('thành công tạo mới một Tag hợp lệ', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/tags')
-        .send({
-          name: `Kháng chiến chống Pháp E2E ${Date.now()}`,
-          description: 'Tag cho các bài học chống Pháp',
-          colorHex: '#FF5733',
-        });
-
-      expect(res.status).toBe(201);
-      expect(res.body.statusCode).toBe(201);
-      expect(res.body.data.id).toBeDefined();
-      createdTagId = res.body.data.id;
-    });
+  it('người học không tạo được tag → 403', async () => {
+    await http()
+      .post('/tags')
+      .set('Authorization', learner.auth)
+      .send({ name: `${E2E_MARK}khong_duoc` })
+      .expect(403);
   });
 
-  describe('2. GET /tags - Danh sách Tag', () => {
-    it('lấy danh sách tags có phân trang', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/tags?page=1&limit=5')
-        .expect(200);
+  it('biên tập viên tạo tag; tên trùng → 409', async () => {
+    const name = `${E2E_MARK}Kháng chiến chống Pháp ${Date.now()}`;
+    const res = await http()
+      .post('/tags')
+      .set('Authorization', editor.auth)
+      .send({ name, colorHex: '#FF5733' })
+      .expect(201);
+    tagId = res.body.data.id;
 
-      expect(res.body.statusCode).toBe(200);
-      expect(Array.isArray(res.body.data.items)).toBe(true);
-    });
+    await http()
+      .post('/tags')
+      .set('Authorization', editor.auth)
+      .send({ name })
+      .expect(409);
   });
 
-  describe('3. POST /lessons/:id/tags - Gán Tag vào Lesson', () => {
-    it('gán tag vào bài học thành công', async () => {
-      const res = await request(app.getHttpServer())
-        .post(`/lessons/${createdLessonId}/tags`)
-        .send({
-          tagIds: [createdTagId],
-        })
-        .expect(201);
+  it('danh sách tag có phân trang', async () => {
+    const res = await http().get('/tags?page=1&limit=5').expect(200);
 
-      expect(res.body.statusCode).toBe(201);
-      expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data[0].id).toBe(createdTagId);
-    });
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+    expect(res.body.data.items.length).toBeLessThanOrEqual(5);
   });
 
-  describe('4. GET /lessons/:id/tags - Lấy danh sách Tag của Lesson', () => {
-    it('lấy danh sách tag của bài học thành công', async () => {
-      const res = await request(app.getHttpServer())
-        .get(`/lessons/${createdLessonId}/tags`)
-        .expect(200);
+  it('gắn tag vào bài học rồi đọc lại đúng tag đó', async () => {
+    const assigned = await http()
+      .post(`/lessons/${lessonId}/tags`)
+      .set('Authorization', editor.auth)
+      .send({ tagIds: [tagId] })
+      .expect(201);
+    expect(assigned.body.data.map((t: { id: string }) => t.id)).toEqual([
+      tagId,
+    ]);
 
-      expect(res.body.statusCode).toBe(200);
-      expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data[0].id).toBe(createdTagId);
-    });
+    const listed = await http()
+      .get(`/lessons/${lessonId}/tags`)
+      .set('Authorization', editor.auth)
+      .expect(200);
+    expect(listed.body.data.map((t: { id: string }) => t.id)).toEqual([tagId]);
   });
 
-  describe('5. DELETE /tags/:id - Xóa Tag', () => {
-    it('xóa tag thành công', async () => {
-      const res = await request(app.getHttpServer())
-        .delete(`/tags/${createdTagId}`)
-        .expect(200);
-
-      expect(res.body.statusCode).toBe(200);
-      createdTagId = '';
-    });
+  it('xoá tag', async () => {
+    await http()
+      .delete(`/tags/${tagId}`)
+      .set('Authorization', editor.auth)
+      .expect(200);
+    tagId = '';
   });
 });

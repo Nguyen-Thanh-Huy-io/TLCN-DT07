@@ -22,6 +22,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e:prepare": "ts-node test/prepare-e2e-db.ts",
     "postinstall": "prisma generate",
     "migrate:deploy": "prisma migrate deploy",
     "docker:dev": "docker compose -f docker-compose.yaml up -d",
@@ -30,7 +31,8 @@
     "seed:blogs": "ts-node prisma/seeds/blog-posts.seed.ts",
     "seed:notifications": "ts-node prisma/seeds/notification-test.seed.ts",
     "seed:all": "npm run seed:articles && npm run seed:admin && npm run seed:blogs",
-    "db:clean": "ts-node prisma/reset-clean-database.ts"
+    "db:clean": "ts-node prisma/reset-clean-database.ts",
+    "db:baseline": "ts-node prisma/baseline-existing-db.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seeds/articles-v1.seed.ts"

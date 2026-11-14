@@ -10,6 +10,8 @@ import { PrismaService } from '../src/common/services/prisma.service';
 import { CustomThrottlerGuard } from '../src/common/guards/custom-throttler.guard';
 import { AuthUtilsService } from '../src/auth/services/auth-utils.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import config from '../src/common/config/app.config';
+import { AUTH_CONFIG } from '../src/auth/config/auth.config';
 
 describe('Auth & User E2E Tests (Automated Integration)', () => {
   let app: INestApplication;
@@ -21,6 +23,7 @@ describe('Auth & User E2E Tests (Automated Integration)', () => {
   const testEmail = `e2e_test_${uniqueId}@example.com`;
   const testUsername = `e2e_user_${uniqueId}`;
   const testPassword = 'Password@123';
+  const loginRateLimitKey = `${config.redis_cache_key_prefix}:${AUTH_CONFIG.CACHE_PREFIXES.RATE_LIMIT}login:email:${testEmail}`;
   let refreshToken = '';
   let userId = '';
 
@@ -113,7 +116,7 @@ describe('Auth & User E2E Tests (Automated Integration)', () => {
 
     it('Negative: Should fail when registering with already existing email', async () => {
       // Clear rate limit key for this email to isolate conflict test
-      await redisService.del(`app:rate_limit:login:email:${testEmail}`);
+      await redisService.del(loginRateLimitKey);
 
       const response = await request(app.getHttpServer())
         .post('/auth')
@@ -144,8 +147,7 @@ describe('Auth & User E2E Tests (Automated Integration)', () => {
     });
 
     it('Positive: Should verify user email with OTP from Redis', async () => {
-      // Retrieve the generated OTP stored in Redis: app:verification_token:{email}
-      const verificationKey = `app:verification_token:${testEmail}`;
+      const verificationKey = `${config.redis_cache_key_prefix}:${AUTH_CONFIG.CACHE_PREFIXES.VERIFICATION_TOKEN}:${testEmail}`;
       const storedData = await redisService.get<{ code: string }>(
         verificationKey,
       );
@@ -168,7 +170,7 @@ describe('Auth & User E2E Tests (Automated Integration)', () => {
   describe('3. Login Flow', () => {
     it('Negative: Should reject login with wrong password', async () => {
       // Clear rate limit key for login attempt
-      await redisService.del(`app:rate_limit:login:email:${testEmail}`);
+      await redisService.del(loginRateLimitKey);
 
       const response = await request(app.getHttpServer())
         .post('/auth/login')
@@ -184,7 +186,7 @@ describe('Auth & User E2E Tests (Automated Integration)', () => {
 
     it('Positive: Should login successfully and return Access & Refresh tokens', async () => {
       // Clear rate limit key for login attempt
-      await redisService.del(`app:rate_limit:login:email:${testEmail}`);
+      await redisService.del(loginRateLimitKey);
 
       const response = await request(app.getHttpServer())
         .post('/auth/login')

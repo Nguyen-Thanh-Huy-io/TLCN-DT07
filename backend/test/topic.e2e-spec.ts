@@ -1,74 +1,44 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { userRole } from '@prisma/client';
 import request from 'supertest';
-import { AppModule } from './../src/app.module';
-import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor';
-import { AllExceptionsFilter } from '../src/common/filters/all-exception.filter';
-import { EmailQueueService } from '../src/common/queues/email/email.queue';
-import { CustomThrottlerGuard } from '../src/common/guards/custom-throttler.guard';
-import { AuthGuard } from '../src/common/guards/auth.guard';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import {
+  E2eUser,
+  createE2eApp,
+  createE2eUser,
+  removeE2eUsers,
+} from './e2e-app';
 
 describe('Topic E2E Integration Tests', () => {
   let app: INestApplication;
+  let admin: E2eUser;
   let createdTopicId: string;
-
-  const mockEmailQueueService = {
-    sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
-    sendWelcomeEmail: jest.fn().mockResolvedValue(undefined),
-  };
-
-  const mockAuthGuard = {
-    canActivate: (context: any) => {
-      const req = context.switchToHttp().getRequest();
-      req.user = { userId: 'admin-test-id', role: 'ADMIN', tokenVersion: 1 };
-      return true;
-    },
-  };
 
   jest.setTimeout(60000);
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(EmailQueueService)
-      .useValue(mockEmailQueueService)
-      .overrideGuard(CustomThrottlerGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AuthGuard)
-      .useValue(mockAuthGuard)
-      .compile();
-
-    app = moduleFixture.createNestApplication();
-
-    const winstonLogger = app.get(WINSTON_MODULE_PROVIDER);
-    app.useGlobalFilters(new AllExceptionsFilter(winstonLogger));
-    app.useGlobalInterceptors(new TransformInterceptor(winstonLogger));
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
-
-    await app.init();
+    app = await createE2eApp();
+    admin = await createE2eUser(app, userRole.ADMIN);
   });
 
   afterAll(async () => {
     if (createdTopicId) {
-      await request(app.getHttpServer()).delete(`/topics/${createdTopicId}`);
+      await request(app.getHttpServer())
+        .delete(`/topics/${createdTopicId}`)
+        .set('Authorization', admin.auth);
     }
+    await removeE2eUsers(app);
     await app.close();
   });
 
   describe('1. POST /topics - Tạo mới Topic', () => {
     it('thất bại với 404 nếu parentId không tồn tại', async () => {
-      const res = await request(app.getHttpServer()).post('/topics').send({
-        parentId: 'a0000000-0000-4000-8000-000000000000',
-        name: 'Chủ đề có cha không tồn tại',
-      });
+      const res = await request(app.getHttpServer())
+        .post('/topics')
+        .set('Authorization', admin.auth)
+        .send({
+          parentId: 'a0000000-0000-4000-8000-000000000000',
+          name: 'Chủ đề có cha không tồn tại',
+        });
 
       expect(res.status).toBe(404);
     });
@@ -76,6 +46,7 @@ describe('Topic E2E Integration Tests', () => {
     it('thành công tạo mới chủ đề hợp lệ', async () => {
       const res = await request(app.getHttpServer())
         .post('/topics')
+        .set('Authorization', admin.auth)
         .send({
           name: `Khởi nghĩa Trưng Nữ Vương ${Date.now()}`,
           description: 'Cuộc khởi nghĩa đánh đuổi Thái thú Tô Định',
@@ -97,16 +68,21 @@ describe('Topic E2E Integration Tests', () => {
 
     afterAll(async () => {
       if (childTopicId) {
-        await request(app.getHttpServer()).delete(`/topics/${childTopicId}`);
+        await request(app.getHttpServer())
+          .delete(`/topics/${childTopicId}`)
+          .set('Authorization', admin.auth);
       }
       if (parentTopicId) {
-        await request(app.getHttpServer()).delete(`/topics/${parentTopicId}`);
+        await request(app.getHttpServer())
+          .delete(`/topics/${parentTopicId}`)
+          .set('Authorization', admin.auth);
       }
     });
 
     it('tạo thành công chủ đề gốc (không có parentId)', async () => {
       const res = await request(app.getHttpServer())
         .post('/topics')
+        .set('Authorization', admin.auth)
         .send({
           name: `Chủ đề Độc lập Phi Niên Đại ${Date.now()}`,
           description: 'Chuyên đề lịch sử nghệ thuật không gắn giai đoạn',
@@ -121,6 +97,7 @@ describe('Topic E2E Integration Tests', () => {
     it('tạo thành công chủ đề con gắn với chủ đề cha (parentId)', async () => {
       const res = await request(app.getHttpServer())
         .post('/topics')
+        .set('Authorization', admin.auth)
         .send({
           parentId: parentTopicId,
           name: `Chủ đề Con ${Date.now()}`,
@@ -136,6 +113,7 @@ describe('Topic E2E Integration Tests', () => {
     it('từ chối khi chủ đề tự gán chính mình làm cha (Anti-Cycle)', async () => {
       const res = await request(app.getHttpServer())
         .patch(`/topics/${parentTopicId}`)
+        .set('Authorization', admin.auth)
         .send({
           parentId: parentTopicId,
         });
@@ -149,6 +127,7 @@ describe('Topic E2E Integration Tests', () => {
     it('lấy thành công cây chủ đề phân cấp qua GET /topics/tree', async () => {
       const res = await request(app.getHttpServer())
         .get('/topics/tree')
+        .set('Authorization', admin.auth)
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);
@@ -167,7 +146,10 @@ describe('Topic E2E Integration Tests', () => {
 
   describe('3. GET /topics - Danh sách Topics', () => {
     it('lấy danh sách chủ đề', async () => {
-      const res = await request(app.getHttpServer()).get(`/topics`).expect(200);
+      const res = await request(app.getHttpServer())
+        .get(`/topics`)
+        .set('Authorization', admin.auth)
+        .expect(200);
 
       expect(res.body.statusCode).toBe(200);
       expect(Array.isArray(res.body.data.items)).toBe(true);
@@ -179,6 +161,7 @@ describe('Topic E2E Integration Tests', () => {
     it('lấy chi tiết chủ đề vừa tạo', async () => {
       const res = await request(app.getHttpServer())
         .get(`/topics/${createdTopicId}`)
+        .set('Authorization', admin.auth)
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);
@@ -190,6 +173,7 @@ describe('Topic E2E Integration Tests', () => {
     it('cập nhật thành công tên chủ đề', async () => {
       const res = await request(app.getHttpServer())
         .patch(`/topics/${createdTopicId}`)
+        .set('Authorization', admin.auth)
         .send({
           name: 'Khởi nghĩa Trưng Nữ Vương (Đã cập nhật)',
         })
@@ -210,6 +194,7 @@ describe('Topic E2E Integration Tests', () => {
       // Tạo 2 chủ đề con độc lập
       const resA = await request(app.getHttpServer())
         .post('/topics')
+        .set('Authorization', admin.auth)
         .send({
           name: `Topic Con A ${Date.now()}`,
           status: 'PUBLISHED',
@@ -218,6 +203,7 @@ describe('Topic E2E Integration Tests', () => {
 
       const resB = await request(app.getHttpServer())
         .post('/topics')
+        .set('Authorization', admin.auth)
         .send({
           name: `Topic Con B ${Date.now()}`,
           status: 'PUBLISHED',
@@ -227,16 +213,21 @@ describe('Topic E2E Integration Tests', () => {
 
     afterAll(async () => {
       if (childTopicAId) {
-        await request(app.getHttpServer()).delete(`/topics/${childTopicAId}`);
+        await request(app.getHttpServer())
+          .delete(`/topics/${childTopicAId}`)
+          .set('Authorization', admin.auth);
       }
       if (childTopicBId) {
-        await request(app.getHttpServer()).delete(`/topics/${childTopicBId}`);
+        await request(app.getHttpServer())
+          .delete(`/topics/${childTopicBId}`)
+          .set('Authorization', admin.auth);
       }
     });
 
     it('từ chối khi gắn chính chủ đề làm con của nó', async () => {
       const res = await request(app.getHttpServer())
         .post(`/topics/${createdTopicId}/children`)
+        .set('Authorization', admin.auth)
         .send({
           childIds: [createdTopicId],
         });
@@ -247,6 +238,7 @@ describe('Topic E2E Integration Tests', () => {
     it('gắn thành công danh sách chủ đề con vào chủ đề cha', async () => {
       const res = await request(app.getHttpServer())
         .post(`/topics/${createdTopicId}/children`)
+        .set('Authorization', admin.auth)
         .send({
           childIds: [childTopicAId, childTopicBId],
         })
@@ -258,6 +250,7 @@ describe('Topic E2E Integration Tests', () => {
       // Kiểm tra chi tiết topic cha phải có 2 children
       const detailRes = await request(app.getHttpServer())
         .get(`/topics/${createdTopicId}`)
+        .set('Authorization', admin.auth)
         .expect(200);
 
       expect(detailRes.body.data.children.length).toBeGreaterThanOrEqual(2);
@@ -269,6 +262,7 @@ describe('Topic E2E Integration Tests', () => {
     it('tách thành công một chủ đề con thành chủ đề gốc độc lập qua DELETE /topics/:id/children/:childId', async () => {
       const res = await request(app.getHttpServer())
         .delete(`/topics/${createdTopicId}/children/${childTopicAId}`)
+        .set('Authorization', admin.auth)
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);
@@ -276,6 +270,7 @@ describe('Topic E2E Integration Tests', () => {
       // Kiểm tra lại chi tiết childTopicAId xem parentId đã về null chưa
       const childRes = await request(app.getHttpServer())
         .get(`/topics/${childTopicAId}`)
+        .set('Authorization', admin.auth)
         .expect(200);
 
       expect(childRes.body.data.parentId).toBeNull();
@@ -284,6 +279,7 @@ describe('Topic E2E Integration Tests', () => {
     it('tách chủ đề con còn lại qua PATCH parentId: null', async () => {
       const res = await request(app.getHttpServer())
         .patch(`/topics/${childTopicBId}`)
+        .set('Authorization', admin.auth)
         .send({
           parentId: null,
         })
@@ -301,6 +297,7 @@ describe('Topic E2E Integration Tests', () => {
     beforeAll(async () => {
       const res1 = await request(app.getHttpServer())
         .post('/topics')
+        .set('Authorization', admin.auth)
         .send({
           name: `Reorder Topic 1 ${Date.now()}`,
           displayOrder: 10,
@@ -310,6 +307,7 @@ describe('Topic E2E Integration Tests', () => {
 
       const res2 = await request(app.getHttpServer())
         .post('/topics')
+        .set('Authorization', admin.auth)
         .send({
           name: `Reorder Topic 2 ${Date.now()}`,
           displayOrder: 20,
@@ -320,16 +318,21 @@ describe('Topic E2E Integration Tests', () => {
 
     afterAll(async () => {
       if (reorderTopic1Id) {
-        await request(app.getHttpServer()).delete(`/topics/${reorderTopic1Id}`);
+        await request(app.getHttpServer())
+          .delete(`/topics/${reorderTopic1Id}`)
+          .set('Authorization', admin.auth);
       }
       if (reorderTopic2Id) {
-        await request(app.getHttpServer()).delete(`/topics/${reorderTopic2Id}`);
+        await request(app.getHttpServer())
+          .delete(`/topics/${reorderTopic2Id}`)
+          .set('Authorization', admin.auth);
       }
     });
 
     it('từ chối khi items rỗng', async () => {
       const res = await request(app.getHttpServer())
         .patch('/topics/reorder')
+        .set('Authorization', admin.auth)
         .send({ items: [] });
 
       expect(res.status).toBe(400);
@@ -338,6 +341,7 @@ describe('Topic E2E Integration Tests', () => {
     it('hoán đổi thành công thứ tự hiển thị của 2 chủ đề', async () => {
       const res = await request(app.getHttpServer())
         .patch('/topics/reorder')
+        .set('Authorization', admin.auth)
         .send({
           items: [
             { id: reorderTopic1Id, displayOrder: 20 },
@@ -352,11 +356,13 @@ describe('Topic E2E Integration Tests', () => {
       // Kiểm tra lại chi tiết từng topic
       const check1 = await request(app.getHttpServer())
         .get(`/topics/${reorderTopic1Id}`)
+        .set('Authorization', admin.auth)
         .expect(200);
       expect(check1.body.data.displayOrder).toBe(20);
 
       const check2 = await request(app.getHttpServer())
         .get(`/topics/${reorderTopic2Id}`)
+        .set('Authorization', admin.auth)
         .expect(200);
       expect(check2.body.data.displayOrder).toBe(10);
     });
@@ -366,12 +372,14 @@ describe('Topic E2E Integration Tests', () => {
     it('xóa thành công chủ đề', async () => {
       const res = await request(app.getHttpServer())
         .delete(`/topics/${createdTopicId}`)
+        .set('Authorization', admin.auth)
         .expect(200);
 
       expect(res.body.statusCode).toBe(200);
 
       await request(app.getHttpServer())
         .get(`/topics/${createdTopicId}`)
+        .set('Authorization', admin.auth)
         .expect(404);
 
       createdTopicId = '';

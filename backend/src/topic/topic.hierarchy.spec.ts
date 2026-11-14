@@ -57,6 +57,14 @@ describe('TopicService — phân cấp, gắn/tách con, sắp xếp, cache', ()
       ({ where }: { where: { id: string } }) =>
         Promise.resolve(stored.find((t) => t.id === where.id) ?? null),
     );
+    prisma.topic.findMany.mockImplementation(
+      ({ where }: { where: { parentId?: { in?: string[] } } }) =>
+        Promise.resolve(
+          stored.filter(
+            (t) => t.parentId && where.parentId?.in?.includes(t.parentId),
+          ),
+        ),
+    );
     prisma.topic.update.mockImplementation(
       ({ where, data }: { where: { id: string }; data: object }) =>
         Promise.resolve({ id: where.id, ...data }),
@@ -137,6 +145,26 @@ describe('TopicService — phân cấp, gắn/tách con, sắp xếp, cache', ()
         }),
       ).resolves.toMatchObject({ name: 'Vừa đủ' });
     });
+  });
+
+  it('chuyển cả nhánh: tính luôn các cấp con, không để cây vượt giới hạn', async () => {
+    const max = TOPIC_HIERARCHY_CONFIG.MAX_DEPTH;
+    // Chuỗi c1…c(max-1); nhánh b1 ← b2 ← b3 (b1 có 2 cấp con). Dưới c(max-3) thì b3 vừa đúng cấp max.
+    stored = [
+      ...chain(max - 1),
+      { id: 'b1', name: 'Nhánh', parentId: null },
+      { id: 'b2', name: 'Con', parentId: 'b1' },
+      { id: 'b3', name: 'Cháu', parentId: 'b2' },
+    ];
+
+    await expect(
+      service.update('b1', { parentId: `c${max - 2}` }),
+    ).rejects.toThrow(TOPIC_ERROR_MESSAGES.MAX_DEPTH_EXCEEDED);
+    expect(prisma.topic.update).not.toHaveBeenCalled();
+
+    await expect(
+      service.update('b1', { parentId: `c${max - 3}` }),
+    ).resolves.toBeDefined();
   });
 
   it('tạo chủ đề: mặc định bản nháp, sinh slug tiếng Việt, xoá cache danh sách', async () => {

@@ -110,7 +110,32 @@ export class TopicService {
       currentAncestorId = ancestor.parentId;
     }
 
+    // Di chuyển cả một nhánh: các cấp con của nó cũng dời xuống theo.
+    if (
+      currentTopicId &&
+      depth + (await this.countLevelsBelow(currentTopicId)) >
+        this.MAX_HIERARCHY_DEPTH
+    ) {
+      throw new BadRequestException(TOPIC_ERROR_MESSAGES.MAX_DEPTH_EXCEEDED);
+    }
+
     return parent;
+  }
+
+  /** Số cấp con cháu bên dưới một chủ đề (0 nếu không có con) — mỗi cấp 1 truy vấn. */
+  private async countLevelsBelow(topicId: string): Promise<number> {
+    let levels = 0;
+    let frontier = [topicId];
+    while (levels <= this.MAX_HIERARCHY_DEPTH) {
+      const children = await this.prisma.topic.findMany({
+        where: { parentId: { in: frontier } },
+        select: { id: true },
+      });
+      if (children.length === 0) break;
+      levels++;
+      frontier = children.map((child) => child.id);
+    }
+    return levels;
   }
 
   /**

@@ -6,6 +6,8 @@ import { Icon } from '@/components/icons/Icon';
 import { LearningPathItem } from '@/services/entities/learning-path.service';
 import { StudioTab } from '../HisgoStudioView';
 import { STATUS_LABEL_MAP } from '@/constants/ui-theme';
+import { StatusPill } from '@/features/articles/components/StatusPill';
+import { ArchiveStatusButton } from '@/components/common/ArchiveStatusButton';
 
 // --- LearningPathListPanel.tsx ---
 interface LearningPathListPanelProps {
@@ -70,15 +72,7 @@ export function LearningPathListPanel({ paths, loading, onSelectPath, onCreatePa
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span
-                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                      path.status === ContentStatus.PUBLISHED
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-amber-50 text-amber-900 border border-amber-200'
-                    }`}
-                  >
-                    {path.status === ContentStatus.PUBLISHED ? STATUS_LABEL_MAP[ContentStatus.PUBLISHED] : 'Bản nháp'}
-                  </span>
+                  <StatusPill status={path.status} />
                   <Icon name={IconName.ARROW} size={13} className="text-slate-400 group-hover:text-emerald-700" />
                 </div>
 
@@ -108,7 +102,7 @@ interface LearningPathToolbarProps {
   onBackToList: () => void;
   onOpenEditPath: () => void;
   onOpenCreateLesson: () => void;
-  onTogglePublishPath: () => void;
+  onChangePathStatus: (next: ContentStatus) => void;
   /** Chỉ người duyệt được xuất bản / chuyển về nháp. */
   canPublish: boolean;
   actionLoading: boolean;
@@ -122,7 +116,7 @@ export function LearningPathToolbar({
   onBackToList,
   onOpenEditPath,
   onOpenCreateLesson,
-  onTogglePublishPath,
+  onChangePathStatus,
   canPublish,
   actionLoading,
 }: LearningPathToolbarProps) {
@@ -175,10 +169,21 @@ export function LearningPathToolbar({
           </button>
         </div>
 
-        {canPublish ? (
+        <ArchiveStatusButton
+          status={currentPath.status}
+          isReviewer={canPublish}
+          disabled={actionLoading}
+          onChangeStatus={onChangePathStatus}
+          className="secondary-button !h-8 !text-xs !px-3"
+        />
+        {currentPath.status === ContentStatus.ARCHIVED ? null : canPublish ? (
         <button
           type="button"
-          onClick={onTogglePublishPath}
+          onClick={() =>
+            onChangePathStatus(
+              currentPath.status === ContentStatus.PUBLISHED ? ContentStatus.DRAFT : ContentStatus.PUBLISHED,
+            )
+          }
           disabled={actionLoading}
           className={`!h-8 !text-xs !px-3 font-semibold rounded-lg flex items-center gap-1.5 transition-all ${
             currentPath.status === ContentStatus.PUBLISHED
@@ -221,15 +226,7 @@ export function StudioHeader({ activeTab, onTabChange, currentPath, libraryCount
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold tracking-tight text-slate-900">HISGO Studio</h1>
               {currentPath && (
-                <span
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
-                    currentPath.status === ContentStatus.PUBLISHED
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                      : 'bg-amber-50 text-amber-900 border-amber-200'
-                  }`}
-                >
-                  {currentPath.status === ContentStatus.PUBLISHED ? STATUS_LABEL_MAP[ContentStatus.PUBLISHED] : 'Bản nháp'}
-                </span>
+                <StatusPill status={currentPath.status} />
               )}
             </div>
             <p className="text-xs text-slate-600 mt-0.5 font-medium">Biên soạn bài học và tổ chức thành lộ trình học</p>

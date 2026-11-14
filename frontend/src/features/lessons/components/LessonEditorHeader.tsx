@@ -4,6 +4,7 @@ import React, { RefObject, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
 import { Badge } from '@/components/common/CommonUi';
+import { ArchiveStatusButton } from '@/components/common/ArchiveStatusButton';
 import { DifficultyLevel, IconName, ContentStatus } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
@@ -12,6 +13,7 @@ import { AutoSaveState, EditorViewMode, LessonHeaderMetaFormProps } from '../typ
 interface LessonEditorHeaderProps {
   lessonId: string | null;
   status: ContentStatus;
+  isReviewer: boolean;
   saving: boolean;
   autoSaveState: AutoSaveState;
   lastSavedAt: Date | null;
@@ -37,6 +39,7 @@ interface LessonEditorHeaderProps {
 export function LessonEditorHeader({
   lessonId,
   status,
+  isReviewer,
   saving,
   autoSaveState,
   lastSavedAt,
@@ -113,15 +116,27 @@ export function LessonEditorHeader({
           <span>Thuộc tính</span>
         </button>
 
-        <button
-          type="button"
-          id="btn-header-submit"
-          className="primary-button !h-8 !text-xs md:!text-sm !px-4 cursor-pointer font-bold"
-          onClick={() => onSaveLesson(ContentStatus.PENDING_REVIEW)}
-          disabled={saving}
-        >
-          {saving ? 'Đang lưu...' : lessonId ? 'Cập nhật' : 'Gửi duyệt'}
-        </button>
+        {lessonId && (
+          <ArchiveStatusButton
+            status={status}
+            isReviewer={isReviewer}
+            disabled={saving}
+            onChangeStatus={onSaveLesson}
+            className="secondary-button !h-8 !text-xs !px-2.5"
+          />
+        )}
+
+        {status !== ContentStatus.ARCHIVED && (
+          <button
+            type="button"
+            id="btn-header-submit"
+            className="primary-button !h-8 !text-xs md:!text-sm !px-4 cursor-pointer font-bold"
+            onClick={() => onSaveLesson(ContentStatus.PENDING_REVIEW)}
+            disabled={saving}
+          >
+            {saving ? 'Đang lưu...' : lessonId ? 'Cập nhật' : 'Gửi duyệt'}
+          </button>
+        )}
 
         <div className="relative" ref={moreMenuRef}>
           <button

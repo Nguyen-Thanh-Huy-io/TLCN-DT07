@@ -1,9 +1,11 @@
 import {
+  BadRequestException,
   CanActivate,
   ExecutionContext,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
+import { ContentStatus } from '@prisma/client';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { PrismaService } from '../services/prisma.service';
@@ -37,7 +39,8 @@ export interface ContentResource {
  * Chạy sau AuthGuard cho mọi endpoint ghi nội dung CMS:
  *  1. chỉ nhân sự (biên tập viên trở lên) được ghi;
  *  2. biên tập viên chỉ đặt được trạng thái nháp/chờ duyệt;
- *  3. biên tập viên không sửa/xóa nội dung đã xuất bản hoặc lưu trữ.
+ *  3. biên tập viên không sửa/xóa nội dung đã xuất bản hoặc lưu trữ;
+ *  4. lưu trữ chỉ đi một vòng PUBLISHED → ARCHIVED → DRAFT, và chỉ người duyệt làm được.
  * Bài học còn bị chặn đặt PUBLISHED/REJECTED trực tiếp — phải đi qua endpoint duyệt.
  */
 @Injectable()
@@ -74,6 +77,8 @@ export class ContentWriteGuard implements CanActivate {
         : null;
     const current =
       id && resource ? await this.findStatus(resource.model, id) : null;
+
+    this.assertArchiveTransition(current, nextStatus, isReviewer);
 
     if (
       this.handleVersionedDirective(request, resource, id, current, isReviewer)
@@ -128,6 +133,29 @@ export class ContentWriteGuard implements CanActivate {
     }
     if (!isReviewer && !EDITOR_ALLOWED_STATUSES.includes(nextStatus)) {
       throw new ForbiddenException(ACCESS_MESSAGES.EDITOR_CANNOT_PUBLISH);
+    }
+  }
+
+  /** Kiểm trước nhánh bản sửa chờ duyệt, để biên tập viên không lưu trữ được qua đường đề xuất sửa. */
+  private assertArchiveTransition(
+    current: string | null,
+    nextStatus: unknown,
+    isReviewer: boolean,
+  ) {
+    if (typeof nextStatus !== 'string' || nextStatus === current) return;
+    if (nextStatus === ContentStatus.ARCHIVED) {
+      if (!isReviewer) {
+        throw new ForbiddenException(ACCESS_MESSAGES.EDITOR_CANNOT_PUBLISH);
+      }
+      if (current !== ContentStatus.PUBLISHED) {
+        throw new BadRequestException(ACCESS_MESSAGES.ARCHIVE_ONLY_PUBLISHED);
+      }
+    }
+    if (
+      current === ContentStatus.ARCHIVED &&
+      nextStatus !== ContentStatus.DRAFT
+    ) {
+      throw new BadRequestException(ACCESS_MESSAGES.ARCHIVED_RESTORE_TO_DRAFT);
     }
   }
 

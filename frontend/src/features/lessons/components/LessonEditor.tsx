@@ -19,6 +19,8 @@ import { LessonPreviewContent } from './LessonPreviewContent';
 import { LessonPropertiesPanel } from './properties/LessonPropertiesPanel';
 import { buildLessonTocAndHtml } from '../utils/lesson-toc.util';
 import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
+import { useAuthSession } from '@/services/auth/use-auth-session';
+import { isReviewerRole } from '@/services/auth/public-auth.service';
 
 export interface LessonEditorProps {
   lessonId?: string;
@@ -60,6 +62,8 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
   }, []);
 
   // Facade Hook
+  const user = useAuthSession();
+  const isReviewer = Boolean(user && isReviewerRole(user.role));
   const {
     title,
     setTitle,
@@ -301,6 +305,7 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
       <LessonEditorHeader
         lessonId={lessonId}
         status={status}
+        isReviewer={isReviewer}
         saving={saving}
         autoSaveState={autoSaveState}
         lastSavedAt={lastSavedAt}

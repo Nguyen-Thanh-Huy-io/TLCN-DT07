@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuthSession } from '@/services/auth/use-auth-session';
+import { isReviewerRole } from '@/services/auth/public-auth.service';
 import { ContentStatus } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import type { TopicItem } from '@/types/models';
@@ -85,6 +87,8 @@ export function useTopicEditor(topicId?: string) {
   const searchParams = useSearchParams();
   const queryParentId = searchParams.get('parentId') || '';
   const isEditMode = Boolean(topicId);
+  const user = useAuthSession();
+  const isReviewer = Boolean(user && isReviewerRole(user.role));
 
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [savingAction, setSavingAction] = useState<PublishActionType | null>(null);
@@ -194,10 +198,11 @@ export function useTopicEditor(topicId?: string) {
     return allTopics.filter((t) => t.id !== topicId && t.parentId !== topicId && !childIds.has(t.id));
   }, [allTopics, isEditMode, topicId, childrenTopics]);
 
-  const handleAction = async (action: PublishActionType) => {
+  /** Lưu form với trạng thái đích; trả về true khi đã lưu thẳng (không thành bản sửa chờ duyệt). */
+  const saveWithStatus = async (targetStatus: ContentStatus): Promise<boolean> => {
     if (!name.trim()) {
       alert('Vui lòng nhập tên chủ đề.');
-      return;
+      return false;
     }
     const payload = {
       name: name.trim(),
@@ -206,27 +211,38 @@ export function useTopicEditor(topicId?: string) {
       parentId: parentId || null,
       displayOrder: Number(displayOrder || 0),
       isSequential,
-      status: action === PublishActionType.DRAFT ? ContentStatus.DRAFT : ContentStatus.PUBLISHED,
+      status: targetStatus,
     };
     try {
-      setSavingAction(action);
-      if (isEditMode && topicId) {
-        const saved = await TopicApiService.updateTopic(topicId, payload);
-        if (isRevisionPending(saved)) {
-          setPendingRevision(saved.revision);
-          setRevisionNotice(saved.message);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          return;
-        }
-      } else {
+      if (!isEditMode || !topicId) {
         await TopicApiService.createTopic({ ...payload, parentId: payload.parentId || undefined });
+        return true;
       }
-      router.push(APP_ROUTES.CURRICULUM);
+      const saved = await TopicApiService.updateTopic(topicId, payload);
+      if (!isRevisionPending(saved)) return true;
+      setPendingRevision(saved.revision);
+      setRevisionNotice(saved.message);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return false;
     } catch (err) {
       alert(extractErrorMessage(err, 'Không thể lưu chủ đề lịch sử.'));
-    } finally {
-      setSavingAction(null);
+      return false;
     }
+  };
+
+  const handleAction = async (action: PublishActionType) => {
+    setSavingAction(action);
+    const saved = await saveWithStatus(action === PublishActionType.DRAFT ? ContentStatus.DRAFT : ContentStatus.PUBLISHED);
+    setSavingAction(null);
+    if (saved) router.push(APP_ROUTES.CURRICULUM);
+  };
+
+  /** Lưu trữ / khôi phục về nháp: ở lại trang và nạp lại trạng thái mới. */
+  const changeArchiveStatus = async (next: ContentStatus) => {
+    setActionLoading(true);
+    const saved = await saveWithStatus(next);
+    setActionLoading(false);
+    if (saved) setReloadKey((k) => k + 1);
   };
 
   /** Chạy 1 thao tác trên chủ đề con rồi nạp lại chi tiết + danh sách chủ đề. */
@@ -283,6 +299,7 @@ export function useTopicEditor(topicId?: string) {
 
   return {
     isEditMode,
+    isReviewer,
     loadingInitial,
     savingAction,
     actionLoading,
@@ -305,6 +322,7 @@ export function useTopicEditor(topicId?: string) {
     orderExplanationText,
     previewTimeline,
     handleAction,
+    changeArchiveStatus,
     handleAttachChild,
     handleDetachChild,
     handleQuickCreateChild,

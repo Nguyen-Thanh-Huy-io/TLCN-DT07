@@ -38,4 +38,8 @@ export const ACCESS_MESSAGES = {
     'Xuất bản hoặc từ chối bài học phải thực hiện qua chức năng Duyệt bài.',
   CANNOT_REVIEW_OWN: 'Bạn không thể tự duyệt bài học do chính mình biên soạn.',
   NOT_IN_REVIEW: 'Chỉ duyệt được bài học đang ở trạng thái chờ duyệt.',
+  ARCHIVE_ONLY_PUBLISHED:
+    'Chỉ lưu trữ được nội dung đang xuất bản (bản nháp thì xoá hoặc giữ nháp).',
+  ARCHIVED_RESTORE_TO_DRAFT:
+    'Nội dung đang lưu trữ chỉ khôi phục được về bản nháp, rồi mới gửi duyệt / xuất bản lại.',
 } as const;

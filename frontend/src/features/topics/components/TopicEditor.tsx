@@ -55,6 +55,9 @@ export function TopicEditor({ topicId }: TopicEditorProps) {
         onToggleCurriculumPreview={() => setIsCurriculumPreviewOpen((prev) => !prev)}
         onCancel={() => router.push(APP_ROUTES.CURRICULUM)}
         onAction={editor.handleAction}
+        isReviewer={editor.isReviewer}
+        archiveBusy={editor.actionLoading}
+        onChangeArchiveStatus={(next) => void editor.changeArchiveStatus(next)}
       />
 
       <form

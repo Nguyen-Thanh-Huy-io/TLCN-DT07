@@ -1,5 +1,6 @@
 'use client';
 import { CommonFilterOption, ContentStatus } from '@/constants/enums';
+import { StatusPill } from '@/features/articles/components/StatusPill';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
@@ -27,10 +28,6 @@ const PAGE_SIZE = 9;
 const BTN_VIEW_MODE_BASE = 'w-7 h-7 flex items-center justify-center rounded-md transition';
 const BTN_VIEW_MODE_ACTIVE = 'bg-white text-emerald-700 shadow-2xs';
 const BTN_VIEW_MODE_INACTIVE = 'text-slate-500 hover:text-slate-800';
-const BADGE_PUBLISHED = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-const BADGE_DRAFT = 'bg-amber-50 text-amber-700 border border-amber-200';
-const LABEL_PUBLISHED = 'Đã xuất bản';
-const LABEL_DRAFT = 'Bản nháp';
 
 /** Tab "Thư viện Lesson": danh sách mọi bài học độc lập, tìm kiếm + lọc trạng thái,
  * có thể mở lại để soạn thảo hoặc tái sử dụng vào nhiều lộ trình/chương khác nhau.
@@ -136,6 +133,8 @@ export function LessonLibraryPanel({
             <option value={CommonFilterOption.ALL}>Tất cả trạng thái</option>
             <option value={ContentStatus.PUBLISHED}>Đã xuất bản</option>
             <option value={ContentStatus.DRAFT}>Bản nháp</option>
+            <option value={ContentStatus.PENDING_REVIEW}>Chờ duyệt</option>
+            <option value={ContentStatus.ARCHIVED}>Lưu trữ</option>
           </select>
 
           {/* Chuyển đổi Lưới / Danh sách */}
@@ -181,13 +180,7 @@ export function LessonLibraryPanel({
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                        lesson.status === ContentStatus.PUBLISHED ? BADGE_PUBLISHED : BADGE_DRAFT
-                      }`}
-                    >
-                      {lesson.status === ContentStatus.PUBLISHED ? LABEL_PUBLISHED : LABEL_DRAFT}
-                    </span>
+                    <StatusPill status={lesson.status} />
                     <span className="text-xs text-slate-500 font-medium">
                       {lesson.createdAt ? new Date(lesson.createdAt).toLocaleDateString('vi-VN') : ''}
                     </span>
@@ -294,13 +287,7 @@ export function LessonLibraryPanel({
                       <span className="line-clamp-2 leading-relaxed">{lesson.description || 'Chưa có mô tả tóm tắt'}</span>
                     </td>
                     <td className="px-3 py-2.5 align-top">
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap ${
-                          lesson.status === ContentStatus.PUBLISHED ? BADGE_PUBLISHED : BADGE_DRAFT
-                        }`}
-                      >
-                        {lesson.status === ContentStatus.PUBLISHED ? LABEL_PUBLISHED : LABEL_DRAFT}
-                      </span>
+                      <StatusPill status={lesson.status} />
                     </td>
                     <td className="px-3 py-2.5 align-top text-slate-600 font-mono whitespace-nowrap">
                       {lesson.updatedAt ? new Date(lesson.updatedAt).toLocaleDateString('vi-VN') : '-'}

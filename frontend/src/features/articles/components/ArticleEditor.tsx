@@ -9,6 +9,7 @@ import { ContentStatus } from '@/constants/enums';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
+import { ArchiveStatusButton } from '@/components/common/ArchiveStatusButton';
 import { TagApiService } from '@/services/entities/tag.service';
 import { UploadApiService } from '@/services/entities/upload.service';
 import type { TagItem } from '@/types/models';
@@ -303,7 +304,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
             <ExternalLink size={14} /> Xem công khai
           </a>
         )}
-        {status !== ContentStatus.PUBLISHED && (
+        {status !== ContentStatus.PUBLISHED && status !== ContentStatus.ARCHIVED && (
           <>
             <button type="button" disabled={saving} onClick={() => save(ContentStatus.DRAFT)} className="secondary-button !h-9 !text-sm">
               <Save size={15} /> Lưu nháp
@@ -332,6 +333,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
             )}
           </>
         )}
+        {isEdit && <ArchiveStatusButton status={status} isReviewer={isReviewer} disabled={saving} onChangeStatus={save} />}
       </div>
 
       {isEdit && (

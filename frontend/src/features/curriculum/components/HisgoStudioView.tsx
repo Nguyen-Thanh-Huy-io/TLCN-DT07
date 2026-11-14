@@ -106,7 +106,7 @@ export function HisgoStudioView() {
     handleCreateChapter,
     handleToggleLessonForNewChapter,
     handleMoveNewChapterLessonOrder,
-    handleTogglePublishPath,
+    handleChangePathStatus,
     handleDeleteChapter,
     filteredLibraryLessons,
     modalFilteredLessons,
@@ -154,7 +154,7 @@ export function HisgoStudioView() {
                   onBackToList={() => selectPath(null)}
                   onOpenEditPath={handleOpenEditPathModal}
                   onOpenCreateLesson={() => router.push(APP_ROUTES.LESSONS.CREATE)}
-                  onTogglePublishPath={handleTogglePublishPath}
+                  onChangePathStatus={handleChangePathStatus}
                   canPublish={isReviewer}
                   actionLoading={actionLoading}
                 />

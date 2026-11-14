@@ -482,9 +482,9 @@ export function useHisgoStudio() {
       return copy;
     });
   };
-  const handleTogglePublishPath = async () => {
+  /** Xuất bản / chuyển nháp / lưu trữ / khôi phục lộ trình đang chọn. */
+  const handleChangePathStatus = async (nextStatus: ContentStatus) => {
     if (!currentPath) return;
-    const nextStatus = currentPath.status === ContentStatus.PUBLISHED ? ContentStatus.DRAFT : ContentStatus.PUBLISHED;
     try {
       setActionLoading(true);
       await LearningPathApiService.updateLearningPath(currentPath.id, { status: nextStatus });
@@ -611,7 +611,7 @@ export function useHisgoStudio() {
     handleCreateChapter,
     handleToggleLessonForNewChapter,
     handleMoveNewChapterLessonOrder,
-    handleTogglePublishPath,
+    handleChangePathStatus,
     handleDeleteChapter,
     filteredLibraryLessons,
     modalFilteredLessons,

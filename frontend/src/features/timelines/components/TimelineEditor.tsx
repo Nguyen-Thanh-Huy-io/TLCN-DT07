@@ -13,6 +13,7 @@ import type { ContentStatusValue } from '@/services/entities/article.service';
 import { TimelineApiService, type TimelineNodeItem } from '@/services/entities/timeline.service';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { StatusPill } from '@/features/articles/components/StatusPill';
+import { ArchiveStatusButton } from '@/components/common/ArchiveStatusButton';
 import { YearInput } from '@/features/articles/components/YearInput';
 import { ArticlePicker } from '@/features/articles/components/ArticlePicker';
 import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicPicker';
@@ -189,6 +190,7 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
   const input = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400';
   const label = 'mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600';
   const lockedForEditor = status === ContentStatus.PUBLISHED && !isReviewer;
+  const isArchived = status === ContentStatus.ARCHIVED;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-4">
@@ -203,7 +205,7 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
             <ExternalLink size={14} /> Xem công khai
           </a>
         )}
-        {!lockedForEditor && (
+        {!lockedForEditor && !isArchived && (
           <>
             <button type="button" disabled={saving} onClick={() => save(status === ContentStatus.PUBLISHED ? undefined : ContentStatus.DRAFT)} className="secondary-button !h-9 !text-sm">
               <Save size={15} /> {status === ContentStatus.PUBLISHED ? 'Lưu thay đổi' : 'Lưu nháp'}
@@ -225,6 +227,7 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
             )}
           </>
         )}
+        {timelineId && <ArchiveStatusButton status={status} isReviewer={isReviewer} disabled={saving} onChangeStatus={save} />}
       </div>
 
       {lockedForEditor && (

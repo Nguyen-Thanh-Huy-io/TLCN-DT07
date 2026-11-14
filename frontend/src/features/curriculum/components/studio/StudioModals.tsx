@@ -1,11 +1,12 @@
 'use client';
 
 import React from 'react';
-import { KeyboardKey, ContentStatus, IconName } from '@/constants/enums';
+import { KeyboardKey, IconName } from '@/constants/enums';
 import { Icon } from '@/components/icons/Icon';
 import { ChapterItem } from '@/services/entities/learning-path.service';
 import { LessonItem } from '@/types/models';
 import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicPicker';
+import { StatusPill } from '@/features/articles/components/StatusPill';
 
 const DISABLED_ARROW_CLASS = 'opacity-30 cursor-not-allowed';
 
@@ -207,13 +208,7 @@ export function AddLessonsToChapterModal({
                     </div>
                   </div>
 
-                  <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      lesson.status === ContentStatus.PUBLISHED ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-900 border border-amber-200'
-                    }`}
-                  >
-                    {lesson.status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
-                  </span>
+                  <StatusPill status={lesson.status} />
                 </label>
               );
             })
@@ -437,13 +432,7 @@ export function CreateChapterModal({
                         />
                         <span className="text-xs font-semibold text-slate-900 truncate">{lesson.title}</span>
                       </div>
-                      <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                          lesson.status === ContentStatus.PUBLISHED ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-900 border border-amber-200'
-                        }`}
-                      >
-                        {lesson.status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
-                      </span>
+                      <StatusPill status={lesson.status} />
                     </label>
                   );
                 })

@@ -1,4 +1,8 @@
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { ContentStatus, UserRole } from '@prisma/client';
@@ -106,5 +110,94 @@ describe('ContentWriteGuard', () => {
 
     await expect(result).resolves.toBe(true);
     expect(req[REVISION_DIRECTIVE_KEY]?.mode).toBe('PROPOSE');
+  });
+
+  describe('lưu trữ: PUBLISHED → ARCHIVED → DRAFT', () => {
+    const articleWithStatus = (
+      current: ContentStatus,
+      next: ContentStatus,
+      role: UserRole,
+    ) => {
+      prisma.article.findUnique.mockResolvedValue({ status: current });
+      return run({ model: 'article', idParam: 'id', versioned: true }, role, {
+        params: { id: 'a-1' },
+        body: { status: next },
+      }).result;
+    };
+
+    it('người duyệt lưu trữ bài đang xuất bản được', async () => {
+      await expect(
+        articleWithStatus(
+          ContentStatus.PUBLISHED,
+          ContentStatus.ARCHIVED,
+          UserRole.ADMIN,
+        ),
+      ).resolves.toBe(true);
+    });
+
+    it('biên tập viên không lưu trữ được, kể cả qua đường bản sửa chờ duyệt', async () => {
+      await expect(
+        articleWithStatus(
+          ContentStatus.PUBLISHED,
+          ContentStatus.ARCHIVED,
+          UserRole.MODERATOR,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('không lưu trữ bản nháp', async () => {
+      await expect(
+        articleWithStatus(
+          ContentStatus.DRAFT,
+          ContentStatus.ARCHIVED,
+          UserRole.ADMIN,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('không tạo mới thẳng ở trạng thái lưu trữ', async () => {
+      await expect(
+        run({ model: 'article' }, UserRole.ADMIN, {
+          params: {},
+          body: { status: ContentStatus.ARCHIVED },
+        }).result,
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('khôi phục từ lưu trữ về nháp được', async () => {
+      await expect(
+        articleWithStatus(
+          ContentStatus.ARCHIVED,
+          ContentStatus.DRAFT,
+          UserRole.ADMIN,
+        ),
+      ).resolves.toBe(true);
+    });
+
+    it('từ lưu trữ không xuất bản lại thẳng', async () => {
+      await expect(
+        articleWithStatus(
+          ContentStatus.ARCHIVED,
+          ContentStatus.PUBLISHED,
+          UserRole.ADMIN,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('sửa nội dung bài lưu trữ mà không đổi trạng thái vẫn được (người duyệt)', async () => {
+      prisma.article.findUnique.mockResolvedValue({
+        status: ContentStatus.ARCHIVED,
+      });
+      await expect(
+        run(
+          { model: 'article', idParam: 'id', versioned: true },
+          UserRole.ADMIN,
+          {
+            params: { id: 'a-1' },
+            body: {},
+          },
+        ).result,
+      ).resolves.toBe(true);
+    });
   });
 });

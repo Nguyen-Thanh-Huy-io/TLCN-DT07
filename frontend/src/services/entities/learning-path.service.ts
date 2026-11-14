@@ -1,3 +1,4 @@
+import { ContentStatus } from '@/constants/enums';
 import api from '../api';
 
 export interface ChapterLessonItem {
@@ -53,7 +54,7 @@ export interface LearningPathItem {
   pathType: 'CHRONOLOGICAL' | 'THEMATIC';
   isSequential: boolean;
   displayOrder: number;
-  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  status: ContentStatus;
   createdAt: string;
   updatedAt: string;
   chapters: ChapterItem[];
@@ -66,7 +67,7 @@ export interface CreateLearningPathDto {
   pathType?: 'CHRONOLOGICAL' | 'THEMATIC';
   isSequential?: boolean;
   displayOrder?: number;
-  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  status?: ContentStatus;
 }
 
 export interface CreateChapterDto {

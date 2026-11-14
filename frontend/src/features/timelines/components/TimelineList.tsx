@@ -9,6 +9,7 @@ import { ActionMenu } from '@/components/common/ActionMenu';
 import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { extractErrorMessage } from '@/services/api';
 import { TimelineApiService, type TimelineItem } from '@/services/entities/timeline.service';
+import { CONTENT_STATUS_LABELS, type ContentStatusValue } from '@/services/entities/article.service';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { StatusPill } from '@/features/articles/components/StatusPill';
 
@@ -19,6 +20,7 @@ export function TimelineList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<ContentStatusValue | ''>('');
   const [deleting, setDeleting] = useState<TimelineItem | null>(null);
 
   const load = useCallback(async () => {
@@ -50,7 +52,9 @@ export function TimelineList() {
     }
   };
 
-  const visible = items.filter((t) => t.title.toLowerCase().includes(search.trim().toLowerCase()));
+  const visible = items.filter(
+    (t) => (!status || t.status === status) && t.title.toLowerCase().includes(search.trim().toLowerCase()),
+  );
 
   return (
     <div className="panel management-panel">
@@ -64,6 +68,18 @@ export function TimelineList() {
             className="text-slate-800 placeholder:text-slate-500 font-medium text-xs sm:text-sm"
           />
         </label>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as ContentStatusValue | '')}
+          className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs sm:text-sm text-slate-700"
+        >
+          <option value="">Mọi trạng thái</option>
+          {Object.entries(CONTENT_STATUS_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           className="primary-button !h-9 !px-3.5 !text-xs sm:!text-sm font-bold ml-auto"
@@ -97,7 +113,7 @@ export function TimelineList() {
             ) : visible.length === 0 ? (
               <tr>
                 <td colSpan={7} className="p-6 text-center text-slate-500">
-                  Chưa có dòng thời gian nào.
+                  {items.length === 0 ? 'Chưa có dòng thời gian nào.' : 'Không có dòng thời gian phù hợp.'}
                 </td>
               </tr>
             ) : (

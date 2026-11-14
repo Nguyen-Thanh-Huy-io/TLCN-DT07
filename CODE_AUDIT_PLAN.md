@@ -161,9 +161,9 @@ Chi tiết từng lỗi ở [CODE_AUDIT.md](CODE_AUDIT.md) Mục 9.
 - [x] Gộp lịch sử migration thành baseline `20261114000000_baseline` + lệnh `npm run db:baseline` cho DB cũ (2026-11-14). **Mỗi thành viên chạy `npm run db:baseline` một lần sau khi pull.**
 - [x] Bỏ ngoại lệ tự duyệt bài viết ở chuyên mục "blog/bài viết" (`isBlogCategory`); sửa quét AI 2 lần, transaction cho bình luận, TTL phiên Google (2026-11-14).
 - [ ] Thêm bộ chạy test cho frontend (vitest) rồi viết test cho `createPeriodSlugResolver`, `pruneTree`/`countLessons`.
-- [ ] Xoá bảng `article_comments` (model `ArticleComment`) bằng migration — đã không còn code dùng.
+- [x] Xoá bảng `article_comments` (model `ArticleComment`) bằng migration (`20261114063000_drop_article_comments`).
 - [ ] Xoá cache danh sách Tag khi sửa tag trong bài viết (hiện trễ tới 1 giờ).
-- [ ] Xoá bài học trong cây chủ đề phải gọi API và duyệt mọi cấp (`CurriculumExplorer.handleConfirmDelete`).
+- [x] Xoá bài học/chủ đề trong cây chủ đề gọi API (`CurriculumExplorer.confirmDelete`).
 
 ---
 

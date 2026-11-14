@@ -473,8 +473,8 @@ Các điểm dưới đây được phát hiện khi đọc trực tiếp code (
 8. Trang luyện tập public **`/luyen-tap`** hiện chỉ có 1 file `page.tsx`; các route con `bai-thi/`, `chu-de/`, `kham-pha/`, `lich-su/` đã bị revert trong quá trình dọn working tree trước khi khảo sát — không còn tồn tại trong code hiện tại.
 9. `frontend/src/services/entities/landing.service.ts` có tên dễ gây nhầm — đây không chỉ phục vụ trang chủ mà là **adapter chính** tái tạo toàn bộ DTO công khai cũ (Period/Figure/Event/Location/Entity) cho hầu hết route công khai (`/giai-doan`, `/nhan-vat`, `/su-kien`, `/di-tich`, `/thuc-the`, `/bai-viet`, `/chuyen-muc`).
 10. **Phát hiện từ Knip Audit:** Có 19 files frontend hiện không được import ở bất kỳ đâu (dead files tiềm năng cần dọn dẹp ở Pha 3/Pha 4: `FormField.tsx`, `TabbedRichTextEditor.tsx`, `EntityInfobox.tsx`, `LifeTimelineHero.tsx`, `ScrollRevealProvider.tsx`, `VideoModal.tsx`, `ScrollToTopButton.tsx`, `config.ts`, `blog-data.ts`, `LessonOrderField.tsx`, `LessonTopicModalPicker.tsx`, `TopicForm.tsx`, `TopicModal.tsx`...).
-11. Bảng **`article_comments`** (model `ArticleComment`) không còn code nào đọc/ghi từ 2026-11-13 (Blog dùng `blog_post_comments`, Lesson dùng `Discussion`) — có thể xoá bằng migration sau khi kiểm tra dữ liệu còn trong bảng.
+11. Bảng **`article_comments`** đã xoá (2026-11-14, migration `20261114063000_drop_article_comments`): Blog dùng `blog_post_comments`, Lesson dùng `Discussion`, Article chỉ có ghi chú cá nhân.
 12. **Frontend chưa có bộ chạy test** (không jest/vitest): các helper thuần như `createPeriodSlugResolver` (`landing-graph.ts`) hay `pruneTree` (`useCurriculumTree.ts`) mới chỉ được kiểm tra bằng tsc/ESLint + chạy thật trên trình duyệt.
-13. Xoá bài học trong cây chủ đề (`CurriculumExplorer.handleConfirmDelete`) chỉ xoá trên state giao diện, không gọi API, và chỉ duyệt 2 cấp đầu.
+13. Xoá bài học/chủ đề trong cây chủ đề (`CurriculumExplorer.confirmDelete`) gọi API thật rồi nạp lại cây.
 
 > Danh sách lỗi/vi phạm coding-rule chi tiết (không thuộc phạm vi "bản đồ") được tách riêng sang [CODE_AUDIT.md](CODE_AUDIT.md) để file này giữ vai trò thuần tra cứu kiến trúc.

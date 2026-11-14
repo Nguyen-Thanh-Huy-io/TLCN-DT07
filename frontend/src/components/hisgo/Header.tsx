@@ -228,7 +228,7 @@ export function Header({
         </Link>
 
         {/* Center: Desktop Navigation Bar */}
-        <nav className="hidden md:flex items-center gap-7 lg:gap-9">
+        <nav className="hidden xl:flex items-center gap-6 2xl:gap-9">
           {navLinks.slice(0, 5).map((link) => {
             const isActive =
               link.id === NavLinkId.BLOG
@@ -311,7 +311,7 @@ export function Header({
           <GlobalSearch />
           {user && <NotificationBell />}
           {user ? (
-            <div ref={userMenuRef} className="relative hidden md:block">
+            <div ref={userMenuRef} className="relative hidden xl:block">
               <button
                 type="button"
                 onClick={() => setUserMenuOpen((v) => !v)}
@@ -330,7 +330,7 @@ export function Header({
                     {user.username?.slice(0, 2).toUpperCase() || user.email.slice(0, 2).toUpperCase()}
                   </span>
                 )}
-                <span className="max-w-[140px] truncate">{user.displayName || user.username || user.email}</span>
+                <span className="hidden 2xl:inline max-w-[140px] truncate">{user.displayName || user.username || user.email}</span>
               </button>
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] py-1.5 shadow-xl z-50">
@@ -373,7 +373,7 @@ export function Header({
           ) : (
             <Link
               href={loginHref}
-              className="hidden md:flex items-center gap-2 px-3.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium font-[family-name:var(--font-body)] text-[var(--ink)] hover:text-[var(--primary)] transition-colors"
+              className="hidden xl:flex items-center gap-2 px-3.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium font-[family-name:var(--font-body)] text-[var(--ink)] hover:text-[var(--primary)] transition-colors"
             >
               <svg
                 width="18"
@@ -398,7 +398,7 @@ export function Header({
             ref={toggleButtonRef}
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-[var(--ink)] hover:text-[var(--primary)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+            className="xl:hidden p-2 text-[var(--ink)] hover:text-[var(--primary)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu di động"}
             aria-expanded={mobileMenuOpen}
           >
@@ -427,14 +427,14 @@ export function Header({
       {mobileMenuOpen && (
         <>
           <div
-            className="fixed inset-0 top-16 bg-[var(--overlay-ink)]/60 backdrop-blur-xs z-40 md:hidden"
+            className="fixed inset-0 top-16 bg-[var(--overlay-ink)]/60 backdrop-blur-xs z-40 xl:hidden"
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
 
           <div
             ref={menuRef}
-            className="absolute top-full left-0 right-0 border-b border-[var(--border)] bg-[var(--bg-surface)] px-6 py-6 space-y-3 shadow-2xl z-50 md:hidden animate-fadeIn"
+            className="absolute top-full left-0 right-0 border-b border-[var(--border)] bg-[var(--bg-surface)] px-6 py-6 space-y-3 shadow-2xl z-50 xl:hidden animate-fadeIn"
           >
             {navLinks.map((link) => {
               const isActive = activeTab === link.id;

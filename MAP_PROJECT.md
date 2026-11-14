@@ -248,7 +248,8 @@ flowchart TD
   * UI: `frontend/src/app/luyen-tap/page.tsx` (**file trang duy nhất** — các route con `bai-thi/chu-de/kham-pha/lich-su` đã bị revert, không còn trong code hiện tại), dùng `PracticeQuizParts.tsx` (gộp `QuizFilterBar`, `QuizSelectorGrid`, `QuizBriefingCard`, `QuizQuestionCard`, `QuizExamSidebar`).
   * Strategy & Helper: `utils/practice-quiz.helper.ts` (`extractAvailableTopics`, `filterQuizLessons`, `calculateScore` — chuẩn hoá tiếng Việt không dấu).
   * Nguồn dữ liệu: gọi trực tiếp route handler `fetch('/api/public/lessons')`, `/api/public/quizzes/:id/submit|statistics` (ngoại lệ hợp lệ cho `app/api/`).
-  * Chấm điểm: làm thủ công tại client (`calculateScore`), hỗ trợ `MULTIPLE_CHOICE/TRUE_FALSE/FILL_IN_BLANK`; `SINGLE_CHOICE/ORDERING/MATCHING` **chưa có UI làm bài riêng** ở trang này.
+  * Làm bài: `PracticeQuestionCard` dùng chung `QuestionBody` của `hub/HubLessonQuiz.tsx` → đủ 6 loại câu; mỗi lượt gọi `prepareQuizSessionForLearner` để xáo lựa chọn / thứ tự sắp xếp / vế ghép (không bao giờ trùng đáp án).
+  * Chấm điểm **ở server**: client chỉ gửi `answers` (theo id câu hỏi) + `timeSpentSeconds`; `PublicContentService.submitQuizAttempt` đọc `Quiz.questions` qua `validateAndNormalizeQuestions` rồi chấm bằng `backend/src/quiz/quiz-grading.ts` (`gradeQuizAttempt`), trả `scorePercent`, `correctCount`, `isPassed`, `results` (đúng/sai từng câu). DTO không còn nhận `scorePercent`/`isPassed` — gửi lên sẽ bị 400.
 * **Các loại câu hỏi (Strategy Pattern — backend thật, không phải frontend):** `backend/src/quiz/validators/quiz-question.validator.ts` + `types/quiz-question.types.ts` (enum `QuizQuestionType`). Mỗi `IQuestionValidationStrategy` xử lý 1 loại: `SingleChoiceValidationStrategy`/`MultipleChoiceValidationStrategy` (Template Method qua `BaseChoiceValidationStrategy`), `TrueFalseValidationStrategy`, `OrderingValidationStrategy`, `MatchingValidationStrategy`, `FillInBlankValidationStrategy` — map chọn tại `QUESTION_VALIDATION_STRATEGIES`, dùng cả trong `QuizService` và `QuestionService`.
 
 ### 3.13. Blog cá nhân / Bài viết chuyên khảo (Blog)
@@ -313,7 +314,7 @@ flowchart TD
   * Config: `config/auth.config.ts`, `config/google-oauth.config.ts`
 
 ### 3.19. Người dùng (User management)
-* **Mục đích:** CRUD tài khoản do SUPERADMIN quản lý — tạo thủ công, đổi role/status/password, xoá. Đổi role/status/password tự thu hồi mọi session (tăng `tokenVersion` + xoá cache Redis).
+* **Mục đích:** CRUD tài khoản do SUPERADMIN quản lý — tạo thủ công, đổi role/status/password, xoá. Đổi role/status/password tự thu hồi mọi session (tăng `tokenVersion` + xoá cache Redis). Không tự xoá chính mình (403); luôn phải còn ≥ 1 SUPERADMIN đang hoạt động — hạ quyền/khoá/xoá SUPERADMIN cuối cùng trả 409. `GET /users` phân trang (`QueryUserDto`: `page`, `limit` ≤ 100, `search` email/username, `role`, `status`); `UserList` gọi qua `services/entities/user.service.ts` (`UserApiService`), lọc + tìm kiếm phía server.
 * **UI Component chính:** [UserList.tsx](frontend/src/features/users/components/UserList.tsx) (đổi role trực tiếp trên dòng, trừ chính mình).
 * **Route trang:** `app/users/page.tsx`.
 * **Service/API Client:** gọi trực tiếp axios chung `api.ts` (chưa tách `services/entities/user.service.ts`).

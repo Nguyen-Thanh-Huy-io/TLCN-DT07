@@ -352,10 +352,20 @@ Cách kiểm tra: gọi thật 64 endpoint GET (phủ 25 controller, đăng nh�
 * 🟡 **[ĐÃ SỬA ✅] Quét AI nhận loại đối tượng tuỳ ý** — `POST /moderation/scan/:targetType` coi mọi giá trị lạ là `POST` (logic nằm trong controller). Dùng `ParseEnumPipe(ReportTargetType)` → 400.
 
 ### Còn tồn đọng
-* 🟠 **Điểm quiz do client tự khai** — `POST /public/quizzes/:id/submit` tin `scorePercent`, `correctCount`, cả `isPassed` (đã thử: 99/2 câu, 100% → 201). Phổ điểm có thể bị làm giả; sửa đúng cần chấm lại ở server theo đáp án từng loại câu hỏi.
-* API vẫn cho tạo bài học không có Topic (`topicId` tuỳ chọn ở DTO và nullable ở schema) dù quy ước là bắt buộc.
 * `PATCH /notifications/:id/read` với thông báo của người khác trả 200 (không đổi dữ liệu nào vì đã lọc theo `userId`) — nên trả 404.
-* Chưa thử thành công: quản lý người dùng (cần SUPERADMIN — chỉ thử được việc chặn ADMIN/người học/khách), đăng ký + xác minh email (tránh gửi email thật), upload thật lên Cloudinary.
+* Chưa thử thành công: đăng ký + xác minh email (tránh gửi email thật), upload thật lên Cloudinary.
+
+**Đợt 3 — quản lý người dùng, Topic bắt buộc, test giao diện, chấm quiz ở server** (2026-11-13):
+* 🔴 **[ĐÃ SỬA ✅] Điểm quiz do client tự khai** — `POST /public/quizzes/:id/submit` tin `scorePercent`, `correctCount`, `isPassed` (đã thử: 99/2 câu, 100% → 201). Giờ server chấm theo `Quiz.questions` (`quiz-grading.ts` + spec, `public-content.service.spec.ts`); DTO chỉ nhận `answers` + `timeSpentSeconds` + `learnerName`.
+* 🔴 **[ĐÃ SỬA ✅] Trang `/luyen-tap` không làm được 3/6 loại câu** — câu sắp xếp, ghép nối, điền khuyết không có ô trả lời (đều bị gắn nhãn "Điền khuyết") → đề "Ngô Quyền" tối đa 40%, không ai đạt chuẩn 70%. Giờ dùng chung `QuestionBody` của trang đọc bài học.
+* 🔴 **[ĐÃ SỬA ✅] SUPERADMIN tự hạ quyền / tự xoá được** — kể cả khi là SUPERADMIN duy nhất (đã thử: 200, hệ thống mất quyền quản trị). Giờ chặn tự xoá (403) và giữ ≥ 1 SUPERADMIN hoạt động (409).
+* 🔴 **[ĐÃ SỬA ✅] Trình soạn bài học không lưu Topic** — `buildLessonPayload` không gửi `topicId`; bài mới bị tự gán chủ đề đầu tiên; mở lại bài không đọc được `topicId`. Giờ gửi `topicId`, bắt buộc chọn, `CreateLessonDto.topicId` là `@IsUUID()` bắt buộc; Studio tạo nhanh bài học có ô chọn chủ đề.
+* 🔴 **[ĐÃ SỬA ✅] Biên tập viên không gửi duyệt bài học được** — nút "Gửi duyệt" gửi `PENDING_REVIEW` (của bài viết) thay vì `LessonStatus.REVIEW` → luôn 400. Trình soạn bài học chuyển hẳn sang `LessonStatus` (bỏ ép kiểu `as unknown as ContentStatus`), thêm `LESSON_STATUS_LABEL_MAP`/`TONE_MAP`.
+* 🟠 **[ĐÃ SỬA ✅] Câu sắp xếp hiện sẵn đáp án** ở trang luyện tập (thứ tự lưu trùng `correctOrder`, không xáo) — giờ xáo qua `prepareQuizSessionForLearner`.
+* 🔴 **[ĐÃ SỬA ✅] PATCH âm thầm gỡ xuất bản / hạ quyền** — `CreateLessonDto` (`status = DRAFT`), `CreateTopicDto` (`status = DRAFT`, `displayOrder = 0`, `isSequential = false`), `CreateUserDto` (`role = USER`, `status = ACTIVE`) có giá trị khởi tạo; `PartialType` kế thừa cả giá trị này sang `Update*Dto` → mọi PATCH không gửi các trường đó sẽ gỡ xuất bản bài học/chủ đề, đặt lại thứ tự, hạ vai trò người dùng về USER và mở khoá tài khoản bị khoá. Đã tái hiện trên bài "Ngô Quyền…" (bị chuyển về DRAFT, đã xuất bản lại theo quy trình duyệt). Bỏ giá trị khởi tạo (mặc định khi tạo nằm ở service / Prisma schema); test `update-dto-defaults.spec.ts` kiểm cả 7 `Update*Dto`.
+* 🔴 **[ĐÃ SỬA ✅] Sửa bài học bỏ qua `topicId`** — `LessonService.update` không xử lý `topicId` và `REVISION_FIELDS.LESSON` thiếu trường này → đổi chủ đề khi sửa bài (trực tiếp hoặc qua bản chờ duyệt) bị bỏ qua mà vẫn trả 200.
+* 🟠 **[ĐÃ SỬA ✅] `GET /users` không phân trang** — trả toàn bộ tài khoản; `UserList` gọi `api` thẳng trong component và lọc ở client. Giờ phân trang + lọc + tìm kiếm ở server (`QueryUserDto`, `UserApiService`).
+* 🟡 **[ĐÃ SỬA ✅] Trang bị tràn ngang** — header công khai rộng hơn 1280px khi đã đăng nhập (chuyển thanh điều hướng đầy đủ lên mốc `xl`, dưới đó dùng menu); ô chọn câu ghép nối kéo rộng trang trên điện thoại. Đã kiểm 375 / 768 / 1024 / 1280 / 1440px.
 * **Frontend chưa có bộ chạy test** (không jest/vitest) — logic thuần mới (`createPeriodSlugResolver`, `pruneTree`, `countLessons`) chỉ được kiểm bằng tsc/ESLint và chạy thật. Thêm vitest là 1 việc riêng (thêm dependency).
 * Bảng `article_comments` không còn code nào dùng — xoá bằng migration sau khi kiểm tra dữ liệu.
 * Cache Redis của danh sách Tag (TTL 1 giờ) không bị xoá khi sửa tag trong bài viết → cột "bài viết" có thể trễ tới 1 giờ.

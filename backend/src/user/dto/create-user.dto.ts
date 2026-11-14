@@ -44,7 +44,7 @@ export class CreateUserDto {
   })
   @IsEnum(userRole)
   @IsOptional()
-  role?: userRole = userRole.USER;
+  role?: userRole;
 
   @ApiPropertyOptional({
     enum: userStatus,
@@ -54,5 +54,5 @@ export class CreateUserDto {
   })
   @IsEnum(userStatus)
   @IsOptional()
-  status?: userStatus = userStatus.ACTIVE;
+  status?: userStatus;
 }

@@ -84,7 +84,7 @@ export class CreateTopicDto {
   })
   @IsBoolean()
   @IsOptional()
-  isSequential?: boolean = false;
+  isSequential?: boolean;
 
   @ApiPropertyOptional({
     example: 1,
@@ -95,7 +95,7 @@ export class CreateTopicDto {
   @IsInt()
   @IsOptional()
   @Min(0)
-  displayOrder?: number = 0;
+  displayOrder?: number;
 
   @ApiPropertyOptional({
     enum: ContentStatus,
@@ -105,5 +105,5 @@ export class CreateTopicDto {
   })
   @IsEnum(ContentStatus)
   @IsOptional()
-  status?: ContentStatus = ContentStatus.DRAFT;
+  status?: ContentStatus;
 }

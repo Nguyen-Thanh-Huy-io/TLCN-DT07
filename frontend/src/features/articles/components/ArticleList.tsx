@@ -22,13 +22,6 @@ import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { StatusPill } from './StatusPill';
 
 const PAGE_SIZE = 20;
-/** Chuyên mục Blog thuộc trang Cộng đồng, không hiện trong danh sách bài viết CMS. */
-const BLOG_CATEGORY_KEY = 'blog';
-/** Bài đang được ẩn khỏi danh sách CMS (khớp theo tiêu đề hoặc một phần slug). */
-const HIDDEN_ARTICLE = {
-  TITLE: 'cổng la mã và không gian quyền lực',
-  SLUG_FRAGMENT: 'cong-la-ma',
-} as const;
 
 /** Danh sách bài viết trong CMS: lọc chuyên mục / tag / trạng thái, tìm theo tiêu đề, phân trang server. */
 export function ArticleList() {
@@ -98,18 +91,6 @@ export function ArticleList() {
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const selectClass = 'h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs sm:text-sm text-slate-700';
-  const isBlogCategory = (categoryName?: string | null, categorySlug?: string | null) => {
-    const normalizedName = (categoryName || '').trim().toLowerCase();
-    const normalizedSlug = (categorySlug || '').trim().toLowerCase();
-    return normalizedName === BLOG_CATEGORY_KEY || normalizedSlug === BLOG_CATEGORY_KEY;
-  };
-  const isHiddenArticle = (article: ArticleItem) => {
-    const normalizedTitle = (article.title || '').trim().toLowerCase();
-    const normalizedSlug = (article.slug || '').trim().toLowerCase();
-    return (
-      normalizedTitle === HIDDEN_ARTICLE.TITLE || normalizedSlug.includes(HIDDEN_ARTICLE.SLUG_FRAGMENT)
-    );
-  };
 
   return (
     <div className="panel management-panel">
@@ -186,44 +167,41 @@ export function ArticleList() {
                 </td>
               </tr>
             ) : (
-              items
-                .filter((a) => !isBlogCategory(a.category?.name, a.category?.slug))
-                .filter((a) => !isHiddenArticle(a))
-                .map((a) => (
-                  <tr key={a.id} className="cursor-pointer" onClick={() => router.push(APP_ROUTES.ARTICLES.DETAIL(a.id))}>
-                    <td>
-                      <strong className="text-sm font-semibold text-slate-900">{a.title}</strong>
-                      {a.isFeatured && <span className="ml-2 text-xs font-bold text-amber-600">★ Nổi bật</span>}
-                      <div className="text-xs text-slate-500">/{a.slug}</div>
-                    </td>
-                    <td className="text-xs sm:text-sm text-slate-700">
-                      <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
-                        {a.category?.name || 'Chưa phân loại'}
-                      </span>
-                    </td>
-                    <td className="text-xs sm:text-sm text-slate-700">{a.dateText || a.startYear || '—'}</td>
-                    <td>
-                      <div className="flex flex-wrap gap-1">
-                        {a.tags.map((t) => (
-                          <span key={t.id} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
-                            {t.name}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td>
-                      <StatusPill status={a.status} />
-                    </td>
-                    <td className="text-xs text-slate-500">{new Date(a.updatedAt).toLocaleDateString('vi-VN')}</td>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <ActionMenu
-                        onEdit={() => router.push(APP_ROUTES.ARTICLES.DETAIL(a.id))}
-                        onView={() => window.open(PUBLIC_ROUTES.ARTICLE(a.slug), '_blank')}
-                        onDelete={() => setDeleting(a)}
-                      />
-                    </td>
-                  </tr>
-                ))
+              items.map((a) => (
+                <tr key={a.id} className="cursor-pointer" onClick={() => router.push(APP_ROUTES.ARTICLES.DETAIL(a.id))}>
+                  <td>
+                    <strong className="text-sm font-semibold text-slate-900">{a.title}</strong>
+                    {a.isFeatured && <span className="ml-2 text-xs font-bold text-amber-600">★ Nổi bật</span>}
+                    <div className="text-xs text-slate-500">/{a.slug}</div>
+                  </td>
+                  <td className="text-xs sm:text-sm text-slate-700">
+                    <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
+                      {a.category?.name || 'Chưa phân loại'}
+                    </span>
+                  </td>
+                  <td className="text-xs sm:text-sm text-slate-700">{a.dateText || a.startYear || '—'}</td>
+                  <td>
+                    <div className="flex flex-wrap gap-1">
+                      {a.tags.map((t) => (
+                        <span key={t.id} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
+                          {t.name}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td>
+                    <StatusPill status={a.status} />
+                  </td>
+                  <td className="text-xs text-slate-500">{new Date(a.updatedAt).toLocaleDateString('vi-VN')}</td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <ActionMenu
+                      onEdit={() => router.push(APP_ROUTES.ARTICLES.DETAIL(a.id))}
+                      onView={() => window.open(PUBLIC_ROUTES.ARTICLE(a.slug), '_blank')}
+                      onDelete={() => setDeleting(a)}
+                    />
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>

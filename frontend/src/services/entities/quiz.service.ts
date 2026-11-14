@@ -1,5 +1,6 @@
 import api from '../api';
 import { QuizItem, QuizQuestion } from '@/features/lessons/types/quiz.types';
+import type { UserQuizAnswer } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
 
 export interface StandaloneQuizQuestionLink {
   quizId: string;
@@ -93,6 +94,15 @@ export interface QuizStatisticsData {
   }>;
 }
 
+export interface QuizAttemptResult {
+  attemptId: string;
+  correctCount: number;
+  totalQuestions: number;
+  scorePercent: number;
+  isPassed: boolean;
+  results: Record<string, boolean>;
+}
+
 export class QuizApiService {
   /** Lấy danh sách toàn bộ đề thi / bộ Quiz độc lập trong hệ thống */
   static async getAllQuizzes(params?: {
@@ -156,18 +166,15 @@ export class QuizApiService {
   }
 
   /** Nộp bài thi làm trắc nghiệm công khai */
+  /** Server tự chấm từ `answers` (theo id câu hỏi) và trả điểm — client không tự tính điểm. */
   static async submitQuizAttempt(
     quizId: string,
     payload: {
       learnerName: string;
-      scorePercent: number;
-      correctCount: number;
-      totalQuestions: number;
       timeSpentSeconds: number;
-      isPassed: boolean;
-      answers: Record<number, string>;
+      answers: Record<string, UserQuizAnswer>;
     },
-  ): Promise<unknown> {
+  ): Promise<QuizAttemptResult> {
     const res = await api.post(`/public/quizzes/${quizId}/submit`, payload);
     return res.data?.data || res.data;
   }

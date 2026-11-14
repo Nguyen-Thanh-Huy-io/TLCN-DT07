@@ -13,14 +13,17 @@ import {
 import { QuizFilterBar } from '@/features/quiz/components/PracticeQuizParts';
 import { QuizSelectorGrid } from '@/features/quiz/components/PracticeQuizParts';
 import { QuizBriefingCard } from '@/features/quiz/components/PracticeQuizParts';
-import { QuizQuestionCard } from '@/features/quiz/components/PracticeQuizParts';
+import { PracticeQuestionCard } from '@/features/quiz/components/PracticeQuizParts';
 import { QuizExamSidebar } from '@/features/quiz/components/PracticeQuizParts';
 import { QuizStatisticsModal } from '@/features/quiz/components/QuizStatisticsModal';
+import { QuizQuestionType, type QuizQuestion } from '@/features/lessons/types/quiz.types';
 import {
-  RawQuizQuestion,
-  calculateExamScore,
-} from '@/features/quiz/utils/practice-quiz.helper';
-import { QuizApiService, type QuizStatisticsData } from '@/services/entities/quiz.service';
+  prepareQuizSessionForLearner,
+  type UserQuizAnswer,
+} from '@/features/public-curriculum/strategies/public-curriculum.strategies';
+import { QuizApiService, type QuizAttemptResult, type QuizStatisticsData } from '@/services/entities/quiz.service';
+import { extractErrorMessage } from '@/services/api';
+import { MoveDirection } from '@/features/lessons/components/quiz/QuizQuestionEditors';
 import {
   Clock,
   Sparkles,
@@ -34,7 +37,7 @@ interface PublicQuiz {
   description: string | null;
   passingScorePercent: number;
   timeLimitMinutes: number;
-  questions: RawQuizQuestion[];
+  questions: QuizQuestion[];
 }
 
 /** Khớp với DEFAULT_QUIZ_PASSING_SCORE_PERCENT ở backend/src/quiz/quiz.constant.ts — chỉ dùng khi dữ liệu cũ thiếu trường này. */
@@ -79,11 +82,13 @@ export default function LuyenTapPage() {
   const autoSubmitRef = useRef<() => void>(() => {});
 
   // Bài làm & Nộp
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
-  const [submitted, setSubmitted] = useState(false);
+  const [answers, setAnswers] = useState<Record<string, UserQuizAnswer>>({});
+  // Câu hỏi đã xáo lựa chọn / thứ tự cho lượt làm bài hiện tại (giống trang đọc bài học).
+  const [sessionQuestions, setSessionQuestions] = useState<QuizQuestion[] | null>(null);
+  const [result, setResult] = useState<QuizAttemptResult | null>(null);
+  const submitted = result !== null;
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [viewExplanation, setViewExplanation] = useState<Record<number, boolean>>({});
 
   // Modal Thống kê
   const [showStatsModal, setShowStatsModal] = useState(false);
@@ -117,16 +122,16 @@ export default function LuyenTapPage() {
 
   const activeLesson = lessons.find((l) => l.id === activeLessonId) || lessons[0];
   const activeQuiz = activeLesson?.quiz;
-  const questions = activeQuiz?.questions || [];
+  const questions = sessionQuestions ?? activeQuiz?.questions ?? [];
 
   const handleReset = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     setExamStarted(false);
     setTimeLeft((activeQuiz?.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES) * 60);
-    setSelectedAnswers({});
-    setSubmitted(false);
+    setAnswers({});
+    setSessionQuestions(null);
+    setResult(null);
     setSubmitError(null);
-    setViewExplanation({});
   }, [activeQuiz]);
 
   // Reset khi đổi đề
@@ -144,9 +149,12 @@ export default function LuyenTapPage() {
     const totalSeconds = (activeQuiz?.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES) * 60;
     setTimeLeft(totalSeconds);
     setExamStarted(true);
-    setSubmitted(false);
-    setSelectedAnswers({});
-    setViewExplanation({});
+    setResult(null);
+    const { preparedQuiz, initialAnswers } = prepareQuizSessionForLearner({
+      questions: activeQuiz?.questions ?? [],
+    });
+    setSessionQuestions(preparedQuiz.questions);
+    setAnswers(initialAnswers);
   };
 
   // Đồng hồ đếm ngược
@@ -168,18 +176,29 @@ export default function LuyenTapPage() {
     };
   }, [examStarted, submitted]);
 
-  const handleSelectAnswer = (qIndex: number, optionVal: string) => {
+  const handleSetAnswer = (questionId: string, answer: UserQuizAnswer) => {
     if (submitted) return;
     if (!examStarted) {
       handleStartExam();
     }
-    setSelectedAnswers((prev) => ({ ...prev, [qIndex]: optionVal }));
+    setAnswers((prev) => ({ ...prev, [questionId]: answer }));
+  };
+
+  const handleMoveOrderingItem = (questionId: string, fromIdx: number, direction: 'UP' | 'DOWN') => {
+    const question = questions.find((q) => q.id === questionId);
+    if (submitted || !question || question.type !== QuizQuestionType.ORDERING) return;
+    const current = answers[questionId];
+    const order = Array.isArray(current) ? [...current] : question.items.map((item) => item.id);
+    const targetIdx = direction === MoveDirection.UP ? fromIdx - 1 : fromIdx + 1;
+    if (targetIdx < 0 || targetIdx >= order.length) return;
+    const [moved] = order.splice(fromIdx, 1);
+    order.splice(targetIdx, 0, moved);
+    handleSetAnswer(questionId, order);
   };
 
   const totalQuestions = questions.length;
-  const correctCount = calculateExamScore(questions, selectedAnswers);
-  const scorePercent = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
-  const isPassed = scorePercent >= (activeQuiz?.passingScorePercent ?? DEFAULT_PASSING_SCORE_PERCENT);
+  const correctCount = result?.correctCount ?? 0;
+  const scorePercent = result?.scorePercent ?? 0;
 
   // Nộp bài & Lưu vào DB
   const handleSubmitExam = async () => {
@@ -192,19 +211,14 @@ export default function LuyenTapPage() {
     const timeSpent = Math.max(1, totalSeconds - timeLeft);
 
     try {
-      await QuizApiService.submitQuizAttempt(activeQuiz.id, {
+      const graded = await QuizApiService.submitQuizAttempt(activeQuiz.id, {
         learnerName: learnerName.trim() || 'Thí sinh tự do',
-        scorePercent,
-        correctCount,
-        totalQuestions,
         timeSpentSeconds: timeSpent,
-        isPassed,
-        answers: selectedAnswers,
+        answers,
       });
-      setSubmitted(true);
+      setResult(graded);
     } catch (err) {
-      console.error('Lỗi khi nộp bài:', err);
-      setSubmitError('Nộp bài không thành công do lỗi kết nối. Vui lòng thử lại.');
+      setSubmitError(extractErrorMessage(err, 'Nộp bài không thành công. Vui lòng thử lại.'));
     } finally {
       setSubmitting(false);
     }
@@ -382,17 +396,15 @@ export default function LuyenTapPage() {
               {/* Các câu hỏi */}
               <div className="p-5 md:p-6 space-y-6">
                 {questions.map((q, idx) => (
-                  <QuizQuestionCard
-                    key={q.id || idx}
+                  <PracticeQuestionCard
+                    key={q.id}
                     question={q}
                     index={idx}
-                    isSelected={selectedAnswers[idx]}
+                    answer={answers[q.id]}
                     submitted={submitted}
-                    onSelectAnswer={handleSelectAnswer}
-                    showExplanation={Boolean(viewExplanation[idx])}
-                    onToggleExplanation={(qIndex) =>
-                      setViewExplanation((prev) => ({ ...prev, [qIndex]: !prev[qIndex] }))
-                    }
+                    isCorrect={result?.results[q.id]}
+                    setAnswer={handleSetAnswer}
+                    moveOrderingItem={handleMoveOrderingItem}
                   />
                 ))}
               </div>
@@ -410,7 +422,7 @@ export default function LuyenTapPage() {
               onSubmitExam={handleSubmitExam}
               onResetExam={handleReset}
               totalQuestions={totalQuestions}
-              selectedAnswers={selectedAnswers}
+              answered={questions.map((q) => answers[q.id] !== undefined)}
               scorePercent={scorePercent}
               correctCount={correctCount}
               isStaff={isStaff}

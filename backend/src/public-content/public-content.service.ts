@@ -3,6 +3,9 @@ import { ContentStatus, LessonStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { LessonContentStrategyContext } from '../lesson/strategies/content-normalizer.strategy';
 import { DEFAULT_QUIZ_PASSING_SCORE_PERCENT } from '../quiz/quiz.constant';
+import { gradeQuizAttempt, QuizGradingResult } from '../quiz/quiz-grading';
+import { validateAndNormalizeQuestions } from '../quiz/validators/quiz-question.validator';
+import { SubmitQuizAttemptDto } from './dto/submit-quiz-attempt.dto';
 import {
   buildDateLabel,
   buildNodeDateLabel,
@@ -39,6 +42,11 @@ export interface PublicArticleQuery {
  * Toàn bộ dữ liệu cho trang công khai. Mọi truy vấn chỉ lấy nội dung PUBLISHED — kể cả bài viết
  * được trỏ tới từ mốc timeline (mốc trỏ bài chưa xuất bản vẫn hiện nhưng không có link).
  */
+export interface QuizAttemptResult extends QuizGradingResult {
+  attemptId: string;
+  isPassed: boolean;
+}
+
 @Injectable()
 export class PublicContentService {
   constructor(private readonly prisma: PrismaService) {}
@@ -664,44 +672,35 @@ export class PublicContentService {
   // ---------- Khảo thí & Nộp bài Luyện tập (Quiz Attempt) ----------
   async submitQuizAttempt(
     quizId: string,
-    dto: {
-      learnerName?: string;
-      userId?: string;
-      scorePercent: number;
-      correctCount: number;
-      totalQuestions: number;
-      timeSpentSeconds: number;
-      isPassed?: boolean;
-      answers?: any;
-    },
-  ) {
-    const quiz = await this.prisma.quiz.findUnique({ where: { id: quizId } });
+    dto: SubmitQuizAttemptDto,
+  ): Promise<QuizAttemptResult> {
+    const quiz = await this.prisma.quiz.findUnique({
+      where: { id: quizId },
+      select: { questions: true, passingScorePercent: true },
+    });
     if (!quiz) throw new NotFoundException('Không tìm thấy đề thi này');
 
+    const questions = validateAndNormalizeQuestions(quiz.questions);
+    const graded = gradeQuizAttempt(questions, dto.answers);
     const isPassed =
-      dto.isPassed ??
-      dto.scorePercent >=
-        (quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT);
+      graded.scorePercent >=
+      (quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT);
 
     const attempt = await this.prisma.quizAttempt.create({
       data: {
         quizId,
-        userId: dto.userId || null,
-        learnerName: dto.learnerName || 'Thí sinh tự do',
-        scorePercent: dto.scorePercent,
-        correctCount: dto.correctCount,
-        totalQuestions: dto.totalQuestions,
+        learnerName: dto.learnerName?.trim() || 'Thí sinh tự do',
+        scorePercent: graded.scorePercent,
+        correctCount: graded.correctCount,
+        totalQuestions: graded.totalQuestions,
         timeSpentSeconds: dto.timeSpentSeconds,
         isPassed,
-        answers: dto.answers || [],
+        answers: dto.answers as Prisma.InputJsonValue,
       },
+      select: { id: true },
     });
 
-    return {
-      success: true,
-      message: 'Nộp bài khảo thí thành công',
-      data: attempt,
-    };
+    return { attemptId: attempt.id, ...graded, isPassed };
   }
 
   async getQuizStatistics(quizId: string) {

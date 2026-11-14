@@ -1,6 +1,14 @@
-import { IsString, IsOptional, IsInt, IsBoolean, Min } from 'class-validator';
+import {
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+/** Điểm do server tự chấm từ `answers` — client không gửi điểm số hay kết quả đạt/không đạt. */
 export class SubmitQuizAttemptDto {
   @ApiPropertyOptional({
     description: 'Tên người làm bài (nếu chưa đăng nhập)',
@@ -8,22 +16,8 @@ export class SubmitQuizAttemptDto {
   })
   @IsOptional()
   @IsString()
+  @MaxLength(150)
   learnerName?: string;
-
-  @ApiProperty({ description: 'Điểm số phần trăm (0 - 100)', example: 85 })
-  @IsInt()
-  @Min(0)
-  scorePercent: number;
-
-  @ApiProperty({ description: 'Số câu đúng', example: 4 })
-  @IsInt()
-  @Min(0)
-  correctCount: number;
-
-  @ApiProperty({ description: 'Tổng số câu hỏi', example: 5 })
-  @IsInt()
-  @Min(1)
-  totalQuestions: number;
 
   @ApiProperty({
     description: 'Thời gian hoàn thành (tính bằng giây)',
@@ -33,15 +27,11 @@ export class SubmitQuizAttemptDto {
   @Min(0)
   timeSpentSeconds: number;
 
-  @ApiPropertyOptional({ description: 'Trạng thái đạt chuẩn', example: true })
-  @IsOptional()
-  @IsBoolean()
-  isPassed?: boolean;
-
-  @ApiPropertyOptional({
-    description: 'Chi tiết câu trả lời',
-    example: [{ qIndex: 0, answer: 'A', isCorrect: true }],
+  @ApiProperty({
+    description:
+      'Câu trả lời theo id câu hỏi: optionId | optionId[] | boolean | chuỗi | itemId[] | { leftId: rightId }',
+    example: { q1: 'a', q2: true, q3: ['e1', 'e2'] },
   })
-  @IsOptional()
-  answers?: any;
+  @IsObject()
+  answers: Record<string, unknown>;
 }

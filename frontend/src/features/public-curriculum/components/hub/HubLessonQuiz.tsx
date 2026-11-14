@@ -359,9 +359,9 @@ function MatchingQuestionBody({
         return (
           <div
             key={left.id}
-            className={`grid gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center transition ${rowState}`}
+            className={`grid grid-cols-[minmax(0,1fr)] gap-2 rounded-xl border p-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center transition ${rowState}`}
           >
-            <span className="flex items-center gap-2.5 text-sm font-medium text-lh-ink">
+            <span className="flex min-w-0 items-center gap-2.5 text-sm font-medium text-lh-ink">
               <span
                 className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold ${
                   submitted
@@ -388,7 +388,7 @@ function MatchingQuestionBody({
               disabled={submitted}
               value={selectedRightId}
               onChange={(e) => setAnswer(q.id, { ...pairs, [left.id]: e.target.value })}
-              className="h-10 rounded-xl border border-lh-line bg-lh-surface-2 px-3 text-sm text-lh-ink outline-none"
+              className="h-10 w-full min-w-0 truncate rounded-xl border border-lh-line bg-lh-surface-2 px-3 text-sm text-lh-ink outline-none"
             >
               <option value="">— Chọn vế ghép —</option>
               {q.rightItems.map((right) => (
@@ -404,7 +404,7 @@ function MatchingQuestionBody({
   );
 }
 
-function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingItem }: QuestionProps) {
+export function QuestionBody({ question: q, answer, submitted, setAnswer, moveOrderingItem }: QuestionProps) {
   switch (q.type) {
     case QuizQuestionType.SINGLE_CHOICE:
     case QuizQuestionType.MULTIPLE_CHOICE:

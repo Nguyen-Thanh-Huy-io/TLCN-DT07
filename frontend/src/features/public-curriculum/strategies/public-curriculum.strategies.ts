@@ -524,8 +524,8 @@ export function normalizeQuizQuestionForDisplay(rawQ: RawQuizQuestionInput): Qui
   return rawQ as QuizQuestion;
 }
 
-export function prepareQuizSessionForLearner(rawQuiz: QuizItem): {
-  preparedQuiz: QuizItem;
+export function prepareQuizSessionForLearner<T extends Pick<QuizItem, 'questions'>>(rawQuiz: T): {
+  preparedQuiz: T;
   initialAnswers: Record<string, UserQuizAnswer>;
 } {
   const initialAnswers: Record<string, UserQuizAnswer> = {};

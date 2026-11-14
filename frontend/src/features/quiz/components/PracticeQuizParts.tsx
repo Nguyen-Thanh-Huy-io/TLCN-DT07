@@ -6,13 +6,10 @@ import {
   ALL_TOPICS_ID,
   QuizTopicOption,
   QuizFilterableItem,
-  RawQuizQuestion,
-  getOptionLabel,
-  isOptionCorrectAnswer,
-  ANSWER_LABEL_TRUE,
-  ANSWER_LABEL_FALSE,
 } from '../utils/practice-quiz.helper';
-import { QuizQuestionType } from '@/features/lessons/types/quiz.types';
+import { QUIZ_QUESTION_TYPE_META, type QuizQuestion } from '@/features/lessons/types/quiz.types';
+import { QuestionBody } from '@/features/public-curriculum/components/hub/HubLessonQuiz';
+import type { UserQuizAnswer } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
 
 // --- QuizFilterBar.tsx ---
 interface QuizFilterBarProps {
@@ -346,58 +343,27 @@ export const QuizBriefingCard: React.FC<QuizBriefingCardProps> = ({
   );
 };
 
-// --- QuizQuestionCard.tsx ---
-interface QuizQuestionCardProps {
-  question: RawQuizQuestion;
+// --- PracticeQuestionCard ---
+interface PracticeQuestionCardProps {
+  question: QuizQuestion;
   index: number;
-  isSelected?: string;
+  answer: UserQuizAnswer | undefined;
   submitted: boolean;
-  onSelectAnswer: (qIndex: number, optionVal: string) => void;
-  showExplanation: boolean;
-  onToggleExplanation: (qIndex: number) => void;
+  /** Kết quả đúng/sai do server chấm; chưa nộp bài thì undefined. */
+  isCorrect: boolean | undefined;
+  setAnswer: (questionId: string, answer: UserQuizAnswer) => void;
+  moveOrderingItem: (questionId: string, fromIdx: number, direction: 'UP' | 'DOWN') => void;
 }
 
-function resolveQuestionTypeLabel(type: string): string {
-  if (type === QuizQuestionType.MULTIPLE_CHOICE || type === QuizQuestionType.SINGLE_CHOICE) {
-    return 'Trắc nghiệm';
-  }
-  if (type === QuizQuestionType.TRUE_FALSE) {
-    return 'Đúng / Sai';
-  }
-  return 'Điền khuyết';
-}
-
-function checkOptionIsCorrect(q: RawQuizQuestion, val: string): boolean {
-  if (q.type === QuizQuestionType.TRUE_FALSE) {
-    const isTrue = val === ANSWER_LABEL_TRUE;
-    if (typeof q.correctAnswer === 'boolean') return isTrue === q.correctAnswer;
-    if (typeof q.correctAnswer === 'string') return val.toLowerCase() === q.correctAnswer.toLowerCase();
-  } else if (q.type === QuizQuestionType.MULTIPLE_CHOICE || q.type === QuizQuestionType.SINGLE_CHOICE) {
-    const matched = (q.options || []).find((opt) => getOptionLabel(opt) === val);
-    return matched ? isOptionCorrectAnswer(matched, q) : false;
-  }
-  return false;
-}
-
-export function QuizQuestionCard({
+export function PracticeQuestionCard({
   question,
   index,
-  isSelected,
+  answer,
   submitted,
-  onSelectAnswer,
-  showExplanation,
-  onToggleExplanation,
-}: QuizQuestionCardProps) {
-  let optionList: string[] = [];
-  if (question.type === QuizQuestionType.TRUE_FALSE) {
-    optionList = [ANSWER_LABEL_TRUE, ANSWER_LABEL_FALSE];
-  } else if (question.options && question.options.length > 0) {
-    optionList = question.options.map(getOptionLabel);
-  }
-
-  const isCurrentCorrect = isSelected ? checkOptionIsCorrect(question, isSelected) : false;
-  const showExpl = submitted || showExplanation;
-
+  isCorrect,
+  setAnswer,
+  moveOrderingItem,
+}: PracticeQuestionCardProps) {
   return (
     <div
       id={`question-box-${index}`}
@@ -409,92 +375,35 @@ export function QuizQuestionCard({
             {index + 1}
           </span>
           <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">
-            {resolveQuestionTypeLabel(question.type)}
+            {QUIZ_QUESTION_TYPE_META[question.type]?.label ?? question.type}
           </span>
         </div>
-
-        {submitted && (
-          <div>
-            {isCurrentCorrect ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800">
-                <CheckCircle2 size={13} /> Chính xác
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800">
-                <XCircle size={13} /> Chưa đúng
-              </span>
-            )}
-          </div>
+        {submitted && isCorrect !== undefined && (
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold ${
+              isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+            }`}
+          >
+            {isCorrect ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
+            {isCorrect ? 'Chính xác' : 'Chưa đúng'}
+          </span>
         )}
       </div>
 
-      <h4 className="text-sm md:text-base font-medium text-stone-900 mb-3.5 leading-snug">
-        {question.prompt}
-      </h4>
+      <h4 className="text-sm md:text-base font-medium text-stone-900 leading-snug">{question.prompt}</h4>
 
-      {/* Lựa chọn */}
-      {optionList.length > 0 && (
-        <div className="grid sm:grid-cols-2 gap-2 mb-2">
-          {optionList.map((optText, optIdx) => {
-            const isOptionSelected = isSelected === optText;
-            const isOptionCorrect = checkOptionIsCorrect(question, optText);
+      <QuestionBody
+        question={question}
+        answer={answer}
+        submitted={submitted}
+        setAnswer={setAnswer}
+        moveOrderingItem={moveOrderingItem}
+      />
 
-            let btnStyle = 'bg-white border-stone-200 hover:bg-stone-50 text-stone-800';
-
-            if (submitted) {
-              if (isOptionCorrect) {
-                btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-semibold ring-1 ring-emerald-500';
-              } else if (isOptionSelected && !isOptionCorrect) {
-                btnStyle = 'bg-rose-50 border-rose-400 text-rose-900 ring-1 ring-rose-400';
-              }
-            } else if (isOptionSelected) {
-              btnStyle = 'bg-[#8B261E]/5 border-[#8B261E] text-[#8B261E] font-semibold ring-2 ring-[#8B261E]/20';
-            }
-
-            return (
-              <button
-                key={optIdx}
-                type="button"
-                disabled={submitted}
-                onClick={() => onSelectAnswer(index, optText)}
-                className={`p-3 rounded-lg border text-left text-xs sm:text-sm transition-all duration-150 flex items-center justify-between cursor-pointer ${btnStyle}`}
-              >
-                <span className="leading-relaxed">{optText}</span>
-                {submitted && isOptionCorrect && (
-                  <CheckCircle2 size={15} className="text-emerald-600 shrink-0 ml-2" />
-                )}
-                {submitted && isOptionSelected && !isOptionCorrect && (
-                  <XCircle size={15} className="text-rose-500 shrink-0 ml-2" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Giải thích */}
-      {question.explanation && (
-        <div className="mt-2.5">
-          {!submitted && (
-            <button
-              type="button"
-              onClick={() => onToggleExplanation(index)}
-              className="text-xs font-semibold text-stone-500 hover:text-[#8B261E] inline-flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              <HelpCircle size={12} />
-              {showExpl ? 'Ẩn lời giải' : 'Xem gợi ý / giải thích'}
-            </button>
-          )}
-
-          {showExpl && (
-            <div className="mt-2 p-3 rounded-lg bg-amber-50/80 border border-amber-200/70 text-xs text-amber-950 leading-relaxed">
-              <span className="font-bold text-amber-900 block mb-0.5">
-                💡 Lời giải thích:
-              </span>
-              {question.explanation}
-            </div>
-          )}
-        </div>
+      {submitted && question.explanation && (
+        <p className="mt-4 rounded-lg bg-amber-50/70 border border-amber-200/70 p-3 text-xs sm:text-sm text-stone-700">
+          {question.explanation}
+        </p>
       )}
     </div>
   );
@@ -512,7 +421,7 @@ interface QuizExamSidebarProps {
   onSubmitExam: () => void;
   onResetExam: () => void;
   totalQuestions: number;
-  selectedAnswers: Record<number, string>;
+  answered: boolean[];
   scorePercent: number;
   correctCount: number;
   isStaff: boolean;
@@ -536,7 +445,7 @@ export function QuizExamSidebar({
   onSubmitExam,
   onResetExam,
   totalQuestions,
-  selectedAnswers,
+  answered,
   scorePercent,
   correctCount,
   isStaff,
@@ -585,13 +494,13 @@ export function QuizExamSidebar({
         <div className="flex items-center justify-between mb-3 text-xs font-bold text-stone-700">
           <span>Mục lục câu hỏi</span>
           <span>
-            {Object.keys(selectedAnswers).length}/{totalQuestions} đã làm
+            {answered.filter(Boolean).length}/{totalQuestions} đã làm
           </span>
         </div>
 
         <div className="grid grid-cols-5 gap-2 mb-4">
           {Array.from({ length: totalQuestions }).map((_, idx) => {
-            const isAnswered = selectedAnswers[idx] !== undefined;
+            const isAnswered = Boolean(answered[idx]);
             return (
               <button
                 key={idx}

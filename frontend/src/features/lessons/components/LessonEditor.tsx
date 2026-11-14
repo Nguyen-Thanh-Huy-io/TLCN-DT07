@@ -18,7 +18,6 @@ import { LessonLeftToolSidebar } from './LessonLeftToolSidebar';
 import { LessonPreviewContent } from './LessonPreviewContent';
 import { LessonPropertiesPanel } from './properties/LessonPropertiesPanel';
 import { buildLessonTocAndHtml } from '../utils/lesson-toc.util';
-import { useQuizEditor } from '../facades/useQuizEditor';
 import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
 
 export interface LessonEditorProps {
@@ -112,10 +111,6 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
   // (lúc đó luôn rỗng nếu đang sửa bài học có sẵn, vì API chưa trả dữ liệu kịp) — nội dung
   // thật được nạp lại đúng 1 lần ở effect "nạp nội dung thật" ngay dưới đây.
   const blockManager = useLessonBlockManager(contentRichText);
-
-  // Đề ôn tập cuối bài — dùng CHUNG 1 instance cho cả tab "Đề ôn tập" (Panel Thuộc tính)
-  // và phần hiển thị cuối bài ở tab "Xem trước", để tránh gọi API 2 lần và luôn đồng bộ.
-  const quiz = useQuizEditor(lessonId);
 
   // Nạp nội dung khối THẬT của bài học vào Block Builder — đúng 1 lần, ngay khi API tải xong
   // (lessonId tồn tại và loadingLesson chuyển từ true -> false). Nếu không có effect này,
@@ -260,9 +255,6 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
       visualMediaItems={visualMediaItems}
       documentMediaItems={documentMediaItems}
       sourceReferenceNote={sourceReferenceNote}
-      quizTitle={quiz.title}
-      quizQuestions={quiz.questions}
-      quizLoading={quiz.loading}
     />
   );
 
@@ -475,7 +467,6 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
               onAddMedia={addMediaItem}
               onRemoveMedia={removeMediaItem}
               lessonId={lessonId}
-              quiz={quiz}
               status={status}
               wordCount={wordCount}
               estimatedReadMinutes={estimatedReadMinutes}

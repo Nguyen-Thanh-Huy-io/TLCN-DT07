@@ -3,10 +3,8 @@
 import React from 'react';
 import { ClassificationSectionKey, DifficultyLevel, IconName, LessonStatus } from '@/constants/enums';
 import { LessonMediaItem, SidebarTab } from '../../types/editor.types';
-import { LessonQuizPanel } from '../LessonQuizPanel';
 import { LessonBlockItem, ResourceLinkBlockData } from '../../types/block-builder.types';
 import { LessonItem, TagItem } from '@/types/models';
-import { UseQuizEditorReturn } from '../../facades/useQuizEditor';
 import { BlockPropertyInspector } from '../builder/BlockPropertyInspector';
 import { LessonMediaManager } from '../LessonMediaManager';
 import { Badge } from '@/components/common/CommonUi';
@@ -52,9 +50,7 @@ interface LessonPropertiesPanelProps {
   onAddMedia: (item: LessonMediaItem) => void;
   onRemoveMedia: (index: number) => void;
 
-  // Quiz
   lessonId: string | null;
-  quiz: UseQuizEditorReturn;
 
   // Publishing
   status: LessonStatus;
@@ -103,7 +99,6 @@ export function LessonPropertiesPanel({
   onAddMedia,
   onRemoveMedia,
   lessonId,
-  quiz,
   status,
   wordCount,
   estimatedReadMinutes,
@@ -133,15 +128,6 @@ export function LessonPropertiesPanel({
       badge: mediaCount > 0 ? `${mediaCount}` : undefined,
       badgeColor: 'bg-blue-100 text-blue-700',
       title: 'Tài liệu và tệp nghiên cứu đính kèm',
-    },
-    {
-      key: SidebarTab.QUIZ,
-      icon: '❓',
-      label: 'Đề ôn tập',
-      disabled: !lessonId,
-      badge: !lessonId ? '!' : undefined,
-      badgeColor: 'bg-amber-100 text-amber-800',
-      title: !lessonId ? 'Cần lưu bài học trước khi tạo đề ôn tập' : 'Đề ôn tập trắc nghiệm',
     },
     {
       key: SidebarTab.PUBLISHING,
@@ -201,11 +187,10 @@ export function LessonPropertiesPanel({
           </button>
         </div>
 
-        {/* TẦNG 2: 4 Sub-tabs của Bài học (Dạng lưới 2x2 thoáng đãng, không bao giờ bị cắt chữ) */}
+        {/* TẦNG 2: Sub-tabs của Bài học (lưới 2 cột thoáng đãng, không bị cắt chữ). Ôn tập trong bài dùng khối QUIZ. */}
         {!isBlockMode && (
           <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200/80 animate-in fade-in-50 duration-100">
             {docTabs.map((t) => {
-              const isQuizLocked = t.key === SidebarTab.QUIZ && t.disabled;
               const isActive = sidebarTab === t.key;
               return (
                 <button
@@ -216,8 +201,6 @@ export function LessonPropertiesPanel({
                   className={`py-2 px-2.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-between gap-1 border ${
                     isActive
                       ? 'bg-white text-blue-700 shadow-xs border-blue-400/60 ring-1 ring-blue-500/20'
-                      : isQuizLocked
-                      ? 'bg-slate-50/50 text-slate-400 border-dashed border-slate-200 hover:text-slate-600'
                       : 'bg-white/70 text-slate-700 border-slate-200/70 hover:bg-white hover:text-slate-900'
                   }`}
                 >
@@ -284,34 +267,6 @@ export function LessonPropertiesPanel({
           onRemoveMedia={onRemoveMedia}
           disabled={saving}
         />
-      )}
-
-      {sidebarTab === SidebarTab.QUIZ && (
-        <div className="animate-in fade-in-50 duration-150">
-          {!lessonId ? (
-            <div className="bg-white border border-amber-200/80 rounded-xl p-4 shadow-2xs text-center space-y-2.5">
-              <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto text-sm font-bold">
-                !
-              </div>
-              <h4 className="text-xs font-bold text-slate-800">
-                Cần lưu bài học trước khi tạo đề ôn tập
-              </h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Hệ thống cần ID bài học để liên kết với ngân hàng câu hỏi và bộ Quiz.
-              </p>
-              <button
-                type="button"
-                onClick={() => onSaveLesson(LessonStatus.DRAFT)}
-                disabled={saving}
-                className="text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-3 py-1.5 rounded-lg transition shadow-2xs cursor-pointer inline-flex items-center gap-1.5"
-              >
-                <span>{saving ? 'Đang lưu...' : 'Lưu nháp bài học ngay'}</span>
-              </button>
-            </div>
-          ) : (
-            <LessonQuizPanel lessonId={lessonId} quiz={quiz} />
-          )}
-        </div>
       )}
 
       {sidebarTab === SidebarTab.PUBLISHING && (

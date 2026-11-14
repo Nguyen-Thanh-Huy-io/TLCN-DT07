@@ -29,13 +29,6 @@ export function useQuizManagementFacade() {
 
   // Preview modals state
   const [previewQuiz, setPreviewQuiz] = useState<StandaloneQuizItem | null>(null);
-  const [previewLesson, setPreviewLesson] = useState<{
-    id: string;
-    title: string;
-    slug?: string;
-    description?: string | null;
-    topicTitle?: string;
-  } | null>(null);
 
   // Edit/Create modal state
   const [isEditorOpen, setIsEditorOpen] = useState<boolean>(false);
@@ -91,7 +84,6 @@ export function useQuizManagementFacade() {
         query === '' ||
         quiz.title.toLowerCase().includes(query) ||
         (quiz.description && quiz.description.toLowerCase().includes(query)) ||
-        (quiz.lessonTitle && quiz.lessonTitle.toLowerCase().includes(query)) ||
         (quiz.topicTitle && quiz.topicTitle.toLowerCase().includes(query));
 
       const matchStatus =
@@ -144,20 +136,6 @@ export function useQuizManagementFacade() {
 
   const handleCloseQuizPreview = () => {
     setPreviewQuiz(null);
-  };
-
-  const handleOpenLessonPreview = (lessonInfo: {
-    id: string;
-    title: string;
-    slug?: string;
-    description?: string | null;
-    topicTitle?: string;
-  }) => {
-    setPreviewLesson(lessonInfo);
-  };
-
-  const handleCloseLessonPreview = () => {
-    setPreviewLesson(null);
   };
 
   const handleDeleteQuiz = async (quizId: string) => {
@@ -221,11 +199,8 @@ export function useQuizManagementFacade() {
     stats,
     // Preview modals
     previewQuiz,
-    previewLesson,
     handleOpenQuizPreview,
     handleCloseQuizPreview,
-    handleOpenLessonPreview,
-    handleCloseLessonPreview,
     // Edit modal
     isEditorOpen,
     editingQuiz,

@@ -24,7 +24,7 @@ import {
   DifficultyLevel,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { setQuizQuestionsFromSeed, toBankQuestion } from './quiz-bank.helper';
+import { toBankQuestion, upsertTopicQuizFromSeed } from './quiz-bank.helper';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL as string }),
@@ -380,23 +380,20 @@ async function main() {
   for (const qz of raw.quizzes || []) {
     const lessonId = lessonIdMap.get(qz.lessonId);
     if (!lessonId) continue;
-    const quiz = await prisma.quiz.upsert({
-      where: { lessonId },
-      update: {
-        title: qz.title ?? null,
-        description: qz.description ?? null,
-        passingScorePercent: qz.passingScorePercent ?? 80,
-        timeLimitMinutes: qz.timeLimitMinutes ?? 15,
-      },
-      create: {
-        lessonId,
-        title: qz.title ?? null,
-        description: qz.description ?? null,
-        passingScorePercent: qz.passingScorePercent ?? 80,
-        timeLimitMinutes: qz.timeLimitMinutes ?? 15,
-      },
+    // Đề thi thuộc chủ đề của bài học nguồn (đề không gắn bài học).
+    const lessonRow = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { title: true, topicId: true },
     });
-    await setQuizQuestionsFromSeed(prisma, quiz.id, lessonId, qz.questions ?? []);
+    await upsertTopicQuizFromSeed(prisma, {
+      title: qz.title ?? `Đề ôn tập: ${lessonRow?.title ?? ''}`,
+      description: qz.description ?? null,
+      passingScorePercent: qz.passingScorePercent ?? 80,
+      timeLimitMinutes: qz.timeLimitMinutes ?? 15,
+      topicIds: lessonRow?.topicId ? [lessonRow.topicId] : [],
+      lessonId,
+      questions: qz.questions ?? [],
+    });
   }
 
   // 10. QUESTION BANK

@@ -16,3 +16,6 @@ export enum QuizListStatus {
   DRAFT = 'DRAFT',
   ALL = 'all',
 }
+
+/** Số đề tối đa trả về ở danh sách đề công khai (trang Luyện tập). */
+export const PUBLIC_QUIZ_LIST_MAX_LIMIT = 100;

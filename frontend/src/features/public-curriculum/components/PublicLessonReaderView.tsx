@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -123,20 +123,12 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
     reload,
     lesson,
     learningPath,
-    quiz,
     loading,
     error,
     tocItems,
     compiledHtml,
     resourceLinks,
     navigationContext,
-    userAnswers,
-    setAnswer,
-    moveOrderingItem,
-    submittedQuiz,
-    quizEvaluation,
-    handleSubmitQuiz,
-    handleRetryQuiz,
   } = usePublicLessonReaderFacade(slug, pathId);
 
   const noteFacade = useNoteFacade(NOTE_TARGET_TYPE.LESSON, lesson?.id || '');
@@ -169,13 +161,6 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
   const { related, hasContent: hasRelated } = useLessonRelated(compiledHtml || '');
   const hasRightSidebar = hasToc || hasRelated;
   const readerColumns = resolveReaderLayoutColumns(Boolean(learningPath), syllabusOpen, hasRightSidebar);
-
-  // Vượt qua quiz tính là hoàn thành bài học
-  useEffect(() => {
-    if (lesson && submittedQuiz && quizEvaluation?.passed) {
-      void markCompleted(lesson.id);
-    }
-  }, [lesson, submittedQuiz, quizEvaluation, markCompleted]);
 
   const { prevLesson, nextLesson, flatLessons, currentIndex, currentChapter } = navigationContext;
   const lessonHref = (s: string) => PUBLIC_CURRICULUM_ROUTES.LESSON_DETAIL(s, learningPath?.id);
@@ -229,14 +214,6 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
         contentRef={contentRef}
         compiledHtml={compiledHtml}
         resourceLinks={resourceLinks}
-        quiz={quiz}
-        quizEvaluation={quizEvaluation}
-        userAnswers={userAnswers}
-        submittedQuiz={submittedQuiz}
-        setAnswer={setAnswer}
-        moveOrderingItem={moveOrderingItem}
-        onSubmitQuiz={handleSubmitQuiz}
-        onRetryQuiz={handleRetryQuiz}
         prevLessonHref={prevLesson ? lessonHref(prevLesson.slug) : null}
         nextLesson={Boolean(nextLesson)}
         onCompleteAndContinue={completeAndContinue}

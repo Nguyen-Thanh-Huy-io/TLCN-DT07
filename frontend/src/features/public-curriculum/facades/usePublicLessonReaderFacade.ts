@@ -8,16 +8,9 @@ import {
   LearningPathItem,
 } from '@/services/entities/learning-path.service';
 import { LessonItem } from '@/types/models';
-import { QuizItem } from '@/features/lessons/types/quiz.types';
 import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
 import { buildLessonTocAndHtml, LessonTocEntry, normalizeContentToBlocks } from '@/features/lessons/utils/lesson-toc.util';
-import {
-  prepareQuizSessionForLearner,
-  QuizGradingStrategyRegistry,
-  UserQuizAnswer,
-} from '../strategies/public-curriculum.strategies';
 import { ContentStatus } from '@/constants/enums';
-import { MoveDirection } from '@/features/lessons/components/quiz/QuizQuestionEditors';
 
 const PUBLISHED_STATUS = ContentStatus.PUBLISHED;
 
@@ -40,13 +33,8 @@ export interface AdjacentLessonLink {
 export function usePublicLessonReaderFacade(slug: string, pathId?: string | null) {
   const [lesson, setLesson] = useState<LessonItem | null>(null);
   const [learningPath, setLearningPath] = useState<LearningPathItem | null>(null);
-  const [quiz, setQuiz] = useState<QuizItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // State tương tác làm bài ôn tập của người học
-  const [userAnswers, setUserAnswers] = useState<Record<string, UserQuizAnswer>>({});
-  const [submittedQuiz, setSubmittedQuiz] = useState(false);
 
   const [access, setAccess] = useState<LessonAccess>('GRANTED');
   const user = useAuthSession();
@@ -57,10 +45,7 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
     if (!slug || userId === undefined) return;
     setLoading(true);
     setError(null);
-    setSubmittedQuiz(false);
-    setUserAnswers({});
     setLesson(null);
-    setQuiz(null);
 
     // Lộ trình chứa bài (công khai) — để hiện đề cương và nút đăng ký kể cả khi bài đang khóa.
     const allPaths = await LearningPathApiService.getLearningPaths().catch(() => []);
@@ -82,18 +67,9 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
     }
 
     try {
-      const { lesson: lessonData, quiz: quizRes } = await LearnerApiService.getLesson(slug);
+      const { lesson: lessonData } = await LearnerApiService.getLesson(slug);
       setAccess(LessonAccessState.GRANTED);
       setLesson(lessonData);
-
-      // Xáo trộn vị trí đáp án (Single/Multiple Choice), mốc thời gian (Ordering) và cột ghép (Matching) cho học sinh
-      if (quizRes?.questions) {
-        const { preparedQuiz, initialAnswers } = prepareQuizSessionForLearner(quizRes);
-        setQuiz(preparedQuiz);
-        setUserAnswers(initialAnswers);
-      } else {
-        setQuiz(quizRes);
-      }
     } catch (err: unknown) {
       const axiosErr = err as {
         response?: { status?: number; data?: { code?: string; message?: string } };
@@ -192,90 +168,17 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
     };
   }, [learningPath, lesson]);
 
-  const setAnswer = useCallback((questionId: string, answer: UserQuizAnswer) => {
-    if (submittedQuiz) return;
-    setUserAnswers((prev) => ({ ...prev, [questionId]: answer }));
-  }, [submittedQuiz]);
-
-  const moveOrderingItem = useCallback(
-    (questionId: string, fromIdx: number, direction: MoveDirection | 'UP' | 'DOWN') => {
-      if (submittedQuiz) return;
-      setUserAnswers((prev) => {
-        const current = prev[questionId];
-        if (!Array.isArray(current)) return prev;
-        const targetIdx = direction === MoveDirection.UP ? fromIdx - 1 : fromIdx + 1;
-        if (targetIdx < 0 || targetIdx >= current.length) return prev;
-        const next = [...current];
-        const [moved] = next.splice(fromIdx, 1);
-        next.splice(targetIdx, 0, moved);
-        return { ...prev, [questionId]: next };
-      });
-    },
-    [submittedQuiz],
-  );
-
-  // Chấm điểm toàn bộ Đề ôn tập thông qua QuizGradingStrategyRegistry
-  const quizEvaluation = useMemo(() => {
-    if (!quiz || !quiz.questions?.length) return null;
-    const details = quiz.questions.map((q) => {
-      const evaluation = QuizGradingStrategyRegistry.evaluateQuestion(
-        q,
-        userAnswers[q.id],
-      );
-      return {
-        questionId: q.id,
-        ...evaluation,
-      };
-    });
-
-    const correctCount = details.filter((d) => d.isCorrect).length;
-    const totalCount = quiz.questions.length;
-    const scorePercent = Math.round((correctCount / totalCount) * 100);
-    const passed = scorePercent >= (quiz.passingScorePercent || 70);
-
-    return {
-      detailsMap: new Map(details.map((d) => [d.questionId, d])),
-      correctCount,
-      totalCount,
-      scorePercent,
-      passed,
-    };
-  }, [quiz, userAnswers]);
-
-  const handleSubmitQuiz = useCallback(() => {
-    setSubmittedQuiz(true);
-  }, []);
-
-  const handleRetryQuiz = useCallback(() => {
-    setSubmittedQuiz(false);
-    if (quiz?.questions) {
-      const { preparedQuiz, initialAnswers } = prepareQuizSessionForLearner(quiz);
-      setQuiz(preparedQuiz);
-      setUserAnswers(initialAnswers);
-    } else {
-      setUserAnswers({});
-    }
-  }, [quiz]);
-
   return {
     access,
     lockedPreview,
     reload: loadData,
     lesson,
     learningPath,
-    quiz,
     loading,
     error,
     tocItems,
     compiledHtml,
     resourceLinks,
     navigationContext,
-    userAnswers,
-    setAnswer,
-    moveOrderingItem,
-    submittedQuiz,
-    quizEvaluation,
-    handleSubmitQuiz,
-    handleRetryQuiz,
   };
 }

@@ -50,10 +50,10 @@ export function QuizPreviewModal({ isOpen, onClose, quiz }: QuizPreviewModalProp
               <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-red-800 uppercase tracking-wider">
                 Xem trước đề thi
               </span>
-              {quiz.lessonTitle && (
+              {quiz.topicTitle && (
                 <span className="text-xs text-slate-500 inline-flex items-center gap-1 font-medium">
                   <BookOpen size={12} className="text-slate-400" />
-                  {quiz.lessonTitle}
+                  {quiz.topicTitle}
                 </span>
               )}
             </div>

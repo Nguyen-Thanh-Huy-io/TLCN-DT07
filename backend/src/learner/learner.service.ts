@@ -6,7 +6,6 @@ import {
 import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { LessonService } from '../lesson/lesson.service';
-import { QuizService } from '../quiz/quiz.service';
 import { LEARNER_ERROR_CODES, LEARNER_MESSAGES } from './learner.constant';
 
 @Injectable()
@@ -14,7 +13,6 @@ export class LearnerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly lessonService: LessonService,
-    private readonly quizService: QuizService,
   ) {}
 
   /** Lộ trình đã đăng ký + bài đã hoàn thành của người học. */
@@ -93,8 +91,7 @@ export class LearnerService {
       });
     }
 
-    const quiz = await this.quizService.findByLessonId(lesson.id);
-    return { lesson, quiz };
+    return { lesson };
   }
 
   async completeLesson(userId: string, lessonId: string) {

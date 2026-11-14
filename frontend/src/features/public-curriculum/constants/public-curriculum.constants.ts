@@ -1,3 +1,5 @@
+import { PRACTICE_TOPIC_PARAM } from '@/features/quiz/utils/practice-quiz.helper';
+
 import { DifficultyLevel } from '@/constants/enums';
 
 export enum LearningPathFilterType {
@@ -8,6 +10,9 @@ export enum LearningPathFilterType {
 
 export const PUBLIC_CURRICULUM_ROUTES = {
   CURRICULUM: '/chuong-trinh-hoc',
+  /** Trang Luyện tập, chọn sẵn chủ đề (đề thi thuộc chủ đề, không gắn bài học). */
+  PRACTICE: (topicId?: string | null) =>
+    topicId ? `/luyen-tap?${PRACTICE_TOPIC_PARAM}=${encodeURIComponent(topicId)}` : '/luyen-tap',
   LESSON_DETAIL: (slug: string, pathId?: string) =>
     pathId ? `/bai-hoc/${slug}?pathId=${encodeURIComponent(pathId)}` : `/bai-hoc/${slug}`,
 } as const;

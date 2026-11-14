@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../common/services/prisma.service';
 import {
@@ -20,7 +20,6 @@ const bankQuestion = (id: string, overrides: object = {}) => ({
 
 const storedQuiz = (overrides: object = {}) => ({
   id: 'quiz-1',
-  lessonId: null,
   title: null,
   description: null,
   passingScorePercent: null,
@@ -28,7 +27,6 @@ const storedQuiz = (overrides: object = {}) => ({
   createdAt: new Date(),
   updatedAt: new Date(),
   topics: [],
-  lesson: null,
   quizQuestions: [],
   ...overrides,
 });
@@ -45,7 +43,7 @@ const link = (
   question,
 });
 
-describe('QuizService — đề thi lấy câu hỏi từ Ngân hàng', () => {
+describe('QuizService — đề thi theo chủ đề, câu hỏi lấy từ Ngân hàng', () => {
   let service: QuizService;
   const prisma = {
     quiz: {
@@ -55,12 +53,9 @@ describe('QuizService — đề thi lấy câu hỏi từ Ngân hàng', () => {
       count: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      upsert: jest.fn(),
       delete: jest.fn(),
     },
     quizQuestion: { deleteMany: jest.fn(), createMany: jest.fn() },
-    question: { findMany: jest.fn(), create: jest.fn(), update: jest.fn() },
-    lesson: { findUnique: jest.fn() },
     $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>) =>
       fn(prisma),
     ),
@@ -70,11 +65,6 @@ describe('QuizService — đề thi lấy câu hỏi từ Ngân hàng', () => {
     jest.clearAllMocks();
     prisma.quiz.findUnique.mockResolvedValue(storedQuiz());
     prisma.quiz.create.mockResolvedValue({ id: 'quiz-1' });
-    prisma.quiz.upsert.mockResolvedValue({ id: 'quiz-1' });
-    prisma.lesson.findUnique.mockResolvedValue({
-      id: 'lesson-1',
-      title: 'Bạch Đằng',
-    });
     const moduleRef = await Test.createTestingModule({
       providers: [QuizService, { provide: PrismaService, useValue: prisma }],
     }).compile();
@@ -133,6 +123,22 @@ describe('QuizService — đề thi lấy câu hỏi từ Ngân hàng', () => {
       });
     });
 
+    it('tên và nhãn chủ đề dựng từ các chủ đề của đề', async () => {
+      prisma.quiz.findUnique.mockResolvedValue(
+        storedQuiz({
+          topics: [
+            { id: 't-1', name: 'Nhà Trần', slug: 'nha-tran' },
+            { id: 't-2', name: 'Nhà Lý', slug: 'nha-ly' },
+          ],
+        }),
+      );
+
+      await expect(service.findById('quiz-1')).resolves.toMatchObject({
+        title: 'Đề khảo thí: Nhà Trần',
+        topicTitle: 'Nhà Trần, Nhà Lý',
+      });
+    });
+
     it('đề chưa có câu nào là bản nháp; đề không tồn tại → 404', async () => {
       await expect(service.findById('quiz-1')).resolves.toMatchObject({
         questionCount: 0,
@@ -163,15 +169,9 @@ describe('QuizService — đề thi lấy câu hỏi từ Ngân hàng', () => {
         }),
       );
     });
-
-    it('đề ôn tập của bài học chưa có → null', async () => {
-      prisma.quiz.findUnique.mockResolvedValue(null);
-
-      await expect(service.findByLessonId('lesson-1')).resolves.toBeNull();
-    });
   });
 
-  describe('đề độc lập — chỉ chọn câu từ ngân hàng', () => {
+  describe('tạo / sửa đề — chỉ chọn câu từ ngân hàng', () => {
     it('tạo đề: gắn câu theo thứ tự, bỏ câu chọn trùng, điểm mặc định', async () => {
       await service.createStandalone({
         title: 'Đề 15 phút',
@@ -202,15 +202,6 @@ describe('QuizService — đề thi lấy câu hỏi từ Ngân hàng', () => {
       );
     });
 
-    it('bài học đã có đề thì không tạo đề thứ hai → 400', async () => {
-      prisma.quiz.findUnique.mockResolvedValueOnce({ id: 'de-cu' });
-
-      await expect(
-        service.createStandalone({ title: 'Đề mới', lessonId: 'lesson-1' }),
-      ).rejects.toThrow(BadRequestException);
-      expect(prisma.quiz.create).not.toHaveBeenCalled();
-    });
-
     it('sửa đề kèm danh sách câu: thay toàn bộ câu trong 1 transaction', async () => {
       await service.updateStandalone('quiz-1', {
         questionItems: [{ questionId: 'q3', points: 20 }],
@@ -236,62 +227,6 @@ describe('QuizService — đề thi lấy câu hỏi từ Ngân hàng', () => {
           data: expect.objectContaining({ title: 'Tên mới' }),
         }),
       );
-    });
-  });
-
-  describe('đề ôn tập theo bài học — soạn tại chỗ, lưu vào ngân hàng', () => {
-    const trueFalse = (id: string) => ({
-      id,
-      type: QuizQuestionType.TRUE_FALSE,
-      prompt: `Câu ${id}`,
-      correctAnswer: true,
-    });
-
-    it('câu đã có trong ngân hàng thì cập nhật, câu mới thì tạo; gắn vào đề đúng thứ tự', async () => {
-      prisma.question.findMany.mockResolvedValue([{ id: 'bank-1' }]);
-      prisma.question.update.mockResolvedValue({ id: 'bank-1' });
-      prisma.question.create.mockResolvedValue({ id: 'bank-moi' });
-
-      await service.upsert('lesson-1', {
-        title: 'Ôn tập',
-        questions: [trueFalse('tam-thoi-1'), trueFalse('bank-1')],
-      });
-
-      expect(prisma.question.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          type: QuizQuestionType.TRUE_FALSE,
-          prompt: 'Câu tam-thoi-1',
-          data: { correctAnswer: true },
-          lessons: { connect: { id: 'lesson-1' } },
-        }),
-        select: { id: true },
-      });
-      expect(prisma.question.update).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'bank-1' } }),
-      );
-      expect(prisma.quizQuestion.createMany).toHaveBeenCalledWith({
-        data: [
-          expect.objectContaining({ questionId: 'bank-moi', displayOrder: 0 }),
-          expect.objectContaining({ questionId: 'bank-1', displayOrder: 1 }),
-        ],
-      });
-    });
-
-    it('câu sai định dạng → 400, không ghi gì', async () => {
-      await expect(
-        service.upsert('lesson-1', {
-          questions: [{ id: 'x', type: 'TRUE_FALSE', prompt: 'Thiếu đáp án' }],
-        }),
-      ).rejects.toThrow(BadRequestException);
-      expect(prisma.$transaction).not.toHaveBeenCalled();
-    });
-
-    it('bài học không tồn tại → 404', async () => {
-      prisma.lesson.findUnique.mockResolvedValue(null);
-
-      await expect(
-        service.upsert('khong-co', { questions: [trueFalse('a')] }),
-      ).rejects.toThrow(NotFoundException);
     });
   });
 });

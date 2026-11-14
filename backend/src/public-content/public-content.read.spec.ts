@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ContentStatus, LessonStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
+import { PUBLIC_QUIZ_LIST_MAX_LIMIT } from '../quiz/quiz.constant';
 import { PublicContentService } from './public-content.service';
 
 const PUBLISHED = ContentStatus.PUBLISHED;
@@ -39,7 +40,7 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
     tag: { findMany: jest.fn() },
     lesson: { findMany: jest.fn() },
     topic: { findFirst: jest.fn() },
-    quiz: { findUnique: jest.fn() },
+    quiz: { findUnique: jest.fn(), findMany: jest.fn() },
     quizAttempt: { findMany: jest.fn() },
   };
 
@@ -361,7 +362,7 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
     );
   });
 
-  it('thư viện bài học: chỉ bài đã xuất bản, ước lượng phút đọc tối thiểu 1, đề có ngưỡng đạt mặc định', async () => {
+  it('thư viện bài học: chỉ bài đã xuất bản, ước lượng phút đọc tối thiểu 1, không kèm đề thi', async () => {
     prisma.lesson.findMany.mockResolvedValue([
       {
         id: 'l-1',
@@ -370,12 +371,6 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
         content: [],
         topic: null,
         lessonTags: [],
-        quiz: {
-          id: 'q-1',
-          title: 'Đề 1',
-          passingScorePercent: null,
-          quizQuestions: [],
-        },
       },
     ]);
 
@@ -385,7 +380,7 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
       expect.objectContaining({ where: { status: LessonStatus.PUBLISHED } }),
     );
     expect(lesson.estimatedReadMinutes).toBe(1);
-    expect(lesson.quiz?.passingScorePercent).toEqual(expect.any(Number));
+    expect(lesson).not.toHaveProperty('quiz');
   });
 
   it('chủ đề chưa xuất bản → 404; chủ đề có chủ đề con đã xuất bản', async () => {
@@ -404,12 +399,58 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
     expect(topic.children.map((c) => c.slug)).toEqual(['nha-tran']);
   });
 
+  describe('đề luyện tập công khai', () => {
+    it('chỉ đề có câu hỏi và thuộc chủ đề đã xuất bản; lọc theo chủ đề; câu dựng từ ngân hàng', async () => {
+      prisma.quiz.findMany.mockResolvedValue([
+        {
+          id: 'qz-1',
+          title: null,
+          description: null,
+          timeLimitMinutes: null,
+          passingScorePercent: null,
+          topics: [{ id: 't-1', name: 'Nhà Trần', slug: 'nha-tran' }],
+          quizQuestions: [
+            {
+              points: 10,
+              question: {
+                id: 'c-1',
+                type: 'TRUE_FALSE',
+                prompt: 'Nhà Trần lập năm 1226',
+                explanation: null,
+                data: { correctAnswer: true },
+              },
+            },
+          ],
+        },
+      ]);
+
+      const [quiz] = await service.listPracticeQuizzes({ topicId: 't-1' });
+
+      expect(prisma.quiz.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            topics: { some: { id: 't-1', status: PUBLISHED } },
+            quizQuestions: { some: {} },
+          },
+          take: PUBLIC_QUIZ_LIST_MAX_LIMIT,
+        }),
+      );
+      expect(quiz).toMatchObject({
+        title: 'Đề luyện tập: Nhà Trần',
+        questions: [{ id: 'c-1', correctAnswer: true, points: 10 }],
+        passingScorePercent: expect.any(Number),
+        timeLimitMinutes: expect.any(Number),
+      });
+      expect(quiz).not.toHaveProperty('quizQuestions');
+    });
+  });
+
   describe('thống kê đề', () => {
     it('tính tỉ lệ đạt, điểm và thời gian trung bình', async () => {
       prisma.quiz.findUnique.mockResolvedValue({
         id: 'q-1',
         title: 'Đề 1',
-        lesson: { title: 'Ngô Quyền' },
+        topics: [{ name: 'Bạch Đằng 938' }],
       });
       prisma.quizAttempt.findMany.mockResolvedValue([
         { id: 'a1', scorePercent: 80, timeSpentSeconds: 120, isPassed: true },
@@ -431,6 +472,7 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
         averageScore: 60,
         averageTimeMinutes: '1.5',
       });
+      expect(stats.topicTitle).toBe('Bạch Đằng 938');
       expect(stats.recentAttempts.map((a) => a.learnerName)).toEqual([
         'Thí sinh tự do',
         'hoc-vien',
@@ -438,7 +480,11 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
     });
 
     it('chưa có lượt nộp → toàn số 0', async () => {
-      prisma.quiz.findUnique.mockResolvedValue({ id: 'q-1', title: 'Đề 1' });
+      prisma.quiz.findUnique.mockResolvedValue({
+        id: 'q-1',
+        title: 'Đề 1',
+        topics: [],
+      });
       prisma.quizAttempt.findMany.mockResolvedValue([]);
 
       const stats = await service.getQuizStatistics('q-1');

@@ -78,3 +78,53 @@ export async function setQuizQuestionsFromSeed(
   ]);
   return questionIds.length;
 }
+
+export interface SeedTopicQuiz {
+  title: string;
+  description?: string | null;
+  passingScorePercent?: number;
+  timeLimitMinutes?: number;
+  /** Chủ đề của đề (đề thi thuộc Topic, không gắn Lesson). */
+  topicIds: string[];
+  /** Bài học nguồn — chỉ để gắn câu hỏi trong Ngân hàng với bài (lọc khi chọn câu). */
+  lessonId: string | null;
+  questions: unknown[];
+}
+
+/** Tạo hoặc cập nhật đề theo tên, gắn đúng các chủ đề, rồi thay toàn bộ câu hỏi của đề. */
+export async function upsertTopicQuizFromSeed(
+  prisma: PrismaClient,
+  seed: SeedTopicQuiz,
+): Promise<{ id: string; questionCount: number }> {
+  const content = {
+    title: seed.title,
+    description: seed.description ?? null,
+    passingScorePercent: seed.passingScorePercent,
+    timeLimitMinutes: seed.timeLimitMinutes,
+    topics: { set: seed.topicIds.map((id) => ({ id })) },
+  };
+  const existing = await prisma.quiz.findFirst({
+    where: { title: seed.title },
+    select: { id: true },
+  });
+  const quiz = existing
+    ? await prisma.quiz.update({
+        where: { id: existing.id },
+        data: content,
+        select: { id: true },
+      })
+    : await prisma.quiz.create({
+        data: {
+          ...content,
+          topics: { connect: seed.topicIds.map((id) => ({ id })) },
+        },
+        select: { id: true },
+      });
+  const questionCount = await setQuizQuestionsFromSeed(
+    prisma,
+    quiz.id,
+    seed.lessonId,
+    seed.questions,
+  );
+  return { id: quiz.id, questionCount };
+}

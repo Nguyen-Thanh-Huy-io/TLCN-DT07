@@ -100,7 +100,6 @@ export enum SidebarTab {
   BLOCK = 'BLOCK',
   CLASSIFICATION = 'CLASSIFICATION',
   MEDIA = 'MEDIA',
-  QUIZ = 'QUIZ',
   PUBLISHING = 'PUBLISHING',
 }
 

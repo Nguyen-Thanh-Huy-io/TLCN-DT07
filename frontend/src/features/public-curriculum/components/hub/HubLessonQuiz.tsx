@@ -1,11 +1,8 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { ArrowDown, ArrowUp, Check, RotateCcw, Target, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, X } from 'lucide-react';
 import {
-  QUIZ_QUESTION_TYPE_META,
-  QuizItem,
   QuizQuestion,
   QuizQuestionType,
   SingleChoiceQuestion,
@@ -16,16 +13,7 @@ import {
   FillInBlankQuestion,
 } from '@/features/lessons/types/quiz.types';
 import type { UserQuizAnswer } from '../../strategies/public-curriculum.strategies';
-import { HubBadge, HubButton } from './HubReaderParts';
-import { sanitizeRichHtml } from '@/utils/common';
-
-interface QuizEvaluation {
-  detailsMap: Map<string, { isCorrect: boolean; correctSummary: string }>;
-  correctCount: number;
-  totalCount: number;
-  scorePercent: number;
-  passed: boolean;
-}
+import { HubButton } from './HubReaderParts';
 
 interface QuestionProps {
   question: QuizQuestion;
@@ -420,161 +408,4 @@ export function QuestionBody({ question: q, answer, submitted, setAnswer, moveOr
     default:
       return null;
   }
-}
-
-export function HubLessonQuiz({
-  quiz,
-  evaluation,
-  answers,
-  submitted,
-  setAnswer,
-  moveOrderingItem,
-  onSubmit,
-  onRetry,
-}: {
-  quiz: QuizItem;
-  evaluation: QuizEvaluation | null;
-  answers: Record<string, UserQuizAnswer>;
-  submitted: boolean;
-  setAnswer: QuestionProps['setAnswer'];
-  moveOrderingItem: QuestionProps['moveOrderingItem'];
-  onSubmit: () => void;
-  onRetry: () => void;
-}) {
-  return (
-    <section id="on-tap-cuoi-bai" className="scroll-mt-24 rounded-2xl border border-lh-line bg-lh-surface p-5 sm:p-7">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="grid size-11 place-items-center rounded-xl bg-lh-gold-soft text-lh-gold">
-            <Target className="size-5" />
-          </span>
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-lh-gold">Kiểm tra kiến thức</div>
-            <div className="font-[family-name:var(--font-heading)] text-lg font-bold text-lh-ink">{quiz.title || 'Đề ôn tập cuối bài'}</div>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <HubBadge>{quiz.questions.length} câu hỏi</HubBadge>
-          <HubBadge tone="gold">Điểm đạt {quiz.passingScorePercent || 70}%</HubBadge>
-        </div>
-      </div>
-
-      {submitted && evaluation && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl p-4 ${
-            evaluation.passed ? 'bg-lh-brand-soft text-lh-brand' : 'bg-lh-red-soft text-lh-red'
-          }`}
-        >
-          <div>
-            <div className="text-sm font-bold">{evaluation.passed ? 'Chúc mừng! Bạn đã vượt qua bài ôn tập.' : 'Cần ôn tập thêm để nắm vững kiến thức.'}</div>
-            <div className="mt-1 font-[family-name:var(--font-heading)] text-2xl font-bold">
-              Đúng {evaluation.correctCount}/{evaluation.totalCount} câu ({evaluation.scorePercent}%)
-            </div>
-          </div>
-          <HubButton variant="outline" onClick={onRetry}>
-            <RotateCcw className="size-4" /> Làm lại
-          </HubButton>
-        </motion.div>
-      )}
-
-      <div className="mt-6 space-y-8">
-        {quiz.questions.map((q, index) => {
-          const detail = evaluation?.detailsMap.get(q.id);
-          return (
-            <div key={q.id} className="border-t border-lh-line pt-6 first:border-0 first:pt-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-lh-gold">
-                  Câu hỏi {index + 1} / {quiz.questions.length}
-                </span>
-                <HubBadge>{QUIZ_QUESTION_TYPE_META[q.type]?.shortLabel || 'Câu hỏi'}</HubBadge>
-                {submitted && detail && (
-                  <HubBadge tone={detail.isCorrect ? 'brand' : 'red'}>
-                    {detail.isCorrect ? <Check className="size-3" /> : <X className="size-3" />}
-                    {detail.isCorrect ? 'Chính xác' : 'Chưa đúng'}
-                  </HubBadge>
-                )}
-              </div>
-              <div
-                className="mt-3 font-[family-name:var(--font-heading)] text-xl font-bold leading-8 text-lh-ink [&>p]:mb-2 [&>p:last-child]:mb-0 [&_img]:rounded-xl [&_img]:my-3 [&_img]:max-h-96"
-                dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(q.prompt) }}
-              />
-              <QuestionBody
-                question={q}
-                answer={answers[q.id]}
-                submitted={submitted}
-                setAnswer={setAnswer}
-                moveOrderingItem={moveOrderingItem}
-              />
-              {submitted && detail && (
-                <div className="mt-4 rounded-xl bg-lh-surface-2 p-4 text-sm leading-6 text-lh-muted space-y-2">
-                  {!detail.isCorrect && detail.correctSummary && (
-                    <p className="font-semibold text-lh-brand">Đáp án đúng: {detail.correctSummary}</p>
-                  )}
-
-                  {/* Ghi chú giải thích riêng cho từng lựa chọn (Dùng chung cho Single Choice & Multiple Choice) */}
-                  {(q.type === QuizQuestionType.SINGLE_CHOICE ||
-                    q.type === QuizQuestionType.MULTIPLE_CHOICE) &&
-                    (() => {
-                      const rawAns = answers[q.id];
-                      const selectedSet = new Set(
-                        Array.isArray(rawAns)
-                          ? rawAns
-                          : typeof rawAns === 'string' && rawAns
-                            ? [rawAns]
-                            : [],
-                      );
-                      const relevantOptions = q.options
-                        .map((opt, i) => ({ opt, letter: String.fromCharCode(65 + i) }))
-                        .filter(
-                          ({ opt }) =>
-                            Boolean(opt.explanation?.trim()) &&
-                            (opt.isCorrect || selectedSet.has(opt.id)),
-                        );
-
-                      if (relevantOptions.length === 0) return null;
-
-                      return (
-                        <div className="space-y-1.5">
-                          {relevantOptions.map(({ opt, letter }) => (
-                            <div
-                              key={opt.id}
-                              className={`p-2.5 rounded-lg border text-xs leading-relaxed ${
-                                opt.isCorrect
-                                  ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
-                                  : 'bg-rose-50/80 border-rose-200 text-rose-900'
-                              }`}
-                            >
-                              <strong>
-                                {opt.isCorrect ? '✅' : '💡'} Phương án {letter} (
-                                {opt.isCorrect ? 'Đáp án đúng' : 'Bạn đã chọn'}):{' '}
-                              </strong>
-                              {opt.explanation}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-
-                  {q.explanation && (
-                    <p className="text-xs text-lh-ink/80 pt-1 border-t border-lh-line">
-                      <span className="font-bold text-lh-ink">Giải thích chung: </span>
-                      {q.explanation}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {!submitted && (
-        <HubButton className="mt-7" onClick={onSubmit}>
-          Kiểm tra đáp án
-        </HubButton>
-      )}
-    </section>
-  );
 }

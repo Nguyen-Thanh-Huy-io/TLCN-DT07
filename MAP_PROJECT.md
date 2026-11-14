@@ -242,14 +242,14 @@ flowchart TD
 * **Quản lý bộ đề Quiz độc lập (CMS):** Tạo/sửa/xoá đề Quiz độc lập chọn nhiều Topic, tổng hợp câu hỏi từ Ngân hàng hoặc soạn mới, xem thống kê lượt làm bài.
   * UI: [QuizManagementView.tsx](frontend/src/features/quiz/components/QuizManagementView.tsx), `StandaloneQuizEditorModal.tsx`, `QuizPreviewModal.tsx`, `QuizStatisticsModal.tsx`.
   * Facade: `facades/useQuizManagementFacade.ts`. Route: `frontend/src/app/quizzes/page.tsx`. Service: `services/entities/quiz.service.ts` (`QuizApiService`).
-  * Backend: `backend/src/quiz/quiz.module.ts` — Controller `standalone-quiz.controller.ts` (`/quizzes`) + `quiz.controller.ts` (nested `/lessons/:lessonId/quiz`, tương thích Lesson Editor cũ); DTO `create-standalone-quiz.dto.ts` (`topicIds?: string[]`). Toàn bộ 24/24 Jest test suites pass 100%.
+  * Backend: `backend/src/quiz/quiz.module.ts` — Controller `standalone-quiz.controller.ts` (`/quizzes`); DTO `create-standalone-quiz.dto.ts` (`topicIds`, `questionIds` / `questionItems`). **Đề thi thuộc Chủ đề (nhiều–nhiều), không gắn Bài học; câu hỏi chỉ lấy từ Ngân hàng** qua `quiz_questions` (`quiz-question.mapper.ts`). Ôn tập trong bài học dùng khối QUIZ của Block Builder.
   * **Trạng thái Code Quality:** Toàn bộ thư mục `frontend/src/features/quiz/` đạt **0 ERRORS, 0 WARNINGS (100% sạch)**.
-* **Làm bài luyện tập (trang public `/luyen-tap`):** Người học chọn bài có đề ôn tập, làm trắc nghiệm có tính giờ, nộp bài, xem điểm; role STAFF xem thêm phổ điểm.
+* **Làm bài luyện tập (trang public `/luyen-tap`):** Người học chọn đề theo chủ đề (`?topic=<id>` chọn sẵn chủ đề — trang đọc bài dẫn sang), làm trắc nghiệm có tính giờ, nộp bài (server chấm), xem điểm; role STAFF xem thêm phổ điểm.
   * UI: `frontend/src/app/luyen-tap/page.tsx` (**file trang duy nhất** — các route con `bai-thi/chu-de/kham-pha/lich-su` đã bị revert, không còn trong code hiện tại), dùng `PracticeQuizParts.tsx` (gộp `QuizFilterBar`, `QuizSelectorGrid`, `QuizBriefingCard`, `QuizQuestionCard`, `QuizExamSidebar`).
-  * Strategy & Helper: `utils/practice-quiz.helper.ts` (`extractAvailableTopics`, `filterQuizLessons`, `calculateScore` — chuẩn hoá tiếng Việt không dấu).
-  * Nguồn dữ liệu: gọi trực tiếp route handler `fetch('/api/public/lessons')`, `/api/public/quizzes/:id/submit|statistics` (ngoại lệ hợp lệ cho `app/api/`).
+  * Strategy & Helper: `utils/practice-quiz.helper.ts` (`extractAvailableTopics`, `filterPracticeQuizzes`, `topicLabelOf` — chuẩn hoá tiếng Việt không dấu; một đề có thể thuộc nhiều chủ đề).
+  * Nguồn dữ liệu: `QuizApiService.getPracticeQuizzes()` → `GET /public/quizzes`; nộp bài / thống kê qua `/public/quizzes/:id/submit|statistics`.
   * Làm bài: `PracticeQuestionCard` dùng chung `QuestionBody` của `hub/HubLessonQuiz.tsx` → đủ 6 loại câu; mỗi lượt gọi `prepareQuizSessionForLearner` để xáo lựa chọn / thứ tự sắp xếp / vế ghép (không bao giờ trùng đáp án).
-  * Chấm điểm **ở server**: client chỉ gửi `answers` (theo id câu hỏi) + `timeSpentSeconds`; `PublicContentService.submitQuizAttempt` đọc `Quiz.questions` qua `validateAndNormalizeQuestions` rồi chấm bằng `backend/src/quiz/quiz-grading.ts` (`gradeQuizAttempt`), trả `scorePercent`, `correctCount`, `isPassed`, `results` (đúng/sai từng câu). DTO không còn nhận `scorePercent`/`isPassed` — gửi lên sẽ bị 400.
+  * Chấm điểm **ở server**: client chỉ gửi `answers` (theo id câu hỏi) + `timeSpentSeconds`; `PublicContentService.submitQuizAttempt` đọc câu của đề từ Ngân hàng (`quiz_questions` → `toQuizQuestions`) rồi chấm bằng `backend/src/quiz/quiz-grading.ts` (`gradeQuizAttempt`), trả `scorePercent`, `correctCount`, `isPassed`, `results` (đúng/sai từng câu). DTO không còn nhận `scorePercent`/`isPassed` — gửi lên sẽ bị 400.
 * **Các loại câu hỏi (Strategy Pattern — backend thật, không phải frontend):** `backend/src/quiz/validators/quiz-question.validator.ts` + `types/quiz-question.types.ts` (enum `QuizQuestionType`). Mỗi `IQuestionValidationStrategy` xử lý 1 loại: `SingleChoiceValidationStrategy`/`MultipleChoiceValidationStrategy` (Template Method qua `BaseChoiceValidationStrategy`), `TrueFalseValidationStrategy`, `OrderingValidationStrategy`, `MatchingValidationStrategy`, `FillInBlankValidationStrategy` — map chọn tại `QUESTION_VALIDATION_STRATEGIES`, dùng cả trong `QuizService` và `QuestionService`.
 
 ### 3.13. Blog cá nhân / Bài viết chuyên khảo (Blog)
@@ -412,9 +412,9 @@ flowchart TD
 ### Quiz / Luyện tập
 | Endpoint | Method | Chức năng | Controller |
 |---|---|---|---|
-| `/lessons/:lessonId/quiz` | GET, PUT, DELETE | Đề ôn tập gắn 1 bài học | `quiz.controller.ts` |
-| `/quizzes`, `/quizzes/:id` | GET/POST, GET/PUT/DELETE | CRUD đề Quiz độc lập | `standalone-quiz.controller.ts` |
+| `/quizzes`, `/quizzes/:id` | GET/POST, GET/PUT/DELETE | CRUD đề thi (gắn Chủ đề, chọn câu từ Ngân hàng) | `standalone-quiz.controller.ts` |
 | `/questions`, `/questions/:id` | GET/POST, GET/PUT/DELETE | CRUD Ngân hàng câu hỏi | `question.controller.ts` |
+| `/public/quizzes` | GET | Đề luyện tập công khai (lọc `topicId`, tối đa 100) | `public-content.controller.ts` |
 | `/public/quizzes/:id/submit` | POST | Nộp bài luyện tập | `public-content.controller.ts` |
 | `/public/quizzes/:id/statistics` | GET | Thống kê kết quả | `public-content.controller.ts` |
 

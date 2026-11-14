@@ -158,7 +158,7 @@ export class PathFilterStrategyRegistry {
 }
 
 // ==========================================
-// 2. STRATEGY CHẤM ĐIỂM ĐỀ ÔN TẬP TƯƠNG TÁC (OCP)
+// 2. CÂU TRẢ LỜI CỦA NGƯỜI HỌC (server chấm điểm — POST /public/quizzes/:id/submit)
 // ==========================================
 
 export type UserQuizAnswer =
@@ -166,130 +166,6 @@ export type UserQuizAnswer =
   | boolean // TRUE_FALSE
   | string[] // MULTIPLE_CHOICE (selected optionIds) | ORDERING (ordered itemIds)
   | Record<string, string>; // MATCHING (leftId -> rightId)
-
-export interface IQuizQuestionGrader<T extends QuizQuestion = QuizQuestion> {
-  isCorrect(question: T, answer: UserQuizAnswer | undefined): boolean;
-  getCorrectSummary(question: T): string;
-}
-
-abstract class BaseChoiceGrader<
-  T extends SingleChoiceQuestion | MultipleChoiceQuestion,
-> implements IQuizQuestionGrader<T> {
-  isCorrect(question: T, answer: UserQuizAnswer | undefined): boolean {
-    const selectedIds = Array.isArray(answer)
-      ? answer
-      : typeof answer === 'string' && answer
-        ? [answer]
-        : [];
-    const correctIds = (question.options || [])
-      .filter((o: MultipleChoiceOption) => o.isCorrect)
-      .map((o: MultipleChoiceOption) => o.id);
-    if (correctIds.length === 0 || selectedIds.length !== correctIds.length) {
-      return false;
-    }
-    const selectedSet = new Set(selectedIds);
-    return correctIds.every((id) => selectedSet.has(id));
-  }
-
-  getCorrectSummary(question: T): string {
-    return (question.options || [])
-      .filter((o: MultipleChoiceOption) => o.isCorrect)
-      .map((o: MultipleChoiceOption) => o.text || '')
-      .join(' • ');
-  }
-}
-
-class SingleChoiceGrader extends BaseChoiceGrader<SingleChoiceQuestion> {}
-
-class MultipleChoiceGrader extends BaseChoiceGrader<MultipleChoiceQuestion> {}
-
-class TrueFalseGrader implements IQuizQuestionGrader<TrueFalseQuestion> {
-  isCorrect(question: TrueFalseQuestion, answer: UserQuizAnswer | undefined): boolean {
-    return typeof answer === 'boolean' && answer === question.correctAnswer;
-  }
-
-  getCorrectSummary(question: TrueFalseQuestion): string {
-    return question.correctAnswer ? 'Đúng' : 'Sai';
-  }
-}
-
-class FillInBlankGrader implements IQuizQuestionGrader<FillInBlankQuestion> {
-  isCorrect(question: FillInBlankQuestion, answer: UserQuizAnswer | undefined): boolean {
-    if (typeof answer !== 'string' || !answer.trim()) return false;
-    const candidate = question.caseSensitive ? answer.trim() : answer.trim().toLowerCase();
-    const acceptedList = Array.isArray(question.acceptedAnswers) ? question.acceptedAnswers : [];
-    return acceptedList.some((acc) => {
-      const normalized = question.caseSensitive ? acc.trim() : acc.trim().toLowerCase();
-      return normalized === candidate;
-    });
-  }
-
-  getCorrectSummary(question: FillInBlankQuestion): string {
-    return (question.acceptedAnswers || []).join(' / ');
-  }
-}
-
-class OrderingGrader implements IQuizQuestionGrader<OrderingQuestion> {
-  isCorrect(question: OrderingQuestion, answer: UserQuizAnswer | undefined): boolean {
-    const correctOrder = Array.isArray(question.correctOrder) ? question.correctOrder : [];
-    if (!Array.isArray(answer) || answer.length !== correctOrder.length) {
-      return false;
-    }
-    return correctOrder.every((id, idx) => answer[idx] === id);
-  }
-
-  getCorrectSummary(question: OrderingQuestion): string {
-    const items = Array.isArray(question.items) ? question.items : [];
-    const byId = new Map(items.map((it: OrderingItem) => [it.id, it.label || '']));
-    const correctOrder = Array.isArray(question.correctOrder) ? question.correctOrder : [];
-    return correctOrder.map((id, idx) => `${idx + 1}. ${byId.get(id) || id}`).join(' → ');
-  }
-}
-
-class MatchingGrader implements IQuizQuestionGrader<MatchingQuestion> {
-  isCorrect(question: MatchingQuestion, answer: UserQuizAnswer | undefined): boolean {
-    if (!answer || typeof answer !== 'object' || Array.isArray(answer)) return false;
-    const map = answer as Record<string, string>;
-    const pairs = Array.isArray(question.correctPairs) ? question.correctPairs : [];
-    return pairs.every((pair) => map[pair.leftId] === pair.rightId);
-  }
-
-  getCorrectSummary(question: MatchingQuestion): string {
-    const leftItems = Array.isArray(question.leftItems) ? question.leftItems : [];
-    const rightItems = Array.isArray(question.rightItems) ? question.rightItems : [];
-    const pairs = Array.isArray(question.correctPairs) ? question.correctPairs : [];
-    const leftMap = new Map(leftItems.map((i: MatchingItem) => [i.id, i.label || '']));
-    const rightMap = new Map(rightItems.map((i: MatchingItem) => [i.id, i.label || '']));
-    return pairs
-      .map((p) => `${leftMap.get(p.leftId) || p.leftId} ↔ ${rightMap.get(p.rightId) || p.rightId}`)
-      .join(' | ');
-  }
-}
-
-export class QuizGradingStrategyRegistry {
-  private static readonly graders: Record<QuizQuestionType, IQuizQuestionGrader<QuizQuestion>> = {
-    [QuizQuestionType.SINGLE_CHOICE]: new SingleChoiceGrader() as unknown as IQuizQuestionGrader<QuizQuestion>,
-    [QuizQuestionType.MULTIPLE_CHOICE]: new MultipleChoiceGrader() as unknown as IQuizQuestionGrader<QuizQuestion>,
-    [QuizQuestionType.TRUE_FALSE]: new TrueFalseGrader() as unknown as IQuizQuestionGrader<QuizQuestion>,
-    [QuizQuestionType.FILL_IN_BLANK]: new FillInBlankGrader() as unknown as IQuizQuestionGrader<QuizQuestion>,
-    [QuizQuestionType.ORDERING]: new OrderingGrader() as unknown as IQuizQuestionGrader<QuizQuestion>,
-    [QuizQuestionType.MATCHING]: new MatchingGrader() as unknown as IQuizQuestionGrader<QuizQuestion>,
-  };
-
-  static evaluateQuestion(
-    question: QuizQuestion,
-    answer: UserQuizAnswer | undefined,
-  ): { isCorrect: boolean; correctSummary: string } {
-    const grader = this.graders[question.type];
-    if (!grader) {
-      return { isCorrect: false, correctSummary: '' };
-    }
-    return {
-      isCorrect: grader.isCorrect(question, answer),
-      correctSummary: grader.getCorrectSummary(question),
-    };
-  }
-}
 
 // ==========================================
 // 3. STRATEGY XÁO TRỘN NGẪU NHIÊN ĐỀ ÔN TẬP CHO HỌC SINH (FISHER-YATES SHUFFLE)

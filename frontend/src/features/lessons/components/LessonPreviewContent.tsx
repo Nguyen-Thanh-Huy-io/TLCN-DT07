@@ -8,7 +8,6 @@ import { DifficultyLevel, MediaType } from '@/constants/enums';
 import { DIFFICULTY_LABEL_MAP } from '@/constants/ui-theme';
 import { TagItem } from '@/types/models';
 import { LessonMediaItem } from '../types/editor.types';
-import { QuizQuestion, QuizQuestionType, QUIZ_QUESTION_TYPE_META } from '../types/quiz.types';
 import { TocItem } from '../types/editor.types';
 import { sanitizeRichHtml } from '@/utils/common';
 
@@ -32,11 +31,6 @@ interface LessonPreviewContentProps {
   visualMediaItems: LessonMediaItem[];
   documentMediaItems: LessonMediaItem[];
   sourceReferenceNote: string;
-  /** Đề ôn tập cuối bài — hiển thị kèm đáp án đúng (đây là bản xem trước cho biên tập
-   * viên, không phải giao diện làm bài thật của học sinh). */
-  quizTitle?: string;
-  quizQuestions: QuizQuestion[];
-  quizLoading: boolean;
 }
 
 /** Bản xem trước trực quan của bài học theo giao diện Wiki & Khóa học (Mục lục đặt bên
@@ -57,76 +51,7 @@ export function LessonPreviewContent({
   visualMediaItems,
   documentMediaItems,
   sourceReferenceNote,
-  quizTitle,
-  quizQuestions,
-  quizLoading,
 }: LessonPreviewContentProps) {
-  // Nội dung từng dạng câu hỏi — hiển thị kèm đáp án đúng để biên tập viên tự kiểm tra
-  // ngay trong bản xem trước (không phải giao diện làm bài thật mà học sinh sẽ thấy).
-  const renderQuizQuestionBody = (q: QuizQuestion) => {
-    switch (q.type) {
-      case QuizQuestionType.SINGLE_CHOICE:
-      case QuizQuestionType.MULTIPLE_CHOICE:
-        return (
-          <div className="space-y-1.5 mt-2">
-            {q.options.map((opt, i) => (
-              <div
-                key={opt.id || `opt-${i}-${opt.text || ''}`}
-                className={`text-xs px-2.5 py-1.5 rounded-lg border flex items-center gap-2 ${
-                  opt.isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-white border-slate-200 text-slate-700'
-                }`}
-              >
-                <span className="font-bold">{String.fromCharCode(65 + i)}.</span>
-                <span>{opt.text}</span>
-                {opt.isCorrect && <span className="ml-auto text-[10px] font-semibold text-emerald-600">Đáp án đúng</span>}
-              </div>
-            ))}
-          </div>
-        );
-      case QuizQuestionType.TRUE_FALSE:
-        return (
-          <p className="text-xs mt-2 text-slate-700">
-            Đáp án đúng:{' '}
-            <span className="font-semibold text-emerald-700">{q.correctAnswer ? 'Đúng' : 'Sai'}</span>
-          </p>
-        );
-      case QuizQuestionType.ORDERING: {
-        const byId = new Map(q.items.map((it) => [it.id, it.label]));
-        return (
-          <ol className="list-decimal list-inside space-y-1 mt-2 text-xs text-slate-700">
-            {q.correctOrder.map((id, i) => (
-              <li key={id || `order-${i}`}>{byId.get(id) || id}</li>
-            ))}
-          </ol>
-        );
-      }
-      case QuizQuestionType.MATCHING: {
-        const leftById = new Map(q.leftItems.map((it) => [it.id, it.label]));
-        const rightById = new Map(q.rightItems.map((it) => [it.id, it.label]));
-        return (
-          <div className="space-y-1 mt-2 text-xs text-slate-700">
-            {q.correctPairs.map((pair, i) => (
-              <div key={pair.leftId ? `${pair.leftId}-${pair.rightId}` : `pair-${i}`} className="flex items-center gap-2">
-                <span>{leftById.get(pair.leftId) || pair.leftId}</span>
-                <span className="text-slate-400">→</span>
-                <span className="font-medium">{rightById.get(pair.rightId) || pair.rightId}</span>
-              </div>
-            ))}
-          </div>
-        );
-      }
-      case QuizQuestionType.FILL_IN_BLANK:
-        return (
-          <p className="text-xs mt-2 text-slate-700">
-            Đáp án chấp nhận:{' '}
-            <span className="font-semibold text-emerald-700">{q.acceptedAnswers.join(' / ')}</span>
-          </p>
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs h-full overflow-y-auto">
       <div className={`flex flex-col gap-6 items-start ${compact ? '' : 'lg:flex-row'}`}>
@@ -307,44 +232,6 @@ export function LessonPreviewContent({
             <strong className="text-slate-800 not-italic">Nguồn tư liệu tham khảo: </strong>
             <span>{sourceReferenceNote || 'Chưa cập nhật nguồn sử liệu'}</span>
           </div>
-
-          {/* Đề ôn tập cuối bài — luôn hiển thị SAU CÙNG, đúng vị trí học sinh sẽ gặp Quiz
-              khi đọc hết bài học (Quiz là thuộc tính cấp bài học, không phải khối nội dung). */}
-          {!quizLoading && quizQuestions.length > 0 && (
-            <div className="mt-8 pt-5 border-t-2 border-dashed border-amber-200">
-              <div className="flex items-center gap-2 mb-3">
-                <Icon name={IconName.GRID} size={14} className="text-amber-600" />
-                <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-                  {quizTitle || 'Đề ôn tập cuối bài'}
-                </h4>
-                <Badge tone="gray">{quizQuestions.length} câu hỏi</Badge>
-              </div>
-              <div className="space-y-3">
-                {quizQuestions.map((q, idx) => (
-                  <div key={q.id || `preview-q-${idx}`} className="p-3 bg-amber-50/40 border border-amber-200 rounded-xl">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold text-slate-500">Câu {idx + 1}.</span>
-                      <span
-                        className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${QUIZ_QUESTION_TYPE_META[q.type].color}`}
-                      >
-                        {QUIZ_QUESTION_TYPE_META[q.type].shortLabel}
-                      </span>
-                    </div>
-                    <div
-                      className="text-sm font-medium text-slate-900 prose prose-slate max-w-none"
-                      dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(q.prompt) }}
-                    />
-                    {renderQuizQuestionBody(q)}
-                    {q.explanation && (
-                      <p className="text-[11px] text-slate-500 italic mt-2 bg-white/70 border border-slate-200 rounded px-2 py-1">
-                        💡 {q.explanation}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

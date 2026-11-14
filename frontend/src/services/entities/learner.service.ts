@@ -1,6 +1,5 @@
 import api from '../api';
 import type { LessonItem } from '@/types/models';
-import type { QuizItem } from '@/features/lessons/types/quiz.types';
 
 export interface LearnerOverview {
   enrolledPathIds: string[];
@@ -9,7 +8,6 @@ export interface LearnerOverview {
 
 export interface ReadableLesson {
   lesson: LessonItem;
-  quiz: QuizItem | null;
 }
 
 export interface LibraryLesson {
@@ -60,7 +58,7 @@ export class LearnerApiService {
     return unwrap<LearnerOverview>(res.data);
   }
 
-  /** Nội dung bài + quiz; lỗi 403 kèm `code: NOT_ENROLLED` khi chưa đăng ký lộ trình. */
+  /** Nội dung bài; lỗi 403 kèm `code: NOT_ENROLLED` khi chưa đăng ký lộ trình. */
   static async getLesson(slug: string): Promise<ReadableLesson> {
     const res = await api.get(ROUTES.LESSON(slug));
     return unwrap<ReadableLesson>(res.data);

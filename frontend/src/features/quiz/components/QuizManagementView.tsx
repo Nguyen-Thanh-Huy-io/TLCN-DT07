@@ -8,14 +8,12 @@ import {
   Eye,
   Edit3,
   Trash2,
-  BookOpen,
   HelpCircle,
   Layers,
   Database,
   CheckCircle2,
   AlertCircle,
   FileText,
-  ExternalLink,
   BarChart3,
   Tag,
 } from 'lucide-react';
@@ -26,7 +24,6 @@ import {
 } from '@/constants/enums';
 import { useQuizManagementFacade } from '../facades/useQuizManagementFacade';
 import { QuizPreviewModal } from './QuizPreviewModal';
-import { LessonQuickPreviewModal } from './LessonQuickPreviewModal';
 import { StandaloneQuizEditorModal } from './StandaloneQuizEditorModal';
 import { QuizStatisticsModal } from './QuizStatisticsModal';
 
@@ -46,11 +43,8 @@ export function QuizManagementView() {
     stats,
     // Preview modals
     previewQuiz,
-    previewLesson,
     handleOpenQuizPreview,
     handleCloseQuizPreview,
-    handleOpenLessonPreview,
-    handleCloseLessonPreview,
     // Edit/Create modal
     isEditorOpen,
     editingQuiz,
@@ -260,27 +254,8 @@ export function QuizManagementView() {
                               <Layers size={11} className="shrink-0 text-slate-500" />
                               <span className="truncate max-w-[140px]">{quiz.topicTitle}</span>
                             </span>
-                          ) : quiz.lesson ? (
-                            <div className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 rounded-lg px-2.5 py-1 max-w-[220px]">
-                              <BookOpen size={13} className="text-slate-500 shrink-0" />
-                              <span
-                                className="text-xs font-medium text-slate-700 truncate cursor-pointer hover:text-red-700"
-                                title={quiz.lesson.title}
-                                onClick={() => handleOpenLessonPreview(quiz.lesson!)}
-                              >
-                                {quiz.lesson.title}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleOpenLessonPreview(quiz.lesson!)}
-                                className="text-slate-400 hover:text-red-700 p-0.5 rounded transition-colors shrink-0"
-                                title="Xem qua bài học"
-                              >
-                                <ExternalLink size={12} />
-                              </button>
-                            </div>
                           ) : (
-                            <span className="text-xs text-slate-400 italic">Đề tổng hợp tự do</span>
+                            <span className="text-xs text-slate-400 italic">Chưa gắn chủ đề</span>
                           )}
                         </div>
                       </td>
@@ -378,13 +353,6 @@ export function QuizManagementView() {
         isOpen={Boolean(previewQuiz)}
         onClose={handleCloseQuizPreview}
         quiz={previewQuiz}
-      />
-
-      {/* Modal Xem qua bài học tham chiếu */}
-      <LessonQuickPreviewModal
-        isOpen={Boolean(previewLesson)}
-        onClose={handleCloseLessonPreview}
-        lesson={previewLesson}
       />
 
       {/* Modal Tạo/Sửa đề Quiz độc lập */}

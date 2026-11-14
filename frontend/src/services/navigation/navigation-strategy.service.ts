@@ -53,7 +53,7 @@ export class LearningNavStrategy implements INavigationGroupStrategy {
       page: NavigationPageKey.QUIZZES,
       route: APP_ROUTES.QUIZZES,
       groupId: this.groupId,
-      subtitle: 'Đề ôn tập & kiểm tra theo bài',
+      subtitle: 'Đề luyện tập & kiểm tra theo chủ đề',
     },
     {
       id: 'nav-media',

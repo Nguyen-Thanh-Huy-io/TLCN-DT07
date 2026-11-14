@@ -216,7 +216,8 @@ describe('AuthService', () => {
         '123456',
         mockUser.id,
       );
-    });
+      // Băm bcryptjs với cost thật (12) chạy JS thuần, có thể quá 5s mặc định khi cả bộ test chạy song song.
+    }, 20_000);
 
     it('should throw error if password is weak', async () => {
       authUtilsService.checkRateLimit.mockResolvedValue(true);

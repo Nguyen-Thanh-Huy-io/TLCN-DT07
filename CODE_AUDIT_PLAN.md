@@ -156,7 +156,7 @@ Chi tiết từng lỗi ở [CODE_AUDIT.md](CODE_AUDIT.md) Mục 9.
 - [x] **Unit test nhóm ưu tiên 3** (2026-11-14): `auth.guard` (100%: token hết hạn / giả mạo / `alg: none` / `tokenVersion` cũ / tài khoản bị khoá hoặc đã xoá), `auth-utils` (74%: ký và kiểm token, access ≠ refresh, giới hạn tần suất), `topic` (95%: chống vòng lặp cha–con, giới hạn 20 cấp, gắn/tách con, cache) — 430 → 467 test, độ phủ backend 59,4% → 62%. Sửa lỗ cache `tokenVersion` khi khoá / xoá tài khoản.
 - [x] **DB test riêng cho e2e** (2026-11-14): `npm run test:e2e:prepare` dựng lại `<DB dev>_e2e` từ `prisma/schema`; e2e dùng Redis DB 1 + tiền tố `e2e` (không lấy job BullMQ của backend dev); có chốt chặn từ chối trùng DB dev. Viết lại `lesson`, `tag`, `dashboard`, `topic` e2e dùng tài khoản thật qua `AuthGuard` thật (trước giả lập người dùng không có trong DB nên vỡ khi ghi `createdBy`) — 47/47 test e2e qua, không để lại dữ liệu.
 - [x] Đề thi chỉ lấy câu hỏi từ Ngân hàng; bỏ cột `quizzes.questions`; chuẩn hoá câu định dạng cũ; bỏ bảng thừa `article_comments` (2026-11-14). Còn 39 bảng.
-- [ ] Chốt `Quiz.lessonId` (đề ôn tập theo bài) với quy tắc "không gắn Quiz vào Lesson" trong CLAUDE.md.
+- [x] Đề thi thuộc Chủ đề, không gắn Bài học; ôn tập trong bài dùng khối QUIZ (2026-11-14).
 - [ ] Đưa các script thử API ghi (bài viết, timeline, quiz, blog, kiểm duyệt, người dùng) thành e2e.
 - [x] Gộp lịch sử migration thành baseline `20261114000000_baseline` + lệnh `npm run db:baseline` cho DB cũ (2026-11-14). **Mỗi thành viên chạy `npm run db:baseline` một lần sau khi pull.**
 - [x] Bỏ ngoại lệ tự duyệt bài viết ở chuyên mục "blog/bài viết" (`isBlogCategory`); sửa quét AI 2 lần, transaction cho bình luận, TTL phiên Google (2026-11-14).

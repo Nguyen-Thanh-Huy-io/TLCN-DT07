@@ -3,7 +3,6 @@ import { Test } from '@nestjs/testing';
 import { ContentStatus, LessonStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { LessonService } from '../lesson/lesson.service';
-import { QuizService } from '../quiz/quiz.service';
 import { LEARNER_ERROR_CODES } from './learner.constant';
 import { LearnerService } from './learner.service';
 
@@ -23,7 +22,6 @@ describe('LearnerService', () => {
     lesson: { findFirst: jest.fn() },
   };
   const lessonService = { findBySlug: jest.fn() };
-  const quizService = { findByLessonId: jest.fn().mockResolvedValue(null) };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -36,7 +34,6 @@ describe('LearnerService', () => {
         LearnerService,
         { provide: PrismaService, useValue: prisma },
         { provide: LessonService, useValue: lessonService },
-        { provide: QuizService, useValue: quizService },
       ],
     }).compile();
     service = moduleRef.get(LearnerService);

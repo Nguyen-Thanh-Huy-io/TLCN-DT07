@@ -1,14 +1,17 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isStaffRole } from '@/services/auth/public-auth.service';
 import {
   ALL_TOPICS_ID,
+  PRACTICE_TOPIC_PARAM,
   extractAvailableTopics,
-  filterQuizLessons,
+  filterPracticeQuizzes,
+  topicLabelOf,
 } from '@/features/quiz/utils/practice-quiz.helper';
 import { QuizFilterBar } from '@/features/quiz/components/PracticeQuizParts';
 import { QuizSelectorGrid } from '@/features/quiz/components/PracticeQuizParts';
@@ -21,7 +24,12 @@ import {
   prepareQuizSessionForLearner,
   type UserQuizAnswer,
 } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
-import { QuizApiService, type QuizAttemptResult, type QuizStatisticsData } from '@/services/entities/quiz.service';
+import {
+  QuizApiService,
+  type PracticeQuizItem,
+  type QuizAttemptResult,
+  type QuizStatisticsData,
+} from '@/services/entities/quiz.service';
 import { extractErrorMessage } from '@/services/api';
 import { MoveDirection } from '@/features/lessons/components/quiz/QuizQuestionEditors';
 import {
@@ -31,38 +39,27 @@ import {
   HelpCircle,
 } from 'lucide-react';
 
-interface PublicQuiz {
-  id: string;
-  title: string;
-  description: string | null;
-  passingScorePercent: number;
-  timeLimitMinutes: number;
-  questions: QuizQuestion[];
-}
-
 /** Khớp với DEFAULT_QUIZ_PASSING_SCORE_PERCENT ở backend/src/quiz/quiz.constant.ts — chỉ dùng khi dữ liệu cũ thiếu trường này. */
 const DEFAULT_PASSING_SCORE_PERCENT = 80;
 const DEFAULT_TIME_LIMIT_MINUTES = 15;
 
-interface PublicLessonWithQuiz {
-  id: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  thumbnailUrl: string | null;
-  difficulty: string;
-  estimatedReadMinutes: number;
-  topic: { id: string; name: string; slug: string } | null;
-  quiz: PublicQuiz | null;
+export default function LuyenTapPage() {
+  return (
+    <Suspense fallback={null}>
+      <LuyenTapContent />
+    </Suspense>
+  );
 }
 
-export default function LuyenTapPage() {
+function LuyenTapContent() {
   const sessionUser = useAuthSession();
   const isStaff = isStaffRole(sessionUser?.role);
+  const initialTopicId = useSearchParams().get(PRACTICE_TOPIC_PARAM) || ALL_TOPICS_ID;
 
-  const [lessons, setLessons] = useState<PublicLessonWithQuiz[]>([]);
+  const [quizzes, setQuizzes] = useState<PracticeQuizItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
 
   // Thông tin thí sinh
   const [learnerName, setLearnerName] = useState('Thí sinh tự do');
@@ -97,31 +94,27 @@ export default function LuyenTapPage() {
 
   // Bộ lọc & Tìm kiếm Đề thi
   const [filterQuery, setFilterQuery] = useState('');
-  const [selectedTopicId, setSelectedTopicId] = useState(ALL_TOPICS_ID);
+  const [selectedTopicId, setSelectedTopicId] = useState(initialTopicId);
   const [isListExpanded, setIsListExpanded] = useState(true);
 
-  const topics = useMemo(() => extractAvailableTopics(lessons), [lessons]);
-  const filteredLessons = useMemo(
-    () => filterQuizLessons(lessons, { query: filterQuery, topicId: selectedTopicId }),
-    [lessons, filterQuery, selectedTopicId]
+  const topics = useMemo(() => extractAvailableTopics(quizzes), [quizzes]);
+  const filteredQuizzes = useMemo(
+    () => filterPracticeQuizzes(quizzes, { query: filterQuery, topicId: selectedTopicId }),
+    [quizzes, filterQuery, selectedTopicId]
   );
 
   useEffect(() => {
-    QuizApiService.getPublicLessons()
-      .then((data: unknown) => {
-        const list = (Array.isArray(data) ? data : (data as { data?: unknown[] })?.data || []) as PublicLessonWithQuiz[];
-        const quizzesOnly = list.filter((l) => l.quiz && l.quiz.questions?.length > 0);
-        setLessons(quizzesOnly);
-        if (quizzesOnly.length > 0) {
-          setActiveLessonId(quizzesOnly[0].id);
-        }
+    QuizApiService.getPracticeQuizzes()
+      .then((list) => {
+        setQuizzes(list);
+        const preferred = filterPracticeQuizzes(list, { query: '', topicId: initialTopicId });
+        setActiveQuizId((preferred[0] ?? list[0])?.id ?? null);
       })
-      .catch((err) => console.error('Lỗi khi tải bài học luyện tập:', err))
+      .catch((err) => setLoadError(extractErrorMessage(err, 'Không tải được danh sách đề luyện tập.')))
       .finally(() => setLoading(false));
-  }, []);
+  }, [initialTopicId]);
 
-  const activeLesson = lessons.find((l) => l.id === activeLessonId) || lessons[0];
-  const activeQuiz = activeLesson?.quiz;
+  const activeQuiz = quizzes.find((q) => q.id === activeQuizId) || quizzes[0];
   const questions = sessionQuestions ?? activeQuiz?.questions ?? [];
 
   const handleReset = useCallback(() => {
@@ -135,13 +128,13 @@ export default function LuyenTapPage() {
   }, [activeQuiz]);
 
   // Reset khi đổi đề
-  const handleSelectLesson = (lessonId: string) => {
+  const handleSelectQuiz = (quizId: string) => {
     if (examStarted && !submitted) {
       if (!confirm('Bạn đang trong quá trình làm bài thi. Bạn có chắc chắn muốn đổi đề không?')) {
         return;
       }
     }
-    setActiveLessonId(lessonId);
+    setActiveQuizId(quizId);
     handleReset();
   };
 
@@ -296,8 +289,8 @@ export default function LuyenTapPage() {
             selectedTopicId={selectedTopicId}
             onSelectTopic={setSelectedTopicId}
             topics={topics}
-            totalCount={lessons.length}
-            filteredCount={filteredLessons.length}
+            totalCount={quizzes.length}
+            filteredCount={filteredQuizzes.length}
             isExpanded={isListExpanded}
             onToggleExpand={() => setIsListExpanded((prev) => !prev)}
           />
@@ -305,11 +298,9 @@ export default function LuyenTapPage() {
           {/* KHI MỞ RỘNG: HIỂN THỊ LƯỚI CARD ĐỀ THI ĐÃ ĐƯỢC LỌC */}
           {isListExpanded ? (
             <QuizSelectorGrid
-              lessons={filteredLessons}
-              activeLessonId={activeLessonId}
-              onSelectLesson={(id) => {
-                handleSelectLesson(id);
-              }}
+              quizzes={filteredQuizzes}
+              activeQuizId={activeQuiz?.id ?? null}
+              onSelectQuiz={handleSelectQuiz}
               onClearFilters={() => {
                 setFilterQuery('');
                 setSelectedTopicId(ALL_TOPICS_ID);
@@ -326,11 +317,11 @@ export default function LuyenTapPage() {
                       Đang khảo thí
                     </span>
                     <span className="text-xs text-stone-500 font-medium">
-                      {activeLesson?.topic?.name || 'Chủ đề lịch sử'}
+                      {activeQuiz ? topicLabelOf(activeQuiz) : 'Chủ đề lịch sử'}
                     </span>
                   </div>
                   <strong className="text-sm md:text-base text-stone-900 truncate block mt-0.5">
-                    {activeLesson?.title || 'Chưa chọn đề'}
+                    {activeQuiz?.title || 'Chưa chọn đề'}
                   </strong>
                 </div>
               </div>
@@ -340,7 +331,7 @@ export default function LuyenTapPage() {
                 onClick={() => setIsListExpanded(true)}
                 className="shrink-0 px-3.5 py-1.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
               >
-                Đổi bộ đề khác ({lessons.length} đề)
+                Đổi bộ đề khác ({quizzes.length} đề)
               </button>
             </div>
           )}
@@ -352,17 +343,22 @@ export default function LuyenTapPage() {
             <div className="w-8 h-8 border-3 border-[#8B261E] border-t-transparent rounded-full animate-spin" />
             <p className="text-sm">Đang tải đề thi...</p>
           </div>
+        ) : loadError ? (
+          <div role="alert" className="p-12 text-center bg-white rounded-2xl border border-rose-200 shadow-xs">
+            <HelpCircle size={48} className="mx-auto text-rose-300 mb-3" />
+            <p className="text-base font-medium text-rose-700">{loadError}</p>
+          </div>
         ) : !activeQuiz || questions.length === 0 ? (
           <div className="p-12 text-center bg-white rounded-2xl border border-stone-200 shadow-xs">
             <HelpCircle size={48} className="mx-auto text-stone-300 mb-3" />
-            <p className="text-base font-medium text-stone-700">Chưa có câu hỏi ôn tập cho chuyên đề này.</p>
+            <p className="text-base font-medium text-stone-700">Chưa có đề luyện tập nào.</p>
           </div>
         ) : !examStarted && !submitted ? (
           /* MÀN HÌNH CHỜ & PHÒNG THI CHUẨN BỊ (BRIEFING) */
           <QuizBriefingCard
             quizTitle={activeQuiz.title}
-            topicName={activeLesson?.topic?.name}
-            description={activeLesson?.description || activeQuiz.description}
+            topicName={topicLabelOf(activeQuiz)}
+            description={activeQuiz.description}
             questionCount={questions.length}
             timeLimitMinutes={activeQuiz.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES}
             passingScorePercent={activeQuiz.passingScorePercent ?? DEFAULT_PASSING_SCORE_PERCENT}

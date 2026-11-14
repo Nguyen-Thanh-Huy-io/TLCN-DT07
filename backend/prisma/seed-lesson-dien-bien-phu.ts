@@ -9,7 +9,7 @@ import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { PrismaClient, DifficultyLevel, LessonStatus } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { setQuizQuestionsFromSeed } from './seeds/quiz-bank.helper';
+import { upsertTopicQuizFromSeed } from './seeds/quiz-bank.helper';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -372,20 +372,14 @@ export async function enrichDienBienPhuLesson() {
 
   console.log(`✓ Đã cập nhật ${DIEN_BIEN_PHU_BLOCKS_DATA.length} khối nội dung Block Builder vào Lesson ID=${updatedLesson.id}`);
 
-  // 3. Upsert Quiz cho bài học này
-  const quiz = await prisma.quiz.upsert({
-    where: { lessonId: lesson.id },
-    update: {
-      title: DIEN_BIEN_PHU_QUIZ_DATA.title,
-      passingScorePercent: DIEN_BIEN_PHU_QUIZ_DATA.passingScorePercent,
-    },
-    create: {
-      lessonId: lesson.id,
-      title: DIEN_BIEN_PHU_QUIZ_DATA.title,
-      passingScorePercent: DIEN_BIEN_PHU_QUIZ_DATA.passingScorePercent,
-    },
+  // 3. Đề thi thuộc chủ đề của bài học (đề không gắn bài học)
+  const quiz = await upsertTopicQuizFromSeed(prisma, {
+    title: DIEN_BIEN_PHU_QUIZ_DATA.title,
+    passingScorePercent: DIEN_BIEN_PHU_QUIZ_DATA.passingScorePercent,
+    topicIds: lesson.topicId ? [lesson.topicId] : [],
+    lessonId: lesson.id,
+    questions: DIEN_BIEN_PHU_QUIZ_DATA.questions,
   });
-  await setQuizQuestionsFromSeed(prisma, quiz.id, lesson.id, DIEN_BIEN_PHU_QUIZ_DATA.questions);
 
   console.log(`✓ Đã tạo/cập nhật Quiz ID=${quiz.id} với ${DIEN_BIEN_PHU_QUIZ_DATA.questions.length} câu hỏi đa dạng (Multiple Choice, True/False, Ordering, Matching, Fill In Blank)`);
   console.log(`=== HOÀN TẤT LÀM ĐẦY BÀI HỌC VÀ QUIZ THÀNH CÔNG 100%! ===`);

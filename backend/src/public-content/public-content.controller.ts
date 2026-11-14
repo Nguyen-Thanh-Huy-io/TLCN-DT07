@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { PublicContentService } from './public-content.service';
+import { PublicQuizQueryDto } from './dto/public-quiz-query.dto';
 import { SubmitQuizAttemptDto } from './dto/submit-quiz-attempt.dto';
 
 /** API công khai (không cần đăng nhập) — chỉ trả nội dung đã xuất bản. */
@@ -163,6 +164,15 @@ export class PublicContentController {
   @ApiOperation({ summary: 'Chủ đề + chủ đề con đã xuất bản' })
   getTopic(@Param('slug') slug: string) {
     return this.service.getTopicBySlug(slug);
+  }
+
+  @Get('quizzes')
+  @ApiOperation({
+    summary:
+      'Đề luyện tập theo chủ đề (đề có câu hỏi, thuộc chủ đề đã xuất bản)',
+  })
+  listQuizzes(@Query() query: PublicQuizQueryDto) {
+    return this.service.listPracticeQuizzes(query);
   }
 
   @Post('quizzes/:id/submit')

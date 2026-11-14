@@ -1,6 +1,8 @@
 import api from '../api';
-import { QuizItem, QuizQuestion } from '@/features/lessons/types/quiz.types';
+import { QuizQuestion } from '@/features/lessons/types/quiz.types';
 import type { UserQuizAnswer } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
+
+const PUBLIC_QUIZZES_PATH = '/public/quizzes';
 
 export interface StandaloneQuizQuestionLink {
   quizId: string;
@@ -14,18 +16,9 @@ export interface StandaloneQuizItem {
   id: string;
   title: string;
   description?: string | null;
-  lessonId?: string | null;
-  lessonTitle?: string | null;
   topicTitle?: string;
   topics?: Array<{ id: string; name: string; slug?: string }>;
   topicIds?: string[];
-  lesson?: {
-    id: string;
-    title: string;
-    slug?: string;
-    description?: string | null;
-    topicTitle?: string;
-  } | null;
   timeLimitMinutes: number;
   passingScorePercent: number;
   questionCount: number;
@@ -45,7 +38,6 @@ export interface QuizQuestionItemInput {
 export interface CreateStandaloneQuizDto {
   title: string;
   description?: string;
-  lessonId?: string;
   topicIds?: string[];
   questionIds?: string[];
   questionItems?: QuizQuestionItemInput[];
@@ -56,7 +48,6 @@ export interface CreateStandaloneQuizDto {
 export interface UpdateStandaloneQuizDto {
   title?: string;
   description?: string;
-  lessonId?: string;
   topicIds?: string[];
   questionIds?: string[];
   questionItems?: QuizQuestionItemInput[];
@@ -64,16 +55,20 @@ export interface UpdateStandaloneQuizDto {
   passingScorePercent?: number;
 }
 
-/** Đề ôn tập soạn tại chỗ: câu có id trong Ngân hàng thì cập nhật, id khác thì tạo câu mới vào Ngân hàng. */
-export interface UpsertQuizDto {
-  title?: string;
-  passingScorePercent?: number;
+/** Đề luyện tập công khai (`GET /public/quizzes`): đề thuộc chủ đề đã xuất bản, có câu hỏi. */
+export interface PracticeQuizItem {
+  id: string;
+  title: string;
+  description: string | null;
+  passingScorePercent: number;
+  timeLimitMinutes: number;
+  topics: Array<{ id: string; name: string; slug: string }>;
   questions: QuizQuestion[];
 }
 
 export interface QuizStatisticsData {
   quizTitle: string;
-  lessonTitle?: string;
+  topicTitle?: string;
   summary: {
     totalAttempts: number;
     passedAttempts: number;
@@ -139,24 +134,6 @@ export class QuizApiService {
     return res.data?.data || res.data;
   }
 
-  /** Lấy đề ôn tập của 1 bài học (null nếu chưa có đề) */
-  static async getQuiz(lessonId: string): Promise<QuizItem | null> {
-    const res = await api.get(`/lessons/${lessonId}/quiz`);
-    return res.data?.data ?? null;
-  }
-
-  /** Tạo mới hoặc cập nhật nguyên đề gắn với bài học; trả về đề với câu hỏi mang id Ngân hàng. */
-  static async upsertQuiz(lessonId: string, dto: UpsertQuizDto): Promise<QuizItem> {
-    const res = await api.put(`/lessons/${lessonId}/quiz`, dto);
-    return res.data?.data || res.data;
-  }
-
-  /** Xóa đề ôn tập của 1 bài học */
-  static async deleteQuiz(lessonId: string): Promise<{ success: boolean; message: string }> {
-    const res = await api.delete(`/lessons/${lessonId}/quiz`);
-    return res.data?.data || res.data;
-  }
-
   /** Lấy dữ liệu thống kê của bài kiểm tra */
   static async getQuizStatistics(id: string): Promise<QuizStatisticsData> {
     const res = await api.get(`/public/quizzes/${id}/statistics`);
@@ -178,16 +155,10 @@ export class QuizApiService {
     return res.data?.data || res.data;
   }
 
-  /** Lấy danh sách bài học công khai có đề thi kèm theo */
-  static async getPublicLessons(): Promise<unknown[]> {
-    const res = await api.get('/public/lessons');
-    return res.data?.data || res.data || [];
-  }
-
-  /** Lấy đề thi khảo thí của 1 Topic */
-  static async getQuizByTopic(topicId: string): Promise<StandaloneQuizItem | null> {
-    const res = await api.get(`/quizzes`, { params: { topicId, limit: 1 } });
-    const items = res.data?.data?.items || res.data?.items || [];
-    return items.length > 0 ? items[0] : null;
+  /** Đề luyện tập công khai, có thể lọc theo chủ đề. */
+  static async getPracticeQuizzes(topicId?: string): Promise<PracticeQuizItem[]> {
+    const res = await api.get(PUBLIC_QUIZZES_PATH, { params: topicId ? { topicId } : undefined });
+    const data = res.data?.data ?? res.data;
+    return Array.isArray(data) ? data : [];
   }
 }

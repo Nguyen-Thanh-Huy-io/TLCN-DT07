@@ -16,7 +16,7 @@ import {
   DifficultyLevel,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { setQuizQuestionsFromSeed, toBankQuestion } from './quiz-bank.helper';
+import { toBankQuestion, upsertTopicQuizFromSeed } from './quiz-bank.helper';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL as string }),
@@ -323,23 +323,15 @@ async function main() {
     },
   ];
 
-  const lessonQuiz = await prisma.quiz.upsert({
-    where: { lessonId: lesson.id },
-    update: {
-      title: 'Đề ôn tập: Kế sách cọc ngầm Bạch Đằng 1288',
-      description: 'Kiểm tra độ hiểu biết về chiến thuật, quy luật thủy triều và các nhân vật lịch sử then chốt trong trận Bạch Đằng.',
-      passingScorePercent: 80,
-      timeLimitMinutes: 10,
-    },
-    create: {
-      lessonId: lesson.id,
-      title: 'Đề ôn tập: Kế sách cọc ngầm Bạch Đằng 1288',
-      description: 'Kiểm tra độ hiểu biết về chiến thuật, quy luật thủy triều và các nhân vật lịch sử then chốt trong trận Bạch Đằng.',
-      passingScorePercent: 80,
-      timeLimitMinutes: 10,
-    },
+  await upsertTopicQuizFromSeed(prisma, {
+    title: 'Đề ôn tập: Kế sách cọc ngầm Bạch Đằng 1288',
+    description: 'Kiểm tra độ hiểu biết về chiến thuật, quy luật thủy triều và các nhân vật lịch sử then chốt trong trận Bạch Đằng.',
+    passingScorePercent: 80,
+    timeLimitMinutes: 10,
+    topicIds: [childTopic.id],
+    lessonId: lesson.id,
+    questions: quizQuestions,
   });
-  await setQuizQuestionsFromSeed(prisma, lessonQuiz.id, lesson.id, quizQuestions);
 
   // =========================================================================
   // BƯỚC 7: BỔ SUNG NGÂN HÀNG CÂU HỎI TẬP TRUNG (QUESTION BANK)

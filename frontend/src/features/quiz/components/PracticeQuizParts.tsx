@@ -2,11 +2,8 @@
 
 import React from 'react';
 import { Search, X, ChevronDown, ChevronUp, Layers, BookOpen, HelpCircle, Clock, CheckCircle2, SearchX, Trophy, ShieldCheck, Play, User, Sparkles, Info, XCircle, RotateCcw, BarChart3 } from 'lucide-react';
-import {
-  ALL_TOPICS_ID,
-  QuizTopicOption,
-  QuizFilterableItem,
-} from '../utils/practice-quiz.helper';
+import { ALL_TOPICS_ID, QuizTopicOption, topicLabelOf } from '../utils/practice-quiz.helper';
+import type { PracticeQuizItem } from '@/services/entities/quiz.service';
 import { QUIZ_QUESTION_TYPE_META, type QuizQuestion } from '@/features/lessons/types/quiz.types';
 import { QuestionBody } from '@/features/public-curriculum/components/hub/HubLessonQuiz';
 import type { UserQuizAnswer } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
@@ -48,7 +45,7 @@ export const QuizFilterBar: React.FC<QuizFilterBarProps> = ({
             type="text"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Tìm theo tên bài học, chủ đề, sự kiện..."
+            placeholder="Tìm theo tên đề, chủ đề, sự kiện..."
             aria-label="Tìm kiếm bộ đề luyện tập"
             className="w-full pl-10 pr-9 py-2.5 bg-stone-50/80 hover:bg-stone-50 focus:bg-white text-stone-900 placeholder-stone-400 text-sm rounded-xl border border-stone-200 focus:border-[#8B261E] focus:ring-2 focus:ring-[#8B261E]/20 transition-all outline-none"
           />
@@ -139,20 +136,20 @@ export const QuizFilterBar: React.FC<QuizFilterBarProps> = ({
 };
 
 // --- QuizSelectorGrid.tsx ---
-interface QuizSelectorGridProps<T extends QuizFilterableItem> {
-  lessons: T[];
-  activeLessonId: string | null;
-  onSelectLesson: (id: string) => void;
+interface QuizSelectorGridProps {
+  quizzes: PracticeQuizItem[];
+  activeQuizId: string | null;
+  onSelectQuiz: (id: string) => void;
   onClearFilters?: () => void;
 }
 
-export function QuizSelectorGrid<T extends QuizFilterableItem>({
-  lessons,
-  activeLessonId,
-  onSelectLesson,
+export function QuizSelectorGrid({
+  quizzes,
+  activeQuizId,
+  onSelectQuiz,
   onClearFilters,
-}: QuizSelectorGridProps<T>) {
-  if (lessons.length === 0) {
+}: QuizSelectorGridProps) {
+  if (quizzes.length === 0) {
     return (
       <div data-testid="quiz-empty-state" className="p-8 text-center bg-white rounded-2xl border border-dashed border-stone-300 mb-6">
         <SearchX size={36} className="mx-auto text-stone-300 mb-2.5" />
@@ -174,17 +171,15 @@ export function QuizSelectorGrid<T extends QuizFilterableItem>({
 
   return (
     <div data-testid="quiz-selector-grid" className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
-      {lessons.map((lesson) => {
-        const isSelected = lesson.id === activeLessonId;
-        const questionCount = lesson.quiz?.questions?.length || 0;
-        const timeLimit = lesson.quiz?.timeLimitMinutes || 15;
+      {quizzes.map((quiz) => {
+        const isSelected = quiz.id === activeQuizId;
 
         return (
           <button
-            key={lesson.id}
+            key={quiz.id}
             type="button"
             data-testid="quiz-card"
-            onClick={() => onSelectLesson(lesson.id)}
+            onClick={() => onSelectQuiz(quiz.id)}
             className={`text-left p-4 rounded-xl border transition-all duration-200 flex flex-col justify-between cursor-pointer relative ${
               isSelected
                 ? 'bg-white border-[#8B261E] ring-2 ring-[#8B261E]/20 shadow-md translate-y-[-1px]'
@@ -199,21 +194,21 @@ export function QuizSelectorGrid<T extends QuizFilterableItem>({
 
             <div>
               <div className="text-[11px] font-bold text-[#8B261E] uppercase tracking-wider mb-1.5 line-clamp-1 pr-16">
-                {lesson.topic?.name || 'Chủ đề Lịch sử'}
+                {topicLabelOf(quiz)}
               </div>
               <div className="text-sm font-bold text-stone-900 line-clamp-2 leading-snug">
-                {lesson.title}
+                {quiz.title}
               </div>
             </div>
 
             <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-500">
               <span className="flex items-center gap-1 font-medium">
                 <HelpCircle size={12} className="text-stone-400" />
-                {questionCount} câu hỏi
+                {quiz.questions.length} câu hỏi
               </span>
               <span className="flex items-center gap-1 font-medium">
                 <Clock size={12} className="text-stone-400" />
-                {timeLimit} phút
+                {quiz.timeLimitMinutes} phút
               </span>
             </div>
           </button>

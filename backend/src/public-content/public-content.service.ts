@@ -2,12 +2,17 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ContentStatus, LessonStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { LessonContentStrategyContext } from '../lesson/strategies/content-normalizer.strategy';
-import { DEFAULT_QUIZ_PASSING_SCORE_PERCENT } from '../quiz/quiz.constant';
+import {
+  DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
+  DEFAULT_QUIZ_TIME_LIMIT_MINUTES,
+  PUBLIC_QUIZ_LIST_MAX_LIMIT,
+} from '../quiz/quiz.constant';
 import { gradeQuizAttempt, QuizGradingResult } from '../quiz/quiz-grading';
 import {
   QUIZ_QUESTIONS_INCLUDE,
   toQuizQuestions,
 } from '../quiz/quiz-question.mapper';
+import { PublicQuizQueryDto } from './dto/public-quiz-query.dto';
 import { SubmitQuizAttemptDto } from './dto/submit-quiz-attempt.dto';
 import {
   buildDateLabel,
@@ -600,7 +605,6 @@ export class PublicContentService {
       include: {
         topic: { select: { id: true, name: true, slug: true, parentId: true } },
         lessonTags: { include: { tag: true } },
-        quiz: { include: QUIZ_QUESTIONS_INCLUDE },
       },
       orderBy: [{ displayOrder: 'asc' }, { publishedAt: 'desc' }],
     });
@@ -625,18 +629,6 @@ export class PublicContentService {
               name: lesson.topic.name,
               slug: lesson.topic.slug,
               parentId: lesson.topic.parentId,
-            }
-          : null,
-        quiz: lesson.quiz
-          ? {
-              id: lesson.quiz.id,
-              title: lesson.quiz.title,
-              description: lesson.quiz.description,
-              passingScorePercent:
-                lesson.quiz.passingScorePercent ??
-                DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
-              timeLimitMinutes: lesson.quiz.timeLimitMinutes,
-              questions: toQuizQuestions(lesson.quiz.quizQuestions),
             }
           : null,
         tags: lesson.lessonTags.map((lt) => ({
@@ -673,6 +665,42 @@ export class PublicContentService {
   }
 
   // ---------- Khảo thí & Nộp bài Luyện tập (Quiz Attempt) ----------
+  /** Đề luyện tập công khai: có ít nhất 1 câu và thuộc ít nhất 1 chủ đề đã xuất bản. */
+  async listPracticeQuizzes(query: PublicQuizQueryDto) {
+    const publishedTopic = query.topicId
+      ? { id: query.topicId, status: PUBLISHED }
+      : { status: PUBLISHED };
+    const quizzes = await this.prisma.quiz.findMany({
+      where: {
+        topics: { some: publishedTopic },
+        quizQuestions: { some: {} },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: query.limit ?? PUBLIC_QUIZ_LIST_MAX_LIMIT,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        timeLimitMinutes: true,
+        passingScorePercent: true,
+        topics: {
+          where: { status: PUBLISHED },
+          select: { id: true, name: true, slug: true },
+        },
+        ...QUIZ_QUESTIONS_INCLUDE,
+      },
+    });
+    return quizzes.map(({ quizQuestions, ...quiz }) => ({
+      ...quiz,
+      title: quiz.title || `Đề luyện tập: ${quiz.topics[0]?.name ?? ''}`,
+      timeLimitMinutes:
+        quiz.timeLimitMinutes ?? DEFAULT_QUIZ_TIME_LIMIT_MINUTES,
+      passingScorePercent:
+        quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
+      questions: toQuizQuestions(quizQuestions),
+    }));
+  }
+
   async submitQuizAttempt(
     quizId: string,
     dto: SubmitQuizAttemptDto,
@@ -711,9 +739,7 @@ export class PublicContentService {
   async getQuizStatistics(quizId: string) {
     const quiz = await this.prisma.quiz.findUnique({
       where: { id: quizId },
-      include: {
-        lesson: { select: { id: true, title: true } },
-      },
+      include: { topics: { select: { name: true } } },
     });
     if (!quiz) throw new NotFoundException('Không tìm thấy đề thi');
 
@@ -746,7 +772,7 @@ export class PublicContentService {
     return {
       quizId: quiz.id,
       quizTitle: quiz.title,
-      lessonTitle: quiz.lesson?.title,
+      topicTitle: quiz.topics.map((t) => t.name).join(', '),
       summary: {
         totalAttempts,
         passedAttempts,

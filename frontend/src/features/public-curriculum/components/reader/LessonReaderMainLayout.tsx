@@ -6,15 +6,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { DEFAULT_COVER_IMAGES, PUBLIC_DIFFICULTY_META, PUBLIC_CURRICULUM_ROUTES } from '../../constants/public-curriculum.constants';
 import { LessonToc } from '../hub/HubReaderParts';
 import { LessonRelated, type RelatedEntities } from '../hub/HubReaderParts';
-import { HubLessonQuiz } from '../hub/HubLessonQuiz';
 import { DiscussionSection } from '@/features/discussions/components/DiscussionSection';
 import { HubSyllabus, chapterLabel } from '../hub/HubReaderParts';
 import { LessonItem } from '@/types/models';
 import { LearningPathItem } from '@/services/entities/learning-path.service';
-import { QuizItem } from '@/features/lessons/types/quiz.types';
 import { LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
 import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
-import { UserQuizAnswer } from '../../strategies/public-curriculum.strategies';
 import { LessonAccessState } from '../../facades/usePublicLessonReaderFacade';
 import { HubLessonGate } from '../hub/HubReaderParts';
 import { X, ExternalLink, BookOpen, CheckCircle2, Clock3, ArrowRight, ChevronLeft, ArrowLeft } from 'lucide-react';
@@ -36,20 +33,6 @@ interface LessonReaderMainLayoutProps {
   contentRef: React.RefObject<HTMLDivElement | null>;
   compiledHtml: string;
   resourceLinks: ResourceLinkBlockData[];
-  quiz: QuizItem | null;
-  quizEvaluation: {
-    detailsMap: Map<string, { isCorrect: boolean; correctSummary: string }>;
-    correctCount: number;
-    totalCount: number;
-    scorePercent: number;
-    passed: boolean;
-  } | null;
-  userAnswers: Record<string, UserQuizAnswer>;
-  submittedQuiz: boolean;
-  setAnswer: (questionId: string, answer: UserQuizAnswer) => void;
-  moveOrderingItem: (questionId: string, fromIdx: number, direction: 'UP' | 'DOWN') => void;
-  onSubmitQuiz: () => void;
-  onRetryQuiz: () => void;
   prevLessonHref?: string | null;
   nextLesson?: boolean;
   onCompleteAndContinue: () => void;
@@ -80,14 +63,6 @@ export function LessonReaderMainLayout({
   contentRef,
   compiledHtml,
   resourceLinks,
-  quiz,
-  quizEvaluation,
-  userAnswers,
-  submittedQuiz,
-  setAnswer,
-  moveOrderingItem,
-  onSubmitQuiz,
-  onRetryQuiz,
   prevLessonHref,
   nextLesson,
   onCompleteAndContinue,
@@ -150,18 +125,20 @@ export function LessonReaderMainLayout({
             <LessonRelated html={compiledHtml} />
           </div>
 
-          {quiz && quiz.questions?.length > 0 && (
-            <div className="mt-8">
-              <HubLessonQuiz
-                quiz={quiz}
-                evaluation={quizEvaluation}
-                answers={userAnswers}
-                submitted={submittedQuiz}
-                setAnswer={setAnswer}
-                moveOrderingItem={moveOrderingItem}
-                onSubmit={onSubmitQuiz}
-                onRetry={onRetryQuiz}
-              />
+          {lesson.topicId && (
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4">
+              <div>
+                <p className="text-sm font-bold text-stone-900">Ôn tập theo chủ đề</p>
+                <p className="text-xs text-stone-600">
+                  Làm đề luyện tập có chấm điểm của chủ đề {lesson.topic?.name ?? 'này'}.
+                </p>
+              </div>
+              <Link
+                href={PUBLIC_CURRICULUM_ROUTES.PRACTICE(lesson.topicId)}
+                className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.outline}`}
+              >
+                Làm đề luyện tập <ArrowRight size={16} />
+              </Link>
             </div>
           )}
 

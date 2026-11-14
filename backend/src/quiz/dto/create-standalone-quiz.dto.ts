@@ -53,14 +53,6 @@ export class CreateStandaloneQuizDto {
   description?: string;
 
   @ApiPropertyOptional({
-    example: 'uuid-bai-hoc',
-    description: 'UUID bài học liên kết (tùy chọn để xem qua)',
-  })
-  @IsOptional()
-  @IsString()
-  lessonId?: string;
-
-  @ApiPropertyOptional({
     description: 'Danh sách ID các Chủ đề lịch sử mà đề thi này bao phủ',
     type: [String],
     example: ['uuid-topic-1', 'uuid-topic-2'],
@@ -124,11 +116,6 @@ export class UpdateStandaloneQuizDto {
   @IsOptional()
   @IsString()
   description?: string;
-
-  @ApiPropertyOptional({ example: 'uuid-bai-hoc' })
-  @IsOptional()
-  @IsString()
-  lessonId?: string;
 
   @ApiPropertyOptional({
     description: 'Danh sách ID các Chủ đề lịch sử mà đề thi này bao phủ',

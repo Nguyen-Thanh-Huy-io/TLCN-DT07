@@ -16,11 +16,6 @@ export class QueryQuizDto {
   @IsString()
   topicId?: string;
 
-  @ApiPropertyOptional({ description: 'Lọc theo UUID của Bài học liên kết' })
-  @IsOptional()
-  @IsString()
-  lessonId?: string;
-
   @ApiPropertyOptional({
     enum: QuizListStatus,
     description:

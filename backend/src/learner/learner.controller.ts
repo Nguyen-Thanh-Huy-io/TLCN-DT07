@@ -62,7 +62,7 @@ export class LearnerController {
 
   @Get(LEARNER_ROUTES.LESSON)
   @ApiOperation({
-    summary: 'Nội dung bài học + đề ôn tập, chỉ khi người học được phép đọc',
+    summary: 'Nội dung bài học, chỉ khi người học được phép đọc',
   })
   @ApiParam({ name: 'slug', type: String })
   @ApiResponse({

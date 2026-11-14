@@ -1,14 +1,13 @@
 // ================================
-// Quiz (Đề ôn tập cuối bài học) Model
+// Quiz (Đề thi theo Chủ đề) Model
 // ================================
 
-// 1 Lesson có tối đa 1 Quiz. Câu hỏi của đề CHỈ lấy từ Ngân hàng câu hỏi (`Question`)
-// qua bảng nối `QuizQuestion` (thứ tự + điểm theo từng đề). Không nhúng câu hỏi JSON trong đề:
-// trước 2026-11-14 có cột `questions` JSONB song song với ngân hàng, phía người học chỉ đọc
-// JSON nên đề dựng từ ngân hàng hiển thị 0 câu.
+// Đề thi thuộc Chủ đề (nhiều–nhiều: 1 chủ đề nhiều đề, 1 đề có thể bao nhiều chủ đề) — KHÔNG gắn Lesson.
+// Ôn tập ngay trong bài học dùng khối QUIZ của Block Builder (trong `Lesson.content`), không phải Quiz.
+// Câu hỏi của đề CHỈ lấy từ Ngân hàng câu hỏi (`Question`) qua bảng nối `QuizQuestion` (thứ tự + điểm
+// theo từng đề); không nhúng câu hỏi JSON trong đề.
 model Quiz {
   id                  String  @id @default(uuid())
-  lessonId            String? @unique @map("lesson_id")
   title               String? @db.VarChar(255)
   description         String? @db.Text
   passingScorePercent Int?    @map("passing_score_percent")
@@ -17,7 +16,6 @@ model Quiz {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  lesson        Lesson?        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   topics        Topic[]        @relation("TopicQuizzes")
   attempts      QuizAttempt[]
   quizQuestions QuizQuestion[]

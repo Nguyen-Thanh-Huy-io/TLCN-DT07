@@ -77,6 +77,16 @@ export async function createE2eUser(
   return { id: user.id, auth: `Bearer ${token}` };
 }
 
+/** Mảng phần tử của response danh sách — có phân trang (`data.items`) hoặc không (`data`). */
+export function itemsOf<T = Record<string, unknown>>(body: {
+  data?: unknown;
+}): T[] {
+  const data = body.data;
+  if (Array.isArray(data)) return data as T[];
+  const items = (data as { items?: unknown } | undefined)?.items;
+  return Array.isArray(items) ? (items as T[]) : [];
+}
+
 /** Xoá các tài khoản e2e (dữ liệu nội dung tự xoá theo trong từng test). */
 export async function removeE2eUsers(app: INestApplication): Promise<void> {
   await app

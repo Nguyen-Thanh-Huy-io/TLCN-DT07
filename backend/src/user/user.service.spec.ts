@@ -4,6 +4,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { PrismaService } from '../common/services/prisma.service';
+import { tokenVersionCacheKey } from '../common/constants/cache-keys.constant';
 import { RedisService } from '../common/services/redis.service';
 import {
   ConflictException,
@@ -19,6 +20,7 @@ jest.mock('bcryptjs', () => ({
 }));
 
 describe('UserService', () => {
+  const mockRedisService = { del: jest.fn().mockResolvedValue(1) };
   let service: UserService;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let prisma: PrismaService;
@@ -58,10 +60,7 @@ describe('UserService', () => {
           provide: CustomLoggerService,
           useValue: mockCustomLoggerService,
         },
-        {
-          provide: RedisService,
-          useValue: { del: jest.fn().mockResolvedValue(1) },
-        },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 
@@ -272,6 +271,9 @@ describe('UserService', () => {
       expect(mockPrismaService.authUser.delete).toHaveBeenCalledWith({
         where: { id: userId },
       });
+      expect(mockRedisService.del).toHaveBeenCalledWith(
+        tokenVersionCacheKey(userId),
+      );
       expect(result).toEqual({
         success: true,
         message: `Người dùng với ID ${userId} đã được xóa thành công`,

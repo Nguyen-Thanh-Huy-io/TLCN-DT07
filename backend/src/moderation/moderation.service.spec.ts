@@ -9,6 +9,8 @@ import {
 } from '@prisma/client';
 import { BlogGateway } from '../blog/blog.gateway';
 import { PrismaService } from '../common/services/prisma.service';
+import { tokenVersionCacheKey } from '../common/constants/cache-keys.constant';
+import { RedisService } from '../common/services/redis.service';
 import { NotificationService } from '../notification/notification.service';
 import { ModerationAiService } from './moderation-ai.service';
 import { ModerationResolveAction } from './moderation.constant';
@@ -44,6 +46,7 @@ describe('ModerationService — xử lý báo cáo bình luận Blog', () => {
     authUser: { findUnique: jest.fn(), update: jest.fn() },
     $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
   };
+  const redisMock = { del: jest.fn() };
   const blogGateway = {
     emitModerationEvent: jest.fn(),
     emitCommentUpdated: jest.fn(),
@@ -64,6 +67,7 @@ describe('ModerationService — xử lý báo cáo bình luận Blog', () => {
         { provide: ModerationAiService, useValue: {} },
         { provide: NotificationService, useValue: {} },
         { provide: BlogGateway, useValue: blogGateway },
+        { provide: RedisService, useValue: redisMock },
       ],
     }).compile();
     service = moduleRef.get(ModerationService);
@@ -171,6 +175,9 @@ describe('ModerationService — xử lý báo cáo bình luận Blog', () => {
       data: { status: userStatus.BLOCKED, tokenVersion: { increment: 1 } },
     });
     expect(result.bannedUserId).toBe(VISIBLE_COMMENT.authorId);
+    expect(redisMock.del).toHaveBeenCalledWith(
+      tokenVersionCacheKey(VISIBLE_COMMENT.authorId),
+    );
   });
 
   it('không khoá tài khoản ADMIN dù chọn BAN_USER', async () => {

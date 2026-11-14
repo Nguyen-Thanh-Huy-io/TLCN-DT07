@@ -13,7 +13,9 @@ import {
 } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { BlogGateway } from '../blog/blog.gateway';
+import { tokenVersionCacheKey } from '../common/constants/cache-keys.constant';
 import { PrismaService } from '../common/services/prisma.service';
+import { RedisService } from '../common/services/redis.service';
 import { NotificationService } from '../notification/notification.service';
 import {
   ListModerationReportsQueryDto,
@@ -49,6 +51,7 @@ export class ModerationService {
     private readonly aiService: ModerationAiService,
     private readonly notificationService: NotificationService,
     private readonly blogGateway: BlogGateway,
+    private readonly redis: RedisService,
     @Optional()
     @InjectQueue(MODERATION_QUEUE)
     private readonly moderationQueue?: Queue,
@@ -965,6 +968,7 @@ export class ModerationService {
           tokenVersion: { increment: 1 },
         },
       });
+      await this.redis.del(tokenVersionCacheKey(author.id));
       return author.id;
     }
     return null;

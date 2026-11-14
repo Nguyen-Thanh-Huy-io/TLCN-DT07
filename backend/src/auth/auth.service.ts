@@ -9,6 +9,7 @@ import { CustomLoggerService } from '../common/services/custom-logger.service';
 import AppError from '../common/errors/app.error';
 import * as bcrypt from 'bcryptjs';
 import config from '../common/config/app.config';
+import { tokenVersionCacheKey } from '../common/constants/cache-keys.constant';
 import {
   email_status,
   email_type,
@@ -1029,8 +1030,7 @@ export class AuthService {
     });
 
     // Invalidate Redis cache so next guard check fetches new version
-    const cacheKey = `${config.redis_cache_key_prefix}:token_version:${userId}`;
-    await this.redisService.del(cacheKey);
+    await this.redisService.del(tokenVersionCacheKey(userId));
 
     this.customLogger.log(
       `Token version incremented for user ${userId}`,

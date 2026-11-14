@@ -8,6 +8,7 @@ import type { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { userStatus } from '@prisma/client';
 import config from '../config/app.config';
+import { tokenVersionCacheKey } from '../constants/cache-keys.constant';
 import { RedisService } from '../services/redis.service';
 import { PrismaService } from '../services/prisma.service';
 
@@ -71,7 +72,7 @@ export class AuthGuard implements CanActivate {
    * Slow path: DB lookup + cache (~10-20ms, only on cache miss)
    */
   private async getTokenVersion(userId: string): Promise<number> {
-    const cacheKey = `${config.redis_cache_key_prefix}:token_version:${userId}`;
+    const cacheKey = tokenVersionCacheKey(userId);
 
     // Try Redis first (fast path - most common)
     const cachedVersion = await this.redisService.get<number>(cacheKey);

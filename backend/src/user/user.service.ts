@@ -11,7 +11,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../common/services/prisma.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { RedisService } from '../common/services/redis.service';
-import config from '../common/config/app.config';
+import { tokenVersionCacheKey } from '../common/constants/cache-keys.constant';
 import { AUTH_CONFIG } from '../auth/config/auth.config';
 import * as bcrypt from 'bcryptjs';
 
@@ -210,9 +210,7 @@ export class UserService {
 
     if (revokeSessions) {
       // AuthGuard cache tokenVersion trong Redis — xóa để lần gọi kế tiếp đọc bản mới.
-      await this.redisService.del(
-        `${config.redis_cache_key_prefix}:token_version:${id}`,
-      );
+      await this.redisService.del(tokenVersionCacheKey(id));
     }
     return updated;
   }
@@ -232,6 +230,7 @@ export class UserService {
     await this.prisma.authUser.delete({
       where: { id },
     });
+    await this.redisService.del(tokenVersionCacheKey(id));
 
     return {
       success: true,

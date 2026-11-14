@@ -12,6 +12,7 @@ import {
 } from '@prisma/client';
 import { BlogGateway } from '../blog/blog.gateway';
 import { PrismaService } from '../common/services/prisma.service';
+import { RedisService } from '../common/services/redis.service';
 import { NotificationService } from '../notification/notification.service';
 import {
   ModerationAiService,
@@ -86,6 +87,7 @@ describe('ModerationService — quét AI, danh sách báo cáo, xử lý báo c�
   };
   const ai = { evaluateContent: jest.fn() };
   const notifications = { notify: jest.fn() };
+  const redisMock = { del: jest.fn() };
   const gateway = {
     emitPostHidden: jest.fn(),
     emitPostModerated: jest.fn(),
@@ -109,6 +111,7 @@ describe('ModerationService — quét AI, danh sách báo cáo, xử lý báo c�
         { provide: ModerationAiService, useValue: ai },
         { provide: NotificationService, useValue: notifications },
         { provide: BlogGateway, useValue: gateway },
+        { provide: RedisService, useValue: redisMock },
       ],
     }).compile();
     service = moduleRef.get(ModerationService);
@@ -438,6 +441,7 @@ describe('ModerationService.enqueueScan — mỗi nội dung chỉ quét 1 lần
         { provide: ModerationAiService, useValue: ai },
         { provide: NotificationService, useValue: {} },
         { provide: BlogGateway, useValue: {} },
+        { provide: RedisService, useValue: { del: jest.fn() } },
         ...(withQueue
           ? [{ provide: getQueueToken(MODERATION_QUEUE), useValue: queue }]
           : []),

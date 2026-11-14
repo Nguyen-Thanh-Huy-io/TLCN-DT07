@@ -419,6 +419,7 @@ describe('BlogService — tương tác cộng đồng', () => {
           },
         }),
       );
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(prisma.blogPost.update).toHaveBeenCalledWith({
         where: { id: 'post-1' },
         data: { commentCount: { increment: 1 } },
@@ -538,6 +539,7 @@ describe('BlogService — tương tác cộng đồng', () => {
         where: { id: 'post-1', commentCount: { gt: 0 } },
         data: { commentCount: { decrement: 1 } },
       });
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     });
 
     it('xoá bình luận đã xoá / không tồn tại → 404', async () => {
@@ -566,6 +568,7 @@ describe('BlogService — tương tác cộng đồng', () => {
       expect(prisma.postCommentLike.delete).toHaveBeenCalledWith({
         where: { id: 'like-1' },
       });
+      expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     });
   });
 

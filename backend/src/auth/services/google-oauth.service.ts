@@ -702,9 +702,13 @@ export class GoogleOAuthService {
         await this.redisService.del(tokenKey);
       }
 
-      // Update session list
+      // Update session list — giữ hạn bằng refresh token, nếu không key sống mãi trong Redis
       const remainingSessions = sessions.slice(sessions.length - maxDevices);
-      await this.redisService.set(sessionKey, remainingSessions);
+      await this.redisService.set(
+        sessionKey,
+        remainingSessions,
+        this.parseExpiryToSeconds(AUTH_CONFIG.TOKEN_EXPIRY.REFRESH),
+      );
     }
   }
 

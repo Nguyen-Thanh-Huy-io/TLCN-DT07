@@ -76,7 +76,7 @@ describe('GoogleOAuthService — luồng đăng nhập Google (PKCE + kiểm ch�
   const redisStore = new Map<string, unknown>();
   const redis = {
     get: jest.fn((key: string) => Promise.resolve(redisStore.get(key) ?? null)),
-    set: jest.fn((key: string, value: unknown) => {
+    set: jest.fn((...[key, value]: [string, unknown, number?]) => {
       redisStore.set(key, value);
       return Promise.resolve();
     }),
@@ -325,6 +325,12 @@ describe('GoogleOAuthService — luồng đăng nhập Google (PKCE + kiểm ch�
     const sessions = sessionKey ? redisStore.get(sessionKey) : [];
     expect(sessions).toHaveLength(max);
     expect(sessions).not.toContain('jti-1');
+    const sessionWrites = redis.set.mock.calls.filter(
+      ([key]) => key === sessionKey,
+    );
+    expect(
+      sessionWrites.every(([, , ttl]) => typeof ttl === 'number' && ttl > 0),
+    ).toBe(true);
   });
 
   it('thu hồi token Google lỗi mạng thì chỉ ghi log, không ném lỗi', async () => {

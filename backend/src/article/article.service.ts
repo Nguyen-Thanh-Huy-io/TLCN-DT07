@@ -329,23 +329,16 @@ export class ArticleService {
         id: true,
         status: true,
         createdBy: true,
-        category: { select: { name: true, slug: true } },
       },
     });
     if (!current) throw new NotFoundException(ARTICLE_MESSAGES.NOT_FOUND(id));
-
-    const isBlogArticle = this.isBlogCategory(current.category);
 
     if (current.status !== ContentStatus.PENDING_REVIEW) {
       throw new ForbiddenException(
         'Chỉ duyệt được bài viết đang ở trạng thái chờ duyệt (PENDING_REVIEW).',
       );
     }
-    if (
-      reviewerUserId &&
-      current.createdBy === reviewerUserId &&
-      !isBlogArticle
-    ) {
+    if (reviewerUserId && current.createdBy === reviewerUserId) {
       throw new ForbiddenException(
         'Người tạo không được tự duyệt bài viết của chính mình.',
       );
@@ -377,21 +370,6 @@ export class ArticleService {
       note: l.note?.trim() || null,
       displayOrder: index,
     };
-  }
-
-  private isBlogCategory(
-    category: { name?: string | null; slug?: string | null } | null,
-  ) {
-    if (!category) return false;
-
-    const normalizedName = `${category.name ?? ''} ${category.slug ?? ''}`
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-
-    return ['blog', 'bai-viet', 'bai viet', 'bài viết'].some((token) =>
-      normalizedName.includes(token),
-    );
   }
 
   private async validateLinks(

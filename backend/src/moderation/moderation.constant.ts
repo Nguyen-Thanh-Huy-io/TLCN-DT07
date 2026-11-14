@@ -14,3 +14,6 @@ export enum ModerationResolveAction {
   RESTORE = 'RESTORE',
   BAN_USER = 'BAN_USER',
 }
+
+export const MODERATION_QUEUE = 'moderation-queue';
+export const MODERATION_SCAN_JOB = 'scan-content';

@@ -495,26 +495,28 @@ export class BlogService {
       }
     }
 
-    const comment = await this.prisma.blogPostComment.create({
-      data: {
-        postId,
-        authorId,
-        parentId: dto.parentId ?? null,
-        content: dto.content.trim(),
-        status: PostCommentStatus.VISIBLE,
-      },
-      include: {
-        author: { select: { id: true, username: true } },
-        replies: {
-          orderBy: { createdAt: 'asc' },
-          include: { author: { select: { id: true, username: true } } },
+    const comment = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.blogPostComment.create({
+        data: {
+          postId,
+          authorId,
+          parentId: dto.parentId ?? null,
+          content: dto.content.trim(),
+          status: PostCommentStatus.VISIBLE,
         },
-      },
-    });
-
-    await this.prisma.blogPost.update({
-      where: { id: postId },
-      data: { commentCount: { increment: 1 } },
+        include: {
+          author: { select: { id: true, username: true } },
+          replies: {
+            orderBy: { createdAt: 'asc' },
+            include: { author: { select: { id: true, username: true } } },
+          },
+        },
+      });
+      await tx.blogPost.update({
+        where: { id: postId },
+        data: { commentCount: { increment: 1 } },
+      });
+      return created;
     });
 
     this.blogGateway.emitCommentAdded(postId, this.mapComment(comment));
@@ -647,17 +649,19 @@ export class BlogService {
       throw new ForbiddenException('Bạn không có quyền xóa bình luận này');
     }
 
-    const deleted = await this.prisma.blogPostComment.update({
-      where: { id: commentId },
-      data: {
-        deletedAt: new Date(),
-        status: PostCommentStatus.REMOVED,
-      },
-    });
-
-    await this.prisma.blogPost.updateMany({
-      where: { id: postId, commentCount: { gt: 0 } },
-      data: { commentCount: { decrement: 1 } },
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      const removed = await tx.blogPostComment.update({
+        where: { id: commentId },
+        data: {
+          deletedAt: new Date(),
+          status: PostCommentStatus.REMOVED,
+        },
+      });
+      await tx.blogPost.updateMany({
+        where: { id: postId, commentCount: { gt: 0 } },
+        data: { commentCount: { decrement: 1 } },
+      });
+      return removed;
     });
 
     this.blogGateway.emitCommentUpdated(postId, {
@@ -698,27 +702,20 @@ export class BlogService {
       },
     });
 
-    let updatedComment;
-    if (existingLike) {
-      await this.prisma.postCommentLike.delete({
-        where: { id: existingLike.id },
-      });
-      updatedComment = await this.prisma.blogPostComment.update({
-        where: { id: commentId },
-        data: { likeCount: { decrement: 1 } },
-      });
-    } else {
-      await this.prisma.postCommentLike.create({
-        data: {
-          commentId,
-          userId,
-        },
-      });
-      updatedComment = await this.prisma.blogPostComment.update({
+    const updatedComment = await this.prisma.$transaction(async (tx) => {
+      if (existingLike) {
+        await tx.postCommentLike.delete({ where: { id: existingLike.id } });
+        return tx.blogPostComment.update({
+          where: { id: commentId },
+          data: { likeCount: { decrement: 1 } },
+        });
+      }
+      await tx.postCommentLike.create({ data: { commentId, userId } });
+      return tx.blogPostComment.update({
         where: { id: commentId },
         data: { likeCount: { increment: 1 } },
       });
-    }
+    });
 
     this.blogGateway.emitCommentUpdated(postId, {
       type: 'liked',

@@ -42,6 +42,7 @@ describe('ModerationService — xử lý báo cáo bình luận Blog', () => {
     blogPostComment: { findUnique: jest.fn(), update: jest.fn() },
     blogPost: { findUnique: jest.fn(), updateMany: jest.fn() },
     authUser: { findUnique: jest.fn(), update: jest.fn() },
+    $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
   };
   const blogGateway = {
     emitModerationEvent: jest.fn(),
@@ -98,6 +99,7 @@ describe('ModerationService — xử lý báo cáo bình luận Blog', () => {
       VISIBLE_COMMENT.postId,
       { type: 'deleted', commentId: VISIBLE_COMMENT.id },
     );
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it('bình luận đã bị gỡ trước đó thì không gỡ hay giảm đếm lần nữa', async () => {

@@ -1,3 +1,4 @@
+import { getQueueToken } from '@nestjs/bullmq';
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import {
@@ -16,7 +17,12 @@ import {
   ModerationAiService,
   ModerationAssessment,
 } from './moderation-ai.service';
-import { ModerationResolveAction, ModerationTab } from './moderation.constant';
+import {
+  MODERATION_QUEUE,
+  MODERATION_SCAN_JOB,
+  ModerationResolveAction,
+  ModerationTab,
+} from './moderation.constant';
 import { ModerationService } from './moderation.service';
 
 const assessment = (
@@ -76,6 +82,7 @@ describe('ModerationService — quét AI, danh sách báo cáo, xử lý báo c�
       update: jest.fn(),
       updateMany: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
   const ai = { evaluateContent: jest.fn() };
   const notifications = { notify: jest.fn() };
@@ -89,6 +96,9 @@ describe('ModerationService — quét AI, danh sách báo cáo, xử lý báo c�
 
   beforeEach(async () => {
     jest.resetAllMocks();
+    prisma.$transaction.mockImplementation((ops: Promise<unknown>[]) =>
+      Promise.all(ops),
+    );
     prisma.blogPost.findUnique.mockResolvedValue(BLOG_POST);
     prisma.blogPostComment.findUnique.mockResolvedValue(COMMENT);
     prisma.contentReport.create.mockResolvedValue({ id: 'rp-ai' });
@@ -413,5 +423,76 @@ describe('ModerationService — quét AI, danh sách báo cáo, xử lý báo c�
       expect(prisma.blogPost.update).not.toHaveBeenCalled();
       expect(gateway.emitPostRestored).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('ModerationService.enqueueScan — mỗi nội dung chỉ quét 1 lần', () => {
+  const queue = { add: jest.fn() };
+  const ai = { evaluateContent: jest.fn() };
+
+  const build = async (withQueue: boolean) => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ModerationService,
+        { provide: PrismaService, useValue: {} },
+        { provide: ModerationAiService, useValue: ai },
+        { provide: NotificationService, useValue: {} },
+        { provide: BlogGateway, useValue: {} },
+        ...(withQueue
+          ? [{ provide: getQueueToken(MODERATION_QUEUE), useValue: queue }]
+          : []),
+      ],
+    }).compile();
+    const service = moduleRef.get(ModerationService);
+    const scan = jest.spyOn(service, 'scanTarget').mockResolvedValue({
+      assessment: assessment('ALLOW'),
+      reportId: null,
+      actionTaken: ReportActionTaken.NONE,
+    });
+    return { service, scan };
+  };
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    queue.add.mockReset();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('đẩy được job vào hàng đợi thì không tự quét thêm trong tiến trình', async () => {
+    queue.add.mockResolvedValue({ id: 'job-1' });
+    const { service, scan } = await build(true);
+
+    service.enqueueScan(ReportTargetType.COMMENT, 'c-1');
+    await jest.runAllTimersAsync();
+
+    expect(queue.add).toHaveBeenCalledWith(
+      MODERATION_SCAN_JOB,
+      { targetType: ReportTargetType.COMMENT, targetId: 'c-1' },
+      expect.any(Object),
+    );
+    expect(scan).not.toHaveBeenCalled();
+  });
+
+  it('hàng đợi lỗi thì tự quét 1 lần trong tiến trình', async () => {
+    queue.add.mockRejectedValue(new Error('redis down'));
+    const { service, scan } = await build(true);
+
+    service.enqueueScan(ReportTargetType.POST, 'post-1');
+    await jest.runAllTimersAsync();
+
+    expect(scan).toHaveBeenCalledTimes(1);
+    expect(scan).toHaveBeenCalledWith(ReportTargetType.POST, 'post-1');
+  });
+
+  it('không cấu hình hàng đợi thì tự quét 1 lần', async () => {
+    const { service, scan } = await build(false);
+
+    service.enqueueScan(ReportTargetType.POST, 'post-1');
+    await jest.runAllTimersAsync();
+
+    expect(scan).toHaveBeenCalledTimes(1);
   });
 });

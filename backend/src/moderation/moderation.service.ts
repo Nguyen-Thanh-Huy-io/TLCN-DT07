@@ -23,7 +23,12 @@ import {
   ModerationAiService,
   ModerationAssessment,
 } from './moderation-ai.service';
-import { ModerationResolveAction, ModerationTab } from './moderation.constant';
+import {
+  MODERATION_QUEUE,
+  MODERATION_SCAN_JOB,
+  ModerationResolveAction,
+  ModerationTab,
+} from './moderation.constant';
 
 const PROTECTED_FROM_BAN = new Set<userRole>([
   userRole.SUPERADMIN,
@@ -45,16 +50,17 @@ export class ModerationService {
     private readonly notificationService: NotificationService,
     private readonly blogGateway: BlogGateway,
     @Optional()
-    @InjectQueue('moderation-queue')
+    @InjectQueue(MODERATION_QUEUE)
     private readonly moderationQueue?: Queue,
   ) {}
 
   /**
-   * Đẩy tác vụ kiểm duyệt ngầm vào BullMQ (kèm cơ chế fallback bất đồng bộ nếu Redis Queue bận)
-   * để API tạo bài/bình luận phản hồi tức thì cho người dùng.
+   * Đẩy tác vụ kiểm duyệt ngầm vào BullMQ để API tạo bài/bình luận phản hồi tức thì.
+   * Chỉ tự quét trong tiến trình khi không có hàng đợi hoặc không đẩy được job — nếu không
+   * `ModerationProcessor` đã quét, chạy thêm sẽ quét 2 lần.
    */
   enqueueScan(targetType: ReportTargetType, targetId: string): void {
-    const runFallback = () => {
+    const scanInProcess = () => {
       setTimeout(() => {
         void this.scanTarget(targetType, targetId).catch(() => {
           // Không làm gián đoạn tiến trình chính nếu job ngầm lỗi
@@ -62,26 +68,25 @@ export class ModerationService {
       }, 350);
     };
 
-    if (this.moderationQueue) {
-      this.moderationQueue
-        .add(
-          'scan-content',
-          { targetType, targetId } satisfies ModerationScanJobData,
-          {
-            attempts: 2,
-            backoff: { type: 'exponential', delay: 1500 },
-            removeOnComplete: 100,
-            removeOnFail: 200,
-          },
-        )
-        .catch(() => {
-          runFallback();
-        });
-      // Đảm bảo thực thi ngay cả khi BullMQ worker chưa khởi chạy trong môi trường dev đơn lẻ
-      runFallback();
-    } else {
-      runFallback();
+    if (!this.moderationQueue) {
+      scanInProcess();
+      return;
     }
+
+    this.moderationQueue
+      .add(
+        MODERATION_SCAN_JOB,
+        { targetType, targetId } satisfies ModerationScanJobData,
+        {
+          attempts: 2,
+          backoff: { type: 'exponential', delay: 1500 },
+          removeOnComplete: 100,
+          removeOnFail: 200,
+        },
+      )
+      .catch(() => {
+        scanInProcess();
+      });
   }
 
   /**
@@ -293,18 +298,7 @@ export class ModerationService {
       : ReportActionTaken.NONE;
 
     if (isAutoHide && comment.status !== PostCommentStatus.REMOVED) {
-      await this.prisma.blogPostComment.update({
-        where: { id: comment.id },
-        data: {
-          status: PostCommentStatus.REMOVED,
-          deletedAt: new Date(),
-        },
-      });
-
-      await this.prisma.blogPost.updateMany({
-        where: { id: comment.postId, commentCount: { gt: 0 } },
-        data: { commentCount: { decrement: 1 } },
-      });
+      await this.hideComment(comment);
 
       this.blogGateway.emitCommentUpdated(comment.postId, {
         type: 'deleted',
@@ -917,29 +911,21 @@ export class ModerationService {
 
     const isRemoved = comment.status === PostCommentStatus.REMOVED;
     if (dto.action === ModerationResolveAction.RESTORE && isRemoved) {
-      await this.prisma.blogPostComment.update({
-        where: { id: comment.id },
-        data: {
-          status: PostCommentStatus.VISIBLE,
-          deletedAt: null,
-        },
-      });
-      await this.prisma.blogPost.updateMany({
-        where: { id: comment.postId },
-        data: { commentCount: { increment: 1 } },
-      });
+      await this.prisma.$transaction([
+        this.prisma.blogPostComment.update({
+          where: { id: comment.id },
+          data: {
+            status: PostCommentStatus.VISIBLE,
+            deletedAt: null,
+          },
+        }),
+        this.prisma.blogPost.updateMany({
+          where: { id: comment.postId },
+          data: { commentCount: { increment: 1 } },
+        }),
+      ]);
     } else if (dto.action !== ModerationResolveAction.RESTORE && !isRemoved) {
-      await this.prisma.blogPostComment.update({
-        where: { id: comment.id },
-        data: {
-          status: PostCommentStatus.REMOVED,
-          deletedAt: new Date(),
-        },
-      });
-      await this.prisma.blogPost.updateMany({
-        where: { id: comment.postId, commentCount: { gt: 0 } },
-        data: { commentCount: { decrement: 1 } },
-      });
+      await this.hideComment(comment);
       this.blogGateway.emitCommentUpdated(comment.postId, {
         type: 'deleted',
         commentId: comment.id,
@@ -947,6 +933,23 @@ export class ModerationService {
     }
 
     return { targetAuthorId, targetTitle };
+  }
+
+  /** Ẩn bình luận và giảm số bình luận của bài cùng lúc (không để số đếm lệch). */
+  private async hideComment(comment: { id: string; postId: string }) {
+    await this.prisma.$transaction([
+      this.prisma.blogPostComment.update({
+        where: { id: comment.id },
+        data: {
+          status: PostCommentStatus.REMOVED,
+          deletedAt: new Date(),
+        },
+      }),
+      this.prisma.blogPost.updateMany({
+        where: { id: comment.postId, commentCount: { gt: 0 } },
+        data: { commentCount: { decrement: 1 } },
+      }),
+    ]);
   }
 
   private async handleBanUser(targetAuthorId: string): Promise<string | null> {

@@ -89,6 +89,15 @@ describe('ArticleService', () => {
       expect(prisma.article.update).not.toHaveBeenCalled();
     });
 
+    it('chuyên mục tên "Blog / Bài viết" cũng không được tự duyệt', async () => {
+      pending({ category: { name: 'Bài viết blog', slug: 'blog' } });
+
+      await expect(
+        service.review('art-1', { status: ContentStatus.PUBLISHED }, EDITOR),
+      ).rejects.toThrow(ForbiddenException);
+      expect(prisma.article.update).not.toHaveBeenCalled();
+    });
+
     it('từ chối bắt buộc có lý do', async () => {
       pending();
 

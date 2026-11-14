@@ -9,6 +9,7 @@ import { NotificationModule } from '../notification/notification.module';
 import { ModerationAiService } from './moderation-ai.service';
 import { ModerationController } from './moderation.controller';
 import { ModerationProcessor } from './moderation.processor';
+import { MODERATION_QUEUE } from './moderation.constant';
 import { ModerationService } from './moderation.service';
 
 @Module({
@@ -16,7 +17,7 @@ import { ModerationService } from './moderation.service';
     NotificationModule,
     BlogGatewayModule,
     BullModule.registerQueue({
-      name: 'moderation-queue',
+      name: MODERATION_QUEUE,
     }),
   ],
   controllers: [ModerationController],

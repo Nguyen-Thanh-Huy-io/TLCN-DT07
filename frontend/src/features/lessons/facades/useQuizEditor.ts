@@ -121,11 +121,13 @@ export function useQuizEditor(lessonId: string | null | undefined): UseQuizEdito
     }
     try {
       setSaving(QuizSaveState.SAVING);
-      await QuizApiService.upsertQuiz(lessonId, {
+      const saved = await QuizApiService.upsertQuiz(lessonId, {
         title: title.trim() || undefined,
         passingScorePercent: typeof passingScorePercent === 'number' ? passingScorePercent : undefined,
         questions,
       });
+      // Câu mới được tạo vào Ngân hàng với id mới — giữ id cũ thì lần lưu sau sẽ tạo trùng câu.
+      setQuestions(saved.questions || []);
       setHasQuiz(true);
       setSaving(QuizSaveState.SAVED);
     } catch (err) {

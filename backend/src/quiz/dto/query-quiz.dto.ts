@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { QUIZ_LIST_MAX_LIMIT, QuizListStatus } from '../quiz.constant';
 
 export class QueryQuizDto {
   @ApiPropertyOptional({
@@ -21,11 +22,13 @@ export class QueryQuizDto {
   lessonId?: string;
 
   @ApiPropertyOptional({
-    description: 'Lọc theo trạng thái đề (ACTIVE, DRAFT, all)',
+    enum: QuizListStatus,
+    description:
+      'Lọc theo trạng thái đề: ACTIVE (đã có câu hỏi), DRAFT (chưa có), all',
   })
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(QuizListStatus)
+  status?: QuizListStatus;
 
   @ApiPropertyOptional({ description: 'Số trang (bắt đầu từ 1)', default: 1 })
   @IsOptional()
@@ -42,5 +45,6 @@ export class QueryQuizDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(QUIZ_LIST_MAX_LIMIT)
   limit?: number = 20;
 }

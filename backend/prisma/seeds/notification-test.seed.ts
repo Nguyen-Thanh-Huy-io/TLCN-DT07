@@ -3,6 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import {
   ContentStatus,
   NotificationType,
+  PostCommentStatus,
   PrismaClient,
   userRole,
   userStatus,
@@ -130,22 +131,9 @@ async function main() {
   const blog1Slug = 'kham-pha-hoang-thanh-thang-long-ngan-nam-van-hien';
   const blog1Title = 'Khám phá Hoàng thành Thăng Long — Ngàn năm văn hiến';
   
-  // Tạo hoặc cập nhật Article đồng bộ để thỏa mãn foreign key constraint của article_comments
-  const articleSync1 = await prisma.article.upsert({
-    where: { slug: `sync-${blog1Slug}` },
-    update: { title: blog1Title, status: ContentStatus.PUBLISHED },
-    create: {
-      title: blog1Title,
-      slug: `sync-${blog1Slug}`,
-      summary: 'Quần thể di tích lịch sử gắn liền với kinh thành Thăng Long.',
-      status: ContentStatus.PUBLISHED,
-    },
-  });
-
   const blog1 = await prisma.blogPost.upsert({
     where: { slug: blog1Slug },
     update: {
-      id: articleSync1.id, // Đồng bộ ID với Article để hỗ trợ comments
       authorId: author1Id,
       title: blog1Title,
       excerpt: 'Hoàng thành Thăng Long là quần thể di tích gắn liền với lịch sử kinh thành Thăng Long - Đông Kinh và tỉnh thành Hà Nội.',
@@ -154,7 +142,6 @@ async function main() {
       publishedAt: new Date(),
     },
     create: {
-      id: articleSync1.id,
       authorId: author1Id,
       title: blog1Title,
       slug: blog1Slug,
@@ -176,20 +163,20 @@ async function main() {
   console.log(` 📝 Đã tạo Blog 1 (PUBLISHED): "${blog1.title}" (Tác giả: author1@hisgo.test)`);
 
   // 3. Tạo một bình luận mẫu trên Blog 1 từ reader1 để sẵn sàng test chức năng reply (phản hồi)
-  const comment1 = await prisma.articleComment.upsert({
+  const comment1 = await prisma.blogPostComment.upsert({
     where: { id: 'c1111111-2222-3333-4444-555555555555' },
     update: {
-      articleId: blog1.id,
+      postId: blog1.id,
       authorId: reader1Id,
       content: 'Bài viết rất giàu tư liệu và xúc động. Cảm ơn tác giả nhiều!',
-      status: 'VISIBLE',
+      status: PostCommentStatus.VISIBLE,
     },
     create: {
       id: 'c1111111-2222-3333-4444-555555555555',
-      articleId: blog1.id,
+      postId: blog1.id,
       authorId: reader1Id,
       content: 'Bài viết rất giàu tư liệu và xúc động. Cảm ơn tác giả nhiều!',
-      status: 'VISIBLE',
+      status: PostCommentStatus.VISIBLE,
     },
   });
 
@@ -199,21 +186,9 @@ async function main() {
   const blog2Slug = '56-ngay-dem-khoet-nui-ngu-ham-ky-uc-dien-bien-phu';
   const blog2Title = '56 ngày đêm "khoét núi, ngủ hầm, mưa dầm, cơm vắt" — Ký ức Điện Biên Phủ';
 
-  const articleSync2 = await prisma.article.upsert({
-    where: { slug: `sync-${blog2Slug}` },
-    update: { title: blog2Title, status: ContentStatus.PENDING_REVIEW },
-    create: {
-      title: blog2Title,
-      slug: `sync-${blog2Slug}`,
-      summary: 'Ký ức hào hùng về chiến dịch Điện Biên Phủ chấn động địa cầu.',
-      status: ContentStatus.PENDING_REVIEW,
-    },
-  });
-
   const blog2 = await prisma.blogPost.upsert({
     where: { slug: blog2Slug },
     update: {
-      id: articleSync2.id,
       authorId: author2Id,
       title: blog2Title,
       excerpt: 'Hồi ức về những ngày tháng chiến đấu gian khổ nhưng hào hùng của quân và dân ta trong chiến dịch Điện Biên Phủ lịch sử.',
@@ -221,7 +196,6 @@ async function main() {
       isFeatured: false,
     },
     create: {
-      id: articleSync2.id,
       authorId: author2Id,
       title: blog2Title,
       slug: blog2Slug,

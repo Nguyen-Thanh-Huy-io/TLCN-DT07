@@ -130,7 +130,7 @@ export function StandaloneQuizEditorModal({
       topicIds,
       timeLimitMinutes: Number(timeLimitMinutes) || 15,
       passingScorePercent: Number(passingScorePercent) || 80,
-      questions,
+      questionItems: questions.map((q, displayOrder) => ({ questionId: q.id, displayOrder })),
     });
   };
 

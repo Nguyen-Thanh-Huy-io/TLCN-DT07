@@ -24,6 +24,7 @@ import {
   DifficultyLevel,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { setQuizQuestionsFromSeed, toBankQuestion } from './quiz-bank.helper';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL as string }),
@@ -379,14 +380,13 @@ async function main() {
   for (const qz of raw.quizzes || []) {
     const lessonId = lessonIdMap.get(qz.lessonId);
     if (!lessonId) continue;
-    await prisma.quiz.upsert({
+    const quiz = await prisma.quiz.upsert({
       where: { lessonId },
       update: {
         title: qz.title ?? null,
         description: qz.description ?? null,
         passingScorePercent: qz.passingScorePercent ?? 80,
         timeLimitMinutes: qz.timeLimitMinutes ?? 15,
-        questions: qz.questions ?? [],
       },
       create: {
         lessonId,
@@ -394,9 +394,9 @@ async function main() {
         description: qz.description ?? null,
         passingScorePercent: qz.passingScorePercent ?? 80,
         timeLimitMinutes: qz.timeLimitMinutes ?? 15,
-        questions: qz.questions ?? [],
       },
     });
+    await setQuizQuestionsFromSeed(prisma, quiz.id, lessonId, qz.questions ?? []);
   }
 
   // 10. QUESTION BANK
@@ -409,6 +409,13 @@ async function main() {
       .map((id: string) => topicIdMap.get(id))
       .filter(Boolean) as string[];
 
+    const bankQuestion = toBankQuestion({
+      ...(q.data ?? {}),
+      type: q.type,
+      prompt: q.prompt,
+      explanation: q.explanation ?? undefined,
+    });
+    if (!bankQuestion) continue;
     const existingQ = await prisma.question.findFirst({
       where: { prompt: q.prompt },
     });
@@ -417,11 +424,9 @@ async function main() {
       await prisma.question.update({
         where: { id: existingQ.id },
         data: {
-          type: q.type,
+          ...bankQuestion,
           difficulty: q.difficulty ?? 'MEDIUM',
           points: q.points ?? 10,
-          explanation: q.explanation ?? null,
-          data: q.data ?? {},
           lessons: { set: mappedLessonIds.map((id) => ({ id })) },
           topics: { set: mappedTopicIds.map((id) => ({ id })) },
         },
@@ -429,12 +434,9 @@ async function main() {
     } else {
       await prisma.question.create({
         data: {
-          type: q.type,
-          prompt: q.prompt,
+          ...bankQuestion,
           difficulty: q.difficulty ?? 'MEDIUM',
           points: q.points ?? 10,
-          explanation: q.explanation ?? null,
-          data: q.data ?? {},
           lessons: { connect: mappedLessonIds.map((id) => ({ id })) },
           topics: { connect: mappedTopicIds.map((id) => ({ id })) },
         },

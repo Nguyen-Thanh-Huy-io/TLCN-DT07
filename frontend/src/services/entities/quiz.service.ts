@@ -51,7 +51,6 @@ export interface CreateStandaloneQuizDto {
   questionItems?: QuizQuestionItemInput[];
   timeLimitMinutes?: number;
   passingScorePercent?: number;
-  questions?: QuizQuestion[];
 }
 
 export interface UpdateStandaloneQuizDto {
@@ -63,9 +62,9 @@ export interface UpdateStandaloneQuizDto {
   questionItems?: QuizQuestionItemInput[];
   timeLimitMinutes?: number;
   passingScorePercent?: number;
-  questions?: QuizQuestion[];
 }
 
+/** Đề ôn tập soạn tại chỗ: câu có id trong Ngân hàng thì cập nhật, id khác thì tạo câu mới vào Ngân hàng. */
 export interface UpsertQuizDto {
   title?: string;
   passingScorePercent?: number;
@@ -146,7 +145,7 @@ export class QuizApiService {
     return res.data?.data ?? null;
   }
 
-  /** Tạo mới hoặc cập nhật nguyên đề gắn với bài học */
+  /** Tạo mới hoặc cập nhật nguyên đề gắn với bài học; trả về đề với câu hỏi mang id Ngân hàng. */
   static async upsertQuiz(lessonId: string, dto: UpsertQuizDto): Promise<QuizItem> {
     const res = await api.put(`/lessons/${lessonId}/quiz`, dto);
     return res.data?.data || res.data;

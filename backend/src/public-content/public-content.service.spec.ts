@@ -3,22 +3,25 @@ import { Test } from '@nestjs/testing';
 import { PrismaService } from '../common/services/prisma.service';
 import { PublicContentService } from './public-content.service';
 
-const STORED_QUESTIONS = [
-  {
-    id: 'q1',
-    type: 'SINGLE_CHOICE',
-    prompt: 'Ai thắng trận Bạch Đằng 938?',
+/** Câu hỏi của đề lấy từ Ngân hàng qua `quiz_questions` (đã sắp theo thứ tự trong đề). */
+const bankLink = (id: string, type: string, prompt: string, data: object) => ({
+  quizId: 'quiz-1',
+  questionId: id,
+  displayOrder: 0,
+  points: 10,
+  question: { id, type, prompt, explanation: null, data },
+});
+
+const QUIZ_LINKS = [
+  bankLink('q1', 'SINGLE_CHOICE', 'Ai thắng trận Bạch Đằng 938?', {
     options: [
       { id: 'a', text: 'Ngô Quyền', isCorrect: true },
       { id: 'b', text: 'Lý Bí', isCorrect: false },
     ],
-  },
-  {
-    id: 'q2',
-    type: 'TRUE_FALSE',
-    prompt: 'Kinh đô năm 939 là Cổ Loa',
+  }),
+  bankLink('q2', 'TRUE_FALSE', 'Kinh đô năm 939 là Cổ Loa', {
     correctAnswer: true,
-  },
+  }),
 ];
 
 describe('PublicContentService — nộp bài quiz', () => {
@@ -31,7 +34,7 @@ describe('PublicContentService — nộp bài quiz', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     prisma.quiz.findUnique.mockResolvedValue({
-      questions: STORED_QUESTIONS,
+      quizQuestions: QUIZ_LINKS,
       passingScorePercent: 60,
     });
     const moduleRef = await Test.createTestingModule({
@@ -83,5 +86,24 @@ describe('PublicContentService — nộp bài quiz', () => {
         answers: {},
       }),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  it('câu định dạng cũ trong ngân hàng vẫn chấm được (trước đây cả đề trả 400)', async () => {
+    prisma.quiz.findUnique.mockResolvedValue({
+      passingScorePercent: 60,
+      quizQuestions: [
+        bankLink('legacy', 'MULTIPLE_CHOICE', 'Ai chỉ huy khiêu chiến?', {
+          options: ['Trần Khánh Dư', 'Nguyễn Khoái'],
+          correctAnswer: 'Nguyễn Khoái',
+        }),
+      ],
+    });
+
+    const result = await service.submitQuizAttempt('quiz-1', {
+      timeSpentSeconds: 5,
+      answers: { legacy: 'b' },
+    });
+
+    expect(result).toMatchObject({ totalQuestions: 1, correctCount: 1 });
   });
 });

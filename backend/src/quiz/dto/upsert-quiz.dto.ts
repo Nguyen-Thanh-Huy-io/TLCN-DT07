@@ -29,7 +29,7 @@ export class UpsertQuizDto {
 
   @ApiProperty({
     description:
-      'Mảng câu hỏi (mỗi phần tử tự khai báo `type`: MULTIPLE_CHOICE | TRUE_FALSE | ORDERING | MATCHING | FILL_IN_BLANK, validate chi tiết ở service)',
+      'Câu hỏi của đề theo thứ tự (mỗi phần tử tự khai báo `type`, validate ở service). `id` trùng câu trong Ngân hàng thì cập nhật câu đó, id khác thì tạo câu mới vào Ngân hàng.',
     type: [Object],
   })
   @IsArray()

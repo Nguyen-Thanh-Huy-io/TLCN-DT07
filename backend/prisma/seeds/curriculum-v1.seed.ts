@@ -16,6 +16,7 @@ import {
   DifficultyLevel,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { setQuizQuestionsFromSeed, toBankQuestion } from './quiz-bank.helper';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL as string }),
@@ -322,14 +323,13 @@ async function main() {
     },
   ];
 
-  await prisma.quiz.upsert({
+  const lessonQuiz = await prisma.quiz.upsert({
     where: { lessonId: lesson.id },
     update: {
       title: 'Đề ôn tập: Kế sách cọc ngầm Bạch Đằng 1288',
       description: 'Kiểm tra độ hiểu biết về chiến thuật, quy luật thủy triều và các nhân vật lịch sử then chốt trong trận Bạch Đằng.',
       passingScorePercent: 80,
       timeLimitMinutes: 10,
-      questions: quizQuestions,
     },
     create: {
       lessonId: lesson.id,
@@ -337,9 +337,9 @@ async function main() {
       description: 'Kiểm tra độ hiểu biết về chiến thuật, quy luật thủy triều và các nhân vật lịch sử then chốt trong trận Bạch Đằng.',
       passingScorePercent: 80,
       timeLimitMinutes: 10,
-      questions: quizQuestions,
     },
   });
+  await setQuizQuestionsFromSeed(prisma, lessonQuiz.id, lesson.id, quizQuestions);
 
   // =========================================================================
   // BƯỚC 7: BỔ SUNG NGÂN HÀNG CÂU HỎI TẬP TRUNG (QUESTION BANK)
@@ -349,18 +349,21 @@ async function main() {
     where: { prompt: { contains: 'Trận Bạch Đằng năm 1288 diễn ra vào ngày nào' } },
   });
 
-  if (!existingQ) {
+  const bankQuestion = existingQ
+    ? null
+    : toBankQuestion({
+      type: 'SINGLE_CHOICE',
+      prompt: 'Trận Bạch Đằng năm 1288 diễn ra vào ngày nào theo dương lịch?',
+      explanation: 'Trận quyết chiến Bạch Đằng diễn ra vào ngày 9 tháng 4 năm 1288 (tức ngày 8 tháng 3 năm Mậu Tý).',
+      options: ['09/04/1288', '08/03/1288', '01/01/1288', '30/04/1288'],
+      correctAnswer: '09/04/1288',
+    });
+  if (bankQuestion) {
     await prisma.question.create({
       data: {
-        type: 'SINGLE_CHOICE',
-        prompt: 'Trận Bạch Đằng năm 1288 diễn ra vào ngày nào theo dương lịch?',
+        ...bankQuestion,
         difficulty: 'MEDIUM',
         points: 10,
-        explanation: 'Trận quyết chiến Bạch Đằng diễn ra vào ngày 9 tháng 4 năm 1288 (tức ngày 8 tháng 3 năm Mậu Tý).',
-        data: {
-          options: ['09/04/1288', '08/03/1288', '01/01/1288', '30/04/1288'],
-          correctAnswer: '09/04/1288',
-        },
         topics: { connect: { id: childTopic.id } },
         lessons: { connect: { id: lesson.id } },
       },

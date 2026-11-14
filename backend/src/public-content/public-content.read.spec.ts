@@ -370,7 +370,12 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
         content: [],
         topic: null,
         lessonTags: [],
-        quiz: { id: 'q-1', title: 'Đề 1', passingScorePercent: null },
+        quiz: {
+          id: 'q-1',
+          title: 'Đề 1',
+          passingScorePercent: null,
+          quizQuestions: [],
+        },
       },
     ]);
 

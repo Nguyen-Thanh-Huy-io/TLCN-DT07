@@ -1,6 +1,6 @@
 /**
  * Các dạng câu hỏi trong Đề ôn tập cuối bài — khớp 1:1 với backend
- * (`backend/src/quiz/types/quiz-question.types.ts`) và schema `Quiz.questions` (JSONB).
+ * (`backend/src/quiz/types/quiz-question.types.ts`). Câu hỏi nằm ở Ngân hàng (`Question`), đề chỉ liên kết qua `quiz_questions`.
  */
 export enum QuizQuestionType {
   SINGLE_CHOICE = 'SINGLE_CHOICE',

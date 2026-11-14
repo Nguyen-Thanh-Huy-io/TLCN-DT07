@@ -4,7 +4,10 @@ import { PrismaService } from '../common/services/prisma.service';
 import { LessonContentStrategyContext } from '../lesson/strategies/content-normalizer.strategy';
 import { DEFAULT_QUIZ_PASSING_SCORE_PERCENT } from '../quiz/quiz.constant';
 import { gradeQuizAttempt, QuizGradingResult } from '../quiz/quiz-grading';
-import { validateAndNormalizeQuestions } from '../quiz/validators/quiz-question.validator';
+import {
+  QUIZ_QUESTIONS_INCLUDE,
+  toQuizQuestions,
+} from '../quiz/quiz-question.mapper';
 import { SubmitQuizAttemptDto } from './dto/submit-quiz-attempt.dto';
 import {
   buildDateLabel,
@@ -597,7 +600,7 @@ export class PublicContentService {
       include: {
         topic: { select: { id: true, name: true, slug: true, parentId: true } },
         lessonTags: { include: { tag: true } },
-        quiz: true,
+        quiz: { include: QUIZ_QUESTIONS_INCLUDE },
       },
       orderBy: [{ displayOrder: 'asc' }, { publishedAt: 'desc' }],
     });
@@ -633,7 +636,7 @@ export class PublicContentService {
                 lesson.quiz.passingScorePercent ??
                 DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
               timeLimitMinutes: lesson.quiz.timeLimitMinutes,
-              questions: lesson.quiz.questions,
+              questions: toQuizQuestions(lesson.quiz.quizQuestions),
             }
           : null,
         tags: lesson.lessonTags.map((lt) => ({
@@ -676,12 +679,14 @@ export class PublicContentService {
   ): Promise<QuizAttemptResult> {
     const quiz = await this.prisma.quiz.findUnique({
       where: { id: quizId },
-      select: { questions: true, passingScorePercent: true },
+      select: { passingScorePercent: true, ...QUIZ_QUESTIONS_INCLUDE },
     });
     if (!quiz) throw new NotFoundException('Không tìm thấy đề thi này');
 
-    const questions = validateAndNormalizeQuestions(quiz.questions);
-    const graded = gradeQuizAttempt(questions, dto.answers);
+    const graded = gradeQuizAttempt(
+      toQuizQuestions(quiz.quizQuestions),
+      dto.answers,
+    );
     const isPassed =
       graded.scorePercent >=
       (quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT);

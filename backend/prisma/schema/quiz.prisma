@@ -2,15 +2,10 @@
 // Quiz (Đề ôn tập cuối bài học) Model
 // ================================
 
-// 1 Lesson có tối đa 1 Quiz. Danh sách câu hỏi lưu dạng mảng JSONB trong `questions`,
-// giống cách `Lesson.content` lưu mảng khối nội dung — không tách bảng con riêng vì
-// không có nhu cầu truy vấn SQL lọc theo từng câu hỏi lẻ, chỉ luôn đọc/viết nguyên mảng.
-//
-// Mỗi phần tử trong `questions` tự khai báo field `type` (validate ở DTO backend, không
-// phải cột DB — theo đúng cách `LessonBlockType` của Lesson.content đang làm) với 1 trong
-// 5 giá trị: MULTIPLE_CHOICE | TRUE_FALSE | ORDERING | MATCHING | FILL_IN_BLANK, kèm phần
-// dữ liệu riêng theo từng loại (options[] / correctAnswer / items+correctOrder /
-// leftItems+rightItems+correctPairs / acceptedAnswers[]).
+// 1 Lesson có tối đa 1 Quiz. Câu hỏi của đề CHỈ lấy từ Ngân hàng câu hỏi (`Question`)
+// qua bảng nối `QuizQuestion` (thứ tự + điểm theo từng đề). Không nhúng câu hỏi JSON trong đề:
+// trước 2026-11-14 có cột `questions` JSONB song song với ngân hàng, phía người học chỉ đọc
+// JSON nên đề dựng từ ngân hàng hiển thị 0 câu.
 model Quiz {
   id                  String  @id @default(uuid())
   lessonId            String? @unique @map("lesson_id")
@@ -18,7 +13,6 @@ model Quiz {
   description         String? @db.Text
   passingScorePercent Int?    @map("passing_score_percent")
   timeLimitMinutes    Int?    @default(15) @map("time_limit_minutes")
-  questions           Json    @default("[]") @db.JsonB
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

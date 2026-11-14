@@ -110,15 +110,6 @@ export class CreateStandaloneQuizDto {
   @Min(0)
   @Max(100)
   passingScorePercent?: number;
-
-  @ApiPropertyOptional({
-    description:
-      'Danh sách các câu hỏi nhúng trực tiếp trong đề (hỗ trợ tương thích ngược và tạo nhanh)',
-    type: [Object],
-  })
-  @IsOptional()
-  @IsArray()
-  questions?: unknown[];
 }
 
 export class UpdateStandaloneQuizDto {
@@ -183,9 +174,4 @@ export class UpdateStandaloneQuizDto {
   @Min(0)
   @Max(100)
   passingScorePercent?: number;
-
-  @ApiPropertyOptional({ type: [Object] })
-  @IsOptional()
-  @IsArray()
-  questions?: unknown[];
 }

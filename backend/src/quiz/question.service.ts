@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DifficultyLevel, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import {
@@ -11,14 +11,7 @@ import { validateAndNormalizeQuestions } from './validators/quiz-question.valida
 
 @Injectable()
 export class QuestionService {
-  private readonly logger = new Logger(QuestionService.name);
-
   constructor(private readonly prisma: PrismaService) {}
-
-  async onModuleInit() {
-    // Tự động đồng bộ các câu hỏi từ các đề Quiz đã có vào Ngân hàng câu hỏi nếu ngân hàng đang trống
-    await this.backfillFromQuizzes();
-  }
 
   async findAll(query: QueryQuestionDto) {
     const {
@@ -175,71 +168,5 @@ export class QuestionService {
     await this.findOne(id);
     await this.prisma.question.delete({ where: { id } });
     return { success: true, message: 'Đã xóa câu hỏi khỏi ngân hàng.' };
-  }
-
-  /**
-   * Đồng bộ câu hỏi từ các đề Quiz có sẵn trong hệ thống vào Ngân hàng câu hỏi
-   */
-  async backfillFromQuizzes() {
-    try {
-      const count = await this.prisma.question.count();
-      if (count > 0) return;
-
-      const quizzes = await this.prisma.quiz.findMany();
-      const createOperations = quizzes.flatMap((quiz) =>
-        this.buildCreateOpsForQuiz(quiz.lessonId, quiz.questions),
-      );
-
-      if (createOperations.length > 0) {
-        await this.prisma.$transaction(createOperations);
-      }
-    } catch (err) {
-      this.logger.warn(
-        `Lỗi khi backfill câu hỏi từ Quiz vào Question Bank: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-  }
-
-  private buildCreateOpsForQuiz(
-    lessonId: string | null,
-    questions: unknown,
-  ): Prisma.PrismaPromise<unknown>[] {
-    if (!Array.isArray(questions)) {
-      return [];
-    }
-
-    const ops: Prisma.PrismaPromise<unknown>[] = [];
-    for (const raw of questions as Array<Record<string, unknown>>) {
-      if (
-        typeof raw?.id !== 'string' ||
-        typeof raw?.type !== 'string' ||
-        typeof raw?.prompt !== 'string'
-      ) {
-        continue;
-      }
-
-      const restData: Record<string, unknown> = { ...raw };
-      delete restData.id;
-      delete restData.type;
-      delete restData.prompt;
-      delete restData.explanation;
-
-      ops.push(
-        this.prisma.question.create({
-          data: {
-            type: raw.type,
-            prompt: raw.prompt,
-            explanation:
-              typeof raw.explanation === 'string' ? raw.explanation : null,
-            difficulty: DifficultyLevel.MEDIUM,
-            points: DEFAULT_QUESTION_POINTS,
-            data: restData as Prisma.InputJsonValue,
-            ...(lessonId ? { lessons: { connect: [{ id: lessonId }] } } : {}),
-          },
-        }),
-      );
-    }
-
-    return ops;
   }
 }

@@ -9,6 +9,7 @@ import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { PrismaClient, DifficultyLevel, LessonStatus } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { setQuizQuestionsFromSeed } from './seeds/quiz-bank.helper';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -377,15 +378,14 @@ export async function enrichDienBienPhuLesson() {
     update: {
       title: DIEN_BIEN_PHU_QUIZ_DATA.title,
       passingScorePercent: DIEN_BIEN_PHU_QUIZ_DATA.passingScorePercent,
-      questions: DIEN_BIEN_PHU_QUIZ_DATA.questions,
     },
     create: {
       lessonId: lesson.id,
       title: DIEN_BIEN_PHU_QUIZ_DATA.title,
       passingScorePercent: DIEN_BIEN_PHU_QUIZ_DATA.passingScorePercent,
-      questions: DIEN_BIEN_PHU_QUIZ_DATA.questions,
     },
   });
+  await setQuizQuestionsFromSeed(prisma, quiz.id, lesson.id, DIEN_BIEN_PHU_QUIZ_DATA.questions);
 
   console.log(`✓ Đã tạo/cập nhật Quiz ID=${quiz.id} với ${DIEN_BIEN_PHU_QUIZ_DATA.questions.length} câu hỏi đa dạng (Multiple Choice, True/False, Ordering, Matching, Fill In Blank)`);
   console.log(`=== HOÀN TẤT LÀM ĐẦY BÀI HỌC VÀ QUIZ THÀNH CÔNG 100%! ===`);

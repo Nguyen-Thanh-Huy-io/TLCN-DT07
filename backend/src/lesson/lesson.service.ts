@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../common/services/prisma.service';
 import { ACCESS_MESSAGES } from '../common/access/access.constant';
 import { RedisService } from '../common/services/redis.service';
+import { TAG_CONFIG } from '../tag/tag.constant';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
@@ -442,6 +443,8 @@ export class LessonService {
   private async invalidateCache(): Promise<void> {
     try {
       await this.redis.deleteByPattern(`${this.CACHE_PREFIX}:*`);
+      // Danh sách Tag được cache kèm số bài học dùng tag.
+      await this.redis.deleteByPattern(TAG_CONFIG.TAG_CACHE_PATTERN);
     } catch {
       this.logger.warn('Failed to invalidate lesson cache', 'LessonService');
     }

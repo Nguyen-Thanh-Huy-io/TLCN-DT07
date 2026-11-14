@@ -8,6 +8,8 @@ import {
 import { ContentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { SlugService } from '../common/services/slug.service';
+import { RedisService } from '../common/services/redis.service';
+import { TAG_CONFIG } from '../tag/tag.constant';
 import { validateHistoricalYearRange } from '../common/utils/historical-date.parser';
 import {
   ArticleLinkInputDto,
@@ -90,7 +92,13 @@ export class ArticleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly slugService: SlugService,
+    private readonly redis: RedisService,
   ) {}
+
+  /** Danh sách Tag được cache kèm số bài dùng tag — đổi tag của bài thì phải xoá. */
+  private async clearTagCache(): Promise<void> {
+    await this.redis.deleteByPattern(TAG_CONFIG.TAG_CACHE_PATTERN);
+  }
 
   async findAll(query: QueryArticleDto) {
     const {
@@ -234,6 +242,7 @@ export class ArticleService {
           : undefined,
       },
     });
+    if (tagIds?.length) await this.clearTagCache();
     return this.findOne(created.id);
   }
 
@@ -309,6 +318,7 @@ export class ArticleService {
         }
       }
     });
+    if (tagIds !== undefined) await this.clearTagCache();
     return this.findOne(id);
   }
 
@@ -316,6 +326,7 @@ export class ArticleService {
     await this.findOne(id);
     // Mốc timeline trỏ tới bài → null (SetNull); tag nối, liên kết 2 chiều tự xoá (Cascade).
     await this.prisma.article.delete({ where: { id } });
+    await this.clearTagCache();
     return { success: true };
   }
 

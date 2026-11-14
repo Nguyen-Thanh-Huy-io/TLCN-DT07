@@ -8,6 +8,8 @@ import { Test } from '@nestjs/testing';
 import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { SlugService } from '../common/services/slug.service';
+import { RedisService } from '../common/services/redis.service';
+import { TAG_CONFIG } from '../tag/tag.constant';
 import { ArticleService } from './article.service';
 
 const EDITOR = 'editor-1';
@@ -50,6 +52,8 @@ describe('ArticleService', () => {
     ),
   };
 
+  const redis = { deleteByPattern: jest.fn() };
+
   beforeEach(async () => {
     jest.clearAllMocks();
     prisma.article.findUnique.mockImplementation(
@@ -61,6 +65,7 @@ describe('ArticleService', () => {
         ArticleService,
         SlugService,
         { provide: PrismaService, useValue: prisma },
+        { provide: RedisService, useValue: redis },
       ],
     }).compile();
     service = moduleRef.get(ArticleService);
@@ -176,6 +181,9 @@ describe('ArticleService', () => {
           articleTags: { create: [{ tagId: 't-1' }] },
         }),
       });
+      expect(redis.deleteByPattern).toHaveBeenCalledWith(
+        TAG_CONFIG.TAG_CACHE_PATTERN,
+      );
     });
 
     it('chuyên mục không tồn tại → 400', async () => {
@@ -247,6 +255,9 @@ describe('ArticleService', () => {
       expect(tx.articleTag.createMany).toHaveBeenCalledWith({
         data: [{ articleId: 'art-1', tagId: 't-1' }],
       });
+      expect(redis.deleteByPattern).toHaveBeenCalledWith(
+        TAG_CONFIG.TAG_CACHE_PATTERN,
+      );
       expect(tx.articleLink.createMany).toHaveBeenCalledWith({
         data: [
           expect.objectContaining({
@@ -264,6 +275,7 @@ describe('ArticleService', () => {
 
       expect(tx.articleTag.deleteMany).not.toHaveBeenCalled();
       expect(tx.articleLink.deleteMany).not.toHaveBeenCalled();
+      expect(redis.deleteByPattern).not.toHaveBeenCalled();
     });
 
     it('bài không tồn tại → 404', async () => {
@@ -271,6 +283,19 @@ describe('ArticleService', () => {
 
       await expect(service.update('khong-co', {})).rejects.toThrow(
         NotFoundException,
+      );
+    });
+  });
+
+  describe('remove', () => {
+    it('xoá bài thì xoá cache danh sách Tag (số bài dùng tag đổi)', async () => {
+      await service.remove('art-1');
+
+      expect(prisma.article.delete).toHaveBeenCalledWith({
+        where: { id: 'art-1' },
+      });
+      expect(redis.deleteByPattern).toHaveBeenCalledWith(
+        TAG_CONFIG.TAG_CACHE_PATTERN,
       );
     });
   });

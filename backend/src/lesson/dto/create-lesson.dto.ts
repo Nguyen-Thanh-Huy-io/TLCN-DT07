@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsUUID,
   IsArray,
   IsEnum,
   IsInt,
@@ -78,7 +79,7 @@ export class CreateLessonDto {
   })
   @IsEnum(LessonStatus)
   @IsOptional()
-  status?: LessonStatus = LessonStatus.DRAFT;
+  status?: LessonStatus;
 
   @ApiPropertyOptional({ description: 'Ảnh bìa bài học (tùy chọn)' })
   @IsString()
@@ -105,10 +106,11 @@ export class CreateLessonDto {
   @IsOptional()
   sourceReferenceNote?: string;
 
-  @ApiPropertyOptional({ description: 'Chủ đề / Thời kỳ lịch sử' })
-  @IsOptional()
-  @IsString()
-  topicId?: string;
+  @ApiProperty({
+    description: 'Chủ đề / Thời kỳ lịch sử — mỗi bài học thuộc đúng 1 chủ đề',
+  })
+  @IsUUID()
+  topicId: string;
 
   @ApiPropertyOptional({ description: 'Thẻ bài học (tùy chọn)' })
   @IsArray()

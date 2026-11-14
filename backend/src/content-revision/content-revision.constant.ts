@@ -69,6 +69,7 @@ export const REVISION_FIELDS: Record<RevisionContentType, RevisionField[]> = {
   LESSON: [
     { key: 'title', label: 'Tiêu đề', kind: 'text' },
     { key: 'description', label: 'Mô tả ngắn', kind: 'longtext' },
+    { key: 'topicId', label: 'Chủ đề', kind: 'ref', ref: 'topic' },
     { key: 'content', label: 'Nội dung bài học', kind: 'blocks' },
     { key: 'difficulty', label: 'Độ khó', kind: 'text' },
     { key: 'thumbnailUrl', label: 'Ảnh đại diện', kind: 'image' },

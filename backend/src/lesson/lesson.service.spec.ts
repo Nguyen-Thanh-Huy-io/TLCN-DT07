@@ -78,10 +78,11 @@ describe('LessonService', () => {
   });
 
   describe('create', () => {
-    it('should create lesson successfully without topic dependency', async () => {
+    it('tạo bài học thuộc 1 chủ đề', async () => {
       mockPrismaService.lesson.findUnique.mockResolvedValueOnce(null);
       const dto = {
         title: 'Chiến thắng Bạch Đằng năm 938',
+        topicId: 'topic-uuid-1',
       };
 
       const result = await service.create(dto, 'user-uuid-creator');
@@ -119,6 +120,19 @@ describe('LessonService', () => {
 
       expect(result.title).toBe('Bài học cập nhật');
       expect(mockPrismaService.lesson.update).toHaveBeenCalled();
+    });
+
+    it('đổi chủ đề của bài học', async () => {
+      mockPrismaService.lesson.findUnique.mockResolvedValueOnce(mockLesson);
+      mockPrismaService.lesson.update.mockResolvedValueOnce(mockLesson);
+
+      await service.update('lesson-uuid-1', { topicId: 'topic-uuid-2' });
+
+      expect(mockPrismaService.lesson.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { topic: { connect: { id: 'topic-uuid-2' } } },
+        }),
+      );
     });
   });
 

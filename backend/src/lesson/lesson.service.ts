@@ -341,6 +341,10 @@ export class LessonService {
       data.thumbnailUrl = updateLessonDto.thumbnailUrl || null;
     }
 
+    if (updateLessonDto.topicId !== undefined) {
+      data.topic = { connect: { id: updateLessonDto.topicId } };
+    }
+
     const updated = await this.prisma.lesson.update({
       where: { id },
       data,

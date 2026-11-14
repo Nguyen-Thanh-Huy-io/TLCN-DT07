@@ -1,6 +1,7 @@
 import api, { parsePaginatedResponse, type PaginatedResult } from '../api';
 
-export type DiscussionTargetType = 'LESSON' | 'ARTICLE';
+/** Hỏi đáp chỉ có ở Bài học (Article chỉ có ghi chú cá nhân). */
+export type DiscussionTargetType = 'LESSON';
 
 export interface DiscussionAuthor {
   id: string;

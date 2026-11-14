@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, PanelLeftOpen, PanelRightOpen, ExternalLink } from 'lucide-react';
 import { EntityReaderModel } from './entity-reader-adapter';
 import { EntityKnowledgeGraph, EntityReadingToolbar, TextSizeLevel, EntityReadingToc, EntityReadingTimeline } from './EntityReaderParts';
-import { DiscussionSection } from '@/features/discussions/components/DiscussionSection';
 import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
 import { NoteDrawer, NoteFloatingButton } from '@/features/notes/components/NoteDrawer';
 import { NOTE_TARGET_TYPE } from '@/features/notes/services/note.service';
 import { sanitizeRichHtml } from '@/utils/common';
+import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 
 // === use-reading-layout.ts ===
 export enum ReadingLayoutMode {
@@ -312,7 +312,13 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
             </div>
           )}
 
-          <DiscussionSection targetType="ARTICLE" targetId={model.id} />
+          {/* Trang tra cứu không có hỏi đáp riêng (chỉ Bài học có); trao đổi thì qua Cộng đồng. */}
+          <p className="mt-10 text-center text-sm text-stone-500">
+            Có thắc mắc về nội dung này?{' '}
+            <Link href={PUBLIC_ROUTES.COMMUNITY} className="font-semibold text-[#8B261E] hover:underline">
+              Hỏi trên Cộng đồng
+            </Link>
+          </p>
 
           <div className="my-10 text-center text-stone-400 font-serif flex items-center justify-center gap-3">
             <span>✦</span>

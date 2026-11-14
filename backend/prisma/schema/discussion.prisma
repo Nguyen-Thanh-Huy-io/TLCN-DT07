@@ -2,9 +2,9 @@
 // Discussion (Hỏi đáp & Thảo luận học tập) Model
 // ================================
 
+/// Hỏi đáp chỉ có ở Bài học (Article là trang tra cứu — chỉ có ghi chú cá nhân; trao đổi thì qua Cộng đồng).
 enum DiscussionTargetType {
   LESSON
-  ARTICLE
 }
 
 model DiscussionThread {

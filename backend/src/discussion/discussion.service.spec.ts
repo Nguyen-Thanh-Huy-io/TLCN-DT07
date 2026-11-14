@@ -26,9 +26,6 @@ describe('DiscussionService', () => {
     lesson: {
       findUnique: jest.fn().mockResolvedValue({ slug: 'bai-hoc-mau' }),
     },
-    article: {
-      findUnique: jest.fn().mockResolvedValue({ slug: 'bai-viet-mau' }),
-    },
     $transaction: jest.fn((cb) => cb(mockPrisma)),
   };
 
@@ -103,36 +100,6 @@ describe('DiscussionService', () => {
         expect.any(String),
         'Trả lời từ Admin',
         '/bai-hoc/bai-hoc-mau',
-      );
-    });
-
-    it('thông báo cho câu hỏi ở bài viết trỏ tới /bai-viet/<slug>', async () => {
-      mockPrisma.discussionThread.findUnique.mockResolvedValue({
-        id: 'thread-2',
-        title: 'Hỏi',
-        userId: 'learner-1',
-        targetType: DiscussionTargetType.ARTICLE,
-        targetId: 'article-1',
-      });
-      mockPrisma.discussionReply.create.mockResolvedValue({
-        id: 'reply-3',
-        content: 'Trả lời',
-        isOfficial: true,
-      });
-
-      await service.createReply('admin-1', userRole.ADMIN, 'thread-2', {
-        content: 'Trả lời',
-      });
-
-      expect(mockPrisma.article.findUnique).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'article-1' } }),
-      );
-      expect(mockNotificationService.notify).toHaveBeenCalledWith(
-        'learner-1',
-        expect.anything(),
-        expect.any(String),
-        'Trả lời',
-        '/bai-viet/bai-viet-mau',
       );
     });
 

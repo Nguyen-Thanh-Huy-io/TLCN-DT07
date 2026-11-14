@@ -17,6 +17,7 @@ export const PUBLIC_ROUTES = {
   /** Mỗi dòng thời gian hiển thị như 1 "thời kỳ" ở /giai-doan/[slug] (giao diện cũ). */
   TIMELINE: (slug: string) => `/giai-doan/${slug}`,
   LESSON: (slug: string) => `/bai-hoc/${slug}`,
+  COMMUNITY: '/cong-dong',
 } as const;
 
 export interface PublicTag {

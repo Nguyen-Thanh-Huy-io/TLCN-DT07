@@ -273,11 +273,11 @@ flowchart TD
 * **Service/API Client:** `frontend/src/features/community/api.ts` (export `CommunityApi`, `fetchCommunityFeedSSR`, `fetchCommunityProfileSSR`... dùng `API_BASE_URL` / `INTERNAL_API_BASE_URL` từ `constants/api-url.ts` — đã khôi phục ở Pha 0 & chuẩn hoá Base URL ở Pha 1).
 * **Kiến trúc bình luận & dữ liệu:** Đã tạo model `BlogPostComment` và `PostCommentLike` riêng trong `backend/prisma/schema/blog.prisma`. Backend `blog.service.ts` lưu và truy vấn bình luận trực tiếp từ bảng `blog_post_comments`. Frontend `usePostComments.ts` đã xoá sạch toàn bộ mock preset `HISTORICAL_PRESET_COMMENTS` và `localStorage`, 100% dữ liệu bình luận được lưu trữ vào DB và đồng bộ thời gian thực qua `BlogGateway` WebSocket.
 
-### 3.15. Thảo luận (Discussion — Q&A gắn vào Article/Lesson)
-* **Mục đích:** Q&A gắn trực tiếp vào 1 `ARTICLE` hoặc `LESSON`; câu trả lời của ADMIN/SUPERADMIN/MODERATOR tự đánh dấu `isOfficial` + `isAnswered=true`.
-* **UI Component chính:** [DiscussionSection.tsx](frontend/src/features/discussions/components/DiscussionSection.tsx) — nhúng cuối trang đọc bài viết (`EntityReader.tsx`, `ARTICLE`) và trang đọc bài học (`LessonReaderMainLayout.tsx`, `LESSON`); không có route riêng.
+### 3.15. Thảo luận (Discussion — Q&A gắn vào Lesson)
+* **Mục đích:** Q&A gắn trực tiếp vào 1 `LESSON` (từ 2026-11-14 bỏ nhánh `ARTICLE` — trang Article chỉ có ghi chú cá nhân và liên kết "Hỏi trên Cộng đồng"); câu trả lời của ADMIN/SUPERADMIN/MODERATOR tự đánh dấu `isOfficial` + `isAnswered=true`.
+* **UI Component chính:** [DiscussionSection.tsx](frontend/src/features/discussions/components/DiscussionSection.tsx) — nhúng cuối trang đọc bài học (`LessonReaderMainLayout.tsx`); không có route riêng.
 * **Service/API Client:** `services/entities/discussion.service.ts` (`DiscussionApiService`).
-* **Backend Module:** `backend/src/discussion/` — Controller `discussion.controller.ts` (`/discussions`), Service `discussion.service.ts` (gửi `NotificationService.notify` khi có reply, link thông báo dựng theo slug: `/bai-viet/<slug>` hoặc `/bai-hoc/<slug>`, nội dung đã xoá thì không kèm link; không có Gateway riêng).
+* **Backend Module:** `backend/src/discussion/` — Controller `discussion.controller.ts` (`/discussions`), Service `discussion.service.ts` (gửi `NotificationService.notify` khi có reply, link thông báo dựng theo slug: `/bai-hoc/<slug>`, nội dung đã xoá thì không kèm link; không có Gateway riêng).
 
 ### 3.16. Kiểm duyệt nội dung (Moderation — AI Sentinel + CMS thủ công)
 * **Mục đích:** Quét tự động bài viết/bình luận bằng heuristic regex tiếng Việt (`SENTINEL_RULES`) + Gemini Flash LLM, phân 3 tier (ALLOW / FLAG_FOR_REVIEW / AUTO_HIDE), đẩy job qua BullMQ; CMS xử lý 1-click (CONFIRM_REMOVE/RESTORE/BAN_USER).
@@ -432,7 +432,7 @@ flowchart TD
 | `/posts/:id` | PATCH, DELETE | Cập nhật / xoá bài | `blog.controller.ts` |
 | `/posts/:id/like\|bookmark\|report\|view` | POST/PATCH | Like / lưu / báo cáo / tăng view | `blog.controller.ts` |
 | `/posts/:id/comments`, `/posts/:id/comments/:commentId` | GET/POST, PATCH/DELETE | CRUD bình luận | `blog.controller.ts` |
-| `/discussions`, `/discussions/:id` | GET/POST, GET/DELETE | Q&A gắn Article/Lesson | `discussion.controller.ts` |
+| `/discussions`, `/discussions/:id` | GET/POST, GET/DELETE | Q&A gắn Lesson | `discussion.controller.ts` |
 | `/discussions/:id/replies` | POST | Trả lời (auto `isOfficial` nếu BTV) | `discussion.controller.ts` |
 | `/moderation/reports` | GET | Danh sách báo cáo vi phạm + thống kê | `moderation.controller.ts` |
 | `/moderation/reports/:id/resolve` | PATCH | Xử lý 1-click | `moderation.controller.ts` |
@@ -473,7 +473,7 @@ Các điểm dưới đây được phát hiện khi đọc trực tiếp code (
 8. Trang luyện tập public **`/luyen-tap`** hiện chỉ có 1 file `page.tsx`; các route con `bai-thi/`, `chu-de/`, `kham-pha/`, `lich-su/` đã bị revert trong quá trình dọn working tree trước khi khảo sát — không còn tồn tại trong code hiện tại.
 9. `frontend/src/services/entities/landing.service.ts` có tên dễ gây nhầm — đây không chỉ phục vụ trang chủ mà là **adapter chính** tái tạo toàn bộ DTO công khai cũ (Period/Figure/Event/Location/Entity) cho hầu hết route công khai (`/giai-doan`, `/nhan-vat`, `/su-kien`, `/di-tich`, `/thuc-the`, `/bai-viet`, `/chuyen-muc`).
 10. **Phát hiện từ Knip Audit:** Có 19 files frontend hiện không được import ở bất kỳ đâu (dead files tiềm năng cần dọn dẹp ở Pha 3/Pha 4: `FormField.tsx`, `TabbedRichTextEditor.tsx`, `EntityInfobox.tsx`, `LifeTimelineHero.tsx`, `ScrollRevealProvider.tsx`, `VideoModal.tsx`, `ScrollToTopButton.tsx`, `config.ts`, `blog-data.ts`, `LessonOrderField.tsx`, `LessonTopicModalPicker.tsx`, `TopicForm.tsx`, `TopicModal.tsx`...).
-11. Bảng **`article_comments`** (model `ArticleComment`) không còn code nào đọc/ghi từ 2026-11-13 (Blog dùng `blog_post_comments`, Article/Lesson dùng `Discussion`) — có thể xoá bằng migration sau khi kiểm tra dữ liệu còn trong bảng.
+11. Bảng **`article_comments`** (model `ArticleComment`) không còn code nào đọc/ghi từ 2026-11-13 (Blog dùng `blog_post_comments`, Lesson dùng `Discussion`) — có thể xoá bằng migration sau khi kiểm tra dữ liệu còn trong bảng.
 12. **Frontend chưa có bộ chạy test** (không jest/vitest): các helper thuần như `createPeriodSlugResolver` (`landing-graph.ts`) hay `pruneTree` (`useCurriculumTree.ts`) mới chỉ được kiểm tra bằng tsc/ESLint + chạy thật trên trình duyệt.
 13. Xoá bài học trong cây chủ đề (`CurriculumExplorer.handleConfirmDelete`) chỉ xoá trên state giao diện, không gọi API, và chỉ duyệt 2 cấp đầu.
 

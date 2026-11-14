@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DiscussionTargetType, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { ROLE_GROUPS } from '../common/access/access.constant';
 import { NotificationService } from '../notification/notification.service';
@@ -16,7 +16,6 @@ import {
 
 /** Ban biên soạn / kiểm duyệt / quản trị: trả lời chính thức và xoá chủ đề của người khác. */
 const STAFF_ROLES: readonly string[] = ROLE_GROUPS.STAFF;
-const PUBLIC_ARTICLE_PATH = '/bai-viet';
 const PUBLIC_LESSON_PATH = '/bai-hoc';
 
 const USER_SELECT = {
@@ -169,11 +168,7 @@ export class DiscussionService {
             ? 'Ban Biên Soạn đã trả lời câu hỏi của bạn'
             : 'Có phản hồi mới về câu hỏi của bạn',
           dto.content.slice(0, 100),
-          await this.discussionTargetLink(
-            tx,
-            thread.targetType,
-            thread.targetId,
-          ),
+          await this.lessonLink(tx, thread.targetId),
         );
       }
 
@@ -181,20 +176,13 @@ export class DiscussionService {
     });
   }
 
-  private async discussionTargetLink(
+  /** Hỏi đáp chỉ gắn Bài học (DiscussionTargetType chỉ còn LESSON). */
+  private async lessonLink(
     tx: Prisma.TransactionClient,
-    targetType: DiscussionTargetType,
-    targetId: string,
+    lessonId: string,
   ): Promise<string | undefined> {
-    if (targetType === DiscussionTargetType.ARTICLE) {
-      const article = await tx.article.findUnique({
-        where: { id: targetId },
-        select: { slug: true },
-      });
-      return article ? `${PUBLIC_ARTICLE_PATH}/${article.slug}` : undefined;
-    }
     const lesson = await tx.lesson.findUnique({
-      where: { id: targetId },
+      where: { id: lessonId },
       select: { slug: true },
     });
     return lesson ? `${PUBLIC_LESSON_PATH}/${lesson.slug}` : undefined;

@@ -80,7 +80,7 @@ Thứ tự ưu tiên theo CODE_AUDIT.md Mục 7 (xếp theo độ dài giảm d�
   - Frontend: Xóa bỏ hoàn toàn các Enum lỗi thời/thừa thãi: `FigureRole`, `LocationType`, `EntityType`, `VerificationStatus`, `EntityRelationType`, `EventRelationType`, `EVENT_CATEGORY_CODES`, `TaxonomyGroupCode`, `CategoryFieldType`.
   - Khử toàn bộ danh sách role cứng (`PRIMARY_ROLE_CODES`, `CANONICAL_ROLE_LABELS`): vai trò nhân vật được quản lý dạng danh sách tag chuỗi tự do (`roles: string[]`) qua `ListField` trong `ArticleProfilePanel.tsx`.
   - Cụm Landing Page: Loại bỏ hoàn toàn phần "Đối sánh khu vực" (`ParallelBand`, `buildBands`, tab đối sánh) và các bộ lọc khu vực cứng trên trang chủ (`landing.adapter.ts`, `InteractivePreview.tsx`, `LandingHero.tsx`, `LandingView.tsx`, `ExploreSections.tsx`). Toàn bộ cụm Landing đạt **0 errors, 0 warnings (100% sạch)**.
-- [ ] `TopicEditor.tsx` (~1089 dòng)
+- [x] `TopicEditor.tsx` → hook `useTopicEditor.ts` + `TopicEditorParts.tsx` + `TopicEditorFormParts.tsx`, orchestrator 141 dòng (2026-11-14). Đo lại 2026-11-14: còn 47 file frontend vượt ngưỡng của CLAUDE.md (component 400 / `*Parts` 600 / hook-service 500) — làm theo từng nhóm màn hình.
 - [ ] `StoryChapterBlockInspector.tsx` (893 dòng)
 - [ ] `CommunityFeed.tsx` (876 dòng)
 - [ ] `HisgoStudioView.tsx` (808 dòng)
@@ -111,8 +111,9 @@ Thứ tự ưu tiên theo CODE_AUDIT.md Mục 7 (xếp theo độ dài giảm d�
 - [x] **[ĐÃ SỬA ✅] `LearningPathType`** — bỏ `MYTHOLOGICAL` và `Topic.pathType` (migration `20261112220000_drop_topic_path_type`).
 - [x] **[ĐÃ SỬA ✅] Bỏ hẳn khu vực & xếp hạng di tích** — `metadata.region`, `site.rank`, `HistoricalRegion`, `HeritageRank`, `region.utils.ts`, `HeritageFilterBar`, nhóm "Trong nước / Thế giới" (dữ liệu nằm trong JSON metadata — không cần migration).
 - [x] **[ĐÃ SỬA ✅] ESLint 0 errors / 0 warnings cả 2 phía** — xem [ESLINT_REPORT.md](ESLINT_REPORT.md); kèm sửa bug khoá token ở `note.service.ts`, xoá proxy `app/api/notes`, gỡ mock ảnh Unsplash trong `ImageBlockView`.
-- [ ] Thống nhất kiểu chữ tên enum Prisma (`userRole`, `email_type`… → PascalCase; có thể giữ tên type trong DB bằng `@@map`) — sửa import diện rộng.
-- [ ] Hợp nhất `ContentStatus.PENDING_REVIEW` và `LessonStatus.REVIEW` — cần data migration + sửa frontend.
+- [x] Trạng thái Lưu trữ dùng được (2026-11-14): người duyệt lưu trữ / khôi phục ở màn soạn Bài viết, Bài học, Chủ đề, Timeline, Lộ trình; luật `PUBLISHED → ARCHIVED → DRAFT` ở `ContentWriteGuard`; lọc "Lưu trữ" ở danh sách Bài viết, Timeline, thư viện Bài học. Kèm sửa `UpdateLearningPathDto` thiếu `PartialType` (nút Xuất bản lộ trình từng luôn 400).
+- [x] Thống nhất kiểu chữ tên enum Prisma (`userRole`, `email_type`… → `UserRole`, `EmailType`…; giữ tên type trong DB bằng `@@map`, không cần migration) — 2026-11-14.
+- [x] Hợp nhất `ContentStatus.PENDING_REVIEW` và `LessonStatus.REVIEW`: bỏ enum `LessonStatus`, bài học dùng `ContentStatus` (migration `20261114140000_lesson_status_uses_content_status`) — 2026-11-14.
 - [ ] `ArticleList.tsx` đang ẩn cứng 1 bài (`HIDDEN_ARTICLE`) — chuyển bài đó sang `ARCHIVED` rồi bỏ đoạn lọc.
 - [x] **[ĐÃ SỬA ✅]** Đã xoá bỏ hoàn toàn `features/taxonomy/*` và `public-taxonomy.ts`, thay bằng `hooks/useEventCategories.ts` + `services/public/article-kind.ts`.
 

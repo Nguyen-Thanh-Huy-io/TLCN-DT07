@@ -317,8 +317,8 @@ Phần lớn là lỗi **format Prettier (CRLF line-ending)** và `@typescript-e
 * **Route proxy chết:** xoá `frontend/src/app/api/notes/**`.
 
 ### Còn tồn đọng (chưa làm — cần quyết định riêng)
-* Tên enum Prisma chưa thống nhất kiểu chữ: `userRole`, `userStatus`, `mfaMethod`, `loginAction` (camelCase), `email_type`/`email_provider`/`email_status` (snake_case, giá trị chữ thường) so với `ContentStatus`… (PascalCase). Đổi tên cần migration và sửa import trên diện rộng.
-* `ContentStatus.PENDING_REVIEW` lệch `LessonStatus.REVIEW` (cùng nghĩa "chờ duyệt") — `EDITOR_ALLOWED_STATUSES` phải gộp cả hai; hợp nhất cần data migration + sửa frontend.
+* **[ĐÃ SỬA ✅ 2026-11-14 — đổi sang PascalCase, giữ tên type DB bằng `@@map`]** Tên enum Prisma chưa thống nhất kiểu chữ: `userRole`, `userStatus`, `mfaMethod`, `loginAction` (camelCase), `email_type`/`email_provider`/`email_status` (snake_case, giá trị chữ thường) so với `ContentStatus`… (PascalCase). Đổi tên cần migration và sửa import trên diện rộng.
+* **[ĐÃ SỬA ✅ 2026-11-14 — bỏ `LessonStatus`, bài học dùng `ContentStatus`]** `ContentStatus.PENDING_REVIEW` lệch `LessonStatus.REVIEW` (cùng nghĩa "chờ duyệt") — `EDITOR_ALLOWED_STATUSES` phải gộp cả hai; hợp nhất cần data migration + sửa frontend.
 * `authSecurity.mfaMethod` / `mfaEnabled` / `mfaSecret` chưa có code nào ghi.
 * `ArticleList.tsx` ẩn cứng 1 bài theo tiêu đề/slug (`HIDDEN_ARTICLE`) — nên thay bằng trạng thái `ARCHIVED` trong DB rồi bỏ đoạn lọc này.
 

@@ -8,8 +8,10 @@ import {
   PUBLIC_QUIZ_LIST_MAX_LIMIT,
 } from '../quiz/quiz.constant';
 import { gradeQuizAttempt, QuizGradingResult } from '../quiz/quiz-grading';
+import { toPublicQuestion } from '../quiz/quiz-question.public';
 import {
   QUIZ_QUESTIONS_INCLUDE,
+  QuizQuestionWithPoints,
   toQuizQuestions,
 } from '../quiz/quiz-question.mapper';
 import { PublicQuizQueryDto } from './dto/public-quiz-query.dto';
@@ -53,6 +55,8 @@ export interface PublicArticleQuery {
 export interface QuizAttemptResult extends QuizGradingResult {
   attemptId: string;
   isPassed: boolean;
+  /** Bản đầy đủ (đáp án + lời giải) chỉ trả sau khi nộp — danh sách đề công khai không có. */
+  questions: QuizQuestionWithPoints[];
 }
 
 @Injectable()
@@ -697,7 +701,7 @@ export class PublicContentService {
         quiz.timeLimitMinutes ?? DEFAULT_QUIZ_TIME_LIMIT_MINUTES,
       passingScorePercent:
         quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
-      questions: toQuizQuestions(quizQuestions),
+      questions: toQuizQuestions(quizQuestions).map(toPublicQuestion),
     }));
   }
 
@@ -711,10 +715,8 @@ export class PublicContentService {
     });
     if (!quiz) throw new NotFoundException('Không tìm thấy đề thi này');
 
-    const graded = gradeQuizAttempt(
-      toQuizQuestions(quiz.quizQuestions),
-      dto.answers,
-    );
+    const questions = toQuizQuestions(quiz.quizQuestions);
+    const graded = gradeQuizAttempt(questions, dto.answers);
     const isPassed =
       graded.scorePercent >=
       (quiz.passingScorePercent ?? DEFAULT_QUIZ_PASSING_SCORE_PERCENT);
@@ -733,7 +735,7 @@ export class PublicContentService {
       select: { id: true },
     });
 
-    return { attemptId: attempt.id, ...graded, isPassed };
+    return { attemptId: attempt.id, ...graded, isPassed, questions };
   }
 
   async getQuizStatistics(quizId: string) {
@@ -748,7 +750,7 @@ export class PublicContentService {
       orderBy: { createdAt: 'desc' },
       take: 50,
       include: {
-        user: { select: { id: true, username: true, email: true } },
+        user: { select: { username: true } },
       },
     });
 

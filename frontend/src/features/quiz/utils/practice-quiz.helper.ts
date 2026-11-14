@@ -2,6 +2,7 @@
  * Lọc / tìm kiếm đề luyện tập (đề thi thuộc Chủ đề — một đề có thể bao nhiều chủ đề).
  */
 import type { PracticeQuizItem } from '@/services/entities/quiz.service';
+import { QuizQuestionType, type QuizQuestion } from '@/features/lessons/types/quiz.types';
 
 export const ALL_TOPICS_ID = 'ALL';
 /** Tham số URL chọn sẵn chủ đề, vd. `/luyen-tap?topic=<id>` từ trang đọc bài học. */
@@ -70,3 +71,26 @@ export function filterPracticeQuizzes(
 /** Tên chủ đề hiển thị trên thẻ đề. */
 export const topicLabelOf = (quiz: PracticeQuizItem): string =>
   quiz.topics.map((t) => t.name).join(' · ') || 'Chủ đề Lịch sử';
+
+/**
+ * Ghép đáp án + lời giải server trả sau khi nộp vào các câu đang hiển thị. Giữ thứ tự lựa chọn và cột phải
+ * đã trộn trong phiên làm bài để bài làm không bị đảo chỗ khi hiện kết quả.
+ */
+export function revealAnswers(shown: QuizQuestion[], answered: QuizQuestion[]): QuizQuestion[] {
+  const answeredById = new Map(answered.map((q) => [q.id, q]));
+  return shown.map((question) => {
+    const full = answeredById.get(question.id);
+    if (!full) return question;
+    if (
+      (full.type === QuizQuestionType.SINGLE_CHOICE || full.type === QuizQuestionType.MULTIPLE_CHOICE) &&
+      'options' in question
+    ) {
+      const fullOptions = new Map(full.options.map((o) => [o.id, o]));
+      return { ...full, options: question.options.map((o) => fullOptions.get(o.id) ?? o) };
+    }
+    if (full.type === QuizQuestionType.MATCHING && 'rightItems' in question) {
+      return { ...full, rightItems: question.rightItems };
+    }
+    return full;
+  });
+}

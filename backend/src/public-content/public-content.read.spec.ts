@@ -437,11 +437,13 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
       );
       expect(quiz).toMatchObject({
         title: 'Đề luyện tập: Nhà Trần',
-        questions: [{ id: 'c-1', correctAnswer: true, points: 10 }],
+        questions: [{ id: 'c-1', points: 10 }],
         passingScorePercent: expect.any(Number),
         timeLimitMinutes: expect.any(Number),
       });
       expect(quiz).not.toHaveProperty('quizQuestions');
+      // Đáp án chỉ có ở kết quả nộp bài — danh sách đề công khai không được lộ.
+      expect(quiz.questions[0]).not.toHaveProperty('correctAnswer');
     });
   });
 

@@ -9,6 +9,7 @@ import { isStaffRole } from '@/services/auth/public-auth.service';
 import {
   ALL_TOPICS_ID,
   PRACTICE_TOPIC_PARAM,
+  revealAnswers,
   extractAvailableTopics,
   filterPracticeQuizzes,
   topicLabelOf,
@@ -21,6 +22,7 @@ import { QuizExamSidebar } from '@/features/quiz/components/PracticeQuizParts';
 import { QuizStatisticsModal } from '@/features/quiz/components/QuizStatisticsModal';
 import { QuizQuestionType, type QuizQuestion } from '@/features/lessons/types/quiz.types';
 import {
+  normalizeQuizQuestionForDisplay,
   prepareQuizSessionForLearner,
   type UserQuizAnswer,
 } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
@@ -115,7 +117,12 @@ function LuyenTapContent() {
   }, [initialTopicId]);
 
   const activeQuiz = quizzes.find((q) => q.id === activeQuizId) || quizzes[0];
-  const questions = sessionQuestions ?? activeQuiz?.questions ?? [];
+  // Đề công khai không có đáp án; chuẩn hoá để hiển thị (trường đáp án để trống tới khi nộp bài).
+  const briefingQuestions = useMemo(
+    () => (activeQuiz?.questions ?? []).map(normalizeQuizQuestionForDisplay),
+    [activeQuiz],
+  );
+  const questions = sessionQuestions ?? briefingQuestions;
 
   const handleReset = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -144,7 +151,7 @@ function LuyenTapContent() {
     setExamStarted(true);
     setResult(null);
     const { preparedQuiz, initialAnswers } = prepareQuizSessionForLearner({
-      questions: activeQuiz?.questions ?? [],
+      questions: briefingQuestions,
     });
     setSessionQuestions(preparedQuiz.questions);
     setAnswers(initialAnswers);
@@ -210,6 +217,7 @@ function LuyenTapContent() {
         answers,
       });
       setResult(graded);
+      setSessionQuestions(revealAnswers(questions, graded.questions));
     } catch (err) {
       setSubmitError(extractErrorMessage(err, 'Nộp bài không thành công. Vui lòng thử lại.'));
     } finally {

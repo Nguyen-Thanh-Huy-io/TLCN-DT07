@@ -1,5 +1,14 @@
 import api from '../api';
-import { QuizQuestion } from '@/features/lessons/types/quiz.types';
+import type {
+  FillInBlankQuestion,
+  MatchingQuestion,
+  MultipleChoiceOption,
+  MultipleChoiceQuestion,
+  OrderingQuestion,
+  QuizQuestion,
+  SingleChoiceQuestion,
+  TrueFalseQuestion,
+} from '@/features/lessons/types/quiz.types';
 import type { UserQuizAnswer } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
 
 const PUBLIC_QUIZZES_PATH = '/public/quizzes';
@@ -55,6 +64,18 @@ export interface UpdateStandaloneQuizDto {
   passingScorePercent?: number;
 }
 
+type WithoutAnswerKey<Q, K extends keyof Q> = Omit<Q, K | 'explanation'>;
+type ChoiceOptionView = Pick<MultipleChoiceOption, 'id' | 'text'>;
+
+/** Câu hỏi của đề công khai trước khi nộp bài: server đã bỏ đáp án đúng và lời giải. */
+export type PublicQuizQuestion =
+  | (WithoutAnswerKey<SingleChoiceQuestion, 'options'> & { options: ChoiceOptionView[] })
+  | (WithoutAnswerKey<MultipleChoiceQuestion, 'options'> & { options: ChoiceOptionView[] })
+  | WithoutAnswerKey<TrueFalseQuestion, 'correctAnswer'>
+  | WithoutAnswerKey<OrderingQuestion, 'correctOrder'>
+  | WithoutAnswerKey<MatchingQuestion, 'correctPairs'>
+  | WithoutAnswerKey<FillInBlankQuestion, 'acceptedAnswers' | 'caseSensitive'>;
+
 /** Đề luyện tập công khai (`GET /public/quizzes`): đề thuộc chủ đề đã xuất bản, có câu hỏi. */
 export interface PracticeQuizItem {
   id: string;
@@ -63,7 +84,7 @@ export interface PracticeQuizItem {
   passingScorePercent: number;
   timeLimitMinutes: number;
   topics: Array<{ id: string; name: string; slug: string }>;
-  questions: QuizQuestion[];
+  questions: PublicQuizQuestion[];
 }
 
 export interface QuizStatisticsData {
@@ -95,6 +116,8 @@ export interface QuizAttemptResult {
   scorePercent: number;
   isPassed: boolean;
   results: Record<string, boolean>;
+  /** Câu hỏi đầy đủ (đáp án + lời giải) — chỉ có sau khi nộp bài. */
+  questions: QuizQuestion[];
 }
 
 export class QuizApiService {

@@ -60,6 +60,16 @@ describe('PublicContentService — nộp bài quiz', () => {
       isPassed: false,
       results: { q1: true, q2: false },
     });
+    // Sau khi nộp mới trả đáp án để người học xem lại bài.
+    expect(result.questions).toEqual([
+      expect.objectContaining({
+        id: 'q1',
+        options: expect.arrayContaining([
+          expect.objectContaining({ id: 'a', isCorrect: true }),
+        ]),
+      }),
+      expect.objectContaining({ id: 'q2', correctAnswer: true }),
+    ]);
     expect(prisma.quizAttempt.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ scorePercent: 50, isPassed: false }),

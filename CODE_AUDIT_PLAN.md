@@ -150,6 +150,10 @@ Chi tiết từng lỗi ở [CODE_AUDIT.md](CODE_AUDIT.md) Mục 9.
 - [x] Gắn Topic "Bạch Đằng năm 938" cho bài "Ngô Quyền và chiến thắng Bạch Đằng năm 938" (qua bản sửa của biên tập viên → người duyệt duyệt).
 - [x] Chạy `seed-staff.ts`: `admin@hisgo.edu.vn` là SUPERADMIN, có thêm `learner@hisgo.test`.
 - [x] Sửa `Update*Dto` kế thừa giá trị mặc định (PATCH gỡ xuất bản / hạ quyền) và `LessonService.update` bỏ qua `topicId`.
+- [x] **Unit test nhóm ưu tiên 1** (2026-11-14): `timeline` (11), `category` (10), `learner` (9), `account` (7), `learning-path` (9), `article` (21) — 240 → 303 test, độ phủ backend 39% → 44,5%. Tìm ra: tag trùng ghi 2 lần ở bài viết, `addLessonsToChapter` không dùng transaction.
+- [ ] Unit test nhóm ưu tiên 2: `blog`, `public-content`, `moderation`, `auth` (đang 14–37%).
+- [ ] DB test riêng để chạy 47 test e2e có sẵn (`backend/test/`) + đưa script test API ghi vào thành e2e.
+- [ ] Quyết lỗ tự duyệt bài viết ở chuyên mục "blog/bài viết" (`isBlogCategory`).
 - [ ] Thêm bộ chạy test cho frontend (vitest) rồi viết test cho `createPeriodSlugResolver`, `pruneTree`/`countLessons`.
 - [ ] Xoá bảng `article_comments` (model `ArticleComment`) bằng migration — đã không còn code dùng.
 - [ ] Xoá cache danh sách Tag khi sửa tag trong bài viết (hiện trễ tới 1 giờ).

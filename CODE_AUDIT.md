@@ -352,6 +352,7 @@ Cách kiểm tra: gọi thật 64 endpoint GET (phủ 25 controller, đăng nh�
 * 🟡 **[ĐÃ SỬA ✅] Quét AI nhận loại đối tượng tuỳ ý** — `POST /moderation/scan/:targetType` coi mọi giá trị lạ là `POST` (logic nằm trong controller). Dùng `ParseEnumPipe(ReportTargetType)` → 400.
 
 ### Còn tồn đọng
+* 🟠 **Lỗ tự duyệt bài viết** — `ArticleService.review` bỏ qua quy tắc "người duyệt khác người tạo" nếu tên/slug chuyên mục chứa `blog`, `bai-viet` hoặc `bài viết` (`isBlogCategory`). Hiện chưa chuyên mục nào khớp, nhưng tạo chuyên mục "Blog…" là mở ra. Cần quyết: bỏ ngoại lệ, hay chuyển thành cờ rõ ràng trên Category.
 * `PATCH /notifications/:id/read` với thông báo của người khác trả 200 (không đổi dữ liệu nào vì đã lọc theo `userId`) — nên trả 404.
 * Chưa thử thành công: đăng ký + xác minh email (tránh gửi email thật), upload thật lên Cloudinary.
 
@@ -364,7 +365,9 @@ Cách kiểm tra: gọi thật 64 endpoint GET (phủ 25 controller, đăng nh�
 * 🟠 **[ĐÃ SỬA ✅] Câu sắp xếp hiện sẵn đáp án** ở trang luyện tập (thứ tự lưu trùng `correctOrder`, không xáo) — giờ xáo qua `prepareQuizSessionForLearner`.
 * 🔴 **[ĐÃ SỬA ✅] PATCH âm thầm gỡ xuất bản / hạ quyền** — `CreateLessonDto` (`status = DRAFT`), `CreateTopicDto` (`status = DRAFT`, `displayOrder = 0`, `isSequential = false`), `CreateUserDto` (`role = USER`, `status = ACTIVE`) có giá trị khởi tạo; `PartialType` kế thừa cả giá trị này sang `Update*Dto` → mọi PATCH không gửi các trường đó sẽ gỡ xuất bản bài học/chủ đề, đặt lại thứ tự, hạ vai trò người dùng về USER và mở khoá tài khoản bị khoá. Đã tái hiện trên bài "Ngô Quyền…" (bị chuyển về DRAFT, đã xuất bản lại theo quy trình duyệt). Bỏ giá trị khởi tạo (mặc định khi tạo nằm ở service / Prisma schema); test `update-dto-defaults.spec.ts` kiểm cả 7 `Update*Dto`.
 * 🔴 **[ĐÃ SỬA ✅] Sửa bài học bỏ qua `topicId`** — `LessonService.update` không xử lý `topicId` và `REVISION_FIELDS.LESSON` thiếu trường này → đổi chủ đề khi sửa bài (trực tiếp hoặc qua bản chờ duyệt) bị bỏ qua mà vẫn trả 200.
-* 🟠 **[ĐÃ SỬA ✅] `GET /users` không phân trang** — trả toàn bộ tài khoản; `UserList` gọi `api` thẳng trong component và lọc ở client. Giờ phân trang + lọc + tìm kiếm ở server (`QueryUserDto`, `UserApiService`).
+* 🟠 **[ĐÃ SỬA ✅] Tag trùng ghi 2 lần vào bài viết** — `ArticleService.validate` khử trùng `tagIds` trên *bản sao* DTO (và `create` tách `tagIds` trước khi validate) → gửi `['t-1','t-1']` vi phạm khoá chính `article_tags`. Khử trùng ngay chỗ ghi.
+* 🟡 **[ĐÃ SỬA ✅] `addLessonsToChapter` ghi từng bài trong vòng lặp, kiểu `any[]`** — lỗi giữa chừng để chương thêm thiếu bài. Gom vào 1 `$transaction`.
+* 🟠 **`GET /users` không phân trang** → [ĐÃ SỬA ✅] — trả toàn bộ tài khoản; `UserList` gọi `api` thẳng trong component và lọc ở client. Giờ phân trang + lọc + tìm kiếm ở server (`QueryUserDto`, `UserApiService`).
 * 🟡 **[ĐÃ SỬA ✅] Trang bị tràn ngang** — header công khai rộng hơn 1280px khi đã đăng nhập (chuyển thanh điều hướng đầy đủ lên mốc `xl`, dưới đó dùng menu); ô chọn câu ghép nối kéo rộng trang trên điện thoại. Đã kiểm 375 / 768 / 1024 / 1280 / 1440px.
 * **Frontend chưa có bộ chạy test** (không jest/vitest) — logic thuần mới (`createPeriodSlugResolver`, `pruneTree`, `countLessons`) chỉ được kiểm bằng tsc/ESLint và chạy thật. Thêm vitest là 1 việc riêng (thêm dependency).
 * Bảng `article_comments` không còn code nào dùng — xoá bằng migration sau khi kiểm tra dữ liệu.

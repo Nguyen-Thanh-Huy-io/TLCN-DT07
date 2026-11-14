@@ -8,7 +8,7 @@ import {
   Min,
   MaxLength,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { LearningPathType, ContentStatus } from '@prisma/client';
 
 export class CreateLearningPathDto {
@@ -59,4 +59,5 @@ export class CreateLearningPathDto {
   status?: ContentStatus;
 }
 
-export class UpdateLearningPathDto extends CreateLearningPathDto {}
+/** PATCH/PUT một phần (vd. chỉ đổi `status`) — không bắt gửi lại `title`. */
+export class UpdateLearningPathDto extends PartialType(CreateLearningPathDto) {}

@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import * as bcrypt from 'bcryptjs';
-import { PrismaClient, userRole, userStatus } from '@prisma/client';
+import { PrismaClient, UserRole, UserStatus } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const prisma = new PrismaClient({
@@ -19,9 +19,9 @@ async function main() {
     update: {
       username: ADMIN_USERNAME,
       password: passwordHash,
-      role: userRole.SUPERADMIN,
+      role: UserRole.SUPERADMIN,
       verified: true,
-      status: userStatus.ACTIVE,
+      status: UserStatus.ACTIVE,
       provider: 'local',
       tokenVersion: { increment: 1 },
     },
@@ -29,9 +29,9 @@ async function main() {
       email: ADMIN_EMAIL,
       username: ADMIN_USERNAME,
       password: passwordHash,
-      role: userRole.SUPERADMIN,
+      role: UserRole.SUPERADMIN,
       verified: true,
-      status: userStatus.ACTIVE,
+      status: UserStatus.ACTIVE,
       provider: 'local',
       tokenVersion: 1,
     },

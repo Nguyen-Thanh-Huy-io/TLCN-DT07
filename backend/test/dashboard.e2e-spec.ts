@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { userRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import request from 'supertest';
 import {
   E2eUser,
@@ -17,8 +17,8 @@ describe('Dashboard E2E — tổng quan CMS', () => {
 
   beforeAll(async () => {
     app = await createE2eApp();
-    editor = await createE2eUser(app, userRole.MODERATOR);
-    learner = await createE2eUser(app, userRole.USER);
+    editor = await createE2eUser(app, UserRole.MODERATOR);
+    learner = await createE2eUser(app, UserRole.USER);
   });
 
   afterAll(async () => {

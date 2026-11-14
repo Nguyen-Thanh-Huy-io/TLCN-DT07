@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { APP_ROUTES } from '@/constants/routes';
-import { DifficultyLevel, LessonStatus, MediaType } from '@/constants/enums';
+import { DifficultyLevel, ContentStatus, MediaType } from '@/constants/enums';
 import { LessonApiService } from '@/services/entities/lesson.service';
 import { TopicApiService } from '@/services/entities/topic.service';
 import { TagApiService } from '@/services/entities/tag.service';
@@ -34,7 +34,7 @@ interface LessonDraftPayload {
 
 interface ExtendedLessonDetail extends Omit<LessonItem, 'topic' | 'status' | 'lessonTags'> {
   topic?: { id?: string; name?: string; slug?: string; parentId?: string | null } | null;
-  status?: LessonStatus;
+  status?: ContentStatus;
   sourceReferenceNote?: string;
   tags?: TagItem[];
   lessonTags?: Array<{ tagId?: string; tag?: TagItem }>;
@@ -106,7 +106,7 @@ function buildLessonPayload(params: {
   overrideContent?: unknown;
   thumbnailUrl?: string;
   difficulty: DifficultyLevel;
-  status: LessonStatus;
+  status: ContentStatus;
   displayOrder: number;
   topicId: string;
 }) {
@@ -175,7 +175,7 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
   const [loadingLesson, setLoadingLesson] = useState(false);
 
   const [selectedTopicId, setSelectedTopicId] = useState(queryTopicId);
-  const [status, setStatus] = useState<LessonStatus>(LessonStatus.DRAFT);
+  const [status, setStatus] = useState<ContentStatus>(ContentStatus.DRAFT);
   const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
   const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -325,7 +325,7 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
       setSourceReferenceNote(lesson.sourceReferenceNote || '');
       setThumbnailUrl(lesson.thumbnailUrl || '');
       setDisplayOrder(lesson.displayOrder ?? 0);
-      setStatus(lesson.status || LessonStatus.DRAFT);
+      setStatus(lesson.status || ContentStatus.DRAFT);
       setSelectedTags(extractTagsFromLesson(lesson));
       setMediaList(extractMediaFromLesson(lesson));
     },
@@ -369,7 +369,7 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
   const estimatedReadMinutes = useMemo(() => Math.max(1, Math.ceil(wordCount / 200)), [wordCount]);
 
   const submitLesson = useCallback(
-    async (nextStatus: LessonStatus, overrideContent?: unknown) => {
+    async (nextStatus: ContentStatus, overrideContent?: unknown) => {
       if (!title.trim()) {
         alert('Vui lòng nhập tên bài học.');
         return;

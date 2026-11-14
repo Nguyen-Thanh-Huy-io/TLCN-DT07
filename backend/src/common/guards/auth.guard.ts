@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
-import { userStatus } from '@prisma/client';
+import { UserStatus } from '@prisma/client';
 import config from '../config/app.config';
 import { tokenVersionCacheKey } from '../constants/cache-keys.constant';
 import { RedisService } from '../services/redis.service';
@@ -90,7 +90,7 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('User not found');
     }
 
-    if (user.status !== userStatus.ACTIVE) {
+    if (user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('User account is not active');
     }
 

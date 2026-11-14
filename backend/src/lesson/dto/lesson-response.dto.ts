@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DifficultyLevel, LessonStatus, Prisma, Tag } from '@prisma/client';
+import { DifficultyLevel, ContentStatus, Prisma, Tag } from '@prisma/client';
 
 export class LessonResponseDto {
   @ApiProperty({
@@ -45,11 +45,11 @@ export class LessonResponseDto {
   contentRichText?: string | null;
 
   @ApiProperty({
-    enum: LessonStatus,
-    example: LessonStatus.DRAFT,
+    enum: ContentStatus,
+    example: ContentStatus.DRAFT,
     description: 'Trạng thái bài học',
   })
-  status: LessonStatus;
+  status: ContentStatus;
 
   @ApiPropertyOptional({
     description: 'Lý do từ chối duyệt bài nếu bị REJECTED',

@@ -4,7 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
 } from '@nestjs/common';
-import { Prisma, userRole, userStatus } from '@prisma/client';
+import { Prisma, UserRole, UserStatus } from '@prisma/client';
 import { QueryUserDto } from './dto/query-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -153,10 +153,10 @@ export class UserService {
       updateUserDto;
 
     const losesSuperadmin =
-      before.role === userRole.SUPERADMIN &&
-      ((authData.role !== undefined && authData.role !== userRole.SUPERADMIN) ||
+      before.role === UserRole.SUPERADMIN &&
+      ((authData.role !== undefined && authData.role !== UserRole.SUPERADMIN) ||
         (authData.status !== undefined &&
-          authData.status !== userStatus.ACTIVE));
+          authData.status !== UserStatus.ACTIVE));
     if (losesSuperadmin) {
       await this.assertAnotherActiveSuperadmin(id);
     }
@@ -223,7 +223,7 @@ export class UserService {
       );
     }
     const target = await this.findOne(id);
-    if (target.role === userRole.SUPERADMIN) {
+    if (target.role === UserRole.SUPERADMIN) {
       await this.assertAnotherActiveSuperadmin(id);
     }
 
@@ -244,8 +244,8 @@ export class UserService {
   ): Promise<void> {
     const others = await this.prisma.authUser.count({
       where: {
-        role: userRole.SUPERADMIN,
-        status: userStatus.ACTIVE,
+        role: UserRole.SUPERADMIN,
+        status: UserStatus.ACTIVE,
         id: { not: excludeId },
       },
     });

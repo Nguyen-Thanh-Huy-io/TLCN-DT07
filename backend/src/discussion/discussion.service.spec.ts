@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DiscussionService } from './discussion.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { NotificationService } from '../notification/notification.service';
-import { DiscussionTargetType, userRole } from '@prisma/client';
+import { DiscussionTargetType, UserRole } from '@prisma/client';
 
 describe('DiscussionService', () => {
   let service: DiscussionService;
@@ -82,7 +82,7 @@ describe('DiscussionService', () => {
 
       const result = await service.createReply(
         'admin-1',
-        userRole.ADMIN,
+        UserRole.ADMIN,
         'thread-1',
         {
           content: 'Trả lời từ Admin',
@@ -118,7 +118,7 @@ describe('DiscussionService', () => {
         isOfficial: true,
       });
 
-      await service.createReply('admin-1', userRole.ADMIN, 'thread-3', {
+      await service.createReply('admin-1', UserRole.ADMIN, 'thread-3', {
         content: 'Trả lời',
       });
 
@@ -144,7 +144,7 @@ describe('DiscussionService', () => {
 
       const result = await service.createReply(
         'user-2',
-        userRole.USER,
+        UserRole.USER,
         'thread-1',
         {
           content: 'Ý kiến bạn học',

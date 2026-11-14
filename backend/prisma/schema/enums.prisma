@@ -2,51 +2,63 @@
 // User & Auth Related Enums
 // ================================
 
-enum userRole {
+enum UserRole {
   USER
   ADMIN
   MODERATOR
   SUPERADMIN
+
+  @@map("userRole")
 }
 
-enum userStatus {
+enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
   DELETED
   BLOCKED
+
+  @@map("userStatus")
 }
 
-enum mfaMethod {
+enum MfaMethod {
   totp
   sms
   email
   webauthn
+
+  @@map("mfaMethod")
 }
 
-enum loginAction {
+enum LoginAction {
   login
   logout
+
+  @@map("loginAction")
 }
 
 // ================================
 // Email Related Enums
 // ================================
 
-enum email_type {
+enum EmailType {
   verification
   password_reset
   notification
+
+  @@map("email_type")
 }
 
-enum email_provider {
+enum EmailProvider {
   sendgrid
   mailgun
   ses
   smtp
+
+  @@map("email_provider")
 }
 
-enum email_status {
+enum EmailStatus {
   sent
   failed
   pending
@@ -54,6 +66,8 @@ enum email_status {
   delivered
   opened
   clicked
+
+  @@map("email_status")
 }
 
 // ================================

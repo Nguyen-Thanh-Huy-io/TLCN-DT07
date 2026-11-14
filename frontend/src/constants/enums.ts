@@ -11,14 +11,6 @@ export enum ContentStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
-export enum LessonStatus {
-  DRAFT = 'DRAFT',
-  REVIEW = 'REVIEW',
-  PUBLISHED = 'PUBLISHED',
-  REJECTED = 'REJECTED',
-  ARCHIVED = 'ARCHIVED',
-}
-
 export enum DifficultyLevel {
   EASY = 'EASY',
   MEDIUM = 'MEDIUM',

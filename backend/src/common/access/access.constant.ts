@@ -1,16 +1,16 @@
-import { ContentStatus, LessonStatus, userRole } from '@prisma/client';
+import { ContentStatus, UserRole } from '@prisma/client';
 
 /**
- * Vai trò trong hệ thống (dùng enum userRole sẵn có):
+ * Vai trò trong hệ thống (dùng enum UserRole sẵn có):
  *  - USER        Người học: đăng ký lộ trình, đọc bài, làm quiz.
  *  - MODERATOR   Biên tập viên: soạn/sửa nội dung, gửi duyệt — không tự xuất bản.
  *  - ADMIN       Người duyệt: mọi quyền biên tập + duyệt/xuất bản, không duyệt bài của chính mình.
  *  - SUPERADMIN  Mọi quyền trên + quản lý tài khoản và phân quyền.
  */
 export const ROLE_GROUPS = {
-  STAFF: [userRole.MODERATOR, userRole.ADMIN, userRole.SUPERADMIN],
-  REVIEWERS: [userRole.ADMIN, userRole.SUPERADMIN],
-  SUPERADMIN: [userRole.SUPERADMIN],
+  STAFF: [UserRole.MODERATOR, UserRole.ADMIN, UserRole.SUPERADMIN],
+  REVIEWERS: [UserRole.ADMIN, UserRole.SUPERADMIN],
+  SUPERADMIN: [UserRole.SUPERADMIN],
 } as const;
 
 export const ROLES_METADATA_KEY = 'access:roles';
@@ -20,7 +20,6 @@ export const CONTENT_RESOURCE_METADATA_KEY = 'access:content-resource';
 export const EDITOR_ALLOWED_STATUSES: ReadonlyArray<string> = [
   ContentStatus.DRAFT,
   ContentStatus.PENDING_REVIEW,
-  LessonStatus.REVIEW,
 ];
 
 /** Nội dung ở các trạng thái này đã/đang công khai: biên tập viên không được sửa hay xóa. */

@@ -11,7 +11,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { DifficultyLevel, LessonStatus } from '@prisma/client';
+import { DifficultyLevel, ContentStatus } from '@prisma/client';
 
 export class CreateLessonDto {
   @ApiProperty({
@@ -72,14 +72,15 @@ export class CreateLessonDto {
   contentRichText?: unknown;
 
   @ApiPropertyOptional({
-    enum: LessonStatus,
-    example: LessonStatus.DRAFT,
-    description: 'Trạng thái bài học (DRAFT, REVIEW, PUBLISHED, ARCHIVED)',
-    default: LessonStatus.DRAFT,
+    enum: ContentStatus,
+    example: ContentStatus.DRAFT,
+    description:
+      'Trạng thái bài học (DRAFT, PENDING_REVIEW, PUBLISHED, REJECTED, ARCHIVED)',
+    default: ContentStatus.DRAFT,
   })
-  @IsEnum(LessonStatus)
+  @IsEnum(ContentStatus)
   @IsOptional()
-  status?: LessonStatus;
+  status?: ContentStatus;
 
   @ApiPropertyOptional({ description: 'Ảnh bìa bài học (tùy chọn)' })
   @IsString()

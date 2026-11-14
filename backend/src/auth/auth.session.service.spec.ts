@@ -1,6 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { userRole, userStatus } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { EmailQueueService } from '../common/queues/email/email.queue';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
@@ -22,9 +22,9 @@ const localUser = (overrides: object = {}) => ({
   email: 'hoc-vien@hisgo.test',
   username: 'hoc-vien',
   password: PASSWORD_HASH,
-  role: userRole.USER,
+  role: UserRole.USER,
   verified: true,
-  status: userStatus.ACTIVE,
+  status: UserStatus.ACTIVE,
   provider: 'local',
   tokenVersion: 3,
   authSecurity: {
@@ -124,12 +124,12 @@ describe('AuthService — đăng nhập, làm mới token, đăng xuất', () =>
       expect(result).toMatchObject({
         accessToken: 'access',
         refreshToken: 'refresh-jti-1',
-        user: { id: 'u-1', role: userRole.USER },
+        user: { id: 'u-1', role: UserRole.USER },
         expiresIn: 15 * 60,
       });
       expect(utils.createAccessToken).toHaveBeenCalledWith({
         userId: 'u-1',
-        role: userRole.USER,
+        role: UserRole.USER,
         tokenVersion: 3,
       });
       const [tokenKey] = redis.keysContaining(`${TOKEN_KEY}:u-1:jti-1`);
@@ -200,7 +200,7 @@ describe('AuthService — đăng nhập, làm mới token, đăng xuất', () =>
 
     it('tài khoản bị chặn: 403', async () => {
       prisma.authUser.findUnique.mockResolvedValue(
-        localUser({ status: userStatus.BLOCKED }),
+        localUser({ status: UserStatus.BLOCKED }),
       );
 
       await expect(login()).rejects.toMatchObject({
@@ -234,7 +234,7 @@ describe('AuthService — đăng nhập, làm mới token, đăng xuất', () =>
       await expect(login()).resolves.toMatchObject({ accessToken: 'access' });
 
       prisma.authUser.findUnique.mockResolvedValueOnce(
-        localUser({ verified: false, role: userRole.MODERATOR }),
+        localUser({ verified: false, role: UserRole.MODERATOR }),
       );
       await expect(login()).rejects.toMatchObject({
         status: HttpStatus.FORBIDDEN,
@@ -320,8 +320,8 @@ describe('AuthService — đăng nhập, làm mới token, đăng xuất', () =>
       await login();
       prisma.authUser.findUnique.mockResolvedValue({
         id: 'u-1',
-        role: userRole.USER,
-        status: userStatus.BLOCKED,
+        role: UserRole.USER,
+        status: UserStatus.BLOCKED,
         tokenVersion: 4,
       });
 

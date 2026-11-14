@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { userRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import request from 'supertest';
 import {
   E2eUser,
@@ -17,7 +17,7 @@ describe('Topic E2E Integration Tests', () => {
 
   beforeAll(async () => {
     app = await createE2eApp();
-    admin = await createE2eUser(app, userRole.ADMIN);
+    admin = await createE2eUser(app, UserRole.ADMIN);
   });
 
   afterAll(async () => {

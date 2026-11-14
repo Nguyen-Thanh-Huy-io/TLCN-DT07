@@ -11,11 +11,11 @@ import * as bcrypt from 'bcryptjs';
 import config from '../common/config/app.config';
 import { tokenVersionCacheKey } from '../common/constants/cache-keys.constant';
 import {
-  email_status,
-  email_type,
-  loginAction,
-  userRole,
-  userStatus,
+  EmailStatus,
+  EmailType,
+  LoginAction,
+  UserRole,
+  UserStatus,
 } from '@prisma/client';
 import {
   ILoginResponse,
@@ -136,10 +136,10 @@ export class AuthService {
           data: {
             authId: user.id,
             emailTo: email,
-            emailType: email_type.verification,
+            emailType: EmailType.verification,
             subject: 'Verify your email address',
             messageId: `verify-${user.id}-${Date.now()}`,
-            emailStatus: email_status.pending,
+            emailStatus: EmailStatus.pending,
             ipAddress: ip,
             userAgent: userAgent,
           },
@@ -186,11 +186,11 @@ export class AuthService {
       await this.prismaService.emailHistory.updateMany({
         where: {
           authId: newUser.id,
-          emailType: email_type.verification,
-          emailStatus: email_status.pending,
+          emailType: EmailType.verification,
+          emailStatus: EmailStatus.pending,
         },
         data: {
-          emailStatus: email_status.failed,
+          emailStatus: EmailStatus.failed,
           errorMessage:
             error instanceof Error ? error.message : 'Failed to queue email',
         },
@@ -348,10 +348,10 @@ export class AuthService {
       data: {
         authId: user.id,
         emailTo: email,
-        emailType: email_type.verification,
+        emailType: EmailType.verification,
         subject: 'Verify your email address',
         messageId: `verify-resend-${user.id}-${Date.now()}`,
-        emailStatus: email_status.pending,
+        emailStatus: EmailStatus.pending,
         ipAddress: ip,
         userAgent: userAgent,
       },
@@ -375,11 +375,11 @@ export class AuthService {
       await this.prismaService.emailHistory.updateMany({
         where: {
           authId: user.id,
-          emailType: email_type.verification,
-          emailStatus: email_status.pending,
+          emailType: EmailType.verification,
+          emailStatus: EmailStatus.pending,
         },
         data: {
-          emailStatus: email_status.failed,
+          emailStatus: EmailStatus.failed,
           errorMessage:
             error instanceof Error ? error.message : 'Failed to queue email',
         },
@@ -716,7 +716,7 @@ export class AuthService {
       select: { id: true, role: true, status: true, tokenVersion: true },
     });
 
-    if (!user || user.status !== userStatus.ACTIVE) {
+    if (!user || user.status !== UserStatus.ACTIVE) {
       await this.revokeAllUserTokens(userId);
       throw AppError.unauthorized('User account is not active');
     }
@@ -972,7 +972,7 @@ export class AuthService {
           ipAddress: data.ip,
           userAgent: data.userAgent,
           device_id: data.device,
-          action: loginAction.login,
+          action: LoginAction.login,
           success: data.success,
           failureReason: data.failureReason,
           attemptNumber: data.attemptNumber || 1,
@@ -1086,7 +1086,7 @@ export class AuthService {
 
     // Check email verification — người học (USER) được đăng nhập và học ngay, chỉ nhắc xác minh;
     // tài khoản nhân sự CMS vẫn bắt buộc đã xác minh email.
-    if (!user.verified && user.role !== userRole.USER) {
+    if (!user.verified && user.role !== UserRole.USER) {
       void this.logLoginAttempt({
         authId: user.id,
         ip,

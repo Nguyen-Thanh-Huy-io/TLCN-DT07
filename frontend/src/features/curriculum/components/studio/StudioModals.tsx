@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { KeyboardKey, LessonStatus, IconName } from '@/constants/enums';
+import { KeyboardKey, ContentStatus, IconName } from '@/constants/enums';
 import { Icon } from '@/components/icons/Icon';
 import { ChapterItem } from '@/services/entities/learning-path.service';
 import { LessonItem } from '@/types/models';
@@ -209,10 +209,10 @@ export function AddLessonsToChapterModal({
 
                   <span
                     className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      lesson.status === LessonStatus.PUBLISHED ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-900 border border-amber-200'
+                      lesson.status === ContentStatus.PUBLISHED ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-900 border border-amber-200'
                     }`}
                   >
-                    {lesson.status === LessonStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
+                    {lesson.status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
                   </span>
                 </label>
               );
@@ -439,10 +439,10 @@ export function CreateChapterModal({
                       </div>
                       <span
                         className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                          lesson.status === LessonStatus.PUBLISHED ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-900 border border-amber-200'
+                          lesson.status === ContentStatus.PUBLISHED ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-900 border border-amber-200'
                         }`}
                       >
-                        {lesson.status === LessonStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
+                        {lesson.status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : 'Bản nháp'}
                       </span>
                     </label>
                   );

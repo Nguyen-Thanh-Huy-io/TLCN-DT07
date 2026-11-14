@@ -1,6 +1,6 @@
 import api, { parsePaginatedResponse, PaginatedResult } from '../api';
 import { LessonItem } from '@/types/models';
-import { LessonStatus, DifficultyLevel } from '@/constants/enums';
+import { ContentStatus, DifficultyLevel } from '@/constants/enums';
 
 export interface CreateLessonDto {
   title: string;
@@ -12,7 +12,7 @@ export interface CreateLessonDto {
   thumbnailUrl?: string;
   difficulty?: DifficultyLevel;
   displayOrder?: number;
-  status?: LessonStatus;
+  status?: ContentStatus;
   topicId: string;
 }
 
@@ -27,7 +27,7 @@ export interface UpdateLessonDto {
   thumbnailUrl?: string;
   difficulty?: DifficultyLevel;
   displayOrder?: number;
-  status?: LessonStatus;
+  status?: ContentStatus;
 }
 
 export class LessonApiService {
@@ -39,7 +39,7 @@ export class LessonApiService {
     limit?: number;
     search?: string;
     tagId?: string;
-    status?: LessonStatus;
+    status?: ContentStatus;
     difficulty?: DifficultyLevel;
   }): Promise<PaginatedResult<LessonItem>> {
     const res = await api.get('/lessons', { params });

@@ -5,7 +5,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { AuthGuard } from '../common/guards/auth.guard';
-import { userRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import type { AuthenticatedRequest } from '../common/access/roles.guard';
 
 // Mock AuthGuard để tránh inject RedisService + PrismaService trong unit test
@@ -242,7 +242,7 @@ describe('UserController', () => {
 
   describe('remove', () => {
     const adminRequest = {
-      user: { userId: 'admin-1', role: userRole.SUPERADMIN },
+      user: { userId: 'admin-1', role: UserRole.SUPERADMIN },
     } as AuthenticatedRequest;
 
     it('should remove a user', async () => {

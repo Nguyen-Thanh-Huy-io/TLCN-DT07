@@ -11,7 +11,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { userRole, userStatus } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
 import { AUTH_CONFIG } from '../auth/config/auth.config';
 import * as bcrypt from 'bcryptjs';
 
@@ -82,16 +82,16 @@ describe('UserService', () => {
         email: 'test@example.com',
         username: 'testuser',
         password: 'password123',
-        role: userRole.USER,
-        status: userStatus.ACTIVE,
+        role: UserRole.USER,
+        status: UserStatus.ACTIVE,
       };
 
       const createdUser = {
         id: 'uuid-1',
         email: 'test@example.com',
         username: 'testuser',
-        role: userRole.USER,
-        status: userStatus.ACTIVE,
+        role: UserRole.USER,
+        status: UserStatus.ACTIVE,
         verified: true,
       };
 
@@ -121,8 +121,8 @@ describe('UserService', () => {
         email: 'test@example.com',
         username: 'testuser',
         password: 'password123',
-        role: userRole.USER,
-        status: userStatus.ACTIVE,
+        role: UserRole.USER,
+        status: UserStatus.ACTIVE,
       };
 
       mockPrismaService.authUser.findFirst.mockResolvedValue({
@@ -145,7 +145,7 @@ describe('UserService', () => {
       const result = await service.findAll({
         page: 2,
         limit: 20,
-        role: userRole.MODERATOR,
+        role: UserRole.MODERATOR,
         search: ' bien ',
       });
 
@@ -154,7 +154,7 @@ describe('UserService', () => {
           skip: 20,
           take: 20,
           where: {
-            role: userRole.MODERATOR,
+            role: UserRole.MODERATOR,
             OR: [
               { email: { contains: 'bien', mode: 'insensitive' } },
               { username: { contains: 'bien', mode: 'insensitive' } },
@@ -295,8 +295,8 @@ describe('UserService', () => {
   describe('bảo vệ quyền SUPERADMIN', () => {
     const superadmin = {
       id: 'sa-1',
-      role: userRole.SUPERADMIN,
-      status: userStatus.ACTIVE,
+      role: UserRole.SUPERADMIN,
+      status: UserStatus.ACTIVE,
     };
 
     it('không tự xoá tài khoản đang đăng nhập', async () => {
@@ -311,7 +311,7 @@ describe('UserService', () => {
       mockPrismaService.authUser.count.mockResolvedValue(0);
 
       await expect(
-        service.update('sa-1', { role: userRole.USER }),
+        service.update('sa-1', { role: UserRole.USER }),
       ).rejects.toThrow(ConflictException);
       expect(mockPrismaService.authUser.update).not.toHaveBeenCalled();
     });
@@ -321,7 +321,7 @@ describe('UserService', () => {
       mockPrismaService.authUser.count.mockResolvedValue(0);
 
       await expect(
-        service.update('sa-1', { status: userStatus.BLOCKED }),
+        service.update('sa-1', { status: UserStatus.BLOCKED }),
       ).rejects.toThrow(ConflictException);
       await expect(service.remove('sa-1', 'admin-2')).rejects.toThrow(
         ConflictException,
@@ -333,11 +333,11 @@ describe('UserService', () => {
       mockPrismaService.authUser.count.mockResolvedValue(1);
       mockPrismaService.authUser.update.mockResolvedValue({
         ...superadmin,
-        role: userRole.ADMIN,
+        role: UserRole.ADMIN,
       });
 
       await expect(
-        service.update('sa-1', { role: userRole.ADMIN }),
+        service.update('sa-1', { role: UserRole.ADMIN }),
       ).resolves.toBeDefined();
     });
   });

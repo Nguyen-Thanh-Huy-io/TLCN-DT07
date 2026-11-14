@@ -7,7 +7,7 @@
  */
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-import { PrismaClient, DifficultyLevel, LessonStatus } from '@prisma/client';
+import { PrismaClient, DifficultyLevel, ContentStatus } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { upsertTopicQuizFromSeed } from './seeds/quiz-bank.helper';
 
@@ -364,7 +364,7 @@ export async function enrichDienBienPhuLesson() {
       content: DIEN_BIEN_PHU_BLOCKS_DATA,
       description: 'Chiến thắng 12 ngày đêm vĩ đại (18/12 - 30/12/1972) đập tan cuộc tập kích chiến lược B-52 của đế quốc Mỹ, bảo vệ vững chắc Thủ đô và buộc Mỹ phải ký Hiệp định Paris 1973.',
       difficulty: DifficultyLevel.HARD,
-      status: LessonStatus.PUBLISHED,
+      status: ContentStatus.PUBLISHED,
       thumbnailUrl: 'https://images.unsplash.com/photo-1544813687-63931b2749ea?auto=format&fit=crop&w=1200&q=80',
       sourceReferenceNote: 'Lịch sử Quân chủng Phòng không - Không quân & Lịch sử Quân sự Việt Nam (NXB Quân đội Nhân dân)',
     },

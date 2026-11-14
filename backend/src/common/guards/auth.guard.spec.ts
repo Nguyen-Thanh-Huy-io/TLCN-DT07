@@ -1,7 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { ExecutionContextHost } from '@nestjs/core/helpers/execution-context-host';
 import { Test } from '@nestjs/testing';
-import { userRole, userStatus } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
 import * as jwt from 'jsonwebtoken';
 import config from '../config/app.config';
 import { tokenVersionCacheKey } from '../constants/cache-keys.constant';
@@ -10,7 +10,7 @@ import { RedisService } from '../services/redis.service';
 import { AuthGuard } from './auth.guard';
 
 const SECRET = 'auth-guard-test-secret';
-const PAYLOAD = { userId: 'u-1', role: userRole.USER, tokenVersion: 2 };
+const PAYLOAD = { userId: 'u-1', role: UserRole.USER, tokenVersion: 2 };
 
 const sign = (
   payload: object = PAYLOAD,
@@ -49,7 +49,7 @@ describe('AuthGuard', () => {
     redis.get.mockResolvedValue(null);
     prisma.authUser.findUnique.mockResolvedValue({
       tokenVersion: 2,
-      status: userStatus.ACTIVE,
+      status: UserStatus.ACTIVE,
     });
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -126,7 +126,7 @@ describe('AuthGuard', () => {
   it('tài khoản bị khoá hoặc đã xoá (cache trống) → 401', async () => {
     prisma.authUser.findUnique.mockResolvedValueOnce({
       tokenVersion: 2,
-      status: userStatus.BLOCKED,
+      status: UserStatus.BLOCKED,
     });
     await expect(run(`Bearer ${sign()}`).result).rejects.toThrow(
       'User account is not active',

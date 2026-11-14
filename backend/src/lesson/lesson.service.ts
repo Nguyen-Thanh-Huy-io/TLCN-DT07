@@ -14,7 +14,7 @@ import { UpdateLessonDto } from './dto/update-lesson.dto';
 import { QueryLessonDto } from './dto/query-lesson.dto';
 import { ReviewLessonDto } from './dto/review-lesson.dto';
 import { LessonResponseDto } from './dto/lesson-response.dto';
-import { Lesson, LessonStatus, Prisma, Tag } from '@prisma/client';
+import { Lesson, ContentStatus, Prisma, Tag } from '@prisma/client';
 import { SlugHelper } from './helpers/slug.helper';
 import { LessonContentStrategyContext } from './strategies/content-normalizer.strategy';
 
@@ -130,7 +130,7 @@ export class LessonService {
         slug,
         description: description?.trim() || null,
         content: normalizedContent,
-        status: createLessonDto.status || LessonStatus.DRAFT,
+        status: createLessonDto.status || ContentStatus.DRAFT,
         difficulty: createLessonDto.difficulty || undefined,
         sourceReferenceNote: createLessonDto.sourceReferenceNote || null,
         displayOrder:
@@ -377,7 +377,7 @@ export class LessonService {
       where: { id },
       select: { status: true, createdBy: true },
     });
-    if (current?.status !== LessonStatus.REVIEW) {
+    if (current?.status !== ContentStatus.PENDING_REVIEW) {
       throw new ForbiddenException(ACCESS_MESSAGES.NOT_IN_REVIEW);
     }
     if (approverUserId && current.createdBy === approverUserId) {
@@ -385,7 +385,7 @@ export class LessonService {
     }
 
     if (
-      reviewDto.status === LessonStatus.REJECTED &&
+      reviewDto.status === ContentStatus.REJECTED &&
       !reviewDto.rejectionReason?.trim()
     ) {
       throw new BadRequestException('Vui lòng nhập lý do từ chối bài học.');
@@ -408,9 +408,9 @@ export class LessonService {
         status: reviewDto.status,
         approvedBy: resolvedApproverId,
         publishedAt:
-          reviewDto.status === LessonStatus.PUBLISHED ? new Date() : null,
+          reviewDto.status === ContentStatus.PUBLISHED ? new Date() : null,
         rejectionReason:
-          reviewDto.status === LessonStatus.REJECTED
+          reviewDto.status === ContentStatus.REJECTED
             ? reviewDto.rejectionReason?.trim()
             : null,
       },

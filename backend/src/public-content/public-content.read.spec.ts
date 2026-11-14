@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { ContentStatus, LessonStatus } from '@prisma/client';
+import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { PUBLIC_QUIZ_LIST_MAX_LIMIT } from '../quiz/quiz.constant';
 import { PublicContentService } from './public-content.service';
@@ -377,7 +377,7 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
     const [lesson] = await service.getLibraryLessons();
 
     expect(prisma.lesson.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { status: LessonStatus.PUBLISHED } }),
+      expect.objectContaining({ where: { status: ContentStatus.PUBLISHED } }),
     );
     expect(lesson.estimatedReadMinutes).toBe(1);
     expect(lesson).not.toHaveProperty('quiz');

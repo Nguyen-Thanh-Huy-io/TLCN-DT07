@@ -4,7 +4,7 @@ import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { LessonStatus, DifficultyLevel } from '@prisma/client';
+import { ContentStatus, DifficultyLevel } from '@prisma/client';
 
 describe('LessonService', () => {
   let service: LessonService;
@@ -22,7 +22,7 @@ describe('LessonService', () => {
     difficulty: DifficultyLevel.MEDIUM,
     sourceReferenceNote: 'Đại Việt Sử Ký',
     displayOrder: 1,
-    status: LessonStatus.DRAFT,
+    status: ContentStatus.DRAFT,
     rejectionReason: null,
     publishedAt: null,
     createdBy: 'user-uuid-creator',
@@ -139,7 +139,7 @@ describe('LessonService', () => {
   describe('review', () => {
     // Quy trình 2 người: bài đang chờ duyệt, do người khác (biên tập viên) soạn.
     const inReview = {
-      status: LessonStatus.REVIEW,
+      status: ContentStatus.PENDING_REVIEW,
       createdBy: 'editor-uuid-1',
     };
 
@@ -147,13 +147,13 @@ describe('LessonService', () => {
       mockPrismaService.lesson.findUnique.mockResolvedValueOnce(mockLesson);
       mockPrismaService.lesson.findUnique.mockResolvedValueOnce({
         ...inReview,
-        status: LessonStatus.DRAFT,
+        status: ContentStatus.DRAFT,
       });
 
       await expect(
         service.review(
           'lesson-uuid-1',
-          { status: LessonStatus.PUBLISHED },
+          { status: ContentStatus.PUBLISHED },
           'admin-uuid-1',
         ),
       ).rejects.toThrow(ForbiddenException);
@@ -166,7 +166,7 @@ describe('LessonService', () => {
       await expect(
         service.review(
           'lesson-uuid-1',
-          { status: LessonStatus.PUBLISHED },
+          { status: ContentStatus.PUBLISHED },
           'editor-uuid-1',
         ),
       ).rejects.toThrow(ForbiddenException);
@@ -177,17 +177,17 @@ describe('LessonService', () => {
       mockPrismaService.lesson.findUnique.mockResolvedValueOnce(inReview);
       mockPrismaService.lesson.update.mockResolvedValueOnce({
         ...mockLesson,
-        status: LessonStatus.PUBLISHED,
+        status: ContentStatus.PUBLISHED,
         approvedBy: 'admin-uuid-1',
       });
 
       const result = await service.review(
         'lesson-uuid-1',
-        { status: LessonStatus.PUBLISHED },
+        { status: ContentStatus.PUBLISHED },
         'admin-uuid-1',
       );
 
-      expect(result.status).toBe(LessonStatus.PUBLISHED);
+      expect(result.status).toBe(ContentStatus.PUBLISHED);
       expect(mockPrismaService.lesson.update).toHaveBeenCalled();
     });
 
@@ -198,7 +198,7 @@ describe('LessonService', () => {
       await expect(
         service.review(
           'lesson-uuid-1',
-          { status: LessonStatus.REJECTED },
+          { status: ContentStatus.REJECTED },
           'admin-uuid-1',
         ),
       ).rejects.toThrow(BadRequestException);
@@ -209,25 +209,25 @@ describe('LessonService', () => {
       mockPrismaService.lesson.findUnique.mockResolvedValueOnce(inReview);
       mockPrismaService.lesson.update.mockResolvedValueOnce({
         ...mockLesson,
-        status: LessonStatus.REJECTED,
+        status: ContentStatus.REJECTED,
         rejectionReason: 'Thiếu nguồn sử liệu',
       });
 
       const result = await service.review(
         'lesson-uuid-1',
         {
-          status: LessonStatus.REJECTED,
+          status: ContentStatus.REJECTED,
           rejectionReason: 'Thiếu nguồn sử liệu',
         },
         'admin-uuid-1',
       );
 
-      expect(result.status).toBe(LessonStatus.REJECTED);
+      expect(result.status).toBe(ContentStatus.REJECTED);
       expect(result.rejectionReason).toBe('Thiếu nguồn sử liệu');
       expect(mockPrismaService.lesson.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            status: LessonStatus.REJECTED,
+            status: ContentStatus.REJECTED,
             rejectionReason: 'Thiếu nguồn sử liệu',
           }),
         }),

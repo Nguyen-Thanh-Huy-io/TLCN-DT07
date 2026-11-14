@@ -1,6 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { userRole, userStatus } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { AppModule } from '../src/app.module';
 import { AuthUtilsService } from '../src/auth/services/auth-utils.service';
@@ -53,7 +53,7 @@ let userCounter = 0;
 /** Tạo tài khoản thật trong DB e2e và cấp access token cho nó. */
 export async function createE2eUser(
   app: INestApplication,
-  role: userRole,
+  role: UserRole,
 ): Promise<E2eUser> {
   const prisma = app.get(PrismaService);
   const handle = `${E2E_MARK}${role.toLowerCase()}_${Date.now()}_${++userCounter}`;
@@ -64,7 +64,7 @@ export async function createE2eUser(
       password: '',
       role,
       verified: true,
-      status: userStatus.ACTIVE,
+      status: UserStatus.ACTIVE,
       provider: 'local',
     },
     select: { id: true, role: true, tokenVersion: true },

@@ -1,5 +1,5 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { ContentStatus, PostType, userRole } from '@prisma/client';
+import { ContentStatus, PostType, UserRole } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
 import { BlogService } from './blog.service';
 import { PrismaService } from '../common/services/prisma.service';
@@ -157,7 +157,7 @@ describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)',
     });
 
     it('lấy tác giả từ người đăng nhập, không từ body', async () => {
-      await service.createPost('author-1', userRole.USER, {
+      await service.createPost('author-1', UserRole.USER, {
         title: 'Câu hỏi cộng đồng',
         postType: PostType.QUICK_POST,
         status: ContentStatus.PUBLISHED,
@@ -175,7 +175,7 @@ describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)',
 
     it('người dùng thường không tự xuất bản bài chuyên khảo', async () => {
       await expect(
-        service.createPost('author-1', userRole.USER, {
+        service.createPost('author-1', UserRole.USER, {
           title: 'Bài dài',
           postType: PostType.LONG_FORM,
           status: ContentStatus.PUBLISHED,
@@ -186,7 +186,7 @@ describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)',
 
     it('người dùng thường gửi bài chuyên khảo chờ duyệt được', async () => {
       await expect(
-        service.createPost('author-1', userRole.USER, {
+        service.createPost('author-1', UserRole.USER, {
           title: 'Bài dài',
           postType: PostType.LONG_FORM,
           status: ContentStatus.PENDING_REVIEW,
@@ -196,7 +196,7 @@ describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)',
 
     it('người dùng thường không tự đặt bài nổi bật', async () => {
       await expect(
-        service.createPost('author-1', userRole.USER, {
+        service.createPost('author-1', UserRole.USER, {
           title: 'Câu hỏi',
           isFeatured: true,
         }),
@@ -205,7 +205,7 @@ describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)',
 
     it('người duyệt xuất bản thẳng bài chuyên khảo được', async () => {
       await expect(
-        service.createPost('admin-1', userRole.ADMIN, {
+        service.createPost('admin-1', UserRole.ADMIN, {
           title: 'Bài dài',
           postType: PostType.LONG_FORM,
           status: ContentStatus.PUBLISHED,
@@ -226,7 +226,7 @@ describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)',
           'post-1',
           { status: ContentStatus.PUBLISHED },
           'author-1',
-          userRole.USER,
+          UserRole.USER,
         ),
       ).rejects.toThrow(ForbiddenException);
       expect(prisma.blogPost.update).not.toHaveBeenCalled();

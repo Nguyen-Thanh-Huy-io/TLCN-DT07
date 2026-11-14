@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
-import { LessonStatus } from '@prisma/client';
+import { ContentStatus } from '@prisma/client';
 import {
   DashboardOverviewResponseDto,
   RecentActivityItemDto,
@@ -46,17 +46,17 @@ export class DashboardService {
       this.prisma.topic.count(),
       this.prisma.lesson.count(),
       this.prisma.lesson.count({
-        where: { status: LessonStatus.REVIEW },
+        where: { status: ContentStatus.PENDING_REVIEW },
       }),
       this.prisma.timeline.count(),
       this.prisma.lesson.count({
-        where: { status: LessonStatus.PUBLISHED },
+        where: { status: ContentStatus.PUBLISHED },
       }),
       this.prisma.lesson.count({
-        where: { status: LessonStatus.DRAFT },
+        where: { status: ContentStatus.DRAFT },
       }),
       this.prisma.lesson.count({
-        where: { status: LessonStatus.ARCHIVED },
+        where: { status: ContentStatus.ARCHIVED },
       }),
       this.prisma.lesson.findMany({
         take: 5,
@@ -78,7 +78,7 @@ export class DashboardService {
         },
       }),
       this.prisma.lesson.findMany({
-        where: { status: LessonStatus.REVIEW },
+        where: { status: ContentStatus.PENDING_REVIEW },
         take: 5,
         orderBy: { updatedAt: 'desc' },
         include: {

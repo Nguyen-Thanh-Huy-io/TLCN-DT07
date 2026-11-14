@@ -1,6 +1,6 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { ContentStatus, LessonStatus } from '@prisma/client';
+import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { LessonService } from '../lesson/lesson.service';
 import { LEARNER_ERROR_CODES } from './learner.constant';
@@ -27,7 +27,7 @@ describe('LearnerService', () => {
     jest.clearAllMocks();
     lessonService.findBySlug.mockResolvedValue({
       id: 'lesson-1',
-      status: LessonStatus.PUBLISHED,
+      status: ContentStatus.PUBLISHED,
     });
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -113,7 +113,7 @@ describe('LearnerService', () => {
     it('bài chưa xuất bản → 404, không lộ nội dung nháp', async () => {
       lessonService.findBySlug.mockResolvedValue({
         id: 'lesson-1',
-        status: LessonStatus.DRAFT,
+        status: ContentStatus.DRAFT,
       });
 
       await expect(service.getLessonForReading('u-1', 'bai-1')).rejects.toThrow(

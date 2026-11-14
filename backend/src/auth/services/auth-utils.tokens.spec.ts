@@ -1,6 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { userRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import * as jwt from 'jsonwebtoken';
 import config from '../../common/config/app.config';
 import { RedisService } from '../../common/services/redis.service';
@@ -9,7 +9,7 @@ import { AuthUtilsService } from './auth-utils.service';
 
 const ACCESS_SECRET = 'access-secret-test';
 const REFRESH_SECRET = 'refresh-secret-test';
-const ACCESS_PAYLOAD = { userId: 'u-1', role: userRole.USER, tokenVersion: 0 };
+const ACCESS_PAYLOAD = { userId: 'u-1', role: UserRole.USER, tokenVersion: 0 };
 
 describe('AuthUtilsService — token, mã ngẫu nhiên, giới hạn tần suất', () => {
   let utils: AuthUtilsService;

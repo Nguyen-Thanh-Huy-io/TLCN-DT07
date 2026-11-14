@@ -1,5 +1,5 @@
 'use client';
-import { CommonFilterOption, LessonStatus } from '@/constants/enums';
+import { CommonFilterOption, ContentStatus } from '@/constants/enums';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
@@ -134,8 +134,8 @@ export function LessonLibraryPanel({
             className="form-input !h-8 !text-xs !py-0 w-36"
           >
             <option value={CommonFilterOption.ALL}>Tất cả trạng thái</option>
-            <option value={LessonStatus.PUBLISHED}>Đã xuất bản</option>
-            <option value={LessonStatus.DRAFT}>Bản nháp</option>
+            <option value={ContentStatus.PUBLISHED}>Đã xuất bản</option>
+            <option value={ContentStatus.DRAFT}>Bản nháp</option>
           </select>
 
           {/* Chuyển đổi Lưới / Danh sách */}
@@ -183,10 +183,10 @@ export function LessonLibraryPanel({
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                        lesson.status === LessonStatus.PUBLISHED ? BADGE_PUBLISHED : BADGE_DRAFT
+                        lesson.status === ContentStatus.PUBLISHED ? BADGE_PUBLISHED : BADGE_DRAFT
                       }`}
                     >
-                      {lesson.status === LessonStatus.PUBLISHED ? LABEL_PUBLISHED : LABEL_DRAFT}
+                      {lesson.status === ContentStatus.PUBLISHED ? LABEL_PUBLISHED : LABEL_DRAFT}
                     </span>
                     <span className="text-xs text-slate-500 font-medium">
                       {lesson.createdAt ? new Date(lesson.createdAt).toLocaleDateString('vi-VN') : ''}
@@ -296,10 +296,10 @@ export function LessonLibraryPanel({
                     <td className="px-3 py-2.5 align-top">
                       <span
                         className={`text-xs font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap ${
-                          lesson.status === LessonStatus.PUBLISHED ? BADGE_PUBLISHED : BADGE_DRAFT
+                          lesson.status === ContentStatus.PUBLISHED ? BADGE_PUBLISHED : BADGE_DRAFT
                         }`}
                       >
-                        {lesson.status === LessonStatus.PUBLISHED ? LABEL_PUBLISHED : LABEL_DRAFT}
+                        {lesson.status === ContentStatus.PUBLISHED ? LABEL_PUBLISHED : LABEL_DRAFT}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 align-top text-slate-600 font-mono whitespace-nowrap">

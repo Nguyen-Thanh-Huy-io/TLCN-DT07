@@ -1,5 +1,5 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { email_status, email_type } from '@prisma/client';
+import { EmailStatus, EmailType } from '@prisma/client';
 import { Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { EmailJob } from './email.queue';
@@ -67,11 +67,11 @@ export class EmailProcessor extends WorkerHost {
       await this.prismaService.emailHistory.updateMany({
         where: {
           authId,
-          emailType: email_type.verification,
-          emailStatus: email_status.pending,
+          emailType: EmailType.verification,
+          emailStatus: EmailStatus.pending,
         },
         data: {
-          emailStatus: email_status.sent,
+          emailStatus: EmailStatus.sent,
         },
       });
 
@@ -91,11 +91,11 @@ export class EmailProcessor extends WorkerHost {
       await this.prismaService.emailHistory.updateMany({
         where: {
           authId,
-          emailType: email_type.verification,
-          emailStatus: email_status.pending,
+          emailType: EmailType.verification,
+          emailStatus: EmailStatus.pending,
         },
         data: {
-          emailStatus: email_status.failed,
+          emailStatus: EmailStatus.failed,
           errorMessage:
             error instanceof Error ? error.message : 'Failed to send email',
         },

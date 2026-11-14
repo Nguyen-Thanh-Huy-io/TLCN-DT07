@@ -4,8 +4,8 @@ import {
   PostCommentStatus,
   ReportActionTaken,
   ReportTargetType,
-  userRole,
-  userStatus,
+  UserRole,
+  UserStatus,
 } from '@prisma/client';
 import { BlogGateway } from '../blog/blog.gateway';
 import { PrismaService } from '../common/services/prisma.service';
@@ -159,7 +159,7 @@ describe('ModerationService — xử lý báo cáo bình luận Blog', () => {
   it('khoá tác giả bình luận khi chọn BAN_USER', async () => {
     prisma.authUser.findUnique.mockResolvedValue({
       id: VISIBLE_COMMENT.authorId,
-      role: userRole.USER,
+      role: UserRole.USER,
     });
 
     const result = await service.resolveReport(
@@ -172,7 +172,7 @@ describe('ModerationService — xử lý báo cáo bình luận Blog', () => {
 
     expect(prisma.authUser.update).toHaveBeenCalledWith({
       where: { id: VISIBLE_COMMENT.authorId },
-      data: { status: userStatus.BLOCKED, tokenVersion: { increment: 1 } },
+      data: { status: UserStatus.BLOCKED, tokenVersion: { increment: 1 } },
     });
     expect(result.bannedUserId).toBe(VISIBLE_COMMENT.authorId);
     expect(redisMock.del).toHaveBeenCalledWith(
@@ -183,7 +183,7 @@ describe('ModerationService — xử lý báo cáo bình luận Blog', () => {
   it('không khoá tài khoản ADMIN dù chọn BAN_USER', async () => {
     prisma.authUser.findUnique.mockResolvedValue({
       id: VISIBLE_COMMENT.authorId,
-      role: userRole.ADMIN,
+      role: UserRole.ADMIN,
     });
 
     const result = await service.resolveReport(

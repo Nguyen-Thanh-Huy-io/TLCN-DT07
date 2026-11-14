@@ -2,7 +2,7 @@
  * Authentication-related interfaces and types
  */
 
-import { userRole as UserRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 
 export { UserRole };
 

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ContentStatus, LessonStatus, Prisma } from '@prisma/client';
+import { ContentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { LessonContentStrategyContext } from '../lesson/strategies/content-normalizer.strategy';
 import {
@@ -601,7 +601,7 @@ export class PublicContentService {
   // ---------- Bài học & chủ đề (giữ từ public-content cũ) ----------
   async getLibraryLessons() {
     const lessons = await this.prisma.lesson.findMany({
-      where: { status: LessonStatus.PUBLISHED },
+      where: { status: ContentStatus.PUBLISHED },
       include: {
         topic: { select: { id: true, name: true, slug: true, parentId: true } },
         lessonTags: { include: { tag: true } },

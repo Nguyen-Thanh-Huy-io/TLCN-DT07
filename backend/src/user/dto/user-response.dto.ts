@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { userRole, userStatus } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
 
 export class UserProfileResponseDto {
   @ApiPropertyOptional({ example: 'Nguyễn', description: 'Tên' })
@@ -32,21 +32,21 @@ export class UserResponseDto {
   username: string;
 
   @ApiProperty({
-    enum: userRole,
-    example: userRole.USER,
+    enum: UserRole,
+    example: UserRole.USER,
     description: 'Vai trò',
   })
-  role: userRole;
+  role: UserRole;
 
   @ApiProperty({ example: true, description: 'Trạng thái xác thực email' })
   verified: boolean;
 
   @ApiProperty({
-    enum: userStatus,
-    example: userStatus.ACTIVE,
+    enum: UserStatus,
+    example: UserStatus.ACTIVE,
     description: 'Trạng thái tài khoản',
   })
-  status: userStatus;
+  status: UserStatus;
 
   @ApiPropertyOptional({
     type: UserProfileResponseDto,

@@ -1,4 +1,4 @@
-import { ContentStatus, DifficultyLevel, LessonStatus } from '@/constants/enums';
+import { ContentStatus, DifficultyLevel } from '@/constants/enums';
 
 export interface TagItem {
   id: string;
@@ -21,7 +21,7 @@ export interface LessonItem {
   thumbnailUrl?: string;
   difficulty?: DifficultyLevel;
   displayOrder?: number;
-  status: LessonStatus;
+  status: ContentStatus;
   rejectionReason?: string | null;
   publishedAt?: string | null;
   createdBy?: string;

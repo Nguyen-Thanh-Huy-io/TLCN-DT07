@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { LessonStatus, userRole } from '@prisma/client';
+import { ContentStatus, UserRole } from '@prisma/client';
 import request from 'supertest';
 import {
   E2E_MARK,
@@ -23,9 +23,9 @@ describe('Lesson E2E — tạo, xem, duyệt 2 người, xoá', () => {
 
   beforeAll(async () => {
     app = await createE2eApp();
-    editor = await createE2eUser(app, userRole.MODERATOR);
-    reviewer = await createE2eUser(app, userRole.ADMIN);
-    learner = await createE2eUser(app, userRole.USER);
+    editor = await createE2eUser(app, UserRole.MODERATOR);
+    reviewer = await createE2eUser(app, UserRole.ADMIN);
+    learner = await createE2eUser(app, UserRole.USER);
 
     const topic = await http()
       .post('/topics')
@@ -82,7 +82,7 @@ describe('Lesson E2E — tạo, xem, duyệt 2 người, xoá', () => {
         .expect(201);
 
       expect(res.body.data).toMatchObject({
-        status: LessonStatus.DRAFT,
+        status: ContentStatus.DRAFT,
         topicId,
       });
       expect(res.body.data.estimatedReadMinutes).toBeDefined();
@@ -122,7 +122,7 @@ describe('Lesson E2E — tạo, xem, duyệt 2 người, xoá', () => {
       await http()
         .patch(`/lessons/${lessonId}/review`)
         .set('Authorization', reviewer.auth)
-        .send({ status: LessonStatus.PUBLISHED })
+        .send({ status: ContentStatus.PUBLISHED })
         .expect(403);
     });
 
@@ -130,16 +130,16 @@ describe('Lesson E2E — tạo, xem, duyệt 2 người, xoá', () => {
       const res = await http()
         .patch(`/lessons/${lessonId}`)
         .set('Authorization', editor.auth)
-        .send({ status: LessonStatus.REVIEW })
+        .send({ status: ContentStatus.PENDING_REVIEW })
         .expect(200);
-      expect(res.body.data.status).toBe(LessonStatus.REVIEW);
+      expect(res.body.data.status).toBe(ContentStatus.PENDING_REVIEW);
     });
 
     it('biên tập viên không có quyền duyệt', async () => {
       await http()
         .patch(`/lessons/${lessonId}/review`)
         .set('Authorization', editor.auth)
-        .send({ status: LessonStatus.PUBLISHED })
+        .send({ status: ContentStatus.PUBLISHED })
         .expect(403);
     });
 
@@ -147,7 +147,7 @@ describe('Lesson E2E — tạo, xem, duyệt 2 người, xoá', () => {
       await http()
         .patch(`/lessons/${lessonId}/review`)
         .set('Authorization', reviewer.auth)
-        .send({ status: LessonStatus.REJECTED })
+        .send({ status: ContentStatus.REJECTED })
         .expect(400);
     });
 
@@ -155,10 +155,10 @@ describe('Lesson E2E — tạo, xem, duyệt 2 người, xoá', () => {
       const res = await http()
         .patch(`/lessons/${lessonId}/review`)
         .set('Authorization', reviewer.auth)
-        .send({ status: LessonStatus.PUBLISHED })
+        .send({ status: ContentStatus.PUBLISHED })
         .expect(200);
 
-      expect(res.body.data.status).toBe(LessonStatus.PUBLISHED);
+      expect(res.body.data.status).toBe(ContentStatus.PUBLISHED);
       expect(res.body.data.publishedAt).toBeTruthy();
     });
   });

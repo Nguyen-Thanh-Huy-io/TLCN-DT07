@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { userRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import request from 'supertest';
 import {
   E2E_MARK,
@@ -23,8 +23,8 @@ describe('Tag E2E — tạo, gắn vào bài học, xoá', () => {
 
   beforeAll(async () => {
     app = await createE2eApp();
-    editor = await createE2eUser(app, userRole.MODERATOR);
-    learner = await createE2eUser(app, userRole.USER);
+    editor = await createE2eUser(app, UserRole.MODERATOR);
+    learner = await createE2eUser(app, UserRole.USER);
 
     const topic = await http()
       .post('/topics')

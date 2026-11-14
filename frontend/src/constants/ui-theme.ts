@@ -1,4 +1,4 @@
-import { ContentStatus, DifficultyLevel, LessonStatus } from './enums';
+import { ContentStatus, DifficultyLevel } from './enums';
 import { NavigationPageKey } from './routes';
 
 export type BadgeTone = 'green' | 'blue' | 'amber' | 'red' | 'gray';
@@ -9,22 +9,6 @@ export const STATUS_TONE_MAP: Record<ContentStatus, BadgeTone> = {
   [ContentStatus.PUBLISHED]: 'green',
   [ContentStatus.REJECTED]: 'red',
   [ContentStatus.ARCHIVED]: 'gray',
-};
-
-export const LESSON_STATUS_TONE_MAP: Record<LessonStatus, BadgeTone> = {
-  [LessonStatus.DRAFT]: 'gray',
-  [LessonStatus.REVIEW]: 'amber',
-  [LessonStatus.PUBLISHED]: 'green',
-  [LessonStatus.REJECTED]: 'red',
-  [LessonStatus.ARCHIVED]: 'gray',
-};
-
-export const LESSON_STATUS_LABEL_MAP: Record<LessonStatus, string> = {
-  [LessonStatus.DRAFT]: 'Bản nháp',
-  [LessonStatus.REVIEW]: 'Chờ duyệt',
-  [LessonStatus.PUBLISHED]: 'Xuất bản',
-  [LessonStatus.REJECTED]: 'Từ chối',
-  [LessonStatus.ARCHIVED]: 'Lưu trữ',
 };
 
 export const STATUS_LABEL_MAP: Record<ContentStatus, string> = {

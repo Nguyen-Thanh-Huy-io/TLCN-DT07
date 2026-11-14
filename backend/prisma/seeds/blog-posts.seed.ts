@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { ContentStatus, PrismaClient, userRole } from '@prisma/client';
+import { ContentStatus, PrismaClient, UserRole } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const prisma = new PrismaClient({
@@ -172,7 +172,7 @@ const BLOG_POSTS: BlogSeedItem[] = [
 async function main() {
   const authors = await prisma.authUser.findMany({
     where: {
-      role: { in: [userRole.SUPERADMIN, userRole.ADMIN, userRole.MODERATOR, userRole.USER] },
+      role: { in: [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.MODERATOR, UserRole.USER] },
     },
     orderBy: { createdAt: 'asc' },
     take: 20,

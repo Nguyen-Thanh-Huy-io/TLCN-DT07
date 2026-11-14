@@ -2,14 +2,6 @@
 // Lesson (Historical Reading Lesson) Model
 // ================================
 
-enum LessonStatus {
-  DRAFT
-  REVIEW
-  PUBLISHED
-  REJECTED
-  ARCHIVED
-}
-
 model Lesson {
   id          String  @id @default(uuid())
   topicId     String? @map("topic_id")
@@ -24,7 +16,8 @@ model Lesson {
   difficulty          DifficultyLevel @default(MEDIUM)
   sourceReferenceNote String?         @map("source_reference_note") @db.Text
 
-  status LessonStatus @default(DRAFT)
+  /// Dùng chung ContentStatus với các nội dung khác (trước 2026-11-14 có enum riêng LessonStatus với REVIEW).
+  status ContentStatus @default(DRAFT)
 
   // Liên kết nhiều-nhiều với Nhãn phân loại (Tag) qua bảng trung gian LessonTag
   lessonTags LessonTag[]

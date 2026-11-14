@@ -7,9 +7,9 @@ model authUser {
   email        String     @unique
   password     String
   username     String     @unique
-  role         userRole   @default(USER)
+  role         UserRole   @default(USER)
   verified     Boolean    @default(false)
-  status       userStatus @default(ACTIVE)
+  status       UserStatus @default(ACTIVE)
   tokenVersion Int        @default(1) // For immediate JWT revocation on security events
   deletedAt    DateTime?
   provider     String     @default("local")
@@ -30,14 +30,14 @@ model authUser {
   quizAttempts      QuizAttempt[]
   notes             Note[]
   blogPosts         BlogPost[]
-  blogPostComments  BlogPostComment[] @relation("BlogPostCommentAuthor")
-  postLikes         PostLike[]        @relation("PostLikeUser")
-  postBookmarks     PostBookmark[]    @relation("PostBookmarkUser")
-  postCommentLikes  PostCommentLike[] @relation("PostCommentLikeUser")
-  reportsMade       ContentReport[]   @relation("ContentReportReporter")
-  reportReviews     ContentReport[]   @relation("ContentReportReviewer")
-  following         UserFollow[]      @relation("UserFollowFollower")
-  followers         UserFollow[]      @relation("UserFollowFollowing")
+  blogPostComments  BlogPostComment[]        @relation("BlogPostCommentAuthor")
+  postLikes         PostLike[]               @relation("PostLikeUser")
+  postBookmarks     PostBookmark[]           @relation("PostBookmarkUser")
+  postCommentLikes  PostCommentLike[]        @relation("PostCommentLikeUser")
+  reportsMade       ContentReport[]          @relation("ContentReportReporter")
+  reportReviews     ContentReport[]          @relation("ContentReportReviewer")
+  following         UserFollow[]             @relation("UserFollowFollower")
+  followers         UserFollow[]             @relation("UserFollowFollowing")
 
   @@index([email, id, providerId])
   @@index([username])
@@ -54,7 +54,7 @@ model authSecurity {
   lastFailedAt       DateTime?
   lockExpiresAt      DateTime?
   mfaEnabled         Boolean    @default(false)
-  mfaMethod          mfaMethod?
+  mfaMethod          MfaMethod?
   mfaSecret          String?
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt

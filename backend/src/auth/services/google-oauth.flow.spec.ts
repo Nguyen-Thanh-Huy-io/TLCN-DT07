@@ -1,6 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { userRole, userStatus } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
 import { createHash, generateKeyPairSync } from 'crypto';
 import * as jwt from 'jsonwebtoken';
 import { JwksClient } from 'jwks-rsa';
@@ -60,9 +60,9 @@ const googleUserRow = (overrides: object = {}) => ({
   id: 'u-1',
   email: 'hoc-vien@gmail.com',
   username: 'hoc_abcd',
-  role: userRole.USER,
+  role: UserRole.USER,
   verified: true,
-  status: userStatus.ACTIVE,
+  status: UserStatus.ACTIVE,
   provider: 'google',
   providerId: 'google-sub-1',
   tokenVersion: 0,
@@ -226,7 +226,7 @@ describe('GoogleOAuthService — luồng đăng nhập Google (PKCE + kiểm ch�
 
   it('tài khoản Google bị chặn: 403', async () => {
     prisma.authUser.findFirst.mockResolvedValue(
-      googleUserRow({ status: userStatus.BLOCKED }),
+      googleUserRow({ status: UserStatus.BLOCKED }),
     );
     const state = await startLogin({ access_token: 'g', id_token: idToken() });
 

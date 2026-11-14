@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { LessonStatus, DifficultyLevel, MediaType, LessonFieldKey } from '@/constants/enums';
+import { ContentStatus, DifficultyLevel, MediaType, LessonFieldKey } from '@/constants/enums';
 
 import { useLessonEditorFacade } from '../facades/useLessonEditorFacade';
 import { useLessonBlockManager } from '../facades/useLessonBlockManager';
@@ -136,7 +136,7 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
     blockManager.addBlock(blockType);
   };
 
-  const handleSaveLesson = (nextStatus: LessonStatus) => {
+  const handleSaveLesson = (nextStatus: ContentStatus) => {
     submitLesson(nextStatus, blockManager.compileToJson());
   };
 

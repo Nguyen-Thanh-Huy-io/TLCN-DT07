@@ -5,8 +5,8 @@ import {
   NotificationType,
   PostCommentStatus,
   PrismaClient,
-  userRole,
-  userStatus,
+  UserRole,
+  UserStatus,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -20,7 +20,7 @@ const TEST_USERS = [
   {
     email: 'author1@hisgo.test',
     username: 'tacgia_an',
-    role: userRole.USER,
+    role: UserRole.USER,
     firstName: 'Nguyễn Văn',
     lastName: 'An',
     bio: 'Tác giả chuyên viết về lịch sử Thăng Long - Hà Nội.',
@@ -28,7 +28,7 @@ const TEST_USERS = [
   {
     email: 'author2@hisgo.test',
     username: 'tacgia_binh',
-    role: userRole.USER,
+    role: UserRole.USER,
     firstName: 'Trần Thị',
     lastName: 'Bình',
     bio: 'Nghiên cứu sinh lịch sử quân sự Việt Nam thời kỳ kháng chiến.',
@@ -36,7 +36,7 @@ const TEST_USERS = [
   {
     email: 'reader1@hisgo.test',
     username: 'docgia_chi',
-    role: userRole.USER,
+    role: UserRole.USER,
     firstName: 'Lê Văn',
     lastName: 'Chi',
     bio: 'Độc giả yêu thích tìm hiểu lịch sử dân tộc.',
@@ -44,7 +44,7 @@ const TEST_USERS = [
   {
     email: 'reader2@hisgo.test',
     username: 'docgia_dung',
-    role: userRole.USER,
+    role: UserRole.USER,
     firstName: 'Phạm Hoàng',
     lastName: 'Dũng',
     bio: 'Sinh viên ngành sư phạm lịch sử.',
@@ -52,7 +52,7 @@ const TEST_USERS = [
   {
     email: 'reviewer@hisgo.test',
     username: 'nguoi_duyet',
-    role: userRole.ADMIN,
+    role: UserRole.ADMIN,
     firstName: 'Ban',
     lastName: 'Kiểm Duyệt',
     bio: 'Hội đồng biên tập và phê duyệt nội dung HISGO.',
@@ -74,7 +74,7 @@ async function main() {
         role: u.role,
         password: passwordHash,
         verified: true,
-        status: userStatus.ACTIVE,
+        status: UserStatus.ACTIVE,
         tokenVersion: { increment: 1 },
       },
       create: {
@@ -83,7 +83,7 @@ async function main() {
         role: u.role,
         password: passwordHash,
         verified: true,
-        status: userStatus.ACTIVE,
+        status: UserStatus.ACTIVE,
         provider: 'local',
         tokenVersion: 1,
       },

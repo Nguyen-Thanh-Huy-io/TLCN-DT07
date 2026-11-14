@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { ClassificationSectionKey, DifficultyLevel, IconName, LessonStatus } from '@/constants/enums';
+import { ClassificationSectionKey, DifficultyLevel, IconName, ContentStatus } from '@/constants/enums';
 import { LessonMediaItem, SidebarTab } from '../../types/editor.types';
 import { LessonBlockItem, ResourceLinkBlockData } from '../../types/block-builder.types';
 import { LessonItem, TagItem } from '@/types/models';
 import { BlockPropertyInspector } from '../builder/BlockPropertyInspector';
 import { LessonMediaManager } from '../LessonMediaManager';
 import { Badge } from '@/components/common/CommonUi';
-import { DIFFICULTY_LABEL_MAP, LESSON_STATUS_LABEL_MAP, LESSON_STATUS_TONE_MAP } from '@/constants/ui-theme';
+import { DIFFICULTY_LABEL_MAP, STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import { Icon } from '@/components/icons/Icon';
 import { LessonDifficultySelector } from '../LessonEditorHeader';
 import { LessonTagPicker } from '../LessonTagPicker';
@@ -53,7 +53,7 @@ interface LessonPropertiesPanelProps {
   lessonId: string | null;
 
   // Publishing
-  status: LessonStatus;
+  status: ContentStatus;
   wordCount: number;
   estimatedReadMinutes: number;
   sourceReferenceNote: string;
@@ -62,7 +62,7 @@ interface LessonPropertiesPanelProps {
   onAddResourceLink: () => void;
   onUpdateResourceLink: (id: string, updates: Partial<ResourceLinkBlockData>) => void;
   onRemoveResourceLink: (id: string) => void;
-  onSaveLesson: (nextStatus: LessonStatus) => void;
+  onSaveLesson: (nextStatus: ContentStatus) => void;
 
   saving: boolean;
 }
@@ -332,7 +332,7 @@ export function LessonMediaTab({
 
 // --- Merged from LessonPublishingTab.tsx ---
 interface LessonPublishingTabProps {
-  status: LessonStatus;
+  status: ContentStatus;
   wordCount: number;
   estimatedReadMinutes: number;
   sourceReferenceNote: string;
@@ -343,7 +343,7 @@ interface LessonPublishingTabProps {
   onRemoveResourceLink: (id: string) => void;
   saving: boolean;
   lessonId: string | null;
-  onSaveLesson: (nextStatus: LessonStatus) => void;
+  onSaveLesson: (nextStatus: ContentStatus) => void;
 }
 
 /** Tab "Xuất bản" trong Panel Thuộc tính: trạng thái bài học, số liệu, nguồn tư liệu
@@ -366,8 +366,8 @@ export function LessonPublishingTab({
     <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-3.5 animate-in fade-in-50 duration-150">
       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
         <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Trạng thái bài học</span>
-        <Badge tone={LESSON_STATUS_TONE_MAP[status] || 'slate'}>
-          {LESSON_STATUS_LABEL_MAP[status] || status}
+        <Badge tone={STATUS_TONE_MAP[status] || 'slate'}>
+          {STATUS_LABEL_MAP[status] || status}
         </Badge>
       </div>
 
@@ -454,7 +454,7 @@ export function LessonPublishingTab({
       <div className="flex flex-col gap-2 pt-1 border-t border-slate-100">
         <button
           type="button"
-          onClick={() => onSaveLesson(LessonStatus.REVIEW)}
+          onClick={() => onSaveLesson(ContentStatus.PENDING_REVIEW)}
           disabled={saving}
           className="primary-button !h-8 !text-xs !w-full justify-center cursor-pointer font-bold"
         >
@@ -462,7 +462,7 @@ export function LessonPublishingTab({
         </button>
         <button
           type="button"
-          onClick={() => onSaveLesson(LessonStatus.DRAFT)}
+          onClick={() => onSaveLesson(ContentStatus.DRAFT)}
           disabled={saving}
           className="secondary-button !h-8 !text-xs !w-full justify-center cursor-pointer"
         >

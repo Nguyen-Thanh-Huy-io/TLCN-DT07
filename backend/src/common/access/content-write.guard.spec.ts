@@ -1,13 +1,13 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
-import { ContentStatus, userRole } from '@prisma/client';
+import { ContentStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../services/prisma.service';
 import { REVISION_DIRECTIVE_KEY } from '../../content-revision/content-revision.interceptor';
 import { ContentWriteGuard, type ContentResource } from './content-write.guard';
 
 interface FakeRequest {
-  user?: { userId: string; role: userRole };
+  user?: { userId: string; role: UserRole };
   body?: { status?: string };
   params: Record<string, string>;
   [REVISION_DIRECTIVE_KEY]?: { mode: string };
@@ -35,7 +35,7 @@ describe('ContentWriteGuard', () => {
 
   function run(
     resource: ContentResource,
-    role: userRole,
+    role: UserRole,
     request: Omit<FakeRequest, 'user'> = { params: {} },
   ) {
     reflector.get.mockReturnValue(resource);
@@ -48,14 +48,14 @@ describe('ContentWriteGuard', () => {
   }
 
   it('chặn người học (USER) ghi nội dung CMS', async () => {
-    await expect(run({ model: 'topic' }, userRole.USER).result).rejects.toThrow(
+    await expect(run({ model: 'topic' }, UserRole.USER).result).rejects.toThrow(
       ForbiddenException,
     );
   });
 
   it('biên tập viên không tạo thẳng bài viết ở trạng thái PUBLISHED', async () => {
     await expect(
-      run({ model: 'article' }, userRole.MODERATOR, {
+      run({ model: 'article' }, UserRole.MODERATOR, {
         params: {},
         body: { status: ContentStatus.PUBLISHED },
       }).result,
@@ -64,7 +64,7 @@ describe('ContentWriteGuard', () => {
 
   it('biên tập viên tạo bài viết nháp được', async () => {
     await expect(
-      run({ model: 'article' }, userRole.MODERATOR, {
+      run({ model: 'article' }, UserRole.MODERATOR, {
         params: {},
         body: { status: ContentStatus.DRAFT },
       }).result,
@@ -73,7 +73,7 @@ describe('ContentWriteGuard', () => {
 
   it('người duyệt tạo thẳng bài viết PUBLISHED được', async () => {
     await expect(
-      run({ model: 'article' }, userRole.ADMIN, {
+      run({ model: 'article' }, UserRole.ADMIN, {
         params: {},
         body: { status: ContentStatus.PUBLISHED },
       }).result,
@@ -86,7 +86,7 @@ describe('ContentWriteGuard', () => {
     });
 
     await expect(
-      run({ model: 'topic', idParam: 'id' }, userRole.MODERATOR, {
+      run({ model: 'topic', idParam: 'id' }, UserRole.MODERATOR, {
         params: { id: 't-1' },
         body: {},
       }).result,
@@ -100,7 +100,7 @@ describe('ContentWriteGuard', () => {
 
     const { result, req } = run(
       { model: 'article', idParam: 'id', versioned: true },
-      userRole.MODERATOR,
+      UserRole.MODERATOR,
       { params: { id: 'a-1' }, body: {} },
     );
 

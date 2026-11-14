@@ -35,10 +35,10 @@ interface ExtendedLessonItem extends LessonItem {
   };
 }
 
-const REVIEW_TAB_BY_STATUS: Record<string, ReviewTabState> = {
-  REVIEW: ReviewTabState.PENDING,
-  PUBLISHED: ReviewTabState.APPROVED,
-  REJECTED: ReviewTabState.REJECTED,
+const REVIEW_TAB_BY_STATUS: Partial<Record<string, ReviewTabState>> = {
+  [ContentStatus.PENDING_REVIEW]: ReviewTabState.PENDING,
+  [ContentStatus.PUBLISHED]: ReviewTabState.APPROVED,
+  [ContentStatus.REJECTED]: ReviewTabState.REJECTED,
 };
 
 function mapLessonToRow(lesson: LessonItem, currentUserId: string | null): ReviewLessonRow {

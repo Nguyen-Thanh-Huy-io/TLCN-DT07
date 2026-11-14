@@ -12,7 +12,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ReportTargetType, userRole } from '@prisma/client';
+import { ReportTargetType, UserRole } from '@prisma/client';
 import type { Request } from 'express';
 import { RequireRoles } from '../common/access/access.decorator';
 import {
@@ -25,7 +25,7 @@ type AuthedRequest = Request & { user: { userId: string; role: string } };
 
 @ApiTags('Moderation (AI Sentinel & CMS)')
 @Controller('moderation')
-@RequireRoles(userRole.MODERATOR, userRole.ADMIN, userRole.SUPERADMIN)
+@RequireRoles(UserRole.MODERATOR, UserRole.ADMIN, UserRole.SUPERADMIN)
 export class ModerationController {
   constructor(private readonly moderationService: ModerationService) {}
 

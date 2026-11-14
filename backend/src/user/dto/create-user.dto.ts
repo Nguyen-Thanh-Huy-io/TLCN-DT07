@@ -7,7 +7,7 @@ import {
   IsString,
   MinLength,
 } from 'class-validator';
-import { userRole, userStatus } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
 
 export class CreateUserDto {
   @ApiProperty({
@@ -36,23 +36,23 @@ export class CreateUserDto {
   password: string;
 
   @ApiPropertyOptional({
-    enum: userRole,
-    example: userRole.USER,
+    enum: UserRole,
+    example: UserRole.USER,
     description:
       'Vai trò người dùng trong hệ thống (USER, MODERATOR, ADMIN, SUPERADMIN)',
-    default: userRole.USER,
+    default: UserRole.USER,
   })
-  @IsEnum(userRole)
+  @IsEnum(UserRole)
   @IsOptional()
-  role?: userRole;
+  role?: UserRole;
 
   @ApiPropertyOptional({
-    enum: userStatus,
-    example: userStatus.ACTIVE,
+    enum: UserStatus,
+    example: UserStatus.ACTIVE,
     description: 'Trạng thái tài khoản (ACTIVE, INACTIVE, SUSPENDED, BLOCKED)',
-    default: userStatus.ACTIVE,
+    default: UserStatus.ACTIVE,
   })
-  @IsEnum(userStatus)
+  @IsEnum(UserStatus)
   @IsOptional()
-  status?: userStatus;
+  status?: UserStatus;
 }

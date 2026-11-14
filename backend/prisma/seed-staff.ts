@@ -10,7 +10,7 @@
  */
 import 'dotenv/config';
 import * as bcrypt from 'bcryptjs';
-import { PrismaClient, userRole } from '@prisma/client';
+import { PrismaClient, UserRole } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const prisma = new PrismaClient({
@@ -27,18 +27,18 @@ const TEST_STAFF = [
   {
     email: 'editor@hisgo.test',
     username: 'bien_tap_vien',
-    role: userRole.MODERATOR,
+    role: UserRole.MODERATOR,
   },
   {
     email: 'reviewer@hisgo.test',
     username: 'nguoi_duyet',
-    role: userRole.ADMIN,
+    role: UserRole.ADMIN,
   },
   // Người học thường — để thử phân quyền (bị chặn khỏi CMS) và luồng đăng ký lộ trình.
   {
     email: 'learner@hisgo.test',
     username: 'nguoi_hoc_test',
-    role: userRole.USER,
+    role: UserRole.USER,
   },
 ];
 
@@ -46,7 +46,7 @@ async function main() {
   const promoted = await prisma.authUser.updateMany({
     where: { email: SUPERADMIN_EMAIL },
     // tokenVersion tăng để phiên cũ (mang role ADMIN trong token) phải đăng nhập lại.
-    data: { role: userRole.SUPERADMIN, tokenVersion: { increment: 1 } },
+    data: { role: UserRole.SUPERADMIN, tokenVersion: { increment: 1 } },
   });
   console.log(
     `SUPERADMIN ${SUPERADMIN_EMAIL}: ${promoted.count ? 'đã nâng quyền' : 'không tìm thấy'}`,

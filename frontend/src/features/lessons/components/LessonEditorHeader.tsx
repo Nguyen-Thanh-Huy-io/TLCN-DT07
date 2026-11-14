@@ -4,14 +4,14 @@ import React, { RefObject, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
 import { Badge } from '@/components/common/CommonUi';
-import { DifficultyLevel, IconName, LessonStatus } from '@/constants/enums';
+import { DifficultyLevel, IconName, ContentStatus } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
-import { LESSON_STATUS_LABEL_MAP, LESSON_STATUS_TONE_MAP } from '@/constants/ui-theme';
+import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
 import { AutoSaveState, EditorViewMode, LessonHeaderMetaFormProps } from '../types/editor.types';
 
 interface LessonEditorHeaderProps {
   lessonId: string | null;
-  status: LessonStatus;
+  status: ContentStatus;
   saving: boolean;
   autoSaveState: AutoSaveState;
   lastSavedAt: Date | null;
@@ -19,7 +19,7 @@ interface LessonEditorHeaderProps {
   lastSavedTime: string | null;
   showSidebar: boolean;
   onToggleSidebar: () => void;
-  onSaveLesson: (nextStatus: LessonStatus) => void;
+  onSaveLesson: (nextStatus: ContentStatus) => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
   onOpenSidePanel: () => void;
@@ -88,8 +88,8 @@ export function LessonEditorHeader({
           </h1>
         </div>
 
-        <Badge tone={LESSON_STATUS_TONE_MAP[status] || 'gray'}>
-          {LESSON_STATUS_LABEL_MAP[status] || status}
+        <Badge tone={STATUS_TONE_MAP[status] || 'gray'}>
+          {STATUS_LABEL_MAP[status] || status}
         </Badge>
       </div>
 
@@ -117,7 +117,7 @@ export function LessonEditorHeader({
           type="button"
           id="btn-header-submit"
           className="primary-button !h-8 !text-xs md:!text-sm !px-4 cursor-pointer font-bold"
-          onClick={() => onSaveLesson(LessonStatus.REVIEW)}
+          onClick={() => onSaveLesson(ContentStatus.PENDING_REVIEW)}
           disabled={saving}
         >
           {saving ? 'Đang lưu...' : lessonId ? 'Cập nhật' : 'Gửi duyệt'}
@@ -143,7 +143,7 @@ export function LessonEditorHeader({
               type="button"
               onClick={() => {
                 onCloseMoreMenu();
-                onSaveLesson(LessonStatus.DRAFT);
+                onSaveLesson(ContentStatus.DRAFT);
               }}
               disabled={saving}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50 text-slate-700 hover:text-slate-900 cursor-pointer font-medium"

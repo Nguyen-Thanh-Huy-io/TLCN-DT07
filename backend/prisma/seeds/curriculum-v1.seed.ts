@@ -10,7 +10,6 @@ import { randomUUID } from 'crypto';
 import {
   PrismaClient,
   ContentStatus,
-  LessonStatus,
   LearningPathType,
   TopicIcon,
   DifficultyLevel,
@@ -218,7 +217,7 @@ async function main() {
       content: lessonBlocks,
       contentRichText: lessonBlocks.map((b) => ('content' in b ? b.content : '')).join('\n'),
       difficulty: DifficultyLevel.MEDIUM,
-      status: LessonStatus.PUBLISHED,
+      status: ContentStatus.PUBLISHED,
       displayOrder: 1,
     },
     create: {
@@ -229,7 +228,7 @@ async function main() {
       content: lessonBlocks,
       contentRichText: lessonBlocks.map((b) => ('content' in b ? b.content : '')).join('\n'),
       difficulty: DifficultyLevel.MEDIUM,
-      status: LessonStatus.PUBLISHED,
+      status: ContentStatus.PUBLISHED,
       displayOrder: 1,
     },
   });

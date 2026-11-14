@@ -43,6 +43,8 @@ export function HisgoStudioView() {
     setModalSearchTerm,
     quickCreateTitle,
     setQuickCreateTitle,
+    quickCreateTopic,
+    setQuickCreateTopic,
     isQuickCreating,
     showCreatePathModal,
     setShowCreatePathModal,
@@ -243,6 +245,8 @@ export function HisgoStudioView() {
         onClose={() => setShowAddLessonModal(false)}
         quickCreateTitle={quickCreateTitle}
         onQuickCreateTitleChange={setQuickCreateTitle}
+        quickCreateTopic={quickCreateTopic}
+        onQuickCreateTopicChange={setQuickCreateTopic}
         onQuickCreate={handleQuickCreateLesson}
         isQuickCreating={isQuickCreating}
         allLessons={libraryLessons}

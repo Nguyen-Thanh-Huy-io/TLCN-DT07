@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ClassificationSectionKey, ContentStatus, DifficultyLevel, IconName } from '@/constants/enums';
+import { ClassificationSectionKey, DifficultyLevel, IconName, LessonStatus } from '@/constants/enums';
 import { LessonMediaItem, SidebarTab } from '../../types/editor.types';
 import { LessonQuizPanel } from '../LessonQuizPanel';
 import { LessonBlockItem, ResourceLinkBlockData } from '../../types/block-builder.types';
@@ -10,7 +10,7 @@ import { UseQuizEditorReturn } from '../../facades/useQuizEditor';
 import { BlockPropertyInspector } from '../builder/BlockPropertyInspector';
 import { LessonMediaManager } from '../LessonMediaManager';
 import { Badge } from '@/components/common/CommonUi';
-import { DIFFICULTY_LABEL_MAP, STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
+import { DIFFICULTY_LABEL_MAP, LESSON_STATUS_LABEL_MAP, LESSON_STATUS_TONE_MAP } from '@/constants/ui-theme';
 import { Icon } from '@/components/icons/Icon';
 import { LessonDifficultySelector } from '../LessonEditorHeader';
 import { LessonTagPicker } from '../LessonTagPicker';
@@ -57,7 +57,7 @@ interface LessonPropertiesPanelProps {
   quiz: UseQuizEditorReturn;
 
   // Publishing
-  status: ContentStatus | string;
+  status: LessonStatus;
   wordCount: number;
   estimatedReadMinutes: number;
   sourceReferenceNote: string;
@@ -66,7 +66,7 @@ interface LessonPropertiesPanelProps {
   onAddResourceLink: () => void;
   onUpdateResourceLink: (id: string, updates: Partial<ResourceLinkBlockData>) => void;
   onRemoveResourceLink: (id: string) => void;
-  onSaveLesson: (nextStatus: ContentStatus) => void;
+  onSaveLesson: (nextStatus: LessonStatus) => void;
 
   saving: boolean;
 }
@@ -301,7 +301,7 @@ export function LessonPropertiesPanel({
               </p>
               <button
                 type="button"
-                onClick={() => onSaveLesson(ContentStatus.DRAFT)}
+                onClick={() => onSaveLesson(LessonStatus.DRAFT)}
                 disabled={saving}
                 className="text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-3 py-1.5 rounded-lg transition shadow-2xs cursor-pointer inline-flex items-center gap-1.5"
               >
@@ -377,7 +377,7 @@ export function LessonMediaTab({
 
 // --- Merged from LessonPublishingTab.tsx ---
 interface LessonPublishingTabProps {
-  status: ContentStatus | string;
+  status: LessonStatus;
   wordCount: number;
   estimatedReadMinutes: number;
   sourceReferenceNote: string;
@@ -388,7 +388,7 @@ interface LessonPublishingTabProps {
   onRemoveResourceLink: (id: string) => void;
   saving: boolean;
   lessonId: string | null;
-  onSaveLesson: (nextStatus: ContentStatus) => void;
+  onSaveLesson: (nextStatus: LessonStatus) => void;
 }
 
 /** Tab "Xuất bản" trong Panel Thuộc tính: trạng thái bài học, số liệu, nguồn tư liệu
@@ -411,8 +411,8 @@ export function LessonPublishingTab({
     <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-3.5 animate-in fade-in-50 duration-150">
       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
         <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Trạng thái bài học</span>
-        <Badge tone={STATUS_TONE_MAP[status as ContentStatus] || 'slate'}>
-          {STATUS_LABEL_MAP[status as ContentStatus] || (status === ContentStatus.PUBLISHED ? 'Đã xuất bản' : String(status))}
+        <Badge tone={LESSON_STATUS_TONE_MAP[status] || 'slate'}>
+          {LESSON_STATUS_LABEL_MAP[status] || status}
         </Badge>
       </div>
 
@@ -499,7 +499,7 @@ export function LessonPublishingTab({
       <div className="flex flex-col gap-2 pt-1 border-t border-slate-100">
         <button
           type="button"
-          onClick={() => onSaveLesson(ContentStatus.PENDING_REVIEW)}
+          onClick={() => onSaveLesson(LessonStatus.REVIEW)}
           disabled={saving}
           className="primary-button !h-8 !text-xs !w-full justify-center cursor-pointer font-bold"
         >
@@ -507,7 +507,7 @@ export function LessonPublishingTab({
         </button>
         <button
           type="button"
-          onClick={() => onSaveLesson(ContentStatus.DRAFT)}
+          onClick={() => onSaveLesson(LessonStatus.DRAFT)}
           disabled={saving}
           className="secondary-button !h-8 !text-xs !w-full justify-center cursor-pointer"
         >

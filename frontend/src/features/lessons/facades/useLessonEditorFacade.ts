@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { APP_ROUTES } from '@/constants/routes';
-import { ContentStatus, DifficultyLevel, MediaType } from '@/constants/enums';
+import { DifficultyLevel, LessonStatus, MediaType } from '@/constants/enums';
 import { LessonApiService } from '@/services/entities/lesson.service';
 import { TopicApiService } from '@/services/entities/topic.service';
 import { TagApiService } from '@/services/entities/tag.service';
@@ -34,7 +34,7 @@ interface LessonDraftPayload {
 
 interface ExtendedLessonDetail extends Omit<LessonItem, 'topic' | 'status' | 'lessonTags'> {
   topic?: { id?: string; name?: string; slug?: string; parentId?: string | null } | null;
-  status?: ContentStatus | string;
+  status?: LessonStatus;
   sourceReferenceNote?: string;
   tags?: TagItem[];
   lessonTags?: Array<{ tagId?: string; tag?: TagItem }>;
@@ -106,8 +106,9 @@ function buildLessonPayload(params: {
   overrideContent?: unknown;
   thumbnailUrl?: string;
   difficulty: DifficultyLevel;
-  status: ContentStatus;
+  status: LessonStatus;
   displayOrder: number;
+  topicId: string;
 }) {
   const resolvedContent =
     params.overrideContent !== undefined ? params.overrideContent : params.contentRichText.trim() || undefined;
@@ -122,6 +123,7 @@ function buildLessonPayload(params: {
     difficulty: params.difficulty,
     status: params.status,
     displayOrder: Number(params.displayOrder) || 0,
+    topicId: params.topicId,
   };
 }
 
@@ -173,7 +175,7 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
   const [loadingLesson, setLoadingLesson] = useState(false);
 
   const [selectedTopicId, setSelectedTopicId] = useState(queryTopicId);
-  const [status, setStatus] = useState<ContentStatus>(ContentStatus.DRAFT);
+  const [status, setStatus] = useState<LessonStatus>(LessonStatus.DRAFT);
   const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
   const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -212,7 +214,6 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
       const res = await TopicApiService.getTopics({ limit: 100 });
       const items = res?.items || [];
       setTopics(items);
-      setSelectedTopicId((prev) => (!prev && items.length > 0 ? items[0].id : prev));
     } catch {
       setTopics([]);
     }
@@ -315,7 +316,7 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
       setTitle(lesson.title || '');
       setSlug(lesson.slug || '');
       setDescription(lesson.description || lesson.summary || '');
-      setSelectedTopicId(lesson.topic?.id || '');
+      setSelectedTopicId(lesson.topicId || lesson.topic?.id || '');
       setContentRichText(
         lesson.contentRichText || (typeof lesson.content === 'string' ? lesson.content : '') || '',
       );
@@ -324,7 +325,7 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
       setSourceReferenceNote(lesson.sourceReferenceNote || '');
       setThumbnailUrl(lesson.thumbnailUrl || '');
       setDisplayOrder(lesson.displayOrder ?? 0);
-      setStatus(((lesson.status as unknown) as ContentStatus) || ContentStatus.DRAFT);
+      setStatus(lesson.status || LessonStatus.DRAFT);
       setSelectedTags(extractTagsFromLesson(lesson));
       setMediaList(extractMediaFromLesson(lesson));
     },
@@ -368,9 +369,13 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
   const estimatedReadMinutes = useMemo(() => Math.max(1, Math.ceil(wordCount / 200)), [wordCount]);
 
   const submitLesson = useCallback(
-    async (nextStatus: ContentStatus, overrideContent?: unknown) => {
+    async (nextStatus: LessonStatus, overrideContent?: unknown) => {
       if (!title.trim()) {
         alert('Vui lòng nhập tên bài học.');
+        return;
+      }
+      if (!selectedTopicId) {
+        alert('Vui lòng chọn chủ đề cho bài học.');
         return;
       }
 
@@ -386,6 +391,7 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
           difficulty,
           status: nextStatus,
           displayOrder,
+          topicId: selectedTopicId,
         });
 
         setAutoSaveState(AutoSaveState.SYNCING);
@@ -428,6 +434,7 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
       thumbnailUrl,
       difficulty,
       displayOrder,
+      selectedTopicId,
       selectedTags,
       lessonId,
       draftStorageKey,

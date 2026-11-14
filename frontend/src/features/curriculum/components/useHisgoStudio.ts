@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { LearningPathApiService, LearningPathItem, ChapterItem } from '@/services/entities/learning-path.service';
 import { LessonApiService } from '@/services/entities/lesson.service';
 import { LessonItem } from '@/types/models';
+import type { PickedTopic } from '@/features/topics/components/TopicPicker';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
@@ -54,6 +55,7 @@ export function useHisgoStudio() {
   const [modalSearchTerm, setModalSearchTerm] = useState<string>('');
   // Tạo nhanh bài học mới ngay trong modal "Thêm Lesson từ thư viện" — không cần rời trang
   const [quickCreateTitle, setQuickCreateTitle] = useState<string>('');
+  const [quickCreateTopic, setQuickCreateTopic] = useState<PickedTopic | null>(null);
   const [isQuickCreating, setIsQuickCreating] = useState<boolean>(false);
   // Modal: Tạo Lộ trình mới
   // (đã bỏ field "Phân loại lộ trình" — không có tác dụng lọc/hiển thị gì ở phía Lộ
@@ -172,10 +174,13 @@ export function useHisgoStudio() {
   };
   // Tạo nhanh một bài học mới (chỉ cần tiêu đề) và gom luôn vào chương đang mở modal
   const handleQuickCreateLesson = async () => {
-    if (!quickCreateTitle.trim() || !targetChapterForLessons) return;
+    if (!quickCreateTitle.trim() || !quickCreateTopic || !targetChapterForLessons) return;
     try {
       setIsQuickCreating(true);
-      const created = await LessonApiService.createLesson({ title: quickCreateTitle.trim() });
+      const created = await LessonApiService.createLesson({
+        title: quickCreateTitle.trim(),
+        topicId: quickCreateTopic.id,
+      });
       await LearningPathApiService.addLessonsToChapter(targetChapterForLessons.id, [created.id]);
       setQuickCreateTitle('');
       await Promise.all([loadLearningPaths(), loadLibraryLessons()]);
@@ -543,6 +548,8 @@ export function useHisgoStudio() {
     setModalSearchTerm,
     quickCreateTitle,
     setQuickCreateTitle,
+    quickCreateTopic,
+    setQuickCreateTopic,
     isQuickCreating,
     showCreatePathModal,
     setShowCreatePathModal,

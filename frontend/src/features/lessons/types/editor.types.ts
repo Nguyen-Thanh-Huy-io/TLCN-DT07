@@ -1,4 +1,4 @@
-import { ContentStatus, DifficultyLevel, MediaType } from '@/constants/enums';
+import { DifficultyLevel, LessonStatus, MediaType } from '@/constants/enums';
 import { LessonItem } from '@/types/models';
 import { TagItem } from '@/types/models';
 import { TopicItem } from '@/types/models';
@@ -32,7 +32,7 @@ export interface UseLessonEditorFacadeReturn {
   setThumbnailUrl: (val: string) => void;
   displayOrder: number;
   setDisplayOrder: (val: number) => void;
-  status: ContentStatus;
+  status: LessonStatus;
 
   // Media Album
   mediaList: LessonMediaItem[];
@@ -65,7 +65,7 @@ export interface UseLessonEditorFacadeReturn {
   setSelectedTags: (tags: TagItem[]) => void;
 
   // Actions
-  submitLesson: (nextStatus: ContentStatus, overrideContent?: unknown) => Promise<void>;
+  submitLesson: (nextStatus: LessonStatus, overrideContent?: unknown) => Promise<void>;
   /** Bản sửa chờ duyệt đang mở của bài đang xuất bản (form đang hiện bản sửa này). */
   pendingRevision: ContentRevisionItem | null;
   revisionNotice: string | null;

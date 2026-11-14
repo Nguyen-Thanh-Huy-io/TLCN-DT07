@@ -5,6 +5,7 @@ import { KeyboardKey, LessonStatus, IconName } from '@/constants/enums';
 import { Icon } from '@/components/icons/Icon';
 import { ChapterItem } from '@/services/entities/learning-path.service';
 import { LessonItem } from '@/types/models';
+import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicPicker';
 
 const DISABLED_ARROW_CLASS = 'opacity-30 cursor-not-allowed';
 
@@ -17,6 +18,8 @@ interface AddLessonsToChapterModalProps {
   // Tạo nhanh bài học mới ngay trong modal
   quickCreateTitle: string;
   onQuickCreateTitleChange: (value: string) => void;
+  quickCreateTopic: PickedTopic | null;
+  onQuickCreateTopicChange: (topic: PickedTopic | null) => void;
   onQuickCreate: () => void;
   isQuickCreating: boolean;
 
@@ -41,6 +44,8 @@ export function AddLessonsToChapterModal({
   onClose,
   quickCreateTitle,
   onQuickCreateTitleChange,
+  quickCreateTopic,
+  onQuickCreateTopicChange,
   onQuickCreate,
   isQuickCreating,
   allLessons,
@@ -94,13 +99,18 @@ export function AddLessonsToChapterModal({
           <button
             type="button"
             onClick={onQuickCreate}
-            disabled={isQuickCreating || !quickCreateTitle.trim()}
+            disabled={isQuickCreating || !quickCreateTitle.trim() || !quickCreateTopic}
             className="primary-button !h-8 !text-xs !px-3 shrink-0"
           >
             <Icon name={IconName.PLUS} size={13} />
             <span>{isQuickCreating ? 'Đang tạo...' : 'Tạo bài học'}</span>
           </button>
         </div>
+        <TopicPicker
+          value={quickCreateTopic}
+          onChange={onQuickCreateTopicChange}
+          placeholder="Bài học mới thuộc chủ đề nào (bắt buộc)..."
+        />
         <p className="text-xs text-slate-500">
           Bài học được tạo ở dạng bản nháp trống — mở lại trong &quot;Thư viện Lesson&quot; để soạn nội dung chi tiết.
         </p>

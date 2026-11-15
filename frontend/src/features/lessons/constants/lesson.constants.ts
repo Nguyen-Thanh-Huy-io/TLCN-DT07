@@ -3,6 +3,9 @@ import { BlockPaletteItem, LessonBlockGroup, LessonBlockType } from '../types/ed
 
 const ADD_BLOCK_BELOW_LABEL = '+ Thêm khối bên dưới';
 
+/** MIME type dùng cho HTML5 Drag-and-Drop khi kéo khối từ thanh công cụ sang Canvas. */
+export const LESSON_BLOCK_DRAG_MIME = 'application/x-lesson-block';
+
 export const CHARACTER_BLOCK_CONSTANTS = {
   NODE_NAME: 'characterBlock',
   TITLE: 'Nhân vật',
@@ -85,10 +88,12 @@ export const LESSON_BLOCK_ITEMS: BlockPaletteItem[] = [
     description: 'Khối chương truyện đa tầng chứa tiêu đề, ảnh tư liệu, chương con và khối lồng nhau',
     group: LessonBlockGroup.SPECIALIZED,
   },
+  // Gộp "Nhân vật liên quan" vào "Hồ sơ thực thể" và gộp "Thẻ sự kiện" vào "Sự kiện liên quan"
+  // trên bảng chọn khối mới; plugin/renderer cũ vẫn giữ trong Registry để tương thích dữ liệu đã lưu.
   {
     type: LessonBlockType.CHARACTER,
     label: 'Hồ sơ thực thể',
-    description: 'Hồ sơ nhân vật, niên đại, tóm tắt',
+    description: 'Hồ sơ nhân vật, tổ chức, triều đại, địa danh liên quan',
     group: LessonBlockGroup.SPECIALIZED,
   },
   {
@@ -98,21 +103,9 @@ export const LESSON_BLOCK_ITEMS: BlockPaletteItem[] = [
     group: LessonBlockGroup.SPECIALIZED,
   },
   {
-    type: LessonBlockType.RELATED_PEOPLE,
-    label: 'Nhân vật liên quan',
-    description: 'Mạng lưới nhân vật liên quan',
-    group: LessonBlockGroup.SPECIALIZED,
-  },
-  {
     type: LessonBlockType.RELATED_EVENTS,
     label: 'Sự kiện liên quan',
-    description: 'Các sự kiện lịch sử gắn kết',
-    group: LessonBlockGroup.SPECIALIZED,
-  },
-  {
-    type: LessonBlockType.EVENT,
-    label: 'Thẻ sự kiện',
-    description: 'Thẻ diễn biến sự kiện trọng đại',
+    description: 'Thẻ diễn biến và các sự kiện lịch sử gắn kết',
     group: LessonBlockGroup.SPECIALIZED,
   },
   {
@@ -132,6 +125,13 @@ export const LESSON_BLOCK_ITEMS: BlockPaletteItem[] = [
     label: 'Bố cục nhiều cột',
     description: 'Chia bố cục hàng 2 cột, 3 cột linh hoạt',
     group: LessonBlockGroup.ADVANCED,
+  },
+  {
+    type: LessonBlockType.QUIZ,
+    label: 'Ôn tập',
+    description: 'Vài câu tự kiểm tra tại chỗ (soạn mới hoặc lấy từ Ngân hàng)',
+    group: LessonBlockGroup.ADVANCED,
+    lessonOnly: true,
   },
 ];
 

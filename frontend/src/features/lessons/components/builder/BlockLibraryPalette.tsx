@@ -24,7 +24,7 @@ import {
   X,
   LucideIcon,
 } from 'lucide-react';
-import { LESSON_BLOCK_ITEMS } from '../../constants/lesson.constants';
+import { LESSON_BLOCK_DRAG_MIME, LESSON_BLOCK_ITEMS } from '../../constants/lesson.constants';
 import { LessonBlockGroup, LessonBlockType } from '../../types/editor.types';
 
 interface BlockLibraryPaletteProps {
@@ -32,6 +32,8 @@ interface BlockLibraryPaletteProps {
   className?: string;
   allowedBlockTypes?: LessonBlockType[];
   accentColor?: string;
+  /** Hiện cả khối chỉ dành cho Bài học (khối Ôn tập). */
+  includeLessonOnly?: boolean;
 }
 
 export const BLOCK_TYPE_ICONS: Record<string, LucideIcon> = {
@@ -59,12 +61,14 @@ export function BlockLibraryPalette({
   onAddBlock,
   className = '',
   allowedBlockTypes,
+  includeLessonOnly = false,
   accentColor = '#7c4b2e',
 }: BlockLibraryPaletteProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredItems = LESSON_BLOCK_ITEMS.filter((item) => {
-    const isAllowed = !allowedBlockTypes || allowedBlockTypes.includes(item.type);
+    const isAllowed =
+      (!allowedBlockTypes || allowedBlockTypes.includes(item.type)) && (includeLessonOnly || !item.lessonOnly);
     if (!isAllowed) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -93,8 +97,14 @@ export function BlockLibraryPalette({
               <button
                 key={item.type}
                 type="button"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(LESSON_BLOCK_DRAG_MIME, item.type);
+                  e.dataTransfer.effectAllowed = 'copy';
+                }}
                 onClick={() => onAddBlock(item.type)}
-                className="p-2.5 hover:bg-stone-50 rounded-lg text-left transition-colors duration-150 cursor-pointer flex flex-col gap-1.5 group"
+                title={`${item.label} — Bấm hoặc kéo thả vào vùng soạn thảo`}
+                className="p-2.5 hover:bg-stone-50 rounded-lg text-left transition-colors duration-150 cursor-grab active:cursor-grabbing flex flex-col gap-1.5 group"
               >
                 <span
                   className="w-7 h-7 rounded-md border flex items-center justify-center transition-colors duration-150"

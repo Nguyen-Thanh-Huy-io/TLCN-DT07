@@ -81,6 +81,12 @@ export enum AutoSaveState {
   SYNCING = 'SYNCING',
 }
 
+/** Tab chính cấp 1 của trình soạn bài học (tách Thông tin/Hồ sơ khỏi không gian soạn CMS). */
+export enum LessonEditorMainTab {
+  INFO = 'INFO',
+  CMS = 'CMS',
+}
+
 /** Chế độ hiển thị của trình soạn thảo */
 export enum EditorViewMode {
   EDIT = 'EDIT',
@@ -170,6 +176,8 @@ export interface BlockPaletteItem {
   label: string;
   description: string;
   group: LessonBlockGroup;
+  /** Chỉ có ở Bài học (vd. khối Ôn tập) — Bài viết là trang tra cứu nên không hiện. */
+  lessonOnly?: boolean;
 }
 
 export enum EntitySourceType {

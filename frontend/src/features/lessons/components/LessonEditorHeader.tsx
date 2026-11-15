@@ -3,12 +3,10 @@
 import React, { RefObject, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
-import { Badge } from '@/components/common/CommonUi';
-import { ArchiveStatusButton } from '@/components/common/ArchiveStatusButton';
 import { DifficultyLevel, IconName, ContentStatus } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
-import { STATUS_LABEL_MAP, STATUS_TONE_MAP } from '@/constants/ui-theme';
-import { AutoSaveState, EditorViewMode, LessonHeaderMetaFormProps } from '../types/editor.types';
+import { AutoSaveState, EditorViewMode, LessonEditorMainTab, LessonHeaderMetaFormProps } from '../types/editor.types';
+import { LessonHeaderActions } from './LessonHeaderActions';
 
 interface LessonEditorHeaderProps {
   lessonId: string | null;
@@ -19,19 +17,27 @@ interface LessonEditorHeaderProps {
   lastSavedAt: Date | null;
   hasLocalDraft: boolean;
   lastSavedTime: string | null;
-  showSidebar: boolean;
-  onToggleSidebar: () => void;
+  mainTab: LessonEditorMainTab;
+  onChangeMainTab: (tab: LessonEditorMainTab) => void;
+  blockCount: number;
+  hasTopic: boolean;
+  submitHint?: string;
+  canSubmit?: boolean;
+  assigneeName: string;
+  assigneeRoleLabel: string;
   onSaveLesson: (nextStatus: ContentStatus) => void;
-  isFullscreen: boolean;
-  onToggleFullscreen: () => void;
   onOpenSidePanel: () => void;
   onOpenCurriculumPreview: () => void;
   onRestoreDraft: () => void;
+  onDismissDraft: () => void;
   isMoreMenuOpen: boolean;
   onToggleMoreMenu: () => void;
   onCloseMoreMenu: () => void;
   moreMenuRef: RefObject<HTMLDivElement | null>;
 }
+
+const MAIN_TAB_ACTIVE_CLASS = 'bg-white text-slate-900 shadow-2xs';
+const MAIN_TAB_INACTIVE_CLASS = 'text-slate-600 hover:text-slate-900';
 
 /** Thanh header chính (Tầng 1) của LessonEditor: Thoát + tiêu đề + badge trạng thái,
  * trạng thái auto-save, nút Thuộc tính, nút Gửi duyệt/Cập nhật, và menu "•••" cho các
@@ -45,14 +51,19 @@ export function LessonEditorHeader({
   lastSavedAt,
   hasLocalDraft,
   lastSavedTime,
-  showSidebar,
-  onToggleSidebar,
+  mainTab,
+  onChangeMainTab,
+  blockCount,
+  hasTopic,
+  submitHint,
+  canSubmit = true,
+  assigneeName,
+  assigneeRoleLabel,
   onSaveLesson,
-  isFullscreen,
-  onToggleFullscreen,
   onOpenSidePanel,
   onOpenCurriculumPreview,
   onRestoreDraft,
+  onDismissDraft,
   isMoreMenuOpen,
   onToggleMoreMenu,
   onCloseMoreMenu,
@@ -84,142 +95,72 @@ export function LessonEditorHeader({
           <span>Quay lại</span>
         </button>
 
-        <div className="flex items-center gap-2 min-w-0 pr-2 border-r border-slate-200">
+        <div className="flex items-center gap-2 min-w-0">
           <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0" />
           <h1 className="text-sm font-bold text-slate-900 tracking-tight truncate">
             {lessonId ? 'Chỉnh sửa Bài học' : 'Soạn thảo Bài học'}
           </h1>
         </div>
-
-        <Badge tone={STATUS_TONE_MAP[status] || 'gray'}>
-          {STATUS_LABEL_MAP[status] || status}
-        </Badge>
       </div>
 
-      {/* Khối bên phải: Trạng thái lưu, Thuộc tính, Gửi duyệt & Menu chức năng phụ */}
-      <div className="flex items-center gap-2 shrink-0">
-        <AutoSaveIndicator state={autoSaveState} lastSavedAt={lastSavedAt} />
-
-        {/* Nút "Xem trước" đã bỏ ở đây vì trùng với nhóm tab Soạn thảo/Chia đôi/Xem trước ở sub-header. */}
+      {/* Khối giữa: Chuyển 2 tab gọn nhẹ [Thông tin | Nội dung] ngay trên header */}
+      <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/70 shrink-0">
         <button
           type="button"
-          id="btn-header-properties"
-          onClick={onToggleSidebar}
-          className={`!h-8 !text-xs !px-2.5 font-semibold rounded-lg border flex items-center gap-1.5 transition cursor-pointer ${
-            showSidebar
-              ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
-              : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
+          data-testid="tab-lesson-info"
+          onClick={() => onChangeMainTab(LessonEditorMainTab.INFO)}
+          className={`px-3 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+            mainTab === LessonEditorMainTab.INFO ? MAIN_TAB_ACTIVE_CLASS : MAIN_TAB_INACTIVE_CLASS
           }`}
-          title={showSidebar ? 'Đóng panel thuộc tính' : 'Mở panel thuộc tính bài học'}
         >
-          <Icon name={IconName.GRID} size={12} />
-          <span>Thuộc tính</span>
+          <span>Thông tin</span>
+          {!hasTopic && (
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
+              title="Chưa chọn chủ đề"
+            />
+          )}
         </button>
 
-        {lessonId && (
-          <ArchiveStatusButton
-            status={status}
-            isReviewer={isReviewer}
-            disabled={saving}
-            onChangeStatus={onSaveLesson}
-            className="secondary-button !h-8 !text-xs !px-2.5"
-          />
-        )}
-
-        {status !== ContentStatus.ARCHIVED && (
-          <button
-            type="button"
-            id="btn-header-submit"
-            className="primary-button !h-8 !text-xs md:!text-sm !px-4 cursor-pointer font-bold"
-            onClick={() => onSaveLesson(ContentStatus.PENDING_REVIEW)}
-            disabled={saving}
-          >
-            {saving ? 'Đang lưu...' : lessonId ? 'Cập nhật' : 'Gửi duyệt'}
-          </button>
-        )}
-
-        <div className="relative" ref={moreMenuRef}>
-          <button
-            type="button"
-            id="btn-header-more-menu"
-            onClick={onToggleMoreMenu}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition cursor-pointer"
-            title="Thao tác phụ & mở rộng"
-          >
-            <Icon name={IconName.MORE} size={15} />
-          </button>
-
-          <div
-            className={`absolute right-0 mt-1.5 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 text-xs ${
-              isMoreMenuOpen ? 'block animate-in fade-in-50 duration-100' : 'hidden'
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                onCloseMoreMenu();
-                onSaveLesson(ContentStatus.DRAFT);
-              }}
-              disabled={saving}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50 text-slate-700 hover:text-slate-900 cursor-pointer font-medium"
-            >
-              <Icon name={IconName.CHECK} size={14} className="text-emerald-600" />
-              <span>{saving ? 'Đang lưu nháp...' : 'Lưu bản nháp'}</span>
-            </button>
-            {/* Chuyển chế độ Chia đôi: đã có ở nhóm tab Soạn thảo/Chia đôi/Xem trước ở sub-header. */}
-            <button
-              type="button"
-              onClick={() => {
-                onCloseMoreMenu();
-                onToggleFullscreen();
-              }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50 text-slate-700 hover:text-slate-900 cursor-pointer font-medium"
-            >
-              <Icon name={IconName.SEARCH} size={14} className="text-slate-600" />
-              <span>{isFullscreen ? 'Thu nhỏ giao diện' : 'Toàn màn hình (Zen)'}</span>
-            </button>
-            <div className="border-t border-slate-100 my-1" />
-            <button
-              type="button"
-              onClick={() => {
-                onCloseMoreMenu();
-                onOpenSidePanel();
-              }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50 text-slate-700 hover:text-slate-900 cursor-pointer font-medium"
-            >
-              <Icon name={IconName.GRID} size={14} className="text-blue-600" />
-              <span>Trợ lý Cây tri thức</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onCloseMoreMenu();
-                onOpenCurriculumPreview();
-              }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50 text-slate-700 hover:text-slate-900 cursor-pointer font-medium"
-            >
-              <Icon name={IconName.BOOK} size={14} className="text-amber-600" />
-              <span>Sơ đồ lộ trình toàn diện</span>
-            </button>
-            {hasLocalDraft && (
-              <>
-                <div className="border-t border-slate-100 my-1" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    onCloseMoreMenu();
-                    onRestoreDraft();
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-amber-50 text-amber-700 cursor-pointer font-medium"
-                >
-                  <Icon name={IconName.CLOCK} size={14} className="text-amber-600" />
-                  <span>Khôi phục bản nháp ({lastSavedTime})</span>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        <button
+          type="button"
+          data-testid="tab-lesson-cms"
+          onClick={() => onChangeMainTab(LessonEditorMainTab.CMS)}
+          className={`px-3 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+            mainTab === LessonEditorMainTab.CMS ? MAIN_TAB_ACTIVE_CLASS : MAIN_TAB_INACTIVE_CLASS
+          }`}
+        >
+          <span>Nội dung</span>
+          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-slate-200/80 text-slate-700">
+            {blockCount}
+          </span>
+        </button>
       </div>
+
+      {/* Khối bên phải: Cụm công cụ kiểu Sanity (Cảnh báo, Trợ giúp, Phân công, Pill Trạng thái, Lưu, Gửi duyệt, •••) */}
+      <LessonHeaderActions
+        lessonId={lessonId}
+        status={status}
+        isReviewer={isReviewer}
+        saving={saving}
+        autoSaveState={autoSaveState}
+        lastSavedAt={lastSavedAt}
+        hasLocalDraft={hasLocalDraft}
+        lastSavedTime={lastSavedTime}
+        canSubmit={canSubmit}
+        submitHint={submitHint}
+        assigneeName={assigneeName}
+        assigneeRoleLabel={assigneeRoleLabel}
+        onSaveLesson={onSaveLesson}
+        onOpenSidePanel={onOpenSidePanel}
+        onOpenCurriculumPreview={onOpenCurriculumPreview}
+        onRestoreDraft={onRestoreDraft}
+        onDismissDraft={onDismissDraft}
+        isMoreMenuOpen={isMoreMenuOpen}
+        onToggleMoreMenu={onToggleMoreMenu}
+        onCloseMoreMenu={onCloseMoreMenu}
+        moreMenuRef={moreMenuRef}
+      />
     </header>
   );
 }
@@ -393,6 +334,9 @@ export function LessonDifficultySelector({
 // --- Merged from LessonEditorSubHeader.tsx ---
 const ACTIVE_TAB_CLASS = 'bg-white text-slate-900 font-bold shadow-2xs';
 const INACTIVE_TAB_CLASS = 'text-slate-600 hover:text-slate-900';
+const SUBHEADER_TOGGLE_BTN_BASE =
+  'h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 transition cursor-pointer font-medium';
+const SUBHEADER_TOGGLE_BTN_ACTIVE = 'bg-blue-100 text-blue-700 font-bold';
 
 interface LessonEditorSubHeaderProps {
   activeTab: EditorViewMode;
@@ -401,10 +345,13 @@ interface LessonEditorSubHeaderProps {
   onToggleFullscreen: () => void;
   showLeftToc: boolean;
   onToggleLeftToc: () => void;
+  showSidebar?: boolean;
+  onToggleSidebar?: () => void;
+  inline?: boolean;
 }
 
-/** Sub-header (Tầng 2): chuyển chế độ xem Soạn thảo/Chia đôi/Xem trước + nút ẩn/hiện
- * cột "Khối nội dung" bên trái + Toàn màn hình. */
+/** Sub-header: chuyển chế độ xem Soạn thảo/Chia đôi/Xem trước + nút ẩn/hiện
+ * cột "Khối nội dung" bên trái, "Thuộc tính" bên phải + Toàn màn hình. */
 export function LessonEditorSubHeader({
   activeTab,
   onChangeTab,
@@ -412,9 +359,18 @@ export function LessonEditorSubHeader({
   onToggleFullscreen,
   showLeftToc,
   onToggleLeftToc,
+  showSidebar = false,
+  onToggleSidebar,
+  inline = false,
 }: LessonEditorSubHeaderProps) {
   return (
-    <div className="flex items-center justify-between gap-3 bg-slate-50/90 border border-slate-200/80 rounded-xl px-3 py-1.5 shadow-2xs">
+    <div
+      className={
+        inline
+          ? 'flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100'
+          : 'flex items-center justify-between gap-3 bg-slate-50/90 border border-slate-200/80 rounded-xl px-3 py-1.5 shadow-2xs'
+      }
+    >
       <div className="flex items-center bg-slate-200/70 p-0.5 rounded-lg text-xs md:text-sm font-medium">
         <button
           type="button"
@@ -456,8 +412,8 @@ export function LessonEditorSubHeader({
           <button
             type="button"
             onClick={onToggleLeftToc}
-            className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 transition cursor-pointer font-medium ${
-              showLeftToc ? 'bg-blue-100 text-blue-700 font-bold' : ''
+            className={`${SUBHEADER_TOGGLE_BTN_BASE} ${
+              showLeftToc ? SUBHEADER_TOGGLE_BTN_ACTIVE : ''
             }`}
             title={showLeftToc ? 'Ẩn thanh công cụ khối bên trái' : 'Hiện thanh công cụ khối bên trái'}
           >
@@ -466,11 +422,26 @@ export function LessonEditorSubHeader({
           </button>
         )}
 
+        {!isFullscreen && activeTab === EditorViewMode.EDIT && onToggleSidebar && (
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            data-testid="btn-toggle-properties-sidebar"
+            className={`${SUBHEADER_TOGGLE_BTN_BASE} ${
+              showSidebar ? SUBHEADER_TOGGLE_BTN_ACTIVE : ''
+            }`}
+            title={showSidebar ? 'Ẩn bảng thuộc tính khối bên phải' : 'Hiện bảng thuộc tính khối bên phải'}
+          >
+            <Icon name={IconName.SETTINGS} size={14} />
+            <span>Thuộc tính</span>
+          </button>
+        )}
+
         <button
           type="button"
           onClick={onToggleFullscreen}
-          className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 transition cursor-pointer font-medium ${
-            isFullscreen ? 'bg-blue-100 text-blue-700 font-bold' : ''
+          className={`${SUBHEADER_TOGGLE_BTN_BASE} ${
+            isFullscreen ? SUBHEADER_TOGGLE_BTN_ACTIVE : ''
           }`}
           title={isFullscreen ? 'Thu nhỏ giao diện' : 'Mở rộng soạn thảo toàn màn hình'}
         >

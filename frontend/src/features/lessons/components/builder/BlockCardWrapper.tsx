@@ -83,34 +83,46 @@ export function BlockCardWrapper({
       data-block-type={block.type}
       data-block-width={currentWidth}
       onClick={onSelect}
-      className={`relative py-5 border-b border-stone-200 transition-colors duration-150 group/block ${widthCssClass} ${
-        isSelected ? 'border-l-2 border-l-stone-900 pl-4' : ''
+      className={`relative rounded-xl border bg-white transition-all duration-150 group/block ${widthCssClass} ${
+        isSelected
+          ? 'border-blue-500 ring-2 ring-blue-500/15 shadow-sm'
+          : 'border-slate-200 shadow-2xs hover:border-slate-300'
       }`}
     >
-      {/* Thanh thao tác gọn ở góc phải trên khi hover hoặc chọn khối */}
+      {/* Thanh tiêu đề phân tách rõ từng khối: luôn hiển thị nhãn + tay nắm kéo */}
       <div
-        className={`flex items-center justify-between gap-2 mb-3 transition-opacity duration-150 ${
-          isSelected ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'
+        className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-t-xl border-b transition-colors ${
+          isSelected
+            ? 'bg-blue-50/70 border-blue-200/80'
+            : 'bg-slate-50/80 border-slate-100 group-hover/block:bg-slate-100/70'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
           <div
             draggable
             onDragStart={onDragStart}
             data-testid={`drag-handle-${block.id}`}
             title="Kéo thả để sắp xếp thứ tự khối"
-            className="p-1.5 text-stone-700 hover:text-stone-950 cursor-grab active:cursor-grabbing rounded transition-colors"
+            className="p-1 text-slate-500 hover:text-slate-900 cursor-grab active:cursor-grabbing rounded transition-colors shrink-0"
           >
             <GripVertical className="w-4 h-4" />
           </div>
 
-          <span className="text-sm font-semibold text-stone-800">
-            {meta.label} #{index + 1}
+          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600 font-mono shrink-0">
+            #{index + 1}
+          </span>
+
+          <span className="text-xs font-bold text-slate-700 truncate">
+            {meta.label}
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div
+          className={`flex items-center gap-1 transition-opacity duration-150 ${
+            isSelected ? 'opacity-100' : 'opacity-65 group-hover/block:opacity-100'
+          }`}
+        >
           {availableWidths.length > 1 && (
             <div data-testid={`width-selector-${block.id}`} className="flex items-center">
               <select
@@ -176,7 +188,7 @@ export function BlockCardWrapper({
       </div>
 
       {/* Nội dung khối */}
-      <div>{children}</div>
+      <div className="p-4">{children}</div>
     </div>
   );
 }

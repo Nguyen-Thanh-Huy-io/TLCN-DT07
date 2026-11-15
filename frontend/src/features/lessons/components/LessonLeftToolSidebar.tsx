@@ -140,7 +140,7 @@ export function LessonLeftToolSidebar({
       </div>
 
       {mode === LeftSidebarMode.BLOCKS ? (
-        <BlockLibraryPalette onAddBlock={onInsertBlock} className="!w-full border-slate-200 !p-2.5 !shadow-2xs" />
+        <BlockLibraryPalette onAddBlock={onInsertBlock} includeLessonOnly className="!w-full border-slate-200 !p-2.5 !shadow-2xs" />
       ) : (
         <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex flex-col gap-2">
           <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 px-0.5">

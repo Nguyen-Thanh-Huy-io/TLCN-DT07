@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { LessonBlockType, LessonBlockGroup } from '../../types/editor.types';
-import { LESSON_BLOCK_ITEMS } from '../../constants/lesson.constants';
+import { LESSON_BLOCK_DRAG_MIME, LESSON_BLOCK_ITEMS } from '../../constants/lesson.constants';
 import { BLOCK_TYPE_ICONS } from './BlockLibraryPalette';
 
 interface AddBlockDividerProps {
@@ -38,8 +38,9 @@ export function AddBlockDivider({
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(false);
-    const blockType = e.dataTransfer.getData('application/x-lesson-block') as LessonBlockType;
+    const blockType = e.dataTransfer.getData(LESSON_BLOCK_DRAG_MIME) as LessonBlockType;
     if (blockType) {
       onAddBlock(blockType, insertIndex);
     }

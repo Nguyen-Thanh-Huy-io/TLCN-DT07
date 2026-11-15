@@ -14,6 +14,7 @@ import {
   StoryChapterBlockData,
 } from '../../types/block-builder.types';
 import { LessonBlockType } from '../../types/editor.types';
+import { LESSON_BLOCK_DRAG_MIME } from '../../constants/lesson.constants';
 import { BlockWidthStrategy } from '../../strategies/row-layout.strategy';
 import { AddBlockDivider } from './AddBlockDivider';
 import { BlockCardWrapper } from './BlockCardWrapper';
@@ -28,7 +29,8 @@ import { CalloutBlockItemEditor } from './BasicBlockItemEditors';
 import { QuoteBlockItemEditor } from './BasicBlockItemEditors';
 import { StoryChapterBlockEditor } from './StoryChapterBlockEditor';
 import { ImageBlockItemEditor } from './RichBlockItemEditors';
-import type { ImageBlockData } from '../../types/block-builder.types';
+import type { ImageBlockData, QuizBlockData } from '../../types/block-builder.types';
+import { QuizBlockEditor } from './QuizBlockEditor';
 
 interface BlockBuilderCanvasProps {
   blocks: LessonBlockItem[];
@@ -46,6 +48,8 @@ interface BlockBuilderCanvasProps {
   onAddBlockToColumn?: (rowId: string, columnId: string, type: LessonBlockType, atIndex?: number) => void;
   onUpdateBlockInColumn?: (rowId: string, columnId: string, blockId: string, updates: Partial<LessonBlockItem>) => void;
   onRemoveBlockFromColumn?: (rowId: string, columnId: string, blockId: string) => void;
+  /** Chủ đề của bài học — khối Ôn tập dùng để lọc câu khi lấy từ Ngân hàng. */
+  quizTopicId?: string;
 }
 
 export function BlockBuilderCanvas({
@@ -62,6 +66,7 @@ export function BlockBuilderCanvas({
   onAddBlockToColumn,
   onUpdateBlockInColumn,
   onRemoveBlockFromColumn,
+  quizTopicId,
 }: BlockBuilderCanvasProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
@@ -220,6 +225,15 @@ export function BlockBuilderCanvas({
           <ComparisonTableBlockItemEditor
             data={block as ComparisonTableBlockData}
             onChange={(updates) => onUpdateBlock(block.id, updates)}
+          />
+        );
+
+      case LessonBlockType.QUIZ:
+        return (
+          <QuizBlockEditor
+            data={block as QuizBlockData}
+            onChange={(updates) => onUpdateBlock(block.id, updates)}
+            topicId={quizTopicId}
           />
         );
 
@@ -478,8 +492,25 @@ export function BlockBuilderCanvas({
     visualRows.push(currentRow);
   }
 
+  const handleCanvasDrop = (e: React.DragEvent) => {
+    const blockType = e.dataTransfer.getData(LESSON_BLOCK_DRAG_MIME) as LessonBlockType;
+    if (!blockType) return;
+    e.preventDefault();
+    onAddBlock(blockType, blocks.length);
+  };
+
   return (
-    <div data-testid="block-builder-canvas" className="w-full space-y-2">
+    <div
+      data-testid="block-builder-canvas"
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes(LESSON_BLOCK_DRAG_MIME)) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+        }
+      }}
+      onDrop={handleCanvasDrop}
+      className="w-full min-h-[360px] space-y-2"
+    >
       <AddBlockDivider
         insertIndex={0}
         onAddBlock={(type, atIndex) => handleDividerAddOrDrop(type, atIndex)}

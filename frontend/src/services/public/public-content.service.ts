@@ -10,9 +10,16 @@ import type { ArticleKind } from './article-kind';
 
 const API_URL = INTERNAL_API_BASE_URL;
 
+export const CATEGORY_CANONICAL_ROUTES: Record<string, string> = {
+  'nhan-vat': '/nhan-vat',
+  'su-kien': '/su-kien',
+  'di-tich': '/di-tich',
+};
+
 export const PUBLIC_ROUTES = {
+  ARTICLES: '/bai-viet',
   ARTICLE: (slug: string) => `/bai-viet/${slug}`,
-  CATEGORY: (slug: string) => `/chuyen-muc/${slug}`,
+  CATEGORY: (slug: string) => CATEGORY_CANONICAL_ROUTES[slug] ?? `/bai-viet?chuyen-muc=${encodeURIComponent(slug)}`,
   TIMELINES: '/dong-thoi-gian',
   /** Mỗi dòng thời gian hiển thị như 1 "thời kỳ" ở /giai-doan/[slug] (giao diện cũ). */
   TIMELINE: (slug: string) => `/giai-doan/${slug}`,
@@ -80,6 +87,8 @@ export interface EventProfileMeta {
 }
 
 export interface ArticleMetadata {
+  era?: string;
+  region?: string;
   aliases?: string[];
   sources?: string[];
   person?: PersonProfileMeta;
@@ -159,6 +168,14 @@ export interface PublicBlogPostSummary {
   author: { id: string; username: string } | null;
 }
 
+export interface PublicTimelineNodeArticle {
+  id?: string;
+  slug: string;
+  title: string;
+  coverImageUrl: string | null;
+  category: { name: string; slug: string; icon: string | null } | null;
+}
+
 export interface PublicTimelineNode {
   id: string;
   title: string;
@@ -171,7 +188,8 @@ export interface PublicTimelineNode {
   endYear: number | null;
   displayOrder: number;
   dateLabel: string | null;
-  article: { slug: string; title: string; coverImageUrl: string | null; category: { name: string; slug: string; icon: string | null } | null } | null;
+  article: PublicTimelineNodeArticle | null;
+  articles?: PublicTimelineNodeArticle[];
 }
 
 export interface PublicTimeline {

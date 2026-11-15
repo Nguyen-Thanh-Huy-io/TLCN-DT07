@@ -102,6 +102,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   const [tab, setTab] = useState<ArticleEditorTab>(ArticleEditorTab.INFO);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [tags, setTags] = useState<TagItem[]>([]);
+  const [tagSearch, setTagSearch] = useState('');
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
@@ -460,28 +461,43 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
                 placeholder="Bài thuộc phần nào của môn sử (vd. Triều đại nhà Trần)..."
               />
 
-              <label className={`${label} mt-4`}>Tag</label>
-              <div className="flex flex-wrap gap-1.5">
-                {tags.length === 0 && <span className="text-xs text-slate-500">Chưa có tag nào.</span>}
-                {tags.map((t) => {
-                  const on = form.tagIds?.includes(t.id);
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => toggleTag(t.id)}
-                      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                        on ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'
-                      }`}
-                    >
-                      {t.name}
-                    </button>
-                  );
-                })}
+              <div className="mt-4 flex items-center justify-between gap-2">
+                <label className={label}>
+                  Tag {(form.tagIds?.length ?? 0) > 0 && <span className="ml-1 text-slate-400">({form.tagIds?.length})</span>}
+                </label>
+                <Link href={APP_ROUTES.TAGS.LIST} className="text-xs text-slate-500 hover:underline">
+                  Quản lý tag
+                </Link>
               </div>
-              <Link href={APP_ROUTES.TAGS.LIST} className="mt-1 inline-block text-xs text-slate-500 hover:underline">
-                Quản lý tag
-              </Link>
+              {tags.length > 6 && (
+                <input
+                  type="text"
+                  value={tagSearch}
+                  onChange={(e) => setTagSearch(e.target.value)}
+                  placeholder="Tìm nhanh tag..."
+                  className="mb-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-slate-400 focus:bg-white"
+                />
+              )}
+              <div className="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-slate-100 bg-slate-50/60 p-2">
+                {tags.length === 0 && <span className="text-xs text-slate-500">Chưa có tag nào.</span>}
+                {tags
+                  .filter((t) => !tagSearch.trim() || t.name.toLowerCase().includes(tagSearch.trim().toLowerCase()))
+                  .map((t) => {
+                    const on = form.tagIds?.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => toggleTag(t.id)}
+                        className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold transition ${
+                          on ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'
+                        }`}
+                      >
+                        {t.name}
+                      </button>
+                    );
+                  })}
+              </div>
             </div>
 
             <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5">

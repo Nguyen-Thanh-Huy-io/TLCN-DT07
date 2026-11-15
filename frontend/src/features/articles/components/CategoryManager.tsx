@@ -185,7 +185,7 @@ export function CategoryManager() {
                     </td>
                     <td>
                       <a href={PUBLIC_ROUTES.CATEGORY(c.slug)} target="_blank" rel="noreferrer" className="text-xs text-slate-600 hover:underline">
-                        /chuyen-muc/{c.slug}
+                        {PUBLIC_ROUTES.CATEGORY(c.slug)}
                       </a>
                     </td>
                     <td className="text-xs text-slate-600">{items.find((p) => p.id === c.parentId)?.name ?? '—'}</td>

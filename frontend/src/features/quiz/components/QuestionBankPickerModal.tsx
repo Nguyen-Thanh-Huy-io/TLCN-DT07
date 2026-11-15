@@ -27,6 +27,8 @@ interface QuestionBankPickerModalProps {
   onClose: () => void;
   onPick: (questions: QuizQuestion[]) => void;
   alreadySelectedIds?: string[];
+  /** Chủ đề đang soạn (vd. chủ đề của bài học) — mặc định chỉ hiện câu thuộc chủ đề này, có thể bỏ lọc. */
+  topicId?: string;
 }
 
 export function QuestionBankPickerModal({
@@ -34,7 +36,10 @@ export function QuestionBankPickerModal({
   onClose,
   onPick,
   alreadySelectedIds = [],
+  topicId,
 }: QuestionBankPickerModalProps) {
+  const [onlyTopic, setOnlyTopic] = useState(true);
+  const topicFilter = topicId && onlyTopic ? topicId : undefined;
   const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -48,7 +53,7 @@ export function QuestionBankPickerModal({
 
     const timer = setTimeout(() => {
       setLoading(true);
-      QuestionApiService.getQuestions({ limit: 100 })
+      QuestionApiService.getQuestions({ limit: 100, topicId: topicFilter })
         .then((res) => {
           if (!isCancelled) {
             setQuestions(res?.items || []);
@@ -71,7 +76,7 @@ export function QuestionBankPickerModal({
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [isOpen]);
+  }, [isOpen, topicFilter]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -138,7 +143,7 @@ export function QuestionBankPickerModal({
               Chọn câu hỏi từ Ngân hàng đề
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Tích chọn các câu hỏi đã được tạo sẵn để bổ sung vào bộ đề trắc nghiệm này
+              Tích chọn các câu hỏi đã tạo sẵn để thêm vào
             </p>
           </div>
           <button
@@ -193,6 +198,13 @@ export function QuestionBankPickerModal({
               <option value={QuestionDifficultyEnum.MEDIUM}>Trung bình</option>
               <option value={QuestionDifficultyEnum.HARD}>Khó</option>
             </select>
+
+            {topicId && (
+              <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+                <input type="checkbox" checked={onlyTopic} onChange={(e) => setOnlyTopic(e.target.checked)} />
+                Chỉ câu thuộc chủ đề của bài
+              </label>
+            )}
           </div>
 
           <div className="flex items-center justify-between text-xs pt-1">

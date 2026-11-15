@@ -128,6 +128,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
     tocItems,
     compiledHtml,
     resourceLinks,
+    quizBlocks,
     navigationContext,
   } = usePublicLessonReaderFacade(slug, pathId);
 
@@ -214,6 +215,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
         contentRef={contentRef}
         compiledHtml={compiledHtml}
         resourceLinks={resourceLinks}
+        quizBlocks={quizBlocks}
         prevLessonHref={prevLesson ? lessonHref(prevLesson.slug) : null}
         nextLesson={Boolean(nextLesson)}
         onCompleteAndContinue={completeAndContinue}

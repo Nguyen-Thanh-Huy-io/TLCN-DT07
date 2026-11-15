@@ -10,6 +10,8 @@ import {
 import { LessonItem } from '@/types/models';
 import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
 import { buildLessonTocAndHtml, LessonTocEntry, normalizeContentToBlocks } from '@/features/lessons/utils/lesson-toc.util';
+import { collectQuizBlocks } from '@/features/lessons/utils/lesson-quiz.util';
+import type { QuizBlockData } from '@/features/lessons/types/block-builder.types';
 import { ContentStatus } from '@/constants/enums';
 
 const PUBLISHED_STATUS = ContentStatus.PUBLISHED;
@@ -106,19 +108,20 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
   }, [loadData]);
 
   // Biên dịch JSONB Blocks -> Mục lục (TOC) & HTML hiển thị
-  const { tocItems, compiledHtml, resourceLinks } = useMemo<{
+  const { tocItems, compiledHtml, resourceLinks, quizBlocks } = useMemo<{
     tocItems: LessonTocEntry[];
     compiledHtml: string;
     resourceLinks: ResourceLinkBlockData[];
+    quizBlocks: Map<string, QuizBlockData>;
   }>(() => {
     if (!lesson) {
-      return { tocItems: [], compiledHtml: '', resourceLinks: [] };
+      return { tocItems: [], compiledHtml: '', resourceLinks: [], quizBlocks: new Map() };
     }
     const { blocks, resourceLinks: links } = normalizeContentToBlocks(
       lesson.content ?? lesson.contentRichText,
     );
     const { tocItems: toc, html } = buildLessonTocAndHtml(blocks);
-    return { tocItems: toc, compiledHtml: html, resourceLinks: links };
+    return { tocItems: toc, compiledHtml: html, resourceLinks: links, quizBlocks: collectQuizBlocks(blocks) };
   }, [lesson]);
 
   // Tính toán Chương hiện tại, Bài học trước & Bài học tiếp theo trong Lộ trình
@@ -179,6 +182,7 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
     tocItems,
     compiledHtml,
     resourceLinks,
+    quizBlocks,
     navigationContext,
   };
 }

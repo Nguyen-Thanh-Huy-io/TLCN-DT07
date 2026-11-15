@@ -1,4 +1,5 @@
 import { LessonBlockType } from './editor.types';
+import type { QuizQuestion } from './quiz.types';
 
 export interface TimelineNodeMedia {
   id?: string;
@@ -153,10 +154,19 @@ export interface QuizOptionItem {
   isCorrect: boolean;
 }
 
+/** Câu trong khối Ôn tập — cùng dạng câu của Ngân hàng; `sourceQuestionId` = câu gốc khi chép từ Ngân hàng. */
+export type LessonQuizQuestion = QuizQuestion & { sourceQuestionId?: string };
+
+/**
+ * Khối Ôn tập trong bài học: vài câu tự kiểm tra tại chỗ, không chấm điểm, không lưu.
+ * `question` / `options` / `explanation` là dạng cũ (1 câu một đáp án) — chỉ đọc, đọc qua `quizBlockQuestions()`.
+ */
 export interface QuizBlockData extends BaseBlockData {
   type: LessonBlockType.QUIZ;
-  question: string;
-  options: QuizOptionItem[];
+  title?: string;
+  questions?: LessonQuizQuestion[];
+  question?: string;
+  options?: QuizOptionItem[];
   explanation?: string;
 }
 

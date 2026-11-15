@@ -13,6 +13,11 @@ import {
 
 const LEGACY_BLOCK_TYPE_TABLE = 'TABLE';
 const FALLBACK_TEXT_BLOCK_ID = 'text_fallback';
+const FOOTNOTE_TAG_REGEX = /<sup\b[^>]*data-footnote[^>]*>[\s\S]*?<\/sup>/gi;
+
+function stripHtmlForToc(html: string): string {
+  return html.replace(FOOTNOTE_TAG_REGEX, '').replace(/<[^>]*>/g, '').trim();
+}
 
 type HeadingBlockPayload = {
   type?: LessonBlockType | string;
@@ -139,7 +144,7 @@ function renderHeadingBlock(block: LessonBlockItem, ctx: TocCompilerContext): st
     headingData.level && headingData.level >= 1 && headingData.level <= 6
       ? headingData.level
       : 2;
-  const cleanText = (headingData.text || '').replace(/<[^>]*>/g, '').trim();
+  const cleanText = stripHtmlForToc(headingData.text || '');
   if (cleanText) ctx.addTocItem({ id, text: cleanText, level: lvl });
   return `<h${lvl} id="${id}">${cleanText}</h${lvl}>`;
 }
@@ -149,7 +154,7 @@ function renderTextBlock(block: LessonBlockItem, ctx: TocCompilerContext): strin
   const textContent = textData.content || textData.text || '';
   return textContent.replace(/<h([1-3])(\b[^>]*)>(.*?)<\/h\1>/gi, (_orig, lvl, attrs, inner) => {
     const id = ctx.nextHeadingId();
-    const cleanText = inner.replace(/<[^>]*>/g, '').trim();
+    const cleanText = stripHtmlForToc(inner);
     if (cleanText) ctx.addTocItem({ id, text: cleanText, level: parseInt(lvl, 10) });
     return `<h${lvl}${attrs} id="${id}">${inner}</h${lvl}>`;
   });

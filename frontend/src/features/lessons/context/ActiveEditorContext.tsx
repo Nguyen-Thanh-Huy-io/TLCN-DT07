@@ -27,6 +27,8 @@ interface ActiveEditorContextValue {
   setActiveEditor: (editor: Editor | null) => void;
   /** Tăng lên mỗi khi selection hoặc transaction trong TipTap thay đổi để đồng bộ UI Inspector tức thì */
   editorStateVersion: number;
+  /** Cho biết cột phải "Thuộc tính khối" đang hiển thị — khi đang mở thì ẩn Bubble Menu để tránh trùng lặp */
+  isInspectorVisible: boolean;
   /** Lưu trạng thái ô/khối con đang được chọn bên trong một khối phức hợp (VD: Editorial Spread / Bố cục nhiều cột) */
   activeSubElement: ActiveSubElementSelection | null;
   setActiveSubElement: (selection: ActiveSubElementSelection | null) => void;
@@ -39,13 +41,20 @@ const ActiveEditorContext = createContext<ActiveEditorContextValue>({
   activeEditor: null,
   setActiveEditor: () => {},
   editorStateVersion: 0,
+  isInspectorVisible: false,
   activeSubElement: null,
   setActiveSubElement: () => {},
   activeChapterId: null,
   setActiveChapterId: () => {},
 });
 
-export function ActiveEditorProvider({ children }: { children: React.ReactNode }) {
+export function ActiveEditorProvider({
+  children,
+  isInspectorVisible = false,
+}: {
+  children: React.ReactNode;
+  isInspectorVisible?: boolean;
+}) {
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
   const [editorStateVersion, setEditorStateVersion] = useState(0);
   const [activeSubElement, setActiveSubElement] =
@@ -73,12 +82,13 @@ export function ActiveEditorProvider({ children }: { children: React.ReactNode }
       activeEditor,
       setActiveEditor,
       editorStateVersion,
+      isInspectorVisible,
       activeSubElement,
       setActiveSubElement,
       activeChapterId,
       setActiveChapterId,
     }),
-    [activeEditor, editorStateVersion, activeSubElement, activeChapterId]
+    [activeEditor, editorStateVersion, isInspectorVisible, activeSubElement, activeChapterId]
   );
 
   return (

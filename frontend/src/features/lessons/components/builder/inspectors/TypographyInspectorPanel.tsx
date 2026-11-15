@@ -15,9 +15,6 @@ import {
   Quote,
   Eraser,
   Code2,
-  Link2,
-  Image as ImageIcon,
-  Minus,
 } from 'lucide-react';
 import { useActiveEditor } from '../../../context/ActiveEditorContext';
 import { WikiLinkInspectorSection } from '../WikiLinkInspectorSection';
@@ -108,7 +105,6 @@ function TypographyEditorialSection({
   isLinkPanelOpen,
   setIsLinkPanelOpen,
   applyNodeAttr,
-  handleInsertImage,
   preventFocusLoss,
 }: {
   ed: ReturnType<typeof useActiveEditor>['activeEditor'];
@@ -119,7 +115,6 @@ function TypographyEditorialSection({
   isLinkPanelOpen: boolean;
   setIsLinkPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
   applyNodeAttr: (updates: Record<string, unknown>) => void;
-  handleInsertImage: () => void;
   preventFocusLoss: (e: React.MouseEvent) => void;
 }) {
   return (
@@ -174,49 +169,6 @@ function TypographyEditorialSection({
         </div>
       </div>
 
-      <div className="pt-3 border-t border-stone-200 space-y-2">
-        <div className="text-xs font-bold uppercase tracking-wider text-stone-700">
-          Chèn vào văn bản
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            data-testid="btn-toggle-wiki-link-panel"
-            onMouseDown={preventFocusLoss}
-            onClick={() => setIsLinkPanelOpen((prev) => !prev)}
-            className={`py-2 px-2 border rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-              isLinkPanelOpen || ed?.isActive('link')
-                ? BTN_ACTIVE_CLASS
-                : BTN_INACTIVE_CLASS
-            }`}
-            title="Gắn liên kết văn bản (Ctrl+K)"
-          >
-            <Link2 className="w-4 h-4" />
-            <span>Liên kết</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={preventFocusLoss}
-            onClick={handleInsertImage}
-            className={`py-2 px-2 border rounded-lg text-sm font-medium text-stone-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${BTN_INACTIVE_CLASS}`}
-            title="Chèn hình ảnh"
-          >
-            <ImageIcon className="w-4 h-4 text-stone-700" />
-            <span>Ảnh</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={preventFocusLoss}
-            onClick={() => ed?.chain().focus().setHorizontalRule().run()}
-            className={`py-2 px-2 border rounded-lg text-sm font-medium text-stone-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${BTN_INACTIVE_CLASS}`}
-            title="Chèn đường kẻ ngang"
-          >
-            <Minus className="w-4 h-4 text-stone-700" />
-            <span>Kẻ ngang</span>
-          </button>
-        </div>
-      </div>
-
       <WikiLinkInspectorSection
         editor={ed}
         isOpen={isLinkPanelOpen}
@@ -256,27 +208,19 @@ export function TypographyInspectorPanel({
   const currentColor = markAttrs.color || '#1c1917';
   const currentBgColor = markAttrs.backgroundColor || '';
 
-  const applyInlineAttr = (updates: Record<string, string | null>) => {
+  const applyInlineAttr = (updates: Record<string, string | null>, shouldFocus = true) => {
     if (!ed) return;
     const merged = { ...markAttrs, ...updates };
-    ed.chain().focus().setMark('inlineTypography', merged).run();
+    const chain = ed.chain();
+    if (shouldFocus) {
+      chain.focus();
+    }
+    chain.setMark('inlineTypography', merged).run();
   };
 
   const applyNodeAttr = (updates: Record<string, unknown>) => {
     if (!ed) return;
     ed.chain().focus().updateAttributes(nodeType, updates).run();
-  };
-
-  const handleInsertImage = () => {
-    if (!ed) return;
-    const url = window.prompt('Nhập đường dẫn hình ảnh:');
-    if (!url || !url.trim()) return;
-    ed.chain()
-      .focus()
-      .insertContent(
-        `<figure class="wiki-media-block"><img src="${url.trim()}" alt="Tư liệu lịch sử" /><figcaption>Chú thích ảnh...</figcaption></figure><p></p>`
-      )
-      .run();
   };
 
   const preventFocusLoss = (e: React.MouseEvent) => e.preventDefault();
@@ -392,7 +336,7 @@ export function TypographyInspectorPanel({
             max={48}
             value={currentSizePx}
             onChange={(e) =>
-              applyInlineAttr({ fontSize: `${Number(e.target.value) || 16}px` })
+              applyInlineAttr({ fontSize: `${Number(e.target.value) || 16}px` }, false)
             }
             title="Cỡ chữ"
             className="w-16 text-sm font-bold text-stone-900 bg-white border border-stone-300 rounded-lg px-2.5 py-2 focus:outline-none focus:border-stone-900 text-center shrink-0"
@@ -477,7 +421,7 @@ export function TypographyInspectorPanel({
             <input
               type="color"
               value={currentColor}
-              onChange={(e) => applyInlineAttr({ color: e.target.value })}
+              onChange={(e) => applyInlineAttr({ color: e.target.value }, false)}
               className="w-7 h-7 rounded border border-stone-300 p-0.5 cursor-pointer bg-white"
             />
             <span className="text-xs font-mono text-stone-700 uppercase">
@@ -505,7 +449,7 @@ export function TypographyInspectorPanel({
               type="color"
               value={currentBgColor}
               onChange={(e) =>
-                applyInlineAttr({ backgroundColor: e.target.value })
+                applyInlineAttr({ backgroundColor: e.target.value }, false)
               }
               className="w-7 h-7 rounded border border-stone-300 p-0.5 cursor-pointer bg-white"
             />
@@ -523,7 +467,6 @@ export function TypographyInspectorPanel({
           isLinkPanelOpen={isLinkPanelOpen}
           setIsLinkPanelOpen={setIsLinkPanelOpen}
           applyNodeAttr={applyNodeAttr}
-          handleInsertImage={handleInsertImage}
           preventFocusLoss={preventFocusLoss}
         />
       )}

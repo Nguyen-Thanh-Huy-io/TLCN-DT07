@@ -11,7 +11,9 @@ import { HubSyllabus, chapterLabel } from '../hub/HubReaderParts';
 import { LessonItem } from '@/types/models';
 import { LearningPathItem } from '@/services/entities/learning-path.service';
 import { LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
-import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
+import type { QuizBlockData, ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
+import { useLessonQuizIslands } from '../hub/LessonQuizIslands';
+import { useLessonAnnotations } from '@/features/lessons/hooks/useLessonAnnotations';
 import { LessonAccessState } from '../../facades/usePublicLessonReaderFacade';
 import { HubLessonGate } from '../hub/HubReaderParts';
 import { X, ExternalLink, BookOpen, CheckCircle2, Clock3, ArrowRight, ChevronLeft, ArrowLeft } from 'lucide-react';
@@ -33,6 +35,7 @@ interface LessonReaderMainLayoutProps {
   contentRef: React.RefObject<HTMLDivElement | null>;
   compiledHtml: string;
   resourceLinks: ResourceLinkBlockData[];
+  quizBlocks: Map<string, QuizBlockData>;
   prevLessonHref?: string | null;
   nextLesson?: boolean;
   onCompleteAndContinue: () => void;
@@ -63,6 +66,7 @@ export function LessonReaderMainLayout({
   contentRef,
   compiledHtml,
   resourceLinks,
+  quizBlocks,
   prevLessonHref,
   nextLesson,
   onCompleteAndContinue,
@@ -119,6 +123,7 @@ export function LessonReaderMainLayout({
             contentRef={contentRef}
             compiledHtml={compiledHtml}
             resourceLinks={resourceLinks}
+            quizBlocks={quizBlocks}
           />
 
           <div className="xl:hidden">
@@ -294,13 +299,17 @@ interface LessonReaderArticleProps {
   contentRef: React.RefObject<HTMLDivElement | null>;
   compiledHtml: string;
   resourceLinks: ResourceLinkBlockData[];
+  quizBlocks: Map<string, QuizBlockData>;
 }
 
 export function LessonReaderArticle({
   contentRef,
   compiledHtml,
   resourceLinks,
+  quizBlocks,
 }: LessonReaderArticleProps) {
+  const quizIslands = useLessonQuizIslands(contentRef, compiledHtml, quizBlocks);
+  const annotationTooltip = useLessonAnnotations(contentRef, compiledHtml);
   return (
     <article className="rounded-2xl border border-lh-line bg-lh-surface p-6 md:p-9">
       <div
@@ -313,6 +322,8 @@ export function LessonReaderArticle({
           ),
         }}
       />
+      {quizIslands}
+      {annotationTooltip}
       {resourceLinks.length > 0 && (
         <div className="mt-8 border-t border-lh-line pt-6">
           <h2 className="font-[family-name:var(--font-heading)] text-lg font-bold text-lh-ink">

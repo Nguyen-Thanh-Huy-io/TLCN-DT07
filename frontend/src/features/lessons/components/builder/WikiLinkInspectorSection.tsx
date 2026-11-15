@@ -29,6 +29,7 @@ export function WikiLinkInspectorSection({
   onOpenChange,
 }: WikiLinkInspectorSectionProps) {
   const activeHref = (editor?.getAttributes('link').href as string) || '';
+  const activeTooltip = (editor?.getAttributes('link').tooltip as string) || '';
   const isLinkActive = Boolean(editor?.isActive('link') && activeHref);
 
   const [targetType, setTargetType] = useState<WikiLinkTargetType>(
@@ -36,6 +37,7 @@ export function WikiLinkInspectorSection({
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [externalUrl, setExternalUrl] = useState('');
+  const [tooltipText, setTooltipText] = useState('');
   const [candidates, setCandidates] = useState<IWikiLinkCandidate[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -46,6 +48,7 @@ export function WikiLinkInspectorSection({
   useEffect(() => {
     void Promise.resolve().then(() => {
       if (!editor) return;
+      setTooltipText(activeTooltip);
       if (activeHref) {
         const detected = WikiLinkTargetStrategyFactory.detectTargetTypeFromHref(activeHref);
         setTargetType(detected);
@@ -60,7 +63,7 @@ export function WikiLinkInspectorSection({
         }
       }
     });
-  }, [editor, activeHref, isOpen]);
+  }, [editor, activeHref, activeTooltip, isOpen]);
 
   // Hỗ trợ phím tắt Ctrl + K / Cmd + K để mở nhanh khung gắn liên kết
   useEffect(() => {
@@ -112,6 +115,7 @@ export function WikiLinkInspectorSection({
     if (!editor || !href.trim()) return;
     const { from, to } = editor.state.selection;
     const hasSelection = to > from;
+    const cleanTooltip = tooltipText.trim() || null;
 
     if (hasSelection || editor.isActive('link')) {
       editor
@@ -119,21 +123,34 @@ export function WikiLinkInspectorSection({
         .focus()
         .extendMarkRange('link')
         .setLink({ href: href.trim() })
+        .updateAttributes('link', { tooltip: cleanTooltip })
         .run();
     } else if (fallbackLabel) {
+      const tooltipAttr = cleanTooltip ? ` data-tooltip="${cleanTooltip.replace(/"/g, '&quot;')}"` : '';
       editor
         .chain()
         .focus()
-        .insertContent(`<a href="${href.trim()}">${fallbackLabel}</a> `)
+        .insertContent(`<a href="${href.trim()}"${tooltipAttr}>${fallbackLabel}</a> `)
         .run();
     } else {
+      const tooltipAttr = cleanTooltip ? ` data-tooltip="${cleanTooltip.replace(/"/g, '&quot;')}"` : '';
       editor
         .chain()
         .focus()
-        .insertContent(`<a href="${href.trim()}">${href.trim()}</a> `)
+        .insertContent(`<a href="${href.trim()}"${tooltipAttr}>${href.trim()}</a> `)
         .run();
     }
     onOpenChange(false);
+  };
+
+  const handleSaveTooltipOnly = () => {
+    if (!editor || !isLinkActive) return;
+    editor
+      .chain()
+      .focus()
+      .extendMarkRange('link')
+      .updateAttributes('link', { tooltip: tooltipText.trim() || null })
+      .run();
   };
 
   const handleUnlink = () => {
@@ -205,6 +222,38 @@ export function WikiLinkInspectorSection({
           </div>
         </div>
       )}
+
+      {/* Mô tả nhanh khi rê chuột (tùy chọn) */}
+      <div className="space-y-1">
+        <label className="block text-xs font-semibold text-stone-700">
+          Mô tả nhanh khi rê chuột (tùy chọn)
+        </label>
+        <div className="flex items-center gap-1.5">
+          <input
+            type="text"
+            value={tooltipText}
+            onChange={(e) => setTooltipText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === KeyboardKey.ENTER && isLinkActive) {
+                e.preventDefault();
+                handleSaveTooltipOnly();
+              }
+            }}
+            placeholder="Để trống nếu tự lấy tóm tắt bài viết..."
+            data-testid="input-wiki-link-tooltip"
+            className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 text-stone-900 placeholder:text-stone-500"
+          />
+          {isLinkActive && (
+            <button
+              type="button"
+              onClick={handleSaveTooltipOnly}
+              className="px-2.5 py-1.5 text-xs font-semibold bg-stone-900 text-white rounded-lg hover:bg-stone-800 cursor-pointer shrink-0"
+            >
+              Lưu
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Chọn loại đích liên kết: Thực thể | Sự kiện | Trang web */}
       <div className="grid grid-cols-3 gap-1.5">

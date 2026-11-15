@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { Badge } from '@/components/common/CommonUi';
 import { IconName } from '@/constants/enums';
@@ -10,6 +10,9 @@ import { TagItem } from '@/types/models';
 import { LessonMediaItem } from '../types/editor.types';
 import { TocItem } from '../types/editor.types';
 import { sanitizeRichHtml } from '@/utils/common';
+import type { QuizBlockData } from '../types/block-builder.types';
+import { useLessonQuizIslands } from '@/features/public-curriculum/components/hub/LessonQuizIslands';
+import { useLessonAnnotations } from '../hooks/useLessonAnnotations';
 
 export type { TocItem };
 
@@ -28,6 +31,8 @@ interface LessonPreviewContentProps {
   estimatedReadMinutes: number;
   selectedTags: TagItem[];
   enrichedPreviewHtml: string;
+  /** Khối Ôn tập trong bài — xem trước làm được như trang đọc thật. */
+  quizBlocks: Map<string, QuizBlockData>;
   visualMediaItems: LessonMediaItem[];
   documentMediaItems: LessonMediaItem[];
   sourceReferenceNote: string;
@@ -48,10 +53,14 @@ export function LessonPreviewContent({
   estimatedReadMinutes,
   selectedTags,
   enrichedPreviewHtml,
+  quizBlocks,
   visualMediaItems,
   documentMediaItems,
   sourceReferenceNote,
 }: LessonPreviewContentProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const quizIslands = useLessonQuizIslands(contentRef, enrichedPreviewHtml, quizBlocks);
+  const annotationTooltip = useLessonAnnotations(contentRef, enrichedPreviewHtml);
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs h-full overflow-y-auto">
       <div className={`flex flex-col gap-6 items-start ${compact ? '' : 'lg:flex-row'}`}>
@@ -155,6 +164,7 @@ export function LessonPreviewContent({
           </div>
 
           <div
+            ref={contentRef}
             className="tiptap-content-box !p-0 flex-1 leading-relaxed text-slate-800"
             dangerouslySetInnerHTML={{
               __html: sanitizeRichHtml(
@@ -163,6 +173,8 @@ export function LessonPreviewContent({
               ),
             }}
           />
+          {quizIslands}
+          {annotationTooltip}
 
           {visualMediaItems.length > 0 && (
             <div className="mt-8 pt-5 border-t border-slate-200">

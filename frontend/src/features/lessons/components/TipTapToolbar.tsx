@@ -127,6 +127,22 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   }, [editor]);
 
+  const handleInsertFootnote = useCallback(() => {
+    if (!editor) return;
+    const currentNote = (editor.getAttributes('footnote').note as string) || '';
+    const note = window.prompt(
+      'Nhập nội dung chú thích (số thứ tự tự động cộng dần):',
+      currentNote,
+    );
+    if (note === null || !note.trim()) return;
+    const { from, to } = editor.state.selection;
+    if (to > from && !editor.isActive('footnote')) {
+      editor.chain().focus().setTextSelection(to).insertFootnote(note.trim()).run();
+      return;
+    }
+    editor.chain().focus().insertFootnote(note.trim()).run();
+  }, [editor]);
+
   if (!editor) {
     return null;
   }
@@ -265,6 +281,7 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
           onAddImageUrl={handleAddImageByUrl}
           onAddYoutube={handleAddYoutube}
           onSetLink={handleSetLink}
+          onInsertFootnote={handleInsertFootnote}
           uploading={uploading}
         />
       </div>
@@ -282,6 +299,7 @@ interface TipTapPlusDropdownProps {
   onAddImageUrl: () => void;
   onAddYoutube: () => void;
   onSetLink: () => void;
+  onInsertFootnote: () => void;
   uploading: boolean;
 }
 
@@ -293,6 +311,7 @@ export function TipTapPlusDropdown({
   onAddImageUrl,
   onAddYoutube,
   onSetLink,
+  onInsertFootnote,
   uploading,
 }: TipTapPlusDropdownProps) {
   const plusMenuRef = useRef<HTMLDivElement>(null);
@@ -373,6 +392,17 @@ export function TipTapPlusDropdown({
           >
             <span className="text-blue-500">📎</span>
             <span>Gắn liên kết tham khảo</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onInsertFootnote();
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-amber-50 text-slate-700 hover:text-amber-800 flex items-center gap-2 cursor-pointer"
+          >
+            <span className="text-amber-600 font-bold">※</span>
+            <span>Chèn chú thích đánh số</span>
           </button>
         </div>
       )}

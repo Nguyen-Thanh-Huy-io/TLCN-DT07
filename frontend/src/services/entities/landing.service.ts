@@ -220,6 +220,8 @@ function toFigureProfile(
 
   return {
     ...toFigure(a),
+    era: a.metadata?.era ?? null,
+    region: a.metadata?.region ?? null,
     roles: person.roles ?? [],
     legacy: {
       hometown: person.hometown ?? null,

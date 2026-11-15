@@ -266,6 +266,8 @@ export interface PublicFigureLegacyDto {
 }
 
 export interface PublicFigureProfileDto extends PublicFigureDto {
+  era: string | null;
+  region: string | null;
   roles: string[];
   legacy: PublicFigureLegacyDto;
   aliases: string[];

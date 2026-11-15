@@ -172,11 +172,11 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[var(--bg-header)] backdrop-blur-md border-b border-[var(--border)] transition-all">
-      <div className="max-w-[1280px] mx-auto px-6 lg:px-8 h-16 md:h-20 flex items-center justify-between">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-8 h-16 md:h-20 flex items-center justify-between gap-4">
         {/* Left: Logo Hoa Sen + Text HISGO */}
         <Link
           href="/"
-          className="flex items-center gap-3 group select-none"
+          className="flex items-center gap-3 shrink-0 group select-none"
         >
           {/* Lotus Flower SVG 7 cánh thanh thoát (2 sắc độ --gold và --gold-light) */}
           <div className="text-[var(--gold)] flex items-center justify-center transition-transform group-hover:scale-105">
@@ -228,7 +228,7 @@ export function Header({
         </Link>
 
         {/* Center: Desktop Navigation Bar */}
-        <nav className="hidden xl:flex items-center gap-6 2xl:gap-9">
+        <nav className="hidden xl:flex items-center gap-4 2xl:gap-6">
           {navLinks.slice(0, 5).map((link) => {
             const isActive =
               link.id === NavLinkId.BLOG
@@ -307,7 +307,7 @@ export function Header({
         </nav>
 
         {/* Right: Search, User Login & Mobile Hamburger */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 shrink-0">
           <GlobalSearch />
           {user && <NotificationBell />}
           {user ? (
@@ -330,7 +330,7 @@ export function Header({
                     {user.username?.slice(0, 2).toUpperCase() || user.email.slice(0, 2).toUpperCase()}
                   </span>
                 )}
-                <span className="hidden 2xl:inline max-w-[140px] truncate">{user.displayName || user.username || user.email}</span>
+                <span className="hidden 2xl:inline max-w-[110px] truncate">{user.displayName || user.username || user.email}</span>
               </button>
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] py-1.5 shadow-xl z-50">

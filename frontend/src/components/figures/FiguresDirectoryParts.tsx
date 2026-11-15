@@ -2,7 +2,7 @@
 
 import { Landmark, Network, Users, ArrowDownUp, Search, SlidersHorizontal, X, ArrowRight, ArrowUpRight, Clock3, History, Quote } from 'lucide-react';
 import { Heading, Button, Input, Badge } from '@/components/timeline/TimelineChrome';
-import { paletteFor, type FigureView } from './figure-utils';
+import { paletteFor, personRoleLabel, type FigureView } from './figure-utils';
 import { useId } from 'react';
 import { RemoteImage } from '@/components/common/RemoteImage';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -86,14 +86,23 @@ export interface FilterOption {
 
 /** Mỗi nhóm chọn nhiều; mảng rỗng = không lọc theo nhóm đó. */
 export interface FigureFilters {
+  roles: string[];
+  articleEras: string[];
+  regions: string[];
   eras: string[];
   subs: string[];
 }
 
-export const EMPTY_FIGURE_FILTERS: FigureFilters = { eras: [], subs: [] };
+export const EMPTY_FIGURE_FILTERS: FigureFilters = {
+  roles: [],
+  articleEras: [],
+  regions: [],
+  eras: [],
+  subs: [],
+};
 
 export function figureFilterCount(f: FigureFilters): number {
-  return f.eras.length + f.subs.length;
+  return f.roles.length + f.articleEras.length + f.regions.length + f.eras.length + f.subs.length;
 }
 
 const SORT_LABELS: Record<FigureSort, string> = {
@@ -310,7 +319,7 @@ export function FigureCard({ figure: f, onOpen }: { figure: FigureView; onOpen: 
         {roles.length > 0 && (
           <div className="sk-figure-role-badges">
             {roles.map((r) => (
-              <Badge key={r}>{r}</Badge>
+              <Badge key={r}>{personRoleLabel(r)}</Badge>
             ))}
           </div>
         )}
@@ -361,5 +370,100 @@ export function FiguresGrid({ figures, onOpen }: { figures: FigureView[]; onOpen
         ))}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+export interface SidebarFilterItem {
+  id: string;
+  label: string;
+  count: number;
+}
+
+function SidebarFilterGroup({
+  title,
+  items,
+  selected,
+  onToggle,
+}: {
+  title: string;
+  items: SidebarFilterItem[];
+  selected: string[];
+  onToggle: (id: string) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div className="sk-sidebar-group">
+      <span className="sk-sidebar-label">{title}</span>
+      {items.map((item) => {
+        const active = selected.includes(item.id);
+        return (
+          <Button
+            key={item.id}
+            className={`sk-role-filter ${active ? "sk-active" : ""}`}
+            aria-pressed={active}
+            onClick={() => onToggle(item.id)}
+          >
+            <span className="sk-role-filter-text">{item.label}</span>
+            <small>{item.count}</small>
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function FiguresSidebar({
+  filters,
+  onToggle,
+  onReset,
+  regionOptions,
+  articleEraOptions,
+  roleOptions,
+  eraOptions,
+}: {
+  filters: FigureFilters;
+  onToggle: (key: keyof FigureFilters, id: string) => void;
+  onReset: () => void;
+  regionOptions: SidebarFilterItem[];
+  articleEraOptions: SidebarFilterItem[];
+  roleOptions: SidebarFilterItem[];
+  eraOptions: SidebarFilterItem[];
+}) {
+  const activeCount = figureFilterCount(filters);
+  return (
+    <aside className="sk-figures-sidebar" aria-label="Bộ lọc nhanh nhân vật">
+      {activeCount > 0 && (
+        <div className="sk-sidebar-reset">
+          <span>Đang lọc ({activeCount})</span>
+          <Button onClick={onReset}>
+            <X size={12} /> Bỏ chọn
+          </Button>
+        </div>
+      )}
+      <SidebarFilterGroup
+        title="PHẠM VI"
+        items={regionOptions}
+        selected={filters.regions}
+        onToggle={(id) => onToggle("regions", id)}
+      />
+      <SidebarFilterGroup
+        title="KỶ NGUYÊN"
+        items={articleEraOptions}
+        selected={filters.articleEras}
+        onToggle={(id) => onToggle("articleEras", id)}
+      />
+      <SidebarFilterGroup
+        title="VAI TRÒ"
+        items={roleOptions}
+        selected={filters.roles}
+        onToggle={(id) => onToggle("roles", id)}
+      />
+      <SidebarFilterGroup
+        title="THỜI KỲ"
+        items={eraOptions}
+        selected={filters.eras}
+        onToggle={(id) => onToggle("eras", id)}
+      />
+    </aside>
   );
 }

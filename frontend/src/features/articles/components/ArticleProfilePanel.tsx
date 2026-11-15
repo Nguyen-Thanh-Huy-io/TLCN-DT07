@@ -20,6 +20,7 @@ import { YearInput } from './YearInput';
 import { EventPeoplePanel, InTimelinesPanel, PersonLifePreview } from './ArticleConnections';
 import { ArticlePicker } from './ArticlePicker';
 import { resolveCategoryKind, type ArticleKind } from '@/services/public/article-kind';
+import { ARTICLE_ERA_LABELS, ARTICLE_REGION_LABELS } from '@/components/figures/figure-utils';
 
 export type { ArticleKind };
 
@@ -188,6 +189,38 @@ export function ArticleProfilePanel({
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="space-y-6">
         <Section title="Thông tin chung" hint="Áp dụng cho mọi loại bài. Tên gọi khác được dùng khi tìm kiếm.">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className={labelCls}>Phạm vi</label>
+              <select
+                className={input}
+                value={m.region ?? ''}
+                onChange={(ev) => setTop('region', ev.target.value || undefined)}
+              >
+                <option value="">-- Chưa chọn --</option>
+                {Object.entries(ARTICLE_REGION_LABELS).map(([code, label]) => (
+                  <option key={code} value={code}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Kỷ nguyên</label>
+              <select
+                className={input}
+                value={m.era ?? ''}
+                onChange={(ev) => setTop('era', ev.target.value || undefined)}
+              >
+                <option value="">-- Chưa chọn --</option>
+                {Object.entries(ARTICLE_ERA_LABELS).map(([code, label]) => (
+                  <option key={code} value={code}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           <ListField label="Tên gọi khác / tên cổ" values={m.aliases} onChange={(v) => setTop('aliases', v)} placeholder="vd. Trần Quốc Tuấn" />
           <ListField label="Tư liệu tham khảo" values={m.sources} onChange={(v) => setTop('sources', v)} placeholder="vd. Đại Việt sử ký toàn thư" />
         </Section>

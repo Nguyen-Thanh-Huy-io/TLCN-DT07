@@ -67,9 +67,17 @@ function formatYear(year: number | null): string | null {
   return year < 0 ? `${Math.abs(year)} TCN` : `${year}`;
 }
 
+function formatDateLabel(raw: string | null | undefined, year: number | null): string | null {
+  if (!raw) return formatYear(year);
+  return raw
+    .replace(/(\d)(?=\p{Lu}\p{Ll})/gu, "$1 · ")
+    .replace(/(\))(?=\p{Lu}\p{Ll})/gu, "$1 · ")
+    .replace(/(TCN)(?=\p{Lu}\p{Ll})/gu, "$1 · ");
+}
+
 function lifespanOf(figure: PublicFigureProfileDto): string {
-  const birth = figure.birthDateLabel || formatYear(figure.birthYear);
-  const death = figure.deathDateLabel || formatYear(figure.deathYear);
+  const birth = formatDateLabel(figure.birthDateLabel, figure.birthYear);
+  const death = formatDateLabel(figure.deathDateLabel, figure.deathYear);
   if (!birth && !death) return "Chưa rõ năm sinh – mất";
   return `${birth || "?"} – ${death || "?"}`;
 }
@@ -91,6 +99,54 @@ export function buildFigureViews(figures: PublicFigureProfileDto[], periods: Pub
       sortYear: figure.birthYear ?? firstEventYear ?? figure.deathYear ?? Number.MAX_SAFE_INTEGER,
     };
   });
+}
+
+export const ARTICLE_ERA_LABELS: Record<string, string> = {
+  ANCIENT: "Cổ đại",
+  MEDIEVAL: "Trung đại",
+  EARLY_MODERN: "Cận đại",
+  MODERN: "Hiện đại",
+};
+
+export const ARTICLE_REGION_LABELS: Record<string, string> = {
+  VIETNAM: "Việt Nam",
+  WORLD: "Thế giới",
+};
+
+export const PERSON_ROLE_LABELS: Record<string, string> = {
+  MONARCH: "Quân chủ",
+  GENERAL: "Tướng lĩnh",
+  COMMANDER: "Chỉ huy",
+  COMMANDER_IN_CHIEF: "Tổng tư lệnh",
+  STRATEGIST: "Chiến lược gia",
+  MILITARY_ADVISER: "Quân sư",
+  WARRIOR: "Chiến binh",
+  POLITICIAN: "Chính trị gia",
+  STATESMAN: "Chính khách",
+  DIPLOMAT: "Nhà ngoại giao",
+  REFORMER: "Nhà cải cách",
+  SCHOLAR: "Học giả",
+  CULTURAL_FIGURE: "Danh nhân văn hóa",
+  POET: "Thi sĩ",
+  WRITER: "Nhà văn",
+  PHILOSOPHER: "Triết gia",
+  SCIENTIST: "Nhà khoa học",
+  RELIGIOUS_FIGURE: "Nhân vật tôn giáo",
+  REVOLUTIONARY: "Nhà cách mạng",
+  PATRIOT: "Nhà yêu nước",
+  HERO: "Anh hùng dân tộc",
+};
+
+export function personRoleLabel(code: string): string {
+  return PERSON_ROLE_LABELS[code] ?? code;
+}
+
+export function articleEraLabel(code: string | null | undefined): string | null {
+  return code ? (ARTICLE_ERA_LABELS[code] ?? code) : null;
+}
+
+export function articleRegionLabel(code: string | null | undefined): string | null {
+  return code ? (ARTICLE_REGION_LABELS[code] ?? code) : null;
 }
 
 export function periodTitle(periods: PublicPeriodDto[], slug: string | null): string | null {

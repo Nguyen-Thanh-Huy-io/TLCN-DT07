@@ -14,9 +14,18 @@ import {
   FigureSort,
   type FilterOption,
 } from "./FiguresDirectoryParts";
-import { FiguresGrid } from "./FiguresDirectoryParts";
+import { FiguresGrid, FiguresSidebar, type SidebarFilterItem } from "./FiguresDirectoryParts";
 import { FigureProfileSheet, FigureProfileTab, type ProfileTab } from "./FigureProfileParts";
-import { buildFigureViews, normalize, type FigureView } from "./figure-utils";
+import {
+  ARTICLE_ERA_LABELS,
+  ARTICLE_REGION_LABELS,
+  articleEraLabel,
+  articleRegionLabel,
+  buildFigureViews,
+  normalize,
+  personRoleLabel,
+  type FigureView,
+} from "./figure-utils";
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from "@/components/filters/ChipFilter";
 import { TimelineRelationDirection } from "@/components/timeline/sk-types";
 
@@ -70,6 +79,35 @@ export function FiguresDirectory({
     return Array.from(seen, ([id, v]) => ({ id, ...v }));
   }, [figures]);
 
+  const roleOptions: SidebarFilterItem[] = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const f of figures) for (const r of f.roles ?? []) counts.set(r, (counts.get(r) ?? 0) + 1);
+    return Array.from(counts, ([id, count]) => ({ id, label: personRoleLabel(id), count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "vi"));
+  }, [figures]);
+
+  const regionOptions: SidebarFilterItem[] = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const f of figures) if (f.region) counts.set(f.region, (counts.get(f.region) ?? 0) + 1);
+    return Object.keys(ARTICLE_REGION_LABELS)
+      .filter((id) => counts.has(id))
+      .map((id) => ({ id, label: articleRegionLabel(id) ?? id, count: counts.get(id)! }));
+  }, [figures]);
+
+  const articleEraOptions: SidebarFilterItem[] = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const f of figures) if (f.era) counts.set(f.era, (counts.get(f.era) ?? 0) + 1);
+    return Object.keys(ARTICLE_ERA_LABELS)
+      .filter((id) => counts.has(id))
+      .map((id) => ({ id, label: articleEraLabel(id) ?? id, count: counts.get(id)! }));
+  }, [figures]);
+
+  const eraSidebarOptions: SidebarFilterItem[] = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const f of figures) if (f.eraId) counts.set(f.eraId, (counts.get(f.eraId) ?? 0) + 1);
+    return eras.map((e) => ({ id: e.id, label: e.title, count: counts.get(e.id) ?? 0 }));
+  }, [figures, eras]);
+
   // Bỏ thời kỳ thì bỏ luôn các giai đoạn thuộc thời kỳ đó.
   const cleanSubs = useCallback(
     (f: FigureFilters): FigureFilters =>
@@ -77,9 +115,14 @@ export function FiguresDirectory({
     [subEras],
   );
   const setFilters = (f: FigureFilters) => setFiltersRaw(cleanSubs(f));
+  const toggleSidebarFilter = (key: keyof FigureFilters, value: string) =>
+    setFilters({ ...filters, [key]: toggleValue(filters[key], value) });
 
   const matches = useCallback(
     (f: FigureView, fl: FigureFilters, needle: string) => {
+      if (fl.regions.length && !fl.regions.includes(f.region ?? "")) return false;
+      if (fl.articleEras.length && !fl.articleEras.includes(f.era ?? "")) return false;
+      if (fl.roles.length && !(f.roles ?? []).some((r) => fl.roles.includes(r))) return false;
       if (fl.eras.length && !fl.eras.includes(f.eraId ?? "")) return false;
       // Giai đoạn chỉ thu hẹp thời kỳ chứa nó.
       const subsOfEra = fl.subs.filter((s) => subEras.find((x) => x.id === s)?.eraId === f.eraId);
@@ -125,6 +168,9 @@ export function FiguresDirectory({
 
   const eraTitle = (id: string) => eras.find((e) => e.id === id)?.title ?? "Thời kỳ";
   const chips = [
+    ...filters.regions.map((v) => ({ key: "regions" as const, value: v, label: articleRegionLabel(v) ?? v })),
+    ...filters.articleEras.map((v) => ({ key: "articleEras" as const, value: v, label: articleEraLabel(v) ?? v })),
+    ...filters.roles.map((v) => ({ key: "roles" as const, value: v, label: personRoleLabel(v) })),
     ...filters.eras.map((v) => ({ key: "eras" as const, value: v, label: eraTitle(v) })),
     ...filters.subs.map((v) => ({ key: "subs" as const, value: v, label: subEras.find((s) => s.id === v)?.title ?? "Giai đoạn" })),
   ];
@@ -180,6 +226,36 @@ export function FiguresDirectory({
             const eraOptions = eras.map((e) => ({ value: e.id, label: e.title }));
             return (
               <>
+                {regionOptions.length > 0 && (
+                  <FilterSection card title="Phạm vi" aside={<PickedCount count={draft.regions.length} />}>
+                    <ChipGroup
+                      options={regionOptions.map((o) => ({ value: o.id, label: o.label }))}
+                      selected={draft.regions}
+                      onToggle={(v) => toggle("regions", v)}
+                      searchLabel="Tìm phạm vi..."
+                    />
+                  </FilterSection>
+                )}
+                {articleEraOptions.length > 0 && (
+                  <FilterSection card title="Kỷ nguyên" aside={<PickedCount count={draft.articleEras.length} />}>
+                    <ChipGroup
+                      options={articleEraOptions.map((o) => ({ value: o.id, label: o.label }))}
+                      selected={draft.articleEras}
+                      onToggle={(v) => toggle("articleEras", v)}
+                      searchLabel="Tìm kỷ nguyên..."
+                    />
+                  </FilterSection>
+                )}
+                {roleOptions.length > 0 && (
+                  <FilterSection card title="Vai trò" aside={<PickedCount count={draft.roles.length} />}>
+                    <ChipGroup
+                      options={roleOptions.map((o) => ({ value: o.id, label: o.label }))}
+                      selected={draft.roles}
+                      onToggle={(v) => toggle("roles", v)}
+                      searchLabel="Tìm vai trò..."
+                    />
+                  </FilterSection>
+                )}
                 <FilterSection card title="Thời kỳ" aside={<PickedCount count={draft.eras.length + draft.subs.length} />}>
                   <ChipGroup options={eraOptions} selected={draft.eras} onToggle={(v) => toggle("eras", v)} searchLabel="Tìm thời kỳ..." />
                   {draft.eras.map((eraId) => {
@@ -203,6 +279,15 @@ export function FiguresDirectory({
           }}
         </FilterDialog>
         <div className="sk-directory-body">
+          <FiguresSidebar
+            filters={filters}
+            onToggle={toggleSidebarFilter}
+            onReset={reset}
+            regionOptions={regionOptions}
+            articleEraOptions={articleEraOptions}
+            roleOptions={roleOptions}
+            eraOptions={eraSidebarOptions}
+          />
           <div className="sk-directory-results w-full" id="sk-directory-anchor">
             <div className="sk-results-toolbar">
               <span>

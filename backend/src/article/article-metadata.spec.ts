@@ -17,8 +17,10 @@ describe('normalizeArticleMetadata', () => {
   it('cắt khoảng trắng, bỏ trùng, bỏ giá trị rỗng ở mọi nhánh', () => {
     expect(
       normalizeArticleMetadata({
+        era: 'MEDIEVAL',
+        region: 'VIETNAM',
         aliases: [' Trần Quốc Tuấn ', 'Trần Quốc Tuấn', ''],
-        region: ' Việt Nam ',
+        unknownField: ' bị bỏ qua ',
         person: {
           roles: ['GENERAL'],
           famousQuote: '  Bệ hạ chém đầu thần trước rồi hãy hàng ',
@@ -33,6 +35,8 @@ describe('normalizeArticleMetadata', () => {
         event: { cause: ' ', belligerents: ['Đại Việt', 'Nguyên'] },
       }),
     ).toEqual({
+      era: 'MEDIEVAL',
+      region: 'VIETNAM',
       aliases: ['Trần Quốc Tuấn'],
       person: {
         roles: ['GENERAL'],

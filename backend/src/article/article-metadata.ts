@@ -19,6 +19,14 @@ import { BadRequestException } from '@nestjs/common';
  *   site.preservation ↔ features/heritage/heritage.types.ts PreservationCategory
  */
 
+export const ARTICLE_ERA_CODES = [
+  'ANCIENT',
+  'MEDIEVAL',
+  'EARLY_MODERN',
+  'MODERN',
+] as const;
+export const ARTICLE_REGION_CODES = ['VIETNAM', 'WORLD'] as const;
+
 export const PERSON_ROLE_CODES = [
   'GENERAL',
   'COMMANDER',
@@ -106,6 +114,8 @@ export interface EventProfile {
 }
 
 export interface ArticleMetadata {
+  era?: string;
+  region?: string;
   aliases?: string[];
   sources?: string[];
   person?: PersonProfile;
@@ -221,6 +231,8 @@ export function normalizeArticleMetadata(raw: unknown): ArticleMetadata | null {
   );
 
   const meta = compact<ArticleMetadata>({
+    era: code(ARTICLE_ERA_CODES, raw.era, 'era'),
+    region: code(ARTICLE_REGION_CODES, raw.region, 'region'),
     aliases: textList(raw.aliases),
     sources: textList(raw.sources),
     person: p

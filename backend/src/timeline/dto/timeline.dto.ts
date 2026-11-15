@@ -19,11 +19,20 @@ import {
 export class TimelineNodeInputDto {
   @ApiPropertyOptional({
     nullable: true,
-    description: 'Bài viết chi tiết của mốc',
+    description: 'Bài viết chính của mốc (tương thích ngược)',
   })
   @IsOptional()
   @IsUUID('4')
   articleId?: string | null;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Danh sách ID bài viết gắn với mốc (N-N)',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  articleIds?: string[];
 
   @ApiProperty({ example: 'Trận Bạch Đằng' })
   @IsString()

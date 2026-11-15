@@ -74,9 +74,10 @@ model Article {
 
   category      Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   topic         Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
-  articleTags   ArticleTag[]
-  timelineNodes TimelineNode[]
-  linksOut      ArticleLink[]  @relation("ArticleLinkSource")
+  articleTags       ArticleTag[]
+  timelineNodes     TimelineNode[]
+  timelineNodeLinks TimelineNodeArticle[]
+  linksOut          ArticleLink[]  @relation("ArticleLinkSource")
   linksIn       ArticleLink[]  @relation("ArticleLinkTarget")
 
   @@index([categoryId])

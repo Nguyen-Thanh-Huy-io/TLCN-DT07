@@ -138,8 +138,21 @@ export class PublicContentService {
         timelineNodes: {
           where: { timeline: { status: PUBLISHED } },
           select: {
+            id: true,
             title: true,
             timeline: { select: { slug: true, title: true } },
+          },
+        },
+        timelineNodeLinks: {
+          where: { node: { timeline: { status: PUBLISHED } } },
+          select: {
+            node: {
+              select: {
+                id: true,
+                title: true,
+                timeline: { select: { slug: true, title: true } },
+              },
+            },
           },
         },
       },
@@ -194,7 +207,26 @@ export class PublicContentService {
         : null;
     };
 
-    const { timelineNodes, ...rest } = article;
+    const { timelineNodes = [], timelineNodeLinks = [], ...rest } = article;
+    const allNodesMap = new Map<
+      string,
+      { slug: string; title: string; nodeTitle: string }
+    >();
+    for (const n of timelineNodes) {
+      allNodesMap.set(n.id ?? n.timeline.slug, {
+        ...n.timeline,
+        nodeTitle: n.title,
+      });
+    }
+    for (const link of timelineNodeLinks) {
+      const key = link.node.id ?? link.node.timeline.slug;
+      if (!allNodesMap.has(key)) {
+        allNodesMap.set(key, {
+          ...link.node.timeline,
+          nodeTitle: link.node.title,
+        });
+      }
+    }
     return {
       ...toArticleSummary(rest),
       coverCaption: article.coverCaption,
@@ -202,10 +234,7 @@ export class PublicContentService {
       datePrecision: article.datePrecision,
       publishedAt: article.publishedAt,
       updatedAt: article.updatedAt,
-      timelines: timelineNodes.map((n) => ({
-        ...n.timeline,
-        nodeTitle: n.title,
-      })),
+      timelines: Array.from(allNodesMap.values()),
       related: related.map(toArticleSummary),
       previous: index > 0 ? neighbour(index - 1) : null,
       next: index >= 0 ? neighbour(index + 1) : null,
@@ -270,17 +299,28 @@ export class PublicContentService {
   }
 
   // ---------- Dòng thời gian ----------
+  private readonly timelineNodeArticleSelect = {
+    id: true,
+    slug: true,
+    title: true,
+    status: true,
+    coverImageUrl: true,
+    category: { select: { name: true, slug: true, icon: true } },
+  } satisfies Prisma.ArticleSelect;
+
   private readonly timelineInclude = {
     nodes: {
       orderBy: { displayOrder: 'asc' },
       include: {
         article: {
-          select: {
-            slug: true,
-            title: true,
-            status: true,
-            coverImageUrl: true,
-            category: { select: { name: true, slug: true, icon: true } },
+          select: this.timelineNodeArticleSelect,
+        },
+        articles: {
+          orderBy: { displayOrder: 'asc' },
+          include: {
+            article: {
+              select: this.timelineNodeArticleSelect,
+            },
           },
         },
       },
@@ -295,20 +335,34 @@ export class PublicContentService {
     const { nodes, ...rest } = timeline;
     return {
       ...rest,
-      nodes: nodes.map(({ article, ...node }) => ({
-        ...node,
-        dateLabel: buildNodeDateLabel(node),
-        // Chỉ lộ bài viết đã xuất bản.
-        article:
-          article && article.status === PUBLISHED
+      nodes: nodes.map(({ article, articles = [], ...node }) => {
+        const publishedArticles = articles
+          .map((link) => link.article)
+          .filter((a) => a.status === PUBLISHED)
+          .map(({ status: _s, ...a }) => a);
+        const primaryArticle =
+          publishedArticles[0] ??
+          (article && article.status === PUBLISHED
             ? {
+                id: article.id,
                 slug: article.slug,
                 title: article.title,
                 coverImageUrl: article.coverImageUrl,
                 category: article.category,
               }
-            : null,
-      })),
+            : null);
+        return {
+          ...node,
+          dateLabel: buildNodeDateLabel(node),
+          // Chỉ lộ bài viết đã xuất bản.
+          article: primaryArticle,
+          articles: publishedArticles.length
+            ? publishedArticles
+            : primaryArticle
+              ? [primaryArticle]
+              : [],
+        };
+      }),
     };
   }
 

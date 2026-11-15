@@ -1,9 +1,21 @@
 import api, { parsePaginatedResponse, type PaginatedResult } from '../api';
 import type { ContentStatusValue } from './article.service';
 
+export interface TimelineNodeArticleRef {
+  id: string;
+  title: string;
+  slug: string;
+  status: ContentStatusValue;
+  /** Bài khác liên kết tới bài của mốc (vd. nhân vật "Chỉ huy" → sự kiện). */
+  linksIn?: Array<{ label: string | null; source: TimelineLinkedArticle }>;
+  /** Bài của mốc liên kết tới (vd. sự kiện "Diễn ra tại" → di tích). */
+  linksOut?: Array<{ label: string | null; target: TimelineLinkedArticle }>;
+}
+
 export interface TimelineNodeItem {
   id?: string;
   articleId: string | null;
+  articleIds?: string[];
   title: string;
   description: string | null;
   imageUrl: string | null;
@@ -14,16 +26,8 @@ export interface TimelineNodeItem {
   endYear: number | null;
   displayOrder?: number;
   /** Chỉ có khi đọc từ API (để hiển thị tên bài viết đã gắn + bài nào đang gắn với bài đó). */
-  article?: {
-    id: string;
-    title: string;
-    slug: string;
-    status: ContentStatusValue;
-    /** Bài khác liên kết tới bài của mốc (vd. nhân vật "Chỉ huy" → sự kiện). */
-    linksIn?: Array<{ label: string | null; source: TimelineLinkedArticle }>;
-    /** Bài của mốc liên kết tới (vd. sự kiện "Diễn ra tại" → di tích). */
-    linksOut?: Array<{ label: string | null; target: TimelineLinkedArticle }>;
-  } | null;
+  article?: TimelineNodeArticleRef | null;
+  articles?: Array<{ article: TimelineNodeArticleRef }>;
 }
 
 export interface TimelineLinkedArticle {
@@ -57,7 +61,7 @@ export interface TimelinePayload {
   displayOrder?: number;
   status?: ContentStatusValue;
   /** Thay toàn bộ mốc; thứ tự = vị trí trong mảng. */
-  nodes?: Array<Omit<TimelineNodeItem, 'id' | 'displayOrder' | 'article'>>;
+  nodes?: Array<Omit<TimelineNodeItem, 'id' | 'displayOrder' | 'article' | 'articles'>>;
 }
 
 const unwrap = <T,>(res: { data: { data?: T } & T }): T => (res.data?.data ?? res.data) as T;

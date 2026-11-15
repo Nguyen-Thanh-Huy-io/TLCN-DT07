@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ArrowLeft, ArrowUp, ExternalLink, Plus, Save, Send, Trash2, Upload } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, ExternalLink, Plus, Save, Send, Trash2, Upload, X } from 'lucide-react';
 import { APP_ROUTES } from '@/constants/routes';
 import { ContentStatus } from '@/constants/enums';
 import { extractErrorMessage } from '@/services/api';
@@ -19,43 +19,8 @@ import { ArticlePicker } from '@/features/articles/components/ArticlePicker';
 import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicPicker';
 
 /** Mốc trong form — `key` cục bộ để React giữ đúng ô khi đổi thứ tự. */
-type NodeDraft = TimelineNodeItem & { key: string; articleTitle?: string | null };
-
-/**
- * "Gắn với ..." dưới mốc: bài của mốc đang liên kết với những bài nào (vd. Trần Hưng Đạo · Chỉ huy,
- * Khu di tích Bạch Đằng · Diễn ra tại) — để biết mốc này sẽ hiện trong dòng đời của nhân vật nào.
- * Đọc từ dữ liệu ĐÃ LƯU; vừa đổi bài của mốc thì cần lưu để cập nhật.
- */
-function NodeConnections({ node }: { node: NodeDraft }) {
-  const article = node.article;
-  if (!node.articleId) return null;
-  if (!article || article.id !== node.articleId) {
-    return <p className="mt-1 text-xs text-slate-400">Lưu dòng thời gian để xem bài này đang gắn với ai.</p>;
-  }
-  const connections = [
-    ...(article.linksIn ?? []).map((l) => ({ label: l.label, other: l.source })),
-    ...(article.linksOut ?? []).map((l) => ({ label: l.label, other: l.target })),
-  ];
-  if (connections.length === 0) {
-    return <p className="mt-1 text-xs text-slate-400">Bài này chưa gắn với nhân vật / di tích nào.</p>;
-  }
-  return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
-      <span className="font-semibold text-slate-500">Gắn với:</span>
-      {connections.map((c, i) => (
-        <Link
-          key={`${c.other.id}-${i}`}
-          href={APP_ROUTES.ARTICLES.DETAIL(c.other.id)}
-          className="rounded-full bg-sky-50 px-2 py-0.5 text-sky-800 hover:underline"
-          title={c.other.category?.name ?? undefined}
-        >
-          {c.other.title}
-          {c.label && <span className="text-sky-600"> · {c.label}</span>}
-        </Link>
-      ))}
-    </div>
-  );
-}
+type LinkedArticleDraft = { id: string; title: string };
+type NodeDraft = TimelineNodeItem & { key: string; linkedArticles: LinkedArticleDraft[] };
 
 let keySeq = 0;
 const newKey = () => `n${++keySeq}`;
@@ -63,6 +28,7 @@ const newKey = () => `n${++keySeq}`;
 const emptyNode = (): NodeDraft => ({
   key: newKey(),
   articleId: null,
+  linkedArticles: [],
   title: '',
   description: null,
   imageUrl: null,
@@ -106,7 +72,17 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
       setCoverImageUrl(t.coverImageUrl ?? '');
       setDisplayOrder(t.displayOrder);
       setStatus(t.status);
-      setNodes((t.nodes ?? []).map((n) => ({ ...n, key: newKey(), articleTitle: n.article?.title ?? null })));
+      setNodes(
+        (t.nodes ?? []).map((n) => {
+          const fromJoin = (n.articles ?? []).map((l) => ({ id: l.article.id, title: l.article.title }));
+          const linkedArticles = fromJoin.length
+            ? fromJoin
+            : n.article
+              ? [{ id: n.article.id, title: n.article.title }]
+              : [];
+          return { ...n, key: newKey(), linkedArticles };
+        }),
+      );
     } catch (err) {
       setError(extractErrorMessage(err, 'Không tải được dòng thời gian.'));
     } finally {
@@ -157,7 +133,8 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
       displayOrder: Number(displayOrder) || 0,
       ...(nextStatus ? { status: nextStatus } : {}),
       nodes: nodes.map((n) => ({
-        articleId: n.articleId,
+        articleId: n.linkedArticles[0]?.id ?? null,
+        articleIds: n.linkedArticles.map((a) => a.id),
         title: n.title.trim(),
         description: blankToNull(n.description),
         imageUrl: blankToNull(n.imageUrl),
@@ -342,19 +319,50 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className={label}>Bài viết chi tiết</label>
+                    <label className={label}>Bài viết gắn với mốc ({n.linkedArticles.length})</label>
+                    {n.linkedArticles.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1.5">
+                        {n.linkedArticles.map((art) => (
+                          <span
+                            key={art.id}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
+                          >
+                            <Link href={APP_ROUTES.ARTICLES.DETAIL(art.id)} className="hover:underline">
+                              {art.title}
+                            </Link>
+                            <button
+                              type="button"
+                              aria-label={`Bỏ bài ${art.title}`}
+                              onClick={() => {
+                                const next = n.linkedArticles.filter((x) => x.id !== art.id);
+                                updateNode(n.key, {
+                                  linkedArticles: next,
+                                  articleId: next[0]?.id ?? null,
+                                });
+                              }}
+                              className="text-slate-400 hover:text-red-600"
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <ArticlePicker
-                      value={n.articleId ? { id: n.articleId, title: n.articleTitle ?? 'Bài viết đã liên kết' } : null}
-                      onChange={(a) =>
+                      value={null}
+                      placeholder="Tìm và thêm bài viết vào mốc..."
+                      onChange={(a) => {
+                        if (!a) return;
+                        if (n.linkedArticles.some((x) => x.id === a.id)) return;
+                        const next = [...n.linkedArticles, { id: a.id, title: a.title }];
                         updateNode(n.key, {
-                          articleId: a?.id ?? null,
-                          articleTitle: a?.title ?? null,
-                          // Mốc mới chưa có tiêu đề → lấy tiêu đề bài viết.
-                          ...(a && !n.title.trim() ? { title: a.title } : {}),
-                        })
-                      }
+                          linkedArticles: next,
+                          articleId: next[0]?.id ?? null,
+                          // Mốc mới chưa có tiêu đề → lấy tiêu đề bài viết đầu tiên.
+                          ...(!n.title.trim() ? { title: a.title } : {}),
+                        });
+                      }}
                     />
-                    <NodeConnections node={n} />
                   </div>
                   <div className="sm:col-span-2">
                     <label className={label}>Ảnh (URL)</label>

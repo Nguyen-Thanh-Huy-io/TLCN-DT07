@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -22,56 +23,67 @@ export const TIMELINE_MESSAGES = {
   ARTICLE_NOT_FOUND: 'Có mốc trỏ tới bài viết không tồn tại',
 } as const;
 
+/** Chi tiết bài viết gắn vào mốc (dùng chung cho article chính & danh sách N-N). */
+const TIMELINE_NODE_ARTICLE_SELECT = {
+  id: true,
+  title: true,
+  slug: true,
+  summary: true,
+  coverImageUrl: true,
+  status: true,
+  category: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      kind: true,
+      parentId: true,
+    },
+  },
+  /** Bài khác liên kết tới bài của mốc (vd. nhân vật → sự kiện) — CMS hiện "Gắn với ...". */
+  linksIn: {
+    orderBy: { displayOrder: 'asc' },
+    select: {
+      label: true,
+      source: {
+        select: {
+          id: true,
+          title: true,
+          category: {
+            select: { id: true, name: true, kind: true, parentId: true },
+          },
+        },
+      },
+    },
+  },
+  /** Bài của mốc liên kết tới (vd. sự kiện → nhân vật / di tích). */
+  linksOut: {
+    orderBy: { displayOrder: 'asc' },
+    select: {
+      label: true,
+      target: {
+        select: {
+          id: true,
+          title: true,
+          category: {
+            select: { id: true, name: true, kind: true, parentId: true },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.ArticleSelect;
+
 /** Mốc kèm thông tin bài viết liên kết (đủ để hiển thị thẻ + link). */
 export const TIMELINE_NODE_INCLUDE = {
   article: {
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      summary: true,
-      coverImageUrl: true,
-      status: true,
-      category: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          kind: true,
-          parentId: true,
-        },
-      },
-      /** Bài khác liên kết tới bài của mốc (vd. nhân vật → sự kiện) — CMS hiện "Gắn với ...". */
-      linksIn: {
-        orderBy: { displayOrder: 'asc' },
-        select: {
-          label: true,
-          source: {
-            select: {
-              id: true,
-              title: true,
-              category: {
-                select: { id: true, name: true, kind: true, parentId: true },
-              },
-            },
-          },
-        },
-      },
-      /** Bài của mốc liên kết tới (vd. sự kiện → nhân vật / di tích). */
-      linksOut: {
-        orderBy: { displayOrder: 'asc' },
-        select: {
-          label: true,
-          target: {
-            select: {
-              id: true,
-              title: true,
-              category: {
-                select: { id: true, name: true, kind: true, parentId: true },
-              },
-            },
-          },
-        },
+    select: TIMELINE_NODE_ARTICLE_SELECT,
+  },
+  articles: {
+    orderBy: { displayOrder: 'asc' },
+    include: {
+      article: {
+        select: TIMELINE_NODE_ARTICLE_SELECT,
       },
     },
   },
@@ -135,7 +147,7 @@ export class TimelineService {
         ...data,
         slug,
         nodes: nodes?.length
-          ? { create: nodes.map((n, i) => this.toNodeData(n, i)) }
+          ? { create: nodes.map((n, i) => this.toNodeCreateInput(n, i)) }
           : undefined,
       },
     });
@@ -158,12 +170,34 @@ export class TimelineService {
       if (nodes !== undefined) {
         await tx.timelineNode.deleteMany({ where: { timelineId: id } });
         if (nodes.length) {
-          await tx.timelineNode.createMany({
-            data: nodes.map((n, i) => ({
-              ...this.toNodeData(n, i),
+          const nodeRows = nodes.map((n, i) => {
+            const ids = this.resolveNodeArticleIds(n);
+            return {
+              id: randomUUID(),
               timelineId: id,
-            })),
+              articleId: ids[0] ?? null,
+              title: n.title,
+              description: n.description ?? null,
+              imageUrl: n.imageUrl ?? null,
+              dateText: n.dateText ?? null,
+              year: n.year ?? null,
+              month: n.month ?? null,
+              day: n.day ?? null,
+              endYear: n.endYear ?? null,
+              displayOrder: i,
+            };
           });
+          await tx.timelineNode.createMany({ data: nodeRows });
+          const linkRows = nodes.flatMap((n, i) =>
+            this.resolveNodeArticleIds(n).map((articleId, displayOrder) => ({
+              nodeId: nodeRows[i].id,
+              articleId,
+              displayOrder,
+            })),
+          );
+          if (linkRows.length && tx.timelineNodeArticle) {
+            await tx.timelineNodeArticle.createMany({ data: linkRows });
+          }
         }
       }
     });
@@ -176,9 +210,17 @@ export class TimelineService {
     return { success: true };
   }
 
-  private toNodeData(n: TimelineNodeInputDto, index: number) {
+  private resolveNodeArticleIds(n: TimelineNodeInputDto): string[] {
+    if (n.articleIds !== undefined) {
+      return [...new Set(n.articleIds.filter((v): v is string => Boolean(v)))];
+    }
+    return n.articleId ? [n.articleId] : [];
+  }
+
+  private toNodeCreateInput(n: TimelineNodeInputDto, index: number) {
+    const ids = this.resolveNodeArticleIds(n);
     return {
-      articleId: n.articleId ?? null,
+      articleId: ids[0] ?? null,
       title: n.title,
       description: n.description ?? null,
       imageUrl: n.imageUrl ?? null,
@@ -188,6 +230,16 @@ export class TimelineService {
       day: n.day ?? null,
       endYear: n.endYear ?? null,
       displayOrder: index,
+      ...(ids.length
+        ? {
+            articles: {
+              create: ids.map((articleId, displayOrder) => ({
+                articleId,
+                displayOrder,
+              })),
+            },
+          }
+        : {}),
     };
   }
 
@@ -195,7 +247,7 @@ export class TimelineService {
     if (!nodes?.length) return;
     for (const n of nodes) validateHistoricalYearRange(n.year, n.endYear);
     const articleIds = [
-      ...new Set(nodes.map((n) => n.articleId).filter((v): v is string => !!v)),
+      ...new Set(nodes.flatMap((n) => this.resolveNodeArticleIds(n))),
     ];
     if (articleIds.length) {
       const found = await this.prisma.article.count({

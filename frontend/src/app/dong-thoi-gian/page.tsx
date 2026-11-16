@@ -21,7 +21,7 @@ export default async function DongThoiGianPage() {
   return (
     <main>
       <Header activeSectionId="timeline" />
-      <TimelineExplorer eras={eras} hero={<TimelineHero periodCount={eras.length} eventCount={eventCount} />} />
+      <TimelineExplorer eras={eras} hero={<TimelineHero key="timeline-hero" periodCount={eras.length} eventCount={eventCount} />} />
       <Footer />
     </main>
   );

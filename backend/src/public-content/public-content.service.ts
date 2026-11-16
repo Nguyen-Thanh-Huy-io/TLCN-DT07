@@ -309,6 +309,7 @@ export class PublicContentService {
   } satisfies Prisma.ArticleSelect;
 
   private readonly timelineInclude = {
+    topic: { select: { id: true, name: true, slug: true, parentId: true } },
     nodes: {
       orderBy: { displayOrder: 'asc' },
       include: {
@@ -339,7 +340,13 @@ export class PublicContentService {
         const publishedArticles = articles
           .map((link) => link.article)
           .filter((a) => a.status === PUBLISHED)
-          .map(({ status: _s, ...a }) => a);
+          .map((a) => ({
+            id: a.id,
+            slug: a.slug,
+            title: a.title,
+            coverImageUrl: a.coverImageUrl,
+            category: a.category,
+          }));
         const primaryArticle =
           publishedArticles[0] ??
           (article && article.status === PUBLISHED

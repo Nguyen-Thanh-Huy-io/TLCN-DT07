@@ -18,7 +18,8 @@
  *        EVENT–EVENT    → quan hệ sự kiện (chế độ "Liên kết" của dòng thời gian)
  *        mọi cặp        → "Mạng lưới tri thức" ở trang đọc (trước các bài chung tag)
  *  • Hồ sơ mô tả = Article.metadata (aliases, sources, person, site, event) — tùy chọn.
- *  • Thời kỳ của bài = timeline trỏ tới bài → trỏ tới bài liên kết → cùng Topic với bài.
+ *  • Thời kỳ của bài = Timeline cùng Topic với bài (`Timeline.topicId === Article.topicId`) — không
+ *      suy theo mốc Timeline trỏ tới bài hay theo bài liên kết nữa (đã bỏ 2026-11-16).
  *  • Dòng đời nhân vật = features/articles/person-life.ts (dùng CHUNG với khung xem trước ở CMS):
  *      liên kết tới bài sự kiện + mốc trỏ thẳng tới bài nhân vật + mốc đời riêng. KHÔNG suy theo tag.
  *
@@ -29,7 +30,7 @@ import { buildPersonLife } from '@/features/articles/person-life';
 import { fetchArticle, type PublicArticleSummary } from '@/services/public/public-content.service';
 import { ArticleKindEnum } from '@/constants/enums';
 import { INTERNAL_API_BASE_URL } from '@/constants/api-url';
-import type { PublicPeriodDto, PublicFigureDto, PublicLocationSummaryDto, PublicEventSummaryDto, PublicPeriodDetailDto, PublicFigureProfileDto, PublicEntityStatementDto, PublicEntityDetailDto } from './landing.dto';
+import type { PublicPeriodDto, PublicSubPeriodDto, PublicFigureDto, PublicLocationSummaryDto, PublicEventSummaryDto, PublicPeriodDetailDto, PublicFigureProfileDto, PublicEntityStatementDto, PublicEntityDetailDto } from './landing.dto';
 import { loadGraph, sanitizeMetadata } from './landing-graph';
 import type { EntityKind, PublicGraph } from './landing-graph';
 
@@ -308,14 +309,33 @@ export async function fetchPeriodBySlug(slug: string): Promise<PublicPeriodDetai
     (a) => relatedIds.has(a.id) || (Boolean(timeline.topicId) && a.topicId === timeline.topicId),
   );
   const end = period.endYear ?? period.startYear;
+  const allEvents = buildEvents(g);
+
+  // Topic cha/con của 2 Timeline (xem `buildPeriods`) → Thời kỳ cha/Giai đoạn con.
+  const parent = period.parentId ? (g.periods.find((p) => p.id === period.parentId) ?? null) : null;
+  const childPeriods = g.periods.filter((p) => p.parentId === period.id);
+  const children: PublicSubPeriodDto[] = childPeriods.map((c) => {
+    const childEvents = allEvents.filter((e) => e.periodSlug === c.slug);
+    const figureIds = new Set(childEvents.flatMap((e) => e.figures.map((f) => f.id)));
+    return { ...c, eventCount: childEvents.length, figureCount: figureIds.size };
+  });
+
+  // Sự kiện/nhân vật của trang Thời kỳ gồm cả của các Giai đoạn con.
+  const ownAndChildSlugs = new Set([slug, ...childPeriods.map((c) => c.slug)]);
+  const events = allEvents.filter((e) => e.periodSlug && ownAndChildSlugs.has(e.periodSlug));
+  const figuresById = new Map<string, PublicFigureDto>();
+  for (const a of related.filter((a) => g.kindOf(a) === ArticleKindEnum.PERSON)) {
+    figuresById.set(a.id, toFigure(a));
+  }
+  for (const e of events) for (const f of e.figures) figuresById.set(f.id, f);
 
   return {
     ...period,
     topics: [],
-    figures: related.filter((a) => g.kindOf(a) === ArticleKindEnum.PERSON).map(toFigure),
-    events: buildEvents(g).filter((e) => e.periodSlug === slug),
-    parent: null,
-    children: [],
+    figures: [...figuresById.values()],
+    events,
+    parent,
+    children,
     locations: related.filter((a) => g.kindOf(a) === ArticleKindEnum.LOCATION).map((a) => toLocation(g, a)),
     concurrentPeriods: g.periods.filter(
       (p) => p.slug !== slug && p.startYear <= end && (p.endYear ?? p.startYear) >= period.startYear,
@@ -329,7 +349,7 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
   const [article, g] = await Promise.all([fetchArticle(slug), loadGraph()]);
   if (!article) return null;
   const summary = g.bySlug.get(slug) ?? article;
-  const periodSlug = article.timelines[0]?.slug ?? g.periodSlugOf(summary);
+  const periodSlug = g.periodSlugOf(summary);
   const kind = g.kindOf(article);
   const meta = sanitizeMetadata(article.metadata) ?? {};
   const site = meta.site ?? {};

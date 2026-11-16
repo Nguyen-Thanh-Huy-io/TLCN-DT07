@@ -115,6 +115,23 @@ export interface PublicGraph {
   linksOf: (articleId: string) => LinkView[];
 }
 
+/**
+ * Period cha/con suy theo Topic cha/con của 2 Timeline (`Timeline.topic.parentId`) — Timeline
+ * chưa gắn Topic, hoặc Topic cha chưa có Timeline riêng, thì period đó vẫn là gốc (`parentId: null`).
+ */
+export function buildPeriods(timelines: PublicTimeline[]): PublicPeriodDto[] {
+  const periodIdByTopicId = new Map(
+    timelines.filter((t): t is PublicTimeline & { topicId: string } => Boolean(t.topicId)).map((t) => [t.topicId, t.id]),
+  );
+  return timelines.map((t) => {
+    const parentTopicId = t.topic?.parentId ?? null;
+    return {
+      ...periodFromTimeline(t),
+      parentId: parentTopicId ? (periodIdByTopicId.get(parentTopicId) ?? null) : null,
+    };
+  });
+}
+
 export function periodFromTimeline(t: PublicTimeline): PublicPeriodDto {
   const years = t.nodes.flatMap((n) => [n.year, n.endYear]).filter((y): y is number => typeof y === 'number');
   const start = years.length ? Math.min(...years) : 0;
@@ -162,28 +179,16 @@ export function buildNodesByArticle(timelines: PublicTimeline[]): Map<string, Li
   return nodesByArticle;
 }
 
+/** Thời kỳ của 1 bài = Timeline cùng `topicId` với bài (Timeline gắn Topic sẵn, không suy qua mốc/liên kết). */
 export function createPeriodSlugResolver(
   timelines: PublicTimeline[],
-  links: Map<string, LinkView[]>,
 ): (a: PublicArticleSummary) => string | null {
-  const nodeTimeline = new Map<string, string>();
   const topicTimeline = new Map<string, string>();
   for (const t of timelines) {
     if (t.topicId && !topicTimeline.has(t.topicId)) topicTimeline.set(t.topicId, t.slug);
-    for (const n of t.nodes) {
-      if (n.article && !nodeTimeline.has(n.article.slug)) nodeTimeline.set(n.article.slug, t.slug);
-    }
   }
 
-  return (a: PublicArticleSummary) => {
-    const direct = nodeTimeline.get(a.slug);
-    if (direct) return direct;
-    for (const l of links.get(a.id) ?? []) {
-      const viaLink = nodeTimeline.get(l.other.slug);
-      if (viaLink) return viaLink;
-    }
-    return a.topicId ? topicTimeline.get(a.topicId) ?? null : null;
-  };
+  return (a: PublicArticleSummary) => (a.topicId ? topicTimeline.get(a.topicId) ?? null : null);
 }
 
 /** Tải 1 lần mỗi request: chuyên mục + mọi bài viết (kèm liên kết, hồ sơ) + mọi dòng thời gian. */
@@ -207,13 +212,13 @@ export const loadGraph = cache(async (): Promise<PublicGraph> => {
 
   const links = buildBidirectionalLinks(articles, byId);
   const nodesByArticle = buildNodesByArticle(timelines);
-  const periodSlugOf = createPeriodSlugResolver(timelines, links);
+  const periodSlugOf = createPeriodSlugResolver(timelines);
 
   return {
     categories,
     articles,
     timelines,
-    periods: timelines.map(periodFromTimeline),
+    periods: buildPeriods(timelines),
     bySlug,
     byId,
     kindOf,

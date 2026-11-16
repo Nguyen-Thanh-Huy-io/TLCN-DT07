@@ -234,10 +234,10 @@ export function buildEraDataset(
     const children = periods
       .filter((p) => p.parentId === top.id)
       .sort((a, b) => (a.startYear ?? 0) - (b.startYear ?? 0));
-    // Thời kỳ gốc không có giai đoạn con (vd. "Cách mạng tháng Tám") vẫn cần hiện lên —
-    // coi chính nó là 1 "leaf" duy nhất, nếu không mọi sự kiện gắn thẳng vào nó sẽ bị bỏ
-    // qua hoàn toàn (subEras rỗng → era bị lọc khỏi dòng thời gian, xem cuối hàm).
-    const leafPeriods = children.length > 0 ? children : [top];
+    // Thời kỳ gốc luôn là 1 "leaf" của chính nó (sự kiện gắn thẳng vào nó, nếu có) CỘNG với
+    // từng giai đoạn con (nếu có Topic con cũng gắn Timeline riêng) — không được bỏ sự kiện
+    // của thời kỳ gốc chỉ vì nó có giai đoạn con (`.filter` cuối hàm tự loại leaf rỗng).
+    const leafPeriods = [top, ...children];
 
     const subEras: SubEra[] = leafPeriods.map((leaf, leafIndex): SubEra => {
       const leafEvents = (eventsByPeriodSlug.get(leaf.slug) || []).sort((a, b) => a.startYear - b.startYear);

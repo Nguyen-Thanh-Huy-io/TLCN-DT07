@@ -200,6 +200,8 @@ export interface PublicTimeline {
   coverImageUrl: string | null;
   displayOrder: number;
   topicId: string | null;
+  /** Chủ đề gắn với dòng thời gian này (nếu có) — dùng để ráp cây Thời kỳ cha/con theo Topic. */
+  topic: { id: string; name: string; slug: string; parentId: string | null } | null;
   nodes: PublicTimelineNode[];
 }
 

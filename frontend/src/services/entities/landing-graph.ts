@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import { type LifeNodeRef } from '@/features/articles/person-life';
 import type { ArticleMetadata } from '@/services/public/public-content.service';
-import { fetchArticles, fetchCategories, fetchTimelines, type PublicArticleSummary, type PublicCategory, type PublicTimeline } from '@/services/public/public-content.service';
+import { fetchArticles, fetchCategories, fetchTimelines, fetchTopics, type PublicArticleSummary, type PublicCategory, type PublicTimeline, type PublicTopicRef } from '@/services/public/public-content.service';
 import { resolveCategoryKind, type ArticleKind } from '@/services/public/article-kind';
 import { formatYear } from '@/utils/common';
 import { ArticleKindEnum } from '@/constants/enums';
@@ -103,16 +103,34 @@ export interface PublicGraph {
   articles: PublicArticleSummary[];
   timelines: PublicTimeline[];
   periods: PublicPeriodDto[];
+  topics: PublicTopicRef[];
   bySlug: Map<string, PublicArticleSummary>;
   byId: Map<string, PublicArticleSummary>;
   kindOf: (article: { category: { id: string } | null } | null | undefined) => EntityKind;
   /** Chuyên mục con của "su-kien" mà bài viết thuộc về (= loại sự kiện), nếu có. */
   eventTypeOf: (article: PublicArticleSummary | undefined) => PublicCategory | undefined;
   periodSlugOf: (article: PublicArticleSummary) => string | null;
+  /** Topic gốc (đi hết lên tổ tiên) của 1 topicId — dùng nhóm bài viết theo Chủ đề ở trang Khám phá. */
+  rootTopicOf: (topicId: string | null | undefined) => PublicTopicRef | undefined;
   /** Mốc timeline trỏ tới 1 bài (kèm dòng thời gian chứa mốc). */
   nodesOf: (articleSlug: string) => LifeNodeRef[];
   /** Mọi liên kết của 1 bài (2 chiều), chỉ giữa các bài đã xuất bản. */
   linksOf: (articleId: string) => LinkView[];
+}
+
+/** Đi hết lên tổ tiên của 1 Topic (chặn vòng lặp nếu dữ liệu lỗi). */
+export function findRootTopic(
+  topics: PublicTopicRef[],
+  topicId: string | null | undefined,
+): PublicTopicRef | undefined {
+  const byId = new Map(topics.map((t) => [t.id, t]));
+  let cur = topicId ? byId.get(topicId) : undefined;
+  const seen = new Set<string>();
+  while (cur?.parentId && byId.has(cur.parentId) && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    cur = byId.get(cur.parentId);
+  }
+  return cur;
 }
 
 /**
@@ -191,12 +209,13 @@ export function createPeriodSlugResolver(
   return (a: PublicArticleSummary) => (a.topicId ? topicTimeline.get(a.topicId) ?? null : null);
 }
 
-/** Tải 1 lần mỗi request: chuyên mục + mọi bài viết (kèm liên kết, hồ sơ) + mọi dòng thời gian. */
+/** Tải 1 lần mỗi request: chuyên mục + mọi bài viết (kèm liên kết, hồ sơ) + dòng thời gian + Topic. */
 export const loadGraph = cache(async (): Promise<PublicGraph> => {
-  const [categories, rawArticles, timelines] = await Promise.all([
+  const [categories, rawArticles, timelines, topics] = await Promise.all([
     fetchCategories(),
     fetchArticles({ limit: 200 }),
     fetchTimelines(),
+    fetchTopics(),
   ]);
   const articles = rawArticles.map((a) => ({ ...a, metadata: sanitizeMetadata(a.metadata) }));
   const catById = new Map(categories.map((c) => [c.id, c]));
@@ -219,12 +238,68 @@ export const loadGraph = cache(async (): Promise<PublicGraph> => {
     articles,
     timelines,
     periods: buildPeriods(timelines),
+    topics,
     bySlug,
     byId,
     kindOf,
     eventTypeOf,
     periodSlugOf,
+    rootTopicOf: (topicId) => findRootTopic(topics, topicId),
     linksOf: (id) => links.get(id) ?? [],
     nodesOf: (articleSlug) => nodesByArticle.get(articleSlug) ?? [],
   };
 });
+
+/** Id khối dùng cho các mục chưa gắn Chủ đề nào — không trộn vào khối Topic thật. */
+export const NO_TOPIC_ID = '__no-topic__';
+
+export interface TopicLeafGroup<T> {
+  id: string;
+  slug: string | null;
+  name: string;
+  items: T[];
+}
+
+export interface TopicBlock<T> {
+  id: string;
+  slug: string | null;
+  name: string;
+  leaves: TopicLeafGroup<T>[];
+}
+
+/**
+ * Nhóm danh sách bài viết (nhân vật/sự kiện...) theo cây Topic: khối lớn = Topic gốc (đi hết lên
+ * tổ tiên qua `rootTopicOf`), khối con = Topic trực tiếp của từng bài. Bài chưa gắn Topic gom vào
+ * 1 khối "Khác" riêng, không trộn lẫn các khối Topic thật.
+ */
+export function groupByTopic<T>(
+  items: T[],
+  topicIdOf: (item: T) => string | null | undefined,
+  g: Pick<PublicGraph, 'topics' | 'rootTopicOf'>,
+): TopicBlock<T>[] {
+  const topicById = new Map(g.topics.map((t) => [t.id, t]));
+  const leavesByTopic = new Map<string, T[]>();
+  for (const item of items) {
+    const key = topicIdOf(item) ?? NO_TOPIC_ID;
+    const list = leavesByTopic.get(key) ?? [];
+    list.push(item);
+    leavesByTopic.set(key, list);
+  }
+
+  const blocks = new Map<string, TopicBlock<T>>();
+  for (const [topicId, leafItems] of leavesByTopic) {
+    const leafTopic = topicId !== NO_TOPIC_ID ? topicById.get(topicId) : undefined;
+    const root = topicId !== NO_TOPIC_ID ? g.rootTopicOf(topicId) : undefined;
+    const blockId = root?.id ?? NO_TOPIC_ID;
+    const block = blocks.get(blockId) ?? { id: blockId, slug: root?.slug ?? null, name: root?.name ?? 'Khác', leaves: [] };
+    block.leaves.push({ id: topicId, slug: leafTopic?.slug ?? null, name: leafTopic?.name ?? 'Khác', items: leafItems });
+    blocks.set(blockId, block);
+  }
+
+  // Giữ đúng thứ tự Topic đã cấu hình (displayOrder từ BE) thay vì thứ tự xuất hiện ngẫu nhiên
+  // trong items; khối/chủ đề con "Khác" (chưa gắn Topic) luôn xuống cuối.
+  const orderIndex = new Map(g.topics.map((t, i) => [t.id, i]));
+  const byOrder = (idA: string, idB: string) => (orderIndex.get(idA) ?? Infinity) - (orderIndex.get(idB) ?? Infinity);
+  for (const block of blocks.values()) block.leaves.sort((a, b) => byOrder(a.id, b.id));
+  return [...blocks.values()].sort((a, b) => byOrder(a.id, b.id));
+}

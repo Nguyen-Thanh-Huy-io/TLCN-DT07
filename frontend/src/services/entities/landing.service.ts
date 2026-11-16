@@ -70,6 +70,7 @@ function toFigure(a: PublicArticleSummary): PublicFigureDto {
     imageUrl: a.coverImageUrl,
     birthYear: a.startYear,
     deathYear: a.endYear,
+    topicId: a.topicId,
   };
 }
 
@@ -135,7 +136,7 @@ function buildEventsFromTimelines(
         category: type?.slug ?? 'OTHER',
         categoryIds: type ? [type.id] : [],
         periodSlug: t.slug,
-        actors: [],
+        topicId: article?.topicId ?? null,
         relations: [],
         ...fromArticle(article),
       });
@@ -165,7 +166,7 @@ function buildEventsFromUncoveredArticles(
       category: type?.slug ?? 'OTHER',
       categoryIds: type ? [type.id] : [],
       periodSlug: null,
-      actors: [],
+      topicId: a.topicId,
       relations: [],
       ...fromArticle(a),
     });

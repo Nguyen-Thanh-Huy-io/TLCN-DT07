@@ -30,6 +30,8 @@ export interface PublicFigureDto {
   imageUrl: string | null;
   birthYear: number | null;
   deathYear: number | null;
+  /** Chủ đề bài viết gắn (nếu có) — dùng để nhóm theo Chủ đề ở các trang Khám phá. */
+  topicId?: string | null;
 }
 
 export interface PublicLocationSummaryDto {
@@ -119,12 +121,11 @@ export interface PublicEventSummaryDto {
   categoryIds?: string[];
   /** Năm kết thúc (null = trong một năm / chưa rõ). */
   endYear?: number | null;
-  parentId?: string | null;
-  /** Quan hệ với sự kiện khác (đồ thị tri thức). */
+  /** Quan hệ với sự kiện khác đã khai báo trực tiếp (ArticleLink). */
   relations?: PublicEventLinkDto[];
-  /** Chủ thể không phải nhân vật / địa danh: triều đại / quốc gia, tổ chức, lực lượng, hiện vật. */
-  actors?: PublicEventActorDto[];
   periodSlug: string | null;
+  /** Chủ đề bài viết gắn (nếu có) — dùng để nhóm theo Chủ đề ở các trang Khám phá. */
+  topicId?: string | null;
   figures: PublicFigureDto[];
   locations: PublicLocationSummaryDto[];
 }
@@ -209,17 +210,6 @@ export interface PublicFigureDetailDto extends PublicFigureDto {
   period: PublicPeriodDto | null;
   events: PublicEventSummaryDto[];
   lessons: PublicLessonSummaryDto[];
-}
-
-export interface PublicEventActorDto {
-  id: string;
-  name: string;
-  slug: string | null;
-  type: string;
-  role: string;
-  roleLabel: string | null;
-  startYear: number | null;
-  endYear: number | null;
 }
 
 export interface PublicEventLinkDto {

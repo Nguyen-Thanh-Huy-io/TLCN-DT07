@@ -160,6 +160,14 @@ export class PublicContentController {
     return this.service.getLibraryLessons();
   }
 
+  @Get('topics')
+  @ApiOperation({
+    summary: 'Toàn bộ cây Chủ đề đã xuất bản (phẳng, FE tự ráp qua parentId)',
+  })
+  getTopics() {
+    return this.service.getTopics();
+  }
+
   @Get('topics/:slug')
   @ApiOperation({ summary: 'Chủ đề + chủ đề con đã xuất bản' })
   getTopic(@Param('slug') slug: string) {

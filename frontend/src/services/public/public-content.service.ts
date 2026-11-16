@@ -252,3 +252,13 @@ export const fetchArticle = (slug: string) => getJson<PublicArticleDetail>(`/pub
 export const fetchBlogPosts = () => list<PublicBlogPostSummary>('/public/blog');
 export const fetchBlogPost = (slug: string) => getJson<PublicBlogPostSummary>(`/public/blog/${enc(slug)}`);
 export const fetchTimelines = () => list<PublicTimeline>('/public/timelines');
+
+/** Topic đã xuất bản, dạng phẳng — ráp cây qua `parentId`. Dùng để nhóm bài viết theo Chủ đề. */
+export interface PublicTopicRef {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+}
+
+export const fetchTopics = () => list<PublicTopicRef>('/public/topics');

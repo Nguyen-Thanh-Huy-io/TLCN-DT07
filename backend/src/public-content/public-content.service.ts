@@ -705,6 +705,15 @@ export class PublicContentService {
     });
   }
 
+  /** Toàn bộ cây Topic đã xuất bản, dạng phẳng (FE tự ráp cây qua parentId) — dùng để nhóm bài viết theo Chủ đề ở các trang Khám phá (nhân vật, sự kiện...). */
+  async getTopics() {
+    return this.prisma.topic.findMany({
+      where: { status: PUBLISHED },
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, slug: true, parentId: true },
+    });
+  }
+
   async getTopicBySlug(slug: string) {
     const topic = await this.prisma.topic.findFirst({
       where: { slug, status: PUBLISHED },

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { SlugService } from '../common/services/slug.service';
 import { TimelineService } from './timeline.service';
@@ -31,8 +32,20 @@ describe('TimelineService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     prisma.timeline.findUnique.mockImplementation(
-      ({ where }: { where: { id?: string; slug?: string } }) =>
-        where.slug ? null : { id: where.id, slug: 'dong-thoi-gian', nodes: [] },
+      ({
+        where,
+      }: {
+        where: { id?: string; slug?: string; topicId?: string };
+      }) => {
+        if (where.slug || where.topicId) return null;
+        return {
+          id: where.id,
+          slug: 'dong-thoi-gian',
+          topicId: null,
+          status: ContentStatus.DRAFT,
+          nodes: [],
+        };
+      },
     );
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -107,6 +120,37 @@ describe('TimelineService', () => {
         service.create({ title: 'Trùng', slug: 'da-co' }),
       ).rejects.toThrow(ConflictException);
     });
+
+    it('chủ đề đã gắn Timeline khác thì báo 409', async () => {
+      prisma.timeline.findUnique.mockImplementation(
+        ({ where }: { where: { topicId?: string } }) =>
+          where.topicId === 'topic-1'
+            ? { id: 'tl-khac', title: 'Nhà Trần' }
+            : null,
+      );
+
+      await expect(
+        service.create({ title: 'Mới', topicId: 'topic-1' }),
+      ).rejects.toThrow(ConflictException);
+      expect(prisma.timeline.create).not.toHaveBeenCalled();
+    });
+
+    it('xuất bản mà chưa gắn Chủ đề thì báo 400', async () => {
+      await expect(
+        service.create({ title: 'Chưa gắn', status: ContentStatus.PUBLISHED }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.timeline.create).not.toHaveBeenCalled();
+    });
+
+    it('xuất bản kèm Chủ đề thì tạo được', async () => {
+      await expect(
+        service.create({
+          title: 'Có chủ đề',
+          topicId: 'topic-moi',
+          status: ContentStatus.PUBLISHED,
+        }),
+      ).resolves.toBeDefined();
+    });
   });
 
   describe('update', () => {
@@ -145,6 +189,52 @@ describe('TimelineService', () => {
       await expect(service.update('khong-co', {})).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('đổi sang chủ đề đã gắn Timeline khác thì báo 409', async () => {
+      prisma.timeline.findUnique.mockImplementation(
+        ({ where }: { where: { id?: string; topicId?: string } }) => {
+          if (where.topicId === 'topic-1')
+            return { id: 'tl-khac', title: 'Nhà Trần' };
+          return {
+            id: where.id,
+            slug: 'dong-thoi-gian',
+            topicId: null,
+            status: ContentStatus.DRAFT,
+          };
+        },
+      );
+
+      await expect(
+        service.update('tl-1', { topicId: 'topic-1' }),
+      ).rejects.toThrow(ConflictException);
+      expect(tx.timeline.update).not.toHaveBeenCalled();
+    });
+
+    it('xuất bản mà chưa có Chủ đề (cũ lẫn mới đều không) thì báo 400', async () => {
+      await expect(
+        service.update('tl-1', { status: ContentStatus.PUBLISHED }),
+      ).rejects.toThrow(BadRequestException);
+      expect(tx.timeline.update).not.toHaveBeenCalled();
+    });
+
+    it('xuất bản khi Timeline đã có sẵn Chủ đề từ trước thì cập nhật được', async () => {
+      prisma.timeline.findUnique.mockImplementation(
+        ({ where }: { where: { id?: string; topicId?: string } }) => {
+          if (where.topicId) return null;
+          return {
+            id: where.id,
+            slug: 'dong-thoi-gian',
+            topicId: 'topic-cu',
+            status: ContentStatus.DRAFT,
+          };
+        },
+      );
+
+      await expect(
+        service.update('tl-1', { status: ContentStatus.PUBLISHED }),
+      ).resolves.toBeDefined();
+      expect(tx.timeline.update).toHaveBeenCalled();
     });
   });
 

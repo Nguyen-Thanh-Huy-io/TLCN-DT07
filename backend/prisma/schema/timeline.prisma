@@ -8,9 +8,11 @@
 // Mốc sắp theo displayOrder (biên tập viên kéo thả); year/month/day chỉ để hiển thị nhãn
 // niên đại khi không có dateText.
 
+// 1 Topic chỉ gắn được tối đa 1 Timeline (ngược lại: Timeline có thể chưa gắn Topic khi còn
+// DRAFT — ép đủ ở service lúc chuyển PUBLISHED, xem `TimelineService`).
 model Timeline {
   id            String        @id @default(uuid())
-  topicId       String?       @map("topic_id")
+  topicId       String?       @unique @map("topic_id")
   title         String        @db.VarChar(255)
   slug          String        @unique @db.VarChar(255)
   description   String?       @db.Text
@@ -23,7 +25,6 @@ model Timeline {
   topic Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
   nodes TimelineNode[]
 
-  @@index([topicId])
   @@index([status])
   @@index([displayOrder])
   @@map("timelines")

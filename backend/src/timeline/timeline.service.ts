@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { ContentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { SlugService } from '../common/services/slug.service';
 import { validateHistoricalYearRange } from '../common/utils/historical-date.parser';
@@ -21,6 +21,10 @@ export const TIMELINE_MESSAGES = {
   SLUG_CONFLICT: (slug: string) =>
     `Đường dẫn "${slug}" đã được dùng cho dòng thời gian khác`,
   ARTICLE_NOT_FOUND: 'Có mốc trỏ tới bài viết không tồn tại',
+  TOPIC_CONFLICT: (timelineTitle: string) =>
+    `Chủ đề này đã gắn với dòng thời gian "${timelineTitle}" — mỗi Chủ đề chỉ gắn được 1 dòng thời gian`,
+  TOPIC_REQUIRED_FOR_PUBLISH:
+    'Cần gắn Chủ đề trước khi xuất bản dòng thời gian',
 } as const;
 
 /** Chi tiết bài viết gắn vào mốc (dùng chung cho article chính & danh sách N-N). */
@@ -137,6 +141,8 @@ export class TimelineService {
   async create(dto: CreateTimelineDto) {
     const { nodes, ...data } = dto;
     await this.validateNodes(nodes);
+    if (data.topicId) await this.assertTopicAvailable(data.topicId);
+    this.assertPublishable(data.status, data.topicId);
     const slug = dto.slug
       ? await this.assertSlugFree(dto.slug)
       : await this.slugService.generateUnique(dto.title, (s) =>
@@ -157,13 +163,20 @@ export class TimelineService {
   async update(id: string, dto: UpdateTimelineDto) {
     const current = await this.prisma.timeline.findUnique({
       where: { id },
-      select: { slug: true },
+      select: { slug: true, topicId: true, status: true },
     });
     if (!current) throw new NotFoundException(TIMELINE_MESSAGES.NOT_FOUND(id));
     if (dto.slug && dto.slug !== current.slug)
       await this.assertSlugFree(dto.slug, id);
     const { nodes, ...data } = dto;
     await this.validateNodes(nodes);
+
+    if (data.topicId && data.topicId !== current.topicId) {
+      await this.assertTopicAvailable(data.topicId, id);
+    }
+    const effectiveTopicId =
+      data.topicId !== undefined ? data.topicId : current.topicId;
+    this.assertPublishable(data.status ?? current.status, effectiveTopicId);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.timeline.update({ where: { id }, data });
@@ -271,5 +284,30 @@ export class TimelineService {
       throw new ConflictException(TIMELINE_MESSAGES.SLUG_CONFLICT(slug));
     }
     return slug;
+  }
+
+  /** 1 Topic chỉ gắn được 1 Timeline — báo lỗi rõ nghĩa thay vì để DB ném unique violation thô. */
+  private async assertTopicAvailable(topicId: string, exceptId?: string) {
+    const taken = await this.prisma.timeline.findUnique({
+      where: { topicId },
+      select: { id: true, title: true },
+    });
+    if (taken && taken.id !== exceptId) {
+      throw new ConflictException(
+        TIMELINE_MESSAGES.TOPIC_CONFLICT(taken.title),
+      );
+    }
+  }
+
+  /** Timeline PUBLISHED luôn phải có Topic, để `periodSlugOf` ở trang công khai luôn khớp được. */
+  private assertPublishable(
+    status: ContentStatus | undefined,
+    topicId: string | null | undefined,
+  ) {
+    if (status === ContentStatus.PUBLISHED && !topicId) {
+      throw new BadRequestException(
+        TIMELINE_MESSAGES.TOPIC_REQUIRED_FOR_PUBLISH,
+      );
+    }
   }
 }

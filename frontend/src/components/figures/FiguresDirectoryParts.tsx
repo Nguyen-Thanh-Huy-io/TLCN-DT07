@@ -1,11 +1,12 @@
 'use client';
 
-import { Landmark, Network, Users, ArrowDownUp, Search, SlidersHorizontal, X, ArrowRight, ArrowUpRight, Clock3, History, Quote } from 'lucide-react';
+import { Landmark, Network, Users, ArrowDownUp, Search, SlidersHorizontal, X, ArrowRight, ArrowUpRight, ChevronDown, Clock3, History, Quote } from 'lucide-react';
 import { Heading, Button, Input, Badge } from '@/components/timeline/TimelineChrome';
 import { paletteFor, personRoleLabel, type FigureView } from './figure-utils';
-import { useId } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { RemoteImage } from '@/components/common/RemoteImage';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import type { TopicBlock, TopicLeafGroup } from '@/services/entities/landing-graph';
 
 // === FiguresHero.tsx ===
 export function FiguresHero({
@@ -370,6 +371,44 @@ export function FiguresGrid({ figures, onOpen }: { figures: FigureView[]; onOpen
         ))}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+// === TopicSection.tsx ===
+/** Khối lớn theo Chủ đề gốc — gộp mọi Chủ đề con (leaf) của nó, giống EraSection ở Timeline. */
+export function TopicSection({ block, children }: { block: TopicBlock<FigureView>; children: ReactNode }) {
+  const [open, setOpen] = useState(true);
+  const total = block.leaves.reduce((n, l) => n + l.items.length, 0);
+  return (
+    <section className="sk-era-section" id={`topic-${block.id}`}>
+      <Button className="sk-era-banner" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <span className="sk-era-banner-icon">
+          <Landmark size={23} />
+        </span>
+        <span className="sk-era-banner-text">
+          <Heading>{block.name}</Heading>
+          <small>{total} nhân vật{block.leaves.length > 1 ? ` · ${block.leaves.length} chủ đề con` : ''}</small>
+        </span>
+        <ChevronDown className={open ? '' : 'sk-rotate'} size={20} />
+      </Button>
+      {open && <div className="sk-era-inner">{children}</div>}
+    </section>
+  );
+}
+
+/** 1 Chủ đề con bên trong khối — lưới nhân vật của riêng nó. */
+export function TopicLeafSection({ leaf, onOpen }: { leaf: TopicLeafGroup<FigureView>; onOpen: (f: FigureView) => void }) {
+  return (
+    <div className="sk-sub-era" id={`topic-leaf-${leaf.id}`}>
+      <div className="sk-sub-heading">
+        <div>
+          <span className="sk-sub-marker" />
+          <Heading level={3}>{leaf.name}</Heading>
+          <span className="sk-sub-count">{leaf.items.length} nhân vật</span>
+        </div>
+      </div>
+      <FiguresGrid figures={leaf.items} onOpen={onOpen} />
+    </div>
   );
 }
 

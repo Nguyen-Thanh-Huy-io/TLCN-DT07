@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Compass, RotateCcw, Search, Users, X } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { BookOpen, Compass, RotateCcw, Search, Users, X } from "lucide-react";
 import { Badge, Button, Heading } from "@/components/timeline/TimelineChrome";
-import { Pagination } from "@/components/common/Pagination";
 import type { PublicFigureProfileDto, PublicPeriodDto } from "@/services/entities/landing.service";
-import { FiguresHero } from "./FiguresDirectoryParts";
+import { findRootTopic, groupByTopic } from "@/services/entities/landing-graph";
+import type { PublicTopicRef } from "@/services/public/public-content.service";
+import { TocDrawer, type TocNode } from "@/components/common/TocDrawer";
+import { FiguresHero, TopicSection, TopicLeafSection } from "./FiguresDirectoryParts";
 import {
   EMPTY_FIGURE_FILTERS,
   FiguresFilterBar,
@@ -14,7 +16,7 @@ import {
   FigureSort,
   type FilterOption,
 } from "./FiguresDirectoryParts";
-import { FiguresGrid, FiguresSidebar, type SidebarFilterItem } from "./FiguresDirectoryParts";
+import { FiguresSidebar, type SidebarFilterItem } from "./FiguresDirectoryParts";
 import { FigureProfileSheet, FigureProfileTab, type ProfileTab } from "./FigureProfileParts";
 import {
   ARTICLE_ERA_LABELS,
@@ -30,32 +32,33 @@ import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from
 import { TimelineRelationDirection } from "@/components/timeline/sk-types";
 
 const PROFILE_QUERY_KEY = "nv";
-const FIGURES_PAGE_SIZE = 16;
+
+/** Nhảy tới 1 khối/chủ đề con trong danh sách kết quả (id DOM do TopicSection/TopicLeafSection đặt). */
+function jumpToTopic(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 export function FiguresDirectory({
   figures: rawFigures,
   periods,
+  topics,
   initialSlug,
 }: {
   figures: PublicFigureProfileDto[];
   periods: PublicPeriodDto[];
+  topics: PublicTopicRef[];
   initialSlug?: string;
 }) {
   const figures = useMemo(() => buildFigureViews(rawFigures, periods), [rawFigures, periods]);
   const [query, setQuery] = useState("");
   const [filters, setFiltersRaw] = useState<FigureFilters>(EMPTY_FIGURE_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [tocOpen, setTocOpen] = useState(false);
   const [sort, setSort] = useState<FigureSort>(FigureSort.TIME);
   const [selected, setSelected] = useState<FigureView | null>(
     () => figures.find((f) => f.slug === initialSlug) ?? null,
   );
   const [tab, setTab] = useState<ProfileTab>(FigureProfileTab.TIMELINE);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Reset về trang 1 khi lọc hoặc tìm kiếm
-  useEffect(() => {
-    queueMicrotask(() => setCurrentPage(1));
-  }, [query, filters, sort]);
 
   // Keep the open profile in the URL so it can be shared. Done from event handlers only:
   // Next.js routes history.replaceState through the app router, which must be mounted first.
@@ -146,16 +149,36 @@ export function FiguresDirectory({
       .sort((a, b) => (sort === FigureSort.NAME ? a.name.localeCompare(b.name, "vi") : a.sortYear - b.sortYear));
   }, [figures, query, filters, sort, matches]);
 
-  // Phân trang dữ liệu
-  const paginatedFigures = useMemo(() => {
-    const start = (currentPage - 1) * FIGURES_PAGE_SIZE;
-    return filtered.slice(start, start + FIGURES_PAGE_SIZE);
-  }, [filtered, currentPage]);
+  const topicBlocks = useMemo(
+    () =>
+      groupByTopic(filtered, (f) => f.topicId ?? null, {
+        topics,
+        rootTopicOf: (id) => findRootTopic(topics, id),
+      }),
+    [filtered, topics],
+  );
 
-  const handlePageChange = (p: number) => {
-    setCurrentPage(p);
-    document.getElementById("sk-directory-anchor")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const tocNodes: TocNode[] = useMemo(
+    () =>
+      topicBlocks.map((block) => {
+        const total = block.leaves.reduce((n, l) => n + l.items.length, 0);
+        const singleLeaf = block.leaves.length === 1 && block.leaves[0].id === block.id;
+        return {
+          id: `topic-${block.id}`,
+          title: block.name,
+          count: total,
+          children: singleLeaf
+            ? undefined
+            : block.leaves.map((leaf) => ({
+                id: `topic-leaf-${leaf.id}`,
+                title: leaf.name,
+                count: leaf.items.length,
+              })),
+        };
+      }),
+    [topicBlocks],
+  );
+
   const countFor = (draft: FigureFilters) => {
     const needle = normalize(query.trim());
     return figures.filter((f) => matches(f, cleanSubs(draft), needle)).length;
@@ -300,16 +323,13 @@ export function FiguresDirectory({
               )}
             </div>
             {filtered.length ? (
-              <>
-                <FiguresGrid figures={paginatedFigures} onOpen={open} />
-                <Pagination
-                  currentPage={currentPage}
-                  totalItems={filtered.length}
-                  pageSize={FIGURES_PAGE_SIZE}
-                  onPageChange={handlePageChange}
-                  itemLabel="nhân vật lịch sử"
-                />
-              </>
+              topicBlocks.map((block) => (
+                <TopicSection key={block.id} block={block}>
+                  {block.leaves.map((leaf) => (
+                    <TopicLeafSection key={leaf.id} leaf={leaf} onOpen={open} />
+                  ))}
+                </TopicSection>
+              ))
             ) : (
               <div className="sk-empty">
                 <Search size={34} />
@@ -338,6 +358,27 @@ export function FiguresDirectory({
         onTab={setTab}
         onClose={() => selectFigure(null)}
         onNavigate={selectFigure}
+      />
+
+      <button
+        type="button"
+        className="sk-toc-floating-side-tab"
+        onClick={() => setTocOpen(true)}
+        title="Mục lục chủ đề nhân vật"
+        aria-label="Mở mục lục chủ đề"
+      >
+        <BookOpen size={15} />
+        <span>Mục lục</span>
+      </button>
+
+      <TocDrawer
+        open={tocOpen}
+        onClose={() => setTocOpen(false)}
+        heading="Mục lục chủ đề"
+        itemLabel="nhân vật"
+        nodes={tocNodes}
+        totalCount={filtered.length}
+        onJump={jumpToTopic}
       />
     </div>
   );

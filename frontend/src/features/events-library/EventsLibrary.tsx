@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   ArrowDownUp,
   ArrowRight,
+  BookOpen,
   Calendar,
+  ChevronDown,
   History,
   ImageIcon,
   LayoutGrid,
@@ -17,10 +19,12 @@ import {
   X,
 } from 'lucide-react';
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, toggleValue } from '@/components/filters/ChipFilter';
-import { Pagination } from '@/components/common/Pagination';
 import { formatYear, normalizeSearch, shortPeriodName } from '@/features/search/search-index';
 import { categoryKeyLabel, eventCategoryLabel, useEventCategories } from '@/hooks/useEventCategories';
 import type { PublicEventSummaryDto, PublicPeriodDto } from '@/services/entities/landing.service';
+import { findRootTopic, groupByTopic, type TopicBlock, type TopicLeafGroup } from '@/services/entities/landing-graph';
+import type { PublicTopicRef } from '@/services/public/public-content.service';
+import { TocDrawer, type TocNode } from '@/components/common/TocDrawer';
 import './events-library.css';
 import { RemoteImage } from '@/components/common/RemoteImage';
 
@@ -31,7 +35,6 @@ enum LibraryViewMode {
 
 /** Giá trị "chưa gắn" dùng chung cho nhóm thời kỳ. */
 const NO_PERIOD = '__none__';
-const PAGE_SIZE = 12;
 
 const LINK_OPTIONS = {
   NO_PERIOD: 'Chưa gắn thời kỳ',
@@ -107,7 +110,20 @@ function matches(row: EventRow, f: EventFilters, needle: string): boolean {
  * Thư viện sự kiện: Lưới thẻ sự kiện tạp chí lịch sử chuyên nghiệp
  * Hỗ trợ chuyển đổi Grid / List, phân trang Pagination rõ ràng.
  */
-export function EventsLibrary({ events, periods }: { events: PublicEventSummaryDto[]; periods: PublicPeriodDto[] }) {
+/** Nhảy tới 1 khối/chủ đề con trong danh sách kết quả (id DOM do renderTopicBlocks đặt). */
+function jumpToTopic(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+export function EventsLibrary({
+  events,
+  periods,
+  topics,
+}: {
+  events: PublicEventSummaryDto[];
+  periods: PublicPeriodDto[];
+  topics: PublicTopicRef[];
+}) {
   const eventCategories = useEventCategories();
   const rows = useMemo(() => buildRows(events, periods), [events, periods]);
   const primaryLabel = (event: PublicEventSummaryDto) => eventCategoryLabel(eventCategories, event);
@@ -117,16 +133,9 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
   const [sort, setSort] = useState<Sort>(EventSortOption.YEAR_ASC);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [viewMode, setViewMode] = useState<LibraryViewMode>(LibraryViewMode.GRID);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [tocOpen, setTocOpen] = useState(false);
 
   const needle = normalizeSearch(query.trim());
-
-  // Reset trang về 1 khi đổi bộ lọc hoặc tìm kiếm
-  useEffect(() => {
-    void Promise.resolve().then(() => {
-      setCurrentPage(1);
-    });
-  }, [query, filters, sort]);
 
   const eras = useMemo(() => {
     const seen = new Map<string, { label: string; start: number }>();
@@ -152,16 +161,35 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
     );
   }, [rows, filters, needle, sort]);
 
-  // Phân trang dữ liệu
-  const paginatedRows = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return visible.slice(start, start + PAGE_SIZE);
-  }, [visible, currentPage]);
+  const topicBlocks = useMemo(
+    () =>
+      groupByTopic(visible, (r) => r.event.topicId ?? null, {
+        topics,
+        rootTopicOf: (id) => findRootTopic(topics, id),
+      }),
+    [visible, topics],
+  );
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    document.getElementById('el-content-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  const tocNodes: TocNode[] = useMemo(
+    () =>
+      topicBlocks.map((block) => {
+        const total = block.leaves.reduce((n, l) => n + l.items.length, 0);
+        const singleLeaf = block.leaves.length === 1 && block.leaves[0].id === block.id;
+        return {
+          id: `topic-${block.id}`,
+          title: block.name,
+          count: total,
+          children: singleLeaf
+            ? undefined
+            : block.leaves.map((leaf) => ({
+                id: `topic-leaf-${leaf.id}`,
+                title: leaf.name,
+                count: leaf.items.length,
+              })),
+        };
+      }),
+    [topicBlocks],
+  );
 
   const chips = [
     ...filters.eras.map((v) => ({ key: 'eras' as const, value: v, label: eras.find(([id]) => id === v)?.[1].label ?? v })),
@@ -341,141 +369,30 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
           )}
         </div>
 
-        {/* Nội dung danh sách sự kiện */}
+        {/* Nội dung danh sách sự kiện, chia khối theo Chủ đề */}
         {visible.length > 0 ? (
-          <>
-            {viewMode === LibraryViewMode.GRID ? (
-              /* DẠNG 1: LƯỚI THẺ SỰ KIỆN TẠP CHÍ (CARD GRID) */
-              <div className="el-grid">
-                {paginatedRows.map(({ event, eraName }) => {
-                  const place = event.locations[0]?.name ?? event.location;
-                  const href = event.slug ? `/su-kien/${event.slug}` : null;
-                  const yearLabel = event.endYear && event.endYear !== event.startYear
-                    ? `${formatYear(event.startYear)} – ${formatYear(event.endYear)}`
-                    : formatYear(event.startYear);
-
-                  return (
-                    <article key={event.id} className="el-card">
-                      {/* Ảnh bìa sự kiện */}
-                      <div className="el-card-media">
-                        {event.imageUrl ? (
-                          <RemoteImage src={event.imageUrl} alt={event.title} loading="lazy" />
-                        ) : (
-                          <div className="el-card-fallback-media">
-                            <ImageIcon size={32} className="opacity-30" />
-                          </div>
-                        )}
-                        <span className="el-card-year-badge">
-                          <Calendar size={12} />
-                          {yearLabel}
-                        </span>
-                      </div>
-
-                      {/* Thân thẻ sự kiện */}
-                      <div className="el-card-body">
-                        <div className="el-card-meta-top">
-                          <span className="el-tag">{primaryLabel(event)}</span>
-                          <span className="el-era-tag">{eraName ? `${eraName}` : 'Thời kỳ chung'}</span>
-                        </div>
-
-                        <h3 className="el-card-title">
-                          {href ? <Link href={href}>{event.title}</Link> : event.title}
-                        </h3>
-
-                        {event.description && (
-                          <p className="el-card-desc">{event.description}</p>
-                        )}
-
-                        {/* Thông tin nhân vật và địa danh */}
-                        <div className="el-card-entities">
-                          {event.figures.length > 0 && (
-                            <div className="el-card-entity-item" title={event.figures.map((f) => f.name).join(', ')}>
-                              <Users size={13} />
-                              <span>
-                                {event.figures.slice(0, 2).map((f) => f.name).join(', ')}
-                                {event.figures.length > 2 && ` +${event.figures.length - 2}`}
-                              </span>
-                            </div>
-                          )}
-                          {place && (
-                            <div className="el-card-entity-item" title={place}>
-                              <MapPin size={13} />
-                              <span>{place}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Footer thẻ */}
-                        {href && (
-                          <div className="el-card-footer">
-                            <Link href={href} className="el-card-link">
-                              <span>Khám phá sự kiện</span>
-                              <ArrowRight size={14} />
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            ) : (
-              /* DẠNG 2: DANH SÁCH CHI TIẾT (LIST VIEW) */
-              <ol className="el-list">
-                {paginatedRows.map(({ event, eraName }) => {
-                  const place = event.locations[0]?.name ?? event.location;
-                  const placeSlug = event.locations[0]?.slug;
-                  const href = event.slug ? `/su-kien/${event.slug}` : null;
-                  const yearLabel = event.endYear && event.endYear !== event.startYear
-                    ? `${formatYear(event.startYear)}–${formatYear(event.endYear)}`
-                    : formatYear(event.startYear);
-
-                  return (
-                    <li key={event.id} className="el-list-item">
-                      <div className="el-list-year">
-                        <strong>{yearLabel}</strong>
-                        <span className="el-tag">{primaryLabel(event)}</span>
-                      </div>
-                      <div className="el-main">
-                        {href ? <Link href={href}>{event.title}</Link> : <strong>{event.title}</strong>}
-                        {event.description && <p className="el-list-desc">{event.description}</p>}
-                        <div className="el-meta">
-                          <span>{eraName ?? 'Chưa gắn thời kỳ'}</span>
-                          {event.figures.length > 0 && (
-                            <span>
-                              <Users size={12} />
-                              {event.figures.slice(0, 2).map((f) => f.name).join(', ')}
-                              {event.figures.length > 2 && ` +${event.figures.length - 2}`}
-                            </span>
-                          )}
-                          {place && (
-                            <span>
-                              <MapPin size={12} />
-                              {placeSlug ? <Link href={`/di-tich/${placeSlug}`}>{place}</Link> : place}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {href && (
-                        <Link href={href} className="el-go" aria-label={`Đọc ${event.title}`}>
-                          <ArrowRight size={16} />
-                        </Link>
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-            )}
-
-            {/* Phân trang Pagination */}
-            <Pagination
-              currentPage={currentPage}
-              totalItems={visible.length}
-              pageSize={PAGE_SIZE}
-              onPageChange={handlePageChange}
-              itemLabel="sự kiện lịch sử"
-            />
-          </>
+          topicBlocks.map((block) => (
+            <TopicBlockSection key={block.id} block={block}>
+              {block.leaves.map((leaf) => (
+                <div key={leaf.id} id={`topic-leaf-${leaf.id}`} className="sk-sub-era">
+                  {block.leaves.length > 1 && <TopicLeafHeading leaf={leaf} />}
+                  {viewMode === LibraryViewMode.GRID ? (
+                    <div className="el-grid">
+                      {leaf.items.map((row) => (
+                        <EventCard key={row.event.id} row={row} primaryLabel={primaryLabel} />
+                      ))}
+                    </div>
+                  ) : (
+                    <ol className="el-list">
+                      {leaf.items.map((row) => (
+                        <EventListItem key={row.event.id} row={row} primaryLabel={primaryLabel} />
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              ))}
+            </TopicBlockSection>
+          ))
         ) : (
           <div className="sk-empty">
             <History size={36} />
@@ -496,6 +413,184 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
           </div>
         )}
       </div>
+
+      <button
+        type="button"
+        className="sk-toc-floating-side-tab"
+        onClick={() => setTocOpen(true)}
+        title="Mục lục chủ đề sự kiện"
+        aria-label="Mở mục lục chủ đề"
+      >
+        <BookOpen size={15} />
+        <span>Mục lục</span>
+      </button>
+
+      <TocDrawer
+        open={tocOpen}
+        onClose={() => setTocOpen(false)}
+        heading="Mục lục chủ đề"
+        itemLabel="sự kiện"
+        nodes={tocNodes}
+        totalCount={visible.length}
+        onJump={jumpToTopic}
+      />
     </div>
+  );
+}
+
+/** Khối lớn theo Chủ đề gốc — gộp mọi Chủ đề con (leaf) của nó, giống TopicSection ở Danh bạ nhân vật. */
+function TopicBlockSection({ block, children }: { block: TopicBlock<EventRow>; children: ReactNode }) {
+  const [open, setOpen] = useState(true);
+  const total = block.leaves.reduce((n, l) => n + l.items.length, 0);
+  return (
+    <section className="sk-era-section" id={`topic-${block.id}`}>
+      <button type="button" className="sk-era-banner sk-button" onClick={() => setOpen((v) => !v)}>
+        <span>
+          <strong>{block.name}</strong>
+          <small>
+            {total} sự kiện · {block.leaves.length} chủ đề con
+          </small>
+        </span>
+        <ChevronDown size={16} className={open ? '' : 'sk-rotate'} />
+      </button>
+      {open && children}
+    </section>
+  );
+}
+
+/** 1 Chủ đề con bên trong khối — tiêu đề + nội dung (grid/list) của riêng nó. */
+function TopicLeafHeading({ leaf }: { leaf: TopicLeafGroup<EventRow> }) {
+  return (
+    <div className="sk-sub-heading">
+      <div>
+        <h3>{leaf.name}</h3>
+        <span className="sk-sub-count">{leaf.items.length} sự kiện</span>
+      </div>
+    </div>
+  );
+}
+
+function EventCard({
+  row: { event, eraName },
+  primaryLabel,
+}: {
+  row: EventRow;
+  primaryLabel: (event: PublicEventSummaryDto) => string;
+}) {
+  const place = event.locations[0]?.name ?? event.location;
+  const href = event.slug ? `/su-kien/${event.slug}` : null;
+  const yearLabel =
+    event.endYear && event.endYear !== event.startYear
+      ? `${formatYear(event.startYear)} – ${formatYear(event.endYear)}`
+      : formatYear(event.startYear);
+
+  return (
+    <article className="el-card">
+      {/* Ảnh bìa sự kiện */}
+      <div className="el-card-media">
+        {event.imageUrl ? (
+          <RemoteImage src={event.imageUrl} alt={event.title} loading="lazy" />
+        ) : (
+          <div className="el-card-fallback-media">
+            <ImageIcon size={32} className="opacity-30" />
+          </div>
+        )}
+        <span className="el-card-year-badge">
+          <Calendar size={12} />
+          {yearLabel}
+        </span>
+      </div>
+
+      {/* Thân thẻ sự kiện */}
+      <div className="el-card-body">
+        <div className="el-card-meta-top">
+          <span className="el-tag">{primaryLabel(event)}</span>
+          <span className="el-era-tag">{eraName ? `${eraName}` : 'Thời kỳ chung'}</span>
+        </div>
+
+        <h3 className="el-card-title">{href ? <Link href={href}>{event.title}</Link> : event.title}</h3>
+
+        {event.description && <p className="el-card-desc">{event.description}</p>}
+
+        {/* Thông tin nhân vật và địa danh */}
+        <div className="el-card-entities">
+          {event.figures.length > 0 && (
+            <div className="el-card-entity-item" title={event.figures.map((f) => f.name).join(', ')}>
+              <Users size={13} />
+              <span>
+                {event.figures.slice(0, 2).map((f) => f.name).join(', ')}
+                {event.figures.length > 2 && ` +${event.figures.length - 2}`}
+              </span>
+            </div>
+          )}
+          {place && (
+            <div className="el-card-entity-item" title={place}>
+              <MapPin size={13} />
+              <span>{place}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer thẻ */}
+        {href && (
+          <div className="el-card-footer">
+            <Link href={href} className="el-card-link">
+              <span>Khám phá sự kiện</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function EventListItem({
+  row: { event, eraName },
+  primaryLabel,
+}: {
+  row: EventRow;
+  primaryLabel: (event: PublicEventSummaryDto) => string;
+}) {
+  const place = event.locations[0]?.name ?? event.location;
+  const placeSlug = event.locations[0]?.slug;
+  const href = event.slug ? `/su-kien/${event.slug}` : null;
+  const yearLabel =
+    event.endYear && event.endYear !== event.startYear
+      ? `${formatYear(event.startYear)}–${formatYear(event.endYear)}`
+      : formatYear(event.startYear);
+
+  return (
+    <li className="el-list-item">
+      <div className="el-list-year">
+        <strong>{yearLabel}</strong>
+        <span className="el-tag">{primaryLabel(event)}</span>
+      </div>
+      <div className="el-main">
+        {href ? <Link href={href}>{event.title}</Link> : <strong>{event.title}</strong>}
+        {event.description && <p className="el-list-desc">{event.description}</p>}
+        <div className="el-meta">
+          <span>{eraName ?? 'Chưa gắn thời kỳ'}</span>
+          {event.figures.length > 0 && (
+            <span>
+              <Users size={12} />
+              {event.figures.slice(0, 2).map((f) => f.name).join(', ')}
+              {event.figures.length > 2 && ` +${event.figures.length - 2}`}
+            </span>
+          )}
+          {place && (
+            <span>
+              <MapPin size={12} />
+              {placeSlug ? <Link href={`/di-tich/${placeSlug}`}>{place}</Link> : place}
+            </span>
+          )}
+        </div>
+      </div>
+      {href && (
+        <Link href={href} className="el-go" aria-label={`Đọc ${event.title}`}>
+          <ArrowRight size={16} />
+        </Link>
+      )}
+    </li>
   );
 }

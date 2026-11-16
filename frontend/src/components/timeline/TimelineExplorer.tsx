@@ -2,26 +2,24 @@
 
 import {
   TimelineFocusContext,
-  computeLens,
   computeRelated,
-  lifespanLabel,
   type RelatedReason,
   type TimelineFocusState,
 } from "./TimelineNodes";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import { ArrowDownUp, ArrowRight, BookOpen, Landmark, Network, Search, X } from "lucide-react";
-import { Button, Heading } from "./TimelineChrome";
+import { Button, Heading, compactPeriod } from "./TimelineChrome";
 import { EMPTY_FILTERS, FilterBar, type TimelineFilters } from "./TimelineChrome";
 import { FilterSheet } from "./TimelineChrome";
 import { Minimap } from "./TimelineChrome";
-import { EraTocDrawer } from "./TimelineSections";
 import { EraSection } from "./TimelineSections";
 import { SubEraSection } from "./TimelineSections";
 import { HorizontalExplorer } from "./TimelineSections";
 import { EventDetailModal } from "./TimelineChrome";
+import { TocDrawer, type TocNode } from "@/components/common/TocDrawer";
 import { SK_SELECTED_CLASS } from "./sk-types";
-import type { Era, TimeNode, TimelineActor, TimelineEvent } from "./sk-types";
+import type { Era, TimeNode, TimelineEvent } from "./sk-types";
 
 const SAVED_STORAGE_KEY = "hisgo:timeline:saved-events";
 
@@ -80,32 +78,41 @@ function countEvents(eras: Era[]): number {
   );
 }
 
-/** Sự kiện liên quan tới sự kiện đang chọn, hoặc tới chủ thể đang xem qua lăng kính. */
-function relatedEvents(
-  focus: TimelineEvent | null,
-  lens: TimelineActor | null,
-  allEvents: TimelineEvent[],
-): Map<string, RelatedReason[]> {
-  if (focus) return computeRelated(focus, allEvents);
-  if (lens) return computeLens(lens, allEvents);
-  return new Map();
+/** Sự kiện liên quan tới sự kiện đang chọn (liên kết trực tiếp đã khai báo). */
+function relatedEvents(focus: TimelineEvent | null, allEvents: TimelineEvent[]): Map<string, RelatedReason[]> {
+  return focus ? computeRelated(focus, allEvents) : new Map();
 }
 
 /** Khi bật "chỉ hiện sự kiện liên quan": tập id được giữ lại; null = không lọc. */
 function onlyRelatedIds(
   focus: TimelineEvent | null,
-  lens: TimelineActor | null,
   onlyRelated: boolean,
   related: Map<string, RelatedReason[]>,
 ): Set<string> | null {
-  if (!(focus || lens) || !onlyRelated) return null;
-  return new Set([...(focus ? [focus.id] : []), ...related.keys()]);
+  if (!focus || !onlyRelated) return null;
+  return new Set([focus.id, ...related.keys()]);
 }
 
 function collectCategories(nodes: TimeNode[]): string[] {
   const seen = new Set<string>();
   for (const n of nodes) for (const ev of n.events) seen.add(ev.category);
   return Array.from(seen);
+}
+
+/** Era/SubEra → cây Mục lục dùng chung (TocDrawer); nhảy tới era thì nhảy sang giai đoạn đầu tiên của nó. */
+function toTocNodes(eras: Era[]): TocNode[] {
+  return eras.map((e) => ({
+    id: e.subEras[0]?.id ?? e.id,
+    title: e.title,
+    subtitle: compactPeriod(e.periodLabel),
+    count: e.subEras.reduce((n, s) => n + s.timeNodes.length, 0),
+    children: e.subEras.map((s) => ({
+      id: s.id,
+      title: s.title,
+      subtitle: compactPeriod(s.periodLabel),
+      count: s.timeNodes.length,
+    })),
+  }));
 }
 
 /** Bật/tắt dấu mốc đã lưu và ghi lại vào trình duyệt (lỗi storage thì chỉ giữ trong phiên này). */
@@ -132,7 +139,7 @@ function pickSelectedNode(nodes: TimeNode[], selectedId: string): TimeNode | und
   return chosen?.events.length ? chosen : nodes.find((n) => n.events.length > 0);
 }
 
-/** Thanh trạng thái khi đang xem liên kết của 1 sự kiện hoặc lăng kính 1 chủ thể. */
+/** Thanh trạng thái khi đang xem liên kết của 1 sự kiện. */
 function FocusBar({
   title,
   summary,
@@ -164,14 +171,8 @@ function FocusBar({
   );
 }
 
-function lensSummary(lens: TimelineActor, count: number): string {
-  const lifespan = lifespanLabel(lens);
-  const base = `${count} sự kiện có chủ thể này`;
-  return lifespan ? `${base} · tồn tại ${lifespan} (thanh đánh dấu dọc trục)` : base;
-}
-
-function focusSummary(focus: TimelineEvent, count: number, strongCount: number): string {
-  const base = `${count} sự kiện liên quan (${strongCount} liên kết trực tiếp)`;
+function focusSummary(focus: TimelineEvent, count: number): string {
+  const base = `${count} sự kiện liên kết trực tiếp`;
   return focus.spanLabel ? `${base} · kéo dài ${focus.spanLabel}` : base;
 }
 
@@ -197,9 +198,8 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     });
   }, []);
   const [bookmarksOnly, setBookmarksOnly] = useState(false);
-  // Chế độ "Liên kết" (đồ thị tri thức trên dòng thời gian).
+  // Chế độ "Liên kết": sáng các sự kiện đã khai báo liên kết trực tiếp với sự kiện đang chọn.
   const [focus, setFocus] = useState<TimelineEvent | null>(null);
-  const [lens, setLens] = useState<TimelineActor | null>(null);
   const [onlyRelated, setOnlyRelated] = useState(false);
   const [flashId, setFlashId] = useState<string | null>(null);
   const canvas = useRef<HTMLDivElement>(null);
@@ -217,13 +217,10 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   };
 
   const allEvents = useMemo(() => allNodes.flatMap((n) => n.events), [allNodes]);
-  const related = useMemo(
-    () => relatedEvents(focus, lens, allEvents),
-    [focus, lens, allEvents],
-  );
+  const related = useMemo(() => relatedEvents(focus, allEvents), [focus, allEvents]);
   const onlyIds = useMemo(
-    () => onlyRelatedIds(focus, lens, onlyRelated, related),
-    [focus, lens, onlyRelated, related],
+    () => onlyRelatedIds(focus, onlyRelated, related),
+    [focus, onlyRelated, related],
   );
   const reveal = (domId: string) => {
     // Đang lọc "chỉ liên quan" có thể ẩn mốc cần tới — bỏ lọc trước khi cuộn.
@@ -236,17 +233,9 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   };
   const focusState: TimelineFocusState = {
     focus,
-    lens,
-    // Liên kết của sự kiện và lăng kính chủ thể loại trừ nhau — bật cái này thì tắt cái kia.
-    setLens: (actor) => {
-      setLens(actor);
-      setFocus(null);
-      setOnlyRelated((v) => v && actor !== null);
-    },
     related,
     setFocus: (ev) => {
       setFocus(ev);
-      setLens(null);
       setOnlyRelated((v) => v && ev !== null);
     },
     reveal,
@@ -263,6 +252,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
 
   const visibleNodes = useMemo(() => eras.flatMap((e) => e.subEras.flatMap((s) => s.timeNodes)), [eras]);
   const selectedNode = pickSelectedNode(visibleNodes, selected);
+  const tocNodes = useMemo(() => toTocNodes(eras), [eras]);
 
   const jump = (id: string) => {
     setActive(id);
@@ -274,8 +264,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     const next = neighborEvent(allNodes, detail.event.id, direction);
     if (next) setDetail(next);
   };
-
-  const strongCount = [...related.values()].filter((r) => r.some((x) => x.strong)).length;
 
   return (
     <TimelineFocusContext.Provider value={focusState}>
@@ -326,23 +314,10 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
           categories={allCategories}
         />
 
-        {lens && (
-          <FocusBar
-            title={`Lăng kính: ${lens.name}`}
-            summary={lensSummary(lens, related.size)}
-            onlyLabel="Chỉ hiện các sự kiện này"
-            onlyRelated={onlyRelated}
-            onOnlyRelatedChange={setOnlyRelated}
-          >
-            <Button aria-label="Tắt lăng kính chủ thể" onClick={() => focusState.setLens(null)}>
-              <X size={15} />
-            </Button>
-          </FocusBar>
-        )}
         {focus && (
           <FocusBar
             title={`Đang xem liên kết của: ${focus.title}`}
-            summary={focusSummary(focus, related.size, strongCount)}
+            summary={focusSummary(focus, related.size)}
             onlyLabel="Chỉ hiện sự kiện liên quan"
             onlyRelated={onlyRelated}
             onOnlyRelatedChange={setOnlyRelated}
@@ -458,14 +433,15 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
       </button>
 
       {/* Drawer Mục lục trượt từ mép phải ra (có ô tìm kiếm, chịu tải hàng trăm thời kỳ) */}
-      <EraTocDrawer
+      <TocDrawer
         open={tocOpen}
         onClose={() => setTocOpen(false)}
-        eras={eras}
-        activeSubEraId={active}
-        totalEvents={countEvents(eras)}
-        onJumpEra={(e) => jump(e.subEras[0]?.id)}
-        onJumpSubEra={jump}
+        heading="Mục lục thời kỳ"
+        itemLabel="mốc sự kiện"
+        nodes={tocNodes}
+        activeId={active}
+        totalCount={countEvents(eras)}
+        onJump={jump}
       />
     </div>
     </TimelineFocusContext.Provider>

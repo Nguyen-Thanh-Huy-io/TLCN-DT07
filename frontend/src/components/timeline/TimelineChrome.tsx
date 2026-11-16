@@ -363,13 +363,13 @@ export function shortTitle(title: string): string {
 }
 
 /** Tên giai đoạn trong cột hẹp: bỏ tiền tố lặp lại ("Thời kỳ", "Giai đoạn"...) — tên đầy đủ ở tooltip. */
-function sidebarName(title: string): string {
+export function sidebarName(title: string): string {
   const short = shortTitle(title).replace(/^(Thời kỳ|Thời đại|Giai đoạn)\s+/i, "");
   return short.charAt(0).toUpperCase() + short.slice(1);
 }
 
 /** "2879 TCN – 208 TCN" → "2879–208 TCN" khi hai đầu cùng hậu tố, để chip năm gọn. */
-function compactPeriod(label: string): string {
+export function compactPeriod(label: string): string {
   const cleaned = label.replace(/[()]/g, "").trim();
   const match = cleaned.match(/^(\d+)\s*(TCN|CN)?\s*[–-]\s*(\d+|Nay)\s*(TCN|CN)?$/);
   if (!match) return cleaned;

@@ -100,14 +100,12 @@ function toTimelineEvent(
     figures: event.figures.map(toTimelineFigure),
     locations: event.locations.map(toTimelineLocation),
     ...spanOf(event),
-    parentId: event.parentId ?? null,
     relations: event.relations ?? [],
     endedByEventId: event.relations?.find(
       (r) =>
         r.relationType === ENDED_BY_RELATION &&
         r.direction === TimelineRelationDirection.OUTGOING,
     )?.eventId,
-    actors: event.actors ?? [],
   };
 }
 

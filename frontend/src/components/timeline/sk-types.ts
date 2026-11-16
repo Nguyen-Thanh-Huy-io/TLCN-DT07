@@ -11,13 +11,6 @@ export enum TimelineRelationDirection {
   INCOMING = "INCOMING",
 }
 
-export enum TimelineActorType {
-  DYNASTY = "DYNASTY",
-  ORGANIZATION = "ORGANIZATION",
-  FORCE = "FORCE",
-  ARTIFACT = "ARTIFACT",
-}
-
 export enum NodeContentTab {
   EVENTS = "events",
   FIGURES = "figures",
@@ -55,24 +48,10 @@ export interface TimelineEvent {
   endYear?: number;
   /** "257 TCN – 208 TCN · 49 năm" cho sự kiện kéo dài. */
   spanLabel?: string;
-  parentId?: string | null;
-  /** Quan hệ với sự kiện khác (đồ thị tri thức). */
+  /** Liên kết đã khai báo trực tiếp (ArticleLink) với sự kiện khác. */
   relations: Array<{ eventId: string; relationType: string; direction: "OUTGOING" | "INCOMING" }>;
   /** Sự kiện đánh dấu kết thúc (quan hệ "Kết thúc bằng"), nếu có. */
   endedByEventId?: string;
-  /** Chủ thể tham gia (triều đại / quốc gia, tổ chức, lực lượng, hiện vật). */
-  actors: TimelineActor[];
-}
-
-/** Chủ thể của sự kiện — bấm vào để bật "lăng kính" theo chủ thể trên dòng thời gian. */
-export interface TimelineActor {
-  id: string;
-  name: string;
-  type: string;
-  role: string;
-  roleLabel: string | null;
-  startYear: number | null;
-  endYear: number | null;
 }
 
 /** Mốc kết thúc của một sự kiện kéo dài, đặt ở năm kết thúc trên dòng thời gian. */

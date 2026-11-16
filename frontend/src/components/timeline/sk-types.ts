@@ -6,11 +6,6 @@ export { TIMELINE_HERO_IMAGE_URL as heroLandscape } from "@/constants/routes";
 export const SK_SELECTED_CLASS = "sk-selected";
 
 // === sk-types.ts ===
-export enum EventDomainGroup {
-  POLITICS_MILITARY = "POLITICS_MILITARY",
-  ECONOMY_CULTURE = "ECONOMY_CULTURE",
-}
-
 export enum TimelineRelationDirection {
   OUTGOING = "OUTGOING",
   INCOMING = "INCOMING",
@@ -47,7 +42,6 @@ export interface TimelineEvent {
   category: string;
   /** Raw EventCategory code from the API. */
   categoryCode: string;
-  domainGroup: EventDomainGroup | "POLITICS_MILITARY" | "ECONOMY_CULTURE";
   title: string;
   /** Slug sự kiện → liên kết trang chi tiết /su-kien/[slug]. */
   slug?: string | null;

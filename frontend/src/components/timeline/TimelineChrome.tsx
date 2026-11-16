@@ -339,7 +339,7 @@ export function FilterSheet({
                 ))}
             </FilterSection>
 
-            {categories.length > 0 && (
+            {categories.length > 1 && (
               <FilterSection title="Danh mục sự kiện" aside={<PickedCount count={draft.categories.length} />}>
                 <ChipGroup
                   options={categories.map((c) => ({ value: c, label: c }))}

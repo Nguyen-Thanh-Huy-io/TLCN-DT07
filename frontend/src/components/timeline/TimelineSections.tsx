@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ArrowUpRight, ChevronDown, Landmark, ChevronLeft, ChevronRight, BookOpen, Search, X } from 'lucide-react';
 import { Button, Heading, Badge, shortTitle } from './TimelineChrome';
 import { TimelineNodeItem, NodeContent } from './TimelineNodes';
-import { EventDomainGroup, SK_SELECTED_CLASS, type SubEra, type TimeNode, type TimelineEvent, type Era } from './sk-types';
+import { SK_SELECTED_CLASS, type SubEra, type TimeNode, type TimelineEvent, type Era } from './sk-types';
 import { KeyboardKey } from '@/constants/enums';
 
 // === EraSection.tsx ===
@@ -64,17 +64,9 @@ export function EraSection({
 }
 
 // === SubEraSection.tsx ===
-export enum SplitMode {
-  ALTERNATING = "alternating",
-  DOMAIN = "domain",
-}
-
-export type SplitModeType = SplitMode | "alternating" | "domain";
-
 export function SubEraSection({
   subEra: s,
   compact,
-  split,
   onDetail,
   onSave,
   saved,
@@ -82,7 +74,6 @@ export function SubEraSection({
 }: {
   subEra: SubEra;
   compact: boolean;
-  split: SplitMode | string;
   onDetail: (d: { event: TimelineEvent; node: TimeNode }) => void;
   onSave: (id: string) => void;
   saved: string[];
@@ -109,11 +100,7 @@ export function SubEraSection({
       <div className="sk-nodes">
         <div className="sk-spine" />
         {s.timeNodes.map((node, index) => {
-          const first = node.events[0];
-          const right =
-            split === SplitMode.DOMAIN && first
-              ? first.domainGroup === EventDomainGroup.ECONOMY_CULTURE
-              : index % 2 === 1;
+          const right = index % 2 === 1;
           return (
             <TimelineNodeItem
               key={node.id}

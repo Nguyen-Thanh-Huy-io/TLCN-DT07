@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ArrowUpRight, MapPin, Users, ArrowRight, BookOpen, Bookmark, Flag, Landmark, Network, Swords, TimerReset, Plus, Undo2 } from 'lucide-react';
 import { Heading, Badge, Button } from './TimelineChrome';
-import { NodeContentTab, EventDomainGroup, SK_SELECTED_CLASS, TimelineActorType, type TimelineFigure, type TimelineLocation, type TimelineEvent, type TimeNode, type TimelineActor } from './sk-types';
+import { NodeContentTab, SK_SELECTED_CLASS, TimelineActorType, type TimelineFigure, type TimelineLocation, type TimelineEvent, type TimeNode, type TimelineActor } from './sk-types';
 import { useFigureProfile } from '@/components/figures/FigureProfileParts';
 import { RemoteImage } from '@/components/common/RemoteImage';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -106,7 +106,6 @@ function renderCategoryIcon(event: TimelineEvent) {
   const slug = event.categoryCode.toLowerCase();
   if (/tran-danh|chien-tranh|quan-su|khang-chien/.test(slug)) return <Swords size={12} />;
   if (/cach-mang|khoi-nghia|chinh-tri/.test(slug)) return <Flag size={12} />;
-  if (event.domainGroup === EventDomainGroup.ECONOMY_CULTURE) return <BookOpen size={12} />;
   return <Landmark size={12} />;
 }
 

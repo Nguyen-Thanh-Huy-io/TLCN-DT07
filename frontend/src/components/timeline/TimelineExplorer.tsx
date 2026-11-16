@@ -10,24 +10,20 @@ import {
 } from "./TimelineNodes";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
-import { ArrowDownUp, ArrowRight, BookOpen, Landmark, Network, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowDownUp, ArrowRight, BookOpen, Landmark, Network, Search, X } from "lucide-react";
 import { Button, Heading } from "./TimelineChrome";
 import { EMPTY_FILTERS, FilterBar, type TimelineFilters } from "./TimelineChrome";
 import { FilterSheet } from "./TimelineChrome";
 import { Minimap } from "./TimelineChrome";
 import { EraTocDrawer } from "./TimelineSections";
 import { EraSection } from "./TimelineSections";
-import { SubEraSection, SplitMode } from "./TimelineSections";
+import { SubEraSection } from "./TimelineSections";
 import { HorizontalExplorer } from "./TimelineSections";
 import { EventDetailModal } from "./TimelineChrome";
 import { SK_SELECTED_CLASS } from "./sk-types";
 import type { Era, TimeNode, TimelineActor, TimelineEvent } from "./sk-types";
 
 const SAVED_STORAGE_KEY = "hisgo:timeline:saved-events";
-const SPLIT_LABELS: Record<SplitMode, string> = {
-  alternating: "So le hai bên",
-  domain: "Chính trị / Văn hóa",
-};
 
 function readSaved(): string[] {
   try {
@@ -184,7 +180,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   const [filters, setFilters] = useState<TimelineFilters>(EMPTY_FILTERS);
   const [horizontal, setHorizontal] = useState(false);
   const [compact, setCompact] = useState(false);
-  const [split, setSplit] = useState<SplitMode>(SplitMode.ALTERNATING);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [active, setActive] = useState("");
   const [detail, setDetail] = useState<{ event: TimelineEvent; node: TimeNode } | null>(null);
@@ -384,26 +379,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
           )}
 
           <main className="sk-timeline-main" ref={canvas}>
-            <div className="sk-canvas-toolbar">
-              {/* Phân luồng là cách hiển thị (chỉ trục dọc), không phải bộ lọc nên để ngoài. */}
-              {!horizontal && (
-                <div className="sk-split-segment" role="group" aria-label="Phân luồng trục dọc">
-                  <SlidersHorizontal size={13} />
-                  {(Object.keys(SPLIT_LABELS) as SplitMode[]).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      className={split === mode ? SK_SELECTED_CLASS : ""}
-                      aria-pressed={split === mode}
-                      onClick={() => setSplit(mode)}
-                    >
-                      {SPLIT_LABELS[mode]}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {allNodes.length === 0 ? (
               <div className="sk-empty">
                 <Landmark size={36} />
@@ -440,13 +415,12 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                   ) : (
                     eras.map((e, ei) => (
                       <EraSection key={e.id} title={e.title} slug={e.slug} period={e.periodLabel} index={ei} overview={e.overview}>
-                        <motion.div className="sk-spine-progress" style={{ scaleY: progress }} />
+                        <motion.div key="spine-progress" className="sk-spine-progress" style={{ scaleY: progress }} />
                         {e.subEras.map((s) => (
                           <SubEraSection
                             key={`${s.id}-${query}-${filterKey}-${bookmarksOnly}`}
                             subEra={s}
                             compact={compact}
-                            split={split}
                             onDetail={setDetail}
                             onSave={toggleSaved}
                             saved={saved}

@@ -6,11 +6,9 @@ import {
 } from "@/services/entities/landing.service";
 import {
   eventCategoryLabel,
-  isCultureEventCategory,
   type EventCategoryItem,
 } from "@/services/public/article-kind";
 import {
-  EventDomainGroup,
   TimelineRelationDirection,
   type Attributed,
   type Era,
@@ -65,12 +63,6 @@ const THEME_COLORS = ["green", "amber"];
 /** Nhãn liên kết sự kiện → sự kiện kết thúc nó (dùng để vẽ đoạn kéo dài trên trục). */
 const ENDED_BY_RELATION = "ENDED_BY";
 
-function domainGroupOf(categories: EventCategoryItem[], event: PublicEventSummaryDto): EventDomainGroup {
-  return isCultureEventCategory(categories, event)
-    ? EventDomainGroup.ECONOMY_CULTURE
-    : EventDomainGroup.POLITICS_MILITARY;
-}
-
 /** Nhãn ngắn hiển thị trên trục/thẻ. Ghi chú niên đại dài (vd. "Theo truyền thuyết...") chỉ hiện ở chi tiết. */
 const MAX_DATE_LABEL_LENGTH = 24;
 
@@ -99,7 +91,6 @@ function toTimelineEvent(
     subEra: subEraTitle,
     category: label,
     categoryCode: event.category,
-    domainGroup: domainGroupOf(eventCategories, event),
     title: event.title,
     slug: event.slug,
     summary: event.description || "Chưa có mô tả cho sự kiện này.",

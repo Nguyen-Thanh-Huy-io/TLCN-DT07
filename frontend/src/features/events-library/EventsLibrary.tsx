@@ -293,18 +293,20 @@ export function EventsLibrary({ events, periods }: { events: PublicEventSummaryD
                 <FilterSection card title="Thời kỳ" aside={<PickedCount count={draft.eras.length} />}>
                   <ChipGroup options={eraOptions} selected={draft.eras} onToggle={(v) => toggle('eras', v)} searchLabel="Tìm thời kỳ..." />
                 </FilterSection>
-                <FilterSection title="Danh mục sự kiện" aside={<PickedCount count={draft.categories.length} />}>
-                  <ChipGroup
-                    options={categories.map(({ cat, n }) => ({
-                      value: cat.id,
-                      label: cat.name,
-                      hint: `${n} sự kiện`,
-                    }))}
-                    selected={draft.categories}
-                    onToggle={(v) => toggle('categories', v)}
-                    searchLabel="Tìm danh mục..."
-                  />
-                </FilterSection>
+                {categories.length > 0 && (
+                  <FilterSection title="Danh mục sự kiện" aside={<PickedCount count={draft.categories.length} />}>
+                    <ChipGroup
+                      options={categories.map(({ cat, n }) => ({
+                        value: cat.id,
+                        label: cat.name,
+                        hint: `${n} sự kiện`,
+                      }))}
+                      selected={draft.categories}
+                      onToggle={(v) => toggle('categories', v)}
+                      searchLabel="Tìm danh mục..."
+                    />
+                  </FilterSection>
+                )}
                 {links.length > 0 && (
                   <FilterSection title="Mức độ liên kết" aside={<PickedCount count={draft.links.length} />}>
                     <ChipGroup

@@ -57,8 +57,6 @@ export interface EventCategoryRef {
 }
 
 const FALLBACK_EVENT_CATEGORY_LABEL = 'Khác';
-const CULTURE_CATEGORY_PATTERN =
-  /van-hoa|kinh-te|xa-hoi|khoa-hoc|giao-duc|nghe-thuat|ton-giao|tin-nguong|khoa-bang|kien-truc|culture|economy|society|science/i;
 
 /** Rút danh sách chuyên mục con thuộc loại EVENT kèm thông tin chuyên mục cha trực tiếp. */
 export function extractEventCategories<
@@ -108,40 +106,5 @@ export function eventCategoryLabel(categories: EventCategoryItem[], event: Event
   const slug = event.category ?? '';
   if (!slug || slug === ArticleKindEnum.OTHER) return FALLBACK_EVENT_CATEGORY_LABEL;
   return categories.find((c) => c.slug === slug)?.name ?? slug;
-}
-
-/** Tìm chuyên mục cha cấp trên (trong nhánh loại sự kiện) của sự kiện để phân nhóm. */
-export function eventParentCategory(
-  categories: EventCategoryItem[],
-  event: EventCategoryRef,
-): EventCategoryItem | undefined {
-  const id = event.categoryIds?.[0];
-  const slug = event.category;
-  let current = categories.find((c) => (id && c.id === id) || (slug && c.slug === slug));
-  const byId = new Map(categories.map((c) => [c.id, c]));
-  const seen = new Set<string>();
-  while (current?.parentId && byId.has(current.parentId) && !seen.has(current.id)) {
-    seen.add(current.id);
-    current = byId.get(current.parentId);
-  }
-  return current;
-}
-
-/**
- * Kiểm tra sự kiện có thuộc nhánh "Kinh tế – Văn hóa" hay không dựa trên chuyên mục cha
- * (hoặc chính chuyên mục đó nếu đặt trực tiếp dưới gốc Sự kiện).
- */
-export function isCultureEventCategory(
-  categories: EventCategoryItem[],
-  event: EventCategoryRef,
-): boolean {
-  const id = event.categoryIds?.[0];
-  const slug = event.category ?? '';
-  const leaf = categories.find((c) => (id && c.id === id) || (slug && c.slug === slug));
-  const rootParent = eventParentCategory(categories, event);
-  const candidates = [rootParent?.slug, rootParent?.parentSlug, leaf?.slug, leaf?.parentSlug, slug].filter(
-    (s): s is string => Boolean(s),
-  );
-  return candidates.some((s) => CULTURE_CATEGORY_PATTERN.test(s));
 }
 

@@ -39,16 +39,12 @@ export function sanitizeMetadata(raw: unknown): ArticleMetadata | null {
   if (!m) return null;
   const p = asObject(m.person);
   const s = asObject(m.site);
-  const e = asObject(m.event);
   return {
     aliases: asList(m.aliases),
     sources: asList(m.sources),
     person: p && {
       titles: asList(p.titles),
-      occupation: asText(p.occupation),
       roles: asList(p.roles),
-      birthDateLabel: asText(p.birthDateLabel),
-      deathDateLabel: asText(p.deathDateLabel),
       hometown: asText(p.hometown),
       backgroundAndYouth: asText(p.backgroundAndYouth),
       notableWorks: asList(p.notableWorks),
@@ -70,21 +66,12 @@ export function sanitizeMetadata(raw: unknown): ArticleMetadata | null {
     },
     site: s && {
       address: asText(s.address),
-      latitude: asNumber(s.latitude),
-      longitude: asNumber(s.longitude),
       siteType: asText(s.siteType),
       recognizedYear: asText(s.recognizedYear),
       preservation: asText(s.preservation),
       statusNote: asText(s.statusNote),
       managingAgency: asText(s.managingAgency),
       architecturalStyle: asText(s.architecturalStyle),
-      openingHours: asText(s.openingHours),
-    },
-    event: e && {
-      dateNote: asText(e.dateNote),
-      cause: asText(e.cause),
-      outcome: asText(e.outcome),
-      belligerents: asList(e.belligerents),
     },
   };
 }
@@ -110,7 +97,6 @@ export interface PublicGraph {
   /** Chuyên mục con của "su-kien" mà bài viết thuộc về (= loại sự kiện), nếu có. */
   eventTypeOf: (article: PublicArticleSummary | undefined) => PublicCategory | undefined;
   periodSlugOf: (article: PublicArticleSummary) => string | null;
-  /** Topic gốc (đi hết lên tổ tiên) của 1 topicId — dùng nhóm bài viết theo Chủ đề ở trang Khám phá. */
   rootTopicOf: (topicId: string | null | undefined) => PublicTopicRef | undefined;
   /** Mốc timeline trỏ tới 1 bài (kèm dòng thời gian chứa mốc). */
   nodesOf: (articleSlug: string) => LifeNodeRef[];
@@ -267,11 +253,7 @@ export interface TopicBlock<T> {
   leaves: TopicLeafGroup<T>[];
 }
 
-/**
- * Nhóm danh sách bài viết (nhân vật/sự kiện...) theo cây Topic: khối lớn = Topic gốc (đi hết lên
- * tổ tiên qua `rootTopicOf`), khối con = Topic trực tiếp của từng bài. Bài chưa gắn Topic gom vào
- * 1 khối "Khác" riêng, không trộn lẫn các khối Topic thật.
- */
+/** Khối lớn = Topic gốc (qua `rootTopicOf`), khối con = Topic trực tiếp; chưa gắn Topic gom vào khối "Khác" riêng. */
 export function groupByTopic<T>(
   items: T[],
   topicIdOf: (item: T) => string | null | undefined,
@@ -296,8 +278,7 @@ export function groupByTopic<T>(
     blocks.set(blockId, block);
   }
 
-  // Giữ đúng thứ tự Topic đã cấu hình (displayOrder từ BE) thay vì thứ tự xuất hiện ngẫu nhiên
-  // trong items; khối/chủ đề con "Khác" (chưa gắn Topic) luôn xuống cuối.
+  // Sắp theo displayOrder đã cấu hình, không theo thứ tự xuất hiện trong items; "Khác" luôn xuống cuối.
   const orderIndex = new Map(g.topics.map((t, i) => [t.id, i]));
   const byOrder = (idA: string, idB: string) => (orderIndex.get(idA) ?? Infinity) - (orderIndex.get(idB) ?? Infinity);
   for (const block of blocks.values()) block.leaves.sort((a, b) => byOrder(a.id, b.id));

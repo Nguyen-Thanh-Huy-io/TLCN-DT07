@@ -78,7 +78,6 @@ export interface TimelineLocation {
   id: string;
   name: string;
   modernName?: string;
-  coordinates?: string;
   description: string;
 }
 

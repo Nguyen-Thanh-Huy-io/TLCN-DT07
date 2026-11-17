@@ -23,6 +23,7 @@ import {
   DifficultyLevel,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { toArticleMetadataJson } from '../../src/article/article-metadata';
 import { toBankQuestion, upsertTopicQuizFromSeed } from './quiz-bank.helper';
 
 const prisma = new PrismaClient({
@@ -148,7 +149,7 @@ async function main() {
         coverImageUrl: a.coverImageUrl ?? null,
         coverCaption: a.coverCaption ?? null,
         contentBlocks: a.contentBlocks ?? [],
-        metadata: a.metadata ?? null,
+        metadata: toArticleMetadataJson(a.metadata),
         dateText: a.dateText ?? null,
         startYear: a.startYear ?? null,
         endYear: a.endYear ?? null,
@@ -166,7 +167,7 @@ async function main() {
         coverImageUrl: a.coverImageUrl ?? null,
         coverCaption: a.coverCaption ?? null,
         contentBlocks: a.contentBlocks ?? [],
-        metadata: a.metadata ?? null,
+        metadata: toArticleMetadataJson(a.metadata),
         dateText: a.dateText ?? null,
         startYear: a.startYear ?? null,
         endYear: a.endYear ?? null,

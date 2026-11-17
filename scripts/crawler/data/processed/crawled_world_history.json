@@ -381,9 +381,9 @@
       ],
       "region": "La Mã",
       "summary": "Gaius Julius Caesar viết theo người La Mã là Gaivs Ivlivs Caesar (tiếng Latinh: [ˈɡaːiʊs ˈjuːliʊs ˈkae̯sar]; 12 tháng 7 năm 100 TCN – 15 tháng 3 năm 44 TCN) là một vị tướng và chính khách người La Mã. Là thành viên của Chế độ tam hùng lần thứ nhất, Caesar đã lãnh đạo quân đội La Mã trong cuộc Chiến ...",
-      "dateText": "100",
-      "startYear": 100,
-      "endYear": 100,
+      "dateText": "100 TCN – 44 TCN",
+      "startYear": -100,
+      "endYear": -44,
       "metadata": {
         "person": {
           "birthDateLabel": "12 tháng 7 năm 100 TCNRoma, Cộng hòa La Mã, La Mã cổ đại",

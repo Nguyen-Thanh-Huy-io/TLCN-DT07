@@ -16,12 +16,13 @@
  *        PERSON–EVENT   → sự kiện trong dòng đời nhân vật (vai trò = label) + người tham gia sự kiện
  *        EVENT–LOCATION → nơi diễn ra sự kiện + sự kiện của di tích
  *        EVENT–EVENT    → quan hệ sự kiện (chế độ "Liên kết" của dòng thời gian)
- *        mọi cặp        → "Mạng lưới tri thức" ở trang đọc (trước các bài chung tag)
- *  • Hồ sơ mô tả = Article.metadata (aliases, sources, person, site, event) — tùy chọn.
+ *        mọi cặp        → "Mạng lưới tri thức" ở trang đọc (tách riêng với mục bài viết cùng tag)
+ *  • Hồ sơ mô tả = Article.metadata (aliases, sources, person, site) — tùy chọn. Năm sinh–mất /
+ *      năm diễn ra chỉ lấy từ cột năm của bài (startYear/endYear, dateText), không có nhãn ngày riêng.
  *  • Thời kỳ của bài = Timeline cùng Topic với bài (`Timeline.topicId === Article.topicId`) — không
  *      suy theo mốc Timeline trỏ tới bài hay theo bài liên kết nữa (đã bỏ 2026-11-16).
  *  • Dòng đời nhân vật = features/articles/person-life.ts (dùng CHUNG với khung xem trước ở CMS):
- *      liên kết tới bài sự kiện + mốc trỏ thẳng tới bài nhân vật + mốc đời riêng. KHÔNG suy theo tag.
+ *      chỉ gồm 2 nguồn: liên kết tới bài sự kiện + mốc đời riêng. KHÔNG suy theo tag hay mốc trỏ vào nhân vật.
  *
  * Chỉ dùng trong Server Component (fetch thuần, cache theo request bằng React `cache`).
  */
@@ -81,8 +82,6 @@ function toLocation(g: PublicGraph, a: PublicArticleSummary): PublicLocationSumm
     slug: a.slug,
     name: a.title,
     address: site.address ?? null,
-    latitude: site.latitude ?? null,
-    longitude: site.longitude ?? null,
     historicalSignificance: a.summary,
     imageUrl: a.coverImageUrl,
     siteType: site.siteType,
@@ -94,6 +93,8 @@ function toLocation(g: PublicGraph, a: PublicArticleSummary): PublicLocationSumm
     preservationCategory: site.preservation ?? null,
     statusNote: site.statusNote ?? null,
     managingUnit: site.managingAgency ?? null,
+    recognizedYear: site.recognizedYear ?? null,
+    architecturalStyle: site.architecturalStyle ?? null,
   };
 }
 
@@ -130,7 +131,7 @@ function buildEventsFromTimelines(
         title: node.title,
         startYear: node.year ?? period?.startYear ?? 0,
         endYear: node.endYear,
-        eventDateNote: node.dateText ?? (node.month ? node.dateLabel : null) ?? article?.metadata?.event?.dateNote ?? null,
+        eventDateNote: node.dateText ?? (node.month ? node.dateLabel : null) ?? null,
         description: node.description ?? article?.summary ?? null,
         imageUrl: node.imageUrl ?? article?.coverImageUrl ?? null,
         category: type?.slug ?? 'OTHER',
@@ -160,7 +161,7 @@ function buildEventsFromUncoveredArticles(
       title: a.title,
       startYear: a.startYear,
       endYear: a.endYear,
-      eventDateNote: a.metadata?.event?.dateNote ?? a.dateText,
+      eventDateNote: a.dateText,
       description: a.summary,
       imageUrl: a.coverImageUrl,
       category: type?.slug ?? 'OTHER',
@@ -207,10 +208,9 @@ function toFigureProfile(
   events: PublicEventSummaryDto[],
 ): PublicFigureProfileDto {
   const person = a.metadata?.person ?? {};
-  // Dòng đời: QUY TẮC CHUNG với CMS (features/articles/person-life.ts) — liên kết sự kiện, mốc trỏ
-  // thẳng tới bài nhân vật, mốc đời riêng. Không suy theo tag.
+  // Dòng đời: QUY TẮC CHUNG với CMS (features/articles/person-life.ts) — chỉ gồm 2 nguồn:
+  // liên kết tới bài sự kiện + mốc đời riêng.
   const life = buildPersonLife({
-    ownNodes: g.nodesOf(a.slug),
     eventLinks: linksOfKind(g, a, 'EVENT').map((l) => ({
       article: { ...l.other, nodes: g.nodesOf(l.other.slug) },
       label: l.label,
@@ -222,8 +222,6 @@ function toFigureProfile(
 
   return {
     ...toFigure(a),
-    era: a.metadata?.era ?? null,
-    region: a.metadata?.region ?? null,
     roles: person.roles ?? [],
     legacy: {
       hometown: person.hometown ?? null,
@@ -234,10 +232,7 @@ function toFigureProfile(
       famousQuote: person.famousQuote ?? null,
     },
     aliases: a.metadata?.aliases ?? [],
-    birthDateLabel: person.birthDateLabel ?? null,
-    deathDateLabel: person.deathDateLabel ?? null,
     biography: a.summary,
-    occupation: person.occupation ?? null,
     titles: person.titles ?? [],
     sources: a.metadata?.sources ?? [],
     periodSlug: g.periodSlugOf(a),
@@ -256,10 +251,9 @@ function toFigureProfile(
         periodSlug: it.timeline?.slug ?? g.periodSlugOf(a),
         role: 'PARTICIPANT',
         roleLabel: it.role,
-        isPrimary: it.isPrimary,
       };
     }),
-    // Tab "Mối quan hệ": liên kết tới / từ bài nhân vật khác; nhãn hiện nguyên chữ.
+    // Tab "Mối quan hệ": liên kết tới / từ bài nhân vật khác; nhãn hiện nguyên chữ kèm chiều.
     relationships: linksOfKind(g, a, 'PERSON').map((l) => ({
       figureId: l.other.id,
       slug: l.other.slug,
@@ -270,7 +264,6 @@ function toFigureProfile(
       startYear: null,
       endYear: null,
     })),
-    statements: [],
   };
 }
 
@@ -355,29 +348,41 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
   const meta = sanitizeMetadata(article.metadata) ?? {};
   const site = meta.site ?? {};
 
-  // "Mạng lưới tri thức": liên kết khai báo (2 chiều) trước, sau đó bài chung tag.
+  // "Mạng lưới tri thức": CHỈ gồm liên kết bài ↔ bài khai báo trực tiếp (2 chiều).
+  // Bài viết cùng tag được tách sang `relatedByTag` để không nhầm với quan hệ tri thức.
   const statements: PublicEntityStatementDto[] = [];
   const seen = new Set<string>();
-  const push = (r: PublicArticleSummary, label: string, direction: 'OUTGOING' | 'INCOMING', note: string | null) => {
-    if (seen.has(r.id)) return;
+  for (const l of g.linksOf(article.id)) {
+    const r = l.other;
+    if (seen.has(r.id)) continue;
     seen.add(r.id);
+    const label = l.label ?? DEFAULT_LINK_LABEL;
     statements.push({
       id: `${r.id}-${statements.length}`,
       predicateCode: 'RELATED',
       predicateLabel: label,
-      direction,
+      direction: l.direction,
       relatedEntityId: r.id,
       relatedEntitySlug: r.slug,
       relatedEntityName: r.title,
       relatedEntityType: g.kindOf(r),
       roleLabel: label,
-      note: note ?? r.summary,
+      note: l.note ?? r.summary,
       validFromYear: r.startYear,
       validToYear: r.endYear,
     });
-  };
-  for (const l of g.linksOf(article.id)) push(l.other, l.label ?? DEFAULT_LINK_LABEL, l.direction, l.note);
-  for (const r of article.related) push(r, r.category?.name ?? DEFAULT_LINK_LABEL, 'OUTGOING', null);
+  }
+  const relatedByTag = article.related
+    .filter((r) => !seen.has(r.id))
+    .map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      name: r.title,
+      type: g.kindOf(r),
+      categoryName: r.category?.name ?? null,
+      summary: r.summary,
+      dateLabel: r.dateLabel,
+    }));
 
   const period = g.periods.find((p) => p.slug === periodSlug) ?? null;
   return {
@@ -398,6 +403,7 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
     period,
     media: [],
     statements,
+    relatedByTag,
     previous: article.previous
       ? { id: article.previous.slug, slug: article.previous.slug, name: article.previous.title, dateLabel: article.previous.dateLabel }
       : null,
@@ -405,7 +411,6 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
       ? { id: article.next.slug, slug: article.next.slug, name: article.next.title, dateLabel: article.next.dateLabel }
       : null,
     roles: meta.person?.roles ?? [],
-    occupation: meta.person?.occupation ?? null,
     titles: meta.person?.titles,
     address: site.address ?? null,
     managingAgency: site.managingAgency ?? null,
@@ -427,4 +432,4 @@ export async function fetchPublicList<T>(endpoint: string): Promise<T[]> {
   }
 }
 
-export type { PublicPeriodDto, PublicFigureDto, PublicLocationSummaryDto, PublicEventSummaryDto, PublicPeriodDetailDto, PublicFigureRelationDto, PublicFigureProfileDto, PublicEntityMediaDto, PublicEntityStatementDto, PublicEntityDetailDto } from './landing.dto';
+export type { PublicPeriodDto, PublicFigureDto, PublicLocationSummaryDto, PublicEventSummaryDto, PublicPeriodDetailDto, PublicFigureRelationDto, PublicFigureProfileDto, PublicEntityMediaDto, PublicEntityStatementDto, PublicEntityRelatedArticleDto, PublicEntityDetailDto } from './landing.dto';

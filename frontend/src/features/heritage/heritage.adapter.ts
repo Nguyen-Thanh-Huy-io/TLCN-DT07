@@ -39,6 +39,7 @@ export interface HistoricalHeritage {
   foundedEra: string;
   relatedEras: string[];
   shortSummary: string;
+  /** Rỗng = chưa có dữ liệu phong cách kiến trúc. */
   architecturalStyle: string;
   /** null = chưa có ảnh (hiện nền + biểu tượng loại hình). */
   coverImageUrl: string | null;
@@ -70,7 +71,6 @@ export interface HistoricalHeritage {
   statusNote?: string | null;
   visitorInfo: {
     addressText: string;
-    openingHours: string;
     /** Nhãn hiện trạng chuẩn hóa (rỗng = chưa có). */
     preservationStatus: string;
   };
@@ -149,14 +149,14 @@ export function toHeritageSummaries(
       ancientNames: site.ancientNames ?? [],
       province: provinceOf(site.address),
       category: CATEGORY_BY_SITE_TYPE[site.siteType ?? ''] ?? 'MEMORIAL_STELE',
-      recognizedYear: '',
+      recognizedYear: site.recognizedYear ?? '',
       // Thời kỳ khởi dựng: niên đại xây dựng nếu có, rồi thời kỳ gắn với di tích, rồi sự kiện sớm nhất.
       foundedEra:
         site.constructionLabel ||
         (ownPeriod ? shortPeriodName(ownPeriod.name) : firstEvent ? `Từ năm ${formatYear(firstEvent.startYear)}` : 'Chưa rõ'),
       relatedEras: eras,
       shortSummary: site.historicalSignificance ?? '',
-      architecturalStyle: '',
+      architecturalStyle: site.architecturalStyle ?? '',
       coverImageUrl: site.imageUrl ?? null,
       galleryImages: site.imageUrl ? [{ url: site.imageUrl, caption: site.name }] : [],
       constructionTimeline: [],
@@ -171,7 +171,6 @@ export function toHeritageSummaries(
       statusNote: site.statusNote ?? null,
       visitorInfo: {
         addressText: site.address ?? '',
-        openingHours: '',
         preservationStatus: site.preservationCategory ? PRESERVATION_LABELS[site.preservationCategory as PreservationCategory] : '',
       },
     };

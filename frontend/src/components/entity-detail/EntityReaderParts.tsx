@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { CalendarDays, Clock, Landmark, ScrollText, Sparkles, Quote, ArrowUpRight, Share2, Compass, PanelRightClose, PanelRightOpen, ArrowUp, ArrowDown, BookOpen, PanelLeftClose, PanelLeftOpen, PanelLeft, Type, Printer, Maximize2, Minimize2 } from 'lucide-react';
 import { EntityReaderModel, EntityAdjacent } from './entity-reader-adapter';
 import { getEntityIconComponent, EntityIconName } from './entity-strategy';
-import { PublicEntityStatementDto } from '@/services/entities/landing.service';
+import { PublicEntityRelatedArticleDto, PublicEntityStatementDto } from '@/services/entities/landing.service';
+import { LinkDirection } from '@/features/articles/person-life';
 import { LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
 
 // === EntityHero.tsx ===
@@ -29,196 +30,130 @@ export const EntityHero: React.FC<EntityHeroProps> = ({ model }) => {
       <div className="ue-container relative z-10">
         {/* HERO GRID 2 CỘT CÂN ĐỐI */}
         <div className="ue-hero-grid">
-          {/* CỘT TRÁI: TIÊU ĐỀ, MÔ TẢ & THẺ CHỈ SỐ NHANH */}
-          <div className="ue-hero-left">
-            <div className="ue-hero-badge-wrap">
-              <div
-                className="ue-hero-badge"
-                style={{
-                  color: model.strategy.themeColor,
-                  backgroundColor: model.strategy.themeBg,
-                  borderColor: `${model.strategy.themeColor}33`,
-                }}
-              >
-                <BadgeIcon iconName={model.strategy.iconName} />
-                <span>{model.strategy.badgeLabel}</span>
-              </div>
-
-              {model.hanziName && (
-                <span className="ue-hero-hanzi-badge" title="Tên chữ Hán / Miếu hiệu">
-                  {model.hanziName}
-                </span>
-              )}
+        <div className="ue-hero-left">
+          <div className="ue-hero-badge-wrap">
+            <div
+              className="ue-hero-badge"
+              style={{
+                color: model.strategy.themeColor,
+                backgroundColor: model.strategy.themeBg,
+                borderColor: `${model.strategy.themeColor}33`,
+              }}
+            >
+              <BadgeIcon iconName={model.strategy.iconName} />
+              <span>{model.strategy.badgeLabel}</span>
             </div>
-
-            <p className="ue-hero-eyebrow">{model.strategy.heroEyebrow}</p>
-            
-            <div className="ue-hero-title-group">
-              <h1 className="ue-hero-title">{model.name}</h1>
-              {model.hanziName && (
-                <span className="ue-hero-title-hanzi">{model.hanziName}</span>
-              )}
-            </div>
-
-            <div className="ue-hero-meta">
-              <span className="ue-meta-item">
-                <CalendarDays size={16} className="text-[#8C2D19]" />
-                <span className="font-medium">{model.dateLabel}</span>
-              </span>
-
-              {model.periodName && model.periodHref && (
-                <span className="ue-meta-item">
-                  <Landmark size={16} className="text-[#8C6239]" />
-                  <Link href={model.periodHref} className="hover:underline text-[#8C2D19] font-medium">
-                    {model.periodName}
-                  </Link>
-                </span>
-              )}
-
-              <span className="ue-meta-item">
-                <Clock size={16} className="text-[#8C6239]" />
-                <span>{model.readMinutes} phút khảo cứu</span>
-              </span>
-            </div>
-
-            {/* ĐOẠN DẪN NHẬP / TRÍCH LƯỢC CỦA HỒ SƠ */}
-            {model.tagline && (
-              <div className="ue-hero-lead-card">
-                <Quote size={20} className="ue-hero-lead-quote-icon" />
-                <p className="ue-hero-lead-text">{model.tagline}</p>
-              </div>
+            {model.hanziName && (
+              <span className="ue-hero-hanzi-badge" title="Tên chữ Hán / Miếu hiệu">{model.hanziName}</span>
             )}
+          </div>
+          <p className="ue-hero-eyebrow">{model.strategy.heroEyebrow}</p>
+          <div className="ue-hero-title-group">
+            <h1 className="ue-hero-title">{model.name}</h1>
+            {model.hanziName && <span className="ue-hero-title-hanzi">{model.hanziName}</span>}
+          </div>
+          <div className="ue-hero-meta">
+            <span className="ue-meta-item">
+              <CalendarDays size={16} className="text-[#8C2D19]" />
+              <span className="font-medium">{model.dateLabel}</span>
+            </span>
+            {model.periodName && model.periodHref && (
+              <span className="ue-meta-item">
+                <Landmark size={16} className="text-[#8C6239]" />
+                <Link href={model.periodHref} className="hover:underline text-[#8C2D19] font-medium">{model.periodName}</Link>
+              </span>
+            )}
+            <span className="ue-meta-item">
+              <Clock size={16} className="text-[#8C6239]" />
+              <span>{model.readMinutes} phút khảo cứu</span>
+            </span>
+          </div>
+          {model.tagline && (
+            <div className="ue-hero-lead-card">
+              <Quote size={20} className="ue-hero-lead-quote-icon" />
+              <p className="ue-hero-lead-text">{model.tagline}</p>
+            </div>
+          )}
+          {model.quickStats && model.quickStats.length > 0 && (
+            <div className={`ue-stats-grid ${model.quickStats.length === 3 ? 'ue-stats-grid-3' : ''}`}>
+              {model.quickStats.map((stat) => (
+                <div key={stat.id} className="ue-stat-card">
+                  <span className={`ue-stat-value ${stat.value.length > 14 ? 'ue-stat-value-long' : ''}`} title={stat.value}>
+                    {stat.value}
+                  </span>
+                  <span className="ue-stat-label">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-            {/* QUICK STATS: CÁC KHỐI SỐ LIỆU NỔI BẬT ĐƯỢC CHUẨN HÓA LOGIC */}
-            {model.quickStats && model.quickStats.length > 0 && (
-              <div
-                className={`ue-stats-grid ${
-                  model.quickStats.length === 3 ? 'ue-stats-grid-3' : ''
-                }`}
-              >
-                {model.quickStats.map((stat) => (
-                  <div key={stat.id} className="ue-stat-card">
-                    <span
-                      className={`ue-stat-value ${
-                        stat.value.length > 14 ? 'ue-stat-value-long' : ''
-                      }`}
-                      title={stat.value}
-                    >
-                      {stat.value}
-                    </span>
-                    <span className="ue-stat-label">{stat.label}</span>
+        <div className="ue-hero-right-pane">
+          {model.imageUrl ? (
+            <figure className="ue-hero-figure">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={model.imageUrl} alt={model.name} className="ue-hero-image" />
+              {model.imageCaption && <figcaption className="ue-hero-caption">{model.imageCaption}</figcaption>}
+            </figure>
+          ) : (
+            <div className="ue-hero-portrait-fallback">
+              <div className="ue-portrait-inner">
+                <div className="ue-portrait-ornament-corner top-left" />
+                <div className="ue-portrait-ornament-corner top-right" />
+                <div className="ue-portrait-ornament-corner bottom-left" />
+                <div className="ue-portrait-ornament-corner bottom-right" />
+                <div className="ue-portrait-header">
+                  <Sparkles size={14} className="text-[#B8860B]" />
+                  <span className="ue-portrait-category">{model.strategy.heroPortraitBadge}</span>
+                  <Sparkles size={14} className="text-[#B8860B]" />
+                </div>
+                <div className="ue-portrait-emblem">
+                  <div className="ue-portrait-seal">
+                    <span className="ue-portrait-seal-text">{model.hanziName || model.name.slice(0, 2)}</span>
+                  </div>
+                </div>
+                <h3 className="ue-portrait-name">{model.name}</h3>
+                <p className="ue-portrait-period">{model.periodName ?? 'Đại Việt Sử Ký Toàn Thư'}</p>
+                <div className="ue-portrait-timeline-pill"><span>{model.dateLabel}</span></div>
+              </div>
+            </div>
+          )}
+
+          {model.facts && model.facts.length > 0 && (
+            <div className="ue-hero-infobox">
+              <div className="ue-hero-infobox-header">
+                <div className="flex items-center gap-2">
+                  <ScrollText size={16} className="text-[#8C2D19]" />
+                  <span>HỒ SƠ TÓM LƯỢC</span>
+                </div>
+                <span className="ue-infobox-archive-tag">Tư liệu số</span>
+              </div>
+              <div className="ue-hero-facts-list">
+                {model.facts.map((fact) => (
+                  <div key={fact.id} className="ue-hero-fact-row">
+                    <span className="ue-hero-fact-label">{fact.label}</span>
+                    <div className="ue-hero-fact-value">
+                      {fact.href ? <Link href={fact.href} className="hover:underline">{fact.value}</Link> : <span>{fact.value}</span>}
+                    </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-
-          {/* CỘT PHẢI: KHUNG CHÂN DUNG HOÀNG GIA / HIỆN VẬT & HỒ SƠ TÓM LƯỢC */}
-          <div className="ue-hero-right-pane">
-            {model.imageUrl ? (
-              <figure className="ue-hero-figure">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={model.imageUrl}
-                  alt={model.name}
-                  className="ue-hero-image"
-                />
-                {model.imageCaption && (
-                  <figcaption className="ue-hero-caption">
-                    {model.imageCaption}
-                  </figcaption>
-                )}
-              </figure>
-            ) : (
-              /* KHUNG CHÂN DUNG BIỂU TRƯNG HOÀNG GIA KHI CHƯA CÓ ẢNH CHỤP */
-              <div className="ue-hero-portrait-fallback">
-                <div className="ue-portrait-inner">
-                  <div className="ue-portrait-ornament-corner top-left" />
-                  <div className="ue-portrait-ornament-corner top-right" />
-                  <div className="ue-portrait-ornament-corner bottom-left" />
-                  <div className="ue-portrait-ornament-corner bottom-right" />
-
-                  <div className="ue-portrait-header">
-                    <Sparkles size={14} className="text-[#B8860B]" />
-                    <span className="ue-portrait-category">
-                      {model.strategy.heroPortraitBadge}
-                    </span>
-                    <Sparkles size={14} className="text-[#B8860B]" />
-                  </div>
-
-                  {/* HUY HIỆU CON DẤU / CHỮ HÁN THƯ PHÁP CỔ */}
-                  <div className="ue-portrait-emblem">
-                    <div className="ue-portrait-seal">
-                      <span className="ue-portrait-seal-text">
-                        {model.hanziName || model.name.slice(0, 2)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <h3 className="ue-portrait-name">{model.name}</h3>
-                  <p className="ue-portrait-period">
-                    {model.periodName ?? 'Đại Việt Sử Ký Toàn Thư'}
-                  </p>
-                  
-                  <div className="ue-portrait-timeline-pill">
-                    <span>{model.dateLabel}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* HỒ SƠ TÓM LƯỢC SANG TRỌNG PHONG CÁCH THƯ TỊCH CỔ */}
-            {model.facts && model.facts.length > 0 && (
-              <div className="ue-hero-infobox">
-                <div className="ue-hero-infobox-header">
-                  <div className="flex items-center gap-2">
-                    <ScrollText size={16} className="text-[#8C2D19]" />
-                    <span>HỒ SƠ TÓM LƯỢC</span>
-                  </div>
-                  <span className="ue-infobox-archive-tag">Tư liệu số</span>
-                </div>
-
-                <div className="ue-hero-facts-list">
-                  {model.facts.map((fact) => (
-                    <div key={fact.id} className="ue-hero-fact-row">
-                      <span className="ue-hero-fact-label">{fact.label}</span>
-                      <div className="ue-hero-fact-value">
-                        {fact.href ? (
-                          <Link href={fact.href} className="hover:underline">
-                            {fact.value}
-                          </Link>
-                        ) : (
-                          <span>{fact.value}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
+      </div>
       </div>
     </section>
   );
 };
 
 // === EntityKnowledgeGraph.tsx ===
-interface EntityKnowledgeGraphProps {
-  statements: PublicEntityStatementDto[];
+function resolveEntityHref(_type: string | null, slug: string | null): string {
+  return slug ? `/thuc-the/${slug}` : '#';
 }
 
-function resolveEntityHref(type: string | null, slug: string | null): string {
-  if (!slug) return '#';
-  // Luôn dẫn tới trang Universal Entity Reader với đầy đủ Block Builder & Focus Mode
-  return `/thuc-the/${slug}`;
-}
-
-export const EntityKnowledgeGraph: React.FC<EntityKnowledgeGraphProps> = ({
-  statements,
-}) => {
+export const EntityKnowledgeGraph: React.FC<{ statements: PublicEntityStatementDto[] }> = ({ statements }) => {
   if (!statements || statements.length === 0) return null;
-
   return (
     <section className="ue-kg-section" id="mang-luoi-tri-thuc">
       <div className="flex items-center gap-2 mb-2">
@@ -228,24 +163,26 @@ export const EntityKnowledgeGraph: React.FC<EntityKnowledgeGraphProps> = ({
       <p className="ue-kg-desc">
         Các mối liên hệ nhân – quả, quan hệ phả hệ, quyền lực và không gian lịch sử được kết nối trong đồ thị tri thức:
       </p>
-
       <div className="ue-kg-grid">
         {statements.map((stmt) => {
           const href = resolveEntityHref(stmt.relatedEntityType, stmt.relatedEntitySlug);
           const targetName = stmt.relatedEntityName || 'Thực thể liên quan';
-          const badgeText = stmt.roleLabel || stmt.predicateLabel;
-
+          const rawLabel = stmt.roleLabel || stmt.predicateLabel;
+          const isIncoming = stmt.direction === LinkDirection.INCOMING;
+          const badgeText = isIncoming ? `← ${rawLabel}` : `${rawLabel} →`;
+          const tooltip = isIncoming
+            ? `${targetName} → (${rawLabel}) → bài đang xem`
+            : `Bài đang xem → (${rawLabel}) → ${targetName}`;
           return (
             <Link key={stmt.id} href={href} className="ue-kg-card group">
               <div>
-                <span className="ue-kg-badge">{badgeText}</span>
+                <span className="ue-kg-badge" title={tooltip}>{badgeText}</span>
                 <h3 className="ue-kg-target group-hover:text-[#8C2D19] transition-colors flex items-center justify-between">
                   <span>{targetName}</span>
                   <ArrowUpRight size={16} className="text-stone-400 group-hover:text-[#8C2D19] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </h3>
                 {stmt.note && <p className="ue-kg-note">{stmt.note}</p>}
               </div>
-
               {(stmt.validFromYear != null || stmt.validToYear != null) && (
                 <div className="text-xs text-stone-500 font-semibold mt-3 pt-2 border-t border-stone-200">
                   Thời gian: {stmt.validFromYear ?? '...'} – {stmt.validToYear ?? '...'}
@@ -254,6 +191,41 @@ export const EntityKnowledgeGraph: React.FC<EntityKnowledgeGraphProps> = ({
             </Link>
           );
         })}
+      </div>
+    </section>
+  );
+};
+
+// === EntityRelatedByTag.tsx ===
+export const RELATED_BY_TAG_SECTION_ID = 'bai-viet-cung-chu-diem';
+
+export const EntityRelatedByTag: React.FC<{ articles: PublicEntityRelatedArticleDto[] }> = ({ articles }) => {
+  if (!articles || articles.length === 0) return null;
+  return (
+    <section className="ue-kg-section" id={RELATED_BY_TAG_SECTION_ID}>
+      <div className="flex items-center gap-2 mb-2">
+        <BookOpen size={20} className="text-[#8C6239]" />
+        <h2 className="ue-kg-title m-0">Bài viết cùng chủ điểm</h2>
+      </div>
+      <p className="ue-kg-desc">Các bài viết chia sẻ cùng chủ điểm (tag) lịch sử để đọc mở rộng:</p>
+      <div className="ue-kg-grid">
+        {articles.map((item) => (
+          <Link key={item.id} href={resolveEntityHref(item.type, item.slug)} className="ue-kg-card group">
+            <div>
+              {item.categoryName && <span className="ue-kg-badge">{item.categoryName}</span>}
+              <h3 className="ue-kg-target group-hover:text-[#8C2D19] transition-colors flex items-center justify-between">
+                <span>{item.name}</span>
+                <ArrowUpRight size={16} className="text-stone-400 group-hover:text-[#8C2D19] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </h3>
+              {item.summary && <p className="ue-kg-note">{item.summary}</p>}
+            </div>
+            {item.dateLabel && (
+              <div className="text-xs text-stone-500 font-semibold mt-3 pt-2 border-t border-stone-200">
+                Niên đại: {item.dateLabel}
+              </div>
+            )}
+          </Link>
+        ))}
       </div>
     </section>
   );
@@ -565,30 +537,23 @@ export function EntityReadingToolbar({
         {/* BỘ CHỈNH CỠ CHỮ */}
         <div className="ue-font-size-ctrl" title="Tùy chỉnh cỡ chữ">
           <Type size={13} className="text-[#8C6239] mr-1" />
-          <button
-            type="button"
-            onClick={() => onTextSizeChange(TextSizeLevel.SM)}
-            className={`ue-size-btn ${textSize === TextSizeLevel.SM ? 'active' : ''}`}
-            title="Cỡ chữ nhỏ"
-          >
-            A-
-          </button>
-          <button
-            type="button"
-            onClick={() => onTextSizeChange(TextSizeLevel.MD)}
-            className={`ue-size-btn ${textSize === TextSizeLevel.MD ? 'active' : ''}`}
-            title="Cỡ chữ tiêu chuẩn"
-          >
-            A
-          </button>
-          <button
-            type="button"
-            onClick={() => onTextSizeChange(TextSizeLevel.LG)}
-            className={`ue-size-btn ${textSize === TextSizeLevel.LG ? 'active' : ''}`}
-            title="Cỡ chữ lớn"
-          >
-            A+
-          </button>
+          {(
+            [
+              [TextSizeLevel.SM, 'A-', 'Cỡ chữ nhỏ'],
+              [TextSizeLevel.MD, 'A', 'Cỡ chữ tiêu chuẩn'],
+              [TextSizeLevel.LG, 'A+', 'Cỡ chữ lớn'],
+            ] as const
+          ).map(([lvl, text, title]) => (
+            <button
+              key={lvl}
+              type="button"
+              onClick={() => onTextSizeChange(lvl)}
+              className={`ue-size-btn ${textSize === lvl ? 'active' : ''}`}
+              title={title}
+            >
+              {text}
+            </button>
+          ))}
         </div>
 
         {/* IN ẤN TƯ LIỆU */}

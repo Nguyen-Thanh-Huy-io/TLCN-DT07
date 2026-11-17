@@ -1,4 +1,5 @@
 import type { PublicFigureProfileDto, PublicFigureRelationDto, PublicPeriodDto } from "@/services/entities/landing.service";
+import { TimelineRelationDirection } from "@/components/timeline/sk-types";
 
 export type RelationCategory = "FAMILY" | "ALLY" | "RIVAL" | "CONTEMPORARY";
 
@@ -43,14 +44,31 @@ const TARGET_LABELS: Record<string, { OUTGOING: string; INCOMING: string }> = {
   VASSAL_OF: { OUTGOING: "Bề trên", INCOMING: "Bề tôi / chư hầu" },
 };
 
+const FAMILY_RELATION_PATTERN = /cha|mẹ|con|vợ|chồng|phối ngẫu|anh|chị|em|chú|bác|ông|bà|cháu|họ hàng|gia tộc/i;
+const RIVAL_RELATION_PATTERN = /đối thủ|đối trọng|đánh bại|chống|kẻ thù|phản/i;
+const ALLY_RELATION_PATTERN = /phụng sự|kế vị|tiền nhiệm|đồng minh|tướng|vua|chúa|môn đệ|thầy|học trò|cùng hội|sáng lập/i;
+
 export function relationCategory(relation: PublicFigureRelationDto): RelationCategory {
-  return CATEGORY_BY_RELATION[relation.relationType] || "CONTEMPORARY";
+  const mapped = CATEGORY_BY_RELATION[relation.relationType];
+  if (mapped) return mapped;
+  const label = relation.relationType ?? "";
+  if (FAMILY_RELATION_PATTERN.test(label)) return "FAMILY";
+  if (RIVAL_RELATION_PATTERN.test(label)) return "RIVAL";
+  if (ALLY_RELATION_PATTERN.test(label)) return "ALLY";
+  return "CONTEMPORARY";
 }
 
+/**
+ * Nhãn quan hệ hiển thị trên sơ đồ và danh sách:
+ * - Nếu là mã cố định cũ trong TARGET_LABELS → đổi sang nhãn theo chiều.
+ * - Với nhãn chữ tự do (ArticleLink.label, khai báo theo chiều Nguồn → Đích):
+ *   OUTGOING (nhân vật đang xem → người kia): "Nhãn →"
+ *   INCOMING (người kia → nhân vật đang xem): "← Nhãn"
+ */
 export function relationTargetLabel(relation: PublicFigureRelationDto): string {
   const mapped = TARGET_LABELS[relation.relationType];
   if (mapped) return mapped[relation.direction];
-  return relation.relationType;
+  return relation.direction === TimelineRelationDirection.INCOMING ? `← ${relation.relationType}` : `${relation.relationType} →`;
 }
 
 export interface FigureView extends PublicFigureProfileDto {
@@ -67,17 +85,10 @@ function formatYear(year: number | null): string | null {
   return year < 0 ? `${Math.abs(year)} TCN` : `${year}`;
 }
 
-function formatDateLabel(raw: string | null | undefined, year: number | null): string | null {
-  if (!raw) return formatYear(year);
-  return raw
-    .replace(/(\d)(?=\p{Lu}\p{Ll})/gu, "$1 · ")
-    .replace(/(\))(?=\p{Lu}\p{Ll})/gu, "$1 · ")
-    .replace(/(TCN)(?=\p{Lu}\p{Ll})/gu, "$1 · ");
-}
-
+/** Năm sinh – mất chỉ lấy từ cột năm của bài (startYear/endYear). */
 function lifespanOf(figure: PublicFigureProfileDto): string {
-  const birth = formatDateLabel(figure.birthDateLabel, figure.birthYear);
-  const death = formatDateLabel(figure.deathDateLabel, figure.deathYear);
+  const birth = formatYear(figure.birthYear);
+  const death = formatYear(figure.deathYear);
   if (!birth && !death) return "Chưa rõ năm sinh – mất";
   return `${birth || "?"} – ${death || "?"}`;
 }
@@ -99,54 +110,6 @@ export function buildFigureViews(figures: PublicFigureProfileDto[], periods: Pub
       sortYear: figure.birthYear ?? firstEventYear ?? figure.deathYear ?? Number.MAX_SAFE_INTEGER,
     };
   });
-}
-
-export const ARTICLE_ERA_LABELS: Record<string, string> = {
-  ANCIENT: "Cổ đại",
-  MEDIEVAL: "Trung đại",
-  EARLY_MODERN: "Cận đại",
-  MODERN: "Hiện đại",
-};
-
-export const ARTICLE_REGION_LABELS: Record<string, string> = {
-  VIETNAM: "Việt Nam",
-  WORLD: "Thế giới",
-};
-
-export const PERSON_ROLE_LABELS: Record<string, string> = {
-  MONARCH: "Quân chủ",
-  GENERAL: "Tướng lĩnh",
-  COMMANDER: "Chỉ huy",
-  COMMANDER_IN_CHIEF: "Tổng tư lệnh",
-  STRATEGIST: "Chiến lược gia",
-  MILITARY_ADVISER: "Quân sư",
-  WARRIOR: "Chiến binh",
-  POLITICIAN: "Chính trị gia",
-  STATESMAN: "Chính khách",
-  DIPLOMAT: "Nhà ngoại giao",
-  REFORMER: "Nhà cải cách",
-  SCHOLAR: "Học giả",
-  CULTURAL_FIGURE: "Danh nhân văn hóa",
-  POET: "Thi sĩ",
-  WRITER: "Nhà văn",
-  PHILOSOPHER: "Triết gia",
-  SCIENTIST: "Nhà khoa học",
-  RELIGIOUS_FIGURE: "Nhân vật tôn giáo",
-  REVOLUTIONARY: "Nhà cách mạng",
-  PATRIOT: "Nhà yêu nước",
-  HERO: "Anh hùng dân tộc",
-};
-
-export function personRoleLabel(code: string): string {
-  return PERSON_ROLE_LABELS[code] ?? code;
-}
-
-export function articleEraLabel(code: string | null | undefined): string | null {
-  return code ? (ARTICLE_ERA_LABELS[code] ?? code) : null;
-}
-
-export function articleRegionLabel(code: string | null | undefined): string | null {
-  return code ? (ARTICLE_REGION_LABELS[code] ?? code) : null;
 }
 
 export function periodTitle(periods: PublicPeriodDto[], slug: string | null): string | null {

@@ -49,10 +49,7 @@ export interface PublicCategoryRef {
  */
 export interface PersonProfileMeta {
   titles?: string[];
-  occupation?: string;
   roles?: string[];
-  birthDateLabel?: string;
-  deathDateLabel?: string;
   hometown?: string;
   backgroundAndYouth?: string;
   notableWorks?: string[];
@@ -68,32 +65,19 @@ export interface PersonProfileMeta {
 
 export interface SiteProfileMeta {
   address?: string;
-  latitude?: number;
-  longitude?: number;
   siteType?: string;
   recognizedYear?: string;
   preservation?: string;
   statusNote?: string;
   managingAgency?: string;
   architecturalStyle?: string;
-  openingHours?: string;
-}
-
-export interface EventProfileMeta {
-  dateNote?: string;
-  cause?: string;
-  outcome?: string;
-  belligerents?: string[];
 }
 
 export interface ArticleMetadata {
-  era?: string;
-  region?: string;
   aliases?: string[];
   sources?: string[];
   person?: PersonProfileMeta;
   site?: SiteProfileMeta;
-  event?: EventProfileMeta;
 }
 
 /** Liên kết do bài khai báo (chỉ tới bài đã xuất bản). Nhãn chữ tự do, có thể null. */

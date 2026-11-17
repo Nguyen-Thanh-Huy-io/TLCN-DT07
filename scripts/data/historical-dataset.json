@@ -399,11 +399,9 @@
       ],
       "metadata": {
         "aliases": ["Phủ Vạn Kiếp"],
-        "region": "Chí Linh, Hải Dương",
         "site": {
-          "siteType": "Military Base",
-          "modernLocation": "Chí Linh, Hải Phòng, Việt Nam",
-          "historicalSignificance": "Căn cứ quân sự quan trọng thời Trần"
+          "siteType": "RESISTANCE_BASE",
+          "address": "Chí Linh, Hải Phòng"
         }
       },
       "dateText": "Thế kỷ XIII",

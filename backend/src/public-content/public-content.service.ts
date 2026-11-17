@@ -66,6 +66,7 @@ export class PublicContentService {
   // ---------- Chuyên mục ----------
   async getCategories() {
     const categories = await this.prisma.category.findMany({
+      where: { isActive: true },
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
       include: {
         _count: { select: { articles: { where: { status: PUBLISHED } } } },
@@ -481,14 +482,10 @@ export class PublicContentService {
           eventDateNote: article.dateText,
           figures: [],
           locations: [],
-          role: person?.occupation ?? null,
+          role: person?.titles?.[0] ?? null,
           siteType: site?.siteType ?? null,
           siteTypeLabel: site?.siteType ?? null,
           address: site?.address ?? null,
-          geo:
-            site?.latitude && site?.longitude
-              ? { latitude: site.latitude, longitude: site.longitude }
-              : null,
           metadata,
         };
       });
@@ -705,7 +702,7 @@ export class PublicContentService {
     });
   }
 
-  /** Toàn bộ cây Topic đã xuất bản, dạng phẳng (FE tự ráp cây qua parentId) — dùng để nhóm bài viết theo Chủ đề ở các trang Khám phá (nhân vật, sự kiện...). */
+  /** Dạng phẳng — FE tự ráp cây qua parentId. */
   async getTopics() {
     return this.prisma.topic.findMany({
       where: { status: PUBLISHED },

@@ -30,7 +30,6 @@ export interface PublicFigureDto {
   imageUrl: string | null;
   birthYear: number | null;
   deathYear: number | null;
-  /** Chủ đề bài viết gắn (nếu có) — dùng để nhóm theo Chủ đề ở các trang Khám phá. */
   topicId?: string | null;
 }
 
@@ -39,8 +38,6 @@ export interface PublicLocationSummaryDto {
   slug: string;
   name: string;
   address: string | null;
-  latitude: number | null;
-  longitude: number | null;
   historicalSignificance: string | null;
   imageUrl?: string | null;
   /** Mã loại di tích chuẩn hóa (LocationType). */
@@ -57,6 +54,10 @@ export interface PublicLocationSummaryDto {
   /** Ghi chú còn lại sau khi chuẩn hóa hiện trạng — chỉ hiển thị. */
   statusNote?: string | null;
   managingUnit?: string | null;
+  /** Năm / văn bản công nhận di tích (chữ tự do) — chỉ hiển thị. */
+  recognizedYear?: string | null;
+  /** Phong cách kiến trúc (chữ tự do) — chỉ hiển thị. */
+  architecturalStyle?: string | null;
   /** Mức độ "trải nghiệm số" có sẵn của di tích. */
   digital?: {
     hasImage: boolean;
@@ -65,46 +66,6 @@ export interface PublicLocationSummaryDto {
     hasChronicle: boolean;
     hasStructures: boolean;
   };
-}
-
-/** Hồ sơ di sản mở rộng (metadata.heritage ở backend). */
-export interface PublicHeritageProfileDto {
-  recognizedYear: string | null;
-  architecturalStyle: string | null;
-  openingHours: string | null;
-  constructionTimeline: Array<{
-    id: string;
-    dateLabel: string;
-    dynasty: string;
-    actionType: 'FOUNDED' | 'EXPANDED' | 'DAMAGED' | 'RESTORED';
-    description: string;
-  }>;
-  subStructures: Array<{
-    id: string;
-    name: string;
-    type: 'ARCHITECTURE' | 'NATIONAL_TREASURE';
-    periodBuilt: string;
-    description: string;
-    imageUrl: string | null;
-  }>;
-  thenAndNow: { ancientImageUrl: string; ancientLabel: string; modernImageUrl: string; modernLabel: string } | null;
-}
-
-export interface PublicLocationDetailDto extends PublicLocationSummaryDto {
-  tagline: string | null;
-  description: string | null;
-  imageCaption: string | null;
-  constructionYear: number | null;
-  preservationStatus: string | null;
-  managingAgency: string | null;
-  period: PublicPeriodDto | null;
-  media: Array<{ id: string; type: string; url: string; caption: string | null }>;
-  events: PublicEventSummaryDto[];
-  figures: PublicFigureDto[];
-  nearby: Array<PublicLocationSummaryDto & { distanceKm: number }>;
-  heritage: PublicHeritageProfileDto;
-  /** Nội dung tường thuật dạng Block Builder (giống Lesson.content); null = chưa có. */
-  contentBlocks?: unknown;
 }
 
 export interface PublicEventSummaryDto {
@@ -124,45 +85,9 @@ export interface PublicEventSummaryDto {
   /** Quan hệ với sự kiện khác đã khai báo trực tiếp (ArticleLink). */
   relations?: PublicEventLinkDto[];
   periodSlug: string | null;
-  /** Chủ đề bài viết gắn (nếu có) — dùng để nhóm theo Chủ đề ở các trang Khám phá. */
   topicId?: string | null;
   figures: PublicFigureDto[];
   locations: PublicLocationSummaryDto[];
-}
-
-export interface PublicEventRelationDto {
-  relationType: string;
-  description: string | null;
-  event: PublicEventSummaryDto;
-}
-
-export interface PublicEventParticipantDto {
-  entityId: string;
-  role: string;
-  roleLabel: string | null;
-  isPrimary: boolean;
-}
-
-export interface PublicEventDetailDto extends PublicEventSummaryDto {
-  summary: string | null;
-  /** Nội dung diễn biến dạng Block Builder (giống Lesson.content); null = chưa có, dùng `description`. */
-  contentBlocks?: unknown;
-  startMonth: number | null;
-  startDay: number | null;
-  endYear: number | null;
-  endMonth: number | null;
-  endDay: number | null;
-  cause: string | null;
-  outcome: string | null;
-  sources: string[];
-  participants: PublicEventParticipantDto[];
-  period: PublicPeriodDto | null;
-  parent: PublicEventSummaryDto | null;
-  children: PublicEventSummaryDto[];
-  outgoingRelations: PublicEventRelationDto[];
-  incomingRelations: PublicEventRelationDto[];
-  /** Danh sách statement chung (Đồ thị tri thức) — dùng để resolveTimelineBlocks() tự dựng khối AUTO/HYBRID. */
-  statements: PublicEntityStatementDto[];
 }
 
 export interface PublicLessonSummaryDto {
@@ -232,7 +157,6 @@ export interface PublicFigureEventDto {
   periodSlug: string | null;
   role: string;
   roleLabel: string | null;
-  isPrimary: boolean;
 }
 
 export interface PublicFigureRelationDto {
@@ -256,24 +180,17 @@ export interface PublicFigureLegacyDto {
 }
 
 export interface PublicFigureProfileDto extends PublicFigureDto {
-  era: string | null;
-  region: string | null;
   roles: string[];
   legacy: PublicFigureLegacyDto;
   aliases: string[];
-  birthDateLabel: string | null;
-  deathDateLabel: string | null;
   biography: string | null;
   /** Nội dung tường thuật dạng Block Builder (giống Lesson.content); null = chưa có, dùng `biography`. */
   contentBlocks?: unknown;
-  occupation: string | null;
   titles: string[];
   sources: string[];
   periodSlug: string | null;
   events: PublicFigureEventDto[];
   relationships: PublicFigureRelationDto[];
-  /** Danh sách statement chung (Đồ thị tri thức) — dùng để resolveTimelineBlocks() tự dựng khối AUTO/HYBRID. */
-  statements: PublicEntityStatementDto[];
 }
 
 export interface PublicEntityMediaDto {
@@ -310,6 +227,17 @@ export interface PublicEntityAdjacentDto {
   dateLabel: string | null;
 }
 
+/** Bài viết cùng tag với bài đang đọc — tách riêng khỏi "Mạng lưới tri thức" (chỉ chứa liên kết khai báo). */
+export interface PublicEntityRelatedArticleDto {
+  id: string;
+  slug: string;
+  name: string;
+  type: string;
+  categoryName: string | null;
+  summary: string | null;
+  dateLabel: string | null;
+}
+
 export interface PublicEntityDetailDto {
   id: string;
   slug: string;
@@ -327,12 +255,14 @@ export interface PublicEntityDetailDto {
   metadata?: unknown;
   period: PublicPeriodDto | null;
   media: PublicEntityMediaDto[];
+  /** Chỉ gồm các liên kết bài ↔ bài khai báo trực tiếp (ArticleLink, 2 chiều). */
   statements: PublicEntityStatementDto[];
+  /** Các bài viết chia sẻ cùng tag (không trùng với statements). */
+  relatedByTag?: PublicEntityRelatedArticleDto[];
   previous?: PublicEntityAdjacentDto | null;
   next?: PublicEntityAdjacentDto | null;
   /** Chỉ có giá trị khi type === 'PERSON' (từ bảng Person). */
   roles?: string[];
-  occupation?: string | null;
   titles?: string[];
   /** Chỉ có giá trị khi type === 'LOCATION' (từ bảng HistoricalSite). */
   address?: string | null;

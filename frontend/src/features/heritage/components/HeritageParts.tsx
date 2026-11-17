@@ -341,6 +341,22 @@ export function HeritageCard({ heritage, onOpen }: { heritage: HistoricalHeritag
         <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--hx-primary)]">
           <Landmark className="size-3.5" /> Khởi dựng: {heritage.foundedEra}
         </p>
+        {(heritage.recognizedYear || heritage.architecturalStyle) && (
+          <dl className="grid gap-0.5 text-xs leading-5 text-[var(--hx-muted)]">
+            {heritage.recognizedYear && (
+              <div className="flex gap-1">
+                <dt className="font-semibold text-[var(--hx-ink)]">Năm công nhận:</dt>
+                <dd>{heritage.recognizedYear}</dd>
+              </div>
+            )}
+            {heritage.architecturalStyle && (
+              <div className="flex gap-1">
+                <dt className="font-semibold text-[var(--hx-ink)]">Kiến trúc:</dt>
+                <dd className="line-clamp-1">{heritage.architecturalStyle}</dd>
+              </div>
+            )}
+          </dl>
+        )}
         <p className="line-clamp-3 text-sm leading-6 text-[var(--hx-muted)]">{heritage.shortSummary}</p>
         {(heritage.visitorInfo.preservationStatus || heritage.managingUnit) && (
           <p className="text-xs leading-5 text-[var(--hx-muted)]">

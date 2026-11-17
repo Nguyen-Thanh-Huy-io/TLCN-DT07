@@ -4,13 +4,11 @@ import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, ChevronDown, Search, X } from 'lucide-react';
 
-/** 1 mục trong Mục lục — đệ quy, không giới hạn số cấp (cây Topic có thể sâu nhiều cấp). */
+/** Đệ quy vì cây Topic có thể sâu nhiều cấp. */
 export interface TocNode {
   id: string;
   title: string;
-  /** Phụ đề ngắn cạnh tiêu đề (vd. khoảng năm). */
   subtitle?: string;
-  /** Số lượng mục con (bài viết/mốc) — chỉ để hiển thị, không ảnh hưởng cấu trúc. */
   count: number;
   children?: TocNode[];
 }
@@ -18,12 +16,9 @@ export interface TocNode {
 export interface TocDrawerProps {
   open: boolean;
   onClose: () => void;
-  /** Tiêu đề drawer, vd. "Mục lục thời kỳ" / "Mục lục chủ đề". */
   heading: string;
-  /** Danh từ đếm ở dòng phụ đề + ô tìm kiếm, vd. "mốc sự kiện" / "nhân vật". */
   itemLabel: string;
   nodes: TocNode[];
-  /** Id mục đang active (tô sáng), nếu có. */
   activeId?: string;
   totalCount: number;
   onJump: (id: string) => void;
@@ -39,7 +34,6 @@ function matchesQuery(node: TocNode, q: string): TocNode | null {
   return null;
 }
 
-/** Lọc cây theo từ khóa (đệ quy) — giữ nhánh nếu chính nó hoặc hậu duệ khớp. */
 function filterNodes(nodes: TocNode[], query: string): TocNode[] {
   const q = query.trim().toLowerCase();
   if (!q) return nodes;
@@ -134,7 +128,7 @@ function hasActiveDescendant(node: TocNode, activeId: string): boolean {
   return (node.children ?? []).some((c) => c.id === activeId || hasActiveDescendant(c, activeId));
 }
 
-/** Drawer "Mục lục" trượt từ mép phải — dùng chung cho mọi trang có cây phân cấp (Thời kỳ, Chủ đề...). */
+/** Dùng chung cho mọi trang có cây phân cấp (Thời kỳ, Chủ đề...). */
 export function TocDrawer({ open, onClose, heading, itemLabel, nodes, activeId, totalCount, onJump }: TocDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [toggled, setToggled] = useState<Record<string, boolean>>({});

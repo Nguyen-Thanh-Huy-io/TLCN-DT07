@@ -18,7 +18,7 @@ const SELECTED_CLASS = 'sk-selected';
 // === FigureBiography.tsx ===
 export function FigureBiography({ figure: f }: { figure: FigureView }) {
   const { legacy } = f;
-  const roles = [f.occupation, ...f.titles].filter((v): v is string => Boolean(v));
+  const roles = f.titles.filter(Boolean);
   const biography = f.biography || f.description;
   return (
     <div className="sk-bio-view">
@@ -180,11 +180,6 @@ export function LifeTimeline({ figure, periods }: { figure: FigureView; periods:
                 <div className="sk-life-event">
                   <div>
                     <Badge>{eventCategoryLabel(eventCategories, e)}</Badge>
-                    {e.isPrimary && (
-                      <span>
-                        <Sparkles size={11} /> VAI TRÒ CHÍNH
-                      </span>
-                    )}
                   </div>
                   <Heading level={3}>{e.title}</Heading>
                   {e.description && <p>{e.description}</p>}

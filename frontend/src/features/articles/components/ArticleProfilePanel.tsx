@@ -3,10 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-react';
-import {
-  ArticleKindEnum,
-  KeyboardKey,
-} from '@/constants/enums';
+import { ArticleKindEnum, KeyboardKey } from '@/constants/enums';
 import { PRESERVATION_LABELS } from '@/features/heritage/heritage.adapter';
 import { APP_ROUTES } from '@/constants/routes';
 import type {
@@ -20,11 +17,9 @@ import { YearInput } from './YearInput';
 import { EventPeoplePanel, InTimelinesPanel, PersonLifePreview } from './ArticleConnections';
 import { ArticlePicker } from './ArticlePicker';
 import { resolveCategoryKind, type ArticleKind } from '@/services/public/article-kind';
-import { ARTICLE_ERA_LABELS, ARTICLE_REGION_LABELS } from '@/components/figures/figure-utils';
 
 export type { ArticleKind };
 
-/** Loại bài = Category.kind của chuyên mục (kế thừa cha) — quyết định nhánh hồ sơ hiện trong form. */
 export function articleKindOf(categories: CategoryItem[], categoryId: string | null | undefined): ArticleKind {
   return resolveCategoryKind(categories, categoryId);
 }
@@ -41,9 +36,8 @@ const DEFAULT_LOCATION_TYPE_LABELS: Record<string, string> = {
   OTHER: 'Khác',
 };
 
-/** Gợi ý nhãn liên kết theo loại bài nguồn → loại bài đích (chỉ là gợi ý, gõ tự do được). */
 const LABEL_SUGGESTIONS: Record<string, string[]> = {
-  'PERSON>PERSON': ['Phụng sự', 'Cha', 'Mẹ', 'Con', 'Vợ / chồng', 'Anh chị em', 'Kế vị', 'Đồng minh', 'Đối thủ', 'Cùng thời'],
+  'PERSON>PERSON': ['Phụng sự', 'Cha', 'Mẹ', 'Con', 'Phối ngẫu', 'Anh chị em', 'Kế vị', 'Đồng minh', 'Đối thủ', 'Cùng thời'],
   'PERSON>EVENT': ['Chỉ huy', 'Lãnh đạo', 'Tham gia', 'Khởi xướng', 'Ký kết'],
   'PERSON>LOCATION': ['Quê hương', 'Được thờ tại', 'Nơi an nghỉ'],
   'PERSON>DYNASTY': ['Thuộc triều đại', 'Sáng lập'],
@@ -59,7 +53,6 @@ const DEFAULT_SUGGESTIONS = ['Liên quan'];
 const input = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400';
 const labelCls = 'mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600';
 
-/** Ô nhập danh sách chữ (tên gọi khác, tác phẩm, giai thoại...): Enter để thêm. */
 function ListField({
   label,
   values,
@@ -132,14 +125,8 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
   );
 }
 
-/** Liên kết trong form — kèm tiêu đề bài đích để hiển thị (không gửi lên API). */
 export type LinkDraft = ArticleLinkInput & { targetTitle?: string; targetCategoryId?: string | null };
 
-/**
- * Tab "Hồ sơ & liên kết" của trình soạn bài viết. Mọi trường TÙY CHỌN.
- *  - metadata: phần chung + nhánh theo loại bài (person / site / event) → Article.metadata (JSONB).
- *  - links: liên kết bài này → bài khác (bảng article_links), nhãn chữ tự do.
- */
 export function ArticleProfilePanel({
   kind,
   metadata,
@@ -157,24 +144,19 @@ export function ArticleProfilePanel({
   onMetadataChange: (m: ArticleMetadata) => void;
   links: LinkDraft[];
   onLinksChange: (l: LinkDraft[]) => void;
-  /** Liên kết bài KHÁC trỏ tới bài này (chỉ xem; sửa ở bài kia). */
   linksIn: ArticleLinkView[];
   kindOfArticle: (categoryId: string | null | undefined) => ArticleKind;
-  /** Bản đã lưu (null khi tạo mới) — dùng cho các khung xem trước / nhận biết liên kết. */
   savedArticle: ArticleItem | null;
   categories: CategoryItem[];
-  /** Liên kết trong form khác bản đã lưu (xem trước chưa phản ánh). */
   linksDirty: boolean;
 }) {
   const m = metadata;
   const setTop = <K extends keyof ArticleMetadata>(key: K, value: ArticleMetadata[K]) => onMetadataChange({ ...m, [key]: value });
   const setPerson = (patch: Partial<NonNullable<ArticleMetadata['person']>>) => setTop('person', { ...m.person, ...patch });
   const setSite = (patch: Partial<NonNullable<ArticleMetadata['site']>>) => setTop('site', { ...m.site, ...patch });
-  const setEvent = (patch: Partial<NonNullable<ArticleMetadata['event']>>) => setTop('event', { ...m.event, ...patch });
 
   const p = m.person ?? {};
   const s = m.site ?? {};
-  const e = m.event ?? {};
 
   const updateLink = (i: number, patch: Partial<LinkDraft>) => onLinksChange(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   const moveLink = (i: number, delta: number) => {
@@ -189,67 +171,16 @@ export function ArticleProfilePanel({
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="space-y-6">
         <Section title="Thông tin chung" hint="Áp dụng cho mọi loại bài. Tên gọi khác được dùng khi tìm kiếm.">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className={labelCls}>Phạm vi</label>
-              <select
-                className={input}
-                value={m.region ?? ''}
-                onChange={(ev) => setTop('region', ev.target.value || undefined)}
-              >
-                <option value="">-- Chưa chọn --</option>
-                {Object.entries(ARTICLE_REGION_LABELS).map(([code, label]) => (
-                  <option key={code} value={code}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Kỷ nguyên</label>
-              <select
-                className={input}
-                value={m.era ?? ''}
-                onChange={(ev) => setTop('era', ev.target.value || undefined)}
-              >
-                <option value="">-- Chưa chọn --</option>
-                {Object.entries(ARTICLE_ERA_LABELS).map(([code, label]) => (
-                  <option key={code} value={code}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <ListField label="Tên gọi khác / tên cổ" values={m.aliases} onChange={(v) => setTop('aliases', v)} placeholder="vd. Trần Quốc Tuấn" />
+          <ListField label="Tên gọi khác" values={m.aliases} onChange={(v) => setTop('aliases', v)} placeholder="vd. Trần Quốc Tuấn" />
           <ListField label="Tư liệu tham khảo" values={m.sources} onChange={(v) => setTop('sources', v)} placeholder="vd. Đại Việt sử ký toàn thư" />
         </Section>
 
         {kind === ArticleKindEnum.PERSON && (
-          <Section title="Hồ sơ nhân vật" hint="Hiện ở thẻ nhân vật và tab Tiểu sử & di sản (/nhan-vat).">
-            <ListField
-              label="Vai trò"
-              values={p.roles}
-              onChange={(v) => setPerson({ roles: v })}
-              placeholder="vd. Quân chủ, Tướng lĩnh, Học giả"
-            />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className={labelCls}>Nghề nghiệp / chức vụ</label>
-                <input className={input} value={p.occupation ?? ''} onChange={(ev) => setPerson({ occupation: ev.target.value })} />
-              </div>
-              <div>
-                <label className={labelCls}>Quê hương</label>
-                <input className={input} value={p.hometown ?? ''} onChange={(ev) => setPerson({ hometown: ev.target.value })} />
-              </div>
-              <div>
-                <label className={labelCls}>Ngày sinh (ghi chú)</label>
-                <input className={input} value={p.birthDateLabel ?? ''} onChange={(ev) => setPerson({ birthDateLabel: ev.target.value })} placeholder="vd. Chưa rõ (khoảng 1228)" />
-              </div>
-              <div>
-                <label className={labelCls}>Ngày mất (ghi chú)</label>
-                <input className={input} value={p.deathDateLabel ?? ''} onChange={(ev) => setPerson({ deathDateLabel: ev.target.value })} />
-              </div>
+          <Section title="Hồ sơ nhân vật" hint="Hiện ở thẻ nhân vật và tab Tiểu sử & di sản.">
+            <ListField label="Vai trò" values={p.roles} onChange={(v) => setPerson({ roles: v })} placeholder="vd. Quân chủ, Tướng lĩnh, Học giả" />
+            <div>
+              <label className={labelCls}>Quê hương</label>
+              <input className={input} value={p.hometown ?? ''} onChange={(ev) => setPerson({ hometown: ev.target.value })} />
             </div>
             <ListField label="Danh hiệu" values={p.titles} onChange={(v) => setPerson({ titles: v })} placeholder="vd. Quốc công Tiết chế" />
             <div>
@@ -290,12 +221,7 @@ export function ArticleProfilePanel({
                         <label className={labelCls}>Ngày</label>
                         <input className={`${input} w-20`} type="number" min={1} max={31} value={ms.day ?? ''} onChange={(ev) => update({ day: ev.target.value ? Number(ev.target.value) : undefined })} />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setPerson({ milestones: p.milestones!.filter((_, idx) => idx !== i) })}
-                        className="self-end rounded border border-slate-200 p-2 text-red-600 hover:bg-red-50"
-                        title="Xoá mốc"
-                      >
+                      <button type="button" onClick={() => setPerson({ milestones: p.milestones!.filter((_, idx) => idx !== i) })} className="self-end rounded border border-slate-200 p-2 text-red-600 hover:bg-red-50" title="Xoá mốc">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -305,35 +231,29 @@ export function ArticleProfilePanel({
                 );
               })}
             </ol>
-            <button
-              type="button"
-              onClick={() => setPerson({ milestones: [...(p.milestones ?? []), { title: '' }] })}
-              className="secondary-button !h-8 !text-xs"
-            >
+            <button type="button" onClick={() => setPerson({ milestones: [...(p.milestones ?? []), { title: '' }] })} className="secondary-button !h-8 !text-xs">
               <Plus size={14} /> Thêm mốc đời riêng
             </button>
           </Section>
         )}
 
-        {kind === ArticleKindEnum.OTHER && (
+        {kind !== ArticleKindEnum.PERSON && kind !== ArticleKindEnum.LOCATION && kind !== ArticleKindEnum.EVENT && (
           <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
-            Bài chưa có loại (Nhân vật / Sự kiện / Di tích...) nên chưa có hồ sơ riêng. Chọn chuyên mục ở tab{' '}
-            <strong>Thông tin</strong> — loại bài lấy theo chuyên mục (cài ở trang Chuyên mục).
+            {kind === ArticleKindEnum.DYNASTY
+              ? 'Triều đại chưa có hồ sơ riêng — dùng Tóm tắt, Niên đại và Nội dung ở tab Thông tin là đủ.'
+              : 'Bài viết chưa chọn chuyên mục nên chưa có hồ sơ riêng. Chọn chuyên mục ở tab '}
+            {kind !== ArticleKindEnum.DYNASTY && <><strong>Thông tin</strong> để mở hồ sơ tương ứng.</>}
           </p>
         )}
 
         {kind === ArticleKindEnum.LOCATION && (
-          <Section title="Hồ sơ di tích" hint="Hiện ở thẻ /di-tich và ô hồ sơ ở trang đọc.">
+          <Section title="Hồ sơ di tích" hint="Hiện ở thẻ di tích và hộp hồ sơ ở trang đọc.">
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>Loại di tích</label>
                 <select className={input} value={s.siteType ?? ''} onChange={(ev) => setSite({ siteType: ev.target.value || undefined })}>
                   <option value="">—</option>
-                  {Object.entries(DEFAULT_LOCATION_TYPE_LABELS).map(([code, label]) => (
-                    <option key={code} value={code}>
-                      {label}
-                    </option>
-                  ))}
+                  {Object.entries(DEFAULT_LOCATION_TYPE_LABELS).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
                 </select>
               </div>
               <div>
@@ -344,34 +264,18 @@ export function ArticleProfilePanel({
                 <label className={labelCls}>Hiện trạng</label>
                 <select className={input} value={s.preservation ?? ''} onChange={(ev) => setSite({ preservation: ev.target.value || undefined })}>
                   <option value="">—</option>
-                  {Object.entries(PRESERVATION_LABELS).map(([code, label]) => (
-                    <option key={code} value={code}>
-                      {label}
-                    </option>
-                  ))}
+                  {Object.entries(PRESERVATION_LABELS).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
                 </select>
               </div>
               <div className="sm:col-span-2">
                 <label className={labelCls}>Địa chỉ</label>
-                <input className={input} value={s.address ?? ''} onChange={(ev) => setSite({ address: ev.target.value })} placeholder="… , Tỉnh / Thành phố (phần cuối dùng làm địa phương)" />
-              </div>
-              <div>
-                <label className={labelCls}>Vĩ độ</label>
-                <input className={input} type="number" step="any" value={s.latitude ?? ''} onChange={(ev) => setSite({ latitude: ev.target.value === '' ? undefined : Number(ev.target.value) })} />
-              </div>
-              <div>
-                <label className={labelCls}>Kinh độ</label>
-                <input className={input} type="number" step="any" value={s.longitude ?? ''} onChange={(ev) => setSite({ longitude: ev.target.value === '' ? undefined : Number(ev.target.value) })} />
+                <input className={input} value={s.address ?? ''} onChange={(ev) => setSite({ address: ev.target.value })} placeholder="vd. Điện Biên Phủ, Điện Biên (phần sau dấu phẩy cuối dùng làm địa phương)" />
               </div>
               <div>
                 <label className={labelCls}>Cơ quan quản lý</label>
                 <input className={input} value={s.managingAgency ?? ''} onChange={(ev) => setSite({ managingAgency: ev.target.value })} />
               </div>
               <div>
-                <label className={labelCls}>Giờ mở cửa</label>
-                <input className={input} value={s.openingHours ?? ''} onChange={(ev) => setSite({ openingHours: ev.target.value })} />
-              </div>
-              <div className="sm:col-span-2">
                 <label className={labelCls}>Phong cách kiến trúc</label>
                 <input className={input} value={s.architecturalStyle ?? ''} onChange={(ev) => setSite({ architecturalStyle: ev.target.value })} />
               </div>
@@ -384,21 +288,9 @@ export function ArticleProfilePanel({
         )}
 
         {kind === ArticleKindEnum.EVENT && (
-          <Section title="Hồ sơ sự kiện" hint="Hiện ở trang đọc sự kiện. Nơi diễn ra, người tham gia: thêm bằng Liên kết bên phải.">
-            <div>
-              <label className={labelCls}>Ghi chú niên đại</label>
-              <input className={input} value={e.dateNote ?? ''} onChange={(ev) => setEvent({ dateNote: ev.target.value })} placeholder="vd. Đợt 1: 30/01 – 25/02/1968" />
-            </div>
-            <ListField label="Các bên tham chiến / tham gia" values={e.belligerents} onChange={(v) => setEvent({ belligerents: v })} />
-            <div>
-              <label className={labelCls}>Nguyên nhân</label>
-              <textarea className={`${input} min-h-[70px]`} value={e.cause ?? ''} onChange={(ev) => setEvent({ cause: ev.target.value })} />
-            </div>
-            <div>
-              <label className={labelCls}>Kết quả</label>
-              <textarea className={`${input} min-h-[70px]`} value={e.outcome ?? ''} onChange={(ev) => setEvent({ outcome: ev.target.value })} />
-            </div>
-          </Section>
+          <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
+            Sự kiện không có hồ sơ riêng — niên đại nhập ở tab <strong>Thông tin</strong>; nơi diễn ra và người tham gia thêm bằng Liên kết bên phải.
+          </p>
         )}
       </div>
 
@@ -414,32 +306,30 @@ export function ArticleProfilePanel({
         {savedArticle && kind === ArticleKindEnum.EVENT && <EventPeoplePanel article={savedArticle} categories={categories} />}
         {!savedArticle && (
           <p className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
-            Lưu bài lần đầu để xem trước dòng đời / nhân vật gắn với bài / dòng thời gian chứa bài.
+            Lưu bài lần đầu để xem trước dòng đời, nhân vật liên quan và các dòng thời gian chứa bài.
           </p>
         )}
 
         <Section
           title={`Liên kết tới bài khác (${links.length})`}
-          hint="Nhân vật → nhân vật: tab Mối quan hệ · Nhân vật → sự kiện: dòng đời & người tham gia · Sự kiện → di tích: nơi diễn ra. Hiện ở cả 2 bài."
+          hint="Chiều đọc nhãn: [Bài này] → (nhãn) → [Bài đích] (riêng Nhân vật ↔ Sự kiện: nhãn là vai trò của nhân vật trong sự kiện). Liên kết hiện ở cả 2 bài."
         >
           {links.length === 0 && <p className="text-sm text-slate-500">Chưa có liên kết.</p>}
           <ol className="space-y-3">
             {links.map((l, i) => {
-              const suggestions = LABEL_SUGGESTIONS[`${kind}>${kindOfArticle(l.targetCategoryId)}`] ?? DEFAULT_SUGGESTIONS;
+              const targetKind = kindOfArticle(l.targetCategoryId);
+              const suggestions = LABEL_SUGGESTIONS[`${kind}>${targetKind}`] ?? DEFAULT_SUGGESTIONS;
               const listId = `link-label-${i}`;
+              const sourceName = savedArticle?.title ?? 'Bài này';
+              const targetName = l.targetTitle ?? 'Bài đích';
+              const previewLabel = l.label?.trim() || 'Liên quan';
               return (
                 <li key={`${l.targetId}-${i}`} className="space-y-2 rounded-lg border border-slate-200 p-3">
                   <div className="flex items-center gap-2">
                     <div className="min-w-0 flex-1">
                       <ArticlePicker
                         value={l.targetId ? { id: l.targetId, title: l.targetTitle ?? 'Bài viết đã chọn' } : null}
-                        onChange={(a) =>
-                          updateLink(i, {
-                            targetId: a?.id ?? '',
-                            targetTitle: a?.title,
-                            targetCategoryId: a ? (a.categoryId ?? a.category?.id ?? null) : null,
-                          })
-                        }
+                        onChange={(a) => updateLink(i, { targetId: a?.id ?? '', targetTitle: a?.title, targetCategoryId: a ? (a.categoryId ?? a.category?.id ?? null) : null })}
                       />
                     </div>
                     <button type="button" onClick={() => moveLink(i, -1)} disabled={i === 0} className="rounded border border-slate-200 p-1.5 disabled:opacity-30" title="Lên">
@@ -454,15 +344,18 @@ export function ArticleProfilePanel({
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <div>
-                      <input className={input} list={listId} value={l.label ?? ''} onChange={(ev) => updateLink(i, { label: ev.target.value })} placeholder="Nhãn (tuỳ chọn), vd. Chỉ huy" />
+                      <input className={input} list={listId} value={l.label ?? ''} onChange={(ev) => updateLink(i, { label: ev.target.value })} placeholder="Nhãn liên kết, vd. Chỉ huy, Phụng sự" />
                       <datalist id={listId}>
-                        {suggestions.map((sg) => (
-                          <option key={sg} value={sg} />
-                        ))}
+                        {suggestions.map((sg) => <option key={sg} value={sg} />)}
                       </datalist>
                     </div>
                     <input className={input} value={l.note ?? ''} onChange={(ev) => updateLink(i, { note: ev.target.value })} placeholder="Ghi chú (tuỳ chọn)" />
                   </div>
+                  <p className="text-xs text-slate-500">
+                    Chiều liên kết: <span className="font-medium text-slate-700">{sourceName}</span>{' '}
+                    <span className="rounded bg-slate-100 px-1.5 py-0.5 font-medium text-slate-700">→ {previewLabel} →</span>{' '}
+                    <span className="font-medium text-slate-700">{targetName}</span>
+                  </p>
                 </li>
               );
             })}
@@ -475,14 +368,14 @@ export function ArticleProfilePanel({
         {savedArticle && <InTimelinesPanel article={savedArticle} />}
 
         {linksIn.length > 0 && (
-          <Section title={`Bài khác liên kết tới bài này (${linksIn.length})`} hint="Chỉ xem — sửa ở bài nguồn.">
+          <Section title={`Bài khác liên kết tới bài này (${linksIn.length})`} hint="Chiều: [Bài nguồn] → (nhãn) → [Bài này]. Chỉ xem — sửa ở bài nguồn.">
             <ul className="space-y-1.5">
               {linksIn.map((l) => (
-                <li key={l.id} className="flex items-center gap-2 text-sm">
+                <li key={l.id} className="flex flex-wrap items-center gap-1.5 text-sm">
                   <Link href={APP_ROUTES.ARTICLES.DETAIL(l.article.id)} className="font-medium text-slate-800 hover:underline">
                     {l.article.title}
                   </Link>
-                  {l.label && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{l.label}</span>}
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">→ {l.label || 'Liên quan'} → bài này</span>
                   {l.article.category && <span className="text-xs text-slate-400">· {l.article.category.name}</span>}
                 </li>
               ))}

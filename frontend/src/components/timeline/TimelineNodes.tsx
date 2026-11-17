@@ -88,10 +88,7 @@ export function EntityList({
           </div>
           <div>
             <Heading level={3}>{l.name}</Heading>
-            <small>
-              {l.modernName}
-              {l.coordinates && ` · ${l.coordinates}`}
-            </small>
+            <small>{l.modernName}</small>
             {showEventTitles && <EventTitles titles={l.eventTitles} />}
             <p>{l.description}</p>
           </div>
@@ -322,7 +319,6 @@ function EndingList({ node }: { node: TimeNode }) {
 
 type FocusState = ReturnType<typeof useTimelineFocus>;
 
-/** Mốc có chứa sự kiện liên quan tới sự kiện đang xem (hoặc chưa chọn gì) thì không bị làm mờ. */
 function isNodeTouched(node: TimeNode, { focus, related }: FocusState): boolean {
   if (!focus) return true;
   return (
@@ -331,7 +327,6 @@ function isNodeTouched(node: TimeNode, { focus, related }: FocusState): boolean 
   );
 }
 
-/** Khoảng thời gian của sự kiện kéo dài đang chọn (nếu có). */
 function highlightRange({ focus }: FocusState): [number, number] | null {
   if (focus?.endYear !== undefined) return [focus.year, focus.endYear];
   return null;
@@ -355,8 +350,7 @@ export function TimelineNodeItem({
   const [expanded, setExpanded] = useState(false);
   const focusState = useTimelineFocus();
   const isOpen = !compact || expanded;
-  // Chế độ Liên kết: mốc không chứa sự kiện liên quan thì mờ; mốc nằm trong khoảng thời gian của
-  // sự kiện đang chọn (sự kiện kéo dài) có thanh đánh dấu dọc trục.
+  // Mốc mờ đi nếu không liên quan tới sự kiện đang chọn; nằm trong khoảng kéo dài thì có thanh dọc.
   const touched = isNodeTouched(node, focusState);
   const range = highlightRange(focusState);
   const inSpan = Boolean(range && node.sortYear > range[0] && node.sortYear < range[1]);
@@ -413,18 +407,14 @@ export function TimelineNodeItem({
   );
 }
 
-// === TimelineFocus.tsx ===
-/** Lý do một sự kiện liên quan tới sự kiện đang chọn (liên kết trực tiếp đã khai báo). */
 export interface RelatedReason {
   text: string;
 }
 
 export interface TimelineFocusState {
-  /** Sự kiện đang bật chế độ "Liên kết" (null = tắt). */
   focus: TimelineEvent | null;
   related: Map<string, RelatedReason[]>;
   setFocus: (event: TimelineEvent | null) => void;
-  /** Cuộn tới một mục (sự kiện / mốc kết thúc) và nhấp nháy để dễ thấy. */
   reveal: (domId: string) => void;
   flashId: string | null;
 }
@@ -439,7 +429,7 @@ export const TimelineFocusContext = createContext<TimelineFocusState>({
 
 export const useTimelineFocus = () => useContext(TimelineFocusContext);
 
-/** Sự kiện liên quan tới sự kiện đang chọn: chỉ những liên kết đã khai báo trực tiếp (ArticleLink). */
+/** Chỉ dựa vào ArticleLink khai báo trực tiếp, không suy luận qua chủ thể/phân cấp chung. */
 export function computeRelated(
   focus: TimelineEvent,
   all: TimelineEvent[],

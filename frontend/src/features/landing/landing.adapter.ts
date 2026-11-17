@@ -252,9 +252,10 @@ function buildTimeline(events: PublicEventSummaryDto[]): LandingTimelineNode[] {
     }));
 }
 
+/** Năm sinh – mất chỉ lấy từ cột năm của bài. */
 function figureYears(f: PublicFigureProfileDto): string | null {
-  const birth = f.birthDateLabel ?? (f.birthYear != null ? formatYear(f.birthYear) : null);
-  const death = f.deathDateLabel ?? (f.deathYear != null ? formatYear(f.deathYear) : null);
+  const birth = f.birthYear != null ? formatYear(f.birthYear) : null;
+  const death = f.deathYear != null ? formatYear(f.deathYear) : null;
   if (!birth && !death) return null;
   return `${birth ?? '?'} – ${death ?? '?'}`;
 }

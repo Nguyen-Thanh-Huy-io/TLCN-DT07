@@ -110,7 +110,7 @@ function matches(row: EventRow, f: EventFilters, needle: string): boolean {
  * Thư viện sự kiện: Lưới thẻ sự kiện tạp chí lịch sử chuyên nghiệp
  * Hỗ trợ chuyển đổi Grid / List, phân trang Pagination rõ ràng.
  */
-/** Nhảy tới 1 khối/chủ đề con trong danh sách kết quả (id DOM do renderTopicBlocks đặt). */
+/** Id khớp với TopicBlockSection/TopicLeafHeading bên dưới. */
 function jumpToTopic(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -438,7 +438,7 @@ export function EventsLibrary({
   );
 }
 
-/** Khối lớn theo Chủ đề gốc — gộp mọi Chủ đề con (leaf) của nó, giống TopicSection ở Danh bạ nhân vật. */
+/** Giống TopicSection ở Danh bạ nhân vật. */
 function TopicBlockSection({ block, children }: { block: TopicBlock<EventRow>; children: ReactNode }) {
   const [open, setOpen] = useState(true);
   const total = block.leaves.reduce((n, l) => n + l.items.length, 0);
@@ -458,7 +458,6 @@ function TopicBlockSection({ block, children }: { block: TopicBlock<EventRow>; c
   );
 }
 
-/** 1 Chủ đề con bên trong khối — tiêu đề + nội dung (grid/list) của riêng nó. */
 function TopicLeafHeading({ leaf }: { leaf: TopicLeafGroup<EventRow> }) {
   return (
     <div className="sk-sub-heading">

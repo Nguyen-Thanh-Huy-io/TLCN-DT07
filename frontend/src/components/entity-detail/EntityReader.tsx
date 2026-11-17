@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, PanelLeftOpen, PanelRightOpen, ExternalLink } from 'lucide-react';
 import { EntityReaderModel } from './entity-reader-adapter';
-import { EntityKnowledgeGraph, EntityReadingToolbar, TextSizeLevel, EntityReadingToc, EntityReadingTimeline } from './EntityReaderParts';
+import { EntityKnowledgeGraph, EntityRelatedByTag, EntityReadingToolbar, TextSizeLevel, EntityReadingToc, EntityReadingTimeline } from './EntityReaderParts';
 import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
 import { NoteDrawer, NoteFloatingButton } from '@/features/notes/components/NoteDrawer';
 import { NOTE_TARGET_TYPE } from '@/features/notes/services/note.service';
@@ -276,6 +276,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
           )}
 
           <EntityKnowledgeGraph statements={model.statements} />
+          <EntityRelatedByTag articles={model.relatedByTag} />
 
           {/* ĐIỀU HƯỚNG LIÊN HOÀN CUỐI BÀI */}
           {(model.previous || model.next) && (

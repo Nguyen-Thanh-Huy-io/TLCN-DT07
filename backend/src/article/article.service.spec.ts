@@ -39,13 +39,15 @@ describe('ArticleService', () => {
   };
   const prisma = {
     article: {
+      findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn(),
       create: jest.fn().mockResolvedValue({ id: 'art-1' }),
       update: jest.fn().mockResolvedValue({ id: 'art-1' }),
-      count: jest.fn(),
+      count: jest.fn().mockResolvedValue(0),
       delete: jest.fn(),
     },
     category: { count: jest.fn().mockResolvedValue(1) },
+    topic: { findMany: jest.fn().mockResolvedValue([]) },
     tag: { count: jest.fn() },
     $transaction: jest.fn((fn: (client: typeof tx) => Promise<unknown>) =>
       fn(tx),
@@ -296,6 +298,27 @@ describe('ArticleService', () => {
       });
       expect(redis.deleteByPattern).toHaveBeenCalledWith(
         TAG_CONFIG.TAG_CACHE_PATTERN,
+      );
+    });
+  });
+
+  describe('findAll — lọc theo Topic bao gồm cả Topic con', () => {
+    it('gom đệ quy toàn bộ topicId con/cháu khi lọc theo topicId cha', async () => {
+      prisma.topic.findMany.mockResolvedValueOnce([
+        { id: 't-root', parentId: null },
+        { id: 't-child', parentId: 't-root' },
+        { id: 't-leaf', parentId: 't-child' },
+        { id: 't-other', parentId: null },
+      ]);
+
+      await service.findAll({ topicId: 't-root' });
+
+      expect(prisma.article.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            topicId: { in: ['t-root', 't-child', 't-leaf'] },
+          }),
+        }),
       );
     });
   });

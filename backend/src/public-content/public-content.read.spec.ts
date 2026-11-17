@@ -274,7 +274,7 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
           ...summaryRow('tran-hung-dao'),
           categoryId: 'cat-king',
           category: { ...PERSON_CHILD, name: 'Vua chúa' },
-          metadata: { person: { occupation: 'Tướng' } },
+          metadata: { person: { titles: ['Tướng', 'Quốc công'] } },
           timelineNodes: [{ timeline: { slug: 'nha-tran' } }],
         },
         {
@@ -293,24 +293,6 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
         role: 'Tướng',
         periodSlug: 'nha-tran',
       });
-    });
-
-    it('địa danh có toạ độ thì trả geo', async () => {
-      prisma.category.findMany.mockResolvedValue([
-        { id: 'cat-loc', kind: 'LOCATION', parentId: null },
-      ]);
-      prisma.article.findMany.mockResolvedValue([
-        {
-          ...summaryRow('hoang-thanh'),
-          category: { id: 'cat-loc', kind: 'LOCATION', name: 'Di tích' },
-          metadata: { site: { latitude: 21.03, longitude: 105.84 } },
-          timelineNodes: [],
-        },
-      ]);
-
-      const [site] = await service.getLocations();
-
-      expect(site.geo).toEqual({ latitude: 21.03, longitude: 105.84 });
     });
 
     it('mở bài sự kiện bằng đường dẫn nhân vật → 404', async () => {

@@ -35,10 +35,6 @@ function toTimelineLocation(location: PublicLocationSummaryDto): TimelineLocatio
     id: location.id,
     name: location.name,
     modernName: location.address || undefined,
-    coordinates:
-      location.latitude != null && location.longitude != null
-        ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
-        : undefined,
     description: location.historicalSignificance || location.address || "Chưa có mô tả chi tiết.",
   };
 }

@@ -1,6 +1,7 @@
 import {
   PublicEntityDetailDto,
   PublicEntityMediaDto,
+  PublicEntityRelatedArticleDto,
   PublicEntityStatementDto,
 } from '@/services/entities/landing.service';
 import { getEntityTypeStrategy, EntityTypeConfig } from './entity-strategy';
@@ -54,6 +55,7 @@ export interface EntityReaderModel {
   resourceLinks: ResourceLinkBlockData[];
   readMinutes: number;
   statements: PublicEntityStatementDto[];
+  relatedByTag: PublicEntityRelatedArticleDto[];
   facts: FastFactItem[];
   media: PublicEntityMediaDto[];
   quickStats: EntityQuickStat[];
@@ -172,11 +174,11 @@ function extractPersonQuickStats(
       value: entity.roles[0],
       label: 'Vị thế lịch sử',
     });
-  } else if (entity.occupation) {
+  } else if (entity.titles?.[0]) {
     stats.push({
-      id: 'stat-occupation',
-      value: entity.occupation,
-      label: 'Chức vụ / Sự nghiệp',
+      id: 'stat-title',
+      value: entity.titles[0],
+      label: 'Danh hiệu',
     });
   }
 
@@ -333,9 +335,6 @@ function extractPersonFastFacts(entity: PublicEntityDetailDto): FastFactItem[] {
   if (entity.roles && entity.roles.length > 0) {
     facts.push({ id: 'entity-roles', label: 'Vai trò', value: entity.roles.join(', ') });
   }
-  if (entity.occupation) {
-    facts.push({ id: 'entity-occupation', label: 'Nghề nghiệp / Chức vụ', value: entity.occupation });
-  }
   if (entity.titles && entity.titles.length > 0) {
     const formattedTitles = entity.titles.map((t) =>
       t.replace(/\((\d+)/g, ' ($1').replace(/\s*–\s*/g, ' – ')
@@ -489,6 +488,7 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
     resourceLinks: normalized.resourceLinks,
     readMinutes,
     statements: entity.statements ?? [],
+    relatedByTag: entity.relatedByTag ?? [],
     facts,
     media: entity.media ?? [],
     quickStats,

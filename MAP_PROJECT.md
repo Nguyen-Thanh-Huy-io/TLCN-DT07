@@ -59,11 +59,11 @@ flowchart TD
 * **Mục đích:** Thực thể trung tâm của hệ thống (thay cho Entity/Statement cũ đã xoá 2026-11-05). Một bài viết có thể đóng vai trò Nhân vật / Sự kiện / Di tích / Triều đại / Khác tuỳ `Category.kind` của chuyên mục nó thuộc. Có hồ sơ mô tả JSONB tuỳ loại (`metadata`), liên kết 2 chiều bài↔bài (`ArticleLink`), quy trình duyệt 2 người (DRAFT → PENDING_REVIEW → PUBLISHED/REJECTED), tự tạo bản sửa chờ duyệt khi sửa bài đã publish; người duyệt **lưu trữ** bài đã xuất bản (`PUBLISHED → ARCHIVED → DRAFT`, xem 3.20). Trang đọc công khai có ghi chú cá nhân, không có hỏi đáp (dẫn sang Cộng đồng).
 * **UI Component chính:** [ArticleList.tsx](frontend/src/features/articles/components/ArticleList.tsx) (danh sách CMS, lọc chuyên mục/tag/trạng thái — có "Lưu trữ", phân trang server), [ArticleEditor.tsx](frontend/src/features/articles/components/ArticleEditor.tsx) (3 tab: Thông tin / Hồ sơ & liên kết / Nội dung). Tab Thông tin có ô chọn **Chuyên mục** (Category, bắt buộc) và **Chủ đề** (`TopicPicker`, tuỳ chọn — `topicId` đi qua bản sửa chờ duyệt như mọi trường khác, khai báo trong `REVISION_FIELDS.ARTICLE`).
 * **Component/Modal phụ trợ:**
-  * `ArticleProfilePanel.tsx` — nhập `metadata` theo nhánh person/site/event + `links` liên kết bài khác.
+  * `ArticleProfilePanel.tsx` — nhập `metadata` theo nhánh person/site + `links` liên kết bài khác (ghi rõ chiều nhãn Nguồn → Đích).
   * `ArticleConnections.tsx` — preview chỉ đọc: dòng đời nhân vật, người liên quan sự kiện, dòng thời gian chứa bài.
   * `ContentBlockEditor.tsx` — soạn nội dung Block Builder (tái dùng hạ tầng `features/lessons`).
   * `ArticlePicker.tsx`, `StatusPill.tsx`, `YearInput.tsx` (hỗ trợ năm TCN), `CategoryManager.tsx`.
-  * `person-life.ts` — ghép dòng đời nhân vật dùng chung CMS ⇄ trang công khai (hợp LINK + OWN_NODE + MILESTONE).
+  * `person-life.ts` — ghép dòng đời nhân vật dùng chung CMS ⇄ trang công khai (hợp 2 nguồn: LINK + MILESTONE).
 * **Route trang (Next.js):**
   * CMS: `frontend/src/app/articles/page.tsx` (danh sách), `articles/create/page.tsx` và `articles/[id]/page.tsx` (→ `ArticleEditor`).
   * `frontend/src/app/bai-viet/[slug]/page.tsx` → trang đọc chung mọi loại bài viết (dùng chung với `/nhan-vat`, `/su-kien`, `/di-tich`, `/thuc-the`).

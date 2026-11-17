@@ -78,7 +78,6 @@ function countEvents(eras: Era[]): number {
   );
 }
 
-/** Sự kiện liên quan tới sự kiện đang chọn (liên kết trực tiếp đã khai báo). */
 function relatedEvents(focus: TimelineEvent | null, allEvents: TimelineEvent[]): Map<string, RelatedReason[]> {
   return focus ? computeRelated(focus, allEvents) : new Map();
 }
@@ -99,7 +98,7 @@ function collectCategories(nodes: TimeNode[]): string[] {
   return Array.from(seen);
 }
 
-/** Era/SubEra → cây Mục lục dùng chung (TocDrawer); nhảy tới era thì nhảy sang giai đoạn đầu tiên của nó. */
+/** Nhảy tới era = nhảy sang giai đoạn con đầu tiên của nó. */
 function toTocNodes(eras: Era[]): TocNode[] {
   return eras.map((e) => ({
     id: e.subEras[0]?.id ?? e.id,
@@ -139,7 +138,6 @@ function pickSelectedNode(nodes: TimeNode[], selectedId: string): TimeNode | und
   return chosen?.events.length ? chosen : nodes.find((n) => n.events.length > 0);
 }
 
-/** Thanh trạng thái khi đang xem liên kết của 1 sự kiện. */
 function FocusBar({
   title,
   summary,
@@ -198,7 +196,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     });
   }, []);
   const [bookmarksOnly, setBookmarksOnly] = useState(false);
-  // Chế độ "Liên kết": sáng các sự kiện đã khai báo liên kết trực tiếp với sự kiện đang chọn.
   const [focus, setFocus] = useState<TimelineEvent | null>(null);
   const [onlyRelated, setOnlyRelated] = useState(false);
   const [flashId, setFlashId] = useState<string | null>(null);

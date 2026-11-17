@@ -17,34 +17,42 @@ describe('normalizeArticleMetadata', () => {
   it('cắt khoảng trắng, bỏ trùng, bỏ giá trị rỗng ở mọi nhánh', () => {
     expect(
       normalizeArticleMetadata({
-        era: 'MEDIEVAL',
-        region: 'VIETNAM',
         aliases: [' Trần Quốc Tuấn ', 'Trần Quốc Tuấn', ''],
         unknownField: ' bị bỏ qua ',
         person: {
-          roles: ['GENERAL'],
+          roles: [' Tướng lĩnh ', 'Tướng lĩnh'],
           famousQuote: '  Bệ hạ chém đầu thần trước rồi hãy hàng ',
           titles: [],
         },
         site: {
-          latitude: '20.94',
-          longitude: 106.8,
           rank: 'UNESCO',
           siteType: 'BATTLEFIELD',
         },
-        event: { cause: ' ', belligerents: ['Đại Việt', 'Nguyên'] },
       }),
     ).toEqual({
-      era: 'MEDIEVAL',
-      region: 'VIETNAM',
       aliases: ['Trần Quốc Tuấn'],
       person: {
-        roles: ['GENERAL'],
+        roles: ['Tướng lĩnh'],
         famousQuote: 'Bệ hạ chém đầu thần trước rồi hãy hàng',
       },
-      site: { latitude: 20.94, longitude: 106.8, siteType: 'BATTLEFIELD' },
-      event: { belligerents: ['Đại Việt', 'Nguyên'] },
+      site: { siteType: 'BATTLEFIELD' },
     });
+  });
+
+  it('bỏ các trường đã gỡ khỏi hồ sơ (niên đại phụ, toạ độ, hồ sơ sự kiện, kỷ nguyên, phạm vi)', () => {
+    expect(
+      normalizeArticleMetadata({
+        era: 'MEDIEVAL',
+        region: 'VIETNAM',
+        person: {
+          occupation: 'Tướng',
+          birthDateLabel: '1228?',
+          deathDateLabel: '1300',
+        },
+        site: { latitude: 20.94, longitude: 106.8, openingHours: '8h–17h' },
+        event: { dateNote: 'x', cause: 'y', outcome: 'z', belligerents: ['a'] },
+      }),
+    ).toBeNull();
   });
 
   it('mốc đời riêng: sắp theo thời gian, bắt buộc năm khác 0 và tiêu đề', () => {
@@ -75,17 +83,14 @@ describe('normalizeArticleMetadata', () => {
     ).toThrow(BadRequestException);
   });
 
-  it('từ chối mã không hợp lệ và toạ độ ngoài khoảng', () => {
-    expect(() =>
-      normalizeArticleMetadata({ person: { roles: ['KING'] } }),
-    ).toThrow(BadRequestException);
+  it('vai trò là chữ tự do; vẫn từ chối mã cố định không hợp lệ', () => {
+    expect(normalizeArticleMetadata({ person: { roles: ['Vua'] } })).toEqual({
+      person: { roles: ['Vua'] },
+    });
     expect(() =>
       normalizeArticleMetadata({ site: { siteType: 'CASTLE' } }),
     ).toThrow(BadRequestException);
-    expect(() => normalizeArticleMetadata({ site: { latitude: 120 } })).toThrow(
-      BadRequestException,
-    );
-    expect(() => normalizeArticleMetadata({ event: 'x' })).toThrow(
+    expect(() => normalizeArticleMetadata({ person: 'x' })).toThrow(
       BadRequestException,
     );
   });

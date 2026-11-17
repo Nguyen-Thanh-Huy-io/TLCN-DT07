@@ -17,6 +17,7 @@ import {
   TopicIcon,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { toArticleMetadataJson } from '../../src/article/article-metadata';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL as string }),
@@ -102,7 +103,7 @@ async function main() {
         dateText: a.dateText,
         startYear: a.startYear,
         endYear: a.endYear,
-        metadata: a.metadata || {},
+        metadata: toArticleMetadataJson(a.metadata),
         contentBlocks: a.contentBlocks || [],
         status: ContentStatus.PUBLISHED,
       },
@@ -115,7 +116,7 @@ async function main() {
         dateText: a.dateText,
         startYear: a.startYear,
         endYear: a.endYear,
-        metadata: a.metadata || {},
+        metadata: toArticleMetadataJson(a.metadata),
         contentBlocks: a.contentBlocks || [],
         status: ContentStatus.PUBLISHED,
       },

@@ -18,7 +18,7 @@ import {
   ReviewArticleDto,
   UpdateArticleDto,
 } from './dto/article.dto';
-import { normalizeArticleMetadata } from './article-metadata';
+import { toArticleMetadataJson } from './article-metadata';
 
 export const ARTICLE_MESSAGES = {
   NOT_FOUND: (id: string) => `Không tìm thấy bài viết ${id}`,
@@ -100,6 +100,31 @@ export class ArticleService {
     await this.redis.deleteByPattern(TAG_CONFIG.TAG_CACHE_PATTERN);
   }
 
+  /** Gom topicId và toàn bộ topicId con/cháu (duyệt đệ quy không giới hạn độ sâu). */
+  private async collectTopicSubtreeIds(rootTopicId: string): Promise<string[]> {
+    const allTopics = await this.prisma.topic.findMany({
+      select: { id: true, parentId: true },
+    });
+    const childrenMap = new Map<string, string[]>();
+    for (const t of allTopics) {
+      if (t.parentId) {
+        const list = childrenMap.get(t.parentId) ?? [];
+        list.push(t.id);
+        childrenMap.set(t.parentId, list);
+      }
+    }
+    const collected = new Set<string>();
+    const visit = (id: string) => {
+      if (collected.has(id)) return;
+      collected.add(id);
+      for (const childId of childrenMap.get(id) ?? []) {
+        visit(childId);
+      }
+    };
+    visit(rootTopicId);
+    return [...collected];
+  }
+
   async findAll(query: QueryArticleDto) {
     const {
       page = 1,
@@ -112,9 +137,12 @@ export class ArticleService {
       featured,
       sort,
     } = query;
+    const topicIds = topicId
+      ? await this.collectTopicSubtreeIds(topicId)
+      : null;
     const where: Prisma.ArticleWhereInput = {
       ...(categoryId ? { categoryId } : {}),
-      ...(topicId ? { topicId } : {}),
+      ...(topicIds ? { topicId: { in: topicIds } } : {}),
       ...(tagId ? { articleTags: { some: { tagId } } } : {}),
       ...(status ? { status } : {}),
       ...(featured ? { isFeatured: true } : {}),
@@ -202,26 +230,13 @@ export class ArticleService {
     };
   }
 
-  private async resolveEffectiveArticleStatus(
-    _categoryId: string | null | undefined,
-    requestedStatus: ContentStatus | undefined,
-  ): Promise<ContentStatus | undefined> {
-    return requestedStatus;
-  }
-
   async create(dto: CreateArticleDto, authorId?: string) {
-    const effectiveStatus = await this.resolveEffectiveArticleStatus(
-      dto.categoryId,
-      dto.status,
-    );
-    const normalizedDto = { ...dto, status: effectiveStatus };
-    const { tagIds, metadata, links, ...data } = normalizedDto;
-    await this.validate(normalizedDto);
+    const { tagIds, metadata, links, ...data } = dto;
+    await this.validate(dto);
     await this.validateLinks(links);
-    const meta = normalizeArticleMetadata(metadata);
-    const slug = normalizedDto.slug
-      ? await this.assertSlugFree(normalizedDto.slug)
-      : await this.slugService.generateUnique(normalizedDto.title, (s) =>
+    const slug = dto.slug
+      ? await this.assertSlugFree(dto.slug)
+      : await this.slugService.generateUnique(dto.title, (s) =>
           this.slugExists(s),
         );
 
@@ -230,7 +245,7 @@ export class ArticleService {
         ...data,
         slug,
         contentBlocks: (data.contentBlocks ?? []) as Prisma.InputJsonValue,
-        metadata: meta ? (meta as Prisma.InputJsonValue) : Prisma.DbNull,
+        metadata: toArticleMetadataJson(metadata),
         createdBy: authorId ?? null,
         publishedAt:
           data.status === ContentStatus.PUBLISHED ? new Date() : null,
@@ -249,11 +264,7 @@ export class ArticleService {
   async update(id: string, dto: UpdateArticleDto) {
     const current = await this.prisma.article.findUnique({ where: { id } });
     if (!current) throw new NotFoundException(ARTICLE_MESSAGES.NOT_FOUND(id));
-    const effectiveStatus = await this.resolveEffectiveArticleStatus(
-      dto.categoryId ?? current.categoryId,
-      dto.status ?? current.status,
-    );
-    const normalizedDto = { ...dto, status: effectiveStatus };
+    const normalizedDto = { ...dto, status: dto.status ?? current.status };
     await this.validate({
       ...normalizedDto,
       startYear:
@@ -270,8 +281,6 @@ export class ArticleService {
       await this.assertSlugFree(normalizedDto.slug, id);
 
     const { tagIds, contentBlocks, metadata, links, ...data } = normalizedDto;
-    const meta =
-      metadata !== undefined ? normalizeArticleMetadata(metadata) : undefined;
     const becomesPublished =
       data.status === ContentStatus.PUBLISHED &&
       current.status !== ContentStatus.PUBLISHED;
@@ -284,12 +293,8 @@ export class ArticleService {
           ...(contentBlocks !== undefined
             ? { contentBlocks: contentBlocks as Prisma.InputJsonValue }
             : {}),
-          ...(meta !== undefined
-            ? {
-                metadata: meta
-                  ? (meta as Prisma.InputJsonValue)
-                  : Prisma.DbNull,
-              }
+          ...(metadata !== undefined
+            ? { metadata: toArticleMetadataJson(metadata) }
             : {}),
           ...(becomesPublished ? { publishedAt: new Date() } : {}),
         },

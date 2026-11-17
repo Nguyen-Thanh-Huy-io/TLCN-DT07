@@ -3,10 +3,9 @@
  * qua services/entities/landing.service.ts) và CMS (khung "Xem trước dòng đời" trong ArticleProfilePanel),
  * để 2 nơi không bao giờ lệch nhau.
  *
- * Dòng đời = hợp của 3 nguồn (KHÔNG suy theo tag):
+ * Dòng đời = hợp của 2 nguồn (KHÔNG suy theo tag, KHÔNG tự lấy mốc timeline trỏ vào bài nhân vật):
  *   LINK      — bài SỰ KIỆN mà nhân vật liên kết tới / được liên kết từ (ArticleLink, nhãn = vai trò).
  *               Năm + thời kỳ lấy từ mốc timeline đầu tiên trỏ tới bài sự kiện; không có mốc → năm của bài.
- *   OWN_NODE  — mốc timeline trỏ THẲNG tới bài nhân vật (vd. "Ngô Quyền xưng vương").
  *   MILESTONE — mốc đời riêng nhập trong hồ sơ nhân vật (metadata.person.milestones).
  */
 import { formatYear } from '@/utils/common';
@@ -44,14 +43,12 @@ export interface LifeMilestoneInput {
 }
 
 export interface LifeInput {
-  ownNodes: LifeNodeRef[];
   eventLinks: Array<{ article: LifeEventArticle; label: string | null; direction: 'OUTGOING' | 'INCOMING' }>;
   milestones?: LifeMilestoneInput[];
 }
 
 export enum LifeSource {
   LINK = 'LINK',
-  OWN_NODE = 'OWN_NODE',
   MILESTONE = 'MILESTONE',
 }
 
@@ -63,14 +60,11 @@ export enum LinkDirection {
 
 export const LIFE_SOURCE_LABELS: Record<LifeSource, string> = {
   LINK: 'Liên kết tới bài sự kiện',
-  OWN_NODE: 'Mốc trong dòng thời gian',
   MILESTONE: 'Mốc đời riêng',
 };
 
 export const DEFAULT_EVENT_ROLE = 'Tham gia';
 export const OWN_MILESTONE_ROLE = 'Dấu mốc cuộc đời';
-/** Vai trò coi là "chính" — hiện nổi bật trên dòng đời. */
-const PRIMARY_ROLE_PATTERN = /chỉ huy|lãnh đạo|khởi xướng|thống lĩnh/i;
 
 export interface LifeItem {
   key: string;
@@ -81,10 +75,9 @@ export interface LifeItem {
   title: string;
   description: string | null;
   role: string;
-  isPrimary: boolean;
   /** Bài sự kiện (nguồn LINK). */
   article: { id: string; slug: string; title: string } | null;
-  /** Mốc dùng để lấy năm / thời kỳ (nguồn LINK có mốc, OWN_NODE). */
+  /** Mốc dùng để lấy năm / thời kỳ (nguồn LINK có mốc). */
   node: LifeNodeRef | null;
   timeline: { id: string; slug: string; title: string } | null;
 }
@@ -115,26 +108,9 @@ export function buildPersonLife(input: LifeInput): LifeItem[] {
       title: node?.title ?? a.title,
       description: node?.description ?? a.summary ?? null,
       role,
-      isPrimary: PRIMARY_ROLE_PATTERN.test(role),
       article: { id: a.id, slug: a.slug, title: a.title },
       node,
       timeline: node?.timeline ?? null,
-    });
-  }
-
-  for (const node of input.ownNodes) {
-    items.push({
-      key: `node-${node.id}`,
-      source: LifeSource.OWN_NODE,
-      year: node.year,
-      dateLabel: nodeDateLabel(node),
-      title: node.title,
-      description: node.description ?? null,
-      role: OWN_MILESTONE_ROLE,
-      isPrimary: true,
-      article: null,
-      node,
-      timeline: node.timeline,
     });
   }
 
@@ -147,7 +123,6 @@ export function buildPersonLife(input: LifeInput): LifeItem[] {
       title: m.title,
       description: m.note ?? null,
       role: OWN_MILESTONE_ROLE,
-      isPrimary: false,
       article: null,
       node: null,
       timeline: null,

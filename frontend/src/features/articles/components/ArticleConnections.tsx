@@ -22,7 +22,6 @@ import { LifeSource, LinkDirection, nodeDateLabel } from '@/features/articles/pe
 const box = 'space-y-3 rounded-xl border border-slate-200 bg-white p-5';
 const SOURCE_TONE: Record<LifeItem['source'], string> = {
   LINK: 'bg-sky-50 text-sky-800',
-  OWN_NODE: 'bg-amber-50 text-amber-800',
   MILESTONE: 'bg-violet-50 text-violet-800',
 };
 
@@ -48,7 +47,6 @@ export function PersonLifePreview({
   linksDirty: boolean;
 }) {
   const life = buildPersonLife({
-    ownNodes: article.timelineNodes ?? [],
     eventLinks: linksOfKind(article, categories, 'EVENT').map((l) => ({
       article: { ...l.article, nodes: l.article.timelineNodes ?? [] },
       label: l.label,
@@ -74,8 +72,7 @@ export function PersonLifePreview({
       )}
       {life.length === 0 ? (
         <p className="text-sm text-slate-500">
-          Chưa có gì. Thêm liên kết tới bài sự kiện (nhãn = vai trò), mốc đời riêng, hoặc gắn mốc trong một dòng thời gian
-          vào bài này.
+          Chưa có gì. Thêm liên kết tới bài sự kiện (nhãn = vai trò) hoặc thêm mốc đời riêng.
         </p>
       ) : (
         <ol className="space-y-2">

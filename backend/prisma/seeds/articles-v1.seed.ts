@@ -9,8 +9,9 @@
  */
 import 'dotenv/config';
 import { randomUUID } from 'crypto';
-import { ArticleKind, ContentStatus, DatePrecision, Prisma, PrismaClient } from '@prisma/client';
+import { ArticleKind, ContentStatus, DatePrecision, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { toArticleMetadataJson } from '../../src/article/article-metadata';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL as string }),
@@ -115,7 +116,7 @@ const ARTICLES: ArticleSeed[] = [
     meta: {
       person: {
         titles: ['Thái sư'],
-        roles: ['POLITICIAN'],
+        roles: ['Chính trị gia'],
         famousQuote: 'Đầu thần chưa rơi xuống đất, xin bệ hạ đừng lo.',
       },
     },
@@ -142,8 +143,7 @@ const ARTICLES: ArticleSeed[] = [
       aliases: ['Trần Quốc Tuấn', 'Hưng Đạo Đại Vương'],
       person: {
         titles: ['Quốc công Tiết chế'],
-        roles: ['COMMANDER_IN_CHIEF', 'GENERAL'],
-        birthDateLabel: 'Chưa rõ (khoảng 1228)',
+        roles: ['Tổng tư lệnh', 'Tướng lĩnh'],
         notableWorks: ['Hịch tướng sĩ', 'Binh thư yếu lược'],
         famousQuote: 'Bệ hạ chém đầu thần trước rồi hãy hàng.',
       },
@@ -177,7 +177,7 @@ const ARTICLES: ArticleSeed[] = [
     meta: {
       aliases: ['Trần Khâm', 'Điều Ngự Giác Hoàng'],
       person: {
-        roles: ['MONARCH', 'RELIGIOUS_FIGURE'],
+        roles: ['Quân chủ', 'Nhân vật tôn giáo'],
         legacyAndHonors: 'Khai sáng Thiền phái Trúc Lâm Yên Tử.',
       },
     },
@@ -206,12 +206,6 @@ const ARTICLES: ArticleSeed[] = [
   },
   {
     slug: 'tran-bach-dang-1288',
-    meta: {
-      event: {
-        belligerents: ['Đại Việt (nhà Trần)', 'Quân Nguyên'],
-        outcome: 'Đoàn thuyền quân Nguyên bị tiêu diệt; cuộc kháng chiến lần thứ ba kết thúc thắng lợi.',
-      },
-    },
     links: [{ slug: 'khu-di-tich-bach-dang', label: 'Diễn ra tại' }],
     title: 'Trận Bạch Đằng năm 1288',
     category: 'su-kien',
@@ -243,8 +237,9 @@ const ARTICLES: ArticleSeed[] = [
     meta: {
       aliases: ['Ngô Vương', 'Tiền Ngô Vương'],
       person: {
-        roles: ['MONARCH', 'GENERAL'],
+        roles: ['Quân chủ', 'Tướng lĩnh'],
         hometown: 'Đường Lâm (nay thuộc Sơn Tây, Hà Nội)',
+        milestones: [{ year: 939, title: 'Xưng vương, đóng đô ở Cổ Loa' }],
       },
     },
     links: [{ slug: 'tran-bach-dang-938', label: 'Chỉ huy' }],
@@ -256,12 +251,6 @@ const ARTICLES: ArticleSeed[] = [
   },
   {
     slug: 'tran-bach-dang-938',
-    meta: {
-      event: {
-        belligerents: ['Quân Ngô Quyền', 'Quân Nam Hán'],
-        outcome: 'Quân Nam Hán thất bại; thời kỳ Bắc thuộc kết thúc.',
-      },
-    },
     links: [{ slug: 'khu-di-tich-bach-dang', label: 'Diễn ra tại' }],
     title: 'Trận Bạch Đằng năm 938',
     category: 'su-kien',
@@ -298,9 +287,6 @@ const ARTICLES: ArticleSeed[] = [
   },
   {
     slug: 'cach-mang-thang-tam',
-    meta: {
-      event: { outcome: 'Nước Việt Nam Dân chủ Cộng hoà ra đời ngày 2/9/1945.' },
-    },
     title: 'Cách mạng tháng Tám năm 1945',
     category: 'su-kien',
     tags: ['Cách mạng tháng Tám'],
@@ -428,7 +414,7 @@ async function main() {
     const sourceId = articleIds.get(a.slug)!;
     await prisma.article.update({
       where: { id: sourceId },
-      data: { metadata: a.meta ? (a.meta as object) : Prisma.DbNull },
+      data: { metadata: toArticleMetadataJson(a.meta) },
     });
     await prisma.articleLink.deleteMany({ where: { sourceId } });
     if (!a.links?.length) continue;

@@ -1,8 +1,8 @@
 'use client';
 
-import { Landmark, Network, Users, ArrowDownUp, Search, SlidersHorizontal, X, ArrowRight, ArrowUpRight, ChevronDown, Clock3, History, Quote } from 'lucide-react';
+import { Landmark, Network, Users, ArrowDownUp, Search, X, ArrowRight, ArrowUpRight, ChevronDown, Clock3, History, Quote } from 'lucide-react';
 import { Heading, Button, Input, Badge } from '@/components/timeline/TimelineChrome';
-import { paletteFor, personRoleLabel, type FigureView } from './figure-utils';
+import { paletteFor, type FigureView } from './figure-utils';
 import { useId, useState, type ReactNode } from 'react';
 import { RemoteImage } from '@/components/common/RemoteImage';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
@@ -80,32 +80,6 @@ export enum FigureSort {
   NAME = "name",
 }
 
-export interface FilterOption {
-  id: string;
-  title: string;
-}
-
-/** Mỗi nhóm chọn nhiều; mảng rỗng = không lọc theo nhóm đó. */
-export interface FigureFilters {
-  roles: string[];
-  articleEras: string[];
-  regions: string[];
-  eras: string[];
-  subs: string[];
-}
-
-export const EMPTY_FIGURE_FILTERS: FigureFilters = {
-  roles: [],
-  articleEras: [],
-  regions: [],
-  eras: [],
-  subs: [],
-};
-
-export function figureFilterCount(f: FigureFilters): number {
-  return f.roles.length + f.articleEras.length + f.regions.length + f.eras.length + f.subs.length;
-}
-
 const SORT_LABELS: Record<FigureSort, string> = {
   [FigureSort.TIME]: "Theo thời gian",
   [FigureSort.NAME]: "Theo tên A–Z",
@@ -114,29 +88,14 @@ const SORT_LABELS: Record<FigureSort, string> = {
 export function FiguresFilterBar({
   query,
   onQuery,
-  filters,
-  onFilters,
-  onOpenSheet,
-  chips,
   sort,
   onSort,
 }: {
   query: string;
   onQuery: (v: string) => void;
-  filters: FigureFilters;
-  onFilters: (f: FigureFilters) => void;
-  onOpenSheet: () => void;
-  /** Bộ lọc đang bật, hiển thị thành chip có nút xóa. */
-  chips: Array<{ key: keyof FigureFilters; value: string; label: string }>;
   sort: FigureSort;
   onSort: (v: FigureSort) => void;
 }) {
-  const count = figureFilterCount(filters);
-  const remove = (key: keyof FigureFilters, value: string) => {
-    const next = { ...filters, [key]: filters[key].filter((v) => v !== value) };
-    onFilters(next);
-  };
-
   return (
     <div className="sk-filter-bar sk-figures-filter">
       <div className="sk-search-field">
@@ -153,13 +112,7 @@ export function FiguresFilterBar({
           </Button>
         )}
       </div>
-      <Button className={`sk-filter-open ${count ? "sk-is-on" : ""}`} onClick={onOpenSheet} aria-haspopup="dialog">
-        <SlidersHorizontal size={16} />
-        <span>Bộ lọc</span>
-        {count > 0 && <span className="sk-badge">{count}</span>}
-      </Button>
       <span className="sk-filter-divider" />
-      {/* Sắp xếp là cách hiển thị, không phải bộ lọc nên để ngoài. */}
       <div className="sk-split-segment sk-figure-sort" role="group" aria-label="Sắp xếp nhân vật">
         <ArrowDownUp size={13} />
         {(Object.keys(SORT_LABELS) as FigureSort[]).map((s) => (
@@ -168,28 +121,13 @@ export function FiguresFilterBar({
           </button>
         ))}
       </div>
-      {chips.length > 0 && (
-        <div className="sk-active-filters">
-          {chips.map((c) => (
-            <button key={`${c.key}-${c.value}`} type="button" onClick={() => remove(c.key, c.value)} aria-label={`Bỏ lọc ${c.label}`}>
-              {c.label}
-              <X size={13} />
-            </button>
-          ))}
-          {chips.length > 1 && (
-            <button type="button" className="sk-active-clear" onClick={() => onFilters(EMPTY_FIGURE_FILTERS)}>
-              Xóa tất cả
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 }
 
 // === FigurePortrait.tsx ===
 function traitsOf(figure: FigureView) {
-  const text = [figure.occupation, figure.tagline, ...figure.titles].filter(Boolean).join(" ").toLowerCase();
+  const text = [figure.tagline, ...figure.titles, ...figure.roles].filter(Boolean).join(" ").toLowerCase();
   const warrior = /tướng|tư lệnh|chỉ huy|quân/.test(text);
   const monk = /thiền|nhà sư|hòa thượng/.test(text);
   const lifespan = figure.birthYear != null && figure.deathYear != null ? figure.deathYear - figure.birthYear : 0;
@@ -320,7 +258,7 @@ export function FigureCard({ figure: f, onOpen }: { figure: FigureView; onOpen: 
         {roles.length > 0 && (
           <div className="sk-figure-role-badges">
             {roles.map((r) => (
-              <Badge key={r}>{personRoleLabel(r)}</Badge>
+              <Badge key={r}>{r}</Badge>
             ))}
           </div>
         )}
@@ -374,8 +312,7 @@ export function FiguresGrid({ figures, onOpen }: { figures: FigureView[]; onOpen
   );
 }
 
-// === TopicSection.tsx ===
-/** Khối lớn theo Chủ đề gốc — gộp mọi Chủ đề con (leaf) của nó, giống EraSection ở Timeline. */
+/** Giống EraSection ở Timeline, nhưng gộp theo Chủ đề gốc thay vì Thời kỳ. */
 export function TopicSection({ block, children }: { block: TopicBlock<FigureView>; children: ReactNode }) {
   const [open, setOpen] = useState(true);
   const total = block.leaves.reduce((n, l) => n + l.items.length, 0);
@@ -396,7 +333,6 @@ export function TopicSection({ block, children }: { block: TopicBlock<FigureView
   );
 }
 
-/** 1 Chủ đề con bên trong khối — lưới nhân vật của riêng nó. */
 export function TopicLeafSection({ leaf, onOpen }: { leaf: TopicLeafGroup<FigureView>; onOpen: (f: FigureView) => void }) {
   return (
     <div className="sk-sub-era" id={`topic-leaf-${leaf.id}`}>
@@ -409,100 +345,5 @@ export function TopicLeafSection({ leaf, onOpen }: { leaf: TopicLeafGroup<Figure
       </div>
       <FiguresGrid figures={leaf.items} onOpen={onOpen} />
     </div>
-  );
-}
-
-export interface SidebarFilterItem {
-  id: string;
-  label: string;
-  count: number;
-}
-
-function SidebarFilterGroup({
-  title,
-  items,
-  selected,
-  onToggle,
-}: {
-  title: string;
-  items: SidebarFilterItem[];
-  selected: string[];
-  onToggle: (id: string) => void;
-}) {
-  if (items.length === 0) return null;
-  return (
-    <div className="sk-sidebar-group">
-      <span className="sk-sidebar-label">{title}</span>
-      {items.map((item) => {
-        const active = selected.includes(item.id);
-        return (
-          <Button
-            key={item.id}
-            className={`sk-role-filter ${active ? "sk-active" : ""}`}
-            aria-pressed={active}
-            onClick={() => onToggle(item.id)}
-          >
-            <span className="sk-role-filter-text">{item.label}</span>
-            <small>{item.count}</small>
-          </Button>
-        );
-      })}
-    </div>
-  );
-}
-
-export function FiguresSidebar({
-  filters,
-  onToggle,
-  onReset,
-  regionOptions,
-  articleEraOptions,
-  roleOptions,
-  eraOptions,
-}: {
-  filters: FigureFilters;
-  onToggle: (key: keyof FigureFilters, id: string) => void;
-  onReset: () => void;
-  regionOptions: SidebarFilterItem[];
-  articleEraOptions: SidebarFilterItem[];
-  roleOptions: SidebarFilterItem[];
-  eraOptions: SidebarFilterItem[];
-}) {
-  const activeCount = figureFilterCount(filters);
-  return (
-    <aside className="sk-figures-sidebar" aria-label="Bộ lọc nhanh nhân vật">
-      {activeCount > 0 && (
-        <div className="sk-sidebar-reset">
-          <span>Đang lọc ({activeCount})</span>
-          <Button onClick={onReset}>
-            <X size={12} /> Bỏ chọn
-          </Button>
-        </div>
-      )}
-      <SidebarFilterGroup
-        title="PHẠM VI"
-        items={regionOptions}
-        selected={filters.regions}
-        onToggle={(id) => onToggle("regions", id)}
-      />
-      <SidebarFilterGroup
-        title="KỶ NGUYÊN"
-        items={articleEraOptions}
-        selected={filters.articleEras}
-        onToggle={(id) => onToggle("articleEras", id)}
-      />
-      <SidebarFilterGroup
-        title="VAI TRÒ"
-        items={roleOptions}
-        selected={filters.roles}
-        onToggle={(id) => onToggle("roles", id)}
-      />
-      <SidebarFilterGroup
-        title="THỜI KỲ"
-        items={eraOptions}
-        selected={filters.eras}
-        onToggle={(id) => onToggle("eras", id)}
-      />
-    </aside>
   );
 }

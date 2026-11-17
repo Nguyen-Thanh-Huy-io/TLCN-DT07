@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 /**
  * Hồ sơ mô tả TÙY CHỌN của bài viết (`Article.metadata`, JSONB + index GIN).
@@ -7,49 +8,21 @@ import { BadRequestException } from '@nestjs/common';
  *     aliases?, sources?,                   ← CHUNG mọi loại bài (aliases đưa vào tìm kiếm)
  *     person?: {...},                         ← bài chuyên mục Nhân vật
  *     site?:   {...},                         ← bài chuyên mục Di tích
- *     event?:  {...},                         ← bài chuyên mục Sự kiện
  *   }
  *
  * Mọi trường đều không bắt buộc; không nhập thì giao diện công khai tự ẩn ô tương ứng.
- * Liên kết bài ↔ bài (quan hệ nhân vật, vai trò trong sự kiện, nơi diễn ra...) KHÔNG nằm ở đây —
- * xem bảng ArticleLink.
+ * Niên đại (kể cả năm sinh – mất) chỉ nhập ở cột Article.startYear/endYear/dateText/datePrecision.
+ * Sự kiện không có hồ sơ riêng: người tham gia, nơi diễn ra khai bằng ArticleLink; nguyên nhân,
+ * kết quả viết trong nội dung bài.
  *
  * Vài trường là MÃ CỐ ĐỊNH vì giao diện lọc / đổi nhãn theo mã — danh sách khớp frontend:
  *   site.siteType  ↔ nhãn loại di tích trong features/articles/components/ArticleProfilePanel.tsx
  *   site.preservation ↔ features/heritage/heritage.types.ts PreservationCategory
+ *
+ * Không có Kỷ nguyên / Phạm vi: Phạm vi trùng Topic gốc của bài; Kỷ nguyên không có bộ mốc chung đúng
+ * cho cả lịch sử Việt Nam lẫn thế giới. Nhóm theo thời gian = Topic + Timeline.
  */
 
-export const ARTICLE_ERA_CODES = [
-  'ANCIENT',
-  'MEDIEVAL',
-  'EARLY_MODERN',
-  'MODERN',
-] as const;
-export const ARTICLE_REGION_CODES = ['VIETNAM', 'WORLD'] as const;
-
-export const PERSON_ROLE_CODES = [
-  'GENERAL',
-  'COMMANDER',
-  'COMMANDER_IN_CHIEF',
-  'STRATEGIST',
-  'MILITARY_ADVISER',
-  'WARRIOR',
-  'MONARCH',
-  'POLITICIAN',
-  'STATESMAN',
-  'DIPLOMAT',
-  'REFORMER',
-  'SCHOLAR',
-  'CULTURAL_FIGURE',
-  'POET',
-  'WRITER',
-  'PHILOSOPHER',
-  'SCIENTIST',
-  'RELIGIOUS_FIGURE',
-  'REVOLUTIONARY',
-  'PATRIOT',
-  'HERO',
-] as const;
 export const SITE_TYPE_CODES = [
   'ANCIENT_CAPITAL',
   'CITADEL',
@@ -80,10 +53,7 @@ export interface PersonMilestone {
 
 export interface PersonProfile {
   titles?: string[];
-  occupation?: string;
   roles?: string[];
-  birthDateLabel?: string;
-  deathDateLabel?: string;
   hometown?: string;
   backgroundAndYouth?: string;
   notableWorks?: string[];
@@ -95,32 +65,19 @@ export interface PersonProfile {
 
 export interface SiteProfile {
   address?: string;
-  latitude?: number;
-  longitude?: number;
   siteType?: string;
   recognizedYear?: string;
   preservation?: string;
   statusNote?: string;
   managingAgency?: string;
   architecturalStyle?: string;
-  openingHours?: string;
-}
-
-export interface EventProfile {
-  dateNote?: string;
-  cause?: string;
-  outcome?: string;
-  belligerents?: string[];
 }
 
 export interface ArticleMetadata {
-  era?: string;
-  region?: string;
   aliases?: string[];
   sources?: string[];
   person?: PersonProfile;
   site?: SiteProfile;
-  event?: EventProfile;
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
@@ -173,21 +130,6 @@ function milestones(v: unknown): PersonMilestone[] | undefined {
   return list.length ? list : undefined;
 }
 
-const coordinate = (
-  v: unknown,
-  max: number,
-  field: string,
-): number | undefined => {
-  if (v === null || v === undefined || v === '') return undefined;
-  const n = typeof v === 'number' ? v : Number(v);
-  if (!Number.isFinite(n) || Math.abs(n) > max) {
-    throw new BadRequestException(
-      `metadata.site.${field} phải là số trong khoảng ±${max}`,
-    );
-  }
-  return n;
-};
-
 function code<T extends readonly string[]>(
   list: T,
   v: unknown,
@@ -224,24 +166,14 @@ export function normalizeArticleMetadata(raw: unknown): ArticleMetadata | null {
 
   const p = branch(raw.person, 'person');
   const s = branch(raw.site, 'site');
-  const e = branch(raw.event, 'event');
-
-  const roles = textList(p?.roles)?.map((r) =>
-    code(PERSON_ROLE_CODES, r, 'person.roles')!,
-  );
 
   const meta = compact<ArticleMetadata>({
-    era: code(ARTICLE_ERA_CODES, raw.era, 'era'),
-    region: code(ARTICLE_REGION_CODES, raw.region, 'region'),
     aliases: textList(raw.aliases),
     sources: textList(raw.sources),
     person: p
       ? compact<PersonProfile>({
           titles: textList(p.titles),
-          occupation: text(p.occupation),
-          roles: roles?.length ? roles : undefined,
-          birthDateLabel: text(p.birthDateLabel),
-          deathDateLabel: text(p.deathDateLabel),
+          roles: textList(p.roles),
           hometown: text(p.hometown),
           backgroundAndYouth: text(p.backgroundAndYouth),
           notableWorks: textList(p.notableWorks),
@@ -254,8 +186,6 @@ export function normalizeArticleMetadata(raw: unknown): ArticleMetadata | null {
     site: s
       ? compact<SiteProfile>({
           address: text(s.address),
-          latitude: coordinate(s.latitude, 90, 'latitude'),
-          longitude: coordinate(s.longitude, 180, 'longitude'),
           siteType: code(SITE_TYPE_CODES, s.siteType, 'site.siteType'),
           recognizedYear: text(s.recognizedYear),
           preservation: code(
@@ -266,17 +196,16 @@ export function normalizeArticleMetadata(raw: unknown): ArticleMetadata | null {
           statusNote: text(s.statusNote),
           managingAgency: text(s.managingAgency),
           architecturalStyle: text(s.architecturalStyle),
-          openingHours: text(s.openingHours),
-        })
-      : undefined,
-    event: e
-      ? compact<EventProfile>({
-          dateNote: text(e.dateNote),
-          cause: text(e.cause),
-          outcome: text(e.outcome),
-          belligerents: textList(e.belligerents),
         })
       : undefined,
   });
   return meta ?? null;
+}
+
+/** Giá trị ghi vào cột articles.metadata — mọi nơi ghi (API, script ingest) đều phải qua đây. */
+export function toArticleMetadataJson(
+  raw: unknown,
+): Prisma.InputJsonValue | Prisma.NullTypes.DbNull {
+  const meta = normalizeArticleMetadata(raw);
+  return meta ? (meta as Prisma.InputJsonValue) : Prisma.DbNull;
 }

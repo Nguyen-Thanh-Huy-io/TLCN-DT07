@@ -31,6 +31,13 @@ export const THROTTLER_CONFIG = {
   },
 } as const;
 
+/** Bộ đếm đăng nhập (AuthUtilsService.checkRateLimit) vẫn chạy ở 'test' vì có unit test kiểm hành vi 429. */
+export const AUTH_RATE_LIMIT_EXEMPT_ENVS: readonly string[] = ['development'];
+export const GUARD_RATE_LIMIT_EXEMPT_ENVS: readonly string[] = [
+  'test',
+  ...AUTH_RATE_LIMIT_EXEMPT_ENVS,
+];
+
 /**
  * Error messages for rate limiting
  */

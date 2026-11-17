@@ -9,6 +9,7 @@ import {
   ITokenPayload,
 } from '../interfaces/auth.interface';
 import { AUTH_CONFIG } from '../config/auth.config';
+import { AUTH_RATE_LIMIT_EXEMPT_ENVS } from '../../common/config/throttler.config';
 import { RedisService } from '../../common/services/redis.service';
 import AppError from '../../common/errors/app.error';
 import crypto from 'crypto';
@@ -194,6 +195,7 @@ export class AuthUtilsService {
     maxAttempts: number,
     windowMs: number,
   ): Promise<boolean> {
+    if (AUTH_RATE_LIMIT_EXEMPT_ENVS.includes(config.node_env)) return true;
     const cacheKey = `${config.redis_cache_key_prefix}:${AUTH_CONFIG.CACHE_PREFIXES.RATE_LIMIT}${key}`;
     const lockKey = `${cacheKey}:locked`;
 

@@ -1,5 +1,7 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import config from '../config/app.config';
+import { GUARD_RATE_LIMIT_EXEMPT_ENVS } from '../config/throttler.config';
 
 /**
  * Custom Throttler Guard that skips rate limiting for:
@@ -10,7 +12,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
-    if (process.env.NODE_ENV === 'test') {
+    if (GUARD_RATE_LIMIT_EXEMPT_ENVS.includes(config.node_env)) {
       return true;
     }
 

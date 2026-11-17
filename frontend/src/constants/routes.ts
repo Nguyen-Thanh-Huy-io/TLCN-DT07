@@ -46,7 +46,6 @@ export const APP_ROUTES = {
     LIST: '/tags',
   },
   MEDIA: '/media',
-  QUESTIONS: '/questions',
   QUIZZES: '/quizzes',
   ANALYTICS: '/analytics',
   SETTINGS: '/settings',
@@ -56,6 +55,15 @@ export const APP_ROUTES = {
   USERS: '/users',
   LOGIN: '/login',
 } as const;
+
+/** Trang Đề thi & Ngân hàng câu hỏi gộp chung `/quizzes`, chọn tab qua `?tab=`. */
+export enum QuizWorkspaceTab {
+  QUIZZES = 'quizzes',
+  QUESTIONS = 'questions',
+}
+export const QUIZ_WORKSPACE_TAB_PARAM = 'tab';
+export const quizWorkspaceRoute = (tab: QuizWorkspaceTab): string =>
+  `${APP_ROUTES.QUIZZES}?${QUIZ_WORKSPACE_TAB_PARAM}=${tab}`;
 
 /* eslint-disable no-restricted-syntax -- Nơi định nghĩa tập trung các URL remote mẫu và protocol theo quy chuẩn ESLint */
 export const URL_PROTOCOLS = {
@@ -102,7 +110,6 @@ export enum NavigationPageKey {
   TIMELINES = 'timelines',
   TAGS = 'tags',
   MEDIA = 'media',
-  QUESTIONS = 'questions',
   QUIZZES = 'quizzes',
   ANALYTICS = 'analytics',
   SETTINGS = 'settings',

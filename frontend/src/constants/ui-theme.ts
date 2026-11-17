@@ -94,13 +94,9 @@ export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
     title: 'Quản lý nguồn tư liệu và media',
     subtitle: 'Kho lưu trữ tập trung hình ảnh, tư liệu số và video lịch sử',
   },
-  questions: {
-    title: 'Ngân hàng câu hỏi',
-    subtitle: 'Kho câu hỏi trắc nghiệm, tương tác và phân loại độ khó',
-  },
   quizzes: {
-    title: 'Quản lý bộ Quiz',
-    subtitle: 'Cấu hình bộ đề ôn tập, kiểm tra và tiêu chí đánh giá theo bài học',
+    title: 'Đề thi & Ngân hàng câu hỏi',
+    subtitle: 'Soạn câu hỏi theo chủ đề và ghép thành đề thi có chấm điểm',
   },
   analytics: {
     title: 'Thống kê học tập và hoạt động',

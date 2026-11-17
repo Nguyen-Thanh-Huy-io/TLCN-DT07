@@ -1,8 +1,7 @@
-import { QuestionBankView } from '@/features/quiz/components/QuestionBankView';
+import { redirect } from 'next/navigation';
+import { QuizWorkspaceTab, quizWorkspaceRoute } from '@/constants/routes';
 
-/**
- * 7.1 Ngân hàng câu hỏi
- */
+/** Đường dẫn cũ: ngân hàng câu hỏi giờ là một tab của trang Đề thi. */
 export default function QuestionsPage() {
-  return <QuestionBankView />;
+  redirect(quizWorkspaceRoute(QuizWorkspaceTab.QUESTIONS));
 }

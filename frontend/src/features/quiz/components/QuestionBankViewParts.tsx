@@ -55,38 +55,6 @@ export const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string
   [QuizQuestionType.MATCHING]: ArrowLeftRight,
 };
 
-export function QuestionBankHeader({ facade }: { facade: QuestionBankViewFacade }) {
-  const { handleOpenCreateModal } = facade;
-  return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-4">
-      <div>
-        <div className="flex items-center gap-2.5">
-          <span className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-            <CircleDot size={20} />
-          </span>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 tracking-tight">
-              Ngân hàng câu hỏi tập trung
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Kho lưu trữ câu hỏi ôn tập lịch sử. Có thể chọn vào Đề ôn tập cuối bài hoặc ghép thành Bộ Quiz.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleOpenCreateModal}
-        className="h-10 px-4.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-2 transition cursor-pointer"
-      >
-        <Plus size={16} />
-        <span>Thêm câu hỏi mới</span>
-      </button>
-    </div>
-  );
-}
-
 export function QuestionBankStats({ facade }: { facade: QuestionBankViewFacade }) {
   const { stats } = facade;
   return (
@@ -131,7 +99,7 @@ export function QuestionBankStats({ facade }: { facade: QuestionBankViewFacade }
 }
 
 export function QuestionBankFilters({ facade }: { facade: QuestionBankViewFacade }) {
-  const { topics, selectedType, setSelectedType, selectedDifficulty, setSelectedDifficulty, selectedTopicId, setSelectedTopicId, search, setSearch, selectedIds, setSelectedIds, setCurrentPage, handleBulkDelete } = facade;
+  const { topics, selectedType, setSelectedType, selectedDifficulty, setSelectedDifficulty, selectedTopicId, setSelectedTopicId, search, setSearch, selectedIds, setSelectedIds, setCurrentPage, handleBulkDelete, handleOpenCreateModal } = facade;
   return (
     <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2.5 flex-1">
@@ -224,6 +192,15 @@ export function QuestionBankFilters({ facade }: { facade: QuestionBankViewFacade
           </button>
         </div>
       )}
+
+      <button
+        type="button"
+        onClick={handleOpenCreateModal}
+        className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors"
+      >
+        <Plus size={15} />
+        <span>Thêm câu hỏi mới</span>
+      </button>
     </div>
   );
 }

@@ -1,8 +1,10 @@
-import { QuizManagementView } from '@/features/quiz/components/QuizManagementView';
+import { Suspense } from 'react';
+import { QuizWorkspaceView } from '@/features/quiz/components/QuizWorkspaceView';
 
-/**
- * 7.1 Quản lý bộ Quiz
- */
 export default function QuizzesPage() {
-  return <QuizManagementView />;
+  return (
+    <Suspense fallback={null}>
+      <QuizWorkspaceView />
+    </Suspense>
+  );
 }

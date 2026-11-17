@@ -38,22 +38,13 @@ export class LearningNavStrategy implements INavigationGroupStrategy {
       subtitle: 'Lộ trình, chủ đề & bài giảng',
     },
     {
-      id: 'nav-questions',
-      label: NAV_ITEM_LABELS.QUESTIONS,
-      icon: IconName.HELP_CIRCLE,
-      page: NavigationPageKey.QUESTIONS,
-      route: APP_ROUTES.QUESTIONS,
-      groupId: this.groupId,
-      subtitle: 'Kho câu hỏi trắc nghiệm & tương tác',
-    },
-    {
       id: 'nav-quizzes',
       label: NAV_ITEM_LABELS.QUIZZES,
       icon: IconName.SPARK,
       page: NavigationPageKey.QUIZZES,
       route: APP_ROUTES.QUIZZES,
       groupId: this.groupId,
-      subtitle: 'Đề luyện tập & kiểm tra theo chủ đề',
+      subtitle: 'Đề thi theo chủ đề & ngân hàng câu hỏi',
     },
     {
       id: 'nav-media',
@@ -75,23 +66,13 @@ export class LearningNavStrategy implements INavigationGroupStrategy {
       NavigationPageKey.CURRICULUM,
       NavigationPageKey.TOPICS,
       NavigationPageKey.LESSONS,
-      NavigationPageKey.QUESTIONS,
       NavigationPageKey.QUIZZES,
       NavigationPageKey.MEDIA,
     ].includes(pageKey as NavigationPageKey);
   }
 
   getItemByPage(pageKey: string): NavItemConfig | undefined {
-    switch (pageKey) {
-      case NavigationPageKey.QUESTIONS:
-        return this.items[1];
-      case NavigationPageKey.QUIZZES:
-        return this.items[2];
-      case NavigationPageKey.MEDIA:
-        return this.items[3];
-      default:
-        return this.items[0];
-    }
+    return this.items.find((item) => item.page === pageKey) ?? this.items[0];
   }
 }
 
@@ -287,8 +268,6 @@ export class NavigationFacade {
       case NavigationPageKey.TOPICS:
       case NavigationPageKey.LESSONS:
         return NavigationPageKey.CURRICULUM;
-      case NavigationPageKey.QUESTIONS:
-        return NavigationPageKey.QUESTIONS;
       case NavigationPageKey.QUIZZES:
         return NavigationPageKey.QUIZZES;
       case NavigationPageKey.MEDIA:

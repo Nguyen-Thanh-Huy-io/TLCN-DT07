@@ -361,6 +361,7 @@ export function StandaloneQuizEditorModal({
         onClose={() => setIsPickerOpen(false)}
         onPick={handlePickFromBank}
         alreadySelectedIds={questions.map((q) => q.id)}
+        newQuestionTopicIds={topicIds}
       />
     </>
   );

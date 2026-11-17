@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Database, X, RotateCw, Search } from 'lucide-react';
+import { Database, Plus, X, RotateCw, Search } from 'lucide-react';
 import {
   QUIZ_QUESTION_TYPE_META,
   QuizQuestion,
@@ -15,6 +15,7 @@ import {
   ALL_FILTER_VALUE,
   QuestionDifficultyEnum,
 } from '@/constants/enums';
+import { QuestionBankModal } from './QuestionBankModal';
 
 interface QuestionOptionPreview {
   id?: string;
@@ -29,6 +30,8 @@ interface QuestionBankPickerModalProps {
   alreadySelectedIds?: string[];
   /** Chủ đề đang soạn (vd. chủ đề của bài học) — mặc định chỉ hiện câu thuộc chủ đề này, có thể bỏ lọc. */
   topicId?: string;
+  /** Chủ đề gắn sẵn cho câu tạo mới ngay trong hộp này (vd. chủ đề của đề đang soạn). */
+  newQuestionTopicIds?: string[];
 }
 
 export function QuestionBankPickerModal({
@@ -37,7 +40,13 @@ export function QuestionBankPickerModal({
   onPick,
   alreadySelectedIds = [],
   topicId,
+  newQuestionTopicIds,
 }: QuestionBankPickerModalProps) {
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const createTopicIds = useMemo(
+    () => newQuestionTopicIds ?? (topicId ? [topicId] : []),
+    [newQuestionTopicIds, topicId],
+  );
   const [onlyTopic, setOnlyTopic] = useState(true);
   const topicFilter = topicId && onlyTopic ? topicId : undefined;
   const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
@@ -118,6 +127,11 @@ export function QuestionBankPickerModal({
     onClose();
   };
 
+  const handleCreated = (saved: QuestionBankItem) => {
+    setQuestions((prev) => [saved, ...prev.filter((q) => q.id !== saved.id)]);
+    setSelectedIds((prev) => new Set(prev).add(saved.id));
+  };
+
   const handleSelectAllVisible = () => {
     const next = new Set(selectedIds);
     filteredQuestions.forEach((q) => next.add(q.id));
@@ -143,16 +157,26 @@ export function QuestionBankPickerModal({
               Chọn câu hỏi từ Ngân hàng đề
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Tích chọn các câu hỏi đã tạo sẵn để thêm vào
+              Tích chọn câu có sẵn, hoặc tạo câu mới — câu mới được lưu vào Ngân hàng và chọn sẵn
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsCreateOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-700 hover:bg-red-800 text-white rounded-lg text-xs font-semibold transition-colors"
+            >
+              <Plus size={14} /> Tạo câu hỏi mới
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Đóng"
+              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Toolbar & Filters */}
@@ -352,6 +376,13 @@ export function QuestionBankPickerModal({
           </div>
         </div>
       </div>
+
+      <QuestionBankModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSuccess={handleCreated}
+        defaultTopicIds={createTopicIds}
+      />
     </div>
   );
 }

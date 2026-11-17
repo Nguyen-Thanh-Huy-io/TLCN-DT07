@@ -219,13 +219,14 @@ flowchart TD
 
 ### 3.12. Quiz / Ngân hàng câu hỏi (Tái cấu trúc gắn Many-to-Many với Topic)
 * **Mô hình Khảo thí & Chuẩn Sư phạm:** Đề thi/Bộ đề khảo thí Quiz được liên kết trực tiếp với nhiều Chủ đề lịch sử (`Quiz.topics Topic[] @relation("TopicQuizzes")`) thay vì gắn cứng phụ thuộc vào `Lesson` (vì Lesson đã có các khối tương tác bài học tại chỗ). Cho phép tạo đề thi tổng hợp nhiều chủ đề và đề thi độc lập theo chuyên đề.
-* **Ngân hàng câu hỏi (CMS):** Quản lý tập trung câu hỏi dùng chung, gắn nhiều bài học/chủ đề, tái dùng khi soạn đề.
-  * UI: `features/quiz/components/QuestionBankView.tsx` (+ `QuestionBankViewParts.tsx`, `useQuestionBankView.ts`), `QuestionBankModal.tsx` (+ `QuestionBankModalParts.tsx`, editor dạng câu dùng chung `features/lessons/components/quiz/QuizQuestionEditors.tsx`), `QuestionOptionsEditor.tsx`, `question-modal.helper.ts`, `QuestionBankPickerModal.tsx`.
-  * Route: `frontend/src/app/questions/page.tsx`. Service: `services/entities/question.service.ts`.
+* **Một trang 2 tab:** `/quizzes` = [QuizWorkspaceView.tsx](frontend/src/features/quiz/components/QuizWorkspaceView.tsx), tab "Đề thi" | "Ngân hàng câu hỏi" chọn qua `?tab=` (`QuizWorkspaceTab`, `quizWorkspaceRoute()` ở `constants/routes.ts`). `/questions` chỉ còn chuyển hướng sang `?tab=questions`. Sidebar 1 mục.
+* **Ngân hàng câu hỏi (CMS):** Quản lý tập trung câu hỏi dùng chung, **chỉ gắn Chủ đề** (đã bỏ quan hệ Câu hỏi ↔ Bài học — migration `20261117120000_drop_question_lesson_link` chuyển liên kết cũ sang chủ đề của bài học), tái dùng khi soạn đề. Lọc theo chủ đề; cột/chỉ số "Dùng trong N đề" lấy từ `_count.quizQuestions`.
+  * UI: `features/quiz/components/QuestionBankView.tsx` (+ `QuestionBankViewParts.tsx`, `useQuestionBankView.ts`), `QuestionBankModal.tsx` (+ `QuestionBankModalParts.tsx`, editor dạng câu dùng chung `features/lessons/components/quiz/QuizQuestionEditors.tsx`), `QuestionOptionsEditor.tsx`, `question-modal.helper.ts`, `QuestionBankPickerModal.tsx` (có nút "Tạo câu hỏi mới" — lưu vào ngân hàng, gắn sẵn chủ đề của đề, chọn sẵn).
+  * Service: `services/entities/question.service.ts`.
   * Backend: `question.controller.ts` + `question.service.ts` (dùng enum `DifficultyLevel`; mọi chỗ ghi `questions.data` đi qua `validateAndNormalizeQuestions`).
 * **Quản lý bộ đề Quiz độc lập (CMS):** Tạo/sửa/xoá đề Quiz độc lập chọn nhiều Topic, tổng hợp câu hỏi từ Ngân hàng hoặc soạn mới, xem thống kê lượt làm bài.
   * UI: [QuizManagementView.tsx](frontend/src/features/quiz/components/QuizManagementView.tsx), `StandaloneQuizEditorModal.tsx`, `QuizPreviewModal.tsx`, `QuizStatisticsModal.tsx`.
-  * Facade: `facades/useQuizManagementFacade.ts`. Route: `frontend/src/app/quizzes/page.tsx`. Service: `services/entities/quiz.service.ts` (`QuizApiService`).
+  * Facade: `facades/useQuizManagementFacade.ts`. Route: `frontend/src/app/quizzes/page.tsx` (tab mặc định). Service: `services/entities/quiz.service.ts` (`QuizApiService`).
   * Backend: `backend/src/quiz/quiz.module.ts` — Controller `standalone-quiz.controller.ts` (`/quizzes`); DTO `create-standalone-quiz.dto.ts` (`topicIds`, `questionIds` / `questionItems`). **Đề thi thuộc Chủ đề (nhiều–nhiều), không gắn Bài học; câu hỏi chỉ lấy từ Ngân hàng** qua `quiz_questions` (`quiz-question.mapper.ts`). Ôn tập trong bài học dùng khối QUIZ của Block Builder.
   * **Trạng thái Code Quality:** Toàn bộ thư mục `frontend/src/features/quiz/` đạt **0 ERRORS, 0 WARNINGS (100% sạch)**.
 * **Làm bài luyện tập (trang public `/luyen-tap`):** Người học chọn đề theo chủ đề (`?topic=<id>` chọn sẵn chủ đề — trang đọc bài dẫn sang), làm trắc nghiệm có tính giờ, nộp bài (server chấm), xem điểm; role STAFF xem thêm phổ điểm.

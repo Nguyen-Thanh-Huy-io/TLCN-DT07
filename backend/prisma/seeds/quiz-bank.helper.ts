@@ -39,10 +39,10 @@ export function toBankQuestion(
 export async function setQuizQuestionsFromSeed(
   prisma: PrismaClient,
   quizId: string,
-  lessonId: string | null,
+  topicIds: string[],
   questions: unknown[],
 ): Promise<number> {
-  const lessonLink = lessonId ? { lessons: { connect: { id: lessonId } } } : {};
+  const topicLink = { topics: { connect: topicIds.map((id) => ({ id })) } };
   const questionIds: string[] = [];
   for (const raw of questions) {
     if (typeof raw !== 'object' || raw === null) continue;
@@ -55,11 +55,11 @@ export async function setQuizQuestionsFromSeed(
     const saved = existing
       ? await prisma.question.update({
           where: { id: existing.id },
-          data: { ...content, ...lessonLink },
+          data: { ...content, ...topicLink },
           select: { id: true },
         })
       : await prisma.question.create({
-          data: { ...content, ...lessonLink },
+          data: { ...content, ...topicLink },
           select: { id: true },
         });
     if (!questionIds.includes(saved.id)) questionIds.push(saved.id);
@@ -86,8 +86,6 @@ export interface SeedTopicQuiz {
   timeLimitMinutes?: number;
   /** Chủ đề của đề (đề thi thuộc Topic, không gắn Lesson). */
   topicIds: string[];
-  /** Bài học nguồn — chỉ để gắn câu hỏi trong Ngân hàng với bài (lọc khi chọn câu). */
-  lessonId: string | null;
   questions: unknown[];
 }
 
@@ -123,7 +121,7 @@ export async function upsertTopicQuizFromSeed(
   const questionCount = await setQuizQuestionsFromSeed(
     prisma,
     quiz.id,
-    seed.lessonId,
+    seed.topicIds,
     seed.questions,
   );
   return { id: quiz.id, questionCount };

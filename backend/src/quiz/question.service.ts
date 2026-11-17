@@ -9,26 +9,23 @@ import { QueryQuestionDto } from './dto/query-question.dto';
 import { DEFAULT_QUESTION_POINTS } from './quiz.constant';
 import { validateAndNormalizeQuestions } from './validators/quiz-question.validator';
 
+/** Chủ đề + số đề đang dùng câu hỏi (ngân hàng hiện "Đã dùng trong đề"). */
+const QUESTION_INCLUDE = {
+  topics: { select: { id: true, name: true } },
+  _count: { select: { quizQuestions: true } },
+} satisfies Prisma.QuestionInclude;
+
 @Injectable()
 export class QuestionService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(query: QueryQuestionDto) {
-    const {
-      search,
-      type,
-      difficulty,
-      lessonId,
-      topicId,
-      page = 1,
-      limit = 50,
-    } = query;
+    const { search, type, difficulty, topicId, page = 1, limit = 50 } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.QuestionWhereInput = {};
     if (type) where.type = type;
     if (difficulty) where.difficulty = difficulty;
-    if (lessonId) where.lessons = { some: { id: lessonId } };
     if (topicId) where.topics = { some: { id: topicId } };
     if (search && search.trim()) {
       where.OR = [
@@ -43,14 +40,7 @@ export class QuestionService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
-          lessons: {
-            select: { id: true, title: true },
-          },
-          topics: {
-            select: { id: true, name: true },
-          },
-        },
+        include: QUESTION_INCLUDE,
       }),
       this.prisma.question.count({ where }),
     ]);
@@ -67,14 +57,7 @@ export class QuestionService {
   async findOne(id: string) {
     const question = await this.prisma.question.findUnique({
       where: { id },
-      include: {
-        lessons: {
-          select: { id: true, title: true },
-        },
-        topics: {
-          select: { id: true, name: true },
-        },
-      },
+      include: QUESTION_INCLUDE,
     });
     if (!question) {
       throw new NotFoundException(`Không tìm thấy câu hỏi với ID "${id}"`);
@@ -92,10 +75,6 @@ export class QuestionService {
       ...(dto.data || {}),
     };
     validateAndNormalizeQuestions([rawToValidate]);
-
-    const lessonIds = Array.from(
-      new Set((dto.lessonIds || []).filter(Boolean)),
-    );
     const topicIds = Array.from(new Set((dto.topicIds || []).filter(Boolean)));
 
     return this.prisma.question.create({
@@ -106,21 +85,11 @@ export class QuestionService {
         difficulty: dto.difficulty || DifficultyLevel.MEDIUM,
         points: dto.points || DEFAULT_QUESTION_POINTS,
         data: (dto.data || {}) as Prisma.InputJsonValue,
-        ...(lessonIds.length > 0
-          ? { lessons: { connect: lessonIds.map((id) => ({ id })) } }
-          : {}),
         ...(topicIds.length > 0
           ? { topics: { connect: topicIds.map((id) => ({ id })) } }
           : {}),
       },
-      include: {
-        lessons: {
-          select: { id: true, title: true },
-        },
-        topics: {
-          select: { id: true, name: true },
-        },
-      },
+      include: QUESTION_INCLUDE,
     });
   }
 
@@ -135,10 +104,6 @@ export class QuestionService {
       ...(dto.data || {}),
     };
     validateAndNormalizeQuestions([rawToValidate]);
-
-    const lessonIds = Array.from(
-      new Set((dto.lessonIds || []).filter(Boolean)),
-    );
     const topicIds = Array.from(new Set((dto.topicIds || []).filter(Boolean)));
 
     return this.prisma.question.update({
@@ -150,17 +115,9 @@ export class QuestionService {
         difficulty: dto.difficulty || DifficultyLevel.MEDIUM,
         points: dto.points || DEFAULT_QUESTION_POINTS,
         data: (dto.data || {}) as Prisma.InputJsonValue,
-        lessons: { set: lessonIds.map((itemId) => ({ id: itemId })) },
         topics: { set: topicIds.map((itemId) => ({ id: itemId })) },
       },
-      include: {
-        lessons: {
-          select: { id: true, title: true },
-        },
-        topics: {
-          select: { id: true, name: true },
-        },
-      },
+      include: QUESTION_INCLUDE,
     });
   }
 

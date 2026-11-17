@@ -3,17 +3,17 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { QuizQuestionType } from '@/features/lessons/types/quiz.types';
 import { QuestionApiService, QuestionBankItem } from '@/services/entities/question.service';
-import { LessonApiService } from '@/services/entities/lesson.service';
-import { LessonItem } from '@/types/models';
+import { TopicApiService } from '@/services/entities/topic.service';
+import { TopicItem } from '@/types/models';
 import { ALL_FILTER_VALUE } from '@/constants/enums';
 
 export function useQuestionBankView() {
   const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
-  const [lessons, setLessons] = useState<LessonItem[]>([]);
+  const [topics, setTopics] = useState<TopicItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<string>(ALL_FILTER_VALUE);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>(ALL_FILTER_VALUE);
-  const [selectedLessonId, setSelectedLessonId] = useState<string>(ALL_FILTER_VALUE);
+  const [selectedTopicId, setSelectedTopicId] = useState<string>(ALL_FILTER_VALUE);
   const [search, setSearch] = useState('');
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -35,12 +35,12 @@ export function useQuestionBankView() {
       setLoading(false);
     }
   }, []);
-  const fetchLessons = useCallback(async () => {
+  const fetchTopics = useCallback(async () => {
     try {
-      const res = await LessonApiService.getLessons({ limit: 100 });
-      setLessons(res.items || []);
+      const res = await TopicApiService.getTopics({ limit: 100 });
+      setTopics(res.items || []);
     } catch (err) {
-      console.warn('Lỗi tải danh mục bài học:', err);
+      console.warn('Lỗi tải danh sách chủ đề:', err);
     }
   }, []);
   useEffect(() => {
@@ -48,7 +48,7 @@ export function useQuestionBankView() {
     const timer = Promise.resolve().then(() => {
       if (isMounted) {
         void fetchQuestions();
-        void fetchLessons();
+        void fetchTopics();
       }
     });
 
@@ -56,7 +56,7 @@ export function useQuestionBankView() {
       isMounted = false;
       void timer;
     };
-  }, [fetchQuestions, fetchLessons]);
+  }, [fetchQuestions, fetchTopics]);
   const handleOpenCreateModal = () => {
     setEditingQuestion(null);
     setIsModalOpen(true);
@@ -102,19 +102,18 @@ export function useQuestionBankView() {
       const matchType = selectedType === ALL_FILTER_VALUE || q.type === selectedType;
       const matchDiff =
         selectedDifficulty === ALL_FILTER_VALUE || q.difficulty === selectedDifficulty;
-      const matchLesson =
-        selectedLessonId === ALL_FILTER_VALUE ||
-        (q.lessons && q.lessons.some((l) => l.id === selectedLessonId));
+      const matchTopic =
+        selectedTopicId === ALL_FILTER_VALUE ||
+        (q.topics && q.topics.some((t) => t.id === selectedTopicId));
       const cleanPrompt = (q.prompt || '').replace(/<[^>]+>/g, ' ').toLowerCase();
       const matchSearch =
         search === '' ||
         cleanPrompt.includes(search.toLowerCase()) ||
         (q.explanation && q.explanation.toLowerCase().includes(search.toLowerCase())) ||
-        (q.topics && q.topics.some((t) => t.name.toLowerCase().includes(search.toLowerCase()))) ||
-        (q.lessons && q.lessons.some((l) => l.title.toLowerCase().includes(search.toLowerCase())));
-      return matchType && matchDiff && matchLesson && matchSearch;
+        (q.topics && q.topics.some((t) => t.name.toLowerCase().includes(search.toLowerCase())));
+      return matchType && matchDiff && matchTopic && matchSearch;
     });
-  }, [questions, selectedType, selectedDifficulty, selectedLessonId, search]);
+  }, [questions, selectedType, selectedDifficulty, selectedTopicId, search]);
   // Paginated items
   const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage) || 1;
   const paginatedQuestions = useMemo(() => {
@@ -141,25 +140,23 @@ export function useQuestionBankView() {
     const singleChoiceCount = questions.filter(
       (q) => q.type === QuizQuestionType.SINGLE_CHOICE
     ).length;
-    const linkedLessonCount = questions.filter(
-      (q) => (q.lessons && q.lessons.length > 0) || (q.topics && q.topics.length > 0)
-    ).length;
+    const usedInQuizCount = questions.filter((q) => (q._count?.quizQuestions ?? 0) > 0).length;
     return {
       total: questions.length,
       singleChoice: singleChoiceCount,
-      linked: linkedLessonCount,
+      usedInQuiz: usedInQuizCount,
     };
   }, [questions]);
 
   return {
-    lessons,
+    topics,
     loading,
     selectedType,
     setSelectedType,
     selectedDifficulty,
     setSelectedDifficulty,
-    selectedLessonId,
-    setSelectedLessonId,
+    selectedTopicId,
+    setSelectedTopicId,
     search,
     setSearch,
     selectedIds,

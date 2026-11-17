@@ -22,8 +22,9 @@ export interface QuestionBankItem {
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   points: number;
   data: QuestionBankData;
-  lessons?: Array<{ id: string; title: string }>;
   topics?: Array<{ id: string; name: string }>;
+  /** Số đề thi đang dùng câu này. */
+  _count?: { quizQuestions: number };
   createdAt: string;
   updatedAt: string;
 }
@@ -43,7 +44,6 @@ export interface CreateQuestionPayload {
   difficulty?: 'EASY' | 'MEDIUM' | 'HARD';
   points?: number;
   data: Record<string, unknown>;
-  lessonIds?: string[];
   topicIds?: string[];
 }
 
@@ -52,7 +52,6 @@ export class QuestionApiService {
     search?: string;
     type?: QuizQuestionType;
     difficulty?: string;
-    lessonId?: string;
     topicId?: string;
     page?: number;
     limit?: number;

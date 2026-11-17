@@ -328,7 +328,6 @@ async function main() {
     passingScorePercent: 80,
     timeLimitMinutes: 10,
     topicIds: [childTopic.id],
-    lessonId: lesson.id,
     questions: quizQuestions,
   });
 
@@ -356,7 +355,6 @@ async function main() {
         difficulty: 'MEDIUM',
         points: 10,
         topics: { connect: { id: childTopic.id } },
-        lessons: { connect: { id: lesson.id } },
       },
     });
   }

@@ -42,11 +42,10 @@ describe('QuestionService — Ngân hàng câu hỏi', () => {
     service = moduleRef.get(QuestionService);
   });
 
-  it('tạo câu hợp lệ: điểm và độ khó mặc định, gắn bài học / chủ đề không trùng', async () => {
+  it('tạo câu hợp lệ: điểm và độ khó mặc định, gắn chủ đề không trùng', async () => {
     await service.create({
       ...singleChoice,
-      lessonIds: ['l-1', 'l-1'],
-      topicIds: ['t-1'],
+      topicIds: ['t-1', 't-1'],
     });
 
     expect(prisma.question.create).toHaveBeenCalledWith(
@@ -55,7 +54,6 @@ describe('QuestionService — Ngân hàng câu hỏi', () => {
           difficulty: DifficultyLevel.MEDIUM,
           points: DEFAULT_QUESTION_POINTS,
           data: singleChoice.data,
-          lessons: { connect: [{ id: 'l-1' }] },
           topics: { connect: [{ id: 't-1' }] },
         }),
       }),
@@ -87,15 +85,14 @@ describe('QuestionService — Ngân hàng câu hỏi', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('cập nhật thay toàn bộ liên kết bài học / chủ đề', async () => {
-    await service.update('q-1', { ...singleChoice, lessonIds: ['l-2'] });
+  it('cập nhật thay toàn bộ liên kết chủ đề', async () => {
+    await service.update('q-1', { ...singleChoice, topicIds: ['t-2'] });
 
     expect(prisma.question.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'q-1' },
         data: expect.objectContaining({
-          lessons: { set: [{ id: 'l-2' }] },
-          topics: { set: [] },
+          topics: { set: [{ id: 't-2' }] },
         }),
       }),
     );

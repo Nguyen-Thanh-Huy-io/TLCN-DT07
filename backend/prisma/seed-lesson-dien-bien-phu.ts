@@ -377,7 +377,6 @@ export async function enrichDienBienPhuLesson() {
     title: DIEN_BIEN_PHU_QUIZ_DATA.title,
     passingScorePercent: DIEN_BIEN_PHU_QUIZ_DATA.passingScorePercent,
     topicIds: lesson.topicId ? [lesson.topicId] : [],
-    lessonId: lesson.id,
     questions: DIEN_BIEN_PHU_QUIZ_DATA.questions,
   });
 

@@ -4,7 +4,7 @@ import React from 'react';
 import { Search, Plus, Edit3, Trash2, CircleDot, CheckCircle2, HelpCircle, Clock, ArrowLeftRight, BookOpen, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/common/CommonUi';
 import { QUIZ_QUESTION_TYPE_META, QuizQuestionType } from '@/features/lessons/types/quiz.types';
-import { DIFFICULTY_CONFIG } from '@/constants/enums';
+import { ALL_FILTER_VALUE, DIFFICULTY_CONFIG } from '@/constants/enums';
 import type { QuestionBankViewFacade } from './useQuestionBankView';
 
 export interface OptionPreview {
@@ -118,9 +118,9 @@ export function QuestionBankStats({ facade }: { facade: QuestionBankViewFacade }
       <div className="bg-white p-3.5 px-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
         <div>
           <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-            Đã gán vào Bài học
+            Đã dùng trong đề
           </p>
-          <p className="text-xl font-bold text-emerald-600 mt-0.5">{stats.linked}</p>
+          <p className="text-xl font-bold text-emerald-600 mt-0.5">{stats.usedInQuiz}</p>
         </div>
         <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
           <BookOpen size={16} />
@@ -131,7 +131,7 @@ export function QuestionBankStats({ facade }: { facade: QuestionBankViewFacade }
 }
 
 export function QuestionBankFilters({ facade }: { facade: QuestionBankViewFacade }) {
-  const { lessons, selectedType, setSelectedType, selectedDifficulty, setSelectedDifficulty, selectedLessonId, setSelectedLessonId, search, setSearch, selectedIds, setSelectedIds, setCurrentPage, handleBulkDelete } = facade;
+  const { topics, selectedType, setSelectedType, selectedDifficulty, setSelectedDifficulty, selectedTopicId, setSelectedTopicId, search, setSearch, selectedIds, setSelectedIds, setCurrentPage, handleBulkDelete } = facade;
   return (
     <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2.5 flex-1">
@@ -139,7 +139,7 @@ export function QuestionBankFilters({ facade }: { facade: QuestionBankViewFacade
         <div className="relative min-w-[240px] flex-1 max-w-sm">
           <input
             type="text"
-            placeholder="Tìm kiếm nội dung, giải thích, bài học..."
+            placeholder="Tìm kiếm nội dung, giải thích, chủ đề..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -162,7 +162,7 @@ export function QuestionBankFilters({ facade }: { facade: QuestionBankViewFacade
           }}
           className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="all">Tất cả loại câu hỏi</option>
+          <option value={ALL_FILTER_VALUE}>Tất cả loại câu hỏi</option>
           {Object.values(QuizQuestionType).map((t) => (
             <option key={t} value={t}>
               {QUIZ_QUESTION_TYPE_META[t]?.label || t}
@@ -170,19 +170,18 @@ export function QuestionBankFilters({ facade }: { facade: QuestionBankViewFacade
           ))}
         </select>
 
-        {/* Lesson / Category Filter */}
         <select
-          value={selectedLessonId}
+          value={selectedTopicId}
           onChange={(e) => {
-            setSelectedLessonId(e.target.value);
+            setSelectedTopicId(e.target.value);
             setCurrentPage(1);
           }}
           className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-xs truncate"
         >
-          <option value="all">Tất cả chuyên đề / bài học</option>
-          {lessons.map((ls) => (
-            <option key={ls.id} value={ls.id}>
-              {ls.title}
+          <option value={ALL_FILTER_VALUE}>Tất cả chủ đề</option>
+          {topics.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
             </option>
           ))}
         </select>
@@ -196,7 +195,7 @@ export function QuestionBankFilters({ facade }: { facade: QuestionBankViewFacade
           }}
           className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="all">Tất cả mức độ</option>
+          <option value={ALL_FILTER_VALUE}>Tất cả mức độ</option>
           <option value="EASY">Dễ</option>
           <option value="MEDIUM">Trung bình</option>
           <option value="HARD">Khó</option>
@@ -276,7 +275,7 @@ export function QuestionBankTable({ facade }: { facade: QuestionBankViewFacade }
                 <th className="py-3.5 px-2 w-12 text-center">#</th>
                 <th className="py-3.5 px-4 min-w-[280px]">Nội dung câu hỏi (Prompt)</th>
                 <th className="py-3.5 px-3 w-40">Dạng câu hỏi</th>
-                <th className="py-3.5 px-3 min-w-[160px]">Chuyên đề / Bài học</th>
+                <th className="py-3.5 px-3 min-w-[160px]">Chủ đề / Sử dụng</th>
                 <th className="py-3.5 px-3 w-28 text-center">Độ khó</th>
                 <th className="py-3.5 px-3 w-20 text-center">Điểm</th>
                 <th className="py-3.5 pl-2 pr-4 w-24 text-right">Thao tác</th>
@@ -408,7 +407,7 @@ export function QuestionBankTable({ facade }: { facade: QuestionBankViewFacade }
                       </span>
                     </td>
 
-                    {/* Lesson / Topic */}
+                    {/* Chủ đề + số đề dùng câu */}
                     <td className="py-3.5 px-3">
                       <div className="space-y-1">
                         {q.topics && q.topics.length > 0 && (
@@ -433,31 +432,15 @@ export function QuestionBankTable({ facade }: { facade: QuestionBankViewFacade }
                           </div>
                         )}
 
-                        {q.lessons && q.lessons.length > 0 ? (
-                          <div className="flex flex-col gap-0.5">
-                            {q.lessons.slice(0, 2).map((l) => (
-                              <div
-                                key={l.id}
-                                className="flex items-center gap-1 text-slate-600"
-                                title={`Bài học: ${l.title}`}
-                              >
-                                <BookOpen size={12} className="text-slate-400 shrink-0" />
-                                <span className="truncate max-w-[190px] font-medium text-[11px]">
-                                  {l.title}
-                                </span>
-                              </div>
-                            ))}
-                            {q.lessons.length > 2 && (
-                              <span className="text-[10px] font-semibold text-blue-700 pl-4">
-                                +{q.lessons.length - 2} bài học khác
-                              </span>
-                            )}
+                        {(!q.topics || q.topics.length === 0) && (
+                          <span className="text-slate-400 italic text-[11px]">Chưa gắn chủ đề</span>
+                        )}
+                        {(q._count?.quizQuestions ?? 0) > 0 && (
+                          <div className="flex items-center gap-1 text-slate-600" title="Số đề thi đang dùng câu này">
+                            <BookOpen size={12} className="text-slate-400 shrink-0" />
+                            <span className="font-medium text-[11px]">Dùng trong {q._count?.quizQuestions} đề</span>
                           </div>
-                        ) : !q.topics || q.topics.length === 0 ? (
-                          <span className="text-slate-400 italic text-[11px]">
-                            Chung / Chưa gán
-                          </span>
-                        ) : null}
+                        )}
                       </div>
                     </td>
 

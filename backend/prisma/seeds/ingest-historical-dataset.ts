@@ -391,7 +391,6 @@ async function main() {
       passingScorePercent: qz.passingScorePercent ?? 80,
       timeLimitMinutes: qz.timeLimitMinutes ?? 15,
       topicIds: lessonRow?.topicId ? [lessonRow.topicId] : [],
-      lessonId,
       questions: qz.questions ?? [],
     });
   }
@@ -399,12 +398,19 @@ async function main() {
   // 10. QUESTION BANK
   console.log(`🔟 Nạp ${raw.questions?.length || 0} Questions vào Ngân hàng đề...`);
   for (const q of raw.questions || []) {
-    const mappedLessonIds = (q.lessonIds || [])
-      .map((id: string) => lessonIdMap.get(id))
-      .filter(Boolean) as string[];
-    const mappedTopicIds = (q.topicIds || [])
-      .map((id: string) => topicIdMap.get(id))
-      .filter(Boolean) as string[];
+    // Dữ liệu cũ gắn câu hỏi vào bài học: đổi thành gắn chủ đề của bài học đó.
+    const lessonTopicIds = (
+      await prisma.lesson.findMany({
+        where: { id: { in: (q.lessonIds || []).map((id: string) => lessonIdMap.get(id)).filter(Boolean) } },
+        select: { topicId: true },
+      })
+    ).flatMap((l) => (l.topicId ? [l.topicId] : []));
+    const mappedTopicIds = [
+      ...new Set([
+        ...((q.topicIds || []).map((id: string) => topicIdMap.get(id)).filter(Boolean) as string[]),
+        ...lessonTopicIds,
+      ]),
+    ];
 
     const bankQuestion = toBankQuestion({
       ...(q.data ?? {}),
@@ -424,7 +430,6 @@ async function main() {
           ...bankQuestion,
           difficulty: q.difficulty ?? 'MEDIUM',
           points: q.points ?? 10,
-          lessons: { set: mappedLessonIds.map((id) => ({ id })) },
           topics: { set: mappedTopicIds.map((id) => ({ id })) },
         },
       });
@@ -434,7 +439,6 @@ async function main() {
           ...bankQuestion,
           difficulty: q.difficulty ?? 'MEDIUM',
           points: q.points ?? 10,
-          lessons: { connect: mappedLessonIds.map((id) => ({ id })) },
           topics: { connect: mappedTopicIds.map((id) => ({ id })) },
         },
       });

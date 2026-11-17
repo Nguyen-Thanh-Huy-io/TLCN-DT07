@@ -56,15 +56,6 @@ export class CreateQuestionDto {
   data: Record<string, unknown>;
 
   @ApiPropertyOptional({
-    description: 'Danh sách UUID các bài học liên kết',
-    type: [String],
-  })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  lessonIds?: string[];
-
-  @ApiPropertyOptional({
     description: 'Danh sách UUID các chuyên đề liên kết',
     type: [String],
   })

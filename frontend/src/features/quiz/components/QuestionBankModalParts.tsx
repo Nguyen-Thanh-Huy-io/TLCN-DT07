@@ -2,11 +2,11 @@
 
 import { useMemo } from 'react';
 import { QuizQuestionType, OrderingItem } from '@/features/lessons/types/quiz.types';
-import { LessonItem, TopicItem } from '@/types/models';
+import { TopicItem } from '@/types/models';
 import { MatchingPairsValue, MatchingPairsEditor } from '@/components/common/MatchingPairsEditor';
 import { OptionItemState, QUESTION_TYPE_CARDS } from './question-modal.helper';
-import { Check, Folder, BookOpen, X, Maximize2, Minimize2 } from 'lucide-react';
-import { TreeSelectTrigger, TreeSelectModal, buildTopicTreeNodes, buildLessonTreeNodes } from '@/components/common/TreeSelectModal';
+import { Check, Folder, X, Maximize2, Minimize2 } from 'lucide-react';
+import { TreeSelectTrigger, TreeSelectModal, buildTopicTreeNodes } from '@/components/common/TreeSelectModal';
 import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
 import { TimelineOrderingItemsEditor } from '@/components/common/TimelineOrderingItemsEditor';
 import { QuestionOptionsEditor } from './QuestionOptionsEditor';
@@ -85,10 +85,6 @@ export interface QuestionCategorySectionProps {
   topicsList: TopicItem[];
   onOpenTopicModal: () => void;
   onRemoveTopic: (id: string) => void;
-  lessonIds: string[];
-  lessonsList: LessonItem[];
-  onOpenLessonModal: () => void;
-  onRemoveLesson: (id: string) => void;
 }
 
 export function QuestionCategorySection({
@@ -98,10 +94,6 @@ export function QuestionCategorySection({
   topicsList,
   onOpenTopicModal,
   onRemoveTopic,
-  lessonIds,
-  lessonsList,
-  onOpenLessonModal,
-  onRemoveLesson,
 }: QuestionCategorySectionProps) {
   return (
     <div className="lg:col-span-4 space-y-2.5">
@@ -134,23 +126,6 @@ export function QuestionCategorySection({
             label: topicsList.find((t) => t.id === id)?.name || 'Chủ đề đã chọn',
           }))}
           onRemoveItem={onRemoveTopic}
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1">
-          Liên kết bài học <span className="text-slate-400 font-normal">(Lessons)</span>
-        </label>
-        <TreeSelectTrigger
-          onClick={onOpenLessonModal}
-          placeholder="Chung (Bấm để chọn bài học...)"
-          icon={<BookOpen size={13} className="text-slate-400 group-hover:text-emerald-600" />}
-          badgeColor="blue"
-          selectedItems={lessonIds.map((id) => ({
-            id,
-            label: lessonsList.find((l) => l.id === id)?.title || 'Bài học đã chọn',
-          }))}
-          onRemoveItem={onRemoveLesson}
         />
       </div>
     </div>
@@ -192,44 +167,6 @@ export function TopicCategoryModalPicker({
       emptyText="Không có dữ liệu chủ đề."
       unitLabel="chủ đề"
       searchPlaceholder="Tìm kiếm nhanh chủ đề lịch sử..."
-    />
-  );
-}
-
-// ============================================================================
-// 2. MODAL CHỌN NHIỀU BÀI HỌC (SELECT LESSONS - REUSING TREESELECTMODAL)
-// ============================================================================
-
-export interface LessonCategoryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  lessons: LessonItem[];
-  selectedLessonIds: string[];
-  onChangeSelected: (lessonIds: string[]) => void;
-}
-
-export function LessonCategoryModalPicker({
-  isOpen,
-  onClose,
-  lessons,
-  selectedLessonIds,
-  onChangeSelected,
-}: LessonCategoryModalProps) {
-  const nodes = useMemo(() => buildLessonTreeNodes(lessons), [lessons]);
-
-  return (
-    <TreeSelectModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Select lessons"
-      subtitle="Chọn một hoặc nhiều Bài học liên kết"
-      nodes={nodes}
-      selectedIds={selectedLessonIds}
-      onChangeSelected={onChangeSelected}
-      multiple={true}
-      emptyText="Không có dữ liệu bài học."
-      unitLabel="bài học"
-      searchPlaceholder="Tìm kiếm nhanh tên bài học (VD: Điện Biên Phủ, Quảng Trị, Tây Nguyên)..."
     />
   );
 }

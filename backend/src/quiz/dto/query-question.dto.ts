@@ -20,11 +20,6 @@ export class QueryQuestionDto {
   @IsOptional()
   difficulty?: DifficultyLevel;
 
-  @ApiPropertyOptional({ description: 'UUID bài học' })
-  @IsString()
-  @IsOptional()
-  lessonId?: string;
-
   @ApiPropertyOptional({ description: 'UUID chủ đề / chuyên đề' })
   @IsString()
   @IsOptional()

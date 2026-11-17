@@ -216,7 +216,6 @@ export interface InitialParsedQuestionState {
   difficulty: QuestionDifficulty;
   points: number;
   topicIds: string[];
-  lessonIds: string[];
   correctAnswer: boolean;
   orderingItems: OrderingItem[];
   matchingPairsValue: MatchingPairsValue;
@@ -282,7 +281,6 @@ export function parseInitialQuestionState(
       difficulty: 'MEDIUM',
       points: 1,
       topicIds: [],
-      lessonIds: [],
       correctAnswer: true,
       orderingItems: createDefaultOrderingItems(),
       matchingPairsValue: createDefaultMatchingPairs(),
@@ -300,7 +298,6 @@ export function parseInitialQuestionState(
     difficulty: initialQuestion.difficulty || 'MEDIUM',
     points: initialQuestion.points ?? 1,
     topicIds: initialQuestion.topics?.map((t) => t.id) || [],
-    lessonIds: initialQuestion.lessons?.map((l) => l.id) || [],
     correctAnswer:
       typeof initialQuestion.data?.correctAnswer === 'boolean'
         ? initialQuestion.data.correctAnswer

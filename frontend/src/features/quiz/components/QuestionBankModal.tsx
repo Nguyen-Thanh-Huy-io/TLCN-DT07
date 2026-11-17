@@ -5,19 +5,20 @@ import { TipTapContent } from '@/features/lessons/components/TipTapContent';
 import { QUIZ_QUESTION_TYPE_META, QuizQuestionType, OrderingItem } from '@/features/lessons/types/quiz.types';
 import { generateQuizId } from '@/features/lessons/factories/quiz-question.factory';
 import { CreateQuestionPayload, QuestionApiService, QuestionBankItem } from '@/services/entities/question.service';
-import { LessonApiService } from '@/services/entities/lesson.service';
-import { LessonItem, TopicItem } from '@/types/models';
+import { TopicItem } from '@/types/models';
 import { TopicApiService } from '@/services/entities/topic.service';
 import { CollapsibleExplanationField } from '@/components/common/CollapsibleExplanationField';
 import { MatchingPairsValue } from '@/components/common/MatchingPairsEditor';
 import { OptionItemState, QuestionDifficulty, createDefaultMatchingPairs, createDefaultOptions, createDefaultOrderingItems, validateQuestionForm, buildQuestionData, parseInitialQuestionState } from './question-modal.helper';
-import { QuestionTypeCardSelector, QuestionCategorySection, TopicCategoryModalPicker, LessonCategoryModalPicker, QuestionAnswersSection, QuestionModalHeader, QuestionModalFooter } from './QuestionBankModalParts';
+import { QuestionTypeCardSelector, QuestionCategorySection, TopicCategoryModalPicker, QuestionAnswersSection, QuestionModalHeader, QuestionModalFooter } from './QuestionBankModalParts';
 
 interface QuestionBankModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (saved: QuestionBankItem) => void;
   initialQuestion?: QuestionBankItem | null;
+  /** Chủ đề gắn sẵn cho câu tạo mới (vd. chủ đề của đề đang soạn). */
+  defaultTopicIds?: string[];
 }
 
 export function QuestionBankModal({
@@ -25,6 +26,7 @@ export function QuestionBankModal({
   onClose,
   onSuccess,
   initialQuestion,
+  defaultTopicIds,
 }: QuestionBankModalProps) {
   const [type, setType] = useState<QuizQuestionType>(QuizQuestionType.SINGLE_CHOICE);
   const [prompt, setPrompt] = useState('');
@@ -33,10 +35,7 @@ export function QuestionBankModal({
   const [points, setPoints] = useState<number>(1);
   const [topicIds, setTopicIds] = useState<string[]>([]);
   const [topicsList, setTopicsList] = useState<TopicItem[]>([]);
-  const [lessonIds, setLessonIds] = useState<string[]>([]);
-  const [lessonsList, setLessonsList] = useState<LessonItem[]>([]);
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
-  const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
   const [options, setOptions] = useState<OptionItemState[]>(createDefaultOptions);
   const [correctAnswer, setCorrectAnswer] = useState<boolean>(true);
   const [orderingItems, setOrderingItems] = useState<OrderingItem[]>(createDefaultOrderingItems);
@@ -53,21 +52,11 @@ export function QuestionBankModal({
     if (!isOpen) return;
     let isMounted = true;
 
-    Promise.all([
-      TopicApiService.getTopics({ limit: 100 }).catch((err) => {
-        console.warn('Không thể tải danh sách chủ đề:', err);
-        return { items: [] };
-      }),
-      LessonApiService.getLessons({ limit: 100 }).catch((err) => {
-        console.warn('Không thể tải danh sách bài học:', err);
-        return { items: [] };
-      }),
-    ]).then(([topicRes, lessonRes]) => {
-      if (isMounted) {
-        if (topicRes?.items) setTopicsList(topicRes.items);
-        if (lessonRes?.items) setLessonsList(lessonRes.items);
-      }
-    });
+    TopicApiService.getTopics({ limit: 100 })
+      .then((topicRes) => {
+        if (isMounted && topicRes?.items) setTopicsList(topicRes.items);
+      })
+      .catch((err) => console.warn('Không thể tải danh sách chủ đề:', err));
 
     return () => {
       isMounted = false;
@@ -84,8 +73,7 @@ export function QuestionBankModal({
       setExplanation(parsed.explanation);
       setDifficulty(parsed.difficulty);
       setPoints(parsed.points);
-      setTopicIds(parsed.topicIds);
-      setLessonIds(parsed.lessonIds);
+      setTopicIds(initialQuestion ? parsed.topicIds : (defaultTopicIds ?? []));
       setCorrectAnswer(parsed.correctAnswer);
       setOrderingItems(parsed.orderingItems);
       setMatchingPairsValue(parsed.matchingPairsValue);
@@ -98,7 +86,7 @@ export function QuestionBankModal({
     return () => {
       void timer;
     };
-  }, [initialQuestion, isOpen]);
+  }, [initialQuestion, isOpen, defaultTopicIds]);
 
   if (!isOpen) return null;
 
@@ -174,17 +162,14 @@ export function QuestionBankModal({
         difficulty,
         points: Number(points) > 0 ? Number(points) : 1,
         topicIds,
-        lessonIds,
         data: questionData,
       };
 
-      if (initialQuestion?.id) {
-        await QuestionApiService.updateQuestion(initialQuestion.id, payload);
-      } else {
-        await QuestionApiService.createQuestion(payload);
-      }
+      const saved = initialQuestion?.id
+        ? await QuestionApiService.updateQuestion(initialQuestion.id, payload)
+        : await QuestionApiService.createQuestion(payload);
 
-      onSuccess();
+      onSuccess(saved);
       onClose();
     } catch (err: unknown) {
       console.error('Lỗi lưu câu hỏi:', err);
@@ -246,10 +231,6 @@ export function QuestionBankModal({
               topicsList={topicsList}
               onOpenTopicModal={() => setIsTopicModalOpen(true)}
               onRemoveTopic={(id) => setTopicIds((prev) => prev.filter((item) => item !== id))}
-              lessonIds={lessonIds}
-              lessonsList={lessonsList}
-              onOpenLessonModal={() => setIsLessonModalOpen(true)}
-              onRemoveLesson={(id) => setLessonIds((prev) => prev.filter((item) => item !== id))}
             />
           </div>
 
@@ -336,14 +317,6 @@ export function QuestionBankModal({
         topics={topicsList}
         selectedTopicIds={topicIds}
         onChangeSelected={setTopicIds}
-      />
-
-      <LessonCategoryModalPicker
-        isOpen={isLessonModalOpen}
-        onClose={() => setIsLessonModalOpen(false)}
-        lessons={lessonsList}
-        selectedLessonIds={lessonIds}
-        onChangeSelected={setLessonIds}
       />
     </div>
   );

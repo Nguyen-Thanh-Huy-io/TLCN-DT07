@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronDown, ChevronRight, X, Check, Search } from 'lucide-react';
 import { TopicItem } from '@/types/models';
-import { LessonItem } from '@/types/models';
 
 /**
  * Cấu trúc Node tổng quát theo Composite Pattern cho mọi cây phân cấp
@@ -450,23 +449,3 @@ export function buildTopicTreeNodes(topics: TopicItem[]): TreeSelectNode[] {
   return rootTopics.map(buildNode);
 }
 
-/**
- * Chuyển đổi danh sách LessonItem[] thành danh sách cây Bài học trực tiếp (không trộn lẫn tên Giai đoạn của Topic)
- */
-export function buildLessonTreeNodes(lessons: LessonItem[]): TreeSelectNode[] {
-  if (!lessons || lessons.length === 0) return [];
-
-  return [
-    {
-      id: 'root-lessons',
-      label: `Danh sách Bài học hiện có (${lessons.length} bài học)`,
-      selectable: false,
-      selectChildrenOnClick: true,
-      children: lessons.map((ls) => ({
-        id: ls.id,
-        label: ls.title,
-        selectable: true,
-      })),
-    },
-  ];
-}

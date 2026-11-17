@@ -18,17 +18,7 @@ export const ARTICLE_KIND_LABELS: Record<ArticleKind, string> = {
 export interface CategoryKindNode {
   id: string;
   parentId: string | null;
-  slug?: string | null;
   kind?: ArticleKind | null;
-}
-
-function inferKindFromSlug(slug: string | null | undefined): ArticleKind | null {
-  if (!slug) return null;
-  if (slug.startsWith('nhan-vat')) return ArticleKindEnum.PERSON;
-  if (slug.startsWith('su-kien')) return ArticleKindEnum.EVENT;
-  if (slug.startsWith('di-tich') || slug.startsWith('dia-danh')) return ArticleKindEnum.LOCATION;
-  if (slug.startsWith('trieu-dai')) return ArticleKindEnum.DYNASTY;
-  return null;
 }
 
 export function resolveCategoryKind(
@@ -40,8 +30,6 @@ export function resolveCategoryKind(
   const seen = new Set<string>();
   while (cur && !seen.has(cur.id)) {
     if (cur.kind) return cur.kind;
-    const bySlug = inferKindFromSlug(cur.slug);
-    if (bySlug) return bySlug;
     seen.add(cur.id);
     cur = cur.parentId ? byId.get(cur.parentId) : undefined;
   }

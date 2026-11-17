@@ -71,7 +71,7 @@ describe('AuthService — đăng nhập, làm mới token, đăng xuất', () =>
   let jtiCounter: number;
   const prisma = {
     authUser: { findUnique: jest.fn(), update: jest.fn() },
-    authSecurity: { update: jest.fn() },
+    authSecurity: { update: jest.fn(), upsert: jest.fn() },
     loginHistory: { create: jest.fn() },
   };
   const utils = {
@@ -93,6 +93,7 @@ describe('AuthService — đăng nhập, làm mới token, đăng xuất', () =>
     jtiCounter = 0;
     prisma.authUser.findUnique.mockResolvedValue(localUser());
     prisma.authSecurity.update.mockResolvedValue({});
+    prisma.authSecurity.upsert.mockResolvedValue({});
     prisma.loginHistory.create.mockResolvedValue({});
     utils.generateSecureId.mockImplementation(() => `jti-${++jtiCounter}`);
     utils.createAccessToken.mockReturnValue('access');
@@ -148,11 +149,31 @@ describe('AuthService — đăng nhập, làm mới token, đăng xuất', () =>
         ),
       ).rejects.toMatchObject({ status: HttpStatus.UNAUTHORIZED });
 
-      expect(prisma.authSecurity.update).toHaveBeenCalledWith({
+      expect(prisma.authSecurity.upsert).toHaveBeenCalledWith({
         where: { authId: 'u-1' },
-        data: expect.objectContaining({ failedAttempts: 1 }),
+        update: expect.objectContaining({ failedAttempts: 1 }),
+        create: expect.objectContaining({ authId: 'u-1', failedAttempts: 1 }),
       });
       expect(prisma.authUser.update).not.toHaveBeenCalled();
+    });
+
+    it('sai mật khẩu khi chưa có dòng authSecurity (vd. tài khoản seed): vẫn 401, tạo dòng đếm', async () => {
+      prisma.authUser.findUnique.mockResolvedValue(
+        localUser({ authSecurity: null }),
+      );
+
+      await expect(
+        service.login(
+          { email: 'hoc-vien@hisgo.test', password: 'Sai@1234' },
+          META,
+        ),
+      ).rejects.toMatchObject({ status: HttpStatus.UNAUTHORIZED });
+
+      expect(prisma.authSecurity.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ authId: 'u-1', failedAttempts: 1 }),
+        }),
+      );
     });
 
     it('sai lần thứ 5: khoá tài khoản và vô hiệu mọi access token', async () => {
@@ -169,13 +190,15 @@ describe('AuthService — đăng nhập, làm mới token, đăng xuất', () =>
         ),
       ).rejects.toMatchObject({ status: HttpStatus.UNAUTHORIZED });
 
-      expect(prisma.authSecurity.update).toHaveBeenCalledWith({
-        where: { authId: 'u-1' },
-        data: expect.objectContaining({
-          failedAttempts: 5,
-          lockExpiresAt: expect.any(Date),
+      expect(prisma.authSecurity.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { authId: 'u-1' },
+          update: expect.objectContaining({
+            failedAttempts: 5,
+            lockExpiresAt: expect.any(Date),
+          }),
         }),
-      });
+      );
       expect(prisma.authUser.update).toHaveBeenCalledWith({
         where: { id: 'u-1' },
         data: { tokenVersion: { increment: 1 } },

@@ -920,16 +920,19 @@ export class AuthService {
     const newFailedAttempts = currentFailedAttempts + 1;
     const shouldLock = newFailedAttempts >= maxAttempts;
 
+    const failure = {
+      failedAttempts: newFailedAttempts,
+      lastFailedAt: new Date(),
+      ...(shouldLock && {
+        lockExpiresAt: new Date(Date.now() + lockoutDuration),
+      }),
+    };
     await Promise.all([
-      this.prismaService.authSecurity.update({
+      // Tài khoản tạo qua seed / OAuth có thể chưa có dòng authSecurity: update trần sẽ ném P2025 (404).
+      this.prismaService.authSecurity.upsert({
         where: { authId: userId },
-        data: {
-          failedAttempts: newFailedAttempts,
-          lastFailedAt: new Date(),
-          ...(shouldLock && {
-            lockExpiresAt: new Date(Date.now() + lockoutDuration),
-          }),
-        },
+        update: failure,
+        create: { authId: userId, ...failure },
       }),
       this.logLoginAttempt({
         authId: userId,

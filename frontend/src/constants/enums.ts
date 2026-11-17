@@ -87,8 +87,6 @@ export enum RevisionFieldKind {
   REF = 'ref',
   REFS = 'refs',
   BLOCKS = 'blocks',
-  RELATIONS = 'relations',
-  MEDIA = 'media',
   OBJECT = 'object',
 }
 

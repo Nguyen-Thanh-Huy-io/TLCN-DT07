@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import type { RevisionChange, RevisionLabels } from '@/services/entities/content-revision.service';
-import { MediaType, RevisionFieldKind } from '@/constants/enums';
+import { RevisionFieldKind } from '@/constants/enums';
 
 enum DiffTone {
   OLD = 'old',
@@ -15,8 +15,6 @@ enum DiffMark {
   EDIT = 'edit',
   MOVE = 'move',
 }
-
-const NO_CAPTION = '(không chú thích)';
 
 type Row = Record<string, unknown>;
 
@@ -250,68 +248,9 @@ function BlocksDiff({ before, after }: { before: unknown; after: unknown }) {
   );
 }
 
-/* ---------- Thực thể liên quan & tư liệu ---------- */
-
-function RelationsDiff({ before, after, name }: { before: unknown; after: unknown; name: (v: unknown) => string }) {
-  const rows = matchRows(
-    Array.isArray(before) ? (before as Row[]) : [],
-    Array.isArray(after) ? (after as Row[]) : [],
-    (r) => String(r.entityId),
-    (r) => ({ role: r.role ?? null, roleLabel: r.roleLabel || null, isPrimary: Boolean(r.isPrimary), notes: r.notes || null }),
-  );
-  const describe = (r?: Row) =>
-    r ? `${name(r.role)}${r.roleLabel ? ` · ${r.roleLabel}` : ''}${r.isPrimary ? ' · tiêu biểu' : ''}` : '';
-  return (
-    <div className="space-y-2">
-      {rows
-        .filter((r) => r.mark !== DiffMark.MOVE)
-        .map((r) => (
-          <Marked key={r.key + r.mark} mark={r.mark} title={name((r.after ?? r.before)?.entityId)}>
-            {r.mark === DiffMark.EDIT ? (
-              <Swap before={describe(r.before) || '(trống)'} after={describe(r.after) || '(trống)'} />
-            ) : (
-              <span className="text-xs text-slate-600">{describe(r.after ?? r.before)}</span>
-            )}
-          </Marked>
-        ))}
-    </div>
-  );
-}
-
 function Thumb({ src }: { src: string }) {
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={src} alt="" className="h-20 w-28 rounded-md border border-slate-200 object-cover" />;
-}
-
-function MediaDiff({ before, after }: { before: unknown; after: unknown }) {
-  const rows = matchRows(
-    Array.isArray(before) ? (before as Row[]) : [],
-    Array.isArray(after) ? (after as Row[]) : [],
-    (r) => String(r.url),
-    (r) => ({ type: r.type ?? null, caption: r.caption || null }),
-  );
-  return (
-    <div className="space-y-2">
-      {rows
-        .filter((r) => r.mark !== DiffMark.MOVE)
-        .map((r) => {
-          const item = (r.after ?? r.before) as Row;
-          return (
-            <Marked key={r.key + r.mark} mark={r.mark} title={String(item.caption || item.url)}>
-              <div className="flex flex-wrap items-center gap-3">
-                {item.type === MediaType.IMAGE && <Thumb src={String(item.url)} />}
-                {r.mark === DiffMark.EDIT && (
-                  <Swap before={String(r.before?.caption || NO_CAPTION)} after={String(r.after?.caption || NO_CAPTION)} />
-                )}
-                <a href={String(item.url)} target="_blank" rel="noreferrer" className="break-all text-xs text-sky-700 hover:underline">
-                  {String(item.url)}
-                </a>
-              </div>
-            </Marked>
-          );
-        })}
-    </div>
-  );
 }
 
 /* ---------- Metadata ---------- */
@@ -413,12 +352,6 @@ const DIFF_RENDER_STRATEGIES: Record<RevisionFieldKind, (ctx: DiffStrategyContex
   ),
   [RevisionFieldKind.BLOCKS]: ({ change }) => (
     <BlocksDiff before={change.before} after={change.after} />
-  ),
-  [RevisionFieldKind.RELATIONS]: ({ change, name }) => (
-    <RelationsDiff before={change.before} after={change.after} name={name} />
-  ),
-  [RevisionFieldKind.MEDIA]: ({ change }) => (
-    <MediaDiff before={change.before} after={change.after} />
   ),
   [RevisionFieldKind.OBJECT]: ({ change, labels }) => (
     <ObjectDiff before={change.before} after={change.after} labels={labels} />

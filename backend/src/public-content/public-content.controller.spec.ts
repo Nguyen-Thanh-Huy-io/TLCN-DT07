@@ -24,7 +24,6 @@ describe('PublicContentController', () => {
     getLibraryLessons: jest.fn(),
     getTopicBySlug: jest.fn(),
     submitQuizAttempt: jest.fn(),
-    getQuizStatistics: jest.fn(),
   };
 
   beforeEach(async () => {

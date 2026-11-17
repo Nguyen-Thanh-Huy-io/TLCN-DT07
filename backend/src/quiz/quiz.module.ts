@@ -3,12 +3,19 @@ import { StandaloneQuizController } from './standalone-quiz.controller';
 import { QuizService } from './quiz.service';
 import { QuestionController } from './question.controller';
 import { QuestionService } from './question.service';
+import { QuizStatisticsService } from './quiz-statistics.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 
 @Module({
   controllers: [StandaloneQuizController, QuestionController],
-  providers: [QuizService, QuestionService, PrismaService, RedisService],
+  providers: [
+    QuizService,
+    QuestionService,
+    QuizStatisticsService,
+    PrismaService,
+    RedisService,
+  ],
   exports: [QuizService, QuestionService],
 })
 export class QuizModule {}

@@ -15,6 +15,12 @@ const QUESTION_INCLUDE = {
   _count: { select: { quizQuestions: true } },
 } satisfies Prisma.QuestionInclude;
 
+/** Số lượt người học trả lời câu này (mọi đề) và số lượt đúng. */
+export interface QuestionAnswerStats {
+  answered: number;
+  correct: number;
+}
+
 @Injectable()
 export class QuestionService {
   constructor(private readonly prisma: PrismaService) {}
@@ -45,8 +51,21 @@ export class QuestionService {
       this.prisma.question.count({ where }),
     ]);
 
+    const results = await this.prisma.quizAttemptAnswer.groupBy({
+      by: ['questionId', 'isCorrect'],
+      where: { questionId: { in: items.map((q) => q.id) } },
+      _count: { _all: true },
+    });
+    const statsOf = (questionId: string): QuestionAnswerStats => {
+      const rows = results.filter((r) => r.questionId === questionId);
+      return {
+        answered: rows.reduce((n, r) => n + r._count._all, 0),
+        correct: rows.find((r) => r.isCorrect)?._count._all ?? 0,
+      };
+    };
+
     return {
-      items,
+      items: items.map((q) => ({ ...q, answerStats: statsOf(q.id) })),
       total,
       page,
       limit,

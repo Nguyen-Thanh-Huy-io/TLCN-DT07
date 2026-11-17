@@ -17,6 +17,7 @@ describe('QuestionService — Ngân hàng câu hỏi', () => {
       update: jest.fn(({ data }: { data: object }) => ({ id: 'q-1', ...data })),
       delete: jest.fn(),
     },
+    quizAttemptAnswer: { groupBy: jest.fn() },
   };
 
   const singleChoice = {
@@ -96,6 +97,23 @@ describe('QuestionService — Ngân hàng câu hỏi', () => {
         }),
       }),
     );
+  });
+
+  it('danh sách kèm số lượt trả lời / đúng của từng câu, gom 1 truy vấn', async () => {
+    prisma.question.findMany.mockResolvedValue([{ id: 'q-1' }, { id: 'q-2' }]);
+    prisma.question.count.mockResolvedValue(2);
+    prisma.quizAttemptAnswer.groupBy.mockResolvedValue([
+      { questionId: 'q-1', isCorrect: true, _count: { _all: 3 } },
+      { questionId: 'q-1', isCorrect: false, _count: { _all: 1 } },
+    ]);
+
+    const page = await service.findAll({});
+
+    expect(prisma.quizAttemptAnswer.groupBy).toHaveBeenCalledTimes(1);
+    expect(page.items.map((q) => q.answerStats)).toEqual([
+      { answered: 4, correct: 3 },
+      { answered: 0, correct: 0 },
+    ]);
   });
 
   it('câu không tồn tại → 404', async () => {

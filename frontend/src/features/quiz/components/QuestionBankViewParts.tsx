@@ -6,6 +6,7 @@ import { Badge } from '@/components/common/CommonUi';
 import { QUIZ_QUESTION_TYPE_META, QuizQuestionType } from '@/features/lessons/types/quiz.types';
 import { ALL_FILTER_VALUE, DIFFICULTY_CONFIG } from '@/constants/enums';
 import type { QuestionBankViewFacade } from './useQuestionBankView';
+import type { QuestionAnswerStats } from '@/services/entities/question.service';
 
 export interface OptionPreview {
   id: string;
@@ -255,6 +256,9 @@ export function QuestionBankTable({ facade }: { facade: QuestionBankViewFacade }
                 <th className="py-3.5 px-3 min-w-[160px]">Chủ đề / Sử dụng</th>
                 <th className="py-3.5 px-3 w-28 text-center">Độ khó</th>
                 <th className="py-3.5 px-3 w-20 text-center">Điểm</th>
+                <th className="py-3.5 px-3 w-24 text-center" title="Tỷ lệ trả lời đúng trên mọi đề">
+                  % đúng
+                </th>
                 <th className="py-3.5 pl-2 pr-4 w-24 text-right">Thao tác</th>
               </tr>
             </thead>
@@ -436,6 +440,10 @@ export function QuestionBankTable({ facade }: { facade: QuestionBankViewFacade }
                       <span className="text-[10px] text-slate-400 ml-0.5">đ</span>
                     </td>
 
+                    <td className="py-3.5 px-3 text-center">
+                      <CorrectRateCell stats={q.answerStats} />
+                    </td>
+
                     {/* Actions */}
                     <td className="py-3.5 pl-2 pr-4 text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -508,6 +516,24 @@ export function QuestionBankTable({ facade }: { facade: QuestionBankViewFacade }
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Đúng < 40%: câu khó / dễ gây nhầm, đáng soát lại đáp án hoặc lời dẫn. */
+const LOW_CORRECT_RATE_PERCENT = 40;
+
+function CorrectRateCell({ stats }: { stats?: QuestionAnswerStats }) {
+  if (!stats || stats.answered === 0) {
+    return <span className="text-[11px] text-slate-400 italic">Chưa có lượt</span>;
+  }
+  const rate = Math.round((stats.correct / stats.answered) * 100);
+  return (
+    <div title={`${stats.correct}/${stats.answered} lượt trả lời đúng`}>
+      <div className={`font-bold ${rate < LOW_CORRECT_RATE_PERCENT ? 'text-rose-700' : 'text-slate-700'}`}>
+        {rate}%
+      </div>
+      <div className="text-[10px] text-slate-400">{stats.answered} lượt</div>
     </div>
   );
 }

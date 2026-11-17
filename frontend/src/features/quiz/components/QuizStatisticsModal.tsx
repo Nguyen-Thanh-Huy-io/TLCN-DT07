@@ -2,7 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { BarChart3, X } from 'lucide-react';
-import { QuizApiService, type QuizStatisticsData } from '@/services/entities/quiz.service';
+import {
+  QuizApiService,
+  type QuizQuestionStatistics,
+  type QuizStatisticsData,
+} from '@/services/entities/quiz.service';
 
 interface QuizStatisticsModalProps {
   isOpen: boolean;
@@ -104,6 +108,8 @@ export function QuizStatisticsModal({
                 </div>
               </div>
 
+              <QuestionStatsSection questions={data.questions ?? []} />
+
               {/* Danh sách người nộp bài gần đây */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-stone-600 mb-2.5">
@@ -152,9 +158,72 @@ export function QuizStatisticsModal({
                 )}
               </div>
             </>
-          ) : null}
+          ) : (
+            <div className="p-8 text-center text-xs text-rose-700 bg-rose-50 rounded-xl border border-rose-200">
+              Không tải được thống kê. Vui lòng thử lại sau.
+            </div>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Đúng < 40%: câu khó / dễ gây nhầm, tô đỏ để người soạn xem lại. */
+const LOW_CORRECT_RATE_PERCENT = 40;
+
+function QuestionStatsSection({ questions }: { questions: QuizQuestionStatistics[] }) {
+  const hasAnswers = questions.some((q) => q.answered > 0);
+  return (
+    <div>
+      <h4 className="text-xs font-bold uppercase tracking-wider text-stone-600 mb-2.5">
+        Tỷ lệ đúng từng câu
+      </h4>
+      {hasAnswers ? (
+        <div className="border border-stone-200 rounded-xl overflow-hidden divide-y divide-stone-100">
+          {questions.map((q, index) => (
+            <QuestionStatsRow key={q.questionId} index={index} question={q} />
+          ))}
+        </div>
+      ) : (
+        <div className="p-6 text-center text-xs text-stone-500 bg-stone-50 rounded-xl border border-stone-200">
+          Chưa có lượt nộp nào được ghi kết quả từng câu.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuestionStatsRow({ index, question }: { index: number; question: QuizQuestionStatistics }) {
+  const isLow = question.answered > 0 && question.correctRatePercent < LOW_CORRECT_RATE_PERCENT;
+  return (
+    <div className="p-3 text-xs space-y-1.5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-stone-800 line-clamp-2">
+          <strong className="text-stone-500 mr-1">Câu {index + 1}.</strong>
+          {question.prompt}
+        </p>
+        <div className="text-right shrink-0">
+          <div className={`font-bold text-sm ${isLow ? 'text-rose-700' : 'text-stone-900'}`}>
+            {question.answered > 0 ? `${question.correctRatePercent}%` : '—'}
+          </div>
+          <div className="text-[10px] text-stone-400">
+            {question.correct}/{question.answered} lượt đúng
+          </div>
+        </div>
+      </div>
+      <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
+        <div
+          className={`h-full ${isLow ? 'bg-rose-500' : 'bg-emerald-500'}`}
+          style={{ width: `${question.correctRatePercent}%` }}
+        />
+      </div>
+      {question.topWrongAnswer && (
+        <p className="text-[11px] text-stone-500">
+          Sai nhiều nhất: <span className="font-semibold text-rose-700">{question.topWrongAnswer.label}</span> (
+          {question.topWrongAnswer.count} lượt)
+        </p>
+      )}
     </div>
   );
 }

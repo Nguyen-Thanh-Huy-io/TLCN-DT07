@@ -186,9 +186,27 @@ describe('Quiz E2E — ngân hàng câu hỏi, đề theo chủ đề, chấm đ
       // Nộp xong mới có đáp án để xem lại bài.
       expect(JSON.stringify(res.body.data.questions)).toContain('isCorrect');
 
-      const stats = await http().get(`/public/quizzes/${quizId}/statistics`);
+      const stats = await http()
+        .get(`/quizzes/${quizId}/statistics`)
+        .set('Authorization', editor.auth);
       expect(stats.status).toBe(200);
       expect(stats.body.data.summary.totalAttempts).toBe(1);
+      expect(stats.body.data.questions).toEqual([
+        expect.objectContaining({ questionId: first, correctRatePercent: 100 }),
+        expect.objectContaining({
+          questionId: second,
+          correctRatePercent: 0,
+          topWrongAnswer: { label: 'Đáp án sai', count: 1 },
+        }),
+      ]);
+    });
+
+    it('thống kê đề cần đăng nhập CMS (không lộ thí sinh ra ngoài)', async () => {
+      const anonymous = await http().get(`/quizzes/${quizId}/statistics`);
+      expect(anonymous.status).toBe(401);
+      expect(
+        (await http().get(`/public/quizzes/${quizId}/statistics`)).status,
+      ).toBe(404);
     });
 
     it('nộp bài cho đề không tồn tại → 404', async () => {

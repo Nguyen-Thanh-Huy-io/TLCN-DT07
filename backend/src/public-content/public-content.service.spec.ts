@@ -72,7 +72,16 @@ describe('PublicContentService — nộp bài quiz', () => {
     ]);
     expect(prisma.quizAttempt.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ scorePercent: 50, isPassed: false }),
+        data: expect.objectContaining({
+          scorePercent: 50,
+          isPassed: false,
+          questionResults: {
+            create: [
+              { questionId: 'q1', isCorrect: true, answer: 'a' },
+              { questionId: 'q2', isCorrect: false, answer: false },
+            ],
+          },
+        }),
       }),
     );
   });

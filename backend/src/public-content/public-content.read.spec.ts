@@ -41,7 +41,6 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
     lesson: { findMany: jest.fn() },
     topic: { findFirst: jest.fn() },
     quiz: { findUnique: jest.fn(), findMany: jest.fn() },
-    quizAttempt: { findMany: jest.fn() },
   };
 
   beforeEach(async () => {
@@ -426,66 +425,6 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
       expect(quiz).not.toHaveProperty('quizQuestions');
       // Đáp án chỉ có ở kết quả nộp bài — danh sách đề công khai không được lộ.
       expect(quiz.questions[0]).not.toHaveProperty('correctAnswer');
-    });
-  });
-
-  describe('thống kê đề', () => {
-    it('tính tỉ lệ đạt, điểm và thời gian trung bình', async () => {
-      prisma.quiz.findUnique.mockResolvedValue({
-        id: 'q-1',
-        title: 'Đề 1',
-        topics: [{ name: 'Bạch Đằng 938' }],
-      });
-      prisma.quizAttempt.findMany.mockResolvedValue([
-        { id: 'a1', scorePercent: 80, timeSpentSeconds: 120, isPassed: true },
-        {
-          id: 'a2',
-          scorePercent: 40,
-          timeSpentSeconds: 60,
-          isPassed: false,
-          user: { username: 'hoc-vien' },
-        },
-      ]);
-
-      const stats = await service.getQuizStatistics('q-1');
-
-      expect(stats.summary).toEqual({
-        totalAttempts: 2,
-        passedAttempts: 1,
-        passRatePercent: 50,
-        averageScore: 60,
-        averageTimeMinutes: '1.5',
-      });
-      expect(stats.topicTitle).toBe('Bạch Đằng 938');
-      expect(stats.recentAttempts.map((a) => a.learnerName)).toEqual([
-        'Thí sinh tự do',
-        'hoc-vien',
-      ]);
-    });
-
-    it('chưa có lượt nộp → toàn số 0', async () => {
-      prisma.quiz.findUnique.mockResolvedValue({
-        id: 'q-1',
-        title: 'Đề 1',
-        topics: [],
-      });
-      prisma.quizAttempt.findMany.mockResolvedValue([]);
-
-      const stats = await service.getQuizStatistics('q-1');
-
-      expect(stats.summary).toMatchObject({
-        totalAttempts: 0,
-        passRatePercent: 0,
-        averageScore: 0,
-      });
-    });
-
-    it('đề không tồn tại → 404', async () => {
-      prisma.quiz.findUnique.mockResolvedValue(null);
-
-      await expect(service.getQuizStatistics('khong-co')).rejects.toThrow(
-        NotFoundException,
-      );
     });
   });
 });

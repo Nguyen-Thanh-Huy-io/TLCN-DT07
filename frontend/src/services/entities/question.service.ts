@@ -14,6 +14,11 @@ export type QuestionBankData = Record<string, unknown> & {
   correctAnswer?: boolean;
 };
 
+export interface QuestionAnswerStats {
+  answered: number;
+  correct: number;
+}
+
 export interface QuestionBankItem {
   id: string;
   type: QuizQuestionType;
@@ -25,6 +30,8 @@ export interface QuestionBankItem {
   topics?: Array<{ id: string; name: string }>;
   /** Số đề thi đang dùng câu này. */
   _count?: { quizQuestions: number };
+  /** Có ở danh sách ngân hàng: số lượt người học trả lời câu này (mọi đề) và số lượt đúng. */
+  answerStats?: QuestionAnswerStats;
   createdAt: string;
   updatedAt: string;
 }

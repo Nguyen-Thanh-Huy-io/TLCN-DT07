@@ -87,6 +87,16 @@ export interface PracticeQuizItem {
   questions: PublicQuizQuestion[];
 }
 
+export interface QuizQuestionStatistics {
+  questionId: string;
+  type: string;
+  prompt: string;
+  answered: number;
+  correct: number;
+  correctRatePercent: number;
+  topWrongAnswer: { label: string; count: number } | null;
+}
+
 export interface QuizStatisticsData {
   quizTitle: string;
   topicTitle?: string;
@@ -97,6 +107,8 @@ export interface QuizStatisticsData {
     averageScore: number;
     averageTimeMinutes: string;
   };
+  /** Theo thứ tự câu trong đề; chỉ tính các lượt nộp từ khi hệ thống lưu kết quả từng câu. */
+  questions: QuizQuestionStatistics[];
   recentAttempts: Array<{
     id: string;
     learnerName: string;
@@ -157,11 +169,10 @@ export class QuizApiService {
     return res.data?.data || res.data;
   }
 
-  /** Lấy dữ liệu thống kê của bài kiểm tra */
+  /** Thống kê đề cho Ban biên tập (cần đăng nhập): tổng lượt làm và tỷ lệ đúng từng câu. */
   static async getQuizStatistics(id: string): Promise<QuizStatisticsData> {
-    const res = await api.get(`/public/quizzes/${id}/statistics`);
-    const json = res.data;
-    return (json?.data?.summary ? json.data : json?.summary ? json : null) as QuizStatisticsData;
+    const res = await api.get<{ data: QuizStatisticsData }>(`/quizzes/${id}/statistics`);
+    return res.data.data;
   }
 
   /** Nộp bài thi làm trắc nghiệm công khai */

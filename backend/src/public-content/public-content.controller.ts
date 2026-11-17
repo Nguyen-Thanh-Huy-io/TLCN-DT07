@@ -188,12 +188,4 @@ export class PublicContentController {
   submitQuiz(@Param('id') quizId: string, @Body() dto: SubmitQuizAttemptDto) {
     return this.service.submitQuizAttempt(quizId, dto);
   }
-
-  @Get('quizzes/:id/statistics')
-  @ApiOperation({
-    summary: 'Thống kê kết quả & danh sách thí sinh nộp bài của đề thi',
-  })
-  getQuizStatistics(@Param('id') quizId: string) {
-    return this.service.getQuizStatistics(quizId);
-  }
 }

@@ -798,70 +798,20 @@ export class PublicContentService {
         timeSpentSeconds: dto.timeSpentSeconds,
         isPassed,
         answers: dto.answers as Prisma.InputJsonValue,
+        questionResults: {
+          create: questions.map((q) => ({
+            questionId: q.id,
+            isCorrect: graded.results[q.id] ?? false,
+            answer:
+              dto.answers[q.id] === undefined || dto.answers[q.id] === null
+                ? Prisma.DbNull
+                : (dto.answers[q.id] as Prisma.InputJsonValue),
+          })),
+        },
       },
       select: { id: true },
     });
 
     return { attemptId: attempt.id, ...graded, isPassed, questions };
-  }
-
-  async getQuizStatistics(quizId: string) {
-    const quiz = await this.prisma.quiz.findUnique({
-      where: { id: quizId },
-      include: { topics: { select: { name: true } } },
-    });
-    if (!quiz) throw new NotFoundException('Không tìm thấy đề thi');
-
-    const attempts = await this.prisma.quizAttempt.findMany({
-      where: { quizId },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-      include: {
-        user: { select: { username: true } },
-      },
-    });
-
-    const totalAttempts = attempts.length;
-    const passedAttempts = attempts.filter((a) => a.isPassed).length;
-    const avgScore =
-      totalAttempts > 0
-        ? Math.round(
-            attempts.reduce((sum, a) => sum + a.scorePercent, 0) /
-              totalAttempts,
-          )
-        : 0;
-    const avgTimeSeconds =
-      totalAttempts > 0
-        ? Math.round(
-            attempts.reduce((sum, a) => sum + a.timeSpentSeconds, 0) /
-              totalAttempts,
-          )
-        : 0;
-
-    return {
-      quizId: quiz.id,
-      quizTitle: quiz.title,
-      topicTitle: quiz.topics.map((t) => t.name).join(', '),
-      summary: {
-        totalAttempts,
-        passedAttempts,
-        passRatePercent:
-          totalAttempts > 0
-            ? Math.round((passedAttempts / totalAttempts) * 100)
-            : 0,
-        averageScore: avgScore,
-        averageTimeMinutes: (avgTimeSeconds / 60).toFixed(1),
-      },
-      recentAttempts: attempts.map((a) => ({
-        id: a.id,
-        learnerName: a.user?.username || a.learnerName || 'Thí sinh tự do',
-        scorePercent: a.scorePercent,
-        correctCount: a.correctCount,
-        totalQuestions: a.totalQuestions,
-        timeSpentSeconds: a.timeSpentSeconds,
-        isPassed: a.isPassed,
-        submittedAt: a.createdAt,
-      })),
-    };
   }
 }

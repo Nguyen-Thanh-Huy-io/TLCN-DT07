@@ -28,8 +28,17 @@ export interface CategoryItem {
   icon: string | null;
   /** null = kế thừa chuyên mục cha. */
   kind: ArticleKind | null;
+  isActive?: boolean;
   displayOrder: number;
   _count?: { articles: number };
+}
+
+/** API trả phẳng theo displayOrder/name chung, không theo cây — sắp lại để con luôn đứng ngay sau cha. */
+export function orderCategoriesByHierarchy(categories: CategoryItem[]): CategoryItem[] {
+  const roots = categories.filter((c) => !c.parentId);
+  const ordered = roots.flatMap((r) => [r, ...categories.filter((c) => c.parentId === r.id)]);
+  const orphans = categories.filter((c) => c.parentId && !categories.some((p) => p.id === c.parentId));
+  return [...ordered, ...orphans];
 }
 
 export interface ArticleTagRef {

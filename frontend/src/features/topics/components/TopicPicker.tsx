@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { FolderTree, X } from 'lucide-react';
 import { TopicApiService } from '@/services/entities/topic.service';
 import type { TopicItem } from '@/types/models';
+import { TopicParentModalPicker } from './TopicParentModalPicker';
 
 export interface PickedTopic {
   id: string;
@@ -12,104 +13,111 @@ export interface PickedTopic {
 }
 
 /**
- * Ô chọn 1 Chủ đề / Thời kỳ lịch sử có tìm kiếm. Dùng cho TimelineEditor, ArticleEditor...
+ * Ô chọn Chủ đề / Thời kỳ lịch sử theo cây phân cấp Cha → Con (tái sử dụng `TopicParentModalPicker`
+ * giống bên Bài học, thay cho dropdown xổ phẳng).
  */
 export function TopicPicker({
   value,
   onChange,
-  placeholder = 'Chọn chủ đề / thời kỳ lịch sử…',
+  placeholder = 'Chưa gắn vào Chủ đề nào',
 }: {
   value: PickedTopic | null;
   onChange: (topic: PickedTopic | null) => void;
   placeholder?: string;
 }) {
-  const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  const [results, setResults] = useState<TopicItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const boxRef = useRef<HTMLDivElement>(null);
+  const [topics, setTopics] = useState<TopicItem[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const res = await TopicApiService.getTopics({ search: query.trim() || undefined, limit: 10 });
-        setResults(res.items || []);
-      } catch {
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [query, open]);
-
-  useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    let active = true;
+    TopicApiService.getTopics({ limit: 100 })
+      .then((res) => {
+        if (active) setTopics(res.items || []);
+      })
+      .catch(() => {
+        if (active) setTopics([]);
+      });
+    return () => {
+      active = false;
     };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
   }, []);
 
-  if (value) {
-    return (
-      <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
-        <span className="truncate font-medium">{value.name}</span>
-        <button
-          type="button"
-          onClick={() => onChange(null)}
-          className="ml-2 rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-          aria-label="Bỏ chọn chủ đề"
-        >
-          <X size={15} />
-        </button>
-      </div>
-    );
-  }
+  const breadcrumbPath = useMemo(() => {
+    if (!value) return null;
+    const byId = new Map(topics.map((t) => [t.id, t]));
+    const current = byId.get(value.id);
+    if (!current) return value.name;
+    const parts: string[] = [current.name];
+    let parentId = current.parentId;
+    while (parentId && byId.has(parentId)) {
+      const parent = byId.get(parentId)!;
+      parts.unshift(parent.name);
+      parentId = parent.parentId;
+    }
+    return parts.join(' › ');
+  }, [value, topics]);
 
   return (
-    <div ref={boxRef} className="relative">
-      <div className="relative">
-        <input
-          type="text"
-          className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-800 outline-none focus:border-slate-400"
-          placeholder={placeholder}
-          value={query}
-          onFocus={() => setOpen(true)}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
-          }}
-        />
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+    <>
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-slate-50 p-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-bold text-slate-900">
+            {value ? value.name : placeholder}
+          </p>
+          <p className="mt-0.5 truncate text-[11px] text-slate-500">
+            {breadcrumbPath && breadcrumbPath !== value?.name
+              ? breadcrumbPath
+              : value
+                ? 'Chủ đề gốc trong cây tri thức'
+                : 'Chọn chủ đề theo nhánh Cha › Con trên cây kiến thức'}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1.5">
+          {value && (
+            <button
+              type="button"
+              onClick={() => onChange(null)}
+              className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
+              title="Bỏ chọn chủ đề"
+              aria-label="Bỏ chọn chủ đề"
+            >
+              <X size={14} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold text-blue-700 shadow-2xs transition hover:border-blue-300 hover:text-blue-800 cursor-pointer"
+          >
+            <FolderTree size={13} />
+            <span>{value ? 'Đổi chủ đề' : 'Chọn chủ đề'}</span>
+          </button>
+        </div>
       </div>
 
-      {open && (
-        <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-          {loading && <div className="px-3 py-2 text-xs text-slate-400">Đang tìm…</div>}
-          {!loading && results.length === 0 && (
-            <div className="px-3 py-2 text-xs text-slate-400">Không tìm thấy chủ đề nào.</div>
-          )}
-          {!loading &&
-            results.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100"
-                onClick={() => {
-                  onChange({ id: t.id, name: t.name });
-                  setOpen(false);
-                  setQuery('');
-                }}
-              >
-                <span className="font-medium">{t.name}</span>
-                {t.parent && <span className="text-xs text-slate-400">({t.parent.name})</span>}
-              </button>
-            ))}
-        </div>
-      )}
-    </div>
+      <TopicParentModalPicker
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onSelect={(selectedId) => {
+          if (!selectedId) {
+            onChange(null);
+            return;
+          }
+          const found = topics.find((t) => t.id === selectedId);
+          if (found) {
+            onChange({ id: found.id, name: found.name });
+          }
+        }}
+        topics={topics}
+        selectedParentId={value?.id ?? null}
+        title="Chọn Chủ đề (Topic)"
+        subtitle="Duyệt theo nhánh Chủ đề gốc › Chủ đề con hoặc tìm nhanh theo tên"
+        allowRootSelect
+        rootLabel="Không gắn Chủ đề"
+        rootDescription="Để trống chủ đề (bài viết hoặc dòng thời gian độc lập)"
+        maxDepth={null}
+      />
+    </>
   );
 }

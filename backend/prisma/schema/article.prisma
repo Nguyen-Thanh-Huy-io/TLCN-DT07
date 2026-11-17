@@ -25,6 +25,7 @@ model Category {
   /// Loại bài của chuyên mục. NULL = kế thừa chuyên mục cha (gốc NULL → OTHER).
   /// Vd. "Trận đánh" (con của "Sự kiện", kind NULL) → EVENT.
   kind         ArticleKind?
+  isActive     Boolean  @default(true) @map("is_active")
   displayOrder Int      @default(0) @map("display_order")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")

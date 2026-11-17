@@ -32,7 +32,12 @@ export interface EntityTypeConfig {
   themeColor: string;
   themeBg: string;
   routePrefix: string;
+  /** Bài liền trước / liền sau cùng chuyên mục theo niên đại. */
+  previousLabel: string;
+  nextLabel: string;
 }
+
+const GENERIC_ADJACENT = { previousLabel: 'Bài trước', nextLabel: 'Bài tiếp theo' } as const;
 
 const STRATEGIES: Record<string, EntityTypeConfig> = {
   DYNASTY: {
@@ -47,6 +52,8 @@ const STRATEGIES: Record<string, EntityTypeConfig> = {
     themeColor: '#B8860B',
     themeBg: '#FFFDF5',
     routePrefix: '/thuc-the',
+    previousLabel: 'Triều đại trước',
+    nextLabel: 'Triều đại tiếp theo',
   },
   ARTIFACT: {
     typeKey: 'ARTIFACT',
@@ -60,6 +67,7 @@ const STRATEGIES: Record<string, EntityTypeConfig> = {
     themeColor: '#2E6B56',
     themeBg: '#F4FAF7',
     routePrefix: '/thuc-the',
+    ...GENERIC_ADJACENT,
   },
   ORGANIZATION: {
     typeKey: 'ORGANIZATION',
@@ -73,6 +81,7 @@ const STRATEGIES: Record<string, EntityTypeConfig> = {
     themeColor: '#1E3A5F',
     themeBg: '#F3F7FA',
     routePrefix: '/thuc-the',
+    ...GENERIC_ADJACENT,
   },
   MILITARY_FORCE: {
     typeKey: 'MILITARY_FORCE',
@@ -86,6 +95,7 @@ const STRATEGIES: Record<string, EntityTypeConfig> = {
     themeColor: '#8B0000',
     themeBg: '#FDF5F5',
     routePrefix: '/thuc-the',
+    ...GENERIC_ADJACENT,
   },
   PERSON: {
     typeKey: 'PERSON',
@@ -99,6 +109,8 @@ const STRATEGIES: Record<string, EntityTypeConfig> = {
     themeColor: '#8C2D19',
     themeBg: '#FAF5EE',
     routePrefix: '/nhan-vat',
+    previousLabel: 'Nhân vật trước',
+    nextLabel: 'Nhân vật tiếp theo',
   },
   EVENT: {
     typeKey: 'EVENT',
@@ -112,6 +124,8 @@ const STRATEGIES: Record<string, EntityTypeConfig> = {
     themeColor: '#8C2D19',
     themeBg: '#FDF5EE',
     routePrefix: '/su-kien',
+    previousLabel: 'Sự kiện trước',
+    nextLabel: 'Sự kiện tiếp theo',
   },
   LOCATION: {
     typeKey: 'LOCATION',
@@ -125,6 +139,8 @@ const STRATEGIES: Record<string, EntityTypeConfig> = {
     themeColor: '#2F4F4F',
     themeBg: '#F4F7F7',
     routePrefix: '/di-tich',
+    previousLabel: 'Di tích trước',
+    nextLabel: 'Di tích tiếp theo',
   },
 };
 
@@ -140,6 +156,7 @@ const DEFAULT_STRATEGY: EntityTypeConfig = {
   themeColor: '#5C4033',
   themeBg: '#FAF7F2',
   routePrefix: '/thuc-the',
+  ...GENERIC_ADJACENT,
 };
 
 const ICON_MAP: Record<EntityIconName, LucideIcon> = {

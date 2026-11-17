@@ -285,7 +285,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
                 <Link href={model.previous.href} className="ue-bottom-btn prev">
                   <ChevronLeft size={20} />
                   <div>
-                    <span className="ue-bottom-sub">Triều đại trước</span>
+                    <span className="ue-bottom-sub">{model.strategy.previousLabel}</span>
                     <strong className="ue-bottom-title">{model.previous.name}</strong>
                     {model.previous.dateLabel && (
                       <span className="ue-bottom-date">{model.previous.dateLabel}</span>
@@ -299,7 +299,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
               {model.next ? (
                 <Link href={model.next.href} className="ue-bottom-btn next">
                   <div className="text-right">
-                    <span className="ue-bottom-sub">Triều đại tiếp theo</span>
+                    <span className="ue-bottom-sub">{model.strategy.nextLabel}</span>
                     <strong className="ue-bottom-title">{model.next.name}</strong>
                     {model.next.dateLabel && (
                       <span className="ue-bottom-date">{model.next.dateLabel}</span>
@@ -337,6 +337,8 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
           isFocusMode={isFocusMode}
           previous={model.previous}
           next={model.next}
+          previousLabel={model.strategy.previousLabel}
+          nextLabel={model.strategy.nextLabel}
           currentName={model.name}
           currentDateLabel={model.dateLabel}
           onToggleTimeline={toggleTimeline}

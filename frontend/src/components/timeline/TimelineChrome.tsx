@@ -36,7 +36,7 @@ export function Heading({
   return <Tag className={className}>{children}</Tag>;
 }
 
-export function Select({
+function Select({
   value,
   onChange,
   label,

@@ -29,24 +29,42 @@ export function EraSection({
   const [open, setOpen] = useState(true);
   return (
     <section className="sk-era-section" id={`era-${slug || index}`}>
-      <Button className="sk-era-banner" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <span className="sk-era-banner-icon">
-          <Landmark size={23} />
-        </span>
-        <span className="sk-era-banner-text">
-          <small>
-            Thời kỳ {String(index + 1).padStart(2, "0")} <i /> {period}
-          </small>
-          <Heading>{title}</Heading>
-          {overview && <p>{overview}</p>}
-        </span>
-        <ChevronDown className={open ? "" : "sk-rotate"} size={20} />
-      </Button>
-      {slug && (
-        <Link href={`/giai-doan/${slug}`} className="sk-era-link">
-          Xem chi tiết thời kỳ <ArrowUpRight size={14} />
-        </Link>
-      )}
+      <div className="sk-era-banner">
+        <button
+          type="button"
+          className="sk-era-banner-main"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+        >
+          <span className="sk-era-banner-icon">
+            <Landmark size={22} />
+          </span>
+          <span className="sk-era-banner-text">
+            <small>
+              Thời kỳ {String(index + 1).padStart(2, "0")} <i /> {period}
+            </small>
+            <Heading>{title}</Heading>
+            {overview && <p>{overview}</p>}
+          </span>
+        </button>
+
+        <div className="sk-era-banner-actions">
+          {slug && (
+            <Link href={`/giai-doan/${slug}`} className="sk-era-banner-link" title="Khám phá chi tiết thời kỳ">
+              <span>Xem thời kỳ</span>
+              <ArrowUpRight size={14} />
+            </Link>
+          )}
+          <button
+            type="button"
+            className="sk-era-toggle-btn"
+            onClick={() => setOpen(!open)}
+            aria-label={open ? "Thu gọn thời kỳ" : "Mở rộng thời kỳ"}
+          >
+            <ChevronDown className={open ? "" : "sk-rotate"} size={20} />
+          </button>
+        </div>
+      </div>
       <AnimatePresence>
         {open && (
           <motion.div
@@ -71,6 +89,7 @@ export function SubEraSection({
   onSave,
   saved,
   onActive,
+  hideSubHeading = false,
 }: {
   subEra: SubEra;
   compact: boolean;
@@ -78,6 +97,7 @@ export function SubEraSection({
   onSave: (id: string) => void;
   saved: string[];
   onActive: (id: string) => void;
+  hideSubHeading?: boolean;
 }) {
   return (
     <motion.section
@@ -86,17 +106,19 @@ export function SubEraSection({
       onViewportEnter={() => onActive(s.id)}
       viewport={{ amount: 0.2 }}
     >
-      <div className="sk-sub-heading">
-        <div>
-          <span className="sk-sub-marker" />
-          <Link href={`/giai-doan/${s.slug}`} className="sk-sub-link" title="Xem chi tiết giai đoạn">
-            <Heading level={3}>{s.title}</Heading>
-            <ArrowUpRight size={14} />
-          </Link>
-          <Badge>{s.periodLabel}</Badge>
-          <span className="sk-sub-count">{s.timeNodes.length} dấu mốc</span>
+      {!hideSubHeading && (
+        <div className="sk-sub-heading">
+          <div>
+            <span className="sk-sub-marker" />
+            <Link href={`/giai-doan/${s.slug}`} className="sk-sub-link" title="Xem chi tiết giai đoạn">
+              <Heading level={3}>{s.title}</Heading>
+              <ArrowUpRight size={14} />
+            </Link>
+            <Badge>{s.periodLabel}</Badge>
+            <span className="sk-sub-count">{s.timeNodes.length} dấu mốc</span>
+          </div>
         </div>
-      </div>
+      )}
       <div className="sk-nodes">
         <div className="sk-spine" />
         {s.timeNodes.map((node, index) => {

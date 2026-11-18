@@ -8,7 +8,7 @@ import {
 } from "./TimelineNodes";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
-import { ArrowDownUp, ArrowRight, BookOpen, Landmark, Network, Search, X } from "lucide-react";
+import { ArrowDownUp, ArrowRight, Landmark, Network, Search, X } from "lucide-react";
 import { Button, Heading, compactPeriod } from "./TimelineChrome";
 import { EMPTY_FILTERS, FilterBar, type TimelineFilters } from "./TimelineChrome";
 import { FilterSheet } from "./TimelineChrome";
@@ -385,22 +385,29 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                       saved={saved}
                     />
                   ) : (
-                    eras.map((e, ei) => (
-                      <EraSection key={e.id} title={e.title} slug={e.slug} period={e.periodLabel} index={ei} overview={e.overview}>
-                        <motion.div key="spine-progress" className="sk-spine-progress" style={{ scaleY: progress }} />
-                        {e.subEras.map((s) => (
-                          <SubEraSection
-                            key={`${s.id}-${query}-${filterKey}-${bookmarksOnly}`}
-                            subEra={s}
-                            compact={compact}
-                            onDetail={setDetail}
-                            onSave={toggleSaved}
-                            saved={saved}
-                            onActive={setActive}
-                          />
-                        ))}
-                      </EraSection>
-                    ))
+                    eras.map((e, ei) => {
+                      const isSingleSub = e.subEras.length === 1;
+                      return (
+                        <EraSection key={e.id} title={e.title} slug={e.slug} period={e.periodLabel} index={ei} overview={e.overview}>
+                          <motion.div key="spine-progress" className="sk-spine-progress" style={{ scaleY: progress }} />
+                          {e.subEras.map((s) => {
+                            const isDuplicateTitle = isSingleSub || s.title.trim().toLowerCase() === e.title.trim().toLowerCase();
+                            return (
+                              <SubEraSection
+                                key={`${s.id}-${query}-${filterKey}-${bookmarksOnly}`}
+                                subEra={s}
+                                compact={compact}
+                                onDetail={setDetail}
+                                onSave={toggleSaved}
+                                saved={saved}
+                                onActive={setActive}
+                                hideSubHeading={isDuplicateTitle}
+                              />
+                            );
+                          })}
+                        </EraSection>
+                      );
+                    })
                   )}
                 </motion.div>
               </AnimatePresence>
@@ -416,18 +423,6 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
       </div>
 
       <EventDetailModal detail={detail} onClose={() => setDetail(null)} onSelect={setDetail} onStep={moveEvent} />
-
-      {/* Nút Tab nổi tiện lợi ở mép phải màn hình: luôn xuất hiện để mở Mục lục bất kỳ lúc nào */}
-      <button
-        type="button"
-        className="sk-toc-floating-side-tab"
-        onClick={() => setTocOpen(true)}
-        title="Mục lục thời kỳ lịch sử"
-        aria-label="Mở mục lục thời kỳ"
-      >
-        <BookOpen size={15} />
-        <span>Mục lục</span>
-      </button>
 
       {/* Drawer Mục lục trượt từ mép phải ra (có ô tìm kiếm, chịu tải hàng trăm thời kỳ) */}
       <TocDrawer

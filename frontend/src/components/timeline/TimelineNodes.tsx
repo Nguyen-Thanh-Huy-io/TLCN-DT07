@@ -382,11 +382,25 @@ export function TimelineNodeItem({
         <span />
       </Button>
       <div className="sk-node-date">
-        <Button onClick={() => setExpanded(!expanded)}>{node.dateLabel}</Button>
-        <small>
-          {node.events.length} sự kiện <span>·</span> {node.figures.length} nhân vật <span>·</span>{" "}
-          {node.locations.length} địa điểm
-        </small>
+        <span className="sk-node-date-tag">Niên đại</span>
+        <Button onClick={() => setExpanded(!expanded)} className="sk-node-date-btn">
+          {node.dateLabel}
+        </Button>
+        <div className="sk-node-date-meta">
+          <span>{node.events.length} sự kiện</span>
+          {node.figures.length > 0 && (
+            <>
+              <i>·</i>
+              <span>{node.figures.length} nhân vật</span>
+            </>
+          )}
+          {node.locations.length > 0 && (
+            <>
+              <i>·</i>
+              <span>{node.locations.length} địa điểm</span>
+            </>
+          )}
+        </div>
       </div>
       <div className="sk-node-content">
         <AnimatePresence initial={false}>

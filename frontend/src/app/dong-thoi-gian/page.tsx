@@ -19,7 +19,7 @@ export default async function DongThoiGianPage() {
   const eventCount = eras.flatMap((e) => e.subEras.flatMap((s) => s.timeNodes.flatMap((n) => n.events))).length;
 
   return (
-    <main>
+    <main className="min-h-screen bg-[var(--bg-page)] text-[var(--text-body)]">
       <Header activeSectionId="timeline" />
       <TimelineExplorer eras={eras} hero={<TimelineHero key="timeline-hero" periodCount={eras.length} eventCount={eventCount} />} />
       <Footer />

@@ -263,7 +263,7 @@ export function NotificationBell({ variant = NotificationBellVariant.HEADER }: N
               setOpen((v) => !v);
               if (!open) fetchNotifications();
             }}
-            className="relative flex h-9 w-9 items-center justify-center rounded-full text-stone-700 transition-colors hover:bg-stone-200/60 focus:outline-none"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full text-[#F5EEDC] transition-colors hover:bg-white/10 hover:text-[#FFF6E3] focus:outline-none"
             title="Thông báo"
             aria-label="Xem thông báo"
           >

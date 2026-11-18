@@ -51,3 +51,26 @@
 .gs-group > header button { display: inline-flex; align-items: center; gap: 3px; padding: 2px 4px; border: 0; background: none; color: #8d2f2c; font-size: 12px; font-weight: 700; cursor: pointer; }
 .gs-group > header button:hover { text-decoration: underline; }
 .gs-meta { font-weight: 500; color: #8a7a55; }
+
+/* Tương thích với Header phong cách Sơn Son Thếp Vàng */
+header .gs-trigger {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(212, 174, 103, 0.38);
+  color: #F5EEDC;
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+header .gs-trigger:hover {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: #D4AE67;
+  color: #FFF6E3;
+}
+header .gs-trigger svg {
+  color: #D4AE67;
+}
+header .gs-trigger kbd {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(212, 174, 103, 0.3);
+  color: #F5EEDC;
+}

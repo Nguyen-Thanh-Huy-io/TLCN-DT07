@@ -174,7 +174,7 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[var(--bg-header)] backdrop-blur-md border-b border-[var(--border)] transition-all">
+    <header className="sticky top-0 z-50 w-full bg-gradient-to-r from-[#4E1015] via-[#65171D] to-[#4E1015] backdrop-blur-md border-b border-[#D4AE67]/35 shadow-[0_4px_24px_rgba(40,8,12,0.22)] transition-all">
       <div className="max-w-[1440px] mx-auto px-6 lg:px-8 h-16 md:h-20 flex items-center justify-between gap-4">
         {/* Left: Logo Hoa Sen + Text HISGO */}
         <Link
@@ -182,7 +182,7 @@ export function Header({
           className="flex items-center gap-3 shrink-0 group select-none"
         >
           {/* Lotus Flower SVG 7 cánh thanh thoát (2 sắc độ --gold và --gold-light) */}
-          <div className="text-[var(--gold)] flex items-center justify-center transition-transform group-hover:scale-105">
+          <div className="text-[#E7C77E] flex items-center justify-center transition-transform group-hover:scale-105 drop-shadow-[0_2px_8px_rgba(231,199,126,0.35)]">
             <svg
               width="36"
               height="36"
@@ -225,13 +225,13 @@ export function Header({
               />
             </svg>
           </div>
-          <span className="font-[family-name:var(--font-heading)] text-2xl md:text-3xl font-extrabold tracking-wider text-[var(--ink)]">
+          <span className="font-[family-name:var(--font-heading)] text-2xl md:text-3xl font-extrabold tracking-wider text-[#FFF6E3] drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
             HISGO
           </span>
         </Link>
 
         {/* Center: Desktop Navigation Bar */}
-        <nav className="hidden xl:flex items-center gap-4 2xl:gap-6">
+        <nav className="hidden xl:flex items-center gap-1.5 2xl:gap-2 p-1 rounded-full bg-black/20 border border-[#D4AE67]/25 backdrop-blur-sm">
           {navLinks.slice(0, 5).map((link) => {
             const isActive =
               link.id === NavLinkId.BLOG
@@ -244,19 +244,13 @@ export function Header({
                 key={link.id}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.href, link.id)}
-                className={`relative py-2 text-sm lg:text-[15px] font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-colors ${
+                className={`relative px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-all duration-200 ${
                   isActive
-                    ? "text-[var(--primary)] font-semibold"
-                    : "text-[var(--text-body)] hover:text-[var(--primary)]"
+                    ? "bg-gradient-to-r from-[#C99C48] via-[#B8893F] to-[#A67832] text-[#3D0A0E] font-bold shadow-[0_2px_8px_rgba(0,0,0,0.25)] border border-[#F3DEAB]/60"
+                    : "text-[#F5EEDC]/85 hover:text-[#FFF9ED] hover:bg-white/10"
                 }`}
               >
                 {link.label}
-                {isActive && (
-                  <span
-                    className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[var(--primary)] rounded-full transition-all"
-                    aria-hidden="true"
-                  />
-                )}
               </a>
             );
           })}
@@ -266,13 +260,13 @@ export function Header({
             <button
               type="button"
               onClick={() => setExploreOpen((v) => !v)}
-              className="flex items-center gap-1 py-2 text-sm lg:text-[15px] font-medium font-[family-name:var(--font-body)] whitespace-nowrap text-[var(--text-body)] hover:text-[var(--primary)] transition-colors"
+              className="flex items-center gap-1 px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap text-[#F5EEDC]/85 hover:text-[#FFF9ED] hover:bg-white/10 transition-all duration-200"
             >
               <span>Khám phá</span>
               <ChevronDown size={14} className={`transition-transform duration-200 ${exploreOpen ? "rotate-180" : ""}`} />
             </button>
             {exploreOpen && (
-              <div className="absolute left-0 mt-2 w-64 rounded-2xl border border-stone-200 bg-white p-2 shadow-xl z-50 text-sm animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute left-0 mt-2 w-64 rounded-2xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-surface,#FAF6EA)] p-2 shadow-2xl z-50 text-sm animate-in fade-in zoom-in-95 duration-150">
                 {exploreItems.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -280,14 +274,14 @@ export function Header({
                       key={item.href}
                       href={item.href}
                       onClick={() => setExploreOpen(false)}
-                      className="flex items-start gap-3 rounded-xl p-2.5 transition hover:bg-stone-50"
+                      className="flex items-start gap-3 rounded-xl p-2.5 transition hover:bg-[#F0E6CF]"
                     >
-                      <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-800">
+                      <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-[#EFE3C7] text-[#7A1F24]">
                         <Icon size={15} />
                       </div>
                       <div>
-                        <strong className="block text-xs font-bold text-stone-900">{item.label}</strong>
-                        <span className="block text-[11px] text-stone-500 leading-tight">{item.desc}</span>
+                        <strong className="block text-xs font-bold text-[var(--ink,#14233F)]">{item.label}</strong>
+                        <span className="block text-[11px] text-[var(--text-muted,#7A6B57)] leading-tight">{item.desc}</span>
                       </div>
                     </Link>
                   );
@@ -299,10 +293,10 @@ export function Header({
           {/* Link Luyện tập */}
           <Link
             href="/luyen-tap"
-            className={`relative py-2 text-sm lg:text-[15px] font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-colors ${
+            className={`relative px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-all duration-200 ${
               pathname?.startsWith("/luyen-tap")
-                ? "text-[var(--primary)] font-semibold"
-                : "text-[var(--text-body)] hover:text-[var(--primary)]"
+                ? "bg-gradient-to-r from-[#C99C48] via-[#B8893F] to-[#A67832] text-[#3D0A0E] font-bold shadow-[0_2px_8px_rgba(0,0,0,0.25)] border border-[#F3DEAB]/60"
+                : "text-[#F5EEDC]/85 hover:text-[#FFF9ED] hover:bg-white/10"
             }`}
           >
             Luyện tập
@@ -318,7 +312,7 @@ export function Header({
               <button
                 type="button"
                 onClick={() => setUserMenuOpen((v) => !v)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] text-[var(--ink)] hover:bg-[var(--bg-page)] transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] text-[#F5EEDC] hover:bg-white/10 transition-colors"
                 aria-expanded={userMenuOpen}
               >
                 {user.avatarUrl ? (
@@ -326,14 +320,14 @@ export function Header({
                   <img
                     src={user.avatarUrl}
                     alt=""
-                    className="h-8 w-8 rounded-full object-cover border border-[var(--border)]"
+                    className="h-8 w-8 rounded-full object-cover border-2 border-[#D4AE67]"
                   />
                 ) : (
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)] text-xs font-bold text-white">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-[#C99C48] to-[#B8893F] text-xs font-bold text-[#3D0A0E] shadow-sm">
                     {user.username?.slice(0, 2).toUpperCase() || user.email.slice(0, 2).toUpperCase()}
                   </span>
                 )}
-                <span className="hidden 2xl:inline max-w-[110px] truncate">{user.displayName || user.username || user.email}</span>
+                <span className="hidden 2xl:inline max-w-[110px] truncate text-[#FFF6E3] font-medium">{user.displayName || user.username || user.email}</span>
               </button>
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] py-1.5 shadow-xl z-50">
@@ -376,15 +370,15 @@ export function Header({
           ) : (
             <Link
               href={loginHref}
-              className="hidden xl:flex items-center gap-2 px-3.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium font-[family-name:var(--font-body)] text-[var(--ink)] hover:text-[var(--primary)] transition-colors"
+              className="hidden xl:flex items-center gap-2 px-4 py-2 rounded-full text-xs md:text-sm font-semibold font-[family-name:var(--font-body)] bg-gradient-to-r from-[#C99C48] via-[#B8893F] to-[#A67832] text-[#3D0A0E] hover:brightness-105 shadow-[0_2px_8px_rgba(0,0,0,0.2)] border border-[#F3DEAB]/60 transition-all"
             >
               <svg
-                width="18"
-                height="18"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 aria-hidden="true"
@@ -401,7 +395,7 @@ export function Header({
             ref={toggleButtonRef}
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="xl:hidden p-2 text-[var(--ink)] hover:text-[var(--primary)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+            className="xl:hidden p-2 text-[#F5EEDC] hover:text-[#D4AE67] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AE67]"
             aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu di động"}
             aria-expanded={mobileMenuOpen}
           >
@@ -437,7 +431,7 @@ export function Header({
 
           <div
             ref={menuRef}
-            className="absolute top-full left-0 right-0 border-b border-[var(--border)] bg-[var(--bg-surface)] px-6 py-6 space-y-3 shadow-2xl z-50 xl:hidden animate-fadeIn"
+            className="absolute top-full left-0 right-0 border-b border-[#D4AE67]/35 bg-[#521217] px-6 py-6 space-y-3 shadow-2xl z-50 xl:hidden animate-fadeIn"
           >
             {navLinks.map((link) => {
               const isActive = activeTab === link.id;
@@ -446,10 +440,10 @@ export function Header({
                   key={link.id}
                   href={link.href}
                   onClick={(e) => handleNavClick(e, link.href, link.id)}
-                  className={`block py-3 px-4 rounded-[var(--radius-btn)] text-base font-medium font-[family-name:var(--font-body)] transition-colors ${
+                  className={`block py-3 px-4 rounded-xl text-base font-medium font-[family-name:var(--font-body)] transition-colors ${
                     isActive
-                      ? "bg-[var(--bg-page)] text-[var(--primary)] font-bold border-l-4 border-[var(--primary)]"
-                      : "text-[var(--text-body)] hover:bg-[var(--bg-page)] hover:text-[var(--primary)]"
+                      ? "bg-gradient-to-r from-[#C99C48] to-[#B8893F] text-[#3D0A0E] font-bold border-l-4 border-[#F3DEAB] shadow-md"
+                      : "text-[#F5EEDC]/90 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   {link.label}
@@ -457,23 +451,23 @@ export function Header({
               );
             })}
 
-            <div className="pt-4 border-t border-[var(--border)]">
+            <div className="pt-4 border-t border-[#D4AE67]/25">
               {user ? (
                 <div className="space-y-2">
-                  <div className="px-4 text-sm text-[var(--text-body)] truncate">
-                    Đang đăng nhập: <strong className="text-[var(--ink)]">{user.username || user.email}</strong>
+                  <div className="px-4 text-sm text-[#F5EEDC]/80 truncate">
+                    Đang đăng nhập: <strong className="text-[#FFF6E3]">{user.displayName || user.username || user.email}</strong>
                   </div>
                   <Link
                     href="/tai-khoan"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block w-full py-3 px-4 bg-[var(--primary)] text-white text-center rounded-[var(--radius-btn)] font-medium text-sm"
+                    className="block w-full py-3 px-4 bg-gradient-to-r from-[#C99C48] via-[#B8893F] to-[#A67832] text-[#3D0A0E] text-center rounded-xl font-bold text-sm shadow-md"
                   >
                     Tài khoản của tôi
                   </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="w-full py-3 px-4 border border-[var(--border)] text-[var(--ink)] text-center rounded-[var(--radius-btn)] font-medium text-sm"
+                    className="w-full py-3 px-4 border border-[#D4AE67]/40 text-[#F5EEDC] text-center rounded-xl font-medium text-sm hover:bg-white/10 transition-colors"
                   >
                     Đăng xuất
                   </button>
@@ -482,7 +476,7 @@ export function Header({
                 <Link
                   href={loginHref}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full py-3 px-4 bg-[var(--primary)] text-white text-center rounded-[var(--radius-btn)] font-medium text-sm flex items-center justify-center gap-2"
+                  className="w-full py-3 px-4 bg-gradient-to-r from-[#C99C48] via-[#B8893F] to-[#A67832] text-[#3D0A0E] text-center rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md"
                 >
                   <span>Đăng nhập tài khoản</span>
                   <span aria-hidden="true">→</span>

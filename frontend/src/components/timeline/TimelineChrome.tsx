@@ -36,23 +36,7 @@ export function Heading({
   return <Tag className={className}>{children}</Tag>;
 }
 
-function Select({
-  value,
-  onChange,
-  label,
-  children,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
-      {children}
-    </select>
-  );
-}
+
 
 export function Modal({
   open,

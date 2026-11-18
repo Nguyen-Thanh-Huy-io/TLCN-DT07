@@ -12,6 +12,7 @@ describe('Dashboard E2E — tổng quan CMS', () => {
   let app: INestApplication;
   let editor: E2eUser;
   let learner: E2eUser;
+  let reviewer: E2eUser;
 
   jest.setTimeout(60000);
 
@@ -19,6 +20,7 @@ describe('Dashboard E2E — tổng quan CMS', () => {
     app = await createE2eApp();
     editor = await createE2eUser(app, UserRole.MODERATOR);
     learner = await createE2eUser(app, UserRole.USER);
+    reviewer = await createE2eUser(app, UserRole.ADMIN);
   });
 
   afterAll(async () => {
@@ -34,28 +36,44 @@ describe('Dashboard E2E — tổng quan CMS', () => {
       .expect(403);
   });
 
-  it('trả đủ số liệu, hoạt động gần đây, bài chờ duyệt và phân bổ nội dung', async () => {
+  it('trả kho nội dung theo loại / trạng thái, việc chờ duyệt, việc của tôi, hoạt động gần đây', async () => {
     const res = await request(app.getHttpServer())
       .get('/dashboard/overview')
       .set('Authorization', editor.auth)
       .expect(200);
 
-    const { counts, recentActivities, pendingLessons, distribution } =
+    const { contentStats, reviewCounts, myWork, recentActivities } =
       res.body.data;
-    for (const key of [
-      'articlesCount',
-      'topicsCount',
-      'lessonsCount',
-      'pendingLessonsCount',
-      'timelinesCount',
-      'totalKnowledgeCount',
-    ]) {
-      expect(typeof counts[key]).toBe('number');
+    expect(contentStats.map((s: { type: string }) => s.type)).toEqual([
+      'ARTICLE',
+      'LESSON',
+      'TIMELINE',
+      'QUIZ',
+    ]);
+    expect(typeof contentStats[0].byStatus.PUBLISHED).toBe('number');
+    for (const key of ['REVISION', 'ARTICLE', 'LESSON', 'BLOG', 'REPORT']) {
+      expect(typeof reviewCounts[key]).toBe('number');
     }
+    expect(myWork).toEqual(
+      expect.objectContaining({ drafts: 0, pending: 0, rejected: [] }),
+    );
     expect(Array.isArray(recentActivities)).toBe(true);
-    expect(Array.isArray(pendingLessons)).toBe(true);
-    for (const key of ['published', 'draft', 'pendingReview']) {
-      expect(typeof distribution[key]).toBe('number');
-    }
+  });
+
+  it('hàng chờ duyệt chỉ dành cho người duyệt', async () => {
+    await request(app.getHttpServer())
+      .get('/dashboard/review-queue')
+      .set('Authorization', learner.auth)
+      .expect(403);
+    const res = await request(app.getHttpServer())
+      .get('/dashboard/review-queue')
+      .set('Authorization', reviewer.auth)
+      .expect(200);
+    expect(res.body.data).toEqual(
+      expect.objectContaining({
+        total: expect.any(Number),
+        items: expect.any(Array),
+      }),
+    );
   });
 });

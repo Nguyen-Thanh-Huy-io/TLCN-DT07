@@ -15,6 +15,8 @@ export enum ReaderSource {
  */
 export const APP_ROUTES = {
   DASHBOARD: '/',
+  /** Trang tổng quan CMS (dashboard theo việc cần làm). */
+  CMS: '/cms',
   CURRICULUM: '/curriculum',
   TOPICS: {
     // Không có LIST riêng: trang bảng "danh sách chủ đề" độc lập (/topics) đã bị bỏ —
@@ -64,6 +66,14 @@ export enum QuizWorkspaceTab {
 export const QUIZ_WORKSPACE_TAB_PARAM = 'tab';
 export const quizWorkspaceRoute = (tab: QuizWorkspaceTab): string =>
   `${APP_ROUTES.QUIZZES}?${QUIZ_WORKSPACE_TAB_PARAM}=${tab}`;
+
+/**
+ * Hàng chờ duyệt `/review` gộp mọi loại việc duyệt, chọn tab qua `?tab=` (giá trị = ReviewQueueType
+ * ở services/entities/dashboard.service.ts, hoặc "ALL"). Trang cũ /blog-review, /moderation chuyển về đây.
+ */
+export const REVIEW_HUB_TAB_PARAM = 'tab';
+export const REVIEW_HUB_ALL_TAB = 'ALL';
+export const reviewHubRoute = (tab: string): string => `${APP_ROUTES.REVIEW}?${REVIEW_HUB_TAB_PARAM}=${tab}`;
 
 /* eslint-disable no-restricted-syntax -- Nơi định nghĩa tập trung các URL remote mẫu và protocol theo quy chuẩn ESLint */
 export const URL_PROTOCOLS = {

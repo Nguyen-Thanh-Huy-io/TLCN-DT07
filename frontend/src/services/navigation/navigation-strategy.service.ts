@@ -168,25 +168,7 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
       page: NavigationPageKey.REVIEW,
       route: APP_ROUTES.REVIEW,
       groupId: this.groupId,
-      subtitle: 'Kiểm duyệt chất lượng nội dung',
-    },
-    {
-      id: 'nav-blog-review',
-      label: NAV_ITEM_LABELS.BLOG_REVIEW,
-      icon: IconName.FILE,
-      page: NavigationPageKey.BLOG_REVIEW,
-      route: APP_ROUTES.BLOG_REVIEW,
-      groupId: this.groupId,
-      subtitle: 'Duyệt riêng blog và chỉnh sửa trước khi xuất bản',
-    },
-    {
-      id: 'nav-moderation',
-      label: NAV_ITEM_LABELS.MODERATION,
-      icon: IconName.SHIELD,
-      page: NavigationPageKey.MODERATION,
-      route: APP_ROUTES.MODERATION,
-      groupId: this.groupId,
-      subtitle: 'Giám sát AI Sentinel & xử lý báo cáo vi phạm cộng đồng',
+      subtitle: 'Bản sửa, bài viết, bài học, blog và báo cáo cộng đồng chờ xử lý',
     },
   ];
 
@@ -210,12 +192,11 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
         return this.items[0];
       case NavigationPageKey.SETTINGS:
         return this.items[1];
+      // Duyệt blog và kiểm duyệt báo cáo đã gộp vào Hàng chờ duyệt.
       case NavigationPageKey.REVIEW:
-        return this.items[2];
       case NavigationPageKey.BLOG_REVIEW:
-        return this.items[3];
       case NavigationPageKey.MODERATION:
-        return this.items[4];
+        return this.items[2];
       default:
         return this.items[0];
     }
@@ -285,11 +266,9 @@ export class NavigationFacade {
       case NavigationPageKey.SETTINGS:
         return NavigationPageKey.SETTINGS;
       case NavigationPageKey.REVIEW:
-        return NavigationPageKey.REVIEW;
       case NavigationPageKey.BLOG_REVIEW:
-        return NavigationPageKey.BLOG_REVIEW;
       case NavigationPageKey.MODERATION:
-        return NavigationPageKey.MODERATION;
+        return NavigationPageKey.REVIEW;
       default:
         return NavigationPageKey.CURRICULUM;
     }

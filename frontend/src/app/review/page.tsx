@@ -1,13 +1,10 @@
-import { ArticleReviewList } from '@/features/review/components/ArticleReviewList';
-import { ReviewList } from '@/features/review/components/ReviewList';
-import { RevisionReviewList } from '@/features/review/components/RevisionReviewList';
+import { Suspense } from 'react';
+import { ReviewHubView } from '@/features/review/components/ReviewHubView';
 
 export default function ReviewRoute() {
   return (
-    <>
-      <RevisionReviewList />
-      <ArticleReviewList />
-      <ReviewList />
-    </>
+    <Suspense fallback={null}>
+      <ReviewHubView />
+    </Suspense>
   );
 }

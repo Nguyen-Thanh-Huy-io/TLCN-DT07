@@ -37,6 +37,8 @@ export interface PageMetaItem {
   subtitle: string;
 }
 
+const REVIEW_HUB_TITLE = 'Hàng chờ duyệt';
+
 export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
   cms: {
     title: 'Tổng quan',
@@ -75,16 +77,17 @@ export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
     subtitle: 'Quản lý nhãn phân loại nội dung',
   },
   review: {
-    title: 'Duyệt bài học',
-    subtitle: 'Kiểm tra chất lượng trước khi xuất bản',
+    title: REVIEW_HUB_TITLE,
+    subtitle: 'Mọi việc cần duyệt ở một nơi',
   },
+  // Hai trang cũ chỉ còn chuyển hướng về Hàng chờ duyệt.
   'blog-review': {
-    title: 'Duyệt Blog',
-    subtitle: 'Chỉnh sửa, kiểm duyệt và xuất bản blog theo quy trình riêng',
+    title: REVIEW_HUB_TITLE,
+    subtitle: 'Blog',
   },
   moderation: {
-    title: 'Kiểm duyệt AI & Báo cáo Cộng đồng',
-    subtitle: 'Giám sát AI Sentinel tự động ẩn vi phạm, rà soát báo cáo và xử lý tài khoản tái phạm',
+    title: REVIEW_HUB_TITLE,
+    subtitle: 'Báo cáo cộng đồng',
   },
   users: {
     title: 'Người dùng',

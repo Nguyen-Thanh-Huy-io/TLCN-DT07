@@ -1,74 +1,151 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../common/services/prisma.service';
-import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { ContentStatus } from '@prisma/client';
+import { PrismaService } from '../common/services/prisma.service';
+import { loadAuthorNames, UNKNOWN_AUTHOR } from './author-names';
 import {
+  DashboardContentType,
+  MY_REJECTED_LIMIT,
+  RECENT_ACTIVITY_LIMIT,
+  RecentActivityType,
+  ReviewQueueType,
+} from './dashboard.constant';
+import {
+  ContentStatDto,
   DashboardOverviewResponseDto,
+  MyWorkDto,
   RecentActivityItemDto,
-  PendingLessonItemDto,
 } from './dto/dashboard-overview.dto';
+import { ReviewQueueService } from './review-queue.service';
 
-/** Chủ đề chưa lưu người tạo; bài học tạo trước khi có cột created_by. */
-const UNKNOWN_AUTHOR = '—';
-const NOT_IN_PATH = 'Chưa gắn vào lộ trình nào';
+type StatusGroup = { status: ContentStatus; _count: { _all: number } };
+
+/** Số lượng theo đủ mọi trạng thái (trạng thái không có bản ghi = 0). */
+function toStat(
+  type: DashboardContentType,
+  groups: StatusGroup[],
+): ContentStatDto {
+  const countOf = (status: ContentStatus) =>
+    groups.find((g) => g.status === status)?._count._all ?? 0;
+  const byStatus: Record<ContentStatus, number> = {
+    [ContentStatus.DRAFT]: countOf(ContentStatus.DRAFT),
+    [ContentStatus.PENDING_REVIEW]: countOf(ContentStatus.PENDING_REVIEW),
+    [ContentStatus.PUBLISHED]: countOf(ContentStatus.PUBLISHED),
+    [ContentStatus.REJECTED]: countOf(ContentStatus.REJECTED),
+    [ContentStatus.ARCHIVED]: countOf(ContentStatus.ARCHIVED),
+  };
+  const total = Object.values(byStatus).reduce((sum, n) => sum + n, 0);
+  return { type, total, byStatus };
+}
 
 @Injectable()
 export class DashboardService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly logger: CustomLoggerService,
+    private readonly reviewQueue: ReviewQueueService,
   ) {}
 
-  /**
-   * Facade method tập hợp toàn bộ số liệu thống kê và hoạt động gần đây của CMS
-   */
-  async getOverview(): Promise<DashboardOverviewResponseDto> {
-    this.logger.log(
-      'Fetching CMS dashboard overview statistics',
-      'DashboardService',
-    );
-
+  async getOverview(userId: string): Promise<DashboardOverviewResponseDto> {
     const [
-      articlesCount,
-      topicsCount,
-      lessonsCount,
-      pendingLessonsCount,
-      timelinesCount,
-      publishedLessons,
-      draftLessons,
-      archivedLessons,
-      recentLessons,
-      recentTopics,
-      recentArticles,
-      pendingLessonsRaw,
+      articleGroups,
+      lessonGroups,
+      timelineGroups,
+      quizCount,
+      reviewCounts,
+      myWork,
+      recentActivities,
     ] = await Promise.all([
-      this.prisma.article.count(),
-      this.prisma.topic.count(),
-      this.prisma.lesson.count(),
-      this.prisma.lesson.count({
-        where: { status: ContentStatus.PENDING_REVIEW },
-      }),
-      this.prisma.timeline.count(),
-      this.prisma.lesson.count({
-        where: { status: ContentStatus.PUBLISHED },
-      }),
-      this.prisma.lesson.count({
-        where: { status: ContentStatus.DRAFT },
-      }),
-      this.prisma.lesson.count({
-        where: { status: ContentStatus.ARCHIVED },
+      this.prisma.article.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.lesson.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.timeline.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.quiz.count(),
+      this.reviewQueue.counts(),
+      this.getMyWork(userId),
+      this.getRecentActivities(),
+    ]);
+
+    return {
+      contentStats: [
+        toStat(DashboardContentType.ARTICLE, articleGroups),
+        toStat(DashboardContentType.LESSON, lessonGroups),
+        toStat(DashboardContentType.TIMELINE, timelineGroups),
+        { type: DashboardContentType.QUIZ, total: quizCount, byStatus: null },
+      ],
+      reviewCounts,
+      myWork,
+      recentActivities,
+    };
+  }
+
+  /** Bản nháp / chờ duyệt / bị từ chối của chính người đăng nhập (bài học + bài viết họ tạo). */
+  private async getMyWork(userId: string): Promise<MyWorkDto> {
+    const mine = (status: ContentStatus) => ({ createdBy: userId, status });
+    const rejectedSelect = {
+      id: true,
+      title: true,
+      rejectionReason: true,
+      updatedAt: true,
+    };
+    const latestRejected = {
+      take: MY_REJECTED_LIMIT,
+      orderBy: { updatedAt: 'desc' as const },
+      select: rejectedSelect,
+    };
+    const [
+      articleDrafts,
+      lessonDrafts,
+      articlePending,
+      lessonPending,
+      articleRejectedCount,
+      lessonRejectedCount,
+      articleRejected,
+      lessonRejected,
+    ] = await Promise.all([
+      this.prisma.article.count({ where: mine(ContentStatus.DRAFT) }),
+      this.prisma.lesson.count({ where: mine(ContentStatus.DRAFT) }),
+      this.prisma.article.count({ where: mine(ContentStatus.PENDING_REVIEW) }),
+      this.prisma.lesson.count({ where: mine(ContentStatus.PENDING_REVIEW) }),
+      this.prisma.article.count({ where: mine(ContentStatus.REJECTED) }),
+      this.prisma.lesson.count({ where: mine(ContentStatus.REJECTED) }),
+      this.prisma.article.findMany({
+        where: mine(ContentStatus.REJECTED),
+        ...latestRejected,
       }),
       this.prisma.lesson.findMany({
-        take: 5,
-        orderBy: { updatedAt: 'desc' },
+        where: mine(ContentStatus.REJECTED),
+        ...latestRejected,
       }),
-      this.prisma.topic.findMany({
-        take: 3,
-        orderBy: { updatedAt: 'desc' },
-      }),
-      this.prisma.article.findMany({
-        take: 5,
-        orderBy: { updatedAt: 'desc' },
+    ]);
+
+    const rejected = [
+      ...articleRejected.map((a) => ({
+        ...a,
+        type: ReviewQueueType.ARTICLE as const,
+      })),
+      ...lessonRejected.map((l) => ({
+        ...l,
+        type: ReviewQueueType.LESSON as const,
+      })),
+    ]
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      .slice(0, MY_REJECTED_LIMIT);
+
+    return {
+      drafts: articleDrafts + lessonDrafts,
+      pending: articlePending + lessonPending,
+      rejectedCount: articleRejectedCount + lessonRejectedCount,
+      rejected,
+    };
+  }
+
+  /** Nội dung vừa cập nhật (bài học, chủ đề, bài viết), mới nhất trước. */
+  private async getRecentActivities(): Promise<RecentActivityItemDto[]> {
+    const latest = {
+      take: RECENT_ACTIVITY_LIMIT,
+      orderBy: { updatedAt: 'desc' as const },
+    };
+    const [lessons, topics, articles] = await Promise.all([
+      this.prisma.lesson.findMany({
+        ...latest,
         select: {
           id: true,
           title: true,
@@ -77,122 +154,54 @@ export class DashboardService {
           updatedAt: true,
         },
       }),
-      this.prisma.lesson.findMany({
-        where: { status: ContentStatus.PENDING_REVIEW },
-        take: 5,
-        orderBy: { updatedAt: 'desc' },
-        include: {
-          chapterLessons: {
-            take: 1,
-            include: {
-              chapter: {
-                select: {
-                  title: true,
-                  learningPath: { select: { title: true } },
-                },
-              },
-            },
-          },
+      this.prisma.topic.findMany({
+        ...latest,
+        select: { id: true, name: true, status: true, updatedAt: true },
+      }),
+      this.prisma.article.findMany({
+        ...latest,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          createdBy: true,
+          updatedAt: true,
         },
       }),
     ]);
+    const nameOf = await loadAuthorNames(this.prisma, [
+      ...lessons.map((l) => l.createdBy),
+      ...articles.map((a) => a.createdBy),
+    ]);
 
-    // Tên người soạn thật (lesson.createdBy là id tài khoản) — chỉ bài học có cột này.
-    const authorIds = [
-      ...new Set(
-        [...recentLessons, ...pendingLessonsRaw, ...recentArticles]
-          .map((l) => l.createdBy)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    ];
-    const authors = await this.prisma.authUser.findMany({
-      where: { id: { in: authorIds } },
-      select: {
-        id: true,
-        username: true,
-        userProfile: { select: { firstName: true, lastName: true } },
-      },
-    });
-    const authorName = (id: string | null) => {
-      const user = authors.find((a) => a.id === id);
-      if (!user) return UNKNOWN_AUTHOR;
-      const full = [user.userProfile?.lastName, user.userProfile?.firstName]
-        .filter(Boolean)
-        .join(' ');
-      return full || user.username;
-    };
-
-    // Chuyển đổi dữ liệu các thực thể thành danh sách hoạt động gần đây
-    const activities: RecentActivityItemDto[] = [
-      ...recentLessons.map((l) => ({
+    return [
+      ...lessons.map((l) => ({
         id: l.id,
         title: l.title,
-        type: 'LESSON' as const,
+        type: RecentActivityType.LESSON,
         status: l.status,
-        authorName: authorName(l.createdBy),
+        authorName: nameOf(l.createdBy),
         updatedAt: l.updatedAt,
-        route: `/lessons?highlight=${l.id}`,
       })),
-      ...recentTopics.map((t) => ({
+      // Chủ đề chưa lưu người tạo.
+      ...topics.map((t) => ({
         id: t.id,
         title: t.name,
-        type: 'TOPIC' as const,
+        type: RecentActivityType.TOPIC,
         status: t.status,
         authorName: UNKNOWN_AUTHOR,
         updatedAt: t.updatedAt,
-        route: `/topics?highlight=${t.id}`,
       })),
-      ...recentArticles.map((a) => ({
+      ...articles.map((a) => ({
         id: a.id,
         title: a.title,
-        type: 'ARTICLE' as const,
+        type: RecentActivityType.ARTICLE,
         status: a.status,
-        authorName: authorName(a.createdBy),
+        authorName: nameOf(a.createdBy),
         updatedAt: a.updatedAt,
-        route: `/articles/${a.id}`,
       })),
-    ];
-
-    // Sắp xếp theo thời gian mới nhất và lấy tối đa 6 hoạt động
-    activities.sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    );
-    const recentActivities = activities.slice(0, 6);
-
-    const pendingLessons: PendingLessonItemDto[] = pendingLessonsRaw.map(
-      (pl) => ({
-        id: pl.id,
-        title: pl.title,
-        topicName: pl.chapterLessons[0]
-          ? `${pl.chapterLessons[0].chapter.learningPath.title} › ${pl.chapterLessons[0].chapter.title}`
-          : NOT_IN_PATH,
-        creatorName: authorName(pl.createdBy),
-        createdAt: pl.createdAt,
-        submittedAt: pl.updatedAt,
-        route: `/review?lessonId=${pl.id}`,
-      }),
-    );
-
-    return {
-      counts: {
-        articlesCount,
-        topicsCount,
-        lessonsCount,
-        pendingLessonsCount,
-        timelinesCount,
-        totalKnowledgeCount:
-          articlesCount + topicsCount + lessonsCount + timelinesCount,
-      },
-      recentActivities,
-      pendingLessons,
-      distribution: {
-        published: publishedLessons,
-        draft: draftLessons,
-        pendingReview: pendingLessonsCount,
-        archived: archivedLessons,
-        rejected: 0,
-      },
-    };
+    ]
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      .slice(0, RECENT_ACTIVITY_LIMIT);
   }
 }

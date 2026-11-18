@@ -81,20 +81,8 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
 
     case APP_ROUTES.REVIEW:
       return {
-        title: 'Duyệt bài học',
-        subtitle: 'Kiểm duyệt chất lượng và phê duyệt xuất bản bài học',
-      };
-
-    case APP_ROUTES.BLOG_REVIEW:
-      return {
-        title: 'Duyệt Blog',
-        subtitle: 'Kiểm duyệt và chỉnh sửa nội dung blog trước khi xuất bản',
-      };
-
-    case APP_ROUTES.MODERATION:
-      return {
-        title: 'Kiểm duyệt AI & Báo cáo Cộng đồng',
-        subtitle: 'Giám sát AI Sentinel tự động ẩn vi phạm, rà soát báo cáo và xử lý tài khoản tái phạm',
+        title: 'Hàng chờ duyệt',
+        subtitle: 'Mọi việc cần duyệt ở một nơi: bản sửa, bài viết, bài học, blog, báo cáo cộng đồng',
       };
 
     case APP_ROUTES.USERS:
@@ -119,6 +107,12 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
       return {
         title: 'Thống kê học tập và hoạt động',
         subtitle: 'Báo cáo chỉ số người học, tỷ lệ hoàn thành và nhật ký vận hành',
+      };
+
+    case APP_ROUTES.CMS:
+      return {
+        title: 'Tổng quan',
+        subtitle: 'Việc cần làm của bạn và tình trạng kho nội dung',
       };
 
     case APP_ROUTES.SETTINGS:

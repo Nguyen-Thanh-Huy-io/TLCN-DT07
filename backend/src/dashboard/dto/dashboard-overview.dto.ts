@@ -1,96 +1,82 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ContentStatus } from '@prisma/client';
+import {
+  DashboardContentType,
+  RecentActivityType,
+  ReviewQueueType,
+} from '../dashboard.constant';
 
-export class DashboardCountsDto {
-  @ApiProperty({ description: 'Tổng số bài viết', example: 120 })
-  articlesCount: number;
+export class ContentStatDto {
+  @ApiProperty({ enum: DashboardContentType })
+  type: DashboardContentType;
 
-  @ApiProperty({ description: 'Tổng số chủ đề', example: 48 })
-  topicsCount: number;
+  @ApiProperty({ description: 'Tổng số' })
+  total: number;
 
-  @ApiProperty({ description: 'Tổng số bài học', example: 126 })
-  lessonsCount: number;
+  @ApiPropertyOptional({
+    description:
+      'Số lượng theo trạng thái (ContentStatus); null với loại không có trạng thái (Đề thi)',
+    example: {
+      DRAFT: 2,
+      PENDING_REVIEW: 1,
+      PUBLISHED: 20,
+      REJECTED: 0,
+      ARCHIVED: 0,
+    },
+  })
+  byStatus: Record<ContentStatus, number> | null;
+}
 
-  @ApiProperty({ description: 'Số bài học đang chờ duyệt', example: 8 })
-  pendingLessonsCount: number;
+export class MyRejectedItemDto {
+  @ApiProperty() id: string;
+  @ApiProperty({ enum: [ReviewQueueType.ARTICLE, ReviewQueueType.LESSON] })
+  type: ReviewQueueType.ARTICLE | ReviewQueueType.LESSON;
+  @ApiProperty() title: string;
+  @ApiPropertyOptional() rejectionReason: string | null;
+  @ApiProperty() updatedAt: Date;
+}
 
-  @ApiProperty({ description: 'Tổng số dòng thời gian', example: 8 })
-  timelinesCount: number;
+/** Việc của chính người đang đăng nhập (bài học + bài viết do họ tạo). */
+export class MyWorkDto {
+  @ApiProperty({ description: 'Bản nháp của tôi' })
+  drafts: number;
 
-  @ApiProperty({ description: 'Tổng số đơn vị tri thức', example: 250 })
-  totalKnowledgeCount: number;
+  @ApiProperty({ description: 'Bài của tôi đang chờ duyệt' })
+  pending: number;
+
+  @ApiProperty({ description: 'Tổng số bài của tôi bị từ chối' })
+  rejectedCount: number;
+
+  @ApiProperty({
+    type: [MyRejectedItemDto],
+    description: 'Bài bị từ chối mới nhất, kèm lý do',
+  })
+  rejected: MyRejectedItemDto[];
 }
 
 export class RecentActivityItemDto {
-  @ApiProperty({ description: 'Mã định danh entity' })
-  id: string;
-
-  @ApiProperty({ description: 'Tiêu đề nội dung' })
-  title: string;
-
-  @ApiProperty({
-    description: 'Phân loại nội dung',
-    enum: ['LESSON', 'TOPIC', 'ARTICLE'],
-  })
-  type: 'LESSON' | 'TOPIC' | 'ARTICLE';
-
-  @ApiProperty({ description: 'Trạng thái nội dung' })
-  status: ContentStatus | string;
-
-  @ApiProperty({ description: 'Tên người thực hiện / người tạo' })
+  @ApiProperty() id: string;
+  @ApiProperty() title: string;
+  @ApiProperty({ enum: RecentActivityType }) type: RecentActivityType;
+  @ApiProperty({ enum: ContentStatus }) status: ContentStatus;
+  @ApiProperty({ description: 'Người tạo; "—" khi chưa lưu' })
   authorName: string;
-
-  @ApiProperty({ description: 'Thời gian cập nhật gần nhất' })
-  updatedAt: Date | string;
-
-  @ApiProperty({ description: 'Đường dẫn liên kết quản trị' })
-  route: string;
-}
-
-export class PendingLessonItemDto {
-  @ApiProperty({ description: 'ID bài học' })
-  id: string;
-
-  @ApiProperty({ description: 'Tiêu đề bài học' })
-  title: string;
-
-  @ApiProperty({ description: 'Tên chủ đề chứa bài học' })
-  topicName: string;
-
-  @ApiProperty({ description: 'Tên hoặc email người tạo' })
-  creatorName: string;
-
-  @ApiProperty({ description: 'Thời gian gửi duyệt' })
-  createdAt: Date | string;
-}
-
-export class ContentDistributionDto {
-  @ApiProperty({ description: 'Số bài học đã xuất bản (PUBLISHED)' })
-  published: number;
-
-  @ApiProperty({ description: 'Số bài học bản nháp (DRAFT)' })
-  draft: number;
-
-  @ApiProperty({ description: 'Số bài học chờ duyệt (PENDING_REVIEW)' })
-  pendingReview: number;
-
-  @ApiProperty({ description: 'Số bài học đã lưu trữ (ARCHIVED)' })
-  archived: number;
-
-  @ApiProperty({ description: 'Số bài học bị từ chối (REJECTED)' })
-  rejected: number;
+  @ApiProperty() updatedAt: Date;
 }
 
 export class DashboardOverviewResponseDto {
-  @ApiProperty({ type: DashboardCountsDto })
-  counts: DashboardCountsDto;
+  @ApiProperty({ type: [ContentStatDto] })
+  contentStats: ContentStatDto[];
+
+  @ApiProperty({
+    description: 'Số việc chờ duyệt theo loại',
+    example: { REVISION: 1, ARTICLE: 0, LESSON: 2, BLOG: 0, REPORT: 3 },
+  })
+  reviewCounts: Record<ReviewQueueType, number>;
+
+  @ApiProperty({ type: MyWorkDto })
+  myWork: MyWorkDto;
 
   @ApiProperty({ type: [RecentActivityItemDto] })
   recentActivities: RecentActivityItemDto[];
-
-  @ApiProperty({ type: [PendingLessonItemDto] })
-  pendingLessons: PendingLessonItemDto[];
-
-  @ApiProperty({ type: ContentDistributionDto })
-  distribution: ContentDistributionDto;
 }

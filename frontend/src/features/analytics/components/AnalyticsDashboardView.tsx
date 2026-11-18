@@ -4,7 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
 import { StatCard } from '@/components/common/CommonUi';
-import { DashboardApiService, DashboardOverviewData } from '@/services/entities/dashboard.service';
+import {
+  DashboardApiService,
+  DashboardContentType,
+  ReviewQueueType,
+  statOf,
+  type DashboardOverviewData,
+} from '@/services/entities/dashboard.service';
+import { ContentStatus } from '@/constants/enums';
 import { formatTimeAgo } from '@/utils/common';
 
 export function AnalyticsDashboardView() {
@@ -26,8 +33,15 @@ export function AnalyticsDashboardView() {
     loadStats();
   }, []);
 
-  const counts = data?.counts;
-  const distribution = data?.distribution;
+  const lessonStat = statOf(data, DashboardContentType.LESSON);
+  const totalOf = (type: DashboardContentType) => statOf(data, type)?.total ?? 0;
+  const lessonsWith = (status: ContentStatus) => lessonStat?.byStatus?.[status] ?? 0;
+  const distribution = {
+    published: lessonsWith(ContentStatus.PUBLISHED),
+    draft: lessonsWith(ContentStatus.DRAFT),
+    pendingReview: lessonsWith(ContentStatus.PENDING_REVIEW),
+    archived: lessonsWith(ContentStatus.ARCHIVED),
+  };
   const totalContent =
     (distribution?.published ?? 0) +
     (distribution?.draft ?? 0) +
@@ -51,25 +65,25 @@ export function AnalyticsDashboardView() {
         <StatCard
           icon={IconName.BOOK}
           label="Tổng bài học"
-          value={loading ? '...' : String(counts?.lessonsCount ?? 0)}
+          value={loading ? '...' : String(totalOf(DashboardContentType.LESSON))}
           detail="Bài giảng trong hệ thống"
         />
         <StatCard
           icon={IconName.CLOCK}
           label="Bài viết"
-          value={loading ? '...' : String(counts?.articlesCount ?? 0)}
+          value={loading ? '...' : String(totalOf(DashboardContentType.ARTICLE))}
           detail="Nhân vật, sự kiện, di tích…"
         />
         <StatCard
           icon={IconName.CALENDAR}
           label="Dòng thời gian"
-          value={loading ? '...' : String(counts?.timelinesCount ?? 0)}
+          value={loading ? '...' : String(totalOf(DashboardContentType.TIMELINE))}
           detail="Trình tự các mốc lịch sử"
         />
         <StatCard
           icon={IconName.CHECK}
           label="Bài học chờ duyệt"
-          value={loading ? '...' : String(counts?.pendingLessonsCount ?? 0)}
+          value={loading ? '...' : String(data?.reviewCounts[ReviewQueueType.LESSON] ?? 0)}
           detail="Yêu cầu kiểm duyệt"
         />
       </div>

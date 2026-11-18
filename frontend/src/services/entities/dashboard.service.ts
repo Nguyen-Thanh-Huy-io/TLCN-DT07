@@ -1,75 +1,97 @@
 import api from '../api';
 import { ContentStatus } from '@/constants/enums';
 
+/** Khớp DashboardContentType ở backend/src/dashboard/dashboard.constant.ts. */
+export enum DashboardContentType {
+  ARTICLE = 'ARTICLE',
+  LESSON = 'LESSON',
+  TIMELINE = 'TIMELINE',
+  QUIZ = 'QUIZ',
+}
+
+/** Khớp ReviewQueueType ở backend/src/dashboard/dashboard.constant.ts. */
+export enum ReviewQueueType {
+  REVISION = 'REVISION',
+  ARTICLE = 'ARTICLE',
+  LESSON = 'LESSON',
+  BLOG = 'BLOG',
+  REPORT = 'REPORT',
+}
+
 export enum DashboardActivityType {
   LESSON = 'LESSON',
   TOPIC = 'TOPIC',
   ARTICLE = 'ARTICLE',
 }
 
-export interface DashboardCounts {
-  articlesCount: number;
-  topicsCount: number;
-  lessonsCount: number;
-  pendingLessonsCount: number;
-  timelinesCount: number;
-  totalKnowledgeCount: number;
+export interface ContentStat {
+  type: DashboardContentType;
+  total: number;
+  /** null với loại không có trạng thái (Đề thi). */
+  byStatus: Record<ContentStatus, number> | null;
+}
+
+export interface MyRejectedItem {
+  id: string;
+  type: ReviewQueueType.ARTICLE | ReviewQueueType.LESSON;
+  title: string;
+  rejectionReason: string | null;
+  updatedAt: string;
+}
+
+export interface MyWork {
+  drafts: number;
+  pending: number;
+  rejectedCount: number;
+  rejected: MyRejectedItem[];
 }
 
 export interface RecentActivityItem {
   id: string;
   title: string;
-  type: DashboardActivityType | 'LESSON' | 'TOPIC' | 'ARTICLE';
+  type: DashboardActivityType;
   status: ContentStatus;
   authorName: string;
   updatedAt: string;
-  route: string;
 }
 
-export interface PendingLessonItem {
-  id: string;
-  title: string;
-  topicName: string;
-  creatorName: string;
-  createdAt: string;
-}
-
-export interface ContentDistribution {
-  published: number;
-  draft: number;
-  pendingReview: number;
-  archived: number;
-  rejected: number;
-}
+export type ReviewCounts = Record<ReviewQueueType, number>;
 
 export interface DashboardOverviewData {
-  counts: DashboardCounts;
+  contentStats: ContentStat[];
+  reviewCounts: ReviewCounts;
+  myWork: MyWork;
   recentActivities: RecentActivityItem[];
-  pendingLessons: PendingLessonItem[];
-  distribution: ContentDistribution;
 }
 
+export interface ReviewQueueItem {
+  id: string;
+  type: ReviewQueueType;
+  title: string;
+  submitterName: string;
+  submittedAt: string;
+}
+
+export interface ReviewQueueData {
+  counts: ReviewCounts;
+  total: number;
+  /** Chờ lâu nhất trước. */
+  items: ReviewQueueItem[];
+}
+
+export const statOf = (data: DashboardOverviewData | null, type: DashboardContentType) =>
+  data?.contentStats.find((s) => s.type === type);
+
 export class DashboardApiService {
-  /**
-   * Lấy số liệu tổng quan CMS. Không còn dữ liệu mẫu dự phòng: lỗi được ném ra để
-   * màn hình báo lỗi thật, danh sách rỗng thì hiển thị trạng thái rỗng.
-   */
+  /** Lỗi được ném ra để màn hình báo lỗi thật (không có dữ liệu mẫu dự phòng). */
   static async getOverview(): Promise<DashboardOverviewData> {
-    const response = await api.get('/dashboard/overview');
-    const data = response.data?.data || response.data;
-    if (!data?.counts) throw new Error('Dữ liệu thống kê không hợp lệ.');
-    return {
-      counts: {
-        articlesCount: data.counts.articlesCount ?? 0,
-        topicsCount: data.counts.topicsCount ?? 0,
-        lessonsCount: data.counts.lessonsCount ?? 0,
-        pendingLessonsCount: data.counts.pendingLessonsCount ?? 0,
-        timelinesCount: data.counts.timelinesCount ?? 0,
-        totalKnowledgeCount: data.counts.totalKnowledgeCount ?? 0,
-      },
-      recentActivities: Array.isArray(data.recentActivities) ? data.recentActivities : [],
-      pendingLessons: Array.isArray(data.pendingLessons) ? data.pendingLessons : [],
-      distribution: data.distribution ?? { published: 0, draft: 0, pendingReview: 0, archived: 0, rejected: 0 },
-    };
+    const res = await api.get<{ data: DashboardOverviewData }>('/dashboard/overview');
+    return res.data.data;
+  }
+
+  /** Hàng chờ duyệt gộp mọi loại — chỉ người duyệt gọi được. */
+  static async getReviewQueue(): Promise<ReviewQueueData> {
+    const res = await api.get<{ data: ReviewQueueData }>('/dashboard/review-queue');
+    return res.data.data;
   }
 }

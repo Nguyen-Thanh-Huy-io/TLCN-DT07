@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { BarChart3, Clock, Filter, Play, RotateCcw, ShieldCheck } from 'lucide-react';
+import { formatExamTime } from '../utils/practice-quiz.helper';
 
 /** Còn ≤ 60 giây thì đồng hồ chuyển đỏ nhấp nháy. */
 const TIME_WARNING_SECONDS = 60;
@@ -27,12 +28,6 @@ interface QuizExamSidebarProps {
   onJumpToQuestion: (index: number) => void;
   isStaff: boolean;
   onOpenStatistics: () => void;
-}
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
 function gridCellClass(isAnswered: boolean, isCorrect: boolean | undefined): string {
@@ -68,8 +63,8 @@ export function QuizExamSidebar({
   const totalQuestions = answered.length;
 
   return (
-    <div className="lg:col-span-4 sticky top-24 space-y-4">
-      <div className="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-sm text-center">
+    <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-4">
+      <div className="hidden lg:block p-5 rounded-2xl bg-white border border-stone-200/90 shadow-sm text-center">
         <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center justify-center gap-1.5">
           <Clock size={14} className="text-[#8B261E]" /> Thời gian làm bài
         </div>
@@ -79,7 +74,7 @@ export function QuizExamSidebar({
             isTimeRunningOut ? 'text-rose-600 animate-pulse' : 'text-stone-900'
           }`}
         >
-          {formatTime(displaySeconds)}
+          {formatExamTime(displaySeconds)}
         </div>
 
         {!examStarted && !submitted && (

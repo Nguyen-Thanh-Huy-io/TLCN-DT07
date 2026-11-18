@@ -231,7 +231,7 @@ function OrderingQuestionBody({
   return (
     <div className="mt-5 space-y-2">
       <p className="text-xs font-medium text-lh-muted italic">
-        (Kéo thả trực tiếp hoặc bấm mũi tên Lên/Xuống để sắp xếp các mốc theo đúng thứ tự thời gian từ trước đến sau)
+        (Kéo thả hoặc dùng mũi tên để xếp từ sớm đến muộn)
       </p>
       {order.map((itemId, idx) => {
         const isPositionCorrect = submitted && q.correctOrder[idx] === itemId;
@@ -332,7 +332,7 @@ function MatchingQuestionBody({
   return (
     <div className="mt-5 space-y-2.5">
       <p className="text-xs font-medium text-lh-muted italic">
-        (Chọn phương án ở cột bên phải tương ứng với từng mục ở cột bên trái)
+        (Chọn vế bên phải ghép với từng mục bên trái)
       </p>
       {q.leftItems.map((left, idx) => {
         const selectedRightId = pairs[left.id] || '';

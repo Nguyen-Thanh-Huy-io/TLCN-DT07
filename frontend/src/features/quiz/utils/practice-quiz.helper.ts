@@ -122,3 +122,10 @@ export function pickAnsweredAnswers(
     Object.entries(answers).filter(([id]) => isQuestionAnswered(id, touchedIds, answers)),
   );
 }
+
+/** Giây còn lại → "mm:ss" cho đồng hồ phòng thi. */
+export function formatExamTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}

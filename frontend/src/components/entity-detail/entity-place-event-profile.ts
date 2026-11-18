@@ -45,7 +45,8 @@ export function eventQuickStats(entity: PublicEntityDetailDto): EntityQuickStat[
   const duration =
     entity.startYear != null && entity.endYear != null ? Math.abs(entity.endYear - entity.startYear) : 0;
   return [
-    ...(places.length > 0 ? [{ id: 'stat-place', value: joinNames(places), label: 'Diễn ra tại' }] : []),
+    // Nhãn liên kết là chữ tự do ("Diễn ra tại", "Căn cứ tập kết"…) nên ô số liệu dùng tên chung.
+    ...(places.length > 0 ? [{ id: 'stat-place', value: joinNames(places), label: 'Địa danh liên quan' }] : []),
     ...countStat('stat-people', linkedOfKind(entity, ArticleKindEnum.PERSON).length, 'nhân vật', 'Nhân vật liên quan'),
     ...countStat('stat-events', linkedOfKind(entity, ArticleKindEnum.EVENT).length, 'sự kiện', 'Sự kiện liên quan'),
     ...countStat('stat-duration', duration, 'năm', 'Kéo dài'),
@@ -54,7 +55,7 @@ export function eventQuickStats(entity: PublicEntityDetailDto): EntityQuickStat[
 
 export function eventFacts(entity: PublicEntityDetailDto): FastFactItem[] {
   return [
-    ...linkedFact('event-places', 'Địa điểm', linkedOfKind(entity, ArticleKindEnum.LOCATION), nameOnly),
+    ...linkedFact('event-places', 'Địa danh', linkedOfKind(entity, ArticleKindEnum.LOCATION), nameWithRole),
     ...linkedFact('event-people', 'Nhân vật', linkedOfKind(entity, ArticleKindEnum.PERSON), nameWithRole),
   ];
 }

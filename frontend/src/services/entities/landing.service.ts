@@ -282,8 +282,8 @@ export async function fetchEvents(): Promise<PublicEventSummaryDto[]> {
 
 /**
  * Danh sách bài Sự kiện (/su-kien, đếm sự kiện của di tích): mỗi bài 1 dòng. Khác `fetchEvents` (dòng thời
- * gian) ở chỗ bỏ mốc không trỏ tới bài Sự kiện, gộp các mốc cùng trỏ 1 bài và lấy tên / tóm tắt của bài
- * thay vì của mốc. Bài chưa nhập năm không có ở đây (giống `fetchEvents`).
+ * gian) ở chỗ bỏ mốc không trỏ tới bài Sự kiện, gộp các mốc cùng trỏ 1 bài và lấy tên / tóm tắt / năm của
+ * bài thay vì của mốc (mốc có thể là cả giai đoạn chứa sự kiện). Bài chưa nhập năm không có ở đây.
  */
 export async function fetchEventArticles(): Promise<PublicEventSummaryDto[]> {
   const g = await loadGraph();
@@ -292,7 +292,16 @@ export async function fetchEventArticles(): Promise<PublicEventSummaryDto[]> {
     const article = e.slug ? g.bySlug.get(e.slug) : undefined;
     if (!article || g.kindOf(article) !== ArticleKindEnum.EVENT || seen.has(article.slug)) return [];
     seen.add(article.slug);
-    return [{ ...e, title: article.title, description: article.summary ?? e.description }];
+    return [
+      {
+        ...e,
+        title: article.title,
+        description: article.summary ?? e.description,
+        startYear: article.startYear ?? e.startYear,
+        endYear: article.startYear === null ? e.endYear : article.endYear,
+        eventDateNote: article.dateText ?? e.eventDateNote,
+      },
+    ];
   });
 }
 

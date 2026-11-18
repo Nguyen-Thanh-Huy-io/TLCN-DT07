@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -96,6 +97,9 @@ export class NoteService {
         title: dto.title?.trim() || meta?.title || 'Ghi chú học tập',
         content: dto.content.trim(),
         highlightText: dto.highlightText?.trim() || null,
+        anchor: dto.anchor
+          ? { prefix: dto.anchor.prefix, suffix: dto.anchor.suffix }
+          : undefined,
         color: dto.color,
       },
       include: {
@@ -123,6 +127,16 @@ export class NoteService {
     }
 
     this.assertOwnership(note, userId, guestId);
+
+    const keepsHighlight =
+      dto.highlightText !== undefined
+        ? Boolean(dto.highlightText.trim())
+        : Boolean(note.highlightText);
+    if (dto.content !== undefined && !dto.content.trim() && !keepsHighlight) {
+      throw new BadRequestException(
+        'Ghi chú không gắn đoạn nào trong bài thì phải có nội dung',
+      );
+    }
 
     const updated = await this.prisma.note.update({
       where: { id },

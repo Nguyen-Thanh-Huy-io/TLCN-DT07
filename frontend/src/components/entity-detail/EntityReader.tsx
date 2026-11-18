@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, PanelLeftOpen, PanelRightOpen, ExternalLink } from 'lucide-react';
 import { EntityReaderModel } from './entity-reader-adapter';
 import { EntityKnowledgeGraph, EntityRelatedByTag, EntityReadingToolbar, TextSizeLevel, EntityReadingToc, EntityReadingTimeline } from './EntityReaderParts';
 import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
-import { NoteDrawer, NoteFloatingButton } from '@/features/notes/components/NoteDrawer';
+import { NoteReaderLayer } from '@/features/notes/components/NoteReaderLayer';
+import { ReadingAidsPanel } from '@/features/reading-aids/components/ReadingAidsPanel';
+import { useLessonAnnotations } from '@/features/lessons/hooks/useLessonAnnotations';
 import { NOTE_TARGET_TYPE } from '@/features/notes/services/note.service';
 import { sanitizeRichHtml } from '@/utils/common';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
@@ -154,6 +156,9 @@ interface EntityReaderProps {
 
 export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
   const noteFacade = useNoteFacade(NOTE_TARGET_TYPE.ARTICLE, model.id || model.slug);
+  const contentRef = useRef<HTMLDivElement>(null);
+  // Đánh số + tooltip chú thích giống trang bài học (bài viết soạn bằng cùng Block Builder).
+  const annotationTooltip = useLessonAnnotations(contentRef, model.html);
   const [activeId, setActiveId] = useState<string>('');
   const [readProgress, setReadProgress] = useState<number>(0);
   const [textSize, setTextSize] = useState<TextSizeLevel>(TextSizeLevel.MD);
@@ -244,6 +249,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
         <main className={`ue-article-col ue-text-size-${textSize}`}>
           {model.html ? (
             <div
+              ref={contentRef}
               className="ue-bio-blocks ue-article-content"
               dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(model.html) }}
             />
@@ -371,9 +377,16 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
           )}
         </>
       )}
-      {/* Sổ ghi chú cá nhân */}
-      <NoteFloatingButton facade={noteFacade} />
-      <NoteDrawer
+      {annotationTooltip}
+      <ReadingAidsPanel
+        contentRef={contentRef}
+        htmlTrigger={model.html}
+        toc={model.toc}
+        entities={model.readingEntities}
+      />
+      <NoteReaderLayer
+        contentRef={contentRef}
+        htmlTrigger={model.html}
         facade={noteFacade}
         targetTitle={model.name}
         targetType={NOTE_TARGET_TYPE.ARTICLE}

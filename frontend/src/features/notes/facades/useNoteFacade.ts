@@ -9,6 +9,7 @@ import {
 } from '../services/note.service';
 import {
   NOTE_COLOR,
+  NoteAnchorValue,
   NoteColorValue,
   NoteItem,
   NoteTargetTypeValue,
@@ -23,7 +24,6 @@ export function useNoteFacade(
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [selectedHighlight, setSelectedHighlight] = useState<string>('');
   const [colorFilter, setColorFilter] = useState<NoteColorValue | CommonFilterOption.ALL>(CommonFilterOption.ALL);
 
   const loadNotes = useCallback(async () => {
@@ -45,32 +45,7 @@ export function useNoteFacade(
     });
   }, [loadNotes]);
 
-  // Bắt sự kiện chọn (bôi đen) văn bản trên bài đọc
-  useEffect(() => {
-    const handleMouseUp = () => {
-      const selection = window.getSelection();
-      if (selection && !selection.isCollapsed) {
-        const text = selection.toString().trim();
-        if (text.length > 3 && text.length < 500) {
-          setSelectedHighlight(text);
-        }
-      }
-    };
-
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => document.removeEventListener('mouseup', handleMouseUp);
-  }, []);
-
-  const openDrawer = useCallback((useCurrentSelection: boolean = false) => {
-    if (useCurrentSelection) {
-      const selection = window.getSelection();
-      if (selection && !selection.isCollapsed) {
-        const text = selection.toString().trim();
-        if (text.length > 0) {
-          setSelectedHighlight(text);
-        }
-      }
-    }
+  const openDrawer = useCallback(() => {
     setIsOpen(true);
   }, []);
 
@@ -82,9 +57,10 @@ export function useNoteFacade(
     content: string,
     title?: string,
     color: NoteColorValue = NOTE_COLOR.YELLOW,
-    highlightText?: string
+    highlightText?: string,
+    anchor?: NoteAnchorValue
   ) => {
-    if (!content.trim()) return;
+    if (!content.trim() && !highlightText) return;
 
     try {
       const newNote = await createNoteApi({
@@ -93,11 +69,11 @@ export function useNoteFacade(
         content,
         title,
         color,
-        highlightText: highlightText || selectedHighlight || undefined,
+        highlightText,
+        anchor,
       });
 
       setNotes((prev) => [newNote, ...prev]);
-      setSelectedHighlight('');
       return newNote;
     } catch (err) {
       console.error('Lỗi tạo ghi chú:', err);
@@ -133,13 +109,13 @@ export function useNoteFacade(
 
   return {
     notes: filteredNotes,
+    /** Mọi ghi chú của bài, không theo bộ lọc màu — dùng để tô lại trong bài. */
+    allNotes: notes,
     allNotesCount: notes.length,
     loading,
     isOpen,
-    selectedHighlight,
     colorFilter,
     setColorFilter,
-    setSelectedHighlight,
     openDrawer,
     closeDrawer,
     addNote,

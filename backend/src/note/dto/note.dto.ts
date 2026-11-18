@@ -1,12 +1,32 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { NoteColor, NoteTargetType } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
+  ValidateIf,
+  ValidateNested,
 } from 'class-validator';
+
+/** Đủ để phân biệt các lần xuất hiện trùng của cùng một đoạn trong bài. */
+export const NOTE_ANCHOR_CONTEXT_MAX_LENGTH = 64;
+export const NOTE_HIGHLIGHT_MAX_LENGTH = 1000;
+
+/** Vài chữ ngay trước / sau đoạn bôi đen, để tô lại đúng chỗ khi mở bài. */
+export class NoteAnchorDto {
+  @ApiProperty({ description: 'Chữ ngay trước đoạn bôi đen' })
+  @IsString()
+  @MaxLength(NOTE_ANCHOR_CONTEXT_MAX_LENGTH)
+  prefix: string;
+
+  @ApiProperty({ description: 'Chữ ngay sau đoạn bôi đen' })
+  @IsString()
+  @MaxLength(NOTE_ANCHOR_CONTEXT_MAX_LENGTH)
+  suffix: string;
+}
 
 export class CreateNoteDto {
   @ApiProperty({ enum: NoteTargetType, example: NoteTargetType.ARTICLE })
@@ -24,15 +44,26 @@ export class CreateNoteDto {
   @MaxLength(255)
   title?: string;
 
-  @ApiProperty({ description: 'Nội dung ghi chú cá nhân' })
+  @ApiProperty({
+    description:
+      'Nội dung ghi chú; để trống khi chỉ tô màu một đoạn (bắt buộc có highlightText)',
+  })
   @IsString()
+  @ValidateIf((dto: CreateNoteDto) => !dto.highlightText)
   @IsNotEmpty()
   content: string;
 
   @ApiPropertyOptional({ description: 'Đoạn văn bản trích dẫn / bôi đen' })
   @IsOptional()
   @IsString()
+  @MaxLength(NOTE_HIGHLIGHT_MAX_LENGTH)
   highlightText?: string;
+
+  @ApiPropertyOptional({ type: NoteAnchorDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => NoteAnchorDto)
+  anchor?: NoteAnchorDto;
 
   @ApiPropertyOptional({ enum: NoteColor, default: NoteColor.YELLOW })
   @IsOptional()
@@ -52,10 +83,11 @@ export class UpdateNoteDto {
   @MaxLength(255)
   title?: string;
 
-  @ApiPropertyOptional({ description: 'Nội dung ghi chú cá nhân' })
+  @ApiPropertyOptional({
+    description: 'Nội dung ghi chú; rỗng = chỉ còn tô màu',
+  })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
   content?: string;
 
   @ApiPropertyOptional({ description: 'Đoạn văn bản trích dẫn / bôi đen' })

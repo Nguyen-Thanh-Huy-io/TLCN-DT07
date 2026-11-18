@@ -1,5 +1,8 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { NoteColor, NoteTargetType } from '@prisma/client';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { CreateNoteDto } from './dto/note.dto';
 import { NoteService } from './note.service';
 
 describe('NoteService', () => {
@@ -73,6 +76,64 @@ describe('NoteService', () => {
       };
 
       await expect(service.create(dto)).rejects.toThrow(NotFoundException);
+    });
+
+    it('lưu vị trí đoạn bôi đen để tô lại trong bài', async () => {
+      mockPrisma.note.create.mockResolvedValue({ id: 'note-002' });
+
+      await service.create(
+        {
+          targetType: NoteTargetType.ARTICLE,
+          targetId: 'art-123',
+          content: '',
+          highlightText: 'Ngô Quyền',
+          anchor: { prefix: 'năm 938, ', suffix: ' đánh tan' },
+        },
+        'user-123',
+      );
+
+      expect(mockPrisma.note.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            content: '',
+            highlightText: 'Ngô Quyền',
+            anchor: { prefix: 'năm 938, ', suffix: ' đánh tan' },
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('CreateNoteDto', () => {
+    const base = { targetType: NoteTargetType.ARTICLE, targetId: 'art-1' };
+    const errorsOf = (plain: object) =>
+      validate(plainToInstance(CreateNoteDto, plain));
+
+    it('chỉ tô màu (nội dung rỗng) hợp lệ khi có đoạn bôi đen', async () => {
+      expect(
+        await errorsOf({ ...base, content: '', highlightText: 'Bạch Đằng' }),
+      ).toHaveLength(0);
+    });
+
+    it('không có đoạn bôi đen thì bắt buộc có nội dung', async () => {
+      const errors = await errorsOf({ ...base, content: '' });
+      expect(errors.map((e) => e.property)).toContain('content');
+    });
+  });
+
+  describe('update', () => {
+    it('không cho xoá trắng nội dung của ghi chú không gắn đoạn nào', async () => {
+      mockPrisma.note.findUnique.mockResolvedValue({
+        id: 'note-1',
+        userId: 'user-1',
+        guestId: null,
+        highlightText: null,
+      });
+
+      await expect(
+        service.update('note-1', { content: '  ' }, 'user-1'),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.note.update).not.toHaveBeenCalled();
     });
   });
 

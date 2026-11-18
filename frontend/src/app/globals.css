@@ -2924,7 +2924,8 @@ tbody tr:hover .quick-row-btn {
 }
 
 .tiptap-content-box .lesson-footnote-ref,
-.tiptap-content-box sup[data-footnote] {
+.tiptap-content-box sup[data-footnote],
+.ue-article-content .lesson-footnote-ref {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2946,7 +2947,8 @@ tbody tr:hover .quick-row-btn {
 }
 
 .tiptap-content-box .lesson-footnote-ref:hover,
-.tiptap-content-box sup[data-footnote]:hover {
+.tiptap-content-box sup[data-footnote]:hover,
+.ue-article-content .lesson-footnote-ref:hover {
   background-color: #e7d7b8;
   color: #3f2b16;
   transform: translateY(-1px);
@@ -3285,3 +3287,11 @@ figure.wiki-media-block figcaption {
   color: #8b9985;
   font-size: 13px;
 }
+
+/* Ghi chú tô trong bài đọc (CSS Custom Highlight API, đăng ký ở features/notes/hooks/useNoteHighlights.ts). */
+::highlight(hisgo-note-yellow) { background-color: rgb(252 211 77 / 0.45); }
+::highlight(hisgo-note-green) { background-color: rgb(110 231 183 / 0.45); }
+::highlight(hisgo-note-blue) { background-color: rgb(125 211 252 / 0.45); }
+::highlight(hisgo-note-pink) { background-color: rgb(253 164 175 / 0.5); }
+::highlight(hisgo-note-purple) { background-color: rgb(216 180 254 / 0.5); }
+::highlight(hisgo-note-flash) { background-color: rgb(139 38 30 / 0.35); }

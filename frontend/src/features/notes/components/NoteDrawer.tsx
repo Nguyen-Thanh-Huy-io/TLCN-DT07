@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Bookmark, Highlighter, Check, Copy, Edit2, Plus, Quote, Sparkles, Trash2, X } from 'lucide-react';
+import { Bookmark, Highlighter, Check, Copy, Edit2, MapPin, Plus, Sparkles, Trash2, X } from 'lucide-react';
 import { useNoteFacade } from '../facades/useNoteFacade';
 import { NOTE_COLOR, NOTE_TARGET_TYPE, NOTE_COLOR_STYLES, NoteColorValue, NoteItem, NoteTargetTypeValue } from '../services/note.service';
 import { CommonFilterOption } from '@/constants/enums';
@@ -12,27 +12,16 @@ interface NoteFloatingButtonProps {
 }
 
 export function NoteFloatingButton({ facade }: NoteFloatingButtonProps) {
-  const { allNotesCount, selectedHighlight, openDrawer, isOpen } = facade;
+  const { allNotesCount, openDrawer, isOpen } = facade;
 
   if (isOpen) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
-      {/* Tooltip gợi ý khi có đoạn bôi đen */}
-      {selectedHighlight && (
-        <button
-          type="button"
-          onClick={() => openDrawer(true)}
-          className="px-3 py-1.5 rounded-full bg-stone-900 text-white text-xs font-medium shadow-lg hover:bg-stone-800 transition-all flex items-center gap-1.5 animate-bounce cursor-pointer border border-white/20"
-        >
-          <Highlighter size={13} className="text-[#E5B869]" /> Tạo ghi chú từ đoạn chọn
-        </button>
-      )}
-
       {/* Nút bấm sổ ghi chú */}
       <button
         type="button"
-        onClick={() => openDrawer(false)}
+        onClick={openDrawer}
         className="group relative flex items-center gap-2 px-3.5 py-3 rounded-full bg-[#8B261E] text-white shadow-xl hover:bg-[#721F18] hover:scale-105 transition-all duration-200 cursor-pointer border-2 border-white/30"
         title="Mở sổ ghi chú cá nhân"
       >
@@ -54,18 +43,20 @@ interface NoteDrawerProps {
   facade: ReturnType<typeof useNoteFacade>;
   targetTitle?: string;
   targetType: NoteTargetTypeValue;
+  /** Cuộn tới đoạn của ghi chú trong bài; không truyền thì không có nút "Xem trong bài". */
+  onLocateNote?: (noteId: string) => void;
+  /** Ghi chú có đoạn trích nhưng không còn tìm thấy trong bài (bài đã sửa). */
+  lostNoteIds?: ReadonlySet<string>;
 }
 
-export function NoteDrawer({ facade, targetTitle, targetType }: NoteDrawerProps) {
+export function NoteDrawer({ facade, targetTitle, targetType, onLocateNote, lostNoteIds }: NoteDrawerProps) {
   const {
     notes,
     allNotesCount,
     loading,
     isOpen,
-    selectedHighlight,
     colorFilter,
     setColorFilter,
-    setSelectedHighlight,
     closeDrawer,
     addNote,
     editNote,
@@ -91,8 +82,7 @@ export function NoteDrawer({ facade, targetTitle, targetType }: NoteDrawerProps)
       await addNote(
         newContent,
         newTitle.trim() || undefined,
-        selectedColor,
-        selectedHighlight || undefined
+        selectedColor
       );
       setNewContent('');
       setNewTitle('');
@@ -102,7 +92,8 @@ export function NoteDrawer({ facade, targetTitle, targetType }: NoteDrawerProps)
   };
 
   const handleSaveEdit = async (note: NoteItem) => {
-    if (!editContent.trim()) return;
+    // Ghi chú gắn đoạn trong bài được để trống nội dung (chỉ còn tô màu).
+    if (!editContent.trim() && !note.highlightText) return;
     await editNote(note.id, { content: editContent.trim() });
     setEditingId(null);
   };
@@ -184,22 +175,6 @@ export function NoteDrawer({ facade, targetTitle, targetType }: NoteDrawerProps)
                 </div>
               </div>
 
-              {/* Trích dẫn đoạn văn bản vừa bôi đen (nếu có) */}
-              {selectedHighlight && (
-                <div className="relative p-2.5 rounded-lg bg-amber-50/90 border border-amber-200 text-xs text-amber-950 flex items-start gap-2">
-                  <Quote size={14} className="text-amber-600 shrink-0 mt-0.5" />
-                  <p className="line-clamp-3 italic pr-4">{selectedHighlight}</p>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedHighlight('')}
-                    className="absolute top-1.5 right-1.5 text-stone-400 hover:text-rose-600"
-                    title="Bỏ trích dẫn này"
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-              )}
-
               <textarea
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
@@ -211,7 +186,7 @@ export function NoteDrawer({ facade, targetTitle, targetType }: NoteDrawerProps)
 
               <div className="flex items-center justify-between pt-1">
                 <div className="text-[11px] text-stone-400 flex items-center gap-1">
-                  <Highlighter size={12} /> Bôi đen chữ trên bài để trích dẫn
+                  <Highlighter size={12} /> Bôi đen chữ trên bài để tô màu, ghi chú tại chỗ
                 </div>
                 <button
                   type="submit"
@@ -284,11 +259,12 @@ export function NoteDrawer({ facade, targetTitle, targetType }: NoteDrawerProps)
                       key={note.id}
                       className={`p-3.5 rounded-xl border ${style.border} ${style.bg} transition-all relative group shadow-2xs`}
                     >
-                      {/* Trích dẫn */}
                       {note.highlightText && (
-                        <div className="mb-2 pl-2.5 border-l-2 border-stone-400/50 text-[11px] italic text-stone-600 line-clamp-3">
-                          &ldquo;{note.highlightText}&rdquo;
-                        </div>
+                        <NoteQuote
+                          text={note.highlightText}
+                          isLost={Boolean(lostNoteIds?.has(note.id))}
+                          onLocate={onLocateNote ? () => onLocateNote(note.id) : undefined}
+                        />
                       )}
 
                       {/* Nội dung ghi chú */}
@@ -318,8 +294,12 @@ export function NoteDrawer({ facade, targetTitle, targetType }: NoteDrawerProps)
                           </div>
                         </div>
                       ) : (
-                        <p className={`text-xs sm:text-sm font-medium ${style.text} whitespace-pre-wrap leading-relaxed`}>
-                          {note.content}
+                        <p
+                          className={`text-xs sm:text-sm whitespace-pre-wrap leading-relaxed ${
+                            note.content ? `font-medium ${style.text}` : 'italic text-stone-400'
+                          }`}
+                        >
+                          {note.content || 'Chỉ tô màu, chưa có ghi chú.'}
                         </p>
                       )}
 
@@ -378,5 +358,33 @@ export function NoteDrawer({ facade, targetTitle, targetType }: NoteDrawerProps)
         </div>
       </div>
     </div>
+  );
+}
+
+/** Đoạn trích của ghi chú: bấm để cuộn tới chỗ đó trong bài; bài đã sửa mất đoạn thì báo lạc. */
+function NoteQuote({ text, isLost, onLocate }: { text: string; isLost: boolean; onLocate?: () => void }) {
+  const quote = (
+    <span className="block pl-2.5 border-l-2 border-stone-400/50 text-[11px] italic text-stone-600 line-clamp-3">
+      &ldquo;{text}&rdquo;
+    </span>
+  );
+  if (isLost) {
+    return (
+      <div className="mb-2 space-y-1">
+        {quote}
+        <span className="inline-block px-1.5 py-0.5 rounded bg-stone-200 text-[10px] font-semibold text-stone-600">
+          Đoạn gốc đã thay đổi
+        </span>
+      </div>
+    );
+  }
+  if (!onLocate) return <div className="mb-2">{quote}</div>;
+  return (
+    <button type="button" onClick={onLocate} className="mb-2 w-full text-left group/quote cursor-pointer" title="Xem trong bài">
+      {quote}
+      <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-[#8B261E] opacity-70 group-hover/quote:opacity-100">
+        <MapPin size={11} /> Xem trong bài
+      </span>
+    </button>
   );
 }

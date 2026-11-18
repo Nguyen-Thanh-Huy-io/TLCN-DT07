@@ -12,6 +12,28 @@ import {
 } from '@/features/lessons/utils/lesson-toc.util';
 import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
 import { ArticleKindEnum } from '@/constants/enums';
+import type { ReadingEntity } from '@/features/reading-aids/components/ReadingAidsPanel';
+import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
+
+const asArticleKind = (value: string | null): ArticleKindEnum | null =>
+  Object.values(ArticleKindEnum).find((kind) => kind === value) ?? null;
+
+/** Bài liên kết với bài đang đọc → danh sách Nhân vật / Địa danh / Sự kiện cho bảng "Trong bài". */
+function toReadingEntities(statements: PublicEntityStatementDto[]): ReadingEntity[] {
+  return statements.flatMap((stmt) => {
+    const kind = asArticleKind(stmt.relatedEntityType);
+    if (!kind || !stmt.relatedEntitySlug || !stmt.relatedEntityName) return [];
+    return [
+      {
+        id: stmt.relatedEntityId ?? stmt.id,
+        name: stmt.relatedEntityName,
+        href: PUBLIC_ROUTES.ARTICLE(stmt.relatedEntitySlug),
+        kind,
+        note: stmt.roleLabel,
+      },
+    ];
+  });
+}
 
 export interface FastFactItem {
   id: string;
@@ -55,6 +77,7 @@ export interface EntityReaderModel {
   resourceLinks: ResourceLinkBlockData[];
   readMinutes: number;
   statements: PublicEntityStatementDto[];
+  readingEntities: ReadingEntity[];
   relatedByTag: PublicEntityRelatedArticleDto[];
   facts: FastFactItem[];
   media: PublicEntityMediaDto[];
@@ -488,6 +511,7 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
     resourceLinks: normalized.resourceLinks,
     readMinutes,
     statements: entity.statements ?? [],
+    readingEntities: toReadingEntities(entity.statements ?? []),
     relatedByTag: entity.relatedByTag ?? [],
     facts,
     media: entity.media ?? [],

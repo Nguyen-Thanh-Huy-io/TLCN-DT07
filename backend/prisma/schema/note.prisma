@@ -25,6 +25,9 @@ model Note {
   title         String?        @db.VarChar(255)
   content       String         @db.Text
   highlightText String?        @map("highlight_text") @db.Text
+  /// Vị trí đoạn bôi đen để tô lại trong bài: { prefix, suffix } = vài chữ ngay trước / sau `highlightText`.
+  /// Null với ghi chú cũ hoặc ghi chú không gắn đoạn nào (khi đó tìm theo `highlightText`, lần xuất hiện đầu).
+  anchor        Json?          @db.JsonB
   color         NoteColor      @default(YELLOW)
 
   createdAt     DateTime       @default(now()) @map("created_at")

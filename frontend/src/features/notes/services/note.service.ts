@@ -61,6 +61,12 @@ export const NOTE_COLOR_STYLES: Record<
   },
 };
 
+/** Vài chữ ngay trước / sau đoạn bôi đen, để tô lại đúng chỗ (xem utils/note-anchor.util.ts). */
+export interface NoteAnchorValue {
+  prefix: string;
+  suffix: string;
+}
+
 export interface NoteItem {
   id: string;
   targetType: NoteTargetTypeValue;
@@ -70,6 +76,7 @@ export interface NoteItem {
   title: string | null;
   content: string;
   highlightText: string | null;
+  anchor: NoteAnchorValue | null;
   color: NoteColorValue;
   createdAt: string;
   updatedAt: string;
@@ -83,8 +90,10 @@ export interface CreateNotePayload {
   targetType: NoteTargetTypeValue;
   targetId: string;
   title?: string;
+  /** Rỗng = chỉ tô màu đoạn `highlightText`. */
   content: string;
   highlightText?: string;
+  anchor?: NoteAnchorValue;
   color?: NoteColorValue;
   guestId?: string;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -22,11 +22,13 @@ import {
   HubButton,
 } from './hub/HubReaderParts';
 import { useLessonProgress } from './hub/useLessonReaderHooks';
-import { useLessonRelated } from './hub/HubReaderParts';
+import { useLessonRelated, type RelatedEntities } from './hub/HubReaderParts';
 import { useLessonMedia } from './hub/useLessonReaderHooks';
 import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
-import { NoteDrawer } from '@/features/notes/components/NoteDrawer';
-import { NoteFloatingButton } from '@/features/notes/components/NoteDrawer';
+import { NoteReaderLayer } from '@/features/notes/components/NoteReaderLayer';
+import { ReadingAidsPanel, type ReadingEntity } from '@/features/reading-aids/components/ReadingAidsPanel';
+import { resolveCategoryKind } from '@/services/public/article-kind';
+import { PUBLIC_ROUTES, fetchCategories, type PublicCategory } from '@/services/public/public-content.service';
 import { NOTE_TARGET_TYPE } from '@/features/notes/services/note.service';
 import { LessonMobileSyllabusDrawer } from './reader/LessonReaderMainLayout';
 import { LessonReaderLoadingSkeleton } from './reader/LessonReaderMainLayout';
@@ -161,6 +163,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
   const hasToc = Boolean(tocItems && tocItems.length >= 2);
   const { related, hasContent: hasRelated } = useLessonRelated(compiledHtml || '');
   const hasRightSidebar = hasToc || hasRelated;
+  const readingEntities = useLessonReadingEntities(related);
   const readerColumns = resolveReaderLayoutColumns(Boolean(learningPath), syllabusOpen, hasRightSidebar);
 
   const { prevLesson, nextLesson, flatLessons, currentIndex, currentChapter } = navigationContext;
@@ -260,15 +263,49 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
           onClose={() => setMobileSyllabus(false)}
         />
 
-        {/* Sổ ghi chú cá nhân */}
-        <NoteFloatingButton facade={noteFacade} />
-        <NoteDrawer
-          facade={noteFacade}
-          targetTitle={lesson?.title}
-          targetType={NOTE_TARGET_TYPE.LESSON}
-        />
+        {lesson && (
+          <>
+            <ReadingAidsPanel
+              contentRef={contentRef}
+              htmlTrigger={compiledHtml}
+              toc={tocItems}
+              entities={readingEntities}
+            />
+            <NoteReaderLayer
+              contentRef={contentRef}
+              htmlTrigger={compiledHtml}
+              facade={noteFacade}
+              targetTitle={lesson.title}
+              targetType={NOTE_TARGET_TYPE.LESSON}
+            />
+          </>
+        )}
       </main>
       <Footer />
     </div>
+  );
+}
+
+/** Bài được nhắc trong bài học → Nhân vật / Địa danh / Sự kiện; loại bài suy từ chuyên mục (kế thừa chuyên mục cha). */
+function useLessonReadingEntities(related: RelatedEntities): ReadingEntity[] {
+  const [categories, setCategories] = useState<PublicCategory[]>([]);
+  useEffect(() => {
+    fetchCategories()
+      .then(setCategories)
+      // Không tải được chuyên mục thì các bài không phân được loại, bảng chỉ còn mục lục / chú thích.
+      .catch(() => setCategories([]));
+  }, []);
+  return useMemo(
+    () =>
+      (related?.groups ?? [])
+        .flatMap((group) => group.items)
+        .map((article) => ({
+          id: article.id,
+          name: article.title,
+          href: PUBLIC_ROUTES.ARTICLE(article.slug),
+          kind: resolveCategoryKind(categories, article.category?.id),
+          note: article.dateLabel,
+        })),
+    [related, categories],
   );
 }

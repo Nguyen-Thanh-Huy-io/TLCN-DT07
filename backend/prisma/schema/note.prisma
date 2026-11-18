@@ -15,6 +15,22 @@ enum NoteColor {
   PURPLE
 }
 
+/// Mục đích của ghi chú (màu chỉ là cách hiển thị).
+enum NoteKind {
+  /// Tô sáng, không cần nội dung
+  HIGHLIGHT
+  /// Ghi chú cá nhân
+  NOTE
+  /// highlightText = thuật ngữ, content = định nghĩa
+  DEFINITION
+  /// content = câu hỏi; resolvedAt đánh dấu đã hiểu
+  QUESTION
+  /// Kiến thức trọng tâm
+  IMPORTANT
+  /// Tóm tắt một mục (anchor.headingId) hoặc một đoạn
+  SUMMARY
+}
+
 model Note {
   id            String         @id @default(uuid())
   targetType    NoteTargetType @map("target_type")
@@ -22,12 +38,19 @@ model Note {
   userId        String?        @map("user_id")
   guestId       String?        @map("guest_id") @db.VarChar(100)
 
+  kind          NoteKind       @default(NOTE)
   title         String?        @db.VarChar(255)
   content       String         @db.Text
   highlightText String?        @map("highlight_text") @db.Text
-  /// Vị trí đoạn bôi đen để tô lại trong bài: { prefix, suffix } = vài chữ ngay trước / sau `highlightText`.
-  /// Null với ghi chú cũ hoặc ghi chú không gắn đoạn nào (khi đó tìm theo `highlightText`, lần xuất hiện đầu).
+  /// Vị trí để tô lại trong bài: { prefix, suffix } = vài chữ ngay trước / sau
+  /// `highlightText`; { headingId } khi tóm tắt cả một mục. Null với ghi chú cũ (tìm theo `highlightText`).
   anchor        Json?          @db.JsonB
+  /// Phiên bản bài (số phiên bản của ContentRevision) lúc tạo / lần cuối dò lại vị trí; null = ghi chú cũ.
+  contentVersion Int?          @map("content_version")
+  /// Nhãn tự do của người học ("Thi học kỳ"...). Không phải Tag nội dung của bài.
+  labels        String[]       @default([])
+  /// Chỉ dùng cho QUESTION: null = chưa giải quyết.
+  resolvedAt    DateTime?      @map("resolved_at")
   color         NoteColor      @default(YELLOW)
 
   createdAt     DateTime       @default(now()) @map("created_at")
@@ -36,7 +59,8 @@ model Note {
   user          authUser?      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([targetType, targetId])
-  @@index([userId])
+  @@index([userId, kind])
+  @@index([labels], type: Gin)
   @@index([guestId])
   @@map("notes")
 }

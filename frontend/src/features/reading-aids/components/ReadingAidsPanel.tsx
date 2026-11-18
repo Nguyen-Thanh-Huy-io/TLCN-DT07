@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CalendarDays, Info, ListTree, MapPin, User, X } from 'lucide-react';
+import { CalendarDays, Info, ListChecks, ListTree, MapPin, User, X } from 'lucide-react';
 import { ArticleKindEnum, KeyboardKey } from '@/constants/enums';
 import type { ArticleKind } from '@/services/public/article-kind';
 import { ANNOTATION_DATA_ATTRS } from '@/features/lessons/extensions/annotation.extension';
@@ -124,13 +124,15 @@ interface ReadingAidsPanelProps {
   htmlTrigger: string;
   toc: LessonTocEntry[];
   entities: ReadingEntity[];
+  /** Viết ghi chú tóm tắt cho một mục; không truyền thì mục lục không có nút "Tóm tắt". */
+  onSummarizeSection?: (headingId: string, headingText: string) => void;
 }
 
 /**
  * Nút "Mục lục / Chú thích" mở bảng tra cứu nhanh trong bài: mục lục, chú thích đánh số, nhân vật,
  * địa danh, sự kiện được nhắc tới. Tab nào không có dữ liệu thì ẩn; không có gì thì ẩn cả nút.
  */
-export function ReadingAidsPanel({ contentRef, htmlTrigger, toc, entities }: ReadingAidsPanelProps) {
+export function ReadingAidsPanel({ contentRef, htmlTrigger, toc, entities, onSummarizeSection }: ReadingAidsPanelProps) {
   const footnotes = useFootnotes(contentRef, htmlTrigger);
   const [open, setOpen] = useState(false);
   const [chosenTab, setChosenTab] = useState<ReadingAidsTab | null>(null);
@@ -167,15 +169,28 @@ export function ReadingAidsPanel({ contentRef, htmlTrigger, toc, entities }: Rea
       return (
         <ol className="divide-y divide-stone-100">
           {toc.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className="flex items-center hover:bg-stone-50">
               <button
                 type="button"
                 onClick={() => jumpTo(document.getElementById(item.id))}
                 style={{ paddingLeft: `${(item.level - 1) * 14 + 12}px` }}
-                className="w-full text-left py-2.5 pr-3 text-sm text-stone-700 hover:bg-stone-50 hover:text-[#8B261E] cursor-pointer"
+                className="flex-1 text-left py-2.5 pr-3 text-sm text-stone-700 hover:text-[#8B261E] cursor-pointer"
               >
                 {item.text}
               </button>
+              {onSummarizeSection && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    onSummarizeSection(item.id, item.text);
+                  }}
+                  className="mr-2 shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-stone-500 hover:bg-[#8B261E]/10 hover:text-[#8B261E] cursor-pointer"
+                  title="Viết tóm tắt cho mục này"
+                >
+                  <ListChecks size={12} /> Tóm tắt
+                </button>
+              )}
             </li>
           ))}
         </ol>

@@ -57,6 +57,7 @@ export enum KeyboardKey {
   ARROW_RIGHT = 'ArrowRight',
   HOME = 'Home',
   END = 'End',
+  COMMA = ',',
 }
 
 /**

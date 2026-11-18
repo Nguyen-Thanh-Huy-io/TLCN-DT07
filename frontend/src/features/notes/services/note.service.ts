@@ -20,6 +20,18 @@ export const NOTE_COLOR = {
 
 export type NoteColorValue = (typeof NOTE_COLOR)[keyof typeof NOTE_COLOR];
 
+/** Khớp enum NoteKind ở backend/prisma/schema/note.prisma. */
+export const NOTE_KIND = {
+  HIGHLIGHT: 'HIGHLIGHT',
+  NOTE: 'NOTE',
+  DEFINITION: 'DEFINITION',
+  QUESTION: 'QUESTION',
+  IMPORTANT: 'IMPORTANT',
+  SUMMARY: 'SUMMARY',
+} as const;
+
+export type NoteKindValue = (typeof NOTE_KIND)[keyof typeof NOTE_KIND];
+
 export const NOTE_COLOR_STYLES: Record<
   NoteColorValue,
   { bg: string; border: string; text: string; badge: string; dot: string }
@@ -61,10 +73,11 @@ export const NOTE_COLOR_STYLES: Record<
   },
 };
 
-/** Vài chữ ngay trước / sau đoạn bôi đen, để tô lại đúng chỗ (xem utils/note-anchor.util.ts). */
+/** Vị trí để tô lại đúng chỗ: chữ trước / sau đoạn bôi đen, hoặc tiêu đề mục được tóm tắt. */
 export interface NoteAnchorValue {
-  prefix: string;
-  suffix: string;
+  prefix?: string;
+  suffix?: string;
+  headingId?: string;
 }
 
 export interface NoteItem {
@@ -77,6 +90,12 @@ export interface NoteItem {
   content: string;
   highlightText: string | null;
   anchor: NoteAnchorValue | null;
+  kind: NoteKindValue;
+  labels: string[];
+  /** Chỉ dùng cho câu hỏi: null = chưa giải quyết. */
+  resolvedAt: string | null;
+  /** Phiên bản bài lúc tạo / lần cuối dò lại vị trí. */
+  contentVersion: number | null;
   color: NoteColorValue;
   createdAt: string;
   updatedAt: string;
@@ -94,6 +113,8 @@ export interface CreateNotePayload {
   content: string;
   highlightText?: string;
   anchor?: NoteAnchorValue;
+  kind?: NoteKindValue;
+  labels?: string[];
   color?: NoteColorValue;
   guestId?: string;
 }
@@ -103,6 +124,12 @@ export interface UpdateNotePayload {
   content?: string;
   highlightText?: string;
   color?: NoteColorValue;
+  kind?: NoteKindValue;
+  labels?: string[];
+  /** Gắn lại vị trí (bài đã đổi); backend cập nhật phiên bản bài theo. */
+  anchor?: NoteAnchorValue;
+  /** Câu hỏi: true = đã hiểu. */
+  resolved?: boolean;
 }
 
 // === note.service.ts ===
@@ -153,6 +180,15 @@ export async function updateNoteApi(id: string, payload: UpdateNotePayload): Pro
     headers: guestHeaders(),
   });
   return res.data.data;
+}
+
+/** Nhãn người học đã dùng ở mọi bài, để gợi ý khi gõ. */
+export async function fetchNoteLabels(): Promise<string[]> {
+  const res = await api.get<ApiEnvelope<string[]>>('/notes/labels', {
+    params: { guestId: getOrCreateGuestId() },
+    headers: guestHeaders(),
+  });
+  return Array.isArray(res.data.data) ? res.data.data : [];
 }
 
 export async function deleteNoteApi(id: string): Promise<void> {

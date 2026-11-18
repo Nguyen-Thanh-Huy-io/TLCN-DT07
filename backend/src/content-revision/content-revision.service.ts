@@ -92,8 +92,11 @@ export class ContentRevisionService {
     return type as RevisionContentType;
   }
 
-  /** Phiên bản hiện hành = số ảnh chụp đã có + 1 (bản đầu tiên là v1). */
-  private async liveVersion(type: RevisionContentType, contentId: string) {
+  /** Phiên bản hiện hành = số ảnh chụp đã có + 1 (bản đầu tiên là v1). Ghi chú dùng để biết bài đã đổi. */
+  async liveVersion(
+    type: RevisionContentType,
+    contentId: string,
+  ): Promise<number> {
     const snapshots = await this.prisma.contentRevision.count({
       where: { contentType: type, contentId, kind: REVISION_KIND.SNAPSHOT },
     });

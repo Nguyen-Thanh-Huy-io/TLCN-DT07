@@ -13,8 +13,8 @@ const SKIPPED_SUBTREE_SELECTOR = `[${LESSON_QUIZ_PLACEHOLDER_ATTR}]`;
 const BLOCK_TAGS = new Set(['P', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'TD', 'TH', 'FIGCAPTION', 'DIV', 'SECTION']);
 
 export interface NoteAnchor {
-  prefix: string;
-  suffix: string;
+  prefix?: string;
+  suffix?: string;
 }
 
 interface TextNodeEntry {
@@ -100,14 +100,34 @@ export function anchorFromRange(index: TextIndex, root: HTMLElement, range: Rang
   };
 }
 
-/** Bản rút gọn khoảng trắng của chuỗi kèm vị trí gốc từng ký tự — để ghi chú cũ (lưu từ selection.toString) vẫn khớp. */
-function collapseWhitespace(text: string): { value: string; toRaw: number[] } {
+/** Kết quả dò lại vị trí của một ghi chú khi mở bài. */
+export enum AnchorMatch {
+  /** Đúng đoạn, đúng chữ trước / sau (bài chưa đổi ở chỗ này). */
+  EXACT = 'EXACT',
+  /** Đoạn còn nguyên nhưng đã dời chỗ / chữ xung quanh đổi → tự cập nhật vị trí. */
+  MOVED = 'MOVED',
+  /** Chỉ khớp gần đúng (đoạn bị sửa dấu câu, hoa thường) → cần người học xác nhận. */
+  FUZZY = 'FUZZY',
+}
+
+export interface LocatedAnchor {
+  range: Range;
+  match: AnchorMatch;
+}
+
+/**
+ * Bản rút gọn của chuỗi kèm vị trí gốc từng ký tự. `loose` bỏ thêm dấu câu / ký hiệu và hạ chữ thường
+ * để khớp gần đúng khi đoạn chỉ bị sửa nhẹ.
+ */
+function normalizeWithMap(text: string, loose: boolean): { value: string; toRaw: number[] } {
   let value = '';
   const toRaw: number[] = [];
   for (let i = 0; i < text.length; i++) {
-    const isSpace = /\s/.test(text[i]);
-    if (isSpace && value.endsWith(' ')) continue;
-    value += isSpace ? ' ' : text[i];
+    const ch = text[i];
+    if (loose && /[\p{P}\p{S}]/u.test(ch)) continue;
+    const isSpace = /\s/.test(ch);
+    if (isSpace && (value === '' || value.endsWith(' '))) continue;
+    value += isSpace ? ' ' : loose ? ch.toLocaleLowerCase('vi') : ch;
     toRaw.push(i);
   }
   return { value, toRaw };
@@ -125,26 +145,77 @@ const commonPrefixLength = (a: string, b: string) => {
   return n;
 };
 
-/**
- * Tìm lại đoạn ghi chú trong bài. Đoạn xuất hiện nhiều lần thì chọn chỗ có chữ trước / sau giống `anchor`
- * nhất; không có `anchor` (ghi chú cũ) thì lấy lần đầu. Trả null khi bài đã sửa mất đoạn đó.
- */
-export function locateHighlight(index: TextIndex, highlightText: string, anchor: NoteAnchor | null): Range | null {
-  const haystack = collapseWhitespace(index.text);
-  const needle = collapseWhitespace(highlightText.trim()).value;
-  if (!needle) return null;
-
+/** Mọi chỗ xuất hiện của `needle`, chọn chỗ có chữ trước / sau giống `anchor` nhất. */
+function bestOccurrence(
+  haystack: string,
+  needle: string,
+  context: { prefix: string; suffix: string } | null,
+): { at: number; contextMatched: boolean } | null {
   let best: { at: number; score: number } | null = null;
-  for (let at = haystack.value.indexOf(needle); at !== -1; at = haystack.value.indexOf(needle, at + 1)) {
-    const score = anchor
-      ? commonSuffixLength(haystack.value.slice(0, at), collapseWhitespace(anchor.prefix).value) +
-        commonPrefixLength(haystack.value.slice(at + needle.length), collapseWhitespace(anchor.suffix).value)
+  for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle, at + 1)) {
+    const score = context
+      ? commonSuffixLength(haystack.slice(0, at), context.prefix) +
+        commonPrefixLength(haystack.slice(at + needle.length), context.suffix)
       : 0;
     if (!best || score > best.score) best = { at, score };
-    if (!anchor) break;
   }
   if (!best) return null;
-  const rawStart = haystack.toRaw[best.at];
-  const rawEnd = haystack.toRaw[best.at + needle.length - 1] + 1;
-  return rangeFromOffsets(index, rawStart, rawEnd);
+  const contextMatched = !context || best.score >= context.prefix.length + context.suffix.length;
+  return { at: best.at, contextMatched };
+}
+
+/**
+ * Tìm lại đoạn ghi chú trong bài: khớp nguyên văn trước (EXACT nếu chữ trước / sau cũng khớp, không thì
+ * MOVED), không được thì khớp gần đúng (FUZZY). Null khi bài đã sửa mất đoạn đó.
+ */
+export function locateHighlight(
+  index: TextIndex,
+  highlightText: string,
+  anchor: NoteAnchor | null,
+): LocatedAnchor | null {
+  for (const loose of [false, true]) {
+    const haystack = normalizeWithMap(index.text, loose);
+    const needle = normalizeWithMap(highlightText.trim(), loose).value;
+    if (!needle) return null;
+    // Ghi chú cũ chưa có chữ trước / sau thì coi như khớp ngay ở lần xuất hiện đầu.
+    const context =
+      anchor?.prefix !== undefined || anchor?.suffix !== undefined
+        ? {
+            prefix: normalizeWithMap(anchor?.prefix ?? '', loose).value,
+            suffix: normalizeWithMap(anchor?.suffix ?? '', loose).value,
+          }
+        : null;
+    const hit = bestOccurrence(haystack.value, needle, context);
+    if (!hit) continue;
+    const range = rangeFromOffsets(
+      index,
+      haystack.toRaw[hit.at],
+      haystack.toRaw[hit.at + needle.length - 1] + 1,
+    );
+    if (!range) return null;
+    if (loose) return { range, match: AnchorMatch.FUZZY };
+    return { range, match: hit.contextMatched ? AnchorMatch.EXACT : AnchorMatch.MOVED };
+  }
+  return null;
+}
+
+const headingTextOf = (el: Element) => normalizeWithMap(el.textContent ?? '', true).value;
+
+/**
+ * Mục được tóm tắt: id tiêu đề đánh theo thứ tự nên có thể lệch khi bài thêm / bớt mục — kiểm thêm tên
+ * mục (`highlightText`), lệch thì tìm tiêu đề cùng tên.
+ */
+export function locateHeading(root: HTMLElement, headingId: string, headingText: string | null): LocatedAnchor | null {
+  const wanted = headingText ? normalizeWithMap(headingText, true).value : null;
+  const byId = root.querySelector(`[id="${CSS.escape(headingId)}"]`);
+  const sameName = (el: Element | null) => el && (!wanted || headingTextOf(el) === wanted);
+  const heading = sameName(byId)
+    ? byId
+    : wanted
+      ? [...root.querySelectorAll('h1, h2, h3, h4, h5, h6')].find((el) => headingTextOf(el) === wanted) ?? null
+      : null;
+  if (!heading) return null;
+  const range = document.createRange();
+  range.selectNodeContents(heading);
+  return { range, match: heading === byId ? AnchorMatch.EXACT : AnchorMatch.MOVED };
 }

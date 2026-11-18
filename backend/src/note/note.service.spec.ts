@@ -1,5 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { NoteColor, NoteTargetType } from '@prisma/client';
+import { NoteColor, NoteKind, NoteTargetType } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { CreateNoteDto } from './dto/note.dto';
@@ -10,6 +10,7 @@ describe('NoteService', () => {
   let mockPrisma: any;
   let mockRegistry: any;
   let mockStrategy: any;
+  let mockRevision: any;
 
   beforeEach(() => {
     mockPrisma = {
@@ -20,6 +21,7 @@ describe('NoteService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
+      $queryRaw: jest.fn(),
     };
 
     mockStrategy = {
@@ -34,7 +36,8 @@ describe('NoteService', () => {
       getStrategy: jest.fn().mockReturnValue(mockStrategy),
     };
 
-    service = new NoteService(mockPrisma, mockRegistry);
+    mockRevision = { liveVersion: jest.fn().mockResolvedValue(3) };
+    service = new NoteService(mockPrisma, mockRegistry, mockRevision);
   });
 
   describe('create', () => {
@@ -102,6 +105,51 @@ describe('NoteService', () => {
         }),
       );
     });
+
+    it('ghi loại (không gửi thì suy từ nội dung), phiên bản bài hiện hành và nhãn đã chuẩn hoá', async () => {
+      mockPrisma.note.create.mockResolvedValue({ id: 'note-003' });
+
+      await service.create(
+        {
+          targetType: NoteTargetType.LESSON,
+          targetId: 'lesson-1',
+          content: '',
+          highlightText: 'Bạch Đằng',
+          labels: [' Thi học kỳ ', 'Thi học kỳ', ''],
+        },
+        'user-1',
+      );
+
+      expect(mockRevision.liveVersion).toHaveBeenCalledWith(
+        'LESSON',
+        'lesson-1',
+      );
+      expect(mockPrisma.note.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            kind: NoteKind.HIGHLIGHT,
+            contentVersion: 3,
+            labels: ['Thi học kỳ'],
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('findLabels', () => {
+    it('trả nhãn người học đã dùng; không có danh tính thì rỗng, không truy vấn', async () => {
+      mockPrisma.$queryRaw.mockResolvedValue([
+        { label: 'Nhà Trần' },
+        { label: 'Thi học kỳ' },
+      ]);
+
+      expect(await service.findLabels('user-1')).toEqual([
+        'Nhà Trần',
+        'Thi học kỳ',
+      ]);
+      expect(await service.findLabels()).toEqual([]);
+      expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('CreateNoteDto', () => {
@@ -119,15 +167,85 @@ describe('NoteService', () => {
       const errors = await errorsOf({ ...base, content: '' });
       expect(errors.map((e) => e.property)).toContain('content');
     });
+
+    it('Quan trọng được để trống nội dung; Câu hỏi thì không', async () => {
+      const quote = { ...base, content: '', highlightText: 'năm 1288' };
+      expect(
+        await errorsOf({ ...quote, kind: NoteKind.IMPORTANT }),
+      ).toHaveLength(0);
+      const errors = await errorsOf({ ...quote, kind: NoteKind.QUESTION });
+      expect(errors.map((e) => e.property)).toContain('content');
+    });
+
+    it('Định nghĩa bắt buộc có thuật ngữ (đoạn bôi đen)', async () => {
+      const errors = await errorsOf({
+        ...base,
+        kind: NoteKind.DEFINITION,
+        content: 'Bài hịch khích lệ tướng sĩ',
+      });
+      expect(errors.map((e) => e.property)).toContain('highlightText');
+    });
   });
 
   describe('update', () => {
+    const owned = {
+      id: 'note-1',
+      userId: 'user-1',
+      guestId: null,
+      targetType: NoteTargetType.ARTICLE,
+      targetId: 'art-1',
+    };
+
+    it('tô sáng được viết thêm nội dung thì thành ghi chú', async () => {
+      mockPrisma.note.findUnique.mockResolvedValue({
+        ...owned,
+        kind: NoteKind.HIGHLIGHT,
+        content: '',
+        highlightText: 'Bạch Đằng',
+      });
+
+      await service.update('note-1', { content: 'Trận thủy chiến' }, 'user-1');
+
+      expect(mockPrisma.note.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ kind: NoteKind.NOTE }),
+        }),
+      );
+    });
+
+    it('đánh dấu câu hỏi đã hiểu và gắn lại vị trí theo phiên bản bài mới', async () => {
+      mockPrisma.note.findUnique.mockResolvedValue({
+        ...owned,
+        kind: NoteKind.QUESTION,
+        content: 'Vì sao?',
+        highlightText: 'vườn không nhà trống',
+      });
+
+      await service.update(
+        'note-1',
+        { resolved: true, anchor: { prefix: 'kế ', suffix: ' khiến' } },
+        'user-1',
+      );
+
+      expect(mockPrisma.note.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            resolvedAt: expect.any(Date),
+            anchor: { prefix: 'kế ', suffix: ' khiến' },
+            contentVersion: 3,
+          }),
+        }),
+      );
+    });
+
     it('không cho xoá trắng nội dung của ghi chú không gắn đoạn nào', async () => {
       mockPrisma.note.findUnique.mockResolvedValue({
         id: 'note-1',
         userId: 'user-1',
         guestId: null,
         highlightText: null,
+        kind: NoteKind.NOTE,
+        content: 'cũ',
       });
 
       await expect(

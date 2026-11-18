@@ -4,34 +4,42 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   createNoteApi,
   deleteNoteApi,
+  fetchNoteLabels,
   fetchNotes,
   updateNoteApi,
-} from '../services/note.service';
-import {
   NOTE_COLOR,
-  NoteAnchorValue,
-  NoteColorValue,
-  NoteItem,
-  NoteTargetTypeValue,
-  UpdateNotePayload,
+  type CreateNotePayload,
+  type NoteItem,
+  type NoteKindValue,
+  type NoteTargetTypeValue,
+  type UpdateNotePayload,
 } from '../services/note.service';
 import { CommonFilterOption } from '@/constants/enums';
 
-export function useNoteFacade(
-  targetType: NoteTargetTypeValue,
-  targetId: string
-) {
+export type NewNoteInput = Omit<CreateNotePayload, 'targetType' | 'targetId' | 'guestId'>;
+
+/** Mục (tiêu đề trong bài) đang được viết tóm tắt từ mục lục. */
+export interface SummaryTarget {
+  headingId: string;
+  headingText: string;
+}
+
+export function useNoteFacade(targetType: NoteTargetTypeValue, targetId: string) {
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [colorFilter, setColorFilter] = useState<NoteColorValue | CommonFilterOption.ALL>(CommonFilterOption.ALL);
+  const [kindFilter, setKindFilter] = useState<NoteKindValue | CommonFilterOption.ALL>(CommonFilterOption.ALL);
+  const [labelFilter, setLabelFilter] = useState<string | null>(null);
+  const [labelSuggestions, setLabelSuggestions] = useState<string[]>([]);
+  const [summaryTarget, setSummaryTarget] = useState<SummaryTarget | null>(null);
+  /** Ghi chú bị lạc đang chờ người học bôi đen đoạn mới để gắn lại. */
+  const [reattachNoteId, setReattachNoteId] = useState<string | null>(null);
 
   const loadNotes = useCallback(async () => {
     if (!targetId) return;
     try {
       setLoading(true);
-      const items = await fetchNotes(targetType, targetId);
-      setNotes(items);
+      setNotes(await fetchNotes(targetType, targetId));
     } catch (err) {
       console.error('Lỗi khi tải ghi chú:', err);
     } finally {
@@ -45,6 +53,13 @@ export function useNoteFacade(
     });
   }, [loadNotes]);
 
+  useEffect(() => {
+    fetchNoteLabels()
+      .then(setLabelSuggestions)
+      // Gợi ý nhãn chỉ là tiện ích: lỗi thì người học vẫn gõ nhãn mới được.
+      .catch(() => setLabelSuggestions([]));
+  }, []);
+
   const openDrawer = useCallback(() => {
     setIsOpen(true);
   }, []);
@@ -53,27 +68,17 @@ export function useNoteFacade(
     setIsOpen(false);
   }, []);
 
-  const addNote = async (
-    content: string,
-    title?: string,
-    color: NoteColorValue = NOTE_COLOR.YELLOW,
-    highlightText?: string,
-    anchor?: NoteAnchorValue
-  ) => {
-    if (!content.trim() && !highlightText) return;
+  const rememberLabels = (labels: string[] | undefined) => {
+    if (!labels?.length) return;
+    setLabelSuggestions((prev) => [...new Set([...prev, ...labels])].sort((a, b) => a.localeCompare(b, 'vi')));
+  };
 
+  const addNote = async (input: NewNoteInput) => {
+    if (!input.content.trim() && !input.highlightText) return;
     try {
-      const newNote = await createNoteApi({
-        targetType,
-        targetId,
-        content,
-        title,
-        color,
-        highlightText,
-        anchor,
-      });
-
+      const newNote = await createNoteApi({ color: NOTE_COLOR.YELLOW, ...input, targetType, targetId });
       setNotes((prev) => [newNote, ...prev]);
+      rememberLabels(input.labels);
       return newNote;
     } catch (err) {
       console.error('Lỗi tạo ghi chú:', err);
@@ -85,6 +90,7 @@ export function useNoteFacade(
     try {
       const updated = await updateNoteApi(id, updates);
       setNotes((prev) => prev.map((n) => (n.id === id ? updated : n)));
+      rememberLabels(updates.labels);
       return updated;
     } catch (err) {
       console.error('Lỗi cập nhật ghi chú:', err);
@@ -102,20 +108,31 @@ export function useNoteFacade(
     }
   };
 
-  const filteredNotes = notes.filter((n) => {
-    if (colorFilter === CommonFilterOption.ALL) return true;
-    return n.color === colorFilter;
-  });
+  const filteredNotes = notes.filter(
+    (n) =>
+      (kindFilter === CommonFilterOption.ALL || n.kind === kindFilter) &&
+      (!labelFilter || n.labels.includes(labelFilter)),
+  );
+  const usedLabels = [...new Set(notes.flatMap((n) => n.labels))].sort((a, b) => a.localeCompare(b, 'vi'));
 
   return {
     notes: filteredNotes,
-    /** Mọi ghi chú của bài, không theo bộ lọc màu — dùng để tô lại trong bài. */
+    /** Mọi ghi chú của bài, không theo bộ lọc — dùng để tô lại trong bài. */
     allNotes: notes,
     allNotesCount: notes.length,
     loading,
     isOpen,
-    colorFilter,
-    setColorFilter,
+    kindFilter,
+    setKindFilter,
+    labelFilter,
+    setLabelFilter,
+    /** Nhãn đang có ở bài này (cho bộ lọc) và nhãn đã dùng ở mọi bài (cho gợi ý khi gõ). */
+    usedLabels,
+    labelSuggestions,
+    summaryTarget,
+    setSummaryTarget,
+    reattachNoteId,
+    setReattachNoteId,
     openDrawer,
     closeDrawer,
     addNote,
@@ -124,3 +141,5 @@ export function useNoteFacade(
     reload: loadNotes,
   };
 }
+
+export type NoteFacade = ReturnType<typeof useNoteFacade>;

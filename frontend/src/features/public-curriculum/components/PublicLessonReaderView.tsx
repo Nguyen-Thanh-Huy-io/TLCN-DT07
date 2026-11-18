@@ -28,6 +28,10 @@ import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
 import { NoteReaderLayer } from '@/features/notes/components/NoteReaderLayer';
 import { ReadingAidsPanel, type ReadingEntity } from '@/features/reading-aids/components/ReadingAidsPanel';
 import { resolveCategoryKind } from '@/services/public/article-kind';
+import { DiscussionApiService } from '@/services/entities/discussion.service';
+
+/** Tiêu đề câu hỏi gửi lên Hỏi đáp = dòng đầu của ghi chú (giống ô đăng câu hỏi ở phần Hỏi đáp). */
+const DISCUSSION_TITLE_MAX_LENGTH = 80;
 import { PUBLIC_ROUTES, fetchCategories, type PublicCategory } from '@/services/public/public-content.service';
 import { NOTE_TARGET_TYPE } from '@/features/notes/services/note.service';
 import { LessonMobileSyllabusDrawer } from './reader/LessonReaderMainLayout';
@@ -270,6 +274,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
               htmlTrigger={compiledHtml}
               toc={tocItems}
               entities={readingEntities}
+              onSummarizeSection={(headingId, headingText) => noteFacade.setSummaryTarget({ headingId, headingText })}
             />
             <NoteReaderLayer
               contentRef={contentRef}
@@ -277,6 +282,15 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
               facade={noteFacade}
               targetTitle={lesson.title}
               targetType={NOTE_TARGET_TYPE.LESSON}
+              onAskCommunity={async (note) => {
+                await DiscussionApiService.create({
+                  targetType: NOTE_TARGET_TYPE.LESSON,
+                  targetId: lesson.id,
+                  learningPathId: learningPath?.id,
+                  title: note.content.split('\n')[0].slice(0, DISCUSSION_TITLE_MAX_LENGTH),
+                  content: note.highlightText ? `> ${note.highlightText}\n\n${note.content}` : note.content,
+                });
+              }}
             />
           </>
         )}

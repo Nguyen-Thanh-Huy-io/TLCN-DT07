@@ -212,9 +212,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
   return (
     <div className={`ue-container ${isFocusMode ? 'ue-container-focus' : ''}`}>
@@ -387,6 +385,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
         htmlTrigger={model.html}
         toc={model.toc}
         entities={model.readingEntities}
+        onSummarizeSection={(headingId, headingText) => noteFacade.setSummaryTarget({ headingId, headingText })}
       />
       <NoteReaderLayer
         contentRef={contentRef}

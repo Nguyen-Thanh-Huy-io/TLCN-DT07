@@ -4,17 +4,61 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { NoteKind, NoteTargetType, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
-import { CreateNoteDto, QueryNoteDto, UpdateNoteDto } from './dto/note.dto';
+import { REVISION_CONTENT_TYPES } from '../content-revision/content-revision.constant';
+import { ContentRevisionService } from '../content-revision/content-revision.service';
+import {
+  CreateNoteDto,
+  NOTE_KINDS_WITHOUT_CONTENT,
+  NoteAnchorDto,
+  QueryNoteDto,
+  UpdateNoteDto,
+} from './dto/note.dto';
 import { NoteStrategyRegistry } from './strategies/note-target.strategy';
+
+const REVISION_TYPE_OF_TARGET = {
+  [NoteTargetType.ARTICLE]: REVISION_CONTENT_TYPES.ARTICLE,
+  [NoteTargetType.LESSON]: REVISION_CONTENT_TYPES.LESSON,
+} as const;
+
+/** Bỏ khoảng trắng thừa, nhãn rỗng và nhãn trùng. */
+const normalizeLabels = (labels: string[]) => [
+  ...new Set(labels.map((label) => label.trim()).filter(Boolean)),
+];
+
+/** Chỉ lưu các khoá có giá trị của vị trí. */
+const toAnchorJson = (anchor: NoteAnchorDto): Prisma.InputJsonObject =>
+  Object.fromEntries(
+    Object.entries(anchor).filter(([, value]) => typeof value === 'string'),
+  );
 
 @Injectable()
 export class NoteService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly strategyRegistry: NoteStrategyRegistry,
+    private readonly contentRevision: ContentRevisionService,
   ) {}
+
+  /** Phiên bản hiện hành của bài, để biết ghi chú được gắn ở bản nào (bài sửa sau đó thì dò lại vị trí). */
+  private contentVersionOf(targetType: NoteTargetType, targetId: string) {
+    return this.contentRevision.liveVersion(
+      REVISION_TYPE_OF_TARGET[targetType],
+      targetId,
+    );
+  }
+
+  /** Nhãn người học đã dùng (mọi bài), để gợi ý khi gõ. */
+  async findLabels(userId?: string, guestId?: string): Promise<string[]> {
+    if (!userId && !guestId) return [];
+    const owner = userId
+      ? Prisma.sql`user_id = ${userId}`
+      : Prisma.sql`guest_id = ${guestId}`;
+    const rows = await this.prisma.$queryRaw<{ label: string }[]>`
+      SELECT DISTINCT unnest(labels) AS label FROM notes WHERE ${owner} ORDER BY 1`;
+    return rows.map((row) => row.label);
+  }
 
   async findAll(userId?: string, query?: QueryNoteDto) {
     if (!userId && !query?.guestId) return [];
@@ -86,7 +130,11 @@ export class NoteService {
       );
     }
 
-    const meta = await strategy.getTargetMeta(dto.targetId);
+    const [meta, contentVersion] = await Promise.all([
+      strategy.getTargetMeta(dto.targetId),
+      this.contentVersionOf(dto.targetType, dto.targetId),
+    ]);
+    const content = dto.content.trim();
 
     const note = await this.prisma.note.create({
       data: {
@@ -95,11 +143,12 @@ export class NoteService {
         userId: userId || null,
         guestId: dto.guestId || null,
         title: dto.title?.trim() || meta?.title || 'Ghi chú học tập',
-        content: dto.content.trim(),
+        kind: dto.kind ?? (content ? NoteKind.NOTE : NoteKind.HIGHLIGHT),
+        content,
         highlightText: dto.highlightText?.trim() || null,
-        anchor: dto.anchor
-          ? { prefix: dto.anchor.prefix, suffix: dto.anchor.suffix }
-          : undefined,
+        anchor: dto.anchor ? toAnchorJson(dto.anchor) : undefined,
+        contentVersion,
+        labels: normalizeLabels(dto.labels ?? []),
         color: dto.color,
       },
       include: {
@@ -128,25 +177,47 @@ export class NoteService {
 
     this.assertOwnership(note, userId, guestId);
 
+    const content = dto.content?.trim() ?? note.content;
     const keepsHighlight =
       dto.highlightText !== undefined
         ? Boolean(dto.highlightText.trim())
         : Boolean(note.highlightText);
-    if (dto.content !== undefined && !dto.content.trim() && !keepsHighlight) {
+    // Tô sáng được viết thêm nội dung thì thành ghi chú, trừ khi người dùng chọn loại khác.
+    const kind =
+      dto.kind ??
+      (note.kind === NoteKind.HIGHLIGHT && content ? NoteKind.NOTE : note.kind);
+    if (
+      !content &&
+      !(keepsHighlight && NOTE_KINDS_WITHOUT_CONTENT.includes(kind))
+    ) {
       throw new BadRequestException(
-        'Ghi chú không gắn đoạn nào trong bài thì phải có nội dung',
+        'Loại ghi chú này (hoặc ghi chú không gắn đoạn nào) phải có nội dung',
       );
     }
 
     const updated = await this.prisma.note.update({
       where: { id },
       data: {
+        kind,
+        content,
         ...(dto.title !== undefined && { title: dto.title.trim() }),
-        ...(dto.content !== undefined && { content: dto.content.trim() }),
         ...(dto.highlightText !== undefined && {
           highlightText: dto.highlightText?.trim() || null,
         }),
         ...(dto.color !== undefined && { color: dto.color }),
+        ...(dto.labels !== undefined && {
+          labels: normalizeLabels(dto.labels),
+        }),
+        ...(dto.resolved !== undefined && {
+          resolvedAt: dto.resolved ? new Date() : null,
+        }),
+        ...(dto.anchor !== undefined && {
+          anchor: toAnchorJson(dto.anchor),
+          contentVersion: await this.contentVersionOf(
+            note.targetType,
+            note.targetId,
+          ),
+        }),
       },
       include: {
         user: {

@@ -3295,3 +3295,7 @@ figure.wiki-media-block figcaption {
 ::highlight(hisgo-note-pink) { background-color: rgb(253 164 175 / 0.5); }
 ::highlight(hisgo-note-purple) { background-color: rgb(216 180 254 / 0.5); }
 ::highlight(hisgo-note-flash) { background-color: rgb(139 38 30 / 0.35); }
+/* Kiểu riêng theo loại ghi chú (cộng thêm vào nền màu). */
+::highlight(hisgo-note-kind-important) { text-decoration: underline solid 2px rgb(185 28 28); }
+::highlight(hisgo-note-kind-question) { text-decoration: underline wavy 1.5px rgb(190 18 60); }
+::highlight(hisgo-note-kind-definition) { text-decoration: underline dotted 2px rgb(29 78 216); }

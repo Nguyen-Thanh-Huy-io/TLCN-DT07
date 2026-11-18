@@ -50,6 +50,19 @@ export class NoteController {
     return this.noteService.findAll(userId, { ...query, guestId });
   }
 
+  @Get('labels')
+  @ApiOperation({ summary: 'Nhãn ghi chú người học đã dùng (gợi ý khi gõ)' })
+  findLabels(
+    @Req() req: Request,
+    @Query('guestId') guestQuery?: string,
+    @Headers(X_GUEST_ID_HEADER) guestHeader?: string,
+  ): Promise<string[]> {
+    return this.noteService.findLabels(
+      this.extractUserId(req),
+      guestQuery || guestHeader,
+    );
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Xem chi tiết một ghi chú' })
   findOne(

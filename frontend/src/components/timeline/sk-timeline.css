@@ -61,7 +61,7 @@
 .sk-photo-credit { display: none; }
 .sk-hero-location:hover .sk-photo-credit { display: inline; }
 .sk-hero-vertical { position: absolute; right: 22px; top: 25px; writing-mode: vertical-rl; font-size: 12px; letter-spacing: normal; color: #ffffff; text-shadow: 0 1px 4px rgba(0,0,0,.8); }
-.sk-explorer { max-width: 1500px; margin: auto; padding: 24px 5% 0; }
+.sk-explorer { max-width: 1500px; margin: auto; padding: 32px 5% 0; }
 .sk-explorer-intro { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .sk-section-eyebrow { font-size: 13px; letter-spacing: 0.5px; font-weight: 700; color: var(--gold); }
 .sk-explorer-intro h2 { font-family: var(--sk-font-display); font-size: 29px; margin: 5px 0 8px; letter-spacing: -.6px; color: var(--text); }
@@ -76,15 +76,10 @@
   gap: 12px;
   padding: 10px 16px;
   border: 1px solid var(--border);
-  border-radius: 16px;
-  background: rgba(250, 246, 234, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  position: sticky;
-  top: 76px;
-  z-index: 30;
-  box-shadow: 0 10px 30px rgba(45, 26, 16, 0.07);
-  margin: 16px 0 24px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 4px 16px rgba(45, 26, 16, 0.04);
+  margin: 16px 0 28px;
 }
 .sk-search-field {
   height: 40px;
@@ -889,7 +884,7 @@ button.sk-split-control:hover { color: var(--accent); }
 .sk-sub-link:hover > svg, .sk-sub-link:focus-visible > svg { opacity: 1; }
 
 /* ---------- Đồ thị tri thức trên dòng thời gian: chế độ "Liên kết", mốc kết thúc ---------- */
-.sk-focus-bar { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 72px); z-index: 30; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 14px 0 0; padding: 10px 14px; border: 1px solid #e3c68f; border-radius: 10px; background: #fff8e8; color: #6b4e14; box-shadow: 0 6px 18px #6b4e1414; }
+.sk-focus-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 14px 0 20px; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); box-shadow: 0 4px 14px rgba(45, 26, 16, 0.05); }
 .sk-focus-bar > div { flex: 1; min-width: 200px; display: flex; flex-direction: column; }
 .sk-focus-bar strong { font-size: 13px; }
 .sk-focus-bar small { font-size: 12px; color: #664f1d; font-weight: 500; }

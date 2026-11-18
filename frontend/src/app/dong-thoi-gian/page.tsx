@@ -1,6 +1,5 @@
 import { Header } from "@/components/hisgo/Header";
 import { Footer } from "@/components/hisgo/Footer";
-import { TimelineHero } from "@/components/timeline/TimelineChrome";
 import { TimelineExplorer } from "@/components/timeline/TimelineExplorer";
 import { buildEraDataset } from "@/components/timeline/sk-adapter";
 import { fetchEvents, fetchPeriods } from "@/services/entities/landing.service";
@@ -16,12 +15,11 @@ export default async function DongThoiGianPage() {
   ]);
 
   const eras = buildEraDataset(periods, events, extractEventCategories(categories));
-  const eventCount = eras.flatMap((e) => e.subEras.flatMap((s) => s.timeNodes.flatMap((n) => n.events))).length;
 
   return (
     <main className="min-h-screen bg-[var(--bg-page)] text-[var(--text-body)]">
       <Header activeSectionId="timeline" />
-      <TimelineExplorer eras={eras} hero={<TimelineHero key="timeline-hero" periodCount={eras.length} eventCount={eventCount} />} />
+      <TimelineExplorer eras={eras} />
       <Footer />
     </main>
   );

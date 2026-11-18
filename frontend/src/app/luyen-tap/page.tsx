@@ -205,11 +205,17 @@ function QuizListScreen({ quizzes, topicTree, loading, loadError, initialTopicId
 
   return (
     <>
-      <section className="bg-gradient-to-b from-[#1C2826] to-[#2C3E35] text-stone-100 px-4 py-8 md:py-10">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-2xl md:text-3xl font-serif font-bold text-white tracking-tight">Luyện tập lịch sử</h1>
-          <p className="mt-1.5 text-stone-300 text-sm max-w-xl">
-            Chọn một đề, làm bài có bấm giờ và xem ngay câu đúng, câu sai kèm lời giải.
+      <section className="max-w-6xl mx-auto px-4 pt-8 pb-3 w-full">
+        <div className="border-b border-[#E2D5B8] pb-6">
+          <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#7A1F24] mb-2">
+            <span className="w-5 h-[1.5px] bg-[#7A1F24]" />
+            Khảo thí & Ôn luyện
+          </div>
+          <h1 className="text-2xl md:text-3xl font-serif font-bold text-[#2D1A10] tracking-tight">
+            Luyện tập lịch sử
+          </h1>
+          <p className="mt-1.5 text-[#6E5F55] text-sm max-w-xl">
+            Chọn đề thi để ôn luyện, làm bài có bấm giờ và xem ngay kết quả kèm lời giải chi tiết.
           </p>
         </div>
       </section>

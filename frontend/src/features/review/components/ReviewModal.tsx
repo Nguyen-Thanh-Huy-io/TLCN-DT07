@@ -5,6 +5,8 @@ export interface ReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   lessonTitle: string;
+  /** Tên loại nội dung trong tiêu đề hộp ("bài học", "bài viết"). */
+  itemLabel?: string;
   lessonSummary?: string;
   onApprove: () => void;
   onReject: (reason: string) => void;
@@ -15,6 +17,7 @@ export function ReviewModal({
   isOpen,
   onClose,
   lessonTitle,
+  itemLabel = 'bài học',
   lessonSummary,
   onApprove,
   onReject,
@@ -33,7 +36,7 @@ export function ReviewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>Kiểm duyệt bài học: &ldquo;{lessonTitle}&rdquo;</h2>
+          <h2>Kiểm duyệt {itemLabel}: &ldquo;{lessonTitle}&rdquo;</h2>
           <button type="button" className="modal-close" onClick={onClose}>
             ×
           </button>
@@ -53,12 +56,12 @@ export function ReviewModal({
                 }}
               >
                 <strong style={{ display: 'block', marginBottom: 6 }}>
-                  Tóm tắt từ dữ liệu bài học:
+                  Tóm tắt:
                 </strong>
                 <p style={{ margin: 0 }}>
                   {lessonSummary && lessonSummary.trim()
                     ? lessonSummary
-                    : 'Chưa có nội dung tóm tắt từ backend. Bài học sẽ hiển thị dữ liệu thực khi được lưu vào hệ thống.'}
+                    : 'Bài chưa có tóm tắt — mở "Chỉnh sửa trước khi duyệt" để xem toàn bộ nội dung.'}
                 </p>
               </div>
 

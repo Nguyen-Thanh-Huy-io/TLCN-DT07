@@ -39,7 +39,8 @@ const normalizePost = (item: BlogPostItem): ReviewPost => {
   };
 };
 
-export function BlogReviewList() {
+/** Gọi sau mỗi lần duyệt / từ chối thành công (Hàng chờ duyệt dùng để cập nhật số trên tab). */
+export function BlogReviewList({ onChanged }: { onChanged?: () => void }) {
   const [tab, setTab] = useState<ReviewTabState>(ReviewTabState.PENDING);
   const [posts, setPosts] = useState<BlogPostItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,6 +109,7 @@ export function BlogReviewList() {
 
       // Bài đã chuyển trạng thái nên rời tab đang xem; tab đích tự tải lại khi được mở.
       setPosts((current) => current.filter((post) => post.id !== item.id));
+      onChanged?.();
 
       setNotice({
         tone: NoticeTone.OK,

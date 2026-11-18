@@ -13,7 +13,7 @@ export const NOTICE_TONE = {
   ERROR: 'error',
 } as const;
 
-export function useModerationDashboard() {
+export function useModerationDashboard(onResolved?: () => void) {
   const [activeTab, setActiveTab] = useState<ModerationTabKey>('pending');
   const [sourceFilter, setSourceFilter] = useState<'AI_SCAN' | 'USER_REPORT' | ''>('');
   const [riskFilter, setRiskFilter] = useState<ModerationRiskLevel | ''>('');
@@ -83,6 +83,7 @@ export function useModerationDashboard() {
     setNotice(null);
     try {
       const res = await ModerationApi.resolveReport(report.id, { action, note });
+      onResolved?.();
       const title = report.target?.title || res.targetTitle || 'nội dung';
       if (action === ModerationResolveActionEnum.RESTORE) {
         setNotice({

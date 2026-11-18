@@ -45,7 +45,7 @@ const TYPE_BADGE: Record<ReviewQueueType, string> = {
 };
 
 /** Danh sách duyệt chi tiết của từng loại (giữ nguyên thao tác duyệt sẵn có). */
-const TYPE_PANEL: Record<ReviewQueueType, () => React.ReactElement> = {
+const TYPE_PANEL: Record<ReviewQueueType, React.ComponentType<{ onChanged?: () => void }>> = {
   [ReviewQueueType.REVISION]: RevisionReviewList,
   [ReviewQueueType.ARTICLE]: ArticleReviewList,
   [ReviewQueueType.LESSON]: ReviewList,
@@ -167,7 +167,7 @@ export function ReviewHubView() {
       {error && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</div>}
 
       {Panel ? (
-        <Panel />
+        <Panel onChanged={load} />
       ) : loading ? (
         <p className="py-10 text-center text-sm text-slate-500">Đang tải hàng chờ duyệt...</p>
       ) : (

@@ -77,7 +77,8 @@ function mapArticleToRow(art: ArticleItem, currentUserId: string | null): Review
   };
 }
 
-export function ArticleReviewList() {
+/** Gọi sau mỗi lần duyệt / từ chối thành công (Hàng chờ duyệt dùng để cập nhật số trên tab). */
+export function ArticleReviewList({ onChanged }: { onChanged?: () => void }) {
   const router = useRouter();
   const [tab, setTab] = useState<ReviewTabState>(ReviewTabState.PENDING);
   const [selectedArticle, setSelectedArticle] = useState<ReviewArticleRow | null>(null);
@@ -137,6 +138,7 @@ export function ArticleReviewList() {
       );
 
       setNotice({ tone: NoticeTone.OK, text: `Đã phê duyệt bài viết "${article.title}".` });
+      onChanged?.();
     } catch (error) {
       setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(error, 'Không thể duyệt bài viết.') });
     }
@@ -163,6 +165,7 @@ export function ArticleReviewList() {
       );
 
       setNotice({ tone: NoticeTone.OK, text: `Đã từ chối bài viết "${article.title}". Lý do: ${reason}` });
+      onChanged?.();
     } catch (error) {
       setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(error, 'Không thể từ chối bài viết.') });
     }
@@ -294,6 +297,7 @@ export function ArticleReviewList() {
 
       {selectedArticle && (
         <ReviewModal
+          itemLabel="bài viết"
           isOpen={true}
           onClose={() => setSelectedArticle(null)}
           lessonTitle={selectedArticle.title}

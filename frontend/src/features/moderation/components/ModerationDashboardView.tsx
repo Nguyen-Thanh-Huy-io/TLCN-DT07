@@ -3,8 +3,9 @@
 import { useModerationDashboard, NOTICE_TONE } from './useModerationDashboard';
 import { ModerationStatsGrid, ModerationTabs, ModerationFilters, ModerationReportTable, BanConfirmModal } from './ModerationDashboardParts';
 
-export function ModerationDashboardView() {
-  const facade = useModerationDashboard();
+/** Gọi sau mỗi lần duyệt / từ chối thành công (Hàng chờ duyệt dùng để cập nhật số trên tab). */
+export function ModerationDashboardView({ onChanged }: { onChanged?: () => void }) {
+  const facade = useModerationDashboard(onChanged);
   const { notice, setNotice } = facade;
 
   return (

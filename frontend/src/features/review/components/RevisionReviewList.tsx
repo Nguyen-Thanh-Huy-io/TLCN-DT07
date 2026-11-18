@@ -25,7 +25,8 @@ const EDIT_ROUTE: Record<RevisionContentType, (id: string) => string> = {
  * Trang Duyệt bài — bản sửa của nội dung đã xuất bản (bài học, sự kiện, thực thể) đang chờ duyệt.
  * Mở một bản để xem đúng các trường thay đổi, rồi Duyệt & áp dụng hoặc Từ chối.
  */
-export function RevisionReviewList() {
+/** Gọi sau mỗi lần duyệt / từ chối thành công (Hàng chờ duyệt dùng để cập nhật số trên tab). */
+export function RevisionReviewList({ onChanged }: { onChanged?: () => void }) {
   const [items, setItems] = useState<ContentRevisionItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -111,6 +112,7 @@ export function RevisionReviewList() {
             setOpenId(null);
             setNotice(message);
             load();
+            onChanged?.();
           }}
         />
       )}

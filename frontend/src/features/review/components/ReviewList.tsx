@@ -72,7 +72,8 @@ function mapLessonToRow(lesson: LessonItem, currentUserId: string | null): Revie
   };
 }
 
-export function ReviewList() {
+/** Gọi sau mỗi lần duyệt / từ chối thành công (Hàng chờ duyệt dùng để cập nhật số trên tab). */
+export function ReviewList({ onChanged }: { onChanged?: () => void }) {
   const [tab, setTab] = useState<ReviewTabState>(ReviewTabState.PENDING);
   const [selectedLesson, setSelectedLesson] = useState<ReviewLessonRow | null>(null);
   const [lessonsList, setLessonsList] = useState<ReviewLessonRow[]>([]);
@@ -136,6 +137,7 @@ export function ReviewList() {
       );
 
       setNotice({ tone: NoticeTone.OK, text: `Đã phê duyệt bài học "${lesson.title}".` });
+      onChanged?.();
     } catch (error) {
       setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(error, 'Không thể duyệt bài học.') });
     }
@@ -162,6 +164,7 @@ export function ReviewList() {
       );
 
       setNotice({ tone: NoticeTone.OK, text: `Đã từ chối bài học "${lesson.title}". Lý do: ${reason}` });
+      onChanged?.();
     } catch (error) {
       setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(error, 'Không thể từ chối bài học.') });
     }

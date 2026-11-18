@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../common/services/prisma.service';
+import { ArticleAdjacencyService } from './article-adjacency.service';
 import { PublicContentService } from './public-content.service';
 
 /** Câu hỏi của đề lấy từ Ngân hàng qua `quiz_questions` (đã sắp theo thứ tự trong đề). */
@@ -40,6 +41,7 @@ describe('PublicContentService — nộp bài quiz', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PublicContentService,
+        ArticleAdjacencyService,
         { provide: PrismaService, useValue: prisma },
       ],
     }).compile();

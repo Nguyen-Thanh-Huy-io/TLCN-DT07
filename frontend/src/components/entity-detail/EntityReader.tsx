@@ -288,12 +288,13 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
 
           {/* ĐIỀU HƯỚNG LIÊN HOÀN CUỐI BÀI */}
           {(model.previous || model.next) && (
-            <div className="ue-bottom-nav">
+            // Cột phải (≥1280px, đang mở) đã hiện đúng nội dung này — chỉ hiện ở cuối bài khi cột đó ẩn.
+            <div className={`ue-bottom-nav ${isTimelineOpen ? 'ue-bottom-nav-beside-column' : ''}`}>
               {model.previous ? (
                 <Link href={model.previous.href} className="ue-bottom-btn prev">
                   <ChevronLeft size={20} />
                   <div>
-                    <span className="ue-bottom-sub">{model.strategy.previousLabel}</span>
+                    <span className="ue-bottom-sub">{model.previousLabel}</span>
                     <strong className="ue-bottom-title">{model.previous.name}</strong>
                     {model.previous.dateLabel && (
                       <span className="ue-bottom-date">{model.previous.dateLabel}</span>
@@ -307,7 +308,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
               {model.next ? (
                 <Link href={model.next.href} className="ue-bottom-btn next">
                   <div className="text-right">
-                    <span className="ue-bottom-sub">{model.strategy.nextLabel}</span>
+                    <span className="ue-bottom-sub">{model.nextLabel}</span>
                     <strong className="ue-bottom-title">{model.next.name}</strong>
                     {model.next.dateLabel && (
                       <span className="ue-bottom-date">{model.next.dateLabel}</span>
@@ -345,8 +346,9 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
           isFocusMode={isFocusMode}
           previous={model.previous}
           next={model.next}
-          previousLabel={model.strategy.previousLabel}
-          nextLabel={model.strategy.nextLabel}
+          previousLabel={model.previousLabel}
+          nextLabel={model.nextLabel}
+          adjacentTimeline={model.adjacentTimeline}
           currentName={model.name}
           currentDateLabel={model.dateLabel}
           onToggleTimeline={toggleTimeline}

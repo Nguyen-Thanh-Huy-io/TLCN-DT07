@@ -1,6 +1,12 @@
 import { ContentStatus, Prisma } from '@prisma/client';
 import { formatHistoricalYear } from '../common/utils/historical-date.parser';
 
+/** Thứ tự bài theo niên đại: năm bắt đầu tăng dần (chưa có năm xếp cuối), trùng năm theo tên. */
+export const BY_YEAR: Prisma.ArticleOrderByWithRelationInput[] = [
+  { startYear: { sort: 'asc', nulls: 'last' } },
+  { title: 'asc' },
+];
+
 /**
  * Nhãn niên đại DUY NHẤT cho toàn bộ trang công khai — frontend hiển thị nguyên `dateLabel`,
  * không tự format năm nữa (trước đây logic TCN bị chép ở ≥7 file frontend).

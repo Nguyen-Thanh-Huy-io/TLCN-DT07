@@ -404,6 +404,7 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
     media: [],
     statements,
     relatedByTag,
+    adjacentTimeline: article.adjacentTimeline ?? null,
     previous: article.previous
       ? { id: article.previous.slug, slug: article.previous.slug, name: article.previous.title, dateLabel: article.previous.dateLabel }
       : null,

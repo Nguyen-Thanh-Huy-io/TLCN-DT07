@@ -3,6 +3,10 @@ import { Test } from '@nestjs/testing';
 import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { PUBLIC_QUIZ_LIST_MAX_LIMIT } from '../quiz/quiz.constant';
+import {
+  ArticleAdjacencyService,
+  ArticleAdjacentSource,
+} from './article-adjacency.service';
 import { PublicContentService } from './public-content.service';
 
 const PUBLISHED = ContentStatus.PUBLISHED;
@@ -48,6 +52,7 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PublicContentService,
+        ArticleAdjacencyService,
         { provide: PrismaService, useValue: prisma },
       ],
     }).compile();
@@ -150,6 +155,7 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
             timeline: { slug: 'bac-thuoc', title: 'Bắc thuộc' },
           },
         ],
+        timelineNodeLinks: [],
       });
       prisma.article.findMany
         .mockResolvedValueOnce([summaryRow('lien-quan')])
@@ -168,6 +174,7 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
         dateLabel: '905',
       });
       expect(result.next).toMatchObject({ slug: 'a3' });
+      expect(result.adjacentSource).toBe(ArticleAdjacentSource.CATEGORY);
       expect(result.timelines).toEqual([
         { slug: 'bac-thuoc', title: 'Bắc thuộc', nodeTitle: 'Trận Bạch Đằng' },
       ]);
@@ -178,6 +185,7 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
       prisma.article.findFirst.mockResolvedValue({
         ...summaryRow('a1', { categoryId: null }),
         timelineNodes: [],
+        timelineNodeLinks: [],
       });
 
       const result = await service.getArticleBySlug('a1');

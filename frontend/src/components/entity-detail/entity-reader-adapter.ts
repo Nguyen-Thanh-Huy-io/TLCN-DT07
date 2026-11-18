@@ -86,6 +86,10 @@ export interface EntityReaderModel {
   quickStats: EntityQuickStat[];
   previous: EntityAdjacent | null;
   next: EntityAdjacent | null;
+  /** Dòng thời gian làm nguồn cho bài trước / sau; null = cùng chuyên mục theo năm. */
+  adjacentTimeline: { title: string; href: string } | null;
+  previousLabel: string;
+  nextLabel: string;
 }
 
 export interface GenericContentBlock {
@@ -448,7 +452,7 @@ function extractEntityFastFacts(
 
 function buildAdjacentNavigation(
   adjacent: PublicEntityDetailDto['previous'],
-  routePrefix: string,
+  hrefOf: (slug: string) => string,
 ): EntityAdjacent | null {
   if (!adjacent) return null;
   return {
@@ -456,9 +460,12 @@ function buildAdjacentNavigation(
     slug: adjacent.slug,
     name: adjacent.name,
     dateLabel: adjacent.dateLabel,
-    href: `${routePrefix}/${adjacent.slug}`,
+    href: hrefOf(adjacent.slug),
   };
 }
+
+/** Mốc liền kề trong dòng thời gian có thể khác loại (nhân vật cạnh sự kiện) nên dùng trang bài viết chung. */
+const TIMELINE_ADJACENT_LABELS = { previousLabel: 'Mốc trước', nextLabel: 'Mốc tiếp theo' } as const;
 
 export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityReaderModel {
   const strategy = getEntityTypeStrategy(entity.type);
@@ -485,8 +492,11 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
     dateLabel,
   );
 
-  const previous = buildAdjacentNavigation(entity.previous, strategy.routePrefix);
-  const next = buildAdjacentNavigation(entity.next, strategy.routePrefix);
+  const timeline = entity.adjacentTimeline ?? null;
+  const adjacentHref = timeline ? PUBLIC_ROUTES.ARTICLE : (slug: string) => `${strategy.routePrefix}/${slug}`;
+  const previous = buildAdjacentNavigation(entity.previous, adjacentHref);
+  const next = buildAdjacentNavigation(entity.next, adjacentHref);
+  const adjacentLabels = timeline ? TIMELINE_ADJACENT_LABELS : strategy;
 
   const hanziName =
     extractHanziName(entity.name) ||
@@ -520,5 +530,8 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
     quickStats,
     previous,
     next,
+    adjacentTimeline: timeline ? { title: timeline.title, href: PUBLIC_ROUTES.TIMELINE(timeline.slug) } : null,
+    previousLabel: adjacentLabels.previousLabel,
+    nextLabel: adjacentLabels.nextLabel,
   };
 }

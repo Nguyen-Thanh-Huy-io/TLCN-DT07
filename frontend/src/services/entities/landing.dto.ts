@@ -261,6 +261,8 @@ export interface PublicEntityDetailDto {
   relatedByTag?: PublicEntityRelatedArticleDto[];
   previous?: PublicEntityAdjacentDto | null;
   next?: PublicEntityAdjacentDto | null;
+  /** Bài trước / sau lấy theo Dòng thời gian này; null = cùng chuyên mục theo năm. */
+  adjacentTimeline?: { slug: string; title: string } | null;
   /** Chỉ có giá trị khi type === 'PERSON' (từ bảng Person). */
   roles?: string[];
   titles?: string[];

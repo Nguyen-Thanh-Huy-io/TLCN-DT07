@@ -121,6 +121,8 @@ export interface PublicArticleDetail extends PublicArticleSummary {
   related: PublicArticleSummary[];
   previous: PublicArticleNeighbour | null;
   next: PublicArticleNeighbour | null;
+  /** Bài trước / sau lấy theo Dòng thời gian này; null = cùng chuyên mục theo năm. */
+  adjacentTimeline: { slug: string; title: string } | null;
 }
 
 export interface PublicCategory extends PublicCategoryRef {

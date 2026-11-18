@@ -240,6 +240,8 @@ interface EntityReadingTimelineProps {
   next: EntityAdjacent | null;
   previousLabel: string;
   nextLabel: string;
+  /** Có = bài trước / sau theo dòng thời gian này; không = cùng chuyên mục theo năm. */
+  adjacentTimeline: { title: string; href: string } | null;
   currentName: string;
   currentDateLabel: string;
   onToggleTimeline: () => void;
@@ -253,6 +255,7 @@ export function EntityReadingTimeline({
   next,
   previousLabel,
   nextLabel,
+  adjacentTimeline,
   currentName,
   currentDateLabel,
   onToggleTimeline,
@@ -264,9 +267,19 @@ export function EntityReadingTimeline({
       <aside className="ue-timeline-col hidden xl:block">
         <div className="ue-timeline-nav-card">
           <div className="ue-timeline-nav-header">
-            <div className="flex items-center gap-1.5 flex-1">
-              <Compass size={14} className="text-[#8C2D19]" />
-              <span>TIẾN TRÌNH LỊCH SỬ</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <Compass size={14} className="text-[#8C2D19]" />
+                <span>{adjacentTimeline ? 'THEO DÒNG THỜI GIAN' : 'CÙNG CHUYÊN MỤC'}</span>
+              </div>
+              {adjacentTimeline && (
+                <Link
+                  href={adjacentTimeline.href}
+                  className="mt-1 block truncate text-xs font-semibold normal-case tracking-normal text-[#8C2D19] hover:underline"
+                >
+                  {adjacentTimeline.title}
+                </Link>
+              )}
             </div>
             <button
               type="button"

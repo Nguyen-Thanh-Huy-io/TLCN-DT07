@@ -16,8 +16,9 @@ import {
 } from '../quiz/quiz-question.mapper';
 import { PublicQuizQueryDto } from './dto/public-quiz-query.dto';
 import { SubmitQuizAttemptDto } from './dto/submit-quiz-attempt.dto';
+import { ArticleAdjacencyService } from './article-adjacency.service';
 import {
-  buildDateLabel,
+  BY_YEAR,
   buildNodeDateLabel,
   PUBLIC_ARTICLE_SUMMARY_SELECT,
   toArticleSummary,
@@ -35,10 +36,6 @@ export const PUBLIC_MESSAGES = {
 } as const;
 
 /** Sắp bài viết theo niên đại (bài chưa có năm xuống cuối), rồi theo tiêu đề. */
-const BY_YEAR: Prisma.ArticleOrderByWithRelationInput[] = [
-  { startYear: { sort: 'asc', nulls: 'last' } },
-  { title: 'asc' },
-];
 
 export interface PublicArticleQuery {
   category?: string;
@@ -61,7 +58,10 @@ export interface QuizAttemptResult extends QuizGradingResult {
 
 @Injectable()
 export class PublicContentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly adjacency: ArticleAdjacencyService,
+  ) {}
 
   // ---------- Chuyên mục ----------
   async getCategories() {
@@ -136,21 +136,26 @@ export class PublicContentService {
         categoryId: true,
         publishedAt: true,
         updatedAt: true,
+        // Thứ tự dòng thời gian cố định để "bài trước / sau" không đổi giữa các lần tải khi bài thuộc nhiều dòng.
         timelineNodes: {
           where: { timeline: { status: PUBLISHED } },
+          orderBy: { timeline: { displayOrder: 'asc' } },
           select: {
             id: true,
             title: true,
+            timelineId: true,
             timeline: { select: { slug: true, title: true } },
           },
         },
         timelineNodeLinks: {
           where: { node: { timeline: { status: PUBLISHED } } },
+          orderBy: { node: { timeline: { displayOrder: 'asc' } } },
           select: {
             node: {
               select: {
                 id: true,
                 title: true,
+                timelineId: true,
                 timeline: { select: { slug: true, title: true } },
               },
             },
@@ -162,15 +167,12 @@ export class PublicContentService {
       throw new NotFoundException(PUBLIC_MESSAGES.ARTICLE_NOT_FOUND(slug));
 
     const tagIds = article.articleTags.map((at) => at.tag.id);
-    type Sibling = {
-      id: string;
-      slug: string;
-      title: string;
-      dateText: string | null;
-      startYear: number | null;
-      endYear: number | null;
-    };
-    const [related, siblings] = await Promise.all([
+    // Dòng thời gian đầu tiên chứa bài (gắn trực tiếp trước, rồi gắn qua bảng nối N-N).
+    const timelineId =
+      article.timelineNodes[0]?.timelineId ??
+      article.timelineNodeLinks[0]?.node.timelineId ??
+      null;
+    const [related, adjacency] = await Promise.all([
       // Bài liên quan: chung ít nhất 1 tag, ưu tiên nổi bật.
       tagIds.length
         ? this.prisma.article.findMany({
@@ -184,29 +186,12 @@ export class PublicContentService {
             select: PUBLIC_ARTICLE_SUMMARY_SELECT,
           })
         : [],
-      // Bài trước / sau: cùng chuyên mục, theo niên đại.
-      article.categoryId
-        ? this.prisma.article.findMany({
-            where: { status: PUBLISHED, categoryId: article.categoryId },
-            orderBy: BY_YEAR,
-            select: {
-              id: true,
-              slug: true,
-              title: true,
-              dateText: true,
-              startYear: true,
-              endYear: true,
-            },
-          })
-        : Promise.resolve([] as Sibling[]),
+      this.adjacency.findAdjacent({
+        id: article.id,
+        categoryId: article.categoryId,
+        timelineId,
+      }),
     ]);
-    const index = siblings.findIndex((s) => s.id === article.id);
-    const neighbour = (i: number) => {
-      const s = siblings[i];
-      return s
-        ? { slug: s.slug, title: s.title, dateLabel: buildDateLabel(s) }
-        : null;
-    };
 
     const { timelineNodes = [], timelineNodeLinks = [], ...rest } = article;
     const allNodesMap = new Map<
@@ -237,8 +222,10 @@ export class PublicContentService {
       updatedAt: article.updatedAt,
       timelines: Array.from(allNodesMap.values()),
       related: related.map(toArticleSummary),
-      previous: index > 0 ? neighbour(index - 1) : null,
-      next: index >= 0 ? neighbour(index + 1) : null,
+      previous: adjacency.previous,
+      next: adjacency.next,
+      adjacentSource: adjacency.source,
+      adjacentTimeline: adjacency.timeline,
     };
   }
 

@@ -1354,6 +1354,13 @@
   }
 }
 
+/* Cột Tiến trình bên phải chỉ hiện từ 1280px; khi nó đang mở thì khung cuối bài là trùng lặp. */
+@media (min-width: 1280px) {
+  .ue-bottom-nav.ue-bottom-nav-beside-column {
+    display: none;
+  }
+}
+
 .ue-bottom-btn {
   display: flex;
   align-items: center;

@@ -14,6 +14,7 @@ import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.ty
 import { ArticleKindEnum } from '@/constants/enums';
 import type { ReadingEntity } from '@/features/reading-aids/components/ReadingAidsPanel';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
+import { eventFacts, eventQuickStats, locationFacts, locationQuickStats } from './entity-place-event-profile';
 
 const asArticleKind = (value: string | null): ArticleKindEnum | null =>
   Object.values(ArticleKindEnum).find((kind) => kind === value) ?? null;
@@ -42,7 +43,6 @@ export interface FastFactItem {
   label: string;
   value: string;
   href?: string;
-  isHighlight?: boolean;
 }
 
 export interface EntityQuickStat {
@@ -69,6 +69,8 @@ export interface EntityReaderModel {
   tagline: string | null;
   description: string | null;
   dateLabel: string;
+  /** false = bài chưa có năm → ẩn mọi chỗ hiện ngày thay vì in "Chưa rõ niên đại". */
+  hasKnownDate: boolean;
   periodName: string | null;
   periodHref: string | null;
   imageUrl: string | null;
@@ -149,11 +151,7 @@ function extractHanziName(text: string | null | undefined): string | null {
   return generalMatch ? generalMatch[1] : null;
 }
 
-function extractPersonQuickStats(
-  entity: PublicEntityDetailDto,
-  strategy: EntityTypeConfig,
-  blocks: GenericContentBlock[],
-): EntityQuickStat[] {
+function extractPersonQuickStats(entity: PublicEntityDetailDto, strategy: EntityTypeConfig): EntityQuickStat[] {
   const stats: EntityQuickStat[] = [];
 
   // 1. Tuổi hưởng thọ (nếu là nhân vật lịch sử)
@@ -178,16 +176,7 @@ function extractPersonQuickStats(
     }
   }
 
-  // 3. Số đề mục tư liệu khảo cứu
-  if (blocks.length > 0) {
-    stats.push({
-      id: 'stat-topics',
-      value: `${blocks.length} đề mục`,
-      label: 'Tư liệu khảo cứu',
-    });
-  }
-
-  // 4. Triều đại / Thời đại
+  // 3. Triều đại / Thời đại
   if (entity.period?.name) {
     stats.push({
       id: 'stat-period',
@@ -196,7 +185,7 @@ function extractPersonQuickStats(
     });
   }
 
-  // 5. Vai trò / Vị thế lịch sử (hoặc Lãnh thổ)
+  // 4. Vai trò / Vị thế lịch sử (hoặc Lãnh thổ)
   if (entity.roles && entity.roles.length > 0) {
     stats.push({
       id: 'stat-role',
@@ -299,46 +288,11 @@ function extractDynastyQuickStats(
   return stats;
 }
 
-function extractFallbackQuickStats(
-  entity: PublicEntityDetailDto,
-  strategy: EntityTypeConfig,
-  blocks: GenericContentBlock[],
-  dateLabel: string,
-): EntityQuickStat[] {
-  const stats: EntityQuickStat[] = [];
-
-  if (entity.startYear != null && entity.endYear != null) {
-    const diff = Math.abs(entity.endYear - entity.startYear);
-    stats.push({
-      id: 'stat-duration',
-      value: `${diff} ${strategy.lifespanUnit}`,
-      label: strategy.lifespanLabel,
-    });
-  } else if (dateLabel && dateLabel !== UNKNOWN_DATE_LABEL) {
-    stats.push({
-      id: 'stat-date',
-      value: dateLabel,
-      label: strategy.timeLabelTitle,
-    });
-  }
-
-  if (entity.period?.name) {
-    stats.push({
-      id: 'stat-period',
-      value: cleanPeriodName(entity.period.name),
-      label: 'Thời kỳ lịch sử',
-    });
-  }
-
-  if (blocks.length > 0) {
-    stats.push({
-      id: 'stat-topics',
-      value: `${blocks.length} đề mục`,
-      label: 'Tư liệu khảo cứu',
-    });
-  }
-
-  return stats;
+/** Ngày và thời kỳ đã hiện ở đầu trang nên chỉ còn khoảng thời gian (bỏ khi bằng 0). */
+function extractFallbackQuickStats(entity: PublicEntityDetailDto, strategy: EntityTypeConfig): EntityQuickStat[] {
+  if (entity.startYear == null || entity.endYear == null) return [];
+  const diff = Math.abs(entity.endYear - entity.startYear);
+  return diff > 0 ? [{ id: 'stat-duration', value: `${diff} ${strategy.lifespanUnit}`, label: strategy.lifespanLabel }] : [];
 }
 
 function extractQuickStats(
@@ -350,13 +304,18 @@ function extractQuickStats(
   const meta = (entity.metadata || {}) as Record<string, unknown>;
   const desc = `${entity.description || ''} ${entity.tagline || ''}`;
 
-  if (entity.type === ArticleKindEnum.PERSON) {
-    return extractPersonQuickStats(entity, strategy, blocks).slice(0, 4);
+  switch (entity.type) {
+    case ArticleKindEnum.PERSON:
+      return extractPersonQuickStats(entity, strategy).slice(0, 4);
+    case ArticleKindEnum.DYNASTY:
+      return extractDynastyQuickStats(entity, strategy, blocks, meta, desc).slice(0, 4);
+    case ArticleKindEnum.EVENT:
+      return eventQuickStats(entity).slice(0, 4);
+    case ArticleKindEnum.LOCATION:
+      return locationQuickStats(entity, dateLabel === UNKNOWN_DATE_LABEL ? null : dateLabel).slice(0, 4);
+    default:
+      return extractFallbackQuickStats(entity, strategy);
   }
-  if (entity.type === ArticleKindEnum.DYNASTY) {
-    return extractDynastyQuickStats(entity, strategy, blocks, meta, desc).slice(0, 4);
-  }
-  return extractFallbackQuickStats(entity, strategy, blocks, dateLabel).slice(0, 4);
 }
 
 function extractPersonFastFacts(entity: PublicEntityDetailDto): FastFactItem[] {
@@ -369,17 +328,6 @@ function extractPersonFastFacts(entity: PublicEntityDetailDto): FastFactItem[] {
       t.replace(/\((\d+)/g, ' ($1').replace(/\s*–\s*/g, ' – ')
     );
     facts.push({ id: 'entity-titles', label: 'Tước hiệu', value: formattedTitles.join(', ') });
-  }
-  return facts;
-}
-
-function extractLocationFastFacts(entity: PublicEntityDetailDto): FastFactItem[] {
-  const facts: FastFactItem[] = [];
-  if (entity.address) {
-    facts.push({ id: 'entity-address', label: 'Địa chỉ', value: entity.address });
-  }
-  if (entity.managingAgency) {
-    facts.push({ id: 'entity-managing-agency', label: 'Đơn vị quản lý', value: entity.managingAgency });
   }
   return facts;
 }
@@ -401,34 +349,9 @@ function extractMetadataFastFacts(meta: Record<string, unknown>): FastFactItem[]
   return facts;
 }
 
-function extractEntityFastFacts(
-  entity: PublicEntityDetailDto,
-  strategy: EntityTypeConfig,
-  dateLabel: string,
-): FastFactItem[] {
-  const facts: FastFactItem[] = [
-    {
-      id: 'entity-type',
-      label: 'Phân loại',
-      value: strategy.badgeLabel,
-      isHighlight: true,
-    },
-    {
-      id: 'entity-date',
-      label: strategy.timeLabelTitle,
-      value: dateLabel,
-      isHighlight: true,
-    },
-  ];
-
-  if (entity.period) {
-    facts.push({
-      id: 'entity-period',
-      label: 'Thời kỳ lịch sử',
-      value: cleanPeriodName(entity.period.name),
-      href: `/giai-doan/${entity.period.slug}`,
-    });
-  }
+/** Loại bài, ngày và thời kỳ đã hiện ở đầu trang → hồ sơ chỉ giữ thông tin chưa có ở đó. */
+function extractEntityFastFacts(entity: PublicEntityDetailDto): FastFactItem[] {
+  const facts: FastFactItem[] = [];
 
   if (entity.aliases && entity.aliases.length > 0) {
     facts.push({
@@ -438,11 +361,9 @@ function extractEntityFastFacts(
     });
   }
 
-  if (entity.type === ArticleKindEnum.PERSON) {
-    facts.push(...extractPersonFastFacts(entity));
-  } else if (entity.type === ArticleKindEnum.LOCATION) {
-    facts.push(...extractLocationFastFacts(entity));
-  }
+  if (entity.type === ArticleKindEnum.PERSON) facts.push(...extractPersonFastFacts(entity));
+  if (entity.type === ArticleKindEnum.EVENT) facts.push(...eventFacts(entity));
+  if (entity.type === ArticleKindEnum.LOCATION) facts.push(...locationFacts(entity));
 
   const meta = (entity.metadata || {}) as Record<string, unknown>;
   facts.push(...extractMetadataFastFacts(meta));
@@ -480,7 +401,7 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
     text: item.text.normalize('NFC'),
   }));
 
-  const facts = extractEntityFastFacts(entity, strategy, dateLabel);
+  const facts = extractEntityFastFacts(entity);
 
   const plainTextLength = wordCount(entity.description, entity.tagline, html.replace(/<[^>]*>/g, ''));
   const readMinutes = Math.max(2, Math.ceil(plainTextLength / 220));
@@ -513,6 +434,7 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
     tagline: entity.tagline,
     description: entity.description,
     dateLabel,
+    hasKnownDate: dateLabel !== UNKNOWN_DATE_LABEL,
     periodName: entity.period?.name ? cleanPeriodName(entity.period.name) : null,
     periodHref: entity.period ? `/giai-doan/${entity.period.slug}` : null,
     imageUrl: entity.imageUrl,

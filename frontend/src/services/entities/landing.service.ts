@@ -47,6 +47,9 @@ const DEFAULT_LOCATION_TYPE_LABELS: Record<string, string> = {
   OTHER: 'Khác',
 };
 
+const siteTypeLabelOf = (siteType: string | undefined): string | undefined =>
+  siteType ? DEFAULT_LOCATION_TYPE_LABELS[siteType] ?? siteType : undefined;
+
 const API_URL = INTERNAL_API_BASE_URL;
 
 export const PUBLIC_ROUTE_PREFIX = {
@@ -85,7 +88,7 @@ function toLocation(g: PublicGraph, a: PublicArticleSummary): PublicLocationSumm
     historicalSignificance: a.summary,
     imageUrl: a.coverImageUrl,
     siteType: site.siteType,
-    siteTypeLabel: site.siteType ? DEFAULT_LOCATION_TYPE_LABELS[site.siteType] ?? site.siteType : undefined,
+    siteTypeLabel: siteTypeLabelOf(site.siteType),
     constructionLabel: a.dateLabel,
     periodSlug: g.periodSlugOf(a),
     ancientNames: a.metadata?.aliases ?? [],
@@ -277,6 +280,22 @@ export async function fetchEvents(): Promise<PublicEventSummaryDto[]> {
   return buildEvents(await loadGraph());
 }
 
+/**
+ * Danh sách bài Sự kiện (/su-kien, đếm sự kiện của di tích): mỗi bài 1 dòng. Khác `fetchEvents` (dòng thời
+ * gian) ở chỗ bỏ mốc không trỏ tới bài Sự kiện, gộp các mốc cùng trỏ 1 bài và lấy tên / tóm tắt của bài
+ * thay vì của mốc. Bài chưa nhập năm không có ở đây (giống `fetchEvents`).
+ */
+export async function fetchEventArticles(): Promise<PublicEventSummaryDto[]> {
+  const g = await loadGraph();
+  const seen = new Set<string>();
+  return buildEvents(g).flatMap((e) => {
+    const article = e.slug ? g.bySlug.get(e.slug) : undefined;
+    if (!article || g.kindOf(article) !== ArticleKindEnum.EVENT || seen.has(article.slug)) return [];
+    seen.add(article.slug);
+    return [{ ...e, title: article.title, description: article.summary ?? e.description }];
+  });
+}
+
 export async function fetchFigureDirectory(): Promise<PublicFigureProfileDto[]> {
   const g = await loadGraph();
   const events = buildEvents(g);
@@ -366,7 +385,7 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
       relatedEntitySlug: r.slug,
       relatedEntityName: r.title,
       relatedEntityType: g.kindOf(r),
-      roleLabel: label,
+      roleLabel: l.label ?? null,
       note: l.note ?? r.summary,
       validFromYear: r.startYear,
       validToYear: r.endYear,
@@ -415,6 +434,8 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
     titles: meta.person?.titles,
     address: site.address ?? null,
     managingAgency: site.managingAgency ?? null,
+    siteTypeLabel: siteTypeLabelOf(site.siteType) ?? null,
+    statusNote: site.statusNote ?? null,
   };
 }
 

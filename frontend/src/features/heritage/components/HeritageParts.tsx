@@ -307,6 +307,7 @@ export function HeritageCard({ heritage, onOpen }: { heritage: HistoricalHeritag
   const architecture = heritage.subStructures.filter(
     (s) => s.type === SubStructureType.ARCHITECTURE,
   ).length;
+  const eventCount = heritage.eventCount ?? heritage.linkedEvents.length;
   return (
     <motion.button
       type="button"
@@ -338,9 +339,12 @@ export function HeritageCard({ heritage, onOpen }: { heritage: HistoricalHeritag
         {heritage.ancientNames.length > 0 && (
           <p className="line-clamp-1 text-xs italic text-[var(--hx-muted)]">Xưa: {heritage.ancientNames.join(', ')}</p>
         )}
-        <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--hx-primary)]">
-          <Landmark className="size-3.5" /> Khởi dựng: {heritage.foundedEra}
-        </p>
+        {(heritage.foundedEra || heritage.eventYearsLabel) && (
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--hx-primary)]">
+            <Landmark className="size-3.5" />
+            {heritage.foundedEra ? `Khởi dựng: ${heritage.foundedEra}` : `Gắn với sự kiện năm ${heritage.eventYearsLabel}`}
+          </p>
+        )}
         {(heritage.recognizedYear || heritage.architecturalStyle) && (
           <dl className="grid gap-0.5 text-xs leading-5 text-[var(--hx-muted)]">
             {heritage.recognizedYear && (
@@ -361,17 +365,20 @@ export function HeritageCard({ heritage, onOpen }: { heritage: HistoricalHeritag
         {(heritage.visitorInfo.preservationStatus || heritage.managingUnit) && (
           <p className="text-xs leading-5 text-[var(--hx-muted)]">
             {heritage.visitorInfo.preservationStatus && (
-              <span className="font-semibold text-[var(--hx-ink)]">{heritage.visitorInfo.preservationStatus}</span>
+              <span className="font-semibold text-[var(--hx-ink)]">Hiện trạng: {heritage.visitorInfo.preservationStatus}</span>
             )}
             {heritage.visitorInfo.preservationStatus && heritage.managingUnit && ' · '}
             {heritage.managingUnit}
           </p>
         )}
-        <p className="mt-auto flex items-center gap-1.5 border-t border-[var(--hx-line)] pt-3 text-xs text-[var(--hx-muted)]">
-          <CalendarDays className="size-3.5" />
-          {architecture > 0 && `${architecture} hạng mục kiến trúc • `}
-          {heritage.eventCount ?? heritage.linkedEvents.length} sự kiện lịch sử gắn liền
-        </p>
+        {(architecture > 0 || eventCount > 0) && (
+          <p className="mt-auto flex items-center gap-1.5 border-t border-[var(--hx-line)] pt-3 text-xs text-[var(--hx-muted)]">
+            <CalendarDays className="size-3.5" />
+            {[architecture > 0 && `${architecture} hạng mục kiến trúc`, eventCount > 0 && `${eventCount} sự kiện lịch sử gắn liền`]
+              .filter(Boolean)
+              .join(' • ')}
+          </p>
+        )}
       </div>
     </motion.button>
   );

@@ -209,6 +209,7 @@ export interface PublicEntityStatementDto {
   relatedEntitySlug: string | null;
   relatedEntityName: string | null;
   relatedEntityType: string | null;
+  /** Nhãn liên kết do người soạn ghi; null = chưa ghi nhãn (predicateLabel khi đó là "Liên quan"). */
   roleLabel: string | null;
   note: string | null;
   validFromYear: number | null;
@@ -269,4 +270,6 @@ export interface PublicEntityDetailDto {
   /** Chỉ có giá trị khi type === 'LOCATION' (từ bảng HistoricalSite). */
   address?: string | null;
   managingAgency?: string | null;
+  siteTypeLabel?: string | null;
+  statusNote?: string | null;
 }

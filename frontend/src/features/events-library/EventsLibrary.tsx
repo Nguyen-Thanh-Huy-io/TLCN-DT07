@@ -126,7 +126,9 @@ export function EventsLibrary({
 }) {
   const eventCategories = useEventCategories();
   const rows = useMemo(() => buildRows(events, periods), [events, periods]);
-  const primaryLabel = (event: PublicEventSummaryDto) => eventCategoryLabel(eventCategories, event);
+  // Bài chưa xếp vào loại sự kiện nào thì không gắn nhãn (tránh mọi thẻ đều "Khác").
+  const primaryLabel = (event: PublicEventSummaryDto) =>
+    event.categoryIds?.length ? eventCategoryLabel(eventCategories, event) : null;
 
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<EventFilters>(EMPTY);
@@ -474,7 +476,7 @@ function EventCard({
   primaryLabel,
 }: {
   row: EventRow;
-  primaryLabel: (event: PublicEventSummaryDto) => string;
+  primaryLabel: (event: PublicEventSummaryDto) => string | null;
 }) {
   const place = event.locations[0]?.name ?? event.location;
   const href = event.slug ? `/su-kien/${event.slug}` : null;
@@ -503,8 +505,8 @@ function EventCard({
       {/* Thân thẻ sự kiện */}
       <div className="el-card-body">
         <div className="el-card-meta-top">
-          <span className="el-tag">{primaryLabel(event)}</span>
-          <span className="el-era-tag">{eraName ? `${eraName}` : 'Thời kỳ chung'}</span>
+          {primaryLabel(event) && <span className="el-tag">{primaryLabel(event)}</span>}
+          {eraName && <span className="el-era-tag">{eraName}</span>}
         </div>
 
         <h3 className="el-card-title">{href ? <Link href={href}>{event.title}</Link> : event.title}</h3>
@@ -549,7 +551,7 @@ function EventListItem({
   primaryLabel,
 }: {
   row: EventRow;
-  primaryLabel: (event: PublicEventSummaryDto) => string;
+  primaryLabel: (event: PublicEventSummaryDto) => string | null;
 }) {
   const place = event.locations[0]?.name ?? event.location;
   const placeSlug = event.locations[0]?.slug;
@@ -563,7 +565,7 @@ function EventListItem({
     <li className="el-list-item">
       <div className="el-list-year">
         <strong>{yearLabel}</strong>
-        <span className="el-tag">{primaryLabel(event)}</span>
+        {primaryLabel(event) && <span className="el-tag">{primaryLabel(event)}</span>}
       </div>
       <div className="el-main">
         {href ? <Link href={href}>{event.title}</Link> : <strong>{event.title}</strong>}

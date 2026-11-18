@@ -2,11 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { CalendarDays, Clock, Landmark, ScrollText, Sparkles, Quote, ArrowUpRight, Share2, Compass, PanelRightClose, PanelRightOpen, ArrowUp, ArrowDown, BookOpen, PanelLeftClose, PanelLeftOpen, PanelLeft, Type, Printer, Maximize2, Minimize2 } from 'lucide-react';
+import { CalendarDays, Clock, Landmark, ScrollText, Quote, Compass, PanelRightClose, PanelRightOpen, ArrowUp, ArrowDown, BookOpen, PanelLeftClose, PanelLeftOpen, PanelLeft, Type, Printer, Maximize2, Minimize2 } from 'lucide-react';
 import { EntityReaderModel, EntityAdjacent } from './entity-reader-adapter';
 import { getEntityIconComponent, EntityIconName } from './entity-strategy';
-import { PublicEntityRelatedArticleDto, PublicEntityStatementDto } from '@/services/entities/landing.service';
-import { LinkDirection } from '@/features/articles/person-life';
+import { KNOWLEDGE_GRAPH_SECTION_ID } from './EntityKnowledgeGraph';
 import { LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
 
 // === EntityHero.tsx ===
@@ -47,16 +46,17 @@ export const EntityHero: React.FC<EntityHeroProps> = ({ model }) => {
               <span className="ue-hero-hanzi-badge" title="Tên chữ Hán / Miếu hiệu">{model.hanziName}</span>
             )}
           </div>
-          <p className="ue-hero-eyebrow">{model.strategy.heroEyebrow}</p>
           <div className="ue-hero-title-group">
             <h1 className="ue-hero-title">{model.name}</h1>
             {model.hanziName && <span className="ue-hero-title-hanzi">{model.hanziName}</span>}
           </div>
           <div className="ue-hero-meta">
-            <span className="ue-meta-item">
-              <CalendarDays size={16} className="text-[#8C2D19]" />
-              <span className="font-medium">{model.dateLabel}</span>
-            </span>
+            {model.hasKnownDate && (
+              <span className="ue-meta-item">
+                <CalendarDays size={16} className="text-[#8C2D19]" />
+                <span className="font-medium">{model.dateLabel}</span>
+              </span>
+            )}
             {model.periodName && model.periodHref && (
               <span className="ue-meta-item">
                 <Landmark size={16} className="text-[#8C6239]" />
@@ -102,19 +102,19 @@ export const EntityHero: React.FC<EntityHeroProps> = ({ model }) => {
                 <div className="ue-portrait-ornament-corner top-right" />
                 <div className="ue-portrait-ornament-corner bottom-left" />
                 <div className="ue-portrait-ornament-corner bottom-right" />
-                <div className="ue-portrait-header">
-                  <Sparkles size={14} className="text-[#B8860B]" />
-                  <span className="ue-portrait-category">{model.strategy.heroPortraitBadge}</span>
-                  <Sparkles size={14} className="text-[#B8860B]" />
-                </div>
+                {/* Chưa có ảnh: biểu tượng loại bài, không dựng ấn/tiêu đề trang trí giả. */}
                 <div className="ue-portrait-emblem">
                   <div className="ue-portrait-seal">
-                    <span className="ue-portrait-seal-text">{model.hanziName || model.name.slice(0, 2)}</span>
+                    {model.hanziName ? (
+                      <span className="ue-portrait-seal-text">{model.hanziName}</span>
+                    ) : (
+                      React.createElement(getEntityIconComponent(model.strategy.iconName), { size: 40, className: 'ue-portrait-seal-text' })
+                    )}
                   </div>
                 </div>
                 <h3 className="ue-portrait-name">{model.name}</h3>
-                <p className="ue-portrait-period">{model.periodName ?? 'Đại Việt Sử Ký Toàn Thư'}</p>
-                <div className="ue-portrait-timeline-pill"><span>{model.dateLabel}</span></div>
+                {model.periodName && <p className="ue-portrait-period">{model.periodName}</p>}
+                {model.hasKnownDate && <div className="ue-portrait-timeline-pill"><span>{model.dateLabel}</span></div>}
               </div>
             </div>
           )}
@@ -142,90 +142,6 @@ export const EntityHero: React.FC<EntityHeroProps> = ({ model }) => {
           )}
         </div>
       </div>
-      </div>
-    </section>
-  );
-};
-
-// === EntityKnowledgeGraph.tsx ===
-function resolveEntityHref(_type: string | null, slug: string | null): string {
-  return slug ? `/thuc-the/${slug}` : '#';
-}
-
-export const EntityKnowledgeGraph: React.FC<{ statements: PublicEntityStatementDto[] }> = ({ statements }) => {
-  if (!statements || statements.length === 0) return null;
-  return (
-    <section className="ue-kg-section" id="mang-luoi-tri-thuc">
-      <div className="flex items-center gap-2 mb-2">
-        <Share2 size={22} className="text-[#8C2D19]" />
-        <h2 className="ue-kg-title m-0">Mạng lưới Liên kết Tri thức</h2>
-      </div>
-      <p className="ue-kg-desc">
-        Các mối liên hệ nhân – quả, quan hệ phả hệ, quyền lực và không gian lịch sử được kết nối trong đồ thị tri thức:
-      </p>
-      <div className="ue-kg-grid">
-        {statements.map((stmt) => {
-          const href = resolveEntityHref(stmt.relatedEntityType, stmt.relatedEntitySlug);
-          const targetName = stmt.relatedEntityName || 'Thực thể liên quan';
-          const rawLabel = stmt.roleLabel || stmt.predicateLabel;
-          const isIncoming = stmt.direction === LinkDirection.INCOMING;
-          const badgeText = isIncoming ? `← ${rawLabel}` : `${rawLabel} →`;
-          const tooltip = isIncoming
-            ? `${targetName} → (${rawLabel}) → bài đang xem`
-            : `Bài đang xem → (${rawLabel}) → ${targetName}`;
-          return (
-            <Link key={stmt.id} href={href} className="ue-kg-card group">
-              <div>
-                <span className="ue-kg-badge" title={tooltip}>{badgeText}</span>
-                <h3 className="ue-kg-target group-hover:text-[#8C2D19] transition-colors flex items-center justify-between">
-                  <span>{targetName}</span>
-                  <ArrowUpRight size={16} className="text-stone-400 group-hover:text-[#8C2D19] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </h3>
-                {stmt.note && <p className="ue-kg-note">{stmt.note}</p>}
-              </div>
-              {(stmt.validFromYear != null || stmt.validToYear != null) && (
-                <div className="text-xs text-stone-500 font-semibold mt-3 pt-2 border-t border-stone-200">
-                  Thời gian: {stmt.validFromYear ?? '...'} – {stmt.validToYear ?? '...'}
-                </div>
-              )}
-            </Link>
-          );
-        })}
-      </div>
-    </section>
-  );
-};
-
-// === EntityRelatedByTag.tsx ===
-export const RELATED_BY_TAG_SECTION_ID = 'bai-viet-cung-chu-diem';
-
-export const EntityRelatedByTag: React.FC<{ articles: PublicEntityRelatedArticleDto[] }> = ({ articles }) => {
-  if (!articles || articles.length === 0) return null;
-  return (
-    <section className="ue-kg-section" id={RELATED_BY_TAG_SECTION_ID}>
-      <div className="flex items-center gap-2 mb-2">
-        <BookOpen size={20} className="text-[#8C6239]" />
-        <h2 className="ue-kg-title m-0">Bài viết cùng chủ điểm</h2>
-      </div>
-      <p className="ue-kg-desc">Các bài viết chia sẻ cùng chủ điểm (tag) lịch sử để đọc mở rộng:</p>
-      <div className="ue-kg-grid">
-        {articles.map((item) => (
-          <Link key={item.id} href={resolveEntityHref(item.type, item.slug)} className="ue-kg-card group">
-            <div>
-              {item.categoryName && <span className="ue-kg-badge">{item.categoryName}</span>}
-              <h3 className="ue-kg-target group-hover:text-[#8C2D19] transition-colors flex items-center justify-between">
-                <span>{item.name}</span>
-                <ArrowUpRight size={16} className="text-stone-400 group-hover:text-[#8C2D19] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </h3>
-              {item.summary && <p className="ue-kg-note">{item.summary}</p>}
-            </div>
-            {item.dateLabel && (
-              <div className="text-xs text-stone-500 font-semibold mt-3 pt-2 border-t border-stone-200">
-                Niên đại: {item.dateLabel}
-              </div>
-            )}
-          </Link>
-        ))}
       </div>
     </section>
   );
@@ -372,8 +288,6 @@ export function EntityReadingTimeline({
 }
 
 // === EntityReadingToc.tsx ===
-export const KNOWLEDGE_GRAPH_SECTION_ID = 'mang-luoi-tri-thuc';
-
 interface EntityReadingTocProps {
   isTocOpen: boolean;
   isFocusMode: boolean;
@@ -484,6 +398,8 @@ interface EntityReadingToolbarProps {
   isTimelineOpen: boolean;
   isFocusMode: boolean;
   hasTimeline: boolean;
+  /** false = bài quá ngắn để cần mục lục → ẩn nút Mục lục. */
+  hasToc: boolean;
   readProgress: number;
   textSize: TextSizeLevel;
   onToggleToc: () => void;
@@ -498,6 +414,7 @@ export function EntityReadingToolbar({
   isTimelineOpen,
   isFocusMode,
   hasTimeline,
+  hasToc,
   readProgress,
   textSize,
   onToggleToc,
@@ -511,16 +428,18 @@ export function EntityReadingToolbar({
       <div className="ue-toolbar-group left">
         <span className="ue-toolbar-label">KHÔNG GIAN ĐỌC</span>
 
-        <button
-          type="button"
-          onClick={onToggleToc}
-          className={`ue-toolbar-btn ${isTocOpen ? 'active' : ''}`}
-          title={isTocOpen ? 'Thu gọn mục lục để mở rộng bài đọc' : 'Mở mục lục tư liệu'}
-        >
-          <PanelLeft size={14} />
-          <span>Mục lục</span>
-          <span className={`ue-toolbar-dot ${isTocOpen ? 'on' : 'off'}`} />
-        </button>
+        {hasToc && (
+          <button
+            type="button"
+            onClick={onToggleToc}
+            className={`ue-toolbar-btn ${isTocOpen ? 'active' : ''}`}
+            title={isTocOpen ? 'Thu gọn mục lục để mở rộng bài đọc' : 'Mở mục lục tư liệu'}
+          >
+            <PanelLeft size={14} />
+            <span>Mục lục</span>
+            <span className={`ue-toolbar-dot ${isTocOpen ? 'on' : 'off'}`} />
+          </button>
+        )}
 
         {hasTimeline && (
           <button
@@ -581,16 +500,18 @@ export function EntityReadingToolbar({
           <span className="hidden lg:inline">In hồ sơ</span>
         </button>
 
-        {/* CHẾ ĐỘ ĐỌC TOÀN CẢNH */}
-        <button
-          type="button"
-          onClick={onToggleFocusMode}
-          className={`ue-toolbar-btn focus-mode-btn ${isFocusMode ? 'focus-active' : ''}`}
-          title={isFocusMode ? 'Trở về bố cục 3 cột chuẩn' : 'Bật chế độ đọc toàn cảnh'}
-        >
-          {isFocusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          <span>{isFocusMode ? 'Thu nhỏ' : 'Toàn cảnh'}</span>
-        </button>
+        {/* CHẾ ĐỘ ĐỌC TOÀN CẢNH — chỉ có nghĩa khi còn cột bên để thu */}
+        {(hasToc || hasTimeline) && (
+          <button
+            type="button"
+            onClick={onToggleFocusMode}
+            className={`ue-toolbar-btn focus-mode-btn ${isFocusMode ? 'focus-active' : ''}`}
+            title={isFocusMode ? 'Trở về bố cục 3 cột chuẩn' : 'Bật chế độ đọc toàn cảnh'}
+          >
+            {isFocusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            <span>{isFocusMode ? 'Thu nhỏ' : 'Toàn cảnh'}</span>
+          </button>
+        )}
       </div>
     </div>
   );

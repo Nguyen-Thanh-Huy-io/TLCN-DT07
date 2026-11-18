@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, PanelLeftOpen, PanelRightOpen, ExternalLink } from 'lucide-react';
 import { EntityReaderModel } from './entity-reader-adapter';
-import { EntityKnowledgeGraph, EntityRelatedByTag, EntityReadingToolbar, TextSizeLevel, EntityReadingToc, EntityReadingTimeline } from './EntityReaderParts';
+import { EntityReadingToolbar, TextSizeLevel, EntityReadingToc, EntityReadingTimeline } from './EntityReaderParts';
+import { EntityKnowledgeGraph, EntityRelatedByTag } from './EntityKnowledgeGraph';
 import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
 import { NoteReaderLayer } from '@/features/notes/components/NoteReaderLayer';
 import { ReadingAidsPanel } from '@/features/reading-aids/components/ReadingAidsPanel';
@@ -12,146 +13,8 @@ import { useLessonAnnotations } from '@/features/lessons/hooks/useLessonAnnotati
 import { NOTE_TARGET_TYPE } from '@/features/notes/services/note.service';
 import { sanitizeRichHtml } from '@/utils/common';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
+import { MIN_TOC_ENTRIES, useReadingLayout } from './useReadingLayout';
 
-// === use-reading-layout.ts ===
-export enum ReadingLayoutMode {
-  DEFAULT = 'DEFAULT',           // 3 cột (TOC + Bài đọc + Tiến trình)
-  FOCUS = 'FOCUS',               // Đọc tập trung (Ẩn cả 2, bài đọc bung tối đa)
-  TOC_ONLY = 'TOC_ONLY',         // Chỉ hiển thị Mục lục + Bài đọc
-  TIMELINE_ONLY = 'TIMELINE_ONLY'// Chỉ hiển thị Tiến trình + Bài đọc
-}
-
-export const READING_LAYOUT_STORAGE_KEY = 'hisgo_reading_layout_mode_v1';
-
-export interface ReadingLayoutState {
-  isTocOpen: boolean;
-  isTimelineOpen: boolean;
-  isFocusMode: boolean;
-  layoutClass: string;
-  toggleToc: () => void;
-  toggleTimeline: () => void;
-  toggleFocusMode: () => void;
-  resetDefault: () => void;
-}
-
-interface SavedReadingLayout {
-  isTocOpen?: boolean;
-  isTimelineOpen?: boolean;
-}
-
-function readSavedLayout(): SavedReadingLayout | null {
-  try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(READING_LAYOUT_STORAGE_KEY) ?? 'null');
-    if (!parsed || typeof parsed !== 'object') return null;
-    return {
-      isTocOpen: 'isTocOpen' in parsed && typeof parsed.isTocOpen === 'boolean' ? parsed.isTocOpen : undefined,
-      isTimelineOpen:
-        'isTimelineOpen' in parsed && typeof parsed.isTimelineOpen === 'boolean' ? parsed.isTimelineOpen : undefined,
-    };
-  } catch {
-    // Storage bị chặn hoặc dữ liệu hỏng → dùng bố cục mặc định.
-    return null;
-  }
-}
-
-export function useReadingLayout(hasTimeline: boolean = true): ReadingLayoutState {
-  const [isTocOpen, setIsTocOpen] = useState<boolean>(true);
-  const [isTimelineOpen, setIsTimelineOpen] = useState<boolean>(hasTimeline);
-
-  // Khôi phục tuỳ chọn SAU khi hydrate: đọc localStorage ngay trong useState khiến HTML server
-  // (bố cục mặc định) lệch với lần render đầu ở client → lỗi hydration.
-  useEffect(() => {
-    const saved = readSavedLayout();
-    if (!saved) return;
-    void Promise.resolve().then(() => {
-      if (saved.isTocOpen !== undefined) setIsTocOpen(saved.isTocOpen);
-      if (saved.isTimelineOpen !== undefined) setIsTimelineOpen(saved.isTimelineOpen);
-    });
-  }, []);
-
-  // Đồng bộ lại khi `hasTimeline` thay đổi
-  useEffect(() => {
-    if (!hasTimeline) {
-      void Promise.resolve().then(() => {
-        setIsTimelineOpen(false);
-      });
-    }
-  }, [hasTimeline]);
-
-  // Lưu tùy chọn đọc
-  const persistState = useCallback((toc: boolean, timeline: boolean) => {
-    try {
-      localStorage.setItem(
-        READING_LAYOUT_STORAGE_KEY,
-        JSON.stringify({ isTocOpen: toc, isTimelineOpen: timeline })
-      );
-    } catch {
-      // Bỏ qua lỗi quota/storage
-    }
-  }, []);
-
-  const toggleToc = useCallback(() => {
-    setIsTocOpen((prev) => {
-      const next = !prev;
-      persistState(next, isTimelineOpen);
-      return next;
-    });
-  }, [isTimelineOpen, persistState]);
-
-  const toggleTimeline = useCallback(() => {
-    if (!hasTimeline) return;
-    setIsTimelineOpen((prev) => {
-      const next = !prev;
-      persistState(isTocOpen, next);
-      return next;
-    });
-  }, [hasTimeline, isTocOpen, persistState]);
-
-  const isFocusMode = !isTocOpen && (!hasTimeline || !isTimelineOpen);
-
-  const toggleFocusMode = useCallback(() => {
-    if (isFocusMode) {
-      // Thoát chế độ tập trung: Phục hồi 3 cột mặc định
-      setIsTocOpen(true);
-      if (hasTimeline) setIsTimelineOpen(true);
-      persistState(true, hasTimeline);
-    } else {
-      // Bật chế độ tập trung: Ẩn cả 2 bên để bài đọc bung cực đại
-      setIsTocOpen(false);
-      setIsTimelineOpen(false);
-      persistState(false, false);
-    }
-  }, [isFocusMode, hasTimeline, persistState]);
-
-  const resetDefault = useCallback(() => {
-    setIsTocOpen(true);
-    if (hasTimeline) setIsTimelineOpen(true);
-    persistState(true, hasTimeline);
-  }, [hasTimeline, persistState]);
-
-  // Tính toán dynamic CSS class cho Grid Container
-  let layoutClass = 'ue-layout-with-both';
-  if (!isTocOpen && !isTimelineOpen) {
-    layoutClass = 'ue-layout-focus-mode';
-  } else if (!isTocOpen && isTimelineOpen) {
-    layoutClass = 'ue-layout-timeline-only';
-  } else if (isTocOpen && !isTimelineOpen) {
-    layoutClass = 'ue-layout-toc-only';
-  }
-
-  return {
-    isTocOpen,
-    isTimelineOpen: hasTimeline && isTimelineOpen,
-    isFocusMode,
-    layoutClass,
-    toggleToc,
-    toggleTimeline,
-    toggleFocusMode,
-    resetDefault,
-  };
-}
-
-// === EntityReader.tsx ===
 interface EntityReaderProps {
   model: EntityReaderModel;
 }
@@ -166,6 +29,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
   const [textSize, setTextSize] = useState<TextSizeLevel>(TextSizeLevel.MD);
 
   const hasTimeline = Boolean(model.previous || model.next);
+  const hasToc = model.toc.length >= MIN_TOC_ENTRIES;
   const {
     isTocOpen,
     isTimelineOpen,
@@ -174,7 +38,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
     toggleToc,
     toggleTimeline,
     toggleFocusMode,
-  } = useReadingLayout(hasTimeline);
+  } = useReadingLayout(hasTimeline, hasToc);
 
   // Tính toán phần trăm tiến độ cuộn & heading active
   useEffect(() => {
@@ -222,6 +86,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
         isTimelineOpen={isTimelineOpen}
         isFocusMode={isFocusMode}
         hasTimeline={hasTimeline}
+        hasToc={hasToc}
         readProgress={readProgress}
         textSize={textSize}
         onToggleToc={toggleToc}
@@ -233,17 +98,19 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
 
       <div className={`ue-layout ${layoutClass}`}>
         {/* CỘT TRÁI: MỤC LỤC TƯ LIỆU */}
-        <EntityReadingToc
-          isTocOpen={isTocOpen}
-          isFocusMode={isFocusMode}
-          toc={model.toc}
-          activeId={activeId}
-          readProgress={readProgress}
-          readMinutes={model.readMinutes}
-          hasStatements={model.statements.length > 0}
-          onToggleToc={toggleToc}
-          onScrollToHeading={scrollToHeading}
-        />
+        {hasToc && (
+          <EntityReadingToc
+            isTocOpen={isTocOpen}
+            isFocusMode={isFocusMode}
+            toc={model.toc}
+            activeId={activeId}
+            readProgress={readProgress}
+            readMinutes={model.readMinutes}
+            hasStatements={model.statements.length > 0}
+            onToggleToc={toggleToc}
+            onScrollToHeading={scrollToHeading}
+          />
+        )}
 
         {/* CỘT GIỮA: BÀI ĐỌC CHÍNH */}
         <main className={`ue-article-col ue-text-size-${textSize}`}>
@@ -328,13 +195,13 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
             </Link>
           </p>
 
-          <div className="my-10 text-center text-stone-400 font-serif flex items-center justify-center gap-3">
-            <span>✦</span>
-            <small className="tracking-widest font-sans uppercase font-bold text-xs text-stone-500">
-              {model.periodName ?? 'HISGO BẢO TÀNG SỐ'}
-            </small>
-            <span>✦</span>
-          </div>
+          {model.periodName && (
+            <div className="my-10 text-center text-stone-400 font-serif flex items-center justify-center gap-3">
+              <span>✦</span>
+              <small className="tracking-widest font-sans uppercase font-bold text-xs text-stone-500">{model.periodName}</small>
+              <span>✦</span>
+            </div>
+          )}
         </main>
 
         {/* CỘT PHẢI: TIẾN TRÌNH DÒNG THỜI GIAN */}
@@ -356,15 +223,17 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
       {/* FIXED EDGE TABS KHI Ở CHẾ ĐỘ ĐỌC TOÀN CẢNH */}
       {isFocusMode && (
         <>
-          <button
-            type="button"
-            onClick={toggleToc}
-            className="ue-edge-dock-tab left"
-            title="Mở lại Mục lục tư liệu"
-          >
-            <PanelLeftOpen size={16} />
-            <span>MỤC LỤC</span>
-          </button>
+          {hasToc && (
+            <button
+              type="button"
+              onClick={toggleToc}
+              className="ue-edge-dock-tab left"
+              title="Mở lại Mục lục tư liệu"
+            >
+              <PanelLeftOpen size={16} />
+              <span>MỤC LỤC</span>
+            </button>
+          )}
 
           {hasTimeline && (
             <button

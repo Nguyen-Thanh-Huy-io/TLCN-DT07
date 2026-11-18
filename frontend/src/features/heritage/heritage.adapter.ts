@@ -36,7 +36,10 @@ export interface HistoricalHeritage {
   category: HeritageCategory;
   /** Rỗng = chưa có dữ liệu năm công nhận. */
   recognizedYear: string;
+  /** Niên đại khởi dựng (rỗng = chưa có dữ liệu, không suy từ năm sự kiện). */
   foundedEra: string;
+  /** Năm các sự kiện gắn với di tích, đã sắp xếp ("938 · 1288"); rỗng = chưa gắn sự kiện. */
+  eventYearsLabel?: string;
   relatedEras: string[];
   shortSummary: string;
   /** Rỗng = chưa có dữ liệu phong cách kiến trúc. */
@@ -127,7 +130,7 @@ function periodHelpers(periods: PublicPeriodDto[]) {
     while (p?.parentId && byId.has(p.parentId)) p = byId.get(p.parentId);
     return p;
   };
-  return { bySlug, rootOf };
+  return { rootOf };
 }
 
 /** Thông tin tóm tắt cho thẻ di tích (chưa có sự kiện, hạng mục, biên niên). */
@@ -136,12 +139,11 @@ export function toHeritageSummaries(
   events: PublicEventSummaryDto[],
   periods: PublicPeriodDto[],
 ): HistoricalHeritage[] {
-  const { bySlug, rootOf } = periodHelpers(periods);
+  const { rootOf } = periodHelpers(periods);
   return sites.map((site) => {
     const siteEvents = events.filter((e) => e.locations.some((l) => l.id === site.id));
-    const ownPeriod = site.periodSlug ? bySlug.get(site.periodSlug) : undefined;
     const eras = [...new Set(siteEvents.map((e) => rootOf(e.periodSlug)).filter(Boolean).map((p) => shortPeriodName(p!.name)))];
-    const firstEvent = [...siteEvents].sort((a, b) => a.startYear - b.startYear)[0];
+    const eventYears = [...new Set(siteEvents.map((e) => e.startYear))].sort((a, b) => a - b);
     return {
       id: site.id,
       slug: site.slug,
@@ -150,10 +152,9 @@ export function toHeritageSummaries(
       province: provinceOf(site.address),
       category: CATEGORY_BY_SITE_TYPE[site.siteType ?? ''] ?? 'MEMORIAL_STELE',
       recognizedYear: site.recognizedYear ?? '',
-      // Thời kỳ khởi dựng: niên đại xây dựng nếu có, rồi thời kỳ gắn với di tích, rồi sự kiện sớm nhất.
-      foundedEra:
-        site.constructionLabel ||
-        (ownPeriod ? shortPeriodName(ownPeriod.name) : firstEvent ? `Từ năm ${formatYear(firstEvent.startYear)}` : 'Chưa rõ'),
+      // Năm sự kiện (vd. trận đánh) không phải năm khởi dựng nên không dùng làm niên đại.
+      foundedEra: site.constructionLabel ?? '',
+      eventYearsLabel: eventYears.map(formatYear).join(' · '),
       relatedEras: eras,
       shortSummary: site.historicalSignificance ?? '',
       architecturalStyle: site.architecturalStyle ?? '',

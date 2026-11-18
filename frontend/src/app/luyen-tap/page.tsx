@@ -9,8 +9,9 @@ import { isStaffRole } from '@/services/auth/public-auth.service';
 import {
   ALL_TOPICS_ID,
   PRACTICE_TOPIC_PARAM,
-  extractAvailableTopics,
+  buildTopicFilterOptions,
   filterPracticeQuizzes,
+  topicWithDescendants,
   topicLabelOf,
 } from '@/features/quiz/utils/practice-quiz.helper';
 import {
@@ -32,6 +33,7 @@ import {
 import { normalizeQuizQuestionForDisplay } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
 import { QuizApiService, type PracticeQuizItem } from '@/services/entities/quiz.service';
 import { extractErrorMessage } from '@/services/api';
+import { fetchTopics, type PublicTopicRef } from '@/services/public/public-content.service';
 import { ArrowLeft, Clock, HelpCircle } from 'lucide-react';
 
 /** Khớp với DEFAULT_QUIZ_PASSING_SCORE_PERCENT ở backend/src/quiz/quiz.constant.ts — chỉ dùng khi dữ liệu cũ thiếu trường này. */
@@ -55,6 +57,7 @@ function LuyenTapContent() {
   const initialTopicId = useSearchParams().get(PRACTICE_TOPIC_PARAM) || ALL_TOPICS_ID;
 
   const [quizzes, setQuizzes] = useState<PracticeQuizItem[]>([]);
+  const [topicTree, setTopicTree] = useState<PublicTopicRef[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
@@ -65,8 +68,15 @@ function LuyenTapContent() {
   const [guestName, setGuestName] = useState('');
 
   useEffect(() => {
-    QuizApiService.getPracticeQuizzes()
-      .then(setQuizzes)
+    Promise.all([
+      QuizApiService.getPracticeQuizzes(),
+      // Cây chủ đề chỉ để lọc; lỗi thì ô lọc rơi về danh sách phẳng các chủ đề gắn ở đề.
+      fetchTopics().catch((): PublicTopicRef[] => []),
+    ])
+      .then(([quizList, topicList]) => {
+        setQuizzes(quizList);
+        setTopicTree(topicList);
+      })
       .catch((err) => setLoadError(extractErrorMessage(err, 'Không tải được danh sách đề luyện tập.')))
       .finally(() => setLoading(false));
   }, []);
@@ -123,6 +133,7 @@ function LuyenTapContent() {
       ) : (
         <QuizListScreen
           quizzes={quizzes}
+          topicTree={topicTree}
           loading={loading}
           loadError={loadError}
           initialTopicId={initialTopicId}
@@ -146,20 +157,21 @@ function LuyenTapContent() {
 
 interface QuizListScreenProps {
   quizzes: PracticeQuizItem[];
+  topicTree: PublicTopicRef[];
   loading: boolean;
   loadError: string | null;
   initialTopicId: string;
   onOpenQuiz: (quizId: string) => void;
 }
 
-function QuizListScreen({ quizzes, loading, loadError, initialTopicId, onOpenQuiz }: QuizListScreenProps) {
+function QuizListScreen({ quizzes, topicTree, loading, loadError, initialTopicId, onOpenQuiz }: QuizListScreenProps) {
   const [filterQuery, setFilterQuery] = useState('');
   const [selectedTopicId, setSelectedTopicId] = useState(initialTopicId);
-  const topics = useMemo(() => extractAvailableTopics(quizzes), [quizzes]);
-  const filteredQuizzes = useMemo(
-    () => filterPracticeQuizzes(quizzes, { query: filterQuery, topicId: selectedTopicId }),
-    [quizzes, filterQuery, selectedTopicId],
-  );
+  const topics = useMemo(() => buildTopicFilterOptions(topicTree, quizzes), [topicTree, quizzes]);
+  const filteredQuizzes = useMemo(() => {
+    const topicIds = selectedTopicId === ALL_TOPICS_ID ? null : topicWithDescendants(topicTree, selectedTopicId);
+    return filterPracticeQuizzes(quizzes, { query: filterQuery, topicIds });
+  }, [quizzes, topicTree, filterQuery, selectedTopicId]);
 
   const renderBody = () => {
     if (loading) return <QuizGridSkeleton />;

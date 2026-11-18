@@ -11,6 +11,11 @@ import type { ExamDialog } from '../facades/usePracticeExam';
 import { KeyboardKey } from '@/constants/enums';
 
 // --- QuizFilterBar ---
+/** Ô <select> gốc không lùi lề được bằng CSS, nên thụt bằng khoảng trắng không ngắt theo cấp. */
+const TOPIC_INDENT = '\u00A0\u00A0\u00A0';
+const topicOptionLabel = (topic: QuizTopicOption) =>
+  `${TOPIC_INDENT.repeat(topic.depth)}${topic.depth > 0 ? '└ ' : ''}${topic.name} (${topic.count})`;
+
 interface QuizFilterBarProps {
   query: string;
   onQueryChange: (query: string) => void;
@@ -69,7 +74,7 @@ export function QuizFilterBar({
           <option value={ALL_TOPICS_ID}>Tất cả chủ đề ({totalCount})</option>
           {topics.map((topic) => (
             <option key={topic.id} value={topic.id}>
-              {topic.name} ({topic.count})
+              {topicOptionLabel(topic)}
             </option>
           ))}
         </select>

@@ -9,32 +9,89 @@ export const ALL_TOPICS_ID = 'ALL';
 /** Tham số URL chọn sẵn chủ đề, vd. `/luyen-tap?topic=<id>` từ trang đọc bài học. */
 export const PRACTICE_TOPIC_PARAM = 'topic';
 
+/** Một dòng trong ô chọn chủ đề: theo thứ tự cây (cha trước con), `count` = số đề cả nhánh. */
 export interface QuizTopicOption {
   id: string;
   name: string;
-  slug: string;
+  depth: number;
   count: number;
 }
 
 export interface QuizFilterCriteria {
   query: string;
-  topicId: string;
+  /** Chủ đề đã chọn cùng mọi chủ đề con cháu; null = tất cả. */
+  topicIds: ReadonlySet<string> | null;
 }
 
-/** Các chủ đề có đề, kèm số đề của mỗi chủ đề. */
-export function extractAvailableTopics(quizzes: PracticeQuizItem[]): QuizTopicOption[] {
-  const map = new Map<string, QuizTopicOption>();
-  quizzes.forEach((quiz) => {
-    quiz.topics.forEach((topic) => {
-      const existing = map.get(topic.id);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        map.set(topic.id, { ...topic, count: 1 });
-      }
-    });
+interface TopicNodeRef {
+  id: string;
+  name: string;
+  parentId: string | null;
+}
+
+function childrenByParent(topics: TopicNodeRef[]): Map<string | null, TopicNodeRef[]> {
+  const ids = new Set(topics.map((t) => t.id));
+  const map = new Map<string | null, TopicNodeRef[]>();
+  topics.forEach((topic) => {
+    // Cha chưa xuất bản thì coi như gốc, để nhánh con vẫn hiện.
+    const parentKey = topic.parentId && ids.has(topic.parentId) ? topic.parentId : null;
+    map.set(parentKey, [...(map.get(parentKey) ?? []), topic]);
   });
-  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  return map;
+}
+
+/**
+ * Cây chủ đề cho ô lọc, chỉ giữ nhánh có đề; duyệt đệ quy nên không giới hạn số cấp.
+ * Chủ đề gắn ở đề mà không có trong cây (vd. tải cây lỗi) được thêm ở cấp gốc.
+ */
+export function buildTopicFilterOptions(
+  topics: TopicNodeRef[],
+  quizzes: PracticeQuizItem[],
+): QuizTopicOption[] {
+  const quizIdsByTopic = new Map<string, Set<string>>();
+  quizzes.forEach((quiz) =>
+    quiz.topics.forEach((topic) => {
+      quizIdsByTopic.set(topic.id, (quizIdsByTopic.get(topic.id) ?? new Set()).add(quiz.id));
+    }),
+  );
+  const children = childrenByParent(topics);
+  const visited = new Set<string>();
+
+  const walk = (node: TopicNodeRef, depth: number): { options: QuizTopicOption[]; quizIds: Set<string> } => {
+    visited.add(node.id);
+    const quizIds = new Set(quizIdsByTopic.get(node.id));
+    const childOptions = (children.get(node.id) ?? [])
+      .filter((child) => !visited.has(child.id))
+      .flatMap((child) => {
+        const sub = walk(child, depth + 1);
+        sub.quizIds.forEach((id) => quizIds.add(id));
+        return sub.options;
+      });
+    if (quizIds.size === 0) return { options: [], quizIds };
+    return { options: [{ id: node.id, name: node.name, depth, count: quizIds.size }, ...childOptions], quizIds };
+  };
+
+  const options = (children.get(null) ?? []).flatMap((root) => walk(root, 0).options);
+  const orphanTopics = new Map(
+    quizzes.flatMap((quiz) => quiz.topics).filter((t) => !visited.has(t.id)).map((t) => [t.id, t]),
+  );
+  orphanTopics.forEach((topic) =>
+    options.push({ id: topic.id, name: topic.name, depth: 0, count: quizIdsByTopic.get(topic.id)?.size ?? 0 }),
+  );
+  return options;
+}
+
+/** Chủ đề `topicId` và mọi chủ đề con cháu của nó. */
+export function topicWithDescendants(topics: TopicNodeRef[], topicId: string): Set<string> {
+  const children = childrenByParent(topics);
+  const result = new Set<string>();
+  const collect = (id: string) => {
+    if (result.has(id)) return;
+    result.add(id);
+    (children.get(id) ?? []).forEach((child) => collect(child.id));
+  };
+  collect(topicId);
+  return result;
 }
 
 /** Chuẩn hóa chuỗi tiếng Việt để tìm kiếm không phân biệt dấu và chữ hoa/thường */
@@ -55,16 +112,16 @@ function matchesQuery(quiz: PracticeQuizItem, normalizedQuery: string): boolean 
   );
 }
 
-/** Lọc đề theo chủ đề và từ khoá (tên đề, mô tả, tên chủ đề). */
+/** Lọc đề theo chủ đề (gồm cả chủ đề con) và từ khoá (tên đề, mô tả, tên chủ đề). */
 export function filterPracticeQuizzes(
   quizzes: PracticeQuizItem[],
   criteria: QuizFilterCriteria,
 ): PracticeQuizItem[] {
   const normalizedQuery = normalizeSearchText(criteria.query || '');
-  const byTopic = criteria.topicId && criteria.topicId !== ALL_TOPICS_ID;
+  const { topicIds } = criteria;
   return quizzes.filter(
     (quiz) =>
-      (!byTopic || quiz.topics.some((t) => t.id === criteria.topicId)) &&
+      (!topicIds || quiz.topics.some((t) => topicIds.has(t.id))) &&
       matchesQuery(quiz, normalizedQuery),
   );
 }

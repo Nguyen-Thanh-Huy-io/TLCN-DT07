@@ -199,23 +199,37 @@ export function locateHighlight(
   return null;
 }
 
-const headingTextOf = (el: Element) => normalizeWithMap(el.textContent ?? '', true).value;
+const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
+const looseText = (text: string | null | undefined) => normalizeWithMap(text ?? '', true).value;
 
 /**
- * Mục được tóm tắt: id tiêu đề đánh theo thứ tự nên có thể lệch khi bài thêm / bớt mục — kiểm thêm tên
- * mục (`highlightText`), lệch thì tìm tiêu đề cùng tên.
+ * Phần tử mang tên của một mục: chính nó nếu là tiêu đề, không thì tiêu đề đầu tiên bên trong (mục lục của
+ * khối chương / khối nhân vật trỏ vào thẻ bọc cả khối, tên trong mục lục kiểu "CHƯƠNG II: <tiêu đề>").
+ */
+const sectionTitleOf = (el: Element): Element => (el.matches(HEADING_SELECTOR) ? el : el.querySelector(HEADING_SELECTOR) ?? el);
+
+/** Tên mục trong mục lục và tiêu đề trong bài có thể khác tiền tố, nên coi là khớp khi chuỗi này chứa chuỗi kia. */
+function sameSection(el: Element, wanted: string | null): boolean {
+  if (!wanted) return true;
+  const title = looseText(sectionTitleOf(el).textContent);
+  return Boolean(title) && (wanted.includes(title) || title.includes(wanted));
+}
+
+/**
+ * Mục được tóm tắt: id của mục có thể đánh theo thứ tự nên lệch khi bài thêm / bớt mục — kiểm thêm tên
+ * mục (`highlightText`), lệch thì tìm mục khác cùng tên. Range bao tiêu đề của mục (để đặt icon lề).
  */
 export function locateHeading(root: HTMLElement, headingId: string, headingText: string | null): LocatedAnchor | null {
-  const wanted = headingText ? normalizeWithMap(headingText, true).value : null;
+  const wanted = headingText ? looseText(headingText) : null;
   const byId = root.querySelector(`[id="${CSS.escape(headingId)}"]`);
-  const sameName = (el: Element | null) => el && (!wanted || headingTextOf(el) === wanted);
-  const heading = sameName(byId)
-    ? byId
-    : wanted
-      ? [...root.querySelectorAll('h1, h2, h3, h4, h5, h6')].find((el) => headingTextOf(el) === wanted) ?? null
-      : null;
-  if (!heading) return null;
+  const section =
+    byId && sameSection(byId, wanted)
+      ? byId
+      : wanted
+        ? [...root.querySelectorAll(`${HEADING_SELECTOR}, [id]`)].find((el) => sameSection(el, wanted)) ?? null
+        : null;
+  if (!section) return null;
   const range = document.createRange();
-  range.selectNodeContents(heading);
-  return { range, match: heading === byId ? AnchorMatch.EXACT : AnchorMatch.MOVED };
+  range.selectNodeContents(sectionTitleOf(section));
+  return { range, match: section === byId ? AnchorMatch.EXACT : AnchorMatch.MOVED };
 }

@@ -45,8 +45,10 @@ function locateNote(root: HTMLElement, index: TextIndex, note: NoteItem): Locate
 /** Vị trí mới để lưu khi đoạn chỉ dời chỗ (bài đã sửa xung quanh). */
 function freshAnchor(root: HTMLElement, index: TextIndex, located: LocatedNote): NoteAnchorValue | null {
   if (located.note.kind === NOTE_KIND.SUMMARY) {
-    const heading = located.range.startContainer;
-    return heading instanceof Element && heading.id ? { headingId: heading.id } : null;
+    // Range bao tiêu đề; id của mục có thể nằm ở thẻ bọc khối bên ngoài tiêu đề.
+    const start = located.range.startContainer;
+    const section = (start instanceof Element ? start : start.parentElement)?.closest('[id]');
+    return section && root.contains(section) ? { headingId: section.id } : null;
   }
   return anchorFromRange(index, root, located.range)?.anchor ?? null;
 }

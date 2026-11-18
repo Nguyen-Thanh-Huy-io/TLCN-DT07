@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { UserCell } from '@/components/common/CommonUi';
+import { creatorInitials, creatorLabel } from '../types/review.types';
 import { ReviewModal } from './ReviewModal';
 import { IconName } from '@/constants/enums';
 import { ContentStatus, NoticeTone } from '@/constants/enums';
@@ -27,14 +28,6 @@ export interface ReviewLessonRow {
   isOwn: boolean;
 }
 
-interface ExtendedLessonItem extends LessonItem {
-  creator?: {
-    fullName?: string;
-    username?: string;
-    email?: string;
-  };
-}
-
 const REVIEW_TAB_BY_STATUS: Partial<Record<string, ReviewTabState>> = {
   [ContentStatus.PENDING_REVIEW]: ReviewTabState.PENDING,
   [ContentStatus.PUBLISHED]: ReviewTabState.APPROVED,
@@ -42,7 +35,6 @@ const REVIEW_TAB_BY_STATUS: Partial<Record<string, ReviewTabState>> = {
 };
 
 function mapLessonToRow(lesson: LessonItem, currentUserId: string | null): ReviewLessonRow {
-  const extended = lesson as ExtendedLessonItem;
   const rawStatus = lesson.status;
 
   const summary = (lesson.contentRichText || '')
@@ -50,11 +42,7 @@ function mapLessonToRow(lesson: LessonItem, currentUserId: string | null): Revie
     .replace(/\s+/g, ' ')
     .trim();
 
-  const authorName =
-    extended.creator?.fullName ||
-    extended.creator?.username ||
-    extended.creator?.email ||
-    'Biên tập viên';
+  const authorName = creatorLabel(lesson.creatorName);
 
   return {
     id: lesson.id,
@@ -264,7 +252,7 @@ export function ReviewList({ onChanged }: { onChanged?: () => void }) {
                   </td>
                   <td>{r.topic}</td>
                   <td>
-                    <UserCell initials="NA" name={r.author} />
+                    <UserCell initials={creatorInitials(r.author)} name={r.author} />
                   </td>
                   <td>{r.date}</td>
                   <td>

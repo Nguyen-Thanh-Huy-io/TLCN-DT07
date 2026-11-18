@@ -1,3 +1,4 @@
+import { getInitials } from '@/utils/common';
 import { ContentStatus } from '@/constants/enums';
 
 export interface ReviewPost {
@@ -67,3 +68,16 @@ export const REVIEW_TABS = [
 export const BLOCK_TYPE_IMAGE = 'image';
 export const BORDER_COLOR_LIGHT = '#e5e7eb';
 export const BORDER_LIGHT = `1px solid ${BORDER_COLOR_LIGHT}`;
+
+/** Backend trả "—" cho bài tạo trước khi hệ thống lưu người tạo. */
+const UNKNOWN_CREATOR_MARK = '—';
+
+const UNKNOWN_CREATOR_LABEL = 'Không rõ';
+
+/** Tên người tạo để hiển thị ở danh sách duyệt. */
+export const creatorLabel = (name: string | undefined): string =>
+  name && name !== UNKNOWN_CREATOR_MARK ? name : UNKNOWN_CREATOR_LABEL;
+
+/** Chữ viết tắt cho avatar; không rõ người tạo thì "?". */
+export const creatorInitials = (label: string): string =>
+  label === UNKNOWN_CREATOR_LABEL ? '?' : getInitials(label);

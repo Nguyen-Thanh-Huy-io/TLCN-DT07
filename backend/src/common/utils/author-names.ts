@@ -1,4 +1,4 @@
-import { PrismaService } from '../common/services/prisma.service';
+import { PrismaService } from '../services/prisma.service';
 
 /** Bản ghi cũ chưa lưu người tạo. */
 export const UNKNOWN_AUTHOR = '—';

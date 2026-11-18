@@ -89,6 +89,8 @@ export interface ArticleLinkView {
 }
 
 export interface ArticleItem {
+  /** Tên người tạo — chỉ có ở API danh sách; "—" với bài tạo trước khi lưu người tạo. */
+  creatorName?: string;
   id: string;
   categoryId: string | null;
   topicId: string | null;

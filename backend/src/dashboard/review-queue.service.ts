@@ -10,7 +10,7 @@ import {
   REVISION_KIND,
   REVISION_STATUS,
 } from '../content-revision/content-revision.constant';
-import { loadAuthorNames } from './author-names';
+import { loadAuthorNames } from '../common/utils/author-names';
 import {
   REVIEW_QUEUE_ITEMS_PER_TYPE,
   ReviewQueueType,

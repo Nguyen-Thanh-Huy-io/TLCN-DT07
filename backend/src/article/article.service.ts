@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ContentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
+import { loadAuthorNames } from '../common/utils/author-names';
 import { SlugService } from '../common/services/slug.service';
 import { RedisService } from '../common/services/redis.service';
 import { TAG_CONFIG } from '../tag/tag.constant';
@@ -81,7 +82,7 @@ const ARTICLE_INCLUDE = {
 type ArticleRow = Prisma.ArticleGetPayload<{ include: typeof ARTICLE_INCLUDE }>;
 
 /** Phẳng hoá articleTags → tags + tagIds (tagIds khớp payload của API cập nhật / bản sửa). */
-function present<T extends ArticleRow>(row: T) {
+function present<T extends Pick<ArticleRow, 'articleTags'>>(row: T) {
   const { articleTags, ...rest } = row;
   const tags = articleTags.map((at) => at.tag);
   return { ...rest, tags, tagIds: tags.map((t) => t.id) };
@@ -174,8 +175,15 @@ export class ArticleService {
       }),
       this.prisma.article.count({ where }),
     ]);
+    const nameOf = await loadAuthorNames(
+      this.prisma,
+      rows.map((r) => r.createdBy),
+    );
     return {
-      items: rows.map(present),
+      items: rows.map((row) => ({
+        ...present(row),
+        creatorName: nameOf(row.createdBy),
+      })),
       total,
       page,
       limit,

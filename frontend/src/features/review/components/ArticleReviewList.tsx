@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
 import { UserCell } from '@/components/common/CommonUi';
+import { creatorInitials, creatorLabel } from '../types/review.types';
 import { ReviewModal } from './ReviewModal';
 import { IconName } from '@/constants/enums';
 import { ContentStatus, NoticeTone } from '@/constants/enums';
@@ -36,10 +37,6 @@ const EXCLUDED_CATEGORY_SLUG = 'blog';
 const EXCLUDED_ARTICLE_SLUG = 'cong-la-ma-va-khong-gian-quyen-luc';
 
 interface ExtendedArticleItem extends ArticleItem {
-  creator?: {
-    fullName?: string;
-    username?: string;
-  };
   rejectionReason?: string | null;
 }
 
@@ -60,7 +57,7 @@ function mapArticleToRow(art: ArticleItem, currentUserId: string | null): Review
   const extended = art as ExtendedArticleItem;
   const rawStatus = art.status;
   const summary = (art.summary || '').trim();
-  const authorName = extended.creator?.fullName || extended.creator?.username || 'Biên tập viên';
+  const authorName = creatorLabel(art.creatorName);
 
   return {
     id: art.id,
@@ -265,7 +262,7 @@ export function ArticleReviewList({ onChanged }: { onChanged?: () => void }) {
                   </td>
                   <td>{r.category}</td>
                   <td>
-                    <UserCell initials="NA" name={r.author} />
+                    <UserCell initials={creatorInitials(r.author)} name={r.author} />
                   </td>
                   <td>{r.date}</td>
                   <td>

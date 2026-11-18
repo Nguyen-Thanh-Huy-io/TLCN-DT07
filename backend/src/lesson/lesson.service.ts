@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
+import { loadAuthorNames } from '../common/utils/author-names';
 import { ACCESS_MESSAGES } from '../common/access/access.constant';
 import { RedisService } from '../common/services/redis.service';
 import { TAG_CONFIG } from '../tag/tag.constant';
@@ -223,8 +224,15 @@ export class LessonService {
       this.prisma.lesson.count({ where }),
     ]);
 
+    const nameOf = await loadAuthorNames(
+      this.prisma,
+      items.map((l) => l.createdBy),
+    );
     const result: IPaginatedResult<LessonResponseDto> = {
-      items: items.map((l) => this.formatLessonResponse(l)),
+      items: items.map((l) => ({
+        ...this.formatLessonResponse(l),
+        creatorName: nameOf(l.createdBy),
+      })),
       total,
       page,
       limit,

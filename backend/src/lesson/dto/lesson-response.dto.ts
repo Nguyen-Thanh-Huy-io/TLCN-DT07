@@ -21,6 +21,13 @@ export class LessonResponseDto {
   slug: string;
 
   @ApiPropertyOptional({
+    example: 'Nguyễn Văn A',
+    description:
+      'Tên người tạo (chỉ có ở danh sách); "—" khi bài tạo trước khi lưu người tạo',
+  })
+  creatorName?: string;
+
+  @ApiPropertyOptional({
     example: 'Tổng quan về chiến thắng Bạch Đằng năm 938...',
     description: 'Mô tả tóm tắt nội dung bài học',
   })

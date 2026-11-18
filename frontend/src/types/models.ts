@@ -11,6 +11,8 @@ export interface TagItem {
 }
 
 export interface LessonItem {
+  /** Tên người tạo — chỉ có ở API danh sách; "—" với bài tạo trước khi lưu người tạo. */
+  creatorName?: string;
   id: string;
   title: string;
   slug: string;

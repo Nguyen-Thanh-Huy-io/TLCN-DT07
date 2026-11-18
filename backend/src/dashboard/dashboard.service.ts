@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
-import { loadAuthorNames, UNKNOWN_AUTHOR } from './author-names';
+import { loadAuthorNames, UNKNOWN_AUTHOR } from '../common/utils/author-names';
 import {
   DashboardContentType,
   MY_REJECTED_LIMIT,

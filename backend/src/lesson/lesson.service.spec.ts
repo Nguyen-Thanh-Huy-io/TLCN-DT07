@@ -35,6 +35,13 @@ describe('LessonService', () => {
   const mockPrismaService = {
     authUser: {
       findUnique: jest.fn().mockResolvedValue({ id: 'admin-uuid-1' }),
+      findMany: jest.fn().mockResolvedValue([
+        {
+          id: 'user-uuid-creator',
+          username: 'bien_tap_vien',
+          userProfile: null,
+        },
+      ]),
     },
     lesson: {
       create: jest.fn().mockResolvedValue(mockLesson),
@@ -100,6 +107,7 @@ describe('LessonService', () => {
 
       const result = await service.findAll({ page: 1, limit: 10 });
       expect(result.items).toHaveLength(1);
+      expect(result.items[0].creatorName).toBe('bien_tap_vien');
       expect(mockPrismaService.lesson.findMany).toHaveBeenCalled();
     });
   });

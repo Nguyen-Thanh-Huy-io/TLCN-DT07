@@ -34,38 +34,40 @@ export interface ReadingLayoutState {
   resetDefault: () => void;
 }
 
-export function useReadingLayout(hasTimeline: boolean = true): ReadingLayoutState {
-  const [isTocOpen, setIsTocOpen] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    try {
-      const saved = localStorage.getItem(READING_LAYOUT_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (typeof parsed.isTocOpen === 'boolean') {
-          return parsed.isTocOpen;
-        }
-      }
-    } catch {
-      // Bỏ qua lỗi truy cập storage
-    }
-    return true;
-  });
+interface SavedReadingLayout {
+  isTocOpen?: boolean;
+  isTimelineOpen?: boolean;
+}
 
-  const [isTimelineOpen, setIsTimelineOpen] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return hasTimeline;
-    try {
-      const saved = localStorage.getItem(READING_LAYOUT_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (typeof parsed.isTimelineOpen === 'boolean') {
-          return hasTimeline && parsed.isTimelineOpen;
-        }
-      }
-    } catch {
-      // Bỏ qua lỗi truy cập storage
-    }
-    return hasTimeline;
-  });
+function readSavedLayout(): SavedReadingLayout | null {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(READING_LAYOUT_STORAGE_KEY) ?? 'null');
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      isTocOpen: 'isTocOpen' in parsed && typeof parsed.isTocOpen === 'boolean' ? parsed.isTocOpen : undefined,
+      isTimelineOpen:
+        'isTimelineOpen' in parsed && typeof parsed.isTimelineOpen === 'boolean' ? parsed.isTimelineOpen : undefined,
+    };
+  } catch {
+    // Storage bị chặn hoặc dữ liệu hỏng → dùng bố cục mặc định.
+    return null;
+  }
+}
+
+export function useReadingLayout(hasTimeline: boolean = true): ReadingLayoutState {
+  const [isTocOpen, setIsTocOpen] = useState<boolean>(true);
+  const [isTimelineOpen, setIsTimelineOpen] = useState<boolean>(hasTimeline);
+
+  // Khôi phục tuỳ chọn SAU khi hydrate: đọc localStorage ngay trong useState khiến HTML server
+  // (bố cục mặc định) lệch với lần render đầu ở client → lỗi hydration.
+  useEffect(() => {
+    const saved = readSavedLayout();
+    if (!saved) return;
+    void Promise.resolve().then(() => {
+      if (saved.isTocOpen !== undefined) setIsTocOpen(saved.isTocOpen);
+      if (saved.isTimelineOpen !== undefined) setIsTimelineOpen(saved.isTimelineOpen);
+    });
+  }, []);
 
   // Đồng bộ lại khi `hasTimeline` thay đổi
   useEffect(() => {

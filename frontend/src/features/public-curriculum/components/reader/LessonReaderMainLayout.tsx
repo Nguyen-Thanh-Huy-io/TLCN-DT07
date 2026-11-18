@@ -19,6 +19,7 @@ import { HubLessonGate } from '../hub/HubReaderParts';
 import { X, ExternalLink, BookOpen, CheckCircle2, Clock3, ArrowRight, ChevronLeft, ArrowLeft } from 'lucide-react';
 import { HubButton, HubBadge, HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS } from '../hub/HubReaderParts';
 import { sanitizeRichHtml } from '@/utils/common';
+import type { ReadingPreferences } from '@/features/reading-aids/components/ReadingAidsPanel';
 
 interface LessonReaderMainLayoutProps {
   readerColumns: string;
@@ -49,6 +50,8 @@ interface LessonReaderMainLayoutProps {
     onToggle: () => void;
     children: React.ReactNode;
   }>;
+  focusMode?: boolean;
+  prefs?: ReadingPreferences;
 }
 
 export function LessonReaderMainLayout({
@@ -76,10 +79,20 @@ export function LessonReaderMainLayout({
   hasRelated,
   related,
   SyllabusColumnComponent,
+  focusMode = false,
+  prefs,
 }: LessonReaderMainLayoutProps) {
+  const containerGridClass = focusMode ? 'grid-cols-1' : readerColumns;
+  const contentWidthClass = prefs?.contentWidth
+    ? `ue-content-width-${prefs.contentWidth}`
+    : 'ue-content-width-medium';
+  const sectionClass = focusMode
+    ? `mx-auto w-full min-w-0 lh-lesson-col ue-article-col ${contentWidthClass}`
+    : `min-w-0 ${!hasRightSidebar ? 'mx-auto w-full max-w-4xl' : ''}`;
+
   return (
-    <div className={`grid gap-8 ${readerColumns}`}>
-      {learningPath && (
+    <div className={`grid gap-8 ${containerGridClass}`}>
+      {learningPath && !focusMode && (
         <SyllabusColumnComponent open={syllabusOpen} onToggle={onToggleSyllabus}>
           <HubSyllabus path={learningPath} activeLessonId={lesson.id} isCompleted={isCompleted} />
         </SyllabusColumnComponent>
@@ -92,7 +105,7 @@ export function LessonReaderMainLayout({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.25 }}
-          className={`min-w-0 ${!hasRightSidebar ? 'mx-auto w-full max-w-4xl' : ''}`}
+          className={sectionClass}
         >
           <LessonReaderHeader
             lesson={lesson}
@@ -102,35 +115,49 @@ export function LessonReaderMainLayout({
             done={done}
           />
 
-          <div className="mb-7 overflow-hidden rounded-2xl">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={lesson.thumbnailUrl || DEFAULT_COVER_IMAGES[0]}
-              alt={lesson.title}
-              className="aspect-[2.2/1] w-full object-cover"
-              onError={(e) => {
-                const img = e.currentTarget;
-                if (!img.src.endsWith(DEFAULT_COVER_IMAGES[0])) img.src = DEFAULT_COVER_IMAGES[0];
-              }}
+          {!focusMode && (
+            <div className="mb-7 overflow-hidden rounded-2xl">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={lesson.thumbnailUrl || DEFAULT_COVER_IMAGES[0]}
+                alt={lesson.title}
+                className="aspect-[2.2/1] w-full object-cover"
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  if (!img.src.endsWith(DEFAULT_COVER_IMAGES[0])) img.src = DEFAULT_COVER_IMAGES[0];
+                }}
+              />
+            </div>
+          )}
+
+          {!focusMode && (
+            <div className="xl:hidden">
+              <LessonToc items={tocItems} />
+            </div>
+          )}
+
+          <div
+            className={
+              prefs
+                ? `ue-text-size-${prefs.textSize} ue-line-spacing-${prefs.lineSpacing}`
+                : ''
+            }
+          >
+            <LessonReaderArticle
+              contentRef={contentRef}
+              compiledHtml={compiledHtml}
+              resourceLinks={resourceLinks}
+              quizBlocks={quizBlocks}
             />
           </div>
 
-          <div className="xl:hidden">
-            <LessonToc items={tocItems} />
-          </div>
+          {!focusMode && (
+            <div className="xl:hidden">
+              <LessonRelated html={compiledHtml} />
+            </div>
+          )}
 
-          <LessonReaderArticle
-            contentRef={contentRef}
-            compiledHtml={compiledHtml}
-            resourceLinks={resourceLinks}
-            quizBlocks={quizBlocks}
-          />
-
-          <div className="xl:hidden">
-            <LessonRelated html={compiledHtml} />
-          </div>
-
-          {lesson.topicId && (
+          {!focusMode && lesson.topicId && (
             <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4">
               <div>
                 <p className="text-sm font-bold text-stone-900">Ôn tập theo chủ đề</p>
@@ -155,18 +182,20 @@ export function LessonReaderMainLayout({
             onMarkCompleted={onMarkCompleted}
           />
 
-          <DiscussionSection targetType="LESSON" targetId={lesson.id} />
+          {!focusMode && <DiscussionSection targetType="LESSON" targetId={lesson.id} />}
         </motion.section>
       </AnimatePresence>
 
-      <LessonReaderDesktopSidebar
-        hasRightSidebar={hasRightSidebar}
-        hasToc={hasToc}
-        hasRelated={hasRelated}
-        tocItems={tocItems}
-        compiledHtml={compiledHtml}
-        related={related}
-      />
+      {!focusMode && (
+        <LessonReaderDesktopSidebar
+          hasRightSidebar={hasRightSidebar}
+          hasToc={hasToc}
+          hasRelated={hasRelated}
+          tocItems={tocItems}
+          compiledHtml={compiledHtml}
+          related={related}
+        />
+      )}
     </div>
   );
 }
@@ -311,7 +340,7 @@ export function LessonReaderArticle({
   const quizIslands = useLessonQuizIslands(contentRef, compiledHtml, quizBlocks);
   const annotationTooltip = useLessonAnnotations(contentRef, compiledHtml);
   return (
-    <article className="rounded-2xl border border-lh-line bg-lh-surface p-6 md:p-9">
+    <article className="lh-lesson-article rounded-2xl border border-lh-line bg-lh-surface p-6 md:p-9 transition-colors duration-200">
       <div
         ref={contentRef}
         className="tiptap-content-box !p-0 leading-relaxed text-lh-ink"

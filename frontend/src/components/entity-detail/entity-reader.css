@@ -912,20 +912,124 @@
   transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* TÙY BIẾN KÍCH THƯỚC CHỮ */
-.ue-text-size-sm .ue-bio-blocks {
+/* TÙY BIẾN KÍCH THƯỚC CHỮ, KHOẢNG CÁCH DÒNG & GIAO DIỆN ĐỌC */
+.ue-text-size-sm .ue-bio-blocks,
+.ue-text-size-sm .tiptap-content-box {
   font-size: 0.975rem;
-  line-height: 1.75;
 }
 
-.ue-text-size-md .ue-bio-blocks {
+.ue-text-size-md .ue-bio-blocks,
+.ue-text-size-md .tiptap-content-box {
   font-size: 1.08rem;
+}
+
+.ue-text-size-lg .ue-bio-blocks,
+.ue-text-size-lg .tiptap-content-box {
+  font-size: 1.22rem;
+}
+
+.ue-line-spacing-tight .ue-bio-blocks,
+.ue-line-spacing-tight .tiptap-content-box {
+  line-height: 1.6;
+}
+
+.ue-line-spacing-normal .ue-bio-blocks,
+.ue-line-spacing-normal .tiptap-content-box {
   line-height: 1.85;
 }
 
-.ue-text-size-lg .ue-bio-blocks {
-  font-size: 1.2rem;
-  line-height: 1.95;
+.ue-line-spacing-relaxed .ue-bio-blocks,
+.ue-line-spacing-relaxed .tiptap-content-box {
+  line-height: 2.15;
+}
+
+.ue-article-col.ue-content-width-narrow,
+.lh-lesson-col.ue-content-width-narrow {
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ue-article-col.ue-content-width-medium,
+.lh-lesson-col.ue-content-width-medium {
+  max-width: 880px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ue-article-col.ue-content-width-wide,
+.lh-lesson-col.ue-content-width-wide {
+  max-width: 1140px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* CHẾ ĐỘ TẬP TRUNG (FOCUS MODE): Ẩn Header, Footer và khối Hero cồng kềnh */
+body.ue-focus-mode-body header,
+body.ue-focus-mode-body footer,
+body.ue-focus-mode-body .ue-hero {
+  display: none !important;
+}
+
+.ue-reader-theme-wrap {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.ue-reader-theme-wrap.ue-theme-light {
+  background-color: #FFFFFF;
+}
+
+.ue-reader-theme-wrap.ue-theme-sepia {
+  background-color: #FAF7F2;
+}
+
+.ue-reader-theme-wrap.ue-theme-sepia .lh-lesson-article,
+.ue-reader-theme-wrap.ue-theme-sepia article.rounded-2xl {
+  background-color: #FFFDF9;
+  border-color: #E8DECA;
+}
+
+.ue-reader-theme-wrap.ue-theme-dark {
+  background-color: #181614;
+  color: #E7E0D6;
+}
+
+.ue-reader-theme-wrap.ue-theme-dark .ue-bio-blocks,
+.ue-reader-theme-wrap.ue-theme-dark .ue-bio-blocks h2,
+.ue-reader-theme-wrap.ue-theme-dark .ue-bio-blocks h3,
+.ue-reader-theme-wrap.ue-theme-dark .ue-kg-title,
+.ue-reader-theme-wrap.ue-theme-dark .ue-kg-target,
+.ue-reader-theme-wrap.ue-theme-dark .ue-bottom-title,
+.ue-reader-theme-wrap.ue-theme-dark .tiptap-content-box h1,
+.ue-reader-theme-wrap.ue-theme-dark .tiptap-content-box h2,
+.ue-reader-theme-wrap.ue-theme-dark .tiptap-content-box h3,
+.ue-reader-theme-wrap.ue-theme-dark .tiptap-content-box h4 {
+  color: #FAF4EB !important;
+}
+
+.ue-reader-theme-wrap.ue-theme-dark .tiptap-content-box,
+.ue-reader-theme-wrap.ue-theme-dark .tiptap-content-box p,
+.ue-reader-theme-wrap.ue-theme-dark .tiptap-content-box li,
+.ue-reader-theme-wrap.ue-theme-dark .tiptap-content-box span {
+  color: #E7E0D6;
+}
+
+.ue-reader-theme-wrap.ue-theme-dark .lh-lesson-article,
+.ue-reader-theme-wrap.ue-theme-dark article.rounded-2xl {
+  background-color: #211E1B;
+  border-color: #38322B;
+  color: #E7E0D6;
+}
+
+.ue-reader-theme-wrap.ue-theme-dark .ue-kg-card,
+.ue-reader-theme-wrap.ue-theme-dark .ue-bottom-btn,
+.ue-reader-theme-wrap.ue-theme-dark .ue-resource-link-card,
+.ue-reader-theme-wrap.ue-theme-dark .ue-bio-blocks blockquote,
+.ue-reader-theme-wrap.ue-theme-dark .ue-bio-blocks .lesson-block-quote,
+.ue-reader-theme-wrap.ue-theme-dark .ue-bio-blocks .lesson-block-callout {
+  background-color: #23201C;
+  border-color: #3A342D;
+  color: #E0D7C9;
 }
 
 .ue-bio-blocks {

@@ -1,108 +1,391 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { Search, X } from 'lucide-react';
-import { ArticleCard } from '@/components/hisgo/ArticleCard';
-import type { PublicArticleSummary } from '@/services/public/public-content.service';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  ArrowDownUp,
+  BookOpen,
+  Landmark,
+  LayoutGrid,
+  List,
+  Search,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react';
+import { FilterDialog, toggleValue } from '@/components/filters/ChipFilter';
+import {
+  TocDrawer,
+  TopicBlockSection,
+  TopicLeafHeading,
+  buildTopicTocNodes,
+  jumpToTopicElement,
+} from '@/components/common/TocDrawer';
+import { normalizeSearch } from '@/features/search/search-index';
+import { findRootTopic, groupByTopic } from '@/services/entities/landing-graph';
+import type { PublicArticleLibraryItemDto } from '@/services/entities/landing.service';
+import { resolveCategoryKind } from '@/services/public/article-kind';
+import type { PublicCategory, PublicTopicRef } from '@/services/public/public-content.service';
+import {
+  ARTICLE_SORT_LABELS,
+  ArticleFilterKey,
+  ArticleSortOption,
+  ArticleViewMode,
+  EMPTY_ARTICLE_FILTERS,
+  buildArticleJsonbFacets,
+  buildArticleRows,
+  countActiveArticleFilters,
+  expandSelectedCategoryIds,
+  matchesArticleRow,
+  preservationTextOf,
+  resolveActiveFilterKind,
+  sortArticleRows,
+  type ArticleFilters,
+} from './article-library.strategy';
+import {
+  ArticleAdaptiveSubFilters,
+  ArticleFilterDialogSections,
+  ArticleGridCard,
+  ArticleListItem,
+} from './ArticleBrowserParts';
+import '@/components/timeline/sk-timeline.css';
+import '@/features/events-library/events-library.css';
 
-/** Bỏ dấu + chữ thường để tìm không phân biệt dấu ("tran hung dao" khớp "Trần Hưng Đạo"). */
-export function normalizeSearch(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toLowerCase();
+export interface ArticleBrowserProps {
+  articles: PublicArticleLibraryItemDto[];
+  categories: PublicCategory[];
+  topics: PublicTopicRef[];
+  initialCategorySlug?: string;
+  initialQuery?: string;
 }
 
-/** Lưới bài viết có ô tìm kiếm + lọc theo tag (lọc phía client, danh sách đã sắp theo niên đại). */
-export function ArticleBrowser({ articles, emptyText }: { articles: PublicArticleSummary[]; emptyText: string }) {
-  const [query, setQuery] = useState('');
-  const [tagId, setTagId] = useState<string | null>(null);
+export function ArticleBrowser({
+  articles,
+  categories,
+  topics,
+  initialCategorySlug,
+  initialQuery,
+}: ArticleBrowserProps) {
+  const allRows = useMemo(() => buildArticleRows(articles), [articles]);
+  const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
-  const tags = useMemo(() => {
+  // Chuyên mục gốc được chọn từ Menu Khám phá (?chuyen-muc=...).
+  const scopedCategory = useMemo(
+    () => (initialCategorySlug ? (categories.find((c) => c.slug === initialCategorySlug) ?? null) : null),
+    [categories, initialCategorySlug],
+  );
+
+  // Khoanh vùng dữ liệu theo chuyên mục đang xem (gồm cả chuyên mục con của nó).
+  const scopedRows = useMemo(() => {
+    if (!scopedCategory) return allRows;
+    const allowedIds = expandSelectedCategoryIds([scopedCategory.id], categories);
+    return allRows.filter((r) => Boolean(r.item.categoryId && allowedIds.has(r.item.categoryId)));
+  }, [allRows, scopedCategory, categories]);
+
+  const [query, setQuery] = useState(initialQuery ?? '');
+  const [filters, setFilters] = useState<ArticleFilters>(EMPTY_ARTICLE_FILTERS);
+  const [sort, setSort] = useState<ArticleSortOption>(ArticleSortOption.YEAR_ASC);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ArticleViewMode>(ArticleViewMode.GRID);
+  const [tocOpen, setTocOpen] = useState(false);
+
+  const needle = normalizeSearch(query.trim());
+
+  const toggleFilterValue = useCallback((key: ArticleFilterKey, value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: toggleValue(prev[key], value) }));
+  }, []);
+
+  const tagOptions = useMemo(() => {
     const counts = new Map<string, { id: string; name: string; count: number }>();
-    for (const a of articles) {
-      for (const t of a.tags) {
-        const entry = counts.get(t.id) ?? { id: t.id, name: t.name, count: 0 };
-        entry.count += 1;
-        counts.set(t.id, entry);
+    for (const r of scopedRows) {
+      for (const t of r.item.tags) {
+        const cur = counts.get(t.id) ?? { id: t.id, name: t.name, count: 0 };
+        cur.count += 1;
+        counts.set(t.id, cur);
       }
     }
     return [...counts.values()].sort((a, b) => b.count - a.count);
-  }, [articles]);
+  }, [scopedRows]);
+
+  const dialogCategoryOptions = useMemo(() => {
+    const targetCategories = scopedCategory
+      ? categories.filter((c) => c.parentId === scopedCategory.id)
+      : categories.filter((c) => !c.parentId);
+    return targetCategories
+      .map((cat) => {
+        const expanded = expandSelectedCategoryIds([cat.id], categories);
+        const count = scopedRows.filter((r) => Boolean(r.item.categoryId && expanded.has(r.item.categoryId))).length;
+        return { cat, count };
+      })
+      .filter((entry) => entry.count > 0);
+  }, [categories, scopedCategory, scopedRows]);
+
+  const childCategoryPills = useMemo(
+    () => (scopedCategory ? dialogCategoryOptions : []),
+    [scopedCategory, dialogCategoryOptions],
+  );
+
+  const activeKind = useMemo(() => {
+    if (scopedCategory) return resolveCategoryKind(categories, scopedCategory.id);
+    return resolveActiveFilterKind(filters.categories, categories);
+  }, [scopedCategory, filters.categories, categories]);
+
+  const jsonbFacets = useMemo(() => buildArticleJsonbFacets(scopedRows), [scopedRows]);
 
   const visible = useMemo(() => {
-    const q = normalizeSearch(query.trim());
-    return articles.filter(
-      (a) =>
-        (!tagId || a.tags.some((t) => t.id === tagId)) &&
-        (!q || normalizeSearch(`${a.title} ${a.summary ?? ''}`).includes(q)),
-    );
-  }, [articles, query, tagId]);
+    const expandedCats = expandSelectedCategoryIds(filters.categories, categories);
+    const matched = scopedRows.filter((r) => matchesArticleRow(r, filters, expandedCats, needle));
+    return sortArticleRows(matched, sort);
+  }, [scopedRows, filters, categories, needle, sort]);
+
+  const topicBlocks = useMemo(
+    () =>
+      groupByTopic(visible, (r) => r.item.topicId, {
+        topics,
+        rootTopicOf: (id) => findRootTopic(topics, id),
+      }),
+    [visible, topics],
+  );
+
+  const tocNodes = useMemo(() => buildTopicTocNodes(topicBlocks), [topicBlocks]);
+
+  const chips = [
+    ...filters.categories.map((id) => ({
+      key: ArticleFilterKey.CATEGORIES,
+      value: id,
+      label: categoryById.get(id)?.name ?? id,
+    })),
+    ...filters.siteTypes.map((code) => ({
+      key: ArticleFilterKey.SITE_TYPES,
+      value: code,
+      label: jsonbFacets.siteTypes.find((s) => s.value === code)?.label ?? code,
+    })),
+    ...filters.preservations.map((code) => ({
+      key: ArticleFilterKey.PRESERVATIONS,
+      value: code,
+      label: preservationTextOf(code) ?? code,
+    })),
+    ...filters.personRoles.map((role) => ({
+      key: ArticleFilterKey.PERSON_ROLES,
+      value: role,
+      label: role,
+    })),
+    ...filters.tags.map((id) => ({
+      key: ArticleFilterKey.TAGS,
+      value: id,
+      label: tagOptions.find((t) => t.id === id)?.name ?? id,
+    })),
+  ];
+
+  const activeCount = countActiveArticleFilters(filters);
+
+  const resetAll = () => {
+    setQuery('');
+    setFilters(EMPTY_ARTICLE_FILTERS);
+  };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <label className="relative block w-full sm:max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Tìm trong danh sách…"
-            className="w-full rounded-full border border-stone-300 bg-white py-2 pl-9 pr-9 text-sm outline-none focus:border-[#8C2D19]"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
-              aria-label="Xoá từ khoá"
-            >
-              <X size={16} />
-            </button>
-          )}
-        </label>
-        <span className="text-sm text-stone-500">{visible.length} bài viết</span>
-      </div>
+    <div className="sk-app el-app">
+      <section className="el-intro">
+        <span className="sk-section-eyebrow">THƯ VIỆN TRI THỨC LỊCH SỬ</span>
+        <h1>{scopedCategory ? scopedCategory.name : 'Tất cả bài viết lịch sử'}</h1>
+        <p>
+          {scopedCategory?.description ??
+            `Khám phá ${scopedRows.length} bài viết chuyên sâu về sự kiện, nhân vật, di tích, địa danh, triều đại và tư liệu lịch sử.`}
+        </p>
+        <ArticleAdaptiveSubFilters
+          activeKind={activeKind}
+          childCategories={childCategoryPills}
+          jsonbFacets={jsonbFacets}
+          filters={filters}
+          onToggleFilter={toggleFilterValue}
+        />
+      </section>
 
-      {tags.length > 0 && (
-        <div className="mb-8 flex flex-wrap gap-2">
+      <div className="el-wrap" id="el-content-anchor">
+        <div className="sk-filter-bar">
+          <div className="sk-search-field">
+            <Search size={17} />
+            <input
+              aria-label="Tìm bài viết lịch sử"
+              placeholder={
+                scopedCategory
+                  ? `Tìm trong ${scopedCategory.name.toLowerCase()}...`
+                  : 'Tìm tên bài viết, nhân vật, sự kiện, di tích, triều đại...'
+              }
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {query && (
+              <button type="button" className="sk-button" aria-label="Xóa tìm kiếm" onClick={() => setQuery('')}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
           <button
             type="button"
-            onClick={() => setTagId(null)}
-            className={`rounded-full px-3 py-1 text-sm font-semibold ${
-              tagId === null ? 'bg-[#8C2D19] text-white' : 'border border-stone-300 bg-white text-stone-700'
-            }`}
+            className={`sk-button sk-filter-open ${activeCount ? 'sk-is-on' : ''}`}
+            onClick={() => setSheetOpen(true)}
           >
-            Tất cả
+            <SlidersHorizontal size={16} />
+            <span>Bộ lọc</span>
+            {activeCount > 0 && <span className="sk-badge">{activeCount}</span>}
           </button>
-          {tags.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTagId(tagId === t.id ? null : t.id)}
-              className={`rounded-full px-3 py-1 text-sm font-semibold ${
-                tagId === t.id ? 'bg-[#8C2D19] text-white' : 'border border-stone-300 bg-white text-stone-700'
-              }`}
-            >
-              {t.name} <span className="opacity-60">{t.count}</span>
-            </button>
-          ))}
-        </div>
-      )}
 
-      {visible.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-10 text-center text-stone-500">
-          {articles.length === 0 ? emptyText : 'Không có bài viết khớp bộ lọc.'}
-        </p>
-      ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((a) => (
-            <ArticleCard key={a.id} article={a} />
-          ))}
+          <div className="sk-split-segment" role="group" aria-label="Sắp xếp bài viết">
+            <ArrowDownUp size={13} />
+            {(Object.keys(ARTICLE_SORT_LABELS) as ArticleSortOption[]).map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={sort === s ? 'sk-selected' : ''}
+                aria-pressed={sort === s}
+                onClick={() => setSort(s)}
+              >
+                {ARTICLE_SORT_LABELS[s]}
+              </button>
+            ))}
+          </div>
+
+          <div className="el-view-mode-toggle" role="group" aria-label="Chế độ hiển thị">
+            <button
+              type="button"
+              className={`el-view-btn ${viewMode === ArticleViewMode.GRID ? 'sk-active' : ''}`}
+              onClick={() => setViewMode(ArticleViewMode.GRID)}
+              title="Xem dạng lưới thẻ tạp chí"
+              aria-label="Xem dạng lưới"
+            >
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              type="button"
+              className={`el-view-btn ${viewMode === ArticleViewMode.LIST ? 'sk-active' : ''}`}
+              onClick={() => setViewMode(ArticleViewMode.LIST)}
+              title="Xem dạng danh sách"
+              aria-label="Xem dạng danh sách"
+            >
+              <List size={16} />
+            </button>
+          </div>
+
+          {chips.length > 0 && (
+            <div className="sk-active-filters">
+              {chips.map((c) => (
+                <button
+                  key={`${c.key}-${c.value}`}
+                  type="button"
+                  onClick={() =>
+                    setFilters({ ...filters, [c.key]: filters[c.key].filter((v) => v !== c.value) })
+                  }
+                  aria-label={`Bỏ lọc ${c.label}`}
+                >
+                  {c.label}
+                  <X size={13} />
+                </button>
+              ))}
+              {chips.length > 1 && (
+                <button type="button" className="sk-active-clear" onClick={resetAll}>
+                  Xóa tất cả
+                </button>
+              )}
+            </div>
+          )}
         </div>
-      )}
+
+        <FilterDialog
+          open={sheetOpen}
+          value={filters}
+          empty={EMPTY_ARTICLE_FILTERS}
+          countFor={(draft) => {
+            const expanded = expandSelectedCategoryIds(draft.categories, categories);
+            return scopedRows.filter((r) => matchesArticleRow(r, draft, expanded, needle)).length;
+          }}
+          onApply={(f) => {
+            setFilters(f);
+            setSheetOpen(false);
+          }}
+          onClose={() => setSheetOpen(false)}
+        >
+          {(draft, setDraft) => (
+            <ArticleFilterDialogSections
+              draft={draft}
+              setDraft={setDraft}
+              activeKind={activeKind}
+              isScopedCategory={Boolean(scopedCategory)}
+              categoryOptions={dialogCategoryOptions}
+              tagOptions={tagOptions}
+              jsonbFacets={jsonbFacets}
+            />
+          )}
+        </FilterDialog>
+
+        <div className="el-toolbar">
+          <span>
+            Tìm thấy <strong>{visible.length}</strong> bài viết lịch sử
+          </span>
+          {(activeCount > 0 || query) && (
+            <button type="button" className="el-reset-link" onClick={resetAll}>
+              Đặt lại bộ lọc
+            </button>
+          )}
+        </div>
+
+        {visible.length > 0 ? (
+          topicBlocks.map((block) => (
+            <TopicBlockSection key={block.id} block={block} itemLabel="bài viết">
+              {block.leaves.map((leaf) => (
+                <div key={leaf.id} id={`topic-leaf-${leaf.id}`} className="sk-sub-era">
+                  {block.leaves.length > 1 && <TopicLeafHeading leaf={leaf} itemLabel="bài viết" />}
+                  {viewMode === ArticleViewMode.GRID ? (
+                    <div className="el-grid">
+                      {leaf.items.map((row) => (
+                        <ArticleGridCard key={row.item.id} row={row} />
+                      ))}
+                    </div>
+                  ) : (
+                    <ol className="el-list">
+                      {leaf.items.map((row) => (
+                        <ArticleListItem key={row.item.id} row={row} />
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              ))}
+            </TopicBlockSection>
+          ))
+        ) : (
+          <div className="sk-empty">
+            <Landmark size={36} />
+            <h2>Chưa tìm thấy bài viết</h2>
+            <p>Thử từ khóa khác hoặc xóa bớt các tiêu chí lọc đang chọn.</p>
+            {(activeCount > 0 || query) && (
+              <button type="button" className="sk-button sk-primary" onClick={resetAll}>
+                Xóa bộ lọc <X size={14} />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <button
+        type="button"
+        className="sk-toc-floating-side-tab"
+        onClick={() => setTocOpen(true)}
+        title="Mục lục chủ đề bài viết"
+        aria-label="Mở mục lục chủ đề"
+      >
+        <BookOpen size={15} />
+        <span>Mục lục</span>
+      </button>
+
+      <TocDrawer
+        open={tocOpen}
+        onClose={() => setTocOpen(false)}
+        heading="Mục lục chủ đề"
+        itemLabel="bài viết"
+        nodes={tocNodes}
+        totalCount={visible.length}
+        onJump={jumpToTopicElement}
+      />
     </div>
   );
 }

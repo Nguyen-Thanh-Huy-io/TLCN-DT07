@@ -1,7 +1,6 @@
-import { HeritageExplorer } from "@/features/heritage/components/HeritageExplorer";
-import { fetchEventArticles, fetchLocations, fetchPeriods } from "@/services/entities/landing.service";
+import { redirect } from 'next/navigation';
+import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 
-export default async function DiTichPage() {
-  const [sites, events, periods] = await Promise.all([fetchLocations(), fetchEventArticles(), fetchPeriods()]);
-  return <HeritageExplorer sites={sites} events={events} periods={periods} />;
+export default function DiTichRedirectPage() {
+  redirect(PUBLIC_ROUTES.CATEGORY('di-tich'));
 }

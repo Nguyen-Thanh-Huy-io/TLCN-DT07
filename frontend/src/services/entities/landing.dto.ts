@@ -273,3 +273,34 @@ export interface PublicEntityDetailDto {
   siteTypeLabel?: string | null;
   statusNote?: string | null;
 }
+
+export interface PublicArticleLibraryItemDto {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string | null;
+  imageUrl: string | null;
+  startYear: number | null;
+  endYear: number | null;
+  dateLabel: string | null;
+  kind: string;
+  categoryId: string | null;
+  categorySlug: string | null;
+  categoryName: string | null;
+  periodSlug: string | null;
+  topicId: string | null;
+  aliases: string[];
+  tags: Array<{ id: string; name: string }>;
+  address: string | null;
+  siteType: string | null;
+  siteTypeLabel: string | null;
+  preservationCategory: string | null;
+  recognizedYear: string | null;
+  roles: string[];
+  titles: string[];
+  hometown: string | null;
+  famousQuote: string | null;
+  linkedEventsCount: number;
+  linkedFigureNames: string[];
+  linkedLocationNames: string[];
+}

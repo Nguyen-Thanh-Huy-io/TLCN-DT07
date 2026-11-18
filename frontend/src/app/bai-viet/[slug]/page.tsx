@@ -7,7 +7,11 @@ import { buildEntityReaderModel } from '@/components/entity-detail/entity-reader
 import { EntityHero } from '@/components/entity-detail/EntityReaderParts';
 import { EntityReader } from '@/components/entity-detail/EntityReader';
 import { READER_SOURCE_PARAM, ReaderSource } from '@/constants/routes';
+import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import '@/components/entity-detail/entity-reader.css';
+
+const BACK_TO_ARTICLES = { href: PUBLIC_ROUTES.ARTICLES, label: 'Quay về Thư viện bài viết' } as const;
+const BACK_TO_TIMELINE = { href: PUBLIC_ROUTES.TIMELINES, label: 'Quay về Dòng thời gian' } as const;
 
 /**
  * Trang đọc chung cho mọi bài viết. Các đường dẫn /nhan-vat/[slug], /su-kien/[slug], /di-tich/[slug],
@@ -20,11 +24,11 @@ const READER_VARIANTS: Record<ReaderSource, {
   notFound: string;
   back: { href: string; label: string };
 }> = {
-  [ReaderSource.ARTICLE]: { section: 'explore', eyebrow: 'BÀI VIẾT', notFound: 'Không tìm thấy bài viết', back: { href: '/', label: 'Về trang chủ' } },
-  [ReaderSource.FIGURE]: { section: 'timeline', eyebrow: 'NHÂN VẬT LỊCH SỬ', notFound: 'Không tìm thấy nhân vật lịch sử', back: { href: '/nhan-vat', label: 'Quay về Danh mục nhân vật' } },
-  [ReaderSource.EVENT]: { section: 'timeline', eyebrow: 'SỰ KIỆN LỊCH SỬ', notFound: 'Không tìm thấy sự kiện lịch sử', back: { href: '/dong-thoi-gian', label: 'Quay về Dòng thời gian' } },
-  [ReaderSource.SITE]: { section: 'timeline', eyebrow: 'DI TÍCH LỊCH SỬ', notFound: 'Không tìm thấy di tích lịch sử', back: { href: '/di-tich', label: 'Quay về Danh mục di tích' } },
-  [ReaderSource.ENTITY]: { section: 'timeline', eyebrow: 'TƯ LIỆU THỰC THỂ LỊCH SỬ', notFound: 'Không tìm thấy thực thể lịch sử', back: { href: '/dong-thoi-gian', label: 'Quay về Dòng thời gian' } },
+  [ReaderSource.ARTICLE]: { section: 'explore', eyebrow: 'BÀI VIẾT', notFound: 'Không tìm thấy bài viết', back: BACK_TO_ARTICLES },
+  [ReaderSource.FIGURE]: { section: 'explore', eyebrow: 'NHÂN VẬT LỊCH SỬ', notFound: 'Không tìm thấy nhân vật lịch sử', back: { href: PUBLIC_ROUTES.CATEGORY('nhan-vat'), label: 'Quay về Chuyên mục nhân vật' } },
+  [ReaderSource.EVENT]: { section: 'explore', eyebrow: 'SỰ KIỆN LỊCH SỬ', notFound: 'Không tìm thấy sự kiện lịch sử', back: { href: PUBLIC_ROUTES.CATEGORY('su-kien'), label: 'Quay về Chuyên mục sự kiện' } },
+  [ReaderSource.SITE]: { section: 'explore', eyebrow: 'DI TÍCH LỊCH SỬ', notFound: 'Không tìm thấy di tích lịch sử', back: { href: PUBLIC_ROUTES.CATEGORY('di-tich'), label: 'Quay về Chuyên mục di tích' } },
+  [ReaderSource.ENTITY]: { section: 'timeline', eyebrow: 'TƯ LIỆU THỰC THỂ LỊCH SỬ', notFound: 'Không tìm thấy thực thể lịch sử', back: BACK_TO_TIMELINE },
 };
 
 const isReaderSource = (value: unknown): value is ReaderSource =>

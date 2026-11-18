@@ -117,8 +117,5 @@ export function periodTitle(periods: PublicPeriodDto[], slug: string | null): st
   return periods.find((p) => p.slug === slug)?.name ?? null;
 }
 
-export const normalize = (value: string) =>
-  value.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
-
 export const paletteFor = (id: string) =>
   ["moss", "ochre", "slate", "clay"][[...id].reduce((n, c) => n + c.charCodeAt(0), 0) % 4];

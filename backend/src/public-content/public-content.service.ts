@@ -189,6 +189,7 @@ export class PublicContentService {
       this.adjacency.findAdjacent({
         id: article.id,
         categoryId: article.categoryId,
+        topicId: article.topicId,
         timelineId,
       }),
     ]);

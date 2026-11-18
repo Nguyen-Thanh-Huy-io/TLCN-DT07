@@ -107,11 +107,11 @@ export interface LandingSource {
 export const LANDING_ROUTES = {
   TIMELINE: '/dong-thoi-gian',
   CURRICULUM: '/chuong-trinh-hoc',
-  FIGURES: '/nhan-vat',
-  LOCATIONS: '/di-tich',
-  LOCATION: (slug: string) => `/di-tich/${slug}`,
-  EVENT: (slug: string) => `/su-kien/${slug}`,
-  FIGURE: (slug: string) => `/nhan-vat/${slug}`,
+  FIGURES: '/bai-viet?chuyen-muc=nhan-vat',
+  LOCATIONS: '/bai-viet?chuyen-muc=di-tich',
+  LOCATION: (slug: string) => `/bai-viet/${slug}`,
+  EVENT: (slug: string) => `/bai-viet/${slug}`,
+  FIGURE: (slug: string) => `/bai-viet/${slug}`,
   PERIOD: (slug: string) => `/giai-doan/${slug}`,
   LESSON: (slug: string) => `/bai-hoc/${slug}`,
 } as const;

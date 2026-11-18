@@ -10,11 +10,7 @@ import type { ArticleKind } from './article-kind';
 
 const API_URL = INTERNAL_API_BASE_URL;
 
-export const CATEGORY_CANONICAL_ROUTES: Record<string, string> = {
-  'nhan-vat': '/nhan-vat',
-  'su-kien': '/su-kien',
-  'di-tich': '/di-tich',
-};
+export const CATEGORY_CANONICAL_ROUTES: Record<string, string> = {};
 
 export const PUBLIC_ROUTES = {
   ARTICLES: '/bai-viet',

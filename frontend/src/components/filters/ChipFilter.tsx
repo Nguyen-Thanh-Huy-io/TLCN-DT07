@@ -11,8 +11,8 @@ import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
  */
 
 /** Quá ngưỡng này nhóm thu gọn kèm "Xem thêm"; dài hơn nữa thì có ô tìm trong nhóm. */
-const COLLAPSE_AFTER = 8;
-const SEARCHABLE_AFTER = 12;
+const COLLAPSE_AFTER = 6;
+const SEARCHABLE_AFTER = 10;
 
 export type ChipOption = { value: string; label: string; hint?: string };
 

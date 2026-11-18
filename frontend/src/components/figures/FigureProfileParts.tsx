@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { BookOpen, Feather, Landmark, Link2, MapPin, Sparkles, Users, ArrowUpRight, Check, History, Shield, Compass, Network, Clock3, ExternalLink } from 'lucide-react';
 import { Heading, Badge, Button, Modal } from '@/components/timeline/TimelineChrome';
 import { PUBLIC_ROUTE_PREFIX, fetchFigureDirectory, fetchPeriods, type PublicPeriodDto } from '@/services/entities/landing.service';
+import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { periodTitle, RELATION_CATEGORY_LABELS, relationCategory, relationTargetLabel, buildFigureViews, type FigureView, type RelationCategory } from './figure-utils';
 import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
 import { eventCategoryLabel, useEventCategories } from '@/hooks/useEventCategories';
@@ -480,7 +481,8 @@ export function FigureProfileSheet({
                 {f.slug && (
                   <div className="sk-profile-actions">
                     <Link
-                      href={`/nhan-vat/${f.slug}`}
+                      href={PUBLIC_ROUTES.ARTICLE(f.slug)}
+                      onClick={onClose}
                       className="sk-profile-detail-link"
                       title={`Xem toàn bộ trang chi tiết của ${f.name}`}
                     >

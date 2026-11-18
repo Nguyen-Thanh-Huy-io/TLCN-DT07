@@ -56,12 +56,16 @@ export class ArticleAdjacencyService {
   async findAdjacent(article: {
     id: string;
     categoryId: string | null;
+    topicId?: string | null;
     timelineId: string | null;
   }): Promise<ArticleAdjacency> {
     const byTimeline = article.timelineId
       ? await this.fromTimeline(article.id, article.timelineId)
       : null;
-    return byTimeline ?? this.fromCategory(article.id, article.categoryId);
+    return (
+      byTimeline ??
+      this.fromCategory(article.id, article.categoryId, article.topicId)
+    );
   }
 
   private async fromTimeline(
@@ -120,10 +124,15 @@ export class ArticleAdjacencyService {
   private async fromCategory(
     articleId: string,
     categoryId: string | null,
+    topicId?: string | null,
   ): Promise<ArticleAdjacency> {
     const siblings = categoryId
       ? await this.prisma.article.findMany({
-          where: { status: PUBLISHED, categoryId },
+          where: {
+            status: PUBLISHED,
+            categoryId,
+            ...(topicId ? { topicId } : {}),
+          },
           orderBy: BY_YEAR,
           select: NEIGHBOUR_SELECT,
         })

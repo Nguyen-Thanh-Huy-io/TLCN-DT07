@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, ChevronDown, Search, X } from 'lucide-react';
+import type { TopicBlock, TopicLeafGroup } from '@/services/entities/landing-graph';
 
 /** Đệ quy vì cây Topic có thể sâu nhiều cấp. */
 export interface TocNode {
@@ -11,6 +12,69 @@ export interface TocNode {
   subtitle?: string;
   count: number;
   children?: TocNode[];
+}
+
+export function jumpToTopicElement(id: string): void {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+export function buildTopicTocNodes<T>(topicBlocks: TopicBlock<T>[]): TocNode[] {
+  return topicBlocks.map((block) => {
+    const total = block.leaves.reduce((n, l) => n + l.items.length, 0);
+    const singleLeaf = block.leaves.length === 1 && block.leaves[0].id === block.id;
+    return {
+      id: `topic-${block.id}`,
+      title: block.name,
+      count: total,
+      children: singleLeaf
+        ? undefined
+        : block.leaves.map((leaf) => ({
+            id: `topic-leaf-${leaf.id}`,
+            title: leaf.name,
+            count: leaf.items.length,
+          })),
+    };
+  });
+}
+
+export function TopicBlockSection<T>({
+  block,
+  itemLabel,
+  children,
+}: {
+  block: TopicBlock<T>;
+  itemLabel: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(true);
+  const total = block.leaves.reduce((n, l) => n + l.items.length, 0);
+  return (
+    <section className="sk-era-section" id={`topic-${block.id}`}>
+      <button type="button" className="sk-era-banner sk-button" onClick={() => setOpen((v) => !v)}>
+        <span>
+          <strong>{block.name}</strong>
+          <small>
+            {total} {itemLabel} · {block.leaves.length} chủ đề con
+          </small>
+        </span>
+        <ChevronDown size={16} className={open ? '' : 'sk-rotate'} />
+      </button>
+      {open && children}
+    </section>
+  );
+}
+
+export function TopicLeafHeading<T>({ leaf, itemLabel }: { leaf: TopicLeafGroup<T>; itemLabel: string }) {
+  return (
+    <div className="sk-sub-heading">
+      <div>
+        <h3>{leaf.name}</h3>
+        <span className="sk-sub-count">
+          {leaf.items.length} {itemLabel}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export interface TocDrawerProps {

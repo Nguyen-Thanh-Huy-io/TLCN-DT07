@@ -35,7 +35,7 @@ export function EntitiesSection({ figures, locations }: { figures: LandingFigure
           description="Gặp gỡ những nhân vật làm nên thời đại và các di tích, địa danh lịch sử trường tồn."
           action={
             <HlButton href={isFiguresTab ? LANDING_ROUTES.FIGURES : LANDING_ROUTES.LOCATIONS} variant="ghost">
-              {isFiguresTab ? 'Tất cả nhân vật' : 'Tất cả di tích'}
+              {isFiguresTab ? 'Tất cả nhân vật' : 'Tất cả bài viết & di tích'}
               <ArrowRight />
             </HlButton>
           }
@@ -142,10 +142,10 @@ export function CorePillars({ stats }: { stats: LandingStats }) {
     {
       icon: Landmark,
       no: '03',
-      title: 'Di tích & Địa danh',
-      text: 'Những không gian còn lưu dấu sự kiện, nơi lịch sử đã thực sự diễn ra.',
+      title: 'Bài viết & Di tích',
+      text: 'Thư viện bài viết chuyên sâu về di tích, địa danh, triều đại và những không gian lưu dấu lịch sử.',
       href: LANDING_ROUTES.LOCATIONS,
-      meta: `${stats.locations} địa danh`,
+      meta: `${stats.locations} địa danh & bài viết`,
       color: 'blue',
     },
     {

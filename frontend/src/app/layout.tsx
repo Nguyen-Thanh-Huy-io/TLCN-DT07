@@ -20,15 +20,12 @@ const merriweather = Merriweather({
 });
 
 const notoSerif = Noto_Serif({
-  weight: ["600", "700"],
   subsets: ["latin", "vietnamese"],
   variable: "--font-noto-serif",
   display: "swap",
 });
 
 const playfair = Playfair_Display({
-  weight: ["600", "700", "800"],
-  style: ["normal", "italic"],
   subsets: ["latin", "vietnamese"],
   variable: "--font-playfair",
   display: "swap",

@@ -7,7 +7,7 @@ import { PublicAuthService, USER_ROLE_LABELS, isStaffRole } from "@/services/aut
 import { useAuthSession } from "@/services/auth/use-auth-session";
 import { GlobalSearch } from "@/features/search/GlobalSearch";
 import { NotificationBell } from "@/components/hisgo/NotificationBell";
-import { ChevronDown, Swords, User, Landmark } from "lucide-react";
+import { BookOpen, ChevronDown, Crown, Landmark, ScrollText, Swords, User } from "lucide-react";
 
 enum NavLinkId {
   EXPLORE = 'explore',
@@ -71,9 +71,12 @@ export function Header({
   ];
 
   const exploreItems = [
-    { label: "Sự kiện lịch sử", href: "/su-kien", icon: Swords, desc: "Các trận đánh, biến cố và hiệp định" },
-    { label: "Nhân vật lịch sử", href: "/nhan-vat", icon: User, desc: "Vua chúa, tướng lĩnh, anh hùng dân tộc" },
-    { label: "Di tích & Địa danh", href: "/di-tich", icon: Landmark, desc: "Chiến trường xưa, đền thờ, di sản" },
+    { label: "Tất cả bài viết", href: "/bai-viet", icon: BookOpen, desc: "Toàn bộ kho bài viết & tư liệu lịch sử" },
+    { label: "Sự kiện lịch sử", href: "/bai-viet?chuyen-muc=su-kien", icon: Swords, desc: "Các trận đánh, biến cố và hiệp định" },
+    { label: "Nhân vật lịch sử", href: "/bai-viet?chuyen-muc=nhan-vat", icon: User, desc: "Vua chúa, tướng lĩnh, anh hùng dân tộc" },
+    { label: "Di tích & Địa danh", href: "/bai-viet?chuyen-muc=di-tich", icon: Landmark, desc: "Chiến trường xưa, đền thờ, di sản" },
+    { label: "Triều đại lịch sử", href: "/bai-viet?chuyen-muc=trieu-dai", icon: Crown, desc: "Các vương triều và kỷ nguyên trị vì" },
+    { label: "Tác phẩm & Tư liệu", href: "/bai-viet?chuyen-muc=tac-pham-tu-lieu", icon: ScrollText, desc: "Tác phẩm văn học, quân sự và sử liệu" },
   ];
 
   // Theo dõi vị trí cuộn bằng IntersectionObserver để active tab tương ứng

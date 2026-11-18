@@ -26,7 +26,12 @@ import { useLessonRelated, type RelatedEntities } from './hub/HubReaderParts';
 import { useLessonMedia } from './hub/useLessonReaderHooks';
 import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
 import { NoteReaderLayer } from '@/features/notes/components/NoteReaderLayer';
-import { ReadingAidsPanel, type ReadingEntity } from '@/features/reading-aids/components/ReadingAidsPanel';
+import '@/components/entity-detail/entity-reader.css';
+import {
+  ReadingAidsPanel,
+  type ReadingEntity,
+} from '@/features/reading-aids/components/ReadingAidsPanel';
+import { useReadingControls } from '@/features/reading-aids/hooks/useReadingControls';
 import { resolveCategoryKind } from '@/services/public/article-kind';
 import { DiscussionApiService } from '@/services/entities/discussion.service';
 
@@ -141,6 +146,8 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
   const noteFacade = useNoteFacade(NOTE_TARGET_TYPE.LESSON, lesson?.id || '');
   const { isCompleted, markCompleted, enroll } = useLessonProgress();
   const [mobileSyllabus, setMobileSyllabus] = useState(false);
+  const { prefs, focusMode, setFocusMode, readingControls } = useReadingControls();
+
   const [syllabusOpen, setSyllabusOpen] = useState(() => {
     if (typeof window === 'undefined') return true;
     try {
@@ -232,30 +239,61 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
         hasRelated={hasRelated}
         related={related}
         SyllabusColumnComponent={SyllabusColumn}
+        focusMode={focusMode}
+        prefs={prefs}
       />
     );
   };
 
   return (
-    <div className="lh-app">
+    <div
+      className={`lh-app ue-reader-theme-wrap ue-theme-${prefs.theme} ${
+        focusMode ? 'ue-focus-mode-active' : ''
+      } min-h-screen transition-colors duration-200`}
+    >
       <Header activeTab="curriculum" />
       <main className="mx-auto w-full max-w-[1680px] px-4 py-5 sm:px-6 lg:px-8">
-        <div className="mb-6 flex items-center justify-between gap-3 border-b border-lh-line pb-5">
-          <Link href={backHref} className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.ghost} -ml-3`}>
-            <ArrowLeft className="size-4" /> Quay lại lộ trình
-          </Link>
-          {learningPath && (
-            <HubButton variant="outline" className="lg:hidden" onClick={() => setMobileSyllabus(true)}>
-              <Menu className="size-4" /> Nội dung
-            </HubButton>
-          )}
-          {learningPath && (
-            <div className="hidden text-right lg:block">
-              <div className="max-w-sm truncate text-sm font-bold text-lh-ink">{learningPath.title}</div>
-              <div className="text-xs text-lh-muted">Tiến độ lưu vào tài khoản của bạn</div>
+        {focusMode ? (
+          <header className="mb-6 flex items-center justify-between border-b border-lh-line/60 pb-4 pt-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-lh-gold">
+                {learningPath ? learningPath.title : 'Chế độ tập trung'}
+              </span>
+              {currentChapter && (
+                <>
+                  <span className="text-lh-muted/40">•</span>
+                  <span className="text-xs text-lh-muted">
+                    Chương {currentChapter.index}: {currentChapter.title}
+                  </span>
+                </>
+              )}
             </div>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={() => setFocusMode(false)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-lh-line bg-lh-surface px-3 py-1.5 text-xs font-semibold text-lh-ink shadow-sm transition hover:bg-lh-surface-2"
+            >
+              Thoát chế độ tập trung
+            </button>
+          </header>
+        ) : (
+          <div className="mb-6 flex items-center justify-between gap-3 border-b border-lh-line pb-5">
+            <Link href={backHref} className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.ghost} -ml-3`}>
+              <ArrowLeft className="size-4" /> Quay lại lộ trình
+            </Link>
+            {learningPath && (
+              <HubButton variant="outline" className="lg:hidden" onClick={() => setMobileSyllabus(true)}>
+                <Menu className="size-4" /> Nội dung
+              </HubButton>
+            )}
+            {learningPath && (
+              <div className="hidden text-right lg:block">
+                <div className="max-w-sm truncate text-sm font-bold text-lh-ink">{learningPath.title}</div>
+                <div className="text-xs text-lh-muted">Tiến độ lưu vào tài khoản của bạn</div>
+              </div>
+            )}
+          </div>
+        )}
 
         {renderMainContent()}
 
@@ -275,6 +313,9 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
               toc={tocItems}
               entities={readingEntities}
               onSummarizeSection={(headingId, headingText) => noteFacade.setSummaryTarget({ headingId, headingText })}
+              noteFacade={noteFacade}
+              articleId={lesson.id || lesson.slug}
+              readingControls={readingControls}
             />
             <NoteReaderLayer
               contentRef={contentRef}

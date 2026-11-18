@@ -7,7 +7,7 @@ import type { NoteFacade } from '../facades/useNoteFacade';
 import { useNoteHighlights, type LocatedNote } from '../hooks/useNoteHighlights';
 import { NOTE_KIND, type NoteAnchorValue, type NoteItem, type NoteTargetTypeValue } from '../services/note.service';
 import { anchorFromRange, buildTextIndex, type SelectionAnchor } from '../utils/note-anchor.util';
-import { NoteDrawer, NoteFloatingButton } from './NoteDrawer';
+import { NoteDrawer, NoteReviewAlertBanner } from './NoteDrawer';
 import {
   NOTE_LAYER_ATTR,
   NoteMarginMarkers,
@@ -265,13 +265,15 @@ export function NoteReaderLayer({ contentRef, htmlTrigger, facade, targetTitle, 
 
       <NoteMarginMarkers markers={markers} onOpen={(noteId, at) => setActive({ noteId, at })} />
 
-      <NoteFloatingButton facade={facade} reviewCount={lostNoteIds.size + needsReviewIds.size} />
+      <NoteReviewAlertBanner facade={facade} reviewCount={lostNoteIds.size + needsReviewIds.size} />
       <NoteDrawer
         facade={facade}
         targetTitle={targetTitle}
         targetType={targetType}
         onLocateNote={(noteId) => {
-          closeDrawer();
+          if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            closeDrawer();
+          }
           flashNote(noteId);
         }}
         lostNoteIds={lostNoteIds}

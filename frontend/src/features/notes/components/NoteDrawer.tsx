@@ -1,48 +1,33 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Bookmark, Highlighter, Plus, Sparkles, X } from 'lucide-react';
-import { CommonFilterOption } from '@/constants/enums';
+import { CommonFilterOption, KeyboardKey } from '@/constants/enums';
 import type { NoteFacade } from '../facades/useNoteFacade';
 import { NOTE_KIND_META, isOpenQuestion } from '../constants/note-kind.constants';
 import { NOTE_KIND, NOTE_TARGET_TYPE, type NoteItem, type NoteKindValue, type NoteTargetTypeValue } from '../services/note.service';
 import { NoteCard, NoteLabelInput } from './NoteDrawerParts';
 
-// === NoteFloatingButton ===
-interface NoteFloatingButtonProps {
+// === NoteReviewAlertBanner ===
+interface NoteReviewAlertBannerProps {
   facade: NoteFacade;
   /** Số ghi chú cần xem lại vì bài đã cập nhật (đoạn bị sửa hoặc mất). */
   reviewCount?: number;
 }
 
-export function NoteFloatingButton({ facade, reviewCount = 0 }: NoteFloatingButtonProps) {
-  const { allNotesCount, openDrawer, isOpen } = facade;
-  if (isOpen) return null;
+export function NoteReviewAlertBanner({ facade, reviewCount = 0 }: NoteReviewAlertBannerProps) {
+  const { openDrawer, isOpen } = facade;
+  if (isOpen || reviewCount <= 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
-      {reviewCount > 0 && (
-        <button
-          type="button"
-          onClick={openDrawer}
-          className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-900 shadow-md cursor-pointer"
-        >
-          <AlertTriangle size={13} /> Bài đã cập nhật — {reviewCount} ghi chú cần xem lại
-        </button>
-      )}
+    <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-40">
       <button
         type="button"
         onClick={openDrawer}
-        className="group relative flex items-center gap-2 px-3.5 py-3 rounded-full bg-[#8B261E] text-white shadow-xl hover:bg-[#721F18] hover:scale-105 transition-all duration-200 cursor-pointer border-2 border-white/30"
-        title="Mở sổ ghi chú cá nhân"
+        className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-900 shadow-md cursor-pointer whitespace-nowrap"
       >
-        <Bookmark size={18} />
-        <span className="text-xs font-bold tracking-wide hidden sm:inline">Ghi chú</span>
-        {allNotesCount > 0 && (
-          <span className="min-w-5 h-5 px-1 rounded-full bg-white text-[#8B261E] font-bold text-[11px] flex items-center justify-center shadow-xs">
-            {allNotesCount}
-          </span>
-        )}
+        <AlertTriangle size={13} /> Bài đã cập nhật — {reviewCount} ghi chú cần xem lại
       </button>
     </div>
   );
@@ -106,7 +91,16 @@ export function NoteDrawer({
   const [newLabels, setNewLabels] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === KeyboardKey.ESCAPE) {
+        closeDrawer();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, closeDrawer]);
 
   const kindsInUse = ALL_KINDS.filter((kind: NoteKindValue) => allNotes.some((n) => n.kind === kind));
   const openQuestions = allNotes.filter(isOpenQuestion).length;
@@ -125,30 +119,52 @@ export function NoteDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
-      <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-xs" onClick={closeDrawer} />
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
+          {/* Backdrop chỉ hiển thị trên mobile để chạm ra ngoài là đóng; Desktop hoàn toàn trong suốt không chặn chuột */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-stone-900/35 backdrop-blur-[2px] md:hidden pointer-events-auto"
+            onClick={closeDrawer}
+            aria-label="Đóng sổ ghi chú"
+          />
 
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-[#FAF7F2] border-l border-stone-200 shadow-2xl flex flex-col">
-          <div className="px-5 py-4 border-b border-stone-200 bg-white flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#8B261E]/10 text-[#8B261E] flex items-center justify-center">
-                <Bookmark size={18} />
+          <motion.aside
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+            className="pointer-events-auto absolute inset-y-0 right-0 flex w-full max-w-md flex-col border-l border-[#E5D8C1] bg-[#FAF7F2] shadow-[-12px_0_35px_rgba(45,26,16,0.12)]"
+            aria-label="Sổ ghi chú cá nhân"
+          >
+            <div className="flex items-center justify-between border-b border-stone-200 bg-white/95 px-5 py-4 backdrop-blur-sm">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B261E]/10 text-[#8B261E]">
+                  <Bookmark size={18} />
+                </div>
+                <div>
+                  <h3 className="flex items-center gap-1.5 text-sm font-bold text-stone-900">
+                    Sổ Ghi Chú Cá Nhân
+                    <span className="rounded-full bg-[#8B261E] px-1.5 text-[10px] text-white">{allNotesCount}</span>
+                  </h3>
+                  <p className="max-w-[240px] truncate text-[11px] text-stone-500">
+                    {targetTitle || (targetType === NOTE_TARGET_TYPE.ARTICLE ? 'Bài viết lịch sử' : 'Bài học')}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-1.5">
-                  Sổ Ghi Chú Cá Nhân
-                  <span className="px-1.5 rounded-full bg-[#8B261E] text-white text-[10px]">{allNotesCount}</span>
-                </h3>
-                <p className="text-[11px] text-stone-500 line-clamp-1 max-w-[240px]">
-                  {targetTitle || (targetType === NOTE_TARGET_TYPE.ARTICLE ? 'Bài viết lịch sử' : 'Bài học')}
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={closeDrawer}
+                aria-label="Đóng sổ ghi chú"
+                title="Đóng (Esc)"
+                className="cursor-pointer rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+              >
+                <X size={18} />
+              </button>
             </div>
-            <button type="button" onClick={closeDrawer} aria-label="Đóng" className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer">
-              <X size={18} />
-            </button>
-          </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             <form onSubmit={handleCreateNote} className="p-4 rounded-xl bg-white border border-stone-200/90 shadow-2xs space-y-2.5">
@@ -233,8 +249,9 @@ export function NoteDrawer({
               </div>
             )}
           </div>
-        </div>
+        </motion.aside>
       </div>
-    </div>
-  );
+    )}
+  </AnimatePresence>
+);
 }

@@ -9,10 +9,10 @@ export { formatYear, shortPeriodName };
 
 export const PERIOD_ROUTES = {
   PERIOD: (slug: string) => `/giai-doan/${slug}`,
-  EVENT: (slug: string) => `/su-kien/${slug}`,
-  FIGURE: (slug: string) => `/nhan-vat/${slug}`,
-  LOCATIONS: '/di-tich',
-  LOCATION: (slug: string) => `/di-tich/${slug}`,
+  EVENT: (slug: string) => `/bai-viet/${slug}`,
+  FIGURE: (slug: string) => `/bai-viet/${slug}`,
+  LOCATIONS: '/bai-viet?chuyen-muc=di-tich',
+  LOCATION: (slug: string) => `/bai-viet/${slug}`,
   TIMELINE: '/dong-thoi-gian',
 } as const;
 

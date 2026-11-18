@@ -1,133 +1,11 @@
 'use client';
 
-import { Landmark, Network, Users, ArrowDownUp, Search, X, ArrowRight, ArrowUpRight, ChevronDown, Clock3, History, Quote } from 'lucide-react';
-import { Heading, Button, Input, Badge } from '@/components/timeline/TimelineChrome';
-import { paletteFor, type FigureView } from './figure-utils';
-import { useId, useState, type ReactNode } from 'react';
+import { useId } from 'react';
 import { RemoteImage } from '@/components/common/RemoteImage';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import type { TopicBlock, TopicLeafGroup } from '@/services/entities/landing-graph';
+import { paletteFor, type FigureView } from './figure-utils';
 
-// === FiguresHero.tsx ===
-export function FiguresHero({
-  figures,
-  periodCount,
-  relationCount,
-}: {
-  figures: FigureView[];
-  periodCount: number;
-  relationCount: number;
-}) {
-  const [front, back] = figures;
-  return (
-    <section className="sk-figures-hero">
-      <div className="sk-figures-hero-copy">
-        <div className="sk-figures-kicker">
-          <span /> CON NGƯỜI LÀM NÊN LỊCH SỬ
-        </div>
-        <Heading level={1}>
-          Những con người.
-          <br />
-          <em>Những dấu ấn bất diệt.</em>
-        </Heading>
-        <p>
-          Gặp gỡ những nhân vật đã định hình dòng chảy lịch sử.
-          <br />
-          Từ một cuộc đời, mở ra cả một thời đại.
-        </p>
-        <div className="sk-figures-hero-stats">
-          <span>
-            <Users size={16} />
-            <strong>{figures.length}</strong> nhân vật
-          </span>
-          <i />
-          <span>
-            <Landmark size={16} />
-            <strong>{periodCount}</strong> giai đoạn lịch sử
-          </span>
-          <i />
-          <span>
-            <Network size={16} />
-            <strong>{relationCount}</strong> mối quan hệ
-          </span>
-        </div>
-      </div>
-      {front && (
-        <div className="sk-hero-portraits" aria-hidden="true">
-          <div className="sk-hero-orbit sk-orbit-one" />
-          <div className="sk-hero-orbit sk-orbit-two" />
-          {back && (
-            <div className="sk-hero-portrait-back">
-              <FigurePortrait figure={back} />
-            </div>
-          )}
-          <div className="sk-hero-portrait-front">
-            <FigurePortrait figure={front} />
-            <span>
-              {front.name.toUpperCase()} <i>{front.lifespanLabel}</i>
-            </span>
-          </div>
-          {!front.imageUrl && <span className="sk-illustration-disclaimer">CHÂN DUNG MINH HỌA</span>}
-        </div>
-      )}
-    </section>
-  );
-}
-
-// === FiguresFilterBar.tsx ===
-export enum FigureSort {
-  TIME = "time",
-  NAME = "name",
-}
-
-const SORT_LABELS: Record<FigureSort, string> = {
-  [FigureSort.TIME]: "Theo thời gian",
-  [FigureSort.NAME]: "Theo tên A–Z",
-};
-
-export function FiguresFilterBar({
-  query,
-  onQuery,
-  sort,
-  onSort,
-}: {
-  query: string;
-  onQuery: (v: string) => void;
-  sort: FigureSort;
-  onSort: (v: FigureSort) => void;
-}) {
-  return (
-    <div className="sk-filter-bar sk-figures-filter">
-      <div className="sk-search-field">
-        <Search size={17} />
-        <Input
-          aria-label="Tìm nhân vật, tên gọi khác hoặc sự kiện"
-          placeholder="Tìm tên, tên gọi khác, sự kiện..."
-          value={query}
-          onChange={(e) => onQuery(e.target.value)}
-        />
-        {query && (
-          <Button aria-label="Xóa tìm kiếm" onClick={() => onQuery("")}>
-            <X size={14} />
-          </Button>
-        )}
-      </div>
-      <span className="sk-filter-divider" />
-      <div className="sk-split-segment sk-figure-sort" role="group" aria-label="Sắp xếp nhân vật">
-        <ArrowDownUp size={13} />
-        {(Object.keys(SORT_LABELS) as FigureSort[]).map((s) => (
-          <button key={s} type="button" className={sort === s ? "sk-selected" : ""} aria-pressed={sort === s} onClick={() => onSort(s)}>
-            {SORT_LABELS[s]}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// === FigurePortrait.tsx ===
 function traitsOf(figure: FigureView) {
-  const text = [figure.tagline, ...figure.titles, ...figure.roles].filter(Boolean).join(" ").toLowerCase();
+  const text = [figure.tagline, ...figure.titles, ...figure.roles].filter(Boolean).join(' ').toLowerCase();
   const warrior = /tướng|tư lệnh|chỉ huy|quân/.test(text);
   const monk = /thiền|nhà sư|hòa thượng/.test(text);
   const lifespan = figure.birthYear != null && figure.deathYear != null ? figure.deathYear - figure.birthYear : 0;
@@ -136,14 +14,14 @@ function traitsOf(figure: FigureView) {
 
 /** Decorative illustration used when no real portrait exists — not a reconstruction of the person's appearance. */
 export function FigurePortrait({ figure, compact = false }: { figure: FigureView; compact?: boolean }) {
-  const uid = useId().replace(/:/g, "");
+  const uid = useId().replace(/:/g, '');
 
   if (figure.imageUrl) {
     return (
       <RemoteImage
         src={figure.imageUrl}
         alt={`Chân dung ${figure.name}`}
-        className={`sk-figure-portrait sk-figure-photo ${compact ? "sk-portrait-compact" : ""}`}
+        className={`sk-figure-portrait sk-figure-photo ${compact ? 'sk-portrait-compact' : ''}`}
       />
     );
   }
@@ -154,7 +32,7 @@ export function FigurePortrait({ figure, compact = false }: { figure: FigureView
       viewBox="0 0 300 260"
       role="img"
       aria-label={`Chân dung minh họa ${figure.name}`}
-      className={`sk-figure-portrait sk-portrait-${paletteFor(figure.id)} ${compact ? "sk-portrait-compact" : ""}`}
+      className={`sk-figure-portrait sk-portrait-${paletteFor(figure.id)} ${compact ? 'sk-portrait-compact' : ''}`}
     >
       <defs>
         <pattern id={`grain-${uid}`} width="7" height="7" patternUnits="userSpaceOnUse">
@@ -178,8 +56,12 @@ export function FigurePortrait({ figure, compact = false }: { figure: FigureView
             d="M36 153q12-50 32-48m-21 39q22-17 22-38M264 153q-12-50-32-48m21 39q-22-17-22-38"
             className="sk-portrait-leaves"
           />
-          <text x="260" y="87" className="sk-portrait-seal" textAnchor="middle">HIS</text>
-          <text x="260" y="100" className="sk-portrait-seal" textAnchor="middle">GO</text>
+          <text x="260" y="87" className="sk-portrait-seal" textAnchor="middle">
+            HIS
+          </text>
+          <text x="260" y="100" className="sk-portrait-seal" textAnchor="middle">
+            GO
+          </text>
         </>
       )}
       <path d="M61 264Q67 209 107 195L131 184H169L193 195Q233 209 239 264Z" fill={`url(#robe-${uid})`} />
@@ -193,8 +75,12 @@ export function FigurePortrait({ figure, compact = false }: { figure: FigureView
         <>
           <path d="M130 155q13-6 21 2q10-8 23-1l-11 8-12-2-13 2Z" className="sk-portrait-hair" />
           <path
-            d={older ? "M131 167Q150 179 173 166Q169 201 151 224Q135 200 131 167Z" : "M139 174Q151 179 163 174L158 200H146Z"}
-            className={older ? "sk-portrait-beard" : "sk-portrait-hair"}
+            d={
+              older
+                ? 'M131 167Q150 179 173 166Q169 201 151 224Q135 200 131 167Z'
+                : 'M139 174Q151 179 163 174L158 200H146Z'
+            }
+            className={older ? 'sk-portrait-beard' : 'sk-portrait-hair'}
           />
         </>
       )}
@@ -217,7 +103,7 @@ export function FigurePortrait({ figure, compact = false }: { figure: FigureView
         </>
       )}
       <path
-        d={monk ? "M110 195L182 260M193 195L128 260" : "M110 195L150 225L190 195M150 225V260"}
+        d={monk ? 'M110 195L182 260M193 195L128 260' : 'M110 195L150 225L190 195M150 225V260'}
         className="sk-portrait-collar"
       />
       {warrior && (
@@ -229,121 +115,5 @@ export function FigurePortrait({ figure, compact = false }: { figure: FigureView
       {!monk && <circle cx="150" cy="236" r="6" className="sk-portrait-gold" />}
       <path d="M0 0H300V260H0Z" fill={`url(#grain-${uid})`} />
     </svg>
-  );
-}
-
-// === FigureCard.tsx ===
-export function FigureCard({ figure: f, onOpen }: { figure: FigureView; onOpen: () => void }) {
-  const roles = f.roles ?? [];
-  return (
-    <article className="sk-directory-figure-card">
-      <Button className="sk-figure-artwork" onClick={onOpen} aria-label={`Mở hồ sơ ${f.name}`}>
-        <FigurePortrait figure={f} />
-        {f.subEraTitle && <span className="sk-figure-artwork-era">{f.subEraTitle}</span>}
-        <span className="sk-figure-open-icon">
-          <ArrowUpRight size={17} />
-        </span>
-        {!f.imageUrl && <span className="sk-figure-artwork-caption">CHÂN DUNG MINH HỌA</span>}
-      </Button>
-      <div className="sk-figure-card-body">
-        <div className="sk-figure-lifespan">
-          <Clock3 size={11} /> {f.lifespanLabel}
-          <span>{f.events.length} sự kiện</span>
-        </div>
-        <Button className="sk-figure-name" onClick={onOpen}>
-          <Heading level={3}>{f.name}</Heading>
-          <ArrowUpRight size={16} />
-        </Button>
-        <div className="sk-figure-alias">{f.aliases[0]}</div>
-        {roles.length > 0 && (
-          <div className="sk-figure-role-badges">
-            {roles.map((r) => (
-              <Badge key={r}>{r}</Badge>
-            ))}
-          </div>
-        )}
-        <p className="sk-figure-short-bio">{f.tagline || f.description}</p>
-        {f.legacy.famousQuote ? (
-          <div className="sk-figure-quote">
-            <Quote size={12} />
-            <p>{f.legacy.famousQuote}</p>
-          </div>
-        ) : f.eraTitle && (
-          <div className="sk-figure-dynasties">
-            <Badge>
-              <Landmark size={10} />
-              {f.eraTitle}
-            </Badge>
-          </div>
-        )}
-        <div className="sk-figure-card-bottom">
-          <span>
-            <History size={12} />
-            {f.relationships.length} mối quan hệ
-          </span>
-          <Button onClick={onOpen}>
-            Xem hồ sơ <ArrowRight size={13} />
-          </Button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-export function FiguresGrid({ figures, onOpen }: { figures: FigureView[]; onOpen: (f: FigureView) => void }) {
-  const reduceMotion = useReducedMotion();
-  return (
-    <motion.div layout className="sk-figures-grid">
-      <AnimatePresence mode="popLayout">
-        {figures.map((figure, index) => (
-          <motion.div
-            layout
-            key={figure.id}
-            initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.96 }}
-            transition={{ duration: 0.25, delay: Math.min(index, 12) * 0.025 }}
-          >
-            <FigureCard figure={figure} onOpen={() => onOpen(figure)} />
-          </motion.div>
-        ))}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
-
-/** Giống EraSection ở Timeline, nhưng gộp theo Chủ đề gốc thay vì Thời kỳ. */
-export function TopicSection({ block, children }: { block: TopicBlock<FigureView>; children: ReactNode }) {
-  const [open, setOpen] = useState(true);
-  const total = block.leaves.reduce((n, l) => n + l.items.length, 0);
-  return (
-    <section className="sk-era-section" id={`topic-${block.id}`}>
-      <Button className="sk-era-banner" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <span className="sk-era-banner-icon">
-          <Landmark size={23} />
-        </span>
-        <span className="sk-era-banner-text">
-          <Heading>{block.name}</Heading>
-          <small>{total} nhân vật{block.leaves.length > 1 ? ` · ${block.leaves.length} chủ đề con` : ''}</small>
-        </span>
-        <ChevronDown className={open ? '' : 'sk-rotate'} size={20} />
-      </Button>
-      {open && <div className="sk-era-inner">{children}</div>}
-    </section>
-  );
-}
-
-export function TopicLeafSection({ leaf, onOpen }: { leaf: TopicLeafGroup<FigureView>; onOpen: (f: FigureView) => void }) {
-  return (
-    <div className="sk-sub-era" id={`topic-leaf-${leaf.id}`}>
-      <div className="sk-sub-heading">
-        <div>
-          <span className="sk-sub-marker" />
-          <Heading level={3}>{leaf.name}</Heading>
-          <span className="sk-sub-count">{leaf.items.length} nhân vật</span>
-        </div>
-      </div>
-      <FiguresGrid figures={leaf.items} onOpen={onOpen} />
-    </div>
   );
 }

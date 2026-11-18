@@ -114,7 +114,7 @@ const STRATEGIES: Record<string, EntityTypeConfig> = {
     iconName: 'MapPin',
     themeColor: '#2F4F4F',
     themeBg: '#F4F7F7',
-    routePrefix: '/di-tich',
+    routePrefix: '/bai-viet',
     previousLabel: 'Di tích trước',
     nextLabel: 'Di tích tiếp theo',
   },

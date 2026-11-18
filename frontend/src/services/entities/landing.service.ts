@@ -31,7 +31,7 @@ import { buildPersonLife } from '@/features/articles/person-life';
 import { fetchArticle, type PublicArticleSummary } from '@/services/public/public-content.service';
 import { ArticleKindEnum } from '@/constants/enums';
 import { INTERNAL_API_BASE_URL } from '@/constants/api-url';
-import type { PublicPeriodDto, PublicSubPeriodDto, PublicFigureDto, PublicLocationSummaryDto, PublicEventSummaryDto, PublicPeriodDetailDto, PublicFigureProfileDto, PublicEntityStatementDto, PublicEntityDetailDto } from './landing.dto';
+import type { PublicPeriodDto, PublicSubPeriodDto, PublicFigureDto, PublicLocationSummaryDto, PublicEventSummaryDto, PublicPeriodDetailDto, PublicFigureProfileDto, PublicEntityStatementDto, PublicEntityDetailDto, PublicArticleLibraryItemDto } from './landing.dto';
 import { loadGraph, sanitizeMetadata } from './landing-graph';
 import type { EntityKind, PublicGraph } from './landing-graph';
 
@@ -280,31 +280,6 @@ export async function fetchEvents(): Promise<PublicEventSummaryDto[]> {
   return buildEvents(await loadGraph());
 }
 
-/**
- * Danh sách bài Sự kiện (/su-kien, đếm sự kiện của di tích): mỗi bài 1 dòng. Khác `fetchEvents` (dòng thời
- * gian) ở chỗ bỏ mốc không trỏ tới bài Sự kiện, gộp các mốc cùng trỏ 1 bài và lấy tên / tóm tắt / năm của
- * bài thay vì của mốc (mốc có thể là cả giai đoạn chứa sự kiện). Bài chưa nhập năm không có ở đây.
- */
-export async function fetchEventArticles(): Promise<PublicEventSummaryDto[]> {
-  const g = await loadGraph();
-  const seen = new Set<string>();
-  return buildEvents(g).flatMap((e) => {
-    const article = e.slug ? g.bySlug.get(e.slug) : undefined;
-    if (!article || g.kindOf(article) !== ArticleKindEnum.EVENT || seen.has(article.slug)) return [];
-    seen.add(article.slug);
-    return [
-      {
-        ...e,
-        title: article.title,
-        description: article.summary ?? e.description,
-        startYear: article.startYear ?? e.startYear,
-        endYear: article.startYear === null ? e.endYear : article.endYear,
-        eventDateNote: article.dateText ?? e.eventDateNote,
-      },
-    ];
-  });
-}
-
 export async function fetchFigureDirectory(): Promise<PublicFigureProfileDto[]> {
   const g = await loadGraph();
   const events = buildEvents(g);
@@ -314,6 +289,47 @@ export async function fetchFigureDirectory(): Promise<PublicFigureProfileDto[]> 
 export async function fetchLocations(): Promise<PublicLocationSummaryDto[]> {
   const g = await loadGraph();
   return g.articles.filter((a) => g.kindOf(a) === ArticleKindEnum.LOCATION).map((a) => toLocation(g, a));
+}
+
+export async function fetchArticleLibrary(): Promise<PublicArticleLibraryItemDto[]> {
+  const g = await loadGraph();
+  return g.articles.map((a) => {
+    const site = a.metadata?.site ?? {};
+    const person = a.metadata?.person ?? {};
+    const eventLinks = linksOfKind(g, a, ArticleKindEnum.EVENT);
+    const personLinks = linksOfKind(g, a, ArticleKindEnum.PERSON);
+    const locationLinks = linksOfKind(g, a, ArticleKindEnum.LOCATION);
+    return {
+      id: a.id,
+      slug: a.slug,
+      title: a.title,
+      summary: a.summary,
+      imageUrl: a.coverImageUrl,
+      startYear: a.startYear,
+      endYear: a.endYear,
+      dateLabel: a.dateLabel,
+      kind: g.kindOf(a),
+      categoryId: a.category?.id ?? null,
+      categorySlug: a.category?.slug ?? null,
+      categoryName: a.category?.name ?? null,
+      periodSlug: g.periodSlugOf(a),
+      topicId: a.topicId,
+      aliases: a.metadata?.aliases ?? [],
+      tags: a.tags.map((t) => ({ id: t.id, name: t.name })),
+      address: site.address ?? null,
+      siteType: site.siteType ?? null,
+      siteTypeLabel: siteTypeLabelOf(site.siteType) ?? null,
+      preservationCategory: site.preservation ?? null,
+      recognizedYear: site.recognizedYear ?? null,
+      roles: person.roles ?? [],
+      titles: person.titles ?? [],
+      hometown: person.hometown ?? null,
+      famousQuote: person.famousQuote ?? null,
+      linkedEventsCount: new Set(eventLinks.map((l) => l.other.id)).size,
+      linkedFigureNames: [...new Set(personLinks.map((l) => l.other.title))],
+      linkedLocationNames: [...new Set(locationLinks.map((l) => l.other.title))],
+    };
+  });
 }
 
 export async function fetchPeriodBySlug(slug: string): Promise<PublicPeriodDetailDto | null> {
@@ -463,4 +479,4 @@ export async function fetchPublicList<T>(endpoint: string): Promise<T[]> {
   }
 }
 
-export type { PublicPeriodDto, PublicFigureDto, PublicLocationSummaryDto, PublicEventSummaryDto, PublicPeriodDetailDto, PublicFigureRelationDto, PublicFigureProfileDto, PublicEntityMediaDto, PublicEntityStatementDto, PublicEntityRelatedArticleDto, PublicEntityDetailDto } from './landing.dto';
+export type { PublicPeriodDto, PublicFigureDto, PublicLocationSummaryDto, PublicEventSummaryDto, PublicPeriodDetailDto, PublicFigureRelationDto, PublicFigureProfileDto, PublicEntityMediaDto, PublicEntityStatementDto, PublicEntityRelatedArticleDto, PublicEntityDetailDto, PublicArticleLibraryItemDto } from './landing.dto';

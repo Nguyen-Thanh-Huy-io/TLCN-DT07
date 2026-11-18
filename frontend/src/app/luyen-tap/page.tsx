@@ -12,6 +12,8 @@ import {
   revealAnswers,
   extractAvailableTopics,
   filterPracticeQuizzes,
+  isQuestionAnswered,
+  pickAnsweredAnswers,
   topicLabelOf,
 } from '@/features/quiz/utils/practice-quiz.helper';
 import { QuizFilterBar } from '@/features/quiz/components/PracticeQuizParts';
@@ -37,7 +39,6 @@ import { MoveDirection } from '@/features/lessons/components/quiz/QuizQuestionEd
 import {
   Clock,
   Sparkles,
-  User,
   HelpCircle,
 } from 'lucide-react';
 
@@ -63,16 +64,9 @@ function LuyenTapContent() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
 
-  // Thông tin thí sinh
-  const [learnerName, setLearnerName] = useState('Thí sinh tự do');
-
-  useEffect(() => {
-    if (sessionUser?.displayName || sessionUser?.username) {
-      void Promise.resolve().then(() => {
-        setLearnerName(sessionUser.displayName || sessionUser.username);
-      });
-    }
-  }, [sessionUser]);
+  // Đã đăng nhập thì lượt làm gắn tài khoản (server lấy từ token); khách mới cần tự nhập tên.
+  const accountName = sessionUser ? sessionUser.displayName || sessionUser.username : null;
+  const [guestName, setGuestName] = useState('');
 
   // Trạng thái bài thi & Tính giờ
   const [examStarted, setExamStarted] = useState(false);
@@ -82,6 +76,7 @@ function LuyenTapContent() {
 
   // Bài làm & Nộp
   const [answers, setAnswers] = useState<Record<string, UserQuizAnswer>>({});
+  const [touchedIds, setTouchedIds] = useState<ReadonlySet<string>>(() => new Set());
   // Câu hỏi đã xáo lựa chọn / thứ tự cho lượt làm bài hiện tại (giống trang đọc bài học).
   const [sessionQuestions, setSessionQuestions] = useState<QuizQuestion[] | null>(null);
   const [result, setResult] = useState<QuizAttemptResult | null>(null);
@@ -129,6 +124,7 @@ function LuyenTapContent() {
     setExamStarted(false);
     setTimeLeft((activeQuiz?.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES) * 60);
     setAnswers({});
+    setTouchedIds(new Set());
     setSessionQuestions(null);
     setResult(null);
     setSubmitError(null);
@@ -155,6 +151,7 @@ function LuyenTapContent() {
     });
     setSessionQuestions(preparedQuiz.questions);
     setAnswers(initialAnswers);
+    setTouchedIds(new Set());
   };
 
   // Đồng hồ đếm ngược
@@ -182,6 +179,7 @@ function LuyenTapContent() {
       handleStartExam();
     }
     setAnswers((prev) => ({ ...prev, [questionId]: answer }));
+    setTouchedIds((prev) => (prev.has(questionId) ? prev : new Set(prev).add(questionId)));
   };
 
   const handleMoveOrderingItem = (questionId: string, fromIdx: number, direction: 'UP' | 'DOWN') => {
@@ -212,9 +210,9 @@ function LuyenTapContent() {
 
     try {
       const graded = await QuizApiService.submitQuizAttempt(activeQuiz.id, {
-        learnerName: learnerName.trim() || 'Thí sinh tự do',
+        learnerName: accountName ? undefined : guestName.trim() || undefined,
         timeSpentSeconds: timeSpent,
-        answers,
+        answers: pickAnsweredAnswers(answers, touchedIds),
       });
       setResult(graded);
       setSessionQuestions(revealAnswers(questions, graded.questions));
@@ -266,24 +264,6 @@ function LuyenTapContent() {
             <p className="mt-2 text-stone-300 text-xs md:text-sm max-w-xl leading-relaxed">
               Luyện thi trắc nghiệm bấm giờ thực chiến. Hệ thống tự động tính điểm, lưu lịch sử bài thi và thống kê phổ điểm theo thời gian thực.
             </p>
-          </div>
-
-          {/* Ô nhập thông tin thí sinh */}
-          <div className="w-full md:w-auto p-4 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#E5B869] text-stone-900 flex items-center justify-center font-bold">
-              <User size={20} />
-            </div>
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-[#E5B869]">Thí sinh tham dự</div>
-              <input
-                type="text"
-                disabled={examStarted && !submitted}
-                value={learnerName}
-                onChange={(e) => setLearnerName(e.target.value)}
-                placeholder="Nhập tên của bạn..."
-                className="bg-transparent text-white font-medium text-sm focus:outline-none border-b border-white/30 focus:border-[#E5B869] pb-0.5"
-              />
-            </div>
           </div>
         </div>
       </section>
@@ -370,8 +350,9 @@ function LuyenTapContent() {
             questionCount={questions.length}
             timeLimitMinutes={activeQuiz.timeLimitMinutes ?? DEFAULT_TIME_LIMIT_MINUTES}
             passingScorePercent={activeQuiz.passingScorePercent ?? DEFAULT_PASSING_SCORE_PERCENT}
-            learnerName={learnerName}
-            onLearnerNameChange={setLearnerName}
+            accountName={accountName}
+            guestName={guestName}
+            onGuestNameChange={setGuestName}
             onStartExam={handleStartExam}
           />
         ) : (
@@ -426,7 +407,7 @@ function LuyenTapContent() {
               onSubmitExam={handleSubmitExam}
               onResetExam={handleReset}
               totalQuestions={totalQuestions}
-              answered={questions.map((q) => answers[q.id] !== undefined)}
+              answered={questions.map((q) => isQuestionAnswered(q.id, touchedIds, answers))}
               scorePercent={scorePercent}
               correctCount={correctCount}
               isStaff={isStaff}

@@ -6,11 +6,15 @@ import {
   Param,
   ParseIntPipe,
   Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { PublicContentService } from './public-content.service';
 import { PublicQuizQueryDto } from './dto/public-quiz-query.dto';
 import { SubmitQuizAttemptDto } from './dto/submit-quiz-attempt.dto';
+import { OptionalAuthGuard } from '../common/guards/optional-auth.guard';
+import type { AuthenticatedRequest } from '../common/access/roles.guard';
 
 /** API công khai (không cần đăng nhập) — chỉ trả nội dung đã xuất bản. */
 @ApiTags('Public Content (Trang công khai)')
@@ -184,8 +188,17 @@ export class PublicContentController {
   }
 
   @Post('quizzes/:id/submit')
-  @ApiOperation({ summary: 'Nộp bài khảo thí / luyện tập' })
-  submitQuiz(@Param('id') quizId: string, @Body() dto: SubmitQuizAttemptDto) {
-    return this.service.submitQuizAttempt(quizId, dto);
+  @UseGuards(OptionalAuthGuard)
+  @ApiOperation({
+    summary: 'Nộp bài khảo thí / luyện tập',
+    description:
+      'Khách vẫn nộp được; nếu có token thì lượt làm gắn với tài khoản.',
+  })
+  submitQuiz(
+    @Param('id') quizId: string,
+    @Body() dto: SubmitQuizAttemptDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.service.submitQuizAttempt(quizId, dto, req.user?.userId);
   }
 }

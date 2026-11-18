@@ -86,6 +86,34 @@ describe('PublicContentService — nộp bài quiz', () => {
     );
   });
 
+  it('người đã đăng nhập: lượt làm gắn tài khoản, bỏ qua tên tự nhập', async () => {
+    await service.submitQuizAttempt(
+      'quiz-1',
+      { timeSpentSeconds: 5, learnerName: 'Tên giả', answers: {} },
+      'user-1',
+    );
+
+    expect(prisma.quizAttempt.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: 'user-1', learnerName: null }),
+      }),
+    );
+  });
+
+  it('khách: không có tài khoản, giữ tên tự nhập', async () => {
+    await service.submitQuizAttempt('quiz-1', {
+      timeSpentSeconds: 5,
+      learnerName: '  Lan  ',
+      answers: {},
+    });
+
+    expect(prisma.quizAttempt.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: null, learnerName: 'Lan' }),
+      }),
+    );
+  });
+
   it('đạt khi điểm bằng hoặc vượt ngưỡng của đề', async () => {
     const result = await service.submitQuizAttempt('quiz-1', {
       timeSpentSeconds: 30,

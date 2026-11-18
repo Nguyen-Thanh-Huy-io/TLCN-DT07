@@ -775,6 +775,7 @@ export class PublicContentService {
   async submitQuizAttempt(
     quizId: string,
     dto: SubmitQuizAttemptDto,
+    userId?: string,
   ): Promise<QuizAttemptResult> {
     const quiz = await this.prisma.quiz.findUnique({
       where: { id: quizId },
@@ -791,7 +792,9 @@ export class PublicContentService {
     const attempt = await this.prisma.quizAttempt.create({
       data: {
         quizId,
-        learnerName: dto.learnerName?.trim() || 'Thí sinh tự do',
+        userId: userId ?? null,
+        // Có tài khoản thì hiển thị theo tài khoản; tên tự nhập chỉ dành cho khách.
+        learnerName: userId ? null : dto.learnerName?.trim() || null,
         scorePercent: graded.scorePercent,
         correctCount: graded.correctCount,
         totalQuestions: graded.totalQuestions,

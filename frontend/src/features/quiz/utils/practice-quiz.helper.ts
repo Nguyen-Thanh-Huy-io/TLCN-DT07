@@ -3,6 +3,7 @@
  */
 import type { PracticeQuizItem } from '@/services/entities/quiz.service';
 import { QuizQuestionType, type QuizQuestion } from '@/features/lessons/types/quiz.types';
+import type { UserQuizAnswer } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
 
 export const ALL_TOPICS_ID = 'ALL';
 /** Tham số URL chọn sẵn chủ đề, vd. `/luyen-tap?topic=<id>` từ trang đọc bài học. */
@@ -93,4 +94,31 @@ export function revealAnswers(shown: QuizQuestion[], answered: QuizQuestion[]): 
     }
     return full;
   });
+}
+
+/**
+ * Câu người học đã thực sự trả lời: phải từng thao tác (câu sắp xếp có sẵn thứ tự xáo trộn
+ * từ đầu, không tính) và câu trả lời không rỗng (bỏ chọn hết / xoá chữ thì coi như chưa làm).
+ */
+export function isQuestionAnswered(
+  questionId: string,
+  touchedIds: ReadonlySet<string>,
+  answers: Record<string, UserQuizAnswer>,
+): boolean {
+  if (!touchedIds.has(questionId)) return false;
+  const answer = answers[questionId];
+  if (typeof answer === 'string') return answer.trim() !== '';
+  if (Array.isArray(answer)) return answer.length > 0;
+  if (answer && typeof answer === 'object') return Object.keys(answer).length > 0;
+  return typeof answer === 'boolean';
+}
+
+/** Chỉ gửi câu đã trả lời; câu bỏ qua được server chấm là sai và thống kê ghi là bỏ trống. */
+export function pickAnsweredAnswers(
+  answers: Record<string, UserQuizAnswer>,
+  touchedIds: ReadonlySet<string>,
+): Record<string, UserQuizAnswer> {
+  return Object.fromEntries(
+    Object.entries(answers).filter(([id]) => isQuestionAnswered(id, touchedIds, answers)),
+  );
 }

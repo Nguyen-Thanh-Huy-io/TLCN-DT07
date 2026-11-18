@@ -226,10 +226,15 @@ interface QuizBriefingCardProps {
   questionCount: number;
   timeLimitMinutes: number;
   passingScorePercent: number;
-  learnerName: string;
-  onLearnerNameChange: (name: string) => void;
+  /** Tên tài khoản đang đăng nhập; null = khách, cần tự nhập tên. */
+  accountName: string | null;
+  guestName: string;
+  onGuestNameChange: (name: string) => void;
   onStartExam: () => void;
 }
+
+/** Khớp @MaxLength của learnerName trong SubmitQuizAttemptDto (backend). */
+const GUEST_NAME_MAX_LENGTH = 150;
 
 export const QuizBriefingCard: React.FC<QuizBriefingCardProps> = ({
   quizTitle,
@@ -238,8 +243,9 @@ export const QuizBriefingCard: React.FC<QuizBriefingCardProps> = ({
   questionCount,
   timeLimitMinutes,
   passingScorePercent,
-  learnerName,
-  onLearnerNameChange,
+  accountName,
+  guestName,
+  onGuestNameChange,
   onStartExam,
 }) => {
   return (
@@ -306,16 +312,32 @@ export const QuizBriefingCard: React.FC<QuizBriefingCardProps> = ({
 
       {/* THÔNG TIN THÍ SINH & NÚT BẮT ĐẦU */}
       <div className="max-w-md mx-auto bg-[#FAF7F2] p-5 rounded-xl border border-stone-200 mb-6">
-        <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-          <User size={14} className="text-[#8B261E]" /> Tên thí sinh tham gia:
-        </label>
-        <input
-          type="text"
-          value={learnerName}
-          onChange={(e) => onLearnerNameChange(e.target.value)}
-          placeholder="Nhập họ và tên hoặc biệt danh..."
-          className="w-full px-4 py-2.5 bg-white rounded-lg border border-stone-300 text-stone-900 text-sm focus:border-[#8B261E] focus:ring-2 focus:ring-[#8B261E]/20 outline-none transition-all mb-4"
-        />
+        {accountName ? (
+          <p className="flex items-center gap-2 text-sm text-stone-700 mb-4">
+            <User size={16} className="text-[#8B261E] shrink-0" />
+            <span>
+              Làm bài với tài khoản <strong className="text-stone-900">{accountName}</strong>
+            </span>
+          </p>
+        ) : (
+          <>
+            <label
+              htmlFor="practice-guest-name"
+              className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-2 flex items-center gap-1.5"
+            >
+              <User size={14} className="text-[#8B261E]" /> Tên thí sinh (không bắt buộc):
+            </label>
+            <input
+              id="practice-guest-name"
+              type="text"
+              maxLength={GUEST_NAME_MAX_LENGTH}
+              value={guestName}
+              onChange={(e) => onGuestNameChange(e.target.value)}
+              placeholder="Nhập họ và tên hoặc biệt danh..."
+              className="w-full px-4 py-2.5 bg-white rounded-lg border border-stone-300 text-stone-900 text-sm focus:border-[#8B261E] focus:ring-2 focus:ring-[#8B261E]/20 outline-none transition-all mb-4"
+            />
+          </>
+        )}
 
         <button
           type="button"

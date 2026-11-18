@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { ContentStatus, UserRole } from '@prisma/client';
 import request from 'supertest';
+import { PrismaService } from '../src/common/services/prisma.service';
 import { QuizQuestionType } from '../src/quiz/types/quiz-question.types';
 import {
   E2E_MARK,
@@ -207,6 +208,19 @@ describe('Quiz E2E — ngân hàng câu hỏi, đề theo chủ đề, chấm đ
       expect(
         (await http().get(`/public/quizzes/${quizId}/statistics`)).status,
       ).toBe(404);
+    });
+
+    it('người học đã đăng nhập nộp bài → lượt làm gắn tài khoản', async () => {
+      const res = await http()
+        .post(`/public/quizzes/${quizId}/submit`)
+        .set('Authorization', learner.auth)
+        .send({ timeSpentSeconds: 10, learnerName: 'Tên giả', answers: {} });
+      expect(res.status).toBe(201);
+
+      const attempt = await app
+        .get(PrismaService)
+        .quizAttempt.findUnique({ where: { id: res.body.data.attemptId } });
+      expect(attempt).toMatchObject({ userId: learner.id, learnerName: null });
     });
 
     it('nộp bài cho đề không tồn tại → 404', async () => {

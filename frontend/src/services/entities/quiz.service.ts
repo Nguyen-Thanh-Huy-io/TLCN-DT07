@@ -180,7 +180,8 @@ export class QuizApiService {
   static async submitQuizAttempt(
     quizId: string,
     payload: {
-      learnerName: string;
+      /** Chỉ khách cần gửi; đã đăng nhập thì server lấy tài khoản từ token. */
+      learnerName?: string;
       timeSpentSeconds: number;
       answers: Record<string, UserQuizAnswer>;
     },

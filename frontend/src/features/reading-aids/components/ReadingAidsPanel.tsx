@@ -14,8 +14,62 @@ export interface ReadingEntity {
   name: string;
   href: string;
   kind: ArticleKind;
-  /** Vai trò / nhãn liên kết hoặc ngày tháng, hiện nhỏ dưới tên. */
+  /** Vai trò / nhãn liên kết hoặc ngày tháng, hiện nhỏ cạnh tên. */
   note?: string | null;
+  /** Tóm tắt của bài (trường Tóm tắt trong CMS), hiện tối đa 3 dòng dưới tên. */
+  summary?: string | null;
+}
+
+interface EntityLetterGroup {
+  letter: string;
+  items: ReadingEntity[];
+}
+
+/** Chữ cái đầu để gom nhóm: bỏ dấu thanh / mũ (Â, Ơ → A, O) nhưng giữ Đ là một chữ riêng. */
+const initialOf = (name: string) =>
+  (name.trim()[0] ?? '#').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleUpperCase('vi');
+
+/** Sắp theo thứ tự tiếng Việt rồi gom theo chữ cái đầu, như mục lục tra cứu. */
+function groupByInitial(entities: ReadingEntity[]): EntityLetterGroup[] {
+  const unique = [...new Map(entities.map((e) => [e.id, e])).values()];
+  const sorted = unique.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  const groups: EntityLetterGroup[] = [];
+  sorted.forEach((entity) => {
+    const letter = initialOf(entity.name);
+    const last = groups[groups.length - 1];
+    if (last?.letter === letter) last.items.push(entity);
+    else groups.push({ letter, items: [entity] });
+  });
+  return groups;
+}
+
+function EntityGroups({ entities }: { entities: ReadingEntity[] }) {
+  return (
+    <div>
+      {groupByInitial(entities).map((group) => (
+        <section key={group.letter}>
+          <div className="px-3 py-2.5 border-b border-stone-200">
+            <span className="inline-flex w-6 h-6 rounded-full bg-stone-500 text-white text-[11px] font-bold items-center justify-center">
+              {group.letter}
+            </span>
+          </div>
+          <ul className="divide-y divide-stone-200 border-b border-stone-200">
+            {group.items.map((entity) => (
+              <li key={entity.id} className="px-3 py-3">
+                <Link href={entity.href} className="text-[15px] text-[#2B6CB0] hover:underline">
+                  {entity.name}
+                </Link>
+                {entity.note && <span className="ml-2 text-xs text-stone-500">· {entity.note}</span>}
+                {entity.summary && (
+                  <p className="mt-1 text-sm leading-relaxed text-stone-700 line-clamp-3">{entity.summary}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
 }
 
 interface FootnoteEntry {
@@ -150,19 +204,7 @@ export function ReadingAidsPanel({ contentRef, htmlTrigger, toc, entities }: Rea
         </ol>
       );
     }
-    const entityTab = entityTabs.find((t) => t.tab === activeTab);
-    return (
-      <ul className="divide-y divide-stone-100">
-        {entityTab?.items.map((entity) => (
-          <li key={entity.id}>
-            <Link href={entity.href} className="block py-2.5 px-3 hover:bg-stone-50">
-              <span className="block text-sm font-semibold text-stone-900">{entity.name}</span>
-              {entity.note && <span className="block text-xs text-stone-500 mt-0.5">{entity.note}</span>}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    );
+    return <EntityGroups entities={entityTabs.find((t) => t.tab === activeTab)?.items ?? []} />;
   };
 
   return (
@@ -191,7 +233,7 @@ export function ReadingAidsPanel({ contentRef, htmlTrigger, toc, entities }: Rea
               </button>
             </div>
 
-            <div role="tablist" className="flex gap-1 px-3 pt-3 border-b border-stone-200 overflow-x-auto">
+            <div role="tablist" className="flex shrink-0 gap-1 px-3 pt-3 border-b border-stone-200 overflow-x-auto overflow-y-hidden">
               {tabs.map((t) => (
                 <button
                   key={t.tab}

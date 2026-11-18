@@ -305,6 +305,7 @@ function useLessonReadingEntities(related: RelatedEntities): ReadingEntity[] {
           href: PUBLIC_ROUTES.ARTICLE(article.slug),
           kind: resolveCategoryKind(categories, article.category?.id),
           note: article.dateLabel,
+          summary: article.summary,
         })),
     [related, categories],
   );

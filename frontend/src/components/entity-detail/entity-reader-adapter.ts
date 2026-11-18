@@ -30,6 +30,8 @@ function toReadingEntities(statements: PublicEntityStatementDto[]): ReadingEntit
         href: PUBLIC_ROUTES.ARTICLE(stmt.relatedEntitySlug),
         kind,
         note: stmt.roleLabel,
+        // Ghi chú của liên kết, không có thì là tóm tắt của bài kia (landing.service ghép sẵn).
+        summary: stmt.note,
       },
     ];
   });

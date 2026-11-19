@@ -60,8 +60,8 @@ const GAP = {
   MIND_X: 64,
   MIND_Y: 22,
   MIND_ROOT_SIDE_GAP: 84,
-  ORG_X: 34,
-  ORG_Y: 46,
+  ORG_X: 36,
+  ORG_Y: 56,
   FISH_COL: 260,
   FISH_CHILD_Y: 46,
 } as const;

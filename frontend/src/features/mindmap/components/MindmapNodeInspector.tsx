@@ -392,7 +392,7 @@ export function MindmapNodeStylePanel({
         />
       </AccordionSection>
 
-      <AccordionSection title="Nhánh" subtitle="nhánh con">
+      <AccordionSection title="Nhánh" subtitle="(nhánh con)">
         <div className="flex items-center justify-between gap-2">
           <span className="text-slate-600 font-medium">Kiểu nhánh</span>
           <select

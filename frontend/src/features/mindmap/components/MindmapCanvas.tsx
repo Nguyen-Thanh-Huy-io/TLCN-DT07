@@ -275,10 +275,20 @@ export function MindmapCanvas({
     setSidebarOpen(true);
   }, [commitGraph, graph.nodes]);
 
-  const openArticleInReader = useCallback((slug: string) => {
-    setRequestedReaderSource({ kind: ReaderSourceKind.ARTICLE, slug, seq: Date.now() });
+  const openReaderWithAutoFit = useCallback(() => {
     setReaderOpen(true);
+    if (typeof window !== 'undefined' && window.innerWidth < 1200) {
+      setSidebarOpen(false);
+    }
   }, []);
+
+  const openArticleInReader = useCallback(
+    (slug: string) => {
+      setRequestedReaderSource({ kind: ReaderSourceKind.ARTICLE, slug, seq: Date.now() });
+      openReaderWithAutoFit();
+    },
+    [openReaderWithAutoFit],
+  );
 
   const handleCreateBranchFromReader = useCallback(
     (payload: { title: string; note?: string; articleRef?: MindmapArticleRef }) => {
@@ -543,7 +553,10 @@ export function MindmapCanvas({
         onAddSibling={handleAddSibling}
         onAddSticky={handleAddSticky}
         onToggleLink={() => setLinkFromId(linkFromId ? null : selectedNodeId ?? tree.rootId)}
-        onToggleReader={() => setReaderOpen((v) => !v)}
+        onToggleReader={() => {
+          if (readerOpen) setReaderOpen(false);
+          else openReaderWithAutoFit();
+        }}
         onToggleSidebar={() => setSidebarOpen((v) => !v)}
         onPrint={() => window.print()}
       />
@@ -743,6 +756,7 @@ export function MindmapCanvas({
           onResetZoom={() => setZoom(1)}
           onToggleFullscreen={() => void toggleFullscreen()}
         />
+        </div>
 
         {sidebarOpen && (
           <MindmapStyleSidebar
@@ -786,7 +800,6 @@ export function MindmapCanvas({
             onClose={() => setSidebarOpen(false)}
           />
         )}
-        </div>
       </div>
     </div>
   );

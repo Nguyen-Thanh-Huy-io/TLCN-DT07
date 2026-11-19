@@ -213,7 +213,7 @@ export function MindmapStyleSidebar({
   return (
     <aside
       aria-label="Bảng thiết kế Sơ đồ tư duy"
-      className="pointer-events-auto absolute right-3.5 top-4 bottom-4 z-30 flex w-72 flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white/95 shadow-lg backdrop-blur-xs sm:w-80 print:hidden"
+      className="flex h-full w-72 shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white shadow-sm sm:w-80 print:hidden"
     >
       {/* Hàng Tab Icon trên cùng khớp bố cục MindMeister */}
       <div className="flex items-center justify-between border-b border-slate-100 px-2.5 py-2">

@@ -108,6 +108,30 @@ describe('ArticleAdjacencyService — bài trước / sau', () => {
     });
   });
 
+  it('không thuộc dòng thời gian, có chủ đề → chỉ lấy bài cùng chuyên mục và cùng chủ đề', async () => {
+    prisma.article.findMany.mockResolvedValue([
+      article('a1', 905),
+      article('a2', 938),
+    ]);
+
+    const result = await service.findAdjacent({
+      id: 'a2',
+      categoryId: 'cat',
+      topicId: 'topic-bac-thuoc',
+      timelineId: null,
+    });
+
+    expect(prisma.article.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          categoryId: 'cat',
+          topicId: 'topic-bac-thuoc',
+        }),
+      }),
+    );
+    expect(result).toMatchObject({ previous: { slug: 'a1' }, next: null });
+  });
+
   it('không thuộc dòng thời gian, không có chuyên mục → không có bài trước / sau', async () => {
     const result = await service.findAdjacent({
       id: 'a1',

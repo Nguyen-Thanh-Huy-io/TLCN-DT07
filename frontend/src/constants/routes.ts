@@ -104,9 +104,6 @@ export const WIKIPEDIA_VI_API = {
   PAGE_SUMMARY: 'https://vi.wikipedia.org/api/rest_v1/page/summary',
 } as const;
 
-/** Ảnh nền phần đầu trang Dòng thời gian. */
-export const TIMELINE_HERO_IMAGE_URL =
-  'https://images.unsplash.com/photo-1686766219304-5e2fb0df9d2d?auto=format&fit=crop&w=1400&q=85';
 /* eslint-enable no-restricted-syntax */
 
 export enum NavigationPageKey {

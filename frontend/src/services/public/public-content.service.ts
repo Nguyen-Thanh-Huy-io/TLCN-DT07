@@ -128,13 +128,6 @@ export interface PublicCategory extends PublicCategoryRef {
   articleCount: number;
 }
 
-export interface PublicCategoryDetail extends PublicCategoryRef {
-  description: string | null;
-  parent: { id: string; name: string; slug: string } | null;
-  children: PublicCategoryRef[];
-  articles: PublicArticleSummary[];
-}
-
 export interface PublicBlogPostSummary {
   id: string;
   title: string;
@@ -217,7 +210,6 @@ const list = async <T,>(path: string): Promise<T[]> => {
 const enc = encodeURIComponent;
 
 export const fetchCategories = () => list<PublicCategory>('/public/categories');
-export const fetchCategory = (slug: string) => getJson<PublicCategoryDetail>(`/public/categories/${enc(slug)}`);
 
 export function fetchArticles(params: { category?: string; tag?: string; q?: string; featured?: boolean; limit?: number } = {}) {
   const qs = new URLSearchParams();

@@ -50,6 +50,7 @@ export enum ReadingActivePanel {
   TOC = 'toc',
   ANNOTATIONS = 'annotations',
   DISPLAY = 'display',
+  FLASHCARD = 'flashcard',
 }
 
 export interface ReadingPreferences {

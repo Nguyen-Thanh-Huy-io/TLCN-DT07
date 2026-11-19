@@ -9,6 +9,7 @@ import {
   Bookmark,
   Calendar,
   KeyRound,
+  Layers,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -25,6 +26,7 @@ import { AccountApiService, type MyProfile } from '@/services/auth/account.servi
 import { extractErrorMessage } from '@/services/api';
 import { ProfileSection, SecuritySection } from './AccountSections';
 import { LearningSection, SavedBookmarksSection } from './AccountLearningSections';
+import { FlashcardsSection } from '@/features/flashcards/components/FlashcardsSection';
 import { RemoteImage } from '@/components/common/RemoteImage';
 import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonReaderHooks';
 
@@ -32,6 +34,7 @@ export enum AccountTabKey {
   PROFILE = 'ho-so',
   LEARNING = 'hoc-tap',
   BOOKMARKS = 'tu-lieu',
+  FLASHCARDS = 'the-ghi-nho',
   SECURITY = 'bao-mat',
 }
 
@@ -53,16 +56,17 @@ export function AccountView() {
   const [profile, setProfile] = useState<MyProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<AccountTabKey>(AccountTabKey.PROFILE);
-  const [savedCount] = useState<number>(() => {
+  const [flashcardDueCount, setFlashcardDueCount] = useState<number>(0);
+  const [savedCount, setSavedCount] = useState<number>(() => {
     if (typeof window === 'undefined') return 0;
     try {
       const artRaw = localStorage.getItem('hisgo:saved-articles');
       const tlRaw = localStorage.getItem('hisgo.saved');
       const art = artRaw ? (JSON.parse(artRaw) as unknown) : [];
       const tl = tlRaw ? (JSON.parse(tlRaw) as unknown) : [];
-      const artLen = Array.isArray(art) ? art.length : 0;
-      const tlLen = Array.isArray(tl) ? tl.length : 0;
-      return artLen + tlLen;
+      const artIds = Array.isArray(art) ? art.filter((x): x is string => typeof x === 'string') : [];
+      const tlIds = Array.isArray(tl) ? tl.filter((x): x is string => typeof x === 'string') : [];
+      return new Set([...artIds, ...tlIds]).size;
     } catch {
       return 0;
     }
@@ -98,6 +102,7 @@ export function AccountView() {
     { id: AccountTabKey.PROFILE, label: 'Hồ sơ sử học', icon: UserRound },
     { id: AccountTabKey.LEARNING, label: 'Lộ trình của tôi', icon: BookOpen, badge: enrolledPathIds.length },
     { id: AccountTabKey.BOOKMARKS, label: 'Tư liệu đã lưu', icon: Bookmark, badge: savedCount },
+    { id: AccountTabKey.FLASHCARDS, label: 'Thẻ ghi nhớ', icon: Layers, badge: flashcardDueCount },
     { id: AccountTabKey.SECURITY, label: 'Bảo mật & Phiên', icon: KeyRound },
   ];
 
@@ -302,7 +307,8 @@ export function AccountView() {
             <div className="transition-all duration-300">
               {activeTab === AccountTabKey.PROFILE && <ProfileSection profile={profile} onChange={setProfile} />}
               {activeTab === AccountTabKey.LEARNING && <LearningSection />}
-              {activeTab === AccountTabKey.BOOKMARKS && <SavedBookmarksSection />}
+              {activeTab === AccountTabKey.BOOKMARKS && <SavedBookmarksSection onCountChange={setSavedCount} />}
+              {activeTab === AccountTabKey.FLASHCARDS && <FlashcardsSection onDueCountChange={setFlashcardDueCount} />}
               {activeTab === AccountTabKey.SECURITY && <SecuritySection profile={profile} />}
             </div>
           </div>

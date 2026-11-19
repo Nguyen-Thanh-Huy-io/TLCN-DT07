@@ -1,17 +1,20 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Bookmark,
   ChevronLeft,
   ChevronRight,
+  Layers,
   ListTree,
   MessageSquareQuote,
   NotebookPen,
   SlidersHorizontal,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import { KeyboardKey } from '@/constants/enums';
+import { QuickCreateFlashcardBox } from '@/features/flashcards/components/QuickCreateFlashcardBox';
 import { ANNOTATION_DATA_ATTRS } from '@/features/lessons/extensions/annotation.extension';
 import type { LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
 import type { NoteFacade } from '@/features/notes/facades/useNoteFacade';
@@ -32,6 +35,17 @@ const FOOTNOTE_SELECTOR = `sup[${ANNOTATION_DATA_ATTRS.FOOTNOTE}]`;
 const FOOTNOTE_INDEX_ATTR = 'data-footnote-index';
 const SAVED_ARTICLES_KEY = 'hisgo:saved-articles';
 const SAVED_TIMELINE_KEY = 'hisgo.saved';
+const SAVED_CHANGE_EVENT = 'hisgo:saved-change';
+
+function subscribeSavedStorage(callback: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener('storage', callback);
+  window.addEventListener(SAVED_CHANGE_EVENT, callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener(SAVED_CHANGE_EVENT, callback);
+  };
+}
 
 function readSavedIds(storageKey: string): string[] {
   if (typeof window === 'undefined') return [];
@@ -55,6 +69,7 @@ function toggleSavedArticleStorage(targetId: string): boolean {
       ? [...new Set([...timelineSaved, targetId])]
       : timelineSaved.filter((id) => id !== targetId);
     localStorage.setItem(SAVED_TIMELINE_KEY, JSON.stringify(nextTimeline));
+    window.dispatchEvent(new Event(SAVED_CHANGE_EVENT));
   } catch {
     // Bỏ qua lỗi storage ở chế độ ẩn danh.
   }
@@ -157,8 +172,12 @@ export function ReadingAidsPanel({
   const [activePanel, setActivePanel] = useState<ReadingActivePanel | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [saved, setSaved] = useState<boolean>(() =>
-    articleId ? readSavedIds(SAVED_ARTICLES_KEY).includes(articleId) : false,
+  const [flashcardFront, setFlashcardFront] = useState('');
+  const [flashcardSaved, setFlashcardSaved] = useState(false);
+  const saved = useSyncExternalStore(
+    subscribeSavedStorage,
+    () => (articleId ? readSavedIds(SAVED_ARTICLES_KEY).includes(articleId) : false),
+    () => false,
   );
   const dockRef = useRef<HTMLDivElement>(null);
 
@@ -210,7 +229,7 @@ export function ReadingAidsPanel({
 
   const handleToggleSave = () => {
     if (!articleId) return;
-    setSaved(toggleSavedArticleStorage(articleId));
+    toggleSavedArticleStorage(articleId);
   };
 
   if (isFullscreen) return null;
@@ -289,6 +308,18 @@ export function ReadingAidsPanel({
               />
             )}
 
+            <DockIconButton
+              icon={Layers}
+              label="Tạo thẻ ghi nhớ"
+              active={activePanel === ReadingActivePanel.FLASHCARD}
+              onClick={() => {
+                const selected = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() ?? '' : '';
+                setFlashcardFront(selected);
+                setFlashcardSaved(false);
+                openExclusivePanel(ReadingActivePanel.FLASHCARD);
+              }}
+            />
+
             {typeof readingControls?.readProgress === 'number' && (
               <>
                 <div className="my-0.5 h-px w-5 bg-stone-200/90" />
@@ -326,6 +357,46 @@ export function ReadingAidsPanel({
         {activePanel === ReadingActivePanel.DISPLAY && readingControls && (
           <div className="ml-3">
             <ReadingDisplayPopover controls={readingControls} onClose={() => setActivePanel(null)} />
+          </div>
+        )}
+
+        {activePanel === ReadingActivePanel.FLASHCARD && (
+          <div className="ml-3 w-[360px] max-w-[85vw] rounded-2xl border border-[#E5D8C1] bg-[#FFFCF5] p-4 shadow-2xl">
+            <div className="mb-2 flex items-center justify-between border-b border-[#E5D8C1]/60 pb-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#7A1F24]">
+                <Layers size={14} /> Tạo thẻ ghi nhớ nhanh
+              </span>
+              <button
+                type="button"
+                onClick={() => setActivePanel(null)}
+                aria-label="Đóng"
+                className="rounded p-1 text-stone-400 hover:text-stone-700 cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            {flashcardSaved ? (
+              <div className="space-y-2 py-2 text-xs text-teal-800">
+                <p className="font-semibold">Đã lưu thẻ ghi nhớ vào tài khoản của bạn.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFlashcardFront('');
+                    setFlashcardSaved(false);
+                  }}
+                  className="font-bold text-[#7A1F24] underline cursor-pointer"
+                >
+                  Tạo thêm thẻ khác
+                </button>
+              </div>
+            ) : (
+              <QuickCreateFlashcardBox
+                initialFront={flashcardFront}
+                initialBack=""
+                onSaved={() => setFlashcardSaved(true)}
+                onCancel={() => setActivePanel(null)}
+              />
+            )}
           </div>
         )}
       </div>

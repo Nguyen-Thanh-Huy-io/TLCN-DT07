@@ -103,6 +103,10 @@ export interface NoteItem {
     id: string;
     username: string;
   } | null;
+  target?: {
+    title: string;
+    slug: string;
+  } | null;
 }
 
 export interface CreateNotePayload {
@@ -161,6 +165,15 @@ export async function fetchNotes(
 ): Promise<NoteItem[]> {
   const res = await api.get<ApiEnvelope<NoteItem[]>>('/notes', {
     params: { targetType, targetId, guestId: getOrCreateGuestId() },
+    headers: guestHeaders(),
+  });
+  return Array.isArray(res.data.data) ? res.data.data : [];
+}
+
+/** Toàn bộ ghi chú của người học trên mọi bài viết và bài học (kèm tiêu đề + slug bài gốc). */
+export async function fetchAllMyNotes(): Promise<NoteItem[]> {
+  const res = await api.get<ApiEnvelope<NoteItem[]>>('/notes', {
+    params: { guestId: getOrCreateGuestId() },
     headers: guestHeaders(),
   });
   return Array.isArray(res.data.data) ? res.data.data : [];

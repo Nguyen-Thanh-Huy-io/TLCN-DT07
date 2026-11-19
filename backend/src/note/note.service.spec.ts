@@ -286,6 +286,38 @@ describe('NoteService', () => {
       expect(res).toEqual([]);
       expect(mockPrisma.note.findMany).not.toHaveBeenCalled();
     });
+
+    it('khi không truyền targetId thì gắn kèm tiêu đề và slug của bài viết / bài học gốc', async () => {
+      mockPrisma.note.findMany.mockResolvedValue([
+        { id: 'n1', targetType: NoteTargetType.ARTICLE, targetId: 'art-1', content: 'A' },
+        { id: 'n2', targetType: NoteTargetType.LESSON, targetId: 'les-1', content: 'B' },
+      ]);
+      mockPrisma.article = {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'art-1', title: 'Chiến thắng Bạch Đằng', slug: 'chien-thang-bach-dang' },
+        ]),
+      };
+      mockPrisma.lesson = {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'les-1', title: 'Nhà Ngô lập quốc', slug: 'nha-ngo-lap-quoc' },
+        ]),
+      };
+
+      const res = (await service.findAll('user-1', {})) as Array<{
+        id: string;
+        target?: { title: string; slug: string } | null;
+      }>;
+
+      expect(res).toHaveLength(2);
+      expect(res[0].target).toEqual({
+        title: 'Chiến thắng Bạch Đằng',
+        slug: 'chien-thang-bach-dang',
+      });
+      expect(res[1].target).toEqual({
+        title: 'Nhà Ngô lập quốc',
+        slug: 'nha-ngo-lap-quoc',
+      });
+    });
   });
 
   describe('remove', () => {

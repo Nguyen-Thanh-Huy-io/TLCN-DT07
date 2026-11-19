@@ -95,7 +95,53 @@ export class NoteService {
       },
     });
 
-    return items;
+    if (query?.targetId || items.length === 0) return items;
+    return this.attachTargets(items);
+  }
+
+  /** Gắn tiêu đề + slug bài viết/bài học gốc khi lấy toàn bộ ghi chú (tủ sách cá nhân). */
+  private async attachTargets<
+    T extends { targetType: NoteTargetType; targetId: string },
+  >(items: T[]) {
+    const idsOf = (type: NoteTargetType) => [
+      ...new Set(
+        items.filter((i) => i.targetType === type).map((i) => i.targetId),
+      ),
+    ];
+    const articleIds = idsOf(NoteTargetType.ARTICLE);
+    const lessonIds = idsOf(NoteTargetType.LESSON);
+
+    const [articles, lessons] = await Promise.all([
+      articleIds.length && this.prisma.article?.findMany
+        ? this.prisma.article.findMany({
+            where: { id: { in: articleIds } },
+            select: { id: true, title: true, slug: true },
+          })
+        : Promise.resolve([]),
+      lessonIds.length && this.prisma.lesson?.findMany
+        ? this.prisma.lesson.findMany({
+            where: { id: { in: lessonIds } },
+            select: { id: true, title: true, slug: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const targetMap = new Map<string, { title: string; slug: string }>();
+    for (const a of articles)
+      targetMap.set(`${NoteTargetType.ARTICLE}:${a.id}`, {
+        title: a.title,
+        slug: a.slug,
+      });
+    for (const l of lessons)
+      targetMap.set(`${NoteTargetType.LESSON}:${l.id}`, {
+        title: l.title,
+        slug: l.slug,
+      });
+
+    return items.map((item) => ({
+      ...item,
+      target: targetMap.get(`${item.targetType}:${item.targetId}`) ?? null,
+    }));
   }
 
   async findOne(id: string, userId?: string, guestId?: string) {

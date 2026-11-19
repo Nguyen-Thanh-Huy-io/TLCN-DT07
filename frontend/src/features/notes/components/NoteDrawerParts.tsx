@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertTriangle, Check, CheckCircle2, Copy, Edit2, Link2, MapPin, MessageSquarePlus, RotateCcw, Tag, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, Copy, Edit2, Layers, Link2, MapPin, MessageSquarePlus, RotateCcw, Tag, Trash2, X } from 'lucide-react';
+import { QuickCreateFlashcardBox } from '@/features/flashcards/components/QuickCreateFlashcardBox';
 import { NOTE_KIND_META, NOTE_LABEL_MAX_LENGTH, NOTE_LABELS_MAX } from '../constants/note-kind.constants';
 import { KeyboardKey } from '@/constants/enums';
 import { NOTE_COLOR_STYLES, NOTE_KIND, type NoteItem, type NoteKindValue, type UpdateNotePayload } from '../services/note.service';
@@ -165,6 +166,8 @@ export function NoteCard({ note, isLost, needsReview, labelSuggestions, onLocate
   const [labels, setLabels] = useState(note.labels);
   const [copied, setCopied] = useState(false);
   const [askState, setAskState] = useState<AskState>(AskState.IDLE);
+  const [creatingCard, setCreatingCard] = useState(false);
+  const [cardCreated, setCardCreated] = useState(false);
   const isQuestion = note.kind === NOTE_KIND.QUESTION;
 
   const save = async () => {
@@ -215,6 +218,20 @@ export function NoteCard({ note, isLost, needsReview, labelSuggestions, onLocate
 
       {askState === AskState.SENT && <p className="mt-2 text-[11px] font-semibold text-emerald-700">Đã gửi lên phần Hỏi đáp của bài.</p>}
       {askState === AskState.FAILED && <p className="mt-2 text-[11px] font-semibold text-rose-700">Không gửi được — hãy đăng nhập rồi thử lại.</p>}
+      {cardCreated && <p className="mt-2 text-[11px] font-semibold text-teal-800">Đã lưu thành thẻ ghi nhớ ôn tập.</p>}
+
+      {creatingCard && (
+        <QuickCreateFlashcardBox
+          initialFront={note.highlightText || note.title || ''}
+          initialBack={note.content || note.highlightText || ''}
+          sourceNoteId={note.id}
+          onSaved={() => {
+            setCreatingCard(false);
+            setCardCreated(true);
+          }}
+          onCancel={() => setCreatingCard(false)}
+        />
+      )}
 
       <div className="mt-3 pt-2 border-t border-stone-200/50 flex items-center justify-between text-[10px] text-stone-500">
         <span>{new Date(note.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
@@ -230,6 +247,9 @@ export function NoteCard({ note, isLost, needsReview, labelSuggestions, onLocate
               <MessageSquarePlus size={12} /> Hỏi đáp
             </button>
           )}
+          <button type="button" onClick={() => setCreatingCard((v) => !v)} className={`${actionButton} inline-flex items-center gap-1 font-semibold`} title="Tạo thẻ ghi nhớ (Flashcard)">
+            <Layers size={12} /> Tạo thẻ
+          </button>
           <button type="button" onClick={copy} className={actionButton} title="Sao chép">
             {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
           </button>

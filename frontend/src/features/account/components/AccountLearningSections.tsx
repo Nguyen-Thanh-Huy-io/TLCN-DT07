@@ -1,16 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { BookOpen, Bookmark, ChevronRight, Compass, ExternalLink, Sparkles, X } from 'lucide-react';
+import { BookOpen, Bookmark, ChevronRight, Compass, ExternalLink, Sparkles, StickyNote, Trash2, X } from 'lucide-react';
 import { ContentStatus } from '@/constants/enums';
-import { extractErrorMessage } from '@/services/api';
+import api, { extractErrorMessage } from '@/services/api';
+import type { PublicArticleSummary, PublicTimeline } from '@/services/public/public-content.service';
+import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { LearningPathApiService, type LearningPathItem } from '@/services/entities/learning-path.service';
 import { PUBLIC_CURRICULUM_ROUTES, DEFAULT_COVER_IMAGES } from '@/features/public-curriculum/constants/public-curriculum.constants';
 import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonReaderHooks';
 import { pathLessons } from '@/features/public-curriculum/components/hub/HubReaderParts';
 import { RemoteImage } from '@/components/common/RemoteImage';
 import { AccountCard, Notice, type NoticeState } from './AccountSections';
+import { SavedNotesPanel } from './SavedNotesPanel';
 
 /** Tab "Học tập" và "Tư liệu đã lưu" của trang tài khoản. */
 export function LearningSection() {
@@ -164,32 +167,97 @@ export function LearningSection() {
 }
 
 /* ==========================================================================
-   3. TƯ LIỆU ĐÃ LƯU (SAVED BOOKMARKS SECTION)
+   3. TƯ LIỆU ĐÃ LƯU & GHI CHÚ (SAVED BOOKMARKS + NOTES SECTION)
    ========================================================================== */
-export function SavedBookmarksSection() {
-  const [savedArticles] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const raw = localStorage.getItem('hisgo:saved-articles');
-      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-      return Array.isArray(parsed) ? (parsed as string[]) : [];
-    } catch {
-      return [];
-    }
-  });
+const SAVED_ARTICLES_KEY = 'hisgo:saved-articles';
+const SAVED_TIMELINE_KEY = 'hisgo.saved';
 
-  const [savedTimeline] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const raw = localStorage.getItem('hisgo.saved');
-      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-      return Array.isArray(parsed) ? (parsed as string[]) : [];
-    } catch {
-      return [];
-    }
-  });
+enum BookshelfSubTab {
+  BOOKMARKS = 'BOOKMARKS',
+  NOTES = 'NOTES',
+}
 
-  const totalSaved = savedArticles.length + savedTimeline.length;
+function readLocalIdList(key: string): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function SavedBookmarksSection({ onCountChange }: { onCountChange?: (count: number) => void }) {
+  const [subTab, setSubTab] = useState<BookshelfSubTab>(BookshelfSubTab.BOOKMARKS);
+  const [savedArticles, setSavedArticles] = useState<string[]>(() => readLocalIdList(SAVED_ARTICLES_KEY));
+  const [savedTimeline, setSavedTimeline] = useState<string[]>(() => readLocalIdList(SAVED_TIMELINE_KEY));
+  const [articlesById, setArticlesById] = useState<Map<string, PublicArticleSummary>>(() => new Map());
+  const [timelineNodesById, setTimelineNodesById] = useState<
+    Map<string, { title: string; dateLabel: string | null; timelineSlug: string; timelineTitle: string }>
+  >(() => new Map());
+  const [notesCount, setNotesCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    api
+      .get<{ data: PublicArticleSummary[] }>('/public/articles', { params: { limit: 500 } })
+      .then((res) => {
+        if (!alive) return;
+        const list = Array.isArray(res.data?.data) ? res.data.data : [];
+        setArticlesById(new Map(list.map((a) => [a.id, a])));
+      })
+      .catch(() => {});
+
+    api
+      .get<{ data: PublicTimeline[] }>('/public/timelines')
+      .then((res) => {
+        if (!alive) return;
+        const timelines = Array.isArray(res.data?.data) ? res.data.data : [];
+        const map = new Map<string, { title: string; dateLabel: string | null; timelineSlug: string; timelineTitle: string }>();
+        timelines.forEach((tl) => {
+          tl.nodes?.forEach((node) => {
+            map.set(node.id, {
+              title: node.title,
+              dateLabel: node.dateLabel,
+              timelineSlug: tl.slug,
+              timelineTitle: tl.title,
+            });
+          });
+        });
+        setTimelineNodesById(map);
+      })
+      .catch(() => {});
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Loại trùng ID đã nằm ở savedArticles (vì ReadingAidsPanel lưu vào cả 2 key).
+  const uniqueTimelineIds = useMemo(
+    () => savedTimeline.filter((id) => !savedArticles.includes(id)),
+    [savedTimeline, savedArticles],
+  );
+
+  const totalSaved = savedArticles.length + uniqueTimelineIds.length;
+
+  useEffect(() => {
+    onCountChange?.(totalSaved);
+  }, [totalSaved, onCountChange]);
+
+  const removeSavedId = (id: string) => {
+    const nextArticles = savedArticles.filter((x) => x !== id);
+    const nextTimeline = savedTimeline.filter((x) => x !== id);
+    setSavedArticles(nextArticles);
+    setSavedTimeline(nextTimeline);
+    try {
+      localStorage.setItem(SAVED_ARTICLES_KEY, JSON.stringify(nextArticles));
+      localStorage.setItem(SAVED_TIMELINE_KEY, JSON.stringify(nextTimeline));
+    } catch {
+      // Bỏ qua lỗi storage ở chế độ ẩn danh.
+    }
+  };
 
   return (
     <AccountCard
@@ -203,7 +271,35 @@ export function SavedBookmarksSection() {
         </span>
       }
     >
-      {totalSaved === 0 ? (
+      {/* Chuyển nhanh giữa Tư liệu đã ghim và Ghi chú đã lưu */}
+      <div className="mb-5 flex flex-wrap gap-2 border-b border-[var(--border,#E2D5B8)] pb-3">
+        <button
+          type="button"
+          onClick={() => setSubTab(BookshelfSubTab.BOOKMARKS)}
+          className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition cursor-pointer ${
+            subTab === BookshelfSubTab.BOOKMARKS
+              ? 'border-[var(--primary,#7A1F24)] bg-[var(--primary,#7A1F24)] text-white shadow-xs'
+              : 'border-[var(--border,#E2D5B8)] bg-white text-[var(--text-body,#2D1A10)] hover:border-[var(--gold,#B8893F)]'
+          }`}
+        >
+          <Bookmark size={14} /> Tư liệu đã ghim ({totalSaved})
+        </button>
+        <button
+          type="button"
+          onClick={() => setSubTab(BookshelfSubTab.NOTES)}
+          className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition cursor-pointer ${
+            subTab === BookshelfSubTab.NOTES
+              ? 'border-[var(--primary,#7A1F24)] bg-[var(--primary,#7A1F24)] text-white shadow-xs'
+              : 'border-[var(--border,#E2D5B8)] bg-white text-[var(--text-body,#2D1A10)] hover:border-[var(--gold,#B8893F)]'
+          }`}
+        >
+          <StickyNote size={14} /> Ghi chú & Đánh dấu{notesCount !== null ? ` (${notesCount})` : ''}
+        </button>
+      </div>
+
+      {subTab === BookshelfSubTab.NOTES ? (
+        <SavedNotesPanel onCountChange={setNotesCount} />
+      ) : totalSaved === 0 ? (
         <div className="rounded-2xl border border-dashed border-[var(--border,#E2D5B8)] p-10 text-center bg-white/40">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--bg-page,#F5EEDC)] text-[var(--gold,#B8893F)]">
             <Bookmark size={26} />
@@ -214,15 +310,15 @@ export function SavedBookmarksSection() {
           <p className="mt-1 text-xs text-[var(--text-muted,#7A6B57)] max-w-md mx-auto">
             Khi đọc bài viết hoặc khám phá Dòng thời gian, bấm nút Lưu trên thanh công cụ để đưa tư liệu quý vào tủ sách của bạn.
           </p>
-          <div className="mt-5 flex justify-center gap-3">
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Link
-              href="/dong-thoi-gian"
+              href={PUBLIC_ROUTES.TIMELINES}
               className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#7A1F24] to-[#91252B] px-4 py-2 text-xs font-bold text-white shadow-xs hover:brightness-110 transition"
             >
               Khám phá Dòng thời gian <ExternalLink size={13} />
             </Link>
             <Link
-              href="/bai-viet"
+              href={PUBLIC_ROUTES.ARTICLES}
               className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border,#E2D5B8)] bg-white px-4 py-2 text-xs font-bold text-[var(--primary,#7A1F24)] hover:bg-[#F5EEDC] transition"
             >
               Kho tư liệu bài viết <ExternalLink size={13} />
@@ -234,52 +330,114 @@ export function SavedBookmarksSection() {
           <div className="rounded-xl border border-[var(--border,#E2D5B8)] bg-white p-5">
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-[family-name:var(--font-heading)] text-base font-bold text-[var(--text-body,#2D1A10)] flex items-center gap-2">
-                <Bookmark size={16} className="text-[var(--gold,#B8893F)]" />
-                Dấu mốc & Sự kiện đã lưu ({savedTimeline.length})
+                <BookOpen size={16} className="text-[var(--primary,#7A1F24)]" />
+                Bài viết & Chuyên đề đã lưu ({savedArticles.length})
               </h4>
-              <Link href="/dong-thoi-gian" className="text-xs font-bold text-[var(--primary,#7A1F24)] hover:underline flex items-center gap-1">
-                Xem trên dòng thời gian <ChevronRight size={13} />
+              <Link href={PUBLIC_ROUTES.ARTICLES} className="text-xs font-bold text-[var(--primary,#7A1F24)] hover:underline flex items-center gap-1">
+                Mở kho bài viết <ChevronRight size={13} />
               </Link>
             </div>
-            {savedTimeline.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {savedTimeline.map((id) => (
-                  <span
-                    key={id}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)] px-3 py-1.5 text-xs font-semibold text-[var(--primary,#7A1F24)]"
-                  >
-                    <span>Mục #{id.slice(0, 8)}</span>
-                  </span>
-                ))}
-              </div>
+            {savedArticles.length > 0 ? (
+              <ul className="grid gap-2.5 sm:grid-cols-2">
+                {savedArticles.map((id) => {
+                  const article = articlesById.get(id);
+                  return (
+                    <li
+                      key={id}
+                      className="flex items-start justify-between gap-2 rounded-xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)]/40 p-3 transition hover:border-[var(--gold,#B8893F)]"
+                    >
+                      <div className="min-w-0">
+                        {article ? (
+                          <Link
+                            href={PUBLIC_ROUTES.ARTICLE(article.slug)}
+                            className="line-clamp-2 text-sm font-bold text-[var(--text-body,#2D1A10)] hover:text-[var(--primary,#7A1F24)]"
+                          >
+                            {article.title}
+                          </Link>
+                        ) : (
+                          <span className="text-xs font-semibold text-[var(--text-body,#2D1A10)]">
+                            Bài viết #{id.slice(0, 8)}
+                          </span>
+                        )}
+                        {article && (
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-muted,#7A6B57)]">
+                            {article.category?.name && <span>{article.category.name}</span>}
+                            {article.dateLabel && <span>· {article.dateLabel}</span>}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeSavedId(id)}
+                        title="Bỏ ghim"
+                        aria-label="Bỏ ghim bài viết"
+                        className="shrink-0 rounded-lg p-1.5 text-[var(--text-muted,#7A6B57)] hover:bg-rose-50 hover:text-rose-700 cursor-pointer"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             ) : (
-              <p className="text-xs text-[var(--text-muted,#7A6B57)]">Chưa có sự kiện dòng thời gian nào.</p>
+              <p className="text-xs text-[var(--text-muted,#7A6B57)]">Chưa có bài viết nào được lưu.</p>
             )}
           </div>
 
           <div className="rounded-xl border border-[var(--border,#E2D5B8)] bg-white p-5">
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-[family-name:var(--font-heading)] text-base font-bold text-[var(--text-body,#2D1A10)] flex items-center gap-2">
-                <BookOpen size={16} className="text-[var(--primary,#7A1F24)]" />
-                Bài viết & Chuyên đề đã lưu ({savedArticles.length})
+                <Bookmark size={16} className="text-[var(--gold,#B8893F)]" />
+                Dấu mốc & Sự kiện đã lưu ({uniqueTimelineIds.length})
               </h4>
-              <Link href="/bai-viet" className="text-xs font-bold text-[var(--primary,#7A1F24)] hover:underline flex items-center gap-1">
-                Mở kho bài viết <ChevronRight size={13} />
+              <Link href={PUBLIC_ROUTES.TIMELINES} className="text-xs font-bold text-[var(--primary,#7A1F24)] hover:underline flex items-center gap-1">
+                Xem trên dòng thời gian <ChevronRight size={13} />
               </Link>
             </div>
-            {savedArticles.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {savedArticles.map((id) => (
-                  <span
-                    key={id}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)] px-3 py-1.5 text-xs font-semibold text-[var(--primary,#7A1F24)]"
-                  >
-                    <span>Bài viết #{id.slice(0, 8)}</span>
-                  </span>
-                ))}
-              </div>
+            {uniqueTimelineIds.length > 0 ? (
+              <ul className="grid gap-2.5 sm:grid-cols-2">
+                {uniqueTimelineIds.map((id) => {
+                  const node = timelineNodesById.get(id);
+                  return (
+                    <li
+                      key={id}
+                      className="flex items-start justify-between gap-2 rounded-xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)]/40 p-3 transition hover:border-[var(--gold,#B8893F)]"
+                    >
+                      <div className="min-w-0">
+                        {node ? (
+                          <Link
+                            href={PUBLIC_ROUTES.TIMELINE(node.timelineSlug)}
+                            className="line-clamp-2 text-sm font-bold text-[var(--text-body,#2D1A10)] hover:text-[var(--primary,#7A1F24)]"
+                          >
+                            {node.title}
+                          </Link>
+                        ) : (
+                          <span className="text-xs font-semibold text-[var(--text-body,#2D1A10)]">
+                            Dấu mốc #{id.slice(0, 8)}
+                          </span>
+                        )}
+                        {node && (
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-muted,#7A6B57)]">
+                            <span>{node.timelineTitle}</span>
+                            {node.dateLabel && <span>· {node.dateLabel}</span>}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeSavedId(id)}
+                        title="Bỏ ghim"
+                        aria-label="Bỏ ghim dấu mốc"
+                        className="shrink-0 rounded-lg p-1.5 text-[var(--text-muted,#7A6B57)] hover:bg-rose-50 hover:text-rose-700 cursor-pointer"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             ) : (
-              <p className="text-xs text-[var(--text-muted,#7A6B57)]">Chưa có bài viết nào được lưu.</p>
+              <p className="text-xs text-[var(--text-muted,#7A6B57)]">Chưa có sự kiện dòng thời gian nào.</p>
             )}
           </div>
         </div>

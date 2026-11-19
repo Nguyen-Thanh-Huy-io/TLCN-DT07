@@ -84,7 +84,7 @@ export function QuizManagementView() {
           </div>
           <div>
             <div className="text-xl font-bold text-amber-700">{stats.draftQuizzes}</div>
-            <div className="text-xs text-slate-500 font-medium">Đề nháp (Chưa có câu hỏi)</div>
+            <div className="text-xs text-slate-500 font-medium">Đề nháp · Chưa có câu hỏi</div>
           </div>
         </div>
 

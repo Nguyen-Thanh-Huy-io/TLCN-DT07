@@ -31,36 +31,36 @@ export interface QuestionTypeCardConfig {
 export const QUESTION_TYPE_CARDS: QuestionTypeCardConfig[] = [
   {
     type: QuizQuestionType.SINGLE_CHOICE,
-    title: 'Radio Button',
-    subtitle: '(Single Choice)',
+    title: 'Chọn 1 đáp án',
+    subtitle: 'Trắc nghiệm đơn',
     icon: CircleDot,
     isReady: true,
   },
   {
     type: QuizQuestionType.MULTIPLE_CHOICE,
-    title: 'Check Box',
-    subtitle: '(Multiple Choice)',
+    title: 'Nhiều đáp án',
+    subtitle: 'Chọn nhiều lựa chọn',
     icon: CheckSquare,
     isReady: true,
   },
   {
     type: QuizQuestionType.TRUE_FALSE,
     title: 'Đúng / Sai',
-    subtitle: '(True / False)',
+    subtitle: 'Khẳng định mệnh đề',
     icon: HelpCircle,
     isReady: true,
   },
   {
     type: QuizQuestionType.ORDERING,
     title: 'Dòng thời gian',
-    subtitle: '(Timeline Order)',
+    subtitle: 'Sắp xếp thứ tự',
     icon: Clock,
     isReady: true,
   },
   {
     type: QuizQuestionType.MATCHING,
     title: 'Ghép nối',
-    subtitle: '(Matching Pairs)',
+    subtitle: 'Nối cặp tương ứng',
     icon: ArrowLeftRight,
     isReady: true,
   },
@@ -119,10 +119,10 @@ function validateChoiceQuestion(
   }
   const correctCount = options.filter((o) => o.isCorrect).length;
   if (type === QuizQuestionType.SINGLE_CHOICE && correctCount !== 1) {
-    return 'Vui lòng đánh dấu chọn chính xác 1 đáp án đúng (Correct).';
+    return 'Vui lòng đánh dấu chọn chính xác 1 đáp án đúng.';
   }
   if (type === QuizQuestionType.MULTIPLE_CHOICE && correctCount < 1) {
-    return 'Vui lòng đánh dấu chọn ít nhất 1 đáp án đúng (Correct) cho câu hỏi nhiều lựa chọn.';
+    return 'Vui lòng đánh dấu chọn ít nhất 1 đáp án đúng cho câu hỏi nhiều lựa chọn.';
   }
   return null;
 }

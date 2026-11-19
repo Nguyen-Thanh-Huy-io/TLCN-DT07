@@ -11,14 +11,17 @@ import { CollapsibleExplanationField } from '@/components/common/CollapsibleExpl
 import { MatchingPairsValue } from '@/components/common/MatchingPairsEditor';
 import { OptionItemState, QuestionDifficulty, createDefaultMatchingPairs, createDefaultOptions, createDefaultOrderingItems, validateQuestionForm, buildQuestionData, parseInitialQuestionState } from './question-modal.helper';
 import { QuestionTypeCardSelector, QuestionCategorySection, TopicCategoryModalPicker, QuestionAnswersSection, QuestionModalHeader, QuestionModalFooter } from './QuestionBankModalParts';
+import { QuestionTopicMode } from '../utils/question-topic.strategy';
 
 interface QuestionBankModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (saved: QuestionBankItem) => void;
   initialQuestion?: QuestionBankItem | null;
-  /** Chủ đề gắn sẵn cho câu tạo mới (vd. chủ đề của đề đang soạn). */
+  /** Chủ đề gắn sẵn cho câu tạo mới từ ngữ cảnh đề thi hoặc bài học. */
   defaultTopicIds?: string[];
+  /** Ngữ cảnh hiển thị trường chủ đề: ngân hàng độc lập hay kế thừa từ đề/bài. */
+  topicMode?: QuestionTopicMode;
 }
 
 export function QuestionBankModal({
@@ -27,6 +30,7 @@ export function QuestionBankModal({
   onSuccess,
   initialQuestion,
   defaultTopicIds,
+  topicMode = QuestionTopicMode.BANK,
 }: QuestionBankModalProps) {
   const [type, setType] = useState<QuizQuestionType>(QuizQuestionType.SINGLE_CHOICE);
   const [prompt, setPrompt] = useState('');
@@ -216,7 +220,7 @@ export function QuestionBankModal({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             <div className="lg:col-span-8">
               <label className="block text-xs font-bold text-slate-800 mb-2">
-                Loại câu hỏi <span className="text-blue-600 font-normal">(Question Type)</span>
+                Loại câu hỏi
               </label>
               <QuestionTypeCardSelector
                 currentType={type}
@@ -231,13 +235,14 @@ export function QuestionBankModal({
               topicsList={topicsList}
               onOpenTopicModal={() => setIsTopicModalOpen(true)}
               onRemoveTopic={(id) => setTopicIds((prev) => prev.filter((item) => item !== id))}
+              topicMode={topicMode}
             />
           </div>
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-bold text-slate-800">
-                Nội dung câu hỏi <span className="text-blue-600 font-normal">(Question)</span>
+                Nội dung câu hỏi
               </label>
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] font-semibold text-slate-500">Độ khó:</span>
@@ -246,9 +251,9 @@ export function QuestionBankModal({
                   onChange={(e) => setDifficulty(e.target.value as QuestionDifficulty)}
                   className="text-[11px] font-semibold py-0.5 px-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-700 focus:outline-none"
                 >
-                  <option value="EASY">Dễ (Nhận biết)</option>
-                  <option value="MEDIUM">Trung bình (Thông hiểu)</option>
-                  <option value="HARD">Khó (Vận dụng cao)</option>
+                  <option value="EASY">Dễ · Nhận biết</option>
+                  <option value="MEDIUM">Trung bình · Thông hiểu</option>
+                  <option value="HARD">Khó · Vận dụng cao</option>
                 </select>
               </div>
             </div>
@@ -257,7 +262,7 @@ export function QuestionBankModal({
               <TipTapContent
                 value={prompt}
                 onChange={setPrompt}
-                placeholder="Nhập nội dung câu hỏi lịch sử chi tiết (hỗ trợ in đậm, in nghiêng, trích dẫn, danh sách, tải ảnh tư liệu, video YouTube...)"
+                placeholder="Nhập nội dung câu hỏi lịch sử chi tiết — hỗ trợ in đậm, in nghiêng, trích dẫn, danh sách, tải ảnh tư liệu, video YouTube..."
                 showToolbar={true}
                 minHeightClass="min-h-[110px]"
               />

@@ -23,10 +23,10 @@ export interface CollapsibleExplanationFieldProps {
 export function CollapsibleExplanationField({
   value = '',
   onChange,
-  buttonLabel = '+ Thêm giải thích chung / Kiến thức củng cố sau khi trả lời (Optional)',
+  buttonLabel = '+ Thêm giải thích chung · Tuỳ chọn',
   title = 'Giải thích chung / Kiến thức lịch sử củng cố',
-  subtitle = '(Hiển thị sau khi học sinh hoàn thành câu hỏi)',
-  placeholder = 'Nhập giải thích tổng quát cho câu hỏi (bối cảnh lịch sử, diễn biến chính, ý nghĩa hoặc nguồn tư liệu tham khảo)...',
+  subtitle = 'Hiển thị sau khi hoàn thành câu hỏi',
+  placeholder = 'Nhập giải thích tổng quát cho câu hỏi: bối cảnh lịch sử, diễn biến chính, ý nghĩa hoặc nguồn tư liệu tham khảo...',
   minRows = 3,
 }: CollapsibleExplanationFieldProps) {
   const [isOpen, setIsOpen] = useState<boolean>(Boolean(value && value.trim()));
@@ -126,13 +126,12 @@ export function OptionExplanationBox({
       <div className="flex-1 space-y-1">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-slate-700">
-            Giải thích riêng khi học sinh chọn đáp án {labelLetter} (
+            Giải thích riêng cho đáp án {labelLetter} ·{' '}
             {isCorrect ? (
               <span className="text-emerald-600">Đáp án đúng</span>
             ) : (
               <span className="text-amber-600">Phương án sai / gây nhiễu</span>
             )}
-            ):
           </span>
           {value && (
             <button
@@ -150,8 +149,8 @@ export function OptionExplanationBox({
           onChange={(e) => onChange(e.target.value)}
           placeholder={
             isCorrect
-              ? `Vì sao đáp án ${labelLetter} là chính xác (cơ sở lịch sử, bối cảnh)...`
-              : `Vì sao học sinh chọn đáp án ${labelLetter} là sai (lỗi nhầm mốc thời gian, sự kiện)...`
+              ? `Vì sao đáp án ${labelLetter} là chính xác: cơ sở lịch sử, bối cảnh...`
+              : `Vì sao đáp án ${labelLetter} chưa chính xác: nhầm mốc thời gian, sự kiện...`
           }
           className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500 leading-relaxed resize-y"
         />

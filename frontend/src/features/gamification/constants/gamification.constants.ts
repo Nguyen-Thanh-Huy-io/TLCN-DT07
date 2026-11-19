@@ -102,9 +102,10 @@ export const GOAL_TARGET_OPTIONS: ReadonlyArray<{
 export const GOAL_PERIOD_OPTIONS: ReadonlyArray<{
   value: GoalPeriod;
   label: string;
+  hint: string;
 }> = [
-  { value: GoalPeriod.WEEKLY, label: 'Hằng tuần (Thứ 2 – Chủ nhật)' },
-  { value: GoalPeriod.DAILY, label: 'Hằng ngày (Hôm nay)' },
+  { value: GoalPeriod.WEEKLY, label: 'Hằng tuần', hint: 'Từ Thứ 2 đến Chủ nhật' },
+  { value: GoalPeriod.DAILY, label: 'Hằng ngày', hint: 'Tính theo từng ngày' },
 ];
 
 export const GOAL_TARGET_UNIT: Record<GoalTargetType, string> = Object.fromEntries(

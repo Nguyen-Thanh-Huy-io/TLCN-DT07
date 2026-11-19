@@ -29,7 +29,7 @@ export function TrueFalseAnswerSelector({
   }> = [
     {
       boolVal: true,
-      title: 'Đúng (True)',
+      title: 'Đúng',
       subtitle: 'Mệnh đề lịch sử nêu trên là hoàn toàn chính xác',
       activeCls: 'border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-500/20 shadow-xs',
       iconBgCls: value === true ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400',
@@ -38,7 +38,7 @@ export function TrueFalseAnswerSelector({
     },
     {
       boolVal: false,
-      title: 'Sai (False)',
+      title: 'Sai',
       subtitle: 'Mệnh đề lịch sử nêu trên có chi tiết chưa chính xác',
       activeCls: 'border-rose-500 bg-rose-50/50 ring-2 ring-rose-500/20 shadow-xs',
       iconBgCls: value === false ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-400',
@@ -51,7 +51,7 @@ export function TrueFalseAnswerSelector({
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <label className="block text-xs font-bold text-slate-800">
-          Đáp án đúng của mệnh đề <span className="text-blue-600 font-normal">(True / False)</span>
+          Đáp án đúng của mệnh đề
         </label>
         <span
           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
@@ -60,7 +60,7 @@ export function TrueFalseAnswerSelector({
               : 'bg-rose-50 text-rose-700 border-rose-200'
           }`}
         >
-          <span>Đáp án đang chọn: {value ? '✓ Đúng (True)' : '✕ Sai (False)'}</span>
+          <span>Đáp án đang chọn: {value ? '✓ Đúng' : '✕ Sai'}</span>
         </span>
       </div>
 
@@ -95,7 +95,7 @@ export function TrueFalseAnswerSelector({
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.badgeCls}`}
                     >
-                      Correct
+                      Đang chọn
                     </span>
                   )}
                 </div>

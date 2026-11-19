@@ -25,6 +25,8 @@ import {
 import { QuestionBankPickerModal } from './QuestionBankPickerModal';
 import { TopicCategoryModalPicker } from './QuestionBankModal';
 import { TreeSelectTrigger } from '@/components/common/TreeSelectModal';
+import type { QuestionBankItem } from '@/services/entities/question.service';
+import { mergeInheritedTopics } from '../utils/question-topic.strategy';
 
 export interface StandaloneQuizEditorModalProps {
   isOpen: boolean;
@@ -54,6 +56,7 @@ export function StandaloneQuizEditorModal({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [topicIds, setTopicIds] = useState<string[]>([]);
+  const [topicSyncNotice, setTopicSyncNotice] = useState(false);
   const [fetchedTopics, setFetchedTopics] = useState<TopicItem[]>([]);
   const topicsList = initialTopics.length > 0 ? initialTopics : fetchedTopics;
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
@@ -100,6 +103,7 @@ export function StandaloneQuizEditorModal({
         setPassingScorePercent(80);
         setQuestions([]);
       }
+      setTopicSyncNotice(false);
     });
 
     return () => {
@@ -109,8 +113,20 @@ export function StandaloneQuizEditorModal({
 
   if (!isOpen) return null;
 
-  const handlePickFromBank = (newQuestions: QuizQuestion[]) => {
-    setQuestions((prev) => [...prev, ...newQuestions]);
+  const handlePickFromBank = (
+    newQuestions: QuizQuestion[],
+    pickedItems: QuestionBankItem[] = []
+  ) => {
+    setQuestions((prev) => {
+      const existingIds = new Set(prev.map((q) => q.id));
+      const uniqueAdded = newQuestions.filter((q) => !existingIds.has(q.id));
+      return [...prev, ...uniqueAdded];
+    });
+    const merged = mergeInheritedTopics(topicIds, pickedItems);
+    if (merged.autoApplied) {
+      setTopicIds(merged.nextTopicIds);
+      setTopicSyncNotice(true);
+    }
   };
 
   const handleRemoveQuestion = (id: string) => {
@@ -180,12 +196,15 @@ export function StandaloneQuizEditorModal({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                  Mô tả mục tiêu đánh giá (Tùy chọn)
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5 flex items-center gap-2">
+                  <span>Mô tả mục tiêu đánh giá</span>
+                  <span className="text-[10px] font-medium normal-case tracking-normal text-slate-400">
+                    Tuỳ chọn
+                  </span>
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Mô tả phạm vi kiến thức, mức độ đánh giá (Nhận biết, Thông hiểu, Vận dụng cao)..."
+                  placeholder="Mô tả phạm vi kiến thức, mức độ đánh giá như nhận biết, thông hiểu, vận dụng cao..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-700 focus:outline-none"
@@ -199,10 +218,13 @@ export function StandaloneQuizEditorModal({
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1.5">
                   <Folder size={13} className="text-slate-400" />
-                  Chủ đề liên kết (Topics)
+                  Chủ đề của đề thi
                 </label>
                 <TreeSelectTrigger
-                  onClick={() => setIsTopicModalOpen(true)}
+                  onClick={() => {
+                    setTopicSyncNotice(false);
+                    setIsTopicModalOpen(true);
+                  }}
                   placeholder="Chọn chủ đề bao phủ..."
                   icon={<Folder size={13} className="text-slate-400 group-hover:text-emerald-600" />}
                   badgeColor="emerald"
@@ -210,14 +232,22 @@ export function StandaloneQuizEditorModal({
                     id,
                     label: topicsList.find((t) => t.id === id)?.name || 'Chủ đề đã chọn',
                   }))}
-                  onRemoveItem={(id) => setTopicIds((prev) => prev.filter((item) => item !== id))}
+                  onRemoveItem={(id) => {
+                    setTopicSyncNotice(false);
+                    setTopicIds((prev) => prev.filter((item) => item !== id));
+                  }}
                 />
+                {topicSyncNotice && (
+                  <p className="text-[11px] text-emerald-700 font-medium mt-1">
+                    Đã tự gắn chủ đề theo câu hỏi vừa chọn
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1.5">
                   <Clock size={13} className="text-slate-400" />
-                  Thời gian làm bài (Phút)
+                  Thời gian làm bài · Phút
                 </label>
                 <input
                   type="number"
@@ -232,7 +262,7 @@ export function StandaloneQuizEditorModal({
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1.5">
                   <Award size={13} className="text-amber-500" />
-                  Điểm đạt chuẩn (%)
+                  Điểm đạt chuẩn · %
                 </label>
                 <input
                   type="number"
@@ -249,8 +279,11 @@ export function StandaloneQuizEditorModal({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Danh sách câu hỏi trong đề ({questions.length} câu)
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                    <span>Danh sách câu hỏi trong đề</span>
+                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold normal-case tracking-normal">
+                      {questions.length} câu
+                    </span>
                   </h4>
                   <p className="text-xs text-slate-500">
                     Câu hỏi được tổng hợp trực tiếp từ Ngân hàng câu hỏi tập trung.

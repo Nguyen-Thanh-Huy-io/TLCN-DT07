@@ -16,6 +16,7 @@ import {
   QuestionDifficultyEnum,
 } from '@/constants/enums';
 import { QuestionBankModal } from './QuestionBankModal';
+import { QuestionTopicMode } from '../utils/question-topic.strategy';
 
 interface QuestionOptionPreview {
   id?: string;
@@ -26,11 +27,11 @@ interface QuestionOptionPreview {
 interface QuestionBankPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onPick: (questions: QuizQuestion[]) => void;
+  onPick: (questions: QuizQuestion[], pickedItems?: QuestionBankItem[]) => void;
   alreadySelectedIds?: string[];
-  /** Chủ đề đang soạn (vd. chủ đề của bài học) — mặc định chỉ hiện câu thuộc chủ đề này, có thể bỏ lọc. */
+  /** Chủ đề đang soạn — mặc định chỉ hiện câu thuộc chủ đề này, có thể bỏ lọc. */
   topicId?: string;
-  /** Chủ đề gắn sẵn cho câu tạo mới ngay trong hộp này (vd. chủ đề của đề đang soạn). */
+  /** Chủ đề gắn sẵn cho câu tạo mới ngay trong hộp này. */
   newQuestionTopicIds?: string[];
 }
 
@@ -123,7 +124,7 @@ export function QuestionBankPickerModal({
       } as QuizQuestion;
     });
 
-    onPick(converted);
+    onPick(converted, pickedItems);
     onClose();
   };
 
@@ -314,6 +315,15 @@ export function QuestionBankPickerModal({
                           Đã có trong đề
                         </span>
                       )}
+                      {q.topics &&
+                        q.topics.slice(0, 2).map((t) => (
+                          <span
+                            key={t.id}
+                            className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded truncate max-w-[140px]"
+                          >
+                            {t.name}
+                          </span>
+                        ))}
                     </div>
 
                     <p className="text-xs font-semibold text-slate-900 leading-relaxed">
@@ -382,6 +392,7 @@ export function QuestionBankPickerModal({
         onClose={() => setIsCreateOpen(false)}
         onSuccess={handleCreated}
         defaultTopicIds={createTopicIds}
+        topicMode={QuestionTopicMode.INHERITED}
       />
     </div>
   );

@@ -75,7 +75,7 @@ export function QuestionBankStats({ facade }: { facade: QuestionBankViewFacade }
       <div className="bg-white p-3.5 px-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
         <div>
           <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-            Trắc nghiệm 1 đáp án (Loại 1)
+            Trắc nghiệm 1 đáp án
           </p>
           <p className="text-xl font-bold text-blue-600 mt-0.5">{stats.singleChoice}</p>
         </div>
@@ -251,7 +251,7 @@ export function QuestionBankTable({ facade }: { facade: QuestionBankViewFacade }
                   />
                 </th>
                 <th className="py-3.5 px-2 w-12 text-center">#</th>
-                <th className="py-3.5 px-4 min-w-[280px]">Nội dung câu hỏi (Prompt)</th>
+                <th className="py-3.5 px-4 min-w-[280px]">Nội dung câu hỏi</th>
                 <th className="py-3.5 px-3 w-40">Dạng câu hỏi</th>
                 <th className="py-3.5 px-3 min-w-[160px]">Chủ đề / Sử dụng</th>
                 <th className="py-3.5 px-3 w-28 text-center">Độ khó</th>
@@ -326,7 +326,7 @@ export function QuestionBankTable({ facade }: { facade: QuestionBankViewFacade }
                           <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                             <span className="shrink-0">
-                              Đáp án đúng{correctOptions.length > 1 ? ` (${correctOptions.length})` : ''}:
+                              Đáp án đúng{correctOptions.length > 1 ? ` · ${correctOptions.length} đáp án` : ''}:
                             </span>
                             <strong className="text-emerald-700 truncate max-w-md">
                               {correctOptions.map((o) => o.text).join(' • ')}
@@ -347,7 +347,7 @@ export function QuestionBankTable({ facade }: { facade: QuestionBankViewFacade }
                                 q.data.correctAnswer ? 'text-emerald-700' : 'text-rose-700'
                               }
                             >
-                              {q.data.correctAnswer ? 'Đúng (True)' : 'Sai (False)'}
+                              {q.data.correctAnswer ? 'Đúng' : 'Sai'}
                             </strong>
                           </div>
                         )}

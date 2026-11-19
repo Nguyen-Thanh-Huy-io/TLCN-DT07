@@ -176,7 +176,7 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-50 w-full bg-gradient-to-r from-[#4E1015] via-[#65171D] to-[#4E1015] backdrop-blur-md border-b border-[#D4AE67]/35 shadow-[0_4px_24px_rgba(40,8,12,0.22)] transition-all">
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-8 h-16 md:h-20 flex items-center justify-between gap-4">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 md:h-20 flex items-center justify-between gap-2 xl:gap-3 2xl:gap-4">
         {/* Left: Logo Hoa Sen + Text HISGO */}
         <Link
           href="/"
@@ -245,7 +245,7 @@ export function Header({
                 key={link.id}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.href, link.id)}
-                className={`relative px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-all duration-200 ${
+                className={`relative px-2.5 2xl:px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-all duration-200 ${
                   isActive
                     ? "bg-gradient-to-r from-[#C99C48] via-[#B8893F] to-[#A67832] text-[#3D0A0E] font-bold shadow-[0_2px_8px_rgba(0,0,0,0.25)] border border-[#F3DEAB]/60"
                     : "text-[#F5EEDC]/85 hover:text-[#FFF9ED] hover:bg-white/10"
@@ -261,7 +261,7 @@ export function Header({
             <button
               type="button"
               onClick={() => setExploreOpen((v) => !v)}
-              className="flex items-center gap-1 px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap text-[#F5EEDC]/85 hover:text-[#FFF9ED] hover:bg-white/10 transition-all duration-200"
+              className="flex items-center gap-1 px-2.5 2xl:px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap text-[#F5EEDC]/85 hover:text-[#FFF9ED] hover:bg-white/10 transition-all duration-200"
             >
               <span>Khám phá</span>
               <ChevronDown size={14} className={`transition-transform duration-200 ${exploreOpen ? "rotate-180" : ""}`} />
@@ -294,7 +294,7 @@ export function Header({
           {/* Link Luyện tập */}
           <Link
             href="/luyen-tap"
-            className={`relative px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-all duration-200 ${
+            className={`relative px-2.5 2xl:px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-all duration-200 ${
               pathname?.startsWith("/luyen-tap")
                 ? "bg-gradient-to-r from-[#C99C48] via-[#B8893F] to-[#A67832] text-[#3D0A0E] font-bold shadow-[0_2px_8px_rgba(0,0,0,0.25)] border border-[#F3DEAB]/60"
                 : "text-[#F5EEDC]/85 hover:text-[#FFF9ED] hover:bg-white/10"

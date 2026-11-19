@@ -91,7 +91,7 @@ function AchievementCard({ item }: { item: AchievementProgressItem }) {
 
   return (
     <div
-      className={`rounded-2xl border p-4 transition ${
+      className={`flex h-full flex-col rounded-2xl border p-4 transition ${
         unlocked
           ? 'border-[#D4AE67] bg-gradient-to-br from-[#FFFDF7] to-[#F9EFE0] shadow-xs'
           : 'border-[#E2D5B8] bg-white/75 opacity-80'
@@ -123,7 +123,7 @@ function AchievementCard({ item }: { item: AchievementProgressItem }) {
       <h4 className="mt-3 text-sm font-bold text-[#2D1A10]">{item.title}</h4>
       <p className="mt-1 text-xs leading-relaxed text-[#7A6B57]">{item.description}</p>
 
-      <div className="mt-3">
+      <div className="mt-auto pt-3">
         <div className="mb-1 flex items-center justify-between text-[11px] font-bold text-[#7A6B57]">
           <span>
             {Math.min(item.currentValue, item.threshold)}/{item.threshold}
@@ -225,13 +225,13 @@ export function GamificationSection({
         </div>
       </section>
 
-      {/* 2. Mục tiêu học tập (Goal Aim) */}
+      {/* 2. Mục tiêu học tập */}
       <section className="rounded-2xl border border-[#E2D5B8] bg-[#FAF6EA] p-5 sm:p-6 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#2D1A10] flex items-center gap-2">
               <Target size={18} className="text-emerald-700" />
-              Mục tiêu học tập (Goal Aim)
+              Mục tiêu học tập
             </h3>
             <p className="mt-0.5 text-xs text-[#7A6B57]">
               Giữ 1 cam kết nhịp học tuần chính và tối đa 3 chỉ tiêu chi tiết tự chọn.
@@ -278,7 +278,10 @@ export function GamificationSection({
           <div>
             <h3 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#2D1A10] flex items-center gap-2">
               <Trophy size={18} className="text-[#C99C48]" />
-              Huy hiệu thành tựu ({unlockedCount}/{overview.achievements.length})
+              <span>Huy hiệu thành tựu</span>
+              <span className="rounded-full bg-[#EFE3C7] px-2.5 py-0.5 text-xs font-extrabold text-[#7A1F24]">
+                {unlockedCount}/{overview.achievements.length}
+              </span>
             </h3>
             <p className="mt-0.5 text-xs text-[#7A6B57]">
               Tự động mở khóa và cộng XP thưởng khi bạn hoàn thành các cột mốc học tập.

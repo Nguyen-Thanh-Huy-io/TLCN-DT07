@@ -10,6 +10,11 @@ import { TreeSelectTrigger, TreeSelectModal, buildTopicTreeNodes } from '@/compo
 import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
 import { TimelineOrderingItemsEditor } from '@/components/common/TimelineOrderingItemsEditor';
 import { QuestionOptionsEditor } from './QuestionOptionsEditor';
+import {
+  QuestionTopicMode,
+  resolveQuestionTopicStrategy,
+  resolveTopicNames,
+} from '../utils/question-topic.strategy';
 
 // --- QuestionTypeCardSelector.tsx ---
 export interface QuestionTypeCardSelectorProps {
@@ -85,6 +90,7 @@ export interface QuestionCategorySectionProps {
   topicsList: TopicItem[];
   onOpenTopicModal: () => void;
   onRemoveTopic: (id: string) => void;
+  topicMode?: QuestionTopicMode;
 }
 
 export function QuestionCategorySection({
@@ -94,12 +100,16 @@ export function QuestionCategorySection({
   topicsList,
   onOpenTopicModal,
   onRemoveTopic,
+  topicMode = QuestionTopicMode.BANK,
 }: QuestionCategorySectionProps) {
+  const strategy = resolveQuestionTopicStrategy(topicMode);
+  const inheritedNames = resolveTopicNames(topicIds, topicsList);
+
   return (
     <div className="lg:col-span-4 space-y-2.5">
       <div>
         <label className="block text-xs font-semibold text-slate-700 mb-1">
-          Điểm số <span className="text-slate-400 font-normal">(Question Mark)</span>
+          Điểm số
         </label>
         <input
           type="number"
@@ -112,29 +122,70 @@ export function QuestionCategorySection({
         />
       </div>
 
-      <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1">
-          Phân loại / Chủ đề <span className="text-slate-400 font-normal">(Topics)</span>
-        </label>
-        <TreeSelectTrigger
-          onClick={onOpenTopicModal}
-          placeholder="Chung (Bấm để chọn chủ đề...)"
-          icon={<Folder size={13} className="text-slate-400 group-hover:text-emerald-600" />}
-          badgeColor="emerald"
-          selectedItems={topicIds.map((id) => ({
-            id,
-            label: topicsList.find((t) => t.id === id)?.name || 'Chủ đề đã chọn',
-          }))}
-          onRemoveItem={onRemoveTopic}
-        />
-      </div>
+      {strategy.collapsedByDefault ? (
+        <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 px-3 py-2.5 space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-900">
+              <Folder size={13} className="text-emerald-600 shrink-0" />
+              <span>{strategy.inheritedPrefix}</span>
+            </span>
+            <button
+              type="button"
+              onClick={onOpenTopicModal}
+              className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 underline cursor-pointer shrink-0"
+            >
+              {strategy.customizeActionLabel}
+            </button>
+          </div>
+          {topicIds.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {(inheritedNames.length > 0 ? inheritedNames : topicIds.map(() => 'Chủ đề đã gắn'))
+                .slice(0, 2)
+                .map((name, idx) => (
+                  <span
+                    key={`${topicIds[idx] ?? idx}`}
+                    title={name}
+                    className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-emerald-200 text-[11px] font-medium text-emerald-900 max-w-full leading-snug"
+                  >
+                    {name}
+                  </span>
+                ))}
+              {topicIds.length > 2 && (
+                <span className="text-[11px] font-semibold text-emerald-700 px-1">
+                  +{topicIds.length - 2} khác
+                </span>
+              )}
+            </div>
+          ) : (
+            <p className="text-[11px] text-slate-600">{strategy.emptyInheritedText}</p>
+          )}
+        </div>
+      ) : (
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            {strategy.label}
+          </label>
+          <TreeSelectTrigger
+            onClick={onOpenTopicModal}
+            placeholder={strategy.placeholder}
+            icon={<Folder size={13} className="text-slate-400 group-hover:text-emerald-600" />}
+            badgeColor="emerald"
+            selectedItems={topicIds.map((id) => ({
+              id,
+              label: topicsList.find((t) => t.id === id)?.name || 'Chủ đề đã chọn',
+            }))}
+            onRemoveItem={onRemoveTopic}
+          />
+          <p className="text-[11px] text-slate-400 mt-1">{strategy.helperText}</p>
+        </div>
+      )}
     </div>
   );
 }
 
 // --- CategoryTreePicker.tsx ---
 // ============================================================================
-// 1. MODAL CHỌN NHIỀU CHỦ ĐỀ (SELECT A CATEGORY - REUSING TREESELECTMODAL)
+// 1. MODAL CHỌN NHIỀU CHỦ ĐỀ - REUSING TREESELECTMODAL
 // ============================================================================
 
 export interface TopicCategoryModalProps {
@@ -158,8 +209,8 @@ export function TopicCategoryModalPicker({
     <TreeSelectModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Select a category"
-      subtitle="Chọn một hoặc nhiều Chủ đề"
+      title="Chọn chủ đề"
+      subtitle="Chọn một hoặc nhiều chủ đề lịch sử"
       nodes={nodes}
       selectedIds={selectedTopicIds}
       onChangeSelected={onChangeSelected}
@@ -315,19 +366,22 @@ export interface QuestionModalFooterProps {
   onSubmit: () => void;
 }
 
+const FOOTER_BANK_SUFFIX = 'Lưu vào Ngân hàng trung tâm';
+
+const QUESTION_TYPE_FOOTER_LABELS: Record<QuizQuestionType, string> = {
+  [QuizQuestionType.SINGLE_CHOICE]: 'Loại 1: Trắc nghiệm 1 đáp án',
+  [QuizQuestionType.MULTIPLE_CHOICE]: 'Loại 2: Trắc nghiệm nhiều đáp án đúng',
+  [QuizQuestionType.TRUE_FALSE]: 'Loại 3: Câu hỏi Đúng / Sai',
+  [QuizQuestionType.ORDERING]: 'Loại 4: Sắp xếp dòng thời gian',
+  [QuizQuestionType.MATCHING]: 'Loại 5: Ghép nối cặp thông tin',
+  [QuizQuestionType.FILL_IN_BLANK]: 'Loại 6: Điền vào chỗ trống',
+};
+
 export function getQuestionTypeFooterLabel(type: QuizQuestionType): string {
-  switch (type) {
-    case QuizQuestionType.MATCHING:
-      return 'Loại 5: Ghép nối cặp thông tin (Matching Pairs) • Lưu vào Ngân hàng trung tâm';
-    case QuizQuestionType.ORDERING:
-      return 'Loại 4: Sắp xếp dòng thời gian (Timeline Order) • Lưu vào Ngân hàng trung tâm';
-    case QuizQuestionType.TRUE_FALSE:
-      return 'Loại 3: Câu hỏi Đúng / Sai (True / False) • Lưu vào Ngân hàng trung tâm';
-    case QuizQuestionType.MULTIPLE_CHOICE:
-      return 'Loại 2: Trắc nghiệm nhiều đáp án đúng (Multiple Choice / Check Box) • Lưu vào Ngân hàng trung tâm';
-    default:
-      return 'Loại 1: Trắc nghiệm 1 đáp án (Single Choice / Radio Button) • Lưu vào Ngân hàng trung tâm';
-  }
+  const title =
+    QUESTION_TYPE_FOOTER_LABELS[type] ??
+    QUESTION_TYPE_FOOTER_LABELS[QuizQuestionType.SINGLE_CHOICE];
+  return `${title} • ${FOOTER_BANK_SUFFIX}`;
 }
 
 export function QuestionModalFooter({

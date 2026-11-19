@@ -57,8 +57,7 @@ export function TimelineOrderingItemsEditor({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <label className="block text-xs font-bold text-slate-800">
-            Các mốc sự kiện theo dòng thời gian{' '}
-            <span className="text-blue-600 font-normal">(Timeline Milestones)</span>
+            Các mốc sự kiện theo dòng thời gian
           </label>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
             <Clock size={12} />
@@ -67,7 +66,7 @@ export function TimelineOrderingItemsEditor({
         </div>
 
         <span className="text-[11px] text-slate-400">
-          Nhập hoặc <strong>kéo thả / bấm ▲▼</strong> theo đúng thứ tự thời gian thật (từ trước đến sau)
+          Nhập hoặc <strong>kéo thả / bấm ▲▼</strong> theo đúng thứ tự thời gian từ trước đến sau
         </span>
       </div>
 
@@ -132,7 +131,7 @@ export function TimelineOrderingItemsEditor({
                 type="text"
                 value={item.label}
                 onChange={(e) => handleUpdateLabel(item.id, e.target.value)}
-                placeholder={`Nội dung mốc sự kiện thứ ${idx + 1} (ví dụ: 18/12/1972 - Mỹ mở cuộc tập kích B-52)...`}
+                placeholder={`Nội dung mốc sự kiện thứ ${idx + 1}, ví dụ: 18/12/1972 - Mỹ mở cuộc tập kích B-52...`}
                 className="flex-1 text-xs sm:text-sm p-1 bg-transparent border-0 focus:outline-none text-slate-900 placeholder:text-slate-400"
               />
 
@@ -178,7 +177,7 @@ export function TimelineOrderingItemsEditor({
         className="w-full py-2.5 border border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/40 rounded-xl text-xs font-semibold text-blue-600 transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
       >
         <Plus size={14} />
-        <span>Thêm mốc sự kiện (Add Milestone)</span>
+        <span>Thêm mốc sự kiện</span>
       </button>
     </div>
   );

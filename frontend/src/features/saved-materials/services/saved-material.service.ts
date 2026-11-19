@@ -9,19 +9,16 @@ import {
   type SavableMaterialKind,
 } from '../constants/saved-material.constants';
 
-export interface SavedMaterialSnapshot {
-  articleIds: string[];
-  lessonIds: string[];
-  timelineNodeIds: string[];
-}
+import {
+  EMPTY_SAVED_MATERIAL_SNAPSHOT,
+  normalizeSavedMaterialSnapshot,
+  unwrapSavedToggleResult,
+  type NormalizedSavedMaterialSnapshot,
+} from '../utils/saved-material.normalizer';
 
-const EMPTY_SNAPSHOT: SavedMaterialSnapshot = {
-  articleIds: [],
-  lessonIds: [],
-  timelineNodeIds: [],
-};
+export type SavedMaterialSnapshot = NormalizedSavedMaterialSnapshot;
 
-let cachedSnapshot: SavedMaterialSnapshot = EMPTY_SNAPSHOT;
+let cachedSnapshot: SavedMaterialSnapshot = EMPTY_SAVED_MATERIAL_SNAPSHOT;
 let inFlightFetch: Promise<SavedMaterialSnapshot> | null = null;
 const listeners = new Set<() => void>();
 
@@ -42,15 +39,16 @@ function getSnapshot(): SavedMaterialSnapshot {
 }
 
 function getServerSnapshot(): SavedMaterialSnapshot {
-  return EMPTY_SNAPSHOT;
+  return EMPTY_SAVED_MATERIAL_SNAPSHOT;
 }
 
 /** Nạp lại tư liệu đã lưu từ server; các hook `useSavedMaterialsSnapshot` đang mount sẽ tự cập nhật. */
 export async function refetchSavedMaterials(): Promise<SavedMaterialSnapshot> {
   if (!inFlightFetch) {
     inFlightFetch = api
-      .get<SavedMaterialSnapshot>(SAVED_MATERIAL_API.ROOT)
-      .then((res) => res.data ?? EMPTY_SNAPSHOT)
+      .get(SAVED_MATERIAL_API.ROOT)
+      .then((res) => normalizeSavedMaterialSnapshot(res.data))
+      .catch(() => cachedSnapshot)
       .finally(() => {
         inFlightFetch = null;
       });
@@ -78,12 +76,12 @@ export async function toggleSavedMaterial(
   kind: SavableMaterialKind,
   targetId: string,
 ): Promise<boolean> {
-  const res = await api.post<{ saved: boolean }>(SAVED_MATERIAL_API.TOGGLE, {
+  const res = await api.post(SAVED_MATERIAL_API.TOGGLE, {
     kind,
     targetId,
   });
   await refetchSavedMaterials();
-  return res.data.saved;
+  return unwrapSavedToggleResult(res.data);
 }
 
 /** Bỏ lưu trực tiếp một mốc dấu mộc lịch sử đã ghim (tab "Yêu thích"). */

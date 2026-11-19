@@ -41,6 +41,19 @@ export function GoalAimModal({
   if (!open) return null;
 
   const isCustom = selectedPreset === GoalPresetKey.CUSTOM;
+  const targetOptions =
+    period === GoalPeriod.DAILY
+      ? GOAL_TARGET_OPTIONS.filter((opt) => opt.value !== GoalTargetType.STUDY_DAYS)
+      : GOAL_TARGET_OPTIONS;
+  const activeUnit =
+    GOAL_TARGET_OPTIONS.find((opt) => opt.value === targetType)?.unitLabel ?? 'lần';
+
+  const handlePeriodChange = (nextPeriod: GoalPeriod) => {
+    setPeriod(nextPeriod);
+    if (nextPeriod === GoalPeriod.DAILY && targetType === GoalTargetType.STUDY_DAYS) {
+      setTargetType(GoalTargetType.COMPLETE_LESSONS);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +89,7 @@ export function GoalAimModal({
       aria-labelledby="goal-aim-modal-title"
     >
       <div
-        className="relative w-full max-w-lg rounded-3xl border border-[#E2D5B8] bg-[#FAF6EA] p-6 sm:p-8 shadow-2xl"
+        className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-3xl border border-[#E2D5B8] bg-[#FAF6EA] p-5 sm:p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -88,21 +101,21 @@ export function GoalAimModal({
           <X size={18} />
         </button>
 
-        <div className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl border border-[#D4AE67]/50 bg-gradient-to-br from-[#FFF6E3] to-[#F3DEAB] text-[#7A1F24] shadow-xs">
-          <Target size={24} />
+        <div className="mx-auto mb-2.5 grid size-10 place-items-center rounded-2xl border border-[#D4AE67]/50 bg-gradient-to-br from-[#FFF6E3] to-[#F3DEAB] text-[#7A1F24] shadow-xs">
+          <Target size={20} />
         </div>
 
         <h2
           id="goal-aim-modal-title"
-          className="text-center font-[family-name:var(--font-heading)] text-xl sm:text-2xl font-bold text-[#2D1A10]"
+          className="text-center font-[family-name:var(--font-heading)] text-lg sm:text-xl font-bold text-[#2D1A10]"
         >
           Giữ nhịp học sử đều đặn mỗi tuần
         </h2>
-        <p className="mt-1.5 text-center text-xs sm:text-sm text-[#7A6B57]">
-          Chọn mức cam kết phù hợp để HISGO theo dõi tiến độ và giúp bạn giữ vững chuỗi học tập.
+        <p className="mt-1 text-center text-xs text-[#7A6B57]">
+          Chọn mức cam kết phù hợp để HISGO theo dõi tiến độ và giữ vững chuỗi học tập.
         </p>
 
-        <form onSubmit={(e) => void handleSubmit(e)} className="mt-5 space-y-2.5">
+        <form onSubmit={(e) => void handleSubmit(e)} className="mt-4 space-y-2">
           {GOAL_PRESET_CARDS.map((card) => {
             const active = selectedPreset === card.key;
             return (
@@ -121,7 +134,7 @@ export function GoalAimModal({
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span
-                    className={`grid size-9 shrink-0 place-items-center rounded-xl border text-xs font-extrabold ${card.badgeBgClass} ${card.badgeTextClass}`}
+                    className={`grid size-8 shrink-0 place-items-center rounded-xl border text-xs font-extrabold ${card.badgeBgClass} ${card.badgeTextClass}`}
                   >
                     {card.badgeText}
                   </span>
@@ -151,9 +164,9 @@ export function GoalAimModal({
                   <select
                     value={targetType}
                     onChange={(e) => setTargetType(e.target.value as GoalTargetType)}
-                    className="mt-1 w-full rounded-xl border border-[#E2D5B8] bg-[#FAF6EA] px-3 py-2 text-xs font-medium text-[#2D1A10] outline-none focus:border-[#7A1F24]"
+                    className="mt-1.5 h-9 w-full rounded-xl border border-[#E2D5B8] bg-[#FAF6EA] px-3 text-xs font-semibold text-[#2D1A10] outline-none focus:border-[#7A1F24]"
                   >
-                    {GOAL_TARGET_OPTIONS.map((opt) => (
+                    {targetOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
@@ -161,36 +174,50 @@ export function GoalAimModal({
                   </select>
                 </label>
 
-                <label className="block text-xs">
-                  <span className="font-bold text-[#2D1A10]">Chu kỳ</span>
-                  <select
-                    value={period}
-                    onChange={(e) => setPeriod(e.target.value as GoalPeriod)}
-                    className="mt-1 w-full rounded-xl border border-[#E2D5B8] bg-[#FAF6EA] px-3 py-2 text-xs font-medium text-[#2D1A10] outline-none focus:border-[#7A1F24]"
-                  >
-                    {GOAL_PERIOD_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="block text-xs">
+                  <span className="font-bold text-[#2D1A10]">Chu kỳ theo dõi</span>
+                  <div className="mt-1.5 grid h-9 grid-cols-2 gap-1 rounded-xl border border-[#E2D5B8] bg-[#FAF6EA] p-1">
+                    {GOAL_PERIOD_OPTIONS.map((opt) => {
+                      const activePeriod = period === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          title={opt.hint}
+                          onClick={() => handlePeriodChange(opt.value)}
+                          className={`rounded-lg text-xs font-bold transition cursor-pointer ${
+                            activePeriod
+                              ? 'bg-[#7A1F24] text-white shadow-2xs'
+                              : 'text-[#7A6B57] hover:text-[#2D1A10]'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                 <label className="block text-xs">
                   <span className="font-bold text-[#2D1A10]">Số lượng mục tiêu</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={200}
-                    value={targetValue}
-                    onChange={(e) => setTargetValue(Number(e.target.value))}
-                    className="mt-1 w-full rounded-xl border border-[#E2D5B8] bg-[#FAF6EA] px-3 py-2 text-xs font-bold text-[#2D1A10] outline-none focus:border-[#7A1F24]"
-                  />
+                  <div className="mt-1.5 flex h-9 items-center overflow-hidden rounded-xl border border-[#E2D5B8] bg-[#FAF6EA] focus-within:border-[#7A1F24]">
+                    <input
+                      type="number"
+                      min={1}
+                      max={200}
+                      value={targetValue}
+                      onChange={(e) => setTargetValue(Number(e.target.value))}
+                      className="h-full w-full bg-transparent px-3 text-xs font-bold text-[#2D1A10] outline-none"
+                    />
+                    <span className="shrink-0 border-l border-[#E2D5B8] bg-[#F5EEDC] px-2.5 text-[11px] font-semibold text-[#7A6B57] h-full flex items-center">
+                      {activeUnit}
+                    </span>
+                  </div>
                 </label>
 
-                <label className="flex items-center gap-2 rounded-xl border border-[#E2D5B8] bg-[#FAF6EA] px-3 py-2 text-xs cursor-pointer">
+                <label className="flex h-9 items-center gap-2 rounded-xl border border-[#E2D5B8] bg-[#FAF6EA] px-3 text-xs cursor-pointer hover:border-[#C99C48]">
                   <input
                     type="checkbox"
                     checked={isPrimary}

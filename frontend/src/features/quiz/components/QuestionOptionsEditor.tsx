@@ -45,30 +45,30 @@ export function QuestionOptionsEditor({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <label className="block text-xs font-bold text-slate-800">
-            Các phương án lựa chọn <span className="text-blue-600 font-normal">(Options)</span>
+            Các phương án lựa chọn
           </label>
           {isMultiple ? (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
               <CheckSquare size={12} />
               <span>
-                Chế độ Check Box: Đang chọn {correctCount}/{options.length} đáp án đúng
+                Nhiều đáp án: Đang chọn {correctCount}/{options.length} đáp án đúng
               </span>
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
               <CircleDot size={12} />
-              <span>Chế độ Radio: 1 đáp án đúng duy nhất</span>
+              <span>Chế độ 1 đáp án đúng duy nhất</span>
             </span>
           )}
         </div>
         <span className="text-[11px] text-slate-400">
           {isMultiple ? (
             <>
-              Tích chọn ô <strong>Correct</strong> tại <strong>một hoặc nhiều</strong> phương án đúng
+              Tích chọn nút <strong>Đúng</strong> tại <strong>một hoặc nhiều</strong> phương án
             </>
           ) : (
             <>
-              Tích chọn ô <strong>Correct</strong> tại phương án đúng duy nhất
+              Tích chọn nút <strong>Đúng</strong> tại phương án đúng duy nhất
             </>
           )}
         </span>
@@ -156,7 +156,7 @@ export function QuestionOptionsEditor({
                   ) : (
                     <span className="w-3 h-3 rounded-xs border border-slate-300" />
                   )}
-                  <span>Correct</span>
+                  <span>Đúng</span>
                 </button>
 
                 <button
@@ -188,7 +188,7 @@ export function QuestionOptionsEditor({
         className="w-full py-2.5 border border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/40 rounded-xl text-xs font-semibold text-blue-600 transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
       >
         <Plus size={14} />
-        <span>Thêm phương án lựa chọn (Add Option)</span>
+        <span>Thêm phương án lựa chọn</span>
       </button>
     </div>
   );

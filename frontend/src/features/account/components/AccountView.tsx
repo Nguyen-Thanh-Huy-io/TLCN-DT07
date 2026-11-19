@@ -72,7 +72,10 @@ export function AccountView() {
   const [goalModalPrimary, setGoalModalPrimary] = useState(true);
   const [savedCountOverride, setSavedCountOverride] = useState<number | null>(null);
   const savedSnapshot = useSavedMaterialsSnapshot(Boolean(user?.id));
-  const storedSavedCount = new Set([...savedSnapshot.articleIds, ...savedSnapshot.timelineNodeIds]).size;
+  const storedSavedCount = new Set([
+    ...(savedSnapshot?.articleIds ?? []),
+    ...(savedSnapshot?.timelineNodeIds ?? []),
+  ]).size;
   const savedCount = savedCountOverride ?? storedSavedCount;
 
   const { enrolledPathIds, completedIds } = useLessonProgress();
@@ -123,7 +126,7 @@ export function AccountView() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-page,#F5EEDC)] text-[var(--text-body,#2D1A10)]">
+    <div className="min-h-screen overflow-x-clip bg-[var(--bg-page,#F5EEDC)] text-[var(--text-body,#2D1A10)]">
       <Header activeTab="account" />
 
       {/* 1. HERO COVER BANNER HOÀNG GIA (HERITAGE PROFILE COVER) */}
@@ -297,7 +300,7 @@ export function AccountView() {
         ) : (
           <div className="space-y-8">
             {/* Thanh điều hướng Tab phong cách Viên thuốc Capsule hoàng gia */}
-            <div className="flex items-center gap-2 overflow-x-auto p-1.5 rounded-2xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-surface,#FAF6EA)] shadow-xs scrollbar-none">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 p-1.5 rounded-2xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-surface,#FAF6EA)] shadow-xs">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -306,7 +309,7 @@ export function AccountView() {
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                    className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                       isActive
                         ? 'bg-gradient-to-r from-[#7A1F24] to-[#91252B] text-white shadow-sm'
                         : 'text-[var(--text-muted,#7A6B57)] hover:bg-[#F5EEDC] hover:text-[var(--text-body,#2D1A10)]'

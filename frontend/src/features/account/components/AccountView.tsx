@@ -23,7 +23,8 @@ import { useAuthSession } from '@/services/auth/use-auth-session';
 import { PublicAuthService, USER_ROLE_LABELS, isStaffRole } from '@/services/auth/public-auth.service';
 import { AccountApiService, type MyProfile } from '@/services/auth/account.service';
 import { extractErrorMessage } from '@/services/api';
-import { ProfileSection, LearningSection, SecuritySection, SavedBookmarksSection } from './AccountSections';
+import { ProfileSection, SecuritySection } from './AccountSections';
+import { LearningSection, SavedBookmarksSection } from './AccountLearningSections';
 import { RemoteImage } from '@/components/common/RemoteImage';
 import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonReaderHooks';
 

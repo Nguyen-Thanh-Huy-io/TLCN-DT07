@@ -169,6 +169,27 @@ Chi tiết từng lỗi ở [CODE_AUDIT.md](CODE_AUDIT.md) Mục 9.
 
 ---
 
+## Pha 8 — Gamification + Saved Materials (2026-11-19/20)
+
+Chi tiết từng lỗi ở [CODE_AUDIT.md](CODE_AUDIT.md) mục 10.1/10.2.
+
+- [x] **[ĐÃ SỬA ✅]** Flashcard review farm XP không giới hạn (thiếu `dedupKey`) — thêm `dedupKey` theo ngày.
+- [x] **[ĐÃ SỬA ✅]** Quiz XP hardcode (30/10) bỏ qua `ACTIVITY_XP_MAP` — thêm hằng số `QUIZ_XP_BY_RESULT`.
+- [x] **[ĐÃ SỬA ✅]** `unlockIdempotent()` tạo huy hiệu + cộng XP không atomic (mất XP vĩnh viễn khi lỗi DB thoáng qua) — gộp vào 1 `$transaction`.
+- [x] **[ĐÃ SỬA ✅]** `getOverview()` streak header và tiến độ huy hiệu đọc 2 nguồn khác nhau, tự mâu thuẫn — dùng chung giá trị đã "decay".
+- [x] **[ĐÃ SỬA ✅]** `processLearningActivity()` ghi phụ thuộc không trong transaction (vi phạm `CLAUDE.md`) — bọc `applyActivityToStats`+`syncGoalsOnActivity` trong `$transaction` dùng chung client `tx`.
+- [x] **[ĐÃ SỬA ✅]** `applyActivityToStats()` ghi streak tuyệt đối không atomic, race giữa 2 sự kiện gần nhau — thêm `SELECT ... FOR UPDATE`.
+- [x] **[ĐÃ SỬA ✅]** `computeNextStreakCounters()` reset streak sai khi sự kiện xử lý không đúng thứ tự (`dayDiff` âm) — coi `dayDiff <= 0` như cùng ngày, chặn ghi lùi `lastActiveDate`.
+- [x] **[ĐÃ SỬA ✅] Bookmark/"tư liệu đã lưu" toàn bộ dựa `localStorage`** (lặp lại độc lập ở ≥5 file, 4 feature: mindmap, reading-aids, account, flashcards) — vi phạm rule "100% dữ liệu từ Database". Thêm bảng `SavedMaterial` + module backend `saved-material/` + service/hook dùng chung `frontend/src/features/saved-materials/`, sửa lại cả 6 file tiêu thụ. Test mới `saved-material.service.spec.ts` (5 test), verify end-to-end bằng curl thật lên dev server.
+- [x] Backend: `npm test` PASS 63/63 suites (581/581 tests), `tsc --noEmit` 0 lỗi cả 2 phía, `eslint` module `gamification/`+`saved-material/` 0 lỗi (lỗi format còn lại ở `flashcard/`+`note.service.spec.ts` không thuộc phạm vi phiên này, xem Pha 9).
+- [ ] Chưa làm (ngoài phạm vi, ghi nhận để làm sau): `MindmapCanvas.tsx`/`MindmapNodeInspector.tsx`/`MindmapReferenceDrawer.tsx`/`mindmap-layout.strategy.ts` vượt ngưỡng kích thước, chưa phân rã theo mẫu Lesson Editor (xem CODE_AUDIT.md mục 10.3).
+
+## Pha 9 — Dọn lỗi lint phát hiện khi chạy lại 2026-11-20 (chưa làm)
+
+- [ ] `backend/src/flashcard/flashcard-ai.service.ts` — Cognitive Complexity 25/15 ở `buildHeuristicCards` (dòng 412); `no-unsafe-argument` ở dòng 252, 270 (`any[]` truyền vào `SourceWrongQuestion[]`); đọc `process.env.GEMINI_API_KEY`/`GEMINI_MODEL` trực tiếp (dòng 247, 333) — cùng lỗi với `moderation-ai.service.ts`/`mindmap-ai.service.ts` (3 bản sao độc lập).
+- [ ] 23 lỗi format Prettier rải trong `flashcard/flashcard.dto.ts`, `flashcard-ai.service.ts`, `flashcard-ai.service.spec.ts`, `flashcard.controller.ts`, `note/note.service.spec.ts` — chạy `eslint --fix` là xong, chưa chạy vì ngoài phạm vi task đang làm khi phát hiện.
+- [ ] Chưa chạy lại `eslint` toàn bộ frontend từ 2026-11-12 (nhiều file đã đổi từ đó) — cần chạy lại để biết số liệu "0 errors/0 warnings" còn đúng không.
+
 ## Ghi chú vận hành
 
 - Mỗi pha/mục nên là 1 commit hoặc 1 PR riêng theo conventional commits (`fix(scope):`, `refactor(scope):`, `chore(scope):`).

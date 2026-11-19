@@ -368,7 +368,7 @@ export function ArticleBrowser({
 
       <button
         type="button"
-        className="sk-toc-floating-side-tab"
+        className="fixed right-0 top-1/2 z-40 flex -translate-y-1/2 items-center gap-1.5 rounded-l-xl border border-r-0 border-[#E2D5B8] bg-[#FFFCF5]/95 px-3 py-2.5 text-xs font-bold text-[#7A1F24] shadow-lg backdrop-blur-xs transition hover:bg-[#F5EEDC] hover:pr-4 cursor-pointer"
         onClick={() => setTocOpen(true)}
         title="Mục lục chủ đề bài viết"
         aria-label="Mở mục lục chủ đề"

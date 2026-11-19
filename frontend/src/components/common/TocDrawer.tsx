@@ -50,14 +50,23 @@ export function TopicBlockSection<T>({
   const total = block.leaves.reduce((n, l) => n + l.items.length, 0);
   return (
     <section className="sk-era-section" id={`topic-${block.id}`}>
-      <button type="button" className="sk-era-banner sk-button" onClick={() => setOpen((v) => !v)}>
-        <span>
-          <strong>{block.name}</strong>
-          <small>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="mb-4 flex w-full items-center justify-between gap-4 rounded-2xl border border-[#E2D5B8] bg-[#FAF6EA] px-5 py-3.5 text-left shadow-xs transition hover:border-[#B8893F] cursor-pointer"
+      >
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+          <strong className="font-[family-name:var(--font-heading)] text-base font-bold text-[#2D1A10] sm:text-lg">
+            {block.name}
+          </strong>
+          <small className="text-xs font-semibold text-[#7A6B57]">
             {total} {itemLabel} · {block.leaves.length} chủ đề con
           </small>
         </span>
-        <ChevronDown size={16} className={open ? '' : 'sk-rotate'} />
+        <ChevronDown
+          size={18}
+          className={`shrink-0 text-[#7A1F24] transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+        />
       </button>
       {open && children}
     </section>

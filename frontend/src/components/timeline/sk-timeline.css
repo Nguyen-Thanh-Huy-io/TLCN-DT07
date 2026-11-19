@@ -9,11 +9,11 @@
   --surface: var(--bg-surface, #FAF6EA);
   --text: var(--text-body, #2D1A10);
   --muted: var(--text-muted, #7A6B57);
-  --border: var(--border, #E2D5B8);
+  --border: #E2D5B8;
   --soft: #EFE7D3;
   --accent: var(--primary, #7A1F24);
-  --gold: var(--gold, #B8893F);
-  --gold-light: var(--gold-light, #D4AE67);
+  --gold: #B8893F;
+  --gold-light: #D4AE67;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;

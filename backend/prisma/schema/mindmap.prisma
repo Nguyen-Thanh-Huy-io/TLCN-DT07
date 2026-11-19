@@ -1,0 +1,19 @@
+// ================================
+// Mindmap — Sơ đồ tư duy Lịch sử (Freeform Canvas)
+// Bảng mới độc lập, không sửa đổi các bảng cũ.
+// ================================
+
+model StudyMindmap {
+  id          String   @id @default(uuid())
+  ownerId     String   @map("owner_id")
+  title       String   @db.VarChar(150)
+  periodLabel String?  @map("period_label") @db.VarChar(80)
+  template    String   @default("SPIDER") @db.VarChar(30)
+  /// { nodes: MindmapNode[], edges: MindmapEdge[] }
+  graph       Json     @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([ownerId, updatedAt])
+  @@map("study_mindmaps")
+}

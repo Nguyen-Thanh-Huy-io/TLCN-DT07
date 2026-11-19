@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Mail,
+  Network,
   ShieldCheck,
   Sparkles,
   Trophy,
@@ -27,6 +28,7 @@ import { extractErrorMessage } from '@/services/api';
 import { ProfileSection, SecuritySection } from './AccountSections';
 import { LearningSection, SavedBookmarksSection } from './AccountLearningSections';
 import { FlashcardsSection } from '@/features/flashcards/components/FlashcardsSection';
+import { MindmapsSection } from '@/features/mindmap/components/MindmapsSection';
 import { RemoteImage } from '@/components/common/RemoteImage';
 import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonReaderHooks';
 
@@ -35,6 +37,7 @@ export enum AccountTabKey {
   LEARNING = 'hoc-tap',
   BOOKMARKS = 'tu-lieu',
   FLASHCARDS = 'the-ghi-nho',
+  MINDMAPS = 'so-do-tu-duy',
   SECURITY = 'bao-mat',
 }
 
@@ -50,6 +53,33 @@ function displayName(profile: MyProfile): string {
   return full || profile.username;
 }
 
+const SAVED_CHANGE_EVENT = 'hisgo:saved-change';
+
+function subscribeSavedStorage(callback: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener('storage', callback);
+  window.addEventListener(SAVED_CHANGE_EVENT, callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener(SAVED_CHANGE_EVENT, callback);
+  };
+}
+
+function readSavedCount(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const artRaw = localStorage.getItem('hisgo:saved-articles');
+    const tlRaw = localStorage.getItem('hisgo.saved');
+    const art = artRaw ? (JSON.parse(artRaw) as unknown) : [];
+    const tl = tlRaw ? (JSON.parse(tlRaw) as unknown) : [];
+    const artIds = Array.isArray(art) ? art.filter((x): x is string => typeof x === 'string') : [];
+    const tlIds = Array.isArray(tl) ? tl.filter((x): x is string => typeof x === 'string') : [];
+    return new Set([...artIds, ...tlIds]).size;
+  } catch {
+    return 0;
+  }
+}
+
 export function AccountView() {
   const user = useAuthSession();
   const router = useRouter();
@@ -57,20 +87,10 @@ export function AccountView() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<AccountTabKey>(AccountTabKey.PROFILE);
   const [flashcardDueCount, setFlashcardDueCount] = useState<number>(0);
-  const [savedCount, setSavedCount] = useState<number>(() => {
-    if (typeof window === 'undefined') return 0;
-    try {
-      const artRaw = localStorage.getItem('hisgo:saved-articles');
-      const tlRaw = localStorage.getItem('hisgo.saved');
-      const art = artRaw ? (JSON.parse(artRaw) as unknown) : [];
-      const tl = tlRaw ? (JSON.parse(tlRaw) as unknown) : [];
-      const artIds = Array.isArray(art) ? art.filter((x): x is string => typeof x === 'string') : [];
-      const tlIds = Array.isArray(tl) ? tl.filter((x): x is string => typeof x === 'string') : [];
-      return new Set([...artIds, ...tlIds]).size;
-    } catch {
-      return 0;
-    }
-  });
+  const [mindmapCount, setMindmapCount] = useState<number>(0);
+  const [savedCountOverride, setSavedCountOverride] = useState<number | null>(null);
+  const storedSavedCount = useSyncExternalStore(subscribeSavedStorage, readSavedCount, () => 0);
+  const savedCount = savedCountOverride ?? storedSavedCount;
 
   const { enrolledPathIds, completedIds } = useLessonProgress();
 
@@ -103,6 +123,7 @@ export function AccountView() {
     { id: AccountTabKey.LEARNING, label: 'Lộ trình của tôi', icon: BookOpen, badge: enrolledPathIds.length },
     { id: AccountTabKey.BOOKMARKS, label: 'Tư liệu đã lưu', icon: Bookmark, badge: savedCount },
     { id: AccountTabKey.FLASHCARDS, label: 'Thẻ ghi nhớ', icon: Layers, badge: flashcardDueCount },
+    { id: AccountTabKey.MINDMAPS, label: 'Sơ đồ tư duy', icon: Network, badge: mindmapCount },
     { id: AccountTabKey.SECURITY, label: 'Bảo mật & Phiên', icon: KeyRound },
   ];
 
@@ -307,8 +328,9 @@ export function AccountView() {
             <div className="transition-all duration-300">
               {activeTab === AccountTabKey.PROFILE && <ProfileSection profile={profile} onChange={setProfile} />}
               {activeTab === AccountTabKey.LEARNING && <LearningSection />}
-              {activeTab === AccountTabKey.BOOKMARKS && <SavedBookmarksSection onCountChange={setSavedCount} />}
+              {activeTab === AccountTabKey.BOOKMARKS && <SavedBookmarksSection onCountChange={setSavedCountOverride} />}
               {activeTab === AccountTabKey.FLASHCARDS && <FlashcardsSection onDueCountChange={setFlashcardDueCount} />}
+              {activeTab === AccountTabKey.MINDMAPS && <MindmapsSection onCountChange={setMindmapCount} />}
               {activeTab === AccountTabKey.SECURITY && <SecuritySection profile={profile} />}
             </div>
           </div>

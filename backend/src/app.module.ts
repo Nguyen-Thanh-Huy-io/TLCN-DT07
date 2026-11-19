@@ -30,6 +30,7 @@ import { DiscussionModule } from './discussion/discussion.module';
 import { NotificationModule } from './notification/notification.module';
 import { NoteModule } from './note/note.module';
 import { FlashcardModule } from './flashcard/flashcard.module';
+import { MindmapModule } from './mindmap/mindmap.module';
 import { QueueModule } from './common/modules/queue.module';
 import { ModerationModule } from './moderation/moderation.module';
 
@@ -73,6 +74,7 @@ import { ModerationModule } from './moderation/moderation.module';
     NotificationModule,
     NoteModule,
     FlashcardModule,
+    MindmapModule,
   ],
   controllers: [AppController],
   providers: [AppService],

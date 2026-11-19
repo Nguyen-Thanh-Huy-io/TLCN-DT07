@@ -1,0 +1,44 @@
+export const MINDMAP_ROUTES = {
+  ROOT: 'mindmaps',
+  BY_ID: ':id',
+  GENERATE_PREVIEW: 'generate-preview',
+} as const;
+
+export enum MindmapTemplateType {
+  TREE = 'TREE',
+  FLOW = 'FLOW',
+  SPIDER = 'SPIDER',
+  DOUBLE_BUBBLE = 'DOUBLE_BUBBLE',
+  BLANK = 'BLANK',
+}
+
+export enum MindmapBranchColor {
+  CRIMSON = 'CRIMSON',
+  GOLD = 'GOLD',
+  TEAL = 'TEAL',
+  INDIGO = 'INDIGO',
+  STONE = 'STONE',
+}
+
+export enum MindmapAiEngine {
+  GEMINI_FLASH = 'GEMINI_FLASH',
+  HEURISTIC = 'HEURISTIC',
+}
+
+export const MINDMAP_LIMITS = {
+  MAX_TITLE_LENGTH: 150,
+  MAX_PERIOD_LENGTH: 80,
+  MAX_MINDMAPS_PER_USER: 100,
+  MAX_GRAPH_BYTES: 262_144,
+  MAX_AI_ARTICLES: 8,
+  MAX_AI_NOTES: 30,
+  AI_TIMEOUT_MS: 15_000,
+} as const;
+
+export const MINDMAP_MESSAGES = {
+  NOT_FOUND: 'Không tìm thấy sơ đồ tư duy này.',
+  TOO_MANY_MINDMAPS: 'Bạn đã đạt giới hạn số sơ đồ tối đa.',
+  GRAPH_TOO_LARGE: 'Kích thước sơ đồ vượt quá giới hạn cho phép.',
+  NO_AI_SOURCES:
+    'Chưa có ghi chú hoặc bài viết đã lưu nào để dựng sơ đồ tự động.',
+} as const;

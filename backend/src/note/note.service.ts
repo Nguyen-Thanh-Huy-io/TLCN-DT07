@@ -14,10 +14,13 @@ import { ContentRevisionService } from '../content-revision/content-revision.ser
 import {
   CreateNoteDto,
   NOTE_KINDS_WITHOUT_CONTENT,
-  NoteAnchorDto,
   QueryNoteDto,
   UpdateNoteDto,
 } from './dto/note.dto';
+import {
+  createDefaultNoteAnchorRegistry,
+  NoteAnchorStrategyRegistry,
+} from './strategies/note-anchor.strategy';
 import { NoteStrategyRegistry } from './strategies/note-target.strategy';
 
 const REVISION_TYPE_OF_TARGET = {
@@ -30,20 +33,19 @@ const normalizeLabels = (labels: string[]) => [
   ...new Set(labels.map((label) => label.trim()).filter(Boolean)),
 ];
 
-/** Chỉ lưu các khoá có giá trị của vị trí. */
-const toAnchorJson = (anchor: NoteAnchorDto): Prisma.InputJsonObject =>
-  Object.fromEntries(
-    Object.entries(anchor).filter(([, value]) => typeof value === 'string'),
-  );
-
 @Injectable()
 export class NoteService {
+  private readonly anchorRegistry: NoteAnchorStrategyRegistry;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly strategyRegistry: NoteStrategyRegistry,
     private readonly contentRevision: ContentRevisionService,
     @Optional() private readonly eventEmitter?: EventEmitter2,
-  ) {}
+    @Optional() anchorRegistry?: NoteAnchorStrategyRegistry,
+  ) {
+    this.anchorRegistry = anchorRegistry ?? createDefaultNoteAnchorRegistry();
+  }
 
   /** Phiên bản hiện hành của bài, để biết ghi chú được gắn ở bản nào (bài sửa sau đó thì dò lại vị trí). */
   private contentVersionOf(targetType: NoteTargetType, targetId: string) {
@@ -196,7 +198,9 @@ export class NoteService {
         kind: dto.kind ?? (content ? NoteKind.NOTE : NoteKind.HIGHLIGHT),
         content,
         highlightText: dto.highlightText?.trim() || null,
-        anchor: dto.anchor ? toAnchorJson(dto.anchor) : undefined,
+        anchor: dto.anchor
+          ? this.anchorRegistry.normalize(dto.anchor)
+          : undefined,
         contentVersion,
         labels: normalizeLabels(dto.labels ?? []),
         color: dto.color,
@@ -271,7 +275,7 @@ export class NoteService {
           resolvedAt: dto.resolved ? new Date() : null,
         }),
         ...(dto.anchor !== undefined && {
-          anchor: toAnchorJson(dto.anchor),
+          anchor: this.anchorRegistry.normalize(dto.anchor),
           contentVersion: await this.contentVersionOf(
             note.targetType,
             note.targetId,

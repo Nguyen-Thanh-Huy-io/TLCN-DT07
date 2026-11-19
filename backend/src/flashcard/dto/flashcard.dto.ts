@@ -1,20 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
-  ArrayMaxSize,
-  ArrayMinSize,
-  IsArray,
-  IsBoolean,
   IsEnum,
-  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
-  Max,
   MaxLength,
-  Min,
-  ValidateNested,
 } from 'class-validator';
 import { FLASHCARD_LIMITS, FlashcardRating } from '../flashcard.constant';
 
@@ -97,44 +89,4 @@ export class ReviewCardDto {
   @ApiProperty({ enum: FlashcardRating })
   @IsEnum(FlashcardRating)
   rating: FlashcardRating;
-}
-
-export class CreateDeckBatchDto extends CreateDeckDto {
-  @ApiProperty({ type: [CreateCardDto] })
-  @IsArray()
-  @ArrayMinSize(1)
-  @ArrayMaxSize(FLASHCARD_LIMITS.MAX_AI_CARDS)
-  @ValidateNested({ each: true })
-  @Type(() => CreateCardDto)
-  cards: CreateCardDto[];
-}
-
-export class GenerateFlashcardsDto {
-  @ApiPropertyOptional({ type: [String], description: 'ID các bài viết đã lưu' })
-  @IsOptional()
-  @IsArray()
-  @ArrayMaxSize(FLASHCARD_LIMITS.MAX_AI_ARTICLES)
-  @IsUUID('4', { each: true })
-  articleIds?: string[];
-
-  @ApiPropertyOptional({ default: true, description: 'Bao gồm ghi chú đã lưu' })
-  @IsOptional()
-  @IsBoolean()
-  includeNotes?: boolean;
-
-  @ApiPropertyOptional({
-    default: true,
-    description: 'Bao gồm các câu hỏi từng trả lời sai trong Quiz',
-  })
-  @IsOptional()
-  @IsBoolean()
-  includeWrongQuizzes?: boolean;
-
-  @ApiPropertyOptional({ default: FLASHCARD_LIMITS.DEFAULT_AI_CARDS })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(FLASHCARD_LIMITS.MIN_AI_CARDS)
-  @Max(FLASHCARD_LIMITS.MAX_AI_CARDS)
-  maxCards?: number;
 }

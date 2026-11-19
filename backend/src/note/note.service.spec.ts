@@ -3,6 +3,7 @@ import { NoteColor, NoteKind, NoteTargetType } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { CreateNoteDto } from './dto/note.dto';
+import { NoteAnchorMode, NoteInkTool, NoteMarkupStyle } from './note.constant';
 import { NoteService } from './note.service';
 
 describe('NoteService', () => {
@@ -185,6 +186,252 @@ describe('NoteService', () => {
       });
       expect(errors.map((e) => e.property)).toContain('highlightText');
     });
+
+    it('chấp nhận anchor khối cụm đoạn (BLOCK) và kiểu nét UNDERLINE / STRIKETHROUGH', async () => {
+      const errors = await errorsOf({
+        ...base,
+        kind: NoteKind.SUMMARY,
+        content: 'Ý nghĩa chiến lược của chiến dịch Điện Biên Phủ',
+        highlightText: 'Qua đó, thắng lợi của Quân đội Nhân dân Việt Nam...',
+        anchor: {
+          mode: NoteAnchorMode.BLOCK,
+          style: NoteMarkupStyle.UNDERLINE,
+          blockStart: 2,
+          blockEnd: 4,
+          startHint: 'Qua đó, thắng lợi',
+          endHint: 'sau Chiến tranh thế giới thứ hai.',
+        },
+      });
+      expect(errors).toHaveLength(0);
+    });
+
+    it('từ chối anchor khối nếu blockStart âm hoặc style không hợp lệ', async () => {
+      const errors = await errorsOf({
+        ...base,
+        content: 'Ghi chú',
+        anchor: {
+          mode: NoteAnchorMode.BLOCK,
+          style: 'GLOW' as NoteMarkupStyle,
+          blockStart: -1,
+        },
+      });
+      expect(errors.map((e) => e.property)).toContain('anchor');
+    });
+  });
+
+  describe('Block & Style Anchor Strategies', () => {
+    it('lưu nguyên cụm blockStart..blockEnd và style cho ghi chú khối đoạn', async () => {
+      mockPrisma.note.create.mockResolvedValue({ id: 'note-block-1' });
+
+      await service.create(
+        {
+          targetType: NoteTargetType.ARTICLE,
+          targetId: 'art-123',
+          kind: NoteKind.SUMMARY,
+          content: 'Chốt ý cả cụm 2 đoạn',
+          highlightText: 'Đoạn trích cụm...',
+          labels: ['Điện Biên Phủ'],
+          anchor: {
+            mode: NoteAnchorMode.BLOCK,
+            blockStart: 3,
+            blockEnd: 5,
+            startHint: 'Qua đó, thắng lợi',
+            endHint: 'thế giới thứ hai.',
+          },
+        },
+        'user-1',
+      );
+
+      expect(mockPrisma.note.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            kind: NoteKind.SUMMARY,
+            labels: ['Điện Biên Phủ'],
+            anchor: {
+              mode: NoteAnchorMode.BLOCK,
+              blockStart: 3,
+              blockEnd: 5,
+              startHint: 'Qua đó, thắng lợi',
+              endHint: 'thế giới thứ hai.',
+            },
+          }),
+        }),
+      );
+    });
+
+    it('mặc định blockEnd = blockStart khi sticky note gắn 1 đoạn đơn', async () => {
+      mockPrisma.note.create.mockResolvedValue({ id: 'note-block-2' });
+
+      await service.create(
+        {
+          targetType: NoteTargetType.ARTICLE,
+          targetId: 'art-123',
+          kind: NoteKind.NOTE,
+          content: 'Tóm ý 1 đoạn',
+          anchor: { blockStart: 4 },
+        },
+        'user-1',
+      );
+
+      expect(mockPrisma.note.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            anchor: {
+              mode: NoteAnchorMode.BLOCK,
+              blockStart: 4,
+              blockEnd: 4,
+            },
+          }),
+        }),
+      );
+    });
+
+    it('báo BadRequestException nếu blockEnd < blockStart', async () => {
+      await expect(
+        service.create(
+          {
+            targetType: NoteTargetType.ARTICLE,
+            targetId: 'art-123',
+            kind: NoteKind.SUMMARY,
+            content: 'Lỗi thứ tự đoạn',
+            anchor: { mode: NoteAnchorMode.BLOCK, blockStart: 5, blockEnd: 2 },
+          },
+          'user-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.note.create).not.toHaveBeenCalled();
+    });
+
+    it('giữ style STRIKETHROUGH cho ghi chú bôi đen nội tuyến', async () => {
+      mockPrisma.note.create.mockResolvedValue({ id: 'note-strike-1' });
+
+      await service.create(
+        {
+          targetType: NoteTargetType.ARTICLE,
+          targetId: 'art-123',
+          content: '',
+          highlightText: 'chi tiết phụ',
+          anchor: {
+            style: NoteMarkupStyle.STRIKETHROUGH,
+            prefix: 'bỏ qua ',
+            suffix: ' trong đoạn',
+          },
+        },
+        'user-1',
+      );
+
+      expect(mockPrisma.note.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            anchor: {
+              style: NoteMarkupStyle.STRIKETHROUGH,
+              prefix: 'bỏ qua ',
+              suffix: ' trong đoạn',
+            },
+          }),
+        }),
+      );
+    });
+
+    it('chấp nhận style CIRCLE (khoanh từ) và CALLOUT (chữ viết bổ sung)', async () => {
+      mockPrisma.note.create.mockResolvedValue({ id: 'note-circle-1' });
+
+      await service.create(
+        {
+          targetType: NoteTargetType.ARTICLE,
+          targetId: 'art-123',
+          kind: NoteKind.NOTE,
+          content: 'nhưng Mỹ chưa thực hiện được',
+          highlightText: 'đơn cực',
+          anchor: {
+            mode: NoteAnchorMode.INLINE,
+            style: NoteMarkupStyle.CALLOUT,
+            prefix: 'thế giới ',
+            suffix: '. Đầu thế kỉ',
+          },
+        },
+        'user-1',
+      );
+
+      expect(mockPrisma.note.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            anchor: {
+              mode: NoteAnchorMode.INLINE,
+              style: NoteMarkupStyle.CALLOUT,
+              prefix: 'thế giới ',
+              suffix: '. Đầu thế kỉ',
+            },
+          }),
+        }),
+      );
+    });
+
+    it('chuẩn hoá lớp vẽ tự do (INK) kèm nét bút và chữ chèn tự do', async () => {
+      mockPrisma.note.create.mockResolvedValue({ id: 'note-ink-1' });
+
+      await service.create(
+        {
+          targetType: NoteTargetType.ARTICLE,
+          targetId: 'art-123',
+          kind: NoteKind.NOTE,
+          content: 'Nền móng',
+          highlightText: '+ 1961: Hiệp hội Đông Nam Á...',
+          anchor: {
+            mode: NoteAnchorMode.INK,
+            blockStart: 1,
+            startHint: '+ 1961: Hiệp hội',
+            inkItems: [
+              {
+                id: 's-1',
+                tool: NoteInkTool.PEN,
+                color: NoteColor.BLUE,
+                width: 3,
+                pts: [0.123456, 0.256789, 0.3, 0.5],
+              },
+              {
+                id: 't-1',
+                tool: NoteInkTool.TEXT,
+                color: NoteColor.PINK,
+                text: '  Nền móng  ',
+                nx: 1.02,
+                ny: 0.45,
+              },
+            ],
+          },
+        },
+        'user-1',
+      );
+
+      expect(mockPrisma.note.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            anchor: {
+              mode: NoteAnchorMode.INK,
+              blockStart: 1,
+              startHint: '+ 1961: Hiệp hội',
+              inkItems: [
+                {
+                  id: 's-1',
+                  tool: NoteInkTool.PEN,
+                  color: NoteColor.BLUE,
+                  width: 3,
+                  pts: [0.1235, 0.2568, 0.3, 0.5],
+                },
+                {
+                  id: 't-1',
+                  tool: NoteInkTool.TEXT,
+                  color: NoteColor.PINK,
+                  text: 'Nền móng',
+                  nx: 1.02,
+                  ny: 0.45,
+                },
+              ],
+            },
+          }),
+        }),
+      );
+    });
   });
 
   describe('update', () => {
@@ -289,17 +536,35 @@ describe('NoteService', () => {
 
     it('khi không truyền targetId thì gắn kèm tiêu đề và slug của bài viết / bài học gốc', async () => {
       mockPrisma.note.findMany.mockResolvedValue([
-        { id: 'n1', targetType: NoteTargetType.ARTICLE, targetId: 'art-1', content: 'A' },
-        { id: 'n2', targetType: NoteTargetType.LESSON, targetId: 'les-1', content: 'B' },
+        {
+          id: 'n1',
+          targetType: NoteTargetType.ARTICLE,
+          targetId: 'art-1',
+          content: 'A',
+        },
+        {
+          id: 'n2',
+          targetType: NoteTargetType.LESSON,
+          targetId: 'les-1',
+          content: 'B',
+        },
       ]);
       mockPrisma.article = {
         findMany: jest.fn().mockResolvedValue([
-          { id: 'art-1', title: 'Chiến thắng Bạch Đằng', slug: 'chien-thang-bach-dang' },
+          {
+            id: 'art-1',
+            title: 'Chiến thắng Bạch Đằng',
+            slug: 'chien-thang-bach-dang',
+          },
         ]),
       };
       mockPrisma.lesson = {
         findMany: jest.fn().mockResolvedValue([
-          { id: 'les-1', title: 'Nhà Ngô lập quốc', slug: 'nha-ngo-lap-quoc' },
+          {
+            id: 'les-1',
+            title: 'Nhà Ngô lập quốc',
+            slug: 'nha-ngo-lap-quoc',
+          },
         ]),
       };
 

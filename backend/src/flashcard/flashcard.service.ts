@@ -9,7 +9,6 @@ import { PrismaService } from '../common/services/prisma.service';
 import { GamificationEventName } from '../gamification/gamification.constant';
 import {
   CreateCardDto,
-  CreateDeckBatchDto,
   CreateDeckDto,
   UpdateCardDto,
   UpdateDeckDto,
@@ -82,36 +81,6 @@ export class FlashcardService {
         title: dto.title,
         description: dto.description ?? null,
       },
-    });
-  }
-
-  async createDeckBatch(ownerId: string, dto: CreateDeckBatchDto) {
-    const count = await this.prisma.flashcardDeck.count({ where: { ownerId } });
-    if (count >= FLASHCARD_LIMITS.MAX_DECKS_PER_USER) {
-      throw new BadRequestException(FLASHCARD_MESSAGES.TOO_MANY_DECKS);
-    }
-    return this.prisma.$transaction(async (tx) => {
-      const deck = await tx.flashcardDeck.create({
-        data: {
-          ownerId,
-          title: dto.title,
-          description: dto.description ?? null,
-        },
-      });
-      await tx.flashcard.createMany({
-        data: dto.cards.map((card) => ({
-          deckId: deck.id,
-          ownerId,
-          front: card.front,
-          back: card.back,
-          sourceNoteId: card.sourceNoteId ?? null,
-        })),
-      });
-      return {
-        ...deck,
-        totalCards: dto.cards.length,
-        dueCards: dto.cards.length,
-      };
     });
   }
 

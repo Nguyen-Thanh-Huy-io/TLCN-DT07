@@ -7,6 +7,13 @@ import {
   LessonNoteStrategy,
   NoteStrategyRegistry,
 } from './strategies/note-target.strategy';
+import {
+  BlockClusterAnchorStrategy,
+  HeadingSectionAnchorStrategy,
+  InkAnchorStrategy,
+  InlineTextAnchorStrategy,
+  NoteAnchorStrategyRegistry,
+} from './strategies/note-anchor.strategy';
 
 @Module({
   controllers: [NoteController],
@@ -15,8 +22,13 @@ import {
     ArticleNoteStrategy,
     LessonNoteStrategy,
     NoteStrategyRegistry,
+    InlineTextAnchorStrategy,
+    BlockClusterAnchorStrategy,
+    HeadingSectionAnchorStrategy,
+    InkAnchorStrategy,
+    NoteAnchorStrategyRegistry,
     PrismaService,
   ],
-  exports: [NoteService, NoteStrategyRegistry],
+  exports: [NoteService, NoteStrategyRegistry, NoteAnchorStrategyRegistry],
 })
 export class NoteModule {}

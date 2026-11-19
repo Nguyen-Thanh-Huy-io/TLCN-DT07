@@ -6,20 +6,28 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
+import { NoteAnchorMode, NoteInkTool, NoteMarkupStyle } from '../note.constant';
 
 /** Đủ để phân biệt các lần xuất hiện trùng của cùng một đoạn trong bài. */
 export const NOTE_ANCHOR_CONTEXT_MAX_LENGTH = 64;
-export const NOTE_HIGHLIGHT_MAX_LENGTH = 1000;
+export const NOTE_HIGHLIGHT_MAX_LENGTH = 4000;
 export const NOTE_ANCHOR_ID_MAX_LENGTH = 100;
 export const NOTE_LABEL_MAX_LENGTH = 40;
 export const NOTE_LABELS_MAX = 10;
+export const NOTE_INK_ITEMS_MAX = 80;
+export const NOTE_INK_POINTS_MAX = 2000;
+export const NOTE_INK_TEXT_MAX_LENGTH = 300;
 
 /** Loại được để trống nội dung (chỉ đánh dấu đoạn); các loại khác bắt buộc viết nội dung. */
 export const NOTE_KINDS_WITHOUT_CONTENT: readonly NoteKind[] = [
@@ -32,8 +40,66 @@ const contentRequired = (dto: { highlightText?: string; kind?: NoteKind }) =>
   !dto.highlightText ||
   (dto.kind !== undefined && !NOTE_KINDS_WITHOUT_CONTENT.includes(dto.kind));
 
-/** Vị trí để tô lại đúng chỗ khi mở bài: chữ trước / sau đoạn bôi đen, hoặc tiêu đề của mục được tóm tắt. */
+/** Một nét vẽ tay tự do hoặc chữ viết bổ sung đặt tại toạ độ chuẩn hoá theo khối đoạn. */
+export class NoteInkItemDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
+  id: string;
+
+  @IsEnum(NoteInkTool)
+  tool: NoteInkTool;
+
+  @IsEnum(NoteColor)
+  color: NoteColor;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(40)
+  width?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(NOTE_INK_POINTS_MAX)
+  @IsNumber({}, { each: true })
+  pts?: number[];
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  blockEnd?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(NOTE_INK_TEXT_MAX_LENGTH)
+  text?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  nx?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  ny?: number;
+}
+
+/** Vị trí để tô lại đúng chỗ khi mở bài: đoạn văn bản, cụm khối đoạn văn, tiêu đề mục, hoặc lớp vẽ tay. */
 export class NoteAnchorDto {
+  @ApiPropertyOptional({ enum: NoteAnchorMode })
+  @IsOptional()
+  @IsEnum(NoteAnchorMode)
+  mode?: NoteAnchorMode;
+
+  @ApiPropertyOptional({ enum: NoteMarkupStyle })
+  @IsOptional()
+  @IsEnum(NoteMarkupStyle)
+  style?: NoteMarkupStyle;
+
   @ApiPropertyOptional({ description: 'Chữ ngay trước đoạn bôi đen' })
   @IsOptional()
   @IsString()
@@ -51,6 +117,48 @@ export class NoteAnchorDto {
   @IsString()
   @MaxLength(NOTE_ANCHOR_ID_MAX_LENGTH)
   headingId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Chỉ số khối đoạn đầu tiên (>= 0) của sticky cụm / lớp vẽ',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  blockStart?: number;
+
+  @ApiPropertyOptional({
+    description: 'Chỉ số khối đoạn cuối cùng (>= blockStart) của sticky cụm',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  blockEnd?: number;
+
+  @ApiPropertyOptional({
+    description: 'Đoạn chữ đầu của blockStart giúp dò lại khi bài sửa',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(NOTE_ANCHOR_CONTEXT_MAX_LENGTH)
+  startHint?: string;
+
+  @ApiPropertyOptional({
+    description: 'Đoạn chữ cuối của blockEnd giúp dò lại khi bài sửa',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(NOTE_ANCHOR_CONTEXT_MAX_LENGTH)
+  endHint?: string;
+
+  @ApiPropertyOptional({ type: [NoteInkItemDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(NOTE_INK_ITEMS_MAX)
+  @ValidateNested({ each: true })
+  @Type(() => NoteInkItemDto)
+  inkItems?: NoteInkItemDto[];
 }
 
 export class CreateNoteDto {

@@ -1,15 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
-  ArrayMaxSize,
-  IsArray,
-  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   registerDecorator,
   type ValidationOptions,
@@ -60,7 +56,7 @@ export class CreateMindmapDto {
   @IsEnum(MindmapTemplateType)
   template?: MindmapTemplateType;
 
-  @ApiPropertyOptional({ description: 'Đồ thị dựng sẵn (ví dụ từ AI preview)' })
+  @ApiPropertyOptional({ description: 'Đồ thị dựng sẵn' })
   @IsOptional()
   @IsObject()
   @MaxJsonBytes(MINDMAP_LIMITS.MAX_GRAPH_BYTES)
@@ -93,19 +89,4 @@ export class UpdateMindmapDto {
   @IsObject()
   @MaxJsonBytes(MINDMAP_LIMITS.MAX_GRAPH_BYTES)
   graph?: Record<string, unknown>;
-}
-
-export class GenerateMindmapDto {
-  @ApiPropertyOptional({ type: [String] })
-  @IsOptional()
-  @IsArray()
-  @ArrayMaxSize(MINDMAP_LIMITS.MAX_AI_ARTICLES)
-  @IsUUID('4', { each: true })
-  articleIds?: string[];
-
-  @ApiPropertyOptional({ default: true })
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  includeNotes?: boolean;
 }

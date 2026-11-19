@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
-import { MindmapAiService } from './mindmap-ai.service';
 import { MindmapController } from './mindmap.controller';
 import { MindmapService } from './mindmap.service';
 import { MindmapTemplateRegistry } from './mindmap-template.strategy';
@@ -11,7 +10,6 @@ import { MindmapTemplateRegistry } from './mindmap-template.strategy';
   controllers: [MindmapController],
   providers: [
     MindmapService,
-    MindmapAiService,
     MindmapTemplateRegistry,
     PrismaService,
     RedisService,

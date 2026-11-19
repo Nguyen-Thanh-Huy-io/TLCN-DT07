@@ -12,13 +12,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../common/guards/auth.guard';
-import {
-  CreateMindmapDto,
-  GenerateMindmapDto,
-  UpdateMindmapDto,
-} from './dto/mindmap.dto';
+import { CreateMindmapDto, UpdateMindmapDto } from './dto/mindmap.dto';
 import { MINDMAP_ROUTES } from './mindmap.constant';
-import { MindmapAiService } from './mindmap-ai.service';
 import { MindmapService } from './mindmap.service';
 
 interface AuthedRequest {
@@ -30,10 +25,7 @@ interface AuthedRequest {
 @UseGuards(AuthGuard)
 @Controller(MINDMAP_ROUTES.ROOT)
 export class MindmapController {
-  constructor(
-    private readonly mindmapService: MindmapService,
-    private readonly mindmapAiService: MindmapAiService,
-  ) {}
+  constructor(private readonly mindmapService: MindmapService) {}
 
   @Get()
   @ApiOperation({ summary: 'Danh sách sơ đồ tư duy của người học' })
@@ -48,17 +40,9 @@ export class MindmapController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Tạo sơ đồ tư duy mới (từ mẫu hoặc từ AI preview)' })
+  @ApiOperation({ summary: 'Tạo sơ đồ tư duy mới' })
   create(@Req() req: AuthedRequest, @Body() dto: CreateMindmapDto) {
     return this.mindmapService.create(req.user.userId, dto);
-  }
-
-  @Post(MINDMAP_ROUTES.GENERATE_PREVIEW)
-  @ApiOperation({
-    summary: 'Phân tích ghi chú & bài viết đã lưu để gợi ý sơ đồ tư duy',
-  })
-  generatePreview(@Req() req: AuthedRequest, @Body() dto: GenerateMindmapDto) {
-    return this.mindmapAiService.generatePreview(req.user.userId, dto);
   }
 
   @Patch(MINDMAP_ROUTES.BY_ID)

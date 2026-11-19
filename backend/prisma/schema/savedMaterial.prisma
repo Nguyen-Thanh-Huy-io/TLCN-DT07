@@ -1,0 +1,24 @@
+// ================================
+// Saved Material — Tư liệu đã ghim (bài viết / bài học / mốc dấu mộc lịch sử)
+// Dùng chung cho Đọc bài, Mindmap, Flashcard AI, Tủ sách cá nhân.
+// ================================
+
+enum SavedMaterialKind {
+  ARTICLE
+  LESSON
+  TIMELINE_NODE
+}
+
+model SavedMaterial {
+  id        String            @id @default(uuid())
+  userId    String            @map("user_id")
+  kind      SavedMaterialKind
+  targetId  String            @map("target_id")
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  user      authUser          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, targetId])
+  @@index([userId, kind])
+  @@map("saved_materials")
+}

@@ -91,6 +91,12 @@ export function resolvePageHeader(pathname: string): PageHeaderInfo {
         subtitle: 'Quản lý tài khoản biên tập viên và phân quyền hệ thống',
       };
 
+    case APP_ROUTES.GAMIFICATION:
+      return {
+        title: 'Gamification & Huy hiệu',
+        subtitle: 'Quản lý danh mục huy hiệu thành tựu và theo dõi nhịp học viên',
+      };
+
     case APP_ROUTES.MEDIA:
       return {
         title: 'Quản lý nguồn tư liệu và media',

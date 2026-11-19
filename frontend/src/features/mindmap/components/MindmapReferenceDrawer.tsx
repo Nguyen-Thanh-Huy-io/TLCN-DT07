@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
+  Bookmark,
   BookOpen,
   ChevronRight,
   ExternalLink,
@@ -31,12 +32,24 @@ import {
   NOT_ENROLLED_CODE,
 } from '@/services/entities/learner.service';
 import { PUBLIC_ROUTES, type PublicArticleSummary } from '@/services/public/public-content.service';
+import {
+  isMaterialSaved,
+  toggleSavedMaterial,
+  useSavedMaterialsSnapshot,
+  type SavedMaterialSnapshot,
+} from '@/features/saved-materials/services/saved-material.service';
 import { sanitizeRichHtml } from '@/utils/common';
-import { ReaderSourceKind } from '../constants/mindmap.constants';
+import {
+  ReaderSourceKind,
+  toSavedMaterialKind,
+  type ReadableMaterialKind,
+} from '../constants/mindmap.constants';
 import { MindmapApiService, type MindmapArticleRef } from '../services/mindmap.service';
+import { makeExcerptTitle, useSavedPersonalCatalog } from '../services/saved-materials.service';
+import { MindmapSavedFavoritesPanel } from './MindmapSavedFavoritesPanel';
 
 export interface ReadableStudyMaterial {
-  kind: ReaderSourceKind;
+  kind: ReadableMaterialKind;
   id: string;
   slug: string;
   title: string;
@@ -50,7 +63,7 @@ export interface ReadableStudyMaterial {
 }
 
 export interface RequestedReaderSource {
-  kind: ReaderSourceKind;
+  kind: ReadableMaterialKind;
   slug: string;
   seq: number;
 }
@@ -101,15 +114,36 @@ async function loadLessonMaterial(slug: string): Promise<ReadableStudyMaterial> 
   };
 }
 
-const READER_LOADERS: Record<ReaderSourceKind, (slug: string) => Promise<ReadableStudyMaterial>> = {
+const READER_LOADERS: Record<ReadableMaterialKind, (slug: string) => Promise<ReadableStudyMaterial>> = {
   [ReaderSourceKind.ARTICLE]: loadArticleMaterial,
   [ReaderSourceKind.LESSON]: loadLessonMaterial,
 };
 
-function makeBranchTitleFromExcerpt(raw: string): string {
-  const firstLine = raw.replace(/\s+/g, ' ').trim();
-  if (firstLine.length <= 56) return firstLine;
-  return `${firstLine.slice(0, 53).trimEnd()}…`;
+function MaterialBookmarkToggleButton({
+  saved,
+  onToggle,
+}: {
+  saved: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      title={saved ? 'Bỏ khỏi mục yêu thích' : 'Lưu vào mục yêu thích'}
+      aria-label={saved ? 'Bỏ khỏi mục yêu thích' : 'Lưu vào mục yêu thích'}
+      className={`grid size-7 shrink-0 place-items-center rounded-lg transition cursor-pointer ${
+        saved
+          ? 'bg-amber-50 text-amber-600 hover:bg-amber-100'
+          : 'text-slate-400 hover:bg-slate-100 hover:text-amber-600'
+      }`}
+    >
+      <Bookmark size={14} fill={saved ? 'currentColor' : 'none'} />
+    </button>
+  );
 }
 
 function MaterialBrowserList({
@@ -119,8 +153,10 @@ function MaterialBrowserList({
   articles,
   lessons,
   attachedArticles,
+  savedSnapshot,
   onQueryChange,
   onOpenItem,
+  onToggleSaved,
 }: {
   kind: ReaderSourceKind;
   query: string;
@@ -128,8 +164,10 @@ function MaterialBrowserList({
   articles: PublicArticleSummary[];
   lessons: LibraryLesson[];
   attachedArticles: MindmapArticleRef[];
+  savedSnapshot: SavedMaterialSnapshot;
   onQueryChange: (q: string) => void;
-  onOpenItem: (kind: ReaderSourceKind, slug: string) => void;
+  onOpenItem: (kind: ReadableMaterialKind, slug: string) => void;
+  onToggleSaved: (kind: ReadableMaterialKind, id: string) => void;
 }) {
   const qLower = query.trim().toLocaleLowerCase('vi');
   const filteredLessons = lessons.filter(
@@ -175,11 +213,14 @@ function MaterialBrowserList({
       ) : kind === ReaderSourceKind.ARTICLE ? (
         <ul className="space-y-2">
           {articles.map((art) => (
-            <li key={art.id}>
+            <li
+              key={art.id}
+              className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white p-2.5 transition hover:border-indigo-300 hover:shadow-2xs"
+            >
               <button
                 type="button"
                 onClick={() => onOpenItem(ReaderSourceKind.ARTICLE, art.slug)}
-                className="flex w-full items-start gap-2.5 rounded-xl border border-slate-200 bg-white p-2.5 text-left transition hover:border-indigo-300 hover:shadow-2xs cursor-pointer"
+                className="flex min-w-0 flex-1 items-start gap-2.5 text-left cursor-pointer"
               >
                 <FileText size={15} className="mt-0.5 shrink-0 text-amber-600" />
                 <div className="min-w-0 flex-1">
@@ -187,6 +228,10 @@ function MaterialBrowserList({
                   {art.summary && <p className="mt-0.5 text-[11px] text-slate-500 line-clamp-2">{art.summary}</p>}
                 </div>
               </button>
+              <MaterialBookmarkToggleButton
+                saved={isMaterialSaved(savedSnapshot, toSavedMaterialKind(ReaderSourceKind.ARTICLE), art.id)}
+                onToggle={() => onToggleSaved(ReaderSourceKind.ARTICLE, art.id)}
+              />
             </li>
           ))}
           {articles.length === 0 && (
@@ -196,11 +241,14 @@ function MaterialBrowserList({
       ) : (
         <ul className="space-y-2">
           {filteredLessons.map((les) => (
-            <li key={les.id}>
+            <li
+              key={les.id}
+              className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white p-2.5 transition hover:border-indigo-300 hover:shadow-2xs"
+            >
               <button
                 type="button"
                 onClick={() => onOpenItem(ReaderSourceKind.LESSON, les.slug)}
-                className="flex w-full items-start gap-2.5 rounded-xl border border-slate-200 bg-white p-2.5 text-left transition hover:border-indigo-300 hover:shadow-2xs cursor-pointer"
+                className="flex min-w-0 flex-1 items-start gap-2.5 text-left cursor-pointer"
               >
                 <GraduationCap size={15} className="mt-0.5 shrink-0 text-indigo-600" />
                 <div className="min-w-0 flex-1">
@@ -211,6 +259,10 @@ function MaterialBrowserList({
                   </div>
                 </div>
               </button>
+              <MaterialBookmarkToggleButton
+                saved={isMaterialSaved(savedSnapshot, toSavedMaterialKind(ReaderSourceKind.LESSON), les.id)}
+                onToggle={() => onToggleSaved(ReaderSourceKind.LESSON, les.id)}
+              />
             </li>
           ))}
           {filteredLessons.length === 0 && (
@@ -258,7 +310,7 @@ function MaterialReaderBody({
           type="button"
           onClick={() =>
             onCreateBranch({
-              title: makeBranchTitleFromExcerpt(material.title),
+              title: makeExcerptTitle(material.title),
               note: material.summary ?? undefined,
               articleRef: material.articleRef,
             })
@@ -297,7 +349,7 @@ function MaterialReaderBody({
                   </button>
                   <button
                     type="button"
-                    onClick={() => onCreateBranch({ title: makeBranchTitleFromExcerpt(item.text), articleRef: material.articleRef })}
+                    onClick={() => onCreateBranch({ title: makeExcerptTitle(item.text), articleRef: material.articleRef })}
                     className="shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700 opacity-0 group-hover:opacity-100 hover:bg-indigo-600 hover:text-white cursor-pointer"
                   >
                     + Nhánh
@@ -379,9 +431,12 @@ export function MindmapReferenceDrawer({
   const [detailError, setDetailError] = useState<string | null>(null);
   const [lockedSlug, setLockedSlug] = useState<string | null>(null);
   const [selectedExcerpt, setSelectedExcerpt] = useState('');
+  const savedSnapshot = useSavedMaterialsSnapshot();
+  const { loading: savedLoading, catalog: savedCatalog } = useSavedPersonalCatalog(
+    kind === ReaderSourceKind.SAVED,
+  );
 
-  const openMaterial = useCallback(async (targetKind: ReaderSourceKind, slug: string) => {
-    setKind(targetKind);
+  const openMaterial = useCallback(async (targetKind: ReadableMaterialKind, slug: string) => {
     setDetailLoading(true);
     setDetailError(null);
     setLockedSlug(null);
@@ -405,12 +460,14 @@ export function MindmapReferenceDrawer({
   useEffect(() => {
     if (!requestedSource) return;
     const timer = setTimeout(() => {
+      setKind(requestedSource.kind);
       void openMaterial(requestedSource.kind, requestedSource.slug);
     }, 0);
     return () => clearTimeout(timer);
   }, [openMaterial, requestedSource]);
 
   useEffect(() => {
+    if (kind === ReaderSourceKind.SAVED) return;
     let alive = true;
     const timer = setTimeout(() => {
       setListLoading(true);
@@ -461,6 +518,17 @@ export function MindmapReferenceDrawer({
         />
       );
     }
+    if (kind === ReaderSourceKind.SAVED) {
+      return (
+        <MindmapSavedFavoritesPanel
+          loading={savedLoading}
+          snapshot={savedSnapshot}
+          catalog={savedCatalog}
+          onOpenItem={(k, slug) => void openMaterial(k, slug)}
+          onCreateBranch={onCreateBranchFromText}
+        />
+      );
+    }
     return (
       <MaterialBrowserList
         kind={kind}
@@ -469,8 +537,12 @@ export function MindmapReferenceDrawer({
         articles={articles}
         lessons={lessons}
         attachedArticles={attachedArticles}
+        savedSnapshot={savedSnapshot}
         onQueryChange={setQuery}
         onOpenItem={(k, slug) => void openMaterial(k, slug)}
+        onToggleSaved={(k, id) => {
+          void toggleSavedMaterial(toSavedMaterialKind(k), id);
+        }}
       />
     );
   };
@@ -498,11 +570,11 @@ export function MindmapReferenceDrawer({
             <ArrowLeft size={13} /> Danh sách
           </button>
         ) : (
-          <div className="inline-flex items-center gap-1 rounded-xl bg-slate-100 p-0.5 text-xs font-semibold">
+          <div className="inline-flex items-center gap-0.5 rounded-xl bg-slate-100 p-0.5 text-[11.5px] font-semibold">
             <button
               type="button"
               onClick={() => setKind(ReaderSourceKind.ARTICLE)}
-              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 cursor-pointer ${
+              className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 cursor-pointer ${
                 kind === ReaderSourceKind.ARTICLE ? TAB_ACTIVE_CLS : TAB_IDLE_CLS
               }`}
             >
@@ -511,25 +583,40 @@ export function MindmapReferenceDrawer({
             <button
               type="button"
               onClick={() => setKind(ReaderSourceKind.LESSON)}
-              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 cursor-pointer ${
+              className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 cursor-pointer ${
                 kind === ReaderSourceKind.LESSON ? TAB_ACTIVE_CLS : TAB_IDLE_CLS
               }`}
             >
               <GraduationCap size={12} /> Bài học
+            </button>
+            <button
+              type="button"
+              onClick={() => setKind(ReaderSourceKind.SAVED)}
+              className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 cursor-pointer ${
+                kind === ReaderSourceKind.SAVED ? 'bg-white text-amber-700 shadow-2xs' : TAB_IDLE_CLS
+              }`}
+            >
+              <Bookmark size={12} /> Yêu thích
             </button>
           </div>
         )}
 
         <div className="flex items-center gap-1">
           {material && (
-            <Link
-              href={material.publicHref}
-              target="_blank"
-              title="Mở trang đầy đủ trong tab mới"
-              className="grid size-7 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-            >
-              <ExternalLink size={14} />
-            </Link>
+            <>
+              <MaterialBookmarkToggleButton
+                saved={isMaterialSaved(savedSnapshot, toSavedMaterialKind(material.kind), material.id)}
+                onToggle={() => void toggleSavedMaterial(toSavedMaterialKind(material.kind), material.id)}
+              />
+              <Link
+                href={material.publicHref}
+                target="_blank"
+                title="Mở trang đầy đủ trong tab mới"
+                className="grid size-7 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+              >
+                <ExternalLink size={14} />
+              </Link>
+            </>
           )}
           <button
             type="button"
@@ -576,7 +663,7 @@ export function MindmapReferenceDrawer({
               type="button"
               onClick={() => {
                 onCreateBranchFromText({
-                  title: makeBranchTitleFromExcerpt(selectedExcerpt),
+                  title: makeExcerptTitle(selectedExcerpt),
                   note: selectedExcerpt,
                   articleRef: material.articleRef,
                 });

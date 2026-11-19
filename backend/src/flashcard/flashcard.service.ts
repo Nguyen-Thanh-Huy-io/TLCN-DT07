@@ -2,8 +2,11 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../common/services/prisma.service';
+import { GamificationEventName } from '../gamification/gamification.constant';
 import {
   CreateCardDto,
   CreateDeckBatchDto,
@@ -33,6 +36,7 @@ export class FlashcardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scheduler: Sm2Scheduler,
+    @Optional() private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   async listDecks(ownerId: string): Promise<FlashcardDeckSummary[]> {
@@ -103,7 +107,11 @@ export class FlashcardService {
           sourceNoteId: card.sourceNoteId ?? null,
         })),
       });
-      return { ...deck, totalCards: dto.cards.length, dueCards: dto.cards.length };
+      return {
+        ...deck,
+        totalCards: dto.cards.length,
+        dueCards: dto.cards.length,
+      };
     });
   }
 
@@ -194,7 +202,7 @@ export class FlashcardService {
       now,
     );
 
-    return this.prisma.flashcard.update({
+    const updated = await this.prisma.flashcard.update({
       where: { id: cardId },
       data: {
         repetitions: next.repetitions,
@@ -204,6 +212,12 @@ export class FlashcardService {
         lastReviewedAt: now,
       },
     });
+    this.eventEmitter?.emit(GamificationEventName.FLASHCARD_REVIEWED, {
+      userId: ownerId,
+      cardId,
+      rating,
+    });
+    return updated;
   }
 
   private async assertDeckOwned(ownerId: string, deckId: string) {

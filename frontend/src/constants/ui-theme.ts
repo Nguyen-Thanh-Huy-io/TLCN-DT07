@@ -93,6 +93,10 @@ export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
     title: 'Người dùng',
     subtitle: 'Quản lý tài khoản và phân quyền hệ thống',
   },
+  gamification: {
+    title: 'Gamification & Huy hiệu',
+    subtitle: 'Quản lý huy hiệu thành tựu và theo dõi nhịp học tập của học viên',
+  },
   media: {
     title: 'Quản lý nguồn tư liệu và media',
     subtitle: 'Kho lưu trữ tập trung hình ảnh, tư liệu số và video lịch sử',

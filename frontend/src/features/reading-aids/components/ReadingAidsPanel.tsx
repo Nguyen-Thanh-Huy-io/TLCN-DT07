@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Bookmark,
   ChevronLeft,
@@ -19,6 +19,12 @@ import { ANNOTATION_DATA_ATTRS } from '@/features/lessons/extensions/annotation.
 import type { LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
 import type { NoteFacade } from '@/features/notes/facades/useNoteFacade';
 import {
+  isMaterialSaved,
+  toggleSavedMaterial,
+  useSavedMaterialsSnapshot,
+} from '@/features/saved-materials/services/saved-material.service';
+import { SavedMaterialKind } from '@/features/saved-materials/constants/saved-material.constants';
+import {
   ReadingActivePanel,
   ReadingAnnotationsModal,
   ReadingDisplayPopover,
@@ -33,48 +39,6 @@ export type { ReadingEntity, ReadingPreferences };
 
 const FOOTNOTE_SELECTOR = `sup[${ANNOTATION_DATA_ATTRS.FOOTNOTE}]`;
 const FOOTNOTE_INDEX_ATTR = 'data-footnote-index';
-const SAVED_ARTICLES_KEY = 'hisgo:saved-articles';
-const SAVED_TIMELINE_KEY = 'hisgo.saved';
-const SAVED_CHANGE_EVENT = 'hisgo:saved-change';
-
-function subscribeSavedStorage(callback: () => void): () => void {
-  if (typeof window === 'undefined') return () => {};
-  window.addEventListener('storage', callback);
-  window.addEventListener(SAVED_CHANGE_EVENT, callback);
-  return () => {
-    window.removeEventListener('storage', callback);
-    window.removeEventListener(SAVED_CHANGE_EVENT, callback);
-  };
-}
-
-function readSavedIds(storageKey: string): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(storageKey);
-    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
-  } catch {
-    return [];
-  }
-}
-
-function toggleSavedArticleStorage(targetId: string): boolean {
-  const current = readSavedIds(SAVED_ARTICLES_KEY);
-  const nextSaved = !current.includes(targetId);
-  const nextList = nextSaved ? [...current, targetId] : current.filter((id) => id !== targetId);
-  try {
-    localStorage.setItem(SAVED_ARTICLES_KEY, JSON.stringify(nextList));
-    const timelineSaved = readSavedIds(SAVED_TIMELINE_KEY);
-    const nextTimeline = nextSaved
-      ? [...new Set([...timelineSaved, targetId])]
-      : timelineSaved.filter((id) => id !== targetId);
-    localStorage.setItem(SAVED_TIMELINE_KEY, JSON.stringify(nextTimeline));
-    window.dispatchEvent(new Event(SAVED_CHANGE_EVENT));
-  } catch {
-    // Bỏ qua lỗi storage ở chế độ ẩn danh.
-  }
-  return nextSaved;
-}
 
 function useFootnotes(contentRef: React.RefObject<HTMLElement | null>, htmlTrigger: string): FootnoteEntry[] {
   const [footnotes, setFootnotes] = useState<FootnoteEntry[]>([]);
@@ -174,11 +138,8 @@ export function ReadingAidsPanel({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [flashcardFront, setFlashcardFront] = useState('');
   const [flashcardSaved, setFlashcardSaved] = useState(false);
-  const saved = useSyncExternalStore(
-    subscribeSavedStorage,
-    () => (articleId ? readSavedIds(SAVED_ARTICLES_KEY).includes(articleId) : false),
-    () => false,
-  );
+  const savedSnapshot = useSavedMaterialsSnapshot(Boolean(articleId));
+  const saved = Boolean(articleId) && isMaterialSaved(savedSnapshot, SavedMaterialKind.ARTICLE, articleId ?? '');
   const dockRef = useRef<HTMLDivElement>(null);
 
   const highlightedNotes = (noteFacade?.allNotes ?? []).filter((n) => Boolean(n.highlightText));
@@ -229,7 +190,7 @@ export function ReadingAidsPanel({
 
   const handleToggleSave = () => {
     if (!articleId) return;
-    toggleSavedArticleStorage(articleId);
+    void toggleSavedMaterial(SavedMaterialKind.ARTICLE, articleId);
   };
 
   if (isFullscreen) return null;

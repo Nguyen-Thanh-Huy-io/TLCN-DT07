@@ -7,6 +7,7 @@ import { PublicAuthService, USER_ROLE_LABELS, isStaffRole } from "@/services/aut
 import { useAuthSession } from "@/services/auth/use-auth-session";
 import { GlobalSearch } from "@/features/search/GlobalSearch";
 import { NotificationBell } from "@/components/hisgo/NotificationBell";
+import { HeaderStreakPopover } from "@/features/gamification/components/HeaderStreakPopover";
 import { BookOpen, ChevronDown, Crown, Landmark, ScrollText, Swords, User } from "lucide-react";
 
 enum NavLinkId {
@@ -306,6 +307,7 @@ export function Header({
         {/* Right: Search, User Login & Mobile Hamburger */}
         <div className="flex items-center gap-2.5 shrink-0">
           <GlobalSearch />
+          {user && <HeaderStreakPopover enabled={Boolean(user)} />}
           {user && <NotificationBell />}
           {user ? (
             <div ref={userMenuRef} className="relative hidden xl:block">

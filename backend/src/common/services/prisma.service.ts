@@ -1,8 +1,11 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import config from '../config/app.config';
 import { CustomLoggerService } from './custom-logger.service';
+
+/** Dùng cho tham số nhận cả PrismaService thường và client bên trong `$transaction`. */
+export type PrismaClientOrTx = PrismaService | Prisma.TransactionClient;
 
 @Injectable()
 export class PrismaService

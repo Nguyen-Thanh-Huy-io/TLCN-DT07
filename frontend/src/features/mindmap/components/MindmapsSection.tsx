@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2, Network, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import { AccountCard } from '@/features/account/components/AccountSections';
-import { SAVED_ARTICLES_STORAGE_KEY } from '@/features/flashcards/constants/flashcard.constants';
+import { fetchSavedArticleIds } from '@/features/saved-materials/services/saved-material.service';
 import {
   MindmapTemplateType,
   TEMPLATE_OPTIONS,
@@ -15,17 +15,6 @@ import {
   type MindmapSummary,
 } from '../services/mindmap.service';
 import { MindmapCanvas } from './MindmapCanvas';
-
-function readSavedArticleIds(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(SAVED_ARTICLES_STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
-  } catch {
-    return [];
-  }
-}
 
 /** Tab "Sơ đồ tư duy" trên trang /tai-khoan: danh sách, tạo theo 5 dạng Lịch sử / AI và mở Canvas. */
 export function MindmapsSection({ onCountChange }: { onCountChange?: (count: number) => void }) {
@@ -111,7 +100,7 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
     try {
       const preview = await MindmapApiService.generatePreview({
         includeNotes: true,
-        articleIds: readSavedArticleIds(),
+        articleIds: await fetchSavedArticleIds(),
       });
       const created = await MindmapApiService.create({
         title: preview.title,

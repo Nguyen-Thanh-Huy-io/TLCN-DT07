@@ -163,3 +163,55 @@ enum PostCommentStatus {
   VISIBLE
   REMOVED
 }
+
+// ================================
+// Gamification Enums
+// ================================
+
+enum GamificationActivityType {
+  LESSON_COMPLETED
+  QUIZ_SUBMITTED
+  FLASHCARD_REVIEWED
+  ARTICLE_READ_COMPLETED
+  MINDMAP_CREATED
+  NOTE_CREATED
+}
+
+enum GoalPresetKey {
+  PRESET_1X
+  PRESET_3X
+  PRESET_5X
+  CUSTOM
+}
+
+enum GoalTargetType {
+  STUDY_DAYS
+  COMPLETE_LESSONS
+  PASS_QUIZZES
+  REVIEW_FLASHCARDS
+  READ_ARTICLES
+  ANY_ACTIVITIES
+}
+
+enum GoalPeriod {
+  DAILY
+  WEEKLY
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  ARCHIVED
+}
+
+enum AchievementMetricType {
+  TOTAL_ACTIVITIES
+  CURRENT_DAY_STREAK
+  CURRENT_WEEK_STREAK
+  COMPLETED_LESSONS
+  PASSED_QUIZZES
+  READ_ARTICLES
+  REVIEWED_FLASHCARDS
+  CREATED_MINDMAPS
+}

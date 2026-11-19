@@ -14,6 +14,7 @@ import {
   type QuizAttemptResult,
 } from '@/services/entities/quiz.service';
 import { extractErrorMessage } from '@/services/api';
+import { emitGamificationRefresh } from '@/features/gamification/services/gamification.service';
 import {
   isQuestionAnswered,
   pickAnsweredAnswers,
@@ -127,6 +128,7 @@ export function usePracticeExam({ quiz, briefingQuestions, guestLearnerName }: U
       });
       setResult(graded);
       setSessionQuestions(revealAnswers(questions, graded.questions));
+      emitGamificationRefresh();
     } catch (err) {
       setSubmitError(extractErrorMessage(err, 'Nộp bài không thành công. Vui lòng thử lại.'));
     } finally {

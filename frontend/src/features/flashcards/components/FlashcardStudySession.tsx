@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Loader2, RotateCw } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
+import { emitGamificationRefresh } from '@/features/gamification/services/gamification.service';
 import { FLIP_KEY_CODE, FlashcardRating, RATING_OPTIONS } from '../constants/flashcard.constants';
 import { FlashcardApiService, type FlashcardDeck, type FlashcardItem } from '../services/flashcard.service';
 
@@ -52,6 +53,7 @@ export function FlashcardStudySession({
       setError(null);
       try {
         const updated = await FlashcardApiService.reviewCard(currentCard.id, rating);
+        emitGamificationRefresh();
         setReviewedCount((c) => c + 1);
         setFlipped(false);
         if (rating === FlashcardRating.AGAIN) {

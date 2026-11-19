@@ -12,6 +12,12 @@ import { PUBLIC_CURRICULUM_ROUTES, DEFAULT_COVER_IMAGES } from '@/features/publi
 import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonReaderHooks';
 import { pathLessons } from '@/features/public-curriculum/components/hub/HubReaderParts';
 import { RemoteImage } from '@/components/common/RemoteImage';
+import { SavedMaterialKind } from '@/features/saved-materials/constants/saved-material.constants';
+import {
+  removeSavedTimelineNode,
+  toggleSavedMaterial,
+  useSavedMaterialsSnapshot,
+} from '@/features/saved-materials/services/saved-material.service';
 import { AccountCard, Notice, type NoticeState } from './AccountSections';
 import { SavedNotesPanel } from './SavedNotesPanel';
 
@@ -169,29 +175,16 @@ export function LearningSection() {
 /* ==========================================================================
    3. TƯ LIỆU ĐÃ LƯU & GHI CHÚ (SAVED BOOKMARKS + NOTES SECTION)
    ========================================================================== */
-const SAVED_ARTICLES_KEY = 'hisgo:saved-articles';
-const SAVED_TIMELINE_KEY = 'hisgo.saved';
-
 enum BookshelfSubTab {
   BOOKMARKS = 'BOOKMARKS',
   NOTES = 'NOTES',
 }
 
-function readLocalIdList(key: string): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(key);
-    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
-  } catch {
-    return [];
-  }
-}
-
 export function SavedBookmarksSection({ onCountChange }: { onCountChange?: (count: number) => void }) {
   const [subTab, setSubTab] = useState<BookshelfSubTab>(BookshelfSubTab.BOOKMARKS);
-  const [savedArticles, setSavedArticles] = useState<string[]>(() => readLocalIdList(SAVED_ARTICLES_KEY));
-  const [savedTimeline, setSavedTimeline] = useState<string[]>(() => readLocalIdList(SAVED_TIMELINE_KEY));
+  const savedSnapshot = useSavedMaterialsSnapshot();
+  const savedArticles = savedSnapshot.articleIds;
+  const savedTimeline = savedSnapshot.timelineNodeIds;
   const [articlesById, setArticlesById] = useState<Map<string, PublicArticleSummary>>(() => new Map());
   const [timelineNodesById, setTimelineNodesById] = useState<
     Map<string, { title: string; dateLabel: string | null; timelineSlug: string; timelineTitle: string }>
@@ -234,7 +227,7 @@ export function SavedBookmarksSection({ onCountChange }: { onCountChange?: (coun
     };
   }, []);
 
-  // Loại trùng ID đã nằm ở savedArticles (vì ReadingAidsPanel lưu vào cả 2 key).
+  // Loại trùng ID đã nằm ở savedArticles (vì lưu bài viết cũng ghim luôn mốc dấu mộc tương ứng).
   const uniqueTimelineIds = useMemo(
     () => savedTimeline.filter((id) => !savedArticles.includes(id)),
     [savedTimeline, savedArticles],
@@ -247,15 +240,10 @@ export function SavedBookmarksSection({ onCountChange }: { onCountChange?: (coun
   }, [totalSaved, onCountChange]);
 
   const removeSavedId = (id: string) => {
-    const nextArticles = savedArticles.filter((x) => x !== id);
-    const nextTimeline = savedTimeline.filter((x) => x !== id);
-    setSavedArticles(nextArticles);
-    setSavedTimeline(nextTimeline);
-    try {
-      localStorage.setItem(SAVED_ARTICLES_KEY, JSON.stringify(nextArticles));
-      localStorage.setItem(SAVED_TIMELINE_KEY, JSON.stringify(nextTimeline));
-    } catch {
-      // Bỏ qua lỗi storage ở chế độ ẩn danh.
+    if (savedArticles.includes(id)) {
+      void toggleSavedMaterial(SavedMaterialKind.ARTICLE, id);
+    } else {
+      void removeSavedTimelineNode(id);
     }
   };
 

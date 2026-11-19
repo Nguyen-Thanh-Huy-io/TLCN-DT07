@@ -18,6 +18,7 @@ const PAGE_ACCESS: Partial<Record<NavigationPageKey, (role: string) => boolean>>
   [NavigationPageKey.BLOG_REVIEW]: isReviewerRole,
   [NavigationPageKey.MODERATION]: isReviewerRole,
   [NavigationPageKey.USERS]: isSuperadminRole,
+  [NavigationPageKey.GAMIFICATION]: isReviewerRole,
 };
 
 export function canAccessCmsPage(page: string, role?: string | null): boolean {

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 // import { BlogModule } from './blog/blog.module';
@@ -31,6 +32,8 @@ import { NotificationModule } from './notification/notification.module';
 import { NoteModule } from './note/note.module';
 import { FlashcardModule } from './flashcard/flashcard.module';
 import { MindmapModule } from './mindmap/mindmap.module';
+import { GamificationModule } from './gamification/gamification.module';
+import { SavedMaterialModule } from './saved-material/saved-material.module';
 import { QueueModule } from './common/modules/queue.module';
 import { ModerationModule } from './moderation/moderation.module';
 
@@ -41,6 +44,7 @@ import { ModerationModule } from './moderation/moderation.module';
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
     }),
+    EventEmitterModule.forRoot(),
     // Winston logger module (global - can be injected anywhere)
     WinstonModule.forRoot(winstonConfig),
     // Custom logger module (global - can be injected anywhere)
@@ -75,6 +79,8 @@ import { ModerationModule } from './moderation/moderation.module';
     NoteModule,
     FlashcardModule,
     MindmapModule,
+    GamificationModule,
+    SavedMaterialModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -3,9 +3,12 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NoteKind, NoteTargetType, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
+import { GamificationEventName } from '../gamification/gamification.constant';
 import { REVISION_CONTENT_TYPES } from '../content-revision/content-revision.constant';
 import { ContentRevisionService } from '../content-revision/content-revision.service';
 import {
@@ -39,6 +42,7 @@ export class NoteService {
     private readonly prisma: PrismaService,
     private readonly strategyRegistry: NoteStrategyRegistry,
     private readonly contentRevision: ContentRevisionService,
+    @Optional() private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   /** Phiên bản hiện hành của bài, để biết ghi chú được gắn ở bản nào (bài sửa sau đó thì dò lại vị trí). */
@@ -206,6 +210,15 @@ export class NoteService {
         },
       },
     });
+
+    if (userId) {
+      this.eventEmitter?.emit(GamificationEventName.NOTE_CREATED, {
+        userId,
+        noteId: note.id,
+        targetType: dto.targetType,
+        targetId: dto.targetId,
+      });
+    }
 
     return note;
   }

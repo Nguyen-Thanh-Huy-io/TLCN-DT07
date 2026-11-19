@@ -2,9 +2,12 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
+import { GamificationEventName } from '../gamification/gamification.constant';
 import { CreateMindmapDto, UpdateMindmapDto } from './dto/mindmap.dto';
 import {
   MINDMAP_LIMITS,
@@ -42,6 +45,7 @@ export class MindmapService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly templateRegistry: MindmapTemplateRegistry,
+    @Optional() private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   async list(ownerId: string): Promise<MindmapSummary[]> {
@@ -79,7 +83,7 @@ export class MindmapService {
       ? (dto.graph as unknown as MindmapGraphData)
       : this.templateRegistry.buildGraph(template, dto.title, dto.periodLabel);
 
-    return this.prisma.studyMindmap.create({
+    const created = await this.prisma.studyMindmap.create({
       data: {
         ownerId,
         title: dto.title,
@@ -88,6 +92,12 @@ export class MindmapService {
         graph: graph as unknown as Prisma.InputJsonValue,
       },
     });
+    this.eventEmitter?.emit(GamificationEventName.MINDMAP_CREATED, {
+      userId: ownerId,
+      mindmapId: created.id,
+      title: created.title,
+    });
+    return created;
   }
 
   async update(ownerId: string, id: string, dto: UpdateMindmapDto) {

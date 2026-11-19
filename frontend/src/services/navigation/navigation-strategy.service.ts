@@ -170,6 +170,15 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
       groupId: this.groupId,
       subtitle: 'Bản sửa, bài viết, bài học, blog và báo cáo cộng đồng chờ xử lý',
     },
+    {
+      id: 'nav-gamification',
+      label: NAV_ITEM_LABELS.GAMIFICATION,
+      icon: IconName.SPARK,
+      page: NavigationPageKey.GAMIFICATION,
+      route: APP_ROUTES.GAMIFICATION,
+      groupId: this.groupId,
+      subtitle: 'Danh mục huy hiệu, XP và nhịp chuỗi học tập',
+    },
   ];
 
   getItems(): NavItemConfig[] {
@@ -183,6 +192,7 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
       NavigationPageKey.REVIEW,
       NavigationPageKey.BLOG_REVIEW,
       NavigationPageKey.MODERATION,
+      NavigationPageKey.GAMIFICATION,
     ].includes(pageKey as NavigationPageKey);
   }
 
@@ -197,6 +207,8 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
       case NavigationPageKey.BLOG_REVIEW:
       case NavigationPageKey.MODERATION:
         return this.items[2];
+      case NavigationPageKey.GAMIFICATION:
+        return this.items[3];
       default:
         return this.items[0];
     }
@@ -263,6 +275,8 @@ export class NavigationFacade {
         return NavigationPageKey.TAGS;
       case NavigationPageKey.USERS:
         return NavigationPageKey.USERS;
+      case NavigationPageKey.GAMIFICATION:
+        return NavigationPageKey.GAMIFICATION;
       case NavigationPageKey.SETTINGS:
         return NavigationPageKey.SETTINGS;
       case NavigationPageKey.REVIEW:

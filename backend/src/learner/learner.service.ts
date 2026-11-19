@@ -2,9 +2,12 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
+import { GamificationEventName } from '../gamification/gamification.constant';
 import { LessonService } from '../lesson/lesson.service';
 import { LEARNER_ERROR_CODES, LEARNER_MESSAGES } from './learner.constant';
 
@@ -13,6 +16,7 @@ export class LearnerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly lessonService: LessonService,
+    @Optional() private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   /** Lộ trình đã đăng ký + bài đã hoàn thành của người học. */
@@ -102,11 +106,21 @@ export class LearnerService {
     if (!lesson) {
       throw new NotFoundException(LEARNER_MESSAGES.LESSON_NOT_FOUND(lessonId));
     }
+    const alreadyCompleted = await this.prisma.lessonProgress.findUnique?.({
+      where: { userId_lessonId: { userId, lessonId } },
+      select: { id: true },
+    });
     await this.prisma.lessonProgress.upsert({
       where: { userId_lessonId: { userId, lessonId } },
       update: {},
       create: { userId, lessonId },
     });
+    if (!alreadyCompleted) {
+      this.eventEmitter?.emit(GamificationEventName.LESSON_COMPLETED, {
+        userId,
+        lessonId,
+      });
+    }
     return this.getOverview(userId);
   }
 }

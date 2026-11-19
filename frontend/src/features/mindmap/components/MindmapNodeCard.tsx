@@ -126,7 +126,13 @@ function computeBranchControlPositions(
   structure: MindmapStructure,
   side: MindmapBranchSide,
   hasChildren: boolean,
-): { collapseStyle?: React.CSSProperties; addStyle: React.CSSProperties } {
+  isRoot: boolean,
+  isSticky: boolean,
+): {
+  collapseStyle?: React.CSSProperties;
+  addStyle: React.CSSProperties;
+  siblingStyle?: React.CSSProperties;
+} {
   const collapseOffset = '-11px';
   const addOffset = hasChildren ? '-38px' : '-12px';
 
@@ -134,17 +140,21 @@ function computeBranchControlPositions(
     return {
       collapseStyle: { bottom: collapseOffset, ...CENTER_X_BASE },
       addStyle: { bottom: addOffset, ...CENTER_X_BASE },
+      siblingStyle: !isRoot && !isSticky ? { right: '-12px', ...CENTER_Y_BASE } : undefined,
     };
   }
+  const siblingStyle = !isRoot && !isSticky ? { bottom: '-12px', ...CENTER_X_BASE } : undefined;
   if (side === MindmapBranchSide.LEFT) {
     return {
       collapseStyle: { left: collapseOffset, ...CENTER_Y_BASE },
       addStyle: { left: addOffset, ...CENTER_Y_BASE },
+      siblingStyle,
     };
   }
   return {
     collapseStyle: { right: collapseOffset, ...CENTER_Y_BASE },
     addStyle: { right: addOffset, ...CENTER_Y_BASE },
+    siblingStyle,
   };
 }
 
@@ -241,6 +251,7 @@ function NodeFloatingControls({
   onDelete,
   onToggleCollapse,
   onAddChild,
+  onAddSibling,
 }: {
   isRoot: boolean;
   isSelected: boolean;
@@ -255,9 +266,16 @@ function NodeFloatingControls({
   onDelete: () => void;
   onToggleCollapse: () => void;
   onAddChild: () => void;
+  onAddSibling: () => void;
 }) {
   const revealCls = isSelected && !isEditing ? `${ALWAYS_VISIBLE_CLS} pointer-events-auto` : HOVER_REVEAL_CLS;
-  const pos = computeBranchControlPositions(structure, side, descendantCount > 0 && !isSticky);
+  const pos = computeBranchControlPositions(
+    structure,
+    side,
+    descendantCount > 0 && !isSticky,
+    isRoot,
+    isSticky,
+  );
 
   return (
     <>
@@ -349,6 +367,26 @@ function NodeFloatingControls({
           title="Thêm nhánh con (Tab)"
           aria-label="Thêm nhánh con"
           className={`absolute z-20 grid size-5 place-items-center rounded-full border border-blue-200 bg-white text-blue-600 shadow-xs transition hover:scale-110 hover:bg-blue-600 hover:text-white cursor-pointer ${revealCls}`}
+        >
+          <Plus size={11} />
+        </button>
+      )}
+
+      {pos.siblingStyle && (
+        <button
+          type="button"
+          style={pos.siblingStyle}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddSibling();
+          }}
+          title={
+            structure === MindmapStructure.ORG_CHART
+              ? 'Thêm nhánh cùng cấp bên phải (Enter)'
+              : 'Thêm nhánh cùng cấp bên dưới (Enter)'
+          }
+          aria-label="Thêm nhánh cùng cấp"
+          className={`absolute z-20 grid size-5 place-items-center rounded-full border border-emerald-300 bg-white text-emerald-600 shadow-xs transition hover:scale-110 hover:bg-emerald-600 hover:text-white cursor-pointer ${revealCls}`}
         >
           <Plus size={11} />
         </button>
@@ -569,6 +607,7 @@ export function MindmapNodeCard({
   onChangeTitle,
   onStopEditing,
   onAddChild,
+  onAddSibling,
   onDelete,
   onToggleCollapse,
   onChangeNote,
@@ -593,6 +632,7 @@ export function MindmapNodeCard({
   onChangeTitle: (title: string) => void;
   onStopEditing: () => void;
   onAddChild: () => void;
+  onAddSibling: () => void;
   onDelete: () => void;
   onToggleCollapse: () => void;
   onChangeNote: (note: string) => void;
@@ -642,6 +682,7 @@ export function MindmapNodeCard({
         onDelete={onDelete}
         onToggleCollapse={onToggleCollapse}
         onAddChild={onAddChild}
+        onAddSibling={onAddSibling}
       />
 
       <NodeContentBody

@@ -183,6 +183,40 @@ export function resolveNodePalette(
   return theme.branchPalette[branchIdx % theme.branchPalette.length];
 }
 
+function attachChildNodeToGraph(
+  graph: MindmapGraph,
+  parent: MindmapNode,
+  title: string,
+  insertAfterTargetId?: string,
+): { graph: MindmapGraph; newId: string } {
+  const newNode: MindmapNode = {
+    id: nextMindmapId('n'),
+    x: parent.x + 220,
+    y: parent.y + 60,
+    title,
+    color: parent.color === MindmapBranchColor.CRIMSON ? MindmapBranchColor.GOLD : parent.color,
+  };
+  const newEdge: MindmapEdge = { id: nextMindmapId('e'), fromId: parent.id, toId: newNode.id };
+  const edges = [...graph.edges];
+  if (insertAfterTargetId) {
+    const idx = edges.findIndex(
+      (e) => !e.isCrossLink && e.fromId === parent.id && e.toId === insertAfterTargetId,
+    );
+    edges.splice(idx >= 0 ? idx + 1 : edges.length, 0, newEdge);
+  } else {
+    edges.push(newEdge);
+  }
+
+  return {
+    newId: newNode.id,
+    graph: {
+      ...graph,
+      nodes: graph.nodes.map((n) => (n.id === parent.id ? { ...n, collapsed: false } : n)).concat(newNode),
+      edges,
+    },
+  };
+}
+
 export function addChildNodeToGraph(
   graph: MindmapGraph,
   parentId: string,
@@ -190,22 +224,7 @@ export function addChildNodeToGraph(
 ): { graph: MindmapGraph; newId: string } {
   const parent = graph.nodes.find((n) => n.id === parentId);
   if (!parent) return { graph, newId: '' };
-  const newId = nextMindmapId('n');
-  const newNode: MindmapNode = {
-    id: newId,
-    x: parent.x + 220,
-    y: parent.y + 60,
-    title,
-    color: parent.color === MindmapBranchColor.CRIMSON ? MindmapBranchColor.GOLD : parent.color,
-  };
-  return {
-    newId,
-    graph: {
-      ...graph,
-      nodes: graph.nodes.map((n) => (n.id === parentId ? { ...n, collapsed: false } : n)).concat(newNode),
-      edges: [...graph.edges, { id: nextMindmapId('e'), fromId: parentId, toId: newId }],
-    },
-  };
+  return attachChildNodeToGraph(graph, parent, title);
 }
 
 export function addSiblingNodeToGraph(
@@ -214,8 +233,12 @@ export function addSiblingNodeToGraph(
   title = 'Nhánh mới',
 ): { graph: MindmapGraph; newId: string } {
   const tree = buildMindmapTree(graph);
-  const parentId = tree.parentMap.get(targetId) ?? tree.rootId ?? targetId;
-  return addChildNodeToGraph(graph, parentId, title);
+  const parentId = tree.parentMap.get(targetId);
+  if (!parentId) return addChildNodeToGraph(graph, tree.rootId ?? targetId, title);
+
+  const parent = graph.nodes.find((n) => n.id === parentId);
+  if (!parent) return { graph, newId: '' };
+  return attachChildNodeToGraph(graph, parent, title, targetId);
 }
 
 export function deleteSubtreeFromGraph(

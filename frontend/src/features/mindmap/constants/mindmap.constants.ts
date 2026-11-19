@@ -1,14 +1,25 @@
+import { SavedMaterialKind, type SavableMaterialKind } from '@/features/saved-materials/constants/saved-material.constants';
+
 export const MINDMAP_API = {
   ROOT: '/mindmaps',
   BY_ID: (id: string) => `/mindmaps/${id}`,
   GENERATE_PREVIEW: '/mindmaps/generate-preview',
   PUBLIC_ARTICLES: '/public/articles',
   PUBLIC_ARTICLE_BY_SLUG: (slug: string) => `/public/articles/${encodeURIComponent(slug)}`,
+  PUBLIC_TIMELINES: '/public/timelines',
 } as const;
 
 export enum ReaderSourceKind {
   ARTICLE = 'ARTICLE',
   LESSON = 'LESSON',
+  SAVED = 'SAVED',
+}
+
+export type ReadableMaterialKind = ReaderSourceKind.ARTICLE | ReaderSourceKind.LESSON;
+
+/** Chuyển kind đọc tại-chỗ (tab UI) sang kind lưu trữ dùng chung với tư liệu đã lưu. */
+export function toSavedMaterialKind(kind: ReadableMaterialKind): SavableMaterialKind {
+  return kind === ReaderSourceKind.ARTICLE ? SavedMaterialKind.ARTICLE : SavedMaterialKind.LESSON;
 }
 
 export enum MindmapTemplateType {

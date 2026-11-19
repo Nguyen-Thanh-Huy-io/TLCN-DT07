@@ -11,6 +11,7 @@ import { ReadingAidsPanel } from '@/features/reading-aids/components/ReadingAids
 import { useReadingControls } from '@/features/reading-aids/hooks/useReadingControls';
 import { useLessonAnnotations } from '@/features/lessons/hooks/useLessonAnnotations';
 import { NOTE_TARGET_TYPE } from '@/features/notes/services/note.service';
+import { ArticleReadCompleteButton } from '@/features/gamification/components/ArticleReadCompleteButton';
 import { sanitizeRichHtml } from '@/utils/common';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 
@@ -80,6 +81,10 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
                   ))}
                 </div>
               </div>
+            )}
+
+            {!focusMode && model.id && (
+              <ArticleReadCompleteButton articleId={model.id} />
             )}
 
             {!focusMode && (

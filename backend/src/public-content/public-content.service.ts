@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ContentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
+import { GamificationEventName } from '../gamification/gamification.constant';
 import { LessonContentStrategyContext } from '../lesson/strategies/content-normalizer.strategy';
 import {
   DEFAULT_QUIZ_PASSING_SCORE_PERCENT,
@@ -61,6 +63,7 @@ export class PublicContentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly adjacency: ArticleAdjacencyService,
+    @Optional() private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   // ---------- Chuyên mục ----------
@@ -802,6 +805,16 @@ export class PublicContentService {
       },
       select: { id: true },
     });
+
+    if (userId) {
+      this.eventEmitter?.emit(GamificationEventName.QUIZ_SUBMITTED, {
+        userId,
+        attemptId: attempt.id,
+        quizId,
+        scorePercent: graded.scorePercent,
+        isPassed,
+      });
+    }
 
     return { attemptId: attempt.id, ...graded, isPassed, questions };
   }

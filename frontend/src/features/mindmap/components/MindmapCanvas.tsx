@@ -223,13 +223,16 @@ export function MindmapCanvas({
     return () => cancelAnimationFrame(raf);
   }, [fitView, layout.placements.size]);
 
-  const handleAddChild = useCallback(
-    (parentId?: string) => {
-      const targetId = parentId ?? selectedNodeId ?? tree.rootId;
-      if (!targetId) return;
+  const insertBranchNode = useCallback(
+    (
+      targetId: string | undefined,
+      mutate: (prev: MindmapGraph, id: string, title: string) => { graph: MindmapGraph; newId: string },
+    ) => {
+      const resolvedId = targetId ?? selectedNodeId ?? tree.rootId;
+      if (!resolvedId) return;
       let createdId = '';
       commitGraph((prev) => {
-        const res = addChildNodeToGraph(prev, targetId, 'Ý tưởng mới');
+        const res = mutate(prev, resolvedId, 'Ý tưởng mới');
         createdId = res.newId;
         return res.graph;
       });
@@ -241,20 +244,15 @@ export function MindmapCanvas({
     [commitGraph, selectedNodeId, tree.rootId],
   );
 
-  const handleAddSibling = useCallback(() => {
-    const targetId = selectedNodeId ?? tree.rootId;
-    if (!targetId) return;
-    let createdId = '';
-    commitGraph((prev) => {
-      const res = addSiblingNodeToGraph(prev, targetId, 'Ý tưởng mới');
-      createdId = res.newId;
-      return res.graph;
-    });
-    if (createdId) {
-      setSelectedNodeId(createdId);
-      setEditingNodeId(createdId);
-    }
-  }, [commitGraph, selectedNodeId, tree.rootId]);
+  const handleAddChild = useCallback(
+    (parentId?: string) => insertBranchNode(parentId, addChildNodeToGraph),
+    [insertBranchNode],
+  );
+
+  const handleAddSibling = useCallback(
+    (referenceId?: string) => insertBranchNode(referenceId, addSiblingNodeToGraph),
+    [insertBranchNode],
+  );
 
   const handleAddSticky = useCallback(() => {
     const newId = nextMindmapId('sticky');
@@ -550,7 +548,7 @@ export function MindmapCanvas({
         onUndo={handleUndo}
         onRedo={handleRedo}
         onAddChild={() => handleAddChild()}
-        onAddSibling={handleAddSibling}
+        onAddSibling={() => handleAddSibling()}
         onAddSticky={handleAddSticky}
         onToggleLink={() => setLinkFromId(linkFromId ? null : selectedNodeId ?? tree.rootId)}
         onToggleReader={() => {
@@ -729,6 +727,7 @@ export function MindmapCanvas({
                   onChangeTitle={(nextTitle) => updateNode(node.id, { title: nextTitle })}
                   onStopEditing={() => setEditingNodeId(null)}
                   onAddChild={() => handleAddChild(node.id)}
+                  onAddSibling={() => handleAddSibling(node.id)}
                   onDelete={() => handleDeleteNode(node.id)}
                   onToggleCollapse={() => updateNode(node.id, { collapsed: !node.collapsed })}
                   onChangeNote={(note) => updateNode(node.id, { note })}

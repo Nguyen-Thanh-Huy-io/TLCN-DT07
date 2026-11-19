@@ -15,7 +15,6 @@ export enum AiGeneratorEngine {
 }
 
 export const AI_CARD_COUNT_OPTIONS = [5, 10, 15] as const;
-export const SAVED_ARTICLES_STORAGE_KEY = 'hisgo:saved-articles';
 
 export enum FlashcardRating {
   AGAIN = 'AGAIN',

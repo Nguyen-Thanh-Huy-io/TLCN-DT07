@@ -32,6 +32,7 @@ export const NAV_ITEM_LABELS = {
   TIMELINES: 'Dòng thời gian',
   TAGS: 'Tag',
   USERS: 'Quản lý người dùng và phân quyền',
+  GAMIFICATION: 'Gamification & Huy hiệu',
   SETTINGS: 'Cài đặt hệ thống',
   REVIEW: 'Hàng chờ duyệt',
 } as const;

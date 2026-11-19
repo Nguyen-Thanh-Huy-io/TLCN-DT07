@@ -1,13 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Check, Loader2, Sparkles, X } from 'lucide-react';
+import { fetchSavedArticleIds } from '@/features/saved-materials/services/saved-material.service';
 import { extractErrorMessage } from '@/services/api';
-import {
-  AI_CARD_COUNT_OPTIONS,
-  AiGeneratorEngine,
-  SAVED_ARTICLES_STORAGE_KEY,
-} from '../constants/flashcard.constants';
+import { AI_CARD_COUNT_OPTIONS, AiGeneratorEngine } from '../constants/flashcard.constants';
 import {
   FlashcardApiService,
   type GeneratedCardDraft,
@@ -15,17 +12,6 @@ import {
 
 interface EditableDraft extends GeneratedCardDraft {
   selected: boolean;
-}
-
-function readSavedArticleIds(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(SAVED_ARTICLES_STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
-  } catch {
-    return [];
-  }
 }
 
 /** Hộp thoại AI phân tích Ghi chú & Bài viết đã lưu để tạo bộ thẻ ghi nhớ. */
@@ -36,11 +22,23 @@ export function AiFlashcardGeneratorModal({
   onCreated: () => Promise<void>;
   onClose: () => void;
 }) {
-  const [savedArticleIds] = useState<string[]>(() => readSavedArticleIds());
+  const [savedArticleIds, setSavedArticleIds] = useState<string[]>([]);
   const [includeNotes, setIncludeNotes] = useState(true);
   const [includeWrongQuizzes, setIncludeWrongQuizzes] = useState(true);
-  const [includeArticles, setIncludeArticles] = useState(() => readSavedArticleIds().length > 0);
+  const [includeArticles, setIncludeArticles] = useState(false);
   const [maxCards, setMaxCards] = useState<number>(10);
+
+  useEffect(() => {
+    let alive = true;
+    void fetchSavedArticleIds().then((ids) => {
+      if (!alive) return;
+      setSavedArticleIds(ids);
+      setIncludeArticles(ids.length > 0);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);

@@ -1,4 +1,5 @@
 import type { TextStyleValue } from '@/components/common/TextStyleControls';
+import { emitGamificationRefresh } from '@/features/gamification/services/gamification.service';
 import api from '@/services/api';
 import type {
   PublicArticleDetail,
@@ -132,7 +133,9 @@ export const MindmapApiService = {
     template?: MindmapTemplateType;
     graph?: MindmapGraph;
   }): Promise<MindmapDetail> {
-    return unwrap(await api.post(MINDMAP_API.ROOT, input));
+    const created = unwrap<MindmapDetail>(await api.post(MINDMAP_API.ROOT, input));
+    emitGamificationRefresh();
+    return created;
   },
   async update(
     id: string,

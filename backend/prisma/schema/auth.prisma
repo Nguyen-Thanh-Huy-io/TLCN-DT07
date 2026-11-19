@@ -38,6 +38,11 @@ model authUser {
   reportReviews     ContentReport[]          @relation("ContentReportReviewer")
   following         UserFollow[]             @relation("UserFollowFollower")
   followers         UserFollow[]             @relation("UserFollowFollowing")
+  learningActivities LearningActivity[]
+  learningStats      UserLearningStats?
+  learningGoals      LearningGoal[]
+  userAchievements   UserAchievement[]
+  savedMaterials     SavedMaterial[]
 
   @@index([email, id, providerId])
   @@index([username])

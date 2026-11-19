@@ -55,6 +55,7 @@ export const APP_ROUTES = {
   BLOG_REVIEW: '/blog-review',
   MODERATION: '/moderation',
   USERS: '/users',
+  GAMIFICATION: '/gamification',
   LOGIN: '/login',
 } as const;
 
@@ -124,5 +125,6 @@ export enum NavigationPageKey {
   BLOG_REVIEW = 'blog-review',
   MODERATION = 'moderation',
   USERS = 'users',
+  GAMIFICATION = 'gamification',
 }
 

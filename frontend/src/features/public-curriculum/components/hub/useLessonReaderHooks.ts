@@ -2,6 +2,7 @@
 
 import { RefObject, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
 import { LearnerApiService, type LearnerOverview } from '@/services/entities/learner.service';
+import { emitGamificationRefresh } from '@/features/gamification/services/gamification.service';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 
 // --- useLessonMedia.ts ---
@@ -174,6 +175,7 @@ export function useLessonProgress() {
       if (!userId || current.completedLessonIds.includes(lessonId)) return;
       const overview = await LearnerApiService.completeLesson(lessonId);
       setState({ userId, loaded: true, overview });
+      emitGamificationRefresh();
     },
     [userId, current],
   );

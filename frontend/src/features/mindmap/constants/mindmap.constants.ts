@@ -3,7 +3,6 @@ import { SavedMaterialKind, type SavableMaterialKind } from '@/features/saved-ma
 export const MINDMAP_API = {
   ROOT: '/mindmaps',
   BY_ID: (id: string) => `/mindmaps/${id}`,
-  GENERATE_PREVIEW: '/mindmaps/generate-preview',
   PUBLIC_ARTICLES: '/public/articles',
   PUBLIC_ARTICLE_BY_SLUG: (slug: string) => `/public/articles/${encodeURIComponent(slug)}`,
   PUBLIC_TIMELINES: '/public/timelines',
@@ -129,11 +128,6 @@ export enum MindmapInspectorTab {
 export enum MindmapToolMode {
   POINTER = 'POINTER',
   HAND = 'HAND',
-}
-
-export enum MindmapAiEngine {
-  GEMINI_FLASH = 'GEMINI_FLASH',
-  HEURISTIC = 'HEURISTIC',
 }
 
 export enum MindmapMarkerId {

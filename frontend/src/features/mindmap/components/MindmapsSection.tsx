@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Loader2, Network, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Loader2, Network, Plus, Trash2 } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import { AccountCard } from '@/features/account/components/AccountSections';
-import { fetchSavedArticleIds } from '@/features/saved-materials/services/saved-material.service';
 import {
   MindmapTemplateType,
   TEMPLATE_OPTIONS,
@@ -16,7 +15,7 @@ import {
 } from '../services/mindmap.service';
 import { MindmapCanvas } from './MindmapCanvas';
 
-/** Tab "Sơ đồ tư duy" trên trang /tai-khoan: danh sách, tạo theo 5 dạng Lịch sử / AI và mở Canvas. */
+/** Tab "Sơ đồ tư duy" trên trang /tai-khoan: danh sách, tạo theo mẫu và mở Studio. */
 export function MindmapsSection({ onCountChange }: { onCountChange?: (count: number) => void }) {
   const [mindmaps, setMindmaps] = useState<MindmapSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +28,6 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
   const [title, setTitle] = useState('');
   const [template, setTemplate] = useState<MindmapTemplateType>(MindmapTemplateType.BLANK);
   const [creating, setCreating] = useState(false);
-  const [generatingAi, setGeneratingAi] = useState(false);
 
   const reloadList = useCallback(async () => {
     try {
@@ -93,30 +91,6 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
     }
   };
 
-  const handleGenerateAi = async () => {
-    if (generatingAi) return;
-    setGeneratingAi(true);
-    setError(null);
-    try {
-      const preview = await MindmapApiService.generatePreview({
-        includeNotes: true,
-        articleIds: await fetchSavedArticleIds(),
-      });
-      const created = await MindmapApiService.create({
-        title: preview.title,
-        periodLabel: preview.periodLabel,
-        template: preview.template,
-        graph: preview.graph,
-      });
-      setActiveMindmap(created);
-      await reloadList();
-    } catch (err) {
-      setError(extractErrorMessage(err, 'Không dựng được sơ đồ tự động từ ghi chú & bài viết.'));
-    } finally {
-      setGeneratingAi(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
     if (!window.confirm('Xoá sơ đồ tư duy này?')) return;
     try {
@@ -146,24 +120,13 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
       eyebrow="Hệ thống hoá tri thức"
       title="Sơ đồ tư duy Lịch sử"
       action={
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            disabled={generatingAi}
-            onClick={() => void handleGenerateAi()}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--gold,#B8893F)] bg-[var(--bg-page,#F5EEDC)] px-3.5 py-1.5 text-xs font-bold text-[var(--primary,#7A1F24)] hover:bg-[#EFE4CC] disabled:opacity-50 cursor-pointer"
-          >
-            {generatingAi ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} className="text-[var(--gold,#B8893F)]" />}
-            Tạo từ AI / Ghi chú
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowCreate((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#7A1F24] to-[#91252B] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:brightness-110 cursor-pointer"
-          >
-            <Plus size={13} /> Tạo sơ đồ mới
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowCreate((v) => !v)}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#7A1F24] to-[#91252B] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:brightness-110 cursor-pointer"
+        >
+          <Plus size={13} /> Tạo sơ đồ mới
+        </button>
       }
     >
       {error && (
@@ -226,7 +189,7 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
             Chưa có sơ đồ tư duy nào
           </h3>
           <p className="mt-1 mx-auto max-w-md text-xs text-[var(--text-muted,#7A6B57)]">
-            Bấm <strong>Tạo sơ đồ mới</strong> để chọn Sơ đồ tư duy 2 bên, Sơ đồ tổ chức, Cây logic hoặc Đối chiếu, hoặc bấm <strong>Tạo từ AI / Ghi chú</strong> để dựng nhanh từ bài đã lưu.
+            Bấm <strong>Tạo sơ đồ mới</strong> để chọn Sơ đồ tư duy 2 bên, Sơ đồ tổ chức, Cây logic hoặc Đối chiếu và tự do kéo thả, gắn tư liệu đã lưu trong Studio.
           </p>
         </div>
       ) : (

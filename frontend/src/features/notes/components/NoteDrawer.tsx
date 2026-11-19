@@ -2,11 +2,18 @@
 
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Bookmark, Highlighter, Plus, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, Bookmark, Highlighter, Layers, List, Plus, Sparkles, X } from 'lucide-react';
 import { CommonFilterOption, KeyboardKey } from '@/constants/enums';
 import type { NoteFacade } from '../facades/useNoteFacade';
 import { NOTE_KIND_META, isOpenQuestion } from '../constants/note-kind.constants';
-import { NOTE_KIND, NOTE_TARGET_TYPE, type NoteItem, type NoteKindValue, type NoteTargetTypeValue } from '../services/note.service';
+import {
+  NOTE_KIND,
+  NOTE_TARGET_TYPE,
+  type NoteItem,
+  type NoteKindValue,
+  type NoteTargetTypeValue,
+} from '../services/note.service';
+import { groupNotesByCluster } from '../utils/note-cluster.util';
 import { NoteCard, NoteLabelInput } from './NoteDrawerParts';
 
 // === NoteReviewAlertBanner ===
@@ -21,11 +28,11 @@ export function NoteReviewAlertBanner({ facade, reviewCount = 0 }: NoteReviewAle
   if (isOpen || reviewCount <= 0) return null;
 
   return (
-    <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-40">
+    <div className="fixed bottom-16 inset-x-0 z-40 mx-auto w-fit max-w-[calc(100vw-24px)]">
       <button
         type="button"
         onClick={openDrawer}
-        className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-900 shadow-md cursor-pointer whitespace-nowrap"
+        className="inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border border-amber-300 bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-900 shadow-md"
       >
         <AlertTriangle size={13} /> Bài đã cập nhật — {reviewCount} ghi chú cần xem lại
       </button>
@@ -60,6 +67,11 @@ const chip = (active: boolean) =>
 
 const ALL_KINDS = Object.values(NOTE_KIND);
 
+enum NoteDrawerViewMode {
+  LIST = 'LIST',
+  CLUSTER = 'CLUSTER',
+}
+
 export function NoteDrawer({
   facade,
   targetTitle,
@@ -90,6 +102,7 @@ export function NoteDrawer({
   const [newContent, setNewContent] = useState('');
   const [newLabels, setNewLabels] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [viewMode, setViewMode] = useState<NoteDrawerViewMode>(NoteDrawerViewMode.LIST);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -118,16 +131,33 @@ export function NoteDrawer({
     }
   };
 
+  const sortedNotes = [...notes].sort(byOpenQuestionFirst);
+  const clusterGroups = groupNotesByCluster(sortedNotes);
+
+  const renderCard = (note: NoteItem, keyPrefix = '') => (
+    <NoteCard
+      key={`${keyPrefix}${note.id}-${note.updatedAt}`}
+      note={note}
+      isLost={Boolean(lostNoteIds?.has(note.id))}
+      needsReview={Boolean(needsReviewIds?.has(note.id))}
+      labelSuggestions={labelSuggestions}
+      onLocate={onLocateNote ? () => onLocateNote(note.id) : undefined}
+      onReattach={onReattachNote ? () => onReattachNote(note.id) : undefined}
+      onUpdate={(updates) => editNote(note.id, updates)}
+      onRemove={() => void removeNote(note.id)}
+      onAskCommunity={onAskCommunity ? () => onAskCommunity(note) : undefined}
+    />
+  );
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
-          {/* Backdrop chỉ hiển thị trên mobile để chạm ra ngoài là đóng; Desktop hoàn toàn trong suốt không chặn chuột */}
+        <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-stone-900/35 backdrop-blur-[2px] md:hidden pointer-events-auto"
+            className="pointer-events-auto absolute inset-0 bg-stone-900/35 backdrop-blur-[2px] md:hidden"
             onClick={closeDrawer}
             aria-label="Đóng sổ ghi chú"
           />
@@ -166,92 +196,122 @@ export function NoteDrawer({
               </button>
             </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <form onSubmit={handleCreateNote} className="p-4 rounded-xl bg-white border border-stone-200/90 shadow-2xs space-y-2.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#8B261E] flex items-center gap-1">
-                <Plus size={14} /> Ghi chú chung cho bài
-              </span>
-              <textarea
-                value={newContent}
-                onChange={(e) => setNewContent(e.target.value)}
-                placeholder="Suy nghĩ, kiến thức cần nhớ về cả bài..."
-                rows={3}
-                className="w-full text-xs sm:text-sm p-3 rounded-lg border border-stone-200 bg-stone-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#8B261E]/30 focus:border-[#8B261E]"
-              />
-              <NoteLabelInput value={newLabels} onChange={setNewLabels} suggestions={labelSuggestions} />
-              <div className="flex items-center justify-between pt-1">
-                <div className="text-[11px] text-stone-400 flex items-center gap-1">
-                  <Highlighter size={12} /> Bôi đen chữ trên bài để ghi chú tại chỗ
-                </div>
-                <button
-                  type="submit"
-                  disabled={submitting || !newContent.trim()}
-                  className="px-3.5 py-1.5 rounded-lg bg-[#8B261E] text-white font-bold text-xs hover:bg-[#721F18] disabled:opacity-50 cursor-pointer"
-                >
-                  {submitting ? 'Đang lưu...' : 'Lưu ghi chú'}
-                </button>
-              </div>
-            </form>
-
-            {allNotesCount > 0 && (
-              <div className="space-y-2">
-                <div className="flex gap-1.5 overflow-x-auto pb-1">
-                  <button type="button" onClick={() => setKindFilter(CommonFilterOption.ALL)} className={chip(kindFilter === CommonFilterOption.ALL)}>
-                    Tất cả ({allNotesCount})
-                  </button>
-                  {kindsInUse.map((kind) => {
-                    const Icon = NOTE_KIND_META[kind].icon;
-                    const count = allNotes.filter((n) => n.kind === kind).length;
-                    const openSuffix = kind === NOTE_KIND.QUESTION && openQuestions > 0 ? ` · ${openQuestions} chưa hiểu` : '';
-                    return (
-                      <button key={kind} type="button" onClick={() => setKindFilter(kind)} className={chip(kindFilter === kind)}>
-                        <Icon size={11} /> {NOTE_KIND_META[kind].label} ({count}{openSuffix})
-                      </button>
-                    );
-                  })}
-                </div>
-                {usedLabels.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {usedLabels.map((label) => (
-                      <button key={label} type="button" onClick={() => setLabelFilter(labelFilter === label ? null : label)} className={chip(labelFilter === label)}>
-                        #{label}
-                      </button>
-                    ))}
+            <div className="flex-1 space-y-4 overflow-y-auto p-4">
+              <form onSubmit={handleCreateNote} className="space-y-2.5 rounded-xl border border-stone-200/90 bg-white p-4 shadow-2xs">
+                <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[#8B261E]">
+                  <Plus size={14} /> Ghi chú chung cho bài
+                </span>
+                <textarea
+                  value={newContent}
+                  onChange={(e) => setNewContent(e.target.value)}
+                  placeholder="Suy nghĩ, kiến thức cần nhớ về cả bài..."
+                  rows={3}
+                  className="w-full rounded-lg border border-stone-200 bg-stone-50/50 p-3 text-xs focus:border-[#8B261E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#8B261E]/30 sm:text-sm"
+                />
+                <NoteLabelInput value={newLabels} onChange={setNewLabels} suggestions={labelSuggestions} />
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-1 text-[11px] text-stone-400">
+                    <Highlighter size={12} /> Bôi đen chữ hoặc bấm + cạnh đoạn
                   </div>
-                )}
-              </div>
-            )}
+                  <button
+                    type="submit"
+                    disabled={submitting || !newContent.trim()}
+                    className="cursor-pointer rounded-lg bg-[#8B261E] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#721F18] disabled:opacity-50"
+                  >
+                    {submitting ? 'Đang lưu...' : 'Lưu ghi chú'}
+                  </button>
+                </div>
+              </form>
 
-            {loading ? (
-              <div className="py-12 text-center text-stone-400 text-xs">Đang tải ghi chú...</div>
-            ) : notes.length === 0 ? (
-              <div className="py-12 px-4 text-center rounded-xl border border-dashed border-stone-200 text-stone-500 bg-white/60">
-                <Sparkles size={28} className="mx-auto text-stone-300 mb-2" />
-                <p className="text-xs font-semibold text-stone-700">{allNotesCount ? 'Không có ghi chú khớp bộ lọc' : 'Chưa có ghi chú nào'}</p>
-                <p className="text-[11px] text-stone-400 mt-1">Bôi đen một đoạn trong bài để tô sáng, ghi chú, đặt câu hỏi…</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {[...notes].sort(byOpenQuestionFirst).map((note) => (
-                  <NoteCard
-                    key={`${note.id}-${note.updatedAt}`}
-                    note={note}
-                    isLost={Boolean(lostNoteIds?.has(note.id))}
-                    needsReview={Boolean(needsReviewIds?.has(note.id))}
-                    labelSuggestions={labelSuggestions}
-                    onLocate={onLocateNote ? () => onLocateNote(note.id) : undefined}
-                    onReattach={onReattachNote ? () => onReattachNote(note.id) : undefined}
-                    onUpdate={(updates) => editNote(note.id, updates)}
-                    onRemove={() => void removeNote(note.id)}
-                    onAskCommunity={onAskCommunity ? () => onAskCommunity(note) : undefined}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </motion.aside>
-      </div>
-    )}
-  </AnimatePresence>
-);
+              {allNotesCount > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold text-stone-500">Hiển thị ghi chú</span>
+                    <div className="inline-flex rounded-lg bg-stone-200/75 p-0.5 text-[11px] font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setViewMode(NoteDrawerViewMode.LIST)}
+                        className={`inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 ${
+                          viewMode === NoteDrawerViewMode.LIST ? 'bg-white text-stone-900 shadow-2xs' : 'text-stone-600'
+                        }`}
+                      >
+                        <List size={12} /> Danh sách
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode(NoteDrawerViewMode.CLUSTER)}
+                        className={`inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 ${
+                          viewMode === NoteDrawerViewMode.CLUSTER ? 'bg-white text-[#8B261E] shadow-2xs' : 'text-stone-600'
+                        }`}
+                      >
+                        <Layers size={12} /> Theo cụm nhóm
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
+                    <button type="button" onClick={() => setKindFilter(CommonFilterOption.ALL)} className={chip(kindFilter === CommonFilterOption.ALL)}>
+                      Tất cả ({allNotesCount})
+                    </button>
+                    {kindsInUse.map((kind) => {
+                      const Icon = NOTE_KIND_META[kind].icon;
+                      const count = allNotes.filter((n) => n.kind === kind).length;
+                      const openSuffix = kind === NOTE_KIND.QUESTION && openQuestions > 0 ? ` · ${openQuestions} chưa hiểu` : '';
+                      return (
+                        <button key={kind} type="button" onClick={() => setKindFilter(kind)} className={chip(kindFilter === kind)}>
+                          <Icon size={11} /> {NOTE_KIND_META[kind].label} ({count}{openSuffix})
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {usedLabels.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {usedLabels.map((label) => (
+                        <button key={label} type="button" onClick={() => setLabelFilter(labelFilter === label ? null : label)} className={chip(labelFilter === label)}>
+                          #{label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {loading ? (
+                <div className="py-12 text-center text-xs text-stone-400">Đang tải ghi chú...</div>
+              ) : notes.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-stone-200 bg-white/60 px-4 py-12 text-center text-stone-500">
+                  <Sparkles size={28} className="mx-auto mb-2 text-stone-300" />
+                  <p className="text-xs font-semibold text-stone-700">{allNotesCount ? 'Không có ghi chú khớp bộ lọc' : 'Chưa có ghi chú nào'}</p>
+                  <p className="mt-1 text-[11px] text-stone-400">Bôi đen chữ hoặc rê chuột cạnh đoạn văn bấm + để tạo sticky…</p>
+                </div>
+              ) : viewMode === NoteDrawerViewMode.CLUSTER ? (
+                <div className="space-y-4">
+                  {clusterGroups.map((group) => (
+                    <section key={group.groupKey} className="space-y-2">
+                      <div className="flex items-center justify-between border-b border-stone-200/80 pb-1">
+                        <span className={`text-xs font-bold ${group.isUngrouped ? 'text-stone-500' : 'text-[#8B261E]'}`}>
+                          {group.label}
+                        </span>
+                        <span className="rounded-full bg-stone-200/80 px-2 py-0.5 text-[10px] font-bold text-stone-700">
+                          {group.notes.length}
+                        </span>
+                      </div>
+                      <div className="space-y-2.5">
+                        {group.notes.map((note) => renderCard(note, `${group.groupKey}-`))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {sortedNotes.map((note) => renderCard(note))}
+                </div>
+              )}
+            </div>
+          </motion.aside>
+        </div>
+      )}
+    </AnimatePresence>
+  );
 }

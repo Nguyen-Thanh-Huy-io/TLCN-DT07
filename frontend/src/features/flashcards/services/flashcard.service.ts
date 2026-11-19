@@ -1,9 +1,5 @@
 import api from '@/services/api';
-import {
-  AiGeneratorEngine,
-  FLASHCARD_API,
-  FlashcardRating,
-} from '../constants/flashcard.constants';
+import { FLASHCARD_API, FlashcardRating } from '../constants/flashcard.constants';
 
 const unwrap = <T,>(res: { data: { data: T } }): T => res.data.data;
 
@@ -30,21 +26,6 @@ export interface FlashcardItem {
   lastReviewedAt: string | null;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface GeneratedCardDraft {
-  front: string;
-  back: string;
-  sourceNoteId?: string;
-}
-
-export interface GeneratedFlashcardPreview {
-  deckTitle: string;
-  cards: GeneratedCardDraft[];
-  engine: AiGeneratorEngine;
-  noteCount: number;
-  articleCount: number;
-  wrongQuizCount: number;
 }
 
 export const FlashcardApiService = {
@@ -80,19 +61,5 @@ export const FlashcardApiService = {
   },
   async reviewCard(cardId: string, rating: FlashcardRating): Promise<FlashcardItem> {
     return unwrap(await api.post(FLASHCARD_API.CARD_REVIEW(cardId), { rating }));
-  },
-  async generatePreview(input: {
-    articleIds?: string[];
-    includeNotes?: boolean;
-    includeWrongQuizzes?: boolean;
-    maxCards?: number;
-  }): Promise<GeneratedFlashcardPreview> {
-    return unwrap(await api.post(FLASHCARD_API.GENERATE_PREVIEW, input));
-  },
-  async createDeckBatch(input: {
-    title: string;
-    cards: GeneratedCardDraft[];
-  }): Promise<FlashcardDeck> {
-    return unwrap(await api.post(FLASHCARD_API.DECKS_BATCH, input));
   },
 };

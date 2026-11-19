@@ -28,6 +28,7 @@ export function useNoteFacade(targetType: NoteTargetTypeValue, targetId: string)
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [drawMode, setDrawMode] = useState<boolean>(false);
   const [kindFilter, setKindFilter] = useState<NoteKindValue | CommonFilterOption.ALL>(CommonFilterOption.ALL);
   const [labelFilter, setLabelFilter] = useState<string | null>(null);
   const [labelSuggestions, setLabelSuggestions] = useState<string[]>([]);
@@ -61,11 +62,20 @@ export function useNoteFacade(targetType: NoteTargetTypeValue, targetId: string)
   }, []);
 
   const openDrawer = useCallback(() => {
+    setDrawMode(false);
     setIsOpen(true);
   }, []);
 
   const closeDrawer = useCallback(() => {
     setIsOpen(false);
+  }, []);
+
+  const toggleDrawMode = useCallback(() => {
+    setDrawMode((prev) => {
+      const next = !prev;
+      if (next) setIsOpen(false);
+      return next;
+    });
   }, []);
 
   const rememberLabels = (labels: string[] | undefined) => {
@@ -122,6 +132,9 @@ export function useNoteFacade(targetType: NoteTargetTypeValue, targetId: string)
     allNotesCount: notes.length,
     loading,
     isOpen,
+    drawMode,
+    setDrawMode,
+    toggleDrawMode,
     kindFilter,
     setKindFilter,
     labelFilter,

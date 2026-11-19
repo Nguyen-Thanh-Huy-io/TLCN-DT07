@@ -5,16 +5,13 @@ import {
   Bookmark,
   ChevronLeft,
   ChevronRight,
-  Layers,
   ListTree,
-  MessageSquareQuote,
   NotebookPen,
+  PenTool,
   SlidersHorizontal,
-  X,
   type LucideIcon,
 } from 'lucide-react';
 import { KeyboardKey } from '@/constants/enums';
-import { QuickCreateFlashcardBox } from '@/features/flashcards/components/QuickCreateFlashcardBox';
 import { ANNOTATION_DATA_ATTRS } from '@/features/lessons/extensions/annotation.extension';
 import type { LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
 import type { NoteFacade } from '@/features/notes/facades/useNoteFacade';
@@ -26,9 +23,8 @@ import {
 import { SavedMaterialKind } from '@/features/saved-materials/constants/saved-material.constants';
 import {
   ReadingActivePanel,
-  ReadingAnnotationsModal,
   ReadingDisplayPopover,
-  ReadingTocModal,
+  ReadingExploreModal,
   type FootnoteEntry,
   type ReadingDisplayControls,
   type ReadingEntity,
@@ -119,8 +115,8 @@ interface ReadingAidsPanelProps {
 }
 
 /**
- * Thanh Capsule dọc tối giản ở mép trái màn hình (5 nút tròn có nhãn trượt khi rê chuột):
- * 1. Mục lục · 2. Ghi chú · 3. Chú thích · 4. Hiển thị · 5. Lưu bài
+ * Thanh Capsule dọc tinh gọn 4 nút cốt lõi ở mép trái màn hình:
+ * 1. Trong bài (Mục lục + Chú giải & Thực thể) · 2. Sổ ghi chú · 3. Lưu bài · 4. Hiển thị.
  */
 export function ReadingAidsPanel({
   contentRef,
@@ -136,18 +132,16 @@ export function ReadingAidsPanel({
   const [activePanel, setActivePanel] = useState<ReadingActivePanel | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [flashcardFront, setFlashcardFront] = useState('');
-  const [flashcardSaved, setFlashcardSaved] = useState(false);
   const savedSnapshot = useSavedMaterialsSnapshot(Boolean(articleId));
   const saved = Boolean(articleId) && isMaterialSaved(savedSnapshot, SavedMaterialKind.ARTICLE, articleId ?? '');
   const dockRef = useRef<HTMLDivElement>(null);
 
-  const highlightedNotes = (noteFacade?.allNotes ?? []).filter((n) => Boolean(n.highlightText));
-  const annotationCount = footnotes.length + highlightedNotes.length + entities.length;
+  const exploreCount = footnotes.length + entities.length;
   const noteCount = noteFacade?.allNotesCount ?? 0;
   const isNoteOpen = Boolean(noteFacade?.isOpen);
+  const isDrawActive = Boolean(noteFacade?.drawMode);
   const isFocusMode = Boolean(readingControls?.focusMode);
-  const shouldFadeDock = isFocusMode && !activePanel && !isNoteOpen;
+  const shouldFadeDock = isFocusMode && !activePanel && !isNoteOpen && !isDrawActive;
 
   useEffect(() => {
     const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -188,6 +182,12 @@ export function ReadingAidsPanel({
     else noteFacade.openDrawer();
   }, [noteFacade]);
 
+  const handleToggleDraw = useCallback(() => {
+    if (!noteFacade) return;
+    setActivePanel(null);
+    noteFacade.toggleDrawMode();
+  }, [noteFacade]);
+
   const handleToggleSave = () => {
     if (!articleId) return;
     void toggleSavedMaterial(SavedMaterialKind.ARTICLE, articleId);
@@ -202,9 +202,21 @@ export function ReadingAidsPanel({
 
   return (
     <>
+      {typeof readingControls?.readProgress === 'number' && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 bg-transparent"
+        >
+          <div
+            style={{ width: `${readingControls.readProgress}%` }}
+            className="h-full bg-[#8B261E] transition-[width] duration-150"
+          />
+        </div>
+      )}
+
       <div
         ref={dockRef}
-        className={`fixed left-3 sm:left-4 top-1/2 -translate-y-1/2 z-40 flex items-center transition-opacity duration-300 ${
+        className={`fixed left-3 top-1/2 z-40 flex -translate-y-1/2 items-center transition-opacity duration-300 sm:left-4 ${
           shouldFadeDock ? 'opacity-15 hover:opacity-100 focus-within:opacity-100' : 'opacity-100'
         }`}
       >
@@ -227,36 +239,28 @@ export function ReadingAidsPanel({
           >
             <DockIconButton
               icon={ListTree}
-              label="Mục lục"
-              active={activePanel === ReadingActivePanel.TOC}
-              onClick={() => openExclusivePanel(ReadingActivePanel.TOC)}
+              label="Trong bài (Mục lục & Liên quan)"
+              active={activePanel === ReadingActivePanel.EXPLORE}
+              badge={exploreCount > 0 ? exploreCount : undefined}
+              onClick={() => openExclusivePanel(ReadingActivePanel.EXPLORE)}
             />
 
             {noteFacade && (
-              <DockIconButton
-                icon={NotebookPen}
-                label="Ghi chú"
-                active={isNoteOpen}
-                badge={noteCount}
-                onClick={handleToggleNotes}
-              />
-            )}
-
-            <DockIconButton
-              icon={MessageSquareQuote}
-              label="Chú thích"
-              active={activePanel === ReadingActivePanel.ANNOTATIONS}
-              badge={annotationCount}
-              onClick={() => openExclusivePanel(ReadingActivePanel.ANNOTATIONS)}
-            />
-
-            {readingControls && (
-              <DockIconButton
-                icon={SlidersHorizontal}
-                label="Hiển thị"
-                active={activePanel === ReadingActivePanel.DISPLAY}
-                onClick={() => openExclusivePanel(ReadingActivePanel.DISPLAY)}
-              />
+              <>
+                <DockIconButton
+                  icon={NotebookPen}
+                  label="Sổ ghi chú"
+                  active={isNoteOpen}
+                  badge={noteCount}
+                  onClick={handleToggleNotes}
+                />
+                <DockIconButton
+                  icon={PenTool}
+                  label={isDrawActive ? 'Tắt vẽ tự do' : 'Vẽ & điền chữ tự do'}
+                  active={isDrawActive}
+                  onClick={handleToggleDraw}
+                />
+              </>
             )}
 
             {articleId && (
@@ -269,31 +273,13 @@ export function ReadingAidsPanel({
               />
             )}
 
-            <DockIconButton
-              icon={Layers}
-              label="Tạo thẻ ghi nhớ"
-              active={activePanel === ReadingActivePanel.FLASHCARD}
-              onClick={() => {
-                const selected = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() ?? '' : '';
-                setFlashcardFront(selected);
-                setFlashcardSaved(false);
-                openExclusivePanel(ReadingActivePanel.FLASHCARD);
-              }}
-            />
-
-            {typeof readingControls?.readProgress === 'number' && (
-              <>
-                <div className="my-0.5 h-px w-5 bg-stone-200/90" />
-                <div
-                  className="group relative flex h-8 w-9 select-none items-center justify-center rounded-full text-[10px] font-bold text-[#8B261E]"
-                  aria-label={`Tiến độ đọc ${readingControls.readProgress}%`}
-                >
-                  <span>{readingControls.readProgress}%</span>
-                  <span className="pointer-events-none absolute left-full ml-2.5 whitespace-nowrap rounded-lg bg-[#2D1A10] px-2.5 py-1 text-xs font-semibold text-[#FFFCF5] opacity-0 shadow-lg transition-all duration-150 group-hover:translate-x-0.5 group-hover:opacity-100">
-                    Tiến độ đọc: {readingControls.readProgress}%
-                  </span>
-                </div>
-              </>
+            {readingControls && (
+              <DockIconButton
+                icon={SlidersHorizontal}
+                label="Hiển thị & Sticky lề"
+                active={activePanel === ReadingActivePanel.DISPLAY}
+                onClick={() => openExclusivePanel(ReadingActivePanel.DISPLAY)}
+              />
             )}
 
             <div className="my-0.5 h-px w-5 bg-stone-200/90" />
@@ -320,67 +306,19 @@ export function ReadingAidsPanel({
             <ReadingDisplayPopover controls={readingControls} onClose={() => setActivePanel(null)} />
           </div>
         )}
-
-        {activePanel === ReadingActivePanel.FLASHCARD && (
-          <div className="ml-3 w-[360px] max-w-[85vw] rounded-2xl border border-[#E5D8C1] bg-[#FFFCF5] p-4 shadow-2xl">
-            <div className="mb-2 flex items-center justify-between border-b border-[#E5D8C1]/60 pb-2">
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#7A1F24]">
-                <Layers size={14} /> Tạo thẻ ghi nhớ nhanh
-              </span>
-              <button
-                type="button"
-                onClick={() => setActivePanel(null)}
-                aria-label="Đóng"
-                className="rounded p-1 text-stone-400 hover:text-stone-700 cursor-pointer"
-              >
-                <X size={14} />
-              </button>
-            </div>
-            {flashcardSaved ? (
-              <div className="space-y-2 py-2 text-xs text-teal-800">
-                <p className="font-semibold">Đã lưu thẻ ghi nhớ vào tài khoản của bạn.</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFlashcardFront('');
-                    setFlashcardSaved(false);
-                  }}
-                  className="font-bold text-[#7A1F24] underline cursor-pointer"
-                >
-                  Tạo thêm thẻ khác
-                </button>
-              </div>
-            ) : (
-              <QuickCreateFlashcardBox
-                initialFront={flashcardFront}
-                initialBack=""
-                onSaved={() => setFlashcardSaved(true)}
-                onCancel={() => setActivePanel(null)}
-              />
-            )}
-          </div>
-        )}
       </div>
 
-      {activePanel === ReadingActivePanel.TOC && (
-        <ReadingTocModal
+      {activePanel === ReadingActivePanel.EXPLORE && (
+        <ReadingExploreModal
           toc={toc}
           readProgress={readingControls?.readProgress}
+          footnotes={footnotes}
+          entities={entities}
           onJumpToHeading={(headingId) => jumpTo(document.getElementById(headingId))}
           onSummarizeSection={onSummarizeSection}
-          onClose={() => setActivePanel(null)}
-        />
-      )}
-
-      {activePanel === ReadingActivePanel.ANNOTATIONS && (
-        <ReadingAnnotationsModal
-          footnotes={footnotes}
-          highlightedNotes={highlightedNotes}
-          entities={entities}
           onJumpToFootnote={(index) =>
             jumpTo(contentRef.current?.querySelector(`${FOOTNOTE_SELECTOR}[${FOOTNOTE_INDEX_ATTR}="${index}"]`) ?? null)
           }
-          onOpenNoteDrawer={noteFacade ? handleToggleNotes : undefined}
           onClose={() => setActivePanel(null)}
         />
       )}

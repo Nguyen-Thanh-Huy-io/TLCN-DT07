@@ -6,6 +6,7 @@ import { QuickCreateFlashcardBox } from '@/features/flashcards/components/QuickC
 import { NOTE_KIND_META, NOTE_LABEL_MAX_LENGTH, NOTE_LABELS_MAX } from '../constants/note-kind.constants';
 import { KeyboardKey } from '@/constants/enums';
 import { NOTE_COLOR_STYLES, NOTE_KIND, type NoteItem, type NoteKindValue, type UpdateNotePayload } from '../services/note.service';
+import { formatBlockSpanLabel } from '../utils/note-cluster.util';
 
 const LABEL_SUGGESTIONS_ID = 'hisgo-note-label-suggestions';
 
@@ -169,6 +170,7 @@ export function NoteCard({ note, isLost, needsReview, labelSuggestions, onLocate
   const [creatingCard, setCreatingCard] = useState(false);
   const [cardCreated, setCardCreated] = useState(false);
   const isQuestion = note.kind === NOTE_KIND.QUESTION;
+  const spanLabel = formatBlockSpanLabel(note.anchor);
 
   const save = async () => {
     await onUpdate({ content: content.trim(), labels });
@@ -194,6 +196,11 @@ export function NoteCard({ note, isLost, needsReview, labelSuggestions, onLocate
     <div className={`p-3.5 rounded-xl border ${style.border} ${style.bg} relative group shadow-2xs`}>
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         <NoteKindBadge kind={note.kind} resolved={Boolean(note.resolvedAt)} />
+        {spanLabel && (
+          <span className="rounded-full bg-[#FAF5EC] px-2 py-0.5 text-[10px] font-semibold text-[#8B261E]">
+            {spanLabel}
+          </span>
+        )}
         {!editing && note.labels.map((label) => (
           <span key={label} className="rounded-full bg-white/60 px-2 py-0.5 text-[10px] font-semibold text-stone-600">#{label}</span>
         ))}

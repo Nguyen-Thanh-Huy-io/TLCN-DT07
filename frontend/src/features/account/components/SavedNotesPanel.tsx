@@ -8,6 +8,7 @@ import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { PUBLIC_CURRICULUM_ROUTES } from '@/features/public-curriculum/constants/public-curriculum.constants';
 import { QuickCreateFlashcardBox } from '@/features/flashcards/components/QuickCreateFlashcardBox';
 import { NOTE_KIND_META } from '@/features/notes/constants/note-kind.constants';
+import { formatBlockSpanLabel } from '@/features/notes/utils/note-cluster.util';
 import {
   NOTE_COLOR_STYLES,
   NOTE_KIND,
@@ -200,6 +201,7 @@ export function SavedNotesPanel({ onCountChange }: { onCountChange?: (count: num
                 const KindIcon = kindMeta.icon;
                 const colorStyle = NOTE_COLOR_STYLES[note.color] ?? NOTE_COLOR_STYLES.YELLOW;
                 const href = targetHrefOf(note);
+                const spanLabel = formatBlockSpanLabel(note.anchor);
                 return (
                   <li
                     key={note.id}
@@ -210,6 +212,11 @@ export function SavedNotesPanel({ onCountChange }: { onCountChange?: (count: num
                         <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-bold ${colorStyle.badge}`}>
                           <KindIcon size={12} /> {kindMeta.label}
                         </span>
+                        {spanLabel && (
+                          <span className="rounded bg-[#FAF5EC] px-2 py-0.5 text-[10px] font-semibold text-[#8B261E]">
+                            {spanLabel}
+                          </span>
+                        )}
                         <span className="text-[11px] text-[var(--text-muted,#7A6B57)]">
                           {new Date(note.createdAt).toLocaleDateString('vi-VN')}
                         </span>

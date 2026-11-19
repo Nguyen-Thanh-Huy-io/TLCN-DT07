@@ -1,20 +1,11 @@
 export const FLASHCARD_API = {
   DECKS: '/flashcards/decks',
-  DECKS_BATCH: '/flashcards/decks/batch',
   DECK: (deckId: string) => `/flashcards/decks/${deckId}`,
   DECK_CARDS: (deckId: string) => `/flashcards/decks/${deckId}/cards`,
   DECK_DUE: (deckId: string) => `/flashcards/decks/${deckId}/due`,
   CARD: (cardId: string) => `/flashcards/cards/${cardId}`,
   CARD_REVIEW: (cardId: string) => `/flashcards/cards/${cardId}/review`,
-  GENERATE_PREVIEW: '/flashcards/generate-preview',
 } as const;
-
-export enum AiGeneratorEngine {
-  GEMINI_FLASH = 'GEMINI_FLASH',
-  HEURISTIC = 'HEURISTIC',
-}
-
-export const AI_CARD_COUNT_OPTIONS = [5, 10, 15] as const;
 
 export enum FlashcardRating {
   AGAIN = 'AGAIN',

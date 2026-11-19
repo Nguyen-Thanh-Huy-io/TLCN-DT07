@@ -3192,103 +3192,6 @@ figure.wiki-media-block figcaption {
   border-width: 0;
 }
 
-/* ==========================================================================
-   Shared Global UI: Pagination Component
-   ========================================================================== */
-.sk-pagination-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 24px 0 16px;
-  margin-top: 24px;
-  border-top: 1px solid #dbe0d4;
-  flex-wrap: wrap;
-}
-
-.sk-pagination-info {
-  font-size: 13px;
-  color: #5a6b57;
-}
-
-.sk-pagination-info strong {
-  color: #1e2d21;
-}
-
-.sk-pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sk-pagination-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 36px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid #dbe0d4;
-  background: #ffffff;
-  color: #1e2d21;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.sk-pagination-btn:hover:not(:disabled) {
-  background: #eff3ea;
-  border-color: #37543e;
-  color: #37543e;
-}
-
-.sk-pagination-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.sk-pagination-numbers {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.sk-pagination-num-btn {
-  min-width: 36px;
-  height: 36px;
-  padding: 0 6px;
-  border-radius: 8px;
-  border: 1px solid #dbe0d4;
-  background: #ffffff;
-  color: #1e2d21;
-  font-size: 13px;
-  font-weight: 600;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.sk-pagination-num-btn:hover:not(.sk-active) {
-  background: #eff3ea;
-  border-color: #37543e;
-}
-
-.sk-pagination-num-btn.sk-active {
-  background: #37543e;
-  border-color: #37543e;
-  color: #ffffff;
-  box-shadow: 0 2px 6px rgba(55, 84, 62, 0.25);
-}
-
-.sk-pagination-dots {
-  display: inline-block;
-  padding: 0 6px;
-  color: #8b9985;
-  font-size: 13px;
-}
-
 /* Ghi chú tô trong bài đọc (CSS Custom Highlight API, đăng ký ở features/notes/hooks/useNoteHighlights.ts). */
 ::highlight(hisgo-note-yellow) { background-color: rgb(252 211 77 / 0.45); }
 ::highlight(hisgo-note-green) { background-color: rgb(110 231 183 / 0.45); }
@@ -3296,6 +3199,18 @@ figure.wiki-media-block figcaption {
 ::highlight(hisgo-note-pink) { background-color: rgb(253 164 175 / 0.5); }
 ::highlight(hisgo-note-purple) { background-color: rgb(216 180 254 / 0.5); }
 ::highlight(hisgo-note-flash) { background-color: rgb(139 38 30 / 0.35); }
+/* Gạch chân màu (Edge-style Underline). */
+::highlight(hisgo-note-underline-yellow) { text-decoration: underline solid 2.5px rgb(217 119 6); text-underline-offset: 3px; }
+::highlight(hisgo-note-underline-green) { text-decoration: underline solid 2.5px rgb(5 150 105); text-underline-offset: 3px; }
+::highlight(hisgo-note-underline-blue) { text-decoration: underline solid 2.5px rgb(2 132 199); text-underline-offset: 3px; }
+::highlight(hisgo-note-underline-pink) { text-decoration: underline solid 2.5px rgb(225 29 72); text-underline-offset: 3px; }
+::highlight(hisgo-note-underline-purple) { text-decoration: underline solid 2.5px rgb(124 58 237); text-underline-offset: 3px; }
+/* Gạch ngang màu (Edge-style Strikethrough). */
+::highlight(hisgo-note-strike-yellow) { text-decoration: line-through solid 2px rgb(180 83 9); }
+::highlight(hisgo-note-strike-green) { text-decoration: line-through solid 2px rgb(4 120 87); }
+::highlight(hisgo-note-strike-blue) { text-decoration: line-through solid 2px rgb(3 105 161); }
+::highlight(hisgo-note-strike-pink) { text-decoration: line-through solid 2px rgb(190 18 60); }
+::highlight(hisgo-note-strike-purple) { text-decoration: line-through solid 2px rgb(109 40 217); }
 /* Kiểu riêng theo loại ghi chú (cộng thêm vào nền màu). */
 ::highlight(hisgo-note-kind-important) { text-decoration: underline solid 2px rgb(185 28 28); }
 ::highlight(hisgo-note-kind-question) { text-decoration: underline wavy 1.5px rgb(190 18 60); }

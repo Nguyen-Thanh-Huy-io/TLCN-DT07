@@ -972,6 +972,7 @@ body.ue-focus-mode-body .ue-hero {
 }
 
 .ue-reader-theme-wrap {
+  overflow-x: clip;
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 

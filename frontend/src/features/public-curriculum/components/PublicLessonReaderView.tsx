@@ -323,6 +323,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
               facade={noteFacade}
               targetTitle={lesson.title}
               targetType={NOTE_TARGET_TYPE.LESSON}
+              showMarginSticky={prefs.marginSticky}
               onAskCommunity={async (note) => {
                 await DiscussionApiService.create({
                   targetType: NOTE_TARGET_TYPE.LESSON,

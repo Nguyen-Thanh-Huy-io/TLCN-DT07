@@ -20,6 +20,7 @@ import { X, ExternalLink, BookOpen, CheckCircle2, Clock3, ArrowRight, ChevronLef
 import { HubButton, HubBadge, HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS } from '../hub/HubReaderParts';
 import { sanitizeRichHtml } from '@/utils/common';
 import type { ReadingPreferences } from '@/features/reading-aids/components/ReadingAidsPanel';
+import { READER_RIGHT_SIDEBAR_ATTR } from '@/features/notes/utils/note-cluster.util';
 
 interface LessonReaderMainLayoutProps {
   readerColumns: string;
@@ -401,7 +402,7 @@ export function LessonReaderDesktopSidebar({
   if (!hasRightSidebar) return null;
 
   return (
-    <aside className="hidden xl:block">
+    <aside {...{ [READER_RIGHT_SIDEBAR_ATTR]: '' }} className="hidden xl:block">
       <div className="sticky top-24 grid max-h-[calc(100vh-7rem)] gap-6 overflow-y-auto pb-4 pr-1">
         {hasToc && <LessonToc items={tocItems} compact />}
         {hasRelated && <LessonRelated html={compiledHtml} compact precomputed={related} />}

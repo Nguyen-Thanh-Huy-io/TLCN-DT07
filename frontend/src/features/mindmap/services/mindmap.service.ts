@@ -7,7 +7,6 @@ import type {
 } from '@/services/public/public-content.service';
 import {
   MINDMAP_API,
-  MindmapAiEngine,
   MindmapBorderStyle,
   MindmapBranchColor,
   MindmapBranchSide,
@@ -110,16 +109,6 @@ export interface MindmapDetail {
   updatedAt: string;
 }
 
-export interface GeneratedMindmapPreview {
-  title: string;
-  periodLabel?: string;
-  template: MindmapTemplateType;
-  graph: MindmapGraph;
-  engine: MindmapAiEngine;
-  noteCount: number;
-  articleCount: number;
-}
-
 export const MindmapApiService = {
   async list(): Promise<MindmapSummary[]> {
     return unwrap(await api.get(MINDMAP_API.ROOT));
@@ -150,12 +139,6 @@ export const MindmapApiService = {
   },
   async remove(id: string): Promise<void> {
     await api.delete(MINDMAP_API.BY_ID(id));
-  },
-  async generatePreview(input: {
-    articleIds?: string[];
-    includeNotes?: boolean;
-  }): Promise<GeneratedMindmapPreview> {
-    return unwrap(await api.post(MINDMAP_API.GENERATE_PREVIEW, input));
   },
   async searchArticles(query: string): Promise<PublicArticleSummary[]> {
     const res = await api.get<{ data: PublicArticleSummary[] }>(

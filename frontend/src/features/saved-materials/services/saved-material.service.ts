@@ -101,9 +101,3 @@ export function isMaterialSaved(
     ? snapshot.articleIds.includes(id)
     : snapshot.lessonIds.includes(id);
 }
-
-/** Đọc id bài viết đã lưu một lần (không cần hook React) — dùng để khởi tạo công cụ tạo nội dung từ AI. */
-export async function fetchSavedArticleIds(): Promise<string[]> {
-  const snapshot = await refetchSavedMaterials();
-  return snapshot.articleIds;
-}

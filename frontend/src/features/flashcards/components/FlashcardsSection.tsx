@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { BookOpen, Layers, Loader2, Play, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { BookOpen, Layers, Loader2, Play, Plus, Trash2 } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import { AccountCard } from '@/features/account/components/AccountSections';
 import {
@@ -9,7 +9,6 @@ import {
   type FlashcardDeck,
   type FlashcardItem,
 } from '../services/flashcard.service';
-import { AiFlashcardGeneratorModal } from './AiFlashcardGeneratorModal';
 import { FlashcardDeckDetail } from './FlashcardDeckDetail';
 import { FlashcardStudySession } from './FlashcardStudySession';
 
@@ -26,7 +25,6 @@ export function FlashcardsSection({ onDueCountChange }: { onDueCountChange?: (du
   const [loadingCards, setLoadingCards] = useState(false);
 
   const [studying, setStudying] = useState<{ deck: FlashcardDeck; all: boolean } | null>(null);
-  const [aiModalOpen, setAiModalOpen] = useState(false);
 
   const reloadDecks = useCallback(async () => {
     try {
@@ -163,14 +161,6 @@ export function FlashcardsSection({ onDueCountChange }: { onDueCountChange?: (du
               {creatingDeck ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
               Tạo bộ thẻ
             </button>
-            <button
-              type="button"
-              onClick={() => setAiModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--gold,#B8893F)] bg-[var(--bg-page,#F5EEDC)] px-4 py-2 text-xs font-bold text-[var(--primary,#7A1F24)] hover:bg-[#EFE4CC] cursor-pointer"
-            >
-              <Sparkles size={13} className="text-[var(--gold,#B8893F)]" />
-              Tạo bằng AI
-            </button>
           </form>
 
           {loading ? (
@@ -238,13 +228,6 @@ export function FlashcardsSection({ onDueCountChange }: { onDueCountChange?: (du
             </div>
           )}
         </div>
-      )}
-
-      {aiModalOpen && (
-        <AiFlashcardGeneratorModal
-          onCreated={reloadDecks}
-          onClose={() => setAiModalOpen(false)}
-        />
       )}
     </AccountCard>
   );

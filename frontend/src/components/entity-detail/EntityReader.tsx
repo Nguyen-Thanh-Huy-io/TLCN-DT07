@@ -166,6 +166,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
           facade={noteFacade}
           targetTitle={model.name}
           targetType={NOTE_TARGET_TYPE.ARTICLE}
+          showMarginSticky={prefs.marginSticky}
         />
       </div>
     </div>

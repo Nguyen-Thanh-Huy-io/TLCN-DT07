@@ -1,40 +1,44 @@
 import api from '@/services/api';
 import { GUEST_ID_HEADER_NAME } from '@/constants/api-url';
+import {
+  NOTE_ANCHOR_MODE,
+  NOTE_COLOR,
+  NOTE_INK_TOOL,
+  NOTE_KIND,
+  NOTE_MARKUP_STYLE,
+  NOTE_TARGET_TYPE,
+  type NoteAnchorModeValue,
+  type NoteAnchorValue,
+  type NoteColorValue,
+  type NoteInkItem,
+  type NoteInkToolValue,
+  type NoteItem,
+  type NoteKindValue,
+  type NoteMarkupStyleValue,
+  type NoteTargetTypeValue,
+} from '../utils/note-cluster.util';
 
-// === note.types.ts ===
-export const NOTE_TARGET_TYPE = {
-  ARTICLE: 'ARTICLE',
-  LESSON: 'LESSON',
-} as const;
-
-export type NoteTargetTypeValue =
-  (typeof NOTE_TARGET_TYPE)[keyof typeof NOTE_TARGET_TYPE];
-
-export const NOTE_COLOR = {
-  YELLOW: 'YELLOW',
-  GREEN: 'GREEN',
-  BLUE: 'BLUE',
-  PINK: 'PINK',
-  PURPLE: 'PURPLE',
-} as const;
-
-export type NoteColorValue = (typeof NOTE_COLOR)[keyof typeof NOTE_COLOR];
-
-/** Khớp enum NoteKind ở backend/prisma/schema/note.prisma. */
-export const NOTE_KIND = {
-  HIGHLIGHT: 'HIGHLIGHT',
-  NOTE: 'NOTE',
-  DEFINITION: 'DEFINITION',
-  QUESTION: 'QUESTION',
-  IMPORTANT: 'IMPORTANT',
-  SUMMARY: 'SUMMARY',
-} as const;
-
-export type NoteKindValue = (typeof NOTE_KIND)[keyof typeof NOTE_KIND];
+export {
+  NOTE_ANCHOR_MODE,
+  NOTE_COLOR,
+  NOTE_INK_TOOL,
+  NOTE_KIND,
+  NOTE_MARKUP_STYLE,
+  NOTE_TARGET_TYPE,
+  type NoteAnchorModeValue,
+  type NoteAnchorValue,
+  type NoteColorValue,
+  type NoteInkItem,
+  type NoteInkToolValue,
+  type NoteItem,
+  type NoteKindValue,
+  type NoteMarkupStyleValue,
+  type NoteTargetTypeValue,
+};
 
 export const NOTE_COLOR_STYLES: Record<
   NoteColorValue,
-  { bg: string; border: string; text: string; badge: string; dot: string }
+  { bg: string; border: string; text: string; badge: string; dot: string; ink: string; stroke: string }
 > = {
   YELLOW: {
     bg: 'bg-amber-50',
@@ -42,6 +46,8 @@ export const NOTE_COLOR_STYLES: Record<
     text: 'text-amber-900',
     badge: 'bg-amber-100 text-amber-800',
     dot: 'bg-amber-400',
+    ink: 'text-amber-700',
+    stroke: '#D97706',
   },
   GREEN: {
     bg: 'bg-emerald-50',
@@ -49,6 +55,8 @@ export const NOTE_COLOR_STYLES: Record<
     text: 'text-emerald-900',
     badge: 'bg-emerald-100 text-emerald-800',
     dot: 'bg-emerald-400',
+    ink: 'text-emerald-700',
+    stroke: '#059669',
   },
   BLUE: {
     bg: 'bg-sky-50',
@@ -56,6 +64,8 @@ export const NOTE_COLOR_STYLES: Record<
     text: 'text-sky-900',
     badge: 'bg-sky-100 text-sky-800',
     dot: 'bg-sky-400',
+    ink: 'text-blue-700',
+    stroke: '#1D4ED8',
   },
   PINK: {
     bg: 'bg-rose-50',
@@ -63,6 +73,8 @@ export const NOTE_COLOR_STYLES: Record<
     text: 'text-rose-900',
     badge: 'bg-rose-100 text-rose-800',
     dot: 'bg-rose-400',
+    ink: 'text-rose-700',
+    stroke: '#BE123C',
   },
   PURPLE: {
     bg: 'bg-purple-50',
@@ -70,44 +82,10 @@ export const NOTE_COLOR_STYLES: Record<
     text: 'text-purple-900',
     badge: 'bg-purple-100 text-purple-800',
     dot: 'bg-purple-400',
+    ink: 'text-purple-700',
+    stroke: '#7C3AED',
   },
 };
-
-/** Vị trí để tô lại đúng chỗ: chữ trước / sau đoạn bôi đen, hoặc tiêu đề mục được tóm tắt. */
-export interface NoteAnchorValue {
-  prefix?: string;
-  suffix?: string;
-  headingId?: string;
-}
-
-export interface NoteItem {
-  id: string;
-  targetType: NoteTargetTypeValue;
-  targetId: string;
-  userId: string | null;
-  guestId: string | null;
-  title: string | null;
-  content: string;
-  highlightText: string | null;
-  anchor: NoteAnchorValue | null;
-  kind: NoteKindValue;
-  labels: string[];
-  /** Chỉ dùng cho câu hỏi: null = chưa giải quyết. */
-  resolvedAt: string | null;
-  /** Phiên bản bài lúc tạo / lần cuối dò lại vị trí. */
-  contentVersion: number | null;
-  color: NoteColorValue;
-  createdAt: string;
-  updatedAt: string;
-  user?: {
-    id: string;
-    username: string;
-  } | null;
-  target?: {
-    title: string;
-    slug: string;
-  } | null;
-}
 
 export interface CreateNotePayload {
   targetType: NoteTargetTypeValue;

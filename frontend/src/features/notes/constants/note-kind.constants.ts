@@ -1,5 +1,25 @@
-import { BookOpen, CircleHelp, Highlighter, ListChecks, Star, StickyNote, type LucideIcon } from 'lucide-react';
-import { NOTE_KIND, type NoteKindValue } from '../services/note.service';
+import {
+  BookOpen,
+  Circle,
+  CircleHelp,
+  Highlighter,
+  ListChecks,
+  PenLine,
+  Star,
+  StickyNote,
+  Strikethrough,
+  Underline,
+  type LucideIcon,
+} from 'lucide-react';
+import {
+  NOTE_KIND,
+  NOTE_MARKUP_STYLE,
+  type NoteAnchorValue,
+  type NoteColorValue,
+  type NoteKindValue,
+  type NoteMarkupStyleValue,
+} from '../services/note.service';
+import { resolveNoteMarkupHighlightNames } from '../utils/note-cluster.util';
 
 export interface NoteKindMeta {
   label: string;
@@ -33,14 +53,14 @@ export const NOTE_KIND_META: Record<NoteKindValue, NoteKindMeta> = {
     decoration: 'hisgo-note-kind-important',
   },
   [NOTE_KIND.SUMMARY]: {
-    label: 'Tóm tắt',
+    label: 'Tóm tắt cụm',
     icon: ListChecks,
-    placeholder: 'Tóm tắt mục này bằng lời của bạn...',
+    placeholder: 'Tóm tắt ý chính của đoạn / cụm này bằng lời của bạn...',
     decoration: null,
   },
 };
 
-/** Loại chọn được khi bôi đen một đoạn (Tóm tắt tạo từ mục lục). */
+/** Loại chọn được khi bôi đen một đoạn (hoặc viết ghi chú). */
 export const SELECTION_NOTE_KINDS: NoteKindValue[] = [
   NOTE_KIND.NOTE,
   NOTE_KIND.DEFINITION,
@@ -48,9 +68,57 @@ export const SELECTION_NOTE_KINDS: NoteKindValue[] = [
   NOTE_KIND.IMPORTANT,
 ];
 
+/** Loại chọn được khi gắn Sticky Note nguyên cụm đoạn văn. */
+export const BLOCK_STICKY_NOTE_KINDS: NoteKindValue[] = [
+  NOTE_KIND.SUMMARY,
+  NOTE_KIND.NOTE,
+  NOTE_KIND.QUESTION,
+  NOTE_KIND.IMPORTANT,
+];
+
+export interface NoteMarkupStyleMeta {
+  label: string;
+  icon: LucideIcon;
+  cssPrefix: string;
+}
+
+/** Ánh xạ kiểu nét đánh dấu -> icon + tiền tố tên vùng CSS.highlights trong globals.css (OCP). */
+export const NOTE_MARKUP_STYLE_META: Record<NoteMarkupStyleValue, NoteMarkupStyleMeta> = {
+  [NOTE_MARKUP_STYLE.HIGHLIGHT]: { label: 'Tô sáng', icon: Highlighter, cssPrefix: 'hisgo-note' },
+  [NOTE_MARKUP_STYLE.UNDERLINE]: { label: 'Gạch chân', icon: Underline, cssPrefix: 'hisgo-note-underline' },
+  [NOTE_MARKUP_STYLE.CIRCLE]: { label: 'Khoanh chữ', icon: Circle, cssPrefix: '' },
+  [NOTE_MARKUP_STYLE.STRIKETHROUGH]: { label: 'Gạch ngang', icon: Strikethrough, cssPrefix: 'hisgo-note-strike' },
+  [NOTE_MARKUP_STYLE.CALLOUT]: { label: 'Điền bổ sung', icon: PenLine, cssPrefix: 'hisgo-note-underline' },
+};
+
+/** 4 nét đánh dấu tức thì (1-click) trên Mini Pill & Bút tô nhanh. */
+export const MARKUP_STYLE_OPTIONS: NoteMarkupStyleValue[] = [
+  NOTE_MARKUP_STYLE.HIGHLIGHT,
+  NOTE_MARKUP_STYLE.UNDERLINE,
+  NOTE_MARKUP_STYLE.CIRCLE,
+  NOTE_MARKUP_STYLE.STRIKETHROUGH,
+];
+
+/** Toàn bộ nét đánh dấu gồm cả điền chữ bổ sung (Quick Pen Bar). */
+export const ALL_QUICK_PEN_STYLES: NoteMarkupStyleValue[] = [
+  ...MARKUP_STYLE_OPTIONS,
+  NOTE_MARKUP_STYLE.CALLOUT,
+];
+
+/** Danh sách tên CSS Custom Highlight cần áp lên 1 ghi chú nội tuyến. */
+export function cssHighlightNamesFor(note: {
+  kind: NoteKindValue;
+  color: NoteColorValue;
+  anchor?: NoteAnchorValue | null;
+}): string[] {
+  return resolveNoteMarkupHighlightNames(note);
+}
+
 /** Khớp NOTE_LABEL_MAX_LENGTH / NOTE_LABELS_MAX ở backend/src/note/dto/note.dto.ts. */
 export const NOTE_LABEL_MAX_LENGTH = 40;
 export const NOTE_LABELS_MAX = 10;
+
+export const NOTE_ACTIVE_COLOR_STORAGE_KEY = 'hisgo:note-active-color';
 
 export const isOpenQuestion = (note: { kind: NoteKindValue; resolvedAt: string | null }) =>
   note.kind === NOTE_KIND.QUESTION && !note.resolvedAt;

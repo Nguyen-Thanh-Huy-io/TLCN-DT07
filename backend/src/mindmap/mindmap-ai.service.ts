@@ -7,6 +7,8 @@ import {
   MINDMAP_MESSAGES,
   MindmapAiEngine,
   MindmapBranchColor,
+  MindmapMapTheme,
+  MindmapStructure,
   MindmapTemplateType,
 } from './mindmap.constant';
 import {
@@ -251,6 +253,9 @@ export class MindmapAiService {
         graph: {
           nodes: parsed.nodes,
           edges: Array.isArray(parsed.edges) ? parsed.edges : [],
+          structure: MindmapStructure.MIND_MAP,
+          mapTheme: MindmapMapTheme.MODERN_BLUE,
+          balancedBranches: true,
         },
       };
     } catch (error) {
@@ -344,7 +349,13 @@ export class MindmapAiService {
     return {
       title: mainTitle.slice(0, MINDMAP_LIMITS.MAX_TITLE_LENGTH),
       periodLabel,
-      graph: { nodes, edges },
+      graph: {
+        nodes,
+        edges,
+        structure: MindmapStructure.MIND_MAP,
+        mapTheme: MindmapMapTheme.MODERN_BLUE,
+        balancedBranches: true,
+      },
     };
   }
 }

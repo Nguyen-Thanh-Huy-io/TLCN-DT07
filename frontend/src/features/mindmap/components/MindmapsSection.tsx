@@ -38,8 +38,7 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
 
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState('');
-  const [periodLabel, setPeriodLabel] = useState('');
-  const [template, setTemplate] = useState<MindmapTemplateType>(MindmapTemplateType.SPIDER);
+  const [template, setTemplate] = useState<MindmapTemplateType>(MindmapTemplateType.BLANK);
   const [creating, setCreating] = useState(false);
   const [generatingAi, setGeneratingAi] = useState(false);
 
@@ -86,17 +85,15 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!title.trim() || creating) return;
+    if (creating) return;
     setCreating(true);
     setError(null);
     try {
       const created = await MindmapApiService.create({
-        title: title.trim(),
-        periodLabel: periodLabel.trim() || undefined,
+        title: title.trim() || 'Chủ đề mới',
         template,
       });
       setTitle('');
-      setPeriodLabel('');
       setShowCreate(false);
       setActiveMindmap(created);
       await reloadList();
@@ -187,74 +184,45 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
       )}
 
       {showCreate && (
-        <form onSubmit={(e) => void handleCreate(e)} className="mb-5 space-y-4 rounded-2xl border border-[var(--border,#E2D5B8)] bg-white p-4 text-xs">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="space-y-1">
-              <span className="font-bold text-stone-700">Chủ đề trung tâm</span>
-              <input
-                type="text"
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="VD: Vương triều Nhà Trần, Chiến dịch Điện Biên Phủ…"
-                maxLength={150}
-                className="w-full rounded-xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)]/40 px-3 py-2 outline-none focus:border-[var(--gold,#B8893F)]"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="font-bold text-stone-700">Niên đại / Thời kỳ (tuỳ chọn)</span>
-              <input
-                type="text"
-                value={periodLabel}
-                onChange={(e) => setPeriodLabel(e.target.value)}
-                placeholder="VD: 1225 – 1400"
-                maxLength={80}
-                className="w-full rounded-xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)]/40 px-3 py-2 outline-none focus:border-[var(--gold,#B8893F)]"
-              />
-            </label>
-          </div>
-
-          <div className="space-y-2">
-            <span className="block font-bold text-stone-700">Chọn dạng sơ đồ Lịch sử</span>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {TEMPLATE_OPTIONS.map((opt) => {
-                const active = template === opt.type;
-                return (
-                  <button
-                    key={opt.type}
-                    type="button"
-                    onClick={() => setTemplate(opt.type)}
-                    className={`rounded-xl border p-3 text-left transition cursor-pointer ${
-                      active
-                        ? 'border-[#7A1F24] bg-[var(--bg-page,#F5EEDC)]/70 ring-1 ring-[#7A1F24]'
-                        : 'border-[var(--border,#E2D5B8)] bg-white hover:border-[var(--gold,#B8893F)]'
-                    }`}
-                  >
-                    <div className="font-bold text-[var(--primary,#7A1F24)]">{opt.label}</div>
-                    <p className="mt-0.5 text-[11px] leading-snug text-stone-600">{opt.description}</p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setShowCreate(false)}
-              className="rounded-xl px-3.5 py-2 font-semibold text-stone-600 hover:bg-stone-100 cursor-pointer"
-            >
-              Huỷ
-            </button>
-            <button
-              type="submit"
-              disabled={creating}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#7A1F24] px-4 py-2 font-bold text-white hover:brightness-110 disabled:opacity-50 cursor-pointer"
-            >
-              {creating && <Loader2 size={13} className="animate-spin" />}
-              Mở Canvas vẽ ngay
-            </button>
-          </div>
+        <form
+          onSubmit={(e) => void handleCreate(e)}
+          className="mb-5 flex flex-wrap items-center gap-2.5 rounded-2xl border border-[var(--border,#E2D5B8)] bg-white p-3.5 text-xs shadow-2xs"
+        >
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Nhập tên chủ đề (mặc định: Chủ đề mới)…"
+            maxLength={150}
+            className="min-w-[200px] flex-1 rounded-xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)]/40 px-3 py-2 font-semibold outline-none focus:border-[var(--gold,#B8893F)]"
+          />
+          <select
+            aria-label="Mẫu khởi tạo"
+            value={template}
+            onChange={(e) => setTemplate(e.target.value as MindmapTemplateType)}
+            className="rounded-xl border border-[var(--border,#E2D5B8)] bg-white px-3 py-2 font-semibold text-stone-700 outline-none focus:border-[var(--gold,#B8893F)] cursor-pointer"
+          >
+            {TEMPLATE_OPTIONS.map((opt) => (
+              <option key={opt.type} value={opt.type}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setShowCreate(false)}
+            className="rounded-xl px-3 py-2 font-semibold text-stone-600 hover:bg-stone-100 cursor-pointer"
+          >
+            Huỷ
+          </button>
+          <button
+            type="submit"
+            disabled={creating}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#7A1F24] px-4 py-2 font-bold text-white hover:brightness-110 disabled:opacity-50 cursor-pointer"
+          >
+            {creating && <Loader2 size={13} className="animate-spin" />}
+            Mở Studio
+          </button>
         </form>
       )}
 
@@ -269,7 +237,7 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
             Chưa có sơ đồ tư duy nào
           </h3>
           <p className="mt-1 mx-auto max-w-md text-xs text-[var(--text-muted,#7A6B57)]">
-            Bấm <strong>Tạo sơ đồ mới</strong> để chọn mẫu Cây / Dòng chảy / Mạng nhện / Bong bóng đôi, hoặc bấm <strong>Tạo từ AI / Ghi chú</strong> để dựng nhanh từ bài đã lưu.
+            Bấm <strong>Tạo sơ đồ mới</strong> để chọn Sơ đồ tư duy 2 bên, Sơ đồ tổ chức, Cây logic hoặc Đối chiếu, hoặc bấm <strong>Tạo từ AI / Ghi chú</strong> để dựng nhanh từ bài đã lưu.
           </p>
         </div>
       ) : (

@@ -1,66 +1,91 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowLeft,
-  Check,
-  ExternalLink,
-  GitBranch,
-  Grid,
-  LayoutGrid,
-  Loader2,
-  Maximize2,
-  Plus,
-  Printer,
-  StickyNote,
-  X,
-  ZoomIn,
-  ZoomOut,
-} from 'lucide-react';
-import { KeyboardKey } from '@/constants/enums';
-import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
-import {
-  BRANCH_COLOR_STYLES,
-  CANVAS_THEME_CONFIG,
   MINDMAP_CANVAS,
-  MindmapArrangeMode,
+  MindmapBorderStyle,
   MindmapBranchColor,
-  MindmapCanvasTheme,
   MindmapEdgeStyle,
-  MindmapNodeShape,
-  NODE_SHAPE_CLASS,
+  MindmapInspectorTab,
+  MindmapShortcutKey,
+  MindmapStructure,
+  MindmapToolMode,
+  ReaderSourceKind,
 } from '../constants/mindmap.constants';
+import { useMeasuredNodeSizes } from '../hooks/use-measured-node-sizes';
+import { useMindmapHistory } from '../hooks/use-mindmap-history';
 import {
   MindmapApiService,
+  type MindmapArticleRef,
   type MindmapDetail,
   type MindmapEdge,
   type MindmapGraph,
   type MindmapNode,
 } from '../services/mindmap.service';
 import {
-  autoArrangeGraph,
-  computeFitViewport,
-  edgePathBetween,
-  nodeWidthOf,
-} from '../utils/mindmap-layout.util';
-import { MindmapNodeInspector, nodeArticlesOf } from './MindmapNodeInspector';
+  computeFitViewportFromPlacements,
+  computeMindmapLayout,
+} from '../utils/mindmap-layout.strategy';
+import {
+  addChildNodeToGraph,
+  addSiblingNodeToGraph,
+  buildMindmapTree,
+  deleteSubtreeFromGraph,
+  nextMindmapId,
+  reparentNodeInGraph,
+  resolveEffectiveStructure,
+  resolveEffectiveTheme,
+  resolveNodePalette,
+} from '../utils/mindmap-tree.util';
+import { MindmapLeftToolbar } from './MindmapLeftToolbar';
+import { MindmapNodeCard, nodeArticlesOf } from './MindmapNodeCard';
+import {
+  MindmapReferenceDrawer,
+  type RequestedReaderSource,
+} from './MindmapReferenceDrawer';
+import { MindmapStyleSidebar } from './MindmapStyleSidebar';
+import { MindmapSaveState, MindmapTopBar } from './MindmapTopBar';
 
-const nextId = (prefix: string) =>
-  `${prefix}-${Math.random().toString(36).slice(2, 7)}${Date.now().toString(36).slice(-3)}`;
-
-enum SaveState {
-  SAVED = 'SAVED',
-  SAVING = 'SAVING',
-  ERROR = 'ERROR',
-}
-
-enum DragKind {
-  NODE = 'NODE',
+enum DragMode {
   PAN = 'PAN',
+  FREE_NODE = 'FREE_NODE',
+  REPARENT_NODE = 'REPARENT_NODE',
 }
 
-/** Canvas Sơ đồ tư duy tương tác tự do (hình ảnh, ghi chú dán, nhiều tư liệu, xoá nhanh, tự căn giữa). */
+interface DragState {
+  mode: DragMode;
+  nodeId?: string;
+  startX: number;
+  startY: number;
+  origX: number;
+  origY: number;
+  moved: boolean;
+}
+
+const EDITABLE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
+
+function edgeStrokeDasharray(isCrossLink?: boolean, strokeStyle?: MindmapBorderStyle): string | undefined {
+  if (isCrossLink || strokeStyle === MindmapBorderStyle.DASHED) return '6 4';
+  if (strokeStyle === MindmapBorderStyle.DOTTED) return '2 4';
+  return undefined;
+}
+
+function isEditableElement(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return EDITABLE_TAGS.has(target.tagName) || target.isContentEditable;
+}
+
+function collectUniqueAttachedArticles(nodes: MindmapNode[]): MindmapArticleRef[] {
+  const seen = new Map<string, MindmapArticleRef>();
+  for (const node of nodes) {
+    for (const art of nodeArticlesOf(node)) {
+      if (!seen.has(art.id)) seen.set(art.id, art);
+    }
+  }
+  return Array.from(seen.values());
+}
+
+/** Mindmap Studio toàn màn hình (theo chuẩn MindMeister / XMind). */
 export function MindmapCanvas({
   initialMindmap,
   onBack,
@@ -73,106 +98,307 @@ export function MindmapCanvas({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     initialMindmap.graph.nodes[0]?.id ?? null,
   );
-  const [linkFromId, setLinkFromId] = useState<string | null>(null);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
-  const [saveState, setSaveState] = useState<SaveState>(SaveState.SAVED);
+  const [linkFromId, setLinkFromId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+
+  const [saveState, setSaveState] = useState<MindmapSaveState>(MindmapSaveState.SAVED);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [readerOpen, setReaderOpen] = useState(false);
+  const [requestedReaderSource, setRequestedReaderSource] = useState<RequestedReaderSource | null>(null);
+  const [activeTab, setActiveTab] = useState<MindmapInspectorTab>(MindmapInspectorTab.STYLE);
+  const [toolMode, setToolMode] = useState<MindmapToolMode>(MindmapToolMode.POINTER);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [showGrid, setShowGrid] = useState(true);
+  const [pan, setPan] = useState({ x: 480, y: 260 });
 
+  const studioRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dragRef = useRef<{
-    type: DragKind;
-    nodeId?: string;
-    startX: number;
-    startY: number;
-    origX: number;
-    origY: number;
-  } | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const initialFitDoneRef = useRef(false);
 
-  const fitToViewport = useCallback((nodes: MindmapNode[]) => {
-    const el = canvasRef.current;
-    if (!el) return;
-    const fitted = computeFitViewport(nodes, el.clientWidth, el.clientHeight);
-    setPan(fitted.pan);
-    setZoom(fitted.zoom);
-  }, []);
+  const history = useMindmapHistory();
+  const structure = resolveEffectiveStructure(graph);
+  const theme = resolveEffectiveTheme(graph);
+  const balancedBranches = graph.balancedBranches ?? true;
+  const edgeStyle = graph.edgeStyle ?? MindmapEdgeStyle.AUTO;
+  const showGrid = graph.showGrid ?? false;
+  const canvasBg = graph.customBgColor || theme.canvasBg;
 
-  // Tự căn giữa toàn bộ sơ đồ ngay khi mở Canvas để node gốc không bị lệch mép trái.
-  useEffect(() => {
-    const id = requestAnimationFrame(() => fitToViewport(initialMindmap.graph.nodes));
-    return () => cancelAnimationFrame(id);
-  }, [fitToViewport, initialMindmap.graph.nodes]);
+  const tree = useMemo(() => buildMindmapTree(graph), [graph]);
+  const nodeSignature = useMemo(
+    () =>
+      graph.nodes
+        .map(
+          (n) =>
+            `${n.id}:${n.title.length}:${n.style?.fontSize ?? 13}:${Boolean(n.style?.bold)}:${(n.tags ?? []).length}:${Boolean(n.imageUrl)}:${Boolean(n.collapsed)}`,
+        )
+        .join('|'),
+    [graph.nodes],
+  );
+  const { sizes, registerNodeRef } = useMeasuredNodeSizes(nodeSignature);
+
+  const layout = useMemo(
+    () =>
+      computeMindmapLayout({
+        graph,
+        tree,
+        sizes,
+        structure,
+        balancedBranches,
+        edgeStyle,
+      }),
+    [balancedBranches, edgeStyle, graph, sizes, structure, tree],
+  );
 
   const scheduleSave = useCallback(
     (nextTitle: string, nextGraph: MindmapGraph) => {
-      setSaveState(SaveState.SAVING);
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
+      setSaveState(MindmapSaveState.SAVING);
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
         void MindmapApiService.update(initialMindmap.id, {
           title: nextTitle.trim() || initialMindmap.title,
           graph: nextGraph,
         })
-          .then(() => setSaveState(SaveState.SAVED))
-          .catch(() => setSaveState(SaveState.ERROR));
+          .then(() => setSaveState(MindmapSaveState.SAVED))
+          .catch(() => setSaveState(MindmapSaveState.ERROR));
       }, MINDMAP_CANVAS.AUTOSAVE_DELAY_MS);
     },
     [initialMindmap.id, initialMindmap.title],
   );
 
-  useEffect(() => () => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    },
+    [],
+  );
 
   const commitGraph = useCallback(
-    (updater: (prev: MindmapGraph) => MindmapGraph) => {
+    (updater: (prev: MindmapGraph) => MindmapGraph, recordUndo = true) => {
       setGraph((prev) => {
+        if (recordUndo) history.recordSnapshot(prev);
         const next = updater(prev);
         scheduleSave(title, next);
         return next;
       });
     },
-    [scheduleSave, title],
+    [history, scheduleSave, title],
   );
 
-  const addNode = (parentId?: string, sticky = false) => {
-    const parent = parentId ? graph.nodes.find((n) => n.id === parentId) : null;
-    const siblingCount = parentId
-      ? graph.edges.filter((e) => e.fromId === parentId).length
-      : graph.nodes.length;
-    const newId = nextId('n');
-    const newNode: MindmapNode = {
-      id: newId,
-      x: parent && !sticky ? parent.x + 290 : 120 + (siblingCount % 4) * 70,
-      y: parent && !sticky ? parent.y + (siblingCount - 1) * 120 : 100 + (siblingCount % 4) * 60,
-      title: sticky ? 'Ghi chú nhanh' : 'Ý mới',
-      ...(sticky
-        ? {
-            badge: 'Ghi chú',
-            note: 'Nhấp đúp hoặc sửa ở bảng bên phải…',
-            isStickyNote: true,
-            color: MindmapBranchColor.GOLD,
-          }
-        : {
-            color:
-              parent?.color && parent.color !== MindmapBranchColor.CRIMSON
-                ? parent.color
-                : MindmapBranchColor.GOLD,
-          }),
-    };
+  const fitView = useCallback(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const fitted = computeFitViewportFromPlacements(
+      layout.placements.values(),
+      el.clientWidth,
+      el.clientHeight,
+    );
+    setPan(fitted.pan);
+    setZoom(fitted.zoom);
+  }, [layout.placements]);
 
-    commitGraph((prev) => ({
-      nodes: [...prev.nodes, newNode],
-      edges:
-        parent && !sticky
-          ? [...prev.edges, { id: nextId('e'), fromId: parent.id, toId: newId }]
-          : prev.edges,
-    }));
+  const centerOnNode = useCallback(
+    (nodeId: string) => {
+      const el = canvasRef.current;
+      const p = layout.placements.get(nodeId);
+      if (!el || !p) return;
+      setPan({
+        x: Math.round(el.clientWidth / 2 - (p.x + p.width / 2) * zoom),
+        y: Math.round(el.clientHeight / 2 - (p.y + p.height / 2) * zoom),
+      });
+    },
+    [layout.placements, zoom],
+  );
+
+  useEffect(() => {
+    if (initialFitDoneRef.current) return;
+    if (layout.placements.size === 0) return;
+    const raf = requestAnimationFrame(() => {
+      fitView();
+      initialFitDoneRef.current = true;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [fitView, layout.placements.size]);
+
+  const handleAddChild = useCallback(
+    (parentId?: string) => {
+      const targetId = parentId ?? selectedNodeId ?? tree.rootId;
+      if (!targetId) return;
+      let createdId = '';
+      commitGraph((prev) => {
+        const res = addChildNodeToGraph(prev, targetId, 'Ý tưởng mới');
+        createdId = res.newId;
+        return res.graph;
+      });
+      if (createdId) {
+        setSelectedNodeId(createdId);
+        setEditingNodeId(createdId);
+      }
+    },
+    [commitGraph, selectedNodeId, tree.rootId],
+  );
+
+  const handleAddSibling = useCallback(() => {
+    const targetId = selectedNodeId ?? tree.rootId;
+    if (!targetId) return;
+    let createdId = '';
+    commitGraph((prev) => {
+      const res = addSiblingNodeToGraph(prev, targetId, 'Ý tưởng mới');
+      createdId = res.newId;
+      return res.graph;
+    });
+    if (createdId) {
+      setSelectedNodeId(createdId);
+      setEditingNodeId(createdId);
+    }
+  }, [commitGraph, selectedNodeId, tree.rootId]);
+
+  const handleAddSticky = useCallback(() => {
+    const newId = nextMindmapId('sticky');
+    const stickyNode: MindmapNode = {
+      id: newId,
+      x: 120,
+      y: 120,
+      title: 'Ghi chú nhanh',
+      note: 'Nhấp để sửa nội dung ghi chú…',
+      isStickyNote: true,
+      showNoteInline: true,
+      color: graph.nodes[0]?.color ?? MindmapBranchColor.GOLD,
+    };
+    commitGraph((prev) => ({ ...prev, nodes: [...prev.nodes, stickyNode] }));
     setSelectedNodeId(newId);
     setEditingNodeId(newId);
-  };
+    setActiveTab(MindmapInspectorTab.NODE);
+    setSidebarOpen(true);
+  }, [commitGraph, graph.nodes]);
+
+  const openArticleInReader = useCallback((slug: string) => {
+    setRequestedReaderSource({ kind: ReaderSourceKind.ARTICLE, slug, seq: Date.now() });
+    setReaderOpen(true);
+  }, []);
+
+  const handleCreateBranchFromReader = useCallback(
+    (payload: { title: string; note?: string; articleRef?: MindmapArticleRef }) => {
+      const parentId = selectedNodeId ?? tree.rootId;
+      if (!parentId) return;
+      commitGraph((prev) => {
+        const res = addChildNodeToGraph(prev, parentId, payload.title);
+        if (!res.newId) return prev;
+        return {
+          ...res.graph,
+          nodes: res.graph.nodes.map((n) =>
+            n.id === res.newId
+              ? {
+                  ...n,
+                  ...(payload.note ? { note: payload.note } : {}),
+                  ...(payload.articleRef ? { articleRefs: [payload.articleRef] } : {}),
+                }
+              : n,
+          ),
+        };
+      });
+    },
+    [commitGraph, selectedNodeId, tree.rootId],
+  );
+
+  const handleAppendToSelectedNote = useCallback(
+    (text: string, articleRef?: MindmapArticleRef) => {
+      const targetId = selectedNodeId ?? tree.rootId;
+      if (!targetId) return;
+      commitGraph((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((n) => {
+          if (n.id !== targetId) return n;
+          const existingArts = nodeArticlesOf(n);
+          const nextArts =
+            articleRef && !existingArts.some((a) => a.id === articleRef.id)
+              ? [...existingArts, articleRef]
+              : existingArts;
+          const nextNote = n.note?.trim() ? `${n.note.trim()}\n\n${text}` : text;
+          return {
+            ...n,
+            note: nextNote.slice(0, 600),
+            ...(nextArts.length > 0 ? { articleRefs: nextArts, articleRef: undefined } : {}),
+          };
+        }),
+      }));
+    },
+    [commitGraph, selectedNodeId, tree.rootId],
+  );
+
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      let nextSelected: string | null = selectedNodeId;
+      commitGraph((prev) => {
+        const res = deleteSubtreeFromGraph(prev, nodeId);
+        nextSelected = res.nextSelectedId;
+        return res.graph;
+      });
+      setSelectedNodeId(nextSelected);
+    },
+    [commitGraph, selectedNodeId],
+  );
+
+  const handleUndo = useCallback(() => {
+    const prevGraph = history.stepUndo(graph);
+    if (!prevGraph) return;
+    setGraph(prevGraph);
+    scheduleSave(title, prevGraph);
+  }, [graph, history, scheduleSave, title]);
+
+  const handleRedo = useCallback(() => {
+    const nextGraph = history.stepRedo(graph);
+    if (!nextGraph) return;
+    setGraph(nextGraph);
+    scheduleSave(title, nextGraph);
+  }, [graph, history, scheduleSave, title]);
+
+  // Phím tắt chuyên nghiệp (Tab, Enter, Del, Ctrl+Z/Y)
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (isEditableElement(e.target)) return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === MindmapShortcutKey.UNDO) {
+        e.preventDefault();
+        if (e.shiftKey) handleRedo();
+        else handleUndo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === MindmapShortcutKey.REDO) {
+        e.preventDefault();
+        handleRedo();
+        return;
+      }
+      if (e.key === MindmapShortcutKey.ESCAPE) {
+        setLinkFromId(null);
+        setEditingNodeId(null);
+        return;
+      }
+      if (e.key === MindmapShortcutKey.TAB && selectedNodeId) {
+        e.preventDefault();
+        handleAddChild(selectedNodeId);
+        return;
+      }
+      if (e.key === MindmapShortcutKey.ENTER && selectedNodeId) {
+        e.preventDefault();
+        handleAddSibling();
+        return;
+      }
+      if (
+        (e.key === MindmapShortcutKey.DELETE || e.key === MindmapShortcutKey.BACKSPACE) &&
+        selectedNodeId &&
+        selectedNodeId !== tree.rootId
+      ) {
+        e.preventDefault();
+        handleDeleteNode(selectedNodeId);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [handleAddChild, handleAddSibling, handleDeleteNode, handleRedo, handleUndo, selectedNodeId, tree.rootId]);
 
   const updateNode = (nodeId: string, patch: Partial<MindmapNode>) => {
     commitGraph((prev) => ({
@@ -181,48 +407,21 @@ export function MindmapCanvas({
     }));
   };
 
-  const deleteNode = useCallback(
-    (nodeId: string) => {
-      if (graph.nodes.length <= 1) return;
-      commitGraph((prev) => ({
-        nodes: prev.nodes.filter((n) => n.id !== nodeId),
-        edges: prev.edges.filter((e) => e.fromId !== nodeId && e.toId !== nodeId),
-      }));
-      if (selectedNodeId === nodeId) setSelectedNodeId(null);
-    },
-    [commitGraph, graph.nodes.length, selectedNodeId],
-  );
-
-  const updateEdgeLabel = (edgeId: string, label: string) => {
-    commitGraph((prev) => ({
-      ...prev,
-      edges: prev.edges.map((e) => (e.id === edgeId ? { ...e, label } : e)),
-    }));
-  };
-
-  const deleteEdge = (edgeId: string) => {
-    commitGraph((prev) => ({
-      ...prev,
-      edges: prev.edges.filter((e) => e.id !== edgeId),
-    }));
-  };
-
   const handleNodeClick = (nodeId: string) => {
     if (linkFromId) {
-      if (linkFromId !== nodeId) {
-        const exists = graph.edges.some(
-          (e) =>
-            (e.fromId === linkFromId && e.toId === nodeId) ||
-            (e.fromId === nodeId && e.toId === linkFromId),
-        );
-        if (!exists) {
-          const newEdge: MindmapEdge = {
-            id: nextId('e'),
-            fromId: linkFromId,
-            toId: nodeId,
-          };
-          commitGraph((prev) => ({ ...prev, edges: [...prev.edges, newEdge] }));
-        }
+      const alreadyLinked = graph.edges.some(
+        (e) =>
+          (e.fromId === linkFromId && e.toId === nodeId) ||
+          (e.fromId === nodeId && e.toId === linkFromId),
+      );
+      if (linkFromId !== nodeId && !alreadyLinked) {
+        const newEdge: MindmapEdge = {
+          id: nextMindmapId('edge'),
+          fromId: linkFromId,
+          toId: nodeId,
+          isCrossLink: true,
+        };
+        commitGraph((prev) => ({ ...prev, edges: [...prev.edges, newEdge] }));
       }
       setLinkFromId(null);
       return;
@@ -230,293 +429,252 @@ export function MindmapCanvas({
     setSelectedNodeId(nodeId);
   };
 
+  const detectDropNodeId = (clientX: number, clientY: number, draggedId: string): string | null => {
+    const els = document.elementsFromPoint(clientX, clientY);
+    for (const el of els) {
+      const nodeEl = el.closest<HTMLElement>('[data-mindmap-node-id]');
+      const candidate = nodeEl?.dataset.mindmapNodeId;
+      if (candidate && candidate !== draggedId) return candidate;
+    }
+    return null;
+  };
+
+  const onCanvasPointerDown = (e: React.PointerEvent) => {
+    const insideNode =
+      e.target instanceof HTMLElement && Boolean(e.target.closest('[data-mindmap-node-id]'));
+    if (toolMode !== MindmapToolMode.HAND && insideNode) return;
+    dragRef.current = {
+      mode: DragMode.PAN,
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: pan.x,
+      origY: pan.y,
+      moved: false,
+    };
+  };
+
+  const onNodePointerDown = (e: React.PointerEvent, node: MindmapNode) => {
+    if (toolMode === MindmapToolMode.HAND) return;
+    e.stopPropagation();
+    const isFree = structure === MindmapStructure.FREEFORM || Boolean(node.isStickyNote);
+    dragRef.current = {
+      mode: isFree ? DragMode.FREE_NODE : DragMode.REPARENT_NODE,
+      nodeId: node.id,
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: node.x,
+      origY: node.y,
+      moved: false,
+    };
+  };
+
   const onPointerMove = (e: React.PointerEvent) => {
     const drag = dragRef.current;
     if (!drag) return;
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;
-    if (drag.type === DragKind.PAN) {
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) drag.moved = true;
+
+    if (drag.mode === DragMode.PAN) {
       setPan({ x: drag.origX + dx, y: drag.origY + dy });
-    } else if (drag.type === DragKind.NODE && drag.nodeId) {
-      const nextX = Math.round(drag.origX + dx / zoom);
-      const nextY = Math.round(drag.origY + dy / zoom);
+      return;
+    }
+    if (drag.mode === DragMode.FREE_NODE && drag.nodeId) {
+      const nx = Math.round(drag.origX + dx / zoom);
+      const ny = Math.round(drag.origY + dy / zoom);
       setGraph((prev) => ({
         ...prev,
-        nodes: prev.nodes.map((n) =>
-          n.id === drag.nodeId ? { ...n, x: nextX, y: nextY } : n,
-        ),
+        nodes: prev.nodes.map((n) => (n.id === drag.nodeId ? { ...n, x: nx, y: ny } : n)),
       }));
+      return;
+    }
+    if (drag.mode === DragMode.REPARENT_NODE && drag.nodeId && drag.moved) {
+      setDropTargetId(detectDropNodeId(e.clientX, e.clientY, drag.nodeId));
     }
   };
 
   const onPointerUp = () => {
-    if (dragRef.current?.type === DragKind.NODE) {
+    const drag = dragRef.current;
+    if (drag?.mode === DragMode.FREE_NODE && drag.moved) {
       scheduleSave(title, graph);
+    } else if (drag?.mode === DragMode.REPARENT_NODE && drag.nodeId && dropTargetId) {
+      commitGraph((prev) => reparentNodeInGraph(prev, drag.nodeId!, dropTargetId));
     }
     dragRef.current = null;
+    setDropTargetId(null);
   };
 
-  const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
-  const selectedNode = selectedNodeId ? nodeMap.get(selectedNodeId) ?? null : null;
-  const activeTheme = graph.theme ?? MindmapCanvasTheme.PAPER;
-  const themeMeta = CANVAS_THEME_CONFIG[activeTheme];
-  const activeEdgeStyle = graph.edgeStyle ?? MindmapEdgeStyle.BEZIER;
-
-  const applyArrange = (mode: MindmapArrangeMode) => {
-    const arranged = autoArrangeGraph(graph, mode);
-    commitGraph(() => arranged);
-    requestAnimationFrame(() => fitToViewport(arranged.nodes));
+  const toggleFullscreen = async () => {
+    if (!studioRef.current) return;
+    if (!document.fullscreenElement) {
+      await studioRef.current.requestFullscreen().catch(() => undefined);
+      setIsFullscreen(true);
+    } else {
+      await document.exitFullscreen().catch(() => undefined);
+      setIsFullscreen(false);
+    }
   };
+
+  const selectedNode = selectedNodeId ? tree.nodeMap.get(selectedNodeId) ?? null : null;
+  const attachedArticles = useMemo(() => collectUniqueAttachedArticles(graph.nodes), [graph.nodes]);
 
   return (
-    <div className="space-y-3">
-      {/* Thanh công cụ Canvas nổi */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[var(--border,#E2D5B8)] bg-white px-3.5 py-2.5 shadow-xs">
-        <div className="flex min-w-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex items-center gap-1 rounded-xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)]/60 px-2.5 py-1.5 text-xs font-bold text-stone-800 hover:border-[var(--gold,#B8893F)] cursor-pointer"
-          >
-            <ArrowLeft size={14} /> Danh sách
-          </button>
-          <input
-            aria-label="Tên sơ đồ tư duy"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              scheduleSave(e.target.value, graph);
-            }}
-            maxLength={150}
-            className="min-w-[140px] bg-transparent font-[family-name:var(--font-heading)] text-base font-bold text-[var(--text-body,#2D1A10)] outline-none focus:underline"
+    <div
+      ref={studioRef}
+      className="fixed inset-0 z-50 flex flex-col bg-white text-slate-900"
+    >
+      <MindmapTopBar
+        title={title}
+        saveState={saveState}
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+        hasSelectedNode={Boolean(selectedNode)}
+        isLinking={Boolean(linkFromId)}
+        readerOpen={readerOpen}
+        sidebarOpen={sidebarOpen}
+        onBack={onBack}
+        onTitleChange={(next) => {
+          setTitle(next);
+          scheduleSave(next, graph);
+        }}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onAddChild={() => handleAddChild()}
+        onAddSibling={handleAddSibling}
+        onAddSticky={handleAddSticky}
+        onToggleLink={() => setLinkFromId(linkFromId ? null : selectedNodeId ?? tree.rootId)}
+        onToggleReader={() => setReaderOpen((v) => !v)}
+        onToggleSidebar={() => setSidebarOpen((v) => !v)}
+        onPrint={() => window.print()}
+      />
+
+      <div className="flex flex-1 overflow-hidden">
+        {readerOpen && (
+          <MindmapReferenceDrawer
+            requestedSource={requestedReaderSource}
+            attachedArticles={attachedArticles}
+            selectedNodeTitle={selectedNode?.title}
+            onCreateBranchFromText={handleCreateBranchFromReader}
+            onAppendToSelectedNote={handleAppendToSelectedNote}
+            onClose={() => setReaderOpen(false)}
           />
-          <span className="inline-flex items-center gap-1 rounded border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)]/50 px-2 py-0.5 text-[11px] font-semibold text-stone-600">
-            {saveState === SaveState.SAVING ? (
-              <>
-                <Loader2 size={11} className="animate-spin" /> Đang lưu…
-              </>
-            ) : saveState === SaveState.ERROR ? (
-              <span className="text-rose-700">Lỗi lưu</span>
-            ) : (
-              <>
-                <Check size={11} className="text-teal-700" /> Đã lưu
-              </>
-            )}
-          </span>
-        </div>
+        )}
 
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-          <button
-            type="button"
-            onClick={() => addNode(selectedNodeId ?? undefined, false)}
-            className="inline-flex items-center gap-1 rounded-xl bg-[#7A1F24] px-3 py-1.5 font-bold text-white hover:brightness-110 cursor-pointer"
-          >
-            <Plus size={13} /> Thêm Node
-          </button>
-
-          <button
-            type="button"
-            onClick={() => addNode(undefined, true)}
-            className="inline-flex items-center gap-1 rounded-xl border border-[var(--gold,#B8893F)] bg-[var(--bg-page,#F5EEDC)] px-3 py-1.5 font-bold text-[#7A1F24] hover:bg-[#EFE4CC] cursor-pointer"
-            title="Thêm ghi chú dán tự do lên canvas"
-          >
-            <StickyNote size={13} /> Thêm Ghi chú
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setLinkFromId(linkFromId ? null : selectedNodeId ?? graph.nodes[0]?.id ?? null)}
-            className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 font-bold cursor-pointer ${
-              linkFromId
-                ? 'border-[var(--primary,#7A1F24)] bg-amber-50 text-[var(--primary,#7A1F24)]'
-                : 'border-[var(--border,#E2D5B8)] bg-white text-stone-800 hover:border-[var(--gold,#B8893F)]'
-            }`}
-          >
-            <GitBranch size={13} /> {linkFromId ? 'Chọn node đích…' : 'Nối dây'}
-          </button>
-
-          <div className="inline-flex items-center gap-1 rounded-xl border border-[var(--border,#E2D5B8)] bg-white px-2 py-1">
-            <LayoutGrid size={12} className="text-[var(--gold,#B8893F)]" />
-            <select
-              aria-label="Kiểu sắp xếp"
-              value=""
-              onChange={(e) => {
-                if (e.target.value) applyArrange(e.target.value as MindmapArrangeMode);
-              }}
-              className="bg-transparent text-xs font-semibold text-stone-700 outline-none cursor-pointer"
-            >
-              <option value="">Tự xếp…</option>
-              <option value={MindmapArrangeMode.TREE}>Sơ đồ Cây</option>
-              <option value={MindmapArrangeMode.TWO_SIDED}>2 phía (XMind)</option>
-              <option value={MindmapArrangeMode.FISHBONE}>Xương cá</option>
-            </select>
-          </div>
-
-          <select
-            aria-label="Kiểu đường nối"
-            value={activeEdgeStyle}
-            onChange={(e) =>
-              commitGraph((prev) => ({
-                ...prev,
-                edgeStyle: e.target.value as MindmapEdgeStyle,
-              }))
-            }
-            className="rounded-xl border border-[var(--border,#E2D5B8)] bg-white px-2 py-1.5 text-xs font-semibold text-stone-700 outline-none cursor-pointer"
-          >
-            <option value={MindmapEdgeStyle.BEZIER}>Dây cong</option>
-            <option value={MindmapEdgeStyle.STEP}>Dây vuông</option>
-            <option value={MindmapEdgeStyle.STRAIGHT}>Dây thẳng</option>
-          </select>
-
-          <select
-            aria-label="Màu nền canvas"
-            value={activeTheme}
-            onChange={(e) =>
-              commitGraph((prev) => ({
-                ...prev,
-                theme: e.target.value as MindmapCanvasTheme,
-              }))
-            }
-            className="rounded-xl border border-[var(--border,#E2D5B8)] bg-white px-2 py-1.5 text-xs font-semibold text-stone-700 outline-none cursor-pointer"
-          >
-            <option value={MindmapCanvasTheme.PAPER}>Nền giấy dó</option>
-            <option value={MindmapCanvasTheme.WHITE}>Nền trắng</option>
-            <option value={MindmapCanvasTheme.DARK}>Bảng tối</option>
-          </select>
-
-          <button
-            type="button"
-            onClick={() => fitToViewport(graph.nodes)}
-            className="inline-flex items-center gap-1 rounded-xl border border-[var(--border,#E2D5B8)] bg-white px-2.5 py-1.5 font-semibold text-stone-700 hover:border-[var(--gold,#B8893F)] cursor-pointer"
-            title="Căn giữa toàn bộ sơ đồ"
-          >
-            <Maximize2 size={13} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowGrid((g) => !g)}
-            aria-pressed={showGrid}
-            className={`rounded-xl border p-1.5 cursor-pointer ${
-              showGrid ? 'border-[var(--gold,#B8893F)] bg-[var(--bg-page,#F5EEDC)]' : 'border-[var(--border,#E2D5B8)] bg-white'
-            }`}
-            title="Bật/tắt lưới chấm"
-          >
-            <Grid size={14} />
-          </button>
-
-          <div className="inline-flex items-center rounded-xl border border-[var(--border,#E2D5B8)] bg-white px-1">
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.max(MINDMAP_CANVAS.MIN_ZOOM, Number((z - MINDMAP_CANVAS.ZOOM_STEP).toFixed(2))))}
-              aria-label="Thu nhỏ"
-              className="p-1.5 text-stone-600 hover:text-stone-900 cursor-pointer"
-            >
-              <ZoomOut size={13} />
-            </button>
-            <span className="min-w-[40px] text-center font-mono text-[11px] font-bold text-stone-700">
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.min(MINDMAP_CANVAS.MAX_ZOOM, Number((z + MINDMAP_CANVAS.ZOOM_STEP).toFixed(2))))}
-              aria-label="Phóng to"
-              className="p-1.5 text-stone-600 hover:text-stone-900 cursor-pointer"
-            >
-              <ZoomIn size={13} />
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1 rounded-xl border border-[var(--border,#E2D5B8)] bg-white px-2.5 py-1.5 font-semibold text-stone-700 hover:border-[var(--gold,#B8893F)] cursor-pointer"
-            title="In / Xuất PDF"
-          >
-            <Printer size={13} />
-          </button>
-        </div>
-      </div>
-
-      {/* Vùng Canvas + Inspector bên phải */}
-      <div className="flex flex-col gap-4 lg:flex-row">
+        <div className="relative flex-1 overflow-hidden">
         <div
           ref={canvasRef}
-          onPointerDown={(e) => {
-            if (e.target !== e.currentTarget) return;
-            dragRef.current = {
-              type: DragKind.PAN,
-              startX: e.clientX,
-              startY: e.clientY,
-              origX: pan.x,
-              origY: pan.y,
-            };
-          }}
+          onPointerDown={onCanvasPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerUp}
-          className={`relative h-[580px] flex-1 overflow-hidden rounded-2xl border border-[var(--border,#E2D5B8)] select-none cursor-grab active:cursor-grabbing ${themeMeta.bgClass}`}
-          style={
-            showGrid
+          onWheel={(e) => {
+            if (e.ctrlKey) {
+              e.preventDefault();
+              const factor = e.deltaY < 0 ? 1 + MINDMAP_CANVAS.ZOOM_STEP : 1 - MINDMAP_CANVAS.ZOOM_STEP;
+              setZoom((z) => Math.max(MINDMAP_CANVAS.MIN_ZOOM, Math.min(MINDMAP_CANVAS.MAX_ZOOM, Number((z * factor).toFixed(2)))));
+            } else {
+              setPan((p) => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }));
+            }
+          }}
+          className={`relative h-full w-full overflow-hidden select-none ${
+            toolMode === MindmapToolMode.HAND ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+          }`}
+          style={{
+            backgroundColor: canvasBg,
+            ...(showGrid
               ? {
-                  backgroundImage: `radial-gradient(${themeMeta.gridColor} 1px, transparent 1px)`,
+                  backgroundImage: `radial-gradient(${theme.gridDotColor} 1px, transparent 1px)`,
                   backgroundSize: '20px 20px',
                 }
-              : undefined
-          }
+              : undefined),
+          }}
         >
           <div
             style={{
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
               transformOrigin: '0 0',
             }}
-            className="relative h-full w-full pointer-events-none"
+            className="pointer-events-none relative h-full w-full"
           >
-            {/* Đường nối SVG Bezier */}
-            <svg className="pointer-events-none absolute inset-0 h-[2400px] w-[2400px] overflow-visible">
+            {/* Lớp SVG dây nối & gạch chân */}
+            <svg className="pointer-events-none absolute inset-0 overflow-visible" width={1} height={1}>
+              <defs>
+                <marker
+                  id="mindmap-cross-arrow"
+                  viewBox="0 0 10 10"
+                  refX="8.5"
+                  refY="5"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto"
+                >
+                  <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="context-stroke" />
+                </marker>
+              </defs>
+
+              {layout.spineLine && (
+                <line
+                  x1={layout.spineLine.x1}
+                  y1={layout.spineLine.y1}
+                  x2={layout.spineLine.x2}
+                  y2={layout.spineLine.y2}
+                  stroke={theme.branchPalette[0].stroke}
+                  strokeWidth={2.5}
+                />
+              )}
+
               {graph.edges.map((edge) => {
-                const from = nodeMap.get(edge.fromId);
-                const to = nodeMap.get(edge.toId);
-                if (!from || !to) return null;
-                const { d, midX, midY } = edgePathBetween(from, to, activeEdgeStyle);
-                const stroke = BRANCH_COLOR_STYLES[to.color]?.stroke ?? '#B8893F';
+                const geom = layout.routedEdges.get(edge.id);
+                const fromNode = tree.nodeMap.get(edge.fromId);
+                const toNode = tree.nodeMap.get(edge.toId);
+                if (!geom || !toNode) return null;
+                const parentStyle = fromNode?.style;
+                const stroke = parentStyle?.childStrokeColor || resolveNodePalette(toNode, tree, theme).stroke;
+                const strokeW = parentStyle?.childStrokeWidth ?? (edge.isCrossLink ? 1.8 : 2);
+                const dash = edgeStrokeDasharray(edge.isCrossLink, parentStyle?.childStrokeStyle);
                 return (
                   <g key={edge.id} className="pointer-events-auto">
                     <path
-                      d={d}
+                      d={geom.d}
                       fill="none"
                       stroke={stroke}
-                      strokeWidth={2.2}
-                      strokeOpacity={0.7}
+                      strokeWidth={strokeW}
+                      strokeDasharray={dash}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      markerEnd={edge.isCrossLink ? 'url(#mindmap-cross-arrow)' : undefined}
                     />
-                    <circle
-                      cx={midX}
-                      cy={midY}
-                      r={10}
-                      fill="transparent"
-                      className="cursor-pointer"
-                      onClick={() => deleteEdge(edge.id)}
-                    >
-                      <title>Bấm để ngắt đường nối</title>
-                    </circle>
+                    {edge.isCrossLink && (
+                      <path
+                        d={geom.d}
+                        fill="none"
+                        stroke="transparent"
+                        strokeWidth={12}
+                        className="cursor-pointer"
+                        onClick={() =>
+                          commitGraph((prev) => ({
+                            ...prev,
+                            edges: prev.edges.filter((e) => e.id !== edge.id),
+                          }))
+                        }
+                      >
+                        <title>Bấm để xoá đường nối chéo</title>
+                      </path>
+                    )}
+                    {geom.underlineSegment && (
+                      <path
+                        d={geom.underlineSegment}
+                        fill="none"
+                        stroke={stroke}
+                        strokeWidth={strokeW}
+                        strokeDasharray={dash}
+                        strokeLinecap="round"
+                      />
+                    )}
                     {edge.label && (
-                      <g transform={`translate(${midX}, ${midY})`}>
-                        <rect
-                          x={-38}
-                          y={-11}
-                          width={76}
-                          height={22}
-                          rx={6}
-                          fill="#FFFCF5"
-                          stroke="#E2D5B8"
-                        />
-                        <text
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          fontSize={10}
-                          fontWeight={600}
-                          fill="#5C2A1E"
-                        >
+                      <g transform={`translate(${geom.midX}, ${geom.midY})`}>
+                        <rect x={-36} y={-10} width={72} height={20} rx={6} fill="#FFFFFF" stroke={stroke} strokeWidth={1} />
+                        <text textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={600} fill="#1E293B">
                           {edge.label}
                         </text>
                       </g>
@@ -526,29 +684,27 @@ export function MindmapCanvas({
               })}
             </svg>
 
-            {/* Các Node */}
+            {/* Lớp Nodes */}
             {graph.nodes.map((node) => {
-              const style = BRANCH_COLOR_STYLES[node.color] ?? BRANCH_COLOR_STYLES[MindmapBranchColor.STONE];
-              const shape = node.shape ?? MindmapNodeShape.CARD;
-              const shapeClass = NODE_SHAPE_CLASS[shape];
-              const isPlainDark = shape === MindmapNodeShape.PLAIN && activeTheme === MindmapCanvasTheme.DARK;
-              const isSelected = selectedNodeId === node.id;
-              const isLinkSource = linkFromId === node.id;
-              const articles = nodeArticlesOf(node);
+              const placement = layout.placements.get(node.id);
+              if (!placement) return null;
+              const palette = resolveNodePalette(node, tree, theme);
               return (
-                <div
+                <MindmapNodeCard
                   key={node.id}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    dragRef.current = {
-                      type: DragKind.NODE,
-                      nodeId: node.id,
-                      startX: e.clientX,
-                      startY: e.clientY,
-                      origX: node.x,
-                      origY: node.y,
-                    };
-                  }}
+                  node={node}
+                  placement={placement}
+                  structure={structure}
+                  theme={theme}
+                  palette={palette}
+                  isRoot={node.id === tree.rootId}
+                  isSelected={selectedNodeId === node.id}
+                  isEditing={editingNodeId === node.id}
+                  isLinkSource={linkFromId === node.id}
+                  isDropTarget={dropTargetId === node.id}
+                  descendantCount={tree.descendantCountMap.get(node.id) ?? 0}
+                  onRegisterRef={registerNodeRef(node.id)}
+                  onPointerDown={(e) => onNodePointerDown(e, node)}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleNodeClick(node.id);
@@ -557,139 +713,80 @@ export function MindmapCanvas({
                     e.stopPropagation();
                     setEditingNodeId(node.id);
                   }}
-                  style={{
-                    left: node.x,
-                    top: node.y,
-                    width: nodeWidthOf(node),
-                    minHeight: shape === MindmapNodeShape.PILL ? 52 : MINDMAP_CANVAS.NODE_HEIGHT,
+                  onChangeTitle={(nextTitle) => updateNode(node.id, { title: nextTitle })}
+                  onStopEditing={() => setEditingNodeId(null)}
+                  onAddChild={() => handleAddChild(node.id)}
+                  onDelete={() => handleDeleteNode(node.id)}
+                  onToggleCollapse={() => updateNode(node.id, { collapsed: !node.collapsed })}
+                  onChangeNote={(note) => updateNode(node.id, { note })}
+                  onOpenInspector={(tab) => {
+                    setSelectedNodeId(node.id);
+                    setActiveTab(tab);
+                    setSidebarOpen(true);
                   }}
-                  className={`group pointer-events-auto absolute overflow-visible transition-shadow cursor-pointer ${shapeClass} ${style.card} ${
-                    isPlainDark ? '!text-white' : ''
-                  } ${isSelected ? 'ring-2 ring-[#B8893F] ring-offset-2' : ''} ${
-                    isLinkSource ? 'ring-2 ring-amber-500 animate-pulse' : ''
-                  }`}
-                >
-                  {/* Nút xoá nhanh trực tiếp trên node */}
-                  {graph.nodes.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteNode(node.id);
-                      }}
-                      title="Xoá node này"
-                      aria-label="Xoá node"
-                      className="absolute -right-2 -top-2 z-10 grid size-5 place-items-center rounded-full border border-rose-200 bg-white text-rose-700 opacity-0 shadow-xs transition group-hover:opacity-100 hover:bg-rose-50 cursor-pointer"
-                    >
-                      <X size={11} />
-                    </button>
-                  )}
-
-                  {node.imageUrl && (
-                    <div className="overflow-hidden rounded-t-[10px] border-b border-black/10">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={node.imageUrl}
-                        alt={node.title}
-                        className="h-24 w-full object-cover"
-                      />
-                    </div>
-                  )}
-
-                  <div className="p-3">
-                    {node.badge && (
-                      <span className={`mb-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold ${style.badge}`}>
-                        {node.badge}
-                      </span>
-                    )}
-
-                    {editingNodeId === node.id ? (
-                      <input
-                        autoFocus
-                        value={node.title}
-                        onChange={(e) => updateNode(node.id, { title: e.target.value })}
-                        onBlur={() => setEditingNodeId(null)}
-                        onKeyDown={(e) => {
-                          if (e.key === KeyboardKey.ENTER || e.key === KeyboardKey.ESCAPE) {
-                            setEditingNodeId(null);
-                          }
-                        }}
-                        className="w-full rounded bg-white/90 px-1.5 py-0.5 text-xs font-bold text-stone-900 outline-none"
-                      />
-                    ) : (
-                      <div className="font-[family-name:var(--font-heading)] text-sm font-bold leading-snug">
-                        {node.title}
-                      </div>
-                    )}
-
-                    {node.note && (
-                      <div className="mt-1 space-y-0.5 text-[11px] opacity-90 leading-snug">
-                        {node.note
-                          .split('\n')
-                          .filter((line) => line.trim())
-                          .slice(0, 4)
-                          .map((line, i) => (
-                            <p key={i} className="line-clamp-2">
-                              {line}
-                            </p>
-                          ))}
-                      </div>
-                    )}
-
-                    {articles.length > 0 && (
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {articles.map((art) => (
-                          <Link
-                            key={art.id}
-                            href={PUBLIC_ROUTES.ARTICLE(art.slug)}
-                            target="_blank"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex max-w-full items-center gap-1 rounded bg-black/5 px-1.5 py-0.5 text-[10px] font-bold underline"
-                          >
-                            <ExternalLink size={9} className="shrink-0" />
-                            <span className="truncate">{art.title}</span>
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addNode(node.id, false);
-                    }}
-                    title="Thêm nhánh con"
-                    aria-label="Thêm nhánh con"
-                    className="absolute -right-2.5 top-1/2 -translate-y-1/2 grid size-5 place-items-center rounded-full border border-[#E2D5B8] bg-white text-[#7A1F24] shadow-xs hover:scale-110 cursor-pointer"
-                  >
-                    <Plus size={11} />
-                  </button>
-                </div>
+                  onOpenArticleInReader={openArticleInReader}
+                />
               );
             })}
           </div>
-
-          <div className={`pointer-events-none absolute bottom-3 left-3 rounded-lg border px-2.5 py-1 text-[11px] backdrop-blur-xs ${themeMeta.hintClass}`}>
-            Kéo node để xếp vị trí · Double-click để sửa nhanh · Hover node để xoá nhanh · Kéo nền để di chuyển
-          </div>
         </div>
 
-        {selectedNode && (
-          <MindmapNodeInspector
-            node={selectedNode}
-            edges={graph.edges}
-            nodeMap={nodeMap}
-            canDelete={graph.nodes.length > 1}
-            onChange={(patch) => updateNode(selectedNode.id, patch)}
-            onAddChild={() => addNode(selectedNode.id, false)}
-            onDelete={() => deleteNode(selectedNode.id)}
-            onUpdateEdge={updateEdgeLabel}
-            onDeleteEdge={deleteEdge}
-            onClose={() => setSelectedNodeId(null)}
+        <MindmapLeftToolbar
+          toolMode={toolMode}
+          isFullscreen={isFullscreen}
+          zoom={zoom}
+          onChangeToolMode={setToolMode}
+          onFitView={fitView}
+          onCenterRoot={() => tree.rootId && centerOnNode(tree.rootId)}
+          onZoomIn={() => setZoom((z) => Math.min(MINDMAP_CANVAS.MAX_ZOOM, Number((z + MINDMAP_CANVAS.ZOOM_STEP).toFixed(2))))}
+          onZoomOut={() => setZoom((z) => Math.max(MINDMAP_CANVAS.MIN_ZOOM, Number((z - MINDMAP_CANVAS.ZOOM_STEP).toFixed(2))))}
+          onResetZoom={() => setZoom(1)}
+          onToggleFullscreen={() => void toggleFullscreen()}
+        />
+
+        {sidebarOpen && (
+          <MindmapStyleSidebar
+            activeTab={activeTab}
+            onChangeTab={setActiveTab}
+            structure={structure}
+            mapTheme={theme.id}
+            balancedBranches={balancedBranches}
+            edgeStyle={edgeStyle}
+            customBgColor={graph.customBgColor}
+            showGrid={showGrid}
+            selectedNode={selectedNode}
+            graph={graph}
+            tree={tree}
+            onUpdateGraphMeta={(patch) => {
+              commitGraph((prev) => ({ ...prev, ...patch }));
+              if (patch.structure) {
+                setTimeout(() => fitView(), 60);
+              }
+            }}
+            onUpdateNode={updateNode}
+            onAddChild={handleAddChild}
+            onDeleteNode={handleDeleteNode}
+            onUpdateEdge={(edgeId, label) =>
+              commitGraph((prev) => ({
+                ...prev,
+                edges: prev.edges.map((e) => (e.id === edgeId ? { ...e, label } : e)),
+              }))
+            }
+            onDeleteEdge={(edgeId) =>
+              commitGraph((prev) => ({
+                ...prev,
+                edges: prev.edges.filter((e) => e.id !== edgeId),
+              }))
+            }
+            onSelectAndFocus={(id) => {
+              setSelectedNodeId(id);
+              centerOnNode(id);
+            }}
+            onOpenArticleInReader={openArticleInReader}
+            onClose={() => setSidebarOpen(false)}
           />
         )}
+        </div>
       </div>
     </div>
   );

@@ -1,13 +1,23 @@
+import type { TextStyleValue } from '@/components/common/TextStyleControls';
 import api from '@/services/api';
-import type { PublicArticleSummary } from '@/services/public/public-content.service';
+import type {
+  PublicArticleDetail,
+  PublicArticleSummary,
+} from '@/services/public/public-content.service';
 import {
   MINDMAP_API,
   MindmapAiEngine,
+  MindmapBorderStyle,
   MindmapBranchColor,
+  MindmapBranchSide,
   MindmapCanvasTheme,
   MindmapEdgeStyle,
+  MindmapImageHeight,
+  MindmapMapTheme,
+  MindmapMarkerId,
   MindmapNodeShape,
   MindmapNodeSize,
+  MindmapStructure,
   MindmapTemplateType,
 } from '../constants/mindmap.constants';
 
@@ -20,18 +30,40 @@ export interface MindmapArticleRef {
   coverImageUrl?: string | null;
 }
 
+export interface MindmapNodeStyle extends TextStyleValue {
+  borderRadius?: number;
+  fillColor?: string;
+  borderStyle?: MindmapBorderStyle;
+  borderColor?: string;
+  borderWidth?: number;
+  childEdgeStyle?: MindmapEdgeStyle;
+  childStrokeStyle?: MindmapBorderStyle;
+  childStrokeColor?: string;
+  childStrokeWidth?: number;
+}
+
 export interface MindmapNode {
   id: string;
   x: number;
   y: number;
   title: string;
   badge?: string;
+  dateLabel?: string;
   note?: string;
   imageUrl?: string;
+  imageHeight?: MindmapImageHeight;
+  markers?: MindmapMarkerId[];
+  tags?: string[];
+  externalUrl?: string;
+  style?: MindmapNodeStyle;
   isStickyNote?: boolean;
+  showNoteInline?: boolean;
+  collapsed?: boolean;
+  side?: MindmapBranchSide;
   shape?: MindmapNodeShape;
   size?: MindmapNodeSize;
   color: MindmapBranchColor;
+  colorOverride?: MindmapBranchColor;
   articleRef?: MindmapArticleRef;
   articleRefs?: MindmapArticleRef[];
 }
@@ -41,11 +73,17 @@ export interface MindmapEdge {
   fromId: string;
   toId: string;
   label?: string;
+  isCrossLink?: boolean;
 }
 
 export interface MindmapGraph {
   nodes: MindmapNode[];
   edges: MindmapEdge[];
+  structure?: MindmapStructure;
+  mapTheme?: MindmapMapTheme;
+  balancedBranches?: boolean;
+  customBgColor?: string;
+  showGrid?: boolean;
   theme?: MindmapCanvasTheme;
   edgeStyle?: MindmapEdgeStyle;
 }
@@ -119,8 +157,18 @@ export const MindmapApiService = {
   async searchArticles(query: string): Promise<PublicArticleSummary[]> {
     const res = await api.get<{ data: PublicArticleSummary[] }>(
       MINDMAP_API.PUBLIC_ARTICLES,
-      { params: { q: query.trim() || undefined, limit: 8 } },
+      { params: { q: query.trim() || undefined, limit: 12 } },
     );
     return Array.isArray(res.data?.data) ? res.data.data : [];
+  },
+  async getArticleDetail(slug: string): Promise<PublicArticleDetail | null> {
+    const res = await api.get<{ data?: PublicArticleDetail } | PublicArticleDetail>(
+      MINDMAP_API.PUBLIC_ARTICLE_BY_SLUG(slug),
+    );
+    const payload = res.data;
+    if (payload && typeof payload === 'object' && 'data' in payload) {
+      return payload.data ?? null;
+    }
+    return (payload as PublicArticleDetail) ?? null;
   },
 };

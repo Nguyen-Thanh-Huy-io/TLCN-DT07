@@ -1,10 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { MindmapBranchColor, MindmapTemplateType } from './mindmap.constant';
+import {
+  MindmapBranchColor,
+  MindmapMapTheme,
+  MindmapStructure,
+  MindmapTemplateType,
+} from './mindmap.constant';
 
 export interface MindmapArticleRef {
   id: string;
   slug: string;
   title: string;
+  coverImageUrl?: string | null;
 }
 
 export interface MindmapNodeData {
@@ -13,7 +19,10 @@ export interface MindmapNodeData {
   y: number;
   title: string;
   badge?: string;
+  dateLabel?: string;
   note?: string;
+  imageUrl?: string;
+  markers?: string[];
   color: MindmapBranchColor;
   articleRef?: MindmapArticleRef;
 }
@@ -28,6 +37,9 @@ export interface MindmapEdgeData {
 export interface MindmapGraphData {
   nodes: MindmapNodeData[];
   edges: MindmapEdgeData[];
+  structure?: MindmapStructure;
+  mapTheme?: MindmapMapTheme;
+  balancedBranches?: boolean;
 }
 
 export type MindmapTemplateBuilder = (
@@ -85,6 +97,9 @@ const TEMPLATE_BUILDERS: Record<MindmapTemplateType, MindmapTemplateBuilder> = {
       { id: 'e-3', fromId: 'n-root', toId: 'n-mil' },
       { id: 'e-4', fromId: 'n-root', toId: 'n-cul' },
     ],
+    structure: MindmapStructure.ORG_CHART,
+    mapTheme: MindmapMapTheme.MODERN_BLUE,
+    balancedBranches: true,
   }),
 
   [MindmapTemplateType.FLOW]: (title, periodLabel) => ({
@@ -127,6 +142,9 @@ const TEMPLATE_BUILDERS: Record<MindmapTemplateType, MindmapTemplateBuilder> = {
       { id: 'e-2', fromId: 'n-main', toId: 'n-result', label: 'tạo ra' },
       { id: 'e-3', fromId: 'n-result', toId: 'n-impact', label: 'để lại' },
     ],
+    structure: MindmapStructure.LOGIC_CHART,
+    mapTheme: MindmapMapTheme.MODERN_BLUE,
+    balancedBranches: true,
   }),
 
   [MindmapTemplateType.SPIDER]: (title, periodLabel) => ({
@@ -178,6 +196,9 @@ const TEMPLATE_BUILDERS: Record<MindmapTemplateType, MindmapTemplateBuilder> = {
       { id: 'e-3', fromId: 'n-center', toId: 'n-3' },
       { id: 'e-4', fromId: 'n-center', toId: 'n-4' },
     ],
+    structure: MindmapStructure.MIND_MAP,
+    mapTheme: MindmapMapTheme.MODERN_BLUE,
+    balancedBranches: true,
   }),
 
   [MindmapTemplateType.DOUBLE_BUBBLE]: (title, periodLabel) => ({
@@ -229,6 +250,9 @@ const TEMPLATE_BUILDERS: Record<MindmapTemplateType, MindmapTemplateBuilder> = {
       { id: 'e-3', fromId: 'n-left', toId: 'n-diff-l', label: 'riêng' },
       { id: 'e-4', fromId: 'n-right', toId: 'n-diff-r', label: 'riêng' },
     ],
+    structure: MindmapStructure.MIND_MAP,
+    mapTheme: MindmapMapTheme.RAINBOW_PASTEL,
+    balancedBranches: true,
   }),
 
   [MindmapTemplateType.BLANK]: (title, periodLabel) => ({
@@ -243,6 +267,9 @@ const TEMPLATE_BUILDERS: Record<MindmapTemplateType, MindmapTemplateBuilder> = {
       },
     ],
     edges: [],
+    structure: MindmapStructure.MIND_MAP,
+    mapTheme: MindmapMapTheme.MODERN_BLUE,
+    balancedBranches: true,
   }),
 };
 

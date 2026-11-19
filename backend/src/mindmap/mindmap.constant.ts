@@ -12,6 +12,23 @@ export enum MindmapTemplateType {
   BLANK = 'BLANK',
 }
 
+export enum MindmapStructure {
+  MIND_MAP = 'MIND_MAP',
+  ORG_CHART = 'ORG_CHART',
+  LOGIC_CHART = 'LOGIC_CHART',
+  FISHBONE = 'FISHBONE',
+  FREEFORM = 'FREEFORM',
+}
+
+export enum MindmapMapTheme {
+  MODERN_BLUE = 'MODERN_BLUE',
+  HISGO_HERITAGE = 'HISGO_HERITAGE',
+  RAINBOW_PASTEL = 'RAINBOW_PASTEL',
+  DARK_CHALK = 'DARK_CHALK',
+  MINIMAL_INK = 'MINIMAL_INK',
+  WARM_AMBER = 'WARM_AMBER',
+}
+
 export enum MindmapBranchColor {
   CRIMSON = 'CRIMSON',
   GOLD = 'GOLD',

@@ -1159,6 +1159,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
   font-family: var(--font-sans);
   background-color: var(--canvas);
   color: var(--text-main);

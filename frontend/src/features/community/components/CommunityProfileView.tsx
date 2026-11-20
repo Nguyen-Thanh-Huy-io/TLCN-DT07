@@ -1,12 +1,13 @@
 'use client';
 
-import { Bookmark, Layers, Share2, UserCheck, Users } from 'lucide-react';
+import { Bookmark, BookOpen, Layers, Share2, UserCheck, Users } from 'lucide-react';
 import { ComposerMode } from '@/constants/enums';
 import { QuickComposer } from './QuickComposer';
 import { useCommunityProfile } from '../hooks/useCommunityProfile';
 import { type CommunityMemberProfile } from '../api';
 import { ProfileHeaderKpi, ProfileMembersList, ProfilePostsList, ProfileTabsToolbar, ProfileTabKey } from './CommunityProfileParts';
 import type { ProfileTabItem } from './CommunityProfileParts';
+import { ProfilePublishedWorksList } from './ProfilePublishedWorksList';
 import { ProfileSidebar } from './ProfileSidebar';
 
 export function CommunityProfileView({
@@ -43,6 +44,8 @@ export function CommunityProfileView({
     setComposerMode,
     filteredPosts,
     filteredMembers,
+    filteredArticles,
+    filteredLessons,
     handleToggleFollowProfile,
     handleToggleFollowOtherMember,
     handleSaveBio,
@@ -55,12 +58,21 @@ export function CommunityProfileView({
     isPersonalRoute,
   });
 
+  const worksCount =
+    computedStats.publishedArticlesCount + computedStats.publishedLessonsCount;
+
   const tabs: ProfileTabItem[] = [
     {
       key: ProfileTabKey.POSTS,
       label: 'Bài đã đăng',
       count: computedStats.postCount,
       icon: Layers,
+    },
+    {
+      key: ProfileTabKey.WORKS,
+      label: 'Bài viết & Bài học',
+      count: worksCount,
+      icon: BookOpen,
     },
     {
       key: ProfileTabKey.SHARED_BLOG,
@@ -95,7 +107,9 @@ export function CommunityProfileView({
   const totalFilteredCount =
     activeTab === ProfileTabKey.FOLLOWERS || activeTab === ProfileTabKey.FOLLOWING
       ? filteredMembers.length
-      : filteredPosts.length;
+      : activeTab === ProfileTabKey.WORKS
+        ? filteredArticles.length + filteredLessons.length
+        : filteredPosts.length;
 
   return (
     <div className="mx-auto max-w-[1280px] px-4 py-6 md:px-6 lg:px-8 lg:py-8">
@@ -167,6 +181,13 @@ export function CommunityProfileView({
               displayName={profile.user.displayName}
               filteredMembers={filteredMembers}
               onToggleFollowMember={handleToggleFollowOtherMember}
+            />
+          ) : activeTab === ProfileTabKey.WORKS ? (
+            <ProfilePublishedWorksList
+              articles={filteredArticles}
+              lessons={filteredLessons}
+              searchQuery={searchQuery}
+              onClearSearch={() => setSearchQuery('')}
             />
           ) : (
             <ProfilePostsList

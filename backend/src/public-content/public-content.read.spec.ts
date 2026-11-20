@@ -8,6 +8,8 @@ import {
   ArticleAdjacentSource,
 } from './article-adjacency.service';
 import { PublicContentService } from './public-content.service';
+import { PublicQuizService } from './public-quiz.service';
+import { PublicTimelineService } from './public-timeline.service';
 
 const PUBLISHED = ContentStatus.PUBLISHED;
 
@@ -53,6 +55,8 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PublicContentService,
+        PublicTimelineService,
+        PublicQuizService,
         ArticleAdjacencyService,
         { provide: PrismaService, useValue: prisma },
       ],

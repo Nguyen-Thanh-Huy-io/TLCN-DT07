@@ -18,6 +18,8 @@ import {
   ModerationAiService,
   ModerationAssessment,
 } from './moderation-ai.service';
+import { ModerationReportService } from './moderation-report.service';
+import { ModerationResolutionService } from './moderation-resolution.service';
 import {
   MODERATION_QUEUE,
   MODERATION_SCAN_JOB,
@@ -107,6 +109,8 @@ describe('ModerationService — quét AI, danh sách báo cáo, xử lý báo c�
     const moduleRef = await Test.createTestingModule({
       providers: [
         ModerationService,
+        ModerationReportService,
+        ModerationResolutionService,
         { provide: PrismaService, useValue: prisma },
         { provide: ModerationAiService, useValue: ai },
         { provide: NotificationService, useValue: notifications },
@@ -437,6 +441,8 @@ describe('ModerationService.enqueueScan — mỗi nội dung chỉ quét 1 lần
     const moduleRef = await Test.createTestingModule({
       providers: [
         ModerationService,
+        ModerationReportService,
+        ModerationResolutionService,
         { provide: PrismaService, useValue: {} },
         { provide: ModerationAiService, useValue: ai },
         { provide: NotificationService, useValue: {} },

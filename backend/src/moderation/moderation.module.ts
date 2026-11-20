@@ -7,6 +7,8 @@ import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { NotificationModule } from '../notification/notification.module';
 import { ModerationAiService } from './moderation-ai.service';
+import { ModerationReportService } from './moderation-report.service';
+import { ModerationResolutionService } from './moderation-resolution.service';
 import { ModerationController } from './moderation.controller';
 import { ModerationProcessor } from './moderation.processor';
 import { MODERATION_QUEUE } from './moderation.constant';
@@ -23,6 +25,8 @@ import { ModerationService } from './moderation.service';
   controllers: [ModerationController],
   providers: [
     ModerationService,
+    ModerationReportService,
+    ModerationResolutionService,
     ModerationAiService,
     ModerationProcessor,
     PrismaService,
@@ -30,6 +34,11 @@ import { ModerationService } from './moderation.service';
     AuthGuard,
     RolesGuard,
   ],
-  exports: [ModerationService, ModerationAiService],
+  exports: [
+    ModerationService,
+    ModerationReportService,
+    ModerationResolutionService,
+    ModerationAiService,
+  ],
 })
 export class ModerationModule {}

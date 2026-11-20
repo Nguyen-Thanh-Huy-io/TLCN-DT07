@@ -9,6 +9,9 @@ import { RedisService } from '../common/services/redis.service';
 import { AuthService } from './auth.service';
 import { AUTH_CONFIG } from './config/auth.config';
 import { AuthUtilsService } from './services/auth-utils.service';
+import { AuthSessionService } from './services/auth-session.service';
+import { AuthVerificationService } from './services/auth-verification.service';
+import { AuthLoginSecurityService } from './services/auth-login-security.service';
 
 const PASSWORD = 'Dung@1234';
 const PASSWORD_HASH = bcrypt.hashSync(PASSWORD, 4);
@@ -108,6 +111,9 @@ describe('AuthService — đăng nhập, làm mới token, đăng xuất', () =>
     const moduleRef = await Test.createTestingModule({
       providers: [
         AuthService,
+        AuthSessionService,
+        AuthVerificationService,
+        AuthLoginSecurityService,
         { provide: AuthUtilsService, useValue: utils },
         { provide: PrismaService, useValue: prisma },
         { provide: RedisService, useValue: redis },

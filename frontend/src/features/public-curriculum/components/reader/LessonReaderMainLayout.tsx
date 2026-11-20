@@ -20,6 +20,7 @@ import { X, ExternalLink, BookOpen, CheckCircle2, Clock3, ArrowRight, ChevronLef
 import { HubButton, HubBadge, HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS } from '../hub/HubReaderParts';
 import { formatPublishedDate, hasMeaningfulUpdate, sanitizeRichHtml } from '@/utils/common';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
+import { AuthorFollowButton } from '@/components/common/AuthorFollowButton';
 import type { ReadingPreferences } from '@/features/reading-aids/components/ReadingAidsPanel';
 import { READER_RIGHT_SIDEBAR_ATTR } from '@/features/notes/utils/note-cluster.util';
 
@@ -479,12 +480,18 @@ export function LessonReaderHeader({
           <PenLine className="size-3.5" />
           <span>Biên soạn:</span>
           {lesson.author?.username ? (
-            <Link
-              href={PUBLIC_ROUTES.COMMUNITY_MEMBER(lesson.author.username)}
-              className="font-semibold text-lh-brand hover:underline"
-            >
-              {lesson.author.displayName}
-            </Link>
+            <>
+              <Link
+                href={PUBLIC_ROUTES.COMMUNITY_MEMBER(lesson.author.username)}
+                className="font-semibold text-lh-brand hover:underline"
+              >
+                {lesson.author.displayName}
+              </Link>
+              <AuthorFollowButton
+                authorId={lesson.author.id}
+                authorUsername={lesson.author.username}
+              />
+            </>
           ) : (
             <span className="font-semibold text-lh-ink">Ban biên tập HISGO</span>
           )}

@@ -11,6 +11,7 @@ import { PostCard } from './PostCard';
 // --- profile.types.ts ---
 export enum ProfileTabKey {
   POSTS = 'posts',
+  WORKS = 'works',
   SHARED_BLOG = 'shared_blog',
   FOLLOWERS = 'followers',
   FOLLOWING = 'following',
@@ -21,6 +22,8 @@ export interface ProfileComputedStats {
   postCount: number;
   sharedBlogCount: number;
   questionPostCount: number;
+  publishedArticlesCount: number;
+  publishedLessonsCount: number;
   followerCount: number;
   followingCount: number;
   totalLikesReceived: number;

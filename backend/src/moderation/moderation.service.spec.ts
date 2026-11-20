@@ -13,6 +13,8 @@ import { tokenVersionCacheKey } from '../common/constants/cache-keys.constant';
 import { RedisService } from '../common/services/redis.service';
 import { NotificationService } from '../notification/notification.service';
 import { ModerationAiService } from './moderation-ai.service';
+import { ModerationReportService } from './moderation-report.service';
+import { ModerationResolutionService } from './moderation-resolution.service';
 import { ModerationResolveAction } from './moderation.constant';
 import { ModerationService } from './moderation.service';
 
@@ -63,6 +65,8 @@ describe('ModerationService — xử lý báo cáo bình luận Blog', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         ModerationService,
+        ModerationReportService,
+        ModerationResolutionService,
         { provide: PrismaService, useValue: prisma },
         { provide: ModerationAiService, useValue: {} },
         { provide: NotificationService, useValue: {} },

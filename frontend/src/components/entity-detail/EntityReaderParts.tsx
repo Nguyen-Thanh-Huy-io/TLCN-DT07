@@ -7,6 +7,7 @@ import { EntityReaderModel } from './entity-reader-adapter';
 import { getEntityIconComponent, EntityIconName } from './entity-strategy';
 import { formatPublishedDate, hasMeaningfulUpdate } from '@/utils/common';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
+import { AuthorFollowButton } from '@/components/common/AuthorFollowButton';
 
 interface EntityHeroProps {
   model: EntityReaderModel;
@@ -38,12 +39,15 @@ function ArticleByline({
         <PenLine size={13} className="text-[#8C6239]" />
         <span>Biên soạn:</span>
         {author?.username ? (
-          <Link
-            href={PUBLIC_ROUTES.COMMUNITY_MEMBER(author.username)}
-            className="font-semibold text-[#8C2D19] hover:underline"
-          >
-            {author.displayName}
-          </Link>
+          <>
+            <Link
+              href={PUBLIC_ROUTES.COMMUNITY_MEMBER(author.username)}
+              className="font-semibold text-[#8C2D19] hover:underline"
+            >
+              {author.displayName}
+            </Link>
+            <AuthorFollowButton authorId={author.id} authorUsername={author.username} />
+          </>
         ) : (
           <span className="font-semibold text-[#4A3828]">Ban biên tập HISGO</span>
         )}

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft, CalendarDays, MessageSquare, Share2, Users } from 'lucide-react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
+import { AuthorFollowButton, AuthorFollowVariant } from '@/components/common/AuthorFollowButton';
 import { fetchBlogPost, fetchBlogPosts, type PublicBlogPostSummary } from '@/services/public/public-content.service';
 import {
   BLOG_ACCENT_PALETTE as accentPalette,
@@ -191,15 +192,22 @@ export async function BlogDetailPage({ slug }: { slug: string }) {
               <CalendarDays size={14} />
               {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('vi-VN') : 'Mới cập nhật'}
             </span>
-            <span>
-              Viết bởi{' '}
+            <span className="inline-flex flex-wrap items-center gap-2">
+              <span>Viết bởi</span>
               {post.author?.username ? (
-                <Link
-                  href={`/blog?author=${encodeURIComponent(post.author.username)}`}
-                  className="font-semibold text-[var(--ink)] underline-offset-2 transition-colors hover:text-[#8a4d2d] hover:underline"
-                >
-                  {post.author.username}
-                </Link>
+                <>
+                  <Link
+                    href={`/cong-dong/thanh-vien/${encodeURIComponent(post.author.username)}`}
+                    className="font-semibold text-[var(--ink)] underline-offset-2 transition-colors hover:text-[#8a4d2d] hover:underline"
+                  >
+                    {post.author.username}
+                  </Link>
+                  <AuthorFollowButton
+                    authorId={post.author.id}
+                    authorUsername={post.author.username}
+                    variant={AuthorFollowVariant.PILL}
+                  />
+                </>
               ) : (
                 'HISGO Editorial'
               )}

@@ -2,35 +2,124 @@
 
 import React, { useState } from 'react';
 import {
-  LessonBlockItem,
-  RowSectionBlockData,
-  MapBlockData,
-  ComparisonTableBlockData,
   CalloutBlockData,
-  QuoteBlockData,
+  CharacterBlockData,
+  ComparisonTableBlockData,
+  EventBlockData,
   HeadingBlockData,
-  RelatedPeopleBlockData,
+  ImageBlockData,
+  LessonBlockItem,
+  MapBlockData,
+  QuizBlockData,
+  QuoteBlockData,
   RelatedEventsBlockData,
-  StoryChapterBlockData,
+  RelatedPeopleBlockData,
+  RowSectionBlockData,
+  TextBlockData,
+  TimelineBlockData,
+  VideoBlockData,
 } from '../../types/block-builder.types';
 import { LessonBlockType } from '../../types/editor.types';
 import { LESSON_BLOCK_DRAG_MIME } from '../../constants/lesson.constants';
 import { BlockWidthStrategy } from '../../strategies/row-layout.strategy';
 import { AddBlockDivider } from './AddBlockDivider';
 import { BlockCardWrapper } from './BlockCardWrapper';
-import { TextBlockEditor } from './BasicBlockItemEditors';
+import {
+  CalloutBlockItemEditor,
+  ComparisonTableBlockItemEditor,
+  MapBlockItemEditor,
+  QuoteBlockItemEditor,
+  TextBlockEditor,
+} from './BasicBlockItemEditors';
 import { TimelineBlockItemEditor } from './TimelineBlockItemEditor';
-import { CharacterBlockItemEditor } from './RichBlockItemEditors';
-import { EventBlockItemEditor } from './RichBlockItemEditors';
+import {
+  CharacterBlockItemEditor,
+  EventBlockItemEditor,
+  ImageBlockItemEditor,
+} from './RichBlockItemEditors';
 import { RowSectionBlockEditor } from './RowSectionBlockEditor';
-import { MapBlockItemEditor } from './BasicBlockItemEditors';
-import { ComparisonTableBlockItemEditor } from './BasicBlockItemEditors';
-import { CalloutBlockItemEditor } from './BasicBlockItemEditors';
-import { QuoteBlockItemEditor } from './BasicBlockItemEditors';
-import { StoryChapterBlockEditor } from './StoryChapterBlockEditor';
-import { ImageBlockItemEditor } from './RichBlockItemEditors';
-import type { ImageBlockData, QuizBlockData } from '../../types/block-builder.types';
 import { QuizBlockEditor } from './QuizBlockEditor';
+
+type SharedBlockRenderer = (
+  block: LessonBlockItem,
+  onChange: (updates: Partial<LessonBlockItem>) => void
+) => React.ReactNode;
+
+const HEADING_LEVEL_CLASSES: Record<number, string> = {
+  1: 'text-2xl font-serif font-bold text-stone-900',
+  2: 'text-xl font-serif font-bold text-stone-900',
+  3: 'text-base font-serif font-bold text-stone-800',
+};
+
+const SHARED_BLOCK_RENDERERS: Partial<Record<LessonBlockType, SharedBlockRenderer>> = {
+  [LessonBlockType.TEXT]: (block, onChange) => (
+    <TextBlockEditor
+      content={(block as TextBlockData).content}
+      onChange={(val) => onChange({ content: val })}
+    />
+  ),
+  [LessonBlockType.HEADING]: (block, onChange) => {
+    const heading = block as HeadingBlockData;
+    const sizeClass = HEADING_LEVEL_CLASSES[heading.level] || HEADING_LEVEL_CLASSES[2];
+    return (
+      <input
+        type="text"
+        value={heading.text || ''}
+        onChange={(e) => onChange({ text: e.target.value })}
+        placeholder="Nhập tiêu đề phân mục..."
+        className={`w-full bg-transparent border-0 focus:outline-none ${sizeClass}`}
+      />
+    );
+  },
+  [LessonBlockType.DIVIDER]: () => (
+    <div className="py-2">
+      <hr className="border-t border-stone-200" />
+    </div>
+  ),
+  [LessonBlockType.TIMELINE]: (block, onChange) => (
+    <TimelineBlockItemEditor data={block as TimelineBlockData} onChange={onChange} />
+  ),
+  [LessonBlockType.CHARACTER]: (block, onChange) => (
+    <CharacterBlockItemEditor data={block as CharacterBlockData} onChange={onChange} />
+  ),
+  [LessonBlockType.EVENT]: (block, onChange) => (
+    <EventBlockItemEditor data={block as EventBlockData} onChange={onChange} />
+  ),
+  [LessonBlockType.IMAGE]: (block, onChange) => (
+    <ImageBlockItemEditor data={block as ImageBlockData} onChange={onChange} />
+  ),
+  [LessonBlockType.VIDEO]: (block, onChange) => {
+    const video = block as VideoBlockData;
+    return (
+      <div className="space-y-3">
+        <input
+          type="text"
+          value={video.src || ''}
+          onChange={(e) => onChange({ src: e.target.value })}
+          placeholder="Nhập URL video YouTube / tư liệu..."
+          className="w-full text-sm px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
+        />
+        {video.src && (
+          <div className="aspect-video bg-black rounded-lg overflow-hidden max-w-xl mx-auto">
+            <iframe src={video.src} title="Video" className="w-full h-full border-0" allowFullScreen />
+          </div>
+        )}
+      </div>
+    );
+  },
+  [LessonBlockType.MAP]: (block, onChange) => (
+    <MapBlockItemEditor data={block as MapBlockData} onChange={onChange} />
+  ),
+  [LessonBlockType.COMPARISON_TABLE]: (block, onChange) => (
+    <ComparisonTableBlockItemEditor data={block as ComparisonTableBlockData} onChange={onChange} />
+  ),
+  [LessonBlockType.CALLOUT]: (block, onChange) => (
+    <CalloutBlockItemEditor data={block as CalloutBlockData} onChange={onChange} />
+  ),
+  [LessonBlockType.QUOTE]: (block, onChange) => (
+    <QuoteBlockItemEditor data={block as QuoteBlockData} onChange={onChange} />
+  ),
+};
 
 interface BlockBuilderCanvasProps {
   blocks: LessonBlockItem[];
@@ -72,78 +161,35 @@ export function BlockBuilderCanvas({
 
   const handleDividerAddOrDrop = (type: LessonBlockType, atIndex: number) => {
     if (draggedIndex !== null) {
-      let targetIndex = atIndex;
-      if (draggedIndex < targetIndex) {
-        targetIndex -= 1;
-      }
+      const targetIndex = draggedIndex < atIndex ? atIndex - 1 : atIndex;
       onMoveBlock(draggedIndex, targetIndex);
       setDraggedIndex(null);
       return;
     }
-
     onAddBlock(type, atIndex);
   };
 
+  const renderChildBlockContent = (rowId: string, colId: string, childBlock: LessonBlockItem) => {
+    const renderer = SHARED_BLOCK_RENDERERS[childBlock.type];
+    if (renderer) {
+      return renderer(childBlock, (updates) =>
+        onUpdateBlockInColumn?.(rowId, colId, childBlock.id, updates)
+      );
+    }
+    return (
+      <div className="text-xs text-stone-500 italic p-2 bg-stone-50 rounded">
+        Khối {childBlock.type}
+      </div>
+    );
+  };
+
   const renderBlockContent = (block: LessonBlockItem) => {
+    const sharedRenderer = SHARED_BLOCK_RENDERERS[block.type];
+    if (sharedRenderer) {
+      return sharedRenderer(block, (updates) => onUpdateBlock(block.id, updates));
+    }
+
     switch (block.type) {
-      case LessonBlockType.TEXT:
-        return (
-          <TextBlockEditor
-            content={block.content}
-            onChange={(val) => onUpdateBlock(block.id, { content: val })}
-          />
-        );
-
-      case LessonBlockType.HEADING: {
-        const heading = block as HeadingBlockData;
-        const sizeClass =
-          heading.level === 1
-            ? 'text-2xl font-serif font-bold text-stone-900'
-            : heading.level === 3
-            ? 'text-base font-serif font-bold text-stone-800'
-            : 'text-xl font-serif font-bold text-stone-900';
-        return (
-          <input
-            type="text"
-            value={heading.text || ''}
-            onChange={(e) => onUpdateBlock(block.id, { text: e.target.value })}
-            placeholder="Nhập tiêu đề phân mục..."
-            className={`w-full bg-transparent border-0 focus:outline-none ${sizeClass}`}
-          />
-        );
-      }
-
-      case LessonBlockType.DIVIDER:
-        return (
-          <div className="py-2">
-            <hr className="border-t border-stone-200" />
-          </div>
-        );
-
-      case LessonBlockType.TIMELINE:
-        return (
-          <TimelineBlockItemEditor
-            data={block}
-            onChange={(updates) => onUpdateBlock(block.id, updates)}
-          />
-        );
-
-      case LessonBlockType.CHARACTER:
-        return (
-          <CharacterBlockItemEditor
-            data={block}
-            onChange={(updates) => onUpdateBlock(block.id, updates)}
-          />
-        );
-
-      case LessonBlockType.EVENT:
-        return (
-          <EventBlockItemEditor
-            data={block}
-            onChange={(updates) => onUpdateBlock(block.id, updates)}
-          />
-        );
-
       case LessonBlockType.RELATED_PEOPLE: {
         const rel = block as RelatedPeopleBlockData;
         return (
@@ -164,7 +210,6 @@ export function BlockBuilderCanvas({
           </div>
         );
       }
-
       case LessonBlockType.RELATED_EVENTS: {
         const relEv = block as RelatedEventsBlockData;
         return (
@@ -185,49 +230,6 @@ export function BlockBuilderCanvas({
           </div>
         );
       }
-
-      case LessonBlockType.IMAGE:
-        return (
-          <ImageBlockItemEditor
-            data={block as ImageBlockData}
-            onChange={(updates) => onUpdateBlock(block.id, updates)}
-          />
-        );
-
-      case LessonBlockType.VIDEO:
-        return (
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={block.src}
-              onChange={(e) => onUpdateBlock(block.id, { src: e.target.value })}
-              placeholder="Nhập URL video YouTube / tư liệu..."
-              className="w-full text-sm px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
-            />
-            {block.src && (
-              <div className="aspect-video bg-black rounded-lg overflow-hidden max-w-xl mx-auto">
-                <iframe src={block.src} title="Video" className="w-full h-full border-0" allowFullScreen />
-              </div>
-            )}
-          </div>
-        );
-
-      case LessonBlockType.MAP:
-        return (
-          <MapBlockItemEditor
-            data={block as MapBlockData}
-            onChange={(updates) => onUpdateBlock(block.id, updates)}
-          />
-        );
-
-      case LessonBlockType.COMPARISON_TABLE:
-        return (
-          <ComparisonTableBlockItemEditor
-            data={block as ComparisonTableBlockData}
-            onChange={(updates) => onUpdateBlock(block.id, updates)}
-          />
-        );
-
       case LessonBlockType.QUIZ:
         return (
           <QuizBlockEditor
@@ -236,23 +238,6 @@ export function BlockBuilderCanvas({
             topicId={quizTopicId}
           />
         );
-
-      case LessonBlockType.CALLOUT:
-        return (
-          <CalloutBlockItemEditor
-            data={block as CalloutBlockData}
-            onChange={(updates) => onUpdateBlock(block.id, updates)}
-          />
-        );
-
-      case LessonBlockType.QUOTE:
-        return (
-          <QuoteBlockItemEditor
-            data={block as QuoteBlockData}
-            onChange={(updates) => onUpdateBlock(block.id, updates)}
-          />
-        );
-
       case LessonBlockType.SECTION_ROW:
         return (
           <RowSectionBlockEditor
@@ -273,192 +258,10 @@ export function BlockBuilderCanvas({
             }
           />
         );
-
-      case LessonBlockType.STORY_CHAPTER:
-        return (
-          <StoryChapterBlockEditor
-            data={block as StoryChapterBlockData}
-            onChange={(updates) => onUpdateBlock(block.id, updates)}
-            renderNestedBlock={(childBlock, onUpdateChild) =>
-              renderGenericChildBlock(childBlock, onUpdateChild)
-            }
-          />
-        );
-
       default:
         return (
           <div className="p-3 bg-stone-50 rounded-lg text-xs text-stone-500 italic">
             Khối nội dung {block.type}
-          </div>
-        );
-    }
-  };
-
-  const renderGenericChildBlock = (
-    childBlock: LessonBlockItem,
-    onUpdateChild: (updates: Partial<LessonBlockItem>) => void
-  ) => {
-    switch (childBlock.type) {
-      case LessonBlockType.TEXT:
-        return (
-          <TextBlockEditor
-            content={childBlock.content}
-            onChange={(val) => onUpdateChild({ content: val })}
-          />
-        );
-      case LessonBlockType.CHARACTER:
-        return (
-          <CharacterBlockItemEditor
-            data={childBlock}
-            onChange={onUpdateChild}
-          />
-        );
-      case LessonBlockType.EVENT:
-        return (
-          <EventBlockItemEditor
-            data={childBlock}
-            onChange={onUpdateChild}
-          />
-        );
-      case LessonBlockType.IMAGE:
-        return (
-          <div className="space-y-2">
-            <input
-              type="text"
-              value={childBlock.src}
-              onChange={(e) => onUpdateChild({ src: e.target.value })}
-              placeholder="Đường dẫn hình ảnh tư liệu..."
-              className="w-full text-sm px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
-            />
-            {childBlock.src && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={childBlock.src}
-                alt={childBlock.alt || 'Ảnh tư liệu'}
-                className="max-h-48 rounded-lg object-contain"
-              />
-            )}
-          </div>
-        );
-      case LessonBlockType.CALLOUT:
-        return (
-          <CalloutBlockItemEditor
-            data={childBlock as CalloutBlockData}
-            onChange={onUpdateChild}
-          />
-        );
-      case LessonBlockType.QUOTE:
-        return (
-          <QuoteBlockItemEditor
-            data={childBlock as QuoteBlockData}
-            onChange={onUpdateChild}
-          />
-        );
-      default:
-        return (
-          <div className="p-3 border border-dashed border-stone-300 rounded-lg text-xs text-stone-500 italic bg-stone-50">
-            Khối nội dung con ({childBlock.type})
-          </div>
-        );
-    }
-  };
-
-  const renderChildBlockContent = (
-    rowId: string,
-    colId: string,
-    childBlock: LessonBlockItem
-  ) => {
-    switch (childBlock.type) {
-      case LessonBlockType.TEXT:
-        return (
-          <TextBlockEditor
-            content={childBlock.content}
-            onChange={(val) =>
-              onUpdateBlockInColumn?.(rowId, colId, childBlock.id, { content: val })
-            }
-          />
-        );
-      case LessonBlockType.CHARACTER:
-        return (
-          <CharacterBlockItemEditor
-            data={childBlock}
-            onChange={(updates) =>
-              onUpdateBlockInColumn?.(rowId, colId, childBlock.id, updates)
-            }
-          />
-        );
-      case LessonBlockType.EVENT:
-        return (
-          <EventBlockItemEditor
-            data={childBlock}
-            onChange={(updates) =>
-              onUpdateBlockInColumn?.(rowId, colId, childBlock.id, updates)
-            }
-          />
-        );
-      case LessonBlockType.TIMELINE:
-        return (
-          <TimelineBlockItemEditor
-            data={childBlock}
-            onChange={(updates) =>
-              onUpdateBlockInColumn?.(rowId, colId, childBlock.id, updates)
-            }
-          />
-        );
-      case LessonBlockType.IMAGE:
-        return (
-          <div className="space-y-1.5">
-            <input
-              type="text"
-              value={childBlock.src}
-              onChange={(e) =>
-                onUpdateBlockInColumn?.(rowId, colId, childBlock.id, { src: e.target.value })
-              }
-              placeholder="URL hình ảnh..."
-              className="w-full text-xs p-1.5 border border-stone-200 rounded-lg"
-            />
-            {childBlock.src && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={childBlock.src}
-                alt={childBlock.alt || 'Ảnh'}
-                className="max-h-36 rounded-lg object-contain mx-auto"
-              />
-            )}
-          </div>
-        );
-      case LessonBlockType.MAP:
-        return (
-          <MapBlockItemEditor
-            data={childBlock as MapBlockData}
-            onChange={(updates) => onUpdateBlockInColumn?.(rowId, colId, childBlock.id, updates)}
-          />
-        );
-      case LessonBlockType.COMPARISON_TABLE:
-        return (
-          <ComparisonTableBlockItemEditor
-            data={childBlock as ComparisonTableBlockData}
-            onChange={(updates) => onUpdateBlockInColumn?.(rowId, colId, childBlock.id, updates)}
-          />
-        );
-      case LessonBlockType.CALLOUT:
-        return (
-          <CalloutBlockItemEditor
-            data={childBlock as CalloutBlockData}
-            onChange={(updates) => onUpdateBlockInColumn?.(rowId, colId, childBlock.id, updates)}
-          />
-        );
-      case LessonBlockType.QUOTE:
-        return (
-          <QuoteBlockItemEditor
-            data={childBlock as QuoteBlockData}
-            onChange={(updates) => onUpdateBlockInColumn?.(rowId, colId, childBlock.id, updates)}
-          />
-        );
-      default:
-        return (
-          <div className="text-xs text-stone-500 italic p-2 bg-stone-50 rounded">
-            Khối {childBlock.type}
           </div>
         );
     }

@@ -77,8 +77,7 @@ Mục tiêu: mọi thực thể mới nên được soạn theo tinh thần đó
 ### Bố cục composite (đệ quy, chứa khối con)
 | Type | Field | Ghi chú |
 |---|---|---|
-| `SECTION_ROW` | `columnCount`, `columns[]` (`{id,widthPercent,blocks[]}`) | Chia 2-3 cột song song |
-| `STORY_CHAPTER` | `storyTitle`, `subjectType`, `chapters[]` (`{id,order,title,subtitle,config,blocks[]}`) | Story → Chapters → Blocks, cho bài tường thuật nhiều chương |
+| `SECTION_ROW` | `columnCount`, `columns[]` (`{id,widthPercent,blocks[]}`), *tùy chọn* `layoutPreset`, `gapSize` (`SM`\|`MD`\|`LG`), `verticalAlign` (`TOP`\|`CENTER`\|`STRETCH`), `showColumnDivider` | Khối chia 1–4 cột kèm preset sẵn (Tạp chí 4:8 `MAGAZINE_4_8`, Đối xứng 6:6 `SYMMETRIC_6_6`, 3 cột...); tự động chuyển đổi ngược dữ liệu `STORY_CHAPTER` cũ thành `[HEADING, SECTION_ROW]` khi đọc/render |
 
 ## 3. Mẫu bố cục đa dạng (chọn theo loại nội dung, không ép 1 khuôn)
 
@@ -114,8 +113,7 @@ dòng; dùng RELATED_* thay vì liệt kê tay để tận dụng đồ thị tr
 Trọng tâm: kịch tính, diễn biến theo thời gian, nhiều nhân vật đối đầu.
 ```
 TEXT (dẫn nhập ngắn, 1 đoạn "lead")
-→ STORY_CHAPTER (3-5 chương: bối cảnh → diễn biến → cao trào → kết quả), mỗi chương tự do
-  trộn TEXT/IMAGE theo zone LEFT/RIGHT/FULL
+→ HEADING (Bối cảnh → Diễn biến → Cao trào → Kết quả) + SECTION_ROW (mẫu Tạp chí 4:8 / Chính – Phụ 7:5, kết hợp TEXT + IMAGE + QUOTE trong các cột)
 → DIVIDER
 → TIMELINE (toàn bộ hành trình, sourceMode: MANUAL vì cần chọn lọc đúng các mốc dẫn tới sự kiện)
 → SECTION_ROW 2 cột: CHARACTER (chủ tướng ta) | CHARACTER (chủ tướng địch)
@@ -148,7 +146,7 @@ IMAGE (ảnh hiện vật)
 ## 4. Nguyên tắc chọn mẫu (để không soạn lặp)
 
 1. **Mở đầu khác nhau theo loại**: DYNASTY/PERSON mở bằng QUOTE (có lời để trích); LOCATION/ARTIFACT
-   mở bằng IMAGE/MAP (có hiện vật để nhìn); EVENT dài mở bằng TEXT dẫn nhập ngắn rồi vào STORY_CHAPTER.
+   mở bằng IMAGE/MAP (có hiện vật để nhìn); EVENT dài mở bằng TEXT dẫn nhập ngắn rồi vào các cụm `HEADING` + `SECTION_ROW` (mẫu `MAGAZINE_4_8` / `MEDIA_LEAD_7_5`).
 2. **Không dùng TIMELINE cho mọi thứ** — chỉ khi thực sự có ≥4 mốc thời gian trải dài (phù hợp
    DYNASTY, EVENT dài); 1 nhân vật/di tích đơn lẻ nên dùng RELATED_EVENTS (AUTO) thay vì tự liệt kê.
 3. **Ưu tiên AUTO/HYBRID cho RELATED_PEOPLE/RELATED_EVENTS** khi statement đã có sẵn trong Đồ thị

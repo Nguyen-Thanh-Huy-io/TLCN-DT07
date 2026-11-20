@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { Link2, MessageSquareQuote } from 'lucide-react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -9,6 +10,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Youtube from '@tiptap/extension-youtube';
 import { TipTapToolbar } from './TipTapToolbar';
 import { BlockTypographyExtension, InlineTypographyMark } from '../extensions/typography.extension';
+import { RichTableExtensionKit } from '../extensions/table.extension';
 import { WikiLinkWithTooltip, FootnoteNode } from '../extensions/annotation.extension';
 import { useActiveEditor } from '../context/ActiveEditorContext';
 import { TextAnnotationModal, AnnotationModalTab } from './builder/TextAnnotationModal';
@@ -39,6 +41,7 @@ function createTipTapExtensions(placeholder: string) {
     }),
     BlockTypographyExtension,
     InlineTypographyMark,
+    ...RichTableExtensionKit,
     Image.configure({
       inline: true,
       allowBase64: true,
@@ -104,6 +107,11 @@ export function TipTapContent({
     extensions,
     content: value,
     immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        spellcheck: 'false',
+      },
+    },
     onFocus: ({ editor: currentEditor }) => {
       if (remoteToolbarOnly) {
         setActiveEditor(currentEditor);
@@ -227,7 +235,7 @@ export function TipTapBubbleMenu({
   return (
     <BubbleMenu
       editor={editor}
-      className="tiptap-bubble-menu flex items-center flex-row flex-nowrap bg-slate-900 text-white rounded-lg px-1.5 py-1 shadow-xl border border-slate-700/80 z-50 gap-1"
+      className="tiptap-bubble-menu flex items-center flex-row flex-nowrap bg-white text-slate-700 rounded-xl p-1 shadow-lg border border-slate-200 z-50 gap-0.5"
       data-testid="tiptap-bubble-menu"
     >
       {!insertOnly && (
@@ -259,7 +267,7 @@ export function TipTapBubbleMenu({
           >
             <s>S</s>
           </button>
-          <div className="tiptap-bubble-divider w-px h-4 bg-slate-700 mx-1" />
+          <div className="tiptap-bubble-divider w-px h-4 bg-slate-200 mx-1" />
           <button
             type="button"
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -287,18 +295,20 @@ export function TipTapBubbleMenu({
           >
             &ldquo;
           </button>
-          <div className="tiptap-bubble-divider w-px h-4 bg-slate-700 mx-1" />
+          <div className="tiptap-bubble-divider w-px h-4 bg-slate-200 mx-1" />
         </>
       )}
       <button
         type="button"
         onClick={onSetLink}
         className={`tiptap-bubble-btn ${editor.isActive('link') ? 'is-active' : ''}`}
-        title="Gắn link"
+        title="Gắn liên kết"
         data-testid="bubble-btn-link"
       >
-        Link
+        <Link2 className="w-3.5 h-3.5" />
+        <span>Liên kết</span>
       </button>
+      <div className="w-px h-4 bg-slate-200 mx-0.5" />
       <button
         type="button"
         onClick={onInsertFootnote}
@@ -306,7 +316,8 @@ export function TipTapBubbleMenu({
         title="Gắn chú thích đánh số"
         data-testid="bubble-btn-footnote"
       >
-        Chú thích
+        <MessageSquareQuote className="w-3.5 h-3.5" />
+        <span>Chú thích</span>
       </button>
     </BubbleMenu>
   );

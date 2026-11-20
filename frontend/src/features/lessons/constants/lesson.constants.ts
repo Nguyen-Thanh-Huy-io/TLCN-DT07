@@ -1,7 +1,10 @@
 import { WIKIPEDIA_VI_API } from '@/constants/routes';
 import { BlockPaletteItem, LessonBlockGroup, LessonBlockType } from '../types/editor.types';
+import { RowGapSize, RowLayoutPresetId, RowVerticalAlign } from '../types/block-builder.types';
 
 const ADD_BLOCK_BELOW_LABEL = '+ Thêm khối bên dưới';
+
+export const LEGACY_BLOCK_TYPE_STORY_CHAPTER = 'STORY_CHAPTER';
 
 /** MIME type dùng cho HTML5 Drag-and-Drop khi kéo khối từ thanh công cụ sang Canvas. */
 export const LESSON_BLOCK_DRAG_MIME = 'application/x-lesson-block';
@@ -82,12 +85,6 @@ export const LESSON_BLOCK_ITEMS: BlockPaletteItem[] = [
     description: 'Hộp ghi chú bối cảnh, lưu ý sử gia',
     group: LessonBlockGroup.BASIC,
   },
-  {
-    type: LessonBlockType.STORY_CHAPTER,
-    label: 'Chương truyện lịch sử',
-    description: 'Khối chương truyện đa tầng chứa tiêu đề, ảnh tư liệu, chương con và khối lồng nhau',
-    group: LessonBlockGroup.SPECIALIZED,
-  },
   // Gộp "Nhân vật liên quan" vào "Hồ sơ thực thể" và gộp "Thẻ sự kiện" vào "Sự kiện liên quan"
   // trên bảng chọn khối mới; plugin/renderer cũ vẫn giữ trong Registry để tương thích dữ liệu đã lưu.
   {
@@ -123,7 +120,7 @@ export const LESSON_BLOCK_ITEMS: BlockPaletteItem[] = [
   {
     type: LessonBlockType.SECTION_ROW,
     label: 'Bố cục nhiều cột',
-    description: 'Chia bố cục hàng 2 cột, 3 cột linh hoạt',
+    description: 'Chia bố cục đa cột kèm mẫu sẵn (Tạp chí 4:8, Đối xứng 6:6, 3 cột...)',
     group: LessonBlockGroup.ADVANCED,
   },
   {
@@ -189,6 +186,8 @@ export const ROW_RATIO_PRESETS: Record<number, RatioPresetItem[]> = {
   1: [{ id: '100', label: '100% (Toàn chiều rộng)', values: [100] }],
   2: [
     { id: '50-50', label: '50 : 50 (Chia đôi đều)', values: [50, 50] },
+    { id: '33-67', label: '33 : 67 (Tạp chí 4:8)', values: [33.33, 66.67] },
+    { id: '67-33', label: '67 : 33 (8:4)', values: [66.67, 33.33] },
     { id: '60-40', label: '60 : 40', values: [60, 40] },
     { id: '70-30', label: '70 : 30 (Bài chính + Phụ chú)', values: [70, 30] },
     { id: '30-70', label: '30 : 70 (Phụ chú + Bài chính)', values: [30, 70] },
@@ -202,3 +201,82 @@ export const ROW_RATIO_PRESETS: Record<number, RatioPresetItem[]> = {
   ],
   4: [{ id: '25-25-25-25', label: '25 : 25 : 25 : 25 (Chia 4 đều)', values: [25, 25, 25, 25] }],
 };
+
+export interface RowLayoutPresetDefinition {
+  id: RowLayoutPresetId;
+  label: string;
+  description: string;
+  columnCount: number;
+  widths: number[];
+  gapSize: RowGapSize;
+  showColumnDivider: boolean;
+}
+
+export const ROW_LAYOUT_PRESETS: RowLayoutPresetDefinition[] = [
+  {
+    id: RowLayoutPresetId.MAGAZINE_4_8,
+    label: 'Tạp chí (4:8)',
+    description: 'Cột dẫn trái gọn + nội dung chính rộng',
+    columnCount: 2,
+    widths: [33.33, 66.67],
+    gapSize: RowGapSize.LG,
+    showColumnDivider: true,
+  },
+  {
+    id: RowLayoutPresetId.SYMMETRIC_6_6,
+    label: 'Chia đôi (6:6)',
+    description: 'Hai cột cân đối song song',
+    columnCount: 2,
+    widths: [50, 50],
+    gapSize: RowGapSize.MD,
+    showColumnDivider: false,
+  },
+  {
+    id: RowLayoutPresetId.MEDIA_LEAD_7_5,
+    label: 'Chính – Phụ (7:5)',
+    description: 'Bài viết chính rộng + tư liệu bên phải',
+    columnCount: 2,
+    widths: [60, 40],
+    gapSize: RowGapSize.MD,
+    showColumnDivider: false,
+  },
+  {
+    id: RowLayoutPresetId.THREE_COLUMNS,
+    label: '3 cột đều',
+    description: 'Trình bày 3 thẻ hoặc 3 mốc song song',
+    columnCount: 3,
+    widths: [33.33, 33.33, 33.34],
+    gapSize: RowGapSize.MD,
+    showColumnDivider: false,
+  },
+  {
+    id: RowLayoutPresetId.THREE_COL_FEATURE,
+    label: 'Tiêu điểm giữa',
+    description: 'Cột phụ 2 bên + nội dung trung tâm',
+    columnCount: 3,
+    widths: [25, 50, 25],
+    gapSize: RowGapSize.MD,
+    showColumnDivider: true,
+  },
+  {
+    id: RowLayoutPresetId.SINGLE_COLUMN,
+    label: '1 cột đơn',
+    description: 'Gom các khối thành 1 khung dọc',
+    columnCount: 1,
+    widths: [100],
+    gapSize: RowGapSize.MD,
+    showColumnDivider: false,
+  },
+];
+
+export const ROW_GAP_OPTIONS: ReadonlyArray<{ value: RowGapSize; label: string }> = [
+  { value: RowGapSize.SM, label: 'Hẹp' },
+  { value: RowGapSize.MD, label: 'Vừa' },
+  { value: RowGapSize.LG, label: 'Rộng' },
+];
+
+export const ROW_VERTICAL_ALIGN_OPTIONS: ReadonlyArray<{ value: RowVerticalAlign; label: string }> = [
+  { value: RowVerticalAlign.TOP, label: 'Trên' },
+  { value: RowVerticalAlign.CENTER, label: 'Giữa' },
+  { value: RowVerticalAlign.STRETCH, label: 'Đều' },
+];

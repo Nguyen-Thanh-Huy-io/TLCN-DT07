@@ -70,9 +70,10 @@ export function ColumnResizer({
     <div
       data-testid="column-resizer-handle"
       onMouseDown={handleMouseDown}
+      style={{ left: `${leftWidthPercent}%` }}
       title="Kéo sang trái/phải để điều chỉnh tỷ lệ cột (Snap 5%)"
-      className={`relative w-2 mx-[-4px] z-20 flex items-center justify-center cursor-col-resize select-none group transition-all ${
-        isDragging ? 'bg-blue-500 scale-x-125' : 'hover:bg-blue-400 bg-transparent'
+      className={`hidden md:flex absolute top-0 bottom-0 -translate-x-1/2 w-3 z-20 items-center justify-center cursor-col-resize select-none group transition-colors ${
+        isDragging ? 'bg-blue-500/20' : 'hover:bg-blue-400/15 bg-transparent'
       }`}
     >
       {/* Vạch kẻ mảnh ở giữa */}

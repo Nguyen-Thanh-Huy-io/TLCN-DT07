@@ -3,6 +3,15 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeftRight, ArrowUpDown } from 'lucide-react';
 import {
+  INSPECTOR_SEG_BTN_ACTIVE,
+  INSPECTOR_SEG_BTN_IDLE,
+  INSPECTOR_SEG_GROUP_CLS,
+  INSPECTOR_SELECT_CLS,
+  InspectorAccordionSection,
+  InspectorFieldRow,
+  InspectorToggleSwitch,
+} from '@/components/common/TextStyleControls';
+import {
   LessonBlockItem,
   TimelineBlockData,
   TimelineDisplayConfig,
@@ -10,7 +19,7 @@ import {
 } from '../../../types/block-builder.types';
 import { TimelineApiService, type TimelineItem } from '@/services/entities/timeline.service';
 import { formatYear } from '@/utils/common';
-import { createBlockUUID } from '../../../strategies/story-chapter-layout.strategy';
+import { createBlockUUID } from '../../../strategies/row-layout.strategy';
 import { TypographyInspectorPanel } from './TypographyInspectorPanel';
 
 enum TimelineInspectorTab {
@@ -86,15 +95,15 @@ export function TimelineBlockInspector({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-1.5 p-1 bg-stone-100 rounded-xl">
+    <div className="space-y-3.5 text-xs text-slate-700">
+      <div className={`grid grid-cols-2 ${INSPECTOR_SEG_GROUP_CLS}`}>
         <button
           type="button"
           onClick={() => setActiveTab(TimelineInspectorTab.AXIS)}
-          className={`py-1.5 text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
+          className={`grid h-8 place-items-center transition cursor-pointer ${
             activeTab === TimelineInspectorTab.AXIS
-              ? 'bg-stone-900 text-white'
-              : 'text-stone-800 hover:bg-white'
+              ? INSPECTOR_SEG_BTN_ACTIVE
+              : INSPECTOR_SEG_BTN_IDLE
           }`}
         >
           Cấu hình trục
@@ -103,10 +112,10 @@ export function TimelineBlockInspector({
           type="button"
           data-testid="btn-timeline-typography-tab"
           onClick={() => setActiveTab(TimelineInspectorTab.TYPOGRAPHY)}
-          className={`py-1.5 text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
+          className={`grid h-8 place-items-center transition cursor-pointer ${
             activeTab === TimelineInspectorTab.TYPOGRAPHY
-              ? 'bg-stone-900 text-white'
-              : 'text-stone-800 hover:bg-white'
+              ? INSPECTOR_SEG_BTN_ACTIVE
+              : INSPECTOR_SEG_BTN_IDLE
           }`}
         >
           Định dạng chữ
@@ -114,139 +123,67 @@ export function TimelineBlockInspector({
       </div>
 
       {activeTab === TimelineInspectorTab.TYPOGRAPHY ? (
-        <TypographyInspectorPanel />
+        <TypographyInspectorPanel hideEditorialLayout />
       ) : (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-              Tiêu đề khối
-            </label>
-            <input
-              type="text"
-              value={tl.title || ''}
-              onChange={(e) => onUpdateBlock(tl.id, { title: e.target.value })}
-              placeholder="VD: Dòng thời gian lịch sử"
-              className="w-full text-sm font-medium px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-              Phụ đề ngắn (tùy chọn)
-            </label>
-            <input
-              type="text"
-              value={tl.subtitle || ''}
-              onChange={(e) =>
-                onUpdateBlock(tl.id, { subtitle: e.target.value })
-              }
-              placeholder="VD: Các mốc sự kiện tiêu biểu"
-              className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-              Phong cách phân cảnh
-            </label>
-            <select
-              value={displayConfig.sceneStyle || 'MUSEUM_SPLIT'}
-              onChange={(e) =>
-                updateDisplay(
-                  'sceneStyle',
-                  e.target.value as TimelineDisplayConfig['sceneStyle']
-                )
-              }
-              className="w-full text-sm font-medium px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 cursor-pointer text-stone-900"
-            >
-              <option value="MUSEUM_SPLIT">
-                Triển lãm tư liệu (Nhân vật / Hiện vật)
-              </option>
-              <option value="CINEMATIC_BACKDROP">
-                Điện ảnh toàn cảnh (Sự kiện / Chiến dịch)
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-              Hướng hiển thị
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  onUpdateBlock(tl.id, {
-                    orientation: TimelineOrientation.HORIZONTAL,
-                  })
-                }
-                className={`py-2 text-sm font-semibold rounded-lg border transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
-                  orientation === TimelineOrientation.HORIZONTAL
-                    ? 'bg-stone-900 text-white border-stone-900'
-                    : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
-                }`}
-              >
-                <ArrowLeftRight className="w-4 h-4" />
-                <span>Ngang</span>
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  onUpdateBlock(tl.id, {
-                    orientation: TimelineOrientation.VERTICAL,
-                  })
-                }
-                className={`py-2 text-sm font-semibold rounded-lg border transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
-                  orientation !== TimelineOrientation.HORIZONTAL
-                    ? 'bg-stone-900 text-white border-stone-900'
-                    : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
-                }`}
-              >
-                <ArrowUpDown className="w-4 h-4" />
-                <span>Dọc</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-stone-200 space-y-2">
-            <label className="block text-sm font-semibold text-stone-800">Nhập mốc từ dòng thời gian</label>
-            <p className="text-xs text-stone-600">
-              Chép các mốc của một Dòng thời gian đã có vào khối này (thêm vào cuối, sửa tiếp được).
-            </p>
-            <div className="flex gap-2">
+        <div className="space-y-3.5">
+          <InspectorAccordionSection title="Trục & Bố cục">
+            <InspectorFieldRow label="Phân cảnh">
               <select
-                value={importId}
-                onChange={(e) => setImportId(e.target.value)}
-                className="min-w-0 flex-1 text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none"
+                aria-label="Phong cách phân cảnh"
+                value={displayConfig.sceneStyle || 'MUSEUM_SPLIT'}
+                onChange={(e) =>
+                  updateDisplay(
+                    'sceneStyle',
+                    e.target.value as TimelineDisplayConfig['sceneStyle']
+                  )
+                }
+                className={`${INSPECTOR_SELECT_CLS} w-40`}
               >
-                <option value="">— Chọn dòng thời gian —</option>
-                {timelines.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.title} ({t._count?.nodes ?? 0} mốc)
-                  </option>
-                ))}
+                <option value="MUSEUM_SPLIT">Triển lãm tư liệu</option>
+                <option value="CINEMATIC_BACKDROP">Điện ảnh toàn cảnh</option>
               </select>
-              <button
-                type="button"
-                disabled={!importId || importing}
-                onClick={importFromTimeline}
-                className="shrink-0 px-3 py-2 text-sm font-semibold rounded-lg bg-stone-900 text-white disabled:opacity-40"
-              >
-                {importing ? 'Đang nhập…' : 'Nhập'}
-              </button>
-            </div>
-          </div>
+            </InspectorFieldRow>
 
-          <div className="text-xs font-bold uppercase tracking-wider text-stone-700 border-t border-stone-200 pt-3">
-            Hiển thị
-          </div>
+            <InspectorFieldRow label="Hướng trục">
+              <div className={`grid w-36 grid-cols-2 ${INSPECTOR_SEG_GROUP_CLS}`}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdateBlock(tl.id, {
+                      orientation: TimelineOrientation.HORIZONTAL,
+                    })
+                  }
+                  className={`flex h-7 items-center justify-center gap-1 text-[11px] transition cursor-pointer ${
+                    orientation === TimelineOrientation.HORIZONTAL
+                      ? INSPECTOR_SEG_BTN_ACTIVE
+                      : INSPECTOR_SEG_BTN_IDLE
+                  }`}
+                >
+                  <ArrowLeftRight className="w-3.5 h-3.5" />
+                  <span>Ngang</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdateBlock(tl.id, {
+                      orientation: TimelineOrientation.VERTICAL,
+                    })
+                  }
+                  className={`flex h-7 items-center justify-center gap-1 text-[11px] transition cursor-pointer ${
+                    orientation !== TimelineOrientation.HORIZONTAL
+                      ? INSPECTOR_SEG_BTN_ACTIVE
+                      : INSPECTOR_SEG_BTN_IDLE
+                  }`}
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                  <span>Dọc</span>
+                </button>
+              </div>
+            </InspectorFieldRow>
 
-          <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">
-                Định dạng ngày
-              </label>
+            <InspectorFieldRow label="Định dạng ngày">
               <select
+                aria-label="Định dạng ngày"
                 value={displayConfig.dateFormat || 'YEAR_ONLY'}
                 onChange={(e) =>
                   updateDisplay(
@@ -254,18 +191,16 @@ export function TimelineBlockInspector({
                     e.target.value as TimelineDisplayConfig['dateFormat']
                   )
                 }
-                className="w-full text-sm px-2.5 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none"
+                className={`${INSPECTOR_SELECT_CLS} w-36`}
               >
                 <option value="YEAR_ONLY">Năm (1288)</option>
                 <option value="FULL_DATE">Ngày đầy đủ</option>
               </select>
-            </div>
+            </InspectorFieldRow>
 
-            <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">
-                Sắp xếp
-              </label>
+            <InspectorFieldRow label="Thứ tự">
               <select
+                aria-label="Sắp xếp mốc"
                 value={displayConfig.sortOrder || 'CHRONOLOGICAL'}
                 onChange={(e) =>
                   updateDisplay(
@@ -273,38 +208,53 @@ export function TimelineBlockInspector({
                     e.target.value as TimelineDisplayConfig['sortOrder']
                   )
                 }
-                className="w-full text-sm px-2.5 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none"
+                className={`${INSPECTOR_SELECT_CLS} w-36`}
               >
                 <option value="CHRONOLOGICAL">Cũ → Mới</option>
                 <option value="REVERSE_CHRONOLOGICAL">Mới → Cũ</option>
               </select>
-            </div>
-          </div>
+            </InspectorFieldRow>
 
-          <div className="space-y-2.5 pt-1">
-            <label className="flex items-center gap-2.5 text-sm font-medium text-stone-800 cursor-pointer">
-              <input
-                type="checkbox"
+            <InspectorFieldRow label="Hiện ảnh tư liệu">
+              <InspectorToggleSwitch
+                ariaLabel="Hiển thị tư liệu hình ảnh"
                 checked={displayConfig.showImage !== false}
-                onChange={(e) => updateDisplay('showImage', e.target.checked)}
-                className="rounded text-stone-900 focus:ring-0 w-4 h-4"
+                onChange={(next) => updateDisplay('showImage', next)}
               />
-              <span>Hiển thị tư liệu hình ảnh</span>
-            </label>
+            </InspectorFieldRow>
 
-            <label className="flex items-center gap-2.5 text-sm font-medium text-stone-800 cursor-pointer">
-              <input
-                type="checkbox"
+            <InspectorFieldRow label="Hiện địa điểm">
+              <InspectorToggleSwitch
+                ariaLabel="Hiển thị nhãn địa điểm"
                 checked={Boolean(displayConfig.showLocation)}
-                onChange={(e) =>
-                  updateDisplay('showLocation', e.target.checked)
-                }
-                className="rounded text-stone-900 focus:ring-0 w-4 h-4"
+                onChange={(next) => updateDisplay('showLocation', next)}
               />
-              <span>Hiển thị nhãn địa điểm</span>
-            </label>
-          </div>
+            </InspectorFieldRow>
+          </InspectorAccordionSection>
 
+          <InspectorAccordionSection title="Nhập từ kho dữ liệu">
+            <select
+              aria-label="Chọn dòng thời gian để nhập"
+              value={importId}
+              onChange={(e) => setImportId(e.target.value)}
+              className={`${INSPECTOR_SELECT_CLS} w-full py-1.5`}
+            >
+              <option value="">— Chọn dòng thời gian —</option>
+              {timelines.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title} ({t._count?.nodes ?? 0} mốc)
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={!importId || importing}
+              onClick={importFromTimeline}
+              className="w-full py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 cursor-pointer transition-colors"
+            >
+              {importing ? 'Đang nhập…' : 'Nhập các mốc đã chọn'}
+            </button>
+          </InspectorAccordionSection>
         </div>
       )}
     </div>

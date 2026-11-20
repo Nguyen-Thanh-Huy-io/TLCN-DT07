@@ -3,6 +3,12 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { Editor } from '@tiptap/react';
 import { UploadApiService } from '@/services/entities/upload.service';
+import {
+  RICH_TABLE_NODE_NAMES,
+  TableActionType,
+  executeTableAction,
+  insertRichTable,
+} from '../extensions/table.extension';
 
 export enum TextFormatType {
   PARAGRAPH = 'p',
@@ -249,7 +255,7 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
           </button>
         </div>
 
-        {/* Cụm 3: [ Liên kết | Tải ảnh tư liệu ] */}
+        {/* Cụm 3: [ Liên kết | Tải ảnh tư liệu | Bảng biểu ] */}
         <div className="inline-flex items-center bg-white border border-slate-300 rounded-md divide-x divide-slate-200 overflow-hidden shadow-2xs">
           <button
             type="button"
@@ -270,7 +276,67 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
           >
             🖼
           </button>
+          <button
+            type="button"
+            data-testid="toolbar-btn-insert-table"
+            onClick={() =>
+              insertRichTable(editor, { rows: 3, cols: 3, withHeaderRow: true })
+            }
+            className={`w-7 h-7 flex items-center justify-center transition cursor-pointer ${
+              editor.isActive(RICH_TABLE_NODE_NAMES.TABLE)
+                ? BTN_ACTIVE_CLASS
+                : BTN_INACTIVE_CLASS
+            }`}
+            title="Chèn bảng dữ liệu (3×3)"
+          >
+            ⊞
+          </button>
         </div>
+
+        {editor.isActive(RICH_TABLE_NODE_NAMES.TABLE) && (
+          <div className="inline-flex items-center bg-white border border-indigo-200 rounded-md divide-x divide-slate-200 overflow-hidden shadow-2xs text-[11px] font-semibold">
+            <button
+              type="button"
+              onClick={() => executeTableAction(editor, TableActionType.ADD_ROW_AFTER)}
+              className="px-2 h-7 hover:bg-indigo-50 text-slate-700 cursor-pointer"
+              title="Thêm hàng bên dưới"
+            >
+              + Hàng
+            </button>
+            <button
+              type="button"
+              onClick={() => executeTableAction(editor, TableActionType.ADD_COL_AFTER)}
+              className="px-2 h-7 hover:bg-indigo-50 text-slate-700 cursor-pointer"
+              title="Thêm cột bên phải"
+            >
+              + Cột
+            </button>
+            <button
+              type="button"
+              onClick={() => executeTableAction(editor, TableActionType.DELETE_ROW)}
+              className="px-2 h-7 hover:bg-rose-50 text-rose-600 cursor-pointer"
+              title="Xóa hàng hiện tại"
+            >
+              - Hàng
+            </button>
+            <button
+              type="button"
+              onClick={() => executeTableAction(editor, TableActionType.DELETE_COL)}
+              className="px-2 h-7 hover:bg-rose-50 text-rose-600 cursor-pointer"
+              title="Xóa cột hiện tại"
+            >
+              - Cột
+            </button>
+            <button
+              type="button"
+              onClick={() => executeTableAction(editor, TableActionType.DELETE_TABLE)}
+              className="px-2 h-7 hover:bg-rose-50 text-rose-700 cursor-pointer"
+              title="Xóa toàn bộ bảng"
+            >
+              Xóa bảng
+            </button>
+          </div>
+        )}
 
         <TipTapPlusDropdown
           editor={editor}
@@ -282,6 +348,9 @@ export function TipTapToolbar({ editor, label }: TipTapToolbarProps) {
           onAddYoutube={handleAddYoutube}
           onSetLink={handleSetLink}
           onInsertFootnote={handleInsertFootnote}
+          onInsertTable={() =>
+            insertRichTable(editor, { rows: 3, cols: 3, withHeaderRow: true })
+          }
           uploading={uploading}
         />
       </div>
@@ -300,6 +369,7 @@ interface TipTapPlusDropdownProps {
   onAddYoutube: () => void;
   onSetLink: () => void;
   onInsertFootnote: () => void;
+  onInsertTable: () => void;
   uploading: boolean;
 }
 
@@ -312,6 +382,7 @@ export function TipTapPlusDropdown({
   onAddYoutube,
   onSetLink,
   onInsertFootnote,
+  onInsertTable,
   uploading,
 }: TipTapPlusDropdownProps) {
   const plusMenuRef = useRef<HTMLDivElement>(null);
@@ -403,6 +474,17 @@ export function TipTapPlusDropdown({
           >
             <span className="text-amber-600 font-bold">※</span>
             <span>Chèn chú thích đánh số</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onInsertTable();
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-indigo-50 text-slate-700 hover:text-indigo-800 flex items-center gap-2 cursor-pointer font-medium"
+          >
+            <span className="text-indigo-600 font-bold">⊞</span>
+            <span>Chèn bảng dữ liệu (3×3)</span>
           </button>
         </div>
       )}

@@ -2,6 +2,15 @@
 
 import React from 'react';
 import {
+  INSPECTOR_INPUT_CLS,
+  INSPECTOR_SEG_BTN_ACTIVE,
+  INSPECTOR_SEG_BTN_IDLE,
+  INSPECTOR_SEG_GROUP_CLS,
+  INSPECTOR_SELECT_CLS,
+  InspectorAccordionSection,
+  InspectorFieldRow,
+} from '@/components/common/TextStyleControls';
+import {
   CalloutBlockData,
   HeadingBlockData,
   LessonBlockItem,
@@ -20,40 +29,24 @@ export function HeadingBlockInspector({
   onUpdateBlock,
 }: SimpleInspectorProps<HeadingBlockData>) {
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-          Nội dung tiêu đề
-        </label>
-        <input
-          type="text"
-          value={heading.text || ''}
-          onChange={(e) => onUpdateBlock(heading.id, { text: e.target.value })}
-          className="w-full text-sm font-semibold px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-          Cấp độ tiêu đề
-        </label>
-        <div className="grid grid-cols-4 gap-2">
+    <InspectorAccordionSection title="Kiểu tiêu đề">
+      <InspectorFieldRow label="Cấp độ">
+        <div className={`grid w-36 grid-cols-4 ${INSPECTOR_SEG_GROUP_CLS}`}>
           {([1, 2, 3, 4] as const).map((lvl) => (
             <button
               key={lvl}
               type="button"
               onClick={() => onUpdateBlock(heading.id, { level: lvl })}
-              className={`py-2 text-sm font-bold rounded-lg border transition-colors cursor-pointer ${
-                heading.level === lvl
-                  ? 'bg-stone-900 text-white border-stone-900'
-                  : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
+              className={`grid h-7 place-items-center text-[11px] transition cursor-pointer ${
+                heading.level === lvl ? INSPECTOR_SEG_BTN_ACTIVE : INSPECTOR_SEG_BTN_IDLE
               }`}
             >
-              Cấp {lvl}
+              H{lvl}
             </button>
           ))}
         </div>
-      </div>
-    </div>
+      </InspectorFieldRow>
+    </InspectorAccordionSection>
   );
 }
 
@@ -62,51 +55,25 @@ export function CalloutBlockInspector({
   onUpdateBlock,
 }: SimpleInspectorProps<CalloutBlockData>) {
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-          Tiêu đề ghi chú
-        </label>
-        <input
-          type="text"
-          value={callout.title || ''}
-          onChange={(e) => onUpdateBlock(callout.id, { title: e.target.value })}
-          className="w-full text-sm font-semibold px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-          Sắc thái hộp thoại
-        </label>
+    <InspectorAccordionSection title="Hộp ghi chú">
+      <InspectorFieldRow label="Sắc thái">
         <select
+          aria-label="Sắc thái hộp thoại"
           value={callout.variant}
           onChange={(e) =>
             onUpdateBlock(callout.id, {
               variant: e.target.value as CalloutBlockData['variant'],
             })
           }
-          className="w-full text-sm font-medium px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 cursor-pointer"
+          className={`${INSPECTOR_SELECT_CLS} w-44`}
         >
           <option value="HISTORICAL_NOTE">Góc nhìn Sử gia (Vàng)</option>
-          <option value="INFO">Bối cảnh lịch sử (Xanh dương)</option>
+          <option value="INFO">Bối cảnh lịch sử (Xanh)</option>
           <option value="WARNING">Nghi vấn & Tranh cãi (Đỏ)</option>
-          <option value="SUCCESS">Bài học thời đại (Xanh lá)</option>
+          <option value="SUCCESS">Bài học thời đại (Lục)</option>
         </select>
-      </div>
-      <div>
-        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-          Nội dung chi tiết
-        </label>
-        <textarea
-          rows={4}
-          value={callout.content || ''}
-          onChange={(e) =>
-            onUpdateBlock(callout.id, { content: e.target.value })
-          }
-          className="w-full text-sm p-3 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 leading-relaxed text-stone-800"
-        />
-      </div>
-    </div>
+      </InspectorFieldRow>
+    </InspectorAccordionSection>
   );
 }
 
@@ -115,47 +82,33 @@ export function QuoteBlockInspector({
   onUpdateBlock,
 }: SimpleInspectorProps<QuoteBlockData>) {
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-          Lời trích dẫn / Danh ngôn
-        </label>
-        <textarea
-          rows={3}
-          value={quote.quoteText || ''}
-          onChange={(e) =>
-            onUpdateBlock(quote.id, { quoteText: e.target.value })
-          }
-          className="w-full text-sm italic font-serif p-3 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-          Tác giả phát ngôn
-        </label>
+    <InspectorAccordionSection title="Trích dẫn">
+      <textarea
+        rows={3}
+        value={quote.quoteText || ''}
+        onChange={(e) => onUpdateBlock(quote.id, { quoteText: e.target.value })}
+        placeholder="Lời trích dẫn / danh ngôn…"
+        className={`${INSPECTOR_INPUT_CLS} italic font-serif resize-y`}
+      />
+      <InspectorFieldRow label="Tác giả">
         <input
           type="text"
           value={quote.author || ''}
           onChange={(e) => onUpdateBlock(quote.id, { author: e.target.value })}
           placeholder="VD: Hưng Đạo Đại Vương"
-          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
+          className={`${INSPECTOR_INPUT_CLS} max-w-[165px]`}
         />
-      </div>
-      <div>
-        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-          Bối cảnh lịch sử
-        </label>
+      </InspectorFieldRow>
+      <InspectorFieldRow label="Bối cảnh">
         <input
           type="text"
           value={quote.sourceContext || ''}
-          onChange={(e) =>
-            onUpdateBlock(quote.id, { sourceContext: e.target.value })
-          }
-          placeholder="VD: Hội nghị Diên Hồng (1284)"
-          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
+          onChange={(e) => onUpdateBlock(quote.id, { sourceContext: e.target.value })}
+          placeholder="VD: Hội nghị Diên Hồng"
+          className={`${INSPECTOR_INPUT_CLS} max-w-[165px]`}
         />
-      </div>
-    </div>
+      </InspectorFieldRow>
+    </InspectorAccordionSection>
   );
 }
 
@@ -164,19 +117,16 @@ export function RelatedPeopleBlockInspector({
   onUpdateBlock,
 }: SimpleInspectorProps<RelatedPeopleBlockData>) {
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-          Tiêu đề khối
-        </label>
+    <InspectorAccordionSection title="Nhân vật liên quan">
+      <InspectorFieldRow label="Tiêu đề">
         <input
           type="text"
           value={rel.title || ''}
           onChange={(e) => onUpdateBlock(rel.id, { title: e.target.value })}
-          className="w-full text-sm font-semibold px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
+          className={`${INSPECTOR_INPUT_CLS} max-w-[165px]`}
         />
-      </div>
-    </div>
+      </InspectorFieldRow>
+    </InspectorAccordionSection>
   );
 }
 
@@ -185,29 +135,23 @@ export function RelatedEventsBlockInspector({
   onUpdateBlock,
 }: SimpleInspectorProps<RelatedEventsBlockData>) {
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-          Tiêu đề khối
-        </label>
+    <InspectorAccordionSection title="Sự kiện liên quan">
+      <InspectorFieldRow label="Tiêu đề">
         <input
           type="text"
           value={rel.title || ''}
           onChange={(e) => onUpdateBlock(rel.id, { title: e.target.value })}
-          className="w-full text-sm font-semibold px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
+          className={`${INSPECTOR_INPUT_CLS} max-w-[165px]`}
         />
-      </div>
-      <div>
-        <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-          Mô tả ngắn (tùy chọn)
-        </label>
+      </InspectorFieldRow>
+      <InspectorFieldRow label="Mô tả">
         <input
           type="text"
           value={rel.description || ''}
           onChange={(e) => onUpdateBlock(rel.id, { description: e.target.value })}
-          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
+          className={`${INSPECTOR_INPUT_CLS} max-w-[165px]`}
         />
-      </div>
-    </div>
+      </InspectorFieldRow>
+    </InspectorAccordionSection>
   );
 }

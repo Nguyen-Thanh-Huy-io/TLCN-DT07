@@ -180,21 +180,30 @@ export function TimelineBlockItemEditor({ data, onChange }: TimelineBlockItemEdi
 
   return (
     <div data-testid="timeline-block-item-editor" className="space-y-5 font-sans">
-      {/* 1. HEADER BIÊN NIÊN SỬ */}
+      {/* 1. HEADER BIÊN NIÊN SỬ (Chỉnh sửa trực tiếp Tiêu đề & Phụ đề ngay trên Canvas) */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
+        <div className="flex-1 min-w-[240px] space-y-1">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-[22px] font-serif font-bold text-stone-900 tracking-tight leading-snug">
-              {cleanTitle}
-            </h3>
-            <span className="text-xs font-semibold text-stone-700 bg-stone-100 px-2.5 py-0.5 rounded-md">
+            <input
+              type="text"
+              value={cleanTitle}
+              onChange={(e) => onChange({ title: e.target.value })}
+              placeholder="Nhập tiêu đề dòng thời gian..."
+              aria-label="Tiêu đề dòng thời gian"
+              className="text-[22px] font-serif font-bold text-stone-900 tracking-tight leading-snug bg-transparent border-b border-transparent hover:border-stone-300 focus:border-stone-900 focus:outline-none py-0.5 flex-1 min-w-[200px]"
+            />
+            <span className="text-xs font-semibold text-stone-700 bg-stone-100 px-2.5 py-0.5 rounded-md shrink-0">
               {sceneStyle === TimelineSceneStyleEnum.CINEMATIC_BACKDROP ? 'Phong cách Điện ảnh' : 'Phong cách Triển lãm'}
             </span>
           </div>
-          <p className="text-base text-stone-600 mt-1 max-w-[65ch]">
-            {data.subtitle ||
-              `Trình bày câu chuyện lịch sử qua ${indexedNodes.length} phân cảnh theo trình tự thời gian.`}
-          </p>
+          <input
+            type="text"
+            value={data.subtitle ?? ''}
+            onChange={(e) => onChange({ subtitle: e.target.value })}
+            placeholder={`Phụ đề ngắn (mặc định: Trình bày câu chuyện lịch sử qua ${indexedNodes.length} phân cảnh...)`}
+            aria-label="Phụ đề dòng thời gian"
+            className="w-full text-sm text-stone-600 bg-transparent border-b border-transparent hover:border-stone-300 focus:border-stone-900 focus:outline-none py-0.5"
+          />
         </div>
 
         {/* Cụm nút thêm phân cảnh */}

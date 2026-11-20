@@ -3,23 +3,36 @@
 import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import {
+  INSPECTOR_SEG_BTN_ACTIVE,
+  INSPECTOR_SEG_BTN_IDLE,
+  INSPECTOR_SEG_GROUP_CLS,
+  INSPECTOR_SELECT_CLS,
+  InspectorAccordionSection,
+  InspectorFieldRow,
+  InspectorToggleSwitch,
+} from '@/components/common/TextStyleControls';
+import {
   CalloutBlockData,
-  CharacterBlockData,
-  EventBlockData,
   HeadingBlockData,
-  ImageBlockData,
   LessonBlockItem,
-  QuoteBlockData,
+  RowGapSize,
   RowSectionBlockData,
+  RowVerticalAlign,
 } from '../../../types/block-builder.types';
 import { LessonBlockType } from '../../../types/editor.types';
-import { ROW_RATIO_PRESETS } from '../../../constants/lesson.constants';
+import {
+  ROW_GAP_OPTIONS,
+  ROW_LAYOUT_PRESETS,
+  ROW_RATIO_PRESETS,
+  ROW_VERTICAL_ALIGN_OPTIONS,
+  type RowLayoutPresetDefinition,
+} from '../../../constants/lesson.constants';
 import { useActiveEditor } from '../../../context/ActiveEditorContext';
+import { RowLayoutPresetRegistry } from '../../../strategies/row-layout.strategy';
 import { TypographyInspectorPanel } from './TypographyInspectorPanel';
 import {
   CalloutBlockInspector,
   HeadingBlockInspector,
-  QuoteBlockInspector,
 } from './SimpleBlockInspectors';
 
 enum RowInspectorTab {
@@ -34,6 +47,104 @@ interface RowSectionBlockInspectorProps {
   onUpdateRowRatio?: (rowId: string, widths: number[]) => void;
 }
 
+function NestedChildInspector({
+  row,
+  colId,
+  childBlock,
+  label,
+  onClearSelection,
+  onUpdateBlock,
+}: {
+  row: RowSectionBlockData;
+  colId: string;
+  childBlock: LessonBlockItem;
+  label: string;
+  onClearSelection: () => void;
+  onUpdateBlock: (id: string, updates: Partial<LessonBlockItem>) => void;
+}) {
+  const handleUpdateChild = (_id: string, updates: Partial<LessonBlockItem>) => {
+    const nextCols = row.columns.map((c) =>
+      c.id !== colId
+        ? c
+        : {
+            ...c,
+            blocks: c.blocks.map((b) =>
+              b.id === childBlock.id ? ({ ...b, ...updates } as LessonBlockItem) : b
+            ),
+          }
+    );
+    onUpdateBlock(row.id, { columns: nextCols });
+  };
+
+  return (
+    <div className="space-y-3.5 text-xs text-slate-700">
+      <div className="p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-200 space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10.5px] font-bold uppercase tracking-wider text-indigo-700">
+            Đang chọn khối trong cột
+          </span>
+          <button
+            type="button"
+            onClick={onClearSelection}
+            className="text-xs font-bold text-slate-800 hover:text-indigo-700 bg-white px-2 py-0.5 rounded-md border border-slate-200 flex items-center gap-1 cursor-pointer"
+          >
+            <ArrowLeft className="w-3 h-3" />
+            <span>Cấu hình cột</span>
+          </button>
+        </div>
+        <div className="text-xs font-bold text-slate-900 truncate">{label}</div>
+      </div>
+
+      {childBlock.type === LessonBlockType.TEXT && <TypographyInspectorPanel />}
+      {childBlock.type === LessonBlockType.HEADING && (
+        <HeadingBlockInspector
+          block={childBlock as HeadingBlockData}
+          onUpdateBlock={handleUpdateChild}
+        />
+      )}
+      {childBlock.type === LessonBlockType.CALLOUT && (
+        <CalloutBlockInspector
+          block={childBlock as CalloutBlockData}
+          onUpdateBlock={handleUpdateChild}
+        />
+      )}
+      {childBlock.type !== LessonBlockType.TEXT &&
+        childBlock.type !== LessonBlockType.HEADING &&
+        childBlock.type !== LessonBlockType.CALLOUT && (
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Nội dung của khối này được chỉnh sửa trực tiếp ngay trong cột trên khung tài liệu ở giữa.
+          </p>
+        )}
+    </div>
+  );
+}
+
+function PresetPreviewStrip({
+  preset,
+  active,
+}: {
+  preset: RowLayoutPresetDefinition;
+  active: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-1 w-full h-3.5">
+      {preset.widths.map((w, idx) => (
+        <span
+          key={idx}
+          style={{ width: `${w}%` }}
+          className={`h-full rounded-[3px] transition-colors ${
+            active ? 'bg-indigo-500/80' : 'bg-slate-200'
+          } ${
+            preset.showColumnDivider && idx > 0
+              ? 'border-l border-indigo-400/70'
+              : ''
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function RowSectionBlockInspector({
   block: row,
   onUpdateBlock,
@@ -41,206 +152,48 @@ export function RowSectionBlockInspector({
   onUpdateRowRatio,
 }: RowSectionBlockInspectorProps) {
   const { activeSubElement, setActiveSubElement } = useActiveEditor();
-  const [activeTab, setActiveTab] = useState<RowInspectorTab>(
-    RowInspectorTab.COLUMNS
-  );
+  const [activeTab, setActiveTab] = useState<RowInspectorTab>(RowInspectorTab.COLUMNS);
 
-  // NẾU NGƯỜI DÙNG ĐANG BẤM VÀO 1 KHỐI CON BÊN TRONG CỘT CỦA SECTION_ROW -> HIỂN THỊ THUỘC TÍNH KHỐI CON ĐÓ
-  if (
-    activeSubElement &&
-    activeSubElement.parentBlockId === row.id &&
-    activeSubElement.subId
-  ) {
+  if (activeSubElement && activeSubElement.parentBlockId === row.id && activeSubElement.subId) {
     const [colId, childId] = activeSubElement.subId.split('::');
     const targetCol = row.columns.find((c) => c.id === colId);
     const targetChild = targetCol?.blocks.find((b) => b.id === childId);
-
     if (targetCol && targetChild) {
-      const handleUpdateChild = (
-        _id: string,
-        updates: Partial<LessonBlockItem>
-      ) => {
-        const nextCols = row.columns.map((c) => {
-          if (c.id !== colId) return c;
-          return {
-            ...c,
-            blocks: c.blocks.map((b) =>
-              b.id === childId ? ({ ...b, ...updates } as LessonBlockItem) : b
-            ),
-          };
-        });
-        onUpdateBlock(row.id, { columns: nextCols });
-      };
-
       return (
-        <div className="space-y-4">
-          <div className="p-2.5 rounded-xl bg-blue-50/80 border border-blue-200 space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">
-                Đang chọn khối trong cột
-              </span>
-              <button
-                type="button"
-                onClick={() => setActiveSubElement(null)}
-                className="text-xs font-bold text-stone-800 hover:text-blue-700 bg-white px-2 py-0.5 rounded-md border border-stone-200 flex items-center gap-1 cursor-pointer"
-              >
-                <ArrowLeft className="w-3 h-3" />
-                <span>Cấu hình cột</span>
-              </button>
-            </div>
-            <div className="text-xs font-bold text-stone-900 truncate">
-              {activeSubElement.label}
-            </div>
-          </div>
-
-          {targetChild.type === LessonBlockType.TEXT && (
-            <TypographyInspectorPanel />
-          )}
-          {targetChild.type === LessonBlockType.HEADING && (
-            <HeadingBlockInspector
-              block={targetChild as HeadingBlockData}
-              onUpdateBlock={handleUpdateChild}
-            />
-          )}
-          {targetChild.type === LessonBlockType.CALLOUT && (
-            <CalloutBlockInspector
-              block={targetChild as CalloutBlockData}
-              onUpdateBlock={handleUpdateChild}
-            />
-          )}
-          {targetChild.type === LessonBlockType.QUOTE && (
-            <QuoteBlockInspector
-              block={targetChild as QuoteBlockData}
-              onUpdateBlock={handleUpdateChild}
-            />
-          )}
-          {targetChild.type === LessonBlockType.CHARACTER && (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Tên thực thể / Nhân vật
-                </label>
-                <input
-                  type="text"
-                  value={(targetChild as CharacterBlockData).name || ''}
-                  onChange={(e) =>
-                    handleUpdateChild(targetChild.id, { name: e.target.value })
-                  }
-                  className="w-full text-xs font-semibold px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Niên đại / Thời kỳ
-                </label>
-                <input
-                  type="text"
-                  value={(targetChild as CharacterBlockData).years || ''}
-                  onChange={(e) =>
-                    handleUpdateChild(targetChild.id, { years: e.target.value })
-                  }
-                  className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Tóm tắt tiểu sử / Vai trò
-                </label>
-                <textarea
-                  rows={3}
-                  value={(targetChild as CharacterBlockData).summary || ''}
-                  onChange={(e) =>
-                    handleUpdateChild(targetChild.id, {
-                      summary: e.target.value,
-                    })
-                  }
-                  className="w-full text-xs p-2.5 bg-white border border-stone-200 rounded-lg"
-                />
-              </div>
-            </div>
-          )}
-          {targetChild.type === LessonBlockType.EVENT && (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Tên sự kiện
-                </label>
-                <input
-                  type="text"
-                  value={(targetChild as EventBlockData).title || ''}
-                  onChange={(e) =>
-                    handleUpdateChild(targetChild.id, { title: e.target.value })
-                  }
-                  className="w-full text-xs font-semibold px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Thời gian & Địa điểm
-                </label>
-                <input
-                  type="text"
-                  value={(targetChild as EventBlockData).timeLocation || ''}
-                  onChange={(e) =>
-                    handleUpdateChild(targetChild.id, {
-                      timeLocation: e.target.value,
-                    })
-                  }
-                  className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg"
-                />
-              </div>
-            </div>
-          )}
-          {targetChild.type === LessonBlockType.IMAGE && (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Đường dẫn hình ảnh
-                </label>
-                <input
-                  type="text"
-                  value={(targetChild as ImageBlockData).src || ''}
-                  onChange={(e) =>
-                    handleUpdateChild(targetChild.id, { src: e.target.value })
-                  }
-                  className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Chú thích ảnh
-                </label>
-                <input
-                  type="text"
-                  value={(targetChild as ImageBlockData).caption || ''}
-                  onChange={(e) =>
-                    handleUpdateChild(targetChild.id, {
-                      caption: e.target.value,
-                    })
-                  }
-                  className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg"
-                />
-              </div>
-            </div>
-          )}
-        </div>
+        <NestedChildInspector
+          row={row}
+          colId={colId}
+          childBlock={targetChild}
+          label={activeSubElement.label}
+          onClearSelection={() => setActiveSubElement(null)}
+          onUpdateBlock={onUpdateBlock}
+        />
       );
     }
   }
 
   const colCount = row.columnCount || row.columns.length || 2;
   const presets = ROW_RATIO_PRESETS[colCount] || [];
+  const currentValues = row.columns.map((c) => Math.round(c.widthPercent));
+  const matchedPreset = presets.find(
+    (p) =>
+      p.values.length === currentValues.length &&
+      p.values.every((v, i) => Math.abs(Math.round(v) - currentValues[i]) <= 1)
+  );
+  const activeLayoutPreset = RowLayoutPresetRegistry.detectMatchingPreset(row);
+  const currentGap = row.gapSize ?? RowGapSize.MD;
+  const currentAlign = row.verticalAlign ?? RowVerticalAlign.TOP;
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-1.5 p-1 bg-stone-100 rounded-xl">
+    <div className="space-y-3.5 text-xs text-slate-700">
+      <div className={`grid grid-cols-2 ${INSPECTOR_SEG_GROUP_CLS}`}>
         <button
           type="button"
           onClick={() => setActiveTab(RowInspectorTab.COLUMNS)}
-          className={`py-1.5 text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
+          className={`grid h-8 place-items-center transition cursor-pointer ${
             activeTab === RowInspectorTab.COLUMNS
-              ? 'bg-stone-900 text-white'
-              : 'text-stone-800 hover:bg-white'
+              ? INSPECTOR_SEG_BTN_ACTIVE
+              : INSPECTOR_SEG_BTN_IDLE
           }`}
         >
           Cấu hình cột
@@ -248,10 +201,10 @@ export function RowSectionBlockInspector({
         <button
           type="button"
           onClick={() => setActiveTab(RowInspectorTab.TYPOGRAPHY)}
-          className={`py-1.5 text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
+          className={`grid h-8 place-items-center transition cursor-pointer ${
             activeTab === RowInspectorTab.TYPOGRAPHY
-              ? 'bg-stone-900 text-white'
-              : 'text-stone-800 hover:bg-white'
+              ? INSPECTOR_SEG_BTN_ACTIVE
+              : INSPECTOR_SEG_BTN_IDLE
           }`}
         >
           Định dạng chữ
@@ -261,62 +214,130 @@ export function RowSectionBlockInspector({
       {activeTab === RowInspectorTab.TYPOGRAPHY ? (
         <TypographyInspectorPanel />
       ) : (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-              Số lượng cột
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {([1, 2, 3, 4] as const).map((num) => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => onChangeRowColumnCount?.(row.id, num)}
-                  className={`py-2 text-sm font-bold rounded-lg border transition-colors cursor-pointer ${
-                    colCount === num
-                      ? 'bg-stone-900 text-white border-stone-900'
-                      : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
-                  }`}
-                >
-                  {num} cột
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {presets.length > 0 && colCount > 1 && (
-            <div>
-              <label className="block text-sm font-semibold text-stone-800 mb-1.5">
-                Tỷ lệ phân chia cột
-              </label>
-              <div className="space-y-1.5">
-                {presets.map((preset) => {
-                  const currentValues = row.columns.map((c) =>
-                    Math.round(c.widthPercent)
-                  );
-                  const isMatch =
-                    preset.values.length === currentValues.length &&
-                    preset.values.every(
-                      (v, i) => Math.abs(Math.round(v) - currentValues[i]) <= 1
-                    );
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => onUpdateRowRatio?.(row.id, preset.values)}
-                      className={`w-full px-3 py-2 rounded-lg text-sm font-medium border text-left transition-colors cursor-pointer ${
-                        isMatch
-                          ? 'bg-stone-900 text-white border-stone-900'
-                          : 'bg-white text-stone-800 border-stone-300 hover:bg-stone-50'
-                      }`}
-                    >
+        <div className="space-y-3.5">
+          <InspectorAccordionSection title="Mẫu bố cục nhanh">
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {ROW_LAYOUT_PRESETS.map((preset) => {
+                const isActive = activeLayoutPreset === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    data-testid={`btn-row-preset-${preset.id}`}
+                    title={preset.description}
+                    onClick={() =>
+                      onUpdateBlock(row.id, RowLayoutPresetRegistry.applyPreset(row, preset.id))
+                    }
+                    className={`p-2 rounded-lg border text-left space-y-1.5 transition cursor-pointer ${
+                      isActive
+                        ? 'border-indigo-500 bg-indigo-50/70 ring-1 ring-indigo-500/30'
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70'
+                    }`}
+                  >
+                    <PresetPreviewStrip preset={preset} active={isActive} />
+                    <div className="text-[11px] font-bold text-slate-800 truncate">
                       {preset.label}
-                    </button>
-                  );
-                })}
-              </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </InspectorAccordionSection>
+
+          <InspectorAccordionSection title="Lưới cột">
+            <InspectorFieldRow label="Số lượng cột">
+              <div className={`grid w-36 grid-cols-4 ${INSPECTOR_SEG_GROUP_CLS}`}>
+                {([1, 2, 3, 4] as const).map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    data-testid={`btn-col-count-${num}`}
+                    onClick={() => onChangeRowColumnCount?.(row.id, num)}
+                    className={`grid h-7 place-items-center text-[11px] transition cursor-pointer ${
+                      colCount === num ? INSPECTOR_SEG_BTN_ACTIVE : INSPECTOR_SEG_BTN_IDLE
+                    }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            </InspectorFieldRow>
+
+            {presets.length > 0 && colCount > 1 && (
+              <InspectorFieldRow label="Tỷ lệ chia">
+                <select
+                  data-testid="select-row-ratio"
+                  aria-label="Tỷ lệ phân chia cột"
+                  value={matchedPreset?.id || presets[0]?.id}
+                  onChange={(e) => {
+                    const found = presets.find((p) => p.id === e.target.value);
+                    if (found) onUpdateRowRatio?.(row.id, found.values);
+                  }}
+                  className={`${INSPECTOR_SELECT_CLS} w-44`}
+                >
+                  {presets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
+              </InspectorFieldRow>
+            )}
+          </InspectorAccordionSection>
+
+          <InspectorAccordionSection title="Hiển thị cột">
+            <InspectorFieldRow label="Khoảng cách">
+              <div className={`grid w-36 grid-cols-3 ${INSPECTOR_SEG_GROUP_CLS}`}>
+                {ROW_GAP_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    data-testid={`btn-row-gap-${opt.value}`}
+                    onClick={() => onUpdateBlock(row.id, { gapSize: opt.value })}
+                    className={`grid h-7 place-items-center text-[11px] transition cursor-pointer ${
+                      currentGap === opt.value
+                        ? INSPECTOR_SEG_BTN_ACTIVE
+                        : INSPECTOR_SEG_BTN_IDLE
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </InspectorFieldRow>
+
+            <InspectorFieldRow label="Căn dọc cột">
+              <div className={`grid w-36 grid-cols-3 ${INSPECTOR_SEG_GROUP_CLS}`}>
+                {ROW_VERTICAL_ALIGN_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    data-testid={`btn-row-align-${opt.value}`}
+                    onClick={() => onUpdateBlock(row.id, { verticalAlign: opt.value })}
+                    className={`grid h-7 place-items-center text-[11px] transition cursor-pointer ${
+                      currentAlign === opt.value
+                        ? INSPECTOR_SEG_BTN_ACTIVE
+                        : INSPECTOR_SEG_BTN_IDLE
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </InspectorFieldRow>
+
+            {colCount > 1 && (
+              <InspectorFieldRow label="Đường kẻ ngăn">
+                <InspectorToggleSwitch
+                  ariaLabel="Đường kẻ ngăn giữa các cột"
+                  checked={Boolean(row.showColumnDivider)}
+                  onChange={(next) =>
+                    onUpdateBlock(row.id, { showColumnDivider: next })
+                  }
+                />
+              </InspectorFieldRow>
+            )}
+          </InspectorAccordionSection>
         </div>
       )}
     </div>

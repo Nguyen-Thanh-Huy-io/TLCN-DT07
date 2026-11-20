@@ -52,8 +52,8 @@ const getBlockMeta = (type: LessonBlockType) => {
       return { label: 'Bản đồ lịch sử' };
     case LessonBlockType.SECTION_ROW:
       return { label: 'Bố cục nhiều cột' };
-    case LessonBlockType.STORY_CHAPTER:
-      return { label: 'Chương truyện lịch sử' };
+    case LessonBlockType.QUIZ:
+      return { label: 'Ôn tập' };
     default:
       return { label: 'Khối nội dung' };
   }
@@ -82,6 +82,7 @@ export function BlockCardWrapper({
       data-testid={`block-card-wrapper-${block.id}`}
       data-block-type={block.type}
       data-block-width={currentWidth}
+      onClickCapture={onSelect}
       onClick={onSelect}
       className={`relative rounded-xl border bg-white transition-all duration-150 group/block ${widthCssClass} ${
         isSelected
@@ -91,12 +92,11 @@ export function BlockCardWrapper({
     >
       {/* Thanh tiêu đề phân tách rõ từng khối: luôn hiển thị nhãn + tay nắm kéo */}
       <div
-        className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-t-xl border-b transition-colors ${
+        className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-t-xl border-b transition-colors cursor-pointer ${
           isSelected
             ? 'bg-blue-50/70 border-blue-200/80'
             : 'bg-slate-50/80 border-slate-100 group-hover/block:bg-slate-100/70'
         }`}
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-1.5 min-w-0">
           <div

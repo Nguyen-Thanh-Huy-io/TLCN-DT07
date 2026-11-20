@@ -1,7 +1,5 @@
 import { DifficultyLevel, ContentStatus, MediaType } from '@/constants/enums';
-import { LessonItem } from '@/types/models';
-import { TagItem } from '@/types/models';
-import { TopicItem } from '@/types/models';
+import type { LessonItem, TagItem, TopicItem } from '@/types/models';
 import type { ContentRevisionItem } from '@/services/entities/content-revision.service';
 
 export interface LessonMediaItem {
@@ -162,7 +160,6 @@ export enum LessonBlockType {
   DIVIDER = 'DIVIDER',
   RELATED_PEOPLE = 'RELATED_PEOPLE',
   RELATED_EVENTS = 'RELATED_EVENTS',
-  STORY_CHAPTER = 'STORY_CHAPTER',
 }
 
 export enum LessonBlockGroup {

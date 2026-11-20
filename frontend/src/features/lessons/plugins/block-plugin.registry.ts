@@ -1,8 +1,12 @@
 import { LessonBlockType } from '../types/editor.types';
 import { LessonBlockItem } from '../types/block-builder.types';
+import { LEGACY_BLOCK_TYPE_STORY_CHAPTER } from '../constants/lesson.constants';
 import { BlockPlugin, renderCollapsibleDetail } from './block-plugin.types';
-import { BlockWidthStrategy } from '../strategies/row-layout.strategy';
-import { createBlockUUID } from '../strategies/story-chapter-layout.strategy';
+import {
+  BlockWidthStrategy,
+  createBlockUUID,
+  migrateLegacyStoryChapterToBlocks,
+} from '../strategies/row-layout.strategy';
 
 export const generateBlockId = (prefix: string = 'block'): string => {
   return createBlockUUID(prefix);
@@ -28,7 +32,6 @@ import {
   resourceLinkBlockPlugin,
 } from './simple-block.plugins';
 import { timelineBlockPlugin } from './timeline-block.plugin';
-import { storyChapterBlockPlugin, setStoryChapterChildCompiler } from './story-chapter-block.plugin';
 
 const LEGACY_TABLE_TYPE = 'TABLE';
 const LEGACY_COMPARISON_TABLE_TYPE = 'COMPARISON_TABLE';
@@ -42,7 +45,7 @@ export class LessonBlockRegistry {
   private static plugins = new Map<LessonBlockType, BlockPlugin<LessonBlockItem>>();
 
   static {
-    // Đăng ký toàn bộ 18 Block Plugins theo Registry Pattern (OCP)
+    // Đăng ký toàn bộ 17 Block Plugins theo Registry Pattern (OCP)
     const allPlugins: BlockPlugin<LessonBlockItem>[] = [
       textBlockPlugin as BlockPlugin<LessonBlockItem>,
       headingBlockPlugin as BlockPlugin<LessonBlockItem>,
@@ -60,7 +63,6 @@ export class LessonBlockRegistry {
       relatedPeopleBlockPlugin as BlockPlugin<LessonBlockItem>,
       relatedEventsBlockPlugin as BlockPlugin<LessonBlockItem>,
       sectionRowBlockPlugin as BlockPlugin<LessonBlockItem>,
-      storyChapterBlockPlugin as BlockPlugin<LessonBlockItem>,
       resourceLinkBlockPlugin as BlockPlugin<LessonBlockItem>,
     ];
 
@@ -68,9 +70,8 @@ export class LessonBlockRegistry {
       LessonBlockRegistry.plugins.set(plugin.type, plugin);
     }
 
-    // Khởi tạo các hàm biên dịch lồng nhau cho composite blocks (Composite Pattern)
+    // Khởi tạo hàm biên dịch lồng nhau cho khối Hàng nhiều cột (Composite Pattern)
     setRowSectionCompiler((b) => LessonBlockRegistry.blockToHtml(b));
-    setStoryChapterChildCompiler((b) => LessonBlockRegistry.blockToHtml(b));
   }
 
   /**
@@ -106,6 +107,11 @@ export class LessonBlockRegistry {
    */
   public static blockToHtml(block: LessonBlockItem): string {
     const rawType = String(block.type || '').toUpperCase();
+    if (rawType === LEGACY_BLOCK_TYPE_STORY_CHAPTER) {
+      return migrateLegacyStoryChapterToBlocks(block as unknown as Record<string, unknown>)
+        .map((migrated) => this.blockToHtml(migrated))
+        .join('\n');
+    }
     let plugin = this.plugins.get(rawType as LessonBlockType);
     if (!plugin && (rawType === LEGACY_TABLE_TYPE || rawType === LEGACY_COMPARISON_TABLE_TYPE)) {
       plugin = this.plugins.get(LessonBlockType.COMPARISON_TABLE);

@@ -3,21 +3,15 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { Editor } from '@tiptap/react';
 
-export enum EditorialSubElementType {
-  INTRO_TEXT = 'INTRO_TEXT',
-  MAIN_HEADING = 'MAIN_HEADING',
-  ARTICLE_TEXT = 'ARTICLE_TEXT',
-  MAIN_IMAGE = 'MAIN_IMAGE',
-  PULL_QUOTE = 'PULL_QUOTE',
-  SUB_CHAPTER = 'SUB_CHAPTER',
+export enum BlockSubElementType {
   NESTED_BLOCK = 'NESTED_BLOCK',
 }
 
-export type EditorialSubElementTypeUnion = `${EditorialSubElementType}`;
+export type BlockSubElementTypeUnion = `${BlockSubElementType}`;
 
 export interface ActiveSubElementSelection {
   parentBlockId: string;
-  subType: EditorialSubElementType | EditorialSubElementTypeUnion;
+  subType: BlockSubElementType | BlockSubElementTypeUnion;
   subId?: string;
   label: string;
 }
@@ -29,12 +23,9 @@ interface ActiveEditorContextValue {
   editorStateVersion: number;
   /** Cho biết cột phải "Thuộc tính khối" đang hiển thị — khi đang mở thì ẩn Bubble Menu để tránh trùng lặp */
   isInspectorVisible: boolean;
-  /** Lưu trạng thái ô/khối con đang được chọn bên trong một khối phức hợp (VD: Editorial Spread / Bố cục nhiều cột) */
+  /** Lưu trạng thái khối con đang được chọn bên trong một khối Bố cục nhiều cột */
   activeSubElement: ActiveSubElementSelection | null;
   setActiveSubElement: (selection: ActiveSubElementSelection | null) => void;
-  /** Lưu ID chương (Chapter) đang được chọn bên trong khối Story nhiều chương */
-  activeChapterId: string | null;
-  setActiveChapterId: (chapterId: string | null) => void;
 }
 
 const ActiveEditorContext = createContext<ActiveEditorContextValue>({
@@ -44,8 +35,6 @@ const ActiveEditorContext = createContext<ActiveEditorContextValue>({
   isInspectorVisible: false,
   activeSubElement: null,
   setActiveSubElement: () => {},
-  activeChapterId: null,
-  setActiveChapterId: () => {},
 });
 
 export function ActiveEditorProvider({
@@ -59,7 +48,6 @@ export function ActiveEditorProvider({
   const [editorStateVersion, setEditorStateVersion] = useState(0);
   const [activeSubElement, setActiveSubElement] =
     useState<ActiveSubElementSelection | null>(null);
-  const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeEditor) return;
@@ -85,10 +73,8 @@ export function ActiveEditorProvider({
       isInspectorVisible,
       activeSubElement,
       setActiveSubElement,
-      activeChapterId,
-      setActiveChapterId,
     }),
-    [activeEditor, editorStateVersion, isInspectorVisible, activeSubElement, activeChapterId]
+    [activeEditor, editorStateVersion, isInspectorVisible, activeSubElement]
   );
 
   return (

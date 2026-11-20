@@ -79,25 +79,25 @@ interface QuoteBlockItemEditorProps {
 
 export function QuoteBlockItemEditor({ data, onChange }: QuoteBlockItemEditorProps) {
   return (
-    <div className="p-4 sm:p-5 rounded-xl border border-amber-200/90 bg-amber-50/40 relative space-y-3.5">
-      <div className="flex items-center justify-between border-b border-amber-200/60 pb-2">
-        <span className="text-xs font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-          <span className="text-base leading-none">“</span>
+    <div className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white relative space-y-3.5">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+          <span className="text-base leading-none text-amber-700">“</span>
           <span>Khối trích dẫn lịch sử (Quote)</span>
         </span>
-        <span className="text-[11px] text-amber-800/70 font-serif italic">
+        <span className="text-[11px] text-slate-500 font-serif italic">
           Lời hịch, sấm truyền, danh ngôn
         </span>
       </div>
 
       {/* Nội dung câu trích dẫn */}
-      <div className="relative pl-3 border-l-4 border-amber-500">
+      <div className="relative pl-3 border-l-4 border-amber-600">
         <textarea
           rows={3}
           value={data.quoteText}
           onChange={(e) => onChange({ quoteText: e.target.value })}
           placeholder="Nhập câu danh ngôn, lời thề, tuyên ngôn lịch sử... (Ví dụ: Đầu tôi chưa rơi xuống đất, xin bệ hạ đừng lo...)"
-          className="w-full text-xs sm:text-sm font-serif italic p-3 bg-white border border-amber-200 rounded-xl focus:outline-none focus:border-amber-500 text-slate-800 leading-relaxed shadow-2xs"
+          className="w-full text-xs sm:text-sm font-serif italic p-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 text-slate-800 leading-relaxed shadow-2xs"
         />
       </div>
 
@@ -139,6 +139,9 @@ interface CalloutBlockItemEditorProps {
   onChange: (updates: Partial<CalloutBlockData>) => void;
 }
 
+const CALLOUT_SURFACE_BG_CLASS = 'bg-white';
+const CALLOUT_TITLE_COLOR_CLASS = 'text-slate-900';
+
 const CALLOUT_VARIANTS: Array<{
   variant: CalloutVariant;
   label: string;
@@ -151,33 +154,33 @@ const CALLOUT_VARIANTS: Array<{
     variant: 'HISTORICAL_NOTE',
     label: 'Góc nhìn Sử gia / Lưu ý',
     icon: '📜',
-    bgClass: 'bg-amber-50/80',
-    borderClass: 'border-amber-300',
-    titleClass: 'text-amber-900',
+    bgClass: CALLOUT_SURFACE_BG_CLASS,
+    borderClass: 'border-slate-200 border-l-4 border-l-amber-500',
+    titleClass: CALLOUT_TITLE_COLOR_CLASS,
   },
   {
     variant: 'INFO',
     label: 'Bối cảnh / Thông tin thêm',
     icon: '💡',
-    bgClass: 'bg-blue-50/80',
-    borderClass: 'border-blue-300',
-    titleClass: 'text-blue-900',
+    bgClass: CALLOUT_SURFACE_BG_CLASS,
+    borderClass: 'border-slate-200 border-l-4 border-l-blue-600',
+    titleClass: CALLOUT_TITLE_COLOR_CLASS,
   },
   {
     variant: 'WARNING',
     label: 'Tranh cãi / Nghi vấn lịch sử',
     icon: '⚠️',
-    bgClass: 'bg-rose-50/80',
-    borderClass: 'border-rose-300',
-    titleClass: 'text-rose-900',
+    bgClass: CALLOUT_SURFACE_BG_CLASS,
+    borderClass: 'border-slate-200 border-l-4 border-l-rose-600',
+    titleClass: CALLOUT_TITLE_COLOR_CLASS,
   },
   {
     variant: 'SUCCESS',
     label: 'Bài học & Ý nghĩa thời đại',
     icon: '✨',
-    bgClass: 'bg-emerald-50/80',
-    borderClass: 'border-emerald-300',
-    titleClass: 'text-emerald-900',
+    bgClass: CALLOUT_SURFACE_BG_CLASS,
+    borderClass: 'border-slate-200 border-l-4 border-l-emerald-600',
+    titleClass: CALLOUT_TITLE_COLOR_CLASS,
   },
 ];
 
@@ -187,7 +190,7 @@ export function CalloutBlockItemEditor({ data, onChange }: CalloutBlockItemEdito
   return (
     <div className={`p-4 rounded-xl border ${currentVariant.borderClass} ${currentVariant.bgClass} space-y-3 transition-colors`}>
       {/* Thanh chọn Variant */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/5 pb-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
         <div className="flex items-center gap-2">
           <span className="text-base">{currentVariant.icon}</span>
           <span className="text-xs font-bold uppercase tracking-wide text-slate-700">
@@ -203,8 +206,8 @@ export function CalloutBlockItemEditor({ data, onChange }: CalloutBlockItemEdito
               onClick={() => onChange({ variant: v.variant })}
               className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer border ${
                 data.variant === v.variant
-                  ? 'bg-white shadow-2xs border-slate-300 text-slate-900'
-                  : 'bg-black/5 border-transparent text-slate-600 hover:bg-black/10'
+                  ? 'bg-slate-900 shadow-2xs border-slate-900 text-white'
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >
               <span>{v.icon}</span> <span className="hidden sm:inline">{v.label}</span>
@@ -220,7 +223,7 @@ export function CalloutBlockItemEditor({ data, onChange }: CalloutBlockItemEdito
           value={data.title}
           onChange={(e) => onChange({ title: e.target.value })}
           placeholder="Tiêu đề hộp ghi chú (Ví dụ: Góc nhìn sử học về chiến thuật...)"
-          className={`w-full text-xs sm:text-sm font-bold bg-white/80 px-3 py-1.5 rounded-lg border border-slate-200/80 focus:bg-white focus:outline-none focus:border-slate-400 ${currentVariant.titleClass}`}
+          className={`w-full text-xs sm:text-sm font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-slate-400 ${currentVariant.titleClass}`}
         />
       </div>
 
@@ -231,7 +234,7 @@ export function CalloutBlockItemEditor({ data, onChange }: CalloutBlockItemEdito
           value={data.content}
           onChange={(e) => onChange({ content: e.target.value })}
           placeholder="Nhập nội dung lưu ý, đánh giá bối cảnh lịch sử hoặc phân tích sâu tại đây..."
-          className="w-full text-xs p-3 bg-white/90 rounded-lg border border-slate-200/80 focus:bg-white focus:outline-none focus:border-slate-400 text-slate-700 leading-relaxed"
+          className="w-full text-xs p-3 bg-white rounded-lg border border-slate-200 focus:outline-none focus:border-slate-400 text-slate-700 leading-relaxed"
         />
       </div>
     </div>
@@ -300,7 +303,7 @@ export function ComparisonTableBlockItemEditor({ data, onChange }: ComparisonTab
           <div
             key={idx}
             data-testid={`comparison-row-${idx}`}
-            className="p-2 bg-slate-50 border border-slate-200/80 rounded-lg space-y-1"
+            className="p-2 bg-white border border-slate-200 rounded-lg space-y-1"
           >
             <div className="flex items-center gap-1.5">
               <input

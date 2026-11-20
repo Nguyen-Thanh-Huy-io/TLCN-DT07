@@ -388,9 +388,9 @@ export function EventBlockItemEditor({ data, onChange }: EventBlockItemEditorPro
       </div>
 
       {/* Thẻ Sự kiện chuẩn img3.png */}
-      <div className="p-3.5 bg-slate-50/80 border border-slate-200/90 rounded-xl space-y-2">
+      <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
         <div className="flex items-center justify-between">
-          <div className="text-[11px] font-bold tracking-wider text-amber-700 uppercase bg-amber-50 inline-block px-2 py-0.5 rounded border border-amber-200/60">
+          <div className="text-[11px] font-bold tracking-wider text-amber-700 uppercase bg-white inline-block px-2 py-0.5 rounded border border-amber-200">
             {EVENT_BLOCK_CONSTANTS.SUB_LABEL}
           </div>
           <span

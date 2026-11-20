@@ -1,9 +1,8 @@
 import { LessonBlockType } from '../types/editor.types';
-import { CalloutBlockData, CharacterBlockData, ComparisonTableBlockData, DividerBlockData, EventBlockData, HeadingBlockData, ImageBlockData, MapBlockData, QuizBlockData, QuoteBlockData, RelatedEventsBlockData, RelatedPeopleBlockData, ResourceLinkBlockData, LessonBlockItem, RowSectionBlockData, TextBlockData, VideoBlockData } from '../types/block-builder.types';
-import { BlockPlugin, BlockWidth, escapeHtml, safeUrl, renderCollapsibleDetail } from './block-plugin.types';
+import { CalloutBlockData, CharacterBlockData, ComparisonTableBlockData, DividerBlockData, EventBlockData, HeadingBlockData, ImageBlockData, MapBlockData, QuizBlockData, QuoteBlockData, RelatedEventsBlockData, RelatedPeopleBlockData, ResourceLinkBlockData, LessonBlockItem, RowGapSize, RowLayoutPresetId, RowSectionBlockData, RowVerticalAlign, TextBlockData, VideoBlockData } from '../types/block-builder.types';
+import { BLOCK_SURFACE_THEME, BlockPlugin, BlockWidth, escapeHtml, safeUrl, renderCollapsibleDetail } from './block-plugin.types';
 import { SAMPLE_REMOTE_LINKS } from '@/constants/routes';
-import { RowLayoutStrategy } from '../strategies/row-layout.strategy';
-import { createBlockUUID } from '../strategies/story-chapter-layout.strategy';
+import { RowLayoutStrategy, createBlockUUID } from '../strategies/row-layout.strategy';
 import { sanitizeRichHtml } from '@/utils/common';
 import { createDefaultQuestion } from '../factories/quiz-question.factory';
 import { QuizQuestionType } from '../types/quiz.types';
@@ -19,13 +18,6 @@ const BORDER_COLORS: Record<string, string> = {
   INFO: '#2563eb',
   WARNING: '#dc2626',
   SUCCESS: '#059669',
-};
-
-const BG_COLORS: Record<string, string> = {
-  HISTORICAL_NOTE: '#fef3c7',
-  INFO: '#eff6ff',
-  WARNING: '#fef2f2',
-  SUCCESS: '#ecfdf5',
 };
 
 const ICONS: Record<string, string> = {
@@ -51,15 +43,14 @@ export const calloutBlockPlugin: BlockPlugin<CalloutBlockData> = {
   toHtml: (block: CalloutBlockData): string => {
     const variant = block.variant || 'HISTORICAL_NOTE';
     const color = BORDER_COLORS[variant] || '#d97706';
-    const bg = BG_COLORS[variant] || '#fef3c7';
     const icon = ICONS[variant] || '📜';
 
     return `
-      <div style="margin: 18px 0; padding: 14px 18px; background: ${bg}; border-left: 4px solid ${color}; border-radius: 8px; font-family: inherit;">
-        <div style="font-weight: 700; font-size: 14px; color: #0f172a; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+      <div style="margin: 18px 0; padding: 14px 18px; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; border-left: 4px solid ${color}; border-radius: 8px; font-family: inherit;">
+        <div style="font-weight: 700; font-size: 14px; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
           <span>${icon}</span> <span>${escapeHtml(block.title || 'Lưu ý lịch sử')}</span>
         </div>
-        <div style="font-size: 13px; color: #334155; line-height: 1.6;">${block.content || ''}</div>
+        <div style="font-size: 13px; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; line-height: 1.6;">${block.content || ''}</div>
       </div>`;
   },
 };
@@ -88,16 +79,16 @@ export const characterBlockPlugin: BlockPlugin<CharacterBlockData> = {
       : '👤';
 
     return `
-      <div class="hisgo-character-block my-6 p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-start gap-4">
-        <div style="width: 56px; height: 56px; border-radius: 50%; background: #ffffff; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; overflow: hidden;">
+      <div class="hisgo-character-block my-6 p-4 bg-white border border-slate-200 rounded-2xl flex items-start gap-4">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; overflow: hidden;">
           ${avatarHtml}
         </div>
         <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 11px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Nhân vật lịch sử</div>
-          <h4 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0; font-family: var(--font-merriweather), 'Noto Serif', serif;">${safeName}</h4>
-          ${block.role ? `<div style="font-size: 12.5px; font-weight: 600; color: #475569; margin-bottom: 4px;">${escapeHtml(block.role)}</div>` : ''}
-          ${safeYears ? `<span style="font-size: 12px; font-weight: 600; color: #1d4ed8; background: #eff6ff; padding: 2px 8px; border-radius: 4px;">${safeYears}</span>` : ''}
-          <p style="font-size: 13px; color: #475569; margin: 8px 0 0 0; line-height: 1.6;">${safeSummary}</p>
+          <div style="font-size: 11px; font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_MUTED}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Nhân vật lịch sử</div>
+          <h4 style="font-size: 16px; font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin: 0 0 4px 0; font-family: var(--font-merriweather), 'Noto Serif', serif;">${safeName}</h4>
+          ${block.role ? `<div style="font-size: 12.5px; font-weight: 600; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; margin-bottom: 4px;">${escapeHtml(block.role)}</div>` : ''}
+          ${safeYears ? `<span style="font-size: 12px; font-weight: 600; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; padding: 2px 8px; border-radius: 4px;">${safeYears}</span>` : ''}
+          <p style="font-size: 13px; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; margin: 8px 0 0 0; line-height: 1.6;">${safeSummary}</p>
           ${renderCollapsibleDetail(block.detailContent)}
         </div>
       </div>`;
@@ -160,7 +151,7 @@ export const comparisonTableBlockPlugin: BlockPlugin<ComparisonTableBlockData> =
       const headersHtml = genericData.headers
         .map(
           (h) =>
-            `<th style="padding: 12px 14px; background: #F2E8D5; color: #2E1B10; font-weight: 700; border-bottom: 2px solid #DECBB1; text-align: left;">${escapeHtml(
+            `<th style="padding: 12px 14px; background: ${BLOCK_SURFACE_THEME.BG_SUBTLE_HEADER}; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; font-weight: 700; border-bottom: 2px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; text-align: left;">${escapeHtml(
               String(h),
             )}</th>`,
         )
@@ -172,7 +163,7 @@ export const comparisonTableBlockPlugin: BlockPlugin<ComparisonTableBlockData> =
             `<tr>${row
               .map(
                 (cell) =>
-                  `<td style="padding: 10px 14px; border-bottom: 1px solid #ECE1D1; color: #3A2C21;">${escapeHtml(
+                  `<td style="padding: 10px 14px; border-bottom: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; background: ${BLOCK_SURFACE_THEME.BG_WHITE};">${escapeHtml(
                     String(cell),
                   )}</td>`,
               )
@@ -188,10 +179,10 @@ export const comparisonTableBlockPlugin: BlockPlugin<ComparisonTableBlockData> =
         <div class="my-6 overflow-x-auto">
           ${
             safeTitle
-              ? `<p style="font-weight: 700; color: #2D1A10; margin-bottom: 8px; font-family: var(--font-playfair), 'Merriweather', Georgia, serif; font-size: 1.15rem;">${safeTitle}</p>`
+              ? `<p style="font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin-bottom: 8px; font-family: var(--font-playfair), 'Merriweather', Georgia, serif; font-size: 1.15rem;">${safeTitle}</p>`
               : ''
           }
-          <table style="border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; background: #FFFDF9; border: 1px solid #E6D8C2; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(45, 26, 16, 0.03);">
+          <table style="border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; border-radius: 8px; overflow: hidden;">
             <thead>
               <tr>${headersHtml}</tr>
             </thead>
@@ -210,19 +201,19 @@ export const comparisonTableBlockPlugin: BlockPlugin<ComparisonTableBlockData> =
       .map(
         (r) => `
         <tr>
-          <td style="padding: 10px 14px; border: 1px solid #e2e8f0;"><strong>${escapeHtml(r.criteria)}</strong></td>
-          <td style="padding: 10px 14px; border: 1px solid #e2e8f0;">${escapeHtml(r.colA)}</td>
-          <td style="padding: 10px 14px; border: 1px solid #e2e8f0;">${escapeHtml(r.colB)}</td>
+          <td style="padding: 10px 14px; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; background: ${BLOCK_SURFACE_THEME.BG_WHITE};"><strong>${escapeHtml(r.criteria)}</strong></td>
+          <td style="padding: 10px 14px; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; background: ${BLOCK_SURFACE_THEME.BG_WHITE};">${escapeHtml(r.colA)}</td>
+          <td style="padding: 10px 14px; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; background: ${BLOCK_SURFACE_THEME.BG_WHITE};">${escapeHtml(r.colB)}</td>
         </tr>`,
       )
       .join('');
 
     return `
       <div class="my-6 overflow-x-auto">
-        <p style="font-weight: 700; color: #1c1917; margin-bottom: 8px;">${safeTitle}</p>
-        <table style="border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13.5px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <p style="font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin-bottom: 8px;">${safeTitle}</p>
+        <table style="border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13.5px; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; border-radius: 8px; overflow: hidden;">
           <thead>
-            <tr style="background: #f8fafc; text-align: left; border-bottom: 2px solid #e2e8f0;">
+            <tr style="background: ${BLOCK_SURFACE_THEME.BG_SUBTLE_HEADER}; text-align: left; border-bottom: 2px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL};">
               <th style="padding: 12px 14px;">Tiêu chí</th>
               <th style="padding: 12px 14px;">${safeColA}</th>
               <th style="padding: 12px 14px;">${safeColB}</th>
@@ -247,7 +238,7 @@ export const dividerBlockPlugin: BlockPlugin<DividerBlockData> = {
   }),
 
   toHtml: (): string => {
-    return `<hr style="margin: 32px 0; border: none; border-top: 1px solid #e2e8f0;" />`;
+    return `<hr style="margin: 32px 0; border: none; border-top: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL};" />`;
   },
 };
 
@@ -272,11 +263,11 @@ export const eventBlockPlugin: BlockPlugin<EventBlockData> = {
     const safeSummary = escapeHtml(block.summary);
 
     return `
-      <div class="hisgo-event-block my-6 p-4 bg-amber-50/60 border border-amber-200 rounded-2xl">
-        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #b45309; background: #fef3c7; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 6px;">MỐC LỊCH SỬ</span>
-        <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0; font-family: var(--font-merriweather), 'Noto Serif', serif;">${safeTitle}</h3>
-        ${safeTimeLoc ? `<div style="font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 8px;">${safeTimeLoc}</div>` : ''}
-        <p style="font-size: 13px; color: #334155; line-height: 1.6; margin: 0;">${safeSummary}</p>
+      <div class="hisgo-event-block my-6 p-4 bg-white border border-slate-200 rounded-2xl">
+        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #b45309; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 6px;">MỐC LỊCH SỬ</span>
+        <h3 style="font-size: 18px; font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin: 0 0 4px 0; font-family: var(--font-merriweather), 'Noto Serif', serif;">${safeTitle}</h3>
+        ${safeTimeLoc ? `<div style="font-size: 12px; font-weight: 600; color: ${BLOCK_SURFACE_THEME.TEXT_MUTED}; margin-bottom: 8px;">${safeTimeLoc}</div>` : ''}
+        <p style="font-size: 13px; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; line-height: 1.6; margin: 0;">${safeSummary}</p>
         ${renderCollapsibleDetail(block.detailContent)}
       </div>`;
   },
@@ -298,7 +289,7 @@ export const headingBlockPlugin: BlockPlugin<HeadingBlockData> = {
     const level = block.level && block.level >= 1 && block.level <= 6 ? block.level : 2;
     const tag = `h${level}`;
     const safeText = escapeHtml(block.text);
-    return `<${tag} style="font-weight: 700; color: #0f172a; margin: 24px 0 12px 0; font-family: var(--font-merriweather), 'Noto Serif', serif;">${safeText}</${tag}>`;
+    return `<${tag} style="font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin: 24px 0 12px 0; font-family: var(--font-merriweather), 'Noto Serif', serif;">${safeText}</${tag}>`;
   },
 };
 
@@ -347,7 +338,7 @@ export const mapBlockPlugin: BlockPlugin<MapBlockData> = {
     const safeDesc = escapeHtml(block.description);
 
     return `
-      <blockquote class="my-4 border-l-4 border-emerald-500 bg-emerald-50/40 p-3 rounded-r-lg text-xs text-slate-700">
+      <blockquote class="my-4 border border-slate-200 border-l-4 border-l-emerald-600 bg-white p-3.5 rounded-r-lg text-xs text-slate-700">
         <strong>🗺️ Địa bàn tác chiến:</strong> ${safeLoc}
         <p class="mt-1 mb-0 text-slate-600">${safeDesc}</p>
       </blockquote>`;
@@ -376,9 +367,9 @@ export const quizBlockPlugin: BlockPlugin<QuizBlockData> = {
       .map((q, i) => `<li style="margin: 4px 0;">${i + 1}. ${escapeHtml(q.prompt)}</li>`)
       .join('');
     return `
-      <div ${LESSON_QUIZ_PLACEHOLDER_ATTR}="${escapeHtml(block.id)}" class="my-6 p-5 bg-amber-50/60 border border-amber-200 rounded-2xl font-sans">
+      <div ${LESSON_QUIZ_PLACEHOLDER_ATTR}="${escapeHtml(block.id)}" class="my-6 p-5 bg-white border border-slate-200 rounded-2xl font-sans">
         <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #b45309; margin: 0 0 6px 0;">❓ ${escapeHtml(block.title || LESSON_QUIZ_DEFAULT_TITLE)} · ${questions.length} câu</p>
-        <ol style="list-style: none; padding: 0; margin: 0; font-size: 14px; color: #334155;">${prompts}</ol>
+        <ol style="list-style: none; padding: 0; margin: 0; font-size: 14px; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY};">${prompts}</ol>
       </div>`;
   },
 };
@@ -418,11 +409,11 @@ export const quoteBlockPlugin: BlockPlugin<QuoteBlockData> = {
       : '';
 
     return `
-      <blockquote style="margin: 24px 0; padding: 18px 24px; background: #fdfaf3; border-left: 4px solid #c2410c; border-radius: 0 14px 14px 0; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-        <p style="font-family: var(--font-merriweather), 'Noto Serif', Georgia, serif; font-style: italic; font-size: 16px; color: #1c1917; margin: 0 0 12px 0; line-height: 1.75; letter-spacing: -0.01em;">“${safeQuote}”</p>
-        <div style="font-size: 13px; font-weight: 600; color: #78350f; text-align: right; font-family: var(--font-be-vietnam-pro), sans-serif;">
+      <blockquote style="margin: 24px 0; padding: 18px 24px; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; border-left: 4px solid #c2410c; border-radius: 0 14px 14px 0;">
+        <p style="font-family: var(--font-merriweather), 'Noto Serif', Georgia, serif; font-style: italic; font-size: 16px; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin: 0 0 12px 0; line-height: 1.75; letter-spacing: -0.01em;">“${safeQuote}”</p>
+        <div style="font-size: 13px; font-weight: 600; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; text-align: right; font-family: var(--font-be-vietnam-pro), sans-serif;">
           — <span>${safeAuthor}</span>
-          ${safeSource ? `<span style="font-weight: normal; color: #9a3412; font-style: italic;"> (${safeSource})</span>` : ''}
+          ${safeSource ? `<span style="font-weight: normal; color: ${BLOCK_SURFACE_THEME.TEXT_MUTED}; font-style: italic;"> (${safeSource})</span>` : ''}
         </div>
       </blockquote>`;
   },
@@ -454,17 +445,17 @@ export const relatedEventsBlockPlugin: BlockPlugin<RelatedEventsBlockData> = {
     const eventsHtml = events
       .map(
         (e) => `
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #ffffff; border: 1px solid #e7e5e4; border-radius: 8px; font-size: 12px;">
-          <span style="font-weight: 600; color: #292524;">⚔️ ${escapeHtml(e.title)}</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; border-radius: 8px; font-size: 12px;">
+          <span style="font-weight: 600; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY};">⚔️ ${escapeHtml(e.title)}</span>
           ${e.year ? `<span style="font-size: 11px; font-family: monospace; color: #b45309; font-weight: 700;">Năm ${escapeHtml(String(e.year))}</span>` : ''}
         </div>`
       )
       .join('');
 
     return `
-      <div style="margin: 24px 0; padding: 18px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fafaf9;">
-        <div style="font-size: 14px; font-weight: 700; color: #1c1917; margin-bottom: 4px;">⚔️ ${safeTitle}</div>
-        ${safeDesc ? `<p style="font-size: 12px; color: #78716c; margin-top: 0; margin-bottom: 12px;">${safeDesc}</p>` : ''}
+      <div style="margin: 24px 0; padding: 18px; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; border-radius: 12px; background: ${BLOCK_SURFACE_THEME.BG_WHITE};">
+        <div style="font-size: 14px; font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin-bottom: 4px;">⚔️ ${safeTitle}</div>
+        ${safeDesc ? `<p style="font-size: 12px; color: ${BLOCK_SURFACE_THEME.TEXT_MUTED}; margin-top: 0; margin-bottom: 12px;">${safeDesc}</p>` : ''}
         <div style="display: flex; flex-direction: column; gap: 6px;">
           ${eventsHtml}
         </div>
@@ -501,17 +492,17 @@ export const relatedPeopleBlockPlugin: BlockPlugin<RelatedPeopleBlockData> = {
         const safeName = escapeHtml(p.name);
         const safeRole = p.role ? escapeHtml(p.role) : '';
         return `
-        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #ffffff; border: 1px solid #e7e5e4; border-radius: 8px; font-size: 12px; font-weight: 600; color: #292524;">
+        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; border-radius: 8px; font-size: 12px; font-weight: 600; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY};">
           <span>👤</span> <span>${safeName}</span>
-          ${safeRole ? `<span style="font-size: 11px; font-weight: normal; color: #a8a29e;">• ${safeRole}</span>` : ''}
+          ${safeRole ? `<span style="font-size: 11px; font-weight: normal; color: ${BLOCK_SURFACE_THEME.TEXT_MUTED};">• ${safeRole}</span>` : ''}
         </div>`;
       })
       .join('');
 
     return `
-      <div style="margin: 24px 0; padding: 18px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fafaf9;">
-        <div style="font-size: 14px; font-weight: 700; color: #1c1917; margin-bottom: 4px;">👥 ${safeTitle}</div>
-        ${safeDesc ? `<p style="font-size: 12px; color: #78716c; margin-top: 0; margin-bottom: 12px;">${safeDesc}</p>` : ''}
+      <div style="margin: 24px 0; padding: 18px; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; border-radius: 12px; background: ${BLOCK_SURFACE_THEME.BG_WHITE};">
+        <div style="font-size: 14px; font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin-bottom: 4px;">👥 ${safeTitle}</div>
+        ${safeDesc ? `<p style="font-size: 12px; color: ${BLOCK_SURFACE_THEME.TEXT_MUTED}; margin-top: 0; margin-bottom: 12px;">${safeDesc}</p>` : ''}
         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
           ${peopleHtml}
         </div>
@@ -538,7 +529,7 @@ export const resourceLinkBlockPlugin: BlockPlugin<ResourceLinkBlockData> = {
     const safeNote = block.note ? escapeHtml(block.note) : '';
 
     return `
-      <div class="my-4 p-3 bg-slate-50 border-l-4 border-blue-600 rounded-r-lg text-xs">
+      <div class="my-4 p-3 bg-white border border-slate-200 border-l-4 border-l-blue-600 rounded-r-lg text-xs">
         <strong>📄 Sử liệu tham khảo: </strong>
         <a href="${safeHref}" target="_blank" rel="noreferrer" class="text-blue-600 font-semibold hover:underline">${safeTitle}</a>
         ${safeNote ? `<p class="text-slate-500 mt-1 mb-0">${safeNote}</p>` : ''}
@@ -565,6 +556,10 @@ export const sectionRowBlockPlugin: BlockPlugin<RowSectionBlockData> = {
       type: LessonBlockType.SECTION_ROW,
       width: defaultWidth,
       columnCount: 2,
+      layoutPreset: RowLayoutPresetId.SYMMETRIC_6_6,
+      gapSize: RowGapSize.MD,
+      verticalAlign: RowVerticalAlign.TOP,
+      showColumnDivider: false,
       columns: [
         {
           id: col1Id,

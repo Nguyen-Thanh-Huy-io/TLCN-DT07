@@ -1,7 +1,7 @@
 import { WIKIPEDIA_VI_API } from '@/constants/routes';
 import { BlockPaletteItem, LessonBlockGroup, LessonBlockType } from '../types/editor.types';
 import {
-  CalloutVariant,
+  RowFrameStyle,
   RowGapSize,
   RowLayoutPresetId,
   RowVerticalAlign,
@@ -199,49 +199,7 @@ export function getBlockLabel(
   return BLOCK_CATALOG[type as LessonBlockType]?.label ?? fallback;
 }
 
-export interface CalloutVariantOption {
-  variant: CalloutVariant;
-  label: string;
-  inspectorLabel: string;
-  icon: string;
-  cssModifier: string;
-  editorBorderClass: string;
-}
-
-export const CALLOUT_VARIANT_OPTIONS: ReadonlyArray<CalloutVariantOption> = [
-  {
-    variant: CalloutVariant.HISTORICAL_NOTE,
-    label: 'Góc nhìn Sử gia / Lưu ý',
-    inspectorLabel: 'Góc nhìn Sử gia (Vàng)',
-    icon: '📜',
-    cssModifier: 'hisgo-callout--historical-note',
-    editorBorderClass: 'border-slate-200 border-l-4 border-l-amber-500',
-  },
-  {
-    variant: CalloutVariant.INFO,
-    label: 'Bối cảnh / Thông tin thêm',
-    inspectorLabel: 'Bối cảnh lịch sử (Xanh)',
-    icon: '💡',
-    cssModifier: 'hisgo-callout--info',
-    editorBorderClass: 'border-slate-200 border-l-4 border-l-blue-600',
-  },
-  {
-    variant: CalloutVariant.WARNING,
-    label: 'Tranh cãi / Nghi vấn lịch sử',
-    inspectorLabel: 'Nghi vấn & Tranh cãi (Đỏ)',
-    icon: '⚠️',
-    cssModifier: 'hisgo-callout--warning',
-    editorBorderClass: 'border-slate-200 border-l-4 border-l-rose-600',
-  },
-  {
-    variant: CalloutVariant.SUCCESS,
-    label: 'Bài học & Ý nghĩa thời đại',
-    inspectorLabel: 'Bài học thời đại (Lục)',
-    icon: '✨',
-    cssModifier: 'hisgo-callout--success',
-    editorBorderClass: 'border-slate-200 border-l-4 border-l-emerald-600',
-  },
-];
+export * from './callout.constants';
 
 export const TIMELINE_DATE_FORMAT_OPTIONS: ReadonlyArray<{
   value: TimelineDateFormat;
@@ -407,3 +365,34 @@ export const ROW_VERTICAL_ALIGN_OPTIONS: ReadonlyArray<{ value: RowVerticalAlign
   { value: RowVerticalAlign.CENTER, label: 'Giữa' },
   { value: RowVerticalAlign.STRETCH, label: 'Đều' },
 ];
+
+export interface RowFrameStyleOption {
+  value: RowFrameStyle;
+  label: string;
+  title: string;
+  cssModifier: string;
+  editorClass: string;
+}
+
+export const ROW_FRAME_STYLE_OPTIONS: ReadonlyArray<RowFrameStyleOption> = [
+  { value: RowFrameStyle.NONE, label: 'Không', title: 'Không khung', cssModifier: '', editorClass: '' },
+  {
+    value: RowFrameStyle.OUTLINED,
+    label: 'Khung',
+    title: 'Đóng khung viền',
+    cssModifier: 'hisgo-row-container--outlined',
+    editorClass: 'rounded-2xl border border-slate-300 bg-white p-4 sm:p-5 relative',
+  },
+  {
+    value: RowFrameStyle.TINTED,
+    label: 'Nền',
+    title: 'Nền nổi nhẹ',
+    cssModifier: 'hisgo-row-container--tinted',
+    editorClass: 'rounded-2xl border border-amber-200/90 bg-amber-50/40 p-4 sm:p-5 relative',
+  },
+];
+
+export function resolveRowFrameOption(style?: RowFrameStyle): RowFrameStyleOption {
+  const target = style || RowFrameStyle.NONE;
+  return ROW_FRAME_STYLE_OPTIONS.find((opt) => opt.value === target) ?? ROW_FRAME_STYLE_OPTIONS[0];
+}

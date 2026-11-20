@@ -1,8 +1,10 @@
 import {
   ROW_LAYOUT_CONFIG,
   ROW_LAYOUT_PRESETS,
+  resolveRowFrameOption,
   type RowLayoutPresetDefinition,
 } from '../constants/lesson.constants';
+import { escapeHtml } from '../plugins/block-plugin.types';
 import { LessonBlockType } from '../types/editor.types';
 import {
   BlockWidthType,
@@ -11,6 +13,7 @@ import {
   ImageBlockData,
   LessonBlockItem,
   QuoteBlockData,
+  RowFrameStyle,
   RowGapSize,
   RowLayoutPresetId,
   RowSectionBlockData,
@@ -161,32 +164,20 @@ export class RowLayoutStrategy {
     const colWidthsAttr = row.columns.map((c) => Math.round(c.widthPercent)).join(',');
     const gapAttr = row.gapSize ?? RowGapSize.MD;
     const presetAttr = row.layoutPreset ? ` data-preset="${row.layoutPreset}"` : '';
-
+    const frame = resolveRowFrameOption(row.frameStyle);
+    const wrapperCls = [ROW_WRAPPER_CLASS, frame.cssModifier, 'my-6'].filter(Boolean).join(' ');
+    const frameIconHtml =
+      frame.value !== RowFrameStyle.NONE && row.frameIcon?.trim()
+        ? `<span class="hisgo-row-frame-icon" aria-hidden="true">${escapeHtml(row.frameIcon.trim())}</span>`
+        : '';
     const colsHtml = row.columns
       .map((col, idx) => {
         const innerBlocksHtml = col.blocks.map(blockToHtmlFn).join('\n');
         const colClasses = this.getColumnClasses(row, idx);
-        return `
-          <div class="${ROW_COLUMN_CLASS} col-index-${idx} ${colClasses}">
-            ${innerBlocksHtml || '<p class="text-slate-400 italic text-xs">Cột trống</p>'}
-          </div>
-        `;
+        return `<div class="${ROW_COLUMN_CLASS} col-index-${idx} ${colClasses}">${innerBlocksHtml || '<p class="text-slate-400 italic text-xs">Cột trống</p>'}</div>`;
       })
       .join('\n');
-
-    return `
-      <div class="${ROW_WRAPPER_CLASS} my-6">
-        <div 
-          class="${ROW_SECTION_CLASS} ${containerClasses}" 
-          style="grid-template-columns: ${gridStyle};" 
-          data-columns="${colCount}"
-          data-column-widths="${colWidthsAttr}"
-          data-gap="${gapAttr}"${presetAttr}
-        >
-          ${colsHtml}
-        </div>
-      </div>
-    `;
+    return `<div class="${wrapperCls}">${frameIconHtml}<div class="${ROW_SECTION_CLASS} ${containerClasses}" style="grid-template-columns: ${gridStyle};" data-columns="${colCount}" data-column-widths="${colWidthsAttr}" data-gap="${gapAttr}"${presetAttr}>${colsHtml}</div></div>`;
   }
 }
 

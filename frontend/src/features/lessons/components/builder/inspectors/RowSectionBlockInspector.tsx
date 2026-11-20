@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { EmojiPickerButton } from '@/components/common/EmojiPickerButton';
 import {
   INSPECTOR_SEG_BTN_ACTIVE,
   INSPECTOR_SEG_BTN_IDLE,
@@ -15,12 +16,14 @@ import {
   CalloutBlockData,
   HeadingBlockData,
   LessonBlockItem,
+  RowFrameStyle,
   RowGapSize,
   RowSectionBlockData,
   RowVerticalAlign,
 } from '../../../types/block-builder.types';
 import { LessonBlockType } from '../../../types/editor.types';
 import {
+  ROW_FRAME_STYLE_OPTIONS,
   ROW_GAP_OPTIONS,
   ROW_LAYOUT_PRESETS,
   ROW_RATIO_PRESETS,
@@ -103,10 +106,13 @@ function NestedChildInspector({
         />
       )}
       {childBlock.type === LessonBlockType.CALLOUT && (
-        <CalloutBlockInspector
-          block={childBlock as CalloutBlockData}
-          onUpdateBlock={handleUpdateChild}
-        />
+        <div className="space-y-3.5">
+          <CalloutBlockInspector
+            block={childBlock as CalloutBlockData}
+            onUpdateBlock={handleUpdateChild}
+          />
+          <TypographyInspectorPanel hideEditorialLayout />
+        </div>
       )}
       {childBlock.type !== LessonBlockType.TEXT &&
         childBlock.type !== LessonBlockType.HEADING &&
@@ -183,6 +189,7 @@ export function RowSectionBlockInspector({
   const activeLayoutPreset = RowLayoutPresetRegistry.detectMatchingPreset(row);
   const currentGap = row.gapSize ?? RowGapSize.MD;
   const currentAlign = row.verticalAlign ?? RowVerticalAlign.TOP;
+  const currentFrame = row.frameStyle ?? RowFrameStyle.NONE;
 
   return (
     <div className="space-y-3.5 text-xs text-slate-700">
@@ -334,6 +341,40 @@ export function RowSectionBlockInspector({
                   onChange={(next) =>
                     onUpdateBlock(row.id, { showColumnDivider: next })
                   }
+                />
+              </InspectorFieldRow>
+            )}
+
+            <InspectorFieldRow label="Khung bao">
+              <div className={`grid min-w-[164px] grid-cols-3 ${INSPECTOR_SEG_GROUP_CLS}`}>
+                {ROW_FRAME_STYLE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    data-testid={`btn-row-frame-${opt.value}`}
+                    title={opt.title}
+                    onClick={() => onUpdateBlock(row.id, { frameStyle: opt.value })}
+                    className={`h-7 px-1.5 flex items-center justify-center text-[11px] whitespace-nowrap transition cursor-pointer ${
+                      currentFrame === opt.value
+                        ? INSPECTOR_SEG_BTN_ACTIVE
+                        : INSPECTOR_SEG_BTN_IDLE
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </InspectorFieldRow>
+
+            {currentFrame !== RowFrameStyle.NONE && (
+              <InspectorFieldRow label="Icon góc">
+                <EmojiPickerButton
+                  value={row.frameIcon}
+                  displayEmoji={row.frameIcon?.trim()}
+                  placeholder="Chọn icon"
+                  align="right"
+                  ariaLabel="Chọn icon góc khung bao"
+                  onChange={(next) => onUpdateBlock(row.id, { frameIcon: next || '' })}
                 />
               </InspectorFieldRow>
             )}

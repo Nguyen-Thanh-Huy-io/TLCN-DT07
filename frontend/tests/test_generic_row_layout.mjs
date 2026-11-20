@@ -80,15 +80,27 @@ export async function load(url, context, nextLoad) {
 register(`data:text/javascript;base64,${Buffer.from(LOADER_HOOK_SOURCE, 'utf8').toString('base64')}`);
 
 const { LessonBlockType } = await import('../src/features/lessons/types/editor.types.ts');
-const { CalloutVariant, RowGapSize, RowLayoutPresetId, RowVerticalAlign, TimelineSceneStyle } = await import(
-  '../src/features/lessons/types/block-builder.types.ts'
-);
+const {
+  CalloutBoxStyle,
+  CalloutMediaAlign,
+  CalloutVariant,
+  RowFrameStyle,
+  RowGapSize,
+  RowLayoutPresetId,
+  RowVerticalAlign,
+  TimelineSceneStyle,
+} = await import('../src/features/lessons/types/block-builder.types.ts');
 const {
   BLOCK_CATALOG,
+  CALLOUT_BOX_STYLE_OPTIONS,
+  CALLOUT_EMOJI_PRESETS,
+  CALLOUT_MEDIA_ALIGN_OPTIONS,
   CALLOUT_VARIANT_OPTIONS,
   LEGACY_BLOCK_TYPE_STORY_CHAPTER,
   LESSON_BLOCK_ITEMS,
+  ROW_FRAME_STYLE_OPTIONS,
   getBlockLabel,
+  resolveCalloutIcon,
 } = await import('../src/features/lessons/constants/lesson.constants.ts');
 const {
   RowLayoutStrategy,
@@ -184,6 +196,21 @@ test('RowLayoutStrategy tính snap, grid minmax(0, ...fr) và compileRowToHtml �
   assert.match(html, /data-column-widths="33,67"/);
   assert.match(html, /data-gap="LG"/);
   assert.match(html, /data-preset="MAGAZINE_4_8"/);
+  assert.doesNotMatch(html, /hisgo-row-frame-icon/);
+
+  const framedHtml = RowLayoutStrategy.compileRowToHtml(
+    { ...row, frameStyle: RowFrameStyle.OUTLINED, frameIcon: '📖' },
+    (b) => LessonBlockRegistry.blockToHtml(b)
+  );
+  assert.match(framedHtml, /class="hisgo-row-container hisgo-row-container--outlined my-6"/);
+  assert.match(framedHtml, /<span class="hisgo-row-frame-icon" aria-hidden="true">📖<\/span>/);
+
+  const unframedHtml = RowLayoutStrategy.compileRowToHtml(
+    { ...row, frameStyle: RowFrameStyle.NONE, frameIcon: '📖' },
+    (b) => LessonBlockRegistry.blockToHtml(b)
+  );
+  assert.doesNotMatch(unframedHtml, /hisgo-row-frame-icon/);
+  assert.doesNotMatch(unframedHtml, /hisgo-row-container--outlined/);
 });
 
 test('characterBlockPlugin tách header & body và lesson-blocks.css được nạp qua globals.css với đầy đủ @container', () => {
@@ -211,6 +238,15 @@ test('characterBlockPlugin tách header & body và lesson-blocks.css được n�
   assert.match(blocksCss, /\.hisgo-column\s*\{[\s\S]*?overflow-wrap:\s*break-word/);
   assert.match(blocksCss, /\.hisgo-column\s+table\s*\{[\s\S]*?overflow-x:\s*auto/);
   assert.match(blocksCss, /\.hisgo-callout\s*\{/);
+  assert.match(blocksCss, /\.hisgo-callout--neutral\s*\{/);
+  assert.match(blocksCss, /\.hisgo-callout--header-bar\s*\{/);
+  assert.match(blocksCss, /\.hisgo-callout--outlined\s*\{/);
+  assert.match(blocksCss, /\.hisgo-callout-media--right\s*\{/);
+  assert.match(blocksCss, /@container\s+hisgo-callout\s*\(max-width:\s*440px\)/);
+  assert.match(blocksCss, /\.hisgo-callout--compact\s*\{/);
+  assert.match(blocksCss, /\.hisgo-callout--collapsible\s*>\s*\.hisgo-callout-summary/);
+  assert.match(blocksCss, /\.hisgo-row-container--outlined\s*\{/);
+  assert.match(blocksCss, /\.hisgo-row-container--tinted\s*\{/);
   assert.match(blocksCss, /\.hisgo-timeline-block\s*\{/);
 });
 
@@ -231,16 +267,123 @@ test('BLOCK_CATALOG & CALLOUT_VARIANT_OPTIONS đầy đủ và các Block Plugin
       `Thiếu CALLOUT_VARIANT_OPTIONS cho ${variant}`
     );
   }
+  assert.equal(CALLOUT_BOX_STYLE_OPTIONS.length, Object.values(CalloutBoxStyle).length);
+  assert.equal(CALLOUT_MEDIA_ALIGN_OPTIONS.length, Object.values(CalloutMediaAlign).length);
+  assert.equal(ROW_FRAME_STYLE_OPTIONS.length, Object.values(RowFrameStyle).length);
+  assert.ok(CALLOUT_EMOJI_PRESETS.length >= 8);
 
+  // resolveCalloutIcon hỗ trợ: mặc định theo variant, ẩn (""), và icon tùy chỉnh độc lập với màu
+  assert.equal(resolveCalloutIcon({ variant: CalloutVariant.INFO }), '💡');
+  assert.equal(resolveCalloutIcon({ variant: CalloutVariant.INFO, icon: '' }), '');
+  assert.equal(resolveCalloutIcon({ variant: CalloutVariant.WARNING, icon: '⚔️' }), '⚔️');
+
+  // 1. Có tiêu đề + icon tùy chỉnh + plain text nhiều dòng
   const calloutHtml = LessonBlockRegistry.blockToHtml({
     id: 'cal_1',
     type: LessonBlockType.CALLOUT,
     variant: CalloutVariant.INFO,
+    icon: '⚔️',
     title: 'Lưu ý',
-    content: 'Nội dung ghi chú',
+    content: 'Dòng một\nDòng hai',
   });
   assert.match(calloutHtml, /class="hisgo-callout hisgo-callout--info"/);
+  assert.match(calloutHtml, /<span class="hisgo-callout-icon" aria-hidden="true">⚔️<\/span>/);
+  assert.match(calloutHtml, /Dòng một<br \/>Dòng hai/);
   assert.doesNotMatch(calloutHtml, /\sstyle="/);
+
+  // 2. Không tiêu đề -> compact Notion-style, không tự chèn tiêu đề giả
+  const compactCalloutHtml = LessonBlockRegistry.blockToHtml({
+    id: 'cal_2',
+    type: LessonBlockType.CALLOUT,
+    variant: CalloutVariant.NEUTRAL,
+    title: '',
+    content: 'Chỉ có nội dung ngắn',
+  });
+  assert.match(compactCalloutHtml, /class="hisgo-callout hisgo-callout--compact hisgo-callout--neutral"/);
+  assert.doesNotMatch(compactCalloutHtml, /hisgo-callout-title/);
+  assert.doesNotMatch(compactCalloutHtml, /\sstyle="/);
+
+  // 3. Ẩn icon -> không xuất span icon
+  const hiddenIconHtml = LessonBlockRegistry.blockToHtml({
+    id: 'cal_3',
+    type: LessonBlockType.CALLOUT,
+    variant: CalloutVariant.HISTORICAL_NOTE,
+    icon: '',
+    title: 'Ghi chú gọn',
+    content: 'Không biểu tượng',
+  });
+  assert.doesNotMatch(hiddenIconHtml, /hisgo-callout-icon/);
+  assert.doesNotMatch(hiddenIconHtml, /\sstyle="/);
+
+  // 4. Rich HTML -> giữ thẻ hợp lệ & lọc XSS script
+  const richCalloutHtml = LessonBlockRegistry.blockToHtml({
+    id: 'cal_4',
+    type: LessonBlockType.CALLOUT,
+    variant: CalloutVariant.SUCCESS,
+    title: 'Tham khảo',
+    content: '<p><strong>Đậm</strong> và <a href="/bai-viet/tran-thu-do">Trần Thủ Độ</a></p><script>alert(1)</script>',
+  });
+  assert.match(richCalloutHtml, /<strong>Đậm<\/strong>/);
+  assert.match(richCalloutHtml, /href="\/bai-viet\/tran-thu-do"/);
+  assert.doesNotMatch(richCalloutHtml, /<script>/);
+  assert.doesNotMatch(richCalloutHtml, /\sstyle="/);
+
+  // 5. Chế độ thu gọn (collapsible) -> details/summary
+  const collapsibleHtml = LessonBlockRegistry.blockToHtml({
+    id: 'cal_5',
+    type: LessonBlockType.CALLOUT,
+    variant: CalloutVariant.WARNING,
+    collapsible: true,
+    title: 'Xem giải thích chi tiết',
+    content: '<p>Nội dung bên trong</p>',
+  });
+  assert.match(collapsibleHtml, /<details class="hisgo-callout hisgo-callout--collapsible hisgo-callout--warning">/);
+  assert.match(collapsibleHtml, /<summary class="hisgo-callout-summary">/);
+  assert.doesNotMatch(collapsibleHtml, /\sstyle="/);
+
+  // 6. Kiểu HEADER_BAR (Em có biết?)
+  const headerBarHtml = LessonBlockRegistry.blockToHtml({
+    id: 'cal_6',
+    type: LessonBlockType.CALLOUT,
+    variant: CalloutVariant.INFO,
+    boxStyle: CalloutBoxStyle.HEADER_BAR,
+    title: 'EM CÓ BIẾT?',
+    content: '<p>Phương pháp lò cao...</p>',
+  });
+  assert.match(headerBarHtml, /class="hisgo-callout hisgo-callout--info hisgo-callout--header-bar"/);
+  assert.match(headerBarHtml, />EM CÓ BIẾT\?</);
+  assert.doesNotMatch(headerBarHtml, /\sstyle="/);
+
+  // 7. Kiểu OUTLINED + Ảnh nổi bên phải kèm chú thích + chặn URI nguy hiểm
+  const outlinedMediaHtml = LessonBlockRegistry.blockToHtml({
+    id: 'cal_7',
+    type: LessonBlockType.CALLOUT,
+    variant: CalloutVariant.NEUTRAL,
+    boxStyle: CalloutBoxStyle.OUTLINED,
+    title: '',
+    content: '<p>Từ năm 1896 đến nay...</p>',
+    media: {
+      src: 'https://example.com/olympic.jpg',
+      align: CalloutMediaAlign.RIGHT,
+      caption: 'Hình 1. Bảo tàng Ô-lim-píc Nhật Bản',
+    },
+  });
+  assert.match(outlinedMediaHtml, /class="hisgo-callout hisgo-callout--compact hisgo-callout--neutral hisgo-callout--outlined"/);
+  assert.match(outlinedMediaHtml, /class="hisgo-callout-media hisgo-callout-media--right"/);
+  assert.match(outlinedMediaHtml, /<figcaption class="hisgo-callout-media-caption">Hình 1\. Bảo tàng Ô-lim-píc Nhật Bản<\/figcaption>/);
+  assert.doesNotMatch(outlinedMediaHtml, /\sstyle="/);
+
+  const unsafeMediaHtml = LessonBlockRegistry.blockToHtml({
+    id: 'cal_8',
+    type: LessonBlockType.CALLOUT,
+    variant: CalloutVariant.NEUTRAL,
+    boxStyle: CalloutBoxStyle.OUTLINED,
+    title: '',
+    content: '<p>Test XSS URI</p>',
+    media: { src: 'javascript:alert(1)', align: CalloutMediaAlign.LEFT },
+  });
+  assert.match(unsafeMediaHtml, /src="#"/);
+  assert.doesNotMatch(unsafeMediaHtml, /javascript:/);
 
   const eventHtml = LessonBlockRegistry.blockToHtml({
     id: 'ev_1',

@@ -1,25 +1,38 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
+import { Loader2, Trash2, Upload } from 'lucide-react';
+import { UploadApiService } from '@/services/entities/upload.service';
+import { extractErrorMessage } from '@/services/api';
 import {
   INSPECTOR_INPUT_CLS,
   INSPECTOR_SEG_BTN_ACTIVE,
   INSPECTOR_SEG_BTN_IDLE,
   INSPECTOR_SEG_GROUP_CLS,
-  INSPECTOR_SELECT_CLS,
   InspectorAccordionSection,
   InspectorFieldRow,
+  InspectorToggleSwitch,
 } from '@/components/common/TextStyleControls';
 import {
   CalloutBlockData,
-  CalloutVariant,
+  CalloutMediaAlign,
+  CalloutMediaConfig,
   HeadingBlockData,
   LessonBlockItem,
   QuoteBlockData,
   RelatedEventsBlockData,
   RelatedPeopleBlockData,
 } from '../../../types/block-builder.types';
-import { CALLOUT_VARIANT_OPTIONS } from '../../../constants/lesson.constants';
+import {
+  CALLOUT_MEDIA_ALIGN_OPTIONS,
+  resolveCalloutMediaAlignOption,
+  resolveCalloutOption,
+} from '../../../constants/callout.constants';
+import {
+  CalloutBoxStylePicker,
+  CalloutColorSwatchPicker,
+  CalloutEmojiControlGroup,
+} from '../CalloutBlockItemEditor';
 
 interface SimpleInspectorProps<T extends LessonBlockItem> {
   block: T;
@@ -52,30 +65,161 @@ export function HeadingBlockInspector({
   );
 }
 
+function CalloutMediaInspectorControls({
+  media,
+  onChangeMedia,
+}: {
+  media?: CalloutMediaConfig;
+  onChangeMedia: (next?: CalloutMediaConfig) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const currentAlign = resolveCalloutMediaAlignOption(media?.align).value;
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Vui lòng chọn tệp hình ảnh hợp lệ.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('Ảnh tối đa 10MB.');
+      return;
+    }
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const res = await UploadApiService.uploadImage(file);
+      if (res?.url) {
+        onChangeMedia({ ...media, align: currentAlign, src: res.url });
+      } else {
+        setUploadError('Tải ảnh lên thất bại.');
+      }
+    } catch (err) {
+      setUploadError(extractErrorMessage(err, 'Lỗi kết nối khi tải ảnh lên.'));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="pt-2 border-t border-slate-100 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-slate-600 font-medium">Ảnh trong hộp</span>
+        <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={() => fileRef.current?.click()}
+          className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
+        >
+          {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+          <span>{uploading ? 'Đang tải...' : 'Tải ảnh'}</span>
+        </button>
+      </div>
+
+      <input
+        type="text"
+        value={media?.src || ''}
+        onChange={(e) => {
+          const val = e.target.value;
+          onChangeMedia(val.trim() ? { ...media, align: currentAlign, src: val } : undefined);
+        }}
+        placeholder="Hoặc dán URL ảnh minh họa..."
+        aria-label="URL ảnh trong hộp"
+        className={INSPECTOR_INPUT_CLS}
+      />
+
+      {uploadError && <p className="text-[11px] text-rose-600 font-medium">{uploadError}</p>}
+
+      {media?.src && (
+        <div className="space-y-2">
+          <InspectorFieldRow label="Vị trí ảnh">
+            <div className={`grid w-36 grid-cols-2 ${INSPECTOR_SEG_GROUP_CLS}`}>
+              {CALLOUT_MEDIA_ALIGN_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onChangeMedia({ ...media, align: opt.value as CalloutMediaAlign })}
+                  className={`grid h-7 place-items-center text-[11px] transition cursor-pointer ${
+                    currentAlign === opt.value ? INSPECTOR_SEG_BTN_ACTIVE : INSPECTOR_SEG_BTN_IDLE
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </InspectorFieldRow>
+
+          <input
+            type="text"
+            value={media.caption || ''}
+            onChange={(e) => onChangeMedia({ ...media, caption: e.target.value })}
+            placeholder="Chú thích ảnh (vd: Hình 1...)"
+            aria-label="Chú thích ảnh trong hộp"
+            className={INSPECTOR_INPUT_CLS}
+          />
+
+          <button
+            type="button"
+            onClick={() => onChangeMedia(undefined)}
+            className="w-full py-1 px-2 rounded-lg border border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-[11px] font-semibold text-rose-600 flex items-center justify-center gap-1 cursor-pointer"
+          >
+            <Trash2 className="w-3 h-3" />
+            <span>Gỡ ảnh</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function CalloutBlockInspector({
   block: callout,
   onUpdateBlock,
 }: SimpleInspectorProps<CalloutBlockData>) {
+  const activeOption = resolveCalloutOption(callout.variant);
   return (
-    <InspectorAccordionSection title="Hộp ghi chú">
-      <InspectorFieldRow label="Sắc thái">
-        <select
-          aria-label="Sắc thái hộp thoại"
-          value={callout.variant}
-          onChange={(e) =>
-            onUpdateBlock(callout.id, {
-              variant: e.target.value as CalloutVariant,
-            })
-          }
-          className={`${INSPECTOR_SELECT_CLS} w-44`}
-        >
-          {CALLOUT_VARIANT_OPTIONS.map((opt) => (
-            <option key={opt.variant} value={opt.variant}>
-              {opt.inspectorLabel}
-            </option>
-          ))}
-        </select>
+    <InspectorAccordionSection title="Hộp ghi chú" subtitle={activeOption.label}>
+      <InspectorFieldRow label="Kiểu khung">
+        <CalloutBoxStylePicker
+          boxStyle={callout.boxStyle}
+          onSelect={(boxStyle) => onUpdateBlock(callout.id, { boxStyle })}
+        />
       </InspectorFieldRow>
+
+      <InspectorFieldRow label="Màu sắc">
+        <CalloutColorSwatchPicker
+          variant={callout.variant}
+          onSelect={(variant) => onUpdateBlock(callout.id, { variant })}
+        />
+      </InspectorFieldRow>
+
+      <div className="space-y-1.5">
+        <span className="text-slate-600 font-medium block">Biểu tượng</span>
+        <CalloutEmojiControlGroup
+          icon={callout.icon}
+          variant={callout.variant}
+          pickerAlign="right"
+          onChangeIcon={(icon) => onUpdateBlock(callout.id, { icon })}
+        />
+      </div>
+
+      <InspectorFieldRow label="Cho phép thu gọn">
+        <InspectorToggleSwitch
+          checked={Boolean(callout.collapsible)}
+          onChange={(next) => onUpdateBlock(callout.id, { collapsible: next })}
+          ariaLabel="Cho phép thu gọn hộp ghi chú"
+        />
+      </InspectorFieldRow>
+
+      <CalloutMediaInspectorControls
+        media={callout.media}
+        onChangeMedia={(media) => onUpdateBlock(callout.id, { media })}
+      />
     </InspectorAccordionSection>
   );
 }

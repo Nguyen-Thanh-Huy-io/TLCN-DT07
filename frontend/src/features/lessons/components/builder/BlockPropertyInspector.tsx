@@ -85,11 +85,18 @@ const BLOCK_INSPECTOR_STRATEGIES: BlockInspectorStrategyMap = {
     ) : (
       <HeadingBlockInspector block={block as HeadingBlockData} onUpdateBlock={onUpdateBlock} />
     ),
-  [LessonBlockType.CALLOUT]: ({ block, onUpdateBlock }) => (
-    <CalloutBlockInspector
-      block={block as CalloutBlockData}
-      onUpdateBlock={onUpdateBlock}
-    />
+  [LessonBlockType.CALLOUT]: ({ block, onUpdateBlock, compact, accentColor }) => (
+    <div className="space-y-3.5">
+      <CalloutBlockInspector
+        block={block as CalloutBlockData}
+        onUpdateBlock={onUpdateBlock}
+      />
+      <TypographyInspectorPanel
+        compact={compact}
+        accentColor={accentColor}
+        hideEditorialLayout
+      />
+    </div>
   ),
   [LessonBlockType.RELATED_PEOPLE]: ({ block, onUpdateBlock }) => (
     <RelatedPeopleBlockInspector

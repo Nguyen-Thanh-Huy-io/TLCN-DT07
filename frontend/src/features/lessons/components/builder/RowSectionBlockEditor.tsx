@@ -2,9 +2,9 @@
 
 import React, { useRef, useState } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
-import { RowSectionBlockData, LessonBlockItem } from '../../types/block-builder.types';
+import { RowFrameStyle, RowSectionBlockData, LessonBlockItem } from '../../types/block-builder.types';
 import { LessonBlockType, LessonBlockGroup } from '../../types/editor.types';
-import { LESSON_BLOCK_ITEMS } from '../../constants/lesson.constants';
+import { LESSON_BLOCK_ITEMS, resolveRowFrameOption } from '../../constants/lesson.constants';
 import { RowLayoutStrategy, BlockPlacementRuleEngine } from '../../strategies/row-layout.strategy';
 import { ColumnResizer } from './ColumnResizer';
 import { BlockSubElementType, useActiveEditor } from '../../context/ActiveEditorContext';
@@ -42,6 +42,9 @@ export function RowSectionBlockEditor({
   const gridTemplate = RowLayoutStrategy.getGridTemplateColumns(data.columns);
   const containerClasses = RowLayoutStrategy.getRowContainerClasses(data);
   const columnWidthsAttr = data.columns.map((c) => Math.round(c.widthPercent)).join(',');
+  const frameOption = resolveRowFrameOption(data.frameStyle);
+  const frameBadge =
+    data.frameStyle && data.frameStyle !== RowFrameStyle.NONE ? data.frameIcon?.trim() : '';
 
   const handleColDragOver = (e: React.DragEvent, col: (typeof data.columns)[0]) => {
     e.preventDefault();
@@ -86,8 +89,16 @@ export function RowSectionBlockEditor({
     <div
       data-testid={`row-section-editor-${data.id}`}
       onClick={() => setActiveSubElement(null)}
-      className="space-y-4 font-sans w-full"
+      className={`space-y-4 font-sans w-full ${frameOption.editorClass}`}
     >
+      {frameBadge && (
+        <span
+          aria-hidden="true"
+          className="absolute -top-3 -left-3 w-7 h-7 rounded-full bg-white border border-slate-300 shadow-xs grid place-items-center text-sm z-10"
+        >
+          {frameBadge}
+        </span>
+      )}
       {/* KHUNG LƯỚI ĐA CỘT (EDITORIAL MULTI-COLUMN SPREAD — MỌI CẤU HÌNH SỐ CỘT & TỶ LỆ NẰM BÊN INSPECTOR PHẢI) */}
       <div
         ref={containerRef}

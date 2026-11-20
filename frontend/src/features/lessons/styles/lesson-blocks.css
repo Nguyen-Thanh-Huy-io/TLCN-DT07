@@ -39,12 +39,14 @@
 
 /* --- Callout --- */
 .hisgo-callout {
+  container-type: inline-size;
+  container-name: hisgo-callout;
   margin: 18px 0;
   padding: 14px 18px;
   background: var(--hisgo-block-bg);
   border: 1px solid var(--hisgo-block-border);
   border-left: 4px solid #d97706;
-  border-radius: 8px;
+  border-radius: 10px;
   font-family: inherit;
   max-width: 100%;
   min-width: 0;
@@ -52,19 +54,127 @@
 }
 
 .hisgo-callout--historical-note {
+  border-color: #fde68a;
   border-left-color: #d97706;
+  background: #fffbeb;
 }
 
 .hisgo-callout--info {
+  border-color: #bae6fd;
   border-left-color: #2563eb;
+  background: #f0f9ff;
 }
 
 .hisgo-callout--warning {
+  border-color: #fecdd3;
   border-left-color: #dc2626;
+  background: #fff1f2;
 }
 
 .hisgo-callout--success {
+  border-color: #a7f3d0;
   border-left-color: #059669;
+  background: #ecfdf5;
+}
+
+.hisgo-callout--neutral {
+  border-color: #e2e8f0;
+  border-left-color: #64748b;
+  background: #f8fafc;
+}
+
+.hisgo-callout--header-bar {
+  padding: 0;
+  overflow: hidden;
+  border-left-width: 1px;
+}
+
+.hisgo-callout--header-bar > .hisgo-callout-title,
+.hisgo-callout--header-bar > .hisgo-callout-summary {
+  background: #0369a1;
+  color: #ffffff;
+  padding: 9px 16px;
+  margin-bottom: 0;
+  font-size: 13.5px;
+  letter-spacing: 0.02em;
+}
+
+.hisgo-callout--header-bar.hisgo-callout--historical-note > .hisgo-callout-title,
+.hisgo-callout--header-bar.hisgo-callout--historical-note > .hisgo-callout-summary {
+  background: #d97706;
+}
+
+.hisgo-callout--header-bar.hisgo-callout--info > .hisgo-callout-title,
+.hisgo-callout--header-bar.hisgo-callout--info > .hisgo-callout-summary {
+  background: #0369a1;
+}
+
+.hisgo-callout--header-bar.hisgo-callout--warning > .hisgo-callout-title,
+.hisgo-callout--header-bar.hisgo-callout--warning > .hisgo-callout-summary {
+  background: #be123c;
+}
+
+.hisgo-callout--header-bar.hisgo-callout--success > .hisgo-callout-title,
+.hisgo-callout--header-bar.hisgo-callout--success > .hisgo-callout-summary {
+  background: #047857;
+}
+
+.hisgo-callout--header-bar.hisgo-callout--neutral > .hisgo-callout-title,
+.hisgo-callout--header-bar.hisgo-callout--neutral > .hisgo-callout-summary {
+  background: #334155;
+}
+
+.hisgo-callout--header-bar.hisgo-callout--collapsible > .hisgo-callout-summary::after {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hisgo-callout--header-bar > .hisgo-callout-body {
+  padding: 14px 16px;
+}
+
+.hisgo-callout--header-bar.hisgo-callout--collapsible[open] > .hisgo-callout-summary {
+  margin-bottom: 0;
+}
+
+.hisgo-callout--outlined {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-left-width: 1.5px;
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.hisgo-callout--outlined.hisgo-callout--historical-note {
+  border-color: #fcd34d;
+}
+
+.hisgo-callout--outlined.hisgo-callout--info {
+  border-color: #93c5fd;
+}
+
+.hisgo-callout--outlined.hisgo-callout--warning {
+  border-color: #fda4af;
+}
+
+.hisgo-callout--outlined.hisgo-callout--success {
+  border-color: #6ee7b7;
+}
+
+.hisgo-callout--compact {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.hisgo-callout--compact > .hisgo-callout-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.hisgo-callout-icon {
+  flex-shrink: 0;
+  line-height: 1.4;
+  font-size: 16px;
 }
 
 .hisgo-callout-title {
@@ -74,13 +184,123 @@
   margin-bottom: 6px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+.hisgo-callout--collapsible > .hisgo-callout-summary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--hisgo-block-ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.hisgo-callout--collapsible > .hisgo-callout-summary::-webkit-details-marker {
+  display: none;
+}
+
+.hisgo-callout--collapsible > .hisgo-callout-summary::after {
+  content: '▸';
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--hisgo-block-ink-muted);
+  transition: transform 0.15s ease;
+}
+
+.hisgo-callout--collapsible[open] > .hisgo-callout-summary::after {
+  transform: rotate(90deg);
+}
+
+.hisgo-callout--collapsible[open] > .hisgo-callout-summary {
+  margin-bottom: 8px;
+}
+
+.hisgo-callout-title-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .hisgo-callout-body {
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--hisgo-block-ink-secondary);
-  line-height: 1.6;
+  line-height: 1.65;
+  min-width: 0;
+}
+
+.hisgo-callout-body::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+.hisgo-callout-media {
+  width: 46%;
+  max-width: 100%;
+  margin: 2px 0 10px 0;
+}
+
+.hisgo-callout-media--right {
+  float: right;
+  margin-left: 18px;
+}
+
+.hisgo-callout-media--left {
+  float: left;
+  margin-right: 18px;
+}
+
+.hisgo-callout-media-img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  border: 1px solid var(--hisgo-block-border);
+}
+
+.hisgo-callout-media-caption {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--hisgo-block-ink-muted);
+  text-align: center;
+  line-height: 1.45;
+}
+
+@container hisgo-callout (max-width: 440px) {
+  .hisgo-callout-media--left,
+  .hisgo-callout-media--right {
+    float: none;
+    width: 100%;
+    margin: 0 0 12px 0;
+  }
+}
+
+.hisgo-callout-body p {
+  margin: 0 0 8px 0;
+}
+
+.hisgo-callout-body p:first-child {
+  margin-top: 0;
+}
+
+.hisgo-callout-body p:last-child {
+  margin-bottom: 0;
+}
+
+.hisgo-callout-body ul,
+.hisgo-callout-body ol {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+
+.hisgo-callout-body a {
+  color: #8c2d19;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* --- Character Block & Container Query --- */
@@ -750,6 +970,38 @@
   container-name: hisgo-row;
   width: 100%;
   min-width: 0;
+}
+
+.hisgo-row-container--outlined {
+  position: relative;
+  padding: 18px 20px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.hisgo-row-container--tinted {
+  position: relative;
+  padding: 18px 20px;
+  border: 1px solid #fde68a;
+  border-radius: 14px;
+  background: #fffbeb;
+}
+
+.hisgo-row-frame-icon {
+  position: absolute;
+  top: -13px;
+  left: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
 .hisgo-column {

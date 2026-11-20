@@ -18,7 +18,6 @@ import {
   imageBlockPlugin,
   videoBlockPlugin,
   quoteBlockPlugin,
-  calloutBlockPlugin,
   characterBlockPlugin,
   eventBlockPlugin,
   mapBlockPlugin,
@@ -31,6 +30,7 @@ import {
   setRowSectionCompiler,
   resourceLinkBlockPlugin,
 } from './simple-block.plugins';
+import { calloutBlockPlugin } from './callout-block.plugin';
 import { timelineBlockPlugin } from './timeline-block.plugin';
 
 const LEGACY_TABLE_TYPE = 'TABLE';

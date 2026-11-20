@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { TipTapContent } from '../TipTapContent';
-import { MapBlockData, QuoteBlockData, CalloutBlockData, ComparisonTableBlockData, ComparisonTableRow } from '../../types/block-builder.types';
-import { CALLOUT_VARIANT_OPTIONS } from '../../constants/lesson.constants';
+import { MapBlockData, QuoteBlockData, ComparisonTableBlockData, ComparisonTableRow } from '../../types/block-builder.types';
+export { CalloutBlockItemEditor } from './CalloutBlockItemEditor';
 
 // --- TextBlockEditor.tsx ---
 interface TextBlockEditorProps {
@@ -129,73 +129,6 @@ export function QuoteBlockItemEditor({ data, onChange }: QuoteBlockItemEditorPro
             className="w-full text-xs px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500"
           />
         </div>
-      </div>
-    </div>
-  );
-}
-
-// --- CalloutBlockItemEditor.tsx ---
-interface CalloutBlockItemEditorProps {
-  data: CalloutBlockData;
-  onChange: (updates: Partial<CalloutBlockData>) => void;
-}
-
-const CALLOUT_SURFACE_BG_CLASS = 'bg-white';
-const CALLOUT_TITLE_COLOR_CLASS = 'text-slate-900';
-
-export function CalloutBlockItemEditor({ data, onChange }: CalloutBlockItemEditorProps) {
-  const currentVariant =
-    CALLOUT_VARIANT_OPTIONS.find((v) => v.variant === data.variant) || CALLOUT_VARIANT_OPTIONS[0];
-
-  return (
-    <div className={`@container min-w-0 p-3 @[360px]:p-4 rounded-xl border ${currentVariant.editorBorderClass} ${CALLOUT_SURFACE_BG_CLASS} space-y-3 transition-colors`}>
-      {/* Thanh chọn Variant */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
-        <div className="flex items-center gap-2">
-          <span className="text-base">{currentVariant.icon}</span>
-          <span className="text-xs font-bold uppercase tracking-wide text-slate-700">
-            Hộp ghi chú (Callout)
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {CALLOUT_VARIANT_OPTIONS.map((v) => (
-            <button
-              key={v.variant}
-              type="button"
-              onClick={() => onChange({ variant: v.variant })}
-              className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer border ${
-                data.variant === v.variant
-                  ? 'bg-slate-900 shadow-2xs border-slate-900 text-white'
-                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <span>{v.icon}</span> <span className="hidden sm:inline">{v.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Ô tiêu đề Callout */}
-      <div>
-        <input
-          type="text"
-          value={data.title}
-          onChange={(e) => onChange({ title: e.target.value })}
-          placeholder="Tiêu đề hộp ghi chú (Ví dụ: Góc nhìn sử học về chiến thuật...)"
-          className={`w-full text-xs sm:text-sm font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-slate-400 ${CALLOUT_TITLE_COLOR_CLASS}`}
-        />
-      </div>
-
-      {/* Nội dung diễn giải Callout */}
-      <div>
-        <textarea
-          rows={3}
-          value={data.content}
-          onChange={(e) => onChange({ content: e.target.value })}
-          placeholder="Nhập nội dung lưu ý, đánh giá bối cảnh lịch sử hoặc phân tích sâu tại đây..."
-          className="w-full text-xs p-3 bg-white rounded-lg border border-slate-200 focus:outline-none focus:border-slate-400 text-slate-700 leading-relaxed"
-        />
       </div>
     </div>
   );

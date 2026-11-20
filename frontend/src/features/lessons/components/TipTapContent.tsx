@@ -71,7 +71,7 @@ function resolveContentBoxHeightClass(
   compact?: boolean,
 ): string {
   if (remoteToolbarOnly) {
-    return '!p-0 !bg-transparent min-h-[100px]';
+    return minHeightClass || '!p-0 !bg-transparent min-h-[100px]';
   }
   if (minHeightClass) {
     return minHeightClass;
@@ -160,8 +160,10 @@ export function TipTapContent({
 
   return (
     <div
-      className={`relative flex-1 flex flex-col ${
-        remoteToolbarOnly ? '' : 'tiptap-editor-wrapper'
+      className={`${
+        remoteToolbarOnly
+          ? 'relative block'
+          : 'relative flex-1 flex flex-col tiptap-editor-wrapper'
       } ${containerHeightClass}`}
     >
       {editor && (

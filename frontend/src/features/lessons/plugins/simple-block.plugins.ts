@@ -1,12 +1,11 @@
 import { LessonBlockType } from '../types/editor.types';
 import {
-  CalloutBlockData, CalloutVariant, CharacterBlockData, ComparisonTableBlockData,
-  DividerBlockData, EventBlockData, HeadingBlockData, ImageBlockData, LessonBlockItem,
-  MapBlockData, QuizBlockData, QuoteBlockData, RelatedEventsBlockData, RelatedPeopleBlockData,
-  ResourceLinkBlockData, RowGapSize, RowLayoutPresetId, RowSectionBlockData,
-  RowVerticalAlign, TextBlockData, VideoBlockData,
+  CharacterBlockData, ComparisonTableBlockData, DividerBlockData, EventBlockData,
+  HeadingBlockData, ImageBlockData, LessonBlockItem, MapBlockData, QuizBlockData,
+  QuoteBlockData, RelatedEventsBlockData, RelatedPeopleBlockData, ResourceLinkBlockData,
+  RowGapSize, RowLayoutPresetId, RowSectionBlockData, RowVerticalAlign, TextBlockData,
+  VideoBlockData,
 } from '../types/block-builder.types';
-import { CALLOUT_VARIANT_OPTIONS } from '../constants/lesson.constants';
 import { BlockPlugin, BlockWidth, escapeHtml, safeUrl, renderCollapsibleDetail } from './block-plugin.types';
 import { SAMPLE_REMOTE_LINKS } from '@/constants/routes';
 import { RowLayoutStrategy, createBlockUUID } from '../strategies/row-layout.strategy';
@@ -18,31 +17,6 @@ import {
   LESSON_QUIZ_PLACEHOLDER_ATTR,
   quizBlockQuestions,
 } from '../utils/lesson-quiz.util';
-
-// --- callout-block.plugin.ts ---
-export const calloutBlockPlugin: BlockPlugin<CalloutBlockData> = {
-  type: LessonBlockType.CALLOUT,
-  createDefault: (id: string, defaultWidth: BlockWidth): CalloutBlockData => ({
-    id,
-    type: LessonBlockType.CALLOUT,
-    width: defaultWidth,
-    variant: CalloutVariant.HISTORICAL_NOTE,
-    title: 'Lưu ý từ góc nhìn Sử học',
-    content:
-      'Các nhà nghiên cứu lịch sử nhấn mạnh rằng mốc thời gian này có ý nghĩa chuyển hướng chiến lược toàn cục cho phong trào kháng chiến.',
-  }),
-  toHtml: (block: CalloutBlockData): string => {
-    const variant = block.variant || CalloutVariant.HISTORICAL_NOTE;
-    const meta = CALLOUT_VARIANT_OPTIONS.find((opt) => opt.variant === variant) ?? CALLOUT_VARIANT_OPTIONS[0];
-    return `
-      <div class="hisgo-callout ${meta.cssModifier}">
-        <div class="hisgo-callout-title">
-          <span>${meta.icon}</span> <span>${escapeHtml(block.title || 'Lưu ý lịch sử')}</span>
-        </div>
-        <div class="hisgo-callout-body">${block.content || ''}</div>
-      </div>`;
-  },
-};
 
 // --- character-block.plugin.ts ---
 const CHARACTER_CARD_CLASSES = {

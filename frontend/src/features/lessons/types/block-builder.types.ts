@@ -197,13 +197,35 @@ export enum CalloutVariant {
   INFO = 'INFO',
   WARNING = 'WARNING',
   SUCCESS = 'SUCCESS',
+  NEUTRAL = 'NEUTRAL',
+}
+
+export enum CalloutBoxStyle {
+  LEFT_ACCENT = 'LEFT_ACCENT',
+  HEADER_BAR = 'HEADER_BAR',
+  OUTLINED = 'OUTLINED',
+}
+
+export enum CalloutMediaAlign {
+  LEFT = 'LEFT',
+  RIGHT = 'RIGHT',
+}
+
+export interface CalloutMediaConfig {
+  src: string;
+  caption?: string;
+  align?: CalloutMediaAlign;
 }
 
 export interface CalloutBlockData extends BaseBlockData {
   type: LessonBlockType.CALLOUT;
   variant: CalloutVariant;
+  boxStyle?: CalloutBoxStyle;
+  icon?: string;
+  collapsible?: boolean;
   title: string;
   content: string;
+  media?: CalloutMediaConfig;
 }
 
 export interface QuoteBlockData extends BaseBlockData {
@@ -251,6 +273,12 @@ export enum RowVerticalAlign {
   STRETCH = 'STRETCH',
 }
 
+export enum RowFrameStyle {
+  NONE = 'NONE',
+  OUTLINED = 'OUTLINED',
+  TINTED = 'TINTED',
+}
+
 export enum RowLayoutPresetId {
   MAGAZINE_4_8 = 'MAGAZINE_4_8',
   SYMMETRIC_6_6 = 'SYMMETRIC_6_6',
@@ -274,6 +302,8 @@ export interface RowSectionBlockData extends BaseBlockData {
   gapSize?: RowGapSize;
   verticalAlign?: RowVerticalAlign;
   showColumnDivider?: boolean;
+  frameStyle?: RowFrameStyle;
+  frameIcon?: string;
   gap?: number;
 }
 

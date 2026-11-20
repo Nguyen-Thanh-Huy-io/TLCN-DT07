@@ -7,9 +7,11 @@ import {
   Query,
   Res,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { Throttle, SkipThrottle } from '@nestjs/throttler';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '../common/guards/auth.guard';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { GoogleOAuthService } from './services/google-oauth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
@@ -19,7 +21,6 @@ import {
   LoginDto,
   RefreshTokenDto,
   LogoutDto,
-  LogoutAllDto,
 } from './dto/auth-request.dto';
 import {
   GoogleOAuthInitDto,
@@ -30,7 +31,7 @@ import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { THROTTLER_CONFIG } from '../common/config/throttler.config';
 import { ApiResponseDecorator } from '../common/decorators';
 
-@ApiTags('auth')
+@ApiTags('Auth - Xác thực & Phân quyền')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -41,7 +42,10 @@ export class AuthController {
 
   // Strict rate limit for registration: 5 requests per 15 minutes
   @ApiOperation({ summary: 'Register a new user account' })
-  @ApiResponseDecorator(201, 'User registered successfully. Verification email sent.')
+  @ApiResponseDecorator(
+    201,
+    'User registered successfully. Verification email sent.',
+  )
   @Throttle({ default: THROTTLER_CONFIG.AUTH })
   @Post()
   create(@Body() payload: CreateAuthDto, @Req() req: Request) {
@@ -146,7 +150,9 @@ export class AuthController {
    * For browser-based flows, this redirects to the frontend
    * For API-based flows, returns JSON with tokens
    */
-  @ApiOperation({ summary: 'Google OAuth callback handler (GET for web redirects)' })
+  @ApiOperation({
+    summary: 'Google OAuth callback handler (GET for web redirects)',
+  })
   @ApiResponseDecorator(200, 'Google authentication successful')
   @Get('google/callback')
   async googleOAuthCallback(
@@ -155,7 +161,7 @@ export class AuthController {
     @Query('error') error: string,
     @Query('error_description') errorDescription: string,
     @Req() req: Request,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     @Res({ passthrough: true }) res: Response,
   ) {
     // Handle OAuth errors
@@ -236,7 +242,9 @@ export class AuthController {
    * Alternative POST endpoint for Google OAuth callback
    * Useful for mobile apps or SPAs that handle the callback differently
    */
-  @ApiOperation({ summary: 'Google OAuth callback handler (POST for mobile/SPA API)' })
+  @ApiOperation({
+    summary: 'Google OAuth callback handler (POST for mobile/SPA API)',
+  })
   @ApiResponseDecorator(200, 'Google authentication successful')
   @Post('google/callback')
   async googleOAuthCallbackPost(
@@ -369,7 +377,10 @@ export class AuthController {
   ) {
     this.customLogger.log('Logout requested', 'AuthController');
 
-    const result = await this.authService.logout(body.refreshToken, body.userId);
+    const result = await this.authService.logout(
+      body.refreshToken,
+      body.userId,
+    );
 
     return {
       success: true,
@@ -381,15 +392,20 @@ export class AuthController {
    * Logout from all devices
    */
   @ApiOperation({ summary: 'Logout from all devices' })
+  @ApiBearerAuth('JWT-auth')
   @ApiResponseDecorator(200, 'Logged out from all devices successfully')
+  @UseGuards(AuthGuard)
   @Post('logout-all')
-  async logoutAll(@Body() body: LogoutAllDto) {
+  async logoutAll(@Req() req: Request & { user: { userId: string } }) {
+    // Chỉ thu hồi phiên của chính người gọi — không nhận userId từ body
+    // (trước đây ai cũng có thể đăng xuất tài khoản người khác).
+    const userId = req.user.userId;
     this.customLogger.log(
-      `Logout all devices requested for user: ${body.userId}`,
+      `Logout all devices requested for user: ${userId}`,
       'AuthController',
     );
 
-    const result = await this.authService.logoutAllDevices(body.userId);
+    const result = await this.authService.logoutAllDevices(userId);
 
     return {
       success: true,

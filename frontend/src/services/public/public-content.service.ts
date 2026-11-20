@@ -1,0 +1,238 @@
+/**
+ * Đọc API công khai /public/* — dùng trong Server Component (fetch thuần, không axios/token).
+ * Lỗi mạng / 404: danh sách trả [], chi tiết trả null — trang tự hiển thị trạng thái rỗng.
+ *
+ * Mọi nhãn niên đại (`dateLabel`) do backend tính sẵn (năm âm → "TCN"), frontend chỉ hiển thị.
+ */
+
+import { INTERNAL_API_BASE_URL } from '@/constants/api-url';
+import type { ArticleKind } from './article-kind';
+
+const API_URL = INTERNAL_API_BASE_URL;
+
+export const CATEGORY_CANONICAL_ROUTES: Record<string, string> = {};
+
+export const PUBLIC_ROUTES = {
+  ARTICLES: '/bai-viet',
+  ARTICLE: (slug: string) => `/bai-viet/${slug}`,
+  CATEGORY: (slug: string) => CATEGORY_CANONICAL_ROUTES[slug] ?? `/bai-viet?chuyen-muc=${encodeURIComponent(slug)}`,
+  TIMELINES: '/dong-thoi-gian',
+  /** Mỗi dòng thời gian hiển thị như 1 "thời kỳ" ở /giai-doan/[slug] (giao diện cũ). */
+  TIMELINE: (slug: string) => `/giai-doan/${slug}`,
+  LESSON: (slug: string) => `/bai-hoc/${slug}`,
+  COMMUNITY: '/cong-dong',
+} as const;
+
+export interface PublicTag {
+  id: string;
+  name: string;
+  colorHex: string | null;
+}
+
+export interface PublicCategoryRef {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  /** Loại bài; null = kế thừa chuyên mục cha (xem services/public/article-kind.ts). */
+  kind?: ArticleKind | null;
+  parentId?: string | null;
+}
+
+/**
+ * Hồ sơ mô tả TÙY CHỌN (Article.metadata) — cấu trúc + mã hợp lệ: backend/src/article/article-metadata.ts.
+ * Mọi trường có thể thiếu. Liên kết bài ↔ bài nằm ở `links` (bảng article_links), không ở đây.
+ */
+export interface PersonProfileMeta {
+  titles?: string[];
+  roles?: string[];
+  hometown?: string;
+  backgroundAndYouth?: string;
+  notableWorks?: string[];
+  legacyAndHonors?: string;
+  anecdotes?: string[];
+  famousQuote?: string;
+  /**
+   * Mốc đời riêng (việc nhỏ không đáng thành bài sự kiện) — hiện trong dòng đời.
+   * `year` luôn có ở dữ liệu đã lưu (backend bắt buộc); chỉ trống khi đang soạn trong CMS.
+   */
+  milestones?: Array<{ year?: number; month?: number; day?: number; title: string; note?: string }>;
+}
+
+export interface SiteProfileMeta {
+  address?: string;
+  siteType?: string;
+  recognizedYear?: string;
+  preservation?: string;
+  statusNote?: string;
+  managingAgency?: string;
+  architecturalStyle?: string;
+}
+
+export interface ArticleMetadata {
+  aliases?: string[];
+  sources?: string[];
+  person?: PersonProfileMeta;
+  site?: SiteProfileMeta;
+}
+
+/** Liên kết do bài khai báo (chỉ tới bài đã xuất bản). Nhãn chữ tự do, có thể null. */
+export interface PublicArticleLink {
+  targetId: string;
+  label: string | null;
+  note: string | null;
+}
+
+export interface PublicArticleSummary {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string | null;
+  coverImageUrl: string | null;
+  dateText: string | null;
+  startYear: number | null;
+  endYear: number | null;
+  dateLabel: string | null;
+  isFeatured: boolean;
+  metadata: ArticleMetadata | null;
+  topicId: string | null;
+  links: PublicArticleLink[];
+  category: PublicCategoryRef | null;
+  tags: PublicTag[];
+}
+
+export interface PublicArticleNeighbour {
+  slug: string;
+  title: string;
+  dateLabel: string | null;
+}
+
+export interface PublicArticleDetail extends PublicArticleSummary {
+  coverCaption: string | null;
+  contentBlocks: unknown;
+  datePrecision: string | null;
+  publishedAt: string | null;
+  updatedAt: string;
+  timelines: Array<{ slug: string; title: string; nodeTitle: string }>;
+  related: PublicArticleSummary[];
+  previous: PublicArticleNeighbour | null;
+  next: PublicArticleNeighbour | null;
+  /** Bài trước / sau lấy theo Dòng thời gian này; null = cùng chuyên mục theo năm. */
+  adjacentTimeline: { slug: string; title: string } | null;
+}
+
+export interface PublicCategory extends PublicCategoryRef {
+  parentId: string | null;
+  description: string | null;
+  displayOrder: number;
+  articleCount: number;
+}
+
+export interface PublicBlogPostSummary {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  coverImageUrl: string | null;
+  contentBlocks: unknown;
+  status: string;
+  isFeatured: boolean;
+  publishedAt: string | null;
+  updatedAt: string;
+  createdAt: string;
+  author: { id: string; username: string } | null;
+}
+
+export interface PublicTimelineNodeArticle {
+  id?: string;
+  slug: string;
+  title: string;
+  coverImageUrl: string | null;
+  category: { name: string; slug: string; icon: string | null } | null;
+}
+
+export interface PublicTimelineNode {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  dateText: string | null;
+  year: number | null;
+  month: number | null;
+  day: number | null;
+  endYear: number | null;
+  displayOrder: number;
+  dateLabel: string | null;
+  article: PublicTimelineNodeArticle | null;
+  articles?: PublicTimelineNodeArticle[];
+}
+
+export interface PublicTimeline {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  coverImageUrl: string | null;
+  displayOrder: number;
+  topicId: string | null;
+  /** Chủ đề gắn với dòng thời gian này (nếu có) — dùng để ráp cây Thời kỳ cha/con theo Topic. */
+  topic: { id: string; name: string; slug: string; parentId: string | null } | null;
+  nodes: PublicTimelineNode[];
+}
+
+export interface PublicLibraryLesson {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  difficulty: string;
+  estimatedReadMinutes: number;
+  tags: PublicTag[];
+}
+
+async function getJson<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(`${API_URL}${path}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return (body?.data ?? body) as T;
+  } catch {
+    return null;
+  }
+}
+
+const list = async <T,>(path: string): Promise<T[]> => {
+  const data = await getJson<T[]>(path);
+  return Array.isArray(data) ? data : [];
+};
+
+const enc = encodeURIComponent;
+
+export const fetchCategories = () => list<PublicCategory>('/public/categories');
+
+export function fetchArticles(params: { category?: string; tag?: string; q?: string; featured?: boolean; limit?: number } = {}) {
+  const qs = new URLSearchParams();
+  if (params.category) qs.set('category', params.category);
+  if (params.tag) qs.set('tag', params.tag);
+  if (params.q) qs.set('q', params.q);
+  if (params.featured) qs.set('featured', 'true');
+  if (params.limit) qs.set('limit', String(params.limit));
+  const query = qs.toString();
+  return list<PublicArticleSummary>(`/public/articles${query ? `?${query}` : ''}`);
+}
+
+export const fetchArticle = (slug: string) => getJson<PublicArticleDetail>(`/public/articles/${enc(slug)}`);
+export const fetchBlogPosts = () => list<PublicBlogPostSummary>('/public/blog');
+export const fetchBlogPost = (slug: string) => getJson<PublicBlogPostSummary>(`/public/blog/${enc(slug)}`);
+export const fetchTimelines = () => list<PublicTimeline>('/public/timelines');
+
+/** Topic đã xuất bản, dạng phẳng — ráp cây qua `parentId`. Dùng để nhóm bài viết theo Chủ đề. */
+export interface PublicTopicRef {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+}
+
+export const fetchTopics = () => list<PublicTopicRef>('/public/topics');

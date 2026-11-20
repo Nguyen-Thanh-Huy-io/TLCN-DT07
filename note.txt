@@ -1,0 +1,10 @@
+Tổng quan dự án:
+Dự án là một hệ thống học lịch sử trực tuyến, giúp người dùng học kiến thức lịch sử theo cấu trúc Giai đoạn lịch sử → Chủ đề → Bài học. Người dùng có thể đăng ký/đăng nhập, đọc bài học, làm bài kiểm tra và theo dõi tiến độ học tập.
+
+Phía quản trị có chức năng quản lý các giai đoạn lịch sử, chủ đề, bài học, sự kiện lịch sử, nội dung/media của bài học, câu hỏi và đáp án. Bài học có thể được phân loại bằng tag và có quy trình tạo/duyệt nội dung.
+
+Phía người học có thể học từng bài, lưu bài học, làm quiz và hệ thống ghi nhận tiến độ, kết quả làm bài và XP.
+
+Cấu trúc nội dung chính: Period → Topic → Lesson. Một Period có nhiều Topic và một Topic có nhiều Lesson.
+
+Các module chính: Authentication/User; quản lý Period–Topic–Lesson; Historical Event/Tag/Media; Quiz–Question–Answer; Lesson Progress; Quiz Attempt; Bookmark và các chức năng XP/gamification liên quan.

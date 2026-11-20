@@ -1,0 +1,35 @@
+// ================================
+// Notification (Thông báo hệ thống) Model
+// ================================
+
+enum NotificationType {
+  NEW_QUESTION    // Có độc giả/người học đặt câu hỏi mới
+  NEW_REPLY       // Có phản hồi vào câu hỏi
+  OFFICIAL_REPLY  // Ban biên soạn trả lời chính thức
+  BLOG_COMMENT    // Có bình luận mới trên bài viết blog
+  CONTENT_APPROVED // Bài viết/bài học đã được duyệt
+  CONTENT_REJECTED // Bài viết/bài học bị từ chối duyệt
+  POST_LIKED      // Có người thích bài viết
+  NEW_FOLLOWER    // Có người theo dõi mới
+  CONTENT_VIOLATION // Bài viết hoặc bình luận bị ẩn do vi phạm tiêu chuẩn
+  ACHIEVEMENT_UNLOCKED // Mở khoá huy hiệu thành tựu học tập
+  GOAL_COMPLETED // Hoàn thành mục tiêu học tập đã cam kết
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")      // Người nhận thông báo
+  type      NotificationType @default(NEW_REPLY)
+  title     String           @db.VarChar(255)
+  message   String           @db.Text
+  linkUrl   String?          @map("link_url")     // Link nhảy tới trang bài viết/bài học
+  isRead    Boolean          @default(false)      @map("is_read")
+
+  createdAt DateTime         @default(now())      @map("created_at")
+  updatedAt DateTime         @updatedAt           @map("updated_at")
+
+  user      authUser         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}

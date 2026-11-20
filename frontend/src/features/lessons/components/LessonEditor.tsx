@@ -1,0 +1,547 @@
+'use client';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { ContentStatus, DifficultyLevel, MediaType, LessonFieldKey } from '@/constants/enums';
+
+import { useLessonEditorFacade } from '../facades/useLessonEditorFacade';
+import { useLessonBlockManager } from '../facades/useLessonBlockManager';
+import { BlockBuilderCanvas } from './builder/BlockBuilderCanvas';
+import {
+  EditorViewMode,
+  LeftSidebarMode,
+  LessonBlockType,
+  LessonEditorMainTab,
+  LessonHeaderMetaData,
+} from '../types/editor.types';
+import { TopicParentModalPicker } from '@/features/topics/components/TopicParentModalPicker';
+import { CurriculumSidePanel } from '@/features/curriculum/components/CurriculumSidePanel';
+import { CurriculumTreePreviewModal } from '@/features/curriculum/components/CurriculumTreePreviewModal';
+import { LessonEditorHeader, LessonEditorSubHeader } from './LessonEditorHeader';
+import { LessonInfoProfileTab } from './LessonInfoProfileTab';
+import { LessonLeftToolSidebar } from './LessonLeftToolSidebar';
+import { LessonPreviewContent } from './LessonPreviewContent';
+import { LessonPropertiesPanel } from './properties/LessonPropertiesPanel';
+import { buildLessonTocAndHtml } from '../utils/lesson-toc.util';
+import { collectQuizBlocks } from '../utils/lesson-quiz.util';
+import { EditorRevisionBanner, RevisionHistoryModal } from '@/features/revisions/RevisionPanels';
+import { ActiveEditorProvider } from '../context/ActiveEditorContext';
+import { useAuthSession } from '@/services/auth/use-auth-session';
+import { isReviewerRole, USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
+
+function computeSubmitStatus(title: string, hasTopic: boolean, blockCount: number) {
+  const missing: string[] = [];
+  if (!title.trim()) missing.push('Tiêu đề');
+  if (!hasTopic) missing.push('Chủ đề');
+  if (blockCount === 0) missing.push('Nội dung');
+  const canSubmit = Boolean(title.trim()) && hasTopic;
+  const submitHint =
+    missing.length === 0
+      ? 'Đủ điều kiện gửi duyệt'
+      : `Điều kiện gửi duyệt — cần bổ sung: ${missing.join(', ')}`;
+  return { canSubmit, submitHint };
+}
+
+export interface LessonEditorProps {
+  lessonId?: string;
+}
+
+/**
+ * LessonEditor — bộ điều phối: giữ toàn bộ state & nghiệp vụ (facade bài học, facade
+ * khối nội dung, đồng bộ HTML/TOC...), còn phần hiển thị được tách ra các component con
+ * (`LessonEditorHeader`, `LessonEditorSubHeader`, `LessonLeftToolSidebar`,
+ * `LessonPreviewContent`, `properties/LessonPropertiesPanel`...) để file này không phình
+ * quá lớn (trước đây gần 1500 dòng dồn hết vào 1 file).
+ */
+export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {}) {
+  const [mainTab, setMainTab] = useState<LessonEditorMainTab>(LessonEditorMainTab.INFO);
+  const [activeTab, setActiveTab] = useState<EditorViewMode>(EditorViewMode.EDIT);
+  const [showSidebar, setShowSidebar] = useState(true);
+  // Đề xuất: Sidebar trái có thể thu gọn thành thanh công cụ mỏng hoặc mở theo nhu cầu
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
+  const [showLeftToc, setShowLeftToc] = useState(true);
+  const [leftSidebarMode, setLeftSidebarMode] = useState<LeftSidebarMode>(LeftSidebarMode.BLOCKS);
+  const [isTopicPickerOpen, setIsTopicPickerOpen] = useState(false);
+  const [isCurriculumPreviewOpen, setIsCurriculumPreviewOpen] = useState(false);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Đóng MoreMenu khi nhấp chuột ra ngoài
+  useEffect(() => {
+    const handleDocClick = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleDocClick);
+    return () => document.removeEventListener('mousedown', handleDocClick);
+  }, []);
+
+  // Facade Hook
+  const user = useAuthSession();
+  const isReviewer = Boolean(user && isReviewerRole(user.role));
+  const {
+    title,
+    setTitle,
+    slug,
+    setSlug,
+    description,
+    setDescription,
+    selectedTopicId,
+    setSelectedTopicId,
+    contentRichText,
+    setContentRichText,
+    difficulty,
+    setDifficulty,
+    sourceReferenceNote,
+    setSourceReferenceNote,
+    thumbnailUrl,
+    setThumbnailUrl,
+    displayOrder,
+    setDisplayOrder,
+    status,
+    mediaList,
+    addMediaItem,
+    removeMediaItem,
+    initialBlockContent,
+    topics,
+    loadingLesson,
+    saving,
+    wordCount,
+    estimatedReadMinutes,
+    lessonId,
+    hasLocalDraft,
+    lastSavedTime,
+    lastSavedAt,
+    autoSaveState,
+    restoreDraft,
+    dismissDraft,
+    selectedTags,
+    setSelectedTags,
+    submitLesson,
+    pendingRevision,
+    revisionNotice,
+    onRevisionChanged,
+  } = useLessonEditorFacade(propLessonId);
+
+  // Facade quản lý danh sách các Khối nội dung độc lập (Block-based Page Builder)
+  // Lưu ý: khởi tạo với `contentRichText` ở đây CHỈ có tác dụng cho lần render đầu tiên
+  // (lúc đó luôn rỗng nếu đang sửa bài học có sẵn, vì API chưa trả dữ liệu kịp) — nội dung
+  // thật được nạp lại đúng 1 lần ở effect "nạp nội dung thật" ngay dưới đây.
+  const blockManager = useLessonBlockManager(contentRichText);
+
+  // Nạp nội dung khối THẬT của bài học vào Block Builder — đúng 1 lần, ngay khi API tải xong
+  // (lessonId tồn tại và loadingLesson chuyển từ true -> false). Nếu không có effect này,
+  // canvas sẽ mãi hiển thị khối mẫu rỗng khởi tạo ban đầu thay vì nội dung bài học thật.
+  const hasLoadedRealContentRef = useRef(false);
+  const { loadFromContent } = blockManager;
+  useEffect(() => {
+    if (!lessonId || loadingLesson || hasLoadedRealContentRef.current) return;
+    if (initialBlockContent === undefined || initialBlockContent === null) return;
+    loadFromContent(initialBlockContent);
+    hasLoadedRealContentRef.current = true;
+  }, [lessonId, loadingLesson, initialBlockContent, loadFromContent]);
+
+  // Đồng bộ HTML từ danh sách khối sang contentRichText để tự động cập nhật Mục lục TOC, số từ và xem trước
+  const { blocks, resourceLinks, compileToHtml } = blockManager;
+  useEffect(() => {
+    const html = compileToHtml();
+    setContentRichText(html);
+  }, [blocks, resourceLinks, compileToHtml, setContentRichText]);
+
+  // Xử lý chèn khối nội dung từ Block Palette bên trái
+  const handleInsertBlock = (blockType: LessonBlockType) => {
+    blockManager.addBlock(blockType);
+  };
+
+  const handleSaveLesson = (nextStatus: ContentStatus) => {
+    submitLesson(nextStatus, blockManager.compileToJson());
+  };
+
+  // Chủ đề hiện tại đang chọn
+  const currentTopic = useMemo(() => {
+    return topics.find((t) => t.id === selectedTopicId);
+  }, [topics, selectedTopicId]);
+
+  // Thông tin bài học ở đầu trang (Metadata Form Header)
+  const [headerMeta, setHeaderMeta] = useState<LessonHeaderMetaData>({
+    title: '',
+    slug: '',
+    description: '',
+    shortDescription: '',
+    thumbnailUrl: '',
+    tags: [],
+    topicId: '',
+    difficulty: DifficultyLevel.MEDIUM,
+  });
+
+  // Đồng bộ hai chiều từ Facade vào HeaderMeta
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      setHeaderMeta((prev) => ({
+        ...prev,
+        title: title ?? prev.title,
+        slug: slug ?? prev.slug,
+        description: description ?? prev.description,
+        shortDescription: description ?? prev.shortDescription,
+        thumbnailUrl: thumbnailUrl ?? prev.thumbnailUrl,
+        difficulty: difficulty ?? prev.difficulty,
+        topicId: selectedTopicId ?? prev.topicId,
+        tags: selectedTags.length > 0 ? selectedTags.map((t) => t.name) : prev.tags,
+      }));
+    });
+  }, [title, slug, description, thumbnailUrl, difficulty, selectedTopicId, selectedTags]);
+
+  // Lấy khối đang được chọn trên canvas để chỉnh thuộc tính (tái sử dụng Block Inspector)
+  const activeBlock = useMemo(() => {
+    if (!blockManager.activeBlockId) return null;
+    return blockManager.blocks.find((b) => b.id === blockManager.activeBlockId) || null;
+  }, [blockManager.blocks, blockManager.activeBlockId]);
+
+  const activeBlockIndex = useMemo(() => {
+    if (!blockManager.activeBlockId) return undefined;
+    const idx = blockManager.blocks.findIndex((b) => b.id === blockManager.activeBlockId);
+    return idx >= 0 ? idx : undefined;
+  }, [blockManager.blocks, blockManager.activeBlockId]);
+
+  // Khi click chọn một khối trên canvas, tự động mở sidebar Thuộc tính khối
+  useEffect(() => {
+    if (blockManager.activeBlockId) {
+      void Promise.resolve().then(() => {
+        setShowSidebar(true);
+      });
+    }
+  }, [blockManager.activeBlockId]);
+
+  const handleHeaderMetaChange = <K extends keyof LessonHeaderMetaData>(
+    field: K,
+    val: LessonHeaderMetaData[K]
+  ) => {
+    setHeaderMeta((prev) => ({ ...prev, [field]: val }));
+    const setters: Partial<Record<LessonFieldKey, (v: unknown) => void>> = {
+      [LessonFieldKey.TITLE]: (v) => setTitle(v as string),
+      [LessonFieldKey.SLUG]: (v) => setSlug(v as string),
+      [LessonFieldKey.DESCRIPTION]: (v) => setDescription(v as string),
+      [LessonFieldKey.SHORT_DESCRIPTION]: (v) => setDescription(v as string),
+      [LessonFieldKey.SUMMARY]: (v) => setDescription(v as string),
+      [LessonFieldKey.TOPIC_ID]: (v) => setSelectedTopicId(v as string),
+      [LessonFieldKey.DIFFICULTY]: (v) => setDifficulty(v as DifficultyLevel),
+      [LessonFieldKey.THUMBNAIL_URL]: (v) => setThumbnailUrl((v as string) || ''),
+    };
+    setters[field as unknown as LessonFieldKey]?.(val);
+  };
+
+  const [isTocCollapsed, setIsTocCollapsed] = useState(false);
+
+  // Mục lục (TOC) + HTML xem trước được biên dịch TRỰC TIẾP từ danh sách Khối (Block
+  // Builder), không còn dò thẻ <h1-h3> trên `contentRichText` đã ghép sẵn — cách cũ chỉ bắt
+  // được tiêu đề nằm trong khối Văn bản, bỏ sót mọi khối khác (Timeline/Nhân vật/Sự kiện/
+  // Bản đồ/Bảng so sánh), khiến Mục lục quá sơ sài so với nội dung thật của bài học.
+  const { tocItems, html: enrichedPreviewHtml } = useMemo(
+    () => buildLessonTocAndHtml(blockManager.blocks),
+    [blockManager.blocks]
+  );
+  const quizBlocks = useMemo(() => collectQuizBlocks(blockManager.blocks), [blockManager.blocks]);
+
+  // Tách media thành ảnh/video và tài liệu đính kèm
+  const visualMediaItems = useMemo(() => {
+    return mediaList.filter((m) => m.type !== MediaType.DOCUMENT);
+  }, [mediaList]);
+
+  const documentMediaItems = useMemo(() => {
+    return mediaList.filter((m) => m.type === MediaType.DOCUMENT);
+  }, [mediaList]);
+
+  if (loadingLesson) {
+    return <div style={{ padding: 30, textAlign: 'center', color: '#64748b' }}>Đang nạp dữ liệu bài học...</div>;
+  }
+
+  const renderPreview = (compact: boolean = false) => (
+    <LessonPreviewContent
+      compact={compact}
+      tocItems={tocItems}
+      isTocCollapsed={isTocCollapsed}
+      onToggleTocCollapsed={() => setIsTocCollapsed(!isTocCollapsed)}
+      thumbnailUrl={thumbnailUrl}
+      title={title}
+      topicName={currentTopic?.name}
+      difficulty={difficulty}
+      wordCount={wordCount}
+      estimatedReadMinutes={estimatedReadMinutes}
+      selectedTags={selectedTags}
+      enrichedPreviewHtml={enrichedPreviewHtml}
+      quizBlocks={quizBlocks}
+      visualMediaItems={visualMediaItems}
+      documentMediaItems={documentMediaItems}
+      sourceReferenceNote={sourceReferenceNote}
+    />
+  );
+
+  const { canSubmit, submitHint } = computeSubmitStatus(
+    title,
+    Boolean(selectedTopicId),
+    blockManager.blocks.length
+  );
+  const assigneeName = user?.username || user?.email || 'Biên tập viên';
+  const assigneeRoleLabel = user ? (USER_ROLE_LABELS[user.role] || user.role) : 'Nhân sự nội dung';
+
+  const isInspectorVisible =
+    mainTab === LessonEditorMainTab.CMS &&
+    showSidebar &&
+    !isFullscreen &&
+    activeTab !== EditorViewMode.SPLIT &&
+    activeTab !== EditorViewMode.PREVIEW;
+
+  return (
+    <ActiveEditorProvider isInspectorVisible={isInspectorVisible}>
+    <div className="editor-wrap space-y-3">
+      <LessonEditorHeader
+        lessonId={lessonId}
+        status={status}
+        isReviewer={isReviewer}
+        saving={saving}
+        autoSaveState={autoSaveState}
+        lastSavedAt={lastSavedAt}
+        hasLocalDraft={hasLocalDraft}
+        lastSavedTime={lastSavedTime}
+        mainTab={mainTab}
+        onChangeMainTab={setMainTab}
+        blockCount={blockManager.blocks.length}
+        hasTopic={Boolean(selectedTopicId)}
+        submitHint={submitHint}
+        canSubmit={canSubmit}
+        assigneeName={assigneeName}
+        assigneeRoleLabel={assigneeRoleLabel}
+        onSaveLesson={handleSaveLesson}
+        onOpenSidePanel={() => setIsSidePanelOpen(true)}
+        onOpenCurriculumPreview={() => setIsCurriculumPreviewOpen(true)}
+        onRestoreDraft={restoreDraft}
+        onDismissDraft={dismissDraft}
+        isMoreMenuOpen={isMoreMenuOpen}
+        onToggleMoreMenu={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+        onCloseMoreMenu={() => setIsMoreMenuOpen(false)}
+        moreMenuRef={moreMenuRef}
+      />
+
+      <div className="px-4 pt-3 sm:px-6">
+        <EditorRevisionBanner
+          type="LESSON"
+          contentId={lessonId}
+          status={status}
+          pending={pendingRevision}
+          notice={revisionNotice}
+          onChanged={onRevisionChanged}
+        />
+      </div>
+
+      {/* TAB 1: THÔNG TIN BÀI HỌC */}
+      {mainTab === LessonEditorMainTab.INFO && (
+        <LessonInfoProfileTab
+          lessonId={lessonId}
+          status={status}
+          saving={saving}
+          assigneeName={assigneeName}
+          assigneeRoleLabel={assigneeRoleLabel}
+          lastSavedTime={lastSavedTime}
+          headerMeta={headerMeta}
+          topics={topics.map((t) => ({ id: t.id, name: t.name }))}
+          onHeaderMetaChange={handleHeaderMetaChange}
+          currentTopicName={currentTopic?.name}
+          hasTopic={Boolean(selectedTopicId)}
+          onOpenTopicPicker={() => setIsTopicPickerOpen(true)}
+          thumbnailUrl={thumbnailUrl}
+          onThumbnailChange={(url) => handleHeaderMetaChange('thumbnailUrl', url)}
+          difficulty={difficulty}
+          setDifficulty={setDifficulty}
+          selectedTags={selectedTags}
+          setSelectedTags={setSelectedTags}
+          displayOrder={displayOrder}
+          setDisplayOrder={setDisplayOrder}
+          mediaList={mediaList}
+          onAddMedia={addMediaItem}
+          onRemoveMedia={removeMediaItem}
+          sourceReferenceNote={sourceReferenceNote}
+          setSourceReferenceNote={setSourceReferenceNote}
+          resourceLinks={blockManager.resourceLinks}
+          onAddResourceLink={() => blockManager.addResourceLink()}
+          onUpdateResourceLink={blockManager.updateResourceLink}
+          onRemoveResourceLink={blockManager.removeResourceLink}
+          wordCount={wordCount}
+          estimatedReadMinutes={estimatedReadMinutes}
+          blockCount={blockManager.blocks.length}
+          onSwitchToCms={() => setMainTab(LessonEditorMainTab.CMS)}
+          onOpenHistory={() => setIsHistoryOpen(true)}
+        />
+      )}
+
+      {/* TAB 2: CMS SOẠN THẢO NỘI DUNG */}
+      {mainTab === LessonEditorMainTab.CMS && (
+        <>
+          {activeTab === EditorViewMode.PREVIEW ? (
+            <div className="space-y-3">
+              <LessonEditorSubHeader
+                activeTab={activeTab}
+                onChangeTab={setActiveTab}
+                isFullscreen={isFullscreen}
+                onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+                showLeftToc={showLeftToc}
+                onToggleLeftToc={() => setShowLeftToc(!showLeftToc)}
+              />
+              <div className="h-[calc(100vh-170px)] min-h-[550px]">{renderPreview()}</div>
+            </div>
+          ) : (
+            <div
+              className={`flex flex-col lg:flex-row gap-4 items-stretch transition-all ${
+                isFullscreen ? 'fixed inset-0 z-50 bg-slate-100 p-4' : ''
+              }`}
+              style={{ minHeight: isFullscreen ? '100vh' : 'calc(100vh - 135px)' }}
+            >
+              {showLeftToc && !isFullscreen && (
+                <LessonLeftToolSidebar
+                  isCollapsed={isLeftSidebarCollapsed}
+                  onCollapse={() => setIsLeftSidebarCollapsed(true)}
+                  onExpand={() => setIsLeftSidebarCollapsed(false)}
+                  mode={leftSidebarMode}
+                  onChangeMode={setLeftSidebarMode}
+                  tocItems={tocItems}
+                  onInsertBlock={handleInsertBlock}
+                />
+              )}
+
+              {/* Cột 1: Không gian CMS thuần túy (gom thanh chế độ xem vào ngay đầu vùng soạn thảo) */}
+              <main className="flex-1 min-w-0 flex flex-col bg-white rounded-xl border border-slate-200 p-4 md:p-6 shadow-xs overflow-y-auto h-full">
+                <div
+                  className={`w-full mx-auto flex flex-col gap-3 flex-1 min-h-0 transition-all duration-200 ${
+                    !showSidebar ? 'max-w-5xl' : 'max-w-[820px]'
+                  }`}
+                >
+                  <LessonEditorSubHeader
+                    inline
+                    activeTab={activeTab}
+                    onChangeTab={setActiveTab}
+                    isFullscreen={isFullscreen}
+                    onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+                    showLeftToc={showLeftToc}
+                    onToggleLeftToc={() => setShowLeftToc(!showLeftToc)}
+                    showSidebar={showSidebar}
+                    onToggleSidebar={() => setShowSidebar((prev) => !prev)}
+                  />
+
+                  {/* Trình soạn thảo Khối độc lập dạng Page Builder */}
+                  <div className="flex-1 min-h-[480px]">
+                    <BlockBuilderCanvas
+                      blocks={blockManager.blocks}
+                      activeBlockId={blockManager.activeBlockId}
+                      onSelectBlock={blockManager.setActiveBlockId}
+                      onAddBlock={(type, atIndex) => blockManager.addBlock(type, atIndex)}
+                      onUpdateBlock={blockManager.updateBlock}
+                      onRemoveBlock={blockManager.removeBlock}
+                      onMoveBlock={blockManager.moveBlock}
+                      onMoveByDirection={blockManager.moveBlockByDirection}
+                      onUpdateRowRatio={blockManager.setRowRatio}
+                      onChangeRowColumnCount={blockManager.setRowColumnCount}
+                      onAddBlockToColumn={blockManager.addBlockToColumn}
+                      onUpdateBlockInColumn={blockManager.updateBlockInColumn}
+                      onRemoveBlockFromColumn={blockManager.removeBlockFromColumn}
+                      quizTopicId={selectedTopicId || undefined}
+                    />
+                  </div>
+
+                  {/* Footer trạng thái trình soạn thảo (StatusBar kiểu Medium / Word) */}
+                  <div className="shrink-0 flex items-center justify-between pt-3 mt-4 border-t border-slate-200 text-xs text-slate-500 select-none">
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-slate-700">
+                        <strong>{wordCount}</strong> từ
+                      </span>
+                      <span className="text-slate-300">•</span>
+                      <span>~{estimatedReadMinutes} phút đọc</span>
+                      <span className="text-slate-300">•</span>
+                      <span className="text-slate-400">
+                        {blockManager.blocks.length} khối nội dung
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span className="text-[11px] text-slate-600 font-medium">
+                        {lastSavedTime ? `Đã lưu lúc ${lastSavedTime}` : 'Tự động lưu đang bật'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </main>
+
+              {/* Cột 2 (Nếu chọn Chế độ chia đôi) */}
+              {activeTab === EditorViewMode.SPLIT && (
+                <div className="flex-1 min-w-0 h-full">{renderPreview(true)}</div>
+              )}
+
+              {/* Cột 3: Sidebar Thuộc tính khối bên phải */}
+              {showSidebar && !isFullscreen && activeTab !== EditorViewMode.SPLIT && (
+                <LessonPropertiesPanel
+                  onClose={() => setShowSidebar(false)}
+                  onOpenInfoTab={() => setMainTab(LessonEditorMainTab.INFO)}
+                  activeBlock={activeBlock}
+                  activeBlockIndex={activeBlockIndex}
+                  onUpdateBlock={blockManager.updateBlock}
+                  onRemoveBlock={blockManager.removeBlock}
+                  onChangeRowColumnCount={blockManager.setRowColumnCount}
+                  onUpdateRowRatio={blockManager.setRowRatio}
+                />
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Modal chọn chương học (Chapter) gom nhóm bài viết */}
+      <TopicParentModalPicker
+        isOpen={isTopicPickerOpen}
+        onClose={() => setIsTopicPickerOpen(false)}
+        onSelect={(topicId) => {
+          if (topicId) setSelectedTopicId(topicId);
+        }}
+        topics={topics}
+        selectedParentId={selectedTopicId || null}
+        title="Chọn Chương học (Chapter) cho Bài học"
+        subtitle="Chọn chương học hoặc chuyên đề để gom nhóm bài học và định vị thứ tự trong chương trình"
+        allowRootSelect={false}
+        maxDepth={null}
+      />
+
+      {/* Modal Xem trước Cây tri thức toàn diện */}
+      <CurriculumTreePreviewModal
+        isOpen={isCurriculumPreviewOpen}
+        onClose={() => setIsCurriculumPreviewOpen(false)}
+        highlightTopicId={selectedTopicId || undefined}
+        highlightLessonId={lessonId || undefined}
+        title="Sơ đồ Cây tri thức toàn chương trình"
+        subtitle="Vị trí của bài học này trong cấu trúc lộ trình môn Lịch sử"
+      />
+
+      {/* Trợ lý Sơ đồ Cây tri thức Cố định Mép phải (Ask Gemini / Copilot Style) */}
+      <CurriculumSidePanel
+        isOpen={isSidePanelOpen}
+        onClose={() => setIsSidePanelOpen(false)}
+        currentTopicTitle={title}
+        currentDisplayOrder={displayOrder}
+        highlightTopicId={selectedTopicId || undefined}
+        highlightLessonId={lessonId || undefined}
+      />
+
+      {isHistoryOpen && lessonId && (
+        <RevisionHistoryModal
+          type="LESSON"
+          contentId={lessonId}
+          onClose={() => setIsHistoryOpen(false)}
+          onChanged={(msg) => {
+            setIsHistoryOpen(false);
+            onRevisionChanged(msg);
+          }}
+        />
+      )}
+    </div>
+    </ActiveEditorProvider>
+  );
+}

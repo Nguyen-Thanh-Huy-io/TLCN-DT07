@@ -1,0 +1,115 @@
+// ================================
+// Quiz (Đề thi theo Chủ đề) Model
+// ================================
+
+// Đề thi thuộc Chủ đề (nhiều–nhiều: 1 chủ đề nhiều đề, 1 đề có thể bao nhiều chủ đề) — KHÔNG gắn Lesson.
+// Ôn tập ngay trong bài học dùng khối QUIZ của Block Builder (trong `Lesson.content`), không phải Quiz.
+// Câu hỏi của đề CHỈ lấy từ Ngân hàng câu hỏi (`Question`) qua bảng nối `QuizQuestion` (thứ tự + điểm
+// theo từng đề); không nhúng câu hỏi JSON trong đề.
+model Quiz {
+  id                  String  @id @default(uuid())
+  title               String? @db.VarChar(255)
+  description         String? @db.Text
+  passingScorePercent Int?    @map("passing_score_percent")
+  timeLimitMinutes    Int?    @default(15) @map("time_limit_minutes")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  topics        Topic[]        @relation("TopicQuizzes")
+  attempts      QuizAttempt[]
+  quizQuestions QuizQuestion[]
+
+  @@map("quizzes")
+}
+
+// ================================
+// QuizAttempt (Lịch sử nộp bài & thống kê) Model
+// ================================
+
+model QuizAttempt {
+  id               String   @id @default(uuid())
+  quizId           String   @map("quiz_id")
+  userId           String?  @map("user_id")
+  learnerName      String?  @map("learner_name") @db.VarChar(150)
+  scorePercent     Int      @map("score_percent")
+  correctCount     Int      @map("correct_count")
+  totalQuestions   Int      @map("total_questions")
+  timeSpentSeconds Int      @default(0) @map("time_spent_seconds")
+  isPassed         Boolean  @default(false) @map("is_passed")
+  answers          Json     @default("[]") @db.JsonB
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  quiz            Quiz                @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user            authUser?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  questionResults QuizAttemptAnswer[]
+
+  @@index([quizId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("quiz_attempts")
+}
+
+// ================================
+// Question (Ngân hàng câu hỏi tập trung) Model
+// ================================
+
+model Question {
+  id          String          @id @default(uuid())
+  type        String          @db.VarChar(50) // SINGLE_CHOICE, TRUE_FALSE, MULTIPLE_CHOICE, ORDERING, MATCHING, FILL_IN_BLANK
+  prompt      String          @db.Text
+  explanation String?         @db.Text
+  difficulty  DifficultyLevel @default(MEDIUM)
+  points      Int             @default(10)
+  data        Json            @default("{}") @db.JsonB
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  topics         Topic[]
+  quizQuestions  QuizQuestion[]
+  attemptAnswers QuizAttemptAnswer[]
+
+  @@index([type])
+  @@index([difficulty])
+  @@map("questions")
+}
+
+// ================================
+// QuizQuestion (Liên kết nhiều-nhiều giữa Quiz và Ngân hàng câu hỏi)
+// ================================
+
+model QuizQuestion {
+  quizId       String @map("quiz_id")
+  questionId   String @map("question_id")
+  displayOrder Int    @default(0) @map("display_order")
+  points       Float  @default(10)
+
+  quiz     Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([quizId, questionId])
+  @@index([quizId, displayOrder])
+  @@index([questionId])
+  @@map("quiz_questions")
+}
+
+// ================================
+// QuizAttemptAnswer (Kết quả từng câu của 1 lượt làm bài) Model
+// ================================
+
+// Ghi lúc nộp bài, đúng theo đề tại thời điểm làm (sửa câu hỏi sau đó không làm lệch thống kê).
+model QuizAttemptAnswer {
+  attemptId  String  @map("attempt_id")
+  questionId String  @map("question_id")
+  isCorrect  Boolean @map("is_correct")
+  /// Câu trả lời thô của người học; null = bỏ trống.
+  answer     Json?   @db.JsonB
+
+  attempt  QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([attemptId, questionId])
+  @@index([questionId])
+  @@map("quiz_attempt_answers")
+}

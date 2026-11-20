@@ -1,0 +1,130 @@
+{
+  "topics": [
+    {
+      "rootSlug": "lich-su-the-gioi",
+      "rootName": "Lịch sử Thế giới",
+      "childSlug": "the-chien-thu-hai",
+      "childName": "Chiến tranh Thế giới thứ hai (1939 - 1945)",
+      "eyebrow": "1939 - 1945",
+      "description": "Cuộc chiến tranh quy mô toàn cầu đẫm máu nhất trong lịch sử nhân loại giữa phe Đồng Minh và phe Trục."
+    },
+    {
+      "rootSlug": "lich-su-the-gioi",
+      "rootName": "Lịch sử Thế giới",
+      "childSlug": "cach-mang-phap",
+      "childName": "Cách mạng Pháp và Thời kỳ Napoléon",
+      "eyebrow": "1789 - 1815",
+      "description": "Cuộc đại cách mạng tư sản làm thay đổi sâu sắc lịch sử nước Pháp và toàn bộ châu Âu."
+    }
+  ],
+  "timelines": [
+    {
+      "slug": "dong-thoi-gian-the-chien-2",
+      "title": "Chiến tranh thế giới thứ hai",
+      "description": "Các mốc lịch sử then chốt từ khi Đức xâm lược Ba Lan đến ngày Phát xít Nhật đầu hàng Đồng Minh.",
+      "topicSlug": "the-chien-thu-hai",
+      "nodes": [
+        {
+          "title": "Đức xâm lược Ba Lan — Bùng nổ Thế chiến thứ hai",
+          "year": 1939,
+          "month": 9,
+          "day": 1,
+          "dateText": "01/09/1939",
+          "articleSlug": "chien-tranh-the-gioi-thu-hai",
+          "description": "Quân đội phát xít Đức bất ngờ nổ súng tấn công Ba Lan, mở màn cho cuộc thế chiến đẫm máu kéo dài 6 năm."
+        },
+        {
+          "title": "Trận Stalingrad — Bước ngoặt chiến tranh",
+          "year": 1942,
+          "month": 8,
+          "day": 23,
+          "dateText": "1942 - 1943",
+          "articleSlug": "tran-stalingrad",
+          "description": "Hồng quân Liên Xô bao vây và tiêu diệt hoàn toàn Tập đoàn quân số 6 của Đức, xoay chuyển cục diện chiến tranh sang thế phản công."
+        },
+        {
+          "title": "Đức ký văn kiện đầu hàng không điều kiện",
+          "year": 1945,
+          "month": 5,
+          "day": 8,
+          "dateText": "08/05/1945",
+          "articleSlug": "chien-tranh-the-gioi-thu-hai",
+          "description": "Phát xít Đức chính thức đầu hàng tại Berlin, đánh dấu ngày Chiến thắng tại châu Âu."
+        }
+      ]
+    },
+    {
+      "slug": "thoi-ky-napoleon",
+      "title": "Thời kỳ Napoléon Bonaparte",
+      "description": "Kỷ nguyên bành trướng quân sự và cải cách pháp điển hóa vĩ đại của Napoléon khắp châu Âu.",
+      "topicSlug": "cach-mang-phap",
+      "nodes": [
+        {
+          "title": "Napoléon đăng quang Hoàng đế Pháp",
+          "year": 1804,
+          "month": 12,
+          "day": 2,
+          "dateText": "02/12/1804",
+          "articleSlug": "napoleon-bonaparte",
+          "description": "Napoléon Bonaparte tự tay đặt vương miện lên đầu tại Nhà thờ Đức Bà Paris, mở ra Đệ Nhất Đế chế Pháp."
+        },
+        {
+          "title": "Trận Waterloo — Đoạn kết của Napoléon",
+          "year": 1815,
+          "month": 6,
+          "day": 18,
+          "dateText": "18/06/1815",
+          "articleSlug": "tran-waterloo",
+          "description": "Liên quân Anh - Phổ do Công tước Wellington chỉ huy đánh bại quân Pháp, chấm dứt thời kỳ Trăm ngày của Napoléon."
+        }
+      ]
+    }
+  ],
+  "articles": [
+    {
+      "page": "Chiến_tranh_thế_giới_thứ_hai",
+      "title": "Chiến tranh thế giới thứ hai",
+      "slug": "chien-tranh-the-gioi-thu-hai",
+      "categorySlug": "su-kien",
+      "topicSlug": "the-chien-thu-hai",
+      "region": "Châu Âu",
+      "tags": ["Thế chiến thứ hai", "Lịch sử Thế giới"]
+    },
+    {
+      "page": "Trận_Stalingrad",
+      "title": "Trận Stalingrad",
+      "slug": "tran-stalingrad",
+      "categorySlug": "su-kien",
+      "topicSlug": "the-chien-thu-hai",
+      "region": "Châu Âu",
+      "tags": ["Thế chiến thứ hai", "Liên Xô"]
+    },
+    {
+      "page": "Napoléon_Bonaparte",
+      "title": "Napoléon Bonaparte",
+      "slug": "napoleon-bonaparte",
+      "categorySlug": "nhan-vat",
+      "topicSlug": "cach-mang-phap",
+      "region": "Châu Âu",
+      "tags": ["Pháp", "Nhân vật Thế giới"]
+    },
+    {
+      "page": "Trận_Waterloo",
+      "title": "Trận Waterloo",
+      "slug": "tran-waterloo",
+      "categorySlug": "su-kien",
+      "topicSlug": "cach-mang-phap",
+      "region": "Châu Âu",
+      "tags": ["Napoléon", "Châu Âu"]
+    },
+    {
+      "page": "Julius_Caesar",
+      "title": "Julius Caesar",
+      "slug": "julius-caesar",
+      "categorySlug": "nhan-vat",
+      "topicSlug": "lich-su-the-gioi",
+      "region": "La Mã",
+      "tags": ["La Mã cổ đại", "Lịch sử Thế giới"]
+    }
+  ]
+}

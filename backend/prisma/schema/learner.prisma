@@ -1,0 +1,34 @@
+// ================================
+// Learner — đăng ký lộ trình & tiến độ học của tài khoản người học
+// ================================
+//
+// Khách chưa đăng nhập chỉ xem được danh mục và đề cương. Muốn đọc bài trong một lộ trình,
+// người học phải đăng nhập và đăng ký (miễn phí) lộ trình đó.
+
+model LearningPathEnrollment {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  learningPathId String   @map("learning_path_id")
+  enrolledAt     DateTime @default(now()) @map("enrolled_at")
+
+  user         authUser     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  learningPath LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, learningPathId])
+  @@index([learningPathId])
+  @@map("learning_path_enrollments")
+}
+
+model LessonProgress {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  lessonId    String   @map("lesson_id")
+  completedAt DateTime @default(now()) @map("completed_at")
+
+  user   authUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([lessonId])
+  @@map("lesson_progress")
+}

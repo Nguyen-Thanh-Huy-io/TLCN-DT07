@@ -1,6 +1,7 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import { Reflector } from '@nestjs/core';
+import config from '../config/app.config';
+import { GUARD_RATE_LIMIT_EXEMPT_ENVS } from '../config/throttler.config';
 
 /**
  * Custom Throttler Guard that skips rate limiting for:
@@ -10,15 +11,11 @@ import { Reflector } from '@nestjs/core';
  */
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
-  constructor(
-    protected readonly options: any,
-    protected readonly storageService: any,
-    protected readonly reflector: Reflector,
-  ) {
-    super(options, storageService, reflector);
-  }
-
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
+    if (GUARD_RATE_LIMIT_EXEMPT_ENVS.includes(config.node_env)) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest();
     const path = request.url as string;
 
@@ -45,5 +42,23 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
 
     // Check if route has @SkipThrottle decorator
     return super.shouldSkip(context);
+  }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    try {
+      return await super.canActivate(context);
+    } catch (error) {
+      // Nếu lỗi 429 Too Many Requests hợp lệ thì vẫn chặn
+      if (
+        error &&
+        typeof error === 'object' &&
+        'status' in error &&
+        error.status === 429
+      ) {
+        throw error;
+      }
+      // Nếu Redis tạm thời chưa kết nối kịp (ECONNREFUSED / MaxRetriesPerRequestError), không làm sập API 500
+      return true;
+    }
   }
 }

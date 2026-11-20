@@ -1,0 +1,110 @@
+// ================================
+// Gamification — Chuỗi ngày học, Mục tiêu (Goal Aim) & Thành tựu
+// ================================
+
+model LearningActivity {
+  id           String                   @id @default(uuid())
+  userId       String                   @map("user_id")
+  activityType GamificationActivityType @map("activity_type")
+  entityType   String?                  @map("entity_type") @db.VarChar(50)
+  entityId     String?                  @map("entity_id") @db.VarChar(100)
+  dedupKey     String?                  @unique @map("dedup_key") @db.VarChar(180)
+  xpEarned     Int                      @default(0) @map("xp_earned")
+  /// Ngày theo múi giờ Việt Nam (Asia/Ho_Chi_Minh, YYYY-MM-DD)
+  activityDate String                   @map("activity_date") @db.VarChar(10)
+  /// Tuần ISO (YYYY-Www, Thứ 2 -> Chủ nhật theo UTC+7)
+  weekKey      String                   @map("week_key") @db.VarChar(10)
+  metadata     Json?                    @db.JsonB
+  occurredAt   DateTime                 @default(now()) @map("occurred_at") @db.Timestamptz
+
+  user authUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, activityDate])
+  @@index([userId, weekKey])
+  @@index([userId, activityType, occurredAt])
+  @@map("learning_activities")
+}
+
+model UserLearningStats {
+  id                      String   @id @default(uuid())
+  userId                  String   @unique @map("user_id")
+  totalXp                 Int      @default(0) @map("total_xp")
+  currentDayStreak        Int      @default(0) @map("current_day_streak")
+  longestDayStreak        Int      @default(0) @map("longest_day_streak")
+  currentWeekStreak       Int      @default(0) @map("current_week_streak")
+  longestWeekStreak       Int      @default(0) @map("longest_week_streak")
+  lastActiveDate          String?  @map("last_active_date") @db.VarChar(10)
+  lastActiveWeekKey       String?  @map("last_active_week_key") @db.VarChar(10)
+  completedLessonsCount   Int      @default(0) @map("completed_lessons_count")
+  passedQuizzesCount      Int      @default(0) @map("passed_quizzes_count")
+  reviewedFlashcardsCount Int      @default(0) @map("reviewed_flashcards_count")
+  readArticlesCount       Int      @default(0) @map("read_articles_count")
+  createdMindmapsCount    Int      @default(0) @map("created_mindmaps_count")
+  createdNotesCount       Int      @default(0) @map("created_notes_count")
+  totalActivitiesCount    Int      @default(0) @map("total_activities_count")
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user authUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_learning_stats")
+}
+
+model LearningGoal {
+  id           String         @id @default(uuid())
+  userId       String         @map("user_id")
+  title        String         @db.VarChar(150)
+  isPrimary    Boolean        @default(false) @map("is_primary")
+  presetKey    GoalPresetKey  @default(PRESET_3X) @map("preset_key")
+  targetType   GoalTargetType @default(STUDY_DAYS) @map("target_type")
+  period       GoalPeriod     @default(WEEKLY)
+  targetValue  Int            @map("target_value")
+  currentValue Int            @default(0) @map("current_value")
+  /// Khóa kỳ theo giờ VN: YYYY-MM-DD (DAILY) hoặc YYYY-Www (WEEKLY)
+  periodKey    String         @map("period_key") @db.VarChar(16)
+  status       GoalStatus     @default(ACTIVE)
+  completedAt  DateTime?      @map("completed_at") @db.Timestamptz
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+
+  user authUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, period])
+  @@index([userId, isPrimary, status])
+  @@map("learning_goals")
+}
+
+model Achievement {
+  id          String                @id @default(uuid())
+  code        String                @unique @db.VarChar(60)
+  title       String                @db.VarChar(120)
+  description String                @db.VarChar(300)
+  iconKey     String                @map("icon_key") @db.VarChar(50)
+  imageUrl    String?               @map("image_url") @db.VarChar(500)
+  metricType  AchievementMetricType @map("metric_type")
+  threshold   Int
+  xpReward    Int                   @default(20) @map("xp_reward")
+  sortOrder   Int                   @default(0) @map("sort_order")
+  isActive    Boolean               @default(true) @map("is_active")
+  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+
+  userAchievements UserAchievement[]
+
+  @@index([isActive, sortOrder])
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  achievementId String   @map("achievement_id")
+  unlockedAt    DateTime @default(now()) @map("unlocked_at") @db.Timestamptz
+
+  user        authUser    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId, unlockedAt])
+  @@index([achievementId])
+  @@map("user_achievements")
+}

@@ -30,8 +30,12 @@ docker compose up -d
 ```bash
 cd backend
 npm install
-npx prisma migrate dev
+npx prisma migrate deploy   # DB có dữ liệu từ trước 2026-11-14: chạy `npm run db:baseline` một lần thay vì lệnh này
 npm run start:dev
 ```
+
+> **Lịch sử migration đã gộp thành 1 baseline (2026-11-14).** 67 migration cũ không dựng được DB trống nên đã thay bằng `prisma/migrations/20261114000000_baseline` (sinh từ `prisma/schema`).
+> * Máy mới / DB trống: `npx prisma migrate deploy`.
+> * DB đã có dữ liệu từ trước ngày đó: chạy **một lần** `npm run db:baseline` (kiểm DB khớp schema, dọn sổ `_prisma_migrations`, đánh dấu baseline đã áp dụng — không đụng dữ liệu). Đừng chạy `migrate deploy` trước bước này: nó sẽ báo `type ... already exists` (không hỏng dữ liệu, chạy `npm run db:baseline` là gỡ được).
 
 * Swagger API Docs: `http://localhost:5000/docs`

@@ -13,7 +13,7 @@ const createRedisClient = (
   const isProduction = configService.get('NODE_ENV') === 'production';
 
   const client = new Redis({
-    host: configService.get<string>('REDIS_HOST', 'localhost'),
+    host: configService.get<string>('REDIS_HOST', '127.0.0.1'),
     port: configService.get<number>('REDIS_PORT', 6379),
     username: configService.get<string>('REDIS_USER'),
     password: configService.get<string>('REDIS_PASSWORD'),

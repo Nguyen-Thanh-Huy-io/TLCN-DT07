@@ -6,7 +6,9 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
+import { UserStatus } from '@prisma/client';
 import config from '../config/app.config';
+import { tokenVersionCacheKey } from '../constants/cache-keys.constant';
 import { RedisService } from '../services/redis.service';
 import { PrismaService } from '../services/prisma.service';
 
@@ -70,7 +72,7 @@ export class AuthGuard implements CanActivate {
    * Slow path: DB lookup + cache (~10-20ms, only on cache miss)
    */
   private async getTokenVersion(userId: string): Promise<number> {
-    const cacheKey = `${config.redis_cache_key_prefix}:token_version:${userId}`;
+    const cacheKey = tokenVersionCacheKey(userId);
 
     // Try Redis first (fast path - most common)
     const cachedVersion = await this.redisService.get<number>(cacheKey);
@@ -88,14 +90,14 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('User not found');
     }
 
-    if (user.status !== 'ACTIVE') {
+    if (user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('User account is not active');
     }
 
     // Cache for 1 hour (or until security event invalidates it)
     await this.redisService.set(cacheKey, user.tokenVersion, 3600);
 
-    return user.tokenVersion as number;
+    return user.tokenVersion;
   }
 
   /**
@@ -110,13 +112,5 @@ export class AuthGuard implements CanActivate {
 
     const [type, token] = authHeader.split(' ');
     return type === 'Bearer' ? token : undefined;
-  }
-
-  /**
-   * Extract token from cookies (alternative method)
-   */
-  private extractTokenFromCookies(request: Request): string | undefined {
-    const cookies = request.cookies as Record<string, string> | undefined;
-    return cookies?.accessToken;
   }
 }

@@ -17,9 +17,8 @@ export class MetricsInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { method, route } = request;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
     const routePath = (route?.path as string) || request.url;
     const startTime = Date.now();
 
@@ -38,7 +37,7 @@ export class MetricsInterceptor implements NestInterceptor {
         },
         error: (error: any) => {
           const duration = (Date.now() - startTime) / 1000;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
           const statusCode = (error.status as number) || 500;
 
           this.metricsService.recordHttpRequest(
@@ -52,7 +51,7 @@ export class MetricsInterceptor implements NestInterceptor {
             method,
             routePath,
             statusCode,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
             (error.name as string) || 'UnknownError',
           );
         },

@@ -2,114 +2,216 @@
 // User & Auth Related Enums
 // ================================
 
-enum userRole {
-    USER
-    ADMIN
-    MODERATOR
-    SUPERADMIN
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+  SUPERADMIN
+
+  @@map("userRole")
 }
 
-enum userStatus {
-    ACTIVE
-    INACTIVE
-    SUSPENDED
-    DELETED
-    BLOCKED
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETED
+  BLOCKED
+
+  @@map("userStatus")
 }
 
-enum mfaMethod {
-    totp
-    sms
-    email
-    webauthn
+enum MfaMethod {
+  totp
+  sms
+  email
+  webauthn
+
+  @@map("mfaMethod")
 }
 
-enum loginAction {
-    login
-    logout
+enum LoginAction {
+  login
+  logout
+
+  @@map("loginAction")
 }
 
 // ================================
 // Email Related Enums
 // ================================
 
-enum email_type {
-    verification
-    password_reset
-    notification
+enum EmailType {
+  verification
+  password_reset
+  notification
+
+  @@map("email_type")
 }
 
-enum email_provider {
-    sendgrid
-    mailgun
-    ses
-    stmp
+enum EmailProvider {
+  sendgrid
+  mailgun
+  ses
+  smtp
+
+  @@map("email_provider")
 }
 
-enum email_status {
-    sent
-    failed
-    pending
-    bounced
-    delivered
-    opened
-    clicked
-}
+enum EmailStatus {
+  sent
+  failed
+  pending
+  bounced
+  delivered
+  opened
+  clicked
 
-// ================================
-// Activity Related Enums
-// ================================
-
-enum eventType {
-    create
-    update
-    delete
-    login
-    logout
-    password_change
-    profile_update
-}
-
-enum actionType {
-    create
-    update
-    delete
+  @@map("email_status")
 }
 
 // ================================
-// Subscription Related Enums
+// Content & Learning Related Enums
 // ================================
 
-enum subscriptionStatus {
-    ACTIVE
-    PAST_DUE
-    CANCELED
-    TRIALING
-    INCOMPLETE
-    INCOMPLETE_EXPIRED
-    UNPAID
+enum ContentStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+  ARCHIVED
 }
 
-enum billingInterval {
-    DAY
-    WEEK
-    MONTH
-    YEAR
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
 }
 
-enum paymentStatus {
-    PENDING
-    PROCESSING
-    SUCCEEDED
-    FAILED
-    CANCELED
-    REFUNDED
+enum LearningPathType {
+  CHRONOLOGICAL
+  THEMATIC
 }
 
-enum invoiceStatus {
-    DRAFT
-    OPEN
-    PAID
-    VOID
-    UNCOLLECTIBLE
+// Biểu tượng hiển thị cho chủ đề kiến thức trên landing page
+enum TopicIcon {
+  Landmark
+  Castle
+  Swords
+  Scale
+  BookOpen
+  MapPin
+}
+
+// Độ chính xác niên đại dùng chung cho toàn bộ dữ liệu lịch sử
+enum DatePrecision {
+  DAY
+  MONTH
+  YEAR
+  DECADE
+  CENTURY
+  APPROXIMATE
+  RANGE
+  UNKNOWN
+}
+
+// Loại bài viết — gắn trên Category (bài lấy loại theo chuyên mục của nó). Quyết định nhánh hồ sơ
+// (metadata.person/site/event) và cách giao diện công khai hiển thị bài (nhân vật, sự kiện, di tích...).
+enum ArticleKind {
+  PERSON
+  EVENT
+  LOCATION
+  DYNASTY
+  OTHER
+}
+
+// ================================
+// Community & Moderation Enums
+// ================================
+
+enum PostType {
+  QUICK_POST
+  LONG_FORM
+}
+
+enum ReportRiskLevel {
+  SAFE
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReportActionTaken {
+  NONE
+  AUTO_HIDDEN
+  CONFIRMED_REMOVED
+  DISMISSED
+}
+
+enum ReportSource {
+  USER_REPORT
+  AI_SCAN
+}
+
+enum ReportTargetType {
+  POST
+  COMMENT
+}
+
+enum PostCommentStatus {
+  VISIBLE
+  REMOVED
+}
+
+// ================================
+// Gamification Enums
+// ================================
+
+enum GamificationActivityType {
+  LESSON_COMPLETED
+  QUIZ_SUBMITTED
+  FLASHCARD_REVIEWED
+  ARTICLE_READ_COMPLETED
+  MINDMAP_CREATED
+  NOTE_CREATED
+}
+
+enum GoalPresetKey {
+  PRESET_1X
+  PRESET_3X
+  PRESET_5X
+  CUSTOM
+}
+
+enum GoalTargetType {
+  STUDY_DAYS
+  COMPLETE_LESSONS
+  PASS_QUIZZES
+  REVIEW_FLASHCARDS
+  READ_ARTICLES
+  ANY_ACTIVITIES
+}
+
+enum GoalPeriod {
+  DAILY
+  WEEKLY
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  ARCHIVED
+}
+
+enum AchievementMetricType {
+  TOTAL_ACTIVITIES
+  CURRENT_DAY_STREAK
+  CURRENT_WEEK_STREAK
+  COMPLETED_LESSONS
+  PASSED_QUIZZES
+  READ_ARTICLES
+  REVIEWED_FLASHCARDS
+  CREATED_MINDMAPS
 }

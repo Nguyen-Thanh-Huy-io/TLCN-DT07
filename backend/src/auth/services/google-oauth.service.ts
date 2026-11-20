@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { LoginAction } from '@prisma/client';
 import crypto from 'crypto';
 import * as jwt from 'jsonwebtoken';
 import { JwksClient } from 'jwks-rsa';
 import { CustomLoggerService } from '../../common/services/custom-logger.service';
 import { RedisService } from '../../common/services/redis.service';
 import { PrismaService } from '../../common/services/prisma.service';
-import { ActivityLogService } from '../../common/services/activity-log.service';
 import { AuthUtilsService } from './auth-utils.service';
 import {
   GOOGLE_OAUTH_CONFIG,
@@ -23,8 +23,6 @@ import { IStoredRefreshToken, UserRole } from '../interfaces/auth.interface';
 import AppError from '../../common/errors/app.error';
 import config from '../../common/config/app.config';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
 /**
  * Google OAuth Service
  * Implements Google OAuth 2.0 with PKCE (Proof Key for Code Exchange)
@@ -38,7 +36,6 @@ export class GoogleOAuthService {
     private readonly customLogger: CustomLoggerService,
     private readonly redisService: RedisService,
     private readonly prismaService: PrismaService,
-    private readonly activityLogService: ActivityLogService,
     private readonly authUtilsService: AuthUtilsService,
   ) {
     // Initialize JWKS client for Google public key retrieval
@@ -134,7 +131,7 @@ export class GoogleOAuthService {
       // Verify signature and validate claims in one step
       const payload = jwt.verify(idToken, publicKey, {
         algorithms: ['RS256'], // Google uses RS256 (RSA with SHA-256)
-        issuer: ['accounts.google.com', 'https://accounts.google.com'],
+        issuer: ['accounts.google.com', `https://${'accounts.google.com'}`],
         audience: clientId, // Ensures token is for our app
         clockTolerance: 60, // Allow 60 seconds clock skew
       }) as IGoogleIdTokenClaims;
@@ -497,22 +494,6 @@ export class GoogleOAuthService {
           },
         });
 
-        // Log user registration activity
-        await this.activityLogService.logCreate(
-          'authUser',
-          newUser.id,
-          {
-            email: googleUser.email,
-            username,
-            role: 'USER',
-            status: 'ACTIVE',
-            verified: 'true',
-            provider: 'google',
-          },
-          { ip, userAgent, actionedBy: newUser.id, device },
-          tx,
-        );
-
         return newUser;
       });
 
@@ -551,7 +532,7 @@ export class GoogleOAuthService {
       id: string;
       email: string;
       username: string;
-      role: string;
+      role: UserRole;
       tokenVersion: number;
       verified: boolean;
       provider: string;
@@ -579,7 +560,7 @@ export class GoogleOAuthService {
       // Create access token
       const accessToken = this.authUtilsService.createAccessToken({
         userId: user.id,
-        role: user.role as unknown as UserRole,
+        role: user.role,
         tokenVersion: user.tokenVersion, // Include tokenVersion for hybrid JWT validation
       });
 
@@ -721,9 +702,13 @@ export class GoogleOAuthService {
         await this.redisService.del(tokenKey);
       }
 
-      // Update session list
+      // Update session list — giữ hạn bằng refresh token, nếu không key sống mãi trong Redis
       const remainingSessions = sessions.slice(sessions.length - maxDevices);
-      await this.redisService.set(sessionKey, remainingSessions);
+      await this.redisService.set(
+        sessionKey,
+        remainingSessions,
+        this.parseExpiryToSeconds(AUTH_CONFIG.TOKEN_EXPIRY.REFRESH),
+      );
     }
   }
 
@@ -746,7 +731,7 @@ export class GoogleOAuthService {
           ipAddress: data.ip,
           userAgent: data.userAgent,
           device_id: data.device,
-          action: 'login',
+          action: LoginAction.login,
           success: data.success,
           failureReason: data.failureReason,
         },

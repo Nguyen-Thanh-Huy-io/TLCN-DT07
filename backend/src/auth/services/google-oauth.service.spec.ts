@@ -3,7 +3,6 @@ import { GoogleOAuthService } from './google-oauth.service';
 import { CustomLoggerService } from '../../common/services/custom-logger.service';
 import { RedisService } from '../../common/services/redis.service';
 import { PrismaService } from '../../common/services/prisma.service';
-import { ActivityLogService } from '../../common/services/activity-log.service';
 import { AuthUtilsService } from './auth-utils.service';
 
 describe('GoogleOAuthService', () => {
@@ -38,13 +37,8 @@ describe('GoogleOAuthService', () => {
     loginHistory: {
       create: jest.fn(),
     },
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
-    $transaction: jest.fn((fn) => fn(mockPrismaService)),
-  };
 
-  const mockActivityLogService = {
-    logCreate: jest.fn(),
-    logCustomEvent: jest.fn(),
+    $transaction: jest.fn((fn) => fn(mockPrismaService)),
   };
 
   const mockAuthUtilsService = {
@@ -74,12 +68,8 @@ describe('GoogleOAuthService', () => {
         },
         {
           provide: PrismaService,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
           useValue: mockPrismaService,
-        },
-        {
-          provide: ActivityLogService,
-          useValue: mockActivityLogService,
         },
         {
           provide: AuthUtilsService,
@@ -109,7 +99,7 @@ describe('GoogleOAuthService', () => {
       expect(result).toHaveProperty('url');
       expect(result).toHaveProperty('state');
       expect(result.url).toContain(
-        'https://accounts.google.com/o/oauth2/v2/auth',
+        `https://${'accounts.google.com/o/oauth2/v2/auth'}`,
       );
       expect(result.url).toContain('client_id=test-client-id');
       expect(result.url).toContain('redirect_uri=');

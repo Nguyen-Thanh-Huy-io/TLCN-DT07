@@ -4,6 +4,7 @@
 
 export const AUTH_CONFIG = {
   // Password Configuration
+  BCRYPT_SALT_ROUNDS: 12,
   PASSWORD_MIN_LENGTH: 8,
   PASSWORD_REQUIREMENTS: {
     UPPERCASE: true,
@@ -37,14 +38,6 @@ export const AUTH_CONFIG = {
   // Session/Device Management
   SESSION: {
     MAX_DEVICES_PER_USER: 5, // Max concurrent refresh tokens per user
-  },
-
-  // Role Hierarchy (higher number = more permissions)
-  ROLE_HIERARCHY: {
-    CUSTOMER: 1,
-    MODERATOR: 2,
-    ADMIN: 3,
-    SUPER_ADMIN: 4,
   },
 
   // Cache Prefixes (improved naming convention)

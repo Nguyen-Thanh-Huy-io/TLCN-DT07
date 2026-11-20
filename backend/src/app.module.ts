@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 // import { BlogModule } from './blog/blog.module';
@@ -12,6 +13,30 @@ import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './common/config/winston.config';
 import { LoggerModule } from './common/modules/logger.module';
 
+import { TopicModule } from './topic/topic.module';
+import { LessonModule } from './lesson/lesson.module';
+import { TagModule } from './tag/tag.module';
+import { ContentRevisionModule } from './content-revision/content-revision.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { UploadModule } from './upload/upload.module';
+import { LearningPathModule } from './learning-path/learning-path.module';
+import { PublicContentModule } from './public-content/public-content.module';
+import { CategoryModule } from './category/category.module';
+import { BlogModule } from './blog/blog.module';
+import { ArticleModule } from './article/article.module';
+import { TimelineModule } from './timeline/timeline.module';
+import { QuizModule } from './quiz/quiz.module';
+import { LearnerModule } from './learner/learner.module';
+import { DiscussionModule } from './discussion/discussion.module';
+import { NotificationModule } from './notification/notification.module';
+import { NoteModule } from './note/note.module';
+import { FlashcardModule } from './flashcard/flashcard.module';
+import { MindmapModule } from './mindmap/mindmap.module';
+import { GamificationModule } from './gamification/gamification.module';
+import { SavedMaterialModule } from './saved-material/saved-material.module';
+import { QueueModule } from './common/modules/queue.module';
+import { ModerationModule } from './moderation/moderation.module';
+
 @Module({
   imports: [
     // Load environment variables globally
@@ -19,18 +44,43 @@ import { LoggerModule } from './common/modules/logger.module';
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
     }),
+    EventEmitterModule.forRoot(),
     // Winston logger module (global - can be injected anywhere)
     WinstonModule.forRoot(winstonConfig),
     // Custom logger module (global - can be injected anywhere)
     LoggerModule,
     // Redis module (global - can be injected anywhere)
     RedisModule,
+    // BullMQ Queue module
+    QueueModule,
     // Rate limiting module (global - throttles requests using Redis)
     RateLimitModule,
     // Metrics module (global - Prometheus metrics)
     MetricsModule,
     AuthModule,
     UserModule,
+    TopicModule,
+    LessonModule,
+    TagModule,
+    ContentRevisionModule,
+    DashboardModule,
+    UploadModule,
+    LearningPathModule,
+    CategoryModule,
+    BlogModule,
+    ModerationModule,
+    ArticleModule,
+    TimelineModule,
+    PublicContentModule,
+    QuizModule,
+    LearnerModule,
+    DiscussionModule,
+    NotificationModule,
+    NoteModule,
+    FlashcardModule,
+    MindmapModule,
+    GamificationModule,
+    SavedMaterialModule,
   ],
   controllers: [AppController],
   providers: [AppService],

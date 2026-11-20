@@ -1,0 +1,60 @@
+{
+  "topics": [
+    {
+      "rootSlug": "lich-su-co-trung-dai",
+      "rootName": "Lịch sử Việt Nam Cổ - Trung đại",
+      "childSlug": "khoi-nghia-lam-son",
+      "childName": "Khởi nghĩa Lam Sơn & Nhà Hậu Lê",
+      "eyebrow": "1418 - 1427"
+    },
+    {
+      "rootSlug": "lich-su-can-hien-dai",
+      "rootName": "Lịch sử Việt Nam Cận - Hiện đại",
+      "childSlug": "khang-chien-chong-phap-1945-1954",
+      "childName": "Kháng chiến chống thực dân Pháp (1945 - 1954)",
+      "eyebrow": "1945 - 1954"
+    }
+  ],
+  "articles": [
+    {
+      "page": "Lê_Lợi",
+      "title": "Lê Lợi",
+      "slug": "le-loi",
+      "categorySlug": "nhan-vat",
+      "topicSlug": "khoi-nghia-lam-son",
+      "tags": ["Khởi nghĩa Lam Sơn", "Nhà Lê sơ"]
+    },
+    {
+      "page": "Nguyễn_Trãi",
+      "title": "Nguyễn Trãi",
+      "slug": "nguyen-trai",
+      "categorySlug": "nhan-vat",
+      "topicSlug": "khoi-nghia-lam-son",
+      "tags": ["Khởi nghĩa Lam Sơn", "Bình Ngô đại cáo"]
+    },
+    {
+      "page": "Khởi_nghĩa_Lam_Sơn",
+      "title": "Khởi nghĩa Lam Sơn",
+      "slug": "khoi-nghia-lam-son",
+      "categorySlug": "su-kien",
+      "topicSlug": "khoi-nghia-lam-son",
+      "tags": ["Khởi nghĩa Lam Sơn", "Nhà Lê sơ"]
+    },
+    {
+      "page": "Võ_Nguyên_Giáp",
+      "title": "Đại tướng Võ Nguyên Giáp",
+      "slug": "vo-nguyen-giap",
+      "categorySlug": "nhan-vat",
+      "topicSlug": "khang-chien-chong-phap-1945-1954",
+      "tags": ["Chiến dịch Điện Biên Phủ", "Quân đội nhân dân Việt Nam"]
+    },
+    {
+      "page": "Chiến_dịch_Điện_Biên_Phủ",
+      "title": "Chiến dịch Điện Biên Phủ",
+      "slug": "chien-dich-dien-bien-phu",
+      "categorySlug": "su-kien",
+      "topicSlug": "khang-chien-chong-phap-1945-1954",
+      "tags": ["Chiến dịch Điện Biên Phủ", "Lừng lẫy năm châu"]
+    }
+  ]
+}

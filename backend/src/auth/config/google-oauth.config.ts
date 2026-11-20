@@ -3,15 +3,31 @@
  * Industry-standard configuration for Google OAuth 2.0
  */
 
+const GOOGLE_AUTH_HOST = 'accounts.google.com';
+const GOOGLE_OAUTH2_HOST = 'oauth2.googleapis.com';
+const GOOGLE_APIS_HOST = 'www.googleapis.com';
+
 export const GOOGLE_OAUTH_CONFIG = {
   // OAuth 2.0 Endpoints
   ENDPOINTS: {
-    AUTHORIZATION: 'https://accounts.google.com/o/oauth2/v2/auth',
-    TOKEN: 'https://oauth2.googleapis.com/token',
-    USERINFO: 'https://www.googleapis.com/oauth2/v3/userinfo',
-    TOKEN_INFO: 'https://oauth2.googleapis.com/tokeninfo',
-    REVOKE: 'https://oauth2.googleapis.com/revoke',
-    JWKS: 'https://www.googleapis.com/oauth2/v3/certs',
+    AUTHORIZATION:
+      process.env.GOOGLE_OAUTH_AUTH_URL ||
+      `https://${GOOGLE_AUTH_HOST}/o/oauth2/v2/auth`,
+    TOKEN:
+      process.env.GOOGLE_OAUTH_TOKEN_URL ||
+      `https://${GOOGLE_OAUTH2_HOST}/token`,
+    USERINFO:
+      process.env.GOOGLE_OAUTH_USERINFO_URL ||
+      `https://${GOOGLE_APIS_HOST}/oauth2/v3/userinfo`,
+    TOKEN_INFO:
+      process.env.GOOGLE_OAUTH_TOKEN_INFO_URL ||
+      `https://${GOOGLE_OAUTH2_HOST}/tokeninfo`,
+    REVOKE:
+      process.env.GOOGLE_OAUTH_REVOKE_URL ||
+      `https://${GOOGLE_OAUTH2_HOST}/revoke`,
+    JWKS:
+      process.env.GOOGLE_OAUTH_JWKS_URL ||
+      `https://${GOOGLE_APIS_HOST}/oauth2/v3/certs`,
   },
 
   // OAuth 2.0 Scopes

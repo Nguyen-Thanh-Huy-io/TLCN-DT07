@@ -3,7 +3,7 @@
 import React from 'react';
 import { GripVertical, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 import { LessonBlockItem, BlockWidthType } from '../../types/block-builder.types';
-import { LessonBlockType } from '../../types/editor.types';
+import { getBlockLabel } from '../../constants/lesson.constants';
 import { BlockWidthStrategy } from '../../strategies/row-layout.strategy';
 
 interface BlockCardWrapperProps {
@@ -20,45 +20,6 @@ interface BlockCardWrapperProps {
   children: React.ReactNode;
 }
 
-const getBlockMeta = (type: LessonBlockType) => {
-  switch (type) {
-    case LessonBlockType.TEXT:
-      return { label: 'Văn bản' };
-    case LessonBlockType.HEADING:
-      return { label: 'Tiêu đề mục' };
-    case LessonBlockType.TIMELINE:
-      return { label: 'Dòng thời gian' };
-    case LessonBlockType.CHARACTER:
-      return { label: 'Hồ sơ thực thể' };
-    case LessonBlockType.EVENT:
-      return { label: 'Thẻ sự kiện' };
-    case LessonBlockType.RELATED_PEOPLE:
-      return { label: 'Nhân vật liên quan' };
-    case LessonBlockType.RELATED_EVENTS:
-      return { label: 'Sự kiện liên quan' };
-    case LessonBlockType.IMAGE:
-      return { label: 'Hình ảnh' };
-    case LessonBlockType.VIDEO:
-      return { label: 'Phim tư liệu' };
-    case LessonBlockType.COMPARISON_TABLE:
-      return { label: 'Bảng so sánh' };
-    case LessonBlockType.CALLOUT:
-      return { label: 'Hộp ghi chú' };
-    case LessonBlockType.QUOTE:
-      return { label: 'Trích dẫn' };
-    case LessonBlockType.DIVIDER:
-      return { label: 'Đường phân cách' };
-    case LessonBlockType.MAP:
-      return { label: 'Bản đồ lịch sử' };
-    case LessonBlockType.SECTION_ROW:
-      return { label: 'Bố cục nhiều cột' };
-    case LessonBlockType.QUIZ:
-      return { label: 'Ôn tập' };
-    default:
-      return { label: 'Khối nội dung' };
-  }
-};
-
 export function BlockCardWrapper({
   block,
   index,
@@ -72,7 +33,7 @@ export function BlockCardWrapper({
   onUpdateWidth,
   children,
 }: BlockCardWrapperProps) {
-  const meta = getBlockMeta(block.type);
+  const blockLabel = getBlockLabel(block.type);
   const availableWidths = BlockWidthStrategy.getAvailableWidths(block.type);
   const currentWidth = block.width || BlockWidthStrategy.getDefaultWidth(block.type);
   const widthCssClass = BlockWidthStrategy.getCssClass(currentWidth);
@@ -114,7 +75,7 @@ export function BlockCardWrapper({
           </span>
 
           <span className="text-xs font-bold text-slate-700 truncate">
-            {meta.label}
+            {blockLabel}
           </span>
         </div>
 

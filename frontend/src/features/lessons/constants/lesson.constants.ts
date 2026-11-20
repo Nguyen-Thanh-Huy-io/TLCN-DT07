@@ -1,6 +1,13 @@
 import { WIKIPEDIA_VI_API } from '@/constants/routes';
 import { BlockPaletteItem, LessonBlockGroup, LessonBlockType } from '../types/editor.types';
-import { RowGapSize, RowLayoutPresetId, RowVerticalAlign } from '../types/block-builder.types';
+import {
+  CalloutVariant,
+  RowGapSize,
+  RowLayoutPresetId,
+  RowVerticalAlign,
+  TimelineDateFormat,
+  TimelineSortOrder,
+} from '../types/block-builder.types';
 
 const ADD_BLOCK_BELOW_LABEL = '+ Thêm khối bên dưới';
 
@@ -42,94 +49,214 @@ export const EVENT_BLOCK_CONSTANTS = {
   SUMMARY_PLACEHOLDER: 'Nhập mô tả diễn biến chính và ý nghĩa của sự kiện...',
 } as const;
 
-export const LESSON_BLOCK_ITEMS: BlockPaletteItem[] = [
-  {
+export interface BlockCatalogEntry {
+  type: LessonBlockType;
+  label: string;
+  description: string;
+  group?: LessonBlockGroup;
+  lessonOnly?: boolean;
+  showInPalette: boolean;
+}
+
+export const BLOCK_CATALOG: Record<LessonBlockType, BlockCatalogEntry> = {
+  [LessonBlockType.TEXT]: {
     type: LessonBlockType.TEXT,
     label: 'Văn bản',
     description: 'Đoạn văn, văn bản định dạng chi tiết',
     group: LessonBlockGroup.BASIC,
+    showInPalette: true,
   },
-  {
+  [LessonBlockType.HEADING]: {
     type: LessonBlockType.HEADING,
     label: 'Tiêu đề mục',
     description: 'Tiêu đề phân cấp chương mục',
     group: LessonBlockGroup.BASIC,
+    showInPalette: true,
   },
-  {
+  [LessonBlockType.IMAGE]: {
     type: LessonBlockType.IMAGE,
     label: 'Hình ảnh',
     description: 'Hình ảnh tư liệu lịch sử',
     group: LessonBlockGroup.BASIC,
+    showInPalette: true,
   },
-  {
+  [LessonBlockType.VIDEO]: {
     type: LessonBlockType.VIDEO,
     label: 'Phim tư liệu',
     description: 'Phim tài liệu, băng ghi hình lịch sử',
     group: LessonBlockGroup.BASIC,
+    showInPalette: true,
   },
-  {
+  [LessonBlockType.QUOTE]: {
     type: LessonBlockType.QUOTE,
     label: 'Trích dẫn',
     description: 'Danh ngôn, lời hịch hào hùng',
     group: LessonBlockGroup.BASIC,
+    showInPalette: true,
   },
-  {
+  [LessonBlockType.DIVIDER]: {
     type: LessonBlockType.DIVIDER,
     label: 'Đường phân cách',
     description: 'Đường kẻ phân tách nội dung',
     group: LessonBlockGroup.BASIC,
+    showInPalette: true,
   },
-  {
+  [LessonBlockType.CALLOUT]: {
     type: LessonBlockType.CALLOUT,
     label: 'Hộp ghi chú',
     description: 'Hộp ghi chú bối cảnh, lưu ý sử gia',
     group: LessonBlockGroup.BASIC,
+    showInPalette: true,
   },
   // Gộp "Nhân vật liên quan" vào "Hồ sơ thực thể" và gộp "Thẻ sự kiện" vào "Sự kiện liên quan"
   // trên bảng chọn khối mới; plugin/renderer cũ vẫn giữ trong Registry để tương thích dữ liệu đã lưu.
-  {
+  [LessonBlockType.CHARACTER]: {
     type: LessonBlockType.CHARACTER,
     label: 'Hồ sơ thực thể',
     description: 'Hồ sơ nhân vật, tổ chức, triều đại, địa danh liên quan',
     group: LessonBlockGroup.SPECIALIZED,
+    showInPalette: true,
   },
-  {
+  [LessonBlockType.TIMELINE]: {
     type: LessonBlockType.TIMELINE,
     label: 'Dòng thời gian',
     description: 'Dòng thời gian các mốc sự kiện',
     group: LessonBlockGroup.SPECIALIZED,
+    showInPalette: true,
   },
-  {
+  [LessonBlockType.RELATED_EVENTS]: {
     type: LessonBlockType.RELATED_EVENTS,
     label: 'Sự kiện liên quan',
     description: 'Thẻ diễn biến và các sự kiện lịch sử gắn kết',
     group: LessonBlockGroup.SPECIALIZED,
+    showInPalette: true,
   },
-  {
+  [LessonBlockType.MAP]: {
     type: LessonBlockType.MAP,
     label: 'Bản đồ lịch sử',
     description: 'Địa bàn chiến sự, di tích bản đồ',
     group: LessonBlockGroup.SPECIALIZED,
+    showInPalette: true,
   },
-  {
+  [LessonBlockType.COMPARISON_TABLE]: {
     type: LessonBlockType.COMPARISON_TABLE,
     label: 'Bảng so sánh',
     description: 'Bảng so sánh tương quan lực lượng',
     group: LessonBlockGroup.SPECIALIZED,
+    showInPalette: true,
   },
-  {
+  [LessonBlockType.SECTION_ROW]: {
     type: LessonBlockType.SECTION_ROW,
     label: 'Bố cục nhiều cột',
     description: 'Chia bố cục đa cột kèm mẫu sẵn (Tạp chí 4:8, Đối xứng 6:6, 3 cột...)',
     group: LessonBlockGroup.ADVANCED,
+    showInPalette: true,
   },
-  {
+  [LessonBlockType.QUIZ]: {
     type: LessonBlockType.QUIZ,
     label: 'Ôn tập',
     description: 'Vài câu tự kiểm tra tại chỗ (soạn mới hoặc lấy từ Ngân hàng)',
     group: LessonBlockGroup.ADVANCED,
     lessonOnly: true,
+    showInPalette: true,
   },
+  [LessonBlockType.RESOURCE_LINK]: {
+    type: LessonBlockType.RESOURCE_LINK,
+    label: 'Tài liệu đính kèm',
+    description: 'Liên kết sử liệu tham khảo ở cuối bài học',
+    showInPalette: false,
+  },
+  [LessonBlockType.EVENT]: {
+    type: LessonBlockType.EVENT,
+    label: 'Thẻ sự kiện',
+    description: 'Thẻ sự kiện lịch sử đơn lẻ',
+    showInPalette: false,
+  },
+  [LessonBlockType.RELATED_PEOPLE]: {
+    type: LessonBlockType.RELATED_PEOPLE,
+    label: 'Nhân vật liên quan',
+    description: 'Danh sách nhân vật lịch sử liên quan',
+    showInPalette: false,
+  },
+};
+
+export const LESSON_BLOCK_ITEMS: BlockPaletteItem[] = Object.values(BLOCK_CATALOG)
+  .filter((entry): entry is BlockCatalogEntry & { group: LessonBlockGroup } =>
+    entry.showInPalette && Boolean(entry.group)
+  )
+  .map(({ type, label, description, group, lessonOnly }) => ({
+    type,
+    label,
+    description,
+    group,
+    lessonOnly,
+  }));
+
+export function getBlockLabel(
+  type: LessonBlockType | string,
+  fallback: string = 'Khối nội dung'
+): string {
+  return BLOCK_CATALOG[type as LessonBlockType]?.label ?? fallback;
+}
+
+export interface CalloutVariantOption {
+  variant: CalloutVariant;
+  label: string;
+  inspectorLabel: string;
+  icon: string;
+  cssModifier: string;
+  editorBorderClass: string;
+}
+
+export const CALLOUT_VARIANT_OPTIONS: ReadonlyArray<CalloutVariantOption> = [
+  {
+    variant: CalloutVariant.HISTORICAL_NOTE,
+    label: 'Góc nhìn Sử gia / Lưu ý',
+    inspectorLabel: 'Góc nhìn Sử gia (Vàng)',
+    icon: '📜',
+    cssModifier: 'hisgo-callout--historical-note',
+    editorBorderClass: 'border-slate-200 border-l-4 border-l-amber-500',
+  },
+  {
+    variant: CalloutVariant.INFO,
+    label: 'Bối cảnh / Thông tin thêm',
+    inspectorLabel: 'Bối cảnh lịch sử (Xanh)',
+    icon: '💡',
+    cssModifier: 'hisgo-callout--info',
+    editorBorderClass: 'border-slate-200 border-l-4 border-l-blue-600',
+  },
+  {
+    variant: CalloutVariant.WARNING,
+    label: 'Tranh cãi / Nghi vấn lịch sử',
+    inspectorLabel: 'Nghi vấn & Tranh cãi (Đỏ)',
+    icon: '⚠️',
+    cssModifier: 'hisgo-callout--warning',
+    editorBorderClass: 'border-slate-200 border-l-4 border-l-rose-600',
+  },
+  {
+    variant: CalloutVariant.SUCCESS,
+    label: 'Bài học & Ý nghĩa thời đại',
+    inspectorLabel: 'Bài học thời đại (Lục)',
+    icon: '✨',
+    cssModifier: 'hisgo-callout--success',
+    editorBorderClass: 'border-slate-200 border-l-4 border-l-emerald-600',
+  },
+];
+
+export const TIMELINE_DATE_FORMAT_OPTIONS: ReadonlyArray<{
+  value: TimelineDateFormat;
+  label: string;
+}> = [
+  { value: TimelineDateFormat.YEAR_ONLY, label: 'Năm (1288)' },
+  { value: TimelineDateFormat.FULL_DATE, label: 'Ngày đầy đủ' },
+];
+
+export const TIMELINE_SORT_ORDER_OPTIONS: ReadonlyArray<{
+  value: TimelineSortOrder;
+  label: string;
+}> = [
+  { value: TimelineSortOrder.CHRONOLOGICAL, label: 'Cũ → Mới' },
+  { value: TimelineSortOrder.REVERSE_CHRONOLOGICAL, label: 'Mới → Cũ' },
 ];
 
 export const ENTITY_SOURCE_CONSTANTS = {

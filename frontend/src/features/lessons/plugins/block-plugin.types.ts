@@ -28,26 +28,13 @@ export function safeUrl(url: string | null | undefined): string {
 }
 
 /**
- * Bảng hằng số màu nền và viền chuẩn "Clean White Surface" cho toàn bộ Block Plugins.
- * Đồng nhất nền trắng (#ffffff), phân tách bằng viền mảnh (#e2e8f0) và thanh nhấn trái (border-left).
- */
-export const BLOCK_SURFACE_THEME = {
-  BG_WHITE: '#ffffff',
-  BG_SUBTLE_HEADER: '#f8fafc',
-  BORDER_NEUTRAL: '#e2e8f0',
-  TEXT_PRIMARY: '#0f172a',
-  TEXT_SECONDARY: '#334155',
-  TEXT_MUTED: '#64748b',
-} as const;
-
-/**
- * Khung HTML chi tiết tự thu/mở (Details / Summary) cho các khối lịch sử
+ * Khung HTML chi tiết tự thu/mở (Details / Summary) dùng semantic classes chuẩn `lesson-blocks.css`
  */
 export function renderCollapsibleDetail(detailContent?: string, label: string = 'Xem chi tiết'): string {
   if (!detailContent) return '';
-  return `<details style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; font-size: 12px; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; line-height: 1.6;">
-    <summary style="cursor: pointer; font-weight: 600; color: #1d4ed8; list-style: none;">▸ ${escapeHtml(label)}</summary>
-    <div style="margin-top: 6px;">${detailContent}</div>
+  return `<details class="hisgo-detail">
+    <summary class="hisgo-detail-summary">▸ ${escapeHtml(label)}</summary>
+    <div class="hisgo-detail-body">${detailContent}</div>
   </details>`;
 }
 

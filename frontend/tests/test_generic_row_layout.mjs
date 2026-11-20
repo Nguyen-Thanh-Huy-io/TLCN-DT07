@@ -80,12 +80,16 @@ export async function load(url, context, nextLoad) {
 register(`data:text/javascript;base64,${Buffer.from(LOADER_HOOK_SOURCE, 'utf8').toString('base64')}`);
 
 const { LessonBlockType } = await import('../src/features/lessons/types/editor.types.ts');
-const { RowGapSize, RowLayoutPresetId, RowVerticalAlign } = await import(
+const { CalloutVariant, RowGapSize, RowLayoutPresetId, RowVerticalAlign, TimelineSceneStyle } = await import(
   '../src/features/lessons/types/block-builder.types.ts'
 );
-const { LEGACY_BLOCK_TYPE_STORY_CHAPTER, LESSON_BLOCK_ITEMS } = await import(
-  '../src/features/lessons/constants/lesson.constants.ts'
-);
+const {
+  BLOCK_CATALOG,
+  CALLOUT_VARIANT_OPTIONS,
+  LEGACY_BLOCK_TYPE_STORY_CHAPTER,
+  LESSON_BLOCK_ITEMS,
+  getBlockLabel,
+} = await import('../src/features/lessons/constants/lesson.constants.ts');
 const {
   RowLayoutStrategy,
   RowLayoutPresetRegistry,
@@ -182,7 +186,7 @@ test('RowLayoutStrategy tính snap, grid minmax(0, ...fr) và compileRowToHtml �
   assert.match(html, /data-preset="MAGAZINE_4_8"/);
 });
 
-test('characterBlockPlugin tách header & body full-width và globals.css đủ CSS Container Queries chống tràn', () => {
+test('characterBlockPlugin tách header & body và lesson-blocks.css được nạp qua globals.css với đầy đủ @container', () => {
   const charHtml = LessonBlockRegistry.blockToHtml({
     id: 'char_1',
     type: LessonBlockType.CHARACTER,
@@ -194,14 +198,116 @@ test('characterBlockPlugin tách header & body full-width và globals.css đủ 
   assert.match(charHtml, /class="hisgo-character-header"/);
   assert.match(charHtml, /class="hisgo-character-meta"/);
   assert.match(charHtml, /class="hisgo-character-body"/);
+  assert.doesNotMatch(charHtml, /\sstyle="/);
 
   const globalsCss = fs.readFileSync(path.join(SRC_ROOT, 'app/globals.css'), 'utf8');
-  assert.match(globalsCss, /@container\s+hisgo-row\s*\(max-width:\s*720px\)/);
-  assert.match(globalsCss, /@container\s+hisgo-row\s*\(max-width:\s*540px\)/);
-  assert.match(globalsCss, /@container\s+hisgo-col\s*\(max-width:\s*320px\)/);
-  assert.match(globalsCss, /@container\s+hisgo-card\s*\(max-width:\s*250px\)/);
-  assert.match(globalsCss, /\.hisgo-column\s*\{[\s\S]*?overflow-wrap:\s*break-word/);
-  assert.match(globalsCss, /\.hisgo-column\s+table\s*\{[\s\S]*?overflow-x:\s*auto/);
+  assert.match(globalsCss, /@import\s+["']\.\.\/features\/lessons\/styles\/lesson-blocks\.css["']/);
+
+  const blocksCss = fs.readFileSync(path.join(SRC_ROOT, 'features/lessons/styles/lesson-blocks.css'), 'utf8');
+  assert.match(blocksCss, /@container\s+hisgo-row\s*\(max-width:\s*720px\)/);
+  assert.match(blocksCss, /@container\s+hisgo-row\s*\(max-width:\s*540px\)/);
+  assert.match(blocksCss, /@container\s+hisgo-col\s*\(max-width:\s*320px\)/);
+  assert.match(blocksCss, /@container\s+hisgo-card\s*\(max-width:\s*250px\)/);
+  assert.match(blocksCss, /\.hisgo-column\s*\{[\s\S]*?overflow-wrap:\s*break-word/);
+  assert.match(blocksCss, /\.hisgo-column\s+table\s*\{[\s\S]*?overflow-x:\s*auto/);
+  assert.match(blocksCss, /\.hisgo-callout\s*\{/);
+  assert.match(blocksCss, /\.hisgo-timeline-block\s*\{/);
+});
+
+test('BLOCK_CATALOG & CALLOUT_VARIANT_OPTIONS đầy đủ và các Block Plugin xuất semantic HTML sạch', () => {
+  const allTypes = Object.values(LessonBlockType);
+  assert.equal(Object.keys(BLOCK_CATALOG).length, allTypes.length);
+  for (const blockType of allTypes) {
+    assert.ok(BLOCK_CATALOG[blockType], `Thiếu entry BLOCK_CATALOG cho ${blockType}`);
+    const label = getBlockLabel(blockType);
+    assert.notEqual(label, 'Khối nội dung', `Nhãn cho ${blockType} không được rơi về fallback`);
+  }
+
+  const allVariants = Object.values(CalloutVariant);
+  assert.equal(CALLOUT_VARIANT_OPTIONS.length, allVariants.length);
+  for (const variant of allVariants) {
+    assert.ok(
+      CALLOUT_VARIANT_OPTIONS.some((opt) => opt.variant === variant),
+      `Thiếu CALLOUT_VARIANT_OPTIONS cho ${variant}`
+    );
+  }
+
+  const calloutHtml = LessonBlockRegistry.blockToHtml({
+    id: 'cal_1',
+    type: LessonBlockType.CALLOUT,
+    variant: CalloutVariant.INFO,
+    title: 'Lưu ý',
+    content: 'Nội dung ghi chú',
+  });
+  assert.match(calloutHtml, /class="hisgo-callout hisgo-callout--info"/);
+  assert.doesNotMatch(calloutHtml, /\sstyle="/);
+
+  const eventHtml = LessonBlockRegistry.blockToHtml({
+    id: 'ev_1',
+    type: LessonBlockType.EVENT,
+    title: 'Điện Biên Phủ',
+    timeLocation: '1954',
+    summary: 'Chiến thắng lịch sử',
+  });
+  assert.match(eventHtml, /class="hisgo-event-block"/);
+  assert.doesNotMatch(eventHtml, /\sstyle="/);
+
+  const quoteHtml = LessonBlockRegistry.blockToHtml({
+    id: 'qt_1',
+    type: LessonBlockType.QUOTE,
+    quoteText: 'Không có gì quý hơn độc lập tự do',
+    author: 'Hồ Chí Minh',
+  });
+  assert.match(quoteHtml, /class="hisgo-quote-block"/);
+  assert.doesNotMatch(quoteHtml, /\sstyle="/);
+
+  const tableHtml = LessonBlockRegistry.blockToHtml({
+    id: 'tb_1',
+    type: LessonBlockType.COMPARISON_TABLE,
+    title: 'So sánh',
+    colAName: 'Ta',
+    colBName: 'Địch',
+    rows: [{ criteria: 'Tinh thần', colA: 'Cao', colB: 'Thấp' }],
+  });
+  assert.match(tableHtml, /class="hisgo-table"/);
+  assert.doesNotMatch(tableHtml, /\sstyle="/);
+
+  for (const sceneStyle of [
+    TimelineSceneStyle.MUSEUM_SPLIT,
+    TimelineSceneStyle.CINEMATIC_BACKDROP,
+    TimelineSceneStyle.CHRONO_MINIMAL,
+  ]) {
+    const tlHtmlNoImg = LessonBlockRegistry.blockToHtml({
+      id: `tl_${sceneStyle}`,
+      type: LessonBlockType.TIMELINE,
+      title: 'Dòng thời gian',
+      subtitle: 'Tóm tắt',
+      displayConfig: { sceneStyle, showImage: true },
+      nodes: [{ id: 'n1', year: '1954', title: 'Mốc', description: 'Mô tả' }],
+    });
+    assert.match(tlHtmlNoImg, /class="hisgo-timeline-block"/);
+    assert.doesNotMatch(tlHtmlNoImg, /\sstyle="/);
+  }
+
+  const cinematicWithImg = LessonBlockRegistry.blockToHtml({
+    id: 'tl_cinematic_img',
+    type: LessonBlockType.TIMELINE,
+    title: 'Dòng thời gian',
+    subtitle: 'Tóm tắt',
+    displayConfig: { sceneStyle: TimelineSceneStyle.CINEMATIC_BACKDROP, showImage: true },
+    nodes: [
+      {
+        id: 'n1',
+        year: '1954',
+        title: 'Mốc',
+        description: 'Mô tả',
+        thumbnailUrl: '/uploads/test-bg.jpg',
+      },
+    ],
+  });
+  assert.match(cinematicWithImg, /style="background-image:/);
+  const withoutBgStyle = cinematicWithImg.replace(/style="background-image:[^"]*"/g, '');
+  assert.doesNotMatch(withoutBgStyle, /\sstyle="/);
 });
 
 test('BlockPlacementRuleEngine giữ nguyên toàn bộ luật lồng khối và giới hạn độ rộng cột', () => {

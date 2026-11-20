@@ -14,9 +14,17 @@ import {
 import {
   LessonBlockItem,
   TimelineBlockData,
+  TimelineDateFormat,
   TimelineDisplayConfig,
   TimelineOrientation,
+  TimelineSceneStyle,
+  TimelineSortOrder,
 } from '../../../types/block-builder.types';
+import {
+  TIMELINE_DATE_FORMAT_OPTIONS,
+  TIMELINE_SORT_ORDER_OPTIONS,
+} from '../../../constants/lesson.constants';
+import { TIMELINE_SCENE_STYLE_OPTIONS } from '../../../strategies/timeline-scene.strategy';
 import { TimelineApiService, type TimelineItem } from '@/services/entities/timeline.service';
 import { formatYear } from '@/utils/common';
 import { createBlockUUID } from '../../../strategies/row-layout.strategy';
@@ -76,9 +84,9 @@ export function TimelineBlockInspector({
 
   const orientation = tl.orientation || TimelineOrientation.VERTICAL;
   const displayConfig: TimelineDisplayConfig = tl.displayConfig || {
-    sceneStyle: 'MUSEUM_SPLIT',
-    dateFormat: 'YEAR_ONLY',
-    sortOrder: 'CHRONOLOGICAL',
+    sceneStyle: TimelineSceneStyle.MUSEUM_SPLIT,
+    dateFormat: TimelineDateFormat.YEAR_ONLY,
+    sortOrder: TimelineSortOrder.CHRONOLOGICAL,
     showDescription: true,
     showImage: true,
     showLocation: false,
@@ -130,17 +138,20 @@ export function TimelineBlockInspector({
             <InspectorFieldRow label="Phân cảnh">
               <select
                 aria-label="Phong cách phân cảnh"
-                value={displayConfig.sceneStyle || 'MUSEUM_SPLIT'}
+                value={displayConfig.sceneStyle || TimelineSceneStyle.MUSEUM_SPLIT}
                 onChange={(e) =>
                   updateDisplay(
                     'sceneStyle',
-                    e.target.value as TimelineDisplayConfig['sceneStyle']
+                    e.target.value as TimelineSceneStyle
                   )
                 }
                 className={`${INSPECTOR_SELECT_CLS} w-40`}
               >
-                <option value="MUSEUM_SPLIT">Triển lãm tư liệu</option>
-                <option value="CINEMATIC_BACKDROP">Điện ảnh toàn cảnh</option>
+                {TIMELINE_SCENE_STYLE_OPTIONS.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label.split(' (')[0]}
+                  </option>
+                ))}
               </select>
             </InspectorFieldRow>
 
@@ -184,34 +195,40 @@ export function TimelineBlockInspector({
             <InspectorFieldRow label="Định dạng ngày">
               <select
                 aria-label="Định dạng ngày"
-                value={displayConfig.dateFormat || 'YEAR_ONLY'}
+                value={displayConfig.dateFormat || TimelineDateFormat.YEAR_ONLY}
                 onChange={(e) =>
                   updateDisplay(
                     'dateFormat',
-                    e.target.value as TimelineDisplayConfig['dateFormat']
+                    e.target.value as TimelineDateFormat
                   )
                 }
                 className={`${INSPECTOR_SELECT_CLS} w-36`}
               >
-                <option value="YEAR_ONLY">Năm (1288)</option>
-                <option value="FULL_DATE">Ngày đầy đủ</option>
+                {TIMELINE_DATE_FORMAT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </InspectorFieldRow>
 
             <InspectorFieldRow label="Thứ tự">
               <select
                 aria-label="Sắp xếp mốc"
-                value={displayConfig.sortOrder || 'CHRONOLOGICAL'}
+                value={displayConfig.sortOrder || TimelineSortOrder.CHRONOLOGICAL}
                 onChange={(e) =>
                   updateDisplay(
                     'sortOrder',
-                    e.target.value as TimelineDisplayConfig['sortOrder']
+                    e.target.value as TimelineSortOrder
                   )
                 }
                 className={`${INSPECTOR_SELECT_CLS} w-36`}
               >
-                <option value="CHRONOLOGICAL">Cũ → Mới</option>
-                <option value="REVERSE_CHRONOLOGICAL">Mới → Cũ</option>
+                {TIMELINE_SORT_ORDER_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </InspectorFieldRow>
 

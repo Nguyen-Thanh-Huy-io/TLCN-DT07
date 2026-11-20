@@ -3,10 +3,23 @@
 import React from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
+import { getBlockLabel } from '../constants/lesson.constants';
 import { BlockLibraryPalette } from './builder/BlockLibraryPalette';
-import { LessonBlockType } from '../types/editor.types';
-import { LeftSidebarMode } from '../types/editor.types';
+import { LessonBlockType, LeftSidebarMode } from '../types/editor.types';
 import { TocItem } from './LessonPreviewContent';
+
+const COLLAPSED_QUICK_BLOCKS: ReadonlyArray<{
+  type: LessonBlockType;
+  icon: IconName;
+  hoverClass: string;
+}> = [
+  { type: LessonBlockType.TEXT, icon: IconName.EDIT, hoverClass: 'hover:text-emerald-700 hover:bg-emerald-50' },
+  { type: LessonBlockType.TIMELINE, icon: IconName.CLOCK, hoverClass: 'hover:text-blue-700 hover:bg-blue-50' },
+  { type: LessonBlockType.CHARACTER, icon: IconName.USERS, hoverClass: 'hover:text-indigo-700 hover:bg-indigo-50' },
+  { type: LessonBlockType.EVENT, icon: IconName.CALENDAR, hoverClass: 'hover:text-amber-700 hover:bg-amber-50' },
+  { type: LessonBlockType.IMAGE, icon: IconName.GRID, hoverClass: 'hover:text-emerald-700 hover:bg-emerald-50' },
+  { type: LessonBlockType.SECTION_ROW, icon: IconName.GRID, hoverClass: 'hover:text-purple-700 hover:bg-purple-50' },
+];
 
 interface LessonLeftToolSidebarProps {
   isCollapsed: boolean;
@@ -47,54 +60,17 @@ export function LessonLeftToolSidebar({
 
         <div className="w-8 h-px bg-slate-200 my-0.5" />
 
-        <button
-          type="button"
-          onClick={() => onInsertBlock(LessonBlockType.TEXT)}
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
-          title="Thêm khối Văn bản"
-        >
-          <Icon name={IconName.EDIT} size={16} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onInsertBlock(LessonBlockType.TIMELINE)}
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer"
-          title="Thêm Dòng thời gian (Timeline)"
-        >
-          <Icon name={IconName.CLOCK} size={16} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onInsertBlock(LessonBlockType.CHARACTER)}
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 transition cursor-pointer"
-          title="Thêm Nhân vật lịch sử"
-        >
-          <Icon name={IconName.USERS} size={16} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onInsertBlock(LessonBlockType.EVENT)}
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-600 hover:text-amber-700 hover:bg-amber-50 transition cursor-pointer"
-          title="Thêm Thẻ sự kiện"
-        >
-          <Icon name={IconName.CALENDAR} size={16} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onInsertBlock(LessonBlockType.IMAGE)}
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
-          title="Thêm Hình ảnh tư liệu"
-        >
-          <Icon name={IconName.GRID} size={16} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onInsertBlock(LessonBlockType.SECTION_ROW)}
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-600 hover:text-purple-700 hover:bg-purple-50 transition cursor-pointer"
-          title="Thêm Hàng nhiều cột"
-        >
-          <Icon name={IconName.GRID} size={16} />
-        </button>
+        {COLLAPSED_QUICK_BLOCKS.map((item) => (
+          <button
+            key={item.type}
+            type="button"
+            onClick={() => onInsertBlock(item.type)}
+            className={`w-10 h-10 rounded-lg flex items-center justify-center text-slate-600 transition cursor-pointer ${item.hoverClass}`}
+            title={`Thêm ${getBlockLabel(item.type)}`}
+          >
+            <Icon name={item.icon} size={16} />
+          </button>
+        ))}
       </aside>
     );
   }

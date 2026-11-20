@@ -59,9 +59,22 @@ export interface TextBlockData extends BaseBlockData {
 }
 
 export type TimelineSourceMode = 'MANUAL' | 'AUTO' | 'HYBRID';
-export type TimelineDateFormat = 'YEAR_ONLY' | 'FULL_DATE';
-export type TimelineSortOrder = 'CHRONOLOGICAL' | 'REVERSE_CHRONOLOGICAL';
-export type TimelineSceneStyle = 'MUSEUM_SPLIT' | 'CINEMATIC_BACKDROP';
+
+export enum TimelineDateFormat {
+  YEAR_ONLY = 'YEAR_ONLY',
+  FULL_DATE = 'FULL_DATE',
+}
+
+export enum TimelineSortOrder {
+  CHRONOLOGICAL = 'CHRONOLOGICAL',
+  REVERSE_CHRONOLOGICAL = 'REVERSE_CHRONOLOGICAL',
+}
+
+export enum TimelineSceneStyle {
+  MUSEUM_SPLIT = 'MUSEUM_SPLIT',
+  CINEMATIC_BACKDROP = 'CINEMATIC_BACKDROP',
+  CHRONO_MINIMAL = 'CHRONO_MINIMAL',
+}
 
 
 export interface TimelineDisplayConfig {
@@ -179,7 +192,12 @@ export interface MapBlockData extends BaseBlockData {
   description: string;
 }
 
-export type CalloutVariant = 'INFO' | 'WARNING' | 'HISTORICAL_NOTE' | 'SUCCESS';
+export enum CalloutVariant {
+  HISTORICAL_NOTE = 'HISTORICAL_NOTE',
+  INFO = 'INFO',
+  WARNING = 'WARNING',
+  SUCCESS = 'SUCCESS',
+}
 
 export interface CalloutBlockData extends BaseBlockData {
   type: LessonBlockType.CALLOUT;

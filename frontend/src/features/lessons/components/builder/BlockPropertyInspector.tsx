@@ -21,6 +21,7 @@ import {
 } from '../../types/block-builder.types';
 import { LessonBlockType } from '../../types/editor.types';
 import { BlockWidthStrategy } from '../../strategies/row-layout.strategy';
+import { getBlockLabel } from '../../constants/lesson.constants';
 import { BLOCK_TYPE_ICONS } from './BlockLibraryPalette';
 import { TypographyInspectorPanel } from './inspectors/TypographyInspectorPanel';
 import { TimelineBlockInspector } from './inspectors/TimelineBlockInspector';
@@ -44,26 +45,6 @@ export interface BlockPropertyInspectorProps {
   compact?: boolean;
   accentColor?: string;
 }
-
-const BLOCK_TYPE_VI_LABELS: Record<string, string> = {
-  [LessonBlockType.TEXT]: 'Văn bản',
-  [LessonBlockType.HEADING]: 'Tiêu đề mục',
-  [LessonBlockType.TIMELINE]: 'Dòng thời gian',
-  [LessonBlockType.CALLOUT]: 'Hộp ghi chú',
-  [LessonBlockType.QUOTE]: 'Trích dẫn',
-  [LessonBlockType.IMAGE]: 'Hình ảnh',
-  [LessonBlockType.VIDEO]: 'Phim tư liệu',
-  [LessonBlockType.RESOURCE_LINK]: 'Tài liệu đính kèm',
-  [LessonBlockType.CHARACTER]: 'Hồ sơ thực thể',
-  [LessonBlockType.EVENT]: 'Thẻ sự kiện',
-  [LessonBlockType.MAP]: 'Bản đồ lịch sử',
-  [LessonBlockType.COMPARISON_TABLE]: 'Bảng so sánh',
-  [LessonBlockType.QUIZ]: 'Ôn tập',
-  [LessonBlockType.RELATED_PEOPLE]: 'Nhân vật liên quan',
-  [LessonBlockType.RELATED_EVENTS]: 'Sự kiện liên quan',
-  [LessonBlockType.DIVIDER]: 'Đường phân cách',
-  [LessonBlockType.SECTION_ROW]: 'Bố cục nhiều cột',
-};
 
 type BlockInspectorStrategyMap = Partial<
   Record<
@@ -166,7 +147,7 @@ export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-[13px] font-bold text-slate-800 truncate">
-              {BLOCK_TYPE_VI_LABELS[block.type] || 'Khối nội dung'}
+              {getBlockLabel(block.type)}
             </div>
             <div className="text-[11px] font-medium text-slate-400">
               {blockIndex !== undefined
@@ -209,7 +190,7 @@ export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
           ) : (
             <p className="text-xs text-slate-500 leading-relaxed">
               Nội dung của khối{' '}
-              <strong className="text-slate-700">{BLOCK_TYPE_VI_LABELS[block.type] || 'Nội dung'}</strong>{' '}
+              <strong className="text-slate-700">{getBlockLabel(block.type)}</strong>{' '}
               được chỉnh sửa trực tiếp ngay trên khung tài liệu ở giữa.
             </p>
           )}

@@ -12,12 +12,14 @@ import {
 } from '@/components/common/TextStyleControls';
 import {
   CalloutBlockData,
+  CalloutVariant,
   HeadingBlockData,
   LessonBlockItem,
   QuoteBlockData,
   RelatedEventsBlockData,
   RelatedPeopleBlockData,
 } from '../../../types/block-builder.types';
+import { CALLOUT_VARIANT_OPTIONS } from '../../../constants/lesson.constants';
 
 interface SimpleInspectorProps<T extends LessonBlockItem> {
   block: T;
@@ -62,15 +64,16 @@ export function CalloutBlockInspector({
           value={callout.variant}
           onChange={(e) =>
             onUpdateBlock(callout.id, {
-              variant: e.target.value as CalloutBlockData['variant'],
+              variant: e.target.value as CalloutVariant,
             })
           }
           className={`${INSPECTOR_SELECT_CLS} w-44`}
         >
-          <option value="HISTORICAL_NOTE">Góc nhìn Sử gia (Vàng)</option>
-          <option value="INFO">Bối cảnh lịch sử (Xanh)</option>
-          <option value="WARNING">Nghi vấn & Tranh cãi (Đỏ)</option>
-          <option value="SUCCESS">Bài học thời đại (Lục)</option>
+          {CALLOUT_VARIANT_OPTIONS.map((opt) => (
+            <option key={opt.variant} value={opt.variant}>
+              {opt.inspectorLabel}
+            </option>
+          ))}
         </select>
       </InspectorFieldRow>
     </InspectorAccordionSection>

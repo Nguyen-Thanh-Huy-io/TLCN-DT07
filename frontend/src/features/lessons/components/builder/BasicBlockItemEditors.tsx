@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { TipTapContent } from '../TipTapContent';
-import { MapBlockData, QuoteBlockData, CalloutBlockData, CalloutVariant, ComparisonTableBlockData, ComparisonTableRow } from '../../types/block-builder.types';
+import { MapBlockData, QuoteBlockData, CalloutBlockData, ComparisonTableBlockData, ComparisonTableRow } from '../../types/block-builder.types';
+import { CALLOUT_VARIANT_OPTIONS } from '../../constants/lesson.constants';
 
 // --- TextBlockEditor.tsx ---
 interface TextBlockEditorProps {
@@ -142,53 +143,12 @@ interface CalloutBlockItemEditorProps {
 const CALLOUT_SURFACE_BG_CLASS = 'bg-white';
 const CALLOUT_TITLE_COLOR_CLASS = 'text-slate-900';
 
-const CALLOUT_VARIANTS: Array<{
-  variant: CalloutVariant;
-  label: string;
-  icon: string;
-  bgClass: string;
-  borderClass: string;
-  titleClass: string;
-}> = [
-  {
-    variant: 'HISTORICAL_NOTE',
-    label: 'Góc nhìn Sử gia / Lưu ý',
-    icon: '📜',
-    bgClass: CALLOUT_SURFACE_BG_CLASS,
-    borderClass: 'border-slate-200 border-l-4 border-l-amber-500',
-    titleClass: CALLOUT_TITLE_COLOR_CLASS,
-  },
-  {
-    variant: 'INFO',
-    label: 'Bối cảnh / Thông tin thêm',
-    icon: '💡',
-    bgClass: CALLOUT_SURFACE_BG_CLASS,
-    borderClass: 'border-slate-200 border-l-4 border-l-blue-600',
-    titleClass: CALLOUT_TITLE_COLOR_CLASS,
-  },
-  {
-    variant: 'WARNING',
-    label: 'Tranh cãi / Nghi vấn lịch sử',
-    icon: '⚠️',
-    bgClass: CALLOUT_SURFACE_BG_CLASS,
-    borderClass: 'border-slate-200 border-l-4 border-l-rose-600',
-    titleClass: CALLOUT_TITLE_COLOR_CLASS,
-  },
-  {
-    variant: 'SUCCESS',
-    label: 'Bài học & Ý nghĩa thời đại',
-    icon: '✨',
-    bgClass: CALLOUT_SURFACE_BG_CLASS,
-    borderClass: 'border-slate-200 border-l-4 border-l-emerald-600',
-    titleClass: CALLOUT_TITLE_COLOR_CLASS,
-  },
-];
-
 export function CalloutBlockItemEditor({ data, onChange }: CalloutBlockItemEditorProps) {
-  const currentVariant = CALLOUT_VARIANTS.find((v) => v.variant === data.variant) || CALLOUT_VARIANTS[0];
+  const currentVariant =
+    CALLOUT_VARIANT_OPTIONS.find((v) => v.variant === data.variant) || CALLOUT_VARIANT_OPTIONS[0];
 
   return (
-    <div className={`@container min-w-0 p-3 @[360px]:p-4 rounded-xl border ${currentVariant.borderClass} ${currentVariant.bgClass} space-y-3 transition-colors`}>
+    <div className={`@container min-w-0 p-3 @[360px]:p-4 rounded-xl border ${currentVariant.editorBorderClass} ${CALLOUT_SURFACE_BG_CLASS} space-y-3 transition-colors`}>
       {/* Thanh chọn Variant */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
         <div className="flex items-center gap-2">
@@ -199,7 +159,7 @@ export function CalloutBlockItemEditor({ data, onChange }: CalloutBlockItemEdito
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">
-          {CALLOUT_VARIANTS.map((v) => (
+          {CALLOUT_VARIANT_OPTIONS.map((v) => (
             <button
               key={v.variant}
               type="button"
@@ -223,7 +183,7 @@ export function CalloutBlockItemEditor({ data, onChange }: CalloutBlockItemEdito
           value={data.title}
           onChange={(e) => onChange({ title: e.target.value })}
           placeholder="Tiêu đề hộp ghi chú (Ví dụ: Góc nhìn sử học về chiến thuật...)"
-          className={`w-full text-xs sm:text-sm font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-slate-400 ${currentVariant.titleClass}`}
+          className={`w-full text-xs sm:text-sm font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-slate-400 ${CALLOUT_TITLE_COLOR_CLASS}`}
         />
       </div>
 

@@ -5,12 +5,14 @@ on:
     branches:
       - main
       - master
+      - develop
       - "feat/**"
 
   pull_request:
     branches:
       - main
       - master
+      - develop
 
 env:
   NODE_VERSION: '22'

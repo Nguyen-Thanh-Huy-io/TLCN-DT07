@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ContentStatus } from '@prisma/client';
+import { loadAuthorProfiles } from '../common/utils/author-names';
 import { PrismaService } from '../common/services/prisma.service';
 import { GamificationEventName } from '../gamification/gamification.constant';
 import { LessonService } from '../lesson/lesson.service';
@@ -95,7 +96,13 @@ export class LearnerService {
       });
     }
 
-    return { lesson };
+    const authorOf = await loadAuthorProfiles(this.prisma, [lesson.createdBy]);
+    return {
+      lesson: {
+        ...lesson,
+        author: authorOf(lesson.createdBy),
+      },
+    };
   }
 
   async completeLesson(userId: string, lessonId: string) {

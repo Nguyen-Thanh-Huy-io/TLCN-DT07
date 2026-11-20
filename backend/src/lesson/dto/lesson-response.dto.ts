@@ -114,6 +114,12 @@ export class LessonResponseDto {
   })
   displayOrder?: number;
 
+  @ApiPropertyOptional({ description: 'ID người tạo bài học' })
+  createdBy?: string | null;
+
+  @ApiPropertyOptional({ description: 'Thời điểm xuất bản bài học' })
+  publishedAt?: Date | null;
+
   @ApiProperty({ example: '2026-10-18T10:00:00.000Z' })
   createdAt: Date;
 

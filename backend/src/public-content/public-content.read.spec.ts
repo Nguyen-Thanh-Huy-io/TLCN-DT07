@@ -45,6 +45,7 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
     lesson: { findMany: jest.fn() },
     topic: { findFirst: jest.fn() },
     quiz: { findUnique: jest.fn(), findMany: jest.fn() },
+    authUser: { findMany: jest.fn().mockResolvedValue([]) },
   };
 
   beforeEach(async () => {
@@ -179,6 +180,59 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
         { slug: 'bac-thuoc', title: 'Bắc thuộc', nodeTitle: 'Trận Bạch Đằng' },
       ]);
       expect(result.tags).toEqual([{ id: 't-1', name: 'Nhà Ngô' }]);
+    });
+
+    it('chi tiết bài trả tác giả an toàn (author) và giữ publishedAt/updatedAt, không lộ createdBy', async () => {
+      const publishedAt = new Date('2026-10-01T08:00:00Z');
+      const updatedAt = new Date('2026-10-05T09:30:00Z');
+      prisma.article.findFirst.mockResolvedValue({
+        ...summaryRow('a-author', { categoryId: null }),
+        coverCaption: null,
+        contentBlocks: [],
+        datePrecision: null,
+        createdBy: 'u-author-1',
+        publishedAt,
+        updatedAt,
+        timelineNodes: [],
+        timelineNodeLinks: [],
+      });
+      prisma.authUser.findMany.mockResolvedValueOnce([
+        {
+          id: 'u-author-1',
+          username: 'su_gia_minh',
+          userProfile: {
+            firstName: 'Minh',
+            lastName: 'Nguyễn Văn',
+            avatarUrl: '/uploads/avatar-minh.jpg',
+          },
+        },
+      ]);
+
+      const withAuthor = await service.getArticleBySlug('a-author');
+      expect(withAuthor.author).toEqual({
+        id: 'u-author-1',
+        username: 'su_gia_minh',
+        displayName: 'Nguyễn Văn Minh',
+        avatarUrl: '/uploads/avatar-minh.jpg',
+      });
+      expect(withAuthor.publishedAt).toEqual(publishedAt);
+      expect(withAuthor.updatedAt).toEqual(updatedAt);
+      expect((withAuthor as Record<string, unknown>).createdBy).toBeUndefined();
+
+      prisma.article.findFirst.mockResolvedValue({
+        ...summaryRow('a-legacy', { categoryId: null }),
+        coverCaption: null,
+        contentBlocks: [],
+        datePrecision: null,
+        createdBy: null,
+        publishedAt: null,
+        updatedAt,
+        timelineNodes: [],
+        timelineNodeLinks: [],
+      });
+
+      const legacyResult = await service.getArticleBySlug('a-legacy');
+      expect(legacyResult.author).toBeNull();
     });
 
     it('bài không có tag thì không truy vấn bài liên quan', async () => {

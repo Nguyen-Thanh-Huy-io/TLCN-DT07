@@ -21,6 +21,7 @@ export const PUBLIC_ROUTES = {
   TIMELINE: (slug: string) => `/giai-doan/${slug}`,
   LESSON: (slug: string) => `/bai-hoc/${slug}`,
   COMMUNITY: '/cong-dong',
+  COMMUNITY_MEMBER: (username: string) => `/cong-dong/thanh-vien/${encodeURIComponent(username)}`,
 } as const;
 
 export interface PublicTag {
@@ -107,10 +108,18 @@ export interface PublicArticleNeighbour {
   dateLabel: string | null;
 }
 
+export interface PublicAuthorInfo {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
 export interface PublicArticleDetail extends PublicArticleSummary {
   coverCaption: string | null;
   contentBlocks: unknown;
   datePrecision: string | null;
+  author?: PublicAuthorInfo | null;
   publishedAt: string | null;
   updatedAt: string;
   timelines: Array<{ slug: string; title: string; nodeTitle: string }>;

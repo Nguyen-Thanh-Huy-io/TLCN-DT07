@@ -1,4 +1,5 @@
 import { ContentStatus, DifficultyLevel } from '@/constants/enums';
+import type { PublicAuthorInfo } from '@/services/public/public-content.service';
 
 export interface TagItem {
   id: string;
@@ -26,6 +27,7 @@ export interface LessonItem {
   status: ContentStatus;
   rejectionReason?: string | null;
   publishedAt?: string | null;
+  author?: PublicAuthorInfo | null;
   createdBy?: string;
   approvedBy?: string;
   estimatedReadMinutes?: number;

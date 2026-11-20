@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ContentStatus, Prisma } from '@prisma/client';
+import { loadAuthorProfiles } from '../common/utils/author-names';
 import { PrismaService } from '../common/services/prisma.service';
 import { GamificationEventName } from '../gamification/gamification.constant';
 import { LessonContentStrategyContext } from '../lesson/strategies/content-normalizer.strategy';
@@ -137,6 +138,7 @@ export class PublicContentService {
         contentBlocks: true,
         datePrecision: true,
         categoryId: true,
+        createdBy: true,
         publishedAt: true,
         updatedAt: true,
         // Thứ tự dòng thời gian cố định để "bài trước / sau" không đổi giữa các lần tải khi bài thuộc nhiều dòng.
@@ -175,7 +177,7 @@ export class PublicContentService {
       article.timelineNodes[0]?.timelineId ??
       article.timelineNodeLinks[0]?.node.timelineId ??
       null;
-    const [related, adjacency] = await Promise.all([
+    const [related, adjacency, authorOf] = await Promise.all([
       // Bài liên quan: chung ít nhất 1 tag, ưu tiên nổi bật.
       tagIds.length
         ? this.prisma.article.findMany({
@@ -195,9 +197,15 @@ export class PublicContentService {
         topicId: article.topicId,
         timelineId,
       }),
+      loadAuthorProfiles(this.prisma, [article.createdBy]),
     ]);
 
-    const { timelineNodes = [], timelineNodeLinks = [], ...rest } = article;
+    const {
+      timelineNodes = [],
+      timelineNodeLinks = [],
+      createdBy,
+      ...rest
+    } = article;
     const allNodesMap = new Map<
       string,
       { slug: string; title: string; nodeTitle: string }
@@ -222,6 +230,7 @@ export class PublicContentService {
       coverCaption: article.coverCaption,
       contentBlocks: article.contentBlocks,
       datePrecision: article.datePrecision,
+      author: authorOf(createdBy),
       publishedAt: article.publishedAt,
       updatedAt: article.updatedAt,
       timelines: Array.from(allNodesMap.values()),

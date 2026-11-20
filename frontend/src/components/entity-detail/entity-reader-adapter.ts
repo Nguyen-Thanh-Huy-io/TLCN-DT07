@@ -13,7 +13,7 @@ import {
 import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
 import { ArticleKindEnum } from '@/constants/enums';
 import type { ReadingEntity } from '@/features/reading-aids/components/ReadingAidsPanel';
-import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
+import { PUBLIC_ROUTES, type PublicAuthorInfo } from '@/services/public/public-content.service';
 import { eventFacts, eventQuickStats, locationFacts, locationQuickStats } from './entity-place-event-profile';
 
 const asArticleKind = (value: string | null): ArticleKindEnum | null =>
@@ -71,6 +71,9 @@ export interface EntityReaderModel {
   dateLabel: string;
   /** false = bài chưa có năm → ẩn mọi chỗ hiện ngày thay vì in "Chưa rõ niên đại". */
   hasKnownDate: boolean;
+  author: PublicAuthorInfo | null;
+  publishedAt: string | null;
+  updatedAt: string | null;
   periodName: string | null;
   periodHref: string | null;
   imageUrl: string | null;
@@ -435,6 +438,9 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
     description: entity.description,
     dateLabel,
     hasKnownDate: dateLabel !== UNKNOWN_DATE_LABEL,
+    author: entity.author ?? null,
+    publishedAt: entity.publishedAt ?? null,
+    updatedAt: entity.updatedAt ?? null,
     periodName: entity.period?.name ? cleanPeriodName(entity.period.name) : null,
     periodHref: entity.period ? `/giai-doan/${entity.period.slug}` : null,
     imageUrl: entity.imageUrl,

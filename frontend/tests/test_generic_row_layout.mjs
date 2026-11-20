@@ -171,6 +171,8 @@ test('RowLayoutStrategy tính snap, grid minmax(0, ...fr) và compileRowToHtml �
 
   assert.equal(RowLayoutStrategy.getGridTemplateColumns(row.columns), 'minmax(0, 33.33fr) minmax(0, 66.67fr)');
   const html = RowLayoutStrategy.compileRowToHtml(row, (b) => LessonBlockRegistry.blockToHtml(b));
+  assert.match(html, /class="hisgo-row-container my-6"/);
+  assert.match(html, /class="hisgo-row-section w-full/);
   assert.match(html, /gap-7/);
   assert.match(html, /items-center/);
   assert.match(html, /md:border-l/);
@@ -178,6 +180,28 @@ test('RowLayoutStrategy tính snap, grid minmax(0, ...fr) và compileRowToHtml �
   assert.match(html, /data-column-widths="33,67"/);
   assert.match(html, /data-gap="LG"/);
   assert.match(html, /data-preset="MAGAZINE_4_8"/);
+});
+
+test('characterBlockPlugin tách header & body full-width và globals.css đủ CSS Container Queries chống tràn', () => {
+  const charHtml = LessonBlockRegistry.blockToHtml({
+    id: 'char_1',
+    type: LessonBlockType.CHARACTER,
+    name: 'Đại tướng Võ Nguyên Giáp',
+    years: '1911 – 2013',
+    summary: 'Tổng Tư lệnh Quân đội nhân dân Việt Nam.',
+  });
+  assert.match(charHtml, /class="hisgo-character-block\b/);
+  assert.match(charHtml, /class="hisgo-character-header"/);
+  assert.match(charHtml, /class="hisgo-character-meta"/);
+  assert.match(charHtml, /class="hisgo-character-body"/);
+
+  const globalsCss = fs.readFileSync(path.join(SRC_ROOT, 'app/globals.css'), 'utf8');
+  assert.match(globalsCss, /@container\s+hisgo-row\s*\(max-width:\s*720px\)/);
+  assert.match(globalsCss, /@container\s+hisgo-row\s*\(max-width:\s*540px\)/);
+  assert.match(globalsCss, /@container\s+hisgo-col\s*\(max-width:\s*320px\)/);
+  assert.match(globalsCss, /@container\s+hisgo-card\s*\(max-width:\s*250px\)/);
+  assert.match(globalsCss, /\.hisgo-column\s*\{[\s\S]*?overflow-wrap:\s*break-word/);
+  assert.match(globalsCss, /\.hisgo-column\s+table\s*\{[\s\S]*?overflow-x:\s*auto/);
 });
 
 test('BlockPlacementRuleEngine giữ nguyên toàn bộ luật lồng khối và giới hạn độ rộng cột', () => {

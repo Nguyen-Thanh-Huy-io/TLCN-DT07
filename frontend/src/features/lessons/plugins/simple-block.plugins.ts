@@ -56,6 +56,14 @@ export const calloutBlockPlugin: BlockPlugin<CalloutBlockData> = {
 };
 
 // --- character-block.plugin.ts ---
+const CHARACTER_CARD_CLASSES = {
+  ROOT: 'hisgo-character-block',
+  HEADER: 'hisgo-character-header',
+  AVATAR: 'hisgo-character-avatar',
+  META: 'hisgo-character-meta',
+  BODY: 'hisgo-character-body',
+} as const;
+
 export const characterBlockPlugin: BlockPlugin<CharacterBlockData> = {
   type: LessonBlockType.CHARACTER,
 
@@ -79,18 +87,26 @@ export const characterBlockPlugin: BlockPlugin<CharacterBlockData> = {
       : '👤';
 
     return `
-      <div class="hisgo-character-block my-6 p-4 bg-white border border-slate-200 rounded-2xl flex items-start gap-4">
-        <div style="width: 56px; height: 56px; border-radius: 50%; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; overflow: hidden;">
-          ${avatarHtml}
+      <div class="${CHARACTER_CARD_CLASSES.ROOT} my-6 p-4 bg-white border border-slate-200 rounded-2xl" style="max-width: 100%; overflow-wrap: break-word;">
+        <div class="${CHARACTER_CARD_CLASSES.HEADER}">
+          <div class="${CHARACTER_CARD_CLASSES.AVATAR}" style="width: 48px; height: 48px; border-radius: 50%; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; overflow: hidden;">
+            ${avatarHtml}
+          </div>
+          <div class="${CHARACTER_CARD_CLASSES.META}">
+            <div style="font-size: 11px; font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_MUTED}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Nhân vật lịch sử</div>
+            <h4 style="font-size: 16px; font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin: 0 0 4px 0; font-family: var(--font-merriweather), 'Noto Serif', serif; overflow-wrap: break-word;">${safeName}</h4>
+            ${block.role ? `<div style="font-size: 12.5px; font-weight: 600; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; margin-bottom: 4px; overflow-wrap: break-word;">${escapeHtml(block.role)}</div>` : ''}
+            ${safeYears ? `<span style="display: inline-block; font-size: 12px; font-weight: 600; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; padding: 2px 8px; border-radius: 4px;">${safeYears}</span>` : ''}
+          </div>
         </div>
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 11px; font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_MUTED}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Nhân vật lịch sử</div>
-          <h4 style="font-size: 16px; font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin: 0 0 4px 0; font-family: var(--font-merriweather), 'Noto Serif', serif;">${safeName}</h4>
-          ${block.role ? `<div style="font-size: 12.5px; font-weight: 600; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; margin-bottom: 4px;">${escapeHtml(block.role)}</div>` : ''}
-          ${safeYears ? `<span style="font-size: 12px; font-weight: 600; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid ${BLOCK_SURFACE_THEME.BORDER_NEUTRAL}; padding: 2px 8px; border-radius: 4px;">${safeYears}</span>` : ''}
-          <p style="font-size: 13px; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; margin: 8px 0 0 0; line-height: 1.6;">${safeSummary}</p>
-          ${renderCollapsibleDetail(block.detailContent)}
-        </div>
+        ${
+          safeSummary || block.detailContent
+            ? `<div class="${CHARACTER_CARD_CLASSES.BODY}">
+                ${safeSummary ? `<p style="font-size: 13px; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; margin: 0; line-height: 1.6; overflow-wrap: break-word;">${safeSummary}</p>` : ''}
+                ${renderCollapsibleDetail(block.detailContent)}
+              </div>`
+            : ''
+        }
       </div>`;
   },
 };
@@ -263,11 +279,11 @@ export const eventBlockPlugin: BlockPlugin<EventBlockData> = {
     const safeSummary = escapeHtml(block.summary);
 
     return `
-      <div class="hisgo-event-block my-6 p-4 bg-white border border-slate-200 rounded-2xl">
+      <div class="hisgo-event-block my-6 p-4 bg-white border border-slate-200 rounded-2xl" style="max-width: 100%; min-width: 0; overflow-wrap: break-word;">
         <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #b45309; background: ${BLOCK_SURFACE_THEME.BG_WHITE}; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 6px;">MỐC LỊCH SỬ</span>
-        <h3 style="font-size: 18px; font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin: 0 0 4px 0; font-family: var(--font-merriweather), 'Noto Serif', serif;">${safeTitle}</h3>
-        ${safeTimeLoc ? `<div style="font-size: 12px; font-weight: 600; color: ${BLOCK_SURFACE_THEME.TEXT_MUTED}; margin-bottom: 8px;">${safeTimeLoc}</div>` : ''}
-        <p style="font-size: 13px; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; line-height: 1.6; margin: 0;">${safeSummary}</p>
+        <h3 style="font-size: 18px; font-weight: 700; color: ${BLOCK_SURFACE_THEME.TEXT_PRIMARY}; margin: 0 0 4px 0; font-family: var(--font-merriweather), 'Noto Serif', serif; overflow-wrap: break-word;">${safeTitle}</h3>
+        ${safeTimeLoc ? `<div style="font-size: 12px; font-weight: 600; color: ${BLOCK_SURFACE_THEME.TEXT_MUTED}; margin-bottom: 8px; overflow-wrap: break-word;">${safeTimeLoc}</div>` : ''}
+        <p style="font-size: 13px; color: ${BLOCK_SURFACE_THEME.TEXT_SECONDARY}; line-height: 1.6; margin: 0; overflow-wrap: break-word;">${safeSummary}</p>
         ${renderCollapsibleDetail(block.detailContent)}
       </div>`;
   },

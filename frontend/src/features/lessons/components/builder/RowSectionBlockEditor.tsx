@@ -165,7 +165,7 @@ export function RowSectionBlockEditor({
                           }`,
                         });
                       }}
-                      className={`relative group/child pb-3 border-b border-stone-200/60 last:border-b-0 last:pb-0 cursor-pointer rounded-xl transition-all ${
+                      className={`relative group/child min-w-0 max-w-full pb-3 border-b border-stone-200/60 last:border-b-0 last:pb-0 cursor-pointer rounded-xl transition-all ${
                         isChildActive
                           ? 'ring-2 ring-blue-500/85 bg-blue-50/20 p-2 -mx-2'
                           : 'hover:ring-1 hover:ring-stone-300/80 p-1.5 -mx-1.5'

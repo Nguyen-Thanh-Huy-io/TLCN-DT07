@@ -79,8 +79,8 @@ interface QuoteBlockItemEditorProps {
 
 export function QuoteBlockItemEditor({ data, onChange }: QuoteBlockItemEditorProps) {
   return (
-    <div className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white relative space-y-3.5">
-      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+    <div className="@container min-w-0 p-3 @[360px]:p-5 rounded-xl border border-slate-200 bg-white relative space-y-3.5">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-2 gap-2 flex-wrap">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
           <span className="text-base leading-none text-amber-700">“</span>
           <span>Khối trích dẫn lịch sử (Quote)</span>
@@ -102,7 +102,7 @@ export function QuoteBlockItemEditor({ data, onChange }: QuoteBlockItemEditorPro
       </div>
 
       {/* Người phát ngôn & Bối cảnh */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+      <div className="grid grid-cols-1 @[360px]:grid-cols-2 gap-3 pt-1">
         <div>
           <label className="block text-[11px] font-semibold text-slate-600 mb-1">
             Nhân vật / Tác giả phát ngôn <span className="text-rose-500">*</span>
@@ -188,7 +188,7 @@ export function CalloutBlockItemEditor({ data, onChange }: CalloutBlockItemEdito
   const currentVariant = CALLOUT_VARIANTS.find((v) => v.variant === data.variant) || CALLOUT_VARIANTS[0];
 
   return (
-    <div className={`p-4 rounded-xl border ${currentVariant.borderClass} ${currentVariant.bgClass} space-y-3 transition-colors`}>
+    <div className={`@container min-w-0 p-3 @[360px]:p-4 rounded-xl border ${currentVariant.borderClass} ${currentVariant.bgClass} space-y-3 transition-colors`}>
       {/* Thanh chọn Variant */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
         <div className="flex items-center gap-2">

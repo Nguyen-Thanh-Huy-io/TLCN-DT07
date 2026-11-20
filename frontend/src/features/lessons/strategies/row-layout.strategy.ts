@@ -45,6 +45,9 @@ const ROW_VERTICAL_ALIGN_CLASS_MAP: Record<RowVerticalAlign, string> = {
 
 const COLUMN_BASE_CLASS = 'flex-1 min-w-0 space-y-3';
 const COLUMN_DIVIDER_CLASS = 'md:border-l md:border-stone-200/80 md:pl-5';
+const ROW_WRAPPER_CLASS = 'hisgo-row-container';
+const ROW_SECTION_CLASS = 'hisgo-row-section';
+const ROW_COLUMN_CLASS = 'hisgo-column';
 
 /** Sinh ID duy nhất chuẩn UUID v4 (crypto.randomUUID), tuyệt đối không dùng Date.now() */
 export function createBlockUUID(prefix?: string): string {
@@ -164,7 +167,7 @@ export class RowLayoutStrategy {
         const innerBlocksHtml = col.blocks.map(blockToHtmlFn).join('\n');
         const colClasses = this.getColumnClasses(row, idx);
         return `
-          <div class="hisgo-column col-index-${idx} ${colClasses}">
+          <div class="${ROW_COLUMN_CLASS} col-index-${idx} ${colClasses}">
             ${innerBlocksHtml || '<p class="text-slate-400 italic text-xs">Cột trống</p>'}
           </div>
         `;
@@ -172,14 +175,16 @@ export class RowLayoutStrategy {
       .join('\n');
 
     return `
-      <div 
-        class="hisgo-row-section my-6 ${containerClasses}" 
-        style="grid-template-columns: ${gridStyle};" 
-        data-columns="${colCount}"
-        data-column-widths="${colWidthsAttr}"
-        data-gap="${gapAttr}"${presetAttr}
-      >
-        ${colsHtml}
+      <div class="${ROW_WRAPPER_CLASS} my-6">
+        <div 
+          class="${ROW_SECTION_CLASS} ${containerClasses}" 
+          style="grid-template-columns: ${gridStyle};" 
+          data-columns="${colCount}"
+          data-column-widths="${colWidthsAttr}"
+          data-gap="${gapAttr}"${presetAttr}
+        >
+          ${colsHtml}
+        </div>
       </div>
     `;
   }

@@ -7,6 +7,9 @@ Tài liệu mô tả kiến trúc sau khi gộp khối chuyên biệt `STORY_CHA
    - Hỗ trợ tùy chỉnh khoảng cách cột (`RowGapSize`: `SM` | `MD` | `LG`), căn dọc (`RowVerticalAlign`: `TOP` | `CENTER` | `STRETCH`), đường kẻ ngăn cột (`showColumnDivider`), kéo thanh `ColumnResizer` overlay giữa 2 cột mà không chiếm track Grid, và bật Drop Cap / Chia cột văn bản ngay trong `TypographyInspectorPanel` cho khối `TEXT` bên trong cột.
 2. **Luồng tương thích ngược dữ liệu cũ (`STORY_CHAPTER` → `[HEADING, SECTION_ROW]`)**:
    - `migrateLegacyStoryChapterToBlocks` (Adapter Pattern) tự động chuyển đổi bản ghi `STORY_CHAPTER` cũ (cả dạng `chapters[]` lẫn dạng phẳng cũ) thành mảng các khối chuẩn `[HEADING, SECTION_ROW, ...]` ngay khi nạp vào trình soạn thảo (`useLessonBlockManager`), dựng mục lục (`lesson-toc.util.ts`) hoặc biên dịch HTML (`LessonBlockRegistry.blockToHtml`).
+3. **Luồng Responsive Container Queries (`@container`) & Chống tràn nội dung trong cột hẹp**:
+   - HTML xuất bản bọc `.hisgo-row-section` trong `.hisgo-row-container` (`container-name: hisgo-row`), từng cột mang `.hisgo-column` (`container-name: hisgo-col`, `min-width: 0`, `overflow-wrap: break-word`) và khối Nhân vật tách thành `.hisgo-character-header` (avatar + tên/năm) + `.hisgo-character-body` (tiểu sử 100% chiều rộng, `container-name: hisgo-card`).
+   - Khi pane Chia đôi / Preview hoặc cột 25–33% bị thu hẹp, CSS `@container` tự hạ lưới 3–4 cột → 2 cột (`≤720px`) → 1 cột dọc (`≤540px`) và xếp dọc header Nhân vật (`≤250px`). Trên Canvas, các editor con (`CharacterBlockItemEditor`, `ImageBlockItemEditor`, `QuoteBlockItemEditor`, `CalloutBlockItemEditor`) sử dụng `@container` Tailwind (`@[300px]:`, `@[360px]:`) thay cho breakpoint toàn màn hình `sm:`.
 
 ```mermaid
 sequenceDiagram
@@ -50,7 +53,14 @@ sequenceDiagram
         Author->>Compiler: Xem trước / Xuất bản / Đọc bài học (buildLessonTocAndHtml / blockToHtml)
         Compiler->>Adapter: normalizeContentToBlocks / blockToHtml fallback chuyển đổi nếu còn raw legacy
         Compiler->>Strategy: compileRowToHtml(row, blockToHtmlFn)
-        Strategy-->>Compiler: HTML responsive (grid-template-columns, gap, verticalAlign, columnDivider)
+        Strategy-->>Compiler: HTML responsive (.hisgo-row-container > .hisgo-row-section > .hisgo-column)
         Compiler-->>Author: Mục lục tự động (đọc từ HEADING) + HTML hiển thị chuẩn tạp chí
+    end
+
+    rect rgb(255, 248, 242)
+        Note over Author,Compiler: Luồng 3: Responsive Container Queries (@container) & Chống tràn cột hẹp
+        Author->>Editor: Mở chế độ Chia đôi / Xem trước hoặc chèn Character/Image/Quote vào cột 25%–33%
+        Editor-->>Author: Child wrapper min-w-0 max-w-full + @container (@[300px]/@[360px]) tự xếp dọc input & full-width summary
+        Compiler-->>Author: @container hisgo-row (≤720px hạ 2 cột, ≤540px xếp 1 cột) + hisgo-col bảo vệ img/table + hisgo-card tách .hisgo-character-body full-width
     end
 ```

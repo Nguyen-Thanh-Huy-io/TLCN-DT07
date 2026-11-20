@@ -3239,6 +3239,126 @@ figure.wiki-media-block figcaption {
   }
 }
 
+/* ========================================================
+   GENERIC ROW LAYOUT: CONTAINER QUERIES & OVERFLOW CONTAINMENT
+   ======================================================== */
+
+.hisgo-row-container {
+  container-type: inline-size;
+  container-name: hisgo-row;
+  width: 100%;
+  min-width: 0;
+}
+
+.hisgo-column {
+  container-type: inline-size;
+  container-name: hisgo-col;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.hisgo-column > :first-child {
+  margin-top: 0 !important;
+}
+
+.hisgo-column > :last-child {
+  margin-bottom: 0 !important;
+}
+
+.hisgo-column img,
+.hisgo-column iframe,
+.hisgo-column video,
+.hisgo-column pre {
+  max-width: 100%;
+  height: auto;
+}
+
+.hisgo-column table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+@container hisgo-row (max-width: 720px) {
+  .hisgo-row-section[data-columns="3"],
+  .hisgo-row-section[data-columns="4"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .hisgo-row-section[data-columns="3"] > .hisgo-column:nth-child(2n + 1),
+  .hisgo-row-section[data-columns="4"] > .hisgo-column:nth-child(2n + 1) {
+    border-left: none !important;
+    padding-left: 0 !important;
+  }
+}
+
+@container hisgo-row (max-width: 540px) {
+  .hisgo-row-section[data-columns="2"],
+  .hisgo-row-section[data-columns="3"],
+  .hisgo-row-section[data-columns="4"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .hisgo-row-section > .hisgo-column {
+    border-left: none !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+@container hisgo-col (max-width: 320px) {
+  .hisgo-character-block,
+  .hisgo-event-block,
+  .hisgo-column blockquote {
+    padding: 12px 14px !important;
+  }
+}
+
+.hisgo-character-block {
+  container-type: inline-size;
+  container-name: hisgo-card;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.hisgo-character-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.hisgo-character-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.hisgo-character-body {
+  margin-top: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+@container hisgo-card (max-width: 250px) {
+  .hisgo-character-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .hisgo-character-avatar {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .hisgo-character-meta h4 {
+    font-size: 15px !important;
+  }
+}
+
 /* ==========================================================================
    Shared Global UI: Scroll To Top Button (Tái sử dụng toàn hệ thống)
    ========================================================================== */

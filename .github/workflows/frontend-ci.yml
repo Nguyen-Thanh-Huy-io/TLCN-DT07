@@ -151,6 +151,8 @@ jobs:
       JWT_ACCESS_SECRET: ci-e2e-jwt-access-secret-tlcn-dt07
       JWT_REFRESH_SECRET: ci-e2e-jwt-refresh-secret-tlcn-dt07
       BACKEND_INTERNAL_URL: http://127.0.0.1:5010
+      INTERNAL_API_URL: http://127.0.0.1:5010
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:5010
       NEXT_DIST_DIR: .next-e2e
       E2E_FE_URL: http://127.0.0.1:3010
       E2E_BE_URL: http://127.0.0.1:5010

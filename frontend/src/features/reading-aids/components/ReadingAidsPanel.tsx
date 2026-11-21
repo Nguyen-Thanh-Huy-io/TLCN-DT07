@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Bookmark,
   ChevronLeft,
@@ -12,6 +13,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { KeyboardKey } from '@/constants/enums';
+import { APP_ROUTES } from '@/constants/routes';
+import { useAuthSession } from '@/services/auth/use-auth-session';
 import { ANNOTATION_DATA_ATTRS } from '@/features/lessons/extensions/annotation.extension';
 import type { LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
 import type { NoteFacade } from '@/features/notes/facades/useNoteFacade';
@@ -128,11 +131,13 @@ export function ReadingAidsPanel({
   readingControls,
   articleId,
 }: ReadingAidsPanelProps) {
+  const router = useRouter();
+  const sessionUser = useAuthSession();
   const footnotes = useFootnotes(contentRef, htmlTrigger);
   const [activePanel, setActivePanel] = useState<ReadingActivePanel | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const savedSnapshot = useSavedMaterialsSnapshot(Boolean(articleId));
+  const savedSnapshot = useSavedMaterialsSnapshot(Boolean(articleId && sessionUser?.id));
   const saved = Boolean(articleId) && isMaterialSaved(savedSnapshot, SavedMaterialKind.ARTICLE, articleId ?? '');
   const dockRef = useRef<HTMLDivElement>(null);
 
@@ -190,6 +195,12 @@ export function ReadingAidsPanel({
 
   const handleToggleSave = () => {
     if (!articleId) return;
+    if (!sessionUser) {
+      const current =
+        typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/';
+      router.push(`${APP_ROUTES.LOGIN}?redirect=${encodeURIComponent(current)}`);
+      return;
+    }
     void toggleSavedMaterial(SavedMaterialKind.ARTICLE, articleId);
   };
 

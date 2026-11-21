@@ -7,11 +7,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ContentStatus, KnowledgeTargetType, Prisma } from '@prisma/client';
-import {
-  KNOWLEDGE_EVENTS,
-  type KnowledgeChangedEventPayload,
-} from '../knowledge/knowledge.constant';
+import { ContentStatus, Prisma } from '@prisma/client';
 import {
   AUTHOR_FOLLOW_EVENTS,
   AuthorPublishedContentType,
@@ -107,20 +103,6 @@ export class ArticleService {
     private readonly redis: RedisService,
     @Optional() private readonly eventEmitter?: EventEmitter2,
   ) {}
-
-  private emitKnowledgeSync(id: string, removed = false): void {
-    if (!this.eventEmitter) return;
-    const payload: KnowledgeChangedEventPayload = {
-      targetType: KnowledgeTargetType.ARTICLE,
-      targetId: id,
-    };
-    this.eventEmitter.emit(
-      removed
-        ? KNOWLEDGE_EVENTS.CONTENT_REMOVED
-        : KNOWLEDGE_EVENTS.ARTICLE_CHANGED,
-      payload,
-    );
-  }
 
   private emitAuthorContentPublished(
     authorId: string | null | undefined,
@@ -307,7 +289,6 @@ export class ArticleService {
       },
     });
     if (tagIds?.length) await this.clearTagCache();
-    this.emitKnowledgeSync(created.id);
     if (created.status === ContentStatus.PUBLISHED) {
       this.emitAuthorContentPublished(
         created.createdBy,
@@ -382,7 +363,6 @@ export class ArticleService {
       return saved;
     });
     if (tagIds !== undefined) await this.clearTagCache();
-    this.emitKnowledgeSync(id);
     if (becomesPublished && updated) {
       this.emitAuthorContentPublished(
         updated.createdBy,
@@ -398,7 +378,6 @@ export class ArticleService {
     // Mốc timeline trỏ tới bài → null (SetNull); tag nối, liên kết 2 chiều tự xoá (Cascade).
     await this.prisma.article.delete({ where: { id } });
     await this.clearTagCache();
-    this.emitKnowledgeSync(id, true);
     return { success: true };
   }
 
@@ -443,7 +422,6 @@ export class ArticleService {
       },
     });
 
-    this.emitKnowledgeSync(updated.id);
     if (updated.status === ContentStatus.PUBLISHED) {
       this.emitAuthorContentPublished(
         updated.createdBy,

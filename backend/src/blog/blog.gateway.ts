@@ -6,10 +6,11 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { CORS_ORIGINS } from '../common/config/cors.config';
 
 @WebSocketGateway({
   cors: {
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: CORS_ORIGINS,
     credentials: false,
   },
 })

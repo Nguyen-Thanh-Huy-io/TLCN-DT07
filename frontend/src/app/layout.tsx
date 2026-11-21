@@ -12,8 +12,6 @@ const beVietnamPro = Be_Vietnam_Pro({
 });
 
 const merriweather = Merriweather({
-  weight: ["300", "400", "700"],
-  style: ["normal", "italic"],
   subsets: ["latin", "vietnamese"],
   variable: "--font-merriweather",
   display: "swap",

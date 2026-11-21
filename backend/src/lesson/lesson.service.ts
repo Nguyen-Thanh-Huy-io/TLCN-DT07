@@ -13,10 +13,6 @@ import { RedisService } from '../common/services/redis.service';
 import { TAG_CONFIG } from '../tag/tag.constant';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import {
-  KNOWLEDGE_EVENTS,
-  type KnowledgeChangedEventPayload,
-} from '../knowledge/knowledge.constant';
-import {
   AUTHOR_FOLLOW_EVENTS,
   AuthorPublishedContentType,
   type AuthorPublishedPayload,
@@ -26,13 +22,7 @@ import { UpdateLessonDto } from './dto/update-lesson.dto';
 import { QueryLessonDto } from './dto/query-lesson.dto';
 import { ReviewLessonDto } from './dto/review-lesson.dto';
 import { LessonResponseDto } from './dto/lesson-response.dto';
-import {
-  Lesson,
-  ContentStatus,
-  KnowledgeTargetType,
-  Prisma,
-  Tag,
-} from '@prisma/client';
+import { Lesson, ContentStatus, Prisma, Tag } from '@prisma/client';
 import { SlugHelper } from './helpers/slug.helper';
 import { LessonContentStrategyContext } from './strategies/content-normalizer.strategy';
 
@@ -59,20 +49,6 @@ export class LessonService {
     private readonly logger: CustomLoggerService,
     @Optional() private readonly eventEmitter?: EventEmitter2,
   ) {}
-
-  private emitKnowledgeSync(id: string, removed = false): void {
-    if (!this.eventEmitter) return;
-    const payload: KnowledgeChangedEventPayload = {
-      targetType: KnowledgeTargetType.LESSON,
-      targetId: id,
-    };
-    this.eventEmitter.emit(
-      removed
-        ? KNOWLEDGE_EVENTS.CONTENT_REMOVED
-        : KNOWLEDGE_EVENTS.LESSON_CHANGED,
-      payload,
-    );
-  }
 
   private emitAuthorContentPublished(
     authorId: string | null | undefined,
@@ -202,7 +178,6 @@ export class LessonService {
     });
 
     await this.invalidateCache();
-    this.emitKnowledgeSync(lesson.id);
     if (lesson.status === ContentStatus.PUBLISHED) {
       this.emitAuthorContentPublished(
         lesson.createdBy,
@@ -441,7 +416,6 @@ export class LessonService {
     });
 
     await this.invalidateCache();
-    this.emitKnowledgeSync(updated.id);
     if (becomesPublished) {
       this.emitAuthorContentPublished(
         updated.createdBy,
@@ -514,7 +488,6 @@ export class LessonService {
     });
 
     await this.invalidateCache();
-    this.emitKnowledgeSync(updated.id);
     if (updated.status === ContentStatus.PUBLISHED) {
       this.emitAuthorContentPublished(
         updated.createdBy,
@@ -532,7 +505,6 @@ export class LessonService {
     await this.findOne(id);
     await this.prisma.lesson.delete({ where: { id } });
     await this.invalidateCache();
-    this.emitKnowledgeSync(id, true);
     return { message: 'Xóa bài học thành công.' };
   }
 

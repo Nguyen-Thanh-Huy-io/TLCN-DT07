@@ -2,6 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 import api from '@/services/api';
+import { PublicAuthService } from '@/services/auth/public-auth.service';
 import {
   SAVED_MATERIAL_API,
   SAVED_MATERIAL_CHANGE_EVENT,
@@ -44,6 +45,11 @@ function getServerSnapshot(): SavedMaterialSnapshot {
 
 /** Nạp lại tư liệu đã lưu từ server; các hook `useSavedMaterialsSnapshot` đang mount sẽ tự cập nhật. */
 export async function refetchSavedMaterials(): Promise<SavedMaterialSnapshot> {
+  if (!PublicAuthService.getAccessToken()) {
+    cachedSnapshot = EMPTY_SAVED_MATERIAL_SNAPSHOT;
+    notifyListeners();
+    return cachedSnapshot;
+  }
   if (!inFlightFetch) {
     inFlightFetch = api
       .get(SAVED_MATERIAL_API.ROOT)

@@ -3,3 +3,8 @@ Dockerfile
 docker-compose.yaml
 .git
 .gitignore
+.env*
+coverage
+dist
+report
+test

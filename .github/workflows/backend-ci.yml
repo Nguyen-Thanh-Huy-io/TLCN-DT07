@@ -1,29 +1,47 @@
-name: CI Pipeline
+name: Backend CI/CD Pipeline
 
 on:
   push:
     branches:
       - main
       - master
+      - develop
       - "feat/**"
+      - "fix/**"
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
 
   pull_request:
     branches:
       - main
       - master
+      - develop
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
-  NODE_VERSION: '22'
+  NODE_VERSION: "22"
   DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/hisgo
 
 jobs:
-
   # ─────────────────────────────────────────────
-  # JOB 1: Lint & Test
+  # JOB 1: Typecheck, ESLint & Unit Coverage (>= 70%)
   # ─────────────────────────────────────────────
-  lint-and-test:
-    name: Lint & Test
+  lint-and-unit:
+    name: Typecheck, Lint & Unit Coverage
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./backend
 
     steps:
       - name: Checkout code
@@ -37,26 +55,161 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
-        working-directory: backend
         run: npm ci
 
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
       - name: Run ESLint
-        working-directory: backend
         run: npm run lint
 
-      - name: Run Tests
-        working-directory: backend
-        run: npm run test
+      - name: Run Unit Tests with Coverage
+        run: npm run test:cov
         env:
           NODE_ENV: test
 
+      - name: Enforce Line Coverage Gate (>= 70%)
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const summary = JSON.parse(fs.readFileSync("coverage/coverage-summary.json", "utf8"));
+            const linesPct = Number(summary?.total?.lines?.pct ?? 0);
+            console.log(`Backend unit line coverage: ${linesPct}%`);
+            if (linesPct < 70) {
+              console.error(`Coverage gate failed: ${linesPct}% < 70%`);
+              process.exit(1);
+            }
+          '
+
+      - name: Upload Unit Coverage Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-unit-coverage
+          path: |
+            backend/coverage/coverage-summary.json
+            backend/coverage/lcov.info
+          retention-days: 7
+
   # ─────────────────────────────────────────────
-  # JOB 2: Backend Build
+  # JOB 2: Integration E2E & Non-Functional Perf Smoke
+  # ─────────────────────────────────────────────
+  integration-e2e-and-perf:
+    name: API Integration E2E & Perf Smoke
+    runs-on: ubuntu-latest
+    needs: lint-and-unit
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: tlcn_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U admin -d tlcn_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://admin:admin@127.0.0.1:5432/tlcn_db
+      E2E_DATABASE_URL: postgresql://admin:admin@127.0.0.1:5432/tlcn_db_e2e
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: "6379"
+      E2E_REDIS_DB: "1"
+      JWT_SECRET: ci-e2e-jwt-secret-tlcn-dt07
+      JWT_ACCESS_SECRET: ci-e2e-jwt-access-secret-tlcn-dt07
+      JWT_REFRESH_SECRET: ci-e2e-jwt-refresh-secret-tlcn-dt07
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare isolated E2E DB & Apply Prisma migrations
+        run: npm run test:e2e:prepare
+
+      - name: Run API Integration E2E Suite
+        run: npm run test:e2e
+
+      - name: Build Backend for Perf Smoke
+        run: npm run build
+
+      - name: Run Non-functional Load & Rate-Limit Smoke
+        run: |
+          npm run test:e2e:prepare
+          npx ts-node test/seed-ui-e2e.ts
+          mkdir -p coverage
+          DATABASE_URL="${{ env.E2E_DATABASE_URL }}" \
+          REDIS_DB="${{ env.E2E_REDIS_DB }}" \
+          REDIS_CACHE_KEY_PREFIX="e2e" \
+          PORT=5000 \
+          node dist/src/main.js > coverage/be-perf.log 2>&1 &
+          BE_PID=$!
+          trap 'kill $BE_PID 2>/dev/null || true' EXIT
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5000/metrics >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          if ! curl -fsS http://127.0.0.1:5000/metrics >/dev/null; then
+            cat coverage/be-perf.log || true
+            exit 1
+          fi
+
+          PERF_BASE_URL=http://127.0.0.1:5000 node test/perf/load-smoke.mjs
+          kill $BE_PID && wait $BE_PID || true
+          trap - EXIT
+
+      - name: Upload Perf Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-perf-report
+          path: backend/coverage/perf-report.json
+          retention-days: 7
+
+  # ─────────────────────────────────────────────
+  # JOB 3: Backend Build
   # ─────────────────────────────────────────────
   build:
     name: Backend Build
     runs-on: ubuntu-latest
-    needs: lint-and-test
+    needs: lint-and-unit
+
+    defaults:
+      run:
+        working-directory: ./backend
 
     steps:
       - name: Checkout code
@@ -70,20 +223,18 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
-        working-directory: backend
         run: npm ci
 
       - name: Build Backend
-        working-directory: backend
         run: npm run build
 
   # ─────────────────────────────────────────────
-  # JOB 3: Docker Build
+  # JOB 4: Docker Build & Smoke Verification
   # ─────────────────────────────────────────────
   docker-build:
-    name: Docker Build
+    name: Docker Build & Smoke Check
     runs-on: ubuntu-latest
-    needs: build
+    needs: [integration-e2e-and-perf, build]
 
     steps:
       - name: Checkout code
@@ -92,19 +243,21 @@ jobs:
       - name: Build Docker image
         run: docker build -f ./backend/Dockerfile -t hisgo-backend:ci ./backend
 
-      - name: Save Docker image
-        run: |
-          docker save hisgo-backend:ci -o hisgo.tar
+      - name: Verify compiled entrypoint inside container
+        run: docker run --rm --entrypoint node hisgo-backend:ci -e "require('fs').statSync('dist/src/main.js')"
 
-      - name: Upload Docker image
+      - name: Save Docker image
+        run: docker save hisgo-backend:ci -o hisgo-backend.tar
+
+      - name: Upload Docker image artifact
         uses: actions/upload-artifact@v4
         with:
-          name: docker-image
-          path: hisgo.tar
+          name: backend-docker-image
+          path: hisgo-backend.tar
           retention-days: 1
 
   # ─────────────────────────────────────────────
-  # JOB 4: Trivy Security Scan
+  # JOB 5: Trivy Security Scan
   # ─────────────────────────────────────────────
   trivy:
     name: Trivy Security Scan
@@ -112,46 +265,45 @@ jobs:
     needs: docker-build
 
     steps:
-      - name: Download Docker image
+      - name: Download Docker image artifact
         uses: actions/download-artifact@v4
         with:
-          name: docker-image
+          name: backend-docker-image
 
       - name: Load Docker image
-        run: |
-          docker load -i hisgo.tar
+        run: docker load -i hisgo-backend.tar
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'hisgo-backend:ci'
-          format: 'table'
-          exit-code: '0'
+          image-ref: "hisgo-backend:ci"
+          format: "table"
+          exit-code: "0"
           ignore-unfixed: true
-          severity: 'CRITICAL,HIGH'
+          severity: "CRITICAL,HIGH"
 
   # ─────────────────────────────────────────────
-  # JOB 5: Docker Push
+  # JOB 6: Docker Push (CD Publish)
   # ─────────────────────────────────────────────
   docker-push:
     name: Docker Push
     runs-on: ubuntu-latest
     needs: trivy
-
-    if: >
+    if: >-
+      github.repository == 'Nguyen-Thanh-Huy-io/TLCN-DT07' &&
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' ||
-       github.ref == 'refs/heads/master')
+       github.ref == 'refs/heads/master' ||
+       github.ref == 'refs/heads/develop')
 
     steps:
-      - name: Download Docker image
+      - name: Download Docker image artifact
         uses: actions/download-artifact@v4
         with:
-          name: docker-image
+          name: backend-docker-image
 
       - name: Load Docker image
-        run: |
-          docker load -i hisgo.tar
+        run: docker load -i hisgo-backend.tar
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -159,12 +311,34 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Tag Docker image
+      - name: Tag and Push Docker image
         run: |
-          docker tag \
-            hisgo-backend:ci \
-            ${{ env.DOCKER_IMAGE }}:latest
+          docker tag hisgo-backend:ci "${{ env.DOCKER_IMAGE }}:${{ github.ref_name }}"
+          docker tag hisgo-backend:ci "${{ env.DOCKER_IMAGE }}:${{ github.sha }}"
+          docker push "${{ env.DOCKER_IMAGE }}:${{ github.ref_name }}"
+          docker push "${{ env.DOCKER_IMAGE }}:${{ github.sha }}"
+          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.ref_name }}" = "master" ]; then
+            docker tag hisgo-backend:ci "${{ env.DOCKER_IMAGE }}:latest"
+            docker push "${{ env.DOCKER_IMAGE }}:latest"
+          fi
 
-      - name: Push Docker image
+  # ─────────────────────────────────────────────
+  # JOB 7: Production Release Approval Gate (CD)
+  # ─────────────────────────────────────────────
+  deploy-production:
+    name: Production Release Gate
+    runs-on: ubuntu-latest
+    needs: docker-push
+    if: >-
+      github.repository == 'Nguyen-Thanh-Huy-io/TLCN-DT07' &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    environment: production
+
+    steps:
+      - name: Record approved release artifact
         run: |
-          docker push ${{ env.DOCKER_IMAGE }}:latest
+          echo "Approved Backend image for release:"
+          echo " - ${{ env.DOCKER_IMAGE }}:${{ github.sha }}"
+          echo " - ${{ env.DOCKER_IMAGE }}:latest"
+          echo "Health endpoint verification target: GET /metrics (HTTP 200)"

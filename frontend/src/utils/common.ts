@@ -65,6 +65,30 @@ export function dateLabelOf(item: {
   return start || end;
 }
 
+const MIN_UPDATE_GAP_MS = 24 * 60 * 60 * 1000;
+
+export function formatPublishedDate(iso?: string | null): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+export function hasMeaningfulUpdate(
+  publishedAt?: string | null,
+  updatedAt?: string | null,
+): boolean {
+  if (!publishedAt || !updatedAt) return false;
+  const pubMs = new Date(publishedAt).getTime();
+  const updMs = new Date(updatedAt).getTime();
+  if (Number.isNaN(pubMs) || Number.isNaN(updMs)) return false;
+  return updMs - pubMs >= MIN_UPDATE_GAP_MS;
+}
+
 /** Chữ viết tắt cho avatar chữ: chữ đầu của từ đầu + từ cuối ("Nguyễn Văn An" → "NA"). */
 export function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);

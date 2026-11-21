@@ -59,14 +59,14 @@ export function QuizBlockEditor({ data, onChange, topicId }: QuizBlockEditorProp
   };
 
   return (
-    <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/40 p-3" onClick={(e) => e.stopPropagation()}>
+    <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center gap-2">
         <HelpCircle size={16} className="shrink-0 text-amber-700" />
         <input
           value={data.title ?? ''}
           onChange={(e) => onChange({ title: e.target.value })}
           placeholder={LESSON_QUIZ_DEFAULT_TITLE}
-          className="flex-1 rounded-lg border border-amber-200 bg-white px-2.5 py-1.5 text-sm font-semibold text-slate-800 outline-none focus:border-amber-400"
+          className="flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-semibold text-slate-800 outline-none focus:border-slate-400"
         />
         <span className="shrink-0 text-xs text-slate-500">
           {questions.length}/{LESSON_QUIZ_MAX_QUESTIONS} câu

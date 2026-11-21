@@ -43,6 +43,7 @@ describe('TagService', () => {
   const mockRedisService = {
     get: jest.fn(),
     set: jest.fn(),
+    del: jest.fn(),
     deleteByPattern: jest.fn(),
   };
 
@@ -160,6 +161,78 @@ describe('TagService', () => {
       await expect(
         service.attachTagsToLesson('lesson-1', { tagIds: ['invalid-tag-id'] }),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('gắn danh sách tag hợp lệ cho bài học trong transaction và xoá cache', async () => {
+      mockPrismaService.lesson.findUnique.mockResolvedValue({ id: 'lesson-1' });
+      mockPrismaService.tag.findMany.mockResolvedValue([mockTag]);
+      mockPrismaService.$transaction.mockImplementation(
+        async (cb: (tx: typeof mockPrismaService) => Promise<void>) =>
+          cb(mockPrismaService),
+      );
+
+      const tags = await service.attachTagsToLesson('lesson-1', {
+        tagIds: ['tag-1', 'tag-1'],
+      });
+      expect(tags).toEqual([mockTag]);
+      expect(mockPrismaService.lessonTag.deleteMany).toHaveBeenCalledWith({
+        where: { lessonId: 'lesson-1' },
+      });
+      expect(mockPrismaService.lessonTag.createMany).toHaveBeenCalledWith({
+        data: [{ lessonId: 'lesson-1', tagId: 'tag-1' }],
+        skipDuplicates: true,
+      });
+      expect(mockRedisService.del).toHaveBeenCalledWith(
+        'lesson:detail:lesson-1',
+      );
+    });
+  });
+
+  describe('update, remove & getLessonTags', () => {
+    it('cập nhật tag thành công và chặn trùng tên (409)', async () => {
+      mockRedisService.get.mockResolvedValueOnce(mockTag);
+      mockPrismaService.tag.findFirst.mockResolvedValueOnce({
+        id: 'tag-other',
+      });
+
+      await expect(
+        service.update('tag-1', { name: 'Trùng tên' }),
+      ).rejects.toThrow(ConflictException);
+
+      mockRedisService.get.mockResolvedValueOnce(mockTag);
+      mockPrismaService.tag.findFirst.mockResolvedValueOnce(null);
+      mockPrismaService.tag.update.mockResolvedValueOnce({
+        ...mockTag,
+        name: 'Tên mới',
+      });
+
+      const updated = await service.update('tag-1', { name: 'Tên mới' });
+      expect(updated.name).toBe('Tên mới');
+      expect(mockRedisService.deleteByPattern).toHaveBeenCalled();
+    });
+
+    it('xoá tag thành công và xoá cache', async () => {
+      mockRedisService.get.mockResolvedValueOnce(mockTag);
+      mockPrismaService.tag.delete.mockResolvedValueOnce(mockTag);
+
+      const res = await service.remove('tag-1');
+      expect(res).toHaveProperty('message');
+      expect(mockRedisService.deleteByPattern).toHaveBeenCalled();
+    });
+
+    it('getLessonTags trả về danh sách tag hoặc báo 404 nếu bài học không tồn tại', async () => {
+      mockPrismaService.lesson.findUnique.mockResolvedValueOnce(null);
+      await expect(service.getLessonTags('missing')).rejects.toThrow(
+        NotFoundException,
+      );
+
+      mockPrismaService.lesson.findUnique.mockResolvedValueOnce({
+        id: 'lesson-1',
+        lessonTags: [{ tag: mockTag }],
+      });
+      await expect(service.getLessonTags('lesson-1')).resolves.toEqual([
+        mockTag,
+      ]);
     });
   });
 });

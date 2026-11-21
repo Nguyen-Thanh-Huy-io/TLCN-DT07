@@ -12,6 +12,7 @@ import helmet from 'helmet';
 import express from 'express';
 import { join } from 'path';
 import { setupSwagger } from './common/config/swagger.config';
+import { CORS_ORIGINS } from './common/config/cors.config';
 // import { AllExceptionFilter } from './common/filters/all-exception.filter';
 
 async function bootstrap() {
@@ -103,7 +104,7 @@ async function bootstrap() {
   nestLogger.log('Application is starting...', 'Bootstrap');
 
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: CORS_ORIGINS,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: false,
     allowedHeaders: ['Content-Type', 'Authorization'],

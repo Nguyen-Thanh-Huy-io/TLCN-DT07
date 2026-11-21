@@ -18,6 +18,9 @@ import { RedisService } from '../common/services/redis.service';
 import { ModerationService } from '../moderation/moderation.service';
 import { NotificationService } from '../notification/notification.service';
 import { BlogGateway } from './blog.gateway';
+import { BlogCommentService } from './blog-comment.service';
+import { BlogFollowService } from './blog-follow.service';
+import { BlogInteractionService } from './blog-interaction.service';
 import { BlogService } from './blog.service';
 import { BLOG_REVIEW_DEFAULT_LIMIT } from './dto/blog-post.dto';
 
@@ -125,6 +128,9 @@ describe('BlogService — tương tác cộng đồng', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         BlogService,
+        BlogCommentService,
+        BlogInteractionService,
+        BlogFollowService,
         { provide: PrismaService, useValue: prisma },
         { provide: BlogGateway, useValue: gateway },
         { provide: NotificationService, useValue: notifications },

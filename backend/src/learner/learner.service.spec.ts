@@ -20,6 +20,7 @@ describe('LearnerService', () => {
       upsert: jest.fn(),
     },
     lesson: { findFirst: jest.fn() },
+    authUser: { findMany: jest.fn().mockResolvedValue([]) },
   };
   const lessonService = { findBySlug: jest.fn() };
 
@@ -120,6 +121,43 @@ describe('LearnerService', () => {
         NotFoundException,
       );
       expect(prisma.learningPath.findMany).not.toHaveBeenCalled();
+    });
+
+    it('trả về lesson.author đầy đủ khi có createdBy và null khi không có', async () => {
+      prisma.learningPath.findMany.mockResolvedValue([]);
+      lessonService.findBySlug.mockResolvedValueOnce({
+        id: 'lesson-1',
+        status: ContentStatus.PUBLISHED,
+        createdBy: 'u-teacher-1',
+      });
+      prisma.authUser.findMany.mockResolvedValueOnce([
+        {
+          id: 'u-teacher-1',
+          username: 'co_giao_lan',
+          userProfile: {
+            firstName: 'Lan',
+            lastName: 'Trần',
+            avatarUrl: null,
+          },
+        },
+      ]);
+
+      const resWithAuthor = await service.getLessonForReading('u-1', 'bai-1');
+      expect(resWithAuthor.lesson.author).toEqual({
+        id: 'u-teacher-1',
+        username: 'co_giao_lan',
+        displayName: 'Trần Lan',
+        avatarUrl: null,
+      });
+
+      lessonService.findBySlug.mockResolvedValueOnce({
+        id: 'lesson-2',
+        status: ContentStatus.PUBLISHED,
+        createdBy: null,
+      });
+
+      const resNoAuthor = await service.getLessonForReading('u-1', 'bai-2');
+      expect(resNoAuthor.lesson.author).toBeNull();
     });
   });
 

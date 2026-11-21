@@ -4,12 +4,14 @@ import { RedisService } from '../common/services/redis.service';
 import { NotificationController } from './notification.controller';
 import { NotificationGateway } from './notification.gateway';
 import { NotificationService } from './notification.service';
+import { AuthorPublishListener } from './author-publish.listener';
 
 @Module({
   controllers: [NotificationController],
   providers: [
     NotificationService,
     NotificationGateway,
+    AuthorPublishListener,
     PrismaService,
     RedisService,
   ],

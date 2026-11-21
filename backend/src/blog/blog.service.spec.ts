@@ -1,6 +1,9 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ContentStatus, PostType, UserRole } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
+import { BlogCommentService } from './blog-comment.service';
+import { BlogFollowService } from './blog-follow.service';
+import { BlogInteractionService } from './blog-interaction.service';
 import { BlogService } from './blog.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
@@ -71,6 +74,9 @@ describe('BlogService — assertCanModifyPost (quyền sửa/xóa bài viết)',
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BlogService,
+        BlogCommentService,
+        BlogInteractionService,
+        BlogFollowService,
         { provide: PrismaService, useValue: prisma },
         {
           provide: BlogGateway,

@@ -28,9 +28,15 @@ export function useCommunityProfile({
 }: CommunityProfileViewProps) {
   const sessionUser = useAuthSession();
 
+  const hasOnlyPublishedWorks =
+    initialProfile.posts.length === 0 &&
+    initialProfile.publishedArticles.length + initialProfile.publishedLessons.length > 0;
+
   const [profile, setProfile] = useState<CommunityMemberProfile>(initialProfile);
   const [suggestedMembers, setSuggestedMembers] = useState<CommunityMemberSummary[]>([]);
-  const [activeTab, setActiveTab] = useState<ProfileTabKey>(ProfileTabKey.POSTS);
+  const [activeTab, setActiveTab] = useState<ProfileTabKey>(
+    hasOnlyPublishedWorks ? ProfileTabKey.WORKS : ProfileTabKey.POSTS,
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [followLoading, setFollowLoading] = useState(false);
@@ -176,6 +182,8 @@ export function useCommunityProfile({
       postCount,
       sharedBlogCount,
       questionPostCount,
+      publishedArticlesCount: profile.publishedArticles.length,
+      publishedLessonsCount: profile.publishedLessons.length,
       followerCount: profile.followers.length,
       followingCount: profile.following.length,
       totalLikesReceived,
@@ -183,7 +191,14 @@ export function useCommunityProfile({
       totalViewsReceived,
       topTopics,
     };
-  }, [profile.followers.length, profile.following.length, profile.posts, profile.topTopics]);
+  }, [
+    profile.followers.length,
+    profile.following.length,
+    profile.posts,
+    profile.publishedArticles.length,
+    profile.publishedLessons.length,
+    profile.topTopics,
+  ]);
 
   const isMe =
     profile.isMe ||
@@ -358,6 +373,28 @@ export function useCommunityProfile({
     );
   }, [activeTab, profile.followers, profile.following, searchQuery]);
 
+  const filteredArticles = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return profile.publishedArticles;
+    return profile.publishedArticles.filter(
+      (a) =>
+        a.title.toLowerCase().includes(q) ||
+        (a.summary || '').toLowerCase().includes(q) ||
+        (a.categoryName || '').toLowerCase().includes(q),
+    );
+  }, [profile.publishedArticles, searchQuery]);
+
+  const filteredLessons = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return profile.publishedLessons;
+    return profile.publishedLessons.filter(
+      (l) =>
+        l.title.toLowerCase().includes(q) ||
+        (l.description || '').toLowerCase().includes(q) ||
+        (l.topicName || '').toLowerCase().includes(q),
+    );
+  }, [profile.publishedLessons, searchQuery]);
+
   return {
     profile,
     suggestedMembers,
@@ -387,6 +424,8 @@ export function useCommunityProfile({
     setComposerMode,
     filteredPosts,
     filteredMembers,
+    filteredArticles,
+    filteredLessons,
     handleToggleFollowProfile,
     handleToggleFollowOtherMember,
     handleSaveBio,

@@ -17,7 +17,6 @@ import {
   MapPin,
   Table2,
   Columns3,
-  BookOpen,
   HelpCircle,
   Link2,
   Search,
@@ -45,7 +44,6 @@ export const BLOCK_TYPE_ICONS: Record<string, LucideIcon> = {
   [LessonBlockType.QUOTE]: Quote,
   [LessonBlockType.DIVIDER]: Minus,
   [LessonBlockType.CALLOUT]: AlertCircle,
-  [LessonBlockType.STORY_CHAPTER]: BookOpen,
   [LessonBlockType.CHARACTER]: UserSquare2,
   [LessonBlockType.TIMELINE]: GitCommitHorizontal,
   [LessonBlockType.RELATED_PEOPLE]: Users,
@@ -97,6 +95,7 @@ export function BlockLibraryPalette({
               <button
                 key={item.type}
                 type="button"
+                data-testid={`btn-block-${item.type}`}
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData(LESSON_BLOCK_DRAG_MIME, item.type);

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../features/lessons/styles/lesson-blocks.css";
 
 @theme {
   --color-bg-page: var(--bg-page);
@@ -2755,35 +2756,35 @@ tbody tr:hover .quick-row-btn {
   margin: 0 4px;
 }
 
-/* TIPTAP FLOATING BUBBLE MENU */
+/* TIPTAP FLOATING BUBBLE MENU (Unified White & Indigo Mindmap Style) */
 .tiptap-bubble-menu {
   display: flex !important;
   align-items: center !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
-  background-color: #0f172a !important;
-  color: #f8fafc !important;
-  padding: 4px 6px !important;
+  background-color: #ffffff !important;
+  color: #334155 !important;
+  padding: 4px !important;
   border-radius: 10px !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.2) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 4px 10px -4px rgba(15, 23, 42, 0.06) !important;
+  border: 1px solid #e2e8f0 !important;
   z-index: 9999 !important;
-  gap: 3px !important;
-  backdrop-filter: blur(8px) !important;
+  gap: 2px !important;
 }
 
 .tiptap-bubble-btn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  gap: 4px !important;
   min-width: 28px !important;
   height: 28px !important;
-  padding: 0 6px !important;
-  border-radius: 6px !important;
+  padding: 0 8px !important;
+  border-radius: 7px !important;
   border: none !important;
   background: transparent !important;
-  color: #cbd5e1 !important;
-  font-size: 13px !important;
+  color: #334155 !important;
+  font-size: 12px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
   line-height: 1 !important;
@@ -2793,14 +2794,14 @@ tbody tr:hover .quick-row-btn {
 }
 
 .tiptap-bubble-btn:hover {
-  background-color: #334155 !important;
-  color: #ffffff !important;
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
 }
 
 .tiptap-bubble-btn.is-active {
-  background-color: #2563eb !important;
+  background-color: #4f46e5 !important;
   color: #ffffff !important;
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.4) !important;
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.25) !important;
 }
 
 .tiptap-bubble-divider {
@@ -2910,6 +2911,91 @@ tbody tr:hover .quick-row-btn {
   max-width: 65ch;
   margin-top: 0.5rem;
   margin-bottom: 0.75rem;
+}
+
+.tiptap-content-box ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tiptap-content-box ul ul {
+  list-style-type: circle;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.tiptap-content-box ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tiptap-content-box ol ol {
+  list-style-type: lower-alpha;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.tiptap-content-box li {
+  margin: 0.25rem 0;
+  line-height: 1.65;
+}
+
+.tiptap-content-box li > p {
+  margin-top: 0.15rem;
+  margin-bottom: 0.15rem;
+}
+
+.tiptap-content-box table,
+.tiptap-content-box .hisgo-rich-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.925rem;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  table-layout: fixed;
+}
+
+.tiptap-content-box th,
+.tiptap-content-box td {
+  border: 1px solid #cbd5e1;
+  padding: 0.55rem 0.75rem;
+  vertical-align: top;
+  position: relative;
+  min-width: 72px;
+  box-sizing: border-box;
+}
+
+.tiptap-content-box th {
+  background-color: #f8fafc;
+  font-weight: 700;
+  color: #0f172a;
+  text-align: left;
+}
+
+.tiptap-content-box td {
+  background-color: #ffffff;
+  color: #1e293b;
+}
+
+.tiptap-content-box th > p,
+.tiptap-content-box td > p {
+  margin: 0;
+  max-width: none;
+}
+
+.tiptap-content-box .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(79, 70, 229, 0.12);
+  border: 1.5px solid #4f46e5;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .tiptap-content-box a {
@@ -3098,15 +3184,14 @@ figure.wiki-media-block figcaption {
    EDITORIAL SPREAD TYPOGRAPHY (DROP CAP, LEAD PARAGRAPH, MULTI-COLUMN TEXT)
    ======================================================== */
 
-.editorial-drop-cap::first-letter,
-.editorial-slot-dropcap .ProseMirror > p:first-of-type::first-letter {
+.editorial-drop-cap::first-letter {
   font-family: var(--font-merriweather), var(--font-noto-serif), "Times New Roman", serif;
-  font-size: 3.4rem;
+  font-size: 3.1rem;
   font-weight: 700;
-  line-height: 0.82;
+  line-height: 0.85;
   float: left;
-  margin: 4px 12px 0 0;
-  color: #1c1917;
+  margin: 4px 10px 0 0;
+  color: var(--drop-cap-color, #8b261d);
 }
 
 .editorial-lead-paragraph {
@@ -3117,32 +3202,40 @@ figure.wiki-media-block figcaption {
   color: #292524;
 }
 
-.editorial-columns-2,
-.editorial-slot-cols-2 .ProseMirror {
-  column-count: 2;
-  column-gap: 28px;
+.editorial-columns-2 {
+  column-count: 2 !important;
+  column-gap: 24px !important;
+  column-fill: balance !important;
+  column-rule: 1px solid #e2e8f0;
+  min-height: 0 !important;
+  height: auto !important;
   max-width: 100% !important;
 }
 
-.editorial-columns-3,
-.editorial-slot-cols-3 .ProseMirror {
-  column-count: 3;
-  column-gap: 24px;
+.editorial-columns-3 {
+  column-count: 3 !important;
+  column-gap: 20px !important;
+  column-fill: balance !important;
+  column-rule: 1px solid #e2e8f0;
+  min-height: 0 !important;
+  height: auto !important;
   max-width: 100% !important;
+}
+
+.editorial-columns-2:first-of-type,
+.editorial-columns-3:first-of-type {
+  margin-top: 0 !important;
 }
 
 @media (max-width: 1024px) {
-  .editorial-columns-3,
-  .editorial-slot-cols-3 .ProseMirror {
+  .editorial-columns-3 {
     column-count: 2;
   }
 }
 
 @media (max-width: 640px) {
   .editorial-columns-2,
-  .editorial-columns-3,
-  .editorial-slot-cols-2 .ProseMirror,
-  .editorial-slot-cols-3 .ProseMirror {
+  .editorial-columns-3 {
     column-count: 1;
   }
 }

@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import {
+  NOTE_COLOR,
   NOTE_KIND,
   NOTE_MARKUP_STYLE,
   type NoteAnchorValue,
@@ -119,6 +120,35 @@ export const NOTE_LABEL_MAX_LENGTH = 40;
 export const NOTE_LABELS_MAX = 10;
 
 export const NOTE_ACTIVE_COLOR_STORAGE_KEY = 'hisgo:note-active-color';
+
+/** Màu mặc định khi chọn loại (người học vẫn đổi được). */
+export const DEFAULT_KIND_COLOR: Record<NoteKindValue, NoteColorValue> = {
+  HIGHLIGHT: NOTE_COLOR.YELLOW,
+  NOTE: NOTE_COLOR.GREEN,
+  DEFINITION: NOTE_COLOR.BLUE,
+  QUESTION: NOTE_COLOR.PINK,
+  IMPORTANT: NOTE_COLOR.PINK,
+  SUMMARY: NOTE_COLOR.PURPLE,
+};
+
+export const readStoredActiveColor = (): NoteColorValue => {
+  if (typeof window === 'undefined') return NOTE_COLOR.YELLOW;
+  try {
+    const saved = localStorage.getItem(NOTE_ACTIVE_COLOR_STORAGE_KEY) as NoteColorValue | null;
+    if (saved && Object.values(NOTE_COLOR).includes(saved)) return saved;
+  } catch {
+    // Bỏ qua lỗi storage ở chế độ ẩn danh.
+  }
+  return NOTE_COLOR.YELLOW;
+};
+
+export const persistStoredActiveColor = (color: NoteColorValue) => {
+  try {
+    localStorage.setItem(NOTE_ACTIVE_COLOR_STORAGE_KEY, color);
+  } catch {
+    // Bỏ qua lỗi storage ở chế độ ẩn danh.
+  }
+};
 
 export const isOpenQuestion = (note: { kind: NoteKindValue; resolvedAt: string | null }) =>
   note.kind === NOTE_KIND.QUESTION && !note.resolvedAt;

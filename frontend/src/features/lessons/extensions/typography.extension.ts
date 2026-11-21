@@ -5,6 +5,40 @@ const DEFAULT_TEXT_ALIGN = 'left';
 /** Giá trị bật của các thuộc tính data-* dạng cờ (data-drop-cap, data-lead-paragraph). */
 const DATA_FLAG_ON = 'true';
 
+export const LIST_NODE_TYPES = {
+  BULLET: 'bulletList',
+  ORDERED: 'orderedList',
+} as const;
+
+export const ListStyleType = {
+  DISC: 'disc',
+  CIRCLE: 'circle',
+  SQUARE: 'square',
+  DECIMAL: 'decimal',
+  LOWER_ALPHA: 'lower-alpha',
+  UPPER_ROMAN: 'upper-roman',
+} as const;
+
+export type ListStyleType = (typeof ListStyleType)[keyof typeof ListStyleType];
+
+export interface ListStyleOption {
+  value: ListStyleType;
+  label: string;
+  symbol: string;
+}
+
+export const BULLET_LIST_STYLE_OPTIONS: ReadonlyArray<ListStyleOption> = [
+  { value: ListStyleType.DISC, label: 'Chấm tròn đặc', symbol: '•' },
+  { value: ListStyleType.CIRCLE, label: 'Vòng tròn rỗng', symbol: '○' },
+  { value: ListStyleType.SQUARE, label: 'Ô vuông', symbol: '▪' },
+];
+
+export const ORDERED_LIST_STYLE_OPTIONS: ReadonlyArray<ListStyleOption> = [
+  { value: ListStyleType.DECIMAL, label: 'Số (1, 2, 3)', symbol: '1.' },
+  { value: ListStyleType.LOWER_ALPHA, label: 'Chữ cái (a, b, c)', symbol: 'a.' },
+  { value: ListStyleType.UPPER_ROMAN, label: 'La Mã (I, II, III)', symbol: 'I.' },
+];
+
 /**
  * Extension cấp độ đoạn văn (Paragraph & Heading):
  * Quản lý:
@@ -90,6 +124,27 @@ export const BlockTypographyExtension = Extension.create({
               return {
                 'data-text-columns': String(cols),
                 class: `editorial-columns-${cols}`,
+              };
+            },
+          },
+        },
+      },
+      {
+        types: [LIST_NODE_TYPES.BULLET, LIST_NODE_TYPES.ORDERED],
+        attributes: {
+          listStyleType: {
+            default: null,
+            parseHTML: (element) =>
+              element.getAttribute('data-list-style') ||
+              element.style.listStyleType ||
+              null,
+            renderHTML: (attributes) => {
+              if (!attributes.listStyleType) {
+                return {};
+              }
+              return {
+                'data-list-style': String(attributes.listStyleType),
+                style: `list-style-type: ${attributes.listStyleType}`,
               };
             },
           },

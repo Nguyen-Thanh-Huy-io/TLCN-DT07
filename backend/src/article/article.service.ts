@@ -4,8 +4,15 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ContentStatus, Prisma } from '@prisma/client';
+import {
+  AUTHOR_FOLLOW_EVENTS,
+  AuthorPublishedContentType,
+  type AuthorPublishedPayload,
+} from '../common/constants/follow-events.constant';
 import { PrismaService } from '../common/services/prisma.service';
 import { loadAuthorNames } from '../common/utils/author-names';
 import { SlugService } from '../common/services/slug.service';
@@ -94,7 +101,23 @@ export class ArticleService {
     private readonly prisma: PrismaService,
     private readonly slugService: SlugService,
     private readonly redis: RedisService,
+    @Optional() private readonly eventEmitter?: EventEmitter2,
   ) {}
+
+  private emitAuthorContentPublished(
+    authorId: string | null | undefined,
+    title: string,
+    slug: string,
+  ): void {
+    if (!this.eventEmitter || !authorId) return;
+    const payload: AuthorPublishedPayload = {
+      authorId,
+      contentType: AuthorPublishedContentType.ARTICLE,
+      title,
+      slug,
+    };
+    this.eventEmitter.emit(AUTHOR_FOLLOW_EVENTS.CONTENT_PUBLISHED, payload);
+  }
 
   /** Danh sách Tag được cache kèm số bài dùng tag — đổi tag của bài thì phải xoá. */
   private async clearTagCache(): Promise<void> {
@@ -266,6 +289,13 @@ export class ArticleService {
       },
     });
     if (tagIds?.length) await this.clearTagCache();
+    if (created.status === ContentStatus.PUBLISHED) {
+      this.emitAuthorContentPublished(
+        created.createdBy,
+        created.title,
+        created.slug,
+      );
+    }
     return this.findOne(created.id);
   }
 
@@ -293,8 +323,8 @@ export class ArticleService {
       data.status === ContentStatus.PUBLISHED &&
       current.status !== ContentStatus.PUBLISHED;
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.article.update({
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const saved = await tx.article.update({
         where: { id },
         data: {
           ...data,
@@ -330,8 +360,16 @@ export class ArticleService {
           });
         }
       }
+      return saved;
     });
     if (tagIds !== undefined) await this.clearTagCache();
+    if (becomesPublished && updated) {
+      this.emitAuthorContentPublished(
+        updated.createdBy,
+        updated.title,
+        updated.slug,
+      );
+    }
     return this.findOne(id);
   }
 
@@ -384,6 +422,13 @@ export class ArticleService {
       },
     });
 
+    if (updated.status === ContentStatus.PUBLISHED) {
+      this.emitAuthorContentPublished(
+        updated.createdBy,
+        updated.title,
+        updated.slug,
+      );
+    }
     return this.findOne(updated.id);
   }
 

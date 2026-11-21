@@ -13,11 +13,10 @@ import {
   X,
   Sparkles,
 } from 'lucide-react';
-import { TimelineNode } from '../../types/block-builder.types';
+import { TimelineNode, TimelineSceneStyle } from '../../types/block-builder.types';
 import { TimelineSceneStrategy } from '../../strategies/timeline-scene.strategy';
 import { MoveDirection } from '../quiz/QuizQuestionEditors';
 import { TipTapContent } from '../TipTapContent';
-import { TimelineSceneStyleEnum } from './TimelineBlockItemEditor';
 
 export interface TimelineNodeItemCardProps {
   node: TimelineNode;
@@ -241,7 +240,7 @@ export function TimelineNodeItemCard({
 }: TimelineNodeItemCardProps) {
   const thumb = n.thumbnailUrl || n.mediaList?.[0]?.url || '';
   const resolvedHtml = TimelineSceneStrategy.resolveNodeContentHtml(n);
-  const isCinematic = sceneStyle === TimelineSceneStyleEnum.CINEMATIC_BACKDROP && showImage && Boolean(thumb);
+  const isCinematic = sceneStyle === TimelineSceneStyle.CINEMATIC_BACKDROP && showImage && Boolean(thumb);
 
   return (
     <div

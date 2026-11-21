@@ -129,6 +129,19 @@ export class BlogController {
   }
 
   @ApiOperation({
+    summary:
+      'Trạng thái theo dõi & số người theo dõi của tác giả (nhẹ, dùng cho trang bài viết / bài học)',
+  })
+  @Get('users/:identifier/follow-status')
+  @UseGuards(OptionalAuthGuard)
+  getFollowStatus(
+    @Param('identifier') identifier: string,
+    @Req() req: MaybeAuthedRequest,
+  ) {
+    return this.blogService.getFollowStatus(identifier, req.user?.userId);
+  }
+
+  @ApiOperation({
     summary: 'Toggle theo dõi / bỏ theo dõi thành viên trên Cộng đồng',
   })
   @ApiBearerAuth('JWT-auth')

@@ -1,4 +1,4 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, OnModuleDestroy } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
@@ -6,6 +6,27 @@ import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis'
 import Redis from 'ioredis';
 import { THROTTLER_CONFIG } from '../config/throttler.config';
 import { CustomThrottlerGuard } from '../guards/custom-throttler.guard';
+
+/**
+ * ThrottlerStorageRedisService không tự đóng Redis client truyền từ ngoài vào;
+ * lớp bọc này đảm bảo kết nối Redis được giải phóng khi app tắt (test E2E, graceful shutdown).
+ */
+class OwnedThrottlerStorageRedisService
+  extends ThrottlerStorageRedisService
+  implements OnModuleDestroy
+{
+  constructor(private readonly ownedClient: Redis) {
+    super(ownedClient);
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.ownedClient.status !== 'end') {
+      await this.ownedClient.quit().catch(() => {
+        this.ownedClient.disconnect(false);
+      });
+    }
+  }
+}
 
 @Global()
 @Module({
@@ -34,7 +55,7 @@ import { CustomThrottlerGuard } from '../guards/custom-throttler.guard';
               limit: THROTTLER_CONFIG.DEFAULT.limit,
             },
           ],
-          storage: new ThrottlerStorageRedisService(redisClient),
+          storage: new OwnedThrottlerStorageRedisService(redisClient),
         };
       },
       inject: [ConfigService],

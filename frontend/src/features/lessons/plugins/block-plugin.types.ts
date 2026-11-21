@@ -28,13 +28,13 @@ export function safeUrl(url: string | null | undefined): string {
 }
 
 /**
- * Khung HTML chi tiết tự thu/mở (Details / Summary) cho các khối lịch sử
+ * Khung HTML chi tiết tự thu/mở (Details / Summary) dùng semantic classes chuẩn `lesson-blocks.css`
  */
 export function renderCollapsibleDetail(detailContent?: string, label: string = 'Xem chi tiết'): string {
   if (!detailContent) return '';
-  return `<details style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #cbd5e1; font-size: 12px; color: #334155; line-height: 1.6;">
-    <summary style="cursor: pointer; font-weight: 600; color: #1d4ed8; list-style: none;">▸ ${escapeHtml(label)}</summary>
-    <div style="margin-top: 6px;">${detailContent}</div>
+  return `<details class="hisgo-detail">
+    <summary class="hisgo-detail-summary">▸ ${escapeHtml(label)}</summary>
+    <div class="hisgo-detail-body">${detailContent}</div>
   </details>`;
 }
 

@@ -11,8 +11,9 @@ import {
   SplitSide,
 } from '../types/block-builder.types';
 import { MoveDirection } from '../components/quiz/QuizQuestionEditors';
+import { LEGACY_BLOCK_TYPE_STORY_CHAPTER } from '../constants/lesson.constants';
 import { LessonBlockRegistry, generateBlockId } from '../plugins/block-plugin.registry';
-import { RowLayoutStrategy } from '../strategies/row-layout.strategy';
+import { RowLayoutStrategy, migrateLegacyStoryChapterToBlocks } from '../strategies/row-layout.strategy';
 
 export interface UseLessonBlockManagerReturn {
   blocks: LessonBlockItem[];
@@ -69,26 +70,33 @@ function ensureUniqueBlockIds(items: LessonBlockItem[], seen: Set<string> = new 
         })),
       };
     }
-    if (block.type === LessonBlockType.STORY_CHAPTER) {
-      return {
-        ...block,
-        id,
-        nestedBlocks: ensureUniqueBlockIds(block.nestedBlocks || [], seen),
-      };
-    }
     return { ...block, id };
   });
 }
 
+function normalizeLegacyBlocks(rawItems: unknown[]): LessonBlockItem[] {
+  const result: LessonBlockItem[] = [];
+  for (const item of rawItems) {
+    if (!item || typeof item !== 'object') continue;
+    const rec = item as Record<string, unknown>;
+    if (String(rec.type || '').toUpperCase() === LEGACY_BLOCK_TYPE_STORY_CHAPTER) {
+      result.push(...migrateLegacyStoryChapterToBlocks(rec));
+    } else {
+      result.push(item as LessonBlockItem);
+    }
+  }
+  return result;
+}
+
 function parseContentToBlocks(content: unknown): LessonBlockItem[] | null {
   if (Array.isArray(content) && content.length > 0) {
-    return ensureUniqueBlockIds(content);
+    return ensureUniqueBlockIds(normalizeLegacyBlocks(content));
   }
   if (typeof content === 'string' && content.trim().length > 0) {
     try {
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return ensureUniqueBlockIds(parsed);
+        return ensureUniqueBlockIds(normalizeLegacyBlocks(parsed));
       }
     } catch {
       // Chuỗi HTML thông thường
@@ -295,48 +303,11 @@ export function useLessonBlockManager(initialContent?: unknown): UseLessonBlockM
         if (row.columnCount === targetCount) return block;
 
         const newWidths = RowLayoutStrategy.distributeEqualWidths(targetCount);
-        let newColumns = [...row.columns];
-
-        if (targetCount > row.columns.length) {
-          // Thêm cột mới (bất biến - không mutate mảng cũ)
-          while (newColumns.length < targetCount) {
-            const colId = generateBlockId('col');
-            newColumns.push({
-              id: colId,
-              widthPercent: newWidths[newColumns.length] || 25,
-              blocks: [],
-            });
-          }
-        } else if (targetCount < row.columns.length) {
-          // Giảm số cột: gộp khối từ các cột thừa vào cột cuối cùng còn lại (pure immutable update)
-          const keptColumns = newColumns.slice(0, targetCount).map((c) => ({
-            ...c,
-            blocks: [...c.blocks],
-          }));
-          const removedColumns = newColumns.slice(targetCount);
-          const orphanedBlocks = removedColumns.flatMap((c) => c.blocks);
-          if (orphanedBlocks.length > 0 && keptColumns.length > 0) {
-            const lastIdx = keptColumns.length - 1;
-            const existingIds = new Set(keptColumns[lastIdx].blocks.map((b) => b.id));
-            const uniqueOrphans = orphanedBlocks.filter((b) => !existingIds.has(b.id));
-            keptColumns[lastIdx] = {
-              ...keptColumns[lastIdx],
-              blocks: [...keptColumns[lastIdx].blocks, ...uniqueOrphans],
-            };
-          }
-          newColumns = keptColumns;
-        }
-
-        // Cập nhật lại widthPercent cho từng cột
-        newColumns = newColumns.map((col, idx) => ({
-          ...col,
-          widthPercent: newWidths[idx] || 100,
-        }));
-
         return {
           ...row,
           columnCount: targetCount,
-          columns: newColumns,
+          columns: RowLayoutStrategy.resizeColumnsImmutably(row.columns, targetCount, newWidths),
+          layoutPreset: undefined,
         };
       })
     );
@@ -355,6 +326,7 @@ export function useLessonBlockManager(initialContent?: unknown): UseLessonBlockM
         return {
           ...row,
           columns: updatedCols,
+          layoutPreset: undefined,
         };
       })
     );
@@ -382,7 +354,7 @@ export function useLessonBlockManager(initialContent?: unknown): UseLessonBlockM
           return { ...row, columns: updatedColumns };
         })
       );
-      setActiveBlockId(newChild.id);
+      setActiveBlockId(rowId);
       return newChild.id;
     },
     []

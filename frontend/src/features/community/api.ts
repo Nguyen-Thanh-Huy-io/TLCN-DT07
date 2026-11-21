@@ -27,6 +27,8 @@ const postPath = (postId: string) => `${POSTS_BASE_PATH}/${postId}`;
 
 const userProfilePath = (identifier: string) => `${POSTS_BASE_PATH}/users/${enc(identifier)}/profile`;
 
+const userFollowStatusPath = (identifier: string) => `${POSTS_BASE_PATH}/users/${enc(identifier)}/follow-status`;
+
 const userFollowPath = (identifier: string) => `${POSTS_BASE_PATH}/users/${enc(identifier)}/follow`;
 
 export interface CommunityMemberSummary {
@@ -53,6 +55,29 @@ export interface CommunityMemberCard extends CommunityMemberSummary {
   followedAt?: string;
 }
 
+export interface PublishedWorkArticle {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string | null;
+  coverImageUrl: string | null;
+  dateLabel?: string | null;
+  categoryName: string | null;
+  publishedAt: string | null;
+  updatedAt: string;
+}
+
+export interface PublishedWorkLesson {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  topicName: string | null;
+  publishedAt: string | null;
+  updatedAt: string;
+}
+
 export interface CommunityMemberProfile {
   user: {
     id: string;
@@ -69,6 +94,8 @@ export interface CommunityMemberProfile {
     postCount: number;
     sharedBlogCount: number;
     questionPostCount: number;
+    publishedArticlesCount: number;
+    publishedLessonsCount: number;
     followerCount: number;
     followingCount: number;
     totalLikesReceived: number;
@@ -82,6 +109,8 @@ export interface CommunityMemberProfile {
   bookmarkedPosts: CommunityPost[];
   followers: CommunityMemberCard[];
   following: CommunityMemberCard[];
+  publishedArticles: PublishedWorkArticle[];
+  publishedLessons: PublishedWorkLesson[];
 }
 
 export interface ListCommunityPostsParams {
@@ -123,6 +152,14 @@ export interface ToggleFollowResult {
   followerCount: number;
   targetUserId: string;
   targetUsername: string;
+}
+
+export interface FollowStatusResult {
+  targetUserId: string;
+  targetUsername: string;
+  followerCount: number;
+  following: boolean;
+  isMe: boolean;
 }
 
 export interface ReportPostResult {
@@ -187,6 +224,8 @@ interface RawCommunityMemberProfile {
   bookmarkedPosts?: RawCommunityPost[];
   followers?: RawCommunityMemberCard[];
   following?: RawCommunityMemberCard[];
+  publishedArticles?: PublishedWorkArticle[];
+  publishedLessons?: PublishedWorkLesson[];
 }
 
 // ============================================================
@@ -249,7 +288,11 @@ function normalizeMemberCard(raw: RawCommunityMemberCard): CommunityMemberCard {
 function normalizeProfile(raw: RawCommunityMemberProfile): CommunityMemberProfile {
   return {
     user: raw.user,
-    stats: raw.stats,
+    stats: {
+      ...raw.stats,
+      publishedArticlesCount: raw.stats.publishedArticlesCount ?? (raw.publishedArticles?.length ?? 0),
+      publishedLessonsCount: raw.stats.publishedLessonsCount ?? (raw.publishedLessons?.length ?? 0),
+    },
     topTopics: raw.topTopics ?? [],
     followedByMe: raw.followedByMe ?? false,
     isMe: raw.isMe ?? false,
@@ -257,6 +300,8 @@ function normalizeProfile(raw: RawCommunityMemberProfile): CommunityMemberProfil
     bookmarkedPosts: (raw.bookmarkedPosts ?? []).map(normalizePost),
     followers: (raw.followers ?? []).map(normalizeMemberCard),
     following: (raw.following ?? []).map(normalizeMemberCard),
+    publishedArticles: raw.publishedArticles ?? [],
+    publishedLessons: raw.publishedLessons ?? [],
   };
 }
 
@@ -280,6 +325,8 @@ function buildFallbackProfile(identifier: string): CommunityMemberProfile {
       postCount: 0,
       sharedBlogCount: 0,
       questionPostCount: 0,
+      publishedArticlesCount: 0,
+      publishedLessonsCount: 0,
       followerCount: 0,
       followingCount: 0,
       totalLikesReceived: 0,
@@ -293,6 +340,8 @@ function buildFallbackProfile(identifier: string): CommunityMemberProfile {
     bookmarkedPosts: [],
     followers: [],
     following: [],
+    publishedArticles: [],
+    publishedLessons: [],
   };
 }
 
@@ -431,6 +480,11 @@ export const CommunityApi = {
     const res = await api.get(`${POSTS_BASE_PATH}/users/suggested`, { params: { limit } });
     const data = unwrapData<CommunityMemberSummary[]>(res);
     return Array.isArray(data) ? data : [];
+  },
+
+  async getFollowStatus(identifier: string): Promise<FollowStatusResult> {
+    const res = await api.get(userFollowStatusPath(identifier));
+    return unwrapData(res);
   },
 
   async toggleFollow(identifier: string): Promise<ToggleFollowResult> {

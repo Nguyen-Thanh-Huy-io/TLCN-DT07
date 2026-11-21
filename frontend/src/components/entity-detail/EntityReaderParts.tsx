@@ -2,9 +2,12 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { CalendarDays, Clock, Landmark, ScrollText, Quote } from 'lucide-react';
+import { CalendarDays, Clock, Landmark, PenLine, ScrollText, Quote } from 'lucide-react';
 import { EntityReaderModel } from './entity-reader-adapter';
 import { getEntityIconComponent, EntityIconName } from './entity-strategy';
+import { formatPublishedDate, hasMeaningfulUpdate } from '@/utils/common';
+import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
+import { AuthorFollowButton } from '@/components/common/AuthorFollowButton';
 
 interface EntityHeroProps {
   model: EntityReaderModel;
@@ -15,6 +18,44 @@ function BadgeIcon({ iconName }: { iconName: EntityIconName }) {
     size: 14,
     className: 'ue-hero-badge-icon',
   });
+}
+
+function ArticleByline({
+  author,
+  publishedAt,
+  updatedAt,
+}: {
+  author: EntityReaderModel['author'];
+  publishedAt: string | null;
+  updatedAt: string | null;
+}) {
+  const publishedStr = formatPublishedDate(publishedAt ?? updatedAt);
+  const updatedStr = hasMeaningfulUpdate(publishedAt, updatedAt)
+    ? formatPublishedDate(updatedAt)
+    : null;
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-[#6E5A49]">
+      <span className="inline-flex items-center gap-1.5">
+        <PenLine size={13} className="text-[#8C6239]" />
+        <span>Biên soạn:</span>
+        {author?.username ? (
+          <>
+            <Link
+              href={PUBLIC_ROUTES.COMMUNITY_MEMBER(author.username)}
+              className="font-semibold text-[#8C2D19] hover:underline"
+            >
+              {author.displayName}
+            </Link>
+            <AuthorFollowButton authorId={author.id} authorUsername={author.username} />
+          </>
+        ) : (
+          <span className="font-semibold text-[#4A3828]">Ban biên tập HISGO</span>
+        )}
+      </span>
+      {publishedStr && <span>· Đăng ngày {publishedStr}</span>}
+      {updatedStr && <span>· Cập nhật {updatedStr}</span>}
+    </div>
+  );
 }
 
 export const EntityHero: React.FC<EntityHeroProps> = ({ model }) => {
@@ -69,6 +110,11 @@ export const EntityHero: React.FC<EntityHeroProps> = ({ model }) => {
                 <span>{model.readMinutes} phút khảo cứu</span>
               </span>
             </div>
+            <ArticleByline
+              author={model.author}
+              publishedAt={model.publishedAt}
+              updatedAt={model.updatedAt}
+            />
             {model.tagline && (
               <div className="ue-hero-lead-card">
                 <Quote size={20} className="ue-hero-lead-quote-icon" />

@@ -1,8 +1,10 @@
 node_modules
 .next
+.next-e2e
 .env*
 Dockerfile
 .git
 .gitignore
+coverage
 report
 tests

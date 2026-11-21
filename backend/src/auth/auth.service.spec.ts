@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { AuthUtilsService } from './services/auth-utils.service';
+import { AuthSessionService } from './services/auth-session.service';
+import { AuthVerificationService } from './services/auth-verification.service';
+import { AuthLoginSecurityService } from './services/auth-login-security.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { RedisService } from '../common/services/redis.service';
 import { EmailQueueService } from '../common/queues/email/email.queue';
@@ -111,6 +114,9 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        AuthSessionService,
+        AuthVerificationService,
+        AuthLoginSecurityService,
         {
           provide: AuthUtilsService,
           useValue: mockAuthUtilsService,

@@ -62,8 +62,6 @@
 .lesson-yt-missing a { color: var(--lh-brand); font-weight: 600; }
 
 /* Neo cuộn mục lục (TOC Scroll Anchors): tránh bị thanh điều hướng che lấp tiêu đề khi bấm vào mục lục */
-[id^="story-chap-"],
-[id^="story-root-"],
 [id^="block-anchor-"],
 [id^="heading-"] {
   scroll-margin-top: 5.5rem;
@@ -71,9 +69,7 @@
 
 /* Kiểu chữ chuẩn cho bài đọc lịch sử: Ngăn lỗi font tách dấu tiếng Việt trên Windows */
 .tiptap-content-box blockquote p,
-.tiptap-content-box blockquote,
-.tiptap-content-box .hisgo-story-chapter h2,
-.tiptap-content-box .story-chapter-spread h2 {
+.tiptap-content-box blockquote {
   font-family: var(--font-merriweather), 'Noto Serif', Georgia, serif !important;
 }
 
@@ -90,22 +86,4 @@
   color: #1c1917;
   font-weight: 500;
   font-family: var(--font-merriweather), 'Noto Serif', Georgia, serif;
-}
-
-/* Khối câu chuyện lịch sử (Story Chapter) dạng tạp chí cao cấp */
-.hisgo-story-chapter {
-  background-color: #faf7f2;
-  box-shadow: 0 4px 20px -2px rgba(28, 25, 23, 0.05);
-}
-
-.story-quick-nav a:hover {
-  background-color: #f5f5f4 !important;
-  color: #854d0e !important;
-  border-color: #d6d3d1 !important;
-  transform: translateY(-1px);
-}
-
-.story-editorial-split figure img {
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }

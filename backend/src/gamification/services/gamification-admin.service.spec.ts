@@ -115,4 +115,81 @@ describe('GamificationAdminService', () => {
       service.updateAchievement('missing', { title: 'Mới' }),
     ).rejects.toThrow(NotFoundException);
   });
+
+  it('cập nhật huy hiệu hợp lệ và trả về unlockedCount', async () => {
+    prisma.achievement.findUnique.mockResolvedValue({
+      id: 'a-1',
+      _count: { userAchievements: 2 },
+    });
+    prisma.achievement.update.mockResolvedValue({
+      id: 'a-1',
+      title: 'Danh hiệu mới',
+      _count: { userAchievements: 5 },
+    });
+
+    const updated = await service.updateAchievement('a-1', {
+      title: ' Danh hiệu mới ',
+      description: ' Mô tả mới ',
+      xpReward: 50,
+      isActive: true,
+    });
+    expect(updated.title).toBe('Danh hiệu mới');
+    expect(updated.unlockedCount).toBe(5);
+  });
+
+  it('getAdminOverview tổng hợp KPI thống kê và danh sách huy hiệu', async () => {
+    prisma.userLearningStats.count
+      .mockResolvedValueOnce(10)
+      .mockResolvedValueOnce(25);
+    prisma.learningActivity.count.mockResolvedValue(140);
+    prisma.learningGoal.count.mockResolvedValueOnce(6).mockResolvedValueOnce(4);
+    prisma.userAchievement.count.mockResolvedValue(18);
+    prisma.achievement.findMany.mockResolvedValue([
+      { id: 'a-1', code: 'FIRST', _count: { userAchievements: 7 } },
+    ]);
+
+    const overview = await service.getAdminOverview();
+    expect(achievementService.ensureDefaultSeeded).toHaveBeenCalled();
+    expect(overview.summary).toEqual({
+      activeStreakTodayCount: 10,
+      weeklyActiveLearnersCount: 25,
+      activitiesLast7DaysCount: 140,
+      activeGoalsCount: 6,
+      completedGoalsCount: 4,
+      totalUnlockedBadgesCount: 18,
+    });
+    expect(overview.achievements[0].unlockedCount).toBe(7);
+  });
+
+  it('listLearners lọc theo từ khoá và ánh xạ danh sách học viên', async () => {
+    prisma.userLearningStats.findMany.mockResolvedValue([
+      {
+        userId: 'u-1',
+        totalXp: 300,
+        currentStreak: 5,
+        longestStreak: 8,
+        totalLessonsCompleted: 12,
+        totalArticlesRead: 4,
+        totalQuizzesCompleted: 3,
+        lastActiveDate: '2026-11-20',
+        user: {
+          id: 'u-1',
+          username: 'minh',
+          email: 'minh@hisgo.vn',
+          role: 'USER',
+          userProfile: {
+            firstName: 'Nguyễn',
+            lastName: 'Minh',
+            avatarUrl: null,
+          },
+          _count: { userAchievements: 2, learningGoals: 1 },
+        },
+      },
+    ]);
+
+    const rows = await service.listLearners({ q: 'minh', limit: 10 });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].unlockedBadgesCount).toBe(2);
+    expect(rows[0].goalsCount).toBe(1);
+  });
 });

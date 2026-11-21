@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import type { RevisionChange, RevisionLabels } from '@/services/entities/content-revision.service';
 import { RevisionFieldKind } from '@/constants/enums';
+import { getBlockLabel } from '@/features/lessons/constants/lesson.constants';
 
 enum DiffTone {
   OLD = 'old',
@@ -178,20 +179,6 @@ function matchRows(
 
 /* ---------- Khối nội dung bài học ---------- */
 
-const BLOCK_LABELS: Record<string, string> = {
-  TEXT: 'Đoạn văn',
-  IMAGE: 'Hình ảnh',
-  VIDEO: 'Video',
-  EVENT: 'Thẻ sự kiện',
-  TIMELINE: 'Dòng thời gian',
-  MAP: 'Bản đồ',
-  QUIZ: 'Câu hỏi',
-  SECTION_ROW: 'Hàng nhiều cột',
-  COMPARISON_TABLE: 'Bảng so sánh',
-  RESOURCE_LINK: 'Liên kết tư liệu',
-  CHARACTER: 'Thẻ nhân vật',
-};
-
 /** Chữ đọc được của một khối (kể cả khối con trong hàng nhiều cột). */
 function blockText(block: unknown): string {
   if (!block || typeof block !== 'object') return typeof block === 'string' ? stripHtml(block) : '';
@@ -210,7 +197,7 @@ function blockText(block: unknown): string {
 function blockTitle(block: Row) {
   const type = String(block.type ?? '');
   const head = blockText(block).split('\n')[0] ?? '';
-  return `${BLOCK_LABELS[type] ?? type}${head ? ` — ${head.slice(0, 90)}${head.length > 90 ? '…' : ''}` : ''}`;
+  return `${getBlockLabel(type, type)}${head ? ` — ${head.slice(0, 90)}${head.length > 90 ? '…' : ''}` : ''}`;
 }
 
 /** Nội dung bài học → danh sách khối: bài cũ lưu chuỗi HTML được coi là một khối "Đoạn văn". */

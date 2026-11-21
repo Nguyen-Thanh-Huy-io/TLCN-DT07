@@ -63,9 +63,9 @@ export function ImageBlockItemEditor({ data, onChange }: ImageBlockItemEditorPro
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 @container min-w-0">
       {/* Upload Zone & URL Input */}
-      <div className="flex flex-col sm:flex-row gap-2.5 items-stretch">
+      <div className="flex flex-col @[360px]:flex-row gap-2.5 items-stretch">
         <input
           type="file"
           ref={fileInputRef}
@@ -205,7 +205,7 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
   };
 
   return (
-    <div data-testid="character-block-item-editor" className="space-y-3 font-sans">
+    <div data-testid="character-block-item-editor" className="space-y-3 font-sans @container min-w-0">
       {/* Thanh tiêu đề nhỏ gọn + Nút chọn từ kho */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
@@ -243,10 +243,9 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
         </button>
       </div>
 
-      {/* Bố cục Hồ sơ thực thể trực quan (Không lồng card-in-card) */}
-      <div className="flex items-start gap-3.5 pt-1">
-        {/* Ảnh chân dung */}
-        <div className="w-14 h-14 rounded-xl bg-stone-100 border border-stone-300 flex items-center justify-center shrink-0 overflow-hidden text-stone-600">
+      {/* Phần trên: Ảnh chân dung + Tên, Niên đại, Vai trò */}
+      <div className="flex flex-col @[300px]:flex-row items-start gap-3 pt-1">
+        <div className="w-12 h-12 rounded-xl bg-stone-100 border border-stone-300 flex items-center justify-center shrink-0 overflow-hidden text-stone-600">
           {data.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -255,12 +254,11 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
               className="w-full h-full object-cover"
             />
           ) : (
-            <UserSquare2 className="w-6 h-6" />
+            <UserSquare2 className="w-5 h-5" />
           )}
         </div>
 
-        {/* Tên, Niên đại và Tóm tắt hiển thị trực tiếp */}
-        <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex-1 min-w-0 w-full space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             <input
               type="text"
@@ -269,7 +267,7 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
               onChange={(e) => onChange({ name: e.target.value })}
               placeholder={CHARACTER_BLOCK_CONSTANTS.NAME_PLACEHOLDER}
               data-testid="input-character-name"
-              className="text-lg font-serif font-bold text-stone-900 bg-transparent border-b border-transparent hover:border-stone-300 focus:border-stone-900 focus:outline-none py-0.5 flex-1 min-w-[160px]"
+              className="text-base @[300px]:text-lg font-serif font-bold text-stone-900 bg-transparent border-b border-transparent hover:border-stone-300 focus:border-stone-900 focus:outline-none py-0.5 flex-1 min-w-0 w-full @[300px]:w-auto"
             />
             <input
               type="text"
@@ -278,7 +276,7 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
               onChange={(e) => onChange({ years: e.target.value })}
               placeholder={CHARACTER_BLOCK_CONSTANTS.YEARS_PLACEHOLDER}
               data-testid="input-character-years"
-              className="text-sm font-semibold text-stone-700 bg-stone-100 rounded-md px-2.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-stone-900 w-32 text-center"
+              className="text-xs @[300px]:text-sm font-semibold text-stone-700 bg-stone-100 rounded-md px-2.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-stone-900 w-full @[300px]:w-32 text-left @[300px]:text-center"
             />
           </div>
 
@@ -291,18 +289,19 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
             data-testid="input-character-role"
             className="w-full text-sm font-medium text-stone-700 bg-transparent border-b border-transparent hover:border-stone-300 focus:border-stone-900 focus:outline-none py-0.5"
           />
-
-          <textarea
-            rows={2}
-            value={data.summary}
-            maxLength={500}
-            onChange={(e) => onChange({ summary: e.target.value })}
-            placeholder={CHARACTER_BLOCK_CONSTANTS.SUMMARY_PLACEHOLDER}
-            data-testid="input-character-summary"
-            className="w-full text-sm text-stone-700 bg-transparent border border-transparent hover:border-stone-300 focus:border-stone-900 focus:bg-white focus:outline-none p-1.5 -ml-1.5 rounded-lg transition-colors leading-relaxed resize-y"
-          />
         </div>
       </div>
+
+      {/* Phần dưới: Tiểu sử chiếm trọn 100% chiều rộng khối để không bị bóp cạnh avatar */}
+      <textarea
+        rows={3}
+        value={data.summary}
+        maxLength={500}
+        onChange={(e) => onChange({ summary: e.target.value })}
+        placeholder={CHARACTER_BLOCK_CONSTANTS.SUMMARY_PLACEHOLDER}
+        data-testid="input-character-summary"
+        className="w-full text-sm text-stone-700 bg-transparent border border-stone-200/70 hover:border-stone-300 focus:border-stone-900 focus:bg-white focus:outline-none p-2 rounded-lg transition-colors leading-relaxed resize-y"
+      />
 
       <EntityPickerModal
         isOpen={isPickerOpen}
@@ -346,7 +345,7 @@ export function EventBlockItemEditor({ data, onChange }: EventBlockItemEditorPro
   };
 
   return (
-    <div data-testid="event-block-item-editor" className="space-y-3 font-sans">
+    <div data-testid="event-block-item-editor" className="space-y-3 font-sans min-w-0">
       <div className="flex items-center justify-between pb-1 border-b border-slate-100 flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span
@@ -388,9 +387,9 @@ export function EventBlockItemEditor({ data, onChange }: EventBlockItemEditorPro
       </div>
 
       {/* Thẻ Sự kiện chuẩn img3.png */}
-      <div className="p-3.5 bg-slate-50/80 border border-slate-200/90 rounded-xl space-y-2">
+      <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2 min-w-0">
         <div className="flex items-center justify-between">
-          <div className="text-[11px] font-bold tracking-wider text-amber-700 uppercase bg-amber-50 inline-block px-2 py-0.5 rounded border border-amber-200/60">
+          <div className="text-[11px] font-bold tracking-wider text-amber-700 uppercase bg-white inline-block px-2 py-0.5 rounded border border-amber-200">
             {EVENT_BLOCK_CONSTANTS.SUB_LABEL}
           </div>
           <span

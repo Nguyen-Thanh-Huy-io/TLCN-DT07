@@ -3,13 +3,13 @@ import {
   LessonBlockItem,
   ResourceLinkBlockData,
   RowSectionBlockData,
-  StoryChapterBlockData,
 } from '../types/block-builder.types';
+import { LEGACY_BLOCK_TYPE_STORY_CHAPTER } from '../constants/lesson.constants';
 import { LessonBlockRegistry } from '../plugins/block-plugin.registry';
 import {
-  StoryChapterLayoutStrategy,
-  getChapterLabel,
-} from '../strategies/story-chapter-layout.strategy';
+  RowLayoutStrategy,
+  migrateLegacyStoryChapterToBlocks,
+} from '../strategies/row-layout.strategy';
 
 const LEGACY_BLOCK_TYPE_TABLE = 'TABLE';
 const FALLBACK_TEXT_BLOCK_ID = 'text_fallback';
@@ -88,6 +88,10 @@ export function normalizeContentToBlocks(rawContent: unknown): {
     if (!item || typeof item !== 'object') continue;
     const itemRecord = item as Record<string, unknown>;
     const rawType = String(itemRecord.type || '').toUpperCase();
+    if (rawType === LEGACY_BLOCK_TYPE_STORY_CHAPTER) {
+      blocks.push(...migrateLegacyStoryChapterToBlocks(itemRecord));
+      continue;
+    }
     const normalizedType =
       rawType === LEGACY_BLOCK_TYPE_TABLE ? LessonBlockType.COMPARISON_TABLE : (rawType as LessonBlockType);
 
@@ -160,42 +164,6 @@ function renderTextBlock(block: LessonBlockItem, ctx: TocCompilerContext): strin
   });
 }
 
-function renderStoryChapterBlock(
-  block: LessonBlockItem,
-  level: number,
-  ctx: TocCompilerContext,
-): string {
-  const sc = block as StoryChapterBlockData;
-  const chapters = StoryChapterLayoutStrategy.normalizeStoryChapters(sc)
-    .slice()
-    .sort((a, b) => a.order - b.order);
-
-  const anchorNum = ctx.nextAnchorId();
-  const storyRootId = `story-root-${block.id || anchorNum}`;
-  const storyTitle = sc.storyTitle?.trim() || 'Câu chuyện lịch sử';
-
-  // 1. Mục cha (level 1): Tiêu đề câu chuyện
-  ctx.addTocItem({
-    id: storyRootId,
-    text: storyTitle,
-    level: level,
-  });
-
-  // 2. Các mục con (level 2): Từng chương (Chương I, Chương II...)
-  chapters.forEach((ch, idx) => {
-    const chapterLabel = getChapterLabel(idx);
-    const chapTitle = ch.title?.trim() || `Chương ${idx + 1}`;
-    ctx.addTocItem({
-      id: `story-chap-${ch.id}`,
-      text: `${chapterLabel}: ${chapTitle}`,
-      level: level + 1,
-    });
-  });
-
-  const html = LessonBlockRegistry.blockToHtml(block);
-  return `<div id="${storyRootId}">${html}</div>`;
-}
-
 function renderBlockWithAnchor(
   block: LessonBlockItem,
   level: number,
@@ -209,10 +177,6 @@ function renderBlockWithAnchor(
     return renderTextBlock(block, ctx);
   }
 
-  if (block.type === LessonBlockType.STORY_CHAPTER) {
-    return renderStoryChapterBlock(block, level, ctx);
-  }
-
   const html = LessonBlockRegistry.blockToHtml(block);
   const label = getBlockTocLabel(block);
   if (!label) return html;
@@ -224,17 +188,7 @@ function renderBlockWithAnchor(
 }
 
 function renderRowSectionBlock(row: RowSectionBlockData, ctx: TocCompilerContext): string {
-  const colsHtml = row.columns
-    .map((col) => {
-      const inner = col.blocks.map((b) => renderBlockWithAnchor(b, 2, ctx)).join('\n');
-      return `<div class="hisgo-column flex-1 min-w-0 space-y-3">${
-        inner || '<p class="text-slate-400 italic text-xs">Cột trống</p>'
-      }</div>`;
-    })
-    .join('\n');
-  return `<div class="hisgo-row-section my-6 w-full flex flex-col md:grid gap-4" style="grid-template-columns: ${row.columns
-    .map((c) => `${c.widthPercent}%`)
-    .join(' ')};">${colsHtml}</div>`;
+  return RowLayoutStrategy.compileRowToHtml(row, (b) => renderBlockWithAnchor(b, 2, ctx));
 }
 
 /**

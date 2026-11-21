@@ -3,6 +3,8 @@ import { Test } from '@nestjs/testing';
 import { PrismaService } from '../common/services/prisma.service';
 import { ArticleAdjacencyService } from './article-adjacency.service';
 import { PublicContentService } from './public-content.service';
+import { PublicQuizService } from './public-quiz.service';
+import { PublicTimelineService } from './public-timeline.service';
 
 /** Câu hỏi của đề lấy từ Ngân hàng qua `quiz_questions` (đã sắp theo thứ tự trong đề). */
 const bankLink = (id: string, type: string, prompt: string, data: object) => ({
@@ -41,6 +43,8 @@ describe('PublicContentService — nộp bài quiz', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PublicContentService,
+        PublicTimelineService,
+        PublicQuizService,
         ArticleAdjacencyService,
         { provide: PrismaService, useValue: prisma },
       ],

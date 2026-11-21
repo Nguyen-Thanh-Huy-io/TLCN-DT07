@@ -8,12 +8,12 @@ export interface TimelineSceneStyleOption {
 
 export const TIMELINE_SCENE_STYLE_OPTIONS: TimelineSceneStyleOption[] = [
   {
-    id: 'MUSEUM_SPLIT',
+    id: TimelineSceneStyle.MUSEUM_SPLIT,
     label: 'Triển lãm tư liệu (Nhân vật / Hiện vật)',
     description: 'Trình bày văn bản kết hợp khung ảnh tư liệu chuẩn bảo tàng, giữ nguyên chi tiết chân dung và sắc lệnh.',
   },
   {
-    id: 'CINEMATIC_BACKDROP',
+    id: TimelineSceneStyle.CINEMATIC_BACKDROP,
     label: 'Điện ảnh toàn cảnh (Sự kiện / Chiến dịch)',
     description: 'Trình bày ảnh nền đại cảnh kết hợp dải chuyển sắc sẫm màu theo phong cách kể chuyện lịch sử.',
   },

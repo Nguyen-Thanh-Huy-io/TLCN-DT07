@@ -3,7 +3,7 @@
 import React from 'react';
 import { GripVertical, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 import { LessonBlockItem, BlockWidthType } from '../../types/block-builder.types';
-import { LessonBlockType } from '../../types/editor.types';
+import { getBlockLabel } from '../../constants/lesson.constants';
 import { BlockWidthStrategy } from '../../strategies/row-layout.strategy';
 
 interface BlockCardWrapperProps {
@@ -20,45 +20,6 @@ interface BlockCardWrapperProps {
   children: React.ReactNode;
 }
 
-const getBlockMeta = (type: LessonBlockType) => {
-  switch (type) {
-    case LessonBlockType.TEXT:
-      return { label: 'Văn bản' };
-    case LessonBlockType.HEADING:
-      return { label: 'Tiêu đề mục' };
-    case LessonBlockType.TIMELINE:
-      return { label: 'Dòng thời gian' };
-    case LessonBlockType.CHARACTER:
-      return { label: 'Hồ sơ thực thể' };
-    case LessonBlockType.EVENT:
-      return { label: 'Thẻ sự kiện' };
-    case LessonBlockType.RELATED_PEOPLE:
-      return { label: 'Nhân vật liên quan' };
-    case LessonBlockType.RELATED_EVENTS:
-      return { label: 'Sự kiện liên quan' };
-    case LessonBlockType.IMAGE:
-      return { label: 'Hình ảnh' };
-    case LessonBlockType.VIDEO:
-      return { label: 'Phim tư liệu' };
-    case LessonBlockType.COMPARISON_TABLE:
-      return { label: 'Bảng so sánh' };
-    case LessonBlockType.CALLOUT:
-      return { label: 'Hộp ghi chú' };
-    case LessonBlockType.QUOTE:
-      return { label: 'Trích dẫn' };
-    case LessonBlockType.DIVIDER:
-      return { label: 'Đường phân cách' };
-    case LessonBlockType.MAP:
-      return { label: 'Bản đồ lịch sử' };
-    case LessonBlockType.SECTION_ROW:
-      return { label: 'Bố cục nhiều cột' };
-    case LessonBlockType.STORY_CHAPTER:
-      return { label: 'Chương truyện lịch sử' };
-    default:
-      return { label: 'Khối nội dung' };
-  }
-};
-
 export function BlockCardWrapper({
   block,
   index,
@@ -72,7 +33,7 @@ export function BlockCardWrapper({
   onUpdateWidth,
   children,
 }: BlockCardWrapperProps) {
-  const meta = getBlockMeta(block.type);
+  const blockLabel = getBlockLabel(block.type);
   const availableWidths = BlockWidthStrategy.getAvailableWidths(block.type);
   const currentWidth = block.width || BlockWidthStrategy.getDefaultWidth(block.type);
   const widthCssClass = BlockWidthStrategy.getCssClass(currentWidth);
@@ -82,6 +43,7 @@ export function BlockCardWrapper({
       data-testid={`block-card-wrapper-${block.id}`}
       data-block-type={block.type}
       data-block-width={currentWidth}
+      onClickCapture={onSelect}
       onClick={onSelect}
       className={`relative rounded-xl border bg-white transition-all duration-150 group/block ${widthCssClass} ${
         isSelected
@@ -91,12 +53,11 @@ export function BlockCardWrapper({
     >
       {/* Thanh tiêu đề phân tách rõ từng khối: luôn hiển thị nhãn + tay nắm kéo */}
       <div
-        className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-t-xl border-b transition-colors ${
+        className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-t-xl border-b transition-colors cursor-pointer ${
           isSelected
             ? 'bg-blue-50/70 border-blue-200/80'
             : 'bg-slate-50/80 border-slate-100 group-hover/block:bg-slate-100/70'
         }`}
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-1.5 min-w-0">
           <div
@@ -114,7 +75,7 @@ export function BlockCardWrapper({
           </span>
 
           <span className="text-xs font-bold text-slate-700 truncate">
-            {meta.label}
+            {blockLabel}
           </span>
         </div>
 

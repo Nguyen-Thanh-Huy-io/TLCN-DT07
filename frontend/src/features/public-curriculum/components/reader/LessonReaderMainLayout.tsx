@@ -16,9 +16,11 @@ import { useLessonQuizIslands } from '../hub/LessonQuizIslands';
 import { useLessonAnnotations } from '@/features/lessons/hooks/useLessonAnnotations';
 import { LessonAccessState } from '../../facades/usePublicLessonReaderFacade';
 import { HubLessonGate } from '../hub/HubReaderParts';
-import { X, ExternalLink, BookOpen, CheckCircle2, Clock3, ArrowRight, ChevronLeft, ArrowLeft } from 'lucide-react';
+import { X, ExternalLink, BookOpen, CheckCircle2, Clock3, ArrowRight, ChevronLeft, ArrowLeft, PenLine } from 'lucide-react';
 import { HubButton, HubBadge, HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS } from '../hub/HubReaderParts';
-import { sanitizeRichHtml } from '@/utils/common';
+import { formatPublishedDate, hasMeaningfulUpdate, sanitizeRichHtml } from '@/utils/common';
+import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
+import { AuthorFollowButton } from '@/components/common/AuthorFollowButton';
 import type { ReadingPreferences } from '@/features/reading-aids/components/ReadingAidsPanel';
 import { READER_RIGHT_SIDEBAR_ATTR } from '@/features/notes/utils/note-cluster.util';
 
@@ -428,6 +430,11 @@ export function LessonReaderHeader({
   done,
 }: LessonReaderHeaderProps) {
   const difficulty = lesson.difficulty ? PUBLIC_DIFFICULTY_META[lesson.difficulty] : null;
+  const publishedBaseline = lesson.publishedAt ?? lesson.createdAt;
+  const publishedDateLabel = formatPublishedDate(publishedBaseline);
+  const updatedDateLabel = hasMeaningfulUpdate(publishedBaseline, lesson.updatedAt)
+    ? formatPublishedDate(lesson.updatedAt)
+    : null;
 
   return (
     <div className="mb-5">
@@ -467,6 +474,31 @@ export function LessonReaderHeader({
       {lesson.description && (
         <p className="mt-2 text-base leading-7 text-lh-muted">{lesson.description}</p>
       )}
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-lh-muted">
+        <span className="inline-flex items-center gap-1.5">
+          <PenLine className="size-3.5" />
+          <span>Biên soạn:</span>
+          {lesson.author?.username ? (
+            <>
+              <Link
+                href={PUBLIC_ROUTES.COMMUNITY_MEMBER(lesson.author.username)}
+                className="font-semibold text-lh-brand hover:underline"
+              >
+                {lesson.author.displayName}
+              </Link>
+              <AuthorFollowButton
+                authorId={lesson.author.id}
+                authorUsername={lesson.author.username}
+              />
+            </>
+          ) : (
+            <span className="font-semibold text-lh-ink">Ban biên tập HISGO</span>
+          )}
+        </span>
+        {publishedDateLabel && <span>· Đăng ngày {publishedDateLabel}</span>}
+        {updatedDateLabel && <span>· Cập nhật {updatedDateLabel}</span>}
+      </div>
 
       {(lesson.tags || []).length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">

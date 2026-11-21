@@ -99,7 +99,7 @@ export function LessonQuizBlockView({ block }: { block: QuizBlockData }) {
             moveOrderingItem={moveOrderingItem}
           />
           {checked && question.explanation && (
-            <p className="mb-0 mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-stone-700">
+            <p className="mb-0 mt-3 rounded-lg border border-slate-200 border-l-4 border-l-amber-500 bg-white p-3 text-xs text-stone-700">
               {question.explanation}
             </p>
           )}

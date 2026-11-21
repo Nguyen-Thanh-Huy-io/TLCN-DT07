@@ -1,4 +1,6 @@
 
+import type { PublicAuthorInfo } from '../public/public-content.service';
+
 export interface PublicPeriodDto {
   id: string;
   parentId: string | null;
@@ -252,6 +254,9 @@ export interface PublicEntityDetailDto {
   dateText: string | null;
   startYear: number | null;
   endYear: number | null;
+  author?: PublicAuthorInfo | null;
+  publishedAt?: string | null;
+  updatedAt?: string | null;
   contentBlocks?: unknown;
   metadata?: unknown;
   period: PublicPeriodDto | null;

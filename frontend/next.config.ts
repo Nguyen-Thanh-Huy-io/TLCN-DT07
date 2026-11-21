@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const BACKEND_INTERNAL_URL = process.env.BACKEND_INTERNAL_URL || "http://127.0.0.1:5000";
 
 const nextConfig: NextConfig = {
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   images: {
     dangerouslyAllowLocalIP: true,
     remotePatterns: [

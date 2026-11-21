@@ -18,7 +18,12 @@ import { BlogService } from './blog.service';
 describe('BlogService — Follow tác giả & hồ sơ tác phẩm biên soạn', () => {
   let service: BlogService;
   const prisma = {
-    authUser: { findFirst: jest.fn(), findUnique: jest.fn() },
+    authUser: {
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+    },
+    userProfile: { upsert: jest.fn() },
     userFollow: { count: jest.fn(), findMany: jest.fn() },
     blogPost: {
       findMany: jest.fn(),
@@ -184,5 +189,70 @@ describe('BlogService — Follow tác giả & hồ sơ tác phẩm biên soạn'
         slug: 'khao-cuu-trieu-tran',
       },
     );
+  });
+
+  it('getSuggestedMembers xếp hạng tác giả theo điểm tương tác + follower và giới hạn số lượng', async () => {
+    prisma.authUser.findMany.mockResolvedValue([
+      {
+        id: 'u-low',
+        username: 'thap',
+        role: 'USER',
+        userProfile: null,
+        blogPosts: [],
+        _count: { followers: 1, following: 0 },
+      },
+      {
+        id: 'u-top',
+        username: 'cao',
+        role: 'MODERATOR',
+        userProfile: {
+          firstName: 'Minh',
+          lastName: 'Trần',
+          bio: 'Sử học',
+          avatarUrl: null,
+        },
+        blogPosts: [
+          { id: 'p1', likeCount: 10, commentCount: 2, viewCount: 50 },
+        ],
+        _count: { followers: 5, following: 2 },
+      },
+    ]);
+    prisma.userFollow.findMany.mockResolvedValue([{ followingId: 'u-top' }]);
+
+    const list = await service.getSuggestedMembers('viewer-1', 1);
+    expect(list).toHaveLength(1);
+    expect(list[0].id).toBe('u-top');
+    expect(list[0].followedByMe).toBe(true);
+    expect(list[0].displayName).toBe('Minh Trần');
+  });
+
+  it('updateMyCommunityProfile cập nhật hồ sơ cộng đồng và trả về hồ sơ mới', async () => {
+    prisma.authUser.findUnique.mockResolvedValue({ id: 'u-1' });
+    prisma.authUser.findFirst.mockResolvedValue({
+      id: 'u-1',
+      username: 'su_gia',
+      role: 'USER',
+      createdAt: new Date(),
+      userProfile: {
+        firstName: 'An',
+        lastName: 'Lê',
+        bio: 'Tiểu sử mới',
+        avatarUrl: null,
+      },
+      _count: { followers: 0, following: 0 },
+    });
+    prisma.blogPost.findMany.mockResolvedValue([]);
+    prisma.postBookmark.findMany.mockResolvedValue([]);
+    prisma.userFollow.findMany.mockResolvedValue([]);
+    prisma.article.findMany.mockResolvedValue([]);
+    prisma.lesson.findMany.mockResolvedValue([]);
+
+    const profile = await service.updateMyCommunityProfile('u-1', {
+      firstName: ' An ',
+      lastName: ' Lê ',
+      bio: ' Tiểu sử mới ',
+    });
+    expect(prisma.userProfile.upsert).toHaveBeenCalled();
+    expect(profile.user.bio).toBe('Tiểu sử mới');
   });
 });

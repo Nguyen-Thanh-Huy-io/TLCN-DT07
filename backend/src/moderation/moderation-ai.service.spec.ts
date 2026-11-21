@@ -51,4 +51,89 @@ describe('ModerationAiService (3-Tier Safety Guardrails)', () => {
     expect(result.action).toBe('FLAG_FOR_REVIEW');
     expect(result.riskLevel).toBe('MEDIUM');
   });
+
+  it('trả về SAFE ALLOW ngay lập tức với chuỗi rỗng hoặc toàn khoảng trắng', async () => {
+    const result = await service.evaluateContent('    \n\t   ');
+    expect(result.isSafe).toBe(true);
+    expect(result.action).toBe('ALLOW');
+    expect(result.engine).toBe('HYBRID_SENTINEL');
+  });
+
+  describe('Gemini Flash fallback & guardrails', () => {
+    const originalFetch = global.fetch;
+
+    afterEach(() => {
+      delete process.env.GEMINI_API_KEY;
+      global.fetch = originalFetch;
+      jest.restoreAllMocks();
+    });
+
+    it('dùng kết quả GEMINI_FLASH khi API phản hồi JSON hợp lệ (kể cả bọc ```json)', async () => {
+      process.env.GEMINI_API_KEY = 'fake-test-key';
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: '```json\n{"isSafe":false,"riskLevel":"MEDIUM","action":"FLAG_FOR_REVIEW","confidence":0.87,"detectedCategories":["SPAM"],"violationReasonVi":"Quảng cáo trá hình"}\n```',
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      }) as typeof fetch;
+
+      const res = await service.evaluateContent(
+        'Bài viết bàn về triều Nguyễn nhưng chèn đường dẫn bán hàng lạ.',
+      );
+      expect(res.engine).toBe('GEMINI_FLASH');
+      expect(res.action).toBe('FLAG_FOR_REVIEW');
+      expect(res.detectedCategories).toEqual(['SPAM']);
+    });
+
+    it('giữ nguyên AUTO_HIDE của Heuristic Sentinel nếu Gemini đánh giá nhẹ hơn', async () => {
+      process.env.GEMINI_API_KEY = 'fake-test-key';
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: '{"isSafe":true,"riskLevel":"SAFE","action":"ALLOW","confidence":0.95,"detectedCategories":["NONE"]}',
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      }) as typeof fetch;
+
+      const res = await service.evaluateContent(
+        'Luận điệu xuyên tạc rằng Hoàng Sa không phải của Việt Nam.',
+      );
+      expect(res.engine).toBe('HYBRID_SENTINEL');
+      expect(res.action).toBe('AUTO_HIDE');
+    });
+
+    it('fallback an toàn về HYBRID_SENTINEL khi Gemini API lỗi HTTP hoặc lỗi mạng', async () => {
+      process.env.GEMINI_API_KEY = 'fake-test-key';
+      global.fetch = jest.fn().mockResolvedValue({ ok: false }) as typeof fetch;
+
+      const resHttpFail = await service.evaluateContent('Lịch sử thời Lý.');
+      expect(resHttpFail.engine).toBe('HYBRID_SENTINEL');
+      expect(resHttpFail.action).toBe('ALLOW');
+
+      global.fetch = jest
+        .fn()
+        .mockRejectedValue(new Error('network timeout')) as typeof fetch;
+      const resNetFail = await service.evaluateContent('Lịch sử thời Trần.');
+      expect(resNetFail.engine).toBe('HYBRID_SENTINEL');
+    });
+  });
 });

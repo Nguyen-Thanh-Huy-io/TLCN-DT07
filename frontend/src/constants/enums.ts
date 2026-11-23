@@ -345,6 +345,7 @@ export enum CommunityTabKey {
   ALL = 'all',
   FOLLOWING = 'following',
   TRENDING = 'trending',
+  MEDIA = 'media',
   SHARED_BLOG = 'shared_blog',
   SAVED = 'saved',
 }
@@ -368,6 +369,7 @@ export const COMMUNITY_TAB_LABELS: Record<CommunityTabKey, string> = {
   [CommunityTabKey.ALL]: 'Tất cả thảo luận',
   [CommunityTabKey.FOLLOWING]: 'Đang theo dõi',
   [CommunityTabKey.TRENDING]: 'Sôi nổi',
+  [CommunityTabKey.MEDIA]: 'Ảnh & Video',
   [CommunityTabKey.SHARED_BLOG]: 'Bài Blog chia sẻ',
   [CommunityTabKey.SAVED]: 'Đã lưu',
 };

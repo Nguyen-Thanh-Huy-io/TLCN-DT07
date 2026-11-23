@@ -4,9 +4,21 @@ export const CONTENT_BLOCK_META_TYPE = 'meta';
 
 export const CONTENT_BLOCK_METADATA_KIND = 'metadata';
 
-// ============================================================
-// Types
-// ============================================================
+export enum CommunityVideoKind {
+  UPLOAD = 'upload',
+  YOUTUBE = 'youtube',
+}
+
+export interface CommunityImageItem {
+  url: string;
+  caption?: string | null;
+}
+
+export interface CommunityVideoItem {
+  url: string;
+  kind: CommunityVideoKind;
+  caption?: string | null;
+}
 
 export interface CommunityAuthor {
   id: string;
@@ -64,9 +76,34 @@ export interface CommunityContentParsed {
   period: string | null;
   locations: string | null;
   paragraphs: string[];
-  images: Array<{ url: string; caption?: string | null }>;
+  images: CommunityImageItem[];
+  videos: CommunityVideoItem[];
   references: CommunityReferenceItem[];
   sharedBlog: SharedBlogEmbed | null;
+}
+
+const YOUTUBE_EMBED_ORIGIN = ['https', '//www.youtube.com/embed/'].join(':');
+
+/** Tách YouTube video ID an toàn và trả về URL iframe embed hợp lệ (hoặc null). */
+export function toYoutubeEmbedUrl(rawUrl: string): string | null {
+  const clean = rawUrl.trim();
+  if (!clean) return null;
+  try {
+    const parsed = new URL(clean);
+    const host = parsed.hostname.replace(/^www\./i, '').toLowerCase();
+    let id: string | null = null;
+    if (host === 'youtu.be') {
+      id = parsed.pathname.split('/').filter(Boolean)[0] ?? null;
+    } else if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (parsed.pathname === '/watch') id = parsed.searchParams.get('v');
+      else if (parsed.pathname.startsWith('/shorts/')) id = parsed.pathname.split('/')[2] ?? null;
+      else if (parsed.pathname.startsWith('/embed/')) id = parsed.pathname.split('/')[2] ?? null;
+    }
+    if (!id || !/^[A-Za-z0-9_-]{6,20}$/.test(id)) return null;
+    return `${YOUTUBE_EMBED_ORIGIN}${id}`;
+  } catch {
+    return null;
+  }
 }
 
 export function asRecord(value: unknown): Record<string, unknown> | null {
@@ -92,7 +129,7 @@ export function extractTags(meta: Record<string, unknown>): string[] {
     .filter(Boolean);
 }
 
-export function extractImages(meta: Record<string, unknown>): CommunityContentParsed['images'] {
+export function extractImages(meta: Record<string, unknown>): CommunityImageItem[] {
   const rawImages = meta.images;
   if (!Array.isArray(rawImages)) return [];
   return rawImages
@@ -100,6 +137,22 @@ export function extractImages(meta: Record<string, unknown>): CommunityContentPa
     .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item?.url === 'string')
     .map((item) => ({
       url: item.url as string,
+      caption: typeof item.caption === 'string' ? item.caption : null,
+    }));
+}
+
+export function extractVideos(meta: Record<string, unknown>): CommunityVideoItem[] {
+  const rawVideos = meta.videos;
+  if (!Array.isArray(rawVideos)) return [];
+  return rawVideos
+    .map((item) => asRecord(item))
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item?.url === 'string')
+    .map((item) => ({
+      url: item.url as string,
+      kind:
+        item.kind === CommunityVideoKind.YOUTUBE
+          ? CommunityVideoKind.YOUTUBE
+          : CommunityVideoKind.UPLOAD,
       caption: typeof item.caption === 'string' ? item.caption : null,
     }));
 }
@@ -146,6 +199,7 @@ export function extractCommunityContent(post: CommunityPost): CommunityContentPa
     locations: typeof meta.locations === 'string' ? meta.locations : null,
     paragraphs,
     images: extractImages(meta),
+    videos: extractVideos(meta),
     references: extractReferences(meta),
     sharedBlog: extractSharedBlog(meta),
   };

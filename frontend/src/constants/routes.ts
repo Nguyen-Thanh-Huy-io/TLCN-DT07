@@ -76,6 +76,14 @@ export const REVIEW_HUB_TAB_PARAM = 'tab';
 export const REVIEW_HUB_ALL_TAB = 'ALL';
 export const reviewHubRoute = (tab: string): string => `${APP_ROUTES.REVIEW}?${REVIEW_HUB_TAB_PARAM}=${tab}`;
 
+/** Đường dẫn công khai thuộc không gian Cộng đồng HISGO. */
+export const COMMUNITY_ROUTES = {
+  FEED: '/cong-dong',
+  MEMBERS: '/cong-dong/thanh-vien',
+  MEMBER: (username: string): string =>
+    `/cong-dong/thanh-vien/${encodeURIComponent(username)}`,
+} as const;
+
 /* eslint-disable no-restricted-syntax -- Nơi định nghĩa tập trung các URL remote mẫu và protocol theo quy chuẩn ESLint */
 export const URL_PROTOCOLS = {
   HTTPS: 'https://',

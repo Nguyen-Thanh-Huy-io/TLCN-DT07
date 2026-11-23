@@ -1,11 +1,17 @@
+import config from '../common/config/app.config';
 import { ModerationAiService } from './moderation-ai.service';
 
 describe('ModerationAiService (3-Tier Safety Guardrails)', () => {
   let service: ModerationAiService;
+  const originalKey = config.gemini_api_key;
 
   beforeEach(() => {
-    delete process.env.GEMINI_API_KEY;
+    config.gemini_api_key = '';
     service = new ModerationAiService();
+  });
+
+  afterAll(() => {
+    config.gemini_api_key = originalKey;
   });
 
   it('Tier 1 (SAFE / ALLOW): cho phép bài thảo luận học thuật lịch sử văn minh', async () => {
@@ -63,13 +69,13 @@ describe('ModerationAiService (3-Tier Safety Guardrails)', () => {
     const originalFetch = global.fetch;
 
     afterEach(() => {
-      delete process.env.GEMINI_API_KEY;
+      config.gemini_api_key = '';
       global.fetch = originalFetch;
       jest.restoreAllMocks();
     });
 
     it('dùng kết quả GEMINI_FLASH khi API phản hồi JSON hợp lệ (kể cả bọc ```json)', async () => {
-      process.env.GEMINI_API_KEY = 'fake-test-key';
+      config.gemini_api_key = 'fake-test-key';
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -96,7 +102,7 @@ describe('ModerationAiService (3-Tier Safety Guardrails)', () => {
     });
 
     it('giữ nguyên AUTO_HIDE của Heuristic Sentinel nếu Gemini đánh giá nhẹ hơn', async () => {
-      process.env.GEMINI_API_KEY = 'fake-test-key';
+      config.gemini_api_key = 'fake-test-key';
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -122,7 +128,7 @@ describe('ModerationAiService (3-Tier Safety Guardrails)', () => {
     });
 
     it('fallback an toàn về HYBRID_SENTINEL khi Gemini API lỗi HTTP hoặc lỗi mạng', async () => {
-      process.env.GEMINI_API_KEY = 'fake-test-key';
+      config.gemini_api_key = 'fake-test-key';
       global.fetch = jest.fn().mockResolvedValue({ ok: false }) as typeof fetch;
 
       const resHttpFail = await service.evaluateContent('Lịch sử thời Lý.');

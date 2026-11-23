@@ -3,7 +3,7 @@ import { ModerationTab } from './moderation.constant';
 
 export function extractModerationBlockText(raw: unknown): string[] {
   if (!raw || typeof raw !== 'object') return [];
-  const block = raw as Record<string, any>;
+  const block = raw as Record<string, unknown>;
   const parts: string[] = [];
   if (typeof block.heading === 'string') parts.push(block.heading);
   if (typeof block.text === 'string') parts.push(block.text);

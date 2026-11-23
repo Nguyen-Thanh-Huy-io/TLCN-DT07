@@ -32,7 +32,12 @@
     "seed:notifications": "ts-node prisma/seeds/notification-test.seed.ts",
     "seed:all": "npm run seed:articles && npm run seed:admin && npm run seed:blogs",
     "db:clean": "ts-node prisma/reset-clean-database.ts",
-    "db:baseline": "ts-node prisma/baseline-existing-db.ts"
+    "db:baseline": "ts-node prisma/baseline-existing-db.ts",
+    "rag:export": "ts-node prisma/rag/rag-export.ts",
+    "rag:wiki": "ts-node prisma/rag/rag-wiki.ts",
+    "rag:setup": "ts-node prisma/rag/rag-cloud.ts --action=setup",
+    "rag:sync": "ts-node prisma/rag/rag-cloud.ts --action=sync",
+    "rag:status": "ts-node prisma/rag/rag-cloud.ts --action=status"
   },
   "prisma": {
     "seed": "ts-node prisma/seeds/articles-v1.seed.ts"

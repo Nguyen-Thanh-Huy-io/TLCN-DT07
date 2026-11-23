@@ -62,3 +62,9 @@ generated/
 *.pem
 *.key
 *.crt
+
+# Generated RAG exports & local book binaries
+/rag-export/
+/rag-wiki/
+/rag-sources/files/*
+!/rag-sources/files/.gitkeep

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "description": "Khai báo danh sách Sách / Tư liệu ngoài đặt trong backend/rag-sources/files/. Khi Chatbox trích xuất từ file này, chỉ hiển thị tên sách & nguồn tham khảo tĩnh (không mở file PDF).",
+  "sources": [
+    {
+      "gcsPath": "books/openstax-world-history-vol-1.pdf",
+      "localFile": "files/openstax-world-history-vol-1.pdf",
+      "title": "World History, Volume 1: to 1500 (OpenStax)",
+      "authorOrPublisher": "OpenStax / Rice University (CC BY 4.0)",
+      "note": "Giáo trình Lịch sử Thế giới cổ đại đến năm 1500"
+    },
+    {
+      "gcsPath": "books/openstax-world-history-vol-2.pdf",
+      "localFile": "files/openstax-world-history-vol-2.pdf",
+      "title": "World History, Volume 2: from 1400 (OpenStax)",
+      "authorOrPublisher": "OpenStax / Rice University (CC BY 4.0)",
+      "note": "Giáo trình Lịch sử Thế giới từ năm 1400 đến hiện đại"
+    }
+  ]
+}

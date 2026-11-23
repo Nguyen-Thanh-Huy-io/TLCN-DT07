@@ -8,9 +8,18 @@
 import api, { extractErrorMessage } from '@/services/api';
 import type { BlogPostTypeValue, BlogStatusValue } from '@/services/entities/blog.service';
 import { CONTENT_BLOCK_META_TYPE } from './community-content.util';
-import type { CommunityPost, CommunityPreviewComment, SharedBlogEmbed } from './community-content.util';
+import type {
+  CommunityImageItem,
+  CommunityPost,
+  CommunityPreviewComment,
+  CommunityVideoItem,
+  SharedBlogEmbed,
+} from './community-content.util';
 
 const POSTS_BASE_PATH = '/posts';
+
+/** Số bài viết tải mỗi đợt khi mở bảng tin hoặc cuộn trang (lazy loading). */
+export const COMMUNITY_FEED_PAGE_SIZE = 6;
 
 /** Định danh hồ sơ của chính người đang đăng nhập (/cong-dong/thanh-vien/me). */
 export const SSR_ME_IDENTIFIER = 'me';
@@ -53,6 +62,34 @@ export interface CommunityMemberSummary {
 // gợi ý (CommunityMemberSummary) và danh sách followers/following, nên hai type phải khớp field.
 export interface CommunityMemberCard extends CommunityMemberSummary {
   followedAt?: string;
+}
+
+export enum CommunityMemberSort {
+  CONTRIBUTION = 'contribution',
+  FOLLOWERS = 'followers',
+  NEWEST = 'newest',
+}
+
+export enum CommunityMemberFollowFilter {
+  ALL = 'all',
+  NOT_FOLLOWING = 'not_following',
+  FOLLOWING = 'following',
+}
+
+export interface ListCommunityMembersParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sort?: CommunityMemberSort;
+  filter?: CommunityMemberFollowFilter;
+}
+
+export interface PaginatedCommunityMembers {
+  items: CommunityMemberSummary[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface PublishedWorkArticle {
@@ -135,6 +172,8 @@ export interface CreateQuickPostPayload {
   tags: string[];
   imageUrl?: string | null;
   imageCaption?: string;
+  images?: CommunityImageItem[];
+  video?: CommunityVideoItem | null;
   sharedBlog?: SharedBlogEmbed | null;
 }
 
@@ -355,6 +394,19 @@ function buildListPostsQuery(params: ListCommunityPostsParams): Record<string, s
   return query;
 }
 
+function buildListMembersQuery(
+  params: ListCommunityMembersParams,
+): Record<string, string | number> {
+  const query: Record<string, string | number> = {};
+  if (params.page) query.page = params.page;
+  if (params.limit) query.limit = params.limit;
+  const search = params.search?.trim();
+  if (search) query.search = search;
+  if (params.sort) query.sort = params.sort;
+  if (params.filter) query.filter = params.filter;
+  return query;
+}
+
 function unwrapData<T>(res: { data: { data?: T } & T }): T {
   return (res.data?.data ?? res.data) as T;
 }
@@ -415,20 +467,27 @@ export const CommunityApi = {
   },
 
   async createQuickPost(payload: CreateQuickPostPayload): Promise<CommunityPost> {
+    const normalizedImages: CommunityImageItem[] =
+      payload.images && payload.images.length > 0
+        ? payload.images
+        : payload.imageUrl
+          ? [{ url: payload.imageUrl, caption: payload.imageCaption || null }]
+          : [];
+    const videos = payload.video ? [payload.video] : [];
+
     const res = await api.post(POSTS_BASE_PATH, {
       postType: POST_TYPE_QUICK_POST,
       title: payload.title,
       excerpt: payload.content,
-      coverImageUrl: payload.imageUrl ?? null,
+      coverImageUrl: normalizedImages[0]?.url ?? null,
       status: BLOG_STATUS_PUBLISHED,
       contentBlocks: [
         {
           type: CONTENT_BLOCK_META_TYPE,
           tags: payload.tags,
           period: payload.period?.trim() || null,
-          images: payload.imageUrl
-            ? [{ url: payload.imageUrl, caption: payload.imageCaption || null }]
-            : [],
+          images: normalizedImages,
+          videos,
           paragraphs: [payload.content],
           references: [],
           sharedBlog: payload.sharedBlog ?? null,
@@ -480,6 +539,22 @@ export const CommunityApi = {
     const res = await api.get(`${POSTS_BASE_PATH}/users/suggested`, { params: { limit } });
     const data = unwrapData<CommunityMemberSummary[]>(res);
     return Array.isArray(data) ? data : [];
+  },
+
+  async listMembers(
+    params: ListCommunityMembersParams = {},
+  ): Promise<PaginatedCommunityMembers> {
+    const res = await api.get(`${POSTS_BASE_PATH}/users`, {
+      params: buildListMembersQuery(params),
+    });
+    const data = unwrapData<PaginatedCommunityMembers>(res);
+    return {
+      items: Array.isArray(data?.items) ? data.items : [],
+      total: Number(data?.total) || 0,
+      page: Number(data?.page) || 1,
+      limit: Number(data?.limit) || 18,
+      totalPages: Number(data?.totalPages) || 0,
+    };
   },
 
   async getFollowStatus(identifier: string): Promise<FollowStatusResult> {
@@ -561,8 +636,44 @@ export async function fetchCommunityProfileSSR(identifier: string): Promise<Comm
   }
 }
 
+export async function fetchCommunityMembersSSR(
+  params: ListCommunityMembersParams = {},
+): Promise<PaginatedCommunityMembers> {
+  try {
+    const res = await api.get(`${POSTS_BASE_PATH}/users`, {
+      params: buildListMembersQuery(params),
+    });
+    const data = unwrapData<PaginatedCommunityMembers>(res);
+    return {
+      items: Array.isArray(data?.items) ? data.items : [],
+      total: Number(data?.total) || 0,
+      page: Number(data?.page) || 1,
+      limit: Number(data?.limit) || 18,
+      totalPages: Number(data?.totalPages) || 0,
+    };
+  } catch {
+    return {
+      items: [],
+      total: 0,
+      page: 1,
+      limit: 18,
+      totalPages: 0,
+    };
+  }
+}
+
 // Giữ extractErrorMessage sẵn re-export cho các component muốn hiển thị lỗi backend thống nhất.
 export { extractErrorMessage };
 
-export { extractCommunityContent } from './community-content.util';
-export type { CommunityPost, SharedBlogEmbed, CommunityReferenceItem } from './community-content.util';
+export {
+  CommunityVideoKind,
+  extractCommunityContent,
+  toYoutubeEmbedUrl,
+} from './community-content.util';
+export type {
+  CommunityImageItem,
+  CommunityPost,
+  CommunityReferenceItem,
+  CommunityVideoItem,
+  SharedBlogEmbed,
+} from './community-content.util';

@@ -245,6 +245,7 @@ export class PublicContentService {
     contentBlocks: unknown;
     status: ContentStatus;
     isFeatured: boolean;
+    viewCount?: number | null;
     publishedAt: Date | null;
     updatedAt: Date;
     createdAt: Date;
@@ -259,6 +260,7 @@ export class PublicContentService {
       contentBlocks: post.contentBlocks ?? [],
       status: post.status,
       isFeatured: post.isFeatured,
+      viewCount: post.viewCount ?? 0,
       publishedAt: post.publishedAt,
       updatedAt: post.updatedAt,
       createdAt: post.createdAt,

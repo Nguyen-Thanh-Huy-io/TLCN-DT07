@@ -21,6 +21,54 @@ export function formatVietnameseDate(iso?: string | null) {
   return date.toLocaleDateString('vi-VN');
 }
 
+export function PostShareActionNote({
+  isSharedBlog,
+  isMediaPost = false,
+}: {
+  isSharedBlog: boolean;
+  isMediaPost?: boolean;
+}) {
+  if (isSharedBlog) {
+    return (
+      <span className="text-[13px] text-[#5C4E3C]">
+        đã chia sẻ một bài chuyên khảo từ <strong>HISGO Blog</strong>
+      </span>
+    );
+  }
+  if (isMediaPost) {
+    return (
+      <span className="text-[13px] text-[#5C4E3C]">
+        đã chia sẻ <strong>tư liệu Ảnh / Video</strong>
+      </span>
+    );
+  }
+  return null;
+}
+
+export function PostTypeBadge({
+  isSharedBlog,
+  compact = false,
+}: {
+  isSharedBlog: boolean;
+  compact?: boolean;
+}) {
+  if (!isSharedBlog) {
+    return null;
+  }
+
+  const sizeCls = compact
+    ? 'h-6 gap-1 rounded-[5px] px-2.5 text-[11px]'
+    : 'h-7 gap-1.5 rounded-[6px] px-3 text-[12px] whitespace-nowrap';
+  const iconSize = compact ? 11 : 12;
+
+  return (
+    <span className={`inline-flex items-center font-semibold bg-[#F2E5C9] text-[#6B4E16] ${sizeCls}`}>
+      <Share2 size={iconSize} />
+      <span>Chia sẻ bài Blog</span>
+    </span>
+  );
+}
+
 export interface PostAuthorHeaderProps {
   authorName: string;
   authorProfileHref: string;
@@ -31,6 +79,7 @@ export interface PostAuthorHeaderProps {
   followLoading: boolean;
   onToggleFollow: () => void;
   isSharedBlog: boolean;
+  isMediaPost?: boolean;
   period?: string | null;
   locations?: string | null;
 }
@@ -45,6 +94,7 @@ export function PostAuthorHeader({
   followLoading,
   onToggleFollow,
   isSharedBlog,
+  isMediaPost = false,
   period,
   locations,
 }: PostAuthorHeaderProps) {
@@ -96,11 +146,7 @@ export function PostAuthorHeader({
                 )}
               </button>
             ) : null}
-            {isSharedBlog ? (
-              <span className="text-[13px] text-[#5C4E3C]">
-                đã chia sẻ một bài chuyên khảo từ <strong>HISGO Blog</strong>
-              </span>
-            ) : null}
+            <PostShareActionNote isSharedBlog={isSharedBlog} isMediaPost={isMediaPost} />
             <span className="text-[13px] text-[#5C4E3C]">·</span>
             <span className="text-[13px] text-[#5C4E3C]">
               {formatVietnameseDate(publishedAt)}
@@ -126,24 +172,11 @@ export function PostAuthorHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span
-          className={`inline-flex h-7 items-center gap-1.5 rounded-[6px] px-3 text-[12px] font-semibold whitespace-nowrap ${
-            isSharedBlog
-              ? 'bg-[#F2E5C9] text-[#6B4E16]'
-              : 'bg-[#E5EFE6] text-[#1E4620]'
-          }`}
-        >
-          {isSharedBlog ? (
-            <>
-              <Share2 size={12} />
-              <span>Chia sẻ bài Blog</span>
-            </>
-          ) : (
-            <span>Câu hỏi / Thảo luận ngắn</span>
-          )}
-        </span>
-      </div>
+      {isSharedBlog ? (
+        <div className="flex items-center gap-2">
+          <PostTypeBadge isSharedBlog />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -333,12 +366,14 @@ export interface PostSharedBlogCardProps {
   sharedBlog: SharedBlogEmbed;
   authorName: string;
   onTrackView: () => void;
+  priorityLcp?: boolean;
 }
 
 export function PostSharedBlogCard({
   sharedBlog,
   authorName,
   onTrackView,
+  priorityLcp = false,
 }: PostSharedBlogCardProps) {
   const [sharedImgError, setSharedImgError] = useState(false);
 
@@ -360,11 +395,12 @@ export function PostSharedBlogCard({
           <Image
             src={sharedCoverImage}
             alt={sharedBlog.title}
-            width={800}
-            height={340}
+            fill
+            sizes="(max-width: 768px) 100vw, 800px"
+            loading={priorityLcp ? 'eager' : undefined}
             unoptimized
             onError={() => setSharedImgError(true)}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
           />
           <span className="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-[5px] bg-[#14233F]/85 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#FAF5E6]">
             <BookOpen size={12} />
@@ -411,5 +447,26 @@ export function PostSharedBlogCard({
         ) : null}
       </div>
     </Link>
+  );
+}
+
+export function PostCardSkeletonList({ count = 2 }: { count?: number }) {
+  return (
+    <div className="space-y-5" aria-hidden="true">
+      {Array.from({ length: count }).map((_, idx) => (
+        <div
+          key={idx}
+          className="animate-pulse rounded-[8px] border border-[#E5DAC4] bg-[#FDF9F0] p-6 md:p-8"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-[#EFE5D2]" />
+            <div className="h-4 w-40 rounded-[4px] bg-[#EFE5D2]" />
+          </div>
+          <div className="mt-4 h-6 w-3/4 rounded-[4px] bg-[#EFE5D2]" />
+          <div className="mt-3 h-4 w-full rounded-[4px] bg-[#F5EDE0]" />
+          <div className="mt-2 h-4 w-2/3 rounded-[4px] bg-[#F5EDE0]" />
+        </div>
+      ))}
+    </div>
   );
 }

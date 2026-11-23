@@ -26,7 +26,11 @@ import {
   ReviewBlogPostDto,
   UpdateBlogPostDto,
 } from './dto/blog-post.dto';
-import { ReportPostDto, UpdateCommunityProfileDto } from './dto/interact.dto';
+import {
+  ListCommunityMembersQueryDto,
+  ReportPostDto,
+  UpdateCommunityProfileDto,
+} from './dto/interact.dto';
 import { BlogService } from './blog.service';
 
 type AuthedRequest = Request & { user: { userId: string; role: string } };
@@ -75,6 +79,19 @@ export class BlogController {
   // ============================================================
   // Community Member Profile & Follow Endpoints
   // ============================================================
+
+  @ApiOperation({
+    summary:
+      'Danh sách toàn bộ thành viên Cộng đồng (tìm kiếm, lọc theo dõi, phân trang)',
+  })
+  @Get('users')
+  @UseGuards(OptionalAuthGuard)
+  listCommunityMembers(
+    @Query() query: ListCommunityMembersQueryDto,
+    @Req() req: MaybeAuthedRequest,
+  ) {
+    return this.blogService.listCommunityMembers(req.user?.userId, query);
+  }
 
   @ApiOperation({
     summary: 'Danh sách thành viên tiêu biểu / gợi ý theo dõi trên Cộng đồng',

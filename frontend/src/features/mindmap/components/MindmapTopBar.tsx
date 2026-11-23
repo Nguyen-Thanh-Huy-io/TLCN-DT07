@@ -11,6 +11,7 @@ import {
   Plus,
   Printer,
   Redo2,
+  Share2,
   StickyNote,
   Undo2,
 } from 'lucide-react';
@@ -43,6 +44,7 @@ export function MindmapTopBar({
   onToggleReader,
   onToggleSidebar,
   onPrint,
+  onShareToCommunity,
 }: {
   title: string;
   saveState: MindmapSaveState;
@@ -63,6 +65,7 @@ export function MindmapTopBar({
   onToggleReader: () => void;
   onToggleSidebar: () => void;
   onPrint: () => void;
+  onShareToCommunity?: () => void;
 }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 bg-white px-4 py-2.5 shadow-2xs print:hidden">
@@ -169,6 +172,17 @@ export function MindmapTopBar({
         >
           <BookOpen size={13} /> Tài liệu học
         </button>
+
+        {onShareToCommunity && (
+          <button
+            type="button"
+            onClick={onShareToCommunity}
+            className="inline-flex items-center gap-1 rounded-xl border border-[#B8893F]/70 bg-[#FAF5E6] px-2.5 py-1.5 font-bold text-[#7A1F24] transition-colors hover:bg-[#7A1F24] hover:text-[#FAF5E6] cursor-pointer"
+            title="Chia sẻ sơ đồ tư duy này lên Cộng đồng HISGO"
+          >
+            <Share2 size={13} /> Chia sẻ
+          </button>
+        )}
 
         <button
           type="button"

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
-import { fetchCommunityFeedSSR } from '@/features/community/api';
+import { COMMUNITY_FEED_PAGE_SIZE, fetchCommunityFeedSSR } from '@/features/community/api';
 import { CommunityFeed } from '@/features/community/components/CommunityFeed';
 
 export const metadata: Metadata = {
@@ -16,7 +16,7 @@ interface CongDongPageProps {
 
 export default async function CongDongPage({ searchParams }: CongDongPageProps) {
   const [initialPosts, resolvedParams] = await Promise.all([
-    fetchCommunityFeedSSR({ limit: 8 }),
+    fetchCommunityFeedSSR({ limit: COMMUNITY_FEED_PAGE_SIZE }),
     searchParams ? searchParams : Promise.resolve({} as { shareBlog?: string }),
   ]);
 
@@ -27,18 +27,14 @@ export default async function CongDongPage({ searchParams }: CongDongPageProps) 
 
   return (
     <div className="min-h-screen overflow-x-clip bg-[#F5EEDC] text-[#14233F] font-[family-name:var(--font-body)]">
-      <div data-ui="site-header">
-        <Header activeTab="community" />
-      </div>
+      <Header activeTab="community" />
       <main>
         <CommunityFeed
           initialPosts={initialPosts}
           initialShareBlogSlug={initialShareBlogSlug}
         />
       </main>
-      <div data-ui="site-footer">
-        <Footer />
-      </div>
+      <Footer />
     </div>
   );
 }

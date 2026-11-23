@@ -5,6 +5,81 @@ import {
   type CommunityPost,
 } from '../api';
 
+const RAW_FILTER_SCAN_LIMIT = 12;
+const MAX_SCAN_ROUNDS_PER_BATCH = 3;
+
+export function matchesTabFilter(
+  post: CommunityPost,
+  parsed: ReturnType<typeof extractCommunityContent>,
+  tab: CommunityTabKey,
+): boolean {
+  if (tab === CommunityTabKey.SHARED_BLOG) return Boolean(parsed.sharedBlog);
+  if (tab === CommunityTabKey.MEDIA) {
+    return (
+      !parsed.sharedBlog &&
+      (parsed.images.length > 0 || parsed.videos.length > 0 || Boolean(post.coverImageUrl))
+    );
+  }
+  return true;
+}
+
+export interface TabFeedFetchResult {
+  posts: CommunityPost[];
+  hasMore: boolean;
+  rawCursor: string | null;
+}
+
+/**
+ * Quét theo cursor ở client tối đa vài đợt để gom đủ bài khớp tab Media / Chia sẻ Blog,
+ * đảm bảo cuộn xuống vẫn tải nối tiếp được khi danh sách bài dài hơn 1 trang.
+ */
+export async function collectMatchingPostsBatch({
+  tab,
+  targetCount,
+  initialCursor = null,
+}: {
+  tab: CommunityTabKey;
+  targetCount: number;
+  initialCursor?: string | null;
+}): Promise<TabFeedFetchResult> {
+  const collected: CommunityPost[] = [];
+  let cursor = initialCursor ?? undefined;
+  let reachedEnd = false;
+
+  for (let round = 0; round < MAX_SCAN_ROUNDS_PER_BATCH; round += 1) {
+    const rawBatch = await CommunityApi.listPosts({
+      sort: CommunitySortMode.LATEST,
+      cursor,
+      limit: RAW_FILTER_SCAN_LIMIT,
+    });
+    if (rawBatch.length === 0) {
+      reachedEnd = true;
+      break;
+    }
+
+    cursor = rawBatch[rawBatch.length - 1].id;
+    for (const post of rawBatch) {
+      if (matchesTabFilter(post, extractCommunityContent(post), tab)) {
+        collected.push(post);
+      }
+    }
+
+    if (rawBatch.length < RAW_FILTER_SCAN_LIMIT) {
+      reachedEnd = true;
+      break;
+    }
+    if (collected.length >= targetCount) {
+      break;
+    }
+  }
+
+  return {
+    posts: collected,
+    hasMore: !reachedEnd,
+    rawCursor: cursor ?? null,
+  };
+}
+
 export function matchesPostFilter(
   post: CommunityPost,
   activeTab: CommunityTabKey,
@@ -13,7 +88,7 @@ export function matchesPostFilter(
   searchQuery: string,
 ): boolean {
   const parsed = extractCommunityContent(post);
-  if (activeTab === CommunityTabKey.SHARED_BLOG && !parsed.sharedBlog) {
+  if (!matchesTabFilter(post, parsed, activeTab)) {
     return false;
   }
 
@@ -52,37 +127,36 @@ export function computePopularTags(posts: CommunityPost[]): Array<[string, numbe
     .slice(0, 8);
 }
 
-async function fetchSavedTab(userId?: string): Promise<{ posts: CommunityPost[]; hasMore: boolean }> {
+async function fetchSavedTab(userId?: string): Promise<TabFeedFetchResult> {
   if (!userId) {
-    return { posts: [], hasMore: false };
+    return { posts: [], hasMore: false, rawCursor: null };
   }
   const saved = await CommunityApi.listMyBookmarks();
-  return { posts: saved, hasMore: false };
+  return { posts: saved, hasMore: false, rawCursor: null };
 }
 
 async function fetchFollowingTab(
   userId: string | undefined,
-  initialPosts: CommunityPost[],
-): Promise<{ posts: CommunityPost[]; hasMore: boolean }> {
-  if (userId) {
-    const followedFeed = await CommunityApi.listPosts({
-      followingOnly: true,
-      limit: 24,
-    });
-    if (followedFeed.length > 0) {
-      return { posts: followedFeed, hasMore: false };
-    }
+  pageSize: number,
+): Promise<TabFeedFetchResult> {
+  if (!userId) {
+    return { posts: [], hasMore: false, rawCursor: null };
   }
-  const allAvailable = await CommunityApi.listPosts({ limit: 24 });
-  const sourceList = allAvailable.length > 0 ? allAvailable : initialPosts;
-  return { posts: sourceList, hasMore: false };
+  const followedFeed = await CommunityApi.listPosts({
+    followingOnly: true,
+    sort: CommunitySortMode.LATEST,
+    limit: pageSize,
+  });
+  return {
+    posts: followedFeed,
+    hasMore: followedFeed.length >= pageSize,
+    rawCursor: followedFeed[followedFeed.length - 1]?.id ?? null,
+  };
 }
 
 function computeFallbackTrending(posts: CommunityPost[], tab: CommunityTabKey): CommunityPost[] {
   return posts
-    .filter((p) =>
-      tab === CommunityTabKey.SHARED_BLOG ? Boolean(extractCommunityContent(p).sharedBlog) : true,
-    )
+    .filter((p) => matchesTabFilter(p, extractCommunityContent(p), tab))
     .sort((a, b) => {
       if (tab !== CommunityTabKey.TRENDING) return 0;
       const scoreA = a.likeCount * 2 + a.commentCount * 3 + a.viewCount * 0.1;
@@ -95,25 +169,50 @@ async function fetchStandardTab(
   tab: CommunityTabKey,
   initialPosts: CommunityPost[],
   pageSize: number,
-): Promise<{ posts: CommunityPost[]; hasMore: boolean }> {
+): Promise<TabFeedFetchResult> {
+  const isClientFiltered =
+    tab === CommunityTabKey.SHARED_BLOG || tab === CommunityTabKey.MEDIA;
+  if (isClientFiltered) {
+    const batch = await collectMatchingPostsBatch({
+      tab,
+      targetCount: pageSize,
+    });
+    if (batch.posts.length > 0) {
+      return batch;
+    }
+    return {
+      posts: computeFallbackTrending(initialPosts, tab),
+      hasMore: false,
+      rawCursor: null,
+    };
+  }
+
   const fetched = await CommunityApi.listPosts({
     sort: tab === CommunityTabKey.TRENDING ? CommunitySortMode.TRENDING : CommunitySortMode.LATEST,
-    limit: tab === CommunityTabKey.SHARED_BLOG ? 24 : pageSize,
+    limit: pageSize,
   });
 
   if (fetched.length > 0) {
-    if (tab === CommunityTabKey.SHARED_BLOG) {
-      const sharedOnly = fetched.filter((p) => Boolean(extractCommunityContent(p).sharedBlog));
-      return { posts: sharedOnly, hasMore: false };
-    }
-    return { posts: fetched, hasMore: fetched.length >= pageSize };
+    return {
+      posts: fetched,
+      hasMore: fetched.length >= pageSize,
+      rawCursor: fetched[fetched.length - 1]?.id ?? null,
+    };
   }
 
   if (tab === CommunityTabKey.ALL) {
-    return { posts: initialPosts, hasMore: false };
+    return {
+      posts: initialPosts,
+      hasMore: false,
+      rawCursor: initialPosts[initialPosts.length - 1]?.id ?? null,
+    };
   }
 
-  return { posts: computeFallbackTrending(initialPosts, tab), hasMore: false };
+  return {
+    posts: computeFallbackTrending(initialPosts, tab),
+    hasMore: false,
+    rawCursor: null,
+  };
 }
 
 export function updateFollowedAuthorsMap(
@@ -157,12 +256,12 @@ export async function fetchTabFeedPosts(
   userId: string | undefined,
   initialPosts: CommunityPost[],
   pageSize: number,
-): Promise<{ posts: CommunityPost[]; hasMore: boolean }> {
+): Promise<TabFeedFetchResult> {
   if (tab === CommunityTabKey.SAVED) {
     return fetchSavedTab(userId);
   }
   if (tab === CommunityTabKey.FOLLOWING) {
-    return fetchFollowingTab(userId, initialPosts);
+    return fetchFollowingTab(userId, pageSize);
   }
   return fetchStandardTab(tab, initialPosts, pageSize);
 }

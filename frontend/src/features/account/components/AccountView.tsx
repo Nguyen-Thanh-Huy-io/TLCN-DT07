@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   BadgeCheck,
   BookOpen,
@@ -48,6 +48,20 @@ export enum AccountTabKey {
   SECURITY = 'bao-mat',
 }
 
+export const ACCOUNT_BASE_ROUTE = '/tai-khoan';
+export const ACCOUNT_TAB_PARAM = 'tab';
+
+export function accountTabRoute(tab: AccountTabKey): string {
+  return `${ACCOUNT_BASE_ROUTE}?${ACCOUNT_TAB_PARAM}=${tab}`;
+}
+
+function resolveAccountTab(raw: string | null): AccountTabKey {
+  if (raw && Object.values<string>(AccountTabKey).includes(raw)) {
+    return raw as AccountTabKey;
+  }
+  return AccountTabKey.PROFILE;
+}
+
 interface AccountTab {
   id: AccountTabKey;
   label: string;
@@ -63,9 +77,11 @@ function displayName(profile: MyProfile): string {
 export function AccountView() {
   const user = useAuthSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlTab = searchParams.get(ACCOUNT_TAB_PARAM);
   const [profile, setProfile] = useState<MyProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<AccountTabKey>(AccountTabKey.PROFILE);
+  const [activeTab, setActiveTab] = useState<AccountTabKey>(() => resolveAccountTab(urlTab));
   const [flashcardDueCount, setFlashcardDueCount] = useState<number>(0);
   const [mindmapCount, setMindmapCount] = useState<number>(0);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
@@ -81,15 +97,18 @@ export function AccountView() {
   const { enrolledPathIds, completedIds } = useLessonProgress();
   const { overview: gamificationOverview, reload: reloadGamification } = useGamificationOverview(Boolean(user?.id));
 
+  const handleSelectTab = useCallback(
+    (nextTab: AccountTabKey) => {
+      setActiveTab(nextTab);
+      router.replace(accountTabRoute(nextTab), { scroll: false });
+    },
+    [router],
+  );
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const tabParam = new URLSearchParams(window.location.search).get('tab');
-      if (tabParam && Object.values<string>(AccountTabKey).includes(tabParam)) {
-        setActiveTab(tabParam as AccountTabKey);
-      }
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
+    const resolved = resolveAccountTab(urlTab);
+    void Promise.resolve().then(() => setActiveTab(resolved));
+  }, [urlTab]);
 
   useEffect(() => {
     if (user === null) router.replace('/login?redirect=%2Ftai-khoan');
@@ -282,7 +301,7 @@ export function AccountView() {
             setGoalModalPrimary(true);
             setGoalModalOpen(true);
           }}
-          onOpenGamificationTab={() => setActiveTab(AccountTabKey.GAMIFICATION)}
+          onOpenGamificationTab={() => handleSelectTab(AccountTabKey.GAMIFICATION)}
         />
       </section>
 
@@ -308,7 +327,7 @@ export function AccountView() {
                   <button
                     key={tab.id}
                     type="button"
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleSelectTab(tab.id)}
                     className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                       isActive
                         ? 'bg-gradient-to-r from-[#7A1F24] to-[#91252B] text-white shadow-sm'

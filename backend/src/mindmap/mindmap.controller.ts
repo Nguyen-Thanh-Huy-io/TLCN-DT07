@@ -12,7 +12,12 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../common/guards/auth.guard';
-import { CreateMindmapDto, UpdateMindmapDto } from './dto/mindmap.dto';
+import {
+  CreateMindmapDto,
+  GenerateMindmapDto,
+  UpdateMindmapDto,
+} from './dto/mindmap.dto';
+import { MindmapAiService } from './mindmap-ai.service';
 import { MINDMAP_ROUTES } from './mindmap.constant';
 import { MindmapService } from './mindmap.service';
 
@@ -25,7 +30,19 @@ interface AuthedRequest {
 @UseGuards(AuthGuard)
 @Controller(MINDMAP_ROUTES.ROOT)
 export class MindmapController {
-  constructor(private readonly mindmapService: MindmapService) {}
+  constructor(
+    private readonly mindmapService: MindmapService,
+    private readonly mindmapAiService: MindmapAiService,
+  ) {}
+
+  @Post(MINDMAP_ROUTES.GENERATE_PREVIEW)
+  @ApiOperation({
+    summary:
+      'AI dựng sơ đồ tư duy từ nội dung prompt ("Bạn muốn xây dựng cái gì?") và sổ tay cá nhân',
+  })
+  generatePreview(@Req() req: AuthedRequest, @Body() dto: GenerateMindmapDto) {
+    return this.mindmapAiService.generatePreview(req.user.userId, dto);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Danh sách sơ đồ tư duy của người học' })

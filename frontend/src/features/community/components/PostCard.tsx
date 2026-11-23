@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { BlogPostType } from '@/constants/enums';
 import { CommunityApi, extractCommunityContent, type CommunityPost } from '../api';
+import { CommunityPostMediaGallery } from './CommunityPostMediaGallery';
 import { PostCommentModal } from './PostCommentModal';
 import { PostActionBar } from './PostActionBar';
 import { PostAuthorHeader, PostPreviewCommentBox, PostQuestionContent, PostReferencesAndTags, PostSharedBlogCard } from './PostCardParts';
@@ -17,6 +17,7 @@ interface PostCardProps {
   isFollowedAuthor?: boolean;
   isOwnPost?: boolean;
   showFollowButton?: boolean;
+  priorityLcp?: boolean;
   onFollowUpdate?: (authorIdentifier: string, following: boolean, followerCount?: number) => void;
 }
 
@@ -29,12 +30,12 @@ export function PostCard({
   isFollowedAuthor,
   isOwnPost = false,
   showFollowButton = true,
+  priorityLcp = false,
   onFollowUpdate,
 }: PostCardProps) {
   const [expandedText, setExpandedText] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [viewTracked, setViewTracked] = useState(false);
-  const [imgError, setImgError] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
   const [localCommentCount, setLocalCommentCount] = useState(post.commentCount);
@@ -50,14 +51,15 @@ export function PostCard({
   const sharedBlog = parsed.sharedBlog ?? null;
   const isDirectLongForm = post.postType === BlogPostType.LONG_FORM;
 
-  const rawPrimaryImage = !sharedBlog
-    ? post.coverImageUrl || parsed.images[0]?.url || null
-    : null;
-  const primaryImage =
-    !imgError && rawPrimaryImage && !rawPrimaryImage.includes('cld-sample-6.jpg')
-      ? rawPrimaryImage
-      : null;
-  const primaryCaption = parsed.images[0]?.caption;
+  const galleryImages = !sharedBlog
+    ? parsed.images.length > 0
+      ? parsed.images
+      : post.coverImageUrl
+        ? [{ url: post.coverImageUrl, caption: null }]
+        : []
+    : [];
+  const postVideos = !sharedBlog ? parsed.videos : [];
+  const isMediaPost = Boolean(!sharedBlog && (galleryImages.length > 0 || postVideos.length > 0));
 
   const fullParagraphText = parsed.paragraphs.join('\n\n');
   const summaryText = post.excerpt || parsed.paragraphs[0] || '';
@@ -110,6 +112,7 @@ export function PostCard({
         followLoading={followLoading}
         onToggleFollow={() => void handleToggleFollowAuthor()}
         isSharedBlog={Boolean(sharedBlog)}
+        isMediaPost={isMediaPost}
         period={parsed.period}
         locations={parsed.locations}
       />
@@ -130,27 +133,16 @@ export function PostCard({
           sharedBlog={sharedBlog}
           authorName={authorName}
           onTrackView={trackViewOnce}
+          priorityLcp={priorityLcp}
         />
       ) : null}
 
-      {primaryImage ? (
-        <figure className="mt-4 overflow-hidden rounded-[8px] border border-[#E5DAC4] bg-[#F2E8D5]">
-          <Image
-            src={primaryImage}
-            alt={primaryCaption || post.title}
-            width={800}
-            height={480}
-            unoptimized
-            onError={() => setImgError(true)}
-            className="max-h-[480px] w-full object-cover"
-          />
-          {primaryCaption ? (
-            <figcaption className="bg-[#EFE4CF] px-4 py-2.5 text-[13px] text-[#6E5D4B]">
-              Nguồn / Chú thích: {primaryCaption}
-            </figcaption>
-          ) : null}
-        </figure>
-      ) : null}
+      <CommunityPostMediaGallery
+        images={galleryImages}
+        videos={postVideos}
+        postTitle={post.title}
+        priorityLcp={priorityLcp}
+      />
 
       <PostReferencesAndTags
         references={parsed.references}

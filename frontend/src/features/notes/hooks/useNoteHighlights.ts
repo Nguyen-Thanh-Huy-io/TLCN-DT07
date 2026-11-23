@@ -18,6 +18,28 @@ import { clearInlineCallouts, mountInlineCallouts } from '../utils/note-callout-
 
 const FLASH_HIGHLIGHT_NAME = 'hisgo-note-flash';
 const FLASH_DURATION_MS = 1600;
+const HIGHLIGHT_STYLE_ID = 'hisgo-note-custom-highlight-styles';
+const HIGHLIGHT_STYLES = `
+::highlight(hisgo-note-yellow) { background-color: rgb(252 211 77 / 0.45); }
+::highlight(hisgo-note-green) { background-color: rgb(110 231 183 / 0.45); }
+::highlight(hisgo-note-blue) { background-color: rgb(125 211 252 / 0.45); }
+::highlight(hisgo-note-pink) { background-color: rgb(253 164 175 / 0.5); }
+::highlight(hisgo-note-purple) { background-color: rgb(216 180 254 / 0.5); }
+::highlight(hisgo-note-flash) { background-color: rgb(139 38 30 / 0.35); }
+::highlight(hisgo-note-underline-yellow) { text-decoration: underline solid 2.5px rgb(217 119 6); text-underline-offset: 3px; }
+::highlight(hisgo-note-underline-green) { text-decoration: underline solid 2.5px rgb(5 150 105); text-underline-offset: 3px; }
+::highlight(hisgo-note-underline-blue) { text-decoration: underline solid 2.5px rgb(2 132 199); text-underline-offset: 3px; }
+::highlight(hisgo-note-underline-pink) { text-decoration: underline solid 2.5px rgb(225 29 72); text-underline-offset: 3px; }
+::highlight(hisgo-note-underline-purple) { text-decoration: underline solid 2.5px rgb(124 58 237); text-underline-offset: 3px; }
+::highlight(hisgo-note-strike-yellow) { text-decoration: line-through solid 2px rgb(180 83 9); }
+::highlight(hisgo-note-strike-green) { text-decoration: line-through solid 2px rgb(4 120 87); }
+::highlight(hisgo-note-strike-blue) { text-decoration: line-through solid 2px rgb(3 105 161); }
+::highlight(hisgo-note-strike-pink) { text-decoration: line-through solid 2px rgb(190 18 60); }
+::highlight(hisgo-note-strike-purple) { text-decoration: line-through solid 2px rgb(109 40 217); }
+::highlight(hisgo-note-kind-important) { text-decoration: underline solid 2px rgb(185 28 28); }
+::highlight(hisgo-note-kind-question) { text-decoration: underline wavy 1.5px rgb(190 18 60); }
+::highlight(hisgo-note-kind-definition) { text-decoration: underline dotted 2px rgb(29 78 216); }
+`;
 
 export interface LocatedNote {
   note: NoteItem;
@@ -28,6 +50,14 @@ export interface LocatedNote {
 }
 
 const supportsHighlights = () => typeof CSS !== 'undefined' && 'highlights' in CSS;
+
+function ensureHighlightStyles(): void {
+  if (!supportsHighlights() || document.getElementById(HIGHLIGHT_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = HIGHLIGHT_STYLE_ID;
+  style.textContent = HIGHLIGHT_STYLES;
+  document.head.append(style);
+}
 
 function caretAt(x: number, y: number): { node: Node; offset: number } | null {
   if (typeof document.caretPositionFromPoint === 'function') {
@@ -100,6 +130,10 @@ export function useNoteHighlights(
       if (rootRef) clearInlineCallouts(rootRef);
     };
   }, [contentRef, htmlTrigger, notes]);
+
+  useEffect(() => {
+    ensureHighlightStyles();
+  }, []);
 
   useEffect(() => {
     if (!supportsHighlights()) return;

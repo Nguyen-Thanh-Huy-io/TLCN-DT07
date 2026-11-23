@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ReportRiskLevel } from '@prisma/client';
+import { GoogleAiService } from '../common/services/google-ai.service';
 
 export type ModerationCategory =
   | 'PROFANITY'
@@ -124,9 +125,15 @@ const SENTINEL_RULES: RulePattern[] = [
 
 @Injectable()
 export class ModerationAiService {
+  private readonly googleAi: GoogleAiService;
+
+  constructor(@Optional() googleAi?: GoogleAiService) {
+    this.googleAi = googleAi ?? new GoogleAiService();
+  }
+
   /**
-   * Thẩm định nội dung bằng kết hợp Gemini Flash LLM (nếu có GEMINI_API_KEY)
-   * và bộ quy tắc Sentinel tiếng Việt.
+   * Thẩm định nội dung bằng kết hợp Google Cloud Vertex AI / Gemini Flash
+   * (khi đã cấu hình credential) và bộ quy tắc Sentinel tiếng Việt.
    */
   async evaluateContent(rawText: string): Promise<ModerationAssessment> {
     const cleanText = (rawText || '').replace(/\s+/g, ' ').trim();
@@ -145,11 +152,10 @@ export class ModerationAiService {
     // 1. Quét nhanh bằng Deterministic Sentinel trước để bắt tức thì các vi phạm rõ ràng
     const heuristicResult = this.evaluateWithHeuristics(cleanText);
 
-    // 2. Nếu có cấu hình GEMINI_API_KEY, gọi Gemini Flash để phân tích ngữ cảnh sâu
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (apiKey) {
+    // 2. Nếu đã cấu hình Google Cloud AI / Gemini, phân tích ngữ cảnh sâu
+    if (this.googleAi.isConfigured()) {
       try {
-        const geminiResult = await this.callGeminiFlash(cleanText, apiKey);
+        const geminiResult = await this.callGeminiFlash(cleanText);
         if (geminiResult) {
           // Nếu Heuristic đã phát hiện vi phạm nghiêm trọng (AUTO_HIDE), ưu tiên mức an toàn cao nhất
           if (
@@ -224,114 +230,71 @@ export class ModerationAiService {
 
   private async callGeminiFlash(
     text: string,
-    apiKey: string,
   ): Promise<ModerationAssessment | null> {
-    const model = process.env.GEMINI_MODEL?.trim() || 'gemini-2.0-flash';
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-      model,
-    )}:generateContent?key=${encodeURIComponent(apiKey)}`;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: SYSTEM_PROMPT }],
-          },
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                {
-                  text: `Hãy thẩm định nội dung sau:\n"""\n${text.slice(0, 6000)}\n"""`,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json',
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      const data: any = await response.json();
-      const rawOutput = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawOutput || typeof rawOutput !== 'string') {
-        return null;
-      }
-
-      const cleanedJson = rawOutput
-        .replace(/^```json\s*/i, '')
-        .replace(/```$/i, '')
-        .trim();
-      interface GeminiModerationResponse {
-        isSafe?: boolean;
-        riskLevel?: string;
-        action?: string;
-        confidence?: number;
-        detectedCategories?: string[];
-        violationReasonVi?: string;
-      }
-      const parsed: GeminiModerationResponse = JSON.parse(cleanedJson);
-
-      const riskLevel = isRiskLevel(parsed.riskLevel)
-        ? parsed.riskLevel
-        : ReportRiskLevel.SAFE;
-
-      const action: ModerationAction =
-        parsed.action &&
-        ['ALLOW', 'FLAG_FOR_REVIEW', 'AUTO_HIDE'].includes(parsed.action)
-          ? (parsed.action as ModerationAction)
-          : riskLevel === ReportRiskLevel.HIGH ||
-              riskLevel === ReportRiskLevel.CRITICAL
-            ? 'AUTO_HIDE'
-            : riskLevel === ReportRiskLevel.MEDIUM ||
-                riskLevel === ReportRiskLevel.LOW
-              ? 'FLAG_FOR_REVIEW'
-              : 'ALLOW';
-
-      const validCats: ModerationCategory[] = Array.isArray(
-        parsed.detectedCategories,
-      )
-        ? (parsed.detectedCategories.filter((c: string) =>
-            [
-              'PROFANITY',
-              'HISTORICAL_REVISIONISM',
-              'SPAM',
-              'REGIONAL_DISCRIMINATION',
-              'NONE',
-            ].includes(c),
-          ) as ModerationCategory[])
-        : ['NONE'];
-
-      return {
-        isSafe: Boolean(parsed.isSafe ?? action === 'ALLOW'),
-        riskLevel,
-        action,
-        confidence:
-          typeof parsed.confidence === 'number'
-            ? Math.max(0, Math.min(1, parsed.confidence))
-            : 0.9,
-        detectedCategories: validCats.length > 0 ? validCats : ['NONE'],
-        violationReasonVi:
-          typeof parsed.violationReasonVi === 'string'
-            ? parsed.violationReasonVi.trim()
-            : '',
-        matchedExcerpt: text.slice(0, 220),
-        engine: 'GEMINI_FLASH',
-      };
-    } finally {
-      clearTimeout(timeout);
+    interface GeminiModerationResponse {
+      isSafe?: boolean;
+      riskLevel?: string;
+      action?: string;
+      confidence?: number;
+      detectedCategories?: string[];
+      violationReasonVi?: string;
     }
+
+    const parsed = await this.googleAi.generateJson<GeminiModerationResponse>({
+      systemPrompt: SYSTEM_PROMPT,
+      userPrompt: `Hãy thẩm định nội dung sau:\n"""\n${text.slice(0, 6000)}\n"""`,
+      temperature: 0.1,
+      timeoutMs: 8000,
+      contextLabel: 'moderation',
+    });
+
+    if (!parsed) return null;
+
+    const riskLevel = isRiskLevel(parsed.riskLevel)
+      ? parsed.riskLevel
+      : ReportRiskLevel.SAFE;
+
+    const action: ModerationAction =
+      parsed.action &&
+      ['ALLOW', 'FLAG_FOR_REVIEW', 'AUTO_HIDE'].includes(parsed.action)
+        ? (parsed.action as ModerationAction)
+        : riskLevel === ReportRiskLevel.HIGH ||
+            riskLevel === ReportRiskLevel.CRITICAL
+          ? 'AUTO_HIDE'
+          : riskLevel === ReportRiskLevel.MEDIUM ||
+              riskLevel === ReportRiskLevel.LOW
+            ? 'FLAG_FOR_REVIEW'
+            : 'ALLOW';
+
+    const validCats: ModerationCategory[] = Array.isArray(
+      parsed.detectedCategories,
+    )
+      ? (parsed.detectedCategories.filter((c: string) =>
+          [
+            'PROFANITY',
+            'HISTORICAL_REVISIONISM',
+            'SPAM',
+            'REGIONAL_DISCRIMINATION',
+            'NONE',
+          ].includes(c),
+        ) as ModerationCategory[])
+      : ['NONE'];
+
+    return {
+      isSafe: Boolean(parsed.isSafe ?? action === 'ALLOW'),
+      riskLevel,
+      action,
+      confidence:
+        typeof parsed.confidence === 'number'
+          ? Math.max(0, Math.min(1, parsed.confidence))
+          : 0.9,
+      detectedCategories: validCats.length > 0 ? validCats : ['NONE'],
+      violationReasonVi:
+        typeof parsed.violationReasonVi === 'string'
+          ? parsed.violationReasonVi.trim()
+          : '',
+      matchedExcerpt: text.slice(0, 220),
+      engine: 'GEMINI_FLASH',
+    };
   }
 }

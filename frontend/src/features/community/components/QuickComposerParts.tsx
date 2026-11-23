@@ -2,16 +2,17 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { ImagePlus, MessageSquarePlus, Share2, Tag, BookOpen, ExternalLink, Link2 } from 'lucide-react';
+import { MessageSquarePlus, Share2, Tag, BookOpen, ExternalLink, Link2 } from 'lucide-react';
 import { ComposerMode, KEYBOARD_KEYS } from '@/constants/enums';
 import { type SharedBlogEmbed } from '../api';
 
 export function resolvePostTitlesAndContent(
-  mode: ComposerMode,
+  _mode: ComposerMode,
   title: string,
   content: string,
   selectedBlog: SharedBlogEmbed | null,
   customCardCaption: string,
+  mediaCount = 0,
 ) {
   const cleanTitle =
     title.trim() ||
@@ -21,7 +22,9 @@ export function resolvePostTitlesAndContent(
     (selectedBlog
       ? customCardCaption.trim() ||
         `Mình chia sẻ lại bài viết "${selectedBlog.title}" từ HISGO Blog để mọi người cùng tham khảo và thảo luận.`
-      : '');
+      : mediaCount > 0
+        ? cleanTitle
+        : '');
   return { cleanTitle, cleanContent };
 }
 
@@ -72,82 +75,14 @@ export function applyInitialBlogSelection(
   }
 }
 
-// --- ComposerImageUploadSection.tsx ---
-export interface ComposerImageUploadSectionProps {
-  imageUrl: string | null;
-  onRemoveImage: () => void;
-  imageCaption: string;
-  onChangeImageCaption: (val: string) => void;
-  isUploading: boolean;
-  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-export function ComposerImageUploadSection({
-  imageUrl,
-  onRemoveImage,
-  imageCaption,
-  onChangeImageCaption,
-  isUploading,
-  onFileChange,
-}: ComposerImageUploadSectionProps) {
-  return (
-    <div className="rounded-[8px] border border-[#E2D5B8] bg-[#F2E8D5] p-3.5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#14233F]">
-          <ImagePlus size={15} className="text-[#8A5A19]" />
-          <span>Ảnh tư liệu / Bản đồ đính kèm câu hỏi (tùy chọn)</span>
-        </span>
-        <label className="inline-flex h-8 cursor-pointer items-center rounded-[6px] border border-[#D4C5A6] bg-[#FDF9F0] px-3 text-[12px] font-medium text-[#14233F] hover:border-[#8A5A19]">
-          <span>
-            {isUploading ? 'Đang tải ảnh...' : imageUrl ? 'Đổi ảnh khác' : 'Chọn tệp ảnh'}
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={onFileChange}
-            disabled={isUploading}
-            className="sr-only"
-          />
-        </label>
-      </div>
-
-      {imageUrl ? (
-        <div className="mt-3 space-y-2">
-          <div className="relative overflow-hidden rounded-[6px] border border-[#E2D5B8] bg-[#FDF9F0]">
-            <Image
-              src={imageUrl}
-              alt="Ảnh tư liệu đính kèm"
-              width={600}
-              height={200}
-              unoptimized
-              className="max-h-48 w-full object-cover"
-            />
-            <button
-              type="button"
-              onClick={onRemoveImage}
-              className="absolute right-2 top-2 rounded-[4px] bg-[#14233F] px-2 py-1 text-[11px] font-medium text-[#FAF5E6]"
-            >
-              Gỡ ảnh
-            </button>
-          </div>
-          <input
-            type="text"
-            value={imageCaption}
-            onChange={(e) => onChangeImageCaption(e.target.value)}
-            placeholder="Ghi chú nguồn ảnh (ví dụ: Viện Viễn Đông Bác cổ - EFEO, 1925)"
-            className="h-9 w-full rounded-[6px] border border-[#D4C5A6] bg-[#FDF9F0] px-3 text-[13px] text-[#14233F] outline-none focus:border-[#8A5A19]"
-          />
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 // --- ComposerModeSwitcher.tsx ---
 export interface ComposerModeSwitcherProps {
   mode: ComposerMode;
   onChangeMode: (mode: ComposerMode) => void;
 }
+
+const SWITCHER_ACTIVE_CLS = 'bg-[#7A1F24] text-[#FAF5E6]';
+const SWITCHER_IDLE_CLS = 'text-[#5C4E3C] hover:text-[#14233F]';
 
 export function ComposerModeSwitcher({ mode, onChangeMode }: ComposerModeSwitcherProps) {
   return (
@@ -155,26 +90,22 @@ export function ComposerModeSwitcher({ mode, onChangeMode }: ComposerModeSwitche
       <button
         type="button"
         onClick={() => onChangeMode(ComposerMode.QUESTION)}
-        className={`inline-flex h-9 items-center justify-center gap-2 rounded-[6px] text-[13px] font-semibold transition-colors ${
-          mode === ComposerMode.QUESTION
-            ? 'bg-[#7A1F24] text-[#FAF5E6]'
-            : 'text-[#5C4E3C] hover:text-[#14233F]'
+        className={`inline-flex h-9 items-center justify-center gap-2 rounded-[6px] text-[13px] font-semibold transition-colors cursor-pointer ${
+          mode === ComposerMode.QUESTION ? SWITCHER_ACTIVE_CLS : SWITCHER_IDLE_CLS
         }`}
       >
         <MessageSquarePlus size={14} />
-        <span>Đặt câu hỏi / Bài ngắn</span>
+        <span>Bài viết</span>
       </button>
       <button
         type="button"
         onClick={() => onChangeMode(ComposerMode.SHARE_BLOG)}
-        className={`inline-flex h-9 items-center justify-center gap-2 rounded-[6px] text-[13px] font-semibold transition-colors ${
-          mode === ComposerMode.SHARE_BLOG
-            ? 'bg-[#7A1F24] text-[#FAF5E6]'
-            : 'text-[#5C4E3C] hover:text-[#14233F]'
+        className={`inline-flex h-9 items-center justify-center gap-2 rounded-[6px] text-[13px] font-semibold transition-colors cursor-pointer ${
+          mode === ComposerMode.SHARE_BLOG ? SWITCHER_ACTIVE_CLS : SWITCHER_IDLE_CLS
         }`}
       >
         <Share2 size={14} />
-        <span>Chia sẻ bài từ Blog</span>
+        <span>Chia sẻ từ Blog</span>
       </button>
     </div>
   );
@@ -356,14 +287,16 @@ export function SharedBlogSelectorPane({
         <div className="space-y-3">
           <div className="overflow-hidden rounded-[8px] border border-[#D4C5A6] bg-[#FAF5E6]">
             {selectedBlog.coverImageUrl ? (
-              <Image
-                src={selectedBlog.coverImageUrl}
-                alt={selectedBlog.title}
-                width={600}
-                height={160}
-                unoptimized
-                className="h-40 w-full object-cover"
-              />
+              <div className="relative h-40 w-full overflow-hidden">
+                <Image
+                  src={selectedBlog.coverImageUrl}
+                  alt={selectedBlog.title}
+                  fill
+                  sizes="600px"
+                  unoptimized
+                  className="object-cover"
+                />
+              </div>
             ) : (
               <div className="flex h-24 items-center justify-between bg-[#2C1E16] px-4 text-[#FAF5E6]">
                 <span className="text-[12px] font-semibold uppercase tracking-wider">

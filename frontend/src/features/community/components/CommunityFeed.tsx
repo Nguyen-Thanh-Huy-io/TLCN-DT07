@@ -3,20 +3,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, MessageSquarePlus, Bookmark } from 'lucide-react';
+import { ShieldAlert, MessageSquarePlus, Bookmark, ImagePlus, Share2 } from 'lucide-react';
 import { useAuthSession } from '@/services/auth/use-auth-session';
-import { CommunityApi, SSR_ME_IDENTIFIER, type CommunityMemberSummary, type CommunityPost } from '../api';
+import { COMMUNITY_FEED_PAGE_SIZE, CommunityApi, SSR_ME_IDENTIFIER, type CommunityMemberSummary, type CommunityPost } from '../api';
 import { CommunityTabKey, ComposerMode, COMMUNITY_TAB_LABELS } from '@/constants/enums';
 import { QuickComposer } from './QuickComposer';
 import { CommunitySidebar } from './CommunitySidebar';
-import { useCommunityRealtimeSocket } from '../hooks/useCommunityFeedHooks';
-import { useCommunityPaging } from '../hooks/useCommunityFeedHooks';
+import { useCommunityPaging, useCommunityRealtimeSocket, useInfiniteScrollObserver } from '../hooks/useCommunityFeedHooks';
 import { computePopularTags, fetchTabFeedPosts, matchesPostFilter, updateFollowedAuthorsMap, updateSuggestedMembersList } from '../utils/community-feed.helper';
 import { PostCard } from './PostCard';
+import { PostCardSkeletonList } from './PostCardParts';
 
 export type { CommunityTabKey };
-
-const PAGE_SIZE = 8;
 
 interface CommunityFeedProps {
   initialPosts: CommunityPost[];
@@ -32,7 +30,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
   const [suggestedMembers, setSuggestedMembers] = useState<CommunityMemberSummary[]>([]);
   const [followedAuthors, setFollowedAuthors] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(initialPosts.length >= PAGE_SIZE);
+  const [hasMore, setHasMore] = useState(initialPosts.length >= COMMUNITY_FEED_PAGE_SIZE);
   const [errorMsg, setErrorMsg] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -40,13 +38,18 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
   const [composerMode, setComposerMode] = useState<ComposerMode>(
     initialShareBlogSlug ? ComposerMode.SHARE_BLOG : ComposerMode.QUESTION,
   );
+  const [composerOpenMedia, setComposerOpenMedia] = useState(false);
   const [preselectedBlogSlug, setPreselectedBlogSlug] = useState<string | null>(
     initialShareBlogSlug,
   );
   const [prevShareSlug, setPrevShareSlug] = useState(initialShareBlogSlug);
   const [realtimeNotice, setRealtimeNotice] = useState<string | null>(null);
 
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const rawCursorRef = useRef<string | null>(
+    initialPosts[initialPosts.length - 1]?.id ?? null,
+  );
+  const hasHydratedFeedRef = useRef(false);
+  const prevTabRef = useRef(activeTab);
 
   if (initialShareBlogSlug !== prevShareSlug) {
     setPrevShareSlug(initialShareBlogSlug);
@@ -77,39 +80,65 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
   }, [user?.id]);
 
   const loadTabFeed = useCallback(
-    async (tab: CommunityTabKey) => {
-      setIsLoading(true);
+    async (tab: CommunityTabKey, options?: { silent?: boolean }) => {
+      if (!options?.silent) {
+        setIsLoading(true);
+      }
       setErrorMsg('');
 
       try {
-        const result = await fetchTabFeedPosts(tab, user?.id, initialPosts, PAGE_SIZE);
+        const result = await fetchTabFeedPosts(
+          tab,
+          user?.id,
+          initialPosts,
+          COMMUNITY_FEED_PAGE_SIZE,
+        );
+        rawCursorRef.current = result.rawCursor;
         setPosts(result.posts);
         setHasMore(result.hasMore);
       } catch {
         if (tab !== CommunityTabKey.SAVED && initialPosts.length > 0) {
+          rawCursorRef.current = initialPosts[initialPosts.length - 1]?.id ?? null;
           setPosts(initialPosts);
           setHasMore(false);
         } else {
           setErrorMsg('Không thể tải danh sách bài thảo luận.');
         }
       } finally {
-        setIsLoading(false);
+        if (!options?.silent) {
+          setIsLoading(false);
+        }
       }
     },
     [initialPosts, user],
   );
 
   useEffect(() => {
+    const isSameTab = prevTabRef.current === activeTab;
+    prevTabRef.current = activeTab;
+
+    // Khách vãng lai vào tab ALL đã có sẵn dữ liệu SSR, tránh gọi lại ngay lúc mount gây nháy skeleton.
+    const isInitialGuestAll =
+      !hasHydratedFeedRef.current &&
+      !user?.id &&
+      activeTab === CommunityTabKey.ALL &&
+      initialPosts.length > 0;
+    const shouldSilentHydrate =
+      isSameTab && activeTab === CommunityTabKey.ALL && initialPosts.length > 0;
+
+    hasHydratedFeedRef.current = true;
+    if (isInitialGuestAll) return;
+
     let active = true;
     void Promise.resolve().then(() => {
       if (active) {
-        void loadTabFeed(activeTab);
+        void loadTabFeed(activeTab, { silent: shouldSilentHydrate });
       }
     });
     return () => {
       active = false;
     };
-  }, [activeTab, loadTabFeed]);
+  }, [activeTab, initialPosts.length, loadTabFeed, user]);
 
   useCommunityRealtimeSocket({
     activeTab,
@@ -124,26 +153,10 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
     posts,
     activeTab,
     hasMore,
+    rawCursorRef,
     setPosts,
     setHasMore,
   });
-
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node || !hasMore || activeTab === CommunityTabKey.SAVED || activeTab === CommunityTabKey.SHARED_BLOG) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          void loadMorePosts();
-        }
-      },
-      { rootMargin: '220px' },
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [activeTab, hasMore, loadMorePosts]);
 
   const isAuthorFollowed = useCallback(
     (author?: { id: string; username: string; followedByMe?: boolean } | null) => {
@@ -163,15 +176,26 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
     );
   }, [activeTab, isAuthorFollowed, posts, searchQuery, selectedTag]);
 
+  const sentinelRef = useInfiniteScrollObserver({
+    enabled: hasMore && activeTab !== CommunityTabKey.SAVED,
+    isLoading,
+    triggerKey: filteredPosts.length,
+    onLoadMore: () => void loadMorePosts(),
+  });
+
   const popularTags = useMemo(() => computePopularTags(posts), [posts]);
 
-  const handleOpenComposer = (mode: ComposerMode = ComposerMode.QUESTION) => {
+  const handleOpenComposer = (
+    mode: ComposerMode = ComposerMode.QUESTION,
+    openMedia = false,
+  ) => {
     if (!user?.id) {
       router.push('/login?redirect=/cong-dong');
       return;
     }
     setPreselectedBlogSlug(null);
     setComposerMode(mode);
+    setComposerOpenMedia(openMedia);
     setComposerOpen(true);
   };
 
@@ -270,7 +294,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
 
           <CommunityFeedAskBanner
             username={user?.username}
-            onOpenComposer={() => handleOpenComposer(ComposerMode.QUESTION)}
+            onOpenComposer={handleOpenComposer}
           />
 
           <CommunityFeedFilterBar
@@ -312,6 +336,7 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
       <QuickComposer
         isOpen={composerOpen}
         initialMode={composerMode}
+        initialOpenMedia={composerOpenMedia}
         initialSharedBlogSlug={preselectedBlogSlug}
         onClose={() => setComposerOpen(false)}
         onCreated={handleCreatedPost}
@@ -323,23 +348,43 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
 // --- CommunityFeedAskBanner.tsx ---
 interface CommunityFeedAskBannerProps {
   username?: string;
-  onOpenComposer: () => void;
+  onOpenComposer: (mode?: ComposerMode, openMedia?: boolean) => void;
 }
 
 export function CommunityFeedAskBanner({ username, onOpenComposer }: CommunityFeedAskBannerProps) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-[8px] border border-[#E3D6BE] bg-[#FAF5E6] px-5 py-3.5">
+    <div className="flex items-center gap-2 rounded-[8px] border border-[#E3D6BE] bg-[#FAF5E6] px-4 py-3 sm:px-5">
       <button
         type="button"
-        onClick={onOpenComposer}
-        className="flex min-w-0 flex-1 items-center gap-3 rounded-[6px] border border-[#E2D5BC] bg-[#FDF9F0] px-4 py-2.5 text-left text-[14px] text-[#6E5D4B] transition-colors hover:border-[#8A5A19] hover:text-[#14233F]"
+        onClick={() => onOpenComposer(ComposerMode.QUESTION, false)}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-[6px] border border-[#E2D5BC] bg-[#FDF9F0] px-4 py-2.5 text-left text-[14px] text-[#6E5D4B] transition-colors hover:border-[#8A5A19] hover:text-[#14233F] cursor-pointer"
       >
         <MessageSquarePlus size={17} className="shrink-0 text-[#7A1F24]" />
         <span className="truncate">
           {username
-            ? `${username}, bạn muốn đặt câu hỏi sử học hay chia sẻ bài chuyên khảo nào hôm nay?`
-            : 'Bạn đang tìm hiểu hay thắc mắc điều gì về lịch sử? Bấm vào đây để đặt câu hỏi...'}
+            ? `${username}, bạn muốn viết bài, đăng ảnh/video hay chia sẻ Blog nào hôm nay?`
+            : 'Bạn đang tìm hiểu hay muốn chia sẻ tư liệu lịch sử? Bấm vào đây để đăng bài...'}
         </span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onOpenComposer(ComposerMode.QUESTION, true)}
+        title="Đăng bài kèm Ảnh & Video"
+        aria-label="Đăng bài kèm Ảnh & Video"
+        className="grid size-10 shrink-0 place-items-center rounded-[6px] border border-[#DFD1B8] bg-[#FDF9F0] text-[#144E75] transition-colors hover:border-[#144E75] cursor-pointer"
+      >
+        <ImagePlus size={18} />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onOpenComposer(ComposerMode.SHARE_BLOG, false)}
+        title="Chia sẻ bài chuyên khảo từ Blog"
+        aria-label="Chia sẻ bài chuyên khảo từ Blog"
+        className="grid size-10 shrink-0 place-items-center rounded-[6px] border border-[#DFD1B8] bg-[#FDF9F0] text-[#7A1F24] transition-colors hover:border-[#7A1F24] cursor-pointer"
+      >
+        <Share2 size={17} />
       </button>
     </div>
   );
@@ -492,7 +537,7 @@ interface CommunityFeedListSectionProps {
   isLoadingMore: boolean;
   hasMore: boolean;
   onLoadMorePosts: () => void;
-  sentinelRef: React.RefObject<HTMLDivElement | null>;
+  sentinelRef: (node: HTMLDivElement | null) => void;
 }
 
 export function CommunityFeedListSection({
@@ -532,22 +577,7 @@ export function CommunityFeedListSection({
   }
 
   if (isLoading) {
-    return (
-      <div className="space-y-5">
-        {[1, 2, 3].map((idx) => (
-          <div
-            key={idx}
-            className="rounded-[8px] border border-[#E5DAC4] bg-[#FDF9F0] p-6 md:p-8"
-            aria-hidden="true"
-          >
-            <div className="h-5 w-44 rounded-[4px] bg-[#EFE5D2]" />
-            <div className="mt-4 h-7 w-3/4 rounded-[4px] bg-[#EFE5D2]" />
-            <div className="mt-3 h-4 w-full rounded-[4px] bg-[#F5EDE0]" />
-            <div className="mt-2 h-4 w-2/3 rounded-[4px] bg-[#F5EDE0]" />
-          </div>
-        ))}
-      </div>
-    );
+    return <PostCardSkeletonList count={3} />;
   }
 
   if (filteredPosts.length === 0) {
@@ -563,14 +593,11 @@ export function CommunityFeedListSection({
   }
 
   const showPagination =
-    isLoadingMore ||
-    (hasMore &&
-      activeTab !== CommunityTabKey.SAVED &&
-      activeTab !== CommunityTabKey.SHARED_BLOG);
+    isLoadingMore || (hasMore && activeTab !== CommunityTabKey.SAVED);
 
   return (
     <div className="space-y-6">
-      {filteredPosts.map((post) => (
+      {filteredPosts.map((post, idx) => (
         <PostCard
           key={post.id}
           post={post}
@@ -580,25 +607,37 @@ export function CommunityFeedListSection({
           onBookmarkUpdate={onBookmarkUpdate}
           isFollowedAuthor={isAuthorFollowed(post.author)}
           isOwnPost={Boolean(currentUserId && post.author?.id === currentUserId)}
+          priorityLcp={idx === 0}
           onFollowUpdate={onFollowUpdate}
         />
       ))}
 
       {showPagination ? (
-        <div ref={sentinelRef} className="pt-2 text-center">
+        <div ref={sentinelRef} className="space-y-5 pt-2">
           {isLoadingMore ? (
-            <span className="text-[14px] text-[#6E5D4B]">Đang tải thêm bài thảo luận...</span>
+            <>
+              <PostCardSkeletonList count={2} />
+              <p className="text-center text-[13.5px] text-[#6E5D4B]">
+                Đang tải thêm bài thảo luận...
+              </p>
+            </>
           ) : (
-            <button
-              type="button"
-              onClick={onLoadMorePosts}
-              className="h-10 rounded-[6px] border border-[#D8C8AA] bg-[#FDF9F0] px-5 text-[14px] font-medium text-[#14233F] hover:border-[#8A5A19]"
-            >
-              Tải thêm thảo luận
-            </button>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={onLoadMorePosts}
+                className="h-10 rounded-[6px] border border-[#D8C8AA] bg-[#FDF9F0] px-5 text-[14px] font-medium text-[#14233F] hover:border-[#8A5A19] cursor-pointer"
+              >
+                Tải thêm bài viết
+              </button>
+            </div>
           )}
         </div>
-      ) : null}
+      ) : (
+        <p className="pt-2 text-center text-[13px] text-[#7A6B57]">
+          Đã hiển thị tất cả bài viết hiện có.
+        </p>
+      )}
     </div>
   );
 }

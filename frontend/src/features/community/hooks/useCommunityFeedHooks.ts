@@ -1,71 +1,112 @@
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CommunityTabKey, CommunitySortMode } from '@/constants/enums';
-import { CommunityApi, type CommunityPost, type CommunityMemberSummary } from '../api';
+import {
+  COMMUNITY_FEED_PAGE_SIZE,
+  CommunityApi,
+  type CommunityPost,
+  type CommunityMemberSummary,
+} from '../api';
+import { collectMatchingPostsBatch } from '../utils/community-feed.helper';
 import { io } from 'socket.io-client';
 import { API_BASE_URL } from '@/constants/api-url';
-
-const PAGE_SIZE = 8;
+export { useInfiniteScrollObserver } from '@/hooks/useInfiniteScrollObserver';
 
 interface UseCommunityPagingParams {
   posts: CommunityPost[];
   activeTab: CommunityTabKey;
   hasMore: boolean;
+  rawCursorRef: React.MutableRefObject<string | null>;
   setPosts: React.Dispatch<React.SetStateAction<CommunityPost[]>>;
   setHasMore: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+function appendUniquePosts(
+  current: CommunityPost[],
+  incoming: CommunityPost[],
+): CommunityPost[] {
+  if (incoming.length === 0) return current;
+  const existingIds = new Set(current.map((item) => item.id));
+  const uniqueNext = incoming.filter((item) => !existingIds.has(item.id));
+  return uniqueNext.length > 0 ? [...current, ...uniqueNext] : current;
 }
 
 export function useCommunityPaging({
   posts,
   activeTab,
   hasMore,
+  rawCursorRef,
   setPosts,
   setHasMore,
 }: UseCommunityPagingParams) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadingRef = useRef(false);
+  const postsRef = useRef(posts);
+
+  useEffect(() => {
+    postsRef.current = posts;
+  }, [posts]);
 
   const loadMorePosts = useCallback(async () => {
     if (
-      isLoadingMore ||
+      loadingRef.current ||
       !hasMore ||
       activeTab === CommunityTabKey.SAVED ||
-      activeTab === CommunityTabKey.SHARED_BLOG ||
-      posts.length === 0
+      postsRef.current.length === 0
     ) {
       return;
     }
 
-    const lastPost = posts[posts.length - 1];
-    if (!lastPost || lastPost.id.startsWith('seed-post-')) {
+    const lastVisible = postsRef.current[postsRef.current.length - 1];
+    const cursorId = rawCursorRef.current ?? lastVisible?.id;
+    if (!cursorId || cursorId.startsWith('seed-post-')) {
       setHasMore(false);
       return;
     }
 
+    loadingRef.current = true;
     setIsLoadingMore(true);
     try {
+      if (
+        activeTab === CommunityTabKey.MEDIA ||
+        activeTab === CommunityTabKey.SHARED_BLOG
+      ) {
+        const result = await collectMatchingPostsBatch({
+          tab: activeTab,
+          targetCount: COMMUNITY_FEED_PAGE_SIZE,
+          initialCursor: cursorId,
+        });
+        rawCursorRef.current = result.rawCursor;
+        setPosts((current) => appendUniquePosts(current, result.posts));
+        setHasMore(result.hasMore);
+        return;
+      }
+
       const nextBatch = await CommunityApi.listPosts({
-        sort: activeTab === CommunityTabKey.TRENDING ? CommunitySortMode.TRENDING : CommunitySortMode.LATEST,
-        cursor: lastPost.id,
-        limit: PAGE_SIZE,
+        sort:
+          activeTab === CommunityTabKey.TRENDING
+            ? CommunitySortMode.TRENDING
+            : CommunitySortMode.LATEST,
+        followingOnly: activeTab === CommunityTabKey.FOLLOWING || undefined,
+        cursor: cursorId,
+        limit: COMMUNITY_FEED_PAGE_SIZE,
       });
 
       if (nextBatch.length === 0) {
         setHasMore(false);
       } else {
-        setPosts((current) => {
-          const existingIds = new Set(current.map((item) => item.id));
-          const uniqueNext = nextBatch.filter((item) => !existingIds.has(item.id));
-          return [...current, ...uniqueNext];
-        });
-        setHasMore(nextBatch.length >= PAGE_SIZE);
+        rawCursorRef.current = nextBatch[nextBatch.length - 1].id;
+        setPosts((current) => appendUniquePosts(current, nextBatch));
+        setHasMore(nextBatch.length >= COMMUNITY_FEED_PAGE_SIZE);
       }
     } catch {
       setHasMore(false);
     } finally {
+      loadingRef.current = false;
       setIsLoadingMore(false);
     }
-  }, [activeTab, hasMore, isLoadingMore, posts, setHasMore, setPosts]);
+  }, [activeTab, hasMore, rawCursorRef, setHasMore, setPosts]);
 
   return { isLoadingMore, loadMorePosts };
 }

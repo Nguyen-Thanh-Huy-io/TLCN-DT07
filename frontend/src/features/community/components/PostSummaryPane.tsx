@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { BookOpen, Clock, ExternalLink, MapPin, Share2 } from 'lucide-react';
+import { BookOpen, Clock, ExternalLink, MapPin } from 'lucide-react';
 import { getAuthorTint, getInitials } from '../utils/community-feed.helper';
 import { CommunityPost, extractCommunityContent } from '../api';
+import { CommunityPostMediaGallery } from './CommunityPostMediaGallery';
 import { PostActionBar } from './PostCard';
+import { PostShareActionNote, PostTypeBadge } from './PostCardParts';
 import { formatVietnameseRelativeTime } from './CommentModalParts';
 
 export const DEFAULT_MEMBER_NAME = 'Thành viên HISGO';
@@ -37,11 +39,11 @@ export function SharedBlogPreviewCard({ sharedBlog, onClose }: SharedBlogPreview
           <Image
             src={sharedCoverImage}
             alt={sharedBlog.title}
-            width={800}
-            height={260}
+            fill
+            sizes="(max-width: 768px) 100vw, 720px"
             unoptimized
             onError={() => setSharedImgError(true)}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
           />
           <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-[4px] bg-[#14233F]/85 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#FAF5E6]">
             <BookOpen size={11} />
@@ -73,38 +75,6 @@ export function SharedBlogPreviewCard({ sharedBlog, onClose }: SharedBlogPreview
   );
 }
 
-export function PrimaryImageFigure({
-  primaryImage,
-  primaryCaption,
-  postTitle,
-}: {
-  primaryImage: string;
-  primaryCaption?: string | null;
-  postTitle: string;
-}) {
-  const [imgError, setImgError] = useState(false);
-  if (imgError) return null;
-
-  return (
-    <figure className="mt-3.5 overflow-hidden rounded-[8px] border border-[#E5DAC4] bg-[#F2E8D5]">
-      <Image
-        src={primaryImage}
-        alt={primaryCaption || postTitle}
-        width={800}
-        height={360}
-        unoptimized
-        onError={() => setImgError(true)}
-        className="max-h-[360px] w-full object-cover"
-      />
-      {primaryCaption ? (
-        <figcaption className="bg-[#EFE4CF] px-3.5 py-2 text-[12px] text-[#6E5D4B]">
-          Nguồn / Chú thích: {primaryCaption}
-        </figcaption>
-      ) : null}
-    </figure>
-  );
-}
-
 export interface PostSummaryPaneProps {
   post: CommunityPost;
   totalCommentCount: number;
@@ -112,6 +82,28 @@ export interface PostSummaryPaneProps {
   onFocusInput?: () => void;
   onLikeUpdate?: (postId: string, liked: boolean, likeCount: number) => void;
   onBookmarkUpdate?: (postId: string, bookmarked: boolean) => void;
+}
+
+function resolveSummaryMedia(
+  post: CommunityPost,
+  parsed: ReturnType<typeof extractCommunityContent>,
+  sharedBlog: ReturnType<typeof extractCommunityContent>['sharedBlog'],
+) {
+  if (sharedBlog) {
+    return { galleryImages: [], postVideos: [], isMediaPost: false };
+  }
+  const galleryImages =
+    parsed.images.length > 0
+      ? parsed.images
+      : post.coverImageUrl
+        ? [{ url: post.coverImageUrl, caption: null }]
+        : [];
+  const postVideos = parsed.videos;
+  return {
+    galleryImages,
+    postVideos,
+    isMediaPost: galleryImages.length > 0 || postVideos.length > 0,
+  };
 }
 
 export function PostSummaryPane({
@@ -126,15 +118,11 @@ export function PostSummaryPane({
   const authorTint = getAuthorTint(authorName);
   const parsed = extractCommunityContent(post);
   const sharedBlog = parsed.sharedBlog ?? null;
-
-  const rawPrimaryImage = !sharedBlog
-    ? post.coverImageUrl || parsed.images[0]?.url || null
-    : null;
-  const primaryImage =
-    rawPrimaryImage && !rawPrimaryImage.includes('cld-sample-6.jpg')
-      ? rawPrimaryImage
-      : null;
-  const primaryCaption = parsed.images[0]?.caption;
+  const { galleryImages, postVideos, isMediaPost } = resolveSummaryMedia(
+    post,
+    parsed,
+    sharedBlog,
+  );
 
   return (
     <div className="rounded-[8px] border border-[#E5DAC4] bg-[#FDF9F0] p-4 md:p-5">
@@ -151,11 +139,7 @@ export function PostSummaryPane({
               <span className="text-[15px] font-semibold text-[#14233F]">
                 {authorName}
               </span>
-              {sharedBlog ? (
-                <span className="text-[13px] text-[#5C4E3C]">
-                  đã chia sẻ bài chuyên khảo từ <strong>HISGO Blog</strong>
-                </span>
-              ) : null}
+              <PostShareActionNote isSharedBlog={Boolean(sharedBlog)} isMediaPost={isMediaPost} />
               <span className="text-[12px] text-[#7A6B57]">·</span>
               <span className="text-[12px] text-[#7A6B57]">
                 {formatVietnameseRelativeTime(post.publishedAt || post.createdAt)}
@@ -181,20 +165,7 @@ export function PostSummaryPane({
           </div>
         </div>
 
-        <span
-          className={`inline-flex h-6 items-center gap-1 rounded-[5px] px-2.5 text-[11px] font-semibold ${
-            sharedBlog ? 'bg-[#F2E5C9] text-[#6B4E16]' : 'bg-[#E5EFE6] text-[#1E4620]'
-          }`}
-        >
-          {sharedBlog ? (
-            <>
-              <Share2 size={11} />
-              <span>Chia sẻ bài Blog</span>
-            </>
-          ) : (
-            <span>Câu hỏi / Thảo luận ngắn</span>
-          )}
-        </span>
+        <PostTypeBadge isSharedBlog={Boolean(sharedBlog)} compact />
       </div>
 
       {/* Nội dung câu hỏi / lời dẫn */}
@@ -221,14 +192,13 @@ export function PostSummaryPane({
         <SharedBlogPreviewCard sharedBlog={sharedBlog} onClose={onClose} />
       ) : null}
 
-      {/* Ảnh đính kèm bài ngắn nếu có */}
-      {primaryImage ? (
-        <PrimaryImageFigure
-          primaryImage={primaryImage}
-          primaryCaption={primaryCaption}
-          postTitle={post.title}
-        />
-      ) : null}
+      {/* Ảnh hoặc Video đính kèm */}
+      <CommunityPostMediaGallery
+        images={galleryImages}
+        videos={postVideos}
+        postTitle={post.title}
+        compact
+      />
 
       <PostActionBar
         postId={post.id}

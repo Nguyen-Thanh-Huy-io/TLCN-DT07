@@ -341,23 +341,47 @@ export function Header({
                   </div>
                   <Link
                     href="/tai-khoan"
+                    onClick={() => setUserMenuOpen(false)}
                     className="block px-3.5 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--bg-page)] hover:text-[var(--primary)] transition-colors"
                   >
-                    Tài khoản của tôi
+                    Hồ sơ tài khoản
                   </Link>
                   {isStaffRole(user.role) && (
                     <Link
                       href="/cms"
+                      onClick={() => setUserMenuOpen(false)}
                       className="block px-3.5 py-2 text-sm text-[var(--ink)] hover:bg-[var(--bg-page)] hover:text-[var(--primary)] transition-colors"
                     >
                       Vào trang quản trị
                     </Link>
                   )}
                   <Link
-                    href="/tai-khoan#hoc-tap"
+                    href="/tai-khoan?tab=hoc-tap"
+                    onClick={() => setUserMenuOpen(false)}
                     className="block px-3.5 py-2 text-sm text-[var(--ink)] hover:bg-[var(--bg-page)] hover:text-[var(--primary)] transition-colors"
                   >
                     Lộ trình của tôi
+                  </Link>
+                  <Link
+                    href="/tai-khoan?tab=the-ghi-nho"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block px-3.5 py-2 text-sm text-[var(--ink)] hover:bg-[var(--bg-page)] hover:text-[var(--primary)] transition-colors"
+                  >
+                    Thẻ ghi nhớ (SM-2)
+                  </Link>
+                  <Link
+                    href="/tai-khoan?tab=so-do-tu-duy"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block px-3.5 py-2 text-sm text-[var(--ink)] hover:bg-[var(--bg-page)] hover:text-[var(--primary)] transition-colors"
+                  >
+                    Sơ đồ tư duy
+                  </Link>
+                  <Link
+                    href="/tai-khoan?tab=tu-lieu"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block px-3.5 py-2 text-sm text-[var(--ink)] hover:bg-[var(--bg-page)] hover:text-[var(--primary)] transition-colors"
+                  >
+                    Tư liệu đã lưu
                   </Link>
                   <button
                     type="button"

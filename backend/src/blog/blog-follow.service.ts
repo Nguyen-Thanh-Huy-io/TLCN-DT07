@@ -3,7 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ContentStatus, NotificationType } from '@prisma/client';
+import {
+  ContentStatus,
+  NotificationType,
+  Prisma,
+  UserStatus,
+} from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { BlogGateway } from './blog.gateway';
@@ -15,7 +20,172 @@ import {
   formatUserDisplayName,
   mapBlogPost,
 } from './blog-mappers.util';
-import { UpdateCommunityProfileDto } from './dto/interact.dto';
+import {
+  COMMUNITY_MEMBERS_DEFAULT_LIMIT,
+  COMMUNITY_MEMBERS_MAX_LIMIT,
+  CommunityMemberFollowFilter,
+  CommunityMemberSort,
+  ListCommunityMembersQueryDto,
+  UpdateCommunityProfileDto,
+} from './dto/interact.dto';
+
+const SUGGESTED_MEMBERS_DEFAULT_LIMIT = 6;
+const SUGGESTED_MEMBERS_MAX_LIMIT = 20;
+const SUGGESTED_MEMBERS_CANDIDATE_TAKE = 30;
+const SCORE_WEIGHT_POST = 5;
+const SCORE_WEIGHT_FOLLOWER = 3;
+
+export interface CommunityMemberDirectoryItem {
+  id: string;
+  username: string;
+  displayName: string;
+  role: string;
+  bio: string | null;
+  avatarUrl: string | null;
+  postCount: number;
+  followerCount: number;
+  followingCount: number;
+  totalLikesReceived: number;
+  totalCommentsReceived: number;
+  followedByMe: boolean;
+  isMe: boolean;
+}
+
+export interface PaginatedCommunityMembersResult {
+  items: CommunityMemberDirectoryItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+type DirectoryMemberSource = {
+  id: string;
+  username: string;
+  role: string;
+  userProfile?: {
+    firstName?: string | null;
+    lastName?: string | null;
+    bio?: string | null;
+    avatarUrl?: string | null;
+  } | null;
+  blogPosts: Array<{
+    id: string;
+    likeCount?: number | null;
+    commentCount?: number | null;
+    viewCount?: number | null;
+  }>;
+  _count: {
+    followers: number;
+    following: number;
+  };
+};
+
+const MEMBER_DIRECTORY_INCLUDE = {
+  userProfile: true,
+  blogPosts: {
+    where: { status: ContentStatus.PUBLISHED },
+    select: {
+      id: true,
+      likeCount: true,
+      commentCount: true,
+      viewCount: true,
+    },
+  },
+  _count: { select: { followers: true, following: true } },
+} satisfies Prisma.authUserInclude;
+
+function mapDirectoryMemberRow(
+  user: DirectoryMemberSource,
+  followedSet: Set<string>,
+  viewerId?: string,
+): CommunityMemberDirectoryItem & { _score: number } {
+  const postCount = user.blogPosts.length;
+  const totalLikesReceived = user.blogPosts.reduce(
+    (sum, post) => sum + (post.likeCount ?? 0),
+    0,
+  );
+  const totalCommentsReceived = user.blogPosts.reduce(
+    (sum, post) => sum + (post.commentCount ?? 0),
+    0,
+  );
+  const followerCount = user._count.followers;
+  const _score =
+    postCount * SCORE_WEIGHT_POST +
+    followerCount * SCORE_WEIGHT_FOLLOWER +
+    totalLikesReceived;
+
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: formatUserDisplayName(user),
+    role: user.role,
+    bio: user.userProfile?.bio ?? null,
+    avatarUrl: user.userProfile?.avatarUrl ?? null,
+    postCount,
+    followerCount,
+    followingCount: user._count.following,
+    totalLikesReceived,
+    totalCommentsReceived,
+    followedByMe: followedSet.has(user.id),
+    isMe: viewerId === user.id,
+    _score,
+  };
+}
+
+function stripScoreField(
+  item: CommunityMemberDirectoryItem & { _score: number },
+): CommunityMemberDirectoryItem {
+  const result = { ...item };
+  delete (result as { _score?: number })._score;
+  return result;
+}
+
+function buildMemberSearchWhere(
+  search?: string,
+): Prisma.authUserWhereInput | undefined {
+  const tokens = (search ?? '')
+    .trim()
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+  if (tokens.length === 0) return undefined;
+
+  return {
+    AND: tokens.map((token) => ({
+      OR: [
+        { username: { contains: token, mode: 'insensitive' } },
+        {
+          userProfile: {
+            is: {
+              OR: [
+                { firstName: { contains: token, mode: 'insensitive' } },
+                { lastName: { contains: token, mode: 'insensitive' } },
+                { bio: { contains: token, mode: 'insensitive' } },
+              ],
+            },
+          },
+        },
+      ],
+    })),
+  };
+}
+
+function buildMemberOrderBy(
+  sort?: CommunityMemberSort,
+): Prisma.authUserOrderByWithRelationInput[] {
+  if (sort === CommunityMemberSort.FOLLOWERS) {
+    return [{ followers: { _count: 'desc' } }, { createdAt: 'desc' }];
+  }
+  if (sort === CommunityMemberSort.NEWEST) {
+    return [{ createdAt: 'desc' }];
+  }
+  return [
+    { blogPosts: { _count: 'desc' } },
+    { followers: { _count: 'desc' } },
+    { createdAt: 'desc' },
+  ];
+}
 
 const MEMBER_CARD_USER_SELECT = {
   id: true,
@@ -163,23 +333,18 @@ export class BlogFollowService {
     };
   }
 
-  async getSuggestedMembers(viewerId?: string, limit = 6) {
+  async getSuggestedMembers(
+    viewerId?: string,
+    limit = SUGGESTED_MEMBERS_DEFAULT_LIMIT,
+  ): Promise<CommunityMemberDirectoryItem[]> {
     const users = await this.prisma.authUser.findMany({
-      where: { status: 'ACTIVE', deletedAt: null },
-      include: {
-        userProfile: true,
-        blogPosts: {
-          where: { status: 'PUBLISHED' },
-          select: {
-            id: true,
-            likeCount: true,
-            commentCount: true,
-            viewCount: true,
-          },
-        },
-        _count: { select: { followers: true, following: true } },
+      where: {
+        status: UserStatus.ACTIVE,
+        deletedAt: null,
+        ...(viewerId ? { id: { not: viewerId } } : {}),
       },
-      take: 30,
+      include: MEMBER_DIRECTORY_INCLUDE,
+      take: SUGGESTED_MEMBERS_CANDIDATE_TAKE,
     });
 
     const followedSet = await this.getFollowedAuthorSet(
@@ -187,43 +352,75 @@ export class BlogFollowService {
       viewerId,
     );
 
+    const safeLimit = Math.min(
+      Math.max(Number(limit) || SUGGESTED_MEMBERS_DEFAULT_LIMIT, 1),
+      SUGGESTED_MEMBERS_MAX_LIMIT,
+    );
+
     return users
-      .map((u) => {
-        const postCount = u.blogPosts.length;
-        const totalLikesReceived = u.blogPosts.reduce(
-          (sum, p) => sum + (p.likeCount ?? 0),
-          0,
-        );
-        const totalCommentsReceived = u.blogPosts.reduce(
-          (sum, p) => sum + (p.commentCount ?? 0),
-          0,
-        );
-        const followerCount = u._count.followers;
-        const score = postCount * 5 + followerCount * 3 + totalLikesReceived;
-        return {
-          id: u.id,
-          username: u.username,
-          displayName: formatUserDisplayName(u),
-          role: u.role,
-          bio: u.userProfile?.bio ?? null,
-          avatarUrl: u.userProfile?.avatarUrl ?? null,
-          postCount,
-          followerCount,
-          followingCount: u._count.following,
-          totalLikesReceived,
-          totalCommentsReceived,
-          followedByMe: followedSet.has(u.id),
-          isMe: viewerId === u.id,
-          _score: score,
-        };
-      })
+      .map((u) => mapDirectoryMemberRow(u, followedSet, viewerId))
       .sort((a, b) => b._score - a._score)
-      .slice(0, Math.min(Math.max(Number(limit) || 6, 1), 20))
-      .map((item) => {
-        const result = { ...item };
-        delete (result as { _score?: number })._score;
-        return result;
-      });
+      .slice(0, safeLimit)
+      .map(stripScoreField);
+  }
+
+  async listCommunityMembers(
+    viewerId: string | undefined,
+    query: ListCommunityMembersQueryDto,
+  ): Promise<PaginatedCommunityMembersResult> {
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(
+      Math.max(Number(query.limit) || COMMUNITY_MEMBERS_DEFAULT_LIMIT, 1),
+      COMMUNITY_MEMBERS_MAX_LIMIT,
+    );
+
+    if (!viewerId && query.filter === CommunityMemberFollowFilter.FOLLOWING) {
+      return { items: [], total: 0, page, limit, totalPages: 0 };
+    }
+
+    const searchWhere = buildMemberSearchWhere(query.search);
+    const followWhere: Prisma.authUserWhereInput =
+      viewerId && query.filter === CommunityMemberFollowFilter.FOLLOWING
+        ? { followers: { some: { followerId: viewerId } } }
+        : viewerId && query.filter === CommunityMemberFollowFilter.NOT_FOLLOWING
+          ? {
+              id: { not: viewerId },
+              followers: { none: { followerId: viewerId } },
+            }
+          : {};
+
+    const where: Prisma.authUserWhereInput = {
+      status: UserStatus.ACTIVE,
+      deletedAt: null,
+      ...followWhere,
+      ...(searchWhere ?? {}),
+    };
+
+    const [users, total] = await Promise.all([
+      this.prisma.authUser.findMany({
+        where,
+        include: MEMBER_DIRECTORY_INCLUDE,
+        orderBy: buildMemberOrderBy(query.sort),
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.authUser.count({ where }),
+    ]);
+
+    const followedSet = await this.getFollowedAuthorSet(
+      users.map((u) => u.id),
+      viewerId,
+    );
+
+    return {
+      items: users
+        .map((u) => mapDirectoryMemberRow(u, followedSet, viewerId))
+        .map(stripScoreField),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async getCommunityProfile(identifier: string, viewerId?: string) {

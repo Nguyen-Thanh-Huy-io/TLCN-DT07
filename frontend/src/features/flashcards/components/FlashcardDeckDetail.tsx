@@ -295,16 +295,16 @@ export function FlashcardDeckDetail({
                 <div className="space-y-2">
                   <div className="grid gap-2 sm:grid-cols-2">
                     <textarea
-                      rows={2}
+                      rows={3}
                       value={editFront}
                       onChange={(e) => setEditFront(e.target.value)}
-                      className="rounded-lg border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)]/40 p-2 text-xs outline-none"
+                      className="rounded-lg border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)]/40 p-2 text-xs leading-relaxed outline-none"
                     />
                     <textarea
-                      rows={2}
+                      rows={4}
                       value={editBack}
                       onChange={(e) => setEditBack(e.target.value)}
-                      className="rounded-lg border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)]/40 p-2 text-xs outline-none"
+                      className="rounded-lg border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)]/40 p-2 text-xs leading-relaxed outline-none"
                     />
                   </div>
                   <div className="flex justify-end gap-1.5">
@@ -328,8 +328,8 @@ export function FlashcardDeckDetail({
               ) : (
                 <div className="flex items-start justify-between gap-3">
                   <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
-                    <div className="text-xs font-bold text-[var(--text-body,#2D1A10)]">{card.front}</div>
-                    <div className="text-xs text-[var(--text-muted,#7A6B57)]">{card.back}</div>
+                    <div className="whitespace-pre-line text-xs font-bold leading-relaxed text-[var(--text-body,#2D1A10)]">{card.front}</div>
+                    <div className="whitespace-pre-line text-xs leading-relaxed text-[var(--text-muted,#7A6B57)]">{card.back}</div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     <span className="rounded border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)] px-2 py-0.5 text-[10px] font-semibold text-[var(--primary,#7A1F24)]">

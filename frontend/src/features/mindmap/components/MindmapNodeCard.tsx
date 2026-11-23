@@ -649,7 +649,7 @@ export function MindmapNodeCard({
       : NODE_SIZE_MAX_WIDTH[MindmapNodeSize.LG];
 
   return (
-    <div
+      <div
       ref={onRegisterRef}
       data-mindmap-node-id={node.id}
       onPointerDown={onPointerDown}

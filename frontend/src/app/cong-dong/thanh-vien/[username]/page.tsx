@@ -30,9 +30,7 @@ export default async function CommunityMemberProfilePage({ params }: MemberProfi
 
   return (
     <div className="min-h-screen overflow-x-clip bg-[#F5EEDC] text-[#14233F] font-[family-name:var(--font-body)]">
-      <div data-ui="site-header">
-        <Header activeTab="community" />
-      </div>
+      <Header activeTab="community" />
       <main>
         <CommunityProfileView
           initialProfile={initialProfile}
@@ -40,9 +38,7 @@ export default async function CommunityMemberProfilePage({ params }: MemberProfi
           isPersonalRoute={decoded === SSR_ME_IDENTIFIER}
         />
       </main>
-      <div data-ui="site-footer">
-        <Footer />
-      </div>
+      <Footer />
     </div>
   );
 }

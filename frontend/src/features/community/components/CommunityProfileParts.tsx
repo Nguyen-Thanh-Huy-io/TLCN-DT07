@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { Share2, Check, UserPlus, X, Search } from 'lucide-react';
 import { UserRole } from '@/constants/enums';
-import { type CommunityMemberProfile, type CommunityMemberSummary, type CommunityPost } from '../api';
+import { COMMUNITY_FEED_PAGE_SIZE, type CommunityMemberProfile, type CommunityMemberSummary, type CommunityPost } from '../api';
+import { useInfiniteScrollObserver } from '../hooks/useCommunityFeedHooks';
 import { getAuthorTint, getInitials } from '../utils/community-feed.helper';
 import { PostCard } from './PostCard';
 
@@ -48,40 +49,28 @@ export function getRoleLabel(role?: string): string {
 // --- ProfileHeaderKpi.tsx ---
 export interface ProfileHeaderKpiProps {
   profile: CommunityMemberProfile;
-  computedStats: ProfileComputedStats;
   isMe: boolean;
   followLoading: boolean;
   onOpenBlogShareComposer: () => void;
   onToggleFollowProfile: () => Promise<void>;
-  onSelectTab: (tab: ProfileTabKey) => void;
 }
 
 export function ProfileHeaderKpi({
   profile,
-  computedStats,
   isMe,
   followLoading,
   onOpenBlogShareComposer,
   onToggleFollowProfile,
-  onSelectTab,
 }: ProfileHeaderKpiProps) {
   return (
-    <div className="rounded-[8px] border border-[#E3D6BE] bg-[#FAF5E6] p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="rounded-[10px] border border-[#E3D6BE] bg-[#FAF5E6] px-6 py-5 md:px-7">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="text-[22px] font-bold leading-snug text-[#14233F]">
+          <h1 className="text-[24px] font-bold leading-snug text-[#14233F] md:text-[28px]">
             {isMe
               ? `Hồ sơ Cộng đồng: ${profile.user.displayName}`
               : profile.user.displayName}
           </h1>
-          <p className="mt-1 text-[14px] text-[#5C4E3C] tabular-nums">
-            Đã đóng góp <strong className="text-[#14233F]">{computedStats.postCount}</strong> bài
-            thảo luận ({computedStats.sharedBlogCount} chuyên khảo Blog) · Nhận{' '}
-            <strong className="text-[#14233F]">{computedStats.totalLikesReceived}</strong> lượt
-            thích và{' '}
-            <strong className="text-[#14233F]">{computedStats.totalCommentsReceived}</strong>{' '}
-            phản hồi từ cộng đồng.
-          </p>
         </div>
 
         {/* Nút thao tác chính ở góc phải dòng tiêu đề */}
@@ -90,9 +79,9 @@ export function ProfileHeaderKpi({
             <button
               type="button"
               onClick={onOpenBlogShareComposer}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[6px] border border-[#D8C8AA] bg-[#FDF9F0] px-3.5 text-[13px] font-semibold text-[#14233F] transition-colors hover:border-[#8A5A19]"
+              className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-[#D8C8AA] bg-[#FDF9F0] px-4 text-[14px] font-semibold text-[#14233F] transition-colors hover:border-[#8A5A19] cursor-pointer"
             >
-              <Share2 size={14} className="text-[#8A5A19]" />
+              <Share2 size={15} className="text-[#8A5A19]" />
               <span>Chia sẻ bài từ Blog</span>
             </button>
           ) : (
@@ -100,7 +89,7 @@ export function ProfileHeaderKpi({
               type="button"
               onClick={() => void onToggleFollowProfile()}
               disabled={followLoading}
-              className={`inline-flex h-9 items-center gap-1.5 rounded-[6px] px-4 text-[13px] font-semibold transition-colors ${
+              className={`inline-flex h-10 items-center gap-2 rounded-[8px] px-4.5 text-[14px] font-semibold transition-colors cursor-pointer ${
                 profile.followedByMe
                   ? 'border border-[#D8C8AA] bg-[#FDF9F0] text-[#14233F] hover:border-[#7A1F24] hover:text-[#7A1F24]'
                   : 'bg-[#7A1F24] text-[#FAF5E6] hover:bg-[#651A1E]'
@@ -108,73 +97,18 @@ export function ProfileHeaderKpi({
             >
               {profile.followedByMe ? (
                 <>
-                  <Check size={15} />
+                  <Check size={16} />
                   <span>Đang theo dõi</span>
                 </>
               ) : (
                 <>
-                  <UserPlus size={15} />
+                  <UserPlus size={16} />
                   <span>Theo dõi</span>
                 </>
               )}
             </button>
           )}
         </div>
-      </div>
-
-      {/* Divided KPI Strip (1 container split by 1px hairlines) */}
-      <div className="mt-5 grid grid-cols-2 divide-y divide-[#E3D6BE] rounded-[6px] border border-[#E3D6BE] bg-[#FDF9F0] md:grid-cols-4 md:divide-x md:divide-y-0">
-        <button
-          type="button"
-          onClick={() => onSelectTab(ProfileTabKey.POSTS)}
-          className="p-4 text-left transition-colors hover:bg-[#F3EAD8]"
-        >
-          <p className="text-[13px] text-[#5C4E3C]">Tổng đóng góp</p>
-          <p className="mt-1 text-[28px] font-semibold leading-none text-[#14233F] tabular-nums">
-            {computedStats.postCount}{' '}
-            <span className="text-[13px] font-normal text-[#5C4E3C]">bài</span>
-          </p>
-          <p className="mt-1.5 text-[12px] text-[#6E5D4B] tabular-nums">
-            {computedStats.questionPostCount} thảo luận · {computedStats.sharedBlogCount} bài Blog
-          </p>
-        </button>
-
-        <div className="p-4 text-left">
-          <p className="text-[13px] text-[#5C4E3C]">Lượt thích nhận được</p>
-          <p className="mt-1 text-[22px] font-normal leading-none text-[#14233F] tabular-nums">
-            {computedStats.totalLikesReceived}{' '}
-            <span className="text-[13px] text-[#5C4E3C]">lượt thích</span>
-          </p>
-          <p className="mt-2 text-[12px] text-[#6E5D4B] tabular-nums">
-            Trên tổng {computedStats.totalViewsReceived} lượt đọc
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => onSelectTab(ProfileTabKey.FOLLOWERS)}
-          className="p-4 text-left transition-colors hover:bg-[#F3EAD8]"
-        >
-          <p className="text-[13px] text-[#5C4E3C]">Người theo dõi</p>
-          <p className="mt-1 text-[22px] font-normal leading-none text-[#14233F] tabular-nums">
-            {computedStats.followerCount}{' '}
-            <span className="text-[13px] text-[#5C4E3C]">thành viên</span>
-          </p>
-          <p className="mt-2 text-[12px] text-[#7A1F24]">Xem danh sách theo dõi</p>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onSelectTab(ProfileTabKey.FOLLOWING)}
-          className="p-4 text-left transition-colors hover:bg-[#F3EAD8]"
-        >
-          <p className="text-[13px] text-[#5C4E3C]">Đang theo dõi</p>
-          <p className="mt-1 text-[22px] font-normal leading-none text-[#14233F] tabular-nums">
-            {computedStats.followingCount}{' '}
-            <span className="text-[13px] text-[#5C4E3C]">thành viên</span>
-          </p>
-          <p className="mt-2 text-[12px] text-[#7A1F24]">Xem mạng lưới kết nối</p>
-        </button>
       </div>
     </div>
   );
@@ -325,6 +259,29 @@ export function ProfilePostsList({
   onLikeUpdate,
   onBookmarkUpdate,
 }: ProfilePostsListProps) {
+  const filterKey = `${activeTab}:${selectedTopic ?? ''}:${searchQuery}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  const [visibleCount, setVisibleCount] = useState(COMMUNITY_FEED_PAGE_SIZE);
+
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setVisibleCount(COMMUNITY_FEED_PAGE_SIZE);
+  }
+
+  const hasMorePosts = visibleCount < filteredPosts.length;
+  const loadMoreProfilePosts = useCallback(() => {
+    setVisibleCount((prev) =>
+      Math.min(prev + COMMUNITY_FEED_PAGE_SIZE, filteredPosts.length),
+    );
+  }, [filteredPosts.length]);
+
+  const sentinelRef = useInfiniteScrollObserver({
+    enabled: hasMorePosts,
+    isLoading: false,
+    triggerKey: `${filteredPosts.length}:${visibleCount}`,
+    onLoadMore: loadMoreProfilePosts,
+  });
+
   if (filteredPosts.length === 0) {
     return (
       <div className="rounded-[8px] border border-dashed border-[#D8C8AA] bg-[#FDF9F0] p-8 text-center">
@@ -351,9 +308,11 @@ export function ProfilePostsList({
     );
   }
 
+  const visiblePosts = filteredPosts.slice(0, visibleCount);
+
   return (
     <div className="space-y-6">
-      {filteredPosts.map((post) => (
+      {visiblePosts.map((post, idx) => (
         <PostCard
           key={post.id}
           post={post}
@@ -362,8 +321,21 @@ export function ProfilePostsList({
           onLikeUpdate={onLikeUpdate}
           onBookmarkUpdate={onBookmarkUpdate}
           showFollowButton={false}
+          priorityLcp={idx === 0}
         />
       ))}
+
+      {hasMorePosts ? (
+        <div ref={sentinelRef} className="pt-2 text-center">
+          <button
+            type="button"
+            onClick={loadMoreProfilePosts}
+            className="h-10 rounded-[6px] border border-[#D8C8AA] bg-[#FDF9F0] px-5 text-[14px] font-medium text-[#14233F] hover:border-[#8A5A19] cursor-pointer"
+          >
+            Tải thêm bài viết
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -377,7 +349,6 @@ export interface ProfileTabsToolbarProps {
   onSearchQueryChange: (val: string) => void;
   selectedTopic: string | null;
   onClearTopic: () => void;
-  totalFilteredCount: number;
 }
 
 export function ProfileTabsToolbar({
@@ -388,15 +359,14 @@ export function ProfileTabsToolbar({
   onSearchQueryChange,
   selectedTopic,
   onClearTopic,
-  totalFilteredCount,
 }: ProfileTabsToolbarProps) {
   const isMemberTab = activeTab === ProfileTabKey.FOLLOWERS || activeTab === ProfileTabKey.FOLLOWING;
 
   return (
-    <div className="rounded-[8px] border border-[#E3D6BE] bg-[#FAF5E6] p-6 pb-5">
-      {/* Underline Tabs trên đường kẻ 1px */}
+    <div className="rounded-[10px] border border-[#E3D6BE] bg-[#FAF5E6] p-5 pb-5 md:px-6">
+      {/* Underline Tabs trên đường kẻ 1px (luôn giữ trên 1 hàng) */}
       <div className="border-b border-[#E3D6BE]">
-        <div className="flex flex-wrap items-center gap-6">
+        <div className="flex flex-nowrap items-center gap-x-3.5 xl:gap-x-4 2xl:gap-x-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.key;
             const Icon = tab.icon;
@@ -405,15 +375,15 @@ export function ProfileTabsToolbar({
                 key={tab.key}
                 type="button"
                 onClick={() => onSelectTab(tab.key)}
-                className={`inline-flex items-center gap-2 border-b-2 pb-3 text-[14px] transition-colors ${
+                className={`inline-flex shrink-0 items-center gap-1.5 border-b-2 pb-3 text-[13.5px] xl:text-[14px] whitespace-nowrap transition-colors cursor-pointer ${
                   isActive
                     ? 'border-[#7A1F24] font-semibold text-[#14233F]'
-                    : 'border-transparent font-normal text-[#5C4E3C] hover:text-[#14233F]'
+                    : 'border-transparent font-medium text-[#5C4E3C] hover:text-[#14233F]'
                 }`}
               >
                 <Icon size={15} className={isActive ? 'text-[#7A1F24]' : 'text-[#6E5D4B]'} />
                 <span>{tab.label}</span>
-                <span className="rounded-[4px] bg-[#F1E6D0] px-1.5 py-0.5 text-[12px] text-[#5C4E3C] tabular-nums">
+                <span className="rounded-[5px] bg-[#F1E6D0] px-1.5 py-0.5 text-[11.5px] font-semibold text-[#5C4E3C] tabular-nums">
                   {tab.count}
                 </span>
               </button>
@@ -424,10 +394,10 @@ export function ProfileTabsToolbar({
 
       {/* Thanh công cụ lọc nhanh */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="relative w-full sm:w-[296px]">
+        <div className="relative w-full sm:w-[420px]">
           <Search
-            size={14}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6E5D4B]"
+            size={15}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E5D4B]"
           />
           <input
             type="search"
@@ -439,23 +409,23 @@ export function ProfileTabsToolbar({
                 : 'Tìm trong các bài thảo luận...'
             }
             aria-label="Tìm kiếm trong hồ sơ"
-            className="h-9 w-full rounded-[6px] border border-[#DFD1B8] bg-[#FDF9F0] pl-8 pr-7 text-[13.5px] text-[#14233F] placeholder:text-[#6E5D4B] outline-none focus:border-[#8A5A19]"
+            className="h-10 w-full rounded-[8px] border border-[#DFD1B8] bg-[#FDF9F0] pl-9 pr-8 text-[14px] text-[#14233F] placeholder:text-[#6E5D4B] outline-none focus:border-[#8A5A19]"
           />
           {searchQuery ? (
             <button
               type="button"
               onClick={() => onSearchQueryChange('')}
               aria-label="Xóa từ khóa"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6E5D4B]"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6E5D4B]"
             >
-              <X size={13} />
+              <X size={14} />
             </button>
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2 text-[13px] text-[#5C4E3C] tabular-nums">
-          {selectedTopic ? (
-            <span className="inline-flex items-center gap-1 rounded-[4px] bg-[#7A1F24] px-2 py-0.5 text-[12px] font-semibold text-[#FAF5E6]">
+        {selectedTopic ? (
+          <div className="flex items-center gap-2 text-[14px] text-[#5C4E3C]">
+            <span className="inline-flex items-center gap-1 rounded-[5px] bg-[#7A1F24] px-2.5 py-0.5 text-[12.5px] font-semibold text-[#FAF5E6]">
               <span>#{selectedTopic}</span>
               <button
                 type="button"
@@ -465,12 +435,8 @@ export function ProfileTabsToolbar({
                 <X size={12} />
               </button>
             </span>
-          ) : null}
-          <span>
-            Hiển thị <strong className="text-[#14233F]">{totalFilteredCount}</strong>{' '}
-            {isMemberTab ? 'thành viên' : 'bài viết'}
-          </span>
-        </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

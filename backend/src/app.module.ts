@@ -11,6 +11,7 @@ import { RateLimitModule } from './common/modules/rate-limit.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './common/config/winston.config';
+import { GoogleAiModule } from './common/modules/google-ai.module';
 import { LoggerModule } from './common/modules/logger.module';
 
 import { TopicModule } from './topic/topic.module';
@@ -34,6 +35,7 @@ import { FlashcardModule } from './flashcard/flashcard.module';
 import { MindmapModule } from './mindmap/mindmap.module';
 import { GamificationModule } from './gamification/gamification.module';
 import { SavedMaterialModule } from './saved-material/saved-material.module';
+import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
 import { QueueModule } from './common/modules/queue.module';
 import { ModerationModule } from './moderation/moderation.module';
 
@@ -49,6 +51,8 @@ import { ModerationModule } from './moderation/moderation.module';
     WinstonModule.forRoot(winstonConfig),
     // Custom logger module (global - can be injected anywhere)
     LoggerModule,
+    // Google Cloud Vertex AI / Gemini client module (global)
+    GoogleAiModule,
     // Redis module (global - can be injected anywhere)
     RedisModule,
     // BullMQ Queue module
@@ -81,6 +85,7 @@ import { ModerationModule } from './moderation/moderation.module';
     MindmapModule,
     GamificationModule,
     SavedMaterialModule,
+    AiAssistantModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -6,6 +6,8 @@ import {
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AuthGuard } from '../common/guards/auth.guard';
+import { MindmapAiService } from './mindmap-ai.service';
+import { MindmapAiEngine } from './mindmap.constant';
 import { MindmapController } from './mindmap.controller';
 import { MindmapService } from './mindmap.service';
 
@@ -18,11 +20,17 @@ describe('MindmapController (HTTP Integration)', () => {
     update: jest.fn(),
     remove: jest.fn(),
   };
+  const mindmapAiMock = {
+    generatePreview: jest.fn(),
+  };
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [MindmapController],
-      providers: [{ provide: MindmapService, useValue: mindmapMock }],
+      providers: [
+        { provide: MindmapService, useValue: mindmapMock },
+        { provide: MindmapAiService, useValue: mindmapAiMock },
+      ],
     })
       .overrideGuard(AuthGuard)
       .useValue({
@@ -124,5 +132,26 @@ describe('MindmapController (HTTP Integration)', () => {
 
     expect(mindmapMock.remove).toHaveBeenCalledWith('user-test-1', validUuid);
     expect(res.body.deleted).toBe(true);
+  });
+
+  it('POST /mindmaps/generate-preview gọi MindmapAiService.generatePreview', async () => {
+    mindmapAiMock.generatePreview.mockResolvedValue({
+      title: 'Sơ đồ AI',
+      graph: { nodes: [], edges: [] },
+      engine: MindmapAiEngine.GEMINI_FLASH,
+      noteCount: 0,
+      articleCount: 0,
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/mindmaps/generate-preview')
+      .send({ prompt: 'Khởi nghĩa Lam Sơn' })
+      .expect(201);
+
+    expect(mindmapAiMock.generatePreview).toHaveBeenCalledWith(
+      'user-test-1',
+      expect.objectContaining({ prompt: 'Khởi nghĩa Lam Sơn' }),
+    );
+    expect(res.body.title).toBe('Sơ đồ AI');
   });
 });

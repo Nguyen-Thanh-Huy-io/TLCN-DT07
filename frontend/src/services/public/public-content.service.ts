@@ -146,6 +146,7 @@ export interface PublicBlogPostSummary {
   contentBlocks: unknown;
   status: string;
   isFeatured: boolean;
+  viewCount?: number;
   publishedAt: string | null;
   updatedAt: string;
   createdAt: string;

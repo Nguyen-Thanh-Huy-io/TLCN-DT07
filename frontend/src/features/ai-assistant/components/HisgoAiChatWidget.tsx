@@ -1,0 +1,329 @@
+'use client';
+
+import React, { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import {
+  ArrowUp,
+  Loader2,
+  Maximize2,
+  MessageCircle,
+  Minimize2,
+  RotateCcw,
+  Sparkles,
+  X,
+} from 'lucide-react';
+import { KeyboardKey } from '@/constants/enums';
+import { extractErrorMessage } from '@/services/api';
+import {
+  AI_ASSISTANT_QUICK_PROMPTS,
+  AI_ASSISTANT_WELCOME_MESSAGE,
+  AssistantChatRole,
+} from '../constants/ai-assistant.constants';
+import { AiAssistantApiService } from '../services/ai-assistant.service';
+import {
+  AssistantMessageAttachments,
+  type ChatMessageItem,
+  renderFormattedText,
+} from './HisgoAiChatWidgetParts';
+
+const HEADER_ICON_BTN_CLASS =
+  'rounded-lg p-1.5 text-white/75 hover:bg-white/15 hover:text-white cursor-pointer';
+
+function createInitialMessages(): ChatMessageItem[] {
+  return [
+    {
+      id: 'welcome-msg',
+      role: AssistantChatRole.ASSISTANT,
+      content: AI_ASSISTANT_WELCOME_MESSAGE,
+      quickActions: [
+        { label: 'Thẻ ghi nhớ AI', href: '/tai-khoan?tab=the-ghi-nho' },
+        { label: 'Sơ đồ tư duy AI', href: '/tai-khoan?tab=so-do-tu-duy' },
+        { label: 'Phòng Luyện tập', href: '/luyen-tap' },
+      ],
+    },
+  ];
+}
+
+/** Trích xuất tiêu đề và nội dung chính đang hiển thị trên màn hình để AI hiểu ngữ cảnh trang. */
+function extractCurrentPageDomContext(): string {
+  if (typeof document === 'undefined') return '';
+  const headings: string[] = [];
+  const root = document.querySelector('main') ?? document.body;
+  root.querySelectorAll('h1, h2, h3').forEach((el) => {
+    if (el.closest('[role="dialog"]')) return;
+    const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (text && text.length >= 3 && !headings.includes(text)) {
+      headings.push(text);
+    }
+  });
+  const paragraphs: string[] = [];
+  root.querySelectorAll('p').forEach((el) => {
+    if (el.closest('[role="dialog"]')) return;
+    const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (text && text.length >= 25 && paragraphs.length < 5) {
+      paragraphs.push(text);
+    }
+  });
+  return [
+    headings.length > 0
+      ? `Các mục tiêu đề trên trang: ${headings.slice(0, 8).join(' | ')}`
+      : '',
+    paragraphs.length > 0 ? `Nội dung chính: ${paragraphs.join(' — ')}` : '',
+  ]
+    .filter(Boolean)
+    .join('. ')
+    .slice(0, 1400);
+}
+
+/** Biểu tượng Chatbox AI cố định ở góc dưới bên phải mọi trang của HISGO. */
+export function HisgoAiChatWidget() {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [messages, setMessages] = useState<ChatMessageItem[]>(
+    createInitialMessages,
+  );
+  const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: 'smooth',
+    });
+  }, [messages, open, sending]);
+
+  const handleSend = async (rawText?: string) => {
+    const text = (rawText ?? input).trim();
+    if (!text || sending) return;
+
+    const userMsg: ChatMessageItem = {
+      id: `u-${Date.now()}`,
+      role: AssistantChatRole.USER,
+      content: text,
+    };
+
+    const recentHistory = messages
+      .slice(-6)
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    setMessages((prev) => [...prev, userMsg]);
+    if (!rawText) setInput('');
+    setSending(true);
+
+    try {
+      const pageContext = extractCurrentPageDomContext();
+      const res = await AiAssistantApiService.chat({
+        message: text,
+        currentPath: pathname || '/',
+        ...(pageContext ? { pageContext } : {}),
+        history: recentHistory,
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `a-${Date.now()}`,
+          role: AssistantChatRole.ASSISTANT,
+          content: res.reply,
+          suggestedLinks: res.suggestedLinks,
+          sourceCitations: res.sourceCitations,
+          quickActions: res.quickActions,
+        },
+      ]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `err-${Date.now()}`,
+          role: AssistantChatRole.ASSISTANT,
+          content: extractErrorMessage(
+            err,
+            'Xin lỗi, kết nối tới Sử Gia AI đang tạm gián đoạn. Bạn vui lòng thử lại nhé!',
+          ),
+        },
+      ]);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleReset = () => {
+    setMessages(createInitialMessages());
+  };
+
+  return (
+    <div className="fixed bottom-20 right-6 z-50 print:hidden">
+      {open && (
+        <div
+          role="dialog"
+          aria-label="Trợ lý Sử học AI HISGO"
+          className={`mb-3 flex flex-col overflow-hidden rounded-2xl border border-[#D4AE67]/70 bg-[#FFFCF5] text-stone-900 shadow-[0_18px_54px_rgba(45,26,16,0.28)] transition-all ${
+            expanded
+              ? 'h-[84vh] w-[calc(100vw-32px)] sm:h-[750px] sm:w-[600px]'
+              : 'h-[620px] w-[calc(100vw-32px)] sm:w-[460px]'
+          }`}
+        >
+          <div className="flex items-center justify-between border-b border-[#D4AE67]/35 bg-gradient-to-r from-[#4E1015] via-[#65171D] to-[#4E1015] px-5 py-3.5 text-white">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#C99C48] to-[#B8893F] text-[#3D0A0E] shadow-xs">
+                <Sparkles size={18} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="truncate font-[family-name:var(--font-heading)] text-base font-extrabold text-[#FFF6E3]">
+                  Sử Gia AI · Trợ lý HISGO
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleReset}
+                title="Làm mới đoạn hội thoại"
+                className={HEADER_ICON_BTN_CLASS}
+              >
+                <RotateCcw size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                title={expanded ? 'Thu nhỏ khung chat' : 'Mở rộng khung chat'}
+                className={`hidden sm:inline-flex ${HEADER_ICON_BTN_CLASS}`}
+              >
+                {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                title="Đóng hộp thoại"
+                aria-label="Đóng hộp thoại"
+                className={HEADER_ICON_BTN_CLASS}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          <div
+            ref={scrollRef}
+            className="flex-1 space-y-4 overflow-y-auto p-4 text-sm"
+          >
+            {messages.map((msg) => {
+              const isUser = msg.role === AssistantChatRole.USER;
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-2xs ${
+                      isUser
+                        ? 'rounded-br-xs bg-gradient-to-r from-[#7A1F24] to-[#91252B] text-white'
+                        : 'rounded-bl-xs border border-[var(--border,#E2D5B8)] bg-white text-stone-800'
+                    }`}
+                  >
+                    {isUser ? (
+                      <p>{msg.content}</p>
+                    ) : (
+                      <>
+                        {renderFormattedText(msg.content)}
+                        <AssistantMessageAttachments
+                          links={msg.suggestedLinks}
+                          citations={msg.sourceCitations}
+                          actions={msg.quickActions}
+                          onNavigate={() => setOpen(false)}
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {sending && (
+              <div className="flex justify-start">
+                <div className="inline-flex items-center gap-2.5 rounded-2xl border border-[var(--border,#E2D5B8)] bg-white px-4 py-3 text-sm text-stone-600">
+                  <Loader2 size={15} className="animate-spin text-[#7A1F24]" />
+                  <span>Sử Gia AI đang tra cứu sử liệu…</span>
+                </div>
+              </div>
+            )}
+
+            {messages.length <= 2 && !sending && (
+              <div className="space-y-2 pt-1.5">
+                <span className="block text-xs font-bold uppercase tracking-wider text-stone-500">
+                  Gợi ý hỏi nhanh
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {AI_ASSISTANT_QUICK_PROMPTS.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => void handleSend(item.prompt)}
+                      className="rounded-xl border border-[var(--border,#E2D5B8)] bg-white px-3.5 py-2 text-left text-xs font-semibold text-stone-700 transition hover:border-[var(--gold,#B8893F)] hover:bg-[var(--bg-page,#F5EEDC)]/60 hover:text-[#7A1F24] cursor-pointer"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleSend();
+            }}
+            className="border-t border-[var(--border,#E2D5B8)] bg-white p-3.5"
+          >
+            <div className="flex items-center gap-2.5 rounded-xl border border-[var(--border,#E2D5B8)] bg-[#FFFCF5] px-3.5 py-2.5 focus-within:border-[var(--gold,#B8893F)]">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === KeyboardKey.ESCAPE) setOpen(false);
+                }}
+                maxLength={1500}
+                placeholder="Hỏi về Lịch sử Việt Nam, Thế giới hoặc tính năng HISGO…"
+                className="min-w-0 flex-1 bg-transparent text-sm text-stone-800 placeholder:text-stone-400 outline-none"
+              />
+              <button
+                type="submit"
+                disabled={sending || !input.trim()}
+                aria-label="Gửi tin nhắn"
+                className="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-r from-[#7A1F24] to-[#B8893F] text-white shadow-2xs transition hover:brightness-110 disabled:opacity-35 cursor-pointer"
+              >
+                <ArrowUp size={16} />
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? 'Đóng Trợ lý AI' : 'Mở Trợ lý Sử học AI HISGO'}
+          title="Trợ lý Sử học AI HISGO"
+          className="group relative grid size-12 place-items-center rounded-full border-2 border-[#D4AE67] bg-gradient-to-br from-[#7A1F24] via-[#91252B] to-[#5E1519] text-[#FFF6E3] shadow-[0_8px_28px_rgba(122,31,36,0.42)] transition-all duration-200 hover:scale-105 hover:brightness-110 cursor-pointer"
+        >
+          {open ? (
+            <X size={20} />
+          ) : (
+            <>
+              <MessageCircle size={21} className="text-[#FFF6E3]" />
+              <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-[#D4AE67] text-[#3D0A0E] shadow-xs">
+                <Sparkles size={10} />
+              </span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}

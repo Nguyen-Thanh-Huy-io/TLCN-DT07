@@ -5,14 +5,88 @@ import { ShieldCheck, X } from 'lucide-react';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { UploadApiService } from '@/services/entities/upload.service';
 import { ComposerMode } from '@/constants/enums';
-import { CommunityApi, type CommunityPost, type SharedBlogEmbed } from '../api';
-import { resolvePostTitlesAndContent, buildFilterBlogs, applyInitialBlogSelection, ComposerImageUploadSection, ComposerModeSwitcher, ComposerTagsSection, SharedBlogSelectorPane } from './QuickComposerParts';
+import {
+  CommunityApi,
+  CommunityVideoKind,
+  type CommunityImageItem,
+  type CommunityPost,
+  type CommunityVideoItem,
+  type SharedBlogEmbed,
+} from '../api';
+import {
+  applyInitialBlogSelection,
+  buildFilterBlogs,
+  ComposerModeSwitcher,
+  ComposerTagsSection,
+  resolvePostTitlesAndContent,
+  SharedBlogSelectorPane,
+} from './QuickComposerParts';
+import {
+  ComposerAttachmentsPanel,
+  MAX_COMMUNITY_IMAGES,
+} from './QuickComposerMediaParts';
 
 export { ComposerMode };
+
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+
+const COMPOSER_COPY: Record<
+  ComposerMode,
+  {
+    heading: string;
+    subtitle: string;
+    titleLabel: string;
+    titlePlaceholder: string;
+    contentLabel: string;
+    contentPlaceholder: string;
+    submitLabel: string;
+    contentRows: number;
+  }
+> = {
+  [ComposerMode.QUESTION]: {
+    heading: 'Đăng bài viết Cộng đồng',
+    subtitle:
+      'Đặt câu hỏi sử học, chia sẻ suy nghĩ và tuỳ chọn đính kèm thêm ảnh hoặc video.',
+    titleLabel: 'Tiêu đề hoặc câu hỏi trọng tâm',
+    titlePlaceholder:
+      'Ví dụ: Tư liệu về hệ thống dịch trạm thời Nguyễn dưới triều Minh Mạng?',
+    contentLabel: 'Nội dung bài viết',
+    contentPlaceholder:
+      'Trình bày nội dung câu hỏi, góc nhìn sử học hoặc chú thích cho tư liệu...',
+    submitLabel: 'Đăng bài',
+    contentRows: 4,
+  },
+  [ComposerMode.SHARE_BLOG]: {
+    heading: 'Chia sẻ bài Blog lên Cộng đồng',
+    subtitle:
+      'Đính kèm thẻ bài viết chuyên khảo từ Blog để mời cộng đồng đọc và bàn luận.',
+    titleLabel: 'Tiêu đề bài đăng chia sẻ trên Cộng đồng',
+    titlePlaceholder:
+      'Ví dụ: Mời mọi người cùng đọc bài chuyên khảo mới và cho ý kiến!',
+    contentLabel: 'Lời dẫn / Cảm nghĩ khi chia sẻ',
+    contentPlaceholder:
+      'Viết vài dòng giới thiệu điểm tâm đắc trước khi độc giả bấm vào thẻ bài Blog...',
+    submitLabel: 'Chia sẻ lên Cộng đồng',
+    contentRows: 3,
+  },
+};
+
+function validateComposerBeforeSubmit(
+  userId: string | undefined,
+  mode: ComposerMode,
+  selectedBlog: SharedBlogEmbed | null,
+): string | null {
+  if (!userId) return 'Bạn cần đăng nhập để đăng bài lên Cộng đồng.';
+  if (mode === ComposerMode.SHARE_BLOG && !selectedBlog) {
+    return 'Vui lòng chọn một bài Blog chuyên khảo bạn muốn chia sẻ lên Cộng đồng.';
+  }
+  return null;
+}
 
 interface QuickComposerProps {
   isOpen: boolean;
   initialMode?: ComposerMode;
+  initialOpenMedia?: boolean;
   initialSharedBlogSlug?: string | null;
   onClose: () => void;
   onCreated: (post: CommunityPost) => void;
@@ -21,6 +95,7 @@ interface QuickComposerProps {
 export function QuickComposer({
   isOpen,
   initialMode = ComposerMode.QUESTION,
+  initialOpenMedia = false,
   initialSharedBlogSlug = null,
   onClose,
   onCreated,
@@ -30,12 +105,16 @@ export function QuickComposer({
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [period, setPeriod] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  const [showImageBox, setShowImageBox] = useState(initialOpenMedia);
+  const [showVideoBox, setShowVideoBox] = useState(initialOpenMedia);
+  const [mediaImages, setMediaImages] = useState<CommunityImageItem[]>([]);
   const [imageCaption, setImageCaption] = useState('');
+  const [video, setVideo] = useState<CommunityVideoItem | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -49,6 +128,8 @@ export function QuickComposer({
     setPrevIsOpen(isOpen);
     if (isOpen) {
       setMode(initialMode);
+      setShowImageBox(initialOpenMedia);
+      setShowVideoBox(initialOpenMedia);
       setErrorMsg('');
     }
   }
@@ -88,6 +169,9 @@ export function QuickComposer({
 
   if (!isOpen) return null;
 
+  const isShareBlog = mode === ComposerMode.SHARE_BLOG;
+  const copy = COMPOSER_COPY[mode];
+
   const handleSelectBlog = (blog: SharedBlogEmbed) => {
     setSelectedBlog(blog);
     setCustomCardCaption(blog.excerpt || '');
@@ -113,37 +197,58 @@ export function QuickComposer({
     setTagInput('');
   };
 
-  const removeTag = (target: string) => {
-    setTags((prev) => prev.filter((item) => item !== target));
-  };
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleMultiImageFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const remaining = Math.max(0, MAX_COMMUNITY_IMAGES - mediaImages.length);
+    const batch = Array.from(files).slice(0, remaining);
+    if (batch.length === 0) return;
 
     setErrorMsg('');
     setIsUploading(true);
     try {
-      const uploaded = await UploadApiService.uploadImage(file);
-      if (!uploaded?.url) {
-        throw new Error('Không nhận được đường dẫn ảnh sau khi tải lên.');
-      }
-      setImageUrl(uploaded.url);
+      const uploadedList = await Promise.all(
+        batch.map((file) => UploadApiService.uploadImage(file)),
+      );
+      const added: CommunityImageItem[] = uploadedList
+        .filter((res) => Boolean(res?.url))
+        .map((res) => ({ url: res.url, caption: null }));
+      setMediaImages((prev) => [...prev, ...added].slice(0, MAX_COMMUNITY_IMAGES));
     } catch (error) {
-      setErrorMsg(error instanceof Error ? error.message : 'Tải ảnh tư liệu thất bại.');
+      setErrorMsg(error instanceof Error ? error.message : 'Tải ảnh lên Cloudinary thất bại.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleVideoFile = async (file: File | null) => {
+    if (!file) return;
+    if (file.size > MAX_VIDEO_BYTES) {
+      setErrorMsg('Dung lượng video tối đa 50MB. Với video dài hơn, hãy chuyển sang link YouTube.');
+      return;
+    }
+    setErrorMsg('');
+    setIsUploadingVideo(true);
+    try {
+      const uploaded = await UploadApiService.uploadVideo(file);
+      if (!uploaded?.url) throw new Error('Không nhận được đường dẫn video sau khi tải lên.');
+      setVideo({ url: uploaded.url, kind: CommunityVideoKind.UPLOAD, caption: null });
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'Tải video lên Cloudinary thất bại.');
+    } finally {
+      setIsUploadingVideo(false);
     }
   };
 
   const resetForm = () => {
     setTitle('');
     setContent('');
-    setPeriod('');
     setTags([]);
     setTagInput('');
-    setImageUrl(null);
+    setMediaImages([]);
     setImageCaption('');
+    setVideo(null);
+    setShowImageBox(false);
+    setShowVideoBox(false);
     setSelectedBlog(null);
     setCustomCardCaption('');
     setBlogSearchOrUrl('');
@@ -151,51 +256,52 @@ export function QuickComposer({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!user?.id) {
-      setErrorMsg('Bạn cần đăng nhập để đăng bài lên Cộng đồng.');
+    const guardError = validateComposerBeforeSubmit(user?.id, mode, selectedBlog);
+    if (guardError) {
+      setErrorMsg(guardError);
       return;
     }
 
-    if (mode === ComposerMode.SHARE_BLOG && !selectedBlog) {
-      setErrorMsg('Vui lòng chọn một bài Blog chuyên khảo bạn muốn chia sẻ lên Cộng đồng.');
-      return;
-    }
-
+    const mediaCount = mediaImages.length + (video ? 1 : 0);
     const { cleanTitle, cleanContent } = resolvePostTitlesAndContent(
       mode,
       title,
       content,
       selectedBlog,
       customCardCaption,
+      mediaCount,
     );
 
     if (!cleanTitle || !cleanContent) {
-      setErrorMsg('Vui lòng nhập đầy đủ câu hỏi / tiêu đề và nội dung ngắn.');
+      setErrorMsg('Vui lòng nhập đầy đủ tiêu đề và nội dung bài viết.');
       return;
     }
 
     setErrorMsg('');
     setIsSubmitting(true);
     try {
-      const finalTags = tagInput.trim()
-        ? Array.from(new Set([...tags, tagInput.trim().replace(/^#/, '')]))
-        : tags;
+      const pendingTag = tagInput.trim().replace(/^#/, '');
+      const finalTags = pendingTag ? Array.from(new Set([...tags, pendingTag])) : tags;
 
       const sharedBlogPayload: SharedBlogEmbed | null =
-        mode === ComposerMode.SHARE_BLOG && selectedBlog
+        isShareBlog && selectedBlog
           ? {
               ...selectedBlog,
               excerpt: customCardCaption.trim() || selectedBlog.excerpt || null,
             }
           : null;
 
+      const captionValue = imageCaption.trim() || null;
+      const attachedImages = !isShareBlog
+        ? mediaImages.map((img, i) => ({ ...img, caption: i === 0 ? captionValue : img.caption }))
+        : undefined;
+
       const created = await CommunityApi.createQuickPost({
         title: cleanTitle,
         content: cleanContent,
-        period,
         tags: finalTags,
-        imageUrl: mode === ComposerMode.QUESTION ? imageUrl : null,
-        imageCaption: mode === ComposerMode.QUESTION ? imageCaption : undefined,
+        images: attachedImages,
+        video: !isShareBlog ? video : null,
         sharedBlog: sharedBlogPayload,
       });
 
@@ -220,21 +326,15 @@ export function QuickComposer({
         <div className="flex items-start justify-between gap-4 border-b border-[#E5DAC4] pb-4">
           <div>
             <h2 id="quick-composer-title" className="text-[18px] font-bold text-[#14233F]">
-              {mode === ComposerMode.SHARE_BLOG
-                ? 'Chia sẻ bài Blog lên Cộng đồng'
-                : 'Đặt câu hỏi & Đăng bài ngắn'}
+              {copy.heading}
             </h2>
-            <p className="mt-1 text-[13px] text-[#7A6B57]">
-              {mode === ComposerMode.SHARE_BLOG
-                ? 'Đính kèm thẻ bài viết chuyên khảo từ Blog (gồm ảnh bìa, tiêu đề & lời chú thích nhỏ) để mời cộng đồng đọc và bàn luận.'
-                : 'Đặt câu hỏi sử học ngắn gọn, chia sẻ tư liệu ảnh cổ hoặc mở chủ đề thảo luận nhanh.'}
-            </p>
+            <p className="mt-1 text-[13px] text-[#7A6B57]">{copy.subtitle}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Đóng khung đăng bài"
-            className="flex h-8 w-8 items-center justify-center rounded-[6px] border border-[#E2D5B8] bg-[#F2E8D5] text-[#4A3F33] transition-colors hover:border-[#14233F] hover:text-[#14233F]"
+            className="flex h-8 w-8 items-center justify-center rounded-[6px] border border-[#E2D5B8] bg-[#F2E8D5] text-[#4A3F33] transition-colors hover:border-[#14233F] hover:text-[#14233F] cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -242,8 +342,8 @@ export function QuickComposer({
 
         <ComposerModeSwitcher mode={mode} onChangeMode={setMode} />
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          {mode === ComposerMode.SHARE_BLOG && (
+        <form onSubmit={(e) => void handleSubmit(e)} className="mt-5 space-y-4">
+          {isShareBlog && (
             <SharedBlogSelectorPane
               selectedBlog={selectedBlog}
               onSelectBlog={handleSelectBlog}
@@ -259,9 +359,7 @@ export function QuickComposer({
 
           <div>
             <label htmlFor="qc-title" className="mb-2 block text-[14px] font-medium text-[#14233F]">
-              {mode === ComposerMode.SHARE_BLOG
-                ? 'Tiêu đề bài đăng chia sẻ trên Cộng đồng'
-                : 'Câu hỏi hoặc chủ đề thảo luận ngắn'}
+              {copy.titleLabel}
             </label>
             <input
               id="qc-title"
@@ -269,74 +367,58 @@ export function QuickComposer({
               maxLength={220}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={
-                mode === ComposerMode.SHARE_BLOG
-                  ? 'Ví dụ: Mời mọi người cùng đọc bài chuyên khảo mới của mình và cho ý kiến!'
-                  : 'Ví dụ: Tư liệu về hệ thống dịch trạm thời Nguyễn dưới triều Minh Mạng?'
-              }
+              placeholder={copy.titlePlaceholder}
               className="h-10 w-full rounded-[6px] border border-[#D4C5A6] bg-[#FDF9F0] px-3 text-[14px] text-[#14233F] outline-none focus:border-[#8A5A19]"
             />
           </div>
 
           <div>
             <label htmlFor="qc-content" className="mb-2 block text-[14px] font-medium text-[#14233F]">
-              {mode === ComposerMode.SHARE_BLOG
-                ? 'Lời dẫn / Cảm nghĩ của bạn khi chia sẻ'
-                : 'Nội dung câu hỏi & chi tiết cần trao đổi'}
+              {copy.contentLabel}
             </label>
             <textarea
               id="qc-content"
-              rows={mode === ComposerMode.SHARE_BLOG ? 3 : 4}
+              rows={copy.contentRows}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder={
-                mode === ComposerMode.SHARE_BLOG
-                  ? 'Viết vài dòng giới thiệu điểm tâm đắc hoặc câu hỏi gợi mở trước khi độc giả bấm vào thẻ bài Blog...'
-                  : 'Trình bày ngắn gọn bối cảnh hoặc thắc mắc lịch sử bạn muốn cộng đồng cùng giải đáp...'
-              }
+              placeholder={copy.contentPlaceholder}
               className="w-full resize-none rounded-[6px] border border-[#D4C5A6] bg-[#FDF9F0] p-3 text-[14px] leading-6 text-[#14233F] outline-none focus:border-[#8A5A19]"
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="qc-period" className="mb-2 block text-[14px] font-medium text-[#14233F]">
-                Thời kỳ / Triều đại (tùy chọn)
-              </label>
-              <input
-                id="qc-period"
-                type="text"
-                value={period}
-                onChange={(e) => setPeriod(e.target.value)}
-                placeholder="Ví dụ: Thời Lê Sơ (1428–1527)"
-                className="h-10 w-full rounded-[6px] border border-[#D4C5A6] bg-[#FDF9F0] px-3 text-[14px] text-[#14233F] outline-none focus:border-[#8A5A19]"
-              />
-            </div>
-
-            <ComposerTagsSection
-              tagInput={tagInput}
-              onChangeTagInput={setTagInput}
-              onAddTag={addTagsFromInput}
-              tags={tags}
-              onRemoveTag={removeTag}
-            />
-          </div>
-
-          {mode === ComposerMode.QUESTION && (
-            <ComposerImageUploadSection
-              imageUrl={imageUrl}
-              onRemoveImage={() => setImageUrl(null)}
+          {!isShareBlog && (
+            <ComposerAttachmentsPanel
+              showImageBox={showImageBox}
+              showVideoBox={showVideoBox}
+              mediaImages={mediaImages}
               imageCaption={imageCaption}
-              onChangeImageCaption={setImageCaption}
+              video={video}
               isUploading={isUploading}
-              onFileChange={handleFileChange}
+              isUploadingVideo={isUploadingVideo}
+              onToggleImageBox={() => setShowImageBox((v) => !v)}
+              onToggleVideoBox={() => setShowVideoBox((v) => !v)}
+              onUploadImageFiles={(fl) => void handleMultiImageFiles(fl)}
+              onRemoveImage={(idx) =>
+                setMediaImages((prev) => prev.filter((_, i) => i !== idx))
+              }
+              onChangeImageCaption={setImageCaption}
+              onUploadVideoFile={(f) => void handleVideoFile(f)}
+              onChangeVideo={setVideo}
             />
           )}
+
+          <ComposerTagsSection
+            tagInput={tagInput}
+            onChangeTagInput={setTagInput}
+            onAddTag={addTagsFromInput}
+            tags={tags}
+            onRemoveTag={(target) => setTags((prev) => prev.filter((item) => item !== target))}
+          />
 
           <div className="flex items-start gap-2 rounded-[6px] border border-[#E2D5B8] bg-[#F2E8D5] px-3 py-2.5 text-[12px] leading-5 text-[#4A3F33]">
             <ShieldCheck size={15} className="mt-0.5 shrink-0 text-[#1E4620]" />
             <span>
-              Bài đăng xuất bản tức thì và được <strong>HISGO Safety Sentinel (AI)</strong> kiểm duyệt tự động nhằm bảo vệ tính tôn nghiêm lịch sử & văn hóa tranh luận học thuật.
+              Bài đăng xuất bản tức thì và được <strong>HISGO Safety Sentinel (AI)</strong> kiểm duyệt tự động nhằm bảo vệ tính tôn nghiêm lịch sử &amp; văn hóa tranh luận học thuật.
             </span>
           </div>
 
@@ -350,20 +432,16 @@ export function QuickComposer({
             <button
               type="button"
               onClick={onClose}
-              className="h-9 rounded-[6px] border border-[#D4C5A6] bg-[#FDF9F0] px-4 text-[13px] font-medium text-[#4A3F33] hover:border-[#14233F] hover:text-[#14233F]"
+              className="h-9 rounded-[6px] border border-[#D4C5A6] bg-[#FDF9F0] px-4 text-[13px] font-medium text-[#4A3F33] hover:border-[#14233F] hover:text-[#14233F] cursor-pointer"
             >
               Hủy
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || isUploading}
-              className="h-9 rounded-[6px] bg-[#7A1F24] px-5 text-[13px] font-medium text-[#FAF5E6] transition-colors hover:bg-[#651A1E] disabled:opacity-60"
+              disabled={isSubmitting || isUploading || isUploadingVideo}
+              className="h-9 rounded-[6px] bg-[#7A1F24] px-5 text-[13px] font-medium text-[#FAF5E6] transition-colors hover:bg-[#651A1E] disabled:opacity-60 cursor-pointer"
             >
-              {isSubmitting
-                ? 'Đang đăng...'
-                : mode === ComposerMode.SHARE_BLOG
-                  ? 'Chia sẻ lên Cộng đồng'
-                  : 'Đăng câu hỏi'}
+              {isSubmitting ? 'Đang đăng...' : copy.submitLabel}
             </button>
           </div>
         </form>

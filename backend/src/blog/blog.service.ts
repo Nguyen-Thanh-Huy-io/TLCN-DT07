@@ -21,7 +21,11 @@ import { toSlug } from '../common/utils/slug.util';
 import { ModerationService } from '../moderation/moderation.service';
 import { NotificationService } from '../notification/notification.service';
 import { BlogCommentService } from './blog-comment.service';
-import { BlogFollowService } from './blog-follow.service';
+import {
+  BlogFollowService,
+  type CommunityMemberDirectoryItem,
+  type PaginatedCommunityMembersResult,
+} from './blog-follow.service';
 import { BlogInteractionService } from './blog-interaction.service';
 import {
   assertCanModifyBlogPost,
@@ -40,7 +44,11 @@ import {
   UpdateBlogPostDto,
 } from './dto/blog-post.dto';
 import { CreateCommentDto, UpdateCommentDto } from './dto/comment.dto';
-import { ReportPostDto, UpdateCommunityProfileDto } from './dto/interact.dto';
+import {
+  ListCommunityMembersQueryDto,
+  ReportPostDto,
+  UpdateCommunityProfileDto,
+} from './dto/interact.dto';
 
 @Injectable()
 export class BlogService {
@@ -432,8 +440,18 @@ export class BlogService {
     return this.followService.toggleFollow(followerId, targetIdentifier);
   }
 
-  getSuggestedMembers(viewerId?: string, limit = 6) {
+  getSuggestedMembers(
+    viewerId?: string,
+    limit = 6,
+  ): Promise<CommunityMemberDirectoryItem[]> {
     return this.followService.getSuggestedMembers(viewerId, limit);
+  }
+
+  listCommunityMembers(
+    viewerId: string | undefined,
+    query: ListCommunityMembersQueryDto,
+  ): Promise<PaginatedCommunityMembersResult> {
+    return this.followService.listCommunityMembers(viewerId, query);
   }
 
   getCommunityProfile(identifier: string, viewerId?: string) {

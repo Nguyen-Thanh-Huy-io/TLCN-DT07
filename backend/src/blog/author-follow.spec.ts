@@ -14,6 +14,10 @@ import { BlogCommentService } from './blog-comment.service';
 import { BlogFollowService } from './blog-follow.service';
 import { BlogInteractionService } from './blog-interaction.service';
 import { BlogService } from './blog.service';
+import {
+  CommunityMemberFollowFilter,
+  CommunityMemberSort,
+} from './dto/interact.dto';
 
 describe('BlogService — Follow tác giả & hồ sơ tác phẩm biên soạn', () => {
   let service: BlogService;
@@ -22,6 +26,7 @@ describe('BlogService — Follow tác giả & hồ sơ tác phẩm biên soạn'
       findFirst: jest.fn(),
       findUnique: jest.fn(),
       findMany: jest.fn(),
+      count: jest.fn(),
     },
     userProfile: { upsert: jest.fn() },
     userFollow: { count: jest.fn(), findMany: jest.fn() },
@@ -254,5 +259,61 @@ describe('BlogService — Follow tác giả & hồ sơ tác phẩm biên soạn'
     });
     expect(prisma.userProfile.upsert).toHaveBeenCalled();
     expect(profile.user.bio).toBe('Tiểu sử mới');
+  });
+
+  it('listCommunityMembers trả về danh sách phân trang, hỗ trợ tìm kiếm theo từ khóa và đánh dấu followedByMe', async () => {
+    prisma.authUser.findMany.mockResolvedValue([
+      {
+        id: 'u-2',
+        username: 'tacgia_an',
+        role: 'USER',
+        userProfile: {
+          firstName: 'Nguyễn Văn',
+          lastName: 'An',
+          bio: 'Lịch sử Thăng Long',
+          avatarUrl: null,
+        },
+        blogPosts: [
+          { id: 'p-1', likeCount: 4, commentCount: 1, viewCount: 20 },
+        ],
+        _count: { followers: 3, following: 1 },
+      },
+    ]);
+    prisma.authUser.count.mockResolvedValue(1);
+    prisma.userFollow.findMany.mockResolvedValue([{ followingId: 'u-2' }]);
+
+    const res = await service.listCommunityMembers('viewer-1', {
+      page: 1,
+      limit: 12,
+      search: 'Nguyễn An',
+      sort: CommunityMemberSort.FOLLOWERS,
+    });
+
+    expect(res.total).toBe(1);
+    expect(res.totalPages).toBe(1);
+    expect(res.items[0].username).toBe('tacgia_an');
+    expect(res.items[0].displayName).toBe('Nguyễn Văn An');
+    expect(res.items[0].followedByMe).toBe(true);
+    expect(prisma.authUser.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 0,
+        take: 12,
+      }),
+    );
+  });
+
+  it('listCommunityMembers trả về rỗng ngay khi khách chưa đăng nhập lọc theo Đang theo dõi', async () => {
+    const res = await service.listCommunityMembers(undefined, {
+      filter: CommunityMemberFollowFilter.FOLLOWING,
+    });
+
+    expect(res).toEqual({
+      items: [],
+      total: 0,
+      page: 1,
+      limit: 18,
+      totalPages: 0,
+    });
+    expect(prisma.authUser.findMany).not.toHaveBeenCalled();
   });
 });

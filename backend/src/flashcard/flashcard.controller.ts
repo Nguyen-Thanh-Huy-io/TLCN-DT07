@@ -14,11 +14,14 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../common/guards/auth.guard';
 import {
   CreateCardDto,
+  CreateDeckBatchDto,
   CreateDeckDto,
+  GenerateFlashcardsDto,
   ReviewCardDto,
   UpdateCardDto,
   UpdateDeckDto,
 } from './dto/flashcard.dto';
+import { FlashcardAiService } from './flashcard-ai.service';
 import { FLASHCARD_ROUTES } from './flashcard.constant';
 import { FlashcardService } from './flashcard.service';
 
@@ -31,7 +34,22 @@ interface AuthedRequest {
 @UseGuards(AuthGuard)
 @Controller(FLASHCARD_ROUTES.ROOT)
 export class FlashcardController {
-  constructor(private readonly flashcardService: FlashcardService) {}
+  constructor(
+    private readonly flashcardService: FlashcardService,
+    private readonly flashcardAiService: FlashcardAiService,
+  ) {}
+
+  @Post(FLASHCARD_ROUTES.GENERATE_PREVIEW)
+  @ApiOperation({
+    summary:
+      'AI phân tích chủ đề, ghi chú, bài viết đã lưu và câu làm sai để gợi ý bộ thẻ',
+  })
+  generatePreview(
+    @Req() req: AuthedRequest,
+    @Body() dto: GenerateFlashcardsDto,
+  ) {
+    return this.flashcardAiService.generatePreview(req.user.userId, dto);
+  }
 
   @Get(FLASHCARD_ROUTES.DECKS)
   @ApiOperation({ summary: 'Danh sách bộ thẻ và số thẻ cần ôn hôm nay' })
@@ -43,6 +61,12 @@ export class FlashcardController {
   @ApiOperation({ summary: 'Tạo bộ thẻ mới' })
   createDeck(@Req() req: AuthedRequest, @Body() dto: CreateDeckDto) {
     return this.flashcardService.createDeck(req.user.userId, dto);
+  }
+
+  @Post(FLASHCARD_ROUTES.DECKS_BATCH)
+  @ApiOperation({ summary: 'Lưu bộ thẻ kèm danh sách thẻ vừa được AI sinh' })
+  createDeckBatch(@Req() req: AuthedRequest, @Body() dto: CreateDeckBatchDto) {
+    return this.flashcardService.createDeckBatch(req.user.userId, dto);
   }
 
   @Patch(FLASHCARD_ROUTES.DECK)

@@ -224,4 +224,27 @@ describe('FlashcardService', () => {
       { userId: 'user-1', cardId: 'card-1', rating: FlashcardRating.EASY },
     );
   });
+
+  it('createDeckBatch tạo bộ thẻ và toàn bộ thẻ trong 1 transaction', async () => {
+    mockPrisma.flashcardDeck.count.mockResolvedValue(0);
+    mockPrisma.flashcardDeck.create.mockResolvedValue({
+      id: 'deck-batch-1',
+      title: 'Bộ thẻ AI',
+      description: null,
+    });
+    mockPrisma.flashcard.createMany.mockResolvedValue({ count: 2 });
+
+    const res = await service.createDeckBatch('user-1', {
+      title: 'Bộ thẻ AI',
+      cards: [
+        { front: 'Q1', back: 'A1' },
+        { front: 'Q2', back: 'A2' },
+      ],
+    });
+
+    expect(mockPrisma.$transaction).toHaveBeenCalled();
+    expect(mockPrisma.flashcard.createMany).toHaveBeenCalled();
+    expect(res.totalCards).toBe(2);
+    expect(res.dueCards).toBe(2);
+  });
 });

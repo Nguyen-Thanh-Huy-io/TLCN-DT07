@@ -6,7 +6,8 @@ import {
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AuthGuard } from '../common/guards/auth.guard';
-import { FlashcardRating } from './flashcard.constant';
+import { FlashcardAiService } from './flashcard-ai.service';
+import { AiGeneratorEngine, FlashcardRating } from './flashcard.constant';
 import { FlashcardController } from './flashcard.controller';
 import { FlashcardService } from './flashcard.service';
 
@@ -15,6 +16,7 @@ describe('FlashcardController (HTTP Integration)', () => {
   const flashcardMock = {
     listDecks: jest.fn(),
     createDeck: jest.fn(),
+    createDeckBatch: jest.fn(),
     updateDeck: jest.fn(),
     deleteDeck: jest.fn(),
     listCards: jest.fn(),
@@ -24,11 +26,17 @@ describe('FlashcardController (HTTP Integration)', () => {
     deleteCard: jest.fn(),
     reviewCard: jest.fn(),
   };
+  const flashcardAiMock = {
+    generatePreview: jest.fn(),
+  };
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [FlashcardController],
-      providers: [{ provide: FlashcardService, useValue: flashcardMock }],
+      providers: [
+        { provide: FlashcardService, useValue: flashcardMock },
+        { provide: FlashcardAiService, useValue: flashcardAiMock },
+      ],
     })
       .overrideGuard(AuthGuard)
       .useValue({
@@ -213,5 +221,50 @@ describe('FlashcardController (HTTP Integration)', () => {
       FlashcardRating.GOOD,
     );
     expect(res.body.repetitions).toBe(1);
+  });
+
+  it('POST /flashcards/generate-preview gọi FlashcardAiService.generatePreview', async () => {
+    flashcardAiMock.generatePreview.mockResolvedValue({
+      deckTitle: 'Bộ thẻ AI',
+      cards: [{ front: 'Hỏi', back: 'Đáp' }],
+      engine: AiGeneratorEngine.GEMINI_FLASH,
+      noteCount: 1,
+      articleCount: 0,
+      wrongQuizCount: 0,
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/flashcards/generate-preview')
+      .send({ topicHint: 'Nhà Trần', maxCards: 10 })
+      .expect(201);
+
+    expect(flashcardAiMock.generatePreview).toHaveBeenCalledWith(
+      'user-test-1',
+      expect.objectContaining({ topicHint: 'Nhà Trần', maxCards: 10 }),
+    );
+    expect(res.body.deckTitle).toBe('Bộ thẻ AI');
+  });
+
+  it('POST /flashcards/decks/batch tạo bộ thẻ kèm danh sách thẻ', async () => {
+    flashcardMock.createDeckBatch.mockResolvedValue({
+      id: deckId,
+      title: 'Bộ thẻ AI',
+      totalCards: 1,
+      dueCards: 1,
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/flashcards/decks/batch')
+      .send({
+        title: 'Bộ thẻ AI',
+        cards: [{ front: 'Hỏi', back: 'Đáp' }],
+      })
+      .expect(201);
+
+    expect(flashcardMock.createDeckBatch).toHaveBeenCalledWith(
+      'user-test-1',
+      expect.objectContaining({ title: 'Bộ thẻ AI' }),
+    );
+    expect(res.body.totalCards).toBe(1);
   });
 });

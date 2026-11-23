@@ -13,14 +13,25 @@ describe('MindmapAiService', () => {
     note: { findMany: jest.Mock };
     article: { findMany: jest.Mock };
   };
+  const originalKey = config.gemini_api_key;
+  const originalSa = config.google_cloud_service_account_json;
+  const originalCreds = config.google_application_credentials;
 
   beforeEach(() => {
     config.gemini_api_key = '';
+    config.google_application_credentials = '';
+    config.google_cloud_service_account_json = '';
     mockPrisma = {
       note: { findMany: jest.fn().mockResolvedValue([]) },
       article: { findMany: jest.fn().mockResolvedValue([]) },
     };
     service = new MindmapAiService(mockPrisma as never);
+  });
+
+  afterAll(() => {
+    config.gemini_api_key = originalKey;
+    config.google_cloud_service_account_json = originalSa;
+    config.google_application_credentials = originalCreds;
   });
 
   it('ném BadRequestException khi không có prompt lẫn nguồn dữ liệu nào', async () => {

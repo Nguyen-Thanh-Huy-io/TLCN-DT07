@@ -4,14 +4,20 @@ import { ModerationAiService } from './moderation-ai.service';
 describe('ModerationAiService (3-Tier Safety Guardrails)', () => {
   let service: ModerationAiService;
   const originalKey = config.gemini_api_key;
+  const originalSa = config.google_cloud_service_account_json;
+  const originalCreds = config.google_application_credentials;
 
   beforeEach(() => {
     config.gemini_api_key = '';
+    config.google_application_credentials = '';
+    config.google_cloud_service_account_json = '';
     service = new ModerationAiService();
   });
 
   afterAll(() => {
     config.gemini_api_key = originalKey;
+    config.google_cloud_service_account_json = originalSa;
+    config.google_application_credentials = originalCreds;
   });
 
   it('Tier 1 (SAFE / ALLOW): cho phép bài thảo luận học thuật lịch sử văn minh', async () => {

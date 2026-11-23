@@ -50,7 +50,6 @@ const parseListInput = (value: string) =>
 
 export function useBlogCreateFacade() {
   const currentUser = useAuthSession();
-  const [postType, setPostType] = useState<BlogPostTypeEnum>(BlogPostTypeEnum.LONG_FORM);
   const [title, setTitle] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [tagInput, setTagInput] = useState('');
@@ -229,7 +228,7 @@ export function useBlogCreateFacade() {
       ];
 
       const payload: Partial<BlogPostItem> = {
-        postType,
+        postType: BlogPostTypeEnum.LONG_FORM,
         title: normalizedTitle,
         slug: `${slugify(normalizedTitle)}-${Date.now().toString(36)}`,
         excerpt: normalizedExcerpt,
@@ -256,8 +255,6 @@ export function useBlogCreateFacade() {
   };
 
   return {
-    postType,
-    setPostType,
     title,
     setTitle,
     excerpt,

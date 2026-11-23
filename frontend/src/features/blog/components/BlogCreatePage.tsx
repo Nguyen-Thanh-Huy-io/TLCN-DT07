@@ -5,11 +5,7 @@ import Link from 'next/link';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import { resolveBackendAssetUrl } from '@/constants/api-url';
-import { KEYBOARD_KEYS } from '@/constants/enums';
-import {
-  BlogPostTypeEnum,
-  BLOG_URL_PLACEHOLDER,
-} from '@/constants/enums';
+import { KEYBOARD_KEYS, BLOG_URL_PLACEHOLDER } from '@/constants/enums';
 import { useBlogCreateFacade } from '../facades/useBlogCreateFacade';
 import { BlogStoryBlockItem } from './BlogCreateParts';
 import { BlogHistoricalMetaModal } from './BlogCreateParts';
@@ -19,8 +15,6 @@ const normalizeImageUrl = (url?: string | null) => resolveBackendAssetUrl(url);
 
 export function BlogCreatePage() {
   const {
-    postType,
-    setPostType,
     title,
     setTitle,
     excerpt,
@@ -63,9 +57,6 @@ export function BlogCreatePage() {
     handleSubmit,
   } = useBlogCreateFacade();
 
-  const isLongForm = postType === BlogPostTypeEnum.LONG_FORM;
-  const isQuickPost = postType === BlogPostTypeEnum.QUICK_POST;
-
   return (
     <main className="min-h-screen bg-[var(--bg-page)] text-[var(--ink)]">
       <Header activeTab="blog" />
@@ -95,41 +86,11 @@ export function BlogCreatePage() {
           </div>
         </div>
 
-        <div className="mb-8 grid gap-4 md:grid-cols-[1.4fr_0.6fr]">
-          <div className="rounded-[28px] border border-[var(--border)] bg-[var(--bg-surface)] p-5 shadow-[0_10px_22px_rgba(20,35,63,0.03)]">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--text-muted)]">Mục tiêu bài viết</p>
-            <p className="mt-3 max-w-2xl text-lg leading-8 text-[var(--text-body)] md:text-xl">
-              Tạo một bài dài rõ chủ đề, có nhịp văn tự nhiên và giữ sự tin cậy lịch sử trong từng đoạn.
-            </p>
-          </div>
-
-          <div className="rounded-[28px] border border-[var(--border)] bg-[var(--bg-page)] p-4">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--text-muted)]">Hình thức xuất bản</p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setPostType(BlogPostTypeEnum.LONG_FORM)}
-                className={`rounded-[12px] border px-3 py-2 text-xs font-medium transition-colors ${
-                  isLongForm
-                    ? 'border-[var(--ink)] bg-[var(--ink)] text-white'
-                    : 'border-[var(--border)] bg-[var(--bg-surface)] text-[var(--ink)] hover:border-[var(--gold)]'
-                }`}
-              >
-                Chuyên khảo dài (LONG_FORM)
-              </button>
-              <button
-                type="button"
-                onClick={() => setPostType(BlogPostTypeEnum.QUICK_POST)}
-                className={`rounded-[12px] border px-3 py-2 text-xs font-medium transition-colors ${
-                  isQuickPost
-                    ? 'border-[var(--ink)] bg-[var(--ink)] text-white'
-                    : 'border-[var(--border)] bg-[var(--bg-surface)] text-[var(--ink)] hover:border-[var(--gold)]'
-                }`}
-              >
-                Thảo luận nhanh (QUICK_POST)
-              </button>
-            </div>
-          </div>
+        <div className="mb-8 rounded-[28px] border border-[var(--border)] bg-[var(--bg-surface)] p-5 shadow-[0_10px_22px_rgba(20,35,63,0.03)]">
+          <p className="text-[10px] uppercase tracking-[0.22em] text-[var(--text-muted)]">Mục tiêu bài viết</p>
+          <p className="mt-3 max-w-3xl text-lg leading-8 text-[var(--text-body)] md:text-xl">
+            Tạo một bài dài rõ chủ đề, có nhịp văn tự nhiên và giữ sự tin cậy lịch sử trong từng đoạn.
+          </p>
         </div>
 
         <div className="grid gap-8 xl:grid-cols-[1.35fr_0.65fr]">

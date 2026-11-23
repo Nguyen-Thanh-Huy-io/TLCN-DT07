@@ -3,7 +3,19 @@
 import Link from 'next/link';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { CalendarDays, Sparkles, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Eye,
+  Pause,
+  Play,
+  RotateCcw,
+  Sparkles,
+  Tag as TagIcon,
+} from 'lucide-react';
 
 // === BlogComposerBar.tsx ===
 export function BlogComposerBar() {
@@ -45,6 +57,7 @@ export interface BlogCardItem {
   image: string;
   accent: string;
   featured: boolean;
+  viewCount?: number;
   tags: string[];
 }
 
@@ -300,5 +313,220 @@ export function BlogFeaturedSlider({
         </div>
       </div>
     </article>
+  );
+}
+
+// === BlogBrowser Sub-components (Toolbar Filter & 1-Post-Per-Row List) ===
+export const BLOG_INITIAL_TAG_LIMIT = 8;
+
+export interface BlogTagFilterBarProps {
+  availableTags: { name: string; count: number }[];
+  visibleTags: { name: string; count: number }[];
+  selectedTag: string | null;
+  onSelectTag: (tag: string | null) => void;
+  isTagsExpanded: boolean;
+  onToggleExpand: () => void;
+  isFiltering: boolean;
+  onResetFilters: () => void;
+}
+
+export function BlogTagFilterBar({
+  availableTags,
+  visibleTags,
+  selectedTag,
+  onSelectTag,
+  isTagsExpanded,
+  onToggleExpand,
+  isFiltering,
+  onResetFilters,
+}: BlogTagFilterBarProps) {
+  if (availableTags.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 pt-1">
+      <div className="mr-1 flex items-center gap-1.5 text-xs font-semibold text-[#7d5d3d]">
+        <TagIcon size={14} />
+        <span>Chủ đề:</span>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onSelectTag(null)}
+        className={`rounded-full px-3.5 py-1 text-xs font-semibold tracking-wide transition ${
+          selectedTag === null
+            ? 'bg-[#1f2a2b] text-[#f7f1e7] shadow-sm'
+            : 'border border-[#d7c7b2] bg-[#fffdf9] text-[#536560] hover:border-[#8a4d2d] hover:text-[#1f2a2b]'
+        }`}
+      >
+        Tất cả
+      </button>
+
+      {visibleTags.map((tag) => {
+        const isSelected = selectedTag?.toLowerCase() === tag.name.toLowerCase();
+        return (
+          <button
+            key={tag.name}
+            type="button"
+            onClick={() => onSelectTag(isSelected ? null : tag.name)}
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-semibold tracking-wide transition ${
+              isSelected
+                ? 'bg-[#8a4d2d] text-white shadow-sm'
+                : 'border border-[#d7c7b2] bg-[#fffdf9] text-[#536560] hover:border-[#8a4d2d] hover:text-[#1f2a2b]'
+            }`}
+          >
+            <span>#{tag.name}</span>
+            <span
+              className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                isSelected
+                  ? 'bg-white/20 text-white'
+                  : 'bg-[#efe3d8] text-[#7d5d3d]'
+              }`}
+            >
+              {tag.count}
+            </span>
+          </button>
+        );
+      })}
+
+      {availableTags.length > BLOG_INITIAL_TAG_LIMIT ? (
+        <button
+          type="button"
+          onClick={onToggleExpand}
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-[#d7c7b2] bg-[#fffdf9] px-3 py-1 text-xs font-semibold text-[#8a4d2d] transition hover:border-[#8a4d2d] hover:bg-[#efe3d8]/40"
+        >
+          {isTagsExpanded ? (
+            <>
+              <ChevronUp size={13} />
+              <span>Thu gọn</span>
+            </>
+          ) : (
+            <>
+              <ChevronDown size={13} />
+              <span>+{availableTags.length - BLOG_INITIAL_TAG_LIMIT} chủ đề khác</span>
+            </>
+          )}
+        </button>
+      ) : null}
+
+      {isFiltering ? (
+        <button
+          type="button"
+          onClick={onResetFilters}
+          className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-[#8a4d2d] hover:underline"
+        >
+          <RotateCcw size={12} />
+          <span>Đặt lại bộ lọc</span>
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+export function BlogPostRow({
+  post,
+  priorityImage,
+}: {
+  post: BlogCardItem;
+  priorityImage: boolean;
+}) {
+  return (
+    <article className="group flex flex-col gap-5 py-6 sm:flex-row sm:items-start sm:gap-7">
+      <Link
+        href={`/blog/${post.slug}`}
+        className="relative block aspect-[16/10] w-full shrink-0 overflow-hidden rounded-[14px] border border-[#e6d9c7] bg-[#efe5d2] sm:w-[270px] md:w-[340px] lg:w-[370px]"
+      >
+        {post.image ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={post.image}
+            alt={post.title}
+            loading={priorityImage ? 'eager' : 'lazy'}
+            decoding="async"
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className={`h-full w-full bg-gradient-to-br ${post.accent}`} />
+        )}
+        {post.tags.length > 0 ? (
+          <span className="absolute bottom-2.5 left-2.5 rounded-full border border-white/30 bg-black/45 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white backdrop-blur-sm">
+            #{post.tags[0]}
+          </span>
+        ) : null}
+      </Link>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[#7d5d3d]">
+          <time className="italic">{post.date}</time>
+          <span>•</span>
+          <span className="font-semibold uppercase tracking-[0.12em]">
+            {post.category}
+          </span>
+        </div>
+
+        <h3 className="mt-1.5 font-[family-name:var(--font-heading)] text-xl font-bold leading-snug text-[#1f2a2b] transition-colors group-hover:text-[#8a4d2d] md:text-[26px]">
+          <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+        </h3>
+
+        <p className="mt-2.5 line-clamp-3 text-sm leading-relaxed text-[#4f5d59] md:text-[15px]">
+          {post.excerpt}
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-4">
+            {typeof post.viewCount === 'number' ? (
+              <span
+                className="relative inline-flex items-center"
+                title={`${post.viewCount} lượt đọc`}
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#e2d4bf] bg-[#f7f1e7] text-[#536560]">
+                  <Eye size={14} />
+                </span>
+                <span className="-ml-2 -mt-5 rounded-full bg-[#68b62c] px-2 py-0.5 text-[11px] font-bold leading-none text-white tabular-nums shadow-xs">
+                  {post.viewCount}
+                </span>
+              </span>
+            ) : null}
+
+            <Link
+              href={`/blog?author=${encodeURIComponent(post.author)}`}
+              className="text-xs font-medium uppercase tracking-[0.12em] text-[#536560] transition hover:text-[#8a4d2d] hover:underline"
+            >
+              {post.author}
+            </Link>
+          </div>
+
+          <Link
+            href={`/blog/${post.slug}`}
+            className="text-xs font-bold uppercase tracking-[0.12em] text-[#8a4d2d] hover:underline"
+          >
+            Đọc bài →
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export function BlogRowSkeletonList({ count = 2 }: { count?: number }) {
+  return (
+    <div
+      className="divide-y divide-[#e8dccb] border-t border-[#e8dccb]"
+      aria-hidden="true"
+    >
+      {Array.from({ length: count }).map((_, idx) => (
+        <div
+          key={idx}
+          className="flex animate-pulse flex-col gap-5 py-6 sm:flex-row sm:items-start sm:gap-7"
+        >
+          <div className="aspect-[16/10] w-full shrink-0 rounded-[14px] bg-[#efe5d2] sm:w-[270px] md:w-[340px] lg:w-[370px]" />
+          <div className="min-w-0 flex-1 space-y-3">
+            <div className="h-3.5 w-32 rounded bg-[#efe5d2]" />
+            <div className="h-6 w-3/4 rounded bg-[#e8dccb]" />
+            <div className="h-4 w-full rounded bg-[#f3eadc]" />
+            <div className="h-4 w-2/3 rounded bg-[#f3eadc]" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

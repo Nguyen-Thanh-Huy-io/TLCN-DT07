@@ -11,6 +11,36 @@ import {
   extractMetadataFromBlocks,
 } from '@/features/blog/utils/blog-metadata.util';
 
+const DEFAULT_BLOG_DATE_LABEL = 'Mới cập nhật';
+
+function formatBlogDateTime(iso?: string | null): string {
+  if (!iso) return DEFAULT_BLOG_DATE_LABEL;
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return DEFAULT_BLOG_DATE_LABEL;
+
+  const parts = new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Ho_Chi_Minh',
+  }).formatToParts(parsed);
+
+  const pick = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  const day = pick('day');
+  const month = pick('month');
+  const year = pick('year');
+  const hour = pick('hour');
+  const minute = pick('minute');
+
+  return day && month && year
+    ? `${day}/${month}/${year} ${hour}:${minute}`
+    : DEFAULT_BLOG_DATE_LABEL;
+}
+
 const mapPostToCard = (post: PublicBlogPostSummary, index: number) => {
   const metadata = extractMetadataFromBlocks(post.contentBlocks);
 
@@ -20,10 +50,11 @@ const mapPostToCard = (post: PublicBlogPostSummary, index: number) => {
     excerpt: post.excerpt || 'Bài viết lịch sử được HISGO biên tập và cập nhật.',
     category: 'Blog',
     author: post.author?.username || 'HISGO Editorial',
-    date: post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('vi-VN') : 'Mới cập nhật',
+    date: formatBlogDateTime(post.publishedAt || post.createdAt),
     image: post.coverImageUrl || '',
     accent: accentPalette[index % accentPalette.length],
     featured: Boolean(post.isFeatured),
+    viewCount: post.viewCount ?? 0,
     tags: metadata.tags,
   };
 };
@@ -85,44 +116,11 @@ export async function BlogLandingPage({ author }: { author?: string } = {}) {
               </Link>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {authorPosts.map((post) => (
-                <article
-                  key={post.slug}
-                  className="overflow-hidden rounded-[24px] border border-[#d7c7b2] bg-[#fffdf9] shadow-[0_16px_30px_rgba(31,42,43,0.05)] transition hover:-translate-y-1 hover:shadow-[0_22px_40px_rgba(31,42,43,0.08)]"
-                >
-                  <Link href={`/blog/${post.slug}`} className="relative block h-56 overflow-hidden">
-                    {post.image ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={post.image} alt={post.title} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className={`h-full w-full bg-gradient-to-br ${post.accent}`} />
-                    )}
-                    {post.tags.length > 0 ? (
-                      <span className="absolute bottom-3 left-3 rounded-full border border-white/30 bg-black/40 px-2.5 py-0.5 text-[9px] uppercase tracking-[0.16em] text-white backdrop-blur-sm">
-                        #{post.tags[0]}
-                      </span>
-                    ) : null}
-                  </Link>
-                  <div className="p-5">
-                    <div className="mb-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.14em] text-[#7d5d3d]">
-                      <span>{post.category}</span>
-                      <span>{post.date}</span>
-                    </div>
-                    <h3 className="mb-3 text-2xl font-[family-name:var(--font-heading)] leading-tight text-[#1f2a2b] transition hover:text-[#8a4d2d]">
-                      <Link href={`/blog/${post.slug}`}>{post.title}</Link>
-                    </h3>
-                    <p className="mb-4 text-sm leading-7 text-[#536560] line-clamp-3">{post.excerpt}</p>
-                    <div className="flex items-center justify-between border-t border-[#efe3d8] pt-3">
-                      <span className="text-xs uppercase tracking-[0.12em] text-[#536560]">{post.author}</span>
-                      <Link href={`/blog/${post.slug}`} className="text-xs font-semibold text-[#8a4d2d] hover:underline">
-                        Đọc bài →
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+            <BlogBrowser
+              posts={authorPosts}
+              eyebrowLabel="Tác giả"
+              headingTitle={`Bài viết của ${authorTrimmed}`}
+            />
           )}
         </main>
         <Footer />

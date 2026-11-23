@@ -2,11 +2,43 @@ import { SavedMaterialKind, type SavableMaterialKind } from '@/features/saved-ma
 
 export const MINDMAP_API = {
   ROOT: '/mindmaps',
+  GENERATE_PREVIEW: '/mindmaps/generate-preview',
   BY_ID: (id: string) => `/mindmaps/${id}`,
   PUBLIC_ARTICLES: '/public/articles',
   PUBLIC_ARTICLE_BY_SLUG: (slug: string) => `/public/articles/${encodeURIComponent(slug)}`,
   PUBLIC_TIMELINES: '/public/timelines',
 } as const;
+
+export enum MindmapAiEngine {
+  GEMINI_FLASH = 'GEMINI_FLASH',
+  HEURISTIC = 'HEURISTIC',
+}
+
+export const AI_MINDMAP_PROMPT_EXAMPLES: ReadonlyArray<{
+  label: string;
+  prompt: string;
+}> = [
+  {
+    label: 'Triều Trần & 3 lần chống Nguyên - Mông',
+    prompt:
+      'Xây dựng sơ đồ tư duy về Vương triều Nhà Trần (1225–1400): Bối cảnh thành lập, hào khí Đông A, diễn biến 3 lần kháng chiến chống quân Nguyên – Mông (1258, 1285, 1287–1288), các danh tướng tiêu biểu và ý nghĩa lịch sử.',
+  },
+  {
+    label: 'Khởi nghĩa Lam Sơn (1418–1427)',
+    prompt:
+      'Phân tích cuộc Khởi nghĩa Lam Sơn (1418–1427) do Lê Lợi và Nguyễn Trãi lãnh đạo: Bối cảnh ách đô hộ nhà Minh, 3 giai đoạn phát triển, chiến thắng Tốt Động – Chúc Động, Chi Lăng – Xương Giang và Bình Ngô đại cáo.',
+  },
+  {
+    label: 'Phong trào Tây Sơn & Quang Trung',
+    prompt:
+      'Sơ đồ tư duy về Phong trào Tây Sơn và Hoàng đế Quang Trung – Nguyễn Huệ: Từ khởi nghĩa nông dân đến lật đổ chính quyền Lê – Trịnh – Nguyễn, đại thắng Rạch Gầm – Xoài Mút (1785) và Ngọc Hồi – Đống Đa (1789).',
+  },
+  {
+    label: 'Chiến dịch Điện Biên Phủ 1954',
+    prompt:
+      'Hệ thống hóa Chiến dịch Điện Biên Phủ năm 1954: Âm mưu kế hoạch Nava, phương châm "Đánh chắc, tiến chắc" của Đại tướng Võ Nguyên Giáp, 3 đợt tiến công, kết quả và tác động tới Hiệp định Giơ-ne-vơ.',
+  },
+];
 
 export enum ReaderSourceKind {
   ARTICLE = 'ARTICLE',

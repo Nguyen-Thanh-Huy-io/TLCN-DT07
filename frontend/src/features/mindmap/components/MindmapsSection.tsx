@@ -15,7 +15,7 @@ import {
 } from '../services/mindmap.service';
 import { MindmapCanvas } from './MindmapCanvas';
 
-/** Tab "Sơ đồ tư duy" trên trang /tai-khoan: danh sách, tạo theo mẫu và mở Studio. */
+/** Tab "Sơ đồ tư duy" trên trang /tai-khoan: danh sách, tạo theo mẫu và mở Studio (có hộp thoại AI nổi song song ngay trên Canvas). */
 export function MindmapsSection({ onCountChange }: { onCountChange?: (count: number) => void }) {
   const [mindmaps, setMindmaps] = useState<MindmapSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -189,7 +189,7 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
             Chưa có sơ đồ tư duy nào
           </h3>
           <p className="mt-1 mx-auto max-w-md text-xs text-[var(--text-muted,#7A6B57)]">
-            Bấm <strong>Tạo sơ đồ mới</strong> để chọn Sơ đồ tư duy 2 bên, Sơ đồ tổ chức, Cây logic hoặc Đối chiếu và tự do kéo thả, gắn tư liệu đã lưu trong Studio.
+            Bấm <strong>Tạo sơ đồ mới</strong> để chọn Sơ đồ tư duy 2 bên, Sơ đồ tổ chức, Cây logic hoặc Đối chiếu và tự do kéo thả, hoặc dùng hộp thoại AI ngay trên Canvas.
           </p>
         </div>
       ) : (

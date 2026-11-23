@@ -38,6 +38,7 @@ import {
   resolveNodePalette,
 } from '../utils/mindmap-tree.util';
 import { MindmapLeftToolbar } from './MindmapLeftToolbar';
+import { AiMindmapPromptModal } from './AiMindmapPromptModal';
 import { MindmapNodeCard, nodeArticlesOf } from './MindmapNodeCard';
 import {
   MindmapReferenceDrawer,
@@ -45,6 +46,7 @@ import {
 } from './MindmapReferenceDrawer';
 import { MindmapStyleSidebar } from './MindmapStyleSidebar';
 import { MindmapSaveState, MindmapTopBar } from './MindmapTopBar';
+import { ShareMindmapCommunityModal } from './ShareMindmapCommunityModal';
 
 enum DragMode {
   PAN = 'PAN',
@@ -109,6 +111,7 @@ export function MindmapCanvas({
   const [activeTab, setActiveTab] = useState<MindmapInspectorTab>(MindmapInspectorTab.STYLE);
   const [toolMode, setToolMode] = useState<MindmapToolMode>(MindmapToolMode.POINTER);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 480, y: 260 });
@@ -175,6 +178,24 @@ export function MindmapCanvas({
     },
     [],
   );
+
+  const flushSaveNow = useCallback(async () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    setSaveState(MindmapSaveState.SAVING);
+    try {
+      await MindmapApiService.update(initialMindmap.id, {
+        title: title.trim() || initialMindmap.title,
+        graph,
+      });
+      setSaveState(MindmapSaveState.SAVED);
+    } catch (err) {
+      setSaveState(MindmapSaveState.ERROR);
+      throw err;
+    }
+  }, [graph, initialMindmap.id, initialMindmap.title, title]);
 
   const commitGraph = useCallback(
     (updater: (prev: MindmapGraph) => MindmapGraph, recordUndo = true) => {
@@ -557,6 +578,7 @@ export function MindmapCanvas({
         }}
         onToggleSidebar={() => setSidebarOpen((v) => !v)}
         onPrint={() => window.print()}
+        onShareToCommunity={() => setShareOpen(true)}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -755,6 +777,18 @@ export function MindmapCanvas({
           onResetZoom={() => setZoom(1)}
           onToggleFullscreen={() => void toggleFullscreen()}
         />
+
+        <AiMindmapPromptModal
+          structure={structure}
+          existingGraph={graph}
+          selectedNodeId={selectedNodeId}
+          onApply={({ title: aiTitle, preview }) => {
+            setTitle(aiTitle);
+            commitGraph(() => preview.graph);
+            setSelectedNodeId(selectedNodeId ?? preview.graph.nodes[0]?.id ?? null);
+            setTimeout(() => fitView(), 80);
+          }}
+        />
         </div>
 
         {sidebarOpen && (
@@ -800,6 +834,19 @@ export function MindmapCanvas({
           />
         )}
       </div>
+
+      {shareOpen && (
+        <ShareMindmapCommunityModal
+          isOpen={shareOpen}
+          mindmapTitle={title}
+          periodLabel={initialMindmap.periodLabel}
+          graph={graph}
+          tree={tree}
+          layout={layout}
+          onFlushSave={flushSaveNow}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
     </div>
   );
 }

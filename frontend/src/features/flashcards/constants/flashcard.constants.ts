@@ -1,5 +1,7 @@
 export const FLASHCARD_API = {
   DECKS: '/flashcards/decks',
+  DECKS_BATCH: '/flashcards/decks/batch',
+  GENERATE_PREVIEW: '/flashcards/generate-preview',
   DECK: (deckId: string) => `/flashcards/decks/${deckId}`,
   DECK_CARDS: (deckId: string) => `/flashcards/decks/${deckId}/cards`,
   DECK_DUE: (deckId: string) => `/flashcards/decks/${deckId}/due`,
@@ -13,6 +15,22 @@ export enum FlashcardRating {
   GOOD = 'GOOD',
   EASY = 'EASY',
 }
+
+export enum AiGeneratorEngine {
+  GEMINI_FLASH = 'GEMINI_FLASH',
+  HEURISTIC = 'HEURISTIC',
+}
+
+export const AI_CARD_COUNT_OPTIONS = [5, 10, 15, 20] as const;
+
+export const AI_SUGGESTED_TOPICS = [
+  'Chiến thắng Bạch Đằng năm 938',
+  'Triều Trần & 3 lần kháng chiến chống Nguyên - Mông',
+  'Khởi nghĩa Lam Sơn (1418–1427)',
+  'Phong trào Tây Sơn & Quang Trung',
+  'Cách mạng tháng Tám năm 1945',
+  'Chiến dịch Điện Biên Phủ năm 1954',
+] as const;
 
 export const DEFAULT_NOTE_DECK_TITLE = 'Ghi chú ôn tập';
 export const FLIP_KEY_CODE = 'Space';

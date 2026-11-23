@@ -1,5 +1,9 @@
 import api from '@/services/api';
-import { FLASHCARD_API, FlashcardRating } from '../constants/flashcard.constants';
+import {
+  AiGeneratorEngine,
+  FLASHCARD_API,
+  FlashcardRating,
+} from '../constants/flashcard.constants';
 
 const unwrap = <T,>(res: { data: { data: T } }): T => res.data.data;
 
@@ -28,12 +32,46 @@ export interface FlashcardItem {
   updatedAt: string;
 }
 
+export interface GeneratedCardDraft {
+  front: string;
+  back: string;
+  sourceNoteId?: string;
+}
+
+export interface GeneratedFlashcardPreview {
+  deckTitle: string;
+  cards: GeneratedCardDraft[];
+  engine: AiGeneratorEngine;
+  noteCount: number;
+  articleCount: number;
+  wrongQuizCount: number;
+}
+
 export const FlashcardApiService = {
   async listDecks(): Promise<FlashcardDeck[]> {
     return unwrap(await api.get(FLASHCARD_API.DECKS));
   },
-  async createDeck(input: { title: string; description?: string }): Promise<FlashcardDeck> {
+  async createDeck(input: {
+    title: string;
+    description?: string;
+  }): Promise<FlashcardDeck> {
     return unwrap(await api.post(FLASHCARD_API.DECKS, input));
+  },
+  async createDeckBatch(input: {
+    title: string;
+    description?: string;
+    cards: GeneratedCardDraft[];
+  }): Promise<FlashcardDeck> {
+    return unwrap(await api.post(FLASHCARD_API.DECKS_BATCH, input));
+  },
+  async generatePreview(input: {
+    topicHint?: string;
+    includeNotes?: boolean;
+    includeWrongQuizzes?: boolean;
+    articleIds?: string[];
+    maxCards?: number;
+  }): Promise<GeneratedFlashcardPreview> {
+    return unwrap(await api.post(FLASHCARD_API.GENERATE_PREVIEW, input));
   },
   async deleteDeck(deckId: string): Promise<void> {
     await api.delete(FLASHCARD_API.DECK(deckId));
@@ -59,7 +97,10 @@ export const FlashcardApiService = {
   async deleteCard(cardId: string): Promise<void> {
     await api.delete(FLASHCARD_API.CARD(cardId));
   },
-  async reviewCard(cardId: string, rating: FlashcardRating): Promise<FlashcardItem> {
+  async reviewCard(
+    cardId: string,
+    rating: FlashcardRating,
+  ): Promise<FlashcardItem> {
     return unwrap(await api.post(FLASHCARD_API.CARD_REVIEW(cardId), { rating }));
   },
 };

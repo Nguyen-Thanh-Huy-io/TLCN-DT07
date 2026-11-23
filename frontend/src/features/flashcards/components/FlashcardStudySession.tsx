@@ -7,6 +7,77 @@ import { emitGamificationRefresh } from '@/features/gamification/services/gamifi
 import { FLIP_KEY_CODE, FlashcardRating, RATING_OPTIONS } from '../constants/flashcard.constants';
 import { FlashcardApiService, type FlashcardDeck, type FlashcardItem } from '../services/flashcard.service';
 
+const LONG_ANSWER_THRESHOLD_CHARS = 110;
+
+function resolveCardBodyClass(flipped: boolean, backText: string): string {
+  const isDetailed =
+    flipped &&
+    (backText.length > LONG_ANSWER_THRESHOLD_CHARS || backText.includes('\n'));
+  return isDetailed
+    ? 'max-h-[340px] w-full overflow-y-auto whitespace-pre-line text-left text-sm font-medium leading-relaxed text-[var(--text-body,#2D1A10)] sm:text-base'
+    : 'whitespace-pre-line font-serif text-lg font-bold leading-relaxed text-[var(--text-body,#2D1A10)] sm:text-xl';
+}
+
+function StudyCompletedPanel({
+  reviewedCount,
+  onExit,
+}: {
+  reviewedCount: number;
+  onExit: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-[var(--border,#E2D5B8)] bg-white p-10 text-center">
+      <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-teal-50 text-teal-700">
+        <CheckCircle2 size={28} />
+      </div>
+      <h3 className="mt-4 font-[family-name:var(--font-heading)] text-xl font-bold text-[var(--text-body,#2D1A10)]">
+        {reviewedCount > 0 ? 'Hoàn thành phiên ôn tập!' : 'Không có thẻ nào đến hạn hôm nay'}
+      </h3>
+      <p className="mt-1 text-xs text-[var(--text-muted,#7A6B57)]">
+        {reviewedCount > 0
+          ? `Bạn vừa ôn xong ${reviewedCount} lượt thẻ. Thuật toán SM-2 đã tự động hẹn lịch ôn tiếp theo.`
+          : 'Mọi thẻ trong bộ này đều đã được ôn đúng lịch. Hãy quay lại khi có thẻ đến hạn hoặc thêm thẻ mới.'}
+      </p>
+      <button
+        type="button"
+        onClick={onExit}
+        className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-[var(--primary,#7A1F24)] px-5 py-2.5 text-xs font-bold text-white hover:brightness-110 cursor-pointer"
+      >
+        Về danh sách bộ thẻ
+      </button>
+    </div>
+  );
+}
+
+function FlashcardFlipCard({
+  card,
+  flipped,
+  onToggleFlip,
+}: {
+  card: FlashcardItem | null;
+  flipped: boolean;
+  onToggleFlip: () => void;
+}) {
+  const backText = card?.back ?? '';
+  return (
+    <button
+      type="button"
+      onClick={onToggleFlip}
+      className="group flex min-h-[260px] w-full flex-col items-center justify-center rounded-2xl border border-[var(--border,#E2D5B8)] bg-white p-6 sm:p-8 text-center shadow-xs transition hover:border-[var(--gold,#B8893F)] cursor-pointer"
+    >
+      <span className="mb-3 rounded border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--gold,#B8893F)]">
+        {flipped ? 'Mặt sau · Đáp án' : 'Mặt trước · Câu hỏi'}
+      </span>
+      <p className={resolveCardBodyClass(flipped, backText)}>
+        {flipped ? card?.back : card?.front}
+      </p>
+      <span className="mt-6 inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-muted,#7A6B57)]">
+        <RotateCw size={12} /> Bấm vào thẻ hoặc nhấn Space để lật
+      </span>
+    </button>
+  );
+}
+
 /** Phiên ôn tập thẻ đến hạn theo thuật toán SM-2 (lật thẻ + chấm 4 mức nhớ). */
 export function FlashcardStudySession({
   deck,
@@ -129,26 +200,7 @@ export function FlashcardStudySession({
       )}
 
       {isFinished ? (
-        <div className="rounded-2xl border border-[var(--border,#E2D5B8)] bg-white p-10 text-center">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-teal-50 text-teal-700">
-            <CheckCircle2 size={28} />
-          </div>
-          <h3 className="mt-4 font-[family-name:var(--font-heading)] text-xl font-bold text-[var(--text-body,#2D1A10)]">
-            {reviewedCount > 0 ? 'Hoàn thành phiên ôn tập!' : 'Không có thẻ nào đến hạn hôm nay'}
-          </h3>
-          <p className="mt-1 text-xs text-[var(--text-muted,#7A6B57)]">
-            {reviewedCount > 0
-              ? `Bạn vừa ôn xong ${reviewedCount} lượt thẻ. Thuật toán SM-2 đã tự động hẹn lịch ôn tiếp theo.`
-              : 'Mọi thẻ trong bộ này đều đã được ôn đúng lịch. Hãy quay lại khi có thẻ đến hạn hoặc thêm thẻ mới.'}
-          </p>
-          <button
-            type="button"
-            onClick={onExit}
-            className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-[var(--primary,#7A1F24)] px-5 py-2.5 text-xs font-bold text-white hover:brightness-110 cursor-pointer"
-          >
-            Về danh sách bộ thẻ
-          </button>
-        </div>
+        <StudyCompletedPanel reviewedCount={reviewedCount} onExit={onExit} />
       ) : (
         <div className="mx-auto max-w-2xl space-y-4">
           {/* Thanh tiến độ */}
@@ -159,22 +211,11 @@ export function FlashcardStudySession({
             />
           </div>
 
-          {/* Thẻ lật */}
-          <button
-            type="button"
-            onClick={() => setFlipped((f) => !f)}
-            className="group flex min-h-[240px] w-full flex-col items-center justify-center rounded-2xl border border-[var(--border,#E2D5B8)] bg-white p-8 text-center shadow-xs transition hover:border-[var(--gold,#B8893F)] cursor-pointer"
-          >
-            <span className="mb-3 rounded border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--gold,#B8893F)]">
-              {flipped ? 'Mặt sau · Đáp án' : 'Mặt trước · Câu hỏi'}
-            </span>
-            <p className="whitespace-pre-line font-serif text-lg font-bold leading-relaxed text-[var(--text-body,#2D1A10)] sm:text-xl">
-              {flipped ? currentCard?.back : currentCard?.front}
-            </p>
-            <span className="mt-6 inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-muted,#7A6B57)]">
-              <RotateCw size={12} /> Bấm vào thẻ hoặc nhấn Space để lật
-            </span>
-          </button>
+          <FlashcardFlipCard
+            card={currentCard}
+            flipped={flipped}
+            onToggleFlip={() => setFlipped((f) => !f)}
+          />
 
           {/* Nút chấm điểm SM-2 */}
           {flipped ? (

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { BookOpen, Layers, Loader2, Play, Plus, Trash2 } from 'lucide-react';
+import { BookOpen, Layers, Loader2, Play, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import { AccountCard } from '@/features/account/components/AccountSections';
 import {
@@ -9,6 +9,7 @@ import {
   type FlashcardDeck,
   type FlashcardItem,
 } from '../services/flashcard.service';
+import { AiFlashcardGeneratorModal } from './AiFlashcardGeneratorModal';
 import { FlashcardDeckDetail } from './FlashcardDeckDetail';
 import { FlashcardStudySession } from './FlashcardStudySession';
 
@@ -25,6 +26,7 @@ export function FlashcardsSection({ onDueCountChange }: { onDueCountChange?: (du
   const [loadingCards, setLoadingCards] = useState(false);
 
   const [studying, setStudying] = useState<{ deck: FlashcardDeck; all: boolean } | null>(null);
+  const [showAiGenerator, setShowAiGenerator] = useState(false);
 
   const reloadDecks = useCallback(async () => {
     try {
@@ -105,11 +107,27 @@ export function FlashcardsSection({ onDueCountChange }: { onDueCountChange?: (du
       eyebrow="Ghi nhớ chủ động (SM-2)"
       title="Thẻ ghi nhớ ôn tập"
       action={
-        <span className="rounded-xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)] px-3 py-1.5 text-xs font-bold text-[var(--primary,#7A1F24)]">
-          {totalDue} thẻ cần ôn hôm nay
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowAiGenerator(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--gold,#B8893F)] bg-[#FFFCF5] px-3 py-1.5 text-xs font-bold text-[var(--primary,#7A1F24)] shadow-2xs hover:bg-[var(--bg-page,#F5EEDC)] cursor-pointer"
+          >
+            <Sparkles size={13} className="text-[var(--gold,#B8893F)]" />
+            Tạo bộ thẻ bằng AI
+          </button>
+          <span className="rounded-xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-page,#F5EEDC)] px-3 py-1.5 text-xs font-bold text-[var(--primary,#7A1F24)]">
+            {totalDue} thẻ cần ôn hôm nay
+          </span>
+        </div>
       }
     >
+      {showAiGenerator && (
+        <AiFlashcardGeneratorModal
+          onCreated={reloadDecks}
+          onClose={() => setShowAiGenerator(false)}
+        />
+      )}
       {error && (
         <p role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
           {error}

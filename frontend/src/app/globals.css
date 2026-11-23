@@ -1180,53 +1180,55 @@ button {
 /* ========================================================
    HISGO DEFAULT TYPOGRAPHY & BASE STYLES
    ======================================================== */
-.hisgo-theme {
-  background-color: var(--bg-page);
-  color: var(--text-body);
-  font-family: var(--font-body);
-  min-height: 100vh;
-}
+@layer base {
+  .hisgo-theme {
+    background-color: var(--bg-page);
+    color: var(--text-body);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
 
-.hisgo-theme h1,
-.hisgo-theme h2,
-.hisgo-theme h3,
-.hisgo-theme h4,
-.hisgo-theme h5,
-.hisgo-theme h6 {
-  font-family: var(--font-heading);
-  color: var(--ink);
-  font-weight: 700;
-  line-height: 1.25;
-}
+  .hisgo-theme h1,
+  .hisgo-theme h2,
+  .hisgo-theme h3,
+  .hisgo-theme h4,
+  .hisgo-theme h5,
+  .hisgo-theme h6 {
+    font-family: var(--font-heading);
+    color: var(--ink);
+    font-weight: 700;
+    line-height: 1.25;
+  }
 
-.hisgo-theme h1 {
-  font-size: 2.5rem;
-  letter-spacing: -0.02em;
-}
+  .hisgo-theme h1 {
+    font-size: 2.5rem;
+    letter-spacing: -0.02em;
+  }
 
-.hisgo-theme h2 {
-  font-size: 1.875rem;
-  letter-spacing: -0.01em;
-}
+  .hisgo-theme h2 {
+    font-size: 1.875rem;
+    letter-spacing: -0.01em;
+  }
 
-.hisgo-theme h3 {
-  font-size: 1.35rem;
-}
+  .hisgo-theme h3 {
+    font-size: 1.35rem;
+  }
 
-.hisgo-theme p {
-  color: var(--text-body);
-  line-height: 1.65;
-  font-family: var(--font-body);
-}
+  .hisgo-theme p {
+    color: var(--text-body);
+    line-height: 1.65;
+    font-family: var(--font-body);
+  }
 
-.hisgo-theme a {
-  color: var(--ink);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
+  .hisgo-theme a {
+    color: var(--ink);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
 
-.hisgo-theme a:hover {
-  color: var(--primary);
+  .hisgo-theme a:hover {
+    color: var(--primary);
+  }
 }
 
 /* ========================================================
@@ -1830,10 +1832,6 @@ button {
   color: #334155;
   font-size: 12px;
   font-weight: 500;
-}
-
-.eyebrow button:hover {
-  color: var(--text-main);
 }
 
 /* ========================================================
@@ -3285,26 +3283,4 @@ figure.wiki-media-block figcaption {
   border-width: 0;
 }
 
-/* Ghi chú tô trong bài đọc (CSS Custom Highlight API, đăng ký ở features/notes/hooks/useNoteHighlights.ts). */
-::highlight(hisgo-note-yellow) { background-color: rgb(252 211 77 / 0.45); }
-::highlight(hisgo-note-green) { background-color: rgb(110 231 183 / 0.45); }
-::highlight(hisgo-note-blue) { background-color: rgb(125 211 252 / 0.45); }
-::highlight(hisgo-note-pink) { background-color: rgb(253 164 175 / 0.5); }
-::highlight(hisgo-note-purple) { background-color: rgb(216 180 254 / 0.5); }
-::highlight(hisgo-note-flash) { background-color: rgb(139 38 30 / 0.35); }
-/* Gạch chân màu (Edge-style Underline). */
-::highlight(hisgo-note-underline-yellow) { text-decoration: underline solid 2.5px rgb(217 119 6); text-underline-offset: 3px; }
-::highlight(hisgo-note-underline-green) { text-decoration: underline solid 2.5px rgb(5 150 105); text-underline-offset: 3px; }
-::highlight(hisgo-note-underline-blue) { text-decoration: underline solid 2.5px rgb(2 132 199); text-underline-offset: 3px; }
-::highlight(hisgo-note-underline-pink) { text-decoration: underline solid 2.5px rgb(225 29 72); text-underline-offset: 3px; }
-::highlight(hisgo-note-underline-purple) { text-decoration: underline solid 2.5px rgb(124 58 237); text-underline-offset: 3px; }
-/* Gạch ngang màu (Edge-style Strikethrough). */
-::highlight(hisgo-note-strike-yellow) { text-decoration: line-through solid 2px rgb(180 83 9); }
-::highlight(hisgo-note-strike-green) { text-decoration: line-through solid 2px rgb(4 120 87); }
-::highlight(hisgo-note-strike-blue) { text-decoration: line-through solid 2px rgb(3 105 161); }
-::highlight(hisgo-note-strike-pink) { text-decoration: line-through solid 2px rgb(190 18 60); }
-::highlight(hisgo-note-strike-purple) { text-decoration: line-through solid 2px rgb(109 40 217); }
-/* Kiểu riêng theo loại ghi chú (cộng thêm vào nền màu). */
-::highlight(hisgo-note-kind-important) { text-decoration: underline solid 2px rgb(185 28 28); }
-::highlight(hisgo-note-kind-question) { text-decoration: underline wavy 1.5px rgb(190 18 60); }
-::highlight(hisgo-note-kind-definition) { text-decoration: underline dotted 2px rgb(29 78 216); }
+/* Ghi chú tô trong bài đọc được đăng ký runtime bằng CSS Custom Highlight API trong useNoteHighlights.ts. */

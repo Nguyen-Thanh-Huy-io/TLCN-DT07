@@ -72,70 +72,70 @@ export function ProfileSidebar({
 
   return (
     <aside className="space-y-4 lg:sticky lg:top-24">
-      <div className="rounded-[8px] border border-[#E3D6BE] bg-[#FAF5E6] p-5">
+      <div className="rounded-[12px] border border-[#E3D6BE] bg-[#FAF5E6] p-5 md:p-6 lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#D8C8AA_transparent]">
         {/* Điều hướng quay lại Diễn đàn */}
         <Link
           href="/cong-dong"
-          className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#5C4E3C] transition-colors hover:text-[#7A1F24]"
+          className="inline-flex items-center gap-2 text-[14px] font-semibold text-[#5C4E3C] transition-colors hover:text-[#7A1F24]"
         >
-          <ArrowLeft size={15} />
+          <ArrowLeft size={16} />
           <span>Quay lại Diễn đàn Cộng đồng</span>
         </Link>
 
         {/* Thẻ định danh thành viên */}
-        <div className="mt-4 rounded-[6px] bg-[#F1E6D0] p-4">
-          <div className="flex items-center gap-3.5">
+        <div className="mt-4 rounded-[10px] bg-[#F1E6D0] p-4 md:p-5">
+          <div className="flex items-center gap-4">
             <div
               style={{
                 backgroundColor: tint.bg,
                 color: tint.ink,
               }}
-              className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full text-[16px] font-bold"
+              className="flex h-15 w-15 shrink-0 items-center justify-center rounded-full text-[18px] font-bold"
             >
               {getInitials(profile.user.displayName)}
             </div>
             <div className="min-w-0">
-              <span className="inline-flex h-5 items-center rounded-[4px] bg-[#E5EFE6] px-2 text-[11px] font-semibold text-[#1E4620]">
+              <span className="inline-flex h-6 items-center rounded-[5px] bg-[#E5EFE6] px-2.5 text-[11.5px] font-semibold text-[#1E4620]">
                 {getRoleLabel(profile.user.role)}
               </span>
-              <h1 className="mt-1 truncate text-[19px] font-bold leading-snug text-[#14233F]">
+              <h1 className="mt-1 truncate text-[21px] font-bold leading-snug text-[#14233F]">
                 {profile.user.displayName}
               </h1>
-              <p className="truncate text-[12.5px] text-[#5C4E3C]">
+              <p className="truncate text-[13.5px] text-[#5C4E3C]">
                 @{profile.user.username}
               </p>
             </div>
           </div>
 
-          <p className="mt-3 text-[13.5px] leading-relaxed text-[#14233F]">
+          <p className="mt-3.5 text-[14.5px] leading-relaxed text-[#14233F]">
             {profile.user.bio ||
               'Thành viên Cộng đồng Lịch sử HISGO — cùng đặt câu hỏi, trao đổi tư liệu và đối chiếu sử liệu đa chiều.'}
           </p>
 
-          <div className="mt-3 flex items-center gap-1.5 text-[12px] text-[#5C4E3C]">
-            <Calendar size={13} className="text-[#8A5A19]" />
+          <div className="mt-3.5 flex items-center gap-2 text-[13px] text-[#5C4E3C]">
+            <Calendar size={14} className="text-[#8A5A19]" />
             <span>{formatJoinDate(profile.user.joinedAt)}</span>
           </div>
         </div>
 
         {/* Cụm nút hành động chính 1-click */}
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-2.5">
           {isMe ? (
             <>
               <button
                 type="button"
                 onClick={onOpenQuestionComposer}
-                className="flex h-10 w-full items-center justify-center gap-2 rounded-[6px] bg-[#7A1F24] px-4 text-[13.5px] font-semibold text-[#FAF5E6] transition-colors hover:bg-[#651A1E]"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-[8px] bg-[#7A1F24] px-4 text-[14.5px] font-semibold whitespace-nowrap text-[#FAF5E6] transition-colors hover:bg-[#651A1E] cursor-pointer"
               >
-                <Plus size={16} />
+                <Plus size={17} />
                 <span>Đăng thảo luận mới</span>
               </button>
               <button
                 type="button"
                 onClick={() => setIsEditingBio((prev) => !prev)}
-                className="flex h-10 w-full items-center justify-center gap-2 rounded-[6px] border border-[#D8C8AA] bg-[#FDF9F0] px-4 text-[13.5px] font-semibold text-[#14233F] transition-colors hover:border-[#8A5A19] hover:bg-[#F2E8D5]"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border border-[#D8C8AA] bg-[#FDF9F0] px-4 text-[14.5px] font-semibold whitespace-nowrap text-[#14233F] transition-colors hover:border-[#8A5A19] hover:bg-[#F2E8D5] cursor-pointer"
               >
-                <Edit3 size={15} className="text-[#8A5A19]" />
+                <Edit3 size={16} className="text-[#8A5A19]" />
                 <span>{isEditingBio ? 'Đóng khung chỉnh sửa' : 'Chỉnh sửa hồ sơ sử học'}</span>
               </button>
             </>
@@ -145,7 +145,7 @@ export function ProfileSidebar({
                 type="button"
                 onClick={() => void onToggleFollowProfile()}
                 disabled={followLoading}
-                className={`flex h-10 w-full items-center justify-center gap-2 rounded-[6px] px-4 text-[13.5px] font-semibold transition-colors ${
+                className={`flex h-11 w-full items-center justify-center gap-2 rounded-[8px] px-4 text-[14.5px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                   profile.followedByMe
                     ? 'border border-[#D8C8AA] bg-[#FDF9F0] text-[#14233F] hover:border-[#7A1F24] hover:text-[#7A1F24]'
                     : 'bg-[#7A1F24] text-[#FAF5E6] hover:bg-[#651A1E]'
@@ -165,9 +165,9 @@ export function ProfileSidebar({
               </button>
               <Link
                 href="/cong-dong/ca-nhan"
-                className="flex h-10 w-full items-center justify-center gap-2 rounded-[6px] border border-[#D8C8AA] bg-[#FDF9F0] px-4 text-[13.5px] font-semibold text-[#14233F] transition-colors hover:border-[#8A5A19] hover:bg-[#F2E8D5]"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border border-[#D8C8AA] bg-[#FDF9F0] px-4 text-[14.5px] font-semibold whitespace-nowrap text-[#14233F] transition-colors hover:border-[#8A5A19] hover:bg-[#F2E8D5]"
               >
-                <FileText size={15} className="text-[#8A5A19]" />
+                <FileText size={16} className="text-[#8A5A19]" />
                 <span>Xem hồ sơ cá nhân của tôi</span>
               </Link>
             </>
@@ -329,10 +329,10 @@ export function ProfileSidebar({
 
         {/* Gợi ý kết nối các nhà nghiên cứu khác */}
         <div className="mt-5 border-t border-[#E5DAC4] pt-4">
-          <p className="mb-2.5 text-[13px] font-semibold text-[#14233F]">
+          <p className="mb-3 text-[13.5px] font-bold text-[#14233F]">
             Thành viên cùng lĩnh vực
           </p>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {suggestedMembers
               .filter(
                 (m) =>
@@ -343,16 +343,16 @@ export function ProfileSidebar({
               .map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between gap-2 rounded-[6px] border border-[#E5DAC4] bg-[#FDF9F0] px-3 py-2"
+                  className="flex items-center justify-between gap-2.5 rounded-[8px] border border-[#E5DAC4] bg-[#FDF9F0] px-3.5 py-2.5"
                 >
                   <div className="min-w-0">
                     <Link
                       href={`/cong-dong/thanh-vien/${encodeURIComponent(member.username)}`}
-                      className="block truncate text-[13px] font-semibold text-[#14233F] hover:text-[#7A1F24]"
+                      className="block truncate text-[14px] font-semibold text-[#14233F] hover:text-[#7A1F24]"
                     >
                       {member.displayName}
                     </Link>
-                    <p className="text-[12px] text-[#6E5D4B] tabular-nums">
+                    <p className="text-[12.5px] text-[#6E5D4B] tabular-nums">
                       {member.postCount} bài · {member.followerCount} theo dõi
                     </p>
                   </div>
@@ -360,7 +360,7 @@ export function ProfileSidebar({
                   <button
                     type="button"
                     onClick={() => void onToggleFollowOtherMember(member)}
-                    className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-[5px] border px-2 text-[12px] font-semibold transition-colors ${
+                    className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-[6px] border px-3 text-[12.5px] font-semibold transition-colors cursor-pointer ${
                       member.followedByMe
                         ? 'border-[#D8C8AA] bg-[#F1E6D0] text-[#5C4E3C]'
                         : 'border-[#7A1F24] bg-[#7A1F24] text-[#FAF5E6]'

@@ -104,16 +104,9 @@ export function CommunityProfileView({
       : []),
   ];
 
-  const totalFilteredCount =
-    activeTab === ProfileTabKey.FOLLOWERS || activeTab === ProfileTabKey.FOLLOWING
-      ? filteredMembers.length
-      : activeTab === ProfileTabKey.WORKS
-        ? filteredArticles.length + filteredLessons.length
-        : filteredPosts.length;
-
   return (
-    <div className="mx-auto max-w-[1280px] px-4 py-6 md:px-6 lg:px-8 lg:py-8">
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-8">
+    <div className="mx-auto max-w-[1440px] px-4 py-6 md:px-6 lg:px-8 lg:py-8">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[350px_minmax(0,1fr)] 2xl:grid-cols-[380px_minmax(0,1fr)] lg:gap-8">
         {/* CỘT TRÁI (LEFT RAIL): Hồ sơ định danh, hướng nghiên cứu, chủ đề đóng góp & gợi ý kết nối */}
         <ProfileSidebar
           profile={profile}
@@ -152,7 +145,6 @@ export function CommunityProfileView({
         <div className="min-w-0 space-y-6">
           <ProfileHeaderKpi
             profile={profile}
-            computedStats={computedStats}
             isMe={isMe}
             followLoading={followLoading}
             onOpenBlogShareComposer={() => {
@@ -160,7 +152,6 @@ export function CommunityProfileView({
               setComposerOpen(true);
             }}
             onToggleFollowProfile={handleToggleFollowProfile}
-            onSelectTab={setActiveTab}
           />
 
           <ProfileTabsToolbar
@@ -171,7 +162,6 @@ export function CommunityProfileView({
             onSearchQueryChange={setSearchQuery}
             selectedTopic={selectedTopic}
             onClearTopic={() => setSelectedTopic(null)}
-            totalFilteredCount={totalFilteredCount}
           />
 
           {/* Nội dung theo Tab */}

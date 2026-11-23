@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   Bookmark,
   Check,
+  Film,
   Flame,
   Hash,
   Layers,
@@ -20,12 +21,14 @@ import {
   CommunityTabKey,
   COMMUNITY_TAB_LABELS,
 } from '@/constants/enums';
+import { COMMUNITY_ROUTES } from '@/constants/routes';
 import type { CommunityMemberSummary } from '../api';
 
 const TABS: Array<{ key: CommunityTabKey; label: string }> = [
   { key: CommunityTabKey.ALL, label: COMMUNITY_TAB_LABELS[CommunityTabKey.ALL] },
   { key: CommunityTabKey.FOLLOWING, label: COMMUNITY_TAB_LABELS[CommunityTabKey.FOLLOWING] },
   { key: CommunityTabKey.TRENDING, label: COMMUNITY_TAB_LABELS[CommunityTabKey.TRENDING] },
+  { key: CommunityTabKey.MEDIA, label: COMMUNITY_TAB_LABELS[CommunityTabKey.MEDIA] },
   { key: CommunityTabKey.SHARED_BLOG, label: COMMUNITY_TAB_LABELS[CommunityTabKey.SHARED_BLOG] },
   { key: CommunityTabKey.SAVED, label: COMMUNITY_TAB_LABELS[CommunityTabKey.SAVED] },
 ];
@@ -33,6 +36,7 @@ const TABS: Array<{ key: CommunityTabKey; label: string }> = [
 function getTabIcon(tabKey: CommunityTabKey) {
   if (tabKey === CommunityTabKey.TRENDING) return Flame;
   if (tabKey === CommunityTabKey.FOLLOWING) return UserCheck;
+  if (tabKey === CommunityTabKey.MEDIA) return Film;
   if (tabKey === CommunityTabKey.SHARED_BLOG) return Share2;
   if (tabKey === CommunityTabKey.SAVED) return Bookmark;
   return Layers;
@@ -69,25 +73,25 @@ export function CommunitySidebar({
 }: CommunitySidebarProps) {
   return (
     <aside className="space-y-4 lg:sticky lg:top-24">
-      <div className="rounded-[12px] border border-[#E3D6BE] bg-[#FAF5E6] p-5 md:p-6">
+      <div className="rounded-[12px] border border-[#E3D6BE] bg-[#FAF5E6] p-4 md:p-5 lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#D8C8AA_transparent]">
         <Link
           href={myProfileHref}
-          className="group flex items-center gap-3.5 rounded-[10px] border border-[#DFD1B8] bg-[#F1E6D0]/85 p-3.5 transition-colors hover:border-[#7A1F24]/50 hover:bg-[#EFE1C6]"
+          className="group flex items-center gap-3 rounded-[10px] border border-[#DFD1B8] bg-[#F1E6D0]/85 p-3 transition-colors hover:border-[#7A1F24]/50 hover:bg-[#EFE1C6]"
         >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#7A1F24] text-[#FAF5E6] shadow-xs">
-            <UserCircle2 size={24} />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#7A1F24] text-[#FAF5E6] shadow-xs">
+            <UserCircle2 size={22} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-bold text-[#14233F] group-hover:text-[#7A1F24]">
+            <p className="truncate text-[14.5px] font-bold text-[#14233F] group-hover:text-[#7A1F24]">
               {username || 'Trang cá nhân Cộng đồng'}
             </p>
-            <p className="truncate text-[12.5px] text-[#5C4E3C]">
+            <p className="truncate text-[12px] text-[#5C4E3C]">
               Xem hồ sơ, bài đã đăng & danh sách theo dõi
             </p>
           </div>
         </Link>
 
-        <div className="mt-4">
+        <div className="mt-3.5">
           <div className="relative">
             <Search
               size={16}
@@ -100,7 +104,7 @@ export function CommunitySidebar({
               onChange={(e) => onChangeSearchQuery(e.target.value)}
               placeholder="Tìm kiếm thảo luận, chủ đề, tác giả..."
               aria-label="Tìm kiếm bài thảo luận"
-              className="h-11 w-full rounded-full border border-[#DFD1B8] bg-[#FDF9F0] pl-10 pr-9 text-[14px] text-[#14233F] placeholder:text-[#8A7963] outline-none transition-colors focus:border-[#8A5A19]"
+              className="h-10 w-full rounded-full border border-[#DFD1B8] bg-[#FDF9F0] pl-10 pr-9 text-[13.5px] text-[#14233F] placeholder:text-[#8A7963] outline-none transition-colors focus:border-[#8A5A19]"
             />
             {searchQuery ? (
               <button
@@ -115,11 +119,11 @@ export function CommunitySidebar({
           </div>
         </div>
 
-        <nav className="mt-5 border-t border-[#E5DAC4] pt-4" aria-label="Danh mục thảo luận">
-          <p className="mb-2.5 px-1 text-[12px] font-bold uppercase tracking-[0.08em] text-[#6E5D4B]">
+        <nav className="mt-4 border-t border-[#E5DAC4] pt-3.5" aria-label="Danh mục thảo luận">
+          <p className="mb-2 px-1 text-[11.5px] font-bold uppercase tracking-[0.08em] text-[#6E5D4B]">
             Bảng tin Cộng đồng
           </p>
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {TABS.map((tab) => {
               const isActive = activeTab === tab.key;
               const IconComponent = getTabIcon(tab.key);
@@ -128,7 +132,7 @@ export function CommunitySidebar({
                   key={tab.key}
                   type="button"
                   onClick={() => onChangeTab(tab.key)}
-                  className={`flex w-full items-center justify-between rounded-[10px] px-3 py-2.5 text-left text-[14.5px] transition-colors ${
+                  className={`flex w-full items-center justify-between rounded-[10px] px-3 py-2 text-left text-[14.5px] transition-colors ${
                     isActive
                       ? 'bg-[#F1E6D0] font-semibold text-[#7A1F24]'
                       : 'font-medium text-[#14233F] hover:bg-[#F3EAD8]'
@@ -136,13 +140,13 @@ export function CommunitySidebar({
                 >
                   <span className="inline-flex items-center gap-3">
                     <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors ${
                         isActive
                           ? 'bg-[#7A1F24] text-[#FAF5E6]'
                           : 'bg-[#EDE2CC] text-[#5C4E3C]'
                       }`}
                     >
-                      <IconComponent size={17} />
+                      <IconComponent size={16} />
                     </span>
                     <span>{tab.label}</span>
                   </span>
@@ -158,7 +162,7 @@ export function CommunitySidebar({
           </div>
         </nav>
 
-        <div className="mt-5 border-t border-[#E5DAC4] pt-4">
+        <div className="mt-4 border-t border-[#E5DAC4] pt-3.5">
           <div className="mb-3 flex items-center justify-between px-1">
             <span className="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.08em] text-[#6E5D4B]">
               <Hash size={14} className="text-[#8A5A19]" />
@@ -206,23 +210,26 @@ export function CommunitySidebar({
           </div>
         </div>
 
-        {suggestedMembers.length > 0 && (
-          <div className="mt-5 border-t border-[#E5DAC4] pt-4">
-            <div className="mb-3 flex items-center justify-between px-1">
+        {suggestedMembers.filter((member) => !member.isMe).length > 0 && (
+          <div className="mt-4 border-t border-[#E5DAC4] pt-3.5">
+            <div className="mb-2.5 flex items-center justify-between px-1">
               <span className="inline-flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.08em] text-[#6E5D4B]">
                 <Users size={14} className="text-[#8A5A19]" />
                 <span>Gợi ý theo dõi</span>
               </span>
               <Link
-                href={myProfileHref}
+                href={COMMUNITY_ROUTES.MEMBERS}
                 className="text-[12.5px] font-semibold text-[#7A1F24] hover:underline"
               >
                 Xem tất cả
               </Link>
             </div>
 
-            <div className="space-y-2.5">
-              {suggestedMembers.slice(0, 4).map((member) => {
+            <div className="space-y-2">
+              {suggestedMembers
+                .filter((member) => !member.isMe)
+                .slice(0, 4)
+                .map((member) => {
                 const followed = isAuthorFollowed(member);
                 const initials = member.displayName
                   .trim()

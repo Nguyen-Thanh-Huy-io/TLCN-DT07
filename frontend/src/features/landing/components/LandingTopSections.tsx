@@ -2,6 +2,7 @@
 
 import { useState, useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RemoteImage } from '@/components/common/RemoteImage';
 import { ArrowRight, ChevronLeft, ChevronRight, Compass, Play, Search, Sparkles, BookOpen, CheckCircle2, Clock3, UserRound, Zap, Crown, ExternalLink, MapPin } from 'lucide-react';
@@ -110,6 +111,50 @@ export function HlCover({ src, alt, fallbackText }: { src: string | null; alt: s
   );
 }
 
+// === LandingHeroCover.tsx ===
+const HERO_COVER_BADGES = [
+  { year: '938', label: 'Chiến thắng Bạch Đằng', className: 'hl-hero-cover-badge--a' },
+  { year: '1010', label: 'Chiếu dời đô', className: 'hl-hero-cover-badge--b' },
+  { year: '1428', label: 'Bình Ngô đại cáo', className: 'hl-hero-cover-badge--c' },
+] as const;
+
+/** Ảnh bìa động hiển thị khi chưa có dữ liệu "Tâm điểm lịch sử", giúp Hero không bị trống. */
+function LandingHeroCover() {
+  return (
+    <motion.div
+      className="hl-hero-cover"
+      initial={{ opacity: 0, scale: 0.96, x: 30 }}
+      animate={{ opacity: 1, scale: 1, x: 0 }}
+      transition={{ duration: 0.8, delay: 0.1 }}
+      aria-hidden="true"
+    >
+      <div className="hl-hero-cover-frame">
+        <Image
+          src="/assets/hero-cover.jpg"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 50vw"
+          className="hl-hero-cover-img"
+        />
+        <div className="hl-hero-cover-shade" />
+        <div className="hl-hero-cover-rays" />
+        <Compass className="hl-hero-cover-compass" />
+        <div className="hl-hero-cover-caption">
+          <span>Hành trình nghìn năm</span>
+          <strong>Dựng nước &amp; Giữ nước</strong>
+        </div>
+      </div>
+      {HERO_COVER_BADGES.map((b) => (
+        <div key={b.year} className={cn('hl-hero-cover-badge', b.className)}>
+          <strong>{b.year}</strong>
+          <span>{b.label}</span>
+        </div>
+      ))}
+    </motion.div>
+  );
+}
+
 // === LandingHero.tsx ===
 export function LandingHero({
   spotlights,
@@ -136,9 +181,8 @@ export function LandingHero({
           transition={{ duration: 0.65 }}
         >
           <p className="hl-hero-lead">Nền tảng khám phá lịch sử tương tác</p>
-          <h1>
-            Chạm vào quá khứ.
-            <br />
+          <h1 className="hl-hero-title">
+            <span>Chạm vào quá khứ.</span>
             <em>Hiểu sâu hiện tại.</em>
           </h1>
           <p>
@@ -182,6 +226,7 @@ export function LandingHero({
           </div>
         </motion.div>
 
+        {!item && <LandingHeroCover />}
         {item && (
           <motion.div
             className="hl-spotlight-shell"

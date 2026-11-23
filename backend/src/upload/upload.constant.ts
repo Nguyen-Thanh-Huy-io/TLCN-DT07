@@ -3,8 +3,15 @@ import { join } from 'path';
 export const UPLOAD_DIR = join(process.cwd(), 'uploads');
 export const CLOUDINARY_UPLOAD_FOLDER = 'hisgo/uploads';
 
+export const UPLOAD_PREFIX = {
+  IMAGE: 'history',
+  DOCUMENT: 'doc',
+  VIDEO: 'video',
+} as const;
+
 export const IMAGE_MAX_SIZE_BYTES = 5 * 1024 * 1024;
 export const DOCUMENT_MAX_SIZE_BYTES = 20 * 1024 * 1024;
+export const VIDEO_MAX_SIZE_BYTES = 50 * 1024 * 1024;
 
 export const ALLOWED_IMAGE_EXTENSIONS = [
   '.jpg',
@@ -22,6 +29,13 @@ export const ALLOWED_DOCUMENT_EXTENSIONS = [
   '.ppt',
   '.pptx',
   '.epub',
+] as const;
+
+export const ALLOWED_VIDEO_EXTENSIONS = [
+  '.mp4',
+  '.webm',
+  '.mov',
+  '.m4v',
 ] as const;
 
 export interface UploadResult {

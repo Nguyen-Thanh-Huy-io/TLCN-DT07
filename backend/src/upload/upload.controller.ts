@@ -1,26 +1,56 @@
 import {
+  BadRequestException,
   Controller,
   Post,
-  UploadedFile,
-  UseInterceptors,
-  BadRequestException,
   Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import type { Request } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
-import { diskStorage } from 'multer';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { Request } from 'express';
+import { memoryStorage } from 'multer';
+import type { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 import { extname } from 'path';
 import { ContentWrite } from '../common/access/access.decorator';
+import { AuthGuard } from '../common/guards/auth.guard';
 import {
   ALLOWED_DOCUMENT_EXTENSIONS,
   ALLOWED_IMAGE_EXTENSIONS,
+  ALLOWED_VIDEO_EXTENSIONS,
   DOCUMENT_MAX_SIZE_BYTES,
   IMAGE_MAX_SIZE_BYTES,
-  UPLOAD_DIR,
+  UPLOAD_PREFIX,
   UploadResult,
+  VIDEO_MAX_SIZE_BYTES,
 } from './upload.constant';
 import { UploadService } from './upload.service';
+
+function createMemoryUploadOptions(
+  maxBytes: number,
+  allowedExtensions: readonly string[],
+  invalidExtMessage: string,
+): MulterOptions {
+  return {
+    storage: memoryStorage(),
+    limits: { fileSize: maxBytes },
+    fileFilter: (_req, file, cb) => {
+      const ext = extname(file.originalname).toLowerCase();
+      if (allowedExtensions.includes(ext)) {
+        cb(null, true);
+      } else {
+        cb(new BadRequestException(invalidExtMessage), false);
+      }
+    },
+  };
+}
 
 @ApiTags('Upload')
 @Controller('upload')
@@ -28,51 +58,27 @@ export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
   @Post('image')
-  @ContentWrite()
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Tải lên hình ảnh tư liệu lịch sử (PNG, JPG, WEBP, JPEG)',
+    summary: 'Tải lên hình ảnh tư liệu lịch sử / Cộng đồng (lưu Cloudinary)',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
-      properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
-      },
+      properties: { file: { type: 'string', format: 'binary' } },
     },
   })
   @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (_req, _file, cb) => {
-          cb(null, UPLOAD_DIR);
-        },
-        filename: (_req, file, cb) => {
-          const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-          const ext = extname(file.originalname).toLowerCase();
-          cb(null, `history-${uniqueSuffix}${ext}`);
-        },
-      }),
-      limits: {
-        fileSize: IMAGE_MAX_SIZE_BYTES,
-      },
-      fileFilter: (_req, file, cb) => {
-        const ext = extname(file.originalname).toLowerCase();
-        if ((ALLOWED_IMAGE_EXTENSIONS as readonly string[]).includes(ext)) {
-          cb(null, true);
-        } else {
-          cb(
-            new BadRequestException(
-              'Chỉ hỗ trợ tải lên file hình ảnh (.jpg, .jpeg, .png, .webp, .gif)',
-            ),
-            false,
-          );
-        }
-      },
-    }),
+    FileInterceptor(
+      'file',
+      createMemoryUploadOptions(
+        IMAGE_MAX_SIZE_BYTES,
+        ALLOWED_IMAGE_EXTENSIONS,
+        'Chỉ hỗ trợ tải lên file hình ảnh (.jpg, .jpeg, .png, .webp, .gif)',
+      ),
+    ),
   )
   async uploadImage(
     @UploadedFile() file?: Express.Multer.File,
@@ -82,6 +88,43 @@ export class UploadController {
       file,
       req,
       'Vui lòng chọn file hình ảnh để tải lên',
+      UPLOAD_PREFIX.IMAGE,
+    );
+  }
+
+  @Post('video')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary:
+      'Tải lên video tư liệu Cộng đồng lên Cloudinary (.mp4, .webm, .mov ≤ 50MB)',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor(
+      'file',
+      createMemoryUploadOptions(
+        VIDEO_MAX_SIZE_BYTES,
+        ALLOWED_VIDEO_EXTENSIONS,
+        'Chỉ hỗ trợ tải lên video (.mp4, .webm, .mov, .m4v)',
+      ),
+    ),
+  )
+  async uploadVideo(
+    @UploadedFile() file?: Express.Multer.File,
+    @Req() req?: Request,
+  ): Promise<UploadResult> {
+    return this.uploadService.processUploadedFile(
+      file,
+      req,
+      'Vui lòng chọn file video để tải lên',
+      UPLOAD_PREFIX.VIDEO,
     );
   }
 
@@ -94,43 +137,18 @@ export class UploadController {
   @ApiBody({
     schema: {
       type: 'object',
-      properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
-      },
+      properties: { file: { type: 'string', format: 'binary' } },
     },
   })
   @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (_req, _file, cb) => {
-          cb(null, UPLOAD_DIR);
-        },
-        filename: (_req, file, cb) => {
-          const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-          const ext = extname(file.originalname).toLowerCase();
-          cb(null, `doc-${uniqueSuffix}${ext}`);
-        },
-      }),
-      limits: {
-        fileSize: DOCUMENT_MAX_SIZE_BYTES,
-      },
-      fileFilter: (_req, file, cb) => {
-        const ext = extname(file.originalname).toLowerCase();
-        if ((ALLOWED_DOCUMENT_EXTENSIONS as readonly string[]).includes(ext)) {
-          cb(null, true);
-        } else {
-          cb(
-            new BadRequestException(
-              'Chỉ hỗ trợ tải lên tài liệu (.pdf, .doc, .docx, .txt, .ppt, .pptx, .epub)',
-            ),
-            false,
-          );
-        }
-      },
-    }),
+    FileInterceptor(
+      'file',
+      createMemoryUploadOptions(
+        DOCUMENT_MAX_SIZE_BYTES,
+        ALLOWED_DOCUMENT_EXTENSIONS,
+        'Chỉ hỗ trợ tải lên tài liệu (.pdf, .doc, .docx, .txt, .ppt, .pptx, .epub)',
+      ),
+    ),
   )
   async uploadDocument(
     @UploadedFile() file?: Express.Multer.File,
@@ -140,6 +158,7 @@ export class UploadController {
       file,
       req,
       'Vui lòng chọn file tài liệu để tải lên',
+      UPLOAD_PREFIX.DOCUMENT,
     );
   }
 }

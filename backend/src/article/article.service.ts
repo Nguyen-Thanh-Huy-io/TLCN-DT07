@@ -20,7 +20,6 @@ import { RedisService } from '../common/services/redis.service';
 import { TAG_CONFIG } from '../tag/tag.constant';
 import { validateHistoricalYearRange } from '../common/utils/historical-date.parser';
 import {
-  ArticleLinkInputDto,
   CreateArticleDto,
   QueryArticleDto,
   ReviewArticleDto,
@@ -34,9 +33,6 @@ export const ARTICLE_MESSAGES = {
     `Đường dẫn "${slug}" đã được dùng cho bài viết khác`,
   CATEGORY_NOT_FOUND: 'Chuyên mục không tồn tại',
   TAG_NOT_FOUND: 'Có tag không tồn tại',
-  LINK_TARGET_NOT_FOUND: 'Có liên kết trỏ tới bài viết không tồn tại',
-  LINK_SELF: 'Bài viết không thể liên kết tới chính nó',
-  LINK_DUPLICATE: 'Mỗi bài viết chỉ liên kết tới cùng 1 bài khác một lần',
 } as const;
 
 /** Mốc timeline (đủ để biết năm + thuộc dòng thời gian nào). */
@@ -52,22 +48,6 @@ const NODE_REF_SELECT = {
   timeline: { select: { id: true, title: true, slug: true } },
 } satisfies Prisma.TimelineNodeSelect;
 
-/** Bài ở đầu bên kia liên kết — kèm năm + mốc timeline để CMS xem trước dòng đời nhân vật. */
-const LINKED_ARTICLE_SELECT = {
-  id: true,
-  title: true,
-  slug: true,
-  status: true,
-  summary: true,
-  dateText: true,
-  startYear: true,
-  endYear: true,
-  timelineNodes: { select: NODE_REF_SELECT, orderBy: { displayOrder: 'asc' } },
-  category: {
-    select: { id: true, name: true, slug: true, kind: true, parentId: true },
-  },
-} satisfies Prisma.ArticleSelect;
-
 /** Include dùng chung cho danh sách & chi tiết (category + topic + tag). */
 const ARTICLE_INCLUDE = {
   category: {
@@ -76,7 +56,6 @@ const ARTICLE_INCLUDE = {
       name: true,
       slug: true,
       icon: true,
-      kind: true,
       parentId: true,
     },
   },
@@ -192,7 +171,6 @@ export class ArticleService {
         orderBy,
         skip: (page - 1) * limit,
         take: limit,
-        // Danh sách không cần nội dung khối / hồ sơ (nặng).
         omit: { contentBlocks: true, metadata: true },
         include: ARTICLE_INCLUDE,
       }),
@@ -214,10 +192,6 @@ export class ArticleService {
     };
   }
 
-  /**
-   * Chi tiết cho CMS. `links` = liên kết do bài này khai báo, đúng dạng payload ghi (dùng cho form
-   * và bản sửa chờ duyệt); `linksOut` / `linksIn` kèm thông tin bài ở đầu kia để hiển thị.
-   */
   async findOne(id: string) {
     const row = await this.prisma.article.findUnique({
       where: { id },
@@ -227,44 +201,15 @@ export class ArticleService {
           select: NODE_REF_SELECT,
           orderBy: { displayOrder: 'asc' },
         },
-        linksOut: {
-          orderBy: { displayOrder: 'asc' },
-          include: { target: { select: LINKED_ARTICLE_SELECT } },
-        },
-        linksIn: {
-          orderBy: { displayOrder: 'asc' },
-          include: { source: { select: LINKED_ARTICLE_SELECT } },
-        },
       },
     });
     if (!row) throw new NotFoundException(ARTICLE_MESSAGES.NOT_FOUND(id));
-    const { linksOut, linksIn, ...rest } = row;
-    return {
-      ...present(rest),
-      links: linksOut.map((l) => ({
-        targetId: l.targetId,
-        label: l.label,
-        note: l.note,
-      })),
-      linksOut: linksOut.map((l) => ({
-        id: l.id,
-        label: l.label,
-        note: l.note,
-        article: l.target,
-      })),
-      linksIn: linksIn.map((l) => ({
-        id: l.id,
-        label: l.label,
-        note: l.note,
-        article: l.source,
-      })),
-    };
+    return present(row);
   }
 
   async create(dto: CreateArticleDto, authorId?: string) {
-    const { tagIds, metadata, links, ...data } = dto;
+    const { tagIds, metadata, ...data } = dto;
     await this.validate(dto);
-    await this.validateLinks(links);
     const slug = dto.slug
       ? await this.assertSlugFree(dto.slug)
       : await this.slugService.generateUnique(dto.title, (s) =>
@@ -282,9 +227,6 @@ export class ArticleService {
           data.status === ContentStatus.PUBLISHED ? new Date() : null,
         articleTags: tagIds?.length
           ? { create: [...new Set(tagIds)].map((tagId) => ({ tagId })) }
-          : undefined,
-        linksOut: links?.length
-          ? { create: links.map((l, i) => this.toLinkData(l, i)) }
           : undefined,
       },
     });
@@ -314,11 +256,10 @@ export class ArticleService {
           ? normalizedDto.endYear
           : current.endYear,
     });
-    await this.validateLinks(normalizedDto.links, id);
     if (normalizedDto.slug && normalizedDto.slug !== current.slug)
       await this.assertSlugFree(normalizedDto.slug, id);
 
-    const { tagIds, contentBlocks, metadata, links, ...data } = normalizedDto;
+    const { tagIds, contentBlocks, metadata, ...data } = normalizedDto;
     const becomesPublished =
       data.status === ContentStatus.PUBLISHED &&
       current.status !== ContentStatus.PUBLISHED;
@@ -348,18 +289,6 @@ export class ArticleService {
           });
         }
       }
-      // Liên kết: thay toàn bộ danh sách do bài này khai báo (liên kết bài khác trỏ tới bài này giữ nguyên).
-      if (links !== undefined) {
-        await tx.articleLink.deleteMany({ where: { sourceId: id } });
-        if (links.length) {
-          await tx.articleLink.createMany({
-            data: links.map((l, i) => ({
-              ...this.toLinkData(l, i),
-              sourceId: id,
-            })),
-          });
-        }
-      }
       return saved;
     });
     if (tagIds !== undefined) await this.clearTagCache();
@@ -375,15 +304,11 @@ export class ArticleService {
 
   async remove(id: string) {
     await this.findOne(id);
-    // Mốc timeline trỏ tới bài → null (SetNull); tag nối, liên kết 2 chiều tự xoá (Cascade).
     await this.prisma.article.delete({ where: { id } });
     await this.clearTagCache();
     return { success: true };
   }
 
-  /**
-   * Phê duyệt / Từ chối bài viết mới (Quy trình 2 người: người duyệt khác người tạo).
-   */
   async review(id: string, dto: ReviewArticleDto, reviewerUserId?: string) {
     const current = await this.prisma.article.findUnique({
       where: { id },
@@ -430,33 +355,6 @@ export class ArticleService {
       );
     }
     return this.findOne(updated.id);
-  }
-
-  private toLinkData(l: ArticleLinkInputDto, index: number) {
-    return {
-      targetId: l.targetId,
-      label: l.label?.trim() || null,
-      note: l.note?.trim() || null,
-      displayOrder: index,
-    };
-  }
-
-  private async validateLinks(
-    links: ArticleLinkInputDto[] | undefined,
-    selfId?: string,
-  ) {
-    if (!links?.length) return;
-    const ids = links.map((l) => l.targetId);
-    if (selfId && ids.includes(selfId))
-      throw new BadRequestException(ARTICLE_MESSAGES.LINK_SELF);
-    const unique = new Set(ids);
-    if (unique.size !== ids.length)
-      throw new BadRequestException(ARTICLE_MESSAGES.LINK_DUPLICATE);
-    const found = await this.prisma.article.count({
-      where: { id: { in: [...unique] } },
-    });
-    if (found !== unique.size)
-      throw new BadRequestException(ARTICLE_MESSAGES.LINK_TARGET_NOT_FOUND);
   }
 
   private async validate(dto: Partial<CreateArticleDto>) {

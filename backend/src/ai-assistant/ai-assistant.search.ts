@@ -1,4 +1,4 @@
-import { ArticleKind, ContentStatus } from '@prisma/client';
+import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import {
   AI_ASSISTANT_LIMITS,
@@ -87,71 +87,6 @@ export function shouldUseRagForMessage(
   return clean.split(/\s+/).length >= 3;
 }
 
-export function resolveArticleRouteByKind(kind?: ArticleKind | null): {
-  linkKind: AssistantLinkKind;
-  routeBase: string;
-  label: string;
-} {
-  switch (kind) {
-    case ArticleKind.EVENT:
-      return {
-        linkKind: AssistantLinkKind.EVENT,
-        routeBase: '/su-kien',
-        label: 'Sự kiện',
-      };
-    case ArticleKind.PERSON:
-      return {
-        linkKind: AssistantLinkKind.PERSON,
-        routeBase: '/nhan-vat',
-        label: 'Nhân vật',
-      };
-    case ArticleKind.LOCATION:
-      return {
-        linkKind: AssistantLinkKind.LOCATION,
-        routeBase: '/di-tich',
-        label: 'Di tích',
-      };
-    case ArticleKind.DYNASTY:
-    case ArticleKind.OTHER:
-    default:
-      return {
-        linkKind: AssistantLinkKind.ARTICLE,
-        routeBase: '/bai-viet',
-        label: 'Bài viết',
-      };
-  }
-}
-
-interface CategoryRef {
-  id: string;
-  parentId: string | null;
-  kind: ArticleKind | null;
-}
-
-function resolveInheritedKind(
-  categoriesById: ReadonlyMap<string, CategoryRef>,
-  categoryId: string | null | undefined,
-): ArticleKind {
-  let cur = categoryId ? categoriesById.get(categoryId) : undefined;
-  const seen = new Set<string>();
-  while (cur && !seen.has(cur.id)) {
-    if (cur.kind) return cur.kind;
-    seen.add(cur.id);
-    cur = cur.parentId ? categoriesById.get(cur.parentId) : undefined;
-  }
-  return ArticleKind.OTHER;
-}
-
-async function loadCategoryHierarchy(
-  prisma: PrismaService,
-): Promise<Map<string, CategoryRef>> {
-  if (!prisma.category?.findMany) return new Map();
-  const rows = await prisma.category.findMany({
-    select: { id: true, parentId: true, kind: true },
-  });
-  return new Map(rows.map((c) => [c.id, c]));
-}
-
 async function tryResolveArticlePage(
   prisma: PrismaService,
   cleanPath: string,
@@ -172,18 +107,12 @@ async function tryResolveArticlePage(
       summary: true,
       dateText: true,
       contentBlocks: true,
-      categoryId: true,
     },
   });
   if (!art) return null;
 
-  const categories = await loadCategoryHierarchy(prisma);
-  const routeInfo = resolveArticleRouteByKind(
-    resolveInheritedKind(categories, art.categoryId),
-  );
-  const entryPrefix = `/${match[1].toLowerCase()}`;
   return {
-    kind: routeInfo.linkKind,
+    kind: AssistantLinkKind.ARTICLE,
     title: art.title,
     summary: [
       art.dateText,
@@ -193,10 +122,7 @@ async function tryResolveArticlePage(
     ]
       .filter(Boolean)
       .join(' — '),
-    href:
-      entryPrefix === '/thuc-the'
-        ? `${routeInfo.routeBase}/${art.slug}`
-        : `${entryPrefix}/${art.slug}`,
+    href: `/bai-viet/${art.slug}`,
   };
 }
 
@@ -308,9 +234,8 @@ export async function searchMultiEntityContent(
   const keywords = extractSearchKeywords(message);
   if (keywords.length === 0) return [];
 
-  const [categories, articles, lessons, blogs, timelineNodes] =
+  const [articles, lessons, blogs, timelineNodes] =
     await Promise.all([
-      loadCategoryHierarchy(prisma),
       prisma.article?.findMany
         ? prisma.article.findMany({
             where: {
@@ -333,7 +258,7 @@ export async function searchMultiEntityContent(
               slug: true,
               dateText: true,
               summary: true,
-              categoryId: true,
+              category: { select: { name: true } },
             },
           })
         : Promise.resolve([]),
@@ -385,13 +310,12 @@ export async function searchMultiEntityContent(
   const results: AssistantSuggestedLink[] = [];
 
   for (const a of articles) {
-    const kind = resolveInheritedKind(categories, a.categoryId);
-    const meta = resolveArticleRouteByKind(kind);
+    const label = a.category?.name || 'Bài viết';
     results.push({
-      kind: meta.linkKind,
+      kind: AssistantLinkKind.ARTICLE,
       title: a.title,
-      subtitle: [meta.label, a.dateText, a.summary].filter(Boolean).join(' · '),
-      href: `${meta.routeBase}/${a.slug}`,
+      subtitle: [label, a.dateText, a.summary].filter(Boolean).join(' · '),
+      href: `/bai-viet/${a.slug}`,
     });
   }
 

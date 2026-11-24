@@ -1,5 +1,4 @@
 import { generateKeyPairSync } from 'node:crypto';
-import { ArticleKind } from '@prisma/client';
 import config from '../common/config/app.config';
 import { AssistantEngine, AssistantLinkKind } from './ai-assistant.constant';
 import {
@@ -47,9 +46,9 @@ describe('AiAssistantService & RAG Grounding', () => {
     mockPrisma = {
       category: {
         findMany: jest.fn().mockResolvedValue([
-          { id: 'cat-event', parentId: null, kind: ArticleKind.EVENT },
-          { id: 'cat-battle', parentId: 'cat-event', kind: null },
-          { id: 'cat-person', parentId: null, kind: ArticleKind.PERSON },
+          { id: 'cat-event', parentId: null, slug: 'su-kien' },
+          { id: 'cat-battle', parentId: 'cat-event', slug: 'tran-danh' },
+          { id: 'cat-person', parentId: null, slug: 'nhan-vat' },
         ]),
       },
       article: {
@@ -142,8 +141,8 @@ describe('AiAssistantService & RAG Grounding', () => {
     expect(res.contextLabel).toBe('Chiến thắng Bạch Đằng năm 938');
     expect(res.suggestedLinks[0]).toEqual(
       expect.objectContaining({
-        kind: AssistantLinkKind.EVENT,
-        href: '/su-kien/chien-thang-bach-dang-938',
+        kind: AssistantLinkKind.ARTICLE,
+        href: '/bai-viet/chien-thang-bach-dang-938',
       }),
     );
   });
@@ -156,7 +155,7 @@ describe('AiAssistantService & RAG Grounding', () => {
         slug: 'tran-hung-dao',
         dateText: '1228–1300',
         summary: 'Tổng chỉ huy kháng chiến chống Nguyên.',
-        categoryId: 'cat-person',
+        category: { name: 'Nhân vật' },
       },
     ]);
     mockPrisma.blogPost.findMany.mockResolvedValue([
@@ -203,8 +202,8 @@ describe('AiAssistantService & RAG Grounding', () => {
     expect(res.suggestedLinks).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          kind: AssistantLinkKind.PERSON,
-          href: '/nhan-vat/tran-hung-dao',
+          kind: AssistantLinkKind.ARTICLE,
+          href: '/bai-viet/tran-hung-dao',
         }),
         expect.objectContaining({
           kind: AssistantLinkKind.BLOG,

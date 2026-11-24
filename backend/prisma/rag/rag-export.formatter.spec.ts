@@ -1,4 +1,4 @@
-import { ArticleKind, ContentStatus, PostType } from '@prisma/client';
+import { ContentStatus, PostType } from '@prisma/client';
 import {
   ensureUniqueArtifactPath,
   formatArticleMarkdown,
@@ -6,7 +6,7 @@ import {
   formatLessonMarkdown,
   formatTimelineNodeDate,
   formatTimelineNodeMarkdown,
-  resolveCategoryKind,
+  resolveRootCategory,
 } from './rag-export.formatter';
 import {
   CategoryHierarchyNode,
@@ -26,7 +26,6 @@ describe('RAG Exporter Formatter', () => {
         parentId: null,
         name: 'Sự kiện',
         slug: 'su-kien',
-        kind: ArticleKind.EVENT,
       },
     ],
     [
@@ -36,7 +35,6 @@ describe('RAG Exporter Formatter', () => {
         parentId: 'cat-event',
         name: 'Trận đánh',
         slug: 'tran-danh',
-        kind: null,
       },
     ],
     [
@@ -46,15 +44,12 @@ describe('RAG Exporter Formatter', () => {
         parentId: null,
         name: 'Nhân vật',
         slug: 'nhan-vat',
-        kind: ArticleKind.PERSON,
       },
     ],
   ]);
 
-  it('kế thừa đúng Category.kind từ chuyên mục cha và gắn URL /su-kien/ cho Article trận đánh', () => {
-    expect(resolveCategoryKind(categories, 'cat-battle')).toBe(
-      ArticleKind.EVENT,
-    );
+  it('kế thừa đúng chuyên mục gốc từ chuyên mục cha và gắn URL /bai-viet/ cho Article', () => {
+    expect(resolveRootCategory(categories, 'cat-battle')?.slug).toBe('su-kien');
 
     const article: ExportableArticle = {
       id: 'art-1',
@@ -85,27 +80,15 @@ describe('RAG Exporter Formatter', () => {
           author: 'Sử thần',
         },
       ],
-      linksOut: [
-        {
-          label: 'Tổng chỉ huy',
-          target: {
-            slug: 'ngo-quyen',
-            title: 'Ngô Quyền',
-            status: ContentStatus.PUBLISHED,
-            categoryId: 'cat-person',
-          },
-        },
-      ],
-      linksIn: [],
     };
 
     const result = formatArticleMarkdown(article, categories);
     expect(result.relativePath).toBe(
       'articles/su-kien--chien-thang-bach-dang-938.md',
     );
-    expect(result.manifestEntry.kind).toBe(RagDocumentKind.EVENT);
+    expect(result.manifestEntry.kind).toBe(RagDocumentKind.ARTICLE);
     expect(result.manifestEntry.href).toBe(
-      '/su-kien/chien-thang-bach-dang-938',
+      '/bai-viet/chien-thang-bach-dang-938',
     );
     expect(result.manifestEntry.aliases).toEqual([
       'Trận Bạch Đằng 938',
@@ -116,14 +99,11 @@ describe('RAG Exporter Formatter', () => {
       'Việt Nam sử lược',
     ]);
     expect(result.markdown).toContain(
-      'hisgoUrl: "/su-kien/chien-thang-bach-dang-938"',
+      'hisgoUrl: "/bai-viet/chien-thang-bach-dang-938"',
     );
-    expect(result.markdown).toContain('categoryKind: "EVENT"');
+    expect(result.markdown).toContain('categorySlug: "su-kien"');
     expect(result.markdown).toContain('## Diễn biến chính');
     expect(result.markdown).toContain('**cọc gỗ bịt sắt**');
-    expect(result.markdown).toContain(
-      '[Ngô Quyền](/nhan-vat/ngo-quyen) (Tổng chỉ huy)',
-    );
   });
 
   it('xuất Lesson với Block SECTION_ROW và sourceReferenceNote sạch sẽ', () => {
@@ -249,7 +229,7 @@ describe('RAG Exporter Formatter', () => {
       'timelines/moc--ngo-dinh-tien-le--002-node-123.md',
     );
     expect(result.manifestEntry.href).toBe(
-      '/su-kien/chien-thang-bach-dang-938',
+      '/bai-viet/chien-thang-bach-dang-938',
     );
     expect(result.markdown).toContain('/giai-doan/ngo-dinh-tien-le');
     expect(result.markdown).toContain('/dong-thoi-gian');

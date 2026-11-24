@@ -6,7 +6,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../common/services/prisma.service';
 import { SlugService } from '../common/services/slug.service';
-import { CategoryService } from './category.service';
+import { CategoryService, resolveRootCategorySlug } from './category.service';
 
 interface FakeCategory {
   id: string;
@@ -15,12 +15,13 @@ interface FakeCategory {
   articles: number;
 }
 
-/** Cây mẫu: goc → con → chau; "le" đứng riêng. */
+/** Cây mẫu: goc → con → chau; "le" (nhan-vat) là chuyên mục gốc hệ thống; "custom" là chuyên mục thường. */
 const SEED: FakeCategory[] = [
   { id: 'goc', slug: 'goc', parentId: null, articles: 0 },
   { id: 'con', slug: 'con', parentId: 'goc', articles: 0 },
   { id: 'chau', slug: 'chau', parentId: 'con', articles: 0 },
   { id: 'le', slug: 'nhan-vat', parentId: null, articles: 3 },
+  { id: 'co-bai', slug: 'chuyen-muc-co-bai', parentId: null, articles: 2 },
 ];
 
 describe('CategoryService', () => {
@@ -78,7 +79,7 @@ describe('CategoryService', () => {
     });
   });
 
-  describe('update — chống vòng lặp cha/con', () => {
+  describe('update — chống vòng lặp cha/con & khóa chuyên mục gốc hệ thống', () => {
     it('không cho chọn chính nó làm cha', async () => {
       await expect(service.update('con', { parentId: 'con' })).rejects.toThrow(
         BadRequestException,
@@ -107,6 +108,15 @@ describe('CategoryService', () => {
       ).resolves.toBeUndefined();
     });
 
+    it('không cho phép đổi slug hoặc gắn parentId cho chuyên mục gốc hệ thống', async () => {
+      await expect(
+        service.update('le', { slug: 'nhan-vat-moi' }),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.update('le', { parentId: 'goc' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('chuyên mục không tồn tại → 404', async () => {
       await expect(service.update('khong-co', {})).rejects.toThrow(
         NotFoundException,
@@ -115,13 +125,33 @@ describe('CategoryService', () => {
   });
 
   describe('remove', () => {
-    it('chặn xoá chuyên mục còn bài viết', async () => {
+    it('chặn xoá chuyên mục gốc hệ thống', async () => {
+      rows.set('le', { id: 'le', slug: 'nhan-vat', parentId: null, articles: 0 });
       await expect(service.remove('le')).rejects.toThrow(BadRequestException);
       expect(prisma.category.delete).not.toHaveBeenCalled();
     });
 
-    it('xoá chuyên mục rỗng', async () => {
-      await expect(service.remove('chau')).resolves.toEqual({ success: true });
+    it('chặn xoá chuyên mục còn bài viết', async () => {
+      await expect(service.remove('co-bai')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.category.delete).not.toHaveBeenCalled();
+    });
+
+    it('chuyên mục trống không phải gốc hệ thống thì xoá được', async () => {
+      await service.remove('chau');
+
+      expect(prisma.category.delete).toHaveBeenCalledWith({
+        where: { id: 'chau' },
+      });
+    });
+  });
+
+  describe('resolveRootCategorySlug', () => {
+    it('leo lên chuyên mục gốc cao nhất theo parentId', () => {
+      expect(resolveRootCategorySlug(rows.get('chau'), rows)).toBe('goc');
+      expect(resolveRootCategorySlug(rows.get('le'), rows)).toBe('nhan-vat');
+      expect(resolveRootCategorySlug(null, rows)).toBeNull();
     });
   });
 });

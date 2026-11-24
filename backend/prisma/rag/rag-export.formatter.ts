@@ -1,4 +1,4 @@
-import { ArticleKind, ContentStatus, PostType } from '@prisma/client';
+import { ContentStatus, PostType } from '@prisma/client';
 import {
   CategoryHierarchyNode,
   ExportableArticle,
@@ -14,14 +14,6 @@ import {
   extractBlogMetaBlock,
   htmlToCleanMarkdown,
 } from './rag-markdown.util';
-
-const ARTICLE_KIND_LABELS: Record<ArticleKind, string> = {
-  [ArticleKind.EVENT]: 'Sự kiện lịch sử',
-  [ArticleKind.PERSON]: 'Nhân vật lịch sử',
-  [ArticleKind.LOCATION]: 'Di tích / Địa danh',
-  [ArticleKind.DYNASTY]: 'Triều đại / Nhà nước',
-  [ArticleKind.OTHER]: 'Bài viết lịch sử',
-};
 
 const SITE_TYPE_LABELS: Record<string, string> = {
   ANCIENT_CAPITAL: 'Kinh đô / Cố đô',
@@ -65,54 +57,20 @@ export function sanitizeExportSlug(
   return cleaned || fallbackId.slice(0, 12);
 }
 
-/** Kế thừa Category.kind theo cây chuyên mục cha -> con (giống quy tắc frontend HISGO). */
-export function resolveCategoryKind(
+/** Lấy chuyên mục gốc (hoặc chính nó nếu không có cha) để dùng thẳng slug/name của Category. */
+export function resolveRootCategory(
   categoriesById: ReadonlyMap<string, CategoryHierarchyNode>,
   categoryId: string | null | undefined,
-): ArticleKind {
-  let cursor = categoryId ? categoriesById.get(categoryId) : undefined;
-  const visited = new Set<string>();
-  while (cursor && !visited.has(cursor.id)) {
-    if (cursor.kind) return cursor.kind;
-    visited.add(cursor.id);
-    cursor = cursor.parentId ? categoriesById.get(cursor.parentId) : undefined;
+): CategoryHierarchyNode | undefined {
+  let cur = categoryId ? categoriesById.get(categoryId) : undefined;
+  const seen = new Set<string>();
+  while (cur?.parentId && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    const parent = categoriesById.get(cur.parentId);
+    if (!parent) break;
+    cur = parent;
   }
-  return ArticleKind.OTHER;
-}
-
-export function resolveArticleRouteConfig(kind: ArticleKind): {
-  docKind: RagDocumentKind;
-  routeBase: string;
-  filePrefix: string;
-} {
-  switch (kind) {
-    case ArticleKind.EVENT:
-      return {
-        docKind: RagDocumentKind.EVENT,
-        routeBase: '/su-kien',
-        filePrefix: 'su-kien--',
-      };
-    case ArticleKind.PERSON:
-      return {
-        docKind: RagDocumentKind.PERSON,
-        routeBase: '/nhan-vat',
-        filePrefix: 'nhan-vat--',
-      };
-    case ArticleKind.LOCATION:
-      return {
-        docKind: RagDocumentKind.LOCATION,
-        routeBase: '/di-tich',
-        filePrefix: 'di-tich--',
-      };
-    case ArticleKind.DYNASTY:
-    case ArticleKind.OTHER:
-    default:
-      return {
-        docKind: RagDocumentKind.ARTICLE,
-        routeBase: '/bai-viet',
-        filePrefix: 'bai-viet--',
-      };
-  }
+  return cur;
 }
 
 function asObject(val: unknown): Record<string, unknown> | null {
@@ -265,33 +223,6 @@ function formatSiteSection(rawSite: unknown): string {
   return lines.length > 1 ? lines.join('\n') : '';
 }
 
-function formatArticleLinksSection(
-  article: ExportableArticle,
-  categoriesById: ReadonlyMap<string, CategoryHierarchyNode>,
-  includeDrafts: boolean,
-): string {
-  const seen = new Set<string>();
-  const bullets: string[] = [];
-  const candidates = [
-    ...article.linksOut.map((l) => ({ item: l.target, label: l.label })),
-    ...article.linksIn.map((l) => ({ item: l.source, label: l.label })),
-  ];
-
-  for (const { item, label } of candidates) {
-    if (!includeDrafts && item.status !== ContentStatus.PUBLISHED) continue;
-    if (seen.has(item.slug)) continue;
-    seen.add(item.slug);
-    const kind = resolveCategoryKind(categoriesById, item.categoryId);
-    const { routeBase } = resolveArticleRouteConfig(kind);
-    const labelPart = label ? ` (${label})` : '';
-    bullets.push(`- [${item.title}](${routeBase}/${item.slug})${labelPart}`);
-  }
-
-  return bullets.length > 0
-    ? `## Liên kết tri thức liên quan\n${bullets.join('\n')}`
-    : '';
-}
-
 function buildInfoBullets(items: Array<[string, string]>): string {
   const lines = items
     .filter(([, val]) => Boolean(val))
@@ -302,29 +233,28 @@ function buildInfoBullets(items: Array<[string, string]>): string {
 export function formatArticleMarkdown(
   article: ExportableArticle,
   categoriesById: ReadonlyMap<string, CategoryHierarchyNode>,
-  includeDrafts = false,
+  _includeDrafts = false,
 ): RagExportArtifact {
   const catNode = article.categoryId
     ? categoriesById.get(article.categoryId)
     : undefined;
-  const categoryKind = resolveCategoryKind(categoriesById, article.categoryId);
-  const { docKind, routeBase, filePrefix } =
-    resolveArticleRouteConfig(categoryKind);
-  const href = `${routeBase}/${article.slug}`;
-  const relativePath = `articles/${filePrefix}${sanitizeExportSlug(article.slug, article.id)}.md`;
+  const rootCat = resolveRootCategory(categoriesById, article.categoryId);
+  const catSlug = rootCat?.slug || 'bai-viet';
+  const kindLabel = rootCat?.name || 'Bài viết lịch sử';
+  const href = `/bai-viet/${article.slug}`;
+  const relativePath = `articles/${catSlug}--${sanitizeExportSlug(article.slug, article.id)}.md`;
 
   const meta = asObject(article.metadata);
   const aliases = extractStringList(meta?.aliases);
   const sources = extractStringList(meta?.sources);
   const tags = article.articleTags.map((t) => t.tag.name).filter(Boolean);
   const period = formatArticlePeriod(article);
-  const kindLabel = ARTICLE_KIND_LABELS[categoryKind];
 
   const frontmatter = buildFrontmatter([
     ['id', article.id],
     ['model', 'Article'],
-    ['kind', docKind],
-    ['categoryKind', categoryKind],
+    ['kind', RagDocumentKind.ARTICLE],
+    ['categorySlug', catSlug],
     ['categoryName', catNode?.name],
     ['topic', article.topic?.name],
     ['title', article.title],
@@ -352,7 +282,6 @@ export function formatArticleMarkdown(
     formatPersonSection(meta?.person),
     formatSiteSection(meta?.site),
     bodyMarkdown ? `## Nội dung chi tiết\n${bodyMarkdown}` : '',
-    formatArticleLinksSection(article, categoriesById, includeDrafts),
     sources.length > 0
       ? `## Nguồn tư liệu tham khảo\n${sources.map((s) => `- ${s}`).join('\n')}`
       : '',
@@ -367,7 +296,7 @@ export function formatArticleMarkdown(
     manifestEntry: {
       relativePath,
       gcsDefaultPath: `${GCS_HISGO_PREFIX}${relativePath}`,
-      kind: docKind,
+      kind: RagDocumentKind.ARTICLE,
       sourceModel: 'Article',
       sourceId: article.id,
       slug: article.slug,
@@ -589,21 +518,13 @@ export function formatTimelineNodeMarkdown(
 
   const dateLabel = formatTimelineNodeDate(node);
   const linkedArticles = collectNodeArticles(node, includeDrafts);
-  const linkedMarkdown = linkedArticles.map((art) => {
-    const kind = resolveCategoryKind(categoriesById, art.categoryId);
-    const { routeBase } = resolveArticleRouteConfig(kind);
-    return `- [${art.title}](${routeBase}/${art.slug})`;
-  });
+  const linkedMarkdown = linkedArticles.map(
+    (art) => `- [${art.title}](/bai-viet/${art.slug})`,
+  );
 
   const primaryHref =
     linkedArticles.length > 0
-      ? (() => {
-          const kind = resolveCategoryKind(
-            categoriesById,
-            linkedArticles[0].categoryId,
-          );
-          return `${resolveArticleRouteConfig(kind).routeBase}/${linkedArticles[0].slug}`;
-        })()
+      ? `/bai-viet/${linkedArticles[0].slug}`
       : periodHref;
 
   const frontmatter = buildFrontmatter([

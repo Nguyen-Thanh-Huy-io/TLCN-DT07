@@ -26,15 +26,14 @@ const summaryRow = (id: string, overrides: object = {}) => ({
   metadata: null,
   topicId: null,
   categoryId: 'cat-event',
-  linksOut: [],
   category: null,
   articleTags: [],
   ...overrides,
 });
 
-const PERSON_ROOT = { id: 'cat-person', kind: 'PERSON', parentId: null };
-const PERSON_CHILD = { id: 'cat-king', kind: null, parentId: 'cat-person' };
-const EVENT_ROOT = { id: 'cat-event', kind: 'EVENT', parentId: null };
+const PERSON_ROOT = { id: 'cat-person', slug: 'nhan-vat', parentId: null };
+const PERSON_CHILD = { id: 'cat-king', slug: 'vua-chua', parentId: 'cat-person' };
+const EVENT_ROOT = { id: 'cat-event', slug: 'su-kien', parentId: null };
 
 describe('PublicContentService — dữ liệu trang công khai', () => {
   let service: PublicContentService;
@@ -151,7 +150,6 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
         }),
         coverCaption: null,
         contentBlocks: [],
-        datePrecision: null,
         publishedAt: null,
         updatedAt: null,
         timelineNodes: [
@@ -193,7 +191,6 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
         ...summaryRow('a-author', { categoryId: null }),
         coverCaption: null,
         contentBlocks: [],
-        datePrecision: null,
         createdBy: 'u-author-1',
         publishedAt,
         updatedAt,
@@ -227,7 +224,6 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
         ...summaryRow('a-legacy', { categoryId: null }),
         coverCaption: null,
         contentBlocks: [],
-        datePrecision: null,
         createdBy: null,
         publishedAt: null,
         updatedAt,

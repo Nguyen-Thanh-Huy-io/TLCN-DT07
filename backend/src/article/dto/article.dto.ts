@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { ContentStatus, DatePrecision } from '@prisma/client';
+import { ContentStatus } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
@@ -15,29 +15,7 @@ import {
   Max,
   MaxLength,
   Min,
-  ValidateNested,
 } from 'class-validator';
-
-/** 1 liên kết bài này → bài khác. Không có mã loại: ý nghĩa suy ra từ chuyên mục 2 bài. */
-export class ArticleLinkInputDto {
-  @ApiProperty({ description: 'Bài viết được liên kết tới' })
-  @IsUUID('4')
-  targetId: string;
-
-  @ApiPropertyOptional({
-    example: 'Chỉ huy',
-    description: 'Nhãn chữ tự do, tuỳ chọn',
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  label?: string | null;
-
-  @ApiPropertyOptional({ nullable: true })
-  @IsOptional()
-  @IsString()
-  note?: string | null;
-}
 
 export class CreateArticleDto {
   @ApiProperty({ example: 'Trần Hưng Đạo' })
@@ -107,23 +85,11 @@ export class CreateArticleDto {
 
   @ApiPropertyOptional({
     nullable: true,
-    description:
-      'Hồ sơ mô tả tùy chọn: { aliases, sources, person, site, event } — xem article/article-metadata.ts',
+    description: 'Hồ sơ mô tả tùy chọn: { aliases, sources }',
   })
   @IsOptional()
   @IsObject()
   metadata?: Record<string, unknown> | null;
-
-  @ApiPropertyOptional({
-    type: [ArticleLinkInputDto],
-    description:
-      'Thay TOÀN BỘ liên kết do bài này khai báo; thứ tự = vị trí trong mảng',
-  })
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ArticleLinkInputDto)
-  links?: ArticleLinkInputDto[];
 
   @ApiPropertyOptional({ example: '1228? – 1300', nullable: true })
   @IsOptional()
@@ -146,11 +112,6 @@ export class CreateArticleDto {
   @Type(() => Number)
   @IsInt()
   endYear?: number | null;
-
-  @ApiPropertyOptional({ enum: DatePrecision, nullable: true })
-  @IsOptional()
-  @IsEnum(DatePrecision)
-  datePrecision?: DatePrecision | null;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()

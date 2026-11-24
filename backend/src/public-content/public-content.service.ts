@@ -1,5 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ContentStatus } from '@prisma/client';
+import {
+  resolveRootCategorySlug,
+  SYSTEM_CATEGORY_ROOT_SLUGS,
+} from '../category/category.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { loadAuthorProfiles } from '../common/utils/author-names';
 import { ArticleAdjacencyService } from './article-adjacency.service';
@@ -33,8 +37,6 @@ export interface PublicArticleQuery {
   featured?: boolean;
   limit?: number;
 }
-
-type PublicEntityKind = 'PERSON' | 'EVENT' | 'LOCATION' | 'DYNASTY' | 'OTHER';
 
 @Injectable()
 export class PublicContentService {
@@ -111,7 +113,6 @@ export class PublicContentService {
         ...PUBLIC_ARTICLE_SUMMARY_SELECT,
         coverCaption: true,
         contentBlocks: true,
-        datePrecision: true,
         categoryId: true,
         createdBy: true,
         publishedAt: true,
@@ -201,7 +202,6 @@ export class PublicContentService {
       ...toArticleSummary(rest),
       coverCaption: article.coverCaption,
       contentBlocks: article.contentBlocks,
-      datePrecision: article.datePrecision,
       author: authorOf(createdBy),
       publishedAt: article.publishedAt,
       updatedAt: article.updatedAt,
@@ -287,27 +287,42 @@ export class PublicContentService {
   }
 
   async getEvents() {
-    return this.getPublishedArticleListByKind('EVENT');
+    return this.getPublishedArticleListByRootSlug(
+      SYSTEM_CATEGORY_ROOT_SLUGS.EVENT,
+    );
   }
 
   async getEventBySlug(slug: string) {
-    return this.getPublishedArticleByKindAndSlug('EVENT', slug);
+    return this.getPublishedArticleByRootSlugAndSlug(
+      SYSTEM_CATEGORY_ROOT_SLUGS.EVENT,
+      slug,
+    );
   }
 
   async getFigureDirectory() {
-    return this.getPublishedArticleListByKind('PERSON');
+    return this.getPublishedArticleListByRootSlug(
+      SYSTEM_CATEGORY_ROOT_SLUGS.PERSON,
+    );
   }
 
   async getFigureBySlug(slug: string) {
-    return this.getPublishedArticleByKindAndSlug('PERSON', slug);
+    return this.getPublishedArticleByRootSlugAndSlug(
+      SYSTEM_CATEGORY_ROOT_SLUGS.PERSON,
+      slug,
+    );
   }
 
   async getLocations() {
-    return this.getPublishedArticleListByKind('LOCATION');
+    return this.getPublishedArticleListByRootSlug(
+      SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION,
+    );
   }
 
   async getLocationBySlug(slug: string) {
-    return this.getPublishedArticleByKindAndSlug('LOCATION', slug);
+    return this.getPublishedArticleByRootSlugAndSlug(
+      SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION,
+      slug,
+    );
   }
 
   async getTags() {
@@ -354,34 +369,8 @@ export class PublicContentService {
     return this.publicQuiz.submitQuizAttempt(quizId, dto, userId);
   }
 
-  private resolveCategoryKind(
-    category: {
-      id: string;
-      kind?: string | null;
-      parentId?: string | null;
-      parent?: {
-        id: string;
-        kind?: string | null;
-        parentId?: string | null;
-      } | null;
-    } | null,
-    byId: Map<
-      string,
-      { id: string; kind?: string | null; parentId?: string | null }
-    >,
-  ): PublicEntityKind {
-    let current = category;
-    const seen = new Set<string>();
-    while (current && !seen.has(current.id)) {
-      if (current.kind) return current.kind as PublicEntityKind;
-      seen.add(current.id);
-      current = current.parentId ? (byId.get(current.parentId) ?? null) : null;
-    }
-    return 'OTHER';
-  }
-
-  private async getPublishedArticleByKindAndSlug(
-    kind: PublicEntityKind,
+  private async getPublishedArticleByRootSlugAndSlug(
+    rootSlug: string,
     slug: string,
   ) {
     const article = await this.prisma.article.findFirst({
@@ -402,14 +391,14 @@ export class PublicContentService {
       include: { parent: true },
     });
     const byId = new Map(categories.map((category) => [category.id, category]));
-    if (this.resolveCategoryKind(article.category, byId) !== kind) {
+    if (resolveRootCategorySlug(article.category, byId) !== rootSlug) {
       throw new NotFoundException(PUBLIC_MESSAGES.ARTICLE_NOT_FOUND(slug));
     }
-    const items = await this.getPublishedArticleListByKind(kind);
+    const items = await this.getPublishedArticleListByRootSlug(rootSlug);
     return items.find((item) => item.slug === slug) ?? article;
   }
 
-  private async getPublishedArticleListByKind(kind: PublicEntityKind) {
+  private async getPublishedArticleListByRootSlug(rootSlug: string) {
     const [categories, articles] = await Promise.all([
       this.prisma.category.findMany({ include: { parent: true } }),
       this.prisma.article.findMany({
@@ -429,7 +418,8 @@ export class PublicContentService {
     const byId = new Map(categories.map((category) => [category.id, category]));
     return articles
       .filter(
-        (article) => this.resolveCategoryKind(article.category, byId) === kind,
+        (article) =>
+          resolveRootCategorySlug(article.category, byId) === rootSlug,
       )
       .map((article) => {
         const timeline = article.timelineNodes[0]?.timeline ?? null;

@@ -27,10 +27,10 @@
 
 | Tầng | Công cụ | Vị trí mã kiểm thử | Mục tiêu & Phạm vi |
 |---|---|---|---|
-| **Tầng 1: Unit & Component** | **Jest** (BE) · **Vitest + React Testing Library** (FE) | `backend/src/**/*.spec.ts` (69 file)<br>`frontend/tests/unit/*.test.ts(x)` (10 file) | Kiểm tra logic nghiệp vụ thuần, Strategy/Factory/Facade, SM-2 scheduler, XSS sanitize, component UI cô lập |
-| **Tầng 2: Integration (Service ↔ DB/Redis)** | **Jest + Prisma + Redis thật** | `backend/test/*.e2e-spec.ts` (bước service/controller qua Nest `TestingModule` đầy đủ) | Kiểm tra `$transaction`, migrations (`22` file), cache invalidation Redis, event listeners |
-| **Tầng 3: API End-to-End** | **Supertest + NestJS `AppModule`** | `backend/test/*.e2e-spec.ts` (12 suite / 107 tests) | Kiểm tra HTTP contract, DTO validation (`400`), Auth (`401`), RBAC (`403`), Conflict (`409`), Not Found (`404`) |
-| **Tầng 4: E2E UI (Trình duyệt thật)** | **Python `pytest` + Selenium Chrome Headless** | `frontend/tests/e2e/` (`conftest.py`, `pages.py`, `test_smoke_journeys.py` — 9 kịch bản) | Kiểm tra luồng người dùng thật qua Next.js SSR + `/api-proxy` + Backend + Postgres/Redis |
+| **Tầng 1: Unit & Component** | **Jest** (BE) · **Vitest + React Testing Library** (FE) | `backend/src/**/*.spec.ts` (74 file)<br>`frontend/tests/unit/*.test.ts(x)` (10 file) | Kiểm tra logic nghiệp vụ thuần, Strategy/Factory/Facade, SM-2 scheduler, XSS sanitize, component UI cô lập |
+| **Tầng 2: Integration (Service ↔ DB/Redis)** | **Jest + Prisma + Redis thật** | `backend/test/*.e2e-spec.ts` (bước service/controller qua Nest `TestingModule` đầy đủ) | Kiểm tra `$transaction`, migrations (`28` file), cache invalidation Redis, event listeners |
+| **Tầng 3: API End-to-End** | **Supertest + NestJS `AppModule`** | `backend/test/*.e2e-spec.ts` (12 suite / 108 tests) | Kiểm tra HTTP contract, DTO validation (`400`), Auth (`401`), RBAC (`403`), Conflict (`409`), Not Found (`404`) |
+| **Tầng 4: E2E UI (Trình duyệt thật)** | **Playwright (`@playwright/test` TypeScript + Chrome Headless)** | `frontend/tests/e2e/` (`e2e.config.ts`, `e2e.pages.ts`, `public-and-auth.e2e.ts`, `learner-journeys.e2e.ts`, `cms-workflows.e2e.ts` — 30 kịch bản) | Kiểm tra luồng người dùng thật qua Next.js SSR + `/api-proxy` + Backend + Postgres/Redis |
 | **Tầng 5: Phi chức năng (Load & Resilience)** | **Node.js HTTP Load Runner** | `backend/test/perf/load-smoke.mjs` (4 kịch bản) | Đo RPS, `avg`, `p95`, `p99`, tỷ lệ `5xx`, burst auth rate-limit & resilience |
 
 ---
@@ -40,10 +40,10 @@
 Tuyệt đối **không chạm dữ liệu dev (`tlcn_db`)** hay tiến trình dev của lập trình viên:
 1. **Database & Redis E2E:** `backend/test/e2e-env.ts` tự chuyển `DATABASE_URL` sang database hậu tố `_e2e` (`tlcn_db_e2e` trên Docker `pgvector/pgvector:pg17` cổng `5433`), `REDIS_DB=1` và prefix cache `e2e:`.
 2. **Làm sạch tự động:**
-   - `npm run test:e2e:prepare` xoá & tạo lại `tlcn_db_e2e`, áp toàn bộ `22` Prisma migrations từ đầu.
+   - `npm run test:e2e:prepare` xoá & tạo lại `tlcn_db_e2e`, áp toàn bộ `28` Prisma migrations từ đầu.
    - Các suite BE dùng tiền tố `e2e_test_` và dọn sạch trong `afterAll`.
    - `backend/test/seed-ui-e2e.ts` nạp fixture tiền tố `e2e_ui_` cho Selenium và dọn bằng `--clean` sau khi chạy xong.
-3. **Cô lập server UI E2E:** Backend chạy cổng `5010` với `CORS_ORIGINS` cấu hình qua [cors.config.ts](../../backend/src/common/config/cors.config.ts); Frontend chạy cổng `3010` với `NEXT_DIST_DIR=.next-e2e` qua [next.config.ts](../../frontend/next.config.ts) để không xung đột `.next/dev/lock`.
+3. **Cô lập server UI E2E:** Backend chạy cổng `5010` với `CORS_ORIGINS` cấu hình qua [cors.config.ts](../../backend/src/common/config/cors.config.ts); Frontend chạy cổng `3010` với `NEXT_DIST_DIR=.next-e2e` và `BACKEND_INTERNAL_URL=http://127.0.0.1:5010` qua [next.config.ts](../../frontend/next.config.ts) để không xung đột `.next/dev/lock`.
 
 ---
 
@@ -57,8 +57,8 @@ Tuyệt đối **không chạm dữ liệu dev (`tlcn_db`)** hay tiến trình d
 ### Exit Criteria (Bắt buộc đạt trước khi merge/CI release)
 1. **Pass Rate:** 100% test tự động ở cả 5 tầng PASS (0 failed, 0 skipped).
 2. **Code Coverage:**
-   - Backend toàn `src/`: **>= 70%** Lines (thực đo: **76.10%**).
-   - Frontend mô-đun cốt lõi (`frontend/vitest.config.mts`): **>= 70%** Lines (thực đo: **86.59%**).
+   - Backend toàn `src/`: **>= 70%** Lines (thực đo: **77.99%**).
+   - Frontend mô-đun cốt lõi (`frontend/vitest.config.mts`): **>= 70%** Lines (thực đo: **84.94%**).
 3. **Automation Rate:** **>= 70%** số test case trong ma trận RTM được tự động hoá (xem chi tiết tại [TEST_CASES_RTM.md](./TEST_CASES_RTM.md)).
 4. **Hiệu năng phi chức năng:** `p95 <= 1000 ms` ở tải đồng thời 10 VUs cho API đọc công khai, `0` lỗi `5xx`.
 5. **Defect Gate:** **0 defect mức Blocker/Critical** còn ở trạng thái `Open`.
@@ -69,9 +69,9 @@ Tuyệt đối **không chạm dữ liệu dev (`tlcn_db`)** hay tiến trình d
 
 | Hạng mục | Lệnh chạy | Kết quả đo thực tế | Báo cáo / Artifact |
 |---|---|---|---|
-| **Backend Unit & Controller** | `cd backend && npm run test:cov` | **69/69 suites, 656/656 tests PASS** (`17.447 s`) · **76.10% Lines** (`4777/6277`) | `backend/coverage/coverage-summary.json`, `backend/coverage/lcov.info` |
-| **Backend API Integration** | `cd backend && npm run test:e2e:prepare && npm run test:e2e` | **12/12 suites, 107/107 tests PASS** (`55.656 s`, exit `0`) | Output Jest 12 suite E2E |
-| **Frontend Unit & Component** | `cd frontend && npm run test:cov` | **10/10 files, 48/48 tests PASS** (`10.89 s`) · **86.59% Lines** (`1808/2088`) | `frontend/coverage/coverage-summary.json` |
-| **Frontend Selenium UI E2E** | `cd frontend && python -m pytest tests/e2e -v` | **9/9 tests PASS** (`61.89 s`, Chrome Headless) | `frontend/tests/e2e/test_smoke_journeys.py` |
-| **Load & Rate-limit Smoke** | `node backend/test/perf/load-smoke.mjs` | **4/4 kịch bản PASS** (`p95`: `60.29–86.82 ms`, `RPS`: `180.07–223.57`, `5xx`: `0`) | `backend/coverage/perf-report.json` |
-| **Tổng test case tự động đã chạy** | Tổng 5 tầng | **824 test cases/kịch bản (PASS 100%)** | — |
+| **Backend Unit & Controller** | `cd backend && npm run test:cov` | **74/74 suites, 691/691 tests PASS** (`51.08 s`) · **77.99% Lines** (`5705/7315`) | `backend/coverage/coverage-summary.json`, `backend/coverage/lcov.info` |
+| **Backend API Integration** | `cd backend && npm run test:e2e:prepare && npm run test:e2e` | **12/12 suites, 108/108 tests PASS** (`197.55 s`, exit `0`) | Output Jest 12 suite E2E |
+| **Frontend Unit & Component** | `cd frontend && npm run test:cov` | **10/10 files, 48/48 tests PASS** (`27.35 s`) · **84.94% Lines** (`1755/2066`) | `frontend/coverage/coverage-summary.json` |
+| **Frontend Playwright UI E2E** | `cd frontend && npm run test:e2e` | **30/30 tests PASS** (`150.0 s`, 3 suite TypeScript, Chrome Headless) | `frontend/coverage/e2e-report.json`, `frontend/tests/e2e/*.e2e.ts` |
+| **Load & Rate-limit Smoke** | `node backend/test/perf/load-smoke.mjs` | **4/4 kịch bản PASS** (`p95`: `188.18–312.52 ms`, `RPS`: `47.80–65.06`, `5xx`: `0`) | `backend/coverage/perf-report.json` |
+| **Tổng test case tự động đã chạy** | Tổng 5 tầng | **881 test cases/kịch bản (PASS 100%)** | — |

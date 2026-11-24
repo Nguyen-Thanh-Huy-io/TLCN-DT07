@@ -7,21 +7,21 @@
 ## 1. Thống kê tổng quan & Tỷ lệ tự động hoá (Automation Rate)
 
 ### 1.1. Tỷ lệ trên Ma trận truy vết (RTM)
-- **Tổng số Test Case định danh trong RTM:** **49**
-  - **Tự động hoá (Automated):** **47** (**95.92%** — vượt ngưỡng **>= 70%**)
-  - **Kiểm tra thủ công (Manual):** **2** (`4.08%` — kiểm tra giao diện trực quan đa viewport và xác nhận phê duyệt phát hành CD)
+- **Tổng số Test Case định danh trong RTM:** **60**
+  - **Tự động hoá (Automated):** **58** (**96.67%** — vượt ngưỡng **>= 70%**)
+  - **Kiểm tra thủ công (Manual):** **2** (`3.33%` — kiểm tra giao diện trực quan đa viewport và xác nhận phê duyệt phát hành CD)
 - **Độ phủ theo loại kịch bản (một số TC gộp kiểm tra chéo hai loại):**
-  - Có bao phủ **Positive (Ca dương):** 24 TC
-  - Có bao phủ **Negative (Ca âm):** 24 TC
-  - Có bao phủ **Boundary (Ca biên):** 15 TC
+  - Có bao phủ **Positive (Ca dương):** 35 TC
+  - Có bao phủ **Negative (Ca âm):** 28 TC
+  - Có bao phủ **Boundary (Ca biên):** 18 TC
 
 ### 1.2. Tổng số ca kiểm thử tự động đã thực thi thực tế
-- **Backend Unit & Controller (Jest):** `656` tests (`69` files, `76.10%` Lines)
-- **Backend Integration / API E2E (Supertest + Postgres/Redis):** `107` tests (`12` suites)
-- **Frontend Unit & Component (Vitest + RTL):** `48` tests (`10` files, `86.59%` Lines core)
-- **Frontend UI E2E (Selenium Chrome Headless):** `9` tests (`frontend/tests/e2e/test_smoke_journeys.py`)
+- **Backend Unit & Controller (Jest):** `691` tests (`74` files, `77.99%` Lines)
+- **Backend Integration / API E2E (Supertest + Postgres/Redis):** `108` tests (`12` suites)
+- **Frontend Unit & Component (Vitest + RTL):** `48` tests (`10` files, `84.94%` Lines core)
+- **Frontend UI E2E (Playwright TypeScript Chrome Headless):** `30` tests (`3` suites: `public-and-auth.e2e.ts`, `learner-journeys.e2e.ts`, `cms-workflows.e2e.ts`)
 - **Non-functional Load & Rate-limit (`load-smoke.mjs`):** `4` kịch bản
-- **Tổng cộng:** **824/824 automated cases/scenarios PASS (100%)**
+- **Tổng cộng:** **881/881 automated cases/scenarios PASS (100%)**
 
 ---
 
@@ -33,10 +33,10 @@
 | `TC-AUTH-01` | Đăng ký hợp lệ, gửi OTP vào Redis và xác minh email thành công | Positive | API E2E | Automated | `backend/test/auth.e2e-spec.ts` | PASS |
 | `TC-AUTH-02` | Đăng ký thất bại khi mật khẩu yếu hoặc email đã tồn tại (`400`/`409`) | Negative | API E2E | Automated | `backend/test/auth.e2e-spec.ts` | PASS |
 | `TC-AUTH-03` | Xác minh email với mã OTP sai/hết hạn bị từ chối | Negative | API E2E | Automated | `backend/test/auth.e2e-spec.ts` | PASS |
-| `TC-AUTH-04` | Đăng nhập UI với mật khẩu sai hiển thị thông báo lỗi `"Invalid email or password"` và giữ nguyên trang `/login` | Negative | E2E UI | Automated | `frontend/tests/e2e/test_smoke_journeys.py::test_login_negative_wrong_password_shows_error` | PASS |
-| `TC-AUTH-05` | Đăng nhập UI đúng tài khoản chuyển hướng về trang chủ kèm phiên hợp lệ | Positive | E2E UI | Automated | `frontend/tests/e2e/test_smoke_journeys.py::test_login_positive_redirects_home` | PASS |
+| `TC-AUTH-04` | Đăng nhập UI với mật khẩu sai hiển thị thông báo lỗi và giữ nguyên trang `/login` | Negative | E2E UI | Automated | `frontend/tests/e2e/public-and-auth.e2e.ts` (`#09`) | PASS |
+| `TC-AUTH-05` | Đăng nhập UI đúng tài khoản chuyển hướng về trang chủ kèm phiên hợp lệ | Positive | E2E UI | Automated | `frontend/tests/e2e/public-and-auth.e2e.ts` (`#10`) | PASS |
 | `TC-AUTH-06` | Xoay vòng refresh token hợp lệ & từ chối refresh token giả/hết hạn sau khi logout | Positive + Negative | API E2E + Unit | Automated | `backend/test/auth.e2e-spec.ts`, `frontend/tests/unit/public-auth.service.test.ts` | PASS |
-| `TC-AUTH-07` | Khách chưa đăng nhập mở route CMS (`/cms`) bị `CmsAccessGate` chặn & redirect sang `/login?redirect=...` | Negative | E2E UI | Automated | `frontend/tests/e2e/test_smoke_journeys.py::test_cms_access_gate_redirects_unauthenticated_user` | PASS |
+| `TC-AUTH-07` | Khách chưa đăng nhập mở route CMS (`/cms`) bị `CmsAccessGate` chặn & redirect sang `/login?redirect=...`; học viên thường (`USER`) bị chặn `"Khu vực dành cho nhân sự biên soạn"` | Negative | E2E UI | Automated | `frontend/tests/e2e/public-and-auth.e2e.ts` (`#08`), `frontend/tests/e2e/learner-journeys.e2e.ts` (`#20`) | PASS |
 
 ### AC-02: Bài viết lịch sử (`Article`), Duyệt 2 người & Vòng đời Lưu trữ
 | TC ID | Mô tả kiểm thử | Loại | Tầng | Hình thức | Vị trí Script / Ghi chú | Trạng thái |
@@ -45,16 +45,20 @@
 | `TC-ART-02` | Biên tập viên không tạo thẳng bài `PUBLISHED`, người duyệt không tự duyệt bài của mình | Negative | API E2E | Automated | `backend/test/article.e2e-spec.ts` | PASS |
 | `TC-ART-03` | Từ chối bài viết không nhập lý do bị trả lỗi `400` | Negative | API E2E | Automated | `backend/test/article.e2e-spec.ts` | PASS |
 | `TC-ART-04` | Chuyển trạng thái lưu trữ `PUBLISHED → ARCHIVED → DRAFT`; không cho nhảy thẳng `ARCHIVED → PUBLISHED` | Boundary | API E2E | Automated | `backend/test/article.e2e-spec.ts` | PASS |
-| `TC-ART-05` | Đọc bài viết công khai `/bai-viet/[slug]` khi **chưa đăng nhập** vẫn hiển thị đầy đủ nội dung (không bị redirect về `/login`) | Regression / Negative | E2E UI + Unit | Automated | `frontend/tests/e2e/test_smoke_journeys.py::test_author_follow_unauthenticated_redirects_to_login`, `frontend/tests/unit/saved-material.normalizer.test.ts` | PASS |
-| `TC-ART-06` | Tìm kiếm bài viết `/bai-viet` khớp từ khoá và khi từ khoá không khớp bất kỳ bài nào (`0` kết quả) | Positive + Boundary | E2E UI | Automated | `frontend/tests/e2e/test_smoke_journeys.py::test_public_articles_search_positive_and_empty_boundary` | PASS |
+| `TC-ART-05` | Đọc bài viết công khai `/bai-viet/[slug]` khi **chưa đăng nhập** vẫn hiển thị đầy đủ nội dung (không bị redirect về `/login`) | Regression / Negative | E2E UI + Unit | Automated | `frontend/tests/e2e/public-and-auth.e2e.ts` (`#07`), `frontend/tests/unit/saved-material.normalizer.test.ts` | PASS |
+| `TC-ART-06` | Tìm kiếm bài viết `/bai-viet` khớp từ khoá, khi từ khoá không khớp (`0` kết quả), chuyển chế độ Lưới ⇄ Danh sách và mở Mục lục chủ đề | Positive + Boundary | E2E UI | Automated | `frontend/tests/e2e/public-and-auth.e2e.ts` (`#03`, `#04`) | PASS |
+| `TC-ART-07` | Tạo bài viết phân loại theo cây `categoryId` + niên đại `startYear`/`endYear`/`dateText`; response `/public/articles/:slug` không còn các trường cũ (`kind`, `datePrecision`, `links`) và từ chối gửi `kind`/`datePrecision` (`400`) | Positive + Negative | API E2E | Automated | `backend/test/article.e2e-spec.ts` | PASS |
+| `TC-CMS-01` | Trình soạn thảo CMS `/articles/create` chỉ hiển thị 2 tab (`Thông tin` & `Nội dung`) kèm bộ chọn cây `Chuyên mục`, chặn lưu khi thiếu tiêu đề, không còn tab `Hồ sơ riêng` hay `Hồ sơ & liên kết` | Positive + Negative | E2E UI | Automated | `frontend/tests/e2e/cms-workflows.e2e.ts` (`#22`, `#23`) | PASS |
+| `TC-CMS-02` | CMS Dashboard `/cms` & Sidebar rút gọn không còn các trang thừa (`Cài đặt hệ thống`, `Thư viện Media`), cùng các màn quản lý `/categories`, `/tags`, `/timelines`, `/curriculum`, `/lessons/create`, `/quizzes`, `/review` hiển thị sạch | Positive | E2E UI | Automated | `frontend/tests/e2e/cms-workflows.e2e.ts` (`#21`, `#24`–`#30`) | PASS |
 
-### AC-03: Phân loại `Topic`, `Category`, `Tag` & Chống XSS nội dung
+### AC-03: Phân loại `Topic`, `Category`, `Tag`, Dòng thời gian (`Timeline`) & Chống XSS nội dung
 | TC ID | Mô tả kiểm thử | Loại | Tầng | Hình thức | Vị trí Script / Ghi chú | Trạng thái |
 |---|---|---|---|---|---|---|
 | `TC-TAX-01` | Tạo cây Topic cha-con (`Composite`), gắn/tách con và sắp xếp lại thứ tự bằng `$transaction` | Positive | API E2E | Automated | `backend/test/topic.e2e-spec.ts` | PASS |
 | `TC-TAX-02` | Chống vòng lặp (Anti-Cycle) khi gán chính Topic làm cha/con của nó; từ chối `reorder` khi mảng `items` rỗng | Negative + Boundary | API E2E | Automated | `backend/test/topic.e2e-spec.ts` | PASS |
 | `TC-TAX-03` | Tạo Tag trùng tên trả `409`; người học không được tạo Tag (`403`); xoá bài viết tự xoá cache đếm Tag | Negative + Boundary | API E2E | Automated | `backend/test/tag.e2e-spec.ts`, `backend/test/article.e2e-spec.ts` | PASS |
 | `TC-TAX-04` | Loại bỏ `<script>`, event handler inline `onerror=` qua `sanitizeRichHtml` trước khi render | Negative / Security | Unit | Automated | `frontend/tests/unit/common.test.ts`, `frontend/tests/unit/article-kind.test.ts` | PASS |
+| `TC-TML-01` | Điều hướng `/chuyen-muc/:slug` tự động redirect sang `/bai-viet?chuyen-muc=:slug` và trang `/dong-thoi-gian` hiển thị đúng các mốc sự kiện từ `TimelineNodeArticle` không lỗi SSR/console | Positive + Boundary | E2E UI | Automated | `frontend/tests/e2e/public-and-auth.e2e.ts` (`#05`, `#06`) | PASS |
 
 ### AC-04: Giáo trình, Bài học (`Lesson` / `LearningPath`) & Quyền ghi danh
 | TC ID | Mô tả kiểm thử | Loại | Tầng | Hình thức | Vị trí Script / Ghi chú | Trạng thái |
@@ -63,12 +67,13 @@
 | `TC-LRN-02` | Người học chưa ghi danh đọc bài thuộc lộ trình bị chặn `403 NOT_ENROLLED`; huỷ đăng ký xong mất quyền đọc | Negative | API E2E | Automated | `backend/test/learning-path.e2e-spec.ts` | PASS |
 | `TC-LRN-03` | Tạo bài học thiếu Topic (`400`), không được đăng ký lộ trình đang `DRAFT` hoặc `ARCHIVED` | Negative + Boundary | API E2E | Automated | `backend/test/lesson.e2e-spec.ts`, `backend/test/learning-path.e2e-spec.ts` | PASS |
 | `TC-LRN-04` | Dựng mục lục (TOC), di chuyển block & chuyển đổi khối `STORY_CHAPTER` cũ sang `SECTION_ROW` | Positive + Boundary | Unit | Automated | `frontend/tests/unit/lesson-blocks-and-toc.test.ts` | PASS |
+| `TC-LRN-05` | Giao diện `/chuong-trinh-hoc` lọc lộ trình theo Chủ đề/từ khóa, chặn đọc `/bai-hoc/:slug` khi chưa đăng nhập và cho phép ghi danh miễn phí → vào đọc nội dung bài học | Positive + Negative | E2E UI | Automated | `frontend/tests/e2e/learner-journeys.e2e.ts` (`#13`, `#14`, `#15`) | PASS |
 
 ### AC-05: Luyện tập & Khảo thí (`Quiz` / Ngân hàng câu hỏi)
 | TC ID | Mô tả kiểm thử | Loại | Tầng | Hình thức | Vị trí Script / Ghi chú | Trạng thái |
 |---|---|---|---|---|---|---|
 | `TC-QUIZ-01` | Đề công khai `/public/quizzes` **không trả đáp án**; server tự chấm điểm & tính kết quả trên DB | Positive / Security | API E2E | Automated | `backend/test/quiz.e2e-spec.ts` | PASS |
-| `TC-QUIZ-02` | Làm bài trọn luồng trên UI `/luyen-tap` → chọn đáp án → nộp bài → hiển thị `100%` | Positive | E2E UI | Automated | `frontend/tests/e2e/test_smoke_journeys.py::test_practice_quiz_submit_and_score` | PASS |
+| `TC-QUIZ-02` | Làm bài trọn luồng trên UI `/luyen-tap` → chọn đáp án → nộp bài → hiển thị `100%` | Positive | E2E UI | Automated | `frontend/tests/e2e/learner-journeys.e2e.ts` (`#12`) | PASS |
 | `TC-QUIZ-03` | Từ chối câu hỏi 1 đáp án không có phương án đúng (`400`), từ chối gửi field `lessonId` cũ (`400`), nộp đề lạ trả `404` | Negative | API E2E | Automated | `backend/test/quiz.e2e-spec.ts` | PASS |
 | `TC-QUIZ-04` | Khi gỡ hết Topic hoặc gắn vào Topic chưa xuất bản thì đề tự ẩn khỏi danh sách công khai | Boundary | API E2E | Automated | `backend/test/quiz.e2e-spec.ts` | PASS |
 | `TC-QUIZ-05` | Lọc/gom đề theo cây Topic & chiến lược câu hỏi theo chủ đề | Positive + Boundary | Unit | Automated | `frontend/tests/unit/practice-quiz-and-lesson-quiz.test.ts`, `frontend/tests/unit/question-topic.strategy.test.ts`, `frontend/tests/unit/true-false-selector.test.tsx` | PASS |
@@ -76,10 +81,10 @@
 ### AC-06: Blog, Cộng đồng & Theo dõi tác giả (`Author Follow`)
 | TC ID | Mô tả kiểm thử | Loại | Tầng | Hình thức | Vị trí Script / Ghi chú | Trạng thái |
 |---|---|---|---|---|---|---|
-| `TC-FLW-01` | Đăng nhập và nhấn `Theo dõi` trên trang bài viết → đồng bộ sang hồ sơ `/cong-dong/thanh-vien/[username]`, giữ trạng thái sau F5 và bỏ theo dõi | Positive | E2E UI | Automated | `frontend/tests/e2e/test_smoke_journeys.py::test_author_follow_end_to_end_persist_and_unfollow` | PASS |
-| `TC-FLW-02` | Khách chưa đăng nhập nhấn `Theo dõi` trên trang bài viết → chuyển sang `/login` | Negative | E2E UI | Automated | `frontend/tests/e2e/test_smoke_journeys.py::test_author_follow_unauthenticated_redirects_to_login` | PASS |
+| `TC-FLW-01` | Đăng nhập và nhấn `Theo dõi` trên trang bài viết → đồng bộ sang hồ sơ `/cong-dong/thanh-vien/[username]`, giữ trạng thái sau F5 và bỏ theo dõi | Positive | E2E UI | Automated | `frontend/tests/e2e/learner-journeys.e2e.ts` (`#11`) | PASS |
+| `TC-FLW-02` | Khách chưa đăng nhập nhấn `Theo dõi` trên trang bài viết → chuyển sang `/login` | Negative | E2E UI | Automated | `frontend/tests/e2e/public-and-auth.e2e.ts` (`#07`) | PASS |
 | `TC-FLW-03` | Toggle follow via API tạo thông báo `NEW_FOLLOWER`, cập nhật `followerCount` & `follow-status`; tự follow chính mình bị chặn `400`, target lạ trả `404` | Positive + Negative | API E2E | Automated | `backend/test/blog-follow.e2e-spec.ts` | PASS |
-| `TC-FLW-04` | Tạo `QUICK_POST`, gửi duyệt `LONG_FORM`, like, bookmark, comment lồng nhánh; user thường không tự xuất bản `LONG_FORM` (`403`) | Positive + Negative | API E2E | Automated | `backend/test/blog-follow.e2e-spec.ts` | PASS |
+| `TC-FLW-04` | Tạo `QUICK_POST`, gửi duyệt `LONG_FORM`, like, bookmark, comment lồng nhánh; user thường không tự xuất bản `LONG_FORM` (`403`); hiển thị bảng tin `/cong-dong` & redirect `/cong-dong/ca-nhan` | Positive + Negative | API E2E + E2E UI | Automated | `backend/test/blog-follow.e2e-spec.ts`, `frontend/tests/e2e/learner-journeys.e2e.ts` (`#16`, `#17`) | PASS |
 | `TC-FLW-05` | `AuthorFollowButton` xử lý trạng thái lạc quan, rollback khi API lỗi, tự ẩn khi xem bài của chính mình | Boundary | Unit / RTL | Automated | `frontend/tests/unit/author-follow-button.test.tsx` | PASS |
 
 ### AC-07: Hỏi đáp (`Discussion`) & Ghi chú cá nhân (`Note`)
@@ -95,7 +100,7 @@
 |---|---|---|---|---|---|---|
 | `TC-TOOL-01` | Tạo bộ thẻ + thẻ Flashcard, lấy batch đến hạn (`due`) và chấm SM-2 `GOOD` tăng `repetitions` & `intervalDays` | Positive | API E2E | Automated | `backend/test/learning-tools.e2e-spec.ts` | PASS |
 | `TC-TOOL-02` | Chặn tên bộ thẻ toàn khoảng trắng (`400`), chặn user khác truy cập deck/mindmap (`403`/`404`) | Negative + Boundary | API E2E | Automated | `backend/test/learning-tools.e2e-spec.ts` | PASS |
-| `TC-TOOL-03` | Mindmap CRUD (`POST`/`GET`/`PATCH`/`DELETE`) và chuyển tab `/tai-khoan` (`Thẻ ghi nhớ`, `Sơ đồ tư duy`, `Tư liệu đã lưu`, `Mục tiêu & Thành tựu`) không lỗi JS console | Positive | API E2E + E2E UI | Automated | `backend/test/learning-tools.e2e-spec.ts`, `frontend/tests/e2e/test_smoke_journeys.py::test_account_learning_tabs_render_authenticated` | PASS |
+| `TC-TOOL-03` | Mindmap CRUD (`POST`/`GET`/`PATCH`/`DELETE`) và chuyển toàn bộ 7 tab `/tai-khoan` (`Hồ sơ sử học`, `Lộ trình của tôi`, `Mục tiêu & Thành tựu`, `Tư liệu đã lưu`, `Thẻ ghi nhớ`, `Sơ đồ tư duy`, `Bảo mật & Phiên`) không lỗi JS console | Positive | API E2E + E2E UI | Automated | `backend/test/learning-tools.e2e-spec.ts`, `frontend/tests/e2e/learner-journeys.e2e.ts` (`#18`, `#19`) | PASS |
 | `TC-TOOL-04` | Lưu `ARTICLE` tự đồng bộ ghim `TIMELINE_NODE` trong `$transaction`; enum lạ trả `400` | Positive + Negative | API E2E | Automated | `backend/test/learning-tools.e2e-spec.ts` | PASS |
 | `TC-TOOL-05` | Đánh dấu đọc xong bài viết cộng XP lần đầu; gọi lại lần 2 trả `alreadyCompleted=true`, `xpEarned=0` (chống farm XP qua `dedupKey`) | Boundary | API E2E | Automated | `backend/test/learning-tools.e2e-spec.ts` | PASS |
 
@@ -122,10 +127,9 @@
 
 ---
 
-## 3. Hiện trạng bộ script cũ trong `frontend/tests/` (Đã rà soát)
+## 3. Hiện trạng bộ kiểm thử trong `frontend/tests/` (Đồng bộ 100% TypeScript)
 
-| Nhóm file cũ | Số lượng | Trạng thái rà soát | Hướng xử lý |
+| Nhóm file | Số lượng | Công cụ chạy | Ghi chú |
 |---|---|---|---|
-| `frontend/tests/*.mjs` (`test_question_topic_strategy.mjs`, `test_note_cluster_strategy.mjs`, `test_rich_text_bullet_and_table.mjs`, `test_saved_material_normalizer.mjs`, `test_generic_row_layout.mjs`) | 5 file logic cốt lõi (+ `test_mindmap_ai_tree.mjs` WIP) | Các rule logic thuần đã được port chuẩn TypeScript sang `frontend/tests/unit/*.test.ts` chạy qua Vitest | Chạy thống nhất qua `npm run test:cov` |
-| Script `.py` trỏ vào route đã xoá (`/entities`, `/locations`, `/events`, `/knowledge`, `/workspace`, `/test-block-palette`, `/test-header-meta`, `/thuc-the/le-loi`) | 6 file + 1 file mô phỏng không mở trình duyệt | **Stale (Lỗi thời)** sau đợt tái cấu trúc 2026-11 gộp Article/Public Reader | Đã thay thế phần Smoke cốt lõi bằng `frontend/tests/e2e/` |
-| Script `.py` Block Builder / Studio (`/lessons/create`, `/curriculum`) mở thẳng CMS chưa qua `/login` | ~15 file | Cần cập nhật helper login qua `frontend/tests/e2e/pages.py::LoginPage` nếu muốn tái sử dụng cho hồi quy CMS sâu | Giữ tham khảo; Smoke CI dùng `frontend/tests/e2e/` |
+| `frontend/tests/unit/*.test.ts(x)` | 10 file (`48` tests) | **Vitest + React Testing Library** (`npm --prefix frontend run test:cov`) | Kiểm thử logic nghiệp vụ cốt lõi & component cô lập (`84.94%` Lines coverage) |
+| `frontend/tests/e2e/*.e2e.ts` (`public-and-auth.e2e.ts`, `learner-journeys.e2e.ts`, `cms-workflows.e2e.ts`, `e2e.config.ts`, `e2e.pages.ts`) | 3 suite (`30` scenarios) + 2 file POM/Config | **Playwright TypeScript** (`npm --prefix frontend run test:e2e`) | Đã thay thế và dọn sạch toàn bộ các file `.py` Selenium / `.mjs` rời rạc cũ; đồng bộ 100% hệ sinh thái TypeScript |

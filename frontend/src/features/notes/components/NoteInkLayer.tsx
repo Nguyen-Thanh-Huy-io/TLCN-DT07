@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import { KeyboardKey } from '@/constants/enums';
 import type { LocatedNote } from '../hooks/useNoteHighlights';
-import { useInkSyncQueue } from '../hooks/useInkSyncQueue';
+import { useInkSyncQueue } from '../facades/useNoteFacade';
 import type { NewNoteInput } from '../facades/useNoteFacade';
 import {
   NOTE_COLOR,

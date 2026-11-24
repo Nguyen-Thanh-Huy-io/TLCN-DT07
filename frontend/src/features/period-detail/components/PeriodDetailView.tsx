@@ -6,11 +6,9 @@ import { ArrowLeft, ArrowRight, CalendarRange, ChevronDown, Compass, Landmark, L
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import type { PublicPeriodDetailDto, PublicPeriodDto } from '@/services/entities/landing.service';
-import { PERIOD_ROUTES, formatYear, shortPeriodName } from '../period-detail.adapter';
-import { TimeRuler } from './PeriodDetailParts';
-import { EventStream } from './PeriodDetailParts';
+import { PERIOD_ROUTES, formatYear, shortPeriodName, TimeRuler, EventStream } from './PeriodDetailParts';
 import '../period-detail.css';
-import { RemoteImage } from '@/components/common/RemoteImage';
+import { RemoteImage } from '@/components/common/CommonUi';
 
 export enum PeriodSectionId {
   OVERVIEW = 'tong-quan',

@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
+import { TrueFalseAnswerSelector } from '@/components/common/AuthorFollowButton';
 
 describe('TrueFalseAnswerSelector component', () => {
   it('hiển thị đúng trạng thái Đúng/Sai và gọi onChange khi chuyển lựa chọn', async () => {

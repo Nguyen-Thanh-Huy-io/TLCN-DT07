@@ -24,18 +24,18 @@ import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { PublicAuthService, USER_ROLE_LABELS, isStaffRole } from '@/services/auth/public-auth.service';
-import { AccountApiService, type MyProfile } from '@/services/auth/account.service';
+import { AccountApiService, type MyProfile } from '@/services/entities/content-revision.service';
 import { extractErrorMessage } from '@/services/api';
 import { ProfileSection, SecuritySection } from './AccountSections';
 import { LearningSection, SavedBookmarksSection } from './AccountLearningSections';
 import { FlashcardsSection } from '@/features/flashcards/components/FlashcardsSection';
 import { MindmapsSection } from '@/features/mindmap/components/MindmapsSection';
-import { GamificationKpiBar } from '@/features/gamification/components/GamificationKpiBar';
+import { GamificationKpiBar } from '@/features/gamification/components/ArticleReadCompleteButton';
 import { GamificationSection } from '@/features/gamification/components/GamificationSection';
 import { GoalAimModal } from '@/features/gamification/components/GoalAimModal';
 import { useGamificationOverview } from '@/features/gamification/services/gamification.service';
-import { RemoteImage } from '@/components/common/RemoteImage';
-import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonReaderHooks';
+import { RemoteImage } from '@/components/common/CommonUi';
+import { useLessonProgress } from '@/features/public-curriculum/components/hub/LessonQuizIslands';
 import { useSavedMaterialsSnapshot } from '@/features/saved-materials/services/saved-material.service';
 
 export enum AccountTabKey {

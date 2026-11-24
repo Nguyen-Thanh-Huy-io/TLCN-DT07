@@ -12,25 +12,19 @@ import {
   QuizQuestionType,
   SingleChoiceQuestion,
   TrueFalseQuestion,
-} from '../../types/quiz.types';
-import { generateQuizId } from '../../factories/quiz-question.factory';
+  generateQuizId,
+} from '../../types/editor.types';
 import {
   CollapsibleExplanationField,
   OptionExplanationBox,
-} from '@/components/common/CollapsibleExplanationField';
-import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
-import { TimelineOrderingItemsEditor } from '@/components/common/TimelineOrderingItemsEditor';
-import { MatchingPairsEditor } from '@/components/common/MatchingPairsEditor';
+} from '@/components/common/EmojiPickerButton';
+import { TrueFalseAnswerSelector } from '@/components/common/AuthorFollowButton';
+import { MatchingPairsEditor, TimelineOrderingItemsEditor } from '@/components/common/MatchingPairsEditor';
 import { Icon } from '@/components/icons/Icon';
 
 export enum MoveDirection {
   UP = 'UP',
   DOWN = 'DOWN',
-}
-
-export enum MatchingSide {
-  LEFT = 'leftItems',
-  RIGHT = 'rightItems',
 }
 
 type OnChange<T extends QuizQuestion> = (updates: Partial<T>) => void;

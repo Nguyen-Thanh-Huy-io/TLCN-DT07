@@ -1,4 +1,4 @@
-import { LandingView } from '@/features/landing/components/LandingView';
+import { LandingView } from '@/features/landing/components/LandingTopSections';
 import { fetchLandingData } from '@/features/landing/landing.adapter';
 
 export default async function HomePage() {

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { type CommunityReferenceItem, type SharedBlogEmbed } from '../api';
 import { MessageSquare, Check, Clock, MapPin, Share2, UserPlus, BookOpen, ExternalLink } from 'lucide-react';
-import { getAuthorTint, getInitials } from '../utils/community-feed.helper';
+import { getAuthorTint, getInitials } from '../community-content.util';
 
 // --- PostAuthorHeader.tsx ---
 export function formatVietnameseDate(iso?: string | null) {

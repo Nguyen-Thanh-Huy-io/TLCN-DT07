@@ -3,11 +3,10 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { resolveBackendAssetUrl } from '@/constants/api-url';
-import { BLOCK_TYPE_IMAGE, BORDER_LIGHT } from '../types/review.types';
-import { type ContentBlockData, type ArticleReferenceData, type ReviewConfirmAction, type ReviewPost } from '../types/review.types';
+import { BLOCK_TYPE_IMAGE, BORDER_LIGHT, type ContentBlockData, type ArticleReferenceData, type ReviewConfirmAction, type ReviewPost } from './ReviewHubView';
 import { ContentStatus } from '@/constants/enums';
-import { type BlogPostItem } from '@/services/entities/blog.service';
-import { extractMetadataFromBlocks } from '@/features/blog/utils/blog-metadata.util';
+import { type BlogPostItem } from '@/services/entities/dashboard.service';
+import { extractMetadataFromBlocks } from '@/features/blog/facades/useBlogCreateFacade';
 
 // --- BlogReviewBlockRenderer.tsx ---
 interface BlogReviewBlockRendererProps {

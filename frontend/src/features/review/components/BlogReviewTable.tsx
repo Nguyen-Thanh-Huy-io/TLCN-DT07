@@ -1,7 +1,6 @@
 'use client';
 
-import { BORDER_LIGHT, REVIEW_TABS, ReviewTabState } from '../types/review.types';
-import { type ReviewPost } from '../types/review.types';
+import { BORDER_LIGHT, REVIEW_TABS, ReviewTabState, type ReviewPost } from './ReviewHubView';
 
 // --- BlogReviewTable.tsx ---
 export interface BlogReviewTableProps {

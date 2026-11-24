@@ -5,7 +5,7 @@ import {
   CurriculumTopicNode,
   CurriculumLessonNode,
 } from '@/types/models';
-import { mapBackendTopicTreeToCurriculum } from '../utils/curriculum-mapper';
+import { mapBackendTopicTreeToCurriculum } from './useCurriculumTree';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
 

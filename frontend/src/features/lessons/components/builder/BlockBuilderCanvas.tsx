@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { sanitizeRichHtml } from '@/utils/common';
 import {
   CalloutBlockData,
   CharacterBlockData,
@@ -14,31 +15,27 @@ import {
   QuoteBlockData,
   RelatedEventsBlockData,
   RelatedPeopleBlockData,
-  RowSectionBlockData,
   TextBlockData,
-  TimelineBlockData,
   VideoBlockData,
 } from '../../types/block-builder.types';
 import { LessonBlockType } from '../../types/editor.types';
 import { LESSON_BLOCK_DRAG_MIME } from '../../constants/lesson.constants';
+import { LessonBlockRegistry } from '../../plugins/block-plugin.registry';
 import { BlockWidthStrategy } from '../../strategies/row-layout.strategy';
-import { AddBlockDivider } from './AddBlockDivider';
-import { BlockCardWrapper } from './BlockCardWrapper';
+import { BlockCardWrapper, AddBlockDivider } from './BlockCardWrapper';
 import {
   CalloutBlockItemEditor,
   ComparisonTableBlockItemEditor,
   MapBlockItemEditor,
+  QuizBlockEditor,
   QuoteBlockItemEditor,
   TextBlockEditor,
 } from './BasicBlockItemEditors';
-import { TimelineBlockItemEditor } from './TimelineBlockItemEditor';
 import {
   CharacterBlockItemEditor,
   EventBlockItemEditor,
   ImageBlockItemEditor,
 } from './RichBlockItemEditors';
-import { RowSectionBlockEditor } from './RowSectionBlockEditor';
-import { QuizBlockEditor } from './QuizBlockEditor';
 
 type SharedBlockRenderer = (
   block: LessonBlockItem,
@@ -75,9 +72,6 @@ const SHARED_BLOCK_RENDERERS: Partial<Record<LessonBlockType, SharedBlockRendere
     <div className="py-2">
       <hr className="border-t border-stone-200" />
     </div>
-  ),
-  [LessonBlockType.TIMELINE]: (block, onChange) => (
-    <TimelineBlockItemEditor data={block as TimelineBlockData} onChange={onChange} />
   ),
   [LessonBlockType.CHARACTER]: (block, onChange) => (
     <CharacterBlockItemEditor data={block as CharacterBlockData} onChange={onChange} />
@@ -150,11 +144,6 @@ export function BlockBuilderCanvas({
   onRemoveBlock,
   onMoveBlock,
   onMoveByDirection,
-  onUpdateRowRatio,
-  onChangeRowColumnCount,
-  onAddBlockToColumn,
-  onUpdateBlockInColumn,
-  onRemoveBlockFromColumn,
   quizTopicId,
 }: BlockBuilderCanvasProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -167,20 +156,6 @@ export function BlockBuilderCanvas({
       return;
     }
     onAddBlock(type, atIndex);
-  };
-
-  const renderChildBlockContent = (rowId: string, colId: string, childBlock: LessonBlockItem) => {
-    const renderer = SHARED_BLOCK_RENDERERS[childBlock.type];
-    if (renderer) {
-      return renderer(childBlock, (updates) =>
-        onUpdateBlockInColumn?.(rowId, colId, childBlock.id, updates)
-      );
-    }
-    return (
-      <div className="text-xs text-stone-500 italic p-2 bg-stone-50 rounded">
-        Khối {childBlock.type}
-      </div>
-    );
   };
 
   const renderBlockContent = (block: LessonBlockItem) => {
@@ -238,26 +213,16 @@ export function BlockBuilderCanvas({
             topicId={quizTopicId}
           />
         );
-      case LessonBlockType.SECTION_ROW:
+      case LessonBlockType.TIMELINE:
+      case LessonBlockType.SECTION_ROW: {
+        const previewHtml = LessonBlockRegistry.blockToHtml(block);
         return (
-          <RowSectionBlockEditor
-            data={block as RowSectionBlockData}
-            onUpdateRowRatio={(widths) => onUpdateRowRatio?.(block.id, widths)}
-            onChangeColumnCount={(count) => onChangeRowColumnCount?.(block.id, count)}
-            onAddBlockToColumn={(colId, type, atIndex) =>
-              onAddBlockToColumn?.(block.id, colId, type, atIndex)
-            }
-            onUpdateBlockInColumn={(colId, childBlockId, updates) =>
-              onUpdateBlockInColumn?.(block.id, colId, childBlockId, updates)
-            }
-            onRemoveBlockFromColumn={(colId, childBlockId) =>
-              onRemoveBlockFromColumn?.(block.id, colId, childBlockId)
-            }
-            renderChildBlock={(childBlock, colId) =>
-              renderChildBlockContent(block.id, colId, childBlock)
-            }
+          <div
+            className="tiptap-content-box !p-0 text-sm text-slate-800"
+            dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(previewHtml) }}
           />
         );
+      }
       default:
         return (
           <div className="p-3 bg-stone-50 rounded-lg text-xs text-stone-500 italic">

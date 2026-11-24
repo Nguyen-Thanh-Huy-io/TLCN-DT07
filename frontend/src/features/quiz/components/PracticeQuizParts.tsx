@@ -4,7 +4,7 @@ import React from 'react';
 import { Search, X, ArrowRight, BookOpen, HelpCircle, Clock, SearchX, Trophy, ShieldCheck, Play, User, Info, CheckCircle2, XCircle, Filter } from 'lucide-react';
 import { ALL_TOPICS_ID, QuizTopicOption, formatExamTime, topicLabelOf } from '../utils/practice-quiz.helper';
 import type { PracticeQuizItem } from '@/services/entities/quiz.service';
-import { QUIZ_QUESTION_TYPE_META, type QuizQuestion } from '@/features/lessons/types/quiz.types';
+import { QUIZ_QUESTION_TYPE_META, type QuizQuestion } from '@/features/lessons/types/editor.types';
 import { QuestionBody } from '@/features/public-curriculum/components/hub/HubLessonQuiz';
 import type { UserQuizAnswer } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
 import type { ExamDialog } from '../facades/usePracticeExam';

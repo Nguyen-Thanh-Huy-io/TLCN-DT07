@@ -1,6 +1,6 @@
 'use client';
 import { CommonFilterOption, ContentStatus } from '@/constants/enums';
-import { StatusPill } from '@/features/articles/components/StatusPill';
+import { StatusPill } from '@/features/articles/components/ArticleList';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';

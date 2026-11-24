@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LearningPathApiService, LearningPathItem, ChapterItem } from '@/services/entities/learning-path.service';
-import { LessonApiService } from '@/services/entities/lesson.service';
+import { LearningPathApiService, LearningPathItem, ChapterItem } from '@/services/entities/learner.service';
+import { LessonApiService } from '@/services/entities/learner.service';
 import { LessonItem } from '@/types/models';
-import type { PickedTopic } from '@/features/topics/components/TopicPicker';
+import type { PickedTopic } from '@/features/topics/components/TopicEditor';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
@@ -618,5 +618,3 @@ export function useHisgoStudio() {
     newChapterFilteredLessons,
   };
 }
-
-export type HisgoStudioFacade = ReturnType<typeof useHisgoStudio>;

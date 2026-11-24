@@ -11,8 +11,7 @@ import Youtube from '@tiptap/extension-youtube';
 import { TipTapToolbar } from './TipTapToolbar';
 import { BlockTypographyExtension, InlineTypographyMark } from '../extensions/typography.extension';
 import { RichTableExtensionKit } from '../extensions/table.extension';
-import { WikiLinkWithTooltip, FootnoteNode } from '../extensions/annotation.extension';
-import { useActiveEditor } from '../context/ActiveEditorContext';
+import { WikiLinkWithTooltip, FootnoteNode, useActiveEditor } from '../hooks/useLessonAnnotations';
 import { TextAnnotationModal, AnnotationModalTab } from './builder/TextAnnotationModal';
 
 interface TipTapContentProps {

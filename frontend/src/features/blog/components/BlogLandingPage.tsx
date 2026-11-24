@@ -9,7 +9,7 @@ import { fetchBlogPosts, type PublicBlogPostSummary } from '@/services/public/pu
 import {
   BLOG_ACCENT_PALETTE as accentPalette,
   extractMetadataFromBlocks,
-} from '@/features/blog/utils/blog-metadata.util';
+} from '@/features/blog/facades/useBlogCreateFacade';
 
 const DEFAULT_BLOG_DATE_LABEL = 'Mới cập nhật';
 

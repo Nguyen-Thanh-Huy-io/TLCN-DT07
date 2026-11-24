@@ -7,7 +7,7 @@ import { PublicAuthService, USER_ROLE_LABELS, isStaffRole } from "@/services/aut
 import { useAuthSession } from "@/services/auth/use-auth-session";
 import { GlobalSearch } from "@/features/search/GlobalSearch";
 import { NotificationBell } from "@/components/hisgo/NotificationBell";
-import { HeaderStreakPopover } from "@/features/gamification/components/HeaderStreakPopover";
+import { HeaderStreakPopover } from "@/features/gamification/components/ArticleReadCompleteButton";
 import { BookOpen, ChevronDown, Crown, Landmark, ScrollText, Swords, User } from "lucide-react";
 
 enum NavLinkId {

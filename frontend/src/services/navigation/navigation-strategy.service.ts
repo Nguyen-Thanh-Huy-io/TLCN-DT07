@@ -4,7 +4,7 @@ import {
   NAV_ITEM_LABELS,
   NavItemConfig,
   NavGroupConfig,
-} from '@/constants/navigation';
+} from '@/constants/ui-theme';
 import { IconName } from '@/constants/enums';
 import { APP_ROUTES, NavigationPageKey } from '@/constants/routes';
 import { PAGE_META } from '@/constants/ui-theme';
@@ -46,15 +46,6 @@ export class LearningNavStrategy implements INavigationGroupStrategy {
       groupId: this.groupId,
       subtitle: 'Đề thi theo chủ đề & ngân hàng câu hỏi',
     },
-    {
-      id: 'nav-media',
-      label: NAV_ITEM_LABELS.MEDIA,
-      icon: IconName.IMAGE,
-      page: NavigationPageKey.MEDIA,
-      route: APP_ROUTES.MEDIA,
-      groupId: this.groupId,
-      subtitle: 'Kho tư liệu ảnh, video & văn bản',
-    },
   ];
 
   getItems(): NavItemConfig[] {
@@ -67,7 +58,6 @@ export class LearningNavStrategy implements INavigationGroupStrategy {
       NavigationPageKey.TOPICS,
       NavigationPageKey.LESSONS,
       NavigationPageKey.QUIZZES,
-      NavigationPageKey.MEDIA,
     ].includes(pageKey as NavigationPageKey);
   }
 
@@ -153,15 +143,6 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
       subtitle: 'Tài khoản, vai trò & bảo mật',
     },
     {
-      id: 'nav-settings',
-      label: NAV_ITEM_LABELS.SETTINGS,
-      icon: IconName.SETTINGS,
-      page: NavigationPageKey.SETTINGS,
-      route: APP_ROUTES.SETTINGS,
-      groupId: this.groupId,
-      subtitle: 'Tham số cấu hình chung của hệ thống',
-    },
-    {
       id: 'nav-review',
       label: NAV_ITEM_LABELS.REVIEW,
       icon: IconName.CHECK,
@@ -188,7 +169,6 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
   matchesPage(pageKey: string): boolean {
     return [
       NavigationPageKey.USERS,
-      NavigationPageKey.SETTINGS,
       NavigationPageKey.REVIEW,
       NavigationPageKey.BLOG_REVIEW,
       NavigationPageKey.MODERATION,
@@ -200,15 +180,13 @@ export class SystemNavStrategy implements INavigationGroupStrategy {
     switch (pageKey) {
       case NavigationPageKey.USERS:
         return this.items[0];
-      case NavigationPageKey.SETTINGS:
-        return this.items[1];
       // Duyệt blog và kiểm duyệt báo cáo đã gộp vào Hàng chờ duyệt.
       case NavigationPageKey.REVIEW:
       case NavigationPageKey.BLOG_REVIEW:
       case NavigationPageKey.MODERATION:
-        return this.items[2];
+        return this.items[1];
       case NavigationPageKey.GAMIFICATION:
-        return this.items[3];
+        return this.items[2];
       default:
         return this.items[0];
     }
@@ -255,7 +233,6 @@ export class NavigationFacade {
     switch (pageKey) {
       case NavigationPageKey.CMS:
       case NavigationPageKey.DASHBOARD:
-      case NavigationPageKey.ANALYTICS:
         return NavigationPageKey.CURRICULUM;
       case NavigationPageKey.CURRICULUM:
       case NavigationPageKey.TOPICS:
@@ -263,8 +240,6 @@ export class NavigationFacade {
         return NavigationPageKey.CURRICULUM;
       case NavigationPageKey.QUIZZES:
         return NavigationPageKey.QUIZZES;
-      case NavigationPageKey.MEDIA:
-        return NavigationPageKey.MEDIA;
       case NavigationPageKey.ARTICLES:
         return NavigationPageKey.ARTICLES;
       case NavigationPageKey.TIMELINES:
@@ -277,8 +252,6 @@ export class NavigationFacade {
         return NavigationPageKey.USERS;
       case NavigationPageKey.GAMIFICATION:
         return NavigationPageKey.GAMIFICATION;
-      case NavigationPageKey.SETTINGS:
-        return NavigationPageKey.SETTINGS;
       case NavigationPageKey.REVIEW:
       case NavigationPageKey.BLOG_REVIEW:
       case NavigationPageKey.MODERATION:

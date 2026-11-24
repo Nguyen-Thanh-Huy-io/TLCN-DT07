@@ -7,7 +7,7 @@ import { useCommunityProfile } from '../hooks/useCommunityProfile';
 import { type CommunityMemberProfile } from '../api';
 import { ProfileHeaderKpi, ProfileMembersList, ProfilePostsList, ProfileTabsToolbar, ProfileTabKey } from './CommunityProfileParts';
 import type { ProfileTabItem } from './CommunityProfileParts';
-import { ProfilePublishedWorksList } from './ProfilePublishedWorksList';
+import { ProfilePublishedWorksList } from './CommunityProfileParts';
 import { ProfileSidebar } from './ProfileSidebar';
 
 export function CommunityProfileView({

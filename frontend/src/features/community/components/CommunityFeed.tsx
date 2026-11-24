@@ -10,8 +10,8 @@ import { CommunityTabKey, ComposerMode, COMMUNITY_TAB_LABELS } from '@/constants
 import { QuickComposer } from './QuickComposer';
 import { CommunitySidebar } from './CommunitySidebar';
 import { useCommunityPaging, useCommunityRealtimeSocket, useInfiniteScrollObserver } from '../hooks/useCommunityFeedHooks';
-import { computePopularTags, fetchTabFeedPosts, matchesPostFilter, updateFollowedAuthorsMap, updateSuggestedMembersList } from '../utils/community-feed.helper';
-import { PostCard } from './PostCard';
+import { computePopularTags, fetchTabFeedPosts, matchesPostFilter, updateFollowedAuthorsMap, updateSuggestedMembersList } from '../community-content.util';
+import { PostCard } from './PostActionBar';
 import { PostCardSkeletonList } from './PostCardParts';
 
 export type { CommunityTabKey };

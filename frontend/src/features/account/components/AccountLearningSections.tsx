@@ -7,11 +7,11 @@ import { ContentStatus } from '@/constants/enums';
 import api, { extractErrorMessage } from '@/services/api';
 import type { PublicArticleSummary, PublicTimeline } from '@/services/public/public-content.service';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
-import { LearningPathApiService, type LearningPathItem } from '@/services/entities/learning-path.service';
-import { PUBLIC_CURRICULUM_ROUTES, DEFAULT_COVER_IMAGES } from '@/features/public-curriculum/constants/public-curriculum.constants';
-import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonReaderHooks';
+import { LearningPathApiService, type LearningPathItem } from '@/services/entities/learner.service';
+import { PUBLIC_CURRICULUM_ROUTES, DEFAULT_COVER_IMAGES } from '@/features/public-curriculum/facades/usePublicCurriculumFacade';
+import { useLessonProgress } from '@/features/public-curriculum/components/hub/LessonQuizIslands';
 import { pathLessons } from '@/features/public-curriculum/components/hub/HubReaderParts';
-import { RemoteImage } from '@/components/common/RemoteImage';
+import { RemoteImage } from '@/components/common/CommonUi';
 import { SavedMaterialKind } from '@/features/saved-materials/constants/saved-material.constants';
 import {
   removeSavedTimelineNode,

@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type { Editor } from '@tiptap/react';
-import { UploadApiService } from '@/services/entities/upload.service';
+import { UploadApiService } from '@/services/api';
 import {
   RICH_TABLE_NODE_NAMES,
   TableActionType,

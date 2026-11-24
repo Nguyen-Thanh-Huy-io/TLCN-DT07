@@ -1,20 +1,19 @@
 'use client';
 
 import { useMemo } from 'react';
-import { QuizQuestionType, OrderingItem } from '@/features/lessons/types/quiz.types';
+import { QuizQuestionType, OrderingItem } from '@/features/lessons/types/editor.types';
 import { TopicItem } from '@/types/models';
-import { MatchingPairsValue, MatchingPairsEditor } from '@/components/common/MatchingPairsEditor';
+import { MatchingPairsValue, MatchingPairsEditor, TimelineOrderingItemsEditor } from '@/components/common/MatchingPairsEditor';
 import { OptionItemState, QUESTION_TYPE_CARDS } from './question-modal.helper';
 import { Check, Folder, X, Maximize2, Minimize2 } from 'lucide-react';
 import { TreeSelectTrigger, TreeSelectModal, buildTopicTreeNodes } from '@/components/common/TreeSelectModal';
-import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
-import { TimelineOrderingItemsEditor } from '@/components/common/TimelineOrderingItemsEditor';
+import { TrueFalseAnswerSelector } from '@/components/common/AuthorFollowButton';
 import { QuestionOptionsEditor } from './QuestionOptionsEditor';
 import {
   QuestionTopicMode,
   resolveQuestionTopicStrategy,
   resolveTopicNames,
-} from '../utils/question-topic.strategy';
+} from '../utils/practice-quiz.helper';
 
 // --- QuestionTypeCardSelector.tsx ---
 export interface QuestionTypeCardSelectorProps {

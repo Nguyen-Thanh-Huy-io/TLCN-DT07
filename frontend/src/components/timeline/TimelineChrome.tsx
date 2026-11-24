@@ -4,11 +4,10 @@ import { KeyboardKey } from '@/constants/enums';
 import { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, BookOpen, Bookmark, LayoutList, Search, SlidersHorizontal, ChevronDown, Layers, ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react';
-import { TimelineFacetKey, type Era, type TimeNode, type TimelineEvent } from './sk-types';
-import { RemoteImage } from '@/components/common/RemoteImage';
+import { TimelineFacetKey, type Era, type TimeNode, type TimelineEvent } from './sk-adapter';
+import { RemoteImage } from '@/components/common/CommonUi';
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, type ChipOption } from '@/components/filters/ChipFilter';
 import Link from 'next/link';
-import { EntityList } from './TimelineNodes';
 
 // === SkUi.tsx ===
 export function Button({ className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
@@ -427,15 +426,12 @@ export function EventDetailModal({
             {detail.event.slug && (
               <Link
                 className="sk-related-event"
-                href={`/su-kien/${detail.event.slug}`}
+                href={`/bai-viet/${detail.event.slug}`}
                 style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
               >
-                Xem chi tiết sự kiện <ArrowUpRight size={16} />
+                Đọc bài viết chi tiết <ArrowUpRight size={16} />
               </Link>
             )}
-            <Heading level={2}>Nhân vật & địa danh</Heading>
-            <EntityList figures={detail.event.figures || []} locations={detail.event.locations || []} tab="figures" />
-            <EntityList figures={detail.event.figures || []} locations={detail.event.locations || []} tab="locations" />
             <Heading level={2}>Cùng thời điểm</Heading>
             {detail.node.events
               .filter((ev) => ev.id !== detail.event.id)
@@ -450,14 +446,14 @@ export function EventDetailModal({
                 </Button>
               ))}
             {detail.node.events.length === 1 && (
-              <p className="sk-muted">Bạn đang xem sự kiện tiêu biểu tại dấu mốc này.</p>
+              <p className="sk-muted">Bạn đang xem bài viết tiêu biểu tại dấu mốc này.</p>
             )}
             <div className="sk-drawer-navigation">
               <Button onClick={() => onStep(-1)}>
-                <ArrowLeft size={16} /> Sự kiện trước
+                <ArrowLeft size={16} /> Dấu mốc trước
               </Button>
               <Button onClick={() => onStep(1)}>
-                Sự kiện tiếp theo <ArrowRight size={16} />
+                Dấu mốc tiếp theo <ArrowRight size={16} />
               </Button>
             </div>
           </div>

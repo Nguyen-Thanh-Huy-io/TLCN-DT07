@@ -124,4 +124,44 @@ export function parsePaginatedResponse<T>(resData: unknown): PaginatedResult<T> 
   };
 }
 
+// === Merged from upload.service.ts ===
+export interface UploadImageResult {
+  success: boolean;
+  filename: string;
+  originalName: string;
+  size: number;
+  url: string;
+}
+
+interface UploadResponse {
+  data: UploadImageResult;
+}
+
+const MULTIPART_HEADERS = {
+  'Content-Type': 'multipart/form-data',
+} as const;
+
+async function uploadMultipart(endpoint: string, file: File): Promise<UploadImageResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await api.post<UploadResponse>(endpoint, formData, {
+    headers: MULTIPART_HEADERS,
+  });
+  return res.data.data;
+}
+
+export class UploadApiService {
+  static uploadImage(file: File): Promise<UploadImageResult> {
+    return uploadMultipart('/upload/image', file);
+  }
+
+  static uploadVideo(file: File): Promise<UploadImageResult> {
+    return uploadMultipart('/upload/video', file);
+  }
+
+  static uploadDocument(file: File): Promise<UploadImageResult> {
+    return uploadMultipart('/upload/document', file);
+  }
+}
+
 export default api;

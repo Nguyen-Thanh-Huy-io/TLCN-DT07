@@ -3,11 +3,11 @@
 import React from 'react';
 import { ContentStatus, IconName } from '@/constants/enums';
 import { Icon } from '@/components/icons/Icon';
-import { LearningPathItem } from '@/services/entities/learning-path.service';
+import { LearningPathItem } from '@/services/entities/learner.service';
 import { StudioTab } from '../HisgoStudioView';
 import { STATUS_LABEL_MAP } from '@/constants/ui-theme';
-import { StatusPill } from '@/features/articles/components/StatusPill';
-import { ArchiveStatusButton } from '@/components/common/ArchiveStatusButton';
+import { StatusPill } from '@/features/articles/components/ArticleList';
+import { ArchiveStatusButton } from '@/components/common/CommonUi';
 
 // --- LearningPathListPanel.tsx ---
 interface LearningPathListPanelProps {

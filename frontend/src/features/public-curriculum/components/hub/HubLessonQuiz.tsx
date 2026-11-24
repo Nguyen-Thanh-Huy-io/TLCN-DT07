@@ -11,7 +11,7 @@ import {
   OrderingQuestion,
   MatchingQuestion,
   FillInBlankQuestion,
-} from '@/features/lessons/types/quiz.types';
+} from '@/features/lessons/types/editor.types';
 import type { UserQuizAnswer } from '../../strategies/public-curriculum.strategies';
 import { HubButton } from './HubReaderParts';
 

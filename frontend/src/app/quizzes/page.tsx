@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { QuizWorkspaceView } from '@/features/quiz/components/QuizWorkspaceView';
+import { QuizWorkspaceView } from '@/features/quiz/components/QuizPreviewModal';
 
 export default function QuizzesPage() {
   return (

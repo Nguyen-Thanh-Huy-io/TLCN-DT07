@@ -1,14 +1,15 @@
 import api from '../api';
-import type {
-  FillInBlankQuestion,
-  MatchingQuestion,
-  MultipleChoiceOption,
-  MultipleChoiceQuestion,
-  OrderingQuestion,
-  QuizQuestion,
-  SingleChoiceQuestion,
-  TrueFalseQuestion,
-} from '@/features/lessons/types/quiz.types';
+import {
+  type FillInBlankQuestion,
+  type MatchingQuestion,
+  type MultipleChoiceOption,
+  type MultipleChoiceQuestion,
+  type OrderingQuestion,
+  type QuizQuestion,
+  QuizQuestionType,
+  type SingleChoiceQuestion,
+  type TrueFalseQuestion,
+} from '@/features/lessons/types/editor.types';
 import type { UserQuizAnswer } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
 
 const PUBLIC_QUIZZES_PATH = '/public/quizzes';
@@ -195,5 +196,102 @@ export class QuizApiService {
     const res = await api.get(PUBLIC_QUIZZES_PATH, { params: topicId ? { topicId } : undefined });
     const data = res.data?.data ?? res.data;
     return Array.isArray(data) ? data : [];
+  }
+}
+
+// --- Merged from question.service.ts ---
+export interface QuestionBankOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+export type QuestionBankData = Record<string, unknown> & {
+  options?: QuestionBankOption[];
+  correctAnswer?: boolean;
+};
+
+export interface QuestionAnswerStats {
+  answered: number;
+  correct: number;
+}
+
+export interface QuestionBankItem {
+  id: string;
+  type: QuizQuestionType;
+  prompt: string;
+  explanation?: string | null;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  points: number;
+  data: QuestionBankData;
+  topics?: Array<{ id: string; name: string }>;
+  _count?: { quizQuestions: number };
+  answerStats?: QuestionAnswerStats;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuestionBankListResponse {
+  items: QuestionBankItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface CreateQuestionPayload {
+  type: QuizQuestionType;
+  prompt: string;
+  explanation?: string;
+  difficulty?: 'EASY' | 'MEDIUM' | 'HARD';
+  points?: number;
+  data: Record<string, unknown>;
+  topicIds?: string[];
+}
+
+export class QuestionApiService {
+  static async getQuestions(params?: {
+    search?: string;
+    type?: QuizQuestionType;
+    difficulty?: string;
+    topicId?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<QuestionBankListResponse> {
+    const res = await api.get('/questions', { params });
+    const data = res.data?.data || res.data;
+    if (Array.isArray(data)) {
+      return {
+        items: data,
+        total: data.length,
+        page: 1,
+        limit: data.length,
+        totalPages: 1,
+      };
+    }
+    return data;
+  }
+
+  static async getQuestion(id: string): Promise<QuestionBankItem> {
+    const res = await api.get(`/questions/${id}`);
+    return res.data?.data || res.data;
+  }
+
+  static async createQuestion(payload: CreateQuestionPayload): Promise<QuestionBankItem> {
+    const res = await api.post('/questions', payload);
+    return res.data?.data || res.data;
+  }
+
+  static async updateQuestion(
+    id: string,
+    payload: Partial<CreateQuestionPayload>,
+  ): Promise<QuestionBankItem> {
+    const res = await api.put(`/questions/${id}`, payload);
+    return res.data?.data || res.data;
+  }
+
+  static async deleteQuestion(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await api.delete(`/questions/${id}`);
+    return res.data?.data || res.data;
   }
 }

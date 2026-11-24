@@ -1,11 +1,12 @@
 'use client';
 
+import React from 'react';
 import { CurriculumTreeFilter } from '@/constants/enums';
 import { CurriculumNodeType, type AnyCurriculumNode, type CurriculumLessonNode, type CurriculumTopicNode } from '@/types/models';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
-import type { CurriculumTreeProps } from './useCurriculumTree';
-import { childTopicsOf, type CurriculumTreeFacade } from './useCurriculumTree';
+import { useCurriculumTree, childTopicsOf, type CurriculumTreeFacade, type CurriculumTreeProps } from './useCurriculumTree';
+import { CurriculumSidePanel } from './CurriculumSidePanel';
 
 export const SELECTED_NODE_STYLE = 'bg-slate-100 text-slate-900 font-semibold ring-1 ring-slate-300';
 
@@ -244,5 +245,65 @@ export function CurriculumTreeContent({ facade, ...selection }: { facade: Curric
         ))
       )}
     </div>
+  );
+}
+
+// === Merged from CurriculumTree.tsx & CurriculumTreePreviewModal.tsx ===
+export function CurriculumTree({
+  data,
+  selectedNode,
+  onSelectNode,
+  onAddTopic,
+  onAddLesson,
+}: CurriculumTreeProps) {
+  const facade = useCurriculumTree({ data });
+
+  return (
+    <div className="curriculum-tree-card bg-white border border-slate-200 rounded-lg p-3 flex flex-col h-full">
+      <CurriculumTreeHeader facade={facade} />
+      <CurriculumTreeContent facade={facade} selectedNode={selectedNode} onSelectNode={onSelectNode} onAddTopic={onAddTopic} onAddLesson={onAddLesson} />
+      <div className="tree-footer pt-2 mt-2 border-t border-slate-100">
+        <button
+          type="button"
+          className="w-full py-1.5 px-2 text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded border border-dashed border-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+          onClick={() => onAddTopic()}
+        >
+          <Icon name={IconName.PLUS} size={12} />
+          <span>Thêm Chủ đề mới</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export type { CurriculumTreeProps } from './useCurriculumTree';
+
+export interface CurriculumTreePreviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  subtitle?: string;
+  highlightTopicId?: string;
+  highlightLessonId?: string;
+}
+
+export function CurriculumTreePreviewModal({
+  isOpen,
+  onClose,
+  title = 'Vị trí trong Cây tri thức',
+  subtitle = 'Nhánh lộ trình của chủ đề / bài học này',
+  highlightTopicId,
+  highlightLessonId,
+}: CurriculumTreePreviewModalProps) {
+  return (
+    <CurriculumSidePanel
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="modal"
+      title={title}
+      subtitle={subtitle}
+      highlightTopicId={highlightTopicId}
+      highlightLessonId={highlightLessonId}
+    />
   );
 }

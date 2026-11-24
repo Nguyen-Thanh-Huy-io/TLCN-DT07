@@ -3,7 +3,7 @@ import { Header } from "@/components/hisgo/Header";
 import { Footer } from "@/components/hisgo/Footer";
 import { fetchPeriodBySlug, fetchPeriods } from "@/services/entities/landing.service";
 import { PeriodDetailView } from "@/features/period-detail/components/PeriodDetailView";
-import { siblingPeriods } from "@/features/period-detail/period-detail.adapter";
+import { siblingPeriods } from "@/features/period-detail/components/PeriodDetailParts";
 
 export default async function PeriodDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

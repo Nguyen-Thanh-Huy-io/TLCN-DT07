@@ -2,16 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { TipTapContent } from '@/features/lessons/components/TipTapContent';
-import { QUIZ_QUESTION_TYPE_META, QuizQuestionType, OrderingItem } from '@/features/lessons/types/quiz.types';
-import { generateQuizId } from '@/features/lessons/factories/quiz-question.factory';
-import { CreateQuestionPayload, QuestionApiService, QuestionBankItem } from '@/services/entities/question.service';
+import { QUIZ_QUESTION_TYPE_META, QuizQuestionType, OrderingItem, generateQuizId } from '@/features/lessons/types/editor.types';
+import { CreateQuestionPayload, QuestionApiService, QuestionBankItem } from '@/services/entities/quiz.service';
 import { TopicItem } from '@/types/models';
 import { TopicApiService } from '@/services/entities/topic.service';
-import { CollapsibleExplanationField } from '@/components/common/CollapsibleExplanationField';
+import { CollapsibleExplanationField } from '@/components/common/EmojiPickerButton';
 import { MatchingPairsValue } from '@/components/common/MatchingPairsEditor';
 import { OptionItemState, QuestionDifficulty, createDefaultMatchingPairs, createDefaultOptions, createDefaultOrderingItems, validateQuestionForm, buildQuestionData, parseInitialQuestionState } from './question-modal.helper';
 import { QuestionTypeCardSelector, QuestionCategorySection, TopicCategoryModalPicker, QuestionAnswersSection, QuestionModalHeader, QuestionModalFooter } from './QuestionBankModalParts';
-import { QuestionTopicMode } from '../utils/question-topic.strategy';
+import { QuestionTopicMode } from '../utils/practice-quiz.helper';
 
 interface QuestionBankModalProps {
   isOpen: boolean;

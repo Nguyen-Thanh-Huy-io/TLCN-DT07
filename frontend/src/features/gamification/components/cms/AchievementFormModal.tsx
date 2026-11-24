@@ -3,20 +3,18 @@
 import React, { useRef, useState } from 'react';
 import { Award, ImagePlus, Loader2, Trash2, X } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
-import { UploadApiService } from '@/services/entities/upload.service';
+import { UploadApiService } from '@/services/api';
 import {
   ACHIEVEMENT_ICON_MAP,
   ACHIEVEMENT_ICON_OPTIONS,
-} from '../../constants/achievement-icons.constant';
-import {
   AchievementMetricType,
   METRIC_TYPE_META,
-} from '../../constants/gamification-admin.constants';
+} from '../../constants/gamification.constants';
 import {
   GamificationAdminApiService,
   type AdminAchievementItem,
-} from '../../services/gamification-admin.service';
-import { AchievementBadgeAvatar } from '../AchievementBadgeAvatar';
+} from '../../services/gamification.service';
+import { AchievementBadgeAvatar } from '../GoalAimModal';
 
 interface AchievementFormModalProps {
   initial?: AdminAchievementItem | null;

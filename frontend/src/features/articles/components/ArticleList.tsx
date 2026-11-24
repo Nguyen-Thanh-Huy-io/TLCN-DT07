@@ -5,10 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
-import { ActionMenu } from '@/components/common/ActionMenu';
-import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
+import { ActionMenu, ConfirmDeleteModal } from '@/components/common/CommonUi';
 import { extractErrorMessage } from '@/services/api';
-import { TagApiService } from '@/services/entities/tag.service';
+import { TagApiService } from '@/services/entities/topic.service';
 import type { TagItem } from '@/types/models';
 import {
   ArticleApiService,
@@ -19,7 +18,61 @@ import {
   type ContentStatusValue,
 } from '@/services/entities/article.service';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
-import { StatusPill } from './StatusPill';
+
+const TONES: Record<ContentStatusValue, string> = {
+  DRAFT: 'bg-slate-100 text-slate-700',
+  PENDING_REVIEW: 'bg-amber-100 text-amber-800',
+  PUBLISHED: 'bg-emerald-100 text-emerald-800',
+  REJECTED: 'bg-red-100 text-red-700',
+  ARCHIVED: 'bg-stone-200 text-stone-600',
+};
+
+export function StatusPill({ status }: { status: ContentStatusValue }) {
+  return (
+    <span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONES[status] ?? TONES.DRAFT}`}>
+      {CONTENT_STATUS_LABELS[status] ?? status}
+    </span>
+  );
+}
+
+export function YearInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number | null;
+  onChange: (value: number | null) => void;
+}) {
+  const isBce = value !== null && value < 0;
+  const display = value === null ? '' : String(Math.abs(value));
+
+  const emit = (raw: string, bce: boolean) => {
+    const n = Number.parseInt(raw, 10);
+    if (!raw.trim() || Number.isNaN(n) || n === 0) return onChange(null);
+    onChange(bce ? -Math.abs(n) : Math.abs(n));
+  };
+
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          min={1}
+          inputMode="numeric"
+          value={display}
+          onChange={(e) => emit(e.target.value, isBce)}
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+        />
+        <label className="flex shrink-0 items-center gap-1 text-xs font-semibold text-slate-600">
+          <input type="checkbox" checked={isBce} disabled={value === null} onChange={(e) => emit(display, e.target.checked)} />
+          TCN
+        </label>
+      </div>
+    </div>
+  );
+}
 
 const PAGE_SIZE = 20;
 

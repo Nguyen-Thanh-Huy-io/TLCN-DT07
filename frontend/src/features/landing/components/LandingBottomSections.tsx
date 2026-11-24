@@ -6,8 +6,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Layers3, MapPin, Users, Compass, GraduationCap, Landmark, BookOpen, Check, Layers, Lightbulb, X, Globe2, History, ShieldCheck } from 'lucide-react';
 import { LANDING_ROUTES, type LandingFigure, type LandingLocation, type LandingEra, type LandingStats, type LandingCourse, type LandingQuiz } from '../landing.adapter';
 import { HlBadge, HlButton, SectionHead, HlCover, Reveal, HlProgress, cn } from './LandingTopSections';
-import { RemoteImage } from '@/components/common/RemoteImage';
-import { useLessonProgress } from '@/features/public-curriculum/components/hub/useLessonReaderHooks';
+import { RemoteImage } from '@/components/common/CommonUi';
+import { useLessonProgress } from '@/features/public-curriculum/components/hub/LessonQuizIslands';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 
 // === EntitiesSection.tsx ===

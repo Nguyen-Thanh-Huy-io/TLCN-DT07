@@ -20,7 +20,6 @@ export const INTERNAL_API_BASE_URL = (
   .replace(/\/+$/, '')
   .replace('://localhost', '://127.0.0.1');
 
-export const AUTH_HEADER_NAME = 'authorization';
 export const GUEST_ID_HEADER_NAME = 'x-guest-id';
 
 /**

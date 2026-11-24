@@ -11,19 +11,18 @@ import {
 } from 'lucide-react';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
-import { PUBLIC_CURRICULUM_ROUTES } from '../constants/public-curriculum.constants';
 import {
+  PUBLIC_CURRICULUM_ROUTES,
   LessonAccessState,
   usePublicLessonReaderFacade,
-} from '../facades/usePublicLessonReaderFacade';
+} from '../facades/usePublicCurriculumFacade';
 import {
   HUB_BUTTON_BASE,
   HUB_BUTTON_VARIANTS,
   HubButton,
 } from './hub/HubReaderParts';
-import { useLessonProgress } from './hub/useLessonReaderHooks';
+import { useLessonProgress, useLessonMedia } from './hub/LessonQuizIslands';
 import { useLessonRelated, type RelatedEntities } from './hub/HubReaderParts';
-import { useLessonMedia } from './hub/useLessonReaderHooks';
 import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
 import { NoteReaderLayer } from '@/features/notes/components/NoteReaderLayer';
 import '@/components/entity-detail/entity-reader.css';
@@ -31,13 +30,12 @@ import {
   ReadingAidsPanel,
   type ReadingEntity,
 } from '@/features/reading-aids/components/ReadingAidsPanel';
-import { useReadingControls } from '@/features/reading-aids/hooks/useReadingControls';
-import { resolveCategoryKind } from '@/services/public/article-kind';
-import { DiscussionApiService } from '@/services/entities/discussion.service';
+import { useReadingControls } from '@/features/reading-aids/components/ReadingAidsParts';
+import { DiscussionApiService } from '@/services/entities/dashboard.service';
 
 /** Tiêu đề câu hỏi gửi lên Hỏi đáp = dòng đầu của ghi chú (giống ô đăng câu hỏi ở phần Hỏi đáp). */
 const DISCUSSION_TITLE_MAX_LENGTH = 80;
-import { PUBLIC_ROUTES, fetchCategories, type PublicCategory } from '@/services/public/public-content.service';
+import { PUBLIC_ROUTES, fetchCategories, findRootCategory, type PublicCategory } from '@/services/public/public-content.service';
 import { NOTE_TARGET_TYPE } from '@/features/notes/services/note.service';
 import { LessonMobileSyllabusDrawer } from './reader/LessonReaderMainLayout';
 import { LessonReaderLoadingSkeleton } from './reader/LessonReaderMainLayout';
@@ -359,7 +357,7 @@ function useLessonReadingEntities(related: RelatedEntities): ReadingEntity[] {
           id: article.id,
           name: article.title,
           href: PUBLIC_ROUTES.ARTICLE(article.slug),
-          kind: resolveCategoryKind(categories, article.category?.id),
+          kind: findRootCategory(categories, article.category?.id)?.slug ?? article.category?.slug ?? '',
           note: article.dateLabel,
           summary: article.summary,
         })),

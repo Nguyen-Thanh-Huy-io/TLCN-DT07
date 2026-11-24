@@ -5,7 +5,7 @@ import {
   mergeInheritedTopics,
   resolveQuestionTopicStrategy,
   resolveTopicNames,
-} from '@/features/quiz/utils/question-topic.strategy';
+} from '@/features/quiz/utils/practice-quiz.helper';
 
 describe('question-topic.strategy', () => {
   it('trả về cấu hình gọn cho từng ngữ cảnh và không chứa ngoặc đơn', () => {

@@ -1,17 +1,113 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
-import { Upload, Link2, Image as ImageIcon, Loader2, X, UserSquare2, Database, Sparkles } from 'lucide-react';
-import { UploadApiService } from '@/services/entities/upload.service';
+import React, { useEffect, useRef, useState } from 'react';
+import { Upload, Link2, Image as ImageIcon, Loader2, X, UserSquare2, Database, Sparkles, Search } from 'lucide-react';
+import { UploadApiService } from '@/services/api';
 import { extractErrorMessage } from '@/services/api';
 import { ImageBlockData, CharacterBlockData, EventBlockData } from '../../types/block-builder.types';
-import { EntityPickerModal, EntitySelectionPayload } from '../blocks/EntityPickerModal';
-import { ArticleItem } from '@/services/entities/article.service';
+import { ArticleApiService, ArticleItem } from '@/services/entities/article.service';
 import { dateLabelOf } from '@/utils/common';
 import { CHARACTER_BLOCK_CONSTANTS, EVENT_BLOCK_CONSTANTS } from '../../constants/lesson.constants';
-import { EventPickerModal, EventSelectionPayload } from '../blocks/EventPickerModal';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
+
+function HisgoArticlePickerModal({
+  isOpen,
+  onClose,
+  onSelect,
+  title = 'Chọn từ Kho bài viết HISGO',
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (article: ArticleItem) => void;
+  title?: string;
+}) {
+  const [query, setQuery] = useState('');
+  const [items, setItems] = useState<ArticleItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    const timer = setTimeout(() => {
+      setLoading(true);
+      ArticleApiService.list({ search: query.trim() || undefined, limit: 20 })
+        .then((res) => {
+          if (active) setItems(res.items || []);
+        })
+        .catch(() => {
+          if (active) setItems([]);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }, 220);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [isOpen, query]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-lg flex flex-col max-h-[80vh] overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-900">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-3 border-b border-slate-100">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Tìm nhân vật, sự kiện, di tích trong HISGO..."
+              className="w-full text-sm pl-9 pr-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-slate-900"
+            />
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-2">
+          {loading ? (
+            <div className="py-8 text-center text-xs text-slate-500">Đang tìm trong kho HISGO...</div>
+          ) : items.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-500">Không tìm thấy bài viết phù hợp.</div>
+          ) : (
+            items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  onSelect(item);
+                  onClose();
+                }}
+                className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 transition flex items-start justify-between gap-3 cursor-pointer"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-bold text-slate-900 truncate">{item.title}</div>
+                  <div className="text-xs text-slate-500 line-clamp-1">
+                    {item.category?.name ? `${item.category.name} · ` : ''}
+                    {dateLabelOf(item) || item.summary || item.slug}
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-blue-700 shrink-0">Chọn</span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // --- ImageBlockItemEditor.tsx ---
 interface ImageBlockItemEditorProps {
@@ -33,7 +129,6 @@ export function ImageBlockItemEditor({ data, onChange }: ImageBlockItemEditorPro
       return;
     }
 
-    // 10MB limit
     if (file.size > 10 * 1024 * 1024) {
       setUploadError('Dung lượng tệp vượt quá 10MB cho phép.');
       return;
@@ -64,7 +159,6 @@ export function ImageBlockItemEditor({ data, onChange }: ImageBlockItemEditorPro
 
   return (
     <div className="space-y-3 @container min-w-0">
-      {/* Upload Zone & URL Input */}
       <div className="flex flex-col @[360px]:flex-row gap-2.5 items-stretch">
         <input
           type="file"
@@ -105,11 +199,8 @@ export function ImageBlockItemEditor({ data, onChange }: ImageBlockItemEditorPro
         </div>
       </div>
 
-      {uploadError && (
-        <p className="text-xs text-red-600 font-medium">{uploadError}</p>
-      )}
+      {uploadError && <p className="text-xs text-red-600 font-medium">{uploadError}</p>}
 
-      {/* Preview Section */}
       {data.src ? (
         <div className="relative group border border-stone-200 rounded-xl overflow-hidden bg-stone-50 p-2 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -140,7 +231,6 @@ export function ImageBlockItemEditor({ data, onChange }: ImageBlockItemEditorPro
         </div>
       )}
 
-      {/* Caption & Alt Inputs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <input
           type="text"
@@ -170,43 +260,18 @@ interface CharacterBlockItemEditorProps {
 export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemEditorProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
-  const handleSelectEntity = (entity: EntitySelectionPayload | ArticleItem) => {
-    let formattedYears = '';
-    const name = 'sourceType' in entity ? entity.name : entity.title;
-    let summary = '';
-    let avatarUrl = '';
-    let entityId: string | undefined = undefined;
-    let wikidataId: string | undefined = undefined;
-    let sourceUrl: string | undefined = undefined;
-
-    if ('sourceType' in entity) {
-      formattedYears = entity.years;
-      summary = entity.summary;
-      avatarUrl = entity.avatarUrl;
-      entityId = entity.entityId;
-      wikidataId = entity.wikidataId;
-      sourceUrl = entity.sourceUrl;
-    } else {
-      formattedYears = dateLabelOf(entity);
-      summary = entity.summary || '';
-      avatarUrl = entity.coverImageUrl || '';
-      entityId = entity.id;
-    }
-
+  const handleSelectEntity = (entity: ArticleItem) => {
     onChange({
-      entityId,
-      name,
-      years: formattedYears,
-      summary,
-      avatarUrl,
-      wikidataId,
-      sourceUrl,
+      entityId: entity.id,
+      name: entity.title,
+      years: dateLabelOf(entity),
+      summary: entity.summary || '',
+      avatarUrl: entity.coverImageUrl || '',
     });
   };
 
   return (
     <div data-testid="character-block-item-editor" className="space-y-3 font-sans @container min-w-0">
-      {/* Thanh tiêu đề nhỏ gọn + Nút chọn từ kho */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           <span
@@ -221,14 +286,6 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
               <span>Kho HISGO</span>
             </span>
           )}
-          {data.wikidataId && (
-            <span
-              data-testid="badge-character-wikidata"
-              className="text-xs font-semibold bg-blue-50 text-blue-900 px-2 py-0.5 rounded-md"
-            >
-              Wikidata: {data.wikidataId}
-            </span>
-          )}
         </div>
 
         <button
@@ -236,14 +293,13 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
           onClick={() => setIsPickerOpen(true)}
           data-testid="btn-pick-character"
           className="px-2.5 py-1 text-sm font-medium text-stone-800 hover:text-stone-950 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-          title="Chọn nhân vật từ Kho tri thức HISGO hoặc Wikipedia"
+          title="Chọn bài viết từ Kho tri thức HISGO"
         >
           <Database className="w-3.5 h-3.5" />
           <span>Chọn từ kho</span>
         </button>
       </div>
 
-      {/* Phần trên: Ảnh chân dung + Tên, Niên đại, Vai trò */}
       <div className="flex flex-col @[300px]:flex-row items-start gap-3 pt-1">
         <div className="w-12 h-12 rounded-xl bg-stone-100 border border-stone-300 flex items-center justify-center shrink-0 overflow-hidden text-stone-600">
           {data.avatarUrl ? (
@@ -292,7 +348,6 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
         </div>
       </div>
 
-      {/* Phần dưới: Tiểu sử chiếm trọn 100% chiều rộng khối để không bị bóp cạnh avatar */}
       <textarea
         rows={3}
         value={data.summary}
@@ -303,10 +358,11 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
         className="w-full text-sm text-stone-700 bg-transparent border border-stone-200/70 hover:border-stone-300 focus:border-stone-900 focus:bg-white focus:outline-none p-2 rounded-lg transition-colors leading-relaxed resize-y"
       />
 
-      <EntityPickerModal
+      <HisgoArticlePickerModal
         isOpen={isPickerOpen}
         onClose={() => setIsPickerOpen(false)}
-        onSelectEntity={handleSelectEntity}
+        onSelect={handleSelectEntity}
+        title="Chọn nhân vật / thực thể từ Kho HISGO"
       />
     </div>
   );
@@ -322,26 +378,14 @@ export function EventBlockItemEditor({ data, onChange }: EventBlockItemEditorPro
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isDetailExpanded, setIsDetailExpanded] = useState(false);
 
-  const handleSelectEvent = (event: EventSelectionPayload | ArticleItem) => {
-    if ('sourceType' in event) {
-      onChange({
-        eventId: event.eventId,
-        title: event.title,
-        timeLocation: event.timeLocation,
-        summary: event.summary,
-        thumbnailUrl: event.thumbnailUrl,
-        wikidataId: event.wikidataId,
-        sourceUrl: event.sourceUrl,
-      });
-    } else {
-      onChange({
-        eventId: event.id,
-        title: event.title,
-        timeLocation: dateLabelOf(event),
-        summary: event.summary || '',
-        thumbnailUrl: event.coverImageUrl || '',
-      });
-    }
+  const handleSelectEvent = (event: ArticleItem) => {
+    onChange({
+      eventId: event.id,
+      title: event.title,
+      timeLocation: dateLabelOf(event),
+      summary: event.summary || '',
+      thumbnailUrl: event.coverImageUrl || '',
+    });
   };
 
   return (
@@ -360,15 +404,6 @@ export function EventBlockItemEditor({ data, onChange }: EventBlockItemEditorPro
               <span>Kho sự kiện HISGO</span>
             </span>
           )}
-          {data.wikidataId && (
-            <span
-              data-testid="badge-event-wikidata"
-              className="text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full flex items-center gap-1"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-              <span>Wikidata: {data.wikidataId}</span>
-            </span>
-          )}
         </div>
 
         <button
@@ -379,14 +414,13 @@ export function EventBlockItemEditor({ data, onChange }: EventBlockItemEditorPro
         >
           <Icon name={IconName.SEARCH} size={12} />
           <span>
-            {data.eventId || data.wikidataId
+            {data.eventId
               ? EVENT_BLOCK_CONSTANTS.BTN_CHANGE_EVENT
               : EVENT_BLOCK_CONSTANTS.BTN_PICK_EVENT}
           </span>
         </button>
       </div>
 
-      {/* Thẻ Sự kiện chuẩn img3.png */}
       <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2 min-w-0">
         <div className="flex items-center justify-between">
           <div className="text-[11px] font-bold tracking-wider text-amber-700 uppercase bg-white inline-block px-2 py-0.5 rounded border border-amber-200">
@@ -398,8 +432,8 @@ export function EventBlockItemEditor({ data, onChange }: EventBlockItemEditorPro
               (data.summary?.length || 0) >= 500
                 ? 'text-rose-600 font-bold'
                 : (data.summary?.length || 0) > 450
-                ? 'text-amber-600'
-                : 'text-slate-400'
+                  ? 'text-amber-600'
+                  : 'text-slate-400'
             }`}
           >
             {(data.summary?.length || 0)}/500 ký tự
@@ -424,36 +458,17 @@ export function EventBlockItemEditor({ data, onChange }: EventBlockItemEditorPro
           className="w-full text-xs font-semibold text-slate-600 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none px-1 py-0.5 rounded transition"
         />
 
-        <div className="relative">
-          <textarea
-            rows={3}
-            value={data.summary}
-            maxLength={500}
-            onChange={(e) => onChange({ summary: e.target.value })}
-            placeholder={EVENT_BLOCK_CONSTANTS.SUMMARY_PLACEHOLDER}
-            data-testid="input-event-summary"
-            className="w-full text-xs text-slate-700 bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none p-1.5 pb-5 rounded transition leading-relaxed resize-y"
-          />
-          <div
-            data-testid="event-summary-counter"
-            className={`text-[10px] text-right px-1 select-none font-medium ${
-              (data.summary?.length || 0) >= 480 ? 'text-amber-600 font-bold' : 'text-slate-400'
-            }`}
-          >
-            {data.summary?.length || 0}/500 ký tự
-          </div>
-        </div>
+        <textarea
+          rows={3}
+          value={data.summary}
+          maxLength={500}
+          onChange={(e) => onChange({ summary: e.target.value })}
+          placeholder={EVENT_BLOCK_CONSTANTS.SUMMARY_PLACEHOLDER}
+          data-testid="input-event-summary"
+          className="w-full text-xs text-slate-700 bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none p-1.5 rounded transition leading-relaxed resize-y"
+        />
       </div>
 
-      <p
-        data-testid="event-block-difference-note"
-        className="text-[11px] text-slate-500 px-1 italic"
-      >
-        {EVENT_BLOCK_CONSTANTS.DIFFERENCE_NOTE}
-      </p>
-
-      {/* Chi tiết tuỳ chọn — ẩn mặc định ở bản Xem trước, chỉ xổ ra khi bấm "Xem chi tiết".
-          Dùng khi 500 ký tự tóm tắt không đủ để viết đầy đủ diễn biến sự kiện. */}
       <button
         type="button"
         onClick={() => setIsDetailExpanded(!isDetailExpanded)}
@@ -462,25 +477,21 @@ export function EventBlockItemEditor({ data, onChange }: EventBlockItemEditorPro
         <span>{isDetailExpanded ? '▲ Thu gọn' : '▼ Thêm chi tiết diễn biến'}</span>
       </button>
       {isDetailExpanded && (
-        <div className="animate-in fade-in-50 duration-150">
-          <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-            Chi tiết diễn biến (tuỳ chọn — chỉ hiện khi bấm &quot;Xem chi tiết&quot;):
-          </label>
-          <textarea
-            rows={4}
-            value={data.detailContent || ''}
-            onChange={(e) => onChange({ detailContent: e.target.value })}
-            placeholder="Viết đầy đủ diễn biến sự kiện... (không giới hạn độ dài, hỗ trợ HTML cơ bản)"
-            data-testid="input-event-detail"
-            className="w-full text-xs text-slate-700 bg-white border border-slate-200 focus:border-amber-500 focus:outline-none p-2 rounded-lg transition leading-relaxed resize-y"
-          />
-        </div>
+        <textarea
+          rows={4}
+          value={data.detailContent || ''}
+          onChange={(e) => onChange({ detailContent: e.target.value })}
+          placeholder="Viết đầy đủ diễn biến sự kiện... (hỗ trợ HTML cơ bản)"
+          data-testid="input-event-detail"
+          className="w-full text-xs text-slate-700 bg-white border border-slate-200 focus:border-amber-500 focus:outline-none p-2 rounded-lg transition leading-relaxed resize-y"
+        />
       )}
 
-      <EventPickerModal
+      <HisgoArticlePickerModal
         isOpen={isPickerOpen}
         onClose={() => setIsPickerOpen(false)}
-        onSelectEvent={handleSelectEvent}
+        onSelect={handleSelectEvent}
+        title="Chọn sự kiện lịch sử từ Kho HISGO"
       />
     </div>
   );

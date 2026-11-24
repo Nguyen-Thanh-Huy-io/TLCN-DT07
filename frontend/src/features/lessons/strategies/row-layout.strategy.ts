@@ -4,8 +4,17 @@ import {
   resolveRowFrameOption,
   type RowLayoutPresetDefinition,
 } from '../constants/lesson.constants';
-import { escapeHtml } from '../plugins/block-plugin.types';
 import { LessonBlockType } from '../types/editor.types';
+
+export function escapeHtml(unsafe: string | null | undefined): string {
+  if (!unsafe) return '';
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 import {
   BlockWidthType,
   ColumnData,
@@ -432,7 +441,6 @@ export class BlockWidthStrategy {
 }
 
 export enum PlacementLocation {
-  ROOT = 'ROOT',
   COLUMN = 'COLUMN',
 }
 

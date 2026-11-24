@@ -1,6 +1,9 @@
-import React from 'react';
+'use client';
+
+import React, { useState, type ImgHTMLAttributes } from 'react';
+import { Archive, ArchiveRestore } from 'lucide-react';
 import { Icon } from '@/components/icons/Icon';
-import { IconName, IconNameType } from '@/constants/enums';
+import { ContentStatus, IconName } from '@/constants/enums';
 import { BadgeTone } from '@/constants/ui-theme';
 
 export interface LogoProps {
@@ -66,63 +69,193 @@ export function UserCell({ initials, name }: UserCellProps) {
   );
 }
 
-export interface ContentCellProps {
-  icon: IconName | IconNameType;
-  title: string;
-  sub: string;
+// --- Merged from RemoteImage.tsx ---
+type RemoteImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'alt'> & {
+  src: string;
+  alt: string;
+};
+
+export function RemoteImage({ src, alt, ...rest }: RemoteImageProps) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt={alt} {...rest} />;
 }
 
-export function ContentCell({ icon, title, sub }: ContentCellProps) {
+// --- Merged from ArchiveStatusButton.tsx ---
+const CONFIRM_ARCHIVE =
+  'Lưu trữ nội dung này? Nội dung sẽ biến mất khỏi trang công khai nhưng vẫn được giữ lại — khôi phục về bản nháp bất cứ lúc nào.';
+
+export interface ArchiveStatusButtonProps {
+  status: string;
+  isReviewer: boolean;
+  disabled?: boolean;
+  onChangeStatus: (next: ContentStatus) => void;
+  className?: string;
+}
+
+export function ArchiveStatusButton({
+  status,
+  isReviewer,
+  disabled,
+  onChangeStatus,
+  className = 'secondary-button !h-9 !text-sm',
+}: ArchiveStatusButtonProps) {
+  if (!isReviewer) return null;
+
+  if (status === ContentStatus.PUBLISHED) {
+    return (
+      <button
+        type="button"
+        disabled={disabled}
+        className={className}
+        title="Gỡ khỏi trang công khai nhưng vẫn giữ lại"
+        onClick={() => {
+          if (window.confirm(CONFIRM_ARCHIVE)) onChangeStatus(ContentStatus.ARCHIVED);
+        }}
+      >
+        <Archive size={15} /> Lưu trữ
+      </button>
+    );
+  }
+
+  if (status === ContentStatus.ARCHIVED) {
+    return (
+      <button
+        type="button"
+        disabled={disabled}
+        className={className}
+        onClick={() => onChangeStatus(ContentStatus.DRAFT)}
+      >
+        <ArchiveRestore size={15} /> Khôi phục về nháp
+      </button>
+    );
+  }
+
+  return null;
+}
+
+// --- Merged from ConfirmDeleteModal.tsx ---
+export interface ConfirmDeleteModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  itemTypeLabel?: string;
+  message?: string;
+  confirmLabel?: string;
+}
+
+export function ConfirmDeleteModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  itemTypeLabel = 'mục',
+  message,
+  confirmLabel,
+}: ConfirmDeleteModalProps) {
+  if (!isOpen) return null;
+
   return (
-    <div className="content-cell">
-      <span>
-        <Icon name={icon} size={17} />
-      </span>
-      <div>
-        <strong className="text-slate-900 text-sm font-semibold">{title}</strong>
-        <small className="text-slate-600 text-xs font-normal mt-0.5 block">{sub}</small>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container modal-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Xác nhận xóa {itemTypeLabel}</h2>
+          <button type="button" className="modal-close" onClick={onClose}>
+            ×
+          </button>
+        </div>
+        <div className="modal-body">
+          <p className="delete-warn-text">
+            {message || (
+              <>
+                Bạn có chắc chắn muốn xóa {itemTypeLabel} <strong>&ldquo;{title}&rdquo;</strong> không? Thao tác này không thể hoàn tác.
+              </>
+            )}
+          </p>
+          <div className="modal-footer">
+            <button type="button" className="secondary-button" onClick={onClose}>
+              Hủy bỏ
+            </button>
+            <button
+              type="button"
+              className="danger-button"
+              onClick={() => {
+                onConfirm();
+                onClose();
+              }}
+            >
+              {confirmLabel || `Xóa ${itemTypeLabel}`}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-export interface QuickActionProps {
-  icon: IconName;
-  label: string;
-  primary?: boolean;
-  onClick: () => void;
+// --- Merged from ActionMenu.tsx ---
+export interface ActionMenuProps {
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onView?: () => void;
 }
 
-export function QuickAction({ icon, label, primary, onClick }: QuickActionProps) {
+export function ActionMenu({ onEdit, onDelete, onView }: ActionMenuProps) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <button
-      type="button"
-      className={`quick-item ${primary ? 'primary' : ''}`}
-      onClick={onClick}
-    >
-      <Icon name={icon} size={20} />
-      <span>{label}</span>
-    </button>
-  );
-}
-
-export interface StatCardProps {
-  icon: IconName | IconNameType;
-  value: string | number;
-  label: string;
-  detail: string;
-  tone?: string;
-}
-
-export function StatCard({ icon, value, label, detail }: StatCardProps) {
-  return (
-    <div className="stat-card">
-      <div className="stat-icon">
-        <Icon name={icon} size={16} />
-      </div>
-      <div className="stat-value">{value}</div>
-      <div className="stat-label">{label}</div>
-      {detail ? <div className="stat-detail">{detail}</div> : null}
+    <div className="action-menu-wrapper" style={{ position: 'relative' }}>
+      <button
+        type="button"
+        className="action-more"
+        aria-label="Mở thao tác"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(!open);
+        }}
+      >
+        <Icon name={IconName.MORE} size={15} className="text-slate-700" />
+      </button>
+      {open && (
+        <>
+          <div className="action-menu-backdrop" onClick={() => setOpen(false)} />
+          <div className="action-dropdown shadow-md border border-slate-200">
+            <button
+              type="button"
+              className="dropdown-item text-xs font-semibold text-slate-700 hover:text-slate-900"
+              onClick={() => {
+                setOpen(false);
+                if (onView) onView();
+                else alert('Xem thông tin chi tiết');
+              }}
+            >
+              <Icon name={IconName.EYE} size={15} className="text-slate-600" /> Xem chi tiết
+            </button>
+            <button
+              type="button"
+              className="dropdown-item text-xs font-semibold text-slate-700 hover:text-slate-900"
+              onClick={() => {
+                setOpen(false);
+                if (onEdit) onEdit();
+                else alert('Chỉnh sửa nội dung');
+              }}
+            >
+              <Icon name={IconName.EDIT} size={15} className="text-slate-600" /> Chỉnh sửa
+            </button>
+            <button
+              type="button"
+              className="dropdown-item danger text-xs font-semibold text-red-600 hover:text-red-700"
+              onClick={() => {
+                setOpen(false);
+                if (onDelete) onDelete();
+                else alert('Xóa mục này');
+              }}
+            >
+              <Icon name={IconName.TRASH} size={15} className="text-red-600" /> Xóa
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

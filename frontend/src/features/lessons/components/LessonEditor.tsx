@@ -14,16 +14,16 @@ import {
 } from '../types/editor.types';
 import { TopicParentModalPicker } from '@/features/topics/components/TopicParentModalPicker';
 import { CurriculumSidePanel } from '@/features/curriculum/components/CurriculumSidePanel';
-import { CurriculumTreePreviewModal } from '@/features/curriculum/components/CurriculumTreePreviewModal';
+import { CurriculumTreePreviewModal } from '@/features/curriculum/components/CurriculumTreeParts';
 import { LessonEditorHeader, LessonEditorSubHeader } from './LessonEditorHeader';
 import { LessonInfoProfileTab } from './LessonInfoProfileTab';
 import { LessonLeftToolSidebar } from './LessonLeftToolSidebar';
 import { LessonPreviewContent } from './LessonPreviewContent';
-import { LessonPropertiesPanel } from './properties/LessonPropertiesPanel';
+import { LessonPropertiesPanel } from './builder/BlockPropertyInspector';
 import { buildLessonTocAndHtml } from '../utils/lesson-toc.util';
 import { collectQuizBlocks } from '../utils/lesson-quiz.util';
 import { EditorRevisionBanner, RevisionHistoryModal } from '@/features/revisions/RevisionPanels';
-import { ActiveEditorProvider } from '../context/ActiveEditorContext';
+import { ActiveEditorProvider } from '../hooks/useLessonAnnotations';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole, USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
 

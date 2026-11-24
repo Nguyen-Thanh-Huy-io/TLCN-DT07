@@ -92,22 +92,6 @@ export interface PublicEventSummaryDto {
   locations: PublicLocationSummaryDto[];
 }
 
-export interface PublicLessonSummaryDto {
-  id: string;
-  title: string;
-  contentRichText: string | null;
-  sourceReferenceNote: string | null;
-  estimatedReadMinutes: number;
-  events: PublicEventSummaryDto[];
-  entities: PublicFigureDto[];
-  locations: PublicLocationSummaryDto[];
-}
-
-export interface PublicChildTopicDto extends PublicTopicDto {
-  events: PublicEventSummaryDto[];
-  lessons: PublicLessonSummaryDto[];
-}
-
 export interface PublicSubPeriodDto extends PublicPeriodDto {
   eventCount: number;
   figureCount: number;
@@ -124,19 +108,6 @@ export interface PublicPeriodDetailDto extends PublicPeriodDto {
   locations: PublicLocationSummaryDto[];
   concurrentPeriods: PublicPeriodDto[];
   concurrentEvents: PublicEventSummaryDto[];
-}
-
-export interface PublicTopicDetailDto extends PublicTopicDto {
-  period: PublicPeriodDto | null;
-  children: PublicChildTopicDto[];
-  events: PublicEventSummaryDto[];
-  lessons: PublicLessonSummaryDto[];
-}
-
-export interface PublicFigureDetailDto extends PublicFigureDto {
-  period: PublicPeriodDto | null;
-  events: PublicEventSummaryDto[];
-  lessons: PublicLessonSummaryDto[];
 }
 
 export interface PublicEventLinkDto {
@@ -245,7 +216,8 @@ export interface PublicEntityDetailDto {
   id: string;
   slug: string;
   name: string;
-  type: 'PERSON' | 'ORGANIZATION' | 'DYNASTY' | 'MILITARY_FORCE' | 'ARTIFACT' | 'LOCATION' | 'EVENT' | string;
+  type: string;
+  categoryName?: string | null;
   tagline: string | null;
   description: string | null;
   imageUrl: string | null;

@@ -3,10 +3,10 @@
 import React from 'react';
 import { Search, Plus, Edit3, Trash2, CircleDot, CheckCircle2, HelpCircle, Clock, ArrowLeftRight, BookOpen, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/common/CommonUi';
-import { QUIZ_QUESTION_TYPE_META, QuizQuestionType } from '@/features/lessons/types/quiz.types';
+import { QUIZ_QUESTION_TYPE_META, QuizQuestionType } from '@/features/lessons/types/editor.types';
 import { ALL_FILTER_VALUE, DIFFICULTY_CONFIG } from '@/constants/enums';
-import type { QuestionBankViewFacade } from './useQuestionBankView';
-import type { QuestionAnswerStats } from '@/services/entities/question.service';
+import type { QuestionBankViewFacade } from '../facades/useQuizManagementFacade';
+import type { QuestionAnswerStats } from '@/services/entities/quiz.service';
 
 export interface OptionPreview {
   id: string;

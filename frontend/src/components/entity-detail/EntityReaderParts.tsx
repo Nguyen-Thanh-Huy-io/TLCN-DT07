@@ -2,12 +2,43 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { CalendarDays, Clock, Landmark, PenLine, ScrollText, Quote } from 'lucide-react';
-import { EntityReaderModel } from './entity-reader-adapter';
-import { getEntityIconComponent, EntityIconName } from './entity-strategy';
+import {
+  ArrowUpRight,
+  BookOpen,
+  Building2,
+  CalendarDays,
+  Clock,
+  Crown,
+  Landmark,
+  MapPin,
+  PenLine,
+  Quote,
+  ScrollText,
+  Sparkles,
+  Swords,
+  UserRound,
+  type LucideIcon,
+} from 'lucide-react';
+import { EntityReaderModel, type EntityIconName } from './entity-reader-adapter';
 import { formatPublishedDate, hasMeaningfulUpdate } from '@/utils/common';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
+import type { PublicEntityRelatedArticleDto } from '@/services/entities/landing.service';
 import { AuthorFollowButton } from '@/components/common/AuthorFollowButton';
+
+const ICON_MAP: Record<EntityIconName, LucideIcon> = {
+  Crown,
+  Sparkles,
+  Building2,
+  Swords,
+  UserRound,
+  CalendarDays,
+  MapPin,
+  BookOpen,
+};
+
+export function getEntityIconComponent(iconName: EntityIconName | string): LucideIcon {
+  return ICON_MAP[iconName as EntityIconName] || BookOpen;
+}
 
 interface EntityHeroProps {
   model: EntityReaderModel;
@@ -208,3 +239,37 @@ export const EntityHero: React.FC<EntityHeroProps> = ({ model }) => {
     </section>
   );
 };
+
+export const RELATED_BY_TAG_SECTION_ID = 'bai-viet-cung-chu-diem';
+
+export function EntityRelatedByTag({ articles }: { articles: PublicEntityRelatedArticleDto[] }) {
+  if (articles.length === 0) return null;
+  return (
+    <section className="ue-kg-section" id={RELATED_BY_TAG_SECTION_ID}>
+      <div className="flex items-center gap-2 mb-2">
+        <BookOpen size={20} className="text-[#8C6239]" />
+        <h2 className="ue-kg-title m-0">Bài viết cùng chủ điểm</h2>
+      </div>
+      <p className="ue-kg-desc">Các bài viết cùng chủ đề, chuyên mục hoặc thẻ lịch sử để đọc mở rộng:</p>
+      <div className="ue-kg-grid">
+        {articles.map((item) => (
+          <Link key={item.id} href={item.slug ? PUBLIC_ROUTES.ARTICLE(item.slug) : '#'} className="ue-kg-card group">
+            <div>
+              {item.categoryName && <span className="ue-kg-badge">{item.categoryName}</span>}
+              <h3 className="ue-kg-target group-hover:text-[#8C2D19] transition-colors flex items-center justify-between">
+                <span>{item.name}</span>
+                <ArrowUpRight size={16} className="text-stone-400 group-hover:text-[#8C2D19] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </h3>
+              {item.summary && <p className="ue-kg-note">{item.summary}</p>}
+            </div>
+            {item.dateLabel && (
+              <div className="text-xs text-stone-500 font-semibold mt-3 pt-2 border-t border-stone-200">
+                Niên đại: {item.dateLabel}
+              </div>
+            )}
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}

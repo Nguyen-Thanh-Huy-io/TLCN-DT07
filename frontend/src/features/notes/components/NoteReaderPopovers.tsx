@@ -15,7 +15,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { QuickCreateFlashcardBox } from '@/features/flashcards/components/QuickCreateFlashcardBox';
+import { QuickCreateFlashcardBox } from '@/features/flashcards/components/FlashcardsSection';
 import {
   ALL_QUICK_PEN_STYLES,
   BLOCK_STICKY_NOTE_KINDS,

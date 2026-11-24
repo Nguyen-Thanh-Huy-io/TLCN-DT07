@@ -20,8 +20,8 @@ import {
   type CommunityMemberSummary,
   type PaginatedCommunityMembers,
 } from '../api';
-import { useCommunityMembers } from '../hooks/useCommunityMembers';
-import { getAuthorTint, getInitials } from '../utils/community-feed.helper';
+import { useCommunityMembers } from '../hooks/useCommunityFeedHooks';
+import { getAuthorTint, getInitials } from '../community-content.util';
 import { getRoleLabel } from './CommunityProfileParts';
 
 const FILTER_OPTIONS: Array<{

@@ -17,8 +17,7 @@ import {
   type GamificationOverview,
   type LearningGoalItem,
 } from '../services/gamification.service';
-import { AchievementBadgeAvatar } from './AchievementBadgeAvatar';
-import { CircularProgressRing } from './CircularProgressRing';
+import { AchievementBadgeAvatar, CircularProgressRing } from './GoalAimModal';
 
 function formatShortVnDate(dateKey: string): string {
   const [, month, day] = dateKey.split('-');

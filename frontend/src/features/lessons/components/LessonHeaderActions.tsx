@@ -14,7 +14,7 @@ import {
 import { ContentStatus, IconName } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import { STATUS_LABEL_MAP } from '@/constants/ui-theme';
-import { ArchiveStatusButton } from '@/components/common/ArchiveStatusButton';
+import { ArchiveStatusButton } from '@/components/common/CommonUi';
 import { Icon } from '@/components/icons/Icon';
 import { AutoSaveState } from '../types/editor.types';
 

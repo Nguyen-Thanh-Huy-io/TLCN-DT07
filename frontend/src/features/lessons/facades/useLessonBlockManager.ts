@@ -6,8 +6,6 @@ import {
   LessonBlockItem,
   ResourceLinkBlockData,
   RowSectionBlockData,
-  TimelineBlockData,
-  TimelineOrientation,
   SplitSide,
 } from '../types/block-builder.types';
 import { MoveDirection } from '../components/quiz/QuizQuestionEditors';
@@ -151,35 +149,6 @@ export function useLessonBlockManager(initialContent?: unknown): UseLessonBlockM
             <p>Cuộc kháng chiến chống thực dân Pháp của nhân dân Việt Nam bước sang giai đoạn quyết định. Dưới sự lãnh đạo sáng suốt, quân và dân ta kiên cường chuẩn bị mọi điều kiện cho trận quyết chiến chiến lược.</p>
           `,
         },
-        // Dùng id/dữ liệu cố định (không gọi generateBlockId/Date.now()) vì khối này được
-        // tạo ngay trong lần render đầu tiên (cả SSR và lần render đầu phía client) — nếu
-        // dùng id phụ thuộc thời gian thì server/client sẽ ra 2 giá trị khác nhau, gây lỗi
-        // hydration mismatch (React không patch được, phải render lại toàn bộ cây con).
-        {
-          id: 'block_default_timeline',
-          type: LessonBlockType.TIMELINE,
-          title: 'Dòng thời gian lịch sử',
-          subtitle: 'Các mốc lịch sử tiêu biểu',
-          orientation: TimelineOrientation.VERTICAL,
-          nodes: [
-            {
-              id: 'node_1',
-              year: '1945',
-              title: 'Tuyên bố độc lập',
-              description: 'Sự kiện đánh dấu bước ngoặt lịch sử mở ra kỷ nguyên mới cho dân tộc Việt Nam.',
-              contentHtml:
-                '<h3>Tuyên bố độc lập</h3><p>Sự kiện đánh dấu bước ngoặt lịch sử mở ra kỷ nguyên mới cho dân tộc Việt Nam.</p>',
-            },
-            {
-              id: 'node_2',
-              year: '1954',
-              title: 'Chiến thắng Điện Biên Phủ',
-              description: 'Mốc son chấn động địa cầu, kết thúc thắng lợi cuộc kháng chiến chống Pháp.',
-              contentHtml:
-                '<h3>Chiến thắng Điện Biên Phủ</h3><p>Mốc son chấn động địa cầu, kết thúc thắng lợi cuộc kháng chiến chống Pháp.</p>',
-            },
-          ],
-        } as TimelineBlockData,
       ],
       resourceLinks: [],
     };

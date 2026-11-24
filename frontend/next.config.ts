@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
   },
   // Cho phép các thiết bị trong mạng nội bộ và ngrok truy cập dev server (HMR / Turbopack)
   allowedDevOrigins: [
+    "127.0.0.1",
+    "localhost",
     "192.168.1.189",
     "192.168.137.1",
     "headcount-ruby-spearfish.ngrok-free.dev",
@@ -27,6 +29,14 @@ const nextConfig: NextConfig = {
     return [
       // Trang cá nhân cộng đồng đã gộp vào trang thành viên (định danh "me").
       { source: "/cong-dong/ca-nhan", destination: "/cong-dong/thanh-vien/me", permanent: true },
+      { source: "/di-tich", destination: "/danh-muc/di-tich", permanent: true },
+      { source: "/su-kien", destination: "/danh-muc/su-kien", permanent: true },
+      { source: "/nhan-vat", has: [{ type: "query", key: "nv" }], destination: "/bai-viet/:nv", permanent: true },
+      { source: "/nhan-vat", destination: "/danh-muc/nhan-vat", permanent: true },
+      { source: "/blog-review", destination: "/review?tab=BLOG", permanent: true },
+      { source: "/moderation", destination: "/review?tab=REPORT", permanent: true },
+      { source: "/questions", destination: "/quizzes?tab=questions", permanent: true },
+      { source: "/chuyen-muc/:slug", destination: "/bai-viet?chuyen-muc=:slug", permanent: true },
     ];
   },
   async rewrites() {

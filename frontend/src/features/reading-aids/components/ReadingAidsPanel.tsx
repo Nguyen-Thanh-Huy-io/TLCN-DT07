@@ -15,7 +15,7 @@ import {
 import { KeyboardKey } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import { useAuthSession } from '@/services/auth/use-auth-session';
-import { ANNOTATION_DATA_ATTRS } from '@/features/lessons/extensions/annotation.extension';
+import { ANNOTATION_DATA_ATTRS } from '@/features/lessons/hooks/useLessonAnnotations';
 import type { LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
 import type { NoteFacade } from '@/features/notes/facades/useNoteFacade';
 import {

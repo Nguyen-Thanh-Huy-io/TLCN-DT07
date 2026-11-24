@@ -2,7 +2,7 @@
 import { KeyboardKey } from '@/constants/enums';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { TagItem } from '@/types/models';
-import { TagApiService } from '@/services/entities/tag.service';
+import { TagApiService } from '@/services/entities/topic.service';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
 import { extractErrorMessage } from '@/services/api';

@@ -3,10 +3,10 @@
 import React from 'react';
 import { KeyboardKey, IconName } from '@/constants/enums';
 import { Icon } from '@/components/icons/Icon';
-import { ChapterItem } from '@/services/entities/learning-path.service';
+import { ChapterItem } from '@/services/entities/learner.service';
 import { LessonItem } from '@/types/models';
-import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicPicker';
-import { StatusPill } from '@/features/articles/components/StatusPill';
+import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicEditor';
+import { StatusPill } from '@/features/articles/components/ArticleList';
 
 const DISABLED_ARROW_CLASS = 'opacity-30 cursor-not-allowed';
 

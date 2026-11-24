@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { UserCell } from '@/components/common/CommonUi';
-import { creatorInitials, creatorLabel } from '../types/review.types';
-import { ReviewModal } from './ReviewModal';
+import { creatorInitials, creatorLabel } from './ReviewHubView';
+import { ReviewModal } from './BlogReviewList';
 import { IconName } from '@/constants/enums';
 import { ContentStatus, NoticeTone } from '@/constants/enums';
 import type { LessonItem } from '@/types/models';
@@ -13,7 +13,7 @@ import { useAuthSession } from '@/services/auth/use-auth-session';
 import {
   REVIEW_TABS,
   ReviewTabState,
-} from '../types/review.types';
+} from './ReviewHubView';
 
 export interface ReviewLessonRow {
   id: string;

@@ -14,7 +14,7 @@ import {
   collectReadableBlocks,
 } from '../utils/note-anchor.util';
 import { computeFreshAnchor, resolveNoteAnchor } from '../utils/note-anchor.strategy';
-import { clearInlineCallouts, mountInlineCallouts } from '../utils/note-callout-dom.util';
+import { clearInlineCallouts, mountInlineCallouts } from '../utils/note-ink.util';
 
 const FLASH_HIGHLIGHT_NAME = 'hisgo-note-flash';
 const FLASH_DURATION_MS = 1600;

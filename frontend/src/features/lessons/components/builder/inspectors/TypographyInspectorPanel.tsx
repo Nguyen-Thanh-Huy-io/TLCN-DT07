@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ListOrdered,
   Quote,
@@ -24,13 +24,12 @@ import {
   TextStyleControls,
   type TextStyleValue,
 } from '@/components/common/TextStyleControls';
-import { useActiveEditor } from '../../../context/ActiveEditorContext';
+import { useActiveEditor } from '../../../hooks/useLessonAnnotations';
 import {
   RICH_TABLE_NODE_NAMES,
   insertRichTable,
 } from '../../../extensions/table.extension';
 import { TextAnnotationModal, AnnotationModalTab } from '../TextAnnotationModal';
-import { WikiLinkInspectorSection } from '../WikiLinkInspectorSection';
 import {
   BulletListIcon,
   TypographyListStyleControl,
@@ -232,11 +231,21 @@ export function TypographyInspectorPanel({
   hideEditorialLayout?: boolean;
 }) {
   const { activeEditor: ed } = useActiveEditor();
-  const [isLinkPanelOpen, setIsLinkPanelOpen] = useState(false);
   const [annotationModal, setAnnotationModal] = useState<{
     open: boolean;
     tab: AnnotationModalTab;
   }>({ open: false, tab: AnnotationModalTab.LINK });
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && ed?.isFocused) {
+        e.preventDefault();
+        setAnnotationModal({ open: true, tab: AnnotationModalTab.LINK });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [ed]);
 
   const activeBlockType = getActiveBlockStyle(ed);
   const nodeType = ed?.isActive('heading') ? NODE_TYPE_HEADING : NODE_TYPE_PARAGRAPH;
@@ -503,14 +512,6 @@ export function TypographyInspectorPanel({
           isDropCapActive={isDropCapActive}
           currentTextColumns={currentTextColumns}
           preventFocusLoss={preventFocusLoss}
-        />
-      )}
-
-      {!compact && (
-        <WikiLinkInspectorSection
-          editor={ed}
-          isOpen={isLinkPanelOpen}
-          onOpenChange={setIsLinkPanelOpen}
         />
       )}
 

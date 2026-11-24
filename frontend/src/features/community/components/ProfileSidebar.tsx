@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Check, UserPlus, ArrowLeft, Calendar, Edit3, FileText, Hash, Plus, X } from 'lucide-react';
 import { type CommunityMemberProfile, type CommunityMemberSummary } from '../api';
-import { getAuthorTint, getInitials } from '../utils/community-feed.helper';
+import { getAuthorTint, getInitials } from '../community-content.util';
 import { getRoleLabel } from './CommunityProfileParts';
 import type { ProfileComputedStats } from './CommunityProfileParts';
 

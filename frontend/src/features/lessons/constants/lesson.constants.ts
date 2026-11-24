@@ -1,12 +1,11 @@
-import { WIKIPEDIA_VI_API } from '@/constants/routes';
 import { BlockPaletteItem, LessonBlockGroup, LessonBlockType } from '../types/editor.types';
 import {
+  CalloutBoxStyle,
+  CalloutMediaAlign,
+  CalloutVariant,
   RowFrameStyle,
   RowGapSize,
   RowLayoutPresetId,
-  RowVerticalAlign,
-  TimelineDateFormat,
-  TimelineSortOrder,
 } from '../types/block-builder.types';
 
 const ADD_BLOCK_BELOW_LABEL = '+ Thêm khối bên dưới';
@@ -122,7 +121,7 @@ export const BLOCK_CATALOG: Record<LessonBlockType, BlockCatalogEntry> = {
     label: 'Dòng thời gian',
     description: 'Dòng thời gian các mốc sự kiện',
     group: LessonBlockGroup.SPECIALIZED,
-    showInPalette: true,
+    showInPalette: false,
   },
   [LessonBlockType.RELATED_EVENTS]: {
     type: LessonBlockType.RELATED_EVENTS,
@@ -150,7 +149,7 @@ export const BLOCK_CATALOG: Record<LessonBlockType, BlockCatalogEntry> = {
     label: 'Bố cục nhiều cột',
     description: 'Chia bố cục đa cột kèm mẫu sẵn (Tạp chí 4:8, Đối xứng 6:6, 3 cột...)',
     group: LessonBlockGroup.ADVANCED,
-    showInPalette: true,
+    showInPalette: false,
   },
   [LessonBlockType.QUIZ]: {
     type: LessonBlockType.QUIZ,
@@ -199,58 +198,123 @@ export function getBlockLabel(
   return BLOCK_CATALOG[type as LessonBlockType]?.label ?? fallback;
 }
 
-export * from './callout.constants';
-
-export const TIMELINE_DATE_FORMAT_OPTIONS: ReadonlyArray<{
-  value: TimelineDateFormat;
+export interface CalloutVariantOption {
+  variant: CalloutVariant;
   label: string;
-}> = [
-  { value: TimelineDateFormat.YEAR_ONLY, label: 'Năm (1288)' },
-  { value: TimelineDateFormat.FULL_DATE, label: 'Ngày đầy đủ' },
+  inspectorLabel: string;
+  icon: string;
+  cssModifier: string;
+  editorBorderClass: string;
+  editorSurfaceClass: string;
+  headerBarClass: string;
+  swatchClass: string;
+}
+
+export const CALLOUT_VARIANT_OPTIONS: ReadonlyArray<CalloutVariantOption> = [
+  {
+    variant: CalloutVariant.HISTORICAL_NOTE,
+    label: 'Hổ phách',
+    inspectorLabel: 'Hổ phách (Ghi chú)',
+    icon: '📜',
+    cssModifier: 'hisgo-callout--historical-note',
+    editorBorderClass: 'border-amber-200/80 border-l-4 border-l-amber-500',
+    editorSurfaceClass: 'bg-amber-50/45',
+    headerBarClass: 'bg-amber-600 text-white',
+    swatchClass: 'bg-amber-500',
+  },
+  {
+    variant: CalloutVariant.INFO,
+    label: 'Xanh lam',
+    inspectorLabel: 'Xanh lam (Thông tin)',
+    icon: '💡',
+    cssModifier: 'hisgo-callout--info',
+    editorBorderClass: 'border-sky-200/80 border-l-4 border-l-blue-600',
+    editorSurfaceClass: 'bg-sky-50/45',
+    headerBarClass: 'bg-sky-700 text-white',
+    swatchClass: 'bg-blue-600',
+  },
+  {
+    variant: CalloutVariant.WARNING,
+    label: 'Đỏ son',
+    inspectorLabel: 'Đỏ son (Lưu ý / Tranh luận)',
+    icon: '⚠️',
+    cssModifier: 'hisgo-callout--warning',
+    editorBorderClass: 'border-rose-200/80 border-l-4 border-l-rose-600',
+    editorSurfaceClass: 'bg-rose-50/45',
+    headerBarClass: 'bg-rose-700 text-white',
+    swatchClass: 'bg-rose-600',
+  },
+  {
+    variant: CalloutVariant.SUCCESS,
+    label: 'Xanh rêu',
+    inspectorLabel: 'Xanh rêu (Điểm sáng / Ý nghĩa)',
+    icon: '✨',
+    cssModifier: 'hisgo-callout--success',
+    editorBorderClass: 'border-emerald-200/80 border-l-4 border-l-emerald-600',
+    editorSurfaceClass: 'bg-emerald-50/45',
+    headerBarClass: 'bg-emerald-700 text-white',
+    swatchClass: 'bg-emerald-600',
+  },
+  {
+    variant: CalloutVariant.NEUTRAL,
+    label: 'Trung tính',
+    inspectorLabel: 'Xám đá (Trung tính)',
+    icon: '📌',
+    cssModifier: 'hisgo-callout--neutral',
+    editorBorderClass: 'border-slate-200 border-l-4 border-l-slate-500',
+    editorSurfaceClass: 'bg-slate-50/70',
+    headerBarClass: 'bg-slate-700 text-white',
+    swatchClass: 'bg-slate-500',
+  },
 ];
 
-export const TIMELINE_SORT_ORDER_OPTIONS: ReadonlyArray<{
-  value: TimelineSortOrder;
-  label: string;
-}> = [
-  { value: TimelineSortOrder.CHRONOLOGICAL, label: 'Cũ → Mới' },
-  { value: TimelineSortOrder.REVERSE_CHRONOLOGICAL, label: 'Mới → Cũ' },
+export const CALLOUT_EMOJI_PRESETS: ReadonlyArray<string> = [
+  '📌', '💡', '📜', '⚠️', '✨', '📖', '⚔️', '🏛️', '🗓️', '🔍', '💬', '⭐',
 ];
 
-export const ENTITY_SOURCE_CONSTANTS = {
-  TABS: {
-    HISGO_TITLE: 'Kho tri thức HISGO',
-    HISGO_SUBTITLE: 'Dữ liệu nội bộ đã thẩm định, liên kết đồ thị tri thức',
-    WIKIPEDIA_TITLE: 'Wikipedia tiếng Việt',
-    WIKIPEDIA_SUBTITLE: 'Tra cứu bách khoa mở rộng toàn cầu (vi.wikipedia.org)',
-  },
-  WIKIMEDIA_REQUEST_HEADERS: {
-    Accept: 'application/json',
-    'Api-User-Agent': 'HisgoHistoryApp/1.0 (contact@hisgo.edu.vn)',
-  },
-  WIKIPEDIA_API: {
-    BASE_SEARCH_URL: WIKIPEDIA_VI_API.SEARCH_TITLE,
-    BASE_SUMMARY_URL: WIKIPEDIA_VI_API.PAGE_SUMMARY,
-    DEFAULT_LIMIT: 10,
-    MAX_SUMMARY_LENGTH: 500,
-  },
-  PREVIEW_LABELS: {
-    MODAL_TITLE: 'Tra cứu & Gợi ý Thực thể Lịch sử',
-    MODAL_DESC: 'Tìm kiếm nhân vật, sự kiện từ Kho HISGO hoặc Wikipedia để tự động điền vào bài học',
-    SEARCH_PLACEHOLDER_HISGO: 'Nhập tên nhân vật, địa danh trong hệ thống HISGO...',
-    SEARCH_PLACEHOLDER_WIKI: 'Tìm kiếm nhân vật hoặc sự kiện trên Wikipedia tiếng Việt (Vd: Võ Nguyên Giáp, Chiến dịch Điện Biên Phủ)...',
-    NAME_LABEL: 'Tên nhân vật / sự kiện:',
-    YEARS_LABEL: 'Thời kỳ / Năm sinh – mất:',
-    SUMMARY_LABEL: 'Tóm tắt tiểu sử trích xuất (Tối đa 500 ký tự):',
-    SOURCE_LABEL: 'Nguồn tham khảo:',
-    BTN_APPLY: '📥 Nhập nhanh vào bài học',
-    BTN_CANCEL: 'Hủy bỏ',
-    NO_RESULTS: 'Không tìm thấy kết quả phù hợp.',
-    SELECT_HINT: '← Chọn một kết quả ở danh sách bên trái để xem trước thông tin chi tiết',
-    LOADING_LIST: 'Đang tìm kiếm...',
-    LOADING_DETAIL: 'Đang trích xuất dữ liệu...',
-  },
-} as const;
+export interface CalloutBoxStyleOption {
+  value: CalloutBoxStyle;
+  label: string;
+  cssModifier: string;
+}
+
+export const CALLOUT_BOX_STYLE_OPTIONS: ReadonlyArray<CalloutBoxStyleOption> = [
+  { value: CalloutBoxStyle.LEFT_ACCENT, label: 'Viền trái', cssModifier: '' },
+  { value: CalloutBoxStyle.HEADER_BAR, label: 'Thanh tiêu đề', cssModifier: 'hisgo-callout--header-bar' },
+  { value: CalloutBoxStyle.OUTLINED, label: 'Đóng khung', cssModifier: 'hisgo-callout--outlined' },
+];
+
+export interface CalloutMediaAlignOption {
+  value: CalloutMediaAlign;
+  label: string;
+  cssModifier: string;
+  editorFloatClass: string;
+}
+
+export const CALLOUT_MEDIA_ALIGN_OPTIONS: ReadonlyArray<CalloutMediaAlignOption> = [
+  { value: CalloutMediaAlign.LEFT, label: 'Bên trái', cssModifier: 'hisgo-callout-media--left', editorFloatClass: 'md:float-left md:mr-4' },
+  { value: CalloutMediaAlign.RIGHT, label: 'Bên phải', cssModifier: 'hisgo-callout-media--right', editorFloatClass: 'md:float-right md:ml-4' },
+];
+
+export function resolveCalloutOption(variant?: CalloutVariant): CalloutVariantOption {
+  const target = variant || CalloutVariant.HISTORICAL_NOTE;
+  return CALLOUT_VARIANT_OPTIONS.find((opt) => opt.variant === target) ?? CALLOUT_VARIANT_OPTIONS[0];
+}
+
+export function resolveCalloutIcon(block: { variant?: CalloutVariant; icon?: string }): string {
+  if (block.icon !== undefined) return block.icon.trim();
+  return resolveCalloutOption(block.variant).icon;
+}
+
+export function resolveCalloutBoxStyleOption(boxStyle?: CalloutBoxStyle): CalloutBoxStyleOption {
+  const target = boxStyle || CalloutBoxStyle.LEFT_ACCENT;
+  return CALLOUT_BOX_STYLE_OPTIONS.find((opt) => opt.value === target) ?? CALLOUT_BOX_STYLE_OPTIONS[0];
+}
+
+export function resolveCalloutMediaAlignOption(align?: CalloutMediaAlign): CalloutMediaAlignOption {
+  const target = align || CalloutMediaAlign.RIGHT;
+  return CALLOUT_MEDIA_ALIGN_OPTIONS.find((opt) => opt.value === target) ?? CALLOUT_MEDIA_ALIGN_OPTIONS[1];
+}
 
 export const ROW_LAYOUT_CONFIG = {
   MIN_COLUMN_COUNT: 1,
@@ -260,32 +324,6 @@ export const ROW_LAYOUT_CONFIG = {
   SNAP_STEP_PERCENT: 5,
   DEFAULT_GAP_PX: 16,
 } as const;
-
-export interface RatioPresetItem {
-  id: string;
-  label: string;
-  values: number[];
-}
-
-export const ROW_RATIO_PRESETS: Record<number, RatioPresetItem[]> = {
-  1: [{ id: '100', label: '100% (Toàn chiều rộng)', values: [100] }],
-  2: [
-    { id: '50-50', label: '50 : 50 (Chia đôi đều)', values: [50, 50] },
-    { id: '33-67', label: '33 : 67 (Tạp chí 4:8)', values: [33.33, 66.67] },
-    { id: '67-33', label: '67 : 33 (8:4)', values: [66.67, 33.33] },
-    { id: '60-40', label: '60 : 40', values: [60, 40] },
-    { id: '70-30', label: '70 : 30 (Bài chính + Phụ chú)', values: [70, 30] },
-    { id: '30-70', label: '30 : 70 (Phụ chú + Bài chính)', values: [30, 70] },
-    { id: '40-60', label: '40 : 60', values: [40, 60] },
-  ],
-  3: [
-    { id: '33-33-33', label: '33 : 33 : 33 (Chia 3 đều)', values: [33.33, 33.33, 33.34] },
-    { id: '25-50-25', label: '25 : 50 : 25 (Trung tâm)', values: [25, 50, 25] },
-    { id: '50-25-25', label: '50 : 25 : 25', values: [50, 25, 25] },
-    { id: '25-25-50', label: '25 : 25 : 50', values: [25, 25, 50] },
-  ],
-  4: [{ id: '25-25-25-25', label: '25 : 25 : 25 : 25 (Chia 4 đều)', values: [25, 25, 25, 25] }],
-};
 
 export interface RowLayoutPresetDefinition {
   id: RowLayoutPresetId;
@@ -352,18 +390,6 @@ export const ROW_LAYOUT_PRESETS: RowLayoutPresetDefinition[] = [
     gapSize: RowGapSize.MD,
     showColumnDivider: false,
   },
-];
-
-export const ROW_GAP_OPTIONS: ReadonlyArray<{ value: RowGapSize; label: string }> = [
-  { value: RowGapSize.SM, label: 'Hẹp' },
-  { value: RowGapSize.MD, label: 'Vừa' },
-  { value: RowGapSize.LG, label: 'Rộng' },
-];
-
-export const ROW_VERTICAL_ALIGN_OPTIONS: ReadonlyArray<{ value: RowVerticalAlign; label: string }> = [
-  { value: RowVerticalAlign.TOP, label: 'Trên' },
-  { value: RowVerticalAlign.CENTER, label: 'Giữa' },
-  { value: RowVerticalAlign.STRETCH, label: 'Đều' },
 ];
 
 export interface RowFrameStyleOption {

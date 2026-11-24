@@ -21,12 +21,12 @@ import {
   QuizQuestion,
   QuizQuestionType,
   QUIZ_QUESTION_TYPE_META,
-} from '@/features/lessons/types/quiz.types';
+} from '@/features/lessons/types/editor.types';
 import { QuestionBankPickerModal } from './QuestionBankPickerModal';
 import { TopicCategoryModalPicker } from './QuestionBankModal';
 import { TreeSelectTrigger } from '@/components/common/TreeSelectModal';
-import type { QuestionBankItem } from '@/services/entities/question.service';
-import { mergeInheritedTopics } from '../utils/question-topic.strategy';
+import type { QuestionBankItem } from '@/services/entities/quiz.service';
+import { mergeInheritedTopics } from '../utils/practice-quiz.helper';
 
 export interface StandaloneQuizEditorModalProps {
   isOpen: boolean;

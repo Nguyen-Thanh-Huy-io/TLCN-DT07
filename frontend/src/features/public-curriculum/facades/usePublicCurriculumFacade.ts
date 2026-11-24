@@ -5,12 +5,72 @@ import {
   LearningPathApiService,
   LearningPathItem,
   ChapterItem,
-} from '@/services/entities/learning-path.service';
-import { LearnerApiService, type LibraryLesson } from '@/services/entities/learner.service';
+  LearnerApiService,
+  NOT_ENROLLED_CODE,
+  type LibraryLesson,
+} from '@/services/entities/learner.service';
 import { TopicApiService } from '@/services/entities/topic.service';
-import type { TopicItem } from '@/types/models';
-import { LearningPathFilterType } from '../constants/public-curriculum.constants';
+import type { LessonItem, TopicItem } from '@/types/models';
+import { useAuthSession } from '@/services/auth/use-auth-session';
+import { ResourceLinkBlockData, type QuizBlockData } from '@/features/lessons/types/block-builder.types';
+import { buildLessonTocAndHtml, LessonTocEntry, normalizeContentToBlocks } from '@/features/lessons/utils/lesson-toc.util';
+import { collectQuizBlocks } from '@/features/lessons/utils/lesson-quiz.util';
+import { ContentStatus, DifficultyLevel } from '@/constants/enums';
+import { PRACTICE_TOPIC_PARAM } from '@/features/quiz/utils/practice-quiz.helper';
 import { PathFilterStrategyRegistry } from '../strategies/public-curriculum.strategies';
+
+export const PUBLIC_CURRICULUM_ROUTES = {
+  CURRICULUM: '/chuong-trinh-hoc',
+  PRACTICE: (topicId?: string | null) =>
+    topicId ? `/luyen-tap?${PRACTICE_TOPIC_PARAM}=${encodeURIComponent(topicId)}` : '/luyen-tap',
+  LESSON_DETAIL: (slug: string, pathId?: string) =>
+    pathId ? `/bai-hoc/${slug}?pathId=${encodeURIComponent(pathId)}` : `/bai-hoc/${slug}`,
+} as const;
+
+export const PATH_TYPE_META: Record<
+  'CHRONOLOGICAL' | 'THEMATIC',
+  { label: string; badgeBg: string; badgeText: string; badgeBorder: string; description: string }
+> = {
+  CHRONOLOGICAL: {
+    label: 'Tiến trình lịch sử',
+    badgeBg: 'bg-[#6e181b]/10',
+    badgeText: 'text-[#6e181b]',
+    badgeBorder: 'border-[#6e181b]/30',
+    description: 'Học tuần tự theo dòng chảy niên biểu từ buổi đầu dựng nước đến hiện đại',
+  },
+  THEMATIC: {
+    label: 'Chuyên đề chuyên sâu',
+    badgeBg: 'bg-[#8a6828]/12',
+    badgeText: 'text-[#8a6828]',
+    badgeBorder: 'border-[#8a6828]/35',
+    description: 'Khám phá theo từng chủ đề quân sự, văn hóa, ngoại giao và danh nhân',
+  },
+};
+
+export const PUBLIC_DIFFICULTY_META: Record<
+  DifficultyLevel | string,
+  { label: string; className: string }
+> = {
+  [DifficultyLevel.EASY]: {
+    label: 'Cơ bản',
+    className: 'border-emerald-700/30 bg-emerald-900/10 text-emerald-900',
+  },
+  [DifficultyLevel.MEDIUM]: {
+    label: 'Trung bình',
+    className: 'border-amber-700/30 bg-amber-900/10 text-amber-900',
+  },
+  [DifficultyLevel.HARD]: {
+    label: 'Chuyên sâu',
+    className: 'border-[#6e181b]/30 bg-[#6e181b]/10 text-[#6e181b]',
+  },
+};
+
+export const DEFAULT_COVER_IMAGES = [
+  '/assets/hero.jpg',
+  '/assets/citadel.jpg',
+  '/assets/temple.jpg',
+  '/assets/mountain.jpg',
+] as const;
 
 const PUBLISHED_STATUS = 'PUBLISHED';
 
@@ -35,9 +95,6 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState<LearningPathFilterType>(
-    LearningPathFilterType.ALL,
-  );
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedPathId, setSelectedPathId] = useState<string | null>(
     initialPathId || null,
@@ -103,12 +160,11 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
     () =>
       PathFilterStrategyRegistry.filter(
         paths,
-        selectedTopicId ? 'TOPIC' : filterType,
         searchKeyword,
         selectedTopicId,
         selectedTopicSubtreeIds,
       ),
-    [paths, filterType, searchKeyword, selectedTopicId, selectedTopicSubtreeIds],
+    [paths, searchKeyword, selectedTopicId, selectedTopicSubtreeIds],
   );
 
   const activePath = useMemo(() => {
@@ -200,8 +256,6 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
     topics,
     selectedTopicId,
     setSelectedTopicId,
-    filterType,
-    setFilterType,
     searchKeyword,
     setSearchKeyword,
     selectedTagId,
@@ -212,5 +266,170 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
     expandAllChapters,
     collapseAllChapters,
     reload: loadCurriculum,
+  };
+}
+
+// === Merged from usePublicLessonReaderFacade.ts ===
+export enum LessonAccessState {
+  GRANTED = 'GRANTED',
+  LOGIN_REQUIRED = 'LOGIN_REQUIRED',
+  NOT_ENROLLED = 'NOT_ENROLLED',
+}
+
+export type LessonAccess = LessonAccessState | 'GRANTED' | 'LOGIN_REQUIRED' | 'NOT_ENROLLED';
+
+export interface AdjacentLessonLink {
+  id: string;
+  title: string;
+  slug: string;
+  chapterTitle: string;
+}
+
+export function usePublicLessonReaderFacade(slug: string, pathId?: string | null) {
+  const [lesson, setLesson] = useState<LessonItem | null>(null);
+  const [learningPath, setLearningPath] = useState<LearningPathItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [access, setAccess] = useState<LessonAccess>('GRANTED');
+  const user = useAuthSession();
+  const userId = user === undefined ? undefined : (user?.id ?? null);
+
+  const loadData = useCallback(async () => {
+    if (!slug || userId === undefined) return;
+    setLoading(true);
+    setError(null);
+    setLesson(null);
+
+    const allPaths = await LearningPathApiService.getLearningPaths().catch(() => []);
+    const publishedPaths = (Array.isArray(allPaths) ? allPaths : []).filter(
+      (p) => p.status === ContentStatus.PUBLISHED,
+    );
+    const containsLesson = (p: LearningPathItem) =>
+      (p.chapters || []).some((ch) => (ch.chapterLessons || []).some((cl) => cl.lesson?.slug === slug));
+    setLearningPath(
+      (pathId && publishedPaths.find((p) => p.id === pathId && containsLesson(p))) ||
+        publishedPaths.find(containsLesson) ||
+        null,
+    );
+
+    if (!userId) {
+      setAccess(LessonAccessState.LOGIN_REQUIRED);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { lesson: lessonData } = await LearnerApiService.getLesson(slug);
+      setAccess(LessonAccessState.GRANTED);
+      setLesson(lessonData);
+    } catch (err: unknown) {
+      const axiosErr = err as {
+        response?: { status?: number; data?: { code?: string; message?: string } };
+      };
+      if (
+        axiosErr?.response?.status === 403 &&
+        axiosErr?.response?.data?.code === NOT_ENROLLED_CODE
+      ) {
+        setAccess(LessonAccessState.NOT_ENROLLED);
+      } else {
+        setError(
+          axiosErr?.response?.data?.message ||
+            'Không tìm thấy bài học hoặc bài học chưa được xuất bản.',
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [slug, pathId, userId]);
+
+  const lockedPreview = useMemo(() => {
+    for (const ch of learningPath?.chapters || []) {
+      const found = (ch.chapterLessons || []).find((cl) => cl.lesson?.slug === slug);
+      if (found) return found.lesson;
+    }
+    return null;
+  }, [learningPath, slug]);
+
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      void loadData();
+    });
+  }, [loadData]);
+
+  const { tocItems, compiledHtml, resourceLinks, quizBlocks } = useMemo<{
+    tocItems: LessonTocEntry[];
+    compiledHtml: string;
+    resourceLinks: ResourceLinkBlockData[];
+    quizBlocks: Map<string, QuizBlockData>;
+  }>(() => {
+    if (!lesson) {
+      return { tocItems: [], compiledHtml: '', resourceLinks: [], quizBlocks: new Map() };
+    }
+    const { blocks, resourceLinks: links } = normalizeContentToBlocks(
+      lesson.content ?? lesson.contentRichText,
+    );
+    const { tocItems: toc, html } = buildLessonTocAndHtml(blocks);
+    return { tocItems: toc, compiledHtml: html, resourceLinks: links, quizBlocks: collectQuizBlocks(blocks) };
+  }, [lesson]);
+
+  const navigationContext = useMemo(() => {
+    if (!learningPath || !lesson) {
+      return {
+        currentChapter: null,
+        prevLesson: null as AdjacentLessonLink | null,
+        nextLesson: null as AdjacentLessonLink | null,
+        flatLessons: [] as AdjacentLessonLink[],
+        currentIndex: -1,
+      };
+    }
+
+    const flatLessons: AdjacentLessonLink[] = [];
+    let currentChapter: { id: string; title: string; index: number } | null = null;
+
+    for (const [chIdx, ch] of (learningPath.chapters || []).entries()) {
+      for (const cl of ch.chapterLessons || []) {
+        if (!cl.lesson || cl.lesson.status !== ContentStatus.PUBLISHED) continue;
+        if (cl.lesson.id === lesson.id || cl.lesson.slug === lesson.slug) {
+          currentChapter = { id: ch.id, title: ch.title, index: chIdx + 1 };
+        }
+        flatLessons.push({
+          id: cl.lesson.id,
+          title: cl.lesson.title,
+          slug: cl.lesson.slug,
+          chapterTitle: ch.title,
+        });
+      }
+    }
+
+    const currentIndex = flatLessons.findIndex(
+      (item) => item.id === lesson.id || item.slug === lesson.slug,
+    );
+
+    return {
+      currentChapter,
+      prevLesson: currentIndex > 0 ? flatLessons[currentIndex - 1] : null,
+      nextLesson:
+        currentIndex >= 0 && currentIndex < flatLessons.length - 1
+          ? flatLessons[currentIndex + 1]
+          : null,
+      flatLessons,
+      currentIndex,
+    };
+  }, [learningPath, lesson]);
+
+  return {
+    access,
+    lockedPreview,
+    reload: loadData,
+    lesson,
+    learningPath,
+    loading,
+    error,
+    tocItems,
+    compiledHtml,
+    resourceLinks,
+    quizBlocks,
+    navigationContext,
   };
 }

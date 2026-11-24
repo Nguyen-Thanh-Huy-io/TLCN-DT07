@@ -1,5 +1,5 @@
 import { LessonBlockType } from './editor.types';
-import type { QuizQuestion } from './quiz.types';
+import type { QuizQuestion } from './editor.types';
 
 export interface TimelineNodeMedia {
   id?: string;
@@ -36,7 +36,6 @@ export enum BlockWidthType {
 
 export enum TimelineOrientation {
   VERTICAL = 'VERTICAL',     // ↕ Trục dọc
-  HORIZONTAL = 'HORIZONTAL', // ↔ Trục ngang
 }
 
 export enum SplitSide {
@@ -62,7 +61,6 @@ export type TimelineSourceMode = 'MANUAL' | 'AUTO' | 'HYBRID';
 
 export enum TimelineDateFormat {
   YEAR_ONLY = 'YEAR_ONLY',
-  FULL_DATE = 'FULL_DATE',
 }
 
 export enum TimelineSortOrder {

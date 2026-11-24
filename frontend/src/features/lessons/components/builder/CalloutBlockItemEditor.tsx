@@ -23,7 +23,7 @@ import {
   resolveCalloutIcon,
   resolveCalloutMediaAlignOption,
   resolveCalloutOption,
-} from '../../constants/callout.constants';
+} from '../../constants/lesson.constants';
 
 export function CalloutColorSwatchPicker({
   variant,

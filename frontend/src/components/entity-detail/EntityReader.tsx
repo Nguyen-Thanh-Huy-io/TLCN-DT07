@@ -4,11 +4,11 @@ import React, { useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { EntityReaderModel } from './entity-reader-adapter';
-import { EntityKnowledgeGraph, EntityRelatedByTag } from './EntityKnowledgeGraph';
+import { EntityRelatedByTag } from './EntityReaderParts';
 import { useNoteFacade } from '@/features/notes/facades/useNoteFacade';
 import { NoteReaderLayer } from '@/features/notes/components/NoteReaderLayer';
 import { ReadingAidsPanel } from '@/features/reading-aids/components/ReadingAidsPanel';
-import { useReadingControls } from '@/features/reading-aids/hooks/useReadingControls';
+import { useReadingControls } from '@/features/reading-aids/components/ReadingAidsParts';
 import { useLessonAnnotations } from '@/features/lessons/hooks/useLessonAnnotations';
 import { NOTE_TARGET_TYPE } from '@/features/notes/services/note.service';
 import { ArticleReadCompleteButton } from '@/features/gamification/components/ArticleReadCompleteButton';
@@ -88,10 +88,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
             )}
 
             {!focusMode && (
-              <>
-                <EntityKnowledgeGraph statements={model.statements} />
-                <EntityRelatedByTag articles={model.relatedByTag} />
-              </>
+              <EntityRelatedByTag articles={model.relatedByTag} />
             )}
 
             {!focusMode && (model.previous || model.next) && (

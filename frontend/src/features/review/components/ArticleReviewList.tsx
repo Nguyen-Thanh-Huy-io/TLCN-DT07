@@ -4,14 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
 import { UserCell } from '@/components/common/CommonUi';
-import { creatorInitials, creatorLabel } from '../types/review.types';
-import { ReviewModal } from './ReviewModal';
+import { creatorInitials, creatorLabel, ReviewTabState, STATUS_LABELS } from './ReviewHubView';
+import { ReviewModal } from './BlogReviewList';
 import { IconName } from '@/constants/enums';
 import { ContentStatus, NoticeTone } from '@/constants/enums';
 import { ArticleApiService, type ArticleItem, CONTENT_STATUS_LABELS } from '@/services/entities/article.service';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/use-auth-session';
-import { ReviewTabState, STATUS_LABELS } from '../types/review.types';
 
 export interface ReviewArticleRow {
   id: string;

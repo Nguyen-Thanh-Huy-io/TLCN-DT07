@@ -381,5 +381,3 @@ export function BlogCreatePage() {
     </main>
   );
 }
-
-export default BlogCreatePage;

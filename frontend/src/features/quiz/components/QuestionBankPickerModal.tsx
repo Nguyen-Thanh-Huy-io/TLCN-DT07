@@ -6,17 +6,17 @@ import {
   QUIZ_QUESTION_TYPE_META,
   QuizQuestion,
   QuizQuestionType,
-} from '@/features/lessons/types/quiz.types';
+} from '@/features/lessons/types/editor.types';
 import {
   QuestionApiService,
   QuestionBankItem,
-} from '@/services/entities/question.service';
+} from '@/services/entities/quiz.service';
 import {
   ALL_FILTER_VALUE,
   QuestionDifficultyEnum,
 } from '@/constants/enums';
 import { QuestionBankModal } from './QuestionBankModal';
-import { QuestionTopicMode } from '../utils/question-topic.strategy';
+import { QuestionTopicMode } from '../utils/practice-quiz.helper';
 
 interface QuestionOptionPreview {
   id?: string;

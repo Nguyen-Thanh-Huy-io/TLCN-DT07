@@ -15,7 +15,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { KeyboardKey } from '@/constants/enums';
-import { QuickCreateFlashcardBox } from '@/features/flashcards/components/QuickCreateFlashcardBox';
+import { QuickCreateFlashcardBox } from '@/features/flashcards/components/FlashcardsSection';
 import {
   DEFAULT_KIND_COLOR,
   MARKUP_STYLE_OPTIONS,

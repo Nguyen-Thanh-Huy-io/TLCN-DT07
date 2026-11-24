@@ -6,7 +6,7 @@
  */
 
 import api, { extractErrorMessage } from '@/services/api';
-import type { BlogPostTypeValue, BlogStatusValue } from '@/services/entities/blog.service';
+import { ContentStatus } from '@/constants/enums';
 import { CONTENT_BLOCK_META_TYPE } from './community-content.util';
 import type {
   CommunityImageItem,
@@ -23,12 +23,6 @@ export const COMMUNITY_FEED_PAGE_SIZE = 6;
 
 /** Định danh hồ sơ của chính người đang đăng nhập (/cong-dong/thanh-vien/me). */
 export const SSR_ME_IDENTIFIER = 'me';
-
-const POST_TYPE_QUICK_POST: BlogPostTypeValue = 'QUICK_POST';
-
-const POST_TYPE_LONG_FORM: BlogPostTypeValue = 'LONG_FORM';
-
-const BLOG_STATUS_PUBLISHED: BlogStatusValue = 'PUBLISHED';
 
 const enc = encodeURIComponent;
 
@@ -218,13 +212,12 @@ interface RawCommunityAuthor {
 
 interface RawCommunityPost {
   id: string;
-  postType?: BlogPostTypeValue;
   title: string;
   slug: string;
   excerpt?: string | null;
   coverImageUrl?: string | null;
   contentBlocks?: unknown;
-  status: BlogStatusValue;
+  status: ContentStatus;
   isFeatured?: boolean;
   likeCount?: number;
   commentCount?: number;
@@ -274,7 +267,6 @@ interface RawCommunityMemberProfile {
 function normalizePost(raw: RawCommunityPost): CommunityPost {
   return {
     id: raw.id,
-    postType: raw.postType ?? POST_TYPE_QUICK_POST,
     title: raw.title,
     slug: raw.slug,
     excerpt: raw.excerpt ?? null,
@@ -451,12 +443,12 @@ export const CommunityApi = {
 
   async listShareableBlogs(): Promise<SharedBlogEmbed[]> {
     const res = await api.get(POSTS_BASE_PATH, {
-      params: { type: POST_TYPE_LONG_FORM, limit: 50, sort: 'latest' },
+      params: { limit: 50, sort: 'latest' },
     });
     const data = unwrapData<RawCommunityPost[]>(res);
     const list = Array.isArray(data) ? data : [];
     return list
-      .filter((item) => item.status === BLOG_STATUS_PUBLISHED)
+      .filter((item) => item.status === ContentStatus.PUBLISHED)
       .map((item) => ({
         slug: item.slug,
         title: item.title,
@@ -476,11 +468,10 @@ export const CommunityApi = {
     const videos = payload.video ? [payload.video] : [];
 
     const res = await api.post(POSTS_BASE_PATH, {
-      postType: POST_TYPE_QUICK_POST,
       title: payload.title,
       excerpt: payload.content,
       coverImageUrl: normalizedImages[0]?.url ?? null,
-      status: BLOG_STATUS_PUBLISHED,
+      status: ContentStatus.PUBLISHED,
       contentBlocks: [
         {
           type: CONTENT_BLOCK_META_TYPE,

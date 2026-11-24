@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { Check, ExternalLink, Layers, Loader2, Search, StickyNote, Tag, Trash2 } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
-import { PUBLIC_CURRICULUM_ROUTES } from '@/features/public-curriculum/constants/public-curriculum.constants';
-import { QuickCreateFlashcardBox } from '@/features/flashcards/components/QuickCreateFlashcardBox';
+import { PUBLIC_CURRICULUM_ROUTES } from '@/features/public-curriculum/facades/usePublicCurriculumFacade';
+import { QuickCreateFlashcardBox } from '@/features/flashcards/components/FlashcardsSection';
 import { NOTE_KIND_META } from '@/features/notes/constants/note-kind.constants';
 import { formatBlockSpanLabel } from '@/features/notes/utils/note-cluster.util';
 import {

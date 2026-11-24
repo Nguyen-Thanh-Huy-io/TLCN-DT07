@@ -22,8 +22,7 @@ import {
 import { normalizeSearch } from '@/features/search/search-index';
 import { findRootTopic, groupByTopic } from '@/services/entities/landing-graph';
 import type { PublicArticleLibraryItemDto } from '@/services/entities/landing.service';
-import { resolveCategoryKind } from '@/services/public/article-kind';
-import type { PublicCategory, PublicTopicRef } from '@/services/public/public-content.service';
+import { findRootCategory, type PublicCategory, type PublicTopicRef } from '@/services/public/public-content.service';
 import {
   ARTICLE_SORT_LABELS,
   ArticleFilterKey,
@@ -124,7 +123,7 @@ export function ArticleBrowser({
   );
 
   const activeKind = useMemo(() => {
-    if (scopedCategory) return resolveCategoryKind(categories, scopedCategory.id);
+    if (scopedCategory) return findRootCategory(categories, scopedCategory.id)?.slug ?? scopedCategory.slug;
     return resolveActiveFilterKind(filters.categories, categories);
   }, [scopedCategory, filters.categories, categories]);
 

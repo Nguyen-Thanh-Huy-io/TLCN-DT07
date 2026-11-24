@@ -3,50 +3,39 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ExternalLink, FileText, IdCard, LayoutList, Save, Send, Upload } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FileText, LayoutList, Save, Send, Upload } from 'lucide-react';
 import { APP_ROUTES } from '@/constants/routes';
 import { ContentStatus } from '@/constants/enums';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
-import { ArchiveStatusButton } from '@/components/common/ArchiveStatusButton';
+import { ArchiveStatusButton } from '@/components/common/CommonUi';
 import type { TagItem } from '@/types/models';
 import { LessonTagPicker } from '@/features/lessons/components/LessonTagPicker';
 import { TopicCoverImagePicker } from '@/features/topics/components/TopicCoverImagePicker';
 import {
-  ArticleApiService, CategoryApiService,
-  type ArticleItem, type ArticleLinkView, type ArticleMetadata, type ArticlePayload,
-  type CategoryItem, type ContentStatusValue, type DatePrecisionValue,
+  ArticleApiService,
+  CategoryApiService,
+  type ArticleMetadata,
+  type ArticlePayload,
+  type CategoryItem,
+  type ContentStatusValue,
 } from '@/services/entities/article.service';
 import { isRevisionPending, withPendingDraft, type ContentRevisionItem } from '@/services/entities/content-revision.service';
 import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { ContentBlockEditor } from './ContentBlockEditor';
-import { StatusPill } from './StatusPill';
-import { YearInput } from './YearInput';
-import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicPicker';
-import { ArticleProfilePanel, articleKindOf, type LinkDraft } from './ArticleProfilePanel';
+import { StatusPill, YearInput } from './ArticleList';
+import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicEditor';
 import { CategoryPicker } from './CategoryPicker';
-
-const PRECISION_OPTIONS: Array<{ value: DatePrecisionValue; label: string }> = [
-  { value: 'YEAR', label: 'Chính xác tới năm' },
-  { value: 'MONTH', label: 'Tới tháng' },
-  { value: 'DAY', label: 'Tới ngày' },
-  { value: 'DECADE', label: 'Thập niên' },
-  { value: 'CENTURY', label: 'Thế kỷ' },
-  { value: 'APPROXIMATE', label: 'Ước đoán' },
-  { value: 'UNKNOWN', label: 'Chưa rõ' },
-];
 
 export enum ArticleEditorTab {
   INFO = 'INFO',
-  PROFILE = 'PROFILE',
   CONTENT = 'CONTENT',
 }
 
 const TABS_CONFIG = [
   [ArticleEditorTab.INFO, 'Thông tin', LayoutList],
-  [ArticleEditorTab.PROFILE, 'Hồ sơ & liên kết', IdCard],
   [ArticleEditorTab.CONTENT, 'Nội dung', FileText],
 ] as const;
 
@@ -61,10 +50,20 @@ function pickedTopicOf(
 }
 
 const EMPTY: ArticlePayload = {
-  title: '', slug: '', categoryId: null, topicId: null, tagIds: [],
-  summary: '', coverImageUrl: '', coverCaption: '', contentBlocks: [],
-  dateText: '', startYear: null, endYear: null, datePrecision: null,
-  isFeatured: false, displayOrder: 0,
+  title: '',
+  slug: '',
+  categoryId: null,
+  topicId: null,
+  tagIds: [],
+  summary: '',
+  coverImageUrl: '',
+  coverCaption: '',
+  contentBlocks: [],
+  dateText: '',
+  startYear: null,
+  endYear: null,
+  isFeatured: false,
+  displayOrder: 0,
 };
 
 const blankToNull = (v: string | null | undefined) => (v && v.trim() ? v.trim() : null);
@@ -91,9 +90,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [metadata, setMetadata] = useState<ArticleMetadata>({});
-  const [links, setLinks] = useState<LinkDraft[]>([]);
-  const [linksIn, setLinksIn] = useState<ArticleLinkView[]>([]);
-  const [savedArticle, setSavedArticle] = useState<ArticleItem | null>(null);
+  const [sourcesText, setSourcesText] = useState('');
   const [contentKey, setContentKey] = useState(0);
 
   const set = <K extends keyof ArticlePayload>(key: K, value: ArticlePayload[K]) => setForm((f) => ({ ...f, [key]: value }));
@@ -111,24 +108,25 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
       setSavedSlug(fetched.slug);
       setTopic(pickedTopicOf(detail.topicId, [detail.topic, fetched.topic]));
       setForm({
-        title: detail.title, slug: detail.slug, categoryId: detail.categoryId,
-        topicId: detail.topicId ?? null, tagIds: detail.tagIds ?? detail.tags.map((t) => t.id),
-        summary: detail.summary ?? '', coverImageUrl: detail.coverImageUrl ?? '',
-        coverCaption: detail.coverCaption ?? '', contentBlocks: detail.contentBlocks ?? [],
-        dateText: detail.dateText ?? '', startYear: detail.startYear, endYear: detail.endYear,
-        datePrecision: detail.datePrecision, isFeatured: detail.isFeatured, displayOrder: detail.displayOrder,
+        title: detail.title,
+        slug: detail.slug,
+        categoryId: detail.categoryId,
+        topicId: detail.topicId ?? null,
+        tagIds: detail.tagIds ?? detail.tags.map((t) => t.id),
+        summary: detail.summary ?? '',
+        coverImageUrl: detail.coverImageUrl ?? '',
+        coverCaption: detail.coverCaption ?? '',
+        contentBlocks: detail.contentBlocks ?? [],
+        dateText: detail.dateText ?? '',
+        startYear: detail.startYear,
+        endYear: detail.endYear,
+        isFeatured: detail.isFeatured,
+        displayOrder: detail.displayOrder,
       });
       setSelectedTags((fetched.tags ?? []).map((t) => ({ ...t, colorHex: t.colorHex ?? undefined })));
-      setMetadata(detail.metadata ?? {});
-      const known = new Map((fetched.linksOut ?? []).map((l) => [l.article.id, l.article]));
-      setLinks(
-        (detail.links ?? []).map((l) => {
-          const ref = known.get(l.targetId);
-          return { ...l, targetTitle: ref?.title, targetCategoryId: ref?.category?.id };
-        }),
-      );
-      setLinksIn(fetched.linksIn ?? []);
-      setSavedArticle(fetched);
+      const loadedMeta = detail.metadata ?? {};
+      setMetadata(loadedMeta);
+      setSourcesText((loadedMeta.sources ?? []).join('\n'));
       setContentKey((k) => k + 1);
     } catch (err) {
       setError(extractErrorMessage(err, 'Không tải được bài viết.'));
@@ -147,6 +145,15 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
     return () => { active = false; };
   }, [articleId, loadArticle, reloadKey]);
 
+  const parsedSources = useMemo(
+    () =>
+      sourcesText
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean),
+    [sourcesText],
+  );
+
   const toPayload = (nextStatus?: ContentStatusValue): ArticlePayload => ({
     ...form,
     title: form.title.trim(),
@@ -155,8 +162,10 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
     coverImageUrl: blankToNull(form.coverImageUrl),
     coverCaption: blankToNull(form.coverCaption),
     dateText: blankToNull(form.dateText),
-    metadata,
-    links: links.filter((l) => l.targetId).map((l) => ({ targetId: l.targetId, label: blankToNull(l.label), note: blankToNull(l.note) })),
+    metadata: {
+      ...metadata,
+      sources: parsedSources.length > 0 ? parsedSources : undefined,
+    },
     ...(nextStatus ? { status: nextStatus } : {}),
   });
 
@@ -184,8 +193,6 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
       } else {
         setStatus(saved.status);
         setSavedSlug(saved.slug);
-        setSavedArticle(saved);
-        setLinksIn(saved.linksIn ?? []);
         setNotice('Đã lưu bài viết.');
       }
     } catch (err) {
@@ -292,25 +299,29 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
 
             <fieldset className="rounded-lg border border-slate-200 p-4">
               <legend className="px-1 text-xs font-bold uppercase text-slate-600">Niên đại</legend>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <YearInput label="Năm bắt đầu" value={form.startYear ?? null} onChange={(v) => set('startYear', v)} />
                 <YearInput label="Năm kết thúc" value={form.endYear ?? null} onChange={(v) => set('endYear', v)} />
                 <div>
                   <label className={labelCls}>Nhãn hiển thị</label>
                   <input className={inputCls} value={form.dateText ?? ''} onChange={(e) => set('dateText', e.target.value)} placeholder="vd. 1228? – 1300 (trống = ghép từ năm)" />
                 </div>
-                <div>
-                  <label className={labelCls}>Độ chính xác</label>
-                  <select className={inputCls} value={form.datePrecision ?? ''} onChange={(e) => set('datePrecision', (e.target.value || null) as DatePrecisionValue | null)}>
-                    <option value="">—</option>
-                    {PRECISION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
               </div>
               <p className="mt-2 text-xs text-slate-500">
                 Nhân vật: năm sinh – mất · Sự kiện: năm diễn ra · Di tích: năm xây dựng. Dùng để sắp xếp bài trong chuyên mục.
               </p>
             </fieldset>
+
+            <div>
+              <label className={labelCls}>Nguồn tư liệu tham khảo</label>
+              <textarea
+                className={`${inputCls} min-h-[75px]`}
+                value={sourcesText}
+                onChange={(e) => setSourcesText(e.target.value)}
+                placeholder="Mỗi dòng 1 nguồn tham khảo (vd. Đại Việt sử ký toàn thư)"
+              />
+              <p className="mt-1 text-xs text-slate-500">Nhập mỗi nguồn trên 1 dòng.</p>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -372,25 +383,12 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
         </div>
       )}
 
-      {tab === ArticleEditorTab.PROFILE && (
-        <ArticleProfilePanel
-          kind={articleKindOf(categories, form.categoryId)} metadata={metadata} onMetadataChange={setMetadata}
-          links={links} onLinksChange={setLinks} linksIn={linksIn}
-          kindOfArticle={(categoryId) => articleKindOf(categories, categoryId)}
-          savedArticle={savedArticle} categories={categories}
-          linksDirty={
-            JSON.stringify(links.filter((l) => l.targetId).map((l) => [l.targetId, l.label ?? null])) !==
-            JSON.stringify((savedArticle?.links ?? []).map((l) => [l.targetId, l.label ?? null]))
-          }
-        />
-      )}
-
       {tab === ArticleEditorTab.CONTENT && (
         <ContentBlockEditor
           key={contentKey} value={form.contentBlocks} onChange={(blocks) => set('contentBlocks', blocks)}
           documentTitle={form.title || 'Bài viết mới'} documentSubtitle={topic?.name ?? categoryName ?? 'Chưa phân loại'}
           thumbnailUrl={form.coverImageUrl ?? ''} selectedTags={selectedTags}
-          sourceReferenceNote={(metadata.sources ?? []).join('; ')} topicId={form.topicId ?? undefined}
+          sourceReferenceNote={parsedSources.join('; ')} topicId={form.topicId ?? undefined}
           onOpenInfoTab={() => setTab(ArticleEditorTab.INFO)}
         />
       )}

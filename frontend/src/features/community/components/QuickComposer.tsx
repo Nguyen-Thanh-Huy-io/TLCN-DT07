@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ShieldCheck, X } from 'lucide-react';
 import { useAuthSession } from '@/services/auth/use-auth-session';
-import { UploadApiService } from '@/services/entities/upload.service';
+import { UploadApiService } from '@/services/api';
 import { ComposerMode } from '@/constants/enums';
 import {
   CommunityApi,

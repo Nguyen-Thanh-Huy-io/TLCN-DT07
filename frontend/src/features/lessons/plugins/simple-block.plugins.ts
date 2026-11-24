@@ -1,4 +1,4 @@
-import { LessonBlockType } from '../types/editor.types';
+import { LessonBlockType, createDefaultQuestion, QuizQuestionType } from '../types/editor.types';
 import {
   CharacterBlockData, ComparisonTableBlockData, DividerBlockData, EventBlockData,
   HeadingBlockData, ImageBlockData, LessonBlockItem, MapBlockData, QuizBlockData,
@@ -6,12 +6,10 @@ import {
   RowGapSize, RowLayoutPresetId, RowSectionBlockData, RowVerticalAlign, TextBlockData,
   VideoBlockData,
 } from '../types/block-builder.types';
-import { BlockPlugin, BlockWidth, escapeHtml, safeUrl, renderCollapsibleDetail } from './block-plugin.types';
+import { BlockPlugin, BlockWidth, escapeHtml, safeUrl, renderCollapsibleDetail } from './block-plugin.registry';
 import { SAMPLE_REMOTE_LINKS } from '@/constants/routes';
 import { RowLayoutStrategy, createBlockUUID } from '../strategies/row-layout.strategy';
 import { sanitizeRichHtml } from '@/utils/common';
-import { createDefaultQuestion } from '../factories/quiz-question.factory';
-import { QuizQuestionType } from '../types/quiz.types';
 import {
   LESSON_QUIZ_DEFAULT_TITLE,
   LESSON_QUIZ_PLACEHOLDER_ATTR,

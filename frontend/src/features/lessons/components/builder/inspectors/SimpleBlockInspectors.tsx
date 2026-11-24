@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import { Loader2, Trash2, Upload } from 'lucide-react';
-import { UploadApiService } from '@/services/entities/upload.service';
+import { UploadApiService } from '@/services/api';
 import { extractErrorMessage } from '@/services/api';
 import {
   INSPECTOR_INPUT_CLS,
@@ -19,7 +19,6 @@ import {
   CalloutMediaConfig,
   HeadingBlockData,
   LessonBlockItem,
-  QuoteBlockData,
   RelatedEventsBlockData,
   RelatedPeopleBlockData,
 } from '../../../types/block-builder.types';
@@ -27,7 +26,7 @@ import {
   CALLOUT_MEDIA_ALIGN_OPTIONS,
   resolveCalloutMediaAlignOption,
   resolveCalloutOption,
-} from '../../../constants/callout.constants';
+} from '../../../constants/lesson.constants';
 import {
   CalloutBoxStylePicker,
   CalloutColorSwatchPicker,
@@ -220,41 +219,6 @@ export function CalloutBlockInspector({
         media={callout.media}
         onChangeMedia={(media) => onUpdateBlock(callout.id, { media })}
       />
-    </InspectorAccordionSection>
-  );
-}
-
-export function QuoteBlockInspector({
-  block: quote,
-  onUpdateBlock,
-}: SimpleInspectorProps<QuoteBlockData>) {
-  return (
-    <InspectorAccordionSection title="Trích dẫn">
-      <textarea
-        rows={3}
-        value={quote.quoteText || ''}
-        onChange={(e) => onUpdateBlock(quote.id, { quoteText: e.target.value })}
-        placeholder="Lời trích dẫn / danh ngôn…"
-        className={`${INSPECTOR_INPUT_CLS} italic font-serif resize-y`}
-      />
-      <InspectorFieldRow label="Tác giả">
-        <input
-          type="text"
-          value={quote.author || ''}
-          onChange={(e) => onUpdateBlock(quote.id, { author: e.target.value })}
-          placeholder="VD: Hưng Đạo Đại Vương"
-          className={`${INSPECTOR_INPUT_CLS} max-w-[165px]`}
-        />
-      </InspectorFieldRow>
-      <InspectorFieldRow label="Bối cảnh">
-        <input
-          type="text"
-          value={quote.sourceContext || ''}
-          onChange={(e) => onUpdateBlock(quote.id, { sourceContext: e.target.value })}
-          placeholder="VD: Hội nghị Diên Hồng"
-          className={`${INSPECTOR_INPUT_CLS} max-w-[165px]`}
-        />
-      </InspectorFieldRow>
     </InspectorAccordionSection>
   );
 }

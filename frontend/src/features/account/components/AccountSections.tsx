@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { BadgeCheck, MailWarning, Save, KeyRound, LogOut, BookOpen, ShieldCheck } from 'lucide-react';
 import { NoticeTone, AuthProviderType } from '@/constants/enums';
 import { extractErrorMessage } from '@/services/api';
-import { AccountApiService, type MyProfile } from '@/services/auth/account.service';
+import { AccountApiService, type MyProfile } from '@/services/entities/content-revision.service';
 import { PublicAuthService } from '@/services/auth/public-auth.service';
 import { APP_ROUTES } from '@/constants/routes';
-import { RemoteImage } from '@/components/common/RemoteImage';
+import { RemoteImage } from '@/components/common/CommonUi';
 
 export const FIELD_CLASS =
   'h-11 w-full rounded-xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-surface,#FAF6EA)] px-4 text-sm text-[var(--text-body,#2D1A10)] outline-none transition focus:border-[var(--gold,#B8893F)] focus:ring-2 focus:ring-[var(--gold,#B8893F)]/15';

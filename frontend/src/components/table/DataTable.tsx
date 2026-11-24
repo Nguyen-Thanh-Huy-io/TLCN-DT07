@@ -1,10 +1,10 @@
 'use client';
 import React, { useMemo, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { ActionMenu } from '@/components/common/ActionMenu';
+import { ActionMenu } from '@/components/common/CommonUi';
 import { IconName } from '@/constants/enums';
 import { CommonFilterOption } from '@/constants/enums';
-import { DataTableProps } from '@/types/table.types';
+import { DataTableProps } from '@/types/models';
 import { DataTableFilterModal } from './DataTableFilterModal';
 
 export function DataTable<T extends object>({

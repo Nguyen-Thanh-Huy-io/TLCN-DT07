@@ -8,8 +8,8 @@ import { BlockBuilderCanvas } from '@/features/lessons/components/builder/BlockB
 import { LessonEditorSubHeader } from '@/features/lessons/components/LessonEditorHeader';
 import { LessonLeftToolSidebar } from '@/features/lessons/components/LessonLeftToolSidebar';
 import { LessonPreviewContent } from '@/features/lessons/components/LessonPreviewContent';
-import { LessonPropertiesPanel } from '@/features/lessons/components/properties/LessonPropertiesPanel';
-import { ActiveEditorProvider } from '@/features/lessons/context/ActiveEditorContext';
+import { LessonPropertiesPanel } from '@/features/lessons/components/builder/BlockPropertyInspector';
+import { ActiveEditorProvider } from '@/features/lessons/hooks/useLessonAnnotations';
 import {
   EditorViewMode,
   LeftSidebarMode,

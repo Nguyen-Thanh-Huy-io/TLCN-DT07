@@ -7,10 +7,10 @@ import { Logo } from '@/components/common/CommonUi';
 import { Avatar } from '@/components/common/CommonUi';
 import { IconName } from '@/constants/enums';
 import { navigationFacade } from '@/services/navigation/navigation-strategy.service';
-import { NavGroupConfig, NavItemConfig } from '@/constants/navigation';
+import { NavGroupConfig, NavItemConfig } from '@/constants/ui-theme';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { PublicAuthService, USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
-import { canAccessCmsPage } from '@/components/layout/CmsAccessGate';
+import { canAccessCmsPage } from '@/components/layout/ClientLayout';
 
 export interface SidebarProps {
   page: string;
@@ -199,5 +199,97 @@ export function Sidebar({
         </div>
       </aside>
     </>
+  );
+}
+
+// --- Merged from PageHeader.tsx ---
+export interface PageHeaderInfo {
+  title: string;
+  subtitle: string;
+  eyebrow?: {
+    parentLabel: string;
+    parentRoute: string;
+    currentText: string;
+  };
+}
+
+const STATIC_PAGE_HEADERS: Record<string, PageHeaderInfo> = {
+  [APP_ROUTES.DASHBOARD]: { title: 'Tổng quan', subtitle: 'Quản lý nội dung học tập và chỉ số vận hành trên HISGO' },
+  [APP_ROUTES.CMS]: { title: 'Tổng quan', subtitle: 'Việc cần làm của bạn và tình trạng kho nội dung' },
+  [APP_ROUTES.CURRICULUM]: { title: 'Chương trình học', subtitle: 'Cấu trúc phân cấp: Chủ đề ➔ Bài học & Quiz, và Lộ trình ➔ Chương ➔ Bài học' },
+  [APP_ROUTES.TOPICS.CREATE]: {
+    title: 'Thêm chủ đề mới',
+    subtitle: 'Tạo chuyên đề học tập thuộc giai đoạn lịch sử',
+    eyebrow: { parentLabel: 'Cây phân cấp Chủ đề', parentRoute: APP_ROUTES.CURRICULUM, currentText: 'Tạo mới' },
+  },
+  [APP_ROUTES.LESSONS.CREATE]: {
+    title: 'Tạo bài học mới',
+    subtitle: 'Soạn thảo nội dung bài giảng và câu hỏi kiểm tra',
+    eyebrow: { parentLabel: 'Bài học & Quiz', parentRoute: APP_ROUTES.CURRICULUM, currentText: 'Tạo mới' },
+  },
+  [APP_ROUTES.ARTICLES.LIST]: { title: 'Bài viết', subtitle: 'Nhân vật, sự kiện, di tích, triều đại… — mỗi bài thuộc 1 chuyên mục, gắn nhiều tag' },
+  [APP_ROUTES.TIMELINES.LIST]: { title: 'Dòng thời gian', subtitle: 'Dựng trình tự các mốc lịch sử; mốc có thể trỏ tới bài viết' },
+  [APP_ROUTES.CATEGORIES]: { title: 'Chuyên mục', subtitle: 'Bài viết thuộc loại gì — quyết định trang công khai hiển thị bài (/chuyen-muc/…)' },
+  [APP_ROUTES.TAGS.LIST]: { title: 'Tag', subtitle: 'Từ khoá gắn bài viết và bài học để tìm kiếm, gợi ý bài liên quan' },
+  [APP_ROUTES.REVIEW]: { title: 'Hàng chờ duyệt', subtitle: 'Mọi việc cần duyệt ở một nơi: bản sửa, bài viết, bài học, blog, báo cáo cộng đồng' },
+  [APP_ROUTES.USERS]: { title: 'Người dùng & Quyền', subtitle: 'Quản lý tài khoản biên tập viên và phân quyền hệ thống' },
+  [APP_ROUTES.GAMIFICATION]: { title: 'Gamification & Huy hiệu', subtitle: 'Quản lý danh mục huy hiệu thành tựu và theo dõi nhịp học viên' },
+  [APP_ROUTES.QUIZZES]: { title: 'Đề thi & Ngân hàng câu hỏi', subtitle: 'Soạn câu hỏi theo chủ đề và ghép thành đề thi có chấm điểm' },
+};
+
+const DETAIL_HEADERS = [
+  { list: APP_ROUTES.ARTICLES.LIST, create: APP_ROUTES.ARTICLES.CREATE, noun: 'bài viết', crumb: 'Bài viết' },
+  { list: APP_ROUTES.TIMELINES.LIST, create: APP_ROUTES.TIMELINES.CREATE, noun: 'dòng thời gian', crumb: 'Dòng thời gian' },
+] as const;
+
+export function resolvePageHeader(pathname: string): PageHeaderInfo {
+  const cleanPath = pathname.replace(/\/$/, '') || '/';
+  if (STATIC_PAGE_HEADERS[cleanPath]) return STATIC_PAGE_HEADERS[cleanPath];
+  const match = DETAIL_HEADERS.find((d) => cleanPath.startsWith(`${d.list}/`));
+  if (match) {
+    const isCreate = cleanPath === match.create;
+    return {
+      title: isCreate ? `Thêm ${match.noun}` : `Chỉnh sửa ${match.noun}`,
+      subtitle: isCreate ? 'Lưu nháp được bất cứ lúc nào' : 'Sửa nội dung và trạng thái xuất bản',
+      eyebrow: { parentLabel: match.crumb, parentRoute: match.list, currentText: isCreate ? 'Tạo mới' : 'Chỉnh sửa' },
+    };
+  }
+  return { title: 'Quản trị hệ thống', subtitle: 'Hệ thống Quản lý Nội dung HISGO' };
+}
+
+export function PageHeader({ pathname }: { pathname: string }) {
+  const router = useRouter();
+  const cleanPath = pathname.replace(/\/$/, '') || '/';
+
+  if (
+    cleanPath === APP_ROUTES.CURRICULUM ||
+    cleanPath === APP_ROUTES.LESSONS.CREATE ||
+    cleanPath.startsWith('/lessons/') ||
+    cleanPath === APP_ROUTES.TOPICS.CREATE ||
+    cleanPath.startsWith('/topics/') ||
+    cleanPath === APP_ROUTES.ARTICLES.CREATE ||
+    cleanPath.startsWith('/articles/')
+  ) {
+    return null;
+  }
+
+  const headerInfo = resolvePageHeader(pathname);
+
+  return (
+    <div className="page-title">
+      <div>
+        {headerInfo.eyebrow && (
+          <div className="eyebrow">
+            <button type="button" onClick={() => router.push(headerInfo.eyebrow!.parentRoute)}>
+              {headerInfo.eyebrow.parentLabel}
+            </button>
+            <span>/</span>
+            <em>{headerInfo.eyebrow.currentText}</em>
+          </div>
+        )}
+        <h1>{headerInfo.title}</h1>
+        <p>{headerInfo.subtitle}</p>
+      </div>
+    </div>
   );
 }

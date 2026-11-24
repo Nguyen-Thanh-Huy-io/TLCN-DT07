@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { LessonMediaItem } from '../types/editor.types';
 import { MediaType } from '@/constants/enums';
-import { UploadApiService } from '@/services/entities/upload.service';
+import { UploadApiService } from '@/services/api';
 import { extractErrorMessage } from '@/services/api';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';

@@ -9,7 +9,7 @@ import { LearningPathListPanel } from './studio/StudioPanels';
 import { AddLessonsToChapterModal } from './studio/StudioModals';
 import { LearningPathFormModal } from './studio/StudioModals';
 import { CreateChapterModal } from './studio/StudioModals';
-import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
+import { ConfirmDeleteModal } from '@/components/common/CommonUi';
 import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
 import { StudioTab, NoticeTone } from '@/constants/enums';
 import { useHisgoStudio } from './useHisgoStudio';

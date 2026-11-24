@@ -1,6 +1,9 @@
-import React from "react";
+'use client';
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Link as LinkIcon } from "lucide-react";
+import { ArrowUp, Link as LinkIcon } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { SOCIAL_LINKS } from "@/constants/routes";
 
 export function Footer() {
@@ -192,5 +195,105 @@ export function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+// --- Merged from ScrollToTopButton.tsx ---
+export interface ScrollToTopButtonProps {
+  threshold?: number;
+  className?: string;
+}
+
+export function ScrollToTopButton({
+  threshold = 350,
+  className = "",
+}: ScrollToTopButtonProps) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScroll =
+        window.scrollY ||
+        document.documentElement.scrollTop ||
+        document.body.scrollTop;
+      setVisible(currentScroll > threshold);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [threshold]);
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.button
+          type="button"
+          className={`sk-scroll-top-btn ${className}`}
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          initial={{ opacity: 0, scale: 0.75, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.75, y: 15 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          aria-label="Cuộn lên đầu trang"
+          title="Cuộn lên đầu trang"
+        >
+          <ArrowUp size={20} className="sk-scroll-top-icon" />
+          <span className="sk-sr-only">Lên đầu trang</span>
+        </motion.button>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// --- Merged from HeritageAmbientBackground.tsx ---
+export function HeritageAmbientBackground() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden select-none"
+    >
+      <div className="absolute -top-32 -right-32 sm:-top-48 sm:-right-48 w-[500px] h-[500px] sm:w-[750px] sm:h-[750px] opacity-[0.038] text-[var(--primary,#7A1F24)]">
+        <DongSonDrumSvg className="w-full h-full animate-[spin_360s_linear_infinite]" />
+      </div>
+      <div className="absolute -bottom-40 -left-40 sm:-bottom-56 sm:-left-56 w-[450px] h-[450px] sm:w-[680px] sm:h-[680px] opacity-[0.032] text-[var(--gold,#B8893F)]">
+        <DongSonDrumSvg className="w-full h-full animate-[spin_420s_linear_infinite_reverse]" />
+      </div>
+    </div>
+  );
+}
+
+function DongSonDrumSvg({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 600 600" fill="none" stroke="currentColor" className={className}>
+      <circle cx="300" cy="300" r="290" strokeWidth="2.5" />
+      <circle cx="300" cy="300" r="282" strokeWidth="1.2" strokeDasharray="3 4" />
+      <circle cx="300" cy="300" r="270" strokeWidth="2" />
+      {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
+        <g key={angle} transform={`rotate(${angle} 300 300)`}>
+          <path d="M 300 48 Q 308 65 315 85 Q 295 80 280 88 Q 292 72 300 48 Z" fill="currentColor" opacity="0.9" />
+          <path d="M 315 85 Q 330 92 345 95 Q 320 100 310 102 Z" fill="currentColor" opacity="0.8" />
+        </g>
+      ))}
+      <circle cx="300" cy="300" r="200" strokeWidth="1.8" />
+      <circle cx="300" cy="300" r="192" strokeWidth="1" strokeDasharray="4 4" />
+      <circle cx="300" cy="300" r="180" strokeWidth="2" />
+      {[...Array(36)].map((_, i) => (
+        <line key={i} x1="300" y1="180" x2="300" y2="192" strokeWidth="1.5" transform={`rotate(${i * 10} 300 300)`} />
+      ))}
+      <circle cx="300" cy="300" r="140" strokeWidth="1.5" />
+      <circle cx="300" cy="300" r="132" strokeWidth="1" strokeDasharray="2 3" />
+      <circle cx="300" cy="300" r="120" strokeWidth="2" />
+      <circle cx="300" cy="300" r="48" fill="currentColor" opacity="0.15" />
+      {[...Array(14)].map((_, i) => (
+        <g key={i} transform={`rotate(${i * (360 / 14)} 300 300)`}>
+          <polygon points="300,195 292,252 308,252" fill="currentColor" opacity="0.85" />
+          <line x1="300" y1="252" x2="300" y2="300" strokeWidth="1" opacity="0.4" />
+        </g>
+      ))}
+      <circle cx="300" cy="300" r="22" strokeWidth="2" fill="none" />
+      <circle cx="300" cy="300" r="8" fill="currentColor" />
+    </svg>
   );
 }

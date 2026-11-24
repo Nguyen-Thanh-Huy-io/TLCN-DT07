@@ -1,9 +1,20 @@
-import { ArticleKindEnum } from '@/constants/enums';
-import { PRESERVATION_LABELS, type PreservationCategory } from '@/features/heritage/heritage.adapter';
 import { normalizeSearch } from '@/features/search/search-index';
 import type { PublicArticleLibraryItemDto } from '@/services/entities/landing.service';
-import { resolveCategoryKind, type ArticleKind } from '@/services/public/article-kind';
-import type { PublicCategory } from '@/services/public/public-content.service';
+import {
+  findRootCategory,
+  SYSTEM_CATEGORY_ROOT_SLUGS,
+  type PublicCategory,
+} from '@/services/public/public-content.service';
+
+export type PreservationCategory = 'INTACT' | 'MUSEUM_MEMORIAL' | 'ARCHAEOLOGICAL_RUIN' | 'RESTORED' | 'ACTIVE_SITE';
+
+export const PRESERVATION_LABELS: Record<PreservationCategory, string> = {
+  INTACT: '🏛️ Bảo tồn nguyên vẹn',
+  MUSEUM_MEMORIAL: '🕯️ Bảo tàng & Khu tưởng niệm',
+  ARCHAEOLOGICAL_RUIN: '🏺 Phế tích & Khảo cổ',
+  RESTORED: '🛠️ Đã trùng tu / Phục dựng',
+  ACTIVE_SITE: '🚀 Công trình đang hoạt động',
+};
 
 export enum ArticleViewMode {
   GRID = 'grid',
@@ -183,16 +194,15 @@ const defaultStrategy: IArticleCardMetaStrategy = {
   ctaLabel: 'Đọc bài viết',
 };
 
-const ARTICLE_CARD_META_STRATEGIES: Record<ArticleKindEnum, IArticleCardMetaStrategy> = {
-  [ArticleKindEnum.LOCATION]: locationStrategy,
-  [ArticleKindEnum.EVENT]: eventStrategy,
-  [ArticleKindEnum.PERSON]: personStrategy,
-  [ArticleKindEnum.DYNASTY]: dynastyStrategy,
-  [ArticleKindEnum.OTHER]: defaultStrategy,
+const ARTICLE_CARD_META_STRATEGIES: Record<string, IArticleCardMetaStrategy> = {
+  [SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION]: locationStrategy,
+  [SYSTEM_CATEGORY_ROOT_SLUGS.EVENT]: eventStrategy,
+  [SYSTEM_CATEGORY_ROOT_SLUGS.PERSON]: personStrategy,
+  [SYSTEM_CATEGORY_ROOT_SLUGS.DYNASTY]: dynastyStrategy,
 };
 
-export function getArticleCardMetaStrategy(kind: string): IArticleCardMetaStrategy {
-  return ARTICLE_CARD_META_STRATEGIES[kind as ArticleKindEnum] ?? defaultStrategy;
+export function getArticleCardMetaStrategy(kindOrSlug: string): IArticleCardMetaStrategy {
+  return ARTICLE_CARD_META_STRATEGIES[kindOrSlug] ?? defaultStrategy;
 }
 
 export interface ArticleRow {
@@ -227,26 +237,35 @@ export function buildArticleRows(articles: PublicArticleLibraryItemDto[]): Artic
   });
 }
 
-/** Khi chọn 1 chuyên mục cha, tự động bao gồm luôn các chuyên mục con trực tiếp của nó. */
+/** Khi chọn 1 chuyên mục cha, tự động bao gồm luôn các chuyên mục con đệ quy của nó. */
 export function expandSelectedCategoryIds(selectedIds: string[], categories: PublicCategory[]): Set<string> {
   const expanded = new Set(selectedIds);
   if (expanded.size === 0) return expanded;
-  for (const cat of categories) {
-    if (cat.parentId && expanded.has(cat.parentId)) {
-      expanded.add(cat.id);
+  let added = true;
+  while (added) {
+    added = false;
+    for (const cat of categories) {
+      if (cat.parentId && expanded.has(cat.parentId) && !expanded.has(cat.id)) {
+        expanded.add(cat.id);
+        added = true;
+      }
     }
   }
   return expanded;
 }
 
-/** Suy loại bài viết (`ArticleKind`) đang được chọn nếu các chuyên mục đang lọc cùng thuộc 1 loại. */
+/** Suy `slug` chuyên mục gốc đang được chọn nếu các chuyên mục đang lọc cùng thuộc 1 nhánh gốc. */
 export function resolveActiveFilterKind(
   selectedCategoryIds: string[],
   categories: PublicCategory[],
-): ArticleKind | null {
+): string | null {
   if (selectedCategoryIds.length === 0) return null;
-  const kinds = new Set(selectedCategoryIds.map((id) => resolveCategoryKind(categories, id)));
-  return kinds.size === 1 ? ([...kinds][0] ?? null) : null;
+  const rootSlugs = new Set(
+    selectedCategoryIds
+      .map((id) => findRootCategory(categories, id)?.slug)
+      .filter((s): s is string => Boolean(s)),
+  );
+  return rootSlugs.size === 1 ? ([...rootSlugs][0] ?? null) : null;
 }
 
 function matchesJsonbFacets(item: PublicArticleLibraryItemDto, filters: ArticleFilters): boolean {

@@ -6,7 +6,6 @@
 import * as bcrypt from 'bcryptjs';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
-  ArticleKind,
   ContentStatus,
   DifficultyLevel,
   PostType,
@@ -26,19 +25,39 @@ const SEED_CONSTANTS = {
   ARTICLE_SLUG: 'e2e-ui-khoi-nghia-hai-ba-trung',
   ARTICLE_TITLE: 'E2E Khởi nghĩa Hai Bà Trưng',
   BLOG_SLUG: 'e2e-ui-bai-dang-hai-ba-trung',
+  TIMELINE_SLUG: 'e2e-ui-dong-thoi-gian-hai-ba-trung',
+  TIMELINE_TITLE: 'E2E Dòng thời gian Hai Bà Trưng',
   QUIZ_TITLE: 'E2E Đề luyện tập Hai Bà Trưng',
   QUESTION_PROMPT: 'Cuộc khởi nghĩa Hai Bà Trưng nổ ra vào năm nào?',
+  LESSON_SLUG: 'e2e-ui-bai-hoc-hai-ba-trung',
+  LESSON_TITLE: 'E2E Bài học Khởi nghĩa Hai Bà Trưng',
+  PATH_SLUG: 'e2e-ui-lo-trinh-hai-ba-trung',
+  PATH_TITLE: 'E2E Lộ trình Lịch sử Hai Bà Trưng',
+  TAG_NAME: 'E2E Hai Bà Trưng',
+  TAG_SLUG: 'e2e-ui-tag-hai-ba-trung',
 } as const;
 
 async function cleanUiE2eFixtures(prisma: PrismaClient): Promise<void> {
+  await prisma.learningPath.deleteMany({
+    where: { slug: SEED_CONSTANTS.PATH_SLUG },
+  });
+  await prisma.lesson.deleteMany({
+    where: { slug: SEED_CONSTANTS.LESSON_SLUG },
+  });
+  await prisma.tag.deleteMany({
+    where: { name: SEED_CONSTANTS.TAG_NAME },
+  });
   await prisma.quiz.deleteMany({
     where: { title: SEED_CONSTANTS.QUIZ_TITLE },
+  });
+  await prisma.timeline.deleteMany({
+    where: { slug: SEED_CONSTANTS.TIMELINE_SLUG },
   });
   await prisma.question.deleteMany({
     where: { prompt: SEED_CONSTANTS.QUESTION_PROMPT },
   });
   await prisma.article.deleteMany({
-    where: { slug: SEED_CONSTANTS.ARTICLE_SLUG },
+    where: { slug: { startsWith: 'e2e-ui-' } },
   });
   await prisma.blogPost.deleteMany({
     where: { slug: SEED_CONSTANTS.BLOG_SLUG },
@@ -47,7 +66,7 @@ async function cleanUiE2eFixtures(prisma: PrismaClient): Promise<void> {
     where: { slug: SEED_CONSTANTS.TOPIC_SLUG },
   });
   await prisma.category.deleteMany({
-    where: { slug: SEED_CONSTANTS.CATEGORY_SLUG },
+    where: { slug: { startsWith: 'e2e-ui-' } },
   });
   await prisma.authUser.deleteMany({
     where: { username: { startsWith: UI_PREFIX } },
@@ -132,7 +151,6 @@ async function main(): Promise<void> {
       data: {
         name: 'Nhân vật E2E',
         slug: SEED_CONSTANTS.CATEGORY_SLUG,
-        kind: ArticleKind.PERSON,
         isActive: true,
         displayOrder: 99,
       },
@@ -164,9 +182,7 @@ async function main(): Promise<void> {
           {
             id: 'blk-e2e-1',
             type: 'TEXT',
-            data: {
-              html: '<p>Mùa xuân năm 40 SCN, Hai Bà Trưng dựng cờ khởi nghĩa tại Hát Môn.</p>',
-            },
+            html: '<p>Mùa xuân năm 40 SCN, Hai Bà Trưng dựng cờ khởi nghĩa tại Hát Môn.</p>',
           },
         ],
       },
@@ -182,6 +198,31 @@ async function main(): Promise<void> {
         status: ContentStatus.PUBLISHED,
         publishedAt: new Date(),
         contentBlocks: [],
+      },
+    });
+
+    await prisma.timeline.create({
+      data: {
+        title: SEED_CONSTANTS.TIMELINE_TITLE,
+        slug: SEED_CONSTANTS.TIMELINE_SLUG,
+        description: 'Trình tự khởi nghĩa Hai Bà Trưng năm 40 - 43 SCN.',
+        topicId: topic.id,
+        status: ContentStatus.PUBLISHED,
+        displayOrder: 1,
+        nodes: {
+          create: [
+            {
+              title: 'Hội thề Hát Môn (Năm 40)',
+              description: 'Hai Bà Trưng phất cờ khởi nghĩa tại Hát Môn.',
+              year: 40,
+              displayOrder: 0,
+              articleId: article.id,
+              articles: {
+                create: [{ articleId: article.id, displayOrder: 0 }],
+              },
+            },
+          ],
+        },
       },
     });
 
@@ -215,6 +256,70 @@ async function main(): Promise<void> {
               questionId: question.id,
               displayOrder: 0,
               points: 10,
+            },
+          ],
+        },
+      },
+    });
+
+    const tag = await prisma.tag.create({
+      data: {
+        name: SEED_CONSTANTS.TAG_NAME,
+        colorHex: '#6e181b',
+      },
+    });
+
+    const lesson = await prisma.lesson.create({
+      data: {
+        title: SEED_CONSTANTS.LESSON_TITLE,
+        slug: SEED_CONSTANTS.LESSON_SLUG,
+        description: 'Bài học E2E tìm hiểu cuộc khởi nghĩa Hai Bà Trưng năm 40 SCN.',
+        topicId: topic.id,
+        status: ContentStatus.PUBLISHED,
+        difficulty: DifficultyLevel.EASY,
+        createdBy: author.id,
+        content: [
+          {
+            id: 'lesson-blk-1',
+            type: 'HEADING',
+            text: '1. Bối cảnh khởi nghĩa Mê Linh',
+            level: 2,
+          },
+          {
+            id: 'lesson-blk-2',
+            type: 'TEXT',
+            html: '<p>Mùa xuân năm 40 SCN, Hai Bà Trưng lập đàn thề tại cửa sông Hát.</p>',
+          },
+        ],
+        lessonTags: {
+          create: [{ tagId: tag.id }],
+        },
+      },
+    });
+
+    await prisma.learningPath.create({
+      data: {
+        title: SEED_CONSTANTS.PATH_TITLE,
+        slug: SEED_CONSTANTS.PATH_SLUG,
+        description: 'Lộ trình học tập E2E về thời kỳ Hai Bà Trưng.',
+        status: ContentStatus.PUBLISHED,
+        isSequential: true,
+        displayOrder: 1,
+        chapters: {
+          create: [
+            {
+              title: 'Chương 1: Tiếng trống Mê Linh',
+              slug: 'e2e-ui-chuong-1-tieng-trong-me-linh',
+              description: 'Khởi nguồn cuộc khởi nghĩa năm 40 SCN.',
+              displayOrder: 1,
+              chapterLessons: {
+                create: [
+                  {
+                    lessonId: lesson.id,
+                    displayOrder: 1,
+                  },
+                ],
+              },
             },
           ],
         },

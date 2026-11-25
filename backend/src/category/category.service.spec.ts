@@ -112,9 +112,9 @@ describe('CategoryService', () => {
       await expect(
         service.update('le', { slug: 'nhan-vat-moi' }),
       ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.update('le', { parentId: 'goc' }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.update('le', { parentId: 'goc' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('chuyên mục không tồn tại → 404', async () => {
@@ -126,7 +126,12 @@ describe('CategoryService', () => {
 
   describe('remove', () => {
     it('chặn xoá chuyên mục gốc hệ thống', async () => {
-      rows.set('le', { id: 'le', slug: 'nhan-vat', parentId: null, articles: 0 });
+      rows.set('le', {
+        id: 'le',
+        slug: 'nhan-vat',
+        parentId: null,
+        articles: 0,
+      });
       await expect(service.remove('le')).rejects.toThrow(BadRequestException);
       expect(prisma.category.delete).not.toHaveBeenCalled();
     });

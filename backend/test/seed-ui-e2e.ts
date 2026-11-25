@@ -273,7 +273,8 @@ async function main(): Promise<void> {
       data: {
         title: SEED_CONSTANTS.LESSON_TITLE,
         slug: SEED_CONSTANTS.LESSON_SLUG,
-        description: 'Bài học E2E tìm hiểu cuộc khởi nghĩa Hai Bà Trưng năm 40 SCN.',
+        description:
+          'Bài học E2E tìm hiểu cuộc khởi nghĩa Hai Bà Trưng năm 40 SCN.',
         topicId: topic.id,
         status: ContentStatus.PUBLISHED,
         difficulty: DifficultyLevel.EASY,

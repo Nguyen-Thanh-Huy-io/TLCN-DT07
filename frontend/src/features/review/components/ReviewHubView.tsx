@@ -19,88 +19,45 @@ import {
 } from '@/services/entities/content-revision.service';
 import { RevisionDetailModal } from '@/features/revisions/RevisionPanels';
 import { extractErrorMessage } from '@/services/api';
-import { getInitials } from '@/utils/common';
-import { ContentStatus } from '@/constants/enums';
+import {
+  ArticleReferenceData,
+  BLOCK_TYPE_IMAGE,
+  BORDER_COLOR_LIGHT,
+  BORDER_LIGHT,
+  ContentBlockData,
+  NoticeTone,
+  REVIEW_TABS,
+  REVIEW_TAB_STATUS,
+  ReviewConfirmAction,
+  ReviewPost,
+  ReviewTabState,
+  STATUS_LABELS,
+  creatorInitials,
+  creatorLabel,
+} from '../review.shared';
 import { ArticleReviewList } from './ArticleReviewList';
 import { BlogReviewList } from './BlogReviewList';
 import { ReviewList } from './ReviewList';
 import { ModerationDashboardView } from '@/features/moderation/components/ModerationDashboardView';
 
-// === Merged from review.types.ts ===
-export interface ReviewPost {
-  id: string;
-  title: string;
-  summary: string;
-  author: string;
-  createdAt: string;
-  status: ReviewTabState;
-  rawStatus: string;
-  rejectionReason?: string | null;
-}
-
-export interface ContentBlockData {
-  id?: string;
-  type?: string;
-  kind?: string;
-  heading?: string;
-  text?: string;
-  caption?: string;
-  imageUrl?: string;
-}
-
-export interface ArticleReferenceData {
-  id?: string;
-  title?: string;
-  source?: string;
-  url?: string;
-}
-
-export interface ReviewConfirmAction {
-  type: ContentStatus.PUBLISHED | ContentStatus.REJECTED;
-  item: ReviewPost;
-}
-
-export enum ReviewTabState {
-  PENDING = 'Chờ duyệt',
-  APPROVED = 'Đã duyệt',
-  REJECTED = 'Bị từ chối',
-}
-
-export enum NoticeTone {
-  OK = 'ok',
-  ERROR = 'error',
-}
-
-export const STATUS_LABELS: Record<string, ReviewTabState> = {
-  [ContentStatus.PENDING_REVIEW]: ReviewTabState.PENDING,
-  [ContentStatus.PUBLISHED]: ReviewTabState.APPROVED,
-  [ContentStatus.REJECTED]: ReviewTabState.REJECTED,
+export {
+  BLOCK_TYPE_IMAGE,
+  BORDER_COLOR_LIGHT,
+  BORDER_LIGHT,
+  NoticeTone,
+  REVIEW_TABS,
+  REVIEW_TAB_STATUS,
+  ReviewTabState,
+  STATUS_LABELS,
+  creatorInitials,
+  creatorLabel,
 };
-
-export const REVIEW_TAB_STATUS: Record<ReviewTabState, ContentStatus> = {
-  [ReviewTabState.PENDING]: ContentStatus.PENDING_REVIEW,
-  [ReviewTabState.APPROVED]: ContentStatus.PUBLISHED,
-  [ReviewTabState.REJECTED]: ContentStatus.REJECTED,
+export type {
+  ArticleReferenceData,
+  ContentBlockData,
+  ReviewConfirmAction,
+  ReviewPost,
 };
-
-export const REVIEW_TABS = [
-  ReviewTabState.PENDING,
-  ReviewTabState.APPROVED,
-  ReviewTabState.REJECTED,
-] as const;
-
-export const BLOCK_TYPE_IMAGE = 'image';
-export const BORDER_COLOR_LIGHT = '#e5e7eb';
-export const BORDER_LIGHT = `1px solid ${BORDER_COLOR_LIGHT}`;
-
-const UNKNOWN_CREATOR_MARK = '—';
-const UNKNOWN_CREATOR_LABEL = 'Không rõ';
-
-export const creatorLabel = (name: string | undefined): string =>
-  name && name !== UNKNOWN_CREATOR_MARK ? name : UNKNOWN_CREATOR_LABEL;
-
-export const creatorInitials = (label: string): string =>
-  label === UNKNOWN_CREATOR_LABEL ? '?' : getInitials(label);
 
 // === Merged from RevisionReviewList.tsx ===
 const EDIT_ROUTE: Record<RevisionContentType, (id: string) => string> = {
@@ -337,18 +294,20 @@ export function ReviewHubView() {
   const Panel = tab === REVIEW_HUB_ALL_TAB ? null : TYPE_PANEL[tab];
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => selectTab(REVIEW_HUB_ALL_TAB)} className={tabClass(tab === REVIEW_HUB_ALL_TAB, !queue?.total)}>
-          Tất cả {countBadge(queue?.total)}
-        </button>
-        {QUEUE_TYPES.map((type) => (
-          <button key={type} type="button" onClick={() => selectTab(type)} className={tabClass(tab === type, !queue?.counts[type])}>
-            {REVIEW_TYPE_LABELS[type]} {countBadge(queue?.counts[type])}
+    <div className="space-y-4 min-w-0">
+      <div className="flex items-center gap-2">
+        <div className="flex flex-1 min-w-0 items-center gap-2 overflow-x-auto pb-1">
+          <button type="button" onClick={() => selectTab(REVIEW_HUB_ALL_TAB)} className={tabClass(tab === REVIEW_HUB_ALL_TAB, !queue?.total)}>
+            Tất cả {countBadge(queue?.total)}
           </button>
-        ))}
-        <button type="button" onClick={load} className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer">
-          <RefreshCw size={13} /> Làm mới
+          {QUEUE_TYPES.map((type) => (
+            <button key={type} type="button" onClick={() => selectTab(type)} className={tabClass(tab === type, !queue?.counts[type])}>
+              {REVIEW_TYPE_LABELS[type]} {countBadge(queue?.counts[type])}
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={load} className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer pb-1">
+          <RefreshCw size={13} /> <span className="hidden sm:inline">Làm mới</span>
         </button>
       </div>
 

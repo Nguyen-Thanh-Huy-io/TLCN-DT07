@@ -59,31 +59,31 @@ export const RISK_STYLES: Record<
   { label: string; bg: string; text: string; bar: string }
 > = {
   CRITICAL: {
-    label: 'Nghiêm trọng (Critical)',
+    label: 'Nghiêm trọng',
     bg: '#FEE2E2',
     text: '#991B1B',
     bar: '#DC2626',
   },
   HIGH: {
-    label: 'Rủi ro cao (High)',
+    label: 'Rủi ro cao',
     bg: '#FFEDD5',
     text: '#9A3412',
     bar: '#EA580C',
   },
   MEDIUM: {
-    label: 'Nghi vấn (Medium)',
+    label: 'Nghi vấn',
     bg: '#FEF3C7',
     text: '#92400E',
     bar: '#D97706',
   },
   LOW: {
-    label: 'Cảnh báo nhẹ (Low)',
+    label: 'Cảnh báo nhẹ',
     bg: '#E0F2FE',
     text: '#075985',
     bar: '#0284C7',
   },
   SAFE: {
-    label: 'An toàn (Safe)',
+    label: 'An toàn',
     bg: '#DCFCE7',
     text: '#166534',
     bar: '#16A34A',
@@ -100,7 +100,7 @@ export const ACTION_TAKEN_BADGES: Record<
     text: '#991B1B',
   },
   NONE: {
-    label: 'Đang chờ Admin duyệt',
+    label: 'Đang chờ duyệt',
     bg: '#FEF3C7',
     text: '#92400E',
   },
@@ -119,63 +119,63 @@ export const ACTION_TAKEN_BADGES: Record<
 export function ModerationStatsGrid({ facade }: { facade: ModerationDashboardFacade }) {
   const { stats } = facade;
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-500">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4">
+        <div className="flex items-center justify-between gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           <span>Chờ rà soát</span>
-          <AlertTriangle size={16} className="text-amber-600" />
+          <AlertTriangle size={15} className="text-amber-600 shrink-0" />
         </div>
-        <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">{stats.pending}</div>
-        <div className="mt-1 text-xs text-slate-500">Cần quyết định từ Kiểm duyệt viên</div>
+        <div className="mt-1.5 text-2xl font-bold text-slate-900 tabular-nums">{stats.pending}</div>
+        <div className="mt-1 text-xs text-slate-500">Cần quyết định từ kiểm duyệt viên</div>
       </div>
 
-      <div className="rounded-xl border border-red-200 bg-red-50/40 p-4">
-        <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-red-700">
-          <span>AI tự động ẩn (Tier 3)</span>
-          <Bot size={16} className="text-red-600" />
+      <div className="rounded-xl border border-red-200 bg-red-50/40 p-3.5 sm:p-4">
+        <div className="flex items-center justify-between gap-1 text-[11px] font-semibold uppercase tracking-wide text-red-700">
+          <span>AI tự động ẩn</span>
+          <Bot size={15} className="text-red-600 shrink-0" />
         </div>
-        <div className="mt-2 text-2xl font-bold text-red-900 tabular-nums">{stats.autoHidden}</div>
-        <div className="mt-1 text-xs text-red-700">Đã hạ tức thời trên dòng thời gian</div>
+        <div className="mt-1.5 text-2xl font-bold text-red-900 tabular-nums">{stats.autoHidden}</div>
+        <div className="mt-1 text-xs text-red-700">Đã ẩn tức thời khỏi cộng đồng</div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-500">
-          <span>Báo cáo Cộng đồng</span>
-          <Flag size={16} className="text-blue-600" />
+      <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4">
+        <div className="flex items-center justify-between gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <span>Báo cáo cộng đồng</span>
+          <Flag size={15} className="text-blue-600 shrink-0" />
         </div>
-        <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">{stats.userReports}</div>
+        <div className="mt-1.5 text-2xl font-bold text-slate-900 tabular-nums">{stats.userReports}</div>
         <div className="mt-1 text-xs text-slate-500">Do thành viên HISGO gắn cờ</div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-500">
+      <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4">
+        <div className="flex items-center justify-between gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           <span>Đã xác nhận gỡ</span>
-          <ShieldAlert size={16} className="text-slate-700" />
+          <ShieldAlert size={15} className="text-slate-700 shrink-0" />
         </div>
-        <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">
+        <div className="mt-1.5 text-2xl font-bold text-slate-900 tabular-nums">
           {stats.confirmedRemoved}
         </div>
         <div className="mt-1 text-xs text-slate-500">Vi phạm đã xử lý dứt điểm</div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-500">
-          <span>Đã khôi phục (False +)</span>
-          <ShieldCheck size={16} className="text-emerald-600" />
+      <div className="col-span-2 sm:col-span-1 rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4">
+        <div className="flex items-center justify-between gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <span>Đã khôi phục</span>
+          <ShieldCheck size={15} className="text-emerald-600 shrink-0" />
         </div>
-        <div className="mt-2 text-2xl font-bold text-emerald-700 tabular-nums">
+        <div className="mt-1.5 text-2xl font-bold text-emerald-700 tabular-nums">
           {stats.dismissed}
         </div>
-        <div className="mt-1 text-xs text-slate-500">Bài an toàn được mở hiển thị lại</div>
+        <div className="mt-1 text-xs text-slate-500">Nội dung an toàn đã mở lại</div>
       </div>
     </div>
   );
 }
 
 export function ModerationTabs({ facade }: { facade: ModerationDashboardFacade }) {
-  const { activeTab, setActiveTab, loading, fetchModerationData } = facade;
+  const { activeTab, setActiveTab } = facade;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/70 px-5 pt-4">
+    <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/70 px-5 pt-4">
       <div className="flex items-center gap-6 overflow-x-auto">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
@@ -184,7 +184,7 @@ export function ModerationTabs({ facade }: { facade: ModerationDashboardFacade }
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`relative whitespace-nowrap pb-3.5 text-sm transition-colors ${
+              className={`relative whitespace-nowrap pb-3.5 text-sm transition-colors cursor-pointer ${
                 isActive
                   ? 'font-bold text-red-800'
                   : 'font-medium text-slate-600 hover:text-slate-900'
@@ -198,15 +198,6 @@ export function ModerationTabs({ facade }: { facade: ModerationDashboardFacade }
           );
         })}
       </div>
-
-      <button
-        type="button"
-        onClick={() => void fetchModerationData()}
-        className="mb-3 inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-      >
-        <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-        <span>Làm mới dữ liệu</span>
-      </button>
     </div>
   );
 }
@@ -215,7 +206,7 @@ export function ModerationFilters({ facade }: { facade: ModerationDashboardFacad
   const { sourceFilter, setSourceFilter, riskFilter, setRiskFilter, targetTypeFilter, setTargetTypeFilter, searchQuery, setSearchQuery } = facade;
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
-      <div className="relative min-w-[260px] flex-1 max-w-md">
+      <div className="relative min-w-[220px] flex-1 max-w-md">
         <Search
           size={15}
           className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
@@ -224,7 +215,7 @@ export function ModerationFilters({ facade }: { facade: ModerationDashboardFacad
           type="search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Tìm theo tiêu đề bài, đoạn trích vi phạm, tác giả..."
+          placeholder="Tìm tiêu đề, đoạn trích vi phạm, tác giả..."
           className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-900 outline-none focus:border-slate-400 focus:bg-white"
         />
       </div>
@@ -237,8 +228,8 @@ export function ModerationFilters({ facade }: { facade: ModerationDashboardFacad
           className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none"
         >
           <option value="">Tất cả nguồn quét</option>
-          <option value="AI_SCAN">🤖 AI Sentinel tự động</option>
-          <option value="USER_REPORT">🚩 Người dùng báo cáo</option>
+          <option value="AI_SCAN">AI tự động phát hiện</option>
+          <option value="USER_REPORT">Người dùng báo cáo</option>
         </select>
 
         <select
@@ -248,10 +239,10 @@ export function ModerationFilters({ facade }: { facade: ModerationDashboardFacad
           className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none"
         >
           <option value="">Tất cả mức độ rủi ro</option>
-          <option value="CRITICAL">Critical (Nguy hiểm cao)</option>
-          <option value="HIGH">High (Vi phạm rõ)</option>
-          <option value="MEDIUM">Medium (Nghi vấn)</option>
-          <option value="LOW">Low (Cảnh báo nhẹ)</option>
+          <option value="CRITICAL">Nghiêm trọng</option>
+          <option value="HIGH">Rủi ro cao</option>
+          <option value="MEDIUM">Nghi vấn</option>
+          <option value="LOW">Cảnh báo nhẹ</option>
         </select>
 
         <select
@@ -260,7 +251,7 @@ export function ModerationFilters({ facade }: { facade: ModerationDashboardFacad
           aria-label="Lọc theo loại nội dung"
           className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none"
         >
-          <option value="">Bài viết & Bình luận</option>
+          <option value="">Bài viết &amp; Bình luận</option>
           <option value="POST">Bài viết cộng đồng</option>
           <option value="COMMENT">Bình luận</option>
         </select>
@@ -273,21 +264,21 @@ export function ModerationReportTable({ facade }: { facade: ModerationDashboardF
   const { items, loading, busyId, setBanConfirmItem, setBanNote, handleResolve, handleRescan } = facade;
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[1080px] border-collapse text-left">
+      <table className="w-full min-w-[920px] border-collapse text-left">
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-            <th className="py-3.5 pl-5 pr-3 w-[36%]">Nội dung & Đoạn trích vi phạm</th>
-            <th className="px-3 py-3.5 w-[22%]">Phân tích của AI Sentinel</th>
-            <th className="px-3 py-3.5 w-[16%]">Tác giả & Lịch sử</th>
+            <th className="py-3.5 pl-5 pr-3 w-[36%]">Nội dung &amp; Đoạn trích vi phạm</th>
+            <th className="px-3 py-3.5 w-[22%]">Phân tích tự động</th>
+            <th className="px-3 py-3.5 w-[16%]">Tác giả &amp; Lịch sử</th>
             <th className="px-3 py-3.5 w-[12%]">Trạng thái</th>
-            <th className="py-3.5 pl-3 pr-5 text-right w-[14%]">Thao tác 1-Click</th>
+            <th className="py-3.5 pl-3 pr-5 text-right w-[14%]">Thao tác nhanh</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200 text-sm">
           {loading ? (
             <tr>
               <td colSpan={5} className="py-12 text-center text-slate-500">
-                Đang tải dữ liệu kiểm duyệt từ AI Sentinel...
+                Đang tải dữ liệu kiểm duyệt...
               </td>
             </tr>
           ) : items.length === 0 ? (

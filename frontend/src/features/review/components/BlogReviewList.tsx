@@ -11,7 +11,7 @@ import {
   STATUS_LABELS,
   type ReviewConfirmAction,
   type ReviewPost,
-} from './ReviewHubView';
+} from '../review.shared';
 import { BlogReviewTable } from './BlogReviewParts';
 import { BlogReviewPreviewModal } from './BlogReviewParts';
 import { BlogReviewConfirmModal } from './BlogReviewParts';
@@ -132,35 +132,30 @@ export function BlogReviewList({ onChanged }: { onChanged?: () => void }) {
   };
 
   return (
-    <div style={{ background: '#f5f5f4', minHeight: '100%', color: '#1f2a37' }}>
-      <div style={{ maxWidth: 1480, margin: '0 auto', padding: '24px 24px 40px' }}>
-        {notice && (
-          <div
-            role="status"
-            style={{
-              marginBottom: 16,
-              borderRadius: 12,
-              padding: '10px 12px',
-              fontSize: 14,
-              background: notice.tone === NoticeTone.OK ? '#ecfdf5' : '#fef2f2',
-              color: notice.tone === NoticeTone.OK ? '#065f46' : '#991b1b',
-            }}
-          >
-            {notice.text}
-          </div>
-        )}
+    <div className="min-w-0">
+      {notice && (
+        <div
+          role="status"
+          className={`mb-4 rounded-xl border px-3.5 py-2.5 text-sm ${
+            notice.tone === NoticeTone.OK
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-rose-200 bg-rose-50 text-rose-800'
+          }`}
+        >
+          {notice.text}
+        </div>
+      )}
 
-        <BlogReviewTable
-          tab={tab}
-          onChangeTab={setTab}
-          search={search}
-          onChangeSearch={setSearch}
-          loading={loading}
-          items={filtered}
-          selectedItemId={selectedItem?.id}
-          onSelectPost={handleOpenPreview}
-        />
-      </div>
+      <BlogReviewTable
+        tab={tab}
+        onChangeTab={setTab}
+        search={search}
+        onChangeSearch={setSearch}
+        loading={loading}
+        items={filtered}
+        selectedItemId={selectedItem?.id}
+        onSelectPost={handleOpenPreview}
+      />
 
       <BlogReviewPreviewModal
         selectedItem={selectedItem}
@@ -189,6 +184,8 @@ export interface ReviewModalProps {
   lessonTitle: string;
   itemLabel?: string;
   lessonSummary?: string;
+  isPublished?: boolean;
+  rejectionReason?: string | null;
   onApprove: () => void;
   onReject: (reason: string) => void;
   onEdit?: () => void;
@@ -200,53 +197,79 @@ export function ReviewModal({
   lessonTitle,
   itemLabel = 'bài học',
   lessonSummary,
+  isPublished = false,
+  rejectionReason,
   onApprove,
   onReject,
   onEdit,
 }: ReviewModalProps) {
   const [rejectReason, setRejectReason] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectError, setRejectError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setIsRejecting(false);
+    setRejectReason('');
+    setRejectError(null);
+  }, [isOpen, lessonTitle]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Kiểm duyệt ${itemLabel}: ${lessonTitle}`}
+      onClick={onClose}
+    >
       <div
         className="modal-container"
         style={{ maxWidth: 640 }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>Kiểm duyệt {itemLabel}: &ldquo;{lessonTitle}&rdquo;</h2>
-          <button type="button" className="modal-close" onClick={onClose}>
+          <h2>
+            {isPublished ? `Xem lại ${itemLabel}` : `Kiểm duyệt ${itemLabel}`}: &ldquo;{lessonTitle}&rdquo;
+          </h2>
+          <button type="button" className="modal-close" aria-label="Đóng hộp thoại" onClick={onClose}>
             ×
           </button>
         </div>
         <div className="modal-body">
           {!isRejecting ? (
             <>
-              <div
-                style={{
-                  background: '#f8f9fa',
-                  padding: 16,
-                  borderRadius: 8,
-                  marginBottom: 16,
-                  fontSize: 12,
-                  color: '#374151',
-                  lineHeight: 1.6,
-                }}
-              >
-                <strong style={{ display: 'block', marginBottom: 6 }}>
-                  Tóm tắt:
-                </strong>
-                <p style={{ margin: 0 }}>
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 mb-4 text-xs text-slate-700 leading-relaxed">
+                <strong className="block mb-1.5 text-slate-900">Tóm tắt nội dung:</strong>
+                <p className="m-0">
                   {lessonSummary && lessonSummary.trim()
                     ? lessonSummary
-                    : 'Bài chưa có tóm tắt — mở "Chỉnh sửa trước khi duyệt" để xem toàn bộ nội dung.'}
+                    : 'Bài chưa có tóm tắt — bấm "Mở trình soạn thảo" để xem toàn bộ nội dung.'}
                 </p>
+                {rejectionReason && (
+                  <p className="mt-2.5 pt-2.5 border-t border-slate-200 text-rose-700 font-medium">
+                    Lý do từ chối gần nhất: {rejectionReason}
+                  </p>
+                )}
               </div>
 
-              <div className="modal-footer" style={{ gap: 12, flexWrap: 'wrap' }}>
+              {isPublished && (
+                <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                  Nội dung này đã được xuất bản. Để chỉnh sửa chi tiết, hãy mở trực tiếp trong trình soạn thảo.
+                </p>
+              )}
+
+              <div className="modal-footer" style={{ gap: 10, flexWrap: 'wrap' }}>
                 {onEdit && (
                   <button
                     type="button"
@@ -256,28 +279,36 @@ export function ReviewModal({
                       onClose();
                     }}
                   >
-                    ✎ Chỉnh sửa trước khi duyệt
+                    ✎ {isPublished ? 'Mở trình soạn thảo' : 'Chỉnh sửa trước khi duyệt'}
                   </button>
                 )}
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setIsRejecting(true)}
-                  style={{ color: '#c54646' }}
-                >
-                  Từ chối phê duyệt
-                </button>
-                <button
-                  type="button"
-                  className="primary-button"
-                  style={{ background: '#287056' }}
-                  onClick={() => {
-                    onApprove();
-                    onClose();
-                  }}
-                >
-                  ✓ Duyệt & Xuất bản
-                </button>
+                {!isPublished ? (
+                  <>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => setIsRejecting(true)}
+                      style={{ color: '#c54646' }}
+                    >
+                      Từ chối phê duyệt
+                    </button>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      style={{ background: '#287056' }}
+                      onClick={() => {
+                        onApprove();
+                        onClose();
+                      }}
+                    >
+                      ✓ Duyệt &amp; Xuất bản
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="secondary-button" onClick={onClose}>
+                    Đóng
+                  </button>
+                )}
               </div>
             </>
           ) : (
@@ -289,16 +320,26 @@ export function ReviewModal({
                 <textarea
                   rows={4}
                   value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
+                  onChange={(e) => {
+                    setRejectReason(e.target.value);
+                    if (rejectError) setRejectError(null);
+                  }}
                   placeholder="Vui lòng nêu rõ các điểm cần chỉnh sửa hoặc lý do chưa đạt..."
-                  required
                 />
               </label>
+              {rejectError && (
+                <p role="alert" className="mt-1.5 text-xs font-medium text-rose-600">
+                  {rejectError}
+                </p>
+              )}
               <div className="modal-footer" style={{ gap: 10 }}>
                 <button
                   type="button"
                   className="secondary-button"
-                  onClick={() => setIsRejecting(false)}
+                  onClick={() => {
+                    setIsRejecting(false);
+                    setRejectError(null);
+                  }}
                 >
                   Quay lại
                 </button>
@@ -307,10 +348,10 @@ export function ReviewModal({
                   className="danger-button"
                   onClick={() => {
                     if (!rejectReason.trim()) {
-                      alert('Vui lòng nhập lý do từ chối!');
+                      setRejectError('Vui lòng nhập lý do từ chối trước khi xác nhận.');
                       return;
                     }
-                    onReject(rejectReason);
+                    onReject(rejectReason.trim());
                     setIsRejecting(false);
                     onClose();
                   }}

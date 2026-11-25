@@ -1,16 +1,28 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
 import { UserCell } from '@/components/common/CommonUi';
-import { creatorInitials, creatorLabel, ReviewTabState, STATUS_LABELS } from './ReviewHubView';
+import {
+  creatorInitials,
+  creatorLabel,
+  REVIEW_TAB_STATUS,
+  ReviewTabState,
+  STATUS_LABELS,
+} from '../review.shared';
 import { ReviewModal } from './BlogReviewList';
-import { IconName } from '@/constants/enums';
-import { ContentStatus, NoticeTone } from '@/constants/enums';
-import { ArticleApiService, type ArticleItem, CONTENT_STATUS_LABELS } from '@/services/entities/article.service';
+import { ContentStatus, IconName, NoticeTone } from '@/constants/enums';
+import {
+  ArticleApiService,
+  CONTENT_STATUS_LABELS,
+  type ArticleItem,
+} from '@/services/entities/article.service';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/use-auth-session';
+
+const REVIEW_PAGE_LIMIT_OPTIONS = [20, 50, 100] as const;
+const SEARCH_DEBOUNCE_MS = 250;
 
 export interface ReviewArticleRow {
   id: string;
@@ -32,28 +44,7 @@ const REVIEW_TAB_BY_STATUS: Record<string, ReviewTabState> = {
   [ContentStatus.REJECTED]: ReviewTabState.REJECTED,
 };
 
-const EXCLUDED_CATEGORY_SLUG = 'blog';
-const EXCLUDED_ARTICLE_SLUG = 'cong-la-ma-va-khong-gian-quyen-luc';
-
-interface ExtendedArticleItem extends ArticleItem {
-  rejectionReason?: string | null;
-}
-
-function isEligibleArticle(art: ArticleItem): boolean {
-  const categoryName = (art.category?.name || '').trim().toLowerCase();
-  const categorySlug = (art.category?.slug || '').trim().toLowerCase();
-  const normalizedSlug = (art.slug || '').trim().toLowerCase();
-
-  return (
-    categoryName !== EXCLUDED_CATEGORY_SLUG &&
-    categorySlug !== EXCLUDED_CATEGORY_SLUG &&
-    normalizedSlug !== EXCLUDED_ARTICLE_SLUG &&
-    !normalizedSlug.includes('cong-la-ma')
-  );
-}
-
 function mapArticleToRow(art: ArticleItem, currentUserId: string | null): ReviewArticleRow {
-  const extended = art as ExtendedArticleItem;
   const rawStatus = art.status;
   const summary = (art.summary || '').trim();
   const authorName = creatorLabel(art.creatorName);
@@ -64,10 +55,10 @@ function mapArticleToRow(art: ArticleItem, currentUserId: string | null): Review
     category: art.category?.name || 'Chưa phân loại',
     author: authorName,
     date: art.createdAt ? new Date(art.createdAt).toLocaleDateString('vi-VN') : '-',
-    summary: summary.length > 220 ? `${summary.slice(0, 220)}...` : summary,
+    summary: summary.length > 320 ? `${summary.slice(0, 320)}...` : summary,
     status: REVIEW_TAB_BY_STATUS[rawStatus] || STATUS_LABELS[rawStatus] || ReviewTabState.PENDING,
     rawStatus,
-    rejectionReason: extended.rejectionReason || null,
+    rejectionReason: art.rejectionReason || null,
     isOwn: Boolean(currentUserId && art.createdBy === currentUserId),
     slug: art.slug,
   };
@@ -79,61 +70,58 @@ export function ArticleReviewList({ onChanged }: { onChanged?: () => void }) {
   const [tab, setTab] = useState<ReviewTabState>(ReviewTabState.PENDING);
   const [selectedArticle, setSelectedArticle] = useState<ReviewArticleRow | null>(null);
   const [articlesList, setArticlesList] = useState<ReviewArticleRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState<number>(REVIEW_PAGE_LIMIT_OPTIONS[0]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [notice, setNotice] = useState<{ tone: NoticeTone; text: string } | null>(null);
   const currentUserId = useAuthSession()?.id ?? null;
 
   useEffect(() => {
-    let active = true;
-    void Promise.resolve().then(async () => {
-      try {
-        setLoading(true);
-        const res = await ArticleApiService.list({ limit: 100 });
-        const rawList = res.items || [];
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
-        const mapped: ReviewArticleRow[] = rawList
-          .filter((art: ArticleItem) => REVIEW_TAB_BY_STATUS[art.status])
-          .filter(isEligibleArticle)
-          .map((art: ArticleItem) => mapArticleToRow(art, currentUserId));
+  const loadArticles = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await ArticleApiService.list({
+        status: REVIEW_TAB_STATUS[tab],
+        search: debouncedSearch || undefined,
+        page,
+        limit,
+      });
+      const rows = (res.items || []).map((art) => mapArticleToRow(art, currentUserId));
+      setArticlesList(rows);
+      setTotal(res.total ?? rows.length);
+    } catch (error) {
+      setArticlesList([]);
+      setTotal(0);
+      setNotice({
+        tone: NoticeTone.ERROR,
+        text: extractErrorMessage(error, 'Không thể tải danh sách bài viết cần duyệt.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [tab, debouncedSearch, page, limit, currentUserId]);
 
-        if (active) {
-          setArticlesList(mapped);
-        }
-      } catch (error) {
-        if (active) {
-          setNotice({
-            tone: NoticeTone.ERROR,
-            text: extractErrorMessage(error, 'Không thể tải danh sách bài viết cần duyệt.'),
-          });
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [currentUserId]);
+  useEffect(() => {
+    void loadArticles();
+  }, [loadArticles]);
 
   const handleApprove = async (article: ReviewArticleRow) => {
     try {
       await ArticleApiService.review(article.id, {
         status: ContentStatus.PUBLISHED,
       });
-
-      setArticlesList((prev) =>
-        prev.map((item) =>
-          item.id === article.id
-            ? { ...item, status: ReviewTabState.APPROVED, rawStatus: ContentStatus.PUBLISHED }
-            : item,
-        ),
-      );
-
       setNotice({ tone: NoticeTone.OK, text: `Đã phê duyệt bài viết "${article.title}".` });
+      void loadArticles();
       onChanged?.();
     } catch (error) {
       setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(error, 'Không thể duyệt bài viết.') });
@@ -146,54 +134,37 @@ export function ArticleReviewList({ onChanged }: { onChanged?: () => void }) {
         status: ContentStatus.REJECTED,
         rejectionReason: reason,
       });
-
-      setArticlesList((prev) =>
-        prev.map((item) =>
-          item.id === article.id
-            ? {
-                ...item,
-                status: ReviewTabState.REJECTED,
-                rawStatus: ContentStatus.REJECTED,
-                rejectionReason: reason,
-              }
-            : item,
-        ),
-      );
-
       setNotice({ tone: NoticeTone.OK, text: `Đã từ chối bài viết "${article.title}". Lý do: ${reason}` });
+      void loadArticles();
       onChanged?.();
     } catch (error) {
       setNotice({ tone: NoticeTone.ERROR, text: extractErrorMessage(error, 'Không thể từ chối bài viết.') });
     }
   };
 
-  const normalizedSearch = search.trim().toLowerCase();
-  const filtered = articlesList.filter((item) => {
-    const matchesTab = item.status === tab;
-    const matchesSearch =
-      !normalizedSearch ||
-      item.title.toLowerCase().includes(normalizedSearch) ||
-      item.category.toLowerCase().includes(normalizedSearch);
-
-    return matchesTab && matchesSearch;
-  });
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
-    <div className="panel management-panel">
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+    <div className="panel management-panel min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200 mb-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Kiểm duyệt Bài viết mới tạo</h2>
-          <p className="text-xs text-slate-500">Duyệt các bài viết, nhân vật, sự kiện mới được gửi duyệt lần đầu</p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">Kiểm duyệt Bài viết</h2>
+          <p className="text-xs text-slate-500">
+            Duyệt các bài viết, nhân vật, sự kiện gửi duyệt lần đầu ({total.toLocaleString('vi-VN')} bài)
+          </p>
         </div>
-        <div className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1">
+        <div className="inline-flex self-start sm:self-auto flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1">
           {[ReviewTabState.PENDING, ReviewTabState.APPROVED, ReviewTabState.REJECTED].map((x) => (
             <button
               key={x}
               type="button"
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
+              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold cursor-pointer ${
                 tab === x ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
               }`}
-              onClick={() => setTab(x)}
+              onClick={() => {
+                setTab(x);
+                setPage(1);
+              }}
             >
               {x}
             </button>
@@ -204,13 +175,11 @@ export function ArticleReviewList({ onChanged }: { onChanged?: () => void }) {
       {notice && (
         <div
           role="status"
-          style={{
-            margin: '12px 0',
-            padding: '10px 14px',
-            borderRadius: 8,
-            background: notice.tone === NoticeTone.OK ? '#ecfdf5' : '#fef2f2',
-            color: notice.tone === NoticeTone.OK ? '#065f46' : '#991b1b',
-          }}
+          className={`my-3 rounded-lg border px-3.5 py-2.5 text-sm ${
+            notice.tone === NoticeTone.OK
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-rose-200 bg-rose-50 text-rose-800'
+          }`}
         >
           {notice.text}
         </div>
@@ -220,7 +189,7 @@ export function ArticleReviewList({ onChanged }: { onChanged?: () => void }) {
         <label className="search-box">
           <Icon name={IconName.SEARCH} size={17} />
           <input
-            placeholder="Tìm bài viết..."
+            placeholder="Tìm bài viết theo tiêu đề, tóm tắt..."
             aria-label="Tìm bài viết"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -228,7 +197,7 @@ export function ArticleReviewList({ onChanged }: { onChanged?: () => void }) {
         </label>
       </div>
 
-      <div className="table-scroll">
+      <div className="w-full min-w-0 overflow-x-auto">
         <table className="management-table">
           <thead>
             <tr>
@@ -243,33 +212,33 @@ export function ArticleReviewList({ onChanged }: { onChanged?: () => void }) {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: 24 }}>
+                <td colSpan={6} className="text-center py-6 text-slate-500">
                   Đang tải dữ liệu bài viết...
                 </td>
               </tr>
-            ) : filtered.length === 0 ? (
+            ) : articlesList.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: 24 }}>
+                <td colSpan={6} className="text-center py-6 text-slate-500">
                   Không có bài viết nào trong danh sách &ldquo;{tab}&rdquo;.
                 </td>
               </tr>
             ) : (
-              filtered.map((r) => (
+              articlesList.map((r) => (
                 <tr key={r.id}>
                   <td>
                     <strong>{r.title}</strong>
                   </td>
-                  <td>{r.category}</td>
-                  <td>
+                  <td className="whitespace-nowrap">{r.category}</td>
+                  <td className="whitespace-nowrap">
                     <UserCell initials={creatorInitials(r.author)} name={r.author} />
                   </td>
-                  <td>{r.date}</td>
-                  <td>
-                    <span className="text-xs font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                  <td className="whitespace-nowrap">{r.date}</td>
+                  <td className="whitespace-nowrap">
+                    <span className="inline-block whitespace-nowrap text-xs font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                       {CONTENT_STATUS_LABELS[r.rawStatus as keyof typeof CONTENT_STATUS_LABELS] || r.rawStatus}
                     </span>
                   </td>
-                  <td>
+                  <td className="whitespace-nowrap text-right">
                     {r.isOwn && r.status === ReviewTabState.PENDING ? (
                       <span className="text-xs text-amber-600" title="Quy tắc 2 người: bài cần người khác duyệt">
                         Bài của bạn (chờ người khác duyệt)
@@ -277,7 +246,7 @@ export function ArticleReviewList({ onChanged }: { onChanged?: () => void }) {
                     ) : (
                       <button
                         type="button"
-                        className="review-button"
+                        className="review-button whitespace-nowrap"
                         onClick={() => setSelectedArticle(r)}
                       >
                         {r.status === ReviewTabState.PENDING ? 'Kiểm duyệt' : 'Xem lại'}
@@ -291,10 +260,56 @@ export function ArticleReviewList({ onChanged }: { onChanged?: () => void }) {
         </table>
       </div>
 
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs text-slate-600">
+        <div className="flex items-center gap-2">
+          <span>
+            Tổng <strong>{total.toLocaleString('vi-VN')}</strong> bài viết
+          </span>
+          <select
+            aria-label="Số bài mỗi trang"
+            value={limit}
+            onChange={(e) => {
+              setLimit(Number(e.target.value));
+              setPage(1);
+            }}
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700"
+          >
+            {REVIEW_PAGE_LIMIT_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt} / trang
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="rounded-md border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+          >
+            ‹ Trước
+          </button>
+          <span className="px-2 font-semibold tabular-nums">
+            Trang {page} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="rounded-md border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+          >
+            Sau ›
+          </button>
+        </div>
+      </div>
+
       {selectedArticle && (
         <ReviewModal
           itemLabel="bài viết"
           isOpen={true}
+          isPublished={selectedArticle.rawStatus === ContentStatus.PUBLISHED}
+          rejectionReason={selectedArticle.rejectionReason}
           onClose={() => setSelectedArticle(null)}
           lessonTitle={selectedArticle.title}
           lessonSummary={selectedArticle.summary}

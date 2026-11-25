@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { GripVertical, ChevronUp, ChevronDown, Trash2, Plus } from 'lucide-react';
+import { ConfirmDialog } from '@/components/common/CommonUi';
 import { LessonBlockItem, BlockWidthType } from '../../types/block-builder.types';
 import { LessonBlockType, LessonBlockGroup } from '../../types/editor.types';
 import { getBlockLabel, LESSON_BLOCK_DRAG_MIME, LESSON_BLOCK_ITEMS } from '../../constants/lesson.constants';
@@ -39,6 +40,7 @@ export function BlockCardWrapper({
   const availableWidths = BlockWidthStrategy.getAvailableWidths(block.type);
   const currentWidth = block.width || BlockWidthStrategy.getDefaultWidth(block.type);
   const widthCssClass = BlockWidthStrategy.getCssClass(currentWidth);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   return (
     <div
@@ -136,10 +138,9 @@ export function BlockCardWrapper({
 
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm('Bạn có chắc muốn xóa khối này khỏi bài viết?')) {
-                onDelete();
-              }
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirmDeleteOpen(true);
             }}
             data-testid={`btn-delete-block-${block.id}`}
             title="Xóa khối này"
@@ -152,6 +153,20 @@ export function BlockCardWrapper({
 
       {/* Nội dung khối */}
       <div className="p-4">{children}</div>
+
+      <ConfirmDialog
+        isOpen={confirmDeleteOpen}
+        title={`Xóa khối "${blockLabel}"?`}
+        message="Nội dung bên trong khối này sẽ bị xóa khỏi trình soạn thảo. Bạn có chắc muốn tiếp tục?"
+        confirmLabel="Xóa khối"
+        cancelLabel="Giữ lại"
+        tone="danger"
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => {
+          setConfirmDeleteOpen(false);
+          onDelete();
+        }}
+      />
     </div>
   );
 }

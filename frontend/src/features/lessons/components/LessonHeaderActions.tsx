@@ -14,7 +14,7 @@ import {
 import { ContentStatus, IconName } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import { STATUS_LABEL_MAP } from '@/constants/ui-theme';
-import { ArchiveStatusButton } from '@/components/common/CommonUi';
+import { ArchiveStatusButton, ConfirmDialog } from '@/components/common/CommonUi';
 import { Icon } from '@/components/icons/Icon';
 import { AutoSaveState } from '../types/editor.types';
 
@@ -141,6 +141,7 @@ export function LessonHeaderActions({
   moreMenuRef,
 }: LessonHeaderActionsProps) {
   const [openPopover, setOpenPopover] = useState<HeaderPopoverKind | null>(null);
+  const [draftConfirmAction, setDraftConfirmAction] = useState<'restore' | 'dismiss' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -149,9 +150,19 @@ export function LessonHeaderActions({
         setOpenPopover(null);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpenPopover(null);
+        onCloseMoreMenu();
+      }
+    };
     document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onCloseMoreMenu]);
 
   const togglePopover = (kind: HeaderPopoverKind) => {
     setOpenPopover((prev) => (prev === kind ? null : kind));
@@ -163,7 +174,7 @@ export function LessonHeaderActions({
   const statusDot = STATUS_DOT_MAP[status] || 'bg-slate-400';
 
   return (
-    <div ref={containerRef} className="flex items-center gap-1.5 shrink-0 relative">
+    <div ref={containerRef} className="flex flex-wrap items-center justify-end gap-1.5 relative max-w-full">
       {/* 1. Cảnh báo / Nội dung cần xử lý */}
       <button
         type="button"
@@ -308,24 +319,14 @@ export function LessonHeaderActions({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (window.confirm('Khôi phục bản nháp đã lưu trên máy vào màn hình hiện tại?')) {
-                      setOpenPopover(null);
-                      onRestoreDraft();
-                    }
-                  }}
+                  onClick={() => setDraftConfirmAction('restore')}
                   className="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white rounded-md font-semibold transition cursor-pointer"
                 >
                   Khôi phục
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (window.confirm('Bỏ qua và xóa bản nháp tự động lưu này?')) {
-                      setOpenPopover(null);
-                      onDismissDraft();
-                    }
-                  }}
+                  onClick={() => setDraftConfirmAction('dismiss')}
                   className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-md font-medium transition cursor-pointer"
                 >
                   Bỏ qua
@@ -361,7 +362,7 @@ export function LessonHeaderActions({
               <strong>Tab Thông tin:</strong> nhập tiêu đề, tóm tắt, chọn Chủ đề, ảnh bìa và nguồn tư liệu.
             </li>
             <li>
-              <strong>Tab Nội dung:</strong> soạn khối (Văn bản, Dòng thời gian, Nhân vật, Quiz...). Bấm vào khối để chỉnh thuộc tính ở cột phải.
+              <strong>Tab Nội dung:</strong> soạn khối (Văn bản, Tiêu đề, Hình ảnh, Hồ sơ thực thể, Sự kiện liên quan, Bảng so sánh...). Bấm vào khối để chỉnh thuộc tính ở cột phải.
             </li>
             <li>
               <strong>Kiểm duyệt:</strong> cần có Tiêu đề + Chủ đề trước khi bấm Gửi duyệt.
@@ -429,6 +430,31 @@ export function LessonHeaderActions({
           </Link>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={draftConfirmAction !== null}
+        title={
+          draftConfirmAction === 'restore'
+            ? 'Khôi phục bản nháp tự động lưu?'
+            : 'Bỏ qua và xóa bản nháp cục bộ?'
+        }
+        message={
+          draftConfirmAction === 'restore'
+            ? 'Nội dung đang hiển thị trên màn hình sẽ được thay bằng bản nháp đã lưu trên máy.'
+            : 'Bản nháp tự động lưu trên máy sẽ bị xóa vĩnh viễn và không thể hoàn tác.'
+        }
+        confirmLabel={draftConfirmAction === 'restore' ? 'Khôi phục' : 'Xóa nháp'}
+        cancelLabel="Hủy"
+        tone={draftConfirmAction === 'dismiss' ? 'danger' : 'warning'}
+        onClose={() => setDraftConfirmAction(null)}
+        onConfirm={() => {
+          const action = draftConfirmAction;
+          setDraftConfirmAction(null);
+          setOpenPopover(null);
+          if (action === 'restore') onRestoreDraft();
+          if (action === 'dismiss') onDismissDraft();
+        }}
+      />
     </div>
   );
 }

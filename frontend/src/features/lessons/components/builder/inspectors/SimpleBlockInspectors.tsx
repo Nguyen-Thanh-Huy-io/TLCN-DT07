@@ -19,8 +19,6 @@ import {
   CalloutMediaConfig,
   HeadingBlockData,
   LessonBlockItem,
-  RelatedEventsBlockData,
-  RelatedPeopleBlockData,
 } from '../../../types/block-builder.types';
 import {
   CALLOUT_MEDIA_ALIGN_OPTIONS,
@@ -219,50 +217,6 @@ export function CalloutBlockInspector({
         media={callout.media}
         onChangeMedia={(media) => onUpdateBlock(callout.id, { media })}
       />
-    </InspectorAccordionSection>
-  );
-}
-
-export function RelatedPeopleBlockInspector({
-  block: rel,
-  onUpdateBlock,
-}: SimpleInspectorProps<RelatedPeopleBlockData>) {
-  return (
-    <InspectorAccordionSection title="Nhân vật liên quan">
-      <InspectorFieldRow label="Tiêu đề">
-        <input
-          type="text"
-          value={rel.title || ''}
-          onChange={(e) => onUpdateBlock(rel.id, { title: e.target.value })}
-          className={`${INSPECTOR_INPUT_CLS} max-w-[165px]`}
-        />
-      </InspectorFieldRow>
-    </InspectorAccordionSection>
-  );
-}
-
-export function RelatedEventsBlockInspector({
-  block: rel,
-  onUpdateBlock,
-}: SimpleInspectorProps<RelatedEventsBlockData>) {
-  return (
-    <InspectorAccordionSection title="Sự kiện liên quan">
-      <InspectorFieldRow label="Tiêu đề">
-        <input
-          type="text"
-          value={rel.title || ''}
-          onChange={(e) => onUpdateBlock(rel.id, { title: e.target.value })}
-          className={`${INSPECTOR_INPUT_CLS} max-w-[165px]`}
-        />
-      </InspectorFieldRow>
-      <InspectorFieldRow label="Mô tả">
-        <input
-          type="text"
-          value={rel.description || ''}
-          onChange={(e) => onUpdateBlock(rel.id, { description: e.target.value })}
-          className={`${INSPECTOR_INPUT_CLS} max-w-[165px]`}
-        />
-      </InspectorFieldRow>
     </InspectorAccordionSection>
   );
 }

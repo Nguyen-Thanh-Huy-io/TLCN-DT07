@@ -138,16 +138,13 @@ export function useLessonBlockManager(initialContent?: unknown): UseLessonBlockM
     const parsed = parseContentToBlocks(initialContent);
     if (parsed) return splitResourceLinks(parsed);
 
-    // Mặc định tạo 1 khối văn bản giới thiệu
+    // Mặc định tạo 1 khối văn bản trống để biên tập viên gõ ngay (không chèn dữ liệu mẫu giả)
     return {
       blocks: [
         {
           id: 'block_default_text',
           type: LessonBlockType.TEXT,
-          content: `
-            <h2>1. Bối cảnh lịch sử</h2>
-            <p>Cuộc kháng chiến chống thực dân Pháp của nhân dân Việt Nam bước sang giai đoạn quyết định. Dưới sự lãnh đạo sáng suốt, quân và dân ta kiên cường chuẩn bị mọi điều kiện cho trận quyết chiến chiến lược.</p>
-          `,
+          content: '',
         },
       ],
       resourceLinks: [],

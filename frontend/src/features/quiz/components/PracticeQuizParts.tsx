@@ -69,7 +69,7 @@ export function QuizFilterBar({
           disabled={disabled}
           onChange={(e) => onSelectTopic(e.target.value)}
           aria-label="Lọc theo chủ đề"
-          className="w-full appearance-none pl-10 pr-9 py-2.5 bg-white text-stone-900 text-sm rounded-xl border border-stone-200 focus:border-[#8B261E] focus:ring-2 focus:ring-[#8B261E]/20 outline-none cursor-pointer disabled:opacity-60"
+          className="w-full appearance-none !bg-none pl-10 pr-9 py-2.5 bg-white text-stone-900 text-sm rounded-xl border border-stone-200 focus:border-[#8B261E] focus:ring-2 focus:ring-[#8B261E]/20 outline-none cursor-pointer disabled:opacity-60"
         >
           <option value={ALL_TOPICS_ID}>Tất cả chủ đề ({totalCount})</option>
           {topics.map((topic) => (

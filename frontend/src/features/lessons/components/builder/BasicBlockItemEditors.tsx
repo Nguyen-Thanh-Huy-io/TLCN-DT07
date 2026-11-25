@@ -101,7 +101,7 @@ export function QuoteBlockItemEditor({ data, onChange }: QuoteBlockItemEditorPro
       <div className="flex items-center justify-between border-b border-slate-200 pb-2 gap-2 flex-wrap">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
           <span className="text-base leading-none text-amber-700">“</span>
-          <span>Khối trích dẫn lịch sử (Quote)</span>
+          <span>Khối trích dẫn lịch sử</span>
         </span>
         <span className="text-[11px] text-slate-500 font-serif italic">
           Lời hịch, sấm truyền, danh ngôn

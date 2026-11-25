@@ -6,21 +6,20 @@ import {
   CalloutBlockData,
   CharacterBlockData,
   ComparisonTableBlockData,
-  EventBlockData,
   HeadingBlockData,
   ImageBlockData,
   LessonBlockItem,
   MapBlockData,
   QuizBlockData,
   QuoteBlockData,
-  RelatedEventsBlockData,
-  RelatedPeopleBlockData,
+  RowSectionBlockData,
   TextBlockData,
+  TimelineBlockData,
   VideoBlockData,
 } from '../../types/block-builder.types';
 import { LessonBlockType } from '../../types/editor.types';
 import { LESSON_BLOCK_DRAG_MIME } from '../../constants/lesson.constants';
-import { LessonBlockRegistry } from '../../plugins/block-plugin.registry';
+import { LessonBlockRegistry, normalizeVideoEmbedUrl } from '../../plugins/block-plugin.registry';
 import { BlockWidthStrategy } from '../../strategies/row-layout.strategy';
 import { BlockCardWrapper, AddBlockDivider } from './BlockCardWrapper';
 import {
@@ -32,8 +31,11 @@ import {
   TextBlockEditor,
 } from './BasicBlockItemEditors';
 import {
+  RowSectionBlockEditor,
+  TimelineBlockItemEditor,
+} from './StructuredBlockEditors';
+import {
   CharacterBlockItemEditor,
-  EventBlockItemEditor,
   ImageBlockItemEditor,
 } from './RichBlockItemEditors';
 
@@ -76,26 +78,30 @@ const SHARED_BLOCK_RENDERERS: Partial<Record<LessonBlockType, SharedBlockRendere
   [LessonBlockType.CHARACTER]: (block, onChange) => (
     <CharacterBlockItemEditor data={block as CharacterBlockData} onChange={onChange} />
   ),
-  [LessonBlockType.EVENT]: (block, onChange) => (
-    <EventBlockItemEditor data={block as EventBlockData} onChange={onChange} />
-  ),
   [LessonBlockType.IMAGE]: (block, onChange) => (
     <ImageBlockItemEditor data={block as ImageBlockData} onChange={onChange} />
   ),
   [LessonBlockType.VIDEO]: (block, onChange) => {
     const video = block as VideoBlockData;
+    const embedSrc = normalizeVideoEmbedUrl(video.src);
     return (
       <div className="space-y-3">
         <input
           type="text"
           value={video.src || ''}
           onChange={(e) => onChange({ src: e.target.value })}
-          placeholder="Nhập URL video YouTube / tư liệu..."
+          placeholder="Dán liên kết YouTube (youtube.com/watch?v=... hoặc youtu.be/...) hoặc URL video..."
           className="w-full text-sm px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900"
         />
-        {video.src && (
+        {embedSrc && (
           <div className="aspect-video bg-black rounded-lg overflow-hidden max-w-xl mx-auto">
-            <iframe src={video.src} title="Video" className="w-full h-full border-0" allowFullScreen />
+            <iframe
+              src={embedSrc}
+              title="Video tư liệu"
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
           </div>
         )}
       </div>
@@ -144,6 +150,11 @@ export function BlockBuilderCanvas({
   onRemoveBlock,
   onMoveBlock,
   onMoveByDirection,
+  onUpdateRowRatio,
+  onChangeRowColumnCount,
+  onAddBlockToColumn,
+  onUpdateBlockInColumn,
+  onRemoveBlockFromColumn,
   quizTopicId,
 }: BlockBuilderCanvasProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -165,46 +176,6 @@ export function BlockBuilderCanvas({
     }
 
     switch (block.type) {
-      case LessonBlockType.RELATED_PEOPLE: {
-        const rel = block as RelatedPeopleBlockData;
-        return (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
-              <h3 className="text-xl font-serif font-bold text-stone-900">
-                {rel.title || 'Nhân vật liên quan'}
-              </h3>
-              <span className="text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded bg-blue-50 text-blue-800">
-                DỮ LIỆU ĐỘNG
-              </span>
-            </div>
-            <p className="text-sm text-stone-600 max-w-[65ch]">
-              {rel.people?.length
-                ? rel.people.map((p) => p.name).join(', ')
-                : 'Tự động trích xuất danh sách nhân vật lịch sử liên kết từ đồ thị tri thức.'}
-            </p>
-          </div>
-        );
-      }
-      case LessonBlockType.RELATED_EVENTS: {
-        const relEv = block as RelatedEventsBlockData;
-        return (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
-              <h3 className="text-xl font-serif font-bold text-stone-900">
-                {relEv.title || 'Sự kiện liên quan'}
-              </h3>
-              <span className="text-xs font-bold tracking-wider uppercase px-2.5 py-0.5 rounded bg-blue-50 text-blue-800">
-                DỮ LIỆU ĐỘNG
-              </span>
-            </div>
-            <p className="text-sm text-stone-600 max-w-[65ch]">
-              {relEv.events?.length
-                ? relEv.events.map((ev) => `${ev.title} (${ev.year || ''})`).join(' · ')
-                : 'Tự động hiển thị các sự kiện lịch sử có liên kết với thực thể này.'}
-            </p>
-          </div>
-        );
-      }
       case LessonBlockType.QUIZ:
         return (
           <QuizBlockEditor
@@ -214,15 +185,36 @@ export function BlockBuilderCanvas({
           />
         );
       case LessonBlockType.TIMELINE:
-      case LessonBlockType.SECTION_ROW: {
-        const previewHtml = LessonBlockRegistry.blockToHtml(block);
         return (
-          <div
-            className="tiptap-content-box !p-0 text-sm text-slate-800"
-            dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(previewHtml) }}
+          <TimelineBlockItemEditor
+            data={block as TimelineBlockData}
+            onChange={(updates) => onUpdateBlock(block.id, updates)}
           />
         );
-      }
+      case LessonBlockType.SECTION_ROW:
+        return (
+          <RowSectionBlockEditor
+            data={block as RowSectionBlockData}
+            onAddBlockToColumn={(colId, type) => onAddBlockToColumn?.(block.id, colId, type)}
+            onUpdateBlockInColumn={(colId, childId, updates) =>
+              onUpdateBlockInColumn?.(block.id, colId, childId, updates)
+            }
+            onRemoveBlockFromColumn={(colId, childId) =>
+              onRemoveBlockFromColumn?.(block.id, colId, childId)
+            }
+            renderChildBlock={(child, onChildChange) => {
+              const childRenderer = SHARED_BLOCK_RENDERERS[child.type];
+              if (childRenderer) return childRenderer(child, onChildChange);
+              const previewHtml = LessonBlockRegistry.blockToHtml(child);
+              return (
+                <div
+                  className="tiptap-content-box !p-0 text-sm text-slate-800"
+                  dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(previewHtml) }}
+                />
+              );
+            }}
+          />
+        );
       default:
         return (
           <div className="p-3 bg-stone-50 rounded-lg text-xs text-stone-500 italic">

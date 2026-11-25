@@ -128,6 +128,21 @@ export class TagApiService {
     return parsePaginatedResponse<TagItem>(res.data).items;
   }
 
+  static async getTagsPaginated(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  } = {}): Promise<PaginatedResult<TagItem>> {
+    const res = await api.get('/tags', {
+      params: {
+        page: params.page ?? 1,
+        limit: params.limit ?? 25,
+        search: params.search?.trim() || undefined,
+      },
+    });
+    return parsePaginatedResponse<TagItem>(res.data);
+  }
+
   static async createTag(dto: CreateTagDto): Promise<TagItem> {
     const res = await api.post('/tags', dto);
     return res.data?.data || res.data;

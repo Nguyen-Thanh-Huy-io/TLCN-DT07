@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowDown, ArrowLeft, ArrowUp, ExternalLink, Plus, Save, Search, Send, Trash2, Upload, X } from 'lucide-react';
 import { APP_ROUTES } from '@/constants/routes';
 import { ContentStatus } from '@/constants/enums';
-import { extractErrorMessage } from '@/services/api';
+import { extractErrorMessage, UploadApiService } from '@/services/api';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
 import { ArticleApiService, type ArticleItem, type ContentStatusValue } from '@/services/entities/article.service';
@@ -15,6 +15,7 @@ import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { StatusPill, YearInput } from '@/features/articles/components/ArticleList';
 import { ArchiveStatusButton } from '@/components/common/CommonUi';
 import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicEditor';
+import { TopicCoverImagePicker } from '@/features/topics/components/TopicCoverImagePicker';
 
 function NodeArticleSearchBox({
   onPick,
@@ -309,8 +310,13 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
             <textarea className={`${input} min-h-[70px]`} value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
           <div className="sm:col-span-2">
-            <label className={label}>Ảnh bìa (URL)</label>
-            <input className={input} value={coverImageUrl} onChange={(e) => setCoverImageUrl(e.target.value)} />
+            <TopicCoverImagePicker
+              value={coverImageUrl}
+              onChange={setCoverImageUrl}
+              disabled={lockedForEditor || saving}
+              title="Ảnh bìa dòng thời gian"
+              compact
+            />
           </div>
         </div>
 
@@ -441,8 +447,35 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className={label}>Ảnh (URL)</label>
-                    <input className={input} value={n.imageUrl ?? ''} onChange={(e) => updateNode(n.key, { imageUrl: e.target.value })} />
+                    <label className={label}>Ảnh minh họa mốc</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        className={`${input} flex-1`}
+                        value={n.imageUrl ?? ''}
+                        onChange={(e) => updateNode(n.key, { imageUrl: e.target.value })}
+                        placeholder="Dán URL hoặc tải ảnh lên..."
+                      />
+                      <label className="secondary-button !h-9 !px-3 !text-xs shrink-0 cursor-pointer">
+                        <Upload size={13} />
+                        <span>Tải ảnh</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/gif"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            try {
+                              const uploaded = await UploadApiService.uploadImage(file);
+                              if (uploaded?.url) updateNode(n.key, { imageUrl: uploaded.url });
+                            } catch (err) {
+                              setError(extractErrorMessage(err, 'Không tải được ảnh mốc lên máy chủ.'));
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
               </li>

@@ -13,6 +13,7 @@ import {
   AuthorPublishedContentType,
   type AuthorPublishedPayload,
 } from '../common/constants/follow-events.constant';
+import { ROLE_GROUPS } from '../common/access/access.constant';
 import { PrismaService } from '../common/services/prisma.service';
 import { loadAuthorNames } from '../common/utils/author-names';
 import { SlugService } from '../common/services/slug.service';
@@ -207,8 +208,14 @@ export class ArticleService {
     return present(row);
   }
 
-  async create(dto: CreateArticleDto, authorId?: string) {
-    const { tagIds, metadata, ...data } = dto;
+  private isSuperAdmin(role?: string): boolean {
+    return Boolean(
+      role && (ROLE_GROUPS.SUPERADMIN as readonly string[]).includes(role),
+    );
+  }
+
+  async create(dto: CreateArticleDto, authorId?: string, actorRole?: string) {
+    const { tagIds, metadata, isFeatured, ...data } = dto;
     await this.validate(dto);
     const slug = dto.slug
       ? await this.assertSlugFree(dto.slug)
@@ -219,6 +226,7 @@ export class ArticleService {
     const created = await this.prisma.article.create({
       data: {
         ...data,
+        isFeatured: this.isSuperAdmin(actorRole) ? Boolean(isFeatured) : false,
         slug,
         contentBlocks: (data.contentBlocks ?? []) as Prisma.InputJsonValue,
         metadata: toArticleMetadataJson(metadata),
@@ -241,7 +249,7 @@ export class ArticleService {
     return this.findOne(created.id);
   }
 
-  async update(id: string, dto: UpdateArticleDto) {
+  async update(id: string, dto: UpdateArticleDto, actorRole?: string) {
     const current = await this.prisma.article.findUnique({ where: { id } });
     if (!current) throw new NotFoundException(ARTICLE_MESSAGES.NOT_FOUND(id));
     const normalizedDto = { ...dto, status: dto.status ?? current.status };
@@ -259,7 +267,9 @@ export class ArticleService {
     if (normalizedDto.slug && normalizedDto.slug !== current.slug)
       await this.assertSlugFree(normalizedDto.slug, id);
 
-    const { tagIds, contentBlocks, metadata, ...data } = normalizedDto;
+    const { tagIds, contentBlocks, metadata, isFeatured, ...data } =
+      normalizedDto;
+    const canManageFeatured = this.isSuperAdmin(actorRole);
     const becomesPublished =
       data.status === ContentStatus.PUBLISHED &&
       current.status !== ContentStatus.PUBLISHED;
@@ -269,6 +279,9 @@ export class ArticleService {
         where: { id },
         data: {
           ...data,
+          ...(canManageFeatured && isFeatured !== undefined
+            ? { isFeatured }
+            : {}),
           ...(contentBlocks !== undefined
             ? { contentBlocks: contentBlocks as Prisma.InputJsonValue }
             : {}),
@@ -307,6 +320,19 @@ export class ArticleService {
     await this.prisma.article.delete({ where: { id } });
     await this.clearTagCache();
     return { success: true };
+  }
+
+  async setFeatured(id: string, isFeatured: boolean) {
+    const current = await this.prisma.article.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!current) throw new NotFoundException(ARTICLE_MESSAGES.NOT_FOUND(id));
+    await this.prisma.article.update({
+      where: { id },
+      data: { isFeatured },
+    });
+    return this.findOne(id);
   }
 
   async review(id: string, dto: ReviewArticleDto, reviewerUserId?: string) {

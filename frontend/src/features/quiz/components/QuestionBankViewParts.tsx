@@ -132,11 +132,13 @@ export function QuestionBankFilters({ facade }: { facade: QuestionBankViewFacade
           className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value={ALL_FILTER_VALUE}>Tất cả loại câu hỏi</option>
-          {Object.values(QuizQuestionType).map((t) => (
-            <option key={t} value={t}>
-              {QUIZ_QUESTION_TYPE_META[t]?.label || t}
-            </option>
-          ))}
+          {Object.values(QuizQuestionType)
+            .filter((t) => t !== QuizQuestionType.FILL_IN_BLANK)
+            .map((t) => (
+              <option key={t} value={t}>
+                {QUIZ_QUESTION_TYPE_META[t]?.label || t}
+              </option>
+            ))}
         </select>
 
         <select
@@ -162,9 +164,9 @@ export function QuestionBankFilters({ facade }: { facade: QuestionBankViewFacade
             setSelectedDifficulty(e.target.value);
             setCurrentPage(1);
           }}
-          className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-red-700"
         >
-          <option value={ALL_FILTER_VALUE}>Tất cả mức độ</option>
+          <option value={ALL_FILTER_VALUE}>Tất cả độ khó</option>
           <option value="EASY">Dễ</option>
           <option value="MEDIUM">Trung bình</option>
           <option value="HARD">Khó</option>
@@ -173,8 +175,8 @@ export function QuestionBankFilters({ facade }: { facade: QuestionBankViewFacade
 
       {/* Bulk Action Controls */}
       {selectedIds.length > 0 && (
-        <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl">
-          <span className="text-xs font-semibold text-blue-900">
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 px-3 py-1.5 rounded-xl">
+          <span className="text-xs font-semibold text-red-900">
             Đã chọn <strong>{selectedIds.length}</strong>
           </span>
           <button
@@ -200,38 +202,46 @@ export function QuestionBankFilters({ facade }: { facade: QuestionBankViewFacade
         className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors"
       >
         <Plus size={15} />
-        <span>Thêm câu hỏi mới</span>
+        <span>Tạo câu hỏi mới</span>
       </button>
     </div>
   );
 }
 
 export function QuestionBankTable({ facade }: { facade: QuestionBankViewFacade }) {
-  const { loading, selectedIds, currentPage, setCurrentPage, itemsPerPage, handleOpenCreateModal, handleOpenEditModal, handleDeleteQuestion, filteredQuestions, totalPages, paginatedQuestions, handleSelectAll, handleToggleSelectOne, isAllSelected } = facade;
+  const { loading, selectedIds, currentPage, setCurrentPage, itemsPerPage, handleOpenCreateModal, handleOpenEditModal, handleDeleteQuestion, filteredQuestions, totalPages, paginatedQuestions, handleSelectAll, handleToggleSelectOne, isAllSelected, search, selectedType, selectedDifficulty, selectedTopicId } = facade;
+  const hasActiveFilter = Boolean(
+    search.trim() ||
+      selectedType !== ALL_FILTER_VALUE ||
+      selectedDifficulty !== ALL_FILTER_VALUE ||
+      selectedTopicId !== ALL_FILTER_VALUE
+  );
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
       {loading ? (
         <div className="p-16 text-center">
-          <div className="inline-block w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
+          <div className="inline-block w-8 h-8 border-3 border-red-700 border-t-transparent rounded-full animate-spin mb-3" />
           <p className="text-xs font-medium text-slate-500">
-            Đang tải danh sách câu hỏi từ cơ sở dữ liệu...
+            Đang tải danh sách câu hỏi...
           </p>
         </div>
       ) : paginatedQuestions.length === 0 ? (
         <div className="text-center py-16 p-8">
-          <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-700 flex items-center justify-center mx-auto mb-3">
             <CircleDot size={28} />
           </div>
           <h3 className="text-base font-bold text-slate-800">
-            Không tìm thấy câu hỏi phù hợp
+            {hasActiveFilter ? 'Không tìm thấy câu hỏi phù hợp' : 'Chưa có câu hỏi nào'}
           </h3>
           <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto mb-4">
-            Chưa có câu hỏi nào thỏa mãn bộ lọc hiện tại. Bạn có thể bấm nút bên dưới để tạo câu hỏi mới.
+            {hasActiveFilter
+              ? 'Không có câu hỏi nào khớp với từ khóa hoặc bộ lọc hiện tại.'
+              : 'Bắt đầu tạo câu hỏi đầu tiên để xây dựng Ngân hàng câu hỏi cho các đề thi.'}
           </p>
           <button
             type="button"
             onClick={handleOpenCreateModal}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs"
+            className="px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs transition-colors"
           >
             <Plus size={14} />
             <span>Tạo câu hỏi mới</span>

@@ -27,11 +27,11 @@ import {
 import { useActiveEditor } from '../../../hooks/useLessonAnnotations';
 import {
   RICH_TABLE_NODE_NAMES,
-  insertRichTable,
 } from '../../../extensions/table.extension';
 import { TextAnnotationModal, AnnotationModalTab } from '../TextAnnotationModal';
 import {
   BulletListIcon,
+  TableSizeGridPicker,
   TypographyListStyleControl,
   TypographyTableControls,
 } from './TypographyListAndTablePanels';
@@ -231,6 +231,7 @@ export function TypographyInspectorPanel({
   hideEditorialLayout?: boolean;
 }) {
   const { activeEditor: ed } = useActiveEditor();
+  const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [annotationModal, setAnnotationModal] = useState<{
     open: boolean;
     tab: AnnotationModalTab;
@@ -437,12 +438,10 @@ export function TypographyInspectorPanel({
               data-testid="inspector-btn-table"
               disabled={!ed}
               onMouseDown={preventFocusLoss}
-              onClick={() =>
-                insertRichTable(ed, { rows: 3, cols: 3, withHeaderRow: true })
-              }
-              title="Chèn bảng dữ liệu (3×3)"
+              onClick={() => setTablePickerOpen((prev) => !prev)}
+              title="Chọn kích thước để chèn bảng"
               className={`flex h-8 items-center justify-center gap-1 text-[11px] font-semibold transition cursor-pointer disabled:opacity-40 ${
-                ed?.isActive(RICH_TABLE_NODE_NAMES.TABLE)
+                tablePickerOpen || ed?.isActive(RICH_TABLE_NODE_NAMES.TABLE)
                   ? INSPECTOR_SEG_BTN_ACTIVE
                   : INSPECTOR_SEG_BTN_IDLE
               }`}
@@ -453,7 +452,14 @@ export function TypographyInspectorPanel({
           </div>
         )}
 
-        {/* Khay thao tác Hàng / Cột / Tiêu đề khi con trỏ đang nằm trong bảng */}
+        <TableSizeGridPicker
+          editor={ed}
+          open={tablePickerOpen}
+          onClose={() => setTablePickerOpen(false)}
+          preventFocusLoss={preventFocusLoss}
+        />
+
+        {/* Khay thao tác Hàng / Cột / Ô / Tiêu đề / Nền ô khi con trỏ nằm trong bảng */}
         <TypographyTableControls
           editor={ed}
           preventFocusLoss={preventFocusLoss}

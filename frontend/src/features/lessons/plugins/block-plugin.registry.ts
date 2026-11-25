@@ -34,13 +34,10 @@ import {
   videoBlockPlugin,
   quoteBlockPlugin,
   characterBlockPlugin,
-  eventBlockPlugin,
   mapBlockPlugin,
   comparisonTableBlockPlugin,
   quizBlockPlugin,
   dividerBlockPlugin,
-  relatedPeopleBlockPlugin,
-  relatedEventsBlockPlugin,
   sectionRowBlockPlugin,
   setRowSectionCompiler,
   resourceLinkBlockPlugin,
@@ -55,6 +52,34 @@ export function safeUrl(url: string | null | undefined): string {
     return escapeHtml(trimmed);
   }
   return '#';
+}
+
+/** Chuyển đổi các dạng link YouTube (watch, youtu.be, shorts, live) sang URL /embed/ hợp lệ cho iframe. */
+export function normalizeVideoEmbedUrl(rawUrl: string | null | undefined): string {
+  if (!rawUrl) return '';
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return '';
+  try {
+    const parsed = new URL(trimmed);
+    const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+    if (host === 'youtu.be') {
+      const id = parsed.pathname.replace(/^\//, '').split('/')[0];
+      if (id) return `https://www.youtube.com/embed/${encodeURIComponent(id)}`;
+    }
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (parsed.pathname === '/watch') {
+        const id = parsed.searchParams.get('v');
+        if (id) return `https://www.youtube.com/embed/${encodeURIComponent(id)}`;
+      }
+      const match = parsed.pathname.match(/^\/(shorts|live)\/([^/?#]+)/);
+      if (match?.[2]) {
+        return `https://www.youtube.com/embed/${encodeURIComponent(match[2])}`;
+      }
+    }
+  } catch {
+    // Giữ nguyên URL nếu không phải URL đầy đủ
+  }
+  return trimmed;
 }
 
 export function renderCollapsibleDetail(detailContent?: string, label: string = 'Xem chi tiết'): string {
@@ -158,12 +183,55 @@ type TimelineNodeRenderer = (
   showLocation: boolean,
 ) => string;
 
+function isDirectVideoFile(url: string): boolean {
+  return /\.(mp4|webm|ogg)(\?.*)?$/i.test(url.trim());
+}
+
+function renderTimelineMediaListHtml(n: TimelineNode, showImage: boolean): string {
+  if (!showImage) return '';
+  const items: Array<{ type: 'IMAGE' | 'VIDEO'; url: string; caption?: string }> = [];
+  if (Array.isArray(n.mediaList)) {
+    for (const m of n.mediaList) {
+      if (m?.url?.trim()) {
+        items.push({ type: m.type, url: m.url.trim(), caption: m.caption });
+      }
+    }
+  }
+  if (n.thumbnailUrl?.trim() && !items.some((i) => i.type === 'IMAGE' && i.url === n.thumbnailUrl?.trim())) {
+    items.unshift({ type: 'IMAGE', url: n.thumbnailUrl.trim(), caption: n.mediaCaption });
+  }
+  if (items.length === 0) return '';
+
+  const htmlParts = items
+    .map((item) => {
+      if (item.type === 'VIDEO') {
+        const safeCaption = item.caption ? `<figcaption class="hisgo-timeline-caption">${escapeHtml(item.caption)}</figcaption>` : '';
+        if (isDirectVideoFile(item.url)) {
+          return `<figure class="hisgo-timeline-figure hisgo-timeline-figure--video"><video controls preload="metadata" src="${safeUrl(item.url)}" class="w-full rounded-lg"></video>${safeCaption}</figure>`;
+        }
+        const embedUrl = normalizeVideoEmbedUrl(item.url);
+        if (!embedUrl) return '';
+        return `<figure class="hisgo-timeline-figure hisgo-timeline-figure--video"><div class="hisgo-video-wrap"><iframe src="${safeUrl(embedUrl)}" class="hisgo-video-iframe" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>${safeCaption}</figure>`;
+      }
+      return `<figure class="hisgo-timeline-figure hisgo-timeline-figure--vertical"><img src="${safeUrl(item.url)}" alt="${escapeHtml(item.caption || n.title || '')}" />${item.caption ? `<figcaption class="hisgo-timeline-caption">${escapeHtml(item.caption)}</figcaption>` : ''}</figure>`;
+    })
+    .filter(Boolean);
+
+  return htmlParts.length > 0 ? `<div class="hisgo-timeline-media-list">${htmlParts.join('')}</div>` : '';
+}
+
 function renderCinematicNode(n: TimelineNode, showImage: boolean, showLocation: boolean): string {
   const safeYear = escapeHtml(n.dateLabel || n.year);
-  const bgImg = showImage && n.thumbnailUrl ? safeUrl(n.thumbnailUrl) : '';
+  const firstImage =
+    n.thumbnailUrl?.trim() ||
+    (Array.isArray(n.mediaList) ? n.mediaList.find((m) => m.type === 'IMAGE' && m.url?.trim())?.url?.trim() : '');
+  const bgImg = showImage && firstImage ? safeUrl(firstImage) : '';
   const cardCls = bgImg ? 'hisgo-cinematic-card' : 'hisgo-cinematic-card hisgo-cinematic-card--fallback';
   const cardBgAttr = bgImg
     ? ` style="background-image: linear-gradient(180deg, rgba(15, 23, 42, 0.35) 0%, rgba(15, 23, 42, 0.78) 50%, rgba(15, 23, 42, 0.96) 100%), url('${bgImg}');"`
+    : '';
+  const extraVideoHtml = showImage && Array.isArray(n.mediaList) && n.mediaList.some((m) => m.type === 'VIDEO' && m.url?.trim())
+    ? renderTimelineMediaListHtml({ ...n, thumbnailUrl: '', mediaList: n.mediaList.filter((m) => m.type === 'VIDEO') }, true)
     : '';
   const detailHtml = renderCollapsibleDetail(n.detailContent, 'Xem chi tiết diễn biến lịch sử');
   return `
@@ -175,16 +243,15 @@ function renderCinematicNode(n: TimelineNode, showImage: boolean, showLocation: 
       <h5 class="hisgo-cinematic-title">${escapeHtml(n.title)}</h5>
       <p class="hisgo-cinematic-desc">${escapeHtml(n.description)}</p>
       ${showImage && n.mediaCaption ? `<div class="hisgo-cinematic-caption">Tư liệu: ${escapeHtml(n.mediaCaption)}</div>` : ''}
+      ${extraVideoHtml}
       ${detailHtml}
     </div>`;
 }
 
 function renderMuseumSplitNode(n: TimelineNode, showImage: boolean, showLocation: boolean): string {
   const safeYear = escapeHtml(n.dateLabel || n.year);
-  const thumbHtml =
-    showImage && n.thumbnailUrl
-      ? `<div class="hisgo-timeline-split-media"><figure class="hisgo-timeline-figure"><img src="${safeUrl(n.thumbnailUrl)}" alt="${escapeHtml(n.mediaCaption || n.title || '')}" />${n.mediaCaption ? `<figcaption class="hisgo-timeline-caption">${escapeHtml(n.mediaCaption)}</figcaption>` : ''}</figure></div>`
-      : '';
+  const mediaHtml = renderTimelineMediaListHtml(n, showImage);
+  const splitMediaWrap = mediaHtml ? `<div class="hisgo-timeline-split-media">${mediaHtml}</div>` : '';
   const detailHtml = renderCollapsibleDetail(n.detailContent, 'Xem chi tiết diễn biến');
   return `
     <div class="hisgo-timeline-node hisgo-timeline-node--split">
@@ -198,17 +265,14 @@ function renderMuseumSplitNode(n: TimelineNode, showImage: boolean, showLocation
           <p class="hisgo-timeline-node-desc">${escapeHtml(n.description)}</p>
           ${detailHtml}
         </div>
-        ${thumbHtml}
+        ${splitMediaWrap}
       </div>
     </div>`;
 }
 
 function renderVerticalNode(n: TimelineNode, showImage: boolean, showLocation: boolean): string {
   const safeYear = escapeHtml(n.dateLabel || n.year);
-  const thumbHtml =
-    showImage && n.thumbnailUrl
-      ? `<figure class="hisgo-timeline-figure hisgo-timeline-figure--vertical"><img src="${safeUrl(n.thumbnailUrl)}" alt="${escapeHtml(n.mediaCaption || n.title || '')}" />${n.mediaCaption ? `<figcaption class="hisgo-timeline-caption">${escapeHtml(n.mediaCaption)}</figcaption>` : ''}</figure>`
-      : '';
+  const mediaHtml = renderTimelineMediaListHtml(n, showImage);
   const detailHtml = renderCollapsibleDetail(n.detailContent, 'Xem chi tiết diễn biến');
   return `
     <div class="hisgo-timeline-node">
@@ -218,7 +282,7 @@ function renderVerticalNode(n: TimelineNode, showImage: boolean, showLocation: b
       </div>
       <div class="hisgo-timeline-node-title">${escapeHtml(n.title)}</div>
       <p class="hisgo-timeline-node-desc">${escapeHtml(n.description)}</p>
-      ${thumbHtml}
+      ${mediaHtml}
       ${detailHtml}
     </div>`;
 }
@@ -235,12 +299,12 @@ export const timelineBlockPlugin: BlockPlugin<TimelineBlockData> = {
     id,
     type: LessonBlockType.TIMELINE,
     width: defaultWidth,
-    title: 'Dòng thời gian lịch sử',
-    subtitle: 'Các mốc lịch sử tiêu biểu',
+    title: '',
+    subtitle: '',
     orientation: TimelineOrientation.VERTICAL,
     sourceMode: 'MANUAL',
     displayConfig: {
-      sceneStyle: TimelineSceneStyle.MUSEUM_SPLIT,
+      sceneStyle: TimelineSceneStyle.CHRONO_MINIMAL,
       dateFormat: TimelineDateFormat.YEAR_ONLY,
       sortOrder: TimelineSortOrder.CHRONOLOGICAL,
       showDescription: true,
@@ -259,17 +323,17 @@ export const timelineBlockPlugin: BlockPlugin<TimelineBlockData> = {
       cfg?.sortOrder === TimelineSortOrder.REVERSE_CHRONOLOGICAL
         ? [...rawNodes].reverse()
         : rawNodes;
-    const sceneStyle = cfg?.sceneStyle || TimelineSceneStyle.MUSEUM_SPLIT;
+    const sceneStyle = cfg?.sceneStyle || TimelineSceneStyle.CHRONO_MINIMAL;
     const showImage = cfg?.showImage !== false;
     const showLocation = Boolean(cfg?.showLocation);
     const renderNode =
-      TIMELINE_SCENE_RENDERERS[sceneStyle] ?? TIMELINE_SCENE_RENDERERS[TimelineSceneStyle.MUSEUM_SPLIT];
+      TIMELINE_SCENE_RENDERERS[sceneStyle] ?? TIMELINE_SCENE_RENDERERS[TimelineSceneStyle.CHRONO_MINIMAL];
     const nodesHtml = nodes.map((n) => renderNode(n, showImage, showLocation)).join('');
-    const safeTitle = escapeHtml(block.title);
-    const safeSubtitle = block.subtitle ? escapeHtml(block.subtitle) : '';
+    const safeTitle = block.title?.trim() ? escapeHtml(block.title) : '';
+    const safeSubtitle = block.subtitle?.trim() ? escapeHtml(block.subtitle) : '';
     return `
       <div class="hisgo-timeline-block">
-        <h4 class="hisgo-timeline-title">${safeTitle}</h4>
+        ${safeTitle ? `<h4 class="hisgo-timeline-title">${safeTitle}</h4>` : ''}
         ${safeSubtitle ? `<p class="hisgo-timeline-subtitle">${safeSubtitle}</p>` : ''}
         <div class="hisgo-timeline-nodes">${nodesHtml}</div>
       </div>`;
@@ -292,13 +356,10 @@ export class LessonBlockRegistry {
       calloutBlockPlugin as BlockPlugin<LessonBlockItem>,
       timelineBlockPlugin as BlockPlugin<LessonBlockItem>,
       characterBlockPlugin as BlockPlugin<LessonBlockItem>,
-      eventBlockPlugin as BlockPlugin<LessonBlockItem>,
       mapBlockPlugin as BlockPlugin<LessonBlockItem>,
       comparisonTableBlockPlugin as BlockPlugin<LessonBlockItem>,
       quizBlockPlugin as BlockPlugin<LessonBlockItem>,
       dividerBlockPlugin as BlockPlugin<LessonBlockItem>,
-      relatedPeopleBlockPlugin as BlockPlugin<LessonBlockItem>,
-      relatedEventsBlockPlugin as BlockPlugin<LessonBlockItem>,
       sectionRowBlockPlugin as BlockPlugin<LessonBlockItem>,
       resourceLinkBlockPlugin as BlockPlugin<LessonBlockItem>,
     ];

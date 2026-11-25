@@ -399,16 +399,14 @@ export class BlockWidthStrategy {
 
   private static readonly AVAILABLE_WIDTHS_MAP: Partial<Record<LessonBlockType, BlockWidthType[]>> = {
     [LessonBlockType.CHARACTER]: [BlockWidthType.HALF, BlockWidthType.THIRD, BlockWidthType.FULL],
-    [LessonBlockType.EVENT]: [BlockWidthType.HALF, BlockWidthType.THIRD, BlockWidthType.FULL],
     [LessonBlockType.IMAGE]: [BlockWidthType.HALF, BlockWidthType.FULL],
     [LessonBlockType.VIDEO]: [BlockWidthType.FULL, BlockWidthType.HALF],
     [LessonBlockType.RESOURCE_LINK]: [BlockWidthType.AUTO, BlockWidthType.HALF, BlockWidthType.FULL],
   };
 
   private static readonly DEFAULT_WIDTH_MAP: Partial<Record<LessonBlockType, BlockWidthType>> = {
-    [LessonBlockType.CHARACTER]: BlockWidthType.HALF,
-    [LessonBlockType.EVENT]: BlockWidthType.HALF,
-    [LessonBlockType.IMAGE]: BlockWidthType.HALF,
+    [LessonBlockType.CHARACTER]: BlockWidthType.FULL,
+    [LessonBlockType.IMAGE]: BlockWidthType.FULL,
     [LessonBlockType.RESOURCE_LINK]: BlockWidthType.AUTO,
   };
 

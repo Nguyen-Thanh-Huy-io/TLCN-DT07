@@ -38,7 +38,7 @@ export const EVENT_BLOCK_CONSTANTS = {
   DEFAULT_NAME: 'Tên sự kiện lịch sử',
   DEFAULT_TIME_LOCATION: 'Thời gian • Địa điểm',
   DEFAULT_SUMMARY: 'Mô tả ngắn về diễn biến và ý nghĩa của sự kiện.',
-  DIFFERENCE_NOTE: 'Khác với khối Văn bản: đây là dữ liệu liên kết đến thực thể Event, không phải nội dung nhập tự do.',
+  DIFFERENCE_NOTE: 'Khác với khối Văn bản: đây là dữ liệu liên kết tới Sự kiện trong kho dữ liệu, không phải nội dung nhập tự do.',
   BTN_PICK_EVENT: 'Chọn từ kho dữ liệu',
   BTN_CHANGE_EVENT: 'Đổi sự kiện',
   BTN_DELETE_BLOCK: 'Xóa khối sự kiện',
@@ -121,13 +121,6 @@ export const BLOCK_CATALOG: Record<LessonBlockType, BlockCatalogEntry> = {
     label: 'Dòng thời gian',
     description: 'Dòng thời gian các mốc sự kiện',
     group: LessonBlockGroup.SPECIALIZED,
-    showInPalette: false,
-  },
-  [LessonBlockType.RELATED_EVENTS]: {
-    type: LessonBlockType.RELATED_EVENTS,
-    label: 'Sự kiện liên quan',
-    description: 'Thẻ diễn biến và các sự kiện lịch sử gắn kết',
-    group: LessonBlockGroup.SPECIALIZED,
     showInPalette: true,
   },
   [LessonBlockType.MAP]: {
@@ -147,9 +140,9 @@ export const BLOCK_CATALOG: Record<LessonBlockType, BlockCatalogEntry> = {
   [LessonBlockType.SECTION_ROW]: {
     type: LessonBlockType.SECTION_ROW,
     label: 'Bố cục nhiều cột',
-    description: 'Chia bố cục đa cột kèm mẫu sẵn (Tạp chí 4:8, Đối xứng 6:6, 3 cột...)',
+    description: 'Chia 1, 2 hoặc 3 cột tự do chứa bất kỳ khối nội dung nào',
     group: LessonBlockGroup.ADVANCED,
-    showInPalette: false,
+    showInPalette: true,
   },
   [LessonBlockType.QUIZ]: {
     type: LessonBlockType.QUIZ,
@@ -163,18 +156,6 @@ export const BLOCK_CATALOG: Record<LessonBlockType, BlockCatalogEntry> = {
     type: LessonBlockType.RESOURCE_LINK,
     label: 'Tài liệu đính kèm',
     description: 'Liên kết sử liệu tham khảo ở cuối bài học',
-    showInPalette: false,
-  },
-  [LessonBlockType.EVENT]: {
-    type: LessonBlockType.EVENT,
-    label: 'Thẻ sự kiện',
-    description: 'Thẻ sự kiện lịch sử đơn lẻ',
-    showInPalette: false,
-  },
-  [LessonBlockType.RELATED_PEOPLE]: {
-    type: LessonBlockType.RELATED_PEOPLE,
-    label: 'Nhân vật liên quan',
-    description: 'Danh sách nhân vật lịch sử liên quan',
     showInPalette: false,
   },
 };

@@ -73,6 +73,7 @@ export interface ArticleItem {
   isFeatured: boolean;
   displayOrder: number;
   status: ContentStatusValue;
+  rejectionReason?: string | null;
   createdBy: string | null;
   publishedAt: string | null;
   createdAt: string;
@@ -112,6 +113,7 @@ export interface ArticleQuery {
   categoryId?: string;
   tagId?: string;
   status?: ContentStatusValue;
+  featured?: boolean;
   sort?: 'updated' | 'year' | 'title';
 }
 
@@ -137,6 +139,9 @@ export const ArticleApiService = {
   },
   async review(id: string, payload: { status: 'PUBLISHED' | 'REJECTED' | 'DRAFT'; rejectionReason?: string }): Promise<ArticleItem> {
     return unwrap(await api.patch(`/articles/${id}/review`, payload));
+  },
+  async setFeatured(id: string, isFeatured: boolean): Promise<ArticleItem> {
+    return unwrap(await api.patch(`/articles/${id}/featured`, { isFeatured }));
   },
 };
 

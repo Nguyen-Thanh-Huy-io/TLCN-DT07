@@ -14,8 +14,8 @@ import {
   CalloutBlockData,
   HeadingBlockData,
   LessonBlockItem,
-  RelatedEventsBlockData,
-  RelatedPeopleBlockData,
+  RowSectionBlockData,
+  TimelineBlockData,
 } from '../../types/block-builder.types';
 import { LessonBlockType } from '../../types/editor.types';
 import { BlockWidthStrategy } from '../../strategies/row-layout.strategy';
@@ -25,9 +25,11 @@ import { TypographyInspectorPanel } from './inspectors/TypographyInspectorPanel'
 import {
   CalloutBlockInspector,
   HeadingBlockInspector,
-  RelatedEventsBlockInspector,
-  RelatedPeopleBlockInspector,
 } from './inspectors/SimpleBlockInspectors';
+import {
+  RowSectionBlockInspector,
+  TimelineBlockInspector,
+} from './inspectors/StructuredBlockInspectors';
 
 export interface BlockPropertyInspectorProps {
   block: LessonBlockItem | null;
@@ -72,15 +74,22 @@ const BLOCK_INSPECTOR_STRATEGIES: BlockInspectorStrategyMap = {
       />
     </div>
   ),
-  [LessonBlockType.RELATED_PEOPLE]: ({ block, onUpdateBlock }) => (
-    <RelatedPeopleBlockInspector
-      block={block as RelatedPeopleBlockData}
+  [LessonBlockType.SECTION_ROW]: ({
+    block,
+    onUpdateBlock,
+    onChangeRowColumnCount,
+    onUpdateRowRatio,
+  }) => (
+    <RowSectionBlockInspector
+      block={block as RowSectionBlockData}
       onUpdateBlock={onUpdateBlock}
+      onChangeRowColumnCount={onChangeRowColumnCount}
+      onUpdateRowRatio={onUpdateRowRatio}
     />
   ),
-  [LessonBlockType.RELATED_EVENTS]: ({ block, onUpdateBlock }) => (
-    <RelatedEventsBlockInspector
-      block={block as RelatedEventsBlockData}
+  [LessonBlockType.TIMELINE]: ({ block, onUpdateBlock }) => (
+    <TimelineBlockInspector
+      block={block as TimelineBlockData}
       onUpdateBlock={onUpdateBlock}
     />
   ),
@@ -225,23 +234,23 @@ export function LessonPropertiesPanel({
   onUpdateRowRatio,
 }: LessonPropertiesPanelProps) {
   return (
-    <aside className="w-full lg:w-80 xl:w-[350px] shrink-0 flex flex-col gap-2.5 max-h-[calc(100vh-80px)] overflow-y-auto lg:sticky lg:top-[68px] self-start pr-0.5 animate-in slide-in-from-right duration-200 z-20 custom-editor-scrollbar">
-      <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs flex items-center justify-between">
-        <span className="text-xs md:text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 px-1">
-          <span>⚙️ Thuộc tính khối</span>
+    <aside className="w-full lg:w-72 xl:w-80 shrink-0 flex flex-col gap-2.5 max-h-[calc(100vh-80px)] overflow-y-auto lg:sticky lg:top-[68px] self-start pr-0.5 animate-in slide-in-from-right duration-200 z-20 custom-editor-scrollbar">
+      <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs flex items-center justify-between gap-2">
+        <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 px-1 whitespace-nowrap">
+          <span>⚙️ Thuộc tính</span>
           {activeBlock && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />}
         </span>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {onOpenInfoTab && (
             <button
               type="button"
               onClick={onOpenInfoTab}
-              className="text-[11px] text-blue-700 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-md transition cursor-pointer font-semibold flex items-center gap-1"
+              className="text-[11px] text-blue-700 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-md transition cursor-pointer font-semibold flex items-center gap-1 whitespace-nowrap"
               title="Chuyển sang Tab Thông tin & Hồ sơ bài học"
             >
               <ArrowLeft size={12} />
-              <span>Hồ sơ</span>
+              <span>Thông tin</span>
             </button>
           )}
           <button

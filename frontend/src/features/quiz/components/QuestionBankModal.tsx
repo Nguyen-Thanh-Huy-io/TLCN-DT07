@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TipTapContent } from '@/features/lessons/components/TipTapContent';
+import { ConfirmDialog } from '@/components/common/CommonUi';
 import { QUIZ_QUESTION_TYPE_META, QuizQuestionType, OrderingItem, generateQuizId } from '@/features/lessons/types/editor.types';
 import { CreateQuestionPayload, QuestionApiService, QuestionBankItem } from '@/services/entities/quiz.service';
 import { TopicItem } from '@/types/models';
@@ -91,12 +92,43 @@ export function QuestionBankModal({
     };
   }, [initialQuestion, isOpen, defaultTopicIds]);
 
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+
+  const isDirty = Boolean(
+    initialQuestion
+      ? prompt !== (initialQuestion.prompt || '') || explanation !== (initialQuestion.explanation || '')
+      : prompt.replace(/<[^>]*>/g, '').trim() ||
+          explanation.trim() ||
+          options.some((o) => o.text.trim()) ||
+          orderingItems.some((item) => item.label.trim()) ||
+          matchingPairsValue.leftItems.some((item) => item.label.trim()) ||
+          matchingPairsValue.rightItems.some((item) => item.label.trim())
+  );
+
+  const handleRequestClose = useCallback(() => {
+    if (submitting) return;
+    if (isDirty) {
+      setCloseConfirmOpen(true);
+      return;
+    }
+    onClose();
+  }, [isDirty, submitting, onClose]);
+
+  useEffect(() => {
+    if (!isOpen || isTopicModalOpen || closeConfirmOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleRequestClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, isTopicModalOpen, closeConfirmOpen, handleRequestClose]);
+
   if (!isOpen) return null;
 
   const handleSelectType = (targetType: QuizQuestionType, isReady: boolean) => {
     if (!isReady) {
       setNoticeMsg(
-        `Loại câu hỏi "${QUIZ_QUESTION_TYPE_META[targetType]?.label || targetType}" sẽ được kích hoạt ở các bước kế tiếp theo lộ trình kiểm thử!`
+        `Dạng câu hỏi "${QUIZ_QUESTION_TYPE_META[targetType]?.label || targetType}" hiện chưa được hỗ trợ.`
       );
       return;
     }
@@ -186,8 +218,15 @@ export function QuestionBankModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs"
+      onClick={handleRequestClose}
+    >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={initialQuestion ? 'Cập nhật câu hỏi' : 'Tạo câu hỏi mới'}
+        onClick={(e) => e.stopPropagation()}
         className={`bg-white shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-all duration-200 animate-in fade-in zoom-in-95 ${
           isMaximized
             ? 'fixed inset-2 z-50 rounded-2xl max-h-[calc(100vh-16px)]'
@@ -198,12 +237,12 @@ export function QuestionBankModal({
           isEdit={Boolean(initialQuestion)}
           isMaximized={isMaximized}
           onToggleMaximize={() => setIsMaximized(!isMaximized)}
-          onClose={onClose}
+          onClose={handleRequestClose}
         />
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 py-4 sm:py-5 space-y-5">
           {errorMsg && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <div role="alert" className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -217,7 +256,7 @@ export function QuestionBankModal({
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-            <div className="lg:col-span-8">
+            <div className="lg:col-span-8 min-w-0">
               <label className="block text-xs font-bold text-slate-800 mb-2">
                 Loại câu hỏi
               </label>
@@ -238,17 +277,17 @@ export function QuestionBankModal({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <label className="block text-xs font-bold text-slate-800">
-                Nội dung câu hỏi
+                Nội dung câu hỏi <span className="text-red-500">*</span>
               </label>
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-semibold text-slate-500">Độ khó:</span>
+                <span className="text-[11px] font-semibold text-slate-500 shrink-0">Độ khó:</span>
                 <select
                   value={difficulty}
                   onChange={(e) => setDifficulty(e.target.value as QuestionDifficulty)}
-                  className="text-[11px] font-semibold py-0.5 px-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-700 focus:outline-none"
+                  className="text-[11px] font-semibold py-1 px-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-700 focus:outline-none max-w-full"
                 >
                   <option value="EASY">Dễ · Nhận biết</option>
                   <option value="MEDIUM">Trung bình · Thông hiểu</option>
@@ -310,7 +349,7 @@ export function QuestionBankModal({
           type={type}
           isEdit={Boolean(initialQuestion)}
           submitting={submitting}
-          onClose={onClose}
+          onClose={handleRequestClose}
           onSubmit={() => handleSubmit()}
         />
       </div>
@@ -321,6 +360,17 @@ export function QuestionBankModal({
         topics={topicsList}
         selectedTopicIds={topicIds}
         onChangeSelected={setTopicIds}
+      />
+
+      <ConfirmDialog
+        isOpen={closeConfirmOpen}
+        onClose={() => setCloseConfirmOpen(false)}
+        onConfirm={onClose}
+        title="Hủy soạn câu hỏi?"
+        message="Bạn đã nhập nội dung câu hỏi nhưng chưa lưu. Đóng cửa sổ này sẽ bỏ toàn bộ thay đổi vừa nhập."
+        confirmLabel="Đóng & bỏ thay đổi"
+        cancelLabel="Tiếp tục soạn"
+        tone="warning"
       />
     </div>
   );

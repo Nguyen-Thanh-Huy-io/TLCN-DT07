@@ -1,8 +1,9 @@
 'use client';
 
-import React, { RefObject } from 'react';
+import React, { RefObject, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
+import { ConfirmDialog } from '@/components/common/CommonUi';
 import { DifficultyLevel, IconName, ContentStatus } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import { AutoSaveState, EditorViewMode, LessonEditorMainTab, LessonHeaderMetaFormProps } from '../types/editor.types';
@@ -34,6 +35,7 @@ interface LessonEditorHeaderProps {
   onToggleMoreMenu: () => void;
   onCloseMoreMenu: () => void;
   moreMenuRef: RefObject<HTMLDivElement | null>;
+  hasUnsavedChanges?: boolean;
 }
 
 const MAIN_TAB_ACTIVE_CLASS = 'bg-white text-slate-900 shadow-2xs';
@@ -68,27 +70,35 @@ export function LessonEditorHeader({
   onToggleMoreMenu,
   onCloseMoreMenu,
   moreMenuRef,
+  hasUnsavedChanges = false,
 }: LessonEditorHeaderProps) {
   const router = useRouter();
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+
+  const navigateBack = () => {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push(APP_ROUTES.CURRICULUM);
+    }
+  };
+
+  const handleBack = () => {
+    if (hasUnsavedChanges) {
+      setLeaveConfirmOpen(true);
+      return;
+    }
+    navigateBack();
+  };
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-2xs">
+    <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 sm:px-4 sm:py-2.5 shadow-2xs">
       {/* Khối bên trái: Thoát + Tiêu đề trang + Badge trạng thái */}
-      <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-center gap-2 min-w-0">
         <button
           type="button"
-          onClick={() => {
-            // Quay lại ĐÚNG trang vừa đến (ví dụ tab "Thư viện" trong Curriculum Studio).
-            // Trang danh sách bài học độc lập /lessons đã bị gỡ (gộp vào tab Thư viện để
-            // tránh trùng lặp giao diện) nên fallback khi không có lịch sử điều hướng giờ
-            // trỏ về /curriculum — nơi duy nhất còn hiển thị danh sách bài học.
-            if (window.history.length > 1) {
-              router.back();
-            } else {
-              router.push(APP_ROUTES.CURRICULUM);
-            }
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs md:text-sm font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition cursor-pointer shrink-0"
+          onClick={handleBack}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs md:text-sm font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition cursor-pointer shrink-0"
           title="Quay lại"
         >
           <span className="text-base leading-none">←</span>
@@ -96,8 +106,8 @@ export function LessonEditorHeader({
         </button>
 
         <div className="flex items-center gap-2 min-w-0">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0" />
-          <h1 className="text-sm font-bold text-slate-900 tracking-tight truncate">
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0 hidden sm:inline-block" />
+          <h1 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight truncate">
             {lessonId ? 'Chỉnh sửa Bài học' : 'Soạn thảo Bài học'}
           </h1>
         </div>
@@ -109,7 +119,7 @@ export function LessonEditorHeader({
           type="button"
           data-testid="tab-lesson-info"
           onClick={() => onChangeMainTab(LessonEditorMainTab.INFO)}
-          className={`px-3 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+          className={`px-3.5 py-1.5 rounded-md text-xs sm:text-[13px] font-bold flex items-center gap-1.5 transition cursor-pointer ${
             mainTab === LessonEditorMainTab.INFO ? MAIN_TAB_ACTIVE_CLASS : MAIN_TAB_INACTIVE_CLASS
           }`}
         >
@@ -126,12 +136,12 @@ export function LessonEditorHeader({
           type="button"
           data-testid="tab-lesson-cms"
           onClick={() => onChangeMainTab(LessonEditorMainTab.CMS)}
-          className={`px-3 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+          className={`px-3.5 py-1.5 rounded-md text-xs sm:text-[13px] font-bold flex items-center gap-1.5 transition cursor-pointer ${
             mainTab === LessonEditorMainTab.CMS ? MAIN_TAB_ACTIVE_CLASS : MAIN_TAB_INACTIVE_CLASS
           }`}
         >
           <span>Nội dung</span>
-          <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-slate-200/80 text-slate-700">
+          <span className="text-[11px] font-semibold px-1.5 py-0.2 rounded-full bg-slate-200/80 text-slate-700">
             {blockCount}
           </span>
         </button>
@@ -160,6 +170,17 @@ export function LessonEditorHeader({
         onToggleMoreMenu={onToggleMoreMenu}
         onCloseMoreMenu={onCloseMoreMenu}
         moreMenuRef={moreMenuRef}
+      />
+
+      <ConfirmDialog
+        isOpen={leaveConfirmOpen}
+        onClose={() => setLeaveConfirmOpen(false)}
+        onConfirm={navigateBack}
+        title="Rời khỏi trang soạn thảo?"
+        message="Bạn có thay đổi chưa được lưu. Nếu rời đi ngay bây giờ, các chỉnh sửa chưa lưu có thể bị mất."
+        confirmLabel="Rời trang"
+        cancelLabel="Ở lại tiếp tục soạn"
+        tone="warning"
       />
     </header>
   );
@@ -271,13 +292,13 @@ export function LessonEditorSubHeader({
       className={
         inline
           ? 'flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100'
-          : 'flex items-center justify-between gap-3 bg-slate-50/90 border border-slate-200/80 rounded-xl px-3 py-1.5 shadow-2xs'
+          : 'flex flex-wrap items-center justify-between gap-2 bg-slate-50/90 border border-slate-200/80 rounded-xl px-3 py-1.5 shadow-2xs'
       }
     >
-      <div className="flex items-center bg-slate-200/70 p-0.5 rounded-lg text-xs md:text-sm font-medium">
+      <div className="flex items-center bg-slate-200/70 p-0.5 rounded-lg text-xs font-medium shrink-0">
         <button
           type="button"
-          className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 cursor-pointer ${
+          className={`px-2.5 py-1.5 rounded-md transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
             activeTab === EditorViewMode.EDIT ? ACTIVE_TAB_CLASS : INACTIVE_TAB_CLASS
           }`}
           onClick={() => onChangeTab(EditorViewMode.EDIT)}
@@ -288,7 +309,7 @@ export function LessonEditorSubHeader({
         </button>
         <button
           type="button"
-          className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 cursor-pointer ${
+          className={`hidden lg:flex px-2.5 py-1.5 rounded-md transition items-center gap-1.5 cursor-pointer whitespace-nowrap ${
             activeTab === EditorViewMode.SPLIT ? ACTIVE_TAB_CLASS : INACTIVE_TAB_CLASS
           }`}
           onClick={() => onChangeTab(EditorViewMode.SPLIT)}
@@ -299,7 +320,7 @@ export function LessonEditorSubHeader({
         </button>
         <button
           type="button"
-          className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 cursor-pointer ${
+          className={`px-2.5 py-1.5 rounded-md transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
             activeTab === EditorViewMode.PREVIEW ? ACTIVE_TAB_CLASS : INACTIVE_TAB_CLASS
           }`}
           onClick={() => onChangeTab(EditorViewMode.PREVIEW)}
@@ -310,18 +331,18 @@ export function LessonEditorSubHeader({
         </button>
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         {!isFullscreen && activeTab !== EditorViewMode.PREVIEW && (
           <button
             type="button"
             onClick={onToggleLeftToc}
-            className={`${SUBHEADER_TOGGLE_BTN_BASE} ${
+            className={`${SUBHEADER_TOGGLE_BTN_BASE} whitespace-nowrap ${
               showLeftToc ? SUBHEADER_TOGGLE_BTN_ACTIVE : ''
             }`}
             title={showLeftToc ? 'Ẩn thanh công cụ khối bên trái' : 'Hiện thanh công cụ khối bên trái'}
           >
             <Icon name={IconName.GRID} size={14} />
-            <span>Khối nội dung</span>
+            <span>Khối</span>
           </button>
         )}
 
@@ -330,7 +351,7 @@ export function LessonEditorSubHeader({
             type="button"
             onClick={onToggleSidebar}
             data-testid="btn-toggle-properties-sidebar"
-            className={`${SUBHEADER_TOGGLE_BTN_BASE} ${
+            className={`${SUBHEADER_TOGGLE_BTN_BASE} whitespace-nowrap ${
               showSidebar ? SUBHEADER_TOGGLE_BTN_ACTIVE : ''
             }`}
             title={showSidebar ? 'Ẩn bảng thuộc tính khối bên phải' : 'Hiện bảng thuộc tính khối bên phải'}
@@ -343,7 +364,7 @@ export function LessonEditorSubHeader({
         <button
           type="button"
           onClick={onToggleFullscreen}
-          className={`${SUBHEADER_TOGGLE_BTN_BASE} ${
+          className={`${SUBHEADER_TOGGLE_BTN_BASE} whitespace-nowrap ${
             isFullscreen ? SUBHEADER_TOGGLE_BTN_ACTIVE : ''
           }`}
           title={isFullscreen ? 'Thu nhỏ giao diện' : 'Mở rộng soạn thảo toàn màn hình'}

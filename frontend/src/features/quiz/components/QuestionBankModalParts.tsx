@@ -323,16 +323,13 @@ export function QuestionModalHeader({
   onClose,
 }: QuestionModalHeaderProps) {
   return (
-    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-          <span>{isEdit ? 'Cập nhật câu hỏi' : 'Tạo câu hỏi mới'}</span>
-          <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
-            CMS Rich Text Editor
-          </span>
+    <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-2 bg-white shrink-0">
+      <div className="min-w-0">
+        <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+          {isEdit ? 'Cập nhật câu hỏi' : 'Tạo câu hỏi mới'}
         </h2>
         <p className="text-xs text-slate-500 mt-0.5">
-          Soạn thảo câu hỏi trắc nghiệm chuẩn sư phạm, hỗ trợ định dạng văn bản chuyên sâu và tải ảnh tư liệu
+          Soạn thảo câu hỏi lịch sử kèm giải thích đáp án và ảnh tư liệu minh họa
         </p>
       </div>
       <div className="flex items-center gap-1.5">
@@ -408,7 +405,7 @@ export function QuestionModalFooter({
           type="button"
           onClick={onSubmit}
           disabled={submitting}
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs transition shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+          className="px-5 py-2 bg-red-700 hover:bg-red-800 text-white font-semibold rounded-xl text-xs transition shadow-sm disabled:opacity-50 flex items-center gap-1.5"
         >
           {submitting ? 'Đang lưu...' : isEdit ? 'Cập nhật câu hỏi' : 'Lưu câu hỏi'}
         </button>

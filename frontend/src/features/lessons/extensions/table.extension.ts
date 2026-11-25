@@ -9,13 +9,21 @@ import {
   addColumnBefore,
   addRowAfter,
   addRowBefore,
+  columnResizing,
   deleteColumn,
   deleteRow,
   deleteTable,
   goToNextCell,
+  mergeCells,
+  setCellAttr,
+  splitCell,
   tableEditing,
+  toggleHeaderCell,
+  toggleHeaderColumn,
   toggleHeaderRow,
 } from '@tiptap/pm/tables';
+
+const SAFE_BG_COLOR_REGEX = /^(#[0-9a-fA-F]{3,8}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))$/;
 
 export const RICH_TABLE_NODE_NAMES = {
   TABLE: 'table',
@@ -45,7 +53,11 @@ export const TableActionType = {
   ADD_COL_BEFORE: 'ADD_COL_BEFORE',
   ADD_COL_AFTER: 'ADD_COL_AFTER',
   DELETE_COL: 'DELETE_COL',
+  MERGE_CELLS: 'MERGE_CELLS',
+  SPLIT_CELL: 'SPLIT_CELL',
   TOGGLE_HEADER_ROW: 'TOGGLE_HEADER_ROW',
+  TOGGLE_HEADER_COLUMN: 'TOGGLE_HEADER_COLUMN',
+  TOGGLE_HEADER_CELL: 'TOGGLE_HEADER_CELL',
   DELETE_TABLE: 'DELETE_TABLE',
 } as const;
 
@@ -67,9 +79,22 @@ const TABLE_ACTION_STRATEGIES: Record<TableActionType, ProseMirrorTableCommand> 
   [TableActionType.ADD_COL_BEFORE]: addColumnBefore,
   [TableActionType.ADD_COL_AFTER]: addColumnAfter,
   [TableActionType.DELETE_COL]: deleteColumn,
+  [TableActionType.MERGE_CELLS]: mergeCells,
+  [TableActionType.SPLIT_CELL]: splitCell,
   [TableActionType.TOGGLE_HEADER_ROW]: toggleHeaderRow,
+  [TableActionType.TOGGLE_HEADER_COLUMN]: toggleHeaderColumn,
+  [TableActionType.TOGGLE_HEADER_CELL]: toggleHeaderCell,
   [TableActionType.DELETE_TABLE]: deleteTable,
 };
+
+export function canExecuteTableAction(
+  editor: Editor | null,
+  action: TableActionType
+): boolean {
+  if (!editor) return false;
+  const strategy = TABLE_ACTION_STRATEGIES[action];
+  return strategy(editor.state);
+}
 
 export function executeTableAction(
   editor: Editor | null,
@@ -79,6 +104,16 @@ export function executeTableAction(
   editor.commands.focus();
   const strategy = TABLE_ACTION_STRATEGIES[action];
   return strategy(editor.state, editor.view.dispatch);
+}
+
+export function setTableCellBackground(
+  editor: Editor | null,
+  color: string | null
+): boolean {
+  if (!editor) return false;
+  const safeColor = color && SAFE_BG_COLOR_REGEX.test(color.trim()) ? color.trim() : null;
+  editor.commands.focus();
+  return setCellAttr('backgroundColor', safeColor)(editor.state, editor.view.dispatch);
 }
 
 export interface InsertRichTableOptions {
@@ -152,6 +187,17 @@ function createTableCellAttributes() {
           ? { 'data-colwidth': attributes.colwidth.join(',') }
           : {},
     },
+    backgroundColor: {
+      default: null,
+      parseHTML: (element: HTMLElement) => {
+        const bg = element.style?.backgroundColor?.trim();
+        return bg && SAFE_BG_COLOR_REGEX.test(bg) ? bg : null;
+      },
+      renderHTML: (attributes: Record<string, unknown>) => {
+        const bg = typeof attributes.backgroundColor === 'string' ? attributes.backgroundColor.trim() : '';
+        return bg && SAFE_BG_COLOR_REGEX.test(bg) ? { style: `background-color: ${bg}` } : {};
+      },
+    },
   };
 }
 
@@ -187,7 +233,10 @@ export const RichTableNode = Node.create({
   },
 
   addProseMirrorPlugins() {
-    return [tableEditing()];
+    return [
+      columnResizing({ handleWidth: 5, cellMinWidth: 48 }),
+      tableEditing(),
+    ];
   },
 });
 

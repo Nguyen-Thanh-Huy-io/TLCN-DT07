@@ -85,7 +85,7 @@ function buildSubmissionChecklist(
 ): ChecklistItem[] {
   return [
     { key: 'title', label: 'Có tiêu đề bài học', passed: Boolean(title.trim()) },
-    { key: 'topic', label: 'Đã chọn Chủ đề chính (Topic)', passed: hasTopic },
+    { key: 'topic', label: 'Đã chọn Chủ đề chính', passed: hasTopic },
     { key: 'blocks', label: `Có ít nhất 1 khối nội dung (hiện có ${blockCount})`, passed: blockCount > 0 },
   ];
 }
@@ -145,8 +145,8 @@ export function LessonInfoProfileTab({
               <FileText size={16} />
             </span>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Thông tin bài học</h2>
-              <p className="text-xs text-slate-500">Tiêu đề biên tập và tóm tắt hiển thị ở danh mục tìm kiếm</p>
+              <h2 className="text-[15px] font-bold text-slate-900">Thông tin bài học</h2>
+              <p className="text-[13px] text-slate-500">Tiêu đề biên tập và tóm tắt hiển thị ở danh mục tìm kiếm</p>
             </div>
           </div>
 
@@ -301,7 +301,7 @@ export function LessonInfoProfileTab({
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
-                <span>Chủ đề chính (Topic)</span>
+                <span>Chủ đề chính</span>
                 <span className="text-rose-500">*</span>
               </label>
               <span className="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-semibold border border-blue-200/60">
@@ -344,7 +344,7 @@ export function LessonInfoProfileTab({
           <div className="p-4 space-y-2" data-testid="sidebar-tags-field">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                Thẻ tìm kiếm (Tags)
+                Thẻ tìm kiếm
               </span>
               <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                 {selectedTags.length} thẻ

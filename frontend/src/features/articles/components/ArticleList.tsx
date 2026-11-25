@@ -1,13 +1,17 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { FolderTree, Star, Tag, X } from 'lucide-react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import { ActionMenu, ConfirmDeleteModal } from '@/components/common/CommonUi';
+import { TreeSelectModal, type TreeSelectNode } from '@/components/common/TreeSelectModal';
+import { TagFilterModal } from '@/components/common/TagFilterModal';
 import { extractErrorMessage } from '@/services/api';
-import { TagApiService } from '@/services/entities/topic.service';
+import { useAuthSession } from '@/services/auth/use-auth-session';
+import { isSuperadminRole } from '@/services/auth/public-auth.service';
 import type { TagItem } from '@/types/models';
 import {
   ArticleApiService,
@@ -76,9 +80,40 @@ export function YearInput({
 
 const PAGE_SIZE = 20;
 
+function buildCategoryTreeNodes(categories: CategoryItem[]): TreeSelectNode[] {
+  const sorted = [...categories].sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name, 'vi'));
+  const byId = new Map(sorted.map((c) => [c.id, c]));
+  const childrenMap = new Map<string, CategoryItem[]>();
+  const roots: CategoryItem[] = [];
+
+  for (const c of sorted) {
+    if (c.parentId && byId.has(c.parentId)) {
+      const list = childrenMap.get(c.parentId) ?? [];
+      list.push(c);
+      childrenMap.set(c.parentId, list);
+    } else {
+      roots.push(c);
+    }
+  }
+
+  const toNode = (c: CategoryItem): TreeSelectNode => {
+    const kids = childrenMap.get(c.id) ?? [];
+    return {
+      id: c.id,
+      label: c.name,
+      selectable: true,
+      children: kids.length > 0 ? kids.map(toNode) : undefined,
+    };
+  };
+
+  return roots.map(toNode);
+}
+
 /** Danh sách bài viết trong CMS: lọc chuyên mục / tag / trạng thái, tìm theo tiêu đề, phân trang server. */
 export function ArticleList() {
   const router = useRouter();
+  const user = useAuthSession();
+  const isSuperadmin = Boolean(user && isSuperadminRole(user.role));
   const [items, setItems] = useState<ArticleItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -86,16 +121,24 @@ export function ArticleList() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [tagId, setTagId] = useState('');
+  const [selectedTag, setSelectedTag] = useState<TagItem | null>(null);
   const [status, setStatus] = useState<ContentStatusValue | ''>('');
+  const [featuredOnly, setFeaturedOnly] = useState(false);
+  const [togglingFeaturedId, setTogglingFeaturedId] = useState<string | null>(null);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [tags, setTags] = useState<TagItem[]>([]);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
   const [deleting, setDeleting] = useState<ArticleItem | null>(null);
 
   useEffect(() => {
     CategoryApiService.list().then(setCategories).catch(() => setCategories([]));
-    TagApiService.getTags().then(setTags).catch(() => setTags([]));
   }, []);
+
+  const categoryTreeNodes = useMemo(() => buildCategoryTreeNodes(categories), [categories]);
+  const selectedCategoryName = useMemo(
+    () => categories.find((c) => c.id === categoryId)?.name ?? null,
+    [categories, categoryId],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,8 +149,9 @@ export function ArticleList() {
         limit: PAGE_SIZE,
         search: search.trim() || undefined,
         categoryId: categoryId || undefined,
-        tagId: tagId || undefined,
+        tagId: selectedTag?.id || undefined,
         status: status || undefined,
+        featured: featuredOnly || undefined,
       });
       setItems(res.items);
       setTotal(res.total);
@@ -118,7 +162,7 @@ export function ArticleList() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, categoryId, tagId, status]);
+  }, [page, search, categoryId, selectedTag, status, featuredOnly]);
 
   useEffect(() => {
     const timer = setTimeout(load, 250);
@@ -128,7 +172,26 @@ export function ArticleList() {
   // Đổi bộ lọc → quay về trang 1.
   useEffect(() => {
     void Promise.resolve().then(() => setPage(1));
-  }, [search, categoryId, tagId, status]);
+  }, [search, categoryId, selectedTag, status, featuredOnly]);
+
+  const handleToggleFeatured = async (article: ArticleItem) => {
+    if (!isSuperadmin || togglingFeaturedId) return;
+    const nextValue = !article.isFeatured;
+    setTogglingFeaturedId(article.id);
+    setError(null);
+    setItems((prev) => prev.map((item) => (item.id === article.id ? { ...item, isFeatured: nextValue } : item)));
+    try {
+      await ArticleApiService.setFeatured(article.id, nextValue);
+      if (featuredOnly && !nextValue) {
+        void load();
+      }
+    } catch (err) {
+      setItems((prev) => prev.map((item) => (item.id === article.id ? { ...item, isFeatured: article.isFeatured } : item)));
+      setError(extractErrorMessage(err, 'Không cập nhật được trạng thái nổi bật.'));
+    } finally {
+      setTogglingFeaturedId(null);
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleting) return;
@@ -157,22 +220,59 @@ export function ArticleList() {
             className="text-slate-800 placeholder:text-slate-500 font-medium text-xs sm:text-sm"
           />
         </label>
-        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={selectClass}>
-          <option value="">Mọi chuyên mục</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <select value={tagId} onChange={(e) => setTagId(e.target.value)} className={selectClass}>
-          <option value="">Mọi tag</option>
-          {tags.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+        <div className="inline-flex items-center">
+          <button
+            type="button"
+            onClick={() => setIsCategoryModalOpen(true)}
+            className={`inline-flex h-9 max-w-[190px] items-center gap-1.5 rounded-lg border px-2.5 text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+              selectedCategoryName
+                ? 'border-slate-800 bg-slate-900 text-white'
+                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+            title={selectedCategoryName ? `Chuyên mục: ${selectedCategoryName}` : 'Chọn chuyên mục để lọc'}
+          >
+            <FolderTree size={14} className="shrink-0 opacity-80" />
+            <span className="truncate">{selectedCategoryName ?? 'Chuyên mục'}</span>
+          </button>
+          {categoryId && (
+            <button
+              type="button"
+              onClick={() => setCategoryId('')}
+              aria-label="Bỏ lọc chuyên mục"
+              title="Bỏ lọc chuyên mục"
+              className="ml-1 inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
+
+        <div className="inline-flex items-center">
+          <button
+            type="button"
+            onClick={() => setIsTagModalOpen(true)}
+            className={`inline-flex h-9 max-w-[175px] items-center gap-1.5 rounded-lg border px-2.5 text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+              selectedTag
+                ? 'border-slate-800 bg-slate-900 text-white'
+                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+            title={selectedTag ? `Thẻ: #${selectedTag.name}` : 'Tìm & chọn thẻ để lọc'}
+          >
+            <Tag size={14} className="shrink-0 opacity-80" />
+            <span className="truncate">{selectedTag ? `#${selectedTag.name}` : 'Thẻ (Tag)'}</span>
+          </button>
+          {selectedTag && (
+            <button
+              type="button"
+              onClick={() => setSelectedTag(null)}
+              aria-label="Bỏ lọc thẻ"
+              title="Bỏ lọc thẻ"
+              className="ml-1 inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
         <select value={status} onChange={(e) => setStatus(e.target.value as ContentStatusValue | '')} className={selectClass}>
           <option value="">Mọi trạng thái</option>
           {Object.entries(CONTENT_STATUS_LABELS).map(([value, label]) => (
@@ -181,6 +281,20 @@ export function ArticleList() {
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={() => setFeaturedOnly((v) => !v)}
+          aria-pressed={featuredOnly}
+          className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs sm:text-sm font-semibold transition-colors ${
+            featuredOnly
+              ? 'border-amber-500 bg-amber-100 text-amber-900 shadow-2xs ring-1 ring-amber-400/50'
+              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+          }`}
+          title="Lọc bài viết đang hiển thị nổi bật trên Trang chủ"
+        >
+          <Star size={14} className={featuredOnly ? 'fill-amber-500 text-amber-500' : 'text-slate-400'} />
+          Nổi bật
+        </button>
         <button
           type="button"
           className="primary-button !h-9 !px-3.5 !text-xs sm:!text-sm font-bold ml-auto"
@@ -223,16 +337,41 @@ export function ArticleList() {
               items.map((a) => (
                 <tr key={a.id} className="cursor-pointer" onClick={() => router.push(APP_ROUTES.ARTICLES.DETAIL(a.id))}>
                   <td>
-                    <strong className="text-sm font-semibold text-slate-900">{a.title}</strong>
-                    {a.isFeatured && <span className="ml-2 text-xs font-bold text-amber-600">★ Nổi bật</span>}
-                    <div className="text-xs text-slate-500">/{a.slug}</div>
+                    <div className="flex items-start gap-2">
+                      {isSuperadmin && (
+                        <button
+                          type="button"
+                          disabled={togglingFeaturedId === a.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleToggleFeatured(a);
+                          }}
+                          title={a.isFeatured ? 'Bỏ ghim nổi bật khỏi Trang chủ' : 'Ghim nổi bật lên Trang chủ'}
+                          aria-label={a.isFeatured ? 'Bỏ ghim nổi bật' : 'Ghim nổi bật'}
+                          className={`mt-0.5 shrink-0 rounded p-0.5 transition-colors disabled:opacity-40 ${
+                            a.isFeatured
+                              ? 'text-amber-500 hover:bg-amber-50'
+                              : 'text-slate-300 hover:bg-slate-100 hover:text-amber-500'
+                          }`}
+                        >
+                          <Star size={15} className={a.isFeatured ? 'fill-amber-500' : ''} />
+                        </button>
+                      )}
+                      <div className="min-w-0">
+                        <strong className="text-sm font-semibold text-slate-900">{a.title}</strong>
+                        {!isSuperadmin && a.isFeatured && (
+                          <span className="ml-2 text-xs font-bold text-amber-600">★ Nổi bật</span>
+                        )}
+                        <div className="text-xs text-slate-500">/{a.slug}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="text-xs sm:text-sm text-slate-700">
                     <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
                       {a.category?.name || 'Chưa phân loại'}
                     </span>
                   </td>
-                  <td className="text-xs sm:text-sm text-slate-700">{a.dateText || a.startYear || '—'}</td>
+                  <td className="text-xs sm:text-sm text-slate-700 whitespace-nowrap">{a.dateText || a.startYear || '—'}</td>
                   <td>
                     <div className="flex flex-wrap gap-1">
                       {a.tags.map((t) => (
@@ -283,6 +422,27 @@ export function ArticleList() {
         onConfirm={handleDelete}
         title={deleting?.title || ''}
         itemTypeLabel="bài viết"
+      />
+
+      <TreeSelectModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        title="Lọc theo Chuyên mục"
+        subtitle="Chọn một chuyên mục gốc hoặc nhánh con để lọc danh sách bài viết"
+        nodes={categoryTreeNodes}
+        selectedIds={categoryId ? [categoryId] : []}
+        onChangeSelected={(ids) => setCategoryId(ids[0] ?? '')}
+        multiple={false}
+        emptyText="Chưa có chuyên mục nào."
+        unitLabel="chuyên mục"
+        searchPlaceholder="Tìm nhanh chuyên mục..."
+      />
+
+      <TagFilterModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+        selectedTag={selectedTag}
+        onSelect={setSelectedTag}
       />
     </div>
   );

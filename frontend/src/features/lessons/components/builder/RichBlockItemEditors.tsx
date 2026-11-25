@@ -4,10 +4,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Upload, Link2, Image as ImageIcon, Loader2, X, UserSquare2, Database, Sparkles, Search } from 'lucide-react';
 import { UploadApiService } from '@/services/api';
 import { extractErrorMessage } from '@/services/api';
-import { ImageBlockData, CharacterBlockData, EventBlockData } from '../../types/block-builder.types';
+import { ImageBlockData, CharacterBlockData } from '../../types/block-builder.types';
 import { ArticleApiService, ArticleItem } from '@/services/entities/article.service';
 import { dateLabelOf } from '@/utils/common';
-import { CHARACTER_BLOCK_CONSTANTS, EVENT_BLOCK_CONSTANTS } from '../../constants/lesson.constants';
+import { CHARACTER_BLOCK_CONSTANTS } from '../../constants/lesson.constants';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
 
@@ -363,135 +363,6 @@ export function CharacterBlockItemEditor({ data, onChange }: CharacterBlockItemE
         onClose={() => setIsPickerOpen(false)}
         onSelect={handleSelectEntity}
         title="Chọn nhân vật / thực thể từ Kho HISGO"
-      />
-    </div>
-  );
-}
-
-// --- EventBlockItemEditor.tsx ---
-interface EventBlockItemEditorProps {
-  data: EventBlockData;
-  onChange: (updates: Partial<EventBlockData>) => void;
-}
-
-export function EventBlockItemEditor({ data, onChange }: EventBlockItemEditorProps) {
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [isDetailExpanded, setIsDetailExpanded] = useState(false);
-
-  const handleSelectEvent = (event: ArticleItem) => {
-    onChange({
-      eventId: event.id,
-      title: event.title,
-      timeLocation: dateLabelOf(event),
-      summary: event.summary || '',
-      thumbnailUrl: event.coverImageUrl || '',
-    });
-  };
-
-  return (
-    <div data-testid="event-block-item-editor" className="space-y-3 font-sans min-w-0">
-      <div className="flex items-center justify-between pb-1 border-b border-slate-100 flex-wrap gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            data-testid="block-event-title"
-            className="text-xs font-bold tracking-wider text-slate-700 uppercase"
-          >
-            {EVENT_BLOCK_CONSTANTS.TITLE}
-          </span>
-          {data.eventId && (
-            <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span>Kho sự kiện HISGO</span>
-            </span>
-          )}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setIsPickerOpen(true)}
-          data-testid="btn-pick-event"
-          className="px-2.5 py-1 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition cursor-pointer flex items-center gap-1"
-        >
-          <Icon name={IconName.SEARCH} size={12} />
-          <span>
-            {data.eventId
-              ? EVENT_BLOCK_CONSTANTS.BTN_CHANGE_EVENT
-              : EVENT_BLOCK_CONSTANTS.BTN_PICK_EVENT}
-          </span>
-        </button>
-      </div>
-
-      <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2 min-w-0">
-        <div className="flex items-center justify-between">
-          <div className="text-[11px] font-bold tracking-wider text-amber-700 uppercase bg-white inline-block px-2 py-0.5 rounded border border-amber-200">
-            {EVENT_BLOCK_CONSTANTS.SUB_LABEL}
-          </div>
-          <span
-            data-testid="event-summary-counter"
-            className={`text-[10px] font-mono font-semibold ${
-              (data.summary?.length || 0) >= 500
-                ? 'text-rose-600 font-bold'
-                : (data.summary?.length || 0) > 450
-                  ? 'text-amber-600'
-                  : 'text-slate-400'
-            }`}
-          >
-            {(data.summary?.length || 0)}/500 ký tự
-          </span>
-        </div>
-
-        <input
-          type="text"
-          value={data.title}
-          onChange={(e) => onChange({ title: e.target.value })}
-          placeholder={EVENT_BLOCK_CONSTANTS.NAME_PLACEHOLDER}
-          data-testid="input-event-name"
-          className="w-full text-base font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none px-1 py-0.5 rounded transition font-serif"
-        />
-
-        <input
-          type="text"
-          value={data.timeLocation}
-          onChange={(e) => onChange({ timeLocation: e.target.value })}
-          placeholder={EVENT_BLOCK_CONSTANTS.TIME_LOC_PLACEHOLDER}
-          data-testid="input-event-timeloc"
-          className="w-full text-xs font-semibold text-slate-600 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none px-1 py-0.5 rounded transition"
-        />
-
-        <textarea
-          rows={3}
-          value={data.summary}
-          maxLength={500}
-          onChange={(e) => onChange({ summary: e.target.value })}
-          placeholder={EVENT_BLOCK_CONSTANTS.SUMMARY_PLACEHOLDER}
-          data-testid="input-event-summary"
-          className="w-full text-xs text-slate-700 bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:outline-none p-1.5 rounded transition leading-relaxed resize-y"
-        />
-      </div>
-
-      <button
-        type="button"
-        onClick={() => setIsDetailExpanded(!isDetailExpanded)}
-        className="text-xs font-semibold text-slate-500 hover:text-amber-700 px-1 flex items-center gap-1 cursor-pointer"
-      >
-        <span>{isDetailExpanded ? '▲ Thu gọn' : '▼ Thêm chi tiết diễn biến'}</span>
-      </button>
-      {isDetailExpanded && (
-        <textarea
-          rows={4}
-          value={data.detailContent || ''}
-          onChange={(e) => onChange({ detailContent: e.target.value })}
-          placeholder="Viết đầy đủ diễn biến sự kiện... (hỗ trợ HTML cơ bản)"
-          data-testid="input-event-detail"
-          className="w-full text-xs text-slate-700 bg-white border border-slate-200 focus:border-amber-500 focus:outline-none p-2 rounded-lg transition leading-relaxed resize-y"
-        />
-      )}
-
-      <HisgoArticlePickerModal
-        isOpen={isPickerOpen}
-        onClose={() => setIsPickerOpen(false)}
-        onSelect={handleSelectEvent}
-        title="Chọn sự kiện lịch sử từ Kho HISGO"
       />
     </div>
   );

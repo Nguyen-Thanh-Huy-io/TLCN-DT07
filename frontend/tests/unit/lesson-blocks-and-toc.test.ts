@@ -81,7 +81,19 @@ describe('Lesson blocks, Row layout, Rich Text extensions & TOC compiler', () =>
     const threeColRow = RowLayoutPresetRegistry.applyPreset(magRow, RowLayoutPresetId.THREE_COLUMNS);
     expect(threeColRow.columnCount).toBe(3);
 
-    const singleColRow = RowLayoutPresetRegistry.applyPreset(threeColRow, RowLayoutPresetId.SINGLE_COLUMN);
+    const populatedThreeCol: RowSectionBlockData = {
+      ...threeColRow,
+      columns: threeColRow.columns.map((col, idx) =>
+        idx < 2
+          ? {
+              ...col,
+              blocks: [LessonBlockRegistry.createDefaultBlock(LessonBlockType.TEXT)],
+            }
+          : col,
+      ),
+    };
+
+    const singleColRow = RowLayoutPresetRegistry.applyPreset(populatedThreeCol, RowLayoutPresetId.SINGLE_COLUMN);
     expect(singleColRow.columns[0].blocks).toHaveLength(2);
     expect(RowLayoutPresetRegistry.detectMatchingPreset(singleColRow)).toBe(RowLayoutPresetId.SINGLE_COLUMN);
 

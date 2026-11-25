@@ -122,8 +122,6 @@ function getBlockTocLabel(block: LessonBlockItem): string | null {
       return block.title?.trim() || 'Dòng thời gian';
     case LessonBlockType.CHARACTER:
       return `Nhân vật: ${block.name}`;
-    case LessonBlockType.EVENT:
-      return `Sự kiện: ${block.title}`;
     case LessonBlockType.MAP:
       return `Bản đồ: ${block.locationName}`;
     case LessonBlockType.COMPARISON_TABLE:

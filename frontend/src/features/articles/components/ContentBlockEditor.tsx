@@ -59,10 +59,14 @@ export function ContentBlockEditor({
   const lastEmitted = useRef<string>('');
 
   const [activeTab, setActiveTab] = useState<EditorViewMode>(EditorViewMode.EDIT);
-  const [showLeftToc, setShowLeftToc] = useState(true);
+  const [showLeftToc, setShowLeftToc] = useState(() =>
+    typeof window === 'undefined' ? true : window.innerWidth >= 1024,
+  );
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
   const [leftSidebarMode, setLeftSidebarMode] = useState<LeftSidebarMode>(LeftSidebarMode.BLOCKS);
-  const [showSidebar, setShowSidebar] = useState(true);
+  // Focus Editor: mặc định đóng cột Thuộc tính phải để vùng viết bài thoáng rộng (~810px+);
+  // biên tập viên bấm nút "Thuộc tính" bất kỳ lúc nào để mở panel tinh chỉnh sâu.
+  const [showSidebar, setShowSidebar] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isTocCollapsed, setIsTocCollapsed] = useState(false);
 
@@ -74,14 +78,6 @@ export function ContentBlockEditor({
     onChange(json);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manager.blocks]);
-
-  useEffect(() => {
-    if (manager.activeBlockId) {
-      void Promise.resolve().then(() => {
-        setShowSidebar(true);
-      });
-    }
-  }, [manager.activeBlockId]);
 
   const insertSkeleton = (html: string) => {
     const id = manager.addBlock(LessonBlockType.TEXT);
@@ -139,6 +135,9 @@ export function ContentBlockEditor({
       visualMediaItems={[]}
       documentMediaItems={[]}
       sourceReferenceNote={sourceReferenceNote}
+      previewBadgeLabel="Xem trước bài viết"
+      hideDifficulty
+      emptyTitleFallback="Chưa có tiêu đề bài viết"
     />
   );
 
@@ -178,10 +177,10 @@ export function ContentBlockEditor({
             />
           )}
 
-          <main className="flex-1 min-w-0 flex flex-col bg-white rounded-xl border border-slate-200 p-4 md:p-6 shadow-xs overflow-y-auto h-full">
+          <section className="flex-1 min-w-0 flex flex-col bg-white rounded-xl border border-slate-200 p-5 md:p-8 shadow-xs overflow-y-auto h-full">
             <div
-              className={`w-full mx-auto flex flex-col gap-3 flex-1 min-h-0 transition-all duration-200 ${
-                !showSidebar ? 'max-w-5xl' : 'max-w-[820px]'
+              className={`w-full mx-auto flex flex-col gap-4 flex-1 min-h-0 transition-all duration-200 ${
+                !showSidebar ? 'max-w-4xl' : 'max-w-[780px]'
               }`}
             >
               <LessonEditorSubHeader
@@ -247,7 +246,7 @@ export function ContentBlockEditor({
                 </div>
               </div>
             </div>
-          </main>
+          </section>
 
           {activeTab === EditorViewMode.SPLIT && (
             <div className="flex-1 min-w-0 h-full">{renderPreview(true)}</div>

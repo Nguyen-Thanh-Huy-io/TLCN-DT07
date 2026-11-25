@@ -30,19 +30,19 @@ export function CurriculumTreeHeader({ facade }: { facade: CurriculumTreeFacade 
   const { searchTerm, setSearchTerm, activeFilter, setActiveFilter, expandAll, collapseAll, totalRootTopics, totalSubTopics, totalLessons, missingQuizLessons } = facade;
   return (
     <div className="tree-header mb-2.5 pb-2.5 border-b border-slate-100">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-900 tracking-tight">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="min-w-0">
+          <div className="text-xs font-semibold text-slate-900 tracking-tight whitespace-nowrap">
             Sơ đồ cây học tập
-          </span>
-          <span className="text-[10px] text-slate-500 font-mono">
-            {totalRootTopics} chủ đề chính • {totalSubTopics} chủ đề trực thuộc • {totalLessons}{LESSON_COUNT_LABEL}
-          </span>
+          </div>
+          <div className="text-[11px] text-slate-500 mt-0.5">
+            {totalRootTopics} chủ đề chính • {totalSubTopics} chủ đề con • {totalLessons}{LESSON_COUNT_LABEL}
+          </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
-            className="text-[11px] text-slate-600 hover:text-slate-900 px-1.5 py-0.5 rounded border border-slate-200 bg-white transition-colors"
+            className="shrink-0 whitespace-nowrap text-[11px] text-slate-600 hover:text-slate-900 px-1.5 py-0.5 rounded border border-slate-200 bg-white transition-colors"
             onClick={expandAll}
             title="Mở rộng tất cả"
           >
@@ -50,7 +50,7 @@ export function CurriculumTreeHeader({ facade }: { facade: CurriculumTreeFacade 
           </button>
           <button
             type="button"
-            className="text-[11px] text-slate-600 hover:text-slate-900 px-1.5 py-0.5 rounded border border-slate-200 bg-white transition-colors"
+            className="shrink-0 whitespace-nowrap text-[11px] text-slate-600 hover:text-slate-900 px-1.5 py-0.5 rounded border border-slate-200 bg-white transition-colors"
             onClick={collapseAll}
             title="Thu gọn tất cả"
           >
@@ -183,7 +183,7 @@ function TopicTreeBranch({ topic, depth, facade, ...selection }: { topic: Curric
   const isRoot = depth === 0;
   const addsLesson = depth >= ADD_LESSON_FROM_DEPTH;
   const countLabel = children.length > 0
-    ? `${children.length} ${isRoot ? 'con' : 'chuyên đề'}`
+    ? `${children.length} ${isRoot ? 'nhánh' : 'chuyên đề'}`
     : `${lessons.length}${LESSON_COUNT_LABEL}`;
 
   return (

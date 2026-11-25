@@ -11,8 +11,6 @@ import {
   AlertCircle,
   UserSquare2,
   GitCommitHorizontal,
-  Users,
-  CalendarRange,
   Sparkles,
   MapPin,
   Table2,
@@ -49,9 +47,6 @@ export const BLOCK_TYPE_ICONS: Record<string, LucideIcon> = {
   [LessonBlockType.CALLOUT]: AlertCircle,
   [LessonBlockType.CHARACTER]: UserSquare2,
   [LessonBlockType.TIMELINE]: GitCommitHorizontal,
-  [LessonBlockType.RELATED_PEOPLE]: Users,
-  [LessonBlockType.RELATED_EVENTS]: CalendarRange,
-  [LessonBlockType.EVENT]: Sparkles,
   [LessonBlockType.MAP]: MapPin,
   [LessonBlockType.COMPARISON_TABLE]: Table2,
   [LessonBlockType.QUIZ]: HelpCircle,
@@ -118,7 +113,7 @@ export function BlockLibraryPalette({
                 >
                   <BlockIcon className="w-4 h-4" strokeWidth={1.75} />
                 </span>
-                <span className="text-sm font-medium text-stone-800 group-hover:text-stone-950 truncate leading-snug">
+                <span className="text-xs font-medium text-stone-800 group-hover:text-stone-950 leading-snug">
                   {item.label}
                 </span>
               </button>
@@ -144,7 +139,7 @@ export function BlockLibraryPalette({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Tìm khối nội dung..."
+          placeholder="Tìm khối..."
           className="w-full text-sm pl-9 pr-8 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 text-stone-900 placeholder:text-stone-600 transition-colors"
         />
         {searchQuery && (
@@ -174,7 +169,7 @@ const COLLAPSED_QUICK_BLOCKS: ReadonlyArray<{
 }> = [
   { type: LessonBlockType.TEXT, icon: IconName.EDIT, hoverClass: 'hover:text-emerald-700 hover:bg-emerald-50' },
   { type: LessonBlockType.CHARACTER, icon: IconName.USERS, hoverClass: 'hover:text-indigo-700 hover:bg-indigo-50' },
-  { type: LessonBlockType.RELATED_EVENTS, icon: IconName.CALENDAR, hoverClass: 'hover:text-amber-700 hover:bg-amber-50' },
+  { type: LessonBlockType.TIMELINE, icon: IconName.CALENDAR, hoverClass: 'hover:text-amber-700 hover:bg-amber-50' },
   { type: LessonBlockType.IMAGE, icon: IconName.GRID, hoverClass: 'hover:text-emerald-700 hover:bg-emerald-50' },
 ];
 
@@ -235,7 +230,7 @@ export function LessonLeftToolSidebar({
   return (
     <aside
       data-testid="left-sidebar-expanded-panel"
-      className="w-full lg:w-64 xl:w-72 shrink-0 flex flex-col gap-2 max-h-[calc(100vh-80px)] overflow-y-auto lg:sticky lg:top-[68px] self-start animate-in slide-in-from-left duration-150 z-20 custom-editor-scrollbar pr-0.5"
+      className="w-full lg:w-56 xl:w-60 shrink-0 flex flex-col gap-2 max-h-[calc(100vh-80px)] overflow-y-auto lg:sticky lg:top-[68px] self-start animate-in slide-in-from-left duration-150 z-20 custom-editor-scrollbar pr-0.5"
     >
       <div className="bg-white border border-slate-200 rounded-xl p-1.5 shadow-2xs flex items-center justify-between gap-1">
         <div className="grid grid-cols-2 gap-1 bg-slate-100 p-0.5 rounded-lg text-xs flex-1">

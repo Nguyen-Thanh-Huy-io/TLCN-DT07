@@ -64,6 +64,9 @@ export interface UseLessonEditorFacadeReturn {
 
   // Actions
   submitLesson: (nextStatus: ContentStatus, overrideContent?: unknown) => Promise<void>;
+  /** Lỗi validation / lưu bài học hiển thị inline (thay cho window.alert). */
+  formError: string | null;
+  clearFormError: () => void;
   /** Bản sửa chờ duyệt đang mở của bài đang xuất bản (form đang hiện bản sửa này). */
   pendingRevision: ContentRevisionItem | null;
   revisionNotice: string | null;
@@ -143,15 +146,12 @@ export enum LessonBlockType {
   TIMELINE = 'TIMELINE',
   MAP = 'MAP',
   CHARACTER = 'CHARACTER',
-  EVENT = 'EVENT',
   COMPARISON_TABLE = 'COMPARISON_TABLE',
   QUIZ = 'QUIZ',
   SECTION_ROW = 'SECTION_ROW',
   CALLOUT = 'CALLOUT',
   QUOTE = 'QUOTE',
   DIVIDER = 'DIVIDER',
-  RELATED_PEOPLE = 'RELATED_PEOPLE',
-  RELATED_EVENTS = 'RELATED_EVENTS',
 }
 
 export enum LessonBlockGroup {
@@ -265,7 +265,7 @@ export const QUIZ_QUESTION_TYPE_META: Record<
   { label: string; shortLabel: string; color: string }
 > = {
   [QuizQuestionType.SINGLE_CHOICE]: {
-    label: 'Trắc nghiệm 1 đáp án',
+    label: 'Chọn 1 đáp án',
     shortLabel: '1 đáp án',
     color: 'text-blue-600 bg-blue-50 border-blue-200',
   },
@@ -275,12 +275,12 @@ export const QUIZ_QUESTION_TYPE_META: Record<
     color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
   },
   [QuizQuestionType.MULTIPLE_CHOICE]: {
-    label: 'Nhiều đáp án đúng',
+    label: 'Nhiều đáp án',
     shortLabel: 'Nhiều đáp án',
     color: 'text-indigo-600 bg-indigo-50 border-indigo-200',
   },
   [QuizQuestionType.ORDERING]: {
-    label: 'Sắp xếp dòng thời gian',
+    label: 'Sắp xếp thứ tự',
     shortLabel: 'Sắp xếp',
     color: 'text-amber-600 bg-amber-50 border-amber-200',
   },

@@ -10,8 +10,8 @@ const VIEW_COMPONENTS: Record<CurriculumViewMode, React.ReactElement> = {
 };
 
 const VIEW_MODE_LABELS: Record<CurriculumViewMode, string> = {
-  [CurriculumViewMode.STUDIO]: 'HISGO Studio 4 bước',
-  [CurriculumViewMode.TOPIC_TREE]: 'Cây danh mục',
+  [CurriculumViewMode.STUDIO]: 'Lộ trình & Chương',
+  [CurriculumViewMode.TOPIC_TREE]: 'Cây Chủ đề',
 };
 
 const INACTIVE_TAB_CLASSES = 'text-slate-600 hover:text-slate-900 hover:bg-slate-100';
@@ -21,9 +21,9 @@ export default function CurriculumPage() {
 
   return (
     <div className="space-y-4">
-      {/* Top Switcher giữa Studio Biên soạn Lộ trình và Cây Chủ đề Phân cấp */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-        <div className="flex items-center gap-2">
+      {/* Top Switcher giữa Lộ trình & Chương và Cây Chủ đề */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             id="btn-switch-studio"
@@ -34,7 +34,7 @@ export default function CurriculumPage() {
                 : INACTIVE_TAB_CLASSES
             }`}
           >
-            HISGO Studio &bull; Lộ trình &amp; Cấu trúc chương
+            Lộ trình &amp; Chương
           </button>
           <button
             type="button"
@@ -46,11 +46,11 @@ export default function CurriculumPage() {
                 : INACTIVE_TAB_CLASSES
             }`}
           >
-            Cây phân cấp Chủ đề (Topic Tree)
+            Cây Chủ đề
           </button>
         </div>
 
-        <span className="text-xs font-medium text-slate-600">
+        <span className="hidden sm:inline text-xs font-medium text-slate-600">
           Chế độ hiện tại: <strong className="text-slate-800">{VIEW_MODE_LABELS[viewMode]}</strong>
         </span>
       </div>

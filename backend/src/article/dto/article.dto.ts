@@ -133,6 +133,16 @@ export class CreateArticleDto {
 
 export class UpdateArticleDto extends PartialType(CreateArticleDto) {}
 
+export class SetArticleFeaturedDto {
+  @ApiProperty({
+    example: true,
+    description:
+      'Bật/tắt hiển thị bài viết nổi bật trên Trang chủ (chỉ SUPERADMIN)',
+  })
+  @IsBoolean()
+  isFeatured: boolean;
+}
+
 export class ReviewArticleDto {
   @ApiProperty({
     enum: [

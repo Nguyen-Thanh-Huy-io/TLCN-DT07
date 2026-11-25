@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, type ImgHTMLAttributes } from 'react';
-import { Archive, ArchiveRestore } from 'lucide-react';
+import React, { useEffect, useState, type ImgHTMLAttributes } from 'react';
+import { AlertTriangle, Archive, ArchiveRestore, X } from 'lucide-react';
 import { Icon } from '@/components/icons/Icon';
 import { ContentStatus, IconName } from '@/constants/enums';
 import { BadgeTone } from '@/constants/ui-theme';
@@ -80,9 +80,119 @@ export function RemoteImage({ src, alt, ...rest }: RemoteImageProps) {
   return <img src={src} alt={alt} {...rest} />;
 }
 
+export type ConfirmDialogTone = 'warning' | 'danger' | 'primary';
+
+export interface ConfirmDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  tone?: ConfirmDialogTone;
+}
+
+const CONFIRM_TONE_STYLES: Record<
+  ConfirmDialogTone,
+  { iconWrap: string; confirmBtn: string }
+> = {
+  warning: {
+    iconWrap: 'bg-amber-50 text-amber-600 border-amber-200',
+    confirmBtn: 'bg-amber-600 hover:bg-amber-700 text-white',
+  },
+  danger: {
+    iconWrap: 'bg-rose-50 text-rose-600 border-rose-200',
+    confirmBtn: 'bg-rose-600 hover:bg-rose-700 text-white',
+  },
+  primary: {
+    iconWrap: 'bg-slate-100 text-slate-700 border-slate-200',
+    confirmBtn: 'bg-slate-900 hover:bg-slate-800 text-white',
+  },
+};
+
+/** Hộp thoại xác nhận dùng chung chuẩn HISGO (thay thế window.confirm / window.alert thô). */
+export function ConfirmDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmLabel = 'Xác nhận',
+  cancelLabel = 'Hủy',
+  tone = 'warning',
+}: ConfirmDialogProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+  const styles = CONFIRM_TONE_STYLES[tone];
+
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl space-y-4"
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${styles.iconWrap}`}
+          >
+            <AlertTriangle size={18} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">{title}</h3>
+            <p className="mt-1 text-xs sm:text-[13px] text-slate-600 leading-relaxed">{message}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Đóng hộp thoại"
+            className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer shrink-0"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition cursor-pointer"
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold shadow-2xs transition cursor-pointer ${styles.confirmBtn}`}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // --- Merged from ArchiveStatusButton.tsx ---
 const CONFIRM_ARCHIVE =
-  'Lưu trữ nội dung này? Nội dung sẽ biến mất khỏi trang công khai nhưng vẫn được giữ lại — khôi phục về bản nháp bất cứ lúc nào.';
+  'Nội dung sẽ được gỡ khỏi trang công khai nhưng vẫn giữ nguyên dữ liệu — bạn có thể khôi phục về bản nháp bất cứ lúc nào.';
 
 export interface ArchiveStatusButtonProps {
   status: string;
@@ -99,21 +209,33 @@ export function ArchiveStatusButton({
   onChangeStatus,
   className = 'secondary-button !h-9 !text-sm',
 }: ArchiveStatusButtonProps) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   if (!isReviewer) return null;
 
   if (status === ContentStatus.PUBLISHED) {
     return (
-      <button
-        type="button"
-        disabled={disabled}
-        className={className}
-        title="Gỡ khỏi trang công khai nhưng vẫn giữ lại"
-        onClick={() => {
-          if (window.confirm(CONFIRM_ARCHIVE)) onChangeStatus(ContentStatus.ARCHIVED);
-        }}
-      >
-        <Archive size={15} /> Lưu trữ
-      </button>
+      <>
+        <button
+          type="button"
+          disabled={disabled}
+          className={className}
+          title="Gỡ khỏi trang công khai nhưng vẫn giữ lại"
+          onClick={() => setConfirmOpen(true)}
+        >
+          <Archive size={15} /> Lưu trữ
+        </button>
+        <ConfirmDialog
+          isOpen={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={() => onChangeStatus(ContentStatus.ARCHIVED)}
+          title="Lưu trữ nội dung này?"
+          message={CONFIRM_ARCHIVE}
+          confirmLabel="Lưu trữ ngay"
+          cancelLabel="Hủy"
+          tone="warning"
+        />
+      </>
     );
   }
 

@@ -51,8 +51,8 @@ export const QUESTION_TYPE_CARDS: QuestionTypeCardConfig[] = [
   },
   {
     type: QuizQuestionType.ORDERING,
-    title: 'Dòng thời gian',
-    subtitle: 'Sắp xếp thứ tự',
+    title: 'Sắp xếp thứ tự',
+    subtitle: 'Trình tự dòng thời gian',
     icon: Clock,
     isReady: true,
   },

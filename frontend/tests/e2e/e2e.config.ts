@@ -11,6 +11,7 @@ export enum E2eRoutes {
   PRACTICE = '/luyen-tap',
   CURRICULUM = '/chuong-trinh-hoc',
   TIMELINE = '/dong-thoi-gian',
+  CONCEPT_CANVAS = '/kham-pha-khai-niem',
   COMMUNITY = '/cong-dong',
   COMMUNITY_MEMBER = '/cong-dong/thanh-vien',
   CMS_HOME = '/cms',

@@ -153,4 +153,29 @@ test.describe('Public Content, Auth & Navigation E2E (10 scenarios)', () => {
     );
     await expect(page).toHaveURL(/\/$/);
   });
+
+  test('11. Bản đồ Khái niệm Không gian AI (/kham-pha-khai-niem): khám phá chủ đề gốc, mở rộng nhánh con và hiển thị Minimap không lỗi console', async ({
+    page,
+  }) => {
+    const tracker = new ConsoleErrorTracker(page);
+    await page.goto(E2eRoutes.CONCEPT_CANVAS, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('h1')).toContainText(
+      'Khám phá Không gian Lịch sử',
+    );
+
+    const searchInput = page.getByLabel('Nhập khái niệm lịch sử cần khám phá');
+    await searchInput.fill('Hai Bà Trưng');
+    await page.locator('form').getByRole('button', { name: 'Khám phá' }).click();
+
+    const rootCard = page.getByTestId('spatial-node-sc-node-1');
+    await expect(rootCard).toBeVisible();
+    await expect(page.getByTestId('spatial-minimap')).toBeVisible();
+
+    const firstFollowUp = page.getByTestId('spatial-followup-sc-node-1-0');
+    await expect(firstFollowUp).toBeVisible();
+    await firstFollowUp.click();
+
+    await expect(page.getByTestId('spatial-node-sc-node-2')).toBeVisible();
+    tracker.expectNoErrors();
+  });
 });

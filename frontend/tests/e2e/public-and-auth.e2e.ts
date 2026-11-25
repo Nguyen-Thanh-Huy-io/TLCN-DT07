@@ -158,6 +158,41 @@ test.describe('Public Content, Auth & Navigation E2E (10 scenarios)', () => {
     page,
   }) => {
     const tracker = new ConsoleErrorTracker(page);
+
+    await page.route('**/public/concept-canvas/explore', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.fallback();
+        return;
+      }
+      const body = route.request().postDataJSON() as { prompt?: string } | null;
+      const prompt = body?.prompt ?? 'Hai Bà Trưng';
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          statusCode: 200,
+          message: 'OK',
+          data: {
+            prompt,
+            periodLabel: '40 – 43 · Thời Hai Bà Trưng',
+            text: `**[${prompt}](${prompt})** là cuộc khởi nghĩa chống ách đô hộ nhà Đông Hán năm 40 tại [Mê Linh](Mê Linh).`,
+            prompts: [
+              'Nguyên nhân bùng nổ khởi nghĩa Hai Bà Trưng?',
+              'Ý nghĩa lịch sử của chiến thắng Mê Linh năm 40?',
+              'Vai trò của các nữ tướng thời Hai Bà Trưng?',
+            ],
+            imageUrl: null,
+            engine: 'VERTEX_RAG',
+            matchedArticles: [],
+            matchedTimelineNodes: [],
+            webSources: [],
+            webSearchQueries: [],
+            ragCitations: [],
+          },
+        }),
+      });
+    });
+
     await page.goto(E2eRoutes.CONCEPT_CANVAS, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText(
       'Khám phá Không gian Lịch sử',

@@ -27,9 +27,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   NODE_VERSION: "22"
-  PYTHON_VERSION: "3.12"
   DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/hisgo-frontend
 
 jobs:
@@ -107,10 +109,10 @@ jobs:
           NODE_ENV: production
 
   # ─────────────────────────────────────────────
-  # JOB 3: Full-Stack Selenium UI E2E Smoke
+  # JOB 3: Full-Stack Playwright UI E2E Smoke
   # ─────────────────────────────────────────────
-  e2e-selenium:
-    name: Full-Stack Selenium E2E
+  e2e-playwright:
+    name: Full-Stack Playwright E2E
     runs-on: ubuntu-latest
     needs: lint-and-unit
 
@@ -157,6 +159,7 @@ jobs:
       E2E_FE_URL: http://127.0.0.1:3010
       E2E_BE_URL: http://127.0.0.1:5010
       E2E_HEADLESS: "1"
+      E2E_DISABLE_AUTH_RATE_LIMIT: "1"
 
     steps:
       - name: Checkout repository
@@ -169,18 +172,8 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: frontend/tests/e2e/requirements.txt
-
-      - name: Verify Chrome & Install Selenium E2E dependencies
-        run: |
-          google-chrome --version
-          python -m pip install --upgrade pip
-          pip install -r frontend/tests/e2e/requirements.txt
+      - name: Verify Chrome for Playwright
+        run: google-chrome --version
 
       - name: Install & Prepare Backend E2E Environment
         working-directory: ./backend
@@ -196,7 +189,7 @@ jobs:
           npm ci
           npm run build
 
-      - name: Run Selenium UI E2E Smoke Journeys
+      - name: Run Playwright UI E2E Smoke Journeys
         run: |
           mkdir -p backend/coverage frontend/coverage
           (
@@ -234,15 +227,15 @@ jobs:
             exit 1
           fi
 
-          (cd frontend && python -m pytest tests/e2e -v --junitxml=coverage/e2e-junit.xml)
+          (cd frontend && npm run test:e2e)
           (cd backend && npx ts-node test/seed-ui-e2e.ts --clean) || true
 
-      - name: Upload Selenium E2E Report Artifact
+      - name: Upload Playwright E2E Report Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-selenium-e2e-report
-          path: frontend/coverage/e2e-junit.xml
+          name: frontend-playwright-e2e-report
+          path: frontend/coverage/e2e-report.json
           retention-days: 7
 
   # ─────────────────────────────────────────────
@@ -251,7 +244,7 @@ jobs:
   docker-build:
     name: Docker Build & Smoke Check
     runs-on: ubuntu-latest
-    needs: [build, e2e-selenium]
+    needs: [build, e2e-playwright]
 
     steps:
       - name: Checkout repository

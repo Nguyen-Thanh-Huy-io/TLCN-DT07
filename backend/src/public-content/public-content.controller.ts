@@ -47,21 +47,36 @@ export class PublicContentController {
   })
   @ApiQuery({ name: 'tag', required: false, description: 'id tag' })
   @ApiQuery({ name: 'q', required: false })
+  @ApiQuery({
+    name: 'topicIds',
+    required: false,
+    description: 'Danh sách topicId phân tách dấu phẩy',
+  })
   @ApiQuery({ name: 'featured', required: false, type: Boolean })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   getArticles(
     @Query('category') category?: string,
     @Query('tag') tag?: string,
     @Query('q') q?: string,
+    @Query('topicIds') topicIds?: string,
     @Query('featured') featured?: string,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ) {
+    const parsedTopicIds = topicIds
+      ? topicIds
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean)
+          .slice(0, 200)
+      : undefined;
+    const maxLimit = parsedTopicIds?.length ? 1500 : 200;
     return this.service.getArticles({
       category,
       tag,
       q,
+      topicIds: parsedTopicIds,
       featured: featured === 'true',
-      limit: limit ? Math.min(limit, 200) : undefined,
+      limit: limit ? Math.min(limit, maxLimit) : undefined,
     });
   }
 
@@ -154,8 +169,16 @@ export class PublicContentController {
 
   @Get('tags')
   @ApiOperation({ summary: 'Tag có bài viết đã xuất bản' })
-  getTags() {
-    return this.service.getTags();
+  @ApiQuery({ name: 'q', required: false })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  getTags(
+    @Query('q') q?: string,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+  ) {
+    return this.service.getTags({
+      q,
+      limit: limit ? Math.min(limit, 100) : undefined,
+    });
   }
 
   @Get('lessons')

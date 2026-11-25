@@ -194,17 +194,6 @@ export enum NotificationBellVariant {
 }
 
 /**
- * Loại đối tượng / bài viết thực thể lịch sử (Đồng bộ ArticleKind)
- */
-export enum ArticleKindEnum {
-  PERSON = 'PERSON',
-  EVENT = 'EVENT',
-  LOCATION = 'LOCATION',
-  DYNASTY = 'DYNASTY',
-  OTHER = 'OTHER',
-}
-
-/**
  * Phân hệ Kiểm duyệt nội dung (Moderation)
  */
 export enum ModerationActionTakenEnum {

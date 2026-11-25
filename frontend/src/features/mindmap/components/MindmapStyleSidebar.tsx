@@ -213,7 +213,7 @@ export function MindmapStyleSidebar({
   return (
     <aside
       aria-label="Bảng thiết kế Sơ đồ tư duy"
-      className="flex h-full w-72 shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white shadow-sm sm:w-80 print:hidden"
+      className="fixed top-0 right-0 bottom-0 z-40 flex h-full w-80 max-w-[88vw] shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white shadow-2xl lg:static lg:z-auto lg:max-w-none lg:shadow-sm print:hidden"
     >
       {/* Hàng Tab Icon trên cùng khớp bố cục MindMeister */}
       <div className="flex items-center justify-between border-b border-slate-100 px-2.5 py-2">
@@ -322,7 +322,7 @@ export function MindmapStyleSidebar({
                       }`}
                     >
                       <ThemeThumbnailSvg colors={cfg.previewColors} bg={cfg.canvasBg} />
-                      <span className="mt-1 block truncate text-[10px] font-medium text-slate-600">
+                      <span className="mt-1 line-clamp-2 block text-[10px] leading-tight font-medium text-slate-600">
                         {cfg.label}
                       </span>
                     </button>

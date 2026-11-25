@@ -3,15 +3,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { CurriculumTopicNode, AnyCurriculumNode, CurriculumNodeType } from '@/types/models';
-import { CurriculumTree } from './CurriculumTree';
-import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
+import { CurriculumTree } from './CurriculumTreeParts';
+import { ConfirmDeleteModal } from '@/components/common/CommonUi';
 import { APP_ROUTES } from '@/constants/routes';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
 import { TopicApiService } from '@/services/entities/topic.service';
-import { LessonApiService } from '@/services/entities/lesson.service';
+import { LessonApiService } from '@/services/entities/learner.service';
 import { extractErrorMessage } from '@/services/api';
-import { mapBackendTopicTreeToCurriculum } from '../utils/curriculum-mapper';
+import { mapBackendTopicTreeToCurriculum } from './useCurriculumTree';
 import { NodeDetailStrategyFactory, DetailStrategyCallbacks } from '../strategies/node-detail.strategy';
 
 /** Breadcrumb của bài học: chủ đề gốc → (chủ đề con) → bài học. */

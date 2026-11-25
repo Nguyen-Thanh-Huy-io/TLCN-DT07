@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
 import { resolveBackendAssetUrl } from '@/constants/api-url';
-import { UploadApiService } from '@/services/entities/upload.service';
+import { UploadApiService } from '@/services/api';
 import { extractErrorMessage } from '@/services/api';
 
 /**
@@ -188,7 +188,7 @@ export function TopicCoverImagePicker({
 
       {/* Trường hợp 1: Đã có ảnh và không ở chế độ thay đổi ảnh */}
       {hasImage && !isReplacing ? (
-        <div className="space-y-3">
+        <div className="min-w-0 space-y-3 overflow-hidden">
           {imgError ? (
             <div className="w-full h-36 flex flex-col items-center justify-center bg-slate-50 border border-amber-200/80 rounded-lg p-3 text-center">
               <svg className="w-6 h-6 text-amber-500 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">

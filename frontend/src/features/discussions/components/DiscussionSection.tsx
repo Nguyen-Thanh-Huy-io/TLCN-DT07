@@ -13,7 +13,7 @@ import {
   DiscussionApiService,
   type DiscussionTargetType,
   type DiscussionThreadItem,
-} from '@/services/entities/discussion.service';
+} from '@/services/entities/dashboard.service';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { KeyboardKey, UserRole } from '@/constants/enums';

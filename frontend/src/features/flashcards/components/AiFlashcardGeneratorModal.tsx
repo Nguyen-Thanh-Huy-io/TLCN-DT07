@@ -102,7 +102,7 @@ function AiSourceSelectorPanel({
         <label className="flex items-center gap-2.5 cursor-pointer">
           <input
             type="checkbox"
-            checked={includeArticles}
+            checked={includeArticles && savedArticleCount > 0}
             disabled={savedArticleCount === 0}
             onChange={(e) => onIncludeArticlesChange(e.target.checked)}
             className="size-4 accent-[#7A1F24]"

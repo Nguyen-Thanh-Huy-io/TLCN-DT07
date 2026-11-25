@@ -40,40 +40,7 @@ const TIMELINE_NODE_ARTICLE_SELECT = {
       id: true,
       name: true,
       slug: true,
-      kind: true,
       parentId: true,
-    },
-  },
-  /** Bài khác liên kết tới bài của mốc (vd. nhân vật → sự kiện) — CMS hiện "Gắn với ...". */
-  linksIn: {
-    orderBy: { displayOrder: 'asc' },
-    select: {
-      label: true,
-      source: {
-        select: {
-          id: true,
-          title: true,
-          category: {
-            select: { id: true, name: true, kind: true, parentId: true },
-          },
-        },
-      },
-    },
-  },
-  /** Bài của mốc liên kết tới (vd. sự kiện → nhân vật / di tích). */
-  linksOut: {
-    orderBy: { displayOrder: 'asc' },
-    select: {
-      label: true,
-      target: {
-        select: {
-          id: true,
-          title: true,
-          category: {
-            select: { id: true, name: true, kind: true, parentId: true },
-          },
-        },
-      },
     },
   },
 } satisfies Prisma.ArticleSelect;

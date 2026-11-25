@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { QuizQuestionType, type QuizQuestion } from '@/features/lessons/types/quiz.types';
+import { QuizQuestionType, type QuizQuestion } from '@/features/lessons/types/editor.types';
 import { MoveDirection } from '@/features/lessons/components/quiz/QuizQuestionEditors';
 import {
   prepareQuizSessionForLearner,

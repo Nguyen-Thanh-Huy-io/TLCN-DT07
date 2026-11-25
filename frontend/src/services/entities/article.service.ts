@@ -3,7 +3,6 @@ import type { RevisionPendingResponse } from './content-revision.service';
 import type { ArticleMetadata } from '../public/public-content.service';
 
 export type { ArticleMetadata };
-import type { ArticleKind } from '../public/article-kind';
 
 /** Trạng thái nội dung (ContentStatus) — bài viết / dòng thời gian. */
 export type ContentStatusValue = 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED' | 'ARCHIVED';
@@ -16,9 +15,6 @@ export const CONTENT_STATUS_LABELS: Record<ContentStatusValue, string> = {
   ARCHIVED: 'Lưu trữ',
 };
 
-export type DatePrecisionValue =
-  | 'DAY' | 'MONTH' | 'YEAR' | 'DECADE' | 'CENTURY' | 'APPROXIMATE' | 'RANGE' | 'UNKNOWN';
-
 export interface CategoryItem {
   id: string;
   parentId: string | null;
@@ -26,8 +22,6 @@ export interface CategoryItem {
   slug: string;
   description: string | null;
   icon: string | null;
-  /** null = kế thừa chuyên mục cha. */
-  kind: ArticleKind | null;
   isActive?: boolean;
   displayOrder: number;
   _count?: { articles: number };
@@ -47,14 +41,7 @@ export interface ArticleTagRef {
   colorHex: string | null;
 }
 
-/** Liên kết bài này → bài khác, đúng dạng payload ghi (thay toàn bộ khi lưu). */
-export interface ArticleLinkInput {
-  targetId: string;
-  label?: string | null;
-  note?: string | null;
-}
-
-/** Mốc timeline trỏ tới 1 bài (năm + dòng thời gian chứa mốc) — cùng dạng LifeNodeRef. */
+/** Mốc timeline trỏ tới 1 bài (năm + dòng thời gian chứa mốc). */
 export interface ArticleNodeRef {
   id: string;
   title: string;
@@ -65,27 +52,6 @@ export interface ArticleNodeRef {
   day: number | null;
   endYear: number | null;
   timeline: { id: string; title: string; slug: string };
-}
-
-/** Bài ở đầu kia liên kết (CMS hiển thị + xem trước dòng đời). */
-export interface LinkedArticleRef {
-  id: string;
-  title: string;
-  slug: string;
-  status: ContentStatusValue;
-  summary: string | null;
-  dateText: string | null;
-  startYear: number | null;
-  endYear: number | null;
-  timelineNodes: ArticleNodeRef[];
-  category: { id: string; name: string; slug: string; kind?: ArticleKind | null; parentId?: string | null } | null;
-}
-
-export interface ArticleLinkView {
-  id: string;
-  label: string | null;
-  note: string | null;
-  article: LinkedArticleRef;
 }
 
 export interface ArticleItem {
@@ -101,17 +67,13 @@ export interface ArticleItem {
   coverCaption: string | null;
   contentBlocks?: unknown;
   metadata?: ArticleMetadata | null;
-  /** Chỉ có ở chi tiết (GET /articles/:id). */
-  links?: ArticleLinkInput[];
-  linksOut?: ArticleLinkView[];
-  linksIn?: ArticleLinkView[];
   dateText: string | null;
   startYear: number | null;
   endYear: number | null;
-  datePrecision: DatePrecisionValue | null;
   isFeatured: boolean;
   displayOrder: number;
   status: ContentStatusValue;
+  rejectionReason?: string | null;
   createdBy: string | null;
   publishedAt: string | null;
   createdAt: string;
@@ -136,11 +98,9 @@ export interface ArticlePayload {
   coverCaption?: string | null;
   contentBlocks?: unknown;
   metadata?: ArticleMetadata | null;
-  links?: ArticleLinkInput[];
   dateText?: string | null;
   startYear?: number | null;
   endYear?: number | null;
-  datePrecision?: DatePrecisionValue | null;
   isFeatured?: boolean;
   displayOrder?: number;
   status?: ContentStatusValue;
@@ -153,6 +113,7 @@ export interface ArticleQuery {
   categoryId?: string;
   tagId?: string;
   status?: ContentStatusValue;
+  featured?: boolean;
   sort?: 'updated' | 'year' | 'title';
 }
 
@@ -178,6 +139,9 @@ export const ArticleApiService = {
   },
   async review(id: string, payload: { status: 'PUBLISHED' | 'REJECTED' | 'DRAFT'; rejectionReason?: string }): Promise<ArticleItem> {
     return unwrap(await api.patch(`/articles/${id}/review`, payload));
+  },
+  async setFeatured(id: string, isFeatured: boolean): Promise<ArticleItem> {
+    return unwrap(await api.patch(`/articles/${id}/featured`, { isFeatured }));
   },
 };
 

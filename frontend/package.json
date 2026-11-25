@@ -10,6 +10,7 @@
     "lint:fix": "eslint --fix",
     "test": "vitest run",
     "test:cov": "vitest run --coverage",
+    "test:e2e": "playwright test",
     "audit:dup": "jscpd src",
     "audit:knip": "knip",
     "audit": "npm run lint && npm run audit:dup && npm run audit:knip"
@@ -34,6 +35,7 @@
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",

@@ -4,9 +4,13 @@ import Link from 'next/link';
 import { useState, type ButtonHTMLAttributes, type ReactNode, useEffect, useMemo } from 'react';
 import { BookmarkPlus, LockKeyhole, LogIn, UserPlus, BookOpen, Check, ChevronDown, Circle, FileText, GitCommitVertical, Link2, ListTree } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
-import { type LearningPathItem } from '@/services/entities/learning-path.service';
-import { LessonAccessState } from '../../facades/usePublicLessonReaderFacade';
-import { DEFAULT_COVER_IMAGES, PUBLIC_CURRICULUM_ROUTES, PUBLIC_DIFFICULTY_META } from '../../constants/public-curriculum.constants';
+import { type LearningPathItem } from '@/services/entities/learner.service';
+import {
+  LessonAccessState,
+  DEFAULT_COVER_IMAGES,
+  PUBLIC_CURRICULUM_ROUTES,
+  PUBLIC_DIFFICULTY_META,
+} from '../../facades/usePublicCurriculumFacade';
 import { AnimatePresence, motion } from 'framer-motion';
 import { publishedChapterLessons } from '../../facades/usePublicCurriculumFacade';
 import { loadPublicCatalog } from '@/features/search/search-index';

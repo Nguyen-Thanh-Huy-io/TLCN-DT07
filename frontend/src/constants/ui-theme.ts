@@ -1,5 +1,51 @@
-import { ContentStatus, DifficultyLevel } from './enums';
+import { ContentStatus, DifficultyLevel, IconName } from './enums';
 import { NavigationPageKey } from './routes';
+
+export enum NavGroupId {
+  DASHBOARD = 'DASHBOARD',
+  LEARNING = 'LEARNING',
+  KNOWLEDGE = 'KNOWLEDGE',
+  SYSTEM = 'SYSTEM',
+}
+
+export const NAV_GROUP_TITLES: Record<NavGroupId, string> = {
+  [NavGroupId.DASHBOARD]: 'TỔNG QUAN & BÁO CÁO',
+  [NavGroupId.LEARNING]: 'QUẢN TRỊ BÀI HỌC & QUIZ',
+  [NavGroupId.KNOWLEDGE]: 'KHO DỮ LIỆU LỊCH SỬ',
+  [NavGroupId.SYSTEM]: 'HỆ THỐNG & PHÂN QUYỀN',
+};
+
+export const NAV_ITEM_LABELS = {
+  DASHBOARD: 'Dashboard tổng quan',
+  LESSONS: 'Quản lý bài học',
+  QUIZZES: 'Đề thi & Ngân hàng câu hỏi',
+  ARTICLES: 'Bài viết',
+  CATEGORIES: 'Chuyên mục',
+  TIMELINES: 'Dòng thời gian',
+  TAGS: 'Tag',
+  USERS: 'Quản lý người dùng và phân quyền',
+  GAMIFICATION: 'Gamification & Huy hiệu',
+  REVIEW: 'Hàng chờ duyệt',
+} as const;
+
+export interface NavItemConfig {
+  readonly id: string;
+  readonly label: string;
+  readonly icon: IconName;
+  readonly page: NavigationPageKey;
+  readonly route: string;
+  readonly groupId: NavGroupId;
+  readonly hierarchyTag?: string;
+  readonly badgeCount?: number;
+  readonly subtitle?: string;
+}
+
+export interface NavGroupConfig {
+  readonly id: NavGroupId;
+  readonly label: string;
+  readonly items: NavItemConfig[];
+  readonly description?: string;
+}
 
 export type BadgeTone = 'green' | 'blue' | 'amber' | 'red' | 'gray';
 
@@ -97,20 +143,8 @@ export const PAGE_META: Record<NavigationPageKey, PageMetaItem> = {
     title: 'Gamification & Huy hiệu',
     subtitle: 'Quản lý huy hiệu thành tựu và theo dõi nhịp học tập của học viên',
   },
-  media: {
-    title: 'Quản lý nguồn tư liệu và media',
-    subtitle: 'Kho lưu trữ tập trung hình ảnh, tư liệu số và video lịch sử',
-  },
   quizzes: {
     title: 'Đề thi & Ngân hàng câu hỏi',
     subtitle: 'Soạn câu hỏi theo chủ đề và ghép thành đề thi có chấm điểm',
-  },
-  analytics: {
-    title: 'Thống kê học tập và hoạt động',
-    subtitle: 'Chỉ số tiến độ người học, hiệu suất bài học và nhật ký hệ thống',
-  },
-  settings: {
-    title: 'Cài đặt hệ thống',
-    subtitle: 'Cấu hình tham số hệ thống, kiểm duyệt và danh mục dùng chung',
   },
 };

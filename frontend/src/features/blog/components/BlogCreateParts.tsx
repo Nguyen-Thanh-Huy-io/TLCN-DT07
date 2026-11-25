@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { StoryBlock, ReferenceItem } from '../utils/blog-metadata.util';
+import { StoryBlock, ReferenceItem } from '../facades/useBlogCreateFacade';
 import { StoryBlockTypeEnum } from '@/constants/enums';
 import { resolveBackendAssetUrl } from '@/constants/api-url';
 

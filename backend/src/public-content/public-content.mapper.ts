@@ -1,4 +1,4 @@
-import { ContentStatus, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { formatHistoricalYear } from '../common/utils/historical-date.parser';
 
 /** Thứ tự bài theo niên đại: năm bắt đầu tăng dần (chưa có năm xếp cuối), trùng năm theo tên. */
@@ -62,19 +62,12 @@ export const PUBLIC_ARTICLE_SUMMARY_SELECT = {
   isFeatured: true,
   metadata: true,
   topicId: true,
-  /** Liên kết do bài khai báo — chiều ngược (bài khác trỏ tới) frontend tự suy từ danh sách. */
-  linksOut: {
-    where: { target: { status: ContentStatus.PUBLISHED } },
-    orderBy: { displayOrder: 'asc' },
-    select: { targetId: true, label: true, note: true },
-  },
   category: {
     select: {
       id: true,
       name: true,
       slug: true,
       icon: true,
-      kind: true,
       parentId: true,
     },
   },
@@ -88,10 +81,9 @@ type ArticleSummaryRow = Prisma.ArticleGetPayload<{
 }>;
 
 export function toArticleSummary(row: ArticleSummaryRow) {
-  const { articleTags, linksOut, ...rest } = row;
+  const { articleTags, ...rest } = row;
   return {
     ...rest,
-    links: linksOut,
     dateLabel: buildDateLabel(row),
     tags: articleTags.map((at) => at.tag),
   };

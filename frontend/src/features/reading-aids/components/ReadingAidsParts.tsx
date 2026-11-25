@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   CalendarDays,
@@ -17,9 +17,8 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { ArticleKindEnum } from '@/constants/enums';
 import type { LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
-import type { ArticleKind } from '@/services/public/article-kind';
+import { SYSTEM_CATEGORY_ROOT_SLUGS } from '@/services/public/public-content.service';
 
 export enum ReadingTextSize {
   SM = 'sm',
@@ -100,7 +99,8 @@ export interface ReadingEntity {
   id: string;
   name: string;
   href: string;
-  kind: ArticleKind;
+  /** Slug chuyên mục gốc (`nhan-vat`, `di-tich`, `su-kien`...). */
+  kind: string;
   note?: string | null;
   summary?: string | null;
 }
@@ -196,7 +196,7 @@ export function ReadingDisplayPopover({
     <div
       role="dialog"
       aria-label="Tùy chỉnh hiển thị"
-      className="w-68 rounded-2xl border border-stone-200/90 bg-[#FFFCF5] p-3.5 text-stone-800 shadow-2xl sm:w-72"
+      className="w-full max-w-[320px] rounded-2xl border border-stone-200/90 bg-[#FFFCF5] p-3.5 text-stone-800 shadow-2xl sm:w-72"
     >
       <div className="mb-3 flex items-center justify-between border-b border-stone-200/80 pb-2">
         <span className="text-xs font-bold uppercase tracking-wider text-[#5C2A1E]">Tùy chỉnh hiển thị</span>
@@ -271,7 +271,7 @@ export function ReadingDisplayPopover({
 
         <DisplaySwitchRow
           icon={StickyNote}
-          title="Sticky ghi chú lề phải"
+          title="Ghim ghi chú lề phải"
           subtitle="Hiện thẻ ghi chú cụm ngoài lề khi màn hình rộng"
           checked={prefs.marginSticky}
           onToggle={() => onChangePrefs({ marginSticky: !prefs.marginSticky })}
@@ -315,13 +315,13 @@ enum ExploreTabKey {
 
 const ENTITY_TABS: ReadonlyArray<{
   tab: ExploreTabKey;
-  kind: ArticleKind;
+  kind: string;
   label: string;
   icon: React.ReactNode;
 }> = [
-  { tab: ExploreTabKey.PEOPLE, kind: ArticleKindEnum.PERSON, label: 'Nhân vật', icon: <User size={14} /> },
-  { tab: ExploreTabKey.PLACES, kind: ArticleKindEnum.LOCATION, label: 'Địa danh', icon: <MapPin size={14} /> },
-  { tab: ExploreTabKey.EVENTS, kind: ArticleKindEnum.EVENT, label: 'Sự kiện', icon: <CalendarDays size={14} /> },
+  { tab: ExploreTabKey.PEOPLE, kind: SYSTEM_CATEGORY_ROOT_SLUGS.PERSON, label: 'Nhân vật', icon: <User size={14} /> },
+  { tab: ExploreTabKey.PLACES, kind: SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION, label: 'Địa danh', icon: <MapPin size={14} /> },
+  { tab: ExploreTabKey.EVENTS, kind: SYSTEM_CATEGORY_ROOT_SLUGS.EVENT, label: 'Sự kiện', icon: <CalendarDays size={14} /> },
 ];
 
 /** Hộp thoại thống nhất "Trong bài": gộp Mục lục & Chú giải / Thực thể liên quan. */
@@ -496,4 +496,80 @@ export function ReadingExploreModal({
       </div>
     </div>
   );
+}
+
+// === Merged from useReadingControls.ts ===
+export interface UseReadingControlsResult {
+  prefs: ReadingPreferences;
+  setPrefs: React.Dispatch<React.SetStateAction<ReadingPreferences>>;
+  handleChangePrefs: (updates: Partial<ReadingPreferences>) => void;
+  focusMode: boolean;
+  setFocusMode: React.Dispatch<React.SetStateAction<boolean>>;
+  readProgress: number;
+  handlePrint: () => void;
+  readingControls: ReadingDisplayControls;
+}
+
+export function useReadingControls(): UseReadingControlsResult {
+  const [prefs, setPrefs] = useState<ReadingPreferences>(() => readSavedReadingPrefs());
+  const [focusMode, setFocusMode] = useState<boolean>(false);
+  const [readProgress, setReadProgress] = useState<number>(0);
+
+  useEffect(() => {
+    document.body.classList.toggle('ue-focus-mode-body', focusMode);
+    return () => {
+      document.body.classList.remove('ue-focus-mode-body');
+    };
+  }, [focusMode]);
+
+  const handleChangePrefs = useCallback((updates: Partial<ReadingPreferences>) => {
+    setPrefs((prev) => {
+      const next = { ...prev, ...updates };
+      try {
+        localStorage.setItem(READING_PREFS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // Bỏ qua lỗi storage ở chế độ ẩn danh.
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalHeight > 0) {
+        const currentProgress = Math.min(100, Math.max(0, (window.scrollY / totalHeight) * 100));
+        setReadProgress(Math.round(currentProgress));
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handlePrint = useCallback(() => window.print(), []);
+
+  const readingControls: ReadingDisplayControls = useMemo(
+    () => ({
+      prefs,
+      onChangePrefs: handleChangePrefs,
+      focusMode,
+      onToggleFocusMode: () => setFocusMode((v) => !v),
+      readProgress,
+      onPrint: handlePrint,
+    }),
+    [prefs, handleChangePrefs, focusMode, readProgress, handlePrint],
+  );
+
+  return {
+    prefs,
+    setPrefs,
+    handleChangePrefs,
+    focusMode,
+    setFocusMode,
+    readProgress,
+    handlePrint,
+    readingControls,
+  };
 }

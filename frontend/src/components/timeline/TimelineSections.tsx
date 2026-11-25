@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ArrowUpRight, ChevronDown, Landmark, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button, Heading, Badge, shortTitle } from './TimelineChrome';
 import { TimelineNodeItem, NodeContent } from './TimelineNodes';
-import { SK_SELECTED_CLASS, type SubEra, type TimeNode, type TimelineEvent } from './sk-types';
+import { SK_SELECTED_CLASS, type SubEra, type TimeNode, type TimelineEvent } from './sk-adapter';
 import { KeyboardKey } from '@/constants/enums';
 
 // === EraSection.tsx ===

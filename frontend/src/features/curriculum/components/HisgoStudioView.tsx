@@ -9,7 +9,7 @@ import { LearningPathListPanel } from './studio/StudioPanels';
 import { AddLessonsToChapterModal } from './studio/StudioModals';
 import { LearningPathFormModal } from './studio/StudioModals';
 import { CreateChapterModal } from './studio/StudioModals';
-import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
+import { ConfirmDeleteModal } from '@/components/common/CommonUi';
 import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
 import { StudioTab, NoticeTone } from '@/constants/enums';
 import { useHisgoStudio } from './useHisgoStudio';
@@ -52,12 +52,20 @@ export function HisgoStudioView() {
     setNewPathTitle,
     newPathDesc,
     setNewPathDesc,
+    newPathCover,
+    setNewPathCover,
+    newPathSequential,
+    setNewPathSequential,
     showEditPathModal,
     setShowEditPathModal,
     editPathTitle,
     setEditPathTitle,
     editPathDesc,
     setEditPathDesc,
+    editPathCover,
+    setEditPathCover,
+    editPathSequential,
+    setEditPathSequential,
     showCreateChapterModal,
     setShowCreateChapterModal,
     newChapterTitle,
@@ -268,6 +276,10 @@ export function HisgoStudioView() {
         titlePlaceholder="Ví dụ: Lịch sử Việt Nam 1945 - 1975"
         description={newPathDesc}
         onDescriptionChange={setNewPathDesc}
+        coverImageUrl={newPathCover}
+        onCoverImageUrlChange={setNewPathCover}
+        isSequential={newPathSequential}
+        onIsSequentialChange={setNewPathSequential}
         onClose={() => setShowCreatePathModal(false)}
         onSubmit={handleCreatePath}
         submitLabel="Tạo lộ trình"
@@ -283,6 +295,10 @@ export function HisgoStudioView() {
         onTitleChange={setEditPathTitle}
         description={editPathDesc}
         onDescriptionChange={setEditPathDesc}
+        coverImageUrl={editPathCover}
+        onCoverImageUrlChange={setEditPathCover}
+        isSequential={editPathSequential}
+        onIsSequentialChange={setEditPathSequential}
         onClose={() => setShowEditPathModal(false)}
         onSubmit={handleUpdatePath}
         submitLabel="Lưu thay đổi"

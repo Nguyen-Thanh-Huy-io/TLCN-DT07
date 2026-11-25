@@ -1,9 +1,160 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Node, mergeAttributes } from '@tiptap/core';
+import Link from '@tiptap/extension-link';
+import type { Editor } from '@tiptap/react';
 import api from '@/services/api';
-import { ANNOTATION_DATA_ATTRS, FOOTNOTE_REF_CLASS } from '../extensions/annotation.extension';
-import { WIKI_LINK_ROUTES } from '../strategies/wiki-link-target.strategy';
+import { URL_PROTOCOLS } from '@/constants/routes';
+
+// === Merged from annotation.extension.ts ===
+export const ANNOTATION_DATA_ATTRS = {
+  TOOLTIP: 'data-tooltip',
+  FOOTNOTE: 'data-footnote',
+} as const;
+
+export const FOOTNOTE_NODE_NAME = 'footnote';
+export const FOOTNOTE_REF_CLASS = 'lesson-footnote-ref';
+const FOOTNOTE_EDITOR_MARKER = '※';
+
+export const WIKI_LINK_ROUTES = {
+  ARTICLE_PREFIX: '/bai-viet/',
+  TIMELINE_PREFIX: '/giai-doan/',
+  HTTPS_PREFIX: URL_PROTOCOLS.HTTPS,
+  HTTP_PREFIX: URL_PROTOCOLS.HTTP,
+} as const;
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> { footnote: { insertFootnote: (note: string) => ReturnType } }
+}
+
+export const WikiLinkWithTooltip = Link.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      tooltip: {
+        default: null,
+        parseHTML: (el) => el.getAttribute(ANNOTATION_DATA_ATTRS.TOOLTIP) || null,
+        renderHTML: (attrs) => {
+          const val = typeof attrs.tooltip === 'string' ? attrs.tooltip.trim() : '';
+          return val ? { [ANNOTATION_DATA_ATTRS.TOOLTIP]: val } : {};
+        },
+      },
+    };
+  },
+});
+
+export const FootnoteNode = Node.create({
+  name: FOOTNOTE_NODE_NAME,
+  group: 'inline',
+  inline: true,
+  atom: true,
+  selectable: true,
+  addAttributes() {
+    return {
+      note: {
+        default: '',
+        parseHTML: (el) => el.getAttribute(ANNOTATION_DATA_ATTRS.FOOTNOTE) || '',
+        renderHTML: (attrs) => ({ [ANNOTATION_DATA_ATTRS.FOOTNOTE]: typeof attrs.note === 'string' ? attrs.note.trim() : '' }),
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: `sup[${ANNOTATION_DATA_ATTRS.FOOTNOTE}]` }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    const noteText = String(HTMLAttributes[ANNOTATION_DATA_ATTRS.FOOTNOTE] || '');
+    return ['sup', mergeAttributes({ class: FOOTNOTE_REF_CLASS, title: noteText }, HTMLAttributes), FOOTNOTE_EDITOR_MARKER];
+  },
+  addCommands() {
+    return {
+      insertFootnote: (note: string) => ({ chain }) => {
+        const trimmed = note.trim();
+        return trimmed ? chain().insertContent({ type: this.name, attrs: { note: trimmed } }).run() : false;
+      },
+    };
+  },
+});
+
+// === Merged from ActiveEditorContext.tsx ===
+export enum BlockSubElementType {
+  NESTED_BLOCK = 'NESTED_BLOCK',
+}
+
+export type BlockSubElementTypeUnion = `${BlockSubElementType}`;
+
+export interface ActiveSubElementSelection {
+  parentBlockId: string;
+  subType: BlockSubElementType | BlockSubElementTypeUnion;
+  subId?: string;
+  label: string;
+}
+
+interface ActiveEditorContextValue {
+  activeEditor: Editor | null;
+  setActiveEditor: (editor: Editor | null) => void;
+  editorStateVersion: number;
+  isInspectorVisible: boolean;
+  activeSubElement: ActiveSubElementSelection | null;
+  setActiveSubElement: (selection: ActiveSubElementSelection | null) => void;
+}
+
+const ActiveEditorContext = createContext<ActiveEditorContextValue>({
+  activeEditor: null,
+  setActiveEditor: () => {},
+  editorStateVersion: 0,
+  isInspectorVisible: false,
+  activeSubElement: null,
+  setActiveSubElement: () => {},
+});
+
+export function ActiveEditorProvider({
+  children,
+  isInspectorVisible = false,
+}: {
+  children: React.ReactNode;
+  isInspectorVisible?: boolean;
+}) {
+  const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
+  const [editorStateVersion, setEditorStateVersion] = useState(0);
+  const [activeSubElement, setActiveSubElement] =
+    useState<ActiveSubElementSelection | null>(null);
+
+  useEffect(() => {
+    if (!activeEditor) return;
+    const handleTransaction = () => {
+      setEditorStateVersion((v) => v + 1);
+    };
+    activeEditor.on('selectionUpdate', handleTransaction);
+    activeEditor.on('transaction', handleTransaction);
+    return () => {
+      activeEditor.off('selectionUpdate', handleTransaction);
+      activeEditor.off('transaction', handleTransaction);
+    };
+  }, [activeEditor]);
+
+  const value = useMemo(
+    () => ({
+      activeEditor,
+      setActiveEditor,
+      editorStateVersion,
+      isInspectorVisible,
+      activeSubElement,
+      setActiveSubElement,
+    }),
+    [activeEditor, editorStateVersion, isInspectorVisible, activeSubElement],
+  );
+
+  return (
+    <ActiveEditorContext.Provider value={value}>
+      {children}
+    </ActiveEditorContext.Provider>
+  );
+}
+
+export function useActiveEditor() {
+  return useContext(ActiveEditorContext);
+}
 
 interface TooltipState {
   title?: string;

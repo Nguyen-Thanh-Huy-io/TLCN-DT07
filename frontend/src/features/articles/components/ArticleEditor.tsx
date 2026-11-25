@@ -1,52 +1,41 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ExternalLink, FileText, IdCard, LayoutList, Save, Send, Upload } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FileText, LayoutList, Save, Send, Upload } from 'lucide-react';
 import { APP_ROUTES } from '@/constants/routes';
 import { ContentStatus } from '@/constants/enums';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/use-auth-session';
-import { isReviewerRole } from '@/services/auth/public-auth.service';
-import { ArchiveStatusButton } from '@/components/common/ArchiveStatusButton';
+import { isReviewerRole, isSuperadminRole } from '@/services/auth/public-auth.service';
+import { ArchiveStatusButton, ConfirmDialog } from '@/components/common/CommonUi';
 import type { TagItem } from '@/types/models';
 import { LessonTagPicker } from '@/features/lessons/components/LessonTagPicker';
 import { TopicCoverImagePicker } from '@/features/topics/components/TopicCoverImagePicker';
 import {
-  ArticleApiService, CategoryApiService,
-  type ArticleItem, type ArticleLinkView, type ArticleMetadata, type ArticlePayload,
-  type CategoryItem, type ContentStatusValue, type DatePrecisionValue,
+  ArticleApiService,
+  CategoryApiService,
+  type ArticleMetadata,
+  type ArticlePayload,
+  type CategoryItem,
+  type ContentStatusValue,
 } from '@/services/entities/article.service';
 import { isRevisionPending, withPendingDraft, type ContentRevisionItem } from '@/services/entities/content-revision.service';
 import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { ContentBlockEditor } from './ContentBlockEditor';
-import { StatusPill } from './StatusPill';
-import { YearInput } from './YearInput';
-import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicPicker';
-import { ArticleProfilePanel, articleKindOf, type LinkDraft } from './ArticleProfilePanel';
+import { StatusPill, YearInput } from './ArticleList';
+import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicEditor';
 import { CategoryPicker } from './CategoryPicker';
-
-const PRECISION_OPTIONS: Array<{ value: DatePrecisionValue; label: string }> = [
-  { value: 'YEAR', label: 'Chính xác tới năm' },
-  { value: 'MONTH', label: 'Tới tháng' },
-  { value: 'DAY', label: 'Tới ngày' },
-  { value: 'DECADE', label: 'Thập niên' },
-  { value: 'CENTURY', label: 'Thế kỷ' },
-  { value: 'APPROXIMATE', label: 'Ước đoán' },
-  { value: 'UNKNOWN', label: 'Chưa rõ' },
-];
 
 export enum ArticleEditorTab {
   INFO = 'INFO',
-  PROFILE = 'PROFILE',
   CONTENT = 'CONTENT',
 }
 
 const TABS_CONFIG = [
   [ArticleEditorTab.INFO, 'Thông tin', LayoutList],
-  [ArticleEditorTab.PROFILE, 'Hồ sơ & liên kết', IdCard],
   [ArticleEditorTab.CONTENT, 'Nội dung', FileText],
 ] as const;
 
@@ -61,10 +50,20 @@ function pickedTopicOf(
 }
 
 const EMPTY: ArticlePayload = {
-  title: '', slug: '', categoryId: null, topicId: null, tagIds: [],
-  summary: '', coverImageUrl: '', coverCaption: '', contentBlocks: [],
-  dateText: '', startYear: null, endYear: null, datePrecision: null,
-  isFeatured: false, displayOrder: 0,
+  title: '',
+  slug: '',
+  categoryId: null,
+  topicId: null,
+  tagIds: [],
+  summary: '',
+  coverImageUrl: '',
+  coverCaption: '',
+  contentBlocks: [],
+  dateText: '',
+  startYear: null,
+  endYear: null,
+  isFeatured: false,
+  displayOrder: 0,
 };
 
 const blankToNull = (v: string | null | undefined) => (v && v.trim() ? v.trim() : null);
@@ -75,11 +74,13 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   const router = useRouter();
   const user = useAuthSession();
   const isReviewer = Boolean(user && isReviewerRole(user.role));
+  const isSuperadmin = Boolean(user && isSuperadminRole(user.role));
   const isEdit = Boolean(articleId);
 
   const [form, setForm] = useState<ArticlePayload>(EMPTY);
   const [topic, setTopic] = useState<PickedTopic | null>(null);
   const [status, setStatus] = useState<ContentStatusValue>(ContentStatus.DRAFT);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [savedSlug, setSavedSlug] = useState<string | null>(null);
   const [tab, setTab] = useState<ArticleEditorTab>(ArticleEditorTab.INFO);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
@@ -91,12 +92,35 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [metadata, setMetadata] = useState<ArticleMetadata>({});
-  const [links, setLinks] = useState<LinkDraft[]>([]);
-  const [linksIn, setLinksIn] = useState<ArticleLinkView[]>([]);
-  const [savedArticle, setSavedArticle] = useState<ArticleItem | null>(null);
+  const [aliasesText, setAliasesText] = useState('');
+  const [sourcesText, setSourcesText] = useState('');
   const [contentKey, setContentKey] = useState(0);
+  const [isDirty, setIsDirty] = useState(false);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
-  const set = <K extends keyof ArticlePayload>(key: K, value: ArticlePayload[K]) => setForm((f) => ({ ...f, [key]: value }));
+  const set = <K extends keyof ArticlePayload>(key: K, value: ArticlePayload[K]) => {
+    setIsDirty(true);
+    setForm((f) => ({ ...f, [key]: value }));
+  };
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  const handleBack = () => {
+    if (isDirty) {
+      setLeaveConfirmOpen(true);
+      return;
+    }
+    router.push(APP_ROUTES.ARTICLES.LIST);
+  };
 
   useEffect(() => {
     CategoryApiService.list().then(setCategories).catch(() => setCategories([]));
@@ -108,27 +132,30 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
       const { detail, pending } = await withPendingDraft('ARTICLE', id, fetched);
       setPendingRevision(pending);
       setStatus(detail.status);
+      setRejectionReason(fetched.rejectionReason ?? null);
       setSavedSlug(fetched.slug);
       setTopic(pickedTopicOf(detail.topicId, [detail.topic, fetched.topic]));
       setForm({
-        title: detail.title, slug: detail.slug, categoryId: detail.categoryId,
-        topicId: detail.topicId ?? null, tagIds: detail.tagIds ?? detail.tags.map((t) => t.id),
-        summary: detail.summary ?? '', coverImageUrl: detail.coverImageUrl ?? '',
-        coverCaption: detail.coverCaption ?? '', contentBlocks: detail.contentBlocks ?? [],
-        dateText: detail.dateText ?? '', startYear: detail.startYear, endYear: detail.endYear,
-        datePrecision: detail.datePrecision, isFeatured: detail.isFeatured, displayOrder: detail.displayOrder,
+        title: detail.title,
+        slug: detail.slug,
+        categoryId: detail.categoryId,
+        topicId: detail.topicId ?? null,
+        tagIds: detail.tagIds ?? detail.tags.map((t) => t.id),
+        summary: detail.summary ?? '',
+        coverImageUrl: detail.coverImageUrl ?? '',
+        coverCaption: detail.coverCaption ?? '',
+        contentBlocks: detail.contentBlocks ?? [],
+        dateText: detail.dateText ?? '',
+        startYear: detail.startYear,
+        endYear: detail.endYear,
+        isFeatured: detail.isFeatured,
+        displayOrder: detail.displayOrder,
       });
       setSelectedTags((fetched.tags ?? []).map((t) => ({ ...t, colorHex: t.colorHex ?? undefined })));
-      setMetadata(detail.metadata ?? {});
-      const known = new Map((fetched.linksOut ?? []).map((l) => [l.article.id, l.article]));
-      setLinks(
-        (detail.links ?? []).map((l) => {
-          const ref = known.get(l.targetId);
-          return { ...l, targetTitle: ref?.title, targetCategoryId: ref?.category?.id };
-        }),
-      );
-      setLinksIn(fetched.linksIn ?? []);
-      setSavedArticle(fetched);
+      const loadedMeta = detail.metadata ?? {};
+      setMetadata(loadedMeta);
+      setAliasesText((loadedMeta.aliases ?? []).join(', '));
+      setSourcesText((loadedMeta.sources ?? []).join('\n'));
       setContentKey((k) => k + 1);
     } catch (err) {
       setError(extractErrorMessage(err, 'Không tải được bài viết.'));
@@ -147,23 +174,49 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
     return () => { active = false; };
   }, [articleId, loadArticle, reloadKey]);
 
-  const toPayload = (nextStatus?: ContentStatusValue): ArticlePayload => ({
-    ...form,
-    title: form.title.trim(),
-    slug: blankToNull(form.slug) ?? undefined,
-    summary: blankToNull(form.summary),
-    coverImageUrl: blankToNull(form.coverImageUrl),
-    coverCaption: blankToNull(form.coverCaption),
-    dateText: blankToNull(form.dateText),
-    metadata,
-    links: links.filter((l) => l.targetId).map((l) => ({ targetId: l.targetId, label: blankToNull(l.label), note: blankToNull(l.note) })),
-    ...(nextStatus ? { status: nextStatus } : {}),
-  });
+  const parsedAliases = useMemo(
+    () =>
+      aliasesText
+        .split(/[,;\r\n]+/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    [aliasesText],
+  );
+
+  const parsedSources = useMemo(
+    () =>
+      sourcesText
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean),
+    [sourcesText],
+  );
+
+  const toPayload = (nextStatus?: ContentStatusValue): ArticlePayload => {
+    const { isFeatured, ...restForm } = form;
+    return {
+      ...restForm,
+      ...(isSuperadmin ? { isFeatured } : {}),
+      title: form.title.trim(),
+      slug: blankToNull(form.slug) ?? undefined,
+      summary: blankToNull(form.summary),
+      coverImageUrl: blankToNull(form.coverImageUrl),
+      coverCaption: blankToNull(form.coverCaption),
+      dateText: blankToNull(form.dateText),
+      metadata: {
+        ...metadata,
+        aliases: parsedAliases.length > 0 ? parsedAliases : undefined,
+        sources: parsedSources.length > 0 ? parsedSources : undefined,
+      },
+      ...(nextStatus ? { status: nextStatus } : {}),
+    };
+  };
 
   const save = async (nextStatus?: ContentStatusValue) => {
     if (!form.title.trim()) {
       setError('Bài viết cần có tiêu đề.');
       setTab(ArticleEditorTab.INFO);
+      requestAnimationFrame(() => titleInputRef.current?.focus());
       return;
     }
     const effectiveStatus = nextStatus ?? ContentStatus.DRAFT;
@@ -173,19 +226,19 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
     try {
       if (!articleId) {
         const created = await ArticleApiService.create(toPayload(effectiveStatus));
+        setIsDirty(false);
         router.replace(APP_ROUTES.ARTICLES.DETAIL(created.id));
         return;
       }
       const payload = status === ContentStatus.PUBLISHED && !nextStatus ? toPayload() : toPayload(effectiveStatus);
       const saved = await ArticleApiService.update(articleId, payload);
+      setIsDirty(false);
       if (isRevisionPending(saved)) {
         setPendingRevision(saved.revision);
         setNotice(saved.message);
       } else {
         setStatus(saved.status);
         setSavedSlug(saved.slug);
-        setSavedArticle(saved);
-        setLinksIn(saved.linksIn ?? []);
         setNotice('Đã lưu bài viết.');
       }
     } catch (err) {
@@ -207,9 +260,13 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-4">
       <div className="mb-4 flex flex-wrap items-center gap-3 border-b border-slate-200 pb-4">
-        <Link href={APP_ROUTES.ARTICLES.LIST} className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900 cursor-pointer"
+        >
           <ArrowLeft size={16} /> Bài viết
-        </Link>
+        </button>
         <h1 className="min-w-0 flex-1 truncate text-lg font-bold text-slate-900">
           {form.title || (isEdit ? 'Bài viết' : 'Bài viết mới')}
         </h1>
@@ -256,7 +313,17 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
           onChanged={(message) => { setNotice(message); setReloadKey((k) => k + 1); }}
         />
       )}
-      {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {isEdit && status === ContentStatus.REJECTED && rejectionReason && (
+        <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3.5 text-sm text-rose-900">
+          <strong className="block font-bold">Lý do từ chối từ Người duyệt:</strong>
+          <p className="mt-1 whitespace-pre-line">{rejectionReason}</p>
+        </div>
+      )}
+      {error && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
       {notice && status !== ContentStatus.PUBLISHED && (
         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</div>
       )}
@@ -273,11 +340,20 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
       </div>
 
       {tab === ArticleEditorTab.INFO && (
-        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-          <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-4 rounded-xl border border-slate-200 bg-white p-5">
             <div>
               <label className={labelCls}>Tiêu đề *</label>
-              <input className={inputCls} value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Trần Hưng Đạo" />
+              <input
+                ref={titleInputRef}
+                className={inputCls}
+                value={form.title}
+                onChange={(e) => {
+                  set('title', e.target.value);
+                  if (error) setError(null);
+                }}
+                placeholder="Trần Hưng Đạo"
+              />
             </div>
             {isEdit && (
               <div>
@@ -292,28 +368,42 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
 
             <fieldset className="rounded-lg border border-slate-200 p-4">
               <legend className="px-1 text-xs font-bold uppercase text-slate-600">Niên đại</legend>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <YearInput label="Năm bắt đầu" value={form.startYear ?? null} onChange={(v) => set('startYear', v)} />
                 <YearInput label="Năm kết thúc" value={form.endYear ?? null} onChange={(v) => set('endYear', v)} />
                 <div>
                   <label className={labelCls}>Nhãn hiển thị</label>
-                  <input className={inputCls} value={form.dateText ?? ''} onChange={(e) => set('dateText', e.target.value)} placeholder="vd. 1228? – 1300 (trống = ghép từ năm)" />
-                </div>
-                <div>
-                  <label className={labelCls}>Độ chính xác</label>
-                  <select className={inputCls} value={form.datePrecision ?? ''} onChange={(e) => set('datePrecision', (e.target.value || null) as DatePrecisionValue | null)}>
-                    <option value="">—</option>
-                    {PRECISION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
+                  <input className={inputCls} value={form.dateText ?? ''} onChange={(e) => set('dateText', e.target.value)} placeholder="Ví dụ: 1228? – 1300" />
                 </div>
               </div>
               <p className="mt-2 text-xs text-slate-500">
                 Nhân vật: năm sinh – mất · Sự kiện: năm diễn ra · Di tích: năm xây dựng. Dùng để sắp xếp bài trong chuyên mục.
               </p>
             </fieldset>
+
+            <div>
+              <label className={labelCls}>Tên gọi khác / Miếu hiệu</label>
+              <input
+                className={inputCls}
+                value={aliasesText}
+                onChange={(e) => { setIsDirty(true); setAliasesText(e.target.value); }}
+                placeholder="vd. Hưng Đạo Đại Vương, Trần Quốc Tuấn (phân cách bằng dấu phẩy)"
+              />
+            </div>
+
+            <div>
+              <label className={labelCls}>Nguồn tư liệu tham khảo</label>
+              <textarea
+                className={`${inputCls} min-h-[75px]`}
+                value={sourcesText}
+                onChange={(e) => { setIsDirty(true); setSourcesText(e.target.value); }}
+                placeholder="Mỗi dòng 1 nguồn tham khảo (vd. Đại Việt sử ký toàn thư)"
+              />
+              <p className="mt-1 text-xs text-slate-500">Nhập mỗi nguồn trên 1 dòng.</p>
+            </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
               <div className="p-4 space-y-2.5">
                 <div className="flex items-start justify-between gap-2">
@@ -329,7 +419,7 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
               <div className="p-4 space-y-2.5">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <label className={`${labelCls} !mb-0`}>Chủ đề (Topic)</label>
+                    <label className={`${labelCls} !mb-0`}>Chủ đề</label>
                     <p className="text-[11px] text-slate-500">Phân loại kiến thức lịch sử · Liên kết bài viết, bài học, luyện tập</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
@@ -341,15 +431,15 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
                 <TopicPicker
                   value={topic}
                   onChange={(next) => { setTopic(next); set('topicId', next?.id ?? null); }}
-                  placeholder="Chưa gắn Chủ đề (cho phép để trống)"
+                  placeholder="Chưa gắn Chủ đề (tùy chọn)"
                 />
               </div>
 
               <div className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <label className={`${labelCls} !mb-0`}>Thẻ tìm kiếm (Tag)</label>
-                    <p className="text-[11px] text-slate-500">Dùng cho các nội dung cắt ngang nhiều Topic</p>
+                    <label className={`${labelCls} !mb-0`}>Thẻ tìm kiếm</label>
+                    <p className="text-[11px] text-slate-500">Dùng cho các nội dung cắt ngang nhiều Chủ đề</p>
                   </div>
                   <Link href={APP_ROUTES.TAGS.LIST} className="shrink-0 text-xs font-medium text-blue-700 hover:underline">Quản lý</Link>
                 </div>
@@ -363,26 +453,19 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
                 <label className={labelCls}>Chú thích ảnh</label>
                 <input className={inputCls} value={form.coverCaption ?? ''} onChange={(e) => set('coverCaption', e.target.value)} />
               </div>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input type="checkbox" checked={Boolean(form.isFeatured)} onChange={(e) => set('isFeatured', e.target.checked)} />
-                Nổi bật (hiện ở trang chủ)
-              </label>
+              {isSuperadmin ? (
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="checkbox" checked={Boolean(form.isFeatured)} onChange={(e) => set('isFeatured', e.target.checked)} />
+                  <span>Nổi bật (hiện ở trang chủ)</span>
+                </label>
+              ) : form.isFeatured ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                  ★ Bài viết đang được Quản trị hệ thống ghim nổi bật trên Trang chủ.
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
-      )}
-
-      {tab === ArticleEditorTab.PROFILE && (
-        <ArticleProfilePanel
-          kind={articleKindOf(categories, form.categoryId)} metadata={metadata} onMetadataChange={setMetadata}
-          links={links} onLinksChange={setLinks} linksIn={linksIn}
-          kindOfArticle={(categoryId) => articleKindOf(categories, categoryId)}
-          savedArticle={savedArticle} categories={categories}
-          linksDirty={
-            JSON.stringify(links.filter((l) => l.targetId).map((l) => [l.targetId, l.label ?? null])) !==
-            JSON.stringify((savedArticle?.links ?? []).map((l) => [l.targetId, l.label ?? null]))
-          }
-        />
       )}
 
       {tab === ArticleEditorTab.CONTENT && (
@@ -390,10 +473,24 @@ export function ArticleEditor({ articleId }: { articleId?: string }) {
           key={contentKey} value={form.contentBlocks} onChange={(blocks) => set('contentBlocks', blocks)}
           documentTitle={form.title || 'Bài viết mới'} documentSubtitle={topic?.name ?? categoryName ?? 'Chưa phân loại'}
           thumbnailUrl={form.coverImageUrl ?? ''} selectedTags={selectedTags}
-          sourceReferenceNote={(metadata.sources ?? []).join('; ')} topicId={form.topicId ?? undefined}
+          sourceReferenceNote={parsedSources.join('; ')} topicId={form.topicId ?? undefined}
           onOpenInfoTab={() => setTab(ArticleEditorTab.INFO)}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={leaveConfirmOpen}
+        onClose={() => setLeaveConfirmOpen(false)}
+        onConfirm={() => {
+          setIsDirty(false);
+          router.push(APP_ROUTES.ARTICLES.LIST);
+        }}
+        title="Rời khỏi trang biên tập?"
+        message="Bạn có thay đổi chưa được lưu. Nếu rời đi ngay bây giờ, dữ liệu vừa nhập sẽ không được giữ lại."
+        confirmLabel="Rời trang"
+        cancelLabel="Ở lại tiếp tục soạn"
+        tone="warning"
+      />
     </div>
   );
 }

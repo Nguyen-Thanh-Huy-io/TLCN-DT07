@@ -1,6 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { ContentStatus } from '@prisma/client';
 import { RagGroundingChunk } from '../common/services/google-ai.service';
+import { PrismaService } from '../common/services/prisma.service';
 import {
   AI_ASSISTANT_LIMITS,
   AssistantLinkKind,
@@ -192,6 +194,19 @@ function resolveFallbackFromFilename(
       href: `${routeBase}/${slug}`,
     };
   }
+
+  const normalizedPath = rawObjectPath.toLowerCase();
+  if (normalizedPath.startsWith('hisgo/articles/') && base.endsWith('.md')) {
+    const slug = base.replace(/\.md$/, '');
+    if (slug) {
+      return {
+        kind: AssistantLinkKind.ARTICLE,
+        title: slug.replace(/-/g, ' '),
+        subtitle: 'Tư liệu trong hệ thống HISGO',
+        href: `/bai-viet/${slug}`,
+      };
+    }
+  }
   return null;
 }
 
@@ -331,4 +346,156 @@ export function mergeAssistantSuggestedLinks(
     0,
     AI_ASSISTANT_LIMITS.MAX_SUGGESTED_LINKS,
   );
+}
+
+const ARTICLE_HREF_RE =
+  /^\/(?:bai-viet|su-kien|nhan-vat|di-tich|thuc-the)\/([^/?#]+)$/i;
+const LESSON_HREF_RE = /^\/bai-hoc\/([^/?#]+)$/i;
+const BLOG_HREF_RE = /^\/blog\/([^/?#]+)$/i;
+const INLINE_ARTICLE_SLUG_RE = /\/bai-viet\/([a-z0-9-]{3,160})/gi;
+
+function extractArticleSlugFromChunkUri(uri: string): string | null {
+  const objectPath = extractGcsObjectPath(uri).toLowerCase();
+  if (
+    !objectPath.startsWith('hisgo/articles/') ||
+    !objectPath.endsWith('.md')
+  ) {
+    return null;
+  }
+  const base = path.basename(objectPath).replace(/\.md$/, '');
+  const stripped = base.replace(/^(?:su-kien|nhan-vat|di-tich|bai-viet)--/, '');
+  return stripped || null;
+}
+
+function appendInlineArticleSlugs(
+  text: string | undefined,
+  slugs: Set<string>,
+  maxCount: number,
+): void {
+  if (!text) return;
+  for (const m of text.matchAll(INLINE_ARTICLE_SLUG_RE)) {
+    if (m[1]) slugs.add(m[1].toLowerCase());
+    if (slugs.size >= maxCount) return;
+  }
+}
+
+/** Rút trích các slug bài viết ứng viên từ URI và đoạn văn RAG (bao gồm mục Liên kết lịch sử cũ). */
+export function extractRagCandidateArticleSlugs(
+  chunks: ReadonlyArray<{ uri: string; text?: string }>,
+  maxCount = 8,
+): string[] {
+  const slugs = new Set<string>();
+  for (const chunk of chunks) {
+    const fromUri = extractArticleSlugFromChunkUri(chunk.uri);
+    if (fromUri) slugs.add(fromUri);
+    appendInlineArticleSlugs(chunk.text, slugs, maxCount);
+    if (slugs.size >= maxCount) break;
+  }
+  return Array.from(slugs).slice(0, maxCount);
+}
+
+function collectInternalSlugsByKind(links: AssistantSuggestedLink[]): {
+  articles: string[];
+  lessons: string[];
+  blogs: string[];
+} {
+  const articles = new Set<string>();
+  const lessons = new Set<string>();
+  const blogs = new Set<string>();
+
+  for (const link of links) {
+    if (link.external) continue;
+    const artM = ARTICLE_HREF_RE.exec(link.href);
+    const lesM = LESSON_HREF_RE.exec(link.href);
+    const blgM = BLOG_HREF_RE.exec(link.href);
+    if (artM?.[1]) articles.add(decodeURIComponent(artM[1]));
+    else if (lesM?.[1]) lessons.add(decodeURIComponent(lesM[1]));
+    else if (blgM?.[1]) blogs.add(decodeURIComponent(blgM[1]));
+  }
+
+  return {
+    articles: Array.from(articles),
+    lessons: Array.from(lessons),
+    blogs: Array.from(blogs),
+  };
+}
+
+function matchVerifiedInternalLink(
+  link: AssistantSuggestedLink,
+  artMap: ReadonlyMap<string, string>,
+  lesMap: ReadonlyMap<string, string>,
+  blgMap: ReadonlyMap<string, string>,
+): AssistantSuggestedLink | null {
+  if (link.external) return link;
+
+  const artM = ARTICLE_HREF_RE.exec(link.href);
+  if (artM?.[1]) {
+    const slug = decodeURIComponent(artM[1]);
+    const title = artMap.get(slug);
+    return title ? { ...link, title, href: `/bai-viet/${slug}` } : null;
+  }
+
+  const lesM = LESSON_HREF_RE.exec(link.href);
+  if (lesM?.[1]) {
+    const title = lesMap.get(decodeURIComponent(lesM[1]));
+    return title ? { ...link, title } : null;
+  }
+
+  const blgM = BLOG_HREF_RE.exec(link.href);
+  if (blgM?.[1]) {
+    const title = blgMap.get(decodeURIComponent(blgM[1]));
+    return title ? { ...link, title } : null;
+  }
+
+  return link;
+}
+
+/** Xác thực batch các link nội bộ trích từ RAG qua PostgreSQL để chặn tuyệt đối link 404 của dữ liệu RAG cũ. */
+export async function verifyRagSuggestedLinksInDb(
+  prisma: PrismaService,
+  links: AssistantSuggestedLink[],
+): Promise<AssistantSuggestedLink[]> {
+  if (links.length === 0) return [];
+  const buckets = collectInternalSlugsByKind(links);
+
+  const emptyRows: Array<{ slug: string; title: string }> = [];
+  const [articles, lessons, blogs] = await Promise.all([
+    buckets.articles.length > 0 && prisma.article?.findMany
+      ? prisma.article.findMany({
+          where: {
+            slug: { in: buckets.articles },
+            status: ContentStatus.PUBLISHED,
+          },
+          select: { slug: true, title: true },
+        })
+      : Promise.resolve(emptyRows),
+    buckets.lessons.length > 0 && prisma.lesson?.findMany
+      ? prisma.lesson.findMany({
+          where: {
+            slug: { in: buckets.lessons },
+            status: ContentStatus.PUBLISHED,
+          },
+          select: { slug: true, title: true },
+        })
+      : Promise.resolve(emptyRows),
+    buckets.blogs.length > 0 && prisma.blogPost?.findMany
+      ? prisma.blogPost.findMany({
+          where: {
+            slug: { in: buckets.blogs },
+            status: ContentStatus.PUBLISHED,
+          },
+          select: { slug: true, title: true },
+        })
+      : Promise.resolve(emptyRows),
+  ]);
+
+  const artMap = new Map<string, string>(
+    articles.map((a) => [a.slug, a.title]),
+  );
+  const lesMap = new Map<string, string>(lessons.map((l) => [l.slug, l.title]));
+  const blgMap = new Map<string, string>(blogs.map((b) => [b.slug, b.title]));
+
+  return links
+    .map((link) => matchVerifiedInternalLink(link, artMap, lesMap, blgMap))
+    .filter((item): item is AssistantSuggestedLink => item !== null);
 }

@@ -11,7 +11,7 @@ import {
   Check,
   Sparkles,
 } from 'lucide-react';
-import type { DataTableFilter, DataTableFilterOption } from '@/types/table.types';
+import type { DataTableFilter, DataTableFilterOption } from '@/types/models';
 import { KeyboardKey } from '@/constants/enums';
 
 export const FILTER_ALL_VALUE = 'ALL';

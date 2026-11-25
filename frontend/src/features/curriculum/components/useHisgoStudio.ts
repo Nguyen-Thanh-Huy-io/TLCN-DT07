@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LearningPathApiService, LearningPathItem, ChapterItem } from '@/services/entities/learning-path.service';
-import { LessonApiService } from '@/services/entities/lesson.service';
+import { LearningPathApiService, LearningPathItem, ChapterItem } from '@/services/entities/learner.service';
+import { LessonApiService } from '@/services/entities/learner.service';
 import { LessonItem } from '@/types/models';
-import type { PickedTopic } from '@/features/topics/components/TopicPicker';
+import type { PickedTopic } from '@/features/topics/components/TopicEditor';
 import { extractErrorMessage } from '@/services/api';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
@@ -63,10 +63,14 @@ export function useHisgoStudio() {
   const [showCreatePathModal, setShowCreatePathModal] = useState<boolean>(false);
   const [newPathTitle, setNewPathTitle] = useState<string>('');
   const [newPathDesc, setNewPathDesc] = useState<string>('');
+  const [newPathCover, setNewPathCover] = useState<string>('');
+  const [newPathSequential, setNewPathSequential] = useState<boolean>(false);
   // Modal: Sửa Lộ trình học hiện tại (trước đây chỉ có Tạo, chưa có Sửa)
   const [showEditPathModal, setShowEditPathModal] = useState<boolean>(false);
   const [editPathTitle, setEditPathTitle] = useState<string>('');
   const [editPathDesc, setEditPathDesc] = useState<string>('');
+  const [editPathCover, setEditPathCover] = useState<string>('');
+  const [editPathSequential, setEditPathSequential] = useState<boolean>(false);
   // Modal: Tạo Chương mới — chọn + sắp xếp bài học ngay trong modal này, không cần mở
   // riêng AddLessonsToChapterModal nữa sau khi tạo xong (vẫn giữ modal đó để GOM THÊM
   // bài vào 1 chương đã có sẵn, 2 việc khác nhau).
@@ -355,12 +359,16 @@ export function useHisgoStudio() {
       const created = await LearningPathApiService.createLearningPath({
         title: newPathTitle.trim(),
         description: newPathDesc.trim() || undefined,
+        coverImageUrl: newPathCover.trim() || undefined,
+        isSequential: newPathSequential,
       });
       await loadLearningPaths();
       selectPath(created.id);
       setShowCreatePathModal(false);
       setNewPathTitle('');
       setNewPathDesc('');
+      setNewPathCover('');
+      setNewPathSequential(false);
     } catch (err) {
       showError(err, 'Không thể tạo lộ trình. Vui lòng kiểm tra lại!');
     } finally {
@@ -370,9 +378,16 @@ export function useHisgoStudio() {
   const handleOpenEditPathModal = () => {
     if (!currentPath) return;
     // Biên tập viên có bản sửa đang chờ: mở tiếp bản sửa đó (lưu sẽ cập nhật bản sửa).
-    const source = !isReviewer && pathPending ? pathPending.draft : currentPath;
+    const source = (!isReviewer && pathPending ? pathPending.draft : currentPath) as {
+      title?: string;
+      description?: string | null;
+      coverImageUrl?: string | null;
+      isSequential?: boolean;
+    };
     setEditPathTitle(source.title || currentPath.title);
     setEditPathDesc(source.description || '');
+    setEditPathCover(source.coverImageUrl ?? currentPath.coverImageUrl ?? '');
+    setEditPathSequential(Boolean(source.isSequential ?? currentPath.isSequential));
     setShowEditPathModal(true);
   };
   const handleUpdatePath = async () => {
@@ -385,6 +400,8 @@ export function useHisgoStudio() {
       const saved = await LearningPathApiService.updateLearningPath(currentPath.id, {
         title: editPathTitle.trim(),
         description: editPathDesc.trim() || undefined,
+        coverImageUrl: editPathCover.trim() || undefined,
+        isSequential: editPathSequential,
       });
       setShowEditPathModal(false);
       if (isRevisionPending(saved)) {
@@ -557,12 +574,20 @@ export function useHisgoStudio() {
     setNewPathTitle,
     newPathDesc,
     setNewPathDesc,
+    newPathCover,
+    setNewPathCover,
+    newPathSequential,
+    setNewPathSequential,
     showEditPathModal,
     setShowEditPathModal,
     editPathTitle,
     setEditPathTitle,
     editPathDesc,
     setEditPathDesc,
+    editPathCover,
+    setEditPathCover,
+    editPathSequential,
+    setEditPathSequential,
     showCreateChapterModal,
     setShowCreateChapterModal,
     newChapterTitle,
@@ -618,5 +643,3 @@ export function useHisgoStudio() {
     newChapterFilteredLessons,
   };
 }
-
-export type HisgoStudioFacade = ReturnType<typeof useHisgoStudio>;

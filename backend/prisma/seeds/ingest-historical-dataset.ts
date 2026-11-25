@@ -19,7 +19,6 @@ import {
   ContentStatus,
   LearningPathType,
   TopicIcon,
-  ArticleKind,
   DifficultyLevel,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -100,7 +99,6 @@ async function main() {
         name: c.name,
         description: c.description ?? null,
         icon: c.icon ?? null,
-        kind: (c.kind as ArticleKind) ?? null,
         displayOrder: c.displayOrder ?? 0,
       },
       create: {
@@ -108,7 +106,6 @@ async function main() {
         name: c.name,
         description: c.description ?? null,
         icon: c.icon ?? null,
-        kind: (c.kind as ArticleKind) ?? null,
         displayOrder: c.displayOrder ?? 0,
       },
     });
@@ -153,7 +150,6 @@ async function main() {
         dateText: a.dateText ?? null,
         startYear: a.startYear ?? null,
         endYear: a.endYear ?? null,
-        datePrecision: a.datePrecision ?? null,
         isFeatured: Boolean(a.isFeatured),
         displayOrder: a.displayOrder ?? 0,
         status: (a.status as ContentStatus) ?? ContentStatus.PUBLISHED,
@@ -171,7 +167,6 @@ async function main() {
         dateText: a.dateText ?? null,
         startYear: a.startYear ?? null,
         endYear: a.endYear ?? null,
-        datePrecision: a.datePrecision ?? null,
         isFeatured: Boolean(a.isFeatured),
         displayOrder: a.displayOrder ?? 0,
         status: (a.status as ContentStatus) ?? ContentStatus.PUBLISHED,
@@ -196,32 +191,8 @@ async function main() {
     }
   }
 
-  // 6. ARTICLE LINKS (Liên kết 2 chiều)
-  console.log(`6️⃣ Nạp ${raw.articleLinks?.length || 0} Article Links...`);
-  for (const al of raw.articleLinks || []) {
-    const sourceId = articleIdMap.get(al.sourceId);
-    const targetId = articleIdMap.get(al.targetId);
-    if (sourceId && targetId && sourceId !== targetId) {
-      await prisma.articleLink.upsert({
-        where: { sourceId_targetId: { sourceId, targetId } },
-        update: {
-          label: al.label ?? null,
-          note: al.note ?? null,
-          displayOrder: al.displayOrder ?? 0,
-        },
-        create: {
-          sourceId,
-          targetId,
-          label: al.label ?? null,
-          note: al.note ?? null,
-          displayOrder: al.displayOrder ?? 0,
-        },
-      });
-    }
-  }
-
-  // 7. TIMELINES & NODES
-  console.log(`7️⃣ Nạp ${raw.timelines?.length || 0} Timelines & Nodes...`);
+  // 6. TIMELINES & NODES
+  console.log(`6️⃣ Nạp ${raw.timelines?.length || 0} Timelines & Nodes...`);
   for (const t of raw.timelines || []) {
     const topicId = t.topicId ? topicIdMap.get(t.topicId) || null : null;
     const timeline = await prisma.timeline.upsert({

@@ -1,4 +1,4 @@
-import { ArticleKind, ContentStatus, PostType } from '@prisma/client';
+import { ContentStatus, PostType } from '@prisma/client';
 
 export enum RagDocumentKind {
   EVENT = 'EVENT',
@@ -15,27 +15,6 @@ export interface CategoryHierarchyNode {
   parentId: string | null;
   name: string;
   slug: string;
-  kind: ArticleKind | null;
-}
-
-export interface ExportableArticleLinkRef {
-  label: string | null;
-  target: {
-    slug: string;
-    title: string;
-    status: ContentStatus;
-    categoryId: string | null;
-  };
-}
-
-export interface ExportableArticleInboundLinkRef {
-  label: string | null;
-  source: {
-    slug: string;
-    title: string;
-    status: ContentStatus;
-    categoryId: string | null;
-  };
 }
 
 export interface ExportableArticle {
@@ -52,8 +31,6 @@ export interface ExportableArticle {
   categoryId: string | null;
   topic: { name: string; slug: string } | null;
   articleTags: Array<{ tag: { name: string } }>;
-  linksOut: ExportableArticleLinkRef[];
-  linksIn: ExportableArticleInboundLinkRef[];
 }
 
 export interface ExportableLesson {

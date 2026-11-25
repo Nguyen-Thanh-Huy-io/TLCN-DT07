@@ -8,8 +8,7 @@ import {
   quizBlockQuestions,
 } from '@/features/lessons/utils/lesson-quiz.util';
 import type { LessonBlockItem, QuizBlockData } from '@/features/lessons/types/block-builder.types';
-import { LessonBlockType } from '@/features/lessons/types/editor.types';
-import { QuizQuestionType, type QuizQuestion } from '@/features/lessons/types/quiz.types';
+import { LessonBlockType, QuizQuestionType, type QuizQuestion } from '@/features/lessons/types/editor.types';
 import {
   buildTopicFilterOptions,
   filterPracticeQuizzes,

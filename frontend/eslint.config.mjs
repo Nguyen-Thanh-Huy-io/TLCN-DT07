@@ -98,13 +98,11 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    // Next.js Server-side Route Handlers (BFF) & Auth/Public services được phép dùng fetch() gọi sang backend;
-    // entity-sources gọi API bên ngoài (Wikipedia/Wikimedia/Wikidata) — ngoại lệ đã ghi trong CLAUDE.md.
+    // Next.js Server-side Route Handlers (BFF) & Auth/Public services được phép dùng fetch() gọi sang backend
     files: [
       "src/app/api/**",
       "src/services/auth/**",
       "src/services/public/**",
-      "src/features/lessons/strategies/entity-sources/**",
     ],
     rules: {
       "no-restricted-syntax": [

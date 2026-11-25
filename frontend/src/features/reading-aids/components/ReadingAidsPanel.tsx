@@ -15,7 +15,7 @@ import {
 import { KeyboardKey } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
 import { useAuthSession } from '@/services/auth/use-auth-session';
-import { ANNOTATION_DATA_ATTRS } from '@/features/lessons/extensions/annotation.extension';
+import { ANNOTATION_DATA_ATTRS } from '@/features/lessons/hooks/useLessonAnnotations';
 import type { LessonTocEntry } from '@/features/lessons/utils/lesson-toc.util';
 import type { NoteFacade } from '@/features/notes/facades/useNoteFacade';
 import {
@@ -227,7 +227,7 @@ export function ReadingAidsPanel({
 
       <div
         ref={dockRef}
-        className={`fixed left-3 top-1/2 z-40 flex -translate-y-1/2 items-center transition-opacity duration-300 sm:left-4 ${
+        className={`fixed bottom-4 left-3 z-40 flex items-center transition-opacity duration-300 xl:bottom-auto xl:left-3.5 xl:top-1/2 xl:-translate-y-1/2 ${
           shouldFadeDock ? 'opacity-15 hover:opacity-100 focus-within:opacity-100' : 'opacity-100'
         }`}
       >
@@ -246,7 +246,7 @@ export function ReadingAidsPanel({
         ) : (
           <nav
             aria-label="Thanh công cụ đọc bài viết"
-            className="flex flex-col items-center gap-1.5 rounded-full border border-[#E5D8C1] bg-[#FFFCF5]/95 p-1.5 shadow-[0_8px_30px_rgba(45,26,16,0.12)] backdrop-blur-md"
+            className="flex flex-row items-center gap-1 rounded-full border border-[#E5D8C1] bg-[#FFFCF5]/95 p-1.5 shadow-[0_8px_30px_rgba(45,26,16,0.12)] backdrop-blur-md xl:flex-col xl:gap-1.5"
           >
             <DockIconButton
               icon={ListTree}
@@ -287,7 +287,7 @@ export function ReadingAidsPanel({
             {readingControls && (
               <DockIconButton
                 icon={SlidersHorizontal}
-                label="Hiển thị & Sticky lề"
+                label="Tùy chỉnh hiển thị"
                 active={activePanel === ReadingActivePanel.DISPLAY}
                 onClick={() => openExclusivePanel(ReadingActivePanel.DISPLAY)}
               />
@@ -313,7 +313,7 @@ export function ReadingAidsPanel({
         )}
 
         {activePanel === ReadingActivePanel.DISPLAY && readingControls && (
-          <div className="ml-3">
+          <div className="fixed inset-x-3 bottom-20 z-50 flex justify-center sm:static sm:inset-auto sm:ml-3 sm:block">
             <ReadingDisplayPopover controls={readingControls} onClose={() => setActivePanel(null)} />
           </div>
         )}

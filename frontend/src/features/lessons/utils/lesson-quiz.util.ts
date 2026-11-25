@@ -1,11 +1,9 @@
-import { generateQuizId } from '../factories/quiz-question.factory';
-import { LessonBlockType } from '../types/editor.types';
+import { generateQuizId, LessonBlockType, QuizQuestionType, type QuizQuestion } from '../types/editor.types';
 import type {
   LessonBlockItem,
   LessonQuizQuestion,
   QuizBlockData,
 } from '../types/block-builder.types';
-import { QuizQuestionType, type QuizQuestion } from '../types/quiz.types';
 
 /** Khối Ôn tập là phần tự kiểm tra ngắn giữa / cuối bài — đề dài thì dùng Đề thi ở /luyen-tap. */
 export const LESSON_QUIZ_MAX_QUESTIONS = 5;

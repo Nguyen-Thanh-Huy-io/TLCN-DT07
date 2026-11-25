@@ -8,11 +8,14 @@ import '@/components/timeline/sk-timeline.css';
 export default async function BaiVietArchivePage({
   searchParams,
 }: {
-  searchParams: Promise<{ 'chuyen-muc'?: string; q?: string }>;
+  searchParams: Promise<{ 'chuyen-muc'?: string; q?: string; tag?: string }>;
 }) {
-  const [{ 'chuyen-muc': activeCategorySlug, q }, articles, categories, topics] = await Promise.all([
-    searchParams,
-    fetchArticleLibrary(),
+  const resolved = await searchParams;
+  const activeCategorySlug = resolved['chuyen-muc'];
+  const q = resolved.q;
+  const activeTag = resolved.tag;
+  const [articles, categories, topics] = await Promise.all([
+    fetchArticleLibrary({ tag: activeTag, q }),
     fetchCategories(),
     fetchTopics(),
   ]);
@@ -21,12 +24,13 @@ export default async function BaiVietArchivePage({
     <main>
       <Header activeTab="bai-viet" />
       <ArticleBrowser
-        key={`${activeCategorySlug ?? ''}:${q ?? ''}`}
+        key={`${activeCategorySlug ?? ''}:${q ?? ''}:${activeTag ?? ''}`}
         articles={articles}
         categories={categories}
         topics={topics}
         initialCategorySlug={activeCategorySlug}
         initialQuery={q}
+        initialTag={activeTag}
       />
       <Footer />
     </main>

@@ -1,9 +1,7 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { ArticleKind } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -55,15 +53,6 @@ export class CreateCategoryDto {
   @IsString()
   @MaxLength(50)
   icon?: string | null;
-
-  @ApiPropertyOptional({
-    enum: ArticleKind,
-    nullable: true,
-    description: 'Loại bài của chuyên mục; bỏ trống = kế thừa chuyên mục cha',
-  })
-  @IsOptional()
-  @IsEnum(ArticleKind)
-  kind?: ArticleKind | null;
 
   @ApiPropertyOptional({ default: 0 })
   @IsOptional()

@@ -1,7 +1,6 @@
 'use client';
 
-import { BORDER_LIGHT, REVIEW_TABS, ReviewTabState } from '../types/review.types';
-import { type ReviewPost } from '../types/review.types';
+import { BORDER_LIGHT, REVIEW_TABS, ReviewTabState, type ReviewPost } from './ReviewHubView';
 
 // --- BlogReviewTable.tsx ---
 export interface BlogReviewTableProps {
@@ -36,90 +35,45 @@ export function BlogReviewTable({
   onSelectPost,
 }: BlogReviewTableProps) {
   return (
-    <div
-      style={{
-        border: BORDER_LIGHT,
-        background: '#ffffff',
-        borderRadius: 18,
-        padding: 20,
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 18,
-          marginBottom: 18,
-          flexWrap: 'wrap',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            background: '#f3f4f6',
-            borderRadius: 999,
-            padding: 5,
-            border: BORDER_LIGHT,
-          }}
-        >
+    <div className="panel management-panel min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200 mb-4">
+        <div>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">Kiểm duyệt Bài Blog</h2>
+          <p className="text-xs text-slate-500">
+            Duyệt xuất bản bài viết cộng đồng &amp; blog lịch sử ({items.length} bài)
+          </p>
+        </div>
+
+        <div className="inline-flex self-start sm:self-auto flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1">
           {REVIEW_TABS.map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => onChangeTab(value)}
-              style={{
-                border: 'none',
-                borderRadius: 999,
-                background: tab === value ? '#3a3f48' : 'transparent',
-                color: tab === value ? '#fff' : '#5c5f64',
-                fontWeight: 600,
-                fontSize: 14,
-                padding: '10px 18px',
-                cursor: 'pointer',
-              }}
+              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold cursor-pointer ${
+                tab === value ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
+              }`}
             >
               {value}
             </button>
           ))}
         </div>
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            border: BORDER_LIGHT,
-            background: '#f9fafb',
-            borderRadius: 999,
-            padding: '8px 14px',
-            minWidth: 290,
-          }}
-        >
-          <span style={{ fontSize: 16, color: '#4f5d66' }}>⌕</span>
-          <input
-            value={search}
-            onChange={(event) => onChangeSearch(event.target.value)}
-            placeholder="Tìm bài viết..."
-            aria-label="Tìm bài viết"
-            style={{
-              border: 'none',
-              outline: 'none',
-              background: 'transparent',
-              width: '100%',
-              color: '#1f2a37',
-              fontSize: 14,
-            }}
-          />
-        </div>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div className="mb-4 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 max-w-md">
+        <input
+          value={search}
+          onChange={(event) => onChangeSearch(event.target.value)}
+          placeholder="Tìm bài blog theo tiêu đề, tác giả..."
+          aria-label="Tìm bài viết"
+          className="w-full border-0 bg-transparent text-sm text-slate-900 outline-none"
+        />
+      </div>
+
+      <div className="w-full min-w-0 overflow-x-auto">
         <table
+          className="w-full min-w-[640px]"
           style={{
-            width: '100%',
-            minWidth: 1120,
             borderCollapse: 'separate',
             borderSpacing: 0,
           }}

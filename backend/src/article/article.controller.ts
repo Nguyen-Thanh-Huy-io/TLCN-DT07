@@ -19,6 +19,7 @@ import {
   CreateArticleDto,
   QueryArticleDto,
   ReviewArticleDto,
+  SetArticleFeaturedDto,
   UpdateArticleDto,
 } from './dto/article.dto';
 
@@ -52,7 +53,8 @@ export class ArticleController {
   @ContentWrite({ model: 'article' })
   @ApiOperation({ summary: 'Tạo bài viết' })
   create(@Body() dto: CreateArticleDto, @Req() req: Request) {
-    return this.articleService.create(dto, currentUser(req)?.userId);
+    const actor = currentUser(req);
+    return this.articleService.create(dto, actor?.userId, actor?.role);
   }
 
   @Patch(':id')
@@ -62,8 +64,22 @@ export class ArticleController {
     description:
       'Bài đã xuất bản: biên tập viên sửa → thành bản sửa chờ duyệt (xem content-revisions).',
   })
-  update(@Param('id') id: string, @Body() dto: UpdateArticleDto) {
-    return this.articleService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateArticleDto,
+    @Req() req: Request,
+  ) {
+    return this.articleService.update(id, dto, currentUser(req)?.role);
+  }
+
+  @Patch(':id/featured')
+  @RequireRoles(...ROLE_GROUPS.SUPERADMIN)
+  @ApiOperation({
+    summary:
+      'Bật/tắt hiển thị bài viết nổi bật trên Trang chủ (chỉ SuperAdmin)',
+  })
+  setFeatured(@Param('id') id: string, @Body() dto: SetArticleFeaturedDto) {
+    return this.articleService.setFeatured(id, dto.isFeatured);
   }
 
   @Patch(':id/review')

@@ -23,7 +23,7 @@ import {
   QuizGridSkeleton,
   QuizSelectorGrid,
 } from '@/features/quiz/components/PracticeQuizParts';
-import { QuizExamSidebar } from '@/features/quiz/components/QuizExamSidebar';
+import { QuizExamSidebar } from '@/features/quiz/components/QuestionOptionsEditor';
 import { QuizStatisticsModal } from '@/features/quiz/components/QuizStatisticsModal';
 import {
   DEFAULT_TIME_LIMIT_MINUTES,

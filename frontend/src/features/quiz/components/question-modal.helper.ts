@@ -1,7 +1,6 @@
-import { QuizQuestionType, OrderingItem } from '@/features/lessons/types/quiz.types';
-import { generateQuizId } from '@/features/lessons/factories/quiz-question.factory';
+import { QuizQuestionType, OrderingItem, generateQuizId } from '@/features/lessons/types/editor.types';
 import { MatchingPairsValue } from '@/components/common/MatchingPairsEditor';
-import { QuestionBankItem } from '@/services/entities/question.service';
+import { QuestionBankItem } from '@/services/entities/quiz.service';
 import {
   CircleDot,
   CheckSquare,
@@ -52,8 +51,8 @@ export const QUESTION_TYPE_CARDS: QuestionTypeCardConfig[] = [
   },
   {
     type: QuizQuestionType.ORDERING,
-    title: 'Dòng thời gian',
-    subtitle: 'Sắp xếp thứ tự',
+    title: 'Sắp xếp thứ tự',
+    subtitle: 'Trình tự dòng thời gian',
     icon: Clock,
     isReady: true,
   },

@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ArrowDownUp,
   BookOpen,
@@ -17,13 +18,11 @@ import {
   TopicBlockSection,
   TopicLeafHeading,
   buildTopicTocNodes,
-  jumpToTopicElement,
 } from '@/components/common/TocDrawer';
 import { normalizeSearch } from '@/features/search/search-index';
 import { findRootTopic, groupByTopic } from '@/services/entities/landing-graph';
-import type { PublicArticleLibraryItemDto } from '@/services/entities/landing.service';
-import { resolveCategoryKind } from '@/services/public/article-kind';
-import type { PublicCategory, PublicTopicRef } from '@/services/public/public-content.service';
+import { fetchArticleLibrary, type PublicArticleLibraryItemDto } from '@/services/entities/landing.service';
+import { findRootCategory, type PublicCategory, type PublicTopicRef } from '@/services/public/public-content.service';
 import {
   ARTICLE_SORT_LABELS,
   ArticleFilterKey,
@@ -47,7 +46,60 @@ import {
   ArticleListItem,
 } from './ArticleBrowserParts';
 import '@/components/timeline/sk-timeline.css';
-import '@/features/events-library/events-library.css';
+import './events-library.css';
+
+interface TagBucket {
+  id: string;
+  name: string;
+  count: number;
+  ids: Set<string>;
+  articleIds: Set<string>;
+}
+
+function upsertTagBucket(
+  buckets: Map<string, TagBucket>,
+  articleId: string,
+  tag: { id: string; name: string },
+): void {
+  const trimmed = tag.name.trim();
+  const norm = trimmed.toLocaleLowerCase('vi');
+  const cur = buckets.get(norm);
+  if (!cur) {
+    buckets.set(norm, {
+      id: tag.id,
+      name: trimmed,
+      count: 1,
+      ids: new Set([tag.id]),
+      articleIds: new Set([articleId]),
+    });
+    return;
+  }
+  cur.ids.add(tag.id);
+  if (!cur.articleIds.has(articleId)) {
+    cur.articleIds.add(articleId);
+    cur.count += 1;
+  }
+  if (cur.name === cur.name.toLocaleLowerCase('vi') && trimmed !== cur.name) {
+    cur.name = trimmed;
+  }
+}
+
+function buildDeduplicatedTagFacet(rows: ReturnType<typeof buildArticleRows>) {
+  const byNormName = new Map<string, TagBucket>();
+  for (const row of rows) {
+    for (const tag of row.item.tags) {
+      upsertTagBucket(byNormName, row.item.id, tag);
+    }
+  }
+  const siblingMap = new Map<string, string[]>();
+  const options = [...byNormName.values()]
+    .map((entry) => {
+      siblingMap.set(entry.id, [...entry.ids]);
+      return { id: entry.id, name: entry.name, count: entry.count };
+    })
+    .sort((a, b) => b.count - a.count);
+  return { tagOptions: options, tagSiblingIdsByCanonicalId: siblingMap };
+}
 
 export interface ArticleBrowserProps {
   articles: PublicArticleLibraryItemDto[];
@@ -55,6 +107,7 @@ export interface ArticleBrowserProps {
   topics: PublicTopicRef[];
   initialCategorySlug?: string;
   initialQuery?: string;
+  initialTag?: string;
 }
 
 export function ArticleBrowser({
@@ -63,8 +116,44 @@ export function ArticleBrowser({
   topics,
   initialCategorySlug,
   initialQuery,
+  initialTag,
 }: ArticleBrowserProps) {
-  const allRows = useMemo(() => buildArticleRows(articles), [articles]);
+  const router = useRouter();
+  const [query, setQuery] = useState(initialQuery ?? '');
+  const [serverArticles, setServerArticles] = useState<PublicArticleLibraryItemDto[] | null>(null);
+  const [searching, setSearching] = useState(false);
+
+  // Khi người dùng nhập từ khóa tìm kiếm, truy vấn trực tiếp server trên toàn bộ 6,281+ bài (cả tên, tag & năm)
+  useEffect(() => {
+    const trimmed = query.trim();
+    const initialTrimmed = (initialQuery ?? '').trim();
+    if (!trimmed || trimmed === initialTrimmed) {
+      setServerArticles(null);
+      setSearching(false);
+      return;
+    }
+    let active = true;
+    setSearching(true);
+    const timer = setTimeout(() => {
+      fetchArticleLibrary({ q: trimmed, tag: initialTag })
+        .then((res) => {
+          if (active) setServerArticles(res);
+        })
+        .catch(() => {
+          if (active) setServerArticles([]);
+        })
+        .finally(() => {
+          if (active) setSearching(false);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query, initialQuery, initialTag]);
+
+  const effectiveArticles = serverArticles ?? articles;
+  const allRows = useMemo(() => buildArticleRows(effectiveArticles), [effectiveArticles]);
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   // Chuyên mục gốc được chọn từ Menu Khám phá (?chuyen-muc=...).
@@ -80,30 +169,23 @@ export function ArticleBrowser({
     return allRows.filter((r) => Boolean(r.item.categoryId && allowedIds.has(r.item.categoryId)));
   }, [allRows, scopedCategory, categories]);
 
-  const [query, setQuery] = useState(initialQuery ?? '');
   const [filters, setFilters] = useState<ArticleFilters>(EMPTY_ARTICLE_FILTERS);
   const [sort, setSort] = useState<ArticleSortOption>(ArticleSortOption.YEAR_ASC);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ArticleViewMode>(ArticleViewMode.GRID);
   const [tocOpen, setTocOpen] = useState(false);
+  const [focusedTocId, setFocusedTocId] = useState<string | null>(null);
 
-  const needle = normalizeSearch(query.trim());
+  const needle = serverArticles !== null ? '' : normalizeSearch(query.trim());
 
   const toggleFilterValue = useCallback((key: ArticleFilterKey, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: toggleValue(prev[key], value) }));
   }, []);
 
-  const tagOptions = useMemo(() => {
-    const counts = new Map<string, { id: string; name: string; count: number }>();
-    for (const r of scopedRows) {
-      for (const t of r.item.tags) {
-        const cur = counts.get(t.id) ?? { id: t.id, name: t.name, count: 0 };
-        cur.count += 1;
-        counts.set(t.id, cur);
-      }
-    }
-    return [...counts.values()].sort((a, b) => b.count - a.count);
-  }, [scopedRows]);
+  const { tagOptions, tagSiblingIdsByCanonicalId } = useMemo(
+    () => buildDeduplicatedTagFacet(scopedRows),
+    [scopedRows],
+  );
 
   const dialogCategoryOptions = useMemo(() => {
     const targetCategories = scopedCategory
@@ -124,19 +206,35 @@ export function ArticleBrowser({
   );
 
   const activeKind = useMemo(() => {
-    if (scopedCategory) return resolveCategoryKind(categories, scopedCategory.id);
+    if (scopedCategory) return findRootCategory(categories, scopedCategory.id)?.slug ?? scopedCategory.slug;
     return resolveActiveFilterKind(filters.categories, categories);
   }, [scopedCategory, filters.categories, categories]);
 
   const jsonbFacets = useMemo(() => buildArticleJsonbFacets(scopedRows), [scopedRows]);
 
+  const expandTagIds = useCallback(
+    (selectedTagIds: string[]): string[] => {
+      if (selectedTagIds.length === 0) return selectedTagIds;
+      const expanded = new Set<string>();
+      for (const id of selectedTagIds) {
+        for (const sib of tagSiblingIdsByCanonicalId.get(id) ?? [id]) {
+          expanded.add(sib);
+        }
+      }
+      return [...expanded];
+    },
+    [tagSiblingIdsByCanonicalId],
+  );
+
   const visible = useMemo(() => {
     const expandedCats = expandSelectedCategoryIds(filters.categories, categories);
-    const matched = scopedRows.filter((r) => matchesArticleRow(r, filters, expandedCats, needle));
+    const effectiveFilters =
+      filters.tags.length > 0 ? { ...filters, tags: expandTagIds(filters.tags) } : filters;
+    const matched = scopedRows.filter((r) => matchesArticleRow(r, effectiveFilters, expandedCats, needle));
     return sortArticleRows(matched, sort);
-  }, [scopedRows, filters, categories, needle, sort]);
+  }, [scopedRows, filters, categories, expandTagIds, needle, sort]);
 
-  const topicBlocks = useMemo(
+  const allTopicBlocks = useMemo(
     () =>
       groupByTopic(visible, (r) => r.item.topicId, {
         topics,
@@ -145,7 +243,38 @@ export function ArticleBrowser({
     [visible, topics],
   );
 
-  const tocNodes = useMemo(() => buildTopicTocNodes(topicBlocks), [topicBlocks]);
+  const tocNodes = useMemo(() => buildTopicTocNodes(allTopicBlocks), [allTopicBlocks]);
+
+  const focusedTopicLabel = useMemo(() => {
+    if (!focusedTocId) return null;
+    for (const block of allTopicBlocks) {
+      if (`topic-${block.id}` === focusedTocId) return block.name;
+      const leaf = block.leaves.find((l) => `topic-leaf-${l.id}` === focusedTocId);
+      if (leaf) return leaf.name;
+    }
+    return null;
+  }, [allTopicBlocks, focusedTocId]);
+
+  const topicBlocks = useMemo(() => {
+    if (!focusedTocId) return allTopicBlocks;
+    return allTopicBlocks
+      .map((block) => {
+        if (`topic-${block.id}` === focusedTocId) return block;
+        const matchedLeaves = block.leaves.filter((l) => `topic-leaf-${l.id}` === focusedTocId);
+        return matchedLeaves.length > 0 ? { ...block, leaves: matchedLeaves } : null;
+      })
+      .filter((b): b is (typeof allTopicBlocks)[number] => b !== null);
+  }, [allTopicBlocks, focusedTocId]);
+
+  const displayedCount = useMemo(
+    () => topicBlocks.reduce((sum, b) => sum + b.leaves.reduce((s, l) => s + l.items.length, 0), 0),
+    [topicBlocks],
+  );
+
+  const handleSelectToc = useCallback((id: string) => {
+    setFocusedTocId(id);
+    document.getElementById('el-content-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   const chips = [
     ...filters.categories.map((id) => ({
@@ -175,11 +304,20 @@ export function ArticleBrowser({
     })),
   ];
 
-  const activeCount = countActiveArticleFilters(filters);
+  const activeCount =
+    countActiveArticleFilters(filters) + (focusedTocId ? 1 : 0) + (initialTag ? 1 : 0);
 
   const resetAll = () => {
     setQuery('');
     setFilters(EMPTY_ARTICLE_FILTERS);
+    setFocusedTocId(null);
+    if (initialTag) {
+      router.push(
+        initialCategorySlug
+          ? `/bai-viet?chuyen-muc=${encodeURIComponent(initialCategorySlug)}`
+          : '/bai-viet',
+      );
+    }
   };
 
   return (
@@ -267,8 +405,34 @@ export function ArticleBrowser({
             </button>
           </div>
 
-          {chips.length > 0 && (
+          {(chips.length > 0 || focusedTopicLabel || initialTag) && (
             <div className="sk-active-filters">
+              {initialTag && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(
+                      initialCategorySlug
+                        ? `/bai-viet?chuyen-muc=${encodeURIComponent(initialCategorySlug)}`
+                        : '/bai-viet',
+                    )
+                  }
+                  aria-label={`Bỏ lọc thẻ ${initialTag}`}
+                >
+                  Thẻ: #{initialTag}
+                  <X size={13} />
+                </button>
+              )}
+              {focusedTopicLabel && (
+                <button
+                  type="button"
+                  onClick={() => setFocusedTocId(null)}
+                  aria-label={`Bỏ lọc chủ đề ${focusedTopicLabel}`}
+                >
+                  Chủ đề: {focusedTopicLabel}
+                  <X size={13} />
+                </button>
+              )}
               {chips.map((c) => (
                 <button
                   key={`${c.key}-${c.value}`}
@@ -282,7 +446,7 @@ export function ArticleBrowser({
                   <X size={13} />
                 </button>
               ))}
-              {chips.length > 1 && (
+              {(chips.length + (focusedTopicLabel ? 1 : 0)) > 1 && (
                 <button type="button" className="sk-active-clear" onClick={resetAll}>
                   Xóa tất cả
                 </button>
@@ -297,7 +461,9 @@ export function ArticleBrowser({
           empty={EMPTY_ARTICLE_FILTERS}
           countFor={(draft) => {
             const expanded = expandSelectedCategoryIds(draft.categories, categories);
-            return scopedRows.filter((r) => matchesArticleRow(r, draft, expanded, needle)).length;
+            const effectiveDraft =
+              draft.tags.length > 0 ? { ...draft, tags: expandTagIds(draft.tags) } : draft;
+            return scopedRows.filter((r) => matchesArticleRow(r, effectiveDraft, expanded, needle)).length;
           }}
           onApply={(f) => {
             setFilters(f);
@@ -320,9 +486,15 @@ export function ArticleBrowser({
 
         <div className="el-toolbar">
           <span>
-            Tìm thấy <strong>{visible.length}</strong> bài viết lịch sử
+            {searching ? (
+              'Đang tìm kiếm trên toàn kho dữ liệu…'
+            ) : (
+              <>
+                Tìm thấy <strong>{displayedCount}</strong> bài viết lịch sử
+              </>
+            )}
           </span>
-          {(activeCount > 0 || query) && (
+          {(activeCount > 0 || query) && visible.length > 0 && (
             <button type="button" className="el-reset-link" onClick={resetAll}>
               Đặt lại bộ lọc
             </button>
@@ -368,7 +540,7 @@ export function ArticleBrowser({
 
       <button
         type="button"
-        className="fixed right-0 top-1/2 z-40 flex -translate-y-1/2 items-center gap-1.5 rounded-l-xl border border-r-0 border-[#E2D5B8] bg-[#FFFCF5]/95 px-3 py-2.5 text-xs font-bold text-[#7A1F24] shadow-lg backdrop-blur-xs transition hover:bg-[#F5EEDC] hover:pr-4 cursor-pointer"
+        className="fixed bottom-4 left-3 z-40 flex items-center gap-1.5 rounded-full border border-[#E2D5B8] bg-[#FFFCF5]/95 px-3.5 py-2 text-xs font-bold text-[#7A1F24] shadow-lg backdrop-blur-xs transition hover:bg-[#F5EEDC] cursor-pointer md:bottom-auto md:left-auto md:right-0 md:top-1/2 md:-translate-y-1/2 md:rounded-l-xl md:rounded-r-none md:border-r-0 md:px-3 md:py-2.5 md:hover:pr-4"
         onClick={() => setTocOpen(true)}
         title="Mục lục chủ đề bài viết"
         aria-label="Mở mục lục chủ đề"
@@ -383,8 +555,11 @@ export function ArticleBrowser({
         heading="Mục lục chủ đề"
         itemLabel="bài viết"
         nodes={tocNodes}
+        activeId={focusedTocId ?? undefined}
         totalCount={visible.length}
-        onJump={jumpToTopicElement}
+        onJump={handleSelectToc}
+        onClearActive={() => setFocusedTocId(null)}
+        allLabel="Tất cả chủ đề"
       />
     </div>
   );

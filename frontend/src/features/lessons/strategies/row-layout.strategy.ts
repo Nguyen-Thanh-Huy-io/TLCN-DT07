@@ -4,8 +4,17 @@ import {
   resolveRowFrameOption,
   type RowLayoutPresetDefinition,
 } from '../constants/lesson.constants';
-import { escapeHtml } from '../plugins/block-plugin.types';
 import { LessonBlockType } from '../types/editor.types';
+
+export function escapeHtml(unsafe: string | null | undefined): string {
+  if (!unsafe) return '';
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 import {
   BlockWidthType,
   ColumnData,
@@ -390,16 +399,14 @@ export class BlockWidthStrategy {
 
   private static readonly AVAILABLE_WIDTHS_MAP: Partial<Record<LessonBlockType, BlockWidthType[]>> = {
     [LessonBlockType.CHARACTER]: [BlockWidthType.HALF, BlockWidthType.THIRD, BlockWidthType.FULL],
-    [LessonBlockType.EVENT]: [BlockWidthType.HALF, BlockWidthType.THIRD, BlockWidthType.FULL],
     [LessonBlockType.IMAGE]: [BlockWidthType.HALF, BlockWidthType.FULL],
     [LessonBlockType.VIDEO]: [BlockWidthType.FULL, BlockWidthType.HALF],
     [LessonBlockType.RESOURCE_LINK]: [BlockWidthType.AUTO, BlockWidthType.HALF, BlockWidthType.FULL],
   };
 
   private static readonly DEFAULT_WIDTH_MAP: Partial<Record<LessonBlockType, BlockWidthType>> = {
-    [LessonBlockType.CHARACTER]: BlockWidthType.HALF,
-    [LessonBlockType.EVENT]: BlockWidthType.HALF,
-    [LessonBlockType.IMAGE]: BlockWidthType.HALF,
+    [LessonBlockType.CHARACTER]: BlockWidthType.FULL,
+    [LessonBlockType.IMAGE]: BlockWidthType.FULL,
     [LessonBlockType.RESOURCE_LINK]: BlockWidthType.AUTO,
   };
 
@@ -432,7 +439,6 @@ export class BlockWidthStrategy {
 }
 
 export enum PlacementLocation {
-  ROOT = 'ROOT',
   COLUMN = 'COLUMN',
 }
 

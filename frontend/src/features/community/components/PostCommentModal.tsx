@@ -1,7 +1,7 @@
 'use client';
 
 import { MessageSquare, X } from 'lucide-react';
-import { getAuthorTint } from '../utils/community-feed.helper';
+import { getAuthorTint } from '../community-content.util';
 import { usePostComments } from '../hooks/usePostComments';
 import { CommunityPost } from '../api';
 import { CommentComposerBar, CommentItemRow } from './CommentModalParts';
@@ -182,12 +182,6 @@ export function PostCommentModal({
       </div>
     </div>
   );
-}
-
-export interface ModalCommentItem {
-  id: string;
-  authorName: string;
-  content?: string;
 }
 
 export enum CommentSocketAction {

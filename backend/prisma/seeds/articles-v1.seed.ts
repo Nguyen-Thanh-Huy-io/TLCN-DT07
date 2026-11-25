@@ -9,7 +9,7 @@
  */
 import 'dotenv/config';
 import { randomUUID } from 'crypto';
-import { ArticleKind, ContentStatus, DatePrecision, PrismaClient } from '@prisma/client';
+import { ContentStatus, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { toArticleMetadataJson } from '../../src/article/article-metadata';
 
@@ -45,10 +45,10 @@ const callout = (title: string, content: string, variant = 'HISTORICAL_NOTE') =>
 
 // ---------- Dữ liệu ----------
 const CATEGORIES = [
-  { slug: 'nhan-vat', kind: ArticleKind.PERSON, name: 'Nhân vật', icon: 'User', description: 'Tiểu sử các nhân vật lịch sử.' },
-  { slug: 'su-kien', kind: ArticleKind.EVENT, name: 'Sự kiện', icon: 'Swords', description: 'Trận đánh, hội nghị, cuộc cách mạng và các biến cố lịch sử.' },
-  { slug: 'di-tich', kind: ArticleKind.LOCATION, name: 'Di tích', icon: 'Landmark', description: 'Di tích, địa danh gắn với lịch sử dân tộc.' },
-  { slug: 'trieu-dai', kind: ArticleKind.DYNASTY, name: 'Triều đại', icon: 'Crown', description: 'Các triều đại và nhà nước trong lịch sử Việt Nam.' },
+  { slug: 'nhan-vat', name: 'Nhân vật', icon: 'User', description: 'Tiểu sử các nhân vật lịch sử.' },
+  { slug: 'su-kien', name: 'Sự kiện', icon: 'Swords', description: 'Trận đánh, hội nghị, cuộc cách mạng và các biến cố lịch sử.' },
+  { slug: 'di-tich', name: 'Di tích', icon: 'Landmark', description: 'Di tích, địa danh gắn với lịch sử dân tộc.' },
+  { slug: 'trieu-dai', name: 'Triều đại', icon: 'Crown', description: 'Các triều đại và nhà nước trong lịch sử Việt Nam.' },
 ];
 
 const TAGS = [
@@ -67,13 +67,10 @@ interface ArticleSeed {
   dateText?: string;
   startYear?: number;
   endYear?: number;
-  datePrecision?: DatePrecision;
   isFeatured?: boolean;
   blocks: Record<string, unknown>[];
   /** Hồ sơ mô tả (Article.metadata) — cấu trúc ở src/article/article-metadata.ts. */
   meta?: Record<string, unknown>;
-  /** Liên kết tới bài khác (bảng article_links), ghi theo SLUG — đổi sang id khi seed. */
-  links?: { slug: string; label?: string; note?: string }[];
 }
 
 const ARTICLES: ArticleSeed[] = [
@@ -87,7 +84,6 @@ const ARTICLES: ArticleSeed[] = [
     dateText: '1226 – 1400',
     startYear: 1226,
     endYear: 1400,
-    datePrecision: DatePrecision.YEAR,
     isFeatured: true,
     blocks: [
       text(
@@ -112,7 +108,6 @@ const ARTICLES: ArticleSeed[] = [
     dateText: '1194 – 1264',
     startYear: 1194,
     endYear: 1264,
-    datePrecision: DatePrecision.YEAR,
     meta: {
       person: {
         titles: ['Thái sư'],
@@ -137,7 +132,6 @@ const ARTICLES: ArticleSeed[] = [
     dateText: '1228? – 1300',
     startYear: 1228,
     endYear: 1300,
-    datePrecision: DatePrecision.APPROXIMATE,
     isFeatured: true,
     meta: {
       aliases: ['Trần Quốc Tuấn', 'Hưng Đạo Đại Vương'],
@@ -148,10 +142,6 @@ const ARTICLES: ArticleSeed[] = [
         famousQuote: 'Bệ hạ chém đầu thần trước rồi hãy hàng.',
       },
     },
-    links: [
-      { slug: 'tran-nhan-tong', label: 'Phụng sự' },
-      { slug: 'tran-bach-dang-1288', label: 'Chỉ huy' },
-    ],
     blocks: [
       heading('Thân thế'),
       text(
@@ -173,7 +163,6 @@ const ARTICLES: ArticleSeed[] = [
     dateText: '1258 – 1308',
     startYear: 1258,
     endYear: 1308,
-    datePrecision: DatePrecision.YEAR,
     meta: {
       aliases: ['Trần Khâm', 'Điều Ngự Giác Hoàng'],
       person: {
@@ -181,7 +170,6 @@ const ARTICLES: ArticleSeed[] = [
         legacyAndHonors: 'Khai sáng Thiền phái Trúc Lâm Yên Tử.',
       },
     },
-    links: [{ slug: 'tran-bach-dang-1288', label: 'Lãnh đạo' }],
     blocks: [
       text(
         '<p>Trần Nhân Tông lên ngôi năm 1278. Dưới thời ông, Đại Việt đánh thắng quân Nguyên trong các năm 1285 và 1287–1288. Sau khi nhường ngôi, ông xuất gia và lập ra Thiền phái Trúc Lâm Yên Tử.</p>',
@@ -197,7 +185,6 @@ const ARTICLES: ArticleSeed[] = [
       'Hội nghị các bô lão do Thượng hoàng Trần Thánh Tông triệu tập để hỏi ý kiến về việc đánh hay hoà trước cuộc xâm lược lần thứ hai của quân Nguyên.',
     dateText: '1284',
     startYear: 1284,
-    datePrecision: DatePrecision.YEAR,
     blocks: [
       text(
         '<p>Trước nguy cơ quân Nguyên tiến công lần thứ hai, Thượng hoàng Trần Thánh Tông mời các bô lão về điện Diên Hồng để bàn kế sách. Các bô lão đồng thanh tán thành đánh giặc.</p>',
@@ -206,7 +193,6 @@ const ARTICLES: ArticleSeed[] = [
   },
   {
     slug: 'tran-bach-dang-1288',
-    links: [{ slug: 'khu-di-tich-bach-dang', label: 'Diễn ra tại' }],
     title: 'Trận Bạch Đằng năm 1288',
     category: 'su-kien',
     tags: ['Nhà Trần', 'Kháng chiến chống Nguyên Mông'],
@@ -214,7 +200,6 @@ const ARTICLES: ArticleSeed[] = [
       'Trận thuỷ chiến trên sông Bạch Đằng do Trần Hưng Đạo chỉ huy, tiêu diệt đoàn thuyền của quân Nguyên, kết thúc thắng lợi cuộc kháng chiến lần thứ ba.',
     dateText: 'Tháng 4/1288',
     startYear: 1288,
-    datePrecision: DatePrecision.MONTH,
     isFeatured: true,
     blocks: [
       text(
@@ -232,7 +217,6 @@ const ARTICLES: ArticleSeed[] = [
     dateText: '898 – 944',
     startYear: 898,
     endYear: 944,
-    datePrecision: DatePrecision.YEAR,
     isFeatured: true,
     meta: {
       aliases: ['Ngô Vương', 'Tiền Ngô Vương'],
@@ -242,7 +226,6 @@ const ARTICLES: ArticleSeed[] = [
         milestones: [{ year: 939, title: 'Xưng vương, đóng đô ở Cổ Loa' }],
       },
     },
-    links: [{ slug: 'tran-bach-dang-938', label: 'Chỉ huy' }],
     blocks: [
       text(
         '<p>Sau chiến thắng Bạch Đằng năm 938, năm 939 Ngô Quyền xưng vương, đóng đô ở Cổ Loa.</p>',
@@ -251,14 +234,12 @@ const ARTICLES: ArticleSeed[] = [
   },
   {
     slug: 'tran-bach-dang-938',
-    links: [{ slug: 'khu-di-tich-bach-dang', label: 'Diễn ra tại' }],
     title: 'Trận Bạch Đằng năm 938',
     category: 'su-kien',
     tags: ['Thời Ngô'],
     summary: 'Ngô Quyền dùng trận địa cọc trên sông Bạch Đằng đánh tan quân Nam Hán, kết thúc hơn một nghìn năm Bắc thuộc.',
     dateText: '938',
     startYear: 938,
-    datePrecision: DatePrecision.YEAR,
     blocks: [
       text(
         '<p>Ngô Quyền cho đóng cọc nhọn bịt sắt dưới lòng sông Bạch Đằng. Khi nước triều lên, quân ta nhử thuyền giặc vào bãi cọc; khi nước rút, thuyền giặc mắc cọc và bị đánh tan.</p>',
@@ -294,7 +275,6 @@ const ARTICLES: ArticleSeed[] = [
       'Cuộc tổng khởi nghĩa giành chính quyền trên cả nước tháng 8/1945, dẫn tới sự ra đời của nước Việt Nam Dân chủ Cộng hoà ngày 2/9/1945.',
     dateText: '14/8 – 2/9/1945',
     startYear: 1945,
-    datePrecision: DatePrecision.DAY,
     isFeatured: true,
     blocks: [
       text(
@@ -364,7 +344,7 @@ async function main() {
   for (const [i, c] of CATEGORIES.entries()) {
     const row = await prisma.category.upsert({
       where: { slug: c.slug },
-      update: { name: c.name, icon: c.icon, kind: c.kind, description: c.description, displayOrder: i },
+      update: { name: c.name, icon: c.icon, description: c.description, displayOrder: i },
       create: { ...c, displayOrder: i },
     });
     categoryIds.set(c.slug, row.id);
@@ -387,10 +367,10 @@ async function main() {
       summary: a.summary,
       categoryId: categoryIds.get(a.category) ?? null,
       contentBlocks: a.blocks as object[],
+      metadata: toArticleMetadataJson(a.meta),
       dateText: a.dateText ?? null,
       startYear: a.startYear ?? null,
       endYear: a.endYear ?? null,
-      datePrecision: a.datePrecision ?? null,
       isFeatured: a.isFeatured ?? false,
       displayOrder: i,
       status: ContentStatus.PUBLISHED,
@@ -406,24 +386,6 @@ async function main() {
     await prisma.articleTag.deleteMany({ where: { articleId: row.id } });
     await prisma.articleTag.createMany({
       data: a.tags.map((name) => ({ articleId: row.id, tagId: tagIds.get(name)! })),
-    });
-  }
-
-  // Lượt 2: hồ sơ mô tả + liên kết (cần id của mọi bài nên chạy sau khi tạo xong).
-  for (const a of ARTICLES) {
-    const sourceId = articleIds.get(a.slug)!;
-    await prisma.article.update({
-      where: { id: sourceId },
-      data: { metadata: toArticleMetadataJson(a.meta) },
-    });
-    await prisma.articleLink.deleteMany({ where: { sourceId } });
-    if (!a.links?.length) continue;
-    await prisma.articleLink.createMany({
-      data: a.links.map((l, displayOrder) => {
-        const targetId = articleIds.get(l.slug);
-        if (!targetId) throw new Error(`Seed: ${a.slug} liên kết tới bài không tồn tại "${l.slug}"`);
-        return { sourceId, targetId, label: l.label ?? null, note: l.note ?? null, displayOrder };
-      }),
     });
   }
 
@@ -449,9 +411,8 @@ async function main() {
     });
   }
 
-  const linkCount = ARTICLES.reduce((n, a) => n + (a.links?.length ?? 0), 0);
   console.log(
-    `Seed xong: ${CATEGORIES.length} chuyên mục, ${TAGS.length} tag, ${ARTICLES.length} bài viết, ${linkCount} liên kết, ${TIMELINES.length} dòng thời gian.`,
+    `Seed xong: ${CATEGORIES.length} chuyên mục, ${TAGS.length} tag, ${ARTICLES.length} bài viết, ${TIMELINES.length} dòng thời gian.`,
   );
 }
 

@@ -1,18 +1,11 @@
-import { ArticleKind, ContentStatus } from '@prisma/client';
+import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
-import {
-  AI_ASSISTANT_LIMITS,
-  AssistantLinkKind,
-} from './ai-assistant.constant';
+import { AssistantLinkKind } from './ai-assistant.constant';
 import {
   FEATURE_GUIDE_RULES,
-  SEARCH_STOP_WORDS,
   STATIC_PAGE_DESCRIPTIONS,
 } from './ai-assistant.guide';
-import {
-  AssistantSuggestedLink,
-  PageContentSnapshot,
-} from './ai-assistant.types';
+import { PageContentSnapshot } from './ai-assistant.types';
 
 const BLOCK_TEXT_KEYS = ['content', 'text', 'title', 'quote'] as const;
 
@@ -38,25 +31,7 @@ export function extractBlockSnippet(blocks: unknown, maxChars = 700): string {
   return parts.join(' ').slice(0, maxChars);
 }
 
-export function extractSearchKeywords(message: string): string[] {
-  const words = message
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .split(/\s+/)
-    .filter((w) => w.length >= 2 && !SEARCH_STOP_WORDS.has(w));
-
-  if (words.length === 0) return [];
-  const phrases: string[] = [];
-  if (words.length >= 2) {
-    phrases.push(words.slice(-2).join(' '));
-    phrases.push(words.slice(0, 2).join(' '));
-  }
-  return Array.from(
-    new Set([...phrases, ...words.filter((w) => w.length >= 3)]),
-  ).slice(0, 6);
-}
-
-/** Intent Gate: chỉ kích hoạt RAG với câu hỏi tra cứu lịch sử / tóm tắt; bỏ qua tiến độ, hướng dẫn tính năng & tán gẫu. */
+/** Intent Gate: chỉ kích hoạt RAG với câu hỏi tra cứu lịch sử; bỏ qua tóm tắt trang đang mở, tiến độ, hướng dẫn tính năng & tán gẫu. */
 export function shouldUseRagForMessage(
   message: string,
   hasPageContext = false,
@@ -64,7 +39,7 @@ export function shouldUseRagForMessage(
   const clean = message.trim();
   if (!clean) return false;
   if (/tóm tắt|trang này|bài này|đang đọc|đang xem/i.test(clean)) {
-    return !hasPageContext ? true : false;
+    return !hasPageContext;
   }
   if (/tiến độ|hôm nay|cần ôn|tài khoản của tôi|thành tích/i.test(clean)) {
     return false;
@@ -87,71 +62,6 @@ export function shouldUseRagForMessage(
   return clean.split(/\s+/).length >= 3;
 }
 
-export function resolveArticleRouteByKind(kind?: ArticleKind | null): {
-  linkKind: AssistantLinkKind;
-  routeBase: string;
-  label: string;
-} {
-  switch (kind) {
-    case ArticleKind.EVENT:
-      return {
-        linkKind: AssistantLinkKind.EVENT,
-        routeBase: '/su-kien',
-        label: 'Sự kiện',
-      };
-    case ArticleKind.PERSON:
-      return {
-        linkKind: AssistantLinkKind.PERSON,
-        routeBase: '/nhan-vat',
-        label: 'Nhân vật',
-      };
-    case ArticleKind.LOCATION:
-      return {
-        linkKind: AssistantLinkKind.LOCATION,
-        routeBase: '/di-tich',
-        label: 'Di tích',
-      };
-    case ArticleKind.DYNASTY:
-    case ArticleKind.OTHER:
-    default:
-      return {
-        linkKind: AssistantLinkKind.ARTICLE,
-        routeBase: '/bai-viet',
-        label: 'Bài viết',
-      };
-  }
-}
-
-interface CategoryRef {
-  id: string;
-  parentId: string | null;
-  kind: ArticleKind | null;
-}
-
-function resolveInheritedKind(
-  categoriesById: ReadonlyMap<string, CategoryRef>,
-  categoryId: string | null | undefined,
-): ArticleKind {
-  let cur = categoryId ? categoriesById.get(categoryId) : undefined;
-  const seen = new Set<string>();
-  while (cur && !seen.has(cur.id)) {
-    if (cur.kind) return cur.kind;
-    seen.add(cur.id);
-    cur = cur.parentId ? categoriesById.get(cur.parentId) : undefined;
-  }
-  return ArticleKind.OTHER;
-}
-
-async function loadCategoryHierarchy(
-  prisma: PrismaService,
-): Promise<Map<string, CategoryRef>> {
-  if (!prisma.category?.findMany) return new Map();
-  const rows = await prisma.category.findMany({
-    select: { id: true, parentId: true, kind: true },
-  });
-  return new Map(rows.map((c) => [c.id, c]));
-}
-
 async function tryResolveArticlePage(
   prisma: PrismaService,
   cleanPath: string,
@@ -172,18 +82,12 @@ async function tryResolveArticlePage(
       summary: true,
       dateText: true,
       contentBlocks: true,
-      categoryId: true,
     },
   });
   if (!art) return null;
 
-  const categories = await loadCategoryHierarchy(prisma);
-  const routeInfo = resolveArticleRouteByKind(
-    resolveInheritedKind(categories, art.categoryId),
-  );
-  const entryPrefix = `/${match[1].toLowerCase()}`;
   return {
-    kind: routeInfo.linkKind,
+    kind: AssistantLinkKind.ARTICLE,
     title: art.title,
     summary: [
       art.dateText,
@@ -193,10 +97,7 @@ async function tryResolveArticlePage(
     ]
       .filter(Boolean)
       .join(' — '),
-    href:
-      entryPrefix === '/thuc-the'
-        ? `${routeInfo.routeBase}/${art.slug}`
-        : `${entryPrefix}/${art.slug}`,
+    href: `/bai-viet/${art.slug}`,
   };
 }
 
@@ -299,128 +200,4 @@ export async function resolveCurrentPageSnapshot(
         href: currentPath || cleanPath,
       }
     : null;
-}
-
-export async function searchMultiEntityContent(
-  prisma: PrismaService,
-  message: string,
-): Promise<AssistantSuggestedLink[]> {
-  const keywords = extractSearchKeywords(message);
-  if (keywords.length === 0) return [];
-
-  const [categories, articles, lessons, blogs, timelineNodes] =
-    await Promise.all([
-      loadCategoryHierarchy(prisma),
-      prisma.article?.findMany
-        ? prisma.article.findMany({
-            where: {
-              status: ContentStatus.PUBLISHED,
-              OR: keywords.flatMap((kw) => [
-                { title: { contains: kw, mode: 'insensitive' } },
-                { summary: { contains: kw, mode: 'insensitive' } },
-                {
-                  articleTags: {
-                    some: {
-                      tag: { name: { contains: kw, mode: 'insensitive' } },
-                    },
-                  },
-                },
-              ]),
-            },
-            take: 4,
-            select: {
-              title: true,
-              slug: true,
-              dateText: true,
-              summary: true,
-              categoryId: true,
-            },
-          })
-        : Promise.resolve([]),
-      prisma.lesson?.findMany
-        ? prisma.lesson.findMany({
-            where: {
-              status: ContentStatus.PUBLISHED,
-              OR: keywords.flatMap((kw) => [
-                { title: { contains: kw, mode: 'insensitive' } },
-                { description: { contains: kw, mode: 'insensitive' } },
-              ]),
-            },
-            take: 2,
-            select: { title: true, slug: true, description: true },
-          })
-        : Promise.resolve([]),
-      prisma.blogPost?.findMany
-        ? prisma.blogPost.findMany({
-            where: {
-              status: ContentStatus.PUBLISHED,
-              OR: keywords.flatMap((kw) => [
-                { title: { contains: kw, mode: 'insensitive' } },
-                { excerpt: { contains: kw, mode: 'insensitive' } },
-              ]),
-            },
-            take: 2,
-            select: { title: true, slug: true, excerpt: true },
-          })
-        : Promise.resolve([]),
-      prisma.timelineNode?.findMany
-        ? prisma.timelineNode.findMany({
-            where: {
-              timeline: { status: ContentStatus.PUBLISHED },
-              OR: keywords.flatMap((kw) => [
-                { title: { contains: kw, mode: 'insensitive' } },
-                { description: { contains: kw, mode: 'insensitive' } },
-              ]),
-            },
-            take: 2,
-            select: {
-              title: true,
-              dateText: true,
-              timeline: { select: { title: true, slug: true } },
-            },
-          })
-        : Promise.resolve([]),
-    ]);
-
-  const results: AssistantSuggestedLink[] = [];
-
-  for (const a of articles) {
-    const kind = resolveInheritedKind(categories, a.categoryId);
-    const meta = resolveArticleRouteByKind(kind);
-    results.push({
-      kind: meta.linkKind,
-      title: a.title,
-      subtitle: [meta.label, a.dateText, a.summary].filter(Boolean).join(' · '),
-      href: `${meta.routeBase}/${a.slug}`,
-    });
-  }
-
-  for (const l of lessons) {
-    results.push({
-      kind: AssistantLinkKind.LESSON,
-      title: l.title,
-      subtitle: l.description || 'Bài học lịch sử HISGO',
-      href: `/bai-hoc/${l.slug}`,
-    });
-  }
-
-  for (const b of blogs) {
-    results.push({
-      kind: AssistantLinkKind.BLOG,
-      title: b.title,
-      subtitle: b.excerpt || 'Blog chuyên khảo sử học HISGO',
-      href: `/blog/${b.slug}`,
-    });
-  }
-
-  for (const node of timelineNodes) {
-    results.push({
-      kind: AssistantLinkKind.TIMELINE,
-      title: node.dateText ? `${node.dateText}: ${node.title}` : node.title,
-      subtitle: `Giai đoạn · ${node.timeline.title}`,
-      href: `/giai-doan/${node.timeline.slug}`,
-    });
-  }
-
-  return results.slice(0, AI_ASSISTANT_LIMITS.MAX_SUGGESTED_LINKS);
 }

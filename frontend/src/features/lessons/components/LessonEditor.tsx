@@ -14,16 +14,16 @@ import {
 } from '../types/editor.types';
 import { TopicParentModalPicker } from '@/features/topics/components/TopicParentModalPicker';
 import { CurriculumSidePanel } from '@/features/curriculum/components/CurriculumSidePanel';
-import { CurriculumTreePreviewModal } from '@/features/curriculum/components/CurriculumTreePreviewModal';
+import { CurriculumTreePreviewModal } from '@/features/curriculum/components/CurriculumTreeParts';
 import { LessonEditorHeader, LessonEditorSubHeader } from './LessonEditorHeader';
 import { LessonInfoProfileTab } from './LessonInfoProfileTab';
 import { LessonLeftToolSidebar } from './LessonLeftToolSidebar';
 import { LessonPreviewContent } from './LessonPreviewContent';
-import { LessonPropertiesPanel } from './properties/LessonPropertiesPanel';
+import { LessonPropertiesPanel } from './builder/BlockPropertyInspector';
 import { buildLessonTocAndHtml } from '../utils/lesson-toc.util';
 import { collectQuizBlocks } from '../utils/lesson-quiz.util';
 import { EditorRevisionBanner, RevisionHistoryModal } from '@/features/revisions/RevisionPanels';
-import { ActiveEditorProvider } from '../context/ActiveEditorContext';
+import { ActiveEditorProvider } from '../hooks/useLessonAnnotations';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole, USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
 
@@ -54,10 +54,14 @@ export interface LessonEditorProps {
 export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {}) {
   const [mainTab, setMainTab] = useState<LessonEditorMainTab>(LessonEditorMainTab.INFO);
   const [activeTab, setActiveTab] = useState<EditorViewMode>(EditorViewMode.EDIT);
-  const [showSidebar, setShowSidebar] = useState(true);
+  // Focus Editor: mặc định đóng cột Thuộc tính phải để vùng viết bài thoáng rộng (~880px+);
+  // biên tập viên bấm nút "Thuộc tính" bất kỳ lúc nào để mở panel tinh chỉnh sâu.
+  const [showSidebar, setShowSidebar] = useState(false);
   // Đề xuất: Sidebar trái có thể thu gọn thành thanh công cụ mỏng hoặc mở theo nhu cầu
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
-  const [showLeftToc, setShowLeftToc] = useState(true);
+  const [showLeftToc, setShowLeftToc] = useState(() =>
+    typeof window === 'undefined' ? true : window.innerWidth >= 1024
+  );
   const [leftSidebarMode, setLeftSidebarMode] = useState<LeftSidebarMode>(LeftSidebarMode.BLOCKS);
   const [isTopicPickerOpen, setIsTopicPickerOpen] = useState(false);
   const [isCurriculumPreviewOpen, setIsCurriculumPreviewOpen] = useState(false);
@@ -120,6 +124,8 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
     selectedTags,
     setSelectedTags,
     submitLesson,
+    formError,
+    clearFormError,
     pendingRevision,
     revisionNotice,
     onRevisionChanged,
@@ -150,13 +156,39 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
     setContentRichText(html);
   }, [blocks, resourceLinks, compileToHtml, setContentRichText]);
 
+  const hasUnsavedChanges = useMemo(
+    () =>
+      Boolean(
+        title.trim() ||
+          description.trim() ||
+          sourceReferenceNote.trim() ||
+          wordCount > 0 ||
+          selectedTopicId
+      ),
+    [title, description, sourceReferenceNote, wordCount, selectedTopicId]
+  );
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   // Xử lý chèn khối nội dung từ Block Palette bên trái
   const handleInsertBlock = (blockType: LessonBlockType) => {
     blockManager.addBlock(blockType);
   };
 
   const handleSaveLesson = (nextStatus: ContentStatus) => {
-    submitLesson(nextStatus, blockManager.compileToJson());
+    if (!title.trim() || !selectedTopicId) {
+      setMainTab(LessonEditorMainTab.INFO);
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    void submitLesson(nextStatus, blockManager.compileToJson());
   };
 
   // Chủ đề hiện tại đang chọn
@@ -205,14 +237,8 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
     return idx >= 0 ? idx : undefined;
   }, [blockManager.blocks, blockManager.activeBlockId]);
 
-  // Khi click chọn một khối trên canvas, tự động mở sidebar Thuộc tính khối
-  useEffect(() => {
-    if (blockManager.activeBlockId) {
-      void Promise.resolve().then(() => {
-        setShowSidebar(true);
-      });
-    }
-  }, [blockManager.activeBlockId]);
+  // Focus Editor: không tự động ép mở sidebar Thuộc tính khối mỗi khi click gõ chữ vào khối;
+  // biên tập viên chủ động bấm nút "Thuộc tính" trên thanh công cụ khi cần tinh chỉnh sâu.
 
   const handleHeaderMetaChange = <K extends keyof LessonHeaderMetaData>(
     field: K,
@@ -322,7 +348,25 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
         onToggleMoreMenu={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
         onCloseMoreMenu={() => setIsMoreMenuOpen(false)}
         moreMenuRef={moreMenuRef}
+        hasUnsavedChanges={hasUnsavedChanges}
       />
+
+      {formError && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs sm:text-sm font-medium text-rose-800"
+        >
+          <span>{formError}</span>
+          <button
+            type="button"
+            onClick={clearFormError}
+            className="shrink-0 rounded-md px-2 py-0.5 text-rose-600 hover:bg-rose-100 hover:text-rose-900 cursor-pointer"
+            aria-label="Đóng thông báo lỗi"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className="px-4 pt-3 sm:px-6">
         <EditorRevisionBanner
@@ -410,10 +454,10 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
               )}
 
               {/* Cột 1: Không gian CMS thuần túy (gom thanh chế độ xem vào ngay đầu vùng soạn thảo) */}
-              <main className="flex-1 min-w-0 flex flex-col bg-white rounded-xl border border-slate-200 p-4 md:p-6 shadow-xs overflow-y-auto h-full">
+              <section className="flex-1 min-w-0 flex flex-col bg-white rounded-xl border border-slate-200 p-5 md:p-8 shadow-xs overflow-y-auto h-full">
                 <div
-                  className={`w-full mx-auto flex flex-col gap-3 flex-1 min-h-0 transition-all duration-200 ${
-                    !showSidebar ? 'max-w-5xl' : 'max-w-[820px]'
+                  className={`w-full mx-auto flex flex-col gap-4 flex-1 min-h-0 transition-all duration-200 ${
+                    !showSidebar ? 'max-w-4xl' : 'max-w-[780px]'
                   }`}
                 >
                   <LessonEditorSubHeader
@@ -470,7 +514,7 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
                     </div>
                   </div>
                 </div>
-              </main>
+              </section>
 
               {/* Cột 2 (Nếu chọn Chế độ chia đôi) */}
               {activeTab === EditorViewMode.SPLIT && (
@@ -495,7 +539,7 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
         </>
       )}
 
-      {/* Modal chọn chương học (Chapter) gom nhóm bài viết */}
+      {/* Modal chọn Chủ đề chính cho bài học */}
       <TopicParentModalPicker
         isOpen={isTopicPickerOpen}
         onClose={() => setIsTopicPickerOpen(false)}
@@ -504,8 +548,8 @@ export function LessonEditor({ lessonId: propLessonId }: LessonEditorProps = {})
         }}
         topics={topics}
         selectedParentId={selectedTopicId || null}
-        title="Chọn Chương học (Chapter) cho Bài học"
-        subtitle="Chọn chương học hoặc chuyên đề để gom nhóm bài học và định vị thứ tự trong chương trình"
+        title="Chọn Chủ đề chính cho Bài học"
+        subtitle="Chọn chủ đề hoặc chuyên đề để phân loại bài học trong chương trình"
         allowRootSelect={false}
         maxDepth={null}
       />

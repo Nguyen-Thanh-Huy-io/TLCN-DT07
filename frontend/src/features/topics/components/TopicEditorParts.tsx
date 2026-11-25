@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Icon } from '@/components/icons/Icon';
 import { IconName, ContentStatus } from '@/constants/enums';
 import { TopicCoverImagePicker } from './TopicCoverImagePicker';
-import { ArchiveStatusButton } from '@/components/common/ArchiveStatusButton';
+import { ArchiveStatusButton } from '@/components/common/CommonUi';
 
 // === TopicEditorHeader.tsx ===
 export enum PublishActionType {

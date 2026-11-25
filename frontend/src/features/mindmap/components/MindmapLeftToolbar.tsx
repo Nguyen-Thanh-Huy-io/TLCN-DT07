@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { KeyboardKey } from '@/constants/enums';
 import {
   Crosshair,
   Expand,
@@ -49,6 +50,15 @@ export function MindmapLeftToolbar({
   onToggleFullscreen: () => void;
 }) {
   const [showShortcuts, setShowShortcuts] = useState(false);
+
+  useEffect(() => {
+    if (!showShortcuts) return undefined;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === KeyboardKey.ESCAPE) setShowShortcuts(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showShortcuts]);
 
   const btnCls =
     'grid size-8 place-items-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer';

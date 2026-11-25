@@ -1,10 +1,10 @@
 'use client';
 import React, { useMemo, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
-import { ActionMenu } from '@/components/common/ActionMenu';
+import { ActionMenu } from '@/components/common/CommonUi';
 import { IconName } from '@/constants/enums';
 import { CommonFilterOption } from '@/constants/enums';
-import { DataTableProps } from '@/types/table.types';
+import { DataTableProps } from '@/types/models';
 import { DataTableFilterModal } from './DataTableFilterModal';
 
 export function DataTable<T extends object>({
@@ -294,7 +294,9 @@ export function DataTable<T extends object>({
 
       <div className="pagination">
         <span className="text-xs sm:text-sm text-slate-700 font-medium">
-          Hiển thị 1–{filteredData.length} trong {displayTotal} kết quả
+          {filteredData.length === 0
+            ? `Hiển thị 0 kết quả`
+            : `Hiển thị ${(currentPage - 1) * Math.max(1, filteredData.length) + 1}–${(currentPage - 1) * Math.max(1, filteredData.length) + filteredData.length} trong ${displayTotal} kết quả`}
         </span>
         <div className="flex items-center gap-1.5">
           <button

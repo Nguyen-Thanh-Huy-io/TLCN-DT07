@@ -1,5 +1,5 @@
 import { LessonBlockType } from './editor.types';
-import type { QuizQuestion } from './quiz.types';
+import type { QuizQuestion } from './editor.types';
 
 export interface TimelineNodeMedia {
   id?: string;
@@ -36,7 +36,6 @@ export enum BlockWidthType {
 
 export enum TimelineOrientation {
   VERTICAL = 'VERTICAL',     // ↕ Trục dọc
-  HORIZONTAL = 'HORIZONTAL', // ↔ Trục ngang
 }
 
 export enum SplitSide {
@@ -62,7 +61,6 @@ export type TimelineSourceMode = 'MANUAL' | 'AUTO' | 'HYBRID';
 
 export enum TimelineDateFormat {
   YEAR_ONLY = 'YEAR_ONLY',
-  FULL_DATE = 'FULL_DATE',
 }
 
 export enum TimelineSortOrder {
@@ -108,20 +106,6 @@ export interface CharacterBlockData extends BaseBlockData {
   role?: string;
   summary: string;
   avatarUrl?: string;
-  wikidataId?: string;
-  sourceUrl?: string;
-  /** Nội dung chi tiết (tuỳ chọn, HTML dài) — ẩn mặc định, chỉ xổ ra khi bấm "Xem chi
-   * tiết" ở bản Xem trước/trang học sinh. Dùng khi tóm tắt 500 ký tự không đủ. */
-  detailContent?: string;
-}
-
-export interface EventBlockData extends BaseBlockData {
-  type: LessonBlockType.EVENT;
-  eventId?: string;
-  title: string;
-  timeLocation: string;
-  summary: string;
-  thumbnailUrl?: string;
   wikidataId?: string;
   sourceUrl?: string;
   /** Nội dung chi tiết (tuỳ chọn, HTML dài) — ẩn mặc định, chỉ xổ ra khi bấm "Xem chi
@@ -245,22 +229,6 @@ export interface DividerBlockData extends BaseBlockData {
   type: LessonBlockType.DIVIDER;
 }
 
-export interface RelatedPeopleBlockData extends BaseBlockData {
-  type: LessonBlockType.RELATED_PEOPLE;
-  title: string;
-  description?: string;
-  sourceMode?: 'AUTO' | 'MANUAL';
-  people: Array<{ id: string; name: string; role?: string; avatarUrl?: string }>;
-}
-
-export interface RelatedEventsBlockData extends BaseBlockData {
-  type: LessonBlockType.RELATED_EVENTS;
-  title: string;
-  description?: string;
-  sourceMode?: 'AUTO' | 'MANUAL';
-  events: Array<{ id: string; title: string; year?: string | number }>;
-}
-
 export enum RowGapSize {
   SM = 'SM',
   MD = 'MD',
@@ -312,7 +280,6 @@ export type LessonBlockItem =
   | HeadingBlockData
   | TimelineBlockData
   | CharacterBlockData
-  | EventBlockData
   | ImageBlockData
   | VideoBlockData
   | ComparisonTableBlockData
@@ -322,6 +289,4 @@ export type LessonBlockItem =
   | RowSectionBlockData
   | CalloutBlockData
   | QuoteBlockData
-  | DividerBlockData
-  | RelatedPeopleBlockData
-  | RelatedEventsBlockData;
+  | DividerBlockData;

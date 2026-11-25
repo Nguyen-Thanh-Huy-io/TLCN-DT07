@@ -4,7 +4,7 @@ import React from 'react';
 import { Search, X, ArrowRight, BookOpen, HelpCircle, Clock, SearchX, Trophy, ShieldCheck, Play, User, Info, CheckCircle2, XCircle, Filter } from 'lucide-react';
 import { ALL_TOPICS_ID, QuizTopicOption, formatExamTime, topicLabelOf } from '../utils/practice-quiz.helper';
 import type { PracticeQuizItem } from '@/services/entities/quiz.service';
-import { QUIZ_QUESTION_TYPE_META, type QuizQuestion } from '@/features/lessons/types/quiz.types';
+import { QUIZ_QUESTION_TYPE_META, type QuizQuestion } from '@/features/lessons/types/editor.types';
 import { QuestionBody } from '@/features/public-curriculum/components/hub/HubLessonQuiz';
 import type { UserQuizAnswer } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
 import type { ExamDialog } from '../facades/usePracticeExam';
@@ -69,7 +69,7 @@ export function QuizFilterBar({
           disabled={disabled}
           onChange={(e) => onSelectTopic(e.target.value)}
           aria-label="Lọc theo chủ đề"
-          className="w-full appearance-none pl-10 pr-9 py-2.5 bg-white text-stone-900 text-sm rounded-xl border border-stone-200 focus:border-[#8B261E] focus:ring-2 focus:ring-[#8B261E]/20 outline-none cursor-pointer disabled:opacity-60"
+          className="w-full appearance-none !bg-none pl-10 pr-9 py-2.5 bg-white text-stone-900 text-sm rounded-xl border border-stone-200 focus:border-[#8B261E] focus:ring-2 focus:ring-[#8B261E]/20 outline-none cursor-pointer disabled:opacity-60"
         >
           <option value={ALL_TOPICS_ID}>Tất cả chủ đề ({totalCount})</option>
           {topics.map((topic) => (

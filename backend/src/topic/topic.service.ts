@@ -324,7 +324,7 @@ export class TopicService {
             summary: true,
             coverImageUrl: true,
             category: {
-              select: { id: true, name: true, slug: true, kind: true },
+              select: { id: true, name: true, slug: true },
             },
           },
         },

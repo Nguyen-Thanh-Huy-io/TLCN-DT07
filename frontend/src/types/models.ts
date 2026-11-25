@@ -1,5 +1,50 @@
+import type React from 'react';
 import { ContentStatus, DifficultyLevel } from '@/constants/enums';
 import type { PublicAuthorInfo } from '@/services/public/public-content.service';
+
+export interface ColumnDef<T> {
+  header: string;
+  accessorKey?: keyof T;
+  className?: string;
+  cell?: (item: T, index: number) => React.ReactNode;
+}
+
+export interface DataTableFilterOption {
+  label: string;
+  value: string;
+  subLabel?: string;
+}
+
+export interface DataTableFilter {
+  label: string;
+  options?: DataTableFilterOption[];
+  selectedValue?: string;
+  selectedValues?: string[];
+  isMultiSelect?: boolean;
+  onSelect?: (value: string) => void;
+  onSelectMultiple?: (values: string[]) => void;
+  onClick?: () => void;
+}
+
+export interface DataTableProps<T> {
+  columns: ColumnDef<T>[];
+  data: T[];
+  searchPlaceholder?: string;
+  searchValue?: string;
+  onSearchChange?: (val: string) => void;
+  filters?: DataTableFilter[];
+  primaryButtonLabel?: string;
+  onPrimaryButtonClick?: () => void;
+  customPrimaryAction?: React.ReactNode;
+  onEdit?: (item: T) => void;
+  onDelete?: (item: T) => void;
+  onView?: (item: T) => void;
+  emptyMessage?: string;
+  totalCount?: number;
+  currentPage?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+}
 
 export interface TagItem {
   id: string;

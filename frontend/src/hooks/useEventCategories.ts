@@ -7,22 +7,16 @@ import {
   eventCategoryKey,
   eventCategoryLabel,
   extractEventCategories,
-  type ArticleKind,
   type EventCategoryItem,
-} from '@/services/public/article-kind';
+} from '@/services/public/public-content.service';
 
-export { categoryKeyLabel, eventCategoryKey, eventCategoryLabel, type EventCategoryItem };
-
-interface RawPublicCategory {
-  id: string;
-  parentId: string | null;
-  kind?: ArticleKind | null;
-  name: string;
-  slug: string;
-  description: string | null;
-  icon: string | null;
-  displayOrder: number;
-}
+export {
+  categoryKeyLabel,
+  eventCategoryKey,
+  eventCategoryLabel,
+  extractEventCategories,
+  type EventCategoryItem,
+};
 
 let cachedEventCategoriesPromise: Promise<EventCategoryItem[]> | null = null;
 
@@ -31,8 +25,17 @@ function loadEventCategories(): Promise<EventCategoryItem[]> {
     cachedEventCategoriesPromise = api
       .get('/public/categories')
       .then((res) => {
-        const list = (res.data?.data ?? res.data) as RawPublicCategory[];
-        return extractEventCategories(Array.isArray(list) ? list : []);
+        const list = (res.data?.data ?? res.data) as EventCategoryItem[];
+        if (!Array.isArray(list)) return [];
+        const byId = new Map(list.map((c) => [c.id, c]));
+        return list.map((c) => {
+          const parent = c.parentId ? byId.get(c.parentId) : undefined;
+          return {
+            ...c,
+            parentSlug: parent?.slug ?? null,
+            parentName: parent?.name ?? null,
+          };
+        });
       })
       .catch((err) => {
         cachedEventCategoriesPromise = null;
@@ -42,7 +45,7 @@ function loadEventCategories(): Promise<EventCategoryItem[]> {
   return cachedEventCategoriesPromise;
 }
 
-/** Danh sách các chuyên mục con thuộc loại EVENT (cache theo phiên trang). */
+/** Danh sách các chuyên mục con thuộc nhánh Sự kiện (`su-kien`, cache theo phiên trang). */
 export function useEventCategories(): EventCategoryItem[] {
   const [categories, setCategories] = useState<EventCategoryItem[]>([]);
   useEffect(() => {

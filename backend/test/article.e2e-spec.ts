@@ -119,6 +119,45 @@ describe('Article E2E — duyệt 2 người, công khai, lưu trữ', () => {
       const pub = await http().get(`/public/articles/${slug}`);
       expect(pub.status).toBe(200);
       expect(pub.body.data.title).toContain(E2E_MARK);
+      expect(pub.body.data.kind).toBeUndefined();
+      expect(pub.body.data.datePrecision).toBeUndefined();
+      expect(pub.body.data.links).toBeUndefined();
+    });
+
+    it('tạo bài viết gắn categoryId & startYear/endYear, từ chối field cũ kind / datePrecision (400)', async () => {
+      const catRes = await http()
+        .post('/categories')
+        .set('Authorization', reviewer.auth)
+        .send({ name: `${E2E_MARK}cat ${Date.now()}` });
+      expect(catRes.status).toBe(201);
+      const categoryId = catRes.body.data.id as string;
+
+      const validRes = await createArticle(editor, {
+        status: ContentStatus.DRAFT,
+        categoryId,
+        startYear: 938,
+        endYear: 938,
+        dateText: 'Tháng 11 năm 938',
+      });
+      expect(validRes.status).toBe(201);
+      expect(validRes.body.data.category?.id).toBe(categoryId);
+      expect(validRes.body.data.startYear).toBe(938);
+
+      const legacyKindRes = await createArticle(editor, {
+        status: ContentStatus.DRAFT,
+        kind: 'EVENT',
+      });
+      expect(legacyKindRes.status).toBe(400);
+
+      const legacyPrecisionRes = await createArticle(editor, {
+        status: ContentStatus.DRAFT,
+        datePrecision: 'YEAR',
+      });
+      expect(legacyPrecisionRes.status).toBe(400);
+
+      await http()
+        .delete(`/categories/${categoryId}`)
+        .set('Authorization', reviewer.auth);
     });
 
     it('người duyệt không tự duyệt bài của chính mình', async () => {

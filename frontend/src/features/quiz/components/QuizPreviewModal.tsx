@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   X,
   Clock,
@@ -10,13 +11,20 @@ import {
   CircleDot,
   ArrowLeftRight,
   BookOpen,
+  Database,
+  FileText,
 } from 'lucide-react';
+import { QUIZ_WORKSPACE_TAB_PARAM, QuizWorkspaceTab, quizWorkspaceRoute } from '@/constants/routes';
 import { StandaloneQuizItem } from '@/services/entities/quiz.service';
 import {
   QuizQuestion,
   QuizQuestionType,
   QUIZ_QUESTION_TYPE_META,
-} from '@/features/lessons/types/quiz.types';
+} from '@/features/lessons/types/editor.types';
+import { QuestionBankModal } from './QuestionBankModal';
+import { useQuestionBankView } from '../facades/useQuizManagementFacade';
+import { QuestionBankStats, QuestionBankFilters, QuestionBankTable } from './QuestionBankViewParts';
+import { QuizManagementView } from './QuizManagementView';
 
 export interface QuizPreviewModalProps {
   isOpen: boolean;
@@ -236,6 +244,63 @@ export function QuizPreviewModal({ isOpen, onClose, quiz }: QuizPreviewModalProp
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// === Merged from QuestionBankView.tsx & QuizWorkspaceView.tsx ===
+export function QuestionBankView() {
+  const facade = useQuestionBankView();
+  const { isModalOpen, setIsModalOpen, editingQuestion, fetchQuestions } = facade;
+
+  return (
+    <div className="space-y-5">
+      <QuestionBankStats facade={facade} />
+      <QuestionBankFilters facade={facade} />
+      <QuestionBankTable facade={facade} />
+      <QuestionBankModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchQuestions}
+        initialQuestion={editingQuestion}
+      />
+    </div>
+  );
+}
+
+const WORKSPACE_TABS = [
+  { key: QuizWorkspaceTab.QUIZZES, label: 'Đề thi', icon: FileText },
+  { key: QuizWorkspaceTab.QUESTIONS, label: 'Ngân hàng câu hỏi', icon: Database },
+] as const;
+
+export function QuizWorkspaceView() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab =
+    searchParams.get(QUIZ_WORKSPACE_TAB_PARAM) === QuizWorkspaceTab.QUESTIONS
+      ? QuizWorkspaceTab.QUESTIONS
+      : QuizWorkspaceTab.QUIZZES;
+
+  return (
+    <div className="space-y-5">
+      <div role="tablist" aria-label="Đề thi và ngân hàng câu hỏi" className="flex gap-2">
+        {WORKSPACE_TABS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => router.replace(quizWorkspaceRoute(key), { scroll: false })}
+            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold ${
+              tab === key ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Icon size={15} /> {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === QuizWorkspaceTab.QUESTIONS ? <QuestionBankView /> : <QuizManagementView />}
     </div>
   );
 }

@@ -3,11 +3,11 @@
 import React from 'react';
 import { ContentStatus, IconName } from '@/constants/enums';
 import { Icon } from '@/components/icons/Icon';
-import { LearningPathItem } from '@/services/entities/learning-path.service';
+import { LearningPathItem } from '@/services/entities/learner.service';
 import { StudioTab } from '../HisgoStudioView';
 import { STATUS_LABEL_MAP } from '@/constants/ui-theme';
-import { StatusPill } from '@/features/articles/components/StatusPill';
-import { ArchiveStatusButton } from '@/components/common/ArchiveStatusButton';
+import { StatusPill } from '@/features/articles/components/ArticleList';
+import { ArchiveStatusButton } from '@/components/common/CommonUi';
 
 // --- LearningPathListPanel.tsx ---
 interface LearningPathListPanelProps {
@@ -33,10 +33,12 @@ export function LearningPathListPanel({ paths, loading, onSelectPath, onCreatePa
         <p className="text-xs text-slate-600 mt-1">
           Tạo 1 lộ trình để bắt đầu gom các bài học thành khóa học có trình tự riêng.
         </p>
-        <button type="button" onClick={onCreatePath} className="primary-button !h-8 !text-xs !px-4 mt-4 font-bold">
-          <Icon name={IconName.PLUS} size={12} />
-          <span>Tạo lộ trình đầu tiên</span>
-        </button>
+        <div className="mt-4 flex justify-center">
+          <button type="button" onClick={onCreatePath} className="primary-button !h-8 !text-xs !px-4 font-bold">
+            <Icon name={IconName.PLUS} size={12} />
+            <span>Tạo lộ trình đầu tiên</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -165,7 +167,7 @@ export function LearningPathToolbar({
             className="secondary-button !h-8 !text-xs !px-3"
           >
             <Icon name={IconName.PLUS} size={13} />
-            <span>Soạn Lesson mới</span>
+            <span>Soạn bài học mới</span>
           </button>
         </div>
 
@@ -219,12 +221,12 @@ export function StudioHeader({ activeTab, onTabChange, currentPath, libraryCount
     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-700 flex items-center justify-center text-white font-black tracking-widest text-sm shadow-xs">
-            HIS
+          <div className="w-10 h-10 rounded-lg bg-emerald-700 flex items-center justify-center text-white shadow-xs shrink-0">
+            <Icon name={IconName.BOOK} size={18} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-slate-900">HISGO Studio</h1>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900">Quản lý Lộ trình &amp; Bài học</h1>
               {currentPath && (
                 <StatusPill status={currentPath.status} />
               )}
@@ -233,7 +235,7 @@ export function StudioHeader({ activeTab, onTabChange, currentPath, libraryCount
           </div>
         </div>
 
-        {/* Switcher Tab Chính: Chương & nhóm | Thư viện Lesson */}
+        {/* Switcher Tab Chính: Lộ trình & Chương | Thư viện bài học */}
         <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
           <button
             type="button"
@@ -246,7 +248,7 @@ export function StudioHeader({ activeTab, onTabChange, currentPath, libraryCount
             }`}
           >
             <Icon name={IconName.BOOK} size={14} />
-            <span>Chương &amp; nhóm</span>
+            <span>Lộ trình &amp; Chương</span>
           </button>
           <button
             type="button"

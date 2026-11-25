@@ -6,17 +6,17 @@ import {
   QUIZ_QUESTION_TYPE_META,
   QuizQuestion,
   QuizQuestionType,
-} from '@/features/lessons/types/quiz.types';
+} from '@/features/lessons/types/editor.types';
 import {
   QuestionApiService,
   QuestionBankItem,
-} from '@/services/entities/question.service';
+} from '@/services/entities/quiz.service';
 import {
   ALL_FILTER_VALUE,
   QuestionDifficultyEnum,
 } from '@/constants/enums';
 import { QuestionBankModal } from './QuestionBankModal';
-import { QuestionTopicMode } from '../utils/question-topic.strategy';
+import { QuestionTopicMode } from '../utils/practice-quiz.helper';
 
 interface QuestionOptionPreview {
   id?: string;
@@ -145,11 +145,29 @@ export function QuestionBankPickerModal({
     setSelectedIds(next);
   };
 
+  useEffect(() => {
+    if (!isOpen || isCreateOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, isCreateOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-scaleUp border border-slate-100">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Chọn câu hỏi từ Ngân hàng đề"
+        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-scaleUp border border-slate-100"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
@@ -205,11 +223,11 @@ export function QuestionBankPickerModal({
               className="text-xs py-1.5 px-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-600"
             >
               <option value={ALL_FILTER_VALUE}>Tất cả loại câu hỏi</option>
-              <option value={QuizQuestionType.SINGLE_CHOICE}>Trắc nghiệm đơn</option>
+              <option value={QuizQuestionType.SINGLE_CHOICE}>Chọn 1 đáp án</option>
               <option value={QuizQuestionType.MULTIPLE_CHOICE}>Nhiều đáp án</option>
               <option value={QuizQuestionType.TRUE_FALSE}>Đúng / Sai</option>
               <option value={QuizQuestionType.ORDERING}>Sắp xếp thứ tự</option>
-              <option value={QuizQuestionType.MATCHING}>Nối cặp tương ứng</option>
+              <option value={QuizQuestionType.MATCHING}>Ghép nối</option>
             </select>
 
             {/* Difficulty Filter */}

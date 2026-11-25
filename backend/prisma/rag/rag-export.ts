@@ -90,7 +90,6 @@ async function fetchCategoriesMap(
       parentId: true,
       name: true,
       slug: true,
-      kind: true,
     },
   });
   return new Map(rows.map((c) => [c.id, c]));
@@ -117,34 +116,6 @@ async function fetchArticles(
       categoryId: true,
       topic: { select: { name: true, slug: true } },
       articleTags: { select: { tag: { select: { name: true } } } },
-      linksOut: {
-        orderBy: { displayOrder: 'asc' },
-        select: {
-          label: true,
-          target: {
-            select: {
-              slug: true,
-              title: true,
-              status: true,
-              categoryId: true,
-            },
-          },
-        },
-      },
-      linksIn: {
-        orderBy: { displayOrder: 'asc' },
-        select: {
-          label: true,
-          source: {
-            select: {
-              slug: true,
-              title: true,
-              status: true,
-              categoryId: true,
-            },
-          },
-        },
-      },
     },
   });
 }

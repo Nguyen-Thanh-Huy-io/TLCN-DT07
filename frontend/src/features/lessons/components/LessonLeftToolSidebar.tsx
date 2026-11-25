@@ -1,12 +1,166 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import {
+  FileText,
+  Heading,
+  Image as ImageIcon,
+  Video,
+  Quote,
+  Minus,
+  AlertCircle,
+  UserSquare2,
+  GitCommitHorizontal,
+  Sparkles,
+  MapPin,
+  Table2,
+  Columns3,
+  HelpCircle,
+  Link2,
+  Search,
+  X,
+  LucideIcon,
+} from 'lucide-react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
-import { getBlockLabel } from '../constants/lesson.constants';
-import { BlockLibraryPalette } from './builder/BlockLibraryPalette';
-import { LessonBlockType, LeftSidebarMode } from '../types/editor.types';
+import { getBlockLabel, LESSON_BLOCK_DRAG_MIME, LESSON_BLOCK_ITEMS } from '../constants/lesson.constants';
+import { LessonBlockGroup, LessonBlockType, LeftSidebarMode } from '../types/editor.types';
 import { TocItem } from './LessonPreviewContent';
+
+// === Merged from BlockLibraryPalette.tsx ===
+export interface BlockLibraryPaletteProps {
+  onAddBlock: (type: LessonBlockType) => void;
+  className?: string;
+  allowedBlockTypes?: LessonBlockType[];
+  accentColor?: string;
+  includeLessonOnly?: boolean;
+}
+
+export const BLOCK_TYPE_ICONS: Record<string, LucideIcon> = {
+  [LessonBlockType.TEXT]: FileText,
+  [LessonBlockType.HEADING]: Heading,
+  [LessonBlockType.IMAGE]: ImageIcon,
+  [LessonBlockType.VIDEO]: Video,
+  [LessonBlockType.RESOURCE_LINK]: Link2,
+  [LessonBlockType.QUOTE]: Quote,
+  [LessonBlockType.DIVIDER]: Minus,
+  [LessonBlockType.CALLOUT]: AlertCircle,
+  [LessonBlockType.CHARACTER]: UserSquare2,
+  [LessonBlockType.TIMELINE]: GitCommitHorizontal,
+  [LessonBlockType.MAP]: MapPin,
+  [LessonBlockType.COMPARISON_TABLE]: Table2,
+  [LessonBlockType.QUIZ]: HelpCircle,
+  [LessonBlockType.SECTION_ROW]: Columns3,
+};
+
+export function BlockLibraryPalette({
+  onAddBlock,
+  className = '',
+  allowedBlockTypes,
+  includeLessonOnly = false,
+  accentColor = '#7c4b2e',
+}: BlockLibraryPaletteProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredItems = LESSON_BLOCK_ITEMS.filter((item) => {
+    const isAllowed =
+      (!allowedBlockTypes || allowedBlockTypes.includes(item.type)) && (includeLessonOnly || !item.lessonOnly);
+    if (!isAllowed) return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      item.label.toLowerCase().includes(q) ||
+      item.description.toLowerCase().includes(q) ||
+      item.type.toLowerCase().includes(q)
+    );
+  });
+
+  const basicItems = filteredItems.filter((i) => i.group === LessonBlockGroup.BASIC);
+  const specializedItems = filteredItems.filter((i) => i.group === LessonBlockGroup.SPECIALIZED);
+  const advancedItems = filteredItems.filter((i) => i.group === LessonBlockGroup.ADVANCED);
+
+  const renderSection = (title: string, items: typeof filteredItems) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="space-y-2">
+        <div className="text-xs font-bold uppercase tracking-wider text-stone-700 px-1">
+          {title}
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {items.map((item) => {
+            const BlockIcon = BLOCK_TYPE_ICONS[item.type] || FileText;
+            return (
+              <button
+                key={item.type}
+                type="button"
+                data-testid={`btn-block-${item.type}`}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(LESSON_BLOCK_DRAG_MIME, item.type);
+                  e.dataTransfer.effectAllowed = 'copy';
+                }}
+                onClick={() => onAddBlock(item.type)}
+                title={`${item.label} — Bấm hoặc kéo thả vào vùng soạn thảo`}
+                className="p-2.5 hover:bg-stone-50 rounded-lg text-left transition-colors duration-150 cursor-grab active:cursor-grabbing flex flex-col gap-1.5 group"
+              >
+                <span
+                  className="w-7 h-7 rounded-md border flex items-center justify-center transition-colors duration-150"
+                  style={{
+                    backgroundColor: 'white',
+                    borderColor: '#e7ddd4',
+                    color: accentColor,
+                  }}
+                >
+                  <BlockIcon className="w-4 h-4" strokeWidth={1.75} />
+                </span>
+                <span className="text-xs font-medium text-stone-800 group-hover:text-stone-950 leading-snug">
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <aside
+      className={`w-full bg-white border-r border-stone-200 p-4 flex flex-col shrink-0 h-full overflow-y-auto select-none ${className}`}
+    >
+      <div className="flex items-center justify-between pb-3 border-b border-stone-200 mb-3">
+        <span className="text-sm font-bold text-stone-900 tracking-tight">Thư viện khối</span>
+        <span className="text-xs font-medium text-stone-600">{filteredItems.length} khối</span>
+      </div>
+
+      <div className="relative mb-4">
+        <Search className="w-4 h-4 text-stone-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" strokeWidth={1.75} />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Tìm khối..."
+          className="w-full text-sm pl-9 pr-8 py-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-stone-900 text-stone-900 placeholder:text-stone-600 transition-colors"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-600 hover:text-stone-900 p-1 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-5 overflow-y-auto pr-0.5 flex-1">
+        {renderSection('CƠ BẢN', basicItems)}
+        {renderSection('TRI THỨC LỊCH SỬ', specializedItems)}
+        {renderSection('BỐ CỤC NÂNG CAO', advancedItems)}
+      </div>
+    </aside>
+  );
+}
 
 const COLLAPSED_QUICK_BLOCKS: ReadonlyArray<{
   type: LessonBlockType;
@@ -14,11 +168,9 @@ const COLLAPSED_QUICK_BLOCKS: ReadonlyArray<{
   hoverClass: string;
 }> = [
   { type: LessonBlockType.TEXT, icon: IconName.EDIT, hoverClass: 'hover:text-emerald-700 hover:bg-emerald-50' },
-  { type: LessonBlockType.TIMELINE, icon: IconName.CLOCK, hoverClass: 'hover:text-blue-700 hover:bg-blue-50' },
   { type: LessonBlockType.CHARACTER, icon: IconName.USERS, hoverClass: 'hover:text-indigo-700 hover:bg-indigo-50' },
-  { type: LessonBlockType.EVENT, icon: IconName.CALENDAR, hoverClass: 'hover:text-amber-700 hover:bg-amber-50' },
+  { type: LessonBlockType.TIMELINE, icon: IconName.CALENDAR, hoverClass: 'hover:text-amber-700 hover:bg-amber-50' },
   { type: LessonBlockType.IMAGE, icon: IconName.GRID, hoverClass: 'hover:text-emerald-700 hover:bg-emerald-50' },
-  { type: LessonBlockType.SECTION_ROW, icon: IconName.GRID, hoverClass: 'hover:text-purple-700 hover:bg-purple-50' },
 ];
 
 interface LessonLeftToolSidebarProps {
@@ -78,7 +230,7 @@ export function LessonLeftToolSidebar({
   return (
     <aside
       data-testid="left-sidebar-expanded-panel"
-      className="w-full lg:w-64 xl:w-72 shrink-0 flex flex-col gap-2 max-h-[calc(100vh-80px)] overflow-y-auto lg:sticky lg:top-[68px] self-start animate-in slide-in-from-left duration-150 z-20 custom-editor-scrollbar pr-0.5"
+      className="w-full lg:w-56 xl:w-60 shrink-0 flex flex-col gap-2 max-h-[calc(100vh-80px)] overflow-y-auto lg:sticky lg:top-[68px] self-start animate-in slide-in-from-left duration-150 z-20 custom-editor-scrollbar pr-0.5"
     >
       <div className="bg-white border border-slate-200 rounded-xl p-1.5 shadow-2xs flex items-center justify-between gap-1">
         <div className="grid grid-cols-2 gap-1 bg-slate-100 p-0.5 rounded-lg text-xs flex-1">

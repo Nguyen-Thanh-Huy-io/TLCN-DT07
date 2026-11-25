@@ -2,7 +2,7 @@
 import { KeyboardKey } from '@/constants/enums';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { TagItem } from '@/types/models';
-import { TagApiService } from '@/services/entities/tag.service';
+import { TagApiService } from '@/services/entities/topic.service';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
 import { extractErrorMessage } from '@/services/api';
@@ -55,6 +55,8 @@ function normalizeTagName(input: string): string {
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
+const TAG_SEARCH_CACHE = new Map<string, TagItem[]>();
+
 export function LessonTagPicker({
   selectedTags,
   onChange,
@@ -62,53 +64,75 @@ export function LessonTagPicker({
   hideLabel = false,
 }: LessonTagPickerProps) {
   const [allTags, setAllTags] = useState<TagItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Tải danh sách nhãn khi mount
+  // Tìm kiếm thẻ server-side (debounce 220ms + cache theo từ khóa phía client, Backend có Redis TTL 3600s)
   useEffect(() => {
+    if (!isOpen) return;
+    const key = search.trim().toLowerCase();
+    const cached = TAG_SEARCH_CACHE.get(key);
+    if (cached) {
+      setAllTags(cached);
+      setLoading(false);
+      return;
+    }
+
     let active = true;
-    TagApiService.getTags()
-      .then((items) => {
-        if (active) setAllTags(items || []);
-      })
-      .catch((err) => {
-        console.error('Failed to load tags:', err);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    const timer = setTimeout(() => {
+      setLoading(true);
+      TagApiService.getTagsPaginated({ page: 1, limit: 30, search: search.trim() || undefined })
+        .then((res) => {
+          if (!active) return;
+          const items = res.items || [];
+          TAG_SEARCH_CACHE.set(key, items);
+          setAllTags(items);
+        })
+        .catch((err) => {
+          if (!active) return;
+          setAllTags([]);
+          setErrorMsg(extractErrorMessage(err, 'Không tải được danh sách thẻ.'));
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }, 220);
     return () => {
       active = false;
+      clearTimeout(timer);
     };
-  }, []);
+  }, [isOpen, search]);
 
-  // Đóng dropdown khi click bên ngoài
+  // Đóng dropdown khi click bên ngoài hoặc nhấn Escape
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   // Chuẩn hóa chuỗi tìm kiếm
   const normalizedQuery = useMemo(() => normalizeTagName(search).toLowerCase(), [search]);
 
-  // Lọc nhãn theo từ khóa tìm kiếm
+  // Loại bỏ các thẻ đã chọn khỏi danh sách kết quả server trả về
   const filteredTags = useMemo(() => {
-    return allTags.filter((t) => {
-      const matchName = !normalizedQuery || t.name.toLowerCase().includes(normalizedQuery);
-      const notSelected = !selectedTags.some((s) => s.id === t.id);
-      return matchName && notSelected;
-    });
-  }, [allTags, normalizedQuery, selectedTags]);
+    return allTags.filter((t) => !selectedTags.some((s) => s.id === t.id));
+  }, [allTags, selectedTags]);
 
   // Kiểm tra xem đã có thẻ trùng tên hoàn toàn (không phân biệt hoa thường)
   const exactMatchingTag = useMemo(() => {
@@ -119,6 +143,7 @@ export function LessonTagPicker({
   const exactMatchExists = Boolean(exactMatchingTag);
 
   const handleSelectTag = (tag: TagItem) => {
+    setErrorMsg(null);
     if (!selectedTags.some((s) => s.id === tag.id)) {
       onChange([...selectedTags, tag]);
     }
@@ -130,14 +155,23 @@ export function LessonTagPicker({
     onChange(selectedTags.filter((t) => t.id !== tagId));
   };
 
-  // Tạo hoặc chọn thẻ (Cơ chế chống trùng lặp: nếu đã có trong DB thì chọn thay vì tạo mới)
+  // Tạo hoặc chọn thẻ (Cơ chế chống trùng lặp: kiểm tra cả server trước khi tạo mới)
   const handleCreateOrSelectTag = async (customName?: string) => {
     const raw = customName || search;
     const cleanName = normalizeTagName(raw);
     if (!cleanName) return;
+    setErrorMsg(null);
 
-    // 1. Nếu đã có thẻ trùng tên trong cơ sở dữ liệu -> Chọn luôn, không tạo thêm
-    const existing = allTags.find((t) => t.name.toLowerCase() === cleanName.toLowerCase());
+    // 1. Kiểm tra danh sách hiện có hoặc gọi server kiểm tra trùng tên
+    let existing = allTags.find((t) => t.name.toLowerCase() === cleanName.toLowerCase());
+    if (!existing) {
+      try {
+        const res = await TagApiService.getTagsPaginated({ page: 1, limit: 10, search: cleanName });
+        existing = res.items.find((t) => t.name.toLowerCase() === cleanName.toLowerCase());
+      } catch {
+        // Tiếp tục tạo mới nếu tra cứu nhanh thất bại
+      }
+    }
     if (existing) {
       handleSelectTag(existing);
       return;
@@ -151,13 +185,13 @@ export function LessonTagPicker({
         name: cleanName,
         colorHex: randomColor,
       });
+      TAG_SEARCH_CACHE.clear();
       setAllTags((prev) => [created, ...prev]);
       onChange([...selectedTags, created]);
       setSearch('');
       setIsOpen(false);
     } catch (err) {
-      console.error('Failed to create tag:', err);
-      alert(extractErrorMessage(err, 'Không thể tạo thẻ mới. Vui lòng thử lại.'));
+      setErrorMsg(extractErrorMessage(err, 'Không thể tạo thẻ mới. Vui lòng thử lại.'));
     } finally {
       setCreating(false);
     }
@@ -169,11 +203,17 @@ export function LessonTagPicker({
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
             <Icon name={IconName.TAG} size={12} className="text-slate-500" />
-            <span>Thẻ phân loại (Tags)</span>
+            <span>Thẻ phân loại</span>
           </label>
           <span className="text-[10px] text-slate-400 font-medium">
             {selectedTags.length > 0 ? `${selectedTags.length} thẻ` : 'Tùy chọn'}
           </span>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-medium text-rose-700">
+          {errorMsg}
         </div>
       )}
 

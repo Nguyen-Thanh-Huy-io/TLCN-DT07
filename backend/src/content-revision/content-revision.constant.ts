@@ -88,10 +88,7 @@ export const REVISION_FIELDS: Record<RevisionContentType, RevisionField[]> = {
     { key: 'dateText', label: 'Nhãn niên đại', kind: 'text' },
     { key: 'startYear', label: 'Năm bắt đầu', kind: 'text' },
     { key: 'endYear', label: 'Năm kết thúc', kind: 'text' },
-    { key: 'datePrecision', label: 'Độ chính xác niên đại', kind: 'text' },
     { key: 'metadata', label: 'Hồ sơ mở rộng', kind: 'object' },
-    { key: 'links', label: 'Liên kết bài viết', kind: 'object' },
-    { key: 'isFeatured', label: 'Nổi bật', kind: 'bool' },
     ORDER,
   ],
   TOPIC: [

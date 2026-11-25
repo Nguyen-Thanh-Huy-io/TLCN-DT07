@@ -14,6 +14,13 @@ export interface AssistantSourceCitation {
   note?: string;
 }
 
+export interface AssistantWebSource {
+  title: string;
+  uri: string;
+  domain?: string;
+  snippet?: string;
+}
+
 export interface AssistantQuickAction {
   label: string;
   href: string;
@@ -25,6 +32,8 @@ export interface AiAssistantChatResponse {
   contextLabel?: string;
   suggestedLinks: AssistantSuggestedLink[];
   sourceCitations: AssistantSourceCitation[];
+  webSources: AssistantWebSource[];
+  webSearchQueries: string[];
   quickActions: AssistantQuickAction[];
 }
 

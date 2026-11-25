@@ -15,11 +15,12 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { ChipGroup, FilterSection, PickedCount, toggleValue } from '@/components/filters/ChipFilter';
-import { RemoteImage } from '@/components/common/RemoteImage';
-import { useFigureProfile } from '@/components/figures/FigureProfileParts';
-import { ArticleKindEnum } from '@/constants/enums';
-import type { ArticleKind } from '@/services/public/article-kind';
-import { PUBLIC_ROUTES, type PublicCategory } from '@/services/public/public-content.service';
+import { RemoteImage } from '@/components/common/CommonUi';
+import {
+  PUBLIC_ROUTES,
+  SYSTEM_CATEGORY_ROOT_SLUGS,
+  type PublicCategory,
+} from '@/services/public/public-content.service';
 import {
   ArticleFilterKey,
   ArticleMetaIconKey,
@@ -101,16 +102,16 @@ export function ArticleAdaptiveSubFilters({
   filters,
   onToggleFilter,
 }: {
-  activeKind: ArticleKind | null;
+  activeKind: string | null;
   childCategories: Array<{ cat: PublicCategory; count: number }>;
   jsonbFacets: ArticleJsonbFacets;
   filters: ArticleFilters;
   onToggleFilter: (key: ArticleFilterKey, value: string) => void;
 }) {
   const showLocationFacets =
-    activeKind === ArticleKindEnum.LOCATION &&
+    activeKind === SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION &&
     (jsonbFacets.siteTypes.length > 0 || jsonbFacets.preservations.length > 0);
-  const showPersonFacets = activeKind === ArticleKindEnum.PERSON && jsonbFacets.personRoles.length > 0;
+  const showPersonFacets = activeKind === SYSTEM_CATEGORY_ROOT_SLUGS.PERSON && jsonbFacets.personRoles.length > 0;
   const showChildCategories = childCategories.length > 0;
 
   if (!showLocationFacets && !showPersonFacets && !showChildCategories) return null;
@@ -175,7 +176,7 @@ export function ArticleFilterDialogSections({
 }: {
   draft: ArticleFilters;
   setDraft: (update: (d: ArticleFilters) => ArticleFilters) => void;
-  activeKind: ArticleKind | null;
+  activeKind: string | null;
   isScopedCategory: boolean;
   categoryOptions: Array<{ cat: PublicCategory; count: number }>;
   tagOptions: Array<{ id: string; name: string; count: number }>;
@@ -184,8 +185,8 @@ export function ArticleFilterDialogSections({
   const toggle = (key: ArticleFilterKey, v: string) =>
     setDraft((d) => ({ ...d, [key]: toggleValue(d[key], v) }));
 
-  const isLocationKind = activeKind === ArticleKindEnum.LOCATION;
-  const isPersonKind = activeKind === ArticleKindEnum.PERSON;
+  const isLocationKind = activeKind === SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION;
+  const isPersonKind = activeKind === SYSTEM_CATEGORY_ROOT_SLUGS.PERSON;
 
   return (
     <>
@@ -262,7 +263,7 @@ export function ArticleFilterDialogSections({
       )}
 
       {tagOptions.length > 0 && (
-        <FilterSection title="Chủ điểm (Tag)" aside={<PickedCount count={draft.tags.length} />}>
+        <FilterSection title="Chủ điểm" aside={<PickedCount count={draft.tags.length} />}>
           <ChipGroup
             options={tagOptions.map((t) => ({
               value: t.id,
@@ -280,17 +281,16 @@ export function ArticleFilterDialogSections({
 }
 
 export function ArticleGridCard({ row: { item } }: { row: ArticleRow }) {
-  const figureProfile = useFigureProfile();
   const strategy = getArticleCardMetaStrategy(item.kind);
   const href = PUBLIC_ROUTES.ARTICLE(item.slug);
   const primaryBadge = strategy.primaryBadgeOf(item);
   const locationBadge = strategy.locationBadgeOf(item);
-  const metaRows = strategy.metaRowsOf(item);
-  const isPerson = item.kind === ArticleKindEnum.PERSON;
+  const primaryMeta = strategy.metaRowsOf(item)[0] ?? null;
+  const PrimaryMetaIcon = primaryMeta ? META_ICON_MAP[primaryMeta.icon] : null;
 
   return (
     <article className="el-card">
-      <div className="el-card-media">
+      <Link href={href} className="el-card-media block">
         {item.imageUrl ? (
           <RemoteImage src={item.imageUrl} alt={item.title} loading="lazy" />
         ) : (
@@ -304,7 +304,7 @@ export function ArticleGridCard({ row: { item } }: { row: ArticleRow }) {
             {item.dateLabel ?? locationBadge}
           </span>
         )}
-      </div>
+      </Link>
 
       <div className="el-card-body">
         {primaryBadge && (
@@ -319,36 +319,19 @@ export function ArticleGridCard({ row: { item } }: { row: ArticleRow }) {
 
         {item.summary && <p className="el-card-desc">{item.summary}</p>}
 
-        {metaRows.length > 0 && (
-          <div className="el-card-entities">
-            {metaRows.map((meta, idx) => {
-              const Icon = META_ICON_MAP[meta.icon];
-              return (
-                <div key={`${meta.icon}-${idx}`} className="el-card-entity-item" title={meta.text}>
-                  <Icon size={13} />
-                  <span>{meta.text}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
         <div className="el-card-footer flex items-center justify-between gap-2">
-          <Link href={href} className="el-card-link">
-            <span>{strategy.ctaLabel}</span>
+          {primaryMeta && PrimaryMetaIcon ? (
+            <span className="el-card-entity-item min-w-0 flex-1 text-xs text-[var(--muted)]" title={primaryMeta.text}>
+              <PrimaryMetaIcon size={12} className="shrink-0" />
+              <span className="truncate">{primaryMeta.text}</span>
+            </span>
+          ) : (
+            <span />
+          )}
+          <Link href={href} className="el-card-link shrink-0">
+            <span>Đọc</span>
             <ArrowRight size={14} />
           </Link>
-          {isPerson && figureProfile && (
-            <button
-              type="button"
-              onClick={() => figureProfile.openFigure(item.slug)}
-              className="sk-button !px-2.5 !py-1 !text-xs"
-              title={`Xem nhanh dòng đời và quan hệ của ${item.title}`}
-            >
-              <History size={12} />
-              <span>Tóm tắt dòng đời</span>
-            </button>
-          )}
         </div>
       </div>
     </article>
@@ -356,12 +339,10 @@ export function ArticleGridCard({ row: { item } }: { row: ArticleRow }) {
 }
 
 export function ArticleListItem({ row: { item } }: { row: ArticleRow }) {
-  const figureProfile = useFigureProfile();
   const strategy = getArticleCardMetaStrategy(item.kind);
   const href = PUBLIC_ROUTES.ARTICLE(item.slug);
   const primaryBadge = strategy.primaryBadgeOf(item);
   const metaRows = strategy.metaRowsOf(item);
-  const isPerson = item.kind === ArticleKindEnum.PERSON;
 
   return (
     <li className="el-list-item">
@@ -387,17 +368,6 @@ export function ArticleListItem({ row: { item } }: { row: ArticleRow }) {
         )}
       </div>
       <div className="flex items-center gap-2">
-        {isPerson && figureProfile && (
-          <button
-            type="button"
-            onClick={() => figureProfile.openFigure(item.slug)}
-            className="sk-button !px-2.5 !py-1.5 !text-xs"
-            title={`Xem nhanh dòng đời của ${item.title}`}
-          >
-            <History size={12} />
-            <span>Dòng đời</span>
-          </button>
-        )}
         <Link href={href} className="el-go" aria-label={`Đọc ${item.title}`}>
           <ArrowRight size={16} />
         </Link>

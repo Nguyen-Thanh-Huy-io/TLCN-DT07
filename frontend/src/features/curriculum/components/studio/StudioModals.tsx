@@ -3,10 +3,11 @@
 import React from 'react';
 import { KeyboardKey, IconName } from '@/constants/enums';
 import { Icon } from '@/components/icons/Icon';
-import { ChapterItem } from '@/services/entities/learning-path.service';
+import { ChapterItem } from '@/services/entities/learner.service';
 import { LessonItem } from '@/types/models';
-import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicPicker';
-import { StatusPill } from '@/features/articles/components/StatusPill';
+import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicEditor';
+import { TopicCoverImagePicker } from '@/features/topics/components/TopicCoverImagePicker';
+import { StatusPill } from '@/features/articles/components/ArticleList';
 
 const DISABLED_ARROW_CLASS = 'opacity-30 cursor-not-allowed';
 
@@ -469,6 +470,10 @@ interface LearningPathFormModalProps {
   titlePlaceholder?: string;
   description: string;
   onDescriptionChange: (value: string) => void;
+  coverImageUrl?: string;
+  onCoverImageUrlChange?: (url: string) => void;
+  isSequential?: boolean;
+  onIsSequentialChange?: (value: boolean) => void;
   onClose: () => void;
   onSubmit: () => void;
   submitLabel: string;
@@ -477,12 +482,7 @@ interface LearningPathFormModalProps {
   submitId?: string;
 }
 
-/** Form Tạo lộ trình học mới / Sửa lộ trình đang có — cùng 1 bộ field (tên, mô tả) nên
- * dùng chung 1 component, chỉ khác tiêu đề/nhãn nút và hành vi submit.
- * Lưu ý: đã bỏ field "Phân loại lộ trình" (Niên đại/Chuyên đề) — trường này tồn tại
- * nhưng không được dùng để lọc/hiển thị gì ở phía Lộ trình (chỉ có ý nghĩa thật ở phía
- * Chủ đề/Topic, nơi nó điều khiển 2 "lăng kính xem" của Cây phân cấp Chủ đề), nên chỉ
- * gây rối mà không có tác dụng khi đặt trong form Lộ trình. */
+/** Form Tạo lộ trình học mới / Sửa lộ trình đang có — cùng 1 bộ field (tên, mô tả, ảnh bìa, tuần tự). */
 export function LearningPathFormModal({
   isOpen,
   heading,
@@ -491,6 +491,10 @@ export function LearningPathFormModal({
   titlePlaceholder,
   description,
   onDescriptionChange,
+  coverImageUrl,
+  onCoverImageUrlChange,
+  isSequential,
+  onIsSequentialChange,
   onClose,
   onSubmit,
   submitLabel,
@@ -501,8 +505,8 @@ export function LearningPathFormModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-slate-200 pb-3">
           <h3 className="text-sm font-bold text-slate-900">{heading}</h3>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg">
@@ -532,6 +536,28 @@ export function LearningPathFormModal({
               className="form-input !text-xs w-full"
             />
           </div>
+
+          {onCoverImageUrlChange && (
+            <TopicCoverImagePicker
+              value={coverImageUrl ?? ''}
+              onChange={onCoverImageUrlChange}
+              disabled={loading}
+              title="Ảnh bìa lộ trình"
+              compact
+            />
+          )}
+
+          {onIsSequentialChange && (
+            <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={Boolean(isSequential)}
+                onChange={(e) => onIsSequentialChange(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-emerald-600"
+              />
+              <span>Yêu cầu học tuần tự (mở khóa dần theo từng chương/bài)</span>
+            </label>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-3">

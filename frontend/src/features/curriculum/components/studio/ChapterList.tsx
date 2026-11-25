@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
-import { ChapterItem } from '@/services/entities/learning-path.service';
+import { ChapterItem } from '@/services/entities/learner.service';
 
 const PAGE_SIZE = 5;
 
@@ -334,7 +334,7 @@ export function ChapterList(props: ChapterListProps) {
                       <div className="py-5 px-4 text-center text-xs text-slate-600 bg-slate-50/50">
                         <p className="font-semibold text-slate-700">Chưa thêm bài vào chương này.</p>
                         <p className="text-xs text-slate-500 mt-1">
-                          Nhấn <strong>[Soạn bài mới]</strong> để viết bài ngay trong chương, hoặc <strong>[+ Thêm Lesson từ thư viện]</strong> để gom bài có sẵn.
+                          Nhấn <strong>[Soạn bài mới]</strong> để viết bài ngay trong chương, hoặc <strong>[Thêm bài học từ thư viện]</strong> để gom bài có sẵn.
                         </p>
                       </div>
                     ) : (

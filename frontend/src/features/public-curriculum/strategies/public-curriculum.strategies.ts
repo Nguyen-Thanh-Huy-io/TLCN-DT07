@@ -1,4 +1,4 @@
-import { LearningPathItem } from '@/services/entities/learning-path.service';
+import { LearningPathItem } from '@/services/entities/learner.service';
 import {
   QuizItem,
   QuizQuestion,
@@ -13,12 +13,9 @@ import {
   OrderingItem,
   MatchingItem,
   MatchingPair,
-} from '@/features/lessons/types/quiz.types';
-import { LearningPathFilterType } from '../constants/public-curriculum.constants';
-import { LearningPathType } from '@/constants/enums';
-
+} from '@/features/lessons/types/editor.types';
 // ==========================================
-// 1. STRATEGY LỌC LỘ TRÌNH HỌC & BÀI HỌC (OCP)
+// 1. LỌC LỘ TRÌNH HỌC & BÀI HỌC THEO CHỦ ĐỀ / TỪ KHOÁ / TAG
 // ==========================================
 
 /** Đủ dùng cho cả LessonItem (CMS) lẫn LibraryLesson (thư viện công khai). */
@@ -29,10 +26,6 @@ export interface FilterableLesson {
   topic?: { id: string; parentId?: string | null } | null;
   tags?: Array<{ id: string }>;
   lessonTags?: Array<{ tagId: string }>;
-}
-
-export interface IPathFilterStrategy {
-  matches(path: LearningPathItem, keyword: string, selectedTopicId?: string | null, topicIdsInSubtree?: Set<string>): boolean;
 }
 
 function matchesKeywordInPath(path: LearningPathItem, normalizedKeyword: string): boolean {
@@ -71,57 +64,19 @@ function matchesTopicInPath(path: LearningPathItem, selectedTopicId?: string | n
   );
 }
 
-class TopicAwarePathFilterStrategy implements IPathFilterStrategy {
-  matches(path: LearningPathItem, keyword: string, selectedTopicId?: string | null, topicIdsInSubtree?: Set<string>): boolean {
-    return matchesKeywordInPath(path, keyword) && matchesTopicInPath(path, selectedTopicId, topicIdsInSubtree);
-  }
-}
-
-class AllPathsFilterStrategy implements IPathFilterStrategy {
-  matches(path: LearningPathItem, keyword: string, selectedTopicId?: string | null, topicIdsInSubtree?: Set<string>): boolean {
-    return matchesKeywordInPath(path, keyword) && matchesTopicInPath(path, selectedTopicId, topicIdsInSubtree);
-  }
-}
-
-class ChronologicalPathsFilterStrategy implements IPathFilterStrategy {
-  matches(path: LearningPathItem, keyword: string, selectedTopicId?: string | null, topicIdsInSubtree?: Set<string>): boolean {
-    return (
-      path.pathType === LearningPathType.CHRONOLOGICAL &&
-      matchesKeywordInPath(path, keyword) &&
-      matchesTopicInPath(path, selectedTopicId, topicIdsInSubtree)
-    );
-  }
-}
-
-class ThematicPathsFilterStrategy implements IPathFilterStrategy {
-  matches(path: LearningPathItem, keyword: string, selectedTopicId?: string | null, topicIdsInSubtree?: Set<string>): boolean {
-    return (
-      path.pathType === LearningPathType.THEMATIC &&
-      matchesKeywordInPath(path, keyword) &&
-      matchesTopicInPath(path, selectedTopicId, topicIdsInSubtree)
-    );
-  }
-}
-
 export class PathFilterStrategyRegistry {
-  private static readonly strategies: Record<string, IPathFilterStrategy> = {
-    [LearningPathFilterType.ALL]: new AllPathsFilterStrategy(),
-    [LearningPathFilterType.CHRONOLOGICAL]: new ChronologicalPathsFilterStrategy(),
-    [LearningPathFilterType.THEMATIC]: new ThematicPathsFilterStrategy(),
-    TOPIC: new TopicAwarePathFilterStrategy(),
-  };
-
   static filter(
     paths: LearningPathItem[],
-    filterType: LearningPathFilterType | string,
     rawKeyword: string,
     selectedTopicId?: string | null,
     topicIdsInSubtree?: Set<string>,
   ): LearningPathItem[] {
-    const strategy =
-      this.strategies[filterType] || this.strategies.TOPIC || this.strategies[LearningPathFilterType.ALL];
     const normalizedKeyword = rawKeyword.trim().toLowerCase();
-    return paths.filter((path) => strategy.matches(path, normalizedKeyword, selectedTopicId, topicIdsInSubtree));
+    return paths.filter(
+      (path) =>
+        matchesKeywordInPath(path, normalizedKeyword) &&
+        matchesTopicInPath(path, selectedTopicId, topicIdsInSubtree),
+    );
   }
 
   static filterLessons<T extends FilterableLesson>(

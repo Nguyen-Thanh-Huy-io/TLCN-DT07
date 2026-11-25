@@ -1,5 +1,4 @@
 import { generateKeyPairSync } from 'node:crypto';
-import { ArticleKind } from '@prisma/client';
 import config from '../common/config/app.config';
 import { AssistantEngine, AssistantLinkKind } from './ai-assistant.constant';
 import {
@@ -10,7 +9,7 @@ import {
 import { shouldUseRagForMessage } from './ai-assistant.search';
 import { AiAssistantService } from './ai-assistant.service';
 
-describe('AiAssistantService & RAG Grounding', () => {
+describe('AiAssistantService — Strict RAG & Google Search Grounding', () => {
   const { privateKey } = generateKeyPairSync('rsa', {
     modulusLength: 2048,
     publicKeyEncoding: { type: 'spki', format: 'pem' },
@@ -26,11 +25,9 @@ describe('AiAssistantService & RAG Grounding', () => {
   };
 
   let mockPrisma: {
-    category: { findMany: jest.Mock };
     article: { findFirst: jest.Mock; findMany: jest.Mock };
     lesson: { findFirst: jest.Mock; findMany: jest.Mock };
     blogPost: { findFirst: jest.Mock; findMany: jest.Mock };
-    timelineNode: { findMany: jest.Mock };
     userLearningStats: { findUnique: jest.Mock };
     flashcard: { count: jest.Mock };
     studyMindmap: { count: jest.Mock };
@@ -45,13 +42,6 @@ describe('AiAssistantService & RAG Grounding', () => {
     config.google_cloud_rag_corpus = '';
 
     mockPrisma = {
-      category: {
-        findMany: jest.fn().mockResolvedValue([
-          { id: 'cat-event', parentId: null, kind: ArticleKind.EVENT },
-          { id: 'cat-battle', parentId: 'cat-event', kind: null },
-          { id: 'cat-person', parentId: null, kind: ArticleKind.PERSON },
-        ]),
-      },
       article: {
         findFirst: jest.fn().mockResolvedValue(null),
         findMany: jest.fn().mockResolvedValue([]),
@@ -62,9 +52,6 @@ describe('AiAssistantService & RAG Grounding', () => {
       },
       blogPost: {
         findFirst: jest.fn().mockResolvedValue(null),
-        findMany: jest.fn().mockResolvedValue([]),
-      },
-      timelineNode: {
         findMany: jest.fn().mockResolvedValue([]),
       },
       userLearningStats: {
@@ -100,7 +87,7 @@ describe('AiAssistantService & RAG Grounding', () => {
     ).toBe(true);
   });
 
-  it('hướng dẫn tính năng Thẻ ghi nhớ (Flashcards SM-2) và trả kèm nút điều hướng nhanh', async () => {
+  it('hướng dẫn tính năng Thẻ ghi nhớ (Flashcards SM-2) và không quét DB', async () => {
     const res = await service.chat(undefined, {
       message: 'Hướng dẫn tôi cách ôn thẻ ghi nhớ Flashcard trên HISGO',
     });
@@ -124,14 +111,13 @@ describe('AiAssistantService & RAG Grounding', () => {
     expect(res.quickActions).toHaveLength(3);
   });
 
-  it('nhận diện bài Sự kiện qua Category.kind kế thừa và giữ đúng URL /su-kien/', async () => {
+  it('nhận diện trang bài viết đang mở và giữ đường dẫn /bai-viet/<slug>', async () => {
     mockPrisma.article.findFirst.mockResolvedValue({
       title: 'Chiến thắng Bạch Đằng năm 938',
       slug: 'chien-thang-bach-dang-938',
       summary: 'Ngô Quyền đánh tan quân Nam Hán trên sông Bạch Đằng.',
       dateText: '938',
       contentBlocks: [],
-      categoryId: 'cat-battle',
     });
 
     const res = await service.chat('user-1', {
@@ -142,84 +128,146 @@ describe('AiAssistantService & RAG Grounding', () => {
     expect(res.contextLabel).toBe('Chiến thắng Bạch Đằng năm 938');
     expect(res.suggestedLinks[0]).toEqual(
       expect.objectContaining({
-        kind: AssistantLinkKind.EVENT,
-        href: '/su-kien/chien-thang-bach-dang-938',
+        kind: AssistantLinkKind.ARTICLE,
+        href: '/bai-viet/chien-thang-bach-dang-938',
       }),
     );
   });
 
-  it('tìm đa thực thể DB (Article Nhân vật, BlogPost, TimelineNode) và không gắn link bài sử cho tán gẫu', async () => {
-    config.gemini_api_key = 'test-gemini-key';
-    mockPrisma.article.findMany.mockResolvedValue([
-      {
-        title: 'Trần Hưng Đạo',
-        slug: 'tran-hung-dao',
-        dateText: '1228–1300',
-        summary: 'Tổng chỉ huy kháng chiến chống Nguyên.',
-        categoryId: 'cat-person',
-      },
-    ]);
-    mockPrisma.blogPost.findMany.mockResolvedValue([
-      {
-        title: 'Bình Ngô & Hịch tướng sĩ',
-        slug: 'binh-ngo-hich-tuong-si',
-        excerpt: 'Phân tích văn học sử.',
-      },
-    ]);
-    mockPrisma.timelineNode.findMany.mockResolvedValue([
-      {
-        title: 'Chiến thắng Bạch Đằng 1288',
-        dateText: '1288',
-        timeline: { title: 'Nhà Trần', slug: 'nha-tran-khang-chien' },
-      },
-    ]);
+  it('Google OFF + ngoài kho RAG (như "lịch sử Man Utd"): chặn cứng, KHÔNG quét ILIKE DB, KHÔNG gắn mác VERTEX_RAG', async () => {
+    config.google_cloud_service_account_json = JSON.stringify({
+      project_id: 'hisgo-rag-e2e',
+      client_email: 'sa@hisgo-rag-e2e.iam.gserviceaccount.com',
+      private_key: privateKey,
+    });
+    config.google_cloud_rag_corpus =
+      'projects/hisgo-rag-e2e/locations/us-central1/ragCorpora/777';
 
-    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  text: JSON.stringify({
-                    reply: 'Trần Hưng Đạo chỉ huy đại thắng Nguyên – Mông.',
-                    quickActions: [{ label: 'Đọc thêm', href: '/bai-viet' }],
-                  }),
-                },
-              ],
+    const originalFetch = global.fetch;
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: 'ya29.rag-e2e', expires_in: 3600 }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      groundedInCorpus: false,
+                      reply: '',
+                      quickActions: [],
+                    }),
+                  },
+                ],
+              },
+              groundingMetadata: { groundingChunks: [] },
             },
-          },
-        ],
-      }),
-    } as Response);
+          ],
+        }),
+      }) as typeof fetch;
 
-    const res = await service.chat('user-1', {
-      message:
-        'Vai trò của Trần Hưng Đạo trong kháng chiến chống Nguyên là gì?',
+    try {
+      const res = await service.chat('user-1', {
+        message: 'Lịch sử CLB Man Utd như thế nào?',
+        useGoogleSearch: false,
+      });
+
+      expect(res.engine).toBe(AssistantEngine.HEURISTIC);
+      expect(res.reply).toContain('chưa có tư liệu trong kho');
+      expect(res.suggestedLinks).toEqual([]);
+      expect(mockPrisma.article.findMany).not.toHaveBeenCalled();
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('Google ON: trả lời kèm webSources và webSearchQueries trích xuất từ groundingMetadata', async () => {
+    config.google_cloud_service_account_json = JSON.stringify({
+      project_id: 'hisgo-rag-e2e',
+      client_email: 'sa@hisgo-rag-e2e.iam.gserviceaccount.com',
+      private_key: privateKey,
     });
 
-    expect(res.engine).toBe(AssistantEngine.GEMINI_FLASH);
-    expect(res.suggestedLinks).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          kind: AssistantLinkKind.PERSON,
-          href: '/nhan-vat/tran-hung-dao',
+    const originalFetch = global.fetch;
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: 'ya29.gg-e2e', expires_in: 3600 }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      isHistoricalScope: true,
+                      reply:
+                        'Manchester United thành lập năm 1878 với tên Newton Heath LYR Football Club.',
+                      quickActions: [],
+                    }),
+                  },
+                ],
+              },
+              groundingMetadata: {
+                webSearchQueries: ['lịch sử hình thành Manchester United 1878'],
+                groundingChunks: [
+                  {
+                    web: {
+                      uri: 'https://vi.wikipedia.org/wiki/Manchester_United_F.C.',
+                      title: 'Manchester United F.C. – Wikipedia tiếng Việt',
+                      domain: 'vi.wikipedia.org',
+                    },
+                  },
+                ],
+                groundingSupports: [
+                  {
+                    segment: {
+                      text: 'Thành lập năm 1878 với tên Newton Heath.',
+                    },
+                    groundingChunkIndices: [0],
+                  },
+                ],
+              },
+            },
+          ],
         }),
+      }) as typeof fetch;
+
+    try {
+      const res = await service.chat('user-1', {
+        message: 'Lịch sử CLB Man Utd như thế nào?',
+        useGoogleSearch: true,
+      });
+
+      expect(res.engine).toBe(AssistantEngine.GOOGLE_GROUNDED);
+      expect(res.webSearchQueries).toEqual([
+        'lịch sử hình thành Manchester United 1878',
+      ]);
+      expect(res.webSources).toEqual([
         expect.objectContaining({
-          kind: AssistantLinkKind.BLOG,
-          href: '/blog/binh-ngo-hich-tuong-si',
+          title: 'Manchester United F.C. – Wikipedia tiếng Việt',
+          uri: 'https://vi.wikipedia.org/wiki/Manchester_United_F.C.',
+          domain: 'vi.wikipedia.org',
+          snippet: 'Thành lập năm 1878 với tên Newton Heath.',
         }),
-        expect.objectContaining({
-          kind: AssistantLinkKind.TIMELINE,
-          href: '/giai-doan/nha-tran-khang-chien',
-        }),
-      ]),
-    );
-    fetchSpy.mockRestore();
+      ]);
+      expect(mockPrisma.article.findMany).not.toHaveBeenCalled();
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 
-  it('extractGcsObjectPath & resolveRagGroundingAttachments tách sách thành sourceCitations tĩnh và HISGO thành link', () => {
+  it('extractGcsObjectPath & resolveRagGroundingAttachments tách sách thành sourceCitations và HISGO thành link', () => {
     expect(
       extractGcsObjectPath(
         'gs://hisgo-bucket/books/openstax-world-history-vol-1.pdf',
@@ -265,118 +313,7 @@ describe('AiAssistantService & RAG Grounding', () => {
       ]),
     );
 
-    const merged = mergeAssistantSuggestedLinks(null, attachments.links, [
-      {
-        kind: AssistantLinkKind.EVENT,
-        title: 'Trùng',
-        href: '/su-kien/hoi-nghi-dien-hong',
-      },
-    ]);
+    const merged = mergeAssistantSuggestedLinks(null, attachments.links, []);
     expect(merged).toHaveLength(2);
-    expect(merged.map((m) => m.href)).toEqual([
-      '/su-kien/hoi-nghi-dien-hong',
-      [
-        'https',
-        'vi.wikipedia.org/wiki/Tr%E1%BA%ADn_th%C3%A0nh_%C4%90%C3%B4ng_Quan',
-      ].join('://'),
-    ]);
-  });
-
-  it('gọi Vertex AI kèm vertexRagStore cho câu hỏi lịch sử -> engine VERTEX_RAG + gắn link & trích dẫn sách; bỏ qua RAG khi tán gẫu', async () => {
-    config.google_cloud_service_account_json = JSON.stringify({
-      project_id: 'hisgo-rag-e2e',
-      client_email: 'sa@hisgo-rag-e2e.iam.gserviceaccount.com',
-      private_key: privateKey,
-    });
-    config.google_cloud_rag_corpus =
-      'projects/hisgo-rag-e2e/locations/us-central1/ragCorpora/777';
-
-    const originalFetch = global.fetch;
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ access_token: 'ya29.rag-e2e', expires_in: 3600 }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          candidates: [
-            {
-              content: {
-                parts: [
-                  {
-                    text: JSON.stringify({
-                      reply:
-                        'Cách mạng Công nghiệp khởi đầu tại Anh thế kỷ XVIII với động cơ hơi nước.',
-                      quickActions: [
-                        { label: 'Xem Bài viết', href: '/bai-viet' },
-                      ],
-                    }),
-                  },
-                ],
-              },
-              groundingMetadata: {
-                groundingChunks: [
-                  {
-                    retrievedContext: {
-                      uri: 'gs://hisgo-rag/books/openstax-world-history-vol-2.pdf',
-                      title: 'openstax-world-history-vol-2.pdf',
-                      text: 'Industrial Revolution started in Britain.',
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          candidates: [
-            {
-              content: {
-                parts: [
-                  {
-                    text: JSON.stringify({
-                      reply:
-                        'Chào bạn, tôi là Sử Gia AI sẵn sàng hỗ trợ học sử!',
-                      quickActions: [],
-                    }),
-                  },
-                ],
-              },
-            },
-          ],
-        }),
-      });
-    global.fetch = fetchMock as typeof fetch;
-
-    try {
-      const historyRes = await service.chat('user-1', {
-        message: 'Cách mạng Công nghiệp lần thứ nhất diễn ra như thế nào?',
-      });
-
-      expect(historyRes.engine).toBe(AssistantEngine.VERTEX_RAG);
-      expect(historyRes.sourceCitations.length).toBeGreaterThanOrEqual(1);
-
-      const chatBody = JSON.parse(
-        String((fetchMock.mock.calls[1] as [string, RequestInit])[1].body),
-      ) as { tools?: unknown[] };
-      expect(Array.isArray(chatBody.tools)).toBe(true);
-
-      const casualRes = await service.chat('user-1', {
-        message: 'Nay ăn cơm chưa?',
-      });
-      expect(casualRes.engine).toBe(AssistantEngine.GEMINI_FLASH);
-      expect(casualRes.suggestedLinks).toEqual([]);
-      const casualBody = JSON.parse(
-        String((fetchMock.mock.calls[2] as [string, RequestInit])[1].body),
-      ) as { tools?: unknown[] };
-      expect(casualBody.tools).toBeUndefined();
-    } finally {
-      global.fetch = originalFetch;
-    }
   });
 });

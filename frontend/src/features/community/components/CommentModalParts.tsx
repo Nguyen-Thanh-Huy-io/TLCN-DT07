@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { CornerDownRight, Send, Edit3, Heart, Trash2 } from 'lucide-react';
-import { getAuthorTint, getInitials } from '../utils/community-feed.helper';
+import { getAuthorTint, getInitials } from '../community-content.util';
 import { KEYBOARD_KEYS } from '@/constants/enums';
 
 // --- comment-modal.types.ts ---

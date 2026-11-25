@@ -8,6 +8,45 @@ import { PrismaService } from '../common/services/prisma.service';
 import { SlugService } from '../common/services/slug.service';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 
+/**
+ * 5 chuyên mục gốc định hình kiến trúc phân loại tri thức của hệ thống
+ * (thay cho enum ArticleKind cũ). Không cho phép xoá, đổi slug hay gắn vào cha khác.
+ */
+export const SYSTEM_CATEGORY_ROOT_SLUGS = {
+  PERSON: 'nhan-vat',
+  EVENT: 'su-kien',
+  LOCATION: 'di-tich',
+  DYNASTY: 'trieu-dai',
+  OTHER: 'tac-pham-tu-lieu',
+} as const;
+
+export const LOCKED_ROOT_CATEGORY_SLUGS = new Set<string>(
+  Object.values(SYSTEM_CATEGORY_ROOT_SLUGS),
+);
+
+export interface CategoryTreeItem {
+  id: string;
+  slug: string;
+  parentId?: string | null;
+}
+
+/** Leo lên chuyên mục gốc cao nhất để lấy slug gốc (vd. "tran-danh" -> "su-kien"). */
+export function resolveRootCategorySlug(
+  category: CategoryTreeItem | null | undefined,
+  byId: ReadonlyMap<string, CategoryTreeItem>,
+): string | null {
+  let current = category ?? null;
+  const seen = new Set<string>();
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id);
+    if (!current.parentId) return current.slug;
+    const parent = byId.get(current.parentId);
+    if (!parent) return current.slug;
+    current = parent;
+  }
+  return null;
+}
+
 export const CATEGORY_MESSAGES = {
   NOT_FOUND: (id: string) => `Không tìm thấy chuyên mục ${id}`,
   SLUG_CONFLICT: (slug: string) =>
@@ -17,6 +56,8 @@ export const CATEGORY_MESSAGES = {
     'Không thể chọn chính chuyên mục này hoặc chuyên mục con của nó làm chuyên mục cha',
   HAS_ARTICLES: (count: number) =>
     `Chuyên mục còn ${count} bài viết — hãy chuyển bài viết sang chuyên mục khác trước khi xoá`,
+  SYSTEM_ROOT_LOCKED: (slug: string) =>
+    `Chuyên mục gốc hệ thống "${slug}" không được xoá, đổi đường dẫn hoặc chuyển thành chuyên mục con`,
 } as const;
 
 /** Chuyên mục bài viết — danh sách phẳng có parentId (cây nông, thường 1-2 cấp). */
@@ -59,7 +100,17 @@ export class CategoryService {
   }
 
   async update(id: string, dto: UpdateCategoryDto) {
-    await this.findOne(id);
+    const current = await this.findOne(id);
+    if (LOCKED_ROOT_CATEGORY_SLUGS.has(current.slug)) {
+      if (
+        (dto.slug !== undefined && dto.slug !== current.slug) ||
+        (dto.parentId !== undefined && dto.parentId !== null)
+      ) {
+        throw new BadRequestException(
+          CATEGORY_MESSAGES.SYSTEM_ROOT_LOCKED(current.slug),
+        );
+      }
+    }
     await this.assertParent(id, dto.parentId);
     if (dto.slug) await this.assertSlugFree(dto.slug, id);
     return this.prisma.category.update({ where: { id }, data: dto });
@@ -67,6 +118,11 @@ export class CategoryService {
 
   async remove(id: string) {
     const category = await this.findOne(id);
+    if (LOCKED_ROOT_CATEGORY_SLUGS.has(category.slug)) {
+      throw new BadRequestException(
+        CATEGORY_MESSAGES.SYSTEM_ROOT_LOCKED(category.slug),
+      );
+    }
     if (category._count.articles > 0) {
       throw new BadRequestException(
         CATEGORY_MESSAGES.HAS_ARTICLES(category._count.articles),

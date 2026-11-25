@@ -47,10 +47,7 @@ export const APP_ROUTES = {
   TAGS: {
     LIST: '/tags',
   },
-  MEDIA: '/media',
   QUIZZES: '/quizzes',
-  ANALYTICS: '/analytics',
-  SETTINGS: '/settings',
   REVIEW: '/review',
   BLOG_REVIEW: '/blog-review',
   MODERATION: '/moderation',
@@ -107,12 +104,6 @@ export const SAMPLE_REMOTE_LINKS = {
   WIKIPEDIA_BASE_EN: 'https://en.wikipedia.org/wiki/',
 } as const;
 
-/** REST API Wikipedia tiếng Việt — công cụ tra cứu thực thể trong trình soạn bài học. */
-export const WIKIPEDIA_VI_API = {
-  SEARCH_TITLE: 'https://vi.wikipedia.org/w/rest.php/v1/search/title',
-  PAGE_SUMMARY: 'https://vi.wikipedia.org/api/rest_v1/page/summary',
-} as const;
-
 /* eslint-enable no-restricted-syntax */
 
 export enum NavigationPageKey {
@@ -125,10 +116,7 @@ export enum NavigationPageKey {
   CATEGORIES = 'categories',
   TIMELINES = 'timelines',
   TAGS = 'tags',
-  MEDIA = 'media',
   QUIZZES = 'quizzes',
-  ANALYTICS = 'analytics',
-  SETTINGS = 'settings',
   REVIEW = 'review',
   BLOG_REVIEW = 'blog-review',
   MODERATION = 'moderation',

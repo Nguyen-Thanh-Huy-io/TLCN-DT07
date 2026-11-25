@@ -3,10 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { DataTable } from '@/components/table/DataTable';
 import { UserCell } from '@/components/common/CommonUi';
 import { Badge } from '@/components/common/CommonUi';
-import { ColumnDef } from '@/types/table.types';
+import { ColumnDef } from '@/types/models';
 import { CommonFilterOption, UserRole, UserStatus, NoticeTone } from '@/constants/enums';
 import { extractErrorMessage } from '@/services/api';
-import { UserApiService, type UserItem } from '@/services/entities/user.service';
+import { UserApiService, type UserItem } from '@/services/entities/dashboard.service';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { USER_ROLE_LABELS } from '@/services/auth/public-auth.service';
 

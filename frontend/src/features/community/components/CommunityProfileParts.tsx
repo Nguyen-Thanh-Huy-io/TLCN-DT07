@@ -2,12 +2,14 @@
 
 import React, { useCallback, useState } from 'react';
 import Link from 'next/link';
-import { Share2, Check, UserPlus, X, Search } from 'lucide-react';
+import { BookOpen, CalendarDays, ScrollText, Share2, Check, UserPlus, X, Search } from 'lucide-react';
 import { UserRole } from '@/constants/enums';
-import { COMMUNITY_FEED_PAGE_SIZE, type CommunityMemberProfile, type CommunityMemberSummary, type CommunityPost } from '../api';
+import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
+import { formatPublishedDate } from '@/utils/common';
+import { COMMUNITY_FEED_PAGE_SIZE, type CommunityMemberProfile, type CommunityMemberSummary, type CommunityPost, type PublishedWorkArticle, type PublishedWorkLesson } from '../api';
 import { useInfiniteScrollObserver } from '../hooks/useCommunityFeedHooks';
-import { getAuthorTint, getInitials } from '../utils/community-feed.helper';
-import { PostCard } from './PostCard';
+import { getAuthorTint, getInitials } from '../community-content.util';
+import { PostCard } from './PostActionBar';
 
 // --- profile.types.ts ---
 export enum ProfileTabKey {
@@ -63,10 +65,10 @@ export function ProfileHeaderKpi({
   onToggleFollowProfile,
 }: ProfileHeaderKpiProps) {
   return (
-    <div className="rounded-[10px] border border-[#E3D6BE] bg-[#FAF5E6] px-6 py-5 md:px-7">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-[24px] font-bold leading-snug text-[#14233F] md:text-[28px]">
+    <div className="rounded-[10px] border border-[#E3D6BE] bg-[#FAF5E6] px-5 py-5 md:px-7">
+      <div className="flex flex-wrap items-center justify-between gap-3.5">
+        <div className="min-w-[210px] flex-1">
+          <h1 className="text-[22px] font-bold leading-snug text-[#14233F] sm:text-[24px] md:text-[28px]">
             {isMe
               ? `Hồ sơ Cộng đồng: ${profile.user.displayName}`
               : profile.user.displayName}
@@ -366,7 +368,7 @@ export function ProfileTabsToolbar({
     <div className="rounded-[10px] border border-[#E3D6BE] bg-[#FAF5E6] p-5 pb-5 md:px-6">
       {/* Underline Tabs trên đường kẻ 1px (luôn giữ trên 1 hàng) */}
       <div className="border-b border-[#E3D6BE]">
-        <div className="flex flex-nowrap items-center gap-x-3.5 xl:gap-x-4 2xl:gap-x-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex flex-nowrap items-center gap-x-3.5 pr-4 xl:gap-x-4 2xl:gap-x-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.key;
             const Icon = tab.icon;
@@ -438,6 +440,134 @@ export function ProfileTabsToolbar({
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+// === Merged from ProfilePublishedWorksList.tsx ===
+export interface ProfilePublishedWorksListProps {
+  articles: PublishedWorkArticle[];
+  lessons: PublishedWorkLesson[];
+  searchQuery: string;
+  onClearSearch: () => void;
+}
+
+export function ProfilePublishedWorksList({
+  articles,
+  lessons,
+  searchQuery,
+  onClearSearch,
+}: ProfilePublishedWorksListProps) {
+  const totalCount = articles.length + lessons.length;
+
+  if (totalCount === 0) {
+    return (
+      <div className="rounded-[8px] border border-dashed border-[#D8C8AA] bg-[#FDF9F0] p-8 text-center">
+        <h2 className="text-[16px] font-semibold text-[#14233F]">
+          Chưa có bài viết hoặc bài học nào được tìm thấy
+        </h2>
+        <p className="mt-1.5 text-[14px] text-[#5C4E3C]">
+          {searchQuery
+            ? 'Hãy thử xóa từ khóa tìm kiếm để xem toàn bộ tác phẩm biên soạn.'
+            : 'Tác giả này chưa xuất bản bài viết lịch sử hoặc bài học nào.'}
+        </p>
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={onClearSearch}
+            className="mt-3.5 h-9 rounded-[6px] border border-[#D8C8AA] bg-[#F1E6D0] px-4 text-[13px] font-medium text-[#14233F]"
+          >
+            Hiển thị toàn bộ
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {articles.length > 0 && (
+        <section className="rounded-[8px] border border-[#E3D6BE] bg-[#FDF9F0] p-6">
+          <h2 className="mb-4 flex items-center gap-2 text-[16px] font-semibold text-[#14233F]">
+            <ScrollText size={16} className="text-[#7A1F24]" />
+            <span>Bài viết lịch sử ({articles.length})</span>
+          </h2>
+          <div className="divide-y divide-[#EDE3CE]">
+            {articles.map((article) => {
+              const dateText = formatPublishedDate(article.publishedAt ?? article.updatedAt);
+              return (
+                <Link
+                  key={article.id}
+                  href={PUBLIC_ROUTES.ARTICLE(article.slug)}
+                  className="block py-3.5 first:pt-1 last:pb-1 transition-colors hover:bg-[#FAF5E6]/80"
+                >
+                  <div className="flex flex-wrap items-center gap-2 text-[12px] text-[#6E5D4B]">
+                    {article.categoryName && (
+                      <span className="rounded bg-[#F1E6D0] px-2 py-0.5 font-semibold text-[#7A1F24]">
+                        {article.categoryName}
+                      </span>
+                    )}
+                    {article.dateLabel && <span>{article.dateLabel}</span>}
+                    {dateText && (
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarDays size={12} />
+                        Đăng {dateText}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="mt-1 text-[15px] font-bold text-[#14233F] hover:text-[#7A1F24]">
+                    {article.title}
+                  </h3>
+                  {article.summary && (
+                    <p className="mt-1 line-clamp-2 text-[13.5px] text-[#5C4E3C]">{article.summary}</p>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {lessons.length > 0 && (
+        <section className="rounded-[8px] border border-[#E3D6BE] bg-[#FDF9F0] p-6">
+          <h2 className="mb-4 flex items-center gap-2 text-[16px] font-semibold text-[#14233F]">
+            <BookOpen size={16} className="text-[#7A1F24]" />
+            <span>Bài học chuyên đề ({lessons.length})</span>
+          </h2>
+          <div className="divide-y divide-[#EDE3CE]">
+            {lessons.map((lesson) => {
+              const dateText = formatPublishedDate(lesson.publishedAt ?? lesson.updatedAt);
+              return (
+                <Link
+                  key={lesson.id}
+                  href={PUBLIC_ROUTES.LESSON(lesson.slug)}
+                  className="block py-3.5 first:pt-1 last:pb-1 transition-colors hover:bg-[#FAF5E6]/80"
+                >
+                  <div className="flex flex-wrap items-center gap-2 text-[12px] text-[#6E5D4B]">
+                    {lesson.topicName && (
+                      <span className="rounded bg-[#E5EFE6] px-2 py-0.5 font-semibold text-[#1E4620]">
+                        {lesson.topicName}
+                      </span>
+                    )}
+                    {dateText && (
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarDays size={12} />
+                        Đăng {dateText}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="mt-1 text-[15px] font-bold text-[#14233F] hover:text-[#7A1F24]">
+                    {lesson.title}
+                  </h3>
+                  {lesson.description && (
+                    <p className="mt-1 line-clamp-2 text-[13.5px] text-[#5C4E3C]">{lesson.description}</p>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

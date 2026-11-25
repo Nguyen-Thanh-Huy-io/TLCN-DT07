@@ -88,24 +88,10 @@ export interface PublicEventSummaryDto {
   relations?: PublicEventLinkDto[];
   periodSlug: string | null;
   topicId?: string | null;
+  /** Id giai đoạn con trực tiếp (`children`) của thời kỳ đang xem mà mục này thuộc về. */
+  stageId?: string | null;
   figures: PublicFigureDto[];
   locations: PublicLocationSummaryDto[];
-}
-
-export interface PublicLessonSummaryDto {
-  id: string;
-  title: string;
-  contentRichText: string | null;
-  sourceReferenceNote: string | null;
-  estimatedReadMinutes: number;
-  events: PublicEventSummaryDto[];
-  entities: PublicFigureDto[];
-  locations: PublicLocationSummaryDto[];
-}
-
-export interface PublicChildTopicDto extends PublicTopicDto {
-  events: PublicEventSummaryDto[];
-  lessons: PublicLessonSummaryDto[];
 }
 
 export interface PublicSubPeriodDto extends PublicPeriodDto {
@@ -124,19 +110,6 @@ export interface PublicPeriodDetailDto extends PublicPeriodDto {
   locations: PublicLocationSummaryDto[];
   concurrentPeriods: PublicPeriodDto[];
   concurrentEvents: PublicEventSummaryDto[];
-}
-
-export interface PublicTopicDetailDto extends PublicTopicDto {
-  period: PublicPeriodDto | null;
-  children: PublicChildTopicDto[];
-  events: PublicEventSummaryDto[];
-  lessons: PublicLessonSummaryDto[];
-}
-
-export interface PublicFigureDetailDto extends PublicFigureDto {
-  period: PublicPeriodDto | null;
-  events: PublicEventSummaryDto[];
-  lessons: PublicLessonSummaryDto[];
 }
 
 export interface PublicEventLinkDto {
@@ -245,12 +218,14 @@ export interface PublicEntityDetailDto {
   id: string;
   slug: string;
   name: string;
-  type: 'PERSON' | 'ORGANIZATION' | 'DYNASTY' | 'MILITARY_FORCE' | 'ARTIFACT' | 'LOCATION' | 'EVENT' | string;
+  type: string;
+  categoryName?: string | null;
   tagline: string | null;
   description: string | null;
   imageUrl: string | null;
   imageCaption: string | null;
   aliases: string[];
+  tags?: Array<{ id: string; name: string; colorHex?: string | null }>;
   dateText: string | null;
   startYear: number | null;
   endYear: number | null;

@@ -25,8 +25,6 @@ const storedArticle = (overrides: object = {}) => ({
   endYear: null,
   category: { name: 'Nhân vật', slug: 'nhan-vat' },
   articleTags: [],
-  linksOut: [],
-  linksIn: [],
   ...overrides,
 });
 
@@ -35,7 +33,6 @@ describe('ArticleService', () => {
   const tx = {
     article: { update: jest.fn() },
     articleTag: { deleteMany: jest.fn(), createMany: jest.fn() },
-    articleLink: { deleteMany: jest.fn(), createMany: jest.fn() },
   };
   const prisma = {
     article: {
@@ -219,36 +216,12 @@ describe('ArticleService', () => {
     });
   });
 
-  describe('update — liên kết và tag', () => {
-    it('không liên kết tới chính nó', async () => {
-      await expect(
-        service.update('art-1', { links: [{ targetId: 'art-1' }] }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('không liên kết trùng cùng 1 bài', async () => {
-      await expect(
-        service.update('art-1', {
-          links: [{ targetId: 'art-2' }, { targetId: 'art-2' }],
-        }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('liên kết tới bài không tồn tại → 400', async () => {
-      prisma.article.count.mockResolvedValueOnce(0);
-
-      await expect(
-        service.update('art-1', { links: [{ targetId: 'art-khong-co' }] }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('thay toàn bộ tag và liên kết trong 1 transaction', async () => {
+  describe('update — tag', () => {
+    it('thay toàn bộ tag trong 1 transaction', async () => {
       prisma.tag.count.mockResolvedValueOnce(1);
-      prisma.article.count.mockResolvedValueOnce(1);
 
       await service.update('art-1', {
         tagIds: ['t-1', 't-1'],
-        links: [{ targetId: 'art-2', label: ' Chỉ huy ' }],
       });
 
       expect(tx.articleTag.deleteMany).toHaveBeenCalledWith({
@@ -260,23 +233,12 @@ describe('ArticleService', () => {
       expect(redis.deleteByPattern).toHaveBeenCalledWith(
         TAG_CONFIG.TAG_CACHE_PATTERN,
       );
-      expect(tx.articleLink.createMany).toHaveBeenCalledWith({
-        data: [
-          expect.objectContaining({
-            sourceId: 'art-1',
-            targetId: 'art-2',
-            label: 'Chỉ huy',
-            displayOrder: 0,
-          }),
-        ],
-      });
     });
 
-    it('không gửi tag / liên kết thì giữ nguyên', async () => {
+    it('không gửi tag thì giữ nguyên', async () => {
       await service.update('art-1', { summary: 'Tóm tắt mới' });
 
       expect(tx.articleTag.deleteMany).not.toHaveBeenCalled();
-      expect(tx.articleLink.deleteMany).not.toHaveBeenCalled();
       expect(redis.deleteByPattern).not.toHaveBeenCalled();
     });
 

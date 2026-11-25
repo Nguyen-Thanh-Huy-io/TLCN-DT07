@@ -36,9 +36,15 @@ interface LessonPreviewContentProps {
   visualMediaItems: LessonMediaItem[];
   documentMediaItems: LessonMediaItem[];
   sourceReferenceNote: string;
+  /** Nhãn badge xem trước — mặc định "Xem trước bài học", CMS Bài viết truyền "Xem trước bài viết". */
+  previewBadgeLabel?: string;
+  /** Ẩn dòng Độ khó khi dùng cho Bài viết bách khoa. */
+  hideDifficulty?: boolean;
+  /** Tiêu đề fallback khi chưa nhập tiêu đề. */
+  emptyTitleFallback?: string;
 }
 
-/** Bản xem trước trực quan của bài học theo giao diện Wiki & Khóa học (Mục lục đặt bên
+/** Bản xem trước trực quan của bài học / bài viết (Mục lục đặt bên
  * trái) — dùng ở cả tab "Xem trước" toàn màn hình và pane bên phải của "Chế độ Chia đôi". */
 export function LessonPreviewContent({
   compact = false,
@@ -57,6 +63,9 @@ export function LessonPreviewContent({
   visualMediaItems,
   documentMediaItems,
   sourceReferenceNote,
+  previewBadgeLabel = 'Xem trước bài học',
+  hideDifficulty = false,
+  emptyTitleFallback = 'Chưa có tiêu đề bài học',
 }: LessonPreviewContentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const quizIslands = useLessonQuizIslands(contentRef, enrichedPreviewHtml, quizBlocks);
@@ -130,10 +139,14 @@ export function LessonPreviewContent({
 
           <div className="border-b border-slate-200 pb-4 mb-5">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <Badge tone="blue">Wiki Bài học</Badge>
+              <Badge tone="blue">{previewBadgeLabel}</Badge>
               <span className="text-xs text-slate-500 font-medium">Chủ đề: {topicName || 'Chưa gắn'}</span>
-              <span className="text-xs text-slate-400">•</span>
-              <span className="text-xs text-slate-500">Độ khó: {DIFFICULTY_LABEL_MAP[difficulty]}</span>
+              {!hideDifficulty && (
+                <>
+                  <span className="text-xs text-slate-400">•</span>
+                  <span className="text-xs text-slate-500">Độ khó: {DIFFICULTY_LABEL_MAP[difficulty]}</span>
+                </>
+              )}
               <span className="text-xs text-slate-400">•</span>
               <span className="text-xs text-slate-600 font-medium">{wordCount} từ</span>
               <span className="text-xs text-slate-400">•</span>
@@ -141,7 +154,7 @@ export function LessonPreviewContent({
             </div>
 
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight leading-snug">
-              {title || 'Chưa có tiêu đề bài học'}
+              {title || emptyTitleFallback}
             </h1>
 
             {selectedTags.length > 0 && (
@@ -169,7 +182,9 @@ export function LessonPreviewContent({
             dangerouslySetInnerHTML={{
               __html: sanitizeRichHtml(
                 enrichedPreviewHtml ||
-                  '<p class="text-slate-400 italic">Chưa có nội dung văn bản. Hãy soạn thảo ở cột bên cạnh.</p>',
+                  (compact
+                    ? '<p class="text-slate-400 italic">Chưa có nội dung văn bản. Hãy soạn thảo ở cột bên cạnh.</p>'
+                    : '<p class="text-slate-400 italic">Chưa có nội dung. Hãy chuyển sang chế độ Soạn thảo để thêm các khối nội dung.</p>'),
               ),
             }}
           />

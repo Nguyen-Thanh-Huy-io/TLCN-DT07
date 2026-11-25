@@ -19,18 +19,18 @@ import {
 import { extractErrorMessage } from '@/services/api';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
-import type { LearningPathItem } from '@/services/entities/learning-path.service';
+import type { LearningPathItem } from '@/services/entities/learner.service';
 import { LearningPathType } from '@/constants/enums';
 import {
   DEFAULT_COVER_IMAGES,
   PATH_TYPE_META,
   PUBLIC_CURRICULUM_ROUTES,
   PUBLIC_DIFFICULTY_META,
-} from '../constants/public-curriculum.constants';
-import { usePublicCurriculumFacade } from '../facades/usePublicCurriculumFacade';
+  usePublicCurriculumFacade,
+} from '../facades/usePublicCurriculumFacade';
 import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubBadge, HubButton, HubProgress } from './hub/HubReaderParts';
 import { HubSyllabus, chapterLabel, pathLessons } from './hub/HubReaderParts';
-import { useLessonProgress } from './hub/useLessonReaderHooks';
+import { useLessonProgress } from './hub/LessonQuizIslands';
 
 interface PublicCurriculumViewProps {
   initialPathId?: string | null;

@@ -12,25 +12,19 @@ import {
   QuizQuestionType,
   SingleChoiceQuestion,
   TrueFalseQuestion,
-} from '../../types/quiz.types';
-import { generateQuizId } from '../../factories/quiz-question.factory';
+  generateQuizId,
+} from '../../types/editor.types';
 import {
   CollapsibleExplanationField,
   OptionExplanationBox,
-} from '@/components/common/CollapsibleExplanationField';
-import { TrueFalseAnswerSelector } from '@/components/common/TrueFalseAnswerSelector';
-import { TimelineOrderingItemsEditor } from '@/components/common/TimelineOrderingItemsEditor';
-import { MatchingPairsEditor } from '@/components/common/MatchingPairsEditor';
+} from '@/components/common/EmojiPickerButton';
+import { TrueFalseAnswerSelector } from '@/components/common/AuthorFollowButton';
+import { MatchingPairsEditor, TimelineOrderingItemsEditor } from '@/components/common/MatchingPairsEditor';
 import { Icon } from '@/components/icons/Icon';
 
 export enum MoveDirection {
   UP = 'UP',
   DOWN = 'DOWN',
-}
-
-export enum MatchingSide {
-  LEFT = 'leftItems',
-  RIGHT = 'rightItems',
 }
 
 type OnChange<T extends QuizQuestion> = (updates: Partial<T>) => void;
@@ -166,19 +160,19 @@ function ChoiceQuestionEditorBase<T extends SingleChoiceQuestion | MultipleChoic
                   value={opt.text}
                   onChange={(e) => updateOption(opt.id, e.target.value)}
                   placeholder={`Nội dung lựa chọn ${labelLetter}...`}
-                  className={smallInputCls}
+                  className={`${smallInputCls} min-w-0 flex-1`}
                 />
                 <button
                   type="button"
                   onClick={() => toggleNote(opt.id)}
-                  className={`text-[11px] px-2 py-1 rounded border transition-colors shrink-0 cursor-pointer ${
+                  className={`text-[11px] px-2 py-1 rounded border transition-colors shrink-0 whitespace-nowrap cursor-pointer ${
                     opt.explanation
                       ? 'border-amber-300 bg-amber-50 text-amber-800 font-medium'
-                      : 'border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                      : 'border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50'
                   }`}
                   title="Ghi chú giải thích cho đáp án này"
                 >
-                  {opt.explanation ? '💡 Có giải thích' : '💡 + Giải thích'}
+                  {opt.explanation ? '💡 Có giải thích' : '💡 Giải thích'}
                 </button>
                 <button
                   type="button"

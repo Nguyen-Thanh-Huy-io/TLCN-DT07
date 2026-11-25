@@ -12,6 +12,13 @@
   padding: 0 2.5rem;
 }
 
+@media (min-width: 1280px) and (max-width: 1580px) {
+  .ue-container,
+  .ue-container.ue-container-focus {
+    padding-left: 4.75rem;
+  }
+}
+
 /* ==========================================================================
    1. HERO SECTION & QUICK STATS
    ========================================================================== */

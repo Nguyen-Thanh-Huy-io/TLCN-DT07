@@ -6,14 +6,12 @@ export { RevisionFieldKind };
 
 export enum RevisionKind {
   PROPOSAL = 'PROPOSAL',
-  SNAPSHOT = 'SNAPSHOT',
 }
 
 export enum RevisionStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
-  ARCHIVED = 'ARCHIVED',
 }
 
 export type RevisionContentType =
@@ -141,5 +139,79 @@ export async function withPendingDraft<T extends { status?: string | null }>(
     return { detail: reviewer ? detail : resolvedDraft, pending: open.revision ?? null };
   } catch {
     return { detail, pending: null };
+  }
+}
+
+// === Merged from account.service.ts ===
+export interface MyProfile {
+  id: string;
+  email: string;
+  username: string;
+  role: string;
+  verified: boolean;
+  provider: string;
+  createdAt: string;
+  userProfile: {
+    firstName: string | null;
+    lastName: string | null;
+    bio: string | null;
+    avatarUrl: string | null;
+  } | null;
+}
+
+export interface UpdateMyProfilePayload {
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  avatarUrl?: string;
+}
+
+const unwrapAccount = <T>(body: unknown): T => {
+  let current: unknown = body;
+  for (let i = 0; i < 3; i += 1) {
+    if (current && typeof current === 'object' && 'data' in current) current = (current as { data: unknown }).data;
+    else break;
+  }
+  return current as T;
+};
+
+async function postPublic(path: string, payload: unknown): Promise<{ ok: boolean; message: string }> {
+  try {
+    const res = await api.post(path, payload);
+    const body = res.data;
+    const message = Array.isArray(body?.message) ? body.message.join(', ') : body?.message;
+    return { ok: true, message: message || '' };
+  } catch (err) {
+    const data = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data;
+    const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message;
+    return { ok: false, message: message || 'Không thể kết nối tới máy chủ.' };
+  }
+}
+
+export class AccountApiService {
+  static async getProfile(): Promise<MyProfile> {
+    const res = await api.get('/me/profile');
+    return unwrapAccount<MyProfile>(res.data);
+  }
+
+  static async updateProfile(payload: UpdateMyProfilePayload): Promise<MyProfile> {
+    const res = await api.patch('/me/profile', payload);
+    return unwrapAccount<MyProfile>(res.data);
+  }
+
+  static async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await api.post('/me/change-password', { currentPassword, newPassword });
+  }
+
+  static async logoutAllDevices(): Promise<void> {
+    await api.post('/me/logout-all');
+  }
+
+  static resendVerification(email: string) {
+    return postPublic('/auth/resend-verification-email', { email });
+  }
+
+  static verifyEmail(email: string, code: string) {
+    return postPublic('/auth/verify-email', { email, code });
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 import { CommonFilterOption, ContentStatus } from '@/constants/enums';
-import { StatusPill } from '@/features/articles/components/StatusPill';
+import { StatusPill } from '@/features/articles/components/ArticleList';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/components/icons/Icon';
@@ -105,20 +105,20 @@ export function LessonLibraryPanel({
     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
-          <h2 className="text-sm font-bold text-slate-900 tracking-tight">Thư viện Lesson độc lập</h2>
+          <h2 className="text-sm font-bold text-slate-900 tracking-tight">Thư viện Bài học</h2>
           <p className="text-xs text-slate-600 mt-0.5 font-medium">
             Các bài học được soạn thảo và lưu độc lập.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+          <div className="relative flex-1 min-w-[180px] sm:flex-none">
             <input
               type="text"
               placeholder="Tìm kiếm bài học..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="form-input !h-8 !text-xs !pl-8 !pr-3 w-60"
+              className="h-8 w-full sm:w-56 rounded-lg border border-slate-300 bg-white pl-8 pr-3 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:border-emerald-600"
             />
             <span className="absolute left-2.5 top-2 text-slate-500">
               <Icon name={IconName.SEARCH} size={13} />
@@ -128,7 +128,7 @@ export function LessonLibraryPanel({
           <select
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value)}
-            className="form-input !h-8 !text-xs !py-0 w-36"
+            className="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-700 outline-none focus:border-emerald-600"
           >
             <option value={CommonFilterOption.ALL}>Tất cả trạng thái</option>
             <option value={ContentStatus.PUBLISHED}>Đã xuất bản</option>
@@ -138,7 +138,7 @@ export function LessonLibraryPanel({
           </select>
 
           {/* Chuyển đổi Lưới / Danh sách */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0">
             <button
               type="button"
               onClick={() => setViewMode(LibraryViewMode.GRID)}
@@ -161,15 +161,32 @@ export function LessonLibraryPanel({
             </button>
           </div>
 
-          <button type="button" onClick={onCreateLesson} className="primary-button !h-8 !text-xs !px-3.5 font-bold">
+          <button type="button" onClick={onCreateLesson} className="primary-button !h-8 !text-xs !px-3.5 font-bold shrink-0">
             <Icon name={IconName.PLUS} size={13} />
-            <span>+ Soạn bài mới</span>
+            <span>Soạn bài mới</span>
           </button>
         </div>
       </div>
 
       {lessons.length === 0 ? (
-        <div className="py-12 text-center text-xs text-slate-600 font-medium">Không tìm thấy bài học nào phù hợp.</div>
+        searchTerm.trim() || statusFilter !== CommonFilterOption.ALL ? (
+          <div className="py-12 text-center text-xs text-slate-600 font-medium">
+            Không tìm thấy bài học nào phù hợp với bộ lọc hiện tại.
+          </div>
+        ) : (
+          <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-xl">
+            <p className="text-sm font-semibold text-slate-800">Chưa có bài học nào</p>
+            <p className="text-xs text-slate-600 mt-1">
+              Bắt đầu soạn bài học đầu tiên để xây dựng kho học liệu lịch sử.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <button type="button" onClick={onCreateLesson} className="primary-button !h-8 !text-xs !px-4 font-bold">
+                <Icon name={IconName.PLUS} size={13} />
+                <span>Soạn bài học đầu tiên</span>
+              </button>
+            </div>
+          </div>
+        )
       ) : viewMode === LibraryViewMode.GRID ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

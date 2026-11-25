@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/icons/Icon';
 import { IconName } from '@/constants/enums';
 import { APP_ROUTES } from '@/constants/routes';
-import { ActionMenu } from '@/components/common/ActionMenu';
-import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
+import { ActionMenu, ConfirmDeleteModal } from '@/components/common/CommonUi';
 import { extractErrorMessage } from '@/services/api';
-import { TimelineApiService, type TimelineItem } from '@/services/entities/timeline.service';
+import { TimelineApiService, type TimelineItem } from '@/services/entities/topic.service';
 import { CONTENT_STATUS_LABELS, type ContentStatusValue } from '@/services/entities/article.service';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
-import { StatusPill } from '@/features/articles/components/StatusPill';
+import { StatusPill } from '@/features/articles/components/ArticleList';
 
 /** Danh sách dòng thời gian (số lượng nhỏ — tải 1 lần, tìm phía client). */
 export function TimelineList() {

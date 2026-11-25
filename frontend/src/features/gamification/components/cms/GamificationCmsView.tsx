@@ -19,14 +19,14 @@ import {
   CmsGamificationTab,
   LEARNER_SORT_OPTIONS,
   METRIC_TYPE_META,
-} from '../../constants/gamification-admin.constants';
+} from '../../constants/gamification.constants';
 import {
   GamificationAdminApiService,
   type AdminAchievementItem,
   type AdminGamificationOverview,
   type AdminLearnerRow,
-} from '../../services/gamification-admin.service';
-import { AchievementBadgeAvatar } from '../AchievementBadgeAvatar';
+} from '../../services/gamification.service';
+import { AchievementBadgeAvatar } from '../GoalAimModal';
 import { AchievementFormModal } from './AchievementFormModal';
 
 function SummaryStatCard({

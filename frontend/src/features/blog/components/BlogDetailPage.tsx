@@ -7,7 +7,7 @@ import { fetchBlogPost, fetchBlogPosts, type PublicBlogPostSummary } from '@/ser
 import {
   BLOG_ACCENT_PALETTE as accentPalette,
   extractMetadataFromBlocks as extractMetadata,
-} from '@/features/blog/utils/blog-metadata.util';
+} from '@/features/blog/facades/useBlogCreateFacade';
 
 const renderParagraphs = (value: string) =>
   (value || '')

@@ -3,12 +3,12 @@
 import { KeyboardKey } from '@/constants/enums';
 import { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, BookOpen, Bookmark, LayoutList, Search, SlidersHorizontal, ChevronDown, Layers, ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react';
-import { TimelineFacetKey, type Era, type TimeNode, type TimelineEvent } from './sk-types';
-import { RemoteImage } from '@/components/common/RemoteImage';
+import { X, BookOpen, Bookmark, Compass, LayoutList, Search, SlidersHorizontal, ChevronDown, Layers, ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react';
+import { TimelineFacetKey, type Era, type TimeNode, type TimelineEvent } from './sk-adapter';
+import { RemoteImage } from '@/components/common/CommonUi';
 import { ChipGroup, FilterDialog, FilterSection, PickedCount, type ChipOption } from '@/components/filters/ChipFilter';
+import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import Link from 'next/link';
-import { EntityList } from './TimelineNodes';
 
 // === SkUi.tsx ===
 export function Button({ className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
@@ -205,7 +205,12 @@ export function FilterBar({
         <span>Đã lưu</span>
         {savedCount > 0 && <span className="sk-badge">{savedCount}</span>}
       </Button>
-      <Button className={`sk-compact-button ${compact ? "sk-is-on" : ""}`} onClick={onCompact}>
+      <Button
+        className={`sk-compact-button ${compact ? "sk-is-on" : ""}`}
+        aria-label={compact ? "Mở rộng chi tiết mốc sự kiện" : "Thu gọn danh sách mốc sự kiện"}
+        aria-pressed={compact}
+        onClick={onCompact}
+      >
         <LayoutList size={17} />
         <span>Thu gọn</span>
         <span className={`sk-switch ${compact ? "sk-on" : ""}`} />
@@ -403,65 +408,109 @@ export function EventDetailModal({
   onClose,
   onSelect,
   onStep,
+  saved = false,
+  onSave,
 }: {
   detail: { event: TimelineEvent; node: TimeNode } | null;
   onClose: () => void;
   onSelect: (d: { event: TimelineEvent; node: TimeNode }) => void;
   onStep: (direction: 1 | -1) => void;
+  saved?: boolean;
+  onSave?: (id: string) => void;
 }) {
+  const siblings = detail
+    ? detail.node.events.filter((ev) => ev.id !== detail.event.id)
+    : [];
+
   return (
-    <Modal open={!!detail} onClose={onClose} title="Câu chuyện lịch sử" sheet>
+    <Modal open={!!detail} onClose={onClose} title="Hồ sơ dấu mốc" sheet className="sk-sheet-compact">
       {detail && (
-        <>
-          {detail.event.imageUrl && (
-            <RemoteImage className="sk-detail-image" src={detail.event.imageUrl} alt={detail.event.title} />
-          )}
-          <div className="sk-detail-body">
-            <Badge>{detail.event.category}</Badge>
-            <span className="sk-detail-date">{detail.event.dateLabel}</span>
-            <Heading level={1}>{detail.event.title}</Heading>
-            {detail.event.dateNote && detail.event.dateNote !== detail.event.dateLabel && (
-              <p className="sk-detail-note">{detail.event.dateNote}</p>
+        <div className="sk-detail-shell">
+          <div className="sk-detail-scroll">
+            {detail.event.imageUrl && (
+              <div className="sk-detail-hero">
+                <RemoteImage className="sk-detail-image" src={detail.event.imageUrl} alt={detail.event.title} />
+              </div>
             )}
-            <div className="sk-detail-text">{detail.event.content}</div>
-            {detail.event.slug && (
-              <Link
-                className="sk-related-event"
-                href={`/su-kien/${detail.event.slug}`}
-                style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
-              >
-                Xem chi tiết sự kiện <ArrowUpRight size={16} />
-              </Link>
-            )}
-            <Heading level={2}>Nhân vật & địa danh</Heading>
-            <EntityList figures={detail.event.figures || []} locations={detail.event.locations || []} tab="figures" />
-            <EntityList figures={detail.event.figures || []} locations={detail.event.locations || []} tab="locations" />
-            <Heading level={2}>Cùng thời điểm</Heading>
-            {detail.node.events
-              .filter((ev) => ev.id !== detail.event.id)
-              .map((ev) => (
-                <Button
-                  className="sk-related-event"
-                  key={ev.id}
-                  onClick={() => onSelect({ event: ev, node: detail.node })}
+            <div className="sk-detail-body">
+              <div className="sk-detail-top-meta">
+                <Badge>{detail.event.category}</Badge>
+                <span className="sk-detail-date">{detail.event.spanLabel ?? detail.event.dateLabel}</span>
+              </div>
+              <Heading level={2} className="sk-detail-heading">
+                {detail.event.title}
+              </Heading>
+              {detail.event.dateNote && detail.event.dateNote !== detail.event.dateLabel && (
+                <p className="sk-detail-note">{detail.event.dateNote}</p>
+              )}
+              <div className="sk-detail-text">{detail.event.content || detail.event.summary}</div>
+
+              {detail.event.tags.length > 0 && (
+                <div className="sk-detail-tags">
+                  {detail.event.tags.slice(0, 6).map((t) => (
+                    <span key={t}>#{t}</span>
+                  ))}
+                </div>
+              )}
+
+              {siblings.length > 0 && (
+                <div className="sk-detail-siblings">
+                  <Heading level={3}>Cùng thời điểm ({siblings.length})</Heading>
+                  {siblings.map((ev) => (
+                    <Button
+                      className="sk-related-event"
+                      key={ev.id}
+                      onClick={() => onSelect({ event: ev, node: detail.node })}
+                    >
+                      <span>{ev.title}</span>
+                      <ArrowUpRight size={15} />
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="sk-detail-sticky-footer">
+            <div className="sk-detail-cta-row">
+              {detail.event.slug && (
+                <Link
+                  className="sk-detail-cta-primary"
+                  href={`/bai-viet/${detail.event.slug}`}
+                  onClick={onClose}
                 >
-                  {ev.title}
-                  <ArrowUpRight size={16} />
+                  Đọc bài đầy đủ <ArrowUpRight size={15} />
+                </Link>
+              )}
+              <Link
+                className="sk-detail-cta-secondary"
+                href={PUBLIC_ROUTES.CONCEPT_CANVAS_EXPLORE(detail.event.title)}
+                onClick={onClose}
+              >
+                <Compass size={14} /> Canvas AI
+              </Link>
+              {onSave && (
+                <Button
+                  type="button"
+                  className={`sk-detail-cta-icon ${saved ? "sk-saved" : ""}`}
+                  aria-label={saved ? "Bỏ lưu dấu mốc" : "Lưu dấu mốc"}
+                  title={saved ? "Bỏ lưu dấu mốc" : "Lưu dấu mốc"}
+                  onClick={() => onSave(detail.event.id)}
+                >
+                  <Bookmark size={15} fill={saved ? "currentColor" : "none"} />
                 </Button>
-              ))}
-            {detail.node.events.length === 1 && (
-              <p className="sk-muted">Bạn đang xem sự kiện tiêu biểu tại dấu mốc này.</p>
-            )}
+              )}
+            </div>
             <div className="sk-drawer-navigation">
               <Button onClick={() => onStep(-1)}>
-                <ArrowLeft size={16} /> Sự kiện trước
+                <ArrowLeft size={14} /> Dấu mốc trước
               </Button>
               <Button onClick={() => onStep(1)}>
-                Sự kiện tiếp theo <ArrowRight size={16} />
+                Dấu mốc tiếp theo <ArrowRight size={14} />
               </Button>
             </div>
           </div>
-        </>
+        </div>
       )}
     </Modal>
   );

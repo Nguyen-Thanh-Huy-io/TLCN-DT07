@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RotateCcw, Search, X } from 'lucide-react';
-import { useInfiniteScrollObserver } from '@/hooks/useInfiniteScrollObserver';
+import { useInfiniteScrollObserver } from '@/features/community/hooks/useCommunityFeedHooks';
 import {
   BLOG_INITIAL_TAG_LIMIT,
   BlogPostRow,

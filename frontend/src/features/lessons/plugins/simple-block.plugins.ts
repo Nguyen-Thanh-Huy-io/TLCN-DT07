@@ -1,17 +1,15 @@
-import { LessonBlockType } from '../types/editor.types';
+import { LessonBlockType, createDefaultQuestion, QuizQuestionType } from '../types/editor.types';
 import {
-  CharacterBlockData, ComparisonTableBlockData, DividerBlockData, EventBlockData,
+  CharacterBlockData, ComparisonTableBlockData, DividerBlockData,
   HeadingBlockData, ImageBlockData, LessonBlockItem, MapBlockData, QuizBlockData,
-  QuoteBlockData, RelatedEventsBlockData, RelatedPeopleBlockData, ResourceLinkBlockData,
+  QuoteBlockData, ResourceLinkBlockData,
   RowGapSize, RowLayoutPresetId, RowSectionBlockData, RowVerticalAlign, TextBlockData,
   VideoBlockData,
 } from '../types/block-builder.types';
-import { BlockPlugin, BlockWidth, escapeHtml, safeUrl, renderCollapsibleDetail } from './block-plugin.types';
+import { BlockPlugin, BlockWidth, escapeHtml, safeUrl, normalizeVideoEmbedUrl, renderCollapsibleDetail } from './block-plugin.registry';
 import { SAMPLE_REMOTE_LINKS } from '@/constants/routes';
 import { RowLayoutStrategy, createBlockUUID } from '../strategies/row-layout.strategy';
 import { sanitizeRichHtml } from '@/utils/common';
-import { createDefaultQuestion } from '../factories/quiz-question.factory';
-import { QuizQuestionType } from '../types/quiz.types';
 import {
   LESSON_QUIZ_DEFAULT_TITLE,
   LESSON_QUIZ_PLACEHOLDER_ATTR,
@@ -33,10 +31,9 @@ export const characterBlockPlugin: BlockPlugin<CharacterBlockData> = {
     id,
     type: LessonBlockType.CHARACTER,
     width: defaultWidth,
-    name: 'Đại tướng Võ Nguyên Giáp',
-    years: '1911 – 2013',
-    summary:
-      'Tổng Tư lệnh kiêm Bí thư Đảng ủy Chiến dịch Điện Biên Phủ với quyết định lịch sử chuyển phương châm tác chiến sang "Đánh chắc tiến chắc".',
+    name: '',
+    years: '',
+    summary: '',
     avatarUrl: '',
   }),
   toHtml: (block: CharacterBlockData): string => {
@@ -122,32 +119,6 @@ export const dividerBlockPlugin: BlockPlugin<DividerBlockData> = {
     width: defaultWidth,
   }),
   toHtml: (): string => `<hr class="hisgo-divider" />`,
-};
-
-// --- event-block.plugin.ts ---
-export const eventBlockPlugin: BlockPlugin<EventBlockData> = {
-  type: LessonBlockType.EVENT,
-  createDefault: (id: string, defaultWidth: BlockWidth): EventBlockData => ({
-    id,
-    type: LessonBlockType.EVENT,
-    width: defaultWidth,
-    title: 'Chiến thắng Điện Biên Phủ',
-    timeLocation: '07/05/1954 • Điện Biên Phủ',
-    summary:
-      'Chiến thắng vang dội kết thúc 9 năm kháng chiến chống Pháp, làm nên mốc son lừng lẫy năm châu, chấn động địa cầu.',
-    thumbnailUrl: '',
-  }),
-  toHtml: (block: EventBlockData): string => {
-    const safeTimeLoc = escapeHtml(block.timeLocation);
-    return `
-      <div class="hisgo-event-block">
-        <span class="hisgo-event-badge">MỐC LỊCH SỬ</span>
-        <h3 class="hisgo-event-title">${escapeHtml(block.title)}</h3>
-        ${safeTimeLoc ? `<div class="hisgo-event-meta">${safeTimeLoc}</div>` : ''}
-        <p class="hisgo-event-summary">${escapeHtml(block.summary)}</p>
-        ${renderCollapsibleDetail(block.detailContent)}
-      </div>`;
-  },
 };
 
 // --- heading-block.plugin.ts ---
@@ -269,80 +240,6 @@ export const quoteBlockPlugin: BlockPlugin<QuoteBlockData> = {
   },
 };
 
-// --- related-events-block.plugin.ts ---
-export const relatedEventsBlockPlugin: BlockPlugin<RelatedEventsBlockData> = {
-  type: LessonBlockType.RELATED_EVENTS,
-  createDefault: (id: string, defaultWidth: BlockWidth): RelatedEventsBlockData => ({
-    id,
-    type: LessonBlockType.RELATED_EVENTS,
-    width: defaultWidth,
-    title: 'Sự kiện liên quan',
-    description: 'Các mốc chiến dịch và hội nghị lịch sử tiêu biểu',
-    sourceMode: 'MANUAL',
-    events: [
-      { id: 'e1', title: 'Hội nghị Diên Hồng', year: 1284 },
-      { id: 'e2', title: 'Đại thắng Bạch Đằng', year: 1288 },
-      { id: 'e3', title: 'Hội nghị Bình Than', year: 1282 },
-    ],
-  }),
-  toHtml: (block: RelatedEventsBlockData): string => {
-    const safeDesc = block.description ? escapeHtml(block.description) : '';
-    const eventsHtml = (block.events || [])
-      .map(
-        (e) => `
-        <div class="hisgo-related-event-row">
-          <span class="hisgo-related-event-title">⚔️ ${escapeHtml(e.title)}</span>
-          ${e.year ? `<span class="hisgo-related-event-year">Năm ${escapeHtml(String(e.year))}</span>` : ''}
-        </div>`,
-      )
-      .join('');
-    return `
-      <div class="hisgo-related-card">
-        <div class="hisgo-related-title">⚔️ ${escapeHtml(block.title)}</div>
-        ${safeDesc ? `<p class="hisgo-related-desc">${safeDesc}</p>` : ''}
-        <div class="hisgo-related-events-list">${eventsHtml}</div>
-      </div>`;
-  },
-};
-
-// --- related-people-block.plugin.ts ---
-export const relatedPeopleBlockPlugin: BlockPlugin<RelatedPeopleBlockData> = {
-  type: LessonBlockType.RELATED_PEOPLE,
-  createDefault: (id: string, defaultWidth: BlockWidth): RelatedPeopleBlockData => ({
-    id,
-    type: LessonBlockType.RELATED_PEOPLE,
-    width: defaultWidth,
-    title: 'Nhân vật liên quan',
-    description: 'Các danh tướng, hoàng thân hoặc nhân vật lịch sử đồng hành',
-    sourceMode: 'MANUAL',
-    people: [
-      { id: 'p1', name: 'Trần Thánh Tông', role: 'Hoàng đế thứ 2 nhà Trần' },
-      { id: 'p2', name: 'Trần Nhân Tông', role: 'Phật hoàng, lãnh đạo kháng chiến' },
-      { id: 'p3', name: 'Yết Kiêu', role: 'Tướng cận vệ, danh tướng thủy quân' },
-      { id: 'p4', name: 'Dã Tượng', role: 'Tướng tài chỉ huy tượng binh' },
-    ],
-  }),
-  toHtml: (block: RelatedPeopleBlockData): string => {
-    const safeDesc = block.description ? escapeHtml(block.description) : '';
-    const peopleHtml = (block.people || [])
-      .map((p) => {
-        const safeRole = p.role ? escapeHtml(p.role) : '';
-        return `
-        <div class="hisgo-related-person-chip">
-          <span>👤</span> <span>${escapeHtml(p.name)}</span>
-          ${safeRole ? `<span class="hisgo-related-person-role">• ${safeRole}</span>` : ''}
-        </div>`;
-      })
-      .join('');
-    return `
-      <div class="hisgo-related-card">
-        <div class="hisgo-related-title">👥 ${escapeHtml(block.title)}</div>
-        ${safeDesc ? `<p class="hisgo-related-desc">${safeDesc}</p>` : ''}
-        <div class="hisgo-related-people-list">${peopleHtml}</div>
-      </div>`;
-  },
-};
-
 // --- resource-link-block.plugin.ts ---
 export const resourceLinkBlockPlugin: BlockPlugin<ResourceLinkBlockData> = {
   type: LessonBlockType.RESOURCE_LINK,
@@ -386,21 +283,12 @@ export const sectionRowBlockPlugin: BlockPlugin<RowSectionBlockData> = {
       {
         id: createBlockUUID('col'),
         widthPercent: 50,
-        blocks: [{ id: createBlockUUID('text'), type: LessonBlockType.TEXT, content: '<p>Nội dung trình bày ở cột bên trái...</p>' }],
+        blocks: [],
       },
       {
         id: createBlockUUID('col'),
         widthPercent: 50,
-        blocks: [
-          {
-            id: createBlockUUID('character'),
-            type: LessonBlockType.CHARACTER,
-            name: 'Tên nhân vật lịch sử',
-            years: 'Niên đại hoạt động',
-            summary: 'Tóm tắt vai trò và đóng góp lịch sử của nhân vật.',
-            avatarUrl: '',
-          },
-        ],
+        blocks: [],
       },
     ],
   }),
@@ -431,10 +319,11 @@ export const videoBlockPlugin: BlockPlugin<VideoBlockData> = {
     caption: '',
   }),
   toHtml: (block: VideoBlockData): string => {
-    if (!block.src) return '';
+    const embedUrl = normalizeVideoEmbedUrl(block.src);
+    if (!embedUrl) return '';
     return `
       <div class="hisgo-video-wrap">
-        <iframe src="${safeUrl(block.src)}" class="hisgo-video-iframe" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+        <iframe src="${safeUrl(embedUrl)}" class="hisgo-video-iframe" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
       </div>`;
   },
 };

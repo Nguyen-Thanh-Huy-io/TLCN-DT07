@@ -1,4 +1,5 @@
 import {
+  ExtractedGroundingMetadata,
   GoogleServiceAccountCredentials,
   RagGroundingChunk,
 } from './google-ai.types';
@@ -20,6 +21,24 @@ export function stripMarkdownJsonFence(raw: string): string {
     .replace(/^```\s*/i, '')
     .replace(/```$/i, '')
     .trim();
+}
+
+export function parseAiJsonText<T>(rawText: string): T | null {
+  const cleaned = stripMarkdownJsonFence(rawText);
+  if (!cleaned) return null;
+
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace <= firstBrace) return null;
+    try {
+      return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1)) as T;
+    } catch {
+      return null;
+    }
+  }
 }
 
 export function parseServiceAccountJsonText(
@@ -94,38 +113,161 @@ export function extractCandidateText(payload: unknown): string | null {
   if (!Array.isArray(candidates) || candidates.length === 0) return null;
 
   const first = candidates[0] as {
-    content?: { parts?: Array<{ text?: unknown }> };
+    content?: { parts?: Array<{ text?: unknown; thought?: unknown }> };
   };
   const parts = first?.content?.parts;
   if (!Array.isArray(parts) || parts.length === 0) return null;
 
-  const text = parts[0]?.text;
+  const answerPart =
+    parts.find(
+      (part) =>
+        part?.thought !== true &&
+        typeof part?.text === 'string' &&
+        part.text.trim().length > 0,
+    ) ?? parts[parts.length - 1];
+  const text = answerPart?.text;
   return typeof text === 'string' && text.trim() ? text : null;
+}
+
+function toRetrievedChunk(
+  ctx: Record<string, unknown>,
+): RagGroundingChunk | null {
+  const uri = typeof ctx.uri === 'string' ? ctx.uri.trim() : '';
+  const title = typeof ctx.title === 'string' ? ctx.title.trim() : '';
+  const text = typeof ctx.text === 'string' ? ctx.text.trim() : '';
+  return uri || title || text ? { uri, title, text } : null;
+}
+
+function toWebChunk(webRec: Record<string, unknown>): RagGroundingChunk | null {
+  const uri = typeof webRec.uri === 'string' ? webRec.uri.trim() : '';
+  const title = typeof webRec.title === 'string' ? webRec.title.trim() : '';
+  const domain = typeof webRec.domain === 'string' ? webRec.domain.trim() : '';
+  if (!uri) return null;
+  return {
+    uri,
+    title: title || domain || uri,
+    text: '',
+    isWeb: true,
+    ...(domain ? { domain } : {}),
+  };
 }
 
 function toGroundingChunk(item: unknown): RagGroundingChunk | null {
   if (!item || typeof item !== 'object') return null;
-  const ctx = (item as { retrievedContext?: unknown }).retrievedContext;
-  if (!ctx || typeof ctx !== 'object') return null;
-  const rec = ctx as Record<string, unknown>;
-  const uri = typeof rec.uri === 'string' ? rec.uri.trim() : '';
-  const title = typeof rec.title === 'string' ? rec.title.trim() : '';
-  const text = typeof rec.text === 'string' ? rec.text.trim() : '';
-  return uri || title || text ? { uri, title, text } : null;
+  const record = item as { retrievedContext?: unknown; web?: unknown };
+  if (record.retrievedContext && typeof record.retrievedContext === 'object') {
+    return toRetrievedChunk(record.retrievedContext as Record<string, unknown>);
+  }
+  if (record.web && typeof record.web === 'object') {
+    return toWebChunk(record.web as Record<string, unknown>);
+  }
+  return null;
 }
 
-export function extractGroundingChunks(payload: unknown): RagGroundingChunk[] {
-  if (!payload || typeof payload !== 'object') return [];
+interface RawGroundingSupport {
+  segment?: { text?: unknown };
+  groundingChunkIndices?: unknown;
+}
+
+export function cleanGroundedSegmentSnippet(rawSegment: string): string {
+  let s = rawSegment.trim();
+  if (!s) return '';
+
+  const textFieldMatch = /"(?:text|reply)"\s*:\s*"/i.exec(s);
+  if (textFieldMatch) {
+    s = s.slice(textFieldMatch.index + textFieldMatch[0].length);
+  }
+
+  const tailFieldMatch = /"\s*,\s*"(?:prompts|quickActions|periodLabel)"/i.exec(
+    s,
+  );
+  if (tailFieldMatch) {
+    s = s.slice(0, tailFieldMatch.index);
+  }
+
+  s = s
+    .replace(/\\n/g, ' ')
+    .replace(/\\"/g, '"')
+    .replace(/\*\*\[([^\]]+)\]\([^)]*\)\*\*/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/^[\s"{}[\],:]+/, '')
+    .replace(/[\s"{}[\],]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (
+    s.length < 18 ||
+    /"(?:isHistoricalScope|groundedInCorpus|periodLabel)"/i.test(s)
+  ) {
+    return '';
+  }
+  return s;
+}
+
+function attachSupportMetadata(
+  chunks: RagGroundingChunk[],
+  rawSupports: unknown,
+): void {
+  if (!Array.isArray(rawSupports) || chunks.length === 0) return;
+  for (const sup of rawSupports as RawGroundingSupport[]) {
+    const rawSeg =
+      typeof sup?.segment?.text === 'string' ? sup.segment.text : '';
+    const cleanSeg = cleanGroundedSegmentSnippet(rawSeg);
+    const indices = Array.isArray(sup?.groundingChunkIndices)
+      ? sup.groundingChunkIndices
+      : [];
+    for (const idx of indices) {
+      if (typeof idx !== 'number') continue;
+      const target = chunks[idx];
+      if (!target) continue;
+      target.cited = true;
+      if (target.isWeb && !target.text && cleanSeg) {
+        target.text = cleanSeg;
+      }
+    }
+  }
+}
+
+export function extractGroundingMetadata(
+  payload: unknown,
+): ExtractedGroundingMetadata {
+  if (!payload || typeof payload !== 'object') {
+    return { groundingChunks: [], webSearchQueries: [] };
+  }
   const candidates = (payload as { candidates?: unknown }).candidates;
-  if (!Array.isArray(candidates) || candidates.length === 0) return [];
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    return { groundingChunks: [], webSearchQueries: [] };
+  }
 
   const meta = (candidates[0] as { groundingMetadata?: unknown })
-    ?.groundingMetadata as { groundingChunks?: unknown } | undefined;
+    ?.groundingMetadata as
+    | {
+        groundingChunks?: unknown;
+        webSearchQueries?: unknown;
+        groundingSupports?: unknown;
+      }
+    | undefined;
+
   const rawChunks = Array.isArray(meta?.groundingChunks)
     ? meta.groundingChunks
     : [];
-
-  return rawChunks
+  const groundingChunks = rawChunks
     .map(toGroundingChunk)
     .filter((chunk): chunk is RagGroundingChunk => chunk !== null);
+
+  attachSupportMetadata(groundingChunks, meta?.groundingSupports);
+
+  const webSearchQueries = Array.isArray(meta?.webSearchQueries)
+    ? meta.webSearchQueries
+        .filter((q): q is string => typeof q === 'string')
+        .map((q) => q.trim())
+        .filter(Boolean)
+    : [];
+
+  return { groundingChunks, webSearchQueries };
+}
+
+export function extractGroundingChunks(payload: unknown): RagGroundingChunk[] {
+  return extractGroundingMetadata(payload).groundingChunks;
 }

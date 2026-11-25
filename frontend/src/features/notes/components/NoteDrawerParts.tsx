@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, Check, CheckCircle2, Copy, Edit2, Layers, Link2, MapPin, MessageSquarePlus, RotateCcw, Tag, Trash2, X } from 'lucide-react';
-import { QuickCreateFlashcardBox } from '@/features/flashcards/components/QuickCreateFlashcardBox';
+import { QuickCreateFlashcardBox } from '@/features/flashcards/components/FlashcardsSection';
 import { NOTE_KIND_META, NOTE_LABEL_MAX_LENGTH, NOTE_LABELS_MAX } from '../constants/note-kind.constants';
 import { KeyboardKey } from '@/constants/enums';
 import { NOTE_COLOR_STYLES, NOTE_KIND, type NoteItem, type NoteKindValue, type UpdateNotePayload } from '../services/note.service';

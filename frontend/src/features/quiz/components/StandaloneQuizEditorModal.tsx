@@ -21,12 +21,13 @@ import {
   QuizQuestion,
   QuizQuestionType,
   QUIZ_QUESTION_TYPE_META,
-} from '@/features/lessons/types/quiz.types';
+} from '@/features/lessons/types/editor.types';
 import { QuestionBankPickerModal } from './QuestionBankPickerModal';
 import { TopicCategoryModalPicker } from './QuestionBankModal';
 import { TreeSelectTrigger } from '@/components/common/TreeSelectModal';
-import type { QuestionBankItem } from '@/services/entities/question.service';
-import { mergeInheritedTopics } from '../utils/question-topic.strategy';
+import { ConfirmDialog } from '@/components/common/CommonUi';
+import type { QuestionBankItem } from '@/services/entities/quiz.service';
+import { mergeInheritedTopics } from '../utils/practice-quiz.helper';
 
 export interface StandaloneQuizEditorModalProps {
   isOpen: boolean;
@@ -64,6 +65,34 @@ export function StandaloneQuizEditorModal({
   const [passingScorePercent, setPassingScorePercent] = useState<number>(80);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+
+  const isDirty = Boolean(
+    editingQuiz
+      ? title.trim() !== (editingQuiz.title || '').trim() ||
+          description.trim() !== (editingQuiz.description || '').trim() ||
+          questions.length !== (Array.isArray(editingQuiz.questions) ? editingQuiz.questions.length : 0)
+      : title.trim() || description.trim() || topicIds.length > 0 || questions.length > 0
+  );
+
+  const handleRequestClose = React.useCallback(() => {
+    if (loading) return;
+    if (isDirty) {
+      setCloseConfirmOpen(true);
+      return;
+    }
+    onClose();
+  }, [isDirty, loading, onClose]);
+
+  useEffect(() => {
+    if (!isOpen || isTopicModalOpen || isPickerOpen || closeConfirmOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleRequestClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, isTopicModalOpen, isPickerOpen, closeConfirmOpen, handleRequestClose]);
 
   // Load danh sách chủ đề nếu chưa có
   useEffect(() => {
@@ -135,8 +164,19 @@ export function StandaloneQuizEditorModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     if (!title.trim()) {
-      alert('Vui lòng nhập tiêu đề cho đề thi!');
+      setFormError('Vui lòng nhập tiêu đề đề thi.');
+      return;
+    }
+    const parsedTime = Number(timeLimitMinutes);
+    if (!Number.isFinite(parsedTime) || parsedTime < 1 || parsedTime > 180) {
+      setFormError('Thời gian làm bài phải nằm trong khoảng từ 1 đến 180 phút.');
+      return;
+    }
+    const parsedPass = Number(passingScorePercent);
+    if (!Number.isFinite(parsedPass) || parsedPass < 0 || parsedPass > 100) {
+      setFormError('Điểm đạt chuẩn phải nằm trong khoảng từ 0% đến 100%.');
       return;
     }
 
@@ -144,24 +184,30 @@ export function StandaloneQuizEditorModal({
       title: title.trim(),
       description: description.trim() || undefined,
       topicIds,
-      timeLimitMinutes: Number(timeLimitMinutes) || 15,
-      passingScorePercent: Number(passingScorePercent) || 80,
+      timeLimitMinutes: parsedTime,
+      passingScorePercent: parsedPass,
       questionItems: questions.map((q, displayOrder) => ({ questionId: q.id, displayOrder })),
     });
   };
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200"
+        onClick={handleRequestClose}
+      >
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={editingQuiz ? 'Chỉnh sửa đề thi' : 'Tạo mới đề thi'}
           className="bg-white w-full max-w-3xl max-h-[92vh] rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+          <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
             <div>
               <span className="text-xs font-semibold text-red-700 uppercase tracking-wider">
-                {editingQuiz ? 'Chỉnh sửa bộ đề' : 'Tạo mới bộ đề Quiz'}
+                {editingQuiz ? 'Chỉnh sửa đề thi' : 'Tạo đề thi mới'}
               </span>
               <h3 className="text-base font-bold text-slate-900">
                 {editingQuiz ? editingQuiz.title : 'Thiết lập thông số & Cấu trúc đề thi'}
@@ -169,8 +215,9 @@ export function StandaloneQuizEditorModal({
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleRequestClose}
               disabled={loading}
+              aria-label="Đóng cửa sổ"
               className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
             >
               <X size={20} />
@@ -178,19 +225,38 @@ export function StandaloneQuizEditorModal({
           </div>
 
           {/* Form Body */}
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+            {formError && (
+              <div
+                role="alert"
+                className="flex items-center justify-between gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-semibold text-rose-700"
+              >
+                <span>{formError}</span>
+                <button
+                  type="button"
+                  onClick={() => setFormError(null)}
+                  className="text-rose-500 hover:text-rose-800 px-1"
+                  aria-label="Đóng thông báo lỗi"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             {/* Title & Description */}
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                  Tiêu đề đề thi / Quiz <span className="text-red-500">*</span>
+                  Tiêu đề đề thi <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="Ví dụ: Đề khảo thí giai đoạn Nhà Lý - Trần hoặc Đề kiểm tra 15 phút: Bạch Đằng 938"
+                  placeholder="Ví dụ: Đề kiểm tra 15 phút — Chiến thắng Bạch Đằng 938"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    if (formError) setFormError(null);
+                  }}
                   className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-700 focus:outline-none"
                 />
               </div>
@@ -199,7 +265,7 @@ export function StandaloneQuizEditorModal({
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5 flex items-center gap-2">
                   <span>Mô tả mục tiêu đánh giá</span>
                   <span className="text-[10px] font-medium normal-case tracking-normal text-slate-400">
-                    Tuỳ chọn
+                    Tùy chọn
                   </span>
                 </label>
                 <textarea
@@ -277,7 +343,7 @@ export function StandaloneQuizEditorModal({
 
             {/* Questions Section */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
                     <span>Danh sách câu hỏi trong đề</span>
@@ -293,7 +359,7 @@ export function StandaloneQuizEditorModal({
                 <button
                   type="button"
                   onClick={() => setIsPickerOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-700 hover:bg-red-800 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-700 hover:bg-red-800 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors whitespace-nowrap self-start sm:self-auto shrink-0"
                 >
                   <Plus size={14} />
                   <span>Chọn từ Ngân hàng câu hỏi</span>
@@ -305,7 +371,7 @@ export function StandaloneQuizEditorModal({
                   <FileQuestion size={32} className="mx-auto text-slate-400 mb-2" />
                   <p className="text-xs font-semibold text-slate-700">Chưa có câu hỏi nào trong đề</p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Hãy bấm &quot;Chọn từ Ngân hàng câu hỏi&quot; ở trên để nhặt câu hỏi vào đề.
+                    Hãy bấm &quot;Chọn từ Ngân hàng câu hỏi&quot; ở trên để chọn câu hỏi vào đề.
                   </p>
                 </div>
               ) : (
@@ -361,7 +427,7 @@ export function StandaloneQuizEditorModal({
             <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleRequestClose}
                 disabled={loading}
                 className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition"
               >
@@ -395,6 +461,17 @@ export function StandaloneQuizEditorModal({
         onPick={handlePickFromBank}
         alreadySelectedIds={questions.map((q) => q.id)}
         newQuestionTopicIds={topicIds}
+      />
+
+      <ConfirmDialog
+        isOpen={closeConfirmOpen}
+        onClose={() => setCloseConfirmOpen(false)}
+        onConfirm={onClose}
+        title="Hủy thay đổi đề thi?"
+        message="Bạn đã nhập dữ liệu cho đề thi nhưng chưa lưu. Đóng cửa sổ này sẽ bỏ toàn bộ thay đổi vừa nhập."
+        confirmLabel="Đóng & bỏ thay đổi"
+        cancelLabel="Tiếp tục chỉnh sửa"
+        tone="warning"
       />
     </>
   );

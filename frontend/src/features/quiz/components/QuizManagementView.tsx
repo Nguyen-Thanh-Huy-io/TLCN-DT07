@@ -64,7 +64,7 @@ export function QuizManagementView() {
           </div>
           <div>
             <div className="text-xl font-bold text-slate-900">{stats.totalQuizzes}</div>
-            <div className="text-xs text-slate-500 font-medium">Tổng số bộ Quiz</div>
+            <div className="text-xs text-slate-500 font-medium">Tổng số đề thi</div>
           </div>
         </div>
 
@@ -137,7 +137,7 @@ export function QuizManagementView() {
             className="px-3 py-2 border border-slate-300 rounded-xl text-xs font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-red-700"
           >
             <option value={ALL_FILTER_VALUE}>Tất cả trạng thái</option>
-            <option value={QuizStatusEnum.ACTIVE}>Đang hoạt động</option>
+            <option value={QuizStatusEnum.ACTIVE}>Đang phát hành</option>
             <option value={QuizStatusEnum.DRAFT}>Bản nháp</option>
           </select>
         </div>
@@ -150,7 +150,7 @@ export function QuizManagementView() {
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors"
           >
             <Plus size={15} />
-            <span>Tạo đề Quiz mới</span>
+            <span>Tạo đề thi mới</span>
           </button>
         </div>
       </div>
@@ -159,17 +159,28 @@ export function QuizManagementView() {
       {loading ? (
         <div className="p-16 text-center bg-white rounded-xl border border-slate-200">
           <div className="inline-block animate-spin w-8 h-8 border-3 border-red-700 border-t-transparent rounded-full mb-3" />
-          <p className="text-sm font-medium text-slate-600">Đang tải danh sách bộ đề thi & ôn tập Quiz...</p>
+          <p className="text-sm font-medium text-slate-600">Đang tải danh sách đề thi...</p>
         </div>
       ) : quizzes.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl border border-slate-200 p-8 space-y-3">
           <div className="inline-flex p-4 rounded-2xl bg-red-50 text-red-700 mb-1">
             <HelpCircle size={32} />
           </div>
-          <h3 className="text-base font-bold text-slate-800">Không tìm thấy bộ đề Quiz nào</h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            Hệ thống chưa có bộ đề thi nào khớp với tiêu chí tìm kiếm. Bạn có thể bấm &quot;Tạo đề Quiz mới&quot; để thiết lập bộ đề thi tổng hợp từ Ngân hàng câu hỏi.
-          </p>
+          {search.trim() || selectedTopicId !== ALL_FILTER_VALUE || filterStatus !== ALL_FILTER_VALUE ? (
+            <>
+              <h3 className="text-base font-bold text-slate-800">Không tìm thấy đề thi phù hợp</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Không có đề thi nào khớp với từ khóa hoặc bộ lọc hiện tại. Thử thay đổi điều kiện lọc hoặc tạo đề thi mới.
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="text-base font-bold text-slate-800">Chưa có đề thi nào</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Hãy bấm &quot;Tạo đề thi mới&quot; để ghép câu hỏi từ Ngân hàng câu hỏi thành một đề thi hoàn chỉnh.
+              </p>
+            </>
+          )}
           <div className="pt-2">
             <button
               type="button"
@@ -177,7 +188,7 @@ export function QuizManagementView() {
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
             >
               <Plus size={14} />
-              <span>Tạo đề Quiz mới ngay</span>
+              <span>Tạo đề thi mới</span>
             </button>
           </div>
         </div>

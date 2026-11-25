@@ -2,37 +2,140 @@ import {
   PublicEntityDetailDto,
   PublicEntityMediaDto,
   PublicEntityRelatedArticleDto,
-  PublicEntityStatementDto,
 } from '@/services/entities/landing.service';
-import { getEntityTypeStrategy, EntityTypeConfig } from './entity-strategy';
 import {
   buildLessonTocAndHtml,
   normalizeContentToBlocks,
   LessonTocEntry,
 } from '@/features/lessons/utils/lesson-toc.util';
 import { ResourceLinkBlockData } from '@/features/lessons/types/block-builder.types';
-import { ArticleKindEnum } from '@/constants/enums';
 import type { ReadingEntity } from '@/features/reading-aids/components/ReadingAidsPanel';
-import { PUBLIC_ROUTES, type PublicAuthorInfo } from '@/services/public/public-content.service';
-import { eventFacts, eventQuickStats, locationFacts, locationQuickStats } from './entity-place-event-profile';
+import {
+  PUBLIC_ROUTES,
+  SYSTEM_CATEGORY_ROOT_SLUGS,
+  type PublicAuthorInfo,
+} from '@/services/public/public-content.service';
 
-const asArticleKind = (value: string | null): ArticleKindEnum | null =>
-  Object.values(ArticleKindEnum).find((kind) => kind === value) ?? null;
+export type EntityIconName =
+  | 'Crown'
+  | 'Sparkles'
+  | 'Building2'
+  | 'Swords'
+  | 'UserRound'
+  | 'CalendarDays'
+  | 'MapPin'
+  | 'BookOpen';
 
-/** Bài liên kết với bài đang đọc → danh sách Nhân vật / Địa danh / Sự kiện cho bảng "Trong bài". */
-function toReadingEntities(statements: PublicEntityStatementDto[]): ReadingEntity[] {
-  return statements.flatMap((stmt) => {
-    const kind = asArticleKind(stmt.relatedEntityType);
-    if (!kind || !stmt.relatedEntitySlug || !stmt.relatedEntityName) return [];
+export interface EntityTypeConfig {
+  typeKey: string;
+  badgeLabel: string;
+  lifespanLabel: string;
+  lifespanUnit: string;
+  iconName: EntityIconName;
+  themeColor: string;
+  themeBg: string;
+  routePrefix: string;
+  previousLabel: string;
+  nextLabel: string;
+}
+
+const GENERIC_ADJACENT = { previousLabel: 'Bài trước', nextLabel: 'Bài tiếp theo' } as const;
+
+const STRATEGIES: Record<string, EntityTypeConfig> = {
+  [SYSTEM_CATEGORY_ROOT_SLUGS.DYNASTY]: {
+    typeKey: SYSTEM_CATEGORY_ROOT_SLUGS.DYNASTY,
+    badgeLabel: 'Triều đại',
+    lifespanLabel: 'Thời gian trị vì',
+    lifespanUnit: 'năm',
+    iconName: 'Crown',
+    themeColor: '#B8860B',
+    themeBg: '#FFFDF5',
+    routePrefix: '/bai-viet',
+    previousLabel: 'Triều đại trước',
+    nextLabel: 'Triều đại tiếp theo',
+  },
+  [SYSTEM_CATEGORY_ROOT_SLUGS.DOCUMENT]: {
+    typeKey: SYSTEM_CATEGORY_ROOT_SLUGS.DOCUMENT,
+    badgeLabel: 'Tác phẩm & Tư liệu',
+    lifespanLabel: 'Niên đại lưu truyền',
+    lifespanUnit: 'năm',
+    iconName: 'Sparkles',
+    themeColor: '#2E6B56',
+    themeBg: '#F4FAF7',
+    routePrefix: '/bai-viet',
+    ...GENERIC_ADJACENT,
+  },
+  [SYSTEM_CATEGORY_ROOT_SLUGS.PERSON]: {
+    typeKey: SYSTEM_CATEGORY_ROOT_SLUGS.PERSON,
+    badgeLabel: 'Nhân vật lịch sử',
+    lifespanLabel: 'Hưởng thọ',
+    lifespanUnit: 'tuổi',
+    iconName: 'UserRound',
+    themeColor: '#8C2D19',
+    themeBg: '#FAF5EE',
+    routePrefix: '/bai-viet',
+    previousLabel: 'Nhân vật trước',
+    nextLabel: 'Nhân vật tiếp theo',
+  },
+  [SYSTEM_CATEGORY_ROOT_SLUGS.EVENT]: {
+    typeKey: SYSTEM_CATEGORY_ROOT_SLUGS.EVENT,
+    badgeLabel: 'Sự kiện lịch sử',
+    lifespanLabel: 'Thời lượng sự kiện',
+    lifespanUnit: 'năm',
+    iconName: 'CalendarDays',
+    themeColor: '#8C2D19',
+    themeBg: '#FDF5EE',
+    routePrefix: '/bai-viet',
+    previousLabel: 'Sự kiện trước',
+    nextLabel: 'Sự kiện tiếp theo',
+  },
+  [SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION]: {
+    typeKey: SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION,
+    badgeLabel: 'Di tích & Địa danh',
+    lifespanLabel: 'Tồn tại đến nay',
+    lifespanUnit: 'năm',
+    iconName: 'MapPin',
+    themeColor: '#2F4F4F',
+    themeBg: '#F4F7F7',
+    routePrefix: '/bai-viet',
+    previousLabel: 'Di tích trước',
+    nextLabel: 'Di tích tiếp theo',
+  },
+};
+
+const DEFAULT_STRATEGY: EntityTypeConfig = {
+  typeKey: 'bai-viet',
+  badgeLabel: 'Bài viết lịch sử',
+  lifespanLabel: 'Thời gian lưu dấu',
+  lifespanUnit: 'năm',
+  iconName: 'BookOpen',
+  themeColor: '#5C4033',
+  themeBg: '#FAF7F2',
+  routePrefix: '/bai-viet',
+  ...GENERIC_ADJACENT,
+};
+
+export function getEntityTypeStrategy(type: string | null | undefined, categoryName?: string | null): EntityTypeConfig {
+  const key = (type || '').trim().toLowerCase();
+  const matched = STRATEGIES[key] ?? DEFAULT_STRATEGY;
+  if (categoryName?.trim()) {
+    return { ...matched, badgeLabel: categoryName.trim() };
+  }
+  return matched;
+}
+
+/** Bài liên quan với bài đang đọc → danh sách Nhân vật / Địa danh / Sự kiện cho bảng "Trong bài". */
+function toReadingEntities(related: PublicEntityRelatedArticleDto[]): ReadingEntity[] {
+  return related.flatMap((item) => {
+    if (!item.slug || !item.name) return [];
     return [
       {
-        id: stmt.relatedEntityId ?? stmt.id,
-        name: stmt.relatedEntityName,
-        href: PUBLIC_ROUTES.ARTICLE(stmt.relatedEntitySlug),
-        kind,
-        note: stmt.roleLabel,
-        // Ghi chú của liên kết, không có thì là tóm tắt của bài kia (landing.service ghép sẵn).
-        summary: stmt.note,
+        id: item.id,
+        name: item.name,
+        href: PUBLIC_ROUTES.ARTICLE(item.slug),
+        kind: item.type,
+        note: item.dateLabel ?? item.categoryName,
+        summary: item.summary,
       },
     ];
   });
@@ -79,11 +182,11 @@ export interface EntityReaderModel {
   imageUrl: string | null;
   imageCaption: string | null;
   aliases: string[];
+  tags: Array<{ id: string; name: string; colorHex?: string | null }>;
   toc: LessonTocEntry[];
   html: string;
   resourceLinks: ResourceLinkBlockData[];
   readMinutes: number;
-  statements: PublicEntityStatementDto[];
   readingEntities: ReadingEntity[];
   relatedByTag: PublicEntityRelatedArticleDto[];
   facts: FastFactItem[];
@@ -142,13 +245,11 @@ function wordCount(...texts: Array<string | null | undefined>): number {
 
 function extractHanziName(text: string | null | undefined): string | null {
   if (!text) return null;
-  // Bắt mẫu chữ Hán: 黎太祖 hoặc 黎利
   const hanziRegex = /(?:chữ Hán:\s*([\u4e00-\u9fa5]+)|huý là[^(]*\(([\u4e00-\u9fa5]+)\))/i;
   const match = text.match(hanziRegex);
   if (match) {
     return match[1] || match[2] || null;
   }
-  // Mẫu chữ Hán bất kỳ trong ngoặc
   const generalHanzi = /\(([\u4e00-\u9fa5]{1,6})\)/;
   const generalMatch = text.match(generalHanzi);
   return generalMatch ? generalMatch[1] : null;
@@ -157,17 +258,17 @@ function extractHanziName(text: string | null | undefined): string | null {
 function extractPersonQuickStats(entity: PublicEntityDetailDto, strategy: EntityTypeConfig): EntityQuickStat[] {
   const stats: EntityQuickStat[] = [];
 
-  // 1. Tuổi hưởng thọ (nếu là nhân vật lịch sử)
   if (entity.startYear != null && entity.endYear != null) {
     const diff = Math.abs(entity.endYear - entity.startYear);
-    stats.push({
-      id: 'stat-lifespan',
-      value: `${diff} ${strategy.lifespanUnit}`,
-      label: strategy.lifespanLabel,
-    });
+    if (diff > 0) {
+      stats.push({
+        id: 'stat-lifespan',
+        value: `${diff} ${strategy.lifespanUnit}`,
+        label: strategy.lifespanLabel,
+      });
+    }
   }
 
-  // 2. Thời gian tại vị / tước hiệu chính nếu có
   if (entity.titles && entity.titles.length > 0) {
     const matchReign = entity.titles[0].match(/(\d+\s*năm(?:\s*,\s*\d+\s*ngày)?)/i);
     if (matchReign) {
@@ -179,7 +280,6 @@ function extractPersonQuickStats(entity: PublicEntityDetailDto, strategy: Entity
     }
   }
 
-  // 3. Triều đại / Thời đại
   if (entity.period?.name) {
     stats.push({
       id: 'stat-period',
@@ -188,7 +288,6 @@ function extractPersonQuickStats(entity: PublicEntityDetailDto, strategy: Entity
     });
   }
 
-  // 4. Vai trò / Vị thế lịch sử (hoặc Lãnh thổ)
   if (entity.roles && entity.roles.length > 0) {
     stats.push({
       id: 'stat-role',
@@ -238,7 +337,6 @@ function extractDynastyQuickStats(
 ): EntityQuickStat[] {
   const stats: EntityQuickStat[] = [];
 
-  // 1. Số năm trị vì
   if (entity.startYear != null && entity.endYear != null) {
     const years = Math.abs(entity.endYear - entity.startYear);
     stats.push({
@@ -248,7 +346,6 @@ function extractDynastyQuickStats(
     });
   }
 
-  // 2. Số đời vua kế vị
   const emperorsCount = resolveEmperorsCount(meta, blocks, desc);
   if (emperorsCount) {
     stats.push({
@@ -258,7 +355,6 @@ function extractDynastyQuickStats(
     });
   }
 
-  // 3. Mốc định đô / Khai quốc
   if (meta.capitalYear || desc.includes('1010')) {
     const yr = meta.capitalYear || DEFAULT_CAPITAL_YEAR;
     stats.push({
@@ -274,7 +370,6 @@ function extractDynastyQuickStats(
     });
   }
 
-  // 4. Quốc hiệu
   const nationalName =
     String(meta.nationalName || '') ||
     entity.aliases?.find((a) =>
@@ -289,6 +384,13 @@ function extractDynastyQuickStats(
   });
 
   return stats;
+}
+
+function extractLocationQuickStats(entity: PublicEntityDetailDto, knownDateLabel: string | null): EntityQuickStat[] {
+  return [
+    ...(entity.siteTypeLabel ? [{ id: 'stat-site-type', value: entity.siteTypeLabel, label: 'Loại di tích' }] : []),
+    ...(knownDateLabel ? [{ id: 'stat-founded', value: knownDateLabel, label: 'Niên đại khởi dựng' }] : []),
+  ];
 }
 
 /** Ngày và thời kỳ đã hiện ở đầu trang nên chỉ còn khoảng thời gian (bỏ khi bằng 0). */
@@ -308,14 +410,12 @@ function extractQuickStats(
   const desc = `${entity.description || ''} ${entity.tagline || ''}`;
 
   switch (entity.type) {
-    case ArticleKindEnum.PERSON:
+    case SYSTEM_CATEGORY_ROOT_SLUGS.PERSON:
       return extractPersonQuickStats(entity, strategy).slice(0, 4);
-    case ArticleKindEnum.DYNASTY:
+    case SYSTEM_CATEGORY_ROOT_SLUGS.DYNASTY:
       return extractDynastyQuickStats(entity, strategy, blocks, meta, desc).slice(0, 4);
-    case ArticleKindEnum.EVENT:
-      return eventQuickStats(entity).slice(0, 4);
-    case ArticleKindEnum.LOCATION:
-      return locationQuickStats(entity, dateLabel === UNKNOWN_DATE_LABEL ? null : dateLabel).slice(0, 4);
+    case SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION:
+      return extractLocationQuickStats(entity, dateLabel === UNKNOWN_DATE_LABEL ? null : dateLabel).slice(0, 4);
     default:
       return extractFallbackQuickStats(entity, strategy);
   }
@@ -332,6 +432,14 @@ function extractPersonFastFacts(entity: PublicEntityDetailDto): FastFactItem[] {
     );
     facts.push({ id: 'entity-titles', label: 'Tước hiệu', value: formattedTitles.join(', ') });
   }
+  return facts;
+}
+
+function extractLocationFastFacts(entity: PublicEntityDetailDto): FastFactItem[] {
+  const facts: FastFactItem[] = [];
+  if (entity.address) facts.push({ id: 'site-address', label: 'Địa chỉ', value: entity.address });
+  if (entity.statusNote) facts.push({ id: 'site-status', label: 'Hiện trạng', value: entity.statusNote });
+  if (entity.managingAgency) facts.push({ id: 'site-managing-agency', label: 'Đơn vị quản lý', value: entity.managingAgency });
   return facts;
 }
 
@@ -364,9 +472,8 @@ function extractEntityFastFacts(entity: PublicEntityDetailDto): FastFactItem[] {
     });
   }
 
-  if (entity.type === ArticleKindEnum.PERSON) facts.push(...extractPersonFastFacts(entity));
-  if (entity.type === ArticleKindEnum.EVENT) facts.push(...eventFacts(entity));
-  if (entity.type === ArticleKindEnum.LOCATION) facts.push(...locationFacts(entity));
+  if (entity.type === SYSTEM_CATEGORY_ROOT_SLUGS.PERSON) facts.push(...extractPersonFastFacts(entity));
+  if (entity.type === SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION) facts.push(...extractLocationFastFacts(entity));
 
   const meta = (entity.metadata || {}) as Record<string, unknown>;
   facts.push(...extractMetadataFastFacts(meta));
@@ -388,14 +495,12 @@ function buildAdjacentNavigation(
   };
 }
 
-/** Mốc liền kề trong dòng thời gian có thể khác loại (nhân vật cạnh sự kiện) nên dùng trang bài viết chung. */
 const TIMELINE_ADJACENT_LABELS = { previousLabel: 'Mốc trước', nextLabel: 'Mốc tiếp theo' } as const;
 
 export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityReaderModel {
-  const strategy = getEntityTypeStrategy(entity.type);
+  const strategy = getEntityTypeStrategy(entity.type, entity.categoryName);
   const dateLabel = buildEntityDateLabel(entity);
 
-  // Chuẩn hóa, tự động dựng mốc cho khối Dòng thời gian (AUTO/HYBRID) rồi biên dịch toàn bộ khối contentBlocks
   const normalized = normalizeContentToBlocks(entity.contentBlocks);
   const { tocItems, html } = buildLessonTocAndHtml(normalized.blocks);
   const cleanHtml = html ? html.normalize('NFC') : '';
@@ -417,7 +522,7 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
   );
 
   const timeline = entity.adjacentTimeline ?? null;
-  const adjacentHref = timeline ? PUBLIC_ROUTES.ARTICLE : (slug: string) => `${strategy.routePrefix}/${slug}`;
+  const adjacentHref = PUBLIC_ROUTES.ARTICLE;
   const previous = buildAdjacentNavigation(entity.previous, adjacentHref);
   const next = buildAdjacentNavigation(entity.next, adjacentHref);
   const adjacentLabels = timeline ? TIMELINE_ADJACENT_LABELS : strategy;
@@ -426,6 +531,8 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
     extractHanziName(entity.name) ||
     extractHanziName(entity.description) ||
     extractHanziName(entity.tagline);
+
+  const relatedByTag = entity.relatedByTag ?? [];
 
   return {
     id: entity.id,
@@ -446,13 +553,13 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
     imageUrl: entity.imageUrl,
     imageCaption: entity.imageCaption,
     aliases: entity.aliases ?? [],
+    tags: entity.tags ?? [],
     toc: cleanToc,
     html: cleanHtml,
     resourceLinks: normalized.resourceLinks,
     readMinutes,
-    statements: entity.statements ?? [],
-    readingEntities: toReadingEntities(entity.statements ?? []),
-    relatedByTag: entity.relatedByTag ?? [],
+    readingEntities: toReadingEntities(relatedByTag),
+    relatedByTag,
     facts,
     media: entity.media ?? [],
     quickStats,

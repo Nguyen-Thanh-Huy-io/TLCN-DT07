@@ -64,6 +64,9 @@ export interface UseLessonEditorFacadeReturn {
 
   // Actions
   submitLesson: (nextStatus: ContentStatus, overrideContent?: unknown) => Promise<void>;
+  /** Lỗi validation / lưu bài học hiển thị inline (thay cho window.alert). */
+  formError: string | null;
+  clearFormError: () => void;
   /** Bản sửa chờ duyệt đang mở của bài đang xuất bản (form đang hiện bản sửa này). */
   pendingRevision: ContentRevisionItem | null;
   revisionNotice: string | null;
@@ -97,14 +100,6 @@ export enum EditorViewMode {
 export enum LeftSidebarMode {
   BLOCKS = 'BLOCKS',
   OUTLINE = 'OUTLINE',
-}
-
-/** Tab của Panel Thuộc tính bên phải — lý do đặt ở đây giống trên. */
-export enum SidebarTab {
-  BLOCK = 'BLOCK',
-  CLASSIFICATION = 'CLASSIFICATION',
-  MEDIA = 'MEDIA',
-  PUBLISHING = 'PUBLISHING',
 }
 
 export interface TocItem {
@@ -151,15 +146,12 @@ export enum LessonBlockType {
   TIMELINE = 'TIMELINE',
   MAP = 'MAP',
   CHARACTER = 'CHARACTER',
-  EVENT = 'EVENT',
   COMPARISON_TABLE = 'COMPARISON_TABLE',
   QUIZ = 'QUIZ',
   SECTION_ROW = 'SECTION_ROW',
   CALLOUT = 'CALLOUT',
   QUOTE = 'QUOTE',
   DIVIDER = 'DIVIDER',
-  RELATED_PEOPLE = 'RELATED_PEOPLE',
-  RELATED_EVENTS = 'RELATED_EVENTS',
 }
 
 export enum LessonBlockGroup {
@@ -177,92 +169,195 @@ export interface BlockPaletteItem {
   lessonOnly?: boolean;
 }
 
-export enum EntitySourceType {
-  HISGO = 'HISGO',
-  WIKIPEDIA = 'WIKIPEDIA',
+// === Merged from quiz.types.ts & quiz-question.factory.ts ===
+export enum QuizQuestionType {
+  SINGLE_CHOICE = 'SINGLE_CHOICE',
+  TRUE_FALSE = 'TRUE_FALSE',
+  MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+  ORDERING = 'ORDERING',
+  MATCHING = 'MATCHING',
+  FILL_IN_BLANK = 'FILL_IN_BLANK',
 }
 
-export interface IEntitySearchResult {
+interface BaseQuizQuestion {
   id: string;
-  title: string;
-  description?: string;
-  thumbnailUrl?: string;
-  sourceType: EntitySourceType;
-  rawKey?: string;
-  wikidataId?: string;
+  type: QuizQuestionType;
+  prompt: string;
+  explanation?: string;
 }
 
-export interface IEntityDetailPreview {
-  name: string;
-  years: string;
-  summary: string;
-  avatarUrl: string;
-  tagline?: string;
-  sourceUrl?: string;
-  sourceType: EntitySourceType;
-  entityId?: string;
-  wikidataId?: string;
-  birthDate?: string;
-  deathDate?: string;
-  occupation?: string;
-  nationality?: string;
-  coordinates?: {
-    latitude: number;
-    longitude: number;
-  };
-  imageLicense?: string;
-  imageArtist?: string;
+export interface MultipleChoiceOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+  explanation?: string;
 }
 
-export interface IWikipediaSearchResponse {
-  pages?: Array<{
-    id: number;
-    key: string;
-    title: string;
-    excerpt?: string;
-    description?: string;
-    thumbnail?: {
-      url: string;
-      width: number;
-      height: number;
-    };
-  }>;
+export interface SingleChoiceQuestion extends BaseQuizQuestion {
+  type: QuizQuestionType.SINGLE_CHOICE;
+  options: MultipleChoiceOption[];
 }
 
-export interface IWikipediaSummaryResponse {
-  type?: string;
-  title: string;
-  displaytitle?: string;
-  description?: string;
-  extract?: string;
-  extract_html?: string;
-  wikibase_item?: string;
-  thumbnail?: {
-    source: string;
-    width: number;
-    height: number;
-  };
-  originalimage?: {
-    source: string;
-    width: number;
-    height: number;
-  };
-  content_urls?: {
-    desktop?: {
-      page: string;
-    };
-  };
+export interface MultipleChoiceQuestion extends BaseQuizQuestion {
+  type: QuizQuestionType.MULTIPLE_CHOICE;
+  options: MultipleChoiceOption[];
 }
 
-export interface IWikidataClaimsResponse {
-  entities?: Record<
-    string,
-    {
-      id: string;
-      claims?: Record<string, unknown[]>;
-      labels?: Record<string, { value: string }>;
-      descriptions?: Record<string, { value: string }>;
+export interface TrueFalseQuestion extends BaseQuizQuestion {
+  type: QuizQuestionType.TRUE_FALSE;
+  correctAnswer: boolean;
+}
+
+export interface OrderingItem {
+  id: string;
+  label: string;
+}
+
+export interface OrderingQuestion extends BaseQuizQuestion {
+  type: QuizQuestionType.ORDERING;
+  items: OrderingItem[];
+  correctOrder: string[];
+}
+
+export interface MatchingItem {
+  id: string;
+  label: string;
+}
+
+export interface MatchingPair {
+  leftId: string;
+  rightId: string;
+}
+
+export interface MatchingQuestion extends BaseQuizQuestion {
+  type: QuizQuestionType.MATCHING;
+  leftItems: MatchingItem[];
+  rightItems: MatchingItem[];
+  correctPairs: MatchingPair[];
+}
+
+export interface FillInBlankQuestion extends BaseQuizQuestion {
+  type: QuizQuestionType.FILL_IN_BLANK;
+  acceptedAnswers: string[];
+  caseSensitive?: boolean;
+}
+
+export type QuizQuestion =
+  | SingleChoiceQuestion
+  | MultipleChoiceQuestion
+  | TrueFalseQuestion
+  | OrderingQuestion
+  | MatchingQuestion
+  | FillInBlankQuestion;
+
+export interface QuizItem {
+  id: string;
+  lessonId: string;
+  title?: string | null;
+  passingScorePercent?: number | null;
+  questions: QuizQuestion[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const QUIZ_QUESTION_TYPE_META: Record<
+  QuizQuestionType,
+  { label: string; shortLabel: string; color: string }
+> = {
+  [QuizQuestionType.SINGLE_CHOICE]: {
+    label: 'Chọn 1 đáp án',
+    shortLabel: '1 đáp án',
+    color: 'text-blue-600 bg-blue-50 border-blue-200',
+  },
+  [QuizQuestionType.TRUE_FALSE]: {
+    label: 'Đúng / Sai',
+    shortLabel: 'Đúng/Sai',
+    color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+  },
+  [QuizQuestionType.MULTIPLE_CHOICE]: {
+    label: 'Nhiều đáp án',
+    shortLabel: 'Nhiều đáp án',
+    color: 'text-indigo-600 bg-indigo-50 border-indigo-200',
+  },
+  [QuizQuestionType.ORDERING]: {
+    label: 'Sắp xếp thứ tự',
+    shortLabel: 'Sắp xếp',
+    color: 'text-amber-600 bg-amber-50 border-amber-200',
+  },
+  [QuizQuestionType.MATCHING]: {
+    label: 'Ghép nối',
+    shortLabel: 'Ghép nối',
+    color: 'text-violet-600 bg-violet-50 border-violet-200',
+  },
+  [QuizQuestionType.FILL_IN_BLANK]: {
+    label: 'Điền vào chỗ trống',
+    shortLabel: 'Điền khuyết',
+    color: 'text-cyan-600 bg-cyan-50 border-cyan-200',
+  },
+};
+
+let quizIdCounter = 0;
+export const generateQuizId = (prefix: string): string => {
+  quizIdCounter += 1;
+  return `${prefix}_${Date.now()}_${quizIdCounter}`;
+};
+
+export function createDefaultQuestion(type: QuizQuestionType): QuizQuestion {
+  const id = generateQuizId('q');
+
+  switch (type) {
+    case QuizQuestionType.SINGLE_CHOICE:
+      return {
+        id,
+        type,
+        prompt: '',
+        options: [
+          { id: generateQuizId('opt'), text: '', isCorrect: true },
+          { id: generateQuizId('opt'), text: '', isCorrect: false },
+        ],
+      };
+
+    case QuizQuestionType.MULTIPLE_CHOICE:
+      return {
+        id,
+        type,
+        prompt: '',
+        options: [
+          { id: generateQuizId('opt'), text: '', isCorrect: true },
+          { id: generateQuizId('opt'), text: '', isCorrect: true },
+          { id: generateQuizId('opt'), text: '', isCorrect: false },
+        ],
+      };
+
+    case QuizQuestionType.TRUE_FALSE:
+      return { id, type, prompt: '', correctAnswer: true };
+
+    case QuizQuestionType.ORDERING: {
+      const items = [
+        { id: generateQuizId('item'), label: '' },
+        { id: generateQuizId('item'), label: '' },
+      ];
+      return { id, type, prompt: '', items, correctOrder: items.map((i) => i.id) };
     }
-  >;
+
+    case QuizQuestionType.MATCHING: {
+      const l1 = generateQuizId('l');
+      const r1 = generateQuizId('r');
+      return {
+        id,
+        type,
+        prompt: '',
+        leftItems: [{ id: l1, label: '' }],
+        rightItems: [{ id: r1, label: '' }],
+        correctPairs: [{ leftId: l1, rightId: r1 }],
+      };
+    }
+
+    case QuizQuestionType.FILL_IN_BLANK:
+      return { id, type, prompt: '', acceptedAnswers: [''], caseSensitive: false };
+
+    default:
+      throw new Error(`Dạng câu hỏi không được hỗ trợ: ${type}`);
+  }
 }
 

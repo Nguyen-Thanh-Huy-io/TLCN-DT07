@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Settings2, Trash2, FileText } from 'lucide-react';
+import { ArrowLeft, Settings2, Trash2, FileText } from 'lucide-react';
 import {
   INSPECTOR_SEG_BTN_ACTIVE,
   INSPECTOR_SEG_BTN_IDLE,
@@ -14,24 +14,22 @@ import {
   CalloutBlockData,
   HeadingBlockData,
   LessonBlockItem,
-  RelatedEventsBlockData,
-  RelatedPeopleBlockData,
   RowSectionBlockData,
   TimelineBlockData,
 } from '../../types/block-builder.types';
 import { LessonBlockType } from '../../types/editor.types';
 import { BlockWidthStrategy } from '../../strategies/row-layout.strategy';
 import { getBlockLabel } from '../../constants/lesson.constants';
-import { BLOCK_TYPE_ICONS } from './BlockLibraryPalette';
+import { BLOCK_TYPE_ICONS } from '../LessonLeftToolSidebar';
 import { TypographyInspectorPanel } from './inspectors/TypographyInspectorPanel';
-import { TimelineBlockInspector } from './inspectors/TimelineBlockInspector';
-import { RowSectionBlockInspector } from './inspectors/RowSectionBlockInspector';
 import {
   CalloutBlockInspector,
   HeadingBlockInspector,
-  RelatedEventsBlockInspector,
-  RelatedPeopleBlockInspector,
 } from './inspectors/SimpleBlockInspectors';
+import {
+  RowSectionBlockInspector,
+  TimelineBlockInspector,
+} from './inspectors/StructuredBlockInspectors';
 
 export interface BlockPropertyInspectorProps {
   block: LessonBlockItem | null;
@@ -53,31 +51,9 @@ type BlockInspectorStrategyMap = Partial<
   >
 >;
 
-/**
- * Bảng đăng ký Strategy cho từng loại Khối (Tuân thủ Open/Closed Principle — OCP & SRP).
- */
 const BLOCK_INSPECTOR_STRATEGIES: BlockInspectorStrategyMap = {
   [LessonBlockType.TEXT]: ({ compact, accentColor }) => (
     <TypographyInspectorPanel compact={compact} accentColor={accentColor} />
-  ),
-  [LessonBlockType.TIMELINE]: ({ block, onUpdateBlock }) => (
-    <TimelineBlockInspector
-      block={block as TimelineBlockData}
-      onUpdateBlock={onUpdateBlock}
-    />
-  ),
-  [LessonBlockType.SECTION_ROW]: ({
-    block,
-    onUpdateBlock,
-    onChangeRowColumnCount,
-    onUpdateRowRatio,
-  }) => (
-    <RowSectionBlockInspector
-      block={block as RowSectionBlockData}
-      onUpdateBlock={onUpdateBlock}
-      onChangeRowColumnCount={onChangeRowColumnCount}
-      onUpdateRowRatio={onUpdateRowRatio}
-    />
   ),
   [LessonBlockType.HEADING]: ({ block, onUpdateBlock, compact, accentColor }) =>
     compact ? (
@@ -98,15 +74,22 @@ const BLOCK_INSPECTOR_STRATEGIES: BlockInspectorStrategyMap = {
       />
     </div>
   ),
-  [LessonBlockType.RELATED_PEOPLE]: ({ block, onUpdateBlock }) => (
-    <RelatedPeopleBlockInspector
-      block={block as RelatedPeopleBlockData}
+  [LessonBlockType.SECTION_ROW]: ({
+    block,
+    onUpdateBlock,
+    onChangeRowColumnCount,
+    onUpdateRowRatio,
+  }) => (
+    <RowSectionBlockInspector
+      block={block as RowSectionBlockData}
       onUpdateBlock={onUpdateBlock}
+      onChangeRowColumnCount={onChangeRowColumnCount}
+      onUpdateRowRatio={onUpdateRowRatio}
     />
   ),
-  [LessonBlockType.RELATED_EVENTS]: ({ block, onUpdateBlock }) => (
-    <RelatedEventsBlockInspector
-      block={block as RelatedEventsBlockData}
+  [LessonBlockType.TIMELINE]: ({ block, onUpdateBlock }) => (
+    <TimelineBlockInspector
+      block={block as TimelineBlockData}
       onUpdateBlock={onUpdateBlock}
     />
   ),
@@ -147,7 +130,6 @@ export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
   return (
     <aside className={className || 'w-full bg-white border-l border-slate-200 flex flex-col justify-between shrink-0 h-full overflow-y-auto select-none'}>
       <div className="p-4 space-y-3.5 text-xs text-slate-700">
-        {/* Định danh khối đang chọn */}
         <div className="pb-3 border-b border-slate-100 flex items-center gap-2.5">
           <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0">
             <BlockIcon className="w-4 h-4" strokeWidth={1.85} />
@@ -164,7 +146,6 @@ export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
           </div>
         </div>
 
-        {/* Bộ chọn Tỉ lệ chiều rộng khối (chuẩn 2 cột ngang + Segmented Strip của Mindmap) */}
         {availableWidths.length > 1 && (
           <div className="pb-3 border-b border-slate-100">
             <InspectorFieldRow label="Độ rộng thẻ">
@@ -190,7 +171,6 @@ export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
           </div>
         )}
 
-        {/* Nội dung Inspector ủy quyền qua Strategy Registry */}
         <div>
           {renderStrategy ? (
             renderStrategy({ ...props, block })
@@ -218,7 +198,6 @@ export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
         )}
       </div>
 
-      {/* Footer Inspector: Nút Xóa khối */}
       <div className="px-4 py-3 border-t border-slate-100">
         <button
           type="button"
@@ -228,6 +207,73 @@ export function BlockPropertyInspector(props: BlockPropertyInspectorProps) {
           <Trash2 className="w-3.5 h-3.5" />
           <span>Xóa khối này</span>
         </button>
+      </div>
+    </aside>
+  );
+}
+
+export interface LessonPropertiesPanelProps {
+  onClose: () => void;
+  onOpenInfoTab?: () => void;
+  activeBlock: LessonBlockItem | null;
+  activeBlockIndex?: number;
+  onUpdateBlock: (id: string, updates: Partial<LessonBlockItem>) => void;
+  onRemoveBlock: (id: string) => void;
+  onChangeRowColumnCount?: (rowId: string, count: number) => void;
+  onUpdateRowRatio?: (rowId: string, widths: number[]) => void;
+}
+
+export function LessonPropertiesPanel({
+  onClose,
+  onOpenInfoTab,
+  activeBlock,
+  activeBlockIndex,
+  onUpdateBlock,
+  onRemoveBlock,
+  onChangeRowColumnCount,
+  onUpdateRowRatio,
+}: LessonPropertiesPanelProps) {
+  return (
+    <aside className="w-full lg:w-72 xl:w-80 shrink-0 flex flex-col gap-2.5 max-h-[calc(100vh-80px)] overflow-y-auto lg:sticky lg:top-[68px] self-start pr-0.5 animate-in slide-in-from-right duration-200 z-20 custom-editor-scrollbar">
+      <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs flex items-center justify-between gap-2">
+        <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 px-1 whitespace-nowrap">
+          <span>⚙️ Thuộc tính</span>
+          {activeBlock && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />}
+        </span>
+
+        <div className="flex items-center gap-1 shrink-0">
+          {onOpenInfoTab && (
+            <button
+              type="button"
+              onClick={onOpenInfoTab}
+              className="text-[11px] text-blue-700 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-md transition cursor-pointer font-semibold flex items-center gap-1 whitespace-nowrap"
+              title="Chuyển sang Tab Thông tin & Hồ sơ bài học"
+            >
+              <ArrowLeft size={12} />
+              <span>Thông tin</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-100 px-1.5 py-0.5 rounded-md transition cursor-pointer font-medium"
+            title="Thu gọn Panel"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div className="animate-in fade-in-50 duration-150">
+        <BlockPropertyInspector
+          block={activeBlock}
+          blockIndex={activeBlockIndex}
+          onUpdateBlock={onUpdateBlock}
+          onRemoveBlock={onRemoveBlock}
+          onChangeRowColumnCount={onChangeRowColumnCount}
+          onUpdateRowRatio={onUpdateRowRatio}
+          className="w-full bg-white border border-slate-200 rounded-xl flex flex-col justify-between shrink-0 shadow-2xs select-none"
+        />
       </div>
     </aside>
   );

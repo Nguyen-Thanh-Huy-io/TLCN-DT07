@@ -1,6 +1,5 @@
 import { fetchEvents, fetchFigureDirectory, fetchLocations, fetchPeriods, fetchPublicList, type PublicEventSummaryDto, type PublicFigureProfileDto, type PublicLocationSummaryDto, type PublicPeriodDto } from '@/services/entities/landing.service';
-import { type LearningPathItem } from '@/services/entities/learning-path.service';
-import { type LibraryLesson } from '@/services/entities/learner.service';
+import { type LearningPathItem, type LibraryLesson } from '@/services/entities/learner.service';
 import { formatYear, shortPeriodName } from '@/features/search/search-index';
 import { ContentStatus } from '@/constants/enums';
 

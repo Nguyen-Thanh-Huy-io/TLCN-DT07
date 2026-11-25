@@ -3,10 +3,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { APP_ROUTES } from '@/constants/routes';
 import { DifficultyLevel, ContentStatus, MediaType } from '@/constants/enums';
-import { LessonApiService } from '@/services/entities/lesson.service';
-import { TopicApiService } from '@/services/entities/topic.service';
-import { TagApiService } from '@/services/entities/tag.service';
-import { LearningPathApiService } from '@/services/entities/learning-path.service';
+import { LessonApiService } from '@/services/entities/learner.service';
+import { TopicApiService, TagApiService } from '@/services/entities/topic.service';
+import { LearningPathApiService } from '@/services/entities/learner.service';
 import { extractErrorMessage } from '@/services/api';
 import { UseLessonEditorFacadeReturn, LessonMediaItem, AutoSaveState } from '../types/editor.types';
 import { LessonItem } from '@/types/models';
@@ -91,12 +90,9 @@ function extractMediaFromLesson(lesson: ExtendedLessonDetail): LessonMediaItem[]
   return [];
 }
 
-const DEFAULT_NEW_LESSON_TITLE = 'Chiến dịch Điện Biên Phủ năm 1954';
-const DEFAULT_NEW_LESSON_CONTENT = `
-  <h2>1. Bối cảnh lịch sử</h2>
-  <p>Cuối năm 1953, cuộc kháng chiến chống thực dân Pháp của nhân dân Việt Nam bước sang năm thứ tám.</p>
-`;
-const DEFAULT_NEW_LESSON_NOTE = 'Viện Sử học (2017), Lịch sử Việt Nam, tập 10, NXB Khoa học Xã hội.';
+const DEFAULT_NEW_LESSON_TITLE = '';
+const DEFAULT_NEW_LESSON_CONTENT = '';
+const DEFAULT_NEW_LESSON_NOTE = '';
 
 function buildLessonPayload(params: {
   title: string;
@@ -178,6 +174,8 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
   const [status, setStatus] = useState<ContentStatus>(ContentStatus.DRAFT);
   const [pendingRevision, setPendingRevision] = useState<ContentRevisionItem | null>(null);
   const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const clearFormError = useCallback(() => setFormError(null), []);
   const [reloadKey, setReloadKey] = useState(0);
   const [title, setTitle] = useState(() => (!lessonId ? DEFAULT_NEW_LESSON_TITLE : ''));
   const [slug, setSlug] = useState('');
@@ -370,12 +368,13 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
 
   const submitLesson = useCallback(
     async (nextStatus: ContentStatus, overrideContent?: unknown) => {
+      setFormError(null);
       if (!title.trim()) {
-        alert('Vui lòng nhập tên bài học.');
+        setFormError('Vui lòng nhập tiêu đề bài học trước khi lưu.');
         return;
       }
       if (!selectedTopicId) {
-        alert('Vui lòng chọn chủ đề cho bài học.');
+        setFormError('Vui lòng chọn Chủ đề chính cho bài học trước khi lưu.');
         return;
       }
 
@@ -421,7 +420,7 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
         }
       } catch (err: unknown) {
         setAutoSaveState(AutoSaveState.ERROR);
-        alert(extractErrorMessage(err, 'Không thể lưu bài học. Vui lòng kiểm tra lại dữ liệu.'));
+        setFormError(extractErrorMessage(err, 'Không thể lưu bài học. Vui lòng kiểm tra lại dữ liệu.'));
       } finally {
         setSaving(false);
       }
@@ -484,6 +483,8 @@ export function useLessonEditorFacade(explicitLessonId?: string): UseLessonEdito
     selectedTags,
     setSelectedTags,
     submitLesson,
+    formError,
+    clearFormError,
     pendingRevision,
     revisionNotice,
     onRevisionChanged: (message: string) => {

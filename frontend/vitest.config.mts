@@ -20,11 +20,10 @@ export default defineConfig({
       reportsDirectory: './coverage',
       include: [
         'src/utils/common.ts',
-        'src/services/public/article-kind.ts',
+        'src/hooks/useEventCategories.ts',
         'src/services/auth/public-auth.service.ts',
         'src/services/auth/use-auth-session.ts',
         'src/components/common/AuthorFollowButton.tsx',
-        'src/components/common/TrueFalseAnswerSelector.tsx',
         'src/features/lessons/utils/lesson-quiz.util.ts',
         'src/features/lessons/utils/lesson-toc.util.ts',
         'src/features/lessons/extensions/typography.extension.ts',
@@ -33,7 +32,6 @@ export default defineConfig({
         'src/features/notes/utils/note-cluster.util.ts',
         'src/features/notes/utils/note-anchor.strategy.ts',
         'src/features/quiz/utils/practice-quiz.helper.ts',
-        'src/features/quiz/utils/question-topic.strategy.ts',
         'src/features/saved-materials/utils/saved-material.normalizer.ts',
       ],
       thresholds: {

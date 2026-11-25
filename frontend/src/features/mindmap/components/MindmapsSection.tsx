@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Loader2, Network, Plus, Trash2 } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import { AccountCard } from '@/features/account/components/AccountSections';
@@ -15,8 +16,12 @@ import {
 } from '../services/mindmap.service';
 import { MindmapCanvas } from './MindmapCanvas';
 
+export const MINDMAP_OPEN_ID_PARAM = 'mindmapId';
+
 /** Tab "Sơ đồ tư duy" trên trang /tai-khoan: danh sách, tạo theo mẫu và mở Studio (có hộp thoại AI nổi song song ngay trên Canvas). */
 export function MindmapsSection({ onCountChange }: { onCountChange?: (count: number) => void }) {
+  const searchParams = useSearchParams();
+  const autoOpenedIdRef = useRef<string | null>(null);
   const [mindmaps, setMindmaps] = useState<MindmapSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +63,7 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
     };
   }, [onCountChange]);
 
-  const openMindmap = async (id: string) => {
+  const openMindmap = useCallback(async (id: string) => {
     setOpeningId(id);
     setError(null);
     try {
@@ -68,7 +73,14 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
     } finally {
       setOpeningId(null);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const requestedId = searchParams.get(MINDMAP_OPEN_ID_PARAM);
+    if (!requestedId || autoOpenedIdRef.current === requestedId) return;
+    autoOpenedIdRef.current = requestedId;
+    void Promise.resolve().then(() => openMindmap(requestedId));
+  }, [openMindmap, searchParams]);
 
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();

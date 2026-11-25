@@ -1,22 +1,102 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ArrowLeft, ArrowUp, ExternalLink, Plus, Save, Send, Trash2, Upload, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, ExternalLink, Plus, Save, Search, Send, Trash2, Upload, X } from 'lucide-react';
 import { APP_ROUTES } from '@/constants/routes';
 import { ContentStatus } from '@/constants/enums';
-import { extractErrorMessage } from '@/services/api';
+import { extractErrorMessage, UploadApiService } from '@/services/api';
 import { useAuthSession } from '@/services/auth/use-auth-session';
 import { isReviewerRole } from '@/services/auth/public-auth.service';
-import type { ContentStatusValue } from '@/services/entities/article.service';
-import { TimelineApiService, type TimelineNodeItem } from '@/services/entities/timeline.service';
+import { ArticleApiService, type ArticleItem, type ContentStatusValue } from '@/services/entities/article.service';
+import { TimelineApiService, type TimelineNodeItem } from '@/services/entities/topic.service';
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
-import { StatusPill } from '@/features/articles/components/StatusPill';
-import { ArchiveStatusButton } from '@/components/common/ArchiveStatusButton';
-import { YearInput } from '@/features/articles/components/YearInput';
-import { ArticlePicker } from '@/features/articles/components/ArticlePicker';
-import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicPicker';
+import { StatusPill, YearInput } from '@/features/articles/components/ArticleList';
+import { ArchiveStatusButton } from '@/components/common/CommonUi';
+import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicEditor';
+import { TopicCoverImagePicker } from '@/features/topics/components/TopicCoverImagePicker';
+
+function NodeArticleSearchBox({
+  onPick,
+  placeholder = 'Tìm và thêm bài viết vào mốc...',
+}: {
+  onPick: (article: ArticleItem) => void;
+  placeholder?: string;
+}) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const [results, setResults] = useState<ArticleItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        setResults((await ArticleApiService.list({ search: query.trim() || undefined, limit: 10, sort: 'title' })).items);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [query, open]);
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener('mousedown', close);
+    return () => window.removeEventListener('mousedown', close);
+  }, []);
+
+  return (
+    <div ref={boxRef} className="relative">
+      <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+        <Search size={14} className="text-slate-400" />
+        <input
+          value={query}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          placeholder={placeholder}
+          className="w-full text-sm outline-none"
+        />
+      </div>
+      {open && (
+        <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+          {loading && <li className="px-3 py-2 text-sm text-slate-500">Đang tìm…</li>}
+          {!loading && results.length === 0 && <li className="px-3 py-2 text-sm text-slate-500">Không có bài viết phù hợp.</li>}
+          {results.map((a) => (
+            <li key={a.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  onPick(a);
+                  setOpen(false);
+                  setQuery('');
+                }}
+                className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-slate-50"
+              >
+                <span className="text-sm font-medium text-slate-800">{a.title}</span>
+                <span className="text-xs text-slate-500">
+                  {[a.category?.name, a.dateText || a.startYear, a.status !== ContentStatus.PUBLISHED ? 'chưa xuất bản' : null]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 /** Mốc trong form — `key` cục bộ để React giữ đúng ô khi đổi thứ tự. */
 type LinkedArticleDraft = { id: string; title: string };
@@ -230,8 +310,13 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
             <textarea className={`${input} min-h-[70px]`} value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
           <div className="sm:col-span-2">
-            <label className={label}>Ảnh bìa (URL)</label>
-            <input className={input} value={coverImageUrl} onChange={(e) => setCoverImageUrl(e.target.value)} />
+            <TopicCoverImagePicker
+              value={coverImageUrl}
+              onChange={setCoverImageUrl}
+              disabled={lockedForEditor || saving}
+              title="Ảnh bìa dòng thời gian"
+              compact
+            />
           </div>
         </div>
 
@@ -348,11 +433,8 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
                         ))}
                       </div>
                     )}
-                    <ArticlePicker
-                      value={null}
-                      placeholder="Tìm và thêm bài viết vào mốc..."
-                      onChange={(a) => {
-                        if (!a) return;
+                    <NodeArticleSearchBox
+                      onPick={(a) => {
                         if (n.linkedArticles.some((x) => x.id === a.id)) return;
                         const next = [...n.linkedArticles, { id: a.id, title: a.title }];
                         updateNode(n.key, {
@@ -365,8 +447,35 @@ export function TimelineEditor({ timelineId }: { timelineId?: string }) {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className={label}>Ảnh (URL)</label>
-                    <input className={input} value={n.imageUrl ?? ''} onChange={(e) => updateNode(n.key, { imageUrl: e.target.value })} />
+                    <label className={label}>Ảnh minh họa mốc</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        className={`${input} flex-1`}
+                        value={n.imageUrl ?? ''}
+                        onChange={(e) => updateNode(n.key, { imageUrl: e.target.value })}
+                        placeholder="Dán URL hoặc tải ảnh lên..."
+                      />
+                      <label className="secondary-button !h-9 !px-3 !text-xs shrink-0 cursor-pointer">
+                        <Upload size={13} />
+                        <span>Tải ảnh</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/gif"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            try {
+                              const uploaded = await UploadApiService.uploadImage(file);
+                              if (uploaded?.url) updateNode(n.key, { imageUrl: uploaded.url });
+                            } catch (err) {
+                              setError(extractErrorMessage(err, 'Không tải được ảnh mốc lên máy chủ.'));
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
               </li>

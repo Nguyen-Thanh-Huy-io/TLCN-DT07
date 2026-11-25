@@ -61,9 +61,7 @@ const config: AppConfig = {
   cloudinary_api_secret: process.env.CLOUDINARY_API_SECRET || '',
   // Google Cloud Vertex AI & Gemini AI
   google_cloud_project_id: (process.env.GOOGLE_CLOUD_PROJECT_ID || '').trim(),
-  google_cloud_location: (
-    process.env.GOOGLE_CLOUD_LOCATION || 'us-central1'
-  ).trim(),
+  google_cloud_location: (process.env.GOOGLE_CLOUD_LOCATION || 'global').trim(),
   google_application_credentials: (
     process.env.GOOGLE_APPLICATION_CREDENTIALS || ''
   ).trim(),
@@ -74,7 +72,7 @@ const config: AppConfig = {
   gemini_model: (
     process.env.GOOGLE_CLOUD_AI_MODEL ||
     process.env.GEMINI_MODEL ||
-    'gemini-2.0-flash'
+    'gemini-3-flash-preview'
   ).trim(),
   // Vertex AI RAG Engine
   google_cloud_rag_location: (

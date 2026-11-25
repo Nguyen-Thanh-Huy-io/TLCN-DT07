@@ -162,6 +162,7 @@ const PUBLIC_ROUTE_PREFIXES = [
   '/di-tich',
   '/luyen-tap',
   '/cong-dong',
+  '/kham-pha-khai-niem',
 ];
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {

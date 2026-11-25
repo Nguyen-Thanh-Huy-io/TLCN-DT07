@@ -20,6 +20,7 @@ const FILTER_LABELS: ReadonlyArray<{ id: CardStatusFilter; label: string }> = [
 ];
 
 function isDueCard(card: FlashcardItem, now: number): boolean {
+  if (card.repetitions === 0 && !card.lastReviewedAt) return true;
   return new Date(card.nextReviewAt).getTime() <= now;
 }
 

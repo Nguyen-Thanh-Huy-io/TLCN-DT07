@@ -197,11 +197,11 @@ export function AccountView() {
               <h1 className="font-[family-name:var(--font-heading)] text-2xl sm:text-3xl font-extrabold text-[#FFF6E3] tracking-wide drop-shadow-sm">
                 {profile ? displayName(profile) : 'Đang tải hồ sơ...'}
               </h1>
-              <p className="text-xs sm:text-sm text-[#F5EEDC]/80 mt-1 flex items-center justify-center md:justify-start gap-3 flex-wrap">
+              <p className="text-xs sm:text-sm text-[#F5EEDC]/80 mt-1 flex items-center justify-center md:justify-start gap-x-3 gap-y-1 flex-wrap">
                 <span>{profile?.email}</span>
                 {profile?.createdAt && (
                   <>
-                    <span>·</span>
+                    <span className="hidden sm:inline">·</span>
                     <span className="inline-flex items-center gap-1">
                       <Calendar size={13} className="text-[#D4AE67]" />
                       Hội viên từ {new Date(profile.createdAt).toLocaleDateString('vi-VN')}
@@ -319,7 +319,7 @@ export function AccountView() {
         ) : (
           <div className="space-y-8">
             {/* Thanh điều hướng Tab phong cách Viên thuốc Capsule hoàng gia */}
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 p-1.5 rounded-2xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-surface,#FAF6EA)] shadow-xs">
+            <div className="flex flex-nowrap items-center gap-1 lg:gap-1.5 overflow-x-auto p-1.5 rounded-2xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-surface,#FAF6EA)] shadow-xs [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -328,13 +328,13 @@ export function AccountView() {
                     key={tab.id}
                     type="button"
                     onClick={() => handleSelectTab(tab.id)}
-                    className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                    className={`flex shrink-0 items-center gap-1.5 px-3 py-2 rounded-xl text-xs lg:text-[13px] font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                       isActive
                         ? 'bg-gradient-to-r from-[#7A1F24] to-[#91252B] text-white shadow-sm'
                         : 'text-[var(--text-muted,#7A6B57)] hover:bg-[#F5EEDC] hover:text-[var(--text-body,#2D1A10)]'
                     }`}
                   >
-                    <Icon size={16} className={isActive ? 'text-[#D4AE67]' : ''} />
+                    <Icon size={15} className={isActive ? 'text-[#D4AE67]' : ''} />
                     <span>{tab.label}</span>
                     {typeof tab.badge === 'number' && tab.badge > 0 && (
                       <span

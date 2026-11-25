@@ -1,16 +1,22 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import config from '../common/config/app.config';
-import { GoogleAiService } from '../common/services/google-ai.service';
+import {
+  GoogleAiService,
+  RagGroundingChunk,
+} from '../common/services/google-ai.service';
 import { PrismaService } from '../common/services/prisma.service';
 import {
   AI_ASSISTANT_LIMITS,
+  AI_ASSISTANT_MESSAGES,
   AssistantEngine,
   AssistantLinkKind,
+  HISGO_GOOGLE_GROUNDED_PROMPT,
   HISGO_SYSTEM_PROMPT,
 } from './ai-assistant.constant';
 import {
   mergeAssistantSuggestedLinks,
   resolveRagGroundingAttachments,
+  verifyRagSuggestedLinksInDb,
 } from './ai-assistant.rag';
 import {
   FEATURE_GUIDE_RULES,
@@ -25,13 +31,13 @@ import {
 } from './ai-assistant.guide';
 import {
   resolveCurrentPageSnapshot,
-  searchMultiEntityContent,
   shouldUseRagForMessage,
 } from './ai-assistant.search';
 import {
   AiAssistantChatResponse,
   AssistantQuickAction,
   AssistantSuggestedLink,
+  AssistantWebSource,
   PageContentSnapshot,
   UserStudySnapshot,
 } from './ai-assistant.types';
@@ -42,7 +48,46 @@ export type {
   AssistantQuickAction,
   AssistantSourceCitation,
   AssistantSuggestedLink,
+  AssistantWebSource,
 } from './ai-assistant.types';
+
+interface RawGeminiAssistantPayload {
+  groundedInCorpus?: unknown;
+  isHistoricalScope?: unknown;
+  reply?: unknown;
+  quickActions?: Array<{ label?: unknown; href?: unknown }>;
+}
+
+function resolveWebHostname(uri: string, explicitDomain?: string): string {
+  if (explicitDomain?.trim()) return explicitDomain.trim();
+  try {
+    const host = new URL(uri).hostname.replace(/^www\./i, '');
+    return host.includes('vertexaisearch.cloud.google.com') ? '' : host;
+  } catch {
+    return '';
+  }
+}
+
+function extractAssistantWebSources(
+  chunks: ReadonlyArray<RagGroundingChunk>,
+): AssistantWebSource[] {
+  const seen = new Set<string>();
+  const sources: AssistantWebSource[] = [];
+  for (const chunk of chunks) {
+    if (!chunk.isWeb || !chunk.uri || seen.has(chunk.uri)) continue;
+    seen.add(chunk.uri);
+    const domain = resolveWebHostname(chunk.uri, chunk.domain);
+    const snippet = chunk.text?.trim() || undefined;
+    sources.push({
+      title: chunk.title || domain || chunk.uri,
+      uri: chunk.uri,
+      ...(domain ? { domain } : {}),
+      ...(snippet ? { snippet } : {}),
+    });
+    if (sources.length >= AI_ASSISTANT_LIMITS.MAX_WEB_SOURCES) break;
+  }
+  return sources;
+}
 
 @Injectable()
 export class AiAssistantService {
@@ -64,6 +109,7 @@ export class AiAssistantService {
     const currentPath = dto.currentPath?.trim();
     const pageContext = dto.pageContext?.trim();
     const history = dto.history ?? [];
+    const useGoogleSearch = Boolean(dto.useGoogleSearch);
 
     const [pageSnapshot, userSnapshot] = await Promise.all([
       resolveCurrentPageSnapshot(this.prisma, currentPath, pageContext).catch(
@@ -75,61 +121,226 @@ export class AiAssistantService {
       this.fetchUserStudySnapshot(userId),
     ]);
 
-    const useRagSearch = shouldUseRagForMessage(
-      message,
-      Boolean(pageSnapshot?.summary),
-    );
-    const dbLinks = useRagSearch
-      ? await searchMultiEntityContent(this.prisma, message).catch(
-          (err: unknown) => {
-            this.logger.warn(`searchMultiEntityContent error: ${String(err)}`);
-            return [] as AssistantSuggestedLink[];
-          },
-        )
-      : [];
-
-    if (this.googleAi.isConfigured()) {
-      const geminiRes = await this.callGemini(
+    if (useGoogleSearch) {
+      return this.handleGoogleGroundedChat(
         message,
         currentPath,
         history,
         pageSnapshot,
-        dbLinks,
         userSnapshot,
-        useRagSearch,
       );
-      if (geminiRes) {
-        const ragAttachments = resolveRagGroundingAttachments(
-          geminiRes.groundingChunks,
-        );
-        const includeCurrentPage =
-          Boolean(pageSnapshot) &&
-          (pageSnapshot?.kind !== AssistantLinkKind.ROUTE || useRagSearch);
-
-        const suggestedLinks = mergeAssistantSuggestedLinks(
-          includeCurrentPage ? pageSnapshot : null,
-          ragAttachments.links,
-          dbLinks,
-        );
-
-        return {
-          reply: geminiRes.reply,
-          engine: geminiRes.usedRag
-            ? AssistantEngine.VERTEX_RAG
-            : AssistantEngine.GEMINI_FLASH,
-          contextLabel: pageSnapshot?.title,
-          suggestedLinks,
-          sourceCitations: ragAttachments.citations,
-          quickActions: geminiRes.quickActions,
-        };
-      }
     }
 
-    const suggestedLinks = mergeAssistantSuggestedLinks(
+    return this.handleStrictRagOrSystemChat(
+      message,
+      currentPath,
+      history,
       pageSnapshot,
-      [],
-      dbLinks,
+      userSnapshot,
     );
+  }
+
+  private async handleGoogleGroundedChat(
+    message: string,
+    currentPath: string | undefined,
+    history: ChatHistoryItemDto[],
+    pageSnapshot: PageContentSnapshot | null,
+    userSnapshot: UserStudySnapshot | null,
+  ): Promise<AiAssistantChatResponse> {
+    if (!this.googleAi.isConfigured()) {
+      return {
+        reply: AI_ASSISTANT_MESSAGES.GOOGLE_UNAVAILABLE,
+        engine: AssistantEngine.HEURISTIC,
+        contextLabel: pageSnapshot?.title,
+        suggestedLinks: [],
+        sourceCitations: [],
+        webSources: [],
+        webSearchQueries: [],
+        quickActions: [],
+      };
+    }
+
+    const grounded =
+      await this.googleAi.generateGroundedJson<RawGeminiAssistantPayload>({
+        systemPrompt: this.buildContextualSystemPrompt(
+          HISGO_GOOGLE_GROUNDED_PROMPT,
+          message,
+          currentPath,
+          history.filter(
+            (h) =>
+              !h.content.includes('chưa có tư liệu trong kho dữ liệu lịch sử'),
+          ),
+          pageSnapshot,
+          userSnapshot,
+          true,
+        ),
+        userPrompt: message,
+        enableGoogleSearch: true,
+        disableUngroundedFallback: true,
+        temperature: 0.3,
+        timeoutMs: AI_ASSISTANT_LIMITS.AI_TIMEOUT_MS,
+        contextLabel: 'assistant-google',
+      });
+
+    if (!grounded) {
+      return {
+        reply: AI_ASSISTANT_MESSAGES.GOOGLE_UNAVAILABLE,
+        engine: AssistantEngine.HEURISTIC,
+        contextLabel: pageSnapshot?.title,
+        suggestedLinks: [],
+        sourceCitations: [],
+        webSources: [],
+        webSearchQueries: [],
+        quickActions: [],
+      };
+    }
+
+    if (grounded.data?.isHistoricalScope === false) {
+      return {
+        reply: AI_ASSISTANT_MESSAGES.NON_HISTORICAL_REJECTED,
+        engine: AssistantEngine.HEURISTIC,
+        contextLabel: pageSnapshot?.title,
+        suggestedLinks: [],
+        sourceCitations: [],
+        webSources: [],
+        webSearchQueries: [],
+        quickActions: [
+          { label: 'Khám phá Bài viết', href: ROUTE_ARTICLES },
+          { label: 'Bản đồ Khái niệm AI', href: '/kham-pha-khai-niem' },
+        ],
+      };
+    }
+
+    const parsed = this.parseGeminiChatResponse(grounded.data);
+    if (!parsed) {
+      return {
+        reply: AI_ASSISTANT_MESSAGES.GOOGLE_UNAVAILABLE,
+        engine: AssistantEngine.HEURISTIC,
+        contextLabel: pageSnapshot?.title,
+        suggestedLinks: [],
+        sourceCitations: [],
+        webSources: [],
+        webSearchQueries: [],
+        quickActions: [],
+      };
+    }
+
+    const includeCurrentPage =
+      Boolean(pageSnapshot) && pageSnapshot?.kind !== AssistantLinkKind.ROUTE;
+    const suggestedLinks = mergeAssistantSuggestedLinks(
+      includeCurrentPage ? pageSnapshot : null,
+      [],
+      [],
+    );
+
+    return {
+      reply: parsed.reply,
+      engine: AssistantEngine.GOOGLE_GROUNDED,
+      contextLabel: pageSnapshot?.title,
+      suggestedLinks,
+      sourceCitations: [],
+      webSources: extractAssistantWebSources(grounded.groundingChunks),
+      webSearchQueries: grounded.webSearchQueries ?? [],
+      quickActions: parsed.quickActions,
+    };
+  }
+
+  private async handleStrictRagOrSystemChat(
+    message: string,
+    currentPath: string | undefined,
+    history: ChatHistoryItemDto[],
+    pageSnapshot: PageContentSnapshot | null,
+    userSnapshot: UserStudySnapshot | null,
+  ): Promise<AiAssistantChatResponse> {
+    const useRagSearch = shouldUseRagForMessage(
+      message,
+      Boolean(pageSnapshot?.summary),
+    );
+    const ragCorpus = useRagSearch
+      ? config.google_cloud_rag_corpus?.trim()
+      : '';
+
+    if (this.googleAi.isConfigured() && (!useRagSearch || Boolean(ragCorpus))) {
+      const grounded =
+        await this.googleAi.generateGroundedJson<RawGeminiAssistantPayload>({
+          systemPrompt: this.buildContextualSystemPrompt(
+            HISGO_SYSTEM_PROMPT,
+            message,
+            currentPath,
+            history,
+            pageSnapshot,
+            userSnapshot,
+            false,
+          ),
+          userPrompt: message,
+          temperature: 0.25,
+          timeoutMs: AI_ASSISTANT_LIMITS.AI_TIMEOUT_MS,
+          contextLabel: 'assistant-rag',
+          ...(ragCorpus
+            ? {
+                ragCorpus,
+                topK: Math.max(
+                  config.google_cloud_rag_top_k,
+                  AI_ASSISTANT_LIMITS.RAG_TOP_K,
+                ),
+                vectorDistanceThreshold:
+                  AI_ASSISTANT_LIMITS.STRICT_RAG_DISTANCE_THRESHOLD,
+                disableUngroundedFallback: true,
+              }
+            : {}),
+        });
+
+      if (grounded) {
+        const allRagChunks = grounded.groundingChunks.filter((c) => !c.isWeb);
+        const groundedInCorpus = grounded.data?.groundedInCorpus !== false;
+
+        if (useRagSearch && (allRagChunks.length === 0 || !groundedInCorpus)) {
+          return this.buildOutOfCorpusRagReply(pageSnapshot);
+        }
+
+        const parsed = this.parseGeminiChatResponse(grounded.data);
+        if (parsed) {
+          const citedChunks = allRagChunks.filter((c) => c.cited);
+          const relevantRagChunks =
+            citedChunks.length > 0 ? citedChunks : allRagChunks.slice(0, 2);
+          const ragAttachments =
+            resolveRagGroundingAttachments(relevantRagChunks);
+          const verifiedRagLinks = await verifyRagSuggestedLinksInDb(
+            this.prisma,
+            ragAttachments.links,
+          );
+          const includeCurrentPage =
+            Boolean(pageSnapshot) &&
+            (pageSnapshot?.kind !== AssistantLinkKind.ROUTE || !useRagSearch);
+
+          const suggestedLinks = mergeAssistantSuggestedLinks(
+            includeCurrentPage ? pageSnapshot : null,
+            verifiedRagLinks,
+            [],
+          );
+
+          return {
+            reply: parsed.reply,
+            engine:
+              useRagSearch && allRagChunks.length > 0
+                ? AssistantEngine.VERTEX_RAG
+                : AssistantEngine.GEMINI_FLASH,
+            contextLabel: pageSnapshot?.title,
+            suggestedLinks,
+            sourceCitations: ragAttachments.citations,
+            webSources: [],
+            webSearchQueries: [],
+            quickActions: parsed.quickActions,
+          };
+        }
+      } else if (useRagSearch) {
+        return this.buildOutOfCorpusRagReply(pageSnapshot);
+      }
+    } else if (useRagSearch) {
+      return this.buildOutOfCorpusRagReply(pageSnapshot);
+    }
+
+    const suggestedLinks = mergeAssistantSuggestedLinks(pageSnapshot, [], []);
     const fallback = this.buildHeuristicReply(
       message,
       pageSnapshot,
@@ -142,7 +353,27 @@ export class AiAssistantService {
       contextLabel: pageSnapshot?.title,
       suggestedLinks,
       sourceCitations: [],
+      webSources: [],
+      webSearchQueries: [],
       quickActions: fallback.quickActions,
+    };
+  }
+
+  private buildOutOfCorpusRagReply(
+    pageSnapshot: PageContentSnapshot | null,
+  ): AiAssistantChatResponse {
+    return {
+      reply: AI_ASSISTANT_MESSAGES.NO_RAG_MATCH,
+      engine: AssistantEngine.HEURISTIC,
+      contextLabel: pageSnapshot?.title,
+      suggestedLinks: [],
+      sourceCitations: [],
+      webSources: [],
+      webSearchQueries: [],
+      quickActions: [
+        { label: 'Khám phá Kho bài viết', href: ROUTE_ARTICLES },
+        { label: 'Bản đồ Khái niệm AI', href: '/kham-pha-khai-niem' },
+      ],
     };
   }
 
@@ -184,14 +415,25 @@ export class AiAssistantService {
     }
   }
 
-  private buildPromptContext(
+  private buildContextualSystemPrompt(
+    baseSystemPrompt: string,
     message: string,
     currentPath: string | undefined,
     history: ChatHistoryItemDto[],
     pageSnapshot: PageContentSnapshot | null,
-    dbLinks: AssistantSuggestedLink[],
     userSnapshot: UserStudySnapshot | null,
+    isGoogleMode: boolean,
   ): string {
+    const isAskingAboutCurrentPage =
+      /tóm tắt|trang này|bài này|đang đọc|đang xem|trang hiện tại/i.test(
+        message,
+      );
+    const includeFullPage =
+      Boolean(pageSnapshot) &&
+      (!isGoogleMode ||
+        isAskingAboutCurrentPage ||
+        pageSnapshot?.kind !== AssistantLinkKind.ROUTE);
+
     const historyBlock =
       history.length > 0
         ? `LỊCH SỬ TRÒ CHUYỆN GẦN ĐÂY:\n${history
@@ -199,92 +441,26 @@ export class AiAssistantService {
             .join('\n')}`
         : '';
 
-    const pageBlock = pageSnapshot
-      ? `BÀI NGƯỜI DÙNG ĐANG XEM TRÊN MÀN HÌNH (${currentPath}):\nTiêu đề: ${pageSnapshot.title}\nNội dung tóm tắt: ${pageSnapshot.summary}`
-      : currentPath
-        ? `TRANG HIỆN TẠI NGƯỜI DÙNG ĐANG ĐỨNG: ${currentPath}`
-        : '';
-
-    const dbLinksBlock =
-      dbLinks.length > 0
-        ? `CÁC TƯ LIỆU LIÊN QUAN TRONG DB HISGO:\n${dbLinks
-            .map(
-              (l) =>
-                `- [${l.kind}] ${l.title} (${l.href}): ${l.subtitle || ''}`,
-            )
-            .join('\n')}`
-        : '';
+    const pageBlock =
+      includeFullPage && pageSnapshot
+        ? `BÀI NGƯỜI DÙNG ĐANG XEM TRÊN MÀN HÌNH (${currentPath}):\nTiêu đề: ${pageSnapshot.title}\nNội dung tóm tắt: ${pageSnapshot.summary}`
+        : currentPath
+          ? `TRANG HIỆN TẠI NGƯỜI DÙNG ĐANG ĐỨNG: ${currentPath}`
+          : '';
 
     const userBlock = userSnapshot
       ? `TIẾN ĐỘ HỌC TẬP CÁ NHÂN CỦA NGƯỜI DÙNG ĐANG ĐĂNG NHẬP:\n- Tổng XP: ${userSnapshot.totalXp} XP | Streak: ${userSnapshot.currentDayStreak} ngày\n- Thẻ Flashcard đến hạn hôm nay: ${userSnapshot.dueFlashcards} thẻ | Mindmap: ${userSnapshot.mindmapCount} | Tư liệu đã lưu: ${userSnapshot.savedCount}`
       : 'Người dùng hiện chưa đăng nhập (khách vãng lai).';
 
-    return [
-      historyBlock,
-      pageBlock,
-      dbLinksBlock,
-      userBlock,
-      `\nCÂU HỎI HIỆN TẠI CỦA NGƯỜI DÙNG:\n"""\n${message}\n"""`,
-    ]
+    return [baseSystemPrompt, historyBlock, pageBlock, userBlock]
       .filter(Boolean)
       .join('\n\n');
   }
 
-  private async callGemini(
-    message: string,
-    currentPath: string | undefined,
-    history: ChatHistoryItemDto[],
-    pageSnapshot: PageContentSnapshot | null,
-    dbLinks: AssistantSuggestedLink[],
-    userSnapshot: UserStudySnapshot | null,
-    useRag: boolean,
-  ): Promise<{
+  private parseGeminiChatResponse(parsed: RawGeminiAssistantPayload): {
     reply: string;
     quickActions: AssistantQuickAction[];
-    groundingChunks: Array<{ uri: string; title: string; text: string }>;
-    usedRag: boolean;
-  } | null> {
-    const ragCorpus = useRag ? config.google_cloud_rag_corpus : '';
-    const grounded = await this.googleAi.generateGroundedJson<{
-      reply?: unknown;
-      quickActions?: Array<{ label?: unknown; href?: unknown }>;
-    }>({
-      systemPrompt: HISGO_SYSTEM_PROMPT,
-      userPrompt: this.buildPromptContext(
-        message,
-        currentPath,
-        history,
-        pageSnapshot,
-        dbLinks,
-        userSnapshot,
-      ),
-      temperature: 0.35,
-      timeoutMs: AI_ASSISTANT_LIMITS.AI_TIMEOUT_MS,
-      contextLabel: 'assistant',
-      ...(ragCorpus
-        ? {
-            ragCorpus,
-            topK: config.google_cloud_rag_top_k,
-            vectorDistanceThreshold: config.google_cloud_rag_distance_threshold,
-          }
-        : {}),
-    });
-
-    if (!grounded) return null;
-    const parsed = this.parseGeminiChatResponse(grounded.data);
-    if (!parsed) return null;
-
-    return {
-      ...parsed,
-      groundingChunks: grounded.groundingChunks,
-      usedRag: grounded.usedRag,
-    };
-  }
-
-  private parseGeminiChatResponse(parsed: {
-    reply?: unknown;
-    quickActions?: Array<{ label?: unknown; href?: unknown }>;
-  }): { reply: string; quickActions: AssistantQuickAction[] } | null {
+  } | null {
     const reply = typeof parsed.reply === 'string' ? parsed.reply.trim() : '';
     if (!reply) return null;
 

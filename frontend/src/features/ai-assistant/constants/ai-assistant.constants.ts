@@ -21,6 +21,7 @@ export enum AssistantLinkKind {
 
 export enum AssistantEngine {
   VERTEX_RAG = 'VERTEX_RAG',
+  GOOGLE_GROUNDED = 'GOOGLE_GROUNDED',
   GEMINI_FLASH = 'GEMINI_FLASH',
   HEURISTIC = 'HEURISTIC',
 }
@@ -85,10 +86,12 @@ export const ASSISTANT_LINK_KIND_META: Record<
 export const AI_ASSISTANT_WELCOME_MESSAGE =
   'Xin chào! Tôi là **Sử Gia AI — Trợ lý Tra cứu & Điều hướng của HISGO**.\nHỏi tôi về **Sự kiện, Nhân vật, Di tích Lịch sử Việt Nam & Thế giới** để nhận tóm tắt trọng tâm kèm đường dẫn bài viết và nguồn tư liệu chuẩn nhé!';
 
-export const AI_ASSISTANT_QUICK_PROMPTS: ReadonlyArray<{
+export interface AssistantQuickPromptItem {
   label: string;
   prompt: string;
-}> = [
+}
+
+export const AI_ASSISTANT_QUICK_PROMPTS: ReadonlyArray<AssistantQuickPromptItem> = [
   {
     label: '⚔️ Kháng chiến chống Nguyên – Mông',
     prompt:
@@ -109,3 +112,60 @@ export const AI_ASSISTANT_QUICK_PROMPTS: ReadonlyArray<{
       'Kiểm tra tiến độ học tập, chuỗi Streak và số thẻ Flashcard tôi cần ôn hôm nay',
   },
 ];
+
+const GUEST_LEARNING_PROMPT: AssistantQuickPromptItem = {
+  label: '🧭 Lộ trình cho người mới',
+  prompt:
+    'Tôi mới bắt đầu học lịch sử trên HISGO, hãy gợi ý lộ trình khám phá và các công cụ học hiệu quả nhất',
+};
+
+const AUTH_STUDY_PROMPT: AssistantQuickPromptItem = AI_ASSISTANT_QUICK_PROMPTS[3];
+
+/** Chiến lược chọn 4 câu Gợi ý hỏi nhanh bám sát ngữ cảnh trang hiện tại và trạng thái đăng nhập. */
+export function resolveContextQuickPrompts(
+  pathname: string | null | undefined,
+  isAuthenticated: boolean,
+): ReadonlyArray<AssistantQuickPromptItem> {
+  const personalPrompt = isAuthenticated ? AUTH_STUDY_PROMPT : GUEST_LEARNING_PROMPT;
+  const path = pathname || '/';
+
+  if (path.startsWith('/bai-viet/') && path.length > '/bai-viet/'.length) {
+    return [
+      {
+        label: '📜 Tóm tắt bài viết này',
+        prompt: 'Tóm tắt trọng tâm bài viết lịch sử tôi đang đọc thành 3 ý chính dễ nhớ kèm niên đại quan trọng',
+      },
+      {
+        label: '🔗 Nhân vật & sự kiện liên quan',
+        prompt: 'Từ bài viết tôi đang đọc, hãy gợi ý các nhân vật, sự kiện hoặc di tích liên quan kèm đường dẫn trên HISGO',
+      },
+      {
+        label: '❓ Tạo 3 câu hỏi ôn nhanh',
+        prompt: 'Dựa vào bài viết tôi đang đọc, hãy đặt 3 câu hỏi trắc nghiệm ngắn (kèm đáp án ở cuối) để tôi tự kiểm tra trí nhớ',
+      },
+      personalPrompt,
+    ];
+  }
+
+  if (path.startsWith('/dong-thoi-gian')) {
+    return [
+      {
+        label: '⏳ Tóm tắt các thời kỳ chính',
+        prompt: 'Khái quát ngắn gọn các thời kỳ lịch sử lớn trên Dòng thời gian HISGO và gợi ý mốc nên bắt đầu',
+      },
+      AI_ASSISTANT_QUICK_PROMPTS[0],
+      {
+        label: '🌍 Văn minh cổ đại Thế giới',
+        prompt: 'Giới thiệu nhanh các nền văn minh cổ đại tiêu biểu (Lưỡng Hà, Ai Cập, Ấn Độ) và đường dẫn bài viết trên HISGO',
+      },
+      personalPrompt,
+    ];
+  }
+
+  return [
+    AI_ASSISTANT_QUICK_PROMPTS[0],
+    AI_ASSISTANT_QUICK_PROMPTS[1],
+    AI_ASSISTANT_QUICK_PROMPTS[2],
+    personalPrompt,
+  ];
+}

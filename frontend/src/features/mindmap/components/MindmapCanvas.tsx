@@ -105,7 +105,9 @@ export function MindmapCanvas({
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
   const [saveState, setSaveState] = useState<MindmapSaveState>(MindmapSaveState.SAVED);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() =>
+    typeof window === 'undefined' ? true : window.innerWidth >= 1024,
+  );
   const [readerOpen, setReaderOpen] = useState(false);
   const [requestedReaderSource, setRequestedReaderSource] = useState<RequestedReaderSource | null>(null);
   const [activeTab, setActiveTab] = useState<MindmapInspectorTab>(MindmapInspectorTab.STYLE);
@@ -550,6 +552,7 @@ export function MindmapCanvas({
   return (
     <div
       ref={studioRef}
+      data-fullscreen-studio="true"
       className="fixed inset-0 z-50 flex flex-col bg-white text-slate-900"
     >
       <MindmapTopBar

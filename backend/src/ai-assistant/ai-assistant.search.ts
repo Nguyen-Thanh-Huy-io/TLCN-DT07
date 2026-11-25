@@ -1,18 +1,11 @@
 import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
-import {
-  AI_ASSISTANT_LIMITS,
-  AssistantLinkKind,
-} from './ai-assistant.constant';
+import { AssistantLinkKind } from './ai-assistant.constant';
 import {
   FEATURE_GUIDE_RULES,
-  SEARCH_STOP_WORDS,
   STATIC_PAGE_DESCRIPTIONS,
 } from './ai-assistant.guide';
-import {
-  AssistantSuggestedLink,
-  PageContentSnapshot,
-} from './ai-assistant.types';
+import { PageContentSnapshot } from './ai-assistant.types';
 
 const BLOCK_TEXT_KEYS = ['content', 'text', 'title', 'quote'] as const;
 
@@ -38,25 +31,7 @@ export function extractBlockSnippet(blocks: unknown, maxChars = 700): string {
   return parts.join(' ').slice(0, maxChars);
 }
 
-export function extractSearchKeywords(message: string): string[] {
-  const words = message
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .split(/\s+/)
-    .filter((w) => w.length >= 2 && !SEARCH_STOP_WORDS.has(w));
-
-  if (words.length === 0) return [];
-  const phrases: string[] = [];
-  if (words.length >= 2) {
-    phrases.push(words.slice(-2).join(' '));
-    phrases.push(words.slice(0, 2).join(' '));
-  }
-  return Array.from(
-    new Set([...phrases, ...words.filter((w) => w.length >= 3)]),
-  ).slice(0, 6);
-}
-
-/** Intent Gate: chỉ kích hoạt RAG với câu hỏi tra cứu lịch sử / tóm tắt; bỏ qua tiến độ, hướng dẫn tính năng & tán gẫu. */
+/** Intent Gate: chỉ kích hoạt RAG với câu hỏi tra cứu lịch sử; bỏ qua tóm tắt trang đang mở, tiến độ, hướng dẫn tính năng & tán gẫu. */
 export function shouldUseRagForMessage(
   message: string,
   hasPageContext = false,
@@ -64,7 +39,7 @@ export function shouldUseRagForMessage(
   const clean = message.trim();
   if (!clean) return false;
   if (/tóm tắt|trang này|bài này|đang đọc|đang xem/i.test(clean)) {
-    return !hasPageContext ? true : false;
+    return !hasPageContext;
   }
   if (/tiến độ|hôm nay|cần ôn|tài khoản của tôi|thành tích/i.test(clean)) {
     return false;
@@ -225,126 +200,4 @@ export async function resolveCurrentPageSnapshot(
         href: currentPath || cleanPath,
       }
     : null;
-}
-
-export async function searchMultiEntityContent(
-  prisma: PrismaService,
-  message: string,
-): Promise<AssistantSuggestedLink[]> {
-  const keywords = extractSearchKeywords(message);
-  if (keywords.length === 0) return [];
-
-  const [articles, lessons, blogs, timelineNodes] =
-    await Promise.all([
-      prisma.article?.findMany
-        ? prisma.article.findMany({
-            where: {
-              status: ContentStatus.PUBLISHED,
-              OR: keywords.flatMap((kw) => [
-                { title: { contains: kw, mode: 'insensitive' } },
-                { summary: { contains: kw, mode: 'insensitive' } },
-                {
-                  articleTags: {
-                    some: {
-                      tag: { name: { contains: kw, mode: 'insensitive' } },
-                    },
-                  },
-                },
-              ]),
-            },
-            take: 4,
-            select: {
-              title: true,
-              slug: true,
-              dateText: true,
-              summary: true,
-              category: { select: { name: true } },
-            },
-          })
-        : Promise.resolve([]),
-      prisma.lesson?.findMany
-        ? prisma.lesson.findMany({
-            where: {
-              status: ContentStatus.PUBLISHED,
-              OR: keywords.flatMap((kw) => [
-                { title: { contains: kw, mode: 'insensitive' } },
-                { description: { contains: kw, mode: 'insensitive' } },
-              ]),
-            },
-            take: 2,
-            select: { title: true, slug: true, description: true },
-          })
-        : Promise.resolve([]),
-      prisma.blogPost?.findMany
-        ? prisma.blogPost.findMany({
-            where: {
-              status: ContentStatus.PUBLISHED,
-              OR: keywords.flatMap((kw) => [
-                { title: { contains: kw, mode: 'insensitive' } },
-                { excerpt: { contains: kw, mode: 'insensitive' } },
-              ]),
-            },
-            take: 2,
-            select: { title: true, slug: true, excerpt: true },
-          })
-        : Promise.resolve([]),
-      prisma.timelineNode?.findMany
-        ? prisma.timelineNode.findMany({
-            where: {
-              timeline: { status: ContentStatus.PUBLISHED },
-              OR: keywords.flatMap((kw) => [
-                { title: { contains: kw, mode: 'insensitive' } },
-                { description: { contains: kw, mode: 'insensitive' } },
-              ]),
-            },
-            take: 2,
-            select: {
-              title: true,
-              dateText: true,
-              timeline: { select: { title: true, slug: true } },
-            },
-          })
-        : Promise.resolve([]),
-    ]);
-
-  const results: AssistantSuggestedLink[] = [];
-
-  for (const a of articles) {
-    const label = a.category?.name || 'Bài viết';
-    results.push({
-      kind: AssistantLinkKind.ARTICLE,
-      title: a.title,
-      subtitle: [label, a.dateText, a.summary].filter(Boolean).join(' · '),
-      href: `/bai-viet/${a.slug}`,
-    });
-  }
-
-  for (const l of lessons) {
-    results.push({
-      kind: AssistantLinkKind.LESSON,
-      title: l.title,
-      subtitle: l.description || 'Bài học lịch sử HISGO',
-      href: `/bai-hoc/${l.slug}`,
-    });
-  }
-
-  for (const b of blogs) {
-    results.push({
-      kind: AssistantLinkKind.BLOG,
-      title: b.title,
-      subtitle: b.excerpt || 'Blog chuyên khảo sử học HISGO',
-      href: `/blog/${b.slug}`,
-    });
-  }
-
-  for (const node of timelineNodes) {
-    results.push({
-      kind: AssistantLinkKind.TIMELINE,
-      title: node.dateText ? `${node.dateText}: ${node.title}` : node.title,
-      subtitle: `Giai đoạn · ${node.timeline.title}`,
-      href: `/giai-doan/${node.timeline.slug}`,
-    });
-  }
-
-  return results.slice(0, AI_ASSISTANT_LIMITS.MAX_SUGGESTED_LINKS);
 }

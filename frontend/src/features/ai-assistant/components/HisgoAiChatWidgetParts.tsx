@@ -13,6 +13,7 @@ import {
   History,
   Landmark,
   Newspaper,
+  Search,
   Swords,
   User,
 } from 'lucide-react';
@@ -20,20 +21,25 @@ import { URL_PROTOCOLS } from '@/constants/routes';
 import {
   ASSISTANT_LINK_KIND_META,
   AssistantChatRole,
+  AssistantEngine,
   AssistantLinkKind,
 } from '../constants/ai-assistant.constants';
 import type {
   AssistantQuickAction,
   AssistantSourceCitation,
   AssistantSuggestedLink,
+  AssistantWebSource,
 } from '../services/ai-assistant.service';
 
 export interface ChatMessageItem {
   id: string;
   role: AssistantChatRole;
   content: string;
+  engine?: AssistantEngine;
   suggestedLinks?: AssistantSuggestedLink[];
   sourceCitations?: AssistantSourceCitation[];
+  webSources?: AssistantWebSource[];
+  webSearchQueries?: string[];
   quickActions?: AssistantQuickAction[];
 }
 
@@ -163,24 +169,33 @@ function AssistantLinkCard({
 export function AssistantMessageAttachments({
   links,
   citations,
+  webSources,
+  webSearchQueries,
   actions,
   onNavigate,
 }: {
   links?: AssistantSuggestedLink[];
   citations?: AssistantSourceCitation[];
+  webSources?: AssistantWebSource[];
+  webSearchQueries?: string[];
   actions?: AssistantQuickAction[];
   onNavigate: () => void;
 }) {
   const hasLinks = Boolean(links && links.length > 0);
   const hasCitations = Boolean(citations && citations.length > 0);
+  const hasWeb =
+    Boolean(webSources && webSources.length > 0) ||
+    Boolean(webSearchQueries && webSearchQueries.length > 0);
   const hasActions = Boolean(actions && actions.length > 0);
-  if (!hasLinks && !hasCitations && !hasActions) return null;
+  if (!hasLinks && !hasCitations && !hasWeb && !hasActions) return null;
 
   return (
     <div className="mt-3.5 space-y-2.5 border-t border-[var(--border,#E2D5B8)]/60 pt-3">
       {hasLinks && (
         <div className="space-y-1.5">
-          <span className={SECTION_LABEL_CLASS}>Đường dẫn liên quan</span>
+          <span className={SECTION_LABEL_CLASS}>
+            Bài viết &amp; Đường dẫn HISGO liên quan
+          </span>
           {links!.map((link) => (
             <AssistantLinkCard
               key={link.href}
@@ -194,7 +209,7 @@ export function AssistantMessageAttachments({
       {hasCitations && (
         <div className="space-y-1.5">
           <span className={SECTION_LABEL_CLASS}>
-            Nguồn sách & Tư liệu tham khảo
+            Nguồn sách &amp; Tư liệu tham khảo
           </span>
           <div className="flex flex-wrap gap-1.5">
             {citations!.map((cit) => (
@@ -216,6 +231,62 @@ export function AssistantMessageAttachments({
         </div>
       )}
 
+      {hasWeb && (
+        <div className="space-y-1.5">
+          <span className="block text-[11px] font-bold uppercase tracking-wider text-sky-900">
+            Tài liệu &amp; Bài viết từ Google Search
+          </span>
+
+          {webSearchQueries && webSearchQueries.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {webSearchQueries.slice(0, 3).map((q, qIdx) => (
+                <span
+                  key={`chat-wq-${qIdx}`}
+                  className="inline-flex items-center gap-1 rounded-full border border-stone-300 bg-stone-100 px-2 py-0.5 text-[10.5px] font-medium text-stone-600"
+                >
+                  <Search size={10} className="shrink-0 text-stone-500" />
+                  <span className="max-w-[240px] truncate">{q}</span>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {webSources && webSources.length > 0 && (
+            <div className="space-y-1.5">
+              {webSources.map((src, idx) => (
+                <a
+                  key={`${src.uri}-${idx}`}
+                  href={src.uri}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col gap-0.5 rounded-xl border border-sky-200 bg-sky-50/40 px-3 py-2 text-left transition hover:border-sky-500 hover:bg-sky-50"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <Globe size={13} className="shrink-0 text-sky-700" />
+                      <span className="truncate text-xs font-bold text-stone-900">
+                        {src.title}
+                      </span>
+                      {src.domain && src.domain !== src.title && (
+                        <span className="shrink-0 rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-stone-500">
+                          {src.domain}
+                        </span>
+                      )}
+                    </div>
+                    <ExternalLink size={12} className="shrink-0 text-sky-700" />
+                  </div>
+                  {src.snippet && (
+                    <p className="line-clamp-2 pl-5 text-[11px] leading-snug text-stone-600">
+                      {src.snippet}
+                    </p>
+                  )}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {hasActions && (
         <div className="flex flex-wrap gap-2">
           {actions!.map((act) => (
@@ -223,10 +294,10 @@ export function AssistantMessageAttachments({
               key={`${act.href}-${act.label}`}
               href={act.href}
               onClick={onNavigate}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#B8893F]/60 bg-white px-3.5 py-1.5 text-xs font-bold text-[#7A1F24] shadow-2xs transition hover:bg-[#7A1F24] hover:text-white"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#D4AE67]/80 bg-[#FAF5E6] px-3 py-1.5 text-xs font-bold text-[#7A1F24] transition hover:bg-[#F3E6C8]"
             >
-              <Compass size={13} />
               <span>{act.label}</span>
+              <ArrowRight size={12} />
             </Link>
           ))}
         </div>

@@ -68,6 +68,16 @@ export interface RequestedReaderSource {
   seq: number;
 }
 
+export interface RequestedReaderSearch {
+  query: string;
+  seq: number;
+}
+
+export enum DrawerSide {
+  LEFT = 'LEFT',
+  RIGHT = 'RIGHT',
+}
+
 const TAB_ACTIVE_CLS = 'bg-white text-indigo-700 shadow-2xs';
 const TAB_IDLE_CLS = 'text-slate-600 hover:text-slate-900';
 
@@ -405,6 +415,8 @@ function LockedLessonNotice({ slug }: { slug: string }) {
 /** Ngăn đọc Bài viết / Bài học chia đôi màn hình ngay trong Mindmap Studio để vừa xem vừa vẽ. */
 export function MindmapReferenceDrawer({
   requestedSource,
+  requestedSearch,
+  side = DrawerSide.LEFT,
   attachedArticles,
   selectedNodeTitle,
   onCreateBranchFromText,
@@ -412,6 +424,8 @@ export function MindmapReferenceDrawer({
   onClose,
 }: {
   requestedSource: RequestedReaderSource | null;
+  requestedSearch?: RequestedReaderSearch | null;
+  side?: DrawerSide;
   attachedArticles: MindmapArticleRef[];
   selectedNodeTitle?: string;
   onCreateBranchFromText: (payload: { title: string; note?: string; articleRef?: MindmapArticleRef }) => void;
@@ -465,6 +479,29 @@ export function MindmapReferenceDrawer({
     }, 0);
     return () => clearTimeout(timer);
   }, [openMaterial, requestedSource]);
+
+  useEffect(() => {
+    if (!requestedSearch) return;
+    const cleanQ = requestedSearch.query.trim();
+    const timer = setTimeout(() => {
+      setKind(ReaderSourceKind.ARTICLE);
+      setMaterial(null);
+      setDetailError(null);
+      setLockedSlug(null);
+      setQuery(cleanQ);
+      if (!cleanQ) return;
+      void MindmapApiService.searchArticles(cleanQ).then((rows) => {
+        const needle = cleanQ.toLowerCase();
+        const exact =
+          rows.find((r) => r.title.trim().toLowerCase() === needle) ??
+          (rows.length === 1 ? rows[0] : undefined);
+        if (exact) {
+          void openMaterial(ReaderSourceKind.ARTICLE, exact.slug);
+        }
+      });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [openMaterial, requestedSearch]);
 
   useEffect(() => {
     if (kind === ReaderSourceKind.SAVED) return;
@@ -550,8 +587,12 @@ export function MindmapReferenceDrawer({
   return (
     <aside
       aria-label="Ngăn đọc Bài viết và Bài học"
-      className={`flex h-full shrink-0 flex-col border-r border-slate-200 bg-white shadow-md transition-all print:hidden ${
-        wide ? 'w-[54%] max-w-[760px]' : 'w-[390px] xl:w-[440px]'
+      className={`flex h-full shrink-0 flex-col ${
+        side === DrawerSide.RIGHT ? 'border-l-2 border-[#1A120B]' : 'border-r border-slate-200'
+      } bg-white shadow-xl transition-all print:hidden ${
+        wide
+          ? 'w-screen max-w-full sm:w-[54%] sm:max-w-[760px]'
+          : 'w-screen max-w-full sm:w-[390px] xl:w-[440px]'
       }`}
     >
       {/* Header ngăn đọc */}

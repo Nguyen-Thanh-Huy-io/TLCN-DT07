@@ -3,6 +3,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -76,4 +77,12 @@ export class AskAiAssistantDto {
   @ValidateNested({ each: true })
   @Type(() => ChatHistoryItemDto)
   history?: ChatHistoryItemDto[];
+
+  @ApiPropertyOptional({
+    description:
+      'Bật tra cứu mở rộng qua Google Search (mặc định tắt — chỉ dùng kho Vertex AI RAG nội bộ & trang đang xem)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  useGoogleSearch?: boolean;
 }

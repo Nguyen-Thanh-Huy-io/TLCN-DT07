@@ -7,10 +7,10 @@ import {
   buildGeminiApiGenerateEndpoint,
   buildVertexGenerateEndpoint,
   extractCandidateText,
-  extractGroundingChunks,
+  extractGroundingMetadata,
   GOOGLE_AI_ENDPOINTS,
+  parseAiJsonText,
   parseServiceAccountJsonText,
-  stripMarkdownJsonFence,
 } from './google-ai.helper';
 import {
   CachedAccessToken,
@@ -101,27 +101,40 @@ export class GoogleAiService {
     options: GenerateGroundedJsonOptions,
   ): Promise<GroundedJsonResult<T> | null> {
     const ragCorpus = options.ragCorpus?.trim();
-    const canUseRag =
-      Boolean(ragCorpus) &&
-      this.getProviderMode() === GoogleAiProviderMode.VERTEX_SERVICE_ACCOUNT;
+    const useGoogleSearch = Boolean(options.enableGoogleSearch);
+    const providerMode = this.getProviderMode();
+    const canUseGroundingTools =
+      (Boolean(ragCorpus) &&
+        providerMode === GoogleAiProviderMode.VERTEX_SERVICE_ACCOUNT) ||
+      (useGoogleSearch && providerMode !== GoogleAiProviderMode.NONE);
 
-    if (canUseRag && ragCorpus) {
+    if (canUseGroundingTools) {
       const request = await this.resolveEndpointRequest('v1beta1');
       if (request) {
-        const ragResult = await this.executeJsonCall<T>(request, {
+        const groundedResult = await this.executeJsonCall<T>(request, {
           ...options,
-          ragCorpus,
+          ragCorpus: useGoogleSearch ? undefined : ragCorpus,
+          enableGoogleSearch: useGoogleSearch,
           timeoutMs: options.timeoutMs ?? DEFAULT_RAG_TIMEOUT_MS,
         });
-        if (ragResult) {
+        if (groundedResult) {
+          const hasRagChunks = groundedResult.groundingChunks.some(
+            (chunk) => !chunk.isWeb,
+          );
           return {
-            data: ragResult.data,
-            groundingChunks: ragResult.groundingChunks,
-            usedRag: true,
+            data: groundedResult.data,
+            groundingChunks: groundedResult.groundingChunks,
+            webSearchQueries: groundedResult.webSearchQueries,
+            usedRag: !useGoogleSearch && Boolean(ragCorpus) && hasRagChunks,
+            usedGoogleSearch: useGoogleSearch,
             providerMode: request.mode,
           };
         }
       }
+    }
+
+    if (options.disableUngroundedFallback) {
+      return null;
     }
 
     const directRequest = await this.resolveEndpointRequest('v1');
@@ -130,6 +143,7 @@ export class GoogleAiService {
     const directResult = await this.executeJsonCall<T>(directRequest, {
       ...options,
       ragCorpus: undefined,
+      enableGoogleSearch: false,
       timeoutMs: options.timeoutMs ?? DEFAULT_GENERATE_TIMEOUT_MS,
     });
     if (!directResult) return null;
@@ -137,50 +151,66 @@ export class GoogleAiService {
     return {
       data: directResult.data,
       groundingChunks: [],
+      webSearchQueries: [],
       usedRag: false,
+      usedGoogleSearch: false,
       providerMode: directRequest.mode,
     };
+  }
+
+  private buildGroundingTools(
+    options: GenerateGroundedJsonOptions,
+  ): Array<Record<string, unknown>> {
+    if (options.enableGoogleSearch) {
+      return [{ googleSearch: {} }];
+    }
+    const ragCorpus = options.ragCorpus?.trim();
+    if (!ragCorpus) return [];
+    const effectiveThreshold =
+      options.vectorDistanceThreshold ??
+      config.google_cloud_rag_distance_threshold;
+    const ragFilter =
+      typeof effectiveThreshold === 'number'
+        ? {
+            filter: {
+              vectorDistanceThreshold: effectiveThreshold,
+            },
+          }
+        : {};
+    return [
+      {
+        retrieval: {
+          vertexRagStore: {
+            ragResources: [{ ragCorpus }],
+            ragRetrievalConfig: {
+              topK: options.topK ?? config.google_cloud_rag_top_k,
+              ...ragFilter,
+            },
+          },
+        },
+      },
+    ];
   }
 
   private buildRequestPayload(
     options: GenerateGroundedJsonOptions,
   ): Record<string, unknown> {
-    const ragCorpus = options.ragCorpus?.trim();
-    const ragFilter =
-      typeof options.vectorDistanceThreshold === 'number'
-        ? {
-            filter: {
-              vectorDistanceThreshold: options.vectorDistanceThreshold,
-            },
-          }
-        : {};
+    const tools = this.buildGroundingTools(options);
+    const useGoogleSearch = Boolean(options.enableGoogleSearch);
+    const systemText = useGoogleSearch
+      ? `${options.systemPrompt}\nBẮT BUỘC: Chỉ xuất ra duy nhất 1 JSON object hợp lệ, không thêm lời dẫn hay markdown.`
+      : options.systemPrompt;
 
     return {
-      systemInstruction: { parts: [{ text: options.systemPrompt }] },
+      systemInstruction: { parts: [{ text: systemText }] },
       contents: [{ role: 'user', parts: [{ text: options.userPrompt }] }],
-      ...(ragCorpus
-        ? {
-            tools: [
-              {
-                retrieval: {
-                  vertexRagStore: {
-                    ragResources: [{ ragCorpus }],
-                    ragRetrievalConfig: {
-                      topK: options.topK ?? config.google_cloud_rag_top_k,
-                      ...ragFilter,
-                    },
-                  },
-                },
-              },
-            ],
-          }
-        : {}),
+      ...(tools.length > 0 ? { tools } : {}),
       generationConfig: {
         temperature: options.temperature ?? DEFAULT_TEMPERATURE,
         ...(typeof options.maxOutputTokens === 'number'
           ? { maxOutputTokens: options.maxOutputTokens }
           : {}),
-        responseMimeType: JSON_MIME_TYPE,
+        ...(!useGoogleSearch ? { responseMimeType: JSON_MIME_TYPE } : {}),
       },
     };
   }
@@ -188,7 +218,11 @@ export class GoogleAiService {
   private async executeJsonCall<T>(
     request: ResolvedEndpointRequest,
     options: GenerateGroundedJsonOptions & { timeoutMs: number },
-  ): Promise<{ data: T; groundingChunks: RagGroundingChunk[] } | null> {
+  ): Promise<{
+    data: T;
+    groundingChunks: RagGroundingChunk[];
+    webSearchQueries: string[];
+  } | null> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
     const label = options.contextLabel || 'google-ai';
@@ -206,8 +240,13 @@ export class GoogleAiService {
           typeof response.text === 'function'
             ? (await response.text()).slice(0, ERROR_SNIPPET_MAX_CHARS)
             : '';
+        const modeTag = options.enableGoogleSearch
+          ? '+GoogleSearch'
+          : options.ragCorpus
+            ? '+RAG'
+            : '';
         this.logger.warn(
-          `[${label}] ${request.mode}${options.ragCorpus ? '+RAG' : ''} HTTP ${response.status}${errBody ? `: ${errBody}` : ''}`,
+          `[${label}] ${request.mode}${modeTag} HTTP ${response.status}${errBody ? `: ${errBody}` : ''}`,
         );
         return null;
       }
@@ -216,9 +255,17 @@ export class GoogleAiService {
       const rawText = extractCandidateText(payload);
       if (!rawText) return null;
 
+      const parsed = parseAiJsonText<T>(rawText);
+      if (!parsed) {
+        this.logger.warn(`[${label}] ${request.mode} invalid JSON response`);
+        return null;
+      }
+
+      const meta = extractGroundingMetadata(payload);
       return {
-        data: JSON.parse(stripMarkdownJsonFence(rawText)) as T,
-        groundingChunks: extractGroundingChunks(payload),
+        data: parsed,
+        groundingChunks: meta.groundingChunks,
+        webSearchQueries: meta.webSearchQueries,
       };
     } catch (error) {
       this.logger.warn(

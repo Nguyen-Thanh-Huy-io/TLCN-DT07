@@ -195,7 +195,13 @@ export class AuthUtilsService {
     maxAttempts: number,
     windowMs: number,
   ): Promise<boolean> {
-    if (AUTH_RATE_LIMIT_EXEMPT_ENVS.includes(config.node_env)) return true;
+    if (
+      AUTH_RATE_LIMIT_EXEMPT_ENVS.includes(config.node_env) ||
+      (config.node_env === 'test' &&
+        process.env.E2E_DISABLE_AUTH_RATE_LIMIT === '1')
+    ) {
+      return true;
+    }
     const cacheKey = `${config.redis_cache_key_prefix}:${AUTH_CONFIG.CACHE_PREFIXES.RATE_LIMIT}${key}`;
     const lockKey = `${cacheKey}:locked`;
 

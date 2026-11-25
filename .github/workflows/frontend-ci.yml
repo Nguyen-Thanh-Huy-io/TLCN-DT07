@@ -156,6 +156,7 @@ jobs:
       E2E_FE_URL: http://127.0.0.1:3010
       E2E_BE_URL: http://127.0.0.1:5010
       E2E_HEADLESS: "1"
+      E2E_DISABLE_AUTH_RATE_LIMIT: "1"
 
     steps:
       - name: Checkout repository

@@ -165,7 +165,10 @@ test.describe('Public Content, Auth & Navigation E2E (10 scenarios)', () => {
 
     const searchInput = page.getByLabel('Nhập khái niệm lịch sử cần khám phá');
     await searchInput.fill('Hai Bà Trưng');
-    await page.locator('form').getByRole('button', { name: 'Khám phá' }).click();
+    await page
+      .locator('form')
+      .getByRole('button', { name: 'Khám phá', exact: true })
+      .click();
 
     const rootCard = page.getByTestId('spatial-node-sc-node-1');
     await expect(rootCard).toBeVisible();

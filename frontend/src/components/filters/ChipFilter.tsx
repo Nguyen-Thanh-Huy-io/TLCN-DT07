@@ -78,7 +78,11 @@ export function ChipGroup({
             {o.hint && <small>{o.hint}</small>}
           </button>
         ))}
-        {matched.length === 0 && <p className="sk-fs-none">Không có mục nào khớp “{term}”.</p>}
+        {matched.length === 0 && (
+          <p className="sk-fs-none">
+            {options.length === 0 ? "Chưa có dữ liệu phân loại trong mục này." : `Không có mục nào khớp “${term}”.`}
+          </p>
+        )}
       </div>
       {(hidden > 0 || (expanded && matched.length > COLLAPSE_AFTER && !term)) && (
         <button type="button" className="sk-fs-more" onClick={() => setExpanded(!expanded)}>

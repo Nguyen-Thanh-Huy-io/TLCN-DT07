@@ -263,7 +263,7 @@ export function ArticleFilterDialogSections({
       )}
 
       {tagOptions.length > 0 && (
-        <FilterSection title="Chủ điểm (Tag)" aside={<PickedCount count={draft.tags.length} />}>
+        <FilterSection title="Chủ điểm" aside={<PickedCount count={draft.tags.length} />}>
           <ChipGroup
             options={tagOptions.map((t) => ({
               value: t.id,
@@ -285,11 +285,12 @@ export function ArticleGridCard({ row: { item } }: { row: ArticleRow }) {
   const href = PUBLIC_ROUTES.ARTICLE(item.slug);
   const primaryBadge = strategy.primaryBadgeOf(item);
   const locationBadge = strategy.locationBadgeOf(item);
-  const metaRows = strategy.metaRowsOf(item);
+  const primaryMeta = strategy.metaRowsOf(item)[0] ?? null;
+  const PrimaryMetaIcon = primaryMeta ? META_ICON_MAP[primaryMeta.icon] : null;
 
   return (
     <article className="el-card">
-      <div className="el-card-media">
+      <Link href={href} className="el-card-media block">
         {item.imageUrl ? (
           <RemoteImage src={item.imageUrl} alt={item.title} loading="lazy" />
         ) : (
@@ -303,7 +304,7 @@ export function ArticleGridCard({ row: { item } }: { row: ArticleRow }) {
             {item.dateLabel ?? locationBadge}
           </span>
         )}
-      </div>
+      </Link>
 
       <div className="el-card-body">
         {primaryBadge && (
@@ -318,23 +319,17 @@ export function ArticleGridCard({ row: { item } }: { row: ArticleRow }) {
 
         {item.summary && <p className="el-card-desc">{item.summary}</p>}
 
-        {metaRows.length > 0 && (
-          <div className="el-card-entities">
-            {metaRows.map((meta, idx) => {
-              const Icon = META_ICON_MAP[meta.icon];
-              return (
-                <div key={`${meta.icon}-${idx}`} className="el-card-entity-item" title={meta.text}>
-                  <Icon size={13} />
-                  <span>{meta.text}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
         <div className="el-card-footer flex items-center justify-between gap-2">
-          <Link href={href} className="el-card-link">
-            <span>{strategy.ctaLabel}</span>
+          {primaryMeta && PrimaryMetaIcon ? (
+            <span className="el-card-entity-item min-w-0 flex-1 text-xs text-[var(--muted)]" title={primaryMeta.text}>
+              <PrimaryMetaIcon size={12} className="shrink-0" />
+              <span className="truncate">{primaryMeta.text}</span>
+            </span>
+          ) : (
+            <span />
+          )}
+          <Link href={href} className="el-card-link shrink-0">
+            <span>Đọc</span>
             <ArrowRight size={14} />
           </Link>
         </div>

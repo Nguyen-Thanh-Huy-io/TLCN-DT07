@@ -6,6 +6,8 @@ import { fetchEvents, fetchPeriods } from "@/services/entities/landing.service";
 import { fetchCategories, extractEventCategories } from "@/services/public/public-content.service";
 import "@/components/timeline/sk-timeline.css";
 
+export const dynamic = "force-dynamic";
+
 export default async function DongThoiGianPage() {
   const [events, periods, categories] = await Promise.all([
     fetchEvents(),
@@ -16,10 +18,10 @@ export default async function DongThoiGianPage() {
   const eras = buildEraDataset(periods, events, extractEventCategories(categories));
 
   return (
-    <main className="min-h-screen bg-[var(--bg-page)] text-[var(--text-body)]">
+    <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-body)]">
       <Header activeSectionId="timeline" />
       <TimelineExplorer eras={eras} />
       <Footer />
-    </main>
+    </div>
   );
 }

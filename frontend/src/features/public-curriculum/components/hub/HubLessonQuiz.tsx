@@ -112,7 +112,9 @@ function ChoiceQuestionBody({
           (Có thể chọn nhiều đáp án đúng)
         </p>
       )}
-      {q.options.map((opt, idx) => {
+      {q.options
+        .filter((opt) => Boolean(opt.text && opt.text.trim()))
+        .map((opt, idx) => {
         const selected = selectedIds.includes(opt.id);
         const isCorrect = Boolean(opt.isCorrect);
         const state = resolveChoiceStateClass(selected, isCorrect, submitted);

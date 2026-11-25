@@ -182,6 +182,7 @@ export interface EntityReaderModel {
   imageUrl: string | null;
   imageCaption: string | null;
   aliases: string[];
+  tags: Array<{ id: string; name: string; colorHex?: string | null }>;
   toc: LessonTocEntry[];
   html: string;
   resourceLinks: ResourceLinkBlockData[];
@@ -259,11 +260,13 @@ function extractPersonQuickStats(entity: PublicEntityDetailDto, strategy: Entity
 
   if (entity.startYear != null && entity.endYear != null) {
     const diff = Math.abs(entity.endYear - entity.startYear);
-    stats.push({
-      id: 'stat-lifespan',
-      value: `${diff} ${strategy.lifespanUnit}`,
-      label: strategy.lifespanLabel,
-    });
+    if (diff > 0) {
+      stats.push({
+        id: 'stat-lifespan',
+        value: `${diff} ${strategy.lifespanUnit}`,
+        label: strategy.lifespanLabel,
+      });
+    }
   }
 
   if (entity.titles && entity.titles.length > 0) {
@@ -550,6 +553,7 @@ export function buildEntityReaderModel(entity: PublicEntityDetailDto): EntityRea
     imageUrl: entity.imageUrl,
     imageCaption: entity.imageCaption,
     aliases: entity.aliases ?? [],
+    tags: entity.tags ?? [],
     toc: cleanToc,
     html: cleanHtml,
     resourceLinks: normalized.resourceLinks,

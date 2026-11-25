@@ -4,9 +4,16 @@ import { KeyboardKey, CommonFilterOption } from '@/constants/enums';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, BookOpen, FileText, GitCommitVertical, Loader2, Search } from 'lucide-react';
-import { normalizeSearch, type SearchEntry, type SearchEntryType } from './search-index';
-import { loadSearchIndex } from './search-index';
+import { ArrowRight, BookOpen, FileText, GitCommitVertical, Loader2, Search, Tag } from 'lucide-react';
+import {
+  loadSearchIndex,
+  normalizeSearch,
+  searchPublicArticlesServer,
+  searchPublicTagsServer,
+  type PublicSearchTagHit,
+  type SearchEntry,
+  type SearchEntryType,
+} from './search-index';
 
 /** Phát sự kiện này (vd. từ ô tìm kiếm ở hero trang chủ) để mở ô tìm kiếm toàn cục. */
 export const OPEN_GLOBAL_SEARCH_EVENT = 'hisgo:open-search';
@@ -27,16 +34,32 @@ const TYPE_ICONS: Record<SearchEntryType, typeof FileText> = {
   LESSON: BookOpen,
 };
 
-const GROUP_ORDER: SearchEntryType[] = ['ARTICLE', 'TIMELINE', 'LESSON'];
+const ARTICLE_TYPE: SearchEntryType = 'ARTICLE';
+const GROUP_ORDER: SearchEntryType[] = [ARTICLE_TYPE, 'TIMELINE', 'LESSON'];
 const TYPE_FILTERS: Array<SearchEntryType | 'ALL'> = ['ALL', ...GROUP_ORDER];
 const MAX_RESULTS = 40;
 /** Số mục mỗi nhóm ở tab "Tất cả": khi đang gõ / khi chưa gõ (gợi ý). */
 const PER_GROUP = 4;
 const PER_GROUP_IDLE = 3;
 
+interface ServerSearchState {
+  query: string;
+  articles: SearchEntry[];
+  tags: PublicSearchTagHit[];
+  loading: boolean;
+}
+
+const EMPTY_SERVER_STATE: ServerSearchState = {
+  query: '',
+  articles: [],
+  tags: [],
+  loading: false,
+};
+
 function SearchPanel({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const [entries, setEntries] = useState<SearchEntry[] | null>(null);
+  const [serverState, setServerState] = useState<ServerSearchState>(EMPTY_SERVER_STATE);
   const [query, setQuery] = useState('');
   const [type, setType] = useState<SearchEntryType | 'ALL'>('ALL');
   const [cursor, setCursor] = useState(0);
@@ -49,23 +72,75 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
+  const trimmedQuery = query.trim();
+
+  useEffect(() => {
+    if (trimmedQuery.length < 2) return undefined;
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setServerState((prev) => ({ ...prev, query: trimmedQuery, loading: true }));
+      try {
+        const [arts, tags] = await Promise.all([
+          searchPublicArticlesServer(trimmedQuery, 30),
+          searchPublicTagsServer(trimmedQuery, 8),
+        ]);
+        if (!cancelled) {
+          setServerState({ query: trimmedQuery, articles: arts, tags, loading: false });
+        }
+      } catch {
+        if (!cancelled) {
+          setServerState({ query: trimmedQuery, articles: [], tags: [], loading: false });
+        }
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [trimmedQuery]);
+
+  const isFreshServer = trimmedQuery.length >= 2 && serverState.query === trimmedQuery;
+  const serverArticles = useMemo(
+    () => (isFreshServer ? serverState.articles : []),
+    [isFreshServer, serverState.articles],
+  );
+  const matchedTags = isFreshServer ? serverState.tags : [];
+  const searchingServer = trimmedQuery.length >= 2 && (!isFreshServer || serverState.loading);
+
+  const mergedEntries = useMemo(() => {
+    if (!entries) return null;
+    if (serverArticles.length === 0) return entries;
+    const seen = new Set(serverArticles.map((a) => `${a.type}:${a.id}`));
+    const extraLocal = entries.filter((e) => !seen.has(`${e.type}:${e.id}`));
+    return [...serverArticles, ...extraLocal];
+  }, [entries, serverArticles]);
+
   const counts = useMemo(() => {
-    const q = normalizeSearch(query.trim());
+    const q = normalizeSearch(trimmedQuery);
     const c = new Map<SearchEntryType | 'ALL', number>();
-    for (const e of entries ?? []) {
-      if (q && !e.haystack.includes(q)) continue;
+    const serverIds = new Set(serverArticles.map((a) => a.id));
+    for (const e of mergedEntries ?? []) {
+      const fromServer = e.type === ARTICLE_TYPE && serverIds.has(e.id);
+      if (q && !fromServer && !e.haystack.includes(q)) continue;
       c.set(e.type, (c.get(e.type) ?? 0) + 1);
       c.set('ALL', (c.get('ALL') ?? 0) + 1);
     }
     return c;
-  }, [entries, query]);
+  }, [mergedEntries, trimmedQuery, serverArticles]);
 
   // Tab "Tất cả": nhóm theo loại, mỗi nhóm vài mục kèm "Xem tất cả"; tab một loại: danh sách dài.
   const groups = useMemo(() => {
-    if (!entries) return [];
-    const q = normalizeSearch(query.trim());
+    if (!mergedEntries) return [];
+    const q = normalizeSearch(trimmedQuery);
+    const serverIds = new Set(serverArticles.map((a) => a.id));
     // Khớp ở đầu tiêu đề được ưu tiên trước khớp ở giữa.
-    const matched = (q ? entries.filter((e) => e.haystack.includes(q)) : entries)
+    const matched = (
+      q
+        ? mergedEntries.filter((e) => (e.type === ARTICLE_TYPE && serverIds.has(e.id)) || e.haystack.includes(q))
+        : mergedEntries
+    )
       .map((e) => ({ e, head: q ? normalizeSearch(e.title).startsWith(q) : false }))
       .sort((a, b) => Number(b.head) - Number(a.head))
       .map((x) => x.e);
@@ -77,7 +152,7 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
         return { type: t, total: all.length, items: all.slice(0, limit) };
       })
       .filter((g) => g.items.length);
-  }, [entries, query, type]);
+  }, [mergedEntries, trimmedQuery, serverArticles, type]);
   const results = useMemo(() => groups.flatMap((g) => g.items), [groups]);
 
   const go = (entry: SearchEntry | undefined) => {
@@ -120,11 +195,33 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
             setCursor(0);
           }}
           onKeyDown={onKeyDown}
-          placeholder="Tìm bài viết, dòng thời gian, bài học, năm..."
+          placeholder="Tìm 6.200+ bài viết, thẻ (tag), dòng thời gian, bài học, năm..."
           aria-label="Từ khóa tìm kiếm"
         />
+        {searchingServer && <Loader2 size={16} className="gs-spin text-stone-400" />}
         <kbd>ESC</kbd>
       </div>
+      {matchedTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-stone-200/80 bg-[#FAF6EC] px-4 py-2">
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-stone-500">
+            <Tag size={11} /> Chủ điểm:
+          </span>
+          {matchedTags.map((tag) => (
+            <button
+              key={tag.id}
+              type="button"
+              onClick={() => {
+                onClose();
+                router.push(`/bai-viet?tag=${encodeURIComponent(tag.name)}`);
+              }}
+              className="inline-flex items-center gap-1 rounded-full border border-[#DFD0AC] bg-white px-2.5 py-0.5 text-xs font-semibold text-[#7A1F24] transition hover:border-[#7A1F24] hover:bg-[#FAF1DF] cursor-pointer"
+            >
+              <span>#{tag.name}</span>
+              <span className="text-[10px] text-stone-500">({tag.articleCount})</span>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="gs-types" role="tablist" aria-label="Loại kết quả">
         {TYPE_FILTERS.map((t) => (
           <button

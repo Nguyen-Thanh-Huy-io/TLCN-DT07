@@ -185,12 +185,50 @@ export function buildPeriods(timelines: PublicTimeline[], topics: PublicTopicRef
   const periodIdByTopicId = new Map(
     timelines.filter((t): t is PublicTimeline & { topicId: string } => Boolean(t.topicId)).map((t) => [t.topicId, t.id]),
   );
-  return timelines.map((t) => {
+  const rawPeriods = timelines.map((t) => {
     const parentTopicId = t.topic?.parentId ?? (t.topicId ? topicById.get(t.topicId)?.parentId : null) ?? null;
     const parentId = findNearestTimelinePeriodId(parentTopicId, topicById, periodIdByTopicId, t.topicId);
     return {
       ...periodFromTimeline(t),
       parentId,
+    };
+  });
+
+  // Lan truyền khoảng năm từ các giai đoạn con/cháu lên giai đoạn cha không có mốc trực tiếp.
+  const childrenMap = new Map<string, PublicPeriodDto[]>();
+  for (const p of rawPeriods) {
+    if (!p.parentId) continue;
+    const arr = childrenMap.get(p.parentId) ?? [];
+    arr.push(p);
+    childrenMap.set(p.parentId, arr);
+  }
+
+  const collectYears = (id: string, visited = new Set<string>()): number[] => {
+    if (visited.has(id)) return [];
+    visited.add(id);
+    const self = rawPeriods.find((x) => x.id === id);
+    const yrs: number[] = [];
+    if (self) {
+      if (self.startYear !== 0) yrs.push(self.startYear);
+      if (self.endYear !== null && self.endYear !== 0) yrs.push(self.endYear);
+    }
+    for (const ch of childrenMap.get(id) ?? []) {
+      yrs.push(...collectYears(ch.id, visited));
+    }
+    return yrs;
+  };
+
+  return rawPeriods.map((p) => {
+    const allYrs = collectYears(p.id);
+    if (allYrs.length === 0) return p;
+    const start = Math.min(...allYrs);
+    const end = Math.max(...allYrs);
+    const timeLabel = end !== start ? `${formatYear(start)} – ${formatYear(end)}` : formatYear(start);
+    return {
+      ...p,
+      startYear: start,
+      endYear: end,
+      timeLabel,
     };
   });
 }

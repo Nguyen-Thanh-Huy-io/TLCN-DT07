@@ -266,7 +266,7 @@ export function CommunitySidebar({
                     <button
                       type="button"
                       onClick={() => onToggleFollowMember(member)}
-                      className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[7px] border px-3 text-[12.5px] font-semibold transition-colors ${
+                      className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-[7px] border px-2.5 text-[12px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                         followed
                           ? 'border-[#D8C8AA] bg-[#F1E6D0] text-[#5C4E3C] hover:border-[#7A1F24] hover:text-[#7A1F24]'
                           : 'border-[#7A1F24] bg-[#7A1F24] text-[#FAF5E6] hover:bg-[#651A1E]'

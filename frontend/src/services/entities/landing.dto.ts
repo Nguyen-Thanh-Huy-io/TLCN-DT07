@@ -88,6 +88,8 @@ export interface PublicEventSummaryDto {
   relations?: PublicEventLinkDto[];
   periodSlug: string | null;
   topicId?: string | null;
+  /** Id giai đoạn con trực tiếp (`children`) của thời kỳ đang xem mà mục này thuộc về. */
+  stageId?: string | null;
   figures: PublicFigureDto[];
   locations: PublicLocationSummaryDto[];
 }
@@ -223,6 +225,7 @@ export interface PublicEntityDetailDto {
   imageUrl: string | null;
   imageCaption: string | null;
   aliases: string[];
+  tags?: Array<{ id: string; name: string; colorHex?: string | null }>;
   dateText: string | null;
   startYear: number | null;
   endYear: number | null;

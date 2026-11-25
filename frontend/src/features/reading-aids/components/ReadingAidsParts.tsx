@@ -196,7 +196,7 @@ export function ReadingDisplayPopover({
     <div
       role="dialog"
       aria-label="Tùy chỉnh hiển thị"
-      className="w-68 rounded-2xl border border-stone-200/90 bg-[#FFFCF5] p-3.5 text-stone-800 shadow-2xl sm:w-72"
+      className="w-full max-w-[320px] rounded-2xl border border-stone-200/90 bg-[#FFFCF5] p-3.5 text-stone-800 shadow-2xl sm:w-72"
     >
       <div className="mb-3 flex items-center justify-between border-b border-stone-200/80 pb-2">
         <span className="text-xs font-bold uppercase tracking-wider text-[#5C2A1E]">Tùy chỉnh hiển thị</span>
@@ -271,7 +271,7 @@ export function ReadingDisplayPopover({
 
         <DisplaySwitchRow
           icon={StickyNote}
-          title="Sticky ghi chú lề phải"
+          title="Ghim ghi chú lề phải"
           subtitle="Hiện thẻ ghi chú cụm ngoài lề khi màn hình rộng"
           checked={prefs.marginSticky}
           onToggle={() => onChangePrefs({ marginSticky: !prefs.marginSticky })}

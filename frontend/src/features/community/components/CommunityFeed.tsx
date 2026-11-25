@@ -259,22 +259,43 @@ export function CommunityFeed({ initialPosts, initialShareBlogSlug = null }: Com
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-6 md:px-6 lg:px-8 lg:py-8">
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[350px_minmax(0,1fr)] xl:grid-cols-[380px_minmax(0,1fr)] lg:gap-8">
-        <CommunitySidebar
-          myProfileHref={myProfileHref}
-          username={user?.username}
-          searchQuery={searchQuery}
-          onChangeSearchQuery={setSearchQuery}
-          activeTab={activeTab}
-          onChangeTab={setActiveTab}
-          selectedTag={selectedTag}
-          onSelectTag={setSelectedTag}
-          popularTags={popularTags}
-          suggestedMembers={suggestedMembers}
-          isAuthorFollowed={(m) => isAuthorFollowed(m)}
-          onToggleFollowMember={(m) => void handleToggleFollowMemberCard(m)}
-        />
+        <div className="order-2 lg:order-1">
+          <CommunitySidebar
+            myProfileHref={myProfileHref}
+            username={user?.username}
+            searchQuery={searchQuery}
+            onChangeSearchQuery={setSearchQuery}
+            activeTab={activeTab}
+            onChangeTab={setActiveTab}
+            selectedTag={selectedTag}
+            onSelectTag={setSelectedTag}
+            popularTags={popularTags}
+            suggestedMembers={suggestedMembers}
+            isAuthorFollowed={(m) => isAuthorFollowed(m)}
+            onToggleFollowMember={(m) => void handleToggleFollowMemberCard(m)}
+          />
+        </div>
 
-        <div className="min-w-0 space-y-6">
+        <div className="order-1 min-w-0 space-y-5 lg:order-2 lg:space-y-6">
+          <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:hidden">
+            {(Object.keys(COMMUNITY_TAB_LABELS) as CommunityTabKey[]).map((key) => {
+              const isTabActive = activeTab === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActiveTab(key)}
+                  className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                    isTabActive
+                      ? 'border-[#7A1F24] bg-[#7A1F24] text-[#FAF5E6]'
+                      : 'border-[#DFD1B8] bg-[#FAF5E6] text-[#14233F] hover:bg-[#F1E6D0]'
+                  }`}
+                >
+                  {COMMUNITY_TAB_LABELS[key]}
+                </button>
+              );
+            })}
+          </div>
           {realtimeNotice ? (
             <div className="flex items-start justify-between gap-3 rounded-[8px] border border-[#E8C5C6] bg-[#F9E8E6] px-4 py-3 text-[13px] text-[#7A1F24]">
               <div className="flex items-start gap-2">

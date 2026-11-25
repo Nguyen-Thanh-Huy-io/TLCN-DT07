@@ -43,20 +43,20 @@ describe('category hierarchy & event category helpers', () => {
     });
   });
 
-  it('xác định key và nhãn hiển thị loại sự kiện (ưu tiên categoryIds, fallback slug / Khác)', () => {
+  it('xác định key và nhãn hiển thị loại sự kiện (ưu tiên categoryIds, fallback slug / Sự kiện)', () => {
     const extracted = extractEventCategories(sampleTree);
 
     expect(eventCategoryKey({ categoryIds: ['sub-battle'], category: 'tran-danh' })).toBe('sub-battle');
     expect(eventCategoryKey({ category: 'tran-danh' })).toBe('tran-danh');
     expect(eventCategoryKey({})).toBe('');
 
-    expect(categoryKeyLabel(extracted, '')).toBe('Khác');
-    expect(categoryKeyLabel(extracted, 'OTHER')).toBe('Khác');
+    expect(categoryKeyLabel(extracted, '')).toBe('Sự kiện');
+    expect(categoryKeyLabel(extracted, 'OTHER')).toBe('Sự kiện');
     expect(categoryKeyLabel(extracted, 'tran-danh')).toBe('Trận đánh');
     expect(categoryKeyLabel(extracted, 'unknown-slug')).toBe('unknown-slug');
 
     expect(eventCategoryLabel(extracted, { categoryIds: ['sub-deep'] })).toBe('Thủy chiến');
     expect(eventCategoryLabel(extracted, { categoryIds: ['unknown'], category: 'tran-danh' })).toBe('Trận đánh');
-    expect(eventCategoryLabel(extracted, { category: null })).toBe('Khác');
+    expect(eventCategoryLabel(extracted, { category: null })).toBe('Sự kiện');
   });
 });

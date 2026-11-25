@@ -32,7 +32,11 @@ const summaryRow = (id: string, overrides: object = {}) => ({
 });
 
 const PERSON_ROOT = { id: 'cat-person', slug: 'nhan-vat', parentId: null };
-const PERSON_CHILD = { id: 'cat-king', slug: 'vua-chua', parentId: 'cat-person' };
+const PERSON_CHILD = {
+  id: 'cat-king',
+  slug: 'vua-chua',
+  parentId: 'cat-person',
+};
 const EVENT_ROOT = { id: 'cat-event', slug: 'su-kien', parentId: null };
 
 describe('PublicContentService — dữ liệu trang công khai', () => {
@@ -119,10 +123,27 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
           where: {
             status: PUBLISHED,
             category: { slug: 'su-kien' },
-            articleTags: { some: { tagId: 't-1' } },
+            articleTags: {
+              some: {
+                OR: [
+                  { tagId: 't-1' },
+                  { tag: { name: { equals: 't-1', mode: 'insensitive' } } },
+                ],
+              },
+            },
             OR: [
               { title: { contains: 'Bạch Đằng', mode: 'insensitive' } },
               { summary: { contains: 'Bạch Đằng', mode: 'insensitive' } },
+              { dateText: { contains: 'Bạch Đằng', mode: 'insensitive' } },
+              {
+                articleTags: {
+                  some: {
+                    tag: {
+                      name: { contains: 'Bạch Đằng', mode: 'insensitive' },
+                    },
+                  },
+                },
+              },
             ],
           },
           take: 5,

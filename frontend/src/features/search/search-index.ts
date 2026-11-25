@@ -6,7 +6,30 @@ const ENDPOINTS = {
   ARTICLES: '/public/articles',
   TIMELINES: '/public/timelines',
   LESSONS: '/public/lessons',
+  TAGS: '/public/tags',
 } as const;
+
+export interface PublicSearchTagHit {
+  id: string;
+  name: string;
+  colorHex: string | null;
+  articleCount: number;
+}
+
+export async function searchPublicArticlesServer(q: string, limit = 30): Promise<SearchEntry[]> {
+  const trimmed = q.trim();
+  if (trimmed.length < 2) return [];
+  const params = new URLSearchParams({ q: trimmed, limit: String(limit) });
+  const articles = await list<PublicArticleSummary>(`${ENDPOINTS.ARTICLES}?${params.toString()}`);
+  return articles.map(articleToSearchEntry);
+}
+
+export async function searchPublicTagsServer(q: string, limit = 8): Promise<PublicSearchTagHit[]> {
+  const trimmed = q.trim();
+  if (trimmed.length < 2) return [];
+  const params = new URLSearchParams({ q: trimmed, limit: String(limit) });
+  return list<PublicSearchTagHit>(`${ENDPOINTS.TAGS}?${params.toString()}`);
+}
 
 async function list<T>(endpoint: string): Promise<T[]> {
   try {
@@ -72,11 +95,16 @@ export interface SearchSource {
 
 export { formatYear } from '@/utils/common';
 
-/** "Lịch sử Thế giới: Thời kỳ Trung đại (476 - 1492)" → "Thế giới Trung đại". */
+/** "Lịch sử Thế giới: Thời kỳ Trung đại (476 - 1492)" → "Thế giới Trung đại"; giữ nguyên "Lịch sử Việt Nam" / "Lịch sử & Văn minh Thế giới". */
 export function shortPeriodName(name: string): string {
-  return name
-    .replace(/\s*\([^)]*\)\s*$/, '')
-    .replace(/^Lịch sử\s+/i, '')
+  const withoutParens = name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  const afterHistory = withoutParens.replace(/^Lịch sử\s+/i, '').trim();
+  const shouldKeepHistoryPrefix =
+    !afterHistory ||
+    /^[&và]/i.test(afterHistory) ||
+    /^(Việt Nam|Thế giới)$/i.test(afterHistory);
+  const base = shouldKeepHistoryPrefix ? withoutParens : afterHistory;
+  return base
     .replace(/:\s*Thời kỳ\s+/i, ' ')
     .replace(/^(Thời kỳ|Thời đại|Giai đoạn)\s+/i, '')
     .trim();
@@ -101,21 +129,23 @@ function entry(e: Omit<SearchEntry, 'haystack'>, keywords: string[] = []): Searc
   return { ...e, haystack: normalizeSearch(`${e.title} ${e.subtitle} ${e.year ?? ''} ${keywords.join(' ')}`) };
 }
 
+function articleToSearchEntry(a: PublicArticleSummary): SearchEntry {
+  return entry(
+    {
+      id: a.id,
+      type: 'ARTICLE',
+      title: a.title,
+      subtitle: [a.category?.name, truncate(a.summary, 90)].filter(Boolean).join(' · '),
+      year: a.dateLabel ?? undefined,
+      href: PUBLIC_ROUTES.ARTICLE(a.slug),
+    },
+    [...a.tags.map((t) => t.name), ...(a.metadata?.aliases ?? [])],
+  );
+}
+
 export function buildSearchIndex(source: SearchSource): SearchEntry[] {
   return [
-    ...source.articles.map((a) =>
-      entry(
-        {
-          id: a.id,
-          type: 'ARTICLE',
-          title: a.title,
-          subtitle: [a.category?.name, truncate(a.summary, 90)].filter(Boolean).join(' · '),
-          year: a.dateLabel ?? undefined,
-          href: PUBLIC_ROUTES.ARTICLE(a.slug),
-        },
-        [...a.tags.map((t) => t.name), ...(a.metadata?.aliases ?? [])],
-      ),
-    ),
+    ...source.articles.map(articleToSearchEntry),
     ...source.timelines.map((t) =>
       entry(
         {

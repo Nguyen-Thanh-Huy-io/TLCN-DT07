@@ -34,6 +34,7 @@ export interface PublicArticleQuery {
   category?: string;
   tag?: string;
   q?: string;
+  topicIds?: string[];
   featured?: boolean;
   limit?: number;
 }
@@ -84,17 +85,57 @@ export class PublicContentService {
   }
 
   async getArticles(query: PublicArticleQuery) {
+    const tagQuery = query.tag?.trim();
+    const q = query.q?.trim();
+    const parsedYear =
+      q && /^-?\d{1,4}$/.test(q) ? Number.parseInt(q, 10) : null;
     const rows = await this.prisma.article.findMany({
       where: {
         status: PUBLISHED,
         ...(query.category ? { category: { slug: query.category } } : {}),
-        ...(query.tag ? { articleTags: { some: { tagId: query.tag } } } : {}),
+        ...(query.topicIds && query.topicIds.length > 0
+          ? { topicId: { in: query.topicIds } }
+          : {}),
+        ...(tagQuery
+          ? {
+              articleTags: {
+                some: {
+                  OR: [
+                    { tagId: tagQuery },
+                    {
+                      tag: { name: { equals: tagQuery, mode: 'insensitive' } },
+                    },
+                  ],
+                },
+              },
+            }
+          : {}),
         ...(query.featured ? { isFeatured: true } : {}),
-        ...(query.q
+        ...(q
           ? {
               OR: [
-                { title: { contains: query.q, mode: 'insensitive' } },
-                { summary: { contains: query.q, mode: 'insensitive' } },
+                { title: { contains: q, mode: 'insensitive' } },
+                { summary: { contains: q, mode: 'insensitive' } },
+                { dateText: { contains: q, mode: 'insensitive' } },
+                ...(parsedYear !== null && !Number.isNaN(parsedYear)
+                  ? [
+                      { startYear: parsedYear },
+                      { endYear: parsedYear },
+                      {
+                        AND: [
+                          { startYear: { lte: parsedYear } },
+                          { endYear: { gte: parsedYear } },
+                        ],
+                      },
+                    ]
+                  : []),
+                {
+                  articleTags: {
+                    some: {
+                      tag: { name: { contains: q, mode: 'insensitive' } },
+                    },
+                  },
+                },
               ],
             }
           : {}),
@@ -325,9 +366,19 @@ export class PublicContentService {
     );
   }
 
-  async getTags() {
+  async getTags(query?: { q?: string; limit?: number }) {
+    const q = query?.q?.trim();
     const tags = await this.prisma.tag.findMany({
-      orderBy: { name: 'asc' },
+      where: q
+        ? {
+            OR: [
+              { name: { contains: q, mode: 'insensitive' } },
+              { description: { contains: q, mode: 'insensitive' } },
+            ],
+          }
+        : undefined,
+      orderBy: [{ articleTags: { _count: 'desc' } }, { name: 'asc' }],
+      take: query?.limit,
       select: {
         id: true,
         name: true,

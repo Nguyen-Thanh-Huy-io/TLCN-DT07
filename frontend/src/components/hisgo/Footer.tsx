@@ -83,15 +83,15 @@ export function Footer() {
             <ul className="space-y-2 text-sm font-medium">
               <li>
                 <Link
-                  href="/"
+                  href="/kham-pha-khai-niem"
                   className="text-[var(--ink)] hover:text-[var(--primary)] transition-colors inline-block py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] rounded"
                 >
-                  Khám phá lịch sử
+                  Bản đồ Khái niệm AI
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#timeline"
+                  href="/dong-thoi-gian"
                   className="text-[var(--ink)] hover:text-[var(--primary)] transition-colors inline-block py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] rounded"
                 >
                   Dòng thời gian
@@ -99,15 +99,15 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="#nhan-vat"
+                  href="/bai-viet?chuyen-muc=nhan-vat"
                   className="text-[var(--ink)] hover:text-[var(--primary)] transition-colors inline-block py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] rounded"
                 >
-                  Nhân vật
+                  Nhân vật lịch sử
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#dang-ky"
+                  href="/tai-khoan"
                   className="text-[var(--ink)] hover:text-[var(--primary)] transition-colors inline-block py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] rounded"
                 >
                   Tài khoản
@@ -179,17 +179,17 @@ export function Footer() {
           <p>© {currentYear} HISGO. All rights reserved.</p>
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6">
             <Link
-              href="#terms"
+              href="/bai-viet"
               className="hover:text-[var(--primary)] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] rounded px-1"
             >
-              Điều khoản sử dụng
+              Thư viện bài viết
             </Link>
             <span className="hidden sm:inline text-[var(--border)]">|</span>
             <Link
-              href="#privacy"
+              href="/chuong-trinh-hoc"
               className="hover:text-[var(--primary)] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] rounded px-1"
             >
-              Chính sách bảo mật
+              Chương trình học
             </Link>
           </div>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
-import { ArrowRight, Bookmark, Flag, Landmark, Swords, Plus } from 'lucide-react';
-import { Heading, Badge, Button } from './TimelineChrome';
+import { ArrowRight, Bookmark, Flag, Landmark, Layers, Swords, Plus } from 'lucide-react';
+import { Heading, Button } from './TimelineChrome';
 import { type TimelineEvent, type TimeNode } from './sk-adapter';
 import { RemoteImage } from '@/components/common/CommonUi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,9 +10,9 @@ import { useState } from 'react';
 // === EventCard.tsx ===
 function renderCategoryIcon(event: TimelineEvent) {
   const slug = event.categoryCode.toLowerCase();
-  if (/tran-danh|chien-tranh|quan-su|khang-chien/.test(slug)) return <Swords size={12} />;
-  if (/cach-mang|khoi-nghia|chinh-tri/.test(slug)) return <Flag size={12} />;
-  return <Landmark size={12} />;
+  if (/tran-danh|chien-tranh|quan-su|khang-chien/.test(slug)) return <Swords size={13} />;
+  if (/cach-mang|khoi-nghia|chinh-tri/.test(slug)) return <Flag size={13} />;
+  return <Landmark size={13} />;
 }
 
 export function EventCard({
@@ -20,72 +20,74 @@ export function EventCard({
   onOpen,
   saved,
   onSave,
+  siblingCount = 1,
 }: {
   event: TimelineEvent;
   onOpen: () => void;
   saved: boolean;
   onSave: () => void;
+  siblingCount?: number;
 }) {
-  const category = (
-    <Badge className="sk-category">
-      {renderCategoryIcon(event)}
-      {event.category}
-    </Badge>
-  );
-  const saveButton = (
-    <Button
-      className={`sk-save-card ${saved ? 'sk-saved' : ''}`}
-      aria-label={saved ? 'Bỏ lưu dấu mốc' : 'Lưu dấu mốc'}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSave();
-      }}
-    >
-      <Bookmark size={15} fill={saved ? 'currentColor' : 'none'} />
-    </Button>
-  );
+  const periodText = event.spanLabel ?? event.dateLabel;
+  const relatedLabel =
+    siblingCount > 1 ? `${siblingCount} sự kiện cùng mốc` : event.category;
 
   return (
     <motion.article
       layout
       id={`ev-${event.id}`}
-      className={`sk-event-card ${event.imageUrl ? '' : 'sk-no-image'}`}
+      onClick={onOpen}
+      className="sk-event-card sk-card-compact"
     >
-      {event.imageUrl && (
-        <div className="sk-card-image" onClick={onOpen}>
-          <RemoteImage src={event.imageUrl} alt={event.title} loading="lazy" />
-          <div className="sk-image-overlay" />
-          {category}
-          {saveButton}
-        </div>
-      )}
-      <div className="sk-card-body">
-        {!event.imageUrl && (
-          <div className="sk-card-head">
-            {category}
-            {saveButton}
+      <div className="sk-compact-top">
+        {event.imageUrl && (
+          <div className="sk-compact-thumb">
+            <RemoteImage src={event.imageUrl} alt={event.title} loading="lazy" />
           </div>
         )}
-        <div className="sk-card-meta">
-          <span>{event.spanLabel ?? event.dateLabel}</span>
-        </div>
-        <Button className="sk-card-title" onClick={onOpen}>
-          <Heading level={3}>{event.title}</Heading>
-          <ArrowRight size={17} />
-        </Button>
-        <p>{event.summary}</p>
-        <div className="sk-card-footer">
-          <div className="sk-tags">
-            {event.tags.map((t) => (
-              <span key={t}>#{t}</span>
-            ))}
-          </div>
-          <div className="sk-card-actions">
-            <Button onClick={onOpen}>
-              Khám phá <ArrowRight size={13} />
+        <div className="sk-compact-head">
+          <div className="sk-compact-meta-row">
+            <span className="sk-compact-pill">{periodText}</span>
+            <Button
+              type="button"
+              className={`sk-compact-save ${saved ? 'sk-saved' : ''}`}
+              aria-label={saved ? 'Bỏ lưu dấu mốc' : 'Lưu dấu mốc'}
+              title={saved ? 'Bỏ lưu dấu mốc' : 'Lưu dấu mốc'}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSave();
+              }}
+            >
+              <Bookmark size={14} fill={saved ? 'currentColor' : 'none'} />
             </Button>
           </div>
+          <Heading level={3} className="sk-compact-title">
+            {event.title}
+          </Heading>
         </div>
+      </div>
+
+      {event.summary && (
+        <blockquote className="sk-compact-quote">
+          <p>“{event.summary}”</p>
+        </blockquote>
+      )}
+
+      <div className="sk-compact-footer">
+        <span className="sk-compact-meta-left">
+          {siblingCount > 1 ? <Layers size={13} /> : renderCategoryIcon(event)}
+          <span>{relatedLabel}</span>
+        </span>
+        <Button
+          type="button"
+          className="sk-compact-open"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpen();
+          }}
+        >
+          Mở hồ sơ <ArrowRight size={14} />
+        </Button>
       </div>
     </motion.article>
   );
@@ -114,6 +116,7 @@ export function NodeContent({
           <EventCard
             key={event.id}
             event={event}
+            siblingCount={node.events.length}
             onOpen={() => onDetail({ event, node })}
             saved={saved.includes(event.id)}
             onSave={() => onSave(event.id)}

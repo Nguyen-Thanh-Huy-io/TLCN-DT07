@@ -65,10 +65,10 @@ export function ProfileHeaderKpi({
   onToggleFollowProfile,
 }: ProfileHeaderKpiProps) {
   return (
-    <div className="rounded-[10px] border border-[#E3D6BE] bg-[#FAF5E6] px-6 py-5 md:px-7">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-[24px] font-bold leading-snug text-[#14233F] md:text-[28px]">
+    <div className="rounded-[10px] border border-[#E3D6BE] bg-[#FAF5E6] px-5 py-5 md:px-7">
+      <div className="flex flex-wrap items-center justify-between gap-3.5">
+        <div className="min-w-[210px] flex-1">
+          <h1 className="text-[22px] font-bold leading-snug text-[#14233F] sm:text-[24px] md:text-[28px]">
             {isMe
               ? `Hồ sơ Cộng đồng: ${profile.user.displayName}`
               : profile.user.displayName}
@@ -368,7 +368,7 @@ export function ProfileTabsToolbar({
     <div className="rounded-[10px] border border-[#E3D6BE] bg-[#FAF5E6] p-5 pb-5 md:px-6">
       {/* Underline Tabs trên đường kẻ 1px (luôn giữ trên 1 hàng) */}
       <div className="border-b border-[#E3D6BE]">
-        <div className="flex flex-nowrap items-center gap-x-3.5 xl:gap-x-4 2xl:gap-x-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex flex-nowrap items-center gap-x-3.5 pr-4 xl:gap-x-4 2xl:gap-x-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.key;
             const Icon = tab.icon;

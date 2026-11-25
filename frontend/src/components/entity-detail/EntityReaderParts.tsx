@@ -140,12 +140,33 @@ export const EntityHero: React.FC<EntityHeroProps> = ({ model }) => {
                 <Clock size={16} className="text-[#8C6239]" />
                 <span>{model.readMinutes} phút khảo cứu</span>
               </span>
+              <Link
+                href={PUBLIC_ROUTES.CONCEPT_CANVAS_EXPLORE(model.name, model.slug)}
+                className="inline-flex items-center gap-1 rounded-full border border-[#D4BE94] bg-[#FAF5E6] px-2.5 py-0.5 text-xs font-semibold text-[#7A1F24] transition hover:border-[#7A1F24] hover:bg-[#F3E6C8]"
+              >
+                <Sparkles size={13} />
+                <span>Khám phá trên Canvas AI</span>
+              </Link>
             </div>
             <ArticleByline
               author={model.author}
               publishedAt={model.publishedAt}
               updatedAt={model.updatedAt}
             />
+            {model.tags.length > 0 && (
+              <div className="mb-4 flex flex-wrap items-center gap-1.5">
+                {model.tags.slice(0, 8).map((tag) => (
+                  <Link
+                    key={tag.id}
+                    href={`/bai-viet?tag=${encodeURIComponent(tag.name)}`}
+                    className="inline-flex items-center rounded-full border border-[#DFD0AC] bg-[#FAF5E8] px-2.5 py-0.5 text-xs font-semibold text-[#6A4C2C] transition hover:border-[#7A1F24] hover:bg-[#F3E6C8] hover:text-[#7A1F24]"
+                    title={`Xem các bài viết gắn thẻ ${tag.name}`}
+                  >
+                    #{tag.name}
+                  </Link>
+                ))}
+              </div>
+            )}
             {model.tagline && (
               <div className="ue-hero-lead-card">
                 <Quote size={20} className="ue-hero-lead-quote-icon" />
@@ -260,7 +281,7 @@ export function EntityRelatedByTag({ articles }: { articles: PublicEntityRelated
                 <span>{item.name}</span>
                 <ArrowUpRight size={16} className="text-stone-400 group-hover:text-[#8C2D19] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </h3>
-              {item.summary && <p className="ue-kg-note">{item.summary}</p>}
+              {item.summary && <p className="ue-kg-note line-clamp-3">{item.summary}</p>}
             </div>
             {item.dateLabel && (
               <div className="text-xs text-stone-500 font-semibold mt-3 pt-2 border-t border-stone-200">

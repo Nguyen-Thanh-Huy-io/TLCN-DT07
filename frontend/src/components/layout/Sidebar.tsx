@@ -83,7 +83,7 @@ export function Sidebar({
             {toggleCollapse && (
               <button
                 type="button"
-                className="collapse-toggle-btn"
+                className="collapse-toggle-btn hidden lg:inline-flex"
                 onClick={toggleCollapse}
                 title={collapsed ? 'Mở rộng thanh menu' : 'Thu gọn thanh menu'}
                 aria-label={collapsed ? 'Mở rộng thanh menu' : 'Thu gọn thanh menu'}

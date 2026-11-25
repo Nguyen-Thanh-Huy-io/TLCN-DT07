@@ -1,25 +1,50 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 import { Header } from "@/components/hisgo/Header";
 import { Footer } from "@/components/hisgo/Footer";
 import { PublicAuthService } from "@/services/auth/public-auth.service";
+import { useAuthSession } from "@/services/auth/use-auth-session";
+
+function resolveSafeRedirect(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw === "/login" || raw === "/dang-ky") {
+    return "/";
+  }
+  return raw;
+}
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/";
+  const sessionUser = useAuthSession();
+  const redirectTo = resolveSafeRedirect(searchParams.get("redirect"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (sessionUser) {
+      router.replace(redirectTo);
+    }
+  }, [redirectTo, router, sessionUser]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (loading) return;
+    if (!email.trim()) {
+      setError("Vui lòng nhập địa chỉ email của bạn.");
+      return;
+    }
+    if (!password) {
+      setError("Vui lòng nhập mật khẩu đăng nhập.");
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -36,20 +61,20 @@ function LoginForm() {
   };
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_12%_5%,rgba(255,255,255,0.72),transparent_30%),linear-gradient(135deg,#f6f0e4_0%,#ece4d3_100%)]">
+    <div className="min-h-screen flex flex-col bg-[radial-gradient(circle_at_12%_5%,rgba(255,255,255,0.72),transparent_30%),linear-gradient(135deg,#f6f0e4_0%,#ece4d3_100%)]">
       <Header activeTab="account" />
 
-      <div className="mx-auto flex w-full max-w-md flex-col justify-center px-4 py-16 md:py-24">
-        <div className="rounded-2xl border border-[#d7c5a1] bg-[rgba(250,246,238,0.92)] p-8 shadow-[0_20px_60px_rgba(80,47,17,0.08)]">
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-14 md:py-20">
+        <div className="rounded-2xl border border-[#d7c5a1] bg-[rgba(250,246,238,0.92)] p-7 sm:p-8 shadow-[0_20px_60px_rgba(80,47,17,0.08)]">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7a1d1f]">HISGO</p>
           <h1 className="mt-2 font-[family-name:var(--font-heading)] text-3xl font-bold text-[#172b46]">
             Đăng nhập
           </h1>
           <p className="mt-2 text-sm text-[#504640]">
-            Đăng nhập để tiếp tục hành trình khám phá lịch sử Việt Nam.
+            Đăng nhập để tiếp tục hành trình khám phá lịch sử Việt Nam và thế giới.
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <form noValidate onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
               <label htmlFor="email" className="mb-1.5 block text-xs font-semibold text-[#302622]">
                 Email
@@ -57,7 +82,6 @@ function LoginForm() {
               <input
                 id="email"
                 type="email"
-                required
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -70,20 +94,29 @@ function LoginForm() {
               <label htmlFor="password" className="mb-1.5 block text-xs font-semibold text-[#302622]">
                 Mật khẩu
               </label>
-              <input
-                id="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="h-11 w-full rounded-lg border border-[#d7c5a1] bg-white px-3.5 text-sm text-[#302622] outline-none placeholder:text-[#9a8d7e] focus:ring-2 focus:ring-[#6e181b]/30"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="h-11 w-full rounded-lg border border-[#d7c5a1] bg-white pl-3.5 pr-10 text-sm text-[#302622] outline-none placeholder:text-[#9a8d7e] focus:ring-2 focus:ring-[#6e181b]/30"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-[#776b61] hover:text-[#302622] cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             {error && (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700">
+              <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700">
                 {error}
               </div>
             )}
@@ -91,7 +124,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="flex h-11 w-full items-center justify-center rounded-lg bg-[#6e181b] text-sm font-semibold text-white transition hover:bg-[#501013] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-11 w-full cursor-pointer items-center justify-center rounded-lg bg-[#6e181b] text-sm font-semibold text-white transition hover:bg-[#501013] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
@@ -112,9 +145,9 @@ function LoginForm() {
             </Link>
           </p>
         </div>
-      </div>
+      </main>
       <Footer />
-    </main>
+    </div>
   );
 }
 

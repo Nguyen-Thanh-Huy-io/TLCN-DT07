@@ -74,15 +74,18 @@ function collectCategories(nodes: TimeNode[]): string[] {
   return Array.from(seen);
 }
 
-/** Nhảy tới era = nhảy sang giai đoạn con đầu tiên của nó. */
+const TOC_ERA_PREFIX = "era:";
+const TOC_SUB_PREFIX = "sub:";
+
+/** Xây cây Mục lục Thời kỳ → Giai đoạn dùng cho chế độ Focus Filter thống nhất. */
 function toTocNodes(eras: Era[]): TocNode[] {
   return eras.map((e) => ({
-    id: e.subEras[0]?.id ?? e.id,
+    id: `${TOC_ERA_PREFIX}${e.id}`,
     title: e.title,
     subtitle: compactPeriod(e.periodLabel),
     count: e.subEras.reduce((n, s) => n + s.timeNodes.length, 0),
     children: e.subEras.map((s) => ({
-      id: s.id,
+      id: `${TOC_SUB_PREFIX}${s.id}`,
       title: s.title,
       subtitle: compactPeriod(s.periodLabel),
       count: s.timeNodes.length,
@@ -156,7 +159,33 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
 
   const visibleNodes = useMemo(() => eras.flatMap((e) => e.subEras.flatMap((s) => s.timeNodes)), [eras]);
   const selectedNode = pickSelectedNode(visibleNodes, selected);
-  const tocNodes = useMemo(() => toTocNodes(eras), [eras]);
+  const tocNodes = useMemo(() => toTocNodes(baseEras), [baseEras]);
+
+  const activeTocId = useMemo(() => {
+    if (filters.subs.length === 1) return `${TOC_SUB_PREFIX}${filters.subs[0]}`;
+    if (filters.eras.length === 1 && filters.subs.length === 0) return `${TOC_ERA_PREFIX}${filters.eras[0]}`;
+    return undefined;
+  }, [filters.eras, filters.subs]);
+
+  const handleFocusFromToc = (tocId: string) => {
+    if (tocId.startsWith(TOC_ERA_PREFIX)) {
+      const eraId = tocId.slice(TOC_ERA_PREFIX.length);
+      setFilters((prev) => ({ ...prev, eras: [eraId], subs: [] }));
+    } else if (tocId.startsWith(TOC_SUB_PREFIX)) {
+      const subId = tocId.slice(TOC_SUB_PREFIX.length);
+      const ownerEra = baseEras.find((e) => e.subEras.some((s) => s.id === subId));
+      setFilters((prev) => ({
+        ...prev,
+        eras: ownerEra ? [ownerEra.id] : [],
+        subs: [subId],
+      }));
+    }
+    canvas.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const clearTocFocus = () => {
+    setFilters((prev) => ({ ...prev, eras: [], subs: [] }));
+  };
 
   const jump = (id: string) => {
     setActive(id);
@@ -175,7 +204,7 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
       <div className="sk-explorer">
         <div className="sk-explorer-intro">
           <div>
-            <Heading level={2}>{bookmarksOnly ? "Dấu mốc đã lưu" : "Dòng chảy lịch sử ngàn năm"}</Heading>
+            <Heading level={1}>{bookmarksOnly ? "Dấu mốc đã lưu" : "Dòng chảy lịch sử ngàn năm"}</Heading>
             <p>Mỗi thời kỳ là một chương. Mỗi dấu mốc là một câu chuyện.</p>
           </div>
           <div className="sk-view-toggle">
@@ -312,7 +341,14 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
         </div>
       </div>
 
-      <EventDetailModal detail={detail} onClose={() => setDetail(null)} onSelect={setDetail} onStep={moveEvent} />
+      <EventDetailModal
+        detail={detail}
+        onClose={() => setDetail(null)}
+        onSelect={setDetail}
+        onStep={moveEvent}
+        saved={detail ? saved.includes(detail.event.id) : false}
+        onSave={toggleSaved}
+      />
 
       <TocDrawer
         open={tocOpen}
@@ -320,9 +356,11 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
         heading="Mục lục thời kỳ"
         itemLabel="mốc sự kiện"
         nodes={tocNodes}
-        activeId={active}
-        totalCount={countEvents(eras)}
-        onJump={jump}
+        activeId={activeTocId}
+        totalCount={countEvents(baseEras)}
+        onJump={handleFocusFromToc}
+        onClearActive={clearTocFocus}
+        allLabel="Tất cả thời kỳ"
       />
     </div>
   );

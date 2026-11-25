@@ -57,8 +57,17 @@ export interface EventCategoryRef {
   categoryIds?: string[] | null;
 }
 
-const FALLBACK_EVENT_CATEGORY_LABEL = 'Khác';
+const FALLBACK_EVENT_CATEGORY_LABEL = 'Sự kiện';
 const FALLBACK_EVENT_CATEGORY_KEY = 'OTHER';
+const RAW_UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const SYSTEM_CATEGORY_LABELS: Record<string, string> = {
+  [SYSTEM_CATEGORY_ROOT_SLUGS.EVENT]: 'Sự kiện',
+  [SYSTEM_CATEGORY_ROOT_SLUGS.PERSON]: 'Nhân vật',
+  [SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION]: 'Di tích',
+  [SYSTEM_CATEGORY_ROOT_SLUGS.DYNASTY]: 'Triều đại',
+  [SYSTEM_CATEGORY_ROOT_SLUGS.DOCUMENT]: 'Tác phẩm & Tư liệu',
+};
 
 /** Rút danh sách chuyên mục con thuộc nhánh Sự kiện (`su-kien`) kèm thông tin chuyên mục cha trực tiếp. */
 export function extractEventCategories<
@@ -92,10 +101,14 @@ export function extractEventCategories<
 export const eventCategoryKey = (event: EventCategoryRef): string =>
   event.categoryIds?.[0] ?? event.category ?? '';
 
-/** Tra nhãn hiển thị từ khóa (id hoặc slug) của loại sự kiện. */
+/** Tra nhãn hiển thị từ khóa (id hoặc slug) của loại sự kiện — tuyệt đối không trả raw UUID. */
 export function categoryKeyLabel(categories: EventCategoryItem[], key: string): string {
   if (!key || key === FALLBACK_EVENT_CATEGORY_KEY) return FALLBACK_EVENT_CATEGORY_LABEL;
-  return categories.find((c) => c.id === key || c.slug === key)?.name ?? key;
+  const matched = categories.find((c) => c.id === key || c.slug === key)?.name;
+  if (matched) return matched;
+  if (SYSTEM_CATEGORY_LABELS[key]) return SYSTEM_CATEGORY_LABELS[key];
+  if (RAW_UUID_REGEX.test(key)) return FALLBACK_EVENT_CATEGORY_LABEL;
+  return key;
 }
 
 /** Nhãn hiển thị của loại sự kiện trên thẻ / danh sách. */
@@ -107,7 +120,11 @@ export function eventCategoryLabel(categories: EventCategoryItem[], event: Event
   }
   const slug = event.category ?? '';
   if (!slug || slug === FALLBACK_EVENT_CATEGORY_KEY) return FALLBACK_EVENT_CATEGORY_LABEL;
-  return categories.find((c) => c.slug === slug)?.name ?? slug;
+  const bySlug = categories.find((c) => c.slug === slug)?.name;
+  if (bySlug) return bySlug;
+  if (SYSTEM_CATEGORY_LABELS[slug]) return SYSTEM_CATEGORY_LABELS[slug];
+  if (RAW_UUID_REGEX.test(slug)) return FALLBACK_EVENT_CATEGORY_LABEL;
+  return slug;
 }
 
 export const PUBLIC_ROUTES = {
@@ -120,6 +137,12 @@ export const PUBLIC_ROUTES = {
   LESSON: (slug: string) => `/bai-hoc/${slug}`,
   COMMUNITY: '/cong-dong',
   COMMUNITY_MEMBER: (username: string) => `/cong-dong/thanh-vien/${encodeURIComponent(username)}`,
+  CONCEPT_CANVAS: '/kham-pha-khai-niem',
+  CONCEPT_CANVAS_EXPLORE: (q: string, articleSlug?: string) => {
+    const qs = new URLSearchParams({ q });
+    if (articleSlug) qs.set('articleSlug', articleSlug);
+    return `/kham-pha-khai-niem?${qs.toString()}`;
+  },
 } as const;
 
 export interface PublicTag {
@@ -303,11 +326,21 @@ const enc = encodeURIComponent;
 
 export const fetchCategories = () => list<PublicCategory>('/public/categories');
 
-export function fetchArticles(params: { category?: string; tag?: string; q?: string; featured?: boolean; limit?: number } = {}) {
+export function fetchArticles(params: {
+  category?: string;
+  tag?: string;
+  q?: string;
+  topicIds?: string[];
+  featured?: boolean;
+  limit?: number;
+} = {}) {
   const qs = new URLSearchParams();
   if (params.category) qs.set('category', params.category);
   if (params.tag) qs.set('tag', params.tag);
   if (params.q) qs.set('q', params.q);
+  if (params.topicIds && params.topicIds.length > 0) {
+    qs.set('topicIds', params.topicIds.join(','));
+  }
   if (params.featured) qs.set('featured', 'true');
   if (params.limit) qs.set('limit', String(params.limit));
   const query = qs.toString();

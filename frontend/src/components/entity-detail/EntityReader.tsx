@@ -29,7 +29,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
     <div className={`ue-reader-theme-wrap ue-theme-${prefs.theme} ${focusMode ? 'ue-focus-mode-active' : ''}`}>
       <div className="ue-container ue-container-focus pb-24">
         <div className="ue-layout ue-layout-single">
-          <main
+          <article
             className={`ue-article-col ue-text-size-${prefs.textSize} ue-line-spacing-${prefs.lineSpacing} ue-content-width-${prefs.contentWidth}`}
           >
             {focusMode && (
@@ -143,7 +143,7 @@ export const EntityReader: React.FC<EntityReaderProps> = ({ model }) => {
                 <span>✦</span>
               </div>
             )}
-          </main>
+          </article>
         </div>
 
         {annotationTooltip}

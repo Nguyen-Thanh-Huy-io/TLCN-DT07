@@ -1,9 +1,19 @@
 import Link from "next/link";
 import { Header } from "@/components/hisgo/Header";
 import { Footer } from "@/components/hisgo/Footer";
-import { fetchPeriodBySlug, fetchPeriods } from "@/services/entities/landing.service";
+import { fetchPeriodBySlug, fetchPeriods, type PublicPeriodDto } from "@/services/entities/landing.service";
 import { PeriodDetailView } from "@/features/period-detail/components/PeriodDetailView";
-import { siblingPeriods } from "@/features/period-detail/components/PeriodDetailParts";
+
+function resolveSiblingPeriods(period: PublicPeriodDto, all: PublicPeriodDto[]) {
+  const siblings = all
+    .filter((p) => (period.parentId ? p.parentId === period.parentId : !p.parentId))
+    .sort((a, b) => (a.startYear ?? 0) - (b.startYear ?? 0));
+  const i = siblings.findIndex((p) => p.id === period.id);
+  return {
+    prev: i > 0 ? siblings[i - 1] : null,
+    next: i >= 0 && i < siblings.length - 1 ? siblings[i + 1] : null,
+  };
+}
 
 export default async function PeriodDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -31,5 +41,5 @@ export default async function PeriodDetailPage({ params }: { params: Promise<{ s
     );
   }
 
-  return <PeriodDetailView period={period} siblings={siblingPeriods(period, periods)} />;
+  return <PeriodDetailView period={period} siblings={resolveSiblingPeriods(period, periods)} />;
 }

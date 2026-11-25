@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, ChevronDown, Search, X } from 'lucide-react';
+import { KeyboardKey } from '@/constants/enums';
 import type { TopicBlock, TopicLeafGroup } from '@/services/entities/landing-graph';
 
 /** Đệ quy vì cây Topic có thể sâu nhiều cấp. */
@@ -95,6 +96,8 @@ export interface TocDrawerProps {
   activeId?: string;
   totalCount: number;
   onJump: (id: string) => void;
+  onClearActive?: () => void;
+  allLabel?: string;
 }
 
 function matchesQuery(node: TocNode, q: string): TocNode | null {
@@ -202,13 +205,33 @@ function hasActiveDescendant(node: TocNode, activeId: string): boolean {
 }
 
 /** Dùng chung cho mọi trang có cây phân cấp (Thời kỳ, Chủ đề...). */
-export function TocDrawer({ open, onClose, heading, itemLabel, nodes, activeId, totalCount, onJump }: TocDrawerProps) {
+export function TocDrawer({
+  open,
+  onClose,
+  heading,
+  itemLabel,
+  nodes,
+  activeId,
+  totalCount,
+  onJump,
+  onClearActive,
+  allLabel = 'Xem tất cả',
+}: TocDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
 
   const filtered = useMemo(() => filterNodes(nodes, searchQuery), [nodes, searchQuery]);
   const searching = searchQuery.trim().length > 0;
   const toggle = (id: string) => setToggled((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }));
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === KeyboardKey.ESCAPE) onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose, open]);
 
   return (
     <AnimatePresence>
@@ -222,6 +245,8 @@ export function TocDrawer({ open, onClose, heading, itemLabel, nodes, activeId, 
             onClick={onClose}
           />
           <motion.aside
+            role="dialog"
+            aria-modal="true"
             className="sk-toc-drawer"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -268,9 +293,32 @@ export function TocDrawer({ open, onClose, heading, itemLabel, nodes, activeId, 
             </div>
 
             <div className="sk-toc-body">
+              {onClearActive && !searching && nodes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClearActive();
+                    onClose();
+                  }}
+                  className={`mb-2.5 flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-xs font-bold transition cursor-pointer ${
+                    !activeId
+                      ? 'border-[#7A1F24] bg-[#7A1F24]/10 text-[#7A1F24]'
+                      : 'border-[#E2D5B8] bg-[#FAF6EA] text-[#4A3A28] hover:border-[#B8893F]'
+                  }`}
+                >
+                  <span>{allLabel}</span>
+                  <span className="font-semibold opacity-75">
+                    {totalCount} {itemLabel}
+                  </span>
+                </button>
+              )}
               {filtered.length === 0 ? (
                 <div className="sk-toc-empty">
-                  <p>Không tìm thấy mục nào phù hợp với &ldquo;{searchQuery}&rdquo;</p>
+                  <p>
+                    {nodes.length === 0 && !searching
+                      ? `Chưa có ${itemLabel} nào được xuất bản trong mục lục này.`
+                      : `Không tìm thấy mục nào phù hợp với “${searchQuery}”`}
+                  </p>
                 </div>
               ) : (
                 filtered.map((node) => (

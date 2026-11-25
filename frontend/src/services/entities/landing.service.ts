@@ -7,6 +7,7 @@
 
 import {
   fetchArticle,
+  fetchArticles,
   SYSTEM_CATEGORY_ROOT_SLUGS,
   type PublicArticleSummary,
   type PublicTimelineNode,
@@ -80,32 +81,8 @@ function toLocation(g: PublicGraph, a: PublicArticleSummary): PublicLocationSumm
   };
 }
 
-function isYearWithinSpan(a: PublicArticleSummary, targetYear: number | null): boolean {
-  if (targetYear === null || a.startYear === null) return true;
-  return a.startYear <= targetYear && (a.endYear === null || a.endYear >= targetYear);
-}
-
-function collectTopicMatchedEntities(
-  g: PublicGraph,
-  topicIds: Set<string>,
-  eventYear: number | null,
-  figureMap: Map<string, PublicFigureDto>,
-  locationMap: Map<string, PublicLocationSummaryDto>,
-) {
-  if (topicIds.size === 0) return;
-  for (const a of g.articles) {
-    if (!a.topicId || !topicIds.has(a.topicId)) continue;
-    const rootSlug = g.rootCategorySlugOf(a);
-    if (rootSlug === SYSTEM_CATEGORY_ROOT_SLUGS.PERSON && !figureMap.has(a.id) && isYearWithinSpan(a, eventYear)) {
-      figureMap.set(a.id, toFigure(a));
-    } else if (rootSlug === SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION && !locationMap.has(a.id)) {
-      locationMap.set(a.id, toLocation(g, a));
-    }
-  }
-}
-
-/** Trích xuất các bài viết gắn với 1 mốc Timeline (qua `TimelineNodeArticle` + cùng `topicId`). */
-function extractNodeEntities(g: PublicGraph, node: PublicTimelineNode, timelineTopicId: string | null) {
+/** Trích xuất các bài viết gắn trực tiếp với 1 mốc Timeline (qua `TimelineNodeArticle`). */
+function extractNodeEntities(g: PublicGraph, node: PublicTimelineNode) {
   const nodeArticles = extractNodeArticleSlugs(node)
     .map((slug) => g.bySlug.get(slug))
     .filter((a): a is PublicArticleSummary => Boolean(a));
@@ -115,17 +92,15 @@ function extractNodeEntities(g: PublicGraph, node: PublicTimelineNode, timelineT
     nodeArticles[0] ??
     (node.article ? g.bySlug.get(node.article.slug) : undefined);
 
-  const topicIds = g.descendantTopicIdsOf(primaryArticle?.topicId ?? timelineTopicId);
   const figureMap = new Map<string, PublicFigureDto>();
   const locationMap = new Map<string, PublicLocationSummaryDto>();
 
   for (const a of nodeArticles) {
+    if (a.id === primaryArticle?.id) continue;
     const rootSlug = g.rootCategorySlugOf(a);
     if (rootSlug === SYSTEM_CATEGORY_ROOT_SLUGS.PERSON) figureMap.set(a.id, toFigure(a));
     if (rootSlug === SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION) locationMap.set(a.id, toLocation(g, a));
   }
-
-  collectTopicMatchedEntities(g, topicIds, node.year ?? primaryArticle?.startYear ?? null, figureMap, locationMap);
 
   const locations = [...locationMap.values()];
   return {
@@ -138,10 +113,16 @@ function extractNodeEntities(g: PublicGraph, node: PublicTimelineNode, timelineT
 }
 
 function resolveArticleCategoryMeta(g: PublicGraph, a?: PublicArticleSummary) {
+  if (a?.category) {
+    return {
+      category: a.category.name ?? a.category.slug ?? SYSTEM_CATEGORY_ROOT_SLUGS.EVENT,
+      categoryIds: [a.category.id],
+    };
+  }
   const type = g.eventTypeOf(a);
   return {
-    category: type?.name ?? a?.category?.name ?? a?.category?.slug ?? SYSTEM_CATEGORY_ROOT_SLUGS.EVENT,
-    categoryIds: type ? [type.id] : a?.category ? [a.category.id] : [],
+    category: type?.name ?? SYSTEM_CATEGORY_ROOT_SLUGS.EVENT,
+    categoryIds: type ? [type.id] : [],
   };
 }
 
@@ -179,7 +160,7 @@ function buildEventsFromTimelines(g: PublicGraph, covered: Set<string>): PublicE
   for (const t of g.timelines) {
     const period = g.periods.find((p) => p.id === t.id);
     for (const node of t.nodes) {
-      const { primaryArticle, nodeArticles, figures, locations, location } = extractNodeEntities(g, node, t.topicId);
+      const { primaryArticle, nodeArticles, figures, locations, location } = extractNodeEntities(g, node);
       for (const a of nodeArticles) covered.add(a.slug);
       if (primaryArticle) covered.add(primaryArticle.slug);
       const baseYear = node.year ?? primaryArticle?.startYear ?? period?.startYear ?? 0;
@@ -216,19 +197,9 @@ function buildEventsFromUncoveredArticles(g: PublicGraph, covered: Set<string>):
       continue;
     }
     const periodSlug = g.periodSlugOf(a);
-    // Cho phép mọi bài viết có năm bắt đầu và thuộc nhánh Topic của Timeline (hoặc thuộc chuyên mục Sự kiện) hiển thị trên trục
     if (!periodSlug && g.rootCategorySlugOf(a) !== SYSTEM_CATEGORY_ROOT_SLUGS.EVENT) {
       continue;
     }
-    const type = g.eventTypeOf(a);
-    const topicIds = g.descendantTopicIdsOf(a.topicId);
-    const sameTopicArticles = a.topicId ? g.articles.filter((other) => Boolean(other.topicId && topicIds.has(other.topicId))) : [];
-    const figures = sameTopicArticles
-      .filter((other) => g.rootCategorySlugOf(other) === SYSTEM_CATEGORY_ROOT_SLUGS.PERSON)
-      .map(toFigure);
-    const locations = sameTopicArticles
-      .filter((other) => g.rootCategorySlugOf(other) === SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION)
-      .map((other) => toLocation(g, other));
 
     events.push({
       id: a.id,
@@ -239,13 +210,12 @@ function buildEventsFromUncoveredArticles(g: PublicGraph, covered: Set<string>):
       eventDateNote: a.dateText,
       description: a.summary,
       imageUrl: a.coverImageUrl,
-      category: type?.name ?? a.category?.name ?? a.category?.slug ?? SYSTEM_CATEGORY_ROOT_SLUGS.EVENT,
-      categoryIds: type ? [type.id] : a.category ? [a.category.id] : [],
+      ...resolveArticleCategoryMeta(g, a),
       periodSlug,
       topicId: a.topicId,
-      figures,
-      locations,
-      location: locations[0]?.name ?? null,
+      figures: [],
+      locations: [],
+      location: null,
     });
   }
   return events;
@@ -375,9 +345,19 @@ export async function fetchLocations(): Promise<PublicLocationSummaryDto[]> {
     .map((a) => toLocation(g, a));
 }
 
-export async function fetchArticleLibrary(): Promise<PublicArticleLibraryItemDto[]> {
+export async function fetchArticleLibrary(options?: {
+  tag?: string;
+  q?: string;
+}): Promise<PublicArticleLibraryItemDto[]> {
   const g = await loadGraph();
-  return g.articles.map((a) => {
+  const hasServerFilter = Boolean(options?.tag?.trim() || options?.q?.trim());
+  const sourceArticles = hasServerFilter
+    ? (await fetchArticles({ tag: options?.tag?.trim(), q: options?.q?.trim(), limit: 200 })).map((a) => ({
+        ...a,
+        metadata: sanitizeMetadata(a.metadata),
+      }))
+    : g.articles;
+  return sourceArticles.map((a) => {
     const site = a.metadata?.site ?? {};
     const person = a.metadata?.person ?? {};
     const rootSlug = g.rootCategorySlugOf(a);
@@ -422,86 +402,130 @@ function collectDescendantPeriods(periods: PublicPeriodDto[], rootPeriodId: stri
   return directChildren.flatMap((child) => [child, ...collectDescendantPeriods(periods, child.id)]);
 }
 
+function periodDepthOf(periods: PublicPeriodDto[], periodId: string): number {
+  const byId = new Map(periods.map((p) => [p.id, p]));
+  let depth = 0;
+  let cur = byId.get(periodId);
+  const seen = new Set<string>();
+  while (cur?.parentId && byId.has(cur.parentId) && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    depth += 1;
+    cur = byId.get(cur.parentId);
+  }
+  return depth;
+}
+
 export async function fetchPeriodBySlug(slug: string): Promise<PublicPeriodDetailDto | null> {
   const g = await loadGraph();
   const timeline = g.timelines.find((t) => t.slug === slug);
   const period = g.periods.find((p) => p.slug === slug);
   if (!timeline || !period) return null;
 
-  // Gom đệ quy toàn bộ nhánh Topic (Topic cha -> Topic con -> Topic cháu...) và các mốc Timeline thuộc nhánh này.
+  // Gom đệ quy toàn bộ nhánh Topic (Topic cha -> Topic con -> Topic cháu...) và tải đầy đủ bài viết thuộc nhánh này.
   const descendantPeriods = collectDescendantPeriods(g.periods, period.id);
   const ownAndDescendantSlugs = new Set([slug, ...descendantPeriods.map((c) => c.slug)]);
   const descendantTopicIds = g.descendantTopicIdsOf(timeline.topicId);
 
-  const inNodes = g.timelines
-    .filter((t) => ownAndDescendantSlugs.has(t.slug))
-    .flatMap((t) => t.nodes.flatMap(extractNodeArticleSlugs))
-    .map((s) => g.bySlug.get(s))
-    .filter((a): a is PublicArticleSummary => Boolean(a));
+  const rawTopicArticles =
+    descendantTopicIds.size > 0
+      ? await fetchArticles({ topicIds: [...descendantTopicIds], limit: 1500 })
+      : [];
+  const mergedArticleMap = new Map<string, PublicArticleSummary>(g.articles.map((a) => [a.id, a]));
+  for (const raw of rawTopicArticles) {
+    if (!mergedArticleMap.has(raw.id)) {
+      mergedArticleMap.set(raw.id, { ...raw, metadata: sanitizeMetadata(raw.metadata) });
+    }
+  }
+  const mergedArticles = [...mergedArticleMap.values()];
+  const mergedGraph: PublicGraph = {
+    ...g,
+    articles: mergedArticles,
+    bySlug: new Map(mergedArticles.map((a) => [a.slug, a])),
+    byId: mergedArticleMap,
+  };
 
-  const nodeArticleIds = new Set(inNodes.map((a) => a.id));
-  const related = g.articles.filter(
-    (a) => nodeArticleIds.has(a.id) || Boolean(a.topicId && descendantTopicIds.has(a.topicId)),
-  );
-  const end = period.endYear ?? period.startYear;
-  const allEvents = buildEvents(g);
-
+  const allEvents = buildEvents(mergedGraph);
   const parent = period.parentId ? (g.periods.find((p) => p.id === period.parentId) ?? null) : null;
   const directChildPeriods = g.periods
     .filter((p) => p.parentId === period.id)
     .sort((a, b) => (a.startYear ?? 0) - (b.startYear ?? 0));
 
-  const children: PublicSubPeriodDto[] = directChildPeriods.map((c) => {
-    const childBranchSlugs = new Set([c.slug, ...collectDescendantPeriods(g.periods, c.id).map((sub) => sub.slug)]);
+  const childBranchMeta = directChildPeriods.map((c) => {
+    const branchSlugs = new Set([c.slug, ...collectDescendantPeriods(g.periods, c.id).map((sub) => sub.slug)]);
     const childTimeline = g.timelines.find((t) => t.id === c.id);
-    const childTopicIds = g.descendantTopicIdsOf(childTimeline?.topicId);
-    const childEvents = allEvents.filter(
-      (e) =>
-        (e.periodSlug && childBranchSlugs.has(e.periodSlug)) ||
-        Boolean(e.topicId && childTopicIds.has(e.topicId)),
-    );
-    const figureIds = new Set([
-      ...childEvents.flatMap((e) => e.figures.map((f) => f.id)),
-      ...g.articles
-        .filter(
-          (a) =>
-            g.rootCategorySlugOf(a) === SYSTEM_CATEGORY_ROOT_SLUGS.PERSON &&
-            Boolean(a.topicId && childTopicIds.has(a.topicId)),
-        )
-        .map((a) => a.id),
-    ]);
-    return { ...c, eventCount: childEvents.length, figureCount: figureIds.size };
+    const branchTopicIds = g.descendantTopicIdsOf(childTimeline?.topicId);
+    return { child: c, branchSlugs, branchTopicIds };
   });
 
-  const events = allEvents.filter(
+  const rawEvents = allEvents.filter(
     (e) =>
       (e.periodSlug && ownAndDescendantSlugs.has(e.periodSlug)) ||
       Boolean(e.topicId && descendantTopicIds.has(e.topicId)),
   );
 
-  const figuresById = new Map<string, PublicFigureDto>();
-  for (const a of related.filter((a) => g.rootCategorySlugOf(a) === SYSTEM_CATEGORY_ROOT_SLUGS.PERSON)) {
-    figuresById.set(a.id, toFigure(a));
-  }
-  for (const e of events) for (const f of e.figures) figuresById.set(f.id, f);
+  const events: PublicEventSummaryDto[] = rawEvents.map((e) => {
+    const matchedStage = childBranchMeta.find(
+      (m) =>
+        Boolean(e.periodSlug && m.branchSlugs.has(e.periodSlug)) ||
+        Boolean(e.topicId && m.branchTopicIds.has(e.topicId)),
+    );
+    return matchedStage ? { ...e, stageId: matchedStage.child.id } : e;
+  });
+
+  const children: PublicSubPeriodDto[] = childBranchMeta.map(({ child, branchSlugs, branchTopicIds }) => {
+    const childEvents = events.filter(
+      (e) =>
+        e.stageId === child.id ||
+        Boolean(e.periodSlug && branchSlugs.has(e.periodSlug)) ||
+        Boolean(e.topicId && branchTopicIds.has(e.topicId)),
+    );
+    const yrs = childEvents
+      .flatMap((e) => [e.startYear, e.endYear ?? null])
+      .filter((y): y is number => typeof y === 'number' && y !== 0);
+    const startYear = child.startYear !== 0 ? child.startYear : yrs.length ? Math.min(...yrs) : 0;
+    const endYear = child.endYear ?? (yrs.length ? Math.max(...yrs) : null);
+    const timeLabel =
+      child.timeLabel?.trim() ||
+      (startYear !== 0
+        ? endYear !== null && endYear !== startYear
+          ? `${formatYear(startYear)} – ${formatYear(endYear)}`
+          : formatYear(startYear)
+        : '');
+
+    return {
+      ...child,
+      startYear,
+      endYear,
+      timeLabel,
+      eventCount: childEvents.length,
+      figureCount: 0,
+    };
+  });
+
+  const currentDepth = periodDepthOf(g.periods, period.id);
+  const allPeriodYears = events
+    .flatMap((e) => [e.startYear, e.endYear ?? null])
+    .filter((y): y is number => typeof y === 'number' && y !== 0);
+  const resolvedStart = period.startYear !== 0 ? period.startYear : allPeriodYears.length ? Math.min(...allPeriodYears) : 0;
+  const resolvedEnd = period.endYear ?? (allPeriodYears.length ? Math.max(...allPeriodYears) : resolvedStart);
 
   return {
     ...period,
+    startYear: resolvedStart,
+    endYear: resolvedEnd !== resolvedStart ? resolvedEnd : period.endYear,
     topics: [],
-    figures: [...figuresById.values()],
+    figures: [],
     events,
     parent,
     children,
-    locations: related
-      .filter((a) => g.rootCategorySlugOf(a) === SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION)
-      .map((a) => toLocation(g, a)),
-    concurrentPeriods: g.periods.filter(
-      (p) =>
-        p.slug !== slug &&
-        !ownAndDescendantSlugs.has(p.slug) &&
-        p.startYear <= end &&
-        (p.endYear ?? p.startYear) >= period.startYear,
-    ),
+    locations: [],
+    concurrentPeriods: g.periods.filter((p) => {
+      if (p.slug === slug || ownAndDescendantSlugs.has(p.slug)) return false;
+      if (periodDepthOf(g.periods, p.id) !== currentDepth) return false;
+      if (resolvedStart === 0 || p.startYear === 0) return true;
+      const pEnd = p.endYear ?? p.startYear;
+      return p.startYear <= resolvedEnd && pEnd >= resolvedStart;
+    }),
     concurrentEvents: [],
   };
 }
@@ -549,6 +573,7 @@ export async function fetchEntityBySlug(slug: string): Promise<PublicEntityDetai
     imageUrl: article.coverImageUrl,
     imageCaption: article.coverCaption,
     aliases: meta.aliases ?? [],
+    tags: article.tags ?? [],
     dateText: article.dateText,
     startYear: article.startYear,
     endYear: article.endYear,

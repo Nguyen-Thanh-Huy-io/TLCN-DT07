@@ -26,7 +26,16 @@ function loadEventCategories(): Promise<EventCategoryItem[]> {
       .get('/public/categories')
       .then((res) => {
         const list = (res.data?.data ?? res.data) as EventCategoryItem[];
-        return extractEventCategories(Array.isArray(list) ? list : []);
+        if (!Array.isArray(list)) return [];
+        const byId = new Map(list.map((c) => [c.id, c]));
+        return list.map((c) => {
+          const parent = c.parentId ? byId.get(c.parentId) : undefined;
+          return {
+            ...c,
+            parentSlug: parent?.slug ?? null,
+            parentName: parent?.name ?? null,
+          };
+        });
       })
       .catch((err) => {
         cachedEventCategoriesPromise = null;

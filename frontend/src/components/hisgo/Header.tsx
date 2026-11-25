@@ -19,6 +19,12 @@ enum NavLinkId {
   QUIZ = 'quiz',
 }
 
+const PRACTICE_ROUTE = "/luyen-tap";
+const DESKTOP_NAV_ACTIVE_CLS =
+  "bg-gradient-to-r from-[#C99C48] via-[#B8893F] to-[#A67832] text-[#3D0A0E] font-bold shadow-[0_2px_8px_rgba(0,0,0,0.25)] border border-[#F3DEAB]/60";
+const DESKTOP_NAV_IDLE_CLS =
+  "text-[#F5EEDC]/85 hover:text-[#FFF9ED] hover:bg-white/10";
+
 interface HeaderProps {
   activeSectionId?: string;
   activeTab?: string;
@@ -42,16 +48,28 @@ export function Header({
   const router = useRouter();
 
   useEffect(() => {
-    if (!userMenuOpen) return;
+    if (!userMenuOpen && !exploreOpen) return undefined;
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
-      if (exploreRef.current && !exploreRef.current.contains(e.target as Node)) { setExploreOpen(false); }
+      }
+      if (exploreRef.current && !exploreRef.current.contains(e.target as Node)) {
+        setExploreOpen(false);
+      }
+    };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === KeyboardKey.ESCAPE) {
+        setUserMenuOpen(false);
+        setExploreOpen(false);
       }
     };
     window.addEventListener("mousedown", handleClickOutside);
-    return () => window.removeEventListener("mousedown", handleClickOutside);
-  }, [userMenuOpen]);
+    window.addEventListener("keydown", handleEsc);
+    return () => {
+      window.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleEsc);
+    };
+  }, [exploreOpen, userMenuOpen]);
 
   const handleLogout = async () => {
     await PublicAuthService.logout();
@@ -60,7 +78,30 @@ export function Header({
     router.refresh();
   };
 
-  const loginHref = `/login?redirect=${encodeURIComponent(pathname || "/")}`;
+  const isAuthPage = pathname === "/login" || pathname === "/dang-ky";
+  const loginHref = isAuthPage ? "/login" : `/login?redirect=${encodeURIComponent(pathname || "/")}`;
+  const isExploreRoute =
+    Boolean(pathname?.startsWith("/bai-viet")) ||
+    Boolean(pathname?.startsWith("/kham-pha-khai-niem")) ||
+    Boolean(pathname?.startsWith("/chuyen-muc")) ||
+    Boolean(pathname?.startsWith("/nhan-vat")) ||
+    Boolean(pathname?.startsWith("/su-kien")) ||
+    Boolean(pathname?.startsWith("/di-tich")) ||
+    Boolean(pathname?.startsWith("/thuc-the"));
+
+  const isNavLinkActive = (id: NavLinkId): boolean => {
+    if (id === NavLinkId.EXPLORE) return pathname === "/";
+    if (id === NavLinkId.CURRICULUM) {
+      return Boolean(pathname?.startsWith("/chuong-trinh-hoc") || pathname?.startsWith("/bai-hoc"));
+    }
+    if (id === NavLinkId.TIMELINE) {
+      return Boolean(pathname?.startsWith("/dong-thoi-gian") || pathname?.startsWith("/giai-doan"));
+    }
+    if (id === NavLinkId.BLOG) return Boolean(pathname?.startsWith("/blog"));
+    if (id === NavLinkId.COMMUNITY) return Boolean(pathname?.startsWith("/cong-dong"));
+    if (id === NavLinkId.QUIZ) return Boolean(pathname?.startsWith(PRACTICE_ROUTE));
+    return activeTab === id;
+  };
 
   const navLinks = [
     { id: NavLinkId.EXPLORE, label: "Trang chủ", href: "/" },
@@ -68,10 +109,11 @@ export function Header({
     { id: NavLinkId.TIMELINE, label: "Dòng thời gian", href: "/dong-thoi-gian" },
     { id: NavLinkId.BLOG, label: "Blog", href: "/blog" },
     { id: NavLinkId.COMMUNITY, label: "Cộng đồng", href: "/cong-dong" },
-    { id: NavLinkId.QUIZ, label: "Luyện tập", href: "/luyen-tap" },
+    { id: NavLinkId.QUIZ, label: "Luyện tập", href: PRACTICE_ROUTE },
   ];
 
   const exploreItems = [
+    { label: "Bản đồ Khái niệm AI", href: "/kham-pha-khai-niem", icon: ScrollText, desc: "Mở rộng mạch liên kết lịch sử trên không gian 2D" },
     { label: "Tất cả bài viết", href: "/bai-viet", icon: BookOpen, desc: "Toàn bộ kho bài viết & tư liệu lịch sử" },
     { label: "Sự kiện lịch sử", href: "/bai-viet?chuyen-muc=su-kien", icon: Swords, desc: "Các trận đánh, biến cố và hiệp định" },
     { label: "Nhân vật lịch sử", href: "/bai-viet?chuyen-muc=nhan-vat", icon: User, desc: "Vua chúa, tướng lĩnh, anh hùng dân tộc" },
@@ -234,21 +276,14 @@ export function Header({
         {/* Center: Desktop Navigation Bar */}
         <nav className="hidden xl:flex items-center gap-1.5 2xl:gap-2 p-1 rounded-full bg-black/20 border border-[#D4AE67]/25 backdrop-blur-sm">
           {navLinks.slice(0, 5).map((link) => {
-            const isActive =
-              link.id === NavLinkId.BLOG
-                ? pathname?.startsWith("/blog")
-                : link.id === NavLinkId.COMMUNITY
-                  ? pathname?.startsWith("/cong-dong")
-                  : activeTab === link.id;
+            const isActive = isNavLinkActive(link.id);
             return (
               <a
                 key={link.id}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.href, link.id)}
                 className={`relative px-2.5 2xl:px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-all duration-200 ${
-                  isActive
-                    ? "bg-gradient-to-r from-[#C99C48] via-[#B8893F] to-[#A67832] text-[#3D0A0E] font-bold shadow-[0_2px_8px_rgba(0,0,0,0.25)] border border-[#F3DEAB]/60"
-                    : "text-[#F5EEDC]/85 hover:text-[#FFF9ED] hover:bg-white/10"
+                  isActive ? DESKTOP_NAV_ACTIVE_CLS : DESKTOP_NAV_IDLE_CLS
                 }`}
               >
                 {link.label}
@@ -260,8 +295,11 @@ export function Header({
           <div ref={exploreRef} className="relative">
             <button
               type="button"
+              aria-expanded={exploreOpen}
               onClick={() => setExploreOpen((v) => !v)}
-              className="flex items-center gap-1 px-2.5 2xl:px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap text-[#F5EEDC]/85 hover:text-[#FFF9ED] hover:bg-white/10 transition-all duration-200"
+              className={`flex items-center gap-1 px-2.5 2xl:px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                isExploreRoute ? DESKTOP_NAV_ACTIVE_CLS : DESKTOP_NAV_IDLE_CLS
+              }`}
             >
               <span>Khám phá</span>
               <ChevronDown size={14} className={`transition-transform duration-200 ${exploreOpen ? "rotate-180" : ""}`} />
@@ -293,11 +331,9 @@ export function Header({
 
           {/* Link Luyện tập */}
           <Link
-            href="/luyen-tap"
+            href={PRACTICE_ROUTE}
             className={`relative px-2.5 2xl:px-3.5 py-1.5 rounded-full text-sm font-medium font-[family-name:var(--font-body)] whitespace-nowrap transition-all duration-200 ${
-              pathname?.startsWith("/luyen-tap")
-                ? "bg-gradient-to-r from-[#C99C48] via-[#B8893F] to-[#A67832] text-[#3D0A0E] font-bold shadow-[0_2px_8px_rgba(0,0,0,0.25)] border border-[#F3DEAB]/60"
-                : "text-[#F5EEDC]/85 hover:text-[#FFF9ED] hover:bg-white/10"
+              pathname?.startsWith(PRACTICE_ROUTE) ? DESKTOP_NAV_ACTIVE_CLS : DESKTOP_NAV_IDLE_CLS
             }`}
           >
             Luyện tập
@@ -457,16 +493,22 @@ export function Header({
 
           <div
             ref={menuRef}
-            className="absolute top-full left-0 right-0 border-b border-[#D4AE67]/35 bg-[#521217] px-6 py-6 space-y-3 shadow-2xl z-50 xl:hidden animate-fadeIn"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu điều hướng di động"
+            className="absolute top-full left-0 right-0 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-[#D4AE67]/35 bg-[#521217] px-5 py-5 space-y-2.5 shadow-2xl z-50 xl:hidden animate-fadeIn"
           >
             {navLinks.map((link) => {
-              const isActive = activeTab === link.id;
+              const isActive = isNavLinkActive(link.id);
               return (
                 <a
                   key={link.id}
                   href={link.href}
-                  onClick={(e) => handleNavClick(e, link.href, link.id)}
-                  className={`block py-3 px-4 rounded-xl text-base font-medium font-[family-name:var(--font-body)] transition-colors ${
+                  onClick={(e) => {
+                    handleNavClick(e, link.href, link.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`block py-2.5 px-4 rounded-xl text-base font-medium font-[family-name:var(--font-body)] transition-colors ${
                     isActive
                       ? "bg-gradient-to-r from-[#C99C48] to-[#B8893F] text-[#3D0A0E] font-bold border-l-4 border-[#F3DEAB] shadow-md"
                       : "text-[#F5EEDC]/90 hover:bg-white/10 hover:text-white"
@@ -476,6 +518,28 @@ export function Header({
                 </a>
               );
             })}
+
+            <div className="pt-3 border-t border-[#D4AE67]/25 space-y-1.5">
+              <p className="px-3 text-xs font-bold uppercase tracking-wider text-[#E7C77E]/85">
+                Khám phá kho tri thức
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {exploreItems.map((item) => {
+                  const IconComp = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-medium text-[#F5EEDC]/95 hover:bg-white/10 transition-colors"
+                    >
+                      <IconComp size={16} className="shrink-0 text-[#E7C77E]" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="pt-4 border-t border-[#D4AE67]/25">
               {user ? (

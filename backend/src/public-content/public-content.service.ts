@@ -1,9 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ContentStatus } from '@prisma/client';
-import {
-  resolveRootCategorySlug,
-  SYSTEM_CATEGORY_ROOT_SLUGS,
-} from '../category/category.service';
 import { PrismaService } from '../common/services/prisma.service';
 import { loadAuthorProfiles } from '../common/utils/author-names';
 import { ArticleAdjacencyService } from './article-adjacency.service';
@@ -35,6 +31,7 @@ export interface PublicArticleQuery {
   tag?: string;
   q?: string;
   topicIds?: string[];
+  ids?: string[];
   featured?: boolean;
   limit?: number;
 }
@@ -75,9 +72,32 @@ export class PublicContentService {
     });
     if (!category)
       throw new NotFoundException(PUBLIC_MESSAGES.CATEGORY_NOT_FOUND(slug));
-    const categoryIds = [category.id, ...category.children.map((c) => c.id)];
+    const allCategories = await this.prisma.category.findMany({
+      where: { isActive: true },
+      select: { id: true, parentId: true },
+    });
+    const expandedIds = new Set<string>([
+      category.id,
+      ...category.children.map((c) => c.id),
+    ]);
+    if (Array.isArray(allCategories) && allCategories.length > 0) {
+      let added = true;
+      while (added) {
+        added = false;
+        for (const c of allCategories) {
+          if (
+            c.parentId &&
+            expandedIds.has(c.parentId) &&
+            !expandedIds.has(c.id)
+          ) {
+            expandedIds.add(c.id);
+            added = true;
+          }
+        }
+      }
+    }
     const articles = await this.prisma.article.findMany({
-      where: { status: PUBLISHED, categoryId: { in: categoryIds } },
+      where: { status: PUBLISHED, categoryId: { in: [...expandedIds] } },
       orderBy: BY_YEAR,
       select: PUBLIC_ARTICLE_SUMMARY_SELECT,
     });
@@ -92,6 +112,7 @@ export class PublicContentService {
     const rows = await this.prisma.article.findMany({
       where: {
         status: PUBLISHED,
+        ...(query.ids && query.ids.length > 0 ? { id: { in: query.ids } } : {}),
         ...(query.category ? { category: { slug: query.category } } : {}),
         ...(query.topicIds && query.topicIds.length > 0
           ? { topicId: { in: query.topicIds } }
@@ -319,53 +340,6 @@ export class PublicContentService {
     return this.publicTimeline.getTimelineBySlug(slug);
   }
 
-  getPeriods() {
-    return this.publicTimeline.getPeriods();
-  }
-
-  getPeriodBySlug(slug: string) {
-    return this.publicTimeline.getPeriodBySlug(slug);
-  }
-
-  async getEvents() {
-    return this.getPublishedArticleListByRootSlug(
-      SYSTEM_CATEGORY_ROOT_SLUGS.EVENT,
-    );
-  }
-
-  async getEventBySlug(slug: string) {
-    return this.getPublishedArticleByRootSlugAndSlug(
-      SYSTEM_CATEGORY_ROOT_SLUGS.EVENT,
-      slug,
-    );
-  }
-
-  async getFigureDirectory() {
-    return this.getPublishedArticleListByRootSlug(
-      SYSTEM_CATEGORY_ROOT_SLUGS.PERSON,
-    );
-  }
-
-  async getFigureBySlug(slug: string) {
-    return this.getPublishedArticleByRootSlugAndSlug(
-      SYSTEM_CATEGORY_ROOT_SLUGS.PERSON,
-      slug,
-    );
-  }
-
-  async getLocations() {
-    return this.getPublishedArticleListByRootSlug(
-      SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION,
-    );
-  }
-
-  async getLocationBySlug(slug: string) {
-    return this.getPublishedArticleByRootSlugAndSlug(
-      SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION,
-      slug,
-    );
-  }
-
   async getTags(query?: { q?: string; limit?: number }) {
     const q = query?.q?.trim();
     const tags = await this.prisma.tag.findMany({
@@ -418,100 +392,5 @@ export class PublicContentService {
     userId?: string,
   ): Promise<QuizAttemptResult> {
     return this.publicQuiz.submitQuizAttempt(quizId, dto, userId);
-  }
-
-  private async getPublishedArticleByRootSlugAndSlug(
-    rootSlug: string,
-    slug: string,
-  ) {
-    const article = await this.prisma.article.findFirst({
-      where: { slug, status: PUBLISHED },
-      include: {
-        category: { include: { parent: true } },
-        timelineNodes: {
-          where: { timeline: { status: PUBLISHED } },
-          orderBy: { displayOrder: 'asc' },
-          include: { timeline: true },
-        },
-      },
-    });
-    if (!article) {
-      throw new NotFoundException(PUBLIC_MESSAGES.ARTICLE_NOT_FOUND(slug));
-    }
-    const categories = await this.prisma.category.findMany({
-      include: { parent: true },
-    });
-    const byId = new Map(categories.map((category) => [category.id, category]));
-    if (resolveRootCategorySlug(article.category, byId) !== rootSlug) {
-      throw new NotFoundException(PUBLIC_MESSAGES.ARTICLE_NOT_FOUND(slug));
-    }
-    const items = await this.getPublishedArticleListByRootSlug(rootSlug);
-    return items.find((item) => item.slug === slug) ?? article;
-  }
-
-  private async getPublishedArticleListByRootSlug(rootSlug: string) {
-    const [categories, articles] = await Promise.all([
-      this.prisma.category.findMany({ include: { parent: true } }),
-      this.prisma.article.findMany({
-        where: { status: PUBLISHED },
-        orderBy: BY_YEAR,
-        include: {
-          category: { include: { parent: true } },
-          timelineNodes: {
-            where: { timeline: { status: PUBLISHED } },
-            orderBy: { displayOrder: 'asc' },
-            include: { timeline: true },
-          },
-        },
-      }),
-    ]);
-
-    const byId = new Map(categories.map((category) => [category.id, category]));
-    return articles
-      .filter(
-        (article) =>
-          resolveRootCategorySlug(article.category, byId) === rootSlug,
-      )
-      .map((article) => {
-        const timeline = article.timelineNodes[0]?.timeline ?? null;
-        const categoryName = article.category?.name ?? 'Khác';
-        const metadata =
-          typeof article.metadata === 'object' && article.metadata
-            ? (article.metadata as Record<string, any>)
-            : {};
-        const person =
-          typeof metadata.person === 'object' && metadata.person
-            ? (metadata.person as Record<string, any>)
-            : {};
-        const site =
-          typeof metadata.site === 'object' && metadata.site
-            ? (metadata.site as Record<string, any>)
-            : {};
-        return {
-          id: article.id,
-          slug: article.slug,
-          title: article.title,
-          name: article.title,
-          startYear: article.startYear,
-          endYear: article.endYear,
-          dateText: article.dateText,
-          description: article.summary,
-          summary: article.summary,
-          imageUrl: article.coverImageUrl,
-          coverImageUrl: article.coverImageUrl,
-          location: null,
-          category: categoryName,
-          categoryId: article.categoryId,
-          periodSlug: timeline?.slug ?? null,
-          eventDateNote: article.dateText,
-          figures: [],
-          locations: [],
-          role: (person?.titles as unknown[] | undefined)?.[0] ?? null,
-          siteType: site?.siteType ?? null,
-          siteTypeLabel: site?.siteType ?? null,
-          address: site?.address ?? null,
-          metadata,
-        };
-      });
   }
 }

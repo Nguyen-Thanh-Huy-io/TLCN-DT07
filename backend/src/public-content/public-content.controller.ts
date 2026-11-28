@@ -11,6 +11,12 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { PublicContentService } from './public-content.service';
+import { PublicArticleCatalogService } from './public-article-catalog.service';
+import {
+  ARTICLE_CATALOG_LIMITS,
+  PublicArticleCatalogQueryDto,
+  PublicArticleCatalogResponseDto,
+} from './dto/public-article-catalog.dto';
 import { PublicQuizQueryDto } from './dto/public-quiz-query.dto';
 import { SubmitQuizAttemptDto } from './dto/submit-quiz-attempt.dto';
 import { OptionalAuthGuard } from '../common/guards/optional-auth.guard';
@@ -20,7 +26,10 @@ import type { AuthenticatedRequest } from '../common/access/roles.guard';
 @ApiTags('Public Content (Trang công khai)')
 @Controller('public')
 export class PublicContentController {
-  constructor(private readonly service: PublicContentService) {}
+  constructor(
+    private readonly service: PublicContentService,
+    private readonly catalogService: PublicArticleCatalogService,
+  ) {}
 
   @Get('categories')
   @ApiOperation({ summary: 'Chuyên mục kèm số bài đã xuất bản' })
@@ -52,6 +61,11 @@ export class PublicContentController {
     required: false,
     description: 'Danh sách topicId phân tách dấu phẩy',
   })
+  @ApiQuery({
+    name: 'ids',
+    required: false,
+    description: 'Danh sách ID bài viết phân tách dấu phẩy',
+  })
   @ApiQuery({ name: 'featured', required: false, type: Boolean })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   getArticles(
@@ -59,6 +73,7 @@ export class PublicContentController {
     @Query('tag') tag?: string,
     @Query('q') q?: string,
     @Query('topicIds') topicIds?: string,
+    @Query('ids') ids?: string,
     @Query('featured') featured?: string,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ) {
@@ -67,17 +82,40 @@ export class PublicContentController {
           .split(',')
           .map((id) => id.trim())
           .filter(Boolean)
-          .slice(0, 200)
+          .slice(0, ARTICLE_CATALOG_LIMITS.MAX_CSV_VALUES)
       : undefined;
-    const maxLimit = parsedTopicIds?.length ? 1500 : 200;
+    const parsedIds = ids
+      ? ids
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean)
+          .slice(0, ARTICLE_CATALOG_LIMITS.MAX_ARTICLE_IDS_LOOKUP)
+      : undefined;
+    const maxLimit = parsedIds?.length
+      ? ARTICLE_CATALOG_LIMITS.MAX_ARTICLE_IDS_LOOKUP
+      : parsedTopicIds?.length
+        ? 1500
+        : 200;
     return this.service.getArticles({
       category,
       tag,
       q,
       topicIds: parsedTopicIds,
+      ids: parsedIds,
       featured: featured === 'true',
       limit: limit ? Math.min(limit, maxLimit) : undefined,
     });
+  }
+
+  @Get('articles/catalog')
+  @ApiOperation({
+    summary:
+      'Thư viện bài viết phân trang từ Server kèm thống kê số lượng thật theo Chuyên mục, Chủ đề & Thẻ',
+  })
+  getArticleCatalog(
+    @Query() query: PublicArticleCatalogQueryDto,
+  ): Promise<PublicArticleCatalogResponseDto> {
+    return this.catalogService.queryCatalog(query);
   }
 
   @Get('articles/:slug')
@@ -111,60 +149,6 @@ export class PublicContentController {
   @ApiOperation({ summary: 'Một dòng thời gian kèm mốc' })
   getTimeline(@Param('slug') slug: string) {
     return this.service.getTimelineBySlug(slug);
-  }
-
-  @Get('periods')
-  @ApiOperation({ summary: 'Danh sách giai đoạn / timeline được công khai' })
-  getPeriods() {
-    return this.service.getPeriods();
-  }
-
-  @Get('periods/:slug')
-  @ApiOperation({ summary: 'Chi tiết giai đoạn / timeline công khai' })
-  getPeriodBySlug(@Param('slug') slug: string) {
-    return this.service.getPeriodBySlug(slug);
-  }
-
-  @Get('events')
-  @ApiOperation({ summary: 'Danh sách sự kiện lịch sử đã xuất bản' })
-  getEvents() {
-    return this.service.getEvents();
-  }
-
-  @Get('events/:slug')
-  @ApiOperation({ summary: 'Chi tiết sự kiện lịch sử đã xuất bản' })
-  getEventBySlug(@Param('slug') slug: string) {
-    return this.service.getEventBySlug(slug);
-  }
-
-  @Get('figures')
-  @ApiOperation({ summary: 'Danh sách nhân vật lịch sử đã xuất bản' })
-  getFigures() {
-    return this.service.getFigureDirectory();
-  }
-
-  @Get('figures/directory')
-  @ApiOperation({ summary: 'Danh mục nhân vật lịch sử công khai' })
-  getFigureDirectory() {
-    return this.service.getFigureDirectory();
-  }
-
-  @Get('figures/:slug')
-  @ApiOperation({ summary: 'Chi tiết nhân vật lịch sử đã xuất bản' })
-  getFigureBySlug(@Param('slug') slug: string) {
-    return this.service.getFigureBySlug(slug);
-  }
-
-  @Get('locations')
-  @ApiOperation({ summary: 'Danh sách di tích / địa danh lịch sử đã xuất bản' })
-  getLocations() {
-    return this.service.getLocations();
-  }
-
-  @Get('locations/:slug')
-  @ApiOperation({ summary: 'Chi tiết di tích / địa danh lịch sử đã xuất bản' })
-  getLocationBySlug(@Param('slug') slug: string) {
-    return this.service.getLocationBySlug(slug);
   }
 
   @Get('tags')

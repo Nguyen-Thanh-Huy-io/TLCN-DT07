@@ -42,6 +42,9 @@ ehthumbs.db
 # Coverage / Tests
 coverage/
 .nyc_output/
+test-results/
+playwright-report/
+pnpm-lock.yaml
 
 # Prisma generated
 /generated/

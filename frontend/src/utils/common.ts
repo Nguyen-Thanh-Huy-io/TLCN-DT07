@@ -31,18 +31,6 @@ export function sanitizeRichHtml(rawHtml: string | null | undefined): string {
     .replace(DANGEROUS_URI_ATTR_REGEX, '$1"#"');
 }
 
-export function formatTimeAgo(isoString: string): string {
-  try {
-    const diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
-    if (diff < 60) return 'Vừa xong';
-    if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
-    return `${Math.floor(diff / 86400)} ngày trước`;
-  } catch {
-    return 'Gần đây';
-  }
-}
-
 /**
  * Định dạng năm lịch sử cho CMS (trang công khai dùng `dateLabel` backend tính sẵn).
  * Quy ước toàn hệ thống: năm âm = TCN (-179 → "179 TCN"), không có năm 0.

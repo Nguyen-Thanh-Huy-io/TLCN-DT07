@@ -31,14 +31,6 @@ const summaryRow = (id: string, overrides: object = {}) => ({
   ...overrides,
 });
 
-const PERSON_ROOT = { id: 'cat-person', slug: 'nhan-vat', parentId: null };
-const PERSON_CHILD = {
-  id: 'cat-king',
-  slug: 'vua-chua',
-  parentId: 'cat-person',
-};
-const EVENT_ROOT = { id: 'cat-event', slug: 'su-kien', parentId: null };
-
 describe('PublicContentService — dữ liệu trang công khai', () => {
   let service: PublicContentService;
   const prisma = {
@@ -318,88 +310,34 @@ describe('PublicContentService — dữ liệu trang công khai', () => {
       await expect(service.getTimelineBySlug('nhap')).rejects.toThrow(
         NotFoundException,
       );
-      await expect(service.getPeriodBySlug('nhap')).rejects.toThrow(
-        NotFoundException,
-      );
     });
 
-    it('giai đoạn lấy năm đầu / cuối từ các mốc', async () => {
+    it('trả danh sách dòng thời gian đã xuất bản kèm topic.eyebrow và displayOrder chuẩn CMS', async () => {
       prisma.timeline.findMany.mockResolvedValue([
         {
           id: 'tl-1',
-          slug: 'nha-tran',
-          title: 'Nhà Trần',
-          nodes: [{ year: 1288 }, { year: 1226 }, { year: null }],
-        },
-        { id: 'tl-2', slug: 'trong', title: 'Chưa có mốc', nodes: [] },
-      ]);
-
-      const periods = await service.getPeriods();
-
-      expect(periods[0]).toMatchObject({ startYear: 1226, endYear: 1288 });
-      expect(periods[1]).toMatchObject({ startYear: 0, endYear: null });
-    });
-  });
-
-  describe('danh bạ theo loại chuyên mục (nhân vật / sự kiện / địa danh)', () => {
-    beforeEach(() => {
-      prisma.category.findMany.mockResolvedValue([
-        PERSON_ROOT,
-        PERSON_CHILD,
-        EVENT_ROOT,
-      ]);
-    });
-
-    it('chuyên mục con kế thừa loại của chuyên mục cha', async () => {
-      prisma.article.findMany.mockResolvedValue([
-        {
-          ...summaryRow('tran-hung-dao'),
-          categoryId: 'cat-king',
-          category: { ...PERSON_CHILD, name: 'Vua chúa' },
-          metadata: { person: { titles: ['Tướng', 'Quốc công'] } },
-          timelineNodes: [{ timeline: { slug: 'nha-tran' } }],
-        },
-        {
-          ...summaryRow('bach-dang'),
-          category: { ...EVENT_ROOT, name: 'Sự kiện' },
-          timelineNodes: [],
+          slug: 'lich-su-viet-nam',
+          title: 'Lịch sử Việt Nam',
+          displayOrder: 1,
+          topicId: 'tp-vn',
+          topic: {
+            id: 'tp-vn',
+            name: 'Lịch sử Việt Nam',
+            slug: 'lich-su-viet-nam',
+            eyebrow: 'Bộ Thông sử 15 Tập',
+            displayOrder: 1,
+            parentId: null,
+          },
+          nodes: [],
         },
       ]);
 
-      const figures = await service.getFigureDirectory();
+      const timelines = await service.getTimelines();
 
-      expect(figures).toHaveLength(1);
-      expect(figures[0]).toMatchObject({
-        slug: 'tran-hung-dao',
-        category: 'Vua chúa',
-        role: 'Tướng',
-        periodSlug: 'nha-tran',
-      });
-    });
-
-    it('mở bài sự kiện bằng đường dẫn nhân vật → 404', async () => {
-      prisma.article.findFirst.mockResolvedValue({
-        ...summaryRow('bach-dang'),
-        category: EVENT_ROOT,
-      });
-
-      await expect(service.getFigureBySlug('bach-dang')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('chi tiết sự kiện trả mục trong danh bạ sự kiện', async () => {
-      const eventRow = {
-        ...summaryRow('bach-dang'),
-        category: { ...EVENT_ROOT, name: 'Sự kiện' },
-        timelineNodes: [],
-      };
-      prisma.article.findFirst.mockResolvedValue(eventRow);
-      prisma.article.findMany.mockResolvedValue([eventRow]);
-
-      await expect(service.getEventBySlug('bach-dang')).resolves.toMatchObject({
-        slug: 'bach-dang',
-        category: 'Sự kiện',
+      expect(timelines[0]).toMatchObject({
+        slug: 'lich-su-viet-nam',
+        displayOrder: 1,
+        topic: { eyebrow: 'Bộ Thông sử 15 Tập' },
       });
     });
   });

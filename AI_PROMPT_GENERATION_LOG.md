@@ -10,6 +10,14 @@
 
 ## 1. LỊCH SỬ USER PROMPT (YÊU CẦU NGƯỜI DÙNG)
 
+### Prompt #42 (Đợt 42 - Seed CSDL Sơ đồ tư duy & Tái sử dụng RAG Flow từ Sử Gia AI + Concept Canvas):
+```text
+tạo csdl về mấy sơ đồ đi và cái AI tạo mindmap đang thấy hơi lỏ lỏ á đề xuất đánh giá đi
+có thể áp dụng cái flow có sẵn từ sử gia AI chatbot và canvas AI để làm ko đỡ phải code lại
+```
+
+---
+
 ### Prompt #1:
 ```text
 cái khu vực quản trị rối nùi quá:
@@ -91,12 +99,11 @@ cho cái dạng collapse á thu/mở được và xóa mock data đi và tạo f
 10. **`frontend/src/app/periods/page.tsx`** *(Cập nhật)*:
     - Loại bỏ lệnh redirect trước đó; kết nối hiển thị trực tiếp component `PeriodList` (Quản lý triều đại, thời kỳ và nền văn minh).
 
-11. **`frontend/src/app/media/page.tsx` & `frontend/src/features/media/components/MediaManagerView.tsx`** *(Sinh mới)*:
-    - Khu vực 7: **Quản lý nguồn tư liệu và media**.
-    - Loại bỏ toàn bộ `SAMPLE_MEDIA_ITEMS`.
-    - Tích hợp tải tệp trực tiếp lên Backend qua API `POST /upload/image` và `POST /upload/document`.
-    - Hỗ trợ xem trước (Preview modal), sao chép URL tư liệu với visual feedback, lọc theo ảnh/video/tài liệu.
-    - Xử lý Empty State khi chưa có tệp tải lên.
+11. **Phân hệ Upload & Đính kèm tư liệu đa phương tiện trực tiếp (`backend/src/upload/` & `LessonMediaManager.tsx` / `BlockAudioAttachmentField.tsx`)** *(Hợp nhất thay cho trang `/media` độc lập ban đầu)*:
+    - Khu vực 7: **Quản lý nguồn tư liệu và media nhúng trực tiếp trong trình soạn thảo**.
+    - Loại bỏ hoàn toàn trang `/media` lưu tạm `localStorage` và `SAMPLE_MEDIA_ITEMS`.
+    - Tích hợp tải tệp trực tiếp lên Backend & Cloudinary qua 4 API `POST /upload/image`, `/upload/audio`, `/upload/video`, `/upload/document` (`UploadController` + `UploadService` + `UploadApiService`).
+    - Nhúng trực tiếp công cụ tải, xem trước và đính kèm URL tư liệu vào trình soạn Bài học, Bài viết, Ngân hàng câu hỏi và Cộng đồng.
 
 12. **`frontend/src/app/questions/page.tsx` & `frontend/src/features/quiz/components/QuestionBankView.tsx`** *(Sinh mới)*:
     - Khu vực 8: **Ngân hàng câu hỏi**.
@@ -127,6 +134,38 @@ cho cái dạng collapse á thu/mở được và xóa mock data đi và tạo f
 
 16. **`frontend/src/app/taxonomies/page.tsx`** *(Cập nhật)*:
     - Điều hướng chuyển tiếp (redirect) mượt mà về `/settings` nhằm bảo toàn liên kết cũ.
+
+---
+
+### 3.42. Đợt 42: Seed CSDL 5 Cấu Trúc Sơ Đồ Mẫu & Tái Sử Dụng RAG Flow từ Sử Gia AI + Spatial Canvas
+
+1. **Đánh giá tại sao AI tạo Mindmap trước đó bị "lỏ":**
+   - **Lý do 1 - Prompt thiếu tri thức cấu trúc**: System Prompt trước đây rập khuôn 4 trụ cột chung chung ("Bối cảnh", "Nhân vật", "Diễn biến", "Kết quả"), bất kể người dùng chọn cấu trúc `TIMELINE`, `FISHBONE`, `ORG_CHART` hay `LOGIC_CHART`.
+   - **Lý do 2 - Tra cứu bài viết sơ sài**: `fetchSourceArticles` chỉ dùng `contains` ILIKE 80 ký tự đầu tiên của prompt, dễ trả về rỗng nếu prompt là câu tự nhiên dài.
+   - **Lý do 3 - Chưa tận dụng kho tài liệu chuyên sâu**: Không kết nối Vertex AI RAG Corpus đã được index sẵn từ kho dữ liệu bài viết HISGO.
+
+2. **Giải pháp Tái Sử Dụng (Reuse) Flow Sử Gia AI & Spatial Canvas:**
+   - **Tái sử dụng RAG Service**: Tận dụng trực tiếp `GoogleAiService.generateGroundedJson` với `ragCorpus` và hàm `extractRagCandidateArticleSlugs` từ `src/ai-assistant/ai-assistant.rag.ts`.
+   - **Dynamic Structure System Prompt**: Xây dựng hàm `buildAiSystemPrompt(structure)` chỉ thị Gemini cách sinh node đặc thù:
+     - `TIMELINE`: Các nhánh con bắt buộc là mốc thời gian tăng dần (`dateLabel`), sắp xếp theo niên đại.
+     - `FISHBONE`: Node gốc là đầu cá (kết quả/sự kiện), các nhánh lớn là nhóm nguyên nhân, nhánh con là minh chứng cụ thể.
+     - `ORG_CHART`: Node gốc là cơ quan/người đứng đầu tối cao, phân cấp xuống các bộ phận trung ương và địa phương.
+     - `LOGIC_CHART`: Các đợt tiến công / các bước triển khai chiến dịch kế tiếp nhau.
+     - `MIND_MAP`: Tỏa đều các mặt chính trị, quân sự, kinh tế, văn hóa.
+   - **Bảo toàn dữ liệu người học**: Vẫn giữ vững cơ chế giữ nguyên các node người dùng đã soạn trên Canvas (`mergePreservingExistingGraph`).
+
+3. **Tệp CSDL Seed Mới:**
+   - **`backend/prisma/seeds/mindmaps.seed.ts`**: Nạp sẵn 5 sơ đồ chuẩn học thuật vào bảng `study_mindmaps`:
+     1. `seed-mindmap-timeline-1954-1975`: *Dòng thời gian Kháng chiến chống Mỹ cứu nước* (Cấu trúc `TIMELINE`).
+     2. `seed-mindmap-mindmap-nha-tran`: *Vương triều Nhà Trần — Hào khí Đông A* (Cấu trúc `MIND_MAP`).
+     3. `seed-mindmap-fishbone-lam-son`: *Nguyên nhân Thắng lợi Khởi nghĩa Lam Sơn* (Cấu trúc `FISHBONE`).
+     4. `seed-mindmap-org-chart-le-so`: *Cơ cấu Tổ chức Bộ máy Nhà nước thời Lê Sơ* (Cấu trúc `ORG_CHART`).
+     5. `seed-mindmap-logic-dien-bien-phu`: *Chiến dịch Điện Biên Phủ 1954: Tiến trình 3 đợt tiến công* (Cấu trúc `LOGIC_CHART`).
+   - **`backend/package.json`**: Bổ sung lệnh script `"seed:mindmaps"` và tích hợp vào `"seed:all"`.
+
+4. **Kết quả xác minh:**
+   - Đã chạy thành công `npm run seed:mindmaps` -> nạp đủ 5 sơ đồ mẫu vào PostgreSQL.
+   - Chạy toàn bộ unit test `MindmapAiService`: **5/5 tests PASS** (Exit Code 0).
 
 ---
 
@@ -3271,3 +3310,156 @@ sequenceDiagram
    - Cho phép người dùng chuyển thẳng từ modal sang trang riêng biệt `/nhan-vat/[slug]`.
 4. **Xác thực tự động (Automated Verification)**:
    - TypeScript compiler (`tsc --noEmit`): **0 lỗi** (Exit code 0).
+
+---
+
+## ĐỢT 40: Tối Ưu Hóa Trải Nghiệm Học Tập Lịch Sử (/chuong-trinh-hoc) — Phân Cấp Chủ Đề Lịch Sử & Searchable Tag Sheet
+
+### 1. Lịch sử Prompt Người dùng (User Requests trong cuộc trao đổi này)
+1. *"chưa seed data toàn bộ mấy cái bên chương trình học à và lỗi: Invalid `this.prisma.learningPath.findMany()` invocation... The column `learning_paths.prerequisite_path_id` does not exist in the current database."*
+2. *"cái này là chủ đề topic đúng không và có nên thay đổi cách thiết kế giao diện của http://localhost:3000/chuong-trinh-hoc ko á (kèm ảnh dropdown chọn topic)"* -> *"ok làm phương án 1"*
+3. *"nên bỏ cái này ko cho thoáng đề xuất và cái topic có khớp với mục lục bên kia ko hay chỉ hiện cái topic nào có lộ trình mới hiện và nên thiết kế dropdown sang dạng khác cho dễ ko chứ sau này nhiều là dài thòn á (kèm 3 ảnh giao diện)"* -> *"ok làm đi"*
+4. *"bên CMS có thiết kế để nhập liệu chưa á"* -> *"ok làm đi và dropdown có khớp ko á"*
+5. *"tôi nghĩ mấy cái này nên có thêm cái topic kèm theo để biết như tôi lọc thời kỳ nhà lý nó xổ ra hơi khó hiểu á và Lộ trình học Lịch sử Việt Nam / Khám phá dòng chảy lịch sử theo mạch niên biểu... này đa dạng rồi check xem mấy text cũ rồi xóa đi"*
+6. *"cái này là tag mà và hơi nhiều rối á làm sao clean lại đề xuất (kèm ảnh 30 tags dàn trải)"* -> *"ok chốt PA1."*
+7. *"xem tất cả sau này cả trăm tag luôn á đề xuất"* -> *"ok PA1. và cập nhật log AI nhé"*
+
+### 2. Sơ đồ Tuần tự (Sequence Diagram)
+```mermaid
+sequenceDiagram
+    actor Learner as Người học / Quản trị viên
+    participant DB as PostgreSQL Database
+    participant BE as Backend NestJS (LearningPathService)
+    participant View as PublicCurriculumView (/chuong-trinh-hoc)
+    participant Facade as usePublicCurriculumFacade
+    participant Popover as TopicSelectorPopover (Chủ đề phân cấp đa tầng)
+    participant Roadmap as CurriculumTrackRoadmap (Chặng niên biểu)
+    participant Thematic as CurriculumThematicGrid (Chuyên đề)
+    participant Lib as CurriculumLibraryBrowser (Thư viện bài đọc)
+    participant TagModal as TagSelectorModal (Hộp thoại tìm thẻ)
+
+    Note over Learner,BE: 1. Sửa lỗi Database Schema & Đồng bộ Migration
+    BE->>DB: npx prisma db push (Thêm cột prerequisite_path_id tự tham chiếu)
+    BE->>DB: Chạy seed_all.ts (Bổ sung 4 lộ trình, 6 chương, 10 bài học chuẩn xác)
+
+    Note over Learner,View: 2. Lọc Chủ đề Đa tầng & Phân biệt rõ Topic vs Thẻ Tag
+    Learner->>Popover: Mở Popover Chủ đề -> Tìm kiếm / Chọn thời kỳ (VD: Nhà Lý - Trần)
+    Popover-->>Facade: onSelectTopic(topicId)
+    Facade-->>View: filteredPaths (Chỉ hiện các Topic thực sự có bài học/lộ trình)
+    View->>Roadmap: Highlight Topic badges tương ứng trên thẻ chặng
+    View->>Thematic: Highlight Topic badges trên thẻ chuyên đề
+    View->>View: Bỏ các text mô tả cũ thừa thãi, hiển thị badge topic ở phần chi tiết
+
+    Note over Learner,Lib: 3. Quản lý hàng trăm Thẻ từ khóa (Tags)
+    Learner->>Lib: Chuyển sang Tab Thư viện bài đọc
+    Lib-->>Learner: Hiển thị 1 hàng duy nhất cuộn ngang mượt (Horizontal Scroll Chips)
+    Learner->>Lib: Bấm "Xem tất cả (120+)"
+    Lib->>TagModal: Mở Modal tìm kiếm thẻ
+    Learner->>TagModal: Gõ từ khóa tìm thẻ (VD: "Bạch Đằng") -> Click chọn thẻ
+    TagModal-->>Lib: onSelectTag(tagId) & Đóng Modal
+    Lib-->>Learner: Lọc ngay các bài đọc mang thẻ vừa chọn
+```
+
+### 3. Phân tích Yêu cầu & Giải pháp Kiến trúc Chi tiết
+| Vấn đề trước đó | Nguyên nhân gốc rễ | Giải pháp kiến trúc của AI |
+| :--- | :--- | :--- |
+| Lỗi runtime `The column prerequisite_path_id does not exist` khi mở `/chuong-trinh-hoc`. | Schema Prisma của `learning_paths` chưa được đồng bộ cột `prerequisite_path_id` xuống DB Postgres thực tế. | Chạy `npx prisma db push` cập nhật schema và chạy lệnh seed dữ liệu chuẩn `seed_all.ts` đầy đủ 4 lộ trình, 6 chương, 10 bài đọc mẫu. |
+| Dropdown native `<select>` chọn Topic bị dài thòng, thô sơ, không thể hiện được cấp cha - con của thời kỳ lịch sử. | Dùng thẻ HTML `<select>` thông thường, không hỗ trợ hiển thị danh mục phân cấp đa tầng. | Xây dựng **`TopicSelectorPopover.tsx`**: Dropdown dạng popover phân cấp trực quan, có avatar thời kỳ, thụt lề cấp con, có ô tìm kiếm tức thì và chỉ hiển thị các topic thực sự có bài học/lộ trình. |
+| Banner thống kê 4 cột to choán nửa màn hình làm đẩy nội dung học xuống quá sâu. | Thiết kế thẻ banner tĩnh màu xanh rêu cồng kềnh với quá nhiều khoảng trống thừa. | Thay thế bằng **`CompactCurriculumHeader`**: Tinh gọn thành thanh ngang hiện đại, đưa 4 thẻ con số (Lộ trình, Chương, Bài học, Đã học) cùng nút CTA nằm ngang hàng với tiêu đề. |
+| Người dùng lọc chủ đề (ví dụ "Thời kỳ Lý - Trần") thấy lộ trình hiện ra nhưng thẻ lộ trình chỉ để text cứng "TIẾN TRÌNH LỊCH SỬ DÂN TỘC", gây khó hiểu. | Thiếu thông tin liên kết giữa Lộ trình và Topic của các bài học bên trong. | Xây dựng hàm `pathTopics(path)` tự động trích xuất các Topic thực tế từ các bài học bên trong lộ trình; bổ sung Topic badges trên từng thẻ chặng và tự động **Highlight màu thương hiệu** khi khớp với bộ lọc đang chọn. |
+| Dải Thẻ bài đọc ở tab "Thư viện bài đọc" bị ghi nhầm là `"Chủ đề bài học"` và dàn trải 30 tags ra 4-5 hàng gây rối mắt. | Dùng flex-wrap không giới hạn, nhãn gọi sai bản chất thẻ Tags. | Thu gọn thành **1 hàng ngang duy nhất có thể cuộn ngang mượt mà (Horizontal Scroll)** với nút mũi tên cuộn và icon `#` tinh tế; sửa nhãn thành **`🏷️ Thẻ từ khóa:`**. |
+| Nguy cơ sau này có hàng trăm tags khiến trang bị ngợp và khó tìm thẻ. | Danh sách tags lớn không thể hiển thị tĩnh trên màn hình. | Xây dựng **`TagSelectorModal.tsx`**: Modal mở ra khi bấm `Xem tất cả (120+)`, có ô tìm kiếm thẻ tức thì và thanh cuộn nội bộ `max-h-80 overflow-y-auto`, không bao giờ làm vỡ hay dài trang web. |
+| Kiểm tra CMS nhập liệu. | Cần đảm bảo quản trị viên đã có giao diện quản lý đầy đủ. | Đã xác nhận hệ thống có đầy đủ CMS Studio quản lý Chương trình học (`/admin/curriculum`) và Kho chủ đề (`/admin/topics`) với cây phân cấp và gán prerequisite path. |
+
+### 4. Danh mục Tệp tin Đã Tạo & Cập Nhật Trong Đợt Này
+- **Frontend Components & Facades**:
+  - [`TopicSelectorPopover.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/features/public-curriculum/components/TopicSelectorPopover.tsx) *(Mới)*: Popover chọn chủ đề phân cấp đa tầng có tìm kiếm.
+  - [`TagSelectorModal.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/features/public-curriculum/components/TagSelectorModal.tsx) *(Mới)*: Modal tìm kiếm thẻ bài đọc tức thì cho hàng trăm tags.
+  - [`CurriculumLibraryBrowser.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/features/public-curriculum/components/CurriculumLibraryBrowser.tsx) *(Cập nhật)*: Dải cuộn thẻ 1 hàng và tích hợp mở modal tìm kiếm.
+  - [`CurriculumFilterBar.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/features/public-curriculum/components/CurriculumFilterBar.tsx) *(Cập nhật)*: Tích hợp `TopicSelectorPopover` thay thế dropdown thô.
+  - [`CurriculumTrackRoadmap.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/features/public-curriculum/components/CurriculumTrackRoadmap.tsx) *(Cập nhật)*: Thêm Topic badges và highlight khi lọc.
+  - [`CurriculumThematicGrid.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/features/public-curriculum/components/CurriculumThematicGrid.tsx) *(Cập nhật)*: Thêm Topic badges chuyên đề và highlight khi lọc.
+  - [`HubReaderParts.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/features/public-curriculum/components/hub/HubReaderParts.tsx) *(Cập nhật)*: Helper `pathTopics(path)` deduplicate topics.
+  - [`PublicCurriculumView.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/features/public-curriculum/components/PublicCurriculumView.tsx) *(Cập nhật)*: Dọn dẹp text cũ, tinh gọn Header, đồng bộ Topic badges ở chi tiết lộ trình.
+  - [`usePublicCurriculumFacade.ts`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/src/features/public-curriculum/facades/usePublicCurriculumFacade.ts) *(Cập nhật)*: Bổ sung `activeTopics` lọc các chủ đề thực sự có bài học/lộ trình.
+- **Backend & Database**:
+  - `backend/prisma/migrations` / `schema.prisma`: Đồng bộ `prerequisite_path_id`.
+  - `backend/src/database/seeds/seed_all.ts`: Seed dữ liệu mẫu chuẩn nghiệp vụ.
+- **Unit Tests**:
+  - [`curriculum-library-browser.test.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/tests/unit/curriculum-library-browser.test.tsx) *(Mới)*.
+  - [`curriculum-filter-bar.test.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/tests/unit/curriculum-filter-bar.test.tsx) *(Cập nhật)*.
+  - [`curriculum-track-roadmap.test.tsx`](file:///d:/Fullit/TLCN/TLCN-DT07/frontend/tests/unit/curriculum-track-roadmap.test.tsx) *(Cập nhật)*.
+- **Tài liệu**:
+  - [`AI_PROMPT_GENERATION_LOG.md`](file:///d:/Fullit/TLCN/TLCN-DT07/AI_PROMPT_GENERATION_LOG.md): Ghi nhật ký chi tiết toàn bộ chuỗi tương tác xuyên suốt phiên làm việc.
+
+
+---
+
+## ĐỢT 41: Bổ Sung Cấu Trúc Thứ 6 "Dòng Thời Gian (Timeline)" Cho Sơ Đồ Tư Duy (Mindmap Studio)
+
+### 1. Lịch sử Prompt Người dùng (User Requests)
+1. *"cái so-do-tu-duy có thể là cái timeline trong đó đc ko á hỏi thôi đề xuất xem và nên có ko"*
+2. *"nó có cái này nè thiết kế sao nên làm thế nào á đề xuất wtf có bảng events hả (kèm ảnh menu CHỦ ĐỀ & CẤU TRÚC BẢN ĐỒ)"*
+3. *"ok làm đi"*
+
+### 2. Sơ đồ Tuần tự (Sequence Diagram)
+```mermaid
+sequenceDiagram
+    actor User as Người học / Tác giả
+    participant Sidebar as MindmapStyleSidebar (Menu Cấu trúc Bản đồ)
+    participant Canvas as MindmapCanvas
+    participant LayoutEngine as computeMindmapLayout (Layout Engine)
+    participant TimelineStrat as TimelineLayoutStrategy (Strategy Pattern)
+    participant TreeUtil as buildMindmapTree (MindmapTreeModel)
+    participant BE as Backend NestJS (StudyMindmap DTO & Constant)
+
+    Note over User,Sidebar: 1. Chọn cấu trúc "Dòng thời gian (Timeline)"
+    User->>Sidebar: Mở menu "Cấu trúc bản đồ" -> Chọn "Dòng thời gian (Timeline)"
+    Sidebar->>Canvas: onSelectStructure(MindmapStructure.TIMELINE)
+    Canvas->>LayoutEngine: computeMindmapLayout({ structure: TIMELINE, graph, tree })
+
+    Note over LayoutEngine,TimelineStrat: 2. Strategy Pattern & Tính toán Bố cục Niên biểu
+    LayoutEngine->>TimelineStrat: compute(ctx)
+    TimelineStrat->>TimelineStrat: Đặt Root Node ở mạn trái (x = 0, y = -h/2)
+    TimelineStrat->>TimelineStrat: Sắp xếp các mốc sự kiện level 1 theo thứ tự năm (parse từ dateLabel / title)
+    loop Từng mốc sự kiện level 1
+        alt Mốc chẵn (idx % 2 === 0)
+            TimelineStrat->>TimelineStrat: Nhánh phân bổ hướng lên trên trục (targetY < 0)
+        else Mốc lẻ (idx % 2 !== 0)
+            TimelineStrat->>TimelineStrat: Nhánh phân bổ hướng xuống dưới trục (targetY > 0)
+        end
+        TimelineStrat->>TimelineStrat: Mở rộng cây con level 2+ sang phải (placeHorizontalSubtree)
+        TimelineStrat->>TimelineStrat: Nối dây thẳng vuông góc từ trục y=0 tới mốc sự kiện
+    end
+    TimelineStrat->>TimelineStrat: Sinh trục niên biểu chính spineLine (y1=0, y2=0)
+    TimelineStrat-->>Canvas: Trả về { placements, routedEdges, spineLine }
+    Canvas-->>User: Hiển thị sơ đồ niên biểu trục ngang với các mốc so le trực quan
+```
+
+### 3. Phân tích Yêu cầu & Giải pháp Kiến trúc Chi tiết
+| Vấn đề trước đó | Nguyên nhân & Ngữ cảnh | Giải pháp kiến trúc của AI |
+| :--- | :--- | :--- |
+| Người dùng hỏi sơ đồ tư duy có thể làm timeline được không và hệ thống có bảng events riêng không? | Trong DB HISGO, không có bảng riêng tên `events`; các sự kiện lịch sử thực chất là bảng `articles` với loại chuyên mục `kind = EVENT`. Trên Mindmap Studio, trước đó chỉ có 5 cấu trúc: *Sơ đồ tư duy, Sơ đồ tổ chức, Cây logic ngang, Sơ đồ xương cá, Tự do*. | Giải thích rõ ràng cơ chế kiến trúc; đề xuất và triển khai bổ sung cấu trúc thứ 6: **Dòng thời gian (Timeline)** kế thừa trực tiếp Strategy Pattern của hệ thống Mindmap. |
+| Bổ sung cấu trúc mới mà không vi phạm nguyên tắc Open-Closed Principle (OCP). | Thêm cấu trúc vào hệ thống nếu dùng `switch/case` phân tán sẽ dễ vỡ code cũ. | Mở rộng enum `MindmapStructure.TIMELINE` và hiện thực class độc lập `TimelineLayoutStrategy implements MindmapLayoutStrategy`, đăng ký vào `LAYOUT_STRATEGIES` dictionary mà không sửa đổi logic của 5 layout hiện có. |
+| Bố trí trục niên biểu và các mốc sự kiện theo chiều thời gian. | Nếu tất cả mốc cùng đổ về 1 phía (chỉ trên hoặc chỉ dưới), sơ đồ sẽ rất dài và tốn diện tích, dễ đè chữ. | **Phân nhánh so le (Alternating Milestones)**: Mốc chẵn ở trên trục ngang (`y < 0`), mốc lẻ ở dưới trục ngang (`y > 0`); các nhánh con mở rộng sang phải; dây nối từ trục vuông góc thẳng đứng `M anchorX 0 L anchorX endY`. |
+| Thứ tự hiển thị các mốc lịch sử. | Các node người dùng tạo có thể không theo đúng thứ tự năm. | Tích hợp thuật toán `parseTimelineYear`: tự động trích xuất năm từ `dateLabel` hoặc `title` (hỗ trợ cả năm TCN như `257 TCN` và năm CN) để sắp xếp các mốc level 1 theo trình tự thời gian tăng dần hợp lý. |
+| Hiển thị trực quan trên thanh công cụ Style Sidebar. | Menu cần có biểu tượng preview SVG đặc trưng cho cấu trúc Timeline. | Thiết kế `StructurePreviewSvg` cho `TIMELINE`: thể hiện rõ trục ngang với 3 điểm mốc tròn cắm cọc so le trên/dưới. |
+
+### 4. Danh mục Tệp tin Đã Cập Nhật & Sinh Mới
+1. **`backend/src/mindmap/mindmap.constant.ts`**:
+   - Thêm `TIMELINE = 'TIMELINE'` vào enum `MindmapStructure`.
+2. **`frontend/src/features/mindmap/constants/mindmap.constants.ts`**:
+   - Thêm `TIMELINE = 'TIMELINE'` vào enum `MindmapStructure`.
+   - Thêm option `Dòng thời gian (Timeline)` vào `STRUCTURE_OPTIONS`.
+3. **`frontend/src/features/mindmap/components/MindmapStyleSidebar.tsx`**:
+   - Thêm biểu tượng SVG preview cho cấu trúc `TIMELINE` trong hàm `StructurePreviewSvg`.
+4. **`frontend/src/features/mindmap/utils/mindmap-layout.strategy.ts`**:
+   - Thêm `MindmapStructure.TIMELINE` vào `resolveNodeVisualVariant`.
+   - Hiện thực hàm `parseTimelineYear` hỗ trợ parse năm TCN và CN.
+   - Hiện thực `TimelineLayoutStrategy implements MindmapLayoutStrategy` tính toán tọa độ trục ngang, so le trên/dưới, dây cắm vuông góc và `spineLine`.
+   - Đăng ký `TimelineLayoutStrategy` vào `LAYOUT_STRATEGIES`.
+5. **`frontend/tests/unit/mindmap-timeline-layout.test.ts`** *(Mới)*:
+   - Unit test kiểm thử toàn diện: sự tồn tại của `spineLine`, sắp xếp mốc năm tăng dần theo hoành độ x, vị trí so le `y < 0` / `y > 0`, và đường nối vuông góc `d`.
+6. **`AI_PROMPT_GENERATION_LOG.md`**:
+   - Cập nhật nhật ký ĐỢT 41.
+

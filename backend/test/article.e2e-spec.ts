@@ -282,4 +282,73 @@ describe('Article E2E — duyệt 2 người, công khai, lưu trữ', () => {
       expect(await tagUsage()).toBe(0);
     });
   });
+
+  describe('public articles catalog & ids lookup', () => {
+    it('trả phân trang, lọc chuyên mục cha-con, thống kê facet và tra theo ids', async () => {
+      const parentCat = await http()
+        .post('/categories')
+        .set('Authorization', reviewer.auth)
+        .send({ name: `${E2E_MARK}Cha ${Date.now()}` });
+      expect(parentCat.status).toBe(201);
+      const parentCatId: string = parentCat.body.data.id;
+
+      const childCat = await http()
+        .post('/categories')
+        .set('Authorization', reviewer.auth)
+        .send({
+          name: `${E2E_MARK}Con ${Date.now()}`,
+          parentId: parentCatId,
+        });
+      expect(childCat.status).toBe(201);
+      const childCatId: string = childCat.body.data.id;
+
+      const draft = await createArticle(editor, {
+        status: ContentStatus.DRAFT,
+        categoryId: childCatId,
+        startYear: 1945,
+      });
+      await http()
+        .patch(`/articles/${draft.body.data.id}`)
+        .set('Authorization', editor.auth)
+        .send({ status: ContentStatus.PENDING_REVIEW });
+      await http()
+        .patch(`/articles/${draft.body.data.id}/review`)
+        .set('Authorization', reviewer.auth)
+        .send({ status: ContentStatus.PUBLISHED });
+      const pubArticleId: string = draft.body.data.id;
+
+      try {
+        const catalogRes = await http().get(
+          `/public/articles/catalog?categoryIds=${parentCatId},${childCatId}&page=1&limit=24&sort=year-desc`,
+        );
+        expect(catalogRes.status).toBe(200);
+        expect(catalogRes.body.data.total).toBe(1);
+        expect(catalogRes.body.data.items[0]?.id).toBe(pubArticleId);
+        expect(
+          catalogRes.body.data.facets.categoryCounts[childCatId],
+        ).toBeGreaterThanOrEqual(1);
+
+        const byIdsRes = await http().get(
+          `/public/articles?ids=${pubArticleId}&limit=10`,
+        );
+        expect(byIdsRes.status).toBe(200);
+        expect(
+          itemsOf<{ id: string }>(byIdsRes.body).some(
+            (a) => a.id === pubArticleId,
+          ),
+        ).toBe(true);
+      } finally {
+        await http()
+          .delete(`/articles/${pubArticleId}`)
+          .set('Authorization', reviewer.auth);
+        articleIds.splice(articleIds.indexOf(pubArticleId), 1);
+        await http()
+          .delete(`/categories/${childCatId}`)
+          .set('Authorization', reviewer.auth);
+        await http()
+          .delete(`/categories/${parentCatId}`)
+          .set('Authorization', reviewer.auth);
+      }
+    });
+  });
 });

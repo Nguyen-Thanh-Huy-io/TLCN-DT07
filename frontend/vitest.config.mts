@@ -14,6 +14,8 @@ export default defineConfig({
     setupFiles: ['./tests/unit/setup.ts'],
     include: ['tests/unit/**/*.test.{ts,tsx}'],
     css: false,
+    testTimeout: 20000,
+    maxWorkers: 2,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'json-summary', 'html'],

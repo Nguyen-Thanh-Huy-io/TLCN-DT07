@@ -116,14 +116,6 @@ export enum AuthProviderType {
 }
 
 /**
- * Loại hạng mục công trình / hiện vật bên trong di tích
- */
-export enum SubStructureType {
-  ARCHITECTURE = 'ARCHITECTURE',
-  NATIONAL_TREASURE = 'NATIONAL_TREASURE',
-}
-
-/**
  * Khóa trường dữ liệu của bài học (Lesson Field Key)
  */
 export enum LessonFieldKey {
@@ -135,14 +127,6 @@ export enum LessonFieldKey {
   TOPIC_ID = 'topicId',
   DIFFICULTY = 'difficulty',
   THUMBNAIL_URL = 'thumbnailUrl',
-}
-
-/**
- * Mục accordion trong tab phân loại bài học
- */
-export enum ClassificationSectionKey {
-  TAGS = 'tags',
-  DIFFICULTY = 'difficulty',
 }
 
 /**
@@ -219,13 +203,6 @@ export enum ModerationTargetTypeEnum {
   COMMENT = 'COMMENT',
 }
 
-/** Loại tệp trong thư viện media CMS — chữ thường vì đã lưu sẵn trong localStorage của MediaManagerView. */
-export enum MediaItemType {
-  IMAGE = 'image',
-  VIDEO = 'video',
-  DOCUMENT = 'document',
-}
-
 /**
  * Icon Name Enum
  */
@@ -270,21 +247,9 @@ export const KEYBOARD_KEYS = KeyboardKey;
 /**
  * Blog Enums & Constants
  */
-export enum BlogPostTypeEnum {
-  LONG_FORM = 'LONG_FORM',
-  QUICK_POST = 'QUICK_POST',
-}
-
 export enum StoryBlockTypeEnum {
   PARAGRAPH = 'paragraph',
   IMAGE = 'image',
-}
-
-export enum BlogStatusEnum {
-  PENDING_REVIEW = 'PENDING_REVIEW',
-  PUBLISHED = 'PUBLISHED',
-  DRAFT = 'DRAFT',
-  REJECTED = 'REJECTED',
 }
 
 export const BLOG_URL_PLACEHOLDER = 'https://...';
@@ -316,17 +281,6 @@ export const DIFFICULTY_CONFIG: Record<
   HARD: { label: 'Khó', tone: 'neutral' },
 };
 
-export const QUIZ_STATUS_BADGE_MAP: Record<
-  string,
-  { label: string; tone: 'ok' | 'neutral' }
-> = {
-  ACTIVE: { label: 'Đang hoạt động', tone: 'ok' },
-  DRAFT: { label: 'Bản nháp', tone: 'neutral' },
-};
-
-export const DEFAULT_QUIZ_TIME_LIMIT = 15;
-export const DEFAULT_QUIZ_PASSING_SCORE = 80;
-
 /**
  * Community Domain Enums and Constants
  */
@@ -337,11 +291,6 @@ export enum CommunityTabKey {
   MEDIA = 'media',
   SHARED_BLOG = 'shared_blog',
   SAVED = 'saved',
-}
-
-export enum BlogPostType {
-  LONG_FORM = 'LONG_FORM',
-  QUICK_POST = 'QUICK_POST',
 }
 
 export enum ComposerMode {
@@ -362,3 +311,58 @@ export const COMMUNITY_TAB_LABELS: Record<CommunityTabKey, string> = {
   [CommunityTabKey.SHARED_BLOG]: 'Bài Blog chia sẻ',
   [CommunityTabKey.SAVED]: 'Đã lưu',
 };
+
+/**
+ * Navigation Domain Enums & Pillars
+ */
+export enum NavLinkId {
+  EXPLORE = 'explore',
+  CURRICULUM = 'curriculum',
+  TIMELINE = 'timeline',
+  BLOG = 'blog',
+  COMMUNITY = 'community',
+  QUIZ = 'quiz',
+}
+
+export enum NavigationPillarId {
+  LEARNING = 'learning',
+  TIMELINE = 'timeline',
+  COMMUNITY = 'community-hub',
+  EXPLORE = 'explore-hub',
+}
+
+export enum SearchEntryKind {
+  ARTICLE = 'ARTICLE',
+  TIMELINE = 'TIMELINE',
+  LESSON = 'LESSON',
+}
+
+/**
+ * Trạng thái tiến trình mở khóa bài học & đề kiểm tra chương trong Lộ trình học tập
+ */
+export enum LessonProgressionStateEnum {
+  COMPLETED = 'COMPLETED',
+  CURRENT_UNLOCKED = 'CURRENT_UNLOCKED',
+  LOCKED_PREREQUISITE = 'LOCKED_PREREQUISITE',
+}
+
+export enum ChapterQuizProgressionStateEnum {
+  PASSED = 'PASSED',
+  UNLOCKED = 'UNLOCKED',
+  LOCKED = 'LOCKED',
+}
+
+export enum ProgressionGateKindEnum {
+  LESSON = 'LESSON',
+  CHAPTER_QUIZ = 'CHAPTER_QUIZ',
+}
+
+/**
+ * Loại nhật ký học tập cá nhân của học viên
+ */
+export enum LearnerHistoryKindEnum {
+  QUIZ_ATTEMPTS = 'QUIZ_ATTEMPTS',
+  COMPLETED_LESSONS = 'COMPLETED_LESSONS',
+  READ_ARTICLES = 'READ_ARTICLES',
+}
+

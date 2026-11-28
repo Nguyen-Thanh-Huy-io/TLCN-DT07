@@ -29,7 +29,7 @@ import {
 import type { Request, Response } from 'express';
 import { CustomLoggerService } from '../common/services/custom-logger.service';
 import { THROTTLER_CONFIG } from '../common/config/throttler.config';
-import { ApiResponseDecorator } from '../common/decorators';
+import { ApiResponseDecorator } from '../common/decorators/api-response.decorator';
 
 @ApiTags('Auth - Xác thực & Phân quyền')
 @Controller('auth')

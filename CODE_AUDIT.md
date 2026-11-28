@@ -13,26 +13,31 @@
 > - `eslint` backend (`src/**/*.ts test/**/*.ts`): **23 lỗi format Prettier + 3 warning** (tăng từ 0 — tất cả nằm trong `flashcard/` và `note.service.spec.ts`, **không phải code của phiên này**, để lại chưa sửa vì ngoài phạm vi task đang làm; xem mục 10.3). Chưa chạy lại `eslint` toàn bộ frontend trong đợt này (lần cuối xác nhận 0 errors/0 warnings là 2026-11-12, nhiều file đã đổi từ đó — cần chạy lại trước khi coi là còn đúng).
 > - Đã xác nhận trực tiếp (đọc file) 2 bug cũ trong `CODE_AUDIT.md` mục 4 đã **không còn đúng theo cách cũ**: endpoint thống kê quiz không còn public (`GET /quizzes/:id/statistics` giờ STAFF-only, route public cũ đã xoá hẳn — xem mục 3.12 `MAP_PROJECT.md`); logic chấm `passingScorePercent` đã chuyển hẳn vào `usePracticeExam.ts`, **chưa xác minh lại** còn đúng 1 hằng số dùng chung hay không (đánh dấu cần kiểm ở mục 10.4).
 
+> **✅ Cập nhật 2026-11-25 (`refactor/cleanup-and-playwright-e2e`) — xác thực trực tiếp bằng công cụ thật trên toàn repo:**
+> - `tsc --noEmit`: **0 errors** cả Backend (`tsconfig.build.json`) và Frontend (`tsconfig.json`).
+> - `eslint` Backend (`npm --prefix backend run lint`): **0 errors, 8 warnings** (hết toàn bộ 23 lỗi Prettier cũ).
+> - `eslint` Frontend (`npm --prefix frontend run lint`): **0 errors, 41 warnings**.
+> - `npm --prefix backend run test`: **PASS 75/75 suites, 694/694 tests (100%)**.
+> - `npm --prefix frontend run test` (Vitest): **PASS 11/11 files, 52/52 tests (100%)**.
+> - `npm --prefix frontend run test:e2e` (Playwright): **PASS 31/31 scenarios** trên DB E2E cô lập (`tlcn_db_e2e`, Redis DB 1; Test 11 mock `POST **/public/concept-canvas/explore` qua `page.route` để không lộ Google Cloud Secrets trên Frontend CI).
+> - **Đã khắc phục triệt để:** tách `GoogleAiModule` / `GoogleAiService` (`backend/src/common/services/google-ai.service.ts`) gom toàn bộ Vertex AI RAG, Service Account OAuth2 & Gemini API Key về 1 nơi duy nhất; thiết lập đầy đủ **Vitest + Playwright E2E** cho Frontend; gỡ các page thừa (`/settings`, `/media`, `/analytics`, `/moderation`, `/blog-review`, `/questions`, `/di-tich`, `/nhan-vat`, `/su-kien`).
+
 # 🔎 CODE AUDIT — Vi phạm quy tắc code (đối chiếu `CLAUDE.md`)
-> Dự án: `D:\Fullit\TLCN\TLCN-DT07` · Nhánh: `fix/critical-audit-issues`
+> Dự án: `D:\Fullit\TLCN\TLCN-DT07` · Nhánh: `refactor/cleanup-and-playwright-e2e`
 > Mục đích: liệt kê các điểm code **chưa tuân** quy tắc trong `CLAUDE.md` (magic string/number, `any`/`as`, component quá dài, try/catch nuốt lỗi, code chết, N+1, thiếu phân trang DB...), tìm bằng cách đọc toàn bộ nội dung file + chạy `npm run lint`/`npm run build`/`npm run audit` thật.
 > File này KHÔNG mô tả chức năng/kiến trúc — xem [MAP_PROJECT.md](MAP_PROJECT.md) cho phần đó.
 
 ---
 
-## 0. Xác nhận bằng công cụ thật (build/lint/audit) — Cập nhật mới nhất
+## 0. Xác nhận bằng công cụ thật (build/lint/audit) — Cập nhật 2026-11-25
 
-* **`npm run build` (frontend):** **PASS ✅** — Toàn bộ route build sạch kể cả `/cong-dong/**`, `/bai-hoc/**`, `/luyen-tap/**` và `/chuong-trinh/**`.
-* **`npm run lint` (frontend):** **0 errors, 0 warnings** (1.003 → 265 → 174 → **0**, cập nhật 2026-11-12 — chi tiết cách xử lý từng rule xem [ESLINT_REPORT.md](ESLINT_REPORT.md)).
-* **`npm run lint` (backend):** **0 errors, 0 warnings** (143 → 1 → **0**, cập nhật 2026-11-12).
-* **Prisma:** `migrate status` sạch, `migrate diff` rỗng sau đợt sửa lịch sử migration 2026-11-12 (xem mục 8).
-* **`npm run audit:dup` (jscpd):**
-  - **Backend:** 164 files, 21,684 lines — **3.35% trùng lặp** (51 clones, 727 lines). Nằm sâu dưới ngưỡng an toàn 5%.
-  - **Frontend:** 310 files (đã thu gọn từ 513 files sau toàn bộ 5 đợt gom module, giữ 0 errors `tsc --noEmit`, 0 errors / 0 warnings `eslint`).
-* **`npm run audit:knip` (knip):**
-  - **Unlisted dependencies:** **0** (đã bổ sung đầy đủ `socket.io-client` vào `frontend/package.json` và `multer` vào `backend/package.json`).
-* **`npm test` (backend):** **PASS 24/24 suites, 191/191 tests (100%)**.
-* **`tsc --noEmit`:** 0 errors trên toàn bộ mã nguồn chính của cả backend (`tsconfig.build.json`) và frontend (`tsconfig.json`).
+* **`tsc --noEmit`:** **0 errors** trên cả Backend (`tsconfig.build.json`) và Frontend (`tsconfig.json`).
+* **`eslint` (Backend):** **0 errors, 8 warnings** (`npm --prefix backend run lint`).
+* **`eslint` (Frontend):** **0 errors, 41 warnings** (`npm --prefix frontend run lint`).
+* **`npm test` (Backend Jest):** **PASS 75/75 suites, 694/694 tests (100%)**.
+* **`npm test` (Frontend Vitest):** **PASS 11/11 files, 52/52 tests (100%)**.
+* **`npm run test:e2e` (Frontend Playwright):** **PASS 31/31 scenarios (100%)**.
+* **Quy mô codebase hiện tại:** Backend `src/` **255 file code + 75 file `.spec.ts`** (`12` file `backend/test/*.e2e-spec.ts`); Frontend `src/` **296 files** (`36` route `page.tsx`, `11` unit test Vitest, `3` suite Playwright E2E).
 
 ---
 
@@ -289,22 +294,12 @@ Xếp theo mức độ rủi ro thật (bug/an toàn > kiến trúc > vi phạm 
 19. **[MỚI]** Code chết ở Block Builder: `TimelineNodeCanvasDrawer.tsx`, `features/lessons/templates/` (mục 3.x).
 20. **[ĐÃ SỬA ✅ — Pha 2/3] Bảng bình luận `BlogPostComment` đã được tạo độc lập trong Prisma Schema:** Đã bổ sung `model BlogPostComment` và `model PostCommentLike` vào `blog.prisma` kèm migration `20261112140000_add_blog_post_comments`. `blog.service.ts` đã chuyển 100% sang thao tác trên `this.prisma.blogPostComment` thay vì `article_comments`. Frontend đã xoá bỏ hoàn toàn file mock `historical-comments.data.ts` và cơ chế hybrid `localStorage` trong `usePostComments.ts` và `PostCard.tsx`, đảm bảo dữ liệu bình luận 100% được truy vấn và lưu bền vững vào CSDL.
 
-### 🟡 Component quá dài cần tách (ngưỡng CLAUDE.md: 200-300 dòng)
-Xếp theo độ dài giảm dần — các file này nên tách trước tiên vì vi phạm nặng nhất:
-- **[ĐÃ PHÂN RÃ ✅ — Pha 3]** `StoryChapterBlockEditor.tsx` — **1459 dòng → 224 dòng** (tách thành cụm `builder/story-chapter/` gồm 7 sub-modules & hooks).
-- **[ĐÃ PHÂN RÃ ✅ — Pha 3]** `PostCommentModal.tsx` — **1269 dòng → 190 dòng** (tách thành cụm `comment-modal/` gồm 6 sub-modules & hooks & presets).
-- **[ĐÃ PHÂN RÃ ✅ — Pha 3]** `CommunityProfileView.tsx` — **1135 dòng → 214 dòng** (tách thành cụm `profile/` gồm 6 sub-modules & hooks & types).
-- `TopicEditor.tsx` — **~1089 dòng**
-- `BlogCreatePage.tsx` — **931 dòng**
-- `QuestionBankModal.tsx` — **931 dòng**
-- `StoryChapterBlockInspector.tsx` — 893 dòng
-- `CommunityFeed.tsx` — 876 dòng
-- `luyen-tap/page.tsx` — 848 dòng
-- `HisgoStudioView.tsx` — 808 dòng
-- `StorySubElementInspector.tsx` — 783 dòng
-- **[ĐÃ XOÁ ✅ — Pha 4]** `CommentThread.tsx` — 908 dòng (đã xoá hẳn vì không được import ở đâu trong codebase)
-- `QuestionBankView.tsx` — 712 dòng; `CurriculumTree.tsx` — 705 dòng; `BlogReviewList.tsx` — 719 dòng; `QuickComposer.tsx` — 604 dòng
-- Nhóm 400-570 dòng: `TopicModal.tsx`, `TopicParentModalPicker.tsx`, `ArticleProfilePanel.tsx` (491), `RevisionDiff.tsx` (467), `BlogDetailPage.tsx` (457), `MediaManagerView.tsx` (440), `NotificationBell.tsx` (433)
+### 🟡 Component / Service quá dài cần tách (đo trực tiếp ngày 2026-11-25, ngưỡng CLAUDE.md: Component ≤400, Orchestrator ≤250)
+- **Backend (>400 dòng, đo trực tiếp `backend/src`):**
+  - `mindmap-ai.service.ts` (924), `google-oauth.service.ts` (687), `blog-follow.service.ts` (638), `topic.service.ts` (536), `ai-assistant.service.ts` (519), `concept-canvas.service.ts` (488), `public-content.service.ts` (484), `lesson.service.ts` (471), `ai-assistant.rag.ts` (453), `google-ai.service.ts` (450), `flashcard-ai.helper.ts` (445), `blog.service.ts` (419, giảm mạnh từ 1297), `content-revision.service.ts` (418).
+- **Frontend (>500 dòng đáng chú ý, ngoài file `.css`):**
+  - `MindmapNodeInspector.tsx` (836), `MindmapCanvas.tsx` (801), `mindmap.constants.ts` (700), `MindmapReferenceDrawer.tsx` (697), `MindmapNodeCard.tsx` (672), `mindmap-layout.strategy.ts` (646), `SpatialNodeCard.tsx` (638), `useHisgoStudio.ts` (631), `CommunityFeed.tsx` (609), `community/api.ts` (600), `landing.service.ts` (581), `PeriodDetailParts.tsx` (570), `SpatialCanvasParts.tsx` (559), `ModerationDashboardParts.tsx` (559), `LessonReaderMainLayout.tsx` (556), `Header.tsx` (550), `LessonEditor.tsx` (548), `StudioModals.tsx` (548), `BlogReviewParts.tsx` (544), `CommunityProfileParts.tsx` (540), `NoteReaderParts.tsx` (539), `SpatialConceptCanvas.tsx` (537), `StructuredBlockEditors.tsx` (535), `ReadingAidsParts.tsx` (528), `ArticleBrowser.tsx` (526), `NoteReaderLayer.tsx` (517), `entity-reader-adapter.ts` (517), `LandingTopSections.tsx` (514), `TextAnnotationModal.tsx` (511), `QuestionBankViewParts.tsx` (510), `QuizQuestionEditors.tsx` (508), `HubReaderParts.tsx` (506), `TypographyInspectorPanel.tsx` (502).
+- **[ĐÃ PHÂN RÃ / XOÁ ✅ ở các pha trước]:** `StoryChapterBlockEditor.tsx`, `PostCommentModal.tsx`, `CommunityProfileView.tsx`, `BlogCreatePage.tsx`, `QuestionBankModal.tsx`, `CommentThread.tsx` (đã xoá).
 
 ### 🟢 Trùng lặp code nên gộp (DRY — sẽ bị `jscpd`/`npm run audit` bắt)
 - **[ĐÃ SỬA ✅ — Pha 4]** `extractMetadataFromBlocks`/`extractMetadata` đã gộp về `frontend/src/features/blog/utils/blog-metadata.util.ts`.

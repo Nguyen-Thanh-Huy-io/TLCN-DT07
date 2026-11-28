@@ -1,8 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   dateLabelOf,
   formatPublishedDate,
-  formatTimeAgo,
   formatYear,
   getInitials,
   hasMeaningfulUpdate,
@@ -10,10 +9,6 @@ import {
 } from '@/utils/common';
 
 describe('common utils', () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   describe('sanitizeRichHtml', () => {
     it('giữ nguyên HTML định dạng an toàn và xoá bỏ script/event/URI nguy hiểm', () => {
       const dirty =
@@ -34,18 +29,6 @@ describe('common utils', () => {
       expect(sanitizeRichHtml(null)).toBe('');
       expect(sanitizeRichHtml(undefined)).toBe('');
       expect(sanitizeRichHtml('')).toBe('');
-    });
-  });
-
-  describe('formatTimeAgo', () => {
-    it('hiển thị đúng mốc vừa xong / phút / giờ / ngày', () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2026-11-20T12:00:00.000Z'));
-
-      expect(formatTimeAgo('2026-11-20T11:59:30.000Z')).toBe('Vừa xong');
-      expect(formatTimeAgo('2026-11-20T11:55:00.000Z')).toBe('5 phút trước');
-      expect(formatTimeAgo('2026-11-20T10:00:00.000Z')).toBe('2 giờ trước');
-      expect(formatTimeAgo('2026-11-17T12:00:00.000Z')).toBe('3 ngày trước');
     });
   });
 

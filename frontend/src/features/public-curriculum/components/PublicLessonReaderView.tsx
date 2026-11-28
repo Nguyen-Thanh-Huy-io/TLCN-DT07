@@ -128,6 +128,7 @@ interface PublicLessonReaderViewProps {
 export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewProps) {
   const {
     access,
+    lockedReason,
     lockedPreview,
     reload,
     lesson,
@@ -202,6 +203,7 @@ export function PublicLessonReaderView({ slug, pathId }: PublicLessonReaderViewP
           onToggleSyllabus={toggleSyllabus}
           isCompleted={isCompleted}
           lockedPreview={lockedPreview}
+          lockedReason={lockedReason}
           onEnroll={enroll}
           onReload={reload}
           SyllabusColumnComponent={SyllabusColumn}

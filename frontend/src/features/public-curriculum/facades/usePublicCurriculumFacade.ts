@@ -7,6 +7,7 @@ import {
   ChapterItem,
   LearnerApiService,
   NOT_ENROLLED_CODE,
+  LEARNER_ERROR_CODES,
   type LibraryLesson,
 } from '@/services/entities/learner.service';
 import { TopicApiService } from '@/services/entities/topic.service';
@@ -18,6 +19,8 @@ import { collectQuizBlocks } from '@/features/lessons/utils/lesson-quiz.util';
 import { ContentStatus, DifficultyLevel } from '@/constants/enums';
 import { PRACTICE_TOPIC_PARAM } from '@/features/quiz/utils/practice-quiz.helper';
 import { PathFilterStrategyRegistry } from '../strategies/public-curriculum.strategies';
+import type { EnrichedTopicItem } from '../components/TopicSelectorPopover';
+export type { EnrichedTopicItem };
 
 export const PUBLIC_CURRICULUM_ROUTES = {
   CURRICULUM: '/chuong-trinh-hoc',
@@ -119,8 +122,12 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
       setTopics(Array.isArray(topicsRes) ? topicsRes : []);
 
       if (safePaths.length > 0) {
+        const chronologicalPaths = safePaths.filter((p) => p.pathType === 'CHRONOLOGICAL');
+        const defaultChronological =
+          chronologicalPaths.find((p) => !p.prerequisitePathId) || chronologicalPaths[0];
         const defaultPath =
           (initialPathId && safePaths.find((p) => p.id === initialPathId)) ||
+          defaultChronological ||
           safePaths[0];
         setSelectedPathId(defaultPath.id);
         setExpandedChapterIds(
@@ -243,6 +250,56 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
     return { totalPaths, totalChapters, totalLessons };
   }, [paths, libraryLessons]);
 
+  // Lọc và làm giàu danh sách chủ đề: Chỉ giữ lại các chủ đề thực sự có lộ trình hoặc bài học
+  const activeTopics = useMemo<EnrichedTopicItem[]>(() => {
+    const flatTopics: TopicItem[] = [];
+    const traverse = (items: TopicItem[], parentName?: string) => {
+      for (const item of items) {
+        flatTopics.push({
+          ...item,
+          parent: item.parent || (parentName ? { id: item.parentId || '', name: parentName } : null),
+        });
+        if (item.children && item.children.length > 0) {
+          traverse(item.children, item.name);
+        }
+      }
+    };
+    traverse(topics);
+
+    const enriched: EnrichedTopicItem[] = [];
+    const seenIds = new Set<string>();
+
+    for (const topic of flatTopics) {
+      if (seenIds.has(topic.id)) continue;
+      seenIds.add(topic.id);
+
+      const subtreeIds = new Set<string>();
+      collectSubtreeTopicIds(topic, subtreeIds);
+
+      // Đếm số lộ trình thuộc chủ đề này (hoặc chủ đề con)
+      const curriculumPathCount = paths.filter(
+        (p) => p.topicId && subtreeIds.has(p.topicId),
+      ).length;
+
+      // Đếm số bài học thuộc chủ đề này (hoặc chủ đề con)
+      const curriculumLessonCount = libraryLessons.filter(
+        (l) => l.topicId && subtreeIds.has(l.topicId),
+      ).length;
+
+      // Chỉ giữ lại chủ đề nào có ít nhất 1 lộ trình hoặc 1 bài học
+      if (curriculumPathCount > 0 || curriculumLessonCount > 0) {
+        enriched.push({
+          ...topic,
+          curriculumPathCount,
+          curriculumLessonCount,
+          eyebrow: topic.parent?.name,
+        });
+      }
+    }
+
+    return enriched;
+  }, [topics, paths, libraryLessons]);
+
   return {
     paths,
     filteredPaths,
@@ -254,6 +311,7 @@ export function usePublicCurriculumFacade(initialPathId?: string | null) {
     error,
     stats,
     topics,
+    activeTopics,
     selectedTopicId,
     setSelectedTopicId,
     searchKeyword,
@@ -274,9 +332,10 @@ export enum LessonAccessState {
   GRANTED = 'GRANTED',
   LOGIN_REQUIRED = 'LOGIN_REQUIRED',
   NOT_ENROLLED = 'NOT_ENROLLED',
+  LOCKED_SEQUENTIAL = 'LOCKED_SEQUENTIAL',
 }
 
-export type LessonAccess = LessonAccessState | 'GRANTED' | 'LOGIN_REQUIRED' | 'NOT_ENROLLED';
+export type LessonAccess = LessonAccessState | 'GRANTED' | 'LOGIN_REQUIRED' | 'NOT_ENROLLED' | 'LOCKED_SEQUENTIAL';
 
 export interface AdjacentLessonLink {
   id: string;
@@ -290,6 +349,7 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
   const [learningPath, setLearningPath] = useState<LearningPathItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lockedReason, setLockedReason] = useState<string | null>(null);
 
   const [access, setAccess] = useState<LessonAccess>('GRANTED');
   const user = useAuthSession();
@@ -299,6 +359,7 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
     if (!slug || userId === undefined) return;
     setLoading(true);
     setError(null);
+    setLockedReason(null);
     setLesson(null);
 
     const allPaths = await LearningPathApiService.getLearningPaths().catch(() => []);
@@ -320,7 +381,7 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
     }
 
     try {
-      const { lesson: lessonData } = await LearnerApiService.getLesson(slug);
+      const { lesson: lessonData } = await LearnerApiService.getLesson(slug, pathId || undefined);
       setAccess(LessonAccessState.GRANTED);
       setLesson(lessonData);
     } catch (err: unknown) {
@@ -332,6 +393,16 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
         axiosErr?.response?.data?.code === NOT_ENROLLED_CODE
       ) {
         setAccess(LessonAccessState.NOT_ENROLLED);
+      } else if (
+        axiosErr?.response?.status === 403 &&
+        (axiosErr?.response?.data?.code === LEARNER_ERROR_CODES.LESSON_LOCKED_SEQUENTIAL ||
+          axiosErr?.response?.data?.code === LEARNER_ERROR_CODES.CHAPTER_QUIZ_LOCKED)
+      ) {
+        setAccess(LessonAccessState.LOCKED_SEQUENTIAL);
+        setLockedReason(
+          axiosErr.response.data.message ||
+            'Bài học này đang bị khóa. Bạn cần hoàn thành bài học trước đó trong lộ trình trước khi tiếp tục.',
+        );
       } else {
         setError(
           axiosErr?.response?.data?.message ||
@@ -420,6 +491,7 @@ export function usePublicLessonReaderFacade(slug: string, pathId?: string | null
 
   return {
     access,
+    lockedReason,
     lockedPreview,
     reload: loadData,
     lesson,

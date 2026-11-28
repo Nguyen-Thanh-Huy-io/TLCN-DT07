@@ -21,27 +21,58 @@
 // => 1 Lesson có thể: thuộc 1 Topic (bắt buộc, để phân loại) VÀ xuất hiện trong 0..N
 //    Chapter của 0..N LearningPath khác nhau (tùy chọn, để đóng gói lại thành khóa học).
 
-model LearningPath {
-  id            String           @id @default(uuid())
-  title         String           @db.VarChar(255)
-  slug          String           @unique @db.VarChar(255)
-  description   String?          @db.Text
-  coverImageUrl String?          @map("cover_image_url") @db.VarChar(500)
-  pathType      LearningPathType @default(CHRONOLOGICAL) @map("path_type")
-  isSequential  Boolean          @default(false) @map("is_sequential")
-  displayOrder  Int              @default(0) @map("display_order")
-  status        ContentStatus    @default(DRAFT)
-  createdAt     DateTime         @default(now()) @map("created_at")
-  updatedAt     DateTime         @updatedAt @map("updated_at")
+model CurriculumTrack {
+  id            String        @id @default(uuid())
+  title         String        @db.VarChar(255)
+  slug          String        @unique @db.VarChar(255)
+  description   String?       @db.Text
+  coverImageUrl String?       @map("cover_image_url") @db.VarChar(500)
+  displayOrder  Int           @default(0) @map("display_order")
+  status        ContentStatus @default(PUBLISHED)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
 
   // Relations
-  chapters          Chapter[]
-  enrollments       LearningPathEnrollment[]
-  discussionThreads DiscussionThread[]
+  paths LearningPath[]
+
+  @@index([status])
+  @@index([displayOrder])
+  @@map("curriculum_tracks")
+}
+
+model LearningPath {
+  id                 String           @id @default(uuid())
+  title              String           @db.VarChar(255)
+  slug               String           @unique @db.VarChar(255)
+  description        String?          @db.Text
+  coverImageUrl      String?          @map("cover_image_url") @db.VarChar(500)
+  pathType           LearningPathType @default(CHRONOLOGICAL) @map("path_type")
+  isSequential       Boolean          @default(false) @map("is_sequential")
+  displayOrder       Int              @default(0) @map("display_order")
+  status             ContentStatus    @default(DRAFT)
+  trackId            String?          @map("track_id")
+  stageOrder         Int              @default(0) @map("stage_order")
+  prerequisitePathId String?          @map("prerequisite_path_id")
+  stageExamQuizId    String?          @map("stage_exam_quiz_id")
+  stageExamPassScore Int?             @map("stage_exam_pass_score")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  track              CurriculumTrack?         @relation(fields: [trackId], references: [id], onDelete: SetNull)
+  prerequisitePath   LearningPath?            @relation("PathPrerequisites", fields: [prerequisitePathId], references: [id], onDelete: SetNull)
+  successorPaths     LearningPath[]           @relation("PathPrerequisites")
+  stageExamQuiz      Quiz?                    @relation("StageExamQuiz", fields: [stageExamQuizId], references: [id], onDelete: SetNull)
+  chapters           Chapter[]
+  enrollments        LearningPathEnrollment[]
+  discussionThreads  DiscussionThread[]
 
   @@index([pathType])
   @@index([status])
   @@index([displayOrder])
+  @@index([trackId, stageOrder])
+  @@index([prerequisitePathId])
+  @@index([stageExamQuizId])
   @@map("learning_paths")
 }
 
@@ -59,10 +90,31 @@ model Chapter {
   // Relations
   learningPath   LearningPath    @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
   chapterLessons ChapterLesson[]
+  chapterQuizzes ChapterQuiz[]
 
   @@index([learningPathId])
   @@index([displayOrder])
   @@map("chapters")
+}
+
+model ChapterQuiz {
+  id           String   @id @default(uuid())
+  chapterId    String   @map("chapter_id")
+  quizId       String   @map("quiz_id")
+  displayOrder Int      @default(0) @map("display_order")
+  passScore    Int?     @map("pass_score")
+  isRequired   Boolean  @default(true) @map("is_required")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  quiz    Quiz    @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@unique([chapterId, quizId])
+  @@index([chapterId, displayOrder])
+  @@index([quizId])
+  @@map("chapter_quizzes")
 }
 
 model ChapterLesson {

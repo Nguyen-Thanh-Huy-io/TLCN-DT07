@@ -16,9 +16,11 @@ model Quiz {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  topics        Topic[]        @relation("TopicQuizzes")
-  attempts      QuizAttempt[]
-  quizQuestions QuizQuestion[]
+  topics         Topic[]        @relation("TopicQuizzes")
+  attempts       QuizAttempt[]
+  quizQuestions  QuizQuestion[]
+  stageExamPaths LearningPath[] @relation("StageExamQuiz")
+  chapterQuizzes ChapterQuiz[]
 
   @@map("quizzes")
 }

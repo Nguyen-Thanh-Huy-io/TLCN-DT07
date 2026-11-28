@@ -3,10 +3,17 @@ import { Test } from '@nestjs/testing';
 import { LearningPathType } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { SlugService } from '../common/services/slug.service';
+import { PathPrerequisitePolicy } from './policies/path-prerequisite.policy';
 import { LearningPathService } from './learning-path.service';
 
 describe('LearningPathService', () => {
   let service: LearningPathService;
+  const mockPrerequisitePolicy = {
+    assertNoCircularDependency: jest.fn().mockResolvedValue(undefined),
+    validateEnrollmentEligibility: jest
+      .fn()
+      .mockResolvedValue({ isEligible: true }),
+  };
   const prisma = {
     learningPath: {
       count: jest.fn().mockResolvedValue(0),
@@ -37,7 +44,21 @@ describe('LearningPathService', () => {
       delete: jest.fn(),
       updateMany: jest.fn(),
     },
-    $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
+    chapterQuiz: {
+      deleteMany: jest.fn(),
+      create: jest.fn(({ data }: { data: object }) => ({
+        id: 'cq-1',
+        ...data,
+      })),
+    },
+    quiz: {
+      findMany: jest.fn(),
+    },
+    $transaction: jest.fn((ops: unknown) =>
+      typeof ops === 'function'
+        ? (ops as (tx: unknown) => Promise<unknown>)(prisma)
+        : Promise.all(ops as Promise<unknown>[]),
+    ),
   };
 
   beforeEach(async () => {
@@ -47,6 +68,7 @@ describe('LearningPathService', () => {
       providers: [
         LearningPathService,
         SlugService,
+        { provide: PathPrerequisitePolicy, useValue: mockPrerequisitePolicy },
         { provide: PrismaService, useValue: prisma },
       ],
     }).compile();
@@ -233,6 +255,55 @@ describe('LearningPathService', () => {
       await expect(
         service.updateChapter('ch-1', { title: ' Chương mới ' }),
       ).resolves.toMatchObject({ title: 'Chương mới' });
+    });
+  });
+
+  describe('đề kiểm tra chương (setChapterQuizzes)', () => {
+    it('đồng bộ nhiều đề kiểm tra theo đúng thứ tự, khử trùng quizId trong 1 transaction', async () => {
+      prisma.chapter.findUnique.mockResolvedValueOnce({ id: 'ch-1' });
+      prisma.quiz.findMany.mockResolvedValueOnce([
+        { id: 'quiz-1' },
+        { id: 'quiz-2' },
+      ]);
+
+      const res = await service.setChapterQuizzes('ch-1', [
+        { quizId: 'quiz-1', passScore: 75, isRequired: true },
+        { quizId: 'quiz-1', passScore: 90, isRequired: false },
+        { quizId: 'quiz-2', passScore: null, isRequired: false },
+      ]);
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.chapterQuiz.deleteMany).toHaveBeenCalledWith({
+        where: { chapterId: 'ch-1' },
+      });
+      expect(res.count).toBe(2);
+      expect(res.items).toEqual([
+        expect.objectContaining({
+          quizId: 'quiz-1',
+          displayOrder: 1,
+          passScore: 75,
+          isRequired: true,
+        }),
+        expect.objectContaining({
+          quizId: 'quiz-2',
+          displayOrder: 2,
+          passScore: null,
+          isRequired: false,
+        }),
+      ]);
+    });
+
+    it('báo 404 khi quizId không tồn tại trong ngân hàng đề', async () => {
+      prisma.chapter.findUnique.mockResolvedValueOnce({ id: 'ch-1' });
+      prisma.quiz.findMany.mockResolvedValueOnce([{ id: 'quiz-1' }]);
+
+      await expect(
+        service.setChapterQuizzes('ch-1', [
+          { quizId: 'quiz-1' },
+          { quizId: 'quiz-ghost' },
+        ]),
+      ).rejects.toThrow(NotFoundException);
+      expect(prisma.chapterQuiz.deleteMany).not.toHaveBeenCalled();
     });
   });
 });

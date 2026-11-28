@@ -29,11 +29,13 @@ export function HubLessonGate({
   access,
   preview,
   learningPath,
+  lockedReason,
   onEnroll,
 }: {
   access: Exclude<LessonAccessState, LessonAccessState.GRANTED>;
   preview: LessonPreview | null;
   learningPath: LearningPathItem | null;
+  lockedReason?: string | null;
   onEnroll: (pathId: string) => Promise<void>;
 }) {
   const [enrolling, setEnrolling] = useState(false);
@@ -52,18 +54,24 @@ export function HubLessonGate({
     }
   };
 
+  const isLockedSequential = access === LessonAccessState.LOCKED_SEQUENTIAL;
+
   return (
     <section className="overflow-hidden rounded-2xl border border-lh-line bg-lh-surface shadow-lh-card">
       <div className="relative aspect-[2.6/1]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={preview?.thumbnailUrl || DEFAULT_COVER_IMAGES[0]} alt="" className="h-full w-full object-cover opacity-70" />
         <div className="absolute inset-0 bg-gradient-to-t from-lh-surface via-lh-surface/40 to-transparent" />
-        <span className="absolute left-1/2 top-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-lh-surface text-lh-brand shadow-xl">
+        <span className={`absolute left-1/2 top-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full shadow-xl ${
+          isLockedSequential ? 'bg-amber-100 text-amber-700' : 'bg-lh-surface text-lh-brand'
+        }`}>
           <LockKeyhole className="size-7" />
         </span>
       </div>
       <div className="p-6 text-center sm:p-8">
-        <div className="text-xs font-bold uppercase tracking-[0.16em] text-lh-gold">Bài học trong lộ trình</div>
+        <div className="text-xs font-bold uppercase tracking-[0.16em] text-lh-gold">
+          {isLockedSequential ? 'Lộ trình tuần tự' : 'Bài học trong lộ trình'}
+        </div>
         <h1 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-bold text-lh-ink sm:text-3xl">
           {preview?.title ?? 'Bài học'}
         </h1>
@@ -83,6 +91,29 @@ export function HubLessonGate({
               </Link>
             </div>
           </>
+        ) : isLockedSequential ? (
+          <div className="mx-auto mt-5 max-w-md">
+            <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-left">
+              <p className="text-sm font-semibold text-amber-900">
+                🔒 Bài học này đang bị khóa
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                {lockedReason || 'Lộ trình này yêu cầu học theo thứ tự tuần tự. Vui lòng hoàn thành bài học trước đó để mở khóa bài học này.'}
+              </p>
+            </div>
+            <div className="mt-5 flex justify-center">
+              <Link
+                href={
+                  learningPath
+                    ? `${PUBLIC_CURRICULUM_ROUTES.CURRICULUM}?pathId=${learningPath.id}`
+                    : PUBLIC_CURRICULUM_ROUTES.CURRICULUM
+                }
+                className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.primary}`}
+              >
+                Quay lại lộ trình học
+              </Link>
+            </div>
+          </div>
         ) : (
           <>
             <p className="mx-auto mt-5 max-w-md text-sm text-lh-ink">
@@ -109,6 +140,29 @@ export function chapterLabel(title: string): string {
 
 export function pathLessons(path: LearningPathItem) {
   return (path.chapters || []).flatMap((ch) => publishedChapterLessons(ch).map((cl) => cl.lesson));
+}
+
+export interface PathTopicInfo {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export function pathTopics(path: LearningPathItem): PathTopicInfo[] {
+  const map = new Map<string, PathTopicInfo>();
+  for (const ch of path.chapters || []) {
+    for (const cl of ch.chapterLessons || []) {
+      const topic = cl.lesson?.topic;
+      if (topic?.id && topic?.name && !map.has(topic.id)) {
+        map.set(topic.id, {
+          id: topic.id,
+          name: topic.name,
+          slug: topic.slug || '',
+        });
+      }
+    }
+  }
+  return Array.from(map.values());
 }
 
 export function HubSyllabus({

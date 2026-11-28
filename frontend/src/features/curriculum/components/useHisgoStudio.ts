@@ -2,8 +2,15 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LearningPathApiService, LearningPathItem, ChapterItem } from '@/services/entities/learner.service';
+import {
+  LearningPathApiService,
+  LearningPathItem,
+  ChapterItem,
+  ChapterQuizInputDto,
+  CurriculumTrackItem,
+} from '@/services/entities/learner.service';
 import { LessonApiService } from '@/services/entities/learner.service';
+import { QuizApiService, type StandaloneQuizItem } from '@/services/entities/quiz.service';
 import { LessonItem } from '@/types/models';
 import type { PickedTopic } from '@/features/topics/components/TopicEditor';
 import { extractErrorMessage } from '@/services/api';
@@ -19,8 +26,15 @@ export function useHisgoStudio() {
   const searchParams = useSearchParams();
   // Active Tab: 'CURRICULUM' (Chương & nhóm) hoặc 'LESSON_LIBRARY' (Thư viện Lesson)
   const [activeTab, setActiveTab] = useState<StudioTab>(StudioTab.CURRICULUM);
-  // Dữ liệu Lộ trình và Bài học
+  // Dữ liệu Mạch tiến trình (Tracks), Lộ trình, Đề thi và Bài học
+  const [tracks, setTracks] = useState<CurriculumTrackItem[]>([]);
   const [learningPaths, setLearningPaths] = useState<LearningPathItem[]>([]);
+  const [availableQuizzes, setAvailableQuizzes] = useState<StandaloneQuizItem[]>([]);
+  // Modal: Tạo / Sửa Mạch tiến trình
+  const [showTrackModal, setShowTrackModal] = useState<boolean>(false);
+  const [editingTrackId, setEditingTrackId] = useState<string | null>(null);
+  const [trackTitle, setTrackTitle] = useState<string>('');
+  const [trackDesc, setTrackDesc] = useState<string>('');
   // Lộ trình đang chọn được đồng bộ qua URL (?pathId=) thay vì chỉ giữ trong state nội
   // bộ — để F5/chia sẻ link vẫn giữ đúng lộ trình đang xem (List → Detail), và để bấm
   // "Quay lại" thật sự quay về đúng danh sách (không bị reset về lộ trình đầu tiên).
@@ -58,19 +72,28 @@ export function useHisgoStudio() {
   const [quickCreateTopic, setQuickCreateTopic] = useState<PickedTopic | null>(null);
   const [isQuickCreating, setIsQuickCreating] = useState<boolean>(false);
   // Modal: Tạo Lộ trình mới
-  // (đã bỏ field "Phân loại lộ trình" — không có tác dụng lọc/hiển thị gì ở phía Lộ
-  // trình, xem chú thích trong LearningPathFormModal.tsx)
   const [showCreatePathModal, setShowCreatePathModal] = useState<boolean>(false);
   const [newPathTitle, setNewPathTitle] = useState<string>('');
   const [newPathDesc, setNewPathDesc] = useState<string>('');
   const [newPathCover, setNewPathCover] = useState<string>('');
   const [newPathSequential, setNewPathSequential] = useState<boolean>(false);
+  const [newPathType, setNewPathType] = useState<'CHRONOLOGICAL' | 'THEMATIC'>('CHRONOLOGICAL');
+  const [newPathTrackId, setNewPathTrackId] = useState<string>('');
+  const [newPathStageOrder, setNewPathStageOrder] = useState<number>(0);
+  const [newPathPrerequisiteId, setNewPathPrerequisiteId] = useState<string>('');
+  const [newPathStageExamQuizId, setNewPathStageExamQuizId] = useState<string>('');
+  const [newPathStageExamPassScore, setNewPathStageExamPassScore] = useState<number>(70);
   // Modal: Sửa Lộ trình học hiện tại (trước đây chỉ có Tạo, chưa có Sửa)
   const [showEditPathModal, setShowEditPathModal] = useState<boolean>(false);
   const [editPathTitle, setEditPathTitle] = useState<string>('');
   const [editPathDesc, setEditPathDesc] = useState<string>('');
   const [editPathCover, setEditPathCover] = useState<string>('');
   const [editPathSequential, setEditPathSequential] = useState<boolean>(false);
+  const [editPathType, setEditPathType] = useState<'CHRONOLOGICAL' | 'THEMATIC'>('CHRONOLOGICAL');
+  const [editPathTrackId, setEditPathTrackId] = useState<string>('');
+  const [editPathPrerequisiteId, setEditPathPrerequisiteId] = useState<string>('');
+  const [editPathStageExamQuizId, setEditPathStageExamQuizId] = useState<string>('');
+  const [editPathStageExamPassScore, setEditPathStageExamPassScore] = useState<number>(70);
   // Modal: Tạo Chương mới — chọn + sắp xếp bài học ngay trong modal này, không cần mở
   // riêng AddLessonsToChapterModal nữa sau khi tạo xong (vẫn giữ modal đó để GOM THÊM
   // bài vào 1 chương đã có sẵn, 2 việc khác nhau).
@@ -79,6 +102,11 @@ export function useHisgoStudio() {
   const [newChapterDesc, setNewChapterDesc] = useState<string>('');
   const [newChapterSearchTerm, setNewChapterSearchTerm] = useState<string>('');
   const [newChapterSelectedLessonIds, setNewChapterSelectedLessonIds] = useState<string[]>([]);
+  const [newChapterQuizItems, setNewChapterQuizItems] = useState<ChapterQuizInputDto[]>([]);
+  // Modal: Quản lý Đề kiểm tra của một Chương đã có
+  const [showChapterQuizzesModal, setShowChapterQuizzesModal] = useState<boolean>(false);
+  const [targetChapterForQuizzes, setTargetChapterForQuizzes] = useState<ChapterItem | null>(null);
+  const [chapterQuizItemsDraft, setChapterQuizItemsDraft] = useState<ChapterQuizInputDto[]>([]);
   // Drag and Drop state cho việc sắp xếp bài học
   const [draggingLessonId, setDraggingLessonId] = useState<string | null>(null);
   const [dragOverLessonId, setDragOverLessonId] = useState<string | null>(null);
@@ -89,14 +117,18 @@ export function useHisgoStudio() {
   // (trước đây 2 nơi cùng hiển thị "danh sách bài học", gây trùng lặp giao diện).
   const [deletingLibraryLesson, setDeletingLibraryLesson] = useState<LessonItem | null>(null);
   const [isDeletingLibraryLesson, setIsDeletingLibraryLesson] = useState<boolean>(false);
-  // Tải danh sách Lộ trình học từ Backend
+  // Tải danh sách Mạch tiến trình, Lộ trình học và Đề thi từ Backend
   const loadLearningPaths = useCallback(async () => {
     try {
       setLoading(true);
-      const paths = await LearningPathApiService.getLearningPaths();
+      const [paths, trackList, quizRes] = await Promise.all([
+        LearningPathApiService.getLearningPaths(),
+        LearningPathApiService.getTracks().catch(() => [] as CurriculumTrackItem[]),
+        QuizApiService.getAllQuizzes({ limit: 100 }).catch(() => ({ items: [] as StandaloneQuizItem[] })),
+      ]);
       setLearningPaths(paths);
-      // KHÔNG tự chọn lộ trình đầu tiên nữa — khi không có `?pathId=` trong URL, màn
-      // hình mặc định hiện LearningPathListPanel (danh sách), đúng mô hình List → Detail.
+      setTracks(trackList);
+      setAvailableQuizzes(quizRes.items || []);
     } catch (err) {
       showError(err, 'Không tải được danh sách lộ trình.');
     } finally {
@@ -349,6 +381,87 @@ export function useHisgoStudio() {
       await loadLearningPaths();
     }
   };
+  const handleOpenCreateTrackModal = () => {
+    setEditingTrackId(null);
+    setTrackTitle('');
+    setTrackDesc('');
+    setShowTrackModal(true);
+  };
+  const handleOpenEditTrackModal = (track: CurriculumTrackItem) => {
+    setEditingTrackId(track.id);
+    setTrackTitle(track.title);
+    setTrackDesc(track.description || '');
+    setShowTrackModal(true);
+  };
+  const handleSaveTrack = async () => {
+    if (!trackTitle.trim()) return;
+    try {
+      setActionLoading(true);
+      if (editingTrackId) {
+        await LearningPathApiService.updateTrack(editingTrackId, {
+          title: trackTitle.trim(),
+          description: trackDesc.trim() || undefined,
+        });
+        setNotice({ tone: NoticeTone.SUCCESS, text: `Đã cập nhật mạch "${trackTitle.trim()}".` });
+      } else {
+        await LearningPathApiService.createTrack({
+          title: trackTitle.trim(),
+          description: trackDesc.trim() || undefined,
+          displayOrder: tracks.length + 1,
+        });
+        setNotice({ tone: NoticeTone.SUCCESS, text: `Đã tạo mạch tiến trình "${trackTitle.trim()}".` });
+      }
+      setShowTrackModal(false);
+      await loadLearningPaths();
+    } catch (err) {
+      showError(err, 'Không thể lưu mạch tiến trình.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+  const handleDeleteTrack = async (track: CurriculumTrackItem) => {
+    if (!window.confirm(`Xóa mạch "${track.title}"? Các lộ trình bên trong vẫn được giữ lại.`)) return;
+    try {
+      setActionLoading(true);
+      await LearningPathApiService.deleteTrack(track.id);
+      await loadLearningPaths();
+      setNotice({ tone: NoticeTone.SUCCESS, text: `Đã xóa mạch "${track.title}".` });
+    } catch (err) {
+      showError(err, 'Không thể xóa mạch tiến trình.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+  const handleOpenCreateStageInTrack = (
+    trackId: string,
+    lastStageId: string | null,
+    nextStageOrder: number,
+  ) => {
+    setNewPathTitle('');
+    setNewPathDesc('');
+    setNewPathCover('');
+    setNewPathSequential(true);
+    setNewPathType('CHRONOLOGICAL');
+    setNewPathTrackId(trackId);
+    setNewPathStageOrder(nextStageOrder);
+    setNewPathPrerequisiteId(lastStageId || '');
+    setNewPathStageExamQuizId('');
+    setNewPathStageExamPassScore(70);
+    setShowCreatePathModal(true);
+  };
+  const handleOpenCreateThematicPath = () => {
+    setNewPathTitle('');
+    setNewPathDesc('');
+    setNewPathCover('');
+    setNewPathSequential(false);
+    setNewPathType('THEMATIC');
+    setNewPathTrackId('');
+    setNewPathStageOrder(0);
+    setNewPathPrerequisiteId('');
+    setNewPathStageExamQuizId('');
+    setNewPathStageExamPassScore(70);
+    setShowCreatePathModal(true);
+  };
   const handleCreatePath = async () => {
     if (!newPathTitle.trim()) {
       alert('Vui lòng nhập tên lộ trình học!');
@@ -356,11 +469,18 @@ export function useHisgoStudio() {
     }
     try {
       setActionLoading(true);
+      const isThematic = newPathType === 'THEMATIC';
       const created = await LearningPathApiService.createLearningPath({
         title: newPathTitle.trim(),
         description: newPathDesc.trim() || undefined,
         coverImageUrl: newPathCover.trim() || undefined,
         isSequential: newPathSequential,
+        pathType: newPathType,
+        trackId: isThematic ? null : newPathTrackId.trim() || null,
+        stageOrder: isThematic ? 0 : newPathStageOrder,
+        prerequisitePathId: isThematic ? null : newPathPrerequisiteId.trim() || null,
+        stageExamQuizId: newPathStageExamQuizId.trim() || null,
+        stageExamPassScore: newPathStageExamQuizId.trim() ? newPathStageExamPassScore : null,
       });
       await loadLearningPaths();
       selectPath(created.id);
@@ -369,6 +489,12 @@ export function useHisgoStudio() {
       setNewPathDesc('');
       setNewPathCover('');
       setNewPathSequential(false);
+      setNewPathType('CHRONOLOGICAL');
+      setNewPathTrackId('');
+      setNewPathStageOrder(0);
+      setNewPathPrerequisiteId('');
+      setNewPathStageExamQuizId('');
+      setNewPathStageExamPassScore(70);
     } catch (err) {
       showError(err, 'Không thể tạo lộ trình. Vui lòng kiểm tra lại!');
     } finally {
@@ -383,11 +509,26 @@ export function useHisgoStudio() {
       description?: string | null;
       coverImageUrl?: string | null;
       isSequential?: boolean;
+      pathType?: 'CHRONOLOGICAL' | 'THEMATIC';
+      trackId?: string | null;
+      prerequisitePathId?: string | null;
+      stageExamQuizId?: string | null;
+      stageExamPassScore?: number | null;
     };
     setEditPathTitle(source.title || currentPath.title);
     setEditPathDesc(source.description || '');
     setEditPathCover(source.coverImageUrl ?? currentPath.coverImageUrl ?? '');
     setEditPathSequential(Boolean(source.isSequential ?? currentPath.isSequential));
+    setEditPathType(source.pathType ?? currentPath.pathType ?? 'CHRONOLOGICAL');
+    setEditPathTrackId(source.trackId ?? currentPath.trackId ?? '');
+    setEditPathPrerequisiteId(source.prerequisitePathId ?? currentPath.prerequisitePathId ?? '');
+    setEditPathStageExamQuizId(source.stageExamQuizId ?? currentPath.stageExamQuizId ?? '');
+    setEditPathStageExamPassScore(
+      source.stageExamPassScore ??
+        currentPath.stageExamPassScore ??
+        currentPath.stageExamQuiz?.passingScorePercent ??
+        70,
+    );
     setShowEditPathModal(true);
   };
   const handleUpdatePath = async () => {
@@ -397,11 +538,17 @@ export function useHisgoStudio() {
     }
     try {
       setActionLoading(true);
+      const isThematic = editPathType === 'THEMATIC';
       const saved = await LearningPathApiService.updateLearningPath(currentPath.id, {
         title: editPathTitle.trim(),
         description: editPathDesc.trim() || undefined,
         coverImageUrl: editPathCover.trim() || undefined,
         isSequential: editPathSequential,
+        pathType: editPathType,
+        trackId: isThematic ? null : editPathTrackId ? editPathTrackId : null,
+        prerequisitePathId: isThematic ? null : editPathPrerequisiteId ? editPathPrerequisiteId : null,
+        stageExamQuizId: editPathStageExamQuizId ? editPathStageExamQuizId : null,
+        stageExamPassScore: editPathStageExamQuizId ? editPathStageExamPassScore : null,
       });
       setShowEditPathModal(false);
       if (isRevisionPending(saved)) {
@@ -413,6 +560,23 @@ export function useHisgoStudio() {
       await loadLearningPaths();
     } catch (err) {
       showError(err, 'Không thể lưu thay đổi. Vui lòng kiểm tra lại!');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+  const handleDeletePath = async () => {
+    if (!currentPath) return;
+    if (!window.confirm(`Xóa vĩnh viễn lộ trình "${currentPath.title}"? Các bài học gốc trong thư viện vẫn được giữ nguyên.`)) {
+      return;
+    }
+    try {
+      setActionLoading(true);
+      await LearningPathApiService.deleteLearningPath(currentPath.id);
+      selectPath(null);
+      await loadLearningPaths();
+      setNotice({ tone: NoticeTone.SUCCESS, text: `Đã xóa lộ trình "${currentPath.title}".` });
+    } catch (err) {
+      showError(err, 'Không thể xóa lộ trình này. Vui lòng kiểm tra lại!');
     } finally {
       setActionLoading(false);
     }
@@ -465,6 +629,7 @@ export function useHisgoStudio() {
         title: newChapterTitle.trim(),
         description: newChapterDesc.trim() || undefined,
         displayOrder: (currentPath.chapters?.length || 0) + 1,
+        quizItems: newChapterQuizItems.length > 0 ? newChapterQuizItems : undefined,
       });
       // Gắn luôn các bài học đã chọn + đúng thứ tự đã sắp xếp trong modal — 1 lần tạo
       // là xong, không cần mở lại "Thêm Lesson từ thư viện" cho chương vừa tạo.
@@ -477,8 +642,39 @@ export function useHisgoStudio() {
       setNewChapterDesc('');
       setNewChapterSearchTerm('');
       setNewChapterSelectedLessonIds([]);
+      setNewChapterQuizItems([]);
     } catch (err) {
       showError(err, 'Không thể tạo chương. Vui lòng kiểm tra lại!');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+  const handleOpenManageChapterQuizzes = (chapter: ChapterItem) => {
+    setTargetChapterForQuizzes(chapter);
+    const existing: ChapterQuizInputDto[] = (chapter.chapterQuizzes ?? []).map((cq) => ({
+      quizId: cq.quizId,
+      passScore: cq.passScore ?? cq.quiz?.passingScorePercent ?? 70,
+      isRequired: cq.isRequired,
+    }));
+    setChapterQuizItemsDraft(existing);
+    setShowChapterQuizzesModal(true);
+  };
+  const handleConfirmChapterQuizzes = async () => {
+    if (!targetChapterForQuizzes) return;
+    try {
+      setActionLoading(true);
+      await LearningPathApiService.setChapterQuizzes(
+        targetChapterForQuizzes.id,
+        chapterQuizItemsDraft,
+      );
+      await loadLearningPaths();
+      setShowChapterQuizzesModal(false);
+      setNotice({
+        tone: NoticeTone.SUCCESS,
+        text: `Đã cập nhật ${chapterQuizItemsDraft.length} đề kiểm tra cho "${targetChapterForQuizzes.title}".`,
+      });
+    } catch (err) {
+      showError(err, 'Không thể lưu danh sách đề kiểm tra cho chương.');
     } finally {
       setActionLoading(false);
     }
@@ -578,6 +774,31 @@ export function useHisgoStudio() {
     setNewPathCover,
     newPathSequential,
     setNewPathSequential,
+    newPathType,
+    setNewPathType,
+    tracks,
+    availableQuizzes,
+    showTrackModal,
+    setShowTrackModal,
+    editingTrackId,
+    trackTitle,
+    setTrackTitle,
+    trackDesc,
+    setTrackDesc,
+    handleOpenCreateTrackModal,
+    handleOpenEditTrackModal,
+    handleSaveTrack,
+    handleDeleteTrack,
+    handleOpenCreateStageInTrack,
+    handleOpenCreateThematicPath,
+    newPathTrackId,
+    setNewPathTrackId,
+    newPathPrerequisiteId,
+    setNewPathPrerequisiteId,
+    newPathStageExamQuizId,
+    setNewPathStageExamQuizId,
+    newPathStageExamPassScore,
+    setNewPathStageExamPassScore,
     showEditPathModal,
     setShowEditPathModal,
     editPathTitle,
@@ -588,6 +809,16 @@ export function useHisgoStudio() {
     setEditPathCover,
     editPathSequential,
     setEditPathSequential,
+    editPathType,
+    setEditPathType,
+    editPathTrackId,
+    setEditPathTrackId,
+    editPathPrerequisiteId,
+    setEditPathPrerequisiteId,
+    editPathStageExamQuizId,
+    setEditPathStageExamQuizId,
+    editPathStageExamPassScore,
+    setEditPathStageExamPassScore,
     showCreateChapterModal,
     setShowCreateChapterModal,
     newChapterTitle,
@@ -598,6 +829,15 @@ export function useHisgoStudio() {
     setNewChapterSearchTerm,
     newChapterSelectedLessonIds,
     setNewChapterSelectedLessonIds,
+    newChapterQuizItems,
+    setNewChapterQuizItems,
+    showChapterQuizzesModal,
+    setShowChapterQuizzesModal,
+    targetChapterForQuizzes,
+    chapterQuizItemsDraft,
+    setChapterQuizItemsDraft,
+    handleOpenManageChapterQuizzes,
+    handleConfirmChapterQuizzes,
     draggingLessonId,
     dragOverLessonId,
     librarySearchTerm,
@@ -631,6 +871,7 @@ export function useHisgoStudio() {
     handleCreatePath,
     handleOpenEditPathModal,
     handleUpdatePath,
+    handleDeletePath,
     handleOpenEditChapter,
     handleUpdateChapter,
     handleCreateChapter,

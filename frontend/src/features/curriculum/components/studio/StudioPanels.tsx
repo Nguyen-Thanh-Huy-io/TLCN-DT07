@@ -3,7 +3,10 @@
 import React from 'react';
 import { ContentStatus, IconName } from '@/constants/enums';
 import { Icon } from '@/components/icons/Icon';
-import { LearningPathItem } from '@/services/entities/learner.service';
+import {
+  CurriculumTrackItem,
+  LearningPathItem,
+} from '@/services/entities/learner.service';
 import { StudioTab } from '../HisgoStudioView';
 import { STATUS_LABEL_MAP } from '@/constants/ui-theme';
 import { StatusPill } from '@/features/articles/components/ArticleList';
@@ -12,28 +15,147 @@ import { ArchiveStatusButton } from '@/components/common/CommonUi';
 // --- LearningPathListPanel.tsx ---
 interface LearningPathListPanelProps {
   paths: LearningPathItem[];
+  tracks?: CurriculumTrackItem[];
   loading: boolean;
   onSelectPath: (id: string) => void;
   onCreatePath: () => void;
+  onCreateTrack?: () => void;
+  onEditTrack?: (track: CurriculumTrackItem) => void;
+  onDeleteTrack?: (track: CurriculumTrackItem) => void;
+  onCreateStageInTrack?: (trackId: string, lastStageId: string | null, nextStageOrder: number) => void;
+  onCreateThematicPath?: () => void;
+  canManageTracks?: boolean;
 }
 
-/** Danh sách mọi Lộ trình học (khóa học) — màn hình MẶC ĐỊNH của tab "Chương & nhóm".
- * Bấm vào 1 Lộ trình để sang màn chi tiết xem/sửa Chương của đúng lộ trình đó (List →
- * Detail), thay cho dropdown + hiện luôn Chương ngay dưới như trước — giúp dễ quét khi
- * có nhiều Lộ trình, và tách bạch rõ "chọn lộ trình" khỏi "sửa cấu trúc chương". */
-export function LearningPathListPanel({ paths, loading, onSelectPath, onCreatePath }: LearningPathListPanelProps) {
+/** Danh sách Lộ trình học gom theo Mạch tiến trình (CurriculumTrack) & Chuyên đề chuyên sâu (THEMATIC). */
+export function LearningPathListPanel({
+  paths,
+  tracks = [],
+  loading,
+  onSelectPath,
+  onCreatePath,
+  onCreateTrack,
+  onEditTrack,
+  onDeleteTrack,
+  onCreateStageInTrack,
+  onCreateThematicPath,
+  canManageTracks = false,
+}: LearningPathListPanelProps) {
   if (loading) {
     return <div className="py-12 text-center text-xs text-slate-600 font-medium">Đang tải danh sách lộ trình...</div>;
   }
 
-  if (paths.length === 0) {
+  const chronologicalPaths = paths.filter((p) => p.pathType !== 'THEMATIC');
+  const thematicPaths = paths.filter((p) => p.pathType === 'THEMATIC');
+
+  const sortStagesInTrack = (items: LearningPathItem[]) => {
+    const byId = new Map(items.map((p) => [p.id, p]));
+    const children = new Map<string, LearningPathItem[]>();
+    const roots: LearningPathItem[] = [];
+    for (const item of items) {
+      if (item.prerequisitePathId && byId.has(item.prerequisitePathId)) {
+        const list = children.get(item.prerequisitePathId) || [];
+        list.push(item);
+        children.set(item.prerequisitePathId, list);
+      } else {
+        roots.push(item);
+      }
+    }
+    roots.sort((a, b) => (a.stageOrder || 0) - (b.stageOrder || 0) || (a.displayOrder || 0) - (b.displayOrder || 0));
+    const ordered: LearningPathItem[] = [];
+    const visited = new Set<string>();
+    const queue = [...roots];
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      if (visited.has(curr.id)) continue;
+      visited.add(curr.id);
+      ordered.push(curr);
+      const next = (children.get(curr.id) || []).sort(
+        (a, b) => (a.stageOrder || 0) - (b.stageOrder || 0) || (a.displayOrder || 0) - (b.displayOrder || 0),
+      );
+      queue.push(...next);
+    }
+    for (const item of items) {
+      if (!visited.has(item.id)) ordered.push(item);
+    }
+    return ordered;
+  };
+
+  const assignedTrackIds = new Set(tracks.map((t) => t.id));
+  const unassignedChrono = sortStagesInTrack(
+    chronologicalPaths.filter((p) => !p.trackId || !assignedTrackIds.has(p.trackId)),
+  );
+
+  const renderPathCard = (path: LearningPathItem, stageNumber?: number) => {
+    const chapterCount = path.chapters?.length || 0;
+    const lessonCount = (path.chapters || []).reduce(
+      (sum, c) => sum + (c.chapterLessons?.length || 0),
+      0,
+    );
+    return (
+      <button
+        key={path.id}
+        type="button"
+        onClick={() => onSelectPath(path.id)}
+        className="text-left border border-slate-200 rounded-lg p-3.5 bg-white hover:border-emerald-400 hover:shadow-2xs transition-all flex flex-col justify-between cursor-pointer"
+      >
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {stageNumber !== undefined && (
+                <span className="inline-flex items-center rounded-md bg-rose-700 px-2 py-0.5 text-[10px] font-bold text-white">
+                  Chặng {String(stageNumber).padStart(2, '0')}
+                </span>
+              )}
+              <StatusPill status={path.status} />
+              <span
+                className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold ${
+                  path.pathType === 'THEMATIC'
+                    ? 'border-amber-200 bg-amber-50 text-amber-800'
+                    : 'border-rose-200 bg-rose-50 text-rose-800'
+                }`}
+              >
+                {path.pathType === 'THEMATIC' ? 'Chuyên đề' : 'Niên biểu'}
+              </span>
+              {path.stageExamQuiz && (
+                <span className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-800">
+                  Thi cuối chặng ({path.stageExamPassScore ?? path.stageExamQuiz.passingScorePercent ?? 70}%)
+                </span>
+              )}
+            </div>
+            <Icon name={IconName.ARROW} size={13} className="text-slate-400" />
+          </div>
+
+          <h3 className="text-sm font-bold text-slate-900 line-clamp-2">{path.title}</h3>
+
+          {path.description && (
+            <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{path.description}</p>
+          )}
+        </div>
+
+        <div className="pt-2.5 mt-2.5 border-t border-slate-100 flex items-center gap-3 text-xs text-slate-600">
+          <span className="font-bold text-slate-800">{chapterCount} chương</span>
+          <span className="text-slate-400">&bull;</span>
+          <span>{lessonCount} bài học</span>
+        </div>
+      </button>
+    );
+  };
+
+  if (paths.length === 0 && tracks.length === 0) {
     return (
       <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-xl">
-        <p className="text-sm font-semibold text-slate-800">Chưa có lộ trình học nào</p>
+        <p className="text-sm font-semibold text-slate-800">Chưa có mạch tiến trình hay lộ trình học nào</p>
         <p className="text-xs text-slate-600 mt-1">
-          Tạo 1 lộ trình để bắt đầu gom các bài học thành khóa học có trình tự riêng.
+          Tạo 1 Mạch tiến trình (Track) hoặc Chuyên đề để bắt đầu xây dựng chương trình học.
         </p>
-        <div className="mt-4 flex justify-center">
+        <div className="mt-4 flex justify-center gap-2">
+          {onCreateTrack && (
+            <button type="button" onClick={onCreateTrack} className="secondary-button !h-8 !text-xs !px-4 font-bold">
+              <Icon name={IconName.PLUS} size={12} />
+              <span>Tạo mạch tiến trình</span>
+            </button>
+          )}
           <button type="button" onClick={onCreatePath} className="primary-button !h-8 !text-xs !px-4 font-bold">
             <Icon name={IconName.PLUS} size={12} />
             <span>Tạo lộ trình đầu tiên</span>
@@ -44,55 +166,144 @@ export function LearningPathListPanel({ paths, loading, onSelectPath, onCreatePa
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-bold text-slate-900 tracking-tight">Lộ trình học</h2>
-          <p className="text-xs text-slate-600 mt-0.5 font-medium">
-            Mỗi lộ trình là 1 khóa học riêng, gồm các Chương được sắp xếp theo trình tự giảng dạy.
-          </p>
+    <div className="space-y-6">
+      {/* Khu vực 1: Mạch tiến trình cốt lõi (CurriculumTrack -> Chặng) */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight">Mạch tiến trình cốt lõi</h2>
+            <p className="text-xs text-slate-600 mt-0.5 font-medium">
+              Mỗi mạch gồm các chặng học tuần tự (có thể gắn bài kiểm tra cuối chặng để mở khóa chặng sau).
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {onCreateTrack && (
+              <button type="button" onClick={onCreateTrack} className="secondary-button !h-8 !text-xs !px-3 font-bold">
+                <Icon name={IconName.PLUS} size={12} />
+                <span>Tạo mạch mới</span>
+              </button>
+            )}
+            <button type="button" onClick={onCreatePath} className="primary-button !h-8 !text-xs !px-3.5 font-bold">
+              <Icon name={IconName.PLUS} size={12} />
+              <span>Tạo lộ trình</span>
+            </button>
+          </div>
         </div>
-        <button type="button" onClick={onCreatePath} className="primary-button !h-8 !text-xs !px-3.5 font-bold">
-          <Icon name={IconName.PLUS} size={12} />
-          <span>Tạo lộ trình</span>
-        </button>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {paths.map((path) => {
-          const chapterCount = path.chapters?.length || 0;
-          const lessonCount = (path.chapters || []).reduce(
-            (sum, c) => sum + (c.chapterLessons?.length || 0),
-            0,
-          );
-          return (
-            <button
-              key={path.id}
-              type="button"
-              onClick={() => onSelectPath(path.id)}
-              className="text-left border border-slate-200 rounded-lg p-4 bg-white hover:border-emerald-400 hover:shadow-2xs transition-all flex flex-col justify-between cursor-pointer"
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <StatusPill status={path.status} />
-                  <Icon name={IconName.ARROW} size={13} className="text-slate-400 group-hover:text-emerald-700" />
+        <div className="space-y-4">
+          {tracks.map((track, trackIdx) => {
+            const stages = sortStagesInTrack(
+              chronologicalPaths.filter((p) => p.trackId === track.id),
+            );
+            const lastStage = stages[stages.length - 1] ?? null;
+            return (
+              <div
+                key={track.id}
+                className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center rounded-md bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-white">
+                        Mạch {String(trackIdx + 1).padStart(2, '0')}
+                      </span>
+                      <h3 className="text-sm font-bold text-slate-900">{track.title}</h3>
+                      <span className="text-xs text-slate-500">({stages.length} chặng)</span>
+                    </div>
+                    {track.description && (
+                      <p className="text-xs text-slate-600 mt-1">{track.description}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {onCreateStageInTrack && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onCreateStageInTrack(track.id, lastStage?.id ?? null, stages.length + 1)
+                        }
+                        className="primary-button !h-7 !text-xs !px-2.5 font-bold"
+                      >
+                        <Icon name={IconName.PLUS} size={11} />
+                        <span>Thêm chặng {String(stages.length + 1).padStart(2, '0')}</span>
+                      </button>
+                    )}
+                    {canManageTracks && onEditTrack && (
+                      <button
+                        type="button"
+                        onClick={() => onEditTrack(track)}
+                        className="secondary-button !h-7 !text-xs !px-2.5"
+                      >
+                        Sửa mạch
+                      </button>
+                    )}
+                    {canManageTracks && onDeleteTrack && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteTrack(track)}
+                        className="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-2.5 h-7 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                      >
+                        Xóa mạch
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <h3 className="text-sm font-bold text-slate-900 line-clamp-2">{path.title}</h3>
-
-                {path.description && (
-                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{path.description}</p>
+                {stages.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic">
+                    Chưa có chặng nào trong mạch này. Bấm &ldquo;Thêm chặng 01&rdquo; để bắt đầu.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {stages.map((stage, idx) => renderPathCard(stage, idx + 1))}
+                  </div>
                 )}
               </div>
+            );
+          })}
 
-              <div className="pt-3 mt-3 border-t border-slate-100 flex items-center gap-3 text-xs text-slate-600">
-                <span className="font-bold text-slate-800">{chapterCount} chương</span>
-                <span className="text-slate-400">&bull;</span>
-                <span>{lessonCount} bài học</span>
+          {unassignedChrono.length > 0 && (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/40 p-4 space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">
+                Lộ trình niên biểu chưa gắn mạch ({unassignedChrono.length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {unassignedChrono.map((stage, idx) => renderPathCard(stage, idx + 1))}
               </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Khu vực 2: Chuyên đề chuyên sâu (THEMATIC) */}
+      <div className="space-y-3 pt-4 border-t border-slate-200">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+              Chuyên đề chuyên sâu ({thematicPaths.length})
+            </h2>
+            <p className="text-xs text-slate-600 mt-0.5 font-medium">
+              Các lộ trình học độc lập theo chủ điểm (văn hóa, quân sự, danh nhân...), không ràng buộc chặng.
+            </p>
+          </div>
+          {onCreateThematicPath && (
+            <button
+              type="button"
+              onClick={onCreateThematicPath}
+              className="secondary-button !h-8 !text-xs !px-3 font-bold"
+            >
+              <Icon name={IconName.PLUS} size={12} />
+              <span>Tạo chuyên đề</span>
             </button>
-          );
-        })}
+          )}
+        </div>
+
+        {thematicPaths.length === 0 ? (
+          <p className="text-xs text-slate-500 italic">Chưa có chuyên đề chuyên sâu nào.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {thematicPaths.map((path) => renderPathCard(path))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -105,6 +316,7 @@ interface LearningPathToolbarProps {
   onOpenEditPath: () => void;
   onOpenCreateLesson: () => void;
   onChangePathStatus: (next: ContentStatus) => void;
+  onDeletePath?: () => void;
   /** Chỉ người duyệt được xuất bản / chuyển về nháp. */
   canPublish: boolean;
   actionLoading: boolean;
@@ -119,6 +331,7 @@ export function LearningPathToolbar({
   onOpenEditPath,
   onOpenCreateLesson,
   onChangePathStatus,
+  onDeletePath,
   canPublish,
   actionLoading,
 }: LearningPathToolbarProps) {
@@ -178,6 +391,18 @@ export function LearningPathToolbar({
           onChangeStatus={onChangePathStatus}
           className="secondary-button !h-8 !text-xs !px-3"
         />
+        {canPublish && onDeletePath && (
+          <button
+            type="button"
+            onClick={onDeletePath}
+            disabled={actionLoading}
+            title="Xóa vĩnh viễn lộ trình này"
+            className="!h-8 !text-xs !px-3 font-semibold rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+          >
+            <Icon name={IconName.TRASH} size={13} />
+            <span>Xóa lộ trình</span>
+          </button>
+        )}
         {currentPath.status === ContentStatus.ARCHIVED ? null : canPublish ? (
         <button
           type="button"

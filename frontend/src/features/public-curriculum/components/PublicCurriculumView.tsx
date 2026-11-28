@@ -1,47 +1,54 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { AnimatePresence, motion } from 'framer-motion';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowRight,
-  BookmarkPlus,
   BookOpen,
   CheckCircle2,
-  ChevronRight,
+  Compass,
   Layers,
   ListTree,
-  LogIn,
   RotateCcw,
-  Search,
   Sparkles,
 } from 'lucide-react';
-import { extractErrorMessage } from '@/services/api';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import type { LearningPathItem } from '@/services/entities/learner.service';
 import { LearningPathType } from '@/constants/enums';
 import {
-  DEFAULT_COVER_IMAGES,
-  PATH_TYPE_META,
   PUBLIC_CURRICULUM_ROUTES,
-  PUBLIC_DIFFICULTY_META,
   usePublicCurriculumFacade,
 } from '../facades/usePublicCurriculumFacade';
-import { HUB_BUTTON_BASE, HUB_BUTTON_VARIANTS, HubBadge, HubButton, HubProgress } from './hub/HubReaderParts';
-import { HubSyllabus, chapterLabel, pathLessons } from './hub/HubReaderParts';
+import {
+  HUB_BUTTON_BASE,
+  HubBadge,
+  HubButton,
+  HubSyllabus,
+  chapterLabel,
+  pathLessons,
+  pathTopics,
+} from './hub/HubReaderParts';
 import { useLessonProgress } from './hub/LessonQuizIslands';
+import { LearningJourneyRoadmap } from './journey/LearningJourneyRoadmap';
+import {
+  CurriculumNavigationTabs,
+  CURRICULUM_TAB_KEYS,
+  type CurriculumTabKey,
+} from './CurriculumNavigationTabs';
+import { CurriculumFilterBar } from './CurriculumFilterBar';
+import { CurriculumTrackRoadmap } from './CurriculumTrackRoadmap';
+import { CurriculumTrackShowcase } from './CurriculumTrackShowcase';
+import { groupPathsIntoTracks } from '../utils/curriculum-track.util';
+import { CurriculumThematicGrid } from './CurriculumThematicGrid';
+import { CurriculumLibraryBrowser } from './CurriculumLibraryBrowser';
 
 interface PublicCurriculumViewProps {
   initialPathId?: string | null;
 }
 
-function nextLessonOf(path: LearningPathItem, isCompleted: (id: string) => boolean) {
-  const lessons = pathLessons(path);
-  return lessons.find((l) => !isCompleted(l.id)) ?? lessons[0] ?? null;
-}
-
-function CurriculumStatsHeader({
+function CompactCurriculumHeader({
   stats,
   completedCount,
   cta,
@@ -50,205 +57,90 @@ function CurriculumStatsHeader({
   completedCount: number;
   cta: { href: string; label: string };
 }) {
-  const tiles = [
-    { icon: Layers, value: stats.totalPaths, label: 'lộ trình', color: 'text-amber-200' },
-    { icon: ListTree, value: stats.totalChapters, label: 'chương', color: 'text-sky-200' },
-    { icon: BookOpen, value: stats.totalLessons, label: 'bài học', color: 'text-emerald-200' },
-    { icon: CheckCircle2, value: completedCount, label: 'bài đã học', color: 'text-yellow-200' },
-  ];
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-lh-brand p-6 text-white shadow-xl shadow-lh-brand/10 sm:p-8">
-      <div className="lh-paper-pattern absolute inset-0 opacity-15" />
-      <div className="relative grid gap-7 lg:grid-cols-[1.2fr_1fr] lg:items-center">
-        <div>
-          <HubBadge tone="gold">
-            <Sparkles className="size-3" /> Chương trình học lịch sử
-          </HubBadge>
-          <h1 className="mt-4 max-w-2xl font-[family-name:var(--font-heading)] text-3xl font-bold leading-tight sm:text-4xl">
-            Học sử theo lộ trình, từng chương một.
-          </h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-white/90 sm:text-base">
-            Mỗi lộ trình gồm các chương và bài đọc có đề ôn tập cuối bài. Đăng ký miễn phí một lộ trình để đọc bài và lưu tiến độ vào tài khoản của bạn.
-          </p>
-          <Link href={cta.href} className={`${HUB_BUTTON_BASE} mt-5 bg-white text-lh-brand hover:bg-white/90`}>
-            {cta.label} <ArrowRight className="size-4" />
-          </Link>
+    <section className="flex flex-col justify-between gap-4 border-b border-lh-line/80 pb-6 md:flex-row md:items-center">
+      <div>
+        <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-lh-brand">
+          <Sparkles className="size-3.5 text-lh-gold" /> Chương trình học lịch sử
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-4 lg:grid-cols-2">
-          {tiles.map((item) => (
-            <div key={item.label} className="border-l-2 border-white/30 py-1 pl-3.5 sm:pl-4">
-              <div className="flex items-center gap-2">
-                <item.icon className={`size-5 ${item.color}`} />
-                <div className="text-xl font-extrabold sm:text-2xl">{item.value}</div>
-              </div>
-              <div className="mt-1 text-sm font-medium text-white/90">{item.label}</div>
-            </div>
-          ))}
+        <h1 className="mt-1 font-[family-name:var(--font-heading)] text-2xl font-extrabold text-lh-ink sm:text-3xl">
+          Lộ trình &amp; Chuyên đề Lịch sử
+        </h1>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="inline-flex items-center gap-1.5 rounded-xl border border-lh-line bg-lh-surface px-3 py-1.5 text-xs text-lh-ink shadow-xs">
+          <Layers className="size-3.5 text-amber-600" />
+          <span className="font-bold">{stats.totalPaths}</span>
+          <span className="text-lh-muted">lộ trình</span>
         </div>
+        <div className="inline-flex items-center gap-1.5 rounded-xl border border-lh-line bg-lh-surface px-3 py-1.5 text-xs text-lh-ink shadow-xs">
+          <ListTree className="size-3.5 text-sky-600" />
+          <span className="font-bold">{stats.totalChapters}</span>
+          <span className="text-lh-muted">chương</span>
+        </div>
+        <div className="inline-flex items-center gap-1.5 rounded-xl border border-lh-line bg-lh-surface px-3 py-1.5 text-xs text-lh-ink shadow-xs">
+          <BookOpen className="size-3.5 text-emerald-600" />
+          <span className="font-bold">{stats.totalLessons}</span>
+          <span className="text-lh-muted">bài học</span>
+        </div>
+        {completedCount > 0 && (
+          <div className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs text-emerald-800 shadow-xs">
+            <CheckCircle2 className="size-3.5 text-emerald-600" />
+            <span className="font-bold">{completedCount}</span>
+            <span className="text-emerald-700">đã học</span>
+          </div>
+        )}
+        <Link
+          href={cta.href}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-lh-brand px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-lh-brand/90"
+        >
+          {cta.label} <ArrowRight className="size-3.5" />
+        </Link>
       </div>
     </section>
   );
 }
 
-interface CourseCardActionsProps {
-  path: LearningPathItem;
-  next: { slug: string } | null;
-  loggedIn: boolean;
-  enrolled: boolean;
-  complete: boolean;
-  enrolling: boolean;
-  onEnroll: () => void;
-}
-
-function CourseCardActions({
-  path,
-  next,
-  loggedIn,
-  enrolled,
-  complete,
-  enrolling,
-  onEnroll,
-}: CourseCardActionsProps) {
-  if (!next) {
-    return (
-      <span className="rounded-xl bg-lh-surface-2 px-4 py-2.5 text-center text-sm text-lh-muted">
-        Lộ trình chưa có bài học được xuất bản
-      </span>
-    );
-  }
-  if (!loggedIn) {
-    return (
-      <Link
-        href={`/login?redirect=${encodeURIComponent(`${PUBLIC_CURRICULUM_ROUTES.CURRICULUM}?pathId=${path.id}`)}`}
-        className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.outline}`}
-      >
-        <LogIn className="size-4" /> Đăng nhập để đăng ký học
-      </Link>
-    );
-  }
-  if (!enrolled) {
-    return (
-      <HubButton onClick={onEnroll} disabled={enrolling}>
-        <BookmarkPlus className="size-4" /> {enrolling ? 'Đang đăng ký...' : 'Đăng ký học (miễn phí)'}
-      </HubButton>
-    );
-  }
-  return (
-    <Link
-      href={PUBLIC_CURRICULUM_ROUTES.LESSON_DETAIL(next.slug, path.id)}
-      className={`${HUB_BUTTON_BASE} ${HUB_BUTTON_VARIANTS.primary}`}
-    >
-      {complete ? 'Tiếp tục học' : 'Vào bài đầu tiên'} <ChevronRight className="size-4" />
-    </Link>
-  );
-}
-
-function CourseCard({
-  path,
-  index,
-  selected,
-  isCompleted,
-  onShowSyllabus,
-  loggedIn,
-  enrolled,
-  onEnroll,
-}: {
-  path: LearningPathItem;
-  index: number;
-  selected: boolean;
-  isCompleted: (id: string) => boolean;
-  onShowSyllabus: () => void;
-  loggedIn: boolean;
-  enrolled: boolean;
-  onEnroll: () => Promise<void>;
-}) {
-  const [enrolling, setEnrolling] = useState(false);
-  const [enrollError, setEnrollError] = useState<string | null>(null);
-  const handleEnroll = async () => {
-    setEnrolling(true);
-    setEnrollError(null);
-    try {
-      await onEnroll();
-    } catch (err) {
-      setEnrollError(extractErrorMessage(err, 'Không thể đăng ký lộ trình. Vui lòng thử lại.'));
-    } finally {
-      setEnrolling(false);
-    }
-  };
-  const lessons = pathLessons(path);
-  const complete = lessons.filter((l) => isCompleted(l.id)).length;
-  const percent = lessons.length ? Math.round((complete / lessons.length) * 100) : 0;
-  const next = nextLessonOf(path, isCompleted);
-  const meta = PATH_TYPE_META[path.pathType];
-  return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -5 }}
-      className={`group overflow-hidden rounded-2xl border bg-lh-surface shadow-lh-card transition-shadow hover:shadow-lh-card-hover ${
-        selected ? 'border-lh-brand/50 ring-2 ring-lh-brand/15' : 'border-lh-line'
-      }`}
-    >
-      <div className="relative aspect-[16/9] overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={path.coverImageUrl || DEFAULT_COVER_IMAGES[index % DEFAULT_COVER_IMAGES.length]}
-          alt=""
-          className="h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-transparent" />
-        <div className="absolute left-4 top-4 flex gap-2">
-          <HubBadge tone={path.pathType === LearningPathType.THEMATIC ? 'gold' : 'brand'}>{meta?.label ?? path.pathType}</HubBadge>
-          {path.isSequential && <HubBadge tone="neutral">Học tuần tự</HubBadge>}
-        </div>
-        <div className="absolute bottom-4 left-4 flex items-center gap-2 text-sm font-semibold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
-          <ListTree className="size-3.5" /> {(path.chapters || []).length} chương
-          <span className="text-white/75">•</span>
-          <BookOpen className="size-3.5" /> {lessons.length} bài
-        </div>
-      </div>
-      <div className="p-5">
-        <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold leading-snug text-lh-ink">{path.title}</h2>
-        {(path.description || meta?.description) && (
-          <p className="mt-2 line-clamp-2 text-sm leading-6 text-lh-muted">{path.description || meta?.description}</p>
-        )}
-        <div className="mt-5">
-          <div className="mb-2 flex justify-between text-sm">
-            <span className="font-semibold text-lh-ink">
-              {!enrolled ? 'Chưa đăng ký' : complete ? `Đã học ${complete}/${lessons.length} bài` : 'Đã đăng ký · chưa bắt đầu'}
-            </span>
-            <span className="font-bold text-lh-brand">{percent}%</span>
-          </div>
-          <HubProgress value={percent} />
-        </div>
-        <div className="mt-5 grid gap-2 sm:grid-cols-[1fr_auto]">
-          <CourseCardActions
-            path={path}
-            next={next}
-            loggedIn={loggedIn}
-            enrolled={enrolled}
-            complete={complete > 0}
-            enrolling={enrolling}
-            onEnroll={handleEnroll}
-          />
-          <HubButton variant={selected ? 'secondary' : 'ghost'} onClick={onShowSyllabus}>
-            <ListTree className="size-4" /> Đề cương
-          </HubButton>
-        </div>
-        {enrollError && <p className="mt-2 text-sm text-lh-red">{enrollError}</p>}
-      </div>
-    </motion.article>
-  );
-}
-
 export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlPathId = searchParams.get('pathId') || initialPathId;
+  const urlTabRaw = searchParams.get('tab');
+  const validTabs = Object.values(CURRICULUM_TAB_KEYS) as string[];
+  const initialTab: CurriculumTabKey =
+    urlTabRaw && validTabs.includes(urlTabRaw)
+      ? (urlTabRaw as CurriculumTabKey)
+      : CURRICULUM_TAB_KEYS.CORE_TRACKS;
+
+  const updateQueryParams = useCallback(
+    (updates: { tab?: CurriculumTabKey; trackId?: string | null; pathId?: string | null }) => {
+      const next = new URLSearchParams(searchParams.toString());
+      if (updates.tab !== undefined) {
+        next.set('tab', updates.tab);
+      }
+      if (updates.trackId !== undefined) {
+        if (updates.trackId) next.set('trackId', updates.trackId);
+        else next.delete('trackId');
+      }
+      if (updates.pathId !== undefined) {
+        if (updates.pathId) next.set('pathId', updates.pathId);
+        else next.delete('pathId');
+      }
+      const query = next.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
   const {
     filteredPaths,
     activePath,
     filteredLibraryLessons,
     availableTags,
     topics,
+    activeTopics,
     selectedTopicId,
     setSelectedTopicId,
     loading,
@@ -264,234 +156,324 @@ export function PublicCurriculumView({ initialPathId }: PublicCurriculumViewProp
     expandAllChapters,
     collapseAllChapters,
     reload,
-  } = usePublicCurriculumFacade(initialPathId);
-  const { completedIds, isCompleted, isEnrolled, enroll, loggedIn } = useLessonProgress();
+  } = usePublicCurriculumFacade(urlPathId);
+
+  const {
+    completedIds,
+    isCompleted,
+    isEnrolled,
+    isQuizPassed,
+    bestQuizScores,
+    enroll,
+    loggedIn,
+  } = useLessonProgress();
+  const [activeTab, setActiveTab] = useState<CurriculumTabKey>(initialTab);
+  const [detailViewMode, setDetailViewMode] = useState<'journey' | 'syllabus'>('journey');
+
+  const handleTabChange = (nextTab: CurriculumTabKey) => {
+    setActiveTab(nextTab);
+    updateQueryParams({ tab: nextTab });
+  };
+
+  // Phân loại lộ trình theo loại (Tiến trình niên biểu vs Chuyên đề)
+  const coreTracks = useMemo(
+    () => filteredPaths.filter((p) => p.pathType === LearningPathType.CHRONOLOGICAL),
+    [filteredPaths],
+  );
+
+  // Phân nhóm các lộ trình niên biểu thành các Mạch tiến trình
+  const trackGroups = useMemo(
+    () => groupPathsIntoTracks(coreTracks, { isCompleted, isEnrolled }),
+    [coreTracks, isCompleted, isEnrolled],
+  );
+
+  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(
+    () => searchParams.get('trackId'),
+  );
+
+  // Tự động gán selectedTrackId mặc định (track đầu tiên hoặc track chứa activePath)
+  useEffect(() => {
+    if (!trackGroups.length) {
+      setSelectedTrackId(null);
+      return;
+    }
+    if (!selectedTrackId || !trackGroups.some((t) => t.id === selectedTrackId)) {
+      const matched = activePath
+        ? trackGroups.find((t) => t.paths.some((p) => p.id === activePath.id))
+        : null;
+      setSelectedTrackId(matched ? matched.id : trackGroups[0].id);
+    }
+  }, [trackGroups, activePath, selectedTrackId]);
+
+  const activeTrack = useMemo(
+    () => trackGroups.find((t) => t.id === selectedTrackId) || trackGroups[0] || null,
+    [trackGroups, selectedTrackId],
+  );
+
+  const activeTrackPaths = useMemo(
+    () => activeTrack?.paths || [],
+    [activeTrack],
+  );
+
+  const handleSelectTrack = (trackId: string) => {
+    setSelectedTrackId(trackId);
+    const targetTrack = trackGroups.find((t) => t.id === trackId);
+    let nextPathId: string | null = activePath?.id ?? null;
+    if (targetTrack && targetTrack.paths.length > 0) {
+      if (!activePath || !targetTrack.paths.some((p) => p.id === activePath.id)) {
+        handleSelectPath(targetTrack.paths[0]);
+        nextPathId = targetTrack.paths[0].id;
+      }
+    }
+    updateQueryParams({ tab: CURRICULUM_TAB_KEYS.CORE_TRACKS, trackId, pathId: nextPathId });
+    requestAnimationFrame(() => {
+      document.getElementById('truc-thoi-gian-mach')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const thematicCourses = useMemo(
+    () => filteredPaths.filter((p) => p.pathType === LearningPathType.THEMATIC),
+    [filteredPaths],
+  );
 
   const cta = useMemo(() => {
-    if (!loggedIn) return { href: `/dang-ky?redirect=${encodeURIComponent(PUBLIC_CURRICULUM_ROUTES.CURRICULUM)}`, label: 'Đăng ký tài khoản' };
+    if (!loggedIn) {
+      return {
+        href: `/dang-ky?redirect=${encodeURIComponent(PUBLIC_CURRICULUM_ROUTES.CURRICULUM)}`,
+        label: 'Đăng ký tài khoản',
+      };
+    }
     const enrolledPaths = filteredPaths.filter((p) => isEnrolled(p.id));
-    const path = enrolledPaths.find((p) => pathLessons(p).some((l) => isCompleted(l.id))) ?? enrolledPaths[0];
-    const next = path ? nextLessonOf(path, isCompleted) : null;
+    const path =
+      enrolledPaths.find((p) => pathLessons(p).some((l) => isCompleted(l.id))) ??
+      enrolledPaths[0];
+    const lessons = path ? pathLessons(path) : [];
+    const next = lessons.find((l) => !isCompleted(l.id)) ?? lessons[0] ?? null;
+
     return path && next
       ? { href: PUBLIC_CURRICULUM_ROUTES.LESSON_DETAIL(next.slug, path.id), label: 'Học tiếp ngay' }
-      : { href: '#lo-trinh', label: 'Chọn lộ trình để bắt đầu' };
+      : { href: '#danh-muc-khoa-hoc', label: 'Bắt đầu lộ trình học' };
   }, [filteredPaths, isCompleted, isEnrolled, loggedIn]);
 
-  const showSyllabus = (path: LearningPathItem) => {
+  const onSelectPathAndScroll = (path: LearningPathItem) => {
     handleSelectPath(path);
-    requestAnimationFrame(() => document.getElementById('de-cuong')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    updateQueryParams({ pathId: path.id });
+    requestAnimationFrame(() => {
+      document.getElementById('de-cuong-chi-tiet')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   };
 
   return (
     <div className="lh-app">
       <Header activeTab="curriculum" />
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-9 lg:px-8">
-        <CurriculumStatsHeader stats={stats} completedCount={completedIds?.length || 0} cta={cta} />
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 space-y-6">
+        <CompactCurriculumHeader stats={stats} completedCount={completedIds?.length || 0} cta={cta} />
 
-        <section id="lo-trinh" className="scroll-mt-24 py-10">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-lh-ink">Lộ trình khám phá lịch sử</h2>
-              <p className="mt-2 text-sm text-lh-muted">Chương trình chọn lọc — Học theo mạch giai đoạn, sự kiện và nhân vật của dân tộc.</p>
-            </div>
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-lh-muted" />
-              <input
-                value={searchKeyword}
-                onChange={(event) => setSearchKeyword(event.target.value)}
-                placeholder="Tìm lộ trình, chương, bài học..."
-                className="h-11 w-full rounded-xl border border-lh-line bg-lh-surface pl-10 pr-4 text-sm text-lh-ink outline-none transition focus:border-lh-brand/50 focus:ring-2 focus:ring-lh-brand/10"
-              />
-            </div>
-          </div>
-          <div className="mt-6 flex flex-wrap items-center gap-2 border-y border-lh-line py-4">
-            <HubButton
-              variant={selectedTopicId === null ? 'secondary' : 'ghost'}
-              onClick={() => setSelectedTopicId(null)}
-              className="px-3 py-2 font-medium"
-            >
-              Tất cả chủ đề
-            </HubButton>
-            {topics.map((t) => (
-              <HubButton
-                key={t.id}
-                variant={selectedTopicId === t.id ? 'secondary' : 'ghost'}
-                onClick={() => setSelectedTopicId(selectedTopicId === t.id ? null : t.id)}
-                className="px-3 py-2"
-              >
-                {t.name}
-              </HubButton>
-            ))}
+        {/* Khu vực Tabs điều hướng & Thanh lọc thông minh */}
+        <section id="danh-muc-khoa-hoc" className="scroll-mt-24">
+          <div className="space-y-5">
+            {/* Thanh Tabs chọn phân khu */}
+            <CurriculumNavigationTabs
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              counts={{
+                coreTracks: coreTracks.length,
+                thematic: thematicCourses.length,
+                library: filteredLibraryLessons.length,
+              }}
+            />
+
+            {/* Bộ lọc từ khóa & chọn chủ đề tinh gọn */}
+            <CurriculumFilterBar
+              searchKeyword={searchKeyword}
+              onSearchChange={setSearchKeyword}
+              topics={activeTopics}
+              selectedTopicId={selectedTopicId}
+              onSelectTopic={setSelectedTopicId}
+              resultCount={
+                activeTab === CURRICULUM_TAB_KEYS.CORE_TRACKS
+                  ? coreTracks.length
+                  : activeTab === CURRICULUM_TAB_KEYS.THEMATIC
+                    ? thematicCourses.length
+                    : filteredLibraryLessons.length
+              }
+            />
           </div>
 
-          {loading ? (
-            <div className="grid gap-6 pt-7 md:grid-cols-2">
-              {[0, 1].map((i) => (
-                <div key={i} className="h-96 animate-pulse rounded-2xl border border-lh-line bg-lh-surface-2" />
-              ))}
-            </div>
-          ) : error ? (
-            <div className="mt-7 rounded-2xl border border-lh-red/30 bg-lh-red-soft p-8 text-center">
-              <p className="font-[family-name:var(--font-heading)] text-lg font-bold text-lh-red">{error}</p>
-              <HubButton variant="outline" className="mt-4" onClick={reload}>
-                <RotateCcw className="size-4" /> Thử lại
-              </HubButton>
-            </div>
-          ) : (
-            <>
-              <div className="mt-7 grid gap-6 md:grid-cols-2">
-                <AnimatePresence>
-                  {filteredPaths.map((path, index) => (
-                    <CourseCard
-                      key={path.id}
-                      path={path}
-                      index={index}
-                      selected={activePath?.id === path.id}
-                      isCompleted={isCompleted}
-                      onShowSyllabus={() => showSyllabus(path)}
-                      loggedIn={loggedIn}
-                      enrolled={isEnrolled(path.id)}
-                      onEnroll={() => enroll(path.id)}
-                    />
-                  ))}
-                </AnimatePresence>
+          {/* Nội dung tương ứng theo Tab */}
+          <div className="mt-8">
+            {loading ? (
+              <div className="grid gap-6 md:grid-cols-2">
+                {[0, 1].map((i) => (
+                  <div key={i} className="h-80 animate-pulse rounded-2xl border border-lh-line bg-lh-surface-2" />
+                ))}
               </div>
-              {!filteredPaths.length && (
-                <div className="py-20 text-center">
-                  <BookOpen className="mx-auto size-8 text-lh-muted" />
-                  <div className="mt-3 font-[family-name:var(--font-heading)] text-xl font-bold text-lh-ink">
-                    Chưa tìm thấy lộ trình phù hợp
-                  </div>
-                  <p className="mt-1 text-sm text-lh-muted">Thử thay đổi từ khóa hoặc bộ lọc của bạn.</p>
+            ) : error ? (
+              <div className="rounded-2xl border border-lh-red/30 bg-lh-red-soft p-8 text-center">
+                <p className="font-[family-name:var(--font-heading)] text-lg font-bold text-lh-red">{error}</p>
+                <HubButton variant="outline" className="mt-4" onClick={reload}>
+                  <RotateCcw className="size-4" /> Thử lại
+                </HubButton>
+              </div>
+            ) : activeTab === CURRICULUM_TAB_KEYS.CORE_TRACKS ? (
+              <div className="space-y-6">
+                {/* Bộ Thẻ Chọn Mạch Nổi Bật (Track Showcase Cards) */}
+                <CurriculumTrackShowcase
+                  tracks={trackGroups}
+                  selectedTrackId={activeTrack?.id || null}
+                  onSelectTrack={handleSelectTrack}
+                />
+
+                {/* Trục lộ trình niên biểu của mạch đang chọn */}
+                <div id="truc-thoi-gian-mach" className="scroll-mt-24 pt-2">
+                  <CurriculumTrackRoadmap
+                    paths={activeTrackPaths}
+                    selectedPathId={activePath?.id || null}
+                    selectedTopicId={selectedTopicId}
+                    onSelectPath={onSelectPathAndScroll}
+                    isCompleted={isCompleted}
+                    isEnrolled={isEnrolled}
+                    isQuizPassed={isQuizPassed}
+                    bestQuizScores={bestQuizScores}
+                    onEnroll={enroll}
+                    loggedIn={loggedIn}
+                  />
                 </div>
-              )}
-            </>
-          )}
+              </div>
+            ) : activeTab === CURRICULUM_TAB_KEYS.THEMATIC ? (
+              <CurriculumThematicGrid
+                paths={thematicCourses}
+                selectedPathId={activePath?.id || null}
+                selectedTopicId={selectedTopicId}
+                onSelectPath={onSelectPathAndScroll}
+                isCompleted={isCompleted}
+                isEnrolled={isEnrolled}
+                onEnroll={enroll}
+                loggedIn={loggedIn}
+              />
+            ) : (
+              <CurriculumLibraryBrowser
+                lessons={filteredLibraryLessons}
+                availableTags={availableTags}
+                selectedTagId={selectedTagId}
+                onSelectTag={setSelectedTagId}
+                isCompleted={isCompleted}
+              />
+            )}
+          </div>
         </section>
 
-        {activePath && (
-          <section id="de-cuong" className="scroll-mt-24 border-t border-lh-line py-10">
-            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        {/* Khung Chi tiết Lộ trình được chọn (Bản đồ hành trình & Đề cương) */}
+        {activePath && (activeTab === CURRICULUM_TAB_KEYS.CORE_TRACKS || activeTab === CURRICULUM_TAB_KEYS.THEMATIC) && (
+          <section id="de-cuong-chi-tiet" className="scroll-mt-24 border-t border-lh-line py-10">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div>
-                <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-lh-ink">{activePath.title}</h2>
-                <p className="mt-1 text-sm text-lh-muted">Đề cương chi tiết lộ trình học tập</p>
-                {activePath.description && (
-                  <p className="mt-3 max-w-prose text-sm leading-7 text-lh-muted">{activePath.description}</p>
-                )}
-                <div className="mt-6 divide-y divide-lh-line rounded-2xl border border-lh-line bg-lh-surface">
-                  {(activePath.chapters || []).map((chapter, i) => (
-                    <div key={chapter.id} className="p-4">
-                      <div className="text-xs font-bold uppercase tracking-wider text-lh-gold">Chương {i + 1}</div>
-                      <div className="mt-1 font-semibold text-lh-ink">{chapterLabel(chapter.title)}</div>
-                      {chapter.description && (
-                        <p className="mt-1 max-w-prose text-sm leading-6 text-lh-muted">{chapter.description}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-5 flex gap-2">
-                  <HubButton variant="ghost" onClick={expandAllChapters}>
-                    Mở tất cả
-                  </HubButton>
-                  <HubButton variant="ghost" onClick={collapseAllChapters}>
-                    Thu gọn
-                  </HubButton>
-                </div>
-              </div>
-              <HubSyllabus
-                path={activePath}
-                isCompleted={isCompleted}
-                openChapterIds={expandedChapterIds}
-                onToggleChapter={toggleChapterAccordion}
-              />
-            </div>
-          </section>
-        )}
-
-        {!loading && !error && (
-          <section id="thu-vien" className="scroll-mt-24 border-t border-lh-line py-10">
-            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-              <div>
-                <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-lh-ink">
-                  Thư viện bài học ({filteredLibraryLessons.length})
-                </h2>
-                <p className="mt-1 text-sm text-lh-muted">Kho tri thức mở với các bài đọc và tài liệu ôn tập trọng tâm</p>
-              </div>
-              {availableTags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  <HubButton
-                    variant={selectedTagId === null ? 'secondary' : 'ghost'}
-                    className="px-3 py-1.5"
-                    onClick={() => setSelectedTagId(null)}
-                  >
-                    Tất cả chủ đề
-                  </HubButton>
-                  {availableTags.map((tag) => (
-                    <HubButton
-                      key={tag.id}
-                      variant={selectedTagId === tag.id ? 'secondary' : 'ghost'}
-                      className="px-3 py-1.5"
-                      onClick={() => setSelectedTagId(selectedTagId === tag.id ? null : tag.id)}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-lh-brand">
+                    Đang xem chi tiết khóa học
+                  </span>
+                  {pathTopics(activePath).map((top) => (
+                    <span
+                      key={top.id}
+                      className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium border ${
+                        selectedTopicId === top.id
+                          ? 'border-lh-brand bg-lh-brand/10 text-lh-brand font-semibold'
+                          : 'border-lh-line bg-lh-surface text-lh-muted'
+                      }`}
                     >
-                      #{tag.name}
-                    </HubButton>
+                      #{top.name}
+                    </span>
                   ))}
                 </div>
-              )}
+                <h2 className="mt-1 font-[family-name:var(--font-heading)] text-2xl font-bold text-lh-ink sm:text-3xl">
+                  {activePath.title}
+                </h2>
+                <p className="mt-1 text-sm text-lh-muted">
+                  {detailViewMode === 'journey'
+                    ? 'Bản đồ hành trình học tập trực quan từng bài học'
+                    : 'Đề cương chi tiết các chương và bài đọc'}
+                </p>
+              </div>
+
+              {/* Toggle Bản đồ vs Đề cương */}
+              <div className="inline-flex rounded-xl border border-lh-line bg-lh-surface-2 p-1">
+                <button
+                  type="button"
+                  onClick={() => setDetailViewMode('journey')}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                    detailViewMode === 'journey'
+                      ? 'bg-lh-surface text-lh-brand shadow-sm'
+                      : 'text-lh-muted hover:text-lh-ink'
+                  }`}
+                >
+                  <Compass className="size-3.5" /> Bản đồ hành trình
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailViewMode('syllabus')}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                    detailViewMode === 'syllabus'
+                      ? 'bg-lh-surface text-lh-brand shadow-sm'
+                      : 'text-lh-muted hover:text-lh-ink'
+                  }`}
+                >
+                  <ListTree className="size-3.5" /> Đề cương chi tiết
+                </button>
+              </div>
             </div>
-            <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredLibraryLessons.map((lesson, idx) => {
-                const difficulty = lesson.difficulty ? PUBLIC_DIFFICULTY_META[lesson.difficulty] : null;
-                const tags = lesson.tags;
-                return (
-                  <Link
-                    key={lesson.id}
-                    href={PUBLIC_CURRICULUM_ROUTES.LESSON_DETAIL(lesson.slug)}
-                    className="group flex flex-col overflow-hidden rounded-2xl border border-lh-line bg-lh-surface shadow-lh-card transition hover:-translate-y-1 hover:shadow-lh-card-hover"
-                  >
-                    <div className="relative aspect-[16/9] overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={lesson.thumbnailUrl || DEFAULT_COVER_IMAGES[idx % DEFAULT_COVER_IMAGES.length]}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                      {isCompleted(lesson.id) && (
-                        <span className="absolute right-3 top-3">
-                          <HubBadge tone="brand">
-                            <CheckCircle2 className="size-3" /> Đã học
-                          </HubBadge>
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-1 flex-col p-4">
-                      <div className="flex flex-wrap items-center gap-2 text-sm text-lh-muted">
-                        <BookOpen className="size-3.5" /> ~{lesson.estimatedReadMinutes || 3} phút đọc
-                        {difficulty && <HubBadge tone="gold">{difficulty.label}</HubBadge>}
-                      </div>
-                      <h3 className="mt-2 font-[family-name:var(--font-heading)] text-lg font-bold leading-snug text-lh-ink group-hover:text-lh-brand">
-                        {lesson.title}
-                      </h3>
-                      {lesson.description && <p className="mt-2 line-clamp-2 text-sm leading-6 text-lh-muted">{lesson.description}</p>}
-                      <div className="mt-auto flex items-center justify-between pt-4">
-                        <div className="flex flex-wrap gap-1">
-                          {tags.slice(0, 2).map((tag) =>
-                            tag ? (
-                              <span key={tag.id} className="rounded-full bg-lh-surface-2 px-2.5 py-1 text-xs font-semibold text-lh-ink/80">
-                                #{tag.name}
-                              </span>
-                            ) : null,
-                          )}
+
+            {detailViewMode === 'journey' ? (
+              <div className="mt-8">
+                <LearningJourneyRoadmap
+                  path={activePath}
+                  isCompleted={isCompleted}
+                  isQuizPassed={isQuizPassed}
+                  bestQuizScores={bestQuizScores}
+                  isEnrolled={isEnrolled(activePath.id)}
+                  onEnroll={() => enroll(activePath.id)}
+                />
+              </div>
+            ) : (
+              <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
+                <div>
+                  {activePath.description && (
+                    <p className="max-w-prose text-sm leading-7 text-lh-muted">
+                      {activePath.description}
+                    </p>
+                  )}
+                  <div className="mt-6 divide-y divide-lh-line rounded-2xl border border-lh-line bg-lh-surface">
+                    {(activePath.chapters || []).map((chapter, i) => (
+                      <div key={chapter.id} className="p-4">
+                        <div className="text-xs font-bold uppercase tracking-wider text-lh-gold">
+                          Chương {i + 1}
                         </div>
-                        <span className="text-sm font-semibold text-lh-brand">Vào học →</span>
+                        <div className="mt-1 font-semibold text-lh-ink">
+                          {chapterLabel(chapter.title)}
+                        </div>
+                        {chapter.description && (
+                          <p className="mt-1 max-w-prose text-sm leading-6 text-lh-muted">
+                            {chapter.description}
+                          </p>
+                        )}
                       </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-            {!filteredLibraryLessons.length && (
-              <p className="py-12 text-center text-sm text-lh-muted">Không có bài học nào khớp với bộ lọc hiện tại.</p>
+                    ))}
+                  </div>
+                  <div className="mt-5 flex gap-2">
+                    <HubButton variant="ghost" onClick={expandAllChapters}>
+                      Mở tất cả
+                    </HubButton>
+                    <HubButton variant="ghost" onClick={collapseAllChapters}>
+                      Thu gọn
+                    </HubButton>
+                  </div>
+                </div>
+                <HubSyllabus
+                  path={activePath}
+                  isCompleted={isCompleted}
+                  openChapterIds={expandedChapterIds}
+                  onToggleChapter={toggleChapterAccordion}
+                />
+              </div>
             )}
           </section>
         )}

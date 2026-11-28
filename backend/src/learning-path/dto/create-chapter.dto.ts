@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsString,
   IsNotEmpty,
   IsOptional,
@@ -6,9 +7,12 @@ import {
   IsInt,
   Min,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ContentStatus } from '@prisma/client';
+import { ChapterQuizItemInputDto } from './chapter-lesson-action.dto';
 
 export class CreateChapterDto {
   @ApiProperty({ description: 'ID Lộ trình học trực thuộc' })
@@ -43,6 +47,16 @@ export class CreateChapterDto {
   @IsOptional()
   @IsEnum(ContentStatus)
   status?: ContentStatus;
+
+  @ApiPropertyOptional({
+    description: 'Danh sách đề kiểm tra gắn kèm ngay khi tạo chương',
+    type: [ChapterQuizItemInputDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChapterQuizItemInputDto)
+  quizItems?: ChapterQuizItemInputDto[];
 }
 
 export class UpdateChapterDto {

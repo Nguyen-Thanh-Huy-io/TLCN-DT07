@@ -15,10 +15,15 @@ import {
   CreateLearningPathDto,
   UpdateLearningPathDto,
 } from './dto/create-learning-path.dto';
+import {
+  CreateCurriculumTrackDto,
+  UpdateCurriculumTrackDto,
+} from './dto/curriculum-track.dto';
 import { CreateChapterDto, UpdateChapterDto } from './dto/create-chapter.dto';
 import {
   AddLessonsToChapterDto,
   ReorderChapterLessonsDto,
+  SetChapterQuizzesDto,
 } from './dto/chapter-lesson-action.dto';
 import { ContentWrite } from '../common/access/access.decorator';
 
@@ -26,6 +31,40 @@ import { ContentWrite } from '../common/access/access.decorator';
 @Controller('learning-paths')
 export class LearningPathController {
   constructor(private readonly service: LearningPathService) {}
+
+  // ==========================================
+  // 0. CURRICULUM TRACK ROUTES (MẠCH TIẾN TRÌNH)
+  // ==========================================
+
+  @Get('tracks')
+  @ApiOperation({ summary: 'Lấy danh sách các mạch tiến trình cốt lõi' })
+  findAllTracks() {
+    return this.service.findAllTracks();
+  }
+
+  @Post('tracks')
+  @ContentWrite({ model: 'learningPath' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Tạo mạch tiến trình mới' })
+  createTrack(@Body() dto: CreateCurriculumTrackDto) {
+    return this.service.createTrack(dto);
+  }
+
+  @Put('tracks/:id')
+  @ContentWrite({ model: 'learningPath' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Cập nhật mạch tiến trình' })
+  updateTrack(@Param('id') id: string, @Body() dto: UpdateCurriculumTrackDto) {
+    return this.service.updateTrack(id, dto);
+  }
+
+  @Delete('tracks/:id')
+  @ContentWrite({ model: 'learningPath' })
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Xóa mạch tiến trình' })
+  deleteTrack(@Param('id') id: string) {
+    return this.service.deleteTrack(id);
+  }
 
   // ==========================================
   // 1. LEARNING PATH ROUTES
@@ -135,5 +174,20 @@ export class LearningPathController {
     @Body() dto: ReorderChapterLessonsDto,
   ) {
     return this.service.reorderChapterLessons(chapterId, dto);
+  }
+
+  @Put('chapters/:chapterId/quizzes')
+  @ContentWrite({ model: 'chapter', idParam: 'chapterId' })
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Cập nhật danh sách đề kiểm tra của chương (0..N đề, thứ tự, điểm đạt, cờ bắt buộc)',
+  })
+  setChapterQuizzes(
+    @Param('chapterId') chapterId: string,
+    @Body() dto: SetChapterQuizzesDto,
+  ) {
+    return this.service.setChapterQuizzes(chapterId, dto.items);
   }
 }

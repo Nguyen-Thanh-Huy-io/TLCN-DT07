@@ -292,6 +292,13 @@ function load(userId: string): Promise<void> {
   return inflight;
 }
 
+/** Làm mới ngay tiến độ bài học & điểm các đề kiểm tra (gọi sau khi học viên nộp bài thi ở /luyen-tap). */
+export function refreshLessonProgress(): void {
+  if (!state.userId) return;
+  inflight = null;
+  void load(state.userId);
+}
+
 export function useLessonProgress() {
   const user = useAuthSession();
   const snapshot = useSyncExternalStore(subscribe, () => state, () => state);
@@ -315,9 +322,18 @@ export function useLessonProgress() {
     () => (Array.isArray(current?.enrolledPathIds) ? current.enrolledPathIds : []),
     [current],
   );
+  const passedQuizIds = useMemo(
+    () => (Array.isArray(current?.passedQuizIds) ? current.passedQuizIds : []),
+    [current],
+  );
+  const bestQuizScores = useMemo(
+    () => (current?.bestQuizScores && typeof current.bestQuizScores === 'object' ? current.bestQuizScores : undefined),
+    [current],
+  );
 
   const isCompleted = useCallback((lessonId: string) => completedLessonIds.includes(lessonId), [completedLessonIds]);
   const isEnrolled = useCallback((pathId: string) => enrolledPathIds.includes(pathId), [enrolledPathIds]);
+  const isQuizPassed = useCallback((quizId: string) => passedQuizIds.includes(quizId), [passedQuizIds]);
 
   const markCompleted = useCallback(
     async (lessonId: string) => {
@@ -353,8 +369,11 @@ export function useLessonProgress() {
     ready: user === null || (Boolean(userId) && snapshot.userId === userId && snapshot.loaded),
     completedIds: completedLessonIds,
     enrolledPathIds: enrolledPathIds,
+    passedQuizIds,
+    bestQuizScores,
     isCompleted,
     isEnrolled,
+    isQuizPassed,
     markCompleted,
     enroll,
     unenroll,

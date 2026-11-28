@@ -3,11 +3,18 @@
 import React from 'react';
 import { KeyboardKey, IconName } from '@/constants/enums';
 import { Icon } from '@/components/icons/Icon';
-import { ChapterItem } from '@/services/entities/learner.service';
+import {
+  ChapterItem,
+  ChapterQuizInputDto,
+  CurriculumTrackItem,
+  LearningPathItem,
+} from '@/services/entities/learner.service';
+import type { StandaloneQuizItem } from '@/services/entities/quiz.service';
 import { LessonItem } from '@/types/models';
 import { TopicPicker, type PickedTopic } from '@/features/topics/components/TopicEditor';
 import { TopicCoverImagePicker } from '@/features/topics/components/TopicCoverImagePicker';
 import { StatusPill } from '@/features/articles/components/ArticleList';
+import { ChapterQuizSelectionEditor } from './ChapterQuizzesModal';
 
 const DISABLED_ARROW_CLASS = 'opacity-30 cursor-not-allowed';
 
@@ -265,6 +272,9 @@ interface CreateChapterModalProps {
   selectedLessonIds: string[];
   onToggleLesson: (lessonId: string) => void;
   onMoveSelectedLesson: (lessonId: string, direction: 'UP' | 'DOWN') => void;
+  availableQuizzes?: StandaloneQuizItem[];
+  selectedQuizItems?: ChapterQuizInputDto[];
+  onChangeQuizItems?: (items: ChapterQuizInputDto[]) => void;
 }
 
 /** Form "Thêm Chương mới" — chuẩn chỉnh: nhập tên/mô tả, CHỌN bài học có sẵn từ thư viện
@@ -288,6 +298,9 @@ export function CreateChapterModal({
   selectedLessonIds,
   onToggleLesson,
   onMoveSelectedLesson,
+  availableQuizzes,
+  selectedQuizItems,
+  onChangeQuizItems,
 }: CreateChapterModalProps) {
   if (!isOpen) return null;
 
@@ -440,6 +453,14 @@ export function CreateChapterModal({
               )}
             </div>
           </div>
+
+          {availableQuizzes && onChangeQuizItems && (
+            <ChapterQuizSelectionEditor
+              availableQuizzes={availableQuizzes}
+              selectedItems={selectedQuizItems ?? []}
+              onChange={onChangeQuizItems}
+            />
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-3 shrink-0">
@@ -472,6 +493,19 @@ interface LearningPathFormModalProps {
   onDescriptionChange: (value: string) => void;
   coverImageUrl?: string;
   onCoverImageUrlChange?: (url: string) => void;
+  pathType?: 'CHRONOLOGICAL' | 'THEMATIC';
+  onPathTypeChange?: (value: 'CHRONOLOGICAL' | 'THEMATIC') => void;
+  trackId?: string;
+  onTrackIdChange?: (value: string) => void;
+  availableTracks?: CurriculumTrackItem[];
+  prerequisitePathId?: string;
+  onPrerequisitePathIdChange?: (value: string) => void;
+  availablePrerequisitePaths?: LearningPathItem[];
+  stageExamQuizId?: string;
+  onStageExamQuizIdChange?: (value: string) => void;
+  stageExamPassScore?: number;
+  onStageExamPassScoreChange?: (value: number) => void;
+  availableQuizzes?: StandaloneQuizItem[];
   isSequential?: boolean;
   onIsSequentialChange?: (value: boolean) => void;
   onClose: () => void;
@@ -482,7 +516,7 @@ interface LearningPathFormModalProps {
   submitId?: string;
 }
 
-/** Form Tạo lộ trình học mới / Sửa lộ trình đang có — cùng 1 bộ field (tên, mô tả, ảnh bìa, tuần tự). */
+/** Form Tạo lộ trình học mới / Sửa lộ trình đang có — cùng 1 bộ field (tên, mô tả, ảnh bìa, phân loại, tiên quyết, tuần tự). */
 export function LearningPathFormModal({
   isOpen,
   heading,
@@ -493,6 +527,19 @@ export function LearningPathFormModal({
   onDescriptionChange,
   coverImageUrl,
   onCoverImageUrlChange,
+  pathType,
+  onPathTypeChange,
+  trackId,
+  onTrackIdChange,
+  availableTracks,
+  prerequisitePathId,
+  onPrerequisitePathIdChange,
+  availablePrerequisitePaths,
+  stageExamQuizId,
+  onStageExamQuizIdChange,
+  stageExamPassScore,
+  onStageExamPassScoreChange,
+  availableQuizzes,
   isSequential,
   onIsSequentialChange,
   onClose,
@@ -537,6 +584,143 @@ export function LearningPathFormModal({
             />
           </div>
 
+          {/* Phân loại lộ trình: Tiến trình niên biểu vs Chuyên đề chuyên sâu */}
+          {onPathTypeChange && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Phân loại lộ trình
+              </label>
+              <select
+                value={pathType || 'CHRONOLOGICAL'}
+                onChange={(e) => {
+                  const nextType = e.target.value as 'CHRONOLOGICAL' | 'THEMATIC';
+                  onPathTypeChange(nextType);
+                  if (nextType === 'THEMATIC' && onPrerequisitePathIdChange) {
+                    onPrerequisitePathIdChange('');
+                  }
+                }}
+                className="form-input !h-8 !text-xs w-full cursor-pointer bg-white"
+                aria-label="Phân loại lộ trình"
+              >
+                <option value="CHRONOLOGICAL">Tiến trình lịch sử (Mạch niên biểu)</option>
+                <option value="THEMATIC">Chuyên đề chuyên sâu (Văn hóa, Quân sự, Danh nhân...)</option>
+              </select>
+              <p className="mt-1 text-[11px] text-slate-500">
+                {pathType === 'THEMATIC'
+                  ? 'Hiển thị trong tab "Chuyên đề chuyên sâu", học theo chủ đề độc lập.'
+                  : 'Hiển thị trong tab "Tiến trình lịch sử", xếp theo trục thời gian niên đại.'}
+              </p>
+            </div>
+          )}
+
+          {/* Mạch tiến trình (CurriculumTrack) — chỉ áp dụng cho CHRONOLOGICAL */}
+          {onTrackIdChange && availableTracks && pathType !== 'THEMATIC' && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Thuộc mạch tiến trình
+              </label>
+              <select
+                value={trackId || ''}
+                onChange={(e) => onTrackIdChange(e.target.value)}
+                className="form-input !h-8 !text-xs w-full cursor-pointer bg-white"
+                aria-label="Thuộc mạch tiến trình"
+              >
+                <option value="">Chưa gắn mạch (tự tách mạch riêng)</option>
+                {availableTracks.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Lộ trình tiên quyết: Chỉ áp dụng cho mạch Tiến trình lịch sử (CHRONOLOGICAL) */}
+          {onPrerequisitePathIdChange && availablePrerequisitePaths && pathType !== 'THEMATIC' && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Lộ trình tiên quyết (Điều kiện mở khóa)
+              </label>
+              <select
+                value={prerequisitePathId || ''}
+                onChange={(e) => onPrerequisitePathIdChange(e.target.value)}
+                className="form-input !h-8 !text-xs w-full cursor-pointer bg-white"
+                aria-label="Lộ trình tiên quyết"
+              >
+                <option value="">Không có (Bắt đầu tự do / Chặng đầu tiên)</option>
+                {availablePrerequisitePaths
+                  .filter((p) => p.pathType !== 'THEMATIC')
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {`${p.title} (Niên biểu)`}
+                    </option>
+                  ))}
+              </select>
+              <p className="mt-1 text-[11px] text-slate-500">
+                {prerequisitePathId
+                  ? 'Học viên cần hoàn thành lộ trình tiên quyết này trước khi được mở khóa học tiếp.'
+                  : 'Không bắt buộc lộ trình trước — học viên có thể đăng ký và học ngay.'}
+              </p>
+            </div>
+          )}
+
+          {/* Bài kiểm tra cuối chặng (Stage Exam) */}
+          {onStageExamQuizIdChange && availableQuizzes && (
+            <div className="rounded-lg border border-amber-200/80 bg-amber-50/40 p-3 space-y-2.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-800 mb-1">
+                  Bài kiểm tra cuối chặng (Stage Exam — tùy chọn)
+                </label>
+                <select
+                  value={stageExamQuizId || ''}
+                  onChange={(e) => {
+                    const nextQuizId = e.target.value;
+                    onStageExamQuizIdChange(nextQuizId);
+                    if (nextQuizId && onStageExamPassScoreChange) {
+                      const picked = availableQuizzes.find((q) => q.id === nextQuizId);
+                      if (picked?.passingScorePercent != null) {
+                        onStageExamPassScoreChange(picked.passingScorePercent);
+                      }
+                    }
+                  }}
+                  className="form-input !h-8 !text-xs w-full cursor-pointer bg-white"
+                  aria-label="Bài kiểm tra cuối chặng"
+                >
+                  <option value="">Không yêu cầu bài thi cuối chặng</option>
+                  {availableQuizzes.map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {`${q.title} (${q.questionCount ?? 0} câu · đạt ${q.passingScorePercent ?? 70}%)`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {stageExamQuizId && onStageExamPassScoreChange && (
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    Điểm đạt tối thiểu để mở chặng sau (%)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={stageExamPassScore ?? 70}
+                    onChange={(e) =>
+                      onStageExamPassScoreChange(
+                        Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                      )
+                    }
+                    className="form-input !h-8 !text-xs w-28 bg-white"
+                  />
+                </div>
+              )}
+              <p className="text-[11px] text-amber-900/80">
+                {stageExamQuizId
+                  ? 'Học viên phải hoàn thành bài học và vượt qua bài kiểm tra này để mở khóa chặng tiếp theo.'
+                  : 'Nếu bỏ trống, chỉ cần hoàn thành 100% bài học trong chặng để qua chặng sau.'}
+              </p>
+            </div>
+          )}
+
           {onCoverImageUrlChange && (
             <TopicCoverImagePicker
               value={coverImageUrl ?? ''}
@@ -572,6 +756,85 @@ export function LearningPathFormModal({
             className="primary-button !h-8 !text-xs !px-4"
           >
             {loading ? submitLoadingLabel : submitLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface CurriculumTrackFormModalProps {
+  isOpen: boolean;
+  heading: string;
+  title: string;
+  onTitleChange: (value: string) => void;
+  description: string;
+  onDescriptionChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+  submitLabel: string;
+  loading: boolean;
+}
+
+/** Modal tạo / sửa Mạch tiến trình cốt lõi (CurriculumTrack). */
+export function CurriculumTrackFormModal({
+  isOpen,
+  heading,
+  title,
+  onTitleChange,
+  description,
+  onDescriptionChange,
+  onClose,
+  onSubmit,
+  submitLabel,
+  loading,
+}: CurriculumTrackFormModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+          <h3 className="text-sm font-bold text-slate-900">{heading}</h3>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg">
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Tên mạch tiến trình *</label>
+            <input
+              type="text"
+              placeholder="Ví dụ: Tiến trình Lịch sử Việt Nam từ Dựng nước đến Đại Việt"
+              value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              className="form-input !h-8 !text-xs w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Mô tả tổng quan về mạch</label>
+            <textarea
+              rows={3}
+              placeholder="Tóm tắt mục tiêu và phạm vi kiến thức xuyên suốt các chặng trong mạch..."
+              value={description}
+              onChange={(e) => onDescriptionChange(e.target.value)}
+              className="form-input !text-xs w-full"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+          <button type="button" onClick={onClose} className="secondary-button !h-8 !text-xs !px-3" disabled={loading}>
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={onSubmit}
+            className="primary-button !h-8 !text-xs !px-4 font-bold"
+            disabled={loading || !title.trim()}
+          >
+            {loading ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </div>

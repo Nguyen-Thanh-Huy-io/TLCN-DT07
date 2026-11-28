@@ -216,6 +216,7 @@ interface LessonGateSectionProps {
   onToggleSyllabus: () => void;
   isCompleted: (id: string) => boolean;
   lockedPreview: LessonGatePreview | null;
+  lockedReason?: string | null;
   onEnroll: (pathId: string) => Promise<void>;
   onReload: () => Promise<void>;
   SyllabusColumnComponent: React.ComponentType<{
@@ -232,6 +233,7 @@ export function LessonGateSection({
   onToggleSyllabus,
   isCompleted,
   lockedPreview,
+  lockedReason,
   onEnroll,
   onReload,
   SyllabusColumnComponent,
@@ -253,6 +255,7 @@ export function LessonGateSection({
         access={access}
         preview={lockedPreview}
         learningPath={learningPath}
+        lockedReason={lockedReason}
         onEnroll={async (pathId) => {
           await onEnroll(pathId);
           await onReload();

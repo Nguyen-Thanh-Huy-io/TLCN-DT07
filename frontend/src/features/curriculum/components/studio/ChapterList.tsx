@@ -26,6 +26,7 @@ interface ChapterListProps {
   onToggleExpand: (chapterId: string) => void;
   onOpenCreateChapter: () => void;
   onOpenAddLessons: (chapter: ChapterItem) => void;
+  onOpenManageQuizzes?: (chapter: ChapterItem) => void;
   /** Mở trình soạn bài mới, lưu xong bài tự gắn vào chương này. */
   onCreateLessonInChapter: (chapter: ChapterItem) => void;
   onOpenLesson: (lessonId: string) => void;
@@ -58,6 +59,7 @@ export function ChapterList(props: ChapterListProps) {
     onToggleExpand,
     onOpenCreateChapter,
     onOpenAddLessons,
+    onOpenManageQuizzes,
     onCreateLessonInChapter,
     onOpenLesson,
     onDeleteChapter,
@@ -164,6 +166,7 @@ export function ChapterList(props: ChapterListProps) {
               {pagedChapters.map((chapter, pagedIdx) => {
                 const chIdx = (page - 1) * PAGE_SIZE + pagedIdx;
                 const lessonCount = chapter.chapterLessons?.length || 0;
+                const quizCount = chapter.chapterQuizzes?.length || 0;
                 return (
                   <tr key={chapter.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/60">
                     <td className={`${TABLE_CELL_TOP} font-mono text-slate-600 font-medium`}>{chIdx + 1}</td>
@@ -174,13 +177,20 @@ export function ChapterList(props: ChapterListProps) {
                       )}
                     </td>
                     <td className={TABLE_CELL_TOP}>
-                      <span
-                        className={`text-xs px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap ${
-                          lessonCount > 0 ? BADGE_HAS_LESSONS : BADGE_NO_LESSONS
-                        }`}
-                      >
-                        {lessonCount > 0 ? `${lessonCount} bài học` : 'Chưa thêm bài'}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap ${
+                            lessonCount > 0 ? BADGE_HAS_LESSONS : BADGE_NO_LESSONS
+                          }`}
+                        >
+                          {lessonCount > 0 ? `${lessonCount} bài học` : 'Chưa thêm bài'}
+                        </span>
+                        {quizCount > 0 && (
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap bg-amber-50 text-amber-800 border border-amber-200">
+                            {quizCount} đề kiểm tra
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className={`${TABLE_CELL_TOP} text-right whitespace-nowrap`}>
                       {onEditChapter && (
@@ -194,6 +204,16 @@ export function ChapterList(props: ChapterListProps) {
                         </button>
                       )}
                       {!readOnly && (<>
+                      {onOpenManageQuizzes && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenManageQuizzes(chapter)}
+                          title="Quản lý Đề kiểm tra chương"
+                          className="px-2 py-0.5 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 rounded border border-amber-200 mr-1"
+                        >
+                          Đề ({quizCount})
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => onCreateLessonInChapter(chapter)}
@@ -232,6 +252,7 @@ export function ChapterList(props: ChapterListProps) {
             const chIdx = (page - 1) * PAGE_SIZE + pagedIdx;
             const isExpanded = expandedChapters[chapter.id] ?? true;
             const lessonCount = chapter.chapterLessons?.length || 0;
+            const quizCount = chapter.chapterQuizzes?.length || 0;
 
             return (
               <div
@@ -252,7 +273,7 @@ export function ChapterList(props: ChapterListProps) {
                       />
                     </span>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-bold text-sm text-slate-900">
                           Chương {chIdx + 1}. {chapter.title}
                         </span>
@@ -263,6 +284,11 @@ export function ChapterList(props: ChapterListProps) {
                         >
                           {lessonCount > 0 ? `${lessonCount} bài học` : 'Chưa thêm bài'}
                         </span>
+                        {quizCount > 0 && (
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                            {quizCount} đề kiểm tra
+                          </span>
+                        )}
                       </div>
                       {chapter.description && (
                         <p className="text-xs text-slate-600 mt-0.5">{chapter.description}</p>
@@ -304,6 +330,17 @@ export function ChapterList(props: ChapterListProps) {
                       <Icon name={IconName.PLUS} size={12} />
                       <span>Thêm Lesson từ thư viện</span>
                     </button>
+
+                    {onOpenManageQuizzes && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenManageQuizzes(chapter)}
+                        className="secondary-button !h-8 !text-xs !px-3 font-semibold text-amber-800 bg-amber-50/80 border-amber-300 hover:bg-amber-100"
+                        title="Gắn và cấu hình 1 hoặc nhiều đề kiểm tra cho chương này"
+                      >
+                        <span>Đề kiểm tra ({quizCount})</span>
+                      </button>
+                    )}
 
                     {onEditChapter && (
                       <button
@@ -390,6 +427,48 @@ export function ChapterList(props: ChapterListProps) {
                           </div>
                         );
                       })
+                    )}
+
+                    {/* Danh sách Đề kiểm tra đang gắn vào chương */}
+                    {quizCount > 0 && (
+                      <div className="bg-amber-50/40 px-4 py-2.5 space-y-1.5">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                          Đề kiểm tra cuối chương ({quizCount})
+                        </div>
+                        {(chapter.chapterQuizzes ?? []).map((cq, qIdx) => {
+                          const passScore =
+                            cq.passScore ?? cq.quiz?.passingScorePercent ?? 70;
+                          return (
+                            <div
+                              key={cq.id || cq.quizId}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200/80 bg-white px-3 py-1.5 text-xs"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="font-mono font-bold text-amber-700">
+                                  Đề {qIdx + 1}
+                                </span>
+                                <span className="font-semibold text-slate-900 truncate">
+                                  {cq.quiz?.title || `Đề #${cq.quizId.slice(0, 8)}`}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0 text-[11px]">
+                                <span
+                                  className={`rounded-full px-2 py-0.5 font-semibold ${
+                                    cq.isRequired
+                                      ? 'bg-amber-100 text-amber-900'
+                                      : 'bg-slate-100 text-slate-600'
+                                  }`}
+                                >
+                                  {cq.isRequired ? 'Bắt buộc' : 'Tự luyện'}
+                                </span>
+                                <span className="font-semibold text-slate-600">
+                                  Đạt &ge; {passScore}%
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 )}

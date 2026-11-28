@@ -9,6 +9,8 @@ import { LearningPathListPanel } from './studio/StudioPanels';
 import { AddLessonsToChapterModal } from './studio/StudioModals';
 import { LearningPathFormModal } from './studio/StudioModals';
 import { CreateChapterModal } from './studio/StudioModals';
+import { CurriculumTrackFormModal } from './studio/StudioModals';
+import { ManageChapterQuizzesModal } from './studio/ChapterQuizzesModal';
 import { ConfirmDeleteModal } from '@/components/common/CommonUi';
 import { EditorRevisionBanner } from '@/features/revisions/RevisionPanels';
 import { StudioTab, NoticeTone } from '@/constants/enums';
@@ -56,6 +58,31 @@ export function HisgoStudioView() {
     setNewPathCover,
     newPathSequential,
     setNewPathSequential,
+    newPathType,
+    setNewPathType,
+    tracks,
+    availableQuizzes,
+    showTrackModal,
+    setShowTrackModal,
+    editingTrackId,
+    trackTitle,
+    setTrackTitle,
+    trackDesc,
+    setTrackDesc,
+    handleOpenCreateTrackModal,
+    handleOpenEditTrackModal,
+    handleSaveTrack,
+    handleDeleteTrack,
+    handleOpenCreateStageInTrack,
+    handleOpenCreateThematicPath,
+    newPathTrackId,
+    setNewPathTrackId,
+    newPathPrerequisiteId,
+    setNewPathPrerequisiteId,
+    newPathStageExamQuizId,
+    setNewPathStageExamQuizId,
+    newPathStageExamPassScore,
+    setNewPathStageExamPassScore,
     showEditPathModal,
     setShowEditPathModal,
     editPathTitle,
@@ -66,6 +93,16 @@ export function HisgoStudioView() {
     setEditPathCover,
     editPathSequential,
     setEditPathSequential,
+    editPathType,
+    setEditPathType,
+    editPathTrackId,
+    setEditPathTrackId,
+    editPathPrerequisiteId,
+    setEditPathPrerequisiteId,
+    editPathStageExamQuizId,
+    setEditPathStageExamQuizId,
+    editPathStageExamPassScore,
+    setEditPathStageExamPassScore,
     showCreateChapterModal,
     setShowCreateChapterModal,
     newChapterTitle,
@@ -76,6 +113,15 @@ export function HisgoStudioView() {
     setNewChapterSearchTerm,
     newChapterSelectedLessonIds,
     setNewChapterSelectedLessonIds,
+    newChapterQuizItems,
+    setNewChapterQuizItems,
+    showChapterQuizzesModal,
+    setShowChapterQuizzesModal,
+    targetChapterForQuizzes,
+    chapterQuizItemsDraft,
+    setChapterQuizItemsDraft,
+    handleOpenManageChapterQuizzes,
+    handleConfirmChapterQuizzes,
     draggingLessonId,
     dragOverLessonId,
     librarySearchTerm,
@@ -109,6 +155,7 @@ export function HisgoStudioView() {
     handleCreatePath,
     handleOpenEditPathModal,
     handleUpdatePath,
+    handleDeletePath,
     handleOpenEditChapter,
     handleUpdateChapter,
     handleCreateChapter,
@@ -147,12 +194,19 @@ export function HisgoStudioView() {
         <div className="space-y-4">
           <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs">
             {!currentPath ? (
-              // Màn DANH SÁCH (mặc định, không có ?pathId= trên URL) — List → Detail.
+              // Màn DANH SÁCH gom theo Mạch tiến trình (CurriculumTrack) & Chuyên đề (THEMATIC).
               <LearningPathListPanel
                 paths={learningPaths}
+                tracks={tracks}
                 loading={loading}
                 onSelectPath={selectPath}
                 onCreatePath={() => setShowCreatePathModal(true)}
+                onCreateTrack={handleOpenCreateTrackModal}
+                onEditTrack={handleOpenEditTrackModal}
+                onDeleteTrack={handleDeleteTrack}
+                onCreateStageInTrack={handleOpenCreateStageInTrack}
+                onCreateThematicPath={handleOpenCreateThematicPath}
+                canManageTracks={isReviewer}
               />
             ) : (
               // Màn CHI TIẾT — đúng 1 Lộ trình đang chọn qua URL.
@@ -163,6 +217,7 @@ export function HisgoStudioView() {
                   onOpenEditPath={handleOpenEditPathModal}
                   onOpenCreateLesson={() => router.push(APP_ROUTES.LESSONS.CREATE)}
                   onChangePathStatus={handleChangePathStatus}
+                  onDeletePath={handleDeletePath}
                   canPublish={isReviewer}
                   actionLoading={actionLoading}
                 />
@@ -201,9 +256,11 @@ export function HisgoStudioView() {
                     setNewChapterDesc('');
                     setNewChapterSearchTerm('');
                     setNewChapterSelectedLessonIds([]);
+                    setNewChapterQuizItems([]);
                     setShowCreateChapterModal(true);
                   }}
                   onOpenAddLessons={handleOpenAddLessonsModal}
+                  onOpenManageQuizzes={handleOpenManageChapterQuizzes}
                   onCreateLessonInChapter={(chapter) =>
                     router.push(`${APP_ROUTES.LESSONS.CREATE}?chapterId=${encodeURIComponent(chapter.id)}`)
                   }
@@ -280,6 +337,19 @@ export function HisgoStudioView() {
         onCoverImageUrlChange={setNewPathCover}
         isSequential={newPathSequential}
         onIsSequentialChange={setNewPathSequential}
+        pathType={newPathType}
+        onPathTypeChange={setNewPathType}
+        trackId={newPathTrackId}
+        onTrackIdChange={setNewPathTrackId}
+        availableTracks={tracks}
+        prerequisitePathId={newPathPrerequisiteId}
+        onPrerequisitePathIdChange={setNewPathPrerequisiteId}
+        availablePrerequisitePaths={learningPaths}
+        stageExamQuizId={newPathStageExamQuizId}
+        onStageExamQuizIdChange={setNewPathStageExamQuizId}
+        stageExamPassScore={newPathStageExamPassScore}
+        onStageExamPassScoreChange={setNewPathStageExamPassScore}
+        availableQuizzes={availableQuizzes}
         onClose={() => setShowCreatePathModal(false)}
         onSubmit={handleCreatePath}
         submitLabel="Tạo lộ trình"
@@ -299,6 +369,19 @@ export function HisgoStudioView() {
         onCoverImageUrlChange={setEditPathCover}
         isSequential={editPathSequential}
         onIsSequentialChange={setEditPathSequential}
+        pathType={editPathType}
+        onPathTypeChange={setEditPathType}
+        trackId={editPathTrackId}
+        onTrackIdChange={setEditPathTrackId}
+        availableTracks={tracks}
+        prerequisitePathId={editPathPrerequisiteId}
+        onPrerequisitePathIdChange={setEditPathPrerequisiteId}
+        availablePrerequisitePaths={learningPaths.filter((p) => p.id !== currentPath?.id)}
+        stageExamQuizId={editPathStageExamQuizId}
+        onStageExamQuizIdChange={setEditPathStageExamQuizId}
+        stageExamPassScore={editPathStageExamPassScore}
+        onStageExamPassScoreChange={setEditPathStageExamPassScore}
+        availableQuizzes={availableQuizzes}
         onClose={() => setShowEditPathModal(false)}
         onSubmit={handleUpdatePath}
         submitLabel="Lưu thay đổi"
@@ -339,6 +422,33 @@ export function HisgoStudioView() {
         selectedLessonIds={newChapterSelectedLessonIds}
         onToggleLesson={handleToggleLessonForNewChapter}
         onMoveSelectedLesson={handleMoveNewChapterLessonOrder}
+        availableQuizzes={availableQuizzes}
+        selectedQuizItems={newChapterQuizItems}
+        onChangeQuizItems={setNewChapterQuizItems}
+      />
+
+      <ManageChapterQuizzesModal
+        isOpen={showChapterQuizzesModal}
+        chapter={targetChapterForQuizzes}
+        availableQuizzes={availableQuizzes}
+        selectedItems={chapterQuizItemsDraft}
+        onChangeSelectedItems={setChapterQuizItemsDraft}
+        onClose={() => setShowChapterQuizzesModal(false)}
+        onConfirm={handleConfirmChapterQuizzes}
+        loading={actionLoading}
+      />
+
+      <CurriculumTrackFormModal
+        isOpen={showTrackModal}
+        heading={editingTrackId ? 'Sửa mạch tiến trình' : 'Tạo mạch tiến trình mới'}
+        title={trackTitle}
+        onTitleChange={setTrackTitle}
+        description={trackDesc}
+        onDescriptionChange={setTrackDesc}
+        onClose={() => setShowTrackModal(false)}
+        onSubmit={handleSaveTrack}
+        submitLabel={editingTrackId ? 'Lưu thay đổi' : 'Tạo mạch'}
+        loading={actionLoading}
       />
     </div>
   );

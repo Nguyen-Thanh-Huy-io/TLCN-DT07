@@ -1,13 +1,16 @@
 import {
   IsArray,
+  IsBoolean,
   IsString,
   IsNotEmpty,
   IsInt,
+  IsOptional,
+  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AddLessonsToChapterDto {
   @ApiProperty({
@@ -41,4 +44,42 @@ export class ReorderChapterLessonsDto {
   @ValidateNested({ each: true })
   @Type(() => ReorderItemDto)
   items: ReorderItemDto[];
+}
+
+export class ChapterQuizItemInputDto {
+  @ApiProperty({ description: 'ID đề kiểm tra từ Ngân hàng đề' })
+  @IsString()
+  @IsNotEmpty()
+  quizId: string;
+
+  @ApiPropertyOptional({
+    description: 'Ngưỡng điểm đạt (%) riêng cho chương này (0 - 100)',
+    example: 70,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  passScore?: number | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Bắt buộc vượt qua để mở khóa chương tiếp theo khi học tuần tự',
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isRequired?: boolean;
+}
+
+export class SetChapterQuizzesDto {
+  @ApiProperty({
+    description:
+      'Danh sách đề kiểm tra gắn vào chương theo đúng thứ tự hiển thị',
+    type: [ChapterQuizItemInputDto],
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChapterQuizItemInputDto)
+  items: ChapterQuizItemInputDto[];
 }

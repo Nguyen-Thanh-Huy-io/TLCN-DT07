@@ -210,6 +210,8 @@ export interface CalloutBlockData extends BaseBlockData {
   title: string;
   content: string;
   media?: CalloutMediaConfig;
+  audioUrl?: string;
+  audioLabel?: string;
 }
 
 export interface QuoteBlockData extends BaseBlockData {
@@ -217,6 +219,8 @@ export interface QuoteBlockData extends BaseBlockData {
   quoteText: string;
   author: string;
   sourceContext?: string; // vd: "Hịch tướng sĩ (1285)" hoặc "Lời thề Đông Quan"
+  audioUrl?: string;
+  audioLabel?: string;
 }
 
 export interface HeadingBlockData extends BaseBlockData {

@@ -197,8 +197,8 @@ export function ShareMindmapCommunityModal({
       }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1730]/60 p-4 backdrop-blur-xs print:hidden"
     >
-      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#E2D5B8] bg-[#FAF5E6] p-6 text-[#14233F] shadow-2xl">
-        <div className="flex items-start justify-between gap-4 border-b border-[#E5DAC4] pb-4">
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[#E2D5B8] bg-[#FAF5E6] text-[#14233F] shadow-2xl">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[#E5DAC4] px-6 py-4">
           <div className="flex items-start gap-3">
             <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#7A1F24] text-[#FAF5E6]">
               <Share2 size={18} />
@@ -222,8 +222,10 @@ export function ShareMindmapCommunityModal({
           </button>
         </div>
 
+        {/* Thân modal cuộn độc lập để giữ header & footer luôn hiển thị trọn vẹn */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
         {/* Ảnh PNG đã trích xuất từ Canvas */}
-        <div className="mt-4 overflow-hidden rounded-xl border border-[#D8C8AA] bg-[#FDF9F0]">
+        <div className="overflow-hidden rounded-xl border border-[#D8C8AA] bg-[#FDF9F0]">
           <div className="flex items-center justify-between border-b border-[#E5DAC4] bg-[#F2E8D5] px-3.5 py-2 text-xs">
             <span className="inline-flex items-center gap-1.5 font-bold text-[#14233F]">
               <ImageIcon size={13} className="text-[#7A1F24]" />
@@ -295,7 +297,7 @@ export function ShareMindmapCommunityModal({
             </div>
           </div>
         ) : (
-          <form onSubmit={(e) => void handleSubmit(e)} className="mt-4 space-y-3.5">
+          <form id="share-mindmap-form" onSubmit={(e) => void handleSubmit(e)} className="mt-4 space-y-3.5">
             <div>
               <label htmlFor="sm-post-title" className="mb-1.5 block text-xs font-bold text-[#14233F]">
                 Tiêu đề bài đăng
@@ -373,26 +375,30 @@ export function ShareMindmapCommunityModal({
                 {errorMsg}
               </div>
             )}
-
-            <div className="flex items-center justify-end gap-2.5 border-t border-[#E5DAC4] pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={submitting}
-                className="h-9 rounded-lg border border-[#D4C5A6] bg-[#FDF9F0] px-4 text-xs font-semibold text-[#4A3F33] hover:border-[#14233F] cursor-pointer"
-              >
-                Huỷ
-              </button>
-              <button
-                type="submit"
-                disabled={submitting || rendering || !exported}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#7A1F24] px-5 text-xs font-bold text-[#FAF5E6] hover:bg-[#651A1E] disabled:opacity-60 cursor-pointer"
-              >
-                {submitting ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
-                <span>{submitting ? 'Đang tải ảnh & đăng…' : 'Chia sẻ lên Cộng đồng'}</span>
-              </button>
-            </div>
           </form>
+        )}
+        </div>
+
+        {!sharedSuccess && (
+          <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-[#E5DAC4] bg-[#FAF5E6] px-6 py-3.5">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={submitting}
+              className="h-9 rounded-lg border border-[#D4C5A6] bg-[#FDF9F0] px-4 text-xs font-semibold text-[#4A3F33] hover:border-[#14233F] cursor-pointer"
+            >
+              Huỷ
+            </button>
+            <button
+              type="submit"
+              form="share-mindmap-form"
+              disabled={submitting || rendering || !exported}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#7A1F24] px-5 text-xs font-bold text-[#FAF5E6] hover:bg-[#651A1E] disabled:opacity-60 cursor-pointer"
+            >
+              {submitting ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
+              <span>{submitting ? 'Đang tải ảnh & đăng…' : 'Chia sẻ lên Cộng đồng'}</span>
+            </button>
+          </div>
         )}
       </div>
     </div>

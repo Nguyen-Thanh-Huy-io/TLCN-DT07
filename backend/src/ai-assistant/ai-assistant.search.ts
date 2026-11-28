@@ -2,7 +2,7 @@ import { ContentStatus } from '@prisma/client';
 import { PrismaService } from '../common/services/prisma.service';
 import { AssistantLinkKind } from './ai-assistant.constant';
 import {
-  FEATURE_GUIDE_RULES,
+  matchFeatureGuideRule,
   STATIC_PAGE_DESCRIPTIONS,
 } from './ai-assistant.guide';
 import { PageContentSnapshot } from './ai-assistant.types';
@@ -31,6 +31,23 @@ export function extractBlockSnippet(blocks: unknown, maxChars = 700): string {
   return parts.join(' ').slice(0, maxChars);
 }
 
+export function isAskingCurrentPageSummary(message: string): boolean {
+  const clean = message.trim();
+  if (/^(tóm tắt|tóm tắt lại|tóm tắt nhanh)[.?!\s]*$/i.test(clean)) {
+    return true;
+  }
+  if (
+    /tóm tắt\s+(lại\s+|nhanh\s+|giúp\s+|cho\s+tôi\s+)?(nội dung\s+)?(trang|bài)(\s+này|\s+hiện tại|\s+đang\s+(xem|đọc))?/i.test(
+      clean,
+    )
+  ) {
+    return true;
+  }
+  return /trang này|bài này|đang đọc|đang xem|nội dung trang|trang hiện tại|ở đây có gì/i.test(
+    clean,
+  );
+}
+
 /** Intent Gate: chỉ kích hoạt RAG với câu hỏi tra cứu lịch sử; bỏ qua tóm tắt trang đang mở, tiến độ, hướng dẫn tính năng & tán gẫu. */
 export function shouldUseRagForMessage(
   message: string,
@@ -38,13 +55,13 @@ export function shouldUseRagForMessage(
 ): boolean {
   const clean = message.trim();
   if (!clean) return false;
-  if (/tóm tắt|trang này|bài này|đang đọc|đang xem/i.test(clean)) {
+  if (isAskingCurrentPageSummary(clean)) {
     return !hasPageContext;
   }
   if (/tiến độ|hôm nay|cần ôn|tài khoản của tôi|thành tích/i.test(clean)) {
     return false;
   }
-  if (FEATURE_GUIDE_RULES.some((rule) => rule.keywords.test(clean))) {
+  if (matchFeatureGuideRule(clean)) {
     return false;
   }
   const hasHistorySignal =

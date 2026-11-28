@@ -113,7 +113,7 @@ export default async function KhamPhaKhaiNiemPage({
 
   return (
     <main className="min-h-screen bg-[#F5EEDC] text-[#1A120B]">
-      <Header activeSectionId="explore" />
+      <Header activeSectionId="explore" categories={categories} />
       <SpatialConceptCanvas
         initialQuery={resolvedParams.q}
         initialArticleSlug={resolvedParams.articleSlug}

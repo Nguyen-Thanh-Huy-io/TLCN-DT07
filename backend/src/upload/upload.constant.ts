@@ -7,11 +7,13 @@ export const UPLOAD_PREFIX = {
   IMAGE: 'history',
   DOCUMENT: 'doc',
   VIDEO: 'video',
+  AUDIO: 'audio',
 } as const;
 
 export const IMAGE_MAX_SIZE_BYTES = 5 * 1024 * 1024;
 export const DOCUMENT_MAX_SIZE_BYTES = 20 * 1024 * 1024;
 export const VIDEO_MAX_SIZE_BYTES = 50 * 1024 * 1024;
+export const AUDIO_MAX_SIZE_BYTES = 20 * 1024 * 1024;
 
 export const ALLOWED_IMAGE_EXTENSIONS = [
   '.jpg',
@@ -36,6 +38,13 @@ export const ALLOWED_VIDEO_EXTENSIONS = [
   '.webm',
   '.mov',
   '.m4v',
+] as const;
+
+export const ALLOWED_AUDIO_EXTENSIONS = [
+  '.mp3',
+  '.wav',
+  '.ogg',
+  '.m4a',
 ] as const;
 
 export interface UploadResult {

@@ -296,6 +296,34 @@ function applySingleGroundingChunk(
   }
 }
 
+/** Kiểm tra chunk RAG có xuất phát từ nguồn Wikipedia bên ngoài hay không. */
+export function isWikipediaChunk(
+  chunk: Pick<RagGroundingChunk, 'uri'>,
+): boolean {
+  return extractGcsObjectPath(chunk.uri).toLowerCase().startsWith('wikipedia/');
+}
+
+/**
+ * Ở chế độ Google OFF (chỉ dùng tư liệu kiểm chứng HISGO):
+ * loại bỏ hoàn toàn các chunk Wikipedia để không trộn nguồn ngoài vào kết quả HISGO RAG.
+ */
+export function selectStrictHisgoRagChunks(
+  chunks: ReadonlyArray<RagGroundingChunk>,
+): {
+  hisgoChunks: RagGroundingChunk[];
+  relevantChunks: RagGroundingChunk[];
+} {
+  const hisgoChunks = chunks.filter((c) => !isWikipediaChunk(c));
+  if (hisgoChunks.length === 0) {
+    return { hisgoChunks: [], relevantChunks: [] };
+  }
+  const cited = hisgoChunks.filter((c) => c.cited);
+  return {
+    hisgoChunks,
+    relevantChunks: cited.length > 0 ? cited : hisgoChunks.slice(0, 3),
+  };
+}
+
 /** Ánh xạ groundingChunks từ Vertex RAG thành Link thật (HISGO/Wikipedia) + Trích dẫn sách tĩnh. */
 export function resolveRagGroundingAttachments(chunks: RagGroundingChunk[]): {
   links: AssistantSuggestedLink[];

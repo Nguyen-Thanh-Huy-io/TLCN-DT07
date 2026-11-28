@@ -32,6 +32,12 @@ import {
 const HEADER_ICON_BTN_CLASS =
   'rounded-lg p-1.5 text-white/75 hover:bg-white/15 hover:text-white cursor-pointer';
 
+let chatMsgSeq = 0;
+function nextMessageId(prefix: string): string {
+  chatMsgSeq += 1;
+  return `${prefix}-${Date.now()}-${chatMsgSeq}`;
+}
+
 function createInitialMessages(): ChatMessageItem[] {
   return [
     {
@@ -138,12 +144,17 @@ export function HisgoAiChatWidget() {
     });
   }, [messages, open, sending]);
 
-  const handleSend = async (rawText?: string) => {
+  const handleSend = async (rawText?: string, forceGoogleSearch = false) => {
     const text = (rawText ?? input).trim();
     if (!text || sending) return;
 
+    const effectiveGoogleSearch = forceGoogleSearch || useGoogleSearch;
+    if (forceGoogleSearch && !useGoogleSearch) {
+      setUseGoogleSearch(true);
+    }
+
     const userMsg: ChatMessageItem = {
-      id: `u-${Date.now()}`,
+      id: nextMessageId('u'),
       role: AssistantChatRole.USER,
       content: text,
     };
@@ -163,15 +174,17 @@ export function HisgoAiChatWidget() {
         currentPath: pathname || '/',
         ...(pageContext ? { pageContext } : {}),
         history: recentHistory,
-        useGoogleSearch,
+        useGoogleSearch: effectiveGoogleSearch,
       });
       setMessages((prev) => [
         ...prev,
         {
-          id: `a-${Date.now()}`,
+          id: nextMessageId('a'),
           role: AssistantChatRole.ASSISTANT,
           content: res.reply,
           engine: res.engine,
+          suggestGoogleFallback: res.suggestGoogleFallback,
+          retryPrompt: res.suggestGoogleFallback ? text : undefined,
           suggestedLinks: res.suggestedLinks,
           sourceCitations: res.sourceCitations,
           webSources: res.webSources,
@@ -180,15 +193,18 @@ export function HisgoAiChatWidget() {
         },
       ]);
     } catch (err) {
+      const rawError = extractErrorMessage(err, '');
+      const isTechnicalError =
+        !rawError ||
+        /^(Request failed|timeout of|Network Error|canceled)/i.test(rawError);
       setMessages((prev) => [
         ...prev,
         {
-          id: `err-${Date.now()}`,
+          id: nextMessageId('err'),
           role: AssistantChatRole.ASSISTANT,
-          content: extractErrorMessage(
-            err,
-            'Xin lỗi, kết nối tới Sử Gia AI đang tạm gián đoạn. Bạn vui lòng thử lại nhé!',
-          ),
+          content: isTechnicalError
+            ? 'Xin lỗi, kết nối tới Sử Gia AI đang tạm gián đoạn hoặc phản hồi chậm. Bạn vui lòng thử lại sau giây lát nhé!'
+            : rawError,
         },
       ]);
     } finally {
@@ -314,6 +330,11 @@ export function HisgoAiChatWidget() {
                           webSources={msg.webSources}
                           webSearchQueries={msg.webSearchQueries}
                           actions={msg.quickActions}
+                          suggestGoogleFallback={msg.suggestGoogleFallback}
+                          retryPrompt={msg.retryPrompt}
+                          onRetryWithGoogle={(prompt) =>
+                            void handleSend(prompt, true)
+                          }
                           onNavigate={() => setOpen(false)}
                         />
                       </>

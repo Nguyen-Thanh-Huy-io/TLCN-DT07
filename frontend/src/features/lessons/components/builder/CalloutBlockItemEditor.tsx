@@ -10,6 +10,7 @@ import {
   InspectorToggleSwitch,
 } from '@/components/common/TextStyleControls';
 import { TipTapContent } from '../TipTapContent';
+import { BlockAudioAttachmentField } from './BlockAudioAttachmentField';
 import {
   CalloutBlockData,
   CalloutBoxStyle,
@@ -290,6 +291,13 @@ export function CalloutBlockItemEditor({
           remoteToolbarOnly={true}
           minHeightClass="!p-0 !bg-transparent !overflow-visible min-h-[52px]"
           placeholder="Nhập nội dung ghi chú (hỗ trợ in đậm, danh sách, Ctrl+K gắn liên kết)..."
+        />
+
+        <BlockAudioAttachmentField
+          audioUrl={data.audioUrl}
+          audioLabel={data.audioLabel}
+          onChange={onChange}
+          defaultPlaceholder="Ví dụ: Ghi chú âm thanh / giọng đọc thuyết minh..."
         />
       </div>
     </div>

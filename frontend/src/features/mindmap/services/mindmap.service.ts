@@ -110,14 +110,21 @@ export interface MindmapDetail {
   updatedAt: string;
 }
 
+export enum MindmapDetailLevel {
+  CONCISE = 'CONCISE',
+  DETAILED = 'DETAILED',
+}
+
 export interface GeneratedMindmapPreview {
   title: string;
   periodLabel?: string;
   template: MindmapTemplateType;
+  structure?: MindmapStructure;
   graph: MindmapGraph;
   engine: MindmapAiEngine;
   noteCount: number;
   articleCount: number;
+  usedGoogleSearch?: boolean;
 }
 
 export const MindmapApiService = {
@@ -130,6 +137,9 @@ export const MindmapApiService = {
   async generatePreview(input: {
     prompt?: string;
     structure?: MindmapStructure;
+    autoDetectStructure?: boolean;
+    useGoogleSearch?: boolean;
+    detailLevel?: MindmapDetailLevel;
     includeNotes?: boolean;
     articleIds?: string[];
     existingGraph?: MindmapGraph;

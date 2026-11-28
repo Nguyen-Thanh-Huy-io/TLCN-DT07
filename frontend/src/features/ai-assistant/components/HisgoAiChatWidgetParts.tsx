@@ -36,6 +36,8 @@ export interface ChatMessageItem {
   role: AssistantChatRole;
   content: string;
   engine?: AssistantEngine;
+  suggestGoogleFallback?: boolean;
+  retryPrompt?: string;
   suggestedLinks?: AssistantSuggestedLink[];
   sourceCitations?: AssistantSourceCitation[];
   webSources?: AssistantWebSource[];
@@ -172,6 +174,9 @@ export function AssistantMessageAttachments({
   webSources,
   webSearchQueries,
   actions,
+  suggestGoogleFallback,
+  retryPrompt,
+  onRetryWithGoogle,
   onNavigate,
 }: {
   links?: AssistantSuggestedLink[];
@@ -179,24 +184,68 @@ export function AssistantMessageAttachments({
   webSources?: AssistantWebSource[];
   webSearchQueries?: string[];
   actions?: AssistantQuickAction[];
+  suggestGoogleFallback?: boolean;
+  retryPrompt?: string;
+  onRetryWithGoogle?: (prompt: string) => void;
   onNavigate: () => void;
 }) {
-  const hasLinks = Boolean(links && links.length > 0);
+  const internalLinks = (links ?? []).filter((l) => !isExternalUrl(l));
+  const externalLinks = (links ?? []).filter((l) => isExternalUrl(l));
+  const hasInternalLinks = internalLinks.length > 0;
+  const hasExternalLinks = externalLinks.length > 0;
   const hasCitations = Boolean(citations && citations.length > 0);
   const hasWeb =
     Boolean(webSources && webSources.length > 0) ||
     Boolean(webSearchQueries && webSearchQueries.length > 0);
   const hasActions = Boolean(actions && actions.length > 0);
-  if (!hasLinks && !hasCitations && !hasWeb && !hasActions) return null;
+  const showGoogleRetry = Boolean(
+    suggestGoogleFallback && retryPrompt && onRetryWithGoogle,
+  );
+  if (
+    !hasInternalLinks &&
+    !hasExternalLinks &&
+    !hasCitations &&
+    !hasWeb &&
+    !hasActions &&
+    !showGoogleRetry
+  ) {
+    return null;
+  }
 
   return (
     <div className="mt-3.5 space-y-2.5 border-t border-[var(--border,#E2D5B8)]/60 pt-3">
-      {hasLinks && (
+      {showGoogleRetry && (
+        <button
+          type="button"
+          onClick={() => onRetryWithGoogle!(retryPrompt!)}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sky-600 bg-sky-600 px-3.5 py-2 text-xs font-bold text-white shadow-2xs transition hover:bg-sky-700 cursor-pointer"
+        >
+          <Globe size={14} />
+          <span>Bật Google &amp; tra cứu câu này</span>
+        </button>
+      )}
+
+      {hasInternalLinks && (
         <div className="space-y-1.5">
           <span className={SECTION_LABEL_CLASS}>
             Bài viết &amp; Đường dẫn HISGO liên quan
           </span>
-          {links!.map((link) => (
+          {internalLinks.map((link) => (
+            <AssistantLinkCard
+              key={link.href}
+              link={link}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </div>
+      )}
+
+      {hasExternalLinks && (
+        <div className="space-y-1.5">
+          <span className={SECTION_LABEL_CLASS}>
+            Tài liệu tham khảo bên ngoài
+          </span>
+          {externalLinks.map((link) => (
             <AssistantLinkCard
               key={link.href}
               link={link}

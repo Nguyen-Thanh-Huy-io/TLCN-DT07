@@ -89,6 +89,8 @@ export function MapBlockItemEditor({ data, onChange }: MapBlockItemEditorProps) 
   );
 }
 
+import { BlockAudioAttachmentField } from './BlockAudioAttachmentField';
+
 // --- QuoteBlockItemEditor.tsx ---
 interface QuoteBlockItemEditorProps {
   data: QuoteBlockData;
@@ -147,6 +149,13 @@ export function QuoteBlockItemEditor({ data, onChange }: QuoteBlockItemEditorPro
           />
         </div>
       </div>
+
+      <BlockAudioAttachmentField
+        audioUrl={data.audioUrl}
+        audioLabel={data.audioLabel}
+        onChange={onChange}
+        defaultPlaceholder="Ví dụ: Nghe lời thoại / trích đoạn ghi âm..."
+      />
     </div>
   );
 }

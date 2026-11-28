@@ -22,6 +22,7 @@ export interface MindmapNodeData {
   dateLabel?: string;
   note?: string;
   imageUrl?: string;
+  externalUrl?: string;
   markers?: string[];
   color: MindmapBranchColor;
   articleRef?: MindmapArticleRef;

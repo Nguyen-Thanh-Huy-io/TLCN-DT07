@@ -21,6 +21,11 @@ import {
   MindmapTemplateType,
 } from '../mindmap.constant';
 
+export enum MindmapDetailLevel {
+  CONCISE = 'CONCISE',
+  DETAILED = 'DETAILED',
+}
+
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
 
@@ -116,6 +121,31 @@ export class GenerateMindmapDto {
   @IsOptional()
   @IsEnum(MindmapStructure)
   structure?: MindmapStructure;
+
+  @ApiPropertyOptional({
+    description: 'Tự động để AI nhận diện và quyết định cấu trúc sơ đồ tối ưu (Xương cá, Dòng thời gian, Tổ chức...)',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  autoDetectStructure?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Bật tra cứu thông tin thời gian thực qua Google Search Grounding',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  useGoogleSearch?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Mức độ chi tiết của sơ đồ tư duy (CONCISE: Tóm lược, DETAILED: Chuyên sâu)',
+    enum: MindmapDetailLevel,
+    default: MindmapDetailLevel.DETAILED,
+  })
+  @IsOptional()
+  @IsEnum(MindmapDetailLevel)
+  detailLevel?: MindmapDetailLevel;
 
   @ApiPropertyOptional({
     description: 'Kết hợp ghi chú cá nhân của người học',

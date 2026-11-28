@@ -16,11 +16,12 @@ import {
 import {
   mergeAssistantSuggestedLinks,
   resolveRagGroundingAttachments,
+  selectStrictHisgoRagChunks,
   verifyRagSuggestedLinksInDb,
 } from './ai-assistant.rag';
 import {
-  FEATURE_GUIDE_RULES,
   LABEL_CURRICULUM,
+  matchFeatureGuideRule,
   ROUTE_ARTICLES,
   ROUTE_CURRICULUM,
   ROUTE_FLASHCARDS,
@@ -30,6 +31,7 @@ import {
   ROUTE_TIMELINE,
 } from './ai-assistant.guide';
 import {
+  isAskingCurrentPageSummary,
   resolveCurrentPageSnapshot,
   shouldUseRagForMessage,
 } from './ai-assistant.search';
@@ -293,18 +295,16 @@ export class AiAssistantService {
       if (grounded) {
         const allRagChunks = grounded.groundingChunks.filter((c) => !c.isWeb);
         const groundedInCorpus = grounded.data?.groundedInCorpus !== false;
+        const { hisgoChunks, relevantChunks } =
+          selectStrictHisgoRagChunks(allRagChunks);
 
-        if (useRagSearch && (allRagChunks.length === 0 || !groundedInCorpus)) {
+        if (useRagSearch && (hisgoChunks.length === 0 || !groundedInCorpus)) {
           return this.buildOutOfCorpusRagReply(pageSnapshot);
         }
 
         const parsed = this.parseGeminiChatResponse(grounded.data);
         if (parsed) {
-          const citedChunks = allRagChunks.filter((c) => c.cited);
-          const relevantRagChunks =
-            citedChunks.length > 0 ? citedChunks : allRagChunks.slice(0, 2);
-          const ragAttachments =
-            resolveRagGroundingAttachments(relevantRagChunks);
+          const ragAttachments = resolveRagGroundingAttachments(relevantChunks);
           const verifiedRagLinks = await verifyRagSuggestedLinksInDb(
             this.prisma,
             ragAttachments.links,
@@ -322,7 +322,7 @@ export class AiAssistantService {
           return {
             reply: parsed.reply,
             engine:
-              useRagSearch && allRagChunks.length > 0
+              useRagSearch && hisgoChunks.length > 0
                 ? AssistantEngine.VERTEX_RAG
                 : AssistantEngine.GEMINI_FLASH,
             contextLabel: pageSnapshot?.title,
@@ -334,7 +334,20 @@ export class AiAssistantService {
           };
         }
       } else if (useRagSearch) {
-        return this.buildOutOfCorpusRagReply(pageSnapshot);
+        return {
+          reply: AI_ASSISTANT_MESSAGES.RAG_TEMPORARILY_UNAVAILABLE,
+          engine: AssistantEngine.HEURISTIC,
+          contextLabel: pageSnapshot?.title,
+          suggestGoogleFallback: true,
+          suggestedLinks: [],
+          sourceCitations: [],
+          webSources: [],
+          webSearchQueries: [],
+          quickActions: [
+            { label: 'Khám phá Kho bài viết', href: ROUTE_ARTICLES },
+            { label: 'Bản đồ Khái niệm AI', href: '/kham-pha-khai-niem' },
+          ],
+        };
       }
     } else if (useRagSearch) {
       return this.buildOutOfCorpusRagReply(pageSnapshot);
@@ -366,6 +379,7 @@ export class AiAssistantService {
       reply: AI_ASSISTANT_MESSAGES.NO_RAG_MATCH,
       engine: AssistantEngine.HEURISTIC,
       contextLabel: pageSnapshot?.title,
+      suggestGoogleFallback: true,
       suggestedLinks: [],
       sourceCitations: [],
       webSources: [],
@@ -424,10 +438,7 @@ export class AiAssistantService {
     userSnapshot: UserStudySnapshot | null,
     isGoogleMode: boolean,
   ): string {
-    const isAskingAboutCurrentPage =
-      /tóm tắt|trang này|bài này|đang đọc|đang xem|trang hiện tại/i.test(
-        message,
-      );
+    const isAskingAboutCurrentPage = isAskingCurrentPageSummary(message);
     const includeFullPage =
       Boolean(pageSnapshot) &&
       (!isGoogleMode ||
@@ -483,12 +494,7 @@ export class AiAssistantService {
     suggestedLinks: AssistantSuggestedLink[],
     userSnapshot: UserStudySnapshot | null,
   ): { reply: string; quickActions: AssistantQuickAction[] } {
-    if (
-      pageSnapshot &&
-      /tóm tắt|trang này|bài này|đang đọc|đang xem|nội dung trang|trang hiện tại|ở đây có gì/i.test(
-        message,
-      )
-    ) {
+    if (pageSnapshot && isAskingCurrentPageSummary(message)) {
       return {
         reply: `📜 **Tóm tắt trang bạn đang xem — "${pageSnapshot.title}"**:\n• ${pageSnapshot.summary}\n\nBạn muốn khám phá sâu mục nào trên trang này hay chuyển sang công cụ học tập AI?`,
         quickActions: [
@@ -524,10 +530,9 @@ export class AiAssistantService {
       };
     }
 
-    for (const rule of FEATURE_GUIDE_RULES) {
-      if (rule.keywords.test(message)) {
-        return { reply: rule.reply, quickActions: rule.actions };
-      }
+    const matchedGuide = matchFeatureGuideRule(message);
+    if (matchedGuide) {
+      return { reply: matchedGuide.reply, quickActions: matchedGuide.actions };
     }
 
     if (suggestedLinks.length > 0) {

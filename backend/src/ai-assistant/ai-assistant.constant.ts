@@ -37,12 +37,14 @@ export const AI_ASSISTANT_LIMITS = {
   MAX_QUICK_ACTIONS: 4,
   RAG_TOP_K: 10,
   STRICT_RAG_DISTANCE_THRESHOLD: 0.62,
-  AI_TIMEOUT_MS: 35000,
+  AI_TIMEOUT_MS: 22000,
 } as const;
 
 export const AI_ASSISTANT_MESSAGES = {
   NO_RAG_MATCH:
     '📚 Chủ đề này hiện chưa có tư liệu trong kho dữ liệu lịch sử đã kiểm chứng của HISGO.\nBạn hãy bật nút **🌐 Google** ngay bên dưới khung chat để tôi tra cứu mở rộng kèm danh sách nguồn bài viết tham khảo nhé!',
+  RAG_TEMPORARILY_UNAVAILABLE:
+    '⏳ Kết nối tra cứu kho tư liệu HISGO đang phản hồi chậm hoặc tạm gián đoạn. Bạn vui lòng thử lại sau giây lát hoặc bật nút **🌐 Google** để tra cứu mở rộng nhé!',
   NON_HISTORICAL_REJECTED:
     '🧭 **Sử Gia AI** chuyên hỗ trợ tra cứu **Lịch sử, Văn hóa, Nguồn gốc hình thành sự vật/tổ chức** và điều hướng học tập trên nền tảng HISGO. Bạn hãy đặt câu hỏi thuộc lĩnh vực lịch sử hoặc công cụ học tập nhé!',
   GOOGLE_UNAVAILABLE:

@@ -30,6 +30,7 @@ export interface AiAssistantChatResponse {
   reply: string;
   engine: AssistantEngine;
   contextLabel?: string;
+  suggestGoogleFallback?: boolean;
   suggestedLinks: AssistantSuggestedLink[];
   sourceCitations: AssistantSourceCitation[];
   webSources: AssistantWebSource[];

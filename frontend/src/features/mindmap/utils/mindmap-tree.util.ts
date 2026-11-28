@@ -5,6 +5,7 @@ import {
   type MapThemeConfig,
   MindmapBranchColor,
   MindmapCanvasTheme,
+  MindmapCollapsePreset,
   MindmapMapTheme,
   MindmapStructure,
 } from '../constants/mindmap.constants';
@@ -281,5 +282,33 @@ export function reparentNodeInGraph(
     ...graph,
     nodes: graph.nodes.map((n) => (n.id === newParentId ? { ...n, collapsed: false } : n)),
     edges: [...cleanedEdges, { id: nextMindmapId('e'), fromId: newParentId, toId: nodeId }],
+  };
+}
+
+/**
+ * Thu gọn hoặc mở rộng nhanh toàn bộ cây theo cấp độ (dùng khi biên tập hoặc khởi tạo khung nhìn).
+ */
+export function applyCollapsePresetToGraph(
+  graph: MindmapGraph,
+  preset: MindmapCollapsePreset,
+): MindmapGraph {
+  const tree = buildMindmapTree(graph);
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node) => {
+      if (node.isStickyNote) return node;
+      const hasChildren = (tree.childrenMap.get(node.id)?.length ?? 0) > 0;
+      if (!hasChildren) {
+        return node.collapsed ? { ...node, collapsed: false } : node;
+      }
+      if (preset === MindmapCollapsePreset.EXPAND_ALL) {
+        return { ...node, collapsed: false };
+      }
+      if (preset === MindmapCollapsePreset.ROOT_ONLY) {
+        return { ...node, collapsed: true };
+      }
+      const depth = tree.depthMap.get(node.id) ?? 0;
+      return { ...node, collapsed: depth >= 1 };
+    }),
   };
 }

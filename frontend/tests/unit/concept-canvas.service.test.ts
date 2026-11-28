@@ -104,11 +104,34 @@ describe('concept-canvas.service pure helpers', () => {
     expect(payload.title).toBe(SAMPLE_TITLE);
     expect(payload.periodLabel).toBe(SAMPLE_PERIOD);
     expect(payload.graph.mapTheme).toBe(MindmapMapTheme.HISGO_HERITAGE);
-    expect(payload.graph.nodes).toHaveLength(2);
+    expect(payload.graph.nodes.length).toBeGreaterThanOrEqual(2);
     expect(payload.graph.nodes[0].note).toContain('Ngô Quyền đánh bại quân Nam Hán');
-    expect(payload.graph.nodes[0].articleRef?.slug).toBe('bach-dang-938');
-    expect(payload.graph.edges).toEqual([
-      { id: 'e-spatial-1', fromId: 'n1', toId: 'n2' },
-    ]);
+    expect(payload.graph.nodes[0].articleRefs?.[0]?.slug).toBe('bach-dang-938');
+    expect(payload.graph.edges.some((e) => e.fromId === n1.id && e.toId === n2.id)).toBe(true);
+  });
+
+  it('semantically decomposes historical concepts into structured sub-nodes', () => {
+    const node = makeNode(
+      'root-1',
+      null,
+      'Hóa thạch răng người cổ tại hang Thẩm Khuyên và Thẩm Hai',
+      120,
+      140,
+    );
+    node.versions[0].text =
+      '- Hang Thẩm Khuyên và Thẩm Hai phát hiện tại xã Tân Văn, huyện Bình Gia, tỉnh Lạng Sơn.\n' +
+      '- Khai quật được răng hóa thạch của người vượn cổ Homo erectus và răng vượn khổng lồ Gigantopithecus.\n' +
+      '- Niên đại địa tầng thuộc sơ kỳ thời đại đá cũ, cách ngày nay khoảng 400.000 đến 500.000 năm.\n' +
+      '- Khẳng định Việt Nam là một trong những cái nôi xuất hiện sớm của loài người.';
+
+    const payload = convertSpatialNodesToMindmapPayload([node]);
+    expect(payload.graph.nodes.length).toBeGreaterThan(1);
+    const subNodeTitles = payload.graph.nodes.slice(1).map((n) => n.title);
+    expect(
+      subNodeTitles.some((t) => t.includes('Hang Thẩm Khuyên') || t.includes('Vị trí')),
+    ).toBe(true);
+    expect(
+      payload.graph.edges.some((e) => e.fromId === node.id && e.toId.startsWith(`${node.id}-sub-`)),
+    ).toBe(true);
   });
 });

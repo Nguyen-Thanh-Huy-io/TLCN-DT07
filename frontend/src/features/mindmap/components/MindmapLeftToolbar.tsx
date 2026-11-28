@@ -62,7 +62,7 @@ export function MindmapLeftToolbar({
 
   const btnCls =
     'grid size-8 place-items-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer';
-  const activeToolCls = 'bg-indigo-50 text-indigo-700';
+  const activeToolCls = 'bg-[#F6E9EA] text-[#7A1F24]';
 
   return (
     <div className="pointer-events-auto absolute left-3.5 top-4 z-30 flex items-start gap-2">

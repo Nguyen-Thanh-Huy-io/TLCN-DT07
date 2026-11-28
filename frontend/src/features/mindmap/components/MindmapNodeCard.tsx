@@ -5,10 +5,13 @@ import {
   AlignLeft,
   BookOpen,
   CalendarDays,
+  Check,
+  Eye,
   Link2,
   Minus,
   Palette,
   Plus,
+  RotateCcw,
   Star,
   Trash2,
   X,
@@ -26,12 +29,14 @@ import {
   MindmapMarkerId,
   MindmapNodeShape,
   MindmapNodeSize,
+  MindmapRecallRating,
   MindmapShortcutKey,
   MindmapStructure,
   NODE_SIZE_MAX_WIDTH,
 } from '../constants/mindmap.constants';
 import type { MindmapArticleRef, MindmapNode, MindmapNodeStyle } from '../services/mindmap.service';
 import { type NodeLayoutPlacement, NodeVisualVariant } from '../utils/mindmap-layout.strategy';
+import type { NodeRecallMask } from '../utils/mindmap-recall.strategy';
 
 const ALWAYS_VISIBLE_CLS = 'opacity-100';
 const HOVER_REVEAL_CLS = 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto';
@@ -112,7 +117,18 @@ function resolveContainerAppearance(
   };
 }
 
-function resolveRingClass(isDropTarget: boolean, isLinkSource: boolean, isSelected: boolean): string {
+function resolveRingClass(
+  isDropTarget: boolean,
+  isLinkSource: boolean,
+  isSelected: boolean,
+  recallRating?: MindmapRecallRating,
+): string {
+  if (recallRating === MindmapRecallRating.REMEMBERED) {
+    return 'ring-2 ring-emerald-500 ring-offset-1';
+  }
+  if (recallRating === MindmapRecallRating.NEEDS_REVIEW) {
+    return 'ring-2 ring-amber-500 ring-offset-1';
+  }
   if (isDropTarget) return 'ring-2 ring-emerald-500 ring-offset-2';
   if (isLinkSource) return 'ring-2 ring-amber-500 animate-pulse';
   if (isSelected) return 'ring-2 ring-[#3B82F6] ring-offset-2';
@@ -395,15 +411,74 @@ function NodeFloatingControls({
   );
 }
 
+function NodeStudyRatingPill({
+  rating,
+  isSelected,
+  onRate,
+}: {
+  rating?: MindmapRecallRating;
+  isSelected: boolean;
+  onRate: (rating: MindmapRecallRating) => void;
+}) {
+  const visCls =
+    isSelected || rating !== undefined
+      ? `${ALWAYS_VISIBLE_CLS} pointer-events-auto`
+      : HOVER_REVEAL_CLS;
+
+  return (
+    <div
+      onPointerDown={(e) => e.stopPropagation()}
+      className={`absolute bottom-full left-1/2 z-30 -translate-x-1/2 pb-1.5 transition-opacity ${visCls}`}
+    >
+      <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-[10.5px] font-bold shadow-md whitespace-nowrap">
+        <button
+          type="button"
+          title="Đánh dấu đã nhớ"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRate(MindmapRecallRating.REMEMBERED);
+          }}
+          className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 transition cursor-pointer ${
+            rating === MindmapRecallRating.REMEMBERED
+              ? 'bg-emerald-600 text-white'
+              : 'text-emerald-700 hover:bg-emerald-50'
+          }`}
+        >
+          <Check size={11} />
+          <span>Đã nhớ</span>
+        </button>
+        <button
+          type="button"
+          title="Cần ôn lại ý này"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRate(MindmapRecallRating.NEEDS_REVIEW);
+          }}
+          className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 transition cursor-pointer ${
+            rating === MindmapRecallRating.NEEDS_REVIEW
+              ? 'bg-amber-500 text-white'
+              : 'text-amber-700 hover:bg-amber-50'
+          }`}
+        >
+          <RotateCcw size={10} />
+          <span>Ôn lại</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function NodeMetadataChips({
   node,
   chipText,
+  maskDateAndBadge,
   palette,
   articles,
   onOpenArticleInReader,
 }: {
   node: MindmapNode;
   chipText?: string;
+  maskDateAndBadge: boolean;
   palette: BranchPaletteToken;
   articles: MindmapArticleRef[];
   onOpenArticleInReader: (slug: string) => void;
@@ -413,13 +488,20 @@ function NodeMetadataChips({
     <>
       {chipText && (
         <div className="mt-1.5 flex justify-center">
-          <span
-            style={{ backgroundColor: palette.chipBg, color: palette.chipText }}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10.5px] font-medium shadow-2xs"
-          >
-            <CalendarDays size={10} />
-            <span>{chipText}</span>
-          </span>
+          {maskDateAndBadge ? (
+            <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-amber-400 bg-amber-50 px-2 py-0.5 text-[10.5px] font-bold text-amber-900">
+              <CalendarDays size={10} />
+              <span>??? · Nhấn mở mốc</span>
+            </span>
+          ) : (
+            <span
+              style={{ backgroundColor: palette.chipBg, color: palette.chipText }}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10.5px] font-medium shadow-2xs"
+            >
+              <CalendarDays size={10} />
+              <span>{chipText}</span>
+            </span>
+          )}
         </div>
       )}
 
@@ -474,12 +556,100 @@ function NodeMetadataChips({
   );
 }
 
+function resolveAlignFlexClass(textAlign?: React.CSSProperties['textAlign']): string {
+  if (textAlign === TextAlignMode.CENTER) return 'justify-center';
+  if (textAlign === TextAlignMode.RIGHT) return 'justify-end';
+  return 'justify-start';
+}
+
+function resolveBodyPaddingClass(variant: NodeVisualVariant, isRoot: boolean, hasImage: boolean): string {
+  if (hasImage) return 'p-2';
+  if (variant === NodeVisualVariant.UNDERLINE) return 'px-1.5 pt-0.5 pb-1.5';
+  return isRoot ? 'px-5 py-2.5' : 'px-3 py-2';
+}
+
+function computeNodeBoxWidthLimits(node: MindmapNode, isRoot: boolean): { maxWidth: number; minWidth: number } {
+  const maxWidth = node.size
+    ? NODE_SIZE_MAX_WIDTH[node.size]
+    : node.imageUrl
+      ? NODE_SIZE_MAX_WIDTH[MindmapNodeSize.MD]
+      : NODE_SIZE_MAX_WIDTH[MindmapNodeSize.LG];
+
+  const titleLen = (node.title || '').trim().length;
+  if (isRoot) return { maxWidth, minWidth: 140 };
+  if (node.imageUrl) return { maxWidth, minWidth: 196 };
+  if (titleLen > 35) return { maxWidth, minWidth: Math.min(maxWidth, 210) };
+  return { maxWidth, minWidth: titleLen > 18 ? 130 : 82 };
+}
+
+function StudyModeOverlayControls({
+  node,
+  structure,
+  side,
+  isRoot,
+  isSelected,
+  descendantCount,
+  strokeColor,
+  recallMask,
+  onRateRecall,
+  onToggleCollapse,
+}: {
+  node: MindmapNode;
+  structure: MindmapStructure;
+  side: MindmapBranchSide;
+  isRoot: boolean;
+  isSelected: boolean;
+  descendantCount: number;
+  strokeColor: string;
+  recallMask?: NodeRecallMask;
+  onRateRecall?: (rating: MindmapRecallRating) => void;
+  onToggleCollapse: () => void;
+}) {
+  const showRating = Boolean(recallMask?.isTestable && !recallMask.isMasked && onRateRecall);
+  const showCollapse = descendantCount > 0 && !node.isStickyNote;
+  const collapsePos = computeBranchControlPositions(structure, side, true, isRoot, false).collapseStyle;
+
+  return (
+    <>
+      {showRating && onRateRecall && (
+        <NodeStudyRatingPill
+          rating={recallMask?.rating}
+          isSelected={isSelected}
+          onRate={onRateRecall}
+        />
+      )}
+      {showCollapse && (
+        <button
+          type="button"
+          style={{
+            ...collapsePos,
+            ...(node.collapsed
+              ? { backgroundColor: strokeColor, color: '#FFFFFF', borderColor: '#FFFFFF' }
+              : {}),
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleCollapse();
+          }}
+          title={node.collapsed ? `Mở ${descendantCount} nhánh con` : 'Thu gọn nhánh con'}
+          className={`absolute z-20 grid size-5 place-items-center rounded-full border text-[10px] font-bold shadow-xs transition cursor-pointer ${ALWAYS_VISIBLE_CLS} pointer-events-auto ${
+            node.collapsed ? '' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          {node.collapsed ? descendantCount : <Minus size={10} />}
+        </button>
+      )}
+    </>
+  );
+}
+
 function NodeContentBody({
   node,
   variant,
   palette,
   isRoot,
   isEditing,
+  recallMask,
   onChangeTitle,
   onStopEditing,
   onToggleNotePopover,
@@ -490,6 +660,7 @@ function NodeContentBody({
   palette: BranchPaletteToken;
   isRoot: boolean;
   isEditing: boolean;
+  recallMask?: NodeRecallMask;
   onChangeTitle: (title: string) => void;
   onStopEditing: () => void;
   onToggleNotePopover: () => void;
@@ -499,19 +670,15 @@ function NodeContentBody({
   const articles = nodeArticlesOf(node);
   const markers = node.markers ?? [];
   const chipText = node.dateLabel || (!isRoot && node.badge ? node.badge : undefined);
-  const hasNote = Boolean(node.note && node.note.trim().length > 0);
-  const isUnderline = variant === NodeVisualVariant.UNDERLINE;
-  const paddingCls = isUnderline ? 'px-1.5 pt-0.5 pb-1.5' : isRoot ? 'px-5 py-2.5' : 'px-3 py-2';
+  const hasNote = Boolean(node.note?.trim());
+  const maskTitle = Boolean(recallMask?.maskTitle);
+  const maskDateAndBadge = Boolean(recallMask?.maskDateAndBadge);
+  const maskNote = Boolean(recallMask?.maskNote);
   const typoStyle = buildTypographyStyle(node.style, isRoot, node, variant);
-  const alignCls =
-    typoStyle.textAlign === TextAlignMode.CENTER
-      ? 'justify-center'
-      : typoStyle.textAlign === TextAlignMode.RIGHT
-        ? 'justify-end'
-        : 'justify-start';
+  const showInlineNote = Boolean((node.showNoteInline || node.isStickyNote) && hasNote && !maskNote);
 
   return (
-    <div className={node.imageUrl ? 'p-2' : paddingCls}>
+    <div className={resolveBodyPaddingClass(variant, isRoot, Boolean(node.imageUrl))}>
       {node.imageUrl && (
         <div className="mb-2 overflow-hidden rounded-md bg-black/5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -519,7 +686,7 @@ function NodeContentBody({
             src={node.imageUrl}
             alt={node.title}
             style={{ height: imgHeight }}
-            className="w-full object-cover"
+            className={`w-full object-cover transition ${maskTitle ? 'blur-md' : ''}`}
             draggable={false}
           />
         </div>
@@ -531,7 +698,7 @@ function NodeContentBody({
         </div>
       )}
 
-      <div className={`flex items-center gap-1.5 ${alignCls}`}>
+      <div className={`flex items-center gap-1.5 ${resolveAlignFlexClass(typoStyle.textAlign)}`}>
         <NodeMarkerBadges markers={markers} />
 
         {isEditing ? (
@@ -550,19 +717,33 @@ function NodeContentBody({
             className="min-w-[80px] flex-1 rounded bg-white px-1.5 py-0.5 text-xs font-bold text-slate-900 outline-none ring-1 ring-blue-400"
           />
         ) : (
-          <span style={typoStyle} className="min-w-0 flex-1 leading-snug break-words">
+          <span
+            style={typoStyle}
+            className={`min-w-0 flex-1 leading-snug break-words transition ${
+              maskTitle ? 'blur-[5px] select-none opacity-65' : 'line-clamp-3'
+            }`}
+          >
             {node.title || 'Chưa đặt tên'}
           </span>
         )}
 
-        {hasNote && (
+        {maskTitle && (
+          <span
+            title="Nhấn để mở nội dung"
+            className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-black/10 px-1.5 py-0.5 text-[10px] font-bold"
+          >
+            <Eye size={10} />
+          </span>
+        )}
+
+        {hasNote && !maskNote && (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onToggleNotePopover();
             }}
-            title="Xem / sửa ghi chú"
+            title="Xem chi tiết ghi chú"
             aria-label="Xem ghi chú"
             className="shrink-0 rounded p-0.5 opacity-70 hover:bg-black/10 hover:opacity-100 cursor-pointer"
           >
@@ -571,8 +752,14 @@ function NodeContentBody({
         )}
       </div>
 
-      {(node.showNoteInline || node.isStickyNote) && hasNote && (
-        <p className="mt-1 whitespace-pre-line text-[11px] leading-snug opacity-85 line-clamp-4">
+      {hasNote && maskNote && (
+        <div className="mt-1 text-[10.5px] font-semibold italic opacity-75">
+          Ghi chú đang ẩn · Nhấn để kiểm tra
+        </div>
+      )}
+
+      {showInlineNote && (
+        <p className="mt-1 whitespace-pre-line text-[11px] leading-snug opacity-85 line-clamp-3">
           {node.note}
         </p>
       )}
@@ -580,6 +767,7 @@ function NodeContentBody({
       <NodeMetadataChips
         node={node}
         chipText={chipText}
+        maskDateAndBadge={maskDateAndBadge}
         palette={palette}
         articles={articles}
         onOpenArticleInReader={onOpenArticleInReader}
@@ -600,6 +788,9 @@ export function MindmapNodeCard({
   isLinkSource,
   isDropTarget,
   descendantCount,
+  isStudyMode = false,
+  recallMask,
+  onRateRecall,
   onRegisterRef,
   onPointerDown,
   onClick,
@@ -625,6 +816,9 @@ export function MindmapNodeCard({
   isLinkSource: boolean;
   isDropTarget: boolean;
   descendantCount: number;
+  isStudyMode?: boolean;
+  recallMask?: NodeRecallMask;
+  onRateRecall?: (rating: MindmapRecallRating) => void;
   onRegisterRef: (el: HTMLElement | null) => void;
   onPointerDown: (e: React.PointerEvent) => void;
   onClick: (e: React.MouseEvent) => void;
@@ -640,16 +834,12 @@ export function MindmapNodeCard({
   onOpenArticleInReader: (slug: string) => void;
 }) {
   const [noteOpen, setNoteOpen] = useState(false);
-
   const appearance = resolveContainerAppearance(placement.variant, node, theme, palette);
-  const maxWidth = node.size
-    ? NODE_SIZE_MAX_WIDTH[node.size]
-    : node.imageUrl
-      ? NODE_SIZE_MAX_WIDTH[MindmapNodeSize.MD]
-      : NODE_SIZE_MAX_WIDTH[MindmapNodeSize.LG];
+  const { maxWidth, minWidth: computedMinWidth } = computeNodeBoxWidthLimits(node, isRoot);
+  const strokeColor = node.style?.childStrokeColor || palette.stroke;
 
   return (
-      <div
+    <div
       ref={onRegisterRef}
       data-mindmap-node-id={node.id}
       onPointerDown={onPointerDown}
@@ -658,32 +848,49 @@ export function MindmapNodeCard({
       style={{
         left: placement.x,
         top: placement.y,
+        width: 'max-content',
         maxWidth,
-        minWidth: isRoot ? 136 : node.imageUrl ? 196 : 82,
+        minWidth: computedMinWidth,
         ...appearance.style,
       }}
       className={`group pointer-events-auto absolute overflow-visible select-none transition-shadow cursor-pointer ${appearance.className} ${resolveRingClass(
         isDropTarget,
         isLinkSource,
         isSelected,
+        recallMask?.rating,
       )}`}
     >
-      <NodeFloatingControls
-        isRoot={isRoot}
-        isSelected={isSelected}
-        isEditing={isEditing}
-        isSticky={Boolean(node.isStickyNote)}
-        collapsed={Boolean(node.collapsed)}
-        descendantCount={descendantCount}
-        structure={structure}
-        side={placement.side}
-        strokeColor={node.style?.childStrokeColor || palette.stroke}
-        onOpenInspector={onOpenInspector}
-        onDelete={onDelete}
-        onToggleCollapse={onToggleCollapse}
-        onAddChild={onAddChild}
-        onAddSibling={onAddSibling}
-      />
+      {isStudyMode ? (
+        <StudyModeOverlayControls
+          node={node}
+          structure={structure}
+          side={placement.side}
+          isRoot={isRoot}
+          isSelected={isSelected}
+          descendantCount={descendantCount}
+          strokeColor={strokeColor}
+          recallMask={recallMask}
+          onRateRecall={onRateRecall}
+          onToggleCollapse={onToggleCollapse}
+        />
+      ) : (
+        <NodeFloatingControls
+          isRoot={isRoot}
+          isSelected={isSelected}
+          isEditing={isEditing}
+          isSticky={Boolean(node.isStickyNote)}
+          collapsed={Boolean(node.collapsed)}
+          descendantCount={descendantCount}
+          structure={structure}
+          side={placement.side}
+          strokeColor={strokeColor}
+          onOpenInspector={onOpenInspector}
+          onDelete={onDelete}
+          onToggleCollapse={onToggleCollapse}
+          onAddChild={onAddChild}
+          onAddSibling={onAddSibling}
+        />
+      )}
 
       <NodeContentBody
         node={node}
@@ -691,6 +898,7 @@ export function MindmapNodeCard({
         palette={palette}
         isRoot={isRoot}
         isEditing={isEditing}
+        recallMask={recallMask}
         onChangeTitle={onChangeTitle}
         onStopEditing={onStopEditing}
         onToggleNotePopover={() => setNoteOpen((v) => !v)}

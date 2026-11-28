@@ -2,17 +2,10 @@
 
 import React, { useMemo, useState } from 'react';
 import {
-  BookOpen,
-  Download,
   FolderTree,
   Globe,
   Layers,
-  Loader2,
-  Minus,
-  Network,
   Play,
-  Plus,
-  RotateCcw,
   Search,
   Sparkles,
 } from 'lucide-react';
@@ -325,17 +318,17 @@ export function SpatialDiscoveryHero({
 
       <form
         onSubmit={handleSubmit}
-        className="mt-7 flex w-full max-w-2xl flex-col gap-2 rounded-lg border-2 border-[#1A120B] bg-[#FFFDF8] p-2 shadow-[6px_6px_0px_#1A120B] sm:flex-row sm:items-center"
+        className="mt-7 flex w-full max-w-2xl flex-col gap-2 rounded-2xl border border-[#D4AE67]/40 bg-[#FFFDF8]/95 p-2 shadow-lg backdrop-blur-xs sm:flex-row sm:items-center"
       >
         <div className="flex min-w-0 flex-1 items-center gap-2 px-1">
-          <Search size={19} className="ml-1.5 shrink-0 text-[#1A120B]" />
+          <Search size={19} className="ml-1.5 shrink-0 text-[#7A6B57]" />
           <input
             type="text"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Nhập chủ đề, thời kỳ, sự kiện hoặc nhân vật..."
             aria-label="Nhập khái niệm lịch sử cần khám phá"
-            className="min-w-0 flex-1 bg-transparent px-1.5 py-2 text-sm font-medium text-[#1A120B] placeholder-[#8C775E] focus:outline-none sm:py-2.5 sm:text-base"
+            className="min-w-0 flex-1 bg-transparent px-1.5 py-2 text-sm font-medium text-[#1A120B] placeholder-[#8C775E] focus:outline-hidden sm:py-2.5 sm:text-base"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -343,7 +336,7 @@ export function SpatialDiscoveryHero({
             type="submit"
             aria-label="Khám phá"
             disabled={draft.trim().length < 2}
-            className="inline-flex h-10 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded border-2 border-[#1A120B] bg-[#1A120B] px-4 text-xs font-bold text-[#FAF5E6] transition hover:bg-[#7A1F24] disabled:opacity-40 sm:h-11 sm:flex-initial"
+            className="inline-flex h-10 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#7A1F24] to-[#5E161A] px-5 text-xs font-bold text-[#FAF5E6] shadow-xs transition hover:brightness-110 disabled:opacity-40 sm:h-11 sm:flex-initial"
           >
             <Play size={14} fill="currentColor" /> Khám phá
           </button>
@@ -353,7 +346,7 @@ export function SpatialDiscoveryHero({
               onClick={handleRandomPick}
               title="Khám phá ngẫu nhiên"
               aria-label="Khám phá ngẫu nhiên"
-              className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded border-2 border-[#1A120B] bg-[#FEF08A] text-[#1A120B] transition hover:bg-[#FDE047] sm:h-11 sm:w-11"
+              className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[#D4AE67]/50 bg-[#FEF3C7] text-[#92400E] shadow-2xs transition hover:bg-[#FDE68A] sm:h-11 sm:w-11"
             >
               <Sparkles size={17} />
             </button>
@@ -362,13 +355,13 @@ export function SpatialDiscoveryHero({
       </form>
 
       <div className="mt-5 flex w-full max-w-2xl flex-wrap items-center justify-between gap-2">
-        <div className="inline-flex rounded-lg border-2 border-[#1A120B] bg-[#FFFDF8] p-0.5 shadow-[2px_2px_0px_#1A120B]">
+        <div className="inline-flex rounded-xl border border-[#E2D5B8] bg-white/90 p-0.5 shadow-2xs">
           <button
             type="button"
             onClick={() => setActiveTab(SeedTab.TOPICS)}
-            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
               activeTab === SeedTab.TOPICS
-                ? 'bg-[#1A120B] text-[#FAF5E6]'
+                ? 'bg-[#7A1F24] text-[#FAF5E6] shadow-xs'
                 : 'text-[#4A3520] hover:bg-[#FAF3E0]'
             }`}
           >
@@ -377,9 +370,9 @@ export function SpatialDiscoveryHero({
           <button
             type="button"
             onClick={() => setActiveTab(SeedTab.CATEGORIES)}
-            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
               activeTab === SeedTab.CATEGORIES
-                ? 'bg-[#1A120B] text-[#FAF5E6]'
+                ? 'bg-[#7A1F24] text-[#FAF5E6] shadow-xs'
                 : 'text-[#4A3520] hover:bg-[#FAF3E0]'
             }`}
           >
@@ -402,10 +395,10 @@ export function SpatialDiscoveryHero({
                 key={group.slug}
                 type="button"
                 onClick={() => setSelectedCategorySlug(group.slug)}
-                className={`cursor-pointer rounded-full border-2 border-[#1A120B] px-3 py-1 text-xs font-bold transition ${
+                className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-bold transition-all ${
                   isSelected
-                    ? 'bg-[#7A1F24] text-[#FAF5E6] shadow-[2px_2px_0px_#1A120B]'
-                    : 'bg-[#FFFDF8] text-[#1A120B] hover:bg-[#FEF3C7]'
+                    ? 'border-[#7A1F24] bg-[#7A1F24] text-[#FAF5E6] shadow-xs'
+                    : 'border-[#E2D5B8] bg-white/90 text-[#1A120B] hover:bg-[#F5EEDC]'
                 }`}
               >
                 {group.name}
@@ -423,7 +416,7 @@ export function SpatialDiscoveryHero({
               type="button"
               data-testid={`spatial-seed-${item.id}`}
               onClick={() => onStartExplore(item.label, item.articleSlug)}
-              className="group flex cursor-pointer items-start gap-2.5 rounded-lg border-2 border-[#1A120B] bg-[#FFFDF8] p-3.5 shadow-[3px_3px_0px_#1A120B] transition hover:-translate-y-0.5 hover:bg-[#FEF3C7]"
+              className="group flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#E2D5B8] bg-white/90 p-3.5 shadow-xs transition-all hover:-translate-y-0.5 hover:border-[#D4AE67] hover:bg-[#FFFDF8] hover:shadow-md"
             >
               {activeTab === SeedTab.TOPICS ? (
                 <Layers size={15} className="mt-0.5 shrink-0 text-[#7A1F24]" />
@@ -431,7 +424,7 @@ export function SpatialDiscoveryHero({
                 <FolderTree size={15} className="mt-0.5 shrink-0 text-[#8a6828]" />
               )}
               <div className="min-w-0">
-                <div className="truncate text-sm font-bold text-[#1A120B]">
+                <div className="truncate text-sm font-bold text-[#1A120B] group-hover:text-[#7A1F24] transition-colors">
                   {item.label}
                 </div>
                 {item.subtitle && (
@@ -448,150 +441,7 @@ export function SpatialDiscoveryHero({
   );
 }
 
-const TOOLBAR_BTN_CLS =
-  'inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-[#1A120B] bg-[#FFFDF8] px-2 py-1 text-[11px] font-bold text-[#1A120B] shadow-[2px_2px_0px_#1A120B] transition hover:bg-[#FEF3C7] disabled:opacity-40 sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-xs';
-
-export interface SpatialCanvasToolbarProps {
-  drawerOpen: boolean;
-  quickPrompt: string;
-  useGoogleSearch: boolean;
-  zoom: number;
-  hasReadyNodes: boolean;
-  exportingPng: boolean;
-  savingMindmap: boolean;
-  isLoggedIn: boolean;
-  confirmReset: boolean;
-  onQuickPromptChange: (val: string) => void;
-  onSubmitNewRoot: () => void;
-  onToggleGoogleSearch: (next: boolean) => void;
-  onToggleDrawer: () => void;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onResetView: () => void;
-  onExportPng: () => void;
-  onSaveStudio: () => void;
-  onResetCanvasClick: () => void;
-}
-
-export function SpatialCanvasToolbar({
-  drawerOpen,
-  quickPrompt,
-  useGoogleSearch,
-  zoom,
-  hasReadyNodes,
-  exportingPng,
-  savingMindmap,
-  isLoggedIn,
-  confirmReset,
-  onQuickPromptChange,
-  onSubmitNewRoot,
-  onToggleGoogleSearch,
-  onToggleDrawer,
-  onZoomIn,
-  onZoomOut,
-  onResetView,
-  onExportPng,
-  onSaveStudio,
-  onResetCanvasClick,
-}: SpatialCanvasToolbarProps) {
-  return (
-    <div
-      onPointerDown={(e) => e.stopPropagation()}
-      className={`fixed top-[68px] right-2.5 left-2.5 z-30 mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-1.5 rounded-xl border-2 border-[#1A120B] bg-[#FFFDF8]/95 px-2 py-1.5 shadow-[4px_4px_0px_#1A120B] backdrop-blur-xs transition-all sm:top-20 sm:left-4 sm:gap-2 sm:px-3 sm:py-2 ${
-        drawerOpen ? 'sm:right-4 md:right-[402px] xl:right-[452px]' : 'sm:right-4'
-      }`}
-    >
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSubmitNewRoot();
-        }}
-        className="flex min-w-[140px] flex-1 items-center gap-1.5 rounded-lg border-2 border-[#1A120B] bg-white px-2.5 py-1 sm:min-w-[200px] sm:gap-2 sm:px-3 sm:py-1.5"
-      >
-        <Search size={14} className="shrink-0 text-[#1A120B]" />
-        <input
-          type="text"
-          value={quickPrompt}
-          onChange={(e) => onQuickPromptChange(e.target.value)}
-          placeholder="Đổi chủ đề gốc mới..."
-          className="w-full bg-transparent text-xs font-medium text-[#1A120B] placeholder-[#8C775E] focus:outline-none"
-        />
-      </form>
-
-      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-        <GoogleSearchToggle enabled={useGoogleSearch} onChange={onToggleGoogleSearch} compactOnMobile />
-
-        <button type="button" onClick={onToggleDrawer} className={TOOLBAR_BTN_CLS}>
-          <BookOpen size={13} />
-          <span className="sm:hidden">Tư liệu</span>
-          <span className="hidden sm:inline">Ngăn đọc tư liệu</span>
-        </button>
-
-        <div className="flex items-center rounded-lg border-2 border-[#1A120B] bg-[#FFFDF8] px-1 py-0.5 shadow-[2px_2px_0px_#1A120B]">
-          <button
-            type="button"
-            aria-label="Thu nhỏ Canvas"
-            onClick={onZoomOut}
-            className="cursor-pointer p-0.5 text-[#1A120B] hover:bg-[#FEF3C7] sm:p-1"
-          >
-            <Minus size={12} />
-          </button>
-          <button
-            type="button"
-            title="Đưa tỷ lệ hiển thị về mặc định"
-            onClick={onResetView}
-            className="min-w-[38px] cursor-pointer rounded px-0.5 text-center font-mono text-[11px] font-bold text-[#1A120B] hover:bg-[#FEF3C7] sm:min-w-[42px] sm:text-xs"
-          >
-            {Math.round(zoom * 100)}%
-          </button>
-          <button
-            type="button"
-            aria-label="Phóng to Canvas"
-            onClick={onZoomIn}
-            className="cursor-pointer p-0.5 text-[#1A120B] hover:bg-[#FEF3C7] sm:p-1"
-          >
-            <Plus size={12} />
-          </button>
-        </div>
-
-        <button
-          type="button"
-          disabled={!hasReadyNodes || exportingPng}
-          onClick={onExportPng}
-          className={TOOLBAR_BTN_CLS}
-        >
-          {exportingPng ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-          <span className="sm:hidden">PNG</span>
-          <span className="hidden sm:inline">Xuất PNG</span>
-        </button>
-
-        <button
-          type="button"
-          disabled={!hasReadyNodes || savingMindmap}
-          onClick={onSaveStudio}
-          className="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-[#1A120B] bg-[#7A1F24] px-2 py-1 text-[11px] font-bold text-[#FAF5E6] shadow-[2px_2px_0px_#1A120B] transition hover:bg-[#5E161A] disabled:opacity-40 sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-xs"
-        >
-          {savingMindmap ? <Loader2 size={13} className="animate-spin" /> : <Network size={13} />}
-          <span className="sm:hidden">{isLoggedIn ? 'Studio' : 'Lưu'}</span>
-          <span className="hidden sm:inline">
-            {isLoggedIn ? 'Mở trong Mindmap Studio' : 'Đăng nhập để lưu Mindmap'}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          title="Xoá toàn bộ nhánh hiện tại để bắt đầu chủ đề mới"
-          onClick={onResetCanvasClick}
-          className={
-            confirmReset
-              ? 'inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-[#1A120B] bg-[#FEF08A] px-2 py-1 text-[11px] font-bold text-[#7A1F24] shadow-[2px_2px_0px_#1A120B] sm:px-3 sm:py-1.5 sm:text-xs'
-              : TOOLBAR_BTN_CLS
-          }
-        >
-          <RotateCcw size={12} />
-          <span>{confirmReset ? 'Bấm nữa để xoá' : 'Tạo mới'}</span>
-        </button>
-      </div>
-    </div>
-  );
-}
+export {
+  SpatialCanvasToolbar,
+  type SpatialCanvasToolbarProps,
+} from './SpatialCanvasToolbar';

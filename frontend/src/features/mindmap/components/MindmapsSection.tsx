@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Network, Plus, Trash2 } from 'lucide-react';
 import { extractErrorMessage } from '@/services/api';
 import { AccountCard } from '@/features/account/components/AccountSections';
@@ -20,6 +20,7 @@ export const MINDMAP_OPEN_ID_PARAM = 'mindmapId';
 
 /** Tab "Sơ đồ tư duy" trên trang /tai-khoan: danh sách, tạo theo mẫu và mở Studio (có hộp thoại AI nổi song song ngay trên Canvas). */
 export function MindmapsSection({ onCountChange }: { onCountChange?: (count: number) => void }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const autoOpenedIdRef = useRef<string | null>(null);
   const [mindmaps, setMindmaps] = useState<MindmapSummary[]>([]);
@@ -63,17 +64,33 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
     };
   }, [onCountChange]);
 
-  const openMindmap = useCallback(async (id: string) => {
-    setOpeningId(id);
-    setError(null);
-    try {
-      setActiveMindmap(await MindmapApiService.get(id));
-    } catch (err) {
-      setError(extractErrorMessage(err, 'Không mở được sơ đồ này.'));
-    } finally {
-      setOpeningId(null);
-    }
-  }, []);
+  const syncMindmapUrl = useCallback(
+    (id: string | null) => {
+      const next = new URLSearchParams(searchParams.toString());
+      if (id) next.set(MINDMAP_OPEN_ID_PARAM, id);
+      else next.delete(MINDMAP_OPEN_ID_PARAM);
+      router.replace(`/tai-khoan?${next.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  const openMindmap = useCallback(
+    async (id: string) => {
+      setOpeningId(id);
+      setError(null);
+      try {
+        const detail = await MindmapApiService.get(id);
+        setActiveMindmap(detail);
+        autoOpenedIdRef.current = id;
+        syncMindmapUrl(id);
+      } catch (err) {
+        setError(extractErrorMessage(err, 'Không mở được sơ đồ này.'));
+      } finally {
+        setOpeningId(null);
+      }
+    },
+    [syncMindmapUrl],
+  );
 
   useEffect(() => {
     const requestedId = searchParams.get(MINDMAP_OPEN_ID_PARAM);
@@ -95,6 +112,8 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
       setTitle('');
       setShowCreate(false);
       setActiveMindmap(created);
+      autoOpenedIdRef.current = created.id;
+      syncMindmapUrl(created.id);
       await reloadList();
     } catch (err) {
       setError(extractErrorMessage(err, 'Không tạo được sơ đồ mới.'));
@@ -119,6 +138,8 @@ export function MindmapsSection({ onCountChange }: { onCountChange?: (count: num
         initialMindmap={activeMindmap}
         onBack={() => {
           setActiveMindmap(null);
+          autoOpenedIdRef.current = null;
+          router.replace('/tai-khoan?tab=so-do-tu-duy', { scroll: false });
           void reloadList();
         }}
       />

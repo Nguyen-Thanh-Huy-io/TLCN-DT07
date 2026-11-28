@@ -1,8 +1,18 @@
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 import { ContentStatus } from '@prisma/client';
-import { GoogleAiService } from '../common/services/google-ai.service';
+import { extractRagCandidateArticleSlugs } from '../ai-assistant/ai-assistant.rag';
+import appConfig from '../common/config/app.config';
+import {
+  GoogleAiService,
+  RagGroundingChunk,
+} from '../common/services/google-ai.service';
 import { PrismaService } from '../common/services/prisma.service';
-import { GenerateMindmapDto } from './dto/mindmap.dto';
+import { GenerateMindmapDto, MindmapDetailLevel } from './dto/mindmap.dto';
 import {
   MINDMAP_LIMITS,
   MINDMAP_MESSAGES,
@@ -23,10 +33,12 @@ export interface GeneratedMindmapPreview {
   title: string;
   periodLabel?: string;
   template: MindmapTemplateType;
+  structure?: MindmapStructure;
   graph: MindmapGraphData;
   engine: MindmapAiEngine;
   noteCount: number;
   articleCount: number;
+  usedGoogleSearch?: boolean;
 }
 
 interface SourceNoteItem {
@@ -42,6 +54,7 @@ interface SourceArticleItem {
   title: string;
   summary: string | null;
   dateText: string | null;
+  coverImageUrl: string | null;
   contentBlocks: unknown;
 }
 
@@ -54,6 +67,8 @@ interface RawGeminiNode {
   dateLabel?: unknown;
   note?: unknown;
   color?: unknown;
+  imageUrl?: unknown;
+  externalUrl?: unknown;
 }
 
 interface RawGeminiEdge {
@@ -87,8 +102,117 @@ const BRANCH_COLORS: readonly MindmapBranchColor[] = [
   MindmapBranchColor.STONE,
 ];
 
-const AI_SYSTEM_PROMPT = `Bạn là trợ lý thiết kế Sơ đồ tư duy Lịch sử Việt Nam chuyên nghiệp của nền tảng HISGO (tương tự Canva Magic Write / XMind AI Co-Pilot).
+export function detectHeuristicStructure(prompt?: string): MindmapStructure {
+  if (!prompt) return MindmapStructure.MIND_MAP;
+  const p = prompt.toLowerCase();
+  if (
+    p.includes('nguyên nhân') ||
+    p.includes('hậu quả') ||
+    p.includes('thất bại') ||
+    p.includes('thành công') ||
+    p.includes('thắng lợi') ||
+    p.includes('tại sao') ||
+    p.includes('bài học') ||
+    p.includes('xương cá')
+  ) {
+    return MindmapStructure.FISHBONE;
+  }
+  if (
+    p.includes('bộ máy') ||
+    p.includes('tổ chức') ||
+    p.includes('chính quyền') ||
+    p.includes('triều đình') ||
+    p.includes('cơ cấu') ||
+    p.includes('lục bộ') ||
+    p.includes('phân cấp')
+  ) {
+    return MindmapStructure.ORG_CHART;
+  }
+  if (
+    p.includes('giai đoạn') ||
+    p.includes('tiến trình') ||
+    p.includes('thời gian') ||
+    p.includes('niên đại') ||
+    p.includes('các mốc') ||
+    p.includes('năm 1') ||
+    p.includes('thế kỷ') ||
+    p.includes('dòng thời gian')
+  ) {
+    return MindmapStructure.TIMELINE;
+  }
+  if (
+    p.includes('diễn biến') ||
+    p.includes('đợt 1') ||
+    p.includes('chiến dịch') ||
+    p.includes('bước')
+  ) {
+    return MindmapStructure.LOGIC_CHART;
+  }
+  return MindmapStructure.MIND_MAP;
+}
+
+export function buildAiSystemPrompt(
+  structure: MindmapStructure,
+  autoDetect = false,
+  detailLevel: MindmapDetailLevel = MindmapDetailLevel.DETAILED,
+): string {
+  let structureInstruction = '';
+  if (autoDetect) {
+    structureInstruction = `CẤU TRÚC LINH HOẠT - TỰ ĐỘNG LỰA CHỌN (AUTO-DETECT):
+Dựa vào bản chất và mục tiêu của yêu cầu từ người học, BẮT BUỘC chọn ra 1 trong các cấu trúc sau và trả về trường "structure" trong JSON:
+- "FISHBONE": Khi chủ đề phân tích nguyên nhân - kết quả, bài học kinh nghiệm, nguyên nhân thắng lợi/thất bại (Đầu cá là kết quả/sự kiện, các xương lớn là nhóm nguyên nhân cốt lõi, xương nhỏ là chứng cứ/diễn biến).
+- "TIMELINE": Khi chủ đề là tiến trình lịch sử, các giai đoạn, niên đại nối tiếp theo năm tháng tăng dần (VD: 1954-1960, 1961-1965, 1965-1968, 1969-1973, 1973-1975).
+- "ORG_CHART": Khi chủ đề là bộ máy nhà nước, cơ cấu chính quyền, quân đội, giai cấp, tôn giáo (Phân cấp từ trên xuống).
+- "LOGIC_CHART": Khi chủ đề là diễn biến chiến dịch, các bước tác chiến logic từ trái sang phải.
+- "MIND_MAP": Khi chủ đề là tổng quan đa diện (chính trị, kinh tế, xã hội, văn hóa) hoặc chủ đề khái quát chung.`;
+  } else {
+    switch (structure) {
+      case MindmapStructure.TIMELINE:
+        structureInstruction = `CẤU TRÚC BẮT BUỘC [TIMELINE - DÒNG THỜI GIAN]:
+- Node trung tâm (id: "n-root", color: "CRIMSON"): Chủ đề tổng thể hoặc tên cuộc kháng chiến/triều đại/giai đoạn.
+- CÁC NHÁNH CON TRỰC TIẾP TỪ n-root: Bắt buộc là các mốc thời gian hoặc giai đoạn lịch sử được SẮP XẾP THEO THỨ TỰ TĂNG DẦN (VD: 1954-1960, 1961-1965, 1965-1968, 1969-1973, 1973-1975).
+- Mỗi mốc thời gian BẮT BUỘC phải có "dateLabel" chuẩn xác (năm hoặc ngày/tháng/năm).
+- "title" của mỗi nhánh con là tên sự kiện then chốt của mốc đó, "note" tóm tắt diễn biến và kết quả.`;
+        break;
+      case MindmapStructure.FISHBONE:
+        structureInstruction = `CẤU TRÚC BẮT BUỘC [FISHBONE - SƠ ĐỒ XƯƠNG CÁ (NGUYÊN NHÂN - KẾT QUẢ)]:
+- Node trung tâm (id: "n-root", color: "CRIMSON"): Đại diện cho ĐẦU CÁ (Kết quả/Sự kiện lớn cần phân tích nguyên nhân, VD: "Thắng lợi Khởi nghĩa Lam Sơn").
+- CÁC NHÁNH CHÍNH (Xương lớn): Phân loại các nhóm nguyên nhân cốt lõi (VD: Đường lối quân sự, Nghệ thuật tác chiến, Lòng dân hậu phương, Tinh thần chỉ huy).
+- Các nhánh con (Xương nhỏ): Đi sâu vào các minh chứng, sự kiện cụ thể của nhóm nguyên nhân đó.`;
+        break;
+      case MindmapStructure.ORG_CHART:
+        structureInstruction = `CẤU TRÚC BẮT BUỘC [ORG_CHART - SƠ ĐỒ TỔ CHỨC / PHÂN CẤP]:
+- Node trung tâm (id: "n-root", color: "CRIMSON"): Cơ quan lãnh đạo tối cao hoặc người đứng đầu (VD: Hoàng đế / Trung ương).
+- CÁC NHÁNH CHÍNH: Các cấp cơ quan thừa hành, giám sát trực thuộc (VD: Lục Bộ, Lục Khoa, Đạo Thừa Tuyên).
+- Các nhánh con: Các đơn vị hành chính cấp dưới hoặc chức vụ chuyên trách.`;
+        break;
+      case MindmapStructure.LOGIC_CHART:
+        structureInstruction = `CẤU TRÚC BẮT BUỘC [LOGIC_CHART - CÂY LOGIC NGANG / TIẾN TRÌNH CHIẾN DỊCH]:
+- Node trung tâm (id: "n-root", color: "CRIMSON"): Mục tiêu chiến lược / Tên chiến dịch lớn (VD: Chiến dịch Điện Biên Phủ 1954).
+- CÁC NHÁNH CHÍNH: Các bước tiến triển logic hoặc các đợt tiến công theo thứ tự đợt 1 -> đợt 2 -> đợt 3 -> kết cục thắng lợi.`;
+        break;
+      default:
+        structureInstruction = `CẤU TRÚC BẮT BUỘC [MIND_MAP - SƠ ĐỒ TƯ DUY TỎA ĐỀU]:
+- Node trung tâm (id: "n-root", color: "CRIMSON") ở giữa.
+- 4-5 nhánh chính bao quát các mặt: Bối cảnh chính trị, Quân sự - Kháng chiến, Kinh tế - Xã hội, Văn hóa - Tư tưởng.
+- Mỗi nhánh chính tỏa ra 2-3 nhánh con chi tiết kèm dateLabel và note tóm lược.`;
+        break;
+    }
+  }
+
+  const detailInstruction =
+    detailLevel === MindmapDetailLevel.CONCISE
+      ? `MỨC ĐỘ CHI TIẾT [TÓM LƯỢC SÚC TÍCH]:
+Tập trung cô đọng vào 3-4 nhánh chính quan trọng nhất, mỗi nhánh 1-2 nhánh con súc tích, ngắn gọn, phù hợp cho việc ghi nhớ nhanh và ôn thi.`
+      : `MỨC ĐỘ CHI TIẾT [CHUYÊN SÂU TOÀN DIỆN]:
+Mở rộng 4-6 nhánh chính, phân tích đa chiều và sâu sắc kèm mốc năm, địa danh, nhân vật tiêu biểu và ý nghĩa lịch sử sâu sắc.`;
+
+  return `Bạn là trợ lý thiết kế Sơ đồ tư duy Lịch sử Việt Nam chuyên nghiệp của nền tảng HISGO (tương tự Canva Magic Write / XMind AI Co-Pilot).
 Nhiệm vụ: từ yêu cầu / đoạn văn bản sử liệu người học nhập vào ("Bạn muốn xây dựng cái gì?") và NGỮ CẢNH SƠ ĐỒ HIỆN TẠI trên Canvas (nếu người học đã vẽ dở một số node), hãy thiết kế hoặc mở rộng tiếp Sơ đồ tư duy chuẩn xác theo Sách giáo khoa Lịch sử Việt Nam (GDPT 2018) và chính sử.
+
+${structureInstruction}
+
+${detailInstruction}
 
 QUY TẮC QUAN TRỌNG VỀ NGỮ CẢNH CANVAS HIỆN TẠI:
 1. Nếu người học ĐÃ SOẠN SẴN các node có nội dung trên Canvas:
@@ -96,11 +220,15 @@ QUY TẮC QUAN TRỌNG VỀ NGỮ CẢNH CANVAS HIỆN TẠI:
    - Đọc kỹ các nhánh người học đã viết để KHÔNG SINH TRÙNG LẶP và bổ sung/phát triển tiếp các nhánh mới còn thiếu (hoặc triển khai sâu nhánh con cho "Node đang được người học chọn" nếu họ yêu cầu mở rộng nhánh đó).
    - Nối các node mới tạo vào đúng "fromId" của node cha tương ứng trong đồ thị hiện có.
 2. Nếu Canvas đang mới tinh (chưa có nội dung thực tế):
-   - Dựng cây sơ đồ tư duy phân cấp 3 tầng hoàn chỉnh: Node trung tâm (id: "n-root", color: "CRIMSON") -> 4-5 nhánh chính (xoay vòng màu "GOLD", "TEAL", "INDIGO", "STONE") -> mỗi nhánh chính có 2-3 nhánh con chi tiết kèm "dateLabel" (năm/niên đại) và "note" (giải thích ngắn gọn 1-2 câu).
+   - Dựng cây sơ đồ tư duy phân cấp theo đúng [CẤU TRÚC] nêu trên.
+   - Nhánh chính xoay vòng màu "GOLD", "TEAL", "INDIGO", "STONE".
+   - Luôn bổ sung "dateLabel" (năm/thời gian) và "note" (tóm tắt ý nghĩa 1-2 câu súc tích).
+   - DẪN CHỨNG & TƯ LIỆU: Bổ sung dẫn chứng lịch sử xác thực (mốc năm, số liệu, nhân vật, tài liệu sử sách, địa danh). Nếu trong phần [BÀI VIẾT THAM KHẢO TRONG HỆ THỐNG] có các bài viết, hãy ưu tiên dùng tên bài viết và tiêu đề các mục của bài viết làm tiêu đề nhánh để hệ thống tự động liên kết nguồn đọc và hình ảnh tư liệu cho người học.
 3. Trả về đúng JSON thuần túy (không markdown):
 {
   "title": "Tên sơ đồ tư duy ngắn gọn (tối đa 70 ký tự)",
-  "periodLabel": "Niên đại lịch sử (VD: 1225 – 1400)",
+  "periodLabel": "Niên đại lịch sử (VD: 1954 – 1975 hoặc 1225 – 1400)",
+  "structure": "MIND_MAP|ORG_CHART|LOGIC_CHART|FISHBONE|TIMELINE",
   "nodes": [
     {
       "id": "n-root",
@@ -117,6 +245,7 @@ QUY TẮC QUAN TRỌNG VỀ NGỮ CẢNH CANVAS HIỆN TẠI:
     { "id": "e-1", "fromId": "n-root", "toId": "n-1", "label": "..." }
   ]
 }`;
+}
 
 function isPlaceholderTitle(title: string): boolean {
   return DEFAULT_PLACEHOLDER_TITLES.has(title.trim().toLowerCase());
@@ -243,7 +372,10 @@ function mergePreservingExistingGraph(
   for (const existing of ctx.nodes) {
     if (!shouldKeepExistingNode(existing, ctx)) continue;
     mergedNodes.set(existing.id, existing);
-    existingTitles.set(existing.title.toLowerCase(), existing.id);
+    const cleanTitle = (existing.title || '').trim().toLowerCase();
+    if (cleanTitle) {
+      existingTitles.set(cleanTitle, existing.id);
+    }
   }
 
   const rootExisting = mergedNodes.get(ctx.rootId);
@@ -252,23 +384,74 @@ function mergePreservingExistingGraph(
     mergedNodes.set(ctx.rootId, { ...rootExisting, title: aiRoot.title });
   }
 
+  // Xác định node cha mục tiêu: nếu người dùng đang chọn 1 nhánh con/nhánh chính khác root,
+  // thì mọi nhánh con mới do AI sinh ra phải được nối trực tiếp vào node đang chọn đó!
+  const isBranchExpansion =
+    Boolean(ctx.focusNodeId) &&
+    ctx.focusNodeId !== ctx.rootId &&
+    mergedNodes.has(ctx.focusNodeId);
+  const targetParentId = isBranchExpansion ? ctx.focusNodeId : ctx.rootId;
+  const targetParentNode = mergedNodes.get(targetParentId);
+
   const idRemap = new Map<string, string>();
-  if (aiRoot) idRemap.set(aiRoot.id, ctx.rootId);
+  if (aiRoot) {
+    idRemap.set(aiRoot.id, targetParentId);
+  }
 
   let newSeq = Date.now() % 100000;
-  for (const aiNode of aiNodes) {
+  const parentX = targetParentNode?.x ?? 420;
+  const parentY = targetParentNode?.y ?? 240;
+  const isRightSide = parentX >= 420;
+  const inheritColor = targetParentNode?.color;
+  const childAiNodes = isBranchExpansion ? aiNodes.slice(1) : aiNodes;
+  const totalChildren = isBranchExpansion ? childAiNodes.length : 0;
+
+  for (let idx = 0; idx < aiNodes.length; idx++) {
+    const aiNode = aiNodes[idx];
+    if (isBranchExpansion && aiNode.id === aiRoot?.id) {
+      // Đã remap aiRoot sang targetParentId, không add aiRoot thành node mới
+      continue;
+    }
+
+    const cleanAiTitle = (aiNode.title || '').trim().toLowerCase();
     const existingId =
       (mergedNodes.has(aiNode.id) ? aiNode.id : undefined) ??
-      existingTitles.get(aiNode.title.toLowerCase());
+      (cleanAiTitle ? existingTitles.get(cleanAiTitle) : undefined);
+
     if (existingId) {
       idRemap.set(aiNode.id, existingId);
       continue;
     }
+
     newSeq += 1;
     const safeId = `n-ai-${newSeq}`;
     idRemap.set(aiNode.id, safeId);
-    mergedNodes.set(safeId, { ...aiNode, id: safeId });
-    existingTitles.set(aiNode.title.toLowerCase(), safeId);
+
+    // Tính toán toạ độ vị trí và màu sắc tự nhiên theo nhánh cha đang chọn
+    let nodeX = aiNode.x;
+    let nodeY = aiNode.y;
+    let nodeColor = aiNode.color;
+
+    if (isBranchExpansion && targetParentNode) {
+      const childIdx = Math.max(0, idx - 1);
+      const xOffset = isRightSide ? 220 : -220;
+      nodeX = parentX + xOffset;
+      nodeY = parentY + Math.round((childIdx - (totalChildren - 1) / 2) * 75);
+      if (inheritColor) {
+        nodeColor = inheritColor;
+      }
+    }
+
+    mergedNodes.set(safeId, {
+      ...aiNode,
+      id: safeId,
+      x: nodeX,
+      y: nodeY,
+      color: nodeColor,
+    });
+    if (cleanAiTitle) {
+      existingTitles.set(cleanAiTitle, safeId);
+    }
   }
 
   const validNodeIds = new Set(mergedNodes.keys());
@@ -328,19 +511,101 @@ function resolveBranchColor(
   return BRANCH_COLORS[fallbackIdx % BRANCH_COLORS.length];
 }
 
+function normalizeForMatching(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function extractSearchKeywords(prompt?: string): string[] {
+  if (!prompt) return [];
+  const firstSentence = prompt.split(/[:\n.?!]/)[0]?.trim() ?? '';
+  const cleanPrompt = firstSentence
+    .replace(
+      /^(?:hãy\s+)?(?:phân tích|xây dựng|hệ thống hóa|tóm tắt|vẽ|tạo|lập|mở rộng|tìm hiểu|trình bày|giới thiệu)\s+(?:sơ đồ tư duy\s+(?:về\s+)?|nhánh\s+|chi tiết\s+|về\s+)?/i,
+      '',
+    )
+    .replace(
+      /(?:nguyên nhân|hậu quả|kết quả|ý nghĩa|bài học|diễn biến|tiến trình|thời kỳ|giai đoạn|lịch sử|của|trong|cho tôi|giúp tôi)/gi,
+      ' ',
+    )
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const keywords: string[] = [];
+  if (cleanPrompt.length >= 3) {
+    keywords.push(cleanPrompt);
+  }
+
+  const words = cleanPrompt.split(' ').filter((w) => w.length >= 2);
+  if (words.length >= 2) {
+    keywords.push(words.slice(0, 4).join(' '));
+  }
+  return Array.from(new Set(keywords.filter((k) => k.length >= 3)));
+}
+
 function findMatchingArticleRef(
   nodeTitle: string,
   articles: SourceArticleItem[],
 ): MindmapArticleRef | undefined {
-  const clean = nodeTitle.toLowerCase().trim();
-  if (clean.length < 4) return undefined;
-  const found = articles.find(
-    (a) =>
-      a.title.toLowerCase().includes(clean) ||
-      clean.includes(a.title.toLowerCase()),
-  );
-  if (!found) return undefined;
-  return { id: found.id, slug: found.slug, title: found.title };
+  const cleanNode = normalizeForMatching(nodeTitle);
+  if (cleanNode.length < 3) return undefined;
+
+  let bestMatch: SourceArticleItem | undefined;
+  let bestScore = 0;
+
+  for (const art of articles) {
+    const cleanArt = normalizeForMatching(art.title);
+    if (cleanArt === cleanNode) {
+      return {
+        id: art.id,
+        slug: art.slug,
+        title: art.title,
+        coverImageUrl: art.coverImageUrl,
+      };
+    }
+
+    if (
+      cleanNode.length >= 5 &&
+      (cleanArt.includes(cleanNode) || cleanNode.includes(cleanArt))
+    ) {
+      return {
+        id: art.id,
+        slug: art.slug,
+        title: art.title,
+        coverImageUrl: art.coverImageUrl,
+      };
+    }
+
+    const nodeTokens = new Set(
+      cleanNode.split(' ').filter((w) => w.length >= 3),
+    );
+    const artTokens = cleanArt.split(' ').filter((w) => w.length >= 3);
+    let matchedCount = 0;
+    for (const token of artTokens) {
+      if (nodeTokens.has(token)) {
+        matchedCount += 1;
+      }
+    }
+
+    if (matchedCount >= 2 && matchedCount > bestScore) {
+      bestScore = matchedCount;
+      bestMatch = art;
+    }
+  }
+
+  if (bestMatch && bestScore >= 2) {
+    return {
+      id: bestMatch.id,
+      slug: bestMatch.slug,
+      title: bestMatch.title,
+      coverImageUrl: bestMatch.coverImageUrl,
+    };
+  }
+
+  return undefined;
 }
 
 function extractCleanRootTitle(prompt: string): string {
@@ -385,8 +650,14 @@ function appendArticleBranches(
       badge: 'Tư liệu HISGO',
       dateLabel: art.dateText ?? undefined,
       note: art.summary?.slice(0, 240) ?? undefined,
+      imageUrl: art.coverImageUrl ?? undefined,
       color,
-      articleRef: { id: art.id, slug: art.slug, title: art.title },
+      articleRef: {
+        id: art.id,
+        slug: art.slug,
+        title: art.title,
+        coverImageUrl: art.coverImageUrl,
+      },
     });
     edges.push({ id: `e-art-${idx + 1}`, fromId: 'n-root', toId: branchId });
 
@@ -485,6 +756,7 @@ function appendPromptStructuredBranches(
   prompt: string,
   rootTitle: string,
   attachToParentId = 'n-root',
+  articles: SourceArticleItem[] = [],
 ): void {
   if (attachToParentId !== 'n-root') {
     appendFocusedBranchExpansion(nodes, edges, prompt, attachToParentId);
@@ -571,6 +843,7 @@ function appendPromptStructuredBranches(
   const extractedPoints = extractSentencesOrBullets(prompt);
 
   pillars.forEach((pillar, pIdx) => {
+    const pillarMatched = findMatchingArticleRef(pillar.title, articles);
     nodes.push({
       id: pillar.id,
       x: pIdx % 2 === 0 ? 150 : 700,
@@ -579,6 +852,8 @@ function appendPromptStructuredBranches(
       badge: pillar.badge,
       note: pillar.note,
       color: pillar.color,
+      imageUrl: pillarMatched?.coverImageUrl ?? undefined,
+      articleRef: pillarMatched,
     });
     edges.push({
       id: `e-${pillar.id}`,
@@ -588,14 +863,18 @@ function appendPromptStructuredBranches(
 
     pillar.children.forEach((child, cIdx) => {
       const customPoint = extractedPoints[pIdx * 2 + cIdx + 1];
+      const childTitle = customPoint ? customPoint.slice(0, 65) : child.title;
+      const childMatched = findMatchingArticleRef(childTitle, articles);
       const subId = `${pillar.id}-c${cIdx + 1}`;
       nodes.push({
         id: subId,
         x: pIdx % 2 === 0 ? 30 : 840,
         y: (pIdx < 2 ? 80 : 340) + cIdx * 70,
-        title: customPoint ? customPoint.slice(0, 65) : child.title,
+        title: childTitle,
         note: customPoint || child.note,
         color: pillar.color,
+        imageUrl: childMatched?.coverImageUrl ?? undefined,
+        articleRef: childMatched,
       });
       edges.push({ id: `e-${subId}`, fromId: pillar.id, toId: subId });
     });
@@ -604,6 +883,7 @@ function appendPromptStructuredBranches(
 
 @Injectable()
 export class MindmapAiService {
+  private readonly logger = new Logger(MindmapAiService.name);
   private readonly googleAi: GoogleAiService;
 
   constructor(
@@ -617,115 +897,199 @@ export class MindmapAiService {
     userId: string,
     dto: GenerateMindmapDto,
   ): Promise<GeneratedMindmapPreview> {
-    const prompt = dto.prompt?.trim();
-    const structure = dto.structure ?? MindmapStructure.MIND_MAP;
-    const includeNotes = dto.includeNotes ?? false;
-    const articleIds = dto.articleIds ?? [];
-    const canvasCtx = parseExistingCanvasContext(
-      dto.existingGraph,
-      dto.selectedNodeId,
-    );
+    try {
+      const canvasCtx = parseExistingCanvasContext(
+        dto.existingGraph,
+        dto.selectedNodeId,
+      );
 
-    const [notes, articles] = await Promise.all([
-      this.fetchSourceNotes(userId, includeNotes),
-      this.fetchSourceArticles(articleIds, prompt || canvasCtx.focusNodeTitle),
-    ]);
+      // Nếu người dùng không nhập prompt nhưng đang chọn 1 nhánh cụ thể,
+      // tự động lấy tiêu đề nhánh đó làm trọng tâm mở rộng
+      let prompt = dto.prompt?.trim();
+      if (
+        !prompt &&
+        canvasCtx.focusNodeTitle &&
+        canvasCtx.focusNodeId !== canvasCtx.rootId
+      ) {
+        prompt = `Phân tích và mở rộng nhánh con chi tiết cho: "${canvasCtx.focusNodeTitle}"`;
+      }
 
-    if (!prompt && notes.length === 0 && articles.length === 0) {
-      throw new BadRequestException(MINDMAP_MESSAGES.NO_AI_SOURCES);
-    }
+      const autoDetectStructure = Boolean(dto.autoDetectStructure);
+      const initialStructure = autoDetectStructure
+        ? detectHeuristicStructure(prompt)
+        : (dto.structure ?? MindmapStructure.MIND_MAP);
+      const structure = initialStructure;
+      const includeNotes = dto.includeNotes ?? false;
+      const articleIds = dto.articleIds ?? [];
 
-    if (this.googleAi.isConfigured()) {
-      const aiResult = await this.callGemini(
+      const [notes, articles] = await Promise.all([
+        this.fetchSourceNotes(userId, includeNotes),
+        this.fetchSourceArticles(articleIds, prompt || canvasCtx.focusNodeTitle),
+      ]);
+
+      if (!prompt && notes.length === 0 && articles.length === 0) {
+        throw new BadRequestException(MINDMAP_MESSAGES.NO_AI_SOURCES);
+      }
+
+      if (this.googleAi.isConfigured()) {
+        try {
+          const aiResult = await this.callGeminiWithGrounding(
+            prompt,
+            structure,
+            canvasCtx,
+            notes,
+            articles,
+            dto,
+          );
+          if (aiResult) {
+            return {
+              ...aiResult,
+              template: MindmapTemplateType.SPIDER,
+              structure: aiResult.graph.structure,
+              engine: aiResult.engine,
+              noteCount: notes.length,
+              articleCount: articles.length,
+              usedGoogleSearch: Boolean(dto.useGoogleSearch),
+            };
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Gemini AI generation failed for prompt: "${prompt?.slice(0, 80)}". Gracefully falling back to heuristic graph. Reason: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+
+      const resolvedStructure = autoDetectStructure
+        ? detectHeuristicStructure(prompt)
+        : structure;
+      const fallback = this.buildHeuristicGraph(
         prompt,
-        structure,
+        resolvedStructure,
         canvasCtx,
         notes,
         articles,
       );
-      if (aiResult) {
-        return {
-          ...aiResult,
-          template: MindmapTemplateType.SPIDER,
-          engine: MindmapAiEngine.GEMINI_FLASH,
-          noteCount: notes.length,
-          articleCount: articles.length,
-        };
+      return {
+        ...fallback,
+        template: MindmapTemplateType.SPIDER,
+        structure: resolvedStructure,
+        engine: MindmapAiEngine.HEURISTIC,
+        noteCount: notes.length,
+        articleCount: articles.length,
+        usedGoogleSearch: false,
+      };
+    } catch (err) {
+      if (err instanceof BadRequestException) {
+        throw err;
       }
+      this.logger.error(
+        `Critical unexpected error in generatePreview: ${err instanceof Error ? err.stack : String(err)}`,
+      );
+      // Graceful fallback để không bao giờ trả HTTP 500
+      const safeCanvas = parseExistingCanvasContext(dto.existingGraph, dto.selectedNodeId);
+      const safeFallback = this.buildHeuristicGraph(
+        dto.prompt?.trim() || safeCanvas.focusNodeTitle || 'Sơ đồ tư duy',
+        MindmapStructure.MIND_MAP,
+        safeCanvas,
+        [],
+        [],
+      );
+      return {
+        ...safeFallback,
+        template: MindmapTemplateType.SPIDER,
+        structure: MindmapStructure.MIND_MAP,
+        engine: MindmapAiEngine.HEURISTIC,
+        noteCount: 0,
+        articleCount: 0,
+        usedGoogleSearch: false,
+      };
     }
-
-    const fallback = this.buildHeuristicGraph(
-      prompt,
-      structure,
-      canvasCtx,
-      notes,
-      articles,
-    );
-    return {
-      ...fallback,
-      template: MindmapTemplateType.SPIDER,
-      engine: MindmapAiEngine.HEURISTIC,
-      noteCount: notes.length,
-      articleCount: articles.length,
-    };
   }
 
-  private fetchSourceNotes(
+  private async fetchSourceNotes(
     userId: string,
     includeNotes: boolean,
   ): Promise<SourceNoteItem[]> {
     if (!includeNotes) return Promise.resolve([]);
-    return this.prisma.note.findMany({
-      where: { userId },
-      orderBy: { updatedAt: 'desc' },
-      take: MINDMAP_LIMITS.MAX_AI_NOTES,
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        highlightText: true,
-      },
-    });
+    try {
+      return await this.prisma.note.findMany({
+        where: { userId },
+        orderBy: { updatedAt: 'desc' },
+        take: MINDMAP_LIMITS.MAX_AI_NOTES,
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          highlightText: true,
+        },
+      });
+    } catch (error) {
+      this.logger.warn(`fetchSourceNotes failed: ${error}`);
+      return [];
+    }
   }
 
   private async fetchSourceArticles(
     articleIds: string[],
     prompt?: string,
   ): Promise<SourceArticleItem[]> {
-    if (articleIds.length > 0) {
-      return this.prisma.article.findMany({
-        where: { id: { in: articleIds }, status: ContentStatus.PUBLISHED },
-        take: MINDMAP_LIMITS.MAX_AI_ARTICLES,
-        select: {
-          id: true,
-          slug: true,
-          title: true,
-          summary: true,
-          dateText: true,
-          contentBlocks: true,
-        },
-      });
-    }
-    const shortKeyword = prompt ? prompt.slice(0, 80).trim() : '';
-    if (shortKeyword && this.prisma.article?.findMany) {
-      return this.prisma.article.findMany({
-        where: {
-          status: ContentStatus.PUBLISHED,
-          OR: [
-            { title: { contains: shortKeyword, mode: 'insensitive' } },
-            { summary: { contains: shortKeyword, mode: 'insensitive' } },
-          ],
-        },
-        take: 4,
-        select: {
-          id: true,
-          slug: true,
-          title: true,
-          summary: true,
-          dateText: true,
-          contentBlocks: true,
-        },
-      });
+    try {
+      if (articleIds.length > 0) {
+        return await this.prisma.article.findMany({
+          where: { id: { in: articleIds }, status: ContentStatus.PUBLISHED },
+          take: MINDMAP_LIMITS.MAX_AI_ARTICLES,
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            summary: true,
+            dateText: true,
+            coverImageUrl: true,
+            contentBlocks: true,
+          },
+        });
+      }
+
+      const keywords = extractSearchKeywords(prompt);
+      const orConditions: Array<{
+        title?: { contains: string; mode: 'insensitive' };
+        summary?: { contains: string; mode: 'insensitive' };
+      }> = [];
+
+      for (const kw of keywords) {
+        orConditions.push({ title: { contains: kw, mode: 'insensitive' } });
+        orConditions.push({ summary: { contains: kw, mode: 'insensitive' } });
+      }
+
+      const shortKeyword = prompt ? prompt.slice(0, 80).trim() : '';
+      if (orConditions.length === 0 && shortKeyword) {
+        orConditions.push({ title: { contains: shortKeyword, mode: 'insensitive' } });
+        orConditions.push({ summary: { contains: shortKeyword, mode: 'insensitive' } });
+      }
+
+      if (orConditions.length > 0 && this.prisma.article?.findMany) {
+        return await this.prisma.article.findMany({
+          where: {
+            status: ContentStatus.PUBLISHED,
+            OR: orConditions,
+          },
+          take: MINDMAP_LIMITS.MAX_AI_ARTICLES,
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            summary: true,
+            dateText: true,
+            coverImageUrl: true,
+            contentBlocks: true,
+          },
+        });
+      }
+    } catch (error) {
+      this.logger.warn(`fetchSourceArticles failed: ${error}`);
+      return [];
     }
     return [];
   }
@@ -771,10 +1135,28 @@ export class MindmapAiService {
       return `[Bài viết #${i + 1}] ${a.title} (${a.dateText || ''}) — ${a.summary || ''} — Các mục: ${headings}`;
     });
 
+    const isBranchExpansion =
+      !canvasCtx.isBlankDefault &&
+      Boolean(canvasCtx.focusNodeId) &&
+      canvasCtx.focusNodeId !== canvasCtx.rootId;
+
+    const branchExpansionLines = isBranchExpansion
+      ? [
+          `\n--- CHỈ DẪN QUAN TRỌNG: MỞ RỘNG TỪ NHÁNH ĐANG CHỌN ---`,
+          `Người học đang chọn nhánh: "${canvasCtx.focusNodeTitle}" (ID: "${canvasCtx.focusNodeId}").`,
+          `Yêu cầu bạn tập trung phân tích, chia nhỏ và mở rộng các nhánh con ĐI TỪ nhánh này.`,
+          `Trong JSON trả về:`,
+          `- Node gốc ("n-root" hoặc node đầu tiên) chính là nhánh "${canvasCtx.focusNodeTitle}".`,
+          `- Mọi nhánh con cấp 1 bạn sinh mới phải có edge xuất phát từ "n-root" (ví dụ fromId: "n-root", toId: "n-1").`,
+          `- Tuyệt đối KHÔNG thay thế lại toàn bộ cây chính trên canvas, chỉ tập trung mở rộng nhánh được chọn!`,
+        ].join('\n')
+      : '';
+
     return [
       prompt
         ? `YÊU CẦU CỦA NGƯỜI HỌC:\n"""\n${prompt}\n"""`
         : 'Hãy mở rộng và bổ sung các nhánh tiếp theo cho sơ đồ tư duy bên dưới.',
+      branchExpansionLines,
       existingCanvasLines,
       articleLines.length
         ? `\n--- BÀI VIẾT THAM KHẢO TRONG HỆ THỐNG ---\n${articleLines.join('\n')}`
@@ -787,38 +1169,137 @@ export class MindmapAiService {
       .join('\n');
   }
 
-  private async callGemini(
+  private async callGeminiWithGrounding(
     prompt: string | undefined,
     structure: MindmapStructure,
     canvasCtx: ExistingCanvasContext,
     notes: SourceNoteItem[],
     articles: SourceArticleItem[],
+    dto?: GenerateMindmapDto,
   ): Promise<{
     title: string;
     periodLabel?: string;
     graph: MindmapGraphData;
+    engine: MindmapAiEngine;
   } | null> {
-    const parsed = await this.googleAi.generateJson<{
+    const autoDetect = Boolean(dto?.autoDetectStructure);
+    const useGoogleSearch = Boolean(dto?.useGoogleSearch);
+    const detailLevel = dto?.detailLevel ?? MindmapDetailLevel.DETAILED;
+    const ragCorpus = appConfig.google_cloud_rag_corpus?.trim();
+    const systemPrompt = buildAiSystemPrompt(structure, autoDetect, detailLevel);
+    const userPrompt = this.buildPromptContext(prompt, canvasCtx, notes, articles);
+
+    // 1. Thử gọi qua Vertex AI RAG nếu corpus được cấu hình hoặc nếu bật Google Search
+    if (ragCorpus || useGoogleSearch) {
+      const groundedResult = await this.googleAi.generateGroundedJson<{
+        title?: unknown;
+        periodLabel?: unknown;
+        structure?: unknown;
+        nodes?: RawGeminiNode[];
+        edges?: RawGeminiEdge[];
+      }>({
+        systemPrompt,
+        userPrompt,
+        ragCorpus: ragCorpus || undefined,
+        enableGoogleSearch: useGoogleSearch,
+        disableUngroundedFallback: false,
+        temperature: 0.35,
+        timeoutMs: MINDMAP_LIMITS.AI_TIMEOUT_MS,
+        contextLabel: useGoogleSearch ? 'mindmap-google-search' : 'mindmap-rag',
+      });
+
+      if (groundedResult?.data) {
+        // Hydrate các bài viết từ RAG chunks nếu có
+        const ragChunks = groundedResult.groundingChunks ?? [];
+        const extraSlugs = extractRagCandidateArticleSlugs(ragChunks);
+        let combinedArticles = articles;
+        if (extraSlugs.length > 0 && this.prisma.article?.findMany) {
+          const fetched = await this.prisma.article.findMany({
+            where: { slug: { in: extraSlugs }, status: ContentStatus.PUBLISHED },
+            take: 4,
+            select: {
+              id: true,
+              slug: true,
+              title: true,
+              summary: true,
+              dateText: true,
+              coverImageUrl: true,
+              contentBlocks: true,
+            },
+          });
+          const existingIds = new Set(articles.map((a) => a.id));
+          const newOnes = fetched.filter((f) => !existingIds.has(f.id));
+          combinedArticles = [...articles, ...newOnes];
+        }
+
+        const resolvedStructure = this.resolveEffectiveStructure(
+          groundedResult.data.structure,
+          structure,
+          autoDetect,
+          prompt,
+        );
+
+        const parsed = this.parseGeminiMindmapResponse(
+          groundedResult.data,
+          resolvedStructure,
+          canvasCtx,
+          combinedArticles,
+          prompt,
+          ragChunks,
+        );
+        if (parsed) {
+          return {
+            ...parsed,
+            engine: MindmapAiEngine.GEMINI_FLASH,
+          };
+        }
+      }
+    }
+
+    // 2. Fallback trực tiếp Gemini Direct nếu không có RAG corpus hoặc RAG fail
+    const directResult = await this.googleAi.generateJson<{
       title?: unknown;
       periodLabel?: unknown;
+      structure?: unknown;
       nodes?: RawGeminiNode[];
       edges?: RawGeminiEdge[];
     }>({
-      systemPrompt: AI_SYSTEM_PROMPT,
-      userPrompt: this.buildPromptContext(prompt, canvasCtx, notes, articles),
+      systemPrompt,
+      userPrompt,
       temperature: 0.35,
       timeoutMs: MINDMAP_LIMITS.AI_TIMEOUT_MS,
-      contextLabel: 'mindmap',
+      contextLabel: 'mindmap-direct',
     });
 
-    if (!parsed) return null;
-    return this.parseGeminiMindmapResponse(
-      parsed,
+    if (!directResult) return null;
+    const resolvedStructure = this.resolveEffectiveStructure(
+      directResult.structure,
       structure,
+      autoDetect,
+      prompt,
+    );
+    const parsed = this.parseGeminiMindmapResponse(
+      directResult,
+      resolvedStructure,
       canvasCtx,
       articles,
       prompt,
     );
+    return parsed ? { ...parsed, engine: MindmapAiEngine.GEMINI_FLASH } : null;
+  }
+
+  private resolveEffectiveStructure(
+    rawStructure: unknown,
+    fallback: MindmapStructure,
+    autoDetect: boolean,
+    prompt?: string,
+  ): MindmapStructure {
+    if (!autoDetect) return fallback;
+    const valid = Object.values(MindmapStructure) as string[];
+    if (typeof rawStructure === 'string' && valid.includes(rawStructure)) {
+      return rawStructure as MindmapStructure;
+    }
+    return detectHeuristicStructure(prompt);
   }
 
   private parseGeminiMindmapResponse(
@@ -827,22 +1308,28 @@ export class MindmapAiService {
       periodLabel?: unknown;
       nodes?: RawGeminiNode[];
       edges?: RawGeminiEdge[];
-    },
+    } | null | undefined,
     structure: MindmapStructure,
     canvasCtx: ExistingCanvasContext,
     articles: SourceArticleItem[],
     prompt?: string,
+    groundingChunks?: RagGroundingChunk[],
   ): {
     title: string;
     periodLabel?: string;
     graph: MindmapGraphData;
   } | null {
+    if (!parsed || typeof parsed !== 'object') return null;
     const rawNodes = Array.isArray(parsed.nodes) ? parsed.nodes : [];
     const aiNodes: MindmapNodeData[] = rawNodes
       .map((n, i) => {
         const nodeTitle =
           typeof n.title === 'string' ? n.title.trim().slice(0, 120) : '';
         const matchedRef = findMatchingArticleRef(nodeTitle, articles);
+        const baseImageUrl =
+          typeof n.imageUrl === 'string' && n.imageUrl.trim()
+            ? n.imageUrl.trim()
+            : matchedRef?.coverImageUrl || undefined;
         return {
           id: typeof n.id === 'string' && n.id ? n.id : `n-${i}`,
           x: typeof n.x === 'number' ? Math.round(n.x) : 140 + (i % 4) * 200,
@@ -857,6 +1344,7 @@ export class MindmapAiService {
               ? n.dateLabel.slice(0, 40)
               : undefined,
           note: typeof n.note === 'string' ? n.note.slice(0, 350) : undefined,
+          imageUrl: baseImageUrl,
           color:
             i === 0
               ? MindmapBranchColor.CRIMSON
@@ -867,6 +1355,41 @@ export class MindmapAiService {
       .filter((n) => n.title.length > 0);
 
     if (aiNodes.length === 0) return null;
+
+    // Tự động gắn ảnh và bài viết cho Root node nếu chưa có
+    if (aiNodes[0]) {
+      if (!aiNodes[0].imageUrl && articles[0]?.coverImageUrl) {
+        aiNodes[0].imageUrl = articles[0].coverImageUrl;
+      }
+      if (!aiNodes[0].articleRef && articles[0]) {
+        aiNodes[0].articleRef = {
+          id: articles[0].id,
+          slug: articles[0].slug,
+          title: articles[0].title,
+          coverImageUrl: articles[0].coverImageUrl,
+        };
+      }
+    }
+
+    // Nếu có web URIs từ Google Search Grounding, trích xuất nguồn dẫn chứng gắn vào node
+    const webChunks = (groundingChunks || []).filter(
+      (c): c is RagGroundingChunk & { uri: string } =>
+        typeof c.uri === 'string' && c.uri.startsWith('http'),
+    );
+    if (webChunks.length > 0) {
+      if (aiNodes[0] && !aiNodes[0].externalUrl) {
+        aiNodes[0].externalUrl = webChunks[0].uri;
+      }
+      webChunks.slice(1, 4).forEach((chunk, chunkIdx) => {
+        const targetNode = aiNodes[chunkIdx + 1];
+        if (targetNode && !targetNode.externalUrl && !targetNode.articleRef) {
+          targetNode.externalUrl = chunk.uri;
+          if (chunk.title && !targetNode.badge) {
+            targetNode.badge = chunk.title.slice(0, 35);
+          }
+        }
+      });
+    }
     const aiNodeIds = new Set(aiNodes.map((n) => n.id));
     const aiEdges: MindmapEdgeData[] = (
       Array.isArray(parsed.edges) ? parsed.edges : []
@@ -935,6 +1458,7 @@ export class MindmapAiService {
       (articles.length === 1 ? articles[0].title : 'Tổng hợp Lịch sử Việt Nam');
     const periodLabel = articles[0]?.dateText ?? undefined;
 
+    const primaryArticle = articles[0];
     const aiNodes: MindmapNodeData[] = [
       {
         id: 'n-root',
@@ -945,6 +1469,15 @@ export class MindmapAiService {
         dateLabel: periodLabel,
         note: prompt ? prompt.slice(0, 280) : undefined,
         color: MindmapBranchColor.CRIMSON,
+        imageUrl: primaryArticle?.coverImageUrl ?? undefined,
+        articleRef: primaryArticle
+          ? {
+              id: primaryArticle.id,
+              slug: primaryArticle.slug,
+              title: primaryArticle.title,
+              coverImageUrl: primaryArticle.coverImageUrl,
+            }
+          : undefined,
       },
     ];
     const aiEdges: MindmapEdgeData[] = [];
@@ -966,6 +1499,7 @@ export class MindmapAiService {
         prompt,
         firstSentence || rootTitle,
         attachParentId,
+        articles,
       );
     }
     if (articles.length > 0) {

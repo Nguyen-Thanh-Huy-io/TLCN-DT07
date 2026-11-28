@@ -144,3 +144,23 @@ export const FEATURE_GUIDE_RULES: readonly FeatureGuideRule[] = [
     ],
   },
 ];
+
+const EXPLICIT_GUIDE_INTENT_RE =
+  /hướng dẫn|cách\s+(dùng|sử dụng|tạo|ôn|làm|mở|xem)|tính năng|ở đâu|chức năng|dùng thế nào|dùng sao/i;
+const HISTORICAL_TOPIC_SIGNAL_RE =
+  /năm\s+\d+|thế kỷ|triều\s+|vua\s+|tướng\s+|kháng chiến|chiến thắng|khởi nghĩa|chiến dịch|nhân vật|sự kiện|di tích|thời\s+(lý|trần|lê|nguyễn|đinh|tiền lê|hùng vương)/i;
+
+/** Chỉ khớp hướng dẫn tính năng khi không phải câu hỏi tra cứu kiến thức lịch sử thuần tuý. */
+export function matchFeatureGuideRule(
+  message: string,
+): FeatureGuideRule | null {
+  const clean = message.trim();
+  if (!clean) return null;
+  if (
+    HISTORICAL_TOPIC_SIGNAL_RE.test(clean) &&
+    !EXPLICIT_GUIDE_INTENT_RE.test(clean)
+  ) {
+    return null;
+  }
+  return FEATURE_GUIDE_RULES.find((rule) => rule.keywords.test(clean)) ?? null;
+}

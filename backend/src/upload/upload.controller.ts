@@ -22,9 +22,11 @@ import { extname } from 'path';
 import { ContentWrite } from '../common/access/access.decorator';
 import { AuthGuard } from '../common/guards/auth.guard';
 import {
+  ALLOWED_AUDIO_EXTENSIONS,
   ALLOWED_DOCUMENT_EXTENSIONS,
   ALLOWED_IMAGE_EXTENSIONS,
   ALLOWED_VIDEO_EXTENSIONS,
+  AUDIO_MAX_SIZE_BYTES,
   DOCUMENT_MAX_SIZE_BYTES,
   IMAGE_MAX_SIZE_BYTES,
   UPLOAD_PREFIX,
@@ -89,6 +91,42 @@ export class UploadController {
       req,
       'Vui lòng chọn file hình ảnh để tải lên',
       UPLOAD_PREFIX.IMAGE,
+    );
+  }
+
+  @Post('audio')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary:
+      'Tải lên file âm thanh ghi chú / lời thoại (.mp3, .wav, .ogg, .m4a ≤ 20MB)',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor(
+      'file',
+      createMemoryUploadOptions(
+        AUDIO_MAX_SIZE_BYTES,
+        ALLOWED_AUDIO_EXTENSIONS,
+        'Chỉ hỗ trợ tải lên file âm thanh (.mp3, .wav, .ogg, .m4a)',
+      ),
+    ),
+  )
+  async uploadAudio(
+    @UploadedFile() file?: Express.Multer.File,
+    @Req() req?: Request,
+  ): Promise<UploadResult> {
+    return this.uploadService.processUploadedFile(
+      file,
+      req,
+      'Vui lòng chọn file âm thanh để tải lên',
+      UPLOAD_PREFIX.AUDIO,
     );
   }
 

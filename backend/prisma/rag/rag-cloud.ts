@@ -13,6 +13,7 @@ import { GoogleAiService } from '../../src/common/services/google-ai.service';
 const VERTEX_HOST_SUFFIX = 'aiplatform.googleapis.com';
 const GCS_UPLOAD_HOST = 'storage.googleapis.com';
 const DEFAULT_CORPUS_NAME = 'hisgo-history-corpus';
+const DEFAULT_RAG_EMBEDDING_MODEL = 'text-multilingual-embedding-002';
 const LRO_POLL_INTERVAL_MS = 3_000;
 const LRO_MAX_ATTEMPTS = 60;
 const UPLOAD_CONCURRENCY = 6;
@@ -161,6 +162,11 @@ async function runSetupAction(
     display_name: displayName,
     vector_db_config: {
       rag_managed_vertex_vector_search: {},
+      rag_embedding_model_config: {
+        vertex_prediction_endpoint: {
+          endpoint: `projects/${ctx.projectId}/locations/${ctx.ragLocation}/publishers/google/models/${DEFAULT_RAG_EMBEDDING_MODEL}`,
+        },
+      },
     },
   });
 
@@ -219,16 +225,6 @@ async function collectSyncTargets(): Promise<UploadTarget[]> {
         contentType: resolveMimeType(absPath),
       });
     }
-  }
-
-  const wikiDir = path.resolve(root, 'rag-wiki', 'articles');
-  for (const absPath of await listFilesRecursive(wikiDir)) {
-    if (!absPath.endsWith('.md')) continue;
-    targets.push({
-      absPath,
-      gcsObjectKey: `wikipedia/articles/${path.basename(absPath)}`,
-      contentType: resolveMimeType(absPath),
-    });
   }
 
   const booksDir = path.resolve(root, 'rag-sources', 'files');
@@ -333,7 +329,7 @@ async function runSyncAction(ctx: CloudContext): Promise<void> {
         rag_file_transformation_config: {
           rag_file_chunking_config: {
             chunk_size: 1024,
-            chunk_overlap: 200,
+            chunk_overlap: 256,
           },
         },
         max_embedding_requests_per_min: 1000,

@@ -5,6 +5,7 @@ import {
   extractGcsObjectPath,
   mergeAssistantSuggestedLinks,
   resolveRagGroundingAttachments,
+  selectStrictHisgoRagChunks,
 } from './ai-assistant.rag';
 import { shouldUseRagForMessage } from './ai-assistant.search';
 import { AiAssistantService } from './ai-assistant.service';
@@ -84,6 +85,21 @@ describe('AiAssistantService — Strict RAG & Google Search Grounding', () => {
     ).toBe(true);
     expect(
       shouldUseRagForMessage('Cách mạng Công nghiệp lần thứ nhất ở Anh'),
+    ).toBe(true);
+    expect(
+      shouldUseRagForMessage(
+        'Tóm tắt 3 lần kháng chiến chống quân Nguyên – Mông thời nhà Trần',
+        true,
+      ),
+    ).toBe(true);
+    expect(shouldUseRagForMessage('Tóm tắt trang này giúp tôi', true)).toBe(
+      false,
+    );
+    expect(
+      shouldUseRagForMessage(
+        'Kiến thức lịch sử triều Trần năm 1288 để luyện tập',
+        true,
+      ),
     ).toBe(true);
   });
 
@@ -315,5 +331,35 @@ describe('AiAssistantService — Strict RAG & Google Search Grounding', () => {
 
     const merged = mergeAssistantSuggestedLinks(null, attachments.links, []);
     expect(merged).toHaveLength(2);
+  });
+
+  it('selectStrictHisgoRagChunks loại bỏ nguồn Wikipedia khi Google OFF', () => {
+    const strict = selectStrictHisgoRagChunks([
+      {
+        text: 'Nội dung sử liệu',
+        uri: 'gs://hisgo-bucket/wikipedia/Mạc_Thái_Tổ.md',
+        title: 'Mạc_Thái_Tổ.md',
+        cited: true,
+      },
+      {
+        text: 'Nội dung sử liệu',
+        uri: 'gs://hisgo-bucket/hisgo/articles/dai-thang-bach-dang-1288.md',
+        title: 'dai-thang-bach-dang-1288.md',
+      },
+    ]);
+
+    expect(strict.hisgoChunks).toHaveLength(1);
+    expect(strict.relevantChunks[0]?.uri).toContain('hisgo/articles/');
+
+    const wikiOnly = selectStrictHisgoRagChunks([
+      {
+        text: 'Nội dung sử liệu',
+        uri: 'gs://hisgo-bucket/wikipedia/Chiến_tranh_Nguyên_Mông.md',
+        title: 'Chiến_tranh_Nguyên_Mông.md',
+        cited: true,
+      },
+    ]);
+    expect(wikiOnly.hisgoChunks).toHaveLength(0);
+    expect(wikiOnly.relevantChunks).toHaveLength(0);
   });
 });

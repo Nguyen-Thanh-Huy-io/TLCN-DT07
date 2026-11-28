@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { X } from 'lucide-react';
+import { KeyboardKey } from '@/constants/enums';
 import {
   MINDMAP_CANVAS,
   MindmapBorderStyle,
-  MindmapBranchColor,
   MindmapEdgeStyle,
   MindmapInspectorTab,
   MindmapShortcutKey,
@@ -14,6 +15,7 @@ import {
 } from '../constants/mindmap.constants';
 import { useMeasuredNodeSizes } from '../hooks/use-measured-node-sizes';
 import { useMindmapHistory } from '../hooks/use-mindmap-history';
+import { useMindmapRecallSession } from '../hooks/use-mindmap-recall-session';
 import {
   MindmapApiService,
   type MindmapArticleRef,
@@ -29,6 +31,7 @@ import {
 import {
   addChildNodeToGraph,
   addSiblingNodeToGraph,
+  applyCollapsePresetToGraph,
   buildMindmapTree,
   deleteSubtreeFromGraph,
   nextMindmapId,
@@ -40,6 +43,10 @@ import {
 import { MindmapLeftToolbar } from './MindmapLeftToolbar';
 import { AiMindmapPromptModal } from './AiMindmapPromptModal';
 import { MindmapNodeCard, nodeArticlesOf } from './MindmapNodeCard';
+import {
+  MindmapActiveStudyPill,
+  MindmapRecallPopoverTrigger,
+} from './MindmapRecallPopover';
 import {
   MindmapReferenceDrawer,
   type RequestedReaderSource,
@@ -96,6 +103,7 @@ export function MindmapCanvas({
   onBack: () => void;
 }) {
   const [title, setTitle] = useState(initialMindmap.title);
+  const [periodLabel, setPeriodLabel] = useState(initialMindmap.periodLabel ?? '');
   const [graph, setGraph] = useState<MindmapGraph>(initialMindmap.graph);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     initialMindmap.graph.nodes[0]?.id ?? null,
@@ -108,6 +116,34 @@ export function MindmapCanvas({
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() =>
     typeof window === 'undefined' ? true : window.innerWidth >= 1024,
   );
+  const [copilotOpen, setCopilotOpen] = useState<boolean>(false);
+  const prevSidebarOpenRef = useRef<boolean>(false);
+
+  const handleSetCopilotOpen = useCallback((nextOpen: boolean) => {
+    if (nextOpen) {
+      setSidebarOpen((currentSidebar) => {
+        prevSidebarOpenRef.current = currentSidebar;
+        return false;
+      });
+      setCopilotOpen(true);
+    } else {
+      setCopilotOpen(false);
+      if (prevSidebarOpenRef.current) {
+        setSidebarOpen(true);
+      }
+    }
+  }, []);
+
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        prevSidebarOpenRef.current = false;
+        setCopilotOpen(false);
+      }
+      return next;
+    });
+  }, []);
   const [readerOpen, setReaderOpen] = useState(false);
   const [requestedReaderSource, setRequestedReaderSource] = useState<RequestedReaderSource | null>(null);
   const [activeTab, setActiveTab] = useState<MindmapInspectorTab>(MindmapInspectorTab.STYLE);
@@ -132,46 +168,59 @@ export function MindmapCanvas({
   const showGrid = graph.showGrid ?? false;
   const canvasBg = graph.customBgColor || theme.canvasBg;
 
-  const tree = useMemo(() => buildMindmapTree(graph), [graph]);
+  const baseTree = useMemo(() => buildMindmapTree(graph), [graph]);
+  const recallSession = useMindmapRecallSession({
+    mindmapTitle: title,
+    baseGraph: graph,
+    baseTree,
+    onAfterModeChange: () => {
+      setEditingNodeId(null);
+      setLinkFromId(null);
+    },
+  });
+
+  const activeGraph = recallSession.effectiveGraph;
+  const tree = useMemo(() => buildMindmapTree(activeGraph), [activeGraph]);
   const nodeSignature = useMemo(
     () =>
-      graph.nodes
+      activeGraph.nodes
         .map(
           (n) =>
             `${n.id}:${n.title.length}:${n.style?.fontSize ?? 13}:${Boolean(n.style?.bold)}:${(n.tags ?? []).length}:${Boolean(n.imageUrl)}:${Boolean(n.collapsed)}`,
         )
         .join('|'),
-    [graph.nodes],
+    [activeGraph.nodes],
   );
   const { sizes, registerNodeRef } = useMeasuredNodeSizes(nodeSignature);
 
   const layout = useMemo(
     () =>
       computeMindmapLayout({
-        graph,
+        graph: activeGraph,
         tree,
         sizes,
         structure,
         balancedBranches,
         edgeStyle,
       }),
-    [balancedBranches, edgeStyle, graph, sizes, structure, tree],
+    [activeGraph, balancedBranches, edgeStyle, sizes, structure, tree],
   );
 
   const scheduleSave = useCallback(
-    (nextTitle: string, nextGraph: MindmapGraph) => {
+    (nextTitle: string, nextGraph: MindmapGraph, nextPeriod = periodLabel) => {
       setSaveState(MindmapSaveState.SAVING);
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
         void MindmapApiService.update(initialMindmap.id, {
           title: nextTitle.trim() || initialMindmap.title,
+          periodLabel: nextPeriod.trim() || undefined,
           graph: nextGraph,
         })
           .then(() => setSaveState(MindmapSaveState.SAVED))
           .catch(() => setSaveState(MindmapSaveState.ERROR));
       }, MINDMAP_CANVAS.AUTOSAVE_DELAY_MS);
     },
-    [initialMindmap.id, initialMindmap.title],
+    [initialMindmap.id, initialMindmap.title, periodLabel],
   );
 
   useEffect(
@@ -190,6 +239,7 @@ export function MindmapCanvas({
     try {
       await MindmapApiService.update(initialMindmap.id, {
         title: title.trim() || initialMindmap.title,
+        periodLabel: periodLabel.trim() || undefined,
         graph,
       });
       setSaveState(MindmapSaveState.SAVED);
@@ -197,7 +247,7 @@ export function MindmapCanvas({
       setSaveState(MindmapSaveState.ERROR);
       throw err;
     }
-  }, [graph, initialMindmap.id, initialMindmap.title, title]);
+  }, [graph, initialMindmap.id, initialMindmap.title, periodLabel, title]);
 
   const commitGraph = useCallback(
     (updater: (prev: MindmapGraph) => MindmapGraph, recordUndo = true) => {
@@ -276,25 +326,6 @@ export function MindmapCanvas({
     (referenceId?: string) => insertBranchNode(referenceId, addSiblingNodeToGraph),
     [insertBranchNode],
   );
-
-  const handleAddSticky = useCallback(() => {
-    const newId = nextMindmapId('sticky');
-    const stickyNode: MindmapNode = {
-      id: newId,
-      x: 120,
-      y: 120,
-      title: 'Ghi chú nhanh',
-      note: 'Nhấp để sửa nội dung ghi chú…',
-      isStickyNote: true,
-      showNoteInline: true,
-      color: graph.nodes[0]?.color ?? MindmapBranchColor.GOLD,
-    };
-    commitGraph((prev) => ({ ...prev, nodes: [...prev.nodes, stickyNode] }));
-    setSelectedNodeId(newId);
-    setEditingNodeId(newId);
-    setActiveTab(MindmapInspectorTab.NODE);
-    setSidebarOpen(true);
-  }, [commitGraph, graph.nodes]);
 
   const openReaderWithAutoFit = useCallback(() => {
     setReaderOpen(true);
@@ -387,49 +418,93 @@ export function MindmapCanvas({
     scheduleSave(title, nextGraph);
   }, [graph, history, scheduleSave, title]);
 
-  // Phím tắt chuyên nghiệp (Tab, Enter, Del, Ctrl+Z/Y)
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (isEditableElement(e.target)) return;
+  const tryHandleEscapeShortcut = useCallback(
+    (e: KeyboardEvent): boolean => {
+      if (e.key !== MindmapShortcutKey.ESCAPE && e.key !== KeyboardKey.ESCAPE) {
+        return false;
+      }
+      if (linkFromId) {
+        e.preventDefault();
+        e.stopPropagation();
+        setLinkFromId(null);
+        return true;
+      }
+      if (editingNodeId) {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditingNodeId(null);
+        return true;
+      }
+      if (recallSession.isStudyMode && !recallSession.popoverOpen) {
+        e.preventDefault();
+        recallSession.exitStudyMode();
+        return true;
+      }
+      return false;
+    },
+    [editingNodeId, linkFromId, recallSession],
+  );
 
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === MindmapShortcutKey.UNDO) {
+  const tryHandleHistoryShortcut = useCallback(
+    (e: KeyboardEvent): boolean => {
+      if (!(e.ctrlKey || e.metaKey)) return false;
+      const lower = e.key.toLowerCase();
+      if (lower === MindmapShortcutKey.UNDO) {
         e.preventDefault();
         if (e.shiftKey) handleRedo();
         else handleUndo();
-        return;
+        return true;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === MindmapShortcutKey.REDO) {
+      if (lower === MindmapShortcutKey.REDO) {
         e.preventDefault();
         handleRedo();
+        return true;
+      }
+      return false;
+    },
+    [handleRedo, handleUndo],
+  );
+
+  // Phím tắt chuyên nghiệp (Tab, Enter, Space, Del, Ctrl+Z/Y, Escape)
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (tryHandleEscapeShortcut(e)) return;
+      if (isEditableElement(e.target) || recallSession.isStudyMode) return;
+      if (tryHandleHistoryShortcut(e)) return;
+      if (!selectedNodeId) return;
+
+      if (e.key === KeyboardKey.SPACE && (tree.childrenMap.get(selectedNodeId)?.length ?? 0) > 0) {
+        e.preventDefault();
+        const current = tree.nodeMap.get(selectedNodeId);
+        commitGraph((prev) => ({
+          ...prev,
+          nodes: prev.nodes.map((n) =>
+            n.id === selectedNodeId ? { ...n, collapsed: !current?.collapsed } : n,
+          ),
+        }));
         return;
       }
-      if (e.key === MindmapShortcutKey.ESCAPE) {
-        setLinkFromId(null);
-        setEditingNodeId(null);
-        return;
-      }
-      if (e.key === MindmapShortcutKey.TAB && selectedNodeId) {
+      if (e.key === MindmapShortcutKey.TAB) {
         e.preventDefault();
         handleAddChild(selectedNodeId);
         return;
       }
-      if (e.key === MindmapShortcutKey.ENTER && selectedNodeId) {
+      if (e.key === MindmapShortcutKey.ENTER) {
         e.preventDefault();
         handleAddSibling();
         return;
       }
       if (
         (e.key === MindmapShortcutKey.DELETE || e.key === MindmapShortcutKey.BACKSPACE) &&
-        selectedNodeId &&
         selectedNodeId !== tree.rootId
       ) {
         e.preventDefault();
         handleDeleteNode(selectedNodeId);
       }
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [handleAddChild, handleAddSibling, handleDeleteNode, handleRedo, handleUndo, selectedNodeId, tree.rootId]);
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [commitGraph, handleAddChild, handleAddSibling, handleDeleteNode, recallSession.isStudyMode, selectedNodeId, tree.childrenMap, tree.nodeMap, tree.rootId, tryHandleEscapeShortcut, tryHandleHistoryShortcut]);
 
   const updateNode = (nodeId: string, patch: Partial<MindmapNode>) => {
     commitGraph((prev) => ({
@@ -485,7 +560,7 @@ export function MindmapCanvas({
   };
 
   const onNodePointerDown = (e: React.PointerEvent, node: MindmapNode) => {
-    if (toolMode === MindmapToolMode.HAND) return;
+    if (toolMode === MindmapToolMode.HAND || recallSession.isStudyMode) return;
     e.stopPropagation();
     const isFree = structure === MindmapStructure.FREEFORM || Boolean(node.isStickyNote);
     dragRef.current = {
@@ -553,17 +628,43 @@ export function MindmapCanvas({
     <div
       ref={studioRef}
       data-fullscreen-studio="true"
-      className="fixed inset-0 z-50 flex flex-col bg-white text-slate-900"
+      className="fixed inset-0 z-[70] flex flex-col bg-white text-slate-900"
     >
       <MindmapTopBar
         title={title}
         saveState={saveState}
-        canUndo={history.canUndo}
-        canRedo={history.canRedo}
+        canUndo={history.canUndo && !recallSession.isStudyMode}
+        canRedo={history.canRedo && !recallSession.isStudyMode}
         hasSelectedNode={Boolean(selectedNode)}
         isLinking={Boolean(linkFromId)}
+        isStudyMode={recallSession.isStudyMode}
+        recallTriggerSlot={
+          <MindmapRecallPopoverTrigger
+            isOpen={recallSession.popoverOpen}
+            isStudyMode={recallSession.isStudyMode}
+            selectedMode={recallSession.selectedMode}
+            activeMode={recallSession.activeMode}
+            stats={recallSession.stats}
+            onToggleOpen={() => recallSession.setPopoverOpen((v) => !v)}
+            onClose={() => recallSession.setPopoverOpen(false)}
+            onSelectMode={recallSession.setSelectedMode}
+            onApplyStrategy={(mode) => {
+              setSidebarOpen(false);
+              recallSession.startWithStrategy(mode);
+              setTimeout(() => fitView(), 60);
+            }}
+            onExitStudyMode={() => {
+              recallSession.exitStudyMode();
+              setTimeout(() => fitView(), 60);
+            }}
+            onApplyEditCollapsePreset={(preset) => {
+              commitGraph((prev) => applyCollapsePresetToGraph(prev, preset));
+              setTimeout(() => fitView(), 60);
+            }}
+          />
+        }
         readerOpen={readerOpen}
-        sidebarOpen={sidebarOpen}
+        sidebarOpen={sidebarOpen && !recallSession.isStudyMode}
         onBack={onBack}
         onTitleChange={(next) => {
           setTitle(next);
@@ -573,18 +674,17 @@ export function MindmapCanvas({
         onRedo={handleRedo}
         onAddChild={() => handleAddChild()}
         onAddSibling={() => handleAddSibling()}
-        onAddSticky={handleAddSticky}
         onToggleLink={() => setLinkFromId(linkFromId ? null : selectedNodeId ?? tree.rootId)}
         onToggleReader={() => {
           if (readerOpen) setReaderOpen(false);
           else openReaderWithAutoFit();
         }}
-        onToggleSidebar={() => setSidebarOpen((v) => !v)}
+        onToggleSidebar={handleToggleSidebar}
         onPrint={() => window.print()}
         onShareToCommunity={() => setShareOpen(true)}
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {readerOpen && (
           <MindmapReferenceDrawer
             requestedSource={requestedReaderSource}
@@ -604,13 +704,25 @@ export function MindmapCanvas({
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerUp}
           onWheel={(e) => {
-            if (e.ctrlKey) {
-              e.preventDefault();
-              const factor = e.deltaY < 0 ? 1 + MINDMAP_CANVAS.ZOOM_STEP : 1 - MINDMAP_CANVAS.ZOOM_STEP;
-              setZoom((z) => Math.max(MINDMAP_CANVAS.MIN_ZOOM, Math.min(MINDMAP_CANVAS.MAX_ZOOM, Number((z * factor).toFixed(2)))));
-            } else {
-              setPan((p) => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }));
-            }
+            e.preventDefault();
+            const factor = e.deltaY < 0 ? 1 + MINDMAP_CANVAS.ZOOM_STEP : 1 - MINDMAP_CANVAS.ZOOM_STEP;
+            const rect = canvasRef.current?.getBoundingClientRect();
+            setZoom((prevZoom) => {
+              const nextZoom = Math.max(
+                MINDMAP_CANVAS.MIN_ZOOM,
+                Math.min(MINDMAP_CANVAS.MAX_ZOOM, Number((prevZoom * factor).toFixed(3))),
+              );
+              if (rect && nextZoom !== prevZoom) {
+                const cursorX = e.clientX - rect.left;
+                const cursorY = e.clientY - rect.top;
+                const ratio = nextZoom / prevZoom;
+                setPan((p) => ({
+                  x: cursorX - (cursorX - p.x) * ratio,
+                  y: cursorY - (cursorY - p.y) * ratio,
+                }));
+              }
+              return nextZoom;
+            });
           }}
           className={`relative h-full w-full overflow-hidden select-none ${
             toolMode === MindmapToolMode.HAND ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
@@ -659,7 +771,7 @@ export function MindmapCanvas({
                 />
               )}
 
-              {graph.edges.map((edge) => {
+              {activeGraph.edges.map((edge) => {
                 const geom = layout.routedEdges.get(edge.id);
                 const fromNode = tree.nodeMap.get(edge.fromId);
                 const toNode = tree.nodeMap.get(edge.toId);
@@ -687,12 +799,13 @@ export function MindmapCanvas({
                         stroke="transparent"
                         strokeWidth={12}
                         className="cursor-pointer"
-                        onClick={() =>
+                        onClick={() => {
+                          if (recallSession.isStudyMode) return;
                           commitGraph((prev) => ({
                             ...prev,
                             edges: prev.edges.filter((e) => e.id !== edge.id),
-                          }))
-                        }
+                          }));
+                        }}
                       >
                         <title>Bấm để xoá đường nối chéo</title>
                       </path>
@@ -721,10 +834,11 @@ export function MindmapCanvas({
             </svg>
 
             {/* Lớp Nodes */}
-            {graph.nodes.map((node) => {
+            {activeGraph.nodes.map((node) => {
               const placement = layout.placements.get(node.id);
               if (!placement) return null;
               const palette = resolveNodePalette(node, tree, theme);
+              const recallMask = recallSession.nodeMasks.get(node.id);
               return (
                 <MindmapNodeCard
                   key={node.id}
@@ -735,18 +849,33 @@ export function MindmapCanvas({
                   palette={palette}
                   isRoot={node.id === tree.rootId}
                   isSelected={selectedNodeId === node.id}
-                  isEditing={editingNodeId === node.id}
+                  isEditing={editingNodeId === node.id && !recallSession.isStudyMode}
                   isLinkSource={linkFromId === node.id}
                   isDropTarget={dropTargetId === node.id}
                   descendantCount={tree.descendantCountMap.get(node.id) ?? 0}
+                  isStudyMode={recallSession.isStudyMode}
+                  recallMask={recallMask}
+                  onRateRecall={(rating) => recallSession.rateNode(node.id, rating)}
                   onRegisterRef={registerNodeRef(node.id)}
                   onPointerDown={(e) => onNodePointerDown(e, node)}
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (recallSession.isStudyMode) {
+                      setSelectedNodeId(node.id);
+                      recallSession.revealOrInteractNode(node.id);
+                      return;
+                    }
                     handleNodeClick(node.id);
+                    if (
+                      sidebarOpen &&
+                      activeTab === MindmapInspectorTab.OUTLINE
+                    ) {
+                      setActiveTab(MindmapInspectorTab.STYLE);
+                    }
                   }}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
+                    if (recallSession.isStudyMode) return;
                     setEditingNodeId(node.id);
                   }}
                   onChangeTitle={(nextTitle) => updateNode(node.id, { title: nextTitle })}
@@ -754,11 +883,18 @@ export function MindmapCanvas({
                   onAddChild={() => handleAddChild(node.id)}
                   onAddSibling={() => handleAddSibling(node.id)}
                   onDelete={() => handleDeleteNode(node.id)}
-                  onToggleCollapse={() => updateNode(node.id, { collapsed: !node.collapsed })}
+                  onToggleCollapse={() => {
+                    if (recallSession.isStudyMode) {
+                      recallSession.toggleUnfoldInStudy(node.id);
+                    } else {
+                      updateNode(node.id, { collapsed: !node.collapsed });
+                    }
+                  }}
                   onChangeNote={(note) => updateNode(node.id, { note })}
                   onOpenInspector={(tab) => {
                     setSelectedNodeId(node.id);
                     setActiveTab(tab);
+                    setCopilotOpen(false);
                     setSidebarOpen(true);
                   }}
                   onOpenArticleInReader={openArticleInReader}
@@ -767,6 +903,30 @@ export function MindmapCanvas({
             })}
           </div>
         </div>
+
+        {recallSession.isStudyMode && (
+          <MindmapActiveStudyPill
+            activeMode={recallSession.activeMode}
+            stats={recallSession.stats}
+            creatingDeck={recallSession.creatingDeck}
+            createdDeck={recallSession.createdDeck}
+            deckError={recallSession.deckError}
+            onOpenStrategyPopover={() => recallSession.setPopoverOpen(true)}
+            onReset={() => {
+              recallSession.resetCurrentSession();
+              setTimeout(() => fitView(), 60);
+            }}
+            onRetryWeakOnly={() => {
+              recallSession.retryWeakNodesOnly();
+              setTimeout(() => fitView(), 60);
+            }}
+            onExportFlashcards={() => void recallSession.exportWeakNodesToFlashcards()}
+            onExit={() => {
+              recallSession.exitStudyMode();
+              setTimeout(() => fitView(), 60);
+            }}
+          />
+        )}
 
         <MindmapLeftToolbar
           toolMode={toolMode}
@@ -782,19 +942,50 @@ export function MindmapCanvas({
         />
 
         <AiMindmapPromptModal
+          open={copilotOpen}
+          onOpenChange={handleSetCopilotOpen}
           structure={structure}
           existingGraph={graph}
           selectedNodeId={selectedNodeId}
-          onApply={({ title: aiTitle, preview }) => {
+          onApply={({ title: aiTitle, periodLabel: aiPeriod, preview }) => {
+            const nextPeriod = aiPeriod || periodLabel;
             setTitle(aiTitle);
-            commitGraph(() => preview.graph);
+            if (aiPeriod) setPeriodLabel(aiPeriod);
+            const nextGraph = {
+              ...preview.graph,
+              ...(preview.structure ? { structure: preview.structure } : {}),
+            };
+            history.recordSnapshot(graph);
+            setGraph(nextGraph);
+            scheduleSave(aiTitle, nextGraph, nextPeriod);
             setSelectedNodeId(selectedNodeId ?? preview.graph.nodes[0]?.id ?? null);
             setTimeout(() => fitView(), 80);
           }}
         />
+
+        {/* Banner chỉ báo chế độ nối dây trực quan có thể nhấn Esc hoặc nút Hủy */}
+        {linkFromId && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 rounded-full border border-blue-200 bg-white/95 px-4 py-2 shadow-lg backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
+            <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-ping" />
+            <span className="text-xs font-semibold text-slate-800">
+              Đang chọn node đích để nối dây liên kết
+            </span>
+            <kbd className="hidden sm:inline-block rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
+              Esc
+            </kbd>
+            <button
+              type="button"
+              onClick={() => setLinkFromId(null)}
+              className="ml-1 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+              title="Hủy nối dây (Esc)"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
         </div>
 
-        {sidebarOpen && (
+        {sidebarOpen && !recallSession.isStudyMode && (
           <MindmapStyleSidebar
             activeTab={activeTab}
             onChangeTab={setActiveTab}
@@ -842,7 +1033,7 @@ export function MindmapCanvas({
         <ShareMindmapCommunityModal
           isOpen={shareOpen}
           mindmapTitle={title}
-          periodLabel={initialMindmap.periodLabel}
+          periodLabel={periodLabel || null}
           graph={graph}
           tree={tree}
           layout={layout}

@@ -74,9 +74,17 @@ export function estimateNodeSize(
   if (measured && measured.width > 10 && measured.height > 10) {
     return measured;
   }
-  const maxW = node.size ? NODE_SIZE_MAX_WIDTH[node.size] : MINDMAP_CANVAS.DEFAULT_NODE_WIDTH;
-  const estW = Math.min(maxW, Math.max(96, node.title.length * 8.5 + 36));
-  const estH = node.imageUrl ? 170 : MINDMAP_CANVAS.DEFAULT_NODE_HEIGHT;
+  const maxW = node.size
+    ? NODE_SIZE_MAX_WIDTH[node.size]
+    : node.imageUrl
+      ? NODE_SIZE_MAX_WIDTH.MD
+      : NODE_SIZE_MAX_WIDTH.LG;
+  const rawW = node.title.length * 8.5 + 40;
+  const estW = Math.min(maxW, Math.max(110, rawW));
+  const estimatedLines = Math.max(1, Math.ceil(rawW / maxW));
+  const estH = node.imageUrl
+    ? 170
+    : Math.max(MINDMAP_CANVAS.DEFAULT_NODE_HEIGHT, estimatedLines * 22 + 18);
   return { width: estW, height: estH };
 }
 
@@ -99,7 +107,8 @@ export function resolveNodeVisualVariant(
   const isHorizontalBranch =
     structure === MindmapStructure.MIND_MAP ||
     structure === MindmapStructure.LOGIC_CHART ||
-    structure === MindmapStructure.FISHBONE;
+    structure === MindmapStructure.FISHBONE ||
+    structure === MindmapStructure.TIMELINE;
   if (level >= 2 && isHorizontalBranch) {
     return NodeVisualVariant.UNDERLINE;
   }
@@ -594,12 +603,31 @@ class FishboneLayoutStrategy implements MindmapLayoutStrategy {
 
       const rootChildren = visibleChildren(tree, tree.rootId);
       const heightCache = new Map<string, number>();
+      const widthCache = new Map<string, number>();
+      const colWidths: number[] = [];
+
+      rootChildren.forEach((childId, idx) => {
+        const col = Math.floor(idx / 2);
+        const childNode = tree.nodeMap.get(childId)!;
+        const cSize = estimateNodeSize(childNode, ctx.sizes);
+        const subW = computeSubtreeSpan(childId, ctx, SpanAxis.WIDTH, GAP.MIND_X, widthCache);
+        const neededW = Math.max(GAP.FISH_COL, cSize.width + 80, subW + 80);
+        colWidths[col] = Math.max(colWidths[col] ?? 0, neededW);
+      });
+
+      const colOffsets: number[] = [];
+      let cursorX = rootSize.width + 130;
+      for (let col = 0; col < colWidths.length; col += 1) {
+        colOffsets[col] = cursorX;
+        cursorX += colWidths[col];
+      }
+
       rootChildren.forEach((childId, idx) => {
         const col = Math.floor(idx / 2);
         const isTop = idx % 2 === 0;
         const childNode = tree.nodeMap.get(childId)!;
         const cSize = estimateNodeSize(childNode, ctx.sizes);
-        const branchX = rootSize.width + 130 + col * GAP.FISH_COL;
+        const branchX = colOffsets[col] ?? rootSize.width + 130 + col * GAP.FISH_COL;
         const subH = computeSubtreeSpan(childId, ctx, SpanAxis.HEIGHT, GAP.MIND_Y, heightCache);
         const targetY = isTop ? -(150 + subH / 2) : 150 + subH / 2;
         spineMaxX = Math.max(spineMaxX, branchX + cSize.width + 80);
@@ -645,6 +673,116 @@ class FishboneLayoutStrategy implements MindmapLayoutStrategy {
   }
 }
 
+function parseTimelineYear(node?: MindmapNode): number | null {
+  if (!node) return null;
+  const raw = `${node.dateLabel ?? ''} ${node.title}`;
+  const tcnMatch = raw.match(/(\d{1,4})\s*(?:TCN|trước công nguyên)/i);
+  if (tcnMatch) {
+    return -parseInt(tcnMatch[1], 10);
+  }
+  const yearMatch = raw.match(/\b(\d{3,4})\b/);
+  if (yearMatch) {
+    return parseInt(yearMatch[1], 10);
+  }
+  return null;
+}
+
+class TimelineLayoutStrategy implements MindmapLayoutStrategy {
+  compute(ctx: LayoutStrategyContext): MindmapLayoutResult {
+    const placements = new Map<string, NodeLayoutPlacement>();
+    const routedEdges = new Map<string, RoutedEdgeGeometry>();
+    const { tree } = ctx;
+    let spineMaxX = 520;
+
+    if (tree.rootId) {
+      const rootNode = tree.nodeMap.get(tree.rootId)!;
+      const rootSize = estimateNodeSize(rootNode, ctx.sizes);
+      placements.set(tree.rootId, {
+        x: 0,
+        y: -Math.round(rootSize.height / 2),
+        width: rootSize.width,
+        height: rootSize.height,
+        side: MindmapBranchSide.RIGHT,
+        level: 0,
+        variant: resolveNodeVisualVariant(ctx.structure, 0, rootNode),
+      });
+
+      const rootChildren = visibleChildren(tree, tree.rootId);
+      const sortedChildren = [...rootChildren].sort((aId, bId) => {
+        const yA = parseTimelineYear(tree.nodeMap.get(aId));
+        const yB = parseTimelineYear(tree.nodeMap.get(bId));
+        if (yA !== null && yB !== null) return yA - yB;
+        if (yA !== null) return -1;
+        if (yB !== null) return 1;
+        return 0;
+      });
+
+      const heightCache = new Map<string, number>();
+      const widthCache = new Map<string, number>();
+      let currentX = rootSize.width + 120;
+
+      sortedChildren.forEach((childId, idx) => {
+        const isTop = idx % 2 === 0;
+        const childNode = tree.nodeMap.get(childId)!;
+        const cSize = estimateNodeSize(childNode, ctx.sizes);
+        const subH = computeSubtreeSpan(childId, ctx, SpanAxis.HEIGHT, GAP.MIND_Y, heightCache);
+        const subW = computeSubtreeSpan(childId, ctx, SpanAxis.WIDTH, GAP.MIND_X, widthCache);
+
+        const targetY = isTop ? -(110 + subH / 2) : 110 + subH / 2;
+        const branchX = currentX;
+
+        placeHorizontalSubtree(
+          childId,
+          branchX,
+          targetY,
+          MindmapBranchSide.RIGHT,
+          ctx,
+          heightCache,
+          placements,
+        );
+
+        const colSpan = Math.max(cSize.width, subW);
+        currentX += colSpan + 80;
+        spineMaxX = Math.max(spineMaxX, currentX);
+      });
+    }
+
+    placeStickyAndOrphans(ctx, placements);
+
+    for (const edge of tree.treeEdges) {
+      const from = placements.get(edge.fromId);
+      const to = placements.get(edge.toId);
+      if (!from || !to) continue;
+      if (edge.fromId === tree.rootId) {
+        const anchorX = to.x + Math.min(24, Math.round(to.width / 2));
+        const endY = to.y < 0 ? to.y + to.height : to.y;
+        routedEdges.set(edge.id, {
+          d: `M ${anchorX} 0 L ${anchorX} ${endY}`,
+          midX: anchorX,
+          midY: endY / 2,
+        });
+      } else {
+        routedEdges.set(edge.id, buildHorizontalEdgeGeometry(from, to, MindmapEdgeStyle.STEP));
+      }
+    }
+
+    routeTreeEdges(
+      tree.crossEdges,
+      placements,
+      ctx,
+      buildNearestEdgeGeometry,
+      routedEdges,
+    );
+
+    const rootPlace = tree.rootId ? placements.get(tree.rootId) : undefined;
+    const spineLine = rootPlace
+      ? { x1: rootPlace.x + rootPlace.width, y1: 0, x2: spineMaxX + 40, y2: 0 }
+      : undefined;
+
+    return { placements, routedEdges, spineLine };
+  }
+}
+
 class FreeformLayoutStrategy implements MindmapLayoutStrategy {
   compute(ctx: LayoutStrategyContext): MindmapLayoutResult {
     const placements = new Map<string, NodeLayoutPlacement>();
@@ -681,6 +819,7 @@ const LAYOUT_STRATEGIES: Record<MindmapStructure, MindmapLayoutStrategy> = {
   [MindmapStructure.ORG_CHART]: new OrgChartLayoutStrategy(),
   [MindmapStructure.LOGIC_CHART]: new MindMapSideLayoutStrategy(false),
   [MindmapStructure.FISHBONE]: new FishboneLayoutStrategy(),
+  [MindmapStructure.TIMELINE]: new TimelineLayoutStrategy(),
   [MindmapStructure.FREEFORM]: new FreeformLayoutStrategy(),
 };
 
@@ -705,16 +844,22 @@ export function computeFitViewportFromPlacements(
 
   const contentW = Math.max(1, maxX - minX);
   const contentH = Math.max(1, maxY - minY);
-  const pad = 72;
+  const padTop = 56;
+  const padRight = 56;
+  const padBottom = 132;
+  const padLeft = 84;
 
-  const scaleX = (viewportWidth - pad * 2) / contentW;
-  const scaleY = (viewportHeight - pad * 2) / contentH;
+  const availW = Math.max(120, viewportWidth - padLeft - padRight);
+  const availH = Math.max(120, viewportHeight - padTop - padBottom);
+
+  const scaleX = availW / contentW;
+  const scaleY = availH / contentH;
   const zoom = Math.max(
     MINDMAP_CANVAS.MIN_ZOOM,
     Math.min(1, Number(Math.min(scaleX, scaleY).toFixed(2))),
   );
 
-  const panX = Math.round((viewportWidth - contentW * zoom) / 2 - minX * zoom);
-  const panY = Math.round((viewportHeight - contentH * zoom) / 2 - minY * zoom);
+  const panX = Math.round(padLeft + (availW - contentW * zoom) / 2 - minX * zoom);
+  const panY = Math.round(padTop + (availH - contentH * zoom) / 2 - minY * zoom);
   return { pan: { x: panX, y: panY }, zoom };
 }

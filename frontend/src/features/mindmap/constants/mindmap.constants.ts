@@ -67,6 +67,7 @@ export enum MindmapStructure {
   LOGIC_CHART = 'LOGIC_CHART',
   FISHBONE = 'FISHBONE',
   FREEFORM = 'FREEFORM',
+  TIMELINE = 'TIMELINE',
 }
 
 export enum MindmapMapTheme {
@@ -242,6 +243,11 @@ export const STRUCTURE_OPTIONS: ReadonlyArray<{
     id: MindmapStructure.FISHBONE,
     label: 'Sơ đồ xương cá',
     hint: 'Xương sống ngang phân tích nguyên nhân',
+  },
+  {
+    id: MindmapStructure.TIMELINE,
+    label: 'Dòng thời gian (Timeline)',
+    hint: 'Trục niên biểu ngang, phân nhánh so le theo mốc năm',
   },
   {
     id: MindmapStructure.FREEFORM,
@@ -726,9 +732,65 @@ export const IMAGE_HEIGHT_PX: Record<MindmapImageHeight, number> = {
 export const MINDMAP_CANVAS = {
   DEFAULT_NODE_WIDTH: 148,
   DEFAULT_NODE_HEIGHT: 42,
-  MIN_ZOOM: 0.35,
+  MIN_ZOOM: 0.18,
   MAX_ZOOM: 1.85,
   ZOOM_STEP: 0.12,
   AUTOSAVE_DELAY_MS: 850,
   MAX_HISTORY: 40,
 } as const;
+
+/**
+ * Mức thu gọn nhanh khi biên tập sơ đồ (Edit Mode)
+ */
+export enum MindmapCollapsePreset {
+  ROOT_ONLY = 'ROOT_ONLY',
+  LEVEL_1 = 'LEVEL_1',
+  EXPAND_ALL = 'EXPAND_ALL',
+}
+
+/**
+ * 3 Chiến lược Ôn tập Chủ động (Active Recall Mode)
+ */
+export enum MindmapRecallMode {
+  PROGRESSIVE_UNFOLD = 'PROGRESSIVE_UNFOLD',
+  BLUR_CLOZE = 'BLUR_CLOZE',
+  DATE_DETAIL_ONLY = 'DATE_DETAIL_ONLY',
+}
+
+/**
+ * Mức tự đánh giá trí nhớ trên từng nhánh khi ôn tập
+ */
+export enum MindmapRecallRating {
+  REMEMBERED = 'REMEMBERED',
+  NEEDS_REVIEW = 'NEEDS_REVIEW',
+}
+
+export interface MindmapRecallStrategyOption {
+  mode: MindmapRecallMode;
+  stepNumber: string;
+  title: string;
+  summary: string;
+  isRecommended?: boolean;
+}
+
+export const MINDMAP_RECALL_STRATEGY_OPTIONS: ReadonlyArray<MindmapRecallStrategyOption> = [
+  {
+    mode: MindmapRecallMode.PROGRESSIVE_UNFOLD,
+    stepNumber: '01',
+    title: 'Thu gọn mở dần',
+    summary: 'Thu gọn từng nhánh, mở dần theo tiến trình ôn tập.',
+    isRecommended: true,
+  },
+  {
+    mode: MindmapRecallMode.BLUR_CLOZE,
+    stepNumber: '02',
+    title: 'Che mờ thông tin',
+    summary: 'Giữ khung cây nhưng che mờ chữ để tự nhớ và kiểm tra.',
+  },
+  {
+    mode: MindmapRecallMode.DATE_DETAIL_ONLY,
+    stepNumber: '03',
+    title: 'Ôn tập theo mốc',
+    summary: 'Chỉ che Mốc niên đại và Ghi chú để luyện nhớ lịch sử.',
+  },
+];

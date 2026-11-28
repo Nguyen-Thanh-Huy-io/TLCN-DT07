@@ -18,6 +18,7 @@ export enum MindmapStructure {
   LOGIC_CHART = 'LOGIC_CHART',
   FISHBONE = 'FISHBONE',
   FREEFORM = 'FREEFORM',
+  TIMELINE = 'TIMELINE',
 }
 
 export enum MindmapMapTheme {
@@ -50,7 +51,7 @@ export const MINDMAP_LIMITS = {
   MAX_AI_NOTES: 25,
   MAX_AI_ARTICLES: 10,
   MAX_PROMPT_LENGTH: 4000,
-  AI_TIMEOUT_MS: 15_000,
+  AI_TIMEOUT_MS: 28_000,
 } as const;
 
 export const MINDMAP_MESSAGES = {

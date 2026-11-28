@@ -58,6 +58,20 @@ function StructurePreviewSvg({ structure }: { structure: MindmapStructure }) {
       </svg>
     );
   }
+  if (structure === MindmapStructure.TIMELINE) {
+    return (
+      <svg viewBox="0 0 64 36" className="h-7 w-12 text-slate-600" fill="none">
+        <rect x="3" y="14" width="14" height="8" rx="2" fill="currentColor" opacity="0.85" />
+        <path d="M17 18 H60 M28 18 V9 M42 18 V27 M54 18 V9" stroke="currentColor" strokeWidth="1.6" />
+        <circle cx="28" cy="18" r="2" fill="currentColor" />
+        <circle cx="42" cy="18" r="2" fill="currentColor" />
+        <circle cx="54" cy="18" r="2" fill="currentColor" />
+        <rect x="22" y="4" width="12" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" />
+        <rect x="36" y="27" width="12" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" />
+        <rect x="48" y="4" width="12" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" />
+      </svg>
+    );
+  }
   return (
     <svg viewBox="0 0 64 36" className="h-7 w-12 text-slate-600" fill="none">
       <rect x="23" y="13" width="18" height="10" rx="2" fill="currentColor" opacity="0.85" />
@@ -110,7 +124,7 @@ function OutlineNodeRow({
       <div
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         className={`group flex items-center justify-between gap-1 rounded-lg py-1.5 pr-2 text-xs transition ${
-          active ? 'bg-blue-50 font-bold text-blue-800' : 'text-slate-700 hover:bg-slate-50'
+          active ? 'bg-[#F6E9EA] font-bold text-[#7A1F24]' : 'text-slate-700 hover:bg-slate-50'
         }`}
       >
         <button
@@ -127,7 +141,7 @@ function OutlineNodeRow({
           type="button"
           onClick={() => onAddChild(nodeId)}
           title="Thêm nhánh con"
-          className="rounded p-0.5 text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-blue-100 hover:text-blue-700 cursor-pointer"
+          className="rounded p-0.5 text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-[#F6E9EA] hover:text-[#7A1F24] cursor-pointer"
         >
           <Plus size={12} />
         </button>
@@ -213,7 +227,7 @@ export function MindmapStyleSidebar({
   return (
     <aside
       aria-label="Bảng thiết kế Sơ đồ tư duy"
-      className="fixed top-0 right-0 bottom-0 z-40 flex h-full w-80 max-w-[88vw] shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white shadow-2xl lg:static lg:z-auto lg:max-w-none lg:shadow-sm print:hidden"
+      className="absolute inset-y-0 right-0 z-30 flex h-full w-80 max-w-[88vw] shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white shadow-2xl lg:static lg:z-auto lg:max-w-none lg:shadow-sm print:hidden"
     >
       {/* Hàng Tab Icon trên cùng khớp bố cục MindMeister */}
       <div className="flex items-center justify-between border-b border-slate-100 px-2.5 py-2">
@@ -239,7 +253,7 @@ export function MindmapStyleSidebar({
                 onClick={() => onChangeTab(tab.id)}
                 className={`grid size-8 place-items-center rounded-xl transition cursor-pointer ${
                   active
-                    ? 'bg-indigo-100 text-indigo-700 shadow-2xs'
+                    ? 'bg-[#F6E9EA] text-[#7A1F24] shadow-2xs'
                     : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
                 }`}
               >
@@ -289,7 +303,7 @@ export function MindmapStyleSidebar({
                         }}
                         className={`flex items-center gap-2.5 rounded-lg border p-2 text-left transition cursor-pointer ${
                           active
-                            ? 'border-blue-500 bg-blue-50/80 text-blue-900'
+                            ? 'border-[#7A1F24] bg-[#F6E9EA]/80 text-[#7A1F24]'
                             : 'border-transparent bg-white hover:border-slate-200'
                         }`}
                       >
@@ -318,7 +332,7 @@ export function MindmapStyleSidebar({
                       onClick={() => onUpdateGraphMeta({ mapTheme: cfg.id, customBgColor: undefined })}
                       title={cfg.label}
                       className={`group rounded-xl p-1 text-center transition cursor-pointer ${
-                        active ? 'ring-2 ring-indigo-500 bg-indigo-50/40' : 'hover:bg-slate-50'
+                        active ? 'ring-2 ring-[#7A1F24] bg-[#F6E9EA]/40' : 'hover:bg-slate-50'
                       }`}
                     >
                       <ThemeThumbnailSvg colors={cfg.previewColors} bg={cfg.canvasBg} />
@@ -380,7 +394,7 @@ export function MindmapStyleSidebar({
                   aria-checked={balancedBranches}
                   onClick={() => onUpdateGraphMeta({ balancedBranches: !balancedBranches })}
                   className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors cursor-pointer ${
-                    balancedBranches ? 'bg-indigo-600' : 'bg-slate-300'
+                    balancedBranches ? 'bg-[#7A1F24]' : 'bg-slate-300'
                   }`}
                 >
                   <span
@@ -399,7 +413,7 @@ export function MindmapStyleSidebar({
                   aria-checked={showGrid}
                   onClick={() => onUpdateGraphMeta({ showGrid: !showGrid })}
                   className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors cursor-pointer ${
-                    showGrid ? 'bg-indigo-600' : 'bg-slate-300'
+                    showGrid ? 'bg-[#7A1F24]' : 'bg-slate-300'
                   }`}
                 >
                   <span

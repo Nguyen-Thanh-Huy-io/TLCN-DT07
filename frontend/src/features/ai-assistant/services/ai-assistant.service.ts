@@ -43,6 +43,7 @@ export interface AiAssistantChatResponse {
   reply: string;
   engine: AssistantEngine;
   contextLabel?: string;
+  suggestGoogleFallback?: boolean;
   suggestedLinks: AssistantSuggestedLink[];
   sourceCitations?: AssistantSourceCitation[];
   webSources?: AssistantWebSource[];
@@ -58,6 +59,8 @@ export const AiAssistantApiService = {
     history?: AssistantHistoryItem[];
     useGoogleSearch?: boolean;
   }): Promise<AiAssistantChatResponse> {
-    return unwrap(await api.post(AI_ASSISTANT_API.CHAT, input));
+    return unwrap(
+      await api.post(AI_ASSISTANT_API.CHAT, input, { timeout: 28000 }),
+    );
   },
 };

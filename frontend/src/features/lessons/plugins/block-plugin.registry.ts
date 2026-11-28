@@ -143,7 +143,10 @@ export const calloutBlockPlugin: BlockPlugin<CalloutBlockData> = {
     const boxStyleMeta = resolveCalloutBoxStyleOption(block.boxStyle);
     const icon = resolveCalloutIcon(block);
     const titleText = (block.title || '').trim();
-    const innerBodyHtml = `${renderCalloutMediaHtml(block.media)}${renderCalloutBodyHtml(block.content)}`;
+    const audioHtml = block.audioUrl?.trim()
+      ? `<div class="hisgo-block-audio" style="margin-top:0.75rem;padding:0.5rem 0.75rem;border-radius:0.75rem;background:rgba(122,31,36,0.04);border:1px solid rgba(184,137,63,0.28);"><div style="font-size:0.75rem;font-weight:700;margin-bottom:0.35rem;color:#7A1F24;">🔊 ${escapeHtml((block.audioLabel || 'Ghi chú âm thanh').trim())}</div><audio controls preload="metadata" src="${safeUrl(block.audioUrl.trim())}" style="width:100%;height:36px;"></audio></div>`
+      : '';
+    const innerBodyHtml = `${renderCalloutMediaHtml(block.media)}${renderCalloutBodyHtml(block.content)}${audioHtml}`;
     const iconHtml = icon
       ? `<span class="hisgo-callout-icon" aria-hidden="true">${escapeHtml(icon)}</span>`
       : '';

@@ -5,7 +5,8 @@ import Link from 'next/link';
 import {
   ArrowRight,
   Calendar,
-  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   History,
   Landmark,
   MapPin,
@@ -14,24 +15,20 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
-import { ChipGroup, FilterSection, PickedCount, toggleValue } from '@/components/filters/ChipFilter';
+import { PublicContentFilterSections } from '@/components/filters/PublicContentFilterSections';
 import { RemoteImage } from '@/components/common/CommonUi';
 import {
   PUBLIC_ROUTES,
-  SYSTEM_CATEGORY_ROOT_SLUGS,
+  type ArticleCatalogTagFacet,
   type PublicCategory,
 } from '@/services/public/public-content.service';
 import {
-  ArticleFilterKey,
+  ARTICLE_PAGE_SIZE_OPTIONS,
   ArticleMetaIconKey,
   getArticleCardMetaStrategy,
   type ArticleFilters,
-  type ArticleJsonbFacets,
   type ArticleRow,
-  type JsonbFacetOption,
 } from './article-library.strategy';
-
-const INLINE_PILL_LIMIT = 5;
 
 const META_ICON_MAP: Record<ArticleMetaIconKey, LucideIcon> = {
   [ArticleMetaIconKey.MAP_PIN]: MapPin,
@@ -42,241 +39,189 @@ const META_ICON_MAP: Record<ArticleMetaIconKey, LucideIcon> = {
   [ArticleMetaIconKey.QUOTE]: Quote,
 };
 
-function CollapsibleQuickFacetRow({
-  label,
-  options,
-  selected,
-  onToggle,
-}: {
-  label: string;
-  options: JsonbFacetOption[];
-  selected: string[];
-  onToggle: (value: string) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  if (options.length === 0) return null;
-
-  const visibleOptions =
-    expanded || options.length <= INLINE_PILL_LIMIT
-      ? options
-      : options.filter((opt, idx) => idx < INLINE_PILL_LIMIT || selected.includes(opt.value));
-  const hiddenCount = options.length - visibleOptions.length;
-
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 text-xs">
-      <span className="mr-1 font-semibold text-stone-500">{label}:</span>
-      {visibleOptions.map((opt) => {
-        const active = selected.includes(opt.value);
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => onToggle(opt.value)}
-            className={`sk-button !px-2.5 !py-1 !text-xs ${active ? 'sk-primary' : ''}`}
-          >
-            {opt.label} ({opt.count})
-          </button>
-        );
-      })}
-      {(hiddenCount > 0 || (expanded && options.length > INLINE_PILL_LIMIT)) && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-[#8C2D19] hover:underline"
-        >
-          <span>{expanded ? 'Thu gọn' : `+${hiddenCount} xem thêm`}</span>
-          <ChevronDown size={13} className={expanded ? 'rotate-180 transition-transform' : 'transition-transform'} />
-        </button>
-      )}
-    </div>
-  );
-}
-
-/**
- * Bộ lọc nhanh theo thuộc tính: chỉ hiển thị những thuộc tính thực sự thuộc về loại bài viết đang xem.
- */
-export function ArticleAdaptiveSubFilters({
-  activeKind,
-  childCategories,
-  jsonbFacets,
-  filters,
-  onToggleFilter,
-}: {
-  activeKind: string | null;
-  childCategories: Array<{ cat: PublicCategory; count: number }>;
-  jsonbFacets: ArticleJsonbFacets;
-  filters: ArticleFilters;
-  onToggleFilter: (key: ArticleFilterKey, value: string) => void;
-}) {
-  const showLocationFacets =
-    activeKind === SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION &&
-    (jsonbFacets.siteTypes.length > 0 || jsonbFacets.preservations.length > 0);
-  const showPersonFacets = activeKind === SYSTEM_CATEGORY_ROOT_SLUGS.PERSON && jsonbFacets.personRoles.length > 0;
-  const showChildCategories = childCategories.length > 0;
-
-  if (!showLocationFacets && !showPersonFacets && !showChildCategories) return null;
-
-  const childOptions: JsonbFacetOption[] = childCategories.map(({ cat, count }) => ({
-    value: cat.id,
-    label: cat.name,
-    count,
-  }));
-
-  return (
-    <div className="mt-4 space-y-2 rounded-xl border border-stone-200/80 bg-white/60 p-3">
-      {showChildCategories && (
-        <CollapsibleQuickFacetRow
-          label="Phân nhóm"
-          options={childOptions}
-          selected={filters.categories}
-          onToggle={(v) => onToggleFilter(ArticleFilterKey.CATEGORIES, v)}
-        />
-      )}
-      {showLocationFacets && (
-        <>
-          <CollapsibleQuickFacetRow
-            label="Loại hình di tích"
-            options={jsonbFacets.siteTypes}
-            selected={filters.siteTypes}
-            onToggle={(v) => onToggleFilter(ArticleFilterKey.SITE_TYPES, v)}
-          />
-          <CollapsibleQuickFacetRow
-            label="Hiện trạng bảo tồn"
-            options={jsonbFacets.preservations}
-            selected={filters.preservations}
-            onToggle={(v) => onToggleFilter(ArticleFilterKey.PRESERVATIONS, v)}
-          />
-        </>
-      )}
-      {showPersonFacets && (
-        <CollapsibleQuickFacetRow
-          label="Vai trò & Danh hiệu"
-          options={jsonbFacets.personRoles}
-          selected={filters.personRoles}
-          onToggle={(v) => onToggleFilter(ArticleFilterKey.PERSON_ROLES, v)}
-        />
-      )}
-    </div>
-  );
-}
-
-/**
- * Nội dung hộp thoại Bộ lọc nâng cao:
- * - Đã bỏ hẳn mục lọc "Thời kỳ" (trùng lặp với phân nhóm Chủ đề Topic).
- * - Chỉ hiển thị các nhóm thuộc tính đúng với loại bài viết đang xem (`activeKind`).
- */
+/** Nội dung hộp thoại Bộ lọc nâng cao — tái sử dụng 100% PublicContentFilterSections. */
 export function ArticleFilterDialogSections({
   draft,
   setDraft,
-  activeKind,
-  isScopedCategory,
-  categoryOptions,
+  categories,
+  branchCategoryCounts,
   tagOptions,
-  jsonbFacets,
 }: {
   draft: ArticleFilters;
   setDraft: (update: (d: ArticleFilters) => ArticleFilters) => void;
-  activeKind: string | null;
-  isScopedCategory: boolean;
-  categoryOptions: Array<{ cat: PublicCategory; count: number }>;
-  tagOptions: Array<{ id: string; name: string; count: number }>;
-  jsonbFacets: ArticleJsonbFacets;
+  categories: PublicCategory[];
+  branchCategoryCounts: Map<string, number>;
+  tagOptions: ArticleCatalogTagFacet[];
 }) {
-  const toggle = (key: ArticleFilterKey, v: string) =>
-    setDraft((d) => ({ ...d, [key]: toggleValue(d[key], v) }));
+  return (
+    <PublicContentFilterSections
+      draft={draft}
+      setDraft={setDraft}
+      categories={categories}
+      branchCategoryCounts={branchCategoryCounts}
+      tagOptions={tagOptions}
+    />
+  );
+}
 
-  const isLocationKind = activeKind === SYSTEM_CATEGORY_ROOT_SLUGS.LOCATION;
-  const isPersonKind = activeKind === SYSTEM_CATEGORY_ROOT_SLUGS.PERSON;
+const ELLIPSIS_TOKEN = -1;
+
+function buildPaginationTokens(page: number, totalPages: number): number[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, idx) => idx + 1);
+  }
+  const pages = new Set<number>([1, totalPages, page - 1, page, page + 1]);
+  if (page <= 3) {
+    pages.add(2);
+    pages.add(3);
+    pages.add(4);
+  }
+  if (page >= totalPages - 2) {
+    pages.add(totalPages - 3);
+    pages.add(totalPages - 2);
+    pages.add(totalPages - 1);
+  }
+  const sorted = [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+  const tokens: number[] = [];
+  for (let i = 0; i < sorted.length; i += 1) {
+    if (i > 0 && sorted[i] - sorted[i - 1] > 1) {
+      tokens.push(ELLIPSIS_TOKEN);
+    }
+    tokens.push(sorted[i]);
+  }
+  return tokens;
+}
+
+/** Thanh phân trang số chuẩn thư viện kèm chọn số bài tối đa mỗi trang (24 / 48 / 96) và ô nhảy trang. */
+export function ArticleCatalogPagination({
+  page,
+  limit,
+  total,
+  totalPages,
+  onChangePage,
+  onChangeLimit,
+}: {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  onChangePage: (page: number) => void;
+  onChangeLimit: (limit: number) => void;
+}) {
+  const [jumpInput, setJumpInput] = useState('');
+  if (total === 0) return null;
+
+  const startIdx = (page - 1) * limit + 1;
+  const endIdx = Math.min(page * limit, total);
+  const tokens = buildPaginationTokens(page, totalPages);
+
+  const submitJump = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = Number.parseInt(jumpInput, 10);
+    if (Number.isFinite(parsed) && parsed >= 1 && parsed <= totalPages) {
+      onChangePage(parsed);
+      setJumpInput('');
+    }
+  };
 
   return (
-    <>
-      {categoryOptions.length > 0 && (
-        <FilterSection
-          card
-          title={isScopedCategory ? 'Phân nhóm chuyên mục' : 'Chuyên mục'}
-          aside={<PickedCount count={draft.categories.length} />}
-        >
-          <ChipGroup
-            options={categoryOptions.map(({ cat, count }) => ({
-              value: cat.id,
-              label: cat.name,
-              hint: `${count} bài viết`,
-            }))}
-            selected={draft.categories}
-            onToggle={(v) => toggle(ArticleFilterKey.CATEGORIES, v)}
-            searchLabel="Tìm chuyên mục..."
-          />
-        </FilterSection>
-      )}
+    <nav
+      aria-label="Phân trang bài viết"
+      className="mt-8 flex flex-col gap-4 rounded-2xl border border-[#E2D5B8] bg-[#FAF6EA] p-4 shadow-2xs lg:flex-row lg:items-center lg:justify-between"
+    >
+      <div className="flex flex-wrap items-center gap-3 text-xs text-[#6E5F55]">
+        <span>
+          Hiển thị <strong className="text-[#2D1A10]">{startIdx.toLocaleString('vi-VN')}</strong>–
+          <strong className="text-[#2D1A10]">{endIdx.toLocaleString('vi-VN')}</strong> /{' '}
+          <strong className="text-[#7A1F24]">{total.toLocaleString('vi-VN')}</strong> bài viết
+        </span>
 
-      {isLocationKind && jsonbFacets.siteTypes.length > 0 && (
-        <FilterSection
-          card={categoryOptions.length === 0}
-          title="Loại hình di tích"
-          aside={<PickedCount count={draft.siteTypes.length} />}
-        >
-          <ChipGroup
-            options={jsonbFacets.siteTypes.map((s) => ({
-              value: s.value,
-              label: s.label,
-              hint: `${s.count} di tích`,
-            }))}
-            selected={draft.siteTypes}
-            onToggle={(v) => toggle(ArticleFilterKey.SITE_TYPES, v)}
-            searchLabel="Tìm loại hình di tích..."
-          />
-        </FilterSection>
-      )}
+        <div className="inline-flex items-center gap-1 rounded-xl border border-[#E2D5B8] bg-white px-2 py-1">
+          <span className="px-1 font-semibold text-[#7A6B57]">Mỗi trang:</span>
+          {ARTICLE_PAGE_SIZE_OPTIONS.map((opt) => {
+            const active = opt === limit;
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => onChangeLimit(opt)}
+                aria-pressed={active}
+                className={`rounded-lg px-2 py-0.5 text-xs font-bold transition cursor-pointer ${
+                  active ? 'bg-[#7A1F24] text-white' : 'text-[#6E5F55] hover:bg-[#F5EEDC]'
+                }`}
+              >
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-      {isLocationKind && jsonbFacets.preservations.length > 0 && (
-        <FilterSection title="Hiện trạng bảo tồn" aside={<PickedCount count={draft.preservations.length} />}>
-          <ChipGroup
-            options={jsonbFacets.preservations.map((p) => ({
-              value: p.value,
-              label: p.label,
-              hint: `${p.count} di tích`,
-            }))}
-            selected={draft.preservations}
-            onToggle={(v) => toggle(ArticleFilterKey.PRESERVATIONS, v)}
-            searchLabel="Tìm hiện trạng..."
-          />
-        </FilterSection>
-      )}
+      {totalPages > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => onChangePage(page - 1)}
+            className="inline-flex items-center gap-1 rounded-xl border border-[#E2D5B8] bg-white px-2.5 py-1.5 text-xs font-bold text-[#2D1A10] disabled:opacity-40 cursor-pointer hover:border-[#B8893F]"
+          >
+            <ChevronLeft size={14} /> Trước
+          </button>
 
-      {isPersonKind && jsonbFacets.personRoles.length > 0 && (
-        <FilterSection
-          card={categoryOptions.length === 0}
-          title="Vai trò & Danh hiệu"
-          aside={<PickedCount count={draft.personRoles.length} />}
-        >
-          <ChipGroup
-            options={jsonbFacets.personRoles.map((r) => ({
-              value: r.value,
-              label: r.label,
-              hint: `${r.count} nhân vật`,
-            }))}
-            selected={draft.personRoles}
-            onToggle={(v) => toggle(ArticleFilterKey.PERSON_ROLES, v)}
-            searchLabel="Tìm vai trò..."
-          />
-        </FilterSection>
-      )}
+          {tokens.map((tok, idx) =>
+            tok === ELLIPSIS_TOKEN ? (
+              <span key={`dots-${idx}`} className="px-1.5 text-xs font-bold text-[#7A6B57]">
+                …
+              </span>
+            ) : (
+              <button
+                key={tok}
+                type="button"
+                onClick={() => onChangePage(tok)}
+                aria-current={tok === page ? 'page' : undefined}
+                className={`min-w-8 rounded-xl border px-2.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                  tok === page
+                    ? 'border-[#7A1F24] bg-[#7A1F24] text-white shadow-2xs'
+                    : 'border-[#E2D5B8] bg-white text-[#2D1A10] hover:border-[#B8893F]'
+                }`}
+              >
+                {tok}
+              </button>
+            ),
+          )}
 
-      {tagOptions.length > 0 && (
-        <FilterSection title="Chủ điểm" aside={<PickedCount count={draft.tags.length} />}>
-          <ChipGroup
-            options={tagOptions.map((t) => ({
-              value: t.id,
-              label: t.name,
-              hint: `${t.count} bài viết`,
-            }))}
-            selected={draft.tags}
-            onToggle={(v) => toggle(ArticleFilterKey.TAGS, v)}
-            searchLabel="Tìm chủ điểm..."
-          />
-        </FilterSection>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => onChangePage(page + 1)}
+            className="inline-flex items-center gap-1 rounded-xl border border-[#E2D5B8] bg-white px-2.5 py-1.5 text-xs font-bold text-[#2D1A10] disabled:opacity-40 cursor-pointer hover:border-[#B8893F]"
+          >
+            Tiếp <ChevronRight size={14} />
+          </button>
+
+          {totalPages > 7 && (
+            <form onSubmit={submitJump} className="ml-1 inline-flex items-center gap-1">
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={jumpInput}
+                onChange={(e) => setJumpInput(e.target.value)}
+                placeholder={`1–${totalPages}`}
+                aria-label="Nhập số trang cần đến"
+                className="w-16 rounded-xl border border-[#E2D5B8] bg-white px-2 py-1.5 text-center text-xs font-semibold text-[#2D1A10]"
+              />
+              <button
+                type="submit"
+                className="rounded-xl border border-[#E2D5B8] bg-white px-2.5 py-1.5 text-xs font-bold text-[#7A1F24] hover:border-[#B8893F] cursor-pointer"
+              >
+                Đi
+              </button>
+            </form>
+          )}
+        </div>
       )}
-    </>
+    </nav>
   );
 }
 

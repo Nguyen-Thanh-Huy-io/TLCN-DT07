@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, ChevronDown, Search, X } from 'lucide-react';
 import { KeyboardKey } from '@/constants/enums';
-import type { TopicBlock, TopicLeafGroup } from '@/services/entities/landing-graph';
+import type { PublicTopicRef } from '@/services/public/public-content.service';
 
 /** Đệ quy vì cây Topic có thể sâu nhiều cấp. */
 export interface TocNode {
@@ -15,76 +15,70 @@ export interface TocNode {
   children?: TocNode[];
 }
 
-export function jumpToTopicElement(id: string): void {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-export function buildTopicTocNodes<T>(topicBlocks: TopicBlock<T>[]): TocNode[] {
-  return topicBlocks.map((block) => {
-    const total = block.leaves.reduce((n, l) => n + l.items.length, 0);
-    const singleLeaf = block.leaves.length === 1 && block.leaves[0].id === block.id;
-    return {
-      id: `topic-${block.id}`,
-      title: block.name,
+function buildTopicChildNodes(
+  parentId: string,
+  childrenByParent: Map<string, PublicTopicRef[]>,
+  leafCountById: Map<string, number>,
+  seen: Set<string>,
+): TocNode[] {
+  const result: TocNode[] = [];
+  for (const t of childrenByParent.get(parentId) ?? []) {
+    if (seen.has(t.id)) continue;
+    seen.add(t.id);
+    const children = buildTopicChildNodes(t.id, childrenByParent, leafCountById, seen);
+    const ownCount = leafCountById.get(t.id) ?? 0;
+    const childSum = children.reduce((s, c) => s + c.count, 0);
+    const total = ownCount + childSum;
+    if (total === 0) continue;
+    result.push({
+      id: `topic-leaf-${t.id}`,
+      title: t.name,
       count: total,
-      children: singleLeaf
-        ? undefined
-        : block.leaves.map((leaf) => ({
-            id: `topic-leaf-${leaf.id}`,
-            title: leaf.name,
-            count: leaf.items.length,
-          })),
-    };
-  });
+      ...(children.length > 0 ? { children } : {}),
+    });
+  }
+  return result;
 }
 
-export function TopicBlockSection<T>({
-  block,
-  itemLabel,
-  children,
-}: {
-  block: TopicBlock<T>;
-  itemLabel: string;
-  children: ReactNode;
-}) {
-  const [open, setOpen] = useState(true);
-  const total = block.leaves.reduce((n, l) => n + l.items.length, 0);
-  return (
-    <section className="sk-era-section" id={`topic-${block.id}`}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="mb-4 flex w-full items-center justify-between gap-4 rounded-2xl border border-[#E2D5B8] bg-[#FAF6EA] px-5 py-3.5 text-left shadow-xs transition hover:border-[#B8893F] cursor-pointer"
-      >
-        <span className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-          <strong className="font-[family-name:var(--font-heading)] text-base font-bold text-[#2D1A10] sm:text-lg">
-            {block.name}
-          </strong>
-          <small className="text-xs font-semibold text-[#7A6B57]">
-            {total} {itemLabel} · {block.leaves.length} chủ đề con
-          </small>
-        </span>
-        <ChevronDown
-          size={18}
-          className={`shrink-0 text-[#7A1F24] transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
-        />
-      </button>
-      {open && children}
-    </section>
+/** Dựng cây Mục lục Chủ đề trực tiếp từ bảng `topicCounts` do Server trả về trên toàn kho bài viết. */
+export function buildServerTopicTocNodes(
+  topics: PublicTopicRef[],
+  topicCounts: Record<string, number>,
+): TocNode[] {
+  if (topics.length === 0) return [];
+  const childrenByParent = new Map<string, PublicTopicRef[]>();
+  const roots: PublicTopicRef[] = [];
+  for (const t of topics) {
+    if (!t.parentId) {
+      roots.push(t);
+      continue;
+    }
+    const list = childrenByParent.get(t.parentId) ?? [];
+    list.push(t);
+    childrenByParent.set(t.parentId, list);
+  }
+  const leafCountById = new Map<string, number>(
+    Object.entries(topicCounts).map(([id, cnt]) => [id, cnt]),
   );
-}
-
-export function TopicLeafHeading<T>({ leaf, itemLabel }: { leaf: TopicLeafGroup<T>; itemLabel: string }) {
-  return (
-    <div className="sk-sub-heading">
-      <div>
-        <h3>{leaf.name}</h3>
-        <span className="sk-sub-count">
-          {leaf.items.length} {itemLabel}
-        </span>
-      </div>
-    </div>
-  );
+  const result: TocNode[] = [];
+  for (const root of roots) {
+    const children = buildTopicChildNodes(
+      root.id,
+      childrenByParent,
+      leafCountById,
+      new Set([root.id]),
+    );
+    const ownCount = leafCountById.get(root.id) ?? 0;
+    const total = ownCount + children.reduce((sum, c) => sum + c.count, 0);
+    if (total === 0) continue;
+    result.push({
+      id: `topic-leaf-${root.id}`,
+      title: root.name,
+      count: total,
+      ...(children.length > 0 ? { children } : {}),
+    });
+  }
+  return result;
 }
 
 export interface TocDrawerProps {
@@ -135,7 +129,7 @@ function TocNodeRow({
   activeId?: string;
   forceOpen: boolean;
   toggled: Record<string, boolean>;
-  onToggle: (id: string) => void;
+  onToggle: (id: string, currentOpen: boolean) => void;
   onJump: (id: string) => void;
   onClose: () => void;
 }) {
@@ -172,7 +166,7 @@ function TocNodeRow({
             type="button"
             className="sk-tree-toggle sk-button"
             aria-label={isOpen ? 'Thu gọn' : 'Mở rộng'}
-            onClick={() => onToggle(node.id)}
+            onClick={() => onToggle(node.id, isOpen)}
           >
             <ChevronDown size={14} className={isOpen ? '' : 'sk-rotate'} />
           </button>
@@ -222,7 +216,8 @@ export function TocDrawer({
 
   const filtered = useMemo(() => filterNodes(nodes, searchQuery), [nodes, searchQuery]);
   const searching = searchQuery.trim().length > 0;
-  const toggle = (id: string) => setToggled((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }));
+  const toggle = (id: string, currentOpen: boolean) =>
+    setToggled((prev) => ({ ...prev, [id]: !currentOpen }));
 
   useEffect(() => {
     if (!open) return undefined;

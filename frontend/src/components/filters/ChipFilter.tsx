@@ -125,12 +125,14 @@ function DialogPanel({
   onReset,
   onApply,
   resultCount,
+  applyLabel,
   children,
 }: {
   onClose: () => void;
   onReset: () => void;
   onApply: () => void;
   resultCount: number;
+  applyLabel?: string;
   children: ReactNode;
 }) {
   useEffect(() => {
@@ -143,6 +145,9 @@ function DialogPanel({
       window.removeEventListener("keydown", onKey);
     };
   }, [onClose]);
+
+  const isZero = !applyLabel && resultCount === 0;
+  const buttonText = applyLabel ?? (resultCount === 0 ? "Không có kết quả" : `Xem ${resultCount.toLocaleString("vi-VN")} kết quả`);
 
   return (
     <motion.div
@@ -168,8 +173,8 @@ function DialogPanel({
         <button type="button" className="sk-fs-reset" onClick={onReset}>
           Bỏ chọn
         </button>
-        <button type="button" className="sk-fs-apply" disabled={resultCount === 0} onClick={onApply}>
-          {resultCount === 0 ? "Không có kết quả" : `Xem ${resultCount.toLocaleString("vi-VN")} kết quả`}
+        <button type="button" className="sk-fs-apply" disabled={isZero} onClick={onApply}>
+          {buttonText}
         </button>
       </footer>
     </motion.div>
@@ -185,6 +190,7 @@ export function FilterDialog<T>({
   value,
   empty,
   countFor,
+  applyLabelFor,
   onApply,
   onClose,
   children,
@@ -193,6 +199,7 @@ export function FilterDialog<T>({
   value: T;
   empty: T;
   countFor: (draft: T) => number;
+  applyLabelFor?: (draft: T) => string | undefined;
   onApply: (draft: T) => void;
   onClose: () => void;
   children: (draft: T, setDraft: (update: (d: T) => T) => void) => ReactNode;
@@ -202,7 +209,7 @@ export function FilterDialog<T>({
       {open && (
         <motion.div className="sk-fs-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={onClose}>
           {/* Mount mới mỗi lần mở → nháp luôn bắt đầu từ bộ lọc đang áp dụng. */}
-          <DraftHolder value={value} empty={empty} countFor={countFor} onApply={onApply} onClose={onClose}>
+          <DraftHolder value={value} empty={empty} countFor={countFor} applyLabelFor={applyLabelFor} onApply={onApply} onClose={onClose}>
             {children}
           </DraftHolder>
         </motion.div>
@@ -215,6 +222,7 @@ function DraftHolder<T>({
   value,
   empty,
   countFor,
+  applyLabelFor,
   onApply,
   onClose,
   children,
@@ -222,13 +230,20 @@ function DraftHolder<T>({
   value: T;
   empty: T;
   countFor: (draft: T) => number;
+  applyLabelFor?: (draft: T) => string | undefined;
   onApply: (draft: T) => void;
   onClose: () => void;
   children: (draft: T, setDraft: (update: (d: T) => T) => void) => ReactNode;
 }) {
   const [draft, setDraft] = useState(value);
   return (
-    <DialogPanel onClose={onClose} onReset={() => setDraft(empty)} onApply={() => onApply(draft)} resultCount={countFor(draft)}>
+    <DialogPanel
+      onClose={onClose}
+      onReset={() => setDraft(empty)}
+      onApply={() => onApply(draft)}
+      resultCount={countFor(draft)}
+      applyLabel={applyLabelFor?.(draft)}
+    >
       {children(draft, setDraft)}
     </DialogPanel>
   );

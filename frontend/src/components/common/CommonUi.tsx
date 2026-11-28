@@ -3,7 +3,7 @@
 import React, { useEffect, useState, type ImgHTMLAttributes } from 'react';
 import { AlertTriangle, Archive, ArchiveRestore, X } from 'lucide-react';
 import { Icon } from '@/components/icons/Icon';
-import { ContentStatus, IconName } from '@/constants/enums';
+import { ContentStatus, IconName, KeyboardKey } from '@/constants/enums';
 import { BadgeTone } from '@/constants/ui-theme';
 
 export interface LogoProps {
@@ -75,9 +75,9 @@ type RemoteImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'alt'>
   alt: string;
 };
 
-export function RemoteImage({ src, alt, ...rest }: RemoteImageProps) {
+export function RemoteImage({ src, alt, loading = 'lazy', ...rest }: RemoteImageProps) {
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} {...rest} />;
+  return <img src={src} alt={alt} loading={loading} decoding="async" {...rest} />;
 }
 
 export type ConfirmDialogTone = 'warning' | 'danger' | 'primary';
@@ -125,7 +125,7 @@ export function ConfirmDialog({
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === KeyboardKey.ESCAPE) onClose();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);

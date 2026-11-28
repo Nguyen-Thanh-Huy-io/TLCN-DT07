@@ -1,5 +1,5 @@
 'use client';
-import { KeyboardKey, CommonFilterOption } from '@/constants/enums';
+import { KeyboardKey, CommonFilterOption, SearchEntryKind } from '@/constants/enums';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -41,6 +41,23 @@ const MAX_RESULTS = 40;
 /** Số mục mỗi nhóm ở tab "Tất cả": khi đang gõ / khi chưa gõ (gợi ý). */
 const PER_GROUP = 4;
 const PER_GROUP_IDLE = 3;
+
+/**
+ * Strategy: Ánh xạ loại dữ liệu và từ khóa sang URL trang chuyên biệt
+ */
+export function resolveDedicatedSearchUrl(type: SearchEntryType, query: string): string {
+  const trimmed = query.trim();
+  switch (type) {
+    case SearchEntryKind.ARTICLE:
+      return trimmed ? `/bai-viet?q=${encodeURIComponent(trimmed)}` : '/bai-viet';
+    case SearchEntryKind.TIMELINE:
+      return '/dong-thoi-gian';
+    case SearchEntryKind.LESSON:
+      return '/chuong-trinh-hoc';
+    default:
+      return '/bai-viet';
+  }
+}
 
 interface ServerSearchState {
   query: string;
@@ -259,12 +276,14 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
                   {type === CommonFilterOption.ALL && g.total > g.items.length && (
                     <button
                       type="button"
+                      title={`Mở trang kết quả ${TYPE_LABELS[g.type]?.toLowerCase()}`}
                       onClick={() => {
-                        setType(g.type);
-                        setCursor(0);
+                        onClose();
+                        const targetUrl = resolveDedicatedSearchUrl(g.type, trimmedQuery);
+                        router.push(targetUrl);
                       }}
                     >
-                      Xem tất cả <ArrowRight size={13} />
+                      Xem toàn bộ {g.total.toLocaleString('vi-VN')} {TYPE_LABELS[g.type]?.toLowerCase()} <ArrowRight size={13} />
                     </button>
                   )}
                 </header>

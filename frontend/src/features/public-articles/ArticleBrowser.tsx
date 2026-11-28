@@ -1,341 +1,192 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 import {
+  AlertCircle,
   ArrowDownUp,
   BookOpen,
   Landmark,
   LayoutGrid,
   List,
+  RefreshCw,
   Search,
   SlidersHorizontal,
   X,
 } from 'lucide-react';
-import { FilterDialog, toggleValue } from '@/components/filters/ChipFilter';
-import {
-  TocDrawer,
-  TopicBlockSection,
-  TopicLeafHeading,
-  buildTopicTocNodes,
-} from '@/components/common/TocDrawer';
-import { normalizeSearch } from '@/features/search/search-index';
-import { findRootTopic, groupByTopic } from '@/services/entities/landing-graph';
-import { fetchArticleLibrary, type PublicArticleLibraryItemDto } from '@/services/entities/landing.service';
-import { findRootCategory, type PublicCategory, type PublicTopicRef } from '@/services/public/public-content.service';
+import { FilterDialog } from '@/components/filters/ChipFilter';
+import { TocDrawer } from '@/components/common/TocDrawer';
+import type {
+  PublicArticleCatalogResponse,
+  PublicCategory,
+  PublicTopicRef,
+} from '@/services/public/public-content.service';
 import {
   ARTICLE_SORT_LABELS,
   ArticleFilterKey,
   ArticleSortOption,
   ArticleViewMode,
   EMPTY_ARTICLE_FILTERS,
-  buildArticleJsonbFacets,
-  buildArticleRows,
-  countActiveArticleFilters,
-  expandSelectedCategoryIds,
-  matchesArticleRow,
-  preservationTextOf,
-  resolveActiveFilterKind,
-  sortArticleRows,
+  estimateDraftCategoryCount,
+  getDeepestSelectedCategoryIds,
+  hasSecondaryDraftFilters,
   type ArticleFilters,
 } from './article-library.strategy';
 import {
-  ArticleAdaptiveSubFilters,
+  ArticleCatalogPagination,
   ArticleFilterDialogSections,
   ArticleGridCard,
   ArticleListItem,
 } from './ArticleBrowserParts';
+import {
+  useArticleCatalogFacade,
+  type ArticleCatalogInitialParams,
+} from './useArticleCatalogFacade';
 import '@/components/timeline/sk-timeline.css';
 import './events-library.css';
 
-interface TagBucket {
-  id: string;
-  name: string;
-  count: number;
-  ids: Set<string>;
-  articleIds: Set<string>;
-}
-
-function upsertTagBucket(
-  buckets: Map<string, TagBucket>,
-  articleId: string,
-  tag: { id: string; name: string },
-): void {
-  const trimmed = tag.name.trim();
-  const norm = trimmed.toLocaleLowerCase('vi');
-  const cur = buckets.get(norm);
-  if (!cur) {
-    buckets.set(norm, {
-      id: tag.id,
-      name: trimmed,
-      count: 1,
-      ids: new Set([tag.id]),
-      articleIds: new Set([articleId]),
-    });
-    return;
-  }
-  cur.ids.add(tag.id);
-  if (!cur.articleIds.has(articleId)) {
-    cur.articleIds.add(articleId);
-    cur.count += 1;
-  }
-  if (cur.name === cur.name.toLocaleLowerCase('vi') && trimmed !== cur.name) {
-    cur.name = trimmed;
-  }
-}
-
-function buildDeduplicatedTagFacet(rows: ReturnType<typeof buildArticleRows>) {
-  const byNormName = new Map<string, TagBucket>();
-  for (const row of rows) {
-    for (const tag of row.item.tags) {
-      upsertTagBucket(byNormName, row.item.id, tag);
-    }
-  }
-  const siblingMap = new Map<string, string[]>();
-  const options = [...byNormName.values()]
-    .map((entry) => {
-      siblingMap.set(entry.id, [...entry.ids]);
-      return { id: entry.id, name: entry.name, count: entry.count };
-    })
-    .sort((a, b) => b.count - a.count);
-  return { tagOptions: options, tagSiblingIdsByCanonicalId: siblingMap };
-}
-
 export interface ArticleBrowserProps {
-  articles: PublicArticleLibraryItemDto[];
+  initialCatalog: PublicArticleCatalogResponse;
   categories: PublicCategory[];
   topics: PublicTopicRef[];
-  initialCategorySlug?: string;
-  initialQuery?: string;
-  initialTag?: string;
+  initialParams: ArticleCatalogInitialParams;
+}
+
+interface ActiveChipItem {
+  id: string;
+  label: string;
+  onRemove: () => void;
+}
+
+function buildActiveFilterChips(input: {
+  filters: ArticleFilters;
+  categories: PublicCategory[];
+  topics: PublicTopicRef[];
+  focusedTopicId: string | null;
+  tagNamesById: Map<string, string>;
+  onRemoveCategory: (id: string) => void;
+  onToggleSimple: (key: ArticleFilterKey, val: string) => void;
+  onClearFocusedTopic: () => void;
+}): ActiveChipItem[] {
+  const catById = new Map(input.categories.map((c) => [c.id, c]));
+  const deepestSubs = getDeepestSelectedCategoryIds(input.filters.subCategoryIds, input.categories);
+  const activeCatIds =
+    deepestSubs.length > 0
+      ? deepestSubs
+      : input.filters.rootCategoryId
+        ? [input.filters.rootCategoryId]
+        : [];
+  const chips: ActiveChipItem[] = [];
+
+  if (input.focusedTopicId) {
+    const tName = input.topics.find((t) => t.id === input.focusedTopicId)?.name ?? input.focusedTopicId;
+    chips.push({ id: `topic-${input.focusedTopicId}`, label: `Chủ đề: ${tName}`, onRemove: input.onClearFocusedTopic });
+  }
+  for (const cid of activeCatIds) {
+    const label = catById.get(cid)?.name ?? cid;
+    chips.push({ id: `cat-${cid}`, label, onRemove: () => input.onRemoveCategory(cid) });
+  }
+  for (const tagVal of input.filters.tags) {
+    const label = input.tagNamesById.get(tagVal) ?? `#${tagVal}`;
+    chips.push({
+      id: `tag-${tagVal}`,
+      label,
+      onRemove: () => input.onToggleSimple(ArticleFilterKey.TAGS, tagVal),
+    });
+  }
+  return chips;
+}
+
+function resolveHeroHeading(
+  filters: ArticleFilters,
+  categories: PublicCategory[],
+  totalCount: number,
+): { title: string; subtitle: string } {
+  const deepestSubs = getDeepestSelectedCategoryIds(filters.subCategoryIds, categories);
+  const singleId =
+    deepestSubs.length === 1
+      ? deepestSubs[0]
+      : deepestSubs.length === 0 && filters.rootCategoryId
+        ? filters.rootCategoryId
+        : null;
+  if (singleId) {
+    const cat = categories.find((c) => c.id === singleId);
+    if (cat) {
+      return {
+        title: cat.name,
+        subtitle:
+          cat.description ??
+          `Khám phá ${totalCount.toLocaleString('vi-VN')} bài viết chuyên sâu thuộc mục ${cat.name.toLowerCase()}.`,
+      };
+    }
+  }
+  return {
+    title: 'Tất cả bài viết lịch sử',
+    subtitle: `Khám phá ${totalCount.toLocaleString('vi-VN')} bài viết chuyên sâu về sự kiện, nhân vật, di tích, triều đại, thể chế và sử liệu.`,
+  };
 }
 
 export function ArticleBrowser({
-  articles,
+  initialCatalog,
   categories,
   topics,
-  initialCategorySlug,
-  initialQuery,
-  initialTag,
+  initialParams,
 }: ArticleBrowserProps) {
-  const router = useRouter();
-  const [query, setQuery] = useState(initialQuery ?? '');
-  const [serverArticles, setServerArticles] = useState<PublicArticleLibraryItemDto[] | null>(null);
-  const [searching, setSearching] = useState(false);
+  const f = useArticleCatalogFacade({
+    initialCatalog,
+    categories,
+    topics,
+    initialParams,
+  });
 
-  // Khi người dùng nhập từ khóa tìm kiếm, truy vấn trực tiếp server trên toàn bộ 6,281+ bài (cả tên, tag & năm)
-  useEffect(() => {
-    const trimmed = query.trim();
-    const initialTrimmed = (initialQuery ?? '').trim();
-    if (!trimmed || trimmed === initialTrimmed) {
-      setServerArticles(null);
-      setSearching(false);
-      return;
-    }
-    let active = true;
-    setSearching(true);
-    const timer = setTimeout(() => {
-      fetchArticleLibrary({ q: trimmed, tag: initialTag })
-        .then((res) => {
-          if (active) setServerArticles(res);
-        })
-        .catch(() => {
-          if (active) setServerArticles([]);
-        })
-        .finally(() => {
-          if (active) setSearching(false);
-        });
-    }, 250);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [query, initialQuery, initialTag]);
+  const {
+    filters,
+    focusedTopicId,
+    handleRemoveCategoryChip,
+    handleToggleSimpleFilter,
+    setFocusedTopicId,
+  } = f;
 
-  const effectiveArticles = serverArticles ?? articles;
-  const allRows = useMemo(() => buildArticleRows(effectiveArticles), [effectiveArticles]);
-  const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
-
-  // Chuyên mục gốc được chọn từ Menu Khám phá (?chuyen-muc=...).
-  const scopedCategory = useMemo(
-    () => (initialCategorySlug ? (categories.find((c) => c.slug === initialCategorySlug) ?? null) : null),
-    [categories, initialCategorySlug],
+  const tagNamesById = useMemo(
+    () => new Map(f.catalog.facets.tags.map((t) => [t.id, t.name])),
+    [f.catalog.facets.tags],
   );
 
-  // Khoanh vùng dữ liệu theo chuyên mục đang xem (gồm cả chuyên mục con của nó).
-  const scopedRows = useMemo(() => {
-    if (!scopedCategory) return allRows;
-    const allowedIds = expandSelectedCategoryIds([scopedCategory.id], categories);
-    return allRows.filter((r) => Boolean(r.item.categoryId && allowedIds.has(r.item.categoryId)));
-  }, [allRows, scopedCategory, categories]);
-
-  const [filters, setFilters] = useState<ArticleFilters>(EMPTY_ARTICLE_FILTERS);
-  const [sort, setSort] = useState<ArticleSortOption>(ArticleSortOption.YEAR_ASC);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ArticleViewMode>(ArticleViewMode.GRID);
-  const [tocOpen, setTocOpen] = useState(false);
-  const [focusedTocId, setFocusedTocId] = useState<string | null>(null);
-
-  const needle = serverArticles !== null ? '' : normalizeSearch(query.trim());
-
-  const toggleFilterValue = useCallback((key: ArticleFilterKey, value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: toggleValue(prev[key], value) }));
-  }, []);
-
-  const { tagOptions, tagSiblingIdsByCanonicalId } = useMemo(
-    () => buildDeduplicatedTagFacet(scopedRows),
-    [scopedRows],
-  );
-
-  const dialogCategoryOptions = useMemo(() => {
-    const targetCategories = scopedCategory
-      ? categories.filter((c) => c.parentId === scopedCategory.id)
-      : categories.filter((c) => !c.parentId);
-    return targetCategories
-      .map((cat) => {
-        const expanded = expandSelectedCategoryIds([cat.id], categories);
-        const count = scopedRows.filter((r) => Boolean(r.item.categoryId && expanded.has(r.item.categoryId))).length;
-        return { cat, count };
-      })
-      .filter((entry) => entry.count > 0);
-  }, [categories, scopedCategory, scopedRows]);
-
-  const childCategoryPills = useMemo(
-    () => (scopedCategory ? dialogCategoryOptions : []),
-    [scopedCategory, dialogCategoryOptions],
-  );
-
-  const activeKind = useMemo(() => {
-    if (scopedCategory) return findRootCategory(categories, scopedCategory.id)?.slug ?? scopedCategory.slug;
-    return resolveActiveFilterKind(filters.categories, categories);
-  }, [scopedCategory, filters.categories, categories]);
-
-  const jsonbFacets = useMemo(() => buildArticleJsonbFacets(scopedRows), [scopedRows]);
-
-  const expandTagIds = useCallback(
-    (selectedTagIds: string[]): string[] => {
-      if (selectedTagIds.length === 0) return selectedTagIds;
-      const expanded = new Set<string>();
-      for (const id of selectedTagIds) {
-        for (const sib of tagSiblingIdsByCanonicalId.get(id) ?? [id]) {
-          expanded.add(sib);
-        }
-      }
-      return [...expanded];
-    },
-    [tagSiblingIdsByCanonicalId],
-  );
-
-  const visible = useMemo(() => {
-    const expandedCats = expandSelectedCategoryIds(filters.categories, categories);
-    const effectiveFilters =
-      filters.tags.length > 0 ? { ...filters, tags: expandTagIds(filters.tags) } : filters;
-    const matched = scopedRows.filter((r) => matchesArticleRow(r, effectiveFilters, expandedCats, needle));
-    return sortArticleRows(matched, sort);
-  }, [scopedRows, filters, categories, expandTagIds, needle, sort]);
-
-  const allTopicBlocks = useMemo(
+  const chips = useMemo(
     () =>
-      groupByTopic(visible, (r) => r.item.topicId, {
+      buildActiveFilterChips({
+        filters,
+        categories,
         topics,
-        rootTopicOf: (id) => findRootTopic(topics, id),
+        focusedTopicId,
+        tagNamesById,
+        onRemoveCategory: handleRemoveCategoryChip,
+        onToggleSimple: handleToggleSimpleFilter,
+        onClearFocusedTopic: () => setFocusedTopicId(null),
       }),
-    [visible, topics],
+    [
+      filters,
+      categories,
+      topics,
+      focusedTopicId,
+      tagNamesById,
+      handleRemoveCategoryChip,
+      handleToggleSimpleFilter,
+      setFocusedTopicId,
+    ],
   );
 
-  const tocNodes = useMemo(() => buildTopicTocNodes(allTopicBlocks), [allTopicBlocks]);
-
-  const focusedTopicLabel = useMemo(() => {
-    if (!focusedTocId) return null;
-    for (const block of allTopicBlocks) {
-      if (`topic-${block.id}` === focusedTocId) return block.name;
-      const leaf = block.leaves.find((l) => `topic-leaf-${l.id}` === focusedTocId);
-      if (leaf) return leaf.name;
-    }
-    return null;
-  }, [allTopicBlocks, focusedTocId]);
-
-  const topicBlocks = useMemo(() => {
-    if (!focusedTocId) return allTopicBlocks;
-    return allTopicBlocks
-      .map((block) => {
-        if (`topic-${block.id}` === focusedTocId) return block;
-        const matchedLeaves = block.leaves.filter((l) => `topic-leaf-${l.id}` === focusedTocId);
-        return matchedLeaves.length > 0 ? { ...block, leaves: matchedLeaves } : null;
-      })
-      .filter((b): b is (typeof allTopicBlocks)[number] => b !== null);
-  }, [allTopicBlocks, focusedTocId]);
-
-  const displayedCount = useMemo(
-    () => topicBlocks.reduce((sum, b) => sum + b.leaves.reduce((s, l) => s + l.items.length, 0), 0),
-    [topicBlocks],
+  const hero = resolveHeroHeading(filters, categories, f.catalog.total);
+  const allCategoriesTotal = useMemo(
+    () => Object.values(f.catalog.facets.categoryCounts).reduce((sum, n) => sum + n, 0),
+    [f.catalog.facets.categoryCounts],
   );
-
-  const handleSelectToc = useCallback((id: string) => {
-    setFocusedTocId(id);
-    document.getElementById('el-content-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
-
-  const chips = [
-    ...filters.categories.map((id) => ({
-      key: ArticleFilterKey.CATEGORIES,
-      value: id,
-      label: categoryById.get(id)?.name ?? id,
-    })),
-    ...filters.siteTypes.map((code) => ({
-      key: ArticleFilterKey.SITE_TYPES,
-      value: code,
-      label: jsonbFacets.siteTypes.find((s) => s.value === code)?.label ?? code,
-    })),
-    ...filters.preservations.map((code) => ({
-      key: ArticleFilterKey.PRESERVATIONS,
-      value: code,
-      label: preservationTextOf(code) ?? code,
-    })),
-    ...filters.personRoles.map((role) => ({
-      key: ArticleFilterKey.PERSON_ROLES,
-      value: role,
-      label: role,
-    })),
-    ...filters.tags.map((id) => ({
-      key: ArticleFilterKey.TAGS,
-      value: id,
-      label: tagOptions.find((t) => t.id === id)?.name ?? id,
-    })),
-  ];
-
-  const activeCount =
-    countActiveArticleFilters(filters) + (focusedTocId ? 1 : 0) + (initialTag ? 1 : 0);
-
-  const resetAll = () => {
-    setQuery('');
-    setFilters(EMPTY_ARTICLE_FILTERS);
-    setFocusedTocId(null);
-    if (initialTag) {
-      router.push(
-        initialCategorySlug
-          ? `/bai-viet?chuyen-muc=${encodeURIComponent(initialCategorySlug)}`
-          : '/bai-viet',
-      );
-    }
-  };
 
   return (
     <div className="sk-app el-app">
       <section className="el-intro">
         <span className="sk-section-eyebrow">THƯ VIỆN TRI THỨC LỊCH SỬ</span>
-        <h1>{scopedCategory ? scopedCategory.name : 'Tất cả bài viết lịch sử'}</h1>
-        <p>
-          {scopedCategory?.description ??
-            `Khám phá ${scopedRows.length} bài viết chuyên sâu về sự kiện, nhân vật, di tích, địa danh, triều đại và tư liệu lịch sử.`}
-        </p>
-        <ArticleAdaptiveSubFilters
-          activeKind={activeKind}
-          childCategories={childCategoryPills}
-          jsonbFacets={jsonbFacets}
-          filters={filters}
-          onToggleFilter={toggleFilterValue}
-        />
+        <h1>{hero.title}</h1>
+        <p>{hero.subtitle}</p>
       </section>
 
       <div className="el-wrap" id="el-content-anchor">
@@ -344,16 +195,17 @@ export function ArticleBrowser({
             <Search size={17} />
             <input
               aria-label="Tìm bài viết lịch sử"
-              placeholder={
-                scopedCategory
-                  ? `Tìm trong ${scopedCategory.name.toLowerCase()}...`
-                  : 'Tìm tên bài viết, nhân vật, sự kiện, di tích, triều đại...'
-              }
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Tìm tên bài viết, nhân vật, sự kiện, di tích, năm lịch sử..."
+              value={f.queryInput}
+              onChange={(e) => f.setQueryInput(e.target.value)}
             />
-            {query && (
-              <button type="button" className="sk-button" aria-label="Xóa tìm kiếm" onClick={() => setQuery('')}>
+            {f.queryInput && (
+              <button
+                type="button"
+                className="sk-button"
+                aria-label="Xóa tìm kiếm"
+                onClick={() => f.setQueryInput('')}
+              >
                 <X size={14} />
               </button>
             )}
@@ -361,12 +213,12 @@ export function ArticleBrowser({
 
           <button
             type="button"
-            className={`sk-button sk-filter-open ${activeCount ? 'sk-is-on' : ''}`}
-            onClick={() => setSheetOpen(true)}
+            className={`sk-button sk-filter-open ${f.activeFilterCount > 0 ? 'sk-is-on' : ''}`}
+            onClick={() => f.setSheetOpen(true)}
           >
             <SlidersHorizontal size={16} />
             <span>Bộ lọc</span>
-            {activeCount > 0 && <span className="sk-badge">{activeCount}</span>}
+            {f.activeFilterCount > 0 && <span className="sk-badge">{f.activeFilterCount}</span>}
           </button>
 
           <div className="sk-split-segment" role="group" aria-label="Sắp xếp bài viết">
@@ -375,9 +227,9 @@ export function ArticleBrowser({
               <button
                 key={s}
                 type="button"
-                className={sort === s ? 'sk-selected' : ''}
-                aria-pressed={sort === s}
-                onClick={() => setSort(s)}
+                className={f.sort === s ? 'sk-selected' : ''}
+                aria-pressed={f.sort === s}
+                onClick={() => f.handleChangeSort(s)}
               >
                 {ARTICLE_SORT_LABELS[s]}
               </button>
@@ -387,8 +239,8 @@ export function ArticleBrowser({
           <div className="el-view-mode-toggle" role="group" aria-label="Chế độ hiển thị">
             <button
               type="button"
-              className={`el-view-btn ${viewMode === ArticleViewMode.GRID ? 'sk-active' : ''}`}
-              onClick={() => setViewMode(ArticleViewMode.GRID)}
+              className={`el-view-btn ${f.viewMode === ArticleViewMode.GRID ? 'sk-active' : ''}`}
+              onClick={() => f.setViewMode(ArticleViewMode.GRID)}
               title="Xem dạng lưới thẻ tạp chí"
               aria-label="Xem dạng lưới"
             >
@@ -396,8 +248,8 @@ export function ArticleBrowser({
             </button>
             <button
               type="button"
-              className={`el-view-btn ${viewMode === ArticleViewMode.LIST ? 'sk-active' : ''}`}
-              onClick={() => setViewMode(ArticleViewMode.LIST)}
+              className={`el-view-btn ${f.viewMode === ArticleViewMode.LIST ? 'sk-active' : ''}`}
+              onClick={() => f.setViewMode(ArticleViewMode.LIST)}
               title="Xem dạng danh sách"
               aria-label="Xem dạng danh sách"
             >
@@ -405,49 +257,16 @@ export function ArticleBrowser({
             </button>
           </div>
 
-          {(chips.length > 0 || focusedTopicLabel || initialTag) && (
+          {chips.length > 0 && (
             <div className="sk-active-filters">
-              {initialTag && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    router.push(
-                      initialCategorySlug
-                        ? `/bai-viet?chuyen-muc=${encodeURIComponent(initialCategorySlug)}`
-                        : '/bai-viet',
-                    )
-                  }
-                  aria-label={`Bỏ lọc thẻ ${initialTag}`}
-                >
-                  Thẻ: #{initialTag}
-                  <X size={13} />
-                </button>
-              )}
-              {focusedTopicLabel && (
-                <button
-                  type="button"
-                  onClick={() => setFocusedTocId(null)}
-                  aria-label={`Bỏ lọc chủ đề ${focusedTopicLabel}`}
-                >
-                  Chủ đề: {focusedTopicLabel}
-                  <X size={13} />
-                </button>
-              )}
               {chips.map((c) => (
-                <button
-                  key={`${c.key}-${c.value}`}
-                  type="button"
-                  onClick={() =>
-                    setFilters({ ...filters, [c.key]: filters[c.key].filter((v) => v !== c.value) })
-                  }
-                  aria-label={`Bỏ lọc ${c.label}`}
-                >
+                <button key={c.id} type="button" onClick={c.onRemove} aria-label={`Bỏ lọc ${c.label}`}>
                   {c.label}
                   <X size={13} />
                 </button>
               ))}
-              {(chips.length + (focusedTopicLabel ? 1 : 0)) > 1 && (
-                <button type="button" className="sk-active-clear" onClick={resetAll}>
+              {chips.length > 1 && (
+                <button type="button" className="sk-active-clear" onClick={f.resetAll}>
                   Xóa tất cả
                 </button>
               )}
@@ -456,111 +275,174 @@ export function ArticleBrowser({
         </div>
 
         <FilterDialog
-          open={sheetOpen}
+          open={f.sheetOpen}
           value={filters}
           empty={EMPTY_ARTICLE_FILTERS}
-          countFor={(draft) => {
-            const expanded = expandSelectedCategoryIds(draft.categories, categories);
-            const effectiveDraft =
-              draft.tags.length > 0 ? { ...draft, tags: expandTagIds(draft.tags) } : draft;
-            return scopedRows.filter((r) => matchesArticleRow(r, effectiveDraft, expanded, needle)).length;
-          }}
-          onApply={(f) => {
-            setFilters(f);
-            setSheetOpen(false);
-          }}
-          onClose={() => setSheetOpen(false)}
+          countFor={(draft) =>
+            estimateDraftCategoryCount(
+              draft,
+              categories,
+              f.catalog.facets.categoryCounts,
+              allCategoriesTotal,
+            )
+          }
+          applyLabelFor={(draft) => (hasSecondaryDraftFilters(draft) ? 'Áp dụng bộ lọc' : undefined)}
+          onApply={f.handleApplyDialogFilters}
+          onClose={() => f.setSheetOpen(false)}
         >
           {(draft, setDraft) => (
             <ArticleFilterDialogSections
               draft={draft}
               setDraft={setDraft}
-              activeKind={activeKind}
-              isScopedCategory={Boolean(scopedCategory)}
-              categoryOptions={dialogCategoryOptions}
-              tagOptions={tagOptions}
-              jsonbFacets={jsonbFacets}
+              categories={categories}
+              branchCategoryCounts={f.branchCategoryCounts}
+              tagOptions={f.catalog.facets.tags}
             />
           )}
         </FilterDialog>
 
         <div className="el-toolbar">
           <span>
-            {searching ? (
-              'Đang tìm kiếm trên toàn kho dữ liệu…'
+            {f.loading ? (
+              'Đang tải danh sách bài viết…'
             ) : (
               <>
-                Tìm thấy <strong>{displayedCount}</strong> bài viết lịch sử
+                Tìm thấy <strong>{f.catalog.total.toLocaleString('vi-VN')}</strong> bài viết lịch sử
+                {f.catalog.totalPages > 1 && (
+                  <>
+                    {' '}
+                    · Trang <strong>{f.page}</strong>/{f.catalog.totalPages}
+                  </>
+                )}
               </>
             )}
           </span>
-          {(activeCount > 0 || query) && visible.length > 0 && (
-            <button type="button" className="el-reset-link" onClick={resetAll}>
+          {(f.activeFilterCount > 0 || Boolean(f.queryInput)) && (
+            <button type="button" className="el-reset-link" onClick={f.resetAll}>
               Đặt lại bộ lọc
             </button>
           )}
         </div>
 
-        {visible.length > 0 ? (
-          topicBlocks.map((block) => (
-            <TopicBlockSection key={block.id} block={block} itemLabel="bài viết">
-              {block.leaves.map((leaf) => (
-                <div key={leaf.id} id={`topic-leaf-${leaf.id}`} className="sk-sub-era">
-                  {block.leaves.length > 1 && <TopicLeafHeading leaf={leaf} itemLabel="bài viết" />}
-                  {viewMode === ArticleViewMode.GRID ? (
-                    <div className="el-grid">
-                      {leaf.items.map((row) => (
-                        <ArticleGridCard key={row.item.id} row={row} />
-                      ))}
-                    </div>
-                  ) : (
-                    <ol className="el-list">
-                      {leaf.items.map((row) => (
-                        <ArticleListItem key={row.item.id} row={row} />
-                      ))}
-                    </ol>
-                  )}
-                </div>
-              ))}
-            </TopicBlockSection>
-          ))
-        ) : (
-          <div className="sk-empty">
-            <Landmark size={36} />
-            <h2>Chưa tìm thấy bài viết</h2>
-            <p>Thử từ khóa khác hoặc xóa bớt các tiêu chí lọc đang chọn.</p>
-            {(activeCount > 0 || query) && (
-              <button type="button" className="sk-button sk-primary" onClick={resetAll}>
-                Xóa bộ lọc <X size={14} />
-              </button>
-            )}
-          </div>
-        )}
+        <ArticleCatalogBody
+          loading={f.loading}
+          error={f.error}
+          rows={f.rows}
+          viewMode={f.viewMode}
+          hasActiveCriteria={f.activeFilterCount > 0 || Boolean(f.queryInput)}
+          onRetry={f.retryLoad}
+          onReset={f.resetAll}
+        />
+
+        <ArticleCatalogPagination
+          page={f.page}
+          limit={f.limit}
+          total={f.catalog.total}
+          totalPages={f.catalog.totalPages}
+          onChangePage={f.handleChangePage}
+          onChangeLimit={f.handleChangePageSize}
+        />
       </div>
 
-      <button
-        type="button"
-        className="fixed bottom-4 left-3 z-40 flex items-center gap-1.5 rounded-full border border-[#E2D5B8] bg-[#FFFCF5]/95 px-3.5 py-2 text-xs font-bold text-[#7A1F24] shadow-lg backdrop-blur-xs transition hover:bg-[#F5EEDC] cursor-pointer md:bottom-auto md:left-auto md:right-0 md:top-1/2 md:-translate-y-1/2 md:rounded-l-xl md:rounded-r-none md:border-r-0 md:px-3 md:py-2.5 md:hover:pr-4"
-        onClick={() => setTocOpen(true)}
-        title="Mục lục chủ đề bài viết"
-        aria-label="Mở mục lục chủ đề"
-      >
-        <BookOpen size={15} />
-        <span>Mục lục</span>
-      </button>
+      {!f.tocOpen && !f.sheetOpen && (
+        <button
+          type="button"
+          className="fixed bottom-4 left-3 z-40 flex items-center gap-1.5 rounded-full border border-[#E2D5B8] bg-[#FFFCF5]/95 px-3.5 py-2 text-xs font-bold text-[#7A1F24] shadow-lg backdrop-blur-xs transition hover:bg-[#F5EEDC] cursor-pointer md:bottom-auto md:left-auto md:right-0 md:top-1/2 md:-translate-y-1/2 md:rounded-l-xl md:rounded-r-none md:border-r-0 md:px-3 md:py-2.5 md:hover:pr-4"
+          onClick={() => f.setTocOpen(true)}
+          title="Mục lục chủ đề bài viết"
+          aria-label="Mở mục lục chủ đề"
+        >
+          <BookOpen size={15} />
+          <span>Mục lục</span>
+        </button>
+      )}
 
       <TocDrawer
-        open={tocOpen}
-        onClose={() => setTocOpen(false)}
+        open={f.tocOpen}
+        onClose={() => f.setTocOpen(false)}
         heading="Mục lục chủ đề"
         itemLabel="bài viết"
-        nodes={tocNodes}
-        activeId={focusedTocId ?? undefined}
-        totalCount={visible.length}
-        onJump={handleSelectToc}
-        onClearActive={() => setFocusedTocId(null)}
+        nodes={f.tocNodes}
+        activeId={focusedTopicId ? `topic-leaf-${focusedTopicId}` : undefined}
+        totalCount={f.totalTopicArticles}
+        onJump={f.handleSelectTocNode}
+        onClearActive={() => setFocusedTopicId(null)}
         allLabel="Tất cả chủ đề"
       />
+    </div>
+  );
+}
+
+function ArticleCatalogBody({
+  loading,
+  error,
+  rows,
+  viewMode,
+  hasActiveCriteria,
+  onRetry,
+  onReset,
+}: {
+  loading: boolean;
+  error: string | null;
+  rows: ReturnType<typeof useArticleCatalogFacade>['rows'];
+  viewMode: ArticleViewMode;
+  hasActiveCriteria: boolean;
+  onRetry: () => void;
+  onReset: () => void;
+}) {
+  if (error) {
+    return (
+      <div className="sk-empty">
+        <AlertCircle size={36} className="text-red-700" />
+        <h2>Không thể tải danh sách bài viết</h2>
+        <p>{error}</p>
+        <button type="button" className="sk-button sk-primary" onClick={onRetry}>
+          <RefreshCw size={14} /> Thử lại
+        </button>
+      </div>
+    );
+  }
+
+  if (loading && rows.length === 0) {
+    return (
+      <div className="el-grid" aria-busy="true">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="h-72 animate-pulse rounded-2xl bg-[#EAE0CB]/70" />
+        ))}
+      </div>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <div className="sk-empty">
+        <Landmark size={36} />
+        <h2>Chưa tìm thấy bài viết</h2>
+        <p>Thử từ khóa khác hoặc xóa bớt các tiêu chí lọc đang chọn.</p>
+        {hasActiveCriteria && (
+          <button type="button" className="sk-button sk-primary" onClick={onReset}>
+            Xóa bộ lọc <X size={14} />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={loading ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
+      {viewMode === ArticleViewMode.GRID ? (
+        <div className="el-grid">
+          {rows.map((row) => (
+            <ArticleGridCard key={row.item.id} row={row} />
+          ))}
+        </div>
+      ) : (
+        <ol className="el-list">
+          {rows.map((row) => (
+            <ArticleListItem key={row.item.id} row={row} />
+          ))}
+        </ol>
+      )}
     </div>
   );
 }

@@ -1,20 +1,11 @@
-import { normalizeSearch } from '@/features/search/search-index';
 import type { PublicArticleLibraryItemDto } from '@/services/entities/landing.service';
+import { collectDescendantTopicIds } from '@/services/entities/landing-graph';
 import {
   findRootCategory,
   SYSTEM_CATEGORY_ROOT_SLUGS,
   type PublicCategory,
+  type PublicTopicRef,
 } from '@/services/public/public-content.service';
-
-export type PreservationCategory = 'INTACT' | 'MUSEUM_MEMORIAL' | 'ARCHAEOLOGICAL_RUIN' | 'RESTORED' | 'ACTIVE_SITE';
-
-export const PRESERVATION_LABELS: Record<PreservationCategory, string> = {
-  INTACT: '🏛️ Bảo tồn nguyên vẹn',
-  MUSEUM_MEMORIAL: '🕯️ Bảo tàng & Khu tưởng niệm',
-  ARCHAEOLOGICAL_RUIN: '🏺 Phế tích & Khảo cổ',
-  RESTORED: '🛠️ Đã trùng tu / Phục dựng',
-  ACTIVE_SITE: '🚀 Công trình đang hoạt động',
-};
 
 export enum ArticleViewMode {
   GRID = 'grid',
@@ -22,23 +13,34 @@ export enum ArticleViewMode {
 }
 
 export enum ArticleSortOption {
+  FEATURED = 'featured',
   YEAR_ASC = 'year-asc',
   YEAR_DESC = 'year-desc',
   NAME = 'name',
 }
 
 export const ARTICLE_SORT_LABELS: Record<ArticleSortOption, string> = {
+  [ArticleSortOption.FEATURED]: 'Tiêu biểu',
   [ArticleSortOption.YEAR_ASC]: 'Cũ → mới',
   [ArticleSortOption.YEAR_DESC]: 'Mới → cũ',
   [ArticleSortOption.NAME]: 'Tên A–Z',
 };
 
+export const ARTICLE_PAGE_SIZE_OPTIONS = [24, 48, 96] as const;
+export const DEFAULT_ARTICLE_PAGE_SIZE = 24;
+
+export enum CatalogUrlParamKey {
+  CATEGORY = 'chuyen-muc',
+  TOPIC = 'chu-de',
+  QUERY = 'q',
+  TAG = 'tag',
+  SORT = 'sort',
+  PAGE = 'page',
+  LIMIT = 'limit',
+}
+
 export enum ArticleFilterKey {
-  CATEGORIES = 'categories',
   TAGS = 'tags',
-  SITE_TYPES = 'siteTypes',
-  PRESERVATIONS = 'preservations',
-  PERSON_ROLES = 'personRoles',
 }
 
 export enum ArticleMetaIconKey {
@@ -51,27 +53,22 @@ export enum ArticleMetaIconKey {
 }
 
 export interface ArticleFilters {
-  categories: string[];
+  /** Chọn đơn 1 chuyên mục gốc tại một thời điểm (`null` = chưa lọc chuyên mục). */
+  rootCategoryId: string | null;
+  /** Tích chọn 1 hoặc nhiều chuyên mục con/cháu bên trong nhánh của `rootCategoryId` (rỗng = lấy toàn bộ nhánh gốc). */
+  subCategoryIds: string[];
   tags: string[];
-  siteTypes: string[];
-  preservations: string[];
-  personRoles: string[];
 }
 
 export const EMPTY_ARTICLE_FILTERS: ArticleFilters = {
-  categories: [],
+  rootCategoryId: null,
+  subCategoryIds: [],
   tags: [],
-  siteTypes: [],
-  preservations: [],
-  personRoles: [],
 };
 
-export const countActiveArticleFilters = (f: ArticleFilters): number =>
-  f.categories.length +
-  f.tags.length +
-  f.siteTypes.length +
-  f.preservations.length +
-  f.personRoles.length;
+export function hasSecondaryDraftFilters(f: ArticleFilters): boolean {
+  return f.tags.length > 0;
+}
 
 export interface ArticleMetaRow {
   icon: ArticleMetaIconKey;
@@ -98,19 +95,12 @@ function formatNamePreview(names: string[], max = 2): string {
   return names.length > max ? `${head} +${names.length - max}` : head;
 }
 
-export function preservationTextOf(code: string | null): string | null {
-  if (!code) return null;
-  return PRESERVATION_LABELS[code as PreservationCategory] ?? null;
-}
-
 const locationStrategy: IArticleCardMetaStrategy = {
   primaryBadgeOf: (item) => item.siteTypeLabel ?? item.categoryName,
   locationBadgeOf: (item) => extractProvince(item.address),
   metaRowsOf: (item) => {
     const rows: ArticleMetaRow[] = [];
-    const preservation = preservationTextOf(item.preservationCategory);
-    const placeLine = [preservation, item.address].filter(Boolean).join(' · ');
-    if (placeLine) rows.push({ icon: ArticleMetaIconKey.MAP_PIN, text: placeLine });
+    if (item.address) rows.push({ icon: ArticleMetaIconKey.MAP_PIN, text: item.address });
     const statsLine = [
       item.linkedEventsCount > 0 ? `${item.linkedEventsCount} sự kiện lịch sử gắn liền` : null,
       item.recognizedYear ? `Công nhận: ${item.recognizedYear}` : null,
@@ -207,37 +197,9 @@ export function getArticleCardMetaStrategy(kindOrSlug: string): IArticleCardMeta
 
 export interface ArticleRow {
   item: PublicArticleLibraryItemDto;
-  haystack: string;
-  tagIds: Set<string>;
 }
 
-export function buildArticleRows(articles: PublicArticleLibraryItemDto[]): ArticleRow[] {
-  return articles.map((item) => {
-    const searchable = [
-      item.title,
-      item.summary ?? '',
-      item.categoryName ?? '',
-      item.siteTypeLabel ?? '',
-      item.address ?? '',
-      item.hometown ?? '',
-      item.famousQuote ?? '',
-      item.dateLabel ?? '',
-      ...item.aliases,
-      ...item.roles,
-      ...item.titles,
-      ...item.tags.map((t) => t.name),
-      ...item.linkedFigureNames,
-      ...item.linkedLocationNames,
-    ].join(' ');
-    return {
-      item,
-      haystack: normalizeSearch(searchable),
-      tagIds: new Set(item.tags.map((t) => t.id)),
-    };
-  });
-}
-
-/** Khi chọn 1 chuyên mục cha, tự động bao gồm luôn các chuyên mục con đệ quy của nó. */
+/** Bao gồm đệ quy N tầng: chính các ID truyền vào + toàn bộ con, cháu, chắt... của chúng. */
 export function expandSelectedCategoryIds(selectedIds: string[], categories: PublicCategory[]): Set<string> {
   const expanded = new Set(selectedIds);
   if (expanded.size === 0) return expanded;
@@ -254,112 +216,178 @@ export function expandSelectedCategoryIds(selectedIds: string[], categories: Pub
   return expanded;
 }
 
-/** Suy `slug` chuyên mục gốc đang được chọn nếu các chuyên mục đang lọc cùng thuộc 1 nhánh gốc. */
-export function resolveActiveFilterKind(
-  selectedCategoryIds: string[],
+/** Thu thập đường dẫn từ chuyên mục gốc xuống `targetId` (`[root, ..., parent, target]`). */
+export function collectCategoryLineage(
+  targetId: string | null,
   categories: PublicCategory[],
-): string | null {
-  if (selectedCategoryIds.length === 0) return null;
-  const rootSlugs = new Set(
-    selectedCategoryIds
-      .map((id) => findRootCategory(categories, id)?.slug)
-      .filter((s): s is string => Boolean(s)),
-  );
-  return rootSlugs.size === 1 ? ([...rootSlugs][0] ?? null) : null;
+): PublicCategory[] {
+  if (!targetId) return [];
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  const chain: PublicCategory[] = [];
+  let cur = byId.get(targetId);
+  const seen = new Set<string>();
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    chain.unshift(cur);
+    cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+  }
+  return chain;
 }
 
-function matchesJsonbFacets(item: PublicArticleLibraryItemDto, filters: ArticleFilters): boolean {
-  if (filters.siteTypes.length > 0 && (!item.siteType || !filters.siteTypes.includes(item.siteType))) {
-    return false;
+/** Lọc các node con sâu nhất nếu người dùng tích cả mục cha lẫn mục cháu trong `subCategoryIds`. */
+export function getDeepestSelectedCategoryIds(
+  selectedIds: string[],
+  categories: PublicCategory[],
+): string[] {
+  if (selectedIds.length === 0) return [];
+  const selectedSet = new Set(selectedIds);
+  const hasSelectedDescendant = new Set<string>();
+  const byId = new Map(categories.map((c) => [c.id, c]));
+
+  for (const id of selectedIds) {
+    let cur = byId.get(id);
+    const seen = new Set<string>();
+    while (cur?.parentId && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      if (selectedSet.has(cur.parentId)) {
+        hasSelectedDescendant.add(cur.parentId);
+      }
+      cur = byId.get(cur.parentId);
+    }
   }
-  if (
-    filters.preservations.length > 0 &&
-    (!item.preservationCategory || !filters.preservations.includes(item.preservationCategory))
-  ) {
-    return false;
-  }
-  if (filters.personRoles.length > 0 && !filters.personRoles.some((r) => item.roles.includes(r))) {
-    return false;
-  }
-  return true;
+
+  return selectedIds.filter((id) => !hasSelectedDescendant.has(id));
 }
 
-export function matchesArticleRow(
-  row: ArticleRow,
+export function countActiveArticleFilters(f: ArticleFilters, categories: PublicCategory[] = []): number {
+  const catCount =
+    f.subCategoryIds.length > 0
+      ? getDeepestSelectedCategoryIds(f.subCategoryIds, categories).length
+      : f.rootCategoryId
+        ? 1
+        : 0;
+  return catCount + f.tags.length;
+}
+
+/** Khởi tạo trạng thái từ slug `?chuyen-muc=` trên URL (chấp nhận cả slug Cha lẫn slug Con/Cháu N tầng). */
+export function buildInitialCategorySelection(
+  initialSlug: string | undefined,
+  categories: PublicCategory[],
+): Pick<ArticleFilters, 'rootCategoryId' | 'subCategoryIds'> {
+  if (!initialSlug) return { rootCategoryId: null, subCategoryIds: [] };
+  const matched = categories.find((c) => c.slug === initialSlug);
+  if (!matched) return { rootCategoryId: null, subCategoryIds: [] };
+  const root = findRootCategory(categories, matched.id) ?? matched;
+  if (root.id === matched.id) {
+    return { rootCategoryId: root.id, subCategoryIds: [] };
+  }
+  return { rootCategoryId: root.id, subCategoryIds: [matched.id] };
+}
+
+/** Chọn đơn 1 Chuyên mục gốc: bấm lại chính nó sẽ bỏ chọn; bấm sang Cha khác sẽ chuyển nhánh và xóa tích lẻ cũ. */
+export function selectRootCategory(
   filters: ArticleFilters,
-  expandedCategoryIds: Set<string>,
-  needle: string,
-): boolean {
-  if (expandedCategoryIds.size > 0 && (!row.item.categoryId || !expandedCategoryIds.has(row.item.categoryId))) {
-    return false;
+  rootId: string,
+): ArticleFilters {
+  if (filters.rootCategoryId === rootId) {
+    return { ...filters, rootCategoryId: null, subCategoryIds: [] };
   }
-  if (filters.tags.length > 0 && !filters.tags.some((t) => row.tagIds.has(t))) {
-    return false;
-  }
-  if (!matchesJsonbFacets(row.item, filters)) {
-    return false;
-  }
-  return !needle || row.haystack.includes(needle);
+  return { ...filters, rootCategoryId: rootId, subCategoryIds: [] };
 }
 
-export interface JsonbFacetOption {
-  value: string;
-  label: string;
-  count: number;
-}
+/**
+ * Bật/tắt 1 mục trong khung "Chuyên mục con" (ở bất kỳ tầng 2, 3, 4...):
+ * - Nếu chưa tích hết các mục: tự ghi nhận `rootCategoryId` của nhánh và cập nhật `subCategoryIds`.
+ * - Nếu bỏ tích mục con cuối cùng: giữ nguyên `rootCategoryId` để tự động lấy toàn bộ nhánh gốc.
+ */
+export function toggleSubCategorySelection(
+  filters: ArticleFilters,
+  subId: string,
+  categories: PublicCategory[],
+): ArticleFilters {
+  const root = findRootCategory(categories, subId);
+  const nextRootId = root?.id ?? filters.rootCategoryId;
+  const subtreeIds = expandSelectedCategoryIds([subId], categories);
 
-export interface ArticleJsonbFacets {
-  siteTypes: JsonbFacetOption[];
-  preservations: JsonbFacetOption[];
-  personRoles: JsonbFacetOption[];
-}
-
-export function buildArticleJsonbFacets(rows: ArticleRow[]): ArticleJsonbFacets {
-  const siteTypeMap = new Map<string, JsonbFacetOption>();
-  const preservationMap = new Map<string, JsonbFacetOption>();
-  const roleMap = new Map<string, JsonbFacetOption>();
-
-  for (const { item } of rows) {
-    if (item.siteType && item.siteTypeLabel) {
-      const cur = siteTypeMap.get(item.siteType) ?? { value: item.siteType, label: item.siteTypeLabel, count: 0 };
-      cur.count += 1;
-      siteTypeMap.set(item.siteType, cur);
-    }
-    const pLabel = preservationTextOf(item.preservationCategory);
-    if (item.preservationCategory && pLabel) {
-      const cur = preservationMap.get(item.preservationCategory) ?? {
-        value: item.preservationCategory,
-        label: pLabel,
-        count: 0,
-      };
-      cur.count += 1;
-      preservationMap.set(item.preservationCategory, cur);
-    }
-    for (const role of item.roles) {
-      const cur = roleMap.get(role) ?? { value: role, label: role, count: 0 };
-      cur.count += 1;
-      roleMap.set(role, cur);
-    }
+  if (filters.subCategoryIds.includes(subId)) {
+    return {
+      ...filters,
+      rootCategoryId: nextRootId,
+      subCategoryIds: filters.subCategoryIds.filter((id) => !subtreeIds.has(id)),
+    };
   }
 
-  const byCountDesc = (a: JsonbFacetOption, b: JsonbFacetOption) => b.count - a.count;
+  const ancestorIds = new Set(collectCategoryLineage(subId, categories).map((c) => c.id));
+  ancestorIds.delete(subId);
+  const cleaned = filters.subCategoryIds.filter(
+    (id) => !subtreeIds.has(id) && !ancestorIds.has(id),
+  );
   return {
-    siteTypes: [...siteTypeMap.values()].sort(byCountDesc),
-    preservations: [...preservationMap.values()].sort(byCountDesc),
-    personRoles: [...roleMap.values()].sort(byCountDesc),
+    ...filters,
+    rootCategoryId: nextRootId,
+    subCategoryIds: [...cleaned, subId],
   };
 }
 
-export function sortArticleRows(rows: ArticleRow[], sort: ArticleSortOption): ArticleRow[] {
-  return [...rows].sort((a, b) => {
-    if (sort === ArticleSortOption.NAME) {
-      return a.item.title.localeCompare(b.item.title, 'vi');
+/** Quy đổi trạng thái chọn sang danh sách `categoryIds` gửi lên Server. */
+export function resolveEffectiveCategoryIds(
+  filters: Pick<ArticleFilters, 'rootCategoryId' | 'subCategoryIds'>,
+  categories: PublicCategory[],
+): string[] {
+  if (filters.subCategoryIds.length > 0) {
+    const deepest = getDeepestSelectedCategoryIds(filters.subCategoryIds, categories);
+    return [...expandSelectedCategoryIds(deepest, categories)];
+  }
+  if (filters.rootCategoryId) {
+    return [...expandSelectedCategoryIds([filters.rootCategoryId], categories)];
+  }
+  return [];
+}
+
+/** Tính tổng số bài thực tế của từng Chuyên mục đệ quy N tầng (node = bài trực tiếp + mọi con/cháu). */
+export function computeBranchCategoryCounts(
+  categories: PublicCategory[],
+  categoryCounts: Record<string, number>,
+): Map<string, number> {
+  const result = new Map<string, number>();
+  for (const cat of categories) {
+    const branchIds = expandSelectedCategoryIds([cat.id], categories);
+    let sum = 0;
+    for (const id of branchIds) {
+      sum += categoryCounts[id] ?? 0;
     }
-    const yearA = a.item.startYear;
-    const yearB = b.item.startYear;
-    if (yearA === null && yearB === null) return a.item.title.localeCompare(b.item.title, 'vi');
-    if (yearA === null) return 1;
-    if (yearB === null) return -1;
-    return sort === ArticleSortOption.YEAR_DESC ? yearB - yearA : yearA - yearB;
-  });
+    result.set(cat.id, sum);
+  }
+  return result;
+}
+
+export function estimateDraftCategoryCount(
+  draft: ArticleFilters,
+  categories: PublicCategory[],
+  categoryCounts: Record<string, number>,
+  totalInScope: number,
+): number {
+  const effectiveIds = resolveEffectiveCategoryIds(draft, categories);
+  if (effectiveIds.length === 0) return totalInScope;
+  return effectiveIds.reduce((sum, id) => sum + (categoryCounts[id] ?? 0), 0);
+}
+
+export function parseCatalogPageSize(raw: string | undefined): number {
+  const n = raw ? Number.parseInt(raw, 10) : DEFAULT_ARTICLE_PAGE_SIZE;
+  return (ARTICLE_PAGE_SIZE_OPTIONS as readonly number[]).includes(n) ? n : DEFAULT_ARTICLE_PAGE_SIZE;
+}
+
+export function parseCatalogSort(raw: string | undefined): ArticleSortOption {
+  if (raw && Object.values<string>(ArticleSortOption).includes(raw)) {
+    return raw as ArticleSortOption;
+  }
+  return ArticleSortOption.FEATURED;
+}
+
+export function resolveActiveTopicIds(
+  topics: PublicTopicRef[],
+  focusedTopicId: string | null,
+): string[] {
+  if (!focusedTopicId) return [];
+  return [...collectDescendantTopicIds(topics, focusedTopicId)];
 }

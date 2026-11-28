@@ -35,7 +35,10 @@ async function list<T>(endpoint: string): Promise<T[]> {
   try {
     const res = await api.get(endpoint);
     const payload = res.data?.data ?? res.data;
-    return Array.isArray(payload) ? payload : [];
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.items)) return payload.items;
+    if (Array.isArray(payload?.lessons)) return payload.lessons;
+    return [];
   } catch {
     // Một nguồn lỗi không làm hỏng cả ô tìm kiếm — chỉ thiếu loại kết quả đó.
     return [];
@@ -48,7 +51,7 @@ let catalog: Promise<SearchSource> | null = null;
 export function loadPublicCatalog(): Promise<SearchSource> {
   if (!catalog) {
     catalog = Promise.all([
-      list<PublicArticleSummary>(ENDPOINTS.ARTICLES),
+      list<PublicArticleSummary>(`${ENDPOINTS.ARTICLES}?limit=50`),
       list<PublicTimeline>(ENDPOINTS.TIMELINES),
       list<PublicLibraryLesson>(ENDPOINTS.LESSONS),
     ]).then(([articles, timelines, lessons]) => ({ articles, timelines, lessons }));

@@ -262,8 +262,21 @@ export interface PublicTimelineNodeArticle {
   id?: string;
   slug: string;
   title: string;
+  summary?: string | null;
   coverImageUrl: string | null;
-  category: { name: string; slug: string; icon: string | null } | null;
+  dateText?: string | null;
+  startYear?: number | null;
+  endYear?: number | null;
+  dateLabel?: string | null;
+  metadata?: ArticleMetadata | null;
+  category: {
+    id?: string;
+    name: string;
+    slug: string;
+    icon: string | null;
+    parentId?: string | null;
+  } | null;
+  tags?: PublicTag[];
 }
 
 export interface PublicTimelineNode {
@@ -291,8 +304,17 @@ export interface PublicTimeline {
   displayOrder: number;
   topicId: string | null;
   /** Chủ đề gắn với dòng thời gian này (nếu có) — dùng để ráp cây Thời kỳ cha/con theo Topic. */
-  topic: { id: string; name: string; slug: string; parentId: string | null } | null;
+  topic: {
+    id: string;
+    name: string;
+    slug: string;
+    eyebrow?: string | null;
+    displayOrder?: number;
+    parentId: string | null;
+  } | null;
   nodes: PublicTimelineNode[];
+  previewArticles?: PublicTimelineNodeArticle[];
+  totalTopicArticles?: number;
 }
 
 export interface PublicLibraryLesson {
@@ -361,3 +383,67 @@ export interface PublicTopicRef {
 }
 
 export const fetchTopics = () => list<PublicTopicRef>('/public/topics');
+
+export interface ArticleCatalogTagFacet {
+  id: string;
+  name: string;
+  count: number;
+}
+
+export interface PublicArticleCatalogResponse {
+  items: PublicArticleSummary[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  facets: {
+    categoryCounts: Record<string, number>;
+    topicCounts: Record<string, number>;
+    tags: ArticleCatalogTagFacet[];
+  };
+}
+
+export interface PublicArticleCatalogParams {
+  page?: number;
+  limit?: number;
+  sort?: string;
+  q?: string;
+  categoryIds?: string[];
+  topicIds?: string[];
+  tags?: string[];
+}
+
+function appendCsvParam(qs: URLSearchParams, key: string, values: string[] | undefined): void {
+  if (values && values.length > 0) {
+    qs.set(key, values.join(','));
+  }
+}
+
+export function buildArticleCatalogSearchParams(params: PublicArticleCatalogParams): URLSearchParams {
+  const qs = new URLSearchParams();
+  if (params.page && params.page > 1) qs.set('page', String(params.page));
+  if (params.limit) qs.set('limit', String(params.limit));
+  if (params.sort) qs.set('sort', params.sort);
+  if (params.q?.trim()) qs.set('q', params.q.trim());
+  appendCsvParam(qs, 'categoryIds', params.categoryIds);
+  appendCsvParam(qs, 'topicIds', params.topicIds);
+  appendCsvParam(qs, 'tags', params.tags);
+  return qs;
+}
+
+const EMPTY_CATALOG_RESPONSE: PublicArticleCatalogResponse = {
+  items: [],
+  total: 0,
+  page: 1,
+  limit: 24,
+  totalPages: 1,
+  facets: { categoryCounts: {}, topicCounts: {}, tags: [] },
+};
+
+export async function fetchArticleCatalog(
+  params: PublicArticleCatalogParams = {},
+): Promise<PublicArticleCatalogResponse> {
+  const qs = buildArticleCatalogSearchParams(params).toString();
+  const res = await getJson<PublicArticleCatalogResponse>(`/public/articles/catalog${qs ? `?${qs}` : ''}`);
+  return res ?? EMPTY_CATALOG_RESPONSE;
+}

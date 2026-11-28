@@ -8,6 +8,7 @@ import {
   BookOpen,
   Bookmark,
   Calendar,
+  History,
   KeyRound,
   Layers,
   LayoutDashboard,
@@ -28,6 +29,7 @@ import { AccountApiService, type MyProfile } from '@/services/entities/content-r
 import { extractErrorMessage } from '@/services/api';
 import { ProfileSection, SecuritySection } from './AccountSections';
 import { LearningSection, SavedBookmarksSection } from './AccountLearningSections';
+import { LearnerActivityHistoryPanel } from './LearnerActivityHistoryPanel';
 import { FlashcardsSection } from '@/features/flashcards/components/FlashcardsSection';
 import { MindmapsSection } from '@/features/mindmap/components/MindmapsSection';
 import { GamificationKpiBar } from '@/features/gamification/components/ArticleReadCompleteButton';
@@ -41,6 +43,7 @@ import { useSavedMaterialsSnapshot } from '@/features/saved-materials/services/s
 export enum AccountTabKey {
   PROFILE = 'ho-so',
   LEARNING = 'hoc-tap',
+  HISTORY = 'lich-su',
   GAMIFICATION = 'muc-tieu',
   BOOKMARKS = 'tu-lieu',
   FLASHCARDS = 'the-ghi-nho',
@@ -137,6 +140,7 @@ export function AccountView() {
   const tabs: AccountTab[] = [
     { id: AccountTabKey.PROFILE, label: 'Hồ sơ sử học', icon: UserRound },
     { id: AccountTabKey.LEARNING, label: 'Lộ trình của tôi', icon: BookOpen, badge: enrolledPathIds.length },
+    { id: AccountTabKey.HISTORY, label: 'Lịch sử học tập', icon: History },
     { id: AccountTabKey.GAMIFICATION, label: 'Mục tiêu & Thành tựu', icon: Target },
     { id: AccountTabKey.BOOKMARKS, label: 'Tư liệu đã lưu', icon: Bookmark, badge: savedCount },
     { id: AccountTabKey.FLASHCARDS, label: 'Thẻ ghi nhớ', icon: Layers, badge: flashcardDueCount },
@@ -317,9 +321,12 @@ export function AccountView() {
             <div className="h-96 animate-pulse rounded-2xl bg-[#EAE0CB]" />
           </div>
         ) : (
-          <div className="space-y-8">
-            {/* Thanh điều hướng Tab phong cách Viên thuốc Capsule hoàng gia */}
-            <div className="flex flex-nowrap items-center gap-1 lg:gap-1.5 overflow-x-auto p-1.5 rounded-2xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-surface,#FAF6EA)] shadow-xs [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
+            {/* Điều hướng Mobile (< lg): thanh cuộn ngang gọn */}
+            <nav
+              aria-label="Điều hướng tài khoản"
+              className="flex flex-nowrap items-center gap-1.5 overflow-x-auto rounded-2xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-surface,#FAF6EA)] p-1.5 shadow-xs [scrollbar-width:thin] lg:hidden"
+            >
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -328,7 +335,7 @@ export function AccountView() {
                     key={tab.id}
                     type="button"
                     onClick={() => handleSelectTab(tab.id)}
-                    className={`flex shrink-0 items-center gap-1.5 px-3 py-2 rounded-xl text-xs lg:text-[13px] font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                    className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                       isActive
                         ? 'bg-gradient-to-r from-[#7A1F24] to-[#91252B] text-white shadow-sm'
                         : 'text-[var(--text-muted,#7A6B57)] hover:bg-[#F5EEDC] hover:text-[var(--text-body,#2D1A10)]'
@@ -338,7 +345,7 @@ export function AccountView() {
                     <span>{tab.label}</span>
                     {typeof tab.badge === 'number' && tab.badge > 0 && (
                       <span
-                        className={`grid min-w-5 h-5 place-items-center rounded-full px-1 text-[10px] font-extrabold ${
+                        className={`grid h-5 min-w-5 place-items-center rounded-full px-1 text-[10px] font-extrabold ${
                           isActive ? 'bg-white/20 text-white' : 'bg-[var(--gold,#B8893F)]/15 text-[var(--gold,#B8893F)]'
                         }`}
                       >
@@ -348,12 +355,75 @@ export function AccountView() {
                   </button>
                 );
               })}
-            </div>
+            </nav>
+
+            {/* Điều hướng Desktop (lg+): Sidebar dọc 2 nhóm (Học tập & Tài khoản), không bao giờ bị cắt chữ */}
+            <aside
+              aria-label="Điều hướng tài khoản"
+              className="hidden lg:block sticky top-24 rounded-2xl border border-[var(--border,#E2D5B8)] bg-[var(--bg-surface,#FAF6EA)] p-3 shadow-xs space-y-4"
+            >
+              {[
+                {
+                  heading: 'Học tập',
+                  ids: [
+                    AccountTabKey.LEARNING,
+                    AccountTabKey.HISTORY,
+                    AccountTabKey.GAMIFICATION,
+                    AccountTabKey.BOOKMARKS,
+                    AccountTabKey.FLASHCARDS,
+                    AccountTabKey.MINDMAPS,
+                  ],
+                },
+                {
+                  heading: 'Tài khoản',
+                  ids: [AccountTabKey.PROFILE, AccountTabKey.SECURITY],
+                },
+              ].map((group) => (
+                <div key={group.heading} className="space-y-1">
+                  <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-[var(--text-muted,#7A6B57)]">
+                    {group.heading}
+                  </div>
+                  {tabs
+                    .filter((t) => group.ids.includes(t.id))
+                    .map((tab) => {
+                      const Icon = tab.icon;
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => handleSelectTab(tab.id)}
+                          className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-[13px] font-bold transition-all duration-200 cursor-pointer ${
+                            isActive
+                              ? 'bg-gradient-to-r from-[#7A1F24] to-[#91252B] text-white shadow-sm'
+                              : 'text-[var(--text-muted,#7A6B57)] hover:bg-[#F5EEDC] hover:text-[var(--text-body,#2D1A10)]'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2.5 min-w-0">
+                            <Icon size={16} className={`shrink-0 ${isActive ? 'text-[#D4AE67]' : ''}`} />
+                            <span className="truncate">{tab.label}</span>
+                          </span>
+                          {typeof tab.badge === 'number' && tab.badge > 0 && (
+                            <span
+                              className={`grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1.5 text-[10px] font-extrabold ${
+                                isActive ? 'bg-white/20 text-white' : 'bg-[var(--gold,#B8893F)]/15 text-[var(--gold,#B8893F)]'
+                              }`}
+                            >
+                              {tab.badge}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              ))}
+            </aside>
 
             {/* Nội dung Tab kích hoạt */}
-            <div className="transition-all duration-300">
+            <div className="min-w-0 transition-all duration-300">
               {activeTab === AccountTabKey.PROFILE && <ProfileSection profile={profile} onChange={setProfile} />}
               {activeTab === AccountTabKey.LEARNING && <LearningSection />}
+              {activeTab === AccountTabKey.HISTORY && <LearnerActivityHistoryPanel />}
               {activeTab === AccountTabKey.GAMIFICATION && (
                 <GamificationSection
                   overview={gamificationOverview}

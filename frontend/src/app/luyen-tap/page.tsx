@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/hisgo/Header';
 import { Footer } from '@/components/hisgo/Footer';
 import { useAuthSession } from '@/services/auth/use-auth-session';
@@ -34,7 +35,15 @@ import { normalizeQuizQuestionForDisplay } from '@/features/public-curriculum/st
 import { QuizApiService, type PracticeQuizItem } from '@/services/entities/quiz.service';
 import { extractErrorMessage } from '@/services/api';
 import { fetchTopics, type PublicTopicRef } from '@/services/public/public-content.service';
-import { ArrowLeft, Clock, HelpCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, HelpCircle, History } from 'lucide-react';
+import { AccountTabKey, accountTabRoute } from '@/features/account/components/AccountView';
+
+function sanitizeInternalReturnUrl(raw: string | null): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith('/') || trimmed.startsWith('//')) return null;
+  return trimmed;
+}
 
 /** Khớp với DEFAULT_QUIZ_PASSING_SCORE_PERCENT ở backend/src/quiz/quiz.constant.ts — chỉ dùng khi dữ liệu cũ thiếu trường này. */
 const DEFAULT_PASSING_SCORE_PERCENT = 80;
@@ -52,15 +61,19 @@ export default function LuyenTapPage() {
 
 /** Hai màn: chọn đề (danh sách) và làm bài (chuẩn bị → làm → kết quả) của một đề. */
 function LuyenTapContent() {
+  const router = useRouter();
   const sessionUser = useAuthSession();
   const isStaff = isStaffRole(sessionUser?.role);
-  const initialTopicId = useSearchParams().get(PRACTICE_TOPIC_PARAM) || ALL_TOPICS_ID;
+  const searchParams = useSearchParams();
+  const initialTopicId = searchParams.get(PRACTICE_TOPIC_PARAM) || ALL_TOPICS_ID;
+  const initialQuizId = searchParams.get('quizId');
+  const returnToUrl = sanitizeInternalReturnUrl(searchParams.get('returnTo'));
 
   const [quizzes, setQuizzes] = useState<PracticeQuizItem[]>([]);
   const [topicTree, setTopicTree] = useState<PublicTopicRef[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
+  const [activeQuizId, setActiveQuizId] = useState<string | null>(initialQuizId);
   const [showStatsModal, setShowStatsModal] = useState(false);
 
   // Đã đăng nhập thì lượt làm gắn tài khoản (server lấy từ token); khách mới cần tự nhập tên.
@@ -100,12 +113,17 @@ function LuyenTapContent() {
     scrollToTop();
   };
 
-  const backToList = () =>
+  const backToList = () => {
+    if (returnToUrl) {
+      exam.confirmDiscard(() => router.push(returnToUrl), 'Quay lại lộ trình');
+      return;
+    }
     exam.confirmDiscard(() => {
       setActiveQuizId(null);
       exam.reset();
       scrollToTop();
     }, 'Về danh sách đề');
+  };
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] flex flex-col font-[family-name:var(--font-body)] text-stone-800">
@@ -113,13 +131,26 @@ function LuyenTapContent() {
 
       {activeQuiz ? (
         <main className="flex-1 max-w-6xl mx-auto px-4 pt-6 pb-28 lg:pb-10 w-full">
-          <button
-            type="button"
-            onClick={backToList}
-            className="mb-5 inline-flex items-center gap-1.5 text-sm font-semibold text-stone-600 hover:text-[#8B261E] cursor-pointer"
-          >
-            <ArrowLeft size={16} /> Danh sách đề
-          </button>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={backToList}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-stone-600 hover:text-[#8B261E] cursor-pointer"
+            >
+              <ArrowLeft size={16} />{' '}
+              {returnToUrl ? 'Quay lại lộ trình học' : 'Danh sách đề'}
+            </button>
+
+            {exam.submitted && returnToUrl && (
+              <Link
+                href={returnToUrl}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800"
+              >
+                <CheckCircle2 size={15} /> Hoàn tất · Quay lại Lộ trình học tiếp{' '}
+                <ArrowRight size={14} />
+              </Link>
+            )}
+          </div>
           <PracticeExamStage
             quiz={activeQuiz}
             exam={exam}
@@ -137,6 +168,7 @@ function LuyenTapContent() {
           loading={loading}
           loadError={loadError}
           initialTopicId={initialTopicId}
+          isLoggedIn={Boolean(sessionUser)}
           onOpenQuiz={openQuiz}
         />
       )}
@@ -161,10 +193,11 @@ interface QuizListScreenProps {
   loading: boolean;
   loadError: string | null;
   initialTopicId: string;
+  isLoggedIn: boolean;
   onOpenQuiz: (quizId: string) => void;
 }
 
-function QuizListScreen({ quizzes, topicTree, loading, loadError, initialTopicId, onOpenQuiz }: QuizListScreenProps) {
+function QuizListScreen({ quizzes, topicTree, loading, loadError, initialTopicId, isLoggedIn, onOpenQuiz }: QuizListScreenProps) {
   const [filterQuery, setFilterQuery] = useState('');
   const [selectedTopicId, setSelectedTopicId] = useState(initialTopicId);
   const topics = useMemo(() => buildTopicFilterOptions(topicTree, quizzes), [topicTree, quizzes]);
@@ -206,17 +239,29 @@ function QuizListScreen({ quizzes, topicTree, loading, loadError, initialTopicId
   return (
     <>
       <section className="max-w-6xl mx-auto px-4 pt-8 pb-3 w-full">
-        <div className="border-b border-[#E2D5B8] pb-6">
-          <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#7A1F24] mb-2">
-            <span className="w-5 h-[1.5px] bg-[#7A1F24]" />
-            Khảo thí & Ôn luyện
+        <div className="border-b border-[#E2D5B8] pb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#7A1F24] mb-2">
+              <span className="w-5 h-[1.5px] bg-[#7A1F24]" />
+              Khảo thí & Ôn luyện
+            </div>
+            <h1 className="text-2xl md:text-3xl font-serif font-bold text-[#2D1A10] tracking-tight">
+              Luyện tập lịch sử
+            </h1>
+            <p className="mt-1.5 text-[#6E5F55] text-sm max-w-xl">
+              Chọn đề thi để ôn luyện, làm bài có bấm giờ và xem ngay kết quả kèm lời giải chi tiết.
+            </p>
           </div>
-          <h1 className="text-2xl md:text-3xl font-serif font-bold text-[#2D1A10] tracking-tight">
-            Luyện tập lịch sử
-          </h1>
-          <p className="mt-1.5 text-[#6E5F55] text-sm max-w-xl">
-            Chọn đề thi để ôn luyện, làm bài có bấm giờ và xem ngay kết quả kèm lời giải chi tiết.
-          </p>
+
+          {isLoggedIn && (
+            <Link
+              href={accountTabRoute(AccountTabKey.HISTORY)}
+              className="inline-flex items-center gap-2 rounded-xl border border-[#E2D5B8] bg-white px-4 py-2.5 text-xs font-bold text-[#7A1F24] shadow-2xs transition hover:border-[#B8893F] hover:bg-[#FAF5E6]"
+            >
+              <History size={15} className="text-[#B8893F]" />
+              <span>Lịch sử làm bài của tôi</span>
+            </Link>
+          )}
         </div>
       </section>
 

@@ -15,6 +15,7 @@ import {
 } from '@/services/entities/quiz.service';
 import { extractErrorMessage } from '@/services/api';
 import { emitGamificationRefresh } from '@/features/gamification/services/gamification.service';
+import { refreshLessonProgress } from '@/features/public-curriculum/components/hub/LessonQuizIslands';
 import {
   isQuestionAnswered,
   pickAnsweredAnswers,
@@ -128,6 +129,7 @@ export function usePracticeExam({ quiz, briefingQuestions, guestLearnerName }: U
       });
       setResult(graded);
       setSessionQuestions(revealAnswers(questions, graded.questions));
+      refreshLessonProgress();
       emitGamificationRefresh();
     } catch (err) {
       setSubmitError(extractErrorMessage(err, 'Nộp bài không thành công. Vui lòng thử lại.'));

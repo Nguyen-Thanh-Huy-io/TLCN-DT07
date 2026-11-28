@@ -9,6 +9,7 @@ import { QuestionBody } from '@/features/public-curriculum/components/hub/HubLes
 import type { UserQuizAnswer } from '@/features/public-curriculum/strategies/public-curriculum.strategies';
 import type { ExamDialog } from '../facades/usePracticeExam';
 import { KeyboardKey } from '@/constants/enums';
+import { sanitizeRichHtml } from '@/utils/common';
 
 // --- QuizFilterBar ---
 /** Ô <select> gốc không lùi lề được bằng CSS, nên thụt bằng khoảng trắng không ngắt theo cấp. */
@@ -69,7 +70,7 @@ export function QuizFilterBar({
           disabled={disabled}
           onChange={(e) => onSelectTopic(e.target.value)}
           aria-label="Lọc theo chủ đề"
-          className="w-full appearance-none !bg-none pl-10 pr-9 py-2.5 bg-white text-stone-900 text-sm rounded-xl border border-stone-200 focus:border-[#8B261E] focus:ring-2 focus:ring-[#8B261E]/20 outline-none cursor-pointer disabled:opacity-60"
+          className="w-full pl-10 pr-4 py-2.5 bg-white text-stone-900 text-sm rounded-xl border border-stone-200 focus:border-[#8B261E] focus:ring-2 focus:ring-[#8B261E]/20 outline-none cursor-pointer disabled:opacity-60"
         >
           <option value={ALL_TOPICS_ID}>Tất cả chủ đề ({totalCount})</option>
           {topics.map((topic) => (
@@ -78,7 +79,6 @@ export function QuizFilterBar({
             </option>
           ))}
         </select>
-        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none text-xs">▾</span>
       </div>
 
       {!disabled && filteredCount !== totalCount && (
@@ -379,7 +379,10 @@ export function PracticeQuestionCard({
         )}
       </div>
 
-      <h4 className="text-sm md:text-base font-medium text-stone-900 leading-snug">{question.prompt}</h4>
+      <div
+        className="text-sm md:text-base font-medium text-stone-900 leading-snug [&_p]:m-0"
+        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(question.prompt) }}
+      />
 
       <QuestionBody
         question={question}

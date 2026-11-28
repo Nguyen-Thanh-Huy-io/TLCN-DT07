@@ -47,6 +47,7 @@ export function LearningSection() {
   };
 
   return (
+    <div className="space-y-6">
     <AccountCard
       id="hoc-tap"
       eyebrow="Khóa học sử học"
@@ -169,6 +170,7 @@ export function LearningSection() {
       )}
       <Notice notice={notice} />
     </AccountCard>
+    </div>
   );
 }
 
@@ -191,17 +193,34 @@ export function SavedBookmarksSection({ onCountChange }: { onCountChange?: (coun
   >(() => new Map());
   const [notesCount, setNotesCount] = useState<number | null>(null);
 
+  const savedArticlesCsv = savedArticles.join(',');
+
   useEffect(() => {
     let alive = true;
-    api
-      .get<{ data: PublicArticleSummary[] }>('/public/articles', { params: { limit: 500 } })
-      .then((res) => {
-        if (!alive) return;
-        const list = Array.isArray(res.data?.data) ? res.data.data : [];
-        setArticlesById(new Map(list.map((a) => [a.id, a])));
-      })
-      .catch(() => {});
+    if (!savedArticlesCsv) {
+      void Promise.resolve().then(() => {
+        if (alive) setArticlesById(new Map());
+      });
+    } else {
+      api
+        .get<{ data: PublicArticleSummary[] }>('/public/articles', {
+          params: { ids: savedArticlesCsv, limit: savedArticles.length },
+        })
+        .then((res) => {
+          if (!alive) return;
+          const list = Array.isArray(res.data?.data) ? res.data.data : [];
+          setArticlesById(new Map(list.map((a) => [a.id, a])));
+        })
+        .catch(() => {});
+    }
 
+    return () => {
+      alive = false;
+    };
+  }, [savedArticlesCsv, savedArticles.length]);
+
+  useEffect(() => {
+    let alive = true;
     api
       .get<{ data: PublicTimeline[] }>('/public/timelines')
       .then((res) => {

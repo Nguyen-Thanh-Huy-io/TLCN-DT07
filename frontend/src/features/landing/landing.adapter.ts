@@ -209,13 +209,17 @@ function buildSpotlights(
   });
 }
 
+function compareByDisplayOrder(a: PublicPeriodDto, b: PublicPeriodDto): number {
+  return ((a.displayOrder ?? 0) - (b.displayOrder ?? 0)) || a.name.localeCompare(b.name, 'vi');
+}
+
 function buildEras(
   periods: PublicPeriodDto[],
   events: PublicEventSummaryDto[],
   figures: PublicFigureProfileDto[],
   rootOf: ReturnType<typeof rootResolver>,
 ): LandingEra[] {
-  const roots = periods.filter((p) => !p.parentId).sort((a, b) => a.startYear - b.startYear);
+  const roots = periods.filter((p) => !p.parentId).sort(compareByDisplayOrder);
   const eventCounts = countBy(events, (e) => rootOf(e.periodSlug)?.id ?? null);
   const figureCounts = countBy(figures, (f) => rootOf(f.periodSlug)?.id ?? null);
   return roots.map((root, i) => ({
@@ -224,7 +228,7 @@ function buildEras(
     years: root.timeLabel,
     subEras: periods
       .filter((p) => p.parentId === root.id)
-      .sort((a, b) => a.startYear - b.startYear)
+      .sort(compareByDisplayOrder)
       .slice(0, 3)
       .map((p) => truncate(shortPeriodName(p.name).split(':')[0], 26)),
     eventCount: eventCounts.get(root.id) ?? 0,

@@ -277,7 +277,7 @@ export function BlogBrowser({
           <button
             type="button"
             onClick={handleResetFilters}
-            className="inline-flex items-center gap-2 rounded-full bg-[#1f2a2b] px-5 py-2.5 text-xs font-bold uppercase tracking-[0.16em] text-[#f7f1e7] transition hover:bg-[#8a4d2d]"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#7A1F24] px-5 py-2.5 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm transition hover:bg-[#5E161A]"
           >
             <RotateCcw size={14} />
             <span>Xóa bộ lọc & Xem tất cả</span>

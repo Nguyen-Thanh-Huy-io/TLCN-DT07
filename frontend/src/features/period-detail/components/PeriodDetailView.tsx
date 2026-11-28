@@ -19,7 +19,7 @@ import type { PublicPeriodDetailDto, PublicPeriodDto } from '@/services/entities
 import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
 import { useEventCategories } from '@/hooks/useEventCategories';
 import { resolvePeriodEventCategory } from '../utils/period-category-filter.strategy';
-import { PERIOD_ROUTES, formatYear, shortPeriodName, TimeRuler, EventStream } from './PeriodDetailParts';
+import { PERIOD_ROUTES, shortPeriodName, TimeRuler, EventStream } from './PeriodDetailParts';
 import '../period-detail.css';
 import { RemoteImage } from '@/components/common/CommonUi';
 
@@ -28,24 +28,6 @@ export enum PeriodSectionId {
   STAGES = 'giai-doan',
   EVENTS = 'su-kien',
   CONCURRENT = 'cung-thoi',
-}
-
-function resolvePeriodTimeLabel(period: PublicPeriodDetailDto): string {
-  if (period.timeLabel?.trim()) return period.timeLabel.trim();
-  const years: number[] = [];
-  if (period.startYear != null && period.startYear !== 0) years.push(period.startYear);
-  if (period.endYear != null && period.endYear !== 0) years.push(period.endYear);
-  for (const c of period.children) {
-    if (c.startYear != null && c.startYear !== 0) years.push(c.startYear);
-    if (c.endYear != null && c.endYear !== 0) years.push(c.endYear);
-  }
-  for (const e of period.events) {
-    if (e.startYear != null && e.startYear !== 0) years.push(e.startYear);
-  }
-  if (years.length === 0) return '';
-  const minY = Math.min(...years);
-  const maxY = Math.max(...years);
-  return minY === maxY ? formatYear(minY) : `${formatYear(minY)} – ${formatYear(maxY)}`;
 }
 
 /** Đánh dấu mục đang đọc trên thanh điều hướng. */
@@ -126,7 +108,7 @@ export function PeriodDetailView({
     document.getElementById(`stage-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   const eventCategories = useEventCategories();
-  const resolvedTimeLabel = resolvePeriodTimeLabel(period);
+  const resolvedTimeLabel = period.timeLabel?.trim() ?? '';
   const categoryCount = useMemo(() => {
     const leafIds = new Set(
       period.events.map((e) => resolvePeriodEventCategory(eventCategories, e).leafId),

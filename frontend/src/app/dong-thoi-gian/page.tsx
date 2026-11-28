@@ -20,7 +20,7 @@ export default async function DongThoiGianPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-body)]">
       <Header activeSectionId="timeline" />
-      <TimelineExplorer eras={eras} />
+      <TimelineExplorer eras={eras} categories={categories} />
       <Footer />
     </div>
   );

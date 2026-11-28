@@ -81,7 +81,11 @@ export function EntitiesSection({ figures, locations }: { figures: LandingFigure
                       )}
                     </div>
                   </div>
-                  {f.quote && <blockquote>“{f.quote}”</blockquote>}
+                  {f.quote && (
+                    <blockquote>
+                      <span>“{f.quote}”</span>
+                    </blockquote>
+                  )}
                   <div className="hl-figure-foot">
                     <span>
                       <Layers3 />

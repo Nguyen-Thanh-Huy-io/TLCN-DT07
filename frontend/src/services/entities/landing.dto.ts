@@ -1,5 +1,5 @@
 
-import type { PublicAuthorInfo } from '../public/public-content.service';
+import type { PublicAuthorInfo, PublicTag } from '../public/public-content.service';
 
 export interface PublicPeriodDto {
   id: string;
@@ -7,10 +7,12 @@ export interface PublicPeriodDto {
   slug: string;
   name: string;
   timeLabel: string;
+  displayOrder?: number;
   startYear: number;
   endYear: number | null;
   description: string | null;
   coverImageUrl: string | null;
+  totalArticleCount?: number;
 }
 
 export interface PublicTopicDto {
@@ -92,6 +94,11 @@ export interface PublicEventSummaryDto {
   stageId?: string | null;
   figures: PublicFigureDto[];
   locations: PublicLocationSummaryDto[];
+  tagItems?: PublicTag[];
+  siteType?: string | null;
+  preservationCategory?: string | null;
+  /** Đánh dấu mốc biên niên chính thức được biên tập trong CMS (`TimelineNode`), tách biệt với bài viết thường. */
+  isCuratedNode?: boolean;
 }
 
 export interface PublicSubPeriodDto extends PublicPeriodDto {

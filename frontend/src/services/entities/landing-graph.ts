@@ -13,7 +13,6 @@ import {
   type PublicTimelineNode,
   type PublicTopicRef,
 } from '@/services/public/public-content.service';
-import { formatYear } from '@/utils/common';
 import type { PublicPeriodDto } from './landing.dto';
 
 export interface LifeNodeRef {
@@ -172,8 +171,29 @@ export function findNearestTimelinePeriodId(
   return null;
 }
 
+export function comparePeriodOrder(
+  a: Pick<PublicPeriodDto, 'displayOrder' | 'name'>,
+  b: Pick<PublicPeriodDto, 'displayOrder' | 'name'>,
+): number {
+  const orderDiff = (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
+  if (orderDiff !== 0) return orderDiff;
+  return a.name.localeCompare(b.name, 'vi');
+}
+
+export function siblingPeriods(period: PublicPeriodDto, all: PublicPeriodDto[]) {
+  const siblings = all
+    .filter((p) => (period.parentId ? p.parentId === period.parentId : !p.parentId))
+    .sort(comparePeriodOrder);
+  const i = siblings.findIndex((p) => p.id === period.id);
+  return {
+    prev: i > 0 ? siblings[i - 1] : null,
+    next: i >= 0 && i < siblings.length - 1 ? siblings[i + 1] : null,
+  };
+}
+
 /**
- * Period cha/con suy đệ quy theo cây Topic (`Timeline.topic.parentId` leo lên tổ tiên gần nhất có Timeline).
+ * Period cha/con suy đệ quy theo cây Topic (`Timeline.topic.parentId` leo lên tổ tiên gần nhất có Timeline),
+ * sắp xếp hoàn toàn theo `displayOrder` CMS và lấy nhãn phụ `timeLabel` từ `topic.eyebrow` (không tự quét năm).
  */
 export function buildPeriods(timelines: PublicTimeline[], topics: PublicTopicRef[] = []): PublicPeriodDto[] {
   const topicById = new Map<string, PublicTopicRef>(topics.map((t) => [t.id, t]));
@@ -185,69 +205,33 @@ export function buildPeriods(timelines: PublicTimeline[], topics: PublicTopicRef
   const periodIdByTopicId = new Map(
     timelines.filter((t): t is PublicTimeline & { topicId: string } => Boolean(t.topicId)).map((t) => [t.topicId, t.id]),
   );
-  const rawPeriods = timelines.map((t) => {
-    const parentTopicId = t.topic?.parentId ?? (t.topicId ? topicById.get(t.topicId)?.parentId : null) ?? null;
-    const parentId = findNearestTimelinePeriodId(parentTopicId, topicById, periodIdByTopicId, t.topicId);
-    return {
-      ...periodFromTimeline(t),
-      parentId,
-    };
-  });
-
-  // Lan truyền khoảng năm từ các giai đoạn con/cháu lên giai đoạn cha không có mốc trực tiếp.
-  const childrenMap = new Map<string, PublicPeriodDto[]>();
-  for (const p of rawPeriods) {
-    if (!p.parentId) continue;
-    const arr = childrenMap.get(p.parentId) ?? [];
-    arr.push(p);
-    childrenMap.set(p.parentId, arr);
-  }
-
-  const collectYears = (id: string, visited = new Set<string>()): number[] => {
-    if (visited.has(id)) return [];
-    visited.add(id);
-    const self = rawPeriods.find((x) => x.id === id);
-    const yrs: number[] = [];
-    if (self) {
-      if (self.startYear !== 0) yrs.push(self.startYear);
-      if (self.endYear !== null && self.endYear !== 0) yrs.push(self.endYear);
-    }
-    for (const ch of childrenMap.get(id) ?? []) {
-      yrs.push(...collectYears(ch.id, visited));
-    }
-    return yrs;
-  };
-
-  return rawPeriods.map((p) => {
-    const allYrs = collectYears(p.id);
-    if (allYrs.length === 0) return p;
-    const start = Math.min(...allYrs);
-    const end = Math.max(...allYrs);
-    const timeLabel = end !== start ? `${formatYear(start)} – ${formatYear(end)}` : formatYear(start);
-    return {
-      ...p,
-      startYear: start,
-      endYear: end,
-      timeLabel,
-    };
-  });
+  return timelines
+    .map((t) => {
+      const linkedTopic = t.topic ?? (t.topicId ? topicById.get(t.topicId) : undefined);
+      const parentTopicId = linkedTopic?.parentId ?? null;
+      const parentId = findNearestTimelinePeriodId(parentTopicId, topicById, periodIdByTopicId, t.topicId);
+      return {
+        ...periodFromTimeline(t, linkedTopic?.eyebrow),
+        parentId,
+      };
+    })
+    .sort(comparePeriodOrder);
 }
 
-export function periodFromTimeline(t: PublicTimeline): PublicPeriodDto {
-  const years = t.nodes.flatMap((n) => [n.year, n.endYear]).filter((y): y is number => typeof y === 'number');
-  const start = years.length ? Math.min(...years) : 0;
-  const end = years.length ? Math.max(...years) : null;
-  const timeLabel = end !== null && end !== start ? `${formatYear(start)} – ${formatYear(end)}` : formatYear(start);
+export function periodFromTimeline(t: PublicTimeline, fallbackEyebrow?: string | null): PublicPeriodDto {
+  const eyebrow = t.topic?.eyebrow ?? fallbackEyebrow ?? null;
   return {
     id: t.id,
     parentId: null,
     slug: t.slug,
     name: t.title,
-    timeLabel,
-    startYear: start,
-    endYear: end,
+    timeLabel: eyebrow?.trim() ?? '',
+    displayOrder: t.displayOrder,
+    startYear: 0,
+    endYear: null,
     description: t.description,
     coverImageUrl: t.coverImageUrl,
+    totalArticleCount: t.totalTopicArticles,
   };
 }
 
@@ -344,51 +328,3 @@ export const loadGraph = cache(async (): Promise<PublicGraph> => {
     nodesOf: (articleSlug) => nodesByArticle.get(articleSlug) ?? [],
   };
 });
-
-/** Id khối dùng cho các mục chưa gắn Chủ đề nào — không trộn vào khối Topic thật. */
-export const NO_TOPIC_ID = '__no-topic__';
-
-export interface TopicLeafGroup<T> {
-  id: string;
-  slug: string | null;
-  name: string;
-  items: T[];
-}
-
-export interface TopicBlock<T> {
-  id: string;
-  slug: string | null;
-  name: string;
-  leaves: TopicLeafGroup<T>[];
-}
-
-/** Khối lớn = Topic gốc (qua `rootTopicOf`), khối con = Topic trực tiếp; chưa gắn Topic gom vào khối "Khác" riêng. */
-export function groupByTopic<T>(
-  items: T[],
-  topicIdOf: (item: T) => string | null | undefined,
-  g: Pick<PublicGraph, 'topics' | 'rootTopicOf'>,
-): TopicBlock<T>[] {
-  const topicById = new Map(g.topics.map((t) => [t.id, t]));
-  const leavesByTopic = new Map<string, T[]>();
-  for (const item of items) {
-    const key = topicIdOf(item) ?? NO_TOPIC_ID;
-    const list = leavesByTopic.get(key) ?? [];
-    list.push(item);
-    leavesByTopic.set(key, list);
-  }
-
-  const blocks = new Map<string, TopicBlock<T>>();
-  for (const [topicId, leafItems] of leavesByTopic) {
-    const leafTopic = topicId !== NO_TOPIC_ID ? topicById.get(topicId) : undefined;
-    const root = topicId !== NO_TOPIC_ID ? g.rootTopicOf(topicId) : undefined;
-    const blockId = root?.id ?? NO_TOPIC_ID;
-    const block = blocks.get(blockId) ?? { id: blockId, slug: root?.slug ?? null, name: root?.name ?? 'Khác', leaves: [] };
-    block.leaves.push({ id: topicId, slug: leafTopic?.slug ?? null, name: leafTopic?.name ?? 'Khác', items: leafItems });
-    blocks.set(blockId, block);
-  }
-
-  const orderIndex = new Map(g.topics.map((t, i) => [t.id, i]));
-  const byOrder = (idA: string, idB: string) => (orderIndex.get(idA) ?? Infinity) - (orderIndex.get(idB) ?? Infinity);
-  for (const block of blocks.values()) block.leaves.sort((a, b) => byOrder(a.id, b.id));
-  return [...blocks.values()].sort((a, b) => byOrder(a.id, b.id));
-}

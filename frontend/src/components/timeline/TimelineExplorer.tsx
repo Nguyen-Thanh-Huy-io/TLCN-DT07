@@ -2,17 +2,30 @@
 
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
-import { ArrowDownUp, ArrowRight, Landmark, Search, X } from "lucide-react";
-import { Button, Heading, compactPeriod } from "./TimelineChrome";
-import { EMPTY_FILTERS, FilterBar, type TimelineFilters } from "./TimelineChrome";
-import { FilterSheet } from "./TimelineChrome";
-import { Minimap } from "./TimelineChrome";
-import { EraSection } from "./TimelineSections";
-import { SubEraSection } from "./TimelineSections";
-import { HorizontalExplorer } from "./TimelineSections";
-import { EventDetailModal } from "./TimelineChrome";
+import { ArrowDownUp, ArrowRight, BookOpen, Landmark, Search, X } from "lucide-react";
+import {
+  computeRecursiveCategoryBranchCounts,
+  resolveEffectiveCategorySelectionIds,
+} from "@/components/filters/CategoryHierarchyFilterSection";
+import {
+  computeTagFacetsFromItems,
+  matchesSelectedTags,
+} from "@/components/filters/PublicContentFilterSections";
 import { TocDrawer, type TocNode } from "@/components/common/TocDrawer";
-import { SK_SELECTED_CLASS, type Era, type TimeNode, type TimelineEvent } from "./sk-adapter";
+import { SYSTEM_CATEGORY_ROOT_SLUGS, type PublicCategory } from "@/services/public/public-content.service";
+import {
+  Button,
+  compactPeriod,
+  EMPTY_FILTERS,
+  EventDetailModal,
+  FilterBar,
+  FilterSheet,
+  Heading,
+  Minimap,
+  type TimelineFilters,
+} from "./TimelineChrome";
+import { EraSection, HorizontalExplorer, LazySubEraList, SubEraSection } from "./TimelineSections";
+import { SK_SELECTED_CLASS, type Era, type SubEra, type TimeNode, type TimelineEvent } from "./sk-adapter";
 
 const SAVED_STORAGE_KEY = "hisgo:timeline:saved-events";
 
@@ -25,22 +38,64 @@ function readSaved(): string[] {
   }
 }
 
-type FilterScope = { query: string; bookmarksOnly: boolean; saved: string[] };
-
-function matchesEvent(event: TimelineEvent, _node: TimeNode, f: TimelineFilters, scope: FilterScope): boolean {
-  const q = scope.query.toLocaleLowerCase("vi");
-  return (
-    (f.categories.length === 0 || f.categories.includes(event.category)) &&
-    (!scope.bookmarksOnly || scope.saved.includes(event.id)) &&
-    (!q ||
-      [event.title, event.summary, event.category, ...event.tags]
-        .join(" ")
-        .toLocaleLowerCase("vi")
-        .includes(q))
-  );
+interface FilterScope {
+  query: string;
+  bookmarksOnly: boolean;
+  saved: string[];
+  allowedCategoryIds: Set<string>;
+  selectedTags: string[];
+  fallbackEventRootId: string | null;
 }
 
-function filterEras(baseEras: Era[], f: TimelineFilters, scope: FilterScope): Era[] {
+function resolveTimelineEventCategoryId(
+  event: TimelineEvent,
+  categoriesByNameOrSlug: ReadonlyMap<string, string>,
+  fallbackEventRootId: string | null,
+): string | null {
+  if (event.categoryId) return event.categoryId;
+  const fromCode = event.categoryCode
+    ? categoriesByNameOrSlug.get(event.categoryCode.toLocaleLowerCase("vi"))
+    : undefined;
+  if (fromCode) return fromCode;
+  const fromLabel = event.category
+    ? categoriesByNameOrSlug.get(event.category.toLocaleLowerCase("vi"))
+    : undefined;
+  return fromLabel ?? fallbackEventRootId;
+}
+
+function matchesEvent(
+  event: TimelineEvent,
+  scope: FilterScope,
+  categoriesByNameOrSlug: ReadonlyMap<string, string>,
+): boolean {
+  if (scope.allowedCategoryIds.size > 0) {
+    const catId = resolveTimelineEventCategoryId(
+      event,
+      categoriesByNameOrSlug,
+      scope.fallbackEventRootId,
+    );
+    if (!catId || !scope.allowedCategoryIds.has(catId)) return false;
+  }
+  if (!matchesSelectedTags(event, scope.selectedTags)) {
+    return false;
+  }
+  if (scope.bookmarksOnly && !scope.saved.includes(event.id)) {
+    return false;
+  }
+  const q = scope.query.trim().toLocaleLowerCase("vi");
+  if (!q) return true;
+  return [event.title, event.summary, event.category, ...event.tags]
+    .join(" ")
+    .toLocaleLowerCase("vi")
+    .includes(q);
+}
+
+function filterEras(
+  baseEras: Era[],
+  f: TimelineFilters,
+  scope: FilterScope,
+  categoriesByNameOrSlug: ReadonlyMap<string, string>,
+): Era[] {
   return baseEras
     .filter((e) => f.eras.length === 0 || f.eras.includes(e.id))
     .map((e) => {
@@ -53,7 +108,10 @@ function filterEras(baseEras: Era[], f: TimelineFilters, scope: FilterScope): Er
         .map((s) => ({
           ...s,
           timeNodes: s.timeNodes
-            .map((n) => ({ ...n, events: n.events.filter((ev) => matchesEvent(ev, n, f, scope)) }))
+            .map((n) => ({
+              ...n,
+              events: n.events.filter((ev) => matchesEvent(ev, scope, categoriesByNameOrSlug)),
+            }))
             .filter((n) => n.events.length > 0),
         }))
         .filter((s) => s.timeNodes.length > 0),
@@ -63,48 +121,108 @@ function filterEras(baseEras: Era[], f: TimelineFilters, scope: FilterScope): Er
 
 function countEvents(eras: Era[]): number {
   return eras.reduce(
-    (sum, e) => sum + e.subEras.reduce((s, sb) => s + sb.timeNodes.reduce((n, node) => n + node.events.length, 0), 0),
+    (sum, e) =>
+      sum + e.subEras.reduce((s, sb) => s + sb.timeNodes.reduce((n, node) => n + node.events.length, 0), 0),
     0,
   );
-}
-
-function collectCategories(nodes: TimeNode[]): string[] {
-  const seen = new Set<string>();
-  for (const n of nodes) for (const ev of n.events) seen.add(ev.category);
-  return Array.from(seen);
 }
 
 const TOC_ERA_PREFIX = "era:";
 const TOC_SUB_PREFIX = "sub:";
 
-/** Xây cây Mục lục Thời kỳ → Giai đoạn dùng cho chế độ Focus Filter thống nhất. */
-function toTocNodes(eras: Era[]): TocNode[] {
-  return eras.map((e) => ({
-    id: `${TOC_ERA_PREFIX}${e.id}`,
-    title: e.title,
-    subtitle: compactPeriod(e.periodLabel),
-    count: e.subEras.reduce((n, s) => n + s.timeNodes.length, 0),
-    children: e.subEras.map((s) => ({
+function buildSubEraTocBranch(
+  subs: SubEra[],
+  parentId: string,
+  byId: Set<string>,
+  visited: Set<string>,
+): TocNode[] {
+  const direct = subs.filter((s) => {
+    if (visited.has(s.id)) return false;
+    if (s.parentId === parentId) return true;
+    return parentId === s.eraId && (!s.parentId || !byId.has(s.parentId)) && s.id !== s.eraId;
+  });
+  return direct.map((s) => {
+    visited.add(s.id);
+    const children = buildSubEraTocBranch(subs, s.id, byId, visited);
+    const childSum = children.reduce((sum, c) => sum + c.count, 0);
+    return {
       id: `${TOC_SUB_PREFIX}${s.id}`,
       title: s.title,
-      subtitle: compactPeriod(s.periodLabel),
-      count: s.timeNodes.length,
-    })),
-  }));
+      subtitle: s.periodLabel ? compactPeriod(s.periodLabel) : undefined,
+      count: s.timeNodes.length + childSum,
+      ...(children.length > 0 ? { children } : {}),
+    };
+  });
 }
 
-/** Bật/tắt dấu mốc đã lưu và ghi lại vào trình duyệt. */
+function toTocNodes(eras: Era[]): TocNode[] {
+  return eras.map((e) => {
+    const sourceSubs = e.tocSubEras ?? e.subEras;
+    const byId = new Set(sourceSubs.map((s) => s.id));
+    const children = buildSubEraTocBranch(sourceSubs, e.id, byId, new Set([e.id]));
+    const count = children.reduce((n, c) => n + c.count, 0);
+    return {
+      id: `${TOC_ERA_PREFIX}${e.id}`,
+      title: e.title,
+      subtitle: e.periodLabel ? compactPeriod(e.periodLabel) : undefined,
+      count: count || e.subEras.reduce((n, s) => n + s.timeNodes.length, 0),
+      children,
+    };
+  });
+}
+
+function collectDescendantSubIds(subs: SubEra[], rootSubId: string): string[] {
+  const result = new Set<string>([rootSubId]);
+  let added = true;
+  while (added) {
+    added = false;
+    for (const s of subs) {
+      if (s.parentId && result.has(s.parentId) && !result.has(s.id)) {
+        result.add(s.id);
+        added = true;
+      }
+    }
+  }
+  return [...result];
+}
+
+function resolveTocSelection(
+  baseEras: Era[],
+  focusedTocId: string | null,
+): { eras: string[]; subs: string[]; label: string | null } {
+  if (!focusedTocId) return { eras: [], subs: [], label: null };
+  if (focusedTocId.startsWith(TOC_ERA_PREFIX)) {
+    const eraId = focusedTocId.slice(TOC_ERA_PREFIX.length);
+    const era = baseEras.find((e) => e.id === eraId);
+    return { eras: era ? [era.id] : [], subs: [], label: era?.title ?? null };
+  }
+  if (focusedTocId.startsWith(TOC_SUB_PREFIX)) {
+    const subId = focusedTocId.slice(TOC_SUB_PREFIX.length);
+    const ownerEra = baseEras.find((e) =>
+      (e.tocSubEras ?? e.subEras).some((s) => s.id === subId),
+    );
+    const sourceSubs = ownerEra ? ownerEra.tocSubEras ?? ownerEra.subEras : [];
+    const pickedSub = sourceSubs.find((s) => s.id === subId);
+    const targetSubIds = ownerEra ? collectDescendantSubIds(sourceSubs, subId) : [subId];
+    return {
+      eras: ownerEra ? [ownerEra.id] : [],
+      subs: targetSubIds,
+      label: pickedSub?.title ?? null,
+    };
+  }
+  return { eras: [], subs: [], label: null };
+}
+
 function toggleSavedId(saved: string[], id: string): string[] {
   const next = saved.includes(id) ? saved.filter((x) => x !== id) : [...saved, id];
   try {
     localStorage.setItem(SAVED_STORAGE_KEY, JSON.stringify(next));
   } catch {
-    // Storage can be unavailable (private mode); bookmarks then last for this visit only.
+    // Storage can be unavailable in private mode
   }
   return next;
 }
 
-/** Sự kiện liền trước/liền sau (vòng tròn) trên toàn trục, dùng cho nút chuyển trong hộp chi tiết. */
 function neighborEvent(nodes: TimeNode[], eventId: string, direction: 1 | -1) {
   const entries = nodes.flatMap((n) => n.events.map((event) => ({ event, node: n })));
   const i = entries.findIndex((x) => x.event.id === eventId);
@@ -116,9 +234,18 @@ function pickSelectedNode(nodes: TimeNode[], selectedId: string): TimeNode | und
   return chosen?.events.length ? chosen : nodes.find((n) => n.events.length > 0);
 }
 
-export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?: ReactNode }) {
+export function TimelineExplorer({
+  eras: baseEras,
+  categories = [],
+  hero,
+}: {
+  eras: Era[];
+  categories?: PublicCategory[];
+  hero?: ReactNode;
+}) {
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<TimelineFilters>(EMPTY_FILTERS);
+  const [focusedTocId, setFocusedTocId] = useState<string | null>(null);
   const [horizontal, setHorizontal] = useState(false);
   const [compact, setCompact] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -128,63 +255,174 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
   const [saved, setSaved] = useState<string[]>([]);
   const [dockSidebar, setDockSidebar] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
+  const [bookmarksOnly, setBookmarksOnly] = useState(false);
 
   useEffect(() => {
     void Promise.resolve().then(() => {
       setSaved(readSaved());
     });
   }, []);
-  const [bookmarksOnly, setBookmarksOnly] = useState(false);
+
   const canvas = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: canvas, offset: ["start end", "end start"] });
   const progress = useSpring(scrollYProgress, { stiffness: 70, damping: 25 });
 
-  const allSubs = useMemo(() => baseEras.flatMap((e) => e.subEras), [baseEras]);
-  const allNodes = useMemo(() => allSubs.flatMap((s) => s.timeNodes), [allSubs]);
-  const allCategories = useMemo(() => collectCategories(allNodes), [allNodes]);
+  const allSubs = useMemo(
+    () => baseEras.flatMap((e) => e.tocSubEras ?? e.subEras),
+    [baseEras],
+  );
+  const allNodes = useMemo(
+    () => baseEras.flatMap((e) => e.subEras.flatMap((s) => s.timeNodes)),
+    [baseEras],
+  );
+
+  const categoriesByNameOrSlug = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of categories) {
+      map.set(c.slug.toLocaleLowerCase("vi"), c.id);
+      map.set(c.name.toLocaleLowerCase("vi"), c.id);
+    }
+    return map;
+  }, [categories]);
+
+  const fallbackEventRootId = useMemo(
+    () => categories.find((c) => c.slug === SYSTEM_CATEGORY_ROOT_SLUGS.EVENT)?.id ?? null,
+    [categories],
+  );
 
   const reset = () => {
     setQuery("");
     setFilters(EMPTY_FILTERS);
+    setFocusedTocId(null);
     setBookmarksOnly(false);
   };
 
-  const scope = { query, bookmarksOnly, saved };
-  const eras = useMemo(
-    () => filterEras(baseEras, filters, { query, bookmarksOnly, saved }),
-    [baseEras, filters, bookmarksOnly, query, saved],
+  const tocSelection = useMemo(
+    () => resolveTocSelection(baseEras, focusedTocId),
+    [baseEras, focusedTocId],
   );
-  const countFor = (f: TimelineFilters) => countEvents(filterEras(baseEras, f, scope));
-  const filterKey = JSON.stringify(filters);
 
+  const effectiveFilters = useMemo<TimelineFilters>(
+    () =>
+      focusedTocId
+        ? { ...filters, eras: tocSelection.eras, subs: tocSelection.subs }
+        : filters,
+    [filters, focusedTocId, tocSelection],
+  );
+
+  // Tính số dấu mốc theo từng categoryId trên phạm vi Thời kỳ, Chủ điểm & Tìm kiếm hiện tại
+  const branchCategoryCounts = useMemo(() => {
+    const erasWithoutCatFilter = filterEras(
+      baseEras,
+      { ...effectiveFilters, rootCategoryId: null, subCategoryIds: [] },
+      {
+        query,
+        bookmarksOnly,
+        saved,
+        allowedCategoryIds: new Set(),
+        selectedTags: effectiveFilters.tags,
+        fallbackEventRootId,
+      },
+      categoriesByNameOrSlug,
+    );
+    const directCounts: Record<string, number> = {};
+    for (const era of erasWithoutCatFilter) {
+      for (const sub of era.subEras) {
+        for (const node of sub.timeNodes) {
+          for (const ev of node.events) {
+            const cid = resolveTimelineEventCategoryId(ev, categoriesByNameOrSlug, fallbackEventRootId);
+            if (cid) directCounts[cid] = (directCounts[cid] ?? 0) + 1;
+          }
+        }
+      }
+    }
+    return computeRecursiveCategoryBranchCounts(categories, directCounts);
+  }, [baseEras, effectiveFilters, query, bookmarksOnly, saved, fallbackEventRootId, categoriesByNameOrSlug, categories]);
+
+  const tagOptions = useMemo(() => {
+    const allowedCategoryIds = new Set(resolveEffectiveCategorySelectionIds(effectiveFilters, categories));
+    const erasWithoutTagFilter = filterEras(
+      baseEras,
+      { ...effectiveFilters, tags: [] },
+      {
+        query,
+        bookmarksOnly,
+        saved,
+        allowedCategoryIds,
+        selectedTags: [],
+        fallbackEventRootId,
+      },
+      categoriesByNameOrSlug,
+    );
+    const eventsForTags = erasWithoutTagFilter.flatMap((e) =>
+      e.subEras.flatMap((s) => s.timeNodes.flatMap((n) => n.events)),
+    );
+    return computeTagFacetsFromItems(eventsForTags);
+  }, [baseEras, effectiveFilters, categories, query, bookmarksOnly, saved, fallbackEventRootId, categoriesByNameOrSlug]);
+
+  const tagNamesById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const n of allNodes) {
+      for (const ev of n.events) {
+        for (const t of ev.tagItems) map.set(t.id, t.name);
+      }
+    }
+    return map;
+  }, [allNodes]);
+
+  const eras = useMemo(() => {
+    const allowedCategoryIds = new Set(resolveEffectiveCategorySelectionIds(effectiveFilters, categories));
+    return filterEras(
+      baseEras,
+      effectiveFilters,
+      {
+        query,
+        bookmarksOnly,
+        saved,
+        allowedCategoryIds,
+        selectedTags: effectiveFilters.tags,
+        fallbackEventRootId,
+      },
+      categoriesByNameOrSlug,
+    );
+  }, [baseEras, effectiveFilters, categories, query, bookmarksOnly, saved, fallbackEventRootId, categoriesByNameOrSlug]);
+
+  const countFor = (draft: TimelineFilters) => {
+    const mergedDraft = focusedTocId
+      ? { ...draft, eras: tocSelection.eras, subs: tocSelection.subs }
+      : draft;
+    const allowedCategoryIds = new Set(resolveEffectiveCategorySelectionIds(mergedDraft, categories));
+    return countEvents(
+      filterEras(
+        baseEras,
+        mergedDraft,
+        {
+          query,
+          bookmarksOnly,
+          saved,
+          allowedCategoryIds,
+          selectedTags: mergedDraft.tags,
+          fallbackEventRootId,
+        },
+        categoriesByNameOrSlug,
+      ),
+    );
+  };
+
+  const filterKey = `${JSON.stringify(filters)}-${focusedTocId ?? ""}`;
   const visibleNodes = useMemo(() => eras.flatMap((e) => e.subEras.flatMap((s) => s.timeNodes)), [eras]);
   const selectedNode = pickSelectedNode(visibleNodes, selected);
   const tocNodes = useMemo(() => toTocNodes(baseEras), [baseEras]);
 
-  const activeTocId = useMemo(() => {
-    if (filters.subs.length === 1) return `${TOC_SUB_PREFIX}${filters.subs[0]}`;
-    if (filters.eras.length === 1 && filters.subs.length === 0) return `${TOC_ERA_PREFIX}${filters.eras[0]}`;
-    return undefined;
-  }, [filters.eras, filters.subs]);
+  const activeTocId = focusedTocId ?? undefined;
 
   const handleFocusFromToc = (tocId: string) => {
-    if (tocId.startsWith(TOC_ERA_PREFIX)) {
-      const eraId = tocId.slice(TOC_ERA_PREFIX.length);
-      setFilters((prev) => ({ ...prev, eras: [eraId], subs: [] }));
-    } else if (tocId.startsWith(TOC_SUB_PREFIX)) {
-      const subId = tocId.slice(TOC_SUB_PREFIX.length);
-      const ownerEra = baseEras.find((e) => e.subEras.some((s) => s.id === subId));
-      setFilters((prev) => ({
-        ...prev,
-        eras: ownerEra ? [ownerEra.id] : [],
-        subs: [subId],
-      }));
-    }
+    setFocusedTocId(tocId);
     canvas.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const clearTocFocus = () => {
-    setFilters((prev) => ({ ...prev, eras: [], subs: [] }));
+    setFocusedTocId(null);
   };
 
   const jump = (id: string) => {
@@ -198,13 +436,22 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
     if (next) setDetail(next);
   };
 
+  const hasAnyFacetFilter = Boolean(
+    filters.rootCategoryId || filters.subCategoryIds.length > 0 || filters.tags.length > 0,
+  );
+
   return (
     <div className="sk-app">
       {hero}
       <div className="sk-explorer">
         <div className="sk-explorer-intro">
           <div>
-            <Heading level={1}>{bookmarksOnly ? "Dấu mốc đã lưu" : "Dòng chảy lịch sử ngàn năm"}</Heading>
+            <Heading
+              level={1}
+              className="font-[family-name:var(--font-heading)] text-2xl sm:text-3xl font-extrabold text-[var(--text-body)] tracking-tight"
+            >
+              {bookmarksOnly ? "Dấu mốc đã lưu" : "Dòng chảy lịch sử ngàn năm"}
+            </Heading>
             <p>Mỗi thời kỳ là một chương. Mỗi dấu mốc là một câu chuyện.</p>
           </div>
           <div className="sk-view-toggle">
@@ -225,13 +472,15 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
           onOpenSheet={() => setSheetOpen(true)}
           eras={baseEras}
           subs={allSubs}
+          categories={categories}
+          tagNamesById={tagNamesById}
           compact={compact}
           onCompact={() => setCompact(!compact)}
           bookmarksOnly={bookmarksOnly}
           onBookmarksOnly={() => setBookmarksOnly(!bookmarksOnly)}
           savedCount={saved.length}
-          onOpenToc={() => setTocOpen(true)}
-          eraCount={eras.length}
+          focusedTocLabel={tocSelection.label}
+          onClearTocFocus={clearTocFocus}
         />
         <FilterSheet
           open={sheetOpen}
@@ -242,8 +491,9 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
           }}
           onClose={() => setSheetOpen(false)}
           countFor={countFor}
-          eras={baseEras}
-          categories={allCategories}
+          categories={categories}
+          branchCategoryCounts={branchCategoryCounts}
+          tagOptions={tagOptions}
         />
 
         <div className={`sk-workspace ${!dockSidebar ? "sk-workspace-full" : ""}`}>
@@ -306,24 +556,46 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
                   ) : (
                     eras.map((e, ei) => {
                       const isSingleSub = e.subEras.length === 1;
+                      const hasActiveFilter = Boolean(
+                        query ||
+                          Boolean(focusedTocId) ||
+                          filters.eras.length ||
+                          filters.subs.length ||
+                          hasAnyFacetFilter ||
+                          bookmarksOnly,
+                      );
+                      const eraResetKey = `${e.id}-${query}-${filterKey}-${bookmarksOnly}`;
                       return (
-                        <EraSection key={e.id} title={e.title} slug={e.slug} period={e.periodLabel} index={ei} overview={e.overview}>
+                        <EraSection
+                          key={`${e.id}-${hasActiveFilter ? "filtered" : "all"}`}
+                          title={e.title}
+                          slug={e.slug}
+                          period={e.periodLabel}
+                          index={ei}
+                          overview={e.overview}
+                          defaultOpen={ei === 0 || eras.length === 1 || hasActiveFilter}
+                        >
                           <motion.div key="spine-progress" className="sk-spine-progress" style={{ scaleY: progress }} />
-                          {e.subEras.map((s) => {
-                            const isDuplicateTitle = isSingleSub || s.title.trim().toLowerCase() === e.title.trim().toLowerCase();
-                            return (
-                              <SubEraSection
-                                key={`${s.id}-${query}-${filterKey}-${bookmarksOnly}`}
-                                subEra={s}
-                                compact={compact}
-                                onDetail={setDetail}
-                                onSave={toggleSaved}
-                                saved={saved}
-                                onActive={setActive}
-                                hideSubHeading={isDuplicateTitle}
-                              />
-                            );
-                          })}
+                          <LazySubEraList
+                            subEras={e.subEras}
+                            resetKey={eraResetKey}
+                            renderSubEra={(s) => {
+                              const isDuplicateTitle =
+                                isSingleSub || s.title.trim().toLowerCase() === e.title.trim().toLowerCase();
+                              return (
+                                <SubEraSection
+                                  key={`${s.id}-${query}-${filterKey}-${bookmarksOnly}`}
+                                  subEra={s}
+                                  compact={compact}
+                                  onDetail={setDetail}
+                                  onSave={toggleSaved}
+                                  saved={saved}
+                                  onActive={setActive}
+                                  hideSubHeading={isDuplicateTitle}
+                                />
+                              );
+                            }}
+                          />
                         </EraSection>
                       );
                     })
@@ -349,6 +621,20 @@ export function TimelineExplorer({ eras: baseEras, hero }: { eras: Era[]; hero?:
         saved={detail ? saved.includes(detail.event.id) : false}
         onSave={toggleSaved}
       />
+
+      {!tocOpen && !detail && !sheetOpen && (
+        <button
+          type="button"
+          className="sk-toc-floating-side-tab"
+          onClick={() => setTocOpen(true)}
+          title="Mục lục thời kỳ lịch sử"
+          aria-label="Mở mục lục thời kỳ"
+        >
+          <BookOpen size={15} />
+          <span>Mục lục</span>
+          {eras.length > 0 && <span className="sk-toc-floating-badge">{eras.length}</span>}
+        </button>
+      )}
 
       <TocDrawer
         open={tocOpen}

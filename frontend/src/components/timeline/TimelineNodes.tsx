@@ -94,6 +94,9 @@ export function EventCard({
 }
 
 // === NodeContent.tsx ===
+const STEP_EVENTS_PER_NODE = 3;
+const INITIAL_EVENTS_PER_NODE = 2;
+
 export function NodeContent({
   node,
   onDetail,
@@ -107,26 +110,57 @@ export function NodeContent({
   saved: string[];
   workspace?: boolean;
 }) {
-  const [more, setMore] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_EVENTS_PER_NODE);
+  const total = node.events.length;
+  const hasMore = total > visibleCount;
+  const isExpanded = visibleCount > INITIAL_EVENTS_PER_NODE;
 
   return (
     <div className={`sk-node-card-group ${workspace ? 'sk-workspace-cards' : ''}`}>
       <div className="sk-event-list">
-        {node.events.slice(0, more ? undefined : 2).map((event) => (
+        {node.events.slice(0, visibleCount).map((event) => (
           <EventCard
             key={event.id}
             event={event}
-            siblingCount={node.events.length}
+            siblingCount={total}
             onOpen={() => onDetail({ event, node })}
             saved={saved.includes(event.id)}
             onSave={() => onSave(event.id)}
           />
         ))}
-        {node.events.length > 2 && (
-          <Button className="sk-more-events" onClick={() => setMore(!more)}>
-            <Plus size={14} />
-            {more ? 'Thu gọn bài viết' : `Xem thêm ${node.events.length - 2} bài viết cùng thời điểm`}
-          </Button>
+        {total > INITIAL_EVENTS_PER_NODE && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {hasMore ? (
+              <>
+                <Button
+                  className="sk-more-events"
+                  onClick={() =>
+                    setVisibleCount((prev) =>
+                      Math.min(prev + STEP_EVENTS_PER_NODE, total),
+                    )
+                  }
+                >
+                  <Plus size={14} />
+                  Xem thêm {Math.min(STEP_EVENTS_PER_NODE, total - visibleCount)} bài viết
+                </Button>
+                {total - visibleCount > STEP_EVENTS_PER_NODE && (
+                  <Button
+                    className="sk-more-events !border-solid !bg-[#FAF5E6] hover:!bg-[#F5EEDC]"
+                    onClick={() => setVisibleCount(total)}
+                  >
+                    Xem tất cả ({total})
+                  </Button>
+                )}
+              </>
+            ) : isExpanded ? (
+              <Button
+                className="sk-more-events"
+                onClick={() => setVisibleCount(INITIAL_EVENTS_PER_NODE)}
+              >
+                Thu gọn bớt bài viết
+              </Button>
+            ) : null}
+          </div>
         )}
       </div>
     </div>

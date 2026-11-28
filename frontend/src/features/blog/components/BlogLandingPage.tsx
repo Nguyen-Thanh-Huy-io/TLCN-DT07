@@ -136,16 +136,16 @@ export async function BlogLandingPage({ author }: { author?: string } = {}) {
 
   if (!featuredPost) {
     return (
-      <div className="hisgo-theme min-h-screen bg-[#f7f1e7] text-[#1f2a2b]">
+      <div className="hisgo-theme flex min-h-screen flex-col bg-[#f7f1e7] text-[#2D1A10]">
         <Header activeTab="blog" />
-        <main className="mx-auto max-w-[1280px] px-4 py-20 md:px-6 lg:px-8 font-[family-name:var(--font-body)]">
-          <div className="rounded-[28px] border border-[#d7c7b2] bg-[#fffdf9] p-10 text-center shadow-[0_20px_40px_rgba(31,42,43,0.06)]">
-            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.24em] text-[#8a4d2d]">HISGO</p>
-            <h1 className="mb-4 font-[family-name:var(--font-heading)] text-4xl">Chưa có bài viết nào</h1>
-            <p className="mb-6 text-[#536560]">Chưa có nội dung nào để hiển thị. Hãy tạo bài viết đầu tiên cho cộng đồng HISGO.</p>
+        <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-20 md:px-6 lg:px-8 font-[family-name:var(--font-body)]">
+          <div className="rounded-2xl border border-[#E2D5B8] bg-[#FAF6EA] p-10 text-center shadow-sm">
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.24em] text-[#7A1F24]">HISGO</p>
+            <h1 className="mb-4 font-[family-name:var(--font-heading)] text-3xl sm:text-4xl font-bold">Chưa có bài viết nào</h1>
+            <p className="mb-6 text-[#6B5B4A]">Chưa có nội dung nào để hiển thị. Hãy tạo bài viết đầu tiên cho cộng đồng HISGO.</p>
             <Link
               href="/blog/create"
-              className="inline-flex items-center justify-center rounded-full bg-[#1f2a2b] px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[#f7f1e7] transition hover:bg-[#8a4d2d]"
+              className="inline-flex items-center justify-center rounded-xl bg-[#7A1F24] px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm transition hover:bg-[#5E161A]"
             >
               Tạo bài viết đầu tiên
             </Link>
@@ -157,10 +157,10 @@ export async function BlogLandingPage({ author }: { author?: string } = {}) {
   }
 
   return (
-    <div className="hisgo-theme min-h-screen bg-[#f7f1e7] text-[#1f2a2b]">
+    <div className="hisgo-theme flex min-h-screen flex-col bg-[#f7f1e7] text-[#2D1A10]">
       <Header activeTab="blog" />
 
-      <main className="mx-auto max-w-[1280px] px-4 py-8 md:px-6 lg:px-8 lg:py-10 font-[family-name:var(--font-body)]">
+      <main className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-8 md:px-6 lg:px-8 lg:py-10 font-[family-name:var(--font-body)]">
         <div className="mb-8 flex flex-col gap-4 border-b border-[#d7c7b2] pb-6 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-[#8a4d2d]">HISGO</p>

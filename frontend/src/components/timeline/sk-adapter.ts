@@ -2,9 +2,11 @@ import {
   PublicEventSummaryDto,
   PublicPeriodDto,
 } from "@/services/entities/landing.service";
+import { comparePeriodOrder } from "@/services/entities/landing-graph";
 import {
   eventCategoryLabel,
   type EventCategoryItem,
+  type PublicTag,
 } from "@/services/public/public-content.service";
 
 export const SK_SELECTED_CLASS = "sk-selected";
@@ -22,12 +24,16 @@ export interface TimelineEvent {
   subEra: string;
   category: string;
   categoryCode: string;
+  categoryId?: string | null;
   title: string;
   slug?: string | null;
   summary: string;
   content: string;
   imageUrl?: string;
   tags: string[];
+  tagItems: PublicTag[];
+  siteType?: string | null;
+  preservationCategory?: string | null;
   endYear?: number;
   spanLabel?: string;
 }
@@ -42,6 +48,7 @@ export interface TimeNode {
 
 export interface SubEra {
   id: string;
+  parentId?: string | null;
   slug: string;
   eraId: string;
   title: string;
@@ -49,6 +56,7 @@ export interface SubEra {
   summary: string;
   themeColor: string;
   timeNodes: TimeNode[];
+  totalItemCount?: number;
 }
 
 export interface Era {
@@ -58,6 +66,8 @@ export interface Era {
   periodLabel: string;
   overview: string;
   subEras: SubEra[];
+  /** Đầy đủ nhánh cha/con (kể cả nhóm gom cấp 2 có 0 mốc trực tiếp) để dựng cây Mục lục 3 tầng. */
+  tocSubEras?: SubEra[];
 }
 
 const THEME_COLORS = ["green", "amber"];
@@ -80,7 +90,14 @@ function toTimelineEvent(
   subEraTitle: string,
   eventCategories: EventCategoryItem[],
 ): TimelineEvent {
-  const label = eventCategoryLabel(eventCategories, event);
+  const directCatName = event.category?.trim();
+  const label =
+    directCatName && !/^[a-z0-9-]+$/.test(directCatName)
+      ? directCatName
+      : eventCategoryLabel(eventCategories, event);
+  const tagItems = event.tagItems ?? [];
+  const tagNames = tagItems.length > 0 ? tagItems.map((t) => t.name) : event.location ? [event.location] : [];
+
   return {
     id: event.id,
     dateLabel: dateLabelOf(event),
@@ -90,12 +107,16 @@ function toTimelineEvent(
     subEra: subEraTitle,
     category: label,
     categoryCode: event.category,
+    categoryId: event.categoryIds?.[0] ?? null,
     title: event.title,
     slug: event.slug,
     summary: event.description || "Chưa có mô tả cho dấu mốc này.",
     content: event.description || "Chưa có nội dung chi tiết cho dấu mốc này.",
     imageUrl: event.imageUrl || undefined,
-    tags: event.location ? [event.location] : [],
+    tags: tagNames,
+    tagItems,
+    siteType: event.siteType ?? null,
+    preservationCategory: event.preservationCategory ?? null,
     ...spanOf(event),
   };
 }
@@ -111,12 +132,19 @@ function spanOf(event: PublicEventSummaryDto): Pick<TimelineEvent, "endYear" | "
 
 const eraYear = (year: number) => (year < 0 ? `${Math.abs(year)} TCN` : String(year));
 
-/** Thu thập đệ quy toàn bộ các giai đoạn con/cháu theo thứ tự thời gian của một thời kỳ gốc. */
+/** Thu thập đệ quy toàn bộ các giai đoạn con/cháu đúng theo `displayOrder` CMS của một thời kỳ gốc. */
 function collectDescendantPeriods(periods: PublicPeriodDto[], rootId: string): PublicPeriodDto[] {
   const direct = periods
     .filter((p) => p.parentId === rootId)
-    .sort((a, b) => (a.startYear ?? 0) - (b.startYear ?? 0));
+    .sort(comparePeriodOrder);
   return direct.flatMap((child) => [child, ...collectDescendantPeriods(periods, child.id)]);
+}
+
+function hasActiveDescendantNodes(sub: SubEra, allSubs: SubEra[]): boolean {
+  if (sub.timeNodes.length > 0) return true;
+  return allSubs
+    .filter((child) => child.parentId === sub.id)
+    .some((child) => hasActiveDescendantNodes(child, allSubs));
 }
 
 export function buildEraDataset(
@@ -126,7 +154,7 @@ export function buildEraDataset(
 ): Era[] {
   const topPeriods = periods
     .filter((p) => !p.parentId)
-    .sort((a, b) => (a.startYear ?? 0) - (b.startYear ?? 0));
+    .sort(comparePeriodOrder);
 
   const eventsByPeriodSlug = new Map<string, PublicEventSummaryDto[]>();
   for (const event of events) {
@@ -141,41 +169,46 @@ export function buildEraDataset(
       const descendants = collectDescendantPeriods(periods, top.id);
       const leafPeriods = [top, ...descendants];
 
-      const subEras: SubEra[] = leafPeriods
-        .map((leaf, leafIndex): SubEra => {
-          const leafEvents = (eventsByPeriodSlug.get(leaf.slug) || []).sort((a, b) => a.startYear - b.startYear);
-          const nodesByYear = new Map<number, PublicEventSummaryDto[]>();
-          for (const event of leafEvents) {
-            const list = nodesByYear.get(event.startYear) || [];
-            list.push(event);
-            nodesByYear.set(event.startYear, list);
-          }
+      const rawSubEras: SubEra[] = leafPeriods.map((leaf, leafIndex): SubEra => {
+        const leafEvents = (eventsByPeriodSlug.get(leaf.slug) || []).sort((a, b) => a.startYear - b.startYear);
+        const nodesByYear = new Map<number, PublicEventSummaryDto[]>();
+        for (const event of leafEvents) {
+          const list = nodesByYear.get(event.startYear) || [];
+          list.push(event);
+          nodesByYear.set(event.startYear, list);
+        }
 
-          const timeNodes: TimeNode[] = Array.from(nodesByYear.entries())
-            .sort(([a], [b]) => a - b)
-            .map(([year, yearEvents]): TimeNode => {
-              const mappedEvents = yearEvents.map((e) => toTimelineEvent(e, top.name, leaf.name, eventCategories));
-              return {
-                id: `node-${yearEvents[0].id}`,
-                subEraId: leaf.id,
-                dateLabel: yearEvents.length > 1 ? yearLabel(year) : dateLabelOf(yearEvents[0]),
-                sortYear: year,
-                events: mappedEvents,
-              };
-            });
+        const timeNodes: TimeNode[] = Array.from(nodesByYear.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([year, yearEvents]): TimeNode => {
+            const mappedEvents = yearEvents.map((e) => toTimelineEvent(e, top.name, leaf.name, eventCategories));
+            return {
+              id: `node-${yearEvents[0].id}`,
+              subEraId: leaf.id,
+              dateLabel: yearEvents.length > 1 ? yearLabel(year) : dateLabelOf(yearEvents[0]),
+              sortYear: year,
+              events: mappedEvents,
+            };
+          });
 
-          return {
-            id: leaf.id,
-            slug: leaf.slug,
-            eraId: top.id,
-            title: leaf.name,
-            periodLabel: leaf.timeLabel,
-            summary: leaf.description || "",
-            themeColor: THEME_COLORS[leafIndex % THEME_COLORS.length],
-            timeNodes,
-          };
-        })
-        .filter((subEra) => subEra.timeNodes.length > 0);
+        return {
+          id: leaf.id,
+          parentId: leaf.parentId ?? null,
+          slug: leaf.slug,
+          eraId: top.id,
+          title: leaf.name,
+          periodLabel: leaf.timeLabel,
+          summary: leaf.description || "",
+          themeColor: THEME_COLORS[leafIndex % THEME_COLORS.length],
+          timeNodes,
+          totalItemCount: Math.max(leaf.totalArticleCount ?? 0, leafEvents.length, timeNodes.length),
+        };
+      });
+
+      const subEras = rawSubEras.filter((subEra) => subEra.timeNodes.length > 0);
+      const tocSubEras = rawSubEras.filter(
+        (subEra) => subEra.id !== top.id && hasActiveDescendantNodes(subEra, rawSubEras),
+      );
 
       return {
         id: top.id,
@@ -184,6 +217,7 @@ export function buildEraDataset(
         periodLabel: top.timeLabel,
         overview: top.description || "",
         subEras,
+        tocSubEras,
       };
     })
     .filter((era) => era.subEras.length > 0);

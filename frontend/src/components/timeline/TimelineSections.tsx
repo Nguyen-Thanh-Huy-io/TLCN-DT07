@@ -1,13 +1,13 @@
 'use client';
 
-import { ReactNode, useState, useEffect, useMemo, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useInView } from 'framer-motion';
+import { ArrowUpRight, ChevronDown, Landmark } from 'lucide-react';
 import Link from 'next/link';
-import { ArrowUpRight, ChevronDown, Landmark, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button, Heading, Badge, shortTitle } from './TimelineChrome';
-import { TimelineNodeItem, NodeContent } from './TimelineNodes';
-import { SK_SELECTED_CLASS, type SubEra, type TimeNode, type TimelineEvent } from './sk-adapter';
-import { KeyboardKey } from '@/constants/enums';
+import { useRef, useState, type ReactNode } from 'react';
+import { HorizontalTimelineRuler } from './HorizontalTimelineRuler';
+import { Badge, Heading } from './TimelineChrome';
+import { TimelineNodeItem } from './TimelineNodes';
+import { type SubEra, type TimeNode, type TimelineEvent } from './sk-adapter';
 
 // === EraSection.tsx ===
 export function EraSection({
@@ -16,6 +16,7 @@ export function EraSection({
   period,
   index,
   overview,
+  defaultOpen = true,
   children,
 }: {
   title: string;
@@ -24,9 +25,10 @@ export function EraSection({
   period: string;
   index: number;
   overview: string;
+  defaultOpen?: boolean;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <section className="sk-era-section" id={`era-${slug || index}`}>
       <div className="sk-era-banner">
@@ -41,7 +43,13 @@ export function EraSection({
           </span>
           <span className="sk-era-banner-text">
             <small>
-              Thời kỳ {String(index + 1).padStart(2, "0")} <i /> {period}
+              Thời kỳ {String(index + 1).padStart(2, "0")}
+              {period ? (
+                <>
+                  {" "}
+                  <i /> {period}
+                </>
+              ) : null}
             </small>
             <Heading>{title}</Heading>
             {overview && <p>{overview}</p>}
@@ -82,6 +90,76 @@ export function EraSection({
 }
 
 // === SubEraSection.tsx ===
+const INITIAL_NODES_PER_SUB_ERA = 5;
+const STEP_NODES_PER_SUB_ERA = 5;
+const LAZY_MOUNT_MARGIN = '600px 0px 600px 0px';
+const LAZY_PLACEHOLDER_HEIGHT_PX = 160;
+
+const INITIAL_SUB_ERAS_PER_ERA = 3;
+const STEP_SUB_ERAS_PER_ERA = 4;
+
+export function LazySubEraList({
+  subEras,
+  resetKey,
+  renderSubEra,
+}: {
+  subEras: SubEra[];
+  resetKey: string;
+  renderSubEra: (subEra: SubEra) => ReactNode;
+}) {
+  const [limitState, setLimitState] = useState({
+    key: resetKey,
+    limit: INITIAL_SUB_ERAS_PER_ERA,
+  });
+  const limit = limitState.key === resetKey ? limitState.limit : INITIAL_SUB_ERAS_PER_ERA;
+  const total = subEras.length;
+  const visibleSubs = subEras.slice(0, limit);
+  const hasMore = total > limit;
+
+  return (
+    <>
+      {visibleSubs.map((s) => renderSubEra(s))}
+      {total > INITIAL_SUB_ERAS_PER_ERA && (
+        <div className="sk-load-more pt-5 pb-3 flex flex-wrap items-center justify-center gap-2">
+          {hasMore ? (
+            <>
+              <button
+                type="button"
+                className="sk-button !rounded-full !px-5 !py-2.5 text-xs font-bold text-[#7A1F24] border border-[#D4AE67] bg-[#FAF5E6] hover:bg-[#F5EEDC] cursor-pointer"
+                onClick={() =>
+                  setLimitState({
+                    key: resetKey,
+                    limit: Math.min(limit + STEP_SUB_ERAS_PER_ERA, total),
+                  })
+                }
+              >
+                + Xem thêm {Math.min(STEP_SUB_ERAS_PER_ERA, total - limit)} giai đoạn tiếp theo (còn {total - limit})
+              </button>
+              {total - limit > STEP_SUB_ERAS_PER_ERA && (
+                <button
+                  type="button"
+                  className="sk-button !rounded-full !px-4 !py-2.5 text-xs font-bold text-stone-700 border border-stone-300 bg-white hover:bg-stone-50 cursor-pointer"
+                  onClick={() => setLimitState({ key: resetKey, limit: total })}
+                >
+                  Xem tất cả {total} giai đoạn
+                </button>
+              )}
+            </>
+          ) : (
+            <button
+              type="button"
+              className="sk-button !rounded-full !px-4 !py-2 text-xs font-bold text-stone-600 border border-stone-300 bg-white hover:bg-stone-50 cursor-pointer"
+              onClick={() => setLimitState({ key: resetKey, limit: INITIAL_SUB_ERAS_PER_ERA })}
+            >
+              Thu gọn còn {INITIAL_SUB_ERAS_PER_ERA} giai đoạn đầu
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function SubEraSection({
   subEra: s,
   compact,
@@ -99,8 +177,21 @@ export function SubEraSection({
   onActive: (id: string) => void;
   hideSubHeading?: boolean;
 }) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const nearViewport = useInView(sectionRef, { once: true, margin: LAZY_MOUNT_MARGIN });
+  const [visibleLimit, setVisibleLimit] = useState(INITIAL_NODES_PER_SUB_ERA);
+  const totalNodes = s.timeNodes.length;
+  const totalStageItems = Math.max(s.totalItemCount ?? 0, totalNodes);
+  const hasMore = totalNodes > visibleLimit;
+  const isExpanded = visibleLimit > INITIAL_NODES_PER_SUB_ERA;
+  const visibleNodes = s.timeNodes.slice(0, visibleLimit);
+  const placeholderHeight = LAZY_PLACEHOLDER_HEIGHT_PX;
+  const showStagePortalBtn =
+    Boolean(s.slug) && (totalStageItems > INITIAL_NODES_PER_SUB_ERA || totalStageItems > totalNodes);
+
   return (
     <motion.section
+      ref={sectionRef}
       id={s.id}
       className={`sk-sub-era sk-theme-${s.themeColor}`}
       onViewportEnter={() => onActive(s.id)}
@@ -114,184 +205,77 @@ export function SubEraSection({
               <Heading level={3}>{s.title}</Heading>
               <ArrowUpRight size={14} />
             </Link>
-            <Badge>{s.periodLabel}</Badge>
-            <span className="sk-sub-count">{s.timeNodes.length} dấu mốc</span>
+            {s.periodLabel && <Badge>{s.periodLabel}</Badge>}
+            <span className="sk-sub-count">
+              {totalStageItems > totalNodes
+                ? `${totalStageItems.toLocaleString('vi-VN')} tư liệu`
+                : `${totalNodes} dấu mốc`}
+            </span>
           </div>
         </div>
       )}
       <div className="sk-nodes">
         <div className="sk-spine" />
-        {s.timeNodes.map((node, index) => {
-          const right = index % 2 === 1;
-          return (
-            <TimelineNodeItem
-              key={node.id}
-              node={node}
-              right={right}
-              compact={compact}
-              onDetail={onDetail}
-              onSave={onSave}
-              saved={saved}
-            />
-          );
-        })}
+        {nearViewport ? (
+          visibleNodes.map((node, index) => {
+            const right = index % 2 === 1;
+            return (
+              <TimelineNodeItem
+                key={node.id}
+                node={node}
+                right={right}
+                compact={compact}
+                onDetail={onDetail}
+                onSave={onSave}
+                saved={saved}
+              />
+            );
+          })
+        ) : (
+          <div aria-hidden="true" style={{ minHeight: placeholderHeight }} />
+        )}
       </div>
+
+      {nearViewport && (totalNodes > INITIAL_NODES_PER_SUB_ERA || showStagePortalBtn) && (
+        <div className="sk-load-more pt-4 pb-2 flex flex-wrap items-center justify-center gap-2">
+          {hasMore && (
+            <button
+              type="button"
+              className="sk-button !rounded-full !px-4 !py-2 text-xs font-bold text-[#7A1F24] border border-[#D4AE67] bg-[#FAF5E6] hover:bg-[#F5EEDC] cursor-pointer"
+              onClick={() =>
+                setVisibleLimit((prev) =>
+                  Math.min(prev + STEP_NODES_PER_SUB_ERA, totalNodes),
+                )
+              }
+            >
+              + Xem thêm {Math.min(STEP_NODES_PER_SUB_ERA, totalNodes - visibleLimit)} mốc tiếp theo
+            </button>
+          )}
+          {!hasMore && isExpanded && (
+            <button
+              type="button"
+              className="sk-button !rounded-full !px-4 !py-2 text-xs font-bold text-stone-600 border border-stone-300 bg-white hover:bg-stone-50 cursor-pointer"
+              onClick={() => setVisibleLimit(INITIAL_NODES_PER_SUB_ERA)}
+            >
+              Thu gọn mốc giai đoạn
+            </button>
+          )}
+          {showStagePortalBtn && (
+            <Link
+              href={`/giai-doan/${s.slug}`}
+              className="sk-button !inline-flex !items-center !gap-1.5 !rounded-full !px-4 !py-2 text-xs font-bold text-[#2D1A10] border border-[#E2D5B8] bg-white hover:border-[#7A1F24] hover:text-[#7A1F24] transition"
+            >
+              <span>Xem tất cả {totalStageItems.toLocaleString('vi-VN')} tư liệu giai đoạn này</span>
+              <ArrowUpRight size={14} />
+            </Link>
+          )}
+        </div>
+      )}
     </motion.section>
   );
 }
 
-// === HorizontalExplorer.tsx ===
-/**
- * Trục ngang theo mô hình 3 tầng:
- *  - Tầng trên (thanh trượt): dải tên giai đoạn + mỗi mốc chỉ có chấm, năm và tiêu đề ngắn 1 dòng.
- *  - Tầng dưới (workspace): toàn bộ sự kiện / nhân vật / địa điểm của mốc đang chọn,
- *    nằm trong khung lớn bên dưới nên không bao giờ chồng chữ lên trục.
- */
-export function HorizontalExplorer({
-  visibleNodes,
-  selectedNode,
-  onSelectNode,
-  subs,
-  onDetail,
-  onSave,
-  saved,
-}: {
-  visibleNodes: TimeNode[];
-  selectedNode: TimeNode | undefined;
-  onSelectNode: (id: string) => void;
-  subs: SubEra[];
-  onDetail: (d: { event: TimelineEvent; node: TimeNode }) => void;
-  onSave: (id: string) => void;
-  saved: string[];
-}) {
-  const trackRef = useRef<HTMLDivElement>(null);
+// === HorizontalExplorer.tsx (Bảo toàn tương thích ngược qua Facade) ===
+export { HorizontalTimelineRuler, HorizontalTimelineRuler as HorizontalExplorer };
 
-  // Gom các mốc đang hiển thị theo giai đoạn để vẽ dải nhãn phía trên trục.
-  const groups = useMemo(() => {
-    const visible = new Set(visibleNodes.map((n) => n.id));
-    return subs
-      .map((s) => ({ sub: s, nodes: s.timeNodes.filter((n) => visible.has(n.id)) }))
-      .filter((g) => g.nodes.length > 0);
-  }, [subs, visibleNodes]);
-
-  const ordered = useMemo(() => groups.flatMap((g) => g.nodes), [groups]);
-  const index = selectedNode ? ordered.findIndex((n) => n.id === selectedNode.id) : -1;
-  const selectedSub = groups.find((g) => g.nodes.some((n) => n.id === selectedNode?.id))?.sub;
-
-  const step = (delta: number) => {
-    const next = ordered[Math.min(ordered.length - 1, Math.max(0, index + delta))];
-    if (next) onSelectNode(next.id);
-  };
-
-  // Giữ mốc đang chọn ở giữa thanh trượt.
-  useEffect(() => {
-    if (!selectedNode) return;
-    trackRef.current
-      ?.querySelector<HTMLElement>(`[data-node-id="${selectedNode.id}"]`)
-      ?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-  }, [selectedNode]);
-
-  return (
-    <>
-      <div className="sk-scrubber">
-        <Button className="sk-scrubber-arrow" aria-label="Mốc trước" disabled={index <= 0} onClick={() => step(-1)}>
-          <ChevronLeft size={18} />
-        </Button>
-        <div
-          className="sk-horizontal-track"
-          ref={trackRef}
-          role="listbox"
-          aria-label="Các mốc thời gian"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === KeyboardKey.ARROW_RIGHT) {
-              e.preventDefault();
-              step(1);
-            } else if (e.key === KeyboardKey.ARROW_LEFT) {
-              e.preventDefault();
-              step(-1);
-            }
-          }}
-        >
-          {groups.map(({ sub, nodes }) => (
-            <div className={`sk-scrubber-group sk-theme-${sub.themeColor}`} key={sub.id}>
-              <button
-                type="button"
-                className={`sk-scrubber-band ${selectedSub?.id === sub.id ? SK_SELECTED_CLASS : ""}`}
-                title={sub.title}
-                onClick={() => onSelectNode(nodes[0].id)}
-              >
-                {shortTitle(sub.title)}
-              </button>
-              <div className="sk-scrubber-nodes">
-                {nodes.map((n) => {
-                  const first = n.events[0];
-                  const more = n.events.length - 1;
-                  const isSelected = selectedNode?.id === n.id;
-                  return (
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={isSelected}
-                      data-node-id={n.id}
-                      className={`sk-scrubber-node ${isSelected ? SK_SELECTED_CLASS : ""}`}
-                      key={n.id}
-                      title={n.events.map((ev) => ev.title).join("\n")}
-                      onClick={() => onSelectNode(n.id)}
-                    >
-                      <span className="sk-scrubber-dot" />
-                      <strong>{n.dateLabel}</strong>
-                      <small>{first?.title}</small>
-                      {more > 0 && <em>+{more} sự kiện</em>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-        <Button
-          className="sk-scrubber-arrow"
-          aria-label="Mốc tiếp theo"
-          disabled={index < 0 || index >= ordered.length - 1}
-          onClick={() => step(1)}
-        >
-          <ChevronRight size={18} />
-        </Button>
-      </div>
-
-      <AnimatePresence mode="wait">
-        {selectedNode && (
-          <motion.div
-            key={selectedNode.id}
-            className="sk-horizontal-panel"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="sk-panel-title">
-              <div>
-                <Badge>{selectedSub ? shortTitle(selectedSub.title) : "Không gian khám phá"}</Badge>
-                <Heading>{selectedNode.dateLabel}</Heading>
-              </div>
-              <div className="sk-panel-nav">
-                <span>
-                  Mốc {index + 1}/{ordered.length}
-                </span>
-                <Button aria-label="Mốc trước" disabled={index <= 0} onClick={() => step(-1)}>
-                  <ChevronLeft size={16} /> Trước
-                </Button>
-                <Button aria-label="Mốc tiếp theo" disabled={index >= ordered.length - 1} onClick={() => step(1)}>
-                  Sau <ChevronRight size={16} />
-                </Button>
-              </div>
-            </div>
-            <NodeContent node={selectedNode} onDetail={onDetail} onSave={onSave} saved={saved} workspace />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  );
-}
 

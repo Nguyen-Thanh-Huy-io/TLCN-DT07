@@ -3,11 +3,25 @@
 import { KeyboardKey } from '@/constants/enums';
 import { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, BookOpen, Bookmark, Compass, LayoutList, Search, SlidersHorizontal, ChevronDown, Layers, ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react';
+import { X, Bookmark, Compass, LayoutList, Search, SlidersHorizontal, ChevronDown, Layers, ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react';
 import { TimelineFacetKey, type Era, type TimeNode, type TimelineEvent } from './sk-adapter';
 import { RemoteImage } from '@/components/common/CommonUi';
-import { ChipGroup, FilterDialog, FilterSection, PickedCount, type ChipOption } from '@/components/filters/ChipFilter';
-import { PUBLIC_ROUTES } from '@/services/public/public-content.service';
+import { ChipOption, FilterDialog, toggleValue } from '@/components/filters/ChipFilter';
+import {
+  getDeepestCategoryIds,
+  selectSingleRootCategory,
+  toggleSubCategoryNode,
+} from '@/components/filters/CategoryHierarchyFilterSection';
+import {
+  activePublicFacetFilterCount,
+  PublicContentFilterSections,
+  type PublicContentFacetFilterState,
+} from '@/components/filters/PublicContentFilterSections';
+import {
+  PUBLIC_ROUTES,
+  type ArticleCatalogTagFacet,
+  type PublicCategory,
+} from '@/services/public/public-content.service';
 import Link from 'next/link';
 
 // === SkUi.tsx ===
@@ -105,27 +119,107 @@ export function Modal({
 }
 
 // === FilterBar.tsx ===
-/** Mỗi nhóm cho chọn nhiều giá trị; mảng rỗng = không lọc theo nhóm đó. */
-export interface TimelineFilters {
+export interface TimelineFilters extends PublicContentFacetFilterState {
   eras: string[];
   subs: string[];
-  categories: string[];
 }
 
-export const EMPTY_FILTERS: TimelineFilters = { eras: [], subs: [], categories: [] };
+export const EMPTY_FILTERS: TimelineFilters = {
+  eras: [],
+  subs: [],
+  rootCategoryId: null,
+  subCategoryIds: [],
+  tags: [],
+};
 
-export function activeFilterCount(filters: TimelineFilters): number {
-  return filters.eras.length + filters.subs.length + filters.categories.length;
+export function activeFilterCount(
+  filters: TimelineFilters,
+  categories: PublicCategory[] = [],
+): number {
+  return (
+    filters.eras.length +
+    filters.subs.length +
+    activePublicFacetFilterCount(filters, categories)
+  );
 }
 
-/** Bỏ một giá trị khỏi nhóm; bỏ thời kỳ thì bỏ luôn các giai đoạn thuộc thời kỳ đó. */
-export function withoutValue(filters: TimelineFilters, key: keyof TimelineFilters, value: string, eras: Era[]): TimelineFilters {
+/** Bỏ một giá trị thời kỳ/giai đoạn khỏi bộ lọc. */
+export function withoutEraOrSubValue(
+  filters: TimelineFilters,
+  key: 'eras' | 'subs',
+  value: string,
+  eras: Era[],
+): TimelineFilters {
   const next = { ...filters, [key]: filters[key].filter((v) => v !== value) };
   if (key === TimelineFacetKey.ERAS) {
     const dropped = new Set(eras.find((e) => e.id === value)?.subEras.map((s) => s.id));
     next.subs = next.subs.filter((s) => !dropped.has(s));
   }
   return next;
+}
+
+interface FilterChipEntry {
+  id: string;
+  label: string;
+  onRemove: () => void;
+}
+
+function buildTimelineFilterChips(
+  filters: TimelineFilters,
+  eras: Era[],
+  subs: Era['subEras'],
+  categories: PublicCategory[],
+  tagNamesById: ReadonlyMap<string, string>,
+  onFilters: (f: TimelineFilters) => void,
+  focusedTocLabel?: string | null,
+  onClearTocFocus?: () => void,
+): FilterChipEntry[] {
+  const catById = new Map(categories.map((c) => [c.id, c]));
+  const deepestSubs = getDeepestCategoryIds(filters.subCategoryIds, categories);
+  const activeCatIds =
+    deepestSubs.length > 0
+      ? deepestSubs
+      : filters.rootCategoryId
+        ? [filters.rootCategoryId]
+        : [];
+
+  return [
+    ...(focusedTocLabel && onClearTocFocus
+      ? [
+          {
+            id: 'toc-focus',
+            label: `Mục lục: ${focusedTocLabel}`,
+            onRemove: onClearTocFocus,
+          },
+        ]
+      : []),
+    ...filters.eras.map((v) => ({
+      id: `era-${v}`,
+      label: eras.find((e) => e.id === v)?.title ?? 'Thời kỳ',
+      onRemove: () => onFilters(withoutEraOrSubValue(filters, 'eras', v, eras)),
+    })),
+    ...filters.subs.map((v) => ({
+      id: `sub-${v}`,
+      label: subs.find((s) => s.id === v)?.title ?? 'Giai đoạn',
+      onRemove: () => onFilters(withoutEraOrSubValue(filters, 'subs', v, eras)),
+    })),
+    ...activeCatIds.map((cid) => ({
+      id: `cat-${cid}`,
+      label: catById.get(cid)?.name ?? cid,
+      onRemove: () => {
+        if (filters.rootCategoryId === cid && filters.subCategoryIds.length === 0) {
+          onFilters(selectSingleRootCategory(filters, cid));
+        } else {
+          onFilters(toggleSubCategoryNode(filters, cid, categories));
+        }
+      },
+    })),
+    ...filters.tags.map((tid) => ({
+      id: `tag-${tid}`,
+      label: tagNamesById.get(tid) ?? `#${tid}`,
+      onRemove: () => onFilters({ ...filters, tags: toggleValue(filters.tags, tid) }),
+    })),
+  ];
 }
 
 export function FilterBar({
@@ -136,13 +230,15 @@ export function FilterBar({
   onOpenSheet,
   eras,
   subs,
+  categories,
+  tagNamesById,
   compact,
   onCompact,
   bookmarksOnly,
   onBookmarksOnly,
   savedCount,
-  onOpenToc,
-  eraCount = 0,
+  focusedTocLabel,
+  onClearTocFocus,
 }: {
   query: string;
   onQuery: (v: string) => void;
@@ -150,22 +246,28 @@ export function FilterBar({
   onFilters: (f: TimelineFilters) => void;
   onOpenSheet: () => void;
   eras: Era[];
-  subs: Era["subEras"];
+  subs: Era['subEras'];
+  categories: PublicCategory[];
+  tagNamesById: ReadonlyMap<string, string>;
   compact: boolean;
   onCompact: () => void;
   bookmarksOnly: boolean;
   onBookmarksOnly: () => void;
   savedCount: number;
-  onOpenToc?: () => void;
-  eraCount?: number;
+  focusedTocLabel?: string | null;
+  onClearTocFocus?: () => void;
 }) {
-  const count = activeFilterCount(filters);
-  // Bộ lọc đang bật hiển thị thành chip có nút xóa, để không phải mở lại hộp thoại.
-  const chips: Array<{ key: keyof TimelineFilters; value: string; label: string }> = [
-    ...filters.eras.map((v) => ({ key: "eras" as const, value: v, label: eras.find((e) => e.id === v)?.title ?? "Thời kỳ" })),
-    ...filters.subs.map((v) => ({ key: "subs" as const, value: v, label: subs.find((s) => s.id === v)?.title ?? "Giai đoạn" })),
-    ...filters.categories.map((v) => ({ key: "categories" as const, value: v, label: v })),
-  ];
+  const facetCount = activePublicFacetFilterCount(filters, categories);
+  const chips = buildTimelineFilterChips(
+    filters,
+    eras,
+    subs,
+    categories,
+    tagNamesById,
+    onFilters,
+    focusedTocLabel,
+    onClearTocFocus,
+  );
 
   return (
     <div className="sk-filter-bar">
@@ -178,50 +280,39 @@ export function FilterBar({
           onChange={(e) => onQuery(e.target.value)}
         />
         {query && (
-          <Button aria-label="Xóa tìm kiếm" onClick={() => onQuery("")}>
+          <Button aria-label="Xóa tìm kiếm" onClick={() => onQuery('')}>
             <X size={14} />
           </Button>
         )}
       </div>
-      {onOpenToc && (
-        <Button
-          className="sk-toc-filter-btn"
-          onClick={onOpenToc}
-          title="Mở mục lục danh sách các thời kỳ lịch sử"
-        >
-          <BookOpen size={16} />
-          <span>Mục lục</span>
-          {eraCount > 0 && <span className="sk-badge">{eraCount}</span>}
-        </Button>
-      )}
-      <Button className={`sk-filter-open ${count ? "sk-is-on" : ""}`} onClick={onOpenSheet} aria-haspopup="dialog">
+      <Button className={`sk-filter-open ${facetCount ? 'sk-is-on' : ''}`} onClick={onOpenSheet} aria-haspopup="dialog">
         <SlidersHorizontal size={16} />
         <span>Bộ lọc</span>
-        {count > 0 && <span className="sk-badge">{count}</span>}
+        {facetCount > 0 && <span className="sk-badge">{facetCount}</span>}
       </Button>
       <span className="sk-filter-divider" />
-      <Button className={`sk-saved-button ${bookmarksOnly ? "sk-is-on" : ""}`} onClick={onBookmarksOnly}>
-        <Bookmark size={15} fill={bookmarksOnly ? "currentColor" : "none"} />
+      <Button className={`sk-saved-button ${bookmarksOnly ? 'sk-is-on' : ''}`} onClick={onBookmarksOnly}>
+        <Bookmark size={15} fill={bookmarksOnly ? 'currentColor' : 'none'} />
         <span>Đã lưu</span>
         {savedCount > 0 && <span className="sk-badge">{savedCount}</span>}
       </Button>
       <Button
-        className={`sk-compact-button ${compact ? "sk-is-on" : ""}`}
-        aria-label={compact ? "Mở rộng chi tiết mốc sự kiện" : "Thu gọn danh sách mốc sự kiện"}
+        className={`sk-compact-button ${compact ? 'sk-is-on' : ''}`}
+        aria-label={compact ? 'Mở rộng chi tiết mốc sự kiện' : 'Thu gọn danh sách mốc sự kiện'}
         aria-pressed={compact}
         onClick={onCompact}
       >
         <LayoutList size={17} />
         <span>Thu gọn</span>
-        <span className={`sk-switch ${compact ? "sk-on" : ""}`} />
+        <span className={`sk-switch ${compact ? 'sk-on' : ''}`} />
       </Button>
       {chips.length > 0 && (
         <div className="sk-active-filters">
           {chips.map((c) => (
             <button
-              key={`${c.key}-${c.value}`}
+              key={c.id}
               type="button"
-              onClick={() => onFilters(withoutValue(filters, c.key, c.value, eras))}
+              onClick={c.onRemove}
               aria-label={`Bỏ lọc ${c.label}`}
             >
               {c.label}
@@ -229,7 +320,14 @@ export function FilterBar({
             </button>
           ))}
           {chips.length > 1 && (
-            <button type="button" className="sk-active-clear" onClick={() => onFilters(EMPTY_FILTERS)}>
+            <button
+              type="button"
+              className="sk-active-clear"
+              onClick={() => {
+                onFilters(EMPTY_FILTERS);
+                onClearTocFocus?.();
+              }}
+            >
               Xóa tất cả
             </button>
           )}
@@ -239,6 +337,8 @@ export function FilterBar({
   );
 }
 
+export type { ChipOption };
+
 // === FilterSheet.tsx ===
 export function FilterSheet({
   open,
@@ -246,58 +346,47 @@ export function FilterSheet({
   onApply,
   onClose,
   countFor,
-  eras,
   categories,
+  branchCategoryCounts,
+  tagOptions,
 }: {
   open: boolean;
   value: TimelineFilters;
   onApply: (filters: TimelineFilters) => void;
   onClose: () => void;
   countFor: (filters: TimelineFilters) => number;
-  eras: Era[];
-  categories: string[];
+  categories: PublicCategory[];
+  branchCategoryCounts: Map<string, number>;
+  tagOptions: ArticleCatalogTagFacet[];
 }) {
-  const eraOptions: ChipOption[] = eras.map((e) => ({ value: e.id, label: e.title, hint: e.periodLabel }));
+  const emptyFacetsOnly: TimelineFilters = {
+    ...value,
+    rootCategoryId: null,
+    subCategoryIds: [],
+    tags: [],
+  };
 
   return (
-    <FilterDialog open={open} value={value} empty={EMPTY_FILTERS} countFor={countFor} onApply={onApply} onClose={onClose}>
-      {(draft, setDraft) => {
-        const toggle = (key: keyof TimelineFilters, v: string) =>
-          setDraft((d) => (d[key].includes(v) ? withoutValue(d, key, v, eras) : { ...d, [key]: [...d[key], v] }));
-
-        return (
-          <>
-            <FilterSection card title="Thời kỳ" aside={<PickedCount count={draft.eras.length + draft.subs.length} />}>
-              <ChipGroup options={eraOptions} selected={draft.eras} onToggle={(v) => toggle("eras", v)} searchLabel="Tìm thời kỳ..." />
-              {/* Chọn thời kỳ nào thì hiện giai đoạn của thời kỳ đó để thu hẹp thêm. */}
-              {eras
-                .filter((e) => draft.eras.includes(e.id) && e.subEras.length > 1)
-                .map((e) => (
-                  <div key={e.id}>
-                    <div className="sk-fs-sublabel">Giai đoạn · {e.title}</div>
-                    <ChipGroup
-                      options={e.subEras.map((s) => ({ value: s.id, label: s.title }))}
-                      selected={draft.subs}
-                      onToggle={(v) => toggle("subs", v)}
-                      searchLabel="Tìm giai đoạn..."
-                    />
-                  </div>
-                ))}
-            </FilterSection>
-
-            {categories.length > 1 && (
-              <FilterSection title="Danh mục sự kiện" aside={<PickedCount count={draft.categories.length} />}>
-                <ChipGroup
-                  options={categories.map((c) => ({ value: c, label: c }))}
-                  selected={draft.categories}
-                  onToggle={(v) => toggle("categories", v)}
-                  searchLabel="Tìm danh mục..."
-                />
-              </FilterSection>
-            )}
-          </>
-        );
-      }}
+    <FilterDialog
+      open={open}
+      value={value}
+      empty={emptyFacetsOnly}
+      countFor={countFor}
+      onApply={onApply}
+      onClose={onClose}
+    >
+      {(draft, setDraft) => (
+        <PublicContentFilterSections
+          draft={draft}
+          setDraft={setDraft}
+          categories={categories}
+          branchCategoryCounts={branchCategoryCounts}
+          tagOptions={tagOptions}
+          rootUnitLabel="dấu mốc"
+          subUnitLabel="mốc"
+          tagUnitLabel="dấu mốc"
+        />
+      )}
     </FilterDialog>
   );
 }
@@ -359,7 +448,8 @@ export function Minimap({
                 <span className="sk-tree-text">
                   <strong>{shortTitle(e.title)}</strong>
                   <small>
-                    {compactPeriod(e.periodLabel)} · {e.subEras.length} giai đoạn · {nodeCount} mốc
+                    {e.periodLabel ? `${compactPeriod(e.periodLabel)} · ` : ''}
+                    {e.subEras.length} giai đoạn · {nodeCount} mốc
                   </small>
                 </span>
               </Button>
@@ -385,7 +475,8 @@ export function Minimap({
                     <span className="sk-tree-name">
                       {sidebarName(s.title)}
                       <small>
-                        {compactPeriod(s.periodLabel)} · {s.timeNodes.length} mốc
+                        {s.periodLabel ? `${compactPeriod(s.periodLabel)} · ` : ''}
+                        {s.timeNodes.length} mốc
                       </small>
                     </span>
                   </Button>

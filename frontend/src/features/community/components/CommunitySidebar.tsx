@@ -241,9 +241,9 @@ export function CommunitySidebar({
                 return (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between gap-3 rounded-[10px] border border-[#E5DAC4] bg-[#FDF9F0] p-3 transition-colors hover:border-[#D8C8AA]"
+                    className="flex items-center justify-between gap-2 rounded-[10px] border border-[#E5DAC4] bg-[#FDF9F0] p-3 transition-colors hover:border-[#D8C8AA]"
                   >
-                    <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-2.5">
                       <Link
                         href={`/cong-dong/thanh-vien/${encodeURIComponent(member.username)}`}
                         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E5EFE6] text-[13px] font-bold text-[#1E4620]"
@@ -274,13 +274,13 @@ export function CommunitySidebar({
                     >
                       {followed ? (
                         <>
-                          <Check size={13} />
-                          <span>Đã theo dõi</span>
+                          <Check size={13} className="shrink-0" />
+                          <span className="whitespace-nowrap">Đã theo dõi</span>
                         </>
                       ) : (
                         <>
-                          <UserPlus size={13} />
-                          <span>Theo dõi</span>
+                          <UserPlus size={13} className="shrink-0" />
+                          <span className="whitespace-nowrap">Theo dõi</span>
                         </>
                       )}
                     </button>

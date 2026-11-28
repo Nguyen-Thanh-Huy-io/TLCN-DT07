@@ -56,9 +56,9 @@
   --lh-ink: oklch(0.25 0.025 165);
   --lh-muted: oklch(0.40 0.03 165);
   --lh-line: oklch(0.89 0.016 85);
-  --lh-brand: oklch(0.36 0.075 164);
-  --lh-brand-strong: oklch(0.3 0.075 164);
-  --lh-brand-soft: oklch(0.92 0.045 164);
+  --lh-brand: #7A1F24;
+  --lh-brand-strong: #5E161A;
+  --lh-brand-soft: #F6E9EA;
   --lh-gold: oklch(0.44 0.12 72);
   --lh-gold-soft: oklch(0.93 0.07 82);
   --lh-red: oklch(0.45 0.15 30);
